@@ -351,20 +351,28 @@
             
             let distance = 0;
             let hit = false;
-            let hitType = 1; // 1 = wall, 2 = gem, 3 = exit
+            let hitType = 0; // 0 = nothing, 1 = wall, 2 = gem, 3 = exit
+            let gemDistance = null;
+            let exitDistance = null;
             
             while (!hit && distance < 20) {
-                distance += 0.1;
+                distance += 0.05; // Smaller steps for better detection
                 const testX = Math.floor(playerX + rayX * distance);
                 const testY = Math.floor(playerY + rayY * distance);
                 
-                if (currentMaze[testY] && currentMaze[testY][testX] === 1) {
-                    hit = true;
-                    hitType = 1;
+                if (currentMaze[testY] && currentMaze[testY][testX]) {
+                    if (currentMaze[testY][testX] === 1) {
+                        hit = true;
+                        hitType = 1;
+                    } else if (currentMaze[testY][testX] === 2 && !gemDistance) {
+                        gemDistance = distance;
+                    } else if (currentMaze[testY][testX] === 3 && !exitDistance) {
+                        exitDistance = distance;
+                    }
                 }
             }
             
-            return { distance, hitType };
+            return { distance, hitType, gemDistance, exitDistance };
         }
 
         function render() {
@@ -393,17 +401,43 @@
                 const wallTop = (canvas.height / 2) - wallHeight;
                 const wallBottom = (canvas.height / 2) + wallHeight;
                 
-                // Color based on distance
-                const brightness = Math.max(0.1, 1 - ray.distance / 10);
-                const color = Math.floor(255 * brightness);
+                // Color based on distance with better visibility
+                const brightness = Math.max(0.3, 1 - ray.distance / 8);
+                
+                // Use different colors for better visibility instead of plain white
+                let wallColor;
+                if (ray.distance < 2) {
+                    wallColor = `rgb(${Math.floor(120 * brightness)}, ${Math.floor(80 * brightness)}, ${Math.floor(200 * brightness)})`;
+                } else if (ray.distance < 5) {
+                    wallColor = `rgb(${Math.floor(100 * brightness)}, ${Math.floor(150 * brightness)}, ${Math.floor(180 * brightness)})`;
+                } else {
+                    wallColor = `rgb(${Math.floor(80 * brightness)}, ${Math.floor(120 * brightness)}, ${Math.floor(160 * brightness)})`;
+                }
                 
                 // Draw wall slice
-                ctx.fillStyle = `rgb(${color}, ${color}, ${color})`;
+                ctx.fillStyle = wallColor;
                 ctx.fillRect(i, wallTop, 1, wallHeight * 2);
                 
+                // Draw gems in 3D view
+                if (ray.gemDistance && ray.gemDistance < ray.distance) {
+                    const gemHeight = (canvas.height / 4) / (ray.gemDistance * Math.cos(rayAngle - playerAngle));
+                    const gemTop = (canvas.height / 2) - gemHeight / 2;
+                    ctx.fillStyle = '#FFD700';
+                    ctx.fillRect(i, gemTop, 1, gemHeight);
+                }
+                
+                // Draw exits in 3D view
+                if (ray.exitDistance && ray.exitDistance < ray.distance) {
+                    const exitHeight = (canvas.height / 3) / (ray.exitDistance * Math.cos(rayAngle - playerAngle));
+                    const exitTop = (canvas.height / 2) - exitHeight / 2;
+                    ctx.fillStyle = '#00FF00';
+                    ctx.fillRect(i, exitTop, 1, exitHeight);
+                }
+                
                 // Add some texture variation
-                if (i % 4 === 0) {
-                    ctx.fillStyle = `rgb(${Math.floor(color * 0.8)}, ${Math.floor(color * 0.8)}, ${Math.floor(color * 0.8)})`;
+                if (i % 4 === 0 && ray.hitType === 1) {
+                    const dimColor = Math.floor(brightness * 60);
+                    ctx.fillStyle = `rgb(${dimColor}, ${dimColor}, ${dimColor})`;
                     ctx.fillRect(i, wallTop, 1, wallHeight * 2);
                 }
             }

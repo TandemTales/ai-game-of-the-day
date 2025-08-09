@@ -283,14 +283,17 @@
             
             generateBoard() {
                 this.board = [];
-                const numColors = Math.min(3 + this.level, this.colors.length);
+                const numColors = Math.min(3 + Math.floor(this.level / 2), 8); // Limit colors for better gameplay
                 const totalTiles = this.boardSize * this.boardSize;
                 
-                // Create pairs of colors
+                // Ensure we have enough matching pairs by creating guaranteed matches
                 const tiles = [];
+                const tilesPerColor = Math.floor(totalTiles / numColors);
+                
+                // Create guaranteed pairs for each color
                 for (let i = 0; i < numColors; i++) {
-                    const tilesForThisColor = Math.min(this.tilesPerColor + Math.floor(this.level / 3), 6);
-                    for (let j = 0; j < tilesForThisColor; j++) {
+                    const colorTileCount = Math.max(2, tilesPerColor); // At least 2 tiles per color
+                    for (let j = 0; j < colorTileCount && tiles.length < totalTiles; j++) {
                         tiles.push({
                             color: this.colors[i],
                             colorIndex: i,
@@ -300,7 +303,7 @@
                     }
                 }
                 
-                // Fill remaining spaces with random colors
+                // Fill any remaining spaces with additional tiles from existing colors
                 while (tiles.length < totalTiles) {
                     const randomColorIndex = Math.floor(Math.random() * numColors);
                     tiles.push({

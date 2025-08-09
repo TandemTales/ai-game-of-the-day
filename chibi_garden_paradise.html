@@ -598,17 +598,37 @@
             
             if (plot) {
                 const value = plot.crop.value;
-                gameState.coins += value;
-                gameState.harvested++;
-                gameState.score += value * 2;
+                const bonusMultiplier = plot.watered ? 1.5 : 1;
+                const finalValue = Math.floor(value * bonusMultiplier);
                 
-                showParticle(x, y, `+${value} coins!`, '#FFD700');
+                gameState.coins += finalValue;
+                gameState.harvested++;
+                gameState.score += finalValue * 3; // Increased score multiplier
+                
+                // Combo system for consecutive harvests
+                if (!gameState.lastHarvestTime || Date.now() - gameState.lastHarvestTime < 3000) {
+                    gameState.harvestCombo = (gameState.harvestCombo || 0) + 1;
+                    if (gameState.harvestCombo > 1) {
+                        const comboBonus = gameState.harvestCombo * 5;
+                        gameState.coins += comboBonus;
+                        showParticle(x, y - 30, `${gameState.harvestCombo}x COMBO! +${comboBonus}`, '#FF4500');
+                    }
+                } else {
+                    gameState.harvestCombo = 1;
+                }
+                gameState.lastHarvestTime = Date.now();
+                
+                showParticle(x, y, `+${finalValue} coins!`, '#FFD700');
+                if (bonusMultiplier > 1) {
+                    showParticle(x, y + 20, '💧 Watered Bonus!', '#4169E1');
+                }
                 
                 plot.crop = null;
                 plot.growthStage = 0;
                 plot.watered = false;
                 
                 checkLevelUp();
+                checkAchievements();
                 updateUI();
             }
         }
@@ -675,8 +695,51 @@
             });
         }
         
+        function checkAchievements() {
+            const achievements = [
+                { id: 'first_harvest', condition: () => gameState.harvested >= 1, message: '🎉 First Harvest! Welcome to farming!' },
+                { id: 'combo_master', condition: () => gameState.harvestCombo >= 5, message: '🔥 Combo Master! 5x harvest streak!' },
+                { id: 'rich_farmer', condition: () => gameState.coins >= 200, message: '💰 Rich Farmer! 200+ coins!' },
+                { id: 'level_5', condition: () => gameState.level >= 5, message: '⭐ Expert Farmer! Level 5 reached!' }
+            ];
+            
+            achievements.forEach(achievement => {
+                if (!gameState.achievements) gameState.achievements = [];
+                if (!gameState.achievements.includes(achievement.id) && achievement.condition()) {
+                    gameState.achievements.push(achievement.id);
+                    showParticle(canvas.width / 2, 100, achievement.message, '#FFD700');
+                    gameState.score += 100;
+                }
+            });
+        }
+        
+        function updateCrops() {
+            gameState.plots.forEach(plot => {
+                if (plot.crop && plot.growthStage < 3) {
+                    const timeSincePlanted = Date.now() - plot.plantedTime;
+                    const growthSpeed = plot.watered ? 0.7 : 1; // Watered crops grow 30% faster
+                    const adjustedGrowthTime = plot.crop.growthTime * growthSpeed;
+                    
+                    if (timeSincePlanted > adjustedGrowthTime / 3 && plot.growthStage === 1) {
+                        plot.growthStage = 2;
+                    } else if (timeSincePlanted > (adjustedGrowthTime * 2) / 3 && plot.growthStage === 2) {
+                        plot.growthStage = 3;
+                    }
+                }
+            });
+        }
+        
+        function updateAnimals() {
+            gameState.animals.forEach(animal => {
+                // Animals get hungry over time
+                if (Date.now() - animal.lastFed > 30000) { // 30 seconds
+                    animal.happiness = Math.max(0, animal.happiness - 0.1);
+                }
+            });
+        }
+        
         function checkLevelUp() {
-            const newLevel = Math.floor(gameState.harvested / 10) + 1;
+            const newLevel = Math.floor(gameState.harvested / 5) + 1;
             if (newLevel > gameState.level) {
                 gameState.level = newLevel;
                 gameState.coins += 50;

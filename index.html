@@ -481,7 +481,8 @@
 			const ratingContainers = document.querySelectorAll('.rate');
 			
 			ratingContainers.forEach(container => {
-				const gameId = container.getAttribute('data-id');
+				// Support data-id on the .rate itself (featured) or on a parent <li> (more games)
+				const gameId = container.dataset.id || container.closest('[data-id]')?.dataset.id || '';
 				const stars = container.querySelectorAll('span[data-star]');
 				const scoreElement = container.nextElementSibling;
 				
@@ -499,11 +500,20 @@
 
 		async function loadRating(gameId, stars, scoreElement) {
 			try {
-				const response = await fetch(`/api/ratings/${gameId}`);
+				if (!gameId) return;
+				const response = await fetch(`/api/ratings/${encodeURIComponent(gameId)}`);
 				if (response.ok) {
 					const data = await response.json();
-					if (data.averageRating) {
-						scoreElement.textContent = `${data.averageRating.toFixed(1)}/5 (${data.totalRatings} votes)`;
+					// Update score text using API fields: average, votes, mine
+					if (scoreElement) {
+						scoreElement.textContent = `${data.average} ★ from ${data.votes} votes` + (data.mine ? ` - You rated ${data.mine}` : '');
+					}
+					// Reflect user's rating if available
+					if (data && typeof data.mine === 'number') {
+						stars.forEach(span => {
+							const val = parseInt(span.getAttribute('data-star'));
+							span.classList.toggle('selected', val <= data.mine);
+						});
 					}
 				}
 			} catch (error) {
@@ -513,6 +523,7 @@
 
 		async function submitRating(gameId, rating, stars, scoreElement) {
 			try {
+				if (!gameId || !rating) return;
 				const response = await fetch('/api/rate', {
 					method: 'POST',
 					headers: {
@@ -526,19 +537,16 @@
 
 				if (response.ok) {
 					// Update visual feedback
-					stars.forEach((star, index) => {
-						if (index < rating) {
-							star.classList.add('selected');
-						} else {
-							star.classList.remove('selected');
-						}
+					stars.forEach(span => {
+						const val = parseInt(span.getAttribute('data-star'));
+						span.classList.toggle('selected', val <= rating);
 					});
 					
 					// Reload rating display
 					loadRating(gameId, stars, scoreElement);
 				} else {
-					const errorData = await response.json();
-					alert(errorData.error || 'Failed to submit rating');
+					const errorText = await response.text().catch(() => '');
+					alert(errorText || 'Failed to submit rating');
 				}
 			} catch (error) {
 				console.log('Rating submission failed:', error);

@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ocean Explorer: Treasure Hunt</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(180deg, #001122 0%, #003366 50%, #004488 100%);
+            color: white;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        .game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .game-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: linear-gradient(180deg, #0066aa 0%, #004477 50%, #002244 100%);
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .ui-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ffff;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 14px;
+            min-width: 200px;
+        }
+
+        .oxygen-bar {
+            width: 150px;
+            height: 20px;
+            background: #333;
+            border: 2px solid #00ffff;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 5px 0;
+        }
+
+        .oxygen-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00 0%, #ffff00 50%, #ff0000 100%);
+            transition: width 0.3s ease;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+        }
+
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 255, 255, 0.3);
+            border: 2px solid #00ffff;
+            border-radius: 50%;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+        }
+
+        .control-btn:active {
+            background: rgba(0, 255, 255, 0.6);
+            transform: scale(0.95);
+        }
+
+        .d-pad {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr 1fr;
+            gap: 5px;
+            width: 180px;
+            height: 180px;
+        }
+
+        .d-pad .control-btn {
+            width: 50px;
+            height: 50px;
+            font-size: 16px;
+        }
+
+        .d-pad .control-btn:nth-child(2) { grid-column: 2; grid-row: 1; }
+        .d-pad .control-btn:nth-child(3) { grid-column: 1; grid-row: 2; }
+        .d-pad .control-btn:nth-child(4) { grid-column: 3; grid-row: 2; }
+        .d-pad .control-btn:nth-child(5) { grid-column: 2; grid-row: 3; }
+
+        .back-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 0, 0, 0.8);
+            border: 2px solid #ff0000;
+            border-radius: 8px;
+            color: white;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            pointer-events: auto;
+            text-decoration: none;
+            font-family: inherit;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 0, 0, 1);
+        }
+
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 3px solid #00ffff;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            display: none;
+            pointer-events: auto;
+        }
+
+        .game-over h2 {
+            color: #00ffff;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .restart-btn {
+            background: #00ffff;
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-family: inherit;
+            font-weight: bold;
+        }
+
+        .restart-btn:hover {
+            background: #00cccc;
+        }
+
+        @media (max-width: 768px) {
+            .ui-panel {
+                font-size: 12px;
+                min-width: 160px;
+            }
+            
+            .controls {
+                bottom: 10px;
+            }
+            
+            .d-pad {
+                width: 150px;
+                height: 150px;
+            }
+            
+            .d-pad .control-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 14px;
+            }
+        }
+
+        .sprite {
+            position: absolute;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <canvas class="game-canvas" id="gameCanvas"></canvas>
+        
+        <div class="ui-overlay">
+            <div class="ui-panel">
+                <div>Score: <span id="score">0</span></div>
+                <div>Depth: <span id="depth">0</span>m</div>
+                <div>Treasures: <span id="treasures">0</span></div>
+                <div>Oxygen:</div>
+                <div class="oxygen-bar">
+                    <div class="oxygen-fill" id="oxygenFill"></div>
+                </div>
+            </div>
+            
+            <a href="index.html" class="back-btn">← Back to Home</a>
+            
+            <div class="controls">
+                <div class="d-pad">
+                    <div class="control-btn" data-key="ArrowUp">↑</div>
+                    <div class="control-btn" data-key="ArrowLeft">←</div>
+                    <div class="control-btn" data-key="ArrowRight">→</div>
+                    <div class="control-btn" data-key="ArrowDown">↓</div>
+                </div>
+            </div>
+            
+            <div class="game-over" id="gameOver">
+                <h2>Game Over!</h2>
+                <div>Final Score: <span id="finalScore">0</span></div>
+                <div>Treasures Found: <span id="finalTreasures">0</span></div>
+                <div>Max Depth: <span id="maxDepth">0</span>m</div>
+                <button class="restart-btn" onclick="restartGame()">Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas size
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Game state
+        let gameState = {
+            player: {
+                x: canvas.width / 2,
+                y: 100,
+                width: 32,
+                height: 32,
+                speed: 3,
+                oxygen: 100,
+                maxOxygen: 100
+            },
+            camera: {
+                x: 0,
+                y: 0
+            },
+            score: 0,
+            treasures: 0,
+            depth: 0,
+            maxDepth: 0,
+            gameRunning: true,
+            keys: {},
+            entities: [],
+            particles: []
+        };
+
+        // Sprite images (we'll create simple colored rectangles for now since we can't load external images easily)
+        const sprites = {
+            player: { color: '#FFD700', width: 32, height: 32 },
+            treasure: { color: '#FFD700', width: 16, height: 16 },
+            coin: { color: '#FFFF00', width: 12, height: 12 },
+            jellyfish: { color: '#FF69B4', width: 24, height: 24 },
+            shark: { color: '#808080', width: 40, height: 20 },
+            urchin: { color: '#4B0082', width: 20, height: 20 },
+            oxygen: { color: '#00BFFF', width: 16, height: 24 },
+            artifact: { color: '#FF8C00', width: 20, height: 28 },
+            coral: { color: '#FF7F50', width: 32, height: 48 }
+        };
+
+        // Initialize game entities
+        function initGame() {
+            gameState.entities = [];
+            gameState.particles = [];
+            
+            // Generate treasures, enemies, and power-ups
+            for (let i = 0; i < 50; i++) {
+                const depth = Math.random() * 2000 + 200;
+                
+                // Treasures
+                if (Math.random() < 0.3) {
+                    gameState.entities.push({
+                        type: 'treasure',
+                        x: Math.random() * (canvas.width * 3),
+                        y: depth,
+                        width: 16,
+                        height: 16,
+                        value: 100
+                    });
+                }
+                
+                // Coins
+                if (Math.random() < 0.5) {
+                    gameState.entities.push({
+                        type: 'coin',
+                        x: Math.random() * (canvas.width * 3),
+                        y: depth,
+                        width: 12,
+                        height: 12,
+                        value: 25
+                    });
+                }
+                
+                // Enemies
+                if (Math.random() < 0.2 && depth > 300) {
+                    const enemyType = Math.random() < 0.5 ? 'jellyfish' : (Math.random() < 0.7 ? 'urchin' : 'shark');
+                    gameState.entities.push({
+                        type: enemyType,
+                        x: Math.random() * (canvas.width * 3),
+                        y: depth,
+                        width: sprites[enemyType].width,
+                        height: sprites[enemyType].height,
+                        vx: enemyType === 'shark' ? (Math.random() - 0.5) * 2 : 0,
+                        vy: enemyType === 'jellyfish' ? Math.sin(Date.now() * 0.001) * 0.5 : 0
+                    });
+                }
+                
+                // Oxygen tanks
+                if (Math.random() < 0.1 && depth > 150) {
+                    gameState.entities.push({
+                        type: 'oxygen',
+                        x: Math.random() * (canvas.width * 3),
+                        y: depth,
+                        width: 16,
+                        height: 24,
+                        value: 30
+                    });
+                }
+                
+                // Artifacts (rare, high value)
+                if (Math.random() < 0.05 && depth > 500) {
+                    gameState.entities.push({
+                        type: 'artifact',
+                        x: Math.random() * (canvas.width * 3),
+                        y: depth,
+                        width: 20,
+                        height: 28,
+                        value: 500
+                    });
+                }
+                
+                // Coral decorations
+                if (Math.random() < 0.3) {
+                    gameState.entities.push({
+                        type: 'coral',
+                        x: Math.random() * (canvas.width * 3),
+                        y: depth,
+                        width: 32,
+                        height: 48,
+                        decoration: true
+                    });
+                }
+            }
+        }
+
+        // Input handling
+        document.addEventListener('keydown', (e) => {
+            gameState.keys[e.code] = true;
+            e.preventDefault();
+        });
+
+        document.addEventListener('keyup', (e) => {
+            gameState.keys[e.code] = false;
+            e.preventDefault();
+        });
+
+        // Touch controls
+        document.querySelectorAll('.control-btn').forEach(btn => {
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const key = btn.dataset.key;
+                if (key) gameState.keys[key] = true;
+            });
+            
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                const key = btn.dataset.key;
+                if (key) gameState.keys[key] = false;
+            });
+            
+            btn.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                const key = btn.dataset.key;
+                if (key) gameState.keys[key] = true;
+            });
+            
+            btn.addEventListener('mouseup', (e) => {
+                e.preventDefault();
+                const key = btn.dataset.key;
+                if (key) gameState.keys[key] = false;
+            });
+        });
+
+        // Game logic
+        function updateGame() {
+            if (!gameState.gameRunning) return;
+
+            const player = gameState.player;
+            
+            // Player movement
+            if (gameState.keys['ArrowLeft'] || gameState.keys['KeyA']) {
+                player.x -= player.speed;
+            }
+            if (gameState.keys['ArrowRight'] || gameState.keys['KeyD']) {
+                player.x += player.speed;
+            }
+            if (gameState.keys['ArrowUp'] || gameState.keys['KeyW']) {
+                player.y -= player.speed;
+            }
+            if (gameState.keys['ArrowDown'] || gameState.keys['KeyS']) {
+                player.y += player.speed;
+            }
+
+            // Boundary constraints
+            player.x = Math.max(0, Math.min(canvas.width * 3 - player.width, player.x));
+            player.y = Math.max(50, player.y);
+
+            // Update camera to follow player
+            gameState.camera.x = player.x - canvas.width / 2;
+            gameState.camera.y = player.y - canvas.height / 2;
+
+            // Calculate depth
+            gameState.depth = Math.max(0, Math.floor((player.y - 100) / 10));
+            gameState.maxDepth = Math.max(gameState.maxDepth, gameState.depth);
+
+            // Oxygen consumption (faster at greater depths)
+            const oxygenRate = 0.05 + (gameState.depth * 0.0001);
+            player.oxygen -= oxygenRate;
+            
+            // Surface oxygen restoration
+            if (player.y < 120) {
+                player.oxygen = Math.min(player.maxOxygen, player.oxygen + 0.5);
+            }
+
+            // Game over if oxygen runs out
+            if (player.oxygen <= 0) {
+                endGame();
+                return;
+            }
+
+            // Update entities
+            gameState.entities.forEach((entity, index) => {
+                // Move enemies
+                if (entity.type === 'shark') {
+                    entity.x += entity.vx;
+                    if (entity.x < 0 || entity.x > canvas.width * 3) {
+                        entity.vx *= -1;
+                    }
+                } else if (entity.type === 'jellyfish') {
+                    entity.y += Math.sin(Date.now() * 0.003 + index) * 0.5;
+                }
+
+                // Collision detection with player
+                if (isColliding(player, entity)) {
+                    if (entity.type === 'treasure' || entity.type === 'coin' || entity.type === 'artifact') {
+                        gameState.score += entity.value;
+                        if (entity.type === 'treasure' || entity.type === 'artifact') {
+                            gameState.treasures++;
+                        }
+                        createParticles(entity.x, entity.y, '#FFD700');
+                        gameState.entities.splice(index, 1);
+                    } else if (entity.type === 'oxygen') {
+                        player.oxygen = Math.min(player.maxOxygen, player.oxygen + entity.value);
+                        createParticles(entity.x, entity.y, '#00BFFF');
+                        gameState.entities.splice(index, 1);
+                    } else if (entity.type === 'jellyfish' || entity.type === 'shark' || entity.type === 'urchin') {
+                        player.oxygen -= 10;
+                        createParticles(player.x, player.y, '#FF0000');
+                        // Push player away from enemy
+                        const dx = player.x - entity.x;
+                        const dy = player.y - entity.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance > 0) {
+                            player.x += (dx / distance) * 20;
+                            player.y += (dy / distance) * 20;
+                        }
+                    }
+                }
+            });
+
+            // Update particles
+            gameState.particles = gameState.particles.filter(particle => {
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.life--;
+                return particle.life > 0;
+            });
+
+            // Update UI
+            updateUI();
+        }
+
+        function isColliding(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+
+        function createParticles(x, y, color) {
+            for (let i = 0; i < 8; i++) {
+                gameState.particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: (Math.random() - 0.5) * 4,
+                    color: color,
+                    life: 30
+                });
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('depth').textContent = gameState.depth;
+            document.getElementById('treasures').textContent = gameState.treasures;
+            
+            const oxygenPercent = (gameState.player.oxygen / gameState.player.maxOxygen) * 100;
+            document.getElementById('oxygenFill').style.width = oxygenPercent + '%';
+        }
+
+        // Rendering
+        function render() {
+            // Clear canvas
+            ctx.fillStyle = '#001133';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw underwater gradient background
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#0066aa');
+            gradient.addColorStop(0.5, '#004477');
+            gradient.addColorStop(1, '#002244');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw light rays from surface
+            if (gameState.camera.y < 200) {
+                ctx.save();
+                ctx.globalAlpha = 0.3;
+                ctx.fillStyle = '#87CEEB';
+                for (let i = 0; i < 5; i++) {
+                    const x = (i * canvas.width / 4) - gameState.camera.x * 0.1;
+                    ctx.fillRect(x, -gameState.camera.y, 20, canvas.height);
+                }
+                ctx.restore();
+            }
+
+            // Draw entities
+            gameState.entities.forEach(entity => {
+                const screenX = entity.x - gameState.camera.x;
+                const screenY = entity.y - gameState.camera.y;
+                
+                if (screenX > -entity.width && screenX < canvas.width && 
+                    screenY > -entity.height && screenY < canvas.height) {
+                    
+                    ctx.fillStyle = sprites[entity.type].color;
+                    ctx.fillRect(screenX, screenY, entity.width, entity.height);
+                    
+                    // Add some visual effects
+                    if (entity.type === 'treasure' || entity.type === 'artifact') {
+                        ctx.save();
+                        ctx.globalAlpha = 0.5;
+                        ctx.fillStyle = '#FFFF00';
+                        ctx.fillRect(screenX - 2, screenY - 2, entity.width + 4, entity.height + 4);
+                        ctx.restore();
+                    }
+                }
+            });
+
+            // Draw player
+            const playerScreenX = gameState.player.x - gameState.camera.x;
+            const playerScreenY = gameState.player.y - gameState.camera.y;
+            
+            ctx.fillStyle = sprites.player.color;
+            ctx.fillRect(playerScreenX, playerScreenY, gameState.player.width, gameState.player.height);
+            
+            // Player helmet effect
+            ctx.save();
+            ctx.globalAlpha = 0.7;
+            ctx.fillStyle = '#00BFFF';
+            ctx.fillRect(playerScreenX + 8, playerScreenY + 4, 16, 16);
+            ctx.restore();
+
+            // Draw particles
+            gameState.particles.forEach(particle => {
+                const screenX = particle.x - gameState.camera.x;
+                const screenY = particle.y - gameState.camera.y;
+                
+                ctx.save();
+                ctx.globalAlpha = particle.life / 30;
+                ctx.fillStyle = particle.color;
+                ctx.fillRect(screenX, screenY, 3, 3);
+                ctx.restore();
+            });
+
+            // Draw surface
+            if (gameState.camera.y < 100) {
+                ctx.fillStyle = '#87CEEB';
+                ctx.fillRect(0, 50 - gameState.camera.y, canvas.width, 50);
+                
+                // Surface waves
+                ctx.save();
+                ctx.globalAlpha = 0.5;
+                ctx.fillStyle = '#B0E0E6';
+                for (let x = 0; x < canvas.width; x += 20) {
+                    const waveHeight = Math.sin((x + Date.now() * 0.005) * 0.1) * 5;
+                    ctx.fillRect(x, 45 - gameState.camera.y + waveHeight, 20, 10);
+                }
+                ctx.restore();
+            }
+        }
+
+        function endGame() {
+            gameState.gameRunning = false;
+            document.getElementById('finalScore').textContent = gameState.score;
+            document.getElementById('finalTreasures').textContent = gameState.treasures;
+            document.getElementById('maxDepth').textContent = gameState.maxDepth;
+            document.getElementById('gameOver').style.display = 'block';
+        }
+
+        function restartGame() {
+            gameState = {
+                player: {
+                    x: canvas.width / 2,
+                    y: 100,
+                    width: 32,
+                    height: 32,
+                    speed: 3,
+                    oxygen: 100,
+                    maxOxygen: 100
+                },
+                camera: {
+                    x: 0,
+                    y: 0
+                },
+                score: 0,
+                treasures: 0,
+                depth: 0,
+                maxDepth: 0,
+                gameRunning: true,
+                keys: {},
+                entities: [],
+                particles: []
+            };
+            
+            document.getElementById('gameOver').style.display = 'none';
+            initGame();
+        }
+
+        // Game loop
+        function gameLoop() {
+            updateGame();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start game
+        initGame();
+        gameLoop();
+    </script>
+</body>
+</html>
+

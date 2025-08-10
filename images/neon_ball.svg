@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="ballGrad" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="60%" stop-color="#00FFFF" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#00BFFF" stop-opacity="0.8"/>
+    </radialGradient>
+    <filter id="ballGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <circle cx="24" cy="24" r="14" fill="url(#ballGrad)" stroke="#AFFFFF" stroke-width="2.5" filter="url(#ballGlow)"/>
+  <circle cx="18" cy="18" r="4" fill="#FFFFFF" opacity="0.8"/>
+</svg>

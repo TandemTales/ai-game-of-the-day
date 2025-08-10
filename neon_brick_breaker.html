@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neon Brick Breaker - Bot Built Arcade</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="images/botbuiltarcade-icon-face.png">
+  <style>
+    :root {
+      --gold: #FFD700;
+      --teal: #00FFFF;
+      --dark-bg: #0a0a12;
+      --accent: #ff3edf;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 50% 20%, rgba(0,255,255,0.08), transparent 50%),
+                  radial-gradient(circle at 20% 80%, rgba(255,62,223,0.08), transparent 50%),
+                  linear-gradient(135deg, #0a0a12 0%, #111122 100%);
+      color: #F5F5DC;
+      font-family: 'Press Start 2P', cursive;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    #wrap {
+      width: min(100%, 980px);
+      padding: 20px;
+    }
+    .panel {
+      background: rgba(0,0,0,0.7);
+      border: 4px solid var(--gold);
+      border-radius: 16px;
+      box-shadow: 0 0 40px rgba(255,215,0,0.25);
+      padding: 18px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .title h1 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: 1px;
+      background: linear-gradient(90deg, var(--gold), #ffa500);
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .meta {
+      font-size: 12px;
+      color: #5F9EA0;
+    }
+    .btn {
+      display: inline-block;
+      text-decoration: none;
+      color: white;
+      border: 2px solid var(--gold);
+      background: linear-gradient(45deg, #5F9EA0, #4682B4);
+      padding: 10px 14px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(95,158,160,0.4);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(95,158,160,0.6); }
+
+    .hud {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 8px 0 12px 0;
+      font-size: 12px;
+      color: #A7E7FF;
+    }
+
+    .stage {
+      position: relative;
+      background: radial-gradient(circle at 50% 20%, rgba(0,255,255,0.05), rgba(0,0,0,0.2)),
+                  repeating-linear-gradient( to bottom, rgba(0,255,255,0.06) 0px, rgba(0,255,255,0.06) 2px, transparent 2px, transparent 26px ),
+                  radial-gradient(circle at 50% 50%, rgba(255,255,255,0.02), transparent 60%),
+                  linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0.35)),
+                  #07070d;
+      border-radius: 14px;
+      border: 2px solid rgba(0,255,255,0.25);
+      box-shadow: inset 0 0 30px rgba(0,255,255,0.25);
+      padding: 12px;
+    }
+
+    canvas { width: 100%; height: auto; display: block; background: transparent; }
+
+    .overlay {
+      position: absolute;
+      inset: 12px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      border-radius: 10px;
+      background: rgba(0,0,0,0.6);
+      border: 2px dashed rgba(255,215,0,0.4);
+    }
+    .overlay.show { display: flex; }
+    .overlay h2 { margin: 0 0 12px 0; font-size: 18px; color: var(--gold); }
+    .overlay p { margin: 4px 0; font-size: 12px; color: #9fd; }
+
+    .controls { margin-top: 10px; font-size: 11px; color: #8ec; opacity: 0.9; }
+
+    @media (max-width: 560px) {
+      .title h1 { font-size: 18px; }
+      .meta { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <div class="panel">
+      <header>
+        <div class="title">
+          <img src="images/botbuiltarcade-icon-face.png" alt="BotBuilt" width="36" height="36" style="border-radius:50%; border:2px solid var(--gold)"> 
+          <div>
+            <h1>Neon Brick Breaker</h1>
+            <div class="meta">Created: August 10, 2025</div>
+          </div>
+        </div>
+        <a class="btn" href="index.html">⟵ Back to Home</a>
+      </header>
+
+      <div class="hud">
+        <div>Score: <span id="score">0</span></div>
+        <div>Level: <span id="level">1</span></div>
+        <div>Lives: <span id="lives">3</span></div>
+      </div>
+
+      <div class="stage">
+        <canvas id="game" width="900" height="600"></canvas>
+        <div class="overlay" id="overlay">
+          <div>
+            <h2 id="ov-title">Neon Brick Breaker</h2>
+            <p id="ov-sub">Tap/Click or press Space to launch</p>
+            <div class="controls">Move: Arrow Keys / A & D / Drag. Pause: P</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    // Assets
+    const imgPaddle = new Image(); imgPaddle.src = 'images/neon_paddle.svg';
+    const imgBall = new Image();   imgBall.src   = 'images/neon_ball.svg';
+    const imgBrick1 = new Image(); imgBrick1.src = 'images/neon_brick_blue.svg';
+    const imgBrick2 = new Image(); imgBrick2.src = 'images/neon_brick_pink.svg';
+
+    let assetsLoaded = 0;
+    const needed = 4;
+    [imgPaddle, imgBall, imgBrick1, imgBrick2].forEach(img => {
+      img.addEventListener('load', () => {
+        assetsLoaded++;
+        if (assetsLoaded === needed) init();
+      });
+    });
+
+    // HUD
+    const scoreEl = document.getElementById('score');
+    const levelEl = document.getElementById('level');
+    const livesEl = document.getElementById('lives');
+    const overlayEl = document.getElementById('overlay');
+    const ovTitle = document.getElementById('ov-title');
+    const ovSub = document.getElementById('ov-sub');
+
+    // Game constants (canvas is 900x600 logical)
+    const PADDLE_W = 200, PADDLE_H = 28;
+    const PADDLE_Y = 560;
+    const BALL_R = 16; // ball image ~48 px, we will scale
+
+    const BRICK_W = 110, BRICK_H = 30, BRICK_GAP = 10;
+    const BRICK_ROWS_START = 4, BRICK_COLS = 7;
+
+    // Game state
+    let running = false, paused = false;
+    let score = 0, level = 1, lives = 3;
+    let paddleX = (canvas.width - PADDLE_W) / 2;
+    let ballX = canvas.width / 2, ballY = PADDLE_Y - BALL_R - 2;
+    let ballVX = 0, ballVY = 0;
+    let bricks = [];
+
+    const input = { left:false, right:false };
+
+    function init() {
+      resetLevel(1);
+      showOverlay('Neon Brick Breaker', 'Tap/Click or press Space to launch');
+      draw();
+      attachControls();
+    }
+
+    function attachControls() {
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = true;
+        if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = true;
+        if (e.code === 'Space') launch();
+        if (e.code === 'KeyP') togglePause();
+      });
+      window.addEventListener('keyup', (e) => {
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = false;
+        if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = false;
+      });
+      canvas.addEventListener('pointerdown', () => launch());
+      canvas.addEventListener('pointermove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        // Convert to canvas space
+        const scale = canvas.width / rect.width;
+        const cx = x * scale;
+        paddleX = Math.max(0, Math.min(canvas.width - PADDLE_W, cx - PADDLE_W/2));
+      });
+    }
+
+    function togglePause() {
+      paused = !paused;
+      if (paused) showOverlay('Paused', 'Press P to resume');
+      else hideOverlay();
+    }
+
+    function showOverlay(title, sub) {
+      ovTitle.textContent = title;
+      ovSub.textContent = sub;
+      overlayEl.classList.add('show');
+    }
+    function hideOverlay(){ overlayEl.classList.remove('show'); }
+
+    function resetBall(servingRight = Math.random() > 0.5) {
+      ballX = paddleX + PADDLE_W/2;
+      ballY = PADDLE_Y - BALL_R - 2;
+      const angle = (Math.random()*0.5 + 0.8) * (servingRight ? 1 : -1); // direction
+      const speed = 6 + level * 0.8;
+      ballVX = Math.cos(angle) * speed;
+      ballVY = -Math.abs(Math.sin(angle) * speed) - 2;
+      running = true;
+    }
+
+    function resetLevel(n) {
+      level = n;
+      levelEl.textContent = level;
+      const rows = BRICK_ROWS_START + Math.floor((level-1)%4);
+      const topOffset = 80;
+      const totalWidth = BRICK_COLS*BRICK_W + (BRICK_COLS-1)*BRICK_GAP;
+      const leftOffset = (canvas.width - totalWidth)/2;
+      bricks = [];
+      for (let r=0; r<rows; r++) {
+        for (let c=0; c<BRICK_COLS; c++) {
+          bricks.push({
+            x: leftOffset + c*(BRICK_W+BRICK_GAP),
+            y: topOffset + r*(BRICK_H+BRICK_GAP),
+            w: BRICK_W,
+            h: BRICK_H,
+            hp: 1 + Math.floor((level-1)/3),
+            img: (r%2===0) ? imgBrick1 : imgBrick2,
+            alive: true
+          });
+        }
+      }
+      scoreEl.textContent = score;
+      livesEl.textContent = lives;
+      paddleX = (canvas.width - PADDLE_W) / 2;
+      ballX = canvas.width / 2; ballY = PADDLE_Y - BALL_R - 2;
+      ballVX = 0; ballVY = 0; running = false; paused = false;
+      showOverlay('Level ' + level, 'Tap/Click or press Space to launch');
+    }
+
+    function launch() {
+      if (paused) { togglePause(); return; }
+      if (!running) {
+        hideOverlay();
+        resetBall();
+      }
+    }
+
+    function update() {
+      // Paddle movement
+      const paddleSpeed = 9 + level*0.4;
+      if (input.left) paddleX -= paddleSpeed;
+      if (input.right) paddleX += paddleSpeed;
+      paddleX = Math.max(0, Math.min(canvas.width - PADDLE_W, paddleX));
+
+      // Ball physics
+      ballX += ballVX; ballY += ballVY;
+
+      // Walls
+      if (ballX - BALL_R < 0) { ballX = BALL_R; ballVX *= -1; }
+      if (ballX + BALL_R > canvas.width) { ballX = canvas.width - BALL_R; ballVX *= -1; }
+      if (ballY - BALL_R < 0) { ballY = BALL_R; ballVY *= -1; }
+
+      // Bottom
+      if (ballY - BALL_R > canvas.height) {
+        lives--; livesEl.textContent = lives;
+        if (lives <= 0) {
+          running = false;
+          showOverlay('Game Over', 'Press Space to restart');
+          // Reset whole game on space
+          window.addEventListener('keydown', restartOnce, { once: true });
+        } else {
+          running = false;
+          showOverlay('Life Lost', 'Tap/Click or press Space to relaunch');
+          ballVX = ballVY = 0;
+          ballX = paddleX + PADDLE_W/2; ballY = PADDLE_Y - BALL_R - 2;
+        }
+      }
+
+      // Paddle collision
+      if (ballY + BALL_R >= PADDLE_Y && ballY + BALL_R <= PADDLE_Y + PADDLE_H) {
+        if (ballX >= paddleX && ballX <= paddleX + PADDLE_W && ballVY > 0) {
+          ballY = PADDLE_Y - BALL_R - 1;
+          // Reflect based on where it hit the paddle
+          const hit = (ballX - (paddleX + PADDLE_W/2)) / (PADDLE_W/2);
+          const speed = Math.sqrt(ballVX*ballVX + ballVY*ballVY) * 1.03;
+          const angle = hit * 1.0; // -1..1 rad
+          ballVX = speed * Math.sin(angle);
+          ballVY = -Math.abs(speed * Math.cos(angle));
+        }
+      }
+
+      // Brick collisions
+      let remaining = 0;
+      for (const br of bricks) {
+        if (!br.alive) continue; remaining++;
+        // AABB collision approximation with ball as circle
+        if (ballX + BALL_R > br.x && ballX - BALL_R < br.x + br.w &&
+            ballY + BALL_R > br.y && ballY - BALL_R < br.y + br.h) {
+          // Determine shallowest penetration axis
+          const prevX = ballX - ballVX;
+          const prevY = ballY - ballVY;
+          const wasAbove = prevY + BALL_R <= br.y;
+          const wasBelow = prevY - BALL_R >= br.y + br.h;
+          if (wasAbove || wasBelow) {
+            ballVY *= -1; // vertical flip
+          } else {
+            ballVX *= -1; // horizontal flip
+          }
+          br.hp -= 1;
+          if (br.hp <= 0) { br.alive = false; score += 50; }
+          else { score += 20; }
+          scoreEl.textContent = score;
+          break;
+        }
+      }
+
+      if (remaining === 0) {
+        // Next level
+        score += 200; scoreEl.textContent = score;
+        running = false;
+        resetLevel(level + 1);
+      }
+    }
+
+    function restartOnce(e) {
+      if (e.code === 'Space') {
+        score = 0; lives = 3; level = 1;
+        scoreEl.textContent = score; livesEl.textContent = lives; levelEl.textContent = level;
+        resetLevel(1);
+      }
+    }
+
+    function drawNeonGrid() {
+      // subtle glow grid for retro vibe
+      ctx.save();
+      ctx.strokeStyle = 'rgba(0,255,255,0.05)';
+      ctx.lineWidth = 1;
+      const step = 40;
+      for (let x=0; x<=canvas.width; x+=step) {
+        ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke();
+      }
+      for (let y=0; y<=canvas.height; y+=step) {
+        ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function draw() {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      drawNeonGrid();
+
+      // Draw bricks
+      for (const br of bricks) {
+        if (!br.alive) continue;
+        const img = br.img;
+        ctx.drawImage(img, br.x, br.y, br.w, br.h);
+      }
+
+      // Draw paddle
+      ctx.drawImage(imgPaddle, paddleX, PADDLE_Y, PADDLE_W, PADDLE_H);
+
+      // Draw ball (centered)
+      ctx.drawImage(imgBall, ballX - BALL_R*1.5, ballY - BALL_R*1.5, BALL_R*3, BALL_R*3);
+
+      if (running && !paused) update();
+      requestAnimationFrame(draw);
+    }
+  </script>
+</body>
+</html>

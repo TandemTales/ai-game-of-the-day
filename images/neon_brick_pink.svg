@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128" height="40" viewBox="0 0 128 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="brickPink" x1="0" y1="0" x2="128" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF77FF"/>
+      <stop offset="100%" stop-color="#FF3EDF"/>
+    </linearGradient>
+    <filter id="brickGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect x="2" y="4" rx="10" ry="10" width="124" height="32" fill="url(#brickPink)" stroke="#FFC8FF" stroke-width="2" filter="url(#brickGlow)"/>
+  <rect x="8" y="10" rx="6" ry="6" width="112" height="20" fill="rgba(255,255,255,0.08)"/>
+  <rect x="2" y="4" rx="10" ry="10" width="124" height="32" fill="none" stroke="#FF77FF" stroke-width="1" opacity="0.8"/>
+</svg>

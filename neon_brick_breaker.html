@@ -100,7 +100,7 @@
       padding: 12px;
     }
 
-    canvas { width: 100%; height: auto; display: block; background: transparent; }
+    canvas { width: 100%; height: auto; display: block; background: transparent; touch-action: none; }
 
     .overlay {
       position: absolute;
@@ -112,6 +112,7 @@
       border-radius: 10px;
       background: rgba(0,0,0,0.6);
       border: 2px dashed rgba(255,215,0,0.4);
+      touch-action: none;
     }
     .overlay.show { display: flex; }
     .overlay h2 { margin: 0 0 12px 0; font-size: 18px; color: var(--gold); }
@@ -221,14 +222,17 @@
         if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = false;
         if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = false;
       });
-      canvas.addEventListener('pointerdown', () => launch());
-      canvas.addEventListener('pointermove', (e) => {
+      function movePaddle(e) {
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         // Convert to canvas space
         const scale = canvas.width / rect.width;
         const cx = x * scale;
         paddleX = Math.max(0, Math.min(canvas.width - PADDLE_W, cx - PADDLE_W/2));
+      }
+      [canvas, overlayEl].forEach(el => {
+        el.addEventListener('pointerdown', (e) => { movePaddle(e); launch(); });
+        el.addEventListener('pointermove', movePaddle);
       });
     }
 

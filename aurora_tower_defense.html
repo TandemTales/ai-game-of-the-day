@@ -155,7 +155,7 @@
     // Game state
     let running = false;
     const state = {
-      coins: 140,
+      coins: 85,
       lives: 20,
       wave: 1,
       time: 0,
@@ -170,7 +170,7 @@
       basic: { range: 2.6, rof: 0.8, dmg: 16, spd: 420, cost: 25 },
       slow:  { range: 2.2, rof: 1.2, dmg: 8,  spd: 380, slow: 0.55, slowDur: 1.4, cost: 35 },
     };
-    const ENEMY_CONF = { baseSpd: 70, hp: 48, hpInc: 12, spdInc: 4 };
+    const ENEMY_CONF = { baseSpd: 70, hp: 36, hpInc: 16, spdInc: 5 };
 
     // UI selection
     let selectedTower = 'basic';
@@ -202,7 +202,8 @@
     }
 
     function spawnWave(){
-      const count = 6 + Math.floor(state.wave*1.5);
+      // Easier Wave 1, progressively harder later (quadratic term)
+      const count = 4 + Math.floor(state.wave*1.2) + Math.floor((state.wave-1)*(state.wave-1)*0.3);
       let i = 0;
       const iv = setInterval(()=>{
         addEnemy(); i++; if(i>=count) clearInterval(iv);
@@ -422,7 +423,7 @@
         for(const [k,src] of entries){ Images[k] = await loadImg(src); }
       }
       // reset state
-      state.coins = 60; state.lives = 20; state.wave = 1; enemies = []; bullets.length = 0; towers.length = 0; spawning=false; waveTimer=0; last=performance.now();
+      state.coins = 85; state.lives = 20; state.wave = 1; enemies = []; bullets.length = 0; towers.length = 0; spawning=false; waveTimer=0; last=performance.now();
       running = true;
       spawnWave();
     }

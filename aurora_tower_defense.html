@@ -239,8 +239,13 @@
       // Easier Wave 1, progressively harder later (quadratic term)
       const count = 4 + Math.floor(state.wave*1.2) + Math.floor((state.wave-1)*(state.wave-1)*0.3);
       let i = 0;
+      // Track outstanding spawns so we don't advance the wave before enemies actually appear
+      pendingSpawns = count;
       const iv = setInterval(()=>{
-        addEnemy(); i++; if(i>=count) clearInterval(iv);
+        addEnemy();
+        i++;
+        pendingSpawns = Math.max(0, pendingSpawns - 1);
+        if(i>=count) clearInterval(iv);
       }, Math.max(200, 700 - state.wave*40));
     }
 
@@ -358,14 +363,14 @@
     }
 
     // Wave management
-    let waveTimer = 0; let spawning = false;
+    let waveTimer = 0; let spawning = false; let pendingSpawns = 0;
     function updateWaves(){
       if(!spawning && enemies.length===0){
         // delay then start next
         waveTimer -= dt; if(waveTimer<=0){ spawning = true; spawnWave(); }
       }
       // When no enemies + not emitting -> next wave ready
-      if(spawning && enemies.length===0){ spawning = false; state.wave++; waveTimer = 2.5; }
+      if(spawning && enemies.length===0 && pendingSpawns===0){ spawning = false; state.wave++; waveTimer = 2.5; }
     }
 
     function drawBackground(){
@@ -457,7 +462,7 @@
         for(const [k,src] of entries){ Images[k] = await loadImg(src); }
       }
       // reset state
-      state.coins = 85; state.lives = 20; state.wave = 1; enemies = []; bullets.length = 0; towers.length = 0; spawning=false; waveTimer=3.0; last=performance.now();
+      state.coins = 85; state.lives = 20; state.wave = 1; enemies = []; bullets.length = 0; towers.length = 0; spawning=false; pendingSpawns=0; waveTimer=3.0; last=performance.now();
       running = true;
       // First wave begins after a 3s prep time (handled by updateWaves)
     }

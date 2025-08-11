@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aurora Tower Defense - Bot Built Arcade</title>
+<style>
+  body {
+    margin: 0;
+    background: #000;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    text-align: center;
+  }
+  canvas {
+    background: #111;
+    display: block;
+    margin: 20px auto;
+    border: 2px solid #fff;
+  }
+  a {
+    color: #0ff;
+    text-decoration: none;
+    display: inline-block;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+<canvas id="game" width="800" height="400"></canvas>
+<a href="index.html">Back to Home</a>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+const INITIAL_WAVE_SPEED = 1; // Base speed for wave 1
+const WAVE_SPEED_INCREMENT = 0.5; // Added per wave
+const MAX_WAVE_SPEED = 5; // Upper bound for speed
+
+let wave = 1;
+let enemies = [];
+
+function startWave() {
+  const speed = Math.min(
+    INITIAL_WAVE_SPEED + (wave - 1) * WAVE_SPEED_INCREMENT,
+    MAX_WAVE_SPEED
+  );
+  enemies = [];
+  for (let i = 0; i < 5; i++) {
+    enemies.push({ x: -50 * i, y: 180, speed });
+  }
+}
+
+function update() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  let allEscaped = true;
+  enemies.forEach(e => {
+    e.x += e.speed;
+    if (e.x < canvas.width) allEscaped = false;
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(e.x, e.y, 20, 20);
+  });
+
+  if (allEscaped) {
+    wave++;
+    startWave();
+  }
+
+  requestAnimationFrame(update);
+}
+
+startWave();
+update();
+</script>
+</body>
+</html>

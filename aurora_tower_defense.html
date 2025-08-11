@@ -155,7 +155,7 @@
     // Game state
     let running = false;
     const state = {
-      coins: 60,
+      coins: 140,
       lives: 20,
       wave: 1,
       time: 0,
@@ -170,7 +170,7 @@
       basic: { range: 2.6, rof: 0.8, dmg: 16, spd: 420, cost: 25 },
       slow:  { range: 2.2, rof: 1.2, dmg: 8,  spd: 380, slow: 0.55, slowDur: 1.4, cost: 35 },
     };
-    const ENEMY_CONF = { baseSpd: 70, hp: 60, hpInc: 18, spdInc: 4 };
+    const ENEMY_CONF = { baseSpd: 70, hp: 48, hpInc: 12, spdInc: 4 };
 
     // UI selection
     let selectedTower = 'basic';
@@ -318,7 +318,7 @@
       for(let i=enemies.length-1;i>=0;i--){
         const e = enemies[i];
         if(e.reached){ state.lives -= 1; enemies.splice(i,1); if(state.lives<=0) gameOver(); }
-        else if(e.hp<=0){ state.coins += 6; enemies.splice(i,1); }
+        else if(e.hp<=0){ state.coins += 10; enemies.splice(i,1); }
       }
     }
 

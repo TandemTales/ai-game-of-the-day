@@ -457,9 +457,9 @@
         for(const [k,src] of entries){ Images[k] = await loadImg(src); }
       }
       // reset state
-      state.coins = 85; state.lives = 20; state.wave = 1; enemies = []; bullets.length = 0; towers.length = 0; spawning=false; waveTimer=0; last=performance.now();
+      state.coins = 85; state.lives = 20; state.wave = 1; enemies = []; bullets.length = 0; towers.length = 0; spawning=false; waveTimer=3.0; last=performance.now();
       running = true;
-      spawnWave();
+      // First wave begins after a 3s prep time (handled by updateWaves)
     }
 
     window.addEventListener('resize', ()=>{ setTopbarHeight(); resize(); draw(); });

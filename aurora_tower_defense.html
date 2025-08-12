@@ -137,6 +137,10 @@
       <img src="images/td_tower_slow.svg" alt="slow">
       <div>Frost 35</div>
     </div>
+    <div class="tool" data-type="pierce" data-cost="50">
+      <img src="images/td_tower_pierce.svg" alt="pierce">
+      <div>Pierce 50</div>
+    </div>
   </div>
 
   <script>
@@ -169,8 +173,10 @@
       path: 'images/td_tile_path.svg',
       tower_basic: 'images/td_tower_basic.svg',
       tower_slow: 'images/td_tower_slow.svg',
+      tower_pierce: 'images/td_tower_pierce.svg',
       enemy: 'images/td_enemy_bug.svg',
       enemy_fast: 'images/td_enemy_fast.svg',
+      enemy_armored: 'images/td_enemy_armored.svg',
       bullet: 'images/td_bullet.svg',
       portal: 'images/td_portal.svg',
     };
@@ -195,13 +201,14 @@
     };
 
     const towers = []; // {gx, gy, type, cd}
-    const bullets = []; // {x,y,vx,vy,spd, dmg, slow, slowDur, targetId}
+    const bullets = []; // {x,y,vx,vy,spd, dmg, slow, slowDur, targetId, bonus}
     let enemies = []; // {id, x,y, seg, t, spd, hp, maxHp, slow, slowTimer}
     let nextEnemyId = 1;
 
     const TOWER_CONF = {
       basic: { range: 2.6, rof: 0.8, dmg: 16, spd: 420, cost: 25 },
       slow:  { range: 2.2, rof: 1.2, dmg: 8,  spd: 380, slow: 0.55, slowDur: 1.4, cost: 35 },
+      pierce:{ range: 2.4, rof: 0.6, dmg: 32, spd: 450, cost: 50, bonus: { armored: 24 } },
     };
 
     const INITIAL_WAVE_SPEED = 50;
@@ -209,8 +216,9 @@
     const MAX_WAVE_SPEED = 130;
     const ENEMY_CONF = { hp: 36, hpInc: 16 };
     const ENEMY_TYPES = {
-      bug:  { img: 'enemy', spdMul: 1,   hpMul: 1 },
-      fast: { img: 'enemy_fast', spdMul: 1.8, hpMul: 0.6 },
+      bug:    { img: 'enemy',         spdMul: 1,   hpMul: 1 },
+      fast:   { img: 'enemy_fast',    spdMul: 1.8, hpMul: 0.6 },
+      armored:{ img: 'enemy_armored', spdMul: 0.8, hpMul: 2.2 },
     };
 
     // UI selection
@@ -255,7 +263,10 @@
       // Track outstanding spawns so we don't advance the wave before enemies actually appear
       pendingSpawns = count;
       const iv = setInterval(()=>{
-        const type = (state.wave > 2 && Math.random() < 0.3) ? 'fast' : 'bug';
+        const r = Math.random();
+        let type = 'bug';
+        if(state.wave > 4 && r < 0.2) type = 'armored';
+        else if(state.wave > 2 && r < 0.5) type = 'fast';
         addEnemy(type);
         i++;
         pendingSpawns = Math.max(0, pendingSpawns - 1);
@@ -330,7 +341,7 @@
         }
         if(best){
           const spd = conf.spd; const dx = best.x - tx, dy = best.y - ty; const d = Math.hypot(dx,dy)||1;
-          bullets.push({ x: tx, y: ty, vx: dx/d, vy: dy/d, spd, dmg: conf.dmg, slow: conf.slow||0, slowDur: conf.slowDur||0, targetId: best.id });
+          bullets.push({ x: tx, y: ty, vx: dx/d, vy: dy/d, spd, dmg: conf.dmg, slow: conf.slow||0, slowDur: conf.slowDur||0, targetId: best.id, bonus: conf.bonus||{} });
           t.cd = 1/conf.rof; // cooldown seconds
         }
       }
@@ -345,7 +356,8 @@
           if(Math.hypot(e.x-b.x, e.y-b.y) < tile*0.45){ hit = e; break; }
         }
         if(hit){
-          hit.hp -= b.dmg;
+          let extra = 0; if(b.bonus && b.bonus[hit.type]) extra = b.bonus[hit.type];
+          hit.hp -= b.dmg + extra;
           if(b.slow){ hit.slow = Math.min(hit.slow, b.slow); hit.slowTimer = Math.max(hit.slowTimer, b.slowDur); }
           b.dead = true;
         }
@@ -422,7 +434,7 @@
     function drawTowers(){
       for(const t of towers){
         const x = t.gx*tile, y = t.gy*tile;
-        const img = t.type==='basic' ? Images.tower_basic : Images.tower_slow;
+        const img = Images['tower_'+t.type];
         ctx.drawImage(img, x, y, tile, tile);
       }
     }

@@ -14,6 +14,7 @@
       --bg1: #0a0f14;
       --bg2: #0e1620;
       --topbar-h: 54px; /* measured on load/resize */
+      --toolbar-h: 90px; /* measured on load/resize */
       --hud-offset: clamp(60px, 10vh, 140px); /* extra spacing below topbar for HUD visibility */
     }
     html, body {
@@ -51,8 +52,8 @@
     .date-info { font-size: 10px; color: var(--teal); opacity: 0.9; }
 
     .game-wrap {
-      position: fixed; left: 50%; top: var(--topbar-h); right: 0; bottom: 0; transform: translateX(-50%);
-      display: flex; align-items: center; justify-content: center; width: 100vw; height: calc(100vh - var(--topbar-h));
+      position: fixed; left: 50%; top: var(--topbar-h); right: 0; bottom: var(--toolbar-h); transform: translateX(-50%);
+      display: flex; align-items: center; justify-content: center; width: 100vw; height: calc(100vh - var(--topbar-h) - var(--toolbar-h));
       z-index: 10;
     }
     canvas { background: transparent; image-rendering: pixelated; touch-action: none; }
@@ -92,6 +93,10 @@
     .overlay p { margin: 0; color: #d8f7ff; font-size: 12px; }
     .overlay .tap { color: var(--teal); font-size: 12px; opacity: 0.95; }
 
+    .enemy-list { display: flex; flex-direction: column; gap: 10px; }
+    .enemy-row { display: flex; align-items: center; gap: 12px; font-size: 12px; }
+    .enemy-row img { width: 32px; height: 32px; }
+
     @media (min-width: 900px) {
       .toolbar { bottom: 20px; }
     }
@@ -110,7 +115,7 @@
       Aurora Tower Defense<br>
       <span class="date-info">Created: August 10, 2025</span>
     </div>
-    <div style="width:96px"></div>
+    <button class="back-btn" id="enemyRefBtn">Enemies</button>
   </div>
 
   <div class="hud" id="hud">
@@ -125,6 +130,15 @@
       <h2>Defend the Aurora Core</h2>
       <p>Place towers on grass. Stop neon bugs from reaching the core.</p>
       <p class="tap">Tap to start · Pinch zoom is disabled for precise taps</p>
+    </div>
+    <div class="overlay" id="enemyRef">
+      <h2>Enemy Reference</h2>
+      <div class="enemy-list">
+        <div class="enemy-row"><img src="images/td_enemy_bug.svg" alt="Bug"><span>Bug - Balanced scout.</span></div>
+        <div class="enemy-row"><img src="images/td_enemy_fast.svg" alt="Runner"><span>Runner - Quick but fragile.</span></div>
+        <div class="enemy-row"><img src="images/td_enemy_armored.svg" alt="Armored"><span>Armored - Slow, heavily protected.</span></div>
+      </div>
+      <p class="tap">Tap to close</p>
     </div>
   </div>
 
@@ -148,11 +162,14 @@
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
     const overlay = document.getElementById('overlay');
+    const enemyRef = document.getElementById('enemyRef');
+    const enemyRefBtn = document.getElementById('enemyRefBtn');
     const hudCoins = document.getElementById('coins');
     const hudLives = document.getElementById('lives');
     const hudWave = document.getElementById('wave');
     const topbarEl = document.querySelector('.topbar');
     const root = document.documentElement;
+    const toolbar = document.getElementById('toolbar');
 
     function setTopbarHeight(){
       const h = Math.ceil(topbarEl.getBoundingClientRect().height);
@@ -223,7 +240,6 @@
 
     // UI selection
     let selectedTower = 'basic';
-    const toolbar = document.getElementById('toolbar');
     toolbar.addEventListener('click', (e)=>{
       const item = e.target.closest('.tool'); if(!item) return;
       for(const el of toolbar.querySelectorAll('.tool')) el.classList.remove('selected');
@@ -231,11 +247,16 @@
       selectedTower = item.dataset.type;
     });
 
+    enemyRefBtn.addEventListener('click', () => enemyRef.classList.add('show'));
+    enemyRef.addEventListener('click', () => enemyRef.classList.remove('show'));
+
     function resize(){
       const availW = Math.min(window.innerWidth, 900);
       const topH = Math.ceil(topbarEl.getBoundingClientRect().height);
       const toolbarH = Math.ceil(toolbar.getBoundingClientRect().height || 0);
-      const availH = window.innerHeight - topH - (toolbarH + 16); // reserve measured topbar + toolbar + margin
+      const reserved = toolbarH + 40; // toolbar height + margin
+      root.style.setProperty('--toolbar-h', reserved + 'px');
+      const availH = window.innerHeight - topH - reserved;
       tile = Math.floor(Math.min(availW / COLS, availH / ROWS));
       const w = COLS*tile, h = ROWS*tile;
       canvas.style.width = w+'px'; canvas.style.height = h+'px';

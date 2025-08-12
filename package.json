@@ -1,0 +1,11 @@
+{
+  "name": "ai-game-of-the-day",
+  "version": "1.0.0",
+  "description": "AI Game of the Day utilities and tests",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

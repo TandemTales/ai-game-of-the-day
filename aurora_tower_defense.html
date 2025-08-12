@@ -202,7 +202,11 @@
       basic: { range: 2.6, rof: 0.8, dmg: 16, spd: 420, cost: 25 },
       slow:  { range: 2.2, rof: 1.2, dmg: 8,  spd: 380, slow: 0.55, slowDur: 1.4, cost: 35 },
     };
-    const ENEMY_CONF = { baseSpd: 70, hp: 36, hpInc: 16, spdInc: 5 };
+
+    const INITIAL_WAVE_SPEED = 50;
+    const WAVE_SPEED_INCREMENT = 8;
+    const MAX_WAVE_SPEED = 130;
+    const ENEMY_CONF = { hp: 36, hpInc: 16 };
 
     // UI selection
     let selectedTower = 'basic';
@@ -232,7 +236,8 @@
     }
 
     function addEnemy(){
-      enemies.push({ id: nextEnemyId++, ...gridToPx(path[0].x, path[0].y), seg:0, t:0, spd: ENEMY_CONF.baseSpd + (state.wave-1)*ENEMY_CONF.spdInc, hp: ENEMY_CONF.hp + (state.wave-1)*ENEMY_CONF.hpInc, maxHp: ENEMY_CONF.hp + (state.wave-1)*ENEMY_CONF.hpInc, slow:1, slowTimer:0 });
+      const spd = Math.min(INITIAL_WAVE_SPEED + (state.wave-1)*WAVE_SPEED_INCREMENT, MAX_WAVE_SPEED);
+      enemies.push({ id: nextEnemyId++, ...gridToPx(path[0].x, path[0].y), seg:0, t:0, spd, hp: ENEMY_CONF.hp + (state.wave-1)*ENEMY_CONF.hpInc, maxHp: ENEMY_CONF.hp + (state.wave-1)*ENEMY_CONF.hpInc, slow:1, slowTimer:0 });
     }
 
     function spawnWave(){

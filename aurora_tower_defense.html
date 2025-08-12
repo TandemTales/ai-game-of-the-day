@@ -14,6 +14,7 @@
       --bg1: #0a0f14;
       --bg2: #0e1620;
       --topbar-h: 54px; /* measured on load/resize */
+      --toolbar-h: 90px; /* measured on load/resize */
       --hud-offset: clamp(60px, 10vh, 140px); /* extra spacing below topbar for HUD visibility */
     }
     html, body {
@@ -51,8 +52,8 @@
     .date-info { font-size: 10px; color: var(--teal); opacity: 0.9; }
 
     .game-wrap {
-      position: fixed; left: 50%; top: var(--topbar-h); right: 0; bottom: 0; transform: translateX(-50%);
-      display: flex; align-items: center; justify-content: center; width: 100vw; height: calc(100vh - var(--topbar-h));
+      position: fixed; left: 50%; top: var(--topbar-h); right: 0; bottom: var(--toolbar-h); transform: translateX(-50%);
+      display: flex; align-items: center; justify-content: center; width: 100vw; height: calc(100vh - var(--topbar-h) - var(--toolbar-h));
       z-index: 10;
     }
     canvas { background: transparent; image-rendering: pixelated; touch-action: none; }
@@ -92,6 +93,10 @@
     .overlay p { margin: 0; color: #d8f7ff; font-size: 12px; }
     .overlay .tap { color: var(--teal); font-size: 12px; opacity: 0.95; }
 
+    .enemy-list { display: flex; flex-direction: column; gap: 10px; }
+    .enemy-row { display: flex; align-items: center; gap: 12px; font-size: 12px; }
+    .enemy-row img { width: 32px; height: 32px; }
+
     @media (min-width: 900px) {
       .toolbar { bottom: 20px; }
     }
@@ -110,7 +115,7 @@
       Aurora Tower Defense<br>
       <span class="date-info">Created: August 10, 2025</span>
     </div>
-    <div style="width:96px"></div>
+    <button class="back-btn" id="enemyRefBtn">Enemies</button>
   </div>
 
   <div class="hud" id="hud">
@@ -126,6 +131,15 @@
       <p>Place towers on grass. Stop neon bugs from reaching the core.</p>
       <p class="tap">Tap to start · Pinch zoom is disabled for precise taps</p>
     </div>
+    <div class="overlay" id="enemyRef">
+      <h2>Enemy Reference</h2>
+      <div class="enemy-list">
+        <div class="enemy-row"><img src="images/td_enemy_bug.svg" alt="Bug"><span>Bug - Balanced scout.</span></div>
+        <div class="enemy-row"><img src="images/td_enemy_fast.svg" alt="Runner"><span>Runner - Quick but fragile.</span></div>
+        <div class="enemy-row"><img src="images/td_enemy_armored.svg" alt="Armored"><span>Armored - Slow, heavily protected.</span></div>
+      </div>
+      <p class="tap">Tap to close</p>
+    </div>
   </div>
 
   <div class="toolbar" id="toolbar">
@@ -137,6 +151,10 @@
       <img src="images/td_tower_slow.svg" alt="slow">
       <div>Frost 35</div>
     </div>
+    <div class="tool" data-type="pierce" data-cost="50">
+      <img src="images/td_tower_pierce.svg" alt="pierce">
+      <div>Pierce 50</div>
+    </div>
   </div>
 
   <script>
@@ -144,11 +162,14 @@
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
     const overlay = document.getElementById('overlay');
+    const enemyRef = document.getElementById('enemyRef');
+    const enemyRefBtn = document.getElementById('enemyRefBtn');
     const hudCoins = document.getElementById('coins');
     const hudLives = document.getElementById('lives');
     const hudWave = document.getElementById('wave');
     const topbarEl = document.querySelector('.topbar');
     const root = document.documentElement;
+    const toolbar = document.getElementById('toolbar');
 
     function setTopbarHeight(){
       const h = Math.ceil(topbarEl.getBoundingClientRect().height);
@@ -169,8 +190,10 @@
       path: 'images/td_tile_path.svg',
       tower_basic: 'images/td_tower_basic.svg',
       tower_slow: 'images/td_tower_slow.svg',
+      tower_pierce: 'images/td_tower_pierce.svg',
       enemy: 'images/td_enemy_bug.svg',
       enemy_fast: 'images/td_enemy_fast.svg',
+      enemy_armored: 'images/td_enemy_armored.svg',
       bullet: 'images/td_bullet.svg',
       portal: 'images/td_portal.svg',
     };
@@ -195,13 +218,14 @@
     };
 
     const towers = []; // {gx, gy, type, cd}
-    const bullets = []; // {x,y,vx,vy,spd, dmg, slow, slowDur, targetId}
+    const bullets = []; // {x,y,vx,vy,spd, dmg, slow, slowDur, targetId, bonus}
     let enemies = []; // {id, x,y, seg, t, spd, hp, maxHp, slow, slowTimer}
     let nextEnemyId = 1;
 
     const TOWER_CONF = {
       basic: { range: 2.6, rof: 0.8, dmg: 16, spd: 420, cost: 25 },
       slow:  { range: 2.2, rof: 1.2, dmg: 8,  spd: 380, slow: 0.55, slowDur: 1.4, cost: 35 },
+      pierce:{ range: 2.4, rof: 0.6, dmg: 32, spd: 450, cost: 50, bonus: { armored: 24 } },
     };
 
     const INITIAL_WAVE_SPEED = 50;
@@ -209,13 +233,13 @@
     const MAX_WAVE_SPEED = 130;
     const ENEMY_CONF = { hp: 36, hpInc: 16 };
     const ENEMY_TYPES = {
-      bug:  { img: 'enemy', spdMul: 1,   hpMul: 1 },
-      fast: { img: 'enemy_fast', spdMul: 1.8, hpMul: 0.6 },
+      bug:    { img: 'enemy',         spdMul: 1,   hpMul: 1 },
+      fast:   { img: 'enemy_fast',    spdMul: 1.8, hpMul: 0.6 },
+      armored:{ img: 'enemy_armored', spdMul: 0.8, hpMul: 2.2 },
     };
 
     // UI selection
     let selectedTower = 'basic';
-    const toolbar = document.getElementById('toolbar');
     toolbar.addEventListener('click', (e)=>{
       const item = e.target.closest('.tool'); if(!item) return;
       for(const el of toolbar.querySelectorAll('.tool')) el.classList.remove('selected');
@@ -223,11 +247,16 @@
       selectedTower = item.dataset.type;
     });
 
+    enemyRefBtn.addEventListener('click', () => enemyRef.classList.add('show'));
+    enemyRef.addEventListener('click', () => enemyRef.classList.remove('show'));
+
     function resize(){
       const availW = Math.min(window.innerWidth, 900);
       const topH = Math.ceil(topbarEl.getBoundingClientRect().height);
       const toolbarH = Math.ceil(toolbar.getBoundingClientRect().height || 0);
-      const availH = window.innerHeight - topH - (toolbarH + 16); // reserve measured topbar + toolbar + margin
+      const reserved = toolbarH + 40; // toolbar height + margin
+      root.style.setProperty('--toolbar-h', reserved + 'px');
+      const availH = window.innerHeight - topH - reserved;
       tile = Math.floor(Math.min(availW / COLS, availH / ROWS));
       const w = COLS*tile, h = ROWS*tile;
       canvas.style.width = w+'px'; canvas.style.height = h+'px';
@@ -255,7 +284,10 @@
       // Track outstanding spawns so we don't advance the wave before enemies actually appear
       pendingSpawns = count;
       const iv = setInterval(()=>{
-        const type = (state.wave > 2 && Math.random() < 0.3) ? 'fast' : 'bug';
+        const r = Math.random();
+        let type = 'bug';
+        if(state.wave > 4 && r < 0.2) type = 'armored';
+        else if(state.wave > 2 && r < 0.5) type = 'fast';
         addEnemy(type);
         i++;
         pendingSpawns = Math.max(0, pendingSpawns - 1);
@@ -330,7 +362,7 @@
         }
         if(best){
           const spd = conf.spd; const dx = best.x - tx, dy = best.y - ty; const d = Math.hypot(dx,dy)||1;
-          bullets.push({ x: tx, y: ty, vx: dx/d, vy: dy/d, spd, dmg: conf.dmg, slow: conf.slow||0, slowDur: conf.slowDur||0, targetId: best.id });
+          bullets.push({ x: tx, y: ty, vx: dx/d, vy: dy/d, spd, dmg: conf.dmg, slow: conf.slow||0, slowDur: conf.slowDur||0, targetId: best.id, bonus: conf.bonus||{} });
           t.cd = 1/conf.rof; // cooldown seconds
         }
       }
@@ -345,7 +377,8 @@
           if(Math.hypot(e.x-b.x, e.y-b.y) < tile*0.45){ hit = e; break; }
         }
         if(hit){
-          hit.hp -= b.dmg;
+          let extra = 0; if(b.bonus && b.bonus[hit.type]) extra = b.bonus[hit.type];
+          hit.hp -= b.dmg + extra;
           if(b.slow){ hit.slow = Math.min(hit.slow, b.slow); hit.slowTimer = Math.max(hit.slowTimer, b.slowDur); }
           b.dead = true;
         }
@@ -422,7 +455,7 @@
     function drawTowers(){
       for(const t of towers){
         const x = t.gx*tile, y = t.gy*tile;
-        const img = t.type==='basic' ? Images.tower_basic : Images.tower_slow;
+        const img = Images['tower_'+t.type];
         ctx.drawImage(img, x, y, tile, tile);
       }
     }

@@ -259,7 +259,7 @@
         addEnemy(type);
         i++;
         pendingSpawns = Math.max(0, pendingSpawns - 1);
-        if(i>=count) clearInterval(iv);
+        if(i>=count){ clearInterval(iv); pendingSpawns = 0; }
       }, Math.max(200, 700 - state.wave*40));
     }
 
@@ -379,15 +379,19 @@
     // Wave management
     let waveTimer = 0; let spawning = false; let pendingSpawns = 0;
     function updateWaves(){
-      if(!spawning && enemies.length===0){
+      if(spawning){
+        if(enemies.length===0 && pendingSpawns===0){
+          spawning = false; state.wave++; waveTimer = 2.5;
+        }
+      } else if(enemies.length===0){
         // delay then start next
-        waveTimer -= dt; if(waveTimer<=0){ spawning = true; spawnWave(); }
+        waveTimer -= dt;
+        if(waveTimer<=0){ spawning = true; spawnWave(); }
       }
-      // When no enemies + not emitting -> next wave ready
-      if(spawning && enemies.length===0 && pendingSpawns===0){ spawning = false; state.wave++; waveTimer = 2.5; }
     }
 
     function drawBackground(){
+      if(!Images.grass || !Images.path || !Images.portal) return;
       // draw tiles
       for(let y=0;y<ROWS;y++){
         for(let x=0;x<COLS;x++){
@@ -442,6 +446,7 @@
     }
 
     function draw(){
+      if(!Images.grass) return;
       ctx.clearRect(0,0,canvas.width, canvas.height);
       drawBackground();
       drawTowers();

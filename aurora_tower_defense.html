@@ -170,6 +170,7 @@
       tower_basic: 'images/td_tower_basic.svg',
       tower_slow: 'images/td_tower_slow.svg',
       enemy: 'images/td_enemy_bug.svg',
+      enemy_fast: 'images/td_enemy_fast.svg',
       bullet: 'images/td_bullet.svg',
       portal: 'images/td_portal.svg',
     };
@@ -207,6 +208,10 @@
     const WAVE_SPEED_INCREMENT = 8;
     const MAX_WAVE_SPEED = 130;
     const ENEMY_CONF = { hp: 36, hpInc: 16 };
+    const ENEMY_TYPES = {
+      bug:  { img: 'enemy', spdMul: 1,   hpMul: 1 },
+      fast: { img: 'enemy_fast', spdMul: 1.8, hpMul: 0.6 },
+    };
 
     // UI selection
     let selectedTower = 'basic';
@@ -235,9 +240,12 @@
       return { ax:a.x, ay:a.y, bx:b.x, by:b.y };
     }
 
-    function addEnemy(){
-      const spd = Math.min(INITIAL_WAVE_SPEED + (state.wave-1)*WAVE_SPEED_INCREMENT, MAX_WAVE_SPEED);
-      enemies.push({ id: nextEnemyId++, ...gridToPx(path[0].x, path[0].y), seg:0, t:0, spd, hp: ENEMY_CONF.hp + (state.wave-1)*ENEMY_CONF.hpInc, maxHp: ENEMY_CONF.hp + (state.wave-1)*ENEMY_CONF.hpInc, slow:1, slowTimer:0 });
+    function addEnemy(type='bug'){
+      const baseSpd = Math.min(INITIAL_WAVE_SPEED + (state.wave-1)*WAVE_SPEED_INCREMENT, MAX_WAVE_SPEED);
+      const baseHp  = ENEMY_CONF.hp + (state.wave-1)*ENEMY_CONF.hpInc;
+      const conf = ENEMY_TYPES[type] || ENEMY_TYPES.bug;
+      const hp = baseHp * conf.hpMul;
+      enemies.push({ id: nextEnemyId++, type, ...gridToPx(path[0].x, path[0].y), seg:0, t:0, spd: baseSpd * conf.spdMul, hp, maxHp: hp, slow:1, slowTimer:0 });
     }
 
     function spawnWave(){
@@ -247,10 +255,11 @@
       // Track outstanding spawns so we don't advance the wave before enemies actually appear
       pendingSpawns = count;
       const iv = setInterval(()=>{
-        addEnemy();
+        const type = (state.wave > 2 && Math.random() < 0.3) ? 'fast' : 'bug';
+        addEnemy(type);
         i++;
         pendingSpawns = Math.max(0, pendingSpawns - 1);
-        if(i>=count) clearInterval(iv);
+        if(i>=count){ clearInterval(iv); pendingSpawns = 0; }
       }, Math.max(200, 700 - state.wave*40));
     }
 
@@ -370,15 +379,19 @@
     // Wave management
     let waveTimer = 0; let spawning = false; let pendingSpawns = 0;
     function updateWaves(){
-      if(!spawning && enemies.length===0){
+      if(spawning){
+        if(enemies.length===0 && pendingSpawns===0){
+          spawning = false; state.wave++; waveTimer = 2.5;
+        }
+      } else if(enemies.length===0){
         // delay then start next
-        waveTimer -= dt; if(waveTimer<=0){ spawning = true; spawnWave(); }
+        waveTimer -= dt;
+        if(waveTimer<=0){ spawning = true; spawnWave(); }
       }
-      // When no enemies + not emitting -> next wave ready
-      if(spawning && enemies.length===0 && pendingSpawns===0){ spawning = false; state.wave++; waveTimer = 2.5; }
     }
 
     function drawBackground(){
+      if(!Images.grass || !Images.path || !Images.portal) return;
       // draw tiles
       for(let y=0;y<ROWS;y++){
         for(let x=0;x<COLS;x++){
@@ -416,7 +429,9 @@
 
     function drawEnemies(){
       for(const e of enemies){
-        const s = tile*0.9; ctx.drawImage(Images.enemy, e.x - s/2, e.y - s/2, s, s);
+        const s = tile*0.9;
+        const imgKey = ENEMY_TYPES[e.type].img;
+        ctx.drawImage(Images[imgKey], e.x - s/2, e.y - s/2, s, s);
         // HP bar
         const bw = Math.max(16, tile*0.8), bh = 5;
         const pct = Math.max(0, e.hp/e.maxHp);
@@ -431,6 +446,7 @@
     }
 
     function draw(){
+      if(!Images.grass) return;
       ctx.clearRect(0,0,canvas.width, canvas.height);
       drawBackground();
       drawTowers();

@@ -122,6 +122,7 @@
     <span class="hud-item"><span class="hud-emoji" aria-hidden="true">💰</span><span id="coins" class="hud-value">0</span></span>
     <span class="hud-item"><span class="hud-emoji" aria-hidden="true">❤️</span><span id="lives" class="hud-value">0</span></span>
     <span class="hud-item"><span class="hud-emoji" aria-hidden="true">🌊</span><span class="hud-label">Wave</span><span id="wave" class="hud-value">1</span></span>
+    <span class="hud-item"><span class="hud-emoji" aria-hidden="true">⭐</span><span class="hud-label">Score</span><span id="score" class="hud-value">0</span></span>
   </div>
 
   <div class="game-wrap">
@@ -167,6 +168,7 @@
     const hudCoins = document.getElementById('coins');
     const hudLives = document.getElementById('lives');
     const hudWave = document.getElementById('wave');
+    const hudScore = document.getElementById('score');
     const topbarEl = document.querySelector('.topbar');
     const root = document.documentElement;
     const toolbar = document.getElementById('toolbar');
@@ -352,6 +354,7 @@
       hudCoins.textContent = state.coins;
       hudLives.textContent = state.lives;
       hudWave.textContent = state.wave;
+      hudScore.textContent = computeScore();
     }
 
     function aimAndShoot(){

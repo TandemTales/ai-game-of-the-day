@@ -393,7 +393,7 @@
     }
 
     async function maybeSubmitLeaderboard() {
-      const dest = `leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
+      let dest = `leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
       try {
         const res = await fetch(`/api/leaderboard/rank?gameId=${encodeURIComponent(GAME_ID)}&score=${encodeURIComponent(score)}`, {
           headers: { 'Accept': 'application/json' }
@@ -407,13 +407,18 @@
             if (name != null) {
               name = name.trim().replace(/[^\w \-'.!]/g, '').slice(0, 20);
               if (name) {
+                let submitted = false;
                 try {
                   await fetch('/api/leaderboard/submit', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ gameId: GAME_ID, name, score })
                   });
+                  submitted = true;
                 } catch {}
+                if (submitted) {
+                  dest += `&highlightRank=${encodeURIComponent(rank)}`;
+                }
               }
             }
           }

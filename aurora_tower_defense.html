@@ -171,6 +171,10 @@
     const root = document.documentElement;
     const toolbar = document.getElementById('toolbar');
 
+    // Leaderboard integration
+    const GAME_ID = 'aurora-tower-defense';
+    let gameOverHandled = false;
+
     function setTopbarHeight(){
       const h = Math.ceil(topbarEl.getBoundingClientRect().height);
       root.style.setProperty('--topbar-h', h + 'px');
@@ -215,6 +219,7 @@
       lives: 20,
       wave: 1,
       time: 0,
+      kills: 0,
     };
 
     const towers = []; // {gx, gy, type, cd}
@@ -405,7 +410,7 @@
       for(let i=enemies.length-1;i>=0;i--){
         const e = enemies[i];
         if(e.reached){ state.lives -= 1; enemies.splice(i,1); if(state.lives<=0) gameOver(); }
-        else if(e.hp<=0){ state.coins += 10; enemies.splice(i,1); }
+        else if(e.hp<=0){ state.coins += 10; state.kills += 1; enemies.splice(i,1); }
       }
     }
 
@@ -506,6 +511,46 @@
       overlay.querySelector('h2').textContent = 'Core Overrun';
       overlay.querySelector('p').textContent = 'Your defenses fell. Tap to try again.';
       overlay.classList.add('show');
+      if (!gameOverHandled) { gameOverHandled = true; maybeSubmitLeaderboard().catch(console.error); }
+    }
+
+    function computeScore(){
+      // Score: 100 per wave completed plus total kills
+      return Math.max(0, (state.wave - 1) * 100 + state.kills);
+    }
+
+    async function maybeSubmitLeaderboard(){
+      const score = computeScore();
+      const dest = `leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
+      try {
+        const res = await fetch(`/api/leaderboard/rank?gameId=${encodeURIComponent(GAME_ID)}&score=${encodeURIComponent(score)}`, {
+          headers: { 'Accept': 'application/json' }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const rank = Number(data?.rank);
+          const qualifies = Number.isFinite(rank) && rank > 0 && rank <= 20;
+          if (qualifies) {
+            let name = prompt(`New High Score! You placed #${rank}. Enter your name (max 20 chars):`, '');
+            if (name != null) {
+              name = name.trim().replace(/[^\w \-'.!]/g, '').slice(0, 20);
+              if (name) {
+                try {
+                  await fetch('/api/leaderboard/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gameId: GAME_ID, name, score })
+                  });
+                } catch {}
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        location.href = dest;
+      }
     }
 
     async function start(){
@@ -516,7 +561,7 @@
         for(const [k,src] of entries){ Images[k] = await loadImg(src); }
       }
       // reset state
-      state.coins = 85; state.lives = 20; state.wave = 1; enemies = []; bullets.length = 0; towers.length = 0; spawning=false; pendingSpawns=0; waveTimer=3.0; last=performance.now();
+      state.coins = 85; state.lives = 20; state.wave = 1; state.kills = 0; enemies = []; bullets.length = 0; towers.length = 0; spawning=false; pendingSpawns=0; waveTimer=3.0; last=performance.now(); gameOverHandled = false;
       running = true;
       // First wave begins after a 3s prep time (handled by updateWaves)
     }

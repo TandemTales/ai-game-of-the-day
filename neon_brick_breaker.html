@@ -209,6 +209,9 @@
     let bricks = [];
 
     const input = { left:false, right:false };
+    // Leaderboard integration
+    const GAME_ID = 'neon-brick-breaker';
+    let gameOverHandled = false;
 
     function init() {
       resetLevel(1);
@@ -323,6 +326,7 @@
         if (lives <= 0) {
           running = false;
           showOverlay('Game Over', 'Press Space to restart');
+          if (!gameOverHandled) { gameOverHandled = true; maybeSubmitLeaderboard().catch(console.error); }
           // Reset whole game on space
           window.addEventListener('keydown', restartOnce, { once: true });
         } else {
@@ -383,7 +387,41 @@
       if (e.code === 'Space') {
         score = 0; lives = 3; level = 1;
         scoreEl.textContent = score; livesEl.textContent = lives; levelEl.textContent = level;
+        gameOverHandled = false;
         resetLevel(1);
+      }
+    }
+
+    async function maybeSubmitLeaderboard() {
+      const dest = `leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
+      try {
+        const res = await fetch(`/api/leaderboard/rank?gameId=${encodeURIComponent(GAME_ID)}&score=${encodeURIComponent(score)}`, {
+          headers: { 'Accept': 'application/json' }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const rank = Number(data?.rank);
+          const qualifies = Number.isFinite(rank) && rank > 0 && rank <= 20;
+          if (qualifies) {
+            let name = prompt(`New High Score! You placed #${rank}. Enter your name (max 20 chars):`, '');
+            if (name != null) {
+              name = name.trim().replace(/[^\w \-'.!]/g, '').slice(0, 20);
+              if (name) {
+                try {
+                  await fetch('/api/leaderboard/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gameId: GAME_ID, name, score })
+                  });
+                } catch {}
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        location.href = dest;
       }
     }
 

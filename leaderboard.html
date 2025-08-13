@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Leaderboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="images/botbuiltarcade-icon-face.png">
+  <style>
+    :root {
+      --gold: #FFD700;
+      --teal: #5F9EA0;
+      --bg1: #D2691E;
+      --bg2: #FF6347;
+      --bg3: #FF4500;
+      --ink: #F5F5DC;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 50%, var(--bg3) 100%);
+      font-family: 'Press Start 2P', cursive;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      color: var(--ink);
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url('images/botbuiltarcade-icon-face.png');
+      background-size: 200px 200px;
+      background-repeat: no-repeat;
+      background-position: top right;
+      opacity: 0.1;
+      z-index: -1;
+      pointer-events: none;
+    }
+    .container {
+      width: min(960px, 95vw);
+      background: rgba(0,0,0,0.85);
+      border: 4px solid var(--gold);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 0 40px rgba(255, 215, 0, 0.6);
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .brand { display: flex; align-items: center; gap: 16px; }
+    header img {
+      width: 56px; height: 56px; border-radius: 50%; border: 3px solid var(--gold);
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    }
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      background: linear-gradient(45deg, var(--gold), #FFA500);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .titles { display:flex; flex-direction:column; }
+    .subtitle { margin-top: 2px; font-size: 14px; color: var(--teal); }
+    .btn {
+      display: inline-block;
+      text-decoration: none;
+      color: #fff;
+      border: 2px solid var(--gold);
+      background: linear-gradient(45deg, var(--teal), #4682B4);
+      padding: 10px 14px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(95,158,160,0.4);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .btn:hover { filter: brightness(1.05); }
+    .btn-group { display:flex; gap:8px; }
+    .controls {
+      display: none;
+    }
+    .controls input[type="text"] {
+      font-family: inherit;
+      font-size: 14px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 2px solid var(--gold);
+      background: rgba(255,255,255,0.06);
+      color: var(--ink);
+    }
+    .controls button {
+      font-family: inherit;
+      font-size: 14px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 2px solid var(--gold);
+      background: linear-gradient(45deg, var(--teal), #4682B4);
+      color: #fff;
+      cursor: pointer;
+    }
+    .controls button:hover { filter: brightness(1.05); }
+
+    .submit-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 12px;
+      margin: 22px 0 10px 0;
+    }
+    .submit-row input[type="text"], .submit-row input[type="number"] {
+      font-family: inherit;
+      font-size: 14px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 2px solid var(--gold);
+      background: rgba(255,255,255,0.06);
+      color: var(--ink);
+    }
+    .submit-row button {
+      font-family: inherit;
+      font-size: 14px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 2px solid var(--gold);
+      background: linear-gradient(45deg, #4682B4, var(--teal));
+      color: #fff;
+      cursor: pointer;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      background: rgba(255, 215, 0, 0.05);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    thead th {
+      text-align: left;
+      font-size: 12px;
+      color: var(--gold);
+      padding: 10px 12px;
+      background: rgba(95, 158, 160, 0.2);
+    }
+    tbody td {
+      padding: 10px 12px;
+      font-size: 14px;
+      border-top: 1px solid rgba(255, 215, 0, 0.15);
+      color: var(--ink);
+    }
+    tbody tr:hover { background: rgba(255, 215, 0, 0.08); }
+
+    .footer {
+      margin-top: 20px;
+      font-size: 12px;
+      color: var(--teal);
+    }
+    a { color: var(--gold); text-decoration: none; }
+    a:hover { color: #FFA500; }
+    .error { color: #ff9999; margin-top: 8px; font-size: 12px; }
+    .success { color: #90EE90; margin-top: 8px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <img src="images/botbuiltarcade-icon-face.png" alt="Bot Built Arcade">
+        <div class="titles">
+          <h1>Leaderboard</h1>
+          <div id="gameTitle" class="subtitle"></div>
+        </div>
+      </div>
+      <div class="btn-group">
+        <a class="btn" id="playBtn" href="#" style="display:none">Play Again</a>
+        <a class="btn" href="index.html">Main Menu</a>
+      </div>
+    </header>
+
+    <div class="controls"><!-- hidden: game selection is not editable --></div>
+    <div id="msg" aria-live="polite"></div>
+
+    <table aria-label="Leaderboard table">
+      <thead>
+        <tr>
+          <th style="width:64px;">Rank</th>
+          <th>Name</th>
+          <th style="width:120px;">Score</th>
+          <th style="width:220px;">When</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        <tr><td colspan="4">No data yet.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="footer">
+      Older timestamps win ties. &nbsp;|&nbsp; <a href="index.html">Main Menu</a>
+    </div>
+  </div>
+
+  <script>
+    const $ = sel => document.querySelector(sel);
+    let currentGameId = '';
+    const GAME_CATALOG = {
+      'neon-brick-breaker': { display: 'Neon Brick Breaker', url: 'neon_brick_breaker.html' }
+    };
+    function getGameMeta(id) { return GAME_CATALOG[id] || null; }
+    function getParam(...keys) {
+      const usp = new URLSearchParams(location.search);
+      for (const k of keys) {
+        const v = usp.get(k);
+        if (v) return v;
+      }
+      return '';
+    }
+
+    function setMessage(html, kind = 'info') {
+      const msg = $('#msg');
+      msg.className = kind === 'error' ? 'error' : kind === 'success' ? 'success' : '';
+      msg.innerHTML = html;
+    }
+
+    function fmtWhen(ts) {
+      try {
+        const d = new Date(Number(ts));
+        if (Number.isNaN(d.getTime())) return '';
+        return d.toLocaleString();
+      } catch { return ''; }
+    }
+
+    async function loadBoard() {
+      setMessage('');
+      const gameId = currentGameId.trim();
+      if (!gameId) { setMessage('Missing game id.', 'error'); return; }
+      const tbody = $('#tbody');
+      tbody.innerHTML = '<tr><td colspan="4">Loading…</td></tr>';
+      try {
+        const res = await fetch(`/api/leaderboard/${encodeURIComponent(gameId)}?limit=20`, { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) throw new Error('Failed to load leaderboard');
+        const data = await res.json();
+        const entries = Array.isArray(data.entries) ? data.entries : [];
+        if (!entries.length) {
+          tbody.innerHTML = '<tr><td colspan="4">No scores yet. Be the first!</td></tr>';
+          return;
+        }
+        tbody.innerHTML = entries.map(e => `
+          <tr>
+            <td>#${e.rank}</td>
+            <td>${escapeHtml(e.name)}</td>
+            <td>${e.score}</td>
+            <td>${fmtWhen(e.timestamp)}</td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error(err);
+        tbody.innerHTML = '<tr><td colspan="4">Error loading leaderboard.</td></tr>';
+        setMessage('Error loading leaderboard.', 'error');
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // loadBtn exists but controls are hidden; still allow manual refresh if needed
+      const lb = document.getElementById('loadBtn');
+      if (lb) lb.addEventListener('click', loadBoard);
+
+      const initial = getParam('gameId', 'game');
+      currentGameId = initial || '';
+      // Set display name in header
+      const meta = getGameMeta(currentGameId);
+      const titleEl = document.getElementById('gameTitle');
+      if (titleEl) titleEl.textContent = meta?.display || '';
+      if (currentGameId) loadBoard();
+      // Initialize Play Again button for initial gameId
+      const pb = document.getElementById('playBtn');
+      if (pb) {
+        const url = gameUrlForId(currentGameId);
+        pb.style.display = url ? 'inline-block' : 'none';
+        if (url) pb.href = url;
+      }
+    });
+
+    function gameUrlForId(id) {
+      const meta = getGameMeta(id);
+      return meta ? meta.url : '';
+    }
+  </script>
+</body>
+</html>

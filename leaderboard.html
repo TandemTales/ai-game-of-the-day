@@ -213,7 +213,8 @@
     const $ = sel => document.querySelector(sel);
     let currentGameId = '';
     const GAME_CATALOG = {
-      'neon-brick-breaker': { display: 'Neon Brick Breaker', url: 'neon_brick_breaker.html' }
+      'neon-brick-breaker': { display: 'Neon Brick Breaker', url: 'neon_brick_breaker.html' },
+      'aurora-tower-defense': { display: 'Aurora Tower Defense', url: 'aurora_tower_defense.html' }
     };
     function getGameMeta(id) { return GAME_CATALOG[id] || null; }
     function getParam(...keys) {

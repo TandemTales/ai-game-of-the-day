@@ -226,7 +226,7 @@
       leaks: 0,
     };
 
-    const towers = []; // {gx, gy, type, cd}
+    const towers = []; // {gx, gy, type, cd, lvl}
     const bullets = []; // {x,y,vx,vy,spd, dmg, slow, slowDur, targetId, bonus}
     let enemies = []; // {id, x,y, seg, t, spd, hp, maxHp, slow, slowTimer}
     let nextEnemyId = 1;
@@ -236,6 +236,15 @@
       slow:  { range: 2.2, rof: 1.2, dmg: 8,  spd: 380, slow: 0.55, slowDur: 1.4, cost: 35 },
       pierce:{ range: 2.4, rof: 0.6, dmg: 32, spd: 450, cost: 50, bonus: { armored: 24 } },
     };
+
+    function towerStats(t){
+      const base = TOWER_CONF[t.type];
+      const lvl = t.lvl || 1;
+      const dmg = base.dmg * (1 + 0.5*(lvl-1));
+      const range = base.range * (1 + 0.15*(lvl-1));
+      const rof = base.rof * (1 + 0.15*(lvl-1));
+      return { ...base, dmg, range, rof };
+    }
 
     const INITIAL_WAVE_SPEED = 50;
     const WAVE_SPEED_INCREMENT = 8;
@@ -325,12 +334,23 @@
       const x = (e.clientX - rect.left);
       const y = (e.clientY - rect.top);
       const {gx, gy} = worldToGrid(x,y);
+      const existing = towers.find(t => t.gx === gx && t.gy === gy);
+      if(existing){
+        const lvl = existing.lvl || 1;
+        if(lvl >= 3) return;
+        const cost = Math.round(TOWER_CONF[existing.type].cost * lvl);
+        if(state.coins < cost) return;
+        state.coins -= cost;
+        existing.lvl = lvl + 1;
+        updateHUD();
+        return;
+      }
       if(!placeValid(gx,gy)) return;
       const conf = TOWER_CONF[selectedTower];
       const cost = conf.cost;
       if(state.coins < cost) return;
       state.coins -= cost;
-      towers.push({ gx, gy, type: selectedTower, cd: 0 });
+      towers.push({ gx, gy, type: selectedTower, cd: 0, lvl: 1 });
       updateHUD();
     }, {passive:true});
 
@@ -340,11 +360,23 @@
       const x = (t.clientX - rect.left);
       const y = (t.clientY - rect.top);
       const {gx, gy} = worldToGrid(x,y);
+      const existing = towers.find(tt => tt.gx === gx && tt.gy === gy);
+      if(existing){
+        const lvl = existing.lvl || 1;
+        if(lvl >= 3) return;
+        const cost = Math.round(TOWER_CONF[existing.type].cost * lvl);
+        if(state.coins < cost) return;
+        state.coins -= cost;
+        existing.lvl = lvl + 1;
+        updateHUD();
+        e.preventDefault();
+        return;
+      }
       if(!placeValid(gx,gy)) return;
       const conf = TOWER_CONF[selectedTower];
       const cost = conf.cost;
       if(state.coins < cost) return;
-      state.coins -= cost; towers.push({ gx, gy, type: selectedTower, cd: 0 }); updateHUD();
+      state.coins -= cost; towers.push({ gx, gy, type: selectedTower, cd: 0, lvl: 1 }); updateHUD();
       e.preventDefault();
     }, {passive:false});
 
@@ -360,7 +392,7 @@
 
     function aimAndShoot(){
       for(const t of towers){
-        const conf = TOWER_CONF[t.type];
+        const conf = towerStats(t);
         t.cd = Math.max(0, t.cd - dt);
         if(t.cd>0) continue;
         // find nearest enemy within range (in tiles)
@@ -483,6 +515,15 @@
         const x = t.gx*tile, y = t.gy*tile;
         const img = Images['tower_'+t.type];
         ctx.drawImage(img, x, y, tile, tile);
+        if((t.lvl||1) > 1){
+          ctx.save();
+          ctx.fillStyle = '#FFD700';
+          ctx.font = Math.max(10, tile*0.4)+"px 'Press Start 2P'";
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(t.lvl, x + tile/2, y + tile - 4);
+          ctx.restore();
+        }
       }
     }
 

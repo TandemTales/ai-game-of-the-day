@@ -220,6 +220,7 @@
       wave: 1,
       time: 0,
       kills: 0,
+      leaks: 0,
     };
 
     const towers = []; // {gx, gy, type, cd}
@@ -409,7 +410,12 @@
       // resolve reached
       for(let i=enemies.length-1;i>=0;i--){
         const e = enemies[i];
-        if(e.reached){ state.lives -= 1; enemies.splice(i,1); if(state.lives<=0) gameOver(); }
+        if(e.reached){
+          state.lives -= 1;
+          state.leaks += 1;
+          enemies.splice(i,1);
+          if(state.lives<=0) gameOver();
+        }
         else if(e.hp<=0){ state.coins += 10; state.kills += 1; enemies.splice(i,1); }
       }
     }
@@ -516,7 +522,8 @@
 
     function computeScore(){
       // Score: 100 per wave completed plus total kills
-      return Math.max(0, (state.wave - 1) * 100 + state.kills);
+      // Minus leaked enemies and plus leftover coins
+      return Math.max(0, (state.wave - 1) * 100 + state.kills + state.coins - state.leaks * 10);
     }
 
     async function maybeSubmitLeaderboard(){
@@ -561,7 +568,7 @@
         for(const [k,src] of entries){ Images[k] = await loadImg(src); }
       }
       // reset state
-      state.coins = 85; state.lives = 20; state.wave = 1; state.kills = 0; enemies = []; bullets.length = 0; towers.length = 0; spawning=false; pendingSpawns=0; waveTimer=3.0; last=performance.now(); gameOverHandled = false;
+      state.coins = 85; state.lives = 20; state.wave = 1; state.kills = 0; state.leaks = 0; enemies = []; bullets.length = 0; towers.length = 0; spawning=false; pendingSpawns=0; waveTimer=3.0; last=performance.now(); gameOverHandled = false;
       running = true;
       // First wave begins after a 3s prep time (handled by updateWaves)
     }

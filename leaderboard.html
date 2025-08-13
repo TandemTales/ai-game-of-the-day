@@ -157,6 +157,14 @@
       line-height: 1.35;
       border-top: 1px solid rgba(255, 215, 0, 0.15);
       color: var(--ink);
+      word-break: break-word;
+    }
+    .col-rank { width:64px; }
+    .col-score { width:120px; }
+    .col-when { width:220px; }
+    @media (max-width: 480px) {
+      .col-rank, .col-score, .col-when { width:auto; }
+      thead th, tbody td { font-size:12px; padding:8px; }
     }
     tbody tr:hover { background: rgba(255, 215, 0, 0.08); }
 
@@ -193,10 +201,10 @@
     <table aria-label="Leaderboard table">
       <thead>
         <tr>
-          <th style="width:64px;">Rank</th>
-          <th>Name</th>
-          <th style="width:120px;">Score</th>
-          <th style="width:220px;">When</th>
+          <th class="col-rank">Rank</th>
+          <th class="col-name">Name</th>
+          <th class="col-score">Score</th>
+          <th class="col-when">When</th>
         </tr>
       </thead>
       <tbody id="tbody">

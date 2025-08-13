@@ -400,18 +400,26 @@
     function moveEnemies(){
       for(const e of enemies){
         if(e.slowTimer>0){ e.slowTimer -= dt; if(e.slowTimer<=0) e.slow = 1; }
-        const speed = e.spd * e.slow;
-        const s = segToPx(e.seg);
-        const dx = s.bx - s.ax, dy = s.by - s.ay; const length = Math.hypot(dx,dy)||1;
-        const nx = dx/length, ny = dy/length;
-        e.x += nx * speed * dt; e.y += ny * speed * dt;
-        // progress on segment
-        const toB = Math.hypot(s.bx - e.x, s.by - e.y);
-        if(toB < 4){ e.seg++; if(e.seg >= path.length-1){ // reached end
-            e.reached = true; }
+        let remaining = e.spd * e.slow * dt;
+        while(remaining>0 && !e.reached){
+          const s = segToPx(e.seg);
+          const dx = s.bx - s.ax, dy = s.by - s.ay; const length = Math.hypot(dx,dy)||1;
+          const dist = length * (1 - e.t);
+          if(remaining >= dist){
+            e.x = s.bx; e.y = s.by;
+            remaining -= dist;
+            e.seg++; e.t = 0;
+            if(e.seg >= path.length-1){ e.reached = true; }
+          } else {
+            e.t += remaining/length;
+            e.x = s.ax + dx*e.t; e.y = s.ay + dy*e.t;
+            remaining = 0;
+          }
         }
+        // fail-safe for any stray enemies leaving bounds
+        if(e.x<-40||e.y<-40||e.x>COLS*tile+40||e.y>ROWS*tile+40){ e.reached = true; }
       }
-      // resolve reached
+      // resolve reached and dead enemies
       for(let i=enemies.length-1;i>=0;i--){
         const e = enemies[i];
         if(e.reached){

@@ -170,6 +170,18 @@
       .btn-group { width:100%; justify-content:center; flex-wrap:wrap; }
     }
     tbody tr:hover { background: rgba(255, 215, 0, 0.08); }
+    /* Highlight for newly placed score */
+    tbody tr.recent {
+      background: rgba(255, 215, 0, 0.12);
+      position: relative;
+      outline: 2px solid rgba(255, 215, 0, 0.6);
+      animation: lbPulse 1.6s ease-in-out 2;
+    }
+    @keyframes lbPulse {
+      0% { background: rgba(255, 215, 0, 0.10); }
+      50% { background: rgba(255, 215, 0, 0.22); }
+      100% { background: rgba(255, 215, 0, 0.12); }
+    }
 
     .footer {
       margin-top: 20px;
@@ -223,6 +235,7 @@
   <script>
     const $ = sel => document.querySelector(sel);
     let currentGameId = '';
+    let highlightRank = 0;
     const GAME_CATALOG = {
       'neon-brick-breaker': { display: 'Neon Brick Breaker', url: 'neon_brick_breaker.html' },
       'aurora-tower-defense': { display: 'Aurora Tower Defense', url: 'aurora_tower_defense.html' }
@@ -267,13 +280,18 @@
           return;
         }
         tbody.innerHTML = entries.map(e => `
-          <tr>
+          <tr class="${Number(e.rank)===Number(highlightRank)?'recent':''}">
             <td>#${e.rank}</td>
             <td>${escapeHtml(e.name)}</td>
             <td>${e.score}</td>
             <td>${fmtWhen(e.timestamp)}</td>
           </tr>
         `).join('');
+        // Scroll recent item into view
+        if (highlightRank) {
+          const r = tbody.querySelector('tr.recent');
+          if (r) setTimeout(()=> r.scrollIntoView({ block: 'center', behavior: 'smooth' }), 60);
+        }
       } catch (err) {
         console.error(err);
         tbody.innerHTML = '<tr><td colspan="4">Error loading leaderboard.</td></tr>';
@@ -298,7 +316,9 @@
       if (lb) lb.addEventListener('click', loadBoard);
 
       const initial = getParam('gameId', 'game');
+      const hr = Number(getParam('highlightRank'));
       currentGameId = initial || '';
+      highlightRank = Number.isFinite(hr) ? hr : 0;
       // Set display name in header
       const meta = getGameMeta(currentGameId);
       const titleEl = document.getElementById('gameTitle');

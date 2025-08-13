@@ -189,6 +189,7 @@
 
     let COLS = 12, ROWS = 8, tile = 48; // computed on resize
     let pixelRatio = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+    const TOTAL_WAVES = 20;
 
     // Assets
     const assets = {
@@ -428,9 +429,12 @@
     function updateWaves(){
       if(spawning){
         if(enemies.length===0 && pendingSpawns===0){
-          spawning = false; state.wave++; waveTimer = 2.5;
+          spawning = false; state.wave++;
+          if(state.wave > TOTAL_WAVES){ victory(); return; }
+          waveTimer = 2.5;
         }
       } else if(enemies.length===0){
+        if(state.wave > TOTAL_WAVES) return;
         // delay then start next
         waveTimer -= dt;
         if(waveTimer<=0){ spawning = true; spawnWave(); }
@@ -519,6 +523,14 @@
       running = false;
       overlay.querySelector('h2').textContent = 'Core Overrun';
       overlay.querySelector('p').textContent = 'Your defenses fell. Tap to try again.';
+      overlay.classList.add('show');
+      if (!gameOverHandled) { gameOverHandled = true; maybeSubmitLeaderboard().catch(console.error); }
+    }
+
+    function victory(){
+      running = false;
+      overlay.querySelector('h2').textContent = 'Aurora Defended!';
+      overlay.querySelector('p').textContent = 'All waves cleared. Tap to play again.';
       overlay.classList.add('show');
       if (!gameOverHandled) { gameOverHandled = true; maybeSubmitLeaderboard().catch(console.error); }
     }

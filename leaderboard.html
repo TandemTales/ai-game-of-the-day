@@ -50,9 +50,11 @@
     header {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 16px;
       margin-bottom: 20px;
     }
+    .brand { display: flex; align-items: center; gap: 16px; }
     header img {
       width: 56px; height: 56px; border-radius: 50%; border: 3px solid var(--gold);
       box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
@@ -65,11 +67,24 @@
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
+    .titles { display:flex; flex-direction:column; }
+    .subtitle { margin-top: 2px; font-size: 14px; color: var(--teal); }
+    .btn {
+      display: inline-block;
+      text-decoration: none;
+      color: #fff;
+      border: 2px solid var(--gold);
+      background: linear-gradient(45deg, var(--teal), #4682B4);
+      padding: 10px 14px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(95,158,160,0.4);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .btn:hover { filter: brightness(1.05); }
+    .btn-group { display:flex; gap:8px; }
     .controls {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-      margin-bottom: 18px;
+      display: none;
     }
     .controls input[type="text"] {
       font-family: inherit;
@@ -156,20 +171,20 @@
 <body>
   <div class="container">
     <header>
-      <img src="images/botbuiltarcade-icon-face.png" alt="Bot Built Arcade">
-      <h1>Leaderboard</h1>
+      <div class="brand">
+        <img src="images/botbuiltarcade-icon-face.png" alt="Bot Built Arcade">
+        <div class="titles">
+          <h1>Leaderboard</h1>
+          <div id="gameTitle" class="subtitle"></div>
+        </div>
+      </div>
+      <div class="btn-group">
+        <a class="btn" id="playBtn" href="#" style="display:none">Play Again</a>
+        <a class="btn" href="index.html">Main Menu</a>
+      </div>
     </header>
 
-    <div class="controls">
-      <input id="gameId" type="text" placeholder="Enter game id (e.g. aurora-tower-defense)" />
-      <button id="loadBtn">Load Top 20</button>
-    </div>
-
-    <div class="submit-row">
-      <input id="nameInput" type="text" maxlength="20" placeholder="Your name (max 20)" />
-      <input id="scoreInput" type="number" min="0" step="1" placeholder="Score" />
-      <button id="submitBtn">Submit Score</button>
-    </div>
+    <div class="controls"><!-- hidden: game selection is not editable --></div>
     <div id="msg" aria-live="polite"></div>
 
     <table aria-label="Leaderboard table">
@@ -187,13 +202,17 @@
     </table>
 
     <div class="footer">
-      Tip: Pass ?gameId=your-game-id in the URL to auto-load. Older timestamps win ties.
-      &nbsp;|&nbsp; <a href="index.html">Back to Arcade</a>
+      Older timestamps win ties. &nbsp;|&nbsp; <a href="index.html">Main Menu</a>
     </div>
   </div>
 
   <script>
     const $ = sel => document.querySelector(sel);
+    let currentGameId = '';
+    const GAME_CATALOG = {
+      'neon-brick-breaker': { display: 'Neon Brick Breaker', url: 'neon_brick_breaker.html' }
+    };
+    function getGameMeta(id) { return GAME_CATALOG[id] || null; }
     function getParam(...keys) {
       const usp = new URLSearchParams(location.search);
       for (const k of keys) {
@@ -219,8 +238,8 @@
 
     async function loadBoard() {
       setMessage('');
-      const gameId = $('#gameId').value.trim();
-      if (!gameId) { setMessage('Please enter a game id.', 'error'); return; }
+      const gameId = currentGameId.trim();
+      if (!gameId) { setMessage('Missing game id.', 'error'); return; }
       const tbody = $('#tbody');
       tbody.innerHTML = '<tr><td colspan="4">Loading…</td></tr>';
       try {
@@ -256,46 +275,33 @@
         .replace(/'/g, '&#039;');
     }
 
-    async function submitScore() {
-      setMessage('');
-      const gameId = $('#gameId').value.trim();
-      let name = $('#nameInput').value.trim();
-      const rawScore = $('#scoreInput').value;
-      const score = Number.parseInt(rawScore, 10);
-      if (!gameId) { setMessage('Please enter a game id.', 'error'); return; }
-      if (!name) { setMessage('Please enter your name.', 'error'); return; }
-      if (!Number.isFinite(score) || score < 0) { setMessage('Please enter a valid non-negative score.', 'error'); return; }
-
-      // client-side sanitize & cap name length to mirror server behavior
-      name = name.replace(/[^\w \-'.!]/g, '').slice(0, 20);
-
-      try {
-        const res = await fetch('/api/leaderboard/submit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gameId, name, score })
-        });
-        if (!res.ok) throw new Error('Submit failed');
-        const data = await res.json();
-        const rank = data?.rank;
-        setMessage(rank ? `Submitted! Provisional rank: #${rank}` : 'Submitted!', 'success');
-        await loadBoard();
-      } catch (err) {
-        console.error(err);
-        setMessage('Error submitting score.', 'error');
-      }
-    }
+    
 
     document.addEventListener('DOMContentLoaded', () => {
-      $('#loadBtn').addEventListener('click', loadBoard);
-      $('#submitBtn').addEventListener('click', submitScore);
+      // loadBtn exists but controls are hidden; still allow manual refresh if needed
+      const lb = document.getElementById('loadBtn');
+      if (lb) lb.addEventListener('click', loadBoard);
 
       const initial = getParam('gameId', 'game');
-      if (initial) {
-        $('#gameId').value = initial;
-        loadBoard();
+      currentGameId = initial || '';
+      // Set display name in header
+      const meta = getGameMeta(currentGameId);
+      const titleEl = document.getElementById('gameTitle');
+      if (titleEl) titleEl.textContent = meta?.display || '';
+      if (currentGameId) loadBoard();
+      // Initialize Play Again button for initial gameId
+      const pb = document.getElementById('playBtn');
+      if (pb) {
+        const url = gameUrlForId(currentGameId);
+        pb.style.display = url ? 'inline-block' : 'none';
+        if (url) pb.href = url;
       }
     });
+
+    function gameUrlForId(id) {
+      const meta = getGameMeta(id);
+      return meta ? meta.url : '';
+    }
   </script>
 </body>
 </html>

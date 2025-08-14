@@ -393,11 +393,12 @@
     function addEnemy(type='bug'){
       const waveNumber = state.wave;
       const level = state.level;
+      const hardWave = waveNumber >= 9;
       const baseSpd = Math.min(
         INITIAL_WAVE_SPEED + (waveNumber-1)*WAVE_SPEED_INCREMENT + (level-1)*10,
         MAX_WAVE_SPEED
-      );
-      const baseHp  = ENEMY_CONF.hp + (waveNumber-1)*ENEMY_CONF.hpInc + (level-1)*50;
+      ) * (hardWave ? 1.1 : 1);
+      const baseHp  = (ENEMY_CONF.hp + (waveNumber-1)*ENEMY_CONF.hpInc + (level-1)*50) * (hardWave ? 1.25 : 1);
       const conf = ENEMY_TYPES[type] || ENEMY_TYPES.bug;
       const hp = baseHp * conf.hpMul;
       enemies.push({ id: nextEnemyId++, type, ...gridToPx(path[0].x, path[0].y), seg:0, t:0, spd: baseSpd * conf.spdMul, hp, maxHp: hp, slow:1, slowTimer:0 });
@@ -406,22 +407,26 @@
     function spawnWave(){
       const waveNumber = state.wave;
       const level = state.level;
+      const hardWave = waveNumber >= 9;
       // Easier Wave 1, progressively harder later (quadratic term)
-      const count = 4 + Math.floor(((level-1)*WAVES_PER_LEVEL + waveNumber)*1.2) + Math.floor((waveNumber-1)*(waveNumber-1)*0.3);
+      let count = 4 + Math.floor(((level-1)*WAVES_PER_LEVEL + waveNumber)*1.2) + Math.floor((waveNumber-1)*(waveNumber-1)*0.3);
+      if(hardWave) count = Math.floor(count * 1.25);
       let i = 0;
       // Track outstanding spawns so we don't advance the wave before enemies actually appear
       pendingSpawns = count;
+      const baseInterval = Math.max(250, 700 - (waveNumber-1)*40 + (level-1)*120);
       const iv = setInterval(()=>{
         const r = Math.random();
         let type = 'bug';
         if(level > 1 && r < 0.15) type = 'brute';
+        else if(hardWave && r < 0.3) type = 'armored';
         else if(waveNumber + (level-1)*WAVES_PER_LEVEL > 8 && r < 0.2) type = 'armored';
         else if(waveNumber + (level-1)*WAVES_PER_LEVEL > 4 && r < 0.5) type = 'fast';
         addEnemy(type);
         i++;
         pendingSpawns = Math.max(0, pendingSpawns - 1);
         if(i>=count){ clearInterval(iv); pendingSpawns = 0; }
-      }, Math.max(250, 700 - (waveNumber-1)*40 + (level-1)*120));
+      }, hardWave ? Math.max(200, baseInterval * 0.8) : baseInterval);
     }
 
     function placeValid(gx, gy){

@@ -140,6 +140,7 @@
   <div class="hud" id="hud">
     <span class="hud-item"><span class="hud-emoji" aria-hidden="true">💰</span><span id="coins" class="hud-value">0</span></span>
     <span class="hud-item"><span class="hud-emoji" aria-hidden="true">❤️</span><span id="lives" class="hud-value">0</span></span>
+    <span class="hud-item"><span class="hud-emoji" aria-hidden="true">🎚️</span><span class="hud-label">Level</span><span id="level" class="hud-value">1</span></span>
     <span class="hud-item"><span class="hud-emoji" aria-hidden="true">🌊</span><span class="hud-label">Wave</span><span id="wave" class="hud-value">1</span></span>
     <span class="hud-item"><span class="hud-emoji" aria-hidden="true">⭐</span><span class="hud-label">Score</span><span id="score" class="hud-value">0</span></span>
   </div>
@@ -157,6 +158,7 @@
         <div class="enemy-row"><img src="images/td_enemy_bug.svg" alt="Bug"><span>Bug - Balanced scout.</span></div>
         <div class="enemy-row"><img src="images/td_enemy_fast.svg" alt="Runner"><span>Runner - Quick but fragile.</span></div>
         <div class="enemy-row"><img src="images/td_enemy_armored.svg" alt="Armored"><span>Armored - Slow, heavily protected.</span></div>
+        <div class="enemy-row"><img src="images/td_enemy_brute.svg" alt="Brute"><span>Brute - Titanic and tough.</span></div>
       </div>
       <p class="tap">Tap to close</p>
     </div>
@@ -198,6 +200,7 @@
     const hudCoins = document.getElementById('coins');
     const hudLives = document.getElementById('lives');
     const hudWave = document.getElementById('wave');
+    const hudLevel = document.getElementById('level');
     const hudScore = document.getElementById('score');
     const topbarEl = document.querySelector('.topbar');
     const root = document.documentElement;
@@ -219,7 +222,7 @@
 
     let COLS = 12, ROWS = 8, tile = 48; // computed on resize
     let pixelRatio = Math.max(1, Math.floor(window.devicePixelRatio || 1));
-    const TOTAL_WAVES = 8;
+    const WAVES_PER_LEVEL = 10;
 
     // Assets
     const assets = {
@@ -231,16 +234,24 @@
       enemy: 'images/td_enemy_bug.svg',
       enemy_fast: 'images/td_enemy_fast.svg',
       enemy_armored: 'images/td_enemy_armored.svg',
+      enemy_brute: 'images/td_enemy_brute.svg',
       bullet: 'images/td_bullet.svg',
       portal: 'images/td_portal.svg',
     };
     const Images = {};
     function loadImg(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }); }
 
-    // Path definition (grid points)
-    const path = [
-      {x:0,y:2}, {x:11,y:2}, {x:11,y:5}, {x:1,y:5}, {x:1,y:7}, {x:11,y:7}
+    // Path definitions (grid points)
+    const MAPS = [
+      // Level 1
+      [ {x:0,y:2}, {x:11,y:2}, {x:11,y:5}, {x:1,y:5}, {x:1,y:7}, {x:11,y:7} ],
+      // Level 2 - new longer layout for easier defense
+      [ {x:0,y:3}, {x:4,y:3}, {x:4,y:1}, {x:8,y:1}, {x:8,y:6}, {x:2,y:6}, {x:2,y:7}, {x:11,y:7} ]
     ];
+    let path = MAPS[0];
+    function chooseMap(level){
+      path = MAPS[(level-1) % MAPS.length];
+    }
 
     function lerp(a,b,t){ return a+(b-a)*t; }
     function gridToPx(gx, gy){ return { x: gx*tile + tile/2, y: gy*tile + tile/2 }; }
@@ -248,6 +259,7 @@
     // Game state
     let running = false;
     const state = {
+      level: 1,
       coins: 85,
       lives: 20,
       wave: 1,
@@ -284,6 +296,7 @@
       bug:    { img: 'enemy',         spdMul: 1,   hpMul: 1 },
       fast:   { img: 'enemy_fast',    spdMul: 1.8, hpMul: 0.6 },
       armored:{ img: 'enemy_armored', spdMul: 0.8, hpMul: 2.2 },
+      brute:  { img: 'enemy_brute',   spdMul: 0.6, hpMul: 4 },
     };
 
     // UI selection
@@ -378,29 +391,37 @@
     }
 
     function addEnemy(type='bug'){
-      const baseSpd = Math.min(INITIAL_WAVE_SPEED + (state.wave-1)*WAVE_SPEED_INCREMENT, MAX_WAVE_SPEED);
-      const baseHp  = ENEMY_CONF.hp + (state.wave-1)*ENEMY_CONF.hpInc;
+      const waveNumber = state.wave;
+      const level = state.level;
+      const baseSpd = Math.min(
+        INITIAL_WAVE_SPEED + (waveNumber-1)*WAVE_SPEED_INCREMENT + (level-1)*10,
+        MAX_WAVE_SPEED
+      );
+      const baseHp  = ENEMY_CONF.hp + (waveNumber-1)*ENEMY_CONF.hpInc + (level-1)*50;
       const conf = ENEMY_TYPES[type] || ENEMY_TYPES.bug;
       const hp = baseHp * conf.hpMul;
       enemies.push({ id: nextEnemyId++, type, ...gridToPx(path[0].x, path[0].y), seg:0, t:0, spd: baseSpd * conf.spdMul, hp, maxHp: hp, slow:1, slowTimer:0 });
     }
 
     function spawnWave(){
+      const waveNumber = state.wave;
+      const level = state.level;
       // Easier Wave 1, progressively harder later (quadratic term)
-      const count = 4 + Math.floor(state.wave*1.2) + Math.floor((state.wave-1)*(state.wave-1)*0.3);
+      const count = 4 + Math.floor(((level-1)*WAVES_PER_LEVEL + waveNumber)*1.2) + Math.floor((waveNumber-1)*(waveNumber-1)*0.3);
       let i = 0;
       // Track outstanding spawns so we don't advance the wave before enemies actually appear
       pendingSpawns = count;
       const iv = setInterval(()=>{
         const r = Math.random();
         let type = 'bug';
-        if(state.wave > 4 && r < 0.2) type = 'armored';
-        else if(state.wave > 2 && r < 0.5) type = 'fast';
+        if(level > 1 && r < 0.15) type = 'brute';
+        else if(waveNumber + (level-1)*WAVES_PER_LEVEL > 8 && r < 0.2) type = 'armored';
+        else if(waveNumber + (level-1)*WAVES_PER_LEVEL > 4 && r < 0.5) type = 'fast';
         addEnemy(type);
         i++;
         pendingSpawns = Math.max(0, pendingSpawns - 1);
         if(i>=count){ clearInterval(iv); pendingSpawns = 0; }
-      }, Math.max(200, 700 - state.wave*40));
+      }, Math.max(250, 700 - (waveNumber-1)*40 + (level-1)*120));
     }
 
     function placeValid(gx, gy){
@@ -476,6 +497,7 @@
     function updateHUD(){
       hudCoins.textContent = state.coins;
       hudLives.textContent = state.lives;
+      hudLevel.textContent = state.level;
       hudWave.textContent = state.wave;
       hudScore.textContent = computeScore();
     }
@@ -560,11 +582,11 @@
       if(spawning){
         if(enemies.length===0 && pendingSpawns===0){
           spawning = false; state.wave++;
-          if(state.wave > TOTAL_WAVES){ victory(); return; }
+          if(state.wave > WAVES_PER_LEVEL){ nextLevel(); return; }
           waveTimer = 2.5;
         }
       } else if(enemies.length===0){
-        if(state.wave > TOTAL_WAVES) return;
+        if(state.wave > WAVES_PER_LEVEL) return;
         // delay then start next
         waveTimer -= dt;
         if(waveTimer<=0){ spawning = true; spawnWave(); }
@@ -676,10 +698,21 @@
       if (!gameOverHandled) { gameOverHandled = true; maybeSubmitLeaderboard().catch(console.error); }
     }
 
+    function nextLevel(){
+      const completed = state.level;
+      state.level++;
+      running = false;
+      overlay.querySelector('h2').textContent = `Level ${completed} Complete`;
+      overlay.querySelector('p').textContent = `Tap to start Level ${state.level}`;
+      setOverlayMode(true);
+      overlay.classList.add('show');
+    }
+
     function computeScore(){
       // Score: 100 per wave completed plus total kills
       // Minus leaked enemies and plus leftover coins
-      return Math.max(0, (state.wave - 1) * 100 + state.kills + state.coins - state.leaks * 10);
+      const totalWaves = (state.level-1)*WAVES_PER_LEVEL + (state.wave - 1);
+      return Math.max(0, totalWaves * 100 + state.kills + state.coins - state.leaks * 10);
     }
 
     async function maybeSubmitLeaderboard(){
@@ -729,8 +762,9 @@
         const entries = Object.entries(assets);
         for(const [k,src] of entries){ Images[k] = await loadImg(src); }
       }
-      // reset state
-      state.coins = 85; state.lives = 20; state.wave = 1; state.kills = 0; state.leaks = 0; enemies = []; bullets.length = 0; towers.length = 0; spawning=false; pendingSpawns=0; waveTimer=3.0; last=performance.now(); gameOverHandled = false;
+      chooseMap(state.level);
+      // reset state (except level)
+      state.coins = 85 + (state.level-1)*40; state.lives = 20; state.wave = 1; state.kills = 0; state.leaks = 0; enemies = []; bullets.length = 0; towers.length = 0; spawning=false; pendingSpawns=0; waveTimer=3.0; last=performance.now(); gameOverHandled = false;
       running = true;
       // First wave begins after a 3s prep time (handled by updateWaves)
     }

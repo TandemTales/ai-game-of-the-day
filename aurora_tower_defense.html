@@ -106,6 +106,24 @@
       .title { font-size: 12px; }
       .hud { font-size: 11px; gap: 10px; padding: 5px 8px; }
     }
+    /* Generic scrollable modal panel inside overlays (for mobile-fit) */
+    .overlay .panel {
+      width: min(720px, 94vw);
+      max-height: min(76vh, 84vh);
+      overflow-y: auto;
+      background: rgba(10,15,20,0.8);
+      border: 2px solid var(--gold);
+      border-radius: 12px;
+      padding: 12px 14px;
+      text-align: left;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    }
+    .overlay .panel h3 { margin: 6px 0 8px; color: var(--gold); font-size: 14px; }
+    .overlay .panel h4 { margin: 4px 0 6px; color: #7fffd4; font-size: 13px; }
+    .overlay .panel p, .overlay .panel li, .overlay .panel small { color: #d8f7ff; font-size: 12px; line-height: 1.35; }
+    .tower-cards { display: grid; grid-template-columns: 1fr; gap: 10px; }
+    @media (min-width: 600px) { .tower-cards { grid-template-columns: 1fr 1fr; } }
+    .tower-card { border: 1px solid rgba(255,215,0,0.3); border-radius: 8px; padding: 8px; background: rgba(0,0,0,0.25); }
   </style>
 </head>
 <body>
@@ -115,6 +133,7 @@
       Aurora Tower Defense<br>
       <span class="date-info">Created: August 10, 2025</span>
     </div>
+    <button class="back-btn" id="howToBtn">Instructions</button>
     <button class="back-btn" id="enemyRefBtn">Enemies</button>
   </div>
 
@@ -138,6 +157,13 @@
         <div class="enemy-row"><img src="images/td_enemy_bug.svg" alt="Bug"><span>Bug - Balanced scout.</span></div>
         <div class="enemy-row"><img src="images/td_enemy_fast.svg" alt="Runner"><span>Runner - Quick but fragile.</span></div>
         <div class="enemy-row"><img src="images/td_enemy_armored.svg" alt="Armored"><span>Armored - Slow, heavily protected.</span></div>
+      </div>
+      <p class="tap">Tap to close</p>
+    </div>
+    <div class="overlay" id="howTo">
+      <h2>How to Play</h2>
+      <div class="panel">
+        <div id="howToContent"></div>
       </div>
       <p class="tap">Tap to close</p>
     </div>
@@ -165,6 +191,10 @@
     const overlay = document.getElementById('overlay');
     const enemyRef = document.getElementById('enemyRef');
     const enemyRefBtn = document.getElementById('enemyRefBtn');
+    const howTo = document.getElementById('howTo');
+    const howToBtn = document.getElementById('howToBtn');
+    const howToContent = document.getElementById('howToContent');
+    const gameWrap = document.querySelector('.game-wrap');
     const hudCoins = document.getElementById('coins');
     const hudLives = document.getElementById('lives');
     const hudWave = document.getElementById('wave');
@@ -265,8 +295,46 @@
       selectedTower = item.dataset.type;
     });
 
-    enemyRefBtn.addEventListener('click', () => enemyRef.classList.add('show'));
-    enemyRef.addEventListener('click', () => enemyRef.classList.remove('show'));
+    function setOverlayMode(on){ if(gameWrap){ gameWrap.style.zIndex = on ? '30' : ''; } }
+    enemyRefBtn.addEventListener('click', () => { setOverlayMode(true); enemyRef.classList.add('show'); });
+    enemyRef.addEventListener('click', () => { enemyRef.classList.remove('show'); setOverlayMode(false); });
+    howToBtn.addEventListener('click', () => { buildHowTo(); setOverlayMode(true); howTo.classList.add('show'); });
+    howTo.addEventListener('click', () => { howTo.classList.remove('show'); setOverlayMode(false); });
+    // Ensure initial overlay covers HUD on load
+    if (overlay.classList.contains('show') || enemyRef.classList.contains('show') || howTo.classList.contains('show')) {
+      setOverlayMode(true);
+    }
+
+    function buildHowTo(){
+      function dmgAt(base, lvl){ return Math.round(base * (1 + 0.5 * (lvl - 1))); }
+      function rofAt(base, lvl){ return +(base * (1 + 0.15 * (lvl - 1))).toFixed(2); }
+      function towerCard(key, display){
+        const conf = TOWER_CONF[key];
+        const d1 = dmgAt(conf.dmg,1), d2 = dmgAt(conf.dmg,2), d3 = dmgAt(conf.dmg,3);
+        const r1 = rofAt(conf.rof,1), r2 = rofAt(conf.rof,2), r3 = rofAt(conf.rof,3);
+        let extra = '';
+        if(conf.slow){ const pct = Math.round((1 - conf.slow) * 100); extra += `<li>Slows: ${pct}% for ${conf.slowDur.toFixed(1)}s</li>`; }
+        if(conf.bonus){ const parts = Object.entries(conf.bonus).map(([k,v])=>`+${v} vs ${k}`); extra += `<li>Bonus: ${parts.join(', ')}</li>`; }
+        return `
+          <div class="tower-card">
+            <h4>${display} (Cost ${conf.cost})</h4>
+            <ul>
+              <li>Damage/shot: ${d1} / ${d2} / ${d3}</li>
+              <li>Rate of fire: ${r1} / ${r2} / ${r3} shots/s</li>
+              ${extra}
+            </ul>
+          </div>`;
+      }
+      const html = `
+        <p>Place towers on grass. Tap an existing tower to upgrade (max L3). Earn coins from kills. Don't let enemies reach the core.</p>
+        <div class="tower-cards">
+          ${towerCard('basic','Basic')}
+          ${towerCard('slow','Frost')}
+          ${towerCard('pierce','Pierce')}
+        </div>
+      `;
+      howToContent.innerHTML = html;
+    }
 
     function resize(){
       const availW = Math.min(window.innerWidth, 900);
@@ -572,6 +640,7 @@
       running = false;
       overlay.querySelector('h2').textContent = 'Core Overrun';
       overlay.querySelector('p').textContent = 'Your defenses fell. Tap to try again.';
+      setOverlayMode(true);
       overlay.classList.add('show');
       if (!gameOverHandled) { gameOverHandled = true; maybeSubmitLeaderboard().catch(console.error); }
     }
@@ -580,6 +649,7 @@
       running = false;
       overlay.querySelector('h2').textContent = 'Aurora Defended!';
       overlay.querySelector('p').textContent = 'All waves cleared. Tap to play again.';
+      setOverlayMode(true);
       overlay.classList.add('show');
       if (!gameOverHandled) { gameOverHandled = true; maybeSubmitLeaderboard().catch(console.error); }
     }
@@ -631,6 +701,7 @@
 
     async function start(){
       overlay.classList.remove('show');
+      setOverlayMode(false);
       // load assets once
       if(!Images.grass){
         const entries = Object.entries(assets);

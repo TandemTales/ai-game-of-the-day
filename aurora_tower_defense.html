@@ -243,12 +243,14 @@
 
     // Path definitions (grid points)
     const MAPS = [
+      // Level 1
       [ {x:0,y:2}, {x:11,y:2}, {x:11,y:5}, {x:1,y:5}, {x:1,y:7}, {x:11,y:7} ],
-      [ {x:0,y:4}, {x:5,y:4}, {x:5,y:1}, {x:11,y:1}, {x:11,y:6}, {x:6,y:6}, {x:6,y:7}, {x:11,y:7} ]
+      // Level 2 - new longer layout for easier defense
+      [ {x:0,y:3}, {x:4,y:3}, {x:4,y:1}, {x:8,y:1}, {x:8,y:6}, {x:2,y:6}, {x:2,y:7}, {x:11,y:7} ]
     ];
     let path = MAPS[0];
-    function chooseMap(){
-      path = MAPS[Math.floor(Math.random()*MAPS.length)];
+    function chooseMap(level){
+      path = MAPS[(level-1) % MAPS.length];
     }
 
     function lerp(a,b,t){ return a+(b-a)*t; }
@@ -389,32 +391,37 @@
     }
 
     function addEnemy(type='bug'){
-      const waveIndex = (state.level-1)*WAVES_PER_LEVEL + state.wave;
-      const baseSpd = Math.min(INITIAL_WAVE_SPEED + (waveIndex-1)*WAVE_SPEED_INCREMENT, MAX_WAVE_SPEED);
-      const baseHp  = ENEMY_CONF.hp + (waveIndex-1)*ENEMY_CONF.hpInc;
+      const waveNumber = state.wave;
+      const level = state.level;
+      const baseSpd = Math.min(
+        INITIAL_WAVE_SPEED + (waveNumber-1)*WAVE_SPEED_INCREMENT + (level-1)*10,
+        MAX_WAVE_SPEED
+      );
+      const baseHp  = ENEMY_CONF.hp + (waveNumber-1)*ENEMY_CONF.hpInc + (level-1)*50;
       const conf = ENEMY_TYPES[type] || ENEMY_TYPES.bug;
       const hp = baseHp * conf.hpMul;
       enemies.push({ id: nextEnemyId++, type, ...gridToPx(path[0].x, path[0].y), seg:0, t:0, spd: baseSpd * conf.spdMul, hp, maxHp: hp, slow:1, slowTimer:0 });
     }
 
     function spawnWave(){
-      const waveIndex = (state.level-1)*WAVES_PER_LEVEL + state.wave;
+      const waveNumber = state.wave;
+      const level = state.level;
       // Easier Wave 1, progressively harder later (quadratic term)
-      const count = 4 + Math.floor(waveIndex*1.2) + Math.floor((waveIndex-1)*(waveIndex-1)*0.3);
+      const count = 4 + Math.floor(((level-1)*WAVES_PER_LEVEL + waveNumber)*1.2) + Math.floor((waveNumber-1)*(waveNumber-1)*0.3);
       let i = 0;
       // Track outstanding spawns so we don't advance the wave before enemies actually appear
       pendingSpawns = count;
       const iv = setInterval(()=>{
         const r = Math.random();
         let type = 'bug';
-        if(state.level > 1 && r < 0.15) type = 'brute';
-        else if(waveIndex > 8 && r < 0.2) type = 'armored';
-        else if(waveIndex > 4 && r < 0.5) type = 'fast';
+        if(level > 1 && r < 0.15) type = 'brute';
+        else if(waveNumber + (level-1)*WAVES_PER_LEVEL > 8 && r < 0.2) type = 'armored';
+        else if(waveNumber + (level-1)*WAVES_PER_LEVEL > 4 && r < 0.5) type = 'fast';
         addEnemy(type);
         i++;
         pendingSpawns = Math.max(0, pendingSpawns - 1);
         if(i>=count){ clearInterval(iv); pendingSpawns = 0; }
-      }, Math.max(200, 700 - waveIndex*40));
+      }, Math.max(250, 700 - (waveNumber-1)*40 + (level-1)*120));
     }
 
     function placeValid(gx, gy){
@@ -755,9 +762,9 @@
         const entries = Object.entries(assets);
         for(const [k,src] of entries){ Images[k] = await loadImg(src); }
       }
-      chooseMap();
+      chooseMap(state.level);
       // reset state (except level)
-      state.coins = 85; state.lives = 20; state.wave = 1; state.kills = 0; state.leaks = 0; enemies = []; bullets.length = 0; towers.length = 0; spawning=false; pendingSpawns=0; waveTimer=3.0; last=performance.now(); gameOverHandled = false;
+      state.coins = 85 + (state.level-1)*40; state.lives = 20; state.wave = 1; state.kills = 0; state.leaks = 0; enemies = []; bullets.length = 0; towers.length = 0; spawning=false; pendingSpawns=0; waveTimer=3.0; last=performance.now(); gameOverHandled = false;
       running = true;
       // First wave begins after a 3s prep time (handled by updateWaves)
     }

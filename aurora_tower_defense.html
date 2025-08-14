@@ -296,10 +296,32 @@
     });
 
     function setOverlayMode(on){ if(gameWrap){ gameWrap.style.zIndex = on ? '30' : ''; } }
-    enemyRefBtn.addEventListener('click', () => { setOverlayMode(true); enemyRef.classList.add('show'); });
-    enemyRef.addEventListener('click', () => { enemyRef.classList.remove('show'); setOverlayMode(false); });
-    howToBtn.addEventListener('click', () => { buildHowTo(); setOverlayMode(true); howTo.classList.add('show'); });
-    howTo.addEventListener('click', () => { howTo.classList.remove('show'); setOverlayMode(false); });
+    // Pause/resume helpers when opening/closing info panels
+    let wasRunningBeforeModal = false;
+    function openPanel(panelEl){
+      // Capture state only when transitioning from zero info panels open to at least one
+      const infoOpenBefore = enemyRef.classList.contains('show') || howTo.classList.contains('show');
+      if(!infoOpenBefore){
+        wasRunningBeforeModal = running;
+        running = false; // pause game loop
+      }
+      setOverlayMode(true);
+      panelEl.classList.add('show');
+    }
+    function closePanel(panelEl){
+      panelEl.classList.remove('show');
+      const anyOpen = overlay.classList.contains('show') || enemyRef.classList.contains('show') || howTo.classList.contains('show');
+      if(!anyOpen){
+        setOverlayMode(false);
+        if(wasRunningBeforeModal){
+          running = true; // resume only if it was running previously
+        }
+      }
+    }
+    enemyRefBtn.addEventListener('click', () => { openPanel(enemyRef); });
+    enemyRef.addEventListener('click', () => { closePanel(enemyRef); });
+    howToBtn.addEventListener('click', () => { buildHowTo(); openPanel(howTo); });
+    howTo.addEventListener('click', () => { closePanel(howTo); });
     // Ensure initial overlay covers HUD on load
     if (overlay.classList.contains('show') || enemyRef.classList.contains('show') || howTo.classList.contains('show')) {
       setOverlayMode(true);

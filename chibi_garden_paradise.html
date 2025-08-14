@@ -54,14 +54,15 @@
         }
 
         .tool-btn {
-            background: linear-gradient(45deg, #FFB6C1, #FFA07A);
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
             border: none;
-            border-radius: 15px;
-            padding: 10px 20px;
-            font-size: 16px;
-            font-weight: bold;
-            color: #333;
+            padding: 12px 20px;
+            margin: 5px;
+            border-radius: 25px;
             cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
             transition: all 0.3s ease;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
@@ -72,15 +73,31 @@
         }
 
         .tool-btn.active {
-            background: linear-gradient(45deg, #FFD700, #FFA500);
-            transform: scale(1.1);
+            background: linear-gradient(135deg, #FF6B6B, #FF5252);
+            transform: scale(1.05);
         }
 
-        .stats {
-            display: flex;
-            justify-content: space-around;
-            margin: 15px 0;
-            flex-wrap: wrap;
+        .mode-btn {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            margin: 5px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .mode-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(135deg, #FF9800, #F57C00);
         }
 
         .stat {
@@ -193,12 +210,13 @@
         
         <h1>🌱 Chibi Garden Paradise 🌱</h1>
         
-        <div class="level-display">Level <span id="level">1</span></div>
-        
-        <div class="stats">
+            <div class="ui-panel">
             <div class="stat">💰 Coins: <span id="coins">50</span></div>
             <div class="stat">🌾 Harvested: <span id="harvested">0</span></div>
+            <div class="stat">📈 Level: <span id="level">1</span></div>
             <div class="stat">⭐ Score: <span id="score">0</span></div>
+            <div class="stat">🏆 High Score: <span id="highScore">0</span></div>
+            <div class="stat" id="timerDisplay" style="display: none;">⏰ Time: <span id="timeLeft">60</span>s</div>
         </div>
         
         <canvas id="gameCanvas" width="700" height="500"></canvas>
@@ -208,6 +226,12 @@
             <button class="tool-btn" id="waterBtn" onclick="selectTool('water')">💧 Water Plants</button>
             <button class="tool-btn" id="harvestBtn" onclick="selectTool('harvest')">🌾 Harvest Crops</button>
             <button class="tool-btn" id="animalBtn" onclick="selectTool('animal')">🐄 Feed Animals (20 coins)</button>
+        </div>
+        
+        <div class="ui-panel">
+            <button class="mode-btn" id="normalModeBtn" onclick="setGameMode('normal')">🌱 Normal Mode</button>
+            <button class="mode-btn" id="timerModeBtn" onclick="setGameMode('timer')">⏰ 60-Second Challenge</button>
+            <button class="mode-btn" id="restartBtn" onclick="restartGame()" style="display: none;">🔄 Restart</button>
         </div>
         
         <div class="instructions">
@@ -238,11 +262,12 @@
         let imagesLoaded = 0;
         const totalImages = Object.keys(imageUrls).length;
         
-        // Load all images
+        // Load all images with better error handling
         function loadImages() {
             for (const [key, url] of Object.entries(imageUrls)) {
                 const img = new Image();
                 img.onload = () => {
+                    console.log(`Successfully loaded: ${url}`);
                     imagesLoaded++;
                     if (imagesLoaded === totalImages) {
                         loadingScreen.style.display = 'none';
@@ -250,7 +275,16 @@
                     }
                 };
                 img.onerror = () => {
-                    console.warn(`Failed to load image: ${url}`);
+                    console.warn(`Failed to load image: ${url} - using fallback`);
+                    // Create a fallback colored rectangle
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 100;
+                    canvas.height = 100;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = key === 'animals' ? '#FFB6C1' : '#90EE90';
+                    ctx.fillRect(0, 0, 100, 100);
+                    img.src = canvas.toDataURL();
+                    
                     imagesLoaded++;
                     if (imagesLoaded === totalImages) {
                         loadingScreen.style.display = 'none';
@@ -271,7 +305,15 @@
             selectedTool: 'plant',
             plots: [],
             animals: [],
-            particles: []
+            particles: [],
+            // Timer mode additions
+            gameMode: 'normal', // 'normal' or 'timer'
+            timeLeft: 60, // 60 seconds for timer mode
+            gameStartTime: null,
+            gameActive: false,
+            highScore: parseInt(localStorage.getItem('chibiGardenHighScore') || '0'),
+            quickHarvestBonus: 0,
+            difficultyMultiplier: 1
         };
         
         // Initialize game plots (fixed 2x2 grid)
@@ -319,6 +361,79 @@
             gameState.selectedTool = tool;
             document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(tool + 'Btn').classList.add('active');
+        }
+
+        function setGameMode(mode) {
+            gameState.gameMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            
+            if (mode === 'timer') {
+                document.getElementById('timerModeBtn').classList.add('active');
+                document.getElementById('timerDisplay').style.display = 'block';
+                document.getElementById('restartBtn').style.display = 'inline-block';
+                startTimerMode();
+            } else {
+                document.getElementById('normalModeBtn').classList.add('active');
+                document.getElementById('timerDisplay').style.display = 'none';
+                document.getElementById('restartBtn').style.display = 'none';
+                gameState.gameActive = false;
+                gameState.timeLeft = 60;
+            }
+        }
+
+        function startTimerMode() {
+            gameState.gameActive = true;
+            gameState.gameStartTime = Date.now();
+            gameState.timeLeft = 60;
+            gameState.score = 0;
+            gameState.coins = 100; // More starting coins for timer mode
+            gameState.difficultyMultiplier = 1;
+            
+            // Reset all plots and animals
+            initializePlots();
+            updateUI();
+            
+            // Start the timer countdown
+            const timerInterval = setInterval(() => {
+                if (gameState.gameActive && gameState.timeLeft > 0) {
+                    gameState.timeLeft--;
+                    updateUI();
+                    
+                    // Progressive difficulty - crops grow faster as time goes on
+                    gameState.difficultyMultiplier = 1 + (60 - gameState.timeLeft) * 0.02;
+                } else if (gameState.timeLeft <= 0) {
+                    endTimerMode();
+                    clearInterval(timerInterval);
+                }
+            }, 1000);
+        }
+
+        function endTimerMode() {
+            gameState.gameActive = false;
+            
+            // Check for new high score
+            if (gameState.score > gameState.highScore) {
+                gameState.highScore = gameState.score;
+                localStorage.setItem('chibiGardenHighScore', gameState.highScore.toString());
+                showParticle(canvas.width / 2, canvas.height / 2, '🏆 NEW HIGH SCORE! 🏆', '#FFD700');
+            }
+            
+            showParticle(canvas.width / 2, canvas.height / 2 - 50, `Time's Up! Final Score: ${gameState.score}`, '#FF6B6B');
+            updateUI();
+        }
+
+        function restartGame() {
+            if (gameState.gameMode === 'timer') {
+                startTimerMode();
+            } else {
+                // Reset normal mode
+                gameState.coins = 50;
+                gameState.harvested = 0;
+                gameState.score = 0;
+                gameState.level = 1;
+                initializePlots();
+                updateUI();
+            }
         }
         
         function drawBackground() {
@@ -558,9 +673,10 @@
                 return;
             }
             
+            // Fixed collision detection - more lenient boundaries
             const plot = gameState.plots.find(p => 
-                x >= p.x && x <= p.x + p.width && 
-                y >= p.y && y <= p.y + p.height && 
+                x >= p.x - 10 && x <= p.x + p.width + 10 && 
+                y >= p.y - 10 && y <= p.y + p.height + 10 && 
                 !p.crop
             );
             
@@ -572,6 +688,9 @@
                 gameState.coins -= 10;
                 showParticle(x, y, '🌱 Planted!', '#90EE90');
                 updateUI();
+            } else {
+                // Debug feedback for failed planting attempts
+                showParticle(x, y, '❌ Click on soil!', '#FF6B6B');
             }
         }
         
@@ -599,7 +718,27 @@
             if (plot) {
                 const value = plot.crop.value;
                 const bonusMultiplier = plot.watered ? 1.5 : 1;
-                const finalValue = Math.floor(value * bonusMultiplier);
+                let finalValue = Math.floor(value * bonusMultiplier);
+                
+                // Timer mode bonuses
+                if (gameState.gameMode === 'timer') {
+                    // Quick harvest bonus - bonus for harvesting quickly after planting
+                    const timeSincePlanted = Date.now() - plot.plantedTime;
+                    const expectedGrowthTime = plot.crop.growthTime / gameState.difficultyMultiplier;
+                    
+                    if (timeSincePlanted < expectedGrowthTime * 1.2) {
+                        const quickBonus = Math.floor(finalValue * 0.5);
+                        finalValue += quickBonus;
+                        showParticle(x, y - 40, `⚡ Quick Harvest! +${quickBonus}`, '#FF4500');
+                    }
+                    
+                    // Progressive difficulty bonus
+                    const difficultyBonus = Math.floor(finalValue * (gameState.difficultyMultiplier - 1));
+                    if (difficultyBonus > 0) {
+                        finalValue += difficultyBonus;
+                        showParticle(x, y - 60, `🔥 Speed Bonus! +${difficultyBonus}`, '#FF8C00');
+                    }
+                }
                 
                 gameState.coins += finalValue;
                 gameState.harvested++;
@@ -611,6 +750,7 @@
                     if (gameState.harvestCombo > 1) {
                         const comboBonus = gameState.harvestCombo * 5;
                         gameState.coins += comboBonus;
+                        gameState.score += comboBonus * 2; // Extra score for combos
                         showParticle(x, y - 30, `${gameState.harvestCombo}x COMBO! +${comboBonus}`, '#FF4500');
                     }
                 } else {
@@ -717,8 +857,14 @@
             gameState.plots.forEach(plot => {
                 if (plot.crop && plot.growthStage < 3) {
                     const timeSincePlanted = Date.now() - plot.plantedTime;
-                    const growthSpeed = plot.watered ? 0.7 : 1; // Watered crops grow 30% faster
-                    const adjustedGrowthTime = plot.crop.growthTime * growthSpeed;
+                    let growthSpeed = plot.watered ? 0.7 : 1; // Watered crops grow 30% faster
+                    
+                    // Apply difficulty multiplier for timer mode
+                    if (gameState.gameMode === 'timer' && gameState.gameActive) {
+                        growthSpeed *= gameState.difficultyMultiplier;
+                    }
+                    
+                    const adjustedGrowthTime = plot.crop.growthTime / growthSpeed;
                     
                     if (timeSincePlanted > adjustedGrowthTime / 3 && plot.growthStage === 1) {
                         plot.growthStage = 2;
@@ -752,6 +898,11 @@
             document.getElementById('harvested').textContent = gameState.harvested;
             document.getElementById('score').textContent = gameState.score;
             document.getElementById('level').textContent = gameState.level;
+            document.getElementById('highScore').textContent = gameState.highScore;
+            
+            if (gameState.gameMode === 'timer') {
+                document.getElementById('timeLeft').textContent = gameState.timeLeft;
+            }
         }
         
         function gameLoop() {
@@ -770,9 +921,15 @@
         }
         
         function initializeGame() {
+            // Load high score from localStorage
+            gameState.highScore = parseInt(localStorage.getItem('chibiGardenHighScore') || '0');
+            
             initializePlots();
             updateUI();
             gameLoop();
+            
+            // Set initial mode to normal
+            setGameMode('normal');
             
             // Event listeners
             canvas.addEventListener('click', handleClick);
@@ -791,12 +948,14 @@
                 localStorage.setItem('chibiGardenSave', JSON.stringify(gameState));
             }, 10000);
             
-            // Load saved game
+            // Load saved game (only for normal mode)
             const savedGame = localStorage.getItem('chibiGardenSave');
             if (savedGame) {
                 const saved = JSON.parse(savedGame);
-                gameState = { ...gameState, ...saved };
-                updateUI();
+                if (saved.gameMode === 'normal') {
+                    gameState = { ...gameState, ...saved };
+                    updateUI();
+                }
             }
         }
         

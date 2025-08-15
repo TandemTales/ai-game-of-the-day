@@ -396,7 +396,7 @@
       const availW = Math.min(window.innerWidth, 900);
       const topH = Math.ceil(topbarEl.getBoundingClientRect().height);
       const toolbarH = Math.ceil(toolbar.getBoundingClientRect().height || 0);
-      const reserved = toolbarH + 40; // toolbar height + margin
+      const reserved = toolbarH; // toolbar height
       root.style.setProperty('--toolbar-h', reserved + 'px');
       const availH = window.innerHeight - topH - reserved;
       tile = Math.floor(Math.min(availW / COLS, availH / ROWS));

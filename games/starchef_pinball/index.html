@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Starchef Pinball</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="../../images/botbuiltarcade-icon-face.png">
+  <style>
+    :root {
+      --gold: #FFD700;
+      --teal: #5F9EA0;
+      --ink: #0b0f12;
+      --bg1: #0a0f14;
+      --bg2: #0e1620;
+      --topbar-h: 54px;
+      --hud-offset: clamp(50px, 8vh, 120px);
+    }
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: radial-gradient(1200px 800px at 50% 10%, #101a29 0%, #0b121a 45%, #070c12 100%); color: #F5F5DC; font-family: 'Press Start 2P', cursive; }
+    .topbar { position: fixed; top: 0; left: 0; right: 0; display:flex; align-items:center; justify-content: space-between; gap: 12px; padding: 10px 12px; background: rgba(0,0,0,0.45); border-bottom: 2px solid var(--gold); z-index: 20; backdrop-filter: blur(6px); }
+    .back-btn { color: white; text-decoration:none; background: linear-gradient(45deg, var(--teal), #4682B4); border: 2px solid var(--gold); border-radius: 10px; padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 12px rgba(95,158,160,0.4); }
+    .title { font-size: 14px; letter-spacing: 1px; margin: 0 auto; text-align:center; flex: 1; background: linear-gradient(45deg, #FFD700, #FFA500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .date-info { font-size: 10px; color: var(--teal); opacity: 0.9; }
+
+    .game-wrap { position: fixed; left: 50%; top: var(--topbar-h); transform: translateX(-50%); width: 100vw; height: calc(100vh - var(--topbar-h)); display:flex; align-items:center; justify-content:center; }
+    canvas { background: transparent; touch-action: none; }
+
+    .hud { position: absolute; top: calc(var(--topbar-h) + var(--hud-offset)); left: 50%; transform: translateX(-50%); color: var(--teal); text-shadow: 0 2px 6px rgba(0,0,0,0.6); font-size: 12px; z-index: 25; display:flex; gap: 16px; background: rgba(0,0,0,0.35); padding: 6px 10px; border-radius: 10px; }
+    .hud .hud-item { display:inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+    .hud .hud-emoji { font-size: 14px; line-height: 1; transform: translateY(1px); }
+    .hud .hud-label { font-size: 12px; opacity: 0.95; }
+
+    .overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; background: radial-gradient(800px 400px at 50% 40%, rgba(0,0,0,0.6), rgba(0,0,0,0.9)); z-index: 18; text-align: center; padding: 24px; gap: 14px; }
+    .overlay.show { display: flex; }
+    .overlay h2 { margin: 0; color: var(--gold); font-size: 18px; }
+    .overlay p { margin: 0; color: #d8f7ff; font-size: 12px; }
+    .overlay .tap { color: var(--teal); font-size: 12px; opacity: 0.95; }
+    .overlay .panel { width: min(720px, 94vw); max-height: min(76vh, 84vh); overflow-y: auto; background: rgba(10,15,20,0.8); border: 2px solid var(--gold); border-radius: 12px; padding: 12px 14px; text-align: left; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+
+    /* Mobile touch zones */
+    .touch-zones { position: fixed; left: 0; right: 0; bottom: 0; top: calc(100vh - 40%); z-index: 16; display: grid; grid-template-columns: 1fr 1fr; gap: 0; opacity: 0.08; }
+    .tz { background: #7fffd4; }
+
+    @media (max-width: 600px) {
+      :root { --hud-offset: clamp(6px, 1vh, 14px); }
+      .hud { width: calc(100vw - 12px); justify-content: center; gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <a class="back-btn" href="../../index.html">⟵ Home</a>
+    <div class="title">Starchef Pinball<br><span class="date-info">Created: August 15, 2025</span></div>
+    <button class="back-btn" id="howToBtn">How to Play</button>
+  </div>
+
+  <div class="hud" id="hud">
+    <span class="hud-item"><span class="hud-emoji" aria-hidden="true">⭐</span><span class="hud-label">Score</span><span id="score" class="hud-value">0</span></span>
+    <span class="hud-item"><span class="hud-emoji" aria-hidden="true">🍕</span><span class="hud-label">Dishes</span><span id="dishes" class="hud-value">0</span></span>
+    <span class="hud-item"><span class="hud-emoji" aria-hidden="true">🧷</span><span class="hud-label">Balls</span><span id="balls" class="hud-value">3</span></span>
+  </div>
+
+  <div class="game-wrap">
+    <canvas id="game"></canvas>
+    <div class="overlay show" id="overlay">
+      <h2>Service Begins!</h2>
+      <p>Hit ingredient targets to cook dishes. Use flippers to keep the ball alive.</p>
+      <p class="tap">Tap or press Space to launch</p>
+    </div>
+    <div class="overlay" id="howTo">
+      <h2>How to Play</h2>
+      <div class="panel">
+        <p>Pinball × Cooking:</p>
+        <ul>
+          <li>Complete pizzas by collecting 4 ingredients: Dough, Tomato, Cheese, Basil.</li>
+          <li>Hit bumpers to build combo heat and score.</li>
+          <li>Finish 3 dishes to win Service. You have 3 balls.</li>
+        </ul>
+        <p>Controls:</p>
+        <ul>
+          <li>Left/Right Arrow or A/D for flippers.</li>
+          <li>Space/Tap to launch ball when ready.</li>
+          <li>Mobile: tap left/right halves of the lower screen.</li>
+        </ul>
+        <small>Tip: Hitting multiple bumpers quickly increases your combo for extra points.</small>
+      </div>
+      <p class="tap">Tap to close</p>
+    </div>
+  </div>
+
+  <!-- Subtle touch zones for mobile -->
+  <div class="touch-zones" id="touchZones" aria-hidden="true">
+    <div class="tz" id="leftZone"></div>
+    <div class="tz" id="rightZone"></div>
+  </div>
+
+  <script>
+    // Canvas sizing
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const overlay = document.getElementById('overlay');
+    const howTo = document.getElementById('howTo');
+    const howToBtn = document.getElementById('howToBtn');
+
+    const hudScore = document.getElementById('score');
+    const hudDishes = document.getElementById('dishes');
+    const hudBalls = document.getElementById('balls');
+
+    const GAME_ID = 'starchef-pinball';
+
+    let pixelRatio = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+    let running = false;
+    let launching = false; // waiting to launch ball
+    let last = 0, dt = 0;
+
+    // Playfield logical size (will scale to fit)
+    const W = 440; // logical width
+    const H = 700; // logical height
+
+    function resize(){
+      const availW = Math.min(window.innerWidth, 900);
+      const topbarH = document.querySelector('.topbar').getBoundingClientRect().height;
+      const availH = window.innerHeight - topbarH;
+      // keep aspect W:H
+      const scale = Math.min(availW / W, availH / H);
+      const w = Math.floor(W * scale);
+      const h = Math.floor(H * scale);
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      canvas.width = Math.floor(w * pixelRatio);
+      canvas.height = Math.floor(h * pixelRatio);
+      ctx.setTransform(pixelRatio * scale, 0, 0, pixelRatio * scale, 0, 0);
+    }
+    window.addEventListener('resize', resize);
+
+    // Assets
+    const Images = {};
+    const assets = {
+      ball: 'assets/ball.svg',
+      flipper: 'assets/flipper.svg',
+      bumper: 'assets/bumper.svg',
+      t_dough: 'assets/target_dough.svg',
+      t_tomato: 'assets/target_tomato.svg',
+      t_cheese: 'assets/target_cheese.svg',
+      t_basil: 'assets/target_basil.svg',
+    };
+    function loadImg(src){ return new Promise((res, rej)=>{ const i = new Image(); i.onload=()=>res(i); i.onerror=rej; i.src = src; }); }
+
+    // Game state
+    const state = { score: 0, dishes: 0, balls: 3, combo: 0, comboTimer: 0, collected: { dough:false, tomato:false, cheese:false, basil:false } };
+
+    // Entities
+    const ball = { x: W*0.5, y: H*0.75, vx: 0, vy: 0, r: 10, ready: true };
+
+    const bumpers = [
+      { x: W*0.25, y: H*0.28, r: 26 },
+      { x: W*0.75, y: H*0.28, r: 26 },
+      { x: W*0.5,  y: H*0.20, r: 26 }
+    ];
+
+    const targets = [
+      { key: 'dough',  x: W*0.2, y: H*0.46, r: 22, img: 't_dough' },
+      { key: 'tomato', x: W*0.8, y: H*0.46, r: 22, img: 't_tomato' },
+      { key: 'cheese', x: W*0.25, y: H*0.60, r: 22, img: 't_cheese' },
+      { key: 'basil',  x: W*0.75, y: H*0.60, r: 22, img: 't_basil' }
+    ];
+
+    // Flipper inputs
+    let leftHeld = false, rightHeld = false;
+
+    function resetBall(){
+      ball.x = W*0.5; ball.y = H*0.8; ball.vx = 0; ball.vy = 0; ball.ready = true; launching = true;
+    }
+
+    function launchBall(){
+      if (!ball.ready) return;
+      ball.ready = false; launching = false;
+      // up impulse with slight random x
+      ball.vx = (Math.random()*2 - 1) * 90;
+      ball.vy = -320 - Math.random()*60;
+    }
+
+    function addScore(base){
+      // combo multiplier
+      const mult = 1 + Math.min(3, Math.floor(state.combo / 3))*0.25; // up to +75%
+      const gain = Math.round(base * mult);
+      state.score += gain;
+      state.combo = Math.min(20, state.combo + 1);
+      state.comboTimer = 2.5; // seconds
+    }
+
+    function collectIngredient(key){
+      if (state.collected[key]) { addScore(20); return; }
+      state.collected[key] = true; addScore(120);
+      // dish complete?
+      if (state.collected.dough && state.collected.tomato && state.collected.cheese && state.collected.basil) {
+        state.dishes += 1; addScore(500);
+        state.collected = { dough:false, tomato:false, cheese:false, basil:false };
+        if (state.dishes >= 3) { victory(); }
+      }
+    }
+
+    function drain(){
+      state.balls -= 1; if (state.balls <= 0) { gameOver(); return; }
+      resetBall();
+    }
+
+    // Physics & collisions (simple)
+    const G = 420; // gravity px/s^2
+    const WALL = { left: 16, right: W-16, top: 16, bottom: H-16 };
+
+    function reflect(nx, ny){
+      // reflect ball velocity around normal
+      const vdotn = ball.vx*nx + ball.vy*ny;
+      ball.vx -= 2*vdotn*nx; ball.vy -= 2*vdotn*ny;
+    }
+
+    function collideWalls(){
+      if (ball.x - ball.r < WALL.left) { ball.x = WALL.left + ball.r; ball.vx = Math.abs(ball.vx)*0.9; addScore(1); }
+      if (ball.x + ball.r > WALL.right) { ball.x = WALL.right - ball.r; ball.vx = -Math.abs(ball.vx)*0.9; addScore(1); }
+      if (ball.y - ball.r < WALL.top) { ball.y = WALL.top + ball.r; ball.vy = Math.abs(ball.vy)*0.9; addScore(1); }
+      // open drain at bottom center (gap ~160px)
+      const gap = 170;
+      const gapL = (W - gap)/2, gapR = (W + gap)/2;
+      if (ball.y + ball.r > WALL.bottom) {
+        if (ball.x < gapL || ball.x > gapR) { ball.y = WALL.bottom - ball.r; ball.vy = -Math.abs(ball.vy)*0.9; addScore(1); }
+        else { drain(); }
+      }
+    }
+
+    function collideCircle(cx, cy, r){
+      const dx = ball.x - cx, dy = ball.y - cy; const d2 = dx*dx + dy*dy; const rr = (ball.r + r);
+      if (d2 < rr*rr) {
+        const d = Math.max(1, Math.sqrt(d2)); const nx = dx/d, ny = dy/d;
+        ball.x = cx + nx * rr; ball.y = cy + ny * rr;
+        reflect(nx, ny); // add some energy
+        const spd = Math.hypot(ball.vx, ball.vy);
+        const boost = 1.05 + Math.random()*0.1; const maxSpd = 520;
+        const ns = Math.min(maxSpd, spd * boost); const scale = ns / (spd || 1);
+        ball.vx *= scale; ball.vy *= scale;
+        return true;
+      }
+      return false;
+    }
+
+    function collideBumpers(){
+      for (const b of bumpers) {
+        if (collideCircle(b.x, b.y, b.r)) { addScore(30); }
+      }
+    }
+
+    function collideTargets(){
+      for (const t of targets) {
+        if (collideCircle(t.x, t.y, t.r)) { collectIngredient(t.key); }
+      }
+    }
+
+    function flipperImpulse(){
+      // If ball is near bottom and input held, add impulse
+      if (ball.y > H*0.68 && ball.vy > -80) {
+        if (leftHeld && ball.x < W*0.45) { ball.vy -= 360; ball.vx += 160; addScore(2); }
+        if (rightHeld && ball.x > W*0.55) { ball.vy -= 360; ball.vx -= 160; addScore(2); }
+      }
+    }
+
+    function update(){
+      if (!running) return;
+      dt = Math.min(0.033, (performance.now() - last)/1000 || 0.016); last = performance.now();
+
+      // combo decay
+      if (state.comboTimer > 0) { state.comboTimer -= dt; if (state.comboTimer <= 0) { state.combo = 0; } }
+
+      if (!ball.ready) {
+        // integrate
+        ball.vy += G * dt; // gravity
+        ball.x += ball.vx * dt; ball.y += ball.vy * dt;
+        // friction
+        ball.vx *= 0.999; ball.vy *= 0.999;
+        collideWalls();
+        collideBumpers();
+        collideTargets();
+        flipperImpulse();
+      }
+
+      draw();
+      requestAnimationFrame(update);
+    }
+
+    function draw(){
+      // backdrop
+      ctx.clearRect(0,0,canvas.width, canvas.height);
+      // playfield border
+      ctx.save();
+      ctx.strokeStyle = '#7fffd4'; ctx.lineWidth = 4; ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.beginPath(); ctx.roundRect(WALL.left-6, WALL.top-6, (WALL.right-WALL.left)+12, (WALL.bottom-WALL.top)+12, 18); ctx.stroke();
+      ctx.restore();
+
+      // drain gap visualization
+      const gap = 170; const gapL = (W-gap)/2, gapR = (W+gap)/2;
+      ctx.save(); ctx.strokeStyle = 'rgba(255,0,0,0.35)'; ctx.beginPath(); ctx.moveTo(gapL, WALL.bottom+4); ctx.lineTo(gapR, WALL.bottom+4); ctx.stroke(); ctx.restore();
+
+      // bumpers
+      for (const b of bumpers) {
+        if (Images.bumper) ctx.drawImage(Images.bumper, b.x - b.r*1.6, b.y - b.r*1.6, b.r*3.2, b.r*3.2);
+        else { ctx.fillStyle = '#ffd36b'; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill(); }
+      }
+
+      // targets (ingredients)
+      for (const t of targets) {
+        const r = t.r * 1.7;
+        const img = Images[t.img];
+        if (img) ctx.drawImage(img, t.x - r, t.y - r, r*2, r*2);
+        if (state.collected[t.key]) {
+          ctx.save(); ctx.strokeStyle = '#7CFC00'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(t.x, t.y, r*0.9, 0, Math.PI*2); ctx.stroke(); ctx.restore();
+        }
+      }
+
+      // flipper visuals
+      const flW = 140, flH = 46; const y = WALL.bottom - 28; const hingeOff = 120;
+      // Symmetric hinge positions around center with slight left bias correction
+      const leftBias = 20; // push left flipper outward a bit for visual symmetry
+      const lfX = W*0.5 - hingeOff - leftBias; const rfX = W*0.5 + hingeOff;
+      // SVG hinge is at (30,70) in a 420x140 viewBox
+      const hx = 30/420, hy = 70/140; // normalized pivot
+      // Rest angled downward (gap open), press rotates upward strongly
+      const downAng = 0.42;   // ~24° downward toward drain at rest
+      const upAng   = 0.65;   // ~37° upward on press (relative to horizontal)
+      const angL = leftHeld ? -upAng : +downAng; // left: CW at rest, CCW on press
+      const angR = rightHeld ?  +upAng : -downAng; // with rotate(-angR): rest -> +downAng (down), press -> -upAng (up)
+      // Left flipper
+      ctx.save();
+      ctx.translate(lfX, y);
+      ctx.rotate(angL);
+      if (Images.flipper) ctx.drawImage(Images.flipper, -flW*hx, -flH*hy, flW, flH); else { ctx.fillStyle='#ff8a3d'; ctx.fillRect(-40,-8,120,16); }
+      ctx.restore();
+      // Right flipper (mirrored on X). Rotate by -angR after mirroring; use the SAME hinge offset (-flW*hx) so the hinge stays at the origin
+      ctx.save();
+      ctx.translate(rfX, y);
+      ctx.scale(-1,1);
+      ctx.rotate(-angR);
+      if (Images.flipper) ctx.drawImage(Images.flipper, -flW*hx, -flH*hy, flW, flH); else { ctx.fillStyle='#ff8a3d'; ctx.fillRect(-40,-8,120,16); }
+      ctx.restore();
+
+      // ball
+      const br = ball.r * 2.4; if (Images.ball) ctx.drawImage(Images.ball, ball.x - br/2, ball.y - br/2, br, br); else { ctx.fillStyle='#9be0ff'; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill(); }
+
+      // HUD
+      hudScore.textContent = state.score;
+      hudDishes.textContent = state.dishes;
+      hudBalls.textContent = state.balls;
+    }
+
+    function setRunning(on){ running = on; if (on) { last = performance.now(); requestAnimationFrame(update); } }
+
+    function start(){ overlay.classList.remove('show'); setRunning(true); if (ball.ready) launchBall(); }
+    overlay.addEventListener('click', start);
+    overlay.addEventListener('touchstart', (e)=>{ e.preventDefault(); start(); }, {passive:false});
+
+    function openPanel(panel){ wasRunningBeforeModal = running; running = false; panel.classList.add('show'); }
+    function closePanel(panel){ panel.classList.remove('show'); if (wasRunningBeforeModal) setRunning(true); }
+    let wasRunningBeforeModal = false;
+
+    howToBtn.addEventListener('click', ()=> openPanel(howTo));
+    howTo.addEventListener('click', ()=> closePanel(howTo));
+
+    function gameOver(){ running = false; overlay.querySelector('h2').textContent = 'Service Over'; overlay.querySelector('p').textContent = 'Out of balls. Tap to try again.'; overlay.classList.add('show'); maybeSubmitLeaderboard(false).catch(console.error); resetAll(); }
+    function victory(){ running = false; overlay.querySelector('h2').textContent = 'Service Complete!'; overlay.querySelector('p').textContent = 'All dishes served. Tap to play again.'; overlay.classList.add('show'); maybeSubmitLeaderboard(true).catch(console.error); resetAll(); }
+
+    function resetAll(){ state.score=0; state.dishes=0; state.balls=3; state.combo=0; state.comboTimer=0; state.collected={dough:false,tomato:false,cheese:false,basil:false}; resetBall(); }
+
+    // Leaderboard flow
+    async function maybeSubmitLeaderboard(won){
+      const score = state.score;
+      let dest = `../../leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
+      try {
+        const res = await fetch(`/api/leaderboard/rank?gameId=${encodeURIComponent(GAME_ID)}&score=${encodeURIComponent(score)}`, { headers: { 'Accept':'application/json' } });
+        if (res.ok) {
+          const data = await res.json();
+          const rank = Number(data?.rank);
+          const qualifies = Number.isFinite(rank) && rank > 0 && rank <= 20;
+          if (qualifies) {
+            const prefix = won ? 'You Won! ' : '';
+            let name = prompt(`${prefix}New High Score! You placed #${rank}. Enter your name (max 20 chars):`, '');
+            if (name != null) {
+              name = name.trim().replace(/[^\w \-'.!]/g, '').slice(0, 20);
+              if (name) {
+                const sub = await fetch('/api/leaderboard/submit', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ gameId: GAME_ID, score, name }) });
+                if (sub.ok) dest += `&highlightRank=${encodeURIComponent(rank)}`;
+              }
+            }
+          }
+        }
+      } catch (e) { /* ignore */ }
+      setTimeout(()=>{ location.href = dest; }, 150);
+    }
+
+    // Input
+    function onKey(e, down){
+      if (e.repeat) return;
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') { leftHeld = down; }
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') { rightHeld = down; }
+      if (down && (e.code === 'Space' || e.code === 'Enter')) { if (overlay.classList.contains('show')) start(); else if (ball.ready) launchBall(); }
+    }
+    window.addEventListener('keydown', e => onKey(e, true));
+    window.addEventListener('keyup', e => onKey(e, false));
+
+    // Touch zones
+    const leftZone = document.getElementById('leftZone');
+    const rightZone = document.getElementById('rightZone');
+    function touchHandler(zone, held){ return (e)=>{ e.preventDefault(); if (zone==='L') leftHeld = held; else rightHeld = held; if (held && ball.ready && !overlay.classList.contains('show')) launchBall(); } }
+    leftZone.addEventListener('touchstart', touchHandler('L', true), {passive:false});
+    leftZone.addEventListener('touchend', touchHandler('L', false));
+    rightZone.addEventListener('touchstart', touchHandler('R', true), {passive:false});
+    rightZone.addEventListener('touchend', touchHandler('R', false));
+
+    // Init
+    (async function init(){
+      // load images relative to this file
+      const base = '';
+      for (const [k, src] of Object.entries(assets)) { Images[k] = await loadImg(base + src).catch(()=>null); }
+      resetBall(); resize(); draw();
+    })();
+  </script>
+</body>
+</html>

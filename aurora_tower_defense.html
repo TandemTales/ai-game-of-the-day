@@ -310,7 +310,7 @@
     }
 
     const INITIAL_WAVE_SPEED = 50;
-    const WAVE_SPEED_INCREMENT = 4;
+    const WAVE_SPEED_INCREMENT = 3;
     const MAX_WAVE_SPEED = 130;
     const ENEMY_CONF = { hp: 36, hpInc: 12 };
     const ENEMY_TYPES = {
@@ -418,8 +418,8 @@
       const baseSpd = Math.min(
         INITIAL_WAVE_SPEED + (waveNumber-1)*WAVE_SPEED_INCREMENT + (level-1)*10,
         MAX_WAVE_SPEED
-      ) * (hardWave ? 1.1 : 1);
-      const baseHp  = (ENEMY_CONF.hp + (waveNumber-1)*ENEMY_CONF.hpInc + (level-1)*50) * (hardWave ? 1.2 : 1);
+      ) * (hardWave ? 1.05 : 1);
+      const baseHp  = (ENEMY_CONF.hp + (waveNumber-1)*ENEMY_CONF.hpInc + (level-1)*50) * (hardWave ? 1.1 : 1);
       const conf = ENEMY_TYPES[type] || ENEMY_TYPES.bug;
       const hp = baseHp * conf.hpMul;
       enemies.push({ id: nextEnemyId++, type, ...gridToPx(path[0].x, path[0].y), seg:0, t:0, spd: baseSpd * conf.spdMul, hp, maxHp: hp, slow:1, slowTimer:0 });

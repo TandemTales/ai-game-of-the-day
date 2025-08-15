@@ -430,7 +430,7 @@
       const level = state.level;
       const hardWave = waveNumber >= 9;
       // Easier Wave 1, progressively harder later (quadratic term)
-      let count = 4 + Math.floor(((level-1)*WAVES_PER_LEVEL + waveNumber)*1.2) + Math.floor((waveNumber-1)*(waveNumber-1)*0.3);
+      let count = 4 + Math.floor(((level-1)*2 + waveNumber)*1.2) + Math.floor((waveNumber-1)*(waveNumber-1)*0.3);
       if(hardWave) count = Math.floor(count * 1.25);
       let i = 0;
       // Track outstanding spawns so we don't advance the wave before enemies actually appear

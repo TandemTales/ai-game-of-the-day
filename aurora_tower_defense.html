@@ -108,7 +108,7 @@
     }
     /* Nudge HUD upward on small screens to avoid overlapping playfield */
     @media (max-width: 600px) {
-      :root { --hud-offset: clamp(24px, 6vh, 80px); }
+      :root { --hud-offset: calc(clamp(24px, 6vh, 80px) - 20px); }
     }
     /* Generic scrollable modal panel inside overlays (for mobile-fit) */
     .overlay .panel {

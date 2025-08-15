@@ -111,25 +111,45 @@
 			color: #F5F5DC;
 		}
 
-		.play-btn {
-			display: inline-block;
-			background: linear-gradient(45deg, #5F9EA0, #4682B4);
-			color: white;
-			padding: 15px 30px;
-			text-decoration: none;
-			border-radius: 10px;
-			font-size: 16px;
-			margin: 20px 0;
-			transition: all 0.3s ease;
-			border: 2px solid #FFD700;
-			box-shadow: 0 4px 15px rgba(95, 158, 160, 0.4);
-		}
+                .play-btn {
+                        display: inline-block;
+                        background: linear-gradient(45deg, #5F9EA0, #4682B4);
+                        color: white;
+                        padding: 15px 30px;
+                        text-decoration: none;
+                        border-radius: 10px;
+                        font-size: 16px;
+                        margin: 20px 0;
+                        transition: all 0.3s ease;
+                        border: 2px solid #FFD700;
+                        box-shadow: 0 4px 15px rgba(95, 158, 160, 0.4);
+                }
 
-		.play-btn:hover {
-			background: linear-gradient(45deg, #4682B4, #5F9EA0);
-			transform: translateY(-3px);
-			box-shadow: 0 6px 20px rgba(95, 158, 160, 0.6);
-		}
+                .play-btn:hover {
+                        background: linear-gradient(45deg, #4682B4, #5F9EA0);
+                        transform: translateY(-3px);
+                        box-shadow: 0 6px 20px rgba(95, 158, 160, 0.6);
+                }
+
+                .leaderboard-btn {
+                        display: inline-block;
+                        background: linear-gradient(45deg, #FFD700, #FFA500);
+                        color: #000;
+                        padding: 10px 20px;
+                        text-decoration: none;
+                        border-radius: 10px;
+                        font-size: 14px;
+                        margin: 10px 0;
+                        transition: all 0.3s ease;
+                        border: 2px solid #FFD700;
+                        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+                }
+
+                .leaderboard-btn:hover {
+                        background: linear-gradient(45deg, #FFA500, #FFD700);
+                        transform: translateY(-3px);
+                        box-shadow: 0 6px 20px rgba(255, 215, 0, 0.6);
+                }
 
 		.rate {
 			margin: 15px 0;
@@ -226,6 +246,7 @@
             <div class="date-info">Created: August 10, 2025</div>
             <p>Build icy and plasma towers on lush grass to stop neon bugs from reaching the Aurora Core. Designed for touch and desktop with smooth waves and satisfying arcade vibes.</p>
             <a href="aurora_tower_defense.html" class="play-btn">Play Now!</a>
+            <a href="leaderboard.html?gameId=aurora-tower-defense" class="leaderboard-btn">View Leaderboard</a>
             <div class="rate" data-id="aurora-tower-defense">
                 <span data-star="1">★</span>
                 <span data-star="2">★</span>
@@ -258,6 +279,7 @@
                     <span data-star="5">★</span>
                 </div>
                 <span class="score"></span>
+                <a href="leaderboard.html?gameId=neon-brick-breaker" class="leaderboard-btn">View Leaderboard</a>
             </li>
 			<li data-id="ocean-explorer"><a href="ocean_explorer.html">Ocean Explorer</a>
 				<div class="rate">

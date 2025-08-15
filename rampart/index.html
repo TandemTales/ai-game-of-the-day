@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Rampart</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
+  <style>
+    :root {
+      --gold: #FFD700;
+      --teal: #5F9EA0;
+      --ink: #0b0f12;
+      --topbar-h: 54px;
+      --toolbar-h: 90px;
+      --hud-offset: clamp(52px, 8vh, 120px);
+    }
+    html, body {
+      margin: 0; padding: 0; height: 100%; overflow: hidden;
+      background: radial-gradient(1200px 800px at 50% 10%, #102132 0%, #0b121a 45%, #070c12 100%);
+      color: #F5F5DC; font-family: 'Press Start 2P', cursive;
+      -webkit-touch-callout: none; user-select: none;
+    }
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 10px 12px;
+      background: rgba(0,0,0,0.45); border-bottom: 2px solid var(--gold);
+      z-index: 20; backdrop-filter: blur(6px);
+    }
+    .back-btn {
+      color: white; text-decoration: none;
+      background: linear-gradient(45deg, var(--teal), #4682B4);
+      border: 2px solid var(--gold); border-radius: 10px;
+      padding: 8px 10px; font-size: 12px;
+      box-shadow: 0 4px 12px rgba(95,158,160,0.4);
+    }
+    .title {
+      font-size: 14px; letter-spacing: 1px; margin: 0 auto; text-align: center; flex: 1;
+      background: linear-gradient(45deg, #FFD700, #FFA500);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .date-info { font-size: 10px; color: var(--teal); opacity: 0.9; }
+
+    .game-wrap {
+      position: fixed; left: 50%; top: var(--topbar-h); right: 0; bottom: var(--toolbar-h); transform: translateX(-50%);
+      display: flex; align-items: center; justify-content: center; width: 100vw; height: calc(100vh - var(--topbar-h) - var(--toolbar-h));
+      z-index: 10;
+    }
+    canvas { background: transparent; image-rendering: pixelated; touch-action: none; }
+
+    .hud {
+      position: absolute; top: calc(var(--topbar-h) + var(--hud-offset)); left: 50%; transform: translateX(-50%);
+      color: var(--teal); text-shadow: 0 2px 6px rgba(0,0,0,0.6);
+      font-size: 12px; z-index: 25; display: flex; gap: 16px;
+      background: rgba(0,0,0,0.35); padding: 6px 10px; border-radius: 10px;
+      align-items: center; white-space: nowrap;
+    }
+    .hud .hud-item { display: inline-flex; align-items: baseline; gap: 6px; }
+    .hud .hud-emoji { font-size: 14px; line-height: 1; transform: translateY(1px); }
+    .hud .hud-label { font-size: 12px; opacity: 0.95; }
+    .hud .hud-value { font-variant-numeric: tabular-nums; }
+
+    .toolbar { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%);
+      display: flex; gap: 10px; z-index: 15; opacity: 0.98; flex-wrap: wrap; }
+    .tool {
+      min-width: 120px; display: flex; align-items: center; gap: 8px;
+      background: linear-gradient(145deg, rgba(95,158,160,0.22), rgba(0,0,0,0.5));
+      border: 2px solid var(--gold); border-radius: 12px; padding: 8px 10px;
+      box-shadow: inset 0 4px 8px rgba(0,0,0,0.4), 0 6px 18px rgba(0,0,0,0.4);
+      color: var(--gold); font-size: 12px; user-select: none; cursor: pointer;
+    }
+    .tool.selected { outline: 3px solid #7fffd4; }
+    .tool img { width: 28px; height: 28px; }
+
+    .overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column;
+      background: radial-gradient(800px 400px at 50% 40%, rgba(0,0,0,0.6), rgba(0,0,0,0.9)); z-index: 18; text-align: center; padding: 24px; gap: 14px; }
+    .overlay.show { display: flex; }
+    .overlay h2 { margin: 0; color: var(--gold); font-size: 18px; }
+    .overlay p { margin: 0; color: #d8f7ff; font-size: 12px; }
+    .overlay .tap { color: var(--teal); font-size: 12px; opacity: 0.95; }
+
+    @media (max-width: 600px) {
+      :root { --hud-offset: clamp(0px, 0.5vh, 8px); }
+      .hud {
+        box-sizing: border-box;
+        width: calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 12px);
+        padding-left: max(8px, env(safe-area-inset-left, 0px));
+        padding-right: max(8px, env(safe-area-inset-right, 0px));
+        flex-wrap: wrap; justify-content: center; gap: 8px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <a class="back-btn" href="../index.html">⟵ Back to Home</a>
+    <div class="title">Rampart<br><span class="date-info">Created: August 15, 2025</span></div>
+    <button class="back-btn" id="howToBtn">Instructions</button>
+  </div>
+
+  <div class="hud" id="hud">
+    <span class="hud-item"><span class="hud-emoji" aria-hidden="true">🧱</span><span class="hud-label">Bricks</span><span id="bricks" class="hud-value">0</span></span>
+    <span class="hud-item"><span class="hud-emoji" aria-hidden="true">🏰</span><span class="hud-label">Keep</span><span id="keep" class="hud-value">0</span></span>
+    <span class="hud-item"><span class="hud-emoji" aria-hidden="true">🌊</span><span class="hud-label">Wave</span><span id="wave" class="hud-value">1</span></span>
+    <span class="hud-item"><span class="hud-emoji" aria-hidden="true">⭐</span><span class="hud-label">Score</span><span id="score" class="hud-value">0</span></span>
+    <span class="hud-item"><span class="hud-emoji" aria-hidden="true">⏱️</span><span class="hud-label">Phase</span><span id="phase" class="hud-value">Build</span></span>
+  </div>
+
+  <div class="game-wrap">
+    <canvas id="game"></canvas>
+    <div class="overlay show" id="overlay">
+      <h2>Rebuild the Ramparts</h2>
+      <p>Tap to place walls and cannons during the build phase. Defend the keep against incoming ships.</p>
+      <p class="tap">Tap to start · Pinch zoom is disabled</p>
+    </div>
+    <div class="overlay" id="howTo">
+      <h2>How to Play</h2>
+      <div class="panel" id="howToContent" style="width:min(720px,94vw);max-height:min(76vh,84vh);overflow:auto;background:rgba(10,15,20,0.8);border:2px solid var(--gold);border-radius:12px;padding:12px 14px;text-align:left;box-shadow:0 10px 30px rgba(0,0,0,0.6);"></div>
+      <p class="tap">Tap to close</p>
+    </div>
+  </div>
+
+  <div class="toolbar" id="toolbar">
+    <div class="tool selected" data-type="wall" data-cost="1"><img src="assets/wall.svg" alt="wall"><div>Wall 1</div></div>
+    <div class="tool" data-type="cannon" data-cost="6"><img src="assets/cannon.svg" alt="cannon"><div>Cannon 6</div></div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const overlay = document.getElementById('overlay');
+    const howTo = document.getElementById('howTo');
+    const howToBtn = document.getElementById('howToBtn');
+    const howToContent = document.getElementById('howToContent');
+    const hudBricks = document.getElementById('bricks');
+    const hudKeep = document.getElementById('keep');
+    const hudWave = document.getElementById('wave');
+    const hudScore = document.getElementById('score');
+    const hudPhase = document.getElementById('phase');
+    const topbarEl = document.querySelector('.topbar');
+    const root = document.documentElement;
+    const toolbar = document.getElementById('toolbar');
+
+    // Leaderboard integration
+    const GAME_ID = 'rampart';
+    let gameOverHandled = false;
+
+    function setTopbarHeight(){ const h = Math.ceil(topbarEl.getBoundingClientRect().height); root.style.setProperty('--topbar-h', h + 'px'); }
+    if (typeof ResizeObserver !== 'undefined') { new ResizeObserver(() => setTopbarHeight()).observe(topbarEl); }
+
+    // Grid and sizing
+    let COLS = 14, ROWS = 10, tile = 48; // computed on resize
+    let pixelRatio = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+
+    // Assets
+    const assets = {
+      grass: 'assets/grass_tile.svg',
+      wall: 'assets/wall.svg',
+      castle: 'assets/castle.svg',
+      cannon: 'assets/cannon.svg',
+      ship: 'assets/ship.svg',
+      ball: 'assets/cannonball.svg',
+      boom: 'assets/explosion.svg',
+    };
+    const Images = {};
+    function loadImg(src){ return new Promise((res, rej)=>{ const i = new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; }); }
+
+    // Game state
+    let running = false;
+    const state = {
+      bricks: 40,
+      keepHP: 100,
+      wave: 1,
+      time: 0,
+      phase: 'build', // 'build' | 'battle'
+      kills: 0,
+      placedWalls: 0,
+    };
+
+    const walls = []; // {gx, gy, hp}
+    const cannons = []; // {gx, gy, cd}
+    const ships = []; // {x,y,vx,vy,spd,hp,maxHp,cd}
+    const bullets = []; // {x,y,vx,vy,spd,dmg,owner}
+
+    const BUILD_TIME = 18; // seconds per build phase
+    const MAX_WAVES = 6;
+
+    const KEEP_SIZE = 3; // 3x3 center keep
+    let keepRect = { x: Math.floor(COLS/2) - 1, y: Math.floor(ROWS/2) - 1, w: KEEP_SIZE, h: KEEP_SIZE };
+
+    // UI selection
+    let selectedTool = 'wall';
+    toolbar.addEventListener('click', (e)=>{
+      const item = e.target.closest('.tool'); if(!item) return;
+      for(const el of toolbar.querySelectorAll('.tool')) el.classList.remove('selected');
+      item.classList.add('selected');
+      selectedTool = item.dataset.type;
+    });
+
+    function buildHowTo(){
+      howToContent.innerHTML = `
+        <p>Rampart, remastered for touch. Each round has two phases:</p>
+        <ul>
+          <li><strong>Build:</strong> Spend bricks to place <em>walls</em> (1) and <em>cannons</em> (6). Protect the keep.</li>
+          <li><strong>Battle:</strong> Ships sail in and fire at your defenses. Cannons auto-fire at ships.</li>
+        </ul>
+        <p>Score points by destroying ships and surviving waves. The game ends when the keep is destroyed, or you clear all ${MAX_WAVES} waves.</p>
+        <p>Tips: Place cannons behind walls. Repair damage during the next build phase.</p>
+      `;
+    }
+
+    howToBtn.addEventListener('click', ()=>{ buildHowTo(); openPanel(howTo); });
+    howTo.addEventListener('click', ()=> closePanel(howTo));
+
+    function setOverlayMode(on){ const gw = document.querySelector('.game-wrap'); if(gw) gw.style.zIndex = on ? '30' : ''; }
+    function openPanel(panelEl){ setOverlayMode(true); panelEl.classList.add('show'); running = false; }
+    function closePanel(panelEl){ panelEl.classList.remove('show'); setOverlayMode(false); if(state.phase==='battle') running = true; }
+
+    function resize(){
+      const availW = window.innerWidth;
+      const topH = Math.ceil(topbarEl.getBoundingClientRect().height);
+      const toolbarH = Math.ceil(toolbar.getBoundingClientRect().height || 0);
+      root.style.setProperty('--toolbar-h', toolbarH + 'px');
+      const availH = window.innerHeight - topH - toolbarH;
+      tile = Math.floor(Math.min(availW / COLS, availH / ROWS));
+      const w = COLS*tile, h = ROWS*tile;
+      canvas.style.width = w+'px'; canvas.style.height = h+'px';
+      canvas.width = w*pixelRatio; canvas.height = h*pixelRatio;
+      ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    }
+
+    function gridToPx(gx, gy){ return { x: gx*tile + tile/2, y: gy*tile + tile/2 }; }
+    function worldToGrid(x,y){ return { gx: Math.floor(x/tile), gy: Math.floor(y/tile) }; }
+
+    function inKeep(gx, gy){ return gx>=keepRect.x && gy>=keepRect.y && gx<keepRect.x+keepRect.w && gy<keepRect.y+keepRect.h; }
+    function occupied(gx, gy){
+      if (inKeep(gx,gy)) return true;
+      for (const w of walls) if (w.gx===gx && w.gy===gy) return true;
+      for (const c of cannons) if (c.gx===gx && c.gy===gy) return true;
+      return false;
+    }
+
+    function placeWall(gx, gy){
+      if (gx<0||gy<0||gx>=COLS||gy>=ROWS) return false;
+      if (occupied(gx,gy)) return false;
+      if (state.bricks <= 0) return false;
+      state.bricks -= 1; state.placedWalls += 1;
+      walls.push({ gx, gy, hp: 60 });
+      return true;
+    }
+
+    function placeCannon(gx, gy){
+      if (gx<0||gy<0||gx>=COLS||gy>=ROWS) return false;
+      if (occupied(gx,gy)) return false;
+      const cost = 6; if (state.bricks < cost) return false;
+      state.bricks -= cost; cannons.push({ gx, gy, cd: 0 });
+      return true;
+    }
+
+    function onTap(x, y){
+      const { gx, gy } = worldToGrid(x,y);
+      if (state.phase !== 'build') return;
+      if (selectedTool === 'wall') placeWall(gx, gy);
+      else placeCannon(gx, gy);
+      updateHUD();
+    }
+
+    canvas.addEventListener('click', (e)=>{ const r = canvas.getBoundingClientRect(); onTap(e.clientX - r.left, e.clientY - r.top); }, {passive:true});
+    canvas.addEventListener('touchstart', (e)=>{ const t = e.changedTouches[0]; const r = canvas.getBoundingClientRect(); onTap(t.clientX - r.left, t.clientY - r.top); e.preventDefault(); }, {passive:false});
+
+    overlay.addEventListener('click', start);
+    overlay.addEventListener('touchstart', (e)=>{ e.preventDefault(); start(); }, {passive:false});
+
+    function updateHUD(){
+      hudBricks.textContent = state.bricks;
+      hudKeep.textContent = state.keepHP;
+      hudWave.textContent = state.wave;
+      hudScore.textContent = computeScore();
+      hudPhase.textContent = state.phase === 'build' ? 'Build' : 'Battle';
+    }
+
+    function drawBackground(){
+      if (!Images.grass) return;
+      // Water backdrop
+      const grad = ctx.createLinearGradient(0, 0, 0, ROWS*tile);
+      grad.addColorStop(0, '#0a2a3f'); grad.addColorStop(1, '#0b1f2e');
+      ctx.fillStyle = grad; ctx.fillRect(0,0,COLS*tile, ROWS*tile);
+      // Grass grid
+      for(let y=0;y<ROWS;y++){
+        for(let x=0;x<COLS;x++){
+          ctx.drawImage(Images.grass, x*tile, y*tile, tile, tile);
+        }
+      }
+      // Keep
+      const kx = keepRect.x*tile + (keepRect.w*tile - tile*2)/2;
+      const ky = keepRect.y*tile + (keepRect.h*tile - tile*2)/2;
+      ctx.drawImage(Images.castle, kx, ky, tile*2, tile*2);
+    }
+
+    function drawWalls(){ for(const w of walls){ ctx.drawImage(Images.wall, w.gx*tile, w.gy*tile, tile, tile); } }
+    function drawCannons(){ for(const c of cannons){ ctx.drawImage(Images.cannon, c.gx*tile, c.gy*tile, tile, tile); } }
+    function drawShips(){ for(const s of ships){ const size = tile*1.4; ctx.drawImage(Images.ship, s.x - size/2, s.y - size/2, size, size*0.67); } }
+    function drawBullets(){ for(const b of bullets){ const s = tile*0.35; ctx.drawImage(Images.ball, b.x - s/2, b.y - s/2, s, s); } }
+
+    function draw(){
+      ctx.clearRect(0,0,canvas.width, canvas.height);
+      drawBackground();
+      drawWalls();
+      drawCannons();
+      drawShips();
+      drawBullets();
+    }
+
+    // Battle mechanics
+    function distance(a,b){ const dx=a.x-b.x, dy=a.y-b.y; return Math.hypot(dx,dy); }
+
+    function spawnWave(){
+      const count = 4 + Math.floor(state.wave*1.8);
+      let spawned = 0;
+      const iv = setInterval(()=>{
+        const side = Math.floor(Math.random()*4);
+        let x,y,vx,vy; const target = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2);
+        const pad = tile*0.5;
+        if(side===0){ x = -pad; y = Math.random()*ROWS*tile; }
+        else if(side===1){ x = COLS*tile+pad; y = Math.random()*ROWS*tile; }
+        else if(side===2){ x = Math.random()*COLS*tile; y = -pad; }
+        else { x = Math.random()*COLS*tile; y = ROWS*tile+pad; }
+        const dx = target.x - x, dy = target.y - y; const d = Math.hypot(dx,dy)||1; vx = dx/d; vy = dy/d;
+        const spd = 28 + state.wave*6;
+        const hp = 80 + state.wave*30;
+        ships.push({ x, y, vx, vy, spd, hp, maxHp: hp, cd: 1.2 + Math.random()*1.2 });
+        spawned++;
+        if(spawned>=count) clearInterval(iv);
+      }, Math.max(400, 1100 - state.wave*120));
+    }
+
+    function aimCannons(dt){
+      for(const c of cannons){
+        c.cd = Math.max(0, c.cd - dt);
+        if(c.cd>0 || ships.length===0) continue;
+        // target nearest ship
+        const px = c.gx*tile + tile/2, py = c.gy*tile + tile/2;
+        let best=null, bestD=1e9; for(const s of ships){ const d = Math.hypot(s.x-px, s.y-py); if(d<bestD){ best=s; bestD=d; } }
+        if(best && bestD < tile*8){ const dx=best.x-px, dy=best.y-py; const L=Math.hypot(dx,dy)||1; bullets.push({ x:px, y:py, vx:dx/L, vy:dy/L, spd: 260, dmg: 34, owner:'cannon' }); c.cd = 0.6; }
+      }
+    }
+
+    function shipsAct(dt){
+      for(const s of ships){
+        s.x += s.vx*s.spd*dt; s.y += s.vy*s.spd*dt;
+        s.cd -= dt; if(s.cd<=0){
+          // choose target: nearest wall else keep
+          let target = null; let td = 1e9;
+          for(const w of walls){ const p = gridToPx(w.gx, w.gy); const d = Math.hypot(p.x - s.x, p.y - s.y); if(d < td){ td = d; target = { x: p.x, y: p.y, type:'wall', ref:w }; } }
+          if(!target){ const k = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2); target = { x:k.x, y:k.y, type:'keep' }; td = Math.hypot(k.x-s.x, k.y-s.y); }
+          if(td < tile*9){ const dx=target.x - s.x, dy=target.y - s.y; const L=Math.hypot(dx,dy)||1; bullets.push({ x:s.x, y:s.y, vx:dx/L, vy:dy/L, spd: 220, dmg: 22, owner:'ship' }); s.cd = 1.6 + Math.random()*1.2; } else { s.cd = 0.5; }
+        }
+      }
+    }
+
+    function moveBullets(dt){ for(const b of bullets){ b.x += b.vx*b.spd*dt; b.y += b.vy*b.spd*dt; } }
+
+    function handleCollisions(){
+      // bullet vs ships / walls / keep
+      for(const b of bullets){
+        // out of bounds
+        if(b.x < -40 || b.y < -40 || b.x > COLS*tile+40 || b.y > ROWS*tile+40){ b.dead=true; continue; }
+        if(b.owner==='cannon'){
+          for(const s of ships){ if(Math.hypot(s.x-b.x, s.y-b.y) < tile*0.5){ s.hp -= b.dmg; b.dead = true; if(s.hp<=0){ s.dead = true; state.kills++; } break; } }
+        } else { // ship bullet
+          // walls
+          for(const w of walls){ const p = gridToPx(w.gx, w.gy); if(Math.hypot(p.x-b.x, p.y-b.y) < tile*0.6){ w.hp -= b.dmg; b.dead=true; break; } }
+          if(!b.dead){ // keep
+            const kc = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2);
+            if(Math.hypot(kc.x-b.x, kc.y-b.y) < tile*1.2){ state.keepHP -= b.dmg; b.dead = true; if(state.keepHP<=0) gameOver(); }
+          }
+        }
+      }
+      // cleanup
+      for(let i=bullets.length-1;i>=0;i--){ if(bullets[i].dead) bullets.splice(i,1); }
+      for(let i=walls.length-1;i>=0;i--){ if(walls[i].hp<=0) walls.splice(i,1); }
+      for(let i=ships.length-1;i>=0;i--){ if(ships[i].dead) ships.splice(i,1); }
+    }
+
+    // Phase control
+    let buildTimer = BUILD_TIME; let spawning = false; let waveDoneCheck=0;
+
+    function startBuild(){ state.phase = 'build'; buildTimer = BUILD_TIME; state.bricks = 30 + state.wave*6; spawning=false; updateHUD(); }
+    function startBattle(){ state.phase = 'battle'; spawning = true; spawnWave(); updateHUD(); }
+
+    function updatePhase(dt){
+      if(state.phase==='build'){
+        buildTimer -= dt; if(buildTimer<=0){ startBattle(); }
+      } else if(state.phase==='battle'){
+        // When all ships killed and none spawning for a short time, next wave
+        waveDoneCheck += dt;
+        if(waveDoneCheck>0.5){ waveDoneCheck=0; if(ships.length===0 && bullets.length===0){
+          // next
+          state.wave++;
+          if(state.wave > MAX_WAVES){ victory(); return; }
+          startBuild();
+        }}
+      }
+    }
+
+    function computeScore(){
+      const base = (state.wave-1) * 200 + state.kills * 15 + state.placedWalls;
+      return Math.max(0, Math.floor(base + state.keepHP));
+    }
+
+    async function maybeSubmitLeaderboard(won=false){
+      const score = computeScore();
+      let dest = `../leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
+      try {
+        const res = await fetch(`/api/leaderboard/rank?gameId=${encodeURIComponent(GAME_ID)}&score=${encodeURIComponent(score)}`, { headers: { 'Accept': 'application/json' } });
+        if(res.ok){ const data = await res.json(); const rank = Number(data?.rank);
+          const qualifies = Number.isFinite(rank) && rank>0 && rank<=20;
+          if(qualifies){ const prefix = won ? 'You Won! ' : ''; let name = prompt(`${prefix}New High Score! You placed #${rank}. Enter your name (max 20 chars):`, '');
+            if(name!=null){ name = name.trim().replace(/[^\w \-'.!]/g,'').slice(0,20); if(name){ let submitted=false; try{ await fetch('/api/leaderboard/submit',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ gameId: GAME_ID, name, score }) }); submitted=true; }catch{}
+              if(submitted){ dest += `&highlightRank=${encodeURIComponent(rank)}`; }
+            } }
+          }
+        }
+      } catch(e){ console.error(e); }
+      finally { location.href = dest; }
+    }
+
+    function gameOver(){ if(!gameOverHandled){ gameOverHandled=true; running=false; overlay.querySelector('h2').textContent='Keep Destroyed'; overlay.querySelector('p').textContent='Tap to try again.'; setOverlayMode(true); overlay.classList.add('show'); maybeSubmitLeaderboard(false).catch(console.error); } }
+    function victory(){ if(!gameOverHandled){ gameOverHandled=true; running=false; overlay.querySelector('h2').textContent='Ramparts Hold!'; overlay.querySelector('p').textContent='All waves cleared. Tap to play again.'; setOverlayMode(true); overlay.classList.add('show'); maybeSubmitLeaderboard(true).catch(console.error); } }
+
+    let last=0, dt=0;
+    function loop(ts){ if(!running){ requestAnimationFrame(loop); return; } dt = Math.min(0.033, (ts-last)/1000 || 0.016); last=ts;
+      state.time += dt; aimCannons(dt); shipsAct(dt); moveBullets(dt); handleCollisions(); updatePhase(dt); updateHUD(); draw(); requestAnimationFrame(loop); }
+
+    async function start(){ overlay.classList.remove('show'); setOverlayMode(false);
+      if(!Images.grass){ const entries = Object.entries(assets); for(const [k,src] of entries){ Images[k] = await loadImg(src); } }
+      // Reset state for a new run
+      state.bricks = 40; state.keepHP = 100; state.wave = 1; state.kills = 0; state.placedWalls=0; walls.length=0; cannons.length=0; ships.length=0; bullets.length=0; gameOverHandled=false; buildTimer = BUILD_TIME; spawning=false; waveDoneCheck=0; selectedTool='wall';
+      startBuild(); running = true;
+    }
+
+    window.addEventListener('resize', ()=>{ setTopbarHeight(); resize(); draw(); });
+    setTopbarHeight();
+    if(document.fonts && document.fonts.ready){ document.fonts.ready.then(()=>{ setTopbarHeight(); resize(); draw(); }); }
+    setTimeout(()=>{ setTopbarHeight(); resize(); draw(); }, 250);
+    setTimeout(()=>{ setTopbarHeight(); resize(); draw(); }, 1000);
+    resize(); updateHUD(); requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

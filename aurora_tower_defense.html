@@ -712,7 +712,7 @@
       overlay.querySelector('p').textContent = 'Your defenses fell. Tap to try again.';
       setOverlayMode(true);
       overlay.classList.add('show');
-      if (!gameOverHandled) { gameOverHandled = true; maybeSubmitLeaderboard().catch(console.error); }
+      if (!gameOverHandled) { gameOverHandled = true; maybeSubmitLeaderboard(false).catch(console.error); }
     }
 
     function victory(){
@@ -721,7 +721,7 @@
       overlay.querySelector('p').textContent = 'All waves cleared. Tap to play again.';
       setOverlayMode(true);
       overlay.classList.add('show');
-      if (!gameOverHandled) { gameOverHandled = true; maybeSubmitLeaderboard().catch(console.error); }
+      if (!gameOverHandled) { gameOverHandled = true; maybeSubmitLeaderboard(true).catch(console.error); }
     }
 
     function nextLevel(){
@@ -746,7 +746,7 @@
       return Math.max(0, totalWaves * 100 + state.kills + state.coins - state.leaks * 10);
     }
 
-    async function maybeSubmitLeaderboard(){
+    async function maybeSubmitLeaderboard(won = false){
       const score = computeScore();
       let dest = `leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
       try {
@@ -758,7 +758,8 @@
           const rank = Number(data?.rank);
           const qualifies = Number.isFinite(rank) && rank > 0 && rank <= 20;
           if (qualifies) {
-            let name = prompt(`New High Score! You placed #${rank}. Enter your name (max 20 chars):`, '');
+            const prefix = won ? 'You Won! ' : '';
+            let name = prompt(`${prefix}New High Score! You placed #${rank}. Enter your name (max 20 chars):`, '');
             if (name != null) {
               name = name.trim().replace(/[^\w \-'.!]/g, '').slice(0, 20);
               if (name) {

@@ -108,7 +108,22 @@
     }
     /* Nudge HUD upward on small screens to avoid overlapping playfield */
     @media (max-width: 600px) {
-      :root { --hud-offset: calc(clamp(24px, 6vh, 80px) - 20px); }
+      :root { --hud-offset: clamp(0px, 0.5vh, 8px); }
+      /* Prevent HUD from being cut off; widen and use 2-column layout */
+      .hud {
+        box-sizing: border-box;
+        width: calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 12px);
+        padding-left: max(8px, env(safe-area-inset-left, 0px));
+        padding-right: max(8px, env(safe-area-inset-right, 0px));
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        justify-content: center;
+        align-items: center;
+        justify-items: center;
+        white-space: normal;
+        gap: 8px 16px; /* row gap / column gap */
+      }
+      .hud .hud-item:last-child { grid-column: 1 / -1; justify-content: center; }
     }
     /* Generic scrollable modal panel inside overlays (for mobile-fit) */
     .overlay .panel {

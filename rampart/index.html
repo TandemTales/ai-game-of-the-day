@@ -183,6 +183,21 @@
     const ships = []; // {x,y,vx,vy,spd,hp,maxHp,cd}
     const bullets = []; // {x,y,vx,vy,spd,dmg,owner}
 
+    // Polyomino pieces for wall placement (1-4 bricks)
+    const PIECES = [
+      [[0,0]],
+      [[0,0],[1,0]],
+      [[0,0],[1,0],[0,1]],
+      [[0,0],[1,0],[2,0]],
+      [[0,0],[0,1],[1,0],[1,1]],
+      [[0,0],[1,0],[2,0],[3,0]],
+      [[0,0],[1,0],[2,0],[2,1]],
+      [[0,0],[1,0],[1,1],[2,1]],
+      [[0,0],[1,0],[2,0],[1,1]]
+    ];
+    let currentPiece = null;
+    let hoverCell = null;
+
     const BUILD_TIME = 18; // seconds per build phase
     const MAX_WAVES = 6;
 
@@ -202,11 +217,11 @@
       howToContent.innerHTML = `
         <p>Rampart, remastered for touch. Each round has two phases:</p>
         <ul>
-          <li><strong>Build:</strong> Spend bricks to place <em>walls</em> (1) and <em>cannons</em> (6). Protect the keep.</li>
+          <li><strong>Build:</strong> Spend bricks to place randomly shaped <em>wall pieces</em> (1-4) and <em>cannons</em> (6). Protect the keep.</li>
           <li><strong>Battle:</strong> Ships sail in and fire at your defenses. Cannons auto-fire at ships.</li>
         </ul>
         <p>Score points by destroying ships and surviving waves. The game ends when the keep is destroyed, or you clear all ${MAX_WAVES} waves.</p>
-        <p>Tips: Place cannons behind walls. Repair damage during the next build phase.</p>
+        <p>Tips: Place cannons behind walls. Repair damage during the next build phase. Press <kbd>R</kbd> or space to rotate wall pieces.</p>
       `;
     }
 
@@ -241,12 +256,43 @@
       return false;
     }
 
+    function newPiece(){
+      if(state.bricks<=0){ currentPiece=null; return; }
+      let attempts = 0;
+      let piece;
+      do {
+        piece = PIECES[Math.floor(Math.random()*PIECES.length)].map(p=>p.slice());
+      } while(piece.length>state.bricks && attempts++<10);
+      currentPiece = piece;
+    }
+
+    function rotatePiece(piece){
+      const rotated = piece.map(([x,y])=>[-y,x]);
+      let minX = Infinity, minY = Infinity;
+      for(const [x,y] of rotated){ if(x<minX) minX=x; if(y<minY) minY=y; }
+      return rotated.map(([x,y])=>[x-minX, y-minY]);
+    }
+
+    function canPlacePiece(gx, gy, piece){
+      if(state.bricks < piece.length) return false;
+      for(const [dx,dy] of piece){
+        const x = gx+dx, y = gy+dy;
+        if(x<0||y<0||x>=COLS||y>=ROWS) return false;
+        if(occupied(x,y)) return false;
+      }
+      return true;
+    }
+
     function placeWall(gx, gy){
-      if (gx<0||gy<0||gx>=COLS||gy>=ROWS) return false;
-      if (occupied(gx,gy)) return false;
-      if (state.bricks <= 0) return false;
-      state.bricks -= 1; state.placedWalls += 1;
-      walls.push({ gx, gy, hp: 60 });
+      if(!currentPiece) return false;
+      if(!canPlacePiece(gx, gy, currentPiece)) return false;
+      for(const [dx,dy] of currentPiece){
+        const x = gx+dx, y = gy+dy;
+        walls.push({ gx:x, gy:y, hp:60 });
+      }
+      state.bricks -= currentPiece.length;
+      state.placedWalls += currentPiece.length;
+      newPiece();
       return true;
     }
 
@@ -260,6 +306,7 @@
 
     function onTap(x, y){
       const { gx, gy } = worldToGrid(x,y);
+      hoverCell = { gx, gy };
       if (state.phase !== 'build') return;
       if (selectedTool === 'wall') placeWall(gx, gy);
       else placeCannon(gx, gy);
@@ -268,9 +315,21 @@
 
     canvas.addEventListener('click', (e)=>{ const r = canvas.getBoundingClientRect(); onTap(e.clientX - r.left, e.clientY - r.top); }, {passive:true});
     canvas.addEventListener('touchstart', (e)=>{ const t = e.changedTouches[0]; const r = canvas.getBoundingClientRect(); onTap(t.clientX - r.left, t.clientY - r.top); e.preventDefault(); }, {passive:false});
+    canvas.addEventListener('mousemove', (e)=>{ const r = canvas.getBoundingClientRect(); hoverCell = worldToGrid(e.clientX - r.left, e.clientY - r.top); }, {passive:true});
+    canvas.addEventListener('mouseleave', ()=>{ hoverCell = null; });
+    canvas.addEventListener('touchmove', (e)=>{ const t = e.changedTouches[0]; const r = canvas.getBoundingClientRect(); hoverCell = worldToGrid(t.clientX - r.left, t.clientY - r.top); e.preventDefault(); }, {passive:false});
 
     overlay.addEventListener('click', start);
     overlay.addEventListener('touchstart', (e)=>{ e.preventDefault(); start(); }, {passive:false});
+
+    window.addEventListener('keydown', (e)=>{
+      if(state.phase==='build' && selectedTool==='wall'){
+        if(e.key==='r' || e.key===' '){
+          currentPiece = rotatePiece(currentPiece);
+          draw();
+        }
+      }
+    });
 
     function updateHUD(){
       hudBricks.textContent = state.bricks;
@@ -303,6 +362,18 @@
     function drawShips(){ for(const s of ships){ const size = tile*1.4; ctx.drawImage(Images.ship, s.x - size/2, s.y - size/2, size, size*0.67); } }
     function drawBullets(){ for(const b of bullets){ const s = tile*0.35; ctx.drawImage(Images.ball, b.x - s/2, b.y - s/2, s, s); } }
 
+    function drawPreview(){
+      if(state.phase!=='build' || selectedTool!=='wall' || !hoverCell || !currentPiece) return;
+      const valid = canPlacePiece(hoverCell.gx, hoverCell.gy, currentPiece);
+      ctx.globalAlpha = valid ? 0.7 : 0.3;
+      for(const [dx,dy] of currentPiece){
+        const x = (hoverCell.gx+dx)*tile;
+        const y = (hoverCell.gy+dy)*tile;
+        ctx.drawImage(Images.wall, x, y, tile, tile);
+      }
+      ctx.globalAlpha = 1;
+    }
+
     function draw(){
       ctx.clearRect(0,0,canvas.width, canvas.height);
       drawBackground();
@@ -310,6 +381,7 @@
       drawCannons();
       drawShips();
       drawBullets();
+      drawPreview();
     }
 
     // Battle mechanics
@@ -386,7 +458,14 @@
     // Phase control
     let buildTimer = BUILD_TIME; let spawning = false; let waveDoneCheck=0;
 
-    function startBuild(){ state.phase = 'build'; buildTimer = BUILD_TIME; state.bricks = 30 + state.wave*6; spawning=false; updateHUD(); }
+    function startBuild(){
+      state.phase = 'build';
+      buildTimer = BUILD_TIME;
+      state.bricks = 30 + state.wave*6;
+      spawning=false;
+      newPiece();
+      updateHUD();
+    }
     function startBattle(){ state.phase = 'battle'; spawning = true; spawnWave(); updateHUD(); }
 
     function updatePhase(dt){

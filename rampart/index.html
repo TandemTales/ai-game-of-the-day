@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Rampart</title>
+  <title>Bastion Builder</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
   <style>
@@ -95,7 +95,7 @@
 <body>
   <div class="topbar">
     <a class="back-btn" href="../index.html">⟵ Back to Home</a>
-    <div class="title">Rampart<br><span class="date-info">Created: August 15, 2025</span></div>
+    <div class="title">Bastion Builder<br><span class="date-info">Created: August 15, 2025</span></div>
     <button class="back-btn" id="howToBtn">Instructions</button>
   </div>
 
@@ -111,7 +111,7 @@
   <div class="game-wrap">
     <canvas id="game"></canvas>
     <div class="overlay show" id="overlay">
-      <h2>Rebuild the Ramparts</h2>
+      <h2>Rebuild the Bastion</h2>
       <p>Tap to place walls and cannons during the build phase. Defend the keep against incoming ships.</p>
       <p class="tap">Tap to start · Pinch zoom is disabled</p>
     </div>
@@ -255,7 +255,7 @@
 
     function buildHowTo(){
       howToContent.innerHTML = `
-        <p>Rampart, remastered for touch. Each round has two phases:</p>
+        <p>Bastion Builder, built for touch and desktop. Each round has two phases:</p>
         <ul>
           <li><strong>Build:</strong> Spend bricks to place randomly shaped <em>wall pieces</em> (1-4) and <em>cannons</em> (6). Protect the keep.</li>
           <li><strong>Battle:</strong> Ships sail in and fire at your defenses. Cannons auto-fire at ships.</li>
@@ -563,7 +563,7 @@
     }
 
     function gameOver(){ if(!gameOverHandled){ gameOverHandled=true; running=false; overlay.querySelector('h2').textContent='Keep Destroyed'; overlay.querySelector('p').textContent='Tap to try again.'; setOverlayMode(true); overlay.classList.add('show'); maybeSubmitLeaderboard(false).catch(console.error); } }
-    function victory(){ if(!gameOverHandled){ gameOverHandled=true; running=false; overlay.querySelector('h2').textContent='Ramparts Hold!'; overlay.querySelector('p').textContent='All waves cleared. Tap to play again.'; setOverlayMode(true); overlay.classList.add('show'); maybeSubmitLeaderboard(true).catch(console.error); } }
+    function victory(){ if(!gameOverHandled){ gameOverHandled=true; running=false; overlay.querySelector('h2').textContent='Bastion Holds!'; overlay.querySelector('p').textContent='All waves cleared. Tap to play again.'; setOverlayMode(true); overlay.classList.add('show'); maybeSubmitLeaderboard(true).catch(console.error); } }
 
     let last=0, dt=0;
     function loop(ts){ if(!running){ requestAnimationFrame(loop); return; } dt = Math.min(0.033, (ts-last)/1000 || 0.016); last=ts;

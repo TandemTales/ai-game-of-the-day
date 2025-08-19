@@ -12,8 +12,8 @@
       --teal: #5F9EA0;
       --ink: #0b0f12;
       --topbar-h: 54px;
+      --hud-h: 60px;
       --toolbar-h: 90px;
-      --hud-offset: clamp(52px, 8vh, 120px);
     }
     html, body {
       margin: 0; padding: 0; height: 100%; overflow: hidden;
@@ -43,14 +43,14 @@
     .date-info { font-size: 10px; color: var(--teal); opacity: 0.9; }
 
     .game-wrap {
-      position: fixed; left: 50%; top: var(--topbar-h); right: 0; bottom: var(--toolbar-h); transform: translateX(-50%);
-      display: flex; align-items: center; justify-content: center; width: 100vw; height: calc(100vh - var(--topbar-h) - var(--toolbar-h));
+      position: fixed; left: 50%; top: calc(var(--topbar-h) + var(--hud-h)); right: 0; bottom: var(--toolbar-h); transform: translateX(-50%);
+      display: flex; align-items: center; justify-content: center; width: 100vw;
       z-index: 10;
     }
     canvas { background: transparent; image-rendering: pixelated; touch-action: none; }
 
     .hud {
-      position: absolute; top: calc(var(--topbar-h) + var(--hud-offset)); left: 50%; transform: translateX(-50%);
+      position: fixed; top: var(--topbar-h); left: 50%; transform: translateX(-50%);
       color: var(--teal); text-shadow: 0 2px 6px rgba(0,0,0,0.6);
       font-size: 12px; z-index: 25; display: flex; gap: 16px;
       background: rgba(0,0,0,0.35); padding: 6px 10px; border-radius: 10px;
@@ -81,7 +81,6 @@
     .overlay .tap { color: var(--teal); font-size: 12px; opacity: 0.95; }
 
     @media (max-width: 600px) {
-      :root { --hud-offset: clamp(0px, 0.5vh, 8px); }
       .hud {
         box-sizing: border-box;
         width: calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 12px);
@@ -144,6 +143,7 @@
     const topbarEl = document.querySelector('.topbar');
     const root = document.documentElement;
     const toolbar = document.getElementById('toolbar');
+    const hudEl = document.getElementById('hud');
     const nextCanvas = document.getElementById('nextPiece');
     const nextCtx = nextCanvas.getContext('2d');
     const rotateBtn = document.getElementById('rotateBtn');
@@ -154,7 +154,11 @@
     let gameOverHandled = false;
 
     function setTopbarHeight(){ const h = Math.ceil(topbarEl.getBoundingClientRect().height); root.style.setProperty('--topbar-h', h + 'px'); }
-    if (typeof ResizeObserver !== 'undefined') { new ResizeObserver(() => setTopbarHeight()).observe(topbarEl); }
+    function setHudHeight(){ const h = Math.ceil(hudEl.getBoundingClientRect().height); root.style.setProperty('--hud-h', h + 'px'); }
+    if (typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(() => setTopbarHeight()).observe(topbarEl);
+      new ResizeObserver(() => setHudHeight()).observe(hudEl);
+    }
 
     // Grid and sizing
     let COLS = 14, ROWS = 10, tile = 48; // computed on resize
@@ -275,9 +279,10 @@
     function resize(){
       const availW = window.innerWidth;
       const topH = Math.ceil(topbarEl.getBoundingClientRect().height);
+      const hudH = Math.ceil(hudEl.getBoundingClientRect().height);
       const toolbarH = Math.ceil(toolbar.getBoundingClientRect().height || 0);
       root.style.setProperty('--toolbar-h', toolbarH + 'px');
-      const availH = window.innerHeight - topH - toolbarH;
+      const availH = window.innerHeight - topH - hudH - toolbarH;
       tile = Math.floor(Math.min(availW / COLS, availH / ROWS));
       const w = COLS*tile, h = ROWS*tile;
       canvas.style.width = w+'px'; canvas.style.height = h+'px';
@@ -576,11 +581,12 @@
       startBuild(); running = true;
     }
 
-    window.addEventListener('resize', ()=>{ setTopbarHeight(); resize(); draw(); });
+    window.addEventListener('resize', ()=>{ setTopbarHeight(); setHudHeight(); resize(); draw(); });
     setTopbarHeight();
-    if(document.fonts && document.fonts.ready){ document.fonts.ready.then(()=>{ setTopbarHeight(); resize(); draw(); }); }
-    setTimeout(()=>{ setTopbarHeight(); resize(); draw(); }, 250);
-    setTimeout(()=>{ setTopbarHeight(); resize(); draw(); }, 1000);
+    setHudHeight();
+    if(document.fonts && document.fonts.ready){ document.fonts.ready.then(()=>{ setTopbarHeight(); setHudHeight(); resize(); draw(); }); }
+    setTimeout(()=>{ setTopbarHeight(); setHudHeight(); resize(); draw(); }, 250);
+    setTimeout(()=>{ setTopbarHeight(); setHudHeight(); resize(); draw(); }, 1000);
     resize(); updateHUD(); requestAnimationFrame(loop);
   </script>
 </body>

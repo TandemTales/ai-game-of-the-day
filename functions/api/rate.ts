@@ -6,7 +6,14 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
       return new Response("Database not configured", { status: 500 });
     }
 
-    const { gameId, stars } = await request.json() as any;
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return new Response("Bad request", { status: 400 });
+    }
+
+    const { gameId, stars } = body as any;
     const rating = parseInt(stars, 10);
 
     if (!gameId || isNaN(rating) || rating < 1 || rating > 5) {

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <title>Aurora Tower Defense</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/png" href="images/botbuiltarcade-icon-face.png">
+  <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
   <style>
     :root {
       --gold: #FFD700;
@@ -147,7 +147,7 @@
 </head>
 <body>
   <div class="topbar">
-    <a class="back-btn" href="index.html">⟵ Back to Home</a>
+    <a class="back-btn" href="../index.html">⟵ Back to Home</a>
     <div class="title">
       Aurora Tower Defense<br>
       <span class="date-info">Created: August 10, 2025</span>
@@ -174,10 +174,10 @@
     <div class="overlay" id="enemyRef">
       <h2>Enemy Reference</h2>
       <div class="enemy-list">
-        <div class="enemy-row"><img src="images/td_enemy_bug.svg" alt="Bug"><span>Bug - Balanced scout.</span></div>
-        <div class="enemy-row"><img src="images/td_enemy_fast.svg" alt="Runner"><span>Runner - Quick but fragile.</span></div>
-        <div class="enemy-row"><img src="images/td_enemy_armored.svg" alt="Armored"><span>Armored - Slow, heavily protected.</span></div>
-        <div class="enemy-row"><img src="images/td_enemy_brute.svg" alt="Brute"><span>Brute - Titanic and tough.</span></div>
+        <div class="enemy-row"><img src="assets/td_enemy_bug.svg" alt="Bug"><span>Bug - Balanced scout.</span></div>
+        <div class="enemy-row"><img src="assets/td_enemy_fast.svg" alt="Runner"><span>Runner - Quick but fragile.</span></div>
+        <div class="enemy-row"><img src="assets/td_enemy_armored.svg" alt="Armored"><span>Armored - Slow, heavily protected.</span></div>
+        <div class="enemy-row"><img src="assets/td_enemy_brute.svg" alt="Brute"><span>Brute - Titanic and tough.</span></div>
       </div>
       <p class="tap">Tap to close</p>
     </div>
@@ -192,15 +192,15 @@
 
   <div class="toolbar" id="toolbar">
     <div class="tool selected" data-type="basic" data-cost="25">
-      <img src="images/td_tower_basic.svg" alt="basic">
+      <img src="assets/td_tower_basic.svg" alt="basic">
       <div>Basic 25</div>
     </div>
     <div class="tool" data-type="slow" data-cost="35">
-      <img src="images/td_tower_slow.svg" alt="slow">
+      <img src="assets/td_tower_slow.svg" alt="slow">
       <div>Frost 35</div>
     </div>
     <div class="tool" data-type="pierce" data-cost="50">
-      <img src="images/td_tower_pierce.svg" alt="pierce">
+      <img src="assets/td_tower_pierce.svg" alt="pierce">
       <div>Pierce 50</div>
     </div>
   </div>
@@ -245,17 +245,17 @@
 
     // Assets
     const assets = {
-      grass: 'images/td_tile_grass.svg',
-      path: 'images/td_tile_path.svg',
-      tower_basic: 'images/td_tower_basic.svg',
-      tower_slow: 'images/td_tower_slow.svg',
-      tower_pierce: 'images/td_tower_pierce.svg',
-      enemy: 'images/td_enemy_bug.svg',
-      enemy_fast: 'images/td_enemy_fast.svg',
-      enemy_armored: 'images/td_enemy_armored.svg',
-      enemy_brute: 'images/td_enemy_brute.svg',
-      bullet: 'images/td_bullet.svg',
-      portal: 'images/td_portal.svg',
+      grass: 'assets/td_tile_grass.svg',
+      path: 'assets/td_tile_path.svg',
+      tower_basic: 'assets/td_tower_basic.svg',
+      tower_slow: 'assets/td_tower_slow.svg',
+      tower_pierce: 'assets/td_tower_pierce.svg',
+      enemy: 'assets/td_enemy_bug.svg',
+      enemy_fast: 'assets/td_enemy_fast.svg',
+      enemy_armored: 'assets/td_enemy_armored.svg',
+      enemy_brute: 'assets/td_enemy_brute.svg',
+      bullet: 'assets/td_bullet.svg',
+      portal: 'assets/td_portal.svg',
     };
     const Images = {};
     function loadImg(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }); }
@@ -749,7 +749,7 @@
 
     async function maybeSubmitLeaderboard(won = false){
       const score = computeScore();
-      let dest = `leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
+      let dest = `../leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
       try {
         const res = await fetch(`/api/leaderboard/rank?gameId=${encodeURIComponent(GAME_ID)}&score=${encodeURIComponent(score)}`, {
           headers: { 'Accept': 'application/json' }

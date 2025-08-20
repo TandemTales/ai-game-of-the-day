@@ -114,6 +114,8 @@
             gap: 5px;
             width: 180px;
             height: 180px;
+            justify-items: center;
+            align-items: center;
         }
 
         .d-pad .control-btn {
@@ -122,10 +124,11 @@
             font-size: 16px;
         }
 
-        .d-pad .control-btn:nth-child(2) { grid-column: 2; grid-row: 1; }
-        .d-pad .control-btn:nth-child(3) { grid-column: 1; grid-row: 2; }
-        .d-pad .control-btn:nth-child(4) { grid-column: 3; grid-row: 2; }
-        .d-pad .control-btn:nth-child(5) { grid-column: 2; grid-row: 3; }
+        /* Arrange 4 buttons in a cross: Up, Left, Right, Down */
+        .d-pad .control-btn:nth-child(1) { grid-column: 2; grid-row: 1; }
+        .d-pad .control-btn:nth-child(2) { grid-column: 1; grid-row: 2; }
+        .d-pad .control-btn:nth-child(3) { grid-column: 3; grid-row: 2; }
+        .d-pad .control-btn:nth-child(4) { grid-column: 2; grid-row: 3; }
 
         .back-btn {
             position: absolute;
@@ -263,13 +266,17 @@
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
+        // Global scale for all in-world sprites/effects (not background or UI)
+        const SCALE = 3;
+        const PARTICLE_SIZE = 3 * SCALE;
+
         // Game state
         let gameState = {
             player: {
                 x: canvas.width / 2,
                 y: 100,
-                width: 32,
-                height: 32,
+                width: 32 * SCALE,
+                height: 32 * SCALE,
                 speed: 3,
                 oxygen: 100,
                 maxOxygen: 100
@@ -300,6 +307,8 @@
             artifact: { color: '#FF8C00', width: 20, height: 28 },
             coral: { color: '#FF7F50', width: 32, height: 48 }
         };
+
+        // SCALE is defined above
 
         // Asset loading
         const ASSET_PATH = 'assets/';
@@ -336,8 +345,8 @@
                         type: 'treasure',
                         x: Math.random() * (canvas.width * 3),
                         y: depth,
-                        width: 24,
-                        height: 24,
+                        width: 24 * SCALE,
+                        height: 24 * SCALE,
                         value: 100
                     });
                 }
@@ -348,8 +357,8 @@
                         type: 'coin',
                         x: Math.random() * (canvas.width * 3),
                         y: depth,
-                        width: 12,
-                        height: 12,
+                        width: 12 * SCALE,
+                        height: 12 * SCALE,
                         value: 25
                     });
                 }
@@ -361,8 +370,8 @@
                         type: enemyType,
                         x: Math.random() * (canvas.width * 3),
                         y: depth,
-                        width: sprites[enemyType].width,
-                        height: sprites[enemyType].height,
+                        width: sprites[enemyType].width * SCALE,
+                        height: sprites[enemyType].height * SCALE,
                         vx: enemyType === 'shark' ? (Math.random() - 0.5) * 2 : 0,
                         vy: enemyType === 'jellyfish' ? Math.sin(Date.now() * 0.001) * 0.5 : 0
                     });
@@ -374,8 +383,8 @@
                         type: 'oxygen',
                         x: Math.random() * (canvas.width * 3),
                         y: depth,
-                        width: 16,
-                        height: 24,
+                        width: 16 * SCALE,
+                        height: 24 * SCALE,
                         value: 30
                     });
                 }
@@ -386,8 +395,8 @@
                         type: 'artifact',
                         x: Math.random() * (canvas.width * 3),
                         y: depth,
-                        width: 20,
-                        height: 28,
+                        width: 20 * SCALE,
+                        height: 28 * SCALE,
                         value: 500
                     });
                 }
@@ -398,8 +407,8 @@
                         type: 'coral',
                         x: Math.random() * (canvas.width * 3),
                         y: depth,
-                        width: 32,
-                        height: 48,
+                        width: 32 * SCALE,
+                        height: 48 * SCALE,
                         decoration: true
                     });
                 }
@@ -653,7 +662,7 @@
                 ctx.save();
                 ctx.globalAlpha = 0.7;
                 ctx.fillStyle = '#00BFFF';
-                ctx.fillRect(playerScreenX + 8, playerScreenY + 4, 16, 16);
+                ctx.fillRect(playerScreenX + 8 * SCALE, playerScreenY + 4 * SCALE, 16 * SCALE, 16 * SCALE);
                 ctx.restore();
             }
 
@@ -665,7 +674,7 @@
                 ctx.save();
                 ctx.globalAlpha = particle.life / 30;
                 ctx.fillStyle = particle.color;
-                ctx.fillRect(screenX, screenY, 3, 3);
+                ctx.fillRect(screenX, screenY, PARTICLE_SIZE, PARTICLE_SIZE);
                 ctx.restore();
             });
 
@@ -699,8 +708,8 @@
                 player: {
                     x: canvas.width / 2,
                     y: 100,
-                    width: 32,
-                    height: 32,
+                    width: 32 * SCALE,
+                    height: 32 * SCALE,
                     speed: 3,
                     oxygen: 100,
                     maxOxygen: 100

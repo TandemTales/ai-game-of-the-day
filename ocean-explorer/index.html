@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ocean Explorer: Treasure Hunt</title>
+    <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
     <style>
         * {
             margin: 0;
@@ -228,7 +229,7 @@
                 </div>
             </div>
             
-            <a href="index.html" class="back-btn">← Back to Home</a>
+            <a href="../index.html" class="back-btn">← Back to Home</a>
             
             <div class="controls">
                 <div class="d-pad">
@@ -286,8 +287,8 @@
             entities: [],
             particles: []
         };
-
-        // Sprite images (we'll create simple colored rectangles for now since we can't load external images easily)
+        
+        // Sprite metadata (fallback colors and default sizes)
         const sprites = {
             player: { color: '#FFD700', width: 32, height: 32 },
             treasure: { color: '#FFD700', width: 16, height: 16 },
@@ -298,6 +299,26 @@
             oxygen: { color: '#00BFFF', width: 16, height: 24 },
             artifact: { color: '#FF8C00', width: 20, height: 28 },
             coral: { color: '#FF7F50', width: 32, height: 48 }
+        };
+
+        // Asset loading
+        const ASSET_PATH = 'assets/';
+        function loadImage(src) {
+            const img = new Image();
+            img.src = src;
+            return img;
+        }
+        const images = {
+            background: loadImage(`${ASSET_PATH}underwater_background.png`),
+            jellyfish: loadImage(`${ASSET_PATH}jellyfish_enemy.png`),
+            shark: loadImage(`${ASSET_PATH}shark_enemy.png`),
+            urchin: loadImage(`${ASSET_PATH}sea_urchin.png`),
+            oxygen: loadImage(`${ASSET_PATH}oxygen_tank.png`),
+            treasure: loadImage(`${ASSET_PATH}treasure_chest.png`),
+            coin: loadImage(`${ASSET_PATH}gold_coin.png`),
+            artifact: loadImage(`${ASSET_PATH}ancient_artifact.png`),
+            coral: loadImage(`${ASSET_PATH}coral_reef.png`),
+            player: loadImage(`${ASSET_PATH}diver_character.png`)
         };
 
         // Initialize game entities
@@ -315,8 +336,8 @@
                         type: 'treasure',
                         x: Math.random() * (canvas.width * 3),
                         y: depth,
-                        width: 16,
-                        height: 16,
+                        width: 24,
+                        height: 24,
                         value: 100
                     });
                 }
@@ -557,22 +578,32 @@
             ctx.fillStyle = '#001133';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Draw underwater gradient background
-            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            gradient.addColorStop(0, '#0066aa');
-            gradient.addColorStop(0.5, '#004477');
-            gradient.addColorStop(1, '#002244');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Draw underwater background image or gradient fallback
+            if (images.background && images.background.complete && images.background.naturalWidth > 0) {
+                ctx.drawImage(images.background, 0, 0, canvas.width, canvas.height);
+            } else {
+                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, '#0066aa');
+                gradient.addColorStop(0.5, '#004477');
+                gradient.addColorStop(1, '#002244');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
 
-            // Draw light rays from surface
-            if (gameState.camera.y < 200) {
+            // Draw light rays from surface (fallback-only)
+            // Avoid vertical columns when the photographic background image is used
+            const bgHasImg = images.background && images.background.complete && images.background.naturalWidth > 0;
+            if (!bgHasImg && gameState.camera.y < 200) {
                 ctx.save();
-                ctx.globalAlpha = 0.3;
-                ctx.fillStyle = '#87CEEB';
-                for (let i = 0; i < 5; i++) {
-                    const x = (i * canvas.width / 4) - gameState.camera.x * 0.1;
-                    ctx.fillRect(x, -gameState.camera.y, 20, canvas.height);
+                ctx.globalAlpha = 0.15; // softer effect
+                for (let i = 0; i < 4; i++) {
+                    const x = (i * canvas.width / 3) - gameState.camera.x * 0.1;
+                    const beamWidth = 12;
+                    const grad = ctx.createLinearGradient(x, -gameState.camera.y, x, canvas.height);
+                    grad.addColorStop(0, 'rgba(255,255,255,0.35)');
+                    grad.addColorStop(1, 'rgba(255,255,255,0)');
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(x, -gameState.camera.y, beamWidth, canvas.height);
                 }
                 ctx.restore();
             }
@@ -584,17 +615,23 @@
                 
                 if (screenX > -entity.width && screenX < canvas.width && 
                     screenY > -entity.height && screenY < canvas.height) {
-                    
-                    ctx.fillStyle = sprites[entity.type].color;
-                    ctx.fillRect(screenX, screenY, entity.width, entity.height);
-                    
-                    // Add some visual effects
-                    if (entity.type === 'treasure' || entity.type === 'artifact') {
-                        ctx.save();
-                        ctx.globalAlpha = 0.5;
-                        ctx.fillStyle = '#FFFF00';
-                        ctx.fillRect(screenX - 2, screenY - 2, entity.width + 4, entity.height + 4);
-                        ctx.restore();
+                    const img = images[entity.type];
+                    const hasImg = img && img.complete && img.naturalWidth > 0;
+                    if (hasImg) {
+                        ctx.drawImage(img, screenX, screenY, entity.width, entity.height);
+                    } else {
+                        // Fallback rectangle rendering
+                        ctx.fillStyle = (sprites[entity.type] && sprites[entity.type].color) ? sprites[entity.type].color : '#FFFFFF';
+                        ctx.fillRect(screenX, screenY, entity.width, entity.height);
+
+                        // Fallback-only glow for treasure/artifact (avoid square overlay when using images)
+                        if (entity.type === 'treasure' || entity.type === 'artifact') {
+                            ctx.save();
+                            ctx.globalAlpha = 0.4;
+                            ctx.fillStyle = '#FFFF00';
+                            ctx.fillRect(screenX - 2, screenY - 2, entity.width + 4, entity.height + 4);
+                            ctx.restore();
+                        }
                     }
                 }
             });
@@ -603,15 +640,22 @@
             const playerScreenX = gameState.player.x - gameState.camera.x;
             const playerScreenY = gameState.player.y - gameState.camera.y;
             
-            ctx.fillStyle = sprites.player.color;
-            ctx.fillRect(playerScreenX, playerScreenY, gameState.player.width, gameState.player.height);
-            
-            // Player helmet effect
-            ctx.save();
-            ctx.globalAlpha = 0.7;
-            ctx.fillStyle = '#00BFFF';
-            ctx.fillRect(playerScreenX + 8, playerScreenY + 4, 16, 16);
-            ctx.restore();
+            const pImg = images.player;
+            const playerHasImg = pImg && pImg.complete && pImg.naturalWidth > 0;
+            if (playerHasImg) {
+                ctx.drawImage(pImg, playerScreenX, playerScreenY, gameState.player.width, gameState.player.height);
+            } else {
+                // Fallback rectangle for player
+                ctx.fillStyle = sprites.player.color;
+                ctx.fillRect(playerScreenX, playerScreenY, gameState.player.width, gameState.player.height);
+
+                // Fallback-only helmet effect (avoid blue square when image is present)
+                ctx.save();
+                ctx.globalAlpha = 0.7;
+                ctx.fillStyle = '#00BFFF';
+                ctx.fillRect(playerScreenX + 8, playerScreenY + 4, 16, 16);
+                ctx.restore();
+            }
 
             // Draw particles
             gameState.particles.forEach(particle => {
@@ -692,4 +736,3 @@
     </script>
 </body>
 </html>
-

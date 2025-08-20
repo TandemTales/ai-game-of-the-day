@@ -227,13 +227,28 @@
 			color: #FFD700;
 			text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
 		}
+
+        /* Small tagline for company and AI note */
+        .tagline {
+            margin-top: -10px;
+            color: #5F9EA0;
+            font-size: 12px;
+        }
 	</style>
 </head>
 <body>
 	<div id="container">
 		<div class="header-logo">
-			<img src="images/botbuiltarcade-icon-face.png" alt="BotBuilt Arcade Robot">
+			<img src="images/botbuiltarcade-icon-face.png" alt="Bot Built Arcade Robot">
 			<h1>Bot Built Arcade</h1>
+		</div>
+
+        <div class="tagline">By Tandem Tales LLC</div>
+
+		<div class="nav-links">
+			<a href="about.html" class="leaderboard-btn">About Us</a>
+			<a href="contact.html" class="leaderboard-btn">Contact Us</a>
+			<a href="privacy.html" class="leaderboard-btn">Privacy</a>
 		</div>
 
 		<p class="feedback">Have a bug or suggestion? Post your bugs, feedback, and suggestions for improvement on the <a href="https://www.reddit.com/r/BotBuiltArcade/" target="_blank">r/BotBuiltArcade</a> subreddit.</p>
@@ -490,21 +505,25 @@
                async function loadRating(gameId, stars, scoreElement) {
                        try {
                                if (!gameId) return;
+                               // Fetch aggregate stats
                                const response = await fetch(`/api/ratings/${encodeURIComponent(gameId)}`);
-                               if (response.ok) {
-                                       const data = await response.json();
-                                       // Update score text using API fields: average, votes, mine
-                                       if (scoreElement) {
-                                               scoreElement.textContent = `${data.average} ★ from ${data.votes} votes` + (data.mine ? ` - You rated ${data.mine}` : '');
-                                       }
-                                       // Reflect user's rating if available
-                                       if (data && typeof data.mine === 'number') {
-                                               stars.forEach(span => {
-                                                       const val = parseInt(span.getAttribute('data-star'));
-                                                       span.classList.toggle('selected', val <= data.mine);
-                                               });
-                                       }
+                               const data = response.ok ? await response.json() : null;
+
+                               // Read user's own rating from localStorage
+                               const key = `rating:${gameId}`;
+                               const mine = parseInt(localStorage.getItem(key) || '');
+                               const hasMine = Number.isInteger(mine) && mine >= 1 && mine <= 5;
+
+                               // Update score display
+                               if (scoreElement && data) {
+                                       scoreElement.textContent = `${data.average} ★ from ${data.votes} votes` + (hasMine ? ` - You rated ${mine}` : '');
                                }
+
+                               // Reflect user's rating locally
+                               stars.forEach(span => {
+                                       const val = parseInt(span.getAttribute('data-star'));
+                                       span.classList.toggle('selected', hasMine && val <= mine);
+                               });
                        } catch (error) {
                                console.log('Rating system not available');
                        }
@@ -531,7 +550,8 @@
                                                span.classList.toggle('selected', val <= rating);
                                        });
 
-                                       // Reload rating display
+                                       // Persist user's rating locally and reload display
+                                       try { localStorage.setItem(`rating:${gameId}`, String(rating)); } catch {}
                                        loadRating(gameId, stars, scoreElement);
                                } else {
                                        const errorText = await response.text().catch(() => '');
@@ -544,4 +564,3 @@
        </script>
 </body>
 </html>
-

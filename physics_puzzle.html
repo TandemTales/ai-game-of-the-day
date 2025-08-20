@@ -590,16 +590,26 @@ document.querySelectorAll('#rate span').forEach(el =>
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ gameId, stars: parseInt(el.dataset.star) })
     });
+    // Persist user's selection locally for display
+    try { localStorage.setItem(`rating:${gameId}`, String(parseInt(el.dataset.star))); } catch {}
     load();
   });
 
 async function load() {
-  const r = await fetch(`/api/ratings/${gameId}`).then(r => r.json());
-  document.getElementById('score').textContent =
-    `${r.average} ★ from ${r.votes} votes` + (r.mine ? ` - You rated ${r.mine}` : '');
-  document.querySelectorAll('#rate span').forEach(span => {
-    span.classList.toggle('selected', r.mine && +span.dataset.star <= r.mine);
-  });
+  try {
+    const r = await fetch(`/api/ratings/${gameId}`).then(r => r.json());
+    let mine = null;
+    try { const v = localStorage.getItem(`rating:${gameId}`); mine = v ? parseInt(v) : null; } catch {}
+    const hasMine = Number.isInteger(mine) && mine >= 1 && mine <= 5;
+    document.getElementById('score').textContent =
+      `${r.average} ★ from ${r.votes} votes` + (hasMine ? ` - You rated ${mine}` : '');
+    document.querySelectorAll('#rate span').forEach(span => {
+      const val = parseInt(span.dataset.star);
+      span.classList.toggle('selected', hasMine && val <= mine);
+    });
+  } catch (e) {
+    // ignore display errors
+  }
 }
 load();
 </script>

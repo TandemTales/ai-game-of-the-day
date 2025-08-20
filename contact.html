@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact — Bot Built Arcade</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="images/botbuiltarcade-icon-face.png">
+  <style>
+    :root {
+      --gold: #FFD700;
+      --teal: #5F9EA0;
+      --bg1: #D2691E;
+      --bg2: #FF6347;
+      --bg3: #FF4500;
+      --ink: #F5F5DC;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 50%, var(--bg3) 100%);
+      font-family: 'Press Start 2P', cursive;
+      line-height: 1.5;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      color: var(--ink);
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url('images/botbuiltarcade-icon-face.png');
+      background-size: 200px 200px;
+      background-repeat: no-repeat;
+      background-position: top right;
+      opacity: 0.1;
+      z-index: -1;
+      pointer-events: none;
+    }
+    .container {
+      width: min(960px, 95vw);
+      background: rgba(0,0,0,0.85);
+      border: 4px solid var(--gold);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 0 40px rgba(255, 215, 0, 0.6);
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .brand { display: flex; align-items: center; gap: 16px; }
+    header img {
+      width: 56px; height: 56px; border-radius: 50%; border: 3px solid var(--gold);
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    }
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      background: linear-gradient(45deg, var(--gold), #FFA500);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .titles { display:flex; flex-direction:column; }
+    .subtitle { margin-top: 2px; font-size: 12px; color: var(--teal); }
+    .btn {
+      display: inline-block;
+      text-decoration: none;
+      color: #fff;
+      border: 2px solid var(--gold);
+      background: linear-gradient(45deg, var(--teal), #4682B4);
+      padding: 10px 14px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(95,158,160,0.4);
+      font-size: 10px;
+      white-space: nowrap;
+    }
+    .btn:hover { filter: brightness(1.05); }
+    .btn-group { display:flex; gap:8px; flex-wrap: wrap; }
+
+    main h2 { font-size: 16px; color: var(--gold); margin: 16px 0 8px; }
+    p { margin: 10px 0; }
+    a { color: var(--gold); text-decoration: none; }
+    a:hover { color: #FFA500; }
+
+    .section { background: rgba(255, 215, 0, 0.05); border: 1px solid rgba(255, 215, 0, 0.2); border-radius: 10px; padding: 14px; margin: 12px 0; }
+
+    form { display: grid; gap: 10px; margin-top: 8px; }
+    label { font-size: 12px; color: var(--teal); }
+    input, textarea {
+      font-family: inherit;
+      font-size: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 2px solid var(--gold);
+      background: rgba(255,255,255,0.06);
+      color: var(--ink);
+    }
+    textarea { min-height: 120px; resize: vertical; }
+    button[type="submit"] {
+      font-family: inherit;
+      font-size: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 2px solid var(--gold);
+      background: linear-gradient(45deg, var(--teal), #4682B4);
+      color: #fff;
+      cursor: pointer;
+      justify-self: start;
+    }
+    .hint { font-size: 10px; color: var(--teal); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <img src="images/botbuiltarcade-icon-face.png" alt="Bot Built Arcade">
+        <div class="titles">
+          <h1>Contact Us</h1>
+          <div class="subtitle">By Tandem Tales LLC</div>
+        </div>
+      </div>
+      <div class="btn-group">
+        <a class="btn" href="index.html">Main Menu</a>
+        <a class="btn" href="about.html">About</a>
+        <a class="btn" href="privacy.html">Privacy</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="section">
+        <h2>Quick Links</h2>
+        <p>• Community: <a href="https://www.reddit.com/r/BotBuiltArcade/" target="_blank" rel="noopener">r/BotBuiltArcade</a></p>
+        <p>• Email: <a id="emailLink" href="mailto:tandemtalesgames@gmail.com">tandemtalesgames@gmail.com</a></p>
+      </section>
+
+      <section class="section">
+        <h2>Send a Message</h2>
+        <form id="contactForm">
+          <div>
+            <label for="name">Name</label>
+            <input id="name" name="name" type="text" placeholder="Your name" />
+          </div>
+          <div>
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" placeholder="you@example.com" />
+          </div>
+          <div>
+            <label for="message">Message</label>
+            <textarea id="message" name="message" placeholder="How can we help?"></textarea>
+          </div>
+          <button type="submit">Send via Email</button>
+          <div class="hint">This opens your email client and does not store your data on our servers.</div>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Update this to your preferred contact email.
+    const CONTACT_EMAIL = 'tandemtalesgames@gmail.com';
+
+    const emailLink = document.getElementById('emailLink');
+    emailLink.textContent = CONTACT_EMAIL;
+    emailLink.href = 'mailto:' + CONTACT_EMAIL;
+
+    document.getElementById('contactForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const name = (document.getElementById('name').value || '').trim();
+      const from = (document.getElementById('email').value || '').trim();
+      const msg = (document.getElementById('message').value || '').trim();
+
+      const subject = encodeURIComponent(`Contact from ${name || 'Arcade Visitor'}`);
+      const body = encodeURIComponent(`From: ${name || 'Anonymous'} <${from || 'no-email-provided'}>\n\n${msg}`);
+      window.location.href = `mailto:${CONTACT_EMAIL}?subject=${subject}&body=${body}`;
+    });
+  </script>
+</body>
+</html>

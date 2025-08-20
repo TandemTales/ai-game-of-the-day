@@ -6,6 +6,18 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
       return new Response("Database not configured", { status: 500 });
     }
 
+    // Ensure ratings table exists without IP column
+    await env.DB
+      .prepare(
+        `CREATE TABLE IF NOT EXISTS ratings (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          game_id TEXT NOT NULL,
+          stars INTEGER NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+        )`
+      )
+      .run();
+
     const { gameId, stars } = await request.json() as any;
     const rating = parseInt(stars, 10);
 
@@ -13,19 +25,11 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
       return new Response("Bad request", { status: 400 });
     }
 
-    const ip = request.headers.get("CF-Connecting-IP") ?? "0.0.0.0";
-
-    // First, delete any existing rating from this IP for this game
+    // Insert the new rating (no IP stored)
     try {
-      await env.DB
-        .prepare("DELETE FROM ratings WHERE game_id = ? AND ip = ?")
-        .bind(gameId, ip)
-        .run();
-
-      // Then insert the new rating
       const insertResult = await env.DB
-        .prepare("INSERT INTO ratings (game_id, stars, ip) VALUES (?, ?, ?)")
-        .bind(gameId, rating, ip)
+        .prepare("INSERT INTO ratings (game_id, stars) VALUES (?, ?)")
+        .bind(gameId, rating)
         .run();
 
       if (!insertResult.success) {

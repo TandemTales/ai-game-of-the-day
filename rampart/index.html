@@ -303,7 +303,10 @@
     function occupied(gx, gy){
       if (inKeep(gx,gy)) return true;
       for (const w of walls) if (w.gx===gx && w.gy===gy) return true;
-      for (const c of cannons) if (c.gx===gx && c.gy===gy) return true;
+      // Cannons occupy a 2x2 area with (gx,gy) as top-left
+      for (const c of cannons) {
+        if (gx>=c.gx && gx<c.gx+2 && gy>=c.gy && gy<c.gy+2) return true;
+      }
       return false;
     }
 
@@ -324,6 +327,20 @@
       return true;
     }
 
+    function canPlaceCannon(gx, gy){
+      const cost = 6;
+      if (state.bricks < cost) return false;
+      // Ensure 2x2 footprint is within bounds
+      if (gx<0 || gy<0 || gx+1>=COLS || gy+1>=ROWS) return false;
+      // Check all 4 cells for occupancy (includes keep overlap)
+      for (let dx=0; dx<2; dx++){
+        for (let dy=0; dy<2; dy++){
+          if (occupied(gx+dx, gy+dy)) return false;
+        }
+      }
+      return true;
+    }
+
     function placeWall(gx, gy){
       if(!currentPiece) return false;
       if(!canPlacePiece(gx, gy, currentPiece)) return false;
@@ -337,9 +354,8 @@
     }
 
     function placeCannon(gx, gy){
-      if (gx<0||gy<0||gx>=COLS||gy>=ROWS) return false;
-      if (occupied(gx,gy)) return false;
-      const cost = 6; if (state.bricks < cost) return false;
+      const cost = 6;
+      if (!canPlaceCannon(gx, gy)) return false;
       state.bricks -= cost; cannons.push({ gx, gy, cd: 0, enclosed: false });
       return true;
     }
@@ -383,9 +399,17 @@
         }
       }
       enclosedMask = enclosed;
-      // mark cannons
+      // mark cannons: require their full 2x2 footprint to be enclosed
       for(const c of cannons){
-        c.enclosed = !!(enclosedMask && c.gy>=0 && c.gy<ROWS && c.gx>=0 && c.gx<COLS && enclosedMask[c.gy][c.gx]);
+        let ok = true;
+        for(let dy=0; dy<2; dy++){
+          for(let dx=0; dx<2; dx++){
+            const yy = c.gy+dy, xx = c.gx+dx;
+            if(yy<0||yy>=ROWS||xx<0||xx>=COLS || !enclosedMask[yy][xx]){ ok=false; break; }
+          }
+          if(!ok) break;
+        }
+        c.enclosed = ok;
       }
     }
 
@@ -497,20 +521,28 @@
     }
 
     function drawWalls(){ for(const w of walls){ ctx.drawImage(Images.wall, w.gx*tile, w.gy*tile, tile, tile); } }
-    function drawCannons(){ for(const c of cannons){ ctx.drawImage(Images.cannon, c.gx*tile, c.gy*tile, tile, tile); } }
+    function drawCannons(){ for(const c of cannons){ ctx.drawImage(Images.cannon, c.gx*tile, c.gy*tile, tile*2, tile*2); } }
     function drawShips(){ for(const s of ships){ const size = tile*1.4; ctx.drawImage(Images.ship, s.x - size/2, s.y - size/2, size, size*0.67); } }
     function drawBullets(){ for(const b of bullets){ const s = tile*0.35; ctx.drawImage(Images.ball, b.x - s/2, b.y - s/2, s, s); } }
 
     function drawPreview(){
-      if(state.phase!=='build' || selectedTool!=='wall' || !hoverCell || !currentPiece) return;
-      const valid = canPlacePiece(hoverCell.gx, hoverCell.gy, currentPiece);
-      ctx.globalAlpha = valid ? 0.7 : 0.3;
-      for(const [dx,dy] of currentPiece){
-        const x = (hoverCell.gx+dx)*tile;
-        const y = (hoverCell.gy+dy)*tile;
-        ctx.drawImage(Images.wall, x, y, tile, tile);
+      if(state.phase!=='build' || !hoverCell) return;
+      if(selectedTool==='wall'){
+        if(!currentPiece) return;
+        const valid = canPlacePiece(hoverCell.gx, hoverCell.gy, currentPiece);
+        ctx.globalAlpha = valid ? 0.7 : 0.3;
+        for(const [dx,dy] of currentPiece){
+          const x = (hoverCell.gx+dx)*tile;
+          const y = (hoverCell.gy+dy)*tile;
+          ctx.drawImage(Images.wall, x, y, tile, tile);
+        }
+        ctx.globalAlpha = 1;
+      } else if(selectedTool==='cannon'){
+        const valid = canPlaceCannon(hoverCell.gx, hoverCell.gy);
+        ctx.globalAlpha = valid ? 0.7 : 0.3;
+        ctx.drawImage(Images.cannon, hoverCell.gx*tile, hoverCell.gy*tile, tile*2, tile*2);
+        ctx.globalAlpha = 1;
       }
-      ctx.globalAlpha = 1;
     }
 
     function draw(){
@@ -571,8 +603,8 @@
         if(c.cd>0 || ships.length===0) continue;
         // Only cannons inside enclosed regions may fire
         if(!c.enclosed) continue;
-        // target nearest ship
-        const px = c.gx*tile + tile/2, py = c.gy*tile + tile/2;
+        // target nearest ship; cannon center is middle of its 2x2 footprint
+        const px = c.gx*tile + tile, py = c.gy*tile + tile;
         let best=null, bestD=1e9; for(const s of ships){ const d = Math.hypot(s.x-px, s.y-py); if(d<bestD){ best=s; bestD=d; } }
         if(best && bestD < tile*8){ const dx=best.x-px, dy=best.y-py; const L=Math.hypot(dx,dy)||1; bullets.push({ x:px, y:py, vx:dx/L, vy:dy/L, spd: 260, dmg: 34, owner:'cannon' }); c.cd = 0.6; }
       }

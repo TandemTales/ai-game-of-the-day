@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Neon Brick Breaker - Bot Built Arcade</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/png" href="images/botbuiltarcade-icon-face.png">
+  <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
   <style>
     :root {
       --gold: #FFD700;
@@ -137,13 +137,13 @@
     <div class="panel">
       <header>
         <div class="title">
-          <img src="images/botbuiltarcade-icon-face.png" alt="BotBuilt" width="36" height="36" style="border-radius:50%; border:2px solid var(--gold)"> 
+          <img src="../images/botbuiltarcade-icon-face.png" alt="BotBuilt" width="36" height="36" style="border-radius:50%; border:2px solid var(--gold)"> 
           <div>
             <h1>Neon Brick Breaker</h1>
             <div class="meta">Created: August 10, 2025</div>
           </div>
         </div>
-        <a class="btn" href="index.html">⟵ Back to Home</a>
+        <a class="btn" href="../index.html">⟵ Back to Home</a>
       </header>
 
       <div class="hud">
@@ -170,10 +170,10 @@
     const ctx = canvas.getContext('2d');
 
     // Assets
-    const imgPaddle = new Image(); imgPaddle.src = 'images/neon_paddle.svg';
-    const imgBall = new Image();   imgBall.src   = 'images/neon_ball.svg';
-    const imgBrick1 = new Image(); imgBrick1.src = 'images/neon_brick_blue.svg';
-    const imgBrick2 = new Image(); imgBrick2.src = 'images/neon_brick_pink.svg';
+    const imgPaddle = new Image(); imgPaddle.src = 'assets/neon_paddle.svg';
+    const imgBall = new Image();   imgBall.src   = 'assets/neon_ball.svg';
+    const imgBrick1 = new Image(); imgBrick1.src = 'assets/neon_brick_blue.svg';
+    const imgBrick2 = new Image(); imgBrick2.src = 'assets/neon_brick_pink.svg';
 
     let assetsLoaded = 0;
     const needed = 4;
@@ -393,7 +393,7 @@
     }
 
     async function maybeSubmitLeaderboard() {
-      let dest = `leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
+      let dest = `../leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
       try {
         const res = await fetch(`/api/leaderboard/rank?gameId=${encodeURIComponent(GAME_ID)}&score=${encodeURIComponent(score)}`, {
           headers: { 'Accept': 'application/json' }

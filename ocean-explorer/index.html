@@ -270,10 +270,15 @@
         const SCALE = 3;
         const PARTICLE_SIZE = 3 * SCALE;
 
+        // Game boundaries - straight vertical lines
+        const WORLD_WIDTH = canvas.width * 2; // Reduced from 3x to 2x for tighter gameplay
+        const BOUNDARY_LEFT = canvas.width * 0.25; // Left boundary at 25% of canvas width
+        const BOUNDARY_RIGHT = WORLD_WIDTH - canvas.width * 0.25; // Right boundary
+
         // Game state
         let gameState = {
             player: {
-                x: canvas.width / 2,
+                x: WORLD_WIDTH / 2, // Start in center of playable area
                 y: 100,
                 width: 32 * SCALE,
                 height: 32 * SCALE,
@@ -335,7 +340,8 @@
             gameState.entities = [];
             gameState.particles = [];
             
-            // Generate treasures, enemies, and power-ups
+            // Generate treasures, enemies, and power-ups within playable boundaries
+            const playableWidth = BOUNDARY_RIGHT - BOUNDARY_LEFT;
             for (let i = 0; i < 50; i++) {
                 const depth = Math.random() * 2000 + 200;
                 
@@ -343,7 +349,7 @@
                 if (Math.random() < 0.3) {
                     gameState.entities.push({
                         type: 'treasure',
-                        x: Math.random() * (canvas.width * 3),
+                        x: BOUNDARY_LEFT + Math.random() * (playableWidth - 24 * SCALE),
                         y: depth,
                         width: 24 * SCALE,
                         height: 24 * SCALE,
@@ -355,7 +361,7 @@
                 if (Math.random() < 0.5) {
                     gameState.entities.push({
                         type: 'coin',
-                        x: Math.random() * (canvas.width * 3),
+                        x: BOUNDARY_LEFT + Math.random() * (playableWidth - 12 * SCALE),
                         y: depth,
                         width: 12 * SCALE,
                         height: 12 * SCALE,
@@ -366,11 +372,12 @@
                 // Enemies
                 if (Math.random() < 0.2 && depth > 300) {
                     const enemyType = Math.random() < 0.5 ? 'jellyfish' : (Math.random() < 0.7 ? 'urchin' : 'shark');
+                    const enemyWidth = sprites[enemyType].width * SCALE;
                     gameState.entities.push({
                         type: enemyType,
-                        x: Math.random() * (canvas.width * 3),
+                        x: BOUNDARY_LEFT + Math.random() * (playableWidth - enemyWidth),
                         y: depth,
-                        width: sprites[enemyType].width * SCALE,
+                        width: enemyWidth,
                         height: sprites[enemyType].height * SCALE,
                         vx: enemyType === 'shark' ? (Math.random() - 0.5) * 2 : 0,
                         vy: enemyType === 'jellyfish' ? Math.sin(Date.now() * 0.001) * 0.5 : 0
@@ -381,7 +388,7 @@
                 if (Math.random() < 0.1 && depth > 150) {
                     gameState.entities.push({
                         type: 'oxygen',
-                        x: Math.random() * (canvas.width * 3),
+                        x: BOUNDARY_LEFT + Math.random() * (playableWidth - 16 * SCALE),
                         y: depth,
                         width: 16 * SCALE,
                         height: 24 * SCALE,
@@ -393,7 +400,7 @@
                 if (Math.random() < 0.05 && depth > 500) {
                     gameState.entities.push({
                         type: 'artifact',
-                        x: Math.random() * (canvas.width * 3),
+                        x: BOUNDARY_LEFT + Math.random() * (playableWidth - 20 * SCALE),
                         y: depth,
                         width: 20 * SCALE,
                         height: 28 * SCALE,
@@ -405,7 +412,7 @@
                 if (Math.random() < 0.3) {
                     gameState.entities.push({
                         type: 'coral',
-                        x: Math.random() * (canvas.width * 3),
+                        x: BOUNDARY_LEFT + Math.random() * (playableWidth - 32 * SCALE),
                         y: depth,
                         width: 32 * SCALE,
                         height: 48 * SCALE,
@@ -473,8 +480,8 @@
                 player.y += player.speed;
             }
 
-            // Boundary constraints
-            player.x = Math.max(0, Math.min(canvas.width * 3 - player.width, player.x));
+            // Straight vertical boundary constraints
+            player.x = Math.max(BOUNDARY_LEFT, Math.min(BOUNDARY_RIGHT - player.width, player.x));
             player.y = Math.max(50, player.y);
 
             // Update camera to follow player
@@ -502,10 +509,10 @@
 
             // Update entities
             gameState.entities.forEach((entity, index) => {
-                // Move enemies
+                // Move enemies within boundaries
                 if (entity.type === 'shark') {
                     entity.x += entity.vx;
-                    if (entity.x < 0 || entity.x > canvas.width * 3) {
+                    if (entity.x < BOUNDARY_LEFT || entity.x > BOUNDARY_RIGHT - entity.width) {
                         entity.vx *= -1;
                     }
                 } else if (entity.type === 'jellyfish') {
@@ -678,6 +685,32 @@
                 ctx.restore();
             });
 
+            // Draw boundary walls
+            const leftBoundaryX = BOUNDARY_LEFT - gameState.camera.x;
+            const rightBoundaryX = BOUNDARY_RIGHT - gameState.camera.x;
+            
+            if (leftBoundaryX > -10 && leftBoundaryX < canvas.width + 10) {
+                ctx.fillStyle = '#444444';
+                ctx.fillRect(leftBoundaryX - 5, 0, 10, canvas.height);
+                
+                // Add warning stripes
+                ctx.fillStyle = '#FFFF00';
+                for (let y = 0; y < canvas.height; y += 40) {
+                    ctx.fillRect(leftBoundaryX - 3, y, 6, 20);
+                }
+            }
+            
+            if (rightBoundaryX > -10 && rightBoundaryX < canvas.width + 10) {
+                ctx.fillStyle = '#444444';
+                ctx.fillRect(rightBoundaryX - 5, 0, 10, canvas.height);
+                
+                // Add warning stripes
+                ctx.fillStyle = '#FFFF00';
+                for (let y = 0; y < canvas.height; y += 40) {
+                    ctx.fillRect(rightBoundaryX - 3, y, 6, 20);
+                }
+            }
+
             // Draw surface
             if (gameState.camera.y < 100) {
                 ctx.fillStyle = '#87CEEB';
@@ -706,7 +739,7 @@
         function restartGame() {
             gameState = {
                 player: {
-                    x: canvas.width / 2,
+                    x: WORLD_WIDTH / 2, // Start in center of playable area
                     y: 100,
                     width: 32 * SCALE,
                     height: 32 * SCALE,

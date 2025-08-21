@@ -190,9 +190,12 @@
     };
 
     const walls = []; // {gx, gy, hp}
-    const cannons = []; // {gx, gy, cd}
+    const cannons = []; // {gx, gy, cd, enclosed?}
     const ships = []; // {x,y,vx,vy,spd,hp,maxHp,cd}
     const bullets = []; // {x,y,vx,vy,spd,dmg,owner}
+
+    // Enclosed area mask (computed at end of build phase)
+    let enclosedMask = null; // Array[ROWS][COLS] of booleans
 
     // Polyomino pieces for wall placement (1-4 bricks)
     const PIECES = [
@@ -241,7 +244,8 @@
       drawNextPreview();
     }
 
-    const BUILD_TIME = 18; // seconds per build phase
+    const BUILD_TIME = 18; // seconds per build phase (waves 2+)
+    const FIRST_BUILD_TIME = 24; // slightly longer first build phase
     const MAX_WAVES = 6;
 
     const KEEP_SIZE = 3; // 3x3 center keep
@@ -334,8 +338,68 @@
       if (gx<0||gy<0||gx>=COLS||gy>=ROWS) return false;
       if (occupied(gx,gy)) return false;
       const cost = 6; if (state.bricks < cost) return false;
-      state.bricks -= cost; cannons.push({ gx, gy, cd: 0 });
+      state.bricks -= cost; cannons.push({ gx, gy, cd: 0, enclosed: false });
       return true;
+    }
+
+    // Compute enclosed cells via flood fill from the map edges, treating ONLY walls as blockers
+    function computeEnclosedMask(){
+      // Initialize grids
+      const blocked = Array.from({length: ROWS}, ()=>Array(COLS).fill(false));
+      const reachable = Array.from({length: ROWS}, ()=>Array(COLS).fill(false));
+      // Walls block
+      for(const w of walls){ if(w.gx>=0 && w.gx<COLS && w.gy>=0 && w.gy<ROWS){ blocked[w.gy][w.gx] = true; } }
+      // Keep and cannons do NOT block; they are treated as empty spaces for flood fill
+      // Multi-source BFS from edges for non-blocked tiles
+      const q = [];
+      for(let x=0; x<COLS; x++){
+        if(!blocked[0][x]){ reachable[0][x]=true; q.push([x,0]); }
+        if(!blocked[ROWS-1][x]){ reachable[ROWS-1][x]=true; q.push([x,ROWS-1]); }
+      }
+      for(let y=0; y<ROWS; y++){
+        if(!blocked[y][0]){ reachable[y][0]=true; q.push([0,y]); }
+        if(!blocked[y][COLS-1]){ reachable[y][COLS-1]=true; q.push([COLS-1,y]); }
+      }
+      while(q.length){
+        const [x,y] = q.shift();
+        // 8-directional connectivity so diagonal gaps leak (not enclosed)
+        const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+        for(const [dx,dy] of dirs){
+          const nx=x+dx, ny=y+dy;
+          if(nx<0||ny<0||nx>=COLS||ny>=ROWS) continue;
+          if(blocked[ny][nx] || reachable[ny][nx]) continue;
+          reachable[ny][nx] = true;
+          q.push([nx,ny]);
+        }
+      }
+      const enclosed = Array.from({length: ROWS}, ()=>Array(COLS).fill(false));
+      for(let y=0; y<ROWS; y++){
+        for(let x=0; x<COLS; x++){
+          if(blocked[y][x]) continue; // walls not colored
+          if(inKeep(x,y)) continue; // keep tiles not tinted
+          if(!reachable[y][x]) enclosed[y][x] = true;
+        }
+      }
+      enclosedMask = enclosed;
+      // mark cannons
+      for(const c of cannons){
+        c.enclosed = !!(enclosedMask && c.gy>=0 && c.gy<ROWS && c.gx>=0 && c.gx<COLS && enclosedMask[c.gy][c.gx]);
+      }
+    }
+
+    function drawEnclosedOverlay(){
+      if(!enclosedMask) return;
+      ctx.save();
+      ctx.globalAlpha = 0.18;
+      ctx.fillStyle = '#FFD700'; // subtle gold tint
+      for(let y=0; y<ROWS; y++){
+        for(let x=0; x<COLS; x++){
+          if(enclosedMask[y][x]){
+            ctx.fillRect(x*tile, y*tile, tile, tile);
+          }
+        }
+      }
+      ctx.restore();
     }
 
     function updateHover(x, y){
@@ -439,6 +503,8 @@
     function draw(){
       ctx.clearRect(0,0,canvas.width, canvas.height);
       drawBackground();
+      // Highlight enclosed cells during defend phase
+      if(state.phase==='battle') drawEnclosedOverlay();
       drawWalls();
       drawCannons();
       drawShips();
@@ -490,6 +556,8 @@
       for(const c of cannons){
         c.cd = Math.max(0, c.cd - dt);
         if(c.cd>0 || ships.length===0) continue;
+        // Only cannons inside enclosed regions may fire
+        if(!c.enclosed) continue;
         // target nearest ship
         const px = c.gx*tile + tile/2, py = c.gy*tile + tile/2;
         let best=null, bestD=1e9; for(const s of ships){ const d = Math.hypot(s.x-px, s.y-py); if(d<bestD){ best=s; bestD=d; } }
@@ -542,14 +610,19 @@
       if (spawnIv) { clearInterval(spawnIv); spawnIv = null; }
       spawning=false;
       state.phase = 'build';
-      buildTimer = BUILD_TIME;
+      buildTimer = (state.wave === 1) ? FIRST_BUILD_TIME : BUILD_TIME;
       state.bricks = 30 + state.wave*6;
       initPieces();
+      // reset enclosed markers
+      enclosedMask = null;
+      for(const c of cannons){ c.enclosed = false; }
       updateHUD();
     }
     function startBattle(){
       // Begin spawning; phase flips to 'battle' (Attack) on first enemy spawn
       if (spawnIv) { clearInterval(spawnIv); spawnIv = null; }
+      // Compute which cells (and cannons) are enclosed before battle
+      computeEnclosedMask();
       spawning = true; spawnWave(); updateHUD();
     }
 

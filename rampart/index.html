@@ -182,7 +182,7 @@
     // Game state
     let running = false;
     const state = {
-      bricks: 40,
+      bricks: 45,
       keepHP: 100,
       wave: 1,
       time: 0,
@@ -205,11 +205,13 @@
       [[0,0],[1,0]],
       [[0,0],[1,0],[0,1]],
       [[0,0],[1,0],[2,0]],
-      [[0,0],[0,1],[1,0],[1,1]],
       [[0,0],[1,0],[2,0],[3,0]],
       [[0,0],[1,0],[2,0],[2,1]],
       [[0,0],[1,0],[1,1],[2,1]],
-      [[0,0],[1,0],[2,0],[1,1]]
+      [[0,0],[1,0],[2,0],[1,1]],
+      [[0,0],[0,1],[1,0],[1,1]],
+      [[0,0],[1,0],[2,0],[0,1]],
+      [[0,1],[1,1],[1,0],[2,0]]
     ];
     let currentPiece = null;
     let nextPiece = null;
@@ -539,6 +541,31 @@
     function drawShips(){ for(const s of ships){ const size = tile*1.4; ctx.drawImage(Images.ship, s.x - size/2, s.y - size/2, size, size*0.67); } }
     function drawBullets(){ for(const b of bullets){ const s = tile*0.35; ctx.drawImage(Images.ball, b.x - s/2, b.y - s/2, s, s); } }
 
+    function drawKeepHealthBar(){
+      const maxHP = 100;
+      const pct = Math.max(0, Math.min(1, state.keepHP / maxHP));
+      const barW = keepRect.w * tile;
+      const barH = Math.max(4, Math.floor(tile * 0.14));
+      const x = keepRect.x * tile;
+      // Draw just inside the keep's top row so it doesn't spill into cells above
+      let y = keepRect.y * tile + Math.floor(tile * 0.10);
+      if (y < 2) y = 2;
+      ctx.save();
+      // background
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(x, y, barW, barH);
+      // fill
+      const fillW = Math.max(0, Math.floor((barW - 2) * pct));
+      const hue = Math.floor(120 * pct); // 0=red, 120=green
+      ctx.fillStyle = `hsl(${hue}, 80%, 50%)`;
+      ctx.fillRect(x + 1, y + 1, fillW, barH - 2);
+      // border
+      ctx.strokeStyle = 'rgba(255,215,0,0.8)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x + 0.5, y + 0.5, barW - 1, barH - 1);
+      ctx.restore();
+    }
+
     function drawPreview(){
       if(state.phase!=='build' || !hoverCell) return;
       if(selectedTool==='wall'){
@@ -569,6 +596,7 @@
       drawShips();
       drawBullets();
       drawPreview();
+      drawKeepHealthBar();
     }
 
     // Battle mechanics
@@ -651,7 +679,7 @@
           for(const w of walls){ const p = gridToPx(w.gx, w.gy); if(Math.hypot(p.x-b.x, p.y-b.y) < tile*0.6){ w.hp -= b.dmg; b.dead=true; break; } }
           if(!b.dead){ // keep
             const kc = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2);
-            if(Math.hypot(kc.x-b.x, kc.y-b.y) < tile*1.2){ state.keepHP -= b.dmg; b.dead = true; if(state.keepHP<=0) gameOver('destroyed'); }
+            if(Math.hypot(kc.x-b.x, kc.y-b.y) < tile*1.2){ state.keepHP = Math.max(0, state.keepHP - b.dmg); b.dead = true; if(state.keepHP<=0) gameOver('destroyed'); }
           }
         }
       }
@@ -670,7 +698,7 @@
       spawning=false;
       state.phase = 'build';
       buildTimer = (state.wave === 1) ? FIRST_BUILD_TIME : BUILD_TIME;
-      state.bricks = 30 + state.wave*6;
+      state.bricks = (state.wave === 1) ? 45 : (30 + state.wave*6);
       initPieces();
       // reset enclosed markers
       enclosedMask = null;
@@ -747,7 +775,7 @@
       if(!Images.grass){ const entries = Object.entries(assets); for(const [k,src] of entries){ Images[k] = await loadImg(src); } }
       // Reset state for a new run
       if(spawnIv){ clearInterval(spawnIv); spawnIv=null; }
-      state.bricks = 40; state.keepHP = 100; state.wave = 1; state.kills = 0; state.placedWalls=0; walls.length=0; cannons.length=0; ships.length=0; bullets.length=0; gameOverHandled=false; buildTimer = BUILD_TIME; spawning=false; waveDoneCheck=0; selectedTool='wall';
+      state.bricks = 45; state.keepHP = 100; state.wave = 1; state.kills = 0; state.placedWalls=0; walls.length=0; cannons.length=0; ships.length=0; bullets.length=0; gameOverHandled=false; buildTimer = BUILD_TIME; spawning=false; waveDoneCheck=0; selectedTool='wall';
       startBuild(); running = true;
     }
 

@@ -100,11 +100,12 @@
 
   <div class="hud" id="hud">
     <span class="hud-item"><span class="hud-emoji" aria-hidden="true">🧱</span><span class="hud-label">Bricks</span><span id="bricks" class="hud-value">0</span></span>
-    <span class="hud-item" id="nextWrap"><span class="hud-emoji" aria-hidden="true">🔜</span><span class="hud-label">Next</span><canvas id="nextPiece" width="48" height="48" style="width:48px;height:48px;"></canvas></span>
+    <span class="hud-item" id="currentWrap"><span class="hud-emoji" aria-hidden="true">🔜</span><span class="hud-label">Current</span><canvas id="currentPreview" width="48" height="48" style="width:48px;height:48px;"></canvas></span>
     <span class="hud-item"><span class="hud-emoji" aria-hidden="true">🏰</span><span class="hud-label">Keep</span><span id="keep" class="hud-value">0</span></span>
     <span class="hud-item"><span class="hud-emoji" aria-hidden="true">🌊</span><span class="hud-label">Wave</span><span id="wave" class="hud-value">1</span></span>
     <span class="hud-item"><span class="hud-emoji" aria-hidden="true">⭐</span><span class="hud-label">Score</span><span id="score" class="hud-value">0</span></span>
     <span class="hud-item"><span class="hud-emoji" aria-hidden="true">⏱️</span><span class="hud-label">Phase</span><span id="phase" class="hud-value">Build</span></span>
+    <span class="hud-item"><span class="hud-emoji" aria-hidden="true">⌛</span><span class="hud-label">Time</span><span id="timer" class="hud-value">0:00</span></span>
   </div>
 
   <div class="game-wrap">
@@ -140,12 +141,13 @@
     const hudWave = document.getElementById('wave');
     const hudScore = document.getElementById('score');
     const hudPhase = document.getElementById('phase');
+    const hudTimer = document.getElementById('timer');
     const topbarEl = document.querySelector('.topbar');
     const root = document.documentElement;
     const toolbar = document.getElementById('toolbar');
     const hudEl = document.getElementById('hud');
-    const nextCanvas = document.getElementById('nextPiece');
-    const nextCtx = nextCanvas.getContext('2d');
+    const currentPreviewCanvas = document.getElementById('currentPreview');
+    const currentPreviewCtx = currentPreviewCanvas.getContext('2d');
     const rotateBtn = document.getElementById('rotateBtn');
     const placeBtn = document.getElementById('placeBtn');
 
@@ -222,26 +224,26 @@
       return piece;
     }
 
-    function drawNextPreview(){
-      if(!nextCtx) return;
-      nextCtx.clearRect(0,0,nextCanvas.width,nextCanvas.height);
-      if(!nextPiece || !Images.wall) return;
-      const s = nextCanvas.width/4;
-      for(const [dx,dy] of nextPiece){
-        nextCtx.drawImage(Images.wall, dx*s, dy*s, s, s);
+    function drawCurrentPreview(){
+      if(!currentPreviewCtx) return;
+      currentPreviewCtx.clearRect(0,0,currentPreviewCanvas.width,currentPreviewCanvas.height);
+      if(!currentPiece || !Images.wall) return;
+      const s = currentPreviewCanvas.width/4;
+      for(const [dx,dy] of currentPiece){
+        currentPreviewCtx.drawImage(Images.wall, dx*s, dy*s, s, s);
       }
     }
 
     function advancePiece(){
       currentPiece = nextPiece;
       nextPiece = genPiece(state.bricks);
-      drawNextPreview();
+      drawCurrentPreview();
     }
 
     function initPieces(){
       currentPiece = genPiece(state.bricks);
       nextPiece = genPiece(state.bricks);
-      drawNextPreview();
+      drawCurrentPreview();
     }
 
     const BUILD_TIME = 18; // seconds per build phase (waves 2+)
@@ -271,7 +273,7 @@
           <li><strong>Defend:</strong> Ships sail in and fire at your defenses. Cannons auto-fire at ships.</li>
         </ul>
         <p>Score points by destroying ships and surviving waves. The game ends when the keep is destroyed, or you clear all ${MAX_WAVES} waves.</p>
-        <p>Tips: Place cannons behind walls. Repair damage during the next build phase. Rotate wall pieces with <kbd>R</kbd>, space, or the rotate button. Move a piece then press <kbd>Enter</kbd> or the place button to set it. The next piece is shown in the HUD.</p>
+        <p>Tips: Place cannons behind walls. Repair damage during the next build phase. Rotate wall pieces with <kbd>R</kbd>, space, or the rotate button. Move a piece then press <kbd>Enter</kbd> or the place button to set it. The current piece is shown in the HUD.</p>
       `;
     }
 
@@ -454,7 +456,7 @@
         } else {
           if(currentPiece && currentPiece.length > state.bricks) currentPiece = null;
           if(nextPiece && nextPiece.length > state.bricks){ nextPiece = genPiece(state.bricks); }
-          drawNextPreview();
+          drawCurrentPreview();
         }
         updateHUD();
         draw();
@@ -475,6 +477,7 @@
       if(state.phase==='build' && selectedTool==='wall' && currentPiece){
         currentPiece = rotatePiece(currentPiece);
         draw();
+        drawCurrentPreview();
       }
     });
     rotateBtn.addEventListener('touchstart', (e)=>{ e.preventDefault(); rotateBtn.click(); });
@@ -486,6 +489,7 @@
         if(selectedTool==='wall' && (e.key==='r' || e.key===' ')){
           currentPiece = rotatePiece(currentPiece);
           draw();
+          drawCurrentPreview();
         }
         if(e.key==='Enter'){
           finalizePlacement();
@@ -493,12 +497,22 @@
       }
     });
 
+    function formatTime(t){
+      const sec = Math.max(0, Math.ceil(t));
+      const m = Math.floor(sec/60);
+      const s = sec % 60;
+      return `${m}:${String(s).padStart(2,'0')}`;
+    }
+
     function updateHUD(){
       hudBricks.textContent = state.bricks;
       hudKeep.textContent = state.keepHP;
       hudWave.textContent = state.wave;
       hudScore.textContent = computeScore();
       hudPhase.textContent = state.phase === 'build' ? 'Build' : 'Defend';
+      if (hudTimer) {
+        hudTimer.textContent = state.phase === 'build' ? formatTime(buildTimer) : '—';
+      }
     }
 
     function drawBackground(){

@@ -376,7 +376,7 @@
       for(let y=0; y<ROWS; y++){
         for(let x=0; x<COLS; x++){
           if(blocked[y][x]) continue; // walls not colored
-          if(inKeep(x,y)) continue; // keep tiles not tinted
+          // Keep tiles are tinted too when enclosed to show area behind the castle
           if(!reachable[y][x]) enclosed[y][x] = true;
         }
       }

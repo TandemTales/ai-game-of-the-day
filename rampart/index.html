@@ -250,6 +250,8 @@
 
     const KEEP_SIZE = 3; // 3x3 center keep
     let keepRect = { x: Math.floor(COLS/2) - 1, y: Math.floor(ROWS/2) - 1, w: KEEP_SIZE, h: KEEP_SIZE };
+    // Visual size of the keep sprite in tiles (was 2 tiles). Increase to fill more of the 3x3 area.
+    const KEEP_DRAW_TILES = 2.7;
 
     // UI selection
     let selectedTool = 'wall';
@@ -387,6 +389,16 @@
       }
     }
 
+    function isKeepEnclosed(){
+      if(!enclosedMask) return false;
+      for(let y=keepRect.y; y<keepRect.y+keepRect.h; y++){
+        for(let x=keepRect.x; x<keepRect.x+keepRect.w; x++){
+          if(!enclosedMask[y][x]) return false;
+        }
+      }
+      return true;
+    }
+
     function drawEnclosedOverlay(){
       if(!enclosedMask) return;
       ctx.save();
@@ -478,9 +490,10 @@
         }
       }
       // Keep
-      const kx = keepRect.x*tile + (keepRect.w*tile - tile*2)/2;
-      const ky = keepRect.y*tile + (keepRect.h*tile - tile*2)/2;
-      ctx.drawImage(Images.castle, kx, ky, tile*2, tile*2);
+      const keepSizePx = tile * KEEP_DRAW_TILES;
+      const kx = keepRect.x*tile + (keepRect.w*tile - keepSizePx)/2;
+      const ky = keepRect.y*tile + (keepRect.h*tile - keepSizePx)/2;
+      ctx.drawImage(Images.castle, kx, ky, keepSizePx, keepSizePx);
     }
 
     function drawWalls(){ for(const w of walls){ ctx.drawImage(Images.wall, w.gx*tile, w.gy*tile, tile, tile); } }
@@ -592,7 +605,7 @@
           for(const w of walls){ const p = gridToPx(w.gx, w.gy); if(Math.hypot(p.x-b.x, p.y-b.y) < tile*0.6){ w.hp -= b.dmg; b.dead=true; break; } }
           if(!b.dead){ // keep
             const kc = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2);
-            if(Math.hypot(kc.x-b.x, kc.y-b.y) < tile*1.2){ state.keepHP -= b.dmg; b.dead = true; if(state.keepHP<=0) gameOver(); }
+            if(Math.hypot(kc.x-b.x, kc.y-b.y) < tile*1.2){ state.keepHP -= b.dmg; b.dead = true; if(state.keepHP<=0) gameOver('destroyed'); }
           }
         }
       }
@@ -623,6 +636,8 @@
       if (spawnIv) { clearInterval(spawnIv); spawnIv = null; }
       // Compute which cells (and cannons) are enclosed before battle
       computeEnclosedMask();
+      // If the keep is not enclosed at the end of the build phase, end the game
+      if(!isKeepEnclosed()){ gameOver('not_enclosed'); return; }
       spawning = true; spawnWave(); updateHUD();
     }
 
@@ -666,7 +681,16 @@
       finally { location.href = dest; }
     }
 
-    function gameOver(){ if(!gameOverHandled){ gameOverHandled=true; running=false; overlay.querySelector('h2').textContent='Keep Destroyed'; overlay.querySelector('p').textContent='Tap to try again.'; setOverlayMode(true); overlay.classList.add('show'); maybeSubmitLeaderboard(false).catch(console.error); } }
+    function gameOver(reason = 'destroyed'){
+      if(!gameOverHandled){
+        gameOverHandled=true; running=false;
+        const title = (reason === 'not_enclosed') ? 'Keep Not Enclosed' : 'Keep Destroyed';
+        overlay.querySelector('h2').textContent = title;
+        overlay.querySelector('p').textContent = 'Tap to try again.';
+        setOverlayMode(true); overlay.classList.add('show');
+        maybeSubmitLeaderboard(false).catch(console.error);
+      }
+    }
     function victory(){ if(!gameOverHandled){ gameOverHandled=true; running=false; overlay.querySelector('h2').textContent='Bastion Holds!'; overlay.querySelector('p').textContent='All waves cleared. Tap to play again.'; setOverlayMode(true); overlay.classList.add('show'); maybeSubmitLeaderboard(true).catch(console.error); } }
 
     let last=0, dt=0;

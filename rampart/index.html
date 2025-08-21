@@ -262,7 +262,7 @@
         <p>Bastion Builder, built for touch and desktop. Each round has two phases:</p>
         <ul>
           <li><strong>Build:</strong> Spend bricks to place randomly shaped <em>wall pieces</em> (1-4) and <em>cannons</em> (6). Protect the keep.</li>
-          <li><strong>Battle:</strong> Ships sail in and fire at your defenses. Cannons auto-fire at ships.</li>
+          <li><strong>Defend:</strong> Ships sail in and fire at your defenses. Cannons auto-fire at ships.</li>
         </ul>
         <p>Score points by destroying ships and surviving waves. The game ends when the keep is destroyed, or you clear all ${MAX_WAVES} waves.</p>
         <p>Tips: Place cannons behind walls. Repair damage during the next build phase. Rotate wall pieces with <kbd>R</kbd>, space, or the rotate button. Move a piece then press <kbd>Enter</kbd> or the place button to set it. The next piece is shown in the HUD.</p>
@@ -398,7 +398,7 @@
       hudKeep.textContent = state.keepHP;
       hudWave.textContent = state.wave;
       hudScore.textContent = computeScore();
-      hudPhase.textContent = state.phase === 'build' ? 'Build' : 'Battle';
+      hudPhase.textContent = state.phase === 'build' ? 'Build' : 'Defend';
     }
 
     function drawBackground(){
@@ -452,7 +452,11 @@
     function spawnWave(){
       const count = 4 + Math.floor(state.wave*1.8);
       let spawned = 0;
-      const iv = setInterval(()=>{
+      const delay = Math.max(400, 1100 - state.wave*120);
+
+      function spawnOne(){
+        // If spawning was cancelled, stop scheduling further spawns
+        if(!spawning){ if(spawnIv){ clearInterval(spawnIv); spawnIv=null; } return; }
         const side = Math.floor(Math.random()*4);
         let x,y,vx,vy; const target = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2);
         const pad = tile*0.5;
@@ -465,8 +469,21 @@
         const hp = 80 + state.wave*30;
         ships.push({ x, y, vx, vy, spd, hp, maxHp: hp, cd: 1.2 + Math.random()*1.2 });
         spawned++;
-        if(spawned>=count) clearInterval(iv);
-      }, Math.max(400, 1100 - state.wave*120));
+        // Switch to attack phase on the first enemy appearing
+        if(state.phase!=='battle'){ state.phase='battle'; updateHUD(); }
+        if(spawned>=count){
+          if(spawnIv){ clearInterval(spawnIv); spawnIv=null; }
+          spawning=false;
+        }
+      }
+
+      // Spawn first immediately so phase flips when enemies show up
+      spawnOne();
+      if(spawned < count){
+        spawnIv = setInterval(spawnOne, delay);
+      } else {
+        spawning=false;
+      }
     }
 
     function aimCannons(dt){
@@ -518,30 +535,39 @@
     }
 
     // Phase control
-    let buildTimer = BUILD_TIME; let spawning = false; let waveDoneCheck=0;
+    let buildTimer = BUILD_TIME; let spawning = false; let waveDoneCheck=0; let spawnIv = null;
 
     function startBuild(){
+      // Ensure any pending spawns are cancelled before starting build
+      if (spawnIv) { clearInterval(spawnIv); spawnIv = null; }
+      spawning=false;
       state.phase = 'build';
       buildTimer = BUILD_TIME;
       state.bricks = 30 + state.wave*6;
-      spawning=false;
       initPieces();
       updateHUD();
     }
-    function startBattle(){ state.phase = 'battle'; spawning = true; spawnWave(); updateHUD(); }
+    function startBattle(){
+      // Begin spawning; phase flips to 'battle' (Attack) on first enemy spawn
+      if (spawnIv) { clearInterval(spawnIv); spawnIv = null; }
+      spawning = true; spawnWave(); updateHUD();
+    }
 
     function updatePhase(dt){
       if(state.phase==='build'){
-        buildTimer -= dt; if(buildTimer<=0){ startBattle(); }
+        buildTimer -= dt;
+        if(buildTimer<=0){ if(!spawning){ startBattle(); } }
       } else if(state.phase==='battle'){
-        // When all ships killed and none spawning for a short time, next wave
+        // When all ships killed, no bullets, and no more spawns, next wave
         waveDoneCheck += dt;
-        if(waveDoneCheck>0.5){ waveDoneCheck=0; if(ships.length===0 && bullets.length===0){
-          // next
-          state.wave++;
-          if(state.wave > MAX_WAVES){ victory(); return; }
-          startBuild();
-        }}
+        if(waveDoneCheck>0.5){
+          waveDoneCheck=0;
+          if(!spawning && ships.length===0 && bullets.length===0){
+            state.wave++;
+            if(state.wave > MAX_WAVES){ victory(); return; }
+            startBuild();
+          }
+        }
       }
     }
 
@@ -577,6 +603,7 @@
     async function start(){ overlay.classList.remove('show'); setOverlayMode(false);
       if(!Images.grass){ const entries = Object.entries(assets); for(const [k,src] of entries){ Images[k] = await loadImg(src); } }
       // Reset state for a new run
+      if(spawnIv){ clearInterval(spawnIv); spawnIv=null; }
       state.bricks = 40; state.keepHP = 100; state.wave = 1; state.kills = 0; state.placedWalls=0; walls.length=0; cannons.length=0; ships.length=0; bullets.length=0; gameOverHandled=false; buildTimer = BUILD_TIME; spawning=false; waveDoneCheck=0; selectedTool='wall';
       startBuild(); running = true;
     }

@@ -258,6 +258,10 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
+        // Leaderboard integration
+        const GAME_ID = 'ocean-explorer';
+        let gameOverHandled = false;
+        
         // Set canvas size
         function resizeCanvas() {
             canvas.width = window.innerWidth;
@@ -339,6 +343,8 @@
         function initGame() {
             gameState.entities = [];
             gameState.particles = [];
+            // Reset leaderboard guard at the start of a new run
+            gameOverHandled = false;
             
             // Generate treasures, enemies, and power-ups within playable boundaries
             const playableWidth = BOUNDARY_RIGHT - BOUNDARY_LEFT;
@@ -728,12 +734,59 @@
             }
         }
 
+        // Compute the leaderboard score for this game
+        function computeScore() {
+            return Math.max(0, Math.floor(gameState.score || 0));
+        }
+
+        // Submit to leaderboard if the score qualifies; then redirect to leaderboard page
+        async function maybeSubmitLeaderboard(won = false) {
+            const score = computeScore();
+            let dest = `../leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
+            try {
+                const res = await fetch(`/api/leaderboard/rank?gameId=${encodeURIComponent(GAME_ID)}&score=${encodeURIComponent(score)}`, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const rank = Number(data?.rank);
+                    const qualifies = Number.isFinite(rank) && rank > 0 && rank <= 20;
+                    if (qualifies) {
+                        const prefix = won ? 'You Won! ' : '';
+                        let name = prompt(`${prefix}New High Score! You placed #${rank}. Enter your name (max 20 chars):`, '');
+                        if (name != null) {
+                            name = name.trim().replace(/[^\w \-'.!]/g, '').slice(0, 20);
+                            if (name) {
+                                let submitted = false;
+                                try {
+                                    await fetch('/api/leaderboard/submit', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ gameId: GAME_ID, name, score })
+                                    });
+                                    submitted = true;
+                                } catch {}
+                                if (submitted) {
+                                    dest += `&highlightRank=${encodeURIComponent(rank)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                location.href = dest;
+            }
+        }
+
         function endGame() {
             gameState.gameRunning = false;
             document.getElementById('finalScore').textContent = gameState.score;
             document.getElementById('finalTreasures').textContent = gameState.treasures;
             document.getElementById('maxDepth').textContent = gameState.maxDepth;
             document.getElementById('gameOver').style.display = 'block';
+            if (!gameOverHandled) { gameOverHandled = true; maybeSubmitLeaderboard(false).catch(console.error); }
         }
 
         function restartGame() {
@@ -761,6 +814,7 @@
                 particles: []
             };
             
+            gameOverHandled = false;
             document.getElementById('gameOver').style.display = 'none';
             initGame();
         }

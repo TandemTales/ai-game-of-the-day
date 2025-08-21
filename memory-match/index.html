@@ -198,6 +198,10 @@
                 <div>Time</div>
                 <div id="timer">00:00</div>
             </div>
+            <div class="stat">
+                <div>Score</div>
+                <div id="score">0</div>
+            </div>
         </div>
         
         <div id="gameBoard"></div>
@@ -227,12 +231,56 @@
     </div>
 
     <script>
+        // Leaderboard integration
+        const GAME_ID = 'memory-match';
+
+        // Submit to leaderboard if the score qualifies; then redirect to leaderboard page
+        async function maybeSubmitLeaderboard(score, won = true) {
+            let dest = `../leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
+            try {
+                const res = await fetch(`/api/leaderboard/rank?gameId=${encodeURIComponent(GAME_ID)}&score=${encodeURIComponent(score)}`, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const rank = Number(data?.rank);
+                    const qualifies = Number.isFinite(rank) && rank > 0 && rank <= 20;
+                    if (qualifies) {
+                        const prefix = won ? 'You Won! ' : '';
+                        let name = prompt(`${prefix}New High Score! You placed #${rank}. Enter your name (max 20 chars):`, '');
+                        if (name != null) {
+                            name = name.trim().replace(/[^\w \-'.!]/g, '').slice(0, 20);
+                            if (name) {
+                                let submitted = false;
+                                try {
+                                    await fetch('/api/leaderboard/submit', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ gameId: GAME_ID, name, score })
+                                    });
+                                    submitted = true;
+                                } catch {}
+                                if (submitted) {
+                                    dest += `&highlightRank=${encodeURIComponent(rank)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                location.href = dest;
+            }
+        }
+
         class MemoryGame {
             constructor() {
                 this.board = document.getElementById('gameBoard');
                 this.movesElement = document.getElementById('moves');
                 this.matchesElement = document.getElementById('matches');
                 this.timerElement = document.getElementById('timer');
+                this.scoreElement = document.getElementById('score');
                 this.winMessage = document.getElementById('winMessage');
                 this.newGameBtn = document.getElementById('newGameBtn');
                 
@@ -245,6 +293,7 @@
                 this.gameWon = false;
                 this.startTime = null;
                 this.timerInterval = null;
+                this.submitInProgress = false;
                 
                 this.symbols = ['🎮', '🎯', '🎲', '🎪', '🎨', '🎭', '🎪', '🎸', 
                               '🎺', '🎻', '🎹', '🎤', '🎧', '🎬', '🎭', '🎨'];
@@ -282,6 +331,7 @@
                 this.updateStats();
                 this.winMessage.style.display = 'none';
                 this.createBoard();
+                this.submitInProgress = false;
             }
             
             createBoard() {
@@ -374,6 +424,14 @@
             updateStats() {
                 this.movesElement.textContent = this.moves;
                 this.matchesElement.textContent = this.matches;
+                // Live score update based on current elapsed time
+                if (!this.gameStarted) {
+                    if (this.scoreElement) this.scoreElement.textContent = '0';
+                } else {
+                    const elapsed = this.startTime ? Math.floor((Date.now() - this.startTime) / 1000) : 0;
+                    const currentScore = this.computeScore(elapsed);
+                    if (this.scoreElement) this.scoreElement.textContent = currentScore;
+                }
             }
             
             startTimer() {
@@ -383,10 +441,24 @@
                         const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
                         const seconds = (elapsed % 60).toString().padStart(2, '0');
                         this.timerElement.textContent = `${minutes}:${seconds}`;
+                        // Update live score each second as time affects it
+                        this.updateStats();
                     }
                 }, 1000);
             }
             
+            // Compute score: higher with fewer moves and less time. Scales with difficulty (pairs).
+            computeScore(elapsedSeconds) {
+                const pairs = this.pairs;
+                const moves = this.moves;
+                // Efficiency is 1.0 if moves <= pairs, otherwise decreases
+                const efficiency = pairs / Math.max(moves, pairs);
+                const base = pairs * 1000; // 8000 (easy) or 12000 (hard)
+                const timePenalty = Math.floor(elapsedSeconds * pairs); // 8 or 12 points per second
+                const score = Math.max(0, Math.floor(base * efficiency) - timePenalty);
+                return score;
+            }
+
             showWinMessage() {
                 if (this.timerInterval) {
                     clearInterval(this.timerInterval);
@@ -395,12 +467,22 @@
                 const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
                 const minutes = Math.floor(elapsed / 60);
                 const seconds = elapsed % 60;
+                const finalScore = this.computeScore(elapsed);
                 
                 this.winMessage.innerHTML = `
                     🎉 Congratulations! You won! 🎉<br>
-                    <small>Time: ${minutes}:${seconds.toString().padStart(2, '0')} | Moves: ${this.moves}</small>
+                    <small>Time: ${minutes}:${seconds.toString().padStart(2, '0')} | Moves: ${this.moves} | Score: ${finalScore}</small>
                 `;
                 this.winMessage.style.display = 'block';
+
+                // Leaderboard flow
+                if (!this.submitInProgress) {
+                    this.submitInProgress = true;
+                    // Slight delay so the user can see the win message before redirecting
+                    setTimeout(() => {
+                        maybeSubmitLeaderboard(finalScore, true).catch(console.error);
+                    }, 300);
+                }
             }
         }
         

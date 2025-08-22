@@ -217,6 +217,10 @@
     let currentPiece = null;
     let nextPiece = null;
     let hoverCell = null;
+    let longPressTimeout = null;
+    let longPressTriggered = false;
+    let touchMoved = false;
+    let touchStartX = 0, touchStartY = 0;
 
     function genPiece(bricks){
       if(bricks<=0) return null;
@@ -391,7 +395,7 @@
       if(!canPlacePiece(gx, gy, currentPiece)) return false;
       for(const [dx,dy] of currentPiece){
         const x = gx+dx, y = gy+dy;
-        walls.push({ gx:x, gy:y, hp:60 });
+        walls.push({ gx:x, gy:y, hp:60, placedAt: state.time });
       }
       state.bricks -= currentPiece.length;
       state.placedWalls += currentPiece.length;
@@ -513,9 +517,46 @@
     canvas.addEventListener('mousemove', (e)=>{ const r = canvas.getBoundingClientRect(); updateHover(e.clientX - r.left, e.clientY - r.top); }, {passive:true});
     canvas.addEventListener('mouseleave', ()=>{ hoverCell = null; draw(); });
     canvas.addEventListener('click', (e)=>{ const r = canvas.getBoundingClientRect(); updateHover(e.clientX - r.left, e.clientY - r.top); finalizePlacement(); }, {passive:true});
-    canvas.addEventListener('touchstart', (e)=>{ const t = e.changedTouches[0]; const r = canvas.getBoundingClientRect(); updateHover(t.clientX - r.left, t.clientY - r.top); e.preventDefault(); }, {passive:false});
-    canvas.addEventListener('touchmove', (e)=>{ const t = e.changedTouches[0]; const r = canvas.getBoundingClientRect(); updateHover(t.clientX - r.left, t.clientY - r.top); e.preventDefault(); }, {passive:false});
-    canvas.addEventListener('touchend', (e)=>{ e.preventDefault(); });
+    canvas.addEventListener('touchstart', (e)=>{
+      const t = e.changedTouches[0];
+      const r = canvas.getBoundingClientRect();
+      updateHover(t.clientX - r.left, t.clientY - r.top);
+      touchStartX = t.clientX;
+      touchStartY = t.clientY;
+      touchMoved = false;
+      longPressTriggered = false;
+      if(longPressTimeout){ clearTimeout(longPressTimeout); longPressTimeout=null; }
+      if(state.phase==='build' && selectedTool==='wall' && currentPiece){
+        longPressTimeout = setTimeout(()=>{
+          finalizePlacement();
+          longPressTriggered = true;
+          longPressTimeout = null;
+        }, 320);
+      }
+      e.preventDefault();
+    }, {passive:false});
+    canvas.addEventListener('touchmove', (e)=>{
+      const t = e.changedTouches[0];
+      const r = canvas.getBoundingClientRect();
+      updateHover(t.clientX - r.left, t.clientY - r.top);
+      if(Math.abs(t.clientX - touchStartX) > 10 || Math.abs(t.clientY - touchStartY) > 10){
+        touchMoved = true;
+      }
+      e.preventDefault();
+    }, {passive:false});
+    function endTouch(e){
+      if(longPressTimeout){ clearTimeout(longPressTimeout); longPressTimeout=null; }
+      if(state.phase==='build' && selectedTool==='wall' && currentPiece){
+        if(!longPressTriggered && !touchMoved){
+          currentPiece = rotatePiece(currentPiece);
+          draw();
+          drawCurrentPreview();
+        }
+      }
+      e.preventDefault();
+    }
+    canvas.addEventListener('touchend', endTouch, {passive:false});
+    canvas.addEventListener('touchcancel', endTouch, {passive:false});
 
     overlay.addEventListener('click', start);
     overlay.addEventListener('touchstart', (e)=>{ e.preventDefault(); start(); }, {passive:false});
@@ -581,7 +622,23 @@
       ctx.drawImage(Images.castle, kx, ky, keepSizePx, keepSizePx);
     }
 
-    function drawWalls(){ for(const w of walls){ ctx.drawImage(Images.wall, w.gx*tile, w.gy*tile, tile, tile); } }
+    function drawWalls(){
+      for(const w of walls){
+        const age = state.time - (w.placedAt || 0);
+        if(age < 0.25){
+          const t = age / 0.25;
+          const scale = 1.3 - 0.3*t;
+          ctx.save();
+          ctx.globalAlpha = t;
+          ctx.translate((w.gx+0.5)*tile, (w.gy+0.5)*tile);
+          ctx.scale(scale, scale);
+          ctx.drawImage(Images.wall, -tile/2, -tile/2, tile, tile);
+          ctx.restore();
+        } else {
+          ctx.drawImage(Images.wall, w.gx*tile, w.gy*tile, tile, tile);
+        }
+      }
+    }
     function drawCannons(){ for(const c of cannons){ ctx.drawImage(Images.cannon, c.gx*tile, c.gy*tile, tile*2, tile*2); } }
     function drawShips(){ for(const s of ships){ const size = tile*1.4; ctx.drawImage(Images.ship, s.x - size/2, s.y - size/2, size, size*0.67); } }
     function drawBullets(){ for(const b of bullets){ const s = tile*0.35; ctx.drawImage(Images.ball, b.x - s/2, b.y - s/2, s, s); } }

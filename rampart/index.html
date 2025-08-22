@@ -321,6 +321,12 @@
       return false;
     }
 
+    // Check if there is a wall exactly at the given grid cell
+    function hasWallAt(gx, gy){
+      for (const w of walls){ if (w.gx===gx && w.gy===gy) return true; }
+      return false;
+    }
+
     function rotatePiece(piece){
       const rotated = piece.map(([x,y])=>[-y,x]);
       let minX = Infinity, minY = Infinity;
@@ -661,7 +667,10 @@
 
     function shipsAct(dt){
       for(const s of ships){
-        s.x += s.vx*s.spd*dt; s.y += s.vy*s.spd*dt;
+        const { gx, gy } = worldToGrid(s.x, s.y);
+        const overWall = hasWallAt(gx, gy);
+        const speedMul = overWall ? 0.2 : 1;
+        s.x += s.vx*s.spd*dt*speedMul; s.y += s.vy*s.spd*dt*speedMul;
         s.cd -= dt; if(s.cd<=0){
           // choose target: nearest wall else keep
           let target = null; let td = 1e9;

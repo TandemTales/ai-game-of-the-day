@@ -180,10 +180,11 @@
     function loadImg(src){ return new Promise((res, rej)=>{ const i = new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; }); }
 
     // Game state
+    const KEEP_MAX_HP = 500;
     let running = false;
     const state = {
       bricks: 45,
-      keepHP: 100,
+      keepHP: KEEP_MAX_HP,
       wave: 1,
       time: 0,
       phase: 'build', // 'build' | 'battle'
@@ -565,7 +566,7 @@
     function drawBullets(){ for(const b of bullets){ const s = tile*0.35; ctx.drawImage(Images.ball, b.x - s/2, b.y - s/2, s, s); } }
 
     function drawKeepHealthBar(){
-      const maxHP = 100;
+      const maxHP = KEEP_MAX_HP;
       const pct = Math.max(0, Math.min(1, state.keepHP / maxHP));
       const barW = keepRect.w * tile;
       const barH = Math.max(4, Math.floor(tile * 0.14));
@@ -683,10 +684,17 @@
         const speedMul = nearKeep ? 0 : (overWall ? 0.2 : 1);
         s.x += s.vx*s.spd*dt*speedMul; s.y += s.vy*s.spd*dt*speedMul;
         s.cd -= dt; if(s.cd<=0){
-          // choose target: nearest wall else keep
           let target = null; let td = 1e9;
-          for(const w of walls){ const p = gridToPx(w.gx, w.gy); const d = Math.hypot(p.x - s.x, p.y - s.y); if(d < td){ td = d; target = { x: p.x, y: p.y, type:'wall', ref:w }; } }
-          if(!target){ const k = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2); target = { x:k.x, y:k.y, type:'keep' }; td = Math.hypot(k.x-s.x, k.y-s.y); }
+          if (nearKeep) {
+            // If parked next to the keep, always fire at the keep from now on
+            const k = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2);
+            target = { x:k.x, y:k.y, type:'keep' };
+            td = Math.hypot(k.x - s.x, k.y - s.y);
+          } else {
+            // choose target: nearest wall else keep
+            for(const w of walls){ const p = gridToPx(w.gx, w.gy); const d = Math.hypot(p.x - s.x, p.y - s.y); if(d < td){ td = d; target = { x: p.x, y: p.y, type:'wall', ref:w }; } }
+            if(!target){ const k = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2); target = { x:k.x, y:k.y, type:'keep' }; td = Math.hypot(k.x-s.x, k.y-s.y); }
+          }
           if(td < tile*9){ const dx=target.x - s.x, dy=target.y - s.y; const L=Math.hypot(dx,dy)||1; bullets.push({ x:s.x, y:s.y, vx:dx/L, vy:dy/L, spd: 220, dmg: 22, owner:'ship' }); s.cd = (1.6 + Math.random()*1.2) * ENEMY_FIRE_RATE_MULT; } else { s.cd = 0.5 * ENEMY_FIRE_RATE_MULT; }
         }
       }
@@ -802,7 +810,7 @@
       if(!Images.grass){ const entries = Object.entries(assets); for(const [k,src] of entries){ Images[k] = await loadImg(src); } }
       // Reset state for a new run
       if(spawnIv){ clearInterval(spawnIv); spawnIv=null; }
-      state.bricks = 45; state.keepHP = 100; state.wave = 1; state.kills = 0; state.placedWalls=0; walls.length=0; cannons.length=0; ships.length=0; bullets.length=0; gameOverHandled=false; buildTimer = BUILD_TIME * TIME_FACTOR; spawning=false; waveDoneCheck=0; selectedTool='wall';
+      state.bricks = 45; state.keepHP = KEEP_MAX_HP; state.wave = 1; state.kills = 0; state.placedWalls=0; walls.length=0; cannons.length=0; ships.length=0; bullets.length=0; gameOverHandled=false; buildTimer = BUILD_TIME * TIME_FACTOR; spawning=false; waveDoneCheck=0; selectedTool='wall';
       startBuild(); running = true;
     }
 

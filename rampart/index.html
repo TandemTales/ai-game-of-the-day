@@ -251,6 +251,13 @@
     const BUILD_TIME = 18; // seconds per build phase (waves 2+)
     const FIRST_BUILD_TIME = 24; // slightly longer first build phase
     const MAX_WAVES = 6;
+    // Mobile time scaling: triple phase durations on mobile only
+    const IS_MOBILE = (
+      typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod|Windows Phone|webOS|BlackBerry|Opera Mini|IEMobile/i.test(navigator.userAgent)
+    ) || (
+      typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches
+    );
+    const TIME_FACTOR = IS_MOBILE ? 3 : 1;
 
     const KEEP_SIZE = 3; // 3x3 center keep
     let keepRect = { x: Math.floor(COLS/2) - 1, y: Math.floor(ROWS/2) - 1, w: KEEP_SIZE, h: KEEP_SIZE };
@@ -697,7 +704,7 @@
       if (spawnIv) { clearInterval(spawnIv); spawnIv = null; }
       spawning=false;
       state.phase = 'build';
-      buildTimer = (state.wave === 1) ? FIRST_BUILD_TIME : BUILD_TIME;
+      buildTimer = ((state.wave === 1) ? FIRST_BUILD_TIME : BUILD_TIME) * TIME_FACTOR;
       state.bricks = (state.wave === 1) ? 45 : (30 + state.wave*6);
       initPieces();
       // reset enclosed markers
@@ -775,7 +782,7 @@
       if(!Images.grass){ const entries = Object.entries(assets); for(const [k,src] of entries){ Images[k] = await loadImg(src); } }
       // Reset state for a new run
       if(spawnIv){ clearInterval(spawnIv); spawnIv=null; }
-      state.bricks = 45; state.keepHP = 100; state.wave = 1; state.kills = 0; state.placedWalls=0; walls.length=0; cannons.length=0; ships.length=0; bullets.length=0; gameOverHandled=false; buildTimer = BUILD_TIME; spawning=false; waveDoneCheck=0; selectedTool='wall';
+      state.bricks = 45; state.keepHP = 100; state.wave = 1; state.kills = 0; state.placedWalls=0; walls.length=0; cannons.length=0; ships.length=0; bullets.length=0; gameOverHandled=false; buildTimer = BUILD_TIME * TIME_FACTOR; spawning=false; waveDoneCheck=0; selectedTool='wall';
       startBuild(); running = true;
     }
 

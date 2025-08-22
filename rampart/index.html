@@ -222,7 +222,6 @@
     let longPressAnimStart = 0;
     let longPressAnimProgress = 0;
     let longPressReady = false;
-    let longPressAfterRelease = false;
     let touchMoved = false;
     let touchStartX = 0, touchStartY = 0;
 
@@ -500,6 +499,7 @@
     }
 
     function startLongPressAnimation(){
+      touchMoved = false;
       longPressAnimating = true;
       longPressAnimStart = performance.now();
       longPressAnimProgress = 0;
@@ -513,12 +513,6 @@
         longPressAnimating = false;
         longPressAnimProgress = 1;
         longPressReady = true;
-        if(touchMoved || longPressAfterRelease){
-          finalizePlacement();
-          longPressReady = false;
-          touchMoved = true;
-          longPressAfterRelease = false;
-        }
         draw();
       } else {
         longPressAnimProgress = t;
@@ -560,7 +554,6 @@
       touchStartY = t.clientY;
       touchMoved = false;
       longPressReady = false;
-      longPressAfterRelease = false;
       longPressAnimating = false;
       longPressAnimProgress = 0;
       if(longPressTimeout){ clearTimeout(longPressTimeout); longPressTimeout=null; }
@@ -577,29 +570,59 @@
       const r = canvas.getBoundingClientRect();
       updateHover(t.clientX - r.left, t.clientY - r.top);
       if(longPressReady){
-        finalizePlacement();
         longPressReady = false;
         longPressAnimating = false;
-        longPressAfterRelease = false;
         touchMoved = true;
+        if(longPressTimeout){ clearTimeout(longPressTimeout); }
+        longPressTimeout = null;
+        touchStartX = t.clientX;
+        touchStartY = t.clientY;
+        if(state.phase==='build' && selectedTool==='wall' && currentPiece){
+          longPressTimeout = setTimeout(()=>{
+            longPressTimeout = null;
+            startLongPressAnimation();
+          }, LONG_PRESS_DELAY);
+        }
       } else if(longPressAnimating){
-        touchMoved = true; // finalize once animation completes
+        touchMoved = true;
+        longPressAnimating = false;
+        longPressReady = false;
+        if(longPressTimeout){ clearTimeout(longPressTimeout); }
+        longPressTimeout = null;
+        touchStartX = t.clientX;
+        touchStartY = t.clientY;
+        if(state.phase==='build' && selectedTool==='wall' && currentPiece){
+          longPressTimeout = setTimeout(()=>{
+            longPressTimeout = null;
+            startLongPressAnimation();
+          }, LONG_PRESS_DELAY);
+        }
       } else if(Math.abs(t.clientX - touchStartX) > 10 || Math.abs(t.clientY - touchStartY) > 10){
         touchMoved = true;
-        if(longPressTimeout){ clearTimeout(longPressTimeout); longPressTimeout=null; }
+        if(longPressTimeout){ clearTimeout(longPressTimeout); }
+        longPressTimeout = null;
+        touchStartX = t.clientX;
+        touchStartY = t.clientY;
+        if(state.phase==='build' && selectedTool==='wall' && currentPiece){
+          longPressTimeout = setTimeout(()=>{
+            longPressTimeout = null;
+            startLongPressAnimation();
+          }, LONG_PRESS_DELAY);
+        }
       }
       e.preventDefault();
     }, {passive:false});
     function endTouch(e){
       if(longPressTimeout){ clearTimeout(longPressTimeout); longPressTimeout=null; }
       if(longPressAnimating){
-        longPressAfterRelease = true;
-      } else if(state.phase==='build' && selectedTool==='wall' && currentPiece){
+          longPressAnimating = false;
+          longPressReady = false;
+          longPressAnimProgress = 0;
+        } else if(state.phase==='build' && selectedTool==='wall' && currentPiece){
         if(longPressReady && !touchMoved){
           finalizePlacement();
           longPressReady = false;
           longPressAnimating = false;
-          longPressAfterRelease = false;
         }else if(!longPressReady && !touchMoved){
           currentPiece = rotatePiece(currentPiece);
           draw();

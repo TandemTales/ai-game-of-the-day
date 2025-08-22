@@ -311,6 +311,13 @@
     function worldToGrid(x,y){ return { gx: Math.floor(x/tile), gy: Math.floor(y/tile) }; }
 
     function inKeep(gx, gy){ return gx>=keepRect.x && gy>=keepRect.y && gx<keepRect.x+keepRect.w && gy<keepRect.y+keepRect.h; }
+    function inKeepRing(gx, gy){
+      // 1-tile ring around the 3x3 keep: bounding box expanded by 1, excluding the keep itself
+      const x0 = keepRect.x - 1, y0 = keepRect.y - 1;
+      const x1 = keepRect.x + keepRect.w, y1 = keepRect.y + keepRect.h;
+      if (gx < x0 || gy < y0 || gx > x1 || gy > y1) return false;
+      return !inKeep(gx, gy);
+    }
     function occupied(gx, gy){
       if (inKeep(gx,gy)) return true;
       for (const w of walls) if (w.gx===gx && w.gy===gy) return true;
@@ -668,8 +675,9 @@
     function shipsAct(dt){
       for(const s of ships){
         const { gx, gy } = worldToGrid(s.x, s.y);
+        const nearKeep = inKeepRing(gx, gy);
         const overWall = hasWallAt(gx, gy);
-        const speedMul = overWall ? 0.2 : 1;
+        const speedMul = nearKeep ? 0 : (overWall ? 0.2 : 1);
         s.x += s.vx*s.spd*dt*speedMul; s.y += s.vy*s.spd*dt*speedMul;
         s.cd -= dt; if(s.cd<=0){
           // choose target: nearest wall else keep

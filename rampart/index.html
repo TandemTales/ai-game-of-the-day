@@ -586,7 +586,14 @@
         touchMoved = true; // finalize once animation completes
       } else if(Math.abs(t.clientX - touchStartX) > 10 || Math.abs(t.clientY - touchStartY) > 10){
         touchMoved = true;
-        if(longPressTimeout){ clearTimeout(longPressTimeout); longPressTimeout=null; }
+        if(longPressTimeout){ clearTimeout(longPressTimeout); }
+        longPressTimeout = null;
+        if(state.phase==='build' && selectedTool==='wall' && currentPiece){
+          longPressTimeout = setTimeout(()=>{
+            longPressTimeout = null;
+            startLongPressAnimation();
+          }, LONG_PRESS_DELAY);
+        }
       }
       e.preventDefault();
     }, {passive:false});

@@ -217,6 +217,17 @@
     let currentPiece = null;
     let nextPiece = null;
     let hoverCell = null;
+    let longPressTimeout = null;
+    let longPressAnimating = false;
+    let longPressAnimStart = 0;
+    let longPressAnimProgress = 0;
+    let longPressReady = false;
+    let longPressAfterRelease = false;
+    let touchMoved = false;
+    let touchStartX = 0, touchStartY = 0;
+
+    const LONG_PRESS_DELAY = 600;
+    const LONG_PRESS_ANIM_MS = 200;
 
     function genPiece(bricks){
       if(bricks<=0) return null;
@@ -391,7 +402,7 @@
       if(!canPlacePiece(gx, gy, currentPiece)) return false;
       for(const [dx,dy] of currentPiece){
         const x = gx+dx, y = gy+dy;
-        walls.push({ gx:x, gy:y, hp:60 });
+        walls.push({ gx:x, gy:y, hp:60, placedAt: state.time });
       }
       state.bricks -= currentPiece.length;
       state.placedWalls += currentPiece.length;
@@ -488,6 +499,34 @@
       draw();
     }
 
+    function startLongPressAnimation(){
+      longPressAnimating = true;
+      longPressAnimStart = performance.now();
+      longPressAnimProgress = 0;
+      requestAnimationFrame(stepLongPressAnim);
+    }
+
+    function stepLongPressAnim(now){
+      if(!longPressAnimating) return;
+      const t = (now - longPressAnimStart) / LONG_PRESS_ANIM_MS;
+      if(t >= 1){
+        longPressAnimating = false;
+        longPressAnimProgress = 1;
+        longPressReady = true;
+        if(touchMoved || longPressAfterRelease){
+          finalizePlacement();
+          longPressReady = false;
+          touchMoved = true;
+          longPressAfterRelease = false;
+        }
+        draw();
+      } else {
+        longPressAnimProgress = t;
+        requestAnimationFrame(stepLongPressAnim);
+        draw();
+      }
+    }
+
     function finalizePlacement(){
       if(state.phase !== 'build' || !hoverCell) return;
       let placed = false;
@@ -513,9 +552,64 @@
     canvas.addEventListener('mousemove', (e)=>{ const r = canvas.getBoundingClientRect(); updateHover(e.clientX - r.left, e.clientY - r.top); }, {passive:true});
     canvas.addEventListener('mouseleave', ()=>{ hoverCell = null; draw(); });
     canvas.addEventListener('click', (e)=>{ const r = canvas.getBoundingClientRect(); updateHover(e.clientX - r.left, e.clientY - r.top); finalizePlacement(); }, {passive:true});
-    canvas.addEventListener('touchstart', (e)=>{ const t = e.changedTouches[0]; const r = canvas.getBoundingClientRect(); updateHover(t.clientX - r.left, t.clientY - r.top); e.preventDefault(); }, {passive:false});
-    canvas.addEventListener('touchmove', (e)=>{ const t = e.changedTouches[0]; const r = canvas.getBoundingClientRect(); updateHover(t.clientX - r.left, t.clientY - r.top); e.preventDefault(); }, {passive:false});
-    canvas.addEventListener('touchend', (e)=>{ e.preventDefault(); });
+    canvas.addEventListener('touchstart', (e)=>{
+      const t = e.changedTouches[0];
+      const r = canvas.getBoundingClientRect();
+      updateHover(t.clientX - r.left, t.clientY - r.top);
+      touchStartX = t.clientX;
+      touchStartY = t.clientY;
+      touchMoved = false;
+      longPressReady = false;
+      longPressAfterRelease = false;
+      longPressAnimating = false;
+      longPressAnimProgress = 0;
+      if(longPressTimeout){ clearTimeout(longPressTimeout); longPressTimeout=null; }
+      if(state.phase==='build' && selectedTool==='wall' && currentPiece){
+        longPressTimeout = setTimeout(()=>{
+          longPressTimeout = null;
+          startLongPressAnimation();
+        }, LONG_PRESS_DELAY);
+      }
+      e.preventDefault();
+    }, {passive:false});
+    canvas.addEventListener('touchmove', (e)=>{
+      const t = e.changedTouches[0];
+      const r = canvas.getBoundingClientRect();
+      updateHover(t.clientX - r.left, t.clientY - r.top);
+      if(longPressReady){
+        finalizePlacement();
+        longPressReady = false;
+        longPressAnimating = false;
+        longPressAfterRelease = false;
+        touchMoved = true;
+      } else if(longPressAnimating){
+        touchMoved = true; // finalize once animation completes
+      } else if(Math.abs(t.clientX - touchStartX) > 10 || Math.abs(t.clientY - touchStartY) > 10){
+        touchMoved = true;
+        if(longPressTimeout){ clearTimeout(longPressTimeout); longPressTimeout=null; }
+      }
+      e.preventDefault();
+    }, {passive:false});
+    function endTouch(e){
+      if(longPressTimeout){ clearTimeout(longPressTimeout); longPressTimeout=null; }
+      if(longPressAnimating){
+        longPressAfterRelease = true;
+      } else if(state.phase==='build' && selectedTool==='wall' && currentPiece){
+        if(longPressReady && !touchMoved){
+          finalizePlacement();
+          longPressReady = false;
+          longPressAnimating = false;
+          longPressAfterRelease = false;
+        }else if(!longPressReady && !touchMoved){
+          currentPiece = rotatePiece(currentPiece);
+          draw();
+          drawCurrentPreview();
+        }
+      }
+      e.preventDefault();
+    }
+    canvas.addEventListener('touchend', endTouch, {passive:false});
+    canvas.addEventListener('touchcancel', endTouch, {passive:false});
 
     overlay.addEventListener('click', start);
     overlay.addEventListener('touchstart', (e)=>{ e.preventDefault(); start(); }, {passive:false});
@@ -581,7 +675,37 @@
       ctx.drawImage(Images.castle, kx, ky, keepSizePx, keepSizePx);
     }
 
-    function drawWalls(){ for(const w of walls){ ctx.drawImage(Images.wall, w.gx*tile, w.gy*tile, tile, tile); } }
+    function drawWalls(){
+      for(const w of walls){
+        const age = state.time - (w.placedAt || 0);
+        if(age < 0.4){
+          const t = age / 0.4;
+          const scale = 1.7 - 0.7 * t; // bigger pop so it's seen past the finger
+          const cx = (w.gx + 0.5) * tile;
+          const cy = (w.gy + 0.5) * tile;
+
+          ctx.save();
+          ctx.globalAlpha = t;
+          ctx.translate(cx, cy);
+          ctx.scale(scale, scale);
+          ctx.drawImage(Images.wall, -tile/2, -tile/2, tile, tile);
+          ctx.restore();
+
+          // expanding ring for clearer feedback
+          ctx.save();
+          ctx.globalAlpha = 1 - t;
+          ctx.strokeStyle = '#FFD700';
+          ctx.lineWidth = Math.max(2, tile * 0.08);
+          const r = tile * (1 + t);
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        } else {
+          ctx.drawImage(Images.wall, w.gx*tile, w.gy*tile, tile, tile);
+        }
+      }
+    }
     function drawCannons(){ for(const c of cannons){ ctx.drawImage(Images.cannon, c.gx*tile, c.gy*tile, tile*2, tile*2); } }
     function drawShips(){ for(const s of ships){ const size = tile*1.4; ctx.drawImage(Images.ship, s.x - size/2, s.y - size/2, size, size*0.67); } }
     function drawBullets(){ for(const b of bullets){ const s = tile*0.35; ctx.drawImage(Images.ball, b.x - s/2, b.y - s/2, s, s); } }
@@ -617,29 +741,45 @@
         if(!currentPiece) return;
         const anchor = centeredAnchorForPiece(currentPiece, hoverCell.gx, hoverCell.gy);
         const valid = canPlacePiece(anchor.gx, anchor.gy, currentPiece);
-        // Draw the piece images with a subtle alpha depending on validity
         const imgAlpha = valid ? 0.85 : 0.45;
-        ctx.globalAlpha = imgAlpha;
-        for(const [dx,dy] of currentPiece){
-          const x = (anchor.gx+dx)*tile;
-          const y = (anchor.gy+dy)*tile;
-          ctx.drawImage(Images.wall, x, y, tile, tile);
-        }
-        ctx.globalAlpha = 1;
-        // Overlay a color tint and outline to highlight fit (green) vs no-fit (red)
-        const fillCol = valid ? 'rgba(50,205,50,0.22)' : 'rgba(255,64,64,0.22)'; // limegreen / red tint
+        const fillCol = valid ? 'rgba(50,205,50,0.22)' : 'rgba(255,64,64,0.22)';
         const strokeCol = valid ? 'rgba(50,205,50,0.95)' : 'rgba(255,64,64,0.95)';
         const lw = Math.max(2, Math.floor(tile * 0.08));
-        ctx.fillStyle = fillCol;
-        ctx.strokeStyle = strokeCol;
-        ctx.lineWidth = lw;
+        const ringR = tile * (1 + longPressAnimProgress);
+        const b = pieceBounds(currentPiece);
+        const ringCx = (anchor.gx + b.minX + b.w/2) * tile;
+        const ringCy = (anchor.gy + b.minY + b.h/2) * tile;
+
         for(const [dx,dy] of currentPiece){
           const x = (anchor.gx+dx)*tile;
           const y = (anchor.gy+dy)*tile;
-          // tint
+          const cx = x + tile/2;
+          const cy = y + tile/2;
+          const scale = longPressAnimating ? 1.6 - 0.6*longPressAnimProgress : 1;
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.scale(scale, scale);
+          ctx.translate(-cx, -cy);
+          ctx.globalAlpha = imgAlpha;
+          ctx.drawImage(Images.wall, x, y, tile, tile);
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = fillCol;
+          ctx.strokeStyle = strokeCol;
+          ctx.lineWidth = lw;
           ctx.fillRect(x, y, tile, tile);
-          // outline
           ctx.strokeRect(x + 0.5, y + 0.5, tile - 1, tile - 1);
+          ctx.restore();
+        }
+
+        if(longPressAnimating){
+          ctx.save();
+          ctx.globalAlpha = 1 - longPressAnimProgress;
+          ctx.strokeStyle = '#FFD700';
+          ctx.lineWidth = Math.max(2, tile * 0.08);
+          ctx.beginPath();
+          ctx.arc(ringCx, ringCy, ringR, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
         }
       } else if(selectedTool==='cannon'){
         const valid = canPlaceCannon(hoverCell.gx, hoverCell.gy);

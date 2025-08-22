@@ -258,6 +258,9 @@
       typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches
     );
     const TIME_FACTOR = IS_MOBILE ? 3 : 1;
+    
+    // Enemy rate-of-fire tuning (lower than 1 => faster, >1 => slower)
+    const ENEMY_FIRE_RATE_MULT = 0.6;
 
     const KEEP_SIZE = 3; // 3x3 center keep
     let keepRect = { x: Math.floor(COLS/2) - 1, y: Math.floor(ROWS/2) - 1, w: KEEP_SIZE, h: KEEP_SIZE };
@@ -640,7 +643,7 @@
         const dx = target.x - x, dy = target.y - y; const d = Math.hypot(dx,dy)||1; vx = dx/d; vy = dy/d;
         const spd = 28 + state.wave*6;
         const hp = 80 + state.wave*30;
-        ships.push({ x, y, vx, vy, spd, hp, maxHp: hp, cd: 1.2 + Math.random()*1.2 });
+        ships.push({ x, y, vx, vy, spd, hp, maxHp: hp, cd: (1.2 + Math.random()*1.2) * ENEMY_FIRE_RATE_MULT });
         spawned++;
         // Switch to attack phase on the first enemy appearing
         if(state.phase!=='battle'){ state.phase='battle'; updateHUD(); }
@@ -684,7 +687,7 @@
           let target = null; let td = 1e9;
           for(const w of walls){ const p = gridToPx(w.gx, w.gy); const d = Math.hypot(p.x - s.x, p.y - s.y); if(d < td){ td = d; target = { x: p.x, y: p.y, type:'wall', ref:w }; } }
           if(!target){ const k = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2); target = { x:k.x, y:k.y, type:'keep' }; td = Math.hypot(k.x-s.x, k.y-s.y); }
-          if(td < tile*9){ const dx=target.x - s.x, dy=target.y - s.y; const L=Math.hypot(dx,dy)||1; bullets.push({ x:s.x, y:s.y, vx:dx/L, vy:dy/L, spd: 220, dmg: 22, owner:'ship' }); s.cd = 1.6 + Math.random()*1.2; } else { s.cd = 0.5; }
+          if(td < tile*9){ const dx=target.x - s.x, dy=target.y - s.y; const L=Math.hypot(dx,dy)||1; bullets.push({ x:s.x, y:s.y, vx:dx/L, vy:dy/L, spd: 220, dmg: 22, owner:'ship' }); s.cd = (1.6 + Math.random()*1.2) * ENEMY_FIRE_RATE_MULT; } else { s.cd = 0.5 * ENEMY_FIRE_RATE_MULT; }
         }
       }
     }

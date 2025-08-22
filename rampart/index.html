@@ -345,6 +345,23 @@
       return rotated.map(([x,y])=>[x-minX, y-minY]);
     }
 
+    // Compute bounding box for a piece and a centered anchor for placement
+    function pieceBounds(piece){
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for(const [x,y] of piece){
+        if(x<minX) minX=x; if(y<minY) minY=y;
+        if(x>maxX) maxX=x; if(y>maxY) maxY=y;
+      }
+      return { minX, minY, maxX, maxY, w: maxX - minX + 1, h: maxY - minY + 1 };
+    }
+    function centeredAnchorForPiece(piece, centerGX, centerGY){
+      const b = pieceBounds(piece);
+      // Place the top-left so the piece's bounding-box center aligns to the hovered cell
+      const gx = centerGX - Math.floor(b.w/2) - b.minX;
+      const gy = centerGY - Math.floor(b.h/2) - b.minY;
+      return { gx, gy };
+    }
+
     function canPlacePiece(gx, gy, piece){
       if(state.bricks < piece.length) return false;
       for(const [dx,dy] of piece){
@@ -474,7 +491,11 @@
     function finalizePlacement(){
       if(state.phase !== 'build' || !hoverCell) return;
       let placed = false;
-      if(selectedTool === 'wall') placed = placeWall(hoverCell.gx, hoverCell.gy);
+      if(selectedTool === 'wall'){
+        if(!currentPiece) return;
+        const anchor = centeredAnchorForPiece(currentPiece, hoverCell.gx, hoverCell.gy);
+        placed = placeWall(anchor.gx, anchor.gy);
+      }
       else placed = placeCannon(hoverCell.gx, hoverCell.gy);
       if(placed){
         if(selectedTool==='wall'){
@@ -594,11 +615,12 @@
       if(state.phase!=='build' || !hoverCell) return;
       if(selectedTool==='wall'){
         if(!currentPiece) return;
-        const valid = canPlacePiece(hoverCell.gx, hoverCell.gy, currentPiece);
+        const anchor = centeredAnchorForPiece(currentPiece, hoverCell.gx, hoverCell.gy);
+        const valid = canPlacePiece(anchor.gx, anchor.gy, currentPiece);
         ctx.globalAlpha = valid ? 0.7 : 0.3;
         for(const [dx,dy] of currentPiece){
-          const x = (hoverCell.gx+dx)*tile;
-          const y = (hoverCell.gy+dy)*tile;
+          const x = (anchor.gx+dx)*tile;
+          const y = (anchor.gy+dy)*tile;
           ctx.drawImage(Images.wall, x, y, tile, tile);
         }
         ctx.globalAlpha = 1;

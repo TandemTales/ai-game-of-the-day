@@ -106,10 +106,13 @@
       }
       .toolbar .tool {
         order: 1;
-        flex: 0 1 calc(50% - 8px); /* don't grow to full width; allow wrap */
-        max-width: calc(50% - 8px);
+        box-sizing: border-box; /* include padding/border in width calc */
+        flex: 0 1 calc(50% - 10px); /* leave space for gap + borders */
+        max-width: calc(50% - 10px);
         min-width: 0; /* allow content to shrink so two fit per row */
+        padding: 6px 8px; /* slightly tighter on mobile */
       }
+      .toolbar .tool img { width: 24px; height: 24px; }
       .toolbar .instructions {
         order: 2;
         flex: 1 0 100%;

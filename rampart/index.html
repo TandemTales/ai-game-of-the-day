@@ -690,6 +690,7 @@
       const t = e.changedTouches[0];
       const r = canvas.getBoundingClientRect();
       updateHover(t.clientX - r.left, t.clientY - r.top);
+      /*
       if(longPressReady){
         longPressReady = false;
         longPressAnimating = false;
@@ -737,6 +738,8 @@
           }, LONG_PRESS_DELAY);
         }
       }
+      */
+
       e.preventDefault();
     }, {passive:false});
     function endTouch(e){

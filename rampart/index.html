@@ -157,6 +157,7 @@
   <div class="toolbar" id="toolbar">
     <div class="tool selected" data-type="wall" data-cost="1"><img src="assets/wall.svg" alt="wall"><div>Wall 1</div></div>
     <div class="tool" data-type="cannon" data-cost="6"><img src="assets/cannon.svg" alt="cannon"><div>Cannon 6</div></div>
+    <div class="tool action" id="undoBtn"><div>↩ Undo</div></div>
     <div class="instructions">Mobile: tap to rotate, long press to place<br>Desktop: click to place, press R to rotate</div>
   </div>
 
@@ -179,6 +180,7 @@
     const hudEl = document.getElementById('hud');
     const currentPreviewCanvas = document.getElementById('currentPreview');
     const currentPreviewCtx = currentPreviewCanvas.getContext('2d');
+    const undoBtn = document.getElementById('undoBtn');
 
     // Leaderboard integration
     const GAME_ID = 'rampart';
@@ -225,6 +227,7 @@
     const cannons = []; // {gx, gy, cd, enclosed?}
     const ships = []; // {x,y,vx,vy,spd,hp,maxHp,cd}
     const bullets = []; // {x,y,vx,vy,spd,dmg,owner}
+    const placementHistory = []; // stack of actions to support Undo during build
 
     // Enclosed area mask (computed at end of build phase)
     let enclosedMask = null; // Array[ROWS][COLS] of booleans
@@ -356,6 +359,44 @@
       for(const el of toolbar.querySelectorAll('.tool')) el.classList.remove('selected');
       item.classList.add('selected');
       selectedTool = type;
+    }
+
+    // Undo button enable/disable based on phase and history
+    function updateUndoBtnState(){
+      if(!undoBtn) return;
+      const can = state.phase === 'build' && placementHistory.length > 0;
+      undoBtn.style.opacity = can ? '' : '0.5';
+      undoBtn.style.pointerEvents = can ? '' : 'none';
+      undoBtn.setAttribute('aria-disabled', can ? 'false' : 'true');
+    }
+    if (undoBtn) {
+      undoBtn.addEventListener('click', ()=>{ undoLast(); });
+      // initialize disabled
+      updateUndoBtnState();
+    }
+
+    function undoLast(){
+      if(state.phase !== 'build' || placementHistory.length === 0) return;
+      const act = placementHistory.pop();
+      if(act.type === 'wall'){
+        for(const cell of act.cells){
+          const idx = walls.findIndex(w=>w.gx===cell.gx && w.gy===cell.gy);
+          if(idx>=0) walls.splice(idx,1);
+        }
+        state.bricks += act.cost;
+        state.placedWalls = Math.max(0, state.placedWalls - act.cost);
+      } else if(act.type === 'cannon'){
+        const idx = cannons.findIndex(c=>c.gx===act.gx && c.gy===act.gy);
+        if(idx>=0) cannons.splice(idx,1);
+        state.bricks += 6;
+      }
+      // Restore piece queue
+      currentPiece = act.prevCurrentPiece ? act.prevCurrentPiece.map(p=>p.slice()) : null;
+      nextPiece = act.prevNextPiece ? act.prevNextPiece.map(p=>p.slice()) : null;
+      drawCurrentPreview();
+      updateHUD();
+      draw();
+      updateUndoBtnState();
     }
 
     function buildHowTo(){
@@ -640,14 +681,25 @@
     function finalizePlacement(){
       if(state.phase !== 'build' || !hoverCell) return;
       let placed = false;
+      // Snapshot piece queue pre-placement for Undo
+      const prevCur = currentPiece ? currentPiece.map(p=>p.slice()) : null;
+      const prevNext = nextPiece ? nextPiece.map(p=>p.slice()) : null;
       if(selectedTool === 'wall'){
         if(!currentPiece) return;
         const anchor = centeredAnchorForPiece(currentPiece, hoverCell.gx, hoverCell.gy);
+        // compute cells to record for undo before placing
+        const cells = currentPiece.map(([dx,dy])=>({ gx: anchor.gx+dx, gy: anchor.gy+dy }));
         placed = placeWall(anchor.gx, anchor.gy);
+        if(placed){
+          placementHistory.push({ type:'wall', cells, cost: cells.length, prevCurrentPiece: prevCur, prevNextPiece: prevNext });
+        }
       }
       else {
         const anchor = bestCannonAnchorForPointer();
         placed = placeCannon(anchor.gx, anchor.gy);
+        if(placed){
+          placementHistory.push({ type:'cannon', gx: anchor.gx, gy: anchor.gy, prevCurrentPiece: prevCur, prevNextPiece: prevNext });
+        }
       }
       if(placed){
         if(selectedTool==='wall'){
@@ -659,6 +711,7 @@
         }
         updateHUD();
         draw();
+        updateUndoBtnState();
       }
     }
 
@@ -787,6 +840,8 @@
           selectTool('wall');
         } else if (k==='c'){
           selectTool('cannon');
+        } else if (k==='z'){
+          undoLast();
         }
       }
     });
@@ -1092,7 +1147,10 @@
       // reset enclosed markers
       enclosedMask = null;
       for(const c of cannons){ c.enclosed = false; }
+      // clear undo history for the new build phase
+      placementHistory.length = 0;
       updateHUD();
+      updateUndoBtnState();
     }
     function startBattle(){
       // Begin spawning; phase flips to 'battle' (Attack) on first enemy spawn
@@ -1102,6 +1160,7 @@
       // If the keep is not enclosed at the end of the build phase, end the game
       if(!isKeepEnclosed()){ gameOver('not_enclosed'); return; }
       spawning = true; spawnWave(); updateHUD();
+      updateUndoBtnState();
     }
 
     function updatePhase(dt){
@@ -1164,7 +1223,7 @@
       if(!Images.grass){ const entries = Object.entries(assets); for(const [k,src] of entries){ Images[k] = await loadImg(src); } }
       // Reset state for a new run
       if(spawnIv){ clearInterval(spawnIv); spawnIv=null; }
-      state.bricks = 45; state.keepHP = KEEP_MAX_HP; state.wave = 1; state.kills = 0; state.placedWalls=0; walls.length=0; cannons.length=0; ships.length=0; bullets.length=0; gameOverHandled=false; buildTimer = BUILD_TIME * TIME_FACTOR; spawning=false; waveDoneCheck=0; selectedTool='wall';
+      state.bricks = 45; state.keepHP = KEEP_MAX_HP; state.wave = 1; state.kills = 0; state.placedWalls=0; walls.length=0; cannons.length=0; ships.length=0; bullets.length=0; placementHistory.length=0; gameOverHandled=false; buildTimer = BUILD_TIME * TIME_FACTOR; spawning=false; waveDoneCheck=0; selectedTool='wall';
       startBuild(); running = true;
     }
 

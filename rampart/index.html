@@ -815,22 +815,27 @@
     }
 
     function drawBackground(){
-      if (!Images.grass) return;
-      // Water backdrop
+      // Water backdrop (always draw)
       const grad = ctx.createLinearGradient(0, 0, 0, ROWS*tile);
       grad.addColorStop(0, '#0a2a3f'); grad.addColorStop(1, '#0b1f2e');
       ctx.fillStyle = grad; ctx.fillRect(0,0,COLS*tile, ROWS*tile);
-      // Grass grid
-      for(let y=0;y<ROWS;y++){
-        for(let x=0;x<COLS;x++){
-          ctx.drawImage(Images.grass, x*tile, y*tile, tile, tile);
+
+      // Grass grid (if loaded); otherwise skip without aborting the rest
+      if (Images.grass){
+        for(let y=0;y<ROWS;y++){
+          for(let x=0;x<COLS;x++){
+            ctx.drawImage(Images.grass, x*tile, y*tile, tile, tile);
+          }
         }
       }
-      // Keep
-      const keepSizePx = tile * KEEP_DRAW_TILES;
-      const kx = keepRect.x*tile + (keepRect.w*tile - keepSizePx)/2;
-      const ky = keepRect.y*tile + (keepRect.h*tile - keepSizePx)/2;
-      ctx.drawImage(Images.castle, kx, ky, keepSizePx, keepSizePx);
+
+      // Keep (rounded coords/size to avoid mobile SVG+filter scaling glitches)
+      if (Images.castle){
+        const keepSizePx = Math.round(tile * KEEP_DRAW_TILES);
+        const kx = Math.round(keepRect.x*tile + (keepRect.w*tile - keepSizePx)/2);
+        const ky = Math.round(keepRect.y*tile + (keepRect.h*tile - keepSizePx)/2);
+        ctx.drawImage(Images.castle, kx, ky, keepSizePx, keepSizePx);
+      }
     }
 
     function drawWalls(){

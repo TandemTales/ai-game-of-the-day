@@ -224,6 +224,8 @@
     let currentPiece = null;
     let nextPiece = null;
     let hoverCell = null;
+    // Track precise pointer position (in canvas pixels) for better cannon anchoring
+    let hoverX = null, hoverY = null;
     let longPressTimeout = null;
     let longPressAnimating = false;
     let longPressAnimStart = 0;
@@ -407,6 +409,42 @@
       return true;
     }
 
+    // Choose the 2x2 cannon top-left so the cannon's CENTER is nearest to the pointer
+    function bestCannonAnchorForPointer(){
+      // Fallback to hovered cell if we don't have precise pointer
+      const fallback = hoverCell ? { gx: hoverCell.gx, gy: hoverCell.gy } : { gx: 0, gy: 0 };
+      if (hoverX == null || hoverY == null || tile <= 0) return fallback;
+      const cx = hoverX / tile; // desired center in grid units
+      const cy = hoverY / tile;
+      const centerGX = Math.round(cx);
+      const centerGY = Math.round(cy);
+      const clamp = (v, min, max)=> Math.max(min, Math.min(max, v));
+      const gxMin = 0, gyMin = 0, gxMax = COLS - 2, gyMax = ROWS - 2;
+
+      let best = { gx: fallback.gx, gy: fallback.gy, d2: Number.POSITIVE_INFINITY, valid: false };
+      // Search radius up to 2 cells around the ideal center
+      for (let r = 0; r <= 2; r++){
+        for (let dy = -r; dy <= r; dy++){
+          for (let dx = -r; dx <= r; dx++){
+            const tlx = clamp(centerGX + dx - 1, gxMin, gxMax);
+            const tly = clamp(centerGY + dy - 1, gyMin, gyMax);
+            const ccx = tlx * tile + tile; // center pixel of 2x2 footprint
+            const ccy = tly * tile + tile;
+            const d2 = (ccx - hoverX) * (ccx - hoverX) + (ccy - hoverY) * (ccy - hoverY);
+            const ok = canPlaceCannon(tlx, tly);
+            if (ok){
+              if (!best.valid || d2 < best.d2){ best = { gx: tlx, gy: tly, d2, valid: true }; }
+            } else if (!best.valid && d2 < best.d2){
+              // keep closest even if invalid, as a visual fallback
+              best = { gx: tlx, gy: tly, d2, valid: false };
+            }
+          }
+        }
+        if (best.valid) break; // stop early if we found a valid nearest
+      }
+      return { gx: best.gx, gy: best.gy };
+    }
+
     function placeWall(gx, gy){
       if(!currentPiece) return false;
       if(!canPlacePiece(gx, gy, currentPiece)) return false;
@@ -505,6 +543,7 @@
     }
 
     function updateHover(x, y){
+      hoverX = x; hoverY = y;
       hoverCell = worldToGrid(x,y);
       draw();
     }
@@ -545,7 +584,10 @@
         const anchor = centeredAnchorForPiece(currentPiece, hoverCell.gx, hoverCell.gy);
         placed = placeWall(anchor.gx, anchor.gy);
       }
-      else placed = placeCannon(hoverCell.gx, hoverCell.gy);
+      else {
+        const anchor = bestCannonAnchorForPointer();
+        placed = placeCannon(anchor.gx, anchor.gy);
+      }
       if(placed){
         if(selectedTool==='wall'){
           advancePiece();
@@ -811,10 +853,11 @@
           ctx.restore();
         }
       } else if(selectedTool==='cannon'){
-        const valid = canPlaceCannon(hoverCell.gx, hoverCell.gy);
-        const x = hoverCell.gx * tile;
-        const y = hoverCell.gy * tile;
-        const ringCx = x + tile;
+        const anchor = bestCannonAnchorForPointer();
+        const valid = canPlaceCannon(anchor.gx, anchor.gy);
+        const x = anchor.gx * tile;
+        const y = anchor.gy * tile;
+        const ringCx = x + tile; // center of 2x2 footprint
         const ringCy = y + tile;
         const ringR = tile * (Math.SQRT2 + longPressAnimProgress);
         const scale = longPressAnimating ? 1.6 - 0.6*longPressAnimProgress : 1;

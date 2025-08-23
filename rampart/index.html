@@ -106,8 +106,9 @@
       }
       .toolbar .tool {
         order: 1;
-        flex: 1 1 calc(50% - 8px);
-        min-width: 120px;
+        flex: 0 1 calc(50% - 8px); /* don't grow to full width; allow wrap */
+        max-width: calc(50% - 8px);
+        min-width: 0; /* allow content to shrink so two fit per row */
       }
       .toolbar .instructions {
         order: 2;
@@ -378,9 +379,10 @@
       const topH = Math.ceil(topbarEl.getBoundingClientRect().height);
       const hudH = Math.ceil(hudEl.getBoundingClientRect().height);
       const toolbarH = Math.ceil(toolbar.getBoundingClientRect().height || 0);
-      // On desktop, reserve a bit of extra space so the canvas doesn't sit under the toolbar
-      const extraBottomPad = IS_MOBILE ? 0 : 16;
-      const reservedToolbar = toolbarH + extraBottomPad;
+      // On desktop, include the toolbar's CSS bottom offset (14px) and add an explicit gap (~12px)
+      const toolbarBottomOffset = 14; // matches .toolbar { bottom: 14px }
+      const desktopGap = 12; // desired clear space between board bottom and toolbar top
+      const reservedToolbar = toolbarH + toolbarBottomOffset + (IS_MOBILE ? 0 : desktopGap);
       root.style.setProperty('--toolbar-h', reservedToolbar + 'px');
       const availH = window.innerHeight - topH - hudH - reservedToolbar;
       tile = Math.floor(Math.min(availW / COLS, availH / ROWS));

@@ -255,8 +255,6 @@
     let longPressReady = false;
     let touchMoved = false;
     let touchStartX = 0, touchStartY = 0;
-    // When a long-press begins, freeze the target anchor so movement cannot cancel or change it
-    let pendingPlacement = null; // { type: 'wall'|'cannon', gx, gy }
 
     const LONG_PRESS_DELAY = 600;
     const LONG_PRESS_ANIM_MS = 200;
@@ -616,16 +614,6 @@
       longPressAnimating = true;
       longPressAnimStart = performance.now();
       longPressAnimProgress = 0;
-      // Freeze the intended placement anchor at animation start so it cannot be cancelled or moved
-      if (state.phase==='build' && canPlaceAtHover()){
-        if (selectedTool === 'wall' && currentPiece && hoverCell){
-          const a = centeredAnchorForPiece(currentPiece, hoverCell.gx, hoverCell.gy);
-          pendingPlacement = { type: 'wall', gx: a.gx, gy: a.gy };
-        } else if (selectedTool === 'cannon'){
-          const a = bestCannonAnchorForPointer();
-          pendingPlacement = { type: 'cannon', gx: a.gx, gy: a.gy };
-        }
-      }
       requestAnimationFrame(stepLongPressAnim);
     }
 
@@ -636,9 +624,8 @@
         longPressAnimating = false;
         longPressAnimProgress = 1;
         longPressReady = true;
-        // Automatically place the current item once the long press completes (cannot be cancelled)
+        // Automatically place the current item once the long press completes
         finalizePlacement();
-        pendingPlacement = null;
         // Prevent rotation or re-placement when the touch ends
         longPressReady = false;
         touchMoved = true;
@@ -651,25 +638,17 @@
     }
 
     function finalizePlacement(){
-      if(state.phase !== 'build') return;
+      if(state.phase !== 'build' || !hoverCell) return;
       let placed = false;
-      if(pendingPlacement){
-        if(pendingPlacement.type==='wall'){
-          if(!currentPiece) return;
-          placed = placeWall(pendingPlacement.gx, pendingPlacement.gy);
-        } else if(pendingPlacement.type==='cannon'){
-          placed = placeCannon(pendingPlacement.gx, pendingPlacement.gy);
-        }
-      } else if (hoverCell){
-        if(selectedTool === 'wall'){
-          if(!currentPiece) return;
-          const anchor = centeredAnchorForPiece(currentPiece, hoverCell.gx, hoverCell.gy);
-          placed = placeWall(anchor.gx, anchor.gy);
-        } else {
-          const anchor = bestCannonAnchorForPointer();
-          placed = placeCannon(anchor.gx, anchor.gy);
-        }
-      } else { return; }
+      if(selectedTool === 'wall'){
+        if(!currentPiece) return;
+        const anchor = centeredAnchorForPiece(currentPiece, hoverCell.gx, hoverCell.gy);
+        placed = placeWall(anchor.gx, anchor.gy);
+      }
+      else {
+        const anchor = bestCannonAnchorForPointer();
+        placed = placeCannon(anchor.gx, anchor.gy);
+      }
       if(placed){
         if(selectedTool==='wall'){
           advancePiece();
@@ -680,8 +659,6 @@
         }
         updateHUD();
         draw();
-        // Clear any frozen anchor after a successful placement
-        pendingPlacement = null;
       }
     }
 
@@ -730,8 +707,21 @@
           }, LONG_PRESS_DELAY);
         }
       } else if(longPressAnimating){
-        // Ignore moves while the animation is playing; placement is locked-in
-        // Keep hover updated for visuals, but do not cancel the animation
+        touchMoved = true;
+        longPressAnimating = false;
+        longPressReady = false;
+        if(longPressTimeout){ clearTimeout(longPressTimeout); }
+        longPressTimeout = null;
+        touchStartX = t.clientX;
+        touchStartY = t.clientY;
+        if(canLongPress()){
+          longPressTimeout = setTimeout(()=>{
+            longPressTimeout = null;
+            if (canLongPress() && canPlaceAtHover()) {
+              startLongPressAnimation();
+            }
+          }, LONG_PRESS_DELAY);
+        }
       } else if(Math.abs(t.clientX - touchStartX) > 10 || Math.abs(t.clientY - touchStartY) > 10){
         touchMoved = true;
         if(longPressTimeout){ clearTimeout(longPressTimeout); }
@@ -752,8 +742,10 @@
     function endTouch(e){
       if(longPressTimeout){ clearTimeout(longPressTimeout); longPressTimeout=null; }
       if(longPressAnimating){
-        // Do not cancel; allow animation to complete and place automatically
-      } else if(state.phase==='build'){ 
+          longPressAnimating = false;
+          longPressReady = false;
+          longPressAnimProgress = 0;
+        } else if(state.phase==='build'){ 
         if(selectedTool==='wall' && currentPiece){
           if(longPressReady && !touchMoved){
             finalizePlacement();
@@ -815,27 +807,22 @@
     }
 
     function drawBackground(){
-      // Water backdrop (always draw)
+      if (!Images.grass) return;
+      // Water backdrop
       const grad = ctx.createLinearGradient(0, 0, 0, ROWS*tile);
       grad.addColorStop(0, '#0a2a3f'); grad.addColorStop(1, '#0b1f2e');
       ctx.fillStyle = grad; ctx.fillRect(0,0,COLS*tile, ROWS*tile);
-
-      // Grass grid (if loaded); otherwise skip without aborting the rest
-      if (Images.grass){
-        for(let y=0;y<ROWS;y++){
-          for(let x=0;x<COLS;x++){
-            ctx.drawImage(Images.grass, x*tile, y*tile, tile, tile);
-          }
+      // Grass grid
+      for(let y=0;y<ROWS;y++){
+        for(let x=0;x<COLS;x++){
+          ctx.drawImage(Images.grass, x*tile, y*tile, tile, tile);
         }
       }
-
-      // Keep (rounded coords/size to avoid mobile SVG+filter scaling glitches)
-      if (Images.castle){
-        const keepSizePx = Math.round(tile * KEEP_DRAW_TILES);
-        const kx = Math.round(keepRect.x*tile + (keepRect.w*tile - keepSizePx)/2);
-        const ky = Math.round(keepRect.y*tile + (keepRect.h*tile - keepSizePx)/2);
-        ctx.drawImage(Images.castle, kx, ky, keepSizePx, keepSizePx);
-      }
+      // Keep
+      const keepSizePx = tile * KEEP_DRAW_TILES;
+      const kx = keepRect.x*tile + (keepRect.w*tile - keepSizePx)/2;
+      const ky = keepRect.y*tile + (keepRect.h*tile - keepSizePx)/2;
+      ctx.drawImage(Images.castle, kx, ky, keepSizePx, keepSizePx);
     }
 
     function drawWalls(){
@@ -902,10 +889,7 @@
       if(state.phase!=='build' || !hoverCell) return;
       if(selectedTool==='wall'){
         if(!currentPiece) return;
-        // Use frozen anchor if long-press placement has started
-        const anchor = (pendingPlacement && pendingPlacement.type==='wall')
-          ? { gx: pendingPlacement.gx, gy: pendingPlacement.gy }
-          : centeredAnchorForPiece(currentPiece, hoverCell.gx, hoverCell.gy);
+        const anchor = centeredAnchorForPiece(currentPiece, hoverCell.gx, hoverCell.gy);
         const valid = canPlacePiece(anchor.gx, anchor.gy, currentPiece);
         const imgAlpha = valid ? 0.85 : 0.45;
         const fillCol = valid ? 'rgba(50,205,50,0.22)' : 'rgba(255,64,64,0.22)';
@@ -948,10 +932,7 @@
           ctx.restore();
         }
       } else if(selectedTool==='cannon'){
-        // Use frozen anchor if long-press placement has started
-        const anchor = (pendingPlacement && pendingPlacement.type==='cannon')
-          ? { gx: pendingPlacement.gx, gy: pendingPlacement.gy }
-          : bestCannonAnchorForPointer();
+        const anchor = bestCannonAnchorForPointer();
         const valid = canPlaceCannon(anchor.gx, anchor.gy);
         const x = anchor.gx * tile;
         const y = anchor.gy * tile;

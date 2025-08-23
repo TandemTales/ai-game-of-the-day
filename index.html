@@ -234,6 +234,20 @@
             color: #5F9EA0;
             font-size: 12px;
         }
+
+        /* Row for action buttons under each game */
+        .actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            margin: 10px 0;
+        }
+        .actions .play-btn,
+        .actions .leaderboard-btn {
+            margin: 6px 0; /* override bigger default margins so row looks tight */
+        }
 	</style>
 </head>
 <body>
@@ -258,7 +272,6 @@
              after it. This preserves the rating system when rotating featured games. -->
         <div class="featured">
             <h2>Featured Game: Bastion Builder</h2>
-            <div class="date-info">Created: August 15, 2025</div>
             <p>Rebuild your castle walls and deploy cannons to defend the keep against incoming ships. Built for touch and desktop with crisp artwork and smooth arcade action.</p>
             <a href="rampart/index.html" class="play-btn">Play Now!</a>
             <a href="leaderboard.html?gameId=rampart" class="leaderboard-btn">View Leaderboard</a>
@@ -293,7 +306,10 @@
                     <span data-star="5">★</span>
                 </div>
                 <span class="score"></span>
-                <a href="leaderboard.html?gameId=aurora-tower-defense" class="leaderboard-btn">View Leaderboard</a>
+                <div class="actions">
+                        <a href="aurora-tower-defense/index.html" class="play-btn">Play Now!</a>
+                        <a href="leaderboard.html?gameId=aurora-tower-defense" class="leaderboard-btn">View Leaderboard</a>
+                </div>
             </li>
             <li data-id="neon-brick-breaker"><a href="neon-brick-breaker/index.html">Neon Brick Breaker</a>
                 <div class="rate">
@@ -304,7 +320,10 @@
                     <span data-star="5">★</span>
                 </div>
                 <span class="score"></span>
-                <a href="leaderboard.html?gameId=neon-brick-breaker" class="leaderboard-btn">View Leaderboard</a>
+                <div class="actions">
+                        <a href="neon-brick-breaker/index.html" class="play-btn">Play Now!</a>
+                        <a href="leaderboard.html?gameId=neon-brick-breaker" class="leaderboard-btn">View Leaderboard</a>
+                </div>
             </li>
 			<li data-id="ocean-explorer"><a href="ocean-explorer/index.html">Ocean Explorer</a>
 				<div class="rate">
@@ -315,7 +334,10 @@
 					<span data-star="5">★</span>
 				</div>
 				<span class="score"></span>
-				<a href="leaderboard.html?gameId=ocean-explorer" class="leaderboard-btn">View Leaderboard</a>
+				<div class="actions">
+						<a href="ocean-explorer/index.html" class="play-btn">Play Now!</a>
+						<a href="leaderboard.html?gameId=ocean-explorer" class="leaderboard-btn">View Leaderboard</a>
+				</div>
 			</li>
 			<li data-id="memory-match"><a href="memory-match/index.html">Memory Match</a>
 				<div class="rate">
@@ -326,9 +348,12 @@
 					<span data-star="5">★</span>
 				</div>
 				<span class="score"></span>
-				<a href="leaderboard.html?gameId=memory-match" class="leaderboard-btn">View Leaderboard</a>
+				<div class="actions">
+						<a href="memory-match/index.html" class="play-btn">Play Now!</a>
+						<a href="leaderboard.html?gameId=memory-match" class="leaderboard-btn">View Leaderboard</a>
+				</div>
 			</li>
-		</ul>
+        </ul>
 	</div>
 
        <script>

@@ -301,6 +301,27 @@
       selectedTool = item.dataset.type;
     });
 
+    // Desktop-only: underline hotkeys in labels (W = Wall, C = Cannon)
+    function applyDesktopHotkeyHints(){
+      if (IS_MOBILE) return;
+      const wallEl = toolbar.querySelector('.tool[data-type="wall"] > div:last-child');
+      const cannonEl = toolbar.querySelector('.tool[data-type="cannon"] > div:last-child');
+      const wallCost = toolbar.querySelector('.tool[data-type="wall"]').dataset.cost || '1';
+      const cannonCost = toolbar.querySelector('.tool[data-type="cannon"]').dataset.cost || '6';
+      if (wallEl) wallEl.innerHTML = '<u>W</u>all ' + wallCost;
+      if (cannonEl) cannonEl.innerHTML = '<u>C</u>annon ' + cannonCost;
+    }
+    applyDesktopHotkeyHints();
+
+    // Helper to programmatically select a tool
+    function selectTool(type){
+      const item = toolbar.querySelector(`.tool[data-type="${type}"]`);
+      if(!item) return;
+      for(const el of toolbar.querySelectorAll('.tool')) el.classList.remove('selected');
+      item.classList.add('selected');
+      selectedTool = type;
+    }
+
     function buildHowTo(){
       howToContent.innerHTML = `
         <p>Bastion Builder, built for touch and desktop. Each round has two phases:</p>
@@ -702,10 +723,20 @@
     overlay.addEventListener('touchstart', (e)=>{ e.preventDefault(); start(); }, {passive:false});
 
     window.addEventListener('keydown', (e)=>{
-      if(state.phase==='build' && selectedTool==='wall' && e.key==='r'){
+      const k = (e.key || '').toLowerCase();
+      // Rotate current wall piece (desktop tip already mentions R)
+      if(state.phase==='build' && selectedTool==='wall' && k==='r'){
         currentPiece = rotatePiece(currentPiece);
         draw();
         drawCurrentPreview();
+        return;
+      }
+      if (!IS_MOBILE){
+        if (k==='w'){
+          selectTool('wall');
+        } else if (k==='c'){
+          selectTool('cannon');
+        }
       }
     });
 

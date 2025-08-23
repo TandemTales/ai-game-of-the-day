@@ -97,6 +97,24 @@
         padding-right: max(8px, env(safe-area-inset-right, 0px));
         flex-wrap: wrap; justify-content: center; gap: 8px 16px;
       }
+      .toolbar {
+        box-sizing: border-box;
+        width: calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 12px);
+        padding-left: max(6px, env(safe-area-inset-left, 0px));
+        padding-right: max(6px, env(safe-area-inset-right, 0px));
+        justify-content: center;
+      }
+      .toolbar .tool {
+        order: 1;
+        flex: 1 1 calc(50% - 8px);
+        min-width: 120px;
+      }
+      .toolbar .instructions {
+        order: 2;
+        flex: 1 0 100%;
+        max-width: none;
+        text-align: center;
+      }
     }
   </style>
 </head>
@@ -241,6 +259,20 @@
       return state.phase==='build' && ((selectedTool==='wall' && currentPiece) || selectedTool==='cannon');
     }
 
+    // Determine if a placement is currently possible at the hover/anchor position
+    function canPlaceAtHover(){
+      if (!hoverCell) return false;
+      if (selectedTool === 'wall'){
+        if (!currentPiece) return false;
+        const anchor = centeredAnchorForPiece(currentPiece, hoverCell.gx, hoverCell.gy);
+        return canPlacePiece(anchor.gx, anchor.gy, currentPiece);
+      } else if (selectedTool === 'cannon'){
+        const anchor = bestCannonAnchorForPointer();
+        return canPlaceCannon(anchor.gx, anchor.gy);
+      }
+      return false;
+    }
+
     function genPiece(bricks){
       if(bricks<=0) return null;
       let piece, attempts=0;
@@ -346,8 +378,11 @@
       const topH = Math.ceil(topbarEl.getBoundingClientRect().height);
       const hudH = Math.ceil(hudEl.getBoundingClientRect().height);
       const toolbarH = Math.ceil(toolbar.getBoundingClientRect().height || 0);
-      root.style.setProperty('--toolbar-h', toolbarH + 'px');
-      const availH = window.innerHeight - topH - hudH - toolbarH;
+      // On desktop, reserve a bit of extra space so the canvas doesn't sit under the toolbar
+      const extraBottomPad = IS_MOBILE ? 0 : 16;
+      const reservedToolbar = toolbarH + extraBottomPad;
+      root.style.setProperty('--toolbar-h', reservedToolbar + 'px');
+      const availH = window.innerHeight - topH - hudH - reservedToolbar;
       tile = Math.floor(Math.min(availW / COLS, availH / ROWS));
       const w = COLS*tile, h = ROWS*tile;
       canvas.style.width = w+'px'; canvas.style.height = h+'px';
@@ -639,7 +674,9 @@
       if(canLongPress()){
         longPressTimeout = setTimeout(()=>{
           longPressTimeout = null;
-          startLongPressAnimation();
+          if (canLongPress() && canPlaceAtHover()) {
+            startLongPressAnimation();
+          }
         }, LONG_PRESS_DELAY);
       }
       e.preventDefault();
@@ -659,7 +696,9 @@
         if(canLongPress()){
           longPressTimeout = setTimeout(()=>{
             longPressTimeout = null;
-            startLongPressAnimation();
+            if (canLongPress() && canPlaceAtHover()) {
+              startLongPressAnimation();
+            }
           }, LONG_PRESS_DELAY);
         }
       } else if(longPressAnimating){
@@ -673,7 +712,9 @@
         if(canLongPress()){
           longPressTimeout = setTimeout(()=>{
             longPressTimeout = null;
-            startLongPressAnimation();
+            if (canLongPress() && canPlaceAtHover()) {
+              startLongPressAnimation();
+            }
           }, LONG_PRESS_DELAY);
         }
       } else if(Math.abs(t.clientX - touchStartX) > 10 || Math.abs(t.clientY - touchStartY) > 10){
@@ -685,7 +726,9 @@
         if(canLongPress()){
           longPressTimeout = setTimeout(()=>{
             longPressTimeout = null;
-            startLongPressAnimation();
+            if (canLongPress() && canPlaceAtHover()) {
+              startLongPressAnimation();
+            }
           }, LONG_PRESS_DELAY);
         }
       }

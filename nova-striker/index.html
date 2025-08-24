@@ -209,14 +209,14 @@
       if (isBossWave(n)) {
         // Create a unique boss for waves 3, 6, 9
         const idx = Math.floor(n / 3); // 1,2,3
-        const bossHP = idx === 1 ? 28 : (idx === 2 ? 45 : 65);
+        const bossHP = idx === 1 ? 56 : (idx === 2 ? 90 : 130);
         const bossW = idx === 1 ? 140 : (idx === 2 ? 160 : 180);
         const bossH = idx === 1 ? 120 : (idx === 2 ? 135 : 150);
         const bossScore = idx === 1 ? 1500 : (idx === 2 ? 2500 : 4000);
         enemies.push({
           x: W/2, y: -160,
           w: bossW, h: bossH, hp: bossHP, type: 'X' + idx, boss: true, t: 0, fireT: 0, spawnT: 0, phase: 0,
-          pat: { amp: 130, freq: 0.5 + idx*0.1, vy: 1.4 - idx*0.2 },
+          pat: { amp: 130, freq: 0.5 + idx*0.1, vy: (1.4 - idx*0.2) * 2 },
           score: bossScore
         });
       } else {

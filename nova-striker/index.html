@@ -254,15 +254,11 @@
       // Stars
       for (const s of stars) { s.y += s.spd * (1 + wave*0.05); if (s.y > H) { s.y = -4; s.x = Math.random()*W; } }
 
-      // Enemies
-      let alive = 0;
+      // Enemies: move/animate only here; shooting happens later after collisions
       for (const e of enemies) {
         e.t += dt;
         const sway = Math.sin(e.t * e.pat.freq) * e.pat.amp;
         e.y += e.pat.vy; e.x += sway * 0.04;
-        if (e.type === 'F') enemyShoot(e, 0.004 + wave*0.0008);
-        else enemyShoot(e, 0.006 + wave*0.0012);
-        if (e.y < H + 80 && e.hp > 0) alive++;
       }
 
       // Bullets
@@ -296,6 +292,13 @@
         if (e.hp <= 0) continue;
         if (Math.abs(e.x - P.x) < (P.w*0.45) && Math.abs(e.y - P.y) < (P.h*0.45)) { e.hp = 0; hitPlayer(); }
         if (e.y > H + 40) { e.hp = 0; }
+      }
+
+      // Enemy shooting (after collisions so dead enemies don't fire this frame)
+      for (const e of enemies) {
+        if (e.hp <= 0 || e.y >= H + 80) continue;
+        if (e.type === 'F') enemyShoot(e, 0.004 + wave*0.0008);
+        else enemyShoot(e, 0.006 + wave*0.0012);
       }
 
       // Next wave

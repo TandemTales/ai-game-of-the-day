@@ -115,12 +115,18 @@
       enemyB: new Image(),
       bullet: new Image(),
       eBullet: new Image(),
+      boss1: new Image(),
+      boss2: new Image(),
+      boss3: new Image(),
     };
     SPRITES.player.src = 'assets/ns_player.svg';
     SPRITES.enemyF.src = 'assets/ns_enemy_fighter.svg';
     SPRITES.enemyB.src = 'assets/ns_enemy_bomber.svg';
     SPRITES.bullet.src = 'assets/ns_bullet.svg';
     SPRITES.eBullet.src = 'assets/ns_enemy_bullet.svg';
+    SPRITES.boss1.src = 'assets/ns_boss_1.svg';
+    SPRITES.boss2.src = 'assets/ns_boss_2.svg';
+    SPRITES.boss3.src = 'assets/ns_boss_3.svg';
 
     let loaded = 0; const needed = Object.keys(SPRITES).length;
     for (const k in SPRITES) SPRITES[k].addEventListener('load', () => { if (++loaded === needed) init(); });
@@ -492,12 +498,15 @@
       // Enemies
       for (const e of enemies) if (e.hp > 0) {
         if (e.boss) {
-          // Reuse bomber sprite but larger; add glow ring
+          // Boss glow ring
           ctx.save();
           ctx.beginPath(); ctx.arc(e.x, e.y, Math.max(e.w, e.h)*0.6, 0, Math.PI*2);
           ctx.strokeStyle = 'rgba(0,229,255,0.25)'; ctx.lineWidth = 6; ctx.stroke(); ctx.restore();
         }
-        drawSprite((e.type==='F')?SPRITES.enemyF:SPRITES.enemyB, e.x, e.y, e.w, e.h);
+        const img = e.boss
+          ? (e.type === 'X1' ? SPRITES.boss1 : (e.type === 'X2' ? SPRITES.boss2 : SPRITES.boss3))
+          : ((e.type === 'F') ? SPRITES.enemyF : SPRITES.enemyB);
+        drawSprite(img, e.x, e.y, e.w, e.h);
       }
 
       // Player

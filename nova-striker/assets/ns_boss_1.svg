@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffa94d"/>
+      <stop offset="100%" stop-color="#ff1e56"/>
+    </linearGradient>
+    <radialGradient id="core1" cx="50%" cy="40%" r="40%">
+      <stop offset="0%" stop-color="#fff" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#ffd700" stop-opacity="0.2"/>
+    </radialGradient>
+    <filter id="glow1" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#glow1)">
+    <!-- Arrowhead hull -->
+    <path d="M100 18 L160 110 L100 96 L40 110 Z" fill="url(#g1)" stroke="#ffd700" stroke-width="3"/>
+    <!-- Central fuselage -->
+    <rect x="76" y="96" width="48" height="30" rx="6" fill="#ff6f91" opacity="0.85" stroke="#ffd700" stroke-width="2"/>
+    <!-- Side fins -->
+    <path d="M40 110 L20 130 L42 126 L50 152 L64 118 Z" fill="#ff4d6d" fill-opacity="0.7" stroke="#ffd700" stroke-width="2"/>
+    <path d="M160 110 L180 130 L158 126 L150 152 L136 118 Z" fill="#ff4d6d" fill-opacity="0.7" stroke="#ffd700" stroke-width="2"/>
+    <!-- Core -->
+    <circle cx="100" cy="86" r="14" fill="url(#core1)" stroke="#ffe680" stroke-width="2"/>
+  </g>
+</svg>

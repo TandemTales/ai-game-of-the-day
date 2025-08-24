@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 200">
+  <defs>
+    <linearGradient id="g3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff8efb"/>
+      <stop offset="100%" stop-color="#8e2de2"/>
+    </linearGradient>
+    <radialGradient id="core3" cx="50%" cy="42%" r="42%">
+      <stop offset="0%" stop-color="#fff" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#ff9cf5" stop-opacity="0.18"/>
+    </radialGradient>
+    <filter id="glow3" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="3.2" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#glow3)">
+    <!-- Broad mothership hull with angular wings for final boss -->
+    <path d="M110 16 L188 74 L160 86 L110 76 L60 86 L32 74 Z" fill="url(#g3)" stroke="#ffd700" stroke-width="3"/>
+    <!-- Central body -->
+    <ellipse cx="110" cy="110" rx="58" ry="42" fill="url(#g3)" opacity="0.9" stroke="#ffd700" stroke-width="3"/>
+    <!-- Underslung prongs -->
+    <path d="M60 86 L46 128 L66 118 L74 144 L86 112 Z" fill="#ff4d6d" fill-opacity="0.7" stroke="#ffd700" stroke-width="2"/>
+    <path d="M160 86 L174 128 L154 118 L146 144 L134 112 Z" fill="#ff4d6d" fill-opacity="0.7" stroke="#ffd700" stroke-width="2"/>
+    <!-- Antennae -->
+    <g stroke="#ffd700" stroke-width="2" fill="none">
+      <path d="M110 16 L110 36"/>
+      <path d="M110 36 Q120 44 116 56"/>
+      <path d="M110 36 Q100 44 104 56"/>
+    </g>
+    <!-- Core -->
+    <circle cx="110" cy="96" r="16" fill="url(#core3)" stroke="#ffe680" stroke-width="2"/>
+  </g>
+</svg>

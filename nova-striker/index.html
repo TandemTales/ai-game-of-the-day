@@ -194,30 +194,47 @@
       if (!running) { hideOverlay(); running = true; }
     }
 
+    function isBossWave(n) { return n % 3 === 0; }
+
     function setupWave(n) {
       wave = n; waveEl.textContent = wave;
       enemies = [];
-      // Pattern: rows of fighters plus a few bombers with sine motion
-      const cols = 6 + Math.min(4, Math.floor((n-1)/2));
-      const rows = 2 + Math.min(2, Math.floor((n-1)/3));
-      const gapX = 90, gapY = 70;
-      const startX = (W - (cols-1)*gapX) / 2;
-      for (let r=0; r<rows; r++) {
-        for (let c=0; c<cols; c++) {
-          enemies.push({
-            x: startX + c*gapX, y: -120 - r*gapY,
-            w: 48, h: 46, hp: 1 + Math.floor((n-1)/3), type: 'F', t: Math.random()*6.28,
-            pat: { amp: 30 + 8*r, freq: 1.1 + r*0.15, vy: 1.4 + n*0.1 }
-          });
+      bullets = [];
+      if (isBossWave(n)) {
+        // Create a unique boss for waves 3, 6, 9
+        const idx = Math.floor(n / 3); // 1,2,3
+        const bossHP = idx === 1 ? 28 : (idx === 2 ? 45 : 65);
+        const bossW = idx === 1 ? 140 : (idx === 2 ? 160 : 180);
+        const bossH = idx === 1 ? 120 : (idx === 2 ? 135 : 150);
+        const bossScore = idx === 1 ? 1500 : (idx === 2 ? 2500 : 4000);
+        enemies.push({
+          x: W/2, y: -160,
+          w: bossW, h: bossH, hp: bossHP, type: 'X' + idx, boss: true, t: 0, fireT: 0, spawnT: 0, phase: 0,
+          pat: { amp: 130, freq: 0.5 + idx*0.1, vy: 1.4 - idx*0.2 },
+          score: bossScore
+        });
+      } else {
+        // Pattern: rows of fighters plus a few bombers with sine motion
+        const cols = 6 + Math.min(4, Math.floor((n-1)/2));
+        const rows = 2 + Math.min(2, Math.floor((n-1)/3));
+        const gapX = 90, gapY = 70;
+        const startX = (W - (cols-1)*gapX) / 2;
+        for (let r=0; r<rows; r++) {
+          for (let c=0; c<cols; c++) {
+            enemies.push({
+              x: startX + c*gapX, y: -120 - r*gapY,
+              w: 48, h: 46, hp: 1 + Math.floor((n-1)/3), type: 'F', t: Math.random()*6.28,
+              pat: { amp: 30 + 8*r, freq: 1.1 + r*0.15, vy: 1.4 + n*0.1 }
+            });
+          }
+        }
+        // Add a few bombers
+        const bombers = Math.min(3 + Math.floor(n/2), 7);
+        for (let i=0; i<bombers; i++) {
+          enemies.push({ x: Math.random()*W, y: -300 - i*120, w: 56, h: 54, hp: 2 + Math.floor(n/2), type: 'B', t: Math.random()*6.28,
+            pat: { amp: 60, freq: 0.7, vy: 1.0 + n*0.12 } });
         }
       }
-      // Add a few bombers
-      const bombers = Math.min(3 + Math.floor(n/2), 7);
-      for (let i=0; i<bombers; i++) {
-        enemies.push({ x: Math.random()*W, y: -300 - i*120, w: 56, h: 54, hp: 2 + Math.floor(n/2), type: 'B', t: Math.random()*6.28,
-          pat: { amp: 60, freq: 0.7, vy: 1.0 + n*0.12 } });
-      }
-      bullets = [];
     }
 
     function makeStars() {
@@ -242,6 +259,60 @@
       }
     }
 
+    // Boss attack patterns
+    function bossShoot1(e, dt) {
+      // Wave 3 boss: aimed triple spread
+      e.fireT += dt;
+      if (e.fireT >= 0.6) {
+        e.fireT = 0;
+        const base = Math.atan2(P.y - e.y, P.x - e.x);
+        const speeds = [7.2, 7.0, 7.2];
+        const offsets = [-0.18, 0, 0.18];
+        for (let i=0;i<3;i++) {
+          const ang = base + offsets[i];
+          bullets.push({ x: e.x, y: e.y + e.h*0.3, vx: Math.cos(ang)*speeds[i], vy: Math.sin(ang)*speeds[i], good: false });
+        }
+      }
+    }
+
+    function bossShoot2(e, dt) {
+      // Wave 6 boss: rotating radial rings
+      e.fireT += dt; e.phase += dt * 0.6;
+      if (e.fireT >= 1.1) {
+        e.fireT = 0;
+        const N = 14;
+        for (let i=0;i<N;i++) {
+          const ang = e.phase + (i * (Math.PI*2/N));
+          bullets.push({ x: e.x, y: e.y + e.h*0.25, vx: Math.cos(ang)*4.2, vy: Math.sin(ang)*4.2, good: false });
+        }
+      }
+    }
+
+    function bossShoot3(e, dt) {
+      // Wave 9 boss: spawns minions + fast aimed salvos
+      e.fireT += dt; e.spawnT += dt;
+      // Aimed 5-shot fan
+      if (e.fireT >= 0.9) {
+        e.fireT = 0;
+        const base = Math.atan2(P.y - e.y, P.x - e.x);
+        for (let i=-2;i<=2;i++) {
+          const ang = base + i*0.12;
+          bullets.push({ x: e.x, y: e.y + e.h*0.3, vx: Math.cos(ang)*6.5, vy: Math.sin(ang)*6.5, good: false });
+        }
+      }
+      // Spawn fighters from top edges, up to a cap
+      if (e.spawnT >= 3.5) {
+        e.spawnT = 0;
+        const activeAdds = enemies.filter(en => !en.boss && en.hp > 0 && en.y < H+40).length;
+        if (activeAdds < 10) {
+          const spawn = (x) => enemies.push({ x, y: -80, w: 48, h: 46, hp: 1 + Math.floor((wave-1)/3), type: 'F', t: 0,
+            pat: { amp: 20 + Math.random()*30, freq: 0.9, vy: 1.6 + wave*0.12 } });
+          spawn(40 + Math.random()*120);
+          spawn(W - (40 + Math.random()*120));
+        }
+      }
+    }
+
     function update(dt) {
       // Player move
       const spd = P.speed * (1 + wave*0.04);
@@ -259,6 +330,8 @@
         e.t += dt;
         const sway = Math.sin(e.t * e.pat.freq) * e.pat.amp;
         e.y += e.pat.vy; e.x += sway * 0.04;
+        // Bosses settle into the arena
+        if (e.boss && e.y > 160) e.pat.vy = 0;
         // Keep enemies within horizontal bounds
         e.x = Math.max(e.w/2, Math.min(W - e.w/2, e.x));
       }
@@ -274,7 +347,8 @@
           if (Math.abs(b.x - e.x) < (e.w/2) && Math.abs(b.y - e.y) < (e.h/2)) {
             e.hp -= 1; b.y = -9999; // remove
             if (e.hp <= 0) {
-              score += e.type === 'F' ? 100 : 250; scoreEl.textContent = score;
+              const add = (e.type === 'F') ? 100 : (e.type === 'B' ? 250 : (e.score || 2000));
+              score += add; scoreEl.textContent = score;
             }
             break;
           }
@@ -300,13 +374,26 @@
       for (const e of enemies) {
         // Only shoot when alive and fully visible (top edge on-screen), and not far below screen
         if (e.hp <= 0 || e.y < e.h/2 || e.y >= H + 80) continue;
-        if (e.type === 'F') enemyShoot(e, 0.004 + wave*0.0008);
-        else enemyShoot(e, 0.006 + wave*0.0012);
+        if (e.boss) {
+          if (e.type === 'X1') bossShoot1(e, dt);
+          else if (e.type === 'X2') bossShoot2(e, dt);
+          else bossShoot3(e, dt);
+        } else {
+          if (e.type === 'F') enemyShoot(e, 0.004 + wave*0.0008);
+          else enemyShoot(e, 0.006 + wave*0.0012);
+        }
       }
 
       // Next wave
       if (!enemies.some(e => e.hp > 0 && e.y < H + 40)) {
-        running = false; setupWave(wave + 1); showOverlay('Wave ' + wave, 'Tap/Click or press Space to launch');
+        if (wave >= 9) {
+          victory();
+        } else {
+          running = false;
+          setupWave(wave + 1);
+          const label = isBossWave(wave) ? ('Boss Wave ' + (Math.floor(wave/3))) : ('Wave ' + wave);
+          showOverlay(label, 'Tap/Click or press Space to launch');
+        }
       }
     }
 
@@ -316,12 +403,19 @@
       if (lives <= 0) {
         running = false;
         showOverlay('Game Over', 'Press Space to restart');
-        if (!gameOverHandled) { gameOverHandled = true; maybeSubmitLeaderboard().catch(console.error); }
+        if (!gameOverHandled) { gameOverHandled = true; maybeSubmitLeaderboard(false).catch(console.error); }
         window.addEventListener('keydown', restartOnce, { once: true });
       } else {
         // brief invuln by pausing
         running = false; showOverlay('Hit!', 'Tap/Click or press Space to relaunch');
       }
+    }
+
+    function victory() {
+      running = false;
+      showOverlay('You Won!', 'Press Space to restart');
+      if (!gameOverHandled) { gameOverHandled = true; maybeSubmitLeaderboard(true).catch(console.error); }
+      window.addEventListener('keydown', restartOnce, { once: true });
     }
 
     function restartOnce(e) {
@@ -331,7 +425,7 @@
       }
     }
 
-    async function maybeSubmitLeaderboard() {
+    async function maybeSubmitLeaderboard(won=false) {
       let dest = `../leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
       try {
         const res = await fetch(`/api/leaderboard/rank?gameId=${encodeURIComponent(GAME_ID)}&score=${encodeURIComponent(score)}`, { headers: { 'Accept': 'application/json' } });
@@ -340,7 +434,8 @@
           const rank = Number(data?.rank);
           const qualifies = Number.isFinite(rank) && rank > 0 && rank <= 20;
           if (qualifies) {
-            let name = prompt(`New High Score! You placed #${rank}. Enter your name (max 20 chars):`, '');
+            const prefix = won ? 'You Won! ' : '';
+            let name = prompt(`${prefix}New High Score! You placed #${rank}. Enter your name (max 20 chars):`, '');
             if (name != null) {
               name = name.trim().replace(/[^\w \-'.!]/g, '').slice(0, 20);
               if (name) {
@@ -375,6 +470,19 @@
 
     function drawSprite(img, x, y, w, h) { ctx.drawImage(img, x - w/2, y - h/2, w, h); }
 
+    function drawBossBar(b) {
+      const pad = 12;
+      const x = pad, y = pad, w = W - pad*2, h = 12;
+      const pct = Math.max(0, Math.min(1, b.hp / (b.maxHp || b.hp)));
+      // Store maxHp once
+      if (!b.maxHp) b.maxHp = b.hp;
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = 'rgba(255,215,0,0.65)'; ctx.lineWidth = 2; ctx.strokeRect(x-1, y-1, w+2, h+2);
+      ctx.fillStyle = '#ff4d6d'; ctx.fillRect(x, y, w*pct, h);
+      ctx.restore();
+    }
+
     let lastTime = 0;
     function draw(ts=0) {
       const dt = Math.min(0.05, (ts - lastTime) / 1000) || 0.016; lastTime = ts;
@@ -382,13 +490,25 @@
       drawStars();
 
       // Enemies
-      for (const e of enemies) if (e.hp > 0) drawSprite(e.type==='F'?SPRITES.enemyF:SPRITES.enemyB, e.x, e.y, e.w, e.h);
+      for (const e of enemies) if (e.hp > 0) {
+        if (e.boss) {
+          // Reuse bomber sprite but larger; add glow ring
+          ctx.save();
+          ctx.beginPath(); ctx.arc(e.x, e.y, Math.max(e.w, e.h)*0.6, 0, Math.PI*2);
+          ctx.strokeStyle = 'rgba(0,229,255,0.25)'; ctx.lineWidth = 6; ctx.stroke(); ctx.restore();
+        }
+        drawSprite((e.type==='F')?SPRITES.enemyF:SPRITES.enemyB, e.x, e.y, e.w, e.h);
+      }
 
       // Player
       drawSprite(SPRITES.player, P.x, P.y, P.w, P.h);
 
       // Bullets
       for (const b of bullets) drawSprite(b.good?SPRITES.bullet:SPRITES.eBullet, b.x, b.y, b.good?B.w:EB.w, b.good?B.h:EB.h);
+
+      // Boss HUD
+      const bossAlive = enemies.find(e => e.boss && e.hp > 0);
+      if (bossAlive) drawBossBar(bossAlive);
 
       if (running && !paused) update(dt);
       requestAnimationFrame(draw);

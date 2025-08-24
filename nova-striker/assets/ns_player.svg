@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#00f2ff"/>
+      <stop offset="100%" stop-color="#0066ff"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#glow)">
+    <!-- Body -->
+    <path d="M32 2 L44 28 L32 24 L20 28 Z" fill="url(#g1)" stroke="#ffd700" stroke-width="2"/>
+    <!-- Wings -->
+    <path d="M20 28 L6 40 L20 38 L24 46 L28 34 Z" fill="#00e5ff" fill-opacity="0.6" stroke="#ffd700" stroke-width="1.5"/>
+    <path d="M44 28 L58 40 L44 38 L40 46 L36 34 Z" fill="#00e5ff" fill-opacity="0.6" stroke="#ffd700" stroke-width="1.5"/>
+    <!-- Cockpit -->
+    <ellipse cx="32" cy="20" rx="6" ry="8" fill="#ffffff" fill-opacity="0.8" stroke="#00e5ff" stroke-width="1"/>
+    <!-- Engine glow -->
+    <path d="M28 48 L32 62 L36 48 Z" fill="#ff4d6d" fill-opacity="0.8"/>
+  </g>
+</svg>

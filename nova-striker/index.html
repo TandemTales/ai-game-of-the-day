@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nova Striker - Bot Built Arcade</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
+  <style>
+    :root {
+      --gold: #FFD700;
+      --teal: #5F9EA0;
+      --ink: #F5F5DC;
+      --bg1: #0b0f1a;
+      --bg2: #121a2a;
+      --accent: #ff4d6d;
+      --neon: #00e5ff;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 30% 10%, rgba(0,229,255,0.08), transparent 50%),
+                  radial-gradient(circle at 80% 70%, rgba(255,77,109,0.07), transparent 50%),
+                  linear-gradient(135deg, var(--bg1), var(--bg2));
+      color: var(--ink);
+      font-family: 'Press Start 2P', cursive;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    #wrap { width: min(100%, 980px); padding: 20px; }
+    .panel {
+      background: rgba(0,0,0,0.78);
+      border: 4px solid var(--gold);
+      border-radius: 16px;
+      box-shadow: 0 0 40px rgba(255,215,0,0.25);
+      padding: 18px;
+    }
+    header {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
+    }
+    .title { display:flex; align-items:center; gap:12px; }
+    .title h1 {
+      margin: 0; font-size: 22px; letter-spacing: 1px;
+      background: linear-gradient(90deg, var(--gold), #ffa500);
+      background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .meta { font-size: 12px; color: var(--teal); }
+    .btn { display:inline-block; text-decoration:none; color:#fff; border:2px solid var(--gold);
+      background: linear-gradient(45deg, var(--teal), #4682B4); padding:10px 14px; border-radius:10px;
+      box-shadow: 0 4px 15px rgba(95,158,160,0.4); transition: transform .15s ease, box-shadow .15s ease; font-size:12px; white-space:nowrap; }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(95,158,160,0.6); }
+
+    .hud { display:flex; align-items:center; justify-content: space-between; margin: 8px 0 12px; font-size:12px; color:#9fe; }
+
+    .stage { position:relative; background:
+        radial-gradient(circle at 50% 20%, rgba(0,229,255,0.06), rgba(0,0,0,0.25)),
+        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.2)), #060910;
+      border-radius: 14px; border: 2px solid rgba(0,229,255,0.25); box-shadow: inset 0 0 30px rgba(0,229,255,0.25);
+      padding: 12px; }
+    canvas { width: 100%; height: auto; display:block; background: transparent; touch-action: none; }
+
+    .overlay { position:absolute; inset:12px; display:none; align-items:center; justify-content:center; text-align:center; border-radius:10px; background: rgba(0,0,0,0.6); border:2px dashed rgba(255,215,0,0.4); touch-action:none; }
+    .overlay.show { display:flex; }
+    .overlay h2 { margin:0 0 12px; font-size:18px; color: var(--gold); }
+    .overlay p { margin:4px 0; font-size:12px; color:#9fd; }
+    .controls { margin-top: 10px; font-size: 11px; color:#8ec; opacity: .9; }
+
+    @media (max-width: 560px) { .title h1{font-size:18px;} .meta{display:none;} .btn{font-size:10px; padding:8px 10px;} }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <div class="panel">
+      <header>
+        <div class="title">
+          <img src="../images/botbuiltarcade-icon-face.png" alt="BotBuilt" width="36" height="36" style="border-radius:50%; border:2px solid var(--gold)"> 
+          <div>
+            <h1>Nova Striker</h1>
+            <div class="meta">Created: August 24, 2025</div>
+          </div>
+        </div>
+        <a class="btn" href="../index.html">⟵ Back to Home</a>
+      </header>
+
+      <div class="hud">
+        <div>Score: <span id="score">0</span></div>
+        <div>Wave: <span id="wave">1</span></div>
+        <div>Lives: <span id="lives">3</span></div>
+      </div>
+
+      <div class="stage">
+        <canvas id="game" width="900" height="600"></canvas>
+        <div class="overlay" id="overlay">
+          <div>
+            <h2 id="ov-title">Nova Striker</h2>
+            <p id="ov-sub">Tap/Click or press Space to launch</p>
+            <div class="controls">Move: Arrow Keys / A & D / Drag. Shoot: Auto-fire. Pause: P</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    // Assets
+    const SPRITES = {
+      player: new Image(),
+      enemyF: new Image(),
+      enemyB: new Image(),
+      bullet: new Image(),
+      eBullet: new Image(),
+    };
+    SPRITES.player.src = 'assets/ns_player.svg';
+    SPRITES.enemyF.src = 'assets/ns_enemy_fighter.svg';
+    SPRITES.enemyB.src = 'assets/ns_enemy_bomber.svg';
+    SPRITES.bullet.src = 'assets/ns_bullet.svg';
+    SPRITES.eBullet.src = 'assets/ns_enemy_bullet.svg';
+
+    let loaded = 0; const needed = Object.keys(SPRITES).length;
+    for (const k in SPRITES) SPRITES[k].addEventListener('load', () => { if (++loaded === needed) init(); });
+
+    // HUD
+    const scoreEl = document.getElementById('score');
+    const waveEl = document.getElementById('wave');
+    const livesEl = document.getElementById('lives');
+    const overlayEl = document.getElementById('overlay');
+    const ovTitle = document.getElementById('ov-title');
+    const ovSub = document.getElementById('ov-sub');
+
+    // Game constants
+    const GAME_ID = 'nova-striker';
+    const W = canvas.width, H = canvas.height;
+    const P = { x: W/2, y: H-80, w: 54, h: 60, speed: 8 };
+    const B = { w: 8, h: 20, speed: 13, cooldown: 0.16 };
+    const EB = { w: 8, h: 18, speed: 7 };
+
+    // State
+    let running = false, paused = false, gameOverHandled = false;
+    let score = 0, wave = 1, lives = 3;
+    let bullets = []; // {x,y,vx,vy,good}
+    let enemies = []; // {x,y,w,h,hp,type,t,pat}
+    let stars = [];   // bg starfield
+    let lastShoot = 0;
+
+    const input = { left:false, right:false };
+
+    function init() {
+      makeStars();
+      setupWave(1);
+      showOverlay('Nova Striker', 'Tap/Click or press Space to launch');
+      draw();
+      attachControls();
+    }
+
+    function attachControls() {
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = true;
+        if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = true;
+        if (e.code === 'Space') launch();
+        if (e.code === 'KeyP') togglePause();
+      });
+      window.addEventListener('keyup', (e) => {
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = false;
+        if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = false;
+      });
+      function moveToPointer(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = W / rect.width;
+        const x = (e.clientX - rect.left) * scaleX;
+        P.x = Math.max(P.w/2, Math.min(W - P.w/2, x));
+      }
+      [canvas, overlayEl].forEach(el => {
+        el.addEventListener('pointerdown', (e) => { moveToPointer(e); launch(); });
+        el.addEventListener('pointermove', moveToPointer);
+      });
+    }
+
+    function togglePause() {
+      paused = !paused;
+      if (paused) showOverlay('Paused', 'Press P to resume'); else hideOverlay();
+    }
+
+    function showOverlay(title, sub) { ovTitle.textContent = title; ovSub.textContent = sub; overlayEl.classList.add('show'); }
+    function hideOverlay() { overlayEl.classList.remove('show'); }
+
+    function launch() {
+      if (paused) { togglePause(); return; }
+      if (!running) { hideOverlay(); running = true; }
+    }
+
+    function setupWave(n) {
+      wave = n; waveEl.textContent = wave;
+      enemies = [];
+      // Pattern: rows of fighters plus a few bombers with sine motion
+      const cols = 6 + Math.min(4, Math.floor((n-1)/2));
+      const rows = 2 + Math.min(2, Math.floor((n-1)/3));
+      const gapX = 90, gapY = 70;
+      const startX = (W - (cols-1)*gapX) / 2;
+      for (let r=0; r<rows; r++) {
+        for (let c=0; c<cols; c++) {
+          enemies.push({
+            x: startX + c*gapX, y: -120 - r*gapY,
+            w: 48, h: 46, hp: 1 + Math.floor((n-1)/3), type: 'F', t: Math.random()*6.28,
+            pat: { amp: 30 + 8*r, freq: 1.1 + r*0.15, vy: 1.4 + n*0.1 }
+          });
+        }
+      }
+      // Add a few bombers
+      const bombers = Math.min(3 + Math.floor(n/2), 7);
+      for (let i=0; i<bombers; i++) {
+        enemies.push({ x: Math.random()*W, y: -300 - i*120, w: 56, h: 54, hp: 2 + Math.floor(n/2), type: 'B', t: Math.random()*6.28,
+          pat: { amp: 60, freq: 0.7, vy: 1.0 + n*0.12 } });
+      }
+      bullets = [];
+    }
+
+    function makeStars() {
+      stars = [];
+      for (let i=0; i<150; i++) {
+        stars.push({ x: Math.random()*W, y: Math.random()*H, s: Math.random()*2+0.5, spd: Math.random()*0.6+0.3 });
+      }
+    }
+
+    function shoot(dt) {
+      lastShoot += dt;
+      if (lastShoot >= B.cooldown) {
+        lastShoot = 0;
+        bullets.push({ x: P.x, y: P.y - P.h/2, vx: 0, vy: -B.speed, good: true });
+      }
+    }
+
+    function enemyShoot(e, chance=0.006) {
+      if (Math.random() < chance) {
+        const vx = (P.x - e.x) * 0.006; // slight aim
+        bullets.push({ x: e.x, y: e.y + e.h/2, vx, vy: EB.speed, good: false });
+      }
+    }
+
+    function update(dt) {
+      // Player move
+      const spd = P.speed * (1 + wave*0.04);
+      if (input.left) P.x -= spd; if (input.right) P.x += spd;
+      P.x = Math.max(P.w/2, Math.min(W - P.w/2, P.x));
+
+      // Auto fire when running
+      shoot(dt);
+
+      // Stars
+      for (const s of stars) { s.y += s.spd * (1 + wave*0.05); if (s.y > H) { s.y = -4; s.x = Math.random()*W; } }
+
+      // Enemies
+      let alive = 0;
+      for (const e of enemies) {
+        e.t += dt;
+        const sway = Math.sin(e.t * e.pat.freq) * e.pat.amp;
+        e.y += e.pat.vy; e.x += sway * 0.04;
+        if (e.type === 'F') enemyShoot(e, 0.004 + wave*0.0008);
+        else enemyShoot(e, 0.006 + wave*0.0012);
+        if (e.y < H + 80 && e.hp > 0) alive++;
+      }
+
+      // Bullets
+      for (const b of bullets) { b.x += b.vx; b.y += b.vy; }
+      bullets = bullets.filter(b => b.y > -40 && b.y < H+40 && b.x > -40 && b.x < W+40);
+
+      // Collisions: bullets vs enemies
+      for (const b of bullets) if (b.good) {
+        for (const e of enemies) {
+          if (e.hp <= 0) continue;
+          if (Math.abs(b.x - e.x) < (e.w/2) && Math.abs(b.y - e.y) < (e.h/2)) {
+            e.hp -= 1; b.y = -9999; // remove
+            if (e.hp <= 0) {
+              score += e.type === 'F' ? 100 : 250; scoreEl.textContent = score;
+            }
+            break;
+          }
+        }
+      }
+
+      // Collisions: enemy bullets vs player
+      for (const b of bullets) if (!b.good) {
+        if (Math.abs(b.x - P.x) < (P.w*0.35) && Math.abs(b.y - P.y) < (P.h*0.35)) {
+          b.y = H + 999; // remove
+          hitPlayer();
+        }
+      }
+
+      // Enemies hitting player or passing
+      for (const e of enemies) {
+        if (e.hp <= 0) continue;
+        if (Math.abs(e.x - P.x) < (P.w*0.45) && Math.abs(e.y - P.y) < (P.h*0.45)) { e.hp = 0; hitPlayer(); }
+        if (e.y > H + 40) { e.hp = 0; }
+      }
+
+      // Next wave
+      if (!enemies.some(e => e.hp > 0 && e.y < H + 40)) {
+        running = false; setupWave(wave + 1); showOverlay('Wave ' + wave, 'Tap/Click or press Space to launch');
+      }
+    }
+
+    function hitPlayer() {
+      if (!running) return;
+      lives--; livesEl.textContent = lives;
+      if (lives <= 0) {
+        running = false;
+        showOverlay('Game Over', 'Press Space to restart');
+        if (!gameOverHandled) { gameOverHandled = true; maybeSubmitLeaderboard().catch(console.error); }
+        window.addEventListener('keydown', restartOnce, { once: true });
+      } else {
+        // brief invuln by pausing
+        running = false; showOverlay('Hit!', 'Tap/Click or press Space to relaunch');
+      }
+    }
+
+    function restartOnce(e) {
+      if (e.code === 'Space') {
+        score = 0; wave = 1; lives = 3; scoreEl.textContent = score; waveEl.textContent = wave; livesEl.textContent = lives;
+        gameOverHandled = false; setupWave(1); showOverlay('Nova Striker', 'Tap/Click or press Space to launch');
+      }
+    }
+
+    async function maybeSubmitLeaderboard() {
+      let dest = `../leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
+      try {
+        const res = await fetch(`/api/leaderboard/rank?gameId=${encodeURIComponent(GAME_ID)}&score=${encodeURIComponent(score)}`, { headers: { 'Accept': 'application/json' } });
+        if (res.ok) {
+          const data = await res.json();
+          const rank = Number(data?.rank);
+          const qualifies = Number.isFinite(rank) && rank > 0 && rank <= 20;
+          if (qualifies) {
+            let name = prompt(`New High Score! You placed #${rank}. Enter your name (max 20 chars):`, '');
+            if (name != null) {
+              name = name.trim().replace(/[^\w \-'.!]/g, '').slice(0, 20);
+              if (name) {
+                let submitted = false;
+                try {
+                  await fetch('/api/leaderboard/submit', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gameId: GAME_ID, name, score })
+                  });
+                  submitted = true;
+                } catch {}
+                if (submitted) dest += `&highlightRank=${encodeURIComponent(rank)}`;
+              }
+            }
+          }
+        }
+      } catch (e) { console.error(e); }
+      finally { location.href = dest; }
+    }
+
+    // RENDERING
+    function drawStars() {
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      for (const s of stars) { ctx.globalAlpha = 0.4 + (s.s/2); ctx.fillRect(s.x, s.y, s.s, s.s); }
+      ctx.restore();
+      // scanlines glow grid
+      ctx.save(); ctx.strokeStyle = 'rgba(0,229,255,0.05)'; ctx.lineWidth = 1; const step = 40;
+      for (let y=0; y<=H; y+=step) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+      ctx.restore();
+    }
+
+    function drawSprite(img, x, y, w, h) { ctx.drawImage(img, x - w/2, y - h/2, w, h); }
+
+    let lastTime = 0;
+    function draw(ts=0) {
+      const dt = Math.min(0.05, (ts - lastTime) / 1000) || 0.016; lastTime = ts;
+      ctx.clearRect(0,0,W,H);
+      drawStars();
+
+      // Enemies
+      for (const e of enemies) if (e.hp > 0) drawSprite(e.type==='F'?SPRITES.enemyF:SPRITES.enemyB, e.x, e.y, e.w, e.h);
+
+      // Player
+      drawSprite(SPRITES.player, P.x, P.y, P.w, P.h);
+
+      // Bullets
+      for (const b of bullets) drawSprite(b.good?SPRITES.bullet:SPRITES.eBullet, b.x, b.y, b.good?B.w:EB.w, b.good?B.h:EB.h);
+
+      if (running && !paused) update(dt);
+      requestAnimationFrame(draw);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Glow -->
+  <defs>
+    <radialGradient id="gGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(48 52) rotate(90) scale(44 44)">
+      <stop offset="0" stop-color="#FFA500" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="#FFA500" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gFlame" x1="24" y1="18" x2="72" y2="78" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFE08A"/>
+      <stop offset="0.5" stop-color="#FFB347"/>
+      <stop offset="1" stop-color="#FF6A00"/>
+    </linearGradient>
+    <linearGradient id="gRock" x1="20" y1="20" x2="76" y2="76" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6B3E2E"/>
+      <stop offset="1" stop-color="#3A1F18"/>
+    </linearGradient>
+  </defs>
+  <circle cx="48" cy="52" r="42" fill="url(#gGlow)"/>
+  <!-- Flame tail -->
+  <g filter="url(#fSoft)">
+    <path d="M18 28 C 8 40, 10 62, 28 74 C 40 82, 58 82, 72 72 C 62 70, 54 66, 46 60 C 38 54, 30 44, 28 34 Z"
+          fill="url(#gFlame)" opacity="0.9"/>
+  </g>
+  <!-- Rock core -->
+  <g>
+    <path d="M36 24 L58 26 L74 40 L72 60 L58 72 L40 72 L26 60 L24 42 Z" fill="url(#gRock)"/>
+    <!-- Craters -->
+    <circle cx="54" cy="44" r="6" fill="#2a140f" opacity="0.7"/>
+    <circle cx="42" cy="54" r="4" fill="#2a140f" opacity="0.7"/>
+    <circle cx="62" cy="58" r="3" fill="#2a140f" opacity="0.7"/>
+    <!-- Hot edges -->
+    <path d="M36 24 L58 26 L74 40" stroke="#FFB347" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+    <path d="M24 42 L26 60 L40 72" stroke="#FF8C00" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+  </g>
+  <!-- Soft filter for flame -->
+  <filter id="fSoft" x="0" y="0" width="200%" height="200%">
+    <feGaussianBlur stdDeviation="2"/>
+  </filter>
+</svg>

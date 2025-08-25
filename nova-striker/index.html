@@ -118,6 +118,11 @@
       boss1: new Image(),
       boss2: new Image(),
       boss3: new Image(),
+      upgrade: new Image(),
+      life: new Image(),
+      upFire: new Image(),
+      upTwin: new Image(),
+      upSpread: new Image(),
     };
     SPRITES.player.src = 'assets/ns_player.svg';
     SPRITES.enemyF.src = 'assets/ns_enemy_fighter.svg';
@@ -127,6 +132,11 @@
     SPRITES.boss1.src = 'assets/ns_boss_1.svg';
     SPRITES.boss2.src = 'assets/ns_boss_2.svg';
     SPRITES.boss3.src = 'assets/ns_boss_3.svg';
+    SPRITES.upgrade.src = 'assets/ns_upgrade.svg';
+    SPRITES.life.src = 'assets/ns_life.svg';
+    SPRITES.upFire.src = 'assets/ns_upgrade_fire.svg';
+    SPRITES.upTwin.src = 'assets/ns_upgrade_twin.svg';
+    SPRITES.upSpread.src = 'assets/ns_upgrade_spread.svg';
 
     let loaded = 0; const needed = Object.keys(SPRITES).length;
     for (const k in SPRITES) SPRITES[k].addEventListener('load', () => { if (++loaded === needed) init(); });
@@ -143,7 +153,7 @@
     const GAME_ID = 'nova-striker';
     const W = canvas.width, H = canvas.height;
     const P = { x: W/2, y: H-80, w: 54, h: 60, speed: 8 };
-    const B = { w: 8, h: 20, speed: 13, cooldown: 0.16 };
+    const B = { w: 8, h: 20, speed: 13, cooldown: 0.30, baseCooldown: 0.30 };
     const EB = { w: 8, h: 18, speed: 7 };
 
     // State
@@ -153,6 +163,10 @@
     let enemies = []; // {x,y,w,h,hp,type,t,pat}
     let stars = [];   // bg starfield
     let lastShoot = 0;
+    let drops = [];   // {x,y,vx,vy,t,type:'U'|'L',kind?:'fire'|'twin'|'spread'}
+    const DROP = { w: 34, h: 34 };
+    let power = { fireLv: 0, twin: false, spread: false };
+    let pickupMsgs = []; // {text,color,t,dur}
 
     const input = { left:false, right:false };
 
@@ -206,6 +220,7 @@
       wave = n; waveEl.textContent = wave;
       enemies = [];
       bullets = [];
+      drops = [];
       if (isBossWave(n)) {
         // Create a unique boss for waves 3, 6, 9
         const idx = Math.floor(n / 3); // 1,2,3
@@ -243,6 +258,55 @@
       }
     }
 
+    // Pickups and upgrades
+    function spawnDrop(e) {
+      // Drop chances; extra life now more common
+      const lifeChance = e.boss ? 0.08 : 0.01;    // 8% boss, 1% normal
+      const upChance   = e.boss ? 0.25 : 0.06;    // 25% boss, 6% normal (unchanged)
+      const r = Math.random();
+      let type = null, kind = null;
+      if (r < lifeChance) type = 'L';
+      else if (r < lifeChance + upChance) { type = 'U'; kind = pickUpgrade(); }
+      if (!type) return;
+      drops.push({ x: e.x, y: e.y, vx: (Math.random()-0.5)*1.2, vy: 1.6, t: 0, type, kind });
+    }
+
+    function pickUpgrade() {
+      // Weighted random: fire (2x), twin (1x), spread (1x)
+      const pool = ['fire','twin','spread','fire'];
+      // Avoid duplicates where possible
+      if (power.twin && power.spread) return 'fire';
+      if (power.twin && !power.spread) return Math.random() < 0.6 ? 'fire' : 'spread';
+      if (!power.twin && power.spread) return Math.random() < 0.6 ? 'fire' : 'twin';
+      return pool[Math.floor(Math.random()*pool.length)];
+    }
+
+    function applyUpgrade(kind) {
+      if (kind === 'fire') {
+        power.fireLv = Math.min(5, power.fireLv + 1);
+        // Much stronger effect per level (50% per level) and a slightly lower minimum
+        B.cooldown = Math.max(0.05, B.baseCooldown * Math.pow(0.50, power.fireLv));
+        // Give immediate feedback by allowing an instant shot
+        lastShoot = B.cooldown;
+        pickupMsgs.push({ text: 'FIRE RATE UP!', color: '#ffb347', t: 0, dur: 0.9 });
+      } else if (kind === 'twin') {
+        power.twin = true;
+        pickupMsgs.push({ text: 'TWIN SHOT!', color: '#00e5ff', t: 0, dur: 0.9 });
+      } else if (kind === 'spread') {
+        power.spread = true;
+        pickupMsgs.push({ text: 'SPREAD SHOT!', color: '#21d87a', t: 0, dur: 0.9 });
+      }
+    }
+
+    function applyDrop(d) {
+      if (d.type === 'L') {
+        if (lives < 6) { lives++; livesEl.textContent = lives; }
+      } else {
+        const kind = d.kind || pickUpgrade();
+        applyUpgrade(kind);
+      }
+    }
+
     function makeStars() {
       stars = [];
       for (let i=0; i<150; i++) {
@@ -254,7 +318,16 @@
       lastShoot += dt;
       if (lastShoot >= B.cooldown) {
         lastShoot = 0;
-        bullets.push({ x: P.x, y: P.y - P.h/2, vx: 0, vy: -B.speed, good: true });
+        // Determine shot pattern based on upgrades
+        const angles = power.spread ? [-0.16, 0, 0.16] : [0];
+        const offsets = power.twin ? [-10, 10] : [0];
+        for (const ang of angles) {
+          for (const off of offsets) {
+            const vx = Math.sin(ang) * B.speed;
+            const vy = -Math.cos(ang) * B.speed;
+            bullets.push({ x: P.x + off, y: P.y - P.h/2 - 4, vx, vy, good: true });
+          }
+        }
       }
     }
 
@@ -346,6 +419,22 @@
       for (const b of bullets) { b.x += b.vx; b.y += b.vy; }
       bullets = bullets.filter(b => b.y > -40 && b.y < H+40 && b.x > -40 && b.x < W+40);
 
+      // Drops
+      for (const d of drops) {
+        d.t += dt;
+        d.x += d.vx + Math.sin(d.t*3) * 0.4;
+        d.y += d.vy;
+        d.vy = Math.min(d.vy + 0.01, 3.2);
+      }
+      // Collect drops
+      for (const d of drops) {
+        if (Math.abs(d.x - P.x) < (P.w*0.45) && Math.abs(d.y - P.y) < (P.h*0.45)) {
+          applyDrop(d);
+          d.collected = true;
+        }
+      }
+      drops = drops.filter(d => !d.collected && d.y < H + 50);
+
       // Collisions: bullets vs enemies
       for (const b of bullets) if (b.good) {
         for (const e of enemies) {
@@ -355,6 +444,7 @@
             if (e.hp <= 0) {
               const add = (e.type === 'F') ? 100 : (e.type === 'B' ? 250 : (e.score || 2000));
               score += add; scoreEl.textContent = score;
+              spawnDrop(e);
             }
             break;
           }
@@ -390,8 +480,8 @@
         }
       }
 
-      // Next wave
-      if (!enemies.some(e => e.hp > 0 && e.y < H + 40)) {
+      // Next wave (wait if upgrades are still on-screen)
+      if (!enemies.some(e => e.hp > 0 && e.y < H + 40) && !drops.some(d => d.type === 'U' && d.y >= 0 && d.y <= H)) {
         if (wave >= 9) {
           victory();
         } else {
@@ -427,6 +517,7 @@
     function restartOnce(e) {
       if (e.code === 'Space') {
         score = 0; wave = 1; lives = 3; scoreEl.textContent = score; waveEl.textContent = wave; livesEl.textContent = lives;
+        power = { fireLv: 0, twin: false, spread: false }; B.cooldown = B.baseCooldown; lastShoot = 0; drops = [];
         gameOverHandled = false; setupWave(1); showOverlay('Nova Striker', 'Tap/Click or press Space to launch');
       }
     }
@@ -511,6 +602,21 @@
 
       // Player
       drawSprite(SPRITES.player, P.x, P.y, P.w, P.h);
+
+      // Drops
+      for (const d of drops) {
+        const img = d.type === 'L'
+          ? SPRITES.life
+          : (d.kind === 'fire' ? SPRITES.upFire : (d.kind === 'twin' ? SPRITES.upTwin : (d.kind === 'spread' ? SPRITES.upSpread : SPRITES.upgrade)));
+        // soft glow
+        ctx.save();
+        ctx.beginPath(); ctx.arc(d.x, d.y, 20, 0, Math.PI*2);
+        ctx.fillStyle = d.type === 'L'
+          ? 'rgba(255,77,109,0.18)'
+          : (d.kind === 'fire' ? 'rgba(255,140,0,0.18)' : (d.kind === 'twin' ? 'rgba(0,229,255,0.18)' : (d.kind === 'spread' ? 'rgba(33,216,122,0.18)' : 'rgba(0,229,255,0.18)')));
+        ctx.fill(); ctx.restore();
+        drawSprite(img, d.x, d.y, DROP.w, DROP.h);
+      }
 
       // Bullets
       for (const b of bullets) drawSprite(b.good?SPRITES.bullet:SPRITES.eBullet, b.x, b.y, b.good?B.w:EB.w, b.good?B.h:EB.h);

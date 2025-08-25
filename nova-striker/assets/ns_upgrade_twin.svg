@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
+  <defs>
+    <radialGradient id="g" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#bff3ff"/>
+      <stop offset="60%" stop-color="#63e0ff"/>
+      <stop offset="100%" stop-color="#00aaff"/>
+    </radialGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#glow)">
+    <circle cx="20" cy="20" r="14" fill="url(#g)" />
+    <!-- twin capsules -->
+    <rect x="13" y="11" width="4" height="18" rx="2" fill="#e9fbff" stroke="#c6f3ff" stroke-width="0.8"/>
+    <rect x="23" y="11" width="4" height="18" rx="2" fill="#e9fbff" stroke="#c6f3ff" stroke-width="0.8"/>
+    <circle cx="20" cy="20" r="14" fill="none" stroke="#a7edff" stroke-width="1.4"/>
+  </g>
+</svg>

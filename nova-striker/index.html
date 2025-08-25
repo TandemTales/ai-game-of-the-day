@@ -179,9 +179,8 @@
     const DROP = { w: 34, h: 34 };
     let power = { fireLv: 0, twin: false, spread: false, missileLv: 0, laserLv: 0 };
     let pickupMsgs = []; // {text,color,t,dur}
-    // Player invulnerability after respawn
+    // Player invulnerability timer
     let invulnT = 0;                 // remaining seconds of invulnerability
-    let respawnInvulnPending = false; // set when hit and cleared on relaunch
     // One-hit shield (consumes next hit and destroys the attacker)
     let shieldActive = false, shieldPulse = 0;
     // Meteors and particles
@@ -239,11 +238,6 @@
       if (!running) {
         hideOverlay();
         running = true;
-        // If we're relaunching after a hit, grant brief invulnerability
-        if (respawnInvulnPending) {
-          invulnT = 2.5; // seconds
-          respawnInvulnPending = false;
-        }
       }
     }
 
@@ -726,9 +720,8 @@
         if (!gameOverHandled) { gameOverHandled = true; maybeSubmitLeaderboard(false).catch(console.error); }
         window.addEventListener('keydown', restartOnce, { once: true });
       } else {
-        // Pause and require relaunch; grant invulnerability on relaunch
-        running = false; showOverlay('Hit!', 'Tap/Click or press Space to relaunch');
-        respawnInvulnPending = true;
+        // Brief invulnerability after being hit
+        invulnT = 2.5; // seconds
       }
     }
 
@@ -744,7 +737,7 @@
         score = 0; wave = 1; lives = 3; scoreEl.textContent = score; waveEl.textContent = wave; livesEl.textContent = lives;
         power = { fireLv: 0, twin: false, spread: false, missileLv: 0, laserLv: 0 }; B.cooldown = B.baseCooldown; lastShoot = 0; drops = []; meteors = []; particles = [];
         missileT = 0; laserT = 0; beamT = 0; beamSeq = 0;
-        invulnT = 0; respawnInvulnPending = false; shieldActive = false; shieldPulse = 0;
+        invulnT = 0; shieldActive = false; shieldPulse = 0;
         gameOverHandled = false; setupWave(1); showOverlay('Nova Striker', 'Tap/Click or press Space to launch');
       }
     }

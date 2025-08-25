@@ -284,8 +284,8 @@
     function applyUpgrade(kind) {
       if (kind === 'fire') {
         power.fireLv = Math.min(5, power.fireLv + 1);
-        // Much stronger effect per level (50% per level) and a slightly lower minimum
-        B.cooldown = Math.max(0.05, B.baseCooldown * Math.pow(0.50, power.fireLv));
+        // Reduced effect per level: 15% faster per level (multiplier 0.85^level) with a 0.07s minimum
+        B.cooldown = Math.max(0.07, B.baseCooldown * Math.pow(0.85, power.fireLv));
         // Give immediate feedback by allowing an instant shot
         lastShoot = B.cooldown;
         pickupMsgs.push({ text: 'FIRE RATE UP!', color: '#ffb347', t: 0, dur: 0.9 });

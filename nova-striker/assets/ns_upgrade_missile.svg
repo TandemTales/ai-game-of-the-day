@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <radialGradient id="bg" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#0ef"/>
+      <stop offset="1" stop-color="#037e9e"/>
+    </radialGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#88faff" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#00e5ff" stop-opacity=".2"/>
+    </linearGradient>
+    <linearGradient id="missileNose" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff8a00"/>
+      <stop offset="1" stop-color="#ffc673"/>
+    </linearGradient>
+  </defs>
+  <!-- outer soft glow -->
+  <g opacity=".35">
+    <circle cx="32" cy="32" r="28" fill="url(#glow)"/>
+  </g>
+  <!-- token background -->
+  <circle cx="32" cy="32" r="22" fill="url(#bg)" stroke="#89f6ff" stroke-width="2"/>
+  <!-- simplified missile pictogram -->
+  <g transform="translate(32,32) rotate(-15) translate(-32,-32)">
+    <!-- fins -->
+    <path d="M22 38 L14 44 L20 34 Z" fill="#00e5ff"/>
+    <path d="M42 38 L50 44 L44 34 Z" fill="#00e5ff"/>
+    <!-- body -->
+    <rect x="26" y="22" width="12" height="20" rx="6" fill="#e9eef2" stroke="#7f8a91" stroke-width="1"/>
+    <!-- nose -->
+    <path d="M32 18 L38 22 L26 22 Z" fill="url(#missileNose)" stroke="#c55700" stroke-width="1"/>
+    <!-- engine core -->
+    <circle cx="32" cy="42" r="4" fill="#15232f" stroke="#7f8a91" stroke-width="1"/>
+  </g>
+  <!-- down arrow to indicate pickup/upgrade -->
+  <path d="M32 10 v8" stroke="#cfffff" stroke-width="2" stroke-linecap="round"/>
+  <path d="M28 16 L32 20 L36 16" fill="none" stroke="#cfffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

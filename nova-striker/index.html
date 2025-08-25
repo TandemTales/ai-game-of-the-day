@@ -167,6 +167,9 @@
     const DROP = { w: 34, h: 34 };
     let power = { fireLv: 0, twin: false, spread: false };
     let pickupMsgs = []; // {text,color,t,dur}
+    // Player invulnerability after respawn
+    let invulnT = 0;                 // remaining seconds of invulnerability
+    let respawnInvulnPending = false; // set when hit and cleared on relaunch
 
     const input = { left:false, right:false };
 
@@ -211,7 +214,15 @@
 
     function launch() {
       if (paused) { togglePause(); return; }
-      if (!running) { hideOverlay(); running = true; }
+      if (!running) {
+        hideOverlay();
+        running = true;
+        // If we're relaunching after a hit, grant brief invulnerability
+        if (respawnInvulnPending) {
+          invulnT = 2.5; // seconds
+          respawnInvulnPending = false;
+        }
+      }
     }
 
     function isBossWave(n) { return n % 3 === 0; }
@@ -393,6 +404,8 @@
     }
 
     function update(dt) {
+      // Tick down invulnerability timer
+      if (invulnT > 0) invulnT = Math.max(0, invulnT - dt);
       // Player move
       const spd = P.speed * (1 + wave*0.04);
       if (input.left) P.x -= spd; if (input.right) P.x += spd;
@@ -453,18 +466,22 @@
         }
       }
 
-      // Collisions: enemy bullets vs player
-      for (const b of bullets) if (!b.good) {
-        if (Math.abs(b.x - P.x) < (P.w*0.35) && Math.abs(b.y - P.y) < (P.h*0.35)) {
-          b.y = H + 999; // remove
-          hitPlayer();
+      // Collisions: enemy bullets vs player (ignored while invulnerable)
+      if (invulnT <= 0) {
+        for (const b of bullets) if (!b.good) {
+          if (Math.abs(b.x - P.x) < (P.w*0.35) && Math.abs(b.y - P.y) < (P.h*0.35)) {
+            b.y = H + 999; // remove
+            hitPlayer();
+          }
         }
       }
 
-      // Enemies hitting player
-      for (const e of enemies) {
-        if (e.hp <= 0) continue;
-        if (Math.abs(e.x - P.x) < (P.w*0.45) && Math.abs(e.y - P.y) < (P.h*0.45)) { e.hp = 0; hitPlayer(); }
+      // Enemies hitting player (ignored while invulnerable)
+      if (invulnT <= 0) {
+        for (const e of enemies) {
+          if (e.hp <= 0) continue;
+          if (Math.abs(e.x - P.x) < (P.w*0.45) && Math.abs(e.y - P.y) < (P.h*0.45)) { e.hp = 0; hitPlayer(); }
+        }
       }
 
       // Enemy shooting (after collisions so dead enemies don't fire this frame)
@@ -503,8 +520,9 @@
         if (!gameOverHandled) { gameOverHandled = true; maybeSubmitLeaderboard(false).catch(console.error); }
         window.addEventListener('keydown', restartOnce, { once: true });
       } else {
-        // brief invuln by pausing
+        // Pause and require relaunch; grant invulnerability on relaunch
         running = false; showOverlay('Hit!', 'Tap/Click or press Space to relaunch');
+        respawnInvulnPending = true;
       }
     }
 
@@ -519,6 +537,7 @@
       if (e.code === 'Space') {
         score = 0; wave = 1; lives = 3; scoreEl.textContent = score; waveEl.textContent = wave; livesEl.textContent = lives;
         power = { fireLv: 0, twin: false, spread: false }; B.cooldown = B.baseCooldown; lastShoot = 0; drops = [];
+        invulnT = 0; respawnInvulnPending = false;
         gameOverHandled = false; setupWave(1); showOverlay('Nova Striker', 'Tap/Click or press Space to launch');
       }
     }
@@ -601,8 +620,14 @@
         drawSprite(img, e.x, e.y, e.w, e.h);
       }
 
-      // Player
-      drawSprite(SPRITES.player, P.x, P.y, P.w, P.h);
+      // Player (blink while invulnerable)
+      if (invulnT > 0) {
+        // Simple blink at ~8 Hz using remaining time
+        const blinkOn = (Math.floor(invulnT * 8) % 2) === 0;
+        if (blinkOn) drawSprite(SPRITES.player, P.x, P.y, P.w, P.h);
+      } else {
+        drawSprite(SPRITES.player, P.x, P.y, P.w, P.h);
+      }
 
       // Drops
       for (const d of drops) {

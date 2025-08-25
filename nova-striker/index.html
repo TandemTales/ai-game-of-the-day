@@ -120,6 +120,7 @@
       boss3: new Image(),
       upgrade: new Image(),
       life: new Image(),
+      shield: new Image(),
       upFire: new Image(),
       upTwin: new Image(),
       upSpread: new Image(),
@@ -134,6 +135,7 @@
     SPRITES.boss3.src = 'assets/ns_boss_3.svg';
     SPRITES.upgrade.src = 'assets/ns_upgrade.svg';
     SPRITES.life.src = 'assets/ns_life.svg';
+    SPRITES.shield.src = 'assets/ns_shield.svg';
     SPRITES.upFire.src = 'assets/ns_upgrade_fire.svg';
     SPRITES.upTwin.src = 'assets/ns_upgrade_twin.svg';
     SPRITES.upSpread.src = 'assets/ns_upgrade_spread.svg';
@@ -163,13 +165,15 @@
     let enemies = []; // {x,y,w,h,hp,type,t,pat}
     let stars = [];   // bg starfield
     let lastShoot = 0;
-    let drops = [];   // {x,y,vx,vy,t,type:'U'|'L',kind?:'fire'|'twin'|'spread'}
+    let drops = [];   // {x,y,vx,vy,t,type:'U'|'L'|'S',kind?:'fire'|'twin'|'spread'}
     const DROP = { w: 34, h: 34 };
     let power = { fireLv: 0, twin: false, spread: false };
     let pickupMsgs = []; // {text,color,t,dur}
     // Player invulnerability after respawn
     let invulnT = 0;                 // remaining seconds of invulnerability
     let respawnInvulnPending = false; // set when hit and cleared on relaunch
+    // One-hit shield (consumes next hit and destroys the attacker)
+    let shieldActive = false, shieldPulse = 0;
 
     const input = { left:false, right:false };
 
@@ -271,13 +275,15 @@
 
     // Pickups and upgrades
     function spawnDrop(e) {
-      // Drop chances; extra life now more common
-      const lifeChance = e.boss ? 0.08 : 0.01;    // 8% boss, 1% normal
-      const upChance   = e.boss ? 0.25 : 0.06;    // 25% boss, 6% normal (unchanged)
+      // Drop chances; extra life tuned, upgrades unchanged, shield added (rare normal, higher on boss)
+      const lifeChance = e.boss ? 0.08 : 0.01;     // 8% boss, 1% normal
+      const upChance   = e.boss ? 0.25 : 0.06;     // 25% boss, 6% normal
+      const shieldChance = e.boss ? 0.10 : 0.015;  // 10% boss, 1.5% normal
       const r = Math.random();
       let type = null, kind = null;
       if (r < lifeChance) type = 'L';
       else if (r < lifeChance + upChance) { type = 'U'; kind = pickUpgrade(); }
+      else if (r < lifeChance + upChance + shieldChance) { type = 'S'; }
       if (!type) return;
       drops.push({ x: e.x, y: e.y, vx: (Math.random()-0.5)*1.2, vy: 1.6, t: 0, type, kind });
     }
@@ -312,6 +318,9 @@
     function applyDrop(d) {
       if (d.type === 'L') {
         if (lives < 6) { lives++; livesEl.textContent = lives; }
+      } else if (d.type === 'S') {
+        shieldActive = true; shieldPulse = 0;
+        pickupMsgs.push({ text: 'SHIELD!', color: '#00e5ff', t: 0, dur: 0.9 });
       } else {
         const kind = d.kind || pickUpgrade();
         applyUpgrade(kind);
@@ -406,6 +415,7 @@
     function update(dt) {
       // Tick down invulnerability timer
       if (invulnT > 0) invulnT = Math.max(0, invulnT - dt);
+      if (shieldActive) shieldPulse += dt;
       // Player move
       const spd = P.speed * (1 + wave*0.04);
       if (input.left) P.x -= spd; if (input.right) P.x += spd;
@@ -470,8 +480,13 @@
       if (invulnT <= 0) {
         for (const b of bullets) if (!b.good) {
           if (Math.abs(b.x - P.x) < (P.w*0.35) && Math.abs(b.y - P.y) < (P.h*0.35)) {
-            b.y = H + 999; // remove
-            hitPlayer();
+            // Bullet hits player: if shield active, consume it and destroy the bullet; otherwise, take damage
+            b.y = H + 999; // remove bullet
+            if (shieldActive) {
+              shieldActive = false;
+            } else {
+              hitPlayer();
+            }
           }
         }
       }
@@ -480,7 +495,14 @@
       if (invulnT <= 0) {
         for (const e of enemies) {
           if (e.hp <= 0) continue;
-          if (Math.abs(e.x - P.x) < (P.w*0.45) && Math.abs(e.y - P.y) < (P.h*0.45)) { e.hp = 0; hitPlayer(); }
+          if (Math.abs(e.x - P.x) < (P.w*0.45) && Math.abs(e.y - P.y) < (P.h*0.45)) {
+            if (shieldActive) {
+              // Destroy the enemy and consume shield
+              e.hp = 0; shieldActive = false; spawnDrop(e);
+            } else {
+              e.hp = 0; hitPlayer();
+            }
+          }
         }
       }
 
@@ -498,8 +520,8 @@
         }
       }
 
-      // Next wave (wait if upgrades are still on-screen). Require all enemies to be truly defeated.
-      if (!enemies.some(e => e.hp > 0) && !drops.some(d => d.type === 'U' && d.y >= 0 && d.y <= H)) {
+      // Next wave (wait if upgrades/shield are still on-screen). Require all enemies to be truly defeated.
+      if (!enemies.some(e => e.hp > 0) && !drops.some(d => (d.type === 'U' || d.type === 'S') && d.y >= 0 && d.y <= H)) {
         if (wave >= 9) {
           victory();
         } else {
@@ -537,7 +559,7 @@
       if (e.code === 'Space') {
         score = 0; wave = 1; lives = 3; scoreEl.textContent = score; waveEl.textContent = wave; livesEl.textContent = lives;
         power = { fireLv: 0, twin: false, spread: false }; B.cooldown = B.baseCooldown; lastShoot = 0; drops = [];
-        invulnT = 0; respawnInvulnPending = false;
+        invulnT = 0; respawnInvulnPending = false; shieldActive = false; shieldPulse = 0;
         gameOverHandled = false; setupWave(1); showOverlay('Nova Striker', 'Tap/Click or press Space to launch');
       }
     }
@@ -629,17 +651,35 @@
         drawSprite(SPRITES.player, P.x, P.y, P.w, P.h);
       }
 
+      // Active shield visual: glowing ring around the player
+      if (shieldActive) {
+        ctx.save();
+        const r = Math.max(P.w, P.h) * 0.70;
+        ctx.globalAlpha = 0.85;
+        // Outer soft glow
+        ctx.beginPath(); ctx.arc(P.x, P.y, r + 6, 0, Math.PI*2);
+        ctx.strokeStyle = 'rgba(0,229,255,0.25)'; ctx.lineWidth = 10; ctx.stroke();
+        // Core ring with subtle dash animation
+        ctx.setLineDash([10, 8]);
+        ctx.lineDashOffset = -(shieldPulse * 60 % 18);
+        ctx.beginPath(); ctx.arc(P.x, P.y, r, 0, Math.PI*2);
+        ctx.strokeStyle = 'rgba(0,229,255,0.9)'; ctx.lineWidth = 3; ctx.stroke();
+        ctx.restore();
+      }
+
       // Drops
       for (const d of drops) {
         const img = d.type === 'L'
           ? SPRITES.life
-          : (d.kind === 'fire' ? SPRITES.upFire : (d.kind === 'twin' ? SPRITES.upTwin : (d.kind === 'spread' ? SPRITES.upSpread : SPRITES.upgrade)));
+          : (d.type === 'S' ? SPRITES.shield
+             : (d.kind === 'fire' ? SPRITES.upFire : (d.kind === 'twin' ? SPRITES.upTwin : (d.kind === 'spread' ? SPRITES.upSpread : SPRITES.upgrade))));
         // soft glow
         ctx.save();
         ctx.beginPath(); ctx.arc(d.x, d.y, 20, 0, Math.PI*2);
         ctx.fillStyle = d.type === 'L'
           ? 'rgba(255,77,109,0.18)'
-          : (d.kind === 'fire' ? 'rgba(255,140,0,0.18)' : (d.kind === 'twin' ? 'rgba(0,229,255,0.18)' : (d.kind === 'spread' ? 'rgba(33,216,122,0.18)' : 'rgba(0,229,255,0.18)')));
+          : (d.type === 'S' ? 'rgba(0,229,255,0.20)'
+             : (d.kind === 'fire' ? 'rgba(255,140,0,0.18)' : (d.kind === 'twin' ? 'rgba(0,229,255,0.18)' : (d.kind === 'spread' ? 'rgba(33,216,122,0.18)' : 'rgba(0,229,255,0.18)'))));
         ctx.fill(); ctx.restore();
         drawSprite(img, d.x, d.y, DROP.w, DROP.h);
       }

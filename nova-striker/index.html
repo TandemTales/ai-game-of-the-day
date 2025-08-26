@@ -505,6 +505,23 @@
       }
     }
 
+    // Smaller cyan burst for homing missile impacts
+    function spawnMissileBurst(x, y, count = 12) {
+      for (let i=0; i<count; i++) {
+        const ang = Math.random()*Math.PI*2;
+        const spd = 0.8 + Math.random()*2.0;
+        particles.push({
+          x, y,
+          vx: Math.cos(ang)*spd,
+          vy: Math.sin(ang)*spd,
+          life: 0,
+          ttl: 0.28 + Math.random()*0.18,
+          size: 0.9 + Math.random()*1.1,
+          color: 'missile'
+        });
+      }
+    }
+
     function updateParticles(dt) {
       for (const p of particles) {
         p.life += dt;
@@ -530,6 +547,8 @@
                 const add = (p.target.type === 'F') ? 100 : (p.target.type === 'B' ? 250 : (p.target.score || 2000));
                 score += add; scoreEl.textContent = score;
                 spawnDrop(p.target);
+                // explosion on electro kill
+                spawnExplosion(tx, ty, (p.target && p.target.boss) ? 50 : 20, 'electric');
               }
             }
             // impact sparks at current destination
@@ -700,6 +719,8 @@
               // Electro chain from this laser hit
               triggerElectro(e, hitX, hitY);
               if (e.hp <= 0) {
+                // explosion on laser kill
+                spawnExplosion(hitX, hitY, e.boss ? 50 : 22, 'orange');
                 const add = (e.type === 'F') ? 100 : (e.type === 'B' ? 250 : (e.score || 2000));
                 score += add; scoreEl.textContent = score;
                 spawnDrop(e);
@@ -760,11 +781,14 @@
             const hitX = b.x, hitY = b.y;
             e.hp -= (b.dmg || 1); b.y = -9999; // remove
             if (b.kind === 'missile') {
-              spawnExplosion(hitX, hitY, 14, 'orange');
+              // distinct smaller cyan burst for missile impacts
+              spawnMissileBurst(hitX, hitY, 12);
             }
             // Electro chain from this hit
             triggerElectro(e, hitX, hitY);
             if (e.hp <= 0) {
+              // explosion on bullet kill
+              spawnExplosion(e.x, e.y, e.boss ? 50 : 22, 'orange');
               const add = (e.type === 'F') ? 100 : (e.type === 'B' ? 250 : (e.score || 2000));
               score += add; scoreEl.textContent = score;
               spawnDrop(e);
@@ -783,6 +807,8 @@
             if (shieldActive) {
               shieldActive = false;
             } else {
+              // explosion on player hit by bullet
+              spawnExplosion(P.x, P.y, 26, 'orange');
               hitPlayer();
             }
           }
@@ -813,8 +839,14 @@
             if (shieldActive) {
               // Destroy the enemy and consume shield
               e.hp = 0; shieldActive = false; spawnDrop(e);
+              // explosion on enemy destroyed by shield
+              spawnExplosion(e.x, e.y, e.boss ? 50 : 22, 'orange');
             } else {
-              e.hp = 0; hitPlayer();
+              e.hp = 0;
+              // explosions on collision: enemy and player
+              spawnExplosion(e.x, e.y, e.boss ? 50 : 22, 'orange');
+              spawnExplosion(P.x, P.y, 26, 'orange');
+              hitPlayer();
             }
           }
         }
@@ -1016,6 +1048,7 @@
           ctx.globalAlpha = a * 0.9;
           if (p.color === 'gold') ctx.fillStyle = 'rgba(255,215,0,1)';
           else if (p.color === 'electric') ctx.fillStyle = 'rgba(125,249,255,1)';
+          else if (p.color === 'missile') ctx.fillStyle = 'rgba(80,200,255,1)';
           else ctx.fillStyle = 'rgba(255,140,0,1)';
           ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
           ctx.restore();

@@ -126,8 +126,10 @@
       meteor: new Image(),
       missile: new Image(),
       upMissile: new Image(),
+      upElectro: new Image(),
       upLaser: new Image(),
     };
+
     SPRITES.player.src = 'assets/ns_player.svg';
     SPRITES.enemyF.src = 'assets/ns_enemy_fighter.svg';
     SPRITES.enemyB.src = 'assets/ns_enemy_bomber.svg';
@@ -145,6 +147,7 @@
     SPRITES.meteor.src = 'assets/ns_meteor.svg';
     SPRITES.missile.src = 'assets/ns_missile.svg';
     SPRITES.upMissile.src = 'assets/ns_upgrade_missile.svg';
+    SPRITES.upElectro.src = 'assets/ns_upgrade_electro.svg';
     SPRITES.upLaser.src = 'assets/ns_upgrade_laser.svg';
 
     let loaded = 0; const needed = Object.keys(SPRITES).length;
@@ -165,18 +168,19 @@
     const B = { w: 8, h: 20, speed: 13, cooldown: 0.60, baseCooldown: 0.60 };
     const EB = { w: 8, h: 18, speed: 7 };
     const MISS = { w: 14, h: 24, speed: 7.6, turn: 0.10 };
-    const LASER = { width: 10 };
+    const LASER = { width: 6, duration: 0.12, cooldown: 0.60 };
 
     // State
     let running = false, paused = false, gameOverHandled = false;
     let score = 0, wave = 1, lives = 3;
     let bullets = []; // {x,y,vx,vy,good}
+    let lasers = [];  // {x, y0, y1, width, life, ttl, dmg, hit:Set}
     let enemies = []; // {x,y,w,h,hp,type,t,pat}
     let stars = [];   // bg starfield
     let lastShoot = 0;
-    let drops = [];   // {x,y,vx,vy,t,type:'U'|'L'|'S',kind?:'fire'|'twin'|'spread'|'missile'|'laser'}
+    let drops = [];   // {x,y,vx,vy,t,type:'U'|'L'|'S',kind?:'fire'|'twin'|'spread'|'missile'|'electro'|'laser'}
     const DROP = { w: 34, h: 34 };
-    let power = { fireLv: 0, twin: false, spread: false, missileLv: 0, laserLv: 0 };
+    let power = { fireLv: 0, twin: false, spread: false, missileLv: 0, electro: false, laserLv: 0 };
     let pickupMsgs = []; // {text,color,t,dur}
     // Player invulnerability timer
     let invulnT = 0;                 // remaining seconds of invulnerability
@@ -187,9 +191,7 @@
     let particles = []; // {x,y,vx,vy,life,ttl,size,color}
     // Special weapon timers
     let missileT = 0;   // accumulates until firing a homing missile (if owned)
-    let laserT = 0;     // accumulates until emitting a laser pulse (if owned)
-    let beamT = 0;      // remaining time of the current laser pulse
-    let beamSeq = 0;    // increments each time a new beam starts; used to avoid multi-hit per beam
+    let laserT = 0;     // accumulates for laser cadence when owned
 
     const input = { left:false, right:false };
 
@@ -231,6 +233,7 @@
 
     function showOverlay(title, sub) { ovTitle.textContent = title; ovSub.textContent = sub; overlayEl.classList.add('show'); }
     function hideOverlay() { overlayEl.classList.remove('show'); }
+    
 
     function launch() {
       if (paused) { togglePause(); return; }
@@ -246,6 +249,7 @@
       wave = n; waveEl.textContent = wave;
       enemies = [];
       bullets = [];
+      lasers = [];
       drops = [];
       meteors = [];
       particles = [];
@@ -302,9 +306,10 @@
     }
 
     function pickUpgrade() {
-      // Build a weighted pool dynamically. Keep fire common; include new missile/laser if not maxed.
+      // Build a weighted pool dynamically. Keep fire common; include missile/electro if not owned/maxed.
       const pool = ['fire','fire','twin','spread'];
       if (power.missileLv < 2) pool.push('missile');
+      if (!power.electro) pool.push('electro');
       if (power.laserLv < 2) pool.push('laser');
       // Nudge towards unowned basics when applicable
       if (!power.twin) pool.push('twin');
@@ -329,9 +334,14 @@
       } else if (kind === 'missile') {
         power.missileLv = Math.min(2, (power.missileLv||0) + 1);
         pickupMsgs.push({ text: 'HOMING MISSILE!', color: '#ffa500', t: 0, dur: 0.9 });
+      } else if (kind === 'electro') {
+        power.electro = true;
+        pickupMsgs.push({ text: 'ELECTRO ORB!', color: '#7df9ff', t: 0, dur: 0.9 });
       } else if (kind === 'laser') {
         power.laserLv = Math.min(2, (power.laserLv||0) + 1);
-        pickupMsgs.push({ text: 'LASER CANNON!', color: '#f0f', t: 0, dur: 0.9 });
+        pickupMsgs.push({ text: 'LASER!', color: '#ff4df0', t: 0, dur: 0.9 });
+        // Allow immediate visual feedback
+        laserT = LASER.cooldown;
       }
     }
 
@@ -355,6 +365,31 @@
     }
 
     function shoot(dt) {
+      // Fire lasers on their own cadence (in addition to normal shots)
+      if (power.laserLv > 0) {
+        laserT += dt;
+        const lcd = LASER.cooldown;
+        if (laserT >= lcd) {
+          laserT = 0;
+          const offsets = power.twin ? [-10, 10] : [0];
+          const baseWidth = LASER.width + (power.laserLv >= 2 ? 2 : 0);
+          const dmg = power.laserLv >= 2 ? 5 : 3;
+          for (const off of offsets) {
+            lasers.push({
+              x: Math.max(6, Math.min(W - 6, P.x + off)),
+              y0: P.y - P.h/2 - 6,
+              y1: -40,
+              width: baseWidth,
+              life: 0,
+              ttl: LASER.duration,
+              dmg,
+              hit: new Set()
+            });
+          }
+        }
+      }
+
+      // Normal bullets (always)
       lastShoot += dt;
       if (lastShoot >= B.cooldown) {
         lastShoot = 0;
@@ -381,48 +416,6 @@
         const vx = (P.x - e.x) * 0.006; // slight aim
         bullets.push({ x: e.x, y: e.y + e.h/2, vx, vy: EB.speed, good: false });
       }
-    }
-
-    // Meteor logic
-    function spawnMeteorFromEnemy(e) {
-      // Spawn from above, roughly above the enemy, aiming down toward the player
-      const sx = Math.max(30, Math.min(W - 30, e.x + (Math.random()*80 - 40)));
-      const sy = -20;
-      const base = Math.atan2(P.y - sy, P.x - sx);
-      const ang = base + (Math.random()*0.35 - 0.175);
-      const spd = 6.2 + Math.min(4.0, wave * 0.22);
-      let vx = Math.cos(ang) * spd;
-      let vy = Math.sin(ang) * spd;
-      if (vy < 3.2) vy = 3.2;
-      const w = 38, h = 38;
-      const rot = Math.atan2(vy, vx) + Math.PI * 0.5; // point the flame back
-      const vr = (Math.random()*1.0 - 0.5) * 1.8; // small spin
-      meteors.push({ x: sx, y: sy, vx, vy, w, h, rot, vr });
-    }
-
-    function spawnExplosion(x, y, count = 18, color = 'orange') {
-      for (let i=0;i<count;i++) {
-        const ang = Math.random()*Math.PI*2;
-        const spd = 1.5 + Math.random()*4;
-        particles.push({
-          x, y,
-          vx: Math.cos(ang)*spd,
-          vy: Math.sin(ang)*spd,
-          life: 0,
-          ttl: 0.6 + Math.random()*0.5,
-          size: 2 + Math.random()*3,
-          color
-        });
-      }
-    }
-
-    function updateParticles(dt) {
-      for (const p of particles) {
-        p.life += dt;
-        p.x += p.vx; p.y += p.vy;
-        p.vx *= 0.985; p.vy = p.vy*0.985 + 0.02; // slight gravity
-      }
-      particles = particles.filter(p => p.life < p.ttl && p.y < H + 60);
     }
 
     // Boss attack patterns
@@ -479,6 +472,145 @@
       }
     }
 
+    // Meteor logic
+    function spawnMeteorFromEnemy(e) {
+      // Spawn from above, roughly above the enemy, aiming down toward the player
+      const sx = Math.max(30, Math.min(W - 30, e.x + (Math.random()*80 - 40)));
+      const sy = -20;
+      const base = Math.atan2(P.y - sy, P.x - sx);
+      const ang = base + (Math.random()*0.35 - 0.175);
+      const spd = 6.2 + Math.min(4.0, wave * 0.22);
+      let vx = Math.cos(ang) * spd;
+      let vy = Math.sin(ang) * spd;
+      if (vy < 3.2) vy = 3.2;
+      const w = 38, h = 38;
+      const rot = Math.atan2(vy, vx) + Math.PI * 0.5; // point the flame back
+      const vr = (Math.random()*1.0 - 0.5) * 1.8; // small spin
+      meteors.push({ x: sx, y: sy, vx, vy, w, h, rot, vr });
+    }
+
+    function spawnExplosion(x, y, count = 18, color = 'orange') {
+      for (let i=0;i<count;i++) {
+        const ang = Math.random()*Math.PI*2;
+        const spd = 1.5 + Math.random()*4;
+        particles.push({
+          x, y,
+          vx: Math.cos(ang)*spd,
+          vy: Math.sin(ang)*spd,
+          life: 0,
+          ttl: 0.6 + Math.random()*0.5,
+          size: 2 + Math.random()*3,
+          color
+        });
+      }
+    }
+
+    function updateParticles(dt) {
+      for (const p of particles) {
+        p.life += dt;
+        if (p.kind === 'arc') {
+          // Advance a tracking electric arc and apply damage on arrival
+          let tx = p.destX, ty = p.destY;
+          if (p.target && p.target.hp > 0) {
+            tx = p.target.x; ty = p.target.y;
+            // keep dest updated to last known target position
+            p.destX = tx; p.destY = ty;
+          } else {
+            // target died before arrival: remove immediately so no ghost arcs are shown
+            if (!p.didDamage) p.ttl = Math.min(p.ttl, p.life);
+          }
+          const dist = Math.hypot(tx - p.startX, ty - p.startY) || 1;
+          const spd = p.speed || 1200;
+          const traveled = p.life * spd;
+          p.progress = Math.min(1, traveled / dist);
+          if (!p.didDamage && p.progress >= 1) {
+            if (p.target && p.target.hp > 0) {
+              p.target.hp -= (p.damage || 1);
+              if (p.target.hp <= 0) {
+                const add = (p.target.type === 'F') ? 100 : (p.target.type === 'B' ? 250 : (p.target.score || 2000));
+                score += add; scoreEl.textContent = score;
+                spawnDrop(p.target);
+              }
+            }
+            // impact sparks at current destination
+            for (let i=0;i<6;i++) {
+              const ang = Math.random()*Math.PI*2, sp = 2+Math.random()*2.5;
+              particles.push({ x: tx, y: ty, vx: Math.cos(ang)*sp, vy: Math.sin(ang)*sp, life:0, ttl:0.25, size:1.6+Math.random()*1.4, color:'electric' });
+            }
+            p.didDamage = true;
+          }
+        } else {
+          p.x += p.vx; p.y += p.vy;
+          p.vx *= 0.985; p.vy = p.vy*0.985 + 0.02; // slight gravity
+        }
+      }
+      particles = particles.filter(p => p.life < p.ttl && (p.kind === 'arc' || p.y < H + 60));
+    }
+
+    // Electro Orb utils
+    function buildArcPoints(x1, y1, x2, y2, segs = 6) {
+      const pts = [];
+      for (let i = 0; i <= segs; i++) {
+        const t = i / segs;
+        const x = x1 + (x2 - x1) * t;
+        const y = y1 + (y2 - y1) * t;
+        const dx = x2 - x1, dy = y2 - y1;
+        const len = Math.hypot(dx, dy) || 1;
+        const nx = -dy / len, ny = dx / len;
+        const mag = (Math.random() * 8 - 4) * (1 - Math.abs(0.5 - t) * 1.2);
+        pts.push({ x: x + nx * mag, y: y + ny * mag });
+      }
+      return pts;
+    }
+    // Electro Orb: chain lightning from a hit enemy to nearby enemies
+    function spawnElectricArc(x1, y1, x2, y2, opts = {}) {
+      // Create a traveling arc that tracks a moving target. Damage is applied on arrival.
+      const speed = opts.speed || 1200; // px/sec
+      const initialDist = Math.hypot(x2 - x1, y2 - y1) || 1;
+      const travel = initialDist / Math.max(1, speed);
+      const arc = {
+        kind: 'arc',
+        life: 0,
+        ttl: Math.max(0.2, travel + 0.15),
+        width: 3,
+        startX: x1,
+        startY: y1,
+        target: opts.target || null,
+        destX: x2,
+        destY: y2,
+        speed,
+        progress: 0,
+        damage: opts.damage || 1,
+        didDamage: false
+      };
+      particles.push(arc);
+      // impact sparks are spawned upon arrival in updateParticles
+    }
+
+    function triggerElectro(srcEnemy, hx, hy) {
+      if (!power.electro) return;
+      const R = 140;
+      // collect nearby enemies and hit the nearest few with delayed arcs
+      const cand = [];
+      for (const e2 of enemies) {
+        if (e2 === srcEnemy || e2.hp <= 0) continue;
+        // Only chain to enemies that are actually visible on-screen
+        if (e2.y < e2.h/2 || e2.y >= H + 80) continue;
+        const dx = e2.x - srcEnemy.x, dy = e2.y - srcEnemy.y;
+        if (dx*dx + dy*dy <= R*R) {
+          const dxh = e2.x - hx, dyh = e2.y - hy;
+          cand.push({ e: e2, d2: dxh*dxh + dyh*dyh });
+        }
+      }
+      cand.sort((a,b) => a.d2 - b.d2);
+      const maxChains = 2; // reduced overall damage by limiting number of chained targets
+      const dmg = 1; // per-target shock damage upon arrival
+      for (let i=0; i<Math.min(maxChains, cand.length); i++) {
+        const e2 = cand[i].e;
+        spawnElectricArc(hx, hy, e2.x, e2.y, { target: e2, damage: dmg });
+      }
+    }
+
     function update(dt) {
       // Tick down invulnerability timer
       if (invulnT > 0) invulnT = Math.max(0, invulnT - dt);
@@ -497,15 +629,6 @@
         missileT += dt;
         const cd = power.missileLv >= 2 ? 0.8 : 1.2;
         if (missileT >= cd) { missileT = 0; spawnMissile(); }
-      }
-      // Laser pulse timer
-      if (power.laserLv > 0) {
-        laserT += dt;
-        const laserCd = power.laserLv >= 2 ? 1.0 : 1.25;
-        const beamDur = power.laserLv >= 2 ? 0.20 : 0.14;
-        if (laserT >= laserCd) {
-          laserT = 0; beamT = beamDur; beamSeq++;
-        }
       }
 
       // Stars
@@ -559,6 +682,34 @@
       }
       bullets = bullets.filter(b => b.y > -40 && b.y < H+40 && b.x > -40 && b.x < W+40);
 
+      // Lasers: advance life and apply piercing damage to all intersecting enemies once per beam
+      if (lasers.length) {
+        for (const L of lasers) {
+          L.life += dt;
+          for (const e of enemies) {
+            if (e.hp <= 0) continue;
+            // beam-rect intersection (vertical strip at x=L.x)
+            const halfW = L.width * 0.5;
+            const withinX = Math.abs(e.x - L.x) < (e.w/2 + halfW);
+            const withinY = (e.y + e.h/2) > L.y1 && (e.y - e.h/2) < L.y0;
+            if (withinX && withinY && !L.hit.has(e)) {
+              L.hit.add(e);
+              const hitX = Math.max(e.x - e.w/2, Math.min(L.x, e.x + e.w/2));
+              const hitY = Math.max(e.y - e.h/2, Math.min(L.y0, e.y + e.h/2));
+              e.hp -= L.dmg;
+              // Electro chain from this laser hit
+              triggerElectro(e, hitX, hitY);
+              if (e.hp <= 0) {
+                const add = (e.type === 'F') ? 100 : (e.type === 'B' ? 250 : (e.score || 2000));
+                score += add; scoreEl.textContent = score;
+                spawnDrop(e);
+              }
+            }
+          }
+        }
+        lasers = lasers.filter(L => L.life < L.ttl);
+      }
+
       // Meteors
       for (const m of meteors) {
         m.x += m.vx; m.y += m.vy; m.rot += m.vr * dt;
@@ -605,34 +756,20 @@
         for (const e of enemies) {
           if (e.hp <= 0) continue;
           if (Math.abs(b.x - e.x) < (e.w/2) && Math.abs(b.y - e.y) < (e.h/2)) {
+            // capture impact point BEFORE removing the bullet
+            const hitX = b.x, hitY = b.y;
             e.hp -= (b.dmg || 1); b.y = -9999; // remove
             if (b.kind === 'missile') {
-              spawnExplosion(b.x, b.y, 14, 'orange');
+              spawnExplosion(hitX, hitY, 14, 'orange');
             }
+            // Electro chain from this hit
+            triggerElectro(e, hitX, hitY);
             if (e.hp <= 0) {
               const add = (e.type === 'F') ? 100 : (e.type === 'B' ? 250 : (e.score || 2000));
               score += add; scoreEl.textContent = score;
               spawnDrop(e);
             }
             break;
-          }
-        }
-      }
-
-      // Laser beam damage: apply once per enemy per beam
-      if (beamT > 0) {
-        beamT = Math.max(0, beamT - dt);
-        const halfW = (LASER.width * 0.5) + 6; // little leniency
-        for (const e of enemies) if (e.hp > 0) {
-          if (Math.abs(e.x - P.x) < (halfW + e.w*0.4) && e.y < P.y - 10) {
-            if (e._beamHit !== beamSeq) {
-              e._beamHit = beamSeq; e.hp -= 1;
-              if (e.hp <= 0) {
-                const add = (e.type === 'F') ? 100 : (e.type === 'B' ? 250 : (e.score || 2000));
-                score += add; scoreEl.textContent = score;
-                spawnDrop(e);
-              }
-            }
           }
         }
       }
@@ -734,8 +871,8 @@
     function restartOnce(e) {
       if (e.code === 'Space') {
         score = 0; wave = 1; lives = 3; scoreEl.textContent = score; waveEl.textContent = wave; livesEl.textContent = lives;
-        power = { fireLv: 0, twin: false, spread: false, missileLv: 0, laserLv: 0 }; B.cooldown = B.baseCooldown; lastShoot = 0; drops = []; meteors = []; particles = [];
-        missileT = 0; laserT = 0; beamT = 0; beamSeq = 0;
+        power = { fireLv: 0, twin: false, spread: false, missileLv: 0, electro: false, laserLv: 0 }; B.cooldown = B.baseCooldown; lastShoot = 0; drops = []; meteors = []; particles = [];
+        missileT = 0; laserT = 0; lasers = [];
         invulnT = 0; shieldActive = false; shieldPulse = 0;
         gameOverHandled = false; setupWave(1); showOverlay('Nova Striker', 'Tap/Click or press Space to launch');
       }
@@ -802,11 +939,30 @@
       ctx.restore();
     }
 
+    function drawPickupMsgs(dt) {
+      if (!pickupMsgs.length) return;
+      // advance timers
+      for (const m of pickupMsgs) m.t += dt;
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.font = '12px "Press Start 2P", cursive';
+      for (const m of pickupMsgs) {
+        const a = Math.max(0, 1 - (m.t / m.dur));
+        const y = 72 - m.t * 24;
+        ctx.globalAlpha = a;
+        ctx.fillStyle = m.color || '#fff';
+        ctx.fillText(m.text, W/2, y);
+      }
+      ctx.restore();
+      pickupMsgs = pickupMsgs.filter(m => m.t < m.dur);
+    }
+
     let lastTime = 0;
     function draw(ts=0) {
       const dt = Math.min(0.05, (ts - lastTime) / 1000) || 0.016; lastTime = ts;
       ctx.clearRect(0,0,W,H);
       drawStars();
+      drawPickupMsgs(dt);
 
       // Enemies
       for (const e of enemies) if (e.hp > 0) {
@@ -822,14 +978,48 @@
         drawSprite(img, e.x, e.y, e.w, e.h);
       }
 
-      // Meteor trail particles
+      // Particles (meteors, sparks, electric arcs)
       for (const p of particles) {
         const a = Math.max(0, 1 - (p.life / p.ttl));
-        ctx.save();
-        ctx.globalAlpha = a * 0.9;
-        ctx.fillStyle = (p.color === 'gold') ? 'rgba(255,215,0,1)' : 'rgba(255,140,0,1)';
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
-        ctx.restore();
+        if (p.kind === 'arc') {
+          // If the target died and we haven't applied damage, skip drawing this arc this frame
+          if (p.target && p.target.hp <= 0 && !p.didDamage) { continue; }
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = a * 0.95;
+          ctx.strokeStyle = 'rgba(125,249,255,0.95)';
+          ctx.lineWidth = p.width || 3;
+          // dynamic path toward current target position
+          const tx = (p.target && p.target.hp > 0) ? p.target.x : p.destX;
+          const ty = (p.target && p.target.hp > 0) ? p.target.y : p.destY;
+          const pts = buildArcPoints(p.startX, p.startY, tx, ty, 6);
+          const prog = p.progress || 0;
+          const maxIdx = Math.max(1, Math.floor(prog * (pts.length - 1)));
+          ctx.beginPath();
+          for (let i = 0; i <= maxIdx; i++) {
+            const pt = pts[i];
+            if (i === 0) ctx.moveTo(pt.x, pt.y); else ctx.lineTo(pt.x, pt.y);
+          }
+          ctx.stroke();
+          // outer glow
+          ctx.globalAlpha = a * 0.35; ctx.lineWidth = (p.width || 3) + 8; ctx.stroke();
+          // traveling head glow
+          const head = pts[maxIdx];
+          if (head) {
+            ctx.globalAlpha = 0.9;
+            ctx.fillStyle = 'rgba(180,255,255,0.9)';
+            ctx.beginPath(); ctx.arc(head.x, head.y, 3.5, 0, Math.PI*2); ctx.fill();
+          }
+          ctx.restore();
+        } else {
+          ctx.save();
+          ctx.globalAlpha = a * 0.9;
+          if (p.color === 'gold') ctx.fillStyle = 'rgba(255,215,0,1)';
+          else if (p.color === 'electric') ctx.fillStyle = 'rgba(125,249,255,1)';
+          else ctx.fillStyle = 'rgba(255,140,0,1)';
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+          ctx.restore();
+        }
       }
 
       // Meteors
@@ -862,25 +1052,6 @@
         ctx.restore();
       }
 
-      // Laser beam rendering (over the ship)
-      if (beamT > 0) {
-        ctx.save();
-        const w = LASER.width;
-        const x = P.x;
-        const y0 = P.y - P.h/2 - 4;
-        const y1 = 0;
-        // Core beam
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.strokeStyle = 'rgba(255,0,255,0.95)';
-        ctx.lineWidth = w;
-        ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke();
-        // Outer glow
-        ctx.strokeStyle = 'rgba(255,0,255,0.35)';
-        ctx.lineWidth = w + 14;
-        ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke();
-        ctx.restore();
-      }
-
       // Drops
       for (const d of drops) {
         const img = d.type === 'L'
@@ -890,18 +1061,21 @@
                 : (d.kind === 'twin' ? SPRITES.upTwin
                   : (d.kind === 'spread' ? SPRITES.upSpread
                     : (d.kind === 'missile' ? SPRITES.upMissile
-                      : (d.kind === 'laser' ? SPRITES.upLaser : SPRITES.upgrade))))));
+                      : (d.kind === 'electro' ? SPRITES.upElectro
+                        : (d.kind === 'laser' ? SPRITES.upLaser : SPRITES.upgrade)))))));
         // soft glow
         ctx.save();
         ctx.beginPath(); ctx.arc(d.x, d.y, 20, 0, Math.PI*2);
-        ctx.fillStyle = d.type === 'L'
-          ? 'rgba(255,77,109,0.18)'
-          : (d.type === 'S' ? 'rgba(0,229,255,0.20)'
-             : (d.kind === 'fire' ? 'rgba(255,140,0,0.18)'
-               : (d.kind === 'twin' ? 'rgba(0,229,255,0.18)'
-                 : (d.kind === 'spread' ? 'rgba(33,216,122,0.18)'
-                   : (d.kind === 'missile' ? 'rgba(255,165,0,0.20)'
-                     : (d.kind === 'laser' ? 'rgba(255,0,255,0.20)' : 'rgba(0,229,255,0.18)'))))));
+        let glow = 'rgba(0,229,255,0.18)';
+        if (d.type === 'L') glow = 'rgba(255,77,109,0.18)';
+        else if (d.type === 'S') glow = 'rgba(0,229,255,0.20)';
+        else if (d.kind === 'fire') glow = 'rgba(255,140,0,0.18)';
+        else if (d.kind === 'twin') glow = 'rgba(0,229,255,0.18)';
+        else if (d.kind === 'spread') glow = 'rgba(33,216,122,0.18)';
+        else if (d.kind === 'missile') glow = 'rgba(255,165,0,0.20)';
+        else if (d.kind === 'electro') glow = 'rgba(125,249,255,0.20)';
+        else if (d.kind === 'laser') glow = 'rgba(255,77,240,0.22)';
+        ctx.fillStyle = glow;
         ctx.fill(); ctx.restore();
         drawSprite(img, d.x, d.y, DROP.w, DROP.h);
       }
@@ -913,6 +1087,27 @@
           drawRotSprite(SPRITES.missile, b.x, b.y, MISS.w, MISS.h, ang);
         } else {
           drawSprite(b.good?SPRITES.bullet:SPRITES.eBullet, b.x, b.y, b.good?B.w:EB.w, b.good?B.h:EB.h);
+        }
+      }
+
+      // Draw Lasers (glowing vertical beams)
+      if (lasers.length) {
+        for (const L of lasers) {
+          const a = Math.max(0, 1 - (L.life / L.ttl));
+          const yTop = Math.max(0, L.y1);
+          const yBot = Math.max(0, Math.min(H, L.y0));
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          // core
+          ctx.strokeStyle = 'rgba(255,77,240,0.95)';
+          ctx.lineWidth = L.width;
+          ctx.globalAlpha = 0.9 * a;
+          ctx.beginPath(); ctx.moveTo(L.x, yTop); ctx.lineTo(L.x, yBot); ctx.stroke();
+          // inner glow
+          ctx.globalAlpha = 0.55 * a; ctx.lineWidth = L.width + 6; ctx.stroke();
+          // outer glow
+          ctx.globalAlpha = 0.25 * a; ctx.lineWidth = L.width + 14; ctx.stroke();
+          ctx.restore();
         }
       }
 

@@ -698,7 +698,7 @@
       }
 
       // Next wave (wait if upgrades/shield are still on-screen). Require all enemies to be truly defeated.
-      if (!enemies.some(e => e.hp > 0) && !drops.some(d => (d.type === 'U' || d.type === 'S') && d.y >= 0 && d.y <= H)) {
+      if (!enemies.some(e => e.hp > 0) && !drops.some(d => (d.type === 'U' || d.type === 'S' || d.type === 'L') && d.y >= 0 && d.y <= H)) {
         if (wave >= 9) {
           victory();
         } else {

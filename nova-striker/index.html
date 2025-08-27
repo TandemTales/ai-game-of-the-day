@@ -87,7 +87,7 @@
       <div class="hud">
         <div>Score: <span id="score">0</span></div>
         <div>Wave: <span id="wave">1</span></div>
-        <div>Lives: <span id="lives">3</span></div>
+        <div>Lives: <span id="lives">5</span></div>
       </div>
 
       <div class="stage">
@@ -172,7 +172,7 @@
 
     // State
     let running = false, paused = false, gameOverHandled = false;
-    let score = 0, wave = 1, lives = 3;
+    let score = 0, wave = 1, lives = 5;
     let bullets = []; // {x,y,vx,vy,good}
     let lasers = [];  // {x, y0, y1, width, life, ttl, dmg, hit:Set}
     let enemies = []; // {x,y,w,h,hp,type,t,pat}
@@ -189,6 +189,8 @@
     // Meteors and particles
     let meteors = [];   // {x,y,vx,vy,w,h,rot,vr}
     let particles = []; // {x,y,vx,vy,life,ttl,size,color}
+    // Global meteor spawn cooldown timer (seconds since last meteor)
+    let timeSinceLastMeteor = 999;
     // Special weapon timers
     let missileT = 0;   // accumulates until firing a homing missile (if owned)
     let laserT = 0;     // accumulates for laser cadence when owned
@@ -253,6 +255,8 @@
       drops = [];
       meteors = [];
       particles = [];
+      // Reset meteor cooldown so the next spawn is allowed immediately
+      timeSinceLastMeteor = 999;
       if (isBossWave(n)) {
         // Create a unique boss for waves 3, 6, 9
         const idx = Math.floor(n / 3); // 1,2,3
@@ -478,6 +482,9 @@
 
     // Meteor logic
     function spawnMeteorFromEnemy(e) {
+      // Enforce a global 0.5s cooldown between meteor spawns
+      if (timeSinceLastMeteor < 0.5) return;
+      timeSinceLastMeteor = 0;
       // Spawn from above, roughly above the enemy, aiming down toward the player
       const sx = Math.max(30, Math.min(W - 30, e.x + (Math.random()*80 - 40)));
       const sy = -20;
@@ -638,6 +645,8 @@
       // Tick down invulnerability timer
       if (invulnT > 0) invulnT = Math.max(0, invulnT - dt);
       if (shieldActive) shieldPulse += dt;
+      // Advance meteor cooldown timer
+      timeSinceLastMeteor += dt;
       // Player move
       const spd = P.speed * (1 + wave*0.04);
       if (input.left) P.x -= spd; if (input.right) P.x += spd;
@@ -906,7 +915,7 @@
 
     function restartOnce(e) {
       if (e.code === 'Space') {
-        score = 0; wave = 1; lives = 3; scoreEl.textContent = score; waveEl.textContent = wave; livesEl.textContent = lives;
+        score = 0; wave = 1; lives = 5; scoreEl.textContent = score; waveEl.textContent = wave; livesEl.textContent = lives;
         power = { fireLv: 0, twin: false, spread: false, missileLv: 0, electro: false, laserLv: 0 }; B.cooldown = B.baseCooldown; lastShoot = 0; drops = []; meteors = []; particles = [];
         missileT = 0; laserT = 0; lasers = [];
         invulnT = 0; shieldActive = false; shieldPulse = 0;

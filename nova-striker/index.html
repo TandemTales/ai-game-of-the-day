@@ -194,6 +194,8 @@
     // Special weapon timers
     let missileT = 0;   // accumulates until firing a homing missile (if owned)
     let laserT = 0;     // accumulates for laser cadence when owned
+    // End-of-wave delay handle
+    let endWaveTimeout = null;
 
     const input = { left:false, right:false };
 
@@ -249,6 +251,8 @@
 
     function setupWave(n) {
       wave = n; waveEl.textContent = wave;
+      // Clear any pending end-of-wave popup
+      if (endWaveTimeout) { clearTimeout(endWaveTimeout); endWaveTimeout = null; }
       enemies = [];
       bullets = [];
       lasers = [];
@@ -895,13 +899,19 @@
 
       // Next wave (wait if upgrades/shield are still on-screen). Require all enemies to be truly defeated.
       if (!enemies.some(e => e.hp > 0) && !drops.some(d => (d.type === 'U' || d.type === 'S' || d.type === 'L') && d.y >= 0 && d.y <= H)) {
-        if (wave >= 9) {
-          victory();
-        } else {
-          running = false;
-          setupWave(wave + 1);
-          const label = isBossWave(wave) ? ('Boss Wave ' + (Math.floor(wave/3))) : ('Wave ' + wave);
-          showOverlay(label, 'Tap/Click or press Space to launch');
+        // Schedule the popup after a 5s breather, only once
+        if (!endWaveTimeout) {
+          endWaveTimeout = setTimeout(() => {
+            endWaveTimeout = null;
+            if (wave >= 9) {
+              victory();
+            } else {
+              running = false;
+              setupWave(wave + 1);
+              const label = isBossWave(wave) ? ('Boss Wave ' + (Math.floor(wave/3))) : ('Wave ' + wave);
+              showOverlay(label, 'Tap/Click or press Space to launch');
+            }
+          }, 2000);
         }
       }
     }
@@ -929,6 +939,8 @@
 
     function restartOnce(e) {
       if (e.code === 'Space') {
+        // Clear any pending end-of-wave popup
+        if (endWaveTimeout) { clearTimeout(endWaveTimeout); endWaveTimeout = null; }
         score = 0; wave = 1; lives = 5; scoreEl.textContent = score; waveEl.textContent = wave; livesEl.textContent = lives;
         power = { fireLv: 0, twin: false, spread: false, missileLv: 0, electro: false, laserLv: 0 }; B.cooldown = B.baseCooldown; lastShoot = 0; drops = []; meteors = []; particles = [];
         missileT = 0; laserT = 0; lasers = [];

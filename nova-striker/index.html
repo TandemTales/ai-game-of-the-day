@@ -775,6 +775,20 @@
         d.x += d.vx + Math.sin(d.t*3) * 0.4;
         d.y += d.vy;
         d.vy = Math.min(d.vy + 0.01, 3.2);
+        // Keep upgrade and extra life drops within horizontal bounds so they stay collectible
+        if (d.type === 'U' || d.type === 'L') {
+          const pad = DROP.w * 0.5 + 8; // small margin inside the walls
+          const minX = pad;
+          const maxX = W - pad;
+          if (d.x < minX) {
+            d.x = minX;
+            // nudge inward and dampen drift
+            d.vx = Math.abs(d.vx) * 0.5;
+          } else if (d.x > maxX) {
+            d.x = maxX;
+            d.vx = -Math.abs(d.vx) * 0.5;
+          }
+        }
       }
       // Collect drops
       for (const d of drops) {

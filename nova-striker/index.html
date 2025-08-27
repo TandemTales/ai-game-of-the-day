@@ -196,6 +196,10 @@
     let laserT = 0;     // accumulates for laser cadence when owned
     // End-of-wave delay handle
     let endWaveTimeout = null;
+    // End-of-game delay handle (for death -> leaderboard)
+    let endGameTimeout = null;
+    // Player death state during end-game delay
+    let playerDead = false;
 
     const input = { left:false, right:false };
 
@@ -656,12 +660,12 @@
       if (input.left) P.x -= spd; if (input.right) P.x += spd;
       P.x = Math.max(P.w/2, Math.min(W - P.w/2, P.x));
 
-      // Auto fire when running
-      shoot(dt);
+      // Auto fire when running (disabled after death)
+      if (!playerDead) shoot(dt);
 
       // Special weapons handling
       // Homing missile timer
-      if (power.missileLv > 0) {
+      if (power.missileLv > 0 && !playerDead) {
         missileT += dt;
         const cd = power.missileLv >= 2 ? 0.8 : 1.2;
         if (missileT >= cd) { missileT = 0; spawnMissile(); }
@@ -898,7 +902,8 @@
       }
 
       // Next wave (wait if upgrades/shield are still on-screen). Require all enemies to be truly defeated.
-      if (!enemies.some(e => e.hp > 0) && !drops.some(d => (d.type === 'U' || d.type === 'S' || d.type === 'L') && d.y >= 0 && d.y <= H)) {
+      // Suppress wave advancement during post-death delay.
+      if (!playerDead && !enemies.some(e => e.hp > 0) && !drops.some(d => (d.type === 'U' || d.type === 'S' || d.type === 'L') && d.y >= 0 && d.y <= H)) {
         // Schedule the popup after a 5s breather, only once
         if (!endWaveTimeout) {
           endWaveTimeout = setTimeout(() => {
@@ -920,10 +925,18 @@
       if (!running) return;
       lives--; livesEl.textContent = lives;
       if (lives <= 0) {
-        running = false;
-        showOverlay('Game Over', 'Press Space to restart');
-        if (!gameOverHandled) { gameOverHandled = true; maybeSubmitLeaderboard(false).catch(console.error); }
-        window.addEventListener('keydown', restartOnce, { once: true });
+        // Player destroyed: keep the world running for 2s so effects/enemies continue
+        playerDead = true;
+        invulnT = 999; // block further hits
+        if (!endGameTimeout) {
+          endGameTimeout = setTimeout(() => {
+            endGameTimeout = null;
+            running = false; // finally stop the game
+            showOverlay('Game Over', 'Press Space to restart');
+            if (!gameOverHandled) { gameOverHandled = true; maybeSubmitLeaderboard(false).catch(console.error); }
+            window.addEventListener('keydown', restartOnce, { once: true });
+          }, 2000);
+        }
       } else {
         // Brief invulnerability after being hit
         invulnT = 2.5; // seconds
@@ -941,6 +954,9 @@
       if (e.code === 'Space') {
         // Clear any pending end-of-wave popup
         if (endWaveTimeout) { clearTimeout(endWaveTimeout); endWaveTimeout = null; }
+        // Clear any pending end-of-game popup
+        if (endGameTimeout) { clearTimeout(endGameTimeout); endGameTimeout = null; }
+        playerDead = false;
         score = 0; wave = 1; lives = 5; scoreEl.textContent = score; waveEl.textContent = wave; livesEl.textContent = lives;
         power = { fireLv: 0, twin: false, spread: false, missileLv: 0, electro: false, laserLv: 0 }; B.cooldown = B.baseCooldown; lastShoot = 0; drops = []; meteors = []; particles = [];
         missileT = 0; laserT = 0; lasers = [];
@@ -1099,17 +1115,19 @@
         drawRotSprite(SPRITES.meteor, m.x, m.y, m.w, m.h, m.rot);
       }
 
-      // Player (blink while invulnerable)
-      if (invulnT > 0) {
-        // Simple blink at ~8 Hz using remaining time
-        const blinkOn = (Math.floor(invulnT * 8) % 2) === 0;
-        if (blinkOn) drawSprite(SPRITES.player, P.x, P.y, P.w, P.h);
-      } else {
-        drawSprite(SPRITES.player, P.x, P.y, P.w, P.h);
+      // Player (hidden after death; blink while invulnerable otherwise)
+      if (!playerDead) {
+        if (invulnT > 0) {
+          // Simple blink at ~8 Hz using remaining time
+          const blinkOn = (Math.floor(invulnT * 8) % 2) === 0;
+          if (blinkOn) drawSprite(SPRITES.player, P.x, P.y, P.w, P.h);
+        } else {
+          drawSprite(SPRITES.player, P.x, P.y, P.w, P.h);
+        }
       }
 
-      // Active shield visual: glowing ring around the player
-      if (shieldActive) {
+      // Active shield visual: glowing ring around the player (not shown after death)
+      if (shieldActive && !playerDead) {
         ctx.save();
         const r = Math.max(P.w, P.h) * 0.70;
         ctx.globalAlpha = 0.85;
@@ -1188,6 +1206,10 @@
       if (bossAlive) drawBossBar(bossAlive);
 
       if (running && !paused) update(dt);
+      else {
+        // Keep destruction particle effects animating during death delay
+        if (endGameTimeout) updateParticles(dt);
+      }
       requestAnimationFrame(draw);
     }
   </script>

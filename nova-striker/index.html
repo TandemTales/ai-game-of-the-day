@@ -434,7 +434,7 @@
     function bossShoot1(e, dt) {
       // Wave 3 boss: aimed triple spread
       e.fireT += dt;
-      if (e.fireT >= 0.6) {
+      if (e.fireT >= 0.9) {
         e.fireT = 0;
         const base = Math.atan2(P.y - e.y, P.x - e.x);
         const speeds = [7.2, 7.0, 7.2];

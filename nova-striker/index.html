@@ -112,6 +112,8 @@
       player: new Image(),
       enemyF: new Image(),
       enemyB: new Image(),
+      enemyS: new Image(),
+      enemyW: new Image(),
       bullet: new Image(),
       eBullet: new Image(),
       boss1: new Image(),
@@ -133,6 +135,8 @@
     SPRITES.player.src = 'assets/ns_player01.png';
     SPRITES.enemyF.src = 'assets/ns_enemy_fighter.png';
     SPRITES.enemyB.src = 'assets/ns_enemy_bomber.png';
+    SPRITES.enemyS.src = 'assets/ns_enemy_sniper.svg';
+    SPRITES.enemyW.src = 'assets/ns_enemy_weaver.svg';
     SPRITES.bullet.src = 'assets/ns_bullet.svg';
     SPRITES.eBullet.src = 'assets/ns_enemy_bullet.svg';
     SPRITES.boss1.src = 'assets/ns_boss_01.png';
@@ -303,6 +307,19 @@
           enemies.push({ x: Math.random()*W, y: -300 - i*120, w: 56, h: 54, hp: 2 + Math.floor(n/2), type: 'B', t: Math.random()*6.28,
             pat: { amp: 60, freq: 0.7, vy: 1.0 + n*0.12 } });
         }
+        // Add a couple of Snipers (precise shooters)
+        const snipers = Math.max(0, Math.min(1 + Math.floor((n-1)/4), 3));
+        for (let i=0; i<snipers; i++) {
+          enemies.push({ x: 60 + Math.random()*(W-120), y: -350 - i*160, w: 40, h: 44, hp: 2 + Math.floor((n-1)/3), type: 'S', t: Math.random()*6.28,
+            pat: { amp: 18, freq: 0.7, vy: 0.9 + n*0.09 }, score: 350 });
+        }
+        // Add Weavers (wide sine movers)
+        const weaversBase = Math.min(2 + Math.floor(n/3), 5);
+        const weavers = Math.max(0, Math.round(weaversBase * 0.7));
+        for (let i=0; i<weavers; i++) {
+          enemies.push({ x: 60 + Math.random()*(W-120), y: -200 - i*100, w: 52, h: 34, hp: 2 + Math.floor(n/3), type: 'W', t: Math.random()*6.28,
+            pat: { amp: 90, freq: 1.5, vy: 1.2 + n*0.10 }, score: 180 });
+        }
       }
     }
 
@@ -431,6 +448,30 @@
       if (Math.random() < chance) {
         const vx = (P.x - e.x) * 0.006; // slight aim
         bullets.push({ x: e.x, y: e.y + e.h/2, vx, vy: EB.speed, good: false });
+      }
+    }
+
+    // Precise long-range shot for Sniper ships (fast bullet, low rate)
+    function enemyShootSniper(e, chance=0.0028) {
+      if (Math.random() < chance) {
+        const ang = Math.atan2(P.y - e.y, P.x - e.x);
+        const spd = 10.5;
+        bullets.push({ x: e.x, y: e.y + e.h/2, vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd, good: false });
+      }
+    }
+
+    // Weaver ships fire periodic 3-shot downward fans
+    function enemyShootWeaver(e, dt) {
+      e.fireT = (e.fireT || 0) + dt;
+      if (e.fireT >= 1.1) {
+        e.fireT = 0;
+        const base = Math.PI / 2; // straight down
+        const offsets = [-0.18, 0, 0.18];
+        const spd = 5.6;
+        for (const off of offsets) {
+          const ang = base + off;
+          bullets.push({ x: e.x, y: e.y + e.h/2, vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd, good: false });
+        }
       }
     }
 
@@ -897,6 +938,9 @@
           else bossShoot3(e, dt);
         } else {
           if (e.type === 'F') enemyShoot(e, 0.004 + wave*0.0008);
+          else if (e.type === 'B') enemyShoot(e, 0.006 + wave*0.0012);
+          else if (e.type === 'S') enemyShootSniper(e, 0.0022 + wave*0.00035);
+          else if (e.type === 'W') enemyShootWeaver(e, dt);
           else enemyShoot(e, 0.006 + wave*0.0012);
         }
       }
@@ -1061,7 +1105,9 @@
         }
         const img = e.boss
           ? (e.type === 'X1' ? SPRITES.boss1 : (e.type === 'X2' ? SPRITES.boss2 : SPRITES.boss3))
-          : ((e.type === 'F') ? SPRITES.enemyF : SPRITES.enemyB);
+          : (e.type === 'F' ? SPRITES.enemyF
+             : (e.type === 'B' ? SPRITES.enemyB
+                : (e.type === 'S' ? SPRITES.enemyS : SPRITES.enemyW)));
         drawSprite(img, e.x, e.y, e.w, e.h);
       }
 

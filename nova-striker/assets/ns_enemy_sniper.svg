@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b5f0ff"/>
+      <stop offset="1" stop-color="#5cc6ff"/>
+    </linearGradient>
+  </defs>
+  <g fill="url(#g1)" stroke="#083a73" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+    <!-- slim interceptor body -->
+    <path d="M24 4 L30 14 L30 26 L24 44 L18 26 L18 14 Z"/>
+    <!-- wings -->
+    <path d="M18 16 L8 20 L16 24"/>
+    <path d="M30 16 L40 20 L32 24"/>
+    <!-- cockpit -->
+    <circle cx="24" cy="14" r="3" fill="#e6fbff"/>
+  </g>
+  <!-- glow -->
+  <g fill="none" stroke="#9fe8ff" stroke-opacity="0.35" stroke-width="3">
+    <path d="M24 6 L29 15"/>
+    <path d="M19 18 L10 21"/>
+    <path d="M29 18 L38 21"/>
+  </g>
+</svg>

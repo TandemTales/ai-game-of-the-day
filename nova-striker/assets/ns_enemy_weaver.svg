@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="w1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffd1a3"/>
+      <stop offset="1" stop-color="#ff7f50"/>
+    </linearGradient>
+  </defs>
+  <!-- wide swept wings with compact body -->
+  <g fill="url(#w1)" stroke="#6a2400" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M6 24 L18 16 L30 16 L42 24 L30 30 L18 30 Z"/>
+    <path d="M22 12 L26 12 L26 20 L22 20 Z"/>
+    <circle cx="24" cy="18" r="2.5" fill="#ffe9d7"/>
+  </g>
+  <!-- subtle engine glow -->
+  <g stroke="#ffb38a" stroke-opacity="0.5" stroke-width="3" fill="none">
+    <path d="M10 24 L16 20"/>
+    <path d="M38 24 L32 20"/>
+  </g>
+</svg>

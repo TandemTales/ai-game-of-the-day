@@ -475,7 +475,15 @@
     // Precise long-range shot for Sniper ships (fast bullet, low rate)
     function enemyShootSniper(e, chance=0.0028) {
       if (Math.random() < chance) {
-        const ang = Math.atan2(P.y - e.y, P.x - e.x);
+        // Aim toward player but clamp within ±45° of straight down to avoid extreme side shots
+        const base = Math.PI / 2; // straight down
+        let ang = Math.atan2(P.y - e.y, P.x - e.x);
+        let delta = ang - base;
+        // normalize delta to [-PI, PI]
+        delta = ((delta + Math.PI) % (Math.PI * 2)) - Math.PI;
+        const limit = Math.PI / 4; // 45°
+        if (delta < -limit) delta = -limit; else if (delta > limit) delta = limit;
+        ang = base + delta;
         const spd = 10.5;
         bullets.push({ x: e.x, y: e.y + e.h/2, vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd, good: false });
       }

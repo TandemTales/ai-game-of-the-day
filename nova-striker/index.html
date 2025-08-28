@@ -68,6 +68,9 @@
     .overlay p { margin:4px 0; font-size:12px; color:#9fd; }
     .controls { margin-top: 10px; font-size: 11px; color:#8ec; opacity: .9; }
 
+    .wave-banner { position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); padding:10px 20px; background:rgba(0,0,0,0.6); border:2px solid rgba(255,215,0,0.4); border-radius:8px; color:var(--gold); font-size:20px; opacity:0; pointer-events:none; transition:opacity 0.5s; }
+    .wave-banner.show { opacity:1; }
+
     @media (max-width: 560px) { .title h1{font-size:18px;} .meta{display:none;} .btn{font-size:10px; padding:8px 10px;} }
   </style>
 </head>
@@ -92,6 +95,7 @@
 
       <div class="stage">
         <canvas id="game" width="900" height="600"></canvas>
+        <div id="wave-banner" class="wave-banner"></div>
         <div class="overlay" id="overlay">
           <div>
             <h2 id="ov-title">Nova Striker</h2>
@@ -172,6 +176,7 @@
     const overlayEl = document.getElementById('overlay');
     const ovTitle = document.getElementById('ov-title');
     const ovSub = document.getElementById('ov-sub');
+    const waveBanner = document.getElementById('wave-banner');
 
     // Game constants
     const GAME_ID = 'nova-striker';
@@ -259,6 +264,12 @@
 
     function showOverlay(title, sub) { ovTitle.textContent = title; ovSub.textContent = sub; overlayEl.classList.add('show'); }
     function hideOverlay() { overlayEl.classList.remove('show'); }
+
+    function showWaveBanner(text) {
+      waveBanner.textContent = text;
+      waveBanner.classList.add('show');
+      setTimeout(() => waveBanner.classList.remove('show'), 1500);
+    }
     
 
     function launch() {
@@ -267,6 +278,8 @@
         hideOverlay();
         running = true;
         currentMusic.play().catch(console.error);
+        const label = isBossWave(wave) ? ('Boss Wave ' + Math.floor(wave/3)) : ('Wave ' + wave);
+        showWaveBanner(label);
       }
     }
 
@@ -977,17 +990,16 @@
       // Next wave (wait if upgrades/shield are still on-screen). Require all enemies to be truly defeated.
       // Suppress wave advancement during post-death delay.
       if (!playerDead && !enemies.some(e => e.hp > 0) && !drops.some(d => (d.type === 'U' || d.type === 'S' || d.type === 'L') && d.y >= 0 && d.y <= H)) {
-        // Schedule the popup after a 5s breather, only once
+        // Schedule the next wave after a short breather, only once
         if (!endWaveTimeout) {
           endWaveTimeout = setTimeout(() => {
             endWaveTimeout = null;
             if (wave >= 9) {
               victory();
             } else {
-              running = false;
               setupWave(wave + 1);
-              const label = isBossWave(wave) ? ('Boss Wave ' + (Math.floor(wave/3))) : ('Wave ' + wave);
-              showOverlay(label, 'Tap/Click or press Space to launch');
+              const label = isBossWave(wave) ? ('Boss Wave ' + Math.floor(wave/3)) : ('Wave ' + wave);
+              showWaveBanner(label);
             }
           }, 2000);
         }

@@ -157,6 +157,31 @@
     let loaded = 0; const needed = Object.keys(SPRITES).length;
     for (const k in SPRITES) SPRITES[k].addEventListener('load', () => { if (++loaded === needed) init(); });
 
+    // Background music
+    const TRACKS = [
+      'assets/Game_Score_01.mp3',
+      'assets/Game_Score_02.mp3'
+    ];
+    let currentTrack = 0;
+    let bgm = null;
+
+    function startBgm() {
+      if (!TRACKS.length) return;
+      const PAUSE_MS = 500; // short pause between tracks
+
+      const play = () => {
+        bgm = new Audio(TRACKS[currentTrack]);
+        bgm.volume = 0.6;
+        bgm.addEventListener('ended', () => {
+          currentTrack = (currentTrack + 1) % TRACKS.length;
+          setTimeout(play, PAUSE_MS);
+        });
+        bgm.play();
+      };
+
+      play();
+    }
+
     // HUD
     const scoreEl = document.getElementById('score');
     const waveEl = document.getElementById('wave');
@@ -252,6 +277,7 @@
       if (!running) {
         hideOverlay();
         running = true;
+        if (!bgm) startBgm();
       }
     }
 

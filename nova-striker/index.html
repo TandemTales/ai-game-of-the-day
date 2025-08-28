@@ -154,6 +154,14 @@
     SPRITES.upElectro.src = 'assets/ns_upgrade_electro.svg';
     SPRITES.upLaser.src = 'assets/ns_upgrade_laser.svg';
 
+    const MUSIC = {
+      normal: new Audio('assets/Game_Score_01.mp3'),
+      boss: new Audio('assets/Game_Score_02.mp3')
+    };
+    MUSIC.normal.loop = true;
+    MUSIC.boss.loop = true;
+    let currentMusic = MUSIC.normal;
+
     let loaded = 0; const needed = Object.keys(SPRITES).length;
     for (const k in SPRITES) SPRITES[k].addEventListener('load', () => { if (++loaded === needed) init(); });
 
@@ -240,7 +248,13 @@
 
     function togglePause() {
       paused = !paused;
-      if (paused) showOverlay('Paused', 'Press P to resume'); else hideOverlay();
+      if (paused) {
+        currentMusic.pause();
+        showOverlay('Paused', 'Press P to resume');
+      } else {
+        currentMusic.play().catch(console.error);
+        hideOverlay();
+      }
     }
 
     function showOverlay(title, sub) { ovTitle.textContent = title; ovSub.textContent = sub; overlayEl.classList.add('show'); }
@@ -252,6 +266,7 @@
       if (!running) {
         hideOverlay();
         running = true;
+        currentMusic.play().catch(console.error);
       }
     }
 
@@ -269,6 +284,12 @@
       particles = [];
       // Reset meteor cooldown so the next spawn is allowed immediately
       timeSinceLastMeteor = 999;
+      const desired = isBossWave(n) ? MUSIC.boss : MUSIC.normal;
+      if (currentMusic !== desired) {
+        currentMusic.pause();
+        currentMusic = desired;
+        if (running && !paused) currentMusic.play().catch(console.error);
+      }
       if (isBossWave(n)) {
         // Create a unique boss for waves 3, 6, 9
         const idx = Math.floor(n / 3); // 1,2,3

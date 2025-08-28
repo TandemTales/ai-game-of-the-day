@@ -66,10 +66,15 @@
     .overlay.show { display:flex; }
     .overlay h2 { margin:0 0 12px; font-size:18px; color: var(--gold); }
     .overlay p { margin:4px 0; font-size:12px; color:#9fd; }
+
     .controls { margin-top: 10px; font-size: 11px; color:#8ec; opacity: .9; }
 
     .wave-banner { position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); padding:10px 20px; background:rgba(0,0,0,0.6); border:2px solid rgba(255,215,0,0.4); border-radius:8px; color:var(--gold); font-size:20px; opacity:0; pointer-events:none; transition:opacity 0.5s; }
     .wave-banner.show { opacity:1; }
+    /* Audio toggle icon button */
+    .audio-toggle { display:flex; align-items:center; gap:8px; }
+    #audioIcon { position: relative; width: 28px; height: 22px; cursor: pointer; border:1px solid rgba(255,215,0,0.35); border-radius:6px; background: rgba(0,0,0,0.25); overflow: hidden; }
+    #audioIcon img { width: 100%; height: 100%; object-fit: contain; display:block; }
 
     @media (max-width: 560px) { .title h1{font-size:18px;} .meta{display:none;} .btn{font-size:10px; padding:8px 10px;} }
   </style>
@@ -91,6 +96,11 @@
         <div>Score: <span id="score">0</span></div>
         <div>Wave: <span id="wave">1</span></div>
         <div>Lives: <span id="lives">5</span></div>
+        <div class="audio-toggle" title="Toggle Audio (M)">
+          <div id="audioIcon">
+            <img id="audioIconImg" src="assets/unmuted.png" alt="Audio">
+          </div>
+        </div>
       </div>
 
       <div class="stage">
@@ -100,7 +110,7 @@
           <div>
             <h2 id="ov-title">Nova Striker</h2>
             <p id="ov-sub">Tap/Click or press Space to launch</p>
-            <div class="controls">Move: Arrow Keys / A & D / Drag. Shoot: Auto-fire. Pause: P</div>
+            <div class="controls">Move: Arrow Keys / A & D / Drag. Shoot: Auto-fire. Pause: P. Audio: M</div>
           </div>
         </div>
       </div>
@@ -177,6 +187,8 @@
     const ovTitle = document.getElementById('ov-title');
     const ovSub = document.getElementById('ov-sub');
     const waveBanner = document.getElementById('wave-banner');
+    const audioIcon = document.getElementById('audioIcon');
+    const audioIconImg = document.getElementById('audioIconImg');
 
     // Game constants
     const GAME_ID = 'nova-striker';
@@ -217,6 +229,35 @@
     let endGameTimeout = null;
     // Player death state during end-game delay
     let playerDead = false;
+    // Global audio mute state
+    let muted = false;
+    const LS_MUTE_KEY = 'nova-striker:muted';
+
+    function setMuted(m) {
+      muted = !!m;
+      // Apply to all current music Audio objects
+      for (const k in MUSIC) {
+        try { MUSIC[k].muted = muted; } catch (e) {}
+      }
+      if (muted) {
+        try { currentMusic.pause(); } catch (e) {}
+      } else {
+        if (running && !paused) {
+          currentMusic.play().catch(()=>{}); // ignore errors
+        }
+      }
+      updateAudioIcon();
+      try { localStorage.setItem(LS_MUTE_KEY, muted ? '1' : '0'); } catch (e) {}
+    }
+
+    function toggleAudio() { setMuted(!muted); }
+
+    // Update icon image based on mute state
+    function updateAudioIcon() {
+      if (!audioIconImg) return;
+      audioIconImg.src = muted ? 'assets/muted.png' : 'assets/unmuted.png';
+      audioIconImg.alt = muted ? 'Muted' : 'Audio';
+    }
 
     const input = { left:false, right:false };
 
@@ -226,6 +267,11 @@
       showOverlay('Nova Striker', 'Tap/Click or press Space to launch');
       draw();
       attachControls();
+      // Initialize audio icon/mute from storage
+      try {
+        const saved = localStorage.getItem(LS_MUTE_KEY);
+        if (saved !== null) setMuted(saved === '1'); else updateAudioIcon();
+      } catch (e) { updateAudioIcon(); }
     }
 
     function attachControls() {
@@ -234,11 +280,14 @@
         if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = true;
         if (e.code === 'Space') launch();
         if (e.code === 'KeyP') togglePause();
+        if (e.code === 'KeyM') toggleAudio();
       });
       window.addEventListener('keyup', (e) => {
         if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = false;
         if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = false;
       });
+      // Clickable audio icon
+      if (audioIcon) audioIcon.addEventListener('click', toggleAudio);
       function moveToPointer(e) {
         const rect = canvas.getBoundingClientRect();
         const scaleX = W / rect.width;
@@ -254,10 +303,10 @@
     function togglePause() {
       paused = !paused;
       if (paused) {
-        currentMusic.pause();
+        if (!muted) currentMusic.pause();
         showOverlay('Paused', 'Press P to resume');
       } else {
-        currentMusic.play().catch(console.error);
+        if (!muted) currentMusic.play().catch(console.error);
         hideOverlay();
       }
     }
@@ -280,6 +329,7 @@
         currentMusic.play().catch(console.error);
         const label = isBossWave(wave) ? ('Boss Wave ' + Math.floor(wave/3)) : ('Wave ' + wave);
         showWaveBanner(label);
+        if (!muted) currentMusic.play().catch(console.error);
       }
     }
 
@@ -301,7 +351,7 @@
       if (currentMusic !== desired) {
         currentMusic.pause();
         currentMusic = desired;
-        if (running && !paused) currentMusic.play().catch(console.error);
+        if (running && !paused && !muted) currentMusic.play().catch(console.error);
       }
       if (isBossWave(n)) {
         // Create a unique boss for waves 3, 6, 9

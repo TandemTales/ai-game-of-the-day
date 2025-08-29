@@ -84,7 +84,7 @@
     <div class="panel">
       <header>
         <div class="title">
-          <img src="../images/botbuiltarcade-icon-face.png" alt="BotBuilt" width="36" height="36" style="border-radius:50%; border:2px solid var(--gold)"> 
+          <img id="logo" src="../images/botbuiltarcade-icon-face.png" alt="BotBuilt" width="36" height="36" style="border-radius:50%; border:2px solid var(--gold)">
           <div>
             <h1>Nova Striker</h1>
           </div>
@@ -193,6 +193,7 @@
     const waveBanner = document.getElementById('wave-banner');
     const audioIcon = document.getElementById('audioIcon');
     const audioIconImg = document.getElementById('audioIconImg');
+    const logoEl = document.getElementById('logo');
 
     // Game constants
     const GAME_ID = 'nova-striker';
@@ -206,6 +207,7 @@
     // State
     let running = false, paused = false, gameOverHandled = false;
     let score = 0, wave = 1, lives = 5;
+    let cheatInvuln = false, logoClicks = 0;
     let bullets = []; // {x,y,vx,vy,good}
     let lasers = [];  // {x, y0, y1, width, life, ttl, dmg, hit:Set}
     let enemies = []; // {x,y,w,h,hp,type,t,pat}
@@ -271,6 +273,19 @@
       showOverlay('Nova Striker', 'Tap/Click or press Space to launch');
       draw();
       attachControls();
+      if (logoEl) {
+        logoEl.addEventListener('click', () => {
+          if (running || !overlayEl.classList.contains('show')) return;
+          logoClicks++;
+          if (logoClicks === 4) {
+            cheatInvuln = true;
+            score = 0; scoreEl.textContent = score;
+            const prev = ovSub.textContent;
+            ovSub.textContent = 'Invulnerability activated!';
+            setTimeout(() => { ovSub.textContent = prev; }, 1500);
+          }
+        });
+      }
       // Initialize audio icon/mute from storage
       try {
         const saved = localStorage.getItem(LS_MUTE_KEY);
@@ -859,7 +874,7 @@
               p.target.hp -= (p.damage || 1);
               if (p.target.hp <= 0) {
                 const add = (p.target.type === 'F') ? 100 : (p.target.type === 'B' ? 250 : (p.target.score || 2000));
-                score += add; scoreEl.textContent = score;
+                if (!cheatInvuln) { score += add; scoreEl.textContent = score; }
                 spawnDrop(p.target);
                 // explosion on electro kill
                 spawnExplosion(tx, ty, (p.target && p.target.boss) ? 50 : 20, 'electric');
@@ -1044,7 +1059,7 @@
                 // explosion on laser kill
                 spawnExplosion(hitX, hitY, e.boss ? 50 : 22, 'orange');
                 const add = (e.type === 'F') ? 100 : (e.type === 'B' ? 250 : (e.score || 2000));
-                score += add; scoreEl.textContent = score;
+                if (!cheatInvuln) { score += add; scoreEl.textContent = score; }
                 spawnDrop(e);
               }
             }
@@ -1128,7 +1143,7 @@
               // explosion on bullet kill
               spawnExplosion(e.x, e.y, e.boss ? 50 : 22, 'orange');
               const add = (e.type === 'F') ? 100 : (e.type === 'B' ? 250 : (e.score || 2000));
-              score += add; scoreEl.textContent = score;
+              if (!cheatInvuln) { score += add; scoreEl.textContent = score; }
               spawnDrop(e);
             }
             break;
@@ -1137,7 +1152,7 @@
       }
 
       // Collisions: enemy bullets vs player (ignored while invulnerable)
-      if (invulnT <= 0) {
+      if (invulnT <= 0 && !cheatInvuln) {
         for (const b of bullets) if (!b.good) {
           if (Math.abs(b.x - P.x) < (P.w*0.35) && Math.abs(b.y - P.y) < (P.h*0.35)) {
             // Bullet hits player: if shield active, consume it and destroy the bullet; otherwise, take damage
@@ -1154,7 +1169,7 @@
       }
 
       // Collisions: meteors vs player (ignored while invulnerable)
-      if (invulnT <= 0) {
+      if (invulnT <= 0 && !cheatInvuln) {
         for (const m of meteors) {
           if (Math.abs(m.x - P.x) < (P.w*0.4) && Math.abs(m.y - P.y) < (P.h*0.4)) {
             // Impact explosion
@@ -1170,7 +1185,7 @@
       }
 
       // Enemies hitting player (ignored while invulnerable)
-      if (invulnT <= 0) {
+      if (invulnT <= 0 && !cheatInvuln) {
         for (const e of enemies) {
           if (e.hp <= 0) continue;
           if (Math.abs(e.x - P.x) < (P.w*0.45) && Math.abs(e.y - P.y) < (P.h*0.45)) {
@@ -1231,7 +1246,7 @@
     }
 
     function hitPlayer() {
-      if (!running) return;
+      if (!running || cheatInvuln) return;
       lives--; livesEl.textContent = lives;
       if (lives <= 0) {
         // Player destroyed: keep the world running for 2s so effects/enemies continue
@@ -1270,6 +1285,7 @@
         power = { fireLv: 0, twin: false, spread: false, missileLv: 0, electro: false, laserLv: 0 }; B.cooldown = B.baseCooldown; lastShoot = 0; drops = []; meteors = []; particles = [];
         missileT = 0; laserT = 0; lasers = [];
         invulnT = 0; shieldActive = false; shieldPulse = 0;
+        cheatInvuln = false; logoClicks = 0;
         gameOverHandled = false; setupWave(1); showOverlay('Nova Striker', 'Tap/Click or press Space to launch');
       }
     }

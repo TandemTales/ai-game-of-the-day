@@ -789,14 +789,13 @@
       if (e.spawnT >= 3.5) {
         e.spawnT = 0;
         const activeAdds = enemies.filter(en => !en.boss && en.hp > 0 && en.y < H+40).length;
-        // Increase cap and spawn count to raise pressure
-        if (activeAdds < 16) {
+        // Reduce cap and spawn count to ease pressure
+        if (activeAdds < 10) {
           const spawn = (x) => enemies.push({ x, y: -80, w: 48, h: 46, hp: 1 + Math.floor((wave-1)/3), type: 'F', t: 0,
             pat: { amp: 20 + Math.random()*30, freq: 0.9, vy: 1.6 + wave*0.12 } });
-          // Left, right, and a middle entrant
+          // Only left and right entrants
           spawn(40 + Math.random()*120);
           spawn(W - (40 + Math.random()*120));
-          spawn(W/2 + (Math.random()*160 - 80));
         }
       }
     }

@@ -484,6 +484,22 @@
         hideOverlay();
         running = true;
         currentMusic.play().catch(console.error);
+        // iOS Safari requires a user gesture to allow audio playback. Since the
+        // boss track has not been played yet when the game launches, attempting
+        // to switch to it later (e.g. when a boss wave begins) will fail unless
+        // it has been "unlocked" here. Pre-play all other music tracks muted
+        // so they are authorized for playback on mobile browsers.
+        for (const k in MUSIC) {
+          const m = MUSIC[k];
+          if (m === currentMusic) continue;
+          const prevVol = m.volume;
+          m.volume = 0;
+          m.play().then(() => {
+            m.pause();
+            m.currentTime = 0;
+            m.volume = prevVol;
+          }).catch(() => { m.volume = prevVol; });
+        }
         let label;
         if (isBossWave(wave)) {
           label = (wave === 10) ? 'Final Boss' : ('Boss Wave ' + Math.floor(wave/3));

@@ -193,13 +193,17 @@
     SPRITES.upElectro.src = 'assets/ns_upgrade_electro.svg';
     SPRITES.upLaser.src = 'assets/ns_upgrade_laser.svg';
 
-    const MUSIC = {
-      normal: new Audio('assets/Game_Score_01.mp3'),
-      boss: new Audio('assets/Game_Score_02.mp3')
-    };
-    MUSIC.normal.loop = true;
-    MUSIC.boss.loop = true;
-    let currentMusic = MUSIC.normal;
+    const MUSIC_FILES = ['Game_Score_01.mp3', 'Game_Score_02.mp3'];
+    const MUSIC = MUSIC_FILES.map(f => new Audio('assets/' + f));
+    let currentTrack = 0;
+    let currentMusic = MUSIC[currentTrack];
+    MUSIC.forEach(track => {
+      track.addEventListener('ended', () => {
+        currentTrack = (currentTrack + 1) % MUSIC.length;
+        currentMusic = MUSIC[currentTrack];
+        if (!muted && running && !paused) currentMusic.play().catch(()=>{});
+      });
+    });
 
     let loaded = 0; const needed = Object.keys(SPRITES).length;
     for (const k in SPRITES) SPRITES[k].addEventListener('load', () => { if (++loaded === needed) init(); });
@@ -263,8 +267,8 @@
     function setMuted(m) {
       muted = !!m;
       // Apply to all current music Audio objects
-      for (const k in MUSIC) {
-        try { MUSIC[k].muted = muted; } catch (e) {}
+      for (const track of MUSIC) {
+        try { track.muted = muted; } catch (e) {}
       }
       if (muted) {
         try { currentMusic.pause(); } catch (e) {}
@@ -483,7 +487,7 @@
       if (!running) {
         hideOverlay();
         running = true;
-        currentMusic.play().catch(console.error);
+        if (!muted) currentMusic.play().catch(console.error);
         let label;
         if (isBossWave(wave)) {
           label = (wave === 10) ? 'Final Boss' : ('Boss Wave ' + Math.floor(wave/3));
@@ -491,7 +495,6 @@
           label = 'Wave ' + wave;
         }
         showWaveBanner(label);
-        if (!muted) currentMusic.play().catch(console.error);
       }
     }
 
@@ -509,12 +512,6 @@
       particles = [];
       // Reset meteor cooldown so the next spawn is allowed immediately
       timeSinceLastMeteor = 999;
-      const desired = isBossWave(n) ? MUSIC.boss : MUSIC.normal;
-      if (currentMusic !== desired) {
-        currentMusic.pause();
-        currentMusic = desired;
-        if (running && !paused && !muted) currentMusic.play().catch(console.error);
-      }
       if (isBossWave(n)) {
         // Create a unique boss for waves 3, 6, 9 and the final boss at wave 10
         const final = (n === 10);

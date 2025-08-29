@@ -217,7 +217,7 @@
     const LASER = { width: 6, duration: 0.24, cooldown: 1.80 };
 
     // State
-    let running = false, paused = false, gameOverHandled = false;
+    let running = false, paused = false, gameOverHandled = false, gameWon = false;
     let score = 0, wave = 1, lives = 5;
     let cheatInvuln = false, logoClicks = 0;
     let bullets = []; // {x,y,vx,vy,good}
@@ -983,15 +983,24 @@
       const dt60 = dt * 60;
       // Player move
       const spd = P.speed * (1 + wave*0.04);
-      if (input.left) P.x -= spd * dt60; if (input.right) P.x += spd * dt60;
+      if (gameWon) {
+        const targetX = W / 2;
+        const targetY = H / 2;
+        if (Math.abs(targetX - P.x) > 1) P.x += Math.sign(targetX - P.x) * spd * dt60;
+        if (Math.abs(targetY - P.y) > 1) P.y += Math.sign(targetY - P.y) * spd * dt60;
+      } else {
+        if (input.left) P.x -= spd * dt60;
+        if (input.right) P.x += spd * dt60;
+      }
       P.x = Math.max(P.w/2, Math.min(W - P.w/2, P.x));
+      if (gameWon) P.y = Math.max(P.h/2, Math.min(H - P.h/2, P.y));
 
-      // Auto fire when running (disabled after death)
-      if (!playerDead) shoot(dt);
+      // Auto fire when running (disabled after death or victory)
+      if (!playerDead && !gameWon) shoot(dt);
 
       // Special weapons handling
       // Homing missile timer
-      if (power.missileLv > 0 && !playerDead) {
+      if (power.missileLv > 0 && !playerDead && !gameWon) {
         missileT += dt;
         const cd = power.missileLv >= 2 ? 0.8 : 1.2;
         if (missileT >= cd) { missileT = 0; spawnMissile(); }
@@ -1237,7 +1246,7 @@
 
       // Next wave (wait if upgrades/shield are still on-screen). Require all enemies to be truly defeated.
       // Suppress wave advancement during post-death delay.
-      if (!playerDead && !enemies.some(e => e.hp > 0) && !drops.some(d => (d.type === 'U' || d.type === 'S' || d.type === 'L') && d.y >= 0 && d.y <= H)) {
+      if (!playerDead && !gameWon && !enemies.some(e => e.hp > 0) && !drops.some(d => (d.type === 'U' || d.type === 'S' || d.type === 'L') && d.y >= 0 && d.y <= H)) {
         // Schedule the next wave after a short breather, only once
         if (!endWaveTimeout) {
           endWaveTimeout = setTimeout(() => {
@@ -1281,10 +1290,13 @@
     }
 
     function victory() {
-      running = false;
-      showOverlay('You Won!', 'Press Space to restart');
+      gameWon = true;
+      showOverlay('YOU WIN!', '');
       if (!gameOverHandled) { gameOverHandled = true; maybeSubmitLeaderboard(true).catch(console.error); }
-      window.addEventListener('keydown', restartOnce, { once: true });
+      setTimeout(() => {
+        ovSub.textContent = 'Press Space to restart';
+        window.addEventListener('keydown', restartOnce, { once: true });
+      }, 3000);
     }
 
     function restartOnce(e) {
@@ -1294,12 +1306,15 @@
         // Clear any pending end-of-game popup
         if (endGameTimeout) { clearTimeout(endGameTimeout); endGameTimeout = null; }
         playerDead = false;
+        gameWon = false;
         score = 0; wave = 1; lives = 5; scoreEl.textContent = score; waveEl.textContent = wave; livesEl.textContent = lives;
         power = { fireLv: 0, twin: false, spread: false, missileLv: 0, electro: false, laserLv: 0 }; B.cooldown = B.baseCooldown; lastShoot = 0; drops = []; meteors = []; particles = [];
         missileT = 0; laserT = 0; lasers = [];
         invulnT = 0; shieldActive = false; shieldPulse = 0;
         cheatInvuln = false; logoClicks = 0;
-        gameOverHandled = false; setupWave(1); showOverlay('Nova Striker', 'Tap/Click or press Space to launch');
+        gameOverHandled = false;
+        P.x = W/2; P.y = H-80;
+        setupWave(1); showOverlay('Nova Striker', 'Tap/Click or press Space to launch');
       }
     }
 

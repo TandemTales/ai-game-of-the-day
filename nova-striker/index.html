@@ -195,6 +195,8 @@
     const audioIcon = document.getElementById('audioIcon');
     const audioIconImg = document.getElementById('audioIconImg');
     const logoEl = document.getElementById('logo');
+    const headerEl = document.querySelector('header');
+    const hudEl = document.querySelector('.hud');
 
     // Game constants
     const GAME_ID = 'nova-striker';
@@ -204,6 +206,17 @@
     const EB = { w: 8, h: 18, speed: 7 };
     const MISS = { w: 21, h: 36, speed: 7.6, turn: 0.10 };
     const LASER = { width: 6, duration: 0.24, cooldown: 1.80 };
+
+    function resizeGame() {
+      const availableWidth = window.innerWidth - 100;
+      const availableHeight = window.innerHeight - headerEl.offsetHeight - hudEl.offsetHeight - 100;
+      const scale = Math.min(availableWidth / W, availableHeight / H, 1);
+      const s = Math.max(scale, 0.1);
+      canvas.style.width = (W * s) + 'px';
+      canvas.style.height = (H * s) + 'px';
+    }
+    window.addEventListener('resize', resizeGame);
+    resizeGame();
 
     // State
     let running = false, paused = false, gameOverHandled = false;

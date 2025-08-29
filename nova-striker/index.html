@@ -178,8 +178,11 @@
     SPRITES.eBullet.src = 'assets/ns_enemy_bullet.svg';
     SPRITES.boss1.src = 'assets/ns_boss_01.png';
     SPRITES.boss2.src = 'assets/ns_boss_02.png';
-    SPRITES.boss3.src = 'assets/ns_boss_03.png';
-    SPRITES.boss4.src = 'assets/ns_boss_4.png';
+    // Updated boss art
+    // Third boss now uses ns_boss_4.png
+    SPRITES.boss3.src = 'assets/ns_boss_4.png';
+    // Final boss now uses the mothership art
+    SPRITES.boss4.src = 'assets/ns_mothership.png';
     SPRITES.mothership.src = 'assets/ns_mothership.png';
     SPRITES.upgrade.src = 'assets/ns_upgrade.svg';
     SPRITES.life.src = 'assets/ns_life.svg';
@@ -526,8 +529,8 @@
         const final = (n === 10);
         const idx = final ? 4 : Math.floor(n / 3); // bosses 1,2,3; final uses idx 4 stats
         const bossHP = (idx === 1) ? 37 : (idx === 2) ? 180 : (idx === 3) ? 390 : 750;
-        const bossW  = (idx === 1) ? 140 : (idx === 2) ? 160 : (idx === 3) ? 180 : 196;
-        const bossH  = (idx === 1) ? 120 : (idx === 2) ? 135 : (idx === 3) ? 150 : 168;
+        const bossW  = (idx === 1) ? 140 : (idx === 2) ? 160 : (idx === 3) ? 180 : Math.round(196 * 1.33);
+        const bossH  = (idx === 1) ? 120 : (idx === 2) ? 135 : (idx === 3) ? 150 : Math.round(168 * 1.33);
         const bossScore = (idx === 1) ? 1500 : (idx === 2) ? 2500 : (idx === 3) ? 4000 : 7000;
         enemies.push({
           x: W/2, y: -160,

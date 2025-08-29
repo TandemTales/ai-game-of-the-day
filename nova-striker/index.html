@@ -538,10 +538,13 @@
 
     // Pickups and upgrades
     function spawnDrop(e) {
-      // Drop chances; extra life tuned, upgrades unchanged, shield added (rare normal, higher on boss)
+      // Drop chances; extra life and shield unchanged. Upgrades increased after wave 5.
       const lifeChance = e.boss ? 0.08 : 0.01;     // 8% boss, 1% normal
-      const upChance   = e.boss ? 0.25 : 0.06;     // 25% boss, 6% normal
       const shieldChance = e.boss ? 0.10 : 0.015;  // 10% boss, 1.5% normal
+      // Base upgrade chance
+      const upBase = e.boss ? 0.25 : 0.06;         // 25% boss, 6% normal
+      // After wave 5, increase upgrade drop rates: normal 10%, boss 35%
+      const upChance = (wave >= 6) ? (e.boss ? 0.35 : 0.10) : upBase;
       const r = Math.random();
       let type = null, kind = null;
       if (r < lifeChance) type = 'L';

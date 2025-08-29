@@ -147,6 +147,7 @@
       upMissile: new Image(),
       upElectro: new Image(),
       upLaser: new Image(),
+      firework: new Image(),
     };
 
     SPRITES.player.src = 'assets/ns_player01.png';
@@ -172,6 +173,7 @@
     SPRITES.upMissile.src = 'assets/ns_upgrade_missile.svg';
     SPRITES.upElectro.src = 'assets/ns_upgrade_electro.svg';
     SPRITES.upLaser.src = 'assets/ns_upgrade_laser.svg';
+    SPRITES.firework.src = 'assets/ns_firework.svg';
 
     const MUSIC = {
       normal: new Audio('assets/Game_Score_01.mp3'),
@@ -243,14 +245,16 @@
     // Special weapon timers
     let missileT = 0;   // accumulates until firing a homing missile (if owned)
     let laserT = 0;     // accumulates for laser cadence when owned
-    // End-of-wave delay handle
-    let endWaveTimeout = null;
-    // End-of-game delay handle (for death -> leaderboard)
-    let endGameTimeout = null;
-    // Player death state during end-game delay
-    let playerDead = false;
-    // Global audio mute state
-    let muted = false;
+      // End-of-wave delay handle
+      let endWaveTimeout = null;
+      // End-of-game delay handle (for death -> leaderboard)
+      let endGameTimeout = null;
+      // Victory cutscene state
+      let winScene = null;
+      // Player death state during end-game delay
+      let playerDead = false;
+      // Global audio mute state
+      let muted = false;
     const LS_MUTE_KEY = 'nova-striker:muted';
 
     function setMuted(m) {
@@ -1284,9 +1288,67 @@
 
     function victory() {
       running = false;
-      showOverlay('You Won!', 'Press Space to restart');
+      startWinScene();
+    }
+
+    function startWinScene() {
+      winScene = { t: 0, allies: [], fireworks: [], center: false, lastFire: 0, done: false };
+      bullets = []; lasers = []; drops = []; enemies = []; meteors = []; particles = [];
+      input.left = input.right = false;
+      shieldActive = false;
       if (!gameOverHandled) { gameOverHandled = true; maybeSubmitLeaderboard(true).catch(console.error); }
-      window.addEventListener('keydown', restartOnce, { once: true });
+    }
+
+    function updateWinScene(dt) {
+      if (!winScene) return;
+      const s = winScene; s.t += dt;
+
+      // Move player to center
+      const cx = W/2, cy = H/2;
+      const dx = cx - P.x, dy = cy - P.y;
+      const dist = Math.hypot(dx, dy);
+      const spd = 200 * dt;
+      if (dist > spd) { P.x += dx/dist*spd; P.y += dy/dist*spd; }
+      else { P.x = cx; P.y = cy; s.center = true; }
+
+      // Animate stars
+      for (const st of stars) { st.y += st.spd * 60 * dt; if (st.y > H) { st.y = -4; st.x = Math.random()*W; } }
+
+      // Spawn ally ships once centered
+      if (s.center && s.allies.length < 6 && s.t > 0.5 + s.allies.length * 0.3) {
+        const idx = s.allies.length;
+        const spacing = 60;
+        const ax = cx - spacing*2.5 + spacing*idx;
+        s.allies.push({ x: ax, y: H + 40, tx: ax, ty: cy + 80 });
+      }
+      for (const a of s.allies) {
+        const adx = a.tx - a.x, ady = a.ty - a.y;
+        const d2 = Math.hypot(adx, ady);
+        const aspd = 220 * dt;
+        if (d2 > aspd) { a.x += adx/d2*aspd; a.y += ady/d2*aspd; }
+        else { a.x = a.tx; a.y = a.ty; }
+      }
+
+      // Fireworks
+      if (s.t - s.lastFire > 0.4) {
+        s.lastFire = s.t;
+        s.fireworks.push({
+          x: Math.random()*W,
+          y: Math.random()*H*0.8,
+          scale: 0.5 + Math.random()*0.5,
+          life: 0,
+          ttl: 1.2,
+          z: Math.random() < 0.5 ? 0 : 1
+        });
+      }
+      for (const fw of s.fireworks) fw.life += dt;
+      s.fireworks = s.fireworks.filter(fw => fw.life < fw.ttl);
+
+      if (s.t > 4 && !s.done) {
+        s.done = true;
+        showOverlay('You Won!', 'Press Space to restart');
+        window.addEventListener('keydown', restartOnce, { once: true });
+      }
     }
 
     function restartOnce(e) {
@@ -1295,7 +1357,7 @@
         if (endWaveTimeout) { clearTimeout(endWaveTimeout); endWaveTimeout = null; }
         // Clear any pending end-of-game popup
         if (endGameTimeout) { clearTimeout(endGameTimeout); endGameTimeout = null; }
-        playerDead = false;
+        playerDead = false; winScene = null;
         score = 0; wave = 1; lives = 5; scoreEl.textContent = score; waveEl.textContent = wave; livesEl.textContent = lives;
         power = { fireLv: 0, twin: false, spread: false, missileLv: 0, electro: false, laserLv: 0 }; B.cooldown = B.baseCooldown; lastShoot = 0; drops = []; meteors = []; particles = [];
         missileT = 0; laserT = 0; lasers = [];
@@ -1353,6 +1415,15 @@
       ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.drawImage(img, -w/2, -h/2, w, h); ctx.restore();
     }
 
+    function drawFirework(fw) {
+      const p = fw.life / fw.ttl;
+      const size = 32 * fw.scale * (1 + p * 2);
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 1 - p);
+      ctx.drawImage(SPRITES.firework, fw.x - size/2, fw.y - size/2, size, size);
+      ctx.restore();
+    }
+
     function drawBossBar(b) {
       const pad = 12;
       const x = pad, y = pad, w = W - pad*2, h = 12;
@@ -1395,9 +1466,14 @@
     let lastTime = 0;
     function draw(ts=0) {
       const dt = Math.min(0.05, (ts - lastTime) / 1000) || 0.016; lastTime = ts;
+      if (winScene) updateWinScene(dt);
       ctx.clearRect(0,0,W,H);
       drawStars();
       drawPickupMsgs(dt);
+
+      if (winScene) {
+        for (const fw of winScene.fireworks) if (fw.z === 0) drawFirework(fw);
+      }
 
       // Enemies
       for (const e of enemies) if (e.hp > 0) {
@@ -1470,12 +1546,14 @@
       // Player (hidden after death; blink while invulnerable otherwise)
       if (!playerDead) {
         if (invulnT > 0) {
-          // Simple blink at ~8 Hz using remaining time
           const blinkOn = (Math.floor(invulnT * 8) % 2) === 0;
           if (blinkOn) drawSprite(SPRITES.player, P.x, P.y, P.w, P.h);
         } else {
           drawSprite(SPRITES.player, P.x, P.y, P.w, P.h);
         }
+      }
+      if (winScene) {
+        for (const a of winScene.allies) drawSprite(SPRITES.player, a.x, a.y, P.w, P.h);
       }
 
       // Active shield visual: glowing ring around the player (not shown after death)
@@ -1553,14 +1631,26 @@
         }
       }
 
+      if (winScene) {
+        for (const fw of winScene.fireworks) if (fw.z === 1) drawFirework(fw);
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, winScene.t);
+        ctx.fillStyle = '#FFD700';
+        ctx.font = '48px "Press Start 2P", cursive';
+        ctx.textAlign = 'center';
+        ctx.fillText('YOU WIN', W/2, H/3);
+        ctx.restore();
+      }
+
       // Boss HUD
       const bossAlive = enemies.find(e => e.boss && e.hp > 0);
       if (bossAlive) drawBossBar(bossAlive);
 
-      if (running && !paused) update(dt);
-      else {
-        // Keep destruction particle effects animating during death delay
-        if (endGameTimeout) updateParticles(dt);
+      if (!winScene) {
+        if (running && !paused) update(dt);
+        else {
+          if (endGameTimeout) updateParticles(dt);
+        }
       }
       requestAnimationFrame(draw);
     }

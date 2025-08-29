@@ -17,7 +17,7 @@
       --neon: #00e5ff;
     }
     * { box-sizing: border-box; }
-    html, body { height: 100%; }
+    html, body { min-height: 100%; }
     body {
       margin: 0;
       background: radial-gradient(circle at 30% 10%, rgba(0,229,255,0.08), transparent 50%),
@@ -26,8 +26,9 @@
       color: var(--ink);
       font-family: 'Press Start 2P', cursive;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
+      overflow-y: auto;
       min-height: 100vh;
     }
     #wrap { width: min(100%, 980px); padding: 20px; }
@@ -120,6 +121,17 @@
   <script>
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      const wrapTop = document.getElementById('wrap').getBoundingClientRect().top;
+      const availWidth = window.innerWidth - 40;
+      const availHeight = window.innerHeight - wrapTop - 40;
+      const scale = Math.min(availWidth / canvas.width, availHeight / canvas.height);
+      canvas.style.width = canvas.width * scale + 'px';
+      canvas.style.height = canvas.height * scale + 'px';
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
 
     // Assets
     const SPRITES = {

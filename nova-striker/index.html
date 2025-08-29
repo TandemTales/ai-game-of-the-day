@@ -660,16 +660,20 @@
       bullets.push({ x: P.x, y: P.y - P.h/2 - 6, vx: 0, vy: -MISS.speed, good: true, kind: 'missile', dmg: 2, spd: MISS.speed });
     }
 
-    function enemyShoot(e, chance=0.006) {
-      if (Math.random() < chance) {
+    function enemyShoot(e, chance=0.006, dt) {
+      // chance is tuned as per-frame probability at ~60 FPS; convert to dt using 1 - (1-p)^(dt*60)
+      const p = 1 - Math.pow(1 - chance, Math.max(0, (dt||0)*60));
+      if (Math.random() < p) {
         const vx = (P.x - e.x) * 0.006; // slight aim
         bullets.push({ x: e.x, y: e.y + e.h/2, vx, vy: EB.speed, good: false });
       }
     }
 
     // Precise long-range shot for Sniper ships (fast bullet, low rate)
-    function enemyShootSniper(e, chance=0.0028) {
-      if (Math.random() < chance) {
+    function enemyShootSniper(e, chance=0.0028, dt) {
+      // convert per-frame chance to dt-adjusted probability
+      const p = 1 - Math.pow(1 - chance, Math.max(0, (dt||0)*60));
+      if (Math.random() < p) {
         // Aim toward player but clamp within ±45° of straight down to avoid extreme side shots
         const base = Math.PI / 2; // straight down
         let ang = Math.atan2(P.y - e.y, P.x - e.x);
@@ -863,8 +867,10 @@
             p.didDamage = true;
           }
         } else {
-          p.x += p.vx; p.y += p.vy;
-          p.vx *= 0.985; p.vy = p.vy*0.985 + 0.02; // slight gravity
+          const dt60 = dt * 60;
+          const damp = Math.pow(0.985, dt60);
+          p.x += p.vx * dt60; p.y += p.vy * dt60;
+          p.vx *= damp; p.vy = p.vy * damp + 0.02 * dt60; // slight gravity
         }
       }
       particles = particles.filter(p => p.life < p.ttl && (p.kind === 'arc' || p.y < H + 60));
@@ -940,9 +946,11 @@
       if (shieldActive) shieldPulse += dt;
       // Advance meteor cooldown timer
       timeSinceLastMeteor += dt;
+      // Common dt scale to preserve existing per-frame tuning
+      const dt60 = dt * 60;
       // Player move
       const spd = P.speed * (1 + wave*0.04);
-      if (input.left) P.x -= spd; if (input.right) P.x += spd;
+      if (input.left) P.x -= spd * dt60; if (input.right) P.x += spd * dt60;
       P.x = Math.max(P.w/2, Math.min(W - P.w/2, P.x));
 
       // Auto fire when running (disabled after death)
@@ -957,7 +965,7 @@
       }
 
       // Stars
-      for (const s of stars) { s.y += s.spd * (1 + wave*0.05); if (s.y > H) { s.y = -4; s.x = Math.random()*W; } }
+      for (const s of stars) { s.y += s.spd * (1 + wave*0.05) * dt60; if (s.y > H) { s.y = -4; s.x = Math.random()*W; } }
 
       // Enemies: move/animate only here; shooting happens later after collisions
       for (const e of enemies) {
@@ -966,7 +974,7 @@
         e.t += dt;
         const sway = Math.sin(e.t * e.pat.freq) * e.pat.amp;
         const prevY = e.y;
-        e.y += e.pat.vy; e.x += sway * 0.04;
+        e.y += e.pat.vy * dt60; e.x += sway * 0.04 * dt60;
         // Bosses settle into the arena
         if (e.boss && e.y > 160) e.pat.vy = 0;
         // Keep enemies within horizontal bounds
@@ -997,13 +1005,13 @@
             let delta = desired - cur;
             // Wrap to [-PI, PI]
             delta = ((delta + Math.PI) % (Math.PI*2)) - Math.PI;
-            const maxTurn = MISS.turn;
+            const maxTurn = MISS.turn * dt60;
             const newAng = cur + Math.max(-maxTurn, Math.min(maxTurn, delta));
             b.vx = Math.cos(newAng) * (b.spd || MISS.speed);
             b.vy = Math.sin(newAng) * (b.spd || MISS.speed);
           }
         }
-        b.x += b.vx; b.y += b.vy;
+        b.x += b.vx * dt60; b.y += b.vy * dt60;
       }
       bullets = bullets.filter(b => b.y > -40 && b.y < H+40 && b.x > -40 && b.x < W+40);
 
@@ -1041,7 +1049,7 @@
 
       // Meteors
       for (const m of meteors) {
-        m.x += m.vx; m.y += m.vy; m.rot += m.vr * dt;
+        m.x += m.vx * dt60; m.y += m.vy * dt60; m.rot += m.vr * dt;
         // Trail particles
         if (Math.random() < 0.9) {
           particles.push({
@@ -1067,9 +1075,9 @@
       // Drops
       for (const d of drops) {
         d.t += dt;
-        d.x += d.vx + Math.sin(d.t*3) * 0.4;
-        d.y += d.vy;
-        d.vy = Math.min(d.vy + 0.01, 3.2);
+        d.x += (d.vx + Math.sin(d.t*3) * 0.4) * dt60;
+        d.y += d.vy * dt60;
+        d.vy = Math.min(d.vy + 0.01 * dt60, 3.2);
         // Keep upgrade and extra life drops within horizontal bounds so they stay collectible
         if (d.type === 'U' || d.type === 'L') {
           const pad = DROP.w * 0.5 + 8; // small margin inside the walls
@@ -1186,11 +1194,11 @@
           else if (e.type === 'X3') bossShoot3(e, dt);
           else bossShootFinal(e, dt);
         } else {
-          if (e.type === 'F') enemyShoot(e, 0.004 + wave*0.0008);
-          else if (e.type === 'B') enemyShoot(e, 0.006 + wave*0.0012);
-          else if (e.type === 'S') enemyShootSniper(e, 0.0022 + wave*0.00035);
+          if (e.type === 'F') enemyShoot(e, 0.004 + wave*0.0008, dt);
+          else if (e.type === 'B') enemyShoot(e, 0.006 + wave*0.0012, dt);
+          else if (e.type === 'S') enemyShootSniper(e, 0.0022 + wave*0.00035, dt);
           else if (e.type === 'W') enemyShootWeaver(e, dt);
-          else enemyShoot(e, 0.006 + wave*0.0012);
+          else enemyShoot(e, 0.006 + wave*0.0012, dt);
         }
       }
 

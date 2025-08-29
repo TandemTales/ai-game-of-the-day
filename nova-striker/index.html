@@ -17,7 +17,7 @@
       --neon: #00e5ff;
     }
     * { box-sizing: border-box; }
-    html, body { height: 100%; }
+    html, body { min-height: 100%; }
     body {
       margin: 0;
       background: radial-gradient(circle at 30% 10%, rgba(0,229,255,0.08), transparent 50%),
@@ -26,9 +26,10 @@
       color: var(--ink);
       font-family: 'Press Start 2P', cursive;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
       min-height: 100vh;
+      overflow-y: auto;
     }
     #wrap { width: min(100%, 980px); padding: 20px; }
     .panel {

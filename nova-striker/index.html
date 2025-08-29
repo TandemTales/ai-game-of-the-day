@@ -404,7 +404,7 @@
       }
     }
 
-    // Final Boss (Wave 10, type X4): randomly switches between multiple patterns
+    // Final Boss (Wave 15, type X4): randomly switches between multiple patterns
     function bossShootFinal(e, dt) {
       // Initialize mode duration on first run
       if (!e.modeDur || e.modeDur <= 0) {
@@ -501,7 +501,7 @@
         running = true;
         let label;
         if (isBossWave(wave)) {
-          label = (wave === 10) ? 'Final Boss' : ('Boss Wave ' + Math.floor(wave/3));
+          label = (wave === 15) ? 'Final Boss' : ('Boss Wave ' + Math.floor(wave/4));
         } else {
           label = 'Wave ' + wave;
         }
@@ -510,7 +510,7 @@
       }
     }
 
-    function isBossWave(n) { return n === 3 || n === 6 || n === 9 || n === 10; }
+    function isBossWave(n) { return n === 4 || n === 8 || n === 12 || n === 15; }
 
     function setupWave(n) {
       wave = n; waveEl.textContent = wave;
@@ -525,9 +525,9 @@
       // Reset meteor cooldown so the next spawn is allowed immediately
       timeSinceLastMeteor = 999;
       if (isBossWave(n)) {
-        // Create a unique boss for waves 3, 6, 9 and the final boss at wave 10
-        const final = (n === 10);
-        const idx = final ? 4 : Math.floor(n / 3); // bosses 1,2,3; final uses idx 4 stats
+        // Create a unique boss for waves 4, 8, 12 and the final boss at wave 15
+        const final = (n === 15);
+        const idx = final ? 4 : Math.floor(n / 4); // bosses 1,2,3; final uses idx 4 stats
         const bossHP = (idx === 1) ? 37 : (idx === 2) ? 180 : (idx === 3) ? 390 : 750;
         const bossW  = (idx === 1) ? 140 : (idx === 2) ? 160 : (idx === 3) ? 180 : Math.round(196 * 1.33);
         const bossH  = (idx === 1) ? 120 : (idx === 2) ? 135 : (idx === 3) ? 150 : Math.round(168 * 1.33);
@@ -582,7 +582,7 @@
           enemies.push({ x: 60 + Math.random()*(W-120), y: -200 - i*100, w: 52, h: 34, hp: 2 + Math.floor(n/3), type: 'W', t: Math.random()*6.28,
             pat: { amp: 90, freq: 1.5, vy: 1.2 + n*0.10 }, score: 180 });
         }
-        // Extra pressure on late non-boss waves (none after wave 9)
+        // Extra pressure on late non-boss waves (none after wave 14)
       }
     }
 
@@ -1258,12 +1258,12 @@
         if (!endWaveTimeout) {
           endWaveTimeout = setTimeout(() => {
             endWaveTimeout = null;
-            if (wave >= 10) {
+            if (wave >= 15) {
               victory();
             } else {
               setupWave(wave + 1);
               const label = isBossWave(wave)
-                ? ((wave === 10) ? 'Final Boss' : ('Boss Wave ' + Math.floor(wave/3)))
+                ? ((wave === 15) ? 'Final Boss' : ('Boss Wave ' + Math.floor(wave/4)))
                 : ('Wave ' + wave);
               showWaveBanner(label);
             }

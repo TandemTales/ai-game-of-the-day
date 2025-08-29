@@ -133,6 +133,8 @@
       boss1: new Image(),
       boss2: new Image(),
       boss3: new Image(),
+      boss4: new Image(),
+      mothership: new Image(),
       upgrade: new Image(),
       life: new Image(),
       shield: new Image(),
@@ -156,6 +158,8 @@
     SPRITES.boss1.src = 'assets/ns_boss_01.png';
     SPRITES.boss2.src = 'assets/ns_boss_02.png';
     SPRITES.boss3.src = 'assets/ns_boss_03.png';
+    SPRITES.boss4.src = 'assets/ns_boss_4.png';
+    SPRITES.mothership.src = 'assets/ns_mothership.png';
     SPRITES.upgrade.src = 'assets/ns_upgrade.svg';
     SPRITES.life.src = 'assets/ns_life.svg';
     SPRITES.shield.src = 'assets/ns_shield.svg';
@@ -446,7 +450,8 @@
         currentMusic.play().catch(console.error);
         let label;
         if (isBossWave(wave)) {
-          label = (wave === 10) ? 'Final Boss' : ('Boss Wave ' + Math.floor(wave/3));
+          label = (wave === 10) ? 'Final Boss'
+            : (wave === 9 ? 'Boss Wave 4' : ('Boss Wave ' + Math.floor(wave/3)));
         } else {
           label = 'Wave ' + wave;
         }
@@ -476,15 +481,16 @@
         if (running && !paused && !muted) currentMusic.play().catch(console.error);
       }
       if (isBossWave(n)) {
-        // Create a unique boss for waves 3, 6, 9, 10
-        const idx = (n === 10) ? 4 : Math.floor(n / 3); // 1,2,3,(4 for final)
+        // Create a unique boss for waves 3, 6, 9 and the final boss at wave 10
+        const final = (n === 10);
+        const idx = final ? 4 : (n === 9 ? 4 : Math.floor(n / 3)); // bosses 1,2,4; final uses idx 4 stats
         const bossHP = (idx === 1) ? 37 : (idx === 2) ? 180 : (idx === 3) ? 390 : 750;
         const bossW  = (idx === 1) ? 140 : (idx === 2) ? 160 : (idx === 3) ? 180 : 196;
         const bossH  = (idx === 1) ? 120 : (idx === 2) ? 135 : (idx === 3) ? 150 : 168;
         const bossScore = (idx === 1) ? 1500 : (idx === 2) ? 2500 : (idx === 3) ? 4000 : 7000;
         enemies.push({
           x: W/2, y: -160,
-          w: bossW, h: bossH, hp: bossHP, type: 'X' + idx, boss: true, t: 0, fireT: 0, spawnT: 0, phase: 0,
+          w: bossW, h: bossH, hp: bossHP, type: final ? 'X5' : 'X' + idx, boss: true, t: 0, fireT: 0, spawnT: 0, phase: 0,
           pat: { amp: 130, freq: 0.5 + idx*0.1, vy: (1.4 - idx*0.2) * 2 },
           score: bossScore,
           // Final boss state for randomized patterns
@@ -1202,7 +1208,10 @@
               victory();
             } else {
               setupWave(wave + 1);
-              const label = isBossWave(wave) ? ((wave === 10) ? 'Final Boss' : ('Boss Wave ' + Math.floor(wave/3))) : ('Wave ' + wave);
+              const label = isBossWave(wave)
+                ? ((wave === 10) ? 'Final Boss'
+                   : (wave === 9 ? 'Boss Wave 4' : ('Boss Wave ' + Math.floor(wave/3))))
+                : ('Wave ' + wave);
               showWaveBanner(label);
             }
           }, 2000);
@@ -1346,7 +1355,11 @@
           // Removed boss glow ring
         }
         const img = e.boss
-          ? (e.type === 'X1' ? SPRITES.boss1 : (e.type === 'X2' ? SPRITES.boss2 : SPRITES.boss3))
+          ? (e.type === 'X1' ? SPRITES.boss1
+             : e.type === 'X2' ? SPRITES.boss2
+             : e.type === 'X3' ? SPRITES.boss3
+             : e.type === 'X4' ? SPRITES.boss4
+             : SPRITES.mothership)
           : (e.type === 'F' ? SPRITES.enemyF
              : (e.type === 'B' ? SPRITES.enemyB
                 : (e.type === 'S' ? SPRITES.enemyS : SPRITES.enemyW)));

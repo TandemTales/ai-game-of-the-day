@@ -1285,7 +1285,11 @@
       } else {
         // Brief invulnerability after being hit
         invulnT = 2.5; // seconds
-        pickupMsgs.push({ text: 'INVULNERABLE!', color: '#00e5ff', t: 0, dur: 2.5, hold: 1.5, flash: true });
+        // Only show the "INVULNERABLE!" popup if the invulnerability cheat is enabled.
+        // During normal post-hit i-frames, suppress this message to avoid confusion.
+        if (cheatInvuln) {
+          pickupMsgs.push({ text: 'INVULNERABLE!', color: '#00e5ff', t: 0, dur: 2.5, hold: 1.5, flash: true });
+        }
       }
     }
 

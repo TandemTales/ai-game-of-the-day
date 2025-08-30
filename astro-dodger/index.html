@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Astro Dodger - Bot Built Arcade</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
+  <style>
+    body {
+      margin: 0;
+      background: radial-gradient(circle at center, #000 0%, #001 100%);
+      color: #F5F5DC;
+      font-family: 'Press Start 2P', cursive;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      flex-direction: column;
+    }
+    canvas {
+      background: #000;
+      width: 100%;
+      max-width: 320px;
+      border: 4px solid #FFD700;
+      box-shadow: 0 0 20px rgba(255,215,0,0.4);
+    }
+    #score {
+      margin-top: 10px;
+    }
+    #controls {
+      margin-top: 15px;
+      display: flex;
+      gap: 20px;
+    }
+    #controls button {
+      padding: 10px 20px;
+      font-size: 18px;
+      border: 2px solid #FFD700;
+      background: #333;
+      color: #FFD700;
+      border-radius: 8px;
+    }
+    .back-btn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: #FFD700;
+      text-decoration: none;
+      padding: 5px 10px;
+      border: 2px solid #FFD700;
+      border-radius: 8px;
+      background: rgba(0,0,0,0.5);
+    }
+    #overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #FFD700;
+      font-size: 20px;
+    }
+    #overlay.hidden { display: none; }
+    #overlay button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 18px;
+      border: 2px solid #FFD700;
+      background: #333;
+      color: #FFD700;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <a class="back-btn" href="../index.html">⟵ Back to Home</a>
+  <canvas id="game" width="320" height="480"></canvas>
+  <div id="score">0</div>
+  <div id="controls">
+    <button id="left">⬅</button>
+    <button id="right">➡</button>
+  </div>
+  <div id="overlay" class="hidden">
+    <p id="finalScore"></p>
+    <button id="restart">Play Again</button>
+  </div>
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const shipImg = new Image(); shipImg.src = 'assets/ship.svg';
+    const asteroidImg = new Image(); asteroidImg.src = 'assets/asteroid.svg';
+    const GAME_ID = 'astro-dodger';
+
+    const player = { x: 140, y: 420, w: 40, h: 40 };
+    const asteroids = [];
+    let score = 0;
+    let running = false;
+    let gameOverHandled = false;
+
+    function spawnAsteroid() {
+      asteroids.push({ x: Math.random() * 280, y: -40, speed: 2 + Math.random() * 2 });
+    }
+
+    function update() {
+      for (const a of asteroids) {
+        a.y += a.speed;
+        if (a.y > 480) {
+          a.y = -40;
+          a.x = Math.random() * 280;
+          a.speed = 2 + Math.random() * 2;
+          score += 10;
+        }
+        if (Math.abs(a.x - player.x) < 32 && Math.abs(a.y - player.y) < 32) {
+          running = false;
+          showGameOver();
+          return;
+        }
+      }
+      document.getElementById('score').textContent = score;
+    }
+
+    function draw() {
+      ctx.clearRect(0,0,320,480);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0,0,320,480);
+      for (const a of asteroids) {
+        ctx.drawImage(asteroidImg, a.x, a.y, 40, 40);
+      }
+      ctx.drawImage(shipImg, player.x, player.y, player.w, player.h);
+      if (running) update();
+      requestAnimationFrame(draw);
+    }
+
+    function showGameOver() {
+      const overlay = document.getElementById('overlay');
+      overlay.classList.remove('hidden');
+      document.getElementById('finalScore').textContent = 'Score: ' + score;
+      if (!gameOverHandled) {
+        gameOverHandled = true;
+        setTimeout(() => maybeSubmitLeaderboard(score).catch(console.error), 500);
+      }
+    }
+
+    document.getElementById('restart').onclick = () => location.reload();
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowLeft') player.x -= 10;
+      if (e.key === 'ArrowRight') player.x += 10;
+      player.x = Math.max(0, Math.min(280, player.x));
+    });
+
+    document.getElementById('left').onpointerdown = () => {
+      player.x = Math.max(0, player.x - 20);
+    };
+    document.getElementById('right').onpointerdown = () => {
+      player.x = Math.min(280, player.x + 20);
+    };
+
+    function start() {
+      running = true;
+      setInterval(spawnAsteroid, 1000);
+      draw();
+    }
+    start();
+
+    async function maybeSubmitLeaderboard(score) {
+      let dest = `../leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
+      try {
+        const res = await fetch(`/api/leaderboard/rank?gameId=${encodeURIComponent(GAME_ID)}&score=${encodeURIComponent(score)}`, {
+          headers: { 'Accept': 'application/json' }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const rank = Number(data?.rank);
+          const qualifies = Number.isFinite(rank) && rank > 0 && rank <= 20;
+          if (qualifies) {
+            let name = prompt(`New High Score! You placed #${rank}. Enter your name (max 20 chars):`, '');
+            if (name != null) {
+              name = name.trim().replace(/[^\w \-'.!]/g, '').slice(0,20);
+              if (name) {
+                let submitted = false;
+                try {
+                  await fetch('/api/leaderboard/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gameId: GAME_ID, name, score })
+                  });
+                  submitted = true;
+                } catch {}
+                if (submitted) {
+                  dest += `&highlightRank=${encodeURIComponent(rank)}`;
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        location.href = dest;
+      }
+    }
+  </script>
+</body>
+</html>

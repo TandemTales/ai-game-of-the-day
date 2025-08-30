@@ -287,11 +287,36 @@
         }
       }
 
-      // Spawn gems
+      // Spawn gems (avoid spawning too close to hazards)
       gemTimer -= dt;
       if (gemTimer <= 0) {
         gemTimer = rand(1.8, 2.6);
-        const y = GROUND_Y - rand(80, 220);
+        const MIN_FROM_GROUND = 110; // px above ground to avoid spikes
+        const MIN_FROM_ORB = 90;     // px vertical separation from nearby orbs
+        const ORB_PROX_X = 120;      // consider orbs near the spawn edge
+        let y = null;
+        // Try a few samples to find a safe vertical slot
+        for (let tries = 0; tries < 8; tries++) {
+          const cand = GROUND_Y - rand(80, 220);
+          // keep comfortably above ground spikes
+          if (GROUND_Y - cand < MIN_FROM_GROUND) continue;
+          // keep away from freshly spawned orbs near the right edge
+          let ok = true;
+          for (const o of orbs) {
+            if (o.x > W - ORB_PROX_X && Math.abs(o.y - cand) < MIN_FROM_ORB) { ok = false; break; }
+          }
+          if (ok) { y = cand; break; }
+        }
+        // Fallback if we didn't find a safe slot
+        if (y == null) {
+          // bias higher so it's well clear of spikes
+          y = GROUND_Y - 200;
+          // nudge away from an orb very near the edge, if any
+          const nearOrb = orbs.find(o => o.x > W - ORB_PROX_X);
+          if (nearOrb && Math.abs(nearOrb.y - y) < MIN_FROM_ORB) {
+            y = nearOrb.y < y ? GROUND_Y - 140 : GROUND_Y - 220;
+          }
+        }
         // gems should feel forgiving to collect
         gems.push({ x: W + 40, y, w: 34, h: 34, img: IMG.gem, t: 0, hitX: 0.60, hitY: 0.60 });
       }

@@ -167,7 +167,8 @@
     const GROUND_Y = H - 90; // baseline
     let running=false, dead=false;
     let score=0; let best=0; let dist=0; let time=0;
-    let gemsCollected = 0; // number of gems picked up (score)
+    let gemsCollected = 0; // total number of collected gems
+    let combo = 0;         // consecutive gems collected without missing
     let last = now();
     let frameTimer=0, animFrame=0;
     let spawnTimer=0, gemTimer=0;
@@ -190,7 +191,7 @@
     }
 
     function reset() {
-      running = true; dead = false; score = 0; dist = 0; time = 0; gemsCollected = 0;
+      running = true; dead = false; score = 0; dist = 0; time = 0; gemsCollected = 0; combo = 0;
       frameTimer=0; animFrame=0; spawnTimer=0; gemTimer=0;
       spikes.length=0; orbs.length=0; gems.length=0;
       P.x = 200; P.y = GROUND_Y; P.vx = 0; P.vy = 0; P.onGround = true; P.glide=false;
@@ -241,9 +242,10 @@
 
     function update(dt){
       time += dt; dist += RUN_SPEED * dt;
-      // Score is purely number of collected gems
-      score = gemsCollected;
-      scoreHud.textContent = `Score: ${score}`;
+      // HUD: show score, combo, and current multiplier when active
+      const currentMult = combo >= 10 ? 4 : combo >= 5 ? 2 : 1;
+      const multTxt = currentMult > 1 ? ` | x${currentMult}` : '';
+      scoreHud.textContent = `Score: ${score} | Combo: ${combo}${multTxt}`;
 
       // Mobile controls visibility
       const isSmall = Math.min(window.innerWidth, window.innerHeight) < 720;
@@ -348,7 +350,25 @@
       }
       for (const s of spikes) if (hit(P, s)) return die();
       for (const o of orbs) if (hit(P, o)) return die();
-      for (let i=gems.length-1; i>=0; i--) if (hit(P, gems[i])) { gemsCollected += 1; gems.splice(i,1); }
+      // Gem pickups add score with multiplier based on current combo (applies AFTER 5/10 streak)
+      for (let i=gems.length-1; i>=0; i--) {
+        const g = gems[i];
+        if (hit(P, g)) {
+          const mult = combo >= 10 ? 4 : combo >= 5 ? 2 : 1;
+          score += mult;
+          gemsCollected += 1;
+          combo += 1;
+          gems.splice(i,1);
+        }
+      }
+      // Break combo if the player passes a gem without picking it up
+      // Mark each missed gem once to avoid repeated resets while it remains onscreen
+      for (const g of gems) {
+        if (!g.missed && g.x < P.x) {
+          g.missed = true;
+          combo = 0;
+        }
+      }
     }
 
     function die(){

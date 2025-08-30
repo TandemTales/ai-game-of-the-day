@@ -590,11 +590,10 @@
     function spawnDrop(e) {
       // Drop chances; extra life and shield unchanged. Upgrades increased after wave 5.
       const lifeChance = e.boss ? 0.08 : 0.01;     // 8% boss, 1% normal
-      const shieldChance = e.boss ? 0.10 : 0.015;  // 10% boss, 1.5% normal
+      // Suppress shield drops if player already has an active shield
+      const shieldChance = shieldActive ? 0 : (e.boss ? 0.10 : 0.015);  // 10% boss, 1.5% normal
       // Base upgrade chance
-      const upBase = e.boss ? 0.25 : 0.06;         // 25% boss, 6% normal
-      // After wave 5, increase upgrade drop rates: normal 10%, boss 35%
-      const upChance = (wave >= 6) ? (e.boss ? 0.35 : 0.10) : upBase;
+      const upChance = e.boss ? 0.25 : 0.06;         // 25% boss, 6% normal
       const r = Math.random();
       let type = null, kind = null;
       if (r < lifeChance) type = 'L';
@@ -606,11 +605,11 @@
 
     function pickUpgrade() {
       // Build a weighted pool dynamically. Keep fire common; include missile/electro if not owned/maxed.
-      const pool = ['fire','fire','twin','spread'];
+      const pool = ['fire'];
+      if (power.fireLv < 3) pool.push('fire');
       if (power.missileLv < 2) pool.push('missile');
       if (!power.electro) pool.push('electro');
       if (power.laserLv < 2) pool.push('laser');
-      // Nudge towards unowned basics when applicable
       if (!power.twin) pool.push('twin');
       if (!power.spread) pool.push('spread');
       return pool[Math.floor(Math.random()*pool.length)];
@@ -623,22 +622,24 @@
         B.cooldown = Math.max(0.07, B.baseCooldown * Math.pow(0.85, power.fireLv));
         // Give immediate feedback by allowing an instant shot
         lastShoot = B.cooldown;
-        pickupMsgs.push({ text: 'FIRE RATE UP!', color: '#ffb347', t: 0, dur: 0.9 });
+        pickupMsgs.push({ text: 'FIRE RATE UP!', color: '#ffb347', t: 0, dur: 1.8 });
       } else if (kind === 'twin') {
         power.twin = true;
-        pickupMsgs.push({ text: 'TWIN SHOT!', color: '#00e5ff', t: 0, dur: 0.9 });
+        pickupMsgs.push({ text: 'TWIN SHOT!', color: '#00e5ff', t: 0, dur: 1.8 });
       } else if (kind === 'spread') {
         power.spread = true;
-        pickupMsgs.push({ text: 'SPREAD SHOT!', color: '#21d87a', t: 0, dur: 0.9 });
+        pickupMsgs.push({ text: 'SPREAD SHOT!', color: '#21d87a', t: 0, dur: 1.8 });
       } else if (kind === 'missile') {
         power.missileLv = Math.min(2, (power.missileLv||0) + 1);
-        pickupMsgs.push({ text: 'HOMING MISSILE!', color: '#ffa500', t: 0, dur: 0.9 });
+        const lvl = power.missileLv;
+        pickupMsgs.push({ text: `HOMING MISSILE LEVEL ${lvl}!`, color: '#ffa500', t: 0, dur: 1.8 });
       } else if (kind === 'electro') {
         power.electro = true;
-        pickupMsgs.push({ text: 'ELECTRO ORB!', color: '#7df9ff', t: 0, dur: 0.9 });
+        pickupMsgs.push({ text: 'ELECTRO ORB!', color: '#7df9ff', t: 0, dur: 1.8 });
       } else if (kind === 'laser') {
         power.laserLv = Math.min(2, (power.laserLv||0) + 1);
-        pickupMsgs.push({ text: 'LASER!', color: '#ff4df0', t: 0, dur: 0.9 });
+        const lvl = power.laserLv;
+        pickupMsgs.push({ text: `LASER LEVEL ${lvl}!`, color: '#ff4df0', t: 0, dur: 1.8 });
         // Allow immediate visual feedback
         laserT = LASER.cooldown;
       }
@@ -649,7 +650,7 @@
         lives++; livesEl.textContent = lives;
       } else if (d.type === 'S') {
         shieldActive = true; shieldPulse = 0;
-        pickupMsgs.push({ text: 'SHIELD!', color: '#00e5ff', t: 0, dur: 0.9 });
+        pickupMsgs.push({ text: 'SHIELD!', color: '#00e5ff', t: 0, dur: 1.8 });
       } else {
         const kind = d.kind || pickUpgrade();
         applyUpgrade(kind);
@@ -1274,7 +1275,9 @@
 
     function hitPlayer() {
       if (!running || cheatInvuln) return;
-      lives--; livesEl.textContent = lives;
+      // Decrement lives but never show negative values on the HUD
+      lives = Math.max(0, lives - 1);
+      livesEl.textContent = lives;
       if (lives <= 0) {
         // Player destroyed: keep the world running for 2s so effects/enemies continue
         playerDead = true;

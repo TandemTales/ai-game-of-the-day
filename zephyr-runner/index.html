@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zephyr Runner</title>
+  <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
+  <style>
+    :root {
+      --gold: #FFD700;
+      --teal: #5F9EA0;
+      --ink: #F5F5DC;
+      --ui: rgba(0,0,0,0.75);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #0c0f1a 0%, #1a2236 50%, #0b1020 100%);
+      color: var(--ink);
+      font-family: 'Press Start 2P', system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+      overflow: hidden;
+      touch-action: manipulation;
+      user-select: none;
+    }
+    .wrap {
+      position: relative;
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+    }
+    canvas { 
+      position: absolute; inset: 0; margin: 0; 
+      image-rendering: pixelated; image-rendering: crisp-edges;
+    }
+    .hud {
+      position: absolute; inset: 0; pointer-events: none;
+      padding: 10px;
+    }
+    .topbar {
+      display: flex; gap: 12px; align-items: center; justify-content: space-between;
+    }
+    .chip {
+      background: var(--ui); border: 2px solid var(--gold); color: var(--ink);
+      padding: 8px 12px; border-radius: 10px; font-size: 12px;
+      box-shadow: 0 4px 14px rgba(255,215,0,0.25);
+    }
+    .btn { pointer-events: auto; text-decoration: none; cursor: pointer; }
+    .btn-primary {
+      background: linear-gradient(45deg, var(--teal), #4682B4);
+      border: 2px solid var(--gold); color: #fff; border-radius: 10px; padding: 10px 14px; font-size: 12px;
+      box-shadow: 0 4px 15px rgba(95,158,160,0.4);
+    }
+    .btn-primary:hover { filter: brightness(1.06); }
+    .back { position: absolute; top: 10px; right: 10px; }
+    .center { position: absolute; inset: 0; display: grid; place-items: center; }
+    .panel {
+      background: rgba(0,0,0,0.85);
+      border: 3px solid var(--gold);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 0 40px rgba(255, 215, 0, 0.35);
+      max-width: 560px; width: calc(100vw - 40px);
+    }
+    .title { font-size: 18px; margin: 6px 0 12px 0; background: linear-gradient(45deg, var(--gold), #FFA500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .small { font-size: 11px; color: var(--teal); }
+    .row { display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; margin-top: 10px; }
+    #mobileCtrls { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; pointer-events: auto; }
+    #mobileCtrls .btn-primary { padding: 14px 18px; font-size: 14px; }
+    .hidden { display: none; }
+  </style>
+  <!-- Simple, original 2D runner with custom SVG art and parallax scenery. -->
+  <!-- GAME_ID used by leaderboard APIs -->
+  <script>
+    const GAME_ID = 'zephyr-runner';
+  </script>
+  <script>
+    // Small helpers
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const rand = (a, b) => a + Math.random() * (b - a);
+    const now = () => performance.now();
+  </script>
+</head>
+<body>
+  <div class="wrap">
+    <canvas id="game" width="960" height="540"></canvas>
+    <div class="hud">
+      <div class="topbar">
+        <div class="chip" id="scoreHud">Score: 0</div>
+        <a href="../index.html" class="btn btn-primary back">← Back to Home</a>
+      </div>
+    </div>
+
+    <div class="center" id="startScreen">
+      <div class="panel">
+        <div class="title">Zephyr Runner</div>
+        <div class="small">Dash across floating isles, vault hazards, and snatch radiant shards while the world streams by in gleaming parallax.</div>
+        <div class="row">
+          <button id="startBtn" class="btn btn-primary">Start</button>
+          <a class="btn btn-primary" href="../leaderboard.html?gameId=zephyr-runner">Leaderboard</a>
+        </div>
+        <div class="small" style="margin-top:10px">Controls: Space to jump, hold to glide. Down/S to dive. Tap anywhere on mobile.</div>
+      </div>
+    </div>
+
+    <div id="mobileCtrls" class="hidden">
+      <button class="btn btn-primary" id="btnJump">Jump</button>
+      <button class="btn btn-primary" id="btnGlide">Glide</button>
+      <button class="btn btn-primary" id="btnDive">Dive</button>
+    </div>
+
+    <div class="center hidden" id="gameOver">
+      <div class="panel">
+        <div class="title">Game Over</div>
+        <div id="finalScore" class="small">Score: 0</div>
+        <div class="row">
+          <button id="againBtn" class="btn btn-primary">Play Again</button>
+          <a id="lbBtn" class="btn btn-primary" href="../leaderboard.html?gameId=zephyr-runner">View Leaderboard</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    let W = canvas.width, H = canvas.height;
+
+    function resize() {
+      const ratio = 16/9;
+      let w = window.innerWidth, h = window.innerHeight;
+      if (w/h > ratio) { w = h * ratio; } else { h = w / ratio; }
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+    }
+    window.addEventListener('resize', resize); resize();
+
+    // Asset loading
+    const ASSETS = {
+      sky: 'assets/parallax-sky.svg',
+      hills: 'assets/parallax-mountains.svg',
+      fg: 'assets/parallax-foreground.svg',
+      p1: 'assets/player-run-1.svg',
+      p2: 'assets/player-run-2.svg',
+      p3: 'assets/player-run-3.svg',
+      p4: 'assets/player-run-4.svg',
+      spike: 'assets/spike.svg',
+      orb: 'assets/orb.svg',
+      gem: 'assets/gem.svg',
+    };
+
+    const IMG = {};
+    function loadImage(path) { return new Promise(res=>{ const i=new Image(); i.src=path; i.onload=()=>res(i); i.onerror=()=>res(i); }); }
+    Promise.all(Object.entries(ASSETS).map(async ([k,p])=> IMG[k] = await loadImage(p))).then(()=>{
+      init();
+      showStart();
+      draw(0);
+    });
+
+    // Game state
+    const GRAV = 2600; // px/s^2
+    const RUN_SPEED = 400; // world scroll speed
+    const JUMP_V = 950;
+    const GLIDE_G = 900;
+    const DIVE_V = 1400;
+    const GROUND_Y = H - 90; // baseline
+    let running=false, dead=false;
+    let score=0; let best=0; let dist=0; let time=0;
+    let last = now();
+    let frameTimer=0, animFrame=0;
+    let spawnTimer=0, gemTimer=0;
+
+    // Player
+    const P = { x: 200, y: GROUND_Y, vx: 0, vy: 0, w: 64, h: 64, onGround: true, glide: false };
+
+    // Entities
+    const spikes=[]; // ground obstacles
+    const orbs=[];   // floating hazards
+    const gems=[];   // collectibles
+
+    // Parallax layers positions
+    const L = {
+      sky1:0, sky2:W,
+      h1:0, h2:W,
+      f1:0, f2:W,
+    }
+
+    function reset() {
+      running = true; dead = false; score = 0; dist = 0; time = 0;
+      frameTimer=0; animFrame=0; spawnTimer=0; gemTimer=0;
+      spikes.length=0; orbs.length=0; gems.length=0;
+      P.x = 200; P.y = GROUND_Y; P.vx = 0; P.vy = 0; P.onGround = true; P.glide=false;
+      Object.assign(L, { sky1:0, sky2:W, h1:0, h2:W, f1:0, f2:W });
+      hideStart(); hideGameOver();
+    }
+
+    // UI elements
+    const startScreen = document.getElementById('startScreen');
+    const gameOver = document.getElementById('gameOver');
+    const startBtn = document.getElementById('startBtn');
+    const againBtn = document.getElementById('againBtn');
+    const scoreHud = document.getElementById('scoreHud');
+    const finalScore = document.getElementById('finalScore');
+    const lbBtn = document.getElementById('lbBtn');
+    const mobile = document.getElementById('mobileCtrls');
+
+    function showStart(){ startScreen.classList.remove('hidden'); maybeShowMobileCtrls(false); }
+    function hideStart(){ startScreen.classList.add('hidden'); }
+    function showGameOver(){ gameOver.classList.remove('hidden'); maybeShowMobileCtrls(false); }
+    function hideGameOver(){ gameOver.classList.add('hidden'); }
+    function maybeShowMobileCtrls(show){ mobile.classList.toggle('hidden', !show); }
+
+    startBtn.addEventListener('click', ()=>{ reset(); });
+    againBtn.addEventListener('click', ()=>{ reset(); });
+
+    // Input
+    let key = { up:false, down:false, space:false };
+    window.addEventListener('keydown', e=>{
+      if (e.code === 'Space' || e.key === ' ') { key.space=true; if (!running && !dead) reset(); e.preventDefault(); }
+      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') key.up=true;
+      if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') key.down=true;
+    });
+    window.addEventListener('keyup', e=>{
+      if (e.code === 'Space' || e.key === ' ') key.space=false;
+      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') key.up=false;
+      if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') key.down=false;
+    });
+    // Touch simplified
+    canvas.addEventListener('pointerdown', ()=>{ if (!running && !dead) reset(); key.space=true; });
+    canvas.addEventListener('pointerup', ()=>{ key.space=false; });
+    document.getElementById('btnJump').addEventListener('pointerdown', ()=> key.space=true);
+    document.getElementById('btnJump').addEventListener('pointerup', ()=> key.space=false);
+    document.getElementById('btnGlide').addEventListener('pointerdown', ()=> key.up=true);
+    document.getElementById('btnGlide').addEventListener('pointerup', ()=> key.up=false);
+    document.getElementById('btnDive').addEventListener('pointerdown', ()=> key.down=true);
+    document.getElementById('btnDive').addEventListener('pointerup', ()=> key.down=false);
+
+    function update(dt){
+      time += dt; dist += RUN_SPEED * dt; score = Math.floor(dist/5) + gems.length * 100;
+      scoreHud.textContent = `Score: ${score}`;
+
+      // Mobile controls visibility
+      const isSmall = Math.min(window.innerWidth, window.innerHeight) < 720;
+      maybeShowMobileCtrls(isSmall && running && !dead);
+
+      // Background parallax scroll
+      const s1 = RUN_SPEED * 0.12 * dt, s2 = RUN_SPEED * 0.32 * dt, s3 = RUN_SPEED * 0.64 * dt;
+      L.sky1 -= s1; L.sky2 -= s1; if (L.sky1 + W < 0) L.sky1 = L.sky2 + W; if (L.sky2 + W < 0) L.sky2 = L.sky1 + W;
+      L.h1 -= s2; L.h2 -= s2; if (L.h1 + W < 0) L.h1 = L.h2 + W; if (L.h2 + W < 0) L.h2 = L.h1 + W;
+      L.f1 -= s3; L.f2 -= s3; if (L.f1 + W < 0) L.f1 = L.f2 + W; if (L.f2 + W < 0) L.f2 = L.f1 + W;
+
+      // Player physics
+      let g = P.glide ? GLIDE_G : GRAV;
+      if (P.onGround) P.vy = 0;
+      if ((key.space || key.up) && P.onGround) { P.vy = -JUMP_V; P.onGround=false; }
+      P.glide = (!P.onGround && key.space);
+      if (key.down && !P.onGround && P.vy < DIVE_V) P.vy = Math.min(DIVE_V, P.vy + DIVE_V * dt);
+      P.vy += g * dt;
+      P.y += P.vy * dt;
+      if (P.y >= GROUND_Y) { P.y = GROUND_Y; P.onGround = true; P.vy = 0; }
+
+      // Animate player run
+      frameTimer += dt;
+      const cadence = P.onGround ? 0.08 : 0.12;
+      if (frameTimer > cadence) { frameTimer = 0; animFrame = (animFrame + 1) % 4; }
+
+      // Spawning hazards
+      spawnTimer -= dt;
+      if (spawnTimer <= 0) {
+        spawnTimer = rand(0.9, 1.6);
+        if (Math.random() < 0.55) {
+          // Spike at ground
+          spikes.push({ x: W + 40, y: GROUND_Y, w: 54, h: 54, img: IMG.spike });
+        } else {
+          // Floating orb
+          const y = GROUND_Y - rand(140, 260);
+          orbs.push({ x: W + 40, y, w: 48, h: 48, img: IMG.orb, t: 0 });
+        }
+      }
+
+      // Spawn gems
+      gemTimer -= dt;
+      if (gemTimer <= 0) {
+        gemTimer = rand(1.8, 2.6);
+        const y = GROUND_Y - rand(80, 220);
+        gems.push({ x: W + 40, y, w: 34, h: 34, img: IMG.gem, t: 0 });
+      }
+
+      // Move hazards + gems
+      const move = v => v - RUN_SPEED * dt;
+      for (const s of spikes) s.x = move(s.x);
+      for (const o of orbs) { o.x = move(o.x); o.t += dt; o.y += Math.sin(o.t * 4.3) * 18 * dt; }
+      for (const gobj of gems) { gobj.x = move(gobj.x); gobj.t += dt; gobj.y += Math.sin(gobj.t * 6.1) * 14 * dt; }
+
+      // Remove offscreen
+      while (spikes.length && spikes[0].x + spikes[0].w < 0) spikes.shift();
+      while (orbs.length && orbs[0].x + orbs[0].w < 0) orbs.shift();
+      while (gems.length && gems[0].x + gems[0].w < 0) gems.shift();
+
+      // Collisions
+      function hit(a,b){ return Math.abs(a.x - b.x) * 2 < (a.w + b.w) && Math.abs(a.y - b.y) * 2 < (a.h + b.h); }
+      for (const s of spikes) if (hit(P, s)) return die();
+      for (const o of orbs) if (hit(P, o)) return die();
+      for (let i=gems.length-1; i>=0; i--) if (hit(P, gems[i])) { score += 150; gems.splice(i,1); }
+    }
+
+    function die(){
+      if (dead) return; dead = true; running=false;
+      best = Math.max(best, score);
+      finalScore.textContent = `Score: ${score}`;
+      showGameOver();
+      maybeSubmitScore(score);
+    }
+
+    function draw(dt){
+      const t = now(); const delta = Math.min(0.033, (t - last)/1000); last = t;
+      // Update
+      if (running && !dead) update(delta);
+
+      // Clear
+      ctx.clearRect(0,0,W,H);
+
+      // Parallax images (tile horizontally)
+      drawLayer(IMG.sky, L.sky1, 0, W, H);
+      drawLayer(IMG.sky, L.sky2, 0, W, H);
+      drawLayer(IMG.hills, L.h1, 0, W, H);
+      drawLayer(IMG.hills, L.h2, 0, W, H);
+      drawLayer(IMG.fg, L.f1, 0, W, H);
+      drawLayer(IMG.fg, L.f2, 0, W, H);
+
+      // Ground line
+      ctx.strokeStyle = 'rgba(255,215,0,0.35)'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(0, GROUND_Y + 34); ctx.lineTo(W, GROUND_Y + 34); ctx.stroke();
+
+      // Draw hazards
+      for (const s of spikes) drawImg(s.img, s.x, s.y, s.w, s.h);
+      for (const o of orbs) drawImg(o.img, o.x, o.y, o.w, o.h);
+      for (const g of gems) drawImg(g.img, g.x, g.y, g.w, g.h);
+
+      // Player
+      const pf = animFrame===0?IMG.p1:animFrame===1?IMG.p2:animFrame===2?IMG.p3:IMG.p4;
+      drawImg(pf, P.x, P.y, P.w, P.h);
+
+      requestAnimationFrame(draw);
+    }
+
+    function drawLayer(img, x, y, w, h){ ctx.drawImage(img, x - 2, y, w + 4, h); }
+    function drawImg(img, x, y, w, h){ ctx.drawImage(img, Math.round(x - w/2), Math.round(y - h/2), w, h); }
+
+    // Leaderboard integration
+    let lbGuard = false; // prevent double submit on refreshes
+    async function maybeSubmitScore(score){
+      if (lbGuard) return; lbGuard = true;
+      try {
+        const rankRes = await fetch(`/api/leaderboard/rank?gameId=${encodeURIComponent(GAME_ID)}&score=${encodeURIComponent(score)}`, { headers: { 'Accept':'application/json' } });
+        let rank = 0; if (rankRes.ok) { const data = await rankRes.json().catch(()=>null); rank = Number(data?.rank||0); }
+        let dest = `../leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
+        const want = confirm(`Your score is ${score}. Submit to the leaderboard?`);
+        if (!want) { window.location.href = dest; return; }
+        let name = prompt('Enter a name (max 20 chars):', 'Runner');
+        if (name != null) {
+          name = String(name).trim().replace(/[^\w \-'.!]/g,'').slice(0,20);
+          if (name) {
+            let submitted=false;
+            try {
+              await fetch('/api/leaderboard/submit', {
+                method: 'POST', headers: { 'Content-Type':'application/json' },
+                body: JSON.stringify({ gameId: GAME_ID, name, score })
+              });
+              submitted=true;
+            } catch {}
+            if (submitted && rank) dest += `&highlightRank=${encodeURIComponent(rank)}`;
+            window.location.href = dest;
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // Public init (called post assets load)
+    function init(){ /* placeholder for any future init hooks */ }
+  })();
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540">
+  <defs>
+    <linearGradient id="hill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f2038"/>
+      <stop offset="100%" stop-color="#0a1830"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="540" fill="none"/>
+  <!-- Floating isle silhouettes -->
+  <g fill="url(#hill)" opacity="0.85">
+    <path d="M-40,400 C60,350 120,380 180,340 C240,300 300,330 360,320 C420,310 460,340 520,330 C600,315 640,360 700,345 C790,325 820,350 920,330 L960,540 L-40,540 Z"/>
+    <path d="M100,450 C160,420 220,440 280,415 C340,390 400,410 460,400 C520,390 580,410 640,395 C700,380 760,400 820,385 L840,540 L80,540 Z" opacity="0.9"/>
+  </g>
+  <!-- Rim light -->
+  <g fill="#1f3a66" opacity="0.4">
+    <path d="M-40,400 C60,350 120,380 180,340 C200,355 150,355 120,368 C40,402 20,420 -40,430 Z"/>
+  </g>
+</svg>
+

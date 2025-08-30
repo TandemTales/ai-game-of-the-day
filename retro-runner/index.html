@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Retro Runner - Bot Built Arcade</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
+  <style>
+    :root {
+      --gold: #FFD700;
+      --teal: #5F9EA0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #111, #222);
+      color: #F5F5DC;
+      font-family: 'Press Start 2P', cursive;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #topbar {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      justify-content: space-between;
+      padding: 10px;
+    }
+    .btn {
+      text-decoration: none;
+      color: white;
+      border: 2px solid var(--gold);
+      background: linear-gradient(45deg, var(--teal), #4682B4);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+    }
+    #gameWrap {
+      position: relative;
+      width: 100%;
+      max-width: 480px;
+      touch-action: none;
+    }
+    canvas {
+      width: 100%;
+      height: auto;
+      background: black;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div id="topbar">
+    <a href="../index.html" class="btn">Back to Home</a>
+    <div id="score">0</div>
+    <a href="../leaderboard.html?gameId=retro-runner" class="btn">Leaderboard</a>
+  </div>
+  <div id="gameWrap">
+    <canvas id="game" width="320" height="480"></canvas>
+  </div>
+  <script>
+    const imgPlayer = new Image(); imgPlayer.src = 'assets/runner.png';
+    const imgObs = new Image(); imgObs.src = 'assets/obstacle.png';
+    const imgCoin = new Image(); imgCoin.src = 'assets/coin.png';
+
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    const player = { x: 144, y: 430, w: 32, h: 32, vx: 0 };
+    let obstacles = [];
+    let coins = [];
+    let speed = 3;
+    let score = 0;
+    const GAME_ID = 'retro-runner';
+    let running = true;
+
+    function spawnObstacle() {
+      const x = Math.random() * (canvas.width - 32);
+      obstacles.push({ x, y: -32, w: 32, h: 32 });
+    }
+    function spawnCoin() {
+      const x = Math.random() * (canvas.width - 32);
+      coins.push({ x, y: -32, w: 32, h: 32 });
+    }
+    let obsTimer = 0, coinTimer = 0;
+
+    function update() {
+      if (!running) return;
+      player.x += player.vx;
+      if (player.x < 0) player.x = 0;
+      if (player.x > canvas.width - player.w) player.x = canvas.width - player.w;
+
+      obsTimer++; coinTimer++;
+      if (obsTimer > 50) { spawnObstacle(); obsTimer = 0; }
+      if (coinTimer > 120) { spawnCoin(); coinTimer = 0; }
+
+      obstacles.forEach(o => o.y += speed);
+      coins.forEach(c => c.y += speed);
+
+      obstacles = obstacles.filter(o => {
+        if (o.y > canvas.height) { score += 10; return false; }
+        if (o.x < player.x + player.w && o.x + o.w > player.x && o.y < player.y + player.h && o.y + o.h > player.y) {
+          gameOver(); return false;
+        }
+        return true;
+      });
+
+      coins = coins.filter(c => {
+        if (c.y > canvas.height) return false;
+        if (c.x < player.x + player.w && c.x + c.w > player.x && c.y < player.y + player.h && c.y + c.h > player.y) {
+          score += 50; return false;
+        }
+        return true;
+      });
+
+      score++;
+      document.getElementById('score').textContent = score;
+      speed += 0.0005;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(imgPlayer, player.x, player.y, player.w, player.h);
+      obstacles.forEach(o => ctx.drawImage(imgObs, o.x, o.y, o.w, o.h));
+      coins.forEach(c => ctx.drawImage(imgCoin, c.x, c.y, c.w, c.h));
+      if (running) update();
+      requestAnimationFrame(draw);
+    }
+    draw();
+
+    function gameOver() {
+      running = false;
+      maybeSubmitLeaderboard();
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowLeft' || e.key === 'a') player.vx = -5;
+      if (e.key === 'ArrowRight' || e.key === 'd') player.vx = 5;
+    });
+    document.addEventListener('keyup', e => {
+      if ((e.key === 'ArrowLeft' || e.key === 'a') && player.vx < 0) player.vx = 0;
+      if ((e.key === 'ArrowRight' || e.key === 'd') && player.vx > 0) player.vx = 0;
+    });
+
+    canvas.addEventListener('touchstart', handleTouch);
+    canvas.addEventListener('touchmove', handleTouch);
+    canvas.addEventListener('touchend', () => { player.vx = 0; });
+    function handleTouch(e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.touches[0].clientX - rect.left;
+      player.vx = x < canvas.width / 2 ? -5 : 5;
+    }
+
+    async function maybeSubmitLeaderboard() {
+      let dest = `../leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
+      try {
+        const res = await fetch(`/api/leaderboard/rank?gameId=${encodeURIComponent(GAME_ID)}&score=${encodeURIComponent(score)}`, { headers: { 'Accept': 'application/json' } });
+        if (res.ok) {
+          const data = await res.json();
+          const rank = Number(data?.rank);
+          const qualifies = Number.isFinite(rank) && rank > 0 && rank <= 20;
+          if (qualifies) {
+            let name = prompt(`New High Score! You placed #${rank}. Enter your name (max 20 chars):`, '');
+            if (name != null) {
+              name = name.trim().replace(/[^\w \-'.!]/g, '').slice(0, 20);
+              if (name) {
+                let submitted = false;
+                try {
+                  await fetch('/api/leaderboard/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gameId: GAME_ID, name, score })
+                  });
+                  submitted = true;
+                } catch {}
+                if (submitted) {
+                  dest += `&highlightRank=${encodeURIComponent(rank)}`;
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        location.href = dest;
+      }
+    }
+  </script>
+</body>
+</html>

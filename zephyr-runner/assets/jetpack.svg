@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFD700"/>
+      <stop offset="1" stop-color="#FFA500"/>
+    </linearGradient>
+  </defs>
+  <!-- Body -->
+  <rect x="14" y="8" width="20" height="22" rx="4" ry="4" fill="#4c6faf" stroke="#2b3c6e" stroke-width="2"/>
+  <!-- Straps/Tanks -->
+  <rect x="10" y="10" width="6" height="18" rx="3" fill="#7fa2d9" stroke="#2b3c6e" stroke-width="2"/>
+  <rect x="32" y="10" width="6" height="18" rx="3" fill="#7fa2d9" stroke="#2b3c6e" stroke-width="2"/>
+  <!-- Nozzles -->
+  <rect x="16" y="28" width="6" height="6" rx="1" fill="#2b3c6e"/>
+  <rect x="26" y="28" width="6" height="6" rx="1" fill="#2b3c6e"/>
+  <!-- Flame -->
+  <path d="M18 36 C18 40, 22 44, 24 46 C26 44, 30 40, 30 36 C28 37, 26 38, 24 38 C22 38, 20 37, 18 36 Z" fill="url(#g1)"/>
+</svg>

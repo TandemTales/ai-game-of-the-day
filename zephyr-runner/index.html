@@ -37,13 +37,29 @@
       padding: 10px;
     }
     .topbar {
-      display: flex; gap: 12px; align-items: center; justify-content: space-between;
+      display: flex; gap: 12px; align-items: center; justify-content: flex-start;
     }
     .chip {
       background: var(--ui); border: 2px solid var(--gold); color: var(--ink);
       padding: 8px 12px; border-radius: 10px; font-size: 12px;
       box-shadow: 0 4px 14px rgba(255,215,0,0.25);
     }
+    /* Jetpack fuel bar */
+    #jetHud { min-width: 200px; }
+    #jetHud:not(.hidden) { display: grid; gap: 6px; }
+    .jet-label { font-size: 11px; color: var(--gold); opacity: 0.9; }
+    .jetbar {
+      position: relative; height: 12px; width: 100%;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,215,0,0.5);
+      border-radius: 8px; overflow: hidden;
+    }
+    .jetbar-fill {
+      position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
+      background: linear-gradient(90deg, #34d399, #22d3ee);
+      box-shadow: inset 0 0 6px rgba(255,255,255,0.2);
+    }
+    .jetbar-text { position: absolute; inset: 0; display: grid; place-items: center; font-size: 10px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
     .btn { pointer-events: auto; text-decoration: none; cursor: pointer; }
     .btn-primary {
       background: linear-gradient(45deg, var(--teal), #4682B4);
@@ -87,6 +103,10 @@
     <div class="hud">
       <div class="topbar">
         <div class="chip" id="scoreHud">Score: 0</div>
+        <div class="chip hidden" id="jetHud">
+          <div class="jet-label">Jetpack</div>
+          <div class="jetbar"><div class="jetbar-fill" id="jetFill"></div><div class="jetbar-text" id="jetText">0%</div></div>
+        </div>
         <a href="../index.html" class="btn btn-primary back">← Back to Home</a>
       </div>
     </div>
@@ -148,6 +168,7 @@
       spike: 'assets/spike.svg',
       orb: 'assets/orb.svg',
       gem: 'assets/gem.svg',
+      jetpack: 'assets/jetpack.svg',
     };
 
     const IMG = {};
@@ -178,6 +199,19 @@
     let last = now();
     let frameTimer=0, animFrame=0;
     let spawnTimer=0, gemTimer=0;
+    // Jetpack systems (hold to burn fuel and thrust)
+    const JET_FUEL_MAX = 100;       // max fuel
+    const JET_BURN_RATE = 25;       // fuel per second while holding (reduced)
+    const JET_THRUST = GLIDE_G + 1000;  // upward accel (px/s^2) while burning
+    const JET_RECHARGE_RATE = 25;   // per second while grounded
+    let hasJetpack = false;         // player has collected jetpack
+    let jetpackPicked = false;      // prevent future spawns after pickup
+    let jetFuel = 0;                // current fuel
+    let jetpackTimer = 0;           // timer to attempt spawns when not picked
+    let prevSpaceHeld = false;      // track edge of Space/left-click/tap
+    let wasOnGround = true;         // previous frame ground state
+    let primaryPressPulse = false;  // set true on pointerdown/keydown; consumed in update
+    let jetActive = false;          // currently thrusting due to a midair press
 
     // Player
     // Player with slightly smaller hitbox to avoid early collisions
@@ -188,6 +222,7 @@
     const spikes=[]; // ground obstacles
     const orbs=[];   // floating hazards
     const gems=[];   // collectibles
+    const jetpacks=[]; // jetpack pickup(s)
 
     // Parallax layers positions
     const L = {
@@ -199,11 +234,14 @@
     function reset() {
       running = true; dead = false; score = 0; dist = 0; time = 0; gemsCollected = 0; combo = 0;
       frameTimer=0; animFrame=0; spawnTimer=0; gemTimer=0;
-      spikes.length=0; orbs.length=0; gems.length=0;
+      spikes.length=0; orbs.length=0; gems.length=0; jetpacks.length=0;
       P.x = 200; P.y = GROUND_Y; P.vx = 0; P.vy = 0; P.onGround = true; P.glide=false; P.isJumping=false; P.jumpT=0;
       Object.assign(L, { sky1:0, sky2:W, h1:0, h2:W, f1:0, f2:W });
       // Clear any lingering input so the new run doesn't start with stuck keys
       key.space = false; key.up = false; key.down = false;
+      // Jetpack reset
+      hasJetpack = false; jetpackPicked = false; jetFuel = 0; prevSpaceHeld = false; wasOnGround = true; jetActive = false; primaryPressPulse = false;
+      jetpackTimer = rand(6, 12); // first random spawn window
       hideStart(); hideGameOver();
     }
 
@@ -213,6 +251,9 @@
     const startBtn = document.getElementById('startBtn');
     const againBtn = document.getElementById('againBtn');
     const scoreHud = document.getElementById('scoreHud');
+    const jetHud = document.getElementById('jetHud');
+    const jetFill = document.getElementById('jetFill');
+    const jetText = document.getElementById('jetText');
     const finalScore = document.getElementById('finalScore');
     const lbBtn = document.getElementById('lbBtn');
     const mobile = document.getElementById('mobileCtrls');
@@ -229,7 +270,12 @@
     // Input
     let key = { up:false, down:false, space:false };
     window.addEventListener('keydown', e=>{
-      if (e.code === 'Space' || e.key === ' ') { key.space=true; if (!running && !dead) reset(); e.preventDefault(); }
+      if (e.code === 'Space' || e.key === ' ') {
+        key.space = true;
+        if (!e.repeat) primaryPressPulse = true; // ignore repeated keydown
+        if (!running && !dead) reset();
+        e.preventDefault();
+      }
       if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') key.up=true;
       if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') key.down=true;
     });
@@ -255,6 +301,7 @@
       if (isPrimary) {
         if (!running && !dead) reset();
         key.space = true; // jump or glide while held
+        primaryPressPulse = true; // record a fresh press
       }
     });
     canvas.addEventListener('pointerup', e=>{
@@ -267,7 +314,7 @@
       key.space = false; key.down = false;
     });
     canvas.addEventListener('pointercancel', ()=>{ key.space=false; key.down=false; });
-    document.getElementById('btnJump').addEventListener('pointerdown', ()=> key.space=true);
+    document.getElementById('btnJump').addEventListener('pointerdown', ()=> { key.space=true; primaryPressPulse = true; });
     document.getElementById('btnJump').addEventListener('pointerup', ()=> key.space=false);
     document.getElementById('btnGlide').addEventListener('pointerdown', ()=> key.up=true);
     document.getElementById('btnGlide').addEventListener('pointerup', ()=> key.up=false);
@@ -280,6 +327,15 @@
       const currentMult = combo >= 10 ? 4 : combo >= 5 ? 2 : 1;
       const multTxt = currentMult > 1 ? ` | x${currentMult}` : '';
       scoreHud.textContent = `Score: ${score} | Combo: ${combo}${multTxt}`;
+      // Jetpack HUD
+      if (hasJetpack) {
+        const pct = Math.round((jetFuel / JET_FUEL_MAX) * 100);
+        jetHud.classList.remove('hidden');
+        if (jetFill) jetFill.style.width = `${pct}%`;
+        if (jetText) jetText.textContent = `${pct}%`;
+      } else {
+        jetHud.classList.add('hidden');
+      }
 
       // Mobile controls visibility
       const isSmall = Math.min(window.innerWidth, window.innerHeight) < 720;
@@ -295,8 +351,34 @@
       // Variable jump: full gravity by default; reduced while rising if jump held (up to cap)
       let g = GRAV;
       if (P.onGround) P.vy = 0;
-      if ((key.space || key.up) && P.onGround) { P.vy = -JUMP_V; P.onGround=false; P.isJumping = true; P.jumpT = 0; }
-      P.glide = (!P.onGround && (key.space || key.up));
+      const jumpHeld = (key.space || key.up);
+      const spaceHeld = key.space; // primary press (Space/left-click/tap)
+      const spaceJustPressed = primaryPressPulse || (spaceHeld && !prevSpaceHeld); // robust edge detect
+
+      // Grounded jump only on new press; mark if jump started this frame
+      let jumpedThisFrame = false;
+      if (spaceJustPressed && P.onGround) { P.vy = -JUMP_V; P.onGround=false; P.isJumping = true; P.jumpT = 0; jumpedThisFrame = true; }
+
+      // Jetpack activation: new press while airborne (not the same frame as jump)
+      if (hasJetpack && !key.down && !P.onGround && !jumpedThisFrame && spaceJustPressed && jetFuel > 0) {
+        jetActive = true;
+      }
+
+      // If jet is active, burn fuel and apply upward thrust
+      if (jetActive) {
+        const maxBurn = JET_BURN_RATE * dt;
+        const burn = Math.min(jetFuel, maxBurn);
+        const ratio = maxBurn > 0 ? (burn / maxBurn) : 0; // reduced thrust at low fuel
+        jetFuel -= burn;
+        P.vy -= JET_THRUST * ratio * dt; // apply upward accel
+        P.jetCount++;
+      }
+
+      // Deactivate jet when released, on ground, diving, or out of fuel (after applying thrust)
+      if (!jumpHeld || key.down || P.onGround || jetFuel <= 0) jetActive = false;
+
+      // Glide only if holding without active jet burn
+      P.glide = (!P.onGround && (key.space || key.up) && !jetActive);
       if (key.down && !P.onGround && P.vy < DIVE_V) P.vy = Math.min(DIVE_V, P.vy + DIVE_V * dt);
       // While ascending and holding jump, soften gravity for a short window
       if (P.isJumping && P.vy < 0 && (key.space || key.up) && P.jumpT < JUMP_HOLD_MAX && !key.down) {
@@ -307,11 +389,23 @@
       if (P.vy >= 0) P.isJumping = false;
       // Gliding reduces gravity only on descent
       if (P.glide && P.vy >= 0 && !key.down) g = GLIDE_G;
+      if (jetActive) g = GLIDE_G; // jet thrust also softens gravity while burning
+
       P.vy += g * dt;
       // Stronger glide effect: limit downward speed when gliding (unless diving)
       if (P.glide && !key.down && P.vy > GLIDE_VY_MAX) P.vy = GLIDE_VY_MAX;
+
       P.y += P.vy * dt;
       if (P.y >= GROUND_Y) { P.y = GROUND_Y; P.onGround = true; P.vy = 0; }
+      // Track air time and manage fuel recharge/cooldown
+      if (P.onGround) {
+        P.jetCount = 0;
+        if (hasJetpack && jetFuel < JET_FUEL_MAX) jetFuel = Math.min(JET_FUEL_MAX, jetFuel + JET_RECHARGE_RATE * dt);
+      }
+      // Update edge trackers for next frame
+      prevSpaceHeld = spaceHeld;
+      wasOnGround = P.onGround;
+      primaryPressPulse = false; // consume one-frame press pulse
 
       // Animate player run
       frameTimer += dt;
@@ -389,16 +483,29 @@
         gems.push({ x: gemX, y, w: GEM_W, h: GEM_H, img: IMG.gem, t: 0, hitX: 0.60, hitY: 0.60 });
       }
 
+      // Jetpack spawn logic — randomly spawn until picked
+      if (!jetpackPicked && jetpacks.length === 0) {
+        jetpackTimer -= dt;
+        if (jetpackTimer <= 0) {
+          const y = GROUND_Y - rand(120, 220);
+          jetpacks.push({ x: W + 40, y, w: 44, h: 44, img: IMG.jetpack, t: 0, hitX: 0.70, hitY: 0.70 });
+          // schedule next appearance only if it scrolls off without pickup
+          jetpackTimer = rand(8, 16);
+        }
+      }
+
       // Move hazards + gems
       const move = v => v - RUN_SPEED * dt;
       for (const s of spikes) s.x = move(s.x);
       for (const o of orbs) { o.x = move(o.x); o.t += dt; o.y += Math.sin(o.t * 4.3) * 18 * dt; }
       for (const gobj of gems) { gobj.x = move(gobj.x); gobj.t += dt; gobj.y += Math.sin(gobj.t * 6.1) * 14 * dt; }
+      for (const jp of jetpacks) { jp.x = move(jp.x); jp.t += dt; jp.y += Math.sin(jp.t * 3.7) * 10 * dt; }
 
       // Remove offscreen
       while (spikes.length && spikes[0].x + spikes[0].w < 0) spikes.shift();
       while (orbs.length && orbs[0].x + orbs[0].w < 0) orbs.shift();
       while (gems.length && gems[0].x + gems[0].w < 0) gems.shift();
+      while (jetpacks.length && jetpacks[0].x + jetpacks[0].w < 0) jetpacks.shift();
 
       // Collisions
       // Axis-aligned bounding box with adjustable per-entity hitbox scale.
@@ -425,6 +532,13 @@
           gemsCollected += 1;
           combo += 1;
           gems.splice(i,1);
+        }
+      }
+      // Jetpack pickup
+      for (let i=jetpacks.length-1; i>=0; i--) {
+        const jp = jetpacks[i];
+        if (hit(P, jp)) {
+          hasJetpack = true; jetpackPicked = true; jetFuel = JET_FUEL_MAX; jetpacks.splice(i,1);
         }
       }
       // Break combo if the player passes a gem without picking it up
@@ -473,6 +587,7 @@
       for (const s of spikes) drawImg(s.img, s.x, s.y, s.w, s.h);
       for (const o of orbs) drawImg(o.img, o.x, o.y, o.w, o.h);
       for (const g of gems) drawImg(g.img, g.x, g.y, g.w, g.h);
+      for (const jp of jetpacks) drawImg(jp.img, jp.x, jp.y, jp.w, jp.h);
 
       // Player
       const pf = animFrame===0?IMG.p1:animFrame===1?IMG.p2:animFrame===2?IMG.p3:IMG.p4;

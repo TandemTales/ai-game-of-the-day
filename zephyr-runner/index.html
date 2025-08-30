@@ -294,33 +294,52 @@
       if (gemTimer <= 0) {
         gemTimer = rand(1.8, 2.6);
         const MIN_FROM_GROUND = 110; // px above ground to avoid spikes
-        const MIN_FROM_ORB = 90;     // px vertical separation from nearby orbs
-        const ORB_PROX_X = 120;      // consider orbs near the spawn edge
+        // Safe padding beyond visual bounds to avoid overlaps/near-misses with orbs
+        // pad/2 ~= minimum edge separation (due to AABB check math)
+        const SAFE_PAD_X = 48; // ~24px min edge gap horizontally
+        const SAFE_PAD_Y = 48; // ~24px min edge gap vertically
+        const GEM_W = 34, GEM_H = 34;
+        const gemX = W + 40; // spawn X for the new gem
         let y = null;
-        // Try a few samples to find a safe vertical slot
-        for (let tries = 0; tries < 8; tries++) {
+
+        // Try a few samples to find a safe vertical slot that won't AABB-overlap with any orb
+        for (let tries = 0; tries < 10; tries++) {
           const cand = GROUND_Y - rand(80, 220);
           // keep comfortably above ground spikes
           if (GROUND_Y - cand < MIN_FROM_GROUND) continue;
-          // keep away from freshly spawned orbs near the right edge
           let ok = true;
           for (const o of orbs) {
-            if (o.x > W - ORB_PROX_X && Math.abs(o.y - cand) < MIN_FROM_ORB) { ok = false; break; }
+            // If horizontally close to the gem's spawn X, ensure AABB doesn't overlap (with padding)
+            const overlapX = Math.abs(o.x - gemX) * 2 < (o.w + GEM_W + SAFE_PAD_X);
+            const overlapY = Math.abs(o.y - cand) * 2 < (o.h + GEM_H + SAFE_PAD_Y);
+            if (overlapX && overlapY) { ok = false; break; }
           }
           if (ok) { y = cand; break; }
         }
-        // Fallback if we didn't find a safe slot
+        // Fallback: choose a band away from the nearest horizontally-close orb
         if (y == null) {
-          // bias higher so it's well clear of spikes
+          // Default bias high to clear ground hazards
           y = GROUND_Y - 200;
-          // nudge away from an orb very near the edge, if any
-          const nearOrb = orbs.find(o => o.x > W - ORB_PROX_X);
-          if (nearOrb && Math.abs(nearOrb.y - y) < MIN_FROM_ORB) {
-            y = nearOrb.y < y ? GROUND_Y - 140 : GROUND_Y - 220;
+          let nearest = null, bestDx = Infinity;
+          for (const o of orbs) {
+            const dx = Math.abs(o.x - gemX);
+            if (dx < bestDx) { bestDx = dx; nearest = o; }
+          }
+          if (nearest) {
+            // Place above or below the nearest orb to avoid overlap with padding
+            const aboveY = Math.max(0, nearest.y - (nearest.h + GEM_H)/2 - SAFE_PAD_Y - 20);
+            const belowY = Math.min(GROUND_Y - MIN_FROM_GROUND, nearest.y + (nearest.h + GEM_H)/2 + SAFE_PAD_Y + 20);
+            // Prefer the position farther from ground to keep pickups fair
+            const distAboveGround = GROUND_Y - aboveY;
+            const distBelowGround = GROUND_Y - belowY;
+            y = distAboveGround > distBelowGround ? aboveY : belowY;
+            // Ensure still safely above ground
+            if (GROUND_Y - y < MIN_FROM_GROUND) y = GROUND_Y - (MIN_FROM_GROUND + 20);
           }
         }
+
         // gems should feel forgiving to collect
-        gems.push({ x: W + 40, y, w: 34, h: 34, img: IMG.gem, t: 0, hitX: 0.60, hitY: 0.60 });
+        gems.push({ x: gemX, y, w: GEM_W, h: GEM_H, img: IMG.gem, t: 0, hitX: 0.60, hitY: 0.60 });
       }
 
       // Move hazards + gems

@@ -17,7 +17,7 @@
       --neon: #00e5ff;
     }
     * { box-sizing: border-box; }
-    html, body { min-height: 100%; }
+    html, body { min-height: 100%; touch-action: none; overscroll-behavior: none; }
     body {
       margin: 0;
       background: radial-gradient(circle at 30% 10%, rgba(0,229,255,0.08), transparent 50%),
@@ -331,6 +331,7 @@
     }
 
     function attachControls() {
+      const stageEl = document.querySelector('.stage');
       window.addEventListener('keydown', (e) => {
         if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = true;
         if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = true;
@@ -344,7 +345,7 @@
       });
       // Clickable audio icon
       if (audioIcon) audioIcon.addEventListener('click', toggleAudio);
-      // Pointer controls: keep tracking even when leaving the canvas while dragging
+      // Pointer controls: allow starting outside the stage and keep tracking even when leaving the canvas while dragging
       let dragging = false;
       let activePointerId = null;
       function moveToPointer(e) {
@@ -354,6 +355,7 @@
         P.x = Math.max(P.w/2, Math.min(W - P.w/2, x));
       }
       function onPointerDown(e) {
+        e.preventDefault();
         dragging = true;
         activePointerId = e.pointerId;
         // Capture the pointer to continue receiving events outside the canvas/overlay
@@ -365,6 +367,7 @@
         if (!dragging) return;
         // Only track the active pointer (important for multi-touch)
         if (activePointerId !== null && e.pointerId !== undefined && e.pointerId !== activePointerId) return;
+        e.preventDefault();
         moveToPointer(e);
       }
       function endDrag(e) {
@@ -374,13 +377,17 @@
         try { canvas.releasePointerCapture && canvas.releasePointerCapture(e.pointerId); } catch (_) {}
       }
       [canvas, overlayEl].forEach(el => {
-        el.addEventListener('pointerdown', onPointerDown);
-        el.addEventListener('pointermove', onPointerMove);
+        el.addEventListener('pointerdown', onPointerDown, { passive: false });
+        el.addEventListener('pointermove', onPointerMove, { passive: false });
         // In case capture is lost (e.g., OS gesture), stop dragging
         el.addEventListener('lostpointercapture', () => { dragging = false; activePointerId = null; });
       });
+      // Start drag even if pointerdown happens outside the play area
+      window.addEventListener('pointerdown', (e) => {
+        if (!stageEl.contains(e.target)) onPointerDown(e);
+      }, { passive: false });
       // Continue tracking while outside the play area
-      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointermove', onPointerMove, { passive: false });
       window.addEventListener('pointerup', endDrag);
       window.addEventListener('pointercancel', endDrag);
 

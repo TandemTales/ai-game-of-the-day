@@ -190,6 +190,10 @@
     const GLIDE_G = 360;
     // Cap descend speed while gliding (unless diving) — slower fall
     const GLIDE_VY_MAX = 200;
+    // Global terminal fall speed (from gravity); diving can exceed
+    const FALL_VY_MAX = 600;
+    // Cap upward speed so jetpack/jumps can't overshoot
+    const RISE_VY_MIN = -1000;
     const DIVE_V = 1400;
     const GROUND_Y = H - 90; // baseline
     let running=false, dead=false;
@@ -392,10 +396,16 @@
       if (jetActive) g = GLIDE_G; // jet thrust also softens gravity while burning
 
       P.vy += g * dt;
+      // Cap downward velocity from gravity (do not cap active dive)
+      if (!key.down && P.vy > FALL_VY_MAX) P.vy = FALL_VY_MAX;
+      // Cap upward velocity so jetpack/jumps can't accelerate too fast
+      if (P.vy < RISE_VY_MIN) P.vy = RISE_VY_MIN;
       // Stronger glide effect: limit downward speed when gliding (unless diving)
       if (P.glide && !key.down && P.vy > GLIDE_VY_MAX) P.vy = GLIDE_VY_MAX;
 
       P.y += P.vy * dt;
+      // Prevent leaving the top of the screen
+      if (P.y - P.h/2 < 0) { P.y = P.h/2; if (P.vy < 0) P.vy = 0; }
       if (P.y >= GROUND_Y) { P.y = GROUND_Y; P.onGround = true; P.vy = 0; }
       // Track air time and manage fuel recharge/cooldown
       if (P.onGround) {

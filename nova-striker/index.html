@@ -239,7 +239,7 @@
     const GAME_ID = 'nova-striker';
     const W = canvas.width, H = canvas.height;
     const P = { x: W/2, y: H-80, w: 54, h: 60, speed: 8 };
-    const B = { w: 8, h: 20, speed: 13, cooldown: 0.60, baseCooldown: 0.60 };
+    const B = { w: 8, h: 20, speed: 13, cooldown: 0.20, baseCooldown: 0.20 };
     const EB = { w: 8, h: 18, speed: 7 };
     const MISS = { w: 21, h: 36, speed: 7.6, turn: 0.10 };
     const LASER = { width: 6, duration: 0.24, cooldown: 1.80 };
@@ -700,7 +700,7 @@
           for (const off of offsets) {
             const vx = Math.sin(ang) * B.speed;
             const vy = -Math.cos(ang) * B.speed;
-            bullets.push({ x: P.x + off, y: P.y - P.h/2 - 4, vx, vy, good: true, kind: 'normal', dmg: 1 });
+            bullets.push({ x: P.x + off, y: P.y - P.h/2 - 4, vx, vy, good: true, kind: 'normal', dmg: 0.5 });
           }
         }
       }

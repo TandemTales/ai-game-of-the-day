@@ -167,12 +167,15 @@
     const GROUND_Y = H - 90; // baseline
     let running=false, dead=false;
     let score=0; let best=0; let dist=0; let time=0;
+    let gemsCollected = 0; // number of gems picked up (score)
     let last = now();
     let frameTimer=0, animFrame=0;
     let spawnTimer=0, gemTimer=0;
 
     // Player
-    const P = { x: 200, y: GROUND_Y, vx: 0, vy: 0, w: 64, h: 64, onGround: true, glide: false };
+    // Player with slightly smaller hitbox to avoid early collisions
+    // Player collision tuned smaller and slightly raised to avoid foot/brim overlaps
+    const P = { x: 200, y: GROUND_Y, vx: 0, vy: 0, w: 64, h: 64, onGround: true, glide: false, hitX: 0.48, hitY: 0.56, hitOffsetY: -8 };
 
     // Entities
     const spikes=[]; // ground obstacles
@@ -187,7 +190,7 @@
     }
 
     function reset() {
-      running = true; dead = false; score = 0; dist = 0; time = 0;
+      running = true; dead = false; score = 0; dist = 0; time = 0; gemsCollected = 0;
       frameTimer=0; animFrame=0; spawnTimer=0; gemTimer=0;
       spikes.length=0; orbs.length=0; gems.length=0;
       P.x = 200; P.y = GROUND_Y; P.vx = 0; P.vy = 0; P.onGround = true; P.glide=false;
@@ -237,7 +240,9 @@
     document.getElementById('btnDive').addEventListener('pointerup', ()=> key.down=false);
 
     function update(dt){
-      time += dt; dist += RUN_SPEED * dt; score = Math.floor(dist/5) + gems.length * 100;
+      time += dt; dist += RUN_SPEED * dt;
+      // Score is purely number of collected gems
+      score = gemsCollected;
       scoreHud.textContent = `Score: ${score}`;
 
       // Mobile controls visibility
@@ -271,11 +276,14 @@
         spawnTimer = rand(0.9, 1.6);
         if (Math.random() < 0.55) {
           // Spike at ground
-          spikes.push({ x: W + 40, y: GROUND_Y, w: 54, h: 54, img: IMG.spike });
+          // shrink hitbox: spikes are pointy but image has padding
+          // Collision box focuses near the upper tip; offset upward and shrink considerably
+          spikes.push({ x: W + 40, y: GROUND_Y, w: 54, h: 54, img: IMG.spike, hitX: 0.42, hitY: 0.30, hitOffsetY: -12 });
         } else {
           // Floating orb
           const y = GROUND_Y - rand(140, 260);
-          orbs.push({ x: W + 40, y, w: 48, h: 48, img: IMG.orb, t: 0 });
+          // orbs are round; use a tighter hitbox
+          orbs.push({ x: W + 40, y, w: 48, h: 48, img: IMG.orb, t: 0, hitX: 0.56, hitY: 0.56 });
         }
       }
 
@@ -284,7 +292,8 @@
       if (gemTimer <= 0) {
         gemTimer = rand(1.8, 2.6);
         const y = GROUND_Y - rand(80, 220);
-        gems.push({ x: W + 40, y, w: 34, h: 34, img: IMG.gem, t: 0 });
+        // gems should feel forgiving to collect
+        gems.push({ x: W + 40, y, w: 34, h: 34, img: IMG.gem, t: 0, hitX: 0.60, hitY: 0.60 });
       }
 
       // Move hazards + gems
@@ -299,10 +308,22 @@
       while (gems.length && gems[0].x + gems[0].w < 0) gems.shift();
 
       // Collisions
-      function hit(a,b){ return Math.abs(a.x - b.x) * 2 < (a.w + b.w) && Math.abs(a.y - b.y) * 2 < (a.h + b.h); }
+      // Axis-aligned bounding box with adjustable per-entity hitbox scale.
+      // Using slightly smaller hitboxes reduces premature collision triggers.
+      function hit(a,b){
+        const ax = a.x + (a.hitOffsetX || 0);
+        const ay = a.y + (a.hitOffsetY || 0);
+        const bx = b.x + (b.hitOffsetX || 0);
+        const by = b.y + (b.hitOffsetY || 0);
+        const aw = a.w * (a.hitX || 1);
+        const ah = a.h * (a.hitY || 1);
+        const bw = b.w * (b.hitX || 1);
+        const bh = b.h * (b.hitY || 1);
+        return Math.abs(ax - bx) * 2 < (aw + bw) && Math.abs(ay - by) * 2 < (ah + bh);
+      }
       for (const s of spikes) if (hit(P, s)) return die();
       for (const o of orbs) if (hit(P, o)) return die();
-      for (let i=gems.length-1; i>=0; i--) if (hit(P, gems[i])) { score += 150; gems.splice(i,1); }
+      for (let i=gems.length-1; i>=0; i--) if (hit(P, gems[i])) { gemsCollected += 1; gems.splice(i,1); }
     }
 
     function die(){
@@ -385,4 +406,3 @@
   </script>
 </body>
 </html>
-

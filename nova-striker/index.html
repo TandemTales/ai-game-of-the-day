@@ -76,6 +76,7 @@
     .audio-toggle { display:flex; align-items:center; gap:8px; }
     #audioIcon { position: relative; width: 28px; height: 22px; cursor: pointer; border:1px solid rgba(255,215,0,0.35); border-radius:6px; background: rgba(0,0,0,0.25); overflow: hidden; }
     #audioIcon img { width: 100%; height: 100%; object-fit: contain; display:block; }
+    .audio-toggle input[type="range"] { width: 70px; }
 
     @media (max-width: 560px) { .title h1{font-size:18px;} .meta{display:none;} .btn{font-size:10px; padding:8px 10px;} }
   </style>
@@ -101,6 +102,7 @@
           <div id="audioIcon">
             <img id="audioIconImg" src="assets/unmuted.png" alt="Audio">
           </div>
+          <input type="range" id="sfxVolume" min="0" max="1" step="0.01" value="1" title="SFX Volume">
         </div>
       </div>
 
@@ -199,6 +201,18 @@
     const MUSIC_FILES = ['assets/Game_Score_01.mp3', 'assets/Game_Score_02.mp3'];
     let musicIndex = 0;
     let currentMusic = new Audio(MUSIC_FILES[musicIndex]);
+
+    const SFX = {
+      playerUpgrade: new Audio('assets/ns_sfx_player_upgrade.wav'),
+      playerShield: new Audio('assets/ns_sfx_player_shield.wav'),
+      playerHit: new Audio('assets/ns_sfx_player_hit.wav'),
+      playerExplode: new Audio('assets/ns_sfx_player_exploding.wav'),
+      alienHit: new Audio('assets/ns_sfx_alien_hit.wav'),
+      alienExplodeSmall: new Audio('assets/ns_sfx_alien_exploding_small.wav'),
+      alienExplodeLarge: new Audio('assets/ns_sfx_alien_exploding_large.wav'),
+      playerElectric: new Audio('assets/ns_sfx_player_electricity.wav'),
+    };
+    for (const k in SFX) SFX[k].load();
     currentMusic.loop = false;
     currentMusic.addEventListener('ended', () => {
       musicIndex = (musicIndex + 1) % MUSIC_FILES.length;
@@ -233,6 +247,7 @@
     const waveBanner = document.getElementById('wave-banner');
     const audioIcon = document.getElementById('audioIcon');
     const audioIconImg = document.getElementById('audioIconImg');
+    const sfxVolumeEl = document.getElementById('sfxVolume');
     const logoEl = document.getElementById('logo');
 
     // Game constants
@@ -278,6 +293,8 @@
     // Global audio mute state
     let muted = false;
     const LS_MUTE_KEY = 'nova-striker:muted';
+    let sfxVolume = 1;
+    const LS_SFX_VOL_KEY = 'nova-striker:sfxVol';
 
     function setMuted(m) {
       muted = !!m;
@@ -302,6 +319,24 @@
       audioIconImg.alt = muted ? 'Muted' : 'Audio';
     }
 
+    function playSfx(name) {
+      if (muted) return;
+      const a = SFX[name];
+      if (a) {
+        try {
+          const s = a.cloneNode();
+          s.volume = sfxVolume;
+          s.play().catch(()=>{});
+        } catch (e) {}
+      }
+    }
+
+    function setSfxVolume(v) {
+      sfxVolume = Math.max(0, Math.min(1, v));
+      if (sfxVolumeEl) sfxVolumeEl.value = sfxVolume;
+      try { localStorage.setItem(LS_SFX_VOL_KEY, sfxVolume); } catch (e) {}
+    }
+
     const input = { left:false, right:false };
 
     function init() {
@@ -323,10 +358,12 @@
           }
         });
       }
-      // Initialize audio icon/mute from storage
+      // Initialize audio icon/mute and SFX volume from storage
       try {
         const saved = localStorage.getItem(LS_MUTE_KEY);
         if (saved !== null) setMuted(saved === '1'); else updateAudioIcon();
+        const vol = parseFloat(localStorage.getItem(LS_SFX_VOL_KEY));
+        if (!isNaN(vol)) setSfxVolume(vol); else setSfxVolume(sfxVolume);
       } catch (e) { updateAudioIcon(); }
     }
 
@@ -345,6 +382,7 @@
       });
       // Clickable audio icon
       if (audioIcon) audioIcon.addEventListener('click', toggleAudio);
+      if (sfxVolumeEl) sfxVolumeEl.addEventListener('input', e => setSfxVolume(parseFloat(e.target.value)));
       // Pointer controls: allow starting outside the stage and keep tracking even when leaving the canvas while dragging
       let dragging = false;
       let activePointerId = null;
@@ -623,6 +661,7 @@
     }
 
     function applyUpgrade(kind) {
+      playSfx('playerUpgrade');
       if (kind === 'fire') {
         power.fireLv = Math.min(5, power.fireLv + 1);
         // Reduced effect per level: 15% faster per level (multiplier 0.85^level) with a 0.07s minimum
@@ -658,6 +697,7 @@
       } else if (d.type === 'S') {
         shieldActive = true; shieldPulse = 0;
         pickupMsgs.push({ text: 'SHIELD!', color: '#00e5ff', t: 0, dur: 1.8 });
+        playSfx('playerShield');
       } else {
         const kind = d.kind || pickUpgrade();
         applyUpgrade(kind);
@@ -908,7 +948,9 @@
           if (!p.didDamage && p.progress >= 1) {
             if (p.target && p.target.hp > 0) {
               p.target.hp -= (p.damage || 1);
+              playSfx('playerElectric');
               if (p.target.hp <= 0) {
+                playSfx(p.target.boss ? 'alienExplodeLarge' : 'alienExplodeSmall');
                 const add = (p.target.type === 'F') ? 100 : (p.target.type === 'B' ? 250 : (p.target.score || 2000));
                 if (!cheatInvuln) { score += add; scoreEl.textContent = score; }
                 spawnDrop(p.target);
@@ -1092,11 +1134,14 @@
               // Electro chain from this laser hit
               triggerElectro(e, hitX, hitY);
               if (e.hp <= 0) {
+                playSfx(e.boss ? 'alienExplodeLarge' : 'alienExplodeSmall');
                 // explosion on laser kill
                 spawnExplosion(hitX, hitY, e.boss ? 50 : 22, 'orange');
                 const add = (e.type === 'F') ? 100 : (e.type === 'B' ? 250 : (e.score || 2000));
                 if (!cheatInvuln) { score += add; scoreEl.textContent = score; }
                 spawnDrop(e);
+              } else {
+                playSfx('alienHit');
               }
             }
           }
@@ -1173,19 +1218,22 @@
             }
             // small universal hit sparks for feedback
             spawnHitSparks(hitX, hitY, 7, 1.2);
-            // Electro chain from this hit
-            triggerElectro(e, hitX, hitY);
-            if (e.hp <= 0) {
-              // explosion on bullet kill
-              spawnExplosion(e.x, e.y, e.boss ? 50 : 22, 'orange');
-              const add = (e.type === 'F') ? 100 : (e.type === 'B' ? 250 : (e.score || 2000));
-              if (!cheatInvuln) { score += add; scoreEl.textContent = score; }
-              spawnDrop(e);
+              // Electro chain from this hit
+              triggerElectro(e, hitX, hitY);
+              if (e.hp <= 0) {
+                playSfx(e.boss ? 'alienExplodeLarge' : 'alienExplodeSmall');
+                // explosion on bullet kill
+                spawnExplosion(e.x, e.y, e.boss ? 50 : 22, 'orange');
+                const add = (e.type === 'F') ? 100 : (e.type === 'B' ? 250 : (e.score || 2000));
+                if (!cheatInvuln) { score += add; scoreEl.textContent = score; }
+                spawnDrop(e);
+              } else {
+                playSfx('alienHit');
+              }
+              break;
             }
-            break;
           }
         }
-      }
 
       // Collisions: enemy bullets vs player (ignored while invulnerable)
       if (invulnT <= 0 && !cheatInvuln) {
@@ -1230,11 +1278,13 @@
               e.hp = 0; shieldActive = false; spawnDrop(e);
               // explosion on enemy destroyed by shield
               spawnExplosion(e.x, e.y, e.boss ? 50 : 22, 'orange');
+              playSfx(e.boss ? 'alienExplodeLarge' : 'alienExplodeSmall');
             } else {
               e.hp = 0;
               // explosions on collision: enemy and player
               spawnExplosion(e.x, e.y, e.boss ? 50 : 22, 'orange');
               spawnExplosion(P.x, P.y, 26, 'orange');
+              playSfx(e.boss ? 'alienExplodeLarge' : 'alienExplodeSmall');
               hitPlayer();
             }
           }
@@ -1286,6 +1336,7 @@
       lives = Math.max(0, lives - 1);
       livesEl.textContent = lives;
       if (lives <= 0) {
+        playSfx('playerExplode');
         // Player destroyed: keep the world running for 2s so effects/enemies continue
         playerDead = true;
         invulnT = 999; // block further hits
@@ -1299,6 +1350,7 @@
           }, 2000);
         }
       } else {
+        playSfx('playerHit');
         // Brief invulnerability after being hit
         invulnT = 2.5; // seconds
         // Only show the "INVULNERABLE!" popup if the invulnerability cheat is enabled.

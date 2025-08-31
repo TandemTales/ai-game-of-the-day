@@ -198,13 +198,34 @@
 
     const MUSIC_FILES = ['assets/Game_Score_01.mp3', 'assets/Game_Score_02.mp3'];
     let musicIndex = 0;
+    const MUSIC_VOLUME = 1;
     let currentMusic = new Audio(MUSIC_FILES[musicIndex]);
     currentMusic.loop = false;
+    currentMusic.volume = MUSIC_VOLUME;
     currentMusic.addEventListener('ended', () => {
       musicIndex = (musicIndex + 1) % MUSIC_FILES.length;
       currentMusic.src = MUSIC_FILES[musicIndex];
       if (!muted && running && !paused) currentMusic.play().catch(() => {});
     });
+    const SFX_FILES = {
+      playerLaser: 'assets/ns_sfx_player_laser.wav',
+      playerLaserbeam: 'assets/ns_sfx_player_laserbeam.wav',
+      playerMissile: 'assets/ns_sfx_player_missile.wav',
+      playerHit: 'assets/ns_sfx_player_hit.wav',
+      playerExplode: 'assets/ns_sfx_player_exploding.wav',
+      playerShield: 'assets/ns_sfx_player_shield.wav',
+      playerElectricity: 'assets/ns_sfx_player_electricity.wav',
+      alienLaser: 'assets/ns_sfx_alien_laser.wav',
+      alienHit: 'assets/ns_sfx_alien_hit.wav',
+      alienExplodeSmall: 'assets/ns_sfx_alien_exploding_small.wav',
+      alienExplodeLarge: 'assets/ns_sfx_alien_exploding_large.wav',
+    };
+    const SFX = {};
+    for (const [k, src] of Object.entries(SFX_FILES)) {
+      const a = new Audio(src);
+      a.volume = MUSIC_VOLUME * 0.5;
+      SFX[k] = a;
+    }
     (async () => {
       try {
         const res = await fetch('assets/');
@@ -282,6 +303,7 @@
     function setMuted(m) {
       muted = !!m;
       currentMusic.muted = muted;
+      for (const s of Object.values(SFX)) s.muted = muted;
       if (muted) {
         try { currentMusic.pause(); } catch (e) {}
       } else {
@@ -294,6 +316,15 @@
     }
 
     function toggleAudio() { setMuted(!muted); }
+
+    function playSfx(name) {
+      if (muted) return;
+      const base = SFX[name];
+      if (!base) return;
+      const s = base.cloneNode();
+      s.volume = base.volume;
+      s.play().catch(() => {});
+    }
 
     // Update icon image based on mute state
     function updateAudioIcon() {
@@ -435,6 +466,7 @@
           const ang = e.phase + i * (Math.PI*2/N);
           bullets.push({ x: e.x, y: e.y + e.h*0.25, vx: Math.cos(ang)*3.4, vy: Math.sin(ang)*3.4, good: false });
         }
+        playSfx('alienLaser');
       }
 
       // Active mode pattern
@@ -451,6 +483,7 @@
               const ang = base + i*0.28;
               bullets.push({ x: e.x, y: e.y + e.h*0.22, vx: Math.cos(ang)*speeds[i], vy: Math.sin(ang)*speeds[i], good: false });
             }
+            playSfx('alienLaser');
           }
           break;
         case 1:
@@ -463,6 +496,7 @@
               const ang = base + k * 0.09;
               bullets.push({ x: e.x, y: e.y + e.h*0.28, vx: Math.cos(ang)*7.4, vy: Math.sin(ang)*7.4, good: false });
             }
+            playSfx('alienLaser');
           }
           break;
         case 2:
@@ -475,6 +509,7 @@
               const ang = base + i*0.1;
               bullets.push({ x: e.x, y: e.y + e.h*0.3, vx: Math.cos(ang)*7.0, vy: Math.sin(ang)*7.0, good: false });
             }
+            playSfx('alienLaser');
           }
           e.spawnT = (e.spawnT || 0) + dt;
           if (e.spawnT >= 2.8) {
@@ -658,6 +693,7 @@
       } else if (d.type === 'S') {
         shieldActive = true; shieldPulse = 0;
         pickupMsgs.push({ text: 'SHIELD!', color: '#00e5ff', t: 0, dur: 1.8 });
+        playSfx('playerShield');
       } else {
         const kind = d.kind || pickUpgrade();
         applyUpgrade(kind);
@@ -676,25 +712,26 @@
       if (power.laserLv > 0) {
         laserT += dt;
         const lcd = LASER.cooldown;
-        if (laserT >= lcd) {
-          laserT = 0;
-          const offsets = power.twin ? [-10, 10] : [0];
-          const baseWidth = LASER.width + (power.laserLv >= 2 ? 2 : 0);
-          const dmg = power.laserLv >= 2 ? 5 : 3;
-          for (const off of offsets) {
-            lasers.push({
-              x: Math.max(6, Math.min(W - 6, P.x + off)),
-              y0: P.y - P.h/2 - 6,
-              y1: -40,
-              width: baseWidth,
-              life: 0,
-              ttl: LASER.duration,
-              dmg,
-              hit: new Set()
-            });
-          }
+      if (laserT >= lcd) {
+        laserT = 0;
+        const offsets = power.twin ? [-10, 10] : [0];
+        const baseWidth = LASER.width + (power.laserLv >= 2 ? 2 : 0);
+        const dmg = power.laserLv >= 2 ? 5 : 3;
+        for (const off of offsets) {
+          lasers.push({
+            x: Math.max(6, Math.min(W - 6, P.x + off)),
+            y0: P.y - P.h/2 - 6,
+            y1: -40,
+            width: baseWidth,
+            life: 0,
+            ttl: LASER.duration,
+            dmg,
+            hit: new Set()
+          });
         }
+        playSfx('playerLaserbeam');
       }
+    }
 
       // Normal bullets (always)
       lastShoot += dt;
@@ -710,12 +747,14 @@
             bullets.push({ x: P.x + off, y: P.y - P.h/2 - 4, vx, vy, good: true, kind: 'normal', dmg: 0.5 });
           }
         }
+        playSfx('playerLaser');
       }
     }
 
     function spawnMissile() {
       // Spawn from the ship center; initial upward velocity; will home in update
       bullets.push({ x: P.x, y: P.y - P.h/2 - 6, vx: 0, vy: -MISS.speed, good: true, kind: 'missile', dmg: 2, spd: MISS.speed });
+      playSfx('playerMissile');
     }
 
     function enemyShoot(e, chance=0.006, dt) {
@@ -724,6 +763,7 @@
       if (Math.random() < p) {
         const vx = (P.x - e.x) * 0.006; // slight aim
         bullets.push({ x: e.x, y: e.y + e.h/2, vx, vy: EB.speed, good: false });
+        playSfx('alienLaser');
       }
     }
 
@@ -743,6 +783,7 @@
         ang = base + delta;
         const spd = 10.5;
         bullets.push({ x: e.x, y: e.y + e.h/2, vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd, good: false });
+        playSfx('alienLaser');
       }
     }
 
@@ -758,6 +799,7 @@
           const ang = base + off;
           bullets.push({ x: e.x, y: e.y + e.h/2, vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd, good: false });
         }
+        playSfx('alienLaser');
       }
     }
 
@@ -774,6 +816,7 @@
           const ang = base + offsets[i];
           bullets.push({ x: e.x, y: e.y + e.h*0.3, vx: Math.cos(ang)*speeds[i], vy: Math.sin(ang)*speeds[i], good: false });
         }
+        playSfx('alienLaser');
       }
     }
 
@@ -787,6 +830,7 @@
           const ang = e.phase + (i * (Math.PI*2/N));
           bullets.push({ x: e.x, y: e.y + e.h*0.25, vx: Math.cos(ang)*4.2, vy: Math.sin(ang)*4.2, good: false });
         }
+        playSfx('alienLaser');
       }
     }
 
@@ -801,6 +845,7 @@
           const ang = base + i*0.12;
           bullets.push({ x: e.x, y: e.y + e.h*0.3, vx: Math.cos(ang)*6.5, vy: Math.sin(ang)*6.5, good: false });
         }
+        playSfx('alienLaser');
       }
       // Spawn fighters from top edges, up to a cap
       if (e.spawnT >= 3.5) {
@@ -914,6 +959,7 @@
                 spawnDrop(p.target);
                 // explosion on electro kill
                 spawnExplosion(tx, ty, (p.target && p.target.boss) ? 50 : 20, 'electric');
+                playSfx(p.target && p.target.boss ? 'alienExplodeLarge' : 'alienExplodeSmall');
               }
             }
             // impact sparks at current destination
@@ -991,7 +1037,9 @@
       cand.sort((a,b) => a.d2 - b.d2);
       const maxChains = 2; // reduced overall damage by limiting number of chained targets
       const dmg = 1; // per-target shock damage upon arrival
-      for (let i=0; i<Math.min(maxChains, cand.length); i++) {
+      const count = Math.min(maxChains, cand.length);
+      if (count > 0) playSfx('playerElectricity');
+      for (let i=0; i<count; i++) {
         const e2 = cand[i].e;
         spawnElectricArc(hx, hy, e2.x, e2.y, { target: e2, damage: dmg });
       }
@@ -1178,9 +1226,12 @@
             if (e.hp <= 0) {
               // explosion on bullet kill
               spawnExplosion(e.x, e.y, e.boss ? 50 : 22, 'orange');
+              playSfx(e.boss ? 'alienExplodeLarge' : 'alienExplodeSmall');
               const add = (e.type === 'F') ? 100 : (e.type === 'B' ? 250 : (e.score || 2000));
               if (!cheatInvuln) { score += add; scoreEl.textContent = score; }
               spawnDrop(e);
+            } else {
+              playSfx('alienHit');
             }
             break;
           }
@@ -1195,6 +1246,7 @@
             b.y = H + 999; // remove bullet
             if (shieldActive) {
               shieldActive = false;
+              playSfx('playerShield');
             } else {
               // explosion on player hit by bullet
               spawnExplosion(P.x, P.y, 26, 'orange');
@@ -1213,6 +1265,7 @@
             m.y = H + 999; // remove
             if (shieldActive) {
               shieldActive = false;
+              playSfx('playerShield');
             } else {
               hitPlayer();
             }
@@ -1228,12 +1281,15 @@
             if (shieldActive) {
               // Destroy the enemy and consume shield
               e.hp = 0; shieldActive = false; spawnDrop(e);
+              playSfx('playerShield');
               // explosion on enemy destroyed by shield
               spawnExplosion(e.x, e.y, e.boss ? 50 : 22, 'orange');
+              playSfx(e.boss ? 'alienExplodeLarge' : 'alienExplodeSmall');
             } else {
               e.hp = 0;
               // explosions on collision: enemy and player
               spawnExplosion(e.x, e.y, e.boss ? 50 : 22, 'orange');
+              playSfx(e.boss ? 'alienExplodeLarge' : 'alienExplodeSmall');
               spawnExplosion(P.x, P.y, 26, 'orange');
               hitPlayer();
             }
@@ -1282,6 +1338,7 @@
 
     function hitPlayer() {
       if (!running || cheatInvuln) return;
+      if (lives <= 1) playSfx('playerExplode'); else playSfx('playerHit');
       // Decrement lives but never show negative values on the HUD
       lives = Math.max(0, lives - 1);
       livesEl.textContent = lives;

@@ -268,6 +268,40 @@
       hideStart(); hideGameOver();
     }
 
+    // Grid-based placement to align items and prevent overlaps at spawn
+    // Choose a grid cell size large enough to fit the largest item entirely
+    const GRID_CELL = Math.max(54, 48, 44, 34, 28); // spike=54, orb=48, jetpack=44, gem=34, coolant=28
+    // Occupied spawn-column rows with expiry times (seconds since start)
+    const gridOccupied = new Map(); // rowIndex -> expiresAtTime
+    // Convert between row index and Y center. Row 0 is at ground, grows upward.
+    const yForRow = (row) => GROUND_Y - row * GRID_CELL;
+    const rowForY = (y) => Math.max(0, Math.round((GROUND_Y - y) / GRID_CELL));
+    // Compute a grid-aligned X near the spawn position
+    const gridSpawnX = () => {
+      const spawn = W + 40;
+      const col = Math.round(spawn / GRID_CELL);
+      return col * GRID_CELL;
+    };
+    // Clear expired row reservations for the spawn column
+    function sweepGrid(nowSec){
+      for (const [row, tExp] of gridOccupied) if (tExp <= nowSec) gridOccupied.delete(row);
+    }
+    // Try to reserve a free row within [minRow, maxRow] inclusive.
+    // Reservation lasts until the item scrolls out of the spawn column width (~GRID_CELL / RUN_SPEED seconds)
+    function tryReserveRow(minRow, maxRow, nowSec){
+      sweepGrid(nowSec);
+      const rows = [];
+      for (let r = minRow; r <= maxRow; r++) rows.push(r);
+      // Shuffle lightly to vary placements
+      for (let i = rows.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const tmp = rows[i]; rows[i] = rows[j]; rows[j] = tmp; }
+      for (const r of rows) if (!gridOccupied.has(r)) {
+        const hold = GRID_CELL / RUN_SPEED; // seconds to cross one cell at base speed
+        gridOccupied.set(r, nowSec + hold);
+        return r;
+      }
+      return null;
+    }
+
     // Heat system
     const HEAT_MAX = 100;
     const HEAT_GAIN_RATE = 6; // per second
@@ -469,89 +503,77 @@
       spawnTimer -= dt;
       if (spawnTimer <= 0) {
         spawnTimer = rand(0.9, 1.6);
+        const nowSec = time;
+        const x = gridSpawnX();
         if (Math.random() < 0.55) {
-          // Spike at ground
-          // shrink hitbox: spikes are pointy but image has padding
-          // Collision box focuses near the upper tip; offset upward and shrink considerably
-          spikes.push({ x: W + 40, y: GROUND_Y, w: 54, h: 54, img: IMG.spike, hitX: 0.42, hitY: 0.30, hitOffsetY: -12 });
+          // Spike at ground: reserve row 0 if free; otherwise skip this cycle
+          const row = tryReserveRow(0, 0, nowSec);
+          if (row !== null) {
+            const y = yForRow(row);
+            spikes.push({ x, y, w: 54, h: 54, img: IMG.spike, hitX: 0.42, hitY: 0.30, hitOffsetY: -12 });
+          }
         } else {
-          // Floating orb
-          const y = GROUND_Y - rand(140, 260);
-          // orbs are round; use a tighter hitbox
-          orbs.push({ x: W + 40, y, w: 48, h: 48, img: IMG.orb, t: 0, hitX: 0.56, hitY: 0.56 });
+          // Floating orb: allow rows safely above ground (row >= 2)
+          const maxRow = Math.max(0, Math.floor((GROUND_Y - 48/2) / GRID_CELL));
+          const row = tryReserveRow(Math.min(2, maxRow), maxRow, nowSec);
+          if (row !== null) {
+            const y = yForRow(row);
+            orbs.push({ x, y, w: 48, h: 48, img: IMG.orb, t: 0, hitX: 0.56, hitY: 0.56 });
+          }
         }
       }
 
-      // Spawn gems (avoid spawning too close to hazards)
+      // Spawn gems (grid-aligned; no bespoke overlap logic)
       gemTimer -= dt;
       if (gemTimer <= 0) {
         gemTimer = rand(1.8, 2.6);
-        const MIN_FROM_GROUND = 110; // px above ground to avoid spikes
-        // Safe padding beyond visual bounds to avoid overlaps/near-misses with orbs
-        // pad/2 ~= minimum edge separation (due to AABB check math)
-        const SAFE_PAD_X = 48; // ~24px min edge gap horizontally
-        const SAFE_PAD_Y = 48; // ~24px min edge gap vertically
+        const nowSec = time;
+        const x = gridSpawnX();
         const GEM_W = 34, GEM_H = 34;
-        const gemX = W + 40; // spawn X for the new gem
-        let y = null;
-
-        // Try a few samples to find a safe vertical slot that won't AABB-overlap with any orb
-        for (let tries = 0; tries < 10; tries++) {
-          const cand = GROUND_Y - rand(80, 220);
-          // keep comfortably above ground spikes
-          if (GROUND_Y - cand < MIN_FROM_GROUND) continue;
-          let ok = true;
-          for (const o of orbs) {
-            // If horizontally close to the gem's spawn X, ensure AABB doesn't overlap (with padding)
-            const overlapX = Math.abs(o.x - gemX) * 2 < (o.w + GEM_W + SAFE_PAD_X);
-            const overlapY = Math.abs(o.y - cand) * 2 < (o.h + GEM_H + SAFE_PAD_Y);
-            if (overlapX && overlapY) { ok = false; break; }
-          }
-          if (ok) { y = cand; break; }
+        const maxRow = Math.max(0, Math.floor((GROUND_Y - GEM_H/2) / GRID_CELL));
+        const minRow = 2; // keep comfortably above ground lane
+        const row = tryReserveRow(Math.min(minRow, maxRow), maxRow, nowSec);
+        if (row !== null) {
+          const y = yForRow(row);
+          gems.push({ x, y, w: GEM_W, h: GEM_H, img: IMG.gem, t: 0, hitX: 0.60, hitY: 0.60 });
         }
-        // Fallback: choose a band away from the nearest horizontally-close orb
-        if (y == null) {
-          // Default bias high to clear ground hazards
-          y = GROUND_Y - 200;
-          let nearest = null, bestDx = Infinity;
-          for (const o of orbs) {
-            const dx = Math.abs(o.x - gemX);
-            if (dx < bestDx) { bestDx = dx; nearest = o; }
-          }
-          if (nearest) {
-            // Place above or below the nearest orb to avoid overlap with padding
-            const aboveY = Math.max(0, nearest.y - (nearest.h + GEM_H)/2 - SAFE_PAD_Y - 20);
-            const belowY = Math.min(GROUND_Y - MIN_FROM_GROUND, nearest.y + (nearest.h + GEM_H)/2 + SAFE_PAD_Y + 20);
-            // Prefer the position farther from ground to keep pickups fair
-            const distAboveGround = GROUND_Y - aboveY;
-            const distBelowGround = GROUND_Y - belowY;
-            y = distAboveGround > distBelowGround ? aboveY : belowY;
-            // Ensure still safely above ground
-            if (GROUND_Y - y < MIN_FROM_GROUND) y = GROUND_Y - (MIN_FROM_GROUND + 20);
-          }
-        }
-
-        // gems should feel forgiving to collect
-        gems.push({ x: gemX, y, w: GEM_W, h: GEM_H, img: IMG.gem, t: 0, hitX: 0.60, hitY: 0.60 });
       }
 
-      // Jetpack spawn logic — randomly spawn until picked
+      // Jetpack spawn logic – grid-aligned until picked
       if (!jetpackPicked && jetpacks.length === 0) {
         jetpackTimer -= dt;
         if (jetpackTimer <= 0) {
-          const y = GROUND_Y - rand(120, 220);
-          jetpacks.push({ x: W + 40, y, w: 44, h: 44, img: IMG.jetpack, t: 0, hitX: 0.70, hitY: 0.70 });
+          const nowSec = time;
+          const x = gridSpawnX();
+          const w = 44, h = 44;
+          const maxRow = Math.max(0, Math.floor((GROUND_Y - h/2) / GRID_CELL));
+          // Restrict jetpack to lower half of the screen (y >= H/2)
+          const lowerHalfTopRow = Math.max(0, Math.floor((GROUND_Y - H/2) / GRID_CELL));
+          const cappedMaxRow = Math.min(maxRow, lowerHalfTopRow);
+          const minRow = Math.min(2, cappedMaxRow); // keep above ground row when possible
+          const row = tryReserveRow(minRow, cappedMaxRow, nowSec);
+          if (row !== null) {
+            const y = yForRow(row);
+            jetpacks.push({ x, y, w, h, img: IMG.jetpack, t: 0, hitX: 0.70, hitY: 0.70 });
+          }
           // schedule next appearance only if it scrolls off without pickup
           jetpackTimer = rand(8, 16);
         }
       }
 
-      // Coolant drops spawn
+      // Coolant drops spawn (grid-aligned)
       coolantTimer -= dt;
       if (coolantTimer <= 0) {
-        const y = GROUND_Y - rand(100, 220);
-        // Coolant sphere with generous pickup box
-        coolants.push({ x: W + 40, y, w: 28, h: 28, t: 0, hitX: 0.75, hitY: 0.75 });
+        const nowSec = time;
+        const x = gridSpawnX();
+        const w = 28, h = 28;
+        const maxRow = Math.max(0, Math.floor((GROUND_Y - h/2) / GRID_CELL));
+        const row = tryReserveRow(Math.min(2, maxRow), maxRow, nowSec);
+        if (row !== null) {
+          const y = yForRow(row);
+          // Coolant sphere with generous pickup box
+          coolants.push({ x, y, w, h, t: 0, hitX: 0.75, hitY: 0.75 });
+        }
         // Dynamic next spawn: slightly faster when hot
         const bias = 1.5 * (heat / HEAT_MAX);
         coolantTimer = rand(3.0 - Math.min(1.5, bias), 5.0 - Math.min(2.0, bias) + 0.01);

@@ -118,6 +118,9 @@
           <div class="jet-label">Jetpack</div>
           <div class="jetbar"><div class="jetbar-fill" id="jetFill"></div><div class="jetbar-text" id="jetText">0%</div></div>
         </div>
+        <div class="chip hidden" id="gliderHud">
+          <div class="jet-label">Glider</div>
+        </div>
         <a href="../index.html" class="btn btn-primary back">← Back to Home</a>
       </div>
     </div>
@@ -130,7 +133,7 @@
           <button id="startBtn" class="btn btn-primary">Start</button>
           <a class="btn btn-primary" href="../leaderboard.html?gameId=core-crisis">Leaderboard</a>
         </div>
-        <div class="small" style="margin-top:10px">Controls: Left-click hold/Space to glide, Right-click to dive. Tap anywhere on mobile.</div>
+        <div class="small" style="margin-top:10px">Controls: Left-click hold/Space to glide (after picking up Glider), Right-click to dive. Tap anywhere on mobile.</div>
       </div>
     </div>
 
@@ -180,6 +183,7 @@
       orb: 'assets/orb.svg',
       gem: 'assets/gem.svg',
       jetpack: 'assets/jetpack.svg',
+      glider: 'assets/glider.svg',
     };
 
     const IMG = {};
@@ -228,6 +232,10 @@
     let jetpackPicked = false;      // prevent future spawns after pickup
     let jetFuel = 0;                // current fuel
     let jetpackTimer = 0;           // timer to attempt spawns when not picked
+    // Glider systems (enables gliding when held)
+    let hasGlider = false;          // player has collected glider
+    let gliderPicked = false;       // prevent future spawns after pickup
+    let gliderTimer = 0;            // timer to attempt spawns when not picked
     let prevSpaceHeld = false;      // track edge of Space/left-click/tap
     let wasOnGround = true;         // previous frame ground state
     let primaryPressPulse = false;  // set true on pointerdown/keydown; consumed in update
@@ -243,6 +251,7 @@
     const orbs=[];   // floating hazards
     const gems=[];   // collectibles
     const jetpacks=[]; // jetpack pickup(s)
+    const gliders=[];  // glider pickup(s)
     const coolants=[]; // coolant drops to reduce heat
 
     // Parallax layers positions
@@ -257,20 +266,22 @@
       frameTimer=0; animFrame=0; spawnTimer=0; gemTimer=0; coolantTimer = rand(2.5, 4.5);
       heat = 0;
       worldFreeze = 0; hitFlash = 0; shake = 0; hitGrace = 0;
-      spikes.length=0; orbs.length=0; gems.length=0; jetpacks.length=0; coolants.length=0;
+      spikes.length=0; orbs.length=0; gems.length=0; jetpacks.length=0; gliders.length=0; coolants.length=0;
       P.x = 200; P.y = GROUND_Y; P.vx = 0; P.vy = 0; P.onGround = true; P.glide=false; P.isJumping=false; P.jumpT=0;
       Object.assign(L, { sky1:0, sky2:W, h1:0, h2:W, f1:0, f2:W });
       // Clear any lingering input so the new run doesn't start with stuck keys
       key.space = false; key.up = false; key.down = false;
       // Jetpack reset
       hasJetpack = false; jetpackPicked = false; jetFuel = 0; prevSpaceHeld = false; wasOnGround = true; jetActive = false; primaryPressPulse = false;
+      hasGlider = false; gliderPicked = false;
       jetpackTimer = rand(6, 12); // first random spawn window
+      gliderTimer = rand(4, 10);  // first random spawn window for glider
       hideStart(); hideGameOver();
     }
 
     // Grid-based placement to align items and prevent overlaps at spawn
     // Choose a grid cell size large enough to fit the largest item entirely
-    const GRID_CELL = Math.max(54, 48, 44, 34, 28); // spike=54, orb=48, jetpack=44, gem=34, coolant=28
+    const GRID_CELL = Math.max(54, 48, 44, 44, 34, 28); // spike=54, orb=48, jetpack=44, glider=44, gem=34, coolant=28
     // Occupied spawn-column rows with expiry times (seconds since start)
     const gridOccupied = new Map(); // rowIndex -> expiresAtTime
     // Convert between row index and Y center. Row 0 is at ground, grows upward.
@@ -319,6 +330,7 @@
     const jetHud = document.getElementById('jetHud');
     const jetFill = document.getElementById('jetFill');
     const jetText = document.getElementById('jetText');
+    const gliderHud = document.getElementById('gliderHud');
     const heatHud = document.getElementById('heatHud');
     const heatFill = document.getElementById('heatFill');
     const heatText = document.getElementById('heatText');
@@ -416,6 +428,10 @@
       } else {
         jetHud.classList.add('hidden');
       }
+      // Glider HUD
+      if (typeof gliderHud !== 'undefined' && gliderHud) {
+        if (hasGlider) gliderHud.classList.remove('hidden'); else gliderHud.classList.add('hidden');
+      }
 
       // Mobile controls visibility
       const isSmall = Math.min(window.innerWidth, window.innerHeight) < 720;
@@ -457,8 +473,8 @@
       // Deactivate jet when released, on ground, diving, or out of fuel (after applying thrust)
       if (!jumpHeld || key.down || P.onGround || jetFuel <= 0) jetActive = false;
 
-      // Glide only if holding without active jet burn
-      P.glide = (!P.onGround && (key.space || key.up) && !jetActive);
+      // Glide only if holding without active jet burn and only after collecting a Glider
+      P.glide = (hasGlider && !P.onGround && (key.space || key.up) && !jetActive);
       if (key.down && !P.onGround && P.vy < DIVE_V) P.vy = Math.min(DIVE_V, P.vy + DIVE_V * dt);
       // While ascending and holding jump, soften gravity for a short window
       if (P.isJumping && P.vy < 0 && (key.space || key.up) && P.jumpT < JUMP_HOLD_MAX && !key.down) {
@@ -561,6 +577,26 @@
         }
       }
 
+      // Glider spawn logic – grid-aligned until picked
+      if (!gliderPicked && gliders.length === 0) {
+        gliderTimer -= dt;
+        if (gliderTimer <= 0) {
+          const nowSec = time;
+          const x = gridSpawnX();
+          const w = 44, h = 44;
+          const maxRow = Math.max(0, Math.floor((GROUND_Y - h/2) / GRID_CELL));
+          const lowerHalfTopRow = Math.max(0, Math.floor((GROUND_Y - H/2) / GRID_CELL));
+          const cappedMaxRow = Math.min(maxRow, lowerHalfTopRow);
+          const minRow = Math.min(2, cappedMaxRow);
+          const row = tryReserveRow(minRow, cappedMaxRow, nowSec);
+          if (row !== null) {
+            const y = yForRow(row);
+            gliders.push({ x, y, w, h, img: IMG.glider, t: 0, hitX: 0.70, hitY: 0.70 });
+          }
+          gliderTimer = rand(7, 14);
+        }
+      }
+
       // Coolant drops spawn (grid-aligned)
       coolantTimer -= dt;
       if (coolantTimer <= 0) {
@@ -586,6 +622,7 @@
       for (const o of orbs) { o.x = move(o.x); o.t += dt; o.y += Math.sin(o.t * 4.3) * 18 * dt; }
       for (const gobj of gems) { gobj.x = move(gobj.x); gobj.t += dt; gobj.y += Math.sin(gobj.t * 6.1) * 14 * dt; }
       for (const jp of jetpacks) { jp.x = move(jp.x); jp.t += dt; jp.y += Math.sin(jp.t * 3.7) * 10 * dt; }
+      for (const gl of gliders) { gl.x = move(gl.x); gl.t += dt; gl.y += Math.sin(gl.t * 3.9) * 10 * dt; }
       for (const c of coolants) { c.x = move(c.x); c.t += dt; c.y += Math.sin(c.t * 5.0) * 12 * dt; }
 
       // Remove offscreen
@@ -593,6 +630,7 @@
       while (orbs.length && orbs[0].x + orbs[0].w < 0) orbs.shift();
       while (gems.length && gems[0].x + gems[0].w < 0) gems.shift();
       while (jetpacks.length && jetpacks[0].x + jetpacks[0].w < 0) jetpacks.shift();
+      while (gliders.length && gliders[0].x + gliders[0].w < 0) gliders.shift();
       while (coolants.length && coolants[0].x + coolants[0].w < 0) coolants.shift();
 
       // Collisions
@@ -609,17 +647,33 @@
         const bh = b.h * (b.hitY || 1);
         return Math.abs(ax - bx) * 2 < (aw + bw) && Math.abs(ay - by) * 2 < (ah + bh);
       }
-      // Hazard collisions: add heat and optionally drop jetpack. Only die when heat maxes.
+      // Hazard collisions: add heat and randomly drop one owned item (jetpack or glider). Only die when heat maxes.
       if (hitGrace <= 0) {
-        for (const s of spikes) if (hit(P, s)) {
-          if (hasJetpack) {
-            hasJetpack = false; jetActive = false; jetFuel = 0;
-            // Allow future jetpack spawns after dropping it
-            jetpackPicked = false; jetpackTimer = rand(6, 12);
-            heat = clamp(heat + HEAT_HIT_PENALTY, 0, HEAT_MAX);
-          } else {
-            heat = clamp(heat + HEAT_HIT_PENALTY_NO_JET, 0, HEAT_MAX);
+        // helper to lose one item fairly when hit
+        function loseRandomItem(){
+          const hadJet = hasJetpack;
+          const hadGlide = hasGlider;
+          if (hadJet && hadGlide) {
+            if (Math.random() < 0.5) {
+              hasJetpack = false; jetActive = false; jetFuel = 0; jetpackPicked = false; jetpackTimer = rand(6, 12);
+              return 'jet';
+            } else {
+              hasGlider = false; gliderPicked = false; gliderTimer = rand(5, 10);
+              return 'glider';
+            }
+          } else if (hadJet) {
+            hasJetpack = false; jetActive = false; jetFuel = 0; jetpackPicked = false; jetpackTimer = rand(6, 12);
+            return 'jet';
+          } else if (hadGlide) {
+            hasGlider = false; gliderPicked = false; gliderTimer = rand(5, 10);
+            return 'glider';
           }
+          return null;
+        }
+        for (const s of spikes) if (hit(P, s)) {
+          // Apply heat penalty based on whether a jetpack was owned at impact
+          heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
+          loseRandomItem();
           // Bounce up to escape overlap and start grace window
           P.vy = Math.min(P.vy, -350);
           P.onGround = false;
@@ -628,14 +682,8 @@
           return; // process one hazard hit per frame
         }
         for (const o of orbs) if (hit(P, o)) {
-          if (hasJetpack) {
-            hasJetpack = false; jetActive = false; jetFuel = 0;
-            // Allow future jetpack spawns after dropping it
-            jetpackPicked = false; jetpackTimer = rand(6, 12);
-            heat = clamp(heat + HEAT_HIT_PENALTY, 0, HEAT_MAX);
-          } else {
-            heat = clamp(heat + HEAT_HIT_PENALTY_NO_JET, 0, HEAT_MAX);
-          }
+          heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
+          loseRandomItem();
           // Bounce away and grace
           P.vy = Math.min(P.vy, -350);
           P.onGround = false;
@@ -660,6 +708,13 @@
         const jp = jetpacks[i];
         if (hit(P, jp)) {
           hasJetpack = true; jetpackPicked = true; jetFuel = JET_FUEL_MAX; jetpacks.splice(i,1);
+        }
+      }
+      // Glider pickup
+      for (let i=gliders.length-1; i>=0; i--) {
+        const gl = gliders[i];
+        if (hit(P, gl)) {
+          hasGlider = true; gliderPicked = true; gliders.splice(i,1);
         }
       }
       // Coolant pickup: reduce heat
@@ -723,6 +778,7 @@
       for (const o of orbs) drawImg(o.img, o.x, o.y, o.w, o.h);
       for (const g of gems) drawImg(g.img, g.x, g.y, g.w, g.h);
       for (const jp of jetpacks) drawImg(jp.img, jp.x, jp.y, jp.w, jp.h);
+      for (const gl of gliders) drawImg(gl.img, gl.x, gl.y, gl.w, gl.h);
       // Draw coolants (styled as glowing blue orbs)
       for (const c of coolants) drawCoolant(c.x, c.y, c.w, c.h);
 

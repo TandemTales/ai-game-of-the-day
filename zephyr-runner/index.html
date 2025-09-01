@@ -60,6 +60,13 @@
       box-shadow: inset 0 0 6px rgba(255,255,255,0.2);
     }
     .jetbar-text { position: absolute; inset: 0; display: grid; place-items: center; font-size: 10px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+    /* Heat bar */
+    #heatHud { min-width: 220px; }
+    #heatHud:not(.hidden) { display: grid; gap: 6px; }
+    .heat-label { font-size: 11px; color: #FFA07A; opacity: 0.95; }
+    .heatbar { position: relative; height: 12px; width: 100%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,99,71,0.6); border-radius: 8px; overflow: hidden; }
+    .heatbar-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: linear-gradient(90deg, #34d399 0%, #fbbf24 50%, #ef4444 100%); box-shadow: inset 0 0 6px rgba(255,255,255,0.2); }
+    .heatbar-text { position: absolute; inset: 0; display: grid; place-items: center; font-size: 10px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
     .btn { pointer-events: auto; text-decoration: none; cursor: pointer; }
     .btn-primary {
       background: linear-gradient(45deg, var(--teal), #4682B4);
@@ -103,6 +110,10 @@
     <div class="hud">
       <div class="topbar">
         <div class="chip" id="scoreHud">Score: 0</div>
+        <div class="chip" id="heatHud">
+          <div class="heat-label">Heat</div>
+          <div class="heatbar"><div class="heatbar-fill" id="heatFill"></div><div class="heatbar-text" id="heatText">0%</div></div>
+        </div>
         <div class="chip hidden" id="jetHud">
           <div class="jet-label">Jetpack</div>
           <div class="jetbar"><div class="jetbar-fill" id="jetFill"></div><div class="jetbar-text" id="jetText">0%</div></div>
@@ -203,6 +214,7 @@
     let last = now();
     let frameTimer=0, animFrame=0;
     let spawnTimer=0, gemTimer=0;
+    let coolantTimer=0;
     // Jetpack systems (hold to burn fuel and thrust)
     const JET_FUEL_MAX = 100;       // max fuel
     const JET_BURN_RATE = 25;       // fuel per second while holding (reduced)
@@ -227,6 +239,7 @@
     const orbs=[];   // floating hazards
     const gems=[];   // collectibles
     const jetpacks=[]; // jetpack pickup(s)
+    const coolants=[]; // coolant drops to reduce heat
 
     // Parallax layers positions
     const L = {
@@ -237,8 +250,9 @@
 
     function reset() {
       running = true; dead = false; score = 0; dist = 0; time = 0; gemsCollected = 0; combo = 0;
-      frameTimer=0; animFrame=0; spawnTimer=0; gemTimer=0;
-      spikes.length=0; orbs.length=0; gems.length=0; jetpacks.length=0;
+      frameTimer=0; animFrame=0; spawnTimer=0; gemTimer=0; coolantTimer = rand(2.5, 4.5);
+      heat = 0;
+      spikes.length=0; orbs.length=0; gems.length=0; jetpacks.length=0; coolants.length=0;
       P.x = 200; P.y = GROUND_Y; P.vx = 0; P.vy = 0; P.onGround = true; P.glide=false; P.isJumping=false; P.jumpT=0;
       Object.assign(L, { sky1:0, sky2:W, h1:0, h2:W, f1:0, f2:W });
       // Clear any lingering input so the new run doesn't start with stuck keys
@@ -249,6 +263,12 @@
       hideStart(); hideGameOver();
     }
 
+    // Heat system
+    const HEAT_MAX = 100;
+    const HEAT_GAIN_RATE = 6; // per second
+    const COOLANT_COOL = 35;  // amount reduced per pickup
+    let heat = 0;
+
     // UI elements
     const startScreen = document.getElementById('startScreen');
     const gameOver = document.getElementById('gameOver');
@@ -258,6 +278,9 @@
     const jetHud = document.getElementById('jetHud');
     const jetFill = document.getElementById('jetFill');
     const jetText = document.getElementById('jetText');
+    const heatHud = document.getElementById('heatHud');
+    const heatFill = document.getElementById('heatFill');
+    const heatText = document.getElementById('heatText');
     const finalScore = document.getElementById('finalScore');
     const lbBtn = document.getElementById('lbBtn');
     const mobile = document.getElementById('mobileCtrls');
@@ -331,6 +354,12 @@
       const currentMult = combo >= 10 ? 4 : combo >= 5 ? 2 : 1;
       const multTxt = currentMult > 1 ? ` | x${currentMult}` : '';
       scoreHud.textContent = `Score: ${score} | Combo: ${combo}${multTxt}`;
+      // Heat: increases over time; collect coolants to reduce
+      heat = clamp(heat + HEAT_GAIN_RATE * dt, 0, HEAT_MAX);
+      const heatPct = Math.round((heat / HEAT_MAX) * 100);
+      if (heatFill) heatFill.style.width = `${heatPct}%`;
+      if (heatText) heatText.textContent = `${heatPct}%`;
+      if (heat >= HEAT_MAX) return die();
       // Jetpack HUD
       if (hasJetpack) {
         const pct = Math.round((jetFuel / JET_FUEL_MAX) * 100);
@@ -504,18 +533,32 @@
         }
       }
 
+      // Coolant drops spawn
+      coolantTimer -= dt;
+      if (coolantTimer <= 0) {
+        const y = GROUND_Y - rand(100, 220);
+        // Coolant sphere with generous pickup box
+        coolants.push({ x: W + 40, y, w: 28, h: 28, t: 0, hitX: 0.75, hitY: 0.75 });
+        // Dynamic next spawn: slightly faster when hot
+        const bias = 1.5 * (heat / HEAT_MAX);
+        coolantTimer = rand(3.0 - Math.min(1.5, bias), 5.0 - Math.min(2.0, bias) + 0.01);
+        if (coolantTimer < 1.2) coolantTimer = 1.2;
+      }
+
       // Move hazards + gems
       const move = v => v - RUN_SPEED * dt;
       for (const s of spikes) s.x = move(s.x);
       for (const o of orbs) { o.x = move(o.x); o.t += dt; o.y += Math.sin(o.t * 4.3) * 18 * dt; }
       for (const gobj of gems) { gobj.x = move(gobj.x); gobj.t += dt; gobj.y += Math.sin(gobj.t * 6.1) * 14 * dt; }
       for (const jp of jetpacks) { jp.x = move(jp.x); jp.t += dt; jp.y += Math.sin(jp.t * 3.7) * 10 * dt; }
+      for (const c of coolants) { c.x = move(c.x); c.t += dt; c.y += Math.sin(c.t * 5.0) * 12 * dt; }
 
       // Remove offscreen
       while (spikes.length && spikes[0].x + spikes[0].w < 0) spikes.shift();
       while (orbs.length && orbs[0].x + orbs[0].w < 0) orbs.shift();
       while (gems.length && gems[0].x + gems[0].w < 0) gems.shift();
       while (jetpacks.length && jetpacks[0].x + jetpacks[0].w < 0) jetpacks.shift();
+      while (coolants.length && coolants[0].x + coolants[0].w < 0) coolants.shift();
 
       // Collisions
       // Axis-aligned bounding box with adjustable per-entity hitbox scale.
@@ -549,6 +592,14 @@
         const jp = jetpacks[i];
         if (hit(P, jp)) {
           hasJetpack = true; jetpackPicked = true; jetFuel = JET_FUEL_MAX; jetpacks.splice(i,1);
+        }
+      }
+      // Coolant pickup: reduce heat
+      for (let i=coolants.length-1; i>=0; i--) {
+        const c = coolants[i];
+        if (hit(P, c)) {
+          heat = Math.max(0, heat - COOLANT_COOL);
+          coolants.splice(i,1);
         }
       }
       // Break combo if the player passes a gem without picking it up
@@ -598,6 +649,8 @@
       for (const o of orbs) drawImg(o.img, o.x, o.y, o.w, o.h);
       for (const g of gems) drawImg(g.img, g.x, g.y, g.w, g.h);
       for (const jp of jetpacks) drawImg(jp.img, jp.x, jp.y, jp.w, jp.h);
+      // Draw coolants (styled as glowing blue orbs)
+      for (const c of coolants) drawCoolant(c.x, c.y, c.w, c.h);
 
       // Player
       const pf = animFrame===0?IMG.p1:animFrame===1?IMG.p2:animFrame===2?IMG.p3:IMG.p4;
@@ -608,6 +661,26 @@
 
     function drawLayer(img, x, y, w, h){ ctx.drawImage(img, x - 2, y, w + 4, h); }
     function drawImg(img, x, y, w, h){ ctx.drawImage(img, Math.round(x - w/2), Math.round(y - h/2), w, h); }
+    function drawCoolant(x, y, w, h){
+      const r = Math.min(w,h)/2;
+      const cx = Math.round(x);
+      const cy = Math.round(y);
+      ctx.save();
+      // Glow
+      ctx.shadowColor = 'rgba(56,189,248,0.7)';
+      ctx.shadowBlur = 12;
+      // Orb body
+      const grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.2, cx, cy, r);
+      grad.addColorStop(0, '#e0f2fe');
+      grad.addColorStop(0.5, '#60a5fa');
+      grad.addColorStop(1, '#0284c7');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+      // highlight
+      ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.beginPath(); ctx.ellipse(cx - r*0.35, cy - r*0.35, r*0.45, r*0.28, -0.6, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
 
     // Leaderboard integration
     let lbGuard = false; // prevent double submit on refreshes

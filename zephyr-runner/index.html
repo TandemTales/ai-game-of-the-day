@@ -191,20 +191,20 @@
     });
 
     // Game state
-    const GRAV = 2600; // px/s^2
+    const GRAV = 1800; // px/s^2
     const RUN_SPEED = 400; // world scroll speed
-    const JUMP_V = 940;
+    const JUMP_V = 700;
     // Variable jump: allow holding jump to extend rise a bit
     const JUMP_HOLD_MAX = 0.22; // seconds
-    const ASCEND_G = 1400;      // gravity while rising and holding jump
+    const ASCEND_G = 800;      // gravity while rising and holding jump
     // Make gliding more pronounced: much lower gravity while gliding
-    const GLIDE_G = 360;
+    const GLIDE_G = 180;
     // Cap descend speed while gliding (unless diving) — slower fall
-    const GLIDE_VY_MAX = 200;
+    const GLIDE_VY_MAX = 100;
     // Global terminal fall speed (from gravity); diving can exceed
-    const FALL_VY_MAX = 600;
+    const FALL_VY_MAX = 400;
     // Cap upward speed so jetpack/jumps can't overshoot
-    const RISE_VY_MIN = -1000;
+    const RISE_VY_MIN = -800;
     const DIVE_V = 1400;
     const GROUND_Y = H - 90; // baseline
     let running=false, dead=false;
@@ -218,7 +218,7 @@
     // Jetpack systems (hold to burn fuel and thrust)
     const JET_FUEL_MAX = 100;       // max fuel
     const JET_BURN_RATE = 25;       // fuel per second while holding (reduced)
-    const JET_THRUST = GLIDE_G + 1000;  // upward accel (px/s^2) while burning
+    const JET_THRUST = GLIDE_G + 800;  // upward accel (px/s^2) while burning
     const JET_RECHARGE_RATE = 25;   // per second while grounded
     let hasJetpack = false;         // player has collected jetpack
     let jetpackPicked = false;      // prevent future spawns after pickup

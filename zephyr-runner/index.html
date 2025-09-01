@@ -215,6 +215,10 @@
     let frameTimer=0, animFrame=0;
     let spawnTimer=0, gemTimer=0;
     let coolantTimer=0;
+    let hitGrace = 0;            // short invulnerability after taking a hit
+    let worldFreeze = 0;         // halt forward scroll briefly after impact
+    let hitFlash = 0;            // red flash overlay intensity timer
+    let shake = 0;               // camera shake magnitude (pixels)
     // Jetpack systems (hold to burn fuel and thrust)
     const JET_FUEL_MAX = 100;       // max fuel
     const JET_BURN_RATE = 25;       // fuel per second while holding (reduced)
@@ -252,6 +256,7 @@
       running = true; dead = false; score = 0; dist = 0; time = 0; gemsCollected = 0; combo = 0;
       frameTimer=0; animFrame=0; spawnTimer=0; gemTimer=0; coolantTimer = rand(2.5, 4.5);
       heat = 0;
+      worldFreeze = 0; hitFlash = 0; shake = 0; hitGrace = 0;
       spikes.length=0; orbs.length=0; gems.length=0; jetpacks.length=0; coolants.length=0;
       P.x = 200; P.y = GROUND_Y; P.vx = 0; P.vy = 0; P.onGround = true; P.glide=false; P.isJumping=false; P.jumpT=0;
       Object.assign(L, { sky1:0, sky2:W, h1:0, h2:W, f1:0, f2:W });
@@ -266,6 +271,8 @@
     // Heat system
     const HEAT_MAX = 100;
     const HEAT_GAIN_RATE = 6; // per second
+    const HEAT_HIT_PENALTY = 12; // added heat when tanking a hit with jetpack
+    const HEAT_HIT_PENALTY_NO_JET = 20; // added heat when hit without jetpack
     const COOLANT_COOL = 35;  // amount reduced per pickup
     let heat = 0;
 
@@ -349,7 +356,13 @@
     document.getElementById('btnDive').addEventListener('pointerup', ()=> key.down=false);
 
     function update(dt){
-      time += dt; dist += RUN_SPEED * dt;
+      time += dt;
+      if (hitGrace > 0) hitGrace -= dt;
+      if (worldFreeze > 0) worldFreeze -= dt;
+      if (hitFlash > 0) hitFlash -= dt;
+      if (shake > 0) shake = Math.max(0, shake - 28 * dt);
+      const scrollMul = worldFreeze > 0 ? 0 : 1;
+      dist += RUN_SPEED * dt * scrollMul;
       // HUD: show score, combo, and current multiplier when active
       const currentMult = combo >= 10 ? 4 : combo >= 5 ? 2 : 1;
       const multTxt = currentMult > 1 ? ` | x${currentMult}` : '';
@@ -375,7 +388,7 @@
       maybeShowMobileCtrls(isSmall && running && !dead);
 
       // Background parallax scroll
-      const s1 = RUN_SPEED * 0.12 * dt, s2 = RUN_SPEED * 0.32 * dt, s3 = RUN_SPEED * 0.64 * dt;
+      const s1 = RUN_SPEED * 0.12 * dt * scrollMul, s2 = RUN_SPEED * 0.32 * dt * scrollMul, s3 = RUN_SPEED * 0.64 * dt * scrollMul;
       L.sky1 -= s1; L.sky2 -= s1; if (L.sky1 + W < 0) L.sky1 = L.sky2 + W; if (L.sky2 + W < 0) L.sky2 = L.sky1 + W;
       L.h1 -= s2; L.h2 -= s2; if (L.h1 + W < 0) L.h1 = L.h2 + W; if (L.h2 + W < 0) L.h2 = L.h1 + W;
       L.f1 -= s3; L.f2 -= s3; if (L.f1 + W < 0) L.f1 = L.f2 + W; if (L.f2 + W < 0) L.f2 = L.f1 + W;
@@ -546,7 +559,7 @@
       }
 
       // Move hazards + gems
-      const move = v => v - RUN_SPEED * dt;
+      const move = v => v - RUN_SPEED * scrollMul * dt;
       for (const s of spikes) s.x = move(s.x);
       for (const o of orbs) { o.x = move(o.x); o.t += dt; o.y += Math.sin(o.t * 4.3) * 18 * dt; }
       for (const gobj of gems) { gobj.x = move(gobj.x); gobj.t += dt; gobj.y += Math.sin(gobj.t * 6.1) * 14 * dt; }
@@ -574,8 +587,41 @@
         const bh = b.h * (b.hitY || 1);
         return Math.abs(ax - bx) * 2 < (aw + bw) && Math.abs(ay - by) * 2 < (ah + bh);
       }
-      for (const s of spikes) if (hit(P, s)) return die();
-      for (const o of orbs) if (hit(P, o)) return die();
+      // Hazard collisions: add heat and optionally drop jetpack. Only die when heat maxes.
+      if (hitGrace <= 0) {
+        for (const s of spikes) if (hit(P, s)) {
+          if (hasJetpack) {
+            hasJetpack = false; jetActive = false; jetFuel = 0;
+            // Allow future jetpack spawns after dropping it
+            jetpackPicked = false; jetpackTimer = rand(6, 12);
+            heat = clamp(heat + HEAT_HIT_PENALTY, 0, HEAT_MAX);
+          } else {
+            heat = clamp(heat + HEAT_HIT_PENALTY_NO_JET, 0, HEAT_MAX);
+          }
+          // Bounce up to escape overlap and start grace window
+          P.vy = Math.min(P.vy, -350);
+          P.onGround = false;
+          P.y = Math.max(P.h/2, P.y - 10);
+          hitGrace = 0.6; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
+          return; // process one hazard hit per frame
+        }
+        for (const o of orbs) if (hit(P, o)) {
+          if (hasJetpack) {
+            hasJetpack = false; jetActive = false; jetFuel = 0;
+            // Allow future jetpack spawns after dropping it
+            jetpackPicked = false; jetpackTimer = rand(6, 12);
+            heat = clamp(heat + HEAT_HIT_PENALTY, 0, HEAT_MAX);
+          } else {
+            heat = clamp(heat + HEAT_HIT_PENALTY_NO_JET, 0, HEAT_MAX);
+          }
+          // Bounce away and grace
+          P.vy = Math.min(P.vy, -350);
+          P.onGround = false;
+          P.y = Math.max(P.h/2, P.y - 10);
+          hitGrace = 0.6; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
+          return; // process one hazard hit per frame
+        }
+      }
       // Gem pickups add score with multiplier based on current combo (applies AFTER 5/10 streak)
       for (let i=gems.length-1; i>=0; i--) {
         const g = gems[i];
@@ -632,6 +678,12 @@
       // Clear
       ctx.clearRect(0,0,W,H);
 
+      // Camera shake transform for impact feedback
+      ctx.save();
+      const sx = shake > 0 ? rand(-shake, shake) : 0;
+      const sy = shake > 0 ? rand(-shake, shake) : 0;
+      ctx.translate(sx, sy);
+
       // Parallax images (tile horizontally)
       drawLayer(IMG.sky, L.sky1, 0, W, H);
       drawLayer(IMG.sky, L.sky2, 0, W, H);
@@ -655,6 +707,16 @@
       // Player
       const pf = animFrame===0?IMG.p1:animFrame===1?IMG.p2:animFrame===2?IMG.p3:IMG.p4;
       drawImg(pf, P.x, P.y, P.w, P.h);
+
+      // End shake transform
+      ctx.restore();
+
+      // Red flash overlay to emphasize damage
+      if (hitFlash > 0) {
+        const a = Math.max(0, Math.min(0.6, hitFlash * 1.4));
+        ctx.fillStyle = `rgba(255,0,0,${a})`;
+        ctx.fillRect(0, 0, W, H);
+      }
 
       requestAnimationFrame(draw);
     }

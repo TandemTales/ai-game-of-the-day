@@ -120,6 +120,10 @@
       }
     }
   </style>
+  
+  <!-- Audio System -->
+  <script src="../src/audioManager.js"></script>
+  <script src="../src/audio/soundLibrary.js"></script>
 </head>
 <body>
   <div class="topbar">
@@ -186,6 +190,13 @@
     // Leaderboard integration
     const GAME_ID = 'bastion-builder';
     let gameOverHandled = false;
+
+    // Audio system initialization
+    let gameAudio = null;
+    if (window.GameAudioIntegrator) {
+      gameAudio = new GameAudioIntegrator(GAME_ID);
+      gameAudio.init().catch(console.error);
+    }
 
     function setTopbarHeight(){ const h = Math.ceil(topbarEl.getBoundingClientRect().height); root.style.setProperty('--topbar-h', h + 'px'); }
     function setHudHeight(){ const h = Math.ceil(hudEl.getBoundingClientRect().height); root.style.setProperty('--hud-h', h + 'px'); }
@@ -551,19 +562,32 @@
     function placeWall(gx, gy){
       if(!currentPiece) return false;
       if(!canPlacePiece(gx, gy, currentPiece)) return false;
-      for(const [dx,dy] of currentPiece){
-        const x = gx+dx, y = gy+dy;
-        walls.push({ gx:x, gy:y, hp:60, placedAt: state.time });
+      return placePiece(gx, gy, currentPiece);
+    }
+
+    function placePiece(gx, gy, piece){
+      if (!canPlacePiece(gx, gy, piece)) return false;
+      for(const [dx, dy] of piece){
+        walls.push({ gx: gx + dx, gy: gy + dy, hp: 100 });
       }
       state.bricks -= currentPiece.length;
       state.placedWalls += currentPiece.length;
+      
+      // Play wall placement sound
+      if (gameAudio) gameAudio.playSound('place_wall');
+      
       return true;
     }
 
     function placeCannon(gx, gy){
       const cost = 6;
       if (!canPlaceCannon(gx, gy)) return false;
-      state.bricks -= cost; cannons.push({ gx, gy, cd: 0, enclosed: false });
+      state.bricks -= cost; 
+      cannons.push({ gx, gy, cd: 0, enclosed: false });
+      
+      // Play cannon placement sound
+      if (gameAudio) gameAudio.playSound('place_cannon');
+      
       return true;
     }
 
@@ -1082,7 +1106,15 @@
         // target nearest ship; cannon center is middle of its 2x2 footprint
         const px = c.gx*tile + tile, py = c.gy*tile + tile;
         let best=null, bestD=1e9; for(const s of ships){ const d = Math.hypot(s.x-px, s.y-py); if(d<bestD){ best=s; bestD=d; } }
-        if(best && bestD < tile*8){ const dx=best.x-px, dy=best.y-py; const L=Math.hypot(dx,dy)||1; bullets.push({ x:px, y:py, vx:dx/L, vy:dy/L, spd: 260, dmg: 34, owner:'cannon' }); c.cd = 0.6; }
+        if(best && bestD < tile*8){ 
+          const dx=best.x-px, dy=best.y-py; 
+          const L=Math.hypot(dx,dy)||1; 
+          bullets.push({ x:px, y:py, vx:dx/L, vy:dy/L, spd: 260, dmg: 34, owner:'cannon' }); 
+          c.cd = 0.6; 
+          
+          // Play cannon firing sound
+          if (gameAudio) gameAudio.playSound('cannon_fire');
+        }
       }
     }
 
@@ -1118,13 +1150,31 @@
         // out of bounds
         if(b.x < -40 || b.y < -40 || b.x > COLS*tile+40 || b.y > ROWS*tile+40){ b.dead=true; continue; }
         if(b.owner==='cannon'){
-          for(const s of ships){ if(Math.hypot(s.x-b.x, s.y-b.y) < tile*0.5){ s.hp -= b.dmg; b.dead = true; if(s.hp<=0){ s.dead = true; state.kills++; } break; } }
+          for(const s of ships){ 
+            if(Math.hypot(s.x-b.x, s.y-b.y) < tile*0.5){ 
+              s.hp -= b.dmg; 
+              b.dead = true; 
+              if(s.hp<=0){ 
+                s.dead = true; 
+                state.kills++; 
+                // Play explosion sound when ship is destroyed
+                if (gameAudio) gameAudio.playSound('explosion');
+              } 
+              break; 
+            } 
+          }
         } else { // ship bullet
           // walls
           for(const w of walls){ const p = gridToPx(w.gx, w.gy); if(Math.hypot(p.x-b.x, p.y-b.y) < tile*0.6){ w.hp -= b.dmg; b.dead=true; break; } }
           if(!b.dead){ // keep
             const kc = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2);
-            if(Math.hypot(kc.x-b.x, kc.y-b.y) < tile*1.2){ state.keepHP = Math.max(0, state.keepHP - b.dmg); b.dead = true; if(state.keepHP<=0) gameOver('destroyed'); }
+            if(Math.hypot(kc.x-b.x, kc.y-b.y) < tile*1.2){ 
+              state.keepHP = Math.max(0, state.keepHP - b.dmg); 
+              b.dead = true; 
+              // Play keep damage sound
+              if (gameAudio) gameAudio.playSound('keep_damage');
+              if(state.keepHP<=0) gameOver('destroyed'); 
+            }
           }
         }
       }
@@ -1152,6 +1202,12 @@
       placementHistory.length = 0;
       updateHUD();
       updateUndoBtnState();
+      
+      // Play phase change sound and music
+      if (gameAudio) {
+        if (state.wave > 1) gameAudio.playSound('wave_complete');
+        gameAudio.playMusic('build_phase');
+      }
     }
     function startBattle(){
       // Begin spawning; phase flips to 'battle' (Attack) on first enemy spawn
@@ -1162,6 +1218,12 @@
       if(!isKeepEnclosed()){ gameOver('not_enclosed'); return; }
       spawning = true; spawnWave(); updateHUD();
       updateUndoBtnState();
+      
+      // Play phase change sound and battle music
+      if (gameAudio) {
+        gameAudio.playSound('phase_change');
+        gameAudio.playMusic('battle_phase');
+      }
     }
 
     function updatePhase(dt){

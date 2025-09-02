@@ -284,7 +284,7 @@
     }
 
     function reset() {
-      running = true; dead = false; score = 0; dist = 0; time = 0; gemsCollected = 0; combo = 0;
+      running = true; dead = false; paused = false; score = 0; dist = 0; time = 0; gemsCollected = 0; combo = 0;
       frameTimer=0; animFrame=0; spawnTimer=0; gemTimer=0; coolantTimer = rand(2.5, 4.5);
       heat = 0;
       worldFreeze = 0; hitFlash = 0; shake = 0; hitGrace = 0;
@@ -379,6 +379,8 @@
 
     // Input
     let key = { up:false, down:false, space:false };
+    let paused = false; // toggled by 'P'
+    let showGrid = false; // toggled by 'G'
     window.addEventListener('keydown', e=>{
       if (e.code === 'Space' || e.key === ' ') {
         key.space = true;
@@ -388,6 +390,19 @@
       }
       if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') key.up=true;
       if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') key.down=true;
+      if ((e.key === 'p' || e.key === 'P') && !e.repeat) {
+        // Toggle pause only after the game has started and before game over
+        if (running && !dead) {
+          paused = !paused;
+          // Clear any one-frame pulses to avoid unintended actions upon unpausing
+          primaryPressPulse = false;
+        }
+        e.preventDefault();
+      }
+      if (e.key === 'g' || e.key === 'G') {
+        showGrid = !showGrid;
+        e.preventDefault();
+      }
     });
     window.addEventListener('keyup', e=>{
       if (e.code === 'Space' || e.key === ' ') key.space=false;
@@ -1032,7 +1047,7 @@
     function draw(dt){
       const t = now(); const delta = Math.min(0.033, (t - last)/1000); last = t;
       // Update
-      if (running && !dead) update(delta);
+      if (running && !dead && !paused) update(delta);
 
       // Clear
       ctx.clearRect(0,0,W,H);
@@ -1054,6 +1069,32 @@
       // Ground line
       ctx.strokeStyle = 'rgba(255,215,0,0.35)'; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.moveTo(0, GROUND_Y + 34); ctx.lineTo(W, GROUND_Y + 34); ctx.stroke();
+
+      // Optional grid overlay for spawn/item alignment
+      if (showGrid) {
+        ctx.save();
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 6]);
+        // Vertical grid lines (columns)
+        ctx.strokeStyle = 'rgba(56,189,248,0.25)'; // soft cyan
+        ctx.beginPath();
+        for (let x = 0; x <= W; x += GRID_CELL) {
+          ctx.moveTo(Math.round(x) + 0.5, 0);
+          ctx.lineTo(Math.round(x) + 0.5, H);
+        }
+        ctx.stroke();
+        // Horizontal grid lines (rows from ground up)
+        ctx.strokeStyle = 'rgba(255,215,0,0.2)'; // soft gold
+        ctx.beginPath();
+        for (let r = 0;; r++) {
+          const y = yForRow(r);
+          if (y < 0) break;
+          ctx.moveTo(0, Math.round(y) + 0.5);
+          ctx.lineTo(W, Math.round(y) + 0.5);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
 
       // Draw hazards
       for (const s of spikes) drawImg(s.img, s.x, s.y, s.w, s.h);
@@ -1085,6 +1126,17 @@
         const a = Math.max(0, Math.min(0.6, hitFlash * 1.4));
         ctx.fillStyle = `rgba(255,0,0,${a})`;
         ctx.fillRect(0, 0, W, H);
+      }
+
+      // Pause overlay
+      if (paused) {
+        ctx.fillStyle = 'rgba(17,24,39,0.5)'; // translucent dark
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 48px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('PAUSED', W/2, H/2);
       }
 
       requestAnimationFrame(draw);

@@ -424,8 +424,9 @@
     // Mouse/Touch input
     // - Left-click or touch: jump (if grounded) and glide while held
     // - Right-click: dive while held (and suppress context menu)
-    canvas.addEventListener('contextmenu', e=>{ e.preventDefault(); });
-    canvas.addEventListener('pointerdown', e=>{
+    window.addEventListener('contextmenu', e=>{ e.preventDefault(); });
+    window.addEventListener('pointerdown', e=>{
+      if (e.target.closest('.btn') || e.target.closest('.panel')) return;
       // Start game only on primary click/touch
       const isMouse = e.pointerType === 'mouse';
       const isPrimary = !isMouse || e.button === 0;
@@ -441,7 +442,7 @@
         primaryPressPulse = true; // record a fresh press
       }
     });
-    canvas.addEventListener('pointerup', e=>{
+    window.addEventListener('pointerup', e=>{
       const isMouse = e.pointerType === "mouse";
       if (isMouse) {
         if (e.button === 2) { key.down = false; return; }
@@ -450,7 +451,7 @@
       // Touch/pen fallback
       key.space = false; key.down = false;
     });
-    canvas.addEventListener('pointercancel', ()=>{ key.space=false; key.down=false; });
+    window.addEventListener('pointercancel', ()=>{ key.space=false; key.down=false; });
     // Mobile button controls removed
 
     function update(dt){

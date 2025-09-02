@@ -163,12 +163,17 @@
     const ctx = canvas.getContext('2d');
     let W = canvas.width, H = canvas.height;
 
+    const topbar = document.querySelector('.topbar');
+    const isTouch = window.matchMedia('(pointer: coarse)').matches;
     function resize() {
       const ratio = 16/9;
-      let w = window.innerWidth, h = window.innerHeight;
+      let w = window.innerWidth;
+      const topOffset = isTouch ? topbar.offsetHeight : 0;
+      let h = window.innerHeight - topOffset;
       if (w/h > ratio) { w = h * ratio; } else { h = w / ratio; }
       canvas.style.width = w + 'px';
       canvas.style.height = h + 'px';
+      canvas.style.top = topOffset + 'px';
     }
     window.addEventListener('resize', resize); resize();
 

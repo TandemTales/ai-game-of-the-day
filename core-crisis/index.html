@@ -222,6 +222,7 @@
     let last = now();
     let frameTimer=0, animFrame=0;
     let spawnTimer=0, gemTimer=0;
+    let platformTimer=0;
     let coolantTimer=0;
     let hitGrace = 0;            // short invulnerability after taking a hit
     let worldFreeze = 0;         // halt forward scroll briefly after impact
@@ -263,6 +264,7 @@
 
     // Entities
     const spikes=[]; // ground obstacles
+    const platforms=[]; // floating platforms the player can land on
     const orbs=[];   // floating hazards
     const gems=[];   // collectibles
     const jetpacks=[]; // jetpack pickup(s)
@@ -286,7 +288,7 @@
       frameTimer=0; animFrame=0; spawnTimer=0; gemTimer=0; coolantTimer = rand(2.5, 4.5);
       heat = 0;
       worldFreeze = 0; hitFlash = 0; shake = 0; hitGrace = 0;
-      spikes.length=0; orbs.length=0; gems.length=0; jetpacks.length=0; gliders.length=0; guns.length=0; coolants.length=0; flyers.length=0; shots.length=0; pshots.length=0;
+      spikes.length=0; platforms.length=0; orbs.length=0; gems.length=0; jetpacks.length=0; gliders.length=0; guns.length=0; coolants.length=0; flyers.length=0; shots.length=0; pshots.length=0;
       P.x = 200; P.y = GROUND_Y; P.vx = 0; P.vy = 0; P.onGround = true; P.glide=false; P.isJumping=false; P.jumpT=0;
       Object.assign(L, { sky1:0, sky2:W, h1:0, h2:W, f1:0, f2:W });
       // Clear any lingering input so the new run doesn't start with stuck keys
@@ -299,6 +301,7 @@
       jetpackTimer = rand(6, 12); // first random spawn window
       gliderTimer = rand(4, 10);  // first random spawn window for glider
       flyerTimer = rand(6, 12);   // first flying enemy spawn window
+      platformTimer = rand(1.2, 2.6); // first platform spawn
       hideStart(); hideGameOver();
     }
 
@@ -526,7 +529,31 @@
       // Stronger glide effect: limit downward speed when gliding (unless diving)
       if (P.glide && !key.down && P.vy > GLIDE_VY_MAX) P.vy = GLIDE_VY_MAX;
 
+      const prevY = P.y;
       P.y += P.vy * dt;
+      // Platform collisions (one-way from above)
+      {
+        const bottomPrev = prevY + P.h/2;
+        const bottomNow = P.y + P.h/2;
+        let onPlat = false;
+        for (const pl of platforms) {
+          const platTop = pl.y - pl.h/2;
+          const overlapX = Math.abs(P.x - pl.x) * 2 < (pl.w + P.w*0.6);
+          const crossingDown = (P.vy >= -20) && (bottomPrev <= platTop) && (bottomNow >= platTop - 1);
+          const stayingOn = (P.vy >= -20) && Math.abs(bottomNow - platTop) <= 2;
+          if (overlapX && (crossingDown || stayingOn)) {
+            P.y = platTop - P.h/2;
+            P.onGround = true;
+            P.vy = 0;
+            onPlat = true;
+            break;
+          }
+        }
+        // If not on any platform and not on ground, ensure air state until ground check below
+        if (!onPlat && P.y < GROUND_Y - 0.5) {
+          P.onGround = false;
+        }
+      }
       // Prevent leaving the top of the screen
       if (P.y - P.h/2 < 0) { P.y = P.h/2; if (P.vy < 0) P.vy = 0; }
       if (P.y >= GROUND_Y) { P.y = GROUND_Y; P.onGround = true; P.vy = 0; }
@@ -583,6 +610,24 @@
         if (row !== null) {
           const y = yForRow(row);
           gems.push({ x, y, w: GEM_W, h: GEM_H, img: IMG.gem, t: 0, hitX: 0.60, hitY: 0.60 });
+        }
+      }
+
+      // Platforms spawn: short ledges the player can jump onto
+      platformTimer -= dt;
+      if (platformTimer <= 0) {
+        platformTimer = rand(1.4, 3.0);
+        const nowSec = time;
+        const w = Math.round(rand(120, 240));
+        const h = 18;
+        const x = gridSpawnX();
+        // Prefer rows 1-3 above ground so they are reachable
+        const minRow = 1, maxRow = 3;
+        const row = tryReserveRow(minRow, maxRow, nowSec);
+        if (row !== null) {
+          const topY = yForRow(row);
+          const y = topY + h/2; // store center for drawing and math
+          platforms.push({ x, y, w, h });
         }
       }
 
@@ -715,6 +760,7 @@
       // Move hazards + gems
       const move = v => v - RUN_SPEED * scrollMul * dt;
       for (const s of spikes) s.x = move(s.x);
+      for (const pl of platforms) pl.x = move(pl.x);
       for (const o of orbs) { o.x = move(o.x); o.t += dt; o.y += Math.sin(o.t * 4.3) * 18 * dt; }
       for (const gobj of gems) { gobj.x = move(gobj.x); gobj.t += dt; gobj.y += Math.sin(gobj.t * 6.1) * 14 * dt; }
       for (const jp of jetpacks) { jp.x = move(jp.x); jp.t += dt; jp.y += Math.sin(jp.t * 3.7) * 10 * dt; }
@@ -791,6 +837,7 @@
 
       // Remove offscreen
       while (spikes.length && spikes[0].x + spikes[0].w < 0) spikes.shift();
+      while (platforms.length && platforms[0].x + platforms[0].w/2 < 0) platforms.shift();
       while (orbs.length && orbs[0].x + orbs[0].w < 0) orbs.shift();
       while (gems.length && gems[0].x + gems[0].w < 0) gems.shift();
       while (jetpacks.length && jetpacks[0].x + jetpacks[0].w < 0) jetpacks.shift();
@@ -1010,6 +1057,8 @@
 
       // Draw hazards
       for (const s of spikes) drawImg(s.img, s.x, s.y, s.w, s.h);
+      // Draw platforms
+      for (const pl of platforms) drawPlatform(pl.x, pl.y, pl.w, pl.h);
       for (const o of orbs) drawImg(o.img, o.x, o.y, o.w, o.h);
       for (const g of gems) drawImg(g.img, g.x, g.y, g.w, g.h);
       for (const jp of jetpacks) drawImg(jp.img, jp.x, jp.y, jp.w, jp.h);
@@ -1043,6 +1092,25 @@
 
     function drawLayer(img, x, y, w, h){ ctx.drawImage(img, x - 2, y, w + 4, h); }
     function drawImg(img, x, y, w, h){ ctx.drawImage(img, Math.round(x - w/2), Math.round(y - h/2), w, h); }
+    function drawPlatform(x, y, w, h){
+      const left = Math.round(x - w/2), top = Math.round(y - h/2);
+      ctx.save();
+      // Shadow/glow
+      ctx.shadowColor = 'rgba(255,215,0,0.25)';
+      ctx.shadowBlur = 8;
+      // Body
+      ctx.fillStyle = '#2b3a55';
+      ctx.fillRect(left, top, w, h);
+      // Top bevel
+      ctx.fillStyle = '#5F9EA0';
+      ctx.fillRect(left, top, w, Math.max(2, Math.floor(h*0.35)));
+      // Border
+      ctx.shadowBlur = 0;
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#FFD700';
+      ctx.strokeRect(left+0.5, top+0.5, w-1, h-1);
+      ctx.restore();
+    }
     function drawCoolant(x, y, w, h){
       const r = Math.min(w,h)/2;
       const cx = Math.round(x);

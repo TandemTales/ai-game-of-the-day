@@ -121,6 +121,9 @@
         <div class="chip hidden" id="gliderHud">
           <div class="jet-label">Glider</div>
         </div>
+        <div class="chip hidden" id="gunHud">
+          <div class="jet-label">Gun</div>
+        </div>
         <a href="../index.html" class="btn btn-primary back">← Back to Home</a>
       </div>
     </div>
@@ -184,6 +187,7 @@
       gem: 'assets/gem.svg',
       jetpack: 'assets/jetpack.svg',
       glider: 'assets/glider.svg',
+      gun: 'assets/gun.svg',
     };
 
     const IMG = {};
@@ -241,6 +245,12 @@
     let primaryPressPulse = false;  // set true on pointerdown/keydown; consumed in update
     let jetActive = false;          // currently thrusting due to a midair press
 
+    // Gun systems (auto-fires to the right when owned)
+    let hasGun = false;             // player has collected gun
+    let gunPicked = false;          // prevent future spawns after pickup
+    let gunTimer = 0;               // timer to attempt spawns when not picked
+    let gunFireCd = 0;              // cooldown timer between auto shots
+
     // Player
     // Player with slightly smaller hitbox to avoid early collisions
     // Player collision tuned smaller and slightly raised to avoid foot/brim overlaps
@@ -252,9 +262,11 @@
     const gems=[];   // collectibles
     const jetpacks=[]; // jetpack pickup(s)
     const gliders=[];  // glider pickup(s)
+    const guns=[];     // gun pickup(s)
     const coolants=[]; // coolant drops to reduce heat
     const flyers=[];   // flying enemies that hover and shoot
     const shots=[];    // enemy bullets
+    const pshots=[];   // player bullets (from gun)
 
     // Parallax layers positions
     const L = {
@@ -268,7 +280,7 @@
       frameTimer=0; animFrame=0; spawnTimer=0; gemTimer=0; coolantTimer = rand(2.5, 4.5);
       heat = 0;
       worldFreeze = 0; hitFlash = 0; shake = 0; hitGrace = 0;
-      spikes.length=0; orbs.length=0; gems.length=0; jetpacks.length=0; gliders.length=0; coolants.length=0; flyers.length=0; shots.length=0;
+      spikes.length=0; orbs.length=0; gems.length=0; jetpacks.length=0; gliders.length=0; guns.length=0; coolants.length=0; flyers.length=0; shots.length=0; pshots.length=0;
       P.x = 200; P.y = GROUND_Y; P.vx = 0; P.vy = 0; P.onGround = true; P.glide=false; P.isJumping=false; P.jumpT=0;
       Object.assign(L, { sky1:0, sky2:W, h1:0, h2:W, f1:0, f2:W });
       // Clear any lingering input so the new run doesn't start with stuck keys
@@ -276,6 +288,7 @@
       // Jetpack reset
       hasJetpack = false; jetpackPicked = false; jetFuel = 0; prevSpaceHeld = false; wasOnGround = true; jetActive = false; primaryPressPulse = false;
       hasGlider = false; gliderPicked = false;
+      hasGun = false; gunPicked = false; gunFireCd = 0; gunTimer = rand(5, 10);
       jetpackTimer = rand(6, 12); // first random spawn window
       gliderTimer = rand(4, 10);  // first random spawn window for glider
       flyerTimer = rand(6, 12);   // first flying enemy spawn window
@@ -318,7 +331,7 @@
 
     // Heat system
     const HEAT_MAX = 100;
-    const HEAT_GAIN_RATE = 6; // per second
+    const HEAT_GAIN_RATE = 3; // per second (slower passive increase)
     const HEAT_HIT_PENALTY = 12; // added heat when tanking a hit with jetpack
     const HEAT_HIT_PENALTY_NO_JET = 20; // added heat when hit without jetpack
     const COOLANT_COOL = 35;  // amount reduced per pickup
@@ -334,6 +347,7 @@
     const jetFill = document.getElementById('jetFill');
     const jetText = document.getElementById('jetText');
     const gliderHud = document.getElementById('gliderHud');
+    const gunHud = document.getElementById('gunHud');
     const heatHud = document.getElementById('heatHud');
     const heatFill = document.getElementById('heatFill');
     const heatText = document.getElementById('heatText');
@@ -436,6 +450,10 @@
       // Glider HUD
       if (typeof gliderHud !== 'undefined' && gliderHud) {
         if (hasGlider) gliderHud.classList.remove('hidden'); else gliderHud.classList.add('hidden');
+      }
+      // Gun HUD
+      if (typeof gunHud !== 'undefined' && gunHud) {
+        if (hasGun) gunHud.classList.remove('hidden'); else gunHud.classList.add('hidden');
       }
 
       // Mobile controls visibility
@@ -602,6 +620,26 @@
         }
       }
 
+      // Gun spawn logic – grid-aligned until picked
+      if (!gunPicked && guns.length === 0) {
+        gunTimer -= dt;
+        if (gunTimer <= 0) {
+          const nowSec = time;
+          const x = gridSpawnX();
+          const w = 44, h = 44;
+          const maxRow = Math.max(0, Math.floor((GROUND_Y - h/2) / GRID_CELL));
+          const lowerHalfTopRow = Math.max(0, Math.floor((GROUND_Y - H/2) / GRID_CELL));
+          const cappedMaxRow = Math.min(maxRow, lowerHalfTopRow);
+          const minRow = Math.min(2, cappedMaxRow);
+          const row = tryReserveRow(minRow, cappedMaxRow, nowSec);
+          if (row !== null) {
+            const y = yForRow(row);
+            guns.push({ x, y, w, h, img: IMG.gun, t: 0, hitX: 0.70, hitY: 0.70 });
+          }
+          gunTimer = rand(8, 16);
+        }
+      }
+
       // Coolant drops spawn (grid-aligned)
       coolantTimer -= dt;
       if (coolantTimer <= 0) {
@@ -652,6 +690,7 @@
       for (const gobj of gems) { gobj.x = move(gobj.x); gobj.t += dt; gobj.y += Math.sin(gobj.t * 6.1) * 14 * dt; }
       for (const jp of jetpacks) { jp.x = move(jp.x); jp.t += dt; jp.y += Math.sin(jp.t * 3.7) * 10 * dt; }
       for (const gl of gliders) { gl.x = move(gl.x); gl.t += dt; gl.y += Math.sin(gl.t * 3.9) * 10 * dt; }
+      for (const gu of guns) { gu.x = move(gu.x); gu.t += dt; gu.y += Math.sin(gu.t * 3.5) * 10 * dt; }
       for (const c of coolants) { c.x = move(c.x); c.t += dt; c.y += Math.sin(c.t * 5.0) * 12 * dt; }
 
       // Flying enemies movement and behavior
@@ -711,12 +750,22 @@
         if (s.t > 6 || s.x < -100 || s.x > W + 180 || s.y < -120 || s.y > H + 120) shots.splice(i,1);
       }
 
+      // Player shots (auto) movement
+      for (let i = pshots.length - 1; i >= 0; i--) {
+        const b = pshots[i];
+        b.t += dt;
+        b.x = move(b.x) + b.vx * dt;
+        b.y += b.vy * dt;
+        if (b.t > 3 || b.x < -100 || b.x > W + 200 || b.y < -120 || b.y > H + 120) pshots.splice(i,1);
+      }
+
       // Remove offscreen
       while (spikes.length && spikes[0].x + spikes[0].w < 0) spikes.shift();
       while (orbs.length && orbs[0].x + orbs[0].w < 0) orbs.shift();
       while (gems.length && gems[0].x + gems[0].w < 0) gems.shift();
       while (jetpacks.length && jetpacks[0].x + jetpacks[0].w < 0) jetpacks.shift();
       while (gliders.length && gliders[0].x + gliders[0].w < 0) gliders.shift();
+      while (guns.length && guns[0].x + guns[0].w < 0) guns.shift();
       while (coolants.length && coolants[0].x + coolants[0].w < 0) coolants.shift();
 
       // Collisions
@@ -733,28 +782,24 @@
         const bh = b.h * (b.hitY || 1);
         return Math.abs(ax - bx) * 2 < (aw + bw) && Math.abs(ay - by) * 2 < (ah + bh);
       }
-      // Hazard collisions: add heat and randomly drop one owned item (jetpack or glider). Only die when heat maxes.
+      // Hazard collisions: add heat and randomly drop one owned item (jetpack, glider, or gun). Only die when heat maxes.
       if (hitGrace <= 0) {
         // helper to lose one item fairly when hit
         function loseRandomItem(){
-          const hadJet = hasJetpack;
-          const hadGlide = hasGlider;
-          if (hadJet && hadGlide) {
-            if (Math.random() < 0.5) {
-              hasJetpack = false; jetActive = false; jetFuel = 0; jetpackPicked = false; jetpackTimer = rand(6, 12);
-              return 'jet';
-            } else {
-              hasGlider = false; gliderPicked = false; gliderTimer = rand(5, 10);
-              return 'glider';
-            }
-          } else if (hadJet) {
+          const options = [];
+          if (hasJetpack) options.push('jet');
+          if (hasGlider) options.push('glider');
+          if (hasGun) options.push('gun');
+          if (options.length === 0) return null;
+          const pick = options[Math.floor(Math.random() * options.length)];
+          if (pick === 'jet') {
             hasJetpack = false; jetActive = false; jetFuel = 0; jetpackPicked = false; jetpackTimer = rand(6, 12);
-            return 'jet';
-          } else if (hadGlide) {
+          } else if (pick === 'glider') {
             hasGlider = false; gliderPicked = false; gliderTimer = rand(5, 10);
-            return 'glider';
+          } else if (pick === 'gun') {
+            hasGun = false; gunPicked = false; gunTimer = rand(5, 11);
           }
-          return null;
+          return pick;
         }
         for (const s of spikes) if (hit(P, s)) {
           // Apply heat penalty based on whether a jetpack was owned at impact
@@ -827,6 +872,13 @@
           hasGlider = true; gliderPicked = true; gliders.splice(i,1);
         }
       }
+      // Gun pickup
+      for (let i=guns.length-1; i>=0; i--) {
+        const gu = guns[i];
+        if (hit(P, gu)) {
+          hasGun = true; gunPicked = true; guns.splice(i,1);
+        }
+      }
       // Coolant pickup: reduce heat
       for (let i=coolants.length-1; i>=0; i--) {
         const c = coolants[i];
@@ -842,6 +894,27 @@
           g.missed = true;
           combo = 0;
         }
+      }
+
+      // Auto-fire gun to the right when owned
+      if (hasGun) {
+        gunFireCd -= dt;
+        if (gunFireCd <= 0) {
+          gunFireCd = 0.75; // fires ~1.33 shots/sec (3x slower)
+          const sx = P.x + P.w * 0.6;
+          const sy = P.y - P.h * 0.1;
+          pshots.push({ x: sx, y: sy, w: 12, h: 12, vx: 650, vy: 0, t: 0, hitX: 0.75, hitY: 0.75 });
+        }
+      }
+
+      // Player bullet collisions: only destroy flying enemies; +1 score
+      for (let i = pshots.length - 1; i >= 0; i--) {
+        const b = pshots[i];
+        let hitFlyer = false;
+        for (let j = flyers.length - 1; j >= 0; j--) {
+          if (hit(b, flyers[j])) { flyers.splice(j,1); hitFlyer = true; score += 1; break; }
+        }
+        if (hitFlyer) { pshots.splice(i,1); }
       }
     }
 
@@ -889,12 +962,14 @@
       for (const g of gems) drawImg(g.img, g.x, g.y, g.w, g.h);
       for (const jp of jetpacks) drawImg(jp.img, jp.x, jp.y, jp.w, jp.h);
       for (const gl of gliders) drawImg(gl.img, gl.x, gl.y, gl.w, gl.h);
+      for (const gu of guns) drawImg(gu.img, gu.x, gu.y, gu.w, gu.h);
       // Draw coolants (styled as glowing blue orbs)
       for (const c of coolants) drawCoolant(c.x, c.y, c.w, c.h);
 
       // Draw flyers and shots
       for (const f of flyers) drawFlyer(f.x, f.y, f.w, f.h, f.state);
       for (const b of shots) drawBullet(b.x, b.y, b.w, b.h);
+      for (const pb of pshots) drawPlayerBullet(pb.x, pb.y, pb.w, pb.h);
 
       // Player
       const pf = animFrame===0?IMG.p1:animFrame===1?IMG.p2:animFrame===2?IMG.p3:IMG.p4;
@@ -970,6 +1045,20 @@
       grad.addColorStop(0, '#fff7ed');
       grad.addColorStop(0.5, '#fb923c');
       grad.addColorStop(1, '#c2410c');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    // Player bullets: cool blue/cyan glow to distinguish from enemy
+    function drawPlayerBullet(x, y, w, h){
+      const r = Math.min(w,h)/2; const cx = Math.round(x); const cy = Math.round(y);
+      ctx.save();
+      ctx.shadowColor = 'rgba(56, 189, 248, 0.75)'; ctx.shadowBlur = 12;
+      const grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
+      grad.addColorStop(0, '#e0f2fe');
+      grad.addColorStop(0.5, '#60a5fa');
+      grad.addColorStop(1, '#1e40af');
       ctx.fillStyle = grad;
       ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
       ctx.restore();

@@ -167,6 +167,8 @@
     let W = canvas.width, H = canvas.height;
 
     const topbar = document.querySelector('.topbar');
+    const startScreen = document.getElementById('startScreen');
+    const gameOver = document.getElementById('gameOver');
     const isTouch = window.matchMedia('(pointer: coarse)').matches;
     function resize() {
       const ratio = 16/9;
@@ -177,6 +179,14 @@
       canvas.style.width = w + 'px';
       canvas.style.height = h + 'px';
       canvas.style.top = topOffset + 'px';
+      if (startScreen) {
+        startScreen.style.top = topOffset + 'px';
+        startScreen.style.height = `calc(100% - ${topOffset}px)`;
+      }
+      if (gameOver) {
+        gameOver.style.top = topOffset + 'px';
+        gameOver.style.height = `calc(100% - ${topOffset}px)`;
+      }
     }
     window.addEventListener('resize', resize); resize();
 

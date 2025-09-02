@@ -253,6 +253,8 @@
     const jetpacks=[]; // jetpack pickup(s)
     const gliders=[];  // glider pickup(s)
     const coolants=[]; // coolant drops to reduce heat
+    const flyers=[];   // flying enemies that hover and shoot
+    const shots=[];    // enemy bullets
 
     // Parallax layers positions
     const L = {
@@ -266,7 +268,7 @@
       frameTimer=0; animFrame=0; spawnTimer=0; gemTimer=0; coolantTimer = rand(2.5, 4.5);
       heat = 0;
       worldFreeze = 0; hitFlash = 0; shake = 0; hitGrace = 0;
-      spikes.length=0; orbs.length=0; gems.length=0; jetpacks.length=0; gliders.length=0; coolants.length=0;
+      spikes.length=0; orbs.length=0; gems.length=0; jetpacks.length=0; gliders.length=0; coolants.length=0; flyers.length=0; shots.length=0;
       P.x = 200; P.y = GROUND_Y; P.vx = 0; P.vy = 0; P.onGround = true; P.glide=false; P.isJumping=false; P.jumpT=0;
       Object.assign(L, { sky1:0, sky2:W, h1:0, h2:W, f1:0, f2:W });
       // Clear any lingering input so the new run doesn't start with stuck keys
@@ -276,6 +278,7 @@
       hasGlider = false; gliderPicked = false;
       jetpackTimer = rand(6, 12); // first random spawn window
       gliderTimer = rand(4, 10);  // first random spawn window for glider
+      flyerTimer = rand(6, 12);   // first flying enemy spawn window
       hideStart(); hideGameOver();
     }
 
@@ -337,6 +340,8 @@
     const finalScore = document.getElementById('finalScore');
     const lbBtn = document.getElementById('lbBtn');
     const mobile = document.getElementById('mobileCtrls');
+    // Flying enemy spawn timer
+    let flyerTimer = 0;
 
     function showStart(){ startScreen.classList.remove('hidden'); maybeShowMobileCtrls(false); }
     function hideStart(){ startScreen.classList.add('hidden'); }
@@ -616,6 +621,30 @@
         if (coolantTimer < 1.2) coolantTimer = 1.2;
       }
 
+      // Flying enemy spawn
+      flyerTimer -= dt;
+      if (flyerTimer <= 0) {
+        const nowSec = time;
+        const x = W + 60;
+        const w = 52, h = 36;
+        const maxRow = Math.max(0, Math.floor((GROUND_Y - h/2) / GRID_CELL));
+        // Prefer mid-air lanes
+        const lowerHalfTopRow = Math.max(0, Math.floor((GROUND_Y - H*0.55) / GRID_CELL));
+        const minRow = Math.min(3, maxRow);
+        const row = tryReserveRow(Math.min(minRow, maxRow), Math.max(minRow+3, Math.min(maxRow, lowerHalfTopRow + 6)), nowSec);
+        const y = row !== null ? yForRow(row) : clamp(GROUND_Y - 4*GRID_CELL, 80, GROUND_Y-120);
+        const baseY = y;
+        flyers.push({
+          x, y, baseY, w, h,
+          state: 'approach',
+          t: 0, bobT: 0, hoverT: 0, hoverTime: rand(12.0, 21.0),
+          fireCd: rand(0.45, 0.9),
+          relVx: 0,
+          hitX: 0.70, hitY: 0.70
+        });
+        flyerTimer = rand(7, 14);
+      }
+
       // Move hazards + gems
       const move = v => v - RUN_SPEED * scrollMul * dt;
       for (const s of spikes) s.x = move(s.x);
@@ -624,6 +653,63 @@
       for (const jp of jetpacks) { jp.x = move(jp.x); jp.t += dt; jp.y += Math.sin(jp.t * 3.7) * 10 * dt; }
       for (const gl of gliders) { gl.x = move(gl.x); gl.t += dt; gl.y += Math.sin(gl.t * 3.9) * 10 * dt; }
       for (const c of coolants) { c.x = move(c.x); c.t += dt; c.y += Math.sin(c.t * 5.0) * 12 * dt; }
+
+      // Flying enemies movement and behavior
+      for (let i = flyers.length - 1; i >= 0; i--) {
+        const f = flyers[i];
+        f.t += dt; f.bobT += dt;
+        const targetX = Math.max(W - 260, P.x + 320);
+        if (f.state === 'approach') {
+          const dx = targetX - f.x;
+          // Match world scroll and steer towards target
+          const follow = RUN_SPEED * scrollMul + clamp(dx * 2.5, -400, 400);
+          f.relVx = follow;
+          // Settle Y with much larger bob
+          f.y = f.baseY + Math.sin(f.bobT * 2.4) * 96;
+          if (Math.abs(dx) < 12) f.state = 'hover';
+        } else if (f.state === 'hover') {
+          const dx = targetX - f.x;
+          f.relVx = RUN_SPEED * scrollMul + clamp(dx * 4.0, -320, 320);
+          f.hoverT += dt;
+          f.y = f.baseY + Math.sin(f.bobT * 2.8) * 110;
+          f.fireCd -= dt;
+          if (f.fireCd <= 0) {
+            // Fire aimed shot at current player position
+            const sx = f.x - f.w * 0.4; // muzzle towards left
+            const sy = f.y;
+            const dxs = (P.x - sx);
+            const dys = (P.y - sy);
+            const len = Math.hypot(dxs, dys) || 1;
+            const speed = 320;
+            const vx = (dxs / len) * speed;
+            const vy = (dys / len) * speed;
+            shots.push({ x: sx, y: sy, w: 12, h: 12, vx, vy, t: 0, hitX: 0.75, hitY: 0.75 });
+            f.fireCd = rand(0.45, 0.9);
+          }
+          if (f.hoverT >= f.hoverTime) {
+            f.state = 'leave';
+          }
+        } else if (f.state === 'leave') {
+          // Speed right relative to world to exit
+          f.relVx = RUN_SPEED * scrollMul + 650;
+          f.y = f.baseY + Math.sin(f.bobT * 3.0) * 80;
+        }
+        // Keep vertical within screen comfort bounds
+        f.y = clamp(f.y, 24, GROUND_Y - 40);
+        // Apply world scroll + relative motion
+        f.x = move(f.x) + f.relVx * dt;
+        // Cull offscreen both sides
+        if (f.x + f.w/2 < -80 || f.x - f.w/2 > W + 120) { flyers.splice(i,1); }
+      }
+
+      // Enemy shots movement
+      for (let i = shots.length - 1; i >= 0; i--) {
+        const s = shots[i];
+        s.t += dt;
+        s.x = move(s.x) + s.vx * dt;
+        s.y += s.vy * dt;
+        if (s.t > 6 || s.x < -100 || s.x > W + 180 || s.y < -120 || s.y > H + 120) shots.splice(i,1);
+      }
 
       // Remove offscreen
       while (spikes.length && spikes[0].x + spikes[0].w < 0) spikes.shift();
@@ -690,6 +776,30 @@
           P.y = Math.max(P.h/2, P.y - 10);
           hitGrace = 0.6; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
           return; // process one hazard hit per frame
+        }
+        // Flyer body collision
+        for (const f of flyers) if (hit(P, f)) {
+          heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
+          loseRandomItem();
+          P.vy = Math.min(P.vy, -350);
+          P.onGround = false;
+          P.y = Math.max(P.h/2, P.y - 10);
+          hitGrace = 0.6; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
+          return;
+        }
+        // Enemy shots collision
+        for (let i=shots.length-1; i>=0; i--) {
+          const b = shots[i];
+          if (hit(P, b)) {
+            heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
+            loseRandomItem();
+            shots.splice(i,1);
+            P.vy = Math.min(P.vy, -300);
+            P.onGround = false;
+            P.y = Math.max(P.h/2, P.y - 8);
+            hitGrace = 0.5; worldFreeze = Math.max(worldFreeze, 0.3); hitFlash = Math.max(hitFlash, 0.28); shake = Math.max(shake, 10);
+            return;
+          }
         }
       }
       // Gem pickups add score with multiplier based on current combo (applies AFTER 5/10 streak)
@@ -782,6 +892,10 @@
       // Draw coolants (styled as glowing blue orbs)
       for (const c of coolants) drawCoolant(c.x, c.y, c.w, c.h);
 
+      // Draw flyers and shots
+      for (const f of flyers) drawFlyer(f.x, f.y, f.w, f.h, f.state);
+      for (const b of shots) drawBullet(b.x, b.y, b.w, b.h);
+
       // Player
       const pf = animFrame===0?IMG.p1:animFrame===1?IMG.p2:animFrame===2?IMG.p3:IMG.p4;
       drawImg(pf, P.x, P.y, P.w, P.h);
@@ -819,6 +933,45 @@
       // highlight
       ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(255,255,255,0.7)';
       ctx.beginPath(); ctx.ellipse(cx - r*0.35, cy - r*0.35, r*0.45, r*0.28, -0.6, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    function drawFlyer(x, y, w, h, state){
+      const bx = Math.round(x); const by = Math.round(y);
+      ctx.save();
+      // Body shadow
+      ctx.shadowColor = 'rgba(255,215,0,0.25)'; ctx.shadowBlur = 8;
+      // Ship body
+      ctx.translate(bx, by);
+      ctx.fillStyle = '#5F9EA0';
+      ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 2;
+      const hw = w/2, hh = h/2;
+      ctx.beginPath();
+      ctx.moveTo(-hw*0.2, -hh*0.9);
+      ctx.lineTo(hw*0.9, 0);
+      ctx.lineTo(-hw*0.2, hh*0.9);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      // Cockpit
+      ctx.fillStyle = '#B0E0E6';
+      ctx.beginPath(); ctx.arc(-hw*0.05, 0, h*0.18, 0, Math.PI*2); ctx.fill();
+      // Engine glow
+      const flame = state==='leave' ? 1.0 : 0.6 + Math.sin(now()*0.02)*0.2;
+      ctx.fillStyle = `rgba(255,140,0,${0.6+0.3*flame})`;
+      ctx.beginPath(); ctx.ellipse(-hw*0.35, 0, w*0.18, h*0.22, 0, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    function drawBullet(x, y, w, h){
+      const r = Math.min(w,h)/2; const cx = Math.round(x); const cy = Math.round(y);
+      ctx.save();
+      ctx.shadowColor = 'rgba(255, 140, 0, 0.7)'; ctx.shadowBlur = 10;
+      const grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
+      grad.addColorStop(0, '#fff7ed');
+      grad.addColorStop(0.5, '#fb923c');
+      grad.addColorStop(1, '#c2410c');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
       ctx.restore();
     }
 

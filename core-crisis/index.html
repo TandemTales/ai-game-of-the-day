@@ -140,11 +140,7 @@
       </div>
     </div>
 
-    <div id="mobileCtrls" class="hidden">
-      <button class="btn btn-primary" id="btnJump">Jump</button>
-      <button class="btn btn-primary" id="btnGlide">Glide</button>
-      <button class="btn btn-primary" id="btnDive">Dive</button>
-    </div>
+    <div id="mobileCtrls" class="hidden"></div>
 
     <div class="center hidden" id="gameOver">
       <div class="panel">
@@ -413,12 +409,7 @@
       key.space = false; key.down = false;
     });
     canvas.addEventListener('pointercancel', ()=>{ key.space=false; key.down=false; });
-    document.getElementById('btnJump').addEventListener('pointerdown', ()=> { key.space=true; primaryPressPulse = true; });
-    document.getElementById('btnJump').addEventListener('pointerup', ()=> key.space=false);
-    document.getElementById('btnGlide').addEventListener('pointerdown', ()=> key.up=true);
-    document.getElementById('btnGlide').addEventListener('pointerup', ()=> key.up=false);
-    document.getElementById('btnDive').addEventListener('pointerdown', ()=> key.down=true);
-    document.getElementById('btnDive').addEventListener('pointerup', ()=> key.down=false);
+    // Mobile button controls removed
 
     function update(dt){
       time += dt;

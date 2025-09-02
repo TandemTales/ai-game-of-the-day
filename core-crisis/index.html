@@ -1075,22 +1075,28 @@
         ctx.save();
         ctx.lineWidth = 1;
         ctx.setLineDash([4, 6]);
-        // Vertical grid lines (columns)
-        ctx.strokeStyle = 'rgba(56,189,248,0.25)'; // soft cyan
+        // Helper for positive modulus
+        const mod = (a, n) => ((a % n) + n) % n;
+        // Vertical grid lines represent column BORDERS and scroll with the world.
+        // World border positions are at (k + 0.5) * GRID_CELL; screen offset uses traveled distance `dist`.
+        const startX = mod(-dist + GRID_CELL/2, GRID_CELL);
+        ctx.strokeStyle = 'rgba(56,189,248,0.28)'; // soft cyan
         ctx.beginPath();
-        for (let x = 0; x <= W; x += GRID_CELL) {
-          ctx.moveTo(Math.round(x) + 0.5, 0);
-          ctx.lineTo(Math.round(x) + 0.5, H);
+        for (let x = startX; x <= W; x += GRID_CELL) {
+          const xx = Math.round(x) + 0.5;
+          ctx.moveTo(xx, 0);
+          ctx.lineTo(xx, H);
         }
         ctx.stroke();
-        // Horizontal grid lines (rows from ground up)
-        ctx.strokeStyle = 'rgba(255,215,0,0.2)'; // soft gold
+
+        // Horizontal grid lines represent row BORDERS (between centers).
+        // They are fixed relative to GROUND_Y and do not scroll vertically.
+        ctx.strokeStyle = 'rgba(255,215,0,0.28)'; // soft gold
         ctx.beginPath();
-        for (let r = 0;; r++) {
-          const y = yForRow(r);
-          if (y < 0) break;
-          ctx.moveTo(0, Math.round(y) + 0.5);
-          ctx.lineTo(W, Math.round(y) + 0.5);
+        for (let y = GROUND_Y - GRID_CELL/2; y >= 0; y -= GRID_CELL) {
+          const yy = Math.round(y) + 0.5;
+          ctx.moveTo(0, yy);
+          ctx.lineTo(W, yy);
         }
         ctx.stroke();
         ctx.restore();

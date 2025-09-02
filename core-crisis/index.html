@@ -313,11 +313,15 @@
     // Convert between row index and Y center. Row 0 is at ground, grows upward.
     const yForRow = (row) => GROUND_Y - row * GRID_CELL;
     const rowForY = (y) => Math.max(0, Math.round((GROUND_Y - y) / GRID_CELL));
-    // Compute a grid-aligned X near the spawn position
+    // Compute a grid-aligned X near the spawn position.
+    // Align to WORLD cell centers so it matches the scrolling grid borders.
+    // With borders at (k+0.5)*GRID_CELL, centers are at k*GRID_CELL in world space.
+    // Screen phase for centers is `(-dist) mod GRID_CELL`.
     const gridSpawnX = () => {
       const spawn = W + 40;
-      const col = Math.round(spawn / GRID_CELL);
-      return col * GRID_CELL;
+      const phase = ((-dist % GRID_CELL) + GRID_CELL) % GRID_CELL; // 0..GRID_CELL
+      const n = Math.round((spawn - phase) / GRID_CELL);
+      return phase + n * GRID_CELL;
     };
     // Clear expired row reservations for the spawn column
     function sweepGrid(nowSec){
@@ -607,7 +611,7 @@
           const row = tryReserveRow(Math.min(2, maxRow), maxRow, nowSec);
           if (row !== null) {
             const y = yForRow(row);
-            orbs.push({ x, y, w: 48, h: 48, img: IMG.orb, t: 0, hitX: 0.56, hitY: 0.56 });
+            orbs.push({ x, y, baseY: y, w: 48, h: 48, img: IMG.orb, t: 0, hitX: 0.56, hitY: 0.56 });
           }
         }
       }
@@ -624,7 +628,7 @@
         const row = tryReserveRow(Math.min(minRow, maxRow), maxRow, nowSec);
         if (row !== null) {
           const y = yForRow(row);
-          gems.push({ x, y, w: GEM_W, h: GEM_H, img: IMG.gem, t: 0, hitX: 0.60, hitY: 0.60 });
+          gems.push({ x, y, baseY: y, w: GEM_W, h: GEM_H, img: IMG.gem, t: 0, hitX: 0.60, hitY: 0.60 });
         }
       }
 
@@ -640,8 +644,9 @@
         const minRow = 1, maxRow = 3;
         const row = tryReserveRow(minRow, maxRow, nowSec);
         if (row !== null) {
-          const topY = yForRow(row);
-          const y = topY + h/2; // store center for drawing and math
+          // Place platform TOP on a horizontal grid border (half-cell above row center)
+          const borderTop = yForRow(row) - GRID_CELL/2;
+          const y = borderTop + h/2; // center for drawing and math
           platforms.push({ x, y, w, h });
         }
       }
@@ -661,7 +666,7 @@
           const row = tryReserveRow(minRow, cappedMaxRow, nowSec);
           if (row !== null) {
             const y = yForRow(row);
-            jetpacks.push({ x, y, w, h, img: IMG.jetpack, t: 0, hitX: 0.70, hitY: 0.70 });
+            jetpacks.push({ x, y, baseY: y, w, h, img: IMG.jetpack, t: 0, hitX: 0.70, hitY: 0.70 });
           }
           // schedule next appearance only if it scrolls off without pickup
           jetpackTimer = rand(8, 16);
@@ -682,7 +687,7 @@
           const row = tryReserveRow(minRow, cappedMaxRow, nowSec);
           if (row !== null) {
             const y = yForRow(row);
-            gliders.push({ x, y, w, h, img: IMG.glider, t: 0, hitX: 0.70, hitY: 0.70 });
+            gliders.push({ x, y, baseY: y, w, h, img: IMG.glider, t: 0, hitX: 0.70, hitY: 0.70 });
           }
           gliderTimer = rand(7, 14);
         }
@@ -702,7 +707,7 @@
           const row = tryReserveRow(minRow, cappedMaxRow, nowSec);
           if (row !== null) {
             const y = yForRow(row);
-            guns.push({ x, y, w, h, img: IMG.gun, t: 0, hitX: 0.70, hitY: 0.70 });
+            guns.push({ x, y, baseY: y, w, h, img: IMG.gun, t: 0, hitX: 0.70, hitY: 0.70 });
           }
           gunTimer = rand(8, 16);
         }
@@ -723,7 +728,7 @@
           const row = tryReserveRow(minRow, cappedMaxRow, nowSec);
           if (row !== null) {
             const y = yForRow(row);
-            shields.push({ x, y, w, h, img: IMG.shield, t: 0, hitX: 0.70, hitY: 0.70 });
+            shields.push({ x, y, baseY: y, w, h, img: IMG.shield, t: 0, hitX: 0.70, hitY: 0.70 });
           }
           shieldTimer = rand(7, 14);
         }
@@ -740,7 +745,7 @@
         if (row !== null) {
           const y = yForRow(row);
           // Coolant sphere with generous pickup box
-          coolants.push({ x, y, w, h, t: 0, hitX: 0.75, hitY: 0.75 });
+          coolants.push({ x, y, baseY: y, w, h, t: 0, hitX: 0.75, hitY: 0.75 });
         }
         // Dynamic next spawn: slightly faster when hot
         const bias = 1.5 * (heat / HEAT_MAX);
@@ -776,13 +781,13 @@
       const move = v => v - RUN_SPEED * scrollMul * dt;
       for (const s of spikes) s.x = move(s.x);
       for (const pl of platforms) pl.x = move(pl.x);
-      for (const o of orbs) { o.x = move(o.x); o.t += dt; o.y += Math.sin(o.t * 4.3) * 18 * dt; }
-      for (const gobj of gems) { gobj.x = move(gobj.x); gobj.t += dt; gobj.y += Math.sin(gobj.t * 6.1) * 14 * dt; }
-      for (const jp of jetpacks) { jp.x = move(jp.x); jp.t += dt; jp.y += Math.sin(jp.t * 3.7) * 10 * dt; }
-      for (const gl of gliders) { gl.x = move(gl.x); gl.t += dt; gl.y += Math.sin(gl.t * 3.9) * 10 * dt; }
-      for (const gu of guns) { gu.x = move(gu.x); gu.t += dt; gu.y += Math.sin(gu.t * 3.5) * 10 * dt; }
-      for (const sh of shields) { sh.x = move(sh.x); sh.t += dt; sh.y += Math.sin(sh.t * 3.6) * 10 * dt; }
-      for (const c of coolants) { c.x = move(c.x); c.t += dt; c.y += Math.sin(c.t * 5.0) * 12 * dt; }
+      for (const o of orbs) { o.x = move(o.x); o.t += dt; o.y = (o.baseY ?? o.y) + Math.sin(o.t * 4.3) * 18; }
+      for (const gobj of gems) { gobj.x = move(gobj.x); gobj.t += dt; gobj.y = (gobj.baseY ?? gobj.y) + Math.sin(gobj.t * 6.1) * 14; }
+      for (const jp of jetpacks) { jp.x = move(jp.x); jp.t += dt; jp.y = (jp.baseY ?? jp.y) + Math.sin(jp.t * 3.7) * 10; }
+      for (const gl of gliders) { gl.x = move(gl.x); gl.t += dt; gl.y = (gl.baseY ?? gl.y) + Math.sin(gl.t * 3.9) * 10; }
+      for (const gu of guns) { gu.x = move(gu.x); gu.t += dt; gu.y = (gu.baseY ?? gu.y) + Math.sin(gu.t * 3.5) * 10; }
+      for (const sh of shields) { sh.x = move(sh.x); sh.t += dt; sh.y = (sh.baseY ?? sh.y) + Math.sin(sh.t * 3.6) * 10; }
+      for (const c of coolants) { c.x = move(c.x); c.t += dt; c.y = (c.baseY ?? c.y) + Math.sin(c.t * 5.0) * 12; }
 
       // Flying enemies movement and behavior
       for (let i = flyers.length - 1; i >= 0; i--) {

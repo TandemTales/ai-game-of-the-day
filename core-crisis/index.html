@@ -121,12 +121,15 @@
         <div class="chip hidden" id="gliderHud">
           <div class="jet-label">Glider</div>
         </div>
-        <div class="chip hidden" id="gunHud">
-          <div class="jet-label">Gun</div>
-        </div>
-        <a href="../index.html" class="btn btn-primary back">← Back to Home</a>
+      <div class="chip hidden" id="gunHud">
+        <div class="jet-label">Gun</div>
       </div>
+      <div class="chip hidden" id="shieldHud">
+        <div class="jet-label">Shield</div>
+      </div>
+      <a href="../index.html" class="btn btn-primary back">← Back to Home</a>
     </div>
+  </div>
 
     <div class="center" id="startScreen">
       <div class="panel">
@@ -184,6 +187,7 @@
       jetpack: 'assets/jetpack.svg',
       glider: 'assets/glider.svg',
       gun: 'assets/gun.svg',
+      shield: 'assets/shield.svg',
     };
 
     const IMG = {};
@@ -247,6 +251,11 @@
     let gunTimer = 0;               // timer to attempt spawns when not picked
     let gunFireCd = 0;              // cooldown timer between auto shots
 
+    // Shield systems (prevents heat increase while owned; lost first on hit)
+    let hasShield = false;          // player has collected shield
+    let shieldPicked = false;       // prevent future spawns after pickup
+    let shieldTimer = 0;            // timer to attempt spawns when not picked
+
     // Player
     // Player with slightly smaller hitbox to avoid early collisions
     // Player collision tuned smaller and slightly raised to avoid foot/brim overlaps
@@ -259,6 +268,7 @@
     const jetpacks=[]; // jetpack pickup(s)
     const gliders=[];  // glider pickup(s)
     const guns=[];     // gun pickup(s)
+    const shields=[];  // shield pickup(s)
     const coolants=[]; // coolant drops to reduce heat
     const flyers=[];   // flying enemies that hover and shoot
     const shots=[];    // enemy bullets
@@ -285,6 +295,7 @@
       hasJetpack = false; jetpackPicked = false; jetFuel = 0; prevSpaceHeld = false; wasOnGround = true; jetActive = false; primaryPressPulse = false;
       hasGlider = false; gliderPicked = false;
       hasGun = false; gunPicked = false; gunFireCd = 0; gunTimer = rand(5, 10);
+      hasShield = false; shieldPicked = false; shieldTimer = rand(5, 11);
       jetpackTimer = rand(6, 12); // first random spawn window
       gliderTimer = rand(4, 10);  // first random spawn window for glider
       flyerTimer = rand(6, 12);   // first flying enemy spawn window
@@ -293,7 +304,7 @@
 
     // Grid-based placement to align items and prevent overlaps at spawn
     // Choose a grid cell size large enough to fit the largest item entirely
-    const GRID_CELL = Math.max(54, 48, 44, 44, 34, 28); // spike=54, orb=48, jetpack=44, glider=44, gem=34, coolant=28
+    const GRID_CELL = Math.max(54, 48, 44, 44, 44, 34, 28); // spike=54, orb=48, jetpack=44, glider=44, shield=44, gem=34, coolant=28
     // Occupied spawn-column rows with expiry times (seconds since start)
     const gridOccupied = new Map(); // rowIndex -> expiresAtTime
     // Convert between row index and Y center. Row 0 is at ground, grows upward.
@@ -347,6 +358,7 @@
     const heatHud = document.getElementById('heatHud');
     const heatFill = document.getElementById('heatFill');
     const heatText = document.getElementById('heatText');
+    const shieldHud = document.getElementById('shieldHud');
     const finalScore = document.getElementById('finalScore');
     const lbBtn = document.getElementById('lbBtn');
     const mobile = document.getElementById('mobileCtrls');
@@ -424,7 +436,8 @@
       const multTxt = currentMult > 1 ? ` | x${currentMult}` : '';
       scoreHud.textContent = `Score: ${score} | Combo: ${combo}${multTxt}`;
       // Heat: increases over time; collect coolants to reduce
-      heat = clamp(heat + HEAT_GAIN_RATE * dt, 0, HEAT_MAX);
+      // While carrying a shield, heat does not increase
+      if (!hasShield) heat = clamp(heat + HEAT_GAIN_RATE * dt, 0, HEAT_MAX);
       const heatPct = Math.round((heat / HEAT_MAX) * 100);
       if (heatFill) heatFill.style.width = `${heatPct}%`;
       if (heatText) heatText.textContent = `${heatPct}%`;
@@ -445,6 +458,10 @@
       // Gun HUD
       if (typeof gunHud !== 'undefined' && gunHud) {
         if (hasGun) gunHud.classList.remove('hidden'); else gunHud.classList.add('hidden');
+      }
+      // Shield HUD
+      if (typeof shieldHud !== 'undefined' && shieldHud) {
+        if (hasShield) shieldHud.classList.remove('hidden'); else shieldHud.classList.add('hidden');
       }
 
       // Mobile controls visibility
@@ -631,6 +648,27 @@
         }
       }
 
+      // Shield spawn logic – grid-aligned until picked
+      if (!shieldPicked && shields.length === 0) {
+        shieldTimer -= dt;
+        if (shieldTimer <= 0) {
+          const nowSec = time;
+          const x = gridSpawnX();
+          const w = 44, h = 44;
+          const maxRow = Math.max(0, Math.floor((GROUND_Y - h/2) / GRID_CELL));
+          // Prefer lower half like other gear
+          const lowerHalfTopRow = Math.max(0, Math.floor((GROUND_Y - H/2) / GRID_CELL));
+          const cappedMaxRow = Math.min(maxRow, lowerHalfTopRow);
+          const minRow = Math.min(2, cappedMaxRow);
+          const row = tryReserveRow(minRow, cappedMaxRow, nowSec);
+          if (row !== null) {
+            const y = yForRow(row);
+            shields.push({ x, y, w, h, img: IMG.shield, t: 0, hitX: 0.70, hitY: 0.70 });
+          }
+          shieldTimer = rand(7, 14);
+        }
+      }
+
       // Coolant drops spawn (grid-aligned)
       coolantTimer -= dt;
       if (coolantTimer <= 0) {
@@ -682,6 +720,7 @@
       for (const jp of jetpacks) { jp.x = move(jp.x); jp.t += dt; jp.y += Math.sin(jp.t * 3.7) * 10 * dt; }
       for (const gl of gliders) { gl.x = move(gl.x); gl.t += dt; gl.y += Math.sin(gl.t * 3.9) * 10 * dt; }
       for (const gu of guns) { gu.x = move(gu.x); gu.t += dt; gu.y += Math.sin(gu.t * 3.5) * 10 * dt; }
+      for (const sh of shields) { sh.x = move(sh.x); sh.t += dt; sh.y += Math.sin(sh.t * 3.6) * 10 * dt; }
       for (const c of coolants) { c.x = move(c.x); c.t += dt; c.y += Math.sin(c.t * 5.0) * 12 * dt; }
 
       // Flying enemies movement and behavior
@@ -757,6 +796,7 @@
       while (jetpacks.length && jetpacks[0].x + jetpacks[0].w < 0) jetpacks.shift();
       while (gliders.length && gliders[0].x + gliders[0].w < 0) gliders.shift();
       while (guns.length && guns[0].x + guns[0].w < 0) guns.shift();
+      while (shields.length && shields[0].x + shields[0].w < 0) shields.shift();
       while (coolants.length && coolants[0].x + coolants[0].w < 0) coolants.shift();
 
       // Collisions
@@ -773,8 +813,14 @@
         const bh = b.h * (b.hitY || 1);
         return Math.abs(ax - bx) * 2 < (aw + bw) && Math.abs(ay - by) * 2 < (ah + bh);
       }
-      // Hazard collisions: add heat and randomly drop one owned item (jetpack, glider, or gun). Only die when heat maxes.
+      // Hazard collisions: add heat and drop items. If shield is owned, it is consumed first and prevents heat gain on that hit.
       if (hitGrace <= 0) {
+        function consumeShieldOnHit() {
+          if (!hasShield) return false;
+          // Lose shield first, without adding heat penalty
+          hasShield = false; shieldPicked = false; shieldTimer = rand(5, 11);
+          return true;
+        }
         // helper to lose one item fairly when hit
         function loseRandomItem(){
           const options = [];
@@ -793,9 +839,11 @@
           return pick;
         }
         for (const s of spikes) if (hit(P, s)) {
-          // Apply heat penalty based on whether a jetpack was owned at impact
-          heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
-          loseRandomItem();
+          if (!consumeShieldOnHit()) {
+            // Apply heat penalty based on whether a jetpack was owned at impact
+            heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
+            loseRandomItem();
+          }
           // Bounce up to escape overlap and start grace window
           P.vy = Math.min(P.vy, -350);
           P.onGround = false;
@@ -804,8 +852,10 @@
           return; // process one hazard hit per frame
         }
         for (const o of orbs) if (hit(P, o)) {
-          heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
-          loseRandomItem();
+          if (!consumeShieldOnHit()) {
+            heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
+            loseRandomItem();
+          }
           // Bounce away and grace
           P.vy = Math.min(P.vy, -350);
           P.onGround = false;
@@ -815,8 +865,10 @@
         }
         // Flyer body collision
         for (const f of flyers) if (hit(P, f)) {
-          heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
-          loseRandomItem();
+          if (!consumeShieldOnHit()) {
+            heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
+            loseRandomItem();
+          }
           P.vy = Math.min(P.vy, -350);
           P.onGround = false;
           P.y = Math.max(P.h/2, P.y - 10);
@@ -827,8 +879,10 @@
         for (let i=shots.length-1; i>=0; i--) {
           const b = shots[i];
           if (hit(P, b)) {
-            heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
-            loseRandomItem();
+            if (!consumeShieldOnHit()) {
+              heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
+              loseRandomItem();
+            }
             shots.splice(i,1);
             P.vy = Math.min(P.vy, -300);
             P.onGround = false;
@@ -868,6 +922,13 @@
         const gu = guns[i];
         if (hit(P, gu)) {
           hasGun = true; gunPicked = true; guns.splice(i,1);
+        }
+      }
+      // Shield pickup
+      for (let i=shields.length-1; i>=0; i--) {
+        const sh = shields[i];
+        if (hit(P, sh)) {
+          hasShield = true; shieldPicked = true; shields.splice(i,1);
         }
       }
       // Coolant pickup: reduce heat
@@ -954,6 +1015,7 @@
       for (const jp of jetpacks) drawImg(jp.img, jp.x, jp.y, jp.w, jp.h);
       for (const gl of gliders) drawImg(gl.img, gl.x, gl.y, gl.w, gl.h);
       for (const gu of guns) drawImg(gu.img, gu.x, gu.y, gu.w, gu.h);
+      for (const sh of shields) drawImg(sh.img, sh.x, sh.y, sh.w, sh.h);
       // Draw coolants (styled as glowing blue orbs)
       for (const c of coolants) drawCoolant(c.x, c.y, c.w, c.h);
 

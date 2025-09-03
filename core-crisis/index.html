@@ -182,25 +182,43 @@
 
     // Asset loading
     const ASSETS = {
-      sky: 'assets/parallax-sky.svg',
-      hills: 'assets/parallax-mountains.svg',
-      fg: 'assets/parallax-foreground.svg',
-      p1: 'assets/player-run-1.svg',
-      p2: 'assets/player-run-2.svg',
-      p3: 'assets/player-run-3.svg',
-      p4: 'assets/player-run-4.svg',
-      spike: 'assets/spike.svg',
+      bg: 'assets/rr_parallax_background.png',
+      botRun: 'assets/Bot_animation_running.png',
+      botGrab: 'assets/Bot_animation_grabbing.png',
+      botFly: 'assets/Bot_animation_Flying.png',
+      botFlyHit: 'assets/Bot_animation_flying_hit.png',
+      botFlameUp: 'assets/Bot_animation_Flame_up.png',
+      botFlameDown: 'assets/Bot_animation_Flame_down.png',
+      buttonOff: 'assets/rr_button_off.png',
+      buttonOn: 'assets/rr_button_on.png',
+      claw: 'assets/rr_claw01.png',
+      cog: 'assets/rr_cog_animation.png',
+      conveyor1: 'assets/rr_conveyor01.png',
+      conveyor2: 'assets/rr_conveyor02.png',
+      enemyFly: 'assets/rr_enemy_flying.png',
+      hook: 'assets/rr_hook.png',
+      coolantLarge: 'assets/rr_pickup_coolant_large.png',
+      coolantSmall: 'assets/rr_pickup_coolant_small.png',
+      jetpackPickup: 'assets/rr_pickup_jetpack.png',
+      shieldPickup: 'assets/rr_pickup_shield.png',
+      saw: 'assets/rr_sawtable_animation.png',
+      shieldBubble: 'assets/rr_shield.png',
+      smasher: 'assets/rr_smasher.png',
       orb: 'assets/orb.svg',
       gem: 'assets/gem.svg',
-      jetpack: 'assets/jetpack.svg',
       glider: 'assets/glider.svg',
-      gun: 'assets/gun.svg',
-      shield: 'assets/shield.svg',
+      gun: 'assets/gun.svg'
     };
 
     const IMG = {};
+    const FRAME = 128;
+    let RUN_FRAMES = 1, FLY_FRAMES = 1, GRAB_FRAMES = 1, FLY_HIT_FRAMES = 1;
     function loadImage(path) { return new Promise(res=>{ const i=new Image(); i.src=path; i.onload=()=>res(i); i.onerror=()=>res(i); }); }
     Promise.all(Object.entries(ASSETS).map(async ([k,p])=> IMG[k] = await loadImage(p))).then(()=>{
+      RUN_FRAMES = Math.max(1, Math.floor((IMG.botRun?.width||FRAME) / FRAME));
+      FLY_FRAMES = Math.max(1, Math.floor((IMG.botFly?.width||FRAME) / FRAME));
+      GRAB_FRAMES = Math.max(1, Math.floor((IMG.botGrab?.width||FRAME) / FRAME));
+      FLY_HIT_FRAMES = Math.max(1, Math.floor((IMG.botFlyHit?.width||FRAME) / FRAME));
       init();
       showStart();
       draw(0);
@@ -253,6 +271,7 @@
     let wasOnGround = true;         // previous frame ground state
     let primaryPressPulse = false;  // set true on pointerdown/keydown; consumed in update
     let jetActive = false;          // currently thrusting due to a midair press
+    let pickupAnim = 0;             // timer for pickup grab animation
 
     // Gun systems (auto-fires to the right when owned)
     let hasGun = false;             // player has collected gun
@@ -286,9 +305,7 @@
 
     // Parallax layers positions
     const L = {
-      sky1:0, sky2:W,
-      h1:0, h2:W,
-      f1:0, f2:W,
+      bg1:0, bg2:W,
     }
 
     function reset() {
@@ -298,7 +315,7 @@
       worldFreeze = 0; hitFlash = 0; shake = 0; hitGrace = 0;
       spikes.length=0; platforms.length=0; orbs.length=0; gems.length=0; jetpacks.length=0; gliders.length=0; guns.length=0; coolants.length=0; flyers.length=0; shots.length=0; pshots.length=0;
       P.x = 200; P.y = GROUND_Y; P.vx = 0; P.vy = 0; P.onGround = true; P.glide=false; P.isJumping=false; P.jumpT=0;
-      Object.assign(L, { sky1:0, sky2:W, h1:0, h2:W, f1:0, f2:W });
+      Object.assign(L, { bg1:0, bg2:W });
       // Clear any lingering input so the new run doesn't start with stuck keys
       key.space = false; key.up = false; key.down = false;
       // Jetpack reset
@@ -306,6 +323,7 @@
       hasGlider = false; gliderPicked = false;
       hasGun = false; gunPicked = false; gunFireCd = 0; gunTimer = rand(5, 10);
       hasShield = false; shieldPicked = false; shieldTimer = rand(5, 11);
+      pickupAnim = 0;
       jetpackTimer = rand(6, 12); // first random spawn window
       gliderTimer = rand(4, 10);  // first random spawn window for glider
       flyerTimer = rand(6, 12);   // first flying enemy spawn window
@@ -500,10 +518,8 @@
       maybeShowMobileCtrls(isSmall && running && !dead);
 
       // Background parallax scroll
-      const s1 = RUN_SPEED * 0.12 * dt * scrollMul, s2 = RUN_SPEED * 0.32 * dt * scrollMul, s3 = RUN_SPEED * 0.64 * dt * scrollMul;
-      L.sky1 -= s1; L.sky2 -= s1; if (L.sky1 + W < 0) L.sky1 = L.sky2 + W; if (L.sky2 + W < 0) L.sky2 = L.sky1 + W;
-      L.h1 -= s2; L.h2 -= s2; if (L.h1 + W < 0) L.h1 = L.h2 + W; if (L.h2 + W < 0) L.h2 = L.h1 + W;
-      L.f1 -= s3; L.f2 -= s3; if (L.f1 + W < 0) L.f1 = L.f2 + W; if (L.f2 + W < 0) L.f2 = L.f1 + W;
+      const s = RUN_SPEED * 0.32 * dt * scrollMul;
+      L.bg1 -= s; L.bg2 -= s; if (L.bg1 + W < 0) L.bg1 = L.bg2 + W; if (L.bg2 + W < 0) L.bg2 = L.bg1 + W;
 
       // Player physics
       // Variable jump: full gravity by default; reduced while rising if jump held (up to cap)
@@ -597,9 +613,10 @@
 
       // Animate player run
       frameTimer += dt;
+      pickupAnim = Math.max(0, pickupAnim - dt);
       let cadence = 0.12;
       if (P.onGround) cadence = 0.08; else if (P.glide) cadence = 0.18;
-      if (frameTimer > cadence) { frameTimer = 0; animFrame = (animFrame + 1) % 4; }
+      if (frameTimer > cadence) { frameTimer = 0; animFrame = (animFrame + 1) % 1000; }
 
       // Spawning hazards
       spawnTimer -= dt;
@@ -608,19 +625,25 @@
         const nowSec = time;
         const x = gridSpawnX();
         if (Math.random() < 0.55) {
-          // Spike at ground: reserve row 0 if free; otherwise skip this cycle
+          // Ground hazard: reserve row 0 if free
           const row = tryReserveRow(0, 0, nowSec);
           if (row !== null) {
             const y = yForRow(row);
-            spikes.push({ x, y, w: 54, h: 54, img: IMG.spike, hitX: 0.42, hitY: 0.30, hitOffsetY: -12 });
+            const imgs = [IMG.cog, IMG.saw, IMG.botFlameUp, IMG.smasher];
+            const img = imgs[Math.floor(Math.random() * imgs.length)];
+            const frames = Math.max(1, Math.floor((img.width || FRAME) / FRAME));
+            spikes.push({ x, y, w: 54, h: 54, img, frame:0, ft:0, frames, hitX: 0.42, hitY: 0.30, hitOffsetY: -12 });
           }
         } else {
-          // Floating orb: allow rows safely above ground (row >= 2)
+          // Ceiling/air hazards
           const maxRow = Math.max(0, Math.floor((GROUND_Y - 48/2) / GRID_CELL));
           const row = tryReserveRow(Math.min(2, maxRow), maxRow, nowSec);
           if (row !== null) {
             const y = yForRow(row);
-            orbs.push({ x, y, baseY: y, w: 48, h: 48, img: IMG.orb, t: 0, hitX: 0.56, hitY: 0.56 });
+            const imgs = [IMG.claw, IMG.botFlameDown, IMG.buttonOff, IMG.buttonOn, IMG.hook];
+            const img = imgs[Math.floor(Math.random() * imgs.length)];
+            const frames = Math.max(1, Math.floor((img.width || FRAME) / FRAME));
+            orbs.push({ x, y, baseY: y, w: 48, h: 48, img, t: 0, frame:0, ft:0, frames, hitX: 0.56, hitY: 0.56 });
           }
         }
       }
@@ -656,7 +679,7 @@
           // Place platform TOP on a horizontal grid border (half-cell above row center)
           const borderTop = yForRow(row) - GRID_CELL/2;
           const y = borderTop + h/2; // center for drawing and math
-          platforms.push({ x, y, w, h });
+          platforms.push({ x, y, w, h, img: Math.random()<0.5?IMG.conveyor1:IMG.conveyor2 });
         }
       }
 
@@ -675,7 +698,7 @@
           const row = tryReserveRow(minRow, cappedMaxRow, nowSec);
           if (row !== null) {
             const y = yForRow(row);
-            jetpacks.push({ x, y, baseY: y, w, h, img: IMG.jetpack, t: 0, hitX: 0.70, hitY: 0.70 });
+            jetpacks.push({ x, y, baseY: y, w, h, img: IMG.jetpackPickup, t: 0, hitX: 0.70, hitY: 0.70 });
           }
           // schedule next appearance only if it scrolls off without pickup
           jetpackTimer = rand(8, 16);
@@ -737,7 +760,7 @@
           const row = tryReserveRow(minRow, cappedMaxRow, nowSec);
           if (row !== null) {
             const y = yForRow(row);
-            shields.push({ x, y, baseY: y, w, h, img: IMG.shield, t: 0, hitX: 0.70, hitY: 0.70 });
+            shields.push({ x, y, baseY: y, w, h, img: IMG.shieldPickup, t: 0, hitX: 0.70, hitY: 0.70 });
           }
           shieldTimer = rand(7, 14);
         }
@@ -753,8 +776,9 @@
         const row = tryReserveRow(Math.min(2, maxRow), maxRow, nowSec);
         if (row !== null) {
           const y = yForRow(row);
-          // Coolant sphere with generous pickup box
-          coolants.push({ x, y, baseY: y, w, h, t: 0, hitX: 0.75, hitY: 0.75 });
+          // Coolant pickup
+          const img = Math.random() < 0.3 ? IMG.coolantLarge : IMG.coolantSmall;
+          coolants.push({ x, y, baseY: y, w, h, img, t: 0, hitX: 0.75, hitY: 0.75 });
         }
         // Dynamic next spawn: slightly faster when hot
         const bias = 1.5 * (heat / HEAT_MAX);
@@ -776,7 +800,7 @@
         const y = row !== null ? yForRow(row) : clamp(GROUND_Y - 4*GRID_CELL, 80, GROUND_Y-120);
         const baseY = y;
         flyers.push({
-          x, y, baseY, w, h,
+          x, y, baseY, w, h, img: IMG.enemyFly,
           state: 'approach',
           t: 0, bobT: 0, hoverT: 0, hoverTime: rand(12.0, 21.0),
           fireCd: rand(0.45, 0.9),
@@ -788,9 +812,9 @@
 
       // Move hazards + gems
       const move = v => v - RUN_SPEED * scrollMul * dt;
-      for (const s of spikes) s.x = move(s.x);
+      for (const s of spikes) { s.x = move(s.x); if (s.frames>1){ s.ft += dt; if (s.ft>0.1){ s.ft=0; s.frame=(s.frame+1)%s.frames; } } }
       for (const pl of platforms) pl.x = move(pl.x);
-      for (const o of orbs) { o.x = move(o.x); o.t += dt; o.y = (o.baseY ?? o.y) + Math.sin(o.t * 4.3) * 18; }
+      for (const o of orbs) { o.x = move(o.x); o.t += dt; o.y = (o.baseY ?? o.y) + Math.sin(o.t * 4.3) * 18; if (o.frames>1){ o.ft += dt; if (o.ft>0.1){ o.ft=0; o.frame=(o.frame+1)%o.frames; } } }
       for (const gobj of gems) { gobj.x = move(gobj.x); gobj.t += dt; gobj.y = (gobj.baseY ?? gobj.y) + Math.sin(gobj.t * 6.1) * 14; }
       for (const jp of jetpacks) { jp.x = move(jp.x); jp.t += dt; jp.y = (jp.baseY ?? jp.y) + Math.sin(jp.t * 3.7) * 10; }
       for (const gl of gliders) { gl.x = move(gl.x); gl.t += dt; gl.y = (gl.baseY ?? gl.y) + Math.sin(gl.t * 3.9) * 10; }
@@ -983,28 +1007,28 @@
       for (let i=jetpacks.length-1; i>=0; i--) {
         const jp = jetpacks[i];
         if (hit(P, jp)) {
-          hasJetpack = true; jetpackPicked = true; jetFuel = JET_FUEL_MAX; jetpacks.splice(i,1);
+          hasJetpack = true; jetpackPicked = true; jetFuel = JET_FUEL_MAX; jetpacks.splice(i,1); pickupAnim = 0.3;
         }
       }
       // Glider pickup
       for (let i=gliders.length-1; i>=0; i--) {
         const gl = gliders[i];
         if (hit(P, gl)) {
-          hasGlider = true; gliderPicked = true; gliders.splice(i,1);
+          hasGlider = true; gliderPicked = true; gliders.splice(i,1); pickupAnim = 0.3;
         }
       }
       // Gun pickup
       for (let i=guns.length-1; i>=0; i--) {
         const gu = guns[i];
         if (hit(P, gu)) {
-          hasGun = true; gunPicked = true; guns.splice(i,1);
+          hasGun = true; gunPicked = true; guns.splice(i,1); pickupAnim = 0.3;
         }
       }
       // Shield pickup
       for (let i=shields.length-1; i>=0; i--) {
         const sh = shields[i];
         if (hit(P, sh)) {
-          hasShield = true; shieldPicked = true; shields.splice(i,1);
+          hasShield = true; shieldPicked = true; shields.splice(i,1); pickupAnim = 0.3;
         }
       }
       // Coolant pickup: reduce heat
@@ -1012,7 +1036,7 @@
         const c = coolants[i];
         if (hit(P, c)) {
           heat = Math.max(0, heat - COOLANT_COOL);
-          coolants.splice(i,1);
+          coolants.splice(i,1); pickupAnim = 0.3;
         }
       }
       // Break combo if the player passes a gem without picking it up
@@ -1073,12 +1097,8 @@
       ctx.translate(sx, sy);
 
       // Parallax images (tile horizontally)
-      drawLayer(IMG.sky, L.sky1, 0, W, H);
-      drawLayer(IMG.sky, L.sky2, 0, W, H);
-      drawLayer(IMG.hills, L.h1, 0, W, H);
-      drawLayer(IMG.hills, L.h2, 0, W, H);
-      drawLayer(IMG.fg, L.f1, 0, W, H);
-      drawLayer(IMG.fg, L.f2, 0, W, H);
+      drawLayer(IMG.bg, L.bg1, 0, W, H);
+      drawLayer(IMG.bg, L.bg2, 0, W, H);
 
       // Ground line
       ctx.strokeStyle = 'rgba(255,215,0,0.35)'; ctx.lineWidth = 3;
@@ -1117,26 +1137,26 @@
       }
 
       // Draw hazards
-      for (const s of spikes) drawImg(s.img, s.x, s.y, s.w, s.h);
+      for (const s of spikes) drawSprite(s.img, s.frame, s.frames, s.x, s.y, s.w, s.h);
       // Draw platforms
-      for (const pl of platforms) drawPlatform(pl.x, pl.y, pl.w, pl.h);
-      for (const o of orbs) drawImg(o.img, o.x, o.y, o.w, o.h);
+      for (const pl of platforms) drawPlatform(pl);
+      for (const o of orbs) drawSprite(o.img, o.frame, o.frames, o.x, o.y, o.w, o.h);
       for (const g of gems) drawImg(g.img, g.x, g.y, g.w, g.h);
       for (const jp of jetpacks) drawImg(jp.img, jp.x, jp.y, jp.w, jp.h);
       for (const gl of gliders) drawImg(gl.img, gl.x, gl.y, gl.w, gl.h);
       for (const gu of guns) drawImg(gu.img, gu.x, gu.y, gu.w, gu.h);
       for (const sh of shields) drawImg(sh.img, sh.x, sh.y, sh.w, sh.h);
-      // Draw coolants (styled as glowing blue orbs)
-      for (const c of coolants) drawCoolant(c.x, c.y, c.w, c.h);
+      // Draw coolants
+      for (const c of coolants) drawCoolant(c.x, c.y, c.w, c.h, c.img);
 
       // Draw flyers and shots
-      for (const f of flyers) drawFlyer(f.x, f.y, f.w, f.h, f.state);
+      for (const f of flyers) drawFlyer(f.x, f.y, f.w, f.h);
       for (const b of shots) drawBullet(b.x, b.y, b.w, b.h);
       for (const pb of pshots) drawPlayerBullet(pb.x, pb.y, pb.w, pb.h);
 
       // Player
-      const pf = animFrame===0?IMG.p1:animFrame===1?IMG.p2:animFrame===2?IMG.p3:IMG.p4;
-      drawImg(pf, P.x, P.y, P.w, P.h);
+      drawPlayer();
+      if (hasShield) drawImg(IMG.shieldBubble, P.x, P.y, P.w*1.6, P.h*1.6);
 
       // End shake transform
       ctx.restore();
@@ -1164,7 +1184,10 @@
 
     function drawLayer(img, x, y, w, h){ ctx.drawImage(img, x - 2, y, w + 4, h); }
     function drawImg(img, x, y, w, h){ ctx.drawImage(img, Math.round(x - w/2), Math.round(y - h/2), w, h); }
-    function drawPlatform(x, y, w, h){
+    function drawSprite(img, frame, frames, x, y, w, h){ const fw = img.width / frames; ctx.drawImage(img, fw*frame, 0, fw, img.height, Math.round(x - w/2), Math.round(y - h/2), w, h); }
+    function drawPlatform(pl){
+      const {x, y, w, h, img} = pl;
+      if (img) { drawImg(img, x, y, w, h); return; }
       const left = Math.round(x - w/2), top = Math.round(y - h/2);
       ctx.save();
       // Shadow/glow
@@ -1183,51 +1206,19 @@
       ctx.strokeRect(left+0.5, top+0.5, w-1, h-1);
       ctx.restore();
     }
-    function drawCoolant(x, y, w, h){
-      const r = Math.min(w,h)/2;
-      const cx = Math.round(x);
-      const cy = Math.round(y);
-      ctx.save();
-      // Glow
-      ctx.shadowColor = 'rgba(56,189,248,0.7)';
-      ctx.shadowBlur = 12;
-      // Orb body
-      const grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.2, cx, cy, r);
-      grad.addColorStop(0, '#e0f2fe');
-      grad.addColorStop(0.5, '#60a5fa');
-      grad.addColorStop(1, '#0284c7');
-      ctx.fillStyle = grad;
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
-      // highlight
-      ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(255,255,255,0.7)';
-      ctx.beginPath(); ctx.ellipse(cx - r*0.35, cy - r*0.35, r*0.45, r*0.28, -0.6, 0, Math.PI*2); ctx.fill();
-      ctx.restore();
-    }
+    function drawCoolant(x, y, w, h, img){ drawImg(img, x, y, w, h); }
 
-    function drawFlyer(x, y, w, h, state){
-      const bx = Math.round(x); const by = Math.round(y);
-      ctx.save();
-      // Body shadow
-      ctx.shadowColor = 'rgba(255,215,0,0.25)'; ctx.shadowBlur = 8;
-      // Ship body
-      ctx.translate(bx, by);
-      ctx.fillStyle = '#5F9EA0';
-      ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 2;
-      const hw = w/2, hh = h/2;
-      ctx.beginPath();
-      ctx.moveTo(-hw*0.2, -hh*0.9);
-      ctx.lineTo(hw*0.9, 0);
-      ctx.lineTo(-hw*0.2, hh*0.9);
-      ctx.closePath();
-      ctx.fill(); ctx.stroke();
-      // Cockpit
-      ctx.fillStyle = '#B0E0E6';
-      ctx.beginPath(); ctx.arc(-hw*0.05, 0, h*0.18, 0, Math.PI*2); ctx.fill();
-      // Engine glow
-      const flame = state==='leave' ? 1.0 : 0.6 + Math.sin(now()*0.02)*0.2;
-      ctx.fillStyle = `rgba(255,140,0,${0.6+0.3*flame})`;
-      ctx.beginPath(); ctx.ellipse(-hw*0.35, 0, w*0.18, h*0.22, 0, 0, Math.PI*2); ctx.fill();
-      ctx.restore();
+    function drawFlyer(x, y, w, h){ drawImg(IMG.enemyFly, x, y, w, h); }
+
+    function drawPlayer(){
+      let img = IMG.botRun; let frames = RUN_FRAMES;
+      if (pickupAnim > 0) { img = IMG.botGrab; frames = GRAB_FRAMES; }
+      else if (!P.onGround && hasJetpack) {
+        img = IMG.botFly; frames = FLY_FRAMES;
+        if (hitFlash > 0) { img = IMG.botFlyHit; frames = FLY_HIT_FRAMES; }
+      }
+      const frame = animFrame % frames;
+      drawSprite(img, frame, frames, P.x, P.y, P.w, P.h);
     }
 
     function drawBullet(x, y, w, h){

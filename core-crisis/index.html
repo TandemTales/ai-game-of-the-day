@@ -198,6 +198,7 @@
       shield: 'assets/shield.svg',
       coolantSmall: 'assets/rr_pickup_coolant_small.png',
       coolantLarge: 'assets/rr_pickup_coolant_large.png',
+      flyer: 'assets/rr_enemy_flying.png',
     };
 
     const IMG = {};
@@ -1191,28 +1192,10 @@
       ctx.restore();
     }
     function drawFlyer(x, y, w, h, state){
-      const bx = Math.round(x); const by = Math.round(y);
       ctx.save();
-      // Body shadow
-      ctx.shadowColor = 'rgba(255,215,0,0.25)'; ctx.shadowBlur = 8;
-      // Ship body
-      ctx.translate(bx, by);
-      ctx.fillStyle = '#5F9EA0';
-      ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 2;
-      const hw = w/2, hh = h/2;
-      ctx.beginPath();
-      ctx.moveTo(-hw*0.2, -hh*0.9);
-      ctx.lineTo(hw*0.9, 0);
-      ctx.lineTo(-hw*0.2, hh*0.9);
-      ctx.closePath();
-      ctx.fill(); ctx.stroke();
-      // Cockpit
-      ctx.fillStyle = '#B0E0E6';
-      ctx.beginPath(); ctx.arc(-hw*0.05, 0, h*0.18, 0, Math.PI*2); ctx.fill();
-      // Engine glow
-      const flame = state==='leave' ? 1.0 : 0.6 + Math.sin(now()*0.02)*0.2;
-      ctx.fillStyle = `rgba(255,140,0,${0.6+0.3*flame})`;
-      ctx.beginPath(); ctx.ellipse(-hw*0.35, 0, w*0.18, h*0.22, 0, 0, Math.PI*2); ctx.fill();
+      ctx.shadowColor = 'rgba(255,215,0,0.25)';
+      ctx.shadowBlur = 8;
+      drawImg(IMG.flyer, x, y, w, h);
       ctx.restore();
     }
 

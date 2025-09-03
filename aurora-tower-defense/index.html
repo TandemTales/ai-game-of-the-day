@@ -256,7 +256,24 @@
       portal: 'assets/td_portal.svg',
     };
     const Images = {};
-    function loadImg(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }); }
+    function loadImg(src) {
+      return new Promise((res) => {
+        const i = new Image();
+        i.onload = () => res(i);
+        i.onerror = () => {
+          console.warn('Failed to load image', src);
+          const canvas = document.createElement('canvas');
+          canvas.width = canvas.height = 32;
+          const ctx2 = canvas.getContext('2d');
+          ctx2.fillStyle = '#f0f';
+          ctx2.fillRect(0, 0, 32, 32);
+          const fallback = new Image();
+          fallback.src = canvas.toDataURL();
+          fallback.onload = () => res(fallback);
+        };
+        i.src = src;
+      });
+    }
 
     // Path definitions (grid points)
     const MAPS = [

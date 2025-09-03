@@ -181,21 +181,30 @@
     window.addEventListener('resize', resize); resize();
 
     // Asset loading
+    const ASSET_BASE = (() => {
+      let p = window.location.pathname;
+      if (!p.endsWith('/')) {
+        if (!p.includes('.')) p += '/';
+        else p = p.slice(0, p.lastIndexOf('/') + 1);
+      }
+      return p + 'assets/';
+    })();
+
     const ASSETS = {
-      sky: 'assets/parallax-sky.svg',
-      hills: 'assets/parallax-mountains.svg',
-      fg: 'assets/parallax-foreground.svg',
-      p1: 'assets/player-run-1.svg',
-      p2: 'assets/player-run-2.svg',
-      p3: 'assets/player-run-3.svg',
-      p4: 'assets/player-run-4.svg',
-      spike: 'assets/spike.svg',
-      orb: 'assets/orb.svg',
-      gem: 'assets/gem.svg',
-      jetpack: 'assets/jetpack.svg',
-      glider: 'assets/glider.svg',
-      gun: 'assets/gun.svg',
-      shield: 'assets/shield.svg',
+      sky: ASSET_BASE + 'parallax-sky.svg',
+      hills: ASSET_BASE + 'parallax-mountains.svg',
+      fg: ASSET_BASE + 'parallax-foreground.svg',
+      p1: ASSET_BASE + 'player-run-1.svg',
+      p2: ASSET_BASE + 'player-run-2.svg',
+      p3: ASSET_BASE + 'player-run-3.svg',
+      p4: ASSET_BASE + 'player-run-4.svg',
+      spike: ASSET_BASE + 'spike.svg',
+      orb: ASSET_BASE + 'orb.svg',
+      gem: ASSET_BASE + 'gem.svg',
+      jetpack: ASSET_BASE + 'jetpack.svg',
+      glider: ASSET_BASE + 'glider.svg',
+      gun: ASSET_BASE + 'gun.svg',
+      shield: ASSET_BASE + 'shield.svg',
     };
 
     const IMG = {};

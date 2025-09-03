@@ -195,7 +195,8 @@
       jetpack: 'assets/jetpack.svg',
       glider: 'assets/glider.svg',
       gun: 'assets/gun.svg',
-      shield: 'assets/shield.svg',
+      shield: 'assets/rr_pickup_shield.png',
+      shieldImg: 'assets/shield.png',
       coolantSmall: 'assets/rr_pickup_coolant_small.png',
       coolantLarge: 'assets/rr_pickup_coolant_large.png',
       flyer: 'assets/rr_enemy_flying.png',
@@ -1145,6 +1146,7 @@
       // Player
       const pf = animFrame===0?IMG.p1:animFrame===1?IMG.p2:animFrame===2?IMG.p3:IMG.p4;
       drawImg(pf, P.x, P.y, P.w, P.h);
+      if (hasShield) drawImg(IMG.shieldImg, P.x, P.y, P.w * 1.5, P.h * 1.5);
 
       // End shake transform
       ctx.restore();

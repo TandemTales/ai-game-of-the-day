@@ -185,10 +185,7 @@
       sky: 'assets/parallax-sky.svg',
       hills: 'assets/parallax-mountains.svg',
       fg: 'assets/parallax-foreground.svg',
-      p1: 'assets/player-run-1.svg',
-      p2: 'assets/player-run-2.svg',
-      p3: 'assets/player-run-3.svg',
-      p4: 'assets/player-run-4.svg',
+      botRun: 'assets/sprites/bot_animation_running.png',
       spike: 'assets/spike.svg',
       orb: 'assets/orb.svg',
       gem: 'assets/gem.svg',
@@ -269,6 +266,8 @@
     // Player with slightly smaller hitbox to avoid early collisions
     // Player collision tuned smaller and slightly raised to avoid foot/brim overlaps
     const P = { x: 200, y: GROUND_Y, vx: 0, vy: 0, w: 64, h: 64, onGround: true, glide: false, hitX: 0.48, hitY: 0.56, hitOffsetY: -8, isJumping: false, jumpT: 0 };
+    // Size of a single frame in the bot run sprite sheet (512 divisions)
+    const PLAYER_FRAME = 512;
 
     // Entities
     const spikes=[]; // ground obstacles
@@ -1134,9 +1133,14 @@
       for (const b of shots) drawBullet(b.x, b.y, b.w, b.h);
       for (const pb of pshots) drawPlayerBullet(pb.x, pb.y, pb.w, pb.h);
 
-      // Player
-      const pf = animFrame===0?IMG.p1:animFrame===1?IMG.p2:animFrame===2?IMG.p3:IMG.p4;
-      drawImg(pf, P.x, P.y, P.w, P.h);
+      // Player - draw current frame from sprite sheet
+      const sy = animFrame * PLAYER_FRAME;
+      ctx.drawImage(
+        IMG.botRun,
+        0, sy, PLAYER_FRAME, PLAYER_FRAME,
+        Math.round(P.x - P.w/2), Math.round(P.y - P.h/2),
+        P.w, P.h
+      );
 
       // End shake transform
       ctx.restore();

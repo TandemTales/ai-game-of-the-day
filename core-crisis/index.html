@@ -189,7 +189,7 @@
       p2: 'assets/player-run-2.svg',
       p3: 'assets/player-run-3.svg',
       p4: 'assets/player-run-4.svg',
-      spike: 'assets/spike.svg',
+      flame: 'assets/bot_animation_flame_up.png',
       orb: 'assets/orb.svg',
       gem: 'assets/gem.svg',
       jetpack: 'assets/jetpack.svg',
@@ -233,6 +233,7 @@
     let combo = 0;         // consecutive gems collected without missing
     let last = now();
     let frameTimer=0, animFrame=0;
+    let flameTimer=0, flameFrame=0;
     let spawnTimer=0, gemTimer=0;
     let platformTimer=0;
     let coolantTimer=0;
@@ -275,7 +276,7 @@
     const P = { x: 200, y: GROUND_Y, vx: 0, vy: 0, w: 64, h: 64, onGround: true, glide: false, hitX: 0.48, hitY: 0.56, hitOffsetY: -8, isJumping: false, jumpT: 0 };
 
     // Entities
-    const spikes=[]; // ground obstacles
+    const flames=[]; // ground obstacles
     const platforms=[]; // floating platforms the player can land on
     const orbs=[];   // floating hazards
     const gems=[];   // collectibles
@@ -300,7 +301,7 @@
       frameTimer=0; animFrame=0; spawnTimer=0; gemTimer=0; coolantTimer = rand(2.5, 4.5);
       heat = 0;
       worldFreeze = 0; hitFlash = 0; shake = 0; hitGrace = 0;
-      spikes.length=0; platforms.length=0; orbs.length=0; gems.length=0; jetpacks.length=0; gliders.length=0; guns.length=0; coolants.length=0; flyers.length=0; shots.length=0; pshots.length=0;
+      flames.length=0; platforms.length=0; orbs.length=0; gems.length=0; jetpacks.length=0; gliders.length=0; guns.length=0; coolants.length=0; flyers.length=0; shots.length=0; pshots.length=0;
       P.x = 200; P.y = GROUND_Y; P.vx = 0; P.vy = 0; P.onGround = true; P.glide=false; P.isJumping=false; P.jumpT=0;
       Object.assign(L, { sky1:0, sky2:W, h1:0, h2:W, f1:0, f2:W });
       // Clear any lingering input so the new run doesn't start with stuck keys
@@ -319,7 +320,7 @@
 
     // Grid-based placement to align items and prevent overlaps at spawn
     // Choose a grid cell size large enough to fit the largest item entirely
-    // spike=54, orb=48, jetpack=44, glider=44, shield=44, gem=34, coolant small=28, coolant large=44
+    // flame=54, orb=48, jetpack=44, glider=44, shield=44, gem=34, coolant small=28, coolant large=44
     const GRID_CELL = Math.max(54, 48, 44, 44, 44, 34, 28);
     // Occupied spawn-column rows with expiry times (seconds since start)
     const gridOccupied = new Map(); // rowIndex -> expiresAtTime
@@ -607,6 +608,9 @@
       if (P.onGround) cadence = 0.08; else if (P.glide) cadence = 0.18;
       if (frameTimer > cadence) { frameTimer = 0; animFrame = (animFrame + 1) % 4; }
 
+      flameTimer += dt;
+      if (flameTimer > 0.1) { flameTimer = 0; flameFrame = (flameFrame + 1) % 6; }
+
       // Spawning hazards
       spawnTimer -= dt;
       if (spawnTimer <= 0) {
@@ -614,11 +618,11 @@
         const nowSec = time;
         const x = gridSpawnX();
         if (Math.random() < 0.55) {
-          // Spike at ground: reserve row 0 if free; otherwise skip this cycle
+          // Flame at ground: reserve row 0 if free; otherwise skip this cycle
           const row = tryReserveRow(0, 0, nowSec);
           if (row !== null) {
             const y = yForRow(row);
-            spikes.push({ x, y, w: 54, h: 54, img: IMG.spike, hitX: 0.42, hitY: 0.30, hitOffsetY: -12 });
+            flames.push({ x, y, w: 54, h: 54, hitX: 0.42, hitY: 0.30, hitOffsetY: -12 });
           }
         } else {
           // Floating orb: allow rows safely above ground (row >= 2)
@@ -797,7 +801,7 @@
 
       // Move hazards + gems
       const move = v => v - RUN_SPEED * scrollMul * dt;
-      for (const s of spikes) s.x = move(s.x);
+      for (const s of flames) s.x = move(s.x);
       for (const pl of platforms) pl.x = move(pl.x);
       for (const o of orbs) { o.x = move(o.x); o.t += dt; o.y = (o.baseY ?? o.y) + Math.sin(o.t * 4.3) * 18; }
       for (const gobj of gems) { gobj.x = move(gobj.x); gobj.t += dt; gobj.y = (gobj.baseY ?? gobj.y) + Math.sin(gobj.t * 6.1) * 14; }
@@ -874,7 +878,7 @@
       }
 
       // Remove offscreen
-      while (spikes.length && spikes[0].x + spikes[0].w < 0) spikes.shift();
+      while (flames.length && flames[0].x + flames[0].w < 0) flames.shift();
       while (platforms.length && platforms[0].x + platforms[0].w/2 < 0) platforms.shift();
       while (orbs.length && orbs[0].x + orbs[0].w < 0) orbs.shift();
       while (gems.length && gems[0].x + gems[0].w < 0) gems.shift();
@@ -923,7 +927,7 @@
           }
           return pick;
         }
-        for (const s of spikes) if (hit(P, s)) {
+        for (const s of flames) if (hit(P, s)) {
           if (!consumeShieldOnHit()) {
             // Apply heat penalty based on whether a jetpack was owned at impact
             heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
@@ -1126,7 +1130,7 @@
       }
 
       // Draw hazards
-      for (const s of spikes) drawImg(s.img, s.x, s.y, s.w, s.h);
+      for (const s of flames) drawSprite(IMG.flame, flameFrame, 6, s.x, s.y, s.w, s.h);
       // Draw platforms
       for (const pl of platforms) drawPlatform(pl.x, pl.y, pl.w, pl.h);
       for (const o of orbs) drawImg(o.img, o.x, o.y, o.w, o.h);
@@ -1174,6 +1178,10 @@
 
     function drawLayer(img, x, y, w, h){ ctx.drawImage(img, x - 2, y, w + 4, h); }
     function drawImg(img, x, y, w, h){ ctx.drawImage(img, Math.round(x - w/2), Math.round(y - h/2), w, h); }
+    function drawSprite(img, frame, frames, x, y, w, h){
+      const fh = img.height / frames;
+      ctx.drawImage(img, 0, frame * fh, img.width, fh, Math.round(x - w/2), Math.round(y - h/2), w, h);
+    }
     function drawPlatform(x, y, w, h){
       const left = Math.round(x - w/2), top = Math.round(y - h/2);
       ctx.save();

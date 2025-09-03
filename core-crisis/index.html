@@ -196,6 +196,8 @@
       glider: 'assets/glider.svg',
       gun: 'assets/gun.svg',
       shield: 'assets/shield.svg',
+      coolantSmall: 'assets/rr_pickup_coolant_small.png',
+      coolantLarge: 'assets/rr_pickup_coolant_large.png',
     };
 
     const IMG = {};
@@ -315,7 +317,8 @@
 
     // Grid-based placement to align items and prevent overlaps at spawn
     // Choose a grid cell size large enough to fit the largest item entirely
-    const GRID_CELL = Math.max(54, 48, 44, 44, 44, 34, 28); // spike=54, orb=48, jetpack=44, glider=44, shield=44, gem=34, coolant=28
+    // spike=54, orb=48, jetpack=44, glider=44, shield=44, gem=34, coolant small=28, coolant large=44
+    const GRID_CELL = Math.max(54, 48, 44, 44, 44, 34, 28);
     // Occupied spawn-column rows with expiry times (seconds since start)
     const gridOccupied = new Map(); // rowIndex -> expiresAtTime
     // Convert between row index and Y center. Row 0 is at ground, grows upward.
@@ -356,7 +359,8 @@
     const HEAT_GAIN_RATE = 3; // per second (slower passive increase)
     const HEAT_HIT_PENALTY = 12; // added heat when tanking a hit with jetpack
     const HEAT_HIT_PENALTY_NO_JET = 20; // added heat when hit without jetpack
-    const COOLANT_COOL = 35;  // amount reduced per pickup
+    const COOLANT_SMALL_COOL = 35;  // amount reduced by small coolant
+    const COOLANT_LARGE_COOL = 70;  // amount reduced by large coolant
     let heat = 0;
 
     // UI elements
@@ -748,13 +752,16 @@
       if (coolantTimer <= 0) {
         const nowSec = time;
         const x = gridSpawnX();
-        const w = 28, h = 28;
+        const isLarge = Math.random() < 0.3;
+        const w = isLarge ? 44 : 28, h = w;
         const maxRow = Math.max(0, Math.floor((GROUND_Y - h/2) / GRID_CELL));
         const row = tryReserveRow(Math.min(2, maxRow), maxRow, nowSec);
         if (row !== null) {
           const y = yForRow(row);
-          // Coolant sphere with generous pickup box
-          coolants.push({ x, y, baseY: y, w, h, t: 0, hitX: 0.75, hitY: 0.75 });
+          const img = isLarge ? IMG.coolantLarge : IMG.coolantSmall;
+          const cool = isLarge ? COOLANT_LARGE_COOL : COOLANT_SMALL_COOL;
+          // Coolant pickup with generous pickup box
+          coolants.push({ x, y, baseY: y, w, h, img, cool, t: 0, hitX: 0.75, hitY: 0.75 });
         }
         // Dynamic next spawn: slightly faster when hot
         const bias = 1.5 * (heat / HEAT_MAX);
@@ -1011,7 +1018,7 @@
       for (let i=coolants.length-1; i>=0; i--) {
         const c = coolants[i];
         if (hit(P, c)) {
-          heat = Math.max(0, heat - COOLANT_COOL);
+          heat = Math.max(0, heat - c.cool);
           coolants.splice(i,1);
         }
       }
@@ -1126,8 +1133,8 @@
       for (const gl of gliders) drawImg(gl.img, gl.x, gl.y, gl.w, gl.h);
       for (const gu of guns) drawImg(gu.img, gu.x, gu.y, gu.w, gu.h);
       for (const sh of shields) drawImg(sh.img, sh.x, sh.y, sh.w, sh.h);
-      // Draw coolants (styled as glowing blue orbs)
-      for (const c of coolants) drawCoolant(c.x, c.y, c.w, c.h);
+      // Draw coolant pickups
+      for (const c of coolants) drawImg(c.img, c.x, c.y, c.w, c.h);
 
       // Draw flyers and shots
       for (const f of flyers) drawFlyer(f.x, f.y, f.w, f.h, f.state);
@@ -1183,27 +1190,6 @@
       ctx.strokeRect(left+0.5, top+0.5, w-1, h-1);
       ctx.restore();
     }
-    function drawCoolant(x, y, w, h){
-      const r = Math.min(w,h)/2;
-      const cx = Math.round(x);
-      const cy = Math.round(y);
-      ctx.save();
-      // Glow
-      ctx.shadowColor = 'rgba(56,189,248,0.7)';
-      ctx.shadowBlur = 12;
-      // Orb body
-      const grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.2, cx, cy, r);
-      grad.addColorStop(0, '#e0f2fe');
-      grad.addColorStop(0.5, '#60a5fa');
-      grad.addColorStop(1, '#0284c7');
-      ctx.fillStyle = grad;
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
-      // highlight
-      ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(255,255,255,0.7)';
-      ctx.beginPath(); ctx.ellipse(cx - r*0.35, cy - r*0.35, r*0.45, r*0.28, -0.6, 0, Math.PI*2); ctx.fill();
-      ctx.restore();
-    }
-
     function drawFlyer(x, y, w, h, state){
       const bx = Math.round(x); const by = Math.round(y);
       ctx.save();

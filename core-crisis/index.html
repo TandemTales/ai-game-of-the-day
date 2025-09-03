@@ -620,8 +620,9 @@
           // Flame at ground: reserve row 0 if free; otherwise skip this cycle
           const row = tryReserveRow(0, 0, nowSec);
           if (row !== null) {
-            const y = yForRow(row);
-            spikes.push({ x, y, w: 64, h: 64, img: IMG.flame, frame: 0, t: 0, hitX: 0.42, hitY: 0.30, hitOffsetY: -12 });
+            // offset so the flame rests on the ground instead of being centered on it
+            const y = yForRow(row) - 32;
+            spikes.push({ x, y, w: 64, h: 64, img: IMG.flame, frame: 0, t: 0, hitX: 0.42, hitY: 0.30, hitOffsetY: 20 });
           }
         } else {
           // Floating orb: allow rows safely above ground (row >= 2)

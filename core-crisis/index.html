@@ -204,8 +204,9 @@
 
     const IMG = {};
     const FLAME_FRAME_W = 64;
-    const FLAME_FRAME_H = 128;
+    const FLAME_FRAME_H = 64;   // each flame frame is 64x64; sprite sheet has two rows
     const FLAME_FRAMES = 12;
+    const FLAME_SRC_Y = 64;     // use bottom row which points upward for ground flames
     function loadImage(path) { return new Promise(res=>{ const i=new Image(); i.src=path; i.onload=()=>res(i); i.onerror=()=>res(i); }); }
     Promise.all(Object.entries(ASSETS).map(async ([k,p])=> IMG[k] = await loadImage(p))).then(()=>{
       init();
@@ -1134,7 +1135,7 @@
       }
 
       // Draw hazards
-      for (const s of spikes) drawSprite(s.img, s.frame, FLAME_FRAME_W, FLAME_FRAME_H, s.x, s.y, s.w, s.h);
+      for (const s of spikes) drawSprite(s.img, s.frame, FLAME_FRAME_W, FLAME_FRAME_H, s.x, s.y, s.w, s.h, FLAME_SRC_Y);
       // Draw platforms
       for (const pl of platforms) drawPlatform(pl.x, pl.y, pl.w, pl.h);
       for (const o of orbs) drawImg(o.img, o.x, o.y, o.w, o.h);
@@ -1182,9 +1183,9 @@
 
     function drawLayer(img, x, y, w, h){ ctx.drawImage(img, x - 2, y, w + 4, h); }
     function drawImg(img, x, y, w, h){ ctx.drawImage(img, Math.round(x - w/2), Math.round(y - h/2), w, h); }
-    function drawSprite(img, frame, fw, fh, x, y, w, h){
+    function drawSprite(img, frame, fw, fh, x, y, w, h, sy = 0){
       const sx = frame * fw;
-      ctx.drawImage(img, sx, 0, fw, fh, Math.round(x - w/2), Math.round(y - h/2), w, h);
+      ctx.drawImage(img, sx, sy, fw, fh, Math.round(x - w/2), Math.round(y - h/2), w, h);
     }
     function drawPlatform(x, y, w, h){
       const left = Math.round(x - w/2), top = Math.round(y - h/2);

@@ -299,6 +299,24 @@
     const shots=[];    // enemy bullets
     const pshots=[];   // player bullets (from gun)
 
+    // Soundtrack playback
+    const TRACKS = ['cc_soundtrack01.mp3', 'cc_soundtrack02.mp3'].filter(t => t.includes('soundtrack'));
+    let trackIndex = 0;
+    let musicStarted = false;
+    const music = new Audio();
+    music.addEventListener('ended', () => {
+      if (!TRACKS.length) return;
+      trackIndex = (trackIndex + 1) % TRACKS.length;
+      music.src = TRACKS[trackIndex];
+      music.play();
+    });
+    function startMusic(){
+      if (musicStarted || !TRACKS.length) return;
+      musicStarted = true;
+      music.src = TRACKS[trackIndex];
+      music.play();
+    }
+
     // Parallax layers positions
     const L = {
       sky1:0, sky2:W,
@@ -307,6 +325,7 @@
     }
 
     function reset() {
+      startMusic();
       running = true; dead = false; paused = false; score = 0; dist = 0; time = 0; gemsCollected = 0; combo = 0;
       frameTimer=0; animFrame=0; spawnTimer=0; gemTimer=0; coolantTimer = rand(2.5, 4.5);
       heat = 0;

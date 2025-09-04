@@ -352,6 +352,8 @@
     // Choose a grid cell size large enough to fit the largest item entirely
     // spike=54, orb=48, jetpack=44, glider=44, shield=44, gem=34, coolant small=28, coolant large=44
     const GRID_CELL = Math.max(54, 48, 44, 44, 44, 34, 28);
+    // Small visual nudge so drawn sprites look centered between vertical borders
+    const GRID_ITEM_X_OFFSET = 2; // pixels to the right; platforms excluded
     // Occupied spawn-column rows with expiry times (seconds since start)
     const gridOccupied = new Map(); // rowIndex -> expiresAtTime
     // Convert between row index and Y center. Row 0 is at ground, grows upward.
@@ -644,7 +646,7 @@
       if (spawnTimer <= 0) {
         spawnTimer = rand(0.9, 1.6);
         const nowSec = time;
-        const x = gridSpawnX();
+        const x = gridSpawnX() + GRID_ITEM_X_OFFSET;
         if (Math.random() < 0.55) {
           // Spike at ground: reserve row 0 if free; otherwise skip this cycle
           const row = tryReserveRow(0, 0, nowSec);
@@ -668,7 +670,7 @@
       if (gemTimer <= 0) {
         gemTimer = rand(1.8, 2.6);
         const nowSec = time;
-        const x = gridSpawnX();
+        const x = gridSpawnX() + GRID_ITEM_X_OFFSET;
         const GEM_W = 34, GEM_H = 34;
         const maxRow = Math.max(0, Math.floor((GROUND_Y - GEM_H/2) / GRID_CELL));
         const minRow = 2; // keep comfortably above ground lane
@@ -703,7 +705,7 @@
         jetpackTimer -= dt;
         if (jetpackTimer <= 0) {
           const nowSec = time;
-          const x = gridSpawnX();
+          const x = gridSpawnX() + GRID_ITEM_X_OFFSET;
           const w = 44, h = 44;
           const maxRow = Math.max(0, Math.floor((GROUND_Y - h/2) / GRID_CELL));
           // Restrict jetpack to lower half of the screen (y >= H/2)
@@ -725,7 +727,7 @@
         gliderTimer -= dt;
         if (gliderTimer <= 0) {
           const nowSec = time;
-          const x = gridSpawnX();
+          const x = gridSpawnX() + GRID_ITEM_X_OFFSET;
           const w = 44, h = 44;
           const maxRow = Math.max(0, Math.floor((GROUND_Y - h/2) / GRID_CELL));
           const lowerHalfTopRow = Math.max(0, Math.floor((GROUND_Y - H/2) / GRID_CELL));
@@ -745,7 +747,7 @@
         gunTimer -= dt;
         if (gunTimer <= 0) {
           const nowSec = time;
-          const x = gridSpawnX();
+          const x = gridSpawnX() + GRID_ITEM_X_OFFSET;
           const w = 44, h = 44;
           const maxRow = Math.max(0, Math.floor((GROUND_Y - h/2) / GRID_CELL));
           const lowerHalfTopRow = Math.max(0, Math.floor((GROUND_Y - H/2) / GRID_CELL));
@@ -765,7 +767,7 @@
         shieldTimer -= dt;
         if (shieldTimer <= 0) {
           const nowSec = time;
-          const x = gridSpawnX();
+          const x = gridSpawnX() + GRID_ITEM_X_OFFSET;
           const w = 44, h = 44;
           const maxRow = Math.max(0, Math.floor((GROUND_Y - h/2) / GRID_CELL));
           // Prefer lower half like other gear

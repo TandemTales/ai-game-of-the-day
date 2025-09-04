@@ -190,6 +190,10 @@
       playerRunGun: 'assets/Bot_animation_running_gun.png',
       // Player gliding sprite (single frame)
       playerGlide: 'assets/Bot_animation_gliding.png',
+      // Player flying spritesheets (4 frames)
+      playerFly: 'assets/bot_animation_flying.png',
+      playerFlyHit: 'assets/bot_animation_flying_hit.png',
+      playerFlyGun: 'assets/bot_animation_flying_gun.png',
       spike: 'assets/spike.svg',
       orb: 'assets/orb.svg',
       gem: 'assets/gem.svg',
@@ -1267,6 +1271,12 @@
         img = IMG.playerGlide;
         frames = 1;
         frame = 0;
+      } else if (jetActive && IMG.playerFly) {
+        if (hitGrace > 0 && IMG.playerFlyHit) {
+          img = IMG.playerFlyHit;
+        } else {
+          img = hasGun ? IMG.playerFlyGun : IMG.playerFly;
+        }
       } else {
         img = hasGun ? IMG.playerRunGun : IMG.playerRun;
       }

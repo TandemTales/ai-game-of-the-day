@@ -321,6 +321,18 @@
       music.play();
     }
 
+    // Sound effects
+    const SFX = {
+      grunt: new Audio('assets/sfx_bot_grunt.wav'),
+      shieldHit: new Audio('assets/sfx_shield_hit.wav'),
+      jetpack: new Audio('assets/sfx_bot_jetpack.wav'),
+      cog: new Audio('assets/sfx_cog.wav'),
+      upgrade: new Audio('assets/sfx_upgrade.wav')
+    };
+    function playSfx(s) {
+      try { s.cloneNode().play(); } catch {}
+    }
+
     // Parallax layers positions
     const L = {
       sky1:0, sky2:W,
@@ -564,6 +576,7 @@
       // Jetpack activation: new press while airborne (not the same frame as jump)
       if (hasJetpack && !key.down && !P.onGround && !jumpedThisFrame && spaceJustPressed && jetFuel > 0) {
         jetActive = true;
+        playSfx(SFX.jetpack);
       }
 
       // If jet is active, burn fuel and apply upward thrust
@@ -840,6 +853,7 @@
         const w = 120, h = 120;
         const y = GROUND_Y + 34 - h/2;
         cogs.push({ x, y, w, h, vx: -220, t: 0, hitX: 0.8, hitY: 0.8 });
+        playSfx(SFX.cog);
         cogTimer = rand(6, 12);
       }
 
@@ -959,10 +973,12 @@
           if (!hasShield) return false;
           // Lose shield first, without adding heat penalty
           hasShield = false; shieldPicked = false; shieldTimer = rand(5, 11);
+          playSfx(SFX.shieldHit);
           return true;
         }
         // helper to lose one item fairly when hit
         function loseRandomItem(){
+          playSfx(SFX.grunt);
           const options = [];
           if (hasJetpack) options.push('jet');
           if (hasGlider) options.push('glider');
@@ -1059,6 +1075,7 @@
         const jp = jetpacks[i];
         if (hit(P, jp)) {
           hasJetpack = true; jetpackPicked = true; jetFuel = JET_FUEL_MAX; jetpacks.splice(i,1);
+          playSfx(SFX.upgrade);
         }
       }
       // Glider pickup
@@ -1066,6 +1083,7 @@
         const gl = gliders[i];
         if (hit(P, gl)) {
           hasGlider = true; gliderPicked = true; gliders.splice(i,1);
+          playSfx(SFX.upgrade);
         }
       }
       // Gun pickup
@@ -1073,6 +1091,7 @@
         const gu = guns[i];
         if (hit(P, gu)) {
           hasGun = true; gunPicked = true; guns.splice(i,1);
+          playSfx(SFX.upgrade);
         }
       }
       // Shield pickup
@@ -1080,6 +1099,7 @@
         const sh = shields[i];
         if (hit(P, sh)) {
           hasShield = true; shieldPicked = true; shields.splice(i,1);
+          playSfx(SFX.upgrade);
         }
       }
       // Coolant pickup: reduce heat

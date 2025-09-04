@@ -200,6 +200,7 @@
       coolantSmall: 'assets/rr_pickup_coolant_small.png',
       coolantLarge: 'assets/rr_pickup_coolant_large.png',
       flyer: 'assets/rr_enemy_flying.png',
+      cog: 'assets/rr_cog_animation.png',
     };
 
     const IMG = {};
@@ -278,6 +279,7 @@
     const spikes=[]; // ground obstacles
     const platforms=[]; // floating platforms the player can land on
     const orbs=[];   // floating hazards
+    const cogs=[];   // rolling cog hazards
     const gems=[];   // collectibles
     const jetpacks=[]; // jetpack pickup(s)
     const gliders=[];  // glider pickup(s)
@@ -300,7 +302,7 @@
       frameTimer=0; animFrame=0; spawnTimer=0; gemTimer=0; coolantTimer = rand(2.5, 4.5);
       heat = 0;
       worldFreeze = 0; hitFlash = 0; shake = 0; hitGrace = 0;
-      spikes.length=0; platforms.length=0; orbs.length=0; gems.length=0; jetpacks.length=0; gliders.length=0; guns.length=0; coolants.length=0; flyers.length=0; shots.length=0; pshots.length=0;
+      spikes.length=0; platforms.length=0; orbs.length=0; cogs.length=0; gems.length=0; jetpacks.length=0; gliders.length=0; guns.length=0; coolants.length=0; flyers.length=0; shots.length=0; pshots.length=0;
       P.x = 200; P.y = GROUND_Y; P.vx = 0; P.vy = 0; P.onGround = true; P.glide=false; P.isJumping=false; P.jumpT=0;
       Object.assign(L, { sky1:0, sky2:W, h1:0, h2:W, f1:0, f2:W });
       // Clear any lingering input so the new run doesn't start with stuck keys
@@ -613,20 +615,28 @@
         spawnTimer = rand(0.9, 1.6);
         const nowSec = time;
         const x = gridSpawnX();
-        if (Math.random() < 0.55) {
+        const r = Math.random();
+        if (r < 0.45) {
           // Spike at ground: reserve row 0 if free; otherwise skip this cycle
           const row = tryReserveRow(0, 0, nowSec);
           if (row !== null) {
             const y = yForRow(row);
             spikes.push({ x, y, w: 54, h: 54, img: IMG.spike, hitX: 0.42, hitY: 0.30, hitOffsetY: -12 });
           }
-        } else {
+        } else if (r < 0.75) {
           // Floating orb: allow rows safely above ground (row >= 2)
           const maxRow = Math.max(0, Math.floor((GROUND_Y - 48/2) / GRID_CELL));
           const row = tryReserveRow(Math.min(2, maxRow), maxRow, nowSec);
           if (row !== null) {
             const y = yForRow(row);
             orbs.push({ x, y, baseY: y, w: 48, h: 48, img: IMG.orb, t: 0, hitX: 0.56, hitY: 0.56 });
+          }
+        } else {
+          // Rolling cog hazard at ground
+          const row = tryReserveRow(0, 0, nowSec);
+          if (row !== null) {
+            const y = yForRow(row);
+            cogs.push({ x, y, w: 54, h: 54, img: IMG.cog, t: 0, hitX: 0.56, hitY: 0.56 });
           }
         }
       }
@@ -800,6 +810,7 @@
       for (const s of spikes) s.x = move(s.x);
       for (const pl of platforms) pl.x = move(pl.x);
       for (const o of orbs) { o.x = move(o.x); o.t += dt; o.y = (o.baseY ?? o.y) + Math.sin(o.t * 4.3) * 18; }
+      for (const cg of cogs) { cg.x = move(cg.x); cg.t += dt; }
       for (const gobj of gems) { gobj.x = move(gobj.x); gobj.t += dt; gobj.y = (gobj.baseY ?? gobj.y) + Math.sin(gobj.t * 6.1) * 14; }
       for (const jp of jetpacks) { jp.x = move(jp.x); jp.t += dt; jp.y = (jp.baseY ?? jp.y) + Math.sin(jp.t * 3.7) * 10; }
       for (const gl of gliders) { gl.x = move(gl.x); gl.t += dt; gl.y = (gl.baseY ?? gl.y) + Math.sin(gl.t * 3.9) * 10; }
@@ -877,6 +888,7 @@
       while (spikes.length && spikes[0].x + spikes[0].w < 0) spikes.shift();
       while (platforms.length && platforms[0].x + platforms[0].w/2 < 0) platforms.shift();
       while (orbs.length && orbs[0].x + orbs[0].w < 0) orbs.shift();
+      while (cogs.length && cogs[0].x + cogs[0].w < 0) cogs.shift();
       while (gems.length && gems[0].x + gems[0].w < 0) gems.shift();
       while (jetpacks.length && jetpacks[0].x + jetpacks[0].w < 0) jetpacks.shift();
       while (gliders.length && gliders[0].x + gliders[0].w < 0) gliders.shift();
@@ -947,6 +959,17 @@
           P.y = Math.max(P.h/2, P.y - 10);
           hitGrace = 0.6; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
           return; // process one hazard hit per frame
+        }
+        for (const cg of cogs) if (hit(P, cg)) {
+          if (!consumeShieldOnHit()) {
+            heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
+            loseRandomItem();
+          }
+          P.vy = Math.min(P.vy, -350);
+          P.onGround = false;
+          P.y = Math.max(P.h/2, P.y - 10);
+          hitGrace = 0.6; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
+          return;
         }
         // Flyer body collision
         for (const f of flyers) if (hit(P, f)) {
@@ -1130,6 +1153,7 @@
       // Draw platforms
       for (const pl of platforms) drawPlatform(pl.x, pl.y, pl.w, pl.h);
       for (const o of orbs) drawImg(o.img, o.x, o.y, o.w, o.h);
+      for (const cg of cogs) drawCog(cg.x, cg.y, cg.w, cg.h, cg.t);
       for (const g of gems) drawImg(g.img, g.x, g.y, g.w, g.h);
       for (const jp of jetpacks) drawImg(jp.img, jp.x, jp.y, jp.w, jp.h);
       for (const gl of gliders) drawImg(gl.img, gl.x, gl.y, gl.w, gl.h);
@@ -1174,6 +1198,12 @@
 
     function drawLayer(img, x, y, w, h){ ctx.drawImage(img, x - 2, y, w + 4, h); }
     function drawImg(img, x, y, w, h){ ctx.drawImage(img, Math.round(x - w/2), Math.round(y - h/2), w, h); }
+    function drawCog(x, y, w, h, t){
+      const frameW = IMG.cog.width / 4;
+      const frameH = IMG.cog.height;
+      const f = Math.floor(t * 10) % 4;
+      ctx.drawImage(IMG.cog, f * frameW, 0, frameW, frameH, Math.round(x - w/2), Math.round(y - h/2), w, h);
+    }
     function drawPlatform(x, y, w, h){
       const left = Math.round(x - w/2), top = Math.round(y - h/2);
       ctx.save();

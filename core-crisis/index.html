@@ -201,6 +201,7 @@
       coolantLarge: 'assets/rr_pickup_coolant_large.png',
       flyer: 'assets/rr_enemy_flying.png',
       faucet: 'assets/rr_faucet.png',
+      cog: 'assets/rr_cog_animation.png',
     };
 
     const IMG = {};
@@ -285,6 +286,7 @@
     const guns=[];     // gun pickup(s)
     const shields=[];  // shield pickup(s)
     const coolants=[]; // coolant drops to reduce heat
+    const cogs=[];     // rolling cog hazards
     const flyers=[];   // flying enemies that hover and shoot
     const shots=[];    // enemy bullets
     const pshots=[];   // player bullets (from gun)
@@ -301,7 +303,7 @@
       frameTimer=0; animFrame=0; spawnTimer=0; gemTimer=0; coolantTimer = rand(2.5, 4.5);
       heat = 0;
       worldFreeze = 0; hitFlash = 0; shake = 0; hitGrace = 0;
-      spikes.length=0; platforms.length=0; orbs.length=0; gems.length=0; jetpacks.length=0; gliders.length=0; guns.length=0; coolants.length=0; flyers.length=0; shots.length=0; pshots.length=0;
+      spikes.length=0; platforms.length=0; orbs.length=0; gems.length=0; jetpacks.length=0; gliders.length=0; guns.length=0; coolants.length=0; cogs.length=0; flyers.length=0; shots.length=0; pshots.length=0;
       P.x = 200; P.y = GROUND_Y; P.vx = 0; P.vy = 0; P.onGround = true; P.glide=false; P.isJumping=false; P.jumpT=0;
       Object.assign(L, { sky1:0, sky2:W, h1:0, h2:W, f1:0, f2:W });
       // Clear any lingering input so the new run doesn't start with stuck keys
@@ -314,6 +316,7 @@
       jetpackTimer = rand(6, 12); // first random spawn window
       gliderTimer = rand(4, 10);  // first random spawn window for glider
       flyerTimer = rand(6, 12);   // first flying enemy spawn window
+      cogTimer = rand(5, 9);      // first rolling cog spawn
       platformTimer = rand(1.2, 2.6); // first platform spawn
       hideStart(); hideGameOver();
     }
@@ -384,8 +387,9 @@
     const finalScore = document.getElementById('finalScore');
     const lbBtn = document.getElementById('lbBtn');
     const mobile = document.getElementById('mobileCtrls');
-    // Flying enemy spawn timer
+    // Hazard spawn timers
     let flyerTimer = 0;
+    let cogTimer = 0;
 
     function showStart(){ startScreen.classList.remove('hidden'); maybeShowMobileCtrls(false); }
     function hideStart(){ startScreen.classList.add('hidden'); }
@@ -796,6 +800,16 @@
         flyerTimer = rand(7, 14);
       }
 
+      // Rolling cog spawn
+      cogTimer -= dt;
+      if (cogTimer <= 0) {
+        const x = W + 80;
+        const w = 120, h = 120;
+        const y = GROUND_Y + 34 - h/2;
+        cogs.push({ x, y, w, h, vx: -220, t: 0, hitX: 0.8, hitY: 0.8 });
+        cogTimer = rand(6, 12);
+      }
+
       // Move hazards + gems
       const move = v => v - RUN_SPEED * scrollMul * dt;
       for (const s of spikes) s.x = move(s.x);
@@ -807,6 +821,13 @@
       for (const gu of guns) { gu.x = move(gu.x); gu.t += dt; gu.y = (gu.baseY ?? gu.y) + Math.sin(gu.t * 3.5) * 10; }
       for (const sh of shields) { sh.x = move(sh.x); sh.t += dt; sh.y = (sh.baseY ?? sh.y) + Math.sin(sh.t * 3.6) * 10; }
       for (const c of coolants) { c.x = move(c.x); c.t += dt; c.y = (c.baseY ?? c.y) + Math.sin(c.t * 5.0) * 12; }
+
+      for (let i = cogs.length - 1; i >= 0; i--) {
+        const cg = cogs[i];
+        cg.t += dt;
+        cg.x = move(cg.x) + cg.vx * dt;
+        if (cg.x + cg.w/2 < -160) cogs.splice(i,1);
+      }
 
       // Flying enemies movement and behavior
       for (let i = flyers.length - 1; i >= 0; i--) {
@@ -948,6 +969,17 @@
           P.y = Math.max(P.h/2, P.y - 10);
           hitGrace = 0.6; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
           return; // process one hazard hit per frame
+        }
+        for (const cg of cogs) if (hit(P, cg)) {
+          if (!consumeShieldOnHit()) {
+            heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
+            loseRandomItem();
+          }
+          P.vy = Math.min(P.vy, -350);
+          P.onGround = false;
+          P.y = Math.max(P.h/2, P.y - 10);
+          hitGrace = 0.6; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
+          return;
         }
         // Flyer body collision
         for (const f of flyers) if (hit(P, f)) {
@@ -1138,6 +1170,7 @@
       for (const sh of shields) drawImg(sh.img, sh.x, sh.y, sh.w, sh.h);
       // Draw coolant pickups
       for (const c of coolants) drawImg(c.img, c.x, c.y, c.w, c.h);
+      for (const cg of cogs) drawCog(cg.x, cg.y, cg.w, cg.h, cg.t);
 
       // Draw flyers and shots
       for (const f of flyers) drawFlyer(f.x, f.y, f.w, f.h, f.state);
@@ -1200,6 +1233,14 @@
       ctx.shadowBlur = 8;
       drawImg(IMG.flyer, x, y, w, h);
       ctx.restore();
+    }
+
+    function drawCog(x, y, w, h, t){
+      const frames = 4;
+      const fw = IMG.cog.width / frames;
+      const fh = IMG.cog.height;
+      const frame = Math.floor(t * 10) % frames;
+      ctx.drawImage(IMG.cog, frame * fw, 0, fw, fh, Math.round(x - w/2), Math.round(y - h/2), w, h);
     }
 
     function drawBullet(x, y, w, h){

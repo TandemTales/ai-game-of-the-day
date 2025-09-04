@@ -185,10 +185,8 @@
       sky: 'assets/parallax-sky.svg',
       hills: 'assets/parallax-mountains.svg',
       fg: 'assets/parallax-foreground.svg',
-      p1: 'assets/player-run-1.svg',
-      p2: 'assets/player-run-2.svg',
-      p3: 'assets/player-run-3.svg',
-      p4: 'assets/player-run-4.svg',
+      // Player running spritesheet (4 frames)
+      playerRun: 'assets/Bot_animation_running.png',
       spike: 'assets/spike.svg',
       orb: 'assets/orb.svg',
       gem: 'assets/gem.svg',
@@ -311,10 +309,10 @@
       music.play();
     });
     function startMusic(){
-      if (musicStarted || !TRACKS.length) return;
-      musicStarted = true;
-      music.src = TRACKS[trackIndex];
-      music.play();
+    //   if (musicStarted || !TRACKS.length) return;
+    //   musicStarted = true;
+    //   music.src = TRACKS[trackIndex];
+    //   music.play();
     }
 
     // Parallax layers positions
@@ -1206,9 +1204,8 @@
       for (const b of shots) drawBullet(b.x, b.y, b.w, b.h);
       for (const pb of pshots) drawPlayerBullet(pb.x, pb.y, pb.w, pb.h);
 
-      // Player
-      const pf = animFrame===0?IMG.p1:animFrame===1?IMG.p2:animFrame===2?IMG.p3:IMG.p4;
-      drawImg(pf, P.x, P.y, P.w, P.h);
+      // Player (4-frame spritesheet)
+      drawPlayer(P.x, P.y, P.w, P.h, animFrame);
       if (hasShield) drawImg(IMG.shieldImg, P.x, P.y, P.w * 1.5, P.h * 1.5);
 
       // End shake transform
@@ -1237,6 +1234,17 @@
 
     function drawLayer(img, x, y, w, h){ ctx.drawImage(img, x - 2, y, w + 4, h); }
     function drawImg(img, x, y, w, h){ ctx.drawImage(img, Math.round(x - w/2), Math.round(y - h/2), w, h); }
+    function drawPlayer(x, y, w, h, frame){
+      const img = IMG.playerRun;
+      if (!img || !img.width) { return; }
+      const frames = 4;
+      const fw = Math.floor(img.width / frames);
+      const fh = img.height;
+      const f = frame % frames;
+      const sx = f * fw;
+      const sy = 0;
+      ctx.drawImage(img, sx, sy, fw, fh, Math.round(x - w/2), Math.round(y - h/2), w, h);
+    }
     function drawPlatform(x, y, w, h, img){
       ctx.save();
       ctx.shadowColor = 'rgba(255,215,0,0.25)';

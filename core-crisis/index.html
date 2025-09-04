@@ -299,7 +299,10 @@
     const pshots=[];   // player bullets (from gun)
 
     // Soundtrack playback
-    const TRACKS = ['cc_soundtrack01.mp3', 'cc_soundtrack02.mp3'].filter(t => t.includes('soundtrack'));
+    const TRACKS = [
+      'assets/cc_soundtrack01.mp3',
+      'assets/cc_soundtrack02.mp3'
+    ].filter(t => t.includes('soundtrack'));
     let trackIndex = 0;
     let musicStarted = false;
     const music = new Audio();
@@ -310,10 +313,10 @@
       music.play();
     });
     function startMusic(){
-    //   if (musicStarted || !TRACKS.length) return;
-    //   musicStarted = true;
-    //   music.src = TRACKS[trackIndex];
-    //   music.play();
+      if (musicStarted || !TRACKS.length) return;
+      musicStarted = true;
+      music.src = TRACKS[trackIndex];
+      music.play();
     }
 
     // Parallax layers positions

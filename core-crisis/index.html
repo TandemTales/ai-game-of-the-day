@@ -185,10 +185,7 @@
       sky: 'assets/parallax-sky.svg',
       hills: 'assets/parallax-mountains.svg',
       fg: 'assets/parallax-foreground.svg',
-      p1: 'assets/player-run-1.svg',
-      p2: 'assets/player-run-2.svg',
-      p3: 'assets/player-run-3.svg',
-      p4: 'assets/player-run-4.svg',
+      playerRun: 'assets/Bot_animation_running.png',
       spike: 'assets/spike.svg',
       orb: 'assets/orb.svg',
       gem: 'assets/gem.svg',
@@ -1205,8 +1202,10 @@
       for (const pb of pshots) drawPlayerBullet(pb.x, pb.y, pb.w, pb.h);
 
       // Player
-      const pf = animFrame===0?IMG.p1:animFrame===1?IMG.p2:animFrame===2?IMG.p3:IMG.p4;
-      drawImg(pf, P.x, P.y, P.w, P.h);
+      const runImg = IMG.playerRun;
+      const frameW = runImg.width / 4;
+      ctx.drawImage(runImg, frameW * animFrame, 0, frameW, runImg.height,
+        Math.round(P.x - P.w / 2), Math.round(P.y - P.h / 2), P.w, P.h);
       if (hasShield) drawImg(IMG.shieldImg, P.x, P.y, P.w * 1.5, P.h * 1.5);
 
       // End shake transform

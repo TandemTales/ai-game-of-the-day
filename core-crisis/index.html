@@ -188,6 +188,8 @@
       // Player running spritesheet (4 frames)
       playerRun: 'assets/Bot_animation_running.png',
       playerRunGun: 'assets/Bot_animation_running_gun.png',
+      // Player gliding sprite (single frame)
+      playerGlide: 'assets/Bot_animation_gliding.png',
       spike: 'assets/spike.svg',
       orb: 'assets/orb.svg',
       gem: 'assets/gem.svg',
@@ -1239,9 +1241,16 @@
     function drawLayer(img, x, y, w, h){ ctx.drawImage(img, x - 2, y, w + 4, h); }
     function drawImg(img, x, y, w, h){ ctx.drawImage(img, Math.round(x - w/2), Math.round(y - h/2), w, h); }
     function drawPlayer(x, y, w, h, frame){
-      const img = hasGun ? IMG.playerRunGun : IMG.playerRun;
+      let img;
+      let frames = 4;
+      if (P.glide && IMG.playerGlide) {
+        img = IMG.playerGlide;
+        frames = 1;
+        frame = 0;
+      } else {
+        img = hasGun ? IMG.playerRunGun : IMG.playerRun;
+      }
       if (!img || !img.width) { return; }
-      const frames = 4;
       const fw = Math.floor(img.width / frames);
       const fh = img.height;
       const f = frame % frames;

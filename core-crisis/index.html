@@ -202,6 +202,9 @@
       flyer: 'assets/rr_enemy_flying.png',
       faucet: 'assets/rr_faucet.png',
       cog: 'assets/rr_cog_animation.png',
+      platformShort: 'assets/rr_conveyor_platform_short.png',
+      platformMedium: 'assets/rr_conveyor_platform_medium.png',
+      platformLong: 'assets/rr_conveyor_platform_long.png',
     };
 
     const IMG = {};
@@ -279,6 +282,11 @@
     // Entities
     const spikes=[]; // ground obstacles
     const platforms=[]; // floating platforms the player can land on
+    const PLATFORM_TYPES = [
+      { key: 'platformShort', w: 128, h: 32 },
+      { key: 'platformMedium', w: 160, h: 32 },
+      { key: 'platformLong', w: 224, h: 32 },
+    ];
     const orbs=[];   // floating hazards
     const gems=[];   // collectibles
     const jetpacks=[]; // jetpack pickup(s)
@@ -657,8 +665,8 @@
       if (platformTimer <= 0) {
         platformTimer = rand(1.4, 3.0);
         const nowSec = time;
-        const w = Math.round(rand(120, 240));
-        const h = 18;
+        const type = PLATFORM_TYPES[Math.floor(rand(0, PLATFORM_TYPES.length))];
+        const { w, h, key } = type;
         const x = gridSpawnX();
         // Prefer rows 1-3 above ground so they are reachable
         const minRow = 1, maxRow = 3;
@@ -667,7 +675,7 @@
           // Place platform TOP on a horizontal grid border (half-cell above row center)
           const borderTop = yForRow(row) - GRID_CELL/2;
           const y = borderTop + h/2; // center for drawing and math
-          platforms.push({ x, y, w, h });
+          platforms.push({ x, y, w, h, img: IMG[key] });
         }
       }
 
@@ -1161,7 +1169,7 @@
       // Draw hazards
       for (const s of spikes) drawImg(s.img, s.x, s.y, s.w, s.h);
       // Draw platforms
-      for (const pl of platforms) drawPlatform(pl.x, pl.y, pl.w, pl.h);
+      for (const pl of platforms) drawPlatform(pl.x, pl.y, pl.w, pl.h, pl.img);
       for (const o of orbs) drawImg(o.img, o.x, o.y, o.w, o.h);
       for (const g of gems) drawImg(g.img, g.x, g.y, g.w, g.h);
       for (const jp of jetpacks) drawImg(jp.img, jp.x, jp.y, jp.w, jp.h);
@@ -1208,23 +1216,11 @@
 
     function drawLayer(img, x, y, w, h){ ctx.drawImage(img, x - 2, y, w + 4, h); }
     function drawImg(img, x, y, w, h){ ctx.drawImage(img, Math.round(x - w/2), Math.round(y - h/2), w, h); }
-    function drawPlatform(x, y, w, h){
-      const left = Math.round(x - w/2), top = Math.round(y - h/2);
+    function drawPlatform(x, y, w, h, img){
       ctx.save();
-      // Shadow/glow
       ctx.shadowColor = 'rgba(255,215,0,0.25)';
       ctx.shadowBlur = 8;
-      // Body
-      ctx.fillStyle = '#2b3a55';
-      ctx.fillRect(left, top, w, h);
-      // Top bevel
-      ctx.fillStyle = '#5F9EA0';
-      ctx.fillRect(left, top, w, Math.max(2, Math.floor(h*0.35)));
-      // Border
-      ctx.shadowBlur = 0;
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = '#FFD700';
-      ctx.strokeRect(left+0.5, top+0.5, w-1, h-1);
+      drawImg(img, x, y, w, h);
       ctx.restore();
     }
     function drawFlyer(x, y, w, h, state){

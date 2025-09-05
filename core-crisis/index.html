@@ -235,6 +235,10 @@
       platformMedium: 'assets/rr_conveyor_platform_medium.png',
       platformLong: 'assets/rr_conveyor_platform_long.png',
       smasher: 'assets/rr_smasher.png',
+      bossShut: 'assets/boss_eyeball_shut.png',
+      bossOpen: 'assets/boss_eyeball_open.png',
+      bossClose: 'assets/boss_eyeball_close.png',
+      bossLaser: 'assets/boss_eyeball_laser.png',
     };
 
     const IMG = {};
@@ -331,6 +335,10 @@
     const flyers=[];   // flying enemies that hover and shoot
     const shots=[];    // enemy bullets
     const pshots=[];   // player bullets (from gun)
+    let boss = null;   // first boss entity
+    let bossSpawned = false;
+    const BOSS_SPAWN_TIME = 45;
+    const BOSS_EXPOSE_TIME = 4;
 
     // Soundtrack playback
     const TRACKS = [
@@ -378,6 +386,22 @@
       try { s.cloneNode().play(); } catch {}
     }
 
+    function spawnBoss(){
+      const w = IMG.bossShut.width;
+      const h = IMG.bossShut.height;
+      boss = {
+        x: W + w/2 + 40,
+        y: yForRow(1),
+        w, h,
+        lane: 1,
+        state: 'approach',
+        targetX: W - w/2 - 60,
+        timer: 0,
+        hp: 12,
+        hitX: 0.6, hitY: 0.6
+      };
+    }
+
     // Parallax layers positions
     const L = {
       sky1:0, sky2:W,
@@ -391,7 +415,7 @@
       frameTimer=0; animFrame=0; spawnTimer=0; gemTimer=0; coolantTimer = rand(2.5, 4.5);
       heat = 0;
       worldFreeze = 0; hitFlash = 0; shake = 0; hitGrace = 0;
-      spikes.length=0; platforms.length=0; gems.length=0; jetpacks.length=0; gliders.length=0; guns.length=0; coolants.length=0; cogs.length=0; smashers.length=0; flyers.length=0; shots.length=0; pshots.length=0;
+      spikes.length=0; platforms.length=0; gems.length=0; jetpacks.length=0; gliders.length=0; guns.length=0; coolants.length=0; cogs.length=0; smashers.length=0; flyers.length=0; shots.length=0; pshots.length=0; boss = null; bossSpawned = false;
       P.x = 200; P.y = GROUND_Y; P.vx = 0; P.vy = 0; P.onGround = true; P.glide=false; P.isJumping=false; P.jumpT=0;
       Object.assign(L, { sky1:0, sky2:W, h1:0, h2:W, f1:0, f2:W });
       // Clear any lingering input so the new run doesn't start with stuck keys
@@ -614,6 +638,8 @@
       L.sky1 -= s1; L.sky2 -= s1; if (L.sky1 + W < 0) L.sky1 = L.sky2 + W; if (L.sky2 + W < 0) L.sky2 = L.sky1 + W;
       L.h1 -= s2; L.h2 -= s2; if (L.h1 + W < 0) L.h1 = L.h2 + W; if (L.h2 + W < 0) L.h2 = L.h1 + W;
       L.f1 -= s3; L.f2 -= s3; if (L.f1 + W < 0) L.f1 = L.f2 + W; if (L.f2 + W < 0) L.f2 = L.f1 + W;
+
+      if (!bossSpawned && time >= BOSS_SPAWN_TIME) { spawnBoss(); bossSpawned = true; }
 
       // Player physics
       // Variable jump: full gravity by default; reduced while rising if jump held (up to cap)
@@ -949,6 +975,39 @@
         if (cg.x + cg.w/2 < -160) cogs.splice(i,1);
       }
 
+      if (boss) {
+        const laneY = yForRow(boss.lane);
+        if (boss.state === 'approach') {
+          boss.x = move(boss.x) + RUN_SPEED * scrollMul * dt - 80 * dt;
+          boss.y += (laneY - boss.y) * 3 * dt;
+          if (boss.x <= boss.targetX) {
+            boss.x = boss.targetX;
+            boss.state = 'move';
+            boss.timer = 1.5;
+          }
+        } else {
+          boss.x = move(boss.x) + RUN_SPEED * scrollMul * dt;
+          boss.y += (laneY - boss.y) * 3 * dt;
+          boss.timer -= dt;
+          if (boss.state === 'move') {
+            if (boss.timer <= 0) { boss.state = 'open'; boss.timer = 0.6; }
+          } else if (boss.state === 'open') {
+            if (boss.timer <= 0) { boss.state = 'fire'; boss.timer = 1.5; }
+          } else if (boss.state === 'fire') {
+            if (boss.timer <= 0) { boss.state = 'exposed'; boss.timer = BOSS_EXPOSE_TIME; }
+          } else if (boss.state === 'exposed') {
+            if (boss.timer <= 0) { boss.state = 'close'; boss.timer = 0.6; }
+          } else if (boss.state === 'close') {
+            if (boss.timer <= 0) {
+              const lanes = [0,1,2];
+              boss.lane = lanes[Math.floor(Math.random()*lanes.length)];
+              boss.state = 'move';
+              boss.timer = 1.5;
+            }
+          }
+        }
+      }
+
       // Flying enemies movement and behavior
       for (let i = flyers.length - 1; i >= 0; i--) {
         const f = flyers[i];
@@ -1118,6 +1177,21 @@
           hitGrace = 2; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
           return;
         }
+        if (boss && boss.state === 'fire') {
+          const by = yForRow(boss.lane);
+          const beam = { x: (boss.x - boss.w/2) / 2, y: by, w: boss.x - boss.w/2, h: GRID_CELL, hitX: 1, hitY: 1 };
+          if (hit(P, beam)) {
+            if (!consumeShieldOnHit()) {
+              heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
+              loseRandomItem();
+            }
+            P.vy = Math.min(P.vy, -350);
+            P.onGround = false;
+            P.y = Math.max(P.h/2, P.y - 10);
+            hitGrace = 2; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
+            return;
+          }
+        }
         // Enemy shots collision
         for (let i=shots.length-1; i>=0; i--) {
           const b = shots[i];
@@ -1210,14 +1284,18 @@
         }
       }
 
-      // Player bullet collisions: only destroy flying enemies; +1 score
+      // Player bullet collisions: destroy flyers or damage boss
       for (let i = pshots.length - 1; i >= 0; i--) {
         const b = pshots[i];
-        let hitFlyer = false;
+        let hitSomething = false;
         for (let j = flyers.length - 1; j >= 0; j--) {
-          if (hit(b, flyers[j])) { flyers.splice(j,1); hitFlyer = true; score += 1; break; }
+          if (hit(b, flyers[j])) { flyers.splice(j,1); hitSomething = true; score += 1; break; }
         }
-        if (hitFlyer) { pshots.splice(i,1); }
+        if (!hitSomething && boss && boss.state === 'exposed' && hit(b, boss)) {
+          hitSomething = true; boss.hp--; score += 5;
+          if (boss.hp <= 0) { boss = null; score += 50; }
+        }
+        if (hitSomething) { pshots.splice(i,1); }
       }
     }
 
@@ -1304,6 +1382,8 @@
       for (const c of coolants) drawImg(c.img, c.x, c.y, c.w, c.h);
       for (const sm of smashers) drawImg(IMG.smasher, sm.x, sm.y, sm.w, sm.h);
       for (const cg of cogs) drawCog(cg.x, cg.y, cg.w, cg.h, cg.t);
+
+      if (boss) drawBoss(boss);
 
       // Draw flyers and shots
       for (const f of flyers) drawFlyer(f.x, f.y, f.w, f.h, f.state);
@@ -1395,6 +1475,25 @@
       ctx.shadowBlur = 8;
       drawImg(IMG.flyer, x, y, w, h);
       ctx.restore();
+    }
+
+    function drawBoss(b){
+      if (b.state === 'fire') {
+        const y = yForRow(b.lane);
+        const h = GRID_CELL;
+        ctx.save();
+        ctx.fillStyle = 'rgba(255,0,0,0.6)';
+        ctx.shadowColor = 'rgba(255,0,0,0.8)';
+        ctx.shadowBlur = 20;
+        ctx.fillRect(0, y - h/2, b.x - b.w/2, h);
+        ctx.restore();
+        drawImg(IMG.bossLaser, b.x, b.y, b.w, b.h);
+      } else {
+        let img = IMG.bossShut;
+        if (b.state === 'open' || b.state === 'exposed') img = IMG.bossOpen;
+        else if (b.state === 'close') img = IMG.bossClose;
+        drawImg(img, b.x, b.y, b.w, b.h);
+      }
     }
 
     function drawSpike(x, y, w, h, t){

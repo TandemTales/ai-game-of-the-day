@@ -224,6 +224,7 @@
     const GRAV = 1800; // px/s^2
     const RUN_SPEED = 400; // world scroll speed
     const JUMP_V = 700;
+    const QUICK_TAP_TIME = 0.1; // seconds; taps shorter than this trigger a half jump
     // Variable jump: allow holding jump to extend rise a bit
     const JUMP_HOLD_MAX = 0.22; // seconds
     const ASCEND_G = 800;      // gravity while rising and holding jump
@@ -587,10 +588,17 @@
       const jumpHeld = (key.space || key.up);
       const spaceHeld = key.space; // primary press (Space/left-click/tap)
       const spaceJustPressed = primaryPressPulse || (spaceHeld && !prevSpaceHeld); // robust edge detect
+      const spaceJustReleased = !spaceHeld && prevSpaceHeld;
 
       // Grounded jump only on new press; mark if jump started this frame
       let jumpedThisFrame = false;
       if (spaceJustPressed && P.onGround) { P.vy = -JUMP_V; P.onGround=false; P.isJumping = true; P.jumpT = 0; jumpedThisFrame = true; }
+      // Quick tap detection: shorten jump if released immediately
+      if (spaceJustReleased && P.isJumping && P.jumpT < QUICK_TAP_TIME) {
+        const halfJumpVy = -JUMP_V / 2;
+        if (P.vy < halfJumpVy) P.vy = halfJumpVy;
+        P.isJumping = false;
+      }
 
       // Jetpack activation: new press while airborne (not the same frame as jump)
       if (hasJetpack && !key.down && !P.onGround && !jumpedThisFrame && spaceJustPressed && jetFuel > 0) {
@@ -614,10 +622,10 @@
       // Glide only if holding without active jet burn and only after collecting a Glider
       P.glide = (hasGlider && !P.onGround && (key.space || key.up) && !jetActive);
       if (key.down && !P.onGround && P.vy < DIVE_V) P.vy = Math.min(DIVE_V, P.vy + DIVE_V * dt);
-      // While ascending and holding jump, soften gravity for a short window
-      if (P.isJumping && P.vy < 0 && (key.space || key.up) && P.jumpT < JUMP_HOLD_MAX && !key.down) {
+      // Track jump duration and soften gravity while held
+      if (P.isJumping) P.jumpT += dt;
+      if (P.isJumping && P.vy < 0 && jumpHeld && P.jumpT < JUMP_HOLD_MAX && !key.down) {
         g = ASCEND_G;
-        P.jumpT += dt;
       }
       // Stop variable jump effect after apex
       if (P.vy >= 0) P.isJumping = false;

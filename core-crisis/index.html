@@ -276,9 +276,6 @@
     function bossTelegraphFor(b){ const pct = b.hp / b.maxHp; return BOSS_TELEGRAPH_MIN + (BOSS_TELEGRAPH_MAX - BOSS_TELEGRAPH_MIN) * pct; }
     const JUMP_V = 700;
     const QUICK_TAP_TIME = 0.1; // seconds; taps shorter than this trigger a half jump
-    // Variable jump: allow holding jump to extend rise a bit
-    const JUMP_HOLD_MAX = 0.22; // seconds
-    const ASCEND_G = 800;      // gravity while rising and holding jump
     // Make gliding more pronounced: much lower gravity while gliding
     const GLIDE_G = 180;
     // Cap descend speed while gliding (unless diving) — slower fall
@@ -336,7 +333,7 @@
     // Player
     // Player with slightly smaller hitbox to avoid early collisions
     // Player collision tuned smaller and slightly raised to avoid foot/brim overlaps
-    const P = { x: 200, y: GROUND_Y, vx: 0, vy: 0, w: 96, h: 96, onGround: true, glide: false, hitX: 0.48, hitY: 0.56, hitOffsetY: -12, isJumping: false, jumpT: 0 };
+    const P = { x: 200, y: GROUND_Y, vx: 0, vy: 0, w: 96, h: 96, onGround: true, glide: false, hitX: 0.48, hitY: 0.56, hitOffsetY: -12, isJumping: false, jumpT: 0, jumps: 0 };
 
     // Entities
     const spikes=[]; // ground obstacles
@@ -422,7 +419,7 @@
       heat = 0;
       worldFreeze = 0; hitFlash = 0; shake = 0; hitGrace = 0;
       spikes.length=0; platforms.length=0; gems.length=0; jetpacks.length=0; gliders.length=0; guns.length=0; coolants.length=0; cogs.length=0; smashers.length=0; flyers.length=0; shots.length=0; pshots.length=0;
-      P.x = 200; P.y = GROUND_Y; P.vx = 0; P.vy = 0; P.onGround = true; P.glide=false; P.isJumping=false; P.jumpT=0;
+      P.x = 200; P.y = GROUND_Y; P.vx = 0; P.vy = 0; P.onGround = true; P.glide=false; P.isJumping=false; P.jumpT=0; P.jumps=0;
       Object.assign(L, { sky1:0, sky2:W, h1:0, h2:W, f1:0, f2:W });
       // Clear any lingering input so the new run doesn't start with stuck keys
       key.space = false; key.up = false; key.down = false;
@@ -739,7 +736,6 @@
       L.f1 -= s3; L.f2 -= s3; if (L.f1 + W < 0) L.f1 = L.f2 + W; if (L.f2 + W < 0) L.f2 = L.f1 + W;
 
       // Player physics
-      // Variable jump: full gravity by default; reduced while rising if jump held (up to cap)
       let g = GRAV;
       if (P.onGround) P.vy = 0;
       const jumpHeld = (key.space || key.up);
@@ -747,9 +743,22 @@
       const spaceJustPressed = primaryPressPulse || (spaceHeld && !prevSpaceHeld); // robust edge detect
       const spaceJustReleased = !spaceHeld && prevSpaceHeld;
 
-      // Grounded jump only on new press; mark if jump started this frame
+      // Handle jumping; allow double jump
       let jumpedThisFrame = false;
-      if (spaceJustPressed && P.onGround) { P.vy = -JUMP_V; P.onGround=false; P.isJumping = true; P.jumpT = 0; jumpedThisFrame = true; }
+      if (spaceJustPressed && P.onGround) {
+        P.vy = -JUMP_V;
+        P.onGround = false;
+        P.isJumping = true;
+        P.jumpT = 0;
+        P.jumps = 1;
+        jumpedThisFrame = true;
+      } else if (spaceJustPressed && !P.onGround && P.jumps < 2) {
+        P.vy = -JUMP_V;
+        P.isJumping = true;
+        P.jumpT = 0;
+        P.jumps++;
+        jumpedThisFrame = true;
+      }
       // Quick tap detection: shorten jump if released immediately
       if (spaceJustReleased && P.isJumping && P.jumpT < QUICK_TAP_TIME) {
         const halfJumpVy = -JUMP_V / 2;
@@ -779,12 +788,9 @@
       // Glide only if holding without active jet burn and only after collecting a Glider
       P.glide = (hasGlider && !P.onGround && (key.space || key.up) && !jetActive);
       if (key.down && !P.onGround && P.vy < DIVE_V) P.vy = Math.min(DIVE_V, P.vy + DIVE_V * dt);
-      // Track jump duration and soften gravity while held
+      // Track jump duration
       if (P.isJumping) P.jumpT += dt;
-      if (P.isJumping && P.vy < 0 && jumpHeld && P.jumpT < JUMP_HOLD_MAX && !key.down) {
-        g = ASCEND_G;
-      }
-      // Stop variable jump effect after apex
+      // Stop jump tracking after apex
       if (P.vy >= 0) P.isJumping = false;
       // Gliding reduces gravity only on descent
       if (P.glide && P.vy >= 0 && !key.down) g = GLIDE_G;
@@ -828,6 +834,7 @@
       if (P.y >= GROUND_Y) { P.y = GROUND_Y; P.onGround = true; P.vy = 0; }
       // Track air time and manage fuel recharge/cooldown
       if (P.onGround) {
+        P.jumps = 0;
         P.jetCount = 0;
         if (hasJetpack && jetFuel < JET_FUEL_MAX) jetFuel = Math.min(JET_FUEL_MAX, jetFuel + JET_RECHARGE_RATE * dt);
       }
@@ -1370,7 +1377,7 @@
       // Avoid stuck inputs while on the game-over screen
       key.space = false; key.up = false; key.down = false;
       // Clear jump state
-      P.isJumping = false; P.jumpT = 0;
+      P.isJumping = false; P.jumpT = 0; P.jumps = 0;
     }
 
     function draw(dt){

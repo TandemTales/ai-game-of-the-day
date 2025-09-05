@@ -235,6 +235,8 @@
       platformMedium: 'assets/rr_conveyor_platform_medium.png',
       platformLong: 'assets/rr_conveyor_platform_long.png',
       smasher: 'assets/rr_smasher.png',
+      bossEyeShut: 'assets/boss_eyeball_shut.png',
+      bossEyeLaser: 'assets/boss_eyeball_laser.png',
     };
 
     const IMG = {};
@@ -331,6 +333,14 @@
     const flyers=[];   // flying enemies that hover and shoot
     const shots=[];    // enemy bullets
     const pshots=[];   // player bullets (from gun)
+
+    // Boss
+    let boss = null;
+    let bossSpawned = false;
+    const BOSS_HP = 20;
+    const BOSS_ENTRY_SPEED = 60;
+    const BOSS_FIRE_TIME = 1.2;
+    const BOSS_EXPOSE_TIME = 3.0;
 
     // Soundtrack playback
     const TRACKS = [
@@ -920,6 +930,16 @@
         cogTimer = rand(6, 12);
       }
 
+      // Boss spawn after 45 seconds
+      if (!boss && !bossSpawned && time >= 45) {
+        const w = IMG.bossEyeShut.width;
+        const h = IMG.bossEyeShut.height;
+        const midRow = rowForY(H / 2);
+        const y = yForRow(midRow);
+        boss = { x: W + w/2, y, w, h, hp: BOSS_HP, state: 'enter', timer: 0, beam: 0 };
+        bossSpawned = true;
+      }
+
       // Move hazards + gems
       const move = v => v - RUN_SPEED * scrollMul * dt;
       for (const s of spikes) s.x = move(s.x);
@@ -1013,6 +1033,42 @@
         b.x = move(b.x) + b.vx * dt;
         b.y += b.vy * dt;
         if (b.t > 3 || b.x < -100 || b.x > W + 200 || b.y < -120 || b.y > H + 120) pshots.splice(i,1);
+      }
+
+      // Boss behavior
+      if (boss) {
+        if (boss.state === 'enter') {
+          boss.x -= BOSS_ENTRY_SPEED * dt;
+          if (boss.x <= W - boss.w/2 - 40) {
+            boss.x = W - boss.w/2 - 40;
+            boss.state = 'closed';
+            boss.timer = 2.5;
+          }
+        } else if (boss.state === 'closed') {
+          boss.timer -= dt;
+          if (boss.timer <= 0) {
+            boss.state = 'charge';
+            boss.timer = 0.5;
+          }
+        } else if (boss.state === 'charge') {
+          boss.timer -= dt;
+          if (boss.timer <= 0) {
+            boss.state = 'fire';
+            boss.beam = BOSS_FIRE_TIME;
+          }
+        } else if (boss.state === 'fire') {
+          boss.beam -= dt;
+          if (boss.beam <= 0) {
+            boss.state = 'exposed';
+            boss.timer = BOSS_EXPOSE_TIME;
+          }
+        } else if (boss.state === 'exposed') {
+          boss.timer -= dt;
+          if (boss.timer <= 0) {
+            boss.state = 'closed';
+            boss.timer = 3.0;
+          }
+        }
       }
 
       // Remove offscreen
@@ -1118,6 +1174,24 @@
           hitGrace = 2; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
           return;
         }
+        // Boss laser collision
+        if (boss && boss.state === 'fire') {
+          const beamRight = boss.x - boss.w/2;
+          const beamWidth = beamRight;
+          const beamHeight = boss.h * 0.6;
+          const beamBox = { x: beamWidth / 2, y: boss.y, w: beamWidth, h: beamHeight };
+          if (hit(P, beamBox)) {
+            if (!consumeShieldOnHit()) {
+              heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
+              loseRandomItem();
+            }
+            P.vy = Math.min(P.vy, -350);
+            P.onGround = false;
+            P.y = Math.max(P.h/2, P.y - 10);
+            hitGrace = 2; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
+            return;
+          }
+        }
         // Enemy shots collision
         for (let i=shots.length-1; i>=0; i--) {
           const b = shots[i];
@@ -1219,6 +1293,20 @@
         }
         if (hitFlyer) { pshots.splice(i,1); }
       }
+      // Boss hit by player bullets when exposed
+      if (boss && boss.state === 'exposed') {
+        for (let i = pshots.length - 1; i >= 0; i--) {
+          if (hit(pshots[i], boss)) {
+            pshots.splice(i,1);
+            boss.hp -= 1;
+            if (boss.hp <= 0) {
+              boss = null;
+              score += 20;
+              break;
+            }
+          }
+        }
+      }
     }
 
     function die(){
@@ -1305,6 +1393,18 @@
       for (const sm of smashers) drawImg(IMG.smasher, sm.x, sm.y, sm.w, sm.h);
       for (const cg of cogs) drawCog(cg.x, cg.y, cg.w, cg.h, cg.t);
 
+      // Boss and beam
+      if (boss) {
+        if (boss.state === 'fire') {
+          const beamRight = boss.x - boss.w/2;
+          const beamHeight = boss.h * 0.6;
+          ctx.fillStyle = 'rgba(255,0,0,0.6)';
+          ctx.fillRect(0, Math.round(boss.y - beamHeight/2), beamRight, beamHeight);
+        }
+        const img = (boss.state === 'enter' || boss.state === 'closed') ? IMG.bossEyeShut : IMG.bossEyeLaser;
+        drawImg(img, boss.x, boss.y, boss.w, boss.h);
+      }
+
       // Draw flyers and shots
       for (const f of flyers) drawFlyer(f.x, f.y, f.w, f.h, f.state);
       for (const b of shots) drawBullet(b.x, b.y, b.w, b.h);
@@ -1316,6 +1416,20 @@
 
       // End shake transform
       ctx.restore();
+
+      // Boss health bar
+      if (boss) {
+        const barW = 280;
+        const barH = 16;
+        const barX = (W - barW) / 2;
+        const barY = 20;
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(barX, barY, barW, barH);
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(barX + 2, barY + 2, (barW - 4) * (boss.hp / BOSS_HP), barH - 4);
+        ctx.strokeStyle = '#fff';
+        ctx.strokeRect(barX + 0.5, barY + 0.5, barW, barH);
+      }
 
       // Red flash overlay to emphasize damage
       if (hitFlash > 0) {

@@ -444,6 +444,8 @@
     // spike=54, jetpack=44, glider=44, shield=44, gem=34, coolant small=28, coolant large=44
     const GRID_CELL = Math.max(54, 44, 44, 44, 34, 28);
     const BOSS_LANES = [GROUND_Y - GRID_CELL*6, GROUND_Y - GRID_CELL*3];
+    const BOSS_LASER_BEAM_OFFSET = 80;
+    const BOSS_UPPER_LASER_SHIFT = 80;
     // Small visual nudge so drawn sprites look centered between vertical borders
     const GRID_ITEM_X_OFFSET = 2; // pixels to the right; platforms excluded
     // Occupied spawn-column rows with expiry times (seconds since start)
@@ -646,8 +648,8 @@
           y: BOSS_LANES[1],
           lane: 1,
           targetLane: 1,
-          w: 160,
-          h: 160,
+          w: 320,
+          h: 320,
           state: 'entry',
           hp: BOSS_MAX_HP,
           maxHp: BOSS_MAX_HP,
@@ -1205,7 +1207,9 @@
           return pick;
         }
         if (boss && boss.state === 'laser') {
-          const beam = { x: (boss.x - boss.w/2) / 2, y: boss.y, w: boss.x - boss.w/2, h: P.h * 0.5 };
+          const beamLeft = boss.x - BOSS_LASER_BEAM_OFFSET;
+          const beamY = boss.y - (boss.lane === 0 ? BOSS_UPPER_LASER_SHIFT : 0);
+          const beam = { x: beamLeft / 2, y: beamY, w: beamLeft, h: P.h * 0.5 };
           if (hit(P, beam)) {
             if (!consumeShieldOnHit()) {
               heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
@@ -1461,8 +1465,10 @@
       for (const pb of pshots) drawPlayerBullet(pb.x, pb.y, pb.w, pb.h);
       if (boss && boss.state === 'laser') {
         const beamH = P.h * 0.5;
+        const beamLeft = boss.x - BOSS_LASER_BEAM_OFFSET;
+        const beamY = boss.y - (boss.lane === 0 ? BOSS_UPPER_LASER_SHIFT : 0);
         ctx.fillStyle = 'rgba(255,0,0,0.6)';
-        ctx.fillRect(0, boss.y - beamH/2, boss.x - boss.w/2, beamH);
+        ctx.fillRect(0, beamY - beamH/2, beamLeft, beamH);
       }
       if (boss) {
         if (boss.state === 'open') drawBossOpen(boss);

@@ -235,6 +235,8 @@
       platformMedium: 'assets/rr_conveyor_platform_medium.png',
       platformLong: 'assets/rr_conveyor_platform_long.png',
       smasher: 'assets/rr_smasher.png',
+      bossShut: 'assets/boss_eyeball_shut.png',
+      bossLaser: 'assets/boss_eyeball_laser.png',
     };
 
     const IMG = {};
@@ -407,6 +409,7 @@
       cogTimer = rand(5, 9);      // first rolling cog spawn
       smasherTimer = rand(7, 14); // first smasher drop spawn
       platformTimer = rand(1.2, 2.6); // first platform spawn
+      boss = null; bossTimer = 45;
       hideStart(); hideGameOver();
     }
 
@@ -450,6 +453,11 @@
       }
       return null;
     }
+
+    // Boss system
+    const BOSS_LANES = [GROUND_Y, GROUND_Y - GRID_CELL * 3, Math.max(0, GROUND_Y - GRID_CELL * 6)];
+    let boss = null;
+    let bossTimer = 45;
 
     // Heat system
     const HEAT_MAX = 100;
@@ -608,6 +616,38 @@
       // Mobile controls visibility
       const isSmall = Math.min(window.innerWidth, window.innerHeight) < 720;
       maybeShowMobileCtrls(isSmall && running && !dead);
+
+      // Boss spawn and behavior
+      if (bossTimer > 0) bossTimer -= dt;
+      if (!boss && bossTimer <= 0) {
+        const w = P.w * 1.5;
+        const h = P.h * 1.5;
+        const lane = BOSS_LANES[1];
+        boss = { x: W + w, y: lane, w, h, state: 'enter', img: IMG.bossShut, targetX: W - w/2 - 40, timer: 0, health: 10, maxHealth: 10, beamY: lane };
+      }
+      if (boss) {
+        if (boss.state === 'enter') {
+          boss.x -= 60 * dt;
+          if (boss.x <= boss.targetX) { boss.x = boss.targetX; boss.state = 'idle'; boss.timer = 3; }
+        } else if (boss.state === 'idle') {
+          boss.timer -= dt;
+          if (boss.timer <= 0) {
+            boss.state = 'charge';
+            boss.timer = 0.5;
+            boss.img = IMG.bossLaser;
+            boss.beamY = BOSS_LANES[Math.floor(Math.random() * BOSS_LANES.length)];
+          }
+        } else if (boss.state === 'charge') {
+          boss.timer -= dt;
+          if (boss.timer <= 0) { boss.state = 'firing'; boss.timer = 0.7; }
+        } else if (boss.state === 'firing') {
+          boss.timer -= dt;
+          if (boss.timer <= 0) { boss.state = 'exposed'; boss.timer = 2.0; }
+        } else if (boss.state === 'exposed') {
+          boss.timer -= dt;
+          if (boss.timer <= 0) { boss.state = 'idle'; boss.img = IMG.bossShut; boss.timer = 3; }
+        }
+      }
 
       // Background parallax scroll
       const s1 = RUN_SPEED * 0.12 * dt * scrollMul, s2 = RUN_SPEED * 0.32 * dt * scrollMul, s3 = RUN_SPEED * 0.64 * dt * scrollMul;
@@ -1071,6 +1111,22 @@
           }
           return pick;
         }
+
+        // Boss beam hazard
+        if (boss && boss.state === 'firing') {
+          const beamH = P.h;
+          if (Math.abs(P.y - boss.beamY) * 2 < (P.h + beamH)) {
+            if (!consumeShieldOnHit()) {
+              heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
+              loseRandomItem();
+            }
+            P.vy = Math.min(P.vy, -350);
+            P.onGround = false;
+            P.y = Math.max(P.h/2, P.y - 10);
+            hitGrace = 2; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
+            return;
+          }
+        }
         for (const s of spikes) if (hit(P, s)) {
           if (!consumeShieldOnHit()) {
             // Apply heat penalty based on whether a jetpack was owned at impact
@@ -1136,6 +1192,10 @@
         }
       }
       // Gem pickups add score with multiplier based on current combo (applies AFTER 5/10 streak)
+      if (boss && boss.state === 'exposed' && hit(P, boss)) {
+        boss.health--;
+        if (boss.health <= 0) boss = null;
+      }
       for (let i=gems.length-1; i>=0; i--) {
         const g = gems[i];
         if (hit(P, g)) {
@@ -1217,7 +1277,13 @@
         for (let j = flyers.length - 1; j >= 0; j--) {
           if (hit(b, flyers[j])) { flyers.splice(j,1); hitFlyer = true; score += 1; break; }
         }
-        if (hitFlyer) { pshots.splice(i,1); }
+        let hitBossEye = false;
+        if (boss && boss.state === 'exposed' && hit(b, boss)) {
+          boss.health--;
+          hitBossEye = true;
+          if (boss.health <= 0) boss = null;
+        }
+        if (hitFlyer || hitBossEye) { pshots.splice(i,1); }
       }
     }
 
@@ -1305,6 +1371,17 @@
       for (const sm of smashers) drawImg(IMG.smasher, sm.x, sm.y, sm.w, sm.h);
       for (const cg of cogs) drawCog(cg.x, cg.y, cg.w, cg.h, cg.t);
 
+      if (boss) {
+        if (boss.state === 'firing') {
+          ctx.save();
+          ctx.fillStyle = 'rgba(255,0,0,0.45)';
+          const beamH = P.h;
+          ctx.fillRect(0, boss.beamY - beamH/2, boss.x - boss.w/2, beamH);
+          ctx.restore();
+        }
+        drawImg(boss.img, boss.x, boss.y, boss.w, boss.h);
+      }
+
       // Draw flyers and shots
       for (const f of flyers) drawFlyer(f.x, f.y, f.w, f.h, f.state);
       for (const b of shots) drawBullet(b.x, b.y, b.w, b.h);
@@ -1316,6 +1393,20 @@
 
       // End shake transform
       ctx.restore();
+
+      if (boss) {
+        const bw = 200;
+        const bh = 14;
+        const bx = W/2 - bw/2;
+        const by = 20;
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillRect(bx, by, bw, bh);
+        ctx.fillStyle = '#ff0000';
+        ctx.fillRect(bx, by, bw * (boss.health / boss.maxHealth), bh);
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(bx, by, bw, bh);
+      }
 
       // Red flash overlay to emphasize damage
       if (hitFlash > 0) {

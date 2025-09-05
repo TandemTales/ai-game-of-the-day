@@ -283,15 +283,15 @@
     // Player
     // Player with slightly smaller hitbox to avoid early collisions
     // Player collision tuned smaller and slightly raised to avoid foot/brim overlaps
-    const P = { x: 200, y: GROUND_Y, vx: 0, vy: 0, w: 64, h: 64, onGround: true, glide: false, hitX: 0.48, hitY: 0.56, hitOffsetY: -8, isJumping: false, jumpT: 0 };
+    const P = { x: 200, y: GROUND_Y, vx: 0, vy: 0, w: 96, h: 96, onGround: true, glide: false, hitX: 0.48, hitY: 0.56, hitOffsetY: -12, isJumping: false, jumpT: 0 };
 
     // Entities
     const spikes=[]; // ground obstacles
     const platforms=[]; // floating platforms the player can land on
     const PLATFORM_TYPES = [
-      { key: 'platformShort', w: 128, h: 32 },
-      { key: 'platformMedium', w: 160, h: 32 },
-      { key: 'platformLong', w: 224, h: 32 },
+      { key: 'platformShort', w: 192, h: 48 },
+      { key: 'platformMedium', w: 240, h: 48 },
+      { key: 'platformLong', w: 336, h: 48 },
     ];
     const orbs=[];   // floating hazards
     const gems=[];   // collectibles
@@ -835,7 +835,7 @@
       if (flyerTimer <= 0) {
         const nowSec = time;
         const x = W + 60;
-        const w = 52, h = 36;
+        const w = 78, h = 54;
         const maxRow = Math.max(0, Math.floor((GROUND_Y - h/2) / GRID_CELL));
         // Prefer mid-air lanes
         const lowerHalfTopRow = Math.max(0, Math.floor((GROUND_Y - H*0.55) / GRID_CELL));

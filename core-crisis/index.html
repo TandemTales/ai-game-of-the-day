@@ -301,9 +301,11 @@
     let gunFireCd = 0;              // cooldown timer between auto shots
 
     // Shield systems (prevents heat increase while owned; lost first on hit)
+    const SHIELD_MAX_HITS = 3;      // hits the shield can absorb
     let hasShield = false;          // player has collected shield
     let shieldPicked = false;       // prevent future spawns after pickup
     let shieldTimer = 0;            // timer to attempt spawns when not picked
+    let shieldHits = 0;             // remaining shield durability
 
     // Player
     // Player with slightly smaller hitbox to avoid early collisions
@@ -398,7 +400,7 @@
       hasJetpack = false; jetpackPicked = false; jetFuel = 0; prevSpaceHeld = false; wasOnGround = true; jetActive = false; primaryPressPulse = false;
       hasGlider = false; gliderPicked = false;
       hasGun = false; gunPicked = false; gunFireCd = 0; gunTimer = rand(5, 10);
-      hasShield = false; shieldPicked = false; shieldTimer = rand(5, 11);
+      hasShield = false; shieldPicked = false; shieldTimer = rand(5, 11); shieldHits = 0;
       jetpackTimer = rand(6, 12); // first random spawn window
       gliderTimer = rand(4, 10);  // first random spawn window for glider
       flyerTimer = rand(6, 12);   // first flying enemy spawn window
@@ -473,6 +475,7 @@
     const heatFill = document.getElementById('heatFill');
     const heatText = document.getElementById('heatText');
     const shieldHud = document.getElementById('shieldHud');
+    const shieldText = shieldHud ? shieldHud.querySelector('.jet-label') : null;
     const finalScore = document.getElementById('finalScore');
     const lbBtn = document.getElementById('lbBtn');
     const mobile = document.getElementById('mobileCtrls');
@@ -593,7 +596,13 @@
       }
       // Shield HUD
       if (typeof shieldHud !== 'undefined' && shieldHud) {
-        if (hasShield) shieldHud.classList.remove('hidden'); else shieldHud.classList.add('hidden');
+        if (hasShield) {
+          shieldHud.classList.remove('hidden');
+          if (shieldText) shieldText.textContent = `Shield: ${shieldHits}`;
+        } else {
+          shieldHud.classList.add('hidden');
+          if (shieldText) shieldText.textContent = 'Shield';
+        }
       }
 
       // Mobile controls visibility
@@ -1031,13 +1040,17 @@
         const bh = b.h * (b.hitY || 1);
         return Math.abs(ax - bx) * 2 < (aw + bw) && Math.abs(ay - by) * 2 < (ah + bh);
       }
-      // Hazard collisions: add heat and drop items. If shield is owned, it is consumed first and prevents heat gain on that hit.
+      // Hazard collisions: add heat and drop items. If shield is owned, it absorbs the hit, losing one durability and preventing heat gain.
       if (hitGrace <= 0) {
         function consumeShieldOnHit() {
           if (!hasShield) return false;
-          // Lose shield first, without adding heat penalty
-          hasShield = false; shieldPicked = false; shieldTimer = rand(5, 11);
+          shieldHits--;
           playSfx(SFX.shieldHit);
+          if (shieldHits <= 0) {
+            hasShield = false;
+            shieldPicked = false;
+            shieldTimer = rand(5, 11);
+          }
           return true;
         }
         // helper to lose one item fairly when hit
@@ -1164,7 +1177,7 @@
       for (let i=shields.length-1; i>=0; i--) {
         const sh = shields[i];
         if (hit(P, sh)) {
-          hasShield = true; shieldPicked = true; shields.splice(i,1);
+          hasShield = true; shieldPicked = true; shieldHits = SHIELD_MAX_HITS; shields.splice(i,1);
           playSfx(SFX.upgrade);
           showUpgrade('Shield');
         }

@@ -295,9 +295,10 @@
     let spawnTimer=0, gemTimer=0;
     let platformTimer=0;
     let coolantTimer=0;
-    let hitGrace = 0;            // 2s invulnerability after taking a hit (player blinks)
+    let hitGrace = 0;            // 2s invulnerability after taking a hit
     let worldFreeze = 0;         // halt forward scroll briefly after impact
     let hitFlash = 0;            // red flash overlay intensity timer
+    let shieldFlash = 0;         // shield flash timer when it absorbs damage
     let shake = 0;               // camera shake magnitude (pixels)
     // Jetpack systems (hold to burn fuel and thrust)
     const JET_FUEL_MAX = 100;       // max fuel
@@ -595,6 +596,7 @@
       if (hitGrace > 0) hitGrace -= dt;
       if (worldFreeze > 0) worldFreeze -= dt;
       if (hitFlash > 0) hitFlash -= dt;
+      if (shieldFlash > 0) shieldFlash -= dt;
       if (shake > 0) shake = Math.max(0, shake - 28 * dt);
       const scrollMul = worldFreeze > 0 ? 0 : 1;
       dist += RUN_SPEED * dt * scrollMul;
@@ -1175,6 +1177,7 @@
         function consumeShieldOnHit() {
           if (!hasShield) return false;
           shieldHits--;
+          shieldFlash = 2;
           playSfx(SFX.shieldHit);
           if (shieldHits <= 0) {
             hasShield = false;
@@ -1470,7 +1473,7 @@
 
       // Player (4-frame spritesheet)
       drawPlayer(P.x, P.y, P.w, P.h, animFrame);
-      if (hasShield) drawImg(IMG.shieldImg, P.x, P.y, P.w * 1.5, P.h * 1.5);
+      if (hasShield || shieldFlash > 0) drawShield(P.x, P.y, P.w * 1.5, P.h * 1.5);
 
       // End shake transform
       ctx.restore();
@@ -1499,8 +1502,8 @@
     function drawLayer(img, x, y, w, h){ ctx.drawImage(img, x - 2, y, w + 4, h); }
     function drawImg(img, x, y, w, h){ ctx.drawImage(img, Math.round(x - w/2), Math.round(y - h/2), w, h); }
     function drawPlayer(x, y, w, h, frame){
-      // Blink while invincible
-      if (hitGrace > 0 && Math.floor(time * 10) % 2 === 0) return;
+      // Blink while invincible unless shield absorbed the hit
+      if (hitGrace > 0 && shieldFlash <= 0 && Math.floor(time * 10) % 2 === 0) return;
       let img;
       let frames = 4;
       if (P.glide && IMG.playerGlide) {
@@ -1553,6 +1556,11 @@
       ctx.shadowBlur = 8;
       drawImg(IMG.flyer, x, y, w, h);
       ctx.restore();
+    }
+
+    function drawShield(x, y, w, h){
+      if (shieldFlash > 0 && Math.floor(time * 10) % 2 === 0) return;
+      drawImg(IMG.shieldImg, x, y, w, h);
     }
 
     function drawBossOpen(b){

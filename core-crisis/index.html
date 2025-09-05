@@ -680,7 +680,8 @@
       // Spawning hazards
       spawnTimer -= dt;
       if (spawnTimer <= 0) {
-        spawnTimer = rand(0.9, 1.6);
+        // longer delay so ground flames appear farther apart
+        spawnTimer = rand(1.8, 3.2);
         const nowSec = time;
         const x = gridSpawnX() + GRID_ITEM_X_OFFSET;
         // Spike at ground: reserve row 0 if free; otherwise skip this cycle

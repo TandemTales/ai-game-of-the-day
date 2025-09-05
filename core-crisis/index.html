@@ -94,6 +94,21 @@
     #mobileCtrls { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; pointer-events: auto; }
     #mobileCtrls .btn-primary { padding: 14px 18px; font-size: 14px; }
     .hidden { display: none; }
+    .upgrade-notify {
+      position: absolute;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--ui);
+      border: 2px solid var(--gold);
+      color: var(--ink);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 1s;
+      pointer-events: none;
+    }
   </style>
   <!-- Simple, original 2D runner with custom SVG art and parallax scenery. -->
   <!-- GAME_ID used by leaderboard APIs -->
@@ -132,6 +147,7 @@
       </div>
       <a href="../index.html" class="btn btn-primary back">← Back to Home</a>
     </div>
+    <div id="upgradeNotify" class="upgrade-notify"></div>
   </div>
 
     <div class="center" id="startScreen">
@@ -167,6 +183,15 @@
     let W = canvas.width, H = canvas.height;
 
     const topbar = document.querySelector('.topbar');
+    const upgradeNotify = document.getElementById('upgradeNotify');
+    function showUpgrade(name) {
+      upgradeNotify.textContent = name + ' acquired!';
+      upgradeNotify.style.opacity = 1;
+      clearTimeout(upgradeNotify._hide);
+      upgradeNotify._hide = setTimeout(() => {
+        upgradeNotify.style.opacity = 0;
+      }, 1000);
+    }
     const isTouch = window.matchMedia('(pointer: coarse)').matches;
     function resize() {
       const ratio = 16/9;
@@ -1114,6 +1139,7 @@
         if (hit(P, jp)) {
           hasJetpack = true; jetpackPicked = true; jetFuel = JET_FUEL_MAX; jetpacks.splice(i,1);
           playSfx(SFX.upgrade);
+          showUpgrade('Jetpack');
         }
       }
       // Glider pickup
@@ -1122,6 +1148,7 @@
         if (hit(P, gl)) {
           hasGlider = true; gliderPicked = true; gliders.splice(i,1);
           playSfx(SFX.upgrade);
+          showUpgrade('Glider');
         }
       }
       // Gun pickup
@@ -1130,6 +1157,7 @@
         if (hit(P, gu)) {
           hasGun = true; gunPicked = true; guns.splice(i,1);
           playSfx(SFX.upgrade);
+          showUpgrade('Gun');
         }
       }
       // Shield pickup
@@ -1138,6 +1166,7 @@
         if (hit(P, sh)) {
           hasShield = true; shieldPicked = true; shields.splice(i,1);
           playSfx(SFX.upgrade);
+          showUpgrade('Shield');
         }
       }
       // Coolant pickup: reduce heat

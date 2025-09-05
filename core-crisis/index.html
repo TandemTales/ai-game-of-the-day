@@ -1364,7 +1364,23 @@
       const f = frame % frames;
       const sx = f * fw;
       const sy = 0;
-      ctx.drawImage(img, sx, sy, fw, fh, Math.round(x - w/2), Math.round(y - h/2), w, h);
+      let dw = w;
+      let dh = h;
+      if (P.glide) {
+        dw = w * 1.33;
+        dh = h * 1.33;
+      }
+      ctx.drawImage(
+        img,
+        sx,
+        sy,
+        fw,
+        fh,
+        Math.round(x - dw / 2),
+        Math.round(y - dh / 2),
+        dw,
+        dh
+      );
     }
     function drawPlatform(x, y, w, h, img){
       ctx.save();

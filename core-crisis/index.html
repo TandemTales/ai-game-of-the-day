@@ -70,6 +70,13 @@
     .heatbar { position: relative; height: 12px; width: 100%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,99,71,0.6); border-radius: 8px; overflow: hidden; }
     .heatbar-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: linear-gradient(90deg, #34d399 0%, #fbbf24 50%, #ef4444 100%); box-shadow: inset 0 0 6px rgba(255,255,255,0.2); }
     .heatbar-text { position: absolute; inset: 0; display: grid; place-items: center; font-size: 10px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+    /* Boss health bar */
+    #bossHud { min-width: 220px; }
+    #bossHud:not(.hidden) { display: grid; gap: 6px; }
+    .boss-label { font-size: 11px; color: #f87171; opacity: 0.95; }
+    .bossbar { position: relative; height: 12px; width: 100%; background: rgba(255,255,255,0.08); border: 1px solid rgba(248,113,113,0.6); border-radius: 8px; overflow: hidden; }
+    .bossbar-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%); box-shadow: inset 0 0 6px rgba(255,255,255,0.2); }
+    .bossbar-text { position: absolute; inset: 0; display: grid; place-items: center; font-size: 10px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
     .btn { pointer-events: auto; text-decoration: none; cursor: pointer; }
     .btn-primary {
       background: linear-gradient(45deg, var(--teal), #4682B4);
@@ -144,6 +151,10 @@
       </div>
       <div class="chip hidden" id="shieldHud">
         <div class="jet-label">Shield</div>
+      </div>
+      <div class="chip hidden" id="bossHud">
+        <div class="boss-label">Boss</div>
+        <div class="bossbar"><div class="bossbar-fill" id="bossFill"></div><div class="bossbar-text" id="bossText">100%</div></div>
       </div>
       <a href="../index.html" class="btn btn-primary back">← Back to Home</a>
     </div>
@@ -235,6 +246,10 @@
       platformMedium: 'assets/rr_conveyor_platform_medium.png',
       platformLong: 'assets/rr_conveyor_platform_long.png',
       smasher: 'assets/rr_smasher.png',
+      bossShut: 'assets/boss_eyeball_shut.png',
+      bossOpen: 'assets/boss_eyeball_open.png',
+      bossClose: 'assets/boss_eyeball_close.png',
+      bossLaser: 'assets/boss_eyeball_laser.png',
     };
 
     const IMG = {};
@@ -248,6 +263,17 @@
     // Game state
     const GRAV = 1800; // px/s^2
     const RUN_SPEED = 400; // world scroll speed
+    const BOSS_MAX_HP = 20;
+    const BOSS_OPEN_DURATION = 0.3;
+    const BOSS_CLOSE_DURATION = 0.3;
+    const BOSS_LASER_DURATION = 0.6;
+    const BOSS_EXPOSE_DURATION = 1.0;
+    const BOSS_COOLDOWN_MAX = 6;
+    const BOSS_COOLDOWN_MIN = 2;
+    const BOSS_TELEGRAPH_MAX = 1.5;
+    const BOSS_TELEGRAPH_MIN = 0.4;
+    function bossCooldownFor(b){ const pct = b.hp / b.maxHp; return BOSS_COOLDOWN_MIN + (BOSS_COOLDOWN_MAX - BOSS_COOLDOWN_MIN) * pct; }
+    function bossTelegraphFor(b){ const pct = b.hp / b.maxHp; return BOSS_TELEGRAPH_MIN + (BOSS_TELEGRAPH_MAX - BOSS_TELEGRAPH_MIN) * pct; }
     const JUMP_V = 700;
     const QUICK_TAP_TIME = 0.1; // seconds; taps shorter than this trigger a half jump
     // Variable jump: allow holding jump to extend rise a bit
@@ -331,6 +357,8 @@
     const flyers=[];   // flying enemies that hover and shoot
     const shots=[];    // enemy bullets
     const pshots=[];   // player bullets (from gun)
+    let boss = null;   // boss entity
+    let bossSpawned = false;
 
     // Soundtrack playback
     const TRACKS = [
@@ -372,7 +400,9 @@
       shieldHit: new Audio('assets/sfx_shield_hit.wav'),
       jetpack: new Audio('assets/sfx_bot_jetpack.wav'),
       cog: new Audio('assets/sfx_cog.wav'),
-      upgrade: new Audio('assets/sfx_upgrade.wav')
+      upgrade: new Audio('assets/sfx_upgrade.wav'),
+      bossLaser: new Audio('assets/sfx_boss_laser.wav'),
+      bossHit: new Audio('assets/sfx_boss_hit.wav')
     };
     function playSfx(s) {
       try { s.cloneNode().play(); } catch {}
@@ -407,6 +437,7 @@
       cogTimer = rand(5, 9);      // first rolling cog spawn
       smasherTimer = rand(7, 14); // first smasher drop spawn
       platformTimer = rand(1.2, 2.6); // first platform spawn
+      boss = null; bossSpawned = false; if (bossHud) bossHud.classList.add('hidden');
       hideStart(); hideGameOver();
     }
 
@@ -414,6 +445,7 @@
     // Choose a grid cell size large enough to fit the largest item entirely
     // spike=54, jetpack=44, glider=44, shield=44, gem=34, coolant small=28, coolant large=44
     const GRID_CELL = Math.max(54, 44, 44, 44, 34, 28);
+    const BOSS_LANES = [GROUND_Y - GRID_CELL*6, GROUND_Y - GRID_CELL*3];
     // Small visual nudge so drawn sprites look centered between vertical borders
     const GRID_ITEM_X_OFFSET = 2; // pixels to the right; platforms excluded
     // Occupied spawn-column rows with expiry times (seconds since start)
@@ -476,6 +508,9 @@
     const heatText = document.getElementById('heatText');
     const shieldHud = document.getElementById('shieldHud');
     const shieldText = shieldHud ? shieldHud.querySelector('.jet-label') : null;
+    const bossHud = document.getElementById('bossHud');
+    const bossFill = document.getElementById('bossFill');
+    const bossText = document.getElementById('bossText');
     const finalScore = document.getElementById('finalScore');
     const lbBtn = document.getElementById('lbBtn');
     const mobile = document.getElementById('mobileCtrls');
@@ -603,6 +638,94 @@
           shieldHud.classList.add('hidden');
           if (shieldText) shieldText.textContent = 'Shield';
         }
+      }
+      // Boss spawn and HUD
+      if (!bossSpawned && time >= 30) {
+        bossSpawned = true;
+        boss = {
+          x: W + 200,
+          y: BOSS_LANES[1],
+          lane: 1,
+          targetLane: 1,
+          w: 160,
+          h: 160,
+          state: 'entry',
+          hp: BOSS_MAX_HP,
+          maxHp: BOSS_MAX_HP,
+          timer: 0,
+          cooldown: 3,
+          animT: 0,
+          vulnerable: false,
+          spawnedFlyer: false,
+          hitX: 0.3,
+          hitY: 0.3
+        };
+      }
+      if (boss) {
+        const pct = Math.max(0, Math.round((boss.hp / boss.maxHp) * 100));
+        if (bossHud) {
+          bossHud.classList.remove('hidden');
+          if (bossFill) bossFill.style.width = `${pct}%`;
+          if (bossText) bossText.textContent = `${pct}%`;
+        }
+        switch (boss.state) {
+          case 'entry':
+            boss.x -= 80 * dt;
+            if (boss.x <= W - 100) { boss.x = W - 100; boss.state = 'idle'; boss.cooldown = bossCooldownFor(boss); }
+            break;
+          case 'idle':
+            boss.cooldown -= dt;
+            if (boss.cooldown <= 0) { boss.state = 'telegraph'; boss.timer = bossTelegraphFor(boss); }
+            break;
+          case 'telegraph':
+            boss.timer -= dt;
+            if (boss.timer <= 0) { boss.state = 'open'; boss.animT = 0; }
+            break;
+          case 'open':
+            boss.animT += dt;
+            if (boss.animT >= BOSS_OPEN_DURATION) {
+              boss.state = 'laser';
+              boss.timer = BOSS_LASER_DURATION;
+              boss.vulnerable = true;
+              playSfx(SFX.bossLaser);
+            }
+            break;
+          case 'laser':
+            boss.timer -= dt;
+            if (boss.timer <= 0) { boss.state = 'post'; boss.timer = BOSS_EXPOSE_DURATION; }
+            break;
+          case 'post':
+            boss.timer -= dt;
+            if (boss.timer <= 0) { boss.state = 'close'; boss.animT = 0; boss.vulnerable = false; }
+            break;
+          case 'close':
+            boss.animT += dt;
+            if (boss.animT >= BOSS_CLOSE_DURATION) {
+              boss.state = 'move';
+              boss.targetLane = boss.lane === 0 ? 1 : 0;
+              boss.spawnedFlyer = false;
+            }
+            break;
+          case 'move':
+            if (!boss.spawnedFlyer) {
+              flyers.push({ x: boss.x - 60, y: boss.y, baseY: boss.y, w: 78, h: 54, state: 'approach', t: 0, bobT: 0, hoverT: 0, hoverTime: rand(12.0,21.0), fireCd: rand(0.9,1.8), relVx: 0, hitX:0.70, hitY:0.70 });
+              boss.spawnedFlyer = true;
+            }
+            const dest = BOSS_LANES[boss.targetLane];
+            const sp = 200;
+            if (Math.abs(dest - boss.y) <= sp * dt) {
+              boss.y = dest;
+              boss.lane = boss.targetLane;
+              boss.state = 'idle';
+              boss.cooldown = bossCooldownFor(boss);
+              if (boss.hp / boss.maxHp < 0.25 && Math.random() < 0.4) boss.cooldown = 0;
+            } else {
+              boss.y += Math.sign(dest - boss.y) * sp * dt;
+            }
+            break;
+        }
+      } else if (bossHud) {
+        bossHud.classList.add('hidden');
       }
 
       // Mobile controls visibility
@@ -1071,6 +1194,19 @@
           }
           return pick;
         }
+        if (boss && boss.state === 'laser') {
+          const beam = { x: (boss.x - boss.w/2) / 2, y: boss.y, w: boss.x - boss.w/2, h: P.h * 0.5 };
+          if (hit(P, beam)) {
+            if (!consumeShieldOnHit()) {
+              heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
+              loseRandomItem();
+            }
+            P.vy = Math.min(P.vy, -350);
+            P.onGround = false;
+            hitGrace = 2; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
+            return;
+          }
+        }
         for (const s of spikes) if (hit(P, s)) {
           if (!consumeShieldOnHit()) {
             // Apply heat penalty based on whether a jetpack was owned at impact
@@ -1210,14 +1346,18 @@
         }
       }
 
-      // Player bullet collisions: only destroy flying enemies; +1 score
+      // Player bullet collisions: destroy flyers and damage boss when vulnerable
       for (let i = pshots.length - 1; i >= 0; i--) {
         const b = pshots[i];
-        let hitFlyer = false;
+        let hitSomething = false;
         for (let j = flyers.length - 1; j >= 0; j--) {
-          if (hit(b, flyers[j])) { flyers.splice(j,1); hitFlyer = true; score += 1; break; }
+          if (hit(b, flyers[j])) { flyers.splice(j,1); hitSomething = true; score += 1; break; }
         }
-        if (hitFlyer) { pshots.splice(i,1); }
+        if (!hitSomething && boss && boss.vulnerable && hit(b, boss)) {
+          boss.hp--; hitSomething = true; playSfx(SFX.bossHit);
+          if (boss.hp <= 0) { boss = null; if (bossHud) bossHud.classList.add('hidden'); }
+        }
+        if (hitSomething) { pshots.splice(i,1); }
       }
     }
 
@@ -1309,6 +1449,17 @@
       for (const f of flyers) drawFlyer(f.x, f.y, f.w, f.h, f.state);
       for (const b of shots) drawBullet(b.x, b.y, b.w, b.h);
       for (const pb of pshots) drawPlayerBullet(pb.x, pb.y, pb.w, pb.h);
+      if (boss && boss.state === 'laser') {
+        const beamH = P.h * 0.5;
+        ctx.fillStyle = 'rgba(255,0,0,0.6)';
+        ctx.fillRect(0, boss.y - beamH/2, boss.x - boss.w/2, beamH);
+      }
+      if (boss) {
+        if (boss.state === 'open') drawBossOpen(boss);
+        else if (boss.state === 'close') drawBossClose(boss);
+        else if (boss.state === 'laser' || boss.state === 'post') drawImg(IMG.bossLaser, boss.x, boss.y, boss.w, boss.h);
+        else drawImg(IMG.bossShut, boss.x, boss.y, boss.w, boss.h);
+      }
 
       // Player (4-frame spritesheet)
       drawPlayer(P.x, P.y, P.w, P.h, animFrame);
@@ -1395,6 +1546,26 @@
       ctx.shadowBlur = 8;
       drawImg(IMG.flyer, x, y, w, h);
       ctx.restore();
+    }
+
+    function drawBossOpen(b){
+      const img = IMG.bossOpen;
+      if (!img || !img.width) return;
+      const frames = 3;
+      const fw = img.width / frames;
+      const fh = img.height;
+      const frame = Math.min(frames - 1, Math.floor((b.animT / BOSS_OPEN_DURATION) * frames));
+      ctx.drawImage(img, frame * fw, 0, fw, fh, Math.round(b.x - b.w/2), Math.round(b.y - b.h/2), b.w, b.h);
+    }
+
+    function drawBossClose(b){
+      const img = IMG.bossClose;
+      if (!img || !img.width) return;
+      const frames = 3;
+      const fw = img.width / frames;
+      const fh = img.height;
+      const frame = Math.min(frames - 1, Math.floor((b.animT / BOSS_CLOSE_DURATION) * frames));
+      ctx.drawImage(img, frame * fw, 0, fw, fh, Math.round(b.x - b.w/2), Math.round(b.y - b.h/2), b.w, b.h);
     }
 
     function drawSpike(x, y, w, h, t){

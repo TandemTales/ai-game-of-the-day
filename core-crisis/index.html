@@ -70,6 +70,13 @@
     .heatbar { position: relative; height: 12px; width: 100%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,99,71,0.6); border-radius: 8px; overflow: hidden; }
     .heatbar-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: linear-gradient(90deg, #34d399 0%, #fbbf24 50%, #ef4444 100%); box-shadow: inset 0 0 6px rgba(255,255,255,0.2); }
     .heatbar-text { position: absolute; inset: 0; display: grid; place-items: center; font-size: 10px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+    /* Boss health bar */
+    #bossHud { min-width: 220px; }
+    #bossHud:not(.hidden) { display: grid; gap: 6px; }
+    .boss-label { font-size: 11px; color: #f87171; opacity: 0.95; }
+    .bossbar { position: relative; height: 12px; width: 100%; background: rgba(255,255,255,0.08); border: 1px solid rgba(248,113,113,0.6); border-radius: 8px; overflow: hidden; }
+    .bossbar-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: linear-gradient(90deg,#f87171,#dc2626); box-shadow: inset 0 0 6px rgba(255,255,255,0.2); }
+    .bossbar-text { position: absolute; inset: 0; display: grid; place-items: center; font-size: 10px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
     .btn { pointer-events: auto; text-decoration: none; cursor: pointer; }
     .btn-primary {
       background: linear-gradient(45deg, var(--teal), #4682B4);
@@ -128,6 +135,10 @@
     <div class="hud">
       <div class="topbar">
         <div class="chip" id="scoreHud">Score: 0</div>
+        <div class="chip hidden" id="bossHud">
+          <div class="boss-label">Boss</div>
+          <div class="bossbar"><div class="bossbar-fill" id="bossFill"></div><div class="bossbar-text" id="bossText">100%</div></div>
+        </div>
         <div class="chip" id="heatHud">
           <div class="heat-label">Heat</div>
           <div class="heatbar"><div class="heatbar-fill" id="heatFill"></div><div class="heatbar-text" id="heatText">0%</div></div>
@@ -235,6 +246,9 @@
       platformMedium: 'assets/rr_conveyor_platform_medium.png',
       platformLong: 'assets/rr_conveyor_platform_long.png',
       smasher: 'assets/rr_smasher.png',
+      bossEyeShut: 'assets/boss_eyeball_shut.png',
+      bossEyeOpen: 'assets/boss_eyeball_open.png',
+      bossEyeClose: 'assets/boss_eyeball_close.png',
     };
 
     const IMG = {};
@@ -331,6 +345,7 @@
     const flyers=[];   // flying enemies that hover and shoot
     const shots=[];    // enemy bullets
     const pshots=[];   // player bullets (from gun)
+    let boss = null;   // boss entity
 
     // Soundtrack playback
     const TRACKS = [
@@ -392,6 +407,7 @@
       heat = 0;
       worldFreeze = 0; hitFlash = 0; shake = 0; hitGrace = 0;
       spikes.length=0; platforms.length=0; gems.length=0; jetpacks.length=0; gliders.length=0; guns.length=0; coolants.length=0; cogs.length=0; smashers.length=0; flyers.length=0; shots.length=0; pshots.length=0;
+      boss = null;
       P.x = 200; P.y = GROUND_Y; P.vx = 0; P.vy = 0; P.onGround = true; P.glide=false; P.isJumping=false; P.jumpT=0;
       Object.assign(L, { sky1:0, sky2:W, h1:0, h2:W, f1:0, f2:W });
       // Clear any lingering input so the new run doesn't start with stuck keys
@@ -451,6 +467,109 @@
       return null;
     }
 
+    // Boss behavior constants and helpers
+    const BOSS_TELEGRAPH_BASE = 1.0;
+    const BOSS_COOLDOWN_BASE = 4.0;
+    const BOSS_FIRE_DURATION = 1.2;
+    const BOSS_EXPOSE_DURATION = 2.5;
+    const MID_ROW = Math.round((GROUND_Y / GRID_CELL) / 2);
+    function bossCooldown() {
+      return BOSS_COOLDOWN_BASE * (0.4 + 0.6 * (boss.hp / boss.maxHp));
+    }
+    function bossTelegraph() {
+      return BOSS_TELEGRAPH_BASE * (0.4 + 0.6 * (boss.hp / boss.maxHp));
+    }
+    function spawnBoss() {
+      const y = yForRow(MID_ROW);
+      const w = IMG.bossEyeShut?.width || 160;
+      const h = IMG.bossEyeShut?.height || 160;
+      boss = {
+        x: W + w/2, y, w, h,
+        targetX: W - w/2 - 40,
+        vx: -60,
+        state: 'enter',
+        hp: 20, maxHp: 20,
+        lane: 0, prevLane: -1,
+        hitX: 0.5, hitY: 0.5,
+      };
+    }
+    function spawnBossFlyer() {
+      if (!boss) return;
+      const x = boss.x - boss.w/2 - 20;
+      const w = 78, h = 54;
+      const maxRow = Math.max(0, Math.floor((GROUND_Y - h/2) / GRID_CELL));
+      const row = Math.floor(rand(1, Math.min(maxRow, MID_ROW + 3)));
+      const y = yForRow(row);
+      flyers.push({ x, y, baseY: y, w, h, state:'approach', t:0, bobT:0, hoverT:0, hoverTime:rand(12.0,21.0), fireCd:rand(0.45,0.9), relVx:0, hitX:0.70, hitY:0.70 });
+    }
+    function updateBoss(dt) {
+      if (!boss) return;
+      if (boss.state === 'enter') {
+        boss.x += boss.vx * dt;
+        if (boss.x <= boss.targetX) {
+          boss.x = boss.targetX;
+          boss.state = 'idle';
+          boss.cooldown = bossCooldown();
+          spawnBossFlyer();
+        }
+        return;
+      }
+      if (boss.state === 'idle') {
+        boss.cooldown -= dt;
+        if (boss.cooldown <= 0) {
+          const maxRow = Math.max(0, Math.floor((GROUND_Y - GRID_CELL/2) / GRID_CELL));
+          let lane;
+          do { lane = Math.floor(rand(0, maxRow + 1)); } while (lane === boss.prevLane && maxRow > 0);
+          boss.lane = lane;
+          boss.prevLane = lane;
+          boss.telegraphTimer = bossTelegraph();
+          boss.state = 'telegraph';
+        }
+        return;
+      }
+      if (boss.state === 'telegraph') {
+        boss.telegraphTimer -= dt;
+        if (boss.telegraphTimer <= 0) {
+          boss.state = 'open';
+          boss.openTimer = 0.3;
+        }
+        return;
+      }
+      if (boss.state === 'open') {
+        boss.openTimer -= dt;
+        if (boss.openTimer <= 0) {
+          boss.state = 'fire';
+          boss.fireTimer = BOSS_FIRE_DURATION;
+        }
+        return;
+      }
+      if (boss.state === 'fire') {
+        boss.fireTimer -= dt;
+        if (boss.fireTimer <= 0) {
+          boss.state = 'expose';
+          boss.exposeTimer = BOSS_EXPOSE_DURATION;
+        }
+        return;
+      }
+      if (boss.state === 'expose') {
+        boss.exposeTimer -= dt;
+        if (boss.exposeTimer <= 0) {
+          boss.state = 'close';
+          boss.closeTimer = 0.3;
+        }
+        return;
+      }
+      if (boss.state === 'close') {
+        boss.closeTimer -= dt;
+        if (boss.closeTimer <= 0) {
+          const low = boss.hp / boss.maxHp < 0.25 && Math.random() < 0.5;
+          boss.state = 'idle';
+          boss.cooldown = low ? 0 : bossCooldown();
+          spawnBossFlyer();
+        }
+      }
+    }
+
     // Heat system
     const HEAT_MAX = 100;
     const HEAT_GAIN_RATE = 3; // per second (slower passive increase)
@@ -476,6 +595,9 @@
     const heatText = document.getElementById('heatText');
     const shieldHud = document.getElementById('shieldHud');
     const shieldText = shieldHud ? shieldHud.querySelector('.jet-label') : null;
+    const bossHud = document.getElementById('bossHud');
+    const bossFill = document.getElementById('bossFill');
+    const bossText = document.getElementById('bossText');
     const finalScore = document.getElementById('finalScore');
     const lbBtn = document.getElementById('lbBtn');
     const mobile = document.getElementById('mobileCtrls');
@@ -560,6 +682,7 @@
 
     function update(dt){
       time += dt;
+      if (!boss && time >= 60) spawnBoss();
       if (hitGrace > 0) hitGrace -= dt;
       if (worldFreeze > 0) worldFreeze -= dt;
       if (hitFlash > 0) hitFlash -= dt;
@@ -603,6 +726,15 @@
           shieldHud.classList.add('hidden');
           if (shieldText) shieldText.textContent = 'Shield';
         }
+      }
+
+      if (boss) {
+        const bossPct = Math.round((boss.hp / boss.maxHp) * 100);
+        bossHud.classList.remove('hidden');
+        if (bossFill) bossFill.style.width = `${bossPct}%`;
+        if (bossText) bossText.textContent = `${bossPct}%`;
+      } else if (bossHud) {
+        bossHud.classList.add('hidden');
       }
 
       // Mobile controls visibility
@@ -997,6 +1129,9 @@
         if (f.x + f.w/2 < -80 || f.x - f.w/2 > W + 120) { flyers.splice(i,1); }
       }
 
+      // Boss logic
+      updateBoss(dt);
+
       // Enemy shots movement
       for (let i = shots.length - 1; i >= 0; i--) {
         const s = shots[i];
@@ -1118,6 +1253,22 @@
           hitGrace = 1; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
           return;
         }
+        // Boss beam collision
+        if (boss && boss.state === 'fire') {
+          const laneY = yForRow(boss.lane);
+          const beamH = GRID_CELL * 0.8;
+          if (Math.abs(P.y - laneY) < beamH/2 && P.x < boss.x - boss.w/2) {
+            if (!consumeShieldOnHit()) {
+              heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
+              loseRandomItem();
+            }
+            P.vy = Math.min(P.vy, -350);
+            P.onGround = false;
+            P.y = Math.max(P.h/2, P.y - 10);
+            hitGrace = 1; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
+            return;
+          }
+        }
         // Enemy shots collision
         for (let i=shots.length-1; i>=0; i--) {
           const b = shots[i];
@@ -1217,7 +1368,13 @@
         for (let j = flyers.length - 1; j >= 0; j--) {
           if (hit(b, flyers[j])) { flyers.splice(j,1); hitFlyer = true; score += 1; break; }
         }
-        if (hitFlyer) { pshots.splice(i,1); }
+        let hitBossEye = false;
+        if (boss && boss.state === 'expose' && hit(b, boss)) {
+          boss.hp -= 1;
+          hitBossEye = true;
+          if (boss.hp <= 0) boss = null;
+        }
+        if (hitFlyer || hitBossEye) { pshots.splice(i,1); }
       }
     }
 
@@ -1310,9 +1467,27 @@
       for (const b of shots) drawBullet(b.x, b.y, b.w, b.h);
       for (const pb of pshots) drawPlayerBullet(pb.x, pb.y, pb.w, pb.h);
 
+      if (boss && boss.state === 'telegraph') {
+        const y = yForRow(boss.lane);
+        ctx.strokeStyle = 'rgba(255,215,0,0.6)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(boss.x - boss.w/2, y);
+        ctx.stroke();
+      }
+
       // Player (4-frame spritesheet)
       drawPlayer(P.x, P.y, P.w, P.h, animFrame);
       if (hasShield) drawImg(IMG.shieldImg, P.x, P.y, P.w * 1.5, P.h * 1.5);
+
+      if (boss && boss.state === 'fire') {
+        const y = yForRow(boss.lane);
+        const beamH = GRID_CELL * 0.8;
+        ctx.fillStyle = 'rgba(255,69,0,0.6)';
+        ctx.fillRect(0, y - beamH/2, boss.x - boss.w/2, beamH);
+      }
+      if (boss) drawBoss(boss.x, boss.y, boss.w, boss.h, boss.state);
 
       // End shake transform
       ctx.restore();
@@ -1381,6 +1556,12 @@
         dw,
         dh
       );
+    }
+    function drawBoss(x, y, w, h, state){
+      let img = IMG.bossEyeShut;
+      if (state === 'open' || state === 'fire' || state === 'expose' || state === 'telegraph') img = IMG.bossEyeOpen;
+      else if (state === 'close') img = IMG.bossEyeClose;
+      drawImg(img, x, y, w, h);
     }
     function drawPlatform(x, y, w, h, img){
       ctx.save();

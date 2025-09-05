@@ -194,7 +194,7 @@
       playerFly: 'assets/bot_animation_flying.png',
       playerFlyHit: 'assets/bot_animation_flying_hit.png',
       playerFlyGun: 'assets/bot_animation_flying_gun.png',
-      spike: 'assets/spike.svg',
+      spike: 'assets/bot_animation_flame_up.png',
       gem: 'assets/gem.svg',
       jetpack: 'assets/rr_pickup_jetpack.png',
       glider: 'assets/rr_glider.png',
@@ -687,7 +687,7 @@
         const row = tryReserveRow(0, 0, nowSec);
         if (row !== null) {
           const y = yForRow(row);
-          spikes.push({ x, y, w: 54, h: 54, img: IMG.spike, hitX: 0.42, hitY: 0.30, hitOffsetY: -12 });
+          spikes.push({ x, y, w: 54, h: 54, hitX: 0.42, hitY: 0.30, hitOffsetY: -12 });
         }
       }
 
@@ -1242,7 +1242,7 @@
       }
 
       // Draw hazards
-      for (const s of spikes) drawImg(s.img, s.x, s.y, s.w, s.h);
+      for (const s of spikes) drawSpike(s.x, s.y, s.w, s.h, time);
       // Draw platforms
       for (const pl of platforms) drawPlatform(pl.x, pl.y, pl.w, pl.h, pl.img);
       for (const g of gems) drawImg(g.img, g.x, g.y, g.w, g.h);
@@ -1327,6 +1327,16 @@
       ctx.shadowBlur = 8;
       drawImg(IMG.flyer, x, y, w, h);
       ctx.restore();
+    }
+
+    function drawSpike(x, y, w, h, t){
+      const img = IMG.spike;
+      if (!img || !img.width) { return; }
+      const frames = 6;
+      const fw = img.width / frames;
+      const fh = img.height;
+      const frame = Math.floor(t * 12) % frames;
+      ctx.drawImage(img, frame * fw, 0, fw, fh, Math.round(x - w/2), Math.round(y - h/2), w, h);
     }
 
     function drawCog(x, y, w, h, t){

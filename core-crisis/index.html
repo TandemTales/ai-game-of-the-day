@@ -890,7 +890,7 @@
           x, y, baseY, w, h,
           state: 'approach',
           t: 0, bobT: 0, hoverT: 0, hoverTime: rand(12.0, 21.0),
-          fireCd: rand(0.45, 0.9),
+          fireCd: rand(0.9, 1.8),
           relVx: 0,
           hitX: 0.70, hitY: 0.70
         });
@@ -979,7 +979,7 @@
             const vx = (dxs / len) * speed;
             const vy = (dys / len) * speed;
             shots.push({ x: sx, y: sy, w: 12, h: 12, vx, vy, t: 0, hitX: 0.75, hitY: 0.75 });
-            f.fireCd = rand(0.45, 0.9);
+            f.fireCd = rand(0.9, 1.8);
           }
           if (f.hoverT >= f.hoverTime) {
             f.state = 'leave';

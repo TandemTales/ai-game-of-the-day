@@ -272,7 +272,7 @@
     let spawnTimer=0, gemTimer=0;
     let platformTimer=0;
     let coolantTimer=0;
-    let hitGrace = 0;            // 1s invulnerability after taking a hit (player blinks)
+    let hitGrace = 0;            // 2s invulnerability after taking a hit (player blinks)
     let worldFreeze = 0;         // halt forward scroll briefly after impact
     let hitFlash = 0;            // red flash overlay intensity timer
     let shake = 0;               // camera shake magnitude (pixels)
@@ -1081,7 +1081,7 @@
           P.vy = Math.min(P.vy, -350);
           P.onGround = false;
           P.y = Math.max(P.h/2, P.y - 10);
-          hitGrace = 1; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
+          hitGrace = 2; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
           return; // process one hazard hit per frame
         }
         for (const cg of cogs) if (hit(P, cg)) {
@@ -1092,7 +1092,7 @@
           P.vy = Math.min(P.vy, -350);
           P.onGround = false;
           P.y = Math.max(P.h/2, P.y - 10);
-          hitGrace = 1; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
+          hitGrace = 2; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
           return;
         }
         for (const sm of smashers) if (sm.state !== 'peek' && hit(P, sm)) {
@@ -1103,7 +1103,7 @@
           P.vy = Math.min(P.vy, -350);
           P.onGround = false;
           P.y = Math.max(P.h/2, P.y - 10);
-          hitGrace = 1; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
+          hitGrace = 2; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
           return;
         }
         // Flyer body collision
@@ -1115,7 +1115,7 @@
           P.vy = Math.min(P.vy, -350);
           P.onGround = false;
           P.y = Math.max(P.h/2, P.y - 10);
-          hitGrace = 1; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
+          hitGrace = 2; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
           return;
         }
         // Enemy shots collision
@@ -1130,7 +1130,7 @@
             P.vy = Math.min(P.vy, -300);
             P.onGround = false;
             P.y = Math.max(P.h/2, P.y - 8);
-            hitGrace = 1; worldFreeze = Math.max(worldFreeze, 0.3); hitFlash = Math.max(hitFlash, 0.28); shake = Math.max(shake, 10);
+            hitGrace = 2; worldFreeze = Math.max(worldFreeze, 0.3); hitFlash = Math.max(hitFlash, 0.28); shake = Math.max(shake, 10);
             return;
           }
         }

@@ -223,7 +223,7 @@
     // Game state
     const GRAV = 1800; // px/s^2
     const RUN_SPEED = 400; // world scroll speed
-    const JUMP_V = 700;
+    const JUMP_V = 1400;
     // Variable jump: allow holding jump to extend rise a bit
     const JUMP_HOLD_MAX = 0.22; // seconds
     const ASCEND_G = 800;      // gravity while rising and holding jump
@@ -234,7 +234,7 @@
     // Global terminal fall speed (from gravity); diving can exceed
     const FALL_VY_MAX = 400;
     // Cap upward speed so jetpack/jumps can't overshoot
-    const RISE_VY_MIN = -800;
+    const RISE_VY_MIN = -1600;
     const DIVE_V = 1400;
     const GROUND_Y = H - 90; // baseline
     let running=false, dead=false;

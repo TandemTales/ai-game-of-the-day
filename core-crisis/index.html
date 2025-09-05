@@ -235,6 +235,8 @@
       platformMedium: 'assets/rr_conveyor_platform_medium.png',
       platformLong: 'assets/rr_conveyor_platform_long.png',
       smasher: 'assets/rr_smasher.png',
+      bossShut: 'assets/boss_eyeball_shut.png',
+      bossLaser: 'assets/boss_eyeball_laser.png',
     };
 
     const IMG = {};
@@ -332,6 +334,16 @@
     const shots=[];    // enemy bullets
     const pshots=[];   // player bullets (from gun)
 
+    // Boss entity
+    const BOSS_W = P.w * 2;
+    const BOSS_H = P.h * 2;
+    const BOSS_BEAM_H = P.h * 0.5;
+    const BOSS_MAX_HP = 10;
+    const BOSS_EXPOSE_TIME = 3;
+    const BOSS_FIRE_CD = 5;
+    let boss = null;
+    let bossDefeated = false;
+
     // Soundtrack playback
     const TRACKS = [
       'assets/cc_soundtrack01.mp3',
@@ -392,6 +404,7 @@
       heat = 0;
       worldFreeze = 0; hitFlash = 0; shake = 0; hitGrace = 0;
       spikes.length=0; platforms.length=0; gems.length=0; jetpacks.length=0; gliders.length=0; guns.length=0; coolants.length=0; cogs.length=0; smashers.length=0; flyers.length=0; shots.length=0; pshots.length=0;
+      boss = null; bossDefeated = false;
       P.x = 200; P.y = GROUND_Y; P.vx = 0; P.vy = 0; P.onGround = true; P.glide=false; P.isJumping=false; P.jumpT=0;
       Object.assign(L, { sky1:0, sky2:W, h1:0, h2:W, f1:0, f2:W });
       // Clear any lingering input so the new run doesn't start with stuck keys
@@ -920,6 +933,25 @@
         cogTimer = rand(6, 12);
       }
 
+      // Boss spawn after 30 seconds
+      if (!boss && !bossDefeated && time >= 30) {
+        const y = yForRow(4);
+        boss = {
+          x: W + BOSS_W,
+          y,
+          w: BOSS_W,
+          h: BOSS_H,
+          baseY: y,
+          t: 0,
+          state: 'enter',
+          hp: BOSS_MAX_HP,
+          cool: BOSS_FIRE_CD,
+          beam: null,
+          beamTime: 0,
+          expose: 0
+        };
+      }
+
       // Move hazards + gems
       const move = v => v - RUN_SPEED * scrollMul * dt;
       for (const s of spikes) s.x = move(s.x);
@@ -1013,6 +1045,44 @@
         b.x = move(b.x) + b.vx * dt;
         b.y += b.vy * dt;
         if (b.t > 3 || b.x < -100 || b.x > W + 200 || b.y < -120 || b.y > H + 120) pshots.splice(i,1);
+      }
+
+      // Boss movement and attack cycle
+      if (boss) {
+        boss.t += dt;
+        if (boss.state === 'enter') {
+          boss.x -= 60 * dt;
+          if (boss.x <= W - boss.w/2) {
+            boss.x = W - boss.w/2;
+            boss.state = 'idle';
+            boss.cool = BOSS_FIRE_CD;
+          }
+        } else {
+          boss.y = boss.baseY;
+          if (boss.state === 'idle') {
+            boss.cool -= dt;
+            if (boss.cool <= 0) {
+              boss.state = 'firing';
+              const row = rowForY(P.y);
+              const by = yForRow(row);
+              boss.beam = { x: (boss.x - boss.w/2)/2, y: by, w: boss.x - boss.w/2, h: BOSS_BEAM_H };
+              boss.beamTime = 1.0;
+            }
+          } else if (boss.state === 'firing') {
+            boss.beamTime -= dt;
+            if (boss.beamTime <= 0) {
+              boss.beam = null;
+              boss.state = 'exposed';
+              boss.expose = BOSS_EXPOSE_TIME;
+            }
+          } else if (boss.state === 'exposed') {
+            boss.expose -= dt;
+            if (boss.expose <= 0) {
+              boss.state = 'idle';
+              boss.cool = BOSS_FIRE_CD;
+            }
+          }
+        }
       }
 
       // Remove offscreen
@@ -1118,6 +1188,18 @@
           hitGrace = 2; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
           return;
         }
+        // Boss beam collision
+        if (boss && boss.beam && hit(P, boss.beam)) {
+          if (!consumeShieldOnHit()) {
+            heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
+            loseRandomItem();
+          }
+          P.vy = Math.min(P.vy, -350);
+          P.onGround = false;
+          P.y = Math.max(P.h/2, P.y - 10);
+          hitGrace = 2; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
+          return;
+        }
         // Enemy shots collision
         for (let i=shots.length-1; i>=0; i--) {
           const b = shots[i];
@@ -1133,6 +1215,16 @@
             hitGrace = 2; worldFreeze = Math.max(worldFreeze, 0.3); hitFlash = Math.max(hitFlash, 0.28); shake = Math.max(shake, 10);
             return;
           }
+        }
+      }
+      // Damage boss when exposed by player contact
+      if (boss && boss.state === 'exposed') {
+        const eye = { x: boss.x, y: boss.y, w: boss.w * 0.5, h: boss.h * 0.5 };
+        if (hit(P, eye)) {
+          boss.hp--;
+          P.vy = Math.min(P.vy, -350);
+          P.onGround = false;
+          if (boss.hp <= 0) { boss = null; bossDefeated = true; }
         }
       }
       // Gem pickups add score with multiplier based on current combo (applies AFTER 5/10 streak)
@@ -1216,6 +1308,14 @@
         let hitFlyer = false;
         for (let j = flyers.length - 1; j >= 0; j--) {
           if (hit(b, flyers[j])) { flyers.splice(j,1); hitFlyer = true; score += 1; break; }
+        }
+        if (boss && boss.state === 'exposed') {
+          const eye = { x: boss.x, y: boss.y, w: boss.w * 0.5, h: boss.h * 0.5 };
+          if (hit(b, eye)) {
+            boss.hp--;
+            hitFlyer = true;
+            if (boss.hp <= 0) { boss = null; bossDefeated = true; score += 5; }
+          }
         }
         if (hitFlyer) { pshots.splice(i,1); }
       }
@@ -1309,6 +1409,22 @@
       for (const f of flyers) drawFlyer(f.x, f.y, f.w, f.h, f.state);
       for (const b of shots) drawBullet(b.x, b.y, b.w, b.h);
       for (const pb of pshots) drawPlayerBullet(pb.x, pb.y, pb.w, pb.h);
+      if (boss) {
+        if (boss.beam) {
+          ctx.save();
+          ctx.fillStyle = 'rgba(255,0,0,0.5)';
+          ctx.fillRect(0, boss.beam.y - boss.beam.h/2, boss.beam.w, boss.beam.h);
+          ctx.restore();
+        }
+        const img = boss.state === 'firing' || boss.state === 'exposed' ? IMG.bossLaser : IMG.bossShut;
+        drawImg(img, boss.x, boss.y, boss.w, boss.h);
+        const barW = 120, barH = 10;
+        const pct = boss.hp / BOSS_MAX_HP;
+        ctx.fillStyle = '#400';
+        ctx.fillRect(boss.x - barW/2, boss.y - boss.h/2 - 20, barW, barH);
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(boss.x - barW/2, boss.y - boss.h/2 - 20, barW * pct, barH);
+      }
 
       // Player (4-frame spritesheet)
       drawPlayer(P.x, P.y, P.w, P.h, animFrame);

@@ -415,6 +415,7 @@
       jetpack: new Audio('assets/sfx_bot_jetpack.wav'),
       cog: new Audio('assets/sfx_cog.wav'),
       upgrade: new Audio('assets/sfx_upgrade.wav'),
+      enemyHit: new Audio('assets/sfx_enemy_hit.wav'),
       bossLaser: new Audio('assets/sfx_boss_laser.wav'),
       bossHit: new Audio('assets/sfx_boss_hit.wav')
     };
@@ -1413,10 +1414,10 @@
         const b = pshots[i];
         let hitSomething = false;
         for (let j = flyers.length - 1; j >= 0; j--) {
-          if (hit(b, flyers[j])) { flyers.splice(j,1); hitSomething = true; if (!heatCheat) score += 1; break; }
+          if (hit(b, flyers[j])) { flyers.splice(j,1); hitSomething = true; if (!heatCheat) score += 1; playSfx(SFX.enemyHit); break; }
         }
         if (!hitSomething && boss && boss.vulnerable && hit(b, boss)) {
-          boss.hp--; boss.flash = 0.25; hitSomething = true; playSfx(SFX.bossHit);
+          boss.hp--; boss.flash = 0.25; hitSomething = true; playSfx(SFX.enemyHit); playSfx(SFX.bossHit);
             if (boss.hp <= 0) {
               boss = null;
               bossNextTime = time + 30;

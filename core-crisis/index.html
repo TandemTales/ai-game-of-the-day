@@ -1454,6 +1454,7 @@
           hitSomething = true;
           if (boss.hp <= 0) {
             playSfx(SFX.bossKill);
+            if (!heatCheat) score += 10;
             showBossDefeated();
             boss = null;
             bossNextTime = time + 30;

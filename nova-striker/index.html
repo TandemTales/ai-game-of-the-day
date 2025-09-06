@@ -700,7 +700,7 @@
           for (const off of offsets) {
             const vx = Math.sin(ang) * B.speed;
             const vy = -Math.cos(ang) * B.speed;
-            bullets.push({ x: P.x + off, y: P.y - P.h/2 - 4, vx, vy, good: true, kind: 'normal', dmg: 1 });
+            bullets.push({ x: P.x + off, y: P.y - P.h/2 - 4, vx, vy, good: true, kind: 'normal', dmg: 2 });
           }
         }
       }
@@ -708,7 +708,7 @@
 
     function spawnMissile() {
       // Spawn from the ship center; initial upward velocity; will home in update
-      bullets.push({ x: P.x, y: P.y - P.h/2 - 6, vx: 0, vy: -MISS.speed, good: true, kind: 'missile', dmg: 2, spd: MISS.speed });
+      bullets.push({ x: P.x, y: P.y - P.h/2 - 6, vx: 0, vy: -MISS.speed, good: true, kind: 'missile', dmg: 4, spd: MISS.speed });
     }
 
     function enemyShoot(e, chance=0.006, dt) {

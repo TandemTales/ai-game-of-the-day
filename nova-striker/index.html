@@ -288,7 +288,8 @@
       player_hit: 'assets/ns_sfx_player_hit.wav',
       player_exploding: 'assets/ns_sfx_player_exploding.wav',
       player_shield: 'assets/ns_sfx_player_shield.wav',
-      alien_hit: 'assets/ns_sfx_alien_hit.wav'
+      alien_hit: 'assets/ns_sfx_alien_hit.wav',
+      boss_killed: 'assets/sfx_boss_killed.wav'
     };
     const SFX = {};
     for (const k in SFX_FILES) {
@@ -520,6 +521,11 @@
       waveBanner.textContent = text;
       waveBanner.classList.add('show');
       setTimeout(() => waveBanner.classList.remove('show'), 1500);
+    }
+
+    function bossDefeated() {
+      playSfx('boss_killed');
+      showWaveBanner('Boss Defeated!');
     }
     
 
@@ -940,6 +946,7 @@
                 // explosion on electro kill
                 spawnExplosion(tx, ty, (p.target && p.target.boss) ? 50 : 20, 'electric');
                 playSfx((p.target && p.target.boss) ? 'alien_exploding_large' : 'alien_exploding_small');
+                if (p.target && p.target.boss) bossDefeated();
               }
             }
             // impact sparks at current destination
@@ -1125,6 +1132,7 @@
                 const add = (e.type === 'F') ? 100 : (e.type === 'B' ? 250 : (e.score || 2000));
                 if (!cheatInvuln) { score += add; scoreEl.textContent = score; }
                 spawnDrop(e);
+                if (e.boss) bossDefeated();
               }
             }
           }
@@ -1211,6 +1219,7 @@
               const add = (e.type === 'F') ? 100 : (e.type === 'B' ? 250 : (e.score || 2000));
               if (!cheatInvuln) { score += add; scoreEl.textContent = score; }
               spawnDrop(e);
+              if (e.boss) bossDefeated();
             }
             break;
           }
@@ -1266,6 +1275,7 @@
               // explosion on enemy destroyed by shield
               spawnExplosion(e.x, e.y, e.boss ? 50 : 22, 'orange');
               playSfx(e.boss ? 'alien_exploding_large' : 'alien_exploding_small');
+              if (e.boss) bossDefeated();
             } else {
               e.hp = 0;
               // explosions on collision: enemy and player
@@ -1273,6 +1283,7 @@
               spawnExplosion(P.x, P.y, 26, 'orange');
               playSfx(e.boss ? 'alien_exploding_large' : 'alien_exploding_small');
               playSfx('player_exploding');
+              if (e.boss) bossDefeated();
               hitPlayer();
             }
           }

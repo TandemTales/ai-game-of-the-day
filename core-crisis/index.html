@@ -173,6 +173,7 @@
       <div class="bossbar"><div class="bossbar-fill" id="bossFill"></div></div>
     </div>
     <div id="upgradeNotify" class="upgrade-notify"></div>
+    <div id="bossNotify" class="upgrade-notify"></div>
   </div>
 
     <div class="center" id="startScreen">
@@ -209,12 +210,21 @@
 
     const topbar = document.querySelector('.topbar');
     const upgradeNotify = document.getElementById('upgradeNotify');
+    const bossNotify = document.getElementById('bossNotify');
     function showUpgrade(name) {
       upgradeNotify.textContent = name + ' acquired!';
       upgradeNotify.style.opacity = 1;
       clearTimeout(upgradeNotify._hide);
       upgradeNotify._hide = setTimeout(() => {
         upgradeNotify.style.opacity = 0;
+      }, 1000);
+    }
+    function showBossDefeated() {
+      bossNotify.textContent = 'Boss Defeated!';
+      bossNotify.style.opacity = 1;
+      clearTimeout(bossNotify._hide);
+      bossNotify._hide = setTimeout(() => {
+        bossNotify.style.opacity = 0;
       }, 1000);
     }
     const isTouch = window.matchMedia('(pointer: coarse)').matches;
@@ -418,7 +428,8 @@
       upgrade: new Audio('assets/sfx_upgrade.wav'),
       enemyHit: new Audio('assets/sfx_enemy_hit.wav'),
       bossLaser: new Audio('assets/sfx_boss_laser.wav'),
-      bossHit: new Audio('assets/sfx_boss_hit.wav')
+      bossHit: new Audio('assets/sfx_boss_hit.wav'),
+      bossKill: new Audio('assets/sfx_boss_killed.wav')
     };
     function playSfx(s) {
       try { s.cloneNode().play(); } catch {}
@@ -1418,14 +1429,21 @@
           if (hit(b, flyers[j])) { flyers.splice(j,1); hitSomething = true; if (!heatCheat) score += 1; playSfx(SFX.enemyHit); break; }
         }
         if (!hitSomething && boss && boss.vulnerable && hit(b, boss)) {
-          boss.hp -= GUN_DAMAGE; boss.flash = 0.25; hitSomething = true; playSfx(SFX.enemyHit); playSfx(SFX.bossHit);
-            if (boss.hp <= 0) {
-              boss = null;
-              bossNextTime = time + 30;
-              difficulty++;
-              runSpeed = RUN_SPEED * (1 + 0.1 * (difficulty - 1));
-              if (bossHud) bossHud.classList.add('hidden');
-            }
+          boss.hp -= GUN_DAMAGE;
+          boss.flash = 0.25;
+          hitSomething = true;
+          if (boss.hp <= 0) {
+            playSfx(SFX.bossKill);
+            showBossDefeated();
+            boss = null;
+            bossNextTime = time + 30;
+            difficulty++;
+            runSpeed = RUN_SPEED * (1 + 0.1 * (difficulty - 1));
+            if (bossHud) bossHud.classList.add('hidden');
+          } else {
+            playSfx(SFX.enemyHit);
+            playSfx(SFX.bossHit);
+          }
         }
         if (hitSomething) { pshots.splice(i,1); }
       }

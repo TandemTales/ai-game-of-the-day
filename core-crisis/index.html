@@ -946,7 +946,9 @@
 
       // Gun spawn logic – grid-aligned until picked
       if (!gunPicked && guns.length === 0) {
-        gunTimer -= dt;
+        // While a boss is active, accelerate the countdown so guns spawn
+        // about 25% more frequently, increasing pickup likelihood
+        gunTimer -= dt * (boss ? 1.25 : 1);
         if (gunTimer <= 0) {
           const nowSec = time;
           const x = gridSpawnX() + GRID_ITEM_X_OFFSET;

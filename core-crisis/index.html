@@ -393,6 +393,7 @@
     const START_TRACK = 'assets/cc_soundtrack02.mp3';
     let musicStarted = false;
     const music = new Audio();
+    music.volume = 1; // keep soundtrack volume unchanged
     let playOrder = [];
     function shuffle(arr) {
       for (let i = arr.length - 1; i > 0; i--) {
@@ -431,8 +432,13 @@
       bossHit: new Audio('assets/sfx_boss_hit.wav'),
       bossKill: new Audio('assets/sfx_boss_killed.wav')
     };
+    const SFX_VOLUME = 3;
     function playSfx(s) {
-      try { s.cloneNode().play(); } catch {}
+      try {
+        const node = s.cloneNode();
+        node.volume = SFX_VOLUME;
+        node.play();
+      } catch {}
     }
 
     // Parallax layers positions

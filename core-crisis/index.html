@@ -71,12 +71,26 @@
     .heatbar-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: linear-gradient(90deg, #34d399 0%, #fbbf24 50%, #ef4444 100%); box-shadow: inset 0 0 6px rgba(255,255,255,0.2); }
     .heatbar-text { position: absolute; inset: 0; display: grid; place-items: center; font-size: 10px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
     /* Boss health bar */
-    #bossHud { min-width: 220px; }
-    #bossHud:not(.hidden) { display: grid; gap: 6px; }
-    .boss-label { font-size: 11px; color: #f87171; opacity: 0.95; }
-    .bossbar { position: relative; height: 12px; width: 100%; background: rgba(255,255,255,0.08); border: 1px solid rgba(248,113,113,0.6); border-radius: 8px; overflow: hidden; }
-    .bossbar-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%); box-shadow: inset 0 0 6px rgba(255,255,255,0.2); }
-    .bossbar-text { position: absolute; inset: 0; display: grid; place-items: center; font-size: 10px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+    #bossHud {
+      position: absolute;
+      text-align: center;
+      pointer-events: none;
+    }
+    #bossHud .boss-label {
+      font-size: 12px;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .bossbar {
+      width: 100%;
+      height: 4px;
+      background: rgba(0,0,0,0.5);
+    }
+    .bossbar-fill {
+      height: 100%;
+      width: 100%;
+      background: #ef4444;
+    }
     .btn { pointer-events: auto; text-decoration: none; cursor: pointer; }
     .btn-primary {
       background: linear-gradient(45deg, var(--teal), #4682B4);
@@ -152,11 +166,11 @@
       <div class="chip hidden" id="shieldHud">
         <div class="jet-label">Shield</div>
       </div>
-      <div class="chip hidden" id="bossHud">
-        <div class="boss-label">Boss</div>
-        <div class="bossbar"><div class="bossbar-fill" id="bossFill"></div><div class="bossbar-text" id="bossText">100%</div></div>
-      </div>
       <a href="../index.html" class="btn btn-primary back">← Back to Home</a>
+    </div>
+    <div id="bossHud" class="hidden">
+      <div class="boss-label">Boss</div>
+      <div class="bossbar"><div class="bossbar-fill" id="bossFill"></div></div>
     </div>
     <div id="upgradeNotify" class="upgrade-notify"></div>
   </div>
@@ -516,6 +530,15 @@
     const shieldText = shieldHud ? shieldHud.querySelector('.jet-label') : null;
     const bossHud = document.getElementById('bossHud');
     const bossFill = document.getElementById('bossFill');
+
+    function positionBossHud(){
+      if (!bossHud || !heatHud) return;
+      bossHud.style.left = `${heatHud.offsetLeft}px`;
+      bossHud.style.top = `${heatHud.offsetTop + heatHud.offsetHeight + 8}px`;
+      bossHud.style.width = `${heatHud.offsetWidth}px`;
+    }
+    window.addEventListener('resize', positionBossHud);
+    positionBossHud();
     if (heatHud) {
       heatHud.addEventListener('pointerdown', e => {
         e.stopPropagation();
@@ -531,7 +554,6 @@
         }
       });
     }
-    const bossText = document.getElementById('bossText');
     const finalScore = document.getElementById('finalScore');
     const lbBtn = document.getElementById('lbBtn');
     const mobile = document.getElementById('mobileCtrls');
@@ -691,7 +713,6 @@
         if (bossHud) {
           bossHud.classList.remove('hidden');
           if (bossFill) bossFill.style.width = `${pct}%`;
-          if (bossText) bossText.textContent = `${pct}%`;
         }
         switch (boss.state) {
           case 'entry':

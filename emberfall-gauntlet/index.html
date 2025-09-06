@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emberfall Gauntlet</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
+  <style>
+    :root {
+      --gold: #FFD700;
+      --teal: #5F9EA0;
+      --ink: #F5F5DC;
+      --ui: rgba(0,0,0,0.80);
+      --scarlet: #ff5252;
+      --emerald: #34d399;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 25% 15%, rgba(255,215,0,0.08), transparent 45%),
+        radial-gradient(circle at 80% 70%, rgba(95,158,160,0.10), transparent 40%),
+        linear-gradient(160deg, #0f0f18 0%, #1a1f30 50%, #0c1222 100%);
+      color: var(--ink);
+      font-family: 'Press Start 2P', system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+    .wrap { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+    header {
+      position: absolute; top: 10px; left: 10px; right: 10px; z-index: 5;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .title { display:flex; align-items:center; gap:12px; }
+    .title h1 {
+      margin: 0; font-size: 18px;
+      background: linear-gradient(45deg, var(--gold), #ffa000);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      text-shadow: 0 2px 8px rgba(255,215,0,0.25);
+    }
+    .btn { display:inline-block; text-decoration:none; color:#fff; border:2px solid var(--gold);
+      background: linear-gradient(45deg, var(--teal), #4682B4); padding:10px 14px; border-radius:10px;
+      box-shadow: 0 4px 15px rgba(95,158,160,0.4); transition: transform .15s ease, box-shadow .15s ease; font-size:12px; white-space:nowrap; }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(95,158,160,0.6); }
+
+    .stage { position:absolute; inset:0; display:grid; place-items:center; }
+    canvas { width: 960px; height: 540px; image-rendering: pixelated; image-rendering: crisp-edges; border-radius: 12px; border: 3px solid rgba(255,215,0,0.25); background: #0b0f18; }
+
+    .hud { position:absolute; top:56px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:18px; z-index:4; }
+    .chip { background: var(--ui); border: 2px solid var(--gold); color: var(--ink); padding: 8px 12px; border-radius: 10px; font-size: 12px; box-shadow: 0 4px 14px rgba(255,215,0,0.25); }
+    .hearts { display:flex; align-items:center; gap: 6px; }
+    .hearts img { width: 20px; height: 20px; image-rendering: pixelated; }
+
+    .overlay { position:absolute; inset:0; display:none; align-items:center; justify-content:center; background: rgba(0,0,0,0.55); z-index: 6; }
+    .overlay.show { display:flex; }
+    .panel { background: rgba(0,0,0,0.85); border: 3px solid var(--gold); border-radius: 12px; padding: 20px; text-align:center; box-shadow: 0 0 40px rgba(255,215,0,0.35); max-width: 560px; width: calc(100vw - 40px); }
+    .panel .title { font-size: 18px; margin-bottom: 8px; }
+    .panel .desc { font-size: 12px; color: var(--teal); line-height: 1.6; margin: 8px 0 12px; }
+    .row { display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; margin-top: 10px; }
+    .small { font-size: 11px; color: #a6e3ff; }
+    .hidden { display:none; }
+
+    @media (max-width: 1100px) {
+      canvas { width: min(96vw, 960px); height: auto; }
+    }
+
+    /* Mobile controls */
+    .mobile-ctrls { position: absolute; left: 0; right: 0; bottom: 10px; z-index: 7; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 12px; pointer-events: none; }
+    .pad, .actions { pointer-events: auto; }
+    .pad { justify-self: start; display: grid; grid-template-columns: 60px 60px 60px; grid-template-rows: 60px 60px 60px; gap: 6px; }
+    .actions { justify-self: end; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; align-content: end; }
+    .ctrl { width: 60px; height: 60px; border-radius: 14px; border: 2px solid var(--gold); background: rgba(0,0,0,0.55); color: #fff; display: grid; place-items: center; font-size: 16px; user-select: none; -webkit-user-select: none; touch-action: none; box-shadow: 0 4px 12px rgba(0,0,0,0.35); }
+    .ctrl:active { filter: brightness(1.15); }
+    .ctrl.big { width: 90px; height: 90px; border-radius: 18px; font-size: 14px; background: linear-gradient(45deg, var(--teal), #4682B4); }
+    .ctrl.small { width: 64px; height: 40px; border-radius: 10px; font-size: 12px; background: rgba(0,0,0,0.55); }
+    .pad .ghost { visibility: hidden; }
+  </style>
+  <script>
+    const GAME_ID = 'emberfall-gauntlet';
+  </script>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <img src="../images/botbuiltarcade-icon-face.png" alt="Arcade" width="36" height="36" style="border-radius:50%; border:2px solid var(--gold)">
+        <h1>Emberfall Gauntlet</h1>
+      </div>
+      <a href="../index.html" class="btn">⟵ Back to Home</a>
+    </header>
+
+    <div class="hud">
+      <div class="chip">Score: <span id="score">0</span></div>
+      <div class="chip">Wave: <span id="wave">1</span></div>
+      <div class="chip hearts" id="hearts"></div>
+      <a class="btn" href="../leaderboard.html?gameId=emberfall-gauntlet">Leaderboard</a>
+    </div>
+
+    <div class="stage">
+      <canvas id="game" width="960" height="540"></canvas>
+    </div>
+
+    <!-- Mobile controls (shown on touch devices) -->
+    <div id="mobileCtrls" class="mobile-ctrls hidden" aria-hidden="true">
+      <div class="pad" aria-label="D-Pad">
+        <div class="ghost"></div>
+        <button id="btnUp" class="ctrl" aria-label="Up">▲</button>
+        <div class="ghost"></div>
+        <button id="btnLeft" class="ctrl" aria-label="Left">◀</button>
+        <div class="ghost"></div>
+        <button id="btnRight" class="ctrl" aria-label="Right">▶</button>
+        <div class="ghost"></div>
+        <button id="btnDown" class="ctrl" aria-label="Down">▼</button>
+        <div class="ghost"></div>
+      </div>
+      <div class="actions">
+        <button id="btnAtk" class="ctrl big" aria-label="Attack">ATTACK</button>
+        <button id="btnDash" class="ctrl big" aria-label="Dash">DASH</button>
+        <button id="btnPause" class="ctrl small" aria-label="Pause">PAUSE</button>
+      </div>
+    </div>
+
+    <div id="startOverlay" class="overlay show">
+      <div class="panel">
+        <div class="title" style="background:linear-gradient(45deg,var(--gold),#ffa500);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Emberfall Gauntlet</div>
+        <div class="desc">Dash into an arena of glowing stone, carve through swarming foes with swift strikes, and scoop shimmering shards to chase the highest score.</div>
+        <div class="row">
+          <button id="startBtn" class="btn">Start</button>
+          <a class="btn" href="../leaderboard.html?gameId=emberfall-gauntlet">Leaderboard</a>
+        </div>
+        <div class="small" style="margin-top:10px">Move: WASD/Arrows • Strike: Space/J/K • Dash: Shift/L • Pause: P</div>
+      </div>
+    </div>
+
+    <div id="gameOver" class="overlay">
+      <div class="panel">
+        <div class="title">Game Over</div>
+        <div class="desc">Final Score: <span id="finalScore">0</span></div>
+        <div class="row">
+          <button id="againBtn" class="btn">Play Again</button>
+          <a id="lbBtn" class="btn" href="../leaderboard.html?gameId=emberfall-gauntlet">View Leaderboard</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const waveEl = document.getElementById('wave');
+    const heartsEl = document.getElementById('hearts');
+    const startOverlay = document.getElementById('startOverlay');
+    const gameOverOverlay = document.getElementById('gameOver');
+    const finalScoreEl = document.getElementById('finalScore');
+    const startBtn = document.getElementById('startBtn');
+    const againBtn = document.getElementById('againBtn');
+
+    // Assets (SVG art crafted for this game)
+    const IMG = {
+      tiles: new Image(),
+      hero: new Image(),
+      slime: new Image(),
+      coin: new Image(),
+      heart: new Image(),
+      shadow: new Image(),
+      spark: new Image(),
+    };
+    IMG.tiles.src = 'assets/eg_tiles.svg';
+    IMG.hero.src = 'assets/eg_hero.svg';
+    IMG.slime.src = 'assets/eg_slime.svg';
+    IMG.coin.src = 'assets/eg_coin.svg';
+    IMG.heart.src = 'assets/eg_heart.svg';
+    IMG.shadow.src = 'assets/eg_shadow.svg';
+    IMG.spark.src = 'assets/eg_spark.svg';
+
+    let loaded = 0; const need = Object.keys(IMG).length;
+    for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
+
+    // Game constants
+    const W = canvas.width, H = canvas.height;
+    const TILE = 32;
+    const ARENA = { x: 48, y: 48, w: W-96, h: H-96 };
+    const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 190, w: 28, h: 28, dir: 0, hp: 5, hpMax: 5, iT: 0, dashCd: 0, dashT: 0, atkT: 0 };
+    const ENEMY = { spd: 90, w: 26, h: 22 };
+    const DROP = { w: 18, h: 18 };
+    const PHYS = { friction: 0.86, dashSpd: 420, dashDur: 0.16, dashCd: 0.9, atkDur: 0.18, atkRange: 42, atkArc: Math.PI*0.9 };
+    const SPAWN = { t: 0, cd: 2.2, wave: 1 };
+    const SCORE = { value: 0 };
+    const PARTICLES = [];
+    let enemies = [];
+    let drops = [];
+    let paused = false, running = false, gameOverHandled = false;
+
+    function init() {
+      drawHearts();
+      attachControls();
+      setupMobileControls();
+      draw();
+    }
+
+    function reset() {
+      enemies = []; drops = []; PARTICLES.length = 0;
+      Object.assign(P, { x: W/2, y: H/2, vx:0, vy:0, dir:0, hp:P.hpMax, iT:0, dashCd:0, dashT:0, atkT:0 });
+      Object.assign(SPAWN, { t: 0, cd: 2.2, wave: 1 });
+      SCORE.value = 0; scoreEl.textContent = SCORE.value; waveEl.textContent = SPAWN.wave;
+      drawHearts();
+    }
+
+    function start() { reset(); running = true; paused = false; startOverlay.classList.remove('show'); gameOverOverlay.classList.remove('show'); }
+    function gameOver() {
+      if (gameOverHandled) return; gameOverHandled = true; running = false; paused = true; finalScoreEl.textContent = SCORE.value; gameOverOverlay.classList.add('show'); maybeSubmitLeaderboard(); }
+
+    startBtn.addEventListener('click', () => { start(); gameOverHandled = false; });
+    againBtn.addEventListener('click', () => { gameOverOverlay.classList.remove('show'); start(); gameOverHandled = false; });
+
+    // Controls
+    const key = { left:false, right:false, up:false, down:false, atk:false, dash:false };
+    function attachControls(){
+      window.addEventListener('keydown', e=>{
+        if (e.code==='ArrowLeft'||e.code==='KeyA') key.left=true;
+        if (e.code==='ArrowRight'||e.code==='KeyD') key.right=true;
+        if (e.code==='ArrowUp'||e.code==='KeyW') key.up=true;
+        if (e.code==='ArrowDown'||e.code==='KeyS') key.down=true;
+        if (e.code==='Space'||e.code==='KeyJ'||e.code==='KeyK') key.atk=true;
+        if (e.code==='ShiftLeft'||e.code==='ShiftRight'||e.code==='KeyL') key.dash=true;
+        if (e.code==='KeyP') { paused = !paused; }
+      });
+      window.addEventListener('keyup', e=>{
+        if (e.code==='ArrowLeft'||e.code==='KeyA') key.left=false;
+        if (e.code==='ArrowRight'||e.code==='KeyD') key.right=false;
+        if (e.code==='ArrowUp'||e.code==='KeyW') key.up=false;
+        if (e.code==='ArrowDown'||e.code==='KeyS') key.down=false;
+        if (e.code==='Space'||e.code==='KeyJ'||e.code==='KeyK') key.atk=false;
+        if (e.code==='ShiftLeft'||e.code==='ShiftRight'||e.code==='KeyL') key.dash=false;
+      });
+    }
+
+    function setupMobileControls(){
+      const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+      const ctrls = document.getElementById('mobileCtrls');
+      if (!isTouch || !ctrls) return;
+      ctrls.classList.remove('hidden');
+      ctrls.setAttribute('aria-hidden', 'false');
+
+      const bindHold = (el, set, unset) => {
+        if (!el) return;
+        const down = (e)=>{ e.preventDefault(); try{ el.setPointerCapture(e.pointerId); }catch{} set(); };
+        const up = (e)=>{ e.preventDefault(); unset(); try{ el.releasePointerCapture(e.pointerId); }catch{} };
+        el.addEventListener('pointerdown', down, { passive: false });
+        el.addEventListener('pointerup', up, { passive: false });
+        el.addEventListener('pointercancel', up, { passive: false });
+        el.addEventListener('pointerleave', up, { passive: false });
+        // Fallback for touch
+        el.addEventListener('touchstart', (e)=>{ e.preventDefault(); set(); }, { passive: false });
+        el.addEventListener('touchend',   (e)=>{ e.preventDefault(); unset(); }, { passive: false });
+      };
+
+      bindHold(document.getElementById('btnLeft'),  ()=> key.left=true,  ()=> key.left=false);
+      bindHold(document.getElementById('btnRight'), ()=> key.right=true, ()=> key.right=false);
+      bindHold(document.getElementById('btnUp'),    ()=> key.up=true,    ()=> key.up=false);
+      bindHold(document.getElementById('btnDown'),  ()=> key.down=true,  ()=> key.down=false);
+
+      // Attack: one-shot press is fine; hold also allowed
+      bindHold(document.getElementById('btnAtk'),   ()=> key.atk=true,   ()=> key.atk=false);
+      bindHold(document.getElementById('btnDash'),  ()=> key.dash=true,  ()=> key.dash=false);
+      const btnPause = document.getElementById('btnPause');
+      if (btnPause) btnPause.addEventListener('click', ()=> { paused = !paused; });
+    }
+
+    // Utility
+    const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+    const len = (x,y)=>Math.hypot(x,y);
+    const norm = (x,y)=>{const l=Math.hypot(x,y)||1;return [x/l,y/l];};
+    const now = ()=>performance.now(); let last=now();
+    function rand(a,b){ return a + Math.random()*(b-a); }
+
+    // HUD
+    function drawHearts(){ heartsEl.innerHTML=''; for (let i=0;i<P.hpMax;i++){ const img=document.createElement('img'); img.src=IMG.heart.src; img.style.opacity = i < P.hp ? '1' : '0.28'; heartsEl.appendChild(img);} }
+
+    // Spawning
+    function spawnEnemy(){
+      // Spawn outside player vicinity along arena edges
+      const side = Math.floor(Math.random()*4);
+      let x=ARENA.x+8, y=ARENA.y+8;
+      if (side===0) { x = rand(ARENA.x+16, ARENA.x+ARENA.w-16); y = ARENA.y+10; }
+      if (side===1) { x = ARENA.x+ARENA.w-10; y = rand(ARENA.y+16, ARENA.y+ARENA.h-16); }
+      if (side===2) { x = rand(ARENA.x+16, ARENA.x+ARENA.w-16); y = ARENA.y+ARENA.h-10; }
+      if (side===3) { x = ARENA.x+10; y = rand(ARENA.y+16, ARENA.y+ARENA.h-16); }
+      enemies.push({ x, y, vx:0, vy:0, w:ENEMY.w, h:ENEMY.h, hp:2+Math.floor(SPAWN.wave/2), t:0 });
+    }
+
+    function dropCoin(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'coin', v: rand(40,70), a: rand(0,Math.PI*2) }); }
+
+    // Combat helpers
+    function hitArc(px,py, dir, arc, range, ex,ey){
+      // enemy vector from player
+      const dx = ex - px, dy = ey - py; const d = Math.hypot(dx,dy);
+      if (d>range) return false; const ang = Math.atan2(dy,dx);
+      let da = Math.atan2(Math.sin(ang-dir), Math.cos(ang-dir));
+      return Math.abs(da) <= arc*0.5;
+    }
+
+    // Particles
+    function spark(x,y,color){ for(let i=0;i<8;i++){ const a=rand(0,Math.PI*2); const s=rand(60,120); PARTICLES.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:0,ttl:0.35,color,size:rand(6,12)});} }
+
+    // Update & Draw
+    function step(dt){
+      if (!running || paused) return;
+
+      // Player input velocity
+      let ix = (key.right?1:0) - (key.left?1:0);
+      let iy = (key.down?1:0) - (key.up?1:0);
+      if (ix || iy) { const [nx,ny]=norm(ix,iy); P.vx += nx*P.spd*dt; P.vy += ny*P.spd*dt; P.dir = Math.atan2(ny,nx); }
+      // Attacks
+      if (key.atk && P.atkT<=0) P.atkT = PHYS.atkDur;
+      // Dash
+      if (key.dash && P.dashCd<=0){ const [nx,ny]=[Math.cos(P.dir), Math.sin(P.dir)]; P.vx += nx*PHYS.dashSpd; P.vy += ny*PHYS.dashSpd; P.dashCd = PHYS.dashCd; P.dashT = PHYS.dashDur; }
+
+      // Timers
+      if (P.atkT>0) P.atkT -= dt; if (P.dashCd>0) P.dashCd -= dt; if (P.dashT>0) P.dashT -= dt; if (P.iT>0) P.iT -= dt;
+
+      // Apply friction
+      P.vx *= PHYS.friction; P.vy *= PHYS.friction;
+      P.x += P.vx*dt; P.y += P.vy*dt;
+      // Clamp to arena
+      P.x = clamp(P.x, ARENA.x+16, ARENA.x+ARENA.w-16); P.y = clamp(P.y, ARENA.y+16, ARENA.y+ARENA.h-16);
+
+      // Enemy logic
+      for (const e of enemies){
+        e.t += dt; // homing toward player
+        const dx = P.x - e.x, dy = P.y - e.y; const [nx,ny]=norm(dx,dy);
+        const speed = ENEMY.spd * (1 + Math.min(0.8, SPAWN.wave*0.06));
+        e.vx = nx * speed; e.vy = ny * speed; e.x += e.vx*dt; e.y += e.vy*dt;
+        // Attack collision when close and player is vulnerable
+        if (P.iT<=0 && Math.abs(P.x-e.x)<(e.w*0.6+P.w*0.6) && Math.abs(P.y-e.y)<(e.h*0.6+P.h*0.6)){
+          P.hp -= 1; P.iT = 1.0; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver();
+        }
+      }
+
+      // Player sword hits
+      if (P.atkT>0){
+        for (const e of enemies){ if (e.hp<=0) continue; if (hitArc(P.x,P.y,P.dir,PHYS.atkArc,PHYS.atkRange,e.x,e.y)){ e.hp -= 1; spark(e.x,e.y,'#aef'); if (e.hp<=0){ SCORE.value += 50; scoreEl.textContent = SCORE.value; dropCoin(e.x, e.y); } } }
+      }
+
+      // Collect drops
+      for (let i=drops.length-1;i>=0;i--){ const d=drops[i]; d.t += dt; const drift = Math.min(1,d.t*3); d.x += Math.cos(d.a)*d.v*dt*drift; d.y += Math.sin(d.a)*d.v*dt*drift; d.v *= (1-1.6*dt); if (len(P.x-d.x,P.y-d.y)<22){
+          if (d.kind==='coin'){ SCORE.value += 10; scoreEl.textContent = SCORE.value; spark(d.x,d.y,'#ffd16b'); }
+          drops.splice(i,1);
+      } }
+
+      // Wave & spawns
+      SPAWN.t += dt; const targetCount = Math.min(6 + SPAWN.wave*2, 28);
+      if (enemies.filter(e=>e.hp>0).length < targetCount && SPAWN.t > SPAWN.cd){ SPAWN.t = 0; for (let i=0;i<Math.min(4, 1+Math.floor(SPAWN.wave/2)); i++) spawnEnemy(); }
+      // Advance wave slowly over time and score
+      if (SCORE.value > SPAWN.wave*200) { SPAWN.wave += 1; waveEl.textContent = SPAWN.wave; }
+
+      // Clean up dead enemies occasionally
+      enemies = enemies.filter(e=>e.hp>0);
+
+      // Particles
+      for (let i=PARTICLES.length-1;i>=0;i--){ const p=PARTICLES[i]; p.life+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; if (p.life>p.ttl) PARTICLES.splice(i,1); }
+    }
+
+    function drawTiles(){
+      const img = IMG.tiles; // 256x256 sheet; we use two tiles: 0,0 floor and 32,0 border
+      const sxFloor = 0, syFloor = 0, sw = 32, sh = 32;
+      const sxEdge = 32, syEdge = 0;
+      for (let y=ARENA.y; y<ARENA.y+ARENA.h; y+=TILE){
+        for (let x=ARENA.x; x<ARENA.x+ARENA.w; x+=TILE){
+          ctx.drawImage(img, sxFloor, syFloor, sw, sh, x, y, TILE, TILE);
+        }
+      }
+      // Border
+      for (let x=ARENA.x; x<ARENA.x+ARENA.w; x+=TILE){ ctx.drawImage(img, sxEdge, syEdge, sw, sh, x, ARENA.y-TILE, TILE, TILE); ctx.drawImage(img, sxEdge, syEdge, sw, sh, x, ARENA.y+ARENA.h, TILE, TILE); }
+      for (let y=ARENA.y; y<ARENA.y+ARENA.h; y+=TILE){ ctx.drawImage(img, sxEdge, syEdge, sw, sh, ARENA.x-TILE, y, TILE, TILE); ctx.drawImage(img, sxEdge, syEdge, sw, sh, ARENA.x+ARENA.w, y, TILE, TILE); }
+    }
+
+    function draw(){
+      const t = now(); const dt = Math.min(0.033, (t - last)/1000); last = t;
+      ctx.clearRect(0,0,W,H);
+      // Subtle vignette
+      ctx.fillStyle = '#0b0f18'; ctx.fillRect(0,0,W,H);
+      drawTiles();
+
+      // Draw drops
+      for (const d of drops) { ctx.drawImage(IMG.coin, d.x-12, d.y-12, 24, 24); }
+
+      // Draw enemies with shadow
+      for (const e of enemies){ ctx.drawImage(IMG.shadow, e.x-18, e.y-8, 36, 16); ctx.drawImage(IMG.slime, e.x-ENEMY.w/2, e.y-ENEMY.h/2-6, ENEMY.w, ENEMY.h+6); }
+
+      // Draw player shadow + hero
+      ctx.drawImage(IMG.shadow, P.x-20, P.y-10, 40, 20);
+      // Sword trail when attacking
+      if (P.atkT>0){ ctx.save(); ctx.translate(P.x,P.y); ctx.rotate(P.dir); const prog = 1 - (P.atkT/PHYS.atkDur); const arc = PHYS.atkArc; ctx.beginPath(); ctx.moveTo(10,0); ctx.arc(0,0,PHYS.atkRange, -arc*0.5+prog*arc, -arc*0.5+prog*arc+0.6); ctx.lineWidth=10; const g=ctx.createLinearGradient(0,0,PHYS.atkRange,0); g.addColorStop(0,'rgba(255,255,255,0.0)'); g.addColorStop(1,'rgba(255,215,0,0.6)'); ctx.strokeStyle=g; ctx.stroke(); ctx.restore(); }
+      // Hero body
+      ctx.save(); ctx.translate(P.x, P.y); ctx.rotate(P.dir + Math.sin(t*0.01)*0.02); ctx.drawImage(IMG.hero, -18, -22, 36, 36); ctx.restore();
+
+      // Particles
+      for (const p of PARTICLES){ ctx.globalAlpha = 1 - p.life/p.ttl; ctx.drawImage(IMG.spark, p.x - p.size/2, p.y - p.size/2, p.size, p.size); ctx.globalAlpha = 1; }
+
+      if (running && !paused) step(dt);
+      requestAnimationFrame(draw);
+    }
+
+    // Leaderboard integration
+    async function maybeSubmitLeaderboard(){
+      let dest = `../leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
+      try {
+        const res = await fetch(`/api/leaderboard/rank?gameId=${encodeURIComponent(GAME_ID)}&score=${encodeURIComponent(SCORE.value)}`, { headers: { 'Accept': 'application/json' } });
+        if (res.ok){
+          const data = await res.json(); const rank = Number(data?.rank);
+          const qualifies = Number.isFinite(rank) && rank>0 && rank<=20;
+          if (qualifies){
+            let name = prompt(`New High Score! You placed #${rank}. Enter your name (max 20 chars):`, '');
+            if (name != null){ name = name.trim().replace(/[^\w \-'.!]/g,'').slice(0,20); if (name){
+              let submitted=false; try{ await fetch('/api/leaderboard/submit',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ gameId: GAME_ID, name, score: SCORE.value }) }); submitted=true; }catch{}
+              if (submitted) dest += `&highlightRank=${encodeURIComponent(rank)}`;
+            } }
+          }
+        }
+      } catch(e) { console.error(e); }
+      document.getElementById('lbBtn').href = dest;
+    }
+  </script>
+</body>
+</html>

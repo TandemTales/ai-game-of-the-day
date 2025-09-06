@@ -413,6 +413,7 @@
       grunt: new Audio('assets/sfx_bot_grunt.wav'),
       shieldHit: new Audio('assets/sfx_shield_hit.wav'),
       jetpack: new Audio('assets/sfx_bot_jetpack.wav'),
+      jump: new Audio('assets/sfx_bot_jump.wav'),
       cog: new Audio('assets/sfx_cog.wav'),
       upgrade: new Audio('assets/sfx_upgrade.wav'),
       enemyHit: new Audio('assets/sfx_enemy_hit.wav'),
@@ -809,6 +810,7 @@
         P.jumps++;
         jumpedThisFrame = true;
       }
+      if (jumpedThisFrame) playSfx(SFX.jump);
       // Quick tap detection: shorten jump if released immediately
       if (spaceJustReleased && P.isJumping && P.jumpT < QUICK_TAP_TIME) {
         const halfJumpVy = -JUMP_V / 2;

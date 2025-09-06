@@ -658,11 +658,13 @@
           animT: 0,
           vulnerable: false,
           spawnedFlyer: false,
+          flash: 0,
           hitX: 0.3,
           hitY: 0.3
         };
       }
       if (boss) {
+        if (boss.flash > 0) boss.flash = Math.max(0, boss.flash - dt);
         const pct = Math.max(0, Math.round((boss.hp / boss.maxHp) * 100));
         if (bossHud) {
           bossHud.classList.remove('hidden');
@@ -1370,7 +1372,7 @@
           if (hit(b, flyers[j])) { flyers.splice(j,1); hitSomething = true; score += 1; break; }
         }
         if (!hitSomething && boss && boss.vulnerable && hit(b, boss)) {
-          boss.hp--; hitSomething = true; playSfx(SFX.bossHit);
+          boss.hp--; boss.flash = 0.25; hitSomething = true; playSfx(SFX.bossHit);
           if (boss.hp <= 0) { boss = null; if (bossHud) bossHud.classList.add('hidden'); }
         }
         if (hitSomething) { pshots.splice(i,1); }
@@ -1475,8 +1477,8 @@
       if (boss) {
         if (boss.state === 'open') drawBossOpen(boss);
         else if (boss.state === 'close') drawBossClose(boss);
-        else if (boss.state === 'laser' || boss.state === 'post') drawImg(IMG.bossLaser, boss.x, boss.y, boss.w, boss.h);
-        else drawImg(IMG.bossShut, boss.x, boss.y, boss.w, boss.h);
+        else if (boss.state === 'laser' || boss.state === 'post') drawBossImage(IMG.bossLaser, boss);
+        else drawBossImage(IMG.bossShut, boss);
       }
 
       // Player (4-frame spritesheet)
@@ -1571,6 +1573,21 @@
       drawImg(IMG.shieldImg, x, y, w, h);
     }
 
+    function drawBossImage(img, b){
+      if (!img || !img.width) return;
+      const x = Math.round(b.x - b.w/2);
+      const y = Math.round(b.y - b.h/2);
+      ctx.save();
+      ctx.drawImage(img, x, y, b.w, b.h);
+      if (b.flash > 0) {
+        const alpha = Math.min(1, b.flash * 4);
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(img, x, y, b.w, b.h);
+      }
+      ctx.restore();
+    }
+
     function drawBossOpen(b){
       const img = IMG.bossOpen;
       if (!img || !img.width) return;
@@ -1578,7 +1595,17 @@
       const fw = img.width / frames;
       const fh = img.height;
       const frame = Math.min(frames - 1, Math.floor((b.animT / BOSS_OPEN_DURATION) * frames));
-      ctx.drawImage(img, frame * fw, 0, fw, fh, Math.round(b.x - b.w/2), Math.round(b.y - b.h/2), b.w, b.h);
+      const x = Math.round(b.x - b.w/2);
+      const y = Math.round(b.y - b.h/2);
+      ctx.save();
+      ctx.drawImage(img, frame * fw, 0, fw, fh, x, y, b.w, b.h);
+      if (b.flash > 0) {
+        const alpha = Math.min(1, b.flash * 4);
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(img, frame * fw, 0, fw, fh, x, y, b.w, b.h);
+      }
+      ctx.restore();
     }
 
     function drawBossClose(b){
@@ -1588,7 +1615,17 @@
       const fw = img.width / frames;
       const fh = img.height;
       const frame = Math.min(frames - 1, Math.floor((b.animT / BOSS_CLOSE_DURATION) * frames));
-      ctx.drawImage(img, frame * fw, 0, fw, fh, Math.round(b.x - b.w/2), Math.round(b.y - b.h/2), b.w, b.h);
+      const x = Math.round(b.x - b.w/2);
+      const y = Math.round(b.y - b.h/2);
+      ctx.save();
+      ctx.drawImage(img, frame * fw, 0, fw, fh, x, y, b.w, b.h);
+      if (b.flash > 0) {
+        const alpha = Math.min(1, b.flash * 4);
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(img, frame * fw, 0, fw, fh, x, y, b.w, b.h);
+      }
+      ctx.restore();
     }
 
     function drawSpike(x, y, w, h, t){

@@ -431,8 +431,18 @@
       bossHit: new Audio('assets/sfx_boss_hit.wav'),
       bossKill: new Audio('assets/sfx_boss_killed.wav')
     };
+    // Boost sound effect volume without altering music volume
+    for (const k in SFX) {
+      // double the original volume but cap at the maximum of 1
+      SFX[k].volume = Math.min(1, (SFX[k].volume || 1) * 2);
+    }
     function playSfx(s) {
-      try { s.cloneNode().play(); } catch {}
+      try {
+        const a = s.cloneNode();
+        // ensure the cloned audio uses the boosted volume
+        a.volume = s.volume;
+        a.play();
+      } catch {}
     }
 
     // Parallax layers positions

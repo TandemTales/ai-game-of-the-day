@@ -299,6 +299,7 @@
     let worldFreeze = 0;         // halt forward scroll briefly after impact
     let hitFlash = 0;            // red flash overlay intensity timer
     let shieldFlash = 0;         // shield flash timer when it absorbs damage
+    let bossFlash = 0;           // boss damage flash timer
     let shake = 0;               // camera shake magnitude (pixels)
     // Jetpack systems (hold to burn fuel and thrust)
     const JET_FUEL_MAX = 100;       // max fuel
@@ -599,6 +600,7 @@
       if (worldFreeze > 0) worldFreeze -= dt;
       if (hitFlash > 0) hitFlash -= dt;
       if (shieldFlash > 0) shieldFlash -= dt;
+      if (bossFlash > 0) bossFlash -= dt;
       if (shake > 0) shake = Math.max(0, shake - 28 * dt);
       const scrollMul = worldFreeze > 0 ? 0 : 1;
       dist += RUN_SPEED * dt * scrollMul;
@@ -1371,6 +1373,7 @@
         }
         if (!hitSomething && boss && boss.vulnerable && hit(b, boss)) {
           boss.hp--; hitSomething = true; playSfx(SFX.bossHit);
+          bossFlash = 0.15;
           if (boss.hp <= 0) { boss = null; if (bossHud) bossHud.classList.add('hidden'); }
         }
         if (hitSomething) { pshots.splice(i,1); }
@@ -1473,10 +1476,16 @@
         ctx.fillRect(0, beamY - beamH/2, beamLeft, beamH);
       }
       if (boss) {
+        ctx.save();
+        if (bossFlash > 0) {
+          const br = 1 + bossFlash * 4;
+          ctx.filter = `brightness(${br})`;
+        }
         if (boss.state === 'open') drawBossOpen(boss);
         else if (boss.state === 'close') drawBossClose(boss);
         else if (boss.state === 'laser' || boss.state === 'post') drawImg(IMG.bossLaser, boss.x, boss.y, boss.w, boss.h);
         else drawImg(IMG.bossShut, boss.x, boss.y, boss.w, boss.h);
+        ctx.restore();
       }
 
       // Player (4-frame spritesheet)

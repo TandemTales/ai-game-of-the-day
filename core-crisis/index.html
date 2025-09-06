@@ -64,7 +64,7 @@
     }
     .jetbar-text { position: absolute; inset: 0; display: grid; place-items: center; font-size: 10px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
     /* Heat bar */
-    #heatHud { min-width: 220px; }
+    #heatHud { min-width: 220px; pointer-events: auto; }
     #heatHud:not(.hidden) { display: grid; gap: 6px; }
     .heat-label { font-size: 11px; color: #FFA07A; opacity: 0.95; }
     .heatbar { position: relative; height: 12px; width: 100%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,99,71,0.6); border-radius: 8px; overflow: hidden; }
@@ -418,6 +418,7 @@
       running = true; dead = false; paused = false; score = 0; dist = 0; time = 0; gemsCollected = 0; combo = 0;
       frameTimer=0; animFrame=0; spawnTimer=0; gemTimer=0; coolantTimer = rand(2.5, 4.5);
       heat = 0;
+      heatCheat = false; heatTapCount = 0; heatTapLast = 0;
       worldFreeze = 0; hitFlash = 0; shake = 0; hitGrace = 0;
       spikes.length=0; platforms.length=0; gems.length=0; jetpacks.length=0; gliders.length=0; guns.length=0; coolants.length=0; cogs.length=0; smashers.length=0; flyers.length=0; shots.length=0; pshots.length=0;
       P.x = 200; P.y = GROUND_Y; P.vx = 0; P.vy = 0; P.onGround = true; P.glide=false; P.isJumping=false; P.jumpT=0; P.jumps=0;
@@ -491,6 +492,9 @@
     const COOLANT_SMALL_COOL = 35;  // amount reduced by small coolant
     const COOLANT_LARGE_COOL = 70;  // amount reduced by large coolant
     let heat = 0;
+    let heatCheat = false;
+    let heatTapCount = 0;
+    let heatTapLast = 0;
 
     // UI elements
     const startScreen = document.getElementById('startScreen');
@@ -510,6 +514,21 @@
     const shieldText = shieldHud ? shieldHud.querySelector('.jet-label') : null;
     const bossHud = document.getElementById('bossHud');
     const bossFill = document.getElementById('bossFill');
+    if (heatHud) {
+      heatHud.addEventListener('pointerdown', e => {
+        e.stopPropagation();
+        e.preventDefault();
+        const t = now();
+        if (t - heatTapLast > 1000) heatTapCount = 0;
+        heatTapLast = t;
+        heatTapCount++;
+        if (heatTapCount >= 7) {
+          heatCheat = true;
+          heat = 0;
+          score = 0;
+        }
+      });
+    }
     const bossText = document.getElementById('bossText');
     const finalScore = document.getElementById('finalScore');
     const lbBtn = document.getElementById('lbBtn');
@@ -595,6 +614,7 @@
 
     function update(dt){
       time += dt;
+      if (heatCheat) { heat = 0; score = 0; }
       if (hitGrace > 0) hitGrace -= dt;
       if (worldFreeze > 0) worldFreeze -= dt;
       if (hitFlash > 0) hitFlash -= dt;
@@ -608,7 +628,8 @@
       scoreHud.textContent = `Score: ${score} | Combo: ${combo}${multTxt}`;
       // Heat: increases over time; collect coolants to reduce
       // While carrying a shield, heat does not increase
-      if (!hasShield) heat = clamp(heat + HEAT_GAIN_RATE * dt, 0, HEAT_MAX);
+      if (!hasShield && !heatCheat) heat = clamp(heat + HEAT_GAIN_RATE * dt, 0, HEAT_MAX);
+      if (heatCheat) heat = 0;
       const heatPct = Math.round((heat / HEAT_MAX) * 100);
       if (heatFill) heatFill.style.width = `${heatPct}%`;
       if (heatText) heatText.textContent = `${heatPct}%`;
@@ -1194,6 +1215,7 @@
         }
         // helper to lose one item fairly when hit
         function loseRandomItem(){
+          if (heatCheat) return null;
           playSfx(SFX.grunt);
           const options = [];
           if (hasJetpack) options.push('jet');
@@ -1294,7 +1316,7 @@
         const g = gems[i];
         if (hit(P, g)) {
           const mult = combo >= 10 ? 4 : combo >= 5 ? 2 : 1;
-          score += mult;
+          if (!heatCheat) score += mult;
           gemsCollected += 1;
           combo += 1;
           gems.splice(i,1);
@@ -1369,7 +1391,7 @@
         const b = pshots[i];
         let hitSomething = false;
         for (let j = flyers.length - 1; j >= 0; j--) {
-          if (hit(b, flyers[j])) { flyers.splice(j,1); hitSomething = true; score += 1; break; }
+          if (hit(b, flyers[j])) { flyers.splice(j,1); hitSomething = true; if (!heatCheat) score += 1; break; }
         }
         if (!hitSomething && boss && boss.vulnerable && hit(b, boss)) {
           boss.hp--; boss.flash = 0.25; hitSomething = true; playSfx(SFX.bossHit);

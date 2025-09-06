@@ -72,6 +72,8 @@
 
     .wave-banner { position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); padding:10px 20px; background:rgba(0,0,0,0.6); border:2px solid rgba(255,215,0,0.4); border-radius:8px; color:var(--gold); font-size:20px; opacity:0; pointer-events:none; transition:opacity 0.5s; }
     .wave-banner.show { opacity:1; }
+    .boss-banner { position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); padding:10px 20px; background:rgba(0,0,0,0.6); border:2px solid rgba(255,215,0,0.4); border-radius:8px; color:var(--gold); font-size:24px; opacity:0; pointer-events:none; transition:opacity 0.5s; }
+    .boss-banner.show { opacity:1; }
     /* Audio toggle icon button */
     .audio-toggle { display:flex; align-items:center; gap:8px; }
     #audioIcon { position: relative; width: 28px; height: 22px; cursor: pointer; border:1px solid rgba(255,215,0,0.35); border-radius:6px; background: rgba(0,0,0,0.25); overflow: hidden; }
@@ -107,6 +109,7 @@
       <div class="stage">
         <canvas id="game" width="900" height="600"></canvas>
         <div id="wave-banner" class="wave-banner"></div>
+        <div id="boss-banner" class="boss-banner">Boss Defeated!</div>
         <div class="overlay" id="overlay">
           <div>
             <h2 id="ov-title">Nova Striker</h2>
@@ -231,6 +234,7 @@
     const ovTitle = document.getElementById('ov-title');
     const ovSub = document.getElementById('ov-sub');
     const waveBanner = document.getElementById('wave-banner');
+    const bossBanner = document.getElementById('boss-banner');
     const audioIcon = document.getElementById('audioIcon');
     const audioIconImg = document.getElementById('audioIconImg');
     const logoEl = document.getElementById('logo');
@@ -288,7 +292,8 @@
       player_hit: 'assets/ns_sfx_player_hit.wav',
       player_exploding: 'assets/ns_sfx_player_exploding.wav',
       player_shield: 'assets/ns_sfx_player_shield.wav',
-      alien_hit: 'assets/ns_sfx_alien_hit.wav'
+      alien_hit: 'assets/ns_sfx_alien_hit.wav',
+      boss_killed: 'assets/sfx_boss_killed.wav'
     };
     const SFX = {};
     for (const k in SFX_FILES) {
@@ -520,6 +525,11 @@
       waveBanner.textContent = text;
       waveBanner.classList.add('show');
       setTimeout(() => waveBanner.classList.remove('show'), 1500);
+    }
+
+    function showBossBanner() {
+      bossBanner.classList.add('show');
+      setTimeout(() => bossBanner.classList.remove('show'), 1500);
     }
     
 
@@ -940,6 +950,10 @@
                 // explosion on electro kill
                 spawnExplosion(tx, ty, (p.target && p.target.boss) ? 50 : 20, 'electric');
                 playSfx((p.target && p.target.boss) ? 'alien_exploding_large' : 'alien_exploding_small');
+                if (p.target && p.target.boss) {
+                  playSfx('boss_killed');
+                  showBossBanner();
+                }
               }
             }
             // impact sparks at current destination
@@ -1122,6 +1136,10 @@
                 // explosion on laser kill
                 spawnExplosion(hitX, hitY, e.boss ? 50 : 22, 'orange');
                 playSfx(e.boss ? 'alien_exploding_large' : 'alien_exploding_small');
+                if (e.boss) {
+                  playSfx('boss_killed');
+                  showBossBanner();
+                }
                 const add = (e.type === 'F') ? 100 : (e.type === 'B' ? 250 : (e.score || 2000));
                 if (!cheatInvuln) { score += add; scoreEl.textContent = score; }
                 spawnDrop(e);
@@ -1208,6 +1226,10 @@
               // explosion on bullet kill
               spawnExplosion(e.x, e.y, e.boss ? 50 : 22, 'orange');
               playSfx(e.boss ? 'alien_exploding_large' : 'alien_exploding_small');
+              if (e.boss) {
+                playSfx('boss_killed');
+                showBossBanner();
+              }
               const add = (e.type === 'F') ? 100 : (e.type === 'B' ? 250 : (e.score || 2000));
               if (!cheatInvuln) { score += add; scoreEl.textContent = score; }
               spawnDrop(e);
@@ -1266,12 +1288,20 @@
               // explosion on enemy destroyed by shield
               spawnExplosion(e.x, e.y, e.boss ? 50 : 22, 'orange');
               playSfx(e.boss ? 'alien_exploding_large' : 'alien_exploding_small');
+              if (e.boss) {
+                playSfx('boss_killed');
+                showBossBanner();
+              }
             } else {
               e.hp = 0;
               // explosions on collision: enemy and player
               spawnExplosion(e.x, e.y, e.boss ? 50 : 22, 'orange');
               spawnExplosion(P.x, P.y, 26, 'orange');
               playSfx(e.boss ? 'alien_exploding_large' : 'alien_exploding_small');
+              if (e.boss) {
+                playSfx('boss_killed');
+                showBossBanner();
+              }
               playSfx('player_exploding');
               hitPlayer();
             }

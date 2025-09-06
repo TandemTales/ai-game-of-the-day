@@ -288,6 +288,9 @@
     const GROUND_Y = H - 90; // baseline
     let running=false, dead=false;
     let score=0; let best=0; let dist=0; let time=0;
+    let runSpeed = RUN_SPEED;     // current world scroll speed
+    let difficulty = 1;           // increases after each boss
+    let bossNextTime = 30;        // next boss spawn threshold
     let gemsCollected = 0; // total number of collected gems
     let combo = 0;         // consecutive gems collected without missing
     let last = now();
@@ -356,7 +359,6 @@
     const shots=[];    // enemy bullets
     const pshots=[];   // player bullets (from gun)
     let boss = null;   // boss entity
-    let bossSpawned = false;
 
     // Soundtrack playback
     const TRACKS = [
@@ -432,13 +434,13 @@
       hasShield = false; shieldPicked = false; shieldTimer = rand(5, 11); shieldHits = 0;
       jetpackTimer = rand(6, 12); // first random spawn window
       gliderTimer = rand(4, 10);  // first random spawn window for glider
-      flyerTimer = rand(6, 12);   // first flying enemy spawn window
-      cogTimer = rand(5, 9);      // first rolling cog spawn
-      smasherTimer = rand(7, 14); // first smasher drop spawn
-      platformTimer = rand(1.2, 2.6); // first platform spawn
-      boss = null; bossSpawned = false; if (bossHud) bossHud.classList.add('hidden');
-      hideStart(); hideGameOver();
-    }
+        flyerTimer = rand(6, 12);   // first flying enemy spawn window
+        cogTimer = rand(5, 9);      // first rolling cog spawn
+        smasherTimer = rand(7, 14); // first smasher drop spawn
+        platformTimer = rand(1.2, 2.6); // first platform spawn
+        boss = null; bossNextTime = 30; difficulty = 1; runSpeed = RUN_SPEED; if (bossHud) bossHud.classList.add('hidden');
+        hideStart(); hideGameOver();
+      }
 
     // Grid-based placement to align items and prevent overlaps at spawn
     // Choose a grid cell size large enough to fit the largest item entirely
@@ -469,7 +471,7 @@
       for (const [row, tExp] of gridOccupied) if (tExp <= nowSec) gridOccupied.delete(row);
     }
     // Try to reserve a free row within [minRow, maxRow] inclusive.
-    // Reservation lasts until the item scrolls out of the spawn column width (~GRID_CELL / RUN_SPEED seconds)
+    // Reservation lasts until the item scrolls out of the spawn column width (~GRID_CELL / runSpeed seconds)
     function tryReserveRow(minRow, maxRow, nowSec){
       sweepGrid(nowSec);
       const rows = [];
@@ -477,7 +479,7 @@
       // Shuffle lightly to vary placements
       for (let i = rows.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const tmp = rows[i]; rows[i] = rows[j]; rows[j] = tmp; }
       for (const r of rows) if (!gridOccupied.has(r)) {
-        const hold = GRID_CELL / RUN_SPEED; // seconds to cross one cell at base speed
+        const hold = GRID_CELL / runSpeed; // seconds to cross one cell at current speed
         gridOccupied.set(r, nowSec + hold);
         return r;
       }
@@ -621,7 +623,7 @@
       if (shieldFlash > 0) shieldFlash -= dt;
       if (shake > 0) shake = Math.max(0, shake - 28 * dt);
       const scrollMul = worldFreeze > 0 ? 0 : 1;
-      dist += RUN_SPEED * dt * scrollMul;
+      dist += runSpeed * dt * scrollMul;
       // HUD: show score, combo, and current multiplier when active
       const currentMult = combo >= 10 ? 4 : combo >= 5 ? 2 : 1;
       const multTxt = currentMult > 1 ? ` | x${currentMult}` : '';
@@ -662,8 +664,7 @@
         }
       }
       // Boss spawn and HUD
-      if (!bossSpawned && time >= 30) {
-        bossSpawned = true;
+      if (!boss && time >= bossNextTime) {
         boss = {
           x: W + 200,
           y: BOSS_LANES[1],
@@ -672,8 +673,8 @@
           w: 320,
           h: 320,
           state: 'entry',
-          hp: BOSS_MAX_HP,
-          maxHp: BOSS_MAX_HP,
+          hp: BOSS_MAX_HP * difficulty,
+          maxHp: BOSS_MAX_HP * difficulty,
           timer: 0,
           cooldown: 3,
           animT: 0,
@@ -757,7 +758,7 @@
       maybeShowMobileCtrls(isSmall && running && !dead);
 
       // Background parallax scroll
-      const s1 = RUN_SPEED * 0.12 * dt * scrollMul, s2 = RUN_SPEED * 0.32 * dt * scrollMul, s3 = RUN_SPEED * 0.64 * dt * scrollMul;
+      const s1 = runSpeed * 0.12 * dt * scrollMul, s2 = runSpeed * 0.32 * dt * scrollMul, s3 = runSpeed * 0.64 * dt * scrollMul;
       L.sky1 -= s1; L.sky2 -= s1; if (L.sky1 + W < 0) L.sky1 = L.sky2 + W; if (L.sky2 + W < 0) L.sky2 = L.sky1 + W;
       L.h1 -= s2; L.h2 -= s2; if (L.h1 + W < 0) L.h1 = L.h2 + W; if (L.h2 + W < 0) L.h2 = L.h1 + W;
       L.f1 -= s3; L.f2 -= s3; if (L.f1 + W < 0) L.f1 = L.f2 + W; if (L.f2 + W < 0) L.f2 = L.f1 + W;
@@ -879,7 +880,7 @@
       // Spawning hazards
       spawnTimer -= dt;
       if (spawnTimer <= 0) {
-        spawnTimer = rand(0.9, 1.6);
+        spawnTimer = rand(0.9, 1.6) / difficulty;
         const nowSec = time;
         const x = gridSpawnX() + GRID_ITEM_X_OFFSET;
         // Spike at ground: reserve row 0 if free; otherwise skip this cycle
@@ -1053,7 +1054,7 @@
           relVx: 0,
           hitX: 0.70, hitY: 0.70
         });
-        flyerTimer = rand(7, 14);
+        flyerTimer = rand(7, 14) / difficulty;
       }
 
       // Smasher drop spawn
@@ -1065,7 +1066,7 @@
         const peek = 30;
         const y = -h/2 + peek;
         smashers.push({ x, y, w, h, state: 'peek', timer: 0.9, dropSpeed: 900, hitX: 0.9, hitY: 1.0 });
-        smasherTimer = rand(7, 14);
+        smasherTimer = rand(7, 14) / difficulty;
       }
 
       // Rolling cog spawn
@@ -1076,11 +1077,11 @@
         const y = GROUND_Y + 34 - h/2;
         cogs.push({ x, y, w, h, vx: -220, t: 0, hitX: 0.8, hitY: 0.8 });
         playSfx(SFX.cog);
-        cogTimer = rand(6, 12);
+        cogTimer = rand(6, 12) / difficulty;
       }
 
       // Move hazards + gems
-      const move = v => v - RUN_SPEED * scrollMul * dt;
+      const move = v => v - runSpeed * scrollMul * dt;
       for (const s of spikes) s.x = move(s.x);
       for (const pl of platforms) pl.x = move(pl.x);
       for (const gobj of gems) { gobj.x = move(gobj.x); gobj.t += dt; gobj.y = (gobj.baseY ?? gobj.y) + Math.sin(gobj.t * 6.1) * 14; }
@@ -1116,14 +1117,14 @@
         if (f.state === 'approach') {
           const dx = targetX - f.x;
           // Match world scroll and steer towards target
-          const follow = RUN_SPEED * scrollMul + clamp(dx * 2.5, -400, 400);
+            const follow = runSpeed * scrollMul + clamp(dx * 2.5, -400, 400);
           f.relVx = follow;
           // Settle Y with much larger bob
           f.y = f.baseY + Math.sin(f.bobT * 2.4) * 96;
           if (Math.abs(dx) < 12) f.state = 'hover';
         } else if (f.state === 'hover') {
           const dx = targetX - f.x;
-          f.relVx = RUN_SPEED * scrollMul + clamp(dx * 4.0, -320, 320);
+            f.relVx = runSpeed * scrollMul + clamp(dx * 4.0, -320, 320);
           f.hoverT += dt;
           f.y = f.baseY + Math.sin(f.bobT * 2.8) * 110;
           f.fireCd -= dt;
@@ -1145,7 +1146,7 @@
           }
         } else if (f.state === 'leave') {
           // Speed right relative to world to exit
-          f.relVx = RUN_SPEED * scrollMul + 650;
+            f.relVx = runSpeed * scrollMul + 650;
           f.y = f.baseY + Math.sin(f.bobT * 3.0) * 80;
         }
         // Keep vertical within screen comfort bounds
@@ -1395,7 +1396,13 @@
         }
         if (!hitSomething && boss && boss.vulnerable && hit(b, boss)) {
           boss.hp--; boss.flash = 0.25; hitSomething = true; playSfx(SFX.bossHit);
-          if (boss.hp <= 0) { boss = null; if (bossHud) bossHud.classList.add('hidden'); }
+            if (boss.hp <= 0) {
+              boss = null;
+              bossNextTime = time + 30;
+              difficulty++;
+              runSpeed = RUN_SPEED * (1 + 0.1 * (difficulty - 1));
+              if (bossHud) bossHud.classList.add('hidden');
+            }
         }
         if (hitSomething) { pshots.splice(i,1); }
       }

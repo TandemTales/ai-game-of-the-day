@@ -278,6 +278,7 @@
     const GRAV = 1800; // px/s^2
     const RUN_SPEED = 400; // world scroll speed
     const BOSS_MAX_HP = 20;
+    const GUN_DAMAGE = 2; // HP removed per player shot
     const BOSS_OPEN_DURATION = 0.3;
     const BOSS_CLOSE_DURATION = 0.3;
     const BOSS_LASER_DURATION = 0.6;
@@ -1417,7 +1418,7 @@
           if (hit(b, flyers[j])) { flyers.splice(j,1); hitSomething = true; if (!heatCheat) score += 1; playSfx(SFX.enemyHit); break; }
         }
         if (!hitSomething && boss && boss.vulnerable && hit(b, boss)) {
-          boss.hp--; boss.flash = 0.25; hitSomething = true; playSfx(SFX.enemyHit); playSfx(SFX.bossHit);
+          boss.hp -= GUN_DAMAGE; boss.flash = 0.25; hitSomething = true; playSfx(SFX.enemyHit); playSfx(SFX.bossHit);
             if (boss.hp <= 0) {
               boss = null;
               bossNextTime = time + 30;

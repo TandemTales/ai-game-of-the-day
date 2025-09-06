@@ -279,6 +279,9 @@
     let muted = false;
     const LS_MUTE_KEY = 'nova-striker:muted';
 
+    const sfxEnemyHit = new Audio('assets/sfx_enemy_hit.wav');
+    function playEnemyHit(){ if(!muted){ try{ sfxEnemyHit.cloneNode().play(); } catch{} } }
+
     function setMuted(m) {
       muted = !!m;
       currentMusic.muted = muted;
@@ -901,6 +904,7 @@
           if (!p.didDamage && p.progress >= 1) {
             if (p.target && p.target.hp > 0) {
               p.target.hp -= (p.damage || 1);
+              playEnemyHit();
               if (p.target.hp <= 0) {
                 const add = (p.target.type === 'F') ? 100 : (p.target.type === 'B' ? 250 : (p.target.score || 2000));
                 if (!cheatInvuln) { score += add; scoreEl.textContent = score; }
@@ -1082,6 +1086,7 @@
               // subtle hit sparks on laser contact
               spawnHitSparks(hitX, hitY, 8, 1.3);
               e.hp -= L.dmg;
+              playEnemyHit();
               // Electro chain from this laser hit
               triggerElectro(e, hitX, hitY);
               if (e.hp <= 0) {
@@ -1159,7 +1164,7 @@
           if (Math.abs(b.x - e.x) < (e.w/2) && Math.abs(b.y - e.y) < (e.h/2)) {
             // capture impact point BEFORE removing the bullet
             const hitX = b.x, hitY = b.y;
-            e.hp -= (b.dmg || 1); b.y = -9999; // remove
+            e.hp -= (b.dmg || 1); playEnemyHit(); b.y = -9999; // remove
             if (b.kind === 'missile') {
               // distinct smaller cyan burst for missile impacts
               spawnMissileBurst(hitX, hitY, 12);

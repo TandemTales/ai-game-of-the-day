@@ -416,7 +416,8 @@
       cog: new Audio('assets/sfx_cog.wav'),
       upgrade: new Audio('assets/sfx_upgrade.wav'),
       bossLaser: new Audio('assets/sfx_boss_laser.wav'),
-      bossHit: new Audio('assets/sfx_boss_hit.wav')
+      bossHit: new Audio('assets/sfx_boss_hit.wav'),
+      enemyHit: new Audio('assets/sfx_enemy_hit.wav')
     };
     function playSfx(s) {
       try { s.cloneNode().play(); } catch {}
@@ -1413,7 +1414,7 @@
         const b = pshots[i];
         let hitSomething = false;
         for (let j = flyers.length - 1; j >= 0; j--) {
-          if (hit(b, flyers[j])) { flyers.splice(j,1); hitSomething = true; if (!heatCheat) score += 1; break; }
+          if (hit(b, flyers[j])) { flyers.splice(j,1); hitSomething = true; playSfx(SFX.enemyHit); if (!heatCheat) score += 1; break; }
         }
         if (!hitSomething && boss && boss.vulnerable && hit(b, boss)) {
           boss.hp--; boss.flash = 0.25; hitSomething = true; playSfx(SFX.bossHit);

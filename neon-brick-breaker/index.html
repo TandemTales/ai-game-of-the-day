@@ -202,6 +202,9 @@
     let ballVX = 0, ballVY = 0;
     let bricks = [];
 
+    const sfxEnemyHit = new Audio('assets/sfx_enemy_hit.wav');
+    function playEnemyHit(){ try{ sfxEnemyHit.cloneNode().play(); } catch{} }
+
     const input = { left:false, right:false };
     // Leaderboard integration
     const GAME_ID = 'neon-brick-breaker';
@@ -362,6 +365,7 @@
             ballVX *= -1; // horizontal flip
           }
           br.hp -= 1;
+          playEnemyHit();
           if (br.hp <= 0) { br.alive = false; score += 50; }
           else { score += 20; }
           scoreEl.textContent = score;

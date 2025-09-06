@@ -230,6 +230,9 @@
     const bullets = []; // {x,y,vx,vy,spd,dmg,owner}
     const placementHistory = []; // stack of actions to support Undo during build
 
+    const sfxEnemyHit = new Audio('assets/sfx_enemy_hit.wav');
+    function playEnemyHit(){ try{ sfxEnemyHit.cloneNode().play(); } catch{} }
+
     // Enclosed area mask (computed at end of build phase)
     let enclosedMask = null; // Array[ROWS][COLS] of booleans
 
@@ -1118,7 +1121,7 @@
         // out of bounds
         if(b.x < -40 || b.y < -40 || b.x > COLS*tile+40 || b.y > ROWS*tile+40){ b.dead=true; continue; }
         if(b.owner==='cannon'){
-          for(const s of ships){ if(Math.hypot(s.x-b.x, s.y-b.y) < tile*0.5){ s.hp -= b.dmg; b.dead = true; if(s.hp<=0){ s.dead = true; state.kills++; } break; } }
+          for(const s of ships){ if(Math.hypot(s.x-b.x, s.y-b.y) < tile*0.5){ s.hp -= b.dmg; playEnemyHit(); b.dead = true; if(s.hp<=0){ s.dead = true; state.kills++; } break; } }
         } else { // ship bullet
           // walls
           for(const w of walls){ const p = gridToPx(w.gx, w.gy); if(Math.hypot(p.x-b.x, p.y-b.y) < tile*0.6){ w.hp -= b.dmg; b.dead=true; break; } }

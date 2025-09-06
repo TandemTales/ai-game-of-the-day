@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32" viewBox="0 0 64 32">
+  <!-- Left 32x32: floor tile (dark stone with glowing seams) -->
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1b2133"/>
+      <stop offset="1" stop-color="#0e1526"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#00e5ff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ffd700" stop-opacity="0.55"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(0,0)">
+    <rect x="0" y="0" width="32" height="32" fill="url(#g1)"/>
+    <!-- stone chunks -->
+    <path d="M2 2 h10 l2 4 h-10z" fill="#161c2b"/>
+    <path d="M16 3 h13 l1 5 h-12z" fill="#121a2a"/>
+    <path d="M4 12 h18 l3 4 h-16z" fill="#12192a"/>
+    <path d="M3 22 h10 l2 6 h-12z" fill="#141a2a"/>
+    <path d="M18 20 h12 l2 8 h-14z" fill="#0f1626"/>
+    <!-- glowing seams -->
+    <path d="M0 8 h32" stroke="url(#glow)" stroke-width="1.2" opacity="0.35"/>
+    <path d="M0 16 h32" stroke="url(#glow)" stroke-width="1.2" opacity="0.35"/>
+    <path d="M0 24 h32" stroke="url(#glow)" stroke-width="1.2" opacity="0.35"/>
+    <path d="M8 0 v32" stroke="url(#glow)" stroke-width="1.2" opacity="0.32"/>
+    <path d="M16 0 v32" stroke="url(#glow)" stroke-width="1.2" opacity="0.32"/>
+    <path d="M24 0 v32" stroke="url(#glow)" stroke-width="1.2" opacity="0.32"/>
+  </g>
+  <!-- Right 32x32: edge tile (engraved border) -->
+  <g transform="translate(32,0)">
+    <rect x="0" y="0" width="32" height="32" fill="#101827"/>
+    <rect x="2" y="2" width="28" height="28" fill="none" stroke="#00e5ff" stroke-opacity="0.5" stroke-width="2"/>
+    <rect x="5" y="5" width="22" height="22" fill="none" stroke="#ffd700" stroke-opacity="0.5" stroke-width="1.5"/>
+    <circle cx="16" cy="16" r="6" fill="none" stroke="#7dd3fc" stroke-opacity="0.6"/>
+    <path d="M10 16 h12" stroke="#ffd700" stroke-opacity="0.6"/>
+    <path d="M16 10 v12" stroke="#00e5ff" stroke-opacity="0.6"/>
+  </g>
+  <!-- Metadata for clarity: two 32x32 tiles in a 64x32 sheet -->
+</svg>
+

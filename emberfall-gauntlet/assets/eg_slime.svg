@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="48" viewBox="0 0 64 48">
+  <defs>
+    <linearGradient id="slimeG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5ef2a8"/>
+      <stop offset="1" stop-color="#10b981"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="32" cy="40" rx="18" ry="6" fill="#000" opacity="0.18"/>
+  <path d="M12 34 q20-26 40 0 v4 q-20 8 -40 0z" fill="url(#slimeG)" stroke="#065f46" stroke-opacity="0.5"/>
+  <circle cx="26" cy="30" r="4" fill="#064e3b"/>
+  <circle cx="38" cy="30" r="4" fill="#064e3b"/>
+  <path d="M24 36 q8 4 16 0" fill="none" stroke="#064e3b" stroke-width="2" opacity="0.7"/>
+</svg>
+

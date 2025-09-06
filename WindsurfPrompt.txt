@@ -4,7 +4,7 @@ Add a new html file and make a web game in the html file and update index.html t
 Prmopt 2 - desktop 80s 90s arcade (Neon Brick Breaker)
 Add a new html file and make a web game in the html file and update index.html to link to it and make it the new "Featured Game". Move the old featured game to the "More Games" section. Make sure the game is different than the other games in the project. Make the game on par with an 80s or 90s arcade game. Generate stylish art to use for the game. Be sure to integrate the art you created into the game, adding the art to the repo. Make sure the game has a "Back to Home" button to take the user back to the main page. Have the game give the player a score and integrate it with the leaderboard system like the other games. Put the game in its own folder along with all assets like the other games.
 
-Prompt 3 - desktop super nintendo (starlight pinball)
+Prompt 3 - desktop super nintendo (starlight pinball, emberfall gauntlet)
 Add a new html file and make a web game in the html file and update index.html to link to it and make it the new "Featured Game". Move the old featured game to the "More Games" section. Make sure the game is different than the other games in the project. Make the game on par with a Super Nintendo game (do not mention Nintendo or Super Nintendo in the description of the game). Generate stylish art to use for the game. Be sure to integrate the art you created into the game, adding the art to the repo. Make sure the game has a "Back to Home" button to take the user back to the main page. Have the game give the player a score and integrate it with the leaderboard system like the other games. Put the game in its own folder along with all assets like the other games.
 
 Prmopt 4 - mobile 80s 90s arcade

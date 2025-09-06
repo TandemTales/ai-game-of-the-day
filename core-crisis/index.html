@@ -1353,7 +1353,7 @@
       if (hasGun) {
         gunFireCd -= dt;
         if (gunFireCd <= 0) {
-          gunFireCd = 0.75; // fires ~1.33 shots/sec (3x slower)
+          gunFireCd = 0.75 / 1.3; // fires ~1.73 shots/sec (30% faster)
           const sx = P.x + P.w * 0.6;
           const sy = P.y - P.h * 0.1;
           pshots.push({ x: sx, y: sy, w: 12, h: 12, vx: 650, vy: 0, t: 0, hitX: 0.75, hitY: 0.75 });

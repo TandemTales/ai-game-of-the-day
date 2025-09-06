@@ -599,6 +599,7 @@
       if (worldFreeze > 0) worldFreeze -= dt;
       if (hitFlash > 0) hitFlash -= dt;
       if (shieldFlash > 0) shieldFlash -= dt;
+      if (boss && boss.hitFlash > 0) boss.hitFlash -= dt;
       if (shake > 0) shake = Math.max(0, shake - 28 * dt);
       const scrollMul = worldFreeze > 0 ? 0 : 1;
       dist += RUN_SPEED * dt * scrollMul;
@@ -658,6 +659,7 @@
           animT: 0,
           vulnerable: false,
           spawnedFlyer: false,
+          hitFlash: 0,
           hitX: 0.3,
           hitY: 0.3
         };
@@ -1370,7 +1372,10 @@
           if (hit(b, flyers[j])) { flyers.splice(j,1); hitSomething = true; score += 1; break; }
         }
         if (!hitSomething && boss && boss.vulnerable && hit(b, boss)) {
-          boss.hp--; hitSomething = true; playSfx(SFX.bossHit);
+          boss.hp--;
+          hitSomething = true;
+          boss.hitFlash = 0.3;
+          playSfx(SFX.bossHit);
           if (boss.hp <= 0) { boss = null; if (bossHud) bossHud.classList.add('hidden'); }
         }
         if (hitSomething) { pshots.splice(i,1); }
@@ -1477,6 +1482,15 @@
         else if (boss.state === 'close') drawBossClose(boss);
         else if (boss.state === 'laser' || boss.state === 'post') drawImg(IMG.bossLaser, boss.x, boss.y, boss.w, boss.h);
         else drawImg(IMG.bossShut, boss.x, boss.y, boss.w, boss.h);
+        if (boss.hitFlash > 0) {
+          const a = Math.max(0, Math.min(1, boss.hitFlash * 4));
+          ctx.save();
+          ctx.globalAlpha = a;
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(Math.round(boss.x - boss.w/2), Math.round(boss.y - boss.h/2), boss.w, boss.h);
+          ctx.restore();
+        }
       }
 
       // Player (4-frame spritesheet)

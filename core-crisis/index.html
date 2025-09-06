@@ -363,10 +363,10 @@
       'assets/cc_soundtrack01.mp3',
       'assets/cc_soundtrack02.mp3'
     ].filter(t => t.includes('soundtrack'));
-    const START_TRACK = 'assets/cc_soundtrack02.mp3';
     let musicStarted = false;
     const music = new Audio();
     let playOrder = [];
+    let currentTrack = null;
     function shuffle(arr) {
       for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -375,20 +375,21 @@
       return arr;
     }
     function preparePlaylist() {
-      const others = TRACKS.filter(t => t !== START_TRACK);
-      playOrder = shuffle(others.slice());
+      playOrder = shuffle(TRACKS.filter(t => t !== currentTrack).slice());
     }
     music.addEventListener('ended', () => {
       if (!playOrder.length) preparePlaylist();
       if (!playOrder.length) return;
-      music.src = playOrder.shift();
+      currentTrack = playOrder.shift();
+      music.src = currentTrack;
       music.play();
     });
     function startMusic(){
       if (musicStarted || !TRACKS.length) return;
       musicStarted = true;
+      currentTrack = TRACKS[Math.floor(Math.random() * TRACKS.length)];
+      music.src = currentTrack;
       preparePlaylist();
-      music.src = START_TRACK;
       music.play();
     }
 

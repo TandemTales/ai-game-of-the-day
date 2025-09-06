@@ -661,6 +661,7 @@
           hitX: 0.3,
           hitY: 0.3
         };
+        if (gunTimer > 0) gunTimer *= 0.75;
       }
       if (boss) {
         const pct = Math.max(0, Math.round((boss.hp / boss.maxHp) * 100));
@@ -709,9 +710,9 @@
             break;
           case 'move':
             if (!boss.spawnedFlyer) {
-              flyers.push({ x: boss.x - 60, y: boss.y, baseY: boss.y, w: 78, h: 54, state: 'approach', t: 0, bobT: 0, hoverT: 0, hoverTime: rand(12.0,21.0), fireCd: rand(0.9,1.8), relVx: 0, hitX:0.70, hitY:0.70 });
-              boss.spawnedFlyer = true;
-            }
+            flyers.push({ x: boss.x - 60, y: boss.y, baseY: boss.y, w: 78, h: 54, state: 'approach', t: 0, bobT: 0, hoverT: 0, hoverTime: rand(12.0,21.0), fireCd: rand(0.9,1.8), relVx: 0, hitX:0.70, hitY:0.70, dropGun:false });
+            boss.spawnedFlyer = true;
+          }
             const dest = BOSS_LANES[boss.targetLane];
             const sp = 200;
             if (Math.abs(dest - boss.y) <= sp * dt) {
@@ -960,9 +961,9 @@
             const y = yForRow(row);
             guns.push({ x, y, baseY: y, w, h, img: IMG.gun, t: 0, hitX: 0.70, hitY: 0.70 });
           }
-          gunTimer = rand(8, 16);
+            gunTimer = rand(8, 16) * (boss ? 0.75 : 1);
+          }
         }
-      }
 
       // Shield spawn logic – grid-aligned until picked
       if (!shieldPicked && shields.length === 0) {
@@ -1026,7 +1027,8 @@
           t: 0, bobT: 0, hoverT: 0, hoverTime: rand(12.0, 21.0),
           fireCd: rand(0.9, 1.8),
           relVx: 0,
-          hitX: 0.70, hitY: 0.70
+          hitX: 0.70, hitY: 0.70,
+          dropGun: true
         });
         flyerTimer = rand(7, 14);
       }
@@ -1202,7 +1204,7 @@
           } else if (pick === 'glider') {
             hasGlider = false; gliderPicked = false; gliderTimer = rand(5, 10);
           } else if (pick === 'gun') {
-            hasGun = false; gunPicked = false; gunTimer = rand(5, 11);
+            hasGun = false; gunPicked = false; gunTimer = rand(5, 11) * (boss ? 0.75 : 1);
           }
           return pick;
         }
@@ -1365,7 +1367,17 @@
         const b = pshots[i];
         let hitSomething = false;
         for (let j = flyers.length - 1; j >= 0; j--) {
-          if (hit(b, flyers[j])) { flyers.splice(j,1); hitSomething = true; score += 1; break; }
+          const f = flyers[j];
+          if (hit(b, f)) {
+            flyers.splice(j,1);
+            hitSomething = true;
+            score += 1;
+            if (f.dropGun && !hasGun && guns.length === 0) {
+              guns.push({ x: f.x, y: f.y, baseY: f.y, w: 44, h: 44, img: IMG.gun, t: 0, hitX: 0.70, hitY: 0.70 });
+              gunTimer = rand(8, 16) * (boss ? 0.75 : 1);
+            }
+            break;
+          }
         }
         if (!hitSomething && boss && boss.vulnerable && hit(b, boss)) {
           boss.hp--; hitSomething = true; playSfx(SFX.bossHit);

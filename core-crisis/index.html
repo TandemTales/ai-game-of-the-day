@@ -492,6 +492,10 @@
     const COOLANT_LARGE_COOL = 70;  // amount reduced by large coolant
     let heat = 0;
 
+    // Cheat tracking
+    let coldCheat = false;
+    let heatTapCount = 0;
+
     // UI elements
     const startScreen = document.getElementById('startScreen');
     const gameOver = document.getElementById('gameOver');
@@ -527,6 +531,16 @@
 
     startBtn.addEventListener('click', ()=>{ reset(); });
     againBtn.addEventListener('click', ()=>{ reset(); });
+
+    // Secret cheat: tap heat indicator 4 times before starting
+    heatHud.addEventListener('pointerdown', () => {
+      if (running || dead) return;
+      heatTapCount++;
+      if (heatTapCount >= 4) {
+        coldCheat = true;
+        heat = 0;
+      }
+    });
 
     // Input
     let key = { up:false, down:false, space:false };
@@ -604,15 +618,18 @@
       dist += RUN_SPEED * dt * scrollMul;
       // HUD: show score, combo, and current multiplier when active
       const currentMult = combo >= 10 ? 4 : combo >= 5 ? 2 : 1;
+      if (coldCheat) score = 0;
       const multTxt = currentMult > 1 ? ` | x${currentMult}` : '';
       scoreHud.textContent = `Score: ${score} | Combo: ${combo}${multTxt}`;
       // Heat: increases over time; collect coolants to reduce
       // While carrying a shield, heat does not increase
-      if (!hasShield) heat = clamp(heat + HEAT_GAIN_RATE * dt, 0, HEAT_MAX);
+      if (coldCheat) {
+        heat = 0;
+      } else if (!hasShield) heat = clamp(heat + HEAT_GAIN_RATE * dt, 0, HEAT_MAX);
       const heatPct = Math.round((heat / HEAT_MAX) * 100);
       if (heatFill) heatFill.style.width = `${heatPct}%`;
       if (heatText) heatText.textContent = `${heatPct}%`;
-      if (heat >= HEAT_MAX) return die();
+      if (!coldCheat && heat >= HEAT_MAX) return die();
       // Jetpack HUD
       if (hasJetpack) {
         const pct = Math.round((jetFuel / JET_FUEL_MAX) * 100);
@@ -1194,6 +1211,7 @@
         }
         // helper to lose one item fairly when hit
         function loseRandomItem(){
+          if (coldCheat) return null;
           playSfx(SFX.grunt);
           const options = [];
           if (hasJetpack) options.push('jet');
@@ -1294,7 +1312,7 @@
         const g = gems[i];
         if (hit(P, g)) {
           const mult = combo >= 10 ? 4 : combo >= 5 ? 2 : 1;
-          score += mult;
+          if (!coldCheat) score += mult;
           gemsCollected += 1;
           combo += 1;
           gems.splice(i,1);
@@ -1369,7 +1387,7 @@
         const b = pshots[i];
         let hitSomething = false;
         for (let j = flyers.length - 1; j >= 0; j--) {
-          if (hit(b, flyers[j])) { flyers.splice(j,1); hitSomething = true; score += 1; break; }
+          if (hit(b, flyers[j])) { flyers.splice(j,1); hitSomething = true; if (!coldCheat) score += 1; break; }
         }
         if (!hitSomething && boss && boss.vulnerable && hit(b, boss)) {
           boss.hp--; boss.flash = 0.25; hitSomething = true; playSfx(SFX.bossHit);

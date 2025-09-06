@@ -416,10 +416,18 @@
       cog: new Audio('assets/sfx_cog.wav'),
       upgrade: new Audio('assets/sfx_upgrade.wav'),
       bossLaser: new Audio('assets/sfx_boss_laser.wav'),
-      bossHit: new Audio('assets/sfx_boss_hit.wav')
+      enemyHit: new Audio('assets/sfx_enemy_hit.wav')
     };
+    const sfxPool = new WeakMap();
     function playSfx(s) {
-      try { s.cloneNode().play(); } catch {}
+      try {
+        let pool = sfxPool.get(s);
+        if (!pool) { pool = [s]; sfxPool.set(s, pool); }
+        let a = pool.find(a => a.paused);
+        if (!a) { a = s.cloneNode(); pool.push(a); }
+        a.currentTime = 0;
+        a.play();
+      } catch {}
     }
 
     // Parallax layers positions
@@ -1413,10 +1421,10 @@
         const b = pshots[i];
         let hitSomething = false;
         for (let j = flyers.length - 1; j >= 0; j--) {
-          if (hit(b, flyers[j])) { flyers.splice(j,1); hitSomething = true; if (!heatCheat) score += 1; break; }
+          if (hit(b, flyers[j])) { flyers.splice(j,1); hitSomething = true; playSfx(SFX.enemyHit); if (!heatCheat) score += 1; break; }
         }
         if (!hitSomething && boss && boss.vulnerable && hit(b, boss)) {
-          boss.hp--; boss.flash = 0.25; hitSomething = true; playSfx(SFX.bossHit);
+          boss.hp--; boss.flash = 0.25; hitSomething = true; playSfx(SFX.enemyHit);
             if (boss.hp <= 0) {
               boss = null;
               bossNextTime = time + 30;

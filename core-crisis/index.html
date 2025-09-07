@@ -328,7 +328,7 @@
     const DIVE_V = 1400;
     const GROUND_Y = H - 90; // baseline
     const CRANE_HEIGHT = H * 0.5;
-    const CRANE_Y = GROUND_Y - CRANE_HEIGHT / 2;
+    const CRANE_Y = GROUND_Y + 48 - CRANE_HEIGHT / 2; // align crane feet with player ground level
     let running=false, dead=false;
     let score=0; let best=0; let dist=0; let time=0;
     let runSpeed = RUN_SPEED;     // current world scroll speed
@@ -853,6 +853,7 @@
               break;
           }
         } else if (boss.type === 'crane') {
+          boss.y = CRANE_Y; // ensure crane stays grounded
           switch (boss.state) {
             case 'entry': {
               const idleX = W - boss.w - 20;
@@ -879,14 +880,14 @@
               break;
             case 'approach': {
               boss.moveT += dt;
-              const mid = W/2;
+              const attackX = P.x + P.w/2 + boss.w/2 + 20;
               const sp = craneSpeedFor(boss);
-              if (Math.abs(mid - boss.x) <= sp * dt) {
-                boss.x = mid;
+              if (Math.abs(attackX - boss.x) <= sp * dt) {
+                boss.x = attackX;
                 boss.state = P.y < CRANE_SPLIT_Y ? 'attackHigh' : 'attackLow';
                 boss.animT = 0; boss.animFrame = 0; boss.vulnerable = true;
               } else {
-                boss.x += Math.sign(mid - boss.x) * sp * dt;
+                boss.x += Math.sign(attackX - boss.x) * sp * dt;
               }
               break;
             }

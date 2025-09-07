@@ -510,7 +510,7 @@
     // spike=54, jetpack=44, glider=44, shield=44, gem=34, coolant small=28, coolant large=44
     const GRID_CELL = Math.max(54, 44, 44, 44, 34, 28);
     const BOSS_LANES = [GROUND_Y - GRID_CELL*6, GROUND_Y - GRID_CELL*3];
-    const CRANE_SPLIT_Y = (BOSS_LANES[0] + BOSS_LANES[1]) / 2;
+    const CRANE_SPLIT_Y = H / 2;
     const BOSS_LASER_BEAM_OFFSET = 80;
     const BOSS_UPPER_LASER_SHIFT = 80;
     // Small visual nudge so drawn sprites look centered between vertical borders
@@ -763,12 +763,14 @@
           const frames = 4;
           const fw = moveImg.width / frames;
           const fh = moveImg.height;
+          const craneW = fw * 1.5;
+          const craneH = fh * 1.5;
           boss = {
             type: 'crane',
-            x: W + fw,
-            y: BOSS_LANES[1],
-            w: fw,
-            h: fh,
+            x: W + craneW,
+            y: GROUND_Y + 34 - craneH/2,
+            w: craneW,
+            h: craneH,
             state: 'entry',
             hp: BOSS_MAX_HP * difficulty,
             maxHp: BOSS_MAX_HP * difficulty,
@@ -868,7 +870,7 @@
                   boss.timer = craneTelegraphFor(boss);
                   boss.vulnerable = true;
                   boss.passes = Math.random() < 0.5 ? 2 : 3;
-                  boss.y = BOSS_LANES[1];
+                  boss.y = GROUND_Y + 34 - boss.h/2;
                 } else {
                   boss.state = 'approach';
                 }
@@ -880,8 +882,8 @@
               const sp = craneSpeedFor(boss);
               if (Math.abs(mid - boss.x) <= sp * dt) {
                 boss.x = mid;
-                if (P.y < CRANE_SPLIT_Y) { boss.y = BOSS_LANES[0]; boss.state = 'attackHigh'; }
-                else { boss.y = BOSS_LANES[1]; boss.state = 'attackLow'; }
+                boss.y = GROUND_Y + 34 - boss.h/2;
+                boss.state = P.y < CRANE_SPLIT_Y ? 'attackHigh' : 'attackLow';
                 boss.animT = 0; boss.animFrame = 0; boss.vulnerable = true;
               } else {
                 boss.x += Math.sign(mid - boss.x) * sp * dt;
@@ -906,7 +908,7 @@
               const sp = craneSpeedFor(boss);
               if (Math.abs(idleX - boss.x) <= sp * dt) {
                 boss.x = idleX;
-                boss.y = BOSS_LANES[1];
+                boss.y = GROUND_Y + 34 - boss.h/2;
                 boss.state = 'idle';
                 boss.cooldown = craneCooldownFor(boss);
                 boss.vulnerable = false;

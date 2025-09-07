@@ -763,12 +763,14 @@
           const frames = 4;
           const fw = moveImg.width / frames;
           const fh = moveImg.height;
+          const craneW = fw / 2;
+          const craneH = fh / 2;
           boss = {
             type: 'crane',
-            x: W + fw,
+            x: W + craneW,
             y: BOSS_LANES[1],
-            w: fw,
-            h: fh,
+            w: craneW,
+            h: craneH,
             state: 'entry',
             hp: BOSS_MAX_HP * difficulty,
             maxHp: BOSS_MAX_HP * difficulty,

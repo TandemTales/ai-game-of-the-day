@@ -327,6 +327,8 @@
     const RISE_VY_MIN = -800;
     const DIVE_V = 1400;
     const GROUND_Y = H - 90; // baseline
+    const CRANE_HEIGHT = H * 0.5;
+    const CRANE_Y = GROUND_Y - CRANE_HEIGHT / 2;
     let running=false, dead=false;
     let score=0; let best=0; let dist=0; let time=0;
     let runSpeed = RUN_SPEED;     // current world scroll speed
@@ -763,12 +765,13 @@
           const frames = 4;
           const fw = moveImg.width / frames;
           const fh = moveImg.height;
+          const scale = CRANE_HEIGHT / fh;
           boss = {
             type: 'crane',
-            x: W + fw,
-            y: BOSS_LANES[1],
-            w: fw,
-            h: fh,
+            x: W + fw * scale,
+            y: CRANE_Y,
+            w: fw * scale,
+            h: CRANE_HEIGHT,
             state: 'entry',
             hp: BOSS_MAX_HP * difficulty,
             maxHp: BOSS_MAX_HP * difficulty,
@@ -868,7 +871,7 @@
                   boss.timer = craneTelegraphFor(boss);
                   boss.vulnerable = true;
                   boss.passes = Math.random() < 0.5 ? 2 : 3;
-                  boss.y = BOSS_LANES[1];
+                  boss.y = CRANE_Y;
                 } else {
                   boss.state = 'approach';
                 }
@@ -880,8 +883,7 @@
               const sp = craneSpeedFor(boss);
               if (Math.abs(mid - boss.x) <= sp * dt) {
                 boss.x = mid;
-                if (P.y < CRANE_SPLIT_Y) { boss.y = BOSS_LANES[0]; boss.state = 'attackHigh'; }
-                else { boss.y = BOSS_LANES[1]; boss.state = 'attackLow'; }
+                boss.state = P.y < CRANE_SPLIT_Y ? 'attackHigh' : 'attackLow';
                 boss.animT = 0; boss.animFrame = 0; boss.vulnerable = true;
               } else {
                 boss.x += Math.sign(mid - boss.x) * sp * dt;
@@ -906,7 +908,7 @@
               const sp = craneSpeedFor(boss);
               if (Math.abs(idleX - boss.x) <= sp * dt) {
                 boss.x = idleX;
-                boss.y = BOSS_LANES[1];
+                boss.y = CRANE_Y;
                 boss.state = 'idle';
                 boss.cooldown = craneCooldownFor(boss);
                 boss.vulnerable = false;

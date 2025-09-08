@@ -483,7 +483,7 @@
     function reset() {
       startMusic();
       running = true; dead = false; paused = false; score = 0; dist = 0; time = 0; gemsCollected = 0; combo = 0;
-      frameTimer=0; animFrame=0; spawnTimer=0; gemTimer=0; coolantTimer = rand(2.5, 4.5);
+      frameTimer=0; animFrame=0; spawnTimer=rand(1.8, 3.2); gemTimer=0; coolantTimer = rand(2.5, 4.5);
       heat = 0;
       heatCheat = false; heatTapCount = 0; heatTapLast = 0;
       worldFreeze = 0; hitFlash = 0; shake = 0; hitGrace = 0;
@@ -501,7 +501,7 @@
       gliderTimer = rand(4, 10);  // first random spawn window for glider
         flyerTimer = rand(6, 12);   // first flying enemy spawn window
         cogTimer = rand(5, 9);      // first rolling cog spawn
-        smasherTimer = rand(7, 14); // first smasher drop spawn
+        smasherTimer = rand(14, 28); // first smasher drop spawn (reduced frequency)
         platformTimer = rand(1.2, 2.6); // first platform spawn
         boss = null; bossNextTime = 30; difficulty = 1; runSpeed = RUN_SPEED; if (bossHud) bossHud.classList.add('hidden');
         hideStart(); hideGameOver();
@@ -1069,7 +1069,7 @@
       // Spawning hazards
       spawnTimer -= dt;
       if (spawnTimer <= 0) {
-        spawnTimer = rand(0.9, 1.6) / difficulty;
+        spawnTimer = rand(1.8, 3.2) / difficulty; // reduced flame spawn frequency
         const nowSec = time;
         const x = gridSpawnX() + GRID_ITEM_X_OFFSET;
         // Spike at ground: reserve row 0 if free; otherwise skip this cycle
@@ -1255,7 +1255,7 @@
         const peek = 30;
         const y = -h/2 + peek;
         smashers.push({ x, y, w, h, state: 'peek', timer: 0.9, dropSpeed: 900, hitX: 0.9, hitY: 1.0 });
-        smasherTimer = rand(7, 14) / difficulty;
+          smasherTimer = rand(14, 28) / difficulty; // reduced smasher spawn frequency
       }
 
       // Rolling cog spawn

@@ -62,6 +62,16 @@
     .small { font-size: 11px; color: #a6e3ff; }
     .hidden { display:none; }
 
+    /* Shop styles */
+    .shop { max-width: 880px; }
+    .shop .choices { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-top: 14px; }
+    .card { flex:1 1 240px; max-width: 280px; background: rgba(10,14,22,0.9); border:2px solid var(--gold); border-radius: 12px; padding: 12px; text-align:left; cursor:pointer; transition:.15s transform, .15s box-shadow; box-shadow: 0 6px 22px rgba(255,215,0,0.18); }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(255,215,0,0.32); }
+    .card h3 { margin:0 0 6px; font-size:14px; color: #ffe08a; }
+    .card .tag { display:inline-block; font-size:10px; padding:2px 6px; border-radius:8px; border:1px solid var(--gold); margin-bottom:6px; color:#fff; opacity:0.8; }
+    .card .body { font-size: 12px; color:#cfe9ff; line-height:1.5; }
+    .card .note { font-size: 10px; color:#a1ffd4; margin-top:6px; opacity:0.9; }
+
     @media (max-width: 1100px) {
       canvas { width: min(96vw, 960px); height: auto; }
     }
@@ -94,6 +104,7 @@
     <div class="hud">
       <div class="chip">Score: <span id="score">0</span></div>
       <div class="chip">Wave: <span id="wave">1</span></div>
+      <div class="chip" title="Coins collected">Coins: <span id="coins">0</span></div>
       <div class="chip hearts" id="hearts"></div>
       <a class="btn" href="../leaderboard.html?gameId=emberfall-gauntlet">Leaderboard</a>
     </div>
@@ -142,6 +153,16 @@
         </div>
       </div>
     </div>
+
+    <!-- Shop Overlay -->
+    <div id="shopOverlay" class="overlay" aria-hidden="true">
+      <div class="panel shop">
+        <div class="title">Wanderer's Emporium</div>
+        <div class="desc">You found a quiet alcove. Choose one boon to continue your run.</div>
+        <div id="shopChoices" class="choices"></div>
+        <div class="small" id="shopHint">Tip: Some boons can stack for greater effect.</div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -149,9 +170,12 @@
     const ctx = canvas.getContext('2d');
     const scoreEl = document.getElementById('score');
     const waveEl = document.getElementById('wave');
+    const coinsEl = document.getElementById('coins');
     const heartsEl = document.getElementById('hearts');
     const startOverlay = document.getElementById('startOverlay');
     const gameOverOverlay = document.getElementById('gameOver');
+    const shopOverlay = document.getElementById('shopOverlay');
+    const shopChoices = document.getElementById('shopChoices');
     const finalScoreEl = document.getElementById('finalScore');
     const startBtn = document.getElementById('startBtn');
     const againBtn = document.getElementById('againBtn');
@@ -197,6 +221,31 @@
     const AUTO = { atkPeriod: 0.7 };
     const SPAWN = { t: 0, cd: 2.2, wave: 1 };
     const SCORE = { value: 0 };
+    const COINS = { value: 0 };
+    const SHOP = { milestones: [5, 12, 20, 30, 45, 60, 80, 105, 135, 170], idx: 0, open: false };
+    const UPGR = {
+      meleeDmg: 1,
+      multistrike: 1,
+      lifeStealChance: 0,
+      magnet: 0,
+      critChance: 0,
+      critMult: 1.6,
+      doubleCoinChance: 0,
+      orbs: 0,
+      orbDmg: 1,
+      orbRadius: 60,
+      nova: false,
+      novaPeriod: 6,
+      novaTimer: 0,
+      novaDmg: 1,
+      shards: false,
+      shardPeriod: 0.85,
+      shardTimer: 0,
+      shardSpeed: 320,
+      shardCount: 1,
+    };
+    let PROJECTILES = [];
+    let ORBS = [];
     const PARTICLES = [];
     let enemies = [];
     let drops = [];
@@ -215,6 +264,10 @@
       Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:0, aimDir:0, hp:P.hpMax, iT:0, dashCd:0, dashT:0, atkT:0, autoT:0 });
       Object.assign(SPAWN, { t: 0, cd: 2.2, wave: 1 });
       SCORE.value = 0; scoreEl.textContent = SCORE.value; waveEl.textContent = SPAWN.wave;
+      COINS.value = 0; coinsEl.textContent = COINS.value; SHOP.idx = 0; SHOP.open = false;
+      // Reset upgrades and spell state
+      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:0, critChance:0, critMult:1.6, doubleCoinChance:0, orbs:0, orbDmg:1, orbRadius:60, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1 });
+      PROJECTILES = []; ORBS = [];
       drawHearts();
       // Seed the larger world with an initial crowd
       const initialTarget = Math.min((6 + SPAWN.wave*2) * DENSITY, 80);
@@ -314,6 +367,20 @@
 
     function dropCoin(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'coin', v: rand(40,70), a: rand(0,Math.PI*2) }); }
 
+    function applyDamage(e, dmg=1){
+      e.hp -= dmg;
+      spark(e.x,e.y,'#aef');
+      if (e.hp<=0){
+        SCORE.value += (e.score||50);
+        scoreEl.textContent = SCORE.value;
+        dropCoin(e.x, e.y);
+        // Life steal on kill
+        if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }
+        // Extra coin chance
+        if (UPGR.doubleCoinChance > 0 && Math.random() < UPGR.doubleCoinChance){ dropCoin(e.x + rand(-6,6), e.y + rand(-6,6)); }
+      }
+    }
+
     // Combat helpers
     function hitArc(px,py, dir, arc, range, ex,ey){
       // enemy vector from player
@@ -371,14 +438,65 @@
 
       // Player sword hits
       if (P.atkT>0){
-        for (const e of enemies){ if (e.hp<=0) continue; if (hitArc(P.x,P.y,P.aimDir,PHYS.atkArc,PHYS.atkRange,e.x,e.y)){ e.hp -= 1; spark(e.x,e.y,'#aef'); if (e.hp<=0){ SCORE.value += (e.score||50); scoreEl.textContent = SCORE.value; dropCoin(e.x, e.y); } } }
+        for (const e of enemies){
+          if (e.hp<=0) continue;
+          if (hitArc(P.x,P.y,P.aimDir,PHYS.atkArc,PHYS.atkRange,e.x,e.y)){
+            // Multistrike + crit
+            let hits = Math.max(1, Math.floor(UPGR.multistrike));
+            let totalDmg = 0;
+            for (let h=0; h<hits; h++){
+              let dmg = UPGR.meleeDmg;
+              if (UPGR.critChance>0 && Math.random()<UPGR.critChance) dmg = Math.ceil(dmg*UPGR.critMult);
+              totalDmg += dmg;
+            }
+            applyDamage(e, totalDmg);
+          }
+        }
       }
 
       // Collect drops
-      for (let i=drops.length-1;i>=0;i--){ const d=drops[i]; d.t += dt; const drift = Math.min(1,d.t*3); d.x += Math.cos(d.a)*d.v*dt*drift; d.y += Math.sin(d.a)*d.v*dt*drift; d.v *= (1-1.6*dt); if (len(P.x-d.x,P.y-d.y)<22){
-          if (d.kind==='coin'){ SCORE.value += 10; scoreEl.textContent = SCORE.value; spark(d.x,d.y,'#ffd16b'); }
+      for (let i=drops.length-1;i>=0;i--){
+        const d=drops[i]; d.t += dt; const drift = Math.min(1,d.t*3);
+        // Magnet effect pulls coins toward the player
+        if (d.kind==='coin' && UPGR.magnet>0){
+          const dx = P.x-d.x, dy = P.y-d.y; const dist = Math.hypot(dx,dy);
+          const mR = 50 + UPGR.magnet*40;
+          if (dist < mR){ const [nx,ny]=norm(dx,dy); d.vx = (d.vx||0) + nx*80*dt; d.vy = (d.vy||0) + ny*80*dt; }
+        }
+        d.x += (d.vx||0) + Math.cos(d.a)*d.v*dt*drift; d.y += (d.vy||0) + Math.sin(d.a)*d.v*dt*drift; d.v *= (1-1.6*dt);
+        if (len(P.x-d.x,P.y-d.y)<22){
+          if (d.kind==='coin'){
+            SCORE.value += 10; scoreEl.textContent = SCORE.value; COINS.value += 1; coinsEl.textContent = COINS.value; spark(d.x,d.y,'#ffd16b');
+            maybeOpenShop();
+          }
           drops.splice(i,1);
-      } }
+        }
+      }
+
+      // Spells: orbiting orbs damage
+      if (UPGR.orbs>0){
+        const count = UPGR.orbs;
+        if (ORBS.length !== count){ ORBS = []; for (let i=0;i<count;i++) ORBS.push({ a: i*(Math.PI*2/count), r: UPGR.orbRadius, t:0, cd:0 }); }
+        for (let i=0;i<ORBS.length;i++){
+          const o = ORBS[i]; o.t += dt; o.a += 1.5*dt; // orbit speed
+          const ox = P.x + Math.cos(o.a)*o.r; const oy = P.y + Math.sin(o.a)*o.r;
+          // Hit enemies on contact with a tiny cooldown
+          o.cd = Math.max(0, o.cd - dt);
+          if (o.cd<=0){
+            for (const e of enemies){ if (e.hp<=0) continue; if (len(ox-e.x,oy-e.y) < 18){ applyDamage(e, UPGR.orbDmg); o.cd = 0.12; break; } }
+          }
+          o.x=ox; o.y=oy;
+        }
+      } else { ORBS = []; }
+
+      // Spells: periodic nova
+      if (UPGR.nova){ UPGR.novaTimer += dt; if (UPGR.novaTimer >= UPGR.novaPeriod){ UPGR.novaTimer = 0; for (const e of enemies){ if (e.hp<=0) continue; if (len(P.x-e.x,P.y-e.y) < 90){ applyDamage(e, UPGR.novaDmg); } } spark(P.x,P.y,'#b5f3ff'); } }
+
+      // Spells: forward shards
+      if (UPGR.shards){ UPGR.shardTimer += dt; if (UPGR.shardTimer >= UPGR.shardPeriod){ UPGR.shardTimer = 0; const dir = P.aimDir; const spread = 0.22; const cnt = UPGR.shardCount; for (let i=0;i<cnt;i++){ const a = dir + (i-(cnt-1)/2)*spread; PROJECTILES.push({ x:P.x, y:P.y, vx:Math.cos(a)*320, vy:Math.sin(a)*320, life:0, ttl:1.2, dmg:1 }); } } }
+
+      // Update projectiles
+      for (let i=PROJECTILES.length-1;i>=0;i--){ const p=PROJECTILES[i]; p.life+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; if (p.life>p.ttl){ PROJECTILES.splice(i,1); continue; } for (const e of enemies){ if (e.hp<=0) continue; if (len(p.x-e.x,p.y-e.y)<16){ applyDamage(e, p.dmg); PROJECTILES.splice(i,1); break; } } }
 
       // Wave & spawns (scale with larger world)
       SPAWN.t += dt; const targetCount = Math.min((6 + SPAWN.wave*2) * DENSITY, 80);
@@ -461,10 +579,70 @@
       // Particles
       for (const p of PARTICLES){ ctx.globalAlpha = 1 - p.life/p.ttl; ctx.drawImage(IMG.spark, p.x - p.size/2, p.y - p.size/2, p.size, p.size); ctx.globalAlpha = 1; }
 
+      // Orbs & projectiles
+      if (ORBS.length){ for (const o of ORBS){ ctx.drawImage(IMG.spark, (o.x||P.x)-8, (o.y||P.y)-8, 16, 16); } }
+      if (PROJECTILES.length){ for (const pr of PROJECTILES){ ctx.drawImage(IMG.spark, pr.x-6, pr.y-6, 12, 12); } }
+
       ctx.restore();
 
       if (running && !paused) step(dt);
       requestAnimationFrame(draw);
+    }
+
+    // Shop logic
+    function maybeOpenShop(){
+      if (SHOP.open) return;
+      const next = SHOP.milestones[SHOP.idx] ?? Infinity;
+      if (COINS.value >= next){ openShop(); }
+    }
+
+    function openShop(){
+      SHOP.open = true; paused = true;
+      shopChoices.innerHTML = '';
+      const options = rollShopOptions();
+      for (const opt of options){
+        const el = document.createElement('div'); el.className = 'card';
+        el.innerHTML = `<div class="tag">${opt.type}</div><h3>${opt.name}</h3><div class="body">${opt.desc}</div>${opt.note?`<div class=\"note\">${opt.note}</div>`:''}`;
+        el.addEventListener('click', ()=> selectShopOption(opt));
+        shopChoices.appendChild(el);
+      }
+      shopOverlay.classList.add('show'); shopOverlay.setAttribute('aria-hidden','false');
+    }
+
+    function closeShop(){ SHOP.open = false; paused = false; SHOP.idx++; shopOverlay.classList.remove('show'); shopOverlay.setAttribute('aria-hidden','true'); }
+
+    const POOL = [
+      // Weapons
+      { id:'twin', type:'Weapon', name:'Twin Strikes', desc:'Your melee hits strike twice.', note:'+1 multistrike', apply:()=>{ UPGR.multistrike+=1; } },
+      { id:'longblade', type:'Weapon', name:'Longblade', desc:'Increase melee reach by 20%.', apply:()=>{ PHYS.atkRange = Math.round(PHYS.atkRange*1.2); } },
+      { id:'sweeping', type:'Weapon', name:'Sweeping Arc', desc:'Widen melee arc by 15%.', apply:()=>{ PHYS.atkArc = Math.min(Math.PI*1.6, PHYS.atkArc*1.15); } },
+      { id:'quickhands', type:'Weapon', name:'Quick Hands', desc:'Attack more often (-12% cooldown).', apply:()=>{ AUTO.atkPeriod = Math.max(0.25, AUTO.atkPeriod*0.88); } },
+      { id:'keen', type:'Weapon', name:'Keen Edge', desc:'Melee damage +1.', apply:()=>{ UPGR.meleeDmg += 1; } },
+
+      // Spells
+      { id:'orbs', type:'Spell', name:'Orbiting Sparks', desc:'Summon 1 orbiting spark that damages foes.', note:'Stacks add more sparks', apply:()=>{ UPGR.orbs += 1; } },
+      { id:'nova', type:'Spell', name:'Frost Nova', desc:'Every few seconds, blast nearby foes.', note:'Period and damage improve with repeats', apply:()=>{ if(!UPGR.nova){ UPGR.nova=true; } else { UPGR.novaPeriod=Math.max(2.2, UPGR.novaPeriod*0.9); UPGR.novaDmg+=1; } } },
+      { id:'shards', type:'Spell', name:'Arc Shards', desc:'Periodically fire shards where you face.', note:'More shards with repeats', apply:()=>{ if(!UPGR.shards){ UPGR.shards=true; } else { UPGR.shardCount=Math.min(6, UPGR.shardCount+1); } } },
+
+      // Upgrades
+      { id:'boots', type:'Upgrade', name:'Fleetfoot Boots', desc:'Run 20% faster.', apply:()=>{ P.spd = Math.round(P.spd*1.2); } },
+      { id:'dash', type:'Upgrade', name:'Dash Core', desc:'Dash recharges 20% faster.', apply:()=>{ PHYS.dashCd = Math.max(0.2, PHYS.dashCd*0.8); } },
+      { id:'heart', type:'Upgrade', name:'Heart Vessel', desc:'Max HP +1 and heal 1.', apply:()=>{ P.hpMax += 1; P.hp = Math.min(P.hpMax, P.hp+1); drawHearts(); } },
+      { id:'leech', type:'Upgrade', name:'Vampiric Edge', desc:'On kill, small chance to heal 1.', apply:()=>{ UPGR.lifeStealChance = Math.min(0.35, UPGR.lifeStealChance + 0.08); } },
+      { id:'magnet', type:'Upgrade', name:'Coin Magnet', desc:'Coins are drawn to you from farther away.', apply:()=>{ UPGR.magnet += 1; } },
+      { id:'crit', type:'Upgrade', name:'Critical Focus', desc:'+8% crit chance on melee.', apply:()=>{ UPGR.critChance = Math.min(0.5, UPGR.critChance + 0.08); } },
+      { id:'doublecoin', type:'Upgrade', name:'Golden Touch', desc:'Chance for enemies to drop an extra coin.', apply:()=>{ UPGR.doubleCoinChance = Math.min(0.4, UPGR.doubleCoinChance + 0.12); } },
+    ];
+
+    function rollShopOptions(){
+      // Shuffle a copy and take first 3
+      const arr = POOL.slice(); for (let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+      return arr.slice(0,3);
+    }
+
+    function selectShopOption(opt){
+      try { opt.apply?.(); } catch(e){ console.error('apply upgrade error', e); }
+      closeShop();
     }
 
     // Leaderboard integration

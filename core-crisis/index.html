@@ -277,6 +277,11 @@
       bossCraneMove: 'assets/boss_crane_moving.png',
       bossCraneAttackHigh: 'assets/boss_crane_attack_high.png',
       bossCraneAttackLow: 'assets/boss_crane_attack_low.png',
+      bossFinalClosed: 'assets/boss_final_closed.png',
+      bossFinalOpening: 'assets/boss_final_opening.png',
+      bossFinalOpen: 'assets/boss_final_open.png',
+      bossFinalClosing: 'assets/boss_final_closing.png',
+      bossFinalClawing: 'assets/boss_final_clawing.png',
     };
 
     const IMG = {};
@@ -315,6 +320,28 @@
     function craneTelegraphFor(b){ const pct=b.hp/b.maxHp; return CRANE_TELEGRAPH_MIN + (CRANE_TELEGRAPH_MAX-CRANE_TELEGRAPH_MIN)*pct; }
     function craneSpeedFor(b){ const pct=1 - b.hp/b.maxHp; return CRANE_SPEED_MIN + (CRANE_SPEED_MAX-CRANE_SPEED_MIN)*pct; }
     function craneChargeSpeedFor(b){ const pct=1 - b.hp/b.maxHp; return CRANE_CHARGE_SPEED_MIN + (CRANE_CHARGE_SPEED_MAX-CRANE_CHARGE_SPEED_MIN)*pct; }
+    const OVERSEER_GUN_CD = 1.2;
+    const OVERSEER_LASER_CD = 8;
+    const OVERSEER_LASER_DURATION = 1.5;
+    const OVERSEER_OPEN_DURATION = 0.3;
+    const OVERSEER_CLOSE_DURATION = 0.3;
+    const OVERSEER_EYE_POST_DURATION = 1.0;
+    const OVERSEER_CLAW_FRAME_DUR = 0.2;
+    const OVERSEER_MOVE_EASE = 1.5;
+    function overseerGunCooldown(b){ const pct=b.hp/b.maxHp; return OVERSEER_GUN_CD*(0.5+0.5*pct); }
+    function overseerLaserCooldown(b){ const pct=b.hp/b.maxHp; return OVERSEER_LASER_CD*(0.5+0.5*pct); }
+
+    function overseerChooseTarget(b){
+      b.tx = clamp(W - 220 + Math.random()*140, W - 220, W - 80);
+      b.ty = clamp(80 + Math.random()*160, 60, H/2);
+    }
+
+    function overseerDrift(b, dt){
+      b.moveT += dt;
+      b.x += (b.tx - b.x) * OVERSEER_MOVE_EASE * dt;
+      b.y += (b.ty - b.y) * OVERSEER_MOVE_EASE * dt;
+      if (Math.abs(b.x - b.tx) < 5 && Math.abs(b.y - b.ty) < 5) overseerChooseTarget(b);
+    }
     const JUMP_V = 700;
     const QUICK_TAP_TIME = 0.1; // seconds; taps shorter than this trigger a half jump
     // Make gliding more pronounced: much lower gravity while gliding
@@ -739,7 +766,7 @@
       }
       // Boss spawn and HUD
       if (!boss && time >= bossNextTime) {
-        if (difficulty % 2 === 1) {
+        if (difficulty % 3 === 1) {
           boss = {
             type: 'eyeball',
             x: W + 200,
@@ -760,7 +787,7 @@
             hitX: 0.3,
             hitY: 0.3
           };
-        } else {
+        } else if (difficulty % 3 === 2) {
           const moveImg = IMG.bossCraneMove;
           const frames = 4;
           const fw = moveImg.width / frames;
@@ -785,6 +812,32 @@
             hitY: 0.7,
             moveT: 0,
             passes: 0
+          };
+        } else {
+          boss = {
+            type: 'overseer',
+            x: W + 200,
+            y: H * 0.25,
+            w: 320,
+            h: 320,
+            state: 'entry',
+            hp: BOSS_MAX_HP * difficulty,
+            maxHp: BOSS_MAX_HP * difficulty,
+            timer: 0,
+            gunCd: 1,
+            laserCd: 3,
+            clawCd: 4,
+            tx: W - 150,
+            ty: H * 0.25,
+            eyeActive: false,
+            vulnerable: false,
+            flash: 0,
+            hitX: 0.6,
+            hitY: 0.6,
+            animT: 0,
+            animFrame: 0,
+            clawFrame: 0,
+            moveT: 0
           };
         }
       }
@@ -937,6 +990,64 @@
               if (boss.timer <= 0) boss.state = 'retreat';
               break;
           }
+        } else if (boss.type === 'overseer') {
+          switch (boss.state) {
+            case 'entry':
+              boss.x -= 120 * dt;
+              if (boss.x <= boss.tx) { boss.x = boss.tx; boss.state = 'idle'; boss.gunCd = overseerGunCooldown(boss); boss.laserCd = overseerLaserCooldown(boss); }
+              break;
+            case 'idle':
+              boss.gunCd -= dt;
+              boss.laserCd -= dt;
+              boss.clawCd -= dt;
+              if (boss.gunCd <= 0) {
+                const sx = boss.x - boss.w * 0.5;
+                const sy = boss.y - boss.h * 0.25;
+                const dxs = P.x - sx;
+                const dys = P.y - sy;
+                const len = Math.hypot(dxs, dys) || 1;
+                const speed = 320;
+                const vx = (dxs/len) * speed;
+                const vy = (dys/len) * speed;
+                shots.push({ x: sx, y: sy, w: 12, h: 12, vx, vy, t: 0, hitX:0.75, hitY:0.75 });
+                boss.gunCd = overseerGunCooldown(boss);
+              }
+              if (boss.laserCd <= 0) { boss.state = 'opening'; boss.animT = 0; boss.animFrame = 0; boss.eyeActive = true; boss.vulnerable = true; playSfx(SFX.bossLaser); }
+              else if (boss.clawCd <= 0) { boss.state = 'claw'; boss.animT = 0; boss.animFrame = 0; boss.clawFrame = 0; }
+              break;
+            case 'opening':
+              boss.animT += dt;
+              if (boss.animT >= OVERSEER_OPEN_DURATION) { boss.animT -= OVERSEER_OPEN_DURATION; boss.animFrame++; }
+              if (boss.animFrame >= 3) { boss.state = 'laser'; boss.timer = OVERSEER_LASER_DURATION; }
+              break;
+            case 'laser':
+              boss.timer -= dt;
+              if (boss.timer <= 0) { boss.state = 'closing'; boss.animT = 0; boss.animFrame = 0; }
+              break;
+            case 'closing':
+              boss.animT += dt;
+              if (boss.animT >= OVERSEER_CLOSE_DURATION) { boss.animT -= OVERSEER_CLOSE_DURATION; boss.animFrame++; }
+              if (boss.animFrame >= 3) { boss.state = 'recover'; boss.timer = OVERSEER_EYE_POST_DURATION; }
+              break;
+            case 'recover':
+              boss.timer -= dt;
+              if (boss.timer <= 0) { boss.state = 'idle'; boss.eyeActive = false; boss.vulnerable = false; boss.laserCd = overseerLaserCooldown(boss); boss.clawCd = rand(4,7); boss.gunCd = overseerGunCooldown(boss); }
+              break;
+            case 'claw':
+              boss.animT += dt;
+              if (boss.animT >= OVERSEER_CLAW_FRAME_DUR) { boss.animT -= OVERSEER_CLAW_FRAME_DUR; boss.animFrame++; boss.clawFrame = Math.min(boss.animFrame,4); }
+              boss.clawActive = (boss.animFrame >=2 && boss.animFrame <=3);
+              if (boss.animFrame >= 5) { boss.state = 'clawRecover'; boss.timer = 0.5; boss.clawActive = false; boss.animFrame = boss.clawFrame; }
+              break;
+            case 'clawRecover':
+              boss.timer -= dt;
+              if (boss.timer <= 0) { boss.state = 'idle'; boss.clawCd = rand(4,7); boss.laserCd = Math.max(boss.laserCd, 1); boss.gunCd = overseerGunCooldown(boss); }
+              break;
+          }
+          if (boss.state !== 'entry') overseerDrift(boss, dt);
+          // update eye and claw hitboxes
+          boss.eye = { x: boss.x - boss.w*0.15, y: boss.y - boss.h*0.15, w: boss.w*0.3, h: boss.h*0.3, hitX:1, hitY:1 };
+          boss.claw = { x: boss.x - boss.w*0.25, y: boss.y + boss.h*0.15, w: boss.w*0.5, h: boss.h*0.5, hitX:1, hitY:1 };
         }
       } else if (bossHud) {
         bossHud.classList.add('hidden');
@@ -1461,6 +1572,42 @@
             return;
           }
         }
+        if (boss && boss.type === 'overseer') {
+          if (hit(P, boss)) {
+            if (!consumeShieldOnHit()) {
+              heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
+              loseRandomItem();
+            }
+            P.vy = Math.min(P.vy, -350);
+            P.onGround = false;
+            hitGrace = 2; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
+            return;
+          }
+          if (boss.clawActive && boss.claw && hit(P, boss.claw)) {
+            if (!consumeShieldOnHit()) {
+              heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
+              loseRandomItem();
+            }
+            P.vy = Math.min(P.vy, -350);
+            P.onGround = false;
+            hitGrace = 2; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
+            return;
+          }
+          if (boss.state === 'laser') {
+            const beamLeft = boss.eye.x - boss.eye.w/2;
+            const beam = { x: beamLeft/2, y: boss.eye.y - boss.eye.h/2, w: beamLeft, h: boss.eye.h };
+            if (hit(P, beam)) {
+              if (!consumeShieldOnHit()) {
+                heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
+                loseRandomItem();
+              }
+              P.vy = Math.min(P.vy, -350);
+              P.onGround = false;
+              hitGrace = 2; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
+              return;
+            }
+          }
+        }
         for (const s of spikes) if (hit(P, s)) {
           if (!consumeShieldOnHit()) {
             // Apply heat penalty based on whether a jetpack was owned at impact
@@ -1607,28 +1754,36 @@
         for (let j = flyers.length - 1; j >= 0; j--) {
           if (hit(b, flyers[j])) { flyers.splice(j,1); hitSomething = true; if (!heatCheat) score += 1; playSfx(SFX.enemyHit); break; }
         }
-        if (!hitSomething && boss && boss.vulnerable && hit(b, boss)) {
-          boss.hp -= GUN_DAMAGE;
-          boss.flash = 0.25;
-          hitSomething = true;
-          if (boss.hp <= 0) {
-            playSfx(SFX.bossKill);
-            if (!heatCheat) score += 10;
-            showBossDefeated();
-            const GEM_W = 34, GEM_H = 34;
-            for (let g = 0; g < 5; g++) {
-              const gx = boss.x + rand(-60,60);
-              const gy = boss.y + rand(-60,60);
-              gems.push({ x: gx, y: gy, baseY: gy, w: GEM_W, h: GEM_H, img: IMG.gem, t: 0, hitX:0.60, hitY:0.60 });
+        if (!hitSomething && boss) {
+          let bossHit = false;
+          if (boss.type === 'overseer') {
+            if (boss.eyeActive && boss.eye && hit(b, boss.eye)) bossHit = true;
+          } else if (boss.vulnerable && hit(b, boss)) {
+            bossHit = true;
+          }
+          if (bossHit) {
+            boss.hp -= GUN_DAMAGE;
+            boss.flash = 0.25;
+            hitSomething = true;
+            if (boss.hp <= 0) {
+              playSfx(SFX.bossKill);
+              if (!heatCheat) score += 10;
+              showBossDefeated();
+              const GEM_W = 34, GEM_H = 34;
+              for (let g = 0; g < 5; g++) {
+                const gx = boss.x + rand(-60,60);
+                const gy = boss.y + rand(-60,60);
+                gems.push({ x: gx, y: gy, baseY: gy, w: GEM_W, h: GEM_H, img: IMG.gem, t: 0, hitX:0.60, hitY:0.60 });
+              }
+              boss = null;
+              bossNextTime = time + 30;
+              difficulty++;
+              runSpeed = RUN_SPEED * (1 + 0.1 * (difficulty - 1));
+              if (bossHud) bossHud.classList.add('hidden');
+            } else {
+              playSfx(SFX.enemyHit);
+              playSfx(SFX.bossHit);
             }
-            boss = null;
-            bossNextTime = time + 30;
-            difficulty++;
-            runSpeed = RUN_SPEED * (1 + 0.1 * (difficulty - 1));
-            if (bossHud) bossHud.classList.add('hidden');
-          } else {
-            playSfx(SFX.enemyHit);
-            playSfx(SFX.bossHit);
           }
         }
         if (hitSomething) { pshots.splice(i,1); }
@@ -1723,12 +1878,17 @@
       for (const f of flyers) drawFlyer(f.x, f.y, f.w, f.h, f.state);
       for (const b of shots) drawBullet(b.x, b.y, b.w, b.h);
       for (const pb of pshots) drawPlayerBullet(pb.x, pb.y, pb.w, pb.h);
-      if (boss && boss.state === 'laser') {
+      if (boss && boss.type === 'eyeball' && boss.state === 'laser') {
         const beamH = P.h * 0.5;
         const beamLeft = boss.x - BOSS_LASER_BEAM_OFFSET;
         const beamY = boss.y - (boss.lane === 0 ? BOSS_UPPER_LASER_SHIFT : 0);
         ctx.fillStyle = 'rgba(255,0,0,0.6)';
         ctx.fillRect(0, beamY - beamH/2, beamLeft, beamH);
+      }
+      if (boss && boss.type === 'overseer' && boss.state === 'laser') {
+        const beamLeft = boss.eye.x - boss.eye.w/2;
+        ctx.fillStyle = 'rgba(255,0,0,0.6)';
+        ctx.fillRect(0, boss.eye.y - boss.eye.h/2, beamLeft, boss.eye.h);
       }
       if (boss) {
         if (boss.type === 'eyeball') {
@@ -1736,8 +1896,10 @@
           else if (boss.state === 'close') drawBossClose(boss);
           else if (boss.state === 'laser' || boss.state === 'post') drawBossImage(IMG.bossLaser, boss);
           else drawBossImage(IMG.bossShut, boss);
-        } else {
+        } else if (boss.type === 'crane') {
           drawCrane(boss);
+        } else {
+          drawOverseer(boss);
         }
       }
 
@@ -1903,6 +2065,30 @@
       } else {
         frame = Math.floor(b.moveT * 10) % frames;
       }
+      const x = Math.round(b.x - b.w/2);
+      const y = Math.round(b.y - b.h/2);
+      ctx.save();
+      ctx.drawImage(img, frame * fw, 0, fw, fh, x, y, b.w, b.h);
+      if (b.flash > 0) {
+        const alpha = Math.min(1, b.flash * 4);
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(img, frame * fw, 0, fw, fh, x, y, b.w, b.h);
+      }
+      ctx.restore();
+    }
+
+    function drawOverseer(b){
+      let img; let frames = 1;
+      if (b.state === 'opening') { img = IMG.bossFinalOpening; frames = 3; }
+      else if (b.state === 'laser') { img = IMG.bossFinalOpen; frames = 1; }
+      else if (b.state === 'closing') { img = IMG.bossFinalClosing; frames = 3; }
+      else if (b.state === 'claw' || b.state === 'clawRecover') { img = IMG.bossFinalClawing; frames = 5; }
+      else { img = IMG.bossFinalClosed; frames = 1; }
+      if (!img || !img.width) return;
+      const fw = img.width / frames;
+      const fh = img.height;
+      const frame = Math.min(frames - 1, b.animFrame);
       const x = Math.round(b.x - b.w/2);
       const y = Math.round(b.y - b.h/2);
       ctx.save();

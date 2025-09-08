@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="48" viewBox="0 0 64 48">
+  <defs>
+    <linearGradient id="swiftG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#dffbff"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <ellipse cx="32" cy="40" rx="16" ry="5" fill="#000" opacity="0.18"/>
+  <!-- Glow outline for readability on dark backgrounds -->
+  <path d="M10 34 q22-22 44 0 q-12 -10 -22 -14 q-10 4 -22 14z" fill="none" stroke="#bff" stroke-width="4" opacity="0.8" filter="url(#glow)"/>
+  <!-- Sleek, arrow-like body -->
+  <path d="M10 34 q22-22 44 0 q-12 -10 -22 -14 q-10 4 -22 14z" fill="url(#swiftG)" stroke="#0891b2" stroke-opacity="0.65" stroke-width="2"/>
+  <!-- Specular highlight -->
+  <path d="M16 33 q16-14 32 0" fill="none" stroke="#e6fdff" stroke-width="1.6" opacity="0.85"/>
+  <!-- Eyes -->
+  <circle cx="28" cy="30" r="3" fill="#052e3b"/>
+  <circle cx="38" cy="30" r="3" fill="#052e3b"/>
+  <!-- Mouth -->
+  <path d="M26 35 q6 3 12 0" fill="none" stroke="#065f73" stroke-width="2" opacity="0.8"/>
+</svg>

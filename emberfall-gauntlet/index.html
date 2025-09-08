@@ -161,6 +161,8 @@
       tiles: new Image(),
       hero: new Image(),
       slime: new Image(),
+      swift: new Image(),
+      brute: new Image(),
       coin: new Image(),
       heart: new Image(),
       shadow: new Image(),
@@ -169,6 +171,8 @@
     IMG.tiles.src = 'assets/eg_tiles.svg';
     IMG.hero.src = 'assets/eg_hero.svg';
     IMG.slime.src = 'assets/eg_slime.svg';
+    IMG.swift.src = 'assets/eg_swift.svg';
+    IMG.brute.src = 'assets/eg_brute.svg';
     IMG.coin.src = 'assets/eg_coin.svg';
     IMG.heart.src = 'assets/eg_heart.svg';
     IMG.shadow.src = 'assets/eg_shadow.svg';
@@ -180,9 +184,13 @@
     // Game constants
     const W = canvas.width, H = canvas.height;
     const TILE = 32;
-    const ARENA = { x: 48, y: 48, w: W-96, h: H-96 };
+    // Make the world much larger than the viewport and add a camera
+    const WORLD_SCALE = 4; // 4x larger in each dimension
+    const ARENA = { x: 48, y: 48, w: W*WORLD_SCALE, h: H*WORLD_SCALE };
+    const CAM = { x: 0, y: 0 };
     const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 28, h: 28, dir: 0, hp: 5, hpMax: 5, iT: 0, dashCd: 0, dashT: 0, atkT: 0, autoT: 0 };
-    const ENEMY = { spd: 90, w: 26, h: 22 };
+    const ENEMY = { spd: 90, w: 26, h: 22 }; // default slime baseline
+    const DENSITY = Math.max(1, Math.round(WORLD_SCALE * 1.5));
     const DROP = { w: 18, h: 18 };
     const PHYS = { friction: 0.86, dashSpd: 420, dashDur: 0.16, dashCd: 0.9, atkDur: 0.18, atkRange: 42, atkArc: Math.PI*0.9 };
     const AUTO = { atkPeriod: 0.7 };
@@ -202,10 +210,15 @@
 
     function reset() {
       enemies = []; drops = []; PARTICLES.length = 0;
-      Object.assign(P, { x: W/2, y: H/2, vx:0, vy:0, dir:0, hp:P.hpMax, iT:0, dashCd:0, dashT:0, atkT:0, autoT:0 });
+      // Spawn player in the center of the (larger) arena
+      Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:0, hp:P.hpMax, iT:0, dashCd:0, dashT:0, atkT:0, autoT:0 });
       Object.assign(SPAWN, { t: 0, cd: 2.2, wave: 1 });
       SCORE.value = 0; scoreEl.textContent = SCORE.value; waveEl.textContent = SPAWN.wave;
       drawHearts();
+      // Seed the larger world with an initial crowd
+      const initialTarget = Math.min((6 + SPAWN.wave*2) * DENSITY, 80);
+      const initial = Math.min(Math.floor(initialTarget * 0.5), 40);
+      for (let i=0; i<initial; i++) spawnEnemy();
     }
 
     function start() { reset(); running = true; paused = false; startOverlay.classList.remove('show'); gameOverOverlay.classList.remove('show'); }
@@ -282,7 +295,20 @@
       if (side===1) { x = ARENA.x+ARENA.w-10; y = rand(ARENA.y+16, ARENA.y+ARENA.h-16); }
       if (side===2) { x = rand(ARENA.x+16, ARENA.x+ARENA.w-16); y = ARENA.y+ARENA.h-10; }
       if (side===3) { x = ARENA.x+10; y = rand(ARENA.y+16, ARENA.y+ARENA.h-16); }
-      enemies.push({ x, y, vx:0, vy:0, w:ENEMY.w, h:ENEMY.h, hp:2+Math.floor(SPAWN.wave/2), t:0 });
+
+      // Choose monster type: guarantee variety from the start
+      const r = Math.random();
+      // Base distribution (more slimes, some swift, some brute)
+      let kind = r < 0.25 ? 'swift' : (r < 0.40 ? 'brute' : 'slime');
+      // Increase brute share as waves climb
+      if (SPAWN.wave >= 3 && r < 0.15) kind = 'brute';
+
+      // Stats per type
+      let w=ENEMY.w, h=ENEMY.h, spd=ENEMY.spd, hp=2+Math.floor(SPAWN.wave/2), score=50;
+      if (kind==='swift'){ w=22; h=18; spd=140; hp=Math.max(1,1+Math.floor(SPAWN.wave/3)); score=40; }
+      else if (kind==='brute'){ w=34; h=28; spd=70; hp=3+Math.floor(SPAWN.wave/1.5); score=80; }
+
+      enemies.push({ kind, x, y, vx:0, vy:0, w, h, hp, spd, score, t:0 });
     }
 
     function dropCoin(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'coin', v: rand(40,70), a: rand(0,Math.PI*2) }); }
@@ -334,7 +360,7 @@
       for (const e of enemies){
         e.t += dt; // homing toward player
         const dx = P.x - e.x, dy = P.y - e.y; const [nx,ny]=norm(dx,dy);
-        const speed = ENEMY.spd * (1 + Math.min(0.8, SPAWN.wave*0.06));
+        const speed = (e.spd || ENEMY.spd) * (1 + Math.min(0.8, SPAWN.wave*0.06));
         e.vx = nx * speed; e.vy = ny * speed; e.x += e.vx*dt; e.y += e.vy*dt;
         // Attack collision when close and player is vulnerable
         if (P.iT<=0 && Math.abs(P.x-e.x)<(e.w*0.6+P.w*0.6) && Math.abs(P.y-e.y)<(e.h*0.6+P.h*0.6)){
@@ -344,7 +370,7 @@
 
       // Player sword hits
       if (P.atkT>0){
-        for (const e of enemies){ if (e.hp<=0) continue; if (hitArc(P.x,P.y,P.dir,PHYS.atkArc,PHYS.atkRange,e.x,e.y)){ e.hp -= 1; spark(e.x,e.y,'#aef'); if (e.hp<=0){ SCORE.value += 50; scoreEl.textContent = SCORE.value; dropCoin(e.x, e.y); } } }
+        for (const e of enemies){ if (e.hp<=0) continue; if (hitArc(P.x,P.y,P.dir,PHYS.atkArc,PHYS.atkRange,e.x,e.y)){ e.hp -= 1; spark(e.x,e.y,'#aef'); if (e.hp<=0){ SCORE.value += (e.score||50); scoreEl.textContent = SCORE.value; dropCoin(e.x, e.y); } } }
       }
 
       // Collect drops
@@ -353,9 +379,13 @@
           drops.splice(i,1);
       } }
 
-      // Wave & spawns
-      SPAWN.t += dt; const targetCount = Math.min(6 + SPAWN.wave*2, 28);
-      if (enemies.filter(e=>e.hp>0).length < targetCount && SPAWN.t > SPAWN.cd){ SPAWN.t = 0; for (let i=0;i<Math.min(4, 1+Math.floor(SPAWN.wave/2)); i++) spawnEnemy(); }
+      // Wave & spawns (scale with larger world)
+      SPAWN.t += dt; const targetCount = Math.min((6 + SPAWN.wave*2) * DENSITY, 80);
+      if (enemies.filter(e=>e.hp>0).length < targetCount && SPAWN.t > SPAWN.cd){
+        SPAWN.t = 0;
+        const group = Math.min(8, Math.max(2, Math.ceil(DENSITY/2)) * Math.min(4, 1 + Math.floor(SPAWN.wave/2)));
+        for (let i=0;i<group; i++) spawnEnemy();
+      }
       // Advance wave slowly over time and score
       if (SCORE.value > SPAWN.wave*200) { SPAWN.wave += 1; waveEl.textContent = SPAWN.wave; }
 
@@ -370,14 +400,29 @@
       const img = IMG.tiles; // 256x256 sheet; we use two tiles: 0,0 floor and 32,0 border
       const sxFloor = 0, syFloor = 0, sw = 32, sh = 32;
       const sxEdge = 32, syEdge = 0;
-      for (let y=ARENA.y; y<ARENA.y+ARENA.h; y+=TILE){
-        for (let x=ARENA.x; x<ARENA.x+ARENA.w; x+=TILE){
+
+      // Determine visible world bounds in tile space (plus 1 tile padding)
+      const minX = Math.max(ARENA.x - TILE, Math.floor((CAM.x - TILE) / TILE) * TILE);
+      const maxX = Math.min(ARENA.x + ARENA.w + TILE, Math.ceil((CAM.x + W + TILE) / TILE) * TILE);
+      const minY = Math.max(ARENA.y - TILE, Math.floor((CAM.y - TILE) / TILE) * TILE);
+      const maxY = Math.min(ARENA.y + ARENA.h + TILE, Math.ceil((CAM.y + H + TILE) / TILE) * TILE);
+
+      // Floor
+      for (let y = Math.max(ARENA.y, minY); y < Math.min(ARENA.y + ARENA.h, maxY); y += TILE){
+        for (let x = Math.max(ARENA.x, minX); x < Math.min(ARENA.x + ARENA.w, maxX); x += TILE){
           ctx.drawImage(img, sxFloor, syFloor, sw, sh, x, y, TILE, TILE);
         }
       }
-      // Border
-      for (let x=ARENA.x; x<ARENA.x+ARENA.w; x+=TILE){ ctx.drawImage(img, sxEdge, syEdge, sw, sh, x, ARENA.y-TILE, TILE, TILE); ctx.drawImage(img, sxEdge, syEdge, sw, sh, x, ARENA.y+ARENA.h, TILE, TILE); }
-      for (let y=ARENA.y; y<ARENA.y+ARENA.h; y+=TILE){ ctx.drawImage(img, sxEdge, syEdge, sw, sh, ARENA.x-TILE, y, TILE, TILE); ctx.drawImage(img, sxEdge, syEdge, sw, sh, ARENA.x+ARENA.w, y, TILE, TILE); }
+      // Border (top & bottom) within visible range
+      for (let x = Math.max(ARENA.x, minX); x < Math.min(ARENA.x + ARENA.w, maxX); x += TILE){
+        ctx.drawImage(img, sxEdge, syEdge, sw, sh, x, ARENA.y - TILE, TILE, TILE);
+        ctx.drawImage(img, sxEdge, syEdge, sw, sh, x, ARENA.y + ARENA.h, TILE, TILE);
+      }
+      // Border (left & right) within visible range
+      for (let y = Math.max(ARENA.y, minY); y < Math.min(ARENA.y + ARENA.h, maxY); y += TILE){
+        ctx.drawImage(img, sxEdge, syEdge, sw, sh, ARENA.x - TILE, y, TILE, TILE);
+        ctx.drawImage(img, sxEdge, syEdge, sw, sh, ARENA.x + ARENA.w, y, TILE, TILE);
+      }
     }
 
     function draw(){
@@ -385,13 +430,25 @@
       ctx.clearRect(0,0,W,H);
       // Subtle vignette
       ctx.fillStyle = '#0b0f18'; ctx.fillRect(0,0,W,H);
+
+      // Update camera to follow player, clamped to the world plus border tiles
+      CAM.x = clamp(P.x - W/2, ARENA.x - TILE, ARENA.x + ARENA.w + TILE - W);
+      CAM.y = clamp(P.y - H/2, ARENA.y - TILE, ARENA.y + ARENA.h + TILE - H);
+
+      ctx.save();
+      ctx.translate(-CAM.x, -CAM.y);
       drawTiles();
 
       // Draw drops
       for (const d of drops) { ctx.drawImage(IMG.coin, d.x-12, d.y-12, 24, 24); }
 
-      // Draw enemies with shadow
-      for (const e of enemies){ ctx.drawImage(IMG.shadow, e.x-18, e.y-8, 36, 16); ctx.drawImage(IMG.slime, e.x-ENEMY.w/2, e.y-ENEMY.h/2-6, ENEMY.w, ENEMY.h+6); }
+      // Draw enemies with shadow (use sprite per type, size by enemy)
+      for (const e of enemies){
+        // shadow scaled to enemy size
+        ctx.drawImage(IMG.shadow, e.x - e.w*0.7, e.y - e.h*0.35, e.w*1.4, e.h*0.7);
+        const sprite = e.kind==='swift' ? IMG.swift : (e.kind==='brute' ? IMG.brute : IMG.slime);
+        ctx.drawImage(sprite, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
+      }
 
       // Draw player shadow + hero
       ctx.drawImage(IMG.shadow, P.x-20, P.y-10, 40, 20);
@@ -402,6 +459,8 @@
 
       // Particles
       for (const p of PARTICLES){ ctx.globalAlpha = 1 - p.life/p.ttl; ctx.drawImage(IMG.spark, p.x - p.size/2, p.y - p.size/2, p.size, p.size); ctx.globalAlpha = 1; }
+
+      ctx.restore();
 
       if (running && !paused) step(dt);
       requestAnimationFrame(draw);

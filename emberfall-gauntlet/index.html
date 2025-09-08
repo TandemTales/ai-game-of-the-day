@@ -192,7 +192,8 @@
     const ENEMY = { spd: 90, w: 26, h: 22 }; // default slime baseline
     const DENSITY = Math.max(1, Math.round(WORLD_SCALE * 1.5));
     const DROP = { w: 18, h: 18 };
-    const PHYS = { friction: 0.86, dashSpd: 420, dashDur: 0.16, dashCd: 0.9, atkDur: 0.18, atkRange: 42, atkArc: Math.PI*0.9 };
+    // Increased atkRange to extend weapon reach
+    const PHYS = { friction: 0.86, dashSpd: 420, dashDur: 0.16, dashCd: 0.9, atkDur: 0.18, atkRange: 64, atkArc: Math.PI*0.9 };
     const AUTO = { atkPeriod: 0.7 };
     const SPAWN = { t: 0, cd: 2.2, wave: 1 };
     const SCORE = { value: 0 };

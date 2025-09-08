@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="56" viewBox="0 0 72 56">
+  <defs>
+    <linearGradient id="bruteG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fca5a5"/>
+      <stop offset="1" stop-color="#ef4444"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="36" cy="46" rx="22" ry="7" fill="#000" opacity="0.2"/>
+  <!-- Bulky, spiked top -->
+  <path d="M8 40 q28-28 56 0 v6 q-28 10 -56 0z" fill="url(#bruteG)" stroke="#7f1d1d" stroke-opacity="0.6"/>
+  <path d="M18 28 l4 -8 l6 8 M36 26 l4 -10 l6 10 M52 28 l4 -8 l6 8" fill="none" stroke="#7f1d1d" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="30" cy="33" r="4" fill="#7f1d1d"/>
+  <circle cx="44" cy="33" r="4" fill="#7f1d1d"/>
+  <path d="M30 40 q8 5 16 0" fill="none" stroke="#7f1d1d" stroke-width="3" opacity="0.7"/>
+</svg>
+

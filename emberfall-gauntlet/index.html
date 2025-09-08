@@ -134,7 +134,7 @@
     <div id="startOverlay" class="overlay show">
       <div class="panel">
         <div class="title" style="background:linear-gradient(45deg,var(--gold),#ffa500);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Emberfall Gauntlet</div>
-        <div class="desc">Dash into an arena of glowing stone, carve through swarming foes with swift strikes, and scoop shimmering shards to chase the highest score.</div>
+        <div class="desc">Step into an arena of glowing stone, carve through swarming foes with swift strikes, and scoop shimmering shards to chase the highest score.</div>
         <div class="row">
           <button id="startBtn" class="btn">Start</button>
           <a class="btn" href="../leaderboard.html?gameId=emberfall-gauntlet">Leaderboard</a>
@@ -212,12 +212,12 @@
     const WORLD_SCALE = 4; // 4x larger in each dimension
     const ARENA = { x: 48, y: 48, w: W*WORLD_SCALE, h: H*WORLD_SCALE };
     const CAM = { x: 0, y: 0 };
-    const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 28, h: 28, dir: 0, aimDir: 0, hp: 5, hpMax: 5, iT: 0, dashCd: 0, dashT: 0, atkT: 0, autoT: 0 };
+    const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 28, h: 28, dir: 0, aimDir: 0, hp: 5, hpMax: 5, iT: 0, atkT: 0, autoT: 0 };
     const ENEMY = { spd: 90, w: 26, h: 22 }; // default slime baseline
     const DENSITY = Math.max(1, Math.round(WORLD_SCALE * 1.5));
     const DROP = { w: 18, h: 18 };
     // Increased atkRange to extend weapon reach
-    const PHYS = { friction: 0.86, dashSpd: 420, dashDur: 0.16, dashCd: 0.9, atkDur: 0.18, atkRange: 64, atkArc: Math.PI*0.9 };
+    const PHYS = { friction: 0.86, atkDur: 0.18, atkRange: 64, atkArc: Math.PI*0.9 };
     const AUTO = { atkPeriod: 0.7 };
     const SPAWN = { t: 0, cd: 2.2, wave: 1 };
     const SCORE = { value: 0 };
@@ -261,7 +261,7 @@
     function reset() {
       enemies = []; drops = []; PARTICLES.length = 0;
       // Spawn player in the center of the (larger) arena
-      Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:0, aimDir:0, hp:P.hpMax, iT:0, dashCd:0, dashT:0, atkT:0, autoT:0 });
+      Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:0, aimDir:0, hp:P.hpMax, iT:0, atkT:0, autoT:0 });
       Object.assign(SPAWN, { t: 0, cd: 2.2, wave: 1 });
       SCORE.value = 0; scoreEl.textContent = SCORE.value; waveEl.textContent = SPAWN.wave;
       COINS.value = 0; coinsEl.textContent = COINS.value; SHOP.idx = 0; SHOP.open = false;
@@ -283,7 +283,7 @@
     againBtn.addEventListener('click', () => { gameOverOverlay.classList.remove('show'); start(); gameOverHandled = false; });
 
     // Controls
-    const key = { left:false, right:false, up:false, down:false, atk:false, dash:false };
+    const key = { left:false, right:false, up:false, down:false, atk:false };
     function attachControls(){
       window.addEventListener('keydown', e=>{
         if (e.code==='ArrowLeft'||e.code==='KeyA') key.left=true;
@@ -325,7 +325,7 @@
       bindHold(document.getElementById('btnUp'),    ()=> key.up=true,    ()=> key.up=false);
       bindHold(document.getElementById('btnDown'),  ()=> key.down=true,  ()=> key.down=false);
 
-      // Attack and Dash removed; only movement and pause remain
+      // Only movement and pause remain
       const btnPause = document.getElementById('btnPause');
       if (btnPause) btnPause.addEventListener('click', ()=> { paused = !paused; });
     }
@@ -412,11 +412,8 @@
         }
         P.atkT = PHYS.atkDur; P.autoT = 0;
       }
-      // Dash
-      if (key.dash && P.dashCd<=0){ const [nx,ny]=[Math.cos(P.dir), Math.sin(P.dir)]; P.vx += nx*PHYS.dashSpd; P.vy += ny*PHYS.dashSpd; P.dashCd = PHYS.dashCd; P.dashT = PHYS.dashDur; }
-
       // Timers
-      if (P.atkT>0) P.atkT -= dt; if (P.dashCd>0) P.dashCd -= dt; if (P.dashT>0) P.dashT -= dt; if (P.iT>0) P.iT -= dt;
+      if (P.atkT>0) P.atkT -= dt; if (P.iT>0) P.iT -= dt;
 
       // Apply friction
       P.vx *= PHYS.friction; P.vy *= PHYS.friction;
@@ -626,7 +623,6 @@
 
       // Upgrades
       { id:'boots', type:'Upgrade', name:'Fleetfoot Boots', desc:'Run 20% faster.', apply:()=>{ P.spd = Math.round(P.spd*1.2); } },
-      { id:'dash', type:'Upgrade', name:'Dash Core', desc:'Dash recharges 20% faster.', apply:()=>{ PHYS.dashCd = Math.max(0.2, PHYS.dashCd*0.8); } },
       { id:'heart', type:'Upgrade', name:'Heart Vessel', desc:'Max HP +1 and heal 1.', apply:()=>{ P.hpMax += 1; P.hp = Math.min(P.hpMax, P.hp+1); drawHearts(); } },
       { id:'leech', type:'Upgrade', name:'Vampiric Edge', desc:'On kill, small chance to heal 1.', apply:()=>{ UPGR.lifeStealChance = Math.min(0.35, UPGR.lifeStealChance + 0.08); } },
       { id:'magnet', type:'Upgrade', name:'Coin Magnet', desc:'Coins are drawn to you from farther away.', apply:()=>{ UPGR.magnet += 1; } },

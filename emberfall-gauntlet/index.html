@@ -188,7 +188,7 @@
     const WORLD_SCALE = 4; // 4x larger in each dimension
     const ARENA = { x: 48, y: 48, w: W*WORLD_SCALE, h: H*WORLD_SCALE };
     const CAM = { x: 0, y: 0 };
-    const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 28, h: 28, dir: 0, hp: 5, hpMax: 5, iT: 0, dashCd: 0, dashT: 0, atkT: 0, autoT: 0 };
+    const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 28, h: 28, dir: 0, aimDir: 0, hp: 5, hpMax: 5, iT: 0, dashCd: 0, dashT: 0, atkT: 0, autoT: 0 };
     const ENEMY = { spd: 90, w: 26, h: 22 }; // default slime baseline
     const DENSITY = Math.max(1, Math.round(WORLD_SCALE * 1.5));
     const DROP = { w: 18, h: 18 };
@@ -211,7 +211,7 @@
     function reset() {
       enemies = []; drops = []; PARTICLES.length = 0;
       // Spawn player in the center of the (larger) arena
-      Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:0, hp:P.hpMax, iT:0, dashCd:0, dashT:0, atkT:0, autoT:0 });
+      Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:0, aimDir:0, hp:P.hpMax, iT:0, dashCd:0, dashT:0, atkT:0, autoT:0 });
       Object.assign(SPAWN, { t: 0, cd: 2.2, wave: 1 });
       SCORE.value = 0; scoreEl.textContent = SCORE.value; waveEl.textContent = SPAWN.wave;
       drawHearts();
@@ -332,7 +332,7 @@
       // Player input velocity
       let ix = (key.right?1:0) - (key.left?1:0);
       let iy = (key.down?1:0) - (key.up?1:0);
-      if (ix || iy) { const [nx,ny]=norm(ix,iy); P.vx += nx*P.spd*dt; P.vy += ny*P.spd*dt; P.dir = Math.atan2(ny,nx); }
+      if (ix || iy) { const [nx,ny]=norm(ix,iy); P.vx += nx*P.spd*dt; P.vy += ny*P.spd*dt; P.dir = Math.atan2(ny,nx); P.aimDir = P.dir; }
       // Auto-attack on a fixed period
       P.autoT += dt;
       if (P.atkT<=0 && P.autoT >= AUTO.atkPeriod) {
@@ -340,7 +340,7 @@
         if (enemies.length){
           let best=null, bd=1e9;
           for (const e of enemies){ if (e.hp<=0) continue; const dx=e.x-P.x, dy=e.y-P.y; const d=Math.hypot(dx,dy); if (d<bd){ bd=d; best=[dx,dy]; } }
-          if (best) P.dir = Math.atan2(best[1], best[0]);
+          if (best) P.aimDir = Math.atan2(best[1], best[0]);
         }
         P.atkT = PHYS.atkDur; P.autoT = 0;
       }
@@ -370,7 +370,7 @@
 
       // Player sword hits
       if (P.atkT>0){
-        for (const e of enemies){ if (e.hp<=0) continue; if (hitArc(P.x,P.y,P.dir,PHYS.atkArc,PHYS.atkRange,e.x,e.y)){ e.hp -= 1; spark(e.x,e.y,'#aef'); if (e.hp<=0){ SCORE.value += (e.score||50); scoreEl.textContent = SCORE.value; dropCoin(e.x, e.y); } } }
+        for (const e of enemies){ if (e.hp<=0) continue; if (hitArc(P.x,P.y,P.aimDir,PHYS.atkArc,PHYS.atkRange,e.x,e.y)){ e.hp -= 1; spark(e.x,e.y,'#aef'); if (e.hp<=0){ SCORE.value += (e.score||50); scoreEl.textContent = SCORE.value; dropCoin(e.x, e.y); } } }
       }
 
       // Collect drops
@@ -453,7 +453,7 @@
       // Draw player shadow + hero
       ctx.drawImage(IMG.shadow, P.x-20, P.y-10, 40, 20);
       // Sword trail when attacking
-      if (P.atkT>0){ ctx.save(); ctx.translate(P.x,P.y); ctx.rotate(P.dir); const prog = 1 - (P.atkT/PHYS.atkDur); const arc = PHYS.atkArc; ctx.beginPath(); ctx.moveTo(10,0); ctx.arc(0,0,PHYS.atkRange, -arc*0.5+prog*arc, -arc*0.5+prog*arc+0.6); ctx.lineWidth=10; const g=ctx.createLinearGradient(0,0,PHYS.atkRange,0); g.addColorStop(0,'rgba(255,255,255,0.0)'); g.addColorStop(1,'rgba(255,215,0,0.6)'); ctx.strokeStyle=g; ctx.stroke(); ctx.restore(); }
+      if (P.atkT>0){ ctx.save(); ctx.translate(P.x,P.y); ctx.rotate(P.aimDir); const prog = 1 - (P.atkT/PHYS.atkDur); const arc = PHYS.atkArc; ctx.beginPath(); ctx.moveTo(10,0); ctx.arc(0,0,PHYS.atkRange, -arc*0.5+prog*arc, -arc*0.5+prog*arc+0.6); ctx.lineWidth=10; const g=ctx.createLinearGradient(0,0,PHYS.atkRange,0); g.addColorStop(0,'rgba(255,255,255,0.0)'); g.addColorStop(1,'rgba(255,215,0,0.6)'); ctx.strokeStyle=g; ctx.stroke(); ctx.restore(); }
       // Hero body
       ctx.save(); ctx.translate(P.x, P.y); ctx.rotate(P.dir + Math.sin(t*0.01)*0.02); ctx.drawImage(IMG.hero, -18, -22, 36, 36); ctx.restore();
 

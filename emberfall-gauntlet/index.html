@@ -116,8 +116,6 @@
         <div class="ghost"></div>
       </div>
       <div class="actions">
-        <button id="btnAtk" class="ctrl big" aria-label="Attack">ATTACK</button>
-        <button id="btnDash" class="ctrl big" aria-label="Dash">DASH</button>
         <button id="btnPause" class="ctrl small" aria-label="Pause">PAUSE</button>
       </div>
     </div>
@@ -130,7 +128,7 @@
           <button id="startBtn" class="btn">Start</button>
           <a class="btn" href="../leaderboard.html?gameId=emberfall-gauntlet">Leaderboard</a>
         </div>
-        <div class="small" style="margin-top:10px">Move: WASD/Arrows • Strike: Space/J/K • Dash: Shift/L • Pause: P</div>
+        <div class="small" style="margin-top:10px">Move: WASD/Arrows</div>
       </div>
     </div>
 
@@ -183,10 +181,11 @@
     const W = canvas.width, H = canvas.height;
     const TILE = 32;
     const ARENA = { x: 48, y: 48, w: W-96, h: H-96 };
-    const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 190, w: 28, h: 28, dir: 0, hp: 5, hpMax: 5, iT: 0, dashCd: 0, dashT: 0, atkT: 0 };
+    const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 28, h: 28, dir: 0, hp: 5, hpMax: 5, iT: 0, dashCd: 0, dashT: 0, atkT: 0, autoT: 0 };
     const ENEMY = { spd: 90, w: 26, h: 22 };
     const DROP = { w: 18, h: 18 };
     const PHYS = { friction: 0.86, dashSpd: 420, dashDur: 0.16, dashCd: 0.9, atkDur: 0.18, atkRange: 42, atkArc: Math.PI*0.9 };
+    const AUTO = { atkPeriod: 0.7 };
     const SPAWN = { t: 0, cd: 2.2, wave: 1 };
     const SCORE = { value: 0 };
     const PARTICLES = [];
@@ -203,7 +202,7 @@
 
     function reset() {
       enemies = []; drops = []; PARTICLES.length = 0;
-      Object.assign(P, { x: W/2, y: H/2, vx:0, vy:0, dir:0, hp:P.hpMax, iT:0, dashCd:0, dashT:0, atkT:0 });
+      Object.assign(P, { x: W/2, y: H/2, vx:0, vy:0, dir:0, hp:P.hpMax, iT:0, dashCd:0, dashT:0, atkT:0, autoT:0 });
       Object.assign(SPAWN, { t: 0, cd: 2.2, wave: 1 });
       SCORE.value = 0; scoreEl.textContent = SCORE.value; waveEl.textContent = SPAWN.wave;
       drawHearts();
@@ -224,8 +223,6 @@
         if (e.code==='ArrowRight'||e.code==='KeyD') key.right=true;
         if (e.code==='ArrowUp'||e.code==='KeyW') key.up=true;
         if (e.code==='ArrowDown'||e.code==='KeyS') key.down=true;
-        if (e.code==='Space'||e.code==='KeyJ'||e.code==='KeyK') key.atk=true;
-        if (e.code==='ShiftLeft'||e.code==='ShiftRight'||e.code==='KeyL') key.dash=true;
         if (e.code==='KeyP') { paused = !paused; }
       });
       window.addEventListener('keyup', e=>{
@@ -233,8 +230,6 @@
         if (e.code==='ArrowRight'||e.code==='KeyD') key.right=false;
         if (e.code==='ArrowUp'||e.code==='KeyW') key.up=false;
         if (e.code==='ArrowDown'||e.code==='KeyS') key.down=false;
-        if (e.code==='Space'||e.code==='KeyJ'||e.code==='KeyK') key.atk=false;
-        if (e.code==='ShiftLeft'||e.code==='ShiftRight'||e.code==='KeyL') key.dash=false;
       });
     }
 
@@ -263,9 +258,7 @@
       bindHold(document.getElementById('btnUp'),    ()=> key.up=true,    ()=> key.up=false);
       bindHold(document.getElementById('btnDown'),  ()=> key.down=true,  ()=> key.down=false);
 
-      // Attack: one-shot press is fine; hold also allowed
-      bindHold(document.getElementById('btnAtk'),   ()=> key.atk=true,   ()=> key.atk=false);
-      bindHold(document.getElementById('btnDash'),  ()=> key.dash=true,  ()=> key.dash=false);
+      // Attack and Dash removed; only movement and pause remain
       const btnPause = document.getElementById('btnPause');
       if (btnPause) btnPause.addEventListener('click', ()=> { paused = !paused; });
     }
@@ -314,8 +307,17 @@
       let ix = (key.right?1:0) - (key.left?1:0);
       let iy = (key.down?1:0) - (key.up?1:0);
       if (ix || iy) { const [nx,ny]=norm(ix,iy); P.vx += nx*P.spd*dt; P.vy += ny*P.spd*dt; P.dir = Math.atan2(ny,nx); }
-      // Attacks
-      if (key.atk && P.atkT<=0) P.atkT = PHYS.atkDur;
+      // Auto-attack on a fixed period
+      P.autoT += dt;
+      if (P.atkT<=0 && P.autoT >= AUTO.atkPeriod) {
+        // Aim at nearest enemy if present
+        if (enemies.length){
+          let best=null, bd=1e9;
+          for (const e of enemies){ if (e.hp<=0) continue; const dx=e.x-P.x, dy=e.y-P.y; const d=Math.hypot(dx,dy); if (d<bd){ bd=d; best=[dx,dy]; } }
+          if (best) P.dir = Math.atan2(best[1], best[0]);
+        }
+        P.atkT = PHYS.atkDur; P.autoT = 0;
+      }
       // Dash
       if (key.dash && P.dashCd<=0){ const [nx,ny]=[Math.cos(P.dir), Math.sin(P.dir)]; P.vx += nx*PHYS.dashSpd; P.vy += ny*PHYS.dashSpd; P.dashCd = PHYS.dashCd; P.dashT = PHYS.dashDur; }
 

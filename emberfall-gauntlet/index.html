@@ -260,8 +260,16 @@
 
     function reset() {
       enemies = []; drops = []; PARTICLES.length = 0;
+      // Reset core player stats to base values
+      P.hpMax = 5; // ensure Max HP does not persist between runs
+      P.hp = P.hpMax;
+      P.spd = 2400; // reset speed in case of prior upgrades
+      // Reset combat tuning that upgrades may have modified
+      PHYS.atkRange = 64;
+      PHYS.atkArc = Math.PI * 0.9;
+      AUTO.atkPeriod = 0.7;
       // Spawn player in the center of the (larger) arena
-      Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:0, aimDir:0, hp:P.hpMax, iT:0, atkT:0, autoT:0 });
+      Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:0, aimDir:0, iT:0, atkT:0, autoT:0 });
       Object.assign(SPAWN, { t: 0, cd: 2.2, wave: 1 });
       SCORE.value = 0; scoreEl.textContent = SCORE.value; waveEl.textContent = SPAWN.wave;
       COINS.value = 0; coinsEl.textContent = COINS.value; SHOP.idx = 0; SHOP.open = false;
@@ -475,7 +483,7 @@
         const count = UPGR.orbs;
         if (ORBS.length !== count){ ORBS = []; for (let i=0;i<count;i++) ORBS.push({ a: i*(Math.PI*2/count), r: UPGR.orbRadius, t:0, cd:0 }); }
         for (let i=0;i<ORBS.length;i++){
-          const o = ORBS[i]; o.t += dt; o.a += 1.5*dt; // orbit speed
+          const o = ORBS[i]; o.t += dt; o.a += 13.5*dt; // orbit speed (9x total)
           const ox = P.x + Math.cos(o.a)*o.r; const oy = P.y + Math.sin(o.a)*o.r;
           // Hit enemies on contact with a tiny cooldown
           o.cd = Math.max(0, o.cd - dt);

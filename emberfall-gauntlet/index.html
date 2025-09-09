@@ -45,6 +45,11 @@
       box-shadow: 0 4px 15px rgba(95,158,160,0.4); transition: transform .15s ease, box-shadow .15s ease; font-size:12px; white-space:nowrap; }
     .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(95,158,160,0.6); }
 
+    .class-btn { border:2px solid var(--gold); background:rgba(0,0,0,0.6); padding:8px; border-radius:10px; display:flex; flex-direction:column; align-items:center; cursor:pointer; }
+    .class-btn.selected { background:linear-gradient(45deg, var(--teal), #4682B4); }
+    .class-btn img { width:40px; height:40px; image-rendering:pixelated; }
+    .class-btn span { margin-top:4px; font-size:10px; color:var(--ink); }
+
     .stage { position:absolute; inset:0; display:grid; place-items:center; }
     canvas { width: 960px; height: 540px; image-rendering: pixelated; image-rendering: crisp-edges; border-radius: 12px; border: 3px solid rgba(255,215,0,0.25); background: #0b0f18; }
 
@@ -135,6 +140,11 @@
       <div class="panel">
         <div class="title" style="background:linear-gradient(45deg,var(--gold),#ffa500);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Emberfall Gauntlet</div>
         <div class="desc">Step into an arena of glowing stone, carve through swarming foes with swift strikes, and scoop shimmering shards to chase the highest score.</div>
+        <div class="row" id="classSelect">
+          <button class="class-btn selected" data-class="fighter"><img src="assets/EG_hero_fighter.png" alt="Fighter"><span>Fighter</span></button>
+          <button class="class-btn" data-class="rogue"><img src="assets/EG_hero_rogue.png" alt="Rogue"><span>Rogue</span></button>
+          <button class="class-btn" data-class="wizard"><img src="assets/EG_hero_wizard.png" alt="Wizard"><span>Wizard</span></button>
+        </div>
         <div class="row">
           <button id="startBtn" class="btn">Start</button>
           <a class="btn" href="../leaderboard.html?gameId=emberfall-gauntlet">Leaderboard</a>
@@ -179,10 +189,19 @@
     const finalScoreEl = document.getElementById('finalScore');
     const startBtn = document.getElementById('startBtn');
     const againBtn = document.getElementById('againBtn');
+    const classBtns = document.querySelectorAll('.class-btn');
 
     // Assets (SVG/PNG art)
+    const CLASS_IMG = {
+      fighter: new Image(),
+      rogue: new Image(),
+      wizard: new Image(),
+    };
+    CLASS_IMG.fighter.src = 'assets/EG_hero_fighter.png';
+    CLASS_IMG.rogue.src = 'assets/EG_hero_rogue.png';
+    CLASS_IMG.wizard.src = 'assets/EG_hero_wizard.png';
+
     const IMG = {
-      hero: new Image(),
       slime: new Image(),
       swift: new Image(),
       brute: new Image(),
@@ -190,8 +209,8 @@
       heart: new Image(),
       shadow: new Image(),
       spark: new Image(),
+      hero: CLASS_IMG.fighter,
     };
-    IMG.hero.src = 'assets/EG_hero_fighter.png';
     IMG.slime.src = 'assets/eg_slime.svg';
     IMG.swift.src = 'assets/eg_swift.svg';
     IMG.brute.src = 'assets/eg_brute.svg';
@@ -208,9 +227,18 @@
     ];
     const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
 
-    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length;
+    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const img of MAPS) img.addEventListener('load', () => { if (++loaded === need) init(); });
+    CLASS_IMG.rogue.addEventListener('load', () => { if (++loaded === need) init(); });
+    CLASS_IMG.wizard.addEventListener('load', () => { if (++loaded === need) init(); });
+
+    let currentClass = 'fighter';
+    const CLASS_STATS = {
+      fighter: { hp:5, spd:2400 },
+      rogue: { hp:4, spd:2600 },
+      wizard: { hp:3, spd:2200, startOrbs:1 },
+    };
 
     // Game constants
     const W = canvas.width, H = canvas.height;
@@ -258,6 +286,63 @@
 
     let currentMap = null;
 
+    const POOLS = {
+      fighter: [
+        { id:'twin', type:'Weapon', name:'Twin Strikes', desc:'Your melee hits strike twice.', note:'+1 multistrike', apply:()=>{ UPGR.multistrike+=1; } },
+        { id:'longblade', type:'Weapon', name:'Longblade', desc:'Increase melee reach by 20%.', apply:()=>{ PHYS.atkRange = Math.round(PHYS.atkRange*1.2); } },
+        { id:'sweeping', type:'Weapon', name:'Sweeping Arc', desc:'Widen melee arc by 15%.', apply:()=>{ PHYS.atkArc = Math.min(Math.PI*1.6, PHYS.atkArc*1.15); } },
+        { id:'quickhands', type:'Weapon', name:'Quick Hands', desc:'Attack more often (-12% cooldown).', apply:()=>{ AUTO.atkPeriod = Math.max(0.25, AUTO.atkPeriod*0.88); } },
+        { id:'keen', type:'Weapon', name:'Keen Edge', desc:'Melee damage +1.', apply:()=>{ UPGR.meleeDmg += 1; } },
+        { id:'orbs', type:'Spell', name:'Orbiting Sparks', desc:'Summon 1 orbiting spark that damages foes.', note:'Stacks add more sparks', apply:()=>{ UPGR.orbs += 1; } },
+        { id:'nova', type:'Spell', name:'Frost Nova', desc:'Every few seconds, blast nearby foes.', note:'Period and damage improve with repeats', apply:()=>{ if(!UPGR.nova){ UPGR.nova=true; } else { UPGR.novaPeriod=Math.max(2.2, UPGR.novaPeriod*0.9); UPGR.novaDmg+=1; } } },
+        { id:'shards', type:'Spell', name:'Arc Shards', desc:'Periodically fire shards where you face.', note:'More shards with repeats', apply:()=>{ if(!UPGR.shards){ UPGR.shards=true; } else { UPGR.shardCount=Math.min(6, UPGR.shardCount+1); } } },
+        { id:'boots', type:'Upgrade', name:'Fleetfoot Boots', desc:'Run 20% faster.', apply:()=>{ P.spd = Math.round(P.spd*1.2); } },
+        { id:'heart', type:'Upgrade', name:'Heart Vessel', desc:'Max HP +1 and heal 1.', apply:()=>{ P.hpMax += 1; P.hp = Math.min(P.hpMax, P.hp+1); drawHearts(); } },
+        { id:'leech', type:'Upgrade', name:'Vampiric Edge', desc:'On kill, small chance to heal 1.', apply:()=>{ UPGR.lifeStealChance = Math.min(0.5, UPGR.lifeStealChance + 0.12); } },
+        { id:'magnet', type:'Upgrade', name:'Coin Magnet', desc:'Coins are drawn to you from farther away.', apply:()=>{ UPGR.magnet += 1; } },
+        { id:'crit', type:'Upgrade', name:'Critical Focus', desc:'+8% crit chance on melee.', apply:()=>{ UPGR.critChance = Math.min(0.5, UPGR.critChance + 0.08); } },
+        { id:'doublecoin', type:'Upgrade', name:'Golden Touch', desc:'Chance for enemies to drop an extra coin.', apply:()=>{ UPGR.doubleCoinChance = Math.min(0.4, UPGR.doubleCoinChance + 0.12); } },
+      ],
+      rogue: [
+        { id:'daggers', type:'Weapon', name:'Twin Daggers', desc:'Your strikes hit twice.', note:'+1 multistrike', apply:()=>{ UPGR.multistrike+=1; } },
+        { id:'shadowstep', type:'Skill', name:'Shadowstep', desc:'Move 20% faster.', apply:()=>{ P.spd = Math.round(P.spd*1.2); } },
+        { id:'poison', type:'Weapon', name:'Poisoned Edge', desc:'Melee damage +1.', apply:()=>{ UPGR.meleeDmg += 1; } },
+        { id:'quick', type:'Weapon', name:'Quick Slash', desc:'Attack more often (-12% cooldown).', apply:()=>{ AUTO.atkPeriod = Math.max(0.25, AUTO.atkPeriod*0.88); } },
+        { id:'crit', type:'Skill', name:'Deadly Precision', desc:'+10% crit chance.', apply:()=>{ UPGR.critChance = Math.min(0.6, UPGR.critChance + 0.10); } },
+        { id:'shuriken', type:'Skill', name:'Throwing Stars', desc:'Periodically hurl shuriken forward.', note:'More with repeats', apply:()=>{ if(!UPGR.shards){ UPGR.shards=true; } else { UPGR.shardCount=Math.min(6, UPGR.shardCount+1); } } },
+        { id:'leech', type:'Skill', name:'Vampiric Daggers', desc:'On kill, small chance to heal 1.', apply:()=>{ UPGR.lifeStealChance = Math.min(0.5, UPGR.lifeStealChance + 0.12); } },
+        { id:'magnet', type:'Skill', name:'Pickpocket', desc:'Coins drawn from farther away.', apply:()=>{ UPGR.magnet += 1; } },
+        { id:'doublecoin', type:'Skill', name:'Cutpurse', desc:'Chance for enemies to drop an extra coin.', apply:()=>{ UPGR.doubleCoinChance = Math.min(0.4, UPGR.doubleCoinChance + 0.12); } },
+      ],
+      wizard: [
+        { id:'orbs', type:'Spell', name:'Arcane Orbs', desc:'Summon orbiting orbs that damage foes.', note:'Stacks add more orbs', apply:()=>{ UPGR.orbs += 1; } },
+        { id:'nova', type:'Spell', name:'Frost Nova', desc:'Every few seconds, blast nearby foes.', note:'Improves with repeats', apply:()=>{ if(!UPGR.nova){ UPGR.nova=true; } else { UPGR.novaPeriod=Math.max(2.2, UPGR.novaPeriod*0.9); UPGR.novaDmg+=1; } } },
+        { id:'shards', type:'Spell', name:'Arcane Missiles', desc:'Periodically fire magic missiles.', note:'More with repeats', apply:()=>{ if(!UPGR.shards){ UPGR.shards=true; } else { UPGR.shardCount=Math.min(6, UPGR.shardCount+1); } } },
+        { id:'focus', type:'Spell', name:'Spell Focus', desc:'Cast more often (-12% cooldown).', apply:()=>{ AUTO.atkPeriod = Math.max(0.25, AUTO.atkPeriod*0.88); } },
+        { id:'power', type:'Spell', name:'Empowered Bolt', desc:'Melee damage +1.', apply:()=>{ UPGR.meleeDmg += 1; } },
+        { id:'wisdom', type:'Upgrade', name:'Wisdom', desc:'Max HP +1 and heal 1.', apply:()=>{ P.hpMax += 1; P.hp = Math.min(P.hpMax, P.hp+1); drawHearts(); } },
+        { id:'mana', type:'Upgrade', name:'Mana Surge', desc:'Run 20% faster.', apply:()=>{ P.spd = Math.round(P.spd*1.2); } },
+        { id:'crit', type:'Spell', name:'Arcane Potency', desc:'+8% crit chance.', apply:()=>{ UPGR.critChance = Math.min(0.5, UPGR.critChance + 0.08); } },
+      ],
+    };
+
+    let currentPool = POOLS[currentClass];
+
+    function setClass(cls){
+      currentClass = cls;
+      IMG.hero = CLASS_IMG[cls];
+      currentPool = POOLS[cls];
+    }
+
+    classBtns.forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        classBtns.forEach(b=>b.classList.remove('selected'));
+        btn.classList.add('selected');
+        setClass(btn.dataset.class);
+      });
+    });
+    setClass(currentClass);
+
     function init() {
       currentMap = MAPS[Math.floor(Math.random() * MAPS.length)];
       ARENA.x = 0; ARENA.y = 0; ARENA.w = currentMap.width; ARENA.h = currentMap.height;
@@ -271,9 +356,10 @@
     function reset() {
       enemies = []; drops = []; PARTICLES.length = 0;
       // Reset core player stats to base values
-      P.hpMax = 5; // ensure Max HP does not persist between runs
+      const stats = CLASS_STATS[currentClass];
+      P.hpMax = stats.hp;
       P.hp = P.hpMax;
-      P.spd = 2400; // reset speed in case of prior upgrades
+      P.spd = stats.spd;
       // Reset combat tuning that upgrades may have modified
       PHYS.atkRange = 64;
       PHYS.atkArc = Math.PI * 0.9;
@@ -285,6 +371,7 @@
       COINS.value = 0; coinsEl.textContent = COINS.value; SHOP.idx = 0; SHOP.open = false;
       // Reset upgrades and spell state
       Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:0, critChance:0, critMult:1.6, doubleCoinChance:0, orbs:0, orbDmg:1, orbRadius:60, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1 });
+      if (stats.startOrbs) { UPGR.orbs = stats.startOrbs; }
       PROJECTILES = []; ORBS = [];
       drawHearts();
       // Seed the larger world with an initial crowd
@@ -601,31 +688,10 @@
 
     function closeShop(){ SHOP.open = false; paused = false; SHOP.idx++; shopOverlay.classList.remove('show'); shopOverlay.setAttribute('aria-hidden','true'); }
 
-    const POOL = [
-      // Weapons
-      { id:'twin', type:'Weapon', name:'Twin Strikes', desc:'Your melee hits strike twice.', note:'+1 multistrike', apply:()=>{ UPGR.multistrike+=1; } },
-      { id:'longblade', type:'Weapon', name:'Longblade', desc:'Increase melee reach by 20%.', apply:()=>{ PHYS.atkRange = Math.round(PHYS.atkRange*1.2); } },
-      { id:'sweeping', type:'Weapon', name:'Sweeping Arc', desc:'Widen melee arc by 15%.', apply:()=>{ PHYS.atkArc = Math.min(Math.PI*1.6, PHYS.atkArc*1.15); } },
-      { id:'quickhands', type:'Weapon', name:'Quick Hands', desc:'Attack more often (-12% cooldown).', apply:()=>{ AUTO.atkPeriod = Math.max(0.25, AUTO.atkPeriod*0.88); } },
-      { id:'keen', type:'Weapon', name:'Keen Edge', desc:'Melee damage +1.', apply:()=>{ UPGR.meleeDmg += 1; } },
-
-      // Spells
-      { id:'orbs', type:'Spell', name:'Orbiting Sparks', desc:'Summon 1 orbiting spark that damages foes.', note:'Stacks add more sparks', apply:()=>{ UPGR.orbs += 1; } },
-      { id:'nova', type:'Spell', name:'Frost Nova', desc:'Every few seconds, blast nearby foes.', note:'Period and damage improve with repeats', apply:()=>{ if(!UPGR.nova){ UPGR.nova=true; } else { UPGR.novaPeriod=Math.max(2.2, UPGR.novaPeriod*0.9); UPGR.novaDmg+=1; } } },
-      { id:'shards', type:'Spell', name:'Arc Shards', desc:'Periodically fire shards where you face.', note:'More shards with repeats', apply:()=>{ if(!UPGR.shards){ UPGR.shards=true; } else { UPGR.shardCount=Math.min(6, UPGR.shardCount+1); } } },
-
-      // Upgrades
-      { id:'boots', type:'Upgrade', name:'Fleetfoot Boots', desc:'Run 20% faster.', apply:()=>{ P.spd = Math.round(P.spd*1.2); } },
-      { id:'heart', type:'Upgrade', name:'Heart Vessel', desc:'Max HP +1 and heal 1.', apply:()=>{ P.hpMax += 1; P.hp = Math.min(P.hpMax, P.hp+1); drawHearts(); } },
-      { id:'leech', type:'Upgrade', name:'Vampiric Edge', desc:'On kill, small chance to heal 1.', apply:()=>{ UPGR.lifeStealChance = Math.min(0.5, UPGR.lifeStealChance + 0.12); } },
-      { id:'magnet', type:'Upgrade', name:'Coin Magnet', desc:'Coins are drawn to you from farther away.', apply:()=>{ UPGR.magnet += 1; } },
-      { id:'crit', type:'Upgrade', name:'Critical Focus', desc:'+8% crit chance on melee.', apply:()=>{ UPGR.critChance = Math.min(0.5, UPGR.critChance + 0.08); } },
-      { id:'doublecoin', type:'Upgrade', name:'Golden Touch', desc:'Chance for enemies to drop an extra coin.', apply:()=>{ UPGR.doubleCoinChance = Math.min(0.4, UPGR.doubleCoinChance + 0.12); } },
-    ];
 
     function rollShopOptions(){
       // Shuffle a copy and take first 3
-      const arr = POOL.slice(); for (let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+      const arr = currentPool.slice(); for (let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
       return arr.slice(0,3);
     }
 

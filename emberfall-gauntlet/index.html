@@ -82,7 +82,18 @@
     }
 
     /* Mobile controls */
-    .mobile-ctrls { position: absolute; left: 0; right: 0; bottom: 10px; z-index: 7; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 12px; pointer-events: none; }
+    .mobile-ctrls {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+      z-index: 7;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 0 12px;
+      pointer-events: none;
+    }
     .pad, .actions { pointer-events: auto; }
     .pad { justify-self: start; display: grid; grid-template-columns: 60px 60px 60px; grid-template-rows: 60px 60px 60px; gap: 6px; }
     .actions { justify-self: end; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; align-content: end; }

@@ -8,6 +8,9 @@
 	<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 	<link rel="icon" type="image/png" href="images/botbuiltarcade-icon-face.png">
 	<style>
+		*, *::before, *::after { box-sizing: border-box; }
+		html, body { width: 100%; max-width: 100%; overflow-x: hidden; }
+		img, video, canvas, svg { max-width: 100%; height: auto; }
 		body {
 			margin: 0;
 			padding: 0;
@@ -175,7 +178,13 @@
 			background: rgba(255, 255, 255, 0.05);
 			border-radius: 10px;
 			border: 1px solid rgba(255, 215, 0, 0.2);
+			max-width: 100%;
+			overflow: hidden;
 		}
+
+		/* Keep AdSense iframes from expanding layout on mobile */
+		ins.adsbygoogle { display: block; width: 100% !important; height: auto; }
+		.adsbygoogle iframe { max-width: 100vw !important; }
 		.feedback {
 			margin: 40px 0;
 			color: #5F9EA0;

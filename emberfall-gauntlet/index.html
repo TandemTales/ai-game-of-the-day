@@ -46,7 +46,15 @@
     .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(95,158,160,0.6); }
 
     .stage { position:absolute; inset:0; display:grid; place-items:center; }
-    canvas { width: 960px; height: 540px; image-rendering: pixelated; image-rendering: crisp-edges; border-radius: 12px; border: 3px solid rgba(255,215,0,0.25); background: #0b0f18; }
+    canvas {
+      width: 960px;
+      height: 540px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      border-radius: 12px;
+      border: 3px solid rgba(255,215,0,0.25);
+      background: #0b0f18 url('assets/EG_map_forest01.png') center/cover no-repeat;
+    }
 
     .hud { position:absolute; top:56px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:18px; z-index:4; }
     .chip { background: var(--ui); border: 2px solid var(--gold); color: var(--ink); padding: 8px 12px; border-radius: 10px; font-size: 12px; box-shadow: 0 4px 14px rgba(255,215,0,0.25); }

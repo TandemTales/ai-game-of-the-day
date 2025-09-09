@@ -103,8 +103,9 @@
 
     <div class="hud">
       <div class="chip">Score: <span id="score">0</span></div>
-      <div class="chip">Wave: <span id="wave">1</span></div>
-      <div class="chip" title="Coins collected">Coins: <span id="coins">0</span></div>
+      <div class="chip">Stage: <span id="stage">1</span></div>
+      <div class="chip">Level: <span id="level">1</span></div>
+      <div class="chip" title="Experience">XP: <span id="xp">0/100</span></div>
       <div class="chip hearts" id="hearts"></div>
       <a class="btn" href="../leaderboard.html?gameId=emberfall-gauntlet">Leaderboard</a>
     </div>
@@ -134,10 +135,11 @@
     <div id="startOverlay" class="overlay show">
       <div class="panel">
         <div class="title" style="background:linear-gradient(45deg,var(--gold),#ffa500);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Emberfall Gauntlet</div>
-        <div class="desc">Step into an arena of glowing stone, carve through swarming foes with swift strikes, and scoop shimmering shards to chase the highest score.</div>
+        <div class="desc">Choose your class and battle through six perilous stages.</div>
         <div class="row">
-          <button id="startBtn" class="btn">Start</button>
-          <a class="btn" href="../leaderboard.html?gameId=emberfall-gauntlet">Leaderboard</a>
+          <button id="fighterBtn" class="btn">Fighter</button>
+          <button id="wizardBtn" class="btn">Wizard</button>
+          <button id="rogueBtn" class="btn">Rogue</button>
         </div>
         <div class="small" style="margin-top:10px">Move: WASD/Arrows</div>
       </div>
@@ -154,59 +156,56 @@
       </div>
     </div>
 
-    <!-- Shop Overlay -->
-    <div id="shopOverlay" class="overlay" aria-hidden="true">
-      <div class="panel shop">
-        <div class="title">Wanderer's Emporium</div>
-        <div class="desc">You found a quiet alcove. Choose one boon to continue your run.</div>
-        <div id="shopChoices" class="choices"></div>
-        <div class="small" id="shopHint">Tip: Some boons can stack for greater effect.</div>
-      </div>
-    </div>
   </div>
 
   <script>
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
     const scoreEl = document.getElementById('score');
-    const waveEl = document.getElementById('wave');
-    const coinsEl = document.getElementById('coins');
+    const stageEl = document.getElementById('stage');
+    const levelEl = document.getElementById('level');
+    const xpEl = document.getElementById('xp');
     const heartsEl = document.getElementById('hearts');
     const startOverlay = document.getElementById('startOverlay');
     const gameOverOverlay = document.getElementById('gameOver');
-    const shopOverlay = document.getElementById('shopOverlay');
-    const shopChoices = document.getElementById('shopChoices');
     const finalScoreEl = document.getElementById('finalScore');
-    const startBtn = document.getElementById('startBtn');
+    const fighterBtn = document.getElementById('fighterBtn');
+    const wizardBtn = document.getElementById('wizardBtn');
+    const rogueBtn = document.getElementById('rogueBtn');
     const againBtn = document.getElementById('againBtn');
 
     // Assets (SVG/PNG art)
     const IMG = {
-      hero: new Image(),
+      heroFighter: new Image(),
+      heroWizard: new Image(),
+      heroRogue: new Image(),
       slime: new Image(),
       swift: new Image(),
       brute: new Image(),
-      coin: new Image(),
       heart: new Image(),
       shadow: new Image(),
       spark: new Image(),
     };
-    IMG.hero.src = 'assets/EG_hero_fighter.png';
+    IMG.heroFighter.src = 'assets/EG_hero_fighter.png';
+    IMG.heroWizard.src = 'assets/EG_hero_wizard.png';
+    IMG.heroRogue.src = 'assets/EG_hero_rogue.png';
     IMG.slime.src = 'assets/eg_slime.svg';
     IMG.swift.src = 'assets/eg_swift.svg';
     IMG.brute.src = 'assets/eg_brute.svg';
-    IMG.coin.src = 'assets/eg_coin.svg';
     IMG.heart.src = 'assets/eg_heart.svg';
     IMG.shadow.src = 'assets/eg_shadow.svg';
     IMG.spark.src = 'assets/eg_spark.svg';
+    let heroImg = IMG.heroFighter;
 
-    const MAP_FILES = [
+    const STAGE_MAPS = [
       'assets/EG_map_feywild01.png',
       'assets/EG_map_forest01.png',
       'assets/EG_map_mountain01.png',
       'assets/EG_map_mirewatch01.png',
+      'assets/EG_map_forest01.png',
+      'assets/EG_map_mountain01.png',
     ];
-    const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
+    const MAPS = STAGE_MAPS.map(src => { const i = new Image(); i.src = src; return i; });
 
     let loaded = 0; const need = Object.keys(IMG).length + MAPS.length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -220,48 +219,94 @@
     const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 28, h: 28, dir: 0, aimDir: 0, hp: 5, hpMax: 5, iT: 0, atkT: 0, autoT: 0 };
     const ENEMY = { spd: 90, w: 26, h: 22 }; // default slime baseline
     let DENSITY = 1;
-    const DROP = { w: 18, h: 18 };
     // Increased atkRange to extend weapon reach
     const PHYS = { friction: 0.86, atkDur: 0.18, atkRange: 64, atkArc: Math.PI*0.9 };
     const AUTO = { atkPeriod: 0.7 };
     const SPAWN = { t: 0, cd: 2.2, wave: 1 };
     const SCORE = { value: 0 };
-    const COINS = { value: 0 };
-    const SHOP = { milestones: [5, 12, 20, 30, 45, 60, 80, 105, 135, 170], idx: 0, open: false };
+    const XP_TABLE = [0,100,300,600,1000,1500,2100,2800,3600,4500,5500];
+    let XP = 0, LEVEL = 1, STAGE = 1;
+    let boss = null, PLAYER_CLASS = null;
     const UPGR = {
       meleeDmg: 1,
       multistrike: 1,
-      lifeStealChance: 0,
       magnet: 0,
       critChance: 0,
       critMult: 1.6,
-      doubleCoinChance: 0,
       orbs: 0,
       orbDmg: 1,
       orbRadius: 60,
-      nova: false,
-      novaPeriod: 6,
-      novaTimer: 0,
-      novaDmg: 1,
-      shards: false,
-      shardPeriod: 0.85,
-      shardTimer: 0,
-      shardSpeed: 320,
-      shardCount: 1,
     };
     let PROJECTILES = [];
     let ORBS = [];
     const PARTICLES = [];
     let enemies = [];
-    let drops = [];
     let paused = false, running = false, gameOverHandled = false;
 
     let currentMap = null;
 
-    function init() {
-      currentMap = MAPS[Math.floor(Math.random() * MAPS.length)];
+    const CLASSES = {
+      fighter: { img: IMG.heroFighter, base:{ hp:8, spd:2400, melee:1 }, perLevel:{ hp:2, melee:0.5 } },
+      wizard: { img: IMG.heroWizard, base:{ hp:5, spd:2000, melee:0.5, orbs:1, orbDmg:1 }, perLevel:{ hp:1, orbDmg:0.5, orbsEvery:2 } },
+      rogue:  { img: IMG.heroRogue,  base:{ hp:6, spd:2600, melee:1, crit:0.05 }, perLevel:{ spd:60, crit:0.02 } }
+    };
+
+    function loadStage(num){
+      currentMap = MAPS[num-1];
       ARENA.x = 0; ARENA.y = 0; ARENA.w = currentMap.width; ARENA.h = currentMap.height;
       DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / W, ARENA.h / H) * 1.5));
+      stageEl.textContent = num;
+      Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2 });
+    }
+
+    function updateXPUI(){ xpEl.textContent = `${XP} / ${XP_TABLE[LEVEL] ?? 'MAX'}`; levelEl.textContent = LEVEL; }
+
+    function applyClassBase(){
+      const c = CLASSES[PLAYER_CLASS];
+      heroImg = c.img;
+      P.hpMax = c.base.hp; P.hp = P.hpMax;
+      P.spd = c.base.spd;
+      UPGR.meleeDmg = c.base.melee ?? 1;
+      UPGR.orbs = c.base.orbs ?? 0;
+      UPGR.orbDmg = c.base.orbDmg ?? 1;
+      UPGR.critChance = c.base.crit ?? 0;
+      drawHearts();
+    }
+
+    function applyClassLevel(){
+      const c = CLASSES[PLAYER_CLASS];
+      if (c.perLevel.hp){ P.hpMax += c.perLevel.hp; P.hp += c.perLevel.hp; }
+      if (c.perLevel.melee){ UPGR.meleeDmg += c.perLevel.melee; }
+      if (c.perLevel.spd){ P.spd += c.perLevel.spd; }
+      if (c.perLevel.crit){ UPGR.critChance += c.perLevel.crit; }
+      if (c.perLevel.orbDmg){ UPGR.orbDmg += c.perLevel.orbDmg; }
+      if (c.perLevel.orbsEvery && LEVEL % c.perLevel.orbsEvery === 0){ UPGR.orbs += 1; }
+      drawHearts();
+    }
+
+    function gainXP(amt){
+      XP += amt;
+      while (LEVEL < XP_TABLE.length-1 && XP >= XP_TABLE[LEVEL]){ LEVEL++; applyClassLevel(); }
+      updateXPUI();
+    }
+
+    function spawnBoss(){
+      boss = { kind:'boss', x:ARENA.x+ARENA.w/2, y:ARENA.y+80, vx:0, vy:0, w:60, h:60, hp:20+STAGE*10, spd:50, score:500, xp:200 };
+      enemies.push(boss);
+    }
+
+    function advanceStage(){
+      STAGE++;
+      if (STAGE > MAPS.length){ gameOver(); return; }
+      loadStage(STAGE);
+      SPAWN.wave = 1; SPAWN.t = 0; enemies = []; PARTICLES.length = 0;
+      const initialTarget = Math.min((6 + SPAWN.wave*2) * DENSITY, 80);
+      const initial = Math.min(Math.floor(initialTarget * 0.5), 40);
+      for (let i=0;i<initial;i++) spawnEnemy();
+    }
+
+    function init() {
+      loadStage(1);
       drawHearts();
       attachControls();
       setupMobileControls();
@@ -269,25 +314,16 @@
     }
 
     function reset() {
-      enemies = []; drops = []; PARTICLES.length = 0;
-      // Reset core player stats to base values
-      P.hpMax = 5; // ensure Max HP does not persist between runs
-      P.hp = P.hpMax;
-      P.spd = 2400; // reset speed in case of prior upgrades
-      // Reset combat tuning that upgrades may have modified
-      PHYS.atkRange = 64;
-      PHYS.atkArc = Math.PI * 0.9;
-      AUTO.atkPeriod = 0.7;
-      // Spawn player in the center of the (larger) arena
-      Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:0, aimDir:0, iT:0, atkT:0, autoT:0 });
+      enemies = []; PARTICLES.length = 0; boss = null;
+      XP = 0; LEVEL = 1; STAGE = 1; updateXPUI();
+      loadStage(STAGE);
+      applyClassBase();
+      PHYS.atkRange = 64; PHYS.atkArc = Math.PI * 0.9; AUTO.atkPeriod = 0.7;
+      Object.assign(P, { vx:0, vy:0, dir:0, aimDir:0, iT:0, atkT:0, autoT:0 });
       Object.assign(SPAWN, { t: 0, cd: 2.2, wave: 1 });
-      SCORE.value = 0; scoreEl.textContent = SCORE.value; waveEl.textContent = SPAWN.wave;
-      COINS.value = 0; coinsEl.textContent = COINS.value; SHOP.idx = 0; SHOP.open = false;
-      // Reset upgrades and spell state
-      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:0, critChance:0, critMult:1.6, doubleCoinChance:0, orbs:0, orbDmg:1, orbRadius:60, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1 });
+      SCORE.value = 0; scoreEl.textContent = SCORE.value; stageEl.textContent = STAGE;
       PROJECTILES = []; ORBS = [];
       drawHearts();
-      // Seed the larger world with an initial crowd
       const initialTarget = Math.min((6 + SPAWN.wave*2) * DENSITY, 80);
       const initial = Math.min(Math.floor(initialTarget * 0.5), 40);
       for (let i=0; i<initial; i++) spawnEnemy();
@@ -297,8 +333,10 @@
     function gameOver() {
       if (gameOverHandled) return; gameOverHandled = true; running = false; paused = true; finalScoreEl.textContent = SCORE.value; gameOverOverlay.classList.add('show'); maybeSubmitLeaderboard(); }
 
-    startBtn.addEventListener('click', () => { start(); gameOverHandled = false; });
-    againBtn.addEventListener('click', () => { gameOverOverlay.classList.remove('show'); start(); gameOverHandled = false; });
+    fighterBtn.addEventListener('click', () => { PLAYER_CLASS='fighter'; start(); gameOverHandled = false; });
+    wizardBtn.addEventListener('click', () => { PLAYER_CLASS='wizard'; start(); gameOverHandled = false; });
+    rogueBtn.addEventListener('click', () => { PLAYER_CLASS='rogue'; start(); gameOverHandled = false; });
+    againBtn.addEventListener('click', () => { gameOverOverlay.classList.remove('show'); startOverlay.classList.add('show'); });
 
     // Controls
     const key = { left:false, right:false, up:false, down:false, atk:false };
@@ -360,7 +398,6 @@
 
     // Spawning
     function spawnEnemy(){
-      // Spawn outside player vicinity along arena edges
       const side = Math.floor(Math.random()*4);
       let x=ARENA.x+8, y=ARENA.y+8;
       if (side===0) { x = rand(ARENA.x+16, ARENA.x+ARENA.w-16); y = ARENA.y+10; }
@@ -368,34 +405,24 @@
       if (side===2) { x = rand(ARENA.x+16, ARENA.x+ARENA.w-16); y = ARENA.y+ARENA.h-10; }
       if (side===3) { x = ARENA.x+10; y = rand(ARENA.y+16, ARENA.y+ARENA.h-16); }
 
-      // Choose monster type: guarantee variety from the start
       const r = Math.random();
-      // Base distribution (more slimes, some swift, some brute)
       let kind = r < 0.25 ? 'swift' : (r < 0.40 ? 'brute' : 'slime');
-      // Increase brute share as waves climb
       if (SPAWN.wave >= 3 && r < 0.15) kind = 'brute';
 
-      // Stats per type
-      let w=ENEMY.w, h=ENEMY.h, spd=ENEMY.spd, hp=2+Math.floor(SPAWN.wave/2), score=50;
-      if (kind==='swift'){ w=22; h=18; spd=140; hp=Math.max(1,1+Math.floor(SPAWN.wave/3)); score=40; }
-      else if (kind==='brute'){ w=34; h=28; spd=70; hp=3+Math.floor(SPAWN.wave/1.5); score=80; }
+      let w=ENEMY.w, h=ENEMY.h, spd=ENEMY.spd, hp=2+Math.floor(SPAWN.wave/2), score=50, xp=20;
+      if (kind==='swift'){ w=22; h=18; spd=140; hp=Math.max(1,1+Math.floor(SPAWN.wave/3)); score=40; xp=15; }
+      else if (kind==='brute'){ w=34; h=28; spd=70; hp=3+Math.floor(SPAWN.wave/1.5); score=80; xp=30; }
 
-      enemies.push({ kind, x, y, vx:0, vy:0, w, h, hp, spd, score, t:0 });
+      enemies.push({ kind, x, y, vx:0, vy:0, w, h, hp, spd, score, xp, t:0 });
     }
-
-    function dropCoin(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'coin', v: rand(40,70), a: rand(0,Math.PI*2) }); }
 
     function applyDamage(e, dmg=1){
       e.hp -= dmg;
       spark(e.x,e.y,'#aef');
       if (e.hp<=0){
-        SCORE.value += (e.score||50);
-        scoreEl.textContent = SCORE.value;
-        dropCoin(e.x, e.y);
-        // Life steal on kill
-        if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }
-        // Extra coin chance
-        if (UPGR.doubleCoinChance > 0 && Math.random() < UPGR.doubleCoinChance){ dropCoin(e.x + rand(-6,6), e.y + rand(-6,6)); }
+        SCORE.value += (e.score||50); scoreEl.textContent = SCORE.value;
+        gainXP(e.xp||20);
+        if (e===boss){ boss=null; advanceStage(); }
       }
     }
 
@@ -469,24 +496,6 @@
         }
       }
 
-      // Collect drops
-      for (let i=drops.length-1;i>=0;i--){
-        const d=drops[i]; d.t += dt; const drift = Math.min(1,d.t*3);
-        // Magnet effect pulls coins toward the player
-        if (d.kind==='coin' && UPGR.magnet>0){
-          const dx = P.x-d.x, dy = P.y-d.y; const dist = Math.hypot(dx,dy);
-          const mR = 50 + UPGR.magnet*40;
-          if (dist < mR){ const [nx,ny]=norm(dx,dy); d.vx = (d.vx||0) + nx*80*dt; d.vy = (d.vy||0) + ny*80*dt; }
-        }
-        d.x += (d.vx||0) + Math.cos(d.a)*d.v*dt*drift; d.y += (d.vy||0) + Math.sin(d.a)*d.v*dt*drift; d.v *= (1-1.6*dt);
-        if (len(P.x-d.x,P.y-d.y)<22){
-          if (d.kind==='coin'){
-            SCORE.value += 10; scoreEl.textContent = SCORE.value; COINS.value += 1; coinsEl.textContent = COINS.value; spark(d.x,d.y,'#ffd16b');
-            maybeOpenShop();
-          }
-          drops.splice(i,1);
-        }
-      }
 
       // Spells: orbiting orbs damage
       if (UPGR.orbs>0){
@@ -515,13 +524,13 @@
 
       // Wave & spawns (scale with larger world)
       SPAWN.t += dt; const targetCount = Math.min((6 + SPAWN.wave*2) * DENSITY, 80);
-      if (enemies.filter(e=>e.hp>0).length < targetCount && SPAWN.t > SPAWN.cd){
+      if (!boss && enemies.filter(e=>e.hp>0).length < targetCount && SPAWN.t > SPAWN.cd){
         SPAWN.t = 0;
         const group = Math.min(8, Math.max(2, Math.ceil(DENSITY/2)) * Math.min(4, 1 + Math.floor(SPAWN.wave/2)));
         for (let i=0;i<group; i++) spawnEnemy();
       }
-      // Advance wave slowly over time and score
-      if (SCORE.value > SPAWN.wave*200) { SPAWN.wave += 1; waveEl.textContent = SPAWN.wave; }
+      if (SCORE.value > SPAWN.wave*200) { SPAWN.wave += 1; }
+      if (!boss && LEVEL >= STAGE*2) spawnBoss();
 
       // Clean up dead enemies occasionally
       enemies = enemies.filter(e=>e.hp>0);
@@ -548,8 +557,6 @@
       ctx.translate(-CAM.x, -CAM.y);
       drawBackground();
 
-      // Draw drops
-      for (const d of drops) { ctx.drawImage(IMG.coin, d.x-12, d.y-12, 24, 24); }
 
       // Draw enemies with shadow (use sprite per type, size by enemy)
       for (const e of enemies){
@@ -564,7 +571,7 @@
       // Sword trail when attacking
       if (P.atkT>0){ ctx.save(); ctx.translate(P.x,P.y); ctx.rotate(P.aimDir); const prog = 1 - (P.atkT/PHYS.atkDur); const arc = PHYS.atkArc; ctx.beginPath(); ctx.moveTo(10,0); ctx.arc(0,0,PHYS.atkRange, -arc*0.5+prog*arc, -arc*0.5+prog*arc+0.6); ctx.lineWidth=10; const g=ctx.createLinearGradient(0,0,PHYS.atkRange,0); g.addColorStop(0,'rgba(255,255,255,0.0)'); g.addColorStop(1,'rgba(255,215,0,0.6)'); ctx.strokeStyle=g; ctx.stroke(); ctx.restore(); }
       // Hero body
-      ctx.save(); ctx.translate(P.x, P.y); ctx.rotate(P.dir + Math.sin(t*0.01)*0.02); ctx.drawImage(IMG.hero, -18, -22, 36, 36); ctx.restore();
+      ctx.save(); ctx.translate(P.x, P.y); ctx.rotate(P.dir + Math.sin(t*0.01)*0.02); ctx.drawImage(heroImg, -18, -22, 36, 36); ctx.restore();
 
       // Particles
       for (const p of PARTICLES){ ctx.globalAlpha = 1 - p.life/p.ttl; ctx.drawImage(IMG.spark, p.x - p.size/2, p.y - p.size/2, p.size, p.size); ctx.globalAlpha = 1; }
@@ -579,60 +586,6 @@
       requestAnimationFrame(draw);
     }
 
-    // Shop logic
-    function maybeOpenShop(){
-      if (SHOP.open) return;
-      const next = SHOP.milestones[SHOP.idx] ?? Infinity;
-      if (COINS.value >= next){ openShop(); }
-    }
-
-    function openShop(){
-      SHOP.open = true; paused = true;
-      shopChoices.innerHTML = '';
-      const options = rollShopOptions();
-      for (const opt of options){
-        const el = document.createElement('div'); el.className = 'card';
-        el.innerHTML = `<div class="tag">${opt.type}</div><h3>${opt.name}</h3><div class="body">${opt.desc}</div>${opt.note?`<div class=\"note\">${opt.note}</div>`:''}`;
-        el.addEventListener('click', ()=> selectShopOption(opt));
-        shopChoices.appendChild(el);
-      }
-      shopOverlay.classList.add('show'); shopOverlay.setAttribute('aria-hidden','false');
-    }
-
-    function closeShop(){ SHOP.open = false; paused = false; SHOP.idx++; shopOverlay.classList.remove('show'); shopOverlay.setAttribute('aria-hidden','true'); }
-
-    const POOL = [
-      // Weapons
-      { id:'twin', type:'Weapon', name:'Twin Strikes', desc:'Your melee hits strike twice.', note:'+1 multistrike', apply:()=>{ UPGR.multistrike+=1; } },
-      { id:'longblade', type:'Weapon', name:'Longblade', desc:'Increase melee reach by 20%.', apply:()=>{ PHYS.atkRange = Math.round(PHYS.atkRange*1.2); } },
-      { id:'sweeping', type:'Weapon', name:'Sweeping Arc', desc:'Widen melee arc by 15%.', apply:()=>{ PHYS.atkArc = Math.min(Math.PI*1.6, PHYS.atkArc*1.15); } },
-      { id:'quickhands', type:'Weapon', name:'Quick Hands', desc:'Attack more often (-12% cooldown).', apply:()=>{ AUTO.atkPeriod = Math.max(0.25, AUTO.atkPeriod*0.88); } },
-      { id:'keen', type:'Weapon', name:'Keen Edge', desc:'Melee damage +1.', apply:()=>{ UPGR.meleeDmg += 1; } },
-
-      // Spells
-      { id:'orbs', type:'Spell', name:'Orbiting Sparks', desc:'Summon 1 orbiting spark that damages foes.', note:'Stacks add more sparks', apply:()=>{ UPGR.orbs += 1; } },
-      { id:'nova', type:'Spell', name:'Frost Nova', desc:'Every few seconds, blast nearby foes.', note:'Period and damage improve with repeats', apply:()=>{ if(!UPGR.nova){ UPGR.nova=true; } else { UPGR.novaPeriod=Math.max(2.2, UPGR.novaPeriod*0.9); UPGR.novaDmg+=1; } } },
-      { id:'shards', type:'Spell', name:'Arc Shards', desc:'Periodically fire shards where you face.', note:'More shards with repeats', apply:()=>{ if(!UPGR.shards){ UPGR.shards=true; } else { UPGR.shardCount=Math.min(6, UPGR.shardCount+1); } } },
-
-      // Upgrades
-      { id:'boots', type:'Upgrade', name:'Fleetfoot Boots', desc:'Run 20% faster.', apply:()=>{ P.spd = Math.round(P.spd*1.2); } },
-      { id:'heart', type:'Upgrade', name:'Heart Vessel', desc:'Max HP +1 and heal 1.', apply:()=>{ P.hpMax += 1; P.hp = Math.min(P.hpMax, P.hp+1); drawHearts(); } },
-      { id:'leech', type:'Upgrade', name:'Vampiric Edge', desc:'On kill, small chance to heal 1.', apply:()=>{ UPGR.lifeStealChance = Math.min(0.5, UPGR.lifeStealChance + 0.12); } },
-      { id:'magnet', type:'Upgrade', name:'Coin Magnet', desc:'Coins are drawn to you from farther away.', apply:()=>{ UPGR.magnet += 1; } },
-      { id:'crit', type:'Upgrade', name:'Critical Focus', desc:'+8% crit chance on melee.', apply:()=>{ UPGR.critChance = Math.min(0.5, UPGR.critChance + 0.08); } },
-      { id:'doublecoin', type:'Upgrade', name:'Golden Touch', desc:'Chance for enemies to drop an extra coin.', apply:()=>{ UPGR.doubleCoinChance = Math.min(0.4, UPGR.doubleCoinChance + 0.12); } },
-    ];
-
-    function rollShopOptions(){
-      // Shuffle a copy and take first 3
-      const arr = POOL.slice(); for (let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
-      return arr.slice(0,3);
-    }
-
-    function selectShopOption(opt){
-      try { opt.apply?.(); } catch(e){ console.error('apply upgrade error', e); }
-      closeShop();
-    }
 
     // Leaderboard integration
     async function maybeSubmitLeaderboard(){

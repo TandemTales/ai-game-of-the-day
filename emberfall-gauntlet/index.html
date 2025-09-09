@@ -180,9 +180,8 @@
     const startBtn = document.getElementById('startBtn');
     const againBtn = document.getElementById('againBtn');
 
-    // Assets (SVG art crafted for this game)
+    // Assets (SVG/PNG art)
     const IMG = {
-      tiles: new Image(),
       hero: new Image(),
       slime: new Image(),
       swift: new Image(),
@@ -192,7 +191,6 @@
       shadow: new Image(),
       spark: new Image(),
     };
-    IMG.tiles.src = 'assets/eg_tiles.svg';
     IMG.hero.src = 'assets/eg_hero.svg';
     IMG.slime.src = 'assets/eg_slime.svg';
     IMG.swift.src = 'assets/eg_swift.svg';
@@ -202,19 +200,26 @@
     IMG.shadow.src = 'assets/eg_shadow.svg';
     IMG.spark.src = 'assets/eg_spark.svg';
 
-    let loaded = 0; const need = Object.keys(IMG).length;
+    const MAP_FILES = [
+      'assets/EG_map_feywild01.png',
+      'assets/EG_map_forest01.png',
+      'assets/EG_map_mountain01.png',
+      'assets/EG_map_mirewatch01.png',
+    ];
+    const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
+
+    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
+    for (const img of MAPS) img.addEventListener('load', () => { if (++loaded === need) init(); });
 
     // Game constants
     const W = canvas.width, H = canvas.height;
-    const TILE = 32;
-    // Make the world much larger than the viewport and add a camera
-    const WORLD_SCALE = 4; // 4x larger in each dimension
-    const ARENA = { x: 48, y: 48, w: W*WORLD_SCALE, h: H*WORLD_SCALE };
+    // Arena dimensions will match the chosen map image
+    const ARENA = { x: 0, y: 0, w: 0, h: 0 };
     const CAM = { x: 0, y: 0 };
     const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 28, h: 28, dir: 0, aimDir: 0, hp: 5, hpMax: 5, iT: 0, atkT: 0, autoT: 0 };
     const ENEMY = { spd: 90, w: 26, h: 22 }; // default slime baseline
-    const DENSITY = Math.max(1, Math.round(WORLD_SCALE * 1.5));
+    let DENSITY = 1;
     const DROP = { w: 18, h: 18 };
     // Increased atkRange to extend weapon reach
     const PHYS = { friction: 0.86, atkDur: 0.18, atkRange: 64, atkArc: Math.PI*0.9 };
@@ -251,7 +256,12 @@
     let drops = [];
     let paused = false, running = false, gameOverHandled = false;
 
+    let currentMap = null;
+
     function init() {
+      currentMap = MAPS[Math.floor(Math.random() * MAPS.length)];
+      ARENA.x = 0; ARENA.y = 0; ARENA.w = currentMap.width; ARENA.h = currentMap.height;
+      DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / W, ARENA.h / H) * 1.5));
       drawHearts();
       attachControls();
       setupMobileControls();
@@ -520,33 +530,8 @@
       for (let i=PARTICLES.length-1;i>=0;i--){ const p=PARTICLES[i]; p.life+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; if (p.life>p.ttl) PARTICLES.splice(i,1); }
     }
 
-    function drawTiles(){
-      const img = IMG.tiles; // 256x256 sheet; we use two tiles: 0,0 floor and 32,0 border
-      const sxFloor = 0, syFloor = 0, sw = 32, sh = 32;
-      const sxEdge = 32, syEdge = 0;
-
-      // Determine visible world bounds in tile space (plus 1 tile padding)
-      const minX = Math.max(ARENA.x - TILE, Math.floor((CAM.x - TILE) / TILE) * TILE);
-      const maxX = Math.min(ARENA.x + ARENA.w + TILE, Math.ceil((CAM.x + W + TILE) / TILE) * TILE);
-      const minY = Math.max(ARENA.y - TILE, Math.floor((CAM.y - TILE) / TILE) * TILE);
-      const maxY = Math.min(ARENA.y + ARENA.h + TILE, Math.ceil((CAM.y + H + TILE) / TILE) * TILE);
-
-      // Floor
-      for (let y = Math.max(ARENA.y, minY); y < Math.min(ARENA.y + ARENA.h, maxY); y += TILE){
-        for (let x = Math.max(ARENA.x, minX); x < Math.min(ARENA.x + ARENA.w, maxX); x += TILE){
-          ctx.drawImage(img, sxFloor, syFloor, sw, sh, x, y, TILE, TILE);
-        }
-      }
-      // Border (top & bottom) within visible range
-      for (let x = Math.max(ARENA.x, minX); x < Math.min(ARENA.x + ARENA.w, maxX); x += TILE){
-        ctx.drawImage(img, sxEdge, syEdge, sw, sh, x, ARENA.y - TILE, TILE, TILE);
-        ctx.drawImage(img, sxEdge, syEdge, sw, sh, x, ARENA.y + ARENA.h, TILE, TILE);
-      }
-      // Border (left & right) within visible range
-      for (let y = Math.max(ARENA.y, minY); y < Math.min(ARENA.y + ARENA.h, maxY); y += TILE){
-        ctx.drawImage(img, sxEdge, syEdge, sw, sh, ARENA.x - TILE, y, TILE, TILE);
-        ctx.drawImage(img, sxEdge, syEdge, sw, sh, ARENA.x + ARENA.w, y, TILE, TILE);
-      }
+    function drawBackground(){
+      if (currentMap) ctx.drawImage(currentMap, ARENA.x, ARENA.y, ARENA.w, ARENA.h);
     }
 
     function draw(){
@@ -556,12 +541,12 @@
       ctx.fillStyle = '#0b0f18'; ctx.fillRect(0,0,W,H);
 
       // Update camera to follow player, clamped to the world plus border tiles
-      CAM.x = clamp(P.x - W/2, ARENA.x - TILE, ARENA.x + ARENA.w + TILE - W);
-      CAM.y = clamp(P.y - H/2, ARENA.y - TILE, ARENA.y + ARENA.h + TILE - H);
+      CAM.x = clamp(P.x - W/2, ARENA.x, ARENA.x + ARENA.w - W);
+      CAM.y = clamp(P.y - H/2, ARENA.y, ARENA.y + ARENA.h - H);
 
       ctx.save();
       ctx.translate(-CAM.x, -CAM.y);
-      drawTiles();
+      drawBackground();
 
       // Draw drops
       for (const d of drops) { ctx.drawImage(IMG.coin, d.x-12, d.y-12, 24, 24); }

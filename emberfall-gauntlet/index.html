@@ -406,9 +406,12 @@
     }
 
     function setupMobileControls(){
-      const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+      const hasTouch =
+        (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) ||
+        matchMedia('(pointer: coarse)').matches ||
+        'ontouchstart' in window;
       const ctrls = document.getElementById('mobileCtrls');
-      if (!isTouch || !ctrls) return;
+      if (!hasTouch || !ctrls) return;
       ctrls.classList.remove('hidden');
       ctrls.setAttribute('aria-hidden', 'false');
 
@@ -420,9 +423,11 @@
         el.addEventListener('pointerup', up, { passive: false });
         el.addEventListener('pointercancel', up, { passive: false });
         el.addEventListener('pointerleave', up, { passive: false });
-        // Fallback for touch
-        el.addEventListener('touchstart', (e)=>{ e.preventDefault(); set(); }, { passive: false });
-        el.addEventListener('touchend',   (e)=>{ e.preventDefault(); unset(); }, { passive: false });
+        // Fallbacks for devices that don't fully support pointer events
+        el.addEventListener('touchstart', down, { passive: false });
+        el.addEventListener('touchend', up, { passive: false });
+        el.addEventListener('mousedown', down);
+        el.addEventListener('mouseup', up);
       };
 
       bindHold(document.getElementById('btnLeft'),  ()=> key.left=true,  ()=> key.left=false);

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emberfall</title>
+    <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
+    <style>
+        body {
+            margin: 0;
+            background: #000;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+<canvas id="game" width="320" height="240"></canvas>
+<script>
+(() => {
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width;
+    const H = canvas.height;
+    
+    const sprites = {
+        down: new Image(),
+        up: new Image(),
+        left: new Image(),
+        right: new Image()
+    };
+    sprites.down.src = 'assets/EG_hero_wizard_animation_walking_down.png';
+    sprites.up.src = 'assets/EG_hero_wizard_animation_walking_up.png';
+    sprites.left.src = 'assets/EG_hero_wizard_animation_walking_left.png';
+    sprites.right.src = 'assets/EG_hero_wizard_animation_walking_right.png';
+    
+    const hero = {
+        x: W / 2,
+        y: H / 2,
+        speed: 80,
+        dir: 'down',
+        frame: 0,
+        frameTimer: 0,
+        frameDur: 0.15,
+        moving: false
+    };
+    
+    const keys = {};
+    window.addEventListener('keydown', e => keys[e.key] = true);
+    window.addEventListener('keyup', e => keys[e.key] = false);
+
+    function update(dt) {
+        hero.moving = false;
+        let vx = 0, vy = 0;
+        if (keys['ArrowUp'] || keys['w']) { vy -= 1; }
+        if (keys['ArrowDown'] || keys['s']) { vy += 1; }
+        if (keys['ArrowLeft'] || keys['a']) { vx -= 1; }
+        if (keys['ArrowRight'] || keys['d']) { vx += 1; }
+        if (vx !== 0 || vy !== 0) {
+            const len = Math.hypot(vx, vy);
+            vx /= len; vy /= len;
+            hero.x += vx * hero.speed * dt;
+            hero.y += vy * hero.speed * dt;
+            hero.moving = true;
+            if (Math.abs(vx) > Math.abs(vy)) {
+                hero.dir = vx > 0 ? 'right' : 'left';
+            } else {
+                hero.dir = vy > 0 ? 'down' : 'up';
+            }
+        }
+
+        if (hero.moving) {
+            hero.frameTimer += dt;
+            if (hero.frameTimer >= hero.frameDur) {
+                hero.frameTimer = 0;
+                hero.frame = (hero.frame + 1) % 4;
+            }
+        } else {
+            hero.frame = 0;
+            hero.frameTimer = 0;
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        const img = sprites[hero.dir];
+        const fw = img.width / 4;
+        const fh = img.height;
+        ctx.drawImage(img, hero.frame * fw, 0, fw, fh, hero.x - fw/2, hero.y - fh/2, fw, fh);
+    }
+
+    let last = performance.now();
+    function loop(ts) {
+        const dt = (ts - last) / 1000;
+        last = ts;
+        update(dt);
+        draw();
+        requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

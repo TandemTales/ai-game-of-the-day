@@ -231,6 +231,17 @@
     FIGHT_ANIM.left.src = 'assets/EG_hero_fighter_animation_walking_left_small.png';
     FIGHT_ANIM.right.src = 'assets/EG_hero_fighter_animation_walking_right_small.png';
 
+    const ROGUE_ANIM = {
+      down: new Image(),
+      up: new Image(),
+      left: new Image(),
+      right: new Image(),
+    };
+    ROGUE_ANIM.down.src = 'assets/EG_hero_rogue_animation_walking_down_small.png';
+    ROGUE_ANIM.up.src = 'assets/EG_hero_rogue_animation_walking_up_small.png';
+    ROGUE_ANIM.left.src = 'assets/EG_hero_rogue_animation_walking_left_small.png';
+    ROGUE_ANIM.right.src = 'assets/EG_hero_rogue_animation_walking_right_small.png';
+
     const IMG = {
       slime: new Image(),
       swift: new Image(),
@@ -257,11 +268,12 @@
     ];
     const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
 
-    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length;
+    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const img of MAPS) img.addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in WIZ_ANIM) WIZ_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in FIGHT_ANIM) FIGHT_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
+    for (const k in ROGUE_ANIM) ROGUE_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     CLASS_IMG.rogue.addEventListener('load', () => { if (++loaded === need) init(); });
     CLASS_IMG.wizard.addEventListener('load', () => { if (++loaded === need) init(); });
 
@@ -280,6 +292,7 @@
     const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 28, h: 28, dir: 0, aimDir: 0, swingAim: 0, hp: 5, hpMax: 5, iT: 0, atkT: 0, autoT: 0, hitFlash: 0 };
     const WIZ_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
     const FIGHT_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
+    const ROGUE_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
     const ENEMY = { spd: 90, w: 26, h: 22 }; // default slime baseline
     // Fixed enemy speed: 75% of baseline (25% slower), no scaling
     const ENEMY_SPEED = Math.round(ENEMY.spd * 0.75);
@@ -587,6 +600,25 @@
       }
     }
 
+    function updateRogueAnim(dt){
+      const speed = Math.hypot(P.vx, P.vy);
+      if (speed > 5){
+        if (Math.abs(P.vx) > Math.abs(P.vy)){
+          ROGUE_ANIM_STATE.dir = P.vx > 0 ? 'right' : 'left';
+        } else {
+          ROGUE_ANIM_STATE.dir = P.vy > 0 ? 'down' : 'up';
+        }
+        ROGUE_ANIM_STATE.t += dt;
+        if (ROGUE_ANIM_STATE.t >= 0.12){
+          ROGUE_ANIM_STATE.t = 0;
+          ROGUE_ANIM_STATE.frame = (ROGUE_ANIM_STATE.frame + 1) % 4;
+        }
+      } else {
+        ROGUE_ANIM_STATE.t = 0;
+        ROGUE_ANIM_STATE.frame = 0;
+      }
+    }
+
     // Update & Draw
     function step(dt){
       if (!running || paused) return;
@@ -613,6 +645,7 @@
         P.x = clamp(P.x, ARENA.x+16, ARENA.x+ARENA.w-16); P.y = clamp(P.y, ARENA.y+16, ARENA.y+ARENA.h-16);
         if (currentClass === 'wizard') updateWizardAnim(dt);
         else if (currentClass === 'fighter') updateFighterAnim(dt);
+        else if (currentClass === 'rogue') updateRogueAnim(dt);
 
       // Enemy logic
       for (const e of enemies){
@@ -886,6 +919,11 @@
             const fw = sheet.width / 4;
             const fh = sheet.height;
             ctx.drawImage(sheet, FIGHT_ANIM_STATE.frame * fw, 0, fw, fh, -18, -22, 36, 36);
+          } else if (currentClass === 'rogue'){
+            const sheet = ROGUE_ANIM[ROGUE_ANIM_STATE.dir];
+            const fw = sheet.width / 4;
+            const fh = sheet.height;
+            ctx.drawImage(sheet, ROGUE_ANIM_STATE.frame * fw, 0, fw, fh, -18, -22, 36, 36);
           } else {
             ctx.rotate(P.dir + Math.sin(t*0.01)*0.02);
             ctx.drawImage(IMG.hero, -18, -22, 36, 36);

@@ -218,6 +218,10 @@
       shadow: new Image(),
       spark: new Image(),
       hero: CLASS_IMG.fighter,
+      wizardDown: new Image(),
+      wizardUp: new Image(),
+      wizardLeft: new Image(),
+      wizardRight: new Image(),
     };
     IMG.slime.src = 'assets/eg_slime.svg';
     IMG.swift.src = 'assets/eg_swift.svg';
@@ -226,6 +230,17 @@
     IMG.heart.src = 'assets/eg_heart.svg';
     IMG.shadow.src = 'assets/eg_shadow.svg';
     IMG.spark.src = 'assets/eg_spark.svg';
+    IMG.wizardDown.src = 'assets/EG_hero_wizard_animation_walking_down.png';
+    IMG.wizardUp.src = 'assets/EG_hero_wizard_animation_walking_up.png';
+    IMG.wizardLeft.src = 'assets/EG_hero_wizard_animation_walking_left.png';
+    IMG.wizardRight.src = 'assets/EG_hero_wizard_animation_walking_right.png';
+
+    const WIZ_ANIM = {
+      down: IMG.wizardDown,
+      up: IMG.wizardUp,
+      left: IMG.wizardLeft,
+      right: IMG.wizardRight,
+    };
 
     const MAP_FILES = [
       'assets/EG_map_feywild01.png',
@@ -253,7 +268,7 @@
     // Arena dimensions will match the chosen map image
     const ARENA = { x: 0, y: 0, w: 0, h: 0 };
     const CAM = { x: 0, y: 0 };
-    const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 28, h: 28, dir: 0, aimDir: 0, swingAim: 0, hp: 5, hpMax: 5, iT: 0, atkT: 0, autoT: 0, hitFlash: 0 };
+    const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 28, h: 28, dir: 0, aimDir: 0, swingAim: 0, hp: 5, hpMax: 5, iT: 0, atkT: 0, autoT: 0, hitFlash: 0, facing: 'down', anim: 0, moving: false };
     const ENEMY = { spd: 90, w: 26, h: 22 }; // default slime baseline
     // Fixed enemy speed: 75% of baseline (25% slower), no scaling
     const ENEMY_SPEED = Math.round(ENEMY.spd * 0.75);
@@ -346,7 +361,7 @@
 
     function setClass(cls){
       currentClass = cls;
-      IMG.hero = CLASS_IMG[cls];
+      IMG.hero = cls === 'wizard' ? IMG.wizardDown : CLASS_IMG[cls];
       currentPool = POOLS[cls];
     }
 
@@ -382,7 +397,7 @@
       PHYS.atkArc = Math.PI * 0.35;
       AUTO.atkPeriod = 0.7;
       // Spawn player in the center of the (larger) arena
-      Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:0, aimDir:0, swingAim:0, iT:0, atkT:0, autoT:0 });
+      Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:0, aimDir:0, swingAim:0, iT:0, atkT:0, autoT:0, facing:'down', anim:0, moving:false });
       Object.assign(SPAWN, { t: 0, cd: 2.2, wave: 1 });
       SCORE.value = 0; scoreEl.textContent = SCORE.value; waveEl.textContent = SPAWN.wave;
       COINS.value = 0; coinsEl.textContent = COINS.value; SHOP.idx = 0; SHOP.open = false;
@@ -530,7 +545,19 @@
       // Player input velocity
       let ix = (key.right?1:0) - (key.left?1:0);
       let iy = (key.down?1:0) - (key.up?1:0);
-      if (ix || iy) { const [nx,ny]=norm(ix,iy); P.vx += nx*P.spd*dt; P.vy += ny*P.spd*dt; P.dir = Math.atan2(ny,nx); P.aimDir = P.dir; }
+      P.moving = !!(ix || iy);
+      if (P.moving) {
+        if (Math.abs(ix) > Math.abs(iy)) P.facing = ix > 0 ? 'right' : 'left';
+        else P.facing = iy > 0 ? 'down' : 'up';
+        P.anim += dt;
+        const [nx,ny]=norm(ix,iy);
+        P.vx += nx*P.spd*dt;
+        P.vy += ny*P.spd*dt;
+        P.dir = Math.atan2(ny,nx);
+        P.aimDir = P.dir;
+      } else {
+        P.anim = 0;
+      }
       // Auto-attack on a fixed period
       P.autoT += dt;
       if (P.atkT<=0 && P.autoT >= AUTO.atkPeriod) {
@@ -808,7 +835,19 @@
       // Hero body with blink: toggle visibility while invulnerable
       const blinking = (P.iT > 0) && ((Math.floor(t/80) % 2) === 0);
       if (!blinking){
-        ctx.save(); ctx.translate(P.x, P.y); ctx.rotate(P.dir + Math.sin(t*0.01)*0.02); ctx.drawImage(IMG.hero, -18, -22, 36, 36); ctx.restore();
+        if (currentClass === 'wizard') {
+          const sheet = WIZ_ANIM[P.facing];
+          const frameW = sheet.width / 4;
+          const frameH = sheet.height;
+          const frame = P.moving ? Math.floor(P.anim * 10) % 4 : 0;
+          ctx.drawImage(sheet, frame * frameW, 0, frameW, frameH, P.x - frameW/2, P.y - frameH + 14, frameW, frameH);
+        } else {
+          ctx.save();
+          ctx.translate(P.x, P.y);
+          ctx.rotate(P.dir + Math.sin(t*0.01)*0.02);
+          ctx.drawImage(IMG.hero, -18, -22, 36, 36);
+          ctx.restore();
+        }
       }
 
       // Particles

@@ -263,6 +263,8 @@
     const DROP = { w: 18, h: 18 };
     // Increased atkRange to extend weapon reach
     const PHYS = { friction: 0.86, atkDur: 0.18, atkRange: 64, atkArc: Math.PI*0.9 };
+    // Knockback tuning
+    const KNOCK = { friction: 0.88, melee: 200, orb: 120, nova: 160, projectile: 180 };
     // Separate hitbox scaling so we can tighten player damage range
     const HITBOX = { player: 0.3, enemy: 0.6 };
     const AUTO = { atkPeriod: 0.7 };
@@ -481,12 +483,12 @@
       if (kind==='swift'){ w=22; h=18; spd=140; hp=Math.max(1,1+Math.floor(SPAWN.wave/3)); score=40; }
       else if (kind==='brute'){ w=34; h=28; spd=70; hp=3+Math.floor(SPAWN.wave/1.5); score=80; }
 
-      enemies.push({ kind, x, y, vx:0, vy:0, w, h, hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0 });
+      enemies.push({ kind, x, y, vx:0, vy:0, kx:0, ky:0, w, h, hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0 });
     }
 
     function dropCoin(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'coin', v: rand(40,70), a: rand(0,Math.PI*2) }); }
 
-    function applyDamage(e, dmg=1){
+    function applyDamage(e, dmg=1, kx=0, ky=0, kb=0){
       e.hp -= dmg;
       spark(e.x,e.y,'#aef');
       if (e.hp<=0){
@@ -497,6 +499,13 @@
         if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }
         // Extra coin chance
         if (UPGR.doubleCoinChance > 0 && Math.random() < UPGR.doubleCoinChance){ dropCoin(e.x + rand(-6,6), e.y + rand(-6,6)); }
+      } else {
+        // Non-lethal hit: apply knockback impulse (away from source)
+        if (kb > 0 && (kx !== 0 || ky !== 0)){
+          const d = Math.hypot(kx, ky) || 1;
+          e.kx += (kx / d) * kb;
+          e.ky += (ky / d) * kb;
+        }
       }
     }
 
@@ -605,6 +614,17 @@
           e.y = clamp(e.y, ARENA.y + AI.wallPad, ARENA.y + ARENA.h - AI.wallPad);
         }
 
+        // Apply knockback displacement with decay
+        if (e.kx || e.ky){
+          e.x += e.kx * dt;
+          e.y += e.ky * dt;
+          e.kx *= KNOCK.friction;
+          e.ky *= KNOCK.friction;
+          // Keep within arena after knockback as well
+          e.x = clamp(e.x, ARENA.x + AI.wallPad, ARENA.x + ARENA.w - AI.wallPad);
+          e.y = clamp(e.y, ARENA.y + AI.wallPad, ARENA.y + ARENA.h - AI.wallPad);
+        }
+
         // Attack collision when close and player is vulnerable
         if (P.iT<=0 && Math.abs(P.x-e.x)<(e.w*HITBOX.enemy + P.w*HITBOX.player) && Math.abs(P.y-e.y)<(e.h*HITBOX.enemy + P.h*HITBOX.player)){
           // Take damage and grant invulnerability (i-frames) while blinking
@@ -625,7 +645,9 @@
               if (UPGR.critChance>0 && Math.random()<UPGR.critChance) dmg = Math.ceil(dmg*UPGR.critMult);
               totalDmg += dmg;
             }
-            applyDamage(e, totalDmg);
+            // Knockback away from the player on melee
+            const kdx = e.x - P.x, kdy = e.y - P.y;
+            applyDamage(e, totalDmg, kdx, kdy, KNOCK.melee);
           }
         }
       }
@@ -659,20 +681,20 @@
           // Hit enemies on contact with a tiny cooldown
           o.cd = Math.max(0, o.cd - dt);
           if (o.cd<=0){
-            for (const e of enemies){ if (e.hp<=0) continue; if (len(ox-e.x,oy-e.y) < 18){ applyDamage(e, UPGR.orbDmg); o.cd = 0.12; break; } }
+            for (const e of enemies){ if (e.hp<=0) continue; if (len(ox-e.x,oy-e.y) < 18){ const kdx = e.x - ox, kdy = e.y - oy; applyDamage(e, UPGR.orbDmg, kdx, kdy, KNOCK.orb); o.cd = 0.12; break; } }
           }
           o.x=ox; o.y=oy;
         }
       } else { ORBS = []; }
 
       // Spells: periodic nova
-      if (UPGR.nova){ UPGR.novaTimer += dt; if (UPGR.novaTimer >= UPGR.novaPeriod){ UPGR.novaTimer = 0; for (const e of enemies){ if (e.hp<=0) continue; if (len(P.x-e.x,P.y-e.y) < 90){ applyDamage(e, UPGR.novaDmg); } } spark(P.x,P.y,'#b5f3ff'); } }
+      if (UPGR.nova){ UPGR.novaTimer += dt; if (UPGR.novaTimer >= UPGR.novaPeriod){ UPGR.novaTimer = 0; for (const e of enemies){ if (e.hp<=0) continue; if (len(P.x-e.x,P.y-e.y) < 90){ const kdx = e.x - P.x, kdy = e.y - P.y; applyDamage(e, UPGR.novaDmg, kdx, kdy, KNOCK.nova); } } spark(P.x,P.y,'#b5f3ff'); } }
 
       // Spells: forward shards
       if (UPGR.shards){ UPGR.shardTimer += dt; if (UPGR.shardTimer >= UPGR.shardPeriod){ UPGR.shardTimer = 0; const dir = P.aimDir; const spread = 0.22; const cnt = UPGR.shardCount; for (let i=0;i<cnt;i++){ const a = dir + (i-(cnt-1)/2)*spread; PROJECTILES.push({ x:P.x, y:P.y, vx:Math.cos(a)*320, vy:Math.sin(a)*320, life:0, ttl:1.2, dmg:1 }); } } }
 
       // Update projectiles
-      for (let i=PROJECTILES.length-1;i>=0;i--){ const p=PROJECTILES[i]; p.life+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; if (p.life>p.ttl){ PROJECTILES.splice(i,1); continue; } for (const e of enemies){ if (e.hp<=0) continue; if (len(p.x-e.x,p.y-e.y)<16){ applyDamage(e, p.dmg); PROJECTILES.splice(i,1); break; } } }
+      for (let i=PROJECTILES.length-1;i>=0;i--){ const p=PROJECTILES[i]; p.life+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; if (p.life>p.ttl){ PROJECTILES.splice(i,1); continue; } for (const e of enemies){ if (e.hp<=0) continue; if (len(p.x-e.x,p.y-e.y)<16){ applyDamage(e, p.dmg, p.vx, p.vy, KNOCK.projectile); PROJECTILES.splice(i,1); break; } } }
 
       // Wave & spawns (scale with larger world)
       SPAWN.t += dt; const targetCount = Math.min((6 + SPAWN.wave*2) * DENSITY, 80);

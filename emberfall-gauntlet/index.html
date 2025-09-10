@@ -259,6 +259,8 @@
     const DROP = { w: 18, h: 18 };
     // Increased atkRange to extend weapon reach
     const PHYS = { friction: 0.86, atkDur: 0.18, atkRange: 64, atkArc: Math.PI*0.9 };
+    // Separate hitbox scaling so we can tighten player damage range
+    const HITBOX = { player: 0.3, enemy: 0.6 };
     const AUTO = { atkPeriod: 0.7 };
     const SPAWN = { t: 0, cd: 2.2, wave: 1 };
     const SCORE = { value: 0 };
@@ -541,7 +543,7 @@
         const speed = (e.spd || ENEMY.spd) * (1 + Math.min(0.8, SPAWN.wave*0.06));
         e.vx = nx * speed; e.vy = ny * speed; e.x += e.vx*dt; e.y += e.vy*dt;
         // Attack collision when close and player is vulnerable
-        if (P.iT<=0 && Math.abs(P.x-e.x)<(e.w*0.6+P.w*0.6) && Math.abs(P.y-e.y)<(e.h*0.6+P.h*0.6)){
+        if (P.iT<=0 && Math.abs(P.x-e.x)<(e.w*HITBOX.enemy + P.w*HITBOX.player) && Math.abs(P.y-e.y)<(e.h*HITBOX.enemy + P.h*HITBOX.player)){
           P.hp -= 1; P.iT = 1.0; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver();
         }
       }

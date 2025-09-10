@@ -220,6 +220,17 @@
     WIZ_ANIM.left.src = 'assets/EG_hero_wizard_animation_walking_left_small.png';
     WIZ_ANIM.right.src = 'assets/EG_hero_wizard_animation_walking_right_small.png';
 
+    const FIGHT_ANIM = {
+      down: new Image(),
+      up: new Image(),
+      left: new Image(),
+      right: new Image(),
+    };
+    FIGHT_ANIM.down.src = 'assets/EG_hero_fighter_animation_walking_down_small.png';
+    FIGHT_ANIM.up.src = 'assets/EG_hero_fighter_animation_walking_up_small.png';
+    FIGHT_ANIM.left.src = 'assets/EG_hero_fighter_animation_walking_left_small.png';
+    FIGHT_ANIM.right.src = 'assets/EG_hero_fighter_animation_walking_right_small.png';
+
     const IMG = {
       slime: new Image(),
       swift: new Image(),
@@ -246,10 +257,11 @@
     ];
     const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
 
-    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length;
+    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const img of MAPS) img.addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in WIZ_ANIM) WIZ_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
+    for (const k in FIGHT_ANIM) FIGHT_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     CLASS_IMG.rogue.addEventListener('load', () => { if (++loaded === need) init(); });
     CLASS_IMG.wizard.addEventListener('load', () => { if (++loaded === need) init(); });
 
@@ -267,6 +279,7 @@
     const CAM = { x: 0, y: 0 };
     const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 28, h: 28, dir: 0, aimDir: 0, swingAim: 0, hp: 5, hpMax: 5, iT: 0, atkT: 0, autoT: 0, hitFlash: 0 };
     const WIZ_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
+    const FIGHT_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
     const ENEMY = { spd: 90, w: 26, h: 22 }; // default slime baseline
     // Fixed enemy speed: 75% of baseline (25% slower), no scaling
     const ENEMY_SPEED = Math.round(ENEMY.spd * 0.75);
@@ -533,10 +546,10 @@
       return Math.abs(da) <= arc*0.5;
     }
 
-    // Particles
-    function spark(x,y,color){ for(let i=0;i<8;i++){ const a=rand(0,Math.PI*2); const s=rand(60,120); PARTICLES.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:0,ttl:0.35,color,size:rand(6,12)});} }
+  // Particles
+  function spark(x,y,color){ for(let i=0;i<8;i++){ const a=rand(0,Math.PI*2); const s=rand(60,120); PARTICLES.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:0,ttl:0.35,color,size:rand(6,12)});} }
 
-    function updateWizardAnim(dt){
+  function updateWizardAnim(dt){
       const speed = Math.hypot(P.vx, P.vy);
       if (speed > 5){
         if (Math.abs(P.vx) > Math.abs(P.vy)){
@@ -552,6 +565,25 @@
       } else {
         WIZ_ANIM_STATE.t = 0;
         WIZ_ANIM_STATE.frame = 0;
+      }
+    }
+
+    function updateFighterAnim(dt){
+      const speed = Math.hypot(P.vx, P.vy);
+      if (speed > 5){
+        if (Math.abs(P.vx) > Math.abs(P.vy)){
+          FIGHT_ANIM_STATE.dir = P.vx > 0 ? 'right' : 'left';
+        } else {
+          FIGHT_ANIM_STATE.dir = P.vy > 0 ? 'down' : 'up';
+        }
+        FIGHT_ANIM_STATE.t += dt;
+        if (FIGHT_ANIM_STATE.t >= 0.12){
+          FIGHT_ANIM_STATE.t = 0;
+          FIGHT_ANIM_STATE.frame = (FIGHT_ANIM_STATE.frame + 1) % 4;
+        }
+      } else {
+        FIGHT_ANIM_STATE.t = 0;
+        FIGHT_ANIM_STATE.frame = 0;
       }
     }
 
@@ -578,8 +610,9 @@
       P.vx *= PHYS.friction; P.vy *= PHYS.friction;
       P.x += P.vx*dt; P.y += P.vy*dt;
       // Clamp to arena
-      P.x = clamp(P.x, ARENA.x+16, ARENA.x+ARENA.w-16); P.y = clamp(P.y, ARENA.y+16, ARENA.y+ARENA.h-16);
-      if (currentClass === 'wizard') updateWizardAnim(dt);
+        P.x = clamp(P.x, ARENA.x+16, ARENA.x+ARENA.w-16); P.y = clamp(P.y, ARENA.y+16, ARENA.y+ARENA.h-16);
+        if (currentClass === 'wizard') updateWizardAnim(dt);
+        else if (currentClass === 'fighter') updateFighterAnim(dt);
 
       // Enemy logic
       for (const e of enemies){
@@ -840,20 +873,25 @@
       }
       // Hero body with blink: toggle visibility while invulnerable
       const blinking = (P.iT > 0) && ((Math.floor(t/80) % 2) === 0);
-      if (!blinking){
-        ctx.save();
-        ctx.translate(P.x, P.y);
-        if (currentClass === 'wizard'){
-          const sheet = WIZ_ANIM[WIZ_ANIM_STATE.dir];
-          const fw = sheet.width / 4;
-          const fh = sheet.height;
-          ctx.drawImage(sheet, WIZ_ANIM_STATE.frame * fw, 0, fw, fh, -18, -22, 36, 36);
-        } else {
-          ctx.rotate(P.dir + Math.sin(t*0.01)*0.02);
-          ctx.drawImage(IMG.hero, -18, -22, 36, 36);
+        if (!blinking){
+          ctx.save();
+          ctx.translate(P.x, P.y);
+          if (currentClass === 'wizard'){
+            const sheet = WIZ_ANIM[WIZ_ANIM_STATE.dir];
+            const fw = sheet.width / 4;
+            const fh = sheet.height;
+            ctx.drawImage(sheet, WIZ_ANIM_STATE.frame * fw, 0, fw, fh, -18, -22, 36, 36);
+          } else if (currentClass === 'fighter'){
+            const sheet = FIGHT_ANIM[FIGHT_ANIM_STATE.dir];
+            const fw = sheet.width / 4;
+            const fh = sheet.height;
+            ctx.drawImage(sheet, FIGHT_ANIM_STATE.frame * fw, 0, fw, fh, -18, -22, 36, 36);
+          } else {
+            ctx.rotate(P.dir + Math.sin(t*0.01)*0.02);
+            ctx.drawImage(IMG.hero, -18, -22, 36, 36);
+          }
+          ctx.restore();
         }
-        ctx.restore();
-      }
 
       // Particles
       for (const p of PARTICLES){ ctx.globalAlpha = 1 - p.life/p.ttl; ctx.drawImage(IMG.spark, p.x - p.size/2, p.y - p.size/2, p.size, p.size); ctx.globalAlpha = 1; }

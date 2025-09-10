@@ -199,6 +199,41 @@
     const againBtn = document.getElementById('againBtn');
     const classBtns = document.querySelectorAll('.class-btn');
 
+    // Soundtrack playback
+    const TRACKS = [
+      'assets/EG_soundtrack_01.mp3',
+      'assets/EG_soundtrack_02.mp3',
+      'assets/EG_soundtrack_03.mp3',
+      'assets/EG_soundtrack_04.mp3'
+    ].filter(t => t.includes('soundtrack'));
+    let musicStarted = false;
+    const music = new Audio();
+    music.volume = 1;
+    let playOrder = [];
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+    function preparePlaylist() {
+      playOrder = shuffle(TRACKS.slice());
+    }
+    music.addEventListener('ended', () => {
+      if (!playOrder.length) preparePlaylist();
+      if (!playOrder.length) return;
+      music.src = playOrder.shift();
+      music.play();
+    });
+    function startMusic(){
+      if (musicStarted || !TRACKS.length) return;
+      musicStarted = true;
+      preparePlaylist();
+      music.src = playOrder.shift();
+      music.play();
+    }
+
     // Assets (SVG/PNG art)
     const CLASS_IMG = {
       fighter: new Image(),
@@ -429,6 +464,7 @@
     }
 
     function reset() {
+      startMusic();
       enemies = []; drops = []; PARTICLES.length = 0;
       // Reset core player stats to base values
       const stats = CLASS_STATS[currentClass];

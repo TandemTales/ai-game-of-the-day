@@ -253,7 +253,7 @@
     // Arena dimensions will match the chosen map image
     const ARENA = { x: 0, y: 0, w: 0, h: 0 };
     const CAM = { x: 0, y: 0 };
-    const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 28, h: 28, dir: 0, aimDir: 0, hp: 5, hpMax: 5, iT: 0, atkT: 0, autoT: 0 };
+    const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 28, h: 28, dir: 0, aimDir: 0, hp: 5, hpMax: 5, iT: 0, atkT: 0, autoT: 0, hitFlash: 0 };
     const ENEMY = { spd: 90, w: 26, h: 22 }; // default slime baseline
     // Fixed enemy speed: 75% of baseline (25% slower), no scaling
     const ENEMY_SPEED = Math.round(ENEMY.spd * 0.75);
@@ -532,7 +532,7 @@
         P.atkT = PHYS.atkDur; P.autoT = 0;
       }
       // Timers
-      if (P.atkT>0) P.atkT -= dt; if (P.iT>0) P.iT -= dt;
+      if (P.atkT>0) P.atkT -= dt; if (P.iT>0) P.iT -= dt; if (P.hitFlash>0) P.hitFlash = Math.max(0, P.hitFlash - dt);
 
       // Apply friction
       P.vx *= PHYS.friction; P.vy *= PHYS.friction;
@@ -607,7 +607,8 @@
 
         // Attack collision when close and player is vulnerable
         if (P.iT<=0 && Math.abs(P.x-e.x)<(e.w*HITBOX.enemy + P.w*HITBOX.player) && Math.abs(P.y-e.y)<(e.h*HITBOX.enemy + P.h*HITBOX.player)){
-          P.hp -= 1; P.iT = 1.0; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver();
+          // Take damage and grant invulnerability (i-frames) while blinking
+          P.hp -= 1; P.iT = 2.0; P.hitFlash = 0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver();
         }
       }
 
@@ -719,12 +720,15 @@
         ctx.drawImage(sprite, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
       }
 
-      // Draw player shadow + hero
+      // Draw player shadow + hero (blink on i-frames)
       ctx.drawImage(IMG.shadow, P.x-20, P.y-10, 40, 20);
       // Sword trail when attacking
       if (P.atkT>0){ ctx.save(); ctx.translate(P.x,P.y); ctx.rotate(P.aimDir); const prog = 1 - (P.atkT/PHYS.atkDur); const arc = PHYS.atkArc; ctx.beginPath(); ctx.moveTo(10,0); ctx.arc(0,0,PHYS.atkRange, -arc*0.5+prog*arc, -arc*0.5+prog*arc+0.6); ctx.lineWidth=10; const g=ctx.createLinearGradient(0,0,PHYS.atkRange,0); g.addColorStop(0,'rgba(255,255,255,0.0)'); g.addColorStop(1,'rgba(255,215,0,0.6)'); ctx.strokeStyle=g; ctx.stroke(); ctx.restore(); }
-      // Hero body
-      ctx.save(); ctx.translate(P.x, P.y); ctx.rotate(P.dir + Math.sin(t*0.01)*0.02); ctx.drawImage(IMG.hero, -18, -22, 36, 36); ctx.restore();
+      // Hero body with blink: toggle visibility while invulnerable
+      const blinking = (P.iT > 0) && ((Math.floor(t/80) % 2) === 0);
+      if (!blinking){
+        ctx.save(); ctx.translate(P.x, P.y); ctx.rotate(P.dir + Math.sin(t*0.01)*0.02); ctx.drawImage(IMG.hero, -18, -22, 36, 36); ctx.restore();
+      }
 
       // Particles
       for (const p of PARTICLES){ ctx.globalAlpha = 1 - p.life/p.ttl; ctx.drawImage(IMG.spark, p.x - p.size/2, p.y - p.size/2, p.size, p.size); ctx.globalAlpha = 1; }
@@ -734,6 +738,13 @@
       if (PROJECTILES.length){ for (const pr of PROJECTILES){ ctx.drawImage(IMG.spark, pr.x-6, pr.y-6, 12, 12); } }
 
       ctx.restore();
+
+      // Screen flash on hit (brief red overlay)
+      if (P.hitFlash > 0){
+        const a = Math.min(0.45, (P.hitFlash / 0.25) * 0.45);
+        ctx.fillStyle = `rgba(255,64,64,${a.toFixed(3)})`;
+        ctx.fillRect(0,0,W,H);
+      }
 
       if (running && !paused) step(dt);
       requestAnimationFrame(draw);

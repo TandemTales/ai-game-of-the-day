@@ -258,7 +258,7 @@
     // Fixed enemy speed: 75% of baseline (25% slower), no scaling
     const ENEMY_SPEED = Math.round(ENEMY.spd * 0.75);
     // Simple AI tuning: chase when close, wander when far; keep away from arena walls
-    const AI = { chaseRadius: 300, wanderMin: 0.8, wanderMax: 2.0, wallPad: 12 };
+    const AI = { chaseRadius: 300, wanderMin: 0.8, wanderMax: 2.0, wallPad: 12, sepRadius: 28, sepWeight: 1.0 };
     let DENSITY = 1;
     const DROP = { w: 18, h: 18 };
     // Increased atkRange to extend weapon reach
@@ -546,6 +546,20 @@
         const dx = P.x - e.x, dy = P.y - e.y; const dist = Math.hypot(dx,dy);
         const speed = ENEMY_SPEED;
 
+        // Separation: steer slightly away from nearby enemies
+        let rx = 0, ry = 0;
+        if (enemies.length > 1){
+          for (const o of enemies){
+            if (o === e || o.hp <= 0) continue;
+            const ox = e.x - o.x, oy = e.y - o.y; const d = Math.hypot(ox, oy);
+            if (d > 0 && d < AI.sepRadius){
+              const inv = (AI.sepRadius - d) / AI.sepRadius; // stronger when closer
+              rx += (ox / d) * inv;
+              ry += (oy / d) * inv;
+            }
+          }
+        }
+
         if (dist > AI.chaseRadius) {
           // Wander: keep a direction for a short time, occasionally change
           e.wanderT = (e.wanderT||0) - dt;
@@ -557,23 +571,34 @@
             e.wanderT = rand(AI.wanderMin, AI.wanderMax);
           }
 
-          // Predict next position
-          let vx = Math.cos(e.ang) * speed;
-          let vy = Math.sin(e.ang) * speed;
-          let nx = e.x + vx * dt;
-          let ny = e.y + vy * dt;
+          // Base wander direction
+          let bdx = Math.cos(e.ang), bdy = Math.sin(e.ang);
+          // If nearing arena walls, steer away and pick a fresh direction
+          let nx, ny;
 
           // If nearing arena walls, steer away and pick a fresh direction
           const minX = ARENA.x + AI.wallPad, maxX = ARENA.x + ARENA.w - AI.wallPad;
           const minY = ARENA.y + AI.wallPad, maxY = ARENA.y + ARENA.h - AI.wallPad;
-          if (nx < minX || nx > maxX) { e.ang = Math.PI - e.ang; e.wanderT = rand(AI.wanderMin*0.6, AI.wanderMax*0.8); vx = Math.cos(e.ang)*speed; nx = clamp(e.x + vx*dt, minX, maxX); }
-          if (ny < minY || ny > maxY) { e.ang = -e.ang;             e.wanderT = rand(AI.wanderMin*0.6, AI.wanderMax*0.8); vy = Math.sin(e.ang)*speed; ny = clamp(e.y + vy*dt, minY, maxY); }
+          // Use a provisional step to detect wall proximity
+          let pvx = bdx * speed, pvy = bdy * speed;
+          nx = e.x + pvx * dt; ny = e.y + pvy * dt;
+          if (nx < minX || nx > maxX) { e.ang = Math.PI - e.ang; e.wanderT = rand(AI.wanderMin*0.6, AI.wanderMax*0.8); bdx = Math.cos(e.ang); }
+          if (ny < minY || ny > maxY) { e.ang = -e.ang;             e.wanderT = rand(AI.wanderMin*0.6, AI.wanderMax*0.8); bdy = Math.sin(e.ang); }
 
-          e.vx = vx; e.vy = vy; e.x = clamp(nx, minX, maxX); e.y = clamp(ny, minY, maxY);
+          // Combine base wander with separation then move
+          let cdx = bdx + rx * AI.sepWeight, cdy = bdy + ry * AI.sepWeight;
+          const nd = Math.hypot(cdx, cdy) || 1; cdx /= nd; cdy /= nd;
+          const vx = cdx * speed, vy = cdy * speed;
+          e.vx = vx; e.vy = vy;
+          e.x = clamp(e.x + vx*dt, minX, maxX);
+          e.y = clamp(e.y + vy*dt, minY, maxY);
         } else {
           // Chase player when close
-          const [nx,ny]=norm(dx,dy);
-          e.vx = nx * speed; e.vy = ny * speed;
+          const [bdx,bdy]=norm(dx,dy);
+          // Blend chase with separation, then normalize to maintain speed
+          let cdx = bdx + rx * AI.sepWeight, cdy = bdy + ry * AI.sepWeight;
+          const nd = Math.hypot(cdx, cdy) || 1; cdx /= nd; cdy /= nd;
+          e.vx = cdx * speed; e.vy = cdy * speed;
           e.x += e.vx*dt; e.y += e.vy*dt;
           // Keep within arena while chasing
           e.x = clamp(e.x, ARENA.x + AI.wallPad, ARENA.x + ARENA.w - AI.wallPad);

@@ -257,6 +257,8 @@
     const ENEMY = { spd: 90, w: 26, h: 22 }; // default slime baseline
     // Fixed enemy speed: 75% of baseline (25% slower), no scaling
     const ENEMY_SPEED = Math.round(ENEMY.spd * 0.75);
+    // Simple AI tuning: chase when close, wander when far; keep away from arena walls
+    const AI = { chaseRadius: 300, wanderMin: 0.8, wanderMax: 2.0, wallPad: 12 };
     let DENSITY = 1;
     const DROP = { w: 18, h: 18 };
     // Increased atkRange to extend weapon reach
@@ -479,7 +481,7 @@
       if (kind==='swift'){ w=22; h=18; spd=140; hp=Math.max(1,1+Math.floor(SPAWN.wave/3)); score=40; }
       else if (kind==='brute'){ w=34; h=28; spd=70; hp=3+Math.floor(SPAWN.wave/1.5); score=80; }
 
-      enemies.push({ kind, x, y, vx:0, vy:0, w, h, hp, spd, score, t:0 });
+      enemies.push({ kind, x, y, vx:0, vy:0, w, h, hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0 });
     }
 
     function dropCoin(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'coin', v: rand(40,70), a: rand(0,Math.PI*2) }); }
@@ -540,11 +542,44 @@
 
       // Enemy logic
       for (const e of enemies){
-        e.t += dt; // homing toward player
-        const dx = P.x - e.x, dy = P.y - e.y; const [nx,ny]=norm(dx,dy);
-        // Use a fixed, reduced speed for all enemies (no wave/type scaling)
+        e.t += dt;
+        const dx = P.x - e.x, dy = P.y - e.y; const dist = Math.hypot(dx,dy);
         const speed = ENEMY_SPEED;
-        e.vx = nx * speed; e.vy = ny * speed; e.x += e.vx*dt; e.y += e.vy*dt;
+
+        if (dist > AI.chaseRadius) {
+          // Wander: keep a direction for a short time, occasionally change
+          e.wanderT = (e.wanderT||0) - dt;
+          if (e.wanderT <= 0) {
+            // Bias new direction slightly toward the player so they eventually drift into range
+            const bias = Math.atan2(dy, dx);
+            const jitter = (Math.random()-0.5) * Math.PI; // +/- 90 deg
+            e.ang = bias + jitter;
+            e.wanderT = rand(AI.wanderMin, AI.wanderMax);
+          }
+
+          // Predict next position
+          let vx = Math.cos(e.ang) * speed;
+          let vy = Math.sin(e.ang) * speed;
+          let nx = e.x + vx * dt;
+          let ny = e.y + vy * dt;
+
+          // If nearing arena walls, steer away and pick a fresh direction
+          const minX = ARENA.x + AI.wallPad, maxX = ARENA.x + ARENA.w - AI.wallPad;
+          const minY = ARENA.y + AI.wallPad, maxY = ARENA.y + ARENA.h - AI.wallPad;
+          if (nx < minX || nx > maxX) { e.ang = Math.PI - e.ang; e.wanderT = rand(AI.wanderMin*0.6, AI.wanderMax*0.8); vx = Math.cos(e.ang)*speed; nx = clamp(e.x + vx*dt, minX, maxX); }
+          if (ny < minY || ny > maxY) { e.ang = -e.ang;             e.wanderT = rand(AI.wanderMin*0.6, AI.wanderMax*0.8); vy = Math.sin(e.ang)*speed; ny = clamp(e.y + vy*dt, minY, maxY); }
+
+          e.vx = vx; e.vy = vy; e.x = clamp(nx, minX, maxX); e.y = clamp(ny, minY, maxY);
+        } else {
+          // Chase player when close
+          const [nx,ny]=norm(dx,dy);
+          e.vx = nx * speed; e.vy = ny * speed;
+          e.x += e.vx*dt; e.y += e.vy*dt;
+          // Keep within arena while chasing
+          e.x = clamp(e.x, ARENA.x + AI.wallPad, ARENA.x + ARENA.w - AI.wallPad);
+          e.y = clamp(e.y, ARENA.y + AI.wallPad, ARENA.y + ARENA.h - AI.wallPad);
+        }
+
         // Attack collision when close and player is vulnerable
         if (P.iT<=0 && Math.abs(P.x-e.x)<(e.w*HITBOX.enemy + P.w*HITBOX.player) && Math.abs(P.y-e.y)<(e.h*HITBOX.enemy + P.h*HITBOX.player)){
           P.hp -= 1; P.iT = 1.0; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver();

@@ -591,7 +591,7 @@
       let w=ENEMY.w, h=ENEMY.h, spd=ENEMY.spd, hp=2+Math.floor(SPAWN.wave/2), score=50;
       // Make imp a bit faster than baseline and orc slower; reward orcs more
       if (kind==='imp'){ w=22; h=18; spd=130; hp=Math.max(1,1+Math.floor(SPAWN.wave/3)); score=40; }
-      else if (kind==='orc'){ w=ENEMY.w*4; h=ENEMY.h*4; spd=60; hp=(3+Math.floor(SPAWN.wave/1.5))*3; score=240; }
+      else if (kind==='orc'){ w=ENEMY.w*2; h=ENEMY.h*2; spd=60; hp=(3+Math.floor(SPAWN.wave/1.5))*3; score=240; }
 
       enemies.push({ kind, x, y, vx:0, vy:0, kx:0, ky:0, w, h, hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0, dir:'down', frame:0, animT:0 });
     }

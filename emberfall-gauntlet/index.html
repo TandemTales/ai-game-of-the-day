@@ -242,8 +242,18 @@
     ROGUE_ANIM.left.src = 'assets/EG_hero_rogue_animation_walking_left_small.png';
     ROGUE_ANIM.right.src = 'assets/EG_hero_rogue_animation_walking_right_small.png';
 
+    const GOBLIN_ANIM = {
+      down: new Image(),
+      up: new Image(),
+      left: new Image(),
+      right: new Image(),
+    };
+    GOBLIN_ANIM.down.src = 'assets/EG_enemy_goblin_animation_walking_down_small.png';
+    GOBLIN_ANIM.up.src = 'assets/EG_enemy_goblin_animation_walking_up_small.png';
+    GOBLIN_ANIM.left.src = 'assets/EG_enemy_goblin_animation_walking_left_small.png';
+    GOBLIN_ANIM.right.src = 'assets/EG_enemy_goblin_animation_walking_right_small.png';
+
     const IMG = {
-      slime: new Image(),
       swift: new Image(),
       brute: new Image(),
       coin: new Image(),
@@ -252,7 +262,6 @@
       spark: new Image(),
       hero: CLASS_IMG.fighter,
     };
-    IMG.slime.src = 'assets/eg_slime.svg';
     IMG.swift.src = 'assets/eg_swift.svg';
     IMG.brute.src = 'assets/eg_brute.svg';
     IMG.coin.src = 'assets/eg_coin.svg';
@@ -268,12 +277,13 @@
     ];
     const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
 
-    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length;
+    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const img of MAPS) img.addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in WIZ_ANIM) WIZ_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in FIGHT_ANIM) FIGHT_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in ROGUE_ANIM) ROGUE_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
+    for (const k in GOBLIN_ANIM) GOBLIN_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     CLASS_IMG.rogue.addEventListener('load', () => { if (++loaded === need) init(); });
     CLASS_IMG.wizard.addEventListener('load', () => { if (++loaded === need) init(); });
 
@@ -293,7 +303,7 @@
     const WIZ_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
     const FIGHT_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
     const ROGUE_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
-    const ENEMY = { spd: 90, w: 26, h: 22 }; // default slime baseline
+    const ENEMY = { spd: 90, w: 26, h: 22 }; // default goblin baseline
     // Fixed enemy speed: 75% of baseline (25% slower), no scaling
     const ENEMY_SPEED = Math.round(ENEMY.spd * 0.75);
     // Simple AI tuning: chase when close, wander when far; keep away from arena walls
@@ -513,8 +523,8 @@
 
       // Choose monster type: guarantee variety from the start
       const r = Math.random();
-      // Base distribution (more slimes, some swift, some brute)
-      let kind = r < 0.25 ? 'swift' : (r < 0.40 ? 'brute' : 'slime');
+      // Base distribution (more goblins, some swift, some brute)
+      let kind = r < 0.25 ? 'swift' : (r < 0.40 ? 'brute' : 'goblin');
       // Increase brute share as waves climb
       if (SPAWN.wave >= 3 && r < 0.15) kind = 'brute';
 
@@ -524,7 +534,7 @@
       if (kind==='swift'){ w=22; h=18; spd=130; hp=Math.max(1,1+Math.floor(SPAWN.wave/3)); score=40; }
       else if (kind==='brute'){ w=34; h=28; spd=60; hp=(3+Math.floor(SPAWN.wave/1.5))*3; score=240; }
 
-      enemies.push({ kind, x, y, vx:0, vy:0, kx:0, ky:0, w, h, hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0 });
+      enemies.push({ kind, x, y, vx:0, vy:0, kx:0, ky:0, w, h, hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0, dir:'down', frame:0, animT:0 });
     }
 
     function dropCoin(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'coin', v: rand(40,70), a: rand(0,Math.PI*2) }); }
@@ -724,6 +734,26 @@
           e.y = clamp(e.y, ARENA.y + AI.wallPad, ARENA.y + ARENA.h - AI.wallPad);
         }
 
+        // Goblin walk animation
+        if (e.kind === 'goblin'){
+          const spd = Math.hypot(e.vx, e.vy);
+          if (spd > 5){
+            if (Math.abs(e.vx) > Math.abs(e.vy)){
+              e.dir = e.vx > 0 ? 'right' : 'left';
+            } else {
+              e.dir = e.vy > 0 ? 'down' : 'up';
+            }
+            e.animT += dt;
+            if (e.animT >= 0.12){
+              e.animT = 0;
+              e.frame = (e.frame + 1) % 4;
+            }
+          } else {
+            e.animT = 0;
+            e.frame = 0;
+          }
+        }
+
         // Attack collision when close and player is vulnerable
         if (P.iT<=0 && Math.abs(P.x-e.x)<(e.w*HITBOX.enemy + P.w*HITBOX.player) && Math.abs(P.y-e.y)<(e.h*HITBOX.enemy + P.h*HITBOX.player)){
           // Take damage and grant invulnerability (i-frames) while blinking
@@ -837,8 +867,15 @@
       for (const e of enemies){
         // shadow scaled to enemy size
         ctx.drawImage(IMG.shadow, e.x - e.w*0.7, e.y - e.h*0.35, e.w*1.4, e.h*0.7);
-        const sprite = e.kind==='swift' ? IMG.swift : (e.kind==='brute' ? IMG.brute : IMG.slime);
-        ctx.drawImage(sprite, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
+        if (e.kind === 'goblin'){
+          const sheet = GOBLIN_ANIM[e.dir];
+          const fw = sheet.width / 4;
+          const fh = sheet.height;
+          ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
+        } else {
+          const sprite = e.kind==='swift' ? IMG.swift : IMG.brute;
+          ctx.drawImage(sprite, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
+        }
       }
 
       // Draw player shadow + hero (blink on i-frames)

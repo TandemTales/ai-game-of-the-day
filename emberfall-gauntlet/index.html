@@ -253,7 +253,7 @@
     // Arena dimensions will match the chosen map image
     const ARENA = { x: 0, y: 0, w: 0, h: 0 };
     const CAM = { x: 0, y: 0 };
-    const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 28, h: 28, dir: 0, aimDir: 0, hp: 5, hpMax: 5, iT: 0, atkT: 0, autoT: 0, hitFlash: 0 };
+    const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 28, h: 28, dir: 0, aimDir: 0, swingAim: 0, hp: 5, hpMax: 5, iT: 0, atkT: 0, autoT: 0, hitFlash: 0 };
     const ENEMY = { spd: 90, w: 26, h: 22 }; // default slime baseline
     // Fixed enemy speed: 75% of baseline (25% slower), no scaling
     const ENEMY_SPEED = Math.round(ENEMY.spd * 0.75);
@@ -261,8 +261,8 @@
     const AI = { chaseRadius: 300, wanderMin: 0.8, wanderMax: 2.0, wallPad: 12, sepRadius: 28, sepWeight: 1.0 };
     let DENSITY = 1;
     const DROP = { w: 18, h: 18 };
-    // Increased atkRange to extend weapon reach
-    const PHYS = { friction: 0.86, atkDur: 0.18, atkRange: 64, atkArc: Math.PI*0.9 };
+    // Melee arc narrowed so default swings are a tight cone ahead
+    const PHYS = { friction: 0.86, atkDur: 0.18, atkRange: 64, atkArc: Math.PI*0.35 };
     // Knockback tuning
     const KNOCK = { friction: 0.88, melee: 200, orb: 120, nova: 160, projectile: 180 };
     // Separate hitbox scaling so we can tighten player damage range
@@ -378,10 +378,11 @@
       P.spd = stats.spd;
       // Reset combat tuning that upgrades may have modified
       PHYS.atkRange = 64;
-      PHYS.atkArc = Math.PI * 0.9;
+      // Keep the default melee arc narrow on reset as well
+      PHYS.atkArc = Math.PI * 0.35;
       AUTO.atkPeriod = 0.7;
       // Spawn player in the center of the (larger) arena
-      Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:0, aimDir:0, iT:0, atkT:0, autoT:0 });
+      Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:0, aimDir:0, swingAim:0, iT:0, atkT:0, autoT:0 });
       Object.assign(SPAWN, { t: 0, cd: 2.2, wave: 1 });
       SCORE.value = 0; scoreEl.textContent = SCORE.value; waveEl.textContent = SPAWN.wave;
       COINS.value = 0; coinsEl.textContent = COINS.value; SHOP.idx = 0; SHOP.open = false;
@@ -480,8 +481,9 @@
 
       // Stats per type
       let w=ENEMY.w, h=ENEMY.h, spd=ENEMY.spd, hp=2+Math.floor(SPAWN.wave/2), score=50;
-      if (kind==='swift'){ w=22; h=18; spd=140; hp=Math.max(1,1+Math.floor(SPAWN.wave/3)); score=40; }
-      else if (kind==='brute'){ w=34; h=28; spd=70; hp=3+Math.floor(SPAWN.wave/1.5); score=80; }
+      // Make swift a bit faster than baseline and brute slower; reward brutes more
+      if (kind==='swift'){ w=22; h=18; spd=130; hp=Math.max(1,1+Math.floor(SPAWN.wave/3)); score=40; }
+      else if (kind==='brute'){ w=34; h=28; spd=60; hp=(3+Math.floor(SPAWN.wave/1.5))*3; score=240; }
 
       enemies.push({ kind, x, y, vx:0, vy:0, kx:0, ky:0, w, h, hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0 });
     }
@@ -532,12 +534,9 @@
       // Auto-attack on a fixed period
       P.autoT += dt;
       if (P.atkT<=0 && P.autoT >= AUTO.atkPeriod) {
-        // Aim at nearest enemy if present
-        if (enemies.length){
-          let best=null, bd=1e9;
-          for (const e of enemies){ if (e.hp<=0) continue; const dx=e.x-P.x, dy=e.y-P.y; const d=Math.hypot(dx,dy); if (d<bd){ bd=d; best=[dx,dy]; } }
-          if (best) P.aimDir = Math.atan2(best[1], best[0]);
-        }
+        // Lock swing to current facing; avoid re-aiming while idle
+        P.aimDir = P.dir;
+        P.swingAim = P.aimDir;
         P.atkT = PHYS.atkDur; P.autoT = 0;
       }
       // Timers
@@ -553,7 +552,8 @@
       for (const e of enemies){
         e.t += dt;
         const dx = P.x - e.x, dy = P.y - e.y; const dist = Math.hypot(dx,dy);
-        const speed = ENEMY_SPEED;
+        // Use per-enemy speed (with a global pacing modifier similar to previous tuning)
+        const speed = Math.round((e.spd || ENEMY.spd) * 0.75);
 
         // Separation: steer slightly away from nearby enemies
         let rx = 0, ry = 0;
@@ -636,7 +636,7 @@
       if (P.atkT>0){
         for (const e of enemies){
           if (e.hp<=0) continue;
-          if (hitArc(P.x,P.y,P.aimDir,PHYS.atkArc,PHYS.atkRange,e.x,e.y)){
+          if (hitArc(P.x,P.y,(P.swingAim||P.aimDir),PHYS.atkArc,PHYS.atkRange,e.x,e.y)){
             // Multistrike + crit
             let hits = Math.max(1, Math.floor(UPGR.multistrike));
             let totalDmg = 0;
@@ -745,7 +745,66 @@
       // Draw player shadow + hero (blink on i-frames)
       ctx.drawImage(IMG.shadow, P.x-20, P.y-10, 40, 20);
       // Sword trail when attacking
-      if (P.atkT>0){ ctx.save(); ctx.translate(P.x,P.y); ctx.rotate(P.aimDir); const prog = 1 - (P.atkT/PHYS.atkDur); const arc = PHYS.atkArc; ctx.beginPath(); ctx.moveTo(10,0); ctx.arc(0,0,PHYS.atkRange, -arc*0.5+prog*arc, -arc*0.5+prog*arc+0.6); ctx.lineWidth=10; const g=ctx.createLinearGradient(0,0,PHYS.atkRange,0); g.addColorStop(0,'rgba(255,255,255,0.0)'); g.addColorStop(1,'rgba(255,215,0,0.6)'); ctx.strokeStyle=g; ctx.stroke(); ctx.restore(); }
+      if (P.atkT>0){
+        ctx.save();
+        ctx.translate(P.x,P.y);
+        ctx.rotate(P.swingAim || P.aimDir);
+        const prog = 1 - (P.atkT/PHYS.atkDur);
+        const arc = PHYS.atkArc;
+        // Leading edge of the swing (moves from +arc/2 to -arc/2)
+        const lead = arc*0.5 - prog*arc;
+        // Sword geometry used by both blade and trail
+        const inner = 12;                           // where the blade starts from the hand
+        const bladeLen = Math.min(36, PHYS.atkRange - inner - 6);
+        const bladeW = 6;
+
+        // Draw the sword first
+        ctx.save();
+        ctx.rotate(lead);
+        // Steel gradient from base (darker) to tip (bright)
+        const gb = ctx.createLinearGradient(inner,0, inner+bladeLen,0);
+        gb.addColorStop(0.00, '#bfc7d5');
+        gb.addColorStop(0.60, '#e3e9f5');
+        gb.addColorStop(1.00, '#ffffff');
+        ctx.beginPath();
+        ctx.moveTo(inner, -bladeW/2);
+        ctx.lineTo(inner + bladeLen - 6, -bladeW/2);
+        ctx.lineTo(inner + bladeLen, 0);           // pointed tip
+        ctx.lineTo(inner + bladeLen - 6, bladeW/2);
+        ctx.lineTo(inner, bladeW/2);
+        ctx.closePath();
+        ctx.fillStyle = gb;
+        ctx.fill();
+        // Subtle outline for definition
+        ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+        // Small cross-guard
+        ctx.fillStyle = '#d1a74a';
+        ctx.fillRect(inner-2, -bladeW, 3, bladeW*2);
+        ctx.restore();
+
+        // Now draw a subtle, fading trail on top of the sword, centered on the blade
+        // Total trail length (angular) fades behind the blade
+        const trail = Math.max(0.16, Math.min(0.46, arc * 0.40));
+        const trailCenterR = inner + bladeLen - 4; // keep inside blade tip
+        const layers = 4;
+        for (let i=0; i<layers; i++){
+          const t0 = i / layers;
+          const t1 = (i+1) / layers;
+          const a0 = lead + t0 * trail;     // closest to blade
+          const a1 = lead + t1 * trail;     // further from blade
+          const alpha = 0.28 * (1 - t0);    // fade as it gets further
+          const r = trailCenterR - i*1.2;   // nudge inward for inner layers
+          ctx.beginPath();
+          ctx.arc(0,0,r, a0, a1);
+          ctx.lineWidth = 7 - i*1.6;        // thinner further from blade
+          ctx.strokeStyle = `rgba(255,215,0,${alpha.toFixed(3)})`;
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
       // Hero body with blink: toggle visibility while invulnerable
       const blinking = (P.iT > 0) && ((Math.floor(t/80) % 2) === 0);
       if (!blinking){

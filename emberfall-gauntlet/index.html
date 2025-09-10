@@ -255,6 +255,8 @@
     const CAM = { x: 0, y: 0 };
     const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 28, h: 28, dir: 0, aimDir: 0, hp: 5, hpMax: 5, iT: 0, atkT: 0, autoT: 0 };
     const ENEMY = { spd: 90, w: 26, h: 22 }; // default slime baseline
+    // Fixed enemy speed: 75% of baseline (25% slower), no scaling
+    const ENEMY_SPEED = Math.round(ENEMY.spd * 0.75);
     let DENSITY = 1;
     const DROP = { w: 18, h: 18 };
     // Increased atkRange to extend weapon reach
@@ -540,7 +542,8 @@
       for (const e of enemies){
         e.t += dt; // homing toward player
         const dx = P.x - e.x, dy = P.y - e.y; const [nx,ny]=norm(dx,dy);
-        const speed = (e.spd || ENEMY.spd) * (1 + Math.min(0.8, SPAWN.wave*0.06));
+        // Use a fixed, reduced speed for all enemies (no wave/type scaling)
+        const speed = ENEMY_SPEED;
         e.vx = nx * speed; e.vy = ny * speed; e.x += e.vx*dt; e.y += e.vy*dt;
         // Attack collision when close and player is vulnerable
         if (P.iT<=0 && Math.abs(P.x-e.x)<(e.w*HITBOX.enemy + P.w*HITBOX.player) && Math.abs(P.y-e.y)<(e.h*HITBOX.enemy + P.h*HITBOX.player)){

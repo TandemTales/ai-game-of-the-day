@@ -103,6 +103,7 @@
     .enemy-list { display: flex; flex-direction: column; gap: 10px; }
     .enemy-row { display: flex; align-items: center; gap: 12px; font-size: 12px; }
     .enemy-row img { width: 32px; height: 32px; }
+    .enemy-row.brute img { width: 16px; height: 16px; }
 
     @media (min-width: 900px) {
       .toolbar { bottom: 20px; }
@@ -183,7 +184,7 @@
         <div class="enemy-row"><img src="assets/td_enemy_bug.svg" alt="Bug"><span>Bug - Balanced scout.</span></div>
         <div class="enemy-row"><img src="assets/td_enemy_fast.svg" alt="Runner"><span>Runner - Quick but fragile.</span></div>
         <div class="enemy-row"><img src="assets/td_enemy_armored.svg" alt="Armored"><span>Armored - Slow, heavily protected.</span></div>
-        <div class="enemy-row"><img src="assets/td_enemy_brute.svg" alt="Brute"><span>Brute - Titanic and tough.</span></div>
+        <div class="enemy-row brute"><img src="assets/td_enemy_brute.svg" alt="Brute"><span>Brute - Titanic and tough.</span></div>
       </div>
       <p class="tap">Tap to close</p>
     </div>
@@ -320,10 +321,10 @@
     const MAX_WAVE_SPEED = 130;
     const ENEMY_CONF = { hp: 36, hpInc: 12 };
     const ENEMY_TYPES = {
-      bug:    { img: 'enemy',         spdMul: 1,   hpMul: 1 },
-      fast:   { img: 'enemy_fast',    spdMul: 1.8, hpMul: 0.6 },
-      armored:{ img: 'enemy_armored', spdMul: 0.8, hpMul: 2.2 },
-      brute:  { img: 'enemy_brute',   spdMul: 0.6, hpMul: 4 },
+      bug:    { img: 'enemy',         spdMul: 1,   hpMul: 1,   size: 1 },
+      fast:   { img: 'enemy_fast',    spdMul: 1.8, hpMul: 0.6, size: 1 },
+      armored:{ img: 'enemy_armored', spdMul: 0.8, hpMul: 2.2, size: 1 },
+      brute:  { img: 'enemy_brute',   spdMul: 0.6, hpMul: 4,   size: 0.5 },
     };
 
     // UI selection
@@ -561,7 +562,8 @@
       for(const b of bullets){
         let hit = null;
         for(const e of enemies){
-          if(Math.hypot(e.x-b.x, e.y-b.y) < tile*0.45){ hit = e; break; }
+          const sizeMul = ENEMY_TYPES[e.type].size || 1;
+          if(Math.hypot(e.x-b.x, e.y-b.y) < tile*0.45 * sizeMul){ hit = e; break; }
         }
         if(hit){
           let extra = 0; if(b.bonus && b.bonus[hit.type]) extra = b.bonus[hit.type];
@@ -674,15 +676,16 @@
 
     function drawEnemies(){
       for(const e of enemies){
-        const s = tile*0.9;
-        const imgKey = ENEMY_TYPES[e.type].img;
-        ctx.drawImage(Images[imgKey], e.x - s/2, e.y - s/2, s, s);
+        const typeConf = ENEMY_TYPES[e.type];
+        const sizeMul = typeConf.size || 1;
+        const s = tile*0.9*sizeMul;
+        ctx.drawImage(Images[typeConf.img], e.x - s/2, e.y - s/2, s, s);
         // HP bar
-        const bw = Math.max(16, tile*0.8), bh = 5;
+        const bw = Math.max(16, tile*0.8*sizeMul), bh = 5;
         const pct = Math.max(0, e.hp/e.maxHp);
-        ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(e.x - bw/2, e.y - tile*0.6, bw, bh);
-        ctx.fillStyle = '#7CFC00'; ctx.fillRect(e.x - bw/2, e.y - tile*0.6, bw*pct, bh);
-        if(e.slow<1){ ctx.fillStyle = '#9be0ff'; ctx.fillRect(e.x - bw/2, e.y - tile*0.6 + bh, bw*pct, 2); }
+        ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(e.x - bw/2, e.y - tile*0.6*sizeMul, bw, bh);
+        ctx.fillStyle = '#7CFC00'; ctx.fillRect(e.x - bw/2, e.y - tile*0.6*sizeMul, bw*pct, bh);
+        if(e.slow<1){ ctx.fillStyle = '#9be0ff'; ctx.fillRect(e.x - bw/2, e.y - tile*0.6*sizeMul + bh, bw*pct, 2); }
       }
     }
 

@@ -515,7 +515,10 @@
     const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
     const len = (x,y)=>Math.hypot(x,y);
     const norm = (x,y)=>{const l=Math.hypot(x,y)||1;return [x/l,y/l];};
-    const now = ()=>performance.now(); let last=now();
+    const now = ()=>performance.now();
+    let last = now();
+    let accumulator = 0;
+    const STEP = 1/60;
     function rand(a,b){ return a + Math.random()*(b-a); }
 
     // HUD
@@ -658,8 +661,9 @@
       // Timers
       if (P.atkT>0) P.atkT -= dt; if (P.iT>0) P.iT -= dt; if (P.hitFlash>0) P.hitFlash = Math.max(0, P.hitFlash - dt);
 
-      // Apply friction
-      P.vx *= PHYS.friction; P.vy *= PHYS.friction;
+      // Apply friction (frame-rate independent)
+      const pF = Math.pow(PHYS.friction, dt * 60);
+      P.vx *= pF; P.vy *= pF;
       P.x += P.vx*dt; P.y += P.vy*dt;
       // Clamp to arena
         P.x = clamp(P.x, ARENA.x+16, ARENA.x+ARENA.w-16); P.y = clamp(P.y, ARENA.y+16, ARENA.y+ARENA.h-16);
@@ -668,6 +672,7 @@
         else if (currentClass === 'rogue') updateRogueAnim(dt);
 
       // Enemy logic
+      const kF = Math.pow(KNOCK.friction, dt * 60);
       for (const e of enemies){
         e.t += dt;
         const dx = P.x - e.x, dy = P.y - e.y; const dist = Math.hypot(dx,dy);
@@ -737,8 +742,8 @@
         if (e.kx || e.ky){
           e.x += e.kx * dt;
           e.y += e.ky * dt;
-          e.kx *= KNOCK.friction;
-          e.ky *= KNOCK.friction;
+          e.kx *= kF;
+          e.ky *= kF;
           // Keep within arena after knockback as well
           e.x = clamp(e.x, ARENA.x + AI.wallPad, ARENA.x + ARENA.w - AI.wallPad);
           e.y = clamp(e.y, ARENA.y + AI.wallPad, ARENA.y + ARENA.h - AI.wallPad);
@@ -857,7 +862,15 @@
     }
 
     function draw(){
-      const t = now(); const dt = Math.min(0.033, (t - last)/1000); last = t;
+      const t = now();
+      accumulator += Math.min(0.25, (t - last)/1000);
+      last = t;
+
+      while (accumulator >= STEP){
+        if (running && !paused) step(STEP);
+        accumulator -= STEP;
+      }
+
       ctx.clearRect(0,0,W,H);
       // Subtle vignette
       ctx.fillStyle = '#0b0f18'; ctx.fillRect(0,0,W,H);
@@ -999,7 +1012,6 @@
         ctx.fillRect(0,0,W,H);
       }
 
-      if (running && !paused) step(dt);
       requestAnimationFrame(draw);
     }
 

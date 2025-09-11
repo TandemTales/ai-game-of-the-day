@@ -460,12 +460,18 @@
     const IMG = {
       coin: new Image(),
       heart: new Image(),
+      key: new Image(),
+      chestClosed: new Image(),
+      chestOpen: new Image(),
       shadow: new Image(),
       spark: new Image(),
       hero: CLASS_IMG.fighter,
     };
     IMG.coin.src = 'assets/eg_coin.svg';
     IMG.heart.src = 'assets/eg_heart.svg';
+    IMG.key.src = 'assets/EG_key_small.png';
+    IMG.chestClosed.src = 'assets/EG_chest_closed_small.png';
+    IMG.chestOpen.src = 'assets/EG_chest_open_small.png';
     IMG.shadow.src = 'assets/eg_shadow.svg';
     IMG.spark.src = 'assets/eg_spark.svg';
 
@@ -507,7 +513,7 @@
     // Arena dimensions will match the chosen map image
     const ARENA = { x: 0, y: 0, w: 0, h: 0 };
     const CAM = { x: 0, y: 0 };
-    const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 28, h: 28, dir: 0, aimDir: 0, swingAim: 0, hp: 5, hpMax: 5, iT: 0, atkT: 0, autoT: 0, hitFlash: 0 };
+    const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 28, h: 28, dir: 0, aimDir: 0, swingAim: 0, hp: 5, hpMax: 5, iT: 0, atkT: 0, autoT: 0, hitFlash: 0, key: false };
     const WIZ_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
     const FIGHT_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
     const ROGUE_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
@@ -518,6 +524,8 @@
     const AI = { chaseRadius: 300, wanderMin: 0.8, wanderMax: 2.0, wallPad: 12, sepRadius: 28, sepWeight: 1.0 };
     let DENSITY = 1;
     const DROP = { w: 18, h: 18 };
+    let CHEST = null;
+    let KEY_CARRIER_INDEX = 0;
     // Melee arc narrowed so default swings are a tight cone ahead
     const PHYS = { friction: 0.86, atkDur: 0.18, atkRange: 64, atkArc: Math.PI*0.35 };
     // Knockback tuning
@@ -654,6 +662,7 @@
       const stageMult = Math.pow(1.2, stage);
       Object.assign(SPAWN, { t:0, cd:2.2 / stageMult, wave:1, count:0 });
       updateWaveLimit();
+      setupWave();
       waveEl.textContent = SPAWN.wave;
       boss = null;
       const initial = Math.min(Math.floor(WAVE_LIMIT * 0.5), 40);
@@ -798,7 +807,8 @@
       if (kind==='imp'){ w=22; h=18; spd=130 * stageSpd; hp=Math.max(1,1+Math.floor(SPAWN.wave/3)); score=40; }
       else if (kind==='orc'){ w=ENEMY.w*2; h=ENEMY.h*2; spd=60 * stageSpd; hp=(3+Math.floor(SPAWN.wave/1.5))*3; score=240; }
 
-      enemies.push({ kind, x, y, vx:0, vy:0, kx:0, ky:0, w, h, hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0, dir:'down', frame:0, animT:0 });
+      const hasKey = SPAWN.count === KEY_CARRIER_INDEX;
+      enemies.push({ kind, x, y, vx:0, vy:0, kx:0, ky:0, w, h, hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0, dir:'down', frame:0, animT:0, hasKey });
     }
 
     function spawnBoss(){
@@ -854,6 +864,15 @@
     }
 
     function dropCoin(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'coin', v: rand(40,70), a: rand(0,Math.PI*2) }); }
+    function dropKey(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'key', v: rand(40,70), a: rand(0,Math.PI*2) }); }
+    function dropHeart(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'heart', v: rand(40,70), a: rand(0,Math.PI*2) }); }
+
+    function setupWave(){
+      P.key = false;
+      drops = drops.filter(d => d.kind !== 'key');
+      CHEST = { x: rand(ARENA.x+40, ARENA.x+ARENA.w-40), y: rand(ARENA.y+40, ARENA.y+ARENA.h-40), open: false };
+      KEY_CARRIER_INDEX = Math.floor(Math.random() * WAVE_LIMIT);
+    }
 
     function applyDamage(e, dmg=1, kx=0, ky=0, kb=0){
       e.hp -= dmg;
@@ -868,6 +887,7 @@
         } else {
           addScore(e.score||50);
           dropCoin(e.x, e.y);
+          if (e.hasKey) dropKey(e.x, e.y);
           // Life steal on kill
           if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }
           // Extra coin chance
@@ -1296,9 +1316,22 @@
             addScore(10);
             COINS.value += 1; coinsEl.textContent = COINS.value; spark(d.x,d.y,'#ffd16b');
             maybeOpenShop();
+          } else if (d.kind==='key'){
+            P.key = true; spark(d.x,d.y,'#ffd16b');
+          } else if (d.kind==='heart'){
+            if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); }
+            spark(d.x,d.y,'#ff8a8a');
           }
           drops.splice(i,1);
         }
+      }
+
+      if (CHEST && !CHEST.open && P.key && len(P.x-CHEST.x,P.y-CHEST.y) < 26){
+        CHEST.open = true;
+        P.key = false;
+        const amt = Math.floor(rand(15,51));
+        for (let c=0;c<amt;c++) dropCoin(CHEST.x + rand(-10,10), CHEST.y + rand(-10,10));
+        dropHeart(CHEST.x, CHEST.y);
       }
 
       // Spells: orbiting orbs damage
@@ -1394,6 +1427,7 @@
           if (SPAWN.wave < STAGE_WAVES){
             SPAWN.wave += 1; waveEl.textContent = SPAWN.wave; SPAWN.count = 0; SPAWN.t = 0;
             updateWaveLimit();
+            setupWave();
           } else {
             boss = spawnBoss();
           }
@@ -1437,8 +1471,16 @@
       ctx.translate(-CAM.x, -CAM.y);
       drawBackground();
 
+      if (CHEST) {
+        const img = CHEST.open ? IMG.chestOpen : IMG.chestClosed;
+        ctx.drawImage(img, CHEST.x-16, CHEST.y-16, 32, 32);
+      }
+
       // Draw drops
-      for (const d of drops) { ctx.drawImage(IMG.coin, d.x-12, d.y-12, 24, 24); }
+      for (const d of drops) {
+        const img = d.kind==='coin' ? IMG.coin : d.kind==='key' ? IMG.key : IMG.heart;
+        ctx.drawImage(img, d.x-12, d.y-12, 24, 24);
+      }
 
       // Draw enemies with shadow (use sprite per type, size by enemy)
       for (const e of enemies){

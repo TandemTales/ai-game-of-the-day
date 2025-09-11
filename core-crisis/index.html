@@ -99,6 +99,10 @@
       width: 100%;
       background: #ef4444;
     }
+    /* Audio toggle icon button */
+    .audio-toggle { display:flex; align-items:center; gap:8px; pointer-events: auto; }
+    #audioIcon { position: relative; width: 28px; height: 22px; cursor: pointer; border:1px solid rgba(255,215,0,0.35); border-radius:6px; background: rgba(0,0,0,0.25); overflow: hidden; }
+    #audioIcon img { width: 100%; height: 100%; object-fit: contain; display:block; }
     .btn { pointer-events: auto; text-decoration: none; cursor: pointer; }
     .btn-primary {
       background: linear-gradient(45deg, var(--teal), #4682B4);
@@ -171,9 +175,14 @@
       <div class="chip hidden" id="gunHud">
         <div class="jet-label">Gun</div>
       </div>
-      <div class="chip hidden" id="shieldHud">
-        <div class="jet-label">Shield</div>
-      </div>
+        <div class="chip hidden" id="shieldHud">
+          <div class="jet-label">Shield</div>
+        </div>
+        <div class="audio-toggle" title="Toggle Audio (M)">
+          <div id="audioIcon">
+            <img id="audioIconImg" src="../nova-striker/assets/unmuted.png" alt="Audio">
+          </div>
+        </div>
       <a href="../index.html" class="btn btn-primary back">← Back to Home</a>
     </div>
     <div id="bossHud" class="hidden">
@@ -219,6 +228,8 @@
     const topbar = document.querySelector('.topbar');
     const upgradeNotify = document.getElementById('upgradeNotify');
     const bossNotify = document.getElementById('bossNotify');
+    const audioIcon = document.getElementById('audioIcon');
+    const audioIconImg = document.getElementById('audioIconImg');
     function showUpgrade(name) {
       upgradeNotify.textContent = name + ' acquired!';
       upgradeNotify.style.opacity = 1;
@@ -293,6 +304,12 @@
       init();
       showStart();
       draw(0);
+      // Initialize mute state from storage and wire icon
+      try {
+        const saved = localStorage.getItem(LS_MUTE_KEY);
+        if (saved !== null) setMuted(saved === '1'); else updateAudioIcon();
+      } catch (e) { updateAudioIcon(); }
+      if (audioIcon) audioIcon.addEventListener('click', toggleAudio);
     });
 
     // Game state
@@ -436,15 +453,33 @@
       if (!playOrder.length) preparePlaylist();
       if (!playOrder.length) return;
       music.src = playOrder.shift();
-      music.play();
+      if (!muted) music.play();
     });
     function startMusic(){
       if (musicStarted || !TRACKS.length) return;
       musicStarted = true;
       preparePlaylist();
       music.src = playOrder.shift();
-      music.play();
+      if (!muted) music.play();
     }
+
+    // Audio mute state (persist + UI)
+    let muted = false;
+    const LS_MUTE_KEY = 'core-crisis:muted';
+    function updateAudioIcon(){
+      if (!audioIconImg) return;
+      audioIconImg.src = muted ? '../nova-striker/assets/muted.png' : '../nova-striker/assets/unmuted.png';
+      audioIconImg.alt = muted ? 'Muted' : 'Audio';
+    }
+    function setMuted(m){
+      muted = !!m;
+      music.muted = muted;
+      if (muted) { try { music.pause(); } catch(e) {} } else if (musicStarted) { music.play().catch(()=>{}); }
+      try { if (sfxGain) sfxGain.gain.value = muted ? 0 : SFX_VOLUME; } catch {}
+      updateAudioIcon();
+      try { localStorage.setItem(LS_MUTE_KEY, muted ? '1' : '0'); } catch {}
+    }
+    function toggleAudio(){ setMuted(!muted); }
 
     // Sound effects
     const SFX = {
@@ -468,6 +503,7 @@
       sfxGain.connect(audioCtx.destination);
     }
     function playSfx(s) {
+      if (muted) return;
       try {
         const node = s.cloneNode();
         if (audioCtx) {
@@ -653,6 +689,7 @@
         }
         e.preventDefault();
       }
+      if ((e.key === 'm' || e.key === 'M') && !e.repeat) { toggleAudio(); e.preventDefault(); }
       if (e.key === 'g' || e.key === 'G') {
         showGrid = !showGrid;
         e.preventDefault();

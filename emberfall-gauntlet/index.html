@@ -119,6 +119,7 @@
       <div class="chip">Wave: <span id="wave">1</span></div>
       <div class="chip" title="Coins collected">Coins: <span id="coins">0</span></div>
       <div class="chip hearts" id="hearts"></div>
+      <div class="chip hidden" id="stageTimer"></div>
       <a class="btn" href="../leaderboard.html?gameId=emberfall-gauntlet">Leaderboard</a>
     </div>
 
@@ -190,6 +191,7 @@
     const waveEl = document.getElementById('wave');
     const coinsEl = document.getElementById('coins');
     const heartsEl = document.getElementById('hearts');
+    const stageTimerEl = document.getElementById('stageTimer');
     const startOverlay = document.getElementById('startOverlay');
     const gameOverOverlay = document.getElementById('gameOver');
     const shopOverlay = document.getElementById('shopOverlay');
@@ -429,6 +431,8 @@
     let enemies = [];
     let drops = [];
     let paused = false, running = false, gameOverHandled = false;
+    let awaitingStage = false;
+    let nextStageInterval = null;
 
     let currentMap = null;
 
@@ -514,6 +518,9 @@
 
     function reset() {
       startMusic();
+      awaitingStage = false;
+      if (nextStageInterval) { clearInterval(nextStageInterval); nextStageInterval = null; }
+      stageTimerEl.classList.add('hidden');
       // Reset core player stats to base values
       const stats = CLASS_STATS[currentClass];
       P.hpMax = stats.hp;
@@ -646,11 +653,27 @@
 
     function handleBossDefeat(){
       boss = null;
-      stage++;
-      if (stage >= MAPS.length){
-        return gameOver();
-      }
-      loadStage();
+      awaitingStage = true;
+      let remaining = 10;
+      stageTimerEl.textContent = `Next Stage in ${remaining} seconds`;
+      stageTimerEl.classList.remove('hidden');
+      if (nextStageInterval) { clearInterval(nextStageInterval); }
+      nextStageInterval = setInterval(() => {
+        remaining--;
+        if (remaining > 0){
+          stageTimerEl.textContent = `Next Stage in ${remaining} seconds`;
+        } else {
+          clearInterval(nextStageInterval);
+          nextStageInterval = null;
+          stageTimerEl.classList.add('hidden');
+          awaitingStage = false;
+          stage++;
+          if (stage >= MAPS.length){
+            return gameOver();
+          }
+          loadStage();
+        }
+      }, 1000);
     }
 
     function dropCoin(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'coin', v: rand(40,70), a: rand(0,Math.PI*2) }); }
@@ -957,7 +980,7 @@
       for (let i=PROJECTILES.length-1;i>=0;i--){ const p=PROJECTILES[i]; p.life+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; if (p.life>p.ttl){ PROJECTILES.splice(i,1); continue; } for (const e of enemies){ if (e.hp<=0) continue; if (len(p.x-e.x,p.y-e.y)<16){ applyDamage(e, p.dmg, p.vx, p.vy, KNOCK.projectile); PROJECTILES.splice(i,1); break; } } }
 
       // Wave & spawns (scale with larger world)
-      if (!boss) {
+      if (!boss && !awaitingStage) {
         SPAWN.t += dt;
         const alive = enemies.filter(e=>e.hp>0).length;
         const targetCount = Math.min((6 + SPAWN.wave*2) * DENSITY, WAVE_LIMIT);

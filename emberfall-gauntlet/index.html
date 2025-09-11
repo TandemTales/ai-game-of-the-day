@@ -108,7 +108,7 @@
   <div class="wrap">
     <header>
       <div class="title">
-        <img src="../images/botbuiltarcade-icon-face.png" alt="Arcade" width="36" height="36" style="border-radius:50%; border:2px solid var(--gold)">
+        <img id="logo" src="../images/botbuiltarcade-icon-face.png" alt="Arcade" width="36" height="36" style="border-radius:50%; border:2px solid var(--gold)">
         <h1>Emberfall Gauntlet</h1>
       </div>
       <a href="../index.html" class="btn">⟵ Back to Home</a>
@@ -198,6 +198,26 @@
     const startBtn = document.getElementById('startBtn');
     const againBtn = document.getElementById('againBtn');
     const classBtns = document.querySelectorAll('.class-btn');
+    const logo = document.getElementById('logo');
+
+    const SCORE = { value: 0 };
+    const CHEAT = { active: false, clicks: 0 };
+    logo.addEventListener('click', () => {
+      if (++CHEAT.clicks >= 7) {
+        CHEAT.active = true;
+        SCORE.value = 0;
+        scoreEl.textContent = SCORE.value;
+      }
+    });
+
+    function addScore(amount) {
+      if (!CHEAT.active) {
+        SCORE.value += amount;
+      } else {
+        SCORE.value = 0;
+      }
+      scoreEl.textContent = SCORE.value;
+    }
 
     // Soundtrack playback
     const TRACKS = [
@@ -390,7 +410,6 @@
     let stage = 0;
     const STAGE_WAVES = 5;
     let boss = null;
-    const SCORE = { value: 0 };
     const COINS = { value: 0 };
     const SHOP = { milestones: [5, 12, 20, 30, 45, 60, 80, 105, 135, 170], idx: 0, open: false };
     const UPGR = {
@@ -645,14 +664,12 @@
       spark(e.x,e.y,'#aef');
       if (e.hp<=0){
         if (e.kind === 'boss'){
-          SCORE.value += (e.score||1000);
-          scoreEl.textContent = SCORE.value;
+          addScore(e.score||1000);
           if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }
           if (UPGR.doubleCoinChance > 0 && Math.random() < UPGR.doubleCoinChance){ dropCoin(e.x + rand(-6,6), e.y + rand(-6,6)); }
           handleBossDefeat();
         } else {
-          SCORE.value += (e.score||50);
-          scoreEl.textContent = SCORE.value;
+          addScore(e.score||50);
           dropCoin(e.x, e.y);
           // Life steal on kill
           if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }
@@ -868,7 +885,12 @@
         // Attack collision when close and player is vulnerable
         if (P.iT<=0 && Math.abs(P.x-e.x)<(e.w*HITBOX.enemy + P.w*HITBOX.player) && Math.abs(P.y-e.y)<(e.h*HITBOX.enemy + P.h*HITBOX.player)){
           // Take damage and grant invulnerability (i-frames) while blinking
-          P.hp -= 1; P.iT = 2.0; P.hitFlash = 0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver();
+          if (CHEAT.active) {
+            P.hitFlash = 0.25;
+            spark(P.x,P.y,'#ff8a8a');
+          } else {
+            P.hp -= 1; P.iT = 2.0; P.hitFlash = 0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver();
+          }
         }
       }
 
@@ -904,7 +926,8 @@
         d.x += (d.vx||0) + Math.cos(d.a)*d.v*dt*drift; d.y += (d.vy||0) + Math.sin(d.a)*d.v*dt*drift; d.v *= (1-1.6*dt);
         if (len(P.x-d.x,P.y-d.y)<22){
           if (d.kind==='coin'){
-            SCORE.value += 10; scoreEl.textContent = SCORE.value; COINS.value += 1; coinsEl.textContent = COINS.value; spark(d.x,d.y,'#ffd16b');
+            addScore(10);
+            COINS.value += 1; coinsEl.textContent = COINS.value; spark(d.x,d.y,'#ffd16b');
             maybeOpenShop();
           }
           drops.splice(i,1);

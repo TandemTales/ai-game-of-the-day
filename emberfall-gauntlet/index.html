@@ -462,12 +462,14 @@
       heart: new Image(),
       shadow: new Image(),
       spark: new Image(),
+      chest: new Image(),
       hero: CLASS_IMG.fighter,
     };
     IMG.coin.src = 'assets/eg_coin.svg';
     IMG.heart.src = 'assets/eg_heart.svg';
     IMG.shadow.src = 'assets/eg_shadow.svg';
     IMG.spark.src = 'assets/eg_spark.svg';
+    IMG.chest.src = 'assets/EG_chest_closed_small.png';
 
     const MAP_FILES = [
       'assets/EG_map_mirewatch01.png',
@@ -581,6 +583,7 @@
     let NOVA_FLASH = 0; // brief blue flash when nova triggers
     let enemies = [];
     let drops = [];
+    let chests = [];
     let paused = false, running = false, gameOverHandled = false;
     let awaitingStage = false;
     let nextStageInterval = null;
@@ -649,7 +652,7 @@
       currentMap = MAPS[stage];
       ARENA.x = 0; ARENA.y = 0; ARENA.w = currentMap.width; ARENA.h = currentMap.height;
       DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / W, ARENA.h / H) * 1.5));
-      enemies = []; drops = []; PARTICLES.length = 0; BOSS_PROJECTILES = [];
+      enemies = []; drops = []; chests = []; PARTICLES.length = 0; BOSS_PROJECTILES = [];
       Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:0, aimDir:0, swingAim:0, iT:0, atkT:0, autoT:0 });
       const stageMult = Math.pow(1.2, stage);
       Object.assign(SPAWN, { t:0, cd:2.2 / stageMult, wave:1, count:0 });
@@ -658,6 +661,7 @@
       boss = null;
       const initial = Math.min(Math.floor(WAVE_LIMIT * 0.5), 40);
       for (let i=0; i<initial; i++){ spawnEnemy(); SPAWN.count++; }
+      spawnChest();
     }
 
     function reset() {
@@ -854,6 +858,30 @@
     }
 
     function dropCoin(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'coin', v: rand(40,70), a: rand(0,Math.PI*2) }); }
+
+    function spawnChest(){
+      const side = Math.floor(Math.random()*4);
+      const pad = 20;
+      let x = ARENA.x + pad;
+      let y = ARENA.y + pad;
+      if (side === 0){
+        x = rand(ARENA.x+pad, ARENA.x+ARENA.w-pad);
+        y = ARENA.y + pad;
+      }
+      if (side === 1){
+        x = ARENA.x + ARENA.w - pad;
+        y = rand(ARENA.y+pad, ARENA.y+ARENA.h-pad);
+      }
+      if (side === 2){
+        x = rand(ARENA.x+pad, ARENA.x+ARENA.w-pad);
+        y = ARENA.y + ARENA.h - pad;
+      }
+      if (side === 3){
+        x = ARENA.x + pad;
+        y = rand(ARENA.y+pad, ARENA.y+ARENA.h-pad);
+      }
+      chests.push({x,y,w:32,h:32});
+    }
 
     function applyDamage(e, dmg=1, kx=0, ky=0, kb=0){
       e.hp -= dmg;
@@ -1281,6 +1309,15 @@
         }
       }
 
+      // Chests
+      for (let i=chests.length-1;i>=0;i--){
+        const c = chests[i];
+        if (len(P.x-c.x,P.y-c.y) < 28){
+          for (let j=0;j<5;j++) dropCoin(c.x + rand(-12,12), c.y + rand(-12,12));
+          chests.splice(i,1);
+        }
+      }
+
       // Collect drops
       for (let i=drops.length-1;i>=0;i--){
         const d=drops[i]; d.t += dt; const drift = Math.min(1,d.t*3);
@@ -1393,6 +1430,7 @@
         if (SPAWN.count >= WAVE_LIMIT && alive === 0){
           if (SPAWN.wave < STAGE_WAVES){
             SPAWN.wave += 1; waveEl.textContent = SPAWN.wave; SPAWN.count = 0; SPAWN.t = 0;
+            spawnChest();
             updateWaveLimit();
           } else {
             boss = spawnBoss();
@@ -1436,6 +1474,9 @@
       ctx.save();
       ctx.translate(-CAM.x, -CAM.y);
       drawBackground();
+
+      // Draw chests
+      for (const c of chests) { ctx.drawImage(IMG.chest, c.x-16, c.y-16, 32, 32); }
 
       // Draw drops
       for (const d of drops) { ctx.drawImage(IMG.coin, d.x-12, d.y-12, 24, 24); }

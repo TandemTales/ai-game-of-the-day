@@ -880,10 +880,11 @@
         x = ARENA.x + pad;
         y = rand(ARENA.y+pad, ARENA.y+ARENA.h-pad);
       }
-      chests.push({x,y,w:32,h:32});
+      chests.push({x,y,w:32,h:32, indestructible:true});
     }
 
     function applyDamage(e, dmg=1, kx=0, ky=0, kb=0){
+      if (e.indestructible) return;
       e.hp -= dmg;
       spark(e.x,e.y,'#aef');
       if (e.hp<=0){

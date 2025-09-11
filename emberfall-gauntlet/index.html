@@ -1347,7 +1347,7 @@
       if (PROJECTILES.length){ for (const pr of PROJECTILES){ ctx.drawImage(IMG.spark, pr.x-6, pr.y-6, 12, 12); } }
       if (BOSS_PROJECTILES.length){
         for (const bp of BOSS_PROJECTILES){
-          ctx.fillStyle = '#d2b48c';
+          ctx.fillStyle = 'brown';
           ctx.beginPath();
           ctx.arc(bp.x, bp.y, 8, 0, Math.PI*2);
           ctx.fill();

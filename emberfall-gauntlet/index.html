@@ -224,6 +224,32 @@
       }
     });
 
+    const STAGE_CHEAT = { clicks: 0, last: 0 };
+    const waveChip = waveEl.parentElement;
+    waveChip.addEventListener('click', () => {
+      const now = performance.now();
+      if (now - STAGE_CHEAT.last > 1000) STAGE_CHEAT.clicks = 0;
+      STAGE_CHEAT.last = now;
+      if (++STAGE_CHEAT.clicks >= 7) {
+        STAGE_CHEAT.clicks = 0;
+        cheatNextStage();
+      }
+    });
+
+    function cheatNextStage() {
+      if (awaitingStage) {
+        if (nextStageInterval) { clearInterval(nextStageInterval); nextStageInterval = null; }
+        stageTimerEl.classList.add('hidden');
+        awaitingStage = false;
+      }
+      stage++;
+      if (stage >= MAPS.length) {
+        gameOver();
+      } else {
+        loadStage();
+      }
+    }
+
     function addScore(amount) {
       if (!CHEAT.active) {
         SCORE.value += amount;

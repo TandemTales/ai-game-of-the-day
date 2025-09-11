@@ -871,6 +871,7 @@
 
     function dropCoin(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'coin', v: rand(40,70), a: rand(0,Math.PI*2) }); }
     function dropKey(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'key', v: rand(40,70), a: rand(0,Math.PI*2) }); }
+    function dropHeart(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'heart', v: rand(40,70), a: rand(0,Math.PI*2) }); }
 
     function spawnChest(){
       const side = Math.floor(Math.random()*4);
@@ -1326,7 +1327,9 @@
       // Chests
       for (const c of chests){
         if (!c.opened && KEYS.value > 0 && len(P.x-c.x,P.y-c.y) < 28){
-          for (let j=0;j<5;j++) dropCoin(c.x + rand(-12,12), c.y + rand(-12,12));
+          const coinCount = Math.floor(rand(10,31));
+          for (let j=0;j<coinCount;j++) dropCoin(c.x + rand(-12,12), c.y + rand(-12,12));
+          dropHeart(c.x + rand(-12,12), c.y + rand(-12,12));
           c.opened = true;
           KEYS.value -= 1;
           drawKeys();
@@ -1350,6 +1353,9 @@
             maybeOpenShop();
           } else if (d.kind==='key'){
             KEYS.value += 1; drawKeys(); spark(d.x,d.y,'#ffd16b');
+          } else if (d.kind==='heart'){
+            if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); }
+            spark(d.x,d.y,'#ff8a8a');
           }
           drops.splice(i,1);
         }
@@ -1496,7 +1502,12 @@
       for (const c of chests) { const img = c.opened ? IMG.chestOpen : IMG.chest; ctx.drawImage(img, c.x-16, c.y-16, 32, 32); }
 
       // Draw drops
-      for (const d of drops) { const img = d.kind==='coin'?IMG.coin:IMG.key; ctx.drawImage(img, d.x-12, d.y-12, 24, 24); }
+      for (const d of drops) {
+        let img = IMG.coin;
+        if (d.kind==='key') img = IMG.key;
+        else if (d.kind==='heart') img = IMG.heart;
+        ctx.drawImage(img, d.x-12, d.y-12, 24, 24);
+      }
 
       // Draw enemies with shadow (use sprite per type, size by enemy)
       for (const e of enemies){

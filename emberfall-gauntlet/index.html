@@ -174,7 +174,7 @@
 
     <div id="gameOver" class="overlay">
       <div class="panel">
-        <div class="title">Game Over</div>
+        <div class="title" id="gameOverTitle">Game Over</div>
         <div class="desc">Final Score: <span id="finalScore">0</span></div>
         <div class="row">
           <button id="againBtn" class="btn">Play Again</button>
@@ -244,7 +244,7 @@
       }
       stage++;
       if (stage >= MAPS.length) {
-        gameOver();
+        gameOver(true);
       } else {
         loadStage();
       }
@@ -465,7 +465,6 @@
       'assets/EG_map_feywild01.png',
       'assets/EG_map_corruption01.png',
       'assets/EG_map_mountain01.png',
-      'assets/EG_map_corruption01.png',
     ];
     const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
 
@@ -677,8 +676,19 @@
     }
 
     function start() { reset(); running = true; paused = false; startOverlay.classList.remove('show'); gameOverOverlay.classList.remove('show'); }
-    function gameOver() {
-      if (gameOverHandled) return; gameOverHandled = true; running = false; paused = true; finalScoreEl.textContent = SCORE.value; gameOverOverlay.classList.add('show'); maybeSubmitLeaderboard(); }
+    function gameOver(win = false) {
+      if (gameOverHandled) return;
+      gameOverHandled = true;
+      running = false;
+      paused = true;
+      finalScoreEl.textContent = SCORE.value;
+      const titleEl = document.getElementById('gameOverTitle');
+      if (titleEl) {
+        titleEl.textContent = win ? 'Congratulations! You Won!' : 'Game Over';
+      }
+      gameOverOverlay.classList.add('show');
+      maybeSubmitLeaderboard();
+    }
 
     startBtn.addEventListener('click', () => { start(); gameOverHandled = false; });
     againBtn.addEventListener('click', () => {
@@ -824,7 +834,7 @@
           awaitingStage = false;
           stage++;
           if (stage >= MAPS.length){
-            return gameOver();
+            return gameOver(true);
           }
           loadStage();
         }

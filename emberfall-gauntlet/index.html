@@ -551,7 +551,14 @@
       if (gameOverHandled) return; gameOverHandled = true; running = false; paused = true; finalScoreEl.textContent = SCORE.value; gameOverOverlay.classList.add('show'); maybeSubmitLeaderboard(); }
 
     startBtn.addEventListener('click', () => { start(); gameOverHandled = false; });
-    againBtn.addEventListener('click', () => { gameOverOverlay.classList.remove('show'); start(); gameOverHandled = false; });
+    againBtn.addEventListener('click', () => {
+      // Return to character selection instead of immediately starting
+      running = false;
+      paused = true;
+      gameOverOverlay.classList.remove('show');
+      startOverlay.classList.add('show');
+      gameOverHandled = false;
+    });
 
     // Controls
     const key = { left:false, right:false, up:false, down:false, atk:false };

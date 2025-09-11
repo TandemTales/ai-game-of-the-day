@@ -883,6 +883,12 @@
       chests.push({x,y,w:32,h:32});
     }
 
+    function openChest(i){
+      const c = chests[i];
+      for (let j=0;j<5;j++) dropCoin(c.x + rand(-12,12), c.y + rand(-12,12));
+      chests.splice(i,1);
+    }
+
     function applyDamage(e, dmg=1, kx=0, ky=0, kb=0){
       e.hp -= dmg;
       spark(e.x,e.y,'#aef');
@@ -1307,14 +1313,19 @@
             applyDamage(e, totalDmg, kdx, kdy, KNOCK.melee);
           }
         }
+        for (let i=chests.length-1;i>=0;i--){
+          const c = chests[i];
+          if (hitArc(P.x,P.y,(P.swingAim||P.aimDir),PHYS.atkArc,PHYS.atkRange,c.x,c.y)){
+            openChest(i);
+          }
+        }
       }
 
       // Chests
       for (let i=chests.length-1;i>=0;i--){
         const c = chests[i];
         if (len(P.x-c.x,P.y-c.y) < 28){
-          for (let j=0;j<5;j++) dropCoin(c.x + rand(-12,12), c.y + rand(-12,12));
-          chests.splice(i,1);
+          openChest(i);
         }
       }
 
@@ -1382,7 +1393,35 @@
       if (UPGR.shards){ UPGR.shardTimer += dt; if (UPGR.shardTimer >= UPGR.shardPeriod){ UPGR.shardTimer = 0; const dir = P.aimDir; const spread = 0.22; const cnt = UPGR.shardCount; for (let i=0;i<cnt;i++){ const a = dir + (i-(cnt-1)/2)*spread; PROJECTILES.push({ x:P.x, y:P.y, vx:Math.cos(a)*320, vy:Math.sin(a)*320, life:0, ttl:1.2, dmg:1 }); } } }
 
       // Update projectiles
-      for (let i=PROJECTILES.length-1;i>=0;i--){ const p=PROJECTILES[i]; p.life+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; if (p.life>p.ttl){ PROJECTILES.splice(i,1); continue; } for (const e of enemies){ if (e.hp<=0) continue; if (len(p.x-e.x,p.y-e.y)<16){ applyDamage(e, p.dmg, p.vx, p.vy, KNOCK.projectile); PROJECTILES.splice(i,1); break; } } }
+      for (let i=PROJECTILES.length-1;i>=0;i--){
+        const p=PROJECTILES[i];
+        p.life+=dt;
+        p.x+=p.vx*dt;
+        p.y+=p.vy*dt;
+        if (p.life>p.ttl){ PROJECTILES.splice(i,1); continue; }
+        let hit = false;
+        for (const e of enemies){
+          if (e.hp<=0) continue;
+          if (len(p.x-e.x,p.y-e.y)<16){
+            applyDamage(e, p.dmg, p.vx, p.vy, KNOCK.projectile);
+            hit = true;
+            break;
+          }
+        }
+        if (!hit){
+          for (let j=chests.length-1;j>=0;j--){
+            const c = chests[j];
+            if (len(p.x-c.x,p.y-c.y)<16){
+              openChest(j);
+              hit = true;
+              break;
+            }
+          }
+        }
+        if (hit){
+          PROJECTILES.splice(i,1);
+        }
+      }
 
       // Update boss projectiles
       for (let i=BOSS_PROJECTILES.length-1;i>=0;i--){

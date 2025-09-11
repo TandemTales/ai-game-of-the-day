@@ -183,6 +183,12 @@
       </div>
     </div>
 
+    <div id="winOverlay" class="overlay">
+      <div class="panel">
+        <div class="title">You Won!</div>
+      </div>
+    </div>
+
     <!-- Shop Overlay -->
     <div id="shopOverlay" class="overlay" aria-hidden="true">
       <div class="panel shop">
@@ -204,6 +210,7 @@
     const stageTimerEl = document.getElementById('stageTimer');
     const startOverlay = document.getElementById('startOverlay');
     const gameOverOverlay = document.getElementById('gameOver');
+    const winOverlay = document.getElementById('winOverlay');
     const shopOverlay = document.getElementById('shopOverlay');
     const shopChoices = document.getElementById('shopChoices');
     const finalScoreEl = document.getElementById('finalScore');
@@ -244,7 +251,7 @@
       }
       stage++;
       if (stage >= MAPS.length) {
-        gameOver();
+        winGame();
       } else {
         loadStage();
       }
@@ -465,7 +472,6 @@
       'assets/EG_map_feywild01.png',
       'assets/EG_map_corruption01.png',
       'assets/EG_map_mountain01.png',
-      'assets/EG_map_corruption01.png',
     ];
     const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
 
@@ -676,9 +682,18 @@
       drawHearts();
     }
 
-    function start() { reset(); running = true; paused = false; startOverlay.classList.remove('show'); gameOverOverlay.classList.remove('show'); }
+    function start() { reset(); running = true; paused = false; startOverlay.classList.remove('show'); gameOverOverlay.classList.remove('show'); winOverlay.classList.remove('show'); }
     function gameOver() {
       if (gameOverHandled) return; gameOverHandled = true; running = false; paused = true; finalScoreEl.textContent = SCORE.value; gameOverOverlay.classList.add('show'); maybeSubmitLeaderboard(); }
+    function winGame() {
+      running = false;
+      paused = true;
+      winOverlay.classList.add('show');
+      setTimeout(() => {
+        winOverlay.classList.remove('show');
+        startOverlay.classList.add('show');
+      }, 3000);
+    }
 
     startBtn.addEventListener('click', () => { start(); gameOverHandled = false; });
     againBtn.addEventListener('click', () => {
@@ -808,6 +823,10 @@
     function handleBossDefeat(){
       boss = null;
       BOSS_PROJECTILES = [];
+      if (stage >= MAPS.length - 1){
+        winGame();
+        return;
+      }
       awaitingStage = true;
       let remaining = 10;
       stageTimerEl.textContent = `Next Stage in ${remaining} seconds`;
@@ -824,7 +843,7 @@
           awaitingStage = false;
           stage++;
           if (stage >= MAPS.length){
-            return gameOver();
+            return winGame();
           }
           loadStage();
         }

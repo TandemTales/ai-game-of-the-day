@@ -79,6 +79,21 @@
     .hud .hud-label { font-size: 12px; opacity: 0.95; }
     .hud .hud-value { font-variant-numeric: tabular-nums; }
 
+    .notification {
+      position: fixed;
+      top: calc(var(--topbar-h) + var(--hud-offset) + 10px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.6);
+      color: var(--gold);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      z-index: 30;
+      display: none;
+    }
+    .notification.show { display: block; }
+
     .toolbar {
       position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%);
       display: flex; gap: 10px; z-index: 15; opacity: 0.98; flex-wrap: wrap;
@@ -165,10 +180,12 @@
   <div class="hud" id="hud">
     <span class="hud-item"><span class="hud-emoji" aria-hidden="true">💰</span><span id="coins" class="hud-value">0</span></span>
     <span class="hud-item"><span class="hud-emoji" aria-hidden="true">❤️</span><span id="lives" class="hud-value">0</span></span>
-    <span class="hud-item"><span class="hud-emoji" aria-hidden="true">🎚️</span><span class="hud-label">Level</span><span id="level" class="hud-value">1</span></span>
     <span class="hud-item"><span class="hud-emoji" aria-hidden="true">🌊</span><span class="hud-label">Wave</span><span id="wave" class="hud-value">1</span></span>
+    <span class="hud-item"><span class="hud-emoji" aria-hidden="true">🚩</span><span class="hud-label">Stage</span><span id="stage" class="hud-value">1</span></span>
     <span class="hud-item"><span class="hud-emoji" aria-hidden="true">⭐</span><span class="hud-label">Score</span><span id="score" class="hud-value">0</span></span>
   </div>
+
+  <div class="notification" id="notification"></div>
 
   <div class="game-wrap">
     <canvas id="game"></canvas>
@@ -225,8 +242,9 @@
     const hudCoins = document.getElementById('coins');
     const hudLives = document.getElementById('lives');
     const hudWave = document.getElementById('wave');
-    const hudLevel = document.getElementById('level');
+    const hudStage = document.getElementById('stage');
     const hudScore = document.getElementById('score');
+    const notification = document.getElementById('notification');
     const topbarEl = document.querySelector('.topbar');
     const root = document.documentElement;
     const toolbar = document.getElementById('toolbar');
@@ -234,6 +252,12 @@
     // Leaderboard integration
     const GAME_ID = 'aurora-tower-defense';
     let gameOverHandled = false;
+
+    function showNotification(text){
+      notification.textContent = text;
+      notification.classList.add('show');
+      setTimeout(()=>notification.classList.remove('show'), 1500);
+    }
 
     function setTopbarHeight(){
       const h = Math.ceil(topbarEl.getBoundingClientRect().height);
@@ -432,6 +456,7 @@
     }
 
     function spawnWave(){
+      showNotification(`Wave ${state.wave}`);
       const waveNumber = state.wave;
       const level = state.level;
       const hardWave = waveNumber >= 9;
@@ -530,7 +555,7 @@
     function updateHUD(){
       hudCoins.textContent = state.coins;
       hudLives.textContent = state.lives;
-      hudLevel.textContent = state.level;
+      hudStage.textContent = state.level;
       hudWave.textContent = state.wave;
       hudScore.textContent = computeScore();
     }
@@ -805,6 +830,7 @@
       // reset state (except level)
       state.coins = 85 + (state.level-1)*40; state.lives = 20; state.wave = 1; state.kills = 0; state.leaks = 0; enemies = []; bullets.length = 0; towers.length = 0; spawning=false; pendingSpawns=0; waveTimer=3.0; last=performance.now(); gameOverHandled = false;
       running = true;
+      showNotification(`Stage ${state.level}`);
       // First wave begins after a 3s prep time (handled by updateWaves)
     }
 

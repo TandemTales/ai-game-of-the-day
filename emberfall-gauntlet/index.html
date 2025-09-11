@@ -476,6 +476,9 @@
     let BOSS_PROJECTILES = [];
     let ORBS = [];
     const PARTICLES = [];
+    // Visual FX containers
+    const FX_NOVA = [];
+    let NOVA_FLASH = 0; // brief blue flash when nova triggers
     let enemies = [];
     let drops = [];
     let paused = false, running = false, gameOverHandled = false;
@@ -775,6 +778,53 @@
   // Particles
   function spark(x,y,color){ for(let i=0;i<8;i++){ const a=rand(0,Math.PI*2); const s=rand(60,120); PARTICLES.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:0,ttl:0.35,color,size:rand(6,12)});} }
 
+  // Stronger burst tailored for Frost Nova
+  function frostBurst(x,y){
+    // fast shards
+    for(let i=0;i<22;i++){
+      const a = rand(0, Math.PI*2);
+      const s = rand(140, 240);
+      const sz = rand(8, 16);
+      const ttl = rand(0.45, 0.7);
+      const c = Math.random() < 0.5 ? '#b5f3ff' : '#e6fbff';
+      PARTICLES.push({ x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s, life:0, ttl, color:c, size:sz });
+    }
+    // slow glitter
+    for(let i=0;i<16;i++){
+      const a = rand(0, Math.PI*2);
+      const s = rand(40, 90);
+      const sz = rand(6, 12);
+      const ttl = rand(0.6, 0.9);
+      const c = Math.random() < 0.5 ? '#aee8ff' : '#c9f7ff';
+      PARTICLES.push({ x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s, life:0, ttl, color:c, size:sz });
+    }
+  }
+
+  function frostDisc(x,y,r=90){
+    const count = 120;
+    for(let i=0;i<count;i++){
+      const a = rand(0, Math.PI*2);
+      const rr = Math.sqrt(Math.random()) * r; // uniform disc distribution
+      const px = x + Math.cos(a)*rr;
+      const py = y + Math.sin(a)*rr;
+      const sp = rand(60, 130);
+      const vx = Math.cos(a)*sp*0.8 + rand(-20,20);
+      const vy = Math.sin(a)*sp*0.8 + rand(-20,20);
+      const maxTravel = Math.max(8, r - rr);
+      const speed = Math.hypot(vx,vy) || 1;
+      const ttl = Math.max(0.25, Math.min(0.6, maxTravel / speed));
+      const sz = rand(6, 12);
+      PARTICLES.push({ x:px, y:py, vx, vy, life:0, ttl, color:'#cfefff', size:sz });
+    }
+  }
+
+  function emitNova(x,y){
+    // r matches exact damage radius
+    FX_NOVA.push({ x, y, t: 0, ttl: 0.5, r: 90 });
+    NOVA_FLASH = Math.max(NOVA_FLASH, 0.16);
+    frostDisc(x,y,90);
+  }
+
   function updateWizardAnim(dt){
       const speed = Math.hypot(P.vx, P.vy);
       if (speed > 5){
@@ -1060,7 +1110,20 @@
       } else { ORBS = []; }
 
       // Spells: periodic nova
-      if (UPGR.nova){ UPGR.novaTimer += dt; if (UPGR.novaTimer >= UPGR.novaPeriod){ UPGR.novaTimer = 0; for (const e of enemies){ if (e.hp<=0) continue; if (len(P.x-e.x,P.y-e.y) < 90){ const kdx = e.x - P.x, kdy = e.y - P.y; applyDamage(e, UPGR.novaDmg, kdx, kdy, KNOCK.nova); } } spark(P.x,P.y,'#b5f3ff'); } }
+      if (UPGR.nova){
+        UPGR.novaTimer += dt;
+        if (UPGR.novaTimer >= UPGR.novaPeriod){
+          UPGR.novaTimer = 0;
+          for (const e of enemies){
+            if (e.hp<=0) continue;
+            if (len(P.x-e.x,P.y-e.y) < 90){
+              const kdx = e.x - P.x, kdy = e.y - P.y;
+              applyDamage(e, UPGR.novaDmg, kdx, kdy, KNOCK.nova);
+            }
+          }
+          emitNova(P.x, P.y);
+        }
+      }
 
       // Spells: forward shards
       if (UPGR.shards){ UPGR.shardTimer += dt; if (UPGR.shardTimer >= UPGR.shardPeriod){ UPGR.shardTimer = 0; const dir = P.aimDir; const spread = 0.22; const cnt = UPGR.shardCount; for (let i=0;i<cnt;i++){ const a = dir + (i-(cnt-1)/2)*spread; PROJECTILES.push({ x:P.x, y:P.y, vx:Math.cos(a)*320, vy:Math.sin(a)*320, life:0, ttl:1.2, dmg:1 }); } } }
@@ -1096,6 +1159,10 @@
 
       // Particles
       for (let i=PARTICLES.length-1;i>=0;i--){ const p=PARTICLES[i]; p.life+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; if (p.life>p.ttl) PARTICLES.splice(i,1); }
+
+      // FX: nova rings + flash fade
+      for (let i=FX_NOVA.length-1;i>=0;i--){ const f=FX_NOVA[i]; f.t += dt; if (f.t > f.ttl) FX_NOVA.splice(i,1); }
+      NOVA_FLASH = Math.max(0, NOVA_FLASH - dt*1.6);
     }
 
     function drawBackground(){
@@ -1244,6 +1311,8 @@
           ctx.restore();
         }
 
+      // FX: Frost Nova now uses disc-filling particles only (no ring overlay)
+
       // Particles
       for (const p of PARTICLES){ ctx.globalAlpha = 1 - p.life/p.ttl; ctx.drawImage(IMG.spark, p.x - p.size/2, p.y - p.size/2, p.size, p.size); ctx.globalAlpha = 1; }
 
@@ -1266,6 +1335,13 @@
         ctx.strokeStyle = '#fff';
         ctx.lineWidth = 2;
         ctx.strokeRect(x, y, barW, barH);
+      }
+      
+      // Frost Nova blue flash (brief, subtle)
+      if (NOVA_FLASH > 0){
+        const a = Math.min(0.28, (NOVA_FLASH / 0.18) * 0.28);
+        ctx.fillStyle = `rgba(140,200,255,${a.toFixed(3)})`;
+        ctx.fillRect(0,0,W,H);
       }
 
       // Screen flash on hit (brief red overlay)

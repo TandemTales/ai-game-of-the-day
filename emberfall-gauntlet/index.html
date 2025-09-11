@@ -454,6 +454,7 @@
       shadow: new Image(),
       spark: new Image(),
       chest: new Image(),
+      chestOpen: new Image(),
       hero: CLASS_IMG.fighter,
     };
     IMG.coin.src = 'assets/eg_coin.svg';
@@ -462,6 +463,7 @@
     IMG.shadow.src = 'assets/eg_shadow.svg';
     IMG.spark.src = 'assets/eg_spark.svg';
     IMG.chest.src = 'assets/EG_chest_closed_small.png';
+    IMG.chestOpen.src = 'assets/EG_chest_open_small.png';
 
     const MAP_FILES = [
       'assets/EG_map_mirewatch01.png',
@@ -891,7 +893,7 @@
         x = ARENA.x + pad;
         y = rand(ARENA.y+pad, ARENA.y+ARENA.h-pad);
       }
-      chests.push({x,y,w:32,h:32});
+      chests.push({x,y,w:32,h:32,opened:false});
     }
 
     function applyDamage(e, dmg=1, kx=0, ky=0, kb=0){
@@ -1322,11 +1324,12 @@
       }
 
       // Chests
-      for (let i=chests.length-1;i>=0;i--){
-        const c = chests[i];
-        if (len(P.x-c.x,P.y-c.y) < 28){
+      for (const c of chests){
+        if (!c.opened && KEYS.value > 0 && len(P.x-c.x,P.y-c.y) < 28){
           for (let j=0;j<5;j++) dropCoin(c.x + rand(-12,12), c.y + rand(-12,12));
-          chests.splice(i,1);
+          c.opened = true;
+          KEYS.value -= 1;
+          drawKeys();
         }
       }
 
@@ -1490,7 +1493,7 @@
       drawBackground();
 
       // Draw chests
-      for (const c of chests) { ctx.drawImage(IMG.chest, c.x-16, c.y-16, 32, 32); }
+      for (const c of chests) { const img = c.opened ? IMG.chestOpen : IMG.chest; ctx.drawImage(img, c.x-16, c.y-16, 32, 32); }
 
       // Draw drops
       for (const d of drops) { const img = d.kind==='coin'?IMG.coin:IMG.key; ctx.drawImage(img, d.x-12, d.y-12, 24, 24); }

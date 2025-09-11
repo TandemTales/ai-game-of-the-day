@@ -663,6 +663,7 @@
     const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
     const len = (x,y)=>Math.hypot(x,y);
     const norm = (x,y)=>{const l=Math.hypot(x,y)||1;return [x/l,y/l];};
+    const angleDiff = (a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
     const now = ()=>performance.now();
     let last = now();
     let accumulator = 0;
@@ -701,7 +702,7 @@
     function spawnBoss(){
       const x = ARENA.x + ARENA.w/2;
       const y = ARENA.y + ARENA.h/2;
-      const b = { kind:'boss', x, y, vx:0, vy:0, kx:0, ky:0, w:ENEMY.w*4, h:ENEMY.h*4, hp:120, hpMax:120, spd:60, score:2000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0, atkT:0 };
+      const b = { kind:'boss', x, y, vx:0, vy:0, kx:0, ky:0, w:ENEMY.w*4, h:ENEMY.h*4, hp:60, hpMax:60, spd:60, score:2000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0, atkT:0, facing:0 };
       enemies.push(b);
       return b;
     }
@@ -865,6 +866,19 @@
       for (const e of enemies){
         e.t += dt;
         const dx = P.x - e.x, dy = P.y - e.y; const dist = Math.hypot(dx,dy);
+        if (e.kind === 'boss'){
+          const targetAng = Math.atan2(dy, dx);
+          const turnRate = 1.5; // rad/sec
+          const diff = angleDiff(targetAng, e.facing);
+          const maxTurn = turnRate * dt;
+          if (Math.abs(diff) < maxTurn) e.facing = targetAng;
+          else e.facing += Math.sign(diff) * maxTurn;
+          if (Math.abs(Math.cos(e.facing)) > Math.abs(Math.sin(e.facing))){
+            e.dir = Math.cos(e.facing) > 0 ? 'right' : 'left';
+          } else {
+            e.dir = Math.sin(e.facing) > 0 ? 'down' : 'up';
+          }
+        }
         // Use per-enemy speed (with a global pacing modifier similar to previous tuning)
         const speed = Math.round((e.spd || ENEMY.spd) * 0.75);
 
@@ -942,8 +956,10 @@
           e.atkT += dt;
           if (e.atkT >= 2.4){
             e.atkT = 0;
-            const a = Math.atan2(dy, dx);
-            BOSS_PROJECTILES.push({ x:e.x, y:e.y, vx:Math.cos(a)*140, vy:Math.sin(a)*140, life:0, ttl:3 });
+            const diff = angleDiff(Math.atan2(dy, dx), e.facing);
+            if (Math.abs(diff) <= Math.PI/3){
+              BOSS_PROJECTILES.push({ x:e.x, y:e.y, vx:Math.cos(e.facing)*140, vy:Math.sin(e.facing)*140, life:0, ttl:3 });
+            }
           }
         }
 
@@ -951,10 +967,12 @@
         if (e.kind === 'goblin' || e.kind === 'imp' || e.kind === 'orc' || e.kind === 'boss'){
           const spd = Math.hypot(e.vx, e.vy);
           if (spd > 5){
-            if (Math.abs(e.vx) > Math.abs(e.vy)){
-              e.dir = e.vx > 0 ? 'right' : 'left';
-            } else {
-              e.dir = e.vy > 0 ? 'down' : 'up';
+            if (e.kind !== 'boss'){
+              if (Math.abs(e.vx) > Math.abs(e.vy)){
+                e.dir = e.vx > 0 ? 'right' : 'left';
+              } else {
+                e.dir = e.vy > 0 ? 'down' : 'up';
+              }
             }
             e.animT += dt;
             if (e.animT >= 0.12){
@@ -969,12 +987,18 @@
 
         // Attack collision when close and player is vulnerable
         if (P.iT<=0 && Math.abs(P.x-e.x)<(e.w*HITBOX.enemy + P.w*HITBOX.player) && Math.abs(P.y-e.y)<(e.h*HITBOX.enemy + P.h*HITBOX.player)){
-          // Take damage and grant invulnerability (i-frames) while blinking
-          if (CHEAT.active) {
-            P.hitFlash = 0.25;
-            spark(P.x,P.y,'#ff8a8a');
-          } else {
-            P.hp -= 1; P.iT = 2.0; P.hitFlash = 0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver();
+          let canHit = true;
+          if (e.kind === 'boss'){
+            const angToPlayer = Math.atan2(P.y - e.y, P.x - e.x);
+            canHit = Math.abs(angleDiff(angToPlayer, e.facing)) <= Math.PI/2;
+          }
+          if (canHit){
+            if (CHEAT.active) {
+              P.hitFlash = 0.25;
+              spark(P.x,P.y,'#ff8a8a');
+            } else {
+              P.hp -= 1; P.iT = 2.0; P.hitFlash = 0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver();
+            }
           }
         }
       }

@@ -376,6 +376,17 @@
     MUCK_ANIM.left.src = 'assets/EG_enemy_boss_mudMonster_animation_walking_left_small.png';
     MUCK_ANIM.right.src = 'assets/EG_enemy_boss_mudMonster_animation_walking_right_small.png';
 
+    const GIANT_ANIM = {
+      down: new Image(),
+      up: new Image(),
+      left: new Image(),
+      right: new Image(),
+    };
+    GIANT_ANIM.down.src = 'assets/EG_enemy_boss_hillGiant_walking_down_small.png';
+    GIANT_ANIM.up.src = 'assets/EG_enemy_boss_hillGiant_walking_up_small.png';
+    GIANT_ANIM.left.src = 'assets/EG_enemy_boss_hillGiant_walking_left_small.png';
+    GIANT_ANIM.right.src = 'assets/EG_enemy_boss_hillGiant_walking_right_small.png';
+
 
     const IMG = {
       coin: new Image(),
@@ -399,7 +410,7 @@
     ];
     const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
 
-    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length;
+    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(GIANT_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const img of MAPS) img.addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in WIZ_ANIM) WIZ_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -409,6 +420,7 @@
     for (const k in IMP_ANIM) IMP_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in ORC_ANIM) ORC_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in MUCK_ANIM) MUCK_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
+    for (const k in GIANT_ANIM) GIANT_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     CLASS_IMG.rogue.addEventListener('load', () => { if (++loaded === need) init(); });
     CLASS_IMG.wizard.addEventListener('load', () => { if (++loaded === need) init(); });
 
@@ -710,7 +722,8 @@
       const x = ARENA.x + ARENA.w/2;
       const y = ARENA.y + ARENA.h/2;
       const stageSpd = Math.pow(1.2, stage);
-      const b = { kind:'boss', x, y, vx:0, vy:0, kx:0, ky:0, w:ENEMY.w*4, h:ENEMY.h*4, hp:60, hpMax:60, spd:75 * stageSpd, score:2000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0, atkT:0, facing:0 };
+      const anim = stage === 1 ? GIANT_ANIM : MUCK_ANIM;
+      const b = { kind:'boss', x, y, vx:0, vy:0, kx:0, ky:0, w:ENEMY.w*4, h:ENEMY.h*4, hp:60, hpMax:60, spd:75 * stageSpd, score:2000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0, atkT:0, facing:0, anim };
       enemies.push(b);
       return b;
     }
@@ -1234,7 +1247,7 @@
           const fh = sheet.height;
           ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
         } else if (e.kind === 'boss') {
-          const sheet = MUCK_ANIM[e.dir];
+          const sheet = (e.anim || MUCK_ANIM)[e.dir];
           const fw = sheet.width / 4;
           const fh = sheet.height;
           ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);

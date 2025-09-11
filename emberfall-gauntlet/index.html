@@ -330,16 +330,6 @@
     ORC_ANIM.left.src = 'assets/EG_enemy_orc_animation_walking_left_small.png';
     ORC_ANIM.right.src = 'assets/EG_enemy_orc_animation_walking_right_small.png';
 
-    const BOSS_ANIM = {
-      down: new Image(),
-      up: new Image(),
-      left: new Image(),
-      right: new Image(),
-    };
-    BOSS_ANIM.down.src = 'assets/EG_enemy_boss_mudMonster_animation_walking_down_small.png';
-    BOSS_ANIM.up.src = 'assets/EG_enemy_boss_mudMonster_animation_walking_up_small.png';
-    BOSS_ANIM.left.src = 'assets/EG_enemy_boss_mudMonster_animation_walking_left_small.png';
-    BOSS_ANIM.right.src = 'assets/EG_enemy_boss_mudMonster_animation_walking_right_small.png';
 
     const IMG = {
       coin: new Image(),
@@ -363,7 +353,7 @@
     ];
     const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
 
-    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(BOSS_ANIM).length;
+    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const img of MAPS) img.addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in WIZ_ANIM) WIZ_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -372,7 +362,6 @@
     for (const k in GOBLIN_ANIM) GOBLIN_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in IMP_ANIM) IMP_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in ORC_ANIM) ORC_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
-    for (const k in BOSS_ANIM) BOSS_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     CLASS_IMG.rogue.addEventListener('load', () => { if (++loaded === need) init(); });
     CLASS_IMG.wizard.addEventListener('load', () => { if (++loaded === need) init(); });
 
@@ -406,9 +395,10 @@
     // Separate hitbox scaling so we can tighten player damage range
     const HITBOX = { player: 0.3, enemy: 0.6 };
     const AUTO = { atkPeriod: 0.7 };
-    const SPAWN = { t: 0, cd: 2.2, wave: 1 };
+    const WAVE_LIMIT = 50;
+    const SPAWN = { t: 0, cd: 2.2, wave: 1, count: 0 };
     let stage = 0;
-    const STAGE_WAVES = 5;
+    const STAGE_WAVES = 2;
     let boss = null;
     const COINS = { value: 0 };
     const SHOP = { milestones: [5, 12, 20, 30, 45, 60, 80, 105, 135, 170], idx: 0, open: false };
@@ -515,12 +505,11 @@
       DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / W, ARENA.h / H) * 1.5));
       enemies = []; drops = []; PARTICLES.length = 0;
       Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:0, aimDir:0, swingAim:0, iT:0, atkT:0, autoT:0 });
-      Object.assign(SPAWN, { t:0, cd:2.2, wave:1 });
+      Object.assign(SPAWN, { t:0, cd:2.2, wave:1, count:0 });
       waveEl.textContent = SPAWN.wave;
       boss = null;
-      const initialTarget = Math.min((6 + SPAWN.wave*2) * DENSITY, 80);
-      const initial = Math.min(Math.floor(initialTarget * 0.5), 40);
-      for (let i=0; i<initial; i++) spawnEnemy();
+      const initial = Math.min(Math.floor(WAVE_LIMIT * 0.5), 40);
+      for (let i=0; i<initial; i++){ spawnEnemy(); SPAWN.count++; }
     }
 
     function reset() {
@@ -643,7 +632,7 @@
     function spawnBoss(){
       const x = ARENA.x + ARENA.w/2;
       const y = ARENA.y + ARENA.h/2;
-      const b = { kind:'boss', x, y, vx:0, vy:0, kx:0, ky:0, w:70, h:60, hp:30, spd:70, score:1000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0 };
+      const b = { kind:'boss', x, y, vx:0, vy:0, kx:0, ky:0, w:ENEMY.w*4, h:ENEMY.h*4, hp:60, spd:60, score:2000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0 };
       enemies.push(b);
       return b;
     }
@@ -665,6 +654,7 @@
       if (e.hp<=0){
         if (e.kind === 'boss'){
           addScore(e.score||1000);
+          for (let i=0;i<10;i++) dropCoin(e.x + rand(-20,20), e.y + rand(-20,20));
           if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }
           if (UPGR.doubleCoinChance > 0 && Math.random() < UPGR.doubleCoinChance){ dropCoin(e.x + rand(-6,6), e.y + rand(-6,6)); }
           handleBossDefeat();
@@ -961,16 +951,21 @@
 
       // Wave & spawns (scale with larger world)
       if (!boss) {
-        SPAWN.t += dt; const targetCount = Math.min((6 + SPAWN.wave*2) * DENSITY, 80);
-        if (enemies.filter(e=>e.hp>0).length < targetCount && SPAWN.t > SPAWN.cd){
+        SPAWN.t += dt;
+        const alive = enemies.filter(e=>e.hp>0).length;
+        const targetCount = Math.min((6 + SPAWN.wave*2) * DENSITY, WAVE_LIMIT);
+        if (SPAWN.count < WAVE_LIMIT && alive < targetCount && SPAWN.t > SPAWN.cd){
           SPAWN.t = 0;
-          const group = Math.min(8, Math.max(2, Math.ceil(DENSITY/2)) * Math.min(4, 1 + Math.floor(SPAWN.wave/2)));
-          for (let i=0;i<group; i++) spawnEnemy();
+          let group = Math.min(8, Math.max(2, Math.ceil(DENSITY/2)) * Math.min(4, 1 + Math.floor(SPAWN.wave/2)));
+          group = Math.min(group, WAVE_LIMIT - SPAWN.count);
+          for (let i=0;i<group; i++){ spawnEnemy(); SPAWN.count++; }
         }
-        // Advance wave slowly over time and score
-        if (SCORE.value > SPAWN.wave*200) { SPAWN.wave += 1; waveEl.textContent = SPAWN.wave; }
-        if (SPAWN.wave > STAGE_WAVES && enemies.filter(e=>e.hp>0).length === 0){
-          boss = spawnBoss();
+        if (SPAWN.count >= WAVE_LIMIT && alive === 0){
+          if (SPAWN.wave < STAGE_WAVES){
+            SPAWN.wave += 1; waveEl.textContent = SPAWN.wave; SPAWN.count = 0; SPAWN.t = 0;
+          } else {
+            boss = spawnBoss();
+          }
         }
       }
 
@@ -1024,16 +1019,11 @@
           const fw = sheet.width / 4;
           const fh = sheet.height;
           ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
-        } else if (e.kind === 'orc') {
+        } else if (e.kind === 'orc' || e.kind === 'boss') {
           const sheet = ORC_ANIM[e.dir];
           const fw = sheet.width / 4;
           const fh = sheet.height;
           ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
-        } else if (e.kind === 'boss') {
-          const sheet = BOSS_ANIM[e.dir];
-          const fw = sheet.width / 4;
-          const fh = sheet.height;
-          ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 10, e.w, e.h + 10);
         }
       }
 

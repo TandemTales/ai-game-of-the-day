@@ -216,11 +216,26 @@
 
     const SCORE = { value: 0 };
     const CHEAT = { active: false, clicks: 0 };
+    let waveTapCount = 0;
+    let waveTapLast = 0;
     logo.addEventListener('click', () => {
       if (++CHEAT.clicks >= 7) {
         CHEAT.active = true;
         SCORE.value = 0;
         scoreEl.textContent = SCORE.value;
+      }
+    });
+
+    waveEl.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const t = Date.now();
+      if (t - waveTapLast > 1000) waveTapCount = 0;
+      waveTapLast = t;
+      waveTapCount++;
+      if (waveTapCount >= 7) {
+        waveTapCount = 0;
+        cheatNextStage();
       }
     });
 
@@ -788,6 +803,18 @@
           loadStage();
         }
       }, 1000);
+    }
+
+    function cheatNextStage(){
+      if (nextStageInterval) { clearInterval(nextStageInterval); nextStageInterval = null; }
+      stageTimerEl.classList.add('hidden');
+      awaitingStage = false;
+      stage++;
+      if (stage >= MAPS.length) {
+        gameOver();
+        return;
+      }
+      loadStage();
     }
 
     function dropCoin(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'coin', v: rand(40,70), a: rand(0,Math.PI*2) }); }

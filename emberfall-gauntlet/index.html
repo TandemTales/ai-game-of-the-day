@@ -310,6 +310,17 @@
     ORC_ANIM.left.src = 'assets/EG_enemy_orc_animation_walking_left_small.png';
     ORC_ANIM.right.src = 'assets/EG_enemy_orc_animation_walking_right_small.png';
 
+    const BOSS_ANIM = {
+      down: new Image(),
+      up: new Image(),
+      left: new Image(),
+      right: new Image(),
+    };
+    BOSS_ANIM.down.src = 'assets/EG_enemy_boss_mudMonster_animation_walking_down_small.png';
+    BOSS_ANIM.up.src = 'assets/EG_enemy_boss_mudMonster_animation_walking_up_small.png';
+    BOSS_ANIM.left.src = 'assets/EG_enemy_boss_mudMonster_animation_walking_left_small.png';
+    BOSS_ANIM.right.src = 'assets/EG_enemy_boss_mudMonster_animation_walking_right_small.png';
+
     const IMG = {
       coin: new Image(),
       heart: new Image(),
@@ -323,14 +334,16 @@
     IMG.spark.src = 'assets/eg_spark.svg';
 
     const MAP_FILES = [
-      'assets/EG_map_feywild01.png',
-      'assets/EG_map_forest01.png',
-      'assets/EG_map_mountain01.png',
       'assets/EG_map_mirewatch01.png',
+      'assets/EG_map_forest01.png',
+      'assets/EG_map_feywild01.png',
+      'assets/EG_map_wasteland01.png',
+      'assets/EG_map_mountain01.png',
+      'assets/EG_map_corruption01.png',
     ];
     const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
 
-    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length;
+    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(BOSS_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const img of MAPS) img.addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in WIZ_ANIM) WIZ_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -339,6 +352,7 @@
     for (const k in GOBLIN_ANIM) GOBLIN_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in IMP_ANIM) IMP_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in ORC_ANIM) ORC_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
+    for (const k in BOSS_ANIM) BOSS_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     CLASS_IMG.rogue.addEventListener('load', () => { if (++loaded === need) init(); });
     CLASS_IMG.wizard.addEventListener('load', () => { if (++loaded === need) init(); });
 
@@ -373,6 +387,9 @@
     const HITBOX = { player: 0.3, enemy: 0.6 };
     const AUTO = { atkPeriod: 0.7 };
     const SPAWN = { t: 0, cd: 2.2, wave: 1 };
+    let stage = 0;
+    const STAGE_WAVES = 5;
+    let boss = null;
     const SCORE = { value: 0 };
     const COINS = { value: 0 };
     const SHOP = { milestones: [5, 12, 20, 30, 45, 60, 80, 105, 135, 170], idx: 0, open: false };
@@ -464,7 +481,7 @@
     setClass(currentClass);
 
     function init() {
-      currentMap = MAPS[Math.floor(Math.random() * MAPS.length)];
+      currentMap = MAPS[0];
       ARENA.x = 0; ARENA.y = 0; ARENA.w = currentMap.width; ARENA.h = currentMap.height;
       DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / W, ARENA.h / H) * 1.5));
       drawHearts();
@@ -473,9 +490,22 @@
       draw();
     }
 
+    function loadStage() {
+      currentMap = MAPS[stage];
+      ARENA.x = 0; ARENA.y = 0; ARENA.w = currentMap.width; ARENA.h = currentMap.height;
+      DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / W, ARENA.h / H) * 1.5));
+      enemies = []; drops = []; PARTICLES.length = 0;
+      Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:0, aimDir:0, swingAim:0, iT:0, atkT:0, autoT:0 });
+      Object.assign(SPAWN, { t:0, cd:2.2, wave:1 });
+      waveEl.textContent = SPAWN.wave;
+      boss = null;
+      const initialTarget = Math.min((6 + SPAWN.wave*2) * DENSITY, 80);
+      const initial = Math.min(Math.floor(initialTarget * 0.5), 40);
+      for (let i=0; i<initial; i++) spawnEnemy();
+    }
+
     function reset() {
       startMusic();
-      enemies = []; drops = []; PARTICLES.length = 0;
       // Reset core player stats to base values
       const stats = CLASS_STATS[currentClass];
       P.hpMax = stats.hp;
@@ -486,20 +516,15 @@
       // Keep the default melee arc narrow on reset as well
       PHYS.atkArc = Math.PI * 0.35;
       AUTO.atkPeriod = 0.7;
-      // Spawn player in the center of the (larger) arena
-      Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:0, aimDir:0, swingAim:0, iT:0, atkT:0, autoT:0 });
-      Object.assign(SPAWN, { t: 0, cd: 2.2, wave: 1 });
-      SCORE.value = 0; scoreEl.textContent = SCORE.value; waveEl.textContent = SPAWN.wave;
+      SCORE.value = 0; scoreEl.textContent = SCORE.value;
       COINS.value = 0; coinsEl.textContent = COINS.value; SHOP.idx = 0; SHOP.open = false;
       // Reset upgrades and spell state
       Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:0, critChance:0, critMult:1.6, doubleCoinChance:0, orbs:0, orbDmg:1, orbRadius:60, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1 });
       if (stats.startOrbs) { UPGR.orbs = stats.startOrbs; }
       PROJECTILES = []; ORBS = [];
+      stage = 0;
+      loadStage();
       drawHearts();
-      // Seed the larger world with an initial crowd
-      const initialTarget = Math.min((6 + SPAWN.wave*2) * DENSITY, 80);
-      const initial = Math.min(Math.floor(initialTarget * 0.5), 40);
-      for (let i=0; i<initial; i++) spawnEnemy();
     }
 
     function start() { reset(); running = true; paused = false; startOverlay.classList.remove('show'); gameOverOverlay.classList.remove('show'); }
@@ -596,19 +621,44 @@
       enemies.push({ kind, x, y, vx:0, vy:0, kx:0, ky:0, w, h, hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0, dir:'down', frame:0, animT:0 });
     }
 
+    function spawnBoss(){
+      const x = ARENA.x + ARENA.w/2;
+      const y = ARENA.y + ARENA.h/2;
+      const b = { kind:'boss', x, y, vx:0, vy:0, kx:0, ky:0, w:70, h:60, hp:30, spd:70, score:1000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0 };
+      enemies.push(b);
+      return b;
+    }
+
+    function handleBossDefeat(){
+      boss = null;
+      stage++;
+      if (stage >= MAPS.length){
+        return gameOver();
+      }
+      loadStage();
+    }
+
     function dropCoin(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'coin', v: rand(40,70), a: rand(0,Math.PI*2) }); }
 
     function applyDamage(e, dmg=1, kx=0, ky=0, kb=0){
       e.hp -= dmg;
       spark(e.x,e.y,'#aef');
       if (e.hp<=0){
-        SCORE.value += (e.score||50);
-        scoreEl.textContent = SCORE.value;
-        dropCoin(e.x, e.y);
-        // Life steal on kill
-        if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }
-        // Extra coin chance
-        if (UPGR.doubleCoinChance > 0 && Math.random() < UPGR.doubleCoinChance){ dropCoin(e.x + rand(-6,6), e.y + rand(-6,6)); }
+        if (e.kind === 'boss'){
+          SCORE.value += (e.score||1000);
+          scoreEl.textContent = SCORE.value;
+          if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }
+          if (UPGR.doubleCoinChance > 0 && Math.random() < UPGR.doubleCoinChance){ dropCoin(e.x + rand(-6,6), e.y + rand(-6,6)); }
+          handleBossDefeat();
+        } else {
+          SCORE.value += (e.score||50);
+          scoreEl.textContent = SCORE.value;
+          dropCoin(e.x, e.y);
+          // Life steal on kill
+          if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }
+          // Extra coin chance
+          if (UPGR.doubleCoinChance > 0 && Math.random() < UPGR.doubleCoinChance){ dropCoin(e.x + rand(-6,6), e.y + rand(-6,6)); }
+        }
       } else {
         // Non-lethal hit: apply knockback impulse (away from source)
         if (kb > 0 && (kx !== 0 || ky !== 0)){
@@ -795,8 +845,8 @@
           e.y = clamp(e.y, ARENA.y + AI.wallPad, ARENA.y + ARENA.h - AI.wallPad);
         }
 
-        // Walk animation for goblins, imps, and orcs
-        if (e.kind === 'goblin' || e.kind === 'imp' || e.kind === 'orc'){
+        // Walk animation for goblins, imps, orcs, and bosses
+        if (e.kind === 'goblin' || e.kind === 'imp' || e.kind === 'orc' || e.kind === 'boss'){
           const spd = Math.hypot(e.vx, e.vy);
           if (spd > 5){
             if (Math.abs(e.vx) > Math.abs(e.vy)){
@@ -887,14 +937,19 @@
       for (let i=PROJECTILES.length-1;i>=0;i--){ const p=PROJECTILES[i]; p.life+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; if (p.life>p.ttl){ PROJECTILES.splice(i,1); continue; } for (const e of enemies){ if (e.hp<=0) continue; if (len(p.x-e.x,p.y-e.y)<16){ applyDamage(e, p.dmg, p.vx, p.vy, KNOCK.projectile); PROJECTILES.splice(i,1); break; } } }
 
       // Wave & spawns (scale with larger world)
-      SPAWN.t += dt; const targetCount = Math.min((6 + SPAWN.wave*2) * DENSITY, 80);
-      if (enemies.filter(e=>e.hp>0).length < targetCount && SPAWN.t > SPAWN.cd){
-        SPAWN.t = 0;
-        const group = Math.min(8, Math.max(2, Math.ceil(DENSITY/2)) * Math.min(4, 1 + Math.floor(SPAWN.wave/2)));
-        for (let i=0;i<group; i++) spawnEnemy();
+      if (!boss) {
+        SPAWN.t += dt; const targetCount = Math.min((6 + SPAWN.wave*2) * DENSITY, 80);
+        if (enemies.filter(e=>e.hp>0).length < targetCount && SPAWN.t > SPAWN.cd){
+          SPAWN.t = 0;
+          const group = Math.min(8, Math.max(2, Math.ceil(DENSITY/2)) * Math.min(4, 1 + Math.floor(SPAWN.wave/2)));
+          for (let i=0;i<group; i++) spawnEnemy();
+        }
+        // Advance wave slowly over time and score
+        if (SCORE.value > SPAWN.wave*200) { SPAWN.wave += 1; waveEl.textContent = SPAWN.wave; }
+        if (SPAWN.wave > STAGE_WAVES && enemies.filter(e=>e.hp>0).length === 0){
+          boss = spawnBoss();
+        }
       }
-      // Advance wave slowly over time and score
-      if (SCORE.value > SPAWN.wave*200) { SPAWN.wave += 1; waveEl.textContent = SPAWN.wave; }
 
       // Clean up dead enemies occasionally
       enemies = enemies.filter(e=>e.hp>0);
@@ -951,6 +1006,11 @@
           const fw = sheet.width / 4;
           const fh = sheet.height;
           ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
+        } else if (e.kind === 'boss') {
+          const sheet = BOSS_ANIM[e.dir];
+          const fw = sheet.width / 4;
+          const fh = sheet.height;
+          ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 10, e.w, e.h + 10);
         }
       }
 

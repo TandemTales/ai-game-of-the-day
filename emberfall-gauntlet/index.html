@@ -549,7 +549,7 @@
     }
     let boss = null;
     const COINS = { value: 0 };
-    const SHOP = { milestones: [5, 12, 20, 30, 45, 60, 80, 105, 135, 170], idx: 0, open: false };
+    const SHOP = { milestones: [10, 20, 40, 80, 120, 200, 300, 500, 700, 900, 1200], idx: 0, open: false };
     const UPGR = {
       meleeDmg: 1,
       multistrike: 1,
@@ -1651,7 +1651,11 @@
     // Shop logic
     function maybeOpenShop(){
       if (SHOP.open) return;
-      const next = SHOP.milestones[SHOP.idx] ?? Infinity;
+      let next = SHOP.milestones[SHOP.idx];
+      if (next == null){
+        const last = SHOP.milestones[SHOP.milestones.length - 1];
+        next = last + 300 * (SHOP.idx - SHOP.milestones.length + 1);
+      }
       if (COINS.value >= next){ openShop(); }
     }
 

@@ -435,6 +435,17 @@
     HUNGER_DEMON_ANIM.left.src = 'assets/EG_enemy_boss_hungerDemon_animation_walking_left_small.png';
     HUNGER_DEMON_ANIM.right.src = 'assets/EG_enemy_boss_hungerDemon_animation_walking_right_small.png';
 
+    const BEHOLDER_ANIM = {
+      down: new Image(),
+      up: new Image(),
+      left: new Image(),
+      right: new Image(),
+    };
+    BEHOLDER_ANIM.down.src = 'assets/EG_enemy_boss_beholder_animation_walking_down_small.png';
+    BEHOLDER_ANIM.up.src = 'assets/EG_enemy_boss_beholder_animation_walking_up_small.png';
+    BEHOLDER_ANIM.left.src = 'assets/EG_enemy_boss_beholder_animation_walking_left_small.png';
+    BEHOLDER_ANIM.right.src = 'assets/EG_enemy_boss_beholder_animation_walking_right_small.png';
+
 
     const IMG = {
       coin: new Image(),
@@ -458,7 +469,7 @@
     ];
     const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
 
-    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length;
+    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const img of MAPS) img.addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in WIZ_ANIM) WIZ_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -471,6 +482,7 @@
     for (const k in HILL_GIANT_ANIM) HILL_GIANT_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in ABOMINATION_ANIM) ABOMINATION_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in HUNGER_DEMON_ANIM) HUNGER_DEMON_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
+    for (const k in BEHOLDER_ANIM) BEHOLDER_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     CLASS_IMG.rogue.addEventListener('load', () => { if (++loaded === need) init(); });
     CLASS_IMG.wizard.addEventListener('load', () => { if (++loaded === need) init(); });
 
@@ -783,6 +795,9 @@
       } else if (stage === 3) {
         bossType = 'hungerDemon';
         hp = 150;
+      } else if (stage === 4) {
+        bossType = 'beholder';
+        hp = 180;
       }
       const b = { kind:'boss', bossType, x, y, vx:0, vy:0, kx:0, ky:0, w:ENEMY.w*4, h:ENEMY.h*4, hp, hpMax:hp, spd:75 * stageSpd, score:2000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0, atkT:0, blastT:0, facing:0, freezeT:0, pulse:0 };
       if (bossType === 'hillGiant') b.slamCd = 3;
@@ -1092,7 +1107,7 @@
 
         if (e.kind === 'boss'){
           e.atkT += dt;
-          if (e.bossType === 'hungerDemon') e.blastT = (e.blastT || 0) + dt;
+          if (e.bossType === 'hungerDemon' || e.bossType === 'beholder') e.blastT = (e.blastT || 0) + dt;
           if (e.bossType === 'abomination') {
             if (e.freezeT <= 0 && e.atkT >= 2.4){
               e.atkT = 0;
@@ -1126,6 +1141,33 @@
                 else { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver(); }
               }
               e.freezeT = 1.2;
+            }
+          } else if (e.bossType === 'beholder') {
+            if (e.freezeT <= 0 && e.atkT >= 2){
+              e.atkT = 0;
+              const count = 8;
+              for (let i=0; i<count; i++){
+                const ang = (Math.PI*2 / count) * i;
+                BOSS_PROJECTILES.push({ kind:'slow', dmg:2, x:e.x, y:e.y, vx:Math.cos(ang)*90, vy:Math.sin(ang)*90, life:0, ttl:4 });
+                BOSS_PROJECTILES.push({ kind:'fast', dmg:1, x:e.x, y:e.y, vx:Math.cos(ang)*180, vy:Math.sin(ang)*180, life:0, ttl:2 });
+              }
+              const beamAng = Math.atan2(dy, dx);
+              BOSS_PROJECTILES.push({ kind:'beam', dmg:1, x:e.x, y:e.y, ang:beamAng, life:0, ttl:1 });
+            }
+            if (e.freezeT <= 0 && e.blastT >= 6){
+              e.blastT = 0;
+              const range = 200;
+              e.pulse = 0.5;
+              e.pulseRange = range;
+              if (dist < range && P.iT<=0){
+                const [nx,ny]=norm(P.x-e.x,P.y-e.y);
+                P.vx += nx*200;
+                P.vy += ny*200;
+                if (CHEAT.active){ P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
+                else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
+                else { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver(); }
+              }
+              e.freezeT = 1.5;
             }
           } else if (e.atkT >= 2.4){
             e.atkT = 0;
@@ -1284,7 +1326,36 @@
       for (let i=PROJECTILES.length-1;i>=0;i--){ const p=PROJECTILES[i]; p.life+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; if (p.life>p.ttl){ PROJECTILES.splice(i,1); continue; } for (const e of enemies){ if (e.hp<=0) continue; if (len(p.x-e.x,p.y-e.y)<16){ applyDamage(e, p.dmg, p.vx, p.vy, KNOCK.projectile); PROJECTILES.splice(i,1); break; } } }
 
       // Update boss projectiles
-      for (let i=BOSS_PROJECTILES.length-1;i>=0;i--){ const p=BOSS_PROJECTILES[i]; p.life+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; if (p.life>p.ttl){ BOSS_PROJECTILES.splice(i,1); continue; } if (len(p.x-P.x,p.y-P.y)<20){ if (P.iT<=0){ if (CHEAT.active){ P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); } else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); } else { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver(); } } BOSS_PROJECTILES.splice(i,1); } }
+      for (let i=BOSS_PROJECTILES.length-1;i>=0;i--){
+        const p = BOSS_PROJECTILES[i];
+        p.life += dt;
+        if (p.kind === 'beam'){
+          if (p.life > p.ttl){ BOSS_PROJECTILES.splice(i,1); continue; }
+          const lenB = 240;
+          const bw = 8;
+          const relX = P.x - p.x, relY = P.y - p.y;
+          const proj = relX * Math.cos(p.ang) + relY * Math.sin(p.ang);
+          const perp = Math.abs(relX * Math.sin(p.ang) - relY * Math.cos(p.ang));
+          if (proj > 0 && proj < lenB && perp < bw && P.iT<=0){
+            const dmg = p.dmg || 1;
+            if (CHEAT.active){ P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
+            else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
+            else { P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver(); }
+          }
+          continue;
+        }
+        p.x += p.vx * dt; p.y += p.vy * dt;
+        if (p.life > p.ttl){ BOSS_PROJECTILES.splice(i,1); continue; }
+        if (len(p.x-P.x,p.y-P.y) < 20){
+          if (P.iT<=0){
+            const dmg = p.dmg || 1;
+            if (CHEAT.active){ P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
+            else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
+            else { P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver(); }
+          }
+          BOSS_PROJECTILES.splice(i,1);
+        }
+      }
 
       // Wave & spawns (scale with larger world)
       if (!boss && !awaitingStage) {
@@ -1385,7 +1456,7 @@
           const fh = sheet.height;
           ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
         } else if (e.kind === 'boss') {
-          const anim = e.bossType === 'hillGiant' ? HILL_GIANT_ANIM : e.bossType === 'abomination' ? ABOMINATION_ANIM : e.bossType === 'hungerDemon' ? HUNGER_DEMON_ANIM : MUCK_ANIM;
+          const anim = e.bossType === 'hillGiant' ? HILL_GIANT_ANIM : e.bossType === 'abomination' ? ABOMINATION_ANIM : e.bossType === 'hungerDemon' ? HUNGER_DEMON_ANIM : e.bossType === 'beholder' ? BEHOLDER_ANIM : MUCK_ANIM;
           const sheet = anim[e.dir];
           const fw = sheet.width / 4;
           const fh = sheet.height;
@@ -1506,10 +1577,19 @@
       if (PROJECTILES.length){ for (const pr of PROJECTILES){ ctx.drawImage(IMG.spark, pr.x-6, pr.y-6, 12, 12); } }
       if (BOSS_PROJECTILES.length){
         for (const bp of BOSS_PROJECTILES){
-          ctx.fillStyle = 'brown';
-          ctx.beginPath();
-          ctx.arc(bp.x, bp.y, 8, 0, Math.PI*2);
-          ctx.fill();
+          if (bp.kind === 'beam'){
+            ctx.save();
+            ctx.translate(bp.x, bp.y);
+            ctx.rotate(bp.ang);
+            ctx.fillStyle = 'purple';
+            ctx.fillRect(0, -4, 240, 8);
+            ctx.restore();
+          } else {
+            ctx.fillStyle = bp.kind === 'slow' ? 'red' : bp.kind === 'fast' ? 'orange' : 'brown';
+            ctx.beginPath();
+            ctx.arc(bp.x, bp.y, 8, 0, Math.PI*2);
+            ctx.fill();
+          }
         }
       }
 

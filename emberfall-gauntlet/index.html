@@ -582,7 +582,8 @@
       DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / W, ARENA.h / H) * 1.5));
       enemies = []; drops = []; PARTICLES.length = 0; BOSS_PROJECTILES = [];
       Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:0, aimDir:0, swingAim:0, iT:0, atkT:0, autoT:0 });
-      Object.assign(SPAWN, { t:0, cd:2.2, wave:1, count:0 });
+      const stageMult = Math.pow(1.2, stage);
+      Object.assign(SPAWN, { t:0, cd:2.2 / stageMult, wave:1, count:0 });
       updateWaveLimit();
       waveEl.textContent = SPAWN.wave;
       boss = null;
@@ -711,10 +712,11 @@
       if (SPAWN.wave >= 3 && r < 0.15) kind = 'orc';
 
       // Stats per type
-      let w=ENEMY.w, h=ENEMY.h, spd=ENEMY.spd, hp=2+Math.floor(SPAWN.wave/2), score=50;
+      const stageSpd = Math.pow(1.2, stage);
+      let w=ENEMY.w, h=ENEMY.h, spd=ENEMY.spd * stageSpd, hp=2+Math.floor(SPAWN.wave/2), score=50;
       // Make imp a bit faster than baseline and orc slower; reward orcs more
-      if (kind==='imp'){ w=22; h=18; spd=130; hp=Math.max(1,1+Math.floor(SPAWN.wave/3)); score=40; }
-      else if (kind==='orc'){ w=ENEMY.w*2; h=ENEMY.h*2; spd=60; hp=(3+Math.floor(SPAWN.wave/1.5))*3; score=240; }
+      if (kind==='imp'){ w=22; h=18; spd=130 * stageSpd; hp=Math.max(1,1+Math.floor(SPAWN.wave/3)); score=40; }
+      else if (kind==='orc'){ w=ENEMY.w*2; h=ENEMY.h*2; spd=60 * stageSpd; hp=(3+Math.floor(SPAWN.wave/1.5))*3; score=240; }
 
       enemies.push({ kind, x, y, vx:0, vy:0, kx:0, ky:0, w, h, hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0, dir:'down', frame:0, animT:0 });
     }
@@ -722,7 +724,8 @@
     function spawnBoss(){
       const x = ARENA.x + ARENA.w/2;
       const y = ARENA.y + ARENA.h/2;
-      const b = { kind:'boss', x, y, vx:0, vy:0, kx:0, ky:0, w:ENEMY.w*4, h:ENEMY.h*4, hp:60, hpMax:60, spd:75, score:2000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0, atkT:0, facing:0 };
+      const stageSpd = Math.pow(1.2, stage);
+      const b = { kind:'boss', x, y, vx:0, vy:0, kx:0, ky:0, w:ENEMY.w*4, h:ENEMY.h*4, hp:60, hpMax:60, spd:75 * stageSpd, score:2000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0, atkT:0, facing:0 };
       enemies.push(b);
       return b;
     }

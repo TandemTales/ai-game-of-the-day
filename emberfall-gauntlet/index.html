@@ -445,10 +445,25 @@
     // Reduce player hitbox for fairness: smaller damage window
     const HITBOX = { player: 0.24, enemy: 0.6 };
     const AUTO = { atkPeriod: 0.7 };
-    const WAVE_LIMIT = 50;
+    const STAGE_WAVE_COUNTS = [
+      [10, 20],
+      [40, 60],
+      [90, 120],
+      [150, 180],
+      [200, 250],
+    ];
+    let WAVE_LIMIT = STAGE_WAVE_COUNTS[0][0];
     const SPAWN = { t: 0, cd: 2.2, wave: 1, count: 0 };
     let stage = 0;
     const STAGE_WAVES = 2;
+    function updateWaveLimit() {
+      const cfg = STAGE_WAVE_COUNTS[stage];
+      if (cfg && cfg[SPAWN.wave - 1] != null) {
+        WAVE_LIMIT = cfg[SPAWN.wave - 1];
+      } else {
+        WAVE_LIMIT = 50;
+      }
+    }
     let boss = null;
     const COINS = { value: 0 };
     const SHOP = { milestones: [5, 12, 20, 30, 45, 60, 80, 105, 135, 170], idx: 0, open: false };
@@ -568,6 +583,7 @@
       enemies = []; drops = []; PARTICLES.length = 0; BOSS_PROJECTILES = [];
       Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:0, aimDir:0, swingAim:0, iT:0, atkT:0, autoT:0 });
       Object.assign(SPAWN, { t:0, cd:2.2, wave:1, count:0 });
+      updateWaveLimit();
       waveEl.textContent = SPAWN.wave;
       boss = null;
       const initial = Math.min(Math.floor(WAVE_LIMIT * 0.5), 40);
@@ -1161,6 +1177,7 @@
         if (SPAWN.count >= WAVE_LIMIT && alive === 0){
           if (SPAWN.wave < STAGE_WAVES){
             SPAWN.wave += 1; waveEl.textContent = SPAWN.wave; SPAWN.count = 0; SPAWN.t = 0;
+            updateWaveLimit();
           } else {
             boss = spawnBoss();
           }

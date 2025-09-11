@@ -260,15 +260,21 @@
     }
 
     // Soundtrack playback
-    const TRACKS = [
+    const STANDARD_TRACKS = [
       'assets/EG_soundtrack_01.mp3',
       'assets/EG_soundtrack_02.mp3',
       'assets/EG_soundtrack_03.mp3',
       'assets/EG_soundtrack_04.mp3'
     ].filter(t => t.includes('soundtrack'));
+    const BOSS_TRACKS = [
+      'assets/EG_boss_music_01.mp3',
+      'assets/EG_boss_music_02.mp3',
+      'assets/EG_boss_music_03.mp3'
+    ].filter(t => t.includes('boss'));
     let musicStarted = false;
     const music = new Audio();
     music.volume = 1;
+    let currentTracks = STANDARD_TRACKS;
     let playOrder = [];
     function shuffle(arr) {
       for (let i = arr.length - 1; i > 0; i--) {
@@ -277,21 +283,25 @@
       }
       return arr;
     }
-    function preparePlaylist() {
-      playOrder = shuffle(TRACKS.slice());
+    function setPlaylist(tracks) {
+      currentTracks = tracks;
+      playOrder = shuffle(tracks.slice());
     }
     music.addEventListener('ended', () => {
-      if (!playOrder.length) preparePlaylist();
+      if (!playOrder.length) setPlaylist(currentTracks);
       if (!playOrder.length) return;
       music.src = playOrder.shift();
       if (!muted) music.play();
     });
-    function startMusic(){
-      if (musicStarted || !TRACKS.length) return;
+    function switchMusic(tracks){
       musicStarted = true;
-      preparePlaylist();
+      setPlaylist(tracks);
       music.src = playOrder.shift();
       if (!muted) music.play();
+    }
+    function startMusic(){
+      if (musicStarted) return;
+      switchMusic(STANDARD_TRACKS);
     }
 
     // Audio mute state and controls (persist like Nova Striker)
@@ -635,6 +645,7 @@
     }
 
     function loadStage() {
+      if (currentTracks !== STANDARD_TRACKS) switchMusic(STANDARD_TRACKS);
       currentMap = MAPS[stage];
       ARENA.x = 0; ARENA.y = 0; ARENA.w = currentMap.width; ARENA.h = currentMap.height;
       DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / W, ARENA.h / H) * 1.5));
@@ -811,6 +822,7 @@
       }
       const b = { kind:'boss', bossType, x, y, vx:0, vy:0, kx:0, ky:0, w:ENEMY.w*4, h:ENEMY.h*4, hp, hpMax:hp, spd:75 * stageSpd, score:2000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0, atkT:0, blastT:0, facing:0, freezeT:0, pulse:0 };
       if (bossType === 'hillGiant') b.slamCd = 3;
+      switchMusic(BOSS_TRACKS);
       enemies.push(b);
       return b;
     }

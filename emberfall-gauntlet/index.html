@@ -441,6 +441,8 @@
     const PHYS = { friction: 0.86, atkDur: 0.18, atkRange: 64, atkArc: Math.PI*0.35 };
     // Knockback tuning
     const KNOCK = { friction: 0.88, melee: 200, orb: 120, nova: 160, projectile: 180 };
+    // Frost Nova damage radius (visuals remain at ~90)
+    const NOVA_RADIUS = 120;
     // Separate hitbox scaling so we can tighten player damage range
     const HITBOX = { player: 0.3, enemy: 0.6 };
     const AUTO = { atkPeriod: 0.7 };
@@ -915,6 +917,9 @@
       const kF = Math.pow(KNOCK.friction, dt * 60);
       for (const e of enemies){
         e.t += dt;
+        // Status: slow decay and pulse fade
+        if (e.slowT && e.slowT > 0) { e.slowT = Math.max(0, e.slowT - dt); }
+        if (e.slowAmp && e.slowAmp > 0) { e.slowAmp = Math.max(0, e.slowAmp - dt*3); }
         const dx = P.x - e.x, dy = P.y - e.y; const dist = Math.hypot(dx,dy);
         if (e.kind === 'boss'){
           const targetAng = Math.atan2(dy, dx);
@@ -930,7 +935,8 @@
           }
         }
         // Use per-enemy speed (with a global pacing modifier similar to previous tuning)
-        const speed = Math.round((e.spd || ENEMY.spd) * 0.75);
+        let speed = Math.round((e.spd || ENEMY.spd) * 0.75);
+        if (e.slowT && e.slowT > 0) { speed = Math.max(10, Math.round(speed * (e.slowMul || 0.5))); }
 
         // Separation: steer slightly away from nearby enemies
         let rx = 0, ry = 0;
@@ -1114,12 +1120,20 @@
         UPGR.novaTimer += dt;
         if (UPGR.novaTimer >= UPGR.novaPeriod){
           UPGR.novaTimer = 0;
+          const affected = [];
           for (const e of enemies){
             if (e.hp<=0) continue;
-            if (len(P.x-e.x,P.y-e.y) < 90){
-              const kdx = e.x - P.x, kdy = e.y - P.y;
-              applyDamage(e, UPGR.novaDmg, kdx, kdy, KNOCK.nova);
+            if (len(P.x-e.x,P.y-e.y) < NOVA_RADIUS){
+              affected.push(e);
             }
+          }
+          for (const e of affected){
+            const kdx = e.x - P.x, kdy = e.y - P.y;
+            applyDamage(e, UPGR.novaDmg, kdx, kdy, KNOCK.nova);
+            // Apply 5s slow debuff with visual pulse
+            e.slowT = 5;
+            e.slowMul = 0.45; // 55% slow
+            e.slowAmp = Math.max(e.slowAmp||0, 0.6);
           }
           emitNova(P.x, P.y);
         }
@@ -1218,6 +1232,19 @@
           const fw = sheet.width / 4;
           const fh = sheet.height;
           ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
+        }
+        // Slow effect visual: pulsing frosty halo while slowed
+        if (e.slowT && e.slowT > 0){
+          const baseA = 0.20;
+          const pulse = 0.18 * (0.5 + 0.5*Math.sin((e.t||0)*10));
+          const burst = (e.slowAmp||0) * 0.6;
+          const a = Math.min(0.85, baseA + pulse + burst);
+          const rr = Math.max(12, Math.min(26, Math.max(e.w, e.h)*0.6));
+          ctx.beginPath();
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = `rgba(160,220,255,${a.toFixed(3)})`;
+          ctx.arc(e.x, e.y - e.h*0.25, rr, 0, Math.PI*2);
+          ctx.stroke();
         }
       }
 

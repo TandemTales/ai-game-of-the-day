@@ -431,8 +431,8 @@
     const FIGHT_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
     const ROGUE_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
     const ENEMY = { spd: 90, w: 26, h: 22 }; // default goblin baseline
-    // Fixed enemy speed: 75% of baseline (25% slower), no scaling
-    const ENEMY_SPEED = Math.round(ENEMY.spd * 0.75);
+    // Fixed enemy speed: 45% of baseline (55% slower), no scaling
+    const ENEMY_SPEED = Math.round(ENEMY.spd * 0.45);
     // Simple AI tuning: chase when close, wander when far; keep away from arena walls
     const AI = { chaseRadius: 300, wanderMin: 0.8, wanderMax: 2.0, wallPad: 12, sepRadius: 28, sepWeight: 1.0 };
     let DENSITY = 1;
@@ -444,7 +444,8 @@
     // Frost Nova damage radius (visuals remain at ~90)
     const NOVA_RADIUS = 120;
     // Separate hitbox scaling so we can tighten player damage range
-    const HITBOX = { player: 0.3, enemy: 0.6 };
+    // Reduce player hitbox for fairness: smaller damage window
+    const HITBOX = { player: 0.24, enemy: 0.6 };
     const AUTO = { atkPeriod: 0.7 };
     const WAVE_LIMIT = 50;
     const SPAWN = { t: 0, cd: 2.2, wave: 1, count: 0 };
@@ -935,7 +936,7 @@
           }
         }
         // Use per-enemy speed (with a global pacing modifier similar to previous tuning)
-        let speed = Math.round((e.spd || ENEMY.spd) * 0.75);
+        let speed = Math.round((e.spd || ENEMY.spd) * 0.45);
         if (e.slowT && e.slowT > 0) { speed = Math.max(10, Math.round(speed * (e.slowMul || 0.5))); }
 
         // Separation: steer slightly away from nearby enemies

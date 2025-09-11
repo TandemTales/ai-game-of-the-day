@@ -97,15 +97,12 @@
     }
 
     /* Mobile controls */
-    .mobile-ctrls { position: absolute; left: 0; right: 0; bottom: 10px; z-index: 7; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 12px; pointer-events: none; }
-    .pad, .actions { pointer-events: auto; }
-    .pad { justify-self: start; display: grid; grid-template-columns: 60px 60px 60px; grid-template-rows: 60px 60px 60px; gap: 6px; }
-    .actions { justify-self: end; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; align-content: end; }
+    .mobile-ctrls { position: absolute; right: 12px; bottom: 10px; z-index: 7; pointer-events: none; }
+    .actions { pointer-events: auto; }
     .ctrl { width: 60px; height: 60px; border-radius: 14px; border: 2px solid var(--gold); background: rgba(0,0,0,0.55); color: #fff; display: grid; place-items: center; font-size: 16px; user-select: none; -webkit-user-select: none; touch-action: none; box-shadow: 0 4px 12px rgba(0,0,0,0.35); }
     .ctrl:active { filter: brightness(1.15); }
     .ctrl.big { width: 90px; height: 90px; border-radius: 18px; font-size: 14px; background: linear-gradient(45deg, var(--teal), #4682B4); }
     .ctrl.small { width: 64px; height: 40px; border-radius: 10px; font-size: 12px; background: rgba(0,0,0,0.55); }
-    .pad .ghost { visibility: hidden; }
   </style>
   <script>
     const GAME_ID = 'emberfall-gauntlet';
@@ -141,22 +138,11 @@
     </div>
 
     <!-- Mobile controls (shown on touch devices) -->
-    <div id="mobileCtrls" class="mobile-ctrls hidden" aria-hidden="true">
-      <div class="pad" aria-label="D-Pad">
-        <div class="ghost"></div>
-        <button id="btnUp" class="ctrl" aria-label="Up">▲</button>
-        <div class="ghost"></div>
-        <button id="btnLeft" class="ctrl" aria-label="Left">◀</button>
-        <div class="ghost"></div>
-        <button id="btnRight" class="ctrl" aria-label="Right">▶</button>
-        <div class="ghost"></div>
-        <button id="btnDown" class="ctrl" aria-label="Down">▼</button>
-        <div class="ghost"></div>
+      <div id="mobileCtrls" class="mobile-ctrls hidden" aria-hidden="true">
+        <div class="actions">
+          <button id="btnPause" class="ctrl small" aria-label="Pause">PAUSE</button>
+        </div>
       </div>
-      <div class="actions">
-        <button id="btnPause" class="ctrl small" aria-label="Pause">PAUSE</button>
-      </div>
-    </div>
 
     <div id="startOverlay" class="overlay show">
       <div class="panel">
@@ -171,7 +157,7 @@
           <button id="startBtn" class="btn">Start</button>
           <a class="btn" href="../leaderboard.html?gameId=emberfall-gauntlet">Leaderboard</a>
         </div>
-        <div class="small" style="margin-top:10px">Move: WASD/Arrows. Pause: P. Audio: M</div>
+          <div class="small" style="margin-top:10px">Move: WASD/Arrows or touch & drag. Pause: P. Audio: M</div>
       </div>
     </div>
 
@@ -750,27 +736,39 @@
       ctrls.classList.remove('hidden');
       ctrls.setAttribute('aria-hidden', 'false');
 
-      const bindHold = (el, set, unset) => {
-        if (!el) return;
-        const down = (e)=>{ e.preventDefault(); try{ el.setPointerCapture(e.pointerId); }catch{} set(); };
-        const up = (e)=>{ e.preventDefault(); unset(); try{ el.releasePointerCapture(e.pointerId); }catch{} };
-        el.addEventListener('pointerdown', down, { passive: false });
-        el.addEventListener('pointerup', up, { passive: false });
-        el.addEventListener('pointercancel', up, { passive: false });
-        el.addEventListener('pointerleave', up, { passive: false });
-        // Fallback for touch
-        el.addEventListener('touchstart', (e)=>{ e.preventDefault(); set(); }, { passive: false });
-        el.addEventListener('touchend',   (e)=>{ e.preventDefault(); unset(); }, { passive: false });
-      };
-
-      bindHold(document.getElementById('btnLeft'),  ()=> key.left=true,  ()=> key.left=false);
-      bindHold(document.getElementById('btnRight'), ()=> key.right=true, ()=> key.right=false);
-      bindHold(document.getElementById('btnUp'),    ()=> key.up=true,    ()=> key.up=false);
-      bindHold(document.getElementById('btnDown'),  ()=> key.down=true,  ()=> key.down=false);
-
-      // Only movement and pause remain
       const btnPause = document.getElementById('btnPause');
       if (btnPause) btnPause.addEventListener('click', ()=> { paused = !paused; });
+
+      let startX = 0, startY = 0, active = false;
+      const dead = 20;
+      const clear = ()=>{ key.left = key.right = key.up = key.down = false; active = false; };
+      const move = (x,y)=>{
+        const dx = x - startX;
+        const dy = y - startY;
+        key.left = dx < -dead;
+        key.right = dx > dead;
+        key.up = dy < -dead;
+        key.down = dy > dead;
+      };
+
+      canvas.addEventListener('pointerdown', (e)=>{
+        startX = e.clientX; startY = e.clientY; active = true;
+        try{ canvas.setPointerCapture(e.pointerId); }catch{}
+      });
+      canvas.addEventListener('pointermove', (e)=>{ if(active) move(e.clientX, e.clientY); });
+      canvas.addEventListener('pointerup', (e)=>{ clear(); try{ canvas.releasePointerCapture(e.pointerId); }catch{} });
+      canvas.addEventListener('pointercancel', clear);
+      canvas.addEventListener('pointerleave', clear);
+
+      // Touch fallback
+      canvas.addEventListener('touchstart', (e)=>{
+        if(e.touches.length){ const t=e.touches[0]; startX=t.clientX; startY=t.clientY; active=true; }
+      }, { passive: true });
+      canvas.addEventListener('touchmove', (e)=>{
+        if(active && e.touches.length){ const t=e.touches[0]; move(t.clientX, t.clientY); }
+      }, { passive: true });
+      canvas.addEventListener('touchend', clear, { passive: true });
+      canvas.addEventListener('touchcancel', clear, { passive: true });
     }
 
     // Utility

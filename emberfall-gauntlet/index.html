@@ -376,6 +376,17 @@
     MUCK_ANIM.left.src = 'assets/EG_enemy_boss_mudMonster_animation_walking_left_small.png';
     MUCK_ANIM.right.src = 'assets/EG_enemy_boss_mudMonster_animation_walking_right_small.png';
 
+    const HILL_GIANT_ANIM = {
+      down: new Image(),
+      up: new Image(),
+      left: new Image(),
+      right: new Image(),
+    };
+    HILL_GIANT_ANIM.down.src = 'assets/EG_enemy_boss_hillGiant_animation_walking_down_small.png';
+    HILL_GIANT_ANIM.up.src = 'assets/EG_enemy_boss_hillGiant_animation_walking_up_small.png';
+    HILL_GIANT_ANIM.left.src = 'assets/EG_enemy_boss_hillGiant_animation_walking_left_small.png';
+    HILL_GIANT_ANIM.right.src = 'assets/EG_enemy_boss_hillGiant_animation_walking_right_small.png';
+
 
     const IMG = {
       coin: new Image(),
@@ -399,7 +410,7 @@
     ];
     const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
 
-    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length;
+    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const img of MAPS) img.addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in WIZ_ANIM) WIZ_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -409,6 +420,7 @@
     for (const k in IMP_ANIM) IMP_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in ORC_ANIM) ORC_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in MUCK_ANIM) MUCK_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
+    for (const k in HILL_GIANT_ANIM) HILL_GIANT_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     CLASS_IMG.rogue.addEventListener('load', () => { if (++loaded === need) init(); });
     CLASS_IMG.wizard.addEventListener('load', () => { if (++loaded === need) init(); });
 
@@ -710,7 +722,14 @@
       const x = ARENA.x + ARENA.w/2;
       const y = ARENA.y + ARENA.h/2;
       const stageSpd = Math.pow(1.2, stage);
-      const b = { kind:'boss', x, y, vx:0, vy:0, kx:0, ky:0, w:ENEMY.w*4, h:ENEMY.h*4, hp:60, hpMax:60, spd:75 * stageSpd, score:2000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0, atkT:0, facing:0 };
+      let bossType = 'muck';
+      let hp = 60;
+      if (stage === 1){
+        bossType = 'hillGiant';
+        hp = 90;
+      }
+      const b = { kind:'boss', bossType, x, y, vx:0, vy:0, kx:0, ky:0, w:ENEMY.w*4, h:ENEMY.h*4, hp, hpMax:hp, spd:75 * stageSpd, score:2000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0, atkT:0, facing:0 };
+      if (bossType === 'hillGiant') b.slamCd = 3;
       enemies.push(b);
       return b;
     }
@@ -1020,6 +1039,25 @@
               BOSS_PROJECTILES.push({ x:e.x, y:e.y, vx:Math.cos(e.facing)*140, vy:Math.sin(e.facing)*140, life:0, ttl:3 });
             }
           }
+          if (e.bossType === 'hillGiant'){
+            e.slamCd = (e.slamCd||0) - dt;
+            if (!e.slam && e.slamCd <= 0){
+              e.slam = { t:0, tele:0.8, arc:Math.PI/2, range:120, done:false };
+              e.slamCd = 5;
+            }
+            if (e.slam){
+              e.slam.t += dt;
+              if (!e.slam.done && e.slam.t >= e.slam.tele){
+                if (hitArc(e.x, e.y, e.facing, e.slam.arc, e.slam.range, P.x, P.y) && P.iT<=0){
+                  if (CHEAT.active){ P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
+                  else if (UPGR.dodgeChance > 0 && Math.random() < UPGR.dodgeChance){ P.iT = 0.6; P.hitFlash = 0.25; spark(P.x,P.y,'#a1ffd4'); }
+                  else { P.hp -= 1; P.iT = 2.0; P.hitFlash = 0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver(); }
+                }
+                e.slam.done = true;
+              }
+              if (e.slam.t >= e.slam.tele + 0.3){ e.slam = null; }
+            }
+          }
         }
 
         // Walk animation for goblins, imps, orcs, and bosses
@@ -1218,6 +1256,17 @@
       for (const e of enemies){
         // shadow scaled to enemy size
         ctx.drawImage(IMG.shadow, e.x - e.w*0.7, e.y - e.h*0.35, e.w*1.4, e.h*0.7);
+        if (e.kind === 'boss' && e.bossType === 'hillGiant' && e.slam){
+          const half = e.slam.arc/2;
+          const a0 = e.facing - half;
+          const a1 = e.facing + half;
+          ctx.fillStyle = e.slam.t < e.slam.tele ? 'rgba(255,0,0,0.3)' : 'rgba(255,165,0,0.5)';
+          ctx.beginPath();
+          ctx.moveTo(e.x, e.y);
+          ctx.arc(e.x, e.y, e.slam.range, a0, a1);
+          ctx.closePath();
+          ctx.fill();
+        }
         if (e.kind === 'goblin'){
           const sheet = GOBLIN_ANIM[e.dir];
           const fw = sheet.width / 4;
@@ -1234,7 +1283,8 @@
           const fh = sheet.height;
           ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
         } else if (e.kind === 'boss') {
-          const sheet = MUCK_ANIM[e.dir];
+          const anim = e.bossType === 'hillGiant' ? HILL_GIANT_ANIM : MUCK_ANIM;
+          const sheet = anim[e.dir];
           const fw = sheet.width / 4;
           const fh = sheet.height;
           ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);

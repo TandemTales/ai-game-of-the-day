@@ -382,14 +382,12 @@
       heart: new Image(),
       shadow: new Image(),
       spark: new Image(),
-      mud: new Image(),
       hero: CLASS_IMG.fighter,
     };
     IMG.coin.src = 'assets/eg_coin.svg';
     IMG.heart.src = 'assets/eg_heart.svg';
     IMG.shadow.src = 'assets/eg_shadow.svg';
     IMG.spark.src = 'assets/eg_spark.svg';
-    IMG.mud.src = 'assets/eg_slime.svg';
 
     const MAP_FILES = [
       'assets/EG_map_mirewatch01.png',
@@ -708,7 +706,7 @@
     function spawnBoss(){
       const x = ARENA.x + ARENA.w/2;
       const y = ARENA.y + ARENA.h/2;
-      const b = { kind:'boss', x, y, vx:0, vy:0, kx:0, ky:0, w:ENEMY.w*4, h:ENEMY.h*4, hp:60, hpMax:60, spd:60, score:2000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0, atkT:0, facing:0 };
+      const b = { kind:'boss', x, y, vx:0, vy:0, kx:0, ky:0, w:ENEMY.w*4, h:ENEMY.h*4, hp:60, hpMax:60, spd:75, score:2000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0, atkT:0, facing:0 };
       enemies.push(b);
       return b;
     }
@@ -924,7 +922,7 @@
         const dx = P.x - e.x, dy = P.y - e.y; const dist = Math.hypot(dx,dy);
         if (e.kind === 'boss'){
           const targetAng = Math.atan2(dy, dx);
-          const turnRate = 1.5; // rad/sec
+          const turnRate = 0.9; // rad/sec
           const diff = angleDiff(targetAng, e.facing);
           const maxTurn = turnRate * dt;
           if (Math.abs(diff) < maxTurn) e.facing = targetAng;
@@ -1347,7 +1345,14 @@
       // Orbs & projectiles
       if (ORBS.length){ for (const o of ORBS){ ctx.drawImage(IMG.spark, (o.x||P.x)-8, (o.y||P.y)-8, 16, 16); } }
       if (PROJECTILES.length){ for (const pr of PROJECTILES){ ctx.drawImage(IMG.spark, pr.x-6, pr.y-6, 12, 12); } }
-      if (BOSS_PROJECTILES.length){ for (const bp of BOSS_PROJECTILES){ ctx.drawImage(IMG.mud, bp.x-8, bp.y-8, 16, 16); } }
+      if (BOSS_PROJECTILES.length){
+        for (const bp of BOSS_PROJECTILES){
+          ctx.fillStyle = '#d2b48c';
+          ctx.beginPath();
+          ctx.arc(bp.x, bp.y, 8, 0, Math.PI*2);
+          ctx.fill();
+        }
+      }
 
       ctx.restore();
 

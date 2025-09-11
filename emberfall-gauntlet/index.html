@@ -463,11 +463,17 @@
       shadow: new Image(),
       spark: new Image(),
       hero: CLASS_IMG.fighter,
+      chestClosed: new Image(),
+      chestOpen: new Image(),
+      key: new Image(),
     };
     IMG.coin.src = 'assets/eg_coin.svg';
     IMG.heart.src = 'assets/eg_heart.svg';
     IMG.shadow.src = 'assets/eg_shadow.svg';
     IMG.spark.src = 'assets/eg_spark.svg';
+    IMG.chestClosed.src = 'assets/EG_chest_closed.png';
+    IMG.chestOpen.src = 'assets/EG_chest_open.png';
+    IMG.key.src = 'assets/EG_key.png';
 
     const MAP_FILES = [
       'assets/EG_map_mirewatch01.png',
@@ -518,6 +524,11 @@
     const AI = { chaseRadius: 300, wanderMin: 0.8, wanderMax: 2.0, wallPad: 12, sepRadius: 28, sepWeight: 1.0 };
     let DENSITY = 1;
     const DROP = { w: 18, h: 18 };
+    const CHEST = { w: 32, h: 32 };
+    let chest = null;
+    let playerHasKey = false;
+    let keyHolderIdx = 0;
+    let keyHolderAssigned = false;
     // Melee arc narrowed so default swings are a tight cone ahead
     const PHYS = { friction: 0.86, atkDur: 0.18, atkRange: 64, atkArc: Math.PI*0.35 };
     // Knockback tuning
@@ -654,6 +665,7 @@
       const stageMult = Math.pow(1.2, stage);
       Object.assign(SPAWN, { t:0, cd:2.2 / stageMult, wave:1, count:0 });
       updateWaveLimit();
+      startWave();
       waveEl.textContent = SPAWN.wave;
       boss = null;
       const initial = Math.min(Math.floor(WAVE_LIMIT * 0.5), 40);
@@ -774,6 +786,31 @@
     // HUD
     function drawHearts(){ heartsEl.innerHTML=''; for (let i=0;i<P.hpMax;i++){ const img=document.createElement('img'); img.src=IMG.heart.src; img.style.opacity = i < P.hp ? '1' : '0.28'; heartsEl.appendChild(img);} }
 
+    // Chest and wave helpers
+    function spawnChest(){
+      const margin = 40;
+      const x = rand(ARENA.x + margin, ARENA.x + ARENA.w - margin);
+      const y = rand(ARENA.y + margin, ARENA.y + ARENA.h - margin);
+      chest = { x, y, w:CHEST.w, h:CHEST.h, open:false };
+    }
+
+    function startWave(){
+      chest = null;
+      playerHasKey = false;
+      keyHolderIdx = Math.floor(Math.random() * WAVE_LIMIT);
+      keyHolderAssigned = false;
+      spawnChest();
+    }
+
+    function openChest(){
+      if (!chest || chest.open) return;
+      chest.open = true;
+      playerHasKey = false;
+      const num = Math.floor(rand(15,51));
+      for (let i=0;i<num;i++) dropCoin(chest.x + rand(-20,20), chest.y + rand(-20,20));
+      drops.push({ x:chest.x, y:chest.y, w:DROP.w, h:DROP.h, t:0, kind:'heart', v: rand(40,70), a: rand(0,Math.PI*2) });
+    }
+
     // Spawning
     function spawnEnemy(){
       // Spawn outside player vicinity along arena edges
@@ -798,7 +835,9 @@
       if (kind==='imp'){ w=22; h=18; spd=130 * stageSpd; hp=Math.max(1,1+Math.floor(SPAWN.wave/3)); score=40; }
       else if (kind==='orc'){ w=ENEMY.w*2; h=ENEMY.h*2; spd=60 * stageSpd; hp=(3+Math.floor(SPAWN.wave/1.5))*3; score=240; }
 
-      enemies.push({ kind, x, y, vx:0, vy:0, kx:0, ky:0, w, h, hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0, dir:'down', frame:0, animT:0 });
+      const enemy = { kind, x, y, vx:0, vy:0, kx:0, ky:0, w, h, hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0, dir:'down', frame:0, animT:0 };
+      if (!keyHolderAssigned && SPAWN.count === keyHolderIdx){ enemy.hasKey = true; keyHolderAssigned = true; }
+      enemies.push(enemy);
     }
 
     function spawnBoss(){
@@ -868,6 +907,7 @@
         } else {
           addScore(e.score||50);
           dropCoin(e.x, e.y);
+          if (e.hasKey){ drops.push({ x:e.x, y:e.y, w:DROP.w, h:DROP.h, t:0, kind:'key', v: rand(40,70), a: rand(0,Math.PI*2) }); }
           // Life steal on kill
           if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }
           // Extra coin chance
@@ -1296,10 +1336,17 @@
             addScore(10);
             COINS.value += 1; coinsEl.textContent = COINS.value; spark(d.x,d.y,'#ffd16b');
             maybeOpenShop();
+          } else if (d.kind==='key'){
+            playerHasKey = true; spark(d.x,d.y,'#ffd16b');
+          } else if (d.kind==='heart'){
+            if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); }
+            spark(d.x,d.y,'#ff8a8a');
           }
           drops.splice(i,1);
         }
       }
+
+      if (chest && !chest.open && playerHasKey && len(P.x-chest.x,P.y-chest.y) < 28){ openChest(); }
 
       // Spells: orbiting orbs damage
       if (UPGR.orbs>0){
@@ -1394,8 +1441,10 @@
           if (SPAWN.wave < STAGE_WAVES){
             SPAWN.wave += 1; waveEl.textContent = SPAWN.wave; SPAWN.count = 0; SPAWN.t = 0;
             updateWaveLimit();
+            startWave();
           } else {
             boss = spawnBoss();
+            chest = null; playerHasKey = false;
           }
         }
       }
@@ -1437,8 +1486,14 @@
       ctx.translate(-CAM.x, -CAM.y);
       drawBackground();
 
+      // Draw chest
+      if (chest){ const img = chest.open ? IMG.chestOpen : IMG.chestClosed; ctx.drawImage(img, chest.x - chest.w/2, chest.y - chest.h/2, chest.w, chest.h); }
+
       // Draw drops
-      for (const d of drops) { ctx.drawImage(IMG.coin, d.x-12, d.y-12, 24, 24); }
+      for (const d of drops) {
+        const img = d.kind==='coin' ? IMG.coin : d.kind==='key' ? IMG.key : IMG.heart;
+        ctx.drawImage(img, d.x-12, d.y-12, 24, 24);
+      }
 
       // Draw enemies with shadow (use sprite per type, size by enemy)
       for (const e of enemies){

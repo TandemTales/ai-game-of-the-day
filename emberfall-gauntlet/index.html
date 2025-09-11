@@ -387,6 +387,17 @@
     HILL_GIANT_ANIM.left.src = 'assets/EG_enemy_boss_hillGiant_animation_walking_left_small.png';
     HILL_GIANT_ANIM.right.src = 'assets/EG_enemy_boss_hillGiant_animation_walking_right_small.png';
 
+    const ABOMINATION_ANIM = {
+      down: new Image(),
+      up: new Image(),
+      left: new Image(),
+      right: new Image(),
+    };
+    ABOMINATION_ANIM.down.src = 'assets/EG_enemy_boss_abomination_animation_walking_down_small.png';
+    ABOMINATION_ANIM.up.src = 'assets/EG_enemy_boss_abomination_animation_walking_up_small.png';
+    ABOMINATION_ANIM.left.src = 'assets/EG_enemy_boss_abomination_animation_walking_left_small.png';
+    ABOMINATION_ANIM.right.src = 'assets/EG_enemy_boss_abomination_animation_walking_right_small.png';
+
 
     const IMG = {
       coin: new Image(),
@@ -727,8 +738,11 @@
       if (stage === 1){
         bossType = 'hillGiant';
         hp = 90;
+      } else if (stage === 2) {
+        bossType = 'abomination';
+        hp = 120;
       }
-      const b = { kind:'boss', bossType, x, y, vx:0, vy:0, kx:0, ky:0, w:ENEMY.w*4, h:ENEMY.h*4, hp, hpMax:hp, spd:75 * stageSpd, score:2000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0, atkT:0, facing:0 };
+      const b = { kind:'boss', bossType, x, y, vx:0, vy:0, kx:0, ky:0, w:ENEMY.w*4, h:ENEMY.h*4, hp, hpMax:hp, spd:75 * stageSpd, score:2000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0, atkT:0, facing:0, freezeT:0, pulse:0 };
       if (bossType === 'hillGiant') b.slamCd = 3;
       enemies.push(b);
       return b;
@@ -942,6 +956,8 @@
         // Status: slow decay and pulse fade
         if (e.slowT && e.slowT > 0) { e.slowT = Math.max(0, e.slowT - dt); }
         if (e.slowAmp && e.slowAmp > 0) { e.slowAmp = Math.max(0, e.slowAmp - dt*3); }
+        if (e.freezeT && e.freezeT > 0) { e.freezeT = Math.max(0, e.freezeT - dt); }
+        if (e.pulse && e.pulse > 0) { e.pulse = Math.max(0, e.pulse - dt); }
         const dx = P.x - e.x, dy = P.y - e.y; const dist = Math.hypot(dx,dy);
         if (e.kind === 'boss'){
           const targetAng = Math.atan2(dy, dx);
@@ -974,7 +990,9 @@
           }
         }
 
-        if (dist > AI.chaseRadius) {
+        if (e.freezeT > 0) {
+          e.vx = 0; e.vy = 0;
+        } else if (dist > AI.chaseRadius) {
           // Wander: keep a direction for a short time, occasionally change
           e.wanderT = (e.wanderT||0) - dt;
           if (e.wanderT <= 0) {
@@ -1032,7 +1050,20 @@
 
         if (e.kind === 'boss'){
           e.atkT += dt;
-          if (e.atkT >= 2.4){
+          if (e.bossType === 'abomination') {
+            if (e.freezeT <= 0 && e.atkT >= 2.4){
+              e.atkT = 0;
+              const range = 90;
+              e.pulse = 0.3;
+              e.pulseRange = range;
+              if (dist < range && P.iT<=0){
+                if (CHEAT.active){ P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
+                else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
+                else { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver(); }
+              }
+              e.freezeT = 1.2;
+            }
+          } else if (e.atkT >= 2.4){
             e.atkT = 0;
             const diff = angleDiff(Math.atan2(dy, dx), e.facing);
             if (Math.abs(diff) <= Math.PI/3){
@@ -1256,16 +1287,23 @@
       for (const e of enemies){
         // shadow scaled to enemy size
         ctx.drawImage(IMG.shadow, e.x - e.w*0.7, e.y - e.h*0.35, e.w*1.4, e.h*0.7);
-        if (e.kind === 'boss' && e.bossType === 'hillGiant' && e.slam){
-          const half = e.slam.arc/2;
-          const a0 = e.facing - half;
-          const a1 = e.facing + half;
-          ctx.fillStyle = e.slam.t < e.slam.tele ? 'rgba(255,0,0,0.3)' : 'rgba(255,165,0,0.5)';
-          ctx.beginPath();
-          ctx.moveTo(e.x, e.y);
-          ctx.arc(e.x, e.y, e.slam.range, a0, a1);
-          ctx.closePath();
-          ctx.fill();
+        if (e.kind === 'boss'){
+          if (e.bossType === 'hillGiant' && e.slam){
+            const half = e.slam.arc/2;
+            const a0 = e.facing - half;
+            const a1 = e.facing + half;
+            ctx.fillStyle = e.slam.t < e.slam.tele ? 'rgba(255,0,0,0.3)' : 'rgba(255,165,0,0.5)';
+            ctx.beginPath();
+            ctx.moveTo(e.x, e.y);
+            ctx.arc(e.x, e.y, e.slam.range, a0, a1);
+            ctx.closePath();
+            ctx.fill();
+          } else if (e.bossType === 'abomination' && e.pulse > 0){
+            ctx.fillStyle = 'rgba(255,0,0,0.3)';
+            ctx.beginPath();
+            ctx.arc(e.x, e.y, e.pulseRange || 90, 0, Math.PI*2);
+            ctx.fill();
+          }
         }
         if (e.kind === 'goblin'){
           const sheet = GOBLIN_ANIM[e.dir];
@@ -1283,7 +1321,7 @@
           const fh = sheet.height;
           ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
         } else if (e.kind === 'boss') {
-          const anim = e.bossType === 'hillGiant' ? HILL_GIANT_ANIM : MUCK_ANIM;
+          const anim = e.bossType === 'hillGiant' ? HILL_GIANT_ANIM : e.bossType === 'abomination' ? ABOMINATION_ANIM : MUCK_ANIM;
           const sheet = anim[e.dir];
           const fw = sheet.width / 4;
           const fh = sheet.height;

@@ -465,7 +465,6 @@
       'assets/EG_map_feywild01.png',
       'assets/EG_map_corruption01.png',
       'assets/EG_map_mountain01.png',
-      'assets/EG_map_corruption01.png',
     ];
     const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
 
@@ -809,10 +808,19 @@
       boss = null;
       BOSS_PROJECTILES = [];
       awaitingStage = true;
+      if (nextStageInterval) { clearInterval(nextStageInterval); nextStageInterval = null; }
+      if (stage >= MAPS.length - 1) {
+        stageTimerEl.textContent = 'You Won!';
+        stageTimerEl.classList.remove('hidden');
+        setTimeout(() => {
+          stageTimerEl.classList.add('hidden');
+          gameOver();
+        }, 3000);
+        return;
+      }
       let remaining = 10;
       stageTimerEl.textContent = `Next Stage in ${remaining} seconds`;
       stageTimerEl.classList.remove('hidden');
-      if (nextStageInterval) { clearInterval(nextStageInterval); }
       nextStageInterval = setInterval(() => {
         remaining--;
         if (remaining > 0){

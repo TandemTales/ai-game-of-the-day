@@ -498,7 +498,7 @@
         { id:'quickhands', type:'Weapon', name:'Quick Hands', desc:'Attack more often (-12% cooldown).', apply:()=>{ AUTO.atkPeriod = Math.max(0.25, AUTO.atkPeriod*0.88); } },
         { id:'keen', type:'Weapon', name:'Keen Edge', desc:'Melee damage +1.', apply:()=>{ UPGR.meleeDmg += 1; } },
         { id:'orbs', type:'Spell', name:'Orbiting Sparks', desc:'Summon 1 orbiting spark that damages foes.', note:'Stacks add more sparks', apply:()=>{ UPGR.orbs += 1; } },
-        { id:'nova', type:'Spell', name:'Frost Nova', desc:'Every few seconds, blast nearby foes.', note:'Period and damage improve with repeats', apply:()=>{ if(!UPGR.nova){ UPGR.nova=true; } else { UPGR.novaPeriod=Math.max(2.2, UPGR.novaPeriod*0.9); UPGR.novaDmg+=1; } } },
+        { id:'nova', type:'Spell', name:'Frost Nova', desc:'Every few seconds, blast and slow nearby foes.', note:'Period and damage improve with repeats', apply:()=>{ if(!UPGR.nova){ UPGR.nova=true; } else { UPGR.novaPeriod=Math.max(2.2, UPGR.novaPeriod*0.9); UPGR.novaDmg+=1; } } },
         { id:'shards', type:'Spell', name:'Arc Shards', desc:'Periodically fire shards where you face.', note:'More shards with repeats', apply:()=>{ if(!UPGR.shards){ UPGR.shards=true; } else { UPGR.shardCount=Math.min(6, UPGR.shardCount+1); } } },
         { id:'boots', type:'Upgrade', name:'Fleetfoot Boots', desc:'Run 20% faster.', apply:()=>{ P.spd = Math.round(P.spd*1.2); } },
         { id:'heart', type:'Upgrade', name:'Heart Vessel', desc:'Max HP +1 and heal 1.', apply:()=>{ P.hpMax += 1; P.hp = Math.min(P.hpMax, P.hp+1); drawHearts(); } },
@@ -520,7 +520,7 @@
       ],
       wizard: [
         { id:'orbs', type:'Spell', name:'Arcane Orbs', desc:'Summon orbiting orbs that damage foes.', note:'Stacks add more orbs', apply:()=>{ UPGR.orbs += 1; } },
-        { id:'nova', type:'Spell', name:'Frost Nova', desc:'Every few seconds, blast nearby foes.', note:'Improves with repeats', apply:()=>{ if(!UPGR.nova){ UPGR.nova=true; } else { UPGR.novaPeriod=Math.max(2.2, UPGR.novaPeriod*0.9); UPGR.novaDmg+=1; } } },
+        { id:'nova', type:'Spell', name:'Frost Nova', desc:'Every few seconds, blast and slow nearby foes.', note:'Improves with repeats', apply:()=>{ if(!UPGR.nova){ UPGR.nova=true; } else { UPGR.novaPeriod=Math.max(2.2, UPGR.novaPeriod*0.9); UPGR.novaDmg+=1; } } },
         { id:'shards', type:'Spell', name:'Arcane Missiles', desc:'Periodically fire magic missiles.', note:'More with repeats', apply:()=>{ if(!UPGR.shards){ UPGR.shards=true; } else { UPGR.shardCount=Math.min(6, UPGR.shardCount+1); } } },
         { id:'focus', type:'Spell', name:'Spell Focus', desc:'Cast more often (-12% cooldown).', apply:()=>{ AUTO.atkPeriod = Math.max(0.25, AUTO.atkPeriod*0.88); } },
         { id:'power', type:'Spell', name:'Empowered Bolt', desc:'Melee damage +1.', apply:()=>{ UPGR.meleeDmg += 1; } },

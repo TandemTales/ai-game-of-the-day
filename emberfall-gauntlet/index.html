@@ -1135,7 +1135,7 @@
         const dx = P.x - e.x, dy = P.y - e.y; const dist = Math.hypot(dx,dy);
         if (e.kind === 'boss'){
           const targetAng = Math.atan2(dy, dx);
-          const turnRate = 0.9; // rad/sec
+          const turnRate = e.bossType === 'muck' ? 0.9/1.5 : 0.9; // rad/sec
           const diff = angleDiff(targetAng, e.facing);
           const maxTurn = turnRate * dt;
           if (Math.abs(diff) < maxTurn) e.facing = targetAng;

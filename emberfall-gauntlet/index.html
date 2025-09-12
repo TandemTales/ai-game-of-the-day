@@ -892,6 +892,8 @@
         bossType = 'beholder';
         hp = 180;
       }
+      // Reduce boss health by 50%
+      hp *= 0.5;
       const b = { kind:'boss', bossType, x, y, vx:0, vy:0, kx:0, ky:0, w:ENEMY.w*4, h:ENEMY.h*4, hp, hpMax:hp, spd:75 * stageSpd, score:2000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0, atkT:0, blastT:0, facing:0, freezeT:0, pulse:0 };
       if (bossType === 'hillGiant') b.slamCd = 3;
       switchMusic(BOSS_TRACKS);

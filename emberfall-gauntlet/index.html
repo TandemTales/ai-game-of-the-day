@@ -433,6 +433,13 @@
     MUCK_PROJECTILE_ANIM.left.src = 'assets/EG_projectile_mud_left_small.png';
     MUCK_PROJECTILE_ANIM.right.src = 'assets/EG_projectile_mud_right_small.png';
 
+    const HILL_GIANT_PROJECTILE_ANIM = {
+      left: new Image(),
+      right: new Image(),
+    };
+    HILL_GIANT_PROJECTILE_ANIM.left.src = 'assets/EG_projectile_rock_left_small.png';
+    HILL_GIANT_PROJECTILE_ANIM.right.src = 'assets/EG_projectile_rock_right_small.png';
+
     const HILL_GIANT_ANIM = {
       down: new Image(),
       up: new Image(),
@@ -1280,6 +1287,10 @@
                 const vx = Math.cos(e.facing)*140;
                 const vy = Math.sin(e.facing)*140;
                 BOSS_PROJECTILES.push({ kind:'muck', dir: vx < 0 ? 'left' : 'right', x:e.x, y:e.y, vx, vy, life:0, ttl:3, frame:0, animT:0 });
+              } else if (e.bossType === 'hillGiant') {
+                const vx = Math.cos(e.facing)*140;
+                const vy = Math.sin(e.facing)*140;
+                BOSS_PROJECTILES.push({ kind:'rock', dir: vx < 0 ? 'left' : 'right', x:e.x, y:e.y, vx, vy, life:0, ttl:3, frame:0, animT:0 });
               } else {
                 BOSS_PROJECTILES.push({ x:e.x, y:e.y, vx:Math.cos(e.facing)*140, vy:Math.sin(e.facing)*140, life:0, ttl:3 });
               }
@@ -1474,7 +1485,7 @@
           continue;
         }
         p.x += p.vx * dt; p.y += p.vy * dt;
-        if (p.kind === 'muck'){
+        if (p.kind === 'muck' || p.kind === 'rock'){
           p.animT += dt;
           if (p.animT >= 0.12){ p.animT = 0; p.frame = (p.frame + 1) % 4; }
         }
@@ -1728,6 +1739,11 @@
             ctx.restore();
           } else if (bp.kind === 'muck'){
             const sheet = MUCK_PROJECTILE_ANIM[bp.dir];
+            const fw = sheet.width / 4;
+            const fh = sheet.height;
+            ctx.drawImage(sheet, bp.frame * fw, 0, fw, fh, bp.x - fw/2, bp.y - fh/2, fw, fh);
+          } else if (bp.kind === 'rock'){
+            const sheet = HILL_GIANT_PROJECTILE_ANIM[bp.dir];
             const fw = sheet.width / 4;
             const fh = sheet.height;
             ctx.drawImage(sheet, bp.frame * fw, 0, fw, fh, bp.x - fw/2, bp.y - fh/2, fw, fh);

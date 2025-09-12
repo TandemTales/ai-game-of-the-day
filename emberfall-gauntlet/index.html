@@ -553,6 +553,7 @@
     const FIGHT_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
     const ROGUE_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
     const ENEMY = { spd: 90, w: 26, h: 22 }; // default goblin baseline
+    const SPRITE_SCALE = 1.5; // display scale for characters
     // Fixed enemy speed: 45% of baseline (55% slower), no scaling
     const ENEMY_SPEED = Math.round(ENEMY.spd * 0.45);
     // Simple AI tuning: chase when close, wander when far; keep away from arena walls
@@ -1617,6 +1618,8 @@
       for (const e of enemies){
         // shadow scaled to enemy size
         ctx.drawImage(IMG.shadow, e.x - e.w*0.7, e.y - e.h*0.35, e.w*1.4, e.h*0.7);
+        const dw = e.w * SPRITE_SCALE;
+        const dh = (e.h + 6) * SPRITE_SCALE;
         if (e.kind === 'boss'){
           if (e.bossType === 'hillGiant' && e.slam){
             const half = e.slam.arc/2;
@@ -1639,23 +1642,23 @@
           const sheet = GOBLIN_ANIM[e.dir];
           const fw = sheet.width / 4;
           const fh = sheet.height;
-          ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
+          ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - dw/2, e.y + e.h/2 - dh, dw, dh);
         } else if (e.kind === 'imp') {
           const sheet = IMP_ANIM[e.dir];
           const fw = sheet.width / 4;
           const fh = sheet.height;
-          ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
+          ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - dw/2, e.y + e.h/2 - dh, dw, dh);
         } else if (e.kind === 'orc') {
           const sheet = ORC_ANIM[e.dir];
           const fw = sheet.width / 4;
           const fh = sheet.height;
-          ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
+          ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - dw/2, e.y + e.h/2 - dh, dw, dh);
         } else if (e.kind === 'boss') {
           const anim = e.bossType === 'hillGiant' ? HILL_GIANT_ANIM : e.bossType === 'abomination' ? ABOMINATION_ANIM : e.bossType === 'hungerDemon' ? HUNGER_DEMON_ANIM : e.bossType === 'beholder' ? BEHOLDER_ANIM : MUCK_ANIM;
           const sheet = anim[e.dir];
           const fw = sheet.width / 4;
           const fh = sheet.height;
-          ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
+          ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - dw/2, e.y + e.h/2 - dh, dw, dh);
         }
         // Slow effect visual: pulsing frosty halo while slowed
         if (e.slowT && e.slowT > 0){
@@ -1740,24 +1743,27 @@
         if (!blinking){
           ctx.save();
           ctx.translate(P.x, P.y);
+          const dw = 36 * SPRITE_SCALE;
+          const dh = 36 * SPRITE_SCALE;
+          const yOff = P.h/2 - dh;
           if (currentClass === 'wizard'){
             const sheet = WIZ_ANIM[WIZ_ANIM_STATE.dir];
             const fw = sheet.width / 4;
             const fh = sheet.height;
-            ctx.drawImage(sheet, WIZ_ANIM_STATE.frame * fw, 0, fw, fh, -18, -22, 36, 36);
+            ctx.drawImage(sheet, WIZ_ANIM_STATE.frame * fw, 0, fw, fh, -dw/2, yOff, dw, dh);
           } else if (currentClass === 'fighter'){
             const sheet = FIGHT_ANIM[FIGHT_ANIM_STATE.dir];
             const fw = sheet.width / 4;
             const fh = sheet.height;
-            ctx.drawImage(sheet, FIGHT_ANIM_STATE.frame * fw, 0, fw, fh, -18, -22, 36, 36);
+            ctx.drawImage(sheet, FIGHT_ANIM_STATE.frame * fw, 0, fw, fh, -dw/2, yOff, dw, dh);
           } else if (currentClass === 'rogue'){
             const sheet = ROGUE_ANIM[ROGUE_ANIM_STATE.dir];
             const fw = sheet.width / 4;
             const fh = sheet.height;
-            ctx.drawImage(sheet, ROGUE_ANIM_STATE.frame * fw, 0, fw, fh, -18, -22, 36, 36);
+            ctx.drawImage(sheet, ROGUE_ANIM_STATE.frame * fw, 0, fw, fh, -dw/2, yOff, dw, dh);
           } else {
             ctx.rotate(P.dir + Math.sin(t*0.01)*0.02);
-            ctx.drawImage(IMG.hero, -18, -22, 36, 36);
+            ctx.drawImage(IMG.hero, -dw/2, yOff, dw, dh);
           }
           ctx.restore();
         }

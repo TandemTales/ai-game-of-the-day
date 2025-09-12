@@ -426,6 +426,13 @@
     MUCK_ANIM.left.src = 'assets/EG_enemy_boss_mudMonster_animation_walking_left_small.png';
     MUCK_ANIM.right.src = 'assets/EG_enemy_boss_mudMonster_animation_walking_right_small.png';
 
+    const MUCK_PROJECTILE_ANIM = {
+      left: new Image(),
+      right: new Image(),
+    };
+    MUCK_PROJECTILE_ANIM.left.src = 'assets/EG_projectile_mud_left_small.png';
+    MUCK_PROJECTILE_ANIM.right.src = 'assets/EG_projectile_mud_right_small.png';
+
     const HILL_GIANT_ANIM = {
       down: new Image(),
       up: new Image(),
@@ -1269,7 +1276,13 @@
             e.atkT = 0;
             const diff = angleDiff(Math.atan2(dy, dx), e.facing);
             if (Math.abs(diff) <= Math.PI/3){
-              BOSS_PROJECTILES.push({ x:e.x, y:e.y, vx:Math.cos(e.facing)*140, vy:Math.sin(e.facing)*140, life:0, ttl:3 });
+              if (e.bossType === 'muck'){
+                const vx = Math.cos(e.facing)*140;
+                const vy = Math.sin(e.facing)*140;
+                BOSS_PROJECTILES.push({ kind:'muck', dir: vx < 0 ? 'left' : 'right', x:e.x, y:e.y, vx, vy, life:0, ttl:3, frame:0, animT:0 });
+              } else {
+                BOSS_PROJECTILES.push({ x:e.x, y:e.y, vx:Math.cos(e.facing)*140, vy:Math.sin(e.facing)*140, life:0, ttl:3 });
+              }
             }
           }
           if (e.bossType === 'hillGiant'){
@@ -1461,6 +1474,10 @@
           continue;
         }
         p.x += p.vx * dt; p.y += p.vy * dt;
+        if (p.kind === 'muck'){
+          p.animT += dt;
+          if (p.animT >= 0.12){ p.animT = 0; p.frame = (p.frame + 1) % 4; }
+        }
         if (p.life > p.ttl){ BOSS_PROJECTILES.splice(i,1); continue; }
         if (len(p.x-P.x,p.y-P.y) < 20){
           if (P.iT<=0){
@@ -1709,6 +1726,11 @@
             ctx.fillStyle = 'purple';
             ctx.fillRect(0, -4, 240, 8);
             ctx.restore();
+          } else if (bp.kind === 'muck'){
+            const sheet = MUCK_PROJECTILE_ANIM[bp.dir];
+            const fw = sheet.width / 4;
+            const fh = sheet.height;
+            ctx.drawImage(sheet, bp.frame * fw, 0, fw, fh, bp.x - fw/2, bp.y - fh/2, fw, fh);
           } else {
             ctx.fillStyle = bp.kind === 'slow' ? 'red' : bp.kind === 'fast' ? 'orange' : 'brown';
             ctx.beginPath();

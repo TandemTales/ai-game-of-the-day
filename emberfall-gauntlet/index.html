@@ -78,6 +78,12 @@
     .panel { background: rgba(0,0,0,0.85); border: 3px solid var(--gold); border-radius: 12px; padding: 20px; text-align:center; box-shadow: 0 0 40px rgba(255,215,0,0.35); max-width: 560px; width: calc(100vw - 40px); }
     .panel .title { font-size: 18px; margin-bottom: 8px; }
     .panel .desc { font-size: 12px; color: var(--teal); line-height: 1.6; margin: 8px 0 12px; }
+    .panel .scroller { max-height: 65vh; overflow:auto; text-align:left; padding-right: 6px; }
+    .panel .section { margin: 10px 0 6px; font-size: 12px; color: var(--gold); }
+    .panel .kv { font-size: 12px; line-height: 1.6; }
+    .panel .kv b { color: #fff; }
+    .panel .subtle { color:#a6e3ff; font-size:11px; }
+    .panel .close { margin-top: 12px; }
     .row { display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; margin-top: 10px; }
     .small { font-size: 11px; color: #a6e3ff; }
     .hidden { display:none; }
@@ -130,6 +136,7 @@
           <img id="audioIconImg" src="../nova-striker/assets/unmuted.png" alt="Audio">
         </div>
       </div>
+      <button id="statsBtn" class="btn" title="View character stats (pause)">Stats</button>
       <a class="btn" href="../leaderboard.html?gameId=emberfall-gauntlet">Leaderboard</a>
     </div>
 
@@ -157,7 +164,7 @@
           <button id="startBtn" class="btn">Start</button>
           <a class="btn" href="../leaderboard.html?gameId=emberfall-gauntlet">Leaderboard</a>
         </div>
-          <div class="small" style="margin-top:10px">Move: WASD/Arrows or touch & drag. Pause: P. Audio: M</div>
+          <div class="small" style="margin-top:10px">Move: WASD/Arrows or touch & drag. Pause: P. Audio: M. Stats: C</div>
       </div>
     </div>
 
@@ -179,6 +186,19 @@
         <div class="desc">You found a quiet alcove. Choose one boon to continue your run.</div>
         <div id="shopChoices" class="choices"></div>
         <div class="small" id="shopHint">Tip: Some boons can stack for greater effect.</div>
+      </div>
+    </div>
+
+    <!-- Stats Overlay -->
+    <div id="statsOverlay" class="overlay" aria-hidden="true">
+      <div class="panel" role="dialog" aria-modal="true" aria-labelledby="statsTitle">
+        <div id="statsTitle" class="title">Character Stats</div>
+        <div class="scroller">
+          <div id="statsContent" class="kv"></div>
+        </div>
+        <div class="row">
+          <button id="statsClose" class="btn close">Close</button>
+        </div>
       </div>
     </div>
   </div>
@@ -203,6 +223,10 @@
     const logo = document.getElementById('logo');
     const audioIcon = document.getElementById('audioIcon');
     const audioIconImg = document.getElementById('audioIconImg');
+    const statsBtn = document.getElementById('statsBtn');
+    const statsOverlay = document.getElementById('statsOverlay');
+    const statsContent = document.getElementById('statsContent');
+    const statsClose = document.getElementById('statsClose');
 
     const SCORE = { value: 0 };
     const CHEAT = { active: false, clicks: 0 };
@@ -547,6 +571,8 @@
     const COINS = { value: 0 };
     const KEYS = { value: 0 };
     const SHOP = { milestones: [10, 20, 40, 80, 120, 200, 300, 500, 700, 900, 1200], idx: 0, open: false };
+    const UPGRADE_LEVELS = Object.create(null);
+    const TAKEN_UPGRADES = Object.create(null); // id -> { id, name, type, desc, levels }
     const UPGR = {
       meleeDmg: 1,
       multistrike: 1,
@@ -680,6 +706,9 @@
       // Reset upgrades and spell state
       Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:0, critChance:0, critMult:1.6, doubleCoinChance:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:60, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1 });
       if (stats.startOrbs) { UPGR.orbs = stats.startOrbs; }
+      // Reset upgrade tracking
+      for (const k in UPGRADE_LEVELS) delete UPGRADE_LEVELS[k];
+      for (const k in TAKEN_UPGRADES) delete TAKEN_UPGRADES[k];
       PROJECTILES = []; BOSS_PROJECTILES = []; ORBS = [];
       stage = 0;
       loadStage();
@@ -722,6 +751,7 @@
         if (e.code==='ArrowDown'||e.code==='KeyS') key.down=true;
         if (e.code==='KeyP') { paused = !paused; }
         if (e.code==='KeyM') { toggleAudio(); }
+        if (e.code==='KeyC') { e.preventDefault(); if (statsOverlay && statsOverlay.classList.contains('show')) closeStats(); else openStats(); }
       });
       window.addEventListener('keyup', e=>{
         if (e.code==='ArrowLeft'||e.code==='KeyA') key.left=false;
@@ -774,6 +804,7 @@
     }
 
     // Utility
+    function needsKeys(){ return currentClass !== 'rogue'; }
     const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
     const len = (x,y)=>Math.hypot(x,y);
     const norm = (x,y)=>{const l=Math.hypot(x,y)||1;return [x/l,y/l];};
@@ -813,7 +844,7 @@
       else if (kind==='orc'){ w=ENEMY.w*2; h=ENEMY.h*2; spd=60 * stageSpd; hp=(3+Math.floor(SPAWN.wave/1.5))*3; score=240; }
 
       const enemy = { kind, x, y, vx:0, vy:0, kx:0, ky:0, w, h, hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0, dir:'down', frame:0, animT:0 };
-      if (!SPAWN.keyAssigned){ enemy.hasKey = true; SPAWN.keyAssigned = true; }
+      if (needsKeys() && !SPAWN.keyAssigned){ enemy.hasKey = true; SPAWN.keyAssigned = true; }
       enemies.push(enemy);
     }
 
@@ -1326,13 +1357,16 @@
 
       // Chests
       for (const c of chests){
-        if (!c.opened && KEYS.value > 0 && len(P.x-c.x,P.y-c.y) < 28){
+        const canOpen = currentClass === 'rogue' || KEYS.value > 0;
+        if (!c.opened && canOpen && len(P.x-c.x,P.y-c.y) < 28){
           const coinCount = Math.floor(rand(10,31));
           for (let j=0;j<coinCount;j++) dropCoin(c.x + rand(-12,12), c.y + rand(-12,12));
           dropHeart(c.x + rand(-12,12), c.y + rand(-12,12));
           c.opened = true;
-          KEYS.value -= 1;
-          drawKeys();
+          if (currentClass !== 'rogue'){
+            KEYS.value -= 1;
+            drawKeys();
+          }
         }
       }
 
@@ -1751,9 +1785,103 @@
     }
 
     function selectShopOption(opt){
-      try { opt.apply?.(); } catch(e){ console.error('apply upgrade error', e); }
+      try {
+        // Track upgrade pick and levels
+        UPGRADE_LEVELS[opt.id] = (UPGRADE_LEVELS[opt.id]||0) + 1;
+        if (!TAKEN_UPGRADES[opt.id]) TAKEN_UPGRADES[opt.id] = { id: opt.id, name: opt.name, type: opt.type, desc: opt.desc, levels: 0 };
+        TAKEN_UPGRADES[opt.id].levels++;
+        opt.apply?.();
+      } catch(e){ console.error('apply upgrade error', e); }
       closeShop();
     }
+
+    // Stats popup
+    let statsWasPaused = false;
+    function openStats(){
+      statsWasPaused = paused;
+      paused = true;
+      renderStats();
+      statsOverlay.classList.add('show');
+      statsOverlay.setAttribute('aria-hidden','false');
+    }
+    function closeStats(){
+      statsOverlay.classList.remove('show');
+      statsOverlay.setAttribute('aria-hidden','true');
+      if (!statsWasPaused) paused = false;
+    }
+    function fmtPct(v){ return `${Math.round((v||0)*100)}%`; }
+    function fmt(num){ return Number(num||0).toFixed(0); }
+    function renderStats(){
+      try {
+        const cls = currentClass;
+        const base = CLASS_STATS[cls];
+        const aps = (1 / AUTO.atkPeriod);
+        const meleeBase = UPGR.meleeDmg;
+        const meleeCrit = Math.ceil(meleeBase * UPGR.critMult);
+        const meleePerSwing = meleeBase * (UPGR.multistrike||1);
+        const estDps = Math.round(meleePerSwing * aps);
+        const arcDeg = Math.round(PHYS.atkArc * 180 / Math.PI);
+        const lines = [];
+        lines.push(`<div class="section">Core</div>`);
+        lines.push(`<div><b>Class:</b> ${cls[0].toUpperCase()+cls.slice(1)}</div>`);
+        lines.push(`<div><b>HP:</b> ${P.hp}/${P.hpMax}</div>`);
+        lines.push(`<div><b>Speed:</b> ${fmt(P.spd)} (base ${fmt(base.spd)})</div>`);
+        lines.push(`<div><b>Attack Period:</b> ${AUTO.atkPeriod.toFixed(2)}s (${aps.toFixed(2)} /s)</div>`);
+        lines.push(`<div><b>Melee Damage:</b> ${meleeBase} (crit ${meleeCrit} @ ${fmtPct(UPGR.critChance)})</div>`);
+        lines.push(`<div><b>Estimated DPS:</b> ~${estDps} (multistrike x${UPGR.multistrike||1})</div>`);
+        lines.push(`<div><b>Melee Range:</b> ${PHYS.atkRange}px, <b>Arc:</b> ${arcDeg}°</div>`);
+        
+        lines.push(`<div class="section">Spells</div>`);
+        lines.push(`<div><b>Orbs:</b> ${UPGR.orbs||0} (dmg ${UPGR.orbDmg||0}, radius ${UPGR.orbRadius||0})</div>`);
+        lines.push(`<div><b>Frost Nova:</b> ${UPGR.nova?`ON (period ${UPGR.novaPeriod.toFixed(2)}s, dmg ${UPGR.novaDmg})`:'OFF'}</div>`);
+        lines.push(`<div><b>Arcane Missiles:</b> ${UPGR.shards?`ON (count ${UPGR.shardCount}, period ${UPGR.shardPeriod.toFixed(2)}s, speed ${UPGR.shardSpeed})`:'OFF'}</div>`);
+
+        lines.push(`<div class="section">Survival & Utility</div>`);
+        lines.push(`<div><b>Dodge Chance:</b> ${fmtPct(UPGR.dodgeChance)}</div>`);
+        lines.push(`<div><b>Life Steal:</b> ${fmtPct(UPGR.lifeStealChance)} on kill</div>`);
+        if (UPGR.doubleCoinChance) lines.push(`<div><b>Double Coin Chance:</b> ${fmtPct(UPGR.doubleCoinChance)}</div>`);
+        if (UPGR.magnet) lines.push(`<div><b>Magnet:</b> ${fmt(UPGR.magnet)}px</div>`);
+        if (currentClass === 'rogue') {
+          lines.push(`<div><b>Coins:</b> ${COINS.value} &nbsp; <b>picks locks</b></div>`);
+        } else {
+          lines.push(`<div><b>Coins:</b> ${COINS.value} &nbsp; <b>Keys:</b> ${KEYS.value}</div>`);
+        }
+        lines.push(`<div class="subtle">Stage ${stage+1}, Wave ${SPAWN.wave}</div>`);
+
+        const taken = Object.values(TAKEN_UPGRADES);
+        if (taken.length){
+          lines.push(`<div class="section">Upgrades Taken</div>`);
+          for (const u of taken){
+            let stat = '';
+            switch(u.id){
+              case 'twin': stat = `multistrike x${UPGR.multistrike}`; break;
+              case 'longblade': stat = `range ${PHYS.atkRange}px`; break;
+              case 'sweeping': stat = `arc ${arcDeg}°`; break;
+              case 'leech': stat = `life steal ${fmtPct(UPGR.lifeStealChance)}`; break;
+              case 'heart':
+              case 'wisdom': stat = `HP ${P.hp}/${P.hpMax}`; break;
+              case 'shadowstep': stat = `speed ${fmt(P.spd)}`; break;
+              case 'poison': stat = `melee ${UPGR.meleeDmg}`; break;
+              case 'crit': stat = `crit ${fmtPct(UPGR.critChance)} x${UPGR.critMult}`; break;
+              case 'dodge': stat = `dodge ${fmtPct(UPGR.dodgeChance)}`; break;
+              case 'orbs': stat = `orbs ${UPGR.orbs} dmg ${UPGR.orbDmg}`; break;
+              case 'nova': stat = `${UPGR.nova?`period ${UPGR.novaPeriod.toFixed(2)}s dmg ${UPGR.novaDmg}`:'OFF'}`; break;
+              case 'shards': stat = `${UPGR.shards?`count ${UPGR.shardCount} period ${UPGR.shardPeriod.toFixed(2)}s`:'OFF'}`; break;
+              case 'focus': stat = `attack period ${AUTO.atkPeriod.toFixed(2)}s`; break;
+              default: stat = '';
+            }
+            lines.push(`<div><b>${u.name}</b> (Lv ${u.levels})${stat?`: ${stat}`:''}</div>`);
+          }
+        }
+
+        statsContent.innerHTML = lines.join('');
+      } catch(e){
+        statsContent.textContent = 'Failed to render stats';
+      }
+    }
+    if (statsBtn) statsBtn.addEventListener('click', openStats);
+    if (statsClose) statsClose.addEventListener('click', closeStats);
+    if (statsOverlay) statsOverlay.addEventListener('click', (e)=>{ if (e.target === statsOverlay) closeStats(); });
 
     // Leaderboard integration
     async function maybeSubmitLeaderboard(){

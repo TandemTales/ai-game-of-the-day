@@ -446,6 +446,13 @@
     BEHOLDER_ANIM.left.src = 'assets/EG_enemy_boss_beholder_animation_walking_left_small.png';
     BEHOLDER_ANIM.right.src = 'assets/EG_enemy_boss_beholder_animation_walking_right_small.png';
 
+    const MUD_PROJ_ANIM = {
+      left: new Image(),
+      right: new Image(),
+    };
+    MUD_PROJ_ANIM.left.src = 'assets/EG_projectile_mud_small_left.png';
+    MUD_PROJ_ANIM.right.src = 'assets/EG_projectile_mud_small_right.png';
+
 
     const IMG = {
       coin: new Image(),
@@ -474,7 +481,7 @@
     ];
     const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
 
-    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length;
+    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length + Object.keys(MUD_PROJ_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const img of MAPS) img.addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in WIZ_ANIM) WIZ_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -488,6 +495,7 @@
     for (const k in ABOMINATION_ANIM) ABOMINATION_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in HUNGER_DEMON_ANIM) HUNGER_DEMON_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in BEHOLDER_ANIM) BEHOLDER_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
+    for (const k in MUD_PROJ_ANIM) MUD_PROJ_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     CLASS_IMG.rogue.addEventListener('load', () => { if (++loaded === need) init(); });
     CLASS_IMG.wizard.addEventListener('load', () => { if (++loaded === need) init(); });
 
@@ -1238,7 +1246,9 @@
             e.atkT = 0;
             const diff = angleDiff(Math.atan2(dy, dx), e.facing);
             if (Math.abs(diff) <= Math.PI/3){
-              BOSS_PROJECTILES.push({ x:e.x, y:e.y, vx:Math.cos(e.facing)*140, vy:Math.sin(e.facing)*140, life:0, ttl:3 });
+              const proj = { x:e.x, y:e.y, vx:Math.cos(e.facing)*140, vy:Math.sin(e.facing)*140, life:0, ttl:3 };
+              if (e.bossType === 'hillGiant') { proj.kind = 'mud'; proj.frame = 0; proj.animT = 0; }
+              BOSS_PROJECTILES.push(proj);
             }
           }
           if (e.bossType === 'hillGiant'){
@@ -1411,6 +1421,10 @@
       for (let i=BOSS_PROJECTILES.length-1;i>=0;i--){
         const p = BOSS_PROJECTILES[i];
         p.life += dt;
+        if (p.kind === 'mud'){
+          p.animT = (p.animT || 0) + dt;
+          if (p.animT > 0.1){ p.animT = 0; p.frame = ((p.frame||0)+1)%4; }
+        }
         if (p.kind === 'beam'){
           if (p.life > p.ttl){ BOSS_PROJECTILES.splice(i,1); continue; }
           const lenB = 240;
@@ -1675,13 +1689,18 @@
             ctx.fillStyle = 'purple';
             ctx.fillRect(0, -4, 240, 8);
             ctx.restore();
+          } else if (bp.kind === 'mud'){
+            const sheet = (Math.abs(bp.vx) >= Math.abs(bp.vy) && bp.vx < 0) ? MUD_PROJ_ANIM.left : MUD_PROJ_ANIM.right;
+            const fw = sheet.width / 4;
+            const fh = sheet.height;
+            const frame = bp.frame || 0;
+            ctx.drawImage(sheet, frame * fw, 0, fw, fh, bp.x - fw/2, bp.y - fh/2, fw, fh);
           } else {
             ctx.fillStyle = bp.kind === 'slow' ? 'red' : bp.kind === 'fast' ? 'orange' : 'brown';
             ctx.beginPath();
             ctx.arc(bp.x, bp.y, 8, 0, Math.PI*2);
             ctx.fill();
           }
-        }
       }
 
       ctx.restore();

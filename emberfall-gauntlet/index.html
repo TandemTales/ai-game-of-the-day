@@ -564,7 +564,9 @@
     // Delay before coin magnet pulls begin (seconds)
     const MAGNET_DELAY = 0.6;
     // Melee arc narrowed so default swings are a tight cone ahead
-    const PHYS = { friction: 0.86, atkDur: 0.18, atkRange: 64, atkArc: Math.PI*0.35 };
+    const BASE_ATK_RANGE = 64;
+    const EXTENDED_ATK_RANGE = Math.round(BASE_ATK_RANGE * 1.5);
+    const PHYS = { friction: 0.86, atkDur: 0.18, atkRange: BASE_ATK_RANGE, atkArc: Math.PI*0.35 };
     // Knockback tuning
     const KNOCK = { friction: 0.88, melee: 200, orb: 0, nova: 160, projectile: 180 };
     // Frost Nova damage radius (visuals remain at ~90)
@@ -666,6 +668,7 @@
       currentClass = cls;
       IMG.hero = CLASS_IMG[cls];
       currentPool = POOLS[cls];
+      PHYS.atkRange = cls === 'wizard' ? BASE_ATK_RANGE : EXTENDED_ATK_RANGE;
     }
 
     classBtns.forEach(btn=>{
@@ -721,7 +724,7 @@
       P.hp = P.hpMax;
       P.spd = stats.spd;
       // Reset combat tuning that upgrades may have modified
-      PHYS.atkRange = 64;
+      PHYS.atkRange = currentClass === 'wizard' ? BASE_ATK_RANGE : EXTENDED_ATK_RANGE;
       // Keep the default melee arc narrow on reset as well
       PHYS.atkArc = Math.PI * 0.35;
       AUTO.atkPeriod = 0.7;

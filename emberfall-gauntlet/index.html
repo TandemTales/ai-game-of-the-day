@@ -559,6 +559,8 @@
     const AI = { chaseRadius: 300, wanderMin: 0.8, wanderMax: 2.0, wallPad: 12, sepRadius: 28, sepWeight: 1.0 };
     let DENSITY = 1;
     const DROP = { w: 18, h: 18 };
+    // Delay before coin magnet pulls begin (seconds)
+    const MAGNET_DELAY = 0.6;
     // Melee arc narrowed so default swings are a tight cone ahead
     const PHYS = { friction: 0.86, atkDur: 0.18, atkRange: 64, atkArc: Math.PI*0.35 };
     // Knockback tuning
@@ -598,7 +600,7 @@
       meleeDmg: 1,
       multistrike: 1,
       lifeStealChance: 0,
-      magnet: 0,
+      magnet: 1,
       critChance: 0,
       critMult: 1.6,
       doubleCoinChance: 0,
@@ -725,7 +727,7 @@
       COINS.value = 0; coinsEl.textContent = COINS.value; SHOP.idx = 0; SHOP.open = false;
       KEYS.value = 0; drawKeys();
       // Reset upgrades and spell state
-      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:0, critChance:0, critMult:1.6, doubleCoinChance:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:60, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1 });
+      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleCoinChance:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:60, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1 });
       if (stats.startOrbs) { UPGR.orbs = stats.startOrbs; }
       // Reset upgrade tracking
       for (const k in UPGRADE_LEVELS) delete UPGRADE_LEVELS[k];
@@ -1418,11 +1420,20 @@
       // Collect drops
       for (let i=drops.length-1;i>=0;i--){
         const d=drops[i]; d.t += dt; const drift = Math.min(1,d.t*3);
-        // Magnet effect pulls coins toward the player
-        if (d.kind==='coin' && UPGR.magnet>0){
+        // Magnet effect pulls coins toward the player with a short delay and ramp-up
+        if (d.kind==='coin' && UPGR.magnet>0 && d.t > MAGNET_DELAY){
           const dx = P.x-d.x, dy = P.y-d.y; const dist = Math.hypot(dx,dy);
           const mR = 50 + UPGR.magnet*40;
-          if (dist < mR){ const [nx,ny]=norm(dx,dy); d.vx = (d.vx||0) + nx*80*dt; d.vy = (d.vy||0) + ny*80*dt; }
+          if (dist < mR){
+            d.mag = (d.mag||0) + dt; // time spent being pulled
+            const [nx,ny]=norm(dx,dy);
+            const pull = Math.min(1, d.mag*2); // build momentum over ~0.5s
+            const accel = (40 + 160*pull) * dt; // start slow then get quicker
+            d.vx = (d.vx||0) + nx*accel;
+            d.vy = (d.vy||0) + ny*accel;
+          } else {
+            d.mag = 0;
+          }
         }
         d.x += (d.vx||0) + Math.cos(d.a)*d.v*dt*drift; d.y += (d.vy||0) + Math.sin(d.a)*d.v*dt*drift; d.v *= (1-1.6*dt);
         clampToArena(d, 8);
@@ -1914,7 +1925,7 @@
         lines.push(`<div><b>Dodge Chance:</b> ${fmtPct(UPGR.dodgeChance)}</div>`);
         lines.push(`<div><b>Life Steal:</b> ${fmtPct(UPGR.lifeStealChance)} on kill</div>`);
         if (UPGR.doubleCoinChance) lines.push(`<div><b>Double Coin Chance:</b> ${fmtPct(UPGR.doubleCoinChance)}</div>`);
-        if (UPGR.magnet) lines.push(`<div><b>Magnet:</b> ${fmt(UPGR.magnet)}px</div>`);
+        if (UPGR.magnet) lines.push(`<div><b>Magnet:</b> ${fmt(50 + UPGR.magnet*40)}px</div>`);
         if (currentClass === 'rogue') {
           lines.push(`<div><b>Coins:</b> ${COINS.value} &nbsp; <b>picks locks</b></div>`);
         } else {

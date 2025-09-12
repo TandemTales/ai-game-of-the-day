@@ -595,7 +595,7 @@
     let boss = null;
     const COINS = { value: 0 };
     const KEYS = { value: 0 };
-    const SHOP = { milestones: [10, 20, 40, 80, 120, 200, 300, 500, 700, 900, 1200], idx: 0, open: false };
+    const SHOP = { milestones: [7, 14, 28, 56, 84, 140, 210, 350, 490, 630, 840], idx: 0, open: false };
     const UPGRADE_LEVELS = Object.create(null);
     const TAKEN_UPGRADES = Object.create(null); // id -> { id, name, type, desc, levels }
     const UPGR = {
@@ -1847,7 +1847,7 @@
       let next = SHOP.milestones[SHOP.idx];
       if (next == null){
         const last = SHOP.milestones[SHOP.milestones.length - 1];
-        next = last + 300 * (SHOP.idx - SHOP.milestones.length + 1);
+        next = last + 210 * (SHOP.idx - SHOP.milestones.length + 1);
       }
       if (COINS.value >= next){ openShop(); }
     }

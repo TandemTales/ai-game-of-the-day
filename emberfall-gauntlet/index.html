@@ -827,6 +827,10 @@
     // Utility
     function needsKeys(){ return currentClass !== 'rogue'; }
     const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+    const clampToArena = (obj, pad=0)=>{
+      obj.x = clamp(obj.x, ARENA.x + pad, ARENA.x + ARENA.w - pad);
+      obj.y = clamp(obj.y, ARENA.y + pad, ARENA.y + ARENA.h - pad);
+    };
     const len = (x,y)=>Math.hypot(x,y);
     const norm = (x,y)=>{const l=Math.hypot(x,y)||1;return [x/l,y/l];};
     const angleDiff = (a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
@@ -1221,6 +1225,8 @@
           e.x = clamp(e.x, ARENA.x + AI.wallPad, ARENA.x + ARENA.w - AI.wallPad);
           e.y = clamp(e.y, ARENA.y + AI.wallPad, ARENA.y + ARENA.h - AI.wallPad);
         }
+        // Final boundary clamp
+        clampToArena(e, AI.wallPad);
 
         if (e.kind === 'boss'){
           e.atkT += dt;
@@ -1417,6 +1423,7 @@
           if (dist < mR){ const [nx,ny]=norm(dx,dy); d.vx = (d.vx||0) + nx*80*dt; d.vy = (d.vy||0) + ny*80*dt; }
         }
         d.x += (d.vx||0) + Math.cos(d.a)*d.v*dt*drift; d.y += (d.vy||0) + Math.sin(d.a)*d.v*dt*drift; d.v *= (1-1.6*dt);
+        clampToArena(d, 8);
         if (len(P.x-d.x,P.y-d.y)<22){
           if (d.kind==='coin'){
             addScore(10);
@@ -1476,7 +1483,15 @@
       if (UPGR.shards){ UPGR.shardTimer += dt; if (UPGR.shardTimer >= UPGR.shardPeriod){ UPGR.shardTimer = 0; const dir = P.aimDir; const spread = 0.22; const cnt = UPGR.shardCount; for (let i=0;i<cnt;i++){ const a = dir + (i-(cnt-1)/2)*spread; PROJECTILES.push({ x:P.x, y:P.y, vx:Math.cos(a)*320, vy:Math.sin(a)*320, life:0, ttl:1.2, dmg:1 }); } } }
 
       // Update projectiles
-      for (let i=PROJECTILES.length-1;i>=0;i--){ const p=PROJECTILES[i]; p.life+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; if (p.life>p.ttl){ PROJECTILES.splice(i,1); continue; } for (const e of enemies){ if (e.hp<=0) continue; if (len(p.x-e.x,p.y-e.y)<16){ applyDamage(e, p.dmg, p.vx, p.vy, KNOCK.projectile); PROJECTILES.splice(i,1); break; } } }
+      for (let i=PROJECTILES.length-1;i>=0;i--){
+        const p=PROJECTILES[i];
+        p.life+=dt;
+        p.x+=p.vx*dt;
+        p.y+=p.vy*dt;
+        if (p.x < ARENA.x || p.x > ARENA.x + ARENA.w || p.y < ARENA.y || p.y > ARENA.y + ARENA.h){ PROJECTILES.splice(i,1); continue; }
+        if (p.life>p.ttl){ PROJECTILES.splice(i,1); continue; }
+        for (const e of enemies){ if (e.hp<=0) continue; if (len(p.x-e.x,p.y-e.y)<16){ applyDamage(e, p.dmg, p.vx, p.vy, KNOCK.projectile); PROJECTILES.splice(i,1); break; } }
+      }
 
       // Update boss projectiles
       for (let i=BOSS_PROJECTILES.length-1;i>=0;i--){
@@ -1498,6 +1513,7 @@
           continue;
         }
         p.x += p.vx * dt; p.y += p.vy * dt;
+        if (p.x < ARENA.x || p.x > ARENA.x + ARENA.w || p.y < ARENA.y || p.y > ARENA.y + ARENA.h){ BOSS_PROJECTILES.splice(i,1); continue; }
         if (p.kind === 'muck' || p.kind === 'rock' || p.kind === 'slime'){
           p.animT += dt;
           if (p.animT >= 0.12){ p.animT = 0; p.frame = (p.frame + 1) % 4; }

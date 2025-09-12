@@ -545,6 +545,8 @@
 
     // Game constants
     const W = canvas.width, H = canvas.height;
+    const MAP_ZOOM = 2; // zoom factor for the battle map
+    const VIEW_W = W / MAP_ZOOM, VIEW_H = H / MAP_ZOOM;
     // Arena dimensions will match the chosen map image
     const ARENA = { x: 0, y: 0, w: 0, h: 0 };
     const CAM = { x: 0, y: 0 };
@@ -678,7 +680,7 @@
     function init() {
       currentMap = MAPS[0];
       ARENA.x = 0; ARENA.y = 0; ARENA.w = currentMap.width; ARENA.h = currentMap.height;
-      DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / W, ARENA.h / H) * 1.5));
+      DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / VIEW_W, ARENA.h / VIEW_H) * 1.5));
       drawHearts();
       attachControls();
       setupMobileControls();
@@ -695,7 +697,7 @@
       if (currentTracks !== STANDARD_TRACKS) switchMusic(STANDARD_TRACKS);
       currentMap = MAPS[stage];
       ARENA.x = 0; ARENA.y = 0; ARENA.w = currentMap.width; ARENA.h = currentMap.height;
-      DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / W, ARENA.h / H) * 1.5));
+      DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / VIEW_W, ARENA.h / VIEW_H) * 1.5));
       enemies = []; drops = []; chests = []; PARTICLES.length = 0; BOSS_PROJECTILES = [];
       Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:0, aimDir:0, swingAim:0, iT:0, atkT:0, autoT:0 });
       const stageMult = Math.pow(1.2, stage);
@@ -1595,10 +1597,11 @@
       ctx.fillStyle = '#0b0f18'; ctx.fillRect(0,0,W,H);
 
       // Update camera to follow player, clamped to the world plus border tiles
-      CAM.x = clamp(P.x - W/2, ARENA.x, ARENA.x + ARENA.w - W);
-      CAM.y = clamp(P.y - H/2, ARENA.y, ARENA.y + ARENA.h - H);
+      CAM.x = clamp(P.x - VIEW_W/2, ARENA.x, ARENA.x + ARENA.w - VIEW_W);
+      CAM.y = clamp(P.y - VIEW_H/2, ARENA.y, ARENA.y + ARENA.h - VIEW_H);
 
       ctx.save();
+      ctx.scale(MAP_ZOOM, MAP_ZOOM);
       ctx.translate(-CAM.x, -CAM.y);
       drawBackground();
 

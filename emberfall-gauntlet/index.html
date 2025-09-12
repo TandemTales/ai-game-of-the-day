@@ -598,7 +598,7 @@
       meleeDmg: 1,
       multistrike: 1,
       lifeStealChance: 0,
-      magnet: 0,
+      magnet: 2, // start with moderate coin magnet ability
       critChance: 0,
       critMult: 1.6,
       doubleCoinChance: 0,
@@ -725,7 +725,7 @@
       COINS.value = 0; coinsEl.textContent = COINS.value; SHOP.idx = 0; SHOP.open = false;
       KEYS.value = 0; drawKeys();
       // Reset upgrades and spell state
-      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:0, critChance:0, critMult:1.6, doubleCoinChance:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:60, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1 });
+        Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:2, critChance:0, critMult:1.6, doubleCoinChance:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:60, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1 });
       if (stats.startOrbs) { UPGR.orbs = stats.startOrbs; }
       // Reset upgrade tracking
       for (const k in UPGRADE_LEVELS) delete UPGRADE_LEVELS[k];

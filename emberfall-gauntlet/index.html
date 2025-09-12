@@ -1081,9 +1081,9 @@
       let ix = (key.right?1:0) - (key.left?1:0);
       let iy = (key.down?1:0) - (key.up?1:0);
       if (ix || iy) { const [nx,ny]=norm(ix,iy); P.vx += nx*P.spd*dt; P.vy += ny*P.spd*dt; P.dir = Math.atan2(ny,nx); P.aimDir = P.dir; }
-      // Auto-attack on a fixed period
+      // Auto-attack on a fixed period (non-wizard only)
       P.autoT += dt;
-      if (P.atkT<=0 && P.autoT >= AUTO.atkPeriod) {
+      if (currentClass !== 'wizard' && P.atkT<=0 && P.autoT >= AUTO.atkPeriod) {
         // Lock swing to current facing; avoid re-aiming while idle
         P.aimDir = P.dir;
         P.swingAim = P.aimDir;
@@ -1335,8 +1335,8 @@
         }
       }
 
-      // Player sword hits
-      if (P.atkT>0){
+      // Player sword hits (non-wizard only)
+      if (currentClass !== 'wizard' && P.atkT>0){
         for (const e of enemies){
           if (e.hp<=0) continue;
           if (hitArc(P.x,P.y,(P.swingAim||P.aimDir),PHYS.atkArc,PHYS.atkRange,e.x,e.y)){
@@ -1604,8 +1604,8 @@
 
       // Draw player shadow + hero (blink on i-frames)
       ctx.drawImage(IMG.shadow, P.x-20, P.y-10, 40, 20);
-      // Sword trail when attacking
-      if (P.atkT>0){
+      // Sword trail when attacking (non-wizard only)
+      if (currentClass !== 'wizard' && P.atkT>0){
         ctx.save();
         ctx.translate(P.x,P.y);
         ctx.rotate(P.swingAim || P.aimDir);
@@ -1826,15 +1826,15 @@
         lines.push(`<div><b>Class:</b> ${cls[0].toUpperCase()+cls.slice(1)}</div>`);
         lines.push(`<div><b>HP:</b> ${P.hp}/${P.hpMax}</div>`);
         lines.push(`<div><b>Speed:</b> ${fmt(P.spd)} (base ${fmt(base.spd)})</div>`);
-        lines.push(`<div><b>Attack Period:</b> ${AUTO.atkPeriod.toFixed(2)}s (${aps.toFixed(2)} /s)</div>`);
-        lines.push(`<div><b>Melee Damage:</b> ${meleeBase} (crit ${meleeCrit} @ ${fmtPct(UPGR.critChance)})</div>`);
-        lines.push(`<div><b>Estimated DPS:</b> ~${estDps} (multistrike x${UPGR.multistrike||1})</div>`);
+        if (cls !== 'wizard') lines.push(`<div><b>Attack Period:</b> ${AUTO.atkPeriod.toFixed(2)}s (${aps.toFixed(2)} /s)</div>`);
+        if (cls !== 'wizard') lines.push(`<div><b>Melee Damage:</b> ${meleeBase} (crit ${meleeCrit} @ ${fmtPct(UPGR.critChance)})</div>`);
+        if (cls !== 'wizard') lines.push(`<div><b>Estimated DPS:</b> ~${estDps} (multistrike x${UPGR.multistrike||1})</div>`);
         lines.push(`<div><b>Melee Range:</b> ${PHYS.atkRange}px, <b>Arc:</b> ${arcDeg}°</div>`);
         
-        lines.push(`<div class="section">Spells</div>`);
-        lines.push(`<div><b>Orbs:</b> ${UPGR.orbs||0} (dmg ${UPGR.orbDmg||0}, radius ${UPGR.orbRadius||0})</div>`);
-        lines.push(`<div><b>Frost Nova:</b> ${UPGR.nova?`ON (period ${UPGR.novaPeriod.toFixed(2)}s, dmg ${UPGR.novaDmg})`:'OFF'}</div>`);
-        lines.push(`<div><b>Arcane Missiles:</b> ${UPGR.shards?`ON (count ${UPGR.shardCount}, period ${UPGR.shardPeriod.toFixed(2)}s, speed ${UPGR.shardSpeed})`:'OFF'}</div>`);
+        if (cls === 'wizard') lines.push(`<div class=\"section\">Spells</div>`);
+        if (cls === 'wizard') lines.push(`<div><b>Orbs:</b> ${UPGR.orbs||0} (dmg ${UPGR.orbDmg||0}, radius ${UPGR.orbRadius||0})</div>`);
+        if (cls === 'wizard') lines.push(`<div><b>Frost Nova:</b> ${UPGR.nova?`ON (period ${UPGR.novaPeriod.toFixed(2)}s, dmg ${UPGR.novaDmg})`:'OFF'}</div>`);
+        if (cls === 'wizard') lines.push(`<div><b>Arcane Missiles:</b> ${UPGR.shards?`ON (count ${UPGR.shardCount}, period ${UPGR.shardPeriod.toFixed(2)}s, speed ${UPGR.shardSpeed})`:'OFF'}</div>`);
 
         lines.push(`<div class="section">Survival & Utility</div>`);
         lines.push(`<div><b>Dodge Chance:</b> ${fmtPct(UPGR.dodgeChance)}</div>`);
@@ -1872,6 +1872,13 @@
             }
             lines.push(`<div><b>${u.name}</b> (Lv ${u.levels})${stat?`: ${stat}`:''}</div>`);
           }
+        }
+        
+        // Hide melee range line for wizard explicitly
+        if (cls === 'wizard'){
+          const out = [];
+          for (const x of lines){ if (!x.includes('<b>Melee Range:</b>')) out.push(x); }
+          lines.length = 0; Array.prototype.push.apply(lines, out);
         }
 
         statsContent.innerHTML = lines.join('');

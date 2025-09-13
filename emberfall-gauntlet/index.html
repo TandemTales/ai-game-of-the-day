@@ -349,6 +349,8 @@
       orcHurt: new Audio('assets/sfx_orc_hurt.wav'),
       bossMudMonsterHurt: new Audio('assets/sfx_boss_mudMonster_hurt.wav'),
       bossMudMonsterKilled: new Audio('assets/sfx_boss_mudMonster_killed.wav'),
+      bossHillGiantHurt: new Audio('assets/sfx_boss_hillGiant_hurt.wav'),
+      bossHillGiantKilled: new Audio('assets/sfx_boss_hillGiant_killed.wav'),
     };
     // Preload sounds and play via clones to allow rapid overlaps
     Object.values(SFX).forEach(a => { try { a.load(); } catch(e){} });
@@ -364,6 +366,7 @@
       else if (e.kind === 'orc') playSfx(SFX.orcHurt);
       else if (e.kind === 'goblin') playSfx(SFX.goblinHurt);
       else if (e.kind === 'boss' && e.bossType === 'muck' && e.hp > 0) playSfx(SFX.bossMudMonsterHurt);
+      else if (e.kind === 'boss' && e.bossType === 'hillGiant' && e.hp > 0) playSfx(SFX.bossHillGiantHurt);
     }
 
     // Assets (SVG/PNG art)
@@ -1024,6 +1027,7 @@
       if (e.hp<=0){
         if (e.kind === 'boss'){
           if (e.bossType === 'muck') playSfx(SFX.bossMudMonsterKilled);
+          else if (e.bossType === 'hillGiant') playSfx(SFX.bossHillGiantKilled);
           addScore(e.score||1000);
           for (let i=0;i<10;i++) dropCoin(e.x + rand(-20,20), e.y + rand(-20,20));
           if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }

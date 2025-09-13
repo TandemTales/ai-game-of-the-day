@@ -371,6 +371,8 @@
       ['heroFighterHit', 'assets/sfx_hero_fighter_hit.wav'],
       ['heroWizardHit', 'assets/sfx_hero_wizard_hit.wav'],
       ['coin', 'assets/sfx_coin.wav'],
+      ['key', 'assets/sfx_key.wav'],
+      ['treasure', 'assets/sfx_treasure.wav'],
       ['goblinHurt', 'assets/sfx_goblin_hurt.wav'],
       ['impHurt', 'assets/sfx_imp_hurt.wav'],
       ['orcHurt', 'assets/sfx_orc_hurt.wav'],
@@ -1547,6 +1549,7 @@
           for (let j=0;j<coinCount;j++) dropCoin(c.x + rand(-12,12), c.y + rand(-12,12));
           dropHeart(c.x + rand(-12,12), c.y + rand(-12,12));
           c.opened = true;
+          playSfx('treasure');
           if (currentClass !== 'rogue'){
             KEYS.value -= 1;
             drawKeys();
@@ -1580,7 +1583,7 @@
             COINS.value += 1; coinsEl.textContent = COINS.value; spark(d.x,d.y,'#ffd16b'); playSfx('coin');
             maybeOpenShop();
           } else if (d.kind==='key'){
-            KEYS.value += 1; drawKeys(); spark(d.x,d.y,'#ffd16b');
+            KEYS.value += 1; drawKeys(); spark(d.x,d.y,'#ffd16b'); playSfx('key');
           } else if (d.kind==='heart'){
             if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); }
             spark(d.x,d.y,'#ff8a8a');

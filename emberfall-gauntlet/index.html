@@ -595,9 +595,24 @@
     ];
     const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
 
-    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length;
+    const MAP_OVERLAY_FILES = [
+      null,
+      'assets/EG_map_forest01_below.png',
+      null,
+      null,
+      null,
+    ];
+    const MAP_OVERLAYS = MAP_OVERLAY_FILES.map(src => {
+      if (!src) return null;
+      const i = new Image();
+      i.src = src;
+      return i;
+    });
+
+    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + MAP_OVERLAYS.filter(Boolean).length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const img of MAPS) img.addEventListener('load', () => { if (++loaded === need) init(); });
+    for (const img of MAP_OVERLAYS) if (img) img.addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in WIZ_ANIM) WIZ_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in FIGHT_ANIM) FIGHT_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in ROGUE_ANIM) ROGUE_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -721,6 +736,8 @@
     let nextStageInterval = null;
 
     let currentMap = null;
+    let currentOverlay = null;
+    let overlayData = null;
 
     const POOLS = {
       fighter: [
@@ -770,8 +787,23 @@
     });
     setClass(currentClass);
 
+    function prepareOverlay(idx){
+      currentOverlay = MAP_OVERLAYS[idx] || null;
+      if (currentOverlay){
+        const c = document.createElement('canvas');
+        c.width = currentOverlay.width;
+        c.height = currentOverlay.height;
+        const cctx = c.getContext('2d');
+        cctx.drawImage(currentOverlay, 0, 0);
+        overlayData = cctx.getImageData(0, 0, c.width, c.height);
+      } else {
+        overlayData = null;
+      }
+    }
+
     function init() {
       currentMap = MAPS[0];
+      prepareOverlay(0);
       ARENA.x = 0; ARENA.y = 0; ARENA.w = currentMap.width; ARENA.h = currentMap.height;
       DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / VIEW_W, ARENA.h / VIEW_H) * 1.5));
       drawHearts();
@@ -791,6 +823,7 @@
     function loadStage() {
       if (currentTracks !== STANDARD_TRACKS) switchMusic(STANDARD_TRACKS);
       currentMap = MAPS[stage];
+      prepareOverlay(stage);
       ARENA.x = 0; ARENA.y = 0; ARENA.w = currentMap.width; ARENA.h = currentMap.height;
       DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / VIEW_W, ARENA.h / VIEW_H) * 1.5));
       enemies = []; drops = []; chests = []; PARTICLES.length = 0; BOSS_PROJECTILES = [];
@@ -949,6 +982,18 @@
       obj.x = clamp(obj.x, ARENA.x + pad, ARENA.x + ARENA.w - pad);
       obj.y = clamp(obj.y, ARENA.y + pad, ARENA.y + ARENA.h - pad);
     };
+    function isBlocked(x, y){
+      if (!overlayData) return false;
+      x = Math.floor(x); y = Math.floor(y);
+      if (x < 0 || y < 0 || x >= overlayData.width || y >= overlayData.height) return false;
+      const idx = (y * overlayData.width + x) * 4 + 3;
+      return overlayData.data[idx] > 0;
+    }
+    function isBlockedRect(x, y, w, h){
+      const hw = w/2, hh = h/2;
+      return isBlocked(x - hw, y - hh) || isBlocked(x + hw - 1, y - hh) ||
+             isBlocked(x - hw, y + hh - 1) || isBlocked(x + hw - 1, y + hh - 1);
+    }
     const len = (x,y)=>Math.hypot(x,y);
     const norm = (x,y)=>{const l=Math.hypot(x,y)||1;return [x/l,y/l];};
     const angleDiff = (a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
@@ -988,14 +1033,24 @@
       w *= 1.75;
       h *= 1.75;
 
+      let attempts = 0;
+      while (currentOverlay && isBlockedRect(x, y, w, h) && attempts < 10){
+        const side2 = Math.floor(Math.random()*4);
+        if (side2===0) { x = rand(ARENA.x+16, ARENA.x+ARENA.w-16); y = ARENA.y+10; }
+        if (side2===1) { x = ARENA.x+ARENA.w-10; y = rand(ARENA.y+16, ARENA.y+ARENA.h-16); }
+        if (side2===2) { x = rand(ARENA.x+16, ARENA.x+ARENA.w-16); y = ARENA.y+ARENA.h-10; }
+        if (side2===3) { x = ARENA.x+10; y = rand(ARENA.y+16, ARENA.y+ARENA.h-16); }
+        attempts++;
+      }
+
       const enemy = { kind, x, y, vx:0, vy:0, kx:0, ky:0, w, h, hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0, dir:'down', frame:0, animT:0 };
       if (needsKeys() && !SPAWN.keyAssigned){ enemy.hasKey = true; SPAWN.keyAssigned = true; }
       enemies.push(enemy);
     }
 
     function spawnBoss(){
-      const x = ARENA.x + ARENA.w/2;
-      const y = ARENA.y + ARENA.h/2;
+      let x = ARENA.x + ARENA.w/2;
+      let y = ARENA.y + ARENA.h/2;
       const stageSpd = Math.pow(1.2, stage);
       let bossType = 'muck';
       let hp = 60;
@@ -1014,7 +1069,14 @@
       }
       // Reduce boss health by 50%
       hp *= 0.5;
-      const b = { kind:'boss', bossType, x, y, vx:0, vy:0, kx:0, ky:0, w:ENEMY.w*4*1.5, h:ENEMY.h*4*1.5, hp, hpMax:hp, spd:75 * stageSpd, score:2000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0, atkT:0, blastT:0, facing:0, freezeT:0, pulse:0, nextAtk:'pulse' };
+      const bw = ENEMY.w*4*1.5, bh = ENEMY.h*4*1.5;
+      let attempts = 0;
+      while (currentOverlay && isBlockedRect(x, y, bw, bh) && attempts < 20){
+        x = rand(ARENA.x + bw/2, ARENA.x + ARENA.w - bw/2);
+        y = rand(ARENA.y + bh/2, ARENA.y + ARENA.h - bh/2);
+        attempts++;
+      }
+      const b = { kind:'boss', bossType, x, y, vx:0, vy:0, kx:0, ky:0, w:bw, h:bh, hp, hpMax:hp, spd:75 * stageSpd, score:2000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0, atkT:0, blastT:0, facing:0, freezeT:0, pulse:0, nextAtk:'pulse' };
       if (bossType === 'hillGiant') b.slamCd = 3;
       switchMusic(BOSS_TRACKS);
       enemies.push(b);
@@ -1266,9 +1328,13 @@
       // Apply friction (frame-rate independent)
       const pF = Math.pow(PHYS.friction, dt * 60);
       P.vx *= pF; P.vy *= pF;
+      const oldPx = P.x, oldPy = P.y;
       P.x += P.vx*dt; P.y += P.vy*dt;
       // Clamp to arena
         P.x = clamp(P.x, ARENA.x+24, ARENA.x+ARENA.w-24); P.y = clamp(P.y, ARENA.y+24, ARENA.y+ARENA.h-24);
+        if (isBlockedRect(P.x, oldPy, P.w, P.h)) P.x = oldPx;
+        if (isBlockedRect(oldPx, P.y, P.w, P.h)) P.y = oldPy;
+        if (isBlockedRect(P.x, P.y, P.w, P.h)) { P.x = oldPx; P.y = oldPy; }
         if (currentClass === 'wizard') updateWizardAnim(dt);
         else if (currentClass === 'fighter') updateFighterAnim(dt);
         else if (currentClass === 'rogue') updateRogueAnim(dt);
@@ -1277,6 +1343,7 @@
       const kF = Math.pow(KNOCK.friction, dt * 60);
       for (const e of enemies){
         e.t += dt;
+        const ex = e.x, ey = e.y;
         // Status: slow decay and pulse fade
         if (e.slowT && e.slowT > 0) { e.slowT = Math.max(0, e.slowT - dt); }
         if (e.slowAmp && e.slowAmp > 0) { e.slowAmp = Math.max(0, e.slowAmp - dt*3); }
@@ -1373,6 +1440,7 @@
         }
         // Final boundary clamp
         clampToArena(e, AI.wallPad);
+        if (overlayData && isBlockedRect(e.x, e.y, e.w, e.h)) { e.x = ex; e.y = ey; }
 
         if (e.kind === 'boss'){
           e.atkT += dt;
@@ -1650,6 +1718,7 @@
         p.life+=dt;
         p.x+=p.vx*dt;
         p.y+=p.vy*dt;
+        if (isBlocked(p.x, p.y)){ PROJECTILES.splice(i,1); continue; }
         if (p.x < ARENA.x || p.x > ARENA.x + ARENA.w || p.y < ARENA.y || p.y > ARENA.y + ARENA.h){ PROJECTILES.splice(i,1); continue; }
         if (p.life>p.ttl){ PROJECTILES.splice(i,1); continue; }
         let removed = false;
@@ -1705,6 +1774,7 @@
           continue;
         }
         p.x += p.vx * dt; p.y += p.vy * dt;
+        if (isBlocked(p.x, p.y)){ BOSS_PROJECTILES.splice(i,1); continue; }
         if (p.x < ARENA.x || p.x > ARENA.x + ARENA.w || p.y < ARENA.y || p.y > ARENA.y + ARENA.h){ BOSS_PROJECTILES.splice(i,1); continue; }
         if (p.kind === 'muck' || p.kind === 'rock' || p.kind === 'slime'){
           p.animT += dt;
@@ -1757,6 +1827,7 @@
 
     function drawBackground(){
       if (currentMap) ctx.drawImage(currentMap, ARENA.x, ARENA.y, ARENA.w, ARENA.h);
+      if (currentOverlay) ctx.drawImage(currentOverlay, ARENA.x, ARENA.y, ARENA.w, ARENA.h);
     }
 
     function draw(){

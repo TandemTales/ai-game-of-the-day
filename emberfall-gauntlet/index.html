@@ -590,6 +590,7 @@
     // Melee arc narrowed so default swings are a tight cone ahead
     const BASE_ATK_RANGE = 64;
     const EXTENDED_ATK_RANGE = Math.round(BASE_ATK_RANGE * 1.5);
+    const ROGUE_ATK_RANGE = Math.round(EXTENDED_ATK_RANGE * 0.75);
     const PHYS = { friction: 0.86, atkDur: 0.18, atkRange: BASE_ATK_RANGE, atkArc: Math.PI*0.35 };
     // Knockback tuning
     const KNOCK = { friction: 0.88, melee: 200, orb: 0, nova: 160, projectile: 180 };
@@ -645,6 +646,13 @@
       shardTimer: 0,
       shardSpeed: 320,
       shardCount: 1,
+      // Rogue bow defaults
+      arrowPeriod: 0.90,
+      arrowTimer: 0,
+      arrowSpeed: 360,
+      arrowDmg: 1,
+      arrowCount: 1,
+      arrowPierce: false,
     };
     let PROJECTILES = [];
     let BOSS_PROJECTILES = [];
@@ -676,6 +684,12 @@
         { id:'crit', type:'Skill', name:'Deadly Precision', desc:'+10% crit chance.', apply:()=>{ UPGR.critChance = Math.min(0.6, UPGR.critChance + 0.10); } },
         { id:'dodge', type:'Skill', name:'Evasion', desc:'Chance to evade incoming hits.', note:'Chance increases with repeats', apply:()=>{ UPGR.dodgeChance = Math.min(0.5, (UPGR.dodgeChance||0) + 0.15); } },
         { id:'heart', type:'Skill', name:'Second Wind', desc:'Max HP +1 and heal 1.', apply:()=>{ P.hpMax += 1; P.hp = Math.min(P.hpMax, P.hp+1); drawHearts(); } },
+        // Rogue-only arrow upgrades
+        { id:'barbed', type:'Weapon', name:'Barbed Arrows', desc:'Arrow damage +1.', apply:()=>{ UPGR.arrowDmg += 1; } },
+        { id:'rapid', type:'Weapon', name:'Rapid Shot', desc:'Fire arrows 12% faster.', apply:()=>{ UPGR.arrowPeriod = Math.max(0.25, UPGR.arrowPeriod * 0.88); } },
+        { id:'fletching', type:'Weapon', name:'Fine Fletching', desc:'Increase arrow speed by 20%.', apply:()=>{ UPGR.arrowSpeed = Math.round(UPGR.arrowSpeed * 1.2); } },
+        { id:'multishot', type:'Weapon', name:'Multishot', desc:'Fire an additional arrow.', note:'+1 arrow (up to 5)', apply:()=>{ UPGR.arrowCount = Math.min(5, (UPGR.arrowCount||1) + 1); } },
+        { id:'piercing', type:'Weapon', name:'Piercing Shot', desc:'Arrows pass through enemies.', note:'Unique', unique:true, apply:()=>{ UPGR.arrowPierce = true; } },
       ],
       wizard: [
         { id:'orbs', type:'Spell', name:'Arcane Orbs', desc:'Summon orbiting orbs that damage foes.', note:'Stacks add more orbs', apply:()=>{ UPGR.orbs += 1; } },
@@ -692,7 +706,7 @@
       currentClass = cls;
       IMG.hero = CLASS_IMG[cls];
       currentPool = POOLS[cls];
-      PHYS.atkRange = cls === 'wizard' ? BASE_ATK_RANGE : EXTENDED_ATK_RANGE;
+      PHYS.atkRange = (cls === 'wizard') ? BASE_ATK_RANGE : (cls === 'rogue' ? ROGUE_ATK_RANGE : EXTENDED_ATK_RANGE);
     }
 
     classBtns.forEach(btn=>{
@@ -748,7 +762,7 @@
       P.hp = P.hpMax;
       P.spd = stats.spd;
       // Reset combat tuning that upgrades may have modified
-      PHYS.atkRange = currentClass === 'wizard' ? BASE_ATK_RANGE : EXTENDED_ATK_RANGE;
+      PHYS.atkRange = (currentClass === 'wizard') ? BASE_ATK_RANGE : (currentClass === 'rogue' ? ROGUE_ATK_RANGE : EXTENDED_ATK_RANGE);
       // Keep the default melee arc narrow on reset as well
       PHYS.atkArc = Math.PI * 0.35;
       AUTO.atkPeriod = 0.7;
@@ -756,7 +770,7 @@
       COINS.value = 0; coinsEl.textContent = COINS.value; SHOP.idx = 0; SHOP.open = false;
       KEYS.value = 0; drawKeys();
       // Reset upgrades and spell state
-      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleCoinChance:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:60, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1 });
+      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleCoinChance:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:60, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1, arrowPeriod:0.90, arrowTimer:0, arrowSpeed:360, arrowDmg:1, arrowCount:1, arrowPierce:false });
       if (stats.startOrbs) { UPGR.orbs = stats.startOrbs; }
       // Reset upgrade tracking
       for (const k in UPGRADE_LEVELS) delete UPGRADE_LEVELS[k];
@@ -1162,6 +1176,24 @@
         P.swingAim = P.aimDir;
         P.atkT = PHYS.atkDur; P.autoT = 0;
       }
+      // Rogue: periodic arrow shots
+      if (currentClass === 'rogue'){
+        UPGR.arrowTimer += dt;
+        if (UPGR.arrowTimer >= UPGR.arrowPeriod){
+          UPGR.arrowTimer = 0;
+          const dir = P.aimDir || P.dir;
+          const count = Math.max(1, (UPGR.arrowCount||1));
+          const spread = 0.16; // radians between arrows
+          for (let i=0; i<count; i++){
+            const a = dir + (i - (count-1)/2) * spread;
+            const cs = Math.cos(a), sn = Math.sin(a);
+            const speed = UPGR.arrowSpeed;
+            // Spawn slightly ahead of the rogue to avoid self-collision look
+            const ox = cs * 14, oy = sn * 14;
+            PROJECTILES.push({ kind:'arrow', x:P.x + ox, y:P.y + oy, vx: cs*speed, vy: sn*speed, ang: a, life:0, ttl: 1.8, dmg: UPGR.arrowDmg });
+          }
+        }
+      }
       // Timers
       if (P.atkT>0) P.atkT -= dt; if (P.iT>0) P.iT -= dt; if (P.hitFlash>0) P.hitFlash = Math.max(0, P.hitFlash - dt);
 
@@ -1547,7 +1579,25 @@
         p.y+=p.vy*dt;
         if (p.x < ARENA.x || p.x > ARENA.x + ARENA.w || p.y < ARENA.y || p.y > ARENA.y + ARENA.h){ PROJECTILES.splice(i,1); continue; }
         if (p.life>p.ttl){ PROJECTILES.splice(i,1); continue; }
-        for (const e of enemies){ if (e.hp<=0) continue; if (len(p.x-e.x,p.y-e.y)<16){ applyDamage(e, p.dmg, p.vx, p.vy, KNOCK.projectile); PROJECTILES.splice(i,1); break; } }
+        let removed = false;
+        for (const e of enemies){
+          if (e.hp<=0) continue;
+          // Prevent re-hitting the same enemy when piercing
+          if (p.kind==='arrow' && UPGR.arrowPierce && p.hit && p.hit.includes(e)) continue;
+          if (len(p.x-e.x,p.y-e.y) < 16){
+            applyDamage(e, p.dmg, p.vx, p.vy, KNOCK.projectile);
+            if (p.kind==='arrow' && UPGR.arrowPierce){
+              if (!p.hit) p.hit = [];
+              p.hit.push(e);
+              // do not remove; allow piercing further targets
+            } else {
+              PROJECTILES.splice(i,1);
+              removed = true;
+              break;
+            }
+          }
+        }
+        if (removed) continue;
       }
 
       // Update boss projectiles
@@ -1730,9 +1780,11 @@
         const lead = arc*0.5 - prog*arc;
         // Sword geometry used by both blade and trail
         const inner = 12;                           // where the blade starts from the hand
-        // Scale blade length to match melee hit radius (minus inner/edge margins)
+        // Visual scale: make rogue's sword 75% width; keep length tied to reach
+        const swordScale = (currentClass === 'rogue') ? 0.75 : 1;
+        // Keep blade length matched to melee hit radius (minus inner/edge margins)
         const bladeLen = Math.max(12, PHYS.atkRange - inner - 6);
-        const bladeW = 6;
+        const bladeW = Math.max(2, Math.round(6 * swordScale));
 
         // Draw the sword first
         ctx.save();
@@ -1774,7 +1826,8 @@
           const r = trailCenterR - i*1.2;   // nudge inward for inner layers
           ctx.beginPath();
           ctx.arc(0,0,r, a0, a1);
-          ctx.lineWidth = 7 - i*1.6;        // thinner further from blade
+          // Trail thickness scales with sword size; keep sensible minimum
+          ctx.lineWidth = Math.max(1, (7 - i*1.6) * swordScale);        // thinner further from blade
           ctx.strokeStyle = `rgba(255,215,0,${alpha.toFixed(3)})`;
           ctx.stroke();
         }
@@ -1815,7 +1868,32 @@
 
       // Orbs & projectiles
       if (ORBS.length){ for (const o of ORBS){ ctx.drawImage(IMG.spark, (o.x||P.x)-8, (o.y||P.y)-8, 16, 16); } }
-      if (PROJECTILES.length){ for (const pr of PROJECTILES){ ctx.drawImage(IMG.spark, pr.x-6, pr.y-6, 12, 12); } }
+      if (PROJECTILES.length){
+        for (const pr of PROJECTILES){
+          if (pr.kind === 'arrow'){
+            ctx.save();
+            ctx.translate(pr.x, pr.y);
+            ctx.rotate(pr.ang || Math.atan2(pr.vy, pr.vx));
+            // Arrow shaft
+            ctx.fillStyle = '#caa472';
+            ctx.fillRect(-8, -1, 16, 2);
+            // Arrowhead
+            ctx.beginPath();
+            ctx.moveTo(8, 0);
+            ctx.lineTo(5, -3);
+            ctx.lineTo(5, 3);
+            ctx.closePath();
+            ctx.fillStyle = '#dfe6ee';
+            ctx.fill();
+            // Fletching
+            ctx.fillStyle = '#7b9bb3';
+            ctx.fillRect(-8, -2, 3, 4);
+            ctx.restore();
+          } else {
+            ctx.drawImage(IMG.spark, pr.x-6, pr.y-6, 12, 12);
+          }
+        }
+      }
       if (BOSS_PROJECTILES.length){
         for (const bp of BOSS_PROJECTILES){
           if (bp.kind === 'beam'){
@@ -1910,8 +1988,11 @@
 
 
     function rollShopOptions(){
+      // Filter out unique upgrades already taken
+      const filtered = currentPool.filter(opt => !(opt.unique && TAKEN_UPGRADES[opt.id]));
       // Shuffle a copy and take first 3
-      const arr = currentPool.slice(); for (let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+      const arr = filtered.slice();
+      for (let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
       return arr.slice(0,3);
     }
 
@@ -1961,6 +2042,10 @@
         if (cls !== 'wizard') lines.push(`<div><b>Melee Damage:</b> ${meleeBase} (crit ${meleeCrit} @ ${fmtPct(UPGR.critChance)})</div>`);
         if (cls !== 'wizard') lines.push(`<div><b>Estimated DPS:</b> ~${estDps} (multistrike x${UPGR.multistrike||1})</div>`);
         lines.push(`<div><b>Melee Range:</b> ${PHYS.atkRange}px, <b>Arc:</b> ${arcDeg}°</div>`);
+        if (cls === 'rogue'){
+          lines.push(`<div class=\"section\">Bow</div>`);
+          lines.push(`<div><b>Arrows:</b> count ${UPGR.arrowCount||1}, period ${UPGR.arrowPeriod.toFixed(2)}s, speed ${fmt(UPGR.arrowSpeed)}, dmg ${UPGR.arrowDmg}${UPGR.arrowPierce?`, pierce ON`:''}</div>`);
+        }
         
         if (cls === 'wizard') lines.push(`<div class=\"section\">Spells</div>`);
         if (cls === 'wizard') lines.push(`<div><b>Orbs:</b> ${UPGR.orbs||0} (dmg ${UPGR.orbDmg||0}, radius ${UPGR.orbRadius||0})</div>`);
@@ -1999,6 +2084,11 @@
               case 'nova': stat = `${UPGR.nova?`period ${UPGR.novaPeriod.toFixed(2)}s dmg ${UPGR.novaDmg}`:'OFF'}`; break;
               case 'shards': stat = `${UPGR.shards?`count ${UPGR.shardCount} period ${UPGR.shardPeriod.toFixed(2)}s`:'OFF'}`; break;
               case 'focus': stat = `attack period ${AUTO.atkPeriod.toFixed(2)}s`; break;
+              case 'piercing': stat = `pierce ON`; break;
+              case 'barbed': stat = `arrow dmg ${UPGR.arrowDmg}`; break;
+              case 'rapid': stat = `arrow period ${UPGR.arrowPeriod.toFixed(2)}s`; break;
+              case 'fletching': stat = `arrow speed ${fmt(UPGR.arrowSpeed)}`; break;
+              case 'multishot': stat = `arrows ${UPGR.arrowCount}`; break;
               default: stat = '';
             }
             lines.push(`<div><b>${u.name}</b> (Lv ${u.levels})${stat?`: ${stat}`:''}</div>`);

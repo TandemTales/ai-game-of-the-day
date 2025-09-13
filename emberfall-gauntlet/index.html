@@ -318,6 +318,8 @@
       switchMusic(STANDARD_TRACKS);
     }
 
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
     // Audio mute state and controls (persist like Nova Striker)
     let muted = false;
     const LS_MUTE_KEY = 'emberfall-gauntlet:muted';
@@ -330,55 +332,57 @@
       muted = !!m;
       music.muted = muted;
       if (muted) {
-        try { music.pause(); } catch(e) {}
-      } else if (musicStarted) {
-        music.play().catch(()=>{});
+        try { music.pause(); audioCtx.suspend(); } catch(e) {}
+      } else {
+        if (musicStarted) music.play().catch(()=>{});
+        try { audioCtx.resume(); } catch(e) {}
       }
       updateAudioIcon();
       try { localStorage.setItem(LS_MUTE_KEY, muted ? '1' : '0'); } catch(e) {}
     }
     function toggleAudio(){ setMuted(!muted); }
 
-    // Sound effects
-    // Sound effects – maintain a small pool for each effect to avoid
-    // creating many Audio objects when lots of enemies spawn.
-    function createAudioPool(src, size = 8){
-      const pool = [];
-      for (let i = 0; i < size; i++){
-        const a = new Audio(src);
-        try { a.load(); } catch(e){}
-        pool.push(a);
-      }
-      return { pool, idx: 0 };
+    // Sound effects using Web Audio for low latency
+    const SFX = {};
+    function loadSfx(name, src){
+      fetch(src)
+        .then(r => r.arrayBuffer())
+        .then(b => audioCtx.decodeAudioData(b))
+        .then(buf => { SFX[name] = buf; })
+        .catch(() => {});
     }
-    const SFX = {
-      heroFighterHit: createAudioPool('assets/sfx_hero_fighter_hit.wav'),
-      heroWizardHit: createAudioPool('assets/sfx_hero_wizard_hit.wav'),
-      coin: createAudioPool('assets/sfx_coin.wav'),
-      goblinHurt: createAudioPool('assets/sfx_goblin_hurt.wav'),
-      impHurt: createAudioPool('assets/sfx_imp_hurt.wav'),
-      orcHurt: createAudioPool('assets/sfx_orc_hurt.wav'),
-      bossMudMonsterHurt: createAudioPool('assets/sfx_boss_mudMonster_hurt.wav'),
-      bossMudMonsterKilled: createAudioPool('assets/sfx_boss_mudMonster_killed.wav'),
-      bossHillGiantHurt: createAudioPool('assets/sfx_boss_hillGiant_hurt.wav'),
-      bossHillGiantKilled: createAudioPool('assets/sfx_boss_hillGiant_killed.wav'),
-    };
-    function playSfx(obj){
+    [
+      ['heroFighterHit', 'assets/sfx_hero_fighter_hit.wav'],
+      ['heroWizardHit', 'assets/sfx_hero_wizard_hit.wav'],
+      ['coin', 'assets/sfx_coin.wav'],
+      ['goblinHurt', 'assets/sfx_goblin_hurt.wav'],
+      ['impHurt', 'assets/sfx_imp_hurt.wav'],
+      ['orcHurt', 'assets/sfx_orc_hurt.wav'],
+      ['bossMudMonsterHurt', 'assets/sfx_boss_mudMonster_hurt.wav'],
+      ['bossMudMonsterKilled', 'assets/sfx_boss_mudMonster_killed.wav'],
+      ['bossHillGiantHurt', 'assets/sfx_boss_hillGiant_hurt.wav'],
+      ['bossHillGiantKilled', 'assets/sfx_boss_hillGiant_killed.wav'],
+    ].forEach(([n, s]) => loadSfx(n, s));
+
+    async function playSfx(name){
       if (muted) return;
-      const a = obj.pool[obj.idx];
-      obj.idx = (obj.idx + 1) % obj.pool.length;
+      const buffer = SFX[name];
+      if (!buffer) return;
       try {
-        a.currentTime = 0;
-        a.play();
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
+        const src = audioCtx.createBufferSource();
+        src.buffer = buffer;
+        src.connect(audioCtx.destination);
+        src.start(0);
       } catch(e){}
     }
-    function playHeroHit(){ playSfx(currentClass === 'wizard' ? SFX.heroWizardHit : SFX.heroFighterHit); }
+    function playHeroHit(){ playSfx(currentClass === 'wizard' ? 'heroWizardHit' : 'heroFighterHit'); }
     function playEnemyHit(e){
-      if (e.kind === 'imp') playSfx(SFX.impHurt);
-      else if (e.kind === 'orc') playSfx(SFX.orcHurt);
-      else if (e.kind === 'goblin') playSfx(SFX.goblinHurt);
-      else if (e.kind === 'boss' && e.bossType === 'muck' && e.hp > 0) playSfx(SFX.bossMudMonsterHurt);
-      else if (e.kind === 'boss' && e.bossType === 'hillGiant' && e.hp > 0) playSfx(SFX.bossHillGiantHurt);
+      if (e.kind === 'imp') playSfx('impHurt');
+      else if (e.kind === 'orc') playSfx('orcHurt');
+      else if (e.kind === 'goblin') playSfx('goblinHurt');
+      else if (e.kind === 'boss' && e.bossType === 'muck' && e.hp > 0) playSfx('bossMudMonsterHurt');
+      else if (e.kind === 'boss' && e.bossType === 'hillGiant' && e.hp > 0) playSfx('bossHillGiantHurt');
     }
 
     // Assets (SVG/PNG art)
@@ -1038,8 +1042,8 @@
       playEnemyHit(e);
       if (e.hp<=0){
         if (e.kind === 'boss'){
-          if (e.bossType === 'muck') playSfx(SFX.bossMudMonsterKilled);
-          else if (e.bossType === 'hillGiant') playSfx(SFX.bossHillGiantKilled);
+          if (e.bossType === 'muck') playSfx('bossMudMonsterKilled');
+          else if (e.bossType === 'hillGiant') playSfx('bossHillGiantKilled');
           addScore(e.score||1000);
           for (let i=0;i<10;i++) dropCoin(e.x + rand(-20,20), e.y + rand(-20,20));
           if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }
@@ -1536,7 +1540,7 @@
         if (len(P.x-d.x,P.y-d.y)<22){
           if (d.kind==='coin'){
             addScore(10);
-            COINS.value += 1; coinsEl.textContent = COINS.value; spark(d.x,d.y,'#ffd16b'); playSfx(SFX.coin);
+            COINS.value += 1; coinsEl.textContent = COINS.value; spark(d.x,d.y,'#ffd16b'); playSfx('coin');
             maybeOpenShop();
           } else if (d.kind==='key'){
             KEYS.value += 1; drawKeys(); spark(d.x,d.y,'#ffd16b');

@@ -340,24 +340,36 @@
     function toggleAudio(){ setMuted(!muted); }
 
     // Sound effects
+    // Sound effects – maintain a small pool for each effect to avoid
+    // creating many Audio objects when lots of enemies spawn.
+    function createAudioPool(src, size = 8){
+      const pool = [];
+      for (let i = 0; i < size; i++){
+        const a = new Audio(src);
+        try { a.load(); } catch(e){}
+        pool.push(a);
+      }
+      return { pool, idx: 0 };
+    }
     const SFX = {
-      heroFighterHit: new Audio('assets/sfx_hero_fighter_hit.wav'),
-      heroWizardHit: new Audio('assets/sfx_hero_wizard_hit.wav'),
-      coin: new Audio('assets/sfx_coin.wav'),
-      goblinHurt: new Audio('assets/sfx_goblin_hurt.wav'),
-      impHurt: new Audio('assets/sfx_imp_hurt.wav'),
-      orcHurt: new Audio('assets/sfx_orc_hurt.wav'),
-      bossMudMonsterHurt: new Audio('assets/sfx_boss_mudMonster_hurt.wav'),
-      bossMudMonsterKilled: new Audio('assets/sfx_boss_mudMonster_killed.wav'),
-      bossHillGiantHurt: new Audio('assets/sfx_boss_hillGiant_hurt.wav'),
-      bossHillGiantKilled: new Audio('assets/sfx_boss_hillGiant_killed.wav'),
+      heroFighterHit: createAudioPool('assets/sfx_hero_fighter_hit.wav'),
+      heroWizardHit: createAudioPool('assets/sfx_hero_wizard_hit.wav'),
+      coin: createAudioPool('assets/sfx_coin.wav'),
+      goblinHurt: createAudioPool('assets/sfx_goblin_hurt.wav'),
+      impHurt: createAudioPool('assets/sfx_imp_hurt.wav'),
+      orcHurt: createAudioPool('assets/sfx_orc_hurt.wav'),
+      bossMudMonsterHurt: createAudioPool('assets/sfx_boss_mudMonster_hurt.wav'),
+      bossMudMonsterKilled: createAudioPool('assets/sfx_boss_mudMonster_killed.wav'),
+      bossHillGiantHurt: createAudioPool('assets/sfx_boss_hillGiant_hurt.wav'),
+      bossHillGiantKilled: createAudioPool('assets/sfx_boss_hillGiant_killed.wav'),
     };
-    // Preload sounds and play via clones to allow rapid overlaps
-    Object.values(SFX).forEach(a => { try { a.load(); } catch(e){} });
-    function playSfx(a){
+    function playSfx(obj){
       if (muted) return;
+      const a = obj.pool[obj.idx];
+      obj.idx = (obj.idx + 1) % obj.pool.length;
       try {
-        a.cloneNode().play();
+        a.currentTime = 0;
+        a.play();
       } catch(e){}
     }
     function playHeroHit(){ playSfx(currentClass === 'wizard' ? SFX.heroWizardHit : SFX.heroFighterHit); }

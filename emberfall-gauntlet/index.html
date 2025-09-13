@@ -1387,8 +1387,8 @@
                 const vy = Math.sin(e.facing)*140;
                 BOSS_PROJECTILES.push({ kind:'muck', dir: vx < 0 ? 'left' : 'right', x:e.x, y:e.y, vx, vy, life:0, ttl:3, frame:0, animT:0 });
               } else if (e.bossType === 'hillGiant') {
-                const vx = Math.cos(e.facing)*140;
-                const vy = Math.sin(e.facing)*140;
+                const vx = Math.cos(e.facing)*280;
+                const vy = Math.sin(e.facing)*280;
                 BOSS_PROJECTILES.push({ kind:'rock', dir: vx < 0 ? 'left' : 'right', x:e.x, y:e.y, vx, vy, life:0, ttl:3, frame:0, animT:0 });
               } else {
                 BOSS_PROJECTILES.push({ x:e.x, y:e.y, vx:Math.cos(e.facing)*140, vy:Math.sin(e.facing)*140, life:0, ttl:3 });

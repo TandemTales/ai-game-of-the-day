@@ -347,6 +347,16 @@
       goblinHurt: new Audio('assets/sfx_goblin_hurt.wav'),
       impHurt: new Audio('assets/sfx_imp_hurt.wav'),
       orcHurt: new Audio('assets/sfx_orc_hurt.wav'),
+      bossMuckHurt: new Audio('assets/sfx_boss_mudMonster_hurt.wav'),
+      bossMuckKilled: new Audio('assets/sfx_boss_mudMonster_killed.wav'),
+      bossHillGiantHurt: new Audio('assets/sfx_boss_hillGiant_hurt.wav'),
+      bossHillGiantKilled: new Audio('assets/sfx_boss_hillGiant_killed.wav'),
+      bossAbominationHurt: new Audio('assets/sfx_boss_abomination_hurt.wav'),
+      bossAbominationKilled: new Audio('assets/sfx_boss_abomination_killed.wav'),
+      bossHungerDemonHurt: new Audio('assets/sfx_boss_hungerDemon_hurt.wav'),
+      bossHungerDemonKilled: new Audio('assets/sfx_boss_hungerDemon_killed.wav'),
+      bossBeholderHurt: new Audio('assets/sfx_boss_beholder_hurt.wav'),
+      bossBeholderKilled: new Audio('assets/sfx_boss_beholder_killed.wav'),
     };
     // Preload sounds and play via clones to allow rapid overlaps
     Object.values(SFX).forEach(a => { try { a.load(); } catch(e){} });
@@ -357,10 +367,26 @@
       } catch(e){}
     }
     function playHeroHit(){ playSfx(currentClass === 'wizard' ? SFX.heroWizardHit : SFX.heroFighterHit); }
-    function playEnemyHit(kind){
-      if (kind === 'imp') playSfx(SFX.impHurt);
+    function playEnemyHit(kind, bossType){
+      if (kind === 'boss'){
+        if (bossType === 'muck') playSfx(SFX.bossMuckHurt);
+        else if (bossType === 'hillGiant') playSfx(SFX.bossHillGiantHurt);
+        else if (bossType === 'abomination') playSfx(SFX.bossAbominationHurt);
+        else if (bossType === 'hungerDemon') playSfx(SFX.bossHungerDemonHurt);
+        else if (bossType === 'beholder') playSfx(SFX.bossBeholderHurt);
+      } else if (kind === 'imp') playSfx(SFX.impHurt);
       else if (kind === 'orc') playSfx(SFX.orcHurt);
       else if (kind === 'goblin') playSfx(SFX.goblinHurt);
+    }
+
+    function playEnemyKilled(kind, bossType){
+      if (kind === 'boss'){
+        if (bossType === 'muck') playSfx(SFX.bossMuckKilled);
+        else if (bossType === 'hillGiant') playSfx(SFX.bossHillGiantKilled);
+        else if (bossType === 'abomination') playSfx(SFX.bossAbominationKilled);
+        else if (bossType === 'hungerDemon') playSfx(SFX.bossHungerDemonKilled);
+        else if (bossType === 'beholder') playSfx(SFX.bossBeholderKilled);
+      }
     }
 
     // Assets (SVG/PNG art)
@@ -1017,8 +1043,8 @@
     function applyDamage(e, dmg=1, kx=0, ky=0, kb=0){
       e.hp -= dmg;
       spark(e.x,e.y,'#aef');
-      playEnemyHit(e.kind);
-      if (e.hp<=0){
+      if (e.hp <= 0){
+        playEnemyKilled(e.kind, e.bossType);
         if (e.kind === 'boss'){
           addScore(e.score||1000);
           for (let i=0;i<10;i++) dropCoin(e.x + rand(-20,20), e.y + rand(-20,20));
@@ -1035,6 +1061,7 @@
           if (UPGR.doubleCoinChance > 0 && Math.random() < UPGR.doubleCoinChance){ dropCoin(e.x + rand(-6,6), e.y + rand(-6,6)); }
         }
       } else {
+        playEnemyHit(e.kind, e.bossType);
         // Non-lethal hit: apply knockback impulse (away from source)
         if (kb > 0 && (kx !== 0 || ky !== 0)){
           const d = Math.hypot(kx, ky) || 1;

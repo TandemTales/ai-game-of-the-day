@@ -1377,7 +1377,7 @@
           if (e.bossType === 'abomination') {
             if (e.freezeT <= 0 && e.atkT >= 2.4){
               e.atkT = 0;
-              const range = 90;
+              const range = 120;
               e.pulse = 0.3;
               e.pulseRange = range;
               if (dist < range && P.iT<=0){
@@ -1385,6 +1385,7 @@
                 else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
                 else { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
               }
+              BOSS_PROJECTILES.push({ kind:'wave', x:e.x, y:e.y, r:range, maxR:e.w*2, speed:200, width:20, dmg:1, life:0 });
               e.freezeT = 1.2;
             }
           } else if (e.bossType === 'hungerDemon') {
@@ -1668,6 +1669,18 @@
       for (let i=BOSS_PROJECTILES.length-1;i>=0;i--){
         const p = BOSS_PROJECTILES[i];
         p.life += dt;
+        if (p.kind === 'wave'){
+          p.r += p.speed * dt;
+          const d = len(P.x - p.x, P.y - p.y);
+          if (Math.abs(d - p.r) < p.width/2 && P.iT<=0){
+            const dmg = p.dmg || 1;
+            if (CHEAT.active){ P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
+            else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
+            else { P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
+          }
+          if (p.r > p.maxR){ BOSS_PROJECTILES.splice(i,1); }
+          continue;
+        }
         if (p.kind === 'beam'){
           if (p.life > p.ttl){ BOSS_PROJECTILES.splice(i,1); continue; }
           const lenB = 240;
@@ -1967,6 +1980,12 @@
             ctx.fillStyle = 'purple';
             ctx.fillRect(0, -4, 240, 8);
             ctx.restore();
+          } else if (bp.kind === 'wave'){
+            ctx.strokeStyle = 'rgba(255,0,0,0.5)';
+            ctx.lineWidth = bp.width;
+            ctx.beginPath();
+            ctx.arc(bp.x, bp.y, bp.r, 0, Math.PI*2);
+            ctx.stroke();
           } else if (bp.kind === 'muck'){
             const sheet = MUCK_PROJECTILE_ANIM[bp.dir];
             const fw = sheet.width / 4;

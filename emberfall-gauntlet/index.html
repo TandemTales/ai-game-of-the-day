@@ -772,7 +772,19 @@
     // Controls
     const key = { left:false, right:false, up:false, down:false, atk:false };
     function attachControls(){
+      const clearKeys = ()=>{ key.left = key.right = key.up = key.down = key.atk = false; };
+
+      // Prevent the browser context menu from stealing focus and swallowing keyup
+      window.addEventListener('contextmenu', (e)=>{ e.preventDefault(); clearKeys(); });
+      // Safety: clear movement when the tab loses focus or is hidden
+      window.addEventListener('blur', clearKeys);
+      document.addEventListener('visibilitychange', ()=>{ if (document.hidden) clearKeys(); });
+      // Extra safety: clear on right-mouse up
+      window.addEventListener('mouseup', (e)=>{ if (e.button === 2) clearKeys(); });
+
       window.addEventListener('keydown', e=>{
+        // Prevent page scrolling with arrow keys while playing
+        if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','KeyW','KeyA','KeyS','KeyD'].includes(e.code)) e.preventDefault();
         if (e.code==='ArrowLeft'||e.code==='KeyA') key.left=true;
         if (e.code==='ArrowRight'||e.code==='KeyD') key.right=true;
         if (e.code==='ArrowUp'||e.code==='KeyW') key.up=true;

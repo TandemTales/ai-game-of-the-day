@@ -339,6 +339,30 @@
     }
     function toggleAudio(){ setMuted(!muted); }
 
+    // Sound effects
+    const SFX = {
+      heroFighterHit: new Audio('assets/sfx_hero_fighter_hit.wav'),
+      heroWizardHit: new Audio('assets/sfx_hero_wizard_hit.wav'),
+      coin: new Audio('assets/sfx_coin.wav'),
+      goblinHurt: new Audio('assets/sfx_goblin_hurt.wav'),
+      impHurt: new Audio('assets/sfx_imp_hurt.wav'),
+      orcHurt: new Audio('assets/sfx_orc_hurt.wav'),
+    };
+    // Preload sounds and play via clones to allow rapid overlaps
+    Object.values(SFX).forEach(a => { try { a.load(); } catch(e){} });
+    function playSfx(a){
+      if (muted) return;
+      try {
+        a.cloneNode().play();
+      } catch(e){}
+    }
+    function playHeroHit(){ playSfx(currentClass === 'wizard' ? SFX.heroWizardHit : SFX.heroFighterHit); }
+    function playEnemyHit(kind){
+      if (kind === 'imp') playSfx(SFX.impHurt);
+      else if (kind === 'orc') playSfx(SFX.orcHurt);
+      else if (kind === 'goblin') playSfx(SFX.goblinHurt);
+    }
+
     // Assets (SVG/PNG art)
     const CLASS_IMG = {
       fighter: new Image(),
@@ -979,6 +1003,7 @@
     function applyDamage(e, dmg=1, kx=0, ky=0, kb=0){
       e.hp -= dmg;
       spark(e.x,e.y,'#aef');
+      playEnemyHit(e.kind);
       if (e.hp<=0){
         if (e.kind === 'boss'){
           addScore(e.score||1000);
@@ -1263,7 +1288,7 @@
               if (dist < range && P.iT<=0){
                 if (CHEAT.active){ P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
                 else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-                else { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver(); }
+                else { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
               }
               e.freezeT = 1.2;
             }
@@ -1286,7 +1311,7 @@
               if (dist < range && P.iT<=0){
                 if (CHEAT.active){ P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
                 else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-                else { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver(); }
+                else { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
               }
               e.freezeT = 1.2;
             }
@@ -1317,7 +1342,7 @@
                 P.vy += ny*200;
                 if (CHEAT.active){ P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
                 else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-                else { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver(); }
+                else { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
               }
               e.freezeT = 1.5;
             }
@@ -1350,7 +1375,7 @@
                 if (hitArc(e.x, e.y, e.facing, e.slam.arc, e.slam.range, P.x, P.y) && P.iT<=0){
                   if (CHEAT.active){ P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
                   else if (UPGR.dodgeChance > 0 && Math.random() < UPGR.dodgeChance){ P.iT = 0.6; P.hitFlash = 0.25; spark(P.x,P.y,'#a1ffd4'); }
-                  else { P.hp -= 1; P.iT = 2.0; P.hitFlash = 0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver(); }
+                  else { P.hp -= 1; P.iT = 2.0; P.hitFlash = 0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
                 }
                 e.slam.done = true;
               }
@@ -1395,7 +1420,7 @@
             } else if (UPGR.dodgeChance > 0 && Math.random() < UPGR.dodgeChance) {
               P.iT = 0.6; P.hitFlash = 0.25; spark(P.x,P.y,'#a1ffd4');
             } else {
-              P.hp -= 1; P.iT = 2.0; P.hitFlash = 0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver();
+              P.hp -= 1; P.iT = 2.0; P.hitFlash = 0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver();
             }
           }
         }
@@ -1459,7 +1484,7 @@
         if (len(P.x-d.x,P.y-d.y)<22){
           if (d.kind==='coin'){
             addScore(10);
-            COINS.value += 1; coinsEl.textContent = COINS.value; spark(d.x,d.y,'#ffd16b');
+            COINS.value += 1; coinsEl.textContent = COINS.value; spark(d.x,d.y,'#ffd16b'); playSfx(SFX.coin);
             maybeOpenShop();
           } else if (d.kind==='key'){
             KEYS.value += 1; drawKeys(); spark(d.x,d.y,'#ffd16b');
@@ -1540,7 +1565,7 @@
             const dmg = p.dmg || 1;
             if (CHEAT.active){ P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
             else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-            else { P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver(); }
+            else { P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
           }
           continue;
         }
@@ -1556,7 +1581,7 @@
             const dmg = p.dmg || 1;
             if (CHEAT.active){ P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
             else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-            else { P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver(); }
+            else { P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
           }
           BOSS_PROJECTILES.splice(i,1);
         }

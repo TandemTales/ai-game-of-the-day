@@ -339,6 +339,18 @@
     }
     function toggleAudio(){ setMuted(!muted); }
 
+    // Sound effects
+    const SFX = {
+      fighterHurt: new Audio('assets/sfx_hero_fighter_hit.wav'),
+      wizardHurt: new Audio('assets/sfx_hero_wizard_hit.wav'),
+    };
+    function playSfx(name){
+      if (muted) return;
+      const snd = SFX[name];
+      if (!snd) return;
+      snd.cloneNode().play().catch(()=>{});
+    }
+
     // Assets (SVG/PNG art)
     const CLASS_IMG = {
       fighter: new Image(),
@@ -846,6 +858,16 @@
     function drawHearts(){ heartsEl.innerHTML=''; for (let i=0;i<P.hpMax;i++){ const img=document.createElement('img'); img.src=IMG.heart.src; img.style.opacity = i < P.hp ? '1' : '0.28'; heartsEl.appendChild(img);} }
     function drawKeys(){ keysEl.innerHTML=''; for (let i=0;i<KEYS.value;i++){ const img=document.createElement('img'); img.src=IMG.key.src; keysEl.appendChild(img);} keysEl.classList.toggle('hidden', KEYS.value===0); }
 
+    function takeDamage(dmg){
+      P.hp -= dmg;
+      P.iT = 2.0;
+      P.hitFlash = 0.25;
+      drawHearts();
+      spark(P.x,P.y,'#ff8a8a');
+      if (currentClass === 'wizard') playSfx('wizardHurt');
+      else playSfx('fighterHurt');
+    }
+
     // Spawning
     function spawnEnemy(){
       // Spawn outside player vicinity along arena edges
@@ -1244,7 +1266,7 @@
               if (dist < range && P.iT<=0){
                 if (CHEAT.active){ P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
                 else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-                else { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver(); }
+                else { takeDamage(1); if (P.hp<=0) return gameOver(); }
               }
               e.freezeT = 1.2;
             }
@@ -1267,7 +1289,7 @@
               if (dist < range && P.iT<=0){
                 if (CHEAT.active){ P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
                 else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-                else { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver(); }
+                else { takeDamage(1); if (P.hp<=0) return gameOver(); }
               }
               e.freezeT = 1.2;
             }
@@ -1298,7 +1320,7 @@
                 P.vy += ny*200;
                 if (CHEAT.active){ P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
                 else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-                else { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver(); }
+                else { takeDamage(1); if (P.hp<=0) return gameOver(); }
               }
               e.freezeT = 1.5;
             }
@@ -1331,7 +1353,7 @@
                 if (hitArc(e.x, e.y, e.facing, e.slam.arc, e.slam.range, P.x, P.y) && P.iT<=0){
                   if (CHEAT.active){ P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
                   else if (UPGR.dodgeChance > 0 && Math.random() < UPGR.dodgeChance){ P.iT = 0.6; P.hitFlash = 0.25; spark(P.x,P.y,'#a1ffd4'); }
-                  else { P.hp -= 1; P.iT = 2.0; P.hitFlash = 0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver(); }
+                  else { takeDamage(1); if (P.hp<=0) return gameOver(); }
                 }
                 e.slam.done = true;
               }
@@ -1376,7 +1398,7 @@
             } else if (UPGR.dodgeChance > 0 && Math.random() < UPGR.dodgeChance) {
               P.iT = 0.6; P.hitFlash = 0.25; spark(P.x,P.y,'#a1ffd4');
             } else {
-              P.hp -= 1; P.iT = 2.0; P.hitFlash = 0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver();
+              takeDamage(1); if (P.hp<=0) return gameOver();
             }
           }
         }
@@ -1521,7 +1543,7 @@
             const dmg = p.dmg || 1;
             if (CHEAT.active){ P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
             else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-            else { P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver(); }
+            else { takeDamage(dmg); if (P.hp<=0) return gameOver(); }
           }
           continue;
         }
@@ -1537,7 +1559,7 @@
             const dmg = p.dmg || 1;
             if (CHEAT.active){ P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
             else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-            else { P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); if (P.hp<=0) return gameOver(); }
+            else { takeDamage(dmg); if (P.hp<=0) return gameOver(); }
           }
           BOSS_PROJECTILES.splice(i,1);
         }

@@ -318,11 +318,22 @@
       switchMusic(STANDARD_TRACKS);
     }
 
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+    let audioWarmed = false;
+    function warmAudio(){
+      // Play a silent buffer once to wake up the audio hardware and avoid first-play lag
+      const buf = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+      const src = audioCtx.createBufferSource();
+      src.buffer = buf;
+      src.connect(audioCtx.destination);
+      src.start();
+      src.disconnect();
+    }
     function resumeAudio(){
       if (audioCtx.state === 'suspended') {
         try { audioCtx.resume(); } catch(e) {}
       }
+      if (!audioWarmed) { warmAudio(); audioWarmed = true; }
     }
 
     // Audio mute state and controls (persist like Nova Striker)
@@ -369,16 +380,16 @@
       ['bossHillGiantKilled', 'assets/sfx_boss_hillGiant_killed.wav'],
     ].forEach(([n, s]) => loadSfx(n, s));
 
-    async function playSfx(name){
+    function playSfx(name){
       if (muted) return;
       const buffer = SFX[name];
       if (!buffer) return;
       try {
-        if (audioCtx.state === 'suspended') await audioCtx.resume();
+        if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
         const src = audioCtx.createBufferSource();
         src.buffer = buffer;
         src.connect(audioCtx.destination);
-        src.start(0);
+        src.start();
       } catch(e){}
     }
     function playHeroHit(){ playSfx(currentClass === 'wizard' ? 'heroWizardHit' : 'heroFighterHit'); }

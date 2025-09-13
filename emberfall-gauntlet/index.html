@@ -378,6 +378,12 @@
       ['bossMudMonsterKilled', 'assets/sfx_boss_mudMonster_killed.wav'],
       ['bossHillGiantHurt', 'assets/sfx_boss_hillGiant_hurt.wav'],
       ['bossHillGiantKilled', 'assets/sfx_boss_hillGiant_killed.wav'],
+      ['bossAbominationHurt', 'assets/sfx_boss_abomination_hurt.wav'],
+      ['bossAbominationKilled', 'assets/sfx_boss_abomination_killed.wav'],
+      ['bossHungerDemonHurt', 'assets/sfx_boss_hungerDemon_hurt.wav'],
+      ['bossHungerDemonKilled', 'assets/sfx_boss_hungerDemon_killed.wav'],
+      ['bossBeholderHurt', 'assets/sfx_boss_beholder_hurt.wav'],
+      ['bossBeholderKilled', 'assets/sfx_boss_beholder_killed.wav'],
     ].forEach(([n, s]) => loadSfx(n, s));
 
     function playSfx(name){
@@ -399,6 +405,9 @@
       else if (e.kind === 'goblin') playSfx('goblinHurt');
       else if (e.kind === 'boss' && e.bossType === 'muck' && e.hp > 0) playSfx('bossMudMonsterHurt');
       else if (e.kind === 'boss' && e.bossType === 'hillGiant' && e.hp > 0) playSfx('bossHillGiantHurt');
+      else if (e.kind === 'boss' && e.bossType === 'abomination' && e.hp > 0) playSfx('bossAbominationHurt');
+      else if (e.kind === 'boss' && e.bossType === 'hungerDemon' && e.hp > 0) playSfx('bossHungerDemonHurt');
+      else if (e.kind === 'boss' && e.bossType === 'beholder' && e.hp > 0) playSfx('bossBeholderHurt');
     }
 
     // Assets (SVG/PNG art)
@@ -1069,6 +1078,9 @@
         if (e.kind === 'boss'){
           if (e.bossType === 'muck') playSfx('bossMudMonsterKilled');
           else if (e.bossType === 'hillGiant') playSfx('bossHillGiantKilled');
+          else if (e.bossType === 'abomination') playSfx('bossAbominationKilled');
+          else if (e.bossType === 'hungerDemon') playSfx('bossHungerDemonKilled');
+          else if (e.bossType === 'beholder') playSfx('bossBeholderKilled');
           addScore(e.score||1000);
           for (let i=0;i<10;i++) dropCoin(e.x + rand(-20,20), e.y + rand(-20,20));
           if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }

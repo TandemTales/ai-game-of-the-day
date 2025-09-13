@@ -1693,7 +1693,8 @@
         const lead = arc*0.5 - prog*arc;
         // Sword geometry used by both blade and trail
         const inner = 12;                           // where the blade starts from the hand
-        const bladeLen = Math.min(36, PHYS.atkRange - inner - 6);
+        // Scale blade length to match melee hit radius (minus inner/edge margins)
+        const bladeLen = Math.max(12, PHYS.atkRange - inner - 6);
         const bladeW = 6;
 
         // Draw the sword first

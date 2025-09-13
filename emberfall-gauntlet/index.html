@@ -1013,6 +1013,7 @@
       hp *= 0.5;
       const b = { kind:'boss', bossType, x, y, vx:0, vy:0, kx:0, ky:0, w:ENEMY.w*4*1.5, h:ENEMY.h*4*1.5, hp, hpMax:hp, spd:75 * stageSpd, score:2000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0, atkT:0, blastT:0, facing:0, freezeT:0, pulse:0 };
       if (bossType === 'hillGiant') b.slamCd = 3;
+      if (bossType === 'abomination') b.waveStep = 0;
       switchMusic(BOSS_TRACKS);
       enemies.push(b);
       return b;
@@ -1385,7 +1386,12 @@
                 else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
                 else { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
               }
-              BOSS_PROJECTILES.push({ kind:'wave', x:e.x, y:e.y, r:range, maxR:e.w*2, speed:200, width:20, dmg:1, life:0 });
+              if (e.waveStep === 2){
+                BOSS_PROJECTILES.push({ kind:'wave', x:e.x, y:e.y, r:range, maxR:range*2, speed:200, width:20, dmg:1, life:0 });
+                e.waveStep = 0;
+              } else {
+                e.waveStep++;
+              }
               e.freezeT = 1.2;
             }
           } else if (e.bossType === 'hungerDemon') {

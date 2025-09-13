@@ -396,7 +396,10 @@
         if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
         const src = audioCtx.createBufferSource();
         src.buffer = buffer;
-        src.connect(audioCtx.destination);
+        const gain = audioCtx.createGain();
+        gain.gain.value = (name.startsWith('boss') && (name.endsWith('Hurt') || name.endsWith('Killed'))) ? 1.5 : 1;
+        src.connect(gain);
+        gain.connect(audioCtx.destination);
         src.start();
       } catch(e){}
     }

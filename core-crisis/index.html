@@ -508,10 +508,13 @@
         const node = s.cloneNode();
         if (audioCtx) {
           const source = audioCtx.createMediaElementSource(node);
-          source.connect(sfxGain);
+          const gain = audioCtx.createGain();
+          gain.gain.value = (s === SFX.bossHit || s === SFX.bossKill) ? 1.5 : 1;
+          source.connect(gain);
+          gain.connect(sfxGain);
           if (audioCtx.state === 'suspended') audioCtx.resume();
         } else {
-          node.volume = 1;
+          node.volume = (s === SFX.bossHit || s === SFX.bossKill) ? 1.5 : 1;
         }
         node.play();
       } catch {}

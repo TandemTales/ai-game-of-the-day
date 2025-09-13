@@ -1389,7 +1389,7 @@
               } else if (e.bossType === 'hillGiant') {
                 const vx = Math.cos(e.facing)*140;
                 const vy = Math.sin(e.facing)*140;
-                BOSS_PROJECTILES.push({ kind:'rock', dir: vx < 0 ? 'left' : 'right', x:e.x, y:e.y, vx, vy, life:0, ttl:3, frame:0, animT:0 });
+                BOSS_PROJECTILES.push({ kind:'rock', dir: vx < 0 ? 'left' : 'right', x:e.x, y:e.y, vx, vy, life:0, ttl:3, frame:0, animT:0, scale:0.5 });
               } else {
                 BOSS_PROJECTILES.push({ x:e.x, y:e.y, vx:Math.cos(e.facing)*140, vy:Math.sin(e.facing)*140, life:0, ttl:3 });
               }
@@ -1626,7 +1626,8 @@
           if (p.animT >= 0.12){ p.animT = 0; p.frame = (p.frame + 1) % 4; }
         }
         if (p.life > p.ttl){ BOSS_PROJECTILES.splice(i,1); continue; }
-        if (len(p.x-P.x,p.y-P.y) < 20){
+        const hitRadius = (p.scale ? 20 * p.scale : 20);
+        if (len(p.x-P.x,p.y-P.y) < hitRadius){
           if (P.iT<=0){
             const dmg = p.dmg || 1;
             if (CHEAT.active){ P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
@@ -1912,7 +1913,9 @@
             const sheet = HILL_GIANT_PROJECTILE_ANIM[bp.dir];
             const fw = sheet.width / 4;
             const fh = sheet.height;
-            ctx.drawImage(sheet, bp.frame * fw, 0, fw, fh, bp.x - fw/2, bp.y - fh/2, fw, fh);
+            const dw = fw * (bp.scale || 1);
+            const dh = fh * (bp.scale || 1);
+            ctx.drawImage(sheet, bp.frame * fw, 0, fw, fh, bp.x - dw/2, bp.y - dh/2, dw, dh);
           } else if (bp.kind === 'slime'){
             const sheet = SLIME_PROJECTILE_ANIM[bp.dir];
             const fw = sheet.width / 4;

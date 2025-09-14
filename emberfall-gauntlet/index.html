@@ -576,6 +576,7 @@
       spark: new Image(),
       chest: new Image(),
       chestOpen: new Image(),
+      shield: new Image(),
       hero: CLASS_IMG.fighter,
     };
     IMG.coin.src = 'assets/eg_coin.svg';
@@ -585,6 +586,8 @@
     IMG.spark.src = 'assets/eg_spark.svg';
     IMG.chest.src = 'assets/EG_chest_closed_small.png';
     IMG.chestOpen.src = 'assets/EG_chest_open_small.png';
+    // Inline SVG shield image (horizontal, pointed to the right)
+    IMG.shield.src = "assets/EG_shield.png";
 
     const MAP_FILES = [
       'assets/EG_map_mirewatch01.png',
@@ -646,6 +649,8 @@
     const PHYS = { friction: 0.86, atkDur: 0.18, atkRange: BASE_ATK_RANGE, atkArc: Math.PI*0.35 };
     // Knockback tuning
     const KNOCK = { friction: 0.88, melee: 200, orb: 0, nova: 160, projectile: 180 };
+    // Fighter shield push (periodic, left-side bash)
+    const SHIELD = { period: 1.5, timer: 0, active: false, t: 0, dur: 0.18, range: 56, width: 80, height: 44, knock: 260, hits: new Set() };
     // Frost Nova damage radius (visuals remain at ~90)
     const NOVA_RADIUS = 120;
     // Separate hitbox scaling so we can tighten player damage range
@@ -820,6 +825,8 @@
       // Keep the default melee arc narrow on reset as well
       PHYS.atkArc = Math.PI * 0.35;
       AUTO.atkPeriod = 0.7;
+      // Reset shield state
+      SHIELD.timer = 0; SHIELD.active = false; SHIELD.t = 0; SHIELD.hits = new Set();
       SCORE.value = 0; scoreEl.textContent = SCORE.value;
       COINS.value = 0; coinsEl.textContent = COINS.value; SHOP.idx = 0; SHOP.open = false;
       KEYS.value = 0; drawKeys();
@@ -1263,6 +1270,47 @@
       // Timers
       if (P.atkT>0) P.atkT -= dt; if (P.iT>0) P.iT -= dt; if (P.hitFlash>0) P.hitFlash = Math.max(0, P.hitFlash - dt);
 
+      // Fighter: periodic shield push from left side (90° from sword)
+      if (currentClass === 'fighter'){
+        SHIELD.timer += dt;
+        if (!SHIELD.active && SHIELD.timer >= SHIELD.period){
+          SHIELD.timer = 0; SHIELD.active = true; SHIELD.t = 0; SHIELD.hits = new Set();
+        }
+        if (SHIELD.active){
+          SHIELD.t += dt;
+          if (SHIELD.t >= SHIELD.dur){
+            SHIELD.active = false;
+          } else {
+            // Compute shield geometry for collisions
+            const baseAng = (P.swingAim || P.aimDir || P.dir || 0);
+            const ang = baseAng - Math.PI/2; // left of facing
+            const ax = Math.cos(ang), ay = Math.sin(ang);
+            const progress = Math.max(0, Math.min(1, SHIELD.t / SHIELD.dur));
+            const len = SHIELD.range * (1 - Math.pow(1-progress, 2)); // ease-out
+            // Start slightly off the player's center along the shield axis
+            const ox = P.x + ax * 14;
+            const oy = P.y + ay * 14;
+            for (const e of enemies){
+              if (e.hp<=0 || SHIELD.hits.has(e)) continue;
+              // Relative to origin
+              const rx = e.x - ox, ry = e.y - oy;
+              const proj = rx*ax + ry*ay; // along-axis distance
+              const perp = Math.abs(rx*ay - ry*ax); // perpendicular distance
+              if (proj > 0 && proj < len && perp < (SHIELD.height*0.5 + Math.max(8, Math.min(e.w, e.h))*0.3)){
+                // Knock forward along shield direction, no damage
+                e.kx = (e.kx||0) + ax * SHIELD.knock;
+                e.ky = (e.ky||0) + ay * SHIELD.knock;
+                e.pulse = Math.max(e.pulse||0, 0.22);
+                e.pulseRange = 36;
+                // Stun (freeze) for a few seconds
+                e.freezeT = Math.max(e.freezeT||0, 2.5);
+                SHIELD.hits.add(e);
+              }
+            }
+          }
+        }
+      }
+
       // Apply friction (frame-rate independent)
       const pF = Math.pow(PHYS.friction, dt * 60);
       P.vx *= pF; P.vy *= pF;
@@ -1517,6 +1565,8 @@
         // Attack collision when close and player is vulnerable
         if (P.iT<=0 && Math.abs(P.x-e.x)<(e.w*HITBOX.enemy + P.w*HITBOX.player) && Math.abs(P.y-e.y)<(e.h*HITBOX.enemy + P.h*HITBOX.player)){
           let canHit = true;
+          // Stunned/frozen enemies do not deal contact damage
+          if (e.freezeT && e.freezeT > 0) canHit = false;
           if (e.kind === 'boss'){
             const angToPlayer = Math.atan2(P.y - e.y, P.x - e.x);
             canHit = Math.abs(angleDiff(angToPlayer, e.facing)) <= Math.PI/2;
@@ -1841,6 +1891,34 @@
           const fh = sheet.height;
           ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
         }
+        // Stun visual: spinning stars above the head while frozen
+        if (e.freezeT && e.freezeT > 0){
+          const cx = e.x;
+          const cy = e.y - e.h * 0.85;
+          const base = (e.t || 0) * 6; // spin speed
+          const count = 3;
+          const orbitR = Math.max(8, Math.min(14, Math.max(e.w, e.h) * 0.35));
+          for (let i=0;i<count;i++){
+            const a = base + i * (Math.PI * 2 / count);
+            const sx = cx + Math.cos(a) * orbitR;
+            const sy = cy + Math.sin(a) * Math.max(5, orbitR*0.35);
+            const R = 4; const r = 2;
+            ctx.beginPath();
+            for (let k=0;k<10;k++){
+              const ang = a + k * Math.PI/5;
+              const rad = (k % 2 === 0) ? R : r;
+              const px = sx + Math.cos(ang) * rad;
+              const py = sy + Math.sin(ang) * rad;
+              if (k===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+            }
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(255, 221, 120, 0.9)';
+            ctx.strokeStyle = 'rgba(255, 255, 200, 0.85)';
+            ctx.lineWidth = 1.5;
+            ctx.fill();
+            ctx.stroke();
+          }
+        }
         // Slow effect visual: pulsing frosty halo while slowed
         if (e.slowT && e.slowT > 0){
           const baseA = 0.20;
@@ -1858,6 +1936,30 @@
 
       // Draw player shadow + hero (blink on i-frames)
       ctx.drawImage(IMG.shadow, P.x-30, P.y-15, 60, 30);
+      // Fighter shield visual (periodic left-side push)
+      if (currentClass === 'fighter' && SHIELD.active){
+        const baseAng = (P.swingAim || P.aimDir || P.dir || 0);
+        const ang = baseAng - Math.PI/2;
+        const progress = Math.max(0, Math.min(1, SHIELD.t / SHIELD.dur));
+        const len = SHIELD.range * (1 - Math.pow(1-progress, 2));
+        const offset = 14;
+        const shieldW = SHIELD.width, shieldH = SHIELD.height; // visual size tied to SHIELD config
+        ctx.save();
+        ctx.translate(P.x, P.y);
+        ctx.rotate(ang);
+        // Slight motion blur trail
+        const trailN = 3;
+        for (let i=trailN-1; i>=0; i--){
+          const f = i/(trailN);
+          const p = len * (0.6 + 0.4*f);
+          ctx.globalAlpha = 0.25 * (1 - f);
+          ctx.drawImage(IMG.shield, offset + p - shieldW*0.5, -shieldH*0.5, shieldW, shieldH);
+        }
+        // Main shield
+        ctx.globalAlpha = 1;
+        ctx.drawImage(IMG.shield, offset + len - shieldW*0.5, -shieldH*0.5, shieldW, shieldH);
+        ctx.restore();
+      }
       // Sword trail when attacking (non-wizard only)
       if (currentClass !== 'wizard' && P.atkT>0){
         ctx.save();

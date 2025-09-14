@@ -97,6 +97,8 @@
     .card .tag { display:inline-block; font-size:10px; padding:2px 6px; border-radius:8px; border:1px solid var(--gold); margin-bottom:6px; color:#fff; opacity:0.8; }
     .card .body { font-size: 12px; color:#cfe9ff; line-height:1.5; }
     .card .note { font-size: 10px; color:#a1ffd4; margin-top:6px; opacity:0.9; }
+    .card .ability { display:flex; align-items:flex-start; gap:8px; }
+    .card .ability img { width:32px; height:32px; image-rendering:pixelated; flex-shrink:0; }
 
     @media (max-width: 1100px) {
       canvas { width: min(96vw, 960px); height: auto; }
@@ -764,6 +766,41 @@
         { id:'wisdom', type:'Upgrade', name:'Wisdom', desc:'Max HP +1 and heal 1.', apply:()=>{ P.hpMax += 1; P.hp = Math.min(P.hpMax, P.hp+1); drawHearts(); } },
       ],
     };
+
+    const ABILITY_ICON_SLUGS = {
+      'Twin Strikes':'twinStrikes',
+      'Longblade':'longBlade',
+      'Sweeping Arc':'sweepingArc',
+      'Vampiric Edge':'vampiricEdge',
+      'Heart Vessel':'heartVessel',
+      'Shield Cadence':'shieldCadence',
+      'Shield Ram':'shieldRam',
+      'Tower Shield':'towerShield',
+      'Shield Reach':'shieldReach',
+      'Concussive Bash':'concussiveBash',
+      'Shield Spikes':'shieldSpikes',
+      'Reinforced Rim':'reinforcedRim',
+      'Shadowstep':'shadowstep',
+      'Poisoned Edge':'poisonEdge',
+      'Deadly Precision':'deadlyPrecision',
+      'Evasion':'evasion',
+      'Second Wind':'secondWind',
+      'Barbed Arrows':'barbedArrows',
+      'Rapid Shot':'rapidShot',
+      'Fine Fletching':'fineFletching',
+      'Multishot':'multishot',
+      'Piercing Shot':'piercingShot',
+      'Arcane Orbs':'arcaneOrbs',
+      'Frost Nova':'frostNova',
+      'Arcane Missiles':'arcaneMissile',
+      'Spell Focus':'spellFocus',
+      'Wisdom':'wisdom'
+    };
+
+    function abilityIconSrc(opt){
+      const slug = ABILITY_ICON_SLUGS[opt.name] || opt.name.toLowerCase().replace(/[^a-z0-9]+(.)?/g, (m, c) => c ? c.toUpperCase() : '');
+      return `assets/EG_ability_${currentClass}_${slug}_small.png`;
+    }
 
     let currentPool = POOLS[currentClass];
 
@@ -2191,8 +2228,19 @@
       shopChoices.innerHTML = '';
       const options = rollShopOptions();
       for (const opt of options){
-        const el = document.createElement('div'); el.className = 'card';
-        el.innerHTML = `<div class="tag">${opt.type}</div><h3>${opt.name}</h3><div class="body">${opt.desc}</div>${opt.note?`<div class=\"note\">${opt.note}</div>`:''}`;
+        const el = document.createElement('div');
+        el.className = 'card';
+        const icon = abilityIconSrc(opt);
+        el.innerHTML = `
+          <div class="tag">${opt.type}</div>
+          <div class="ability">
+            <img src="${icon}" alt="${opt.name}" class="ability-icon">
+            <div>
+              <h3>${opt.name}</h3>
+              <div class="body">${opt.desc}</div>
+              ${opt.note?`<div class="note">${opt.note}</div>`:''}
+            </div>
+          </div>`;
         el.addEventListener('click', ()=> selectShopOption(opt));
         shopChoices.appendChild(el);
       }

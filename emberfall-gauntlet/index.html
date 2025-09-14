@@ -650,7 +650,7 @@
     // Knockback tuning
     const KNOCK = { friction: 0.88, melee: 200, orb: 0, nova: 160, projectile: 180 };
     // Fighter shield push (periodic, left-side bash)
-    const SHIELD = { period: 1.5, timer: 0, active: false, t: 0, dur: 0.18, range: 56, width: 80, height: 44, knock: 260, hits: new Set() };
+    const SHIELD = { period: 1.5, timer: 0, active: false, t: 0, dur: 0.18, range: 56, width: 80, height: 44, knock: 260, stunDur: 2.5, dmg: 0, hits: new Set() };
     // Frost Nova damage radius (visuals remain at ~90)
     const NOVA_RADIUS = 120;
     // Separate hitbox scaling so we can tighten player damage range
@@ -734,6 +734,14 @@
         { id:'sweeping', type:'Weapon', name:'Sweeping Arc', desc:'Widen melee arc by 15%.', apply:()=>{ PHYS.atkArc = Math.min(Math.PI*1.6, PHYS.atkArc*1.15); } },
         { id:'leech', type:'Upgrade', name:'Vampiric Edge', desc:'On kill, small chance to heal 1.', apply:()=>{ UPGR.lifeStealChance = Math.min(0.5, UPGR.lifeStealChance + 0.12); } },
         { id:'heart', type:'Upgrade', name:'Heart Vessel', desc:'Max HP +1 and heal 1.', apply:()=>{ P.hpMax += 1; P.hp = Math.min(P.hpMax, P.hp+1); drawHearts(); } },
+        // Fighter-specific shield upgrades
+        { id:'shield_cadence', type:'Shield', name:'Shield Cadence', desc:'Shield bash more often (-15% cooldown).', note:'Stacks multiplicatively', apply:()=>{ SHIELD.period = Math.max(0.4, +(SHIELD.period*0.85).toFixed(2)); } },
+        { id:'shield_ram', type:'Shield', name:'Shield Ram', desc:'Shield knockback +20%.', apply:()=>{ SHIELD.knock = Math.round(SHIELD.knock * 1.2); } },
+        { id:'tower_shield', type:'Shield', name:'Tower Shield', desc:'Shield height +20%.', apply:()=>{ SHIELD.height = Math.round(SHIELD.height * 1.2); } },
+        { id:'shield_reach', type:'Shield', name:'Shield Reach', desc:'Shield range +20%.', apply:()=>{ SHIELD.range = Math.round(SHIELD.range * 1.2); } },
+        { id:'concussive_bash', type:'Shield', name:'Concussive Bash', desc:'Stun duration +0.6s.', apply:()=>{ SHIELD.stunDur = +(SHIELD.stunDur + 0.6).toFixed(2); } },
+        { id:'shield_spikes', type:'Shield', name:'Shield Spikes', desc:'Shield bash deals damage.', note:'Unique', unique:true, apply:()=>{ SHIELD.dmg = Math.max(SHIELD.dmg||0, 1); } },
+        { id:'reinforced_rim', type:'Shield', name:'Reinforced Rim', desc:'Shield damage +1.', apply:()=>{ SHIELD.dmg = (SHIELD.dmg||0) + 1; } },
       ],
       rogue: [
         { id:'shadowstep', type:'Skill', name:'Shadowstep', desc:'Move 20% faster.', apply:()=>{ P.spd = Math.round(P.spd*1.2); } },
@@ -827,6 +835,8 @@
       AUTO.atkPeriod = 0.7;
       // Reset shield state
       SHIELD.timer = 0; SHIELD.active = false; SHIELD.t = 0; SHIELD.hits = new Set();
+      // Reset shield core stats
+      SHIELD.period = 1.5; SHIELD.range = 56; SHIELD.width = 80; SHIELD.height = 44; SHIELD.knock = 260; SHIELD.stunDur = 2.5; SHIELD.dmg = 0;
       SCORE.value = 0; scoreEl.textContent = SCORE.value;
       COINS.value = 0; coinsEl.textContent = COINS.value; SHOP.idx = 0; SHOP.open = false;
       KEYS.value = 0; drawKeys();
@@ -1297,13 +1307,17 @@
               const proj = rx*ax + ry*ay; // along-axis distance
               const perp = Math.abs(rx*ay - ry*ax); // perpendicular distance
               if (proj > 0 && proj < len && perp < (SHIELD.height*0.5 + Math.max(8, Math.min(e.w, e.h))*0.3)){
-                // Knock forward along shield direction, no damage
-                e.kx = (e.kx||0) + ax * SHIELD.knock;
-                e.ky = (e.ky||0) + ay * SHIELD.knock;
+                // Apply damage if enabled; else only knockback
+                if ((SHIELD.dmg||0) > 0){
+                  applyDamage(e, SHIELD.dmg, ax, ay, SHIELD.knock);
+                } else {
+                  e.kx = (e.kx||0) + ax * SHIELD.knock;
+                  e.ky = (e.ky||0) + ay * SHIELD.knock;
+                }
                 e.pulse = Math.max(e.pulse||0, 0.22);
                 e.pulseRange = 36;
                 // Stun (freeze) for a few seconds
-                e.freezeT = Math.max(e.freezeT||0, 2.5);
+                e.freezeT = Math.max(e.freezeT||0, SHIELD.stunDur);
                 SHIELD.hits.add(e);
               }
             }
@@ -1943,7 +1957,7 @@
         const progress = Math.max(0, Math.min(1, SHIELD.t / SHIELD.dur));
         const len = SHIELD.range * (1 - Math.pow(1-progress, 2));
         const offset = 14;
-        const shieldW = SHIELD.width, shieldH = SHIELD.height; // visual size tied to SHIELD config
+        const shieldW = 56, shieldH = SHIELD.height; // fixed visual width; gameplay/visual thickness uses SHIELD.height
         ctx.save();
         ctx.translate(P.x, P.y);
         ctx.rotate(ang);
@@ -2243,6 +2257,13 @@
           lines.push(`<div class=\"section\">Bow</div>`);
           lines.push(`<div><b>Arrows:</b> count ${UPGR.arrowCount||1}, period ${UPGR.arrowPeriod.toFixed(2)}s, speed ${fmt(UPGR.arrowSpeed)}, dmg ${UPGR.arrowDmg}${UPGR.arrowPierce?`, pierce ON`:''}</div>`);
         }
+        // Fighter-specific shield stats
+        if (cls === 'fighter'){
+          lines.push(`<div class=\"section\">Shield</div>`);
+          lines.push(`<div><b>Cadence:</b> ${SHIELD.period.toFixed(2)}s bash, <b>Stun:</b> ${SHIELD.stunDur.toFixed(1)}s</div>`);
+          lines.push(`<div><b>Range:</b> ${fmt(SHIELD.range)}px, <b>Height:</b> ${fmt(SHIELD.height)}px</div>`);
+          lines.push(`<div><b>Knockback:</b> ${fmt(SHIELD.knock)}, <b>Damage:</b> ${fmt(SHIELD.dmg)}</div>`);
+        }
         
         if (cls === 'wizard') lines.push(`<div class=\"section\">Spells</div>`);
         if (cls === 'wizard') lines.push(`<div><b>Orbs:</b> ${UPGR.orbs||0} (dmg ${UPGR.orbDmg||0}, radius ${UPGR.orbRadius||0})</div>`);
@@ -2286,6 +2307,13 @@
               case 'rapid': stat = `arrow period ${UPGR.arrowPeriod.toFixed(2)}s`; break;
               case 'fletching': stat = `arrow speed ${fmt(UPGR.arrowSpeed)}`; break;
               case 'multishot': stat = `arrows ${UPGR.arrowCount}`; break;
+              case 'shield_cadence': stat = `period ${SHIELD.period.toFixed(2)}s`; break;
+              case 'shield_ram': stat = `knock ${fmt(SHIELD.knock)}`; break;
+              case 'tower_shield': stat = `height ${fmt(SHIELD.height)}px`; break;
+              case 'shield_reach': stat = `range ${fmt(SHIELD.range)}px`; break;
+              case 'concussive_bash': stat = `stun ${SHIELD.stunDur.toFixed(1)}s`; break;
+              case 'shield_spikes': stat = `damage ${fmt(SHIELD.dmg)}`; break;
+              case 'reinforced_rim': stat = `damage ${fmt(SHIELD.dmg)}`; break;
               default: stat = '';
             }
             lines.push(`<div><b>${u.name}</b> (Lv ${u.levels})${stat?`: ${stat}`:''}</div>`);

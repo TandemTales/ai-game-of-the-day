@@ -1792,7 +1792,6 @@
 
     function drawBackground(){
       if (currentMap) ctx.drawImage(currentMap, ARENA.x, ARENA.y, ARENA.w, ARENA.h);
-      if (stage === 1 && FOREST_TREES.complete) ctx.drawImage(FOREST_TREES, ARENA.x, ARENA.y, ARENA.w, ARENA.h);
     }
 
     function draw(){
@@ -2054,6 +2053,7 @@
         }
       }
 
+      if (stage === 1 && FOREST_TREES.complete) ctx.drawImage(FOREST_TREES, ARENA.x, ARENA.y, ARENA.w, ARENA.h);
       ctx.restore();
 
       if (boss){

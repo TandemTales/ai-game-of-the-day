@@ -95,6 +95,8 @@
     .card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(255,215,0,0.32); }
     .card h3 { margin:0 0 6px; font-size:14px; color: #ffe08a; }
     .card .tag { display:inline-block; font-size:10px; padding:2px 6px; border-radius:8px; border:1px solid var(--gold); margin-bottom:6px; color:#fff; opacity:0.8; }
+    .card .ability-header { display:flex; align-items:flex-start; gap:8px; }
+    .card .ability-header img { width:32px; height:32px; image-rendering:pixelated; }
     .card .body { font-size: 12px; color:#cfe9ff; line-height:1.5; }
     .card .note { font-size: 10px; color:#a1ffd4; margin-top:6px; opacity:0.9; }
 
@@ -2186,14 +2188,24 @@
       if (COINS.value >= next){ openShop(); }
     }
 
+    function abilityImgSrc(name){
+      const slug = name.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean).map((w,i)=> i ? w[0].toUpperCase()+w.slice(1) : w).join('');
+      return `assets/EG_ability_${currentClass}_${slug}_small.png`;
+    }
+
     function openShop(){
       SHOP.open = true; paused = true;
       shopChoices.innerHTML = '';
       const options = rollShopOptions();
       for (const opt of options){
-        const el = document.createElement('div'); el.className = 'card';
-        el.innerHTML = `<div class="tag">${opt.type}</div><h3>${opt.name}</h3><div class="body">${opt.desc}</div>${opt.note?`<div class=\"note\">${opt.note}</div>`:''}`;
-        el.addEventListener('click', ()=> selectShopOption(opt));
+        const el = document.createElement('div');
+        el.className = 'card';
+        const img = abilityImgSrc(opt.name);
+        el.innerHTML = `<div class="tag">${opt.type}</div>` +
+                       `<div class="ability-header"><img src="${img}" alt="${opt.name}">` +
+                       `<div><h3>${opt.name}</h3><div class="body">${opt.desc}</div></div></div>` +
+                       (opt.note ? `<div class="note">${opt.note}</div>` : '');
+        el.addEventListener('click', () => selectShopOption(opt));
         shopChoices.appendChild(el);
       }
       shopOverlay.classList.add('show'); shopOverlay.setAttribute('aria-hidden','false');
@@ -2258,18 +2270,18 @@
         if (cls !== 'wizard') lines.push(`<div><b>Estimated DPS:</b> ~${estDps} (multistrike x${UPGR.multistrike||1})</div>`);
         lines.push(`<div><b>Melee Range:</b> ${PHYS.atkRange}px, <b>Arc:</b> ${arcDeg}°</div>`);
         if (cls === 'rogue'){
-          lines.push(`<div class=\"section\">Bow</div>`);
+          lines.push(`<div class="section">Bow</div>`);
           lines.push(`<div><b>Arrows:</b> count ${UPGR.arrowCount||1}, period ${UPGR.arrowPeriod.toFixed(2)}s, speed ${fmt(UPGR.arrowSpeed)}, dmg ${UPGR.arrowDmg}${UPGR.arrowPierce?`, pierce ON`:''}</div>`);
         }
         // Fighter-specific shield stats
         if (cls === 'fighter'){
-          lines.push(`<div class=\"section\">Shield</div>`);
+          lines.push(`<div class="section">Shield</div>`);
           lines.push(`<div><b>Cadence:</b> ${SHIELD.period.toFixed(2)}s bash, <b>Stun:</b> ${SHIELD.stunDur.toFixed(1)}s</div>`);
           lines.push(`<div><b>Range:</b> ${fmt(SHIELD.range)}px, <b>Height:</b> ${fmt(SHIELD.height)}px</div>`);
           lines.push(`<div><b>Knockback:</b> ${fmt(SHIELD.knock)}, <b>Damage:</b> ${fmt(SHIELD.dmg)}</div>`);
         }
         
-        if (cls === 'wizard') lines.push(`<div class=\"section\">Spells</div>`);
+        if (cls === 'wizard') lines.push(`<div class="section">Spells</div>`);
         if (cls === 'wizard') lines.push(`<div><b>Orbs:</b> ${UPGR.orbs||0} (dmg ${UPGR.orbDmg||0}, radius ${UPGR.orbRadius||0})</div>`);
         if (cls === 'wizard') lines.push(`<div><b>Frost Nova:</b> ${UPGR.nova?`ON (period ${UPGR.novaPeriod.toFixed(2)}s, dmg ${UPGR.novaDmg})`:'OFF'}</div>`);
         if (cls === 'wizard') lines.push(`<div><b>Arcane Missiles:</b> ${UPGR.shards?`ON (count ${UPGR.shardCount}, period ${UPGR.shardPeriod.toFixed(2)}s, speed ${UPGR.shardSpeed})`:'OFF'}</div>`);

@@ -97,6 +97,8 @@
     .card .tag { display:inline-block; font-size:10px; padding:2px 6px; border-radius:8px; border:1px solid var(--gold); margin-bottom:6px; color:#fff; opacity:0.8; }
     .card .body { font-size: 12px; color:#cfe9ff; line-height:1.5; }
     .card .note { font-size: 10px; color:#a1ffd4; margin-top:6px; opacity:0.9; }
+    .card .ability { display:flex; align-items:flex-start; gap:8px; }
+    .card .ability img { image-rendering:pixelated; flex-shrink:0; }
 
     @media (max-width: 1100px) {
       canvas { width: min(96vw, 960px); height: auto; }
@@ -2191,8 +2193,44 @@
       shopChoices.innerHTML = '';
       const options = rollShopOptions();
       for (const opt of options){
-        const el = document.createElement('div'); el.className = 'card';
-        el.innerHTML = `<div class="tag">${opt.type}</div><h3>${opt.name}</h3><div class="body">${opt.desc}</div>${opt.note?`<div class=\"note\">${opt.note}</div>`:''}`;
+        const el = document.createElement('div');
+        el.className = 'card';
+
+        const tag = document.createElement('div');
+        tag.className = 'tag';
+        tag.textContent = opt.type;
+
+        const ability = document.createElement('div');
+        ability.className = 'ability';
+
+        const img = new Image();
+        const imgName = opt.name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+        img.src = `assets/EG_ability_${currentClass}_${imgName}.png`;
+        img.alt = opt.name;
+        img.addEventListener('load', function(){
+          this.width = this.naturalWidth / 2;
+          this.height = this.naturalHeight / 2;
+        });
+        ability.appendChild(img);
+
+        const textWrap = document.createElement('div');
+        const h3 = document.createElement('h3');
+        h3.textContent = opt.name;
+        const body = document.createElement('div');
+        body.className = 'body';
+        body.textContent = opt.desc;
+        textWrap.appendChild(h3);
+        textWrap.appendChild(body);
+        if (opt.note){
+          const note = document.createElement('div');
+          note.className = 'note';
+          note.textContent = opt.note;
+          textWrap.appendChild(note);
+        }
+        ability.appendChild(textWrap);
+
+        el.appendChild(tag);
+        el.appendChild(ability);
         el.addEventListener('click', ()=> selectShopOption(opt));
         shopChoices.appendChild(el);
       }

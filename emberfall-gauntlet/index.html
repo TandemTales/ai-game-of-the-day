@@ -1014,7 +1014,7 @@
       }
       // Reduce boss health by 50%
       hp *= 0.5;
-      const b = { kind:'boss', bossType, x, y, vx:0, vy:0, kx:0, ky:0, w:ENEMY.w*4*1.5, h:ENEMY.h*4*1.5, hp, hpMax:hp, spd:75 * stageSpd, score:2000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0, atkT:0, blastT:0, facing:0, freezeT:0, pulse:0, nextAtk:'pulse' };
+        const b = { kind:'boss', bossType, x, y, vx:0, vy:0, kx:0, ky:0, w:ENEMY.w*4*1.5, h:ENEMY.h*4*1.5, hp, hpMax:hp, spd:75 * stageSpd, score:2000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0, atkT:0, blastT:0, facing:0, freezeT:0, pulse:0, nextAtk:'pulse', rayT:0 };
       if (bossType === 'hillGiant') b.slamCd = 3;
       switchMusic(BOSS_TRACKS);
       enemies.push(b);
@@ -1374,9 +1374,10 @@
         // Final boundary clamp
         clampToArena(e, AI.wallPad);
 
-        if (e.kind === 'boss'){
-          e.atkT += dt;
-          if (e.bossType === 'hungerDemon' || e.bossType === 'beholder') e.blastT = (e.blastT || 0) + dt;
+          if (e.kind === 'boss'){
+            e.atkT += dt;
+            if (e.bossType === 'hungerDemon' || e.bossType === 'beholder') e.blastT = (e.blastT || 0) + dt;
+            if (e.bossType === 'beholder') e.rayT = (e.rayT || 0) + dt;
           if (e.bossType === 'abomination') {
             if (e.freezeT <= 0 && e.atkT >= 2.4){
               e.atkT = 0;
@@ -1419,23 +1420,26 @@
               }
               e.freezeT = 1.2;
             }
-          } else if (e.bossType === 'beholder') {
-            if (e.freezeT <= 0 && e.atkT >= 2){
-              e.atkT = 0;
-              const count = 8;
-              for (let i=0; i<count; i++){
-                const ang = (Math.PI*2 / count) * i;
-                const vxSlow = Math.cos(ang) * 90;
-                const vySlow = Math.sin(ang) * 90;
-                BOSS_PROJECTILES.push({ kind:'slime', dmg:2, dir: vxSlow < 0 ? 'left' : 'right', x:e.x, y:e.y, vx:vxSlow, vy:vySlow, life:0, ttl:4, frame:0, animT:0 });
-                const vxFast = Math.cos(ang) * 180;
-                const vyFast = Math.sin(ang) * 180;
-                BOSS_PROJECTILES.push({ kind:'slime', dmg:1, dir: vxFast < 0 ? 'left' : 'right', x:e.x, y:e.y, vx:vxFast, vy:vyFast, life:0, ttl:2, frame:0, animT:0 });
+            } else if (e.bossType === 'beholder') {
+              if (e.freezeT <= 0 && e.atkT >= 2){
+                e.atkT = 0;
+                const count = 8;
+                for (let i=0; i<count; i++){
+                  const ang = (Math.PI*2 / count) * i;
+                  const vxSlow = Math.cos(ang) * 90;
+                  const vySlow = Math.sin(ang) * 90;
+                  BOSS_PROJECTILES.push({ kind:'slime', dmg:2, dir: vxSlow < 0 ? 'left' : 'right', x:e.x, y:e.y, vx:vxSlow, vy:vySlow, life:0, ttl:4, frame:0, animT:0 });
+                  const vxFast = Math.cos(ang) * 180;
+                  const vyFast = Math.sin(ang) * 180;
+                  BOSS_PROJECTILES.push({ kind:'slime', dmg:1, dir: vxFast < 0 ? 'left' : 'right', x:e.x, y:e.y, vx:vxFast, vy:vyFast, life:0, ttl:2, frame:0, animT:0 });
+                }
+                if (e.rayT >= 4){
+                  const beamAng = Math.atan2(dy, dx);
+                  BOSS_PROJECTILES.push({ kind:'beam', dmg:1, x:e.x, y:e.y, ang:beamAng, life:0, ttl:1 });
+                  e.rayT = 0;
+                }
               }
-              const beamAng = Math.atan2(dy, dx);
-              BOSS_PROJECTILES.push({ kind:'beam', dmg:1, x:e.x, y:e.y, ang:beamAng, life:0, ttl:1 });
-            }
-            if (e.freezeT <= 0 && e.blastT >= 6){
+              if (e.freezeT <= 0 && e.blastT >= 6){
               e.blastT = 0;
               const range = 200;
               e.pulse = 0.5;

@@ -596,6 +596,8 @@
     const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
     const FOREST_TREES = new Image();
     FOREST_TREES.src = 'assets/EG_map_forest01_trees_below.png';
+    const FOREST_INDEX = MAP_FILES.indexOf('assets/EG_map_forest01.png');
+    const isForestStage = () => currentMap === MAPS[FOREST_INDEX];
     let FOREST_MASK = null;
 
     let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 3 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length;
@@ -963,7 +965,7 @@
     function rand(a,b){ return a + Math.random()*(b-a); }
 
     function forestBlocked(obj){
-      if (stage !== 1 || !FOREST_MASK) return false;
+      if (!isForestStage() || !FOREST_MASK) return false;
       const hw = obj.w/2, hh = obj.h/2;
       const pts = [
         [obj.x - hw, obj.y - hh],
@@ -1013,7 +1015,7 @@
       h *= 1.75;
 
       const enemy = { kind, x, y, vx:0, vy:0, kx:0, ky:0, w, h, hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0, dir:'down', frame:0, animT:0 };
-      if (stage === 1 && forestBlocked(enemy)) return spawnEnemy();
+      if (forestBlocked(enemy)) return spawnEnemy();
       if (needsKeys() && !SPAWN.keyAssigned){ enemy.hasKey = true; SPAWN.keyAssigned = true; }
       enemies.push(enemy);
     }
@@ -1098,7 +1100,7 @@
         y = rand(ARENA.y+pad, ARENA.y+ARENA.h-pad);
       }
       const chest = {x,y,w:32,h:32,opened:false};
-      if (stage === 1 && forestBlocked(chest)) return spawnChest();
+      if (forestBlocked(chest)) return spawnChest();
       chests.push(chest);
     }
 
@@ -2053,7 +2055,7 @@
         }
       }
 
-      if (stage === 1 && FOREST_TREES.complete) ctx.drawImage(FOREST_TREES, ARENA.x, ARENA.y, ARENA.w, ARENA.h);
+      if (isForestStage() && FOREST_TREES.complete) ctx.drawImage(FOREST_TREES, ARENA.x, ARENA.y, ARENA.w, ARENA.h);
       ctx.restore();
 
       if (boss){

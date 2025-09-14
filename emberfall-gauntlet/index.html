@@ -97,6 +97,9 @@
     .card .tag { display:inline-block; font-size:10px; padding:2px 6px; border-radius:8px; border:1px solid var(--gold); margin-bottom:6px; color:#fff; opacity:0.8; }
     .card .body { font-size: 12px; color:#cfe9ff; line-height:1.5; }
     .card .note { font-size: 10px; color:#a1ffd4; margin-top:6px; opacity:0.9; }
+    .card .ability-option { display:flex; align-items:flex-start; gap:8px; }
+    .card .ability-option img { flex:0 0 auto; image-rendering:pixelated; }
+    .card .ability-option .text { flex:1; }
 
     @media (max-width: 1100px) {
       canvas { width: min(96vw, 960px); height: auto; }
@@ -2186,13 +2189,29 @@
       if (COINS.value >= next){ openShop(); }
     }
 
+    const ABILITY_ICON_OVERRIDES = {
+      'Poisoned Edge':'poisonEdge',
+      'Longblade':'longBlade',
+      'Arcane Missiles':'arcaneMissile',
+    };
+    function abilityIconPath(name){
+      const raw = (ABILITY_ICON_OVERRIDES[name] || name)
+        .replace(/[^a-zA-Z0-9 ]/g,'')
+        .split(' ')
+        .map((w,i)=> i===0 ? w.toLowerCase() : w.charAt(0).toUpperCase()+w.slice(1))
+        .join('');
+      return `assets/EG_ability_${currentClass}_${raw}_small.png`;
+    }
+
     function openShop(){
       SHOP.open = true; paused = true;
       shopChoices.innerHTML = '';
       const options = rollShopOptions();
       for (const opt of options){
         const el = document.createElement('div'); el.className = 'card';
-        el.innerHTML = `<div class="tag">${opt.type}</div><h3>${opt.name}</h3><div class="body">${opt.desc}</div>${opt.note?`<div class=\"note\">${opt.note}</div>`:''}`;
+        const note = opt.note ? `<div class="note">${opt.note}</div>` : '';
+        const icon = abilityIconPath(opt.name);
+        el.innerHTML = `<div class="tag">${opt.type}</div><div class="ability-option"><img src="${icon}" alt="${opt.name} icon"><div class="text"><h3>${opt.name}</h3><div class="body">${opt.desc}</div>${note}</div></div>`;
         el.addEventListener('click', ()=> selectShopOption(opt));
         shopChoices.appendChild(el);
       }

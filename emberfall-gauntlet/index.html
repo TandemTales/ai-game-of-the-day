@@ -655,7 +655,30 @@
     const NOVA_RADIUS = 120;
     // Separate hitbox scaling so we can tighten player damage range
     // Reduce player hitbox for fairness: smaller damage window
-    const HITBOX = { player: 0.24, enemy: 0.6 };
+    const HITBOX = { player: 0.24, enemy: 0.3 };
+    // Per-enemy-type AABB scale (x/y) for contact collisions.
+    // Adjust these values per art to match perceived bounds.
+    const ENEMY_HITBOX = {
+      // Fallbacks
+      default: { x: HITBOX.enemy, y: HITBOX.enemy },
+      // Regular enemies
+      goblin: { x: HITBOX.enemy, y: HITBOX.enemy },
+      imp:    { x: HITBOX.enemy, y: HITBOX.enemy },
+      orc:    { x: HITBOX.enemy, y: HITBOX.enemy },
+      // Bosses (overridden per bossType if desired)
+      boss:   { x: HITBOX.enemy, y: HITBOX.enemy },
+      muck:         { x: HITBOX.enemy, y: HITBOX.enemy },
+      hillGiant:    { x: HITBOX.enemy, y: HITBOX.enemy },
+      abomination:  { x: HITBOX.enemy, y: HITBOX.enemy },
+      hungerDemon:  { x: HITBOX.enemy, y: HITBOX.enemy },
+      beholder:     { x: HITBOX.enemy, y: HITBOX.enemy },
+    };
+    function getEnemyHitboxScale(e){
+      if (!e) return ENEMY_HITBOX.default;
+      if (e.kind === 'boss' && e.bossType && ENEMY_HITBOX[e.bossType]) return ENEMY_HITBOX[e.bossType];
+      if (ENEMY_HITBOX[e.kind]) return ENEMY_HITBOX[e.kind];
+      return ENEMY_HITBOX.default;
+    }
     const AUTO = { atkPeriod: 0.7 };
     const STAGE_WAVE_COUNTS = [
       [10, 20],
@@ -721,6 +744,8 @@
     let enemies = [];
     let drops = [];
     let chests = [];
+    // Debug: toggle drawing collision AABBs with '[' key
+    let DEBUG_HITBOX = false;
     let paused = false, running = false, gameOverHandled = false;
     let awaitingStage = false;
     let nextStageInterval = null;
@@ -912,6 +937,7 @@
         if (e.code==='KeyP') { paused = !paused; }
         if (e.code==='KeyM') { toggleAudio(); }
         if (e.code==='KeyC') { e.preventDefault(); if (statsOverlay && statsOverlay.classList.contains('show')) closeStats(); else openStats(); }
+        if (e.code==='BracketLeft') { DEBUG_HITBOX = !DEBUG_HITBOX; }
       });
       window.addEventListener('keyup', e=>{
         if (e.code==='ArrowLeft'||e.code==='KeyA') key.left=false;
@@ -1581,7 +1607,8 @@
         }
 
         // Attack collision when close and player is vulnerable
-        if (P.iT<=0 && Math.abs(P.x-e.x)<(e.w*HITBOX.enemy + P.w*HITBOX.player) && Math.abs(P.y-e.y)<(e.h*HITBOX.enemy + P.h*HITBOX.player)){
+        const _hb = getEnemyHitboxScale(e);
+        if (P.iT<=0 && Math.abs(P.x-e.x)<(e.w*_hb.x + P.w*HITBOX.player) && Math.abs(P.y-e.y)<(e.h*_hb.y + P.h*HITBOX.player)){
           let canHit = true;
           // Stunned/frozen enemies do not deal contact damage
           if (e.freezeT && e.freezeT > 0) canHit = false;
@@ -2140,6 +2167,28 @@
             ctx.fill();
           }
         }
+      }
+      
+      // Debug draw: player/enemy AABB hitboxes used for contact damage
+      if (DEBUG_HITBOX){
+        ctx.save();
+        ctx.fillStyle = 'rgba(255,0,0,0.22)';
+        ctx.strokeStyle = 'rgba(255,0,0,0.8)';
+        ctx.lineWidth = 1;
+        // Player AABB (scaled)
+        const phw = P.w * HITBOX.player;
+        const phh = P.h * HITBOX.player;
+        ctx.fillRect(P.x - phw, P.y - phh, phw*2, phh*2);
+        ctx.strokeRect(P.x - phw, P.y - phh, phw*2, phh*2);
+        // Enemies AABBs (scaled per enemy type)
+        for (const e of enemies){
+          const sc = getEnemyHitboxScale(e);
+          const ehw = e.w * sc.x;
+          const ehh = e.h * sc.y;
+          ctx.fillRect(e.x - ehw, e.y - ehh, ehw*2, ehh*2);
+          ctx.strokeRect(e.x - ehw, e.y - ehh, ehw*2, ehh*2);
+        }
+        ctx.restore();
       }
 
       ctx.restore();

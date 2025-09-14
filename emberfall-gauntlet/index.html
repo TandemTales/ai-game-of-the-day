@@ -2204,13 +2204,13 @@
         ability.className = 'ability';
 
         const img = new Image();
-        const imgName = opt.name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
-        img.src = `assets/EG_ability_${currentClass}_${imgName}.png`;
+        img.src = `assets/EG_ability_${currentClass}_${opt.id}.png`;
         img.alt = opt.name;
         img.addEventListener('load', function(){
-          this.width = this.naturalWidth / 2;
-          this.height = this.naturalHeight / 2;
+          this.style.width = this.naturalWidth / 2 + 'px';
+          this.style.height = this.naturalHeight / 2 + 'px';
         });
+        img.addEventListener('error', () => img.remove());
         ability.appendChild(img);
 
         const textWrap = document.createElement('div');

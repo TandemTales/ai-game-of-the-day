@@ -97,6 +97,8 @@
     .card .tag { display:inline-block; font-size:10px; padding:2px 6px; border-radius:8px; border:1px solid var(--gold); margin-bottom:6px; color:#fff; opacity:0.8; }
     .card .body { font-size: 12px; color:#cfe9ff; line-height:1.5; }
     .card .note { font-size: 10px; color:#a1ffd4; margin-top:6px; opacity:0.9; }
+    .card .choice-content { display:flex; align-items:center; gap:8px; }
+    .card .ability-art { width:50%; height:auto; }
 
     @media (max-width: 1100px) {
       canvas { width: min(96vw, 960px); height: auto; }
@@ -764,6 +766,48 @@
         { id:'wisdom', type:'Upgrade', name:'Wisdom', desc:'Max HP +1 and heal 1.', apply:()=>{ P.hpMax += 1; P.hp = Math.min(P.hpMax, P.hp+1); drawHearts(); } },
       ],
     };
+
+    const ABILITY_ART = {
+      fighter: {
+        twin: 'twinStrikes',
+        longblade: 'longBlade',
+        sweeping: 'sweepingArc',
+        leech: 'vampiricEdge',
+        heart: 'heartVessel',
+        shield_cadence: 'shieldCadence',
+        shield_ram: 'shieldRam',
+        tower_shield: 'towerShield',
+        shield_reach: 'shieldReach',
+        concussive_bash: 'concussiveBash',
+        shield_spikes: 'shieldSpikes',
+        reinforced_rim: 'reinforcedRim'
+      },
+      rogue: {
+        shadowstep: 'shadowstep',
+        poison: 'poisonEdge',
+        crit: 'deadlyPrecision',
+        dodge: 'evasion',
+        heart: 'secondWind',
+        barbed: 'barbedArrows',
+        rapid: 'rapidShot',
+        fletching: 'fineFletching',
+        multishot: 'multishot',
+        piercing: 'piercingShot'
+      },
+      wizard: {
+        orbs: 'arcaneOrbs',
+        nova: 'frostNova',
+        shards: 'arcaneMissile',
+        focus: 'spellFocus',
+        wisdom: 'arcaneArmor'
+      }
+    };
+
+    function abilityImgName(cls, opt){
+      const map = ABILITY_ART[cls] || {};
+      if (map[opt.id]) return map[opt.id];
+      return opt.name.toLowerCase().replace(/[^a-z0-9]+(.)/g, (_, c) => c.toUpperCase());
+    }
 
     let currentPool = POOLS[currentClass];
 
@@ -2192,7 +2236,9 @@
       const options = rollShopOptions();
       for (const opt of options){
         const el = document.createElement('div'); el.className = 'card';
-        el.innerHTML = `<div class="tag">${opt.type}</div><h3>${opt.name}</h3><div class="body">${opt.desc}</div>${opt.note?`<div class=\"note\">${opt.note}</div>`:''}`;
+        const imgName = abilityImgName(currentClass, opt);
+        const note = opt.note ? `<div class="note">${opt.note}</div>` : '';
+        el.innerHTML = `<div class="tag">${opt.type}</div><div class="choice-content"><img src="assets/EG_ability_${currentClass}_${imgName}.png" alt="${opt.name}" class="ability-art"><div><h3>${opt.name}</h3><div class="body">${opt.desc}</div>${note}</div></div>`;
         el.addEventListener('click', ()=> selectShopOption(opt));
         shopChoices.appendChild(el);
       }

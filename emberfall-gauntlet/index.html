@@ -594,8 +594,11 @@
       'assets/EG_map_mountain01.png',
     ];
     const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
+    const FOREST_TREES = new Image();
+    FOREST_TREES.src = 'assets/EG_map_forest01_trees_below.png';
+    let FOREST_MASK = null;
 
-    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length;
+    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 3 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const img of MAPS) img.addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in WIZ_ANIM) WIZ_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -611,6 +614,7 @@
     for (const k in BEHOLDER_ANIM) BEHOLDER_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     CLASS_IMG.rogue.addEventListener('load', () => { if (++loaded === need) init(); });
     CLASS_IMG.wizard.addEventListener('load', () => { if (++loaded === need) init(); });
+    FOREST_TREES.addEventListener('load', () => { const c=document.createElement('canvas'); c.width=FOREST_TREES.width; c.height=FOREST_TREES.height; const cx=c.getContext('2d'); cx.drawImage(FOREST_TREES,0,0); FOREST_MASK=cx.getImageData(0,0,c.width,c.height).data; if (++loaded === need) init(); });
 
     let currentClass = 'fighter';
     const CLASS_STATS = {
@@ -958,6 +962,26 @@
     const STEP = 1/60;
     function rand(a,b){ return a + Math.random()*(b-a); }
 
+    function forestBlocked(obj){
+      if (stage !== 1 || !FOREST_MASK) return false;
+      const hw = obj.w/2, hh = obj.h/2;
+      const pts = [
+        [obj.x - hw, obj.y - hh],
+        [obj.x + hw, obj.y - hh],
+        [obj.x - hw, obj.y + hh],
+        [obj.x + hw, obj.y + hh],
+      ];
+      const w = FOREST_TREES.width, h = FOREST_TREES.height;
+      for (const [px,py] of pts){
+        const x = Math.floor(px - ARENA.x);
+        const y = Math.floor(py - ARENA.y);
+        if (x < 0 || y < 0 || x >= w || y >= h) continue;
+        const idx = (y * w + x) * 4 + 3;
+        if (FOREST_MASK[idx] > 0) return true;
+      }
+      return false;
+    }
+
     // HUD
     function drawHearts(){ heartsEl.innerHTML=''; for (let i=0;i<P.hpMax;i++){ const img=document.createElement('img'); img.src=IMG.heart.src; img.style.opacity = i < P.hp ? '1' : '0.28'; heartsEl.appendChild(img);} }
     function drawKeys(){ keysEl.innerHTML=''; for (let i=0;i<KEYS.value;i++){ const img=document.createElement('img'); img.src=IMG.key.src; keysEl.appendChild(img);} keysEl.classList.toggle('hidden', KEYS.value===0); }
@@ -989,6 +1013,7 @@
       h *= 1.75;
 
       const enemy = { kind, x, y, vx:0, vy:0, kx:0, ky:0, w, h, hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0, dir:'down', frame:0, animT:0 };
+      if (stage === 1 && forestBlocked(enemy)) return spawnEnemy();
       if (needsKeys() && !SPAWN.keyAssigned){ enemy.hasKey = true; SPAWN.keyAssigned = true; }
       enemies.push(enemy);
     }
@@ -1072,7 +1097,9 @@
         x = ARENA.x + pad;
         y = rand(ARENA.y+pad, ARENA.y+ARENA.h-pad);
       }
-      chests.push({x,y,w:32,h:32,opened:false});
+      const chest = {x,y,w:32,h:32,opened:false};
+      if (stage === 1 && forestBlocked(chest)) return spawnChest();
+      chests.push(chest);
     }
 
     function applyDamage(e, dmg=1, kx=0, ky=0, kb=0){
@@ -1266,16 +1293,19 @@
       // Apply friction (frame-rate independent)
       const pF = Math.pow(PHYS.friction, dt * 60);
       P.vx *= pF; P.vy *= pF;
+      const prevPX = P.x, prevPY = P.y;
       P.x += P.vx*dt; P.y += P.vy*dt;
       // Clamp to arena
-        P.x = clamp(P.x, ARENA.x+24, ARENA.x+ARENA.w-24); P.y = clamp(P.y, ARENA.y+24, ARENA.y+ARENA.h-24);
-        if (currentClass === 'wizard') updateWizardAnim(dt);
-        else if (currentClass === 'fighter') updateFighterAnim(dt);
-        else if (currentClass === 'rogue') updateRogueAnim(dt);
+      P.x = clamp(P.x, ARENA.x+24, ARENA.x+ARENA.w-24); P.y = clamp(P.y, ARENA.y+24, ARENA.y+ARENA.h-24);
+      if (forestBlocked(P)) { P.x = prevPX; P.y = prevPY; P.vx = 0; P.vy = 0; }
+      if (currentClass === 'wizard') updateWizardAnim(dt);
+      else if (currentClass === 'fighter') updateFighterAnim(dt);
+      else if (currentClass === 'rogue') updateRogueAnim(dt);
 
       // Enemy logic
       const kF = Math.pow(KNOCK.friction, dt * 60);
       for (const e of enemies){
+        const prevEX = e.x, prevEY = e.y;
         e.t += dt;
         // Status: slow decay and pulse fade
         if (e.slowT && e.slowT > 0) { e.slowT = Math.max(0, e.slowT - dt); }
@@ -1373,6 +1403,7 @@
         }
         // Final boundary clamp
         clampToArena(e, AI.wallPad);
+        if (forestBlocked(e)) { e.x = prevEX; e.y = prevEY; e.vx = 0; e.vy = 0; }
 
           if (e.kind === 'boss'){
             e.atkT += dt;
@@ -1761,6 +1792,7 @@
 
     function drawBackground(){
       if (currentMap) ctx.drawImage(currentMap, ARENA.x, ARENA.y, ARENA.w, ARENA.h);
+      if (stage === 1 && FOREST_TREES.complete) ctx.drawImage(FOREST_TREES, ARENA.x, ARENA.y, ARENA.w, ARENA.h);
     }
 
     function draw(){

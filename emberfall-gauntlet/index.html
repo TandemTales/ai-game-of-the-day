@@ -1512,8 +1512,8 @@
               e.pulseRange = range;
               if (dist < range && P.iT<=0){
                 const [nx,ny]=norm(P.x-e.x,P.y-e.y);
-                P.vx += nx*200;
-                P.vy += ny*200;
+                P.vx += nx * range * 1.5;
+                P.vy += ny * range * 1.5;
                 if (CHEAT.active){ P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
                 else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
                 else { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }

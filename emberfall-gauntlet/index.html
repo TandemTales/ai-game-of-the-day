@@ -1138,27 +1138,30 @@
     }
 
     function spawnChest(){
-      const side = Math.floor(Math.random()*4);
-      const pad = 20;
-      let x = ARENA.x + pad;
-      let y = ARENA.y + pad;
-      if (side === 0){
-        x = rand(ARENA.x+pad, ARENA.x+ARENA.w-pad);
-        y = ARENA.y + pad;
+      const chestCount = currentClass === 'rogue' ? 2 : 1;
+      for (let i = 0; i < chestCount; i++){
+        const side = Math.floor(Math.random()*4);
+        const pad = 20;
+        let x = ARENA.x + pad;
+        let y = ARENA.y + pad;
+        if (side === 0){
+          x = rand(ARENA.x+pad, ARENA.x+ARENA.w-pad);
+          y = ARENA.y + pad;
+        }
+        if (side === 1){
+          x = ARENA.x + ARENA.w - pad;
+          y = rand(ARENA.y+pad, ARENA.y+ARENA.h-pad);
+        }
+        if (side === 2){
+          x = rand(ARENA.x+pad, ARENA.x+ARENA.w-pad);
+          y = ARENA.y + ARENA.h - pad;
+        }
+        if (side === 3){
+          x = ARENA.x + pad;
+          y = rand(ARENA.y+pad, ARENA.y+ARENA.h-pad);
+        }
+        chests.push({x,y,w:32,h:32,opened:false});
       }
-      if (side === 1){
-        x = ARENA.x + ARENA.w - pad;
-        y = rand(ARENA.y+pad, ARENA.y+ARENA.h-pad);
-      }
-      if (side === 2){
-        x = rand(ARENA.x+pad, ARENA.x+ARENA.w-pad);
-        y = ARENA.y + ARENA.h - pad;
-      }
-      if (side === 3){
-        x = ARENA.x + pad;
-        y = rand(ARENA.y+pad, ARENA.y+ARENA.h-pad);
-      }
-      chests.push({x,y,w:32,h:32,opened:false});
     }
 
     function applyDamage(e, dmg=1, kx=0, ky=0, kb=0){
@@ -1720,7 +1723,10 @@
         if (!c.opened && canOpen && len(P.x-c.x,P.y-c.y) < 28){
           const coinCount = Math.floor(rand(10,31));
           for (let j=0;j<coinCount;j++) dropCoin(c.x + rand(-12,12), c.y + rand(-12,12));
-          dropHeart(c.x + rand(-12,12), c.y + rand(-12,12));
+          const heartDrops = currentClass === 'rogue' ? 2 : 1;
+          for (let h=0; h<heartDrops; h++) {
+            dropHeart(c.x + rand(-12,12), c.y + rand(-12,12));
+          }
           c.opened = true;
           playSfx('treasure');
           if (currentClass !== 'rogue'){

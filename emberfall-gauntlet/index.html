@@ -726,6 +726,7 @@
       polyTimer: 0,
       polyChance: 0,
       polyLevel: 0,
+      polyRadius: 0,
       shards: false,
       shardPeriod: 0.85,
       shardTimer: 0,
@@ -745,6 +746,7 @@
       const level = Math.min(5, UPGRADE_LEVELS.polymorph || 0);
       UPGR.polymorph = level > 0;
       UPGR.polyLevel = level;
+      UPGR.polyRadius = level > 0 ? 120 + (level - 1) * 20 : 0;
       UPGR.polyChance = level > 0 ? Math.min(0.5, 0.1 * level) : 0;
       if (fromUpgrade && level > 0 && !prev){
         UPGR.polyTimer = UPGR.polyPeriod;
@@ -888,7 +890,7 @@
       COINS.value = 0; coinsEl.textContent = COINS.value; SHOP.idx = 0; SHOP.open = false;
       KEYS.value = 0; drawKeys();
       // Reset upgrades and spell state
-      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleCoinChance:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:72, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, polymorph:false, polyPeriod:7, polyTimer:0, polyChance:0, polyLevel:0, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1, arrowPeriod:0.90, arrowTimer:0, arrowSpeed:360, arrowDmg:1, arrowCount:1, arrowPierce:false });
+      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleCoinChance:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:72, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, polymorph:false, polyPeriod:7, polyTimer:0, polyChance:0, polyLevel:0, polyRadius:0, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1, arrowPeriod:0.90, arrowTimer:0, arrowSpeed:360, arrowDmg:1, arrowCount:1, arrowPierce:false });
       if (stats.startOrbs) { UPGR.orbs = stats.startOrbs; }
       // Reset upgrade tracking
       for (const k in UPGRADE_LEVELS) delete UPGRADE_LEVELS[k];
@@ -1260,7 +1262,11 @@
 
   function emitPolymorphWave(x,y){
     const chance = UPGR.polyChance || 0;
-    POLY_WAVES.push({ x, y, r: 0, speed: 360, life: 0, ttl: 1.4, chance, hit: new Set() });
+    const radius = UPGR.polyRadius || 0;
+    if (radius <= 0) return;
+    const ttl = 1.4;
+    const speed = radius / ttl;
+    POLY_WAVES.push({ x, y, r: 0, speed, life: 0, ttl, chance, maxR: radius, hit: new Set() });
     polymorphWaveBurst(x,y);
   }
 
@@ -1823,7 +1829,8 @@
         for (let i=POLY_WAVES.length-1;i>=0;i--){
           const wave = POLY_WAVES[i];
           wave.life += dt;
-          wave.r += wave.speed * dt;
+          const maxR = wave.maxR ?? Infinity;
+          wave.r = Math.min(maxR, wave.r + wave.speed * dt);
           for (const e of enemies){
             if (e.hp<=0 || e.kind === 'boss') continue;
             if (wave.hit.has(e)) continue;

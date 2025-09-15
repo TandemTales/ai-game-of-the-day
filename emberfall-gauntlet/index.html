@@ -567,6 +567,13 @@
     BEHOLDER_ANIM.left.src = 'assets/EG_enemy_boss_beholder_animation_walking_left_small.png';
     BEHOLDER_ANIM.right.src = 'assets/EG_enemy_boss_beholder_animation_walking_right_small.png';
 
+    const GOAT_ANIM = {
+      coin: new Image(),
+      heart: new Image(),
+    };
+    GOAT_ANIM.coin.src = 'assets/EG_polymorph_animation_goat_coin_small.png';
+    GOAT_ANIM.heart.src = 'assets/EG_polymorph_animation_goat_heart_small.png';
+
 
     const IMG = {
       coin: new Image(),
@@ -598,7 +605,7 @@
     ];
     const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
 
-    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length;
+    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length + Object.keys(GOAT_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const img of MAPS) img.addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in WIZ_ANIM) WIZ_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -612,6 +619,7 @@
     for (const k in ABOMINATION_ANIM) ABOMINATION_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in HUNGER_DEMON_ANIM) HUNGER_DEMON_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in BEHOLDER_ANIM) BEHOLDER_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
+    for (const k in GOAT_ANIM) GOAT_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     CLASS_IMG.rogue.addEventListener('load', () => { if (++loaded === need) init(); });
     CLASS_IMG.wizard.addEventListener('load', () => { if (++loaded === need) init(); });
 
@@ -636,6 +644,7 @@
     const ENEMY = { spd: 90, w: 26, h: 22 }; // default goblin baseline
     // Fixed enemy speed: 45% of baseline (55% slower), no scaling
     const ENEMY_SPEED = Math.round(ENEMY.spd * 0.45);
+    const GOAT = { w: 64, h: 64, frames: 4, animRate: 0.2 };
     // Simple AI tuning: chase when close, wander when far; keep away from arena walls
     const AI = { chaseRadius: 300, wanderMin: 0.8, wanderMax: 2.0, wallPad: 12, sepRadius: 28, sepWeight: 1.0 };
     let DENSITY = 1;
@@ -665,6 +674,8 @@
       goblin: { x: HITBOX.enemy, y: HITBOX.enemy },
       imp:    { x: HITBOX.enemy, y: HITBOX.enemy },
       orc:    { x: HITBOX.enemy, y: HITBOX.enemy },
+      goatCoin:  { x: HITBOX.enemy, y: HITBOX.enemy },
+      goatHeart: { x: HITBOX.enemy, y: HITBOX.enemy },
       // Bosses (overridden per bossType if desired)
       boss:   { x: HITBOX.enemy, y: HITBOX.enemy },
       muck:         { x: HITBOX.enemy, y: HITBOX.enemy },
@@ -803,7 +814,7 @@
       wizard: [
         { id:'orbs', type:'Spell', name:'Arcane Orbs', desc:'Summon orbiting orbs that damage foes.', note:'Stacks add more orbs', apply:()=>{ UPGR.orbs += 1; } },
         { id:'nova', type:'Spell', name:'Frost Nova', desc:'Every few seconds, blast and slow nearby foes.', note:'Improves with repeats', apply:()=>{ if(!UPGR.nova){ UPGR.nova=true; } else { UPGR.novaPeriod=Math.max(2.2, UPGR.novaPeriod*0.9); UPGR.novaDmg+=1; } } },
-        { id:'polymorph', type:'Spell', name:'Polymorph', desc:'Release a transforming wave that may turn foes into coins or hearts.', note:'Chance increases with repeats (max 50%). Bosses are immune.', maxLevel:5, apply:()=>{ refreshPolymorphState(true); } },
+        { id:'polymorph', type:'Spell', name:'Polymorph', desc:'Release a transforming wave that turns foes into demon goats that drop coins or hearts.', note:'Chance increases with repeats (max 50%). Bosses are immune.', maxLevel:5, apply:()=>{ refreshPolymorphState(true); } },
         { id:'shards', type:'Spell', name:'Arcane Missiles', desc:'Periodically fire magic missiles.', note:'More with repeats', apply:()=>{ if(!UPGR.shards){ UPGR.shards=true; } else { UPGR.shardCount=Math.min(6, UPGR.shardCount+1); } } },
         { id:'focus', type:'Spell', name:'Spell Focus', desc:'Cast more often (-12% cooldown).', apply:()=>{ AUTO.atkPeriod = Math.max(0.25, AUTO.atkPeriod*0.88); } },
         { id:'wisdom', type:'Upgrade', name:'Wisdom', desc:'Max HP +1 and heal 1.', apply:()=>{ P.hpMax += 1; P.hp = Math.min(P.hpMax, P.hp+1); drawHearts(); } },
@@ -1120,23 +1131,33 @@
     function dropHeart(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'heart', v: rand(40,70), a: rand(0,Math.PI*2) }); }
 
     function polymorphEnemy(e){
-      if (!e || e.hp <= 0 || e.kind === 'boss') return;
+      if (!e || e.hp <= 0 || e.kind === 'boss' || e.kind === 'goatCoin' || e.kind === 'goatHeart') return;
       const roll = Math.random();
       const dropKind = roll < 0.75 ? 'coin' : 'heart';
-      if (dropKind === 'coin'){ dropCoin(e.x, e.y); }
-      else { dropHeart(e.x, e.y); }
-      if (dropKind === 'coin' && UPGR.doubleCoinChance > 0 && Math.random() < UPGR.doubleCoinChance){
-        dropCoin(e.x + rand(-6,6), e.y + rand(-6,6));
-      }
-      if (e.hasKey) dropKey(e.x, e.y);
-      addScore(e.score||50);
       polymorphBurst(e.x, e.y, dropKind);
       playSfx('treasure');
-      e.hp = 0;
+      e.kind = dropKind === 'coin' ? 'goatCoin' : 'goatHeart';
+      e.goatDrop = dropKind;
+      e.hp = 1;
+      e.hpMax = 1;
+      e.spd = 0;
+      e.vx = 0; e.vy = 0;
       e.kx = 0; e.ky = 0;
       e.freezeT = 0;
       e.slowT = 0;
       e.slowAmp = 0;
+      e.slowMul = 0;
+      e.pulse = 0;
+      e.pulseRange = 0;
+      e.animT = 0;
+      e.frame = 0;
+      e.dir = 'down';
+      e.t = 0;
+      e.ang = 0;
+      e.wanderT = 0;
+      e.w = GOAT.w;
+      e.h = GOAT.h;
+      e.score = e.score || 50;
     }
 
     function spawnChest(){
@@ -1185,11 +1206,14 @@
         } else {
           addScore(e.score||50);
           if (e.hasKey) dropKey(e.x, e.y);
-          dropCoin(e.x, e.y);
+          const isGoat = e.kind === 'goatCoin' || e.kind === 'goatHeart';
+          const dropKind = isGoat ? (e.goatDrop || (e.kind === 'goatHeart' ? 'heart' : 'coin')) : 'coin';
+          if (dropKind === 'heart'){ dropHeart(e.x, e.y); }
+          else { dropCoin(e.x, e.y); }
           // Life steal on kill
           if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }
-          // Extra coin chance
-          if (UPGR.doubleCoinChance > 0 && Math.random() < UPGR.doubleCoinChance){ dropCoin(e.x + rand(-6,6), e.y + rand(-6,6)); }
+          // Extra coin chance (goats only if they drop coins)
+          if (dropKind === 'coin' && UPGR.doubleCoinChance > 0 && Math.random() < UPGR.doubleCoinChance){ dropCoin(e.x + rand(-6,6), e.y + rand(-6,6)); }
         }
       } else {
         // Non-lethal hit: apply knockback impulse (away from source)
@@ -1449,6 +1473,7 @@
         if (e.freezeT && e.freezeT > 0) { e.freezeT = Math.max(0, e.freezeT - dt); }
         if (e.pulse && e.pulse > 0) { e.pulse = Math.max(0, e.pulse - dt); }
         const dx = P.x - e.x, dy = P.y - e.y; const dist = Math.hypot(dx,dy);
+        const isGoat = e.kind === 'goatCoin' || e.kind === 'goatHeart';
         if (e.kind === 'boss'){
           const targetAng = Math.atan2(dy, dx);
           const turnRate = e.bossType === 'muck' ? 0.9/1.5 : 0.9; // rad/sec
@@ -1464,6 +1489,7 @@
         }
         // Use per-enemy speed (with a global pacing modifier similar to previous tuning)
         let speed = Math.round((e.spd || ENEMY.spd) * 0.45);
+        if (isGoat) speed = 0;
         if (e.slowT && e.slowT > 0) { speed = Math.max(10, Math.round(speed * (e.slowMul || 0.5))); }
 
         // Separation: steer slightly away from nearby enemies
@@ -1680,12 +1706,21 @@
           }
         }
 
+        if (isGoat){
+          e.animT = (e.animT || 0) + dt;
+          if (e.animT >= GOAT.animRate){
+            e.animT = 0;
+            e.frame = ((e.frame || 0) + 1) % GOAT.frames;
+          }
+        }
+
         // Attack collision when close and player is vulnerable
         const _hb = getEnemyHitboxScale(e);
         if (P.iT<=0 && Math.abs(P.x-e.x)<(e.w*_hb.x + P.w*HITBOX.player) && Math.abs(P.y-e.y)<(e.h*_hb.y + P.h*HITBOX.player)){
           let canHit = true;
           // Stunned/frozen enemies do not deal contact damage
           if (e.freezeT && e.freezeT > 0) canHit = false;
+          if (isGoat) canHit = false;
           if (e.kind === 'boss'){
             const angToPlayer = Math.atan2(P.y - e.y, P.x - e.x);
             canHit = Math.abs(angleDiff(angToPlayer, e.facing)) <= Math.PI/2;
@@ -2055,6 +2090,12 @@
           const fw = sheet.width / 4;
           const fh = sheet.height;
           ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
+        } else if (e.kind === 'goatCoin' || e.kind === 'goatHeart') {
+          const sheet = e.kind === 'goatCoin' ? GOAT_ANIM.coin : GOAT_ANIM.heart;
+          const frame = Math.min(GOAT.frames - 1, e.frame || 0);
+          const fw = sheet.width / GOAT.frames;
+          const fh = sheet.height;
+          ctx.drawImage(sheet, frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
         } else if (e.kind === 'boss') {
           const anim = e.bossType === 'hillGiant' ? HILL_GIANT_ANIM : e.bossType === 'abomination' ? ABOMINATION_ANIM : e.bossType === 'hungerDemon' ? HUNGER_DEMON_ANIM : e.bossType === 'beholder' ? BEHOLDER_ANIM : MUCK_ANIM;
           const sheet = anim[e.dir];

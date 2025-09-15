@@ -644,7 +644,7 @@
     const ENEMY = { spd: 90, w: 26, h: 22 }; // default goblin baseline
     // Fixed enemy speed: 45% of baseline (55% slower), no scaling
     const ENEMY_SPEED = Math.round(ENEMY.spd * 0.45);
-    const GOAT = { w: 64, h: 64, frames: 4, animRate: 0.2 };
+    const GOAT = { w: 32, h: 32, frames: 4, animRate: 0.2 };
     // Simple AI tuning: chase when close, wander when far; keep away from arena walls
     const AI = { chaseRadius: 300, wanderMin: 0.8, wanderMax: 2.0, wallPad: 12, sepRadius: 28, sepWeight: 1.0 };
     let DENSITY = 1;

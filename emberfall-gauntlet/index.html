@@ -801,7 +801,7 @@
       wizard: [
         { id:'orbs', type:'Spell', name:'Arcane Orbs', desc:'Summon orbiting orbs that damage foes.', note:'Stacks add more orbs', apply:()=>{ UPGR.orbs += 1; } },
         { id:'nova', type:'Spell', name:'Frost Nova', desc:'Every few seconds, blast and slow nearby foes.', note:'Improves with repeats', apply:()=>{ if(!UPGR.nova){ UPGR.nova=true; } else { UPGR.novaPeriod=Math.max(2.2, UPGR.novaPeriod*0.9); UPGR.novaDmg+=1; } } },
-        { id:'polymorph', type:'Spell', name:'Polymorph', desc:'Release a transforming wave that may turn foes into coins or hearts.', note:'Chance increases with repeats (max 50%)', maxLevel:5, apply:()=>{ refreshPolymorphState(true); } },
+        { id:'polymorph', type:'Spell', name:'Polymorph', desc:'Release a transforming wave that may turn foes into coins or hearts.', note:'Chance increases with repeats (max 50%). Bosses are immune.', maxLevel:5, apply:()=>{ refreshPolymorphState(true); } },
         { id:'shards', type:'Spell', name:'Arcane Missiles', desc:'Periodically fire magic missiles.', note:'More with repeats', apply:()=>{ if(!UPGR.shards){ UPGR.shards=true; } else { UPGR.shardCount=Math.min(6, UPGR.shardCount+1); } } },
         { id:'focus', type:'Spell', name:'Spell Focus', desc:'Cast more often (-12% cooldown).', apply:()=>{ AUTO.atkPeriod = Math.max(0.25, AUTO.atkPeriod*0.88); } },
         { id:'wisdom', type:'Upgrade', name:'Wisdom', desc:'Max HP +1 and heal 1.', apply:()=>{ P.hpMax += 1; P.hp = Math.min(P.hpMax, P.hp+1); drawHearts(); } },
@@ -1118,7 +1118,7 @@
     function dropHeart(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'heart', v: rand(40,70), a: rand(0,Math.PI*2) }); }
 
     function polymorphEnemy(e){
-      if (!e || e.hp <= 0) return;
+      if (!e || e.hp <= 0 || e.kind === 'boss') return;
       const roll = Math.random();
       const dropKind = roll < 0.75 ? 'coin' : 'heart';
       if (dropKind === 'coin'){ dropCoin(e.x, e.y); }

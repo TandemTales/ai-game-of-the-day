@@ -721,6 +721,11 @@
       novaPeriod: 6,
       novaTimer: 0,
       novaDmg: 1,
+      polymorph: false,
+      polyPeriod: 7,
+      polyTimer: 0,
+      polyChance: 0,
+      polyLevel: 0,
       shards: false,
       shardPeriod: 0.85,
       shardTimer: 0,
@@ -734,12 +739,24 @@
       arrowCount: 1,
       arrowPierce: false,
     };
+
+    function refreshPolymorphState(fromUpgrade = false){
+      const prev = UPGR.polymorph;
+      const level = Math.min(5, UPGRADE_LEVELS.polymorph || 0);
+      UPGR.polymorph = level > 0;
+      UPGR.polyLevel = level;
+      UPGR.polyChance = level > 0 ? Math.min(0.5, 0.1 * level) : 0;
+      if (fromUpgrade && level > 0 && !prev){
+        UPGR.polyTimer = UPGR.polyPeriod;
+      }
+    }
     let PROJECTILES = [];
     let BOSS_PROJECTILES = [];
     let ORBS = [];
     const PARTICLES = [];
     // Visual FX containers
     const FX_NOVA = [];
+    const POLY_WAVES = [];
     let NOVA_FLASH = 0; // brief blue flash when nova triggers
     let enemies = [];
     let drops = [];
@@ -784,6 +801,7 @@
       wizard: [
         { id:'orbs', type:'Spell', name:'Arcane Orbs', desc:'Summon orbiting orbs that damage foes.', note:'Stacks add more orbs', apply:()=>{ UPGR.orbs += 1; } },
         { id:'nova', type:'Spell', name:'Frost Nova', desc:'Every few seconds, blast and slow nearby foes.', note:'Improves with repeats', apply:()=>{ if(!UPGR.nova){ UPGR.nova=true; } else { UPGR.novaPeriod=Math.max(2.2, UPGR.novaPeriod*0.9); UPGR.novaDmg+=1; } } },
+        { id:'polymorph', type:'Spell', name:'Polymorph', desc:'Release a transforming wave that may turn foes into coins or hearts.', note:'Chance increases with repeats (max 50%)', maxLevel:5, apply:()=>{ refreshPolymorphState(true); } },
         { id:'shards', type:'Spell', name:'Arcane Missiles', desc:'Periodically fire magic missiles.', note:'More with repeats', apply:()=>{ if(!UPGR.shards){ UPGR.shards=true; } else { UPGR.shardCount=Math.min(6, UPGR.shardCount+1); } } },
         { id:'focus', type:'Spell', name:'Spell Focus', desc:'Cast more often (-12% cooldown).', apply:()=>{ AUTO.atkPeriod = Math.max(0.25, AUTO.atkPeriod*0.88); } },
         { id:'wisdom', type:'Upgrade', name:'Wisdom', desc:'Max HP +1 and heal 1.', apply:()=>{ P.hpMax += 1; P.hp = Math.min(P.hpMax, P.hp+1); drawHearts(); } },
@@ -870,12 +888,13 @@
       COINS.value = 0; coinsEl.textContent = COINS.value; SHOP.idx = 0; SHOP.open = false;
       KEYS.value = 0; drawKeys();
       // Reset upgrades and spell state
-      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleCoinChance:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:72, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1, arrowPeriod:0.90, arrowTimer:0, arrowSpeed:360, arrowDmg:1, arrowCount:1, arrowPierce:false });
+      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleCoinChance:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:72, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, polymorph:false, polyPeriod:7, polyTimer:0, polyChance:0, polyLevel:0, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1, arrowPeriod:0.90, arrowTimer:0, arrowSpeed:360, arrowDmg:1, arrowCount:1, arrowPierce:false });
       if (stats.startOrbs) { UPGR.orbs = stats.startOrbs; }
       // Reset upgrade tracking
       for (const k in UPGRADE_LEVELS) delete UPGRADE_LEVELS[k];
       for (const k in TAKEN_UPGRADES) delete TAKEN_UPGRADES[k];
       PROJECTILES = []; BOSS_PROJECTILES = []; ORBS = [];
+      POLY_WAVES.length = 0;
       stage = 0;
       loadStage();
       drawHearts();
@@ -1098,6 +1117,26 @@
     function dropKey(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'key', v: rand(40,70), a: rand(0,Math.PI*2) }); }
     function dropHeart(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'heart', v: rand(40,70), a: rand(0,Math.PI*2) }); }
 
+    function polymorphEnemy(e){
+      if (!e || e.hp <= 0) return;
+      const roll = Math.random();
+      const dropKind = roll < 0.75 ? 'coin' : 'heart';
+      if (dropKind === 'coin'){ dropCoin(e.x, e.y); }
+      else { dropHeart(e.x, e.y); }
+      if (dropKind === 'coin' && UPGR.doubleCoinChance > 0 && Math.random() < UPGR.doubleCoinChance){
+        dropCoin(e.x + rand(-6,6), e.y + rand(-6,6));
+      }
+      if (e.hasKey) dropKey(e.x, e.y);
+      addScore(e.score||50);
+      polymorphBurst(e.x, e.y, dropKind);
+      playSfx('treasure');
+      e.hp = 0;
+      e.kx = 0; e.ky = 0;
+      e.freezeT = 0;
+      e.slowT = 0;
+      e.slowAmp = 0;
+    }
+
     function spawnChest(){
       const side = Math.floor(Math.random()*4);
       const pad = 20;
@@ -1214,6 +1253,32 @@
     FX_NOVA.push({ x, y, t: 0, ttl: 0.5, r: 90 });
     NOVA_FLASH = Math.max(NOVA_FLASH, 0.16);
     frostDisc(x,y,90);
+  }
+
+  function emitPolymorphWave(x,y){
+    const chance = UPGR.polyChance || 0;
+    POLY_WAVES.push({ x, y, r: 0, speed: 360, life: 0, ttl: 1.4, chance, hit: new Set() });
+    polymorphWaveBurst(x,y);
+  }
+
+  function polymorphWaveBurst(x,y){
+    for(let i=0;i<24;i++){
+      const a = rand(0, Math.PI*2);
+      const sp = rand(110, 210);
+      const sz = rand(8, 16);
+      const ttl = rand(0.45, 0.75);
+      PARTICLES.push({ x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:0, ttl, color:'#e6d6ff', size:sz });
+    }
+  }
+
+  function polymorphBurst(x,y,kind='coin'){
+    for(let i=0;i<16;i++){
+      const a = rand(0, Math.PI*2);
+      const sp = rand(80, 160);
+      const sz = rand(8, 14);
+      const ttl = rand(0.35, 0.6);
+      PARTICLES.push({ x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:0, ttl, color: kind==='heart' ? '#ffb4c8' : '#ffe7aa', size:sz });
+    }
   }
 
   function updateWizardAnim(dt){
@@ -1740,6 +1805,34 @@
         }
       }
 
+      // Spells: polymorph wave
+      if (UPGR.polymorph){
+        UPGR.polyTimer += dt;
+        if (UPGR.polyTimer >= UPGR.polyPeriod){
+          UPGR.polyTimer = 0;
+          emitPolymorphWave(P.x, P.y);
+        }
+      }
+      if (POLY_WAVES.length){
+        for (let i=POLY_WAVES.length-1;i>=0;i--){
+          const wave = POLY_WAVES[i];
+          wave.life += dt;
+          wave.r += wave.speed * dt;
+          for (const e of enemies){
+            if (e.hp<=0 || e.kind === 'boss') continue;
+            if (wave.hit.has(e)) continue;
+            const buffer = Math.max(e.w||0, e.h||0) * 0.35;
+            if (len(e.x-wave.x, e.y-wave.y) <= wave.r + buffer){
+              wave.hit.add(e);
+              if (wave.chance > 0 && Math.random() < wave.chance){
+                polymorphEnemy(e);
+              }
+            }
+          }
+          if (wave.life >= wave.ttl){ POLY_WAVES.splice(i,1); }
+        }
+      }
+
       // Spells: forward shards
       if (UPGR.shards){ UPGR.shardTimer += dt; if (UPGR.shardTimer >= UPGR.shardPeriod){ UPGR.shardTimer = 0; const dir = P.aimDir; const spread = 0.22; const cnt = UPGR.shardCount; for (let i=0;i<cnt;i++){ const a = dir + (i-(cnt-1)/2)*spread; PROJECTILES.push({ x:P.x, y:P.y, vx:Math.cos(a)*320, vy:Math.sin(a)*320, life:0, ttl:1.2, dmg:1 }); } } }
 
@@ -1890,6 +1983,26 @@
         if (d.kind==='key') img = IMG.key;
         else if (d.kind==='heart') img = IMG.heart;
         ctx.drawImage(img, d.x-12, d.y-12, 24, 24);
+      }
+
+      if (POLY_WAVES.length){
+        for (const wave of POLY_WAVES){
+          const progress = Math.min(1, wave.life / wave.ttl);
+          const baseAlpha = Math.max(0, 0.28 * (1 - progress));
+          if (baseAlpha <= 0) continue;
+          ctx.save();
+          ctx.beginPath();
+          ctx.lineWidth = 12 * (1 - progress) + 3;
+          ctx.strokeStyle = `rgba(210,160,255,${baseAlpha.toFixed(3)})`;
+          ctx.arc(wave.x, wave.y, wave.r, 0, Math.PI*2);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.lineWidth = Math.max(1.5, 6 * (1 - progress));
+          ctx.strokeStyle = `rgba(255,240,210,${(baseAlpha*0.75).toFixed(3)})`;
+          ctx.arc(wave.x, wave.y, wave.r, 0, Math.PI*2);
+          ctx.stroke();
+          ctx.restore();
+        }
       }
 
       // Draw enemies with shadow (use sprite per type, size by enemy)
@@ -2252,8 +2365,12 @@
 
 
     function rollShopOptions(){
-      // Filter out unique upgrades already taken
-      const filtered = currentPool.filter(opt => !(opt.unique && TAKEN_UPGRADES[opt.id]));
+      // Filter out unique upgrades already taken and options capped at a max level
+      const filtered = currentPool.filter(opt => {
+        if (opt.unique && TAKEN_UPGRADES[opt.id]) return false;
+        if (opt.maxLevel && (UPGRADE_LEVELS[opt.id] || 0) >= opt.maxLevel) return false;
+        return true;
+      });
       // Shuffle a copy and take first 3
       const arr = filtered.slice();
       for (let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
@@ -2321,6 +2438,7 @@
         if (cls === 'wizard') lines.push(`<div class=\"section\">Spells</div>`);
         if (cls === 'wizard') lines.push(`<div><b>Orbs:</b> ${UPGR.orbs||0} (dmg ${UPGR.orbDmg||0}, radius ${UPGR.orbRadius||0})</div>`);
         if (cls === 'wizard') lines.push(`<div><b>Frost Nova:</b> ${UPGR.nova?`ON (period ${UPGR.novaPeriod.toFixed(2)}s, dmg ${UPGR.novaDmg})`:'OFF'}</div>`);
+        if (cls === 'wizard') lines.push(`<div><b>Polymorph:</b> ${UPGR.polymorph?`ON (chance ${fmtPct(UPGR.polyChance)} per wave, period ${UPGR.polyPeriod.toFixed(2)}s)`:'OFF'}</div>`);
         if (cls === 'wizard') lines.push(`<div><b>Arcane Missiles:</b> ${UPGR.shards?`ON (count ${UPGR.shardCount}, period ${UPGR.shardPeriod.toFixed(2)}s, speed ${UPGR.shardSpeed})`:'OFF'}</div>`);
 
         lines.push(`<div class="section">Survival & Utility</div>`);
@@ -2353,6 +2471,7 @@
               case 'dodge': stat = `dodge ${fmtPct(UPGR.dodgeChance)}`; break;
               case 'orbs': stat = `orbs ${UPGR.orbs} dmg ${UPGR.orbDmg}`; break;
               case 'nova': stat = `${UPGR.nova?`period ${UPGR.novaPeriod.toFixed(2)}s dmg ${UPGR.novaDmg}`:'OFF'}`; break;
+              case 'polymorph': stat = `${UPGR.polymorph?`chance ${fmtPct(UPGR.polyChance)} period ${UPGR.polyPeriod.toFixed(2)}s`:'OFF'}`; break;
               case 'shards': stat = `${UPGR.shards?`count ${UPGR.shardCount} period ${UPGR.shardPeriod.toFixed(2)}s`:'OFF'}`; break;
               case 'focus': stat = `attack period ${AUTO.atkPeriod.toFixed(2)}s`; break;
               case 'piercing': stat = `pierce ON`; break;

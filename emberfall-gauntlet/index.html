@@ -1260,7 +1260,9 @@
 
   function emitPolymorphWave(x,y){
     const chance = UPGR.polyChance || 0;
-    POLY_WAVES.push({ x, y, r: 0, speed: 360, life: 0, ttl: 1.4, chance, hit: new Set() });
+    const level = Math.max(1, UPGR.polyLevel || 0);
+    const startRadius = 200 + (level - 1) * 75;
+    POLY_WAVES.push({ x, y, r: startRadius, speed: 360, life: 0, ttl: 1.4, chance, hit: new Set() });
     polymorphWaveBurst(x,y);
   }
 

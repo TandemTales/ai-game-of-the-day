@@ -1836,17 +1836,25 @@
         d.x += (d.vx||0) + Math.cos(d.a)*d.v*dt*drift; d.y += (d.vy||0) + Math.sin(d.a)*d.v*dt*drift; d.v *= (1-1.6*dt);
         clampToArena(d, 8);
         if (len(P.x-d.x,P.y-d.y)<22){
+          let consumed = false;
           if (d.kind==='coin'){
             addScore(10);
             COINS.value += 1; coinsEl.textContent = COINS.value; spark(d.x,d.y,'#ffd16b'); playSfx('coin');
             maybeOpenShop();
+            consumed = true;
           } else if (d.kind==='key'){
             KEYS.value += 1; drawKeys(); spark(d.x,d.y,'#ffd16b'); playSfx('key');
+            consumed = true;
           } else if (d.kind==='heart'){
-            if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); }
-            spark(d.x,d.y,'#ff8a8a');
+            if (P.hp < P.hpMax){
+              P.hp += 1; drawHearts();
+              spark(d.x,d.y,'#ff8a8a');
+              consumed = true;
+            }
           }
-          drops.splice(i,1);
+          if (consumed){
+            drops.splice(i,1);
+          }
         }
       }
 

@@ -992,6 +992,10 @@
       IMG.hero = CLASS_IMG[cls];
       currentPool = POOLS[cls];
       PHYS.atkRange = (cls === 'wizard') ? BASE_ATK_RANGE : (cls === 'rogue' ? ROGUE_ATK_RANGE : EXTENDED_ATK_RANGE);
+      if (!needsKeys()) {
+        KEYS.value = 0;
+      }
+      drawKeys();
     }
 
     classBtns.forEach(btn=>{
@@ -1204,7 +1208,20 @@
 
     // HUD
     function drawHearts(){ heartsEl.innerHTML=''; for (let i=0;i<P.hpMax;i++){ const img=document.createElement('img'); img.src=IMG.heart.src; img.style.opacity = i < P.hp ? '1' : '0.28'; heartsEl.appendChild(img);} }
-    function drawKeys(){ keysEl.innerHTML=''; for (let i=0;i<KEYS.value;i++){ const img=document.createElement('img'); img.src=IMG.key.src; keysEl.appendChild(img);} keysEl.classList.toggle('hidden', KEYS.value===0); }
+    function drawKeys(){
+      keysEl.innerHTML = '';
+      if (!needsKeys()){
+        KEYS.value = 0;
+        keysEl.classList.add('hidden');
+        return;
+      }
+      for (let i=0;i<KEYS.value;i++){
+        const img=document.createElement('img');
+        img.src=IMG.key.src;
+        keysEl.appendChild(img);
+      }
+      keysEl.classList.toggle('hidden', KEYS.value===0);
+    }
 
     // Spawning
     function spawnEnemy(){
@@ -1292,7 +1309,10 @@
     }
 
     function dropCoin(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'coin', v: rand(40,70), a: rand(0,Math.PI*2) }); }
-    function dropKey(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'key', v: rand(40,70), a: rand(0,Math.PI*2) }); }
+    function dropKey(x,y){
+      if (!needsKeys()) return;
+      drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'key', v: rand(40,70), a: rand(0,Math.PI*2) });
+    }
     function dropHeart(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'heart', v: rand(40,70), a: rand(0,Math.PI*2) }); }
 
     function polymorphEnemy(e){
@@ -1327,8 +1347,15 @@
       e.score = e.score || 50;
     }
 
+    function addChest(x, y){
+      const chest = { x, y, w:32, h:32, opened:false };
+      clampToArena(chest, 16);
+      chests.push(chest);
+      return chest;
+    }
+
     function spawnChest(){
-      const chestCount = currentClass === 'rogue' ? 2 : 1;
+      const chestCount = 1;
       for (let i = 0; i < chestCount; i++){
         const side = Math.floor(Math.random()*4);
         const pad = 20;
@@ -1350,7 +1377,7 @@
           x = ARENA.x + pad;
           y = rand(ARENA.y+pad, ARENA.y+ARENA.h-pad);
         }
-        chests.push({x,y,w:32,h:32,opened:false});
+        addChest(x,y);
       }
     }
 
@@ -1377,6 +1404,9 @@
           const dropKind = isGoat ? (e.goatDrop || (e.kind === 'goatHeart' ? 'heart' : 'coin')) : 'coin';
           if (dropKind === 'heart'){ dropHeart(e.x, e.y); }
           else { dropCoin(e.x, e.y); }
+          if (currentClass === 'rogue' && Math.random() < 0.10){
+            addChest(e.x, e.y);
+          }
           // Life steal on kill
           if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }
           // Extra coin chance (goats only if they drop coins)
@@ -1986,7 +2016,7 @@
         if (!c.opened && canOpen && len(P.x-c.x,P.y-c.y) < 28){
           const coinCount = Math.floor(rand(10,31));
           for (let j=0;j<coinCount;j++) dropCoin(c.x + rand(-12,12), c.y + rand(-12,12));
-          const heartDrops = currentClass === 'rogue' ? 2 : 1;
+          const heartDrops = 1;
           for (let h=0; h<heartDrops; h++) {
             dropHeart(c.x + rand(-12,12), c.y + rand(-12,12));
           }

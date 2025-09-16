@@ -649,6 +649,10 @@
       heart: new Image(),
       shadow: new Image(),
       spark: new Image(),
+      fireballLeft: new Image(),
+      fireballRight: new Image(),
+      fireballUp: new Image(),
+      fireballDown: new Image(),
       chest: new Image(),
       chestOpen: new Image(),
       shield: new Image(),
@@ -659,6 +663,10 @@
     IMG.heart.src = 'assets/eg_heart.svg';
     IMG.shadow.src = 'assets/eg_shadow.svg';
     IMG.spark.src = 'assets/eg_spark.svg';
+    IMG.fireballLeft.src = 'assets/EG_projectile_fire_left_small.png';
+    IMG.fireballRight.src = 'assets/EG_projectile_fire_right_small.png';
+    IMG.fireballUp.src = 'assets/EG_projectile_fire_up_small.png';
+    IMG.fireballDown.src = 'assets/EG_projectile_fire_down_small.png';
     IMG.chest.src = 'assets/EG_chest_closed_small.png';
     IMG.chestOpen.src = 'assets/EG_chest_open_small.png';
     // Inline SVG shield image (horizontal, pointed to the right)
@@ -731,6 +739,11 @@
     const SHIELD = { period: 1.5, timer: 0, active: false, t: 0, dur: 0.18, range: 56, width: 80, height: 44, knock: 260, stunDur: 2.5, dmg: 0, hits: new Set() };
     // Frost Nova damage radius (visuals remain at ~90)
     const NOVA_RADIUS = 120;
+    const FIREBALL_SPEED = 320;
+    const FIREBALL_BASE_RANGE = 100;
+    const FIREBALL_RANGE_STEP = 50;
+    const FIREBALL_MAX_RANGE = 300;
+    const FIREBALL_DAMAGE = 2;
     const ORB_MAX_COUNT = 4;
     const ORB_BASE_SPEED = 13.5 * 0.7; // 70% of previous 13.5 baseline
     const ORB_SPEED_LEVEL_STEP = 0.10; // +10% per upgrade
@@ -821,6 +834,12 @@
       shardTimer: 0,
       shardSpeed: 320,
       shardCount: 1,
+      fireball: false,
+      fireballPeriod: 2.5,
+      fireballTimer: 0,
+      fireballRange: FIREBALL_BASE_RANGE,
+      fireballLevel: 0,
+      fireballDmg: FIREBALL_DAMAGE,
       spellCooldownMult: 1,
       // Rogue bow defaults
       arrowPeriod: 0.90,
@@ -852,6 +871,19 @@
       UPGR.sleepDuration = level > 0 ? 5 + (level - 1) * 5 : 0;
       if (fromUpgrade && level > 0 && !prev){
         UPGR.sleepTimer = UPGR.sleepPeriod;
+      }
+    }
+    function refreshFireballState(fromUpgrade = false){
+      const prev = UPGR.fireball;
+      const level = Math.min(5, UPGRADE_LEVELS.fireball || 0);
+      UPGR.fireball = level > 0;
+      UPGR.fireballLevel = level;
+      const range = level > 0
+        ? Math.min(FIREBALL_MAX_RANGE, FIREBALL_BASE_RANGE + (level - 1) * FIREBALL_RANGE_STEP)
+        : FIREBALL_BASE_RANGE;
+      UPGR.fireballRange = range;
+      if (fromUpgrade && level > 0 && !prev){
+        UPGR.fireballTimer = UPGR.fireballPeriod;
       }
     }
     let PROJECTILES = [];
@@ -906,6 +938,7 @@
     registerSpellCooldown({ periodKey: 'polyPeriod', timerKey: 'polyTimer', min: 0.5 });
     registerSpellCooldown({ periodKey: 'shardPeriod', timerKey: 'shardTimer', min: 0.2 });
     registerSpellCooldown({ periodKey: 'sleepPeriod', timerKey: 'sleepTimer', min: 2 });
+    registerSpellCooldown({ periodKey: 'fireballPeriod', timerKey: 'fireballTimer', min: 0.6 });
 
     const POOLS = {
       fighter: [
@@ -942,6 +975,7 @@
         { id:'polymorph', type:'Spell', name:'Polymorph', desc:'Release a transforming wave that turns foes into demon goats that drop coins or hearts.', note:'Chance increases with repeats (max 50%). Bosses are immune.', maxLevel:5, apply:()=>{ refreshPolymorphState(true); } },
         { id:'sleep', type:'Spell', name:'Sleep', desc:'Send out a drowsy wave that can lull foes to sleep.', note:'200px wave, 33% sleep for 5s (+5s per level).', maxLevel:5, apply:()=>{ refreshSleepState(true); } },
         { id:'shards', type:'Spell', name:'Arcane Missiles', desc:'Periodically fire magic missiles.', note:'More with repeats', apply:()=>{ if(!UPGR.shards){ UPGR.shards=true; } else { UPGR.shardCount=Math.min(6, UPGR.shardCount+1); } } },
+        { id:'fireball', type:'Spell', name:'Fireball', desc:'Launch flaming bolts in all directions.', note:'Range +50px per level (max 300px).', maxLevel:5, apply:()=>{ refreshFireballState(true); } },
         { id:'focus', type:'Spell', name:'Spell Focus', desc:'Reduce all spell cooldowns by 12%.', note:'Stacks multiplicatively', apply:()=>{ const factor = 0.88; reduceSpellCooldowns(factor); UPGR.spellCooldownMult = +(UPGR.spellCooldownMult * factor).toFixed(3); } },
         { id:'wisdom', type:'Upgrade', name:'Wisdom', desc:'Max HP +1 and heal 1.', apply:()=>{ P.hpMax += 1; P.hp = Math.min(P.hpMax, P.hp+1); drawHearts(); } },
       ],
@@ -1027,7 +1061,7 @@
       COINS.value = 0; coinsEl.textContent = COINS.value; SHOP.idx = 0; SHOP.open = false;
       KEYS.value = 0; drawKeys();
       // Reset upgrades and spell state
-      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleCoinChance:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:72, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, polymorph:false, polyPeriod:7, polyTimer:0, polyChance:0, polyLevel:0, polyRadius:0, sleep:false, sleepPeriod:8, sleepTimer:0, sleepChance:0, sleepLevel:0, sleepDuration:0, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1, spellCooldownMult:1, arrowPeriod:0.90, arrowTimer:0, arrowSpeed:360, arrowDmg:1, arrowCount:1, arrowPierce:false });
+      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleCoinChance:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:72, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, polymorph:false, polyPeriod:7, polyTimer:0, polyChance:0, polyLevel:0, polyRadius:0, sleep:false, sleepPeriod:8, sleepTimer:0, sleepChance:0, sleepLevel:0, sleepDuration:0, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1, fireball:false, fireballPeriod:2.5, fireballTimer:0, fireballRange:FIREBALL_BASE_RANGE, fireballLevel:0, fireballDmg:FIREBALL_DAMAGE, spellCooldownMult:1, arrowPeriod:0.90, arrowTimer:0, arrowSpeed:360, arrowDmg:1, arrowCount:1, arrowPierce:false });
       if (stats.startOrbs) { UPGR.orbs = Math.min(ORB_MAX_COUNT, stats.startOrbs); }
       // Reset upgrade tracking
       for (const k in UPGRADE_LEVELS) delete UPGRADE_LEVELS[k];
@@ -2087,6 +2121,24 @@
         }
       }
 
+      // Spells: fireball spread
+      if (UPGR.fireball){
+        UPGR.fireballTimer += dt;
+        if (UPGR.fireballTimer >= UPGR.fireballPeriod){
+          UPGR.fireballTimer = 0;
+          const range = UPGR.fireballRange || FIREBALL_BASE_RANGE;
+          const speed = FIREBALL_SPEED;
+          const ttl = range / speed;
+          const spawnFireball = (vx, vy, dir)=>{
+            PROJECTILES.push({ kind:'fireball', dir, x:P.x, y:P.y, vx, vy, life:0, ttl, dmg:UPGR.fireballDmg, pierce:true });
+          };
+          spawnFireball(-speed, 0, 'left');
+          spawnFireball(speed, 0, 'right');
+          spawnFireball(0, -speed, 'up');
+          spawnFireball(0, speed, 'down');
+        }
+      }
+
       // Spells: forward shards
       if (UPGR.shards){ UPGR.shardTimer += dt; if (UPGR.shardTimer >= UPGR.shardPeriod){ UPGR.shardTimer = 0; const dir = P.aimDir; const spread = 0.22; const cnt = UPGR.shardCount; for (let i=0;i<cnt;i++){ const a = dir + (i-(cnt-1)/2)*spread; PROJECTILES.push({ x:P.x, y:P.y, vx:Math.cos(a)*320, vy:Math.sin(a)*320, life:0, ttl:1.2, dmg:1 }); } } }
 
@@ -2099,16 +2151,28 @@
         if (p.x < ARENA.x || p.x > ARENA.x + ARENA.w || p.y < ARENA.y || p.y > ARENA.y + ARENA.h){ PROJECTILES.splice(i,1); continue; }
         if (p.life>p.ttl){ PROJECTILES.splice(i,1); continue; }
         let removed = false;
+        const arrowPierce = p.kind==='arrow' && UPGR.arrowPierce;
+        const piercing = arrowPierce || p.pierce;
         for (const e of enemies){
           if (e.hp<=0) continue;
-          // Prevent re-hitting the same enemy when piercing
-          if (p.kind==='arrow' && UPGR.arrowPierce && p.hit && p.hit.includes(e)) continue;
+          if (piercing && p.hit){
+            if (Array.isArray(p.hit)){
+              if (p.hit.includes(e)) continue;
+            } else if (p.hit.has && p.hit.has(e)){
+              continue;
+            }
+          }
           if (len(p.x-e.x,p.y-e.y) < 16){
             applyDamage(e, p.dmg, p.vx, p.vy, KNOCK.projectile);
-            if (p.kind==='arrow' && UPGR.arrowPierce){
-              if (!p.hit) p.hit = [];
-              p.hit.push(e);
-              // do not remove; allow piercing further targets
+            if (piercing){
+              if (!p.hit){
+                p.hit = arrowPierce ? [] : new Set();
+              }
+              if (Array.isArray(p.hit)){
+                p.hit.push(e);
+              } else if (p.hit.add){
+                p.hit.add(e);
+              }
             } else {
               PROJECTILES.splice(i,1);
               removed = true;
@@ -2555,6 +2619,11 @@
             ctx.fillStyle = '#7b9bb3';
             ctx.fillRect(-8, -2, 3, 4);
             ctx.restore();
+          } else if (pr.kind === 'fireball'){
+            const sprite = pr.dir === 'left' ? IMG.fireballLeft : pr.dir === 'right' ? IMG.fireballRight : pr.dir === 'up' ? IMG.fireballUp : IMG.fireballDown;
+            const fw = sprite.width || 16;
+            const fh = sprite.height || 16;
+            ctx.drawImage(sprite, pr.x - fw/2, pr.y - fh/2, fw, fh);
           } else {
             ctx.drawImage(IMG.spark, pr.x-6, pr.y-6, 12, 12);
           }
@@ -2691,7 +2760,16 @@
       // Shuffle a copy and take first 3
       const arr = filtered.slice();
       for (let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
-      return arr.slice(0,3);
+      const picks = arr.slice(0,3);
+      // Ensure the new fireball spell shows up for the wizard before it's taken
+      if (currentClass === 'wizard' && (UPGRADE_LEVELS.fireball || 0) === 0){
+        const fireballOpt = filtered.find(opt => opt.id === 'fireball');
+        if (fireballOpt && !picks.some(opt => opt.id === 'fireball')){
+          if (picks.length < 3){ picks.push(fireballOpt); }
+          else { picks[picks.length - 1] = fireballOpt; }
+        }
+      }
+      return picks;
     }
 
     function selectShopOption(opt){
@@ -2758,6 +2836,7 @@
         if (cls === 'wizard') lines.push(`<div><b>Polymorph:</b> ${UPGR.polymorph?`ON (chance ${fmtPct(UPGR.polyChance)} per wave, period ${UPGR.polyPeriod.toFixed(2)}s)`:'OFF'}</div>`);
         if (cls === 'wizard') lines.push(`<div><b>Sleep:</b> ${UPGR.sleep?`ON (chance ${fmtPct(UPGR.sleepChance)}, period ${UPGR.sleepPeriod.toFixed(2)}s, duration ${UPGR.sleepDuration.toFixed(0)}s)`:'OFF'}</div>`);
         if (cls === 'wizard') lines.push(`<div><b>Arcane Missiles:</b> ${UPGR.shards?`ON (count ${UPGR.shardCount}, period ${UPGR.shardPeriod.toFixed(2)}s, speed ${UPGR.shardSpeed})`:'OFF'}</div>`);
+        if (cls === 'wizard') lines.push(`<div><b>Fireball:</b> ${UPGR.fireball?`ON (level ${UPGR.fireballLevel}, range ${fmt(UPGR.fireballRange)}px, period ${UPGR.fireballPeriod.toFixed(2)}s, dmg ${UPGR.fireballDmg})`:'OFF'}</div>`);
         if (cls === 'wizard' && UPGR.spellCooldownMult < 0.999) lines.push(`<div><b>Spell Focus:</b> ${fmtPct(1 - UPGR.spellCooldownMult)} faster cooldowns</div>`);
 
         lines.push(`<div class="section">Survival & Utility</div>`);
@@ -2793,6 +2872,7 @@
               case 'polymorph': stat = `${UPGR.polymorph?`chance ${fmtPct(UPGR.polyChance)} period ${UPGR.polyPeriod.toFixed(2)}s`:'OFF'}`; break;
               case 'sleep': stat = `${UPGR.sleep?`chance ${fmtPct(UPGR.sleepChance)} dur ${UPGR.sleepDuration.toFixed(0)}s`:'OFF'}`; break;
               case 'shards': stat = `${UPGR.shards?`count ${UPGR.shardCount} period ${UPGR.shardPeriod.toFixed(2)}s`:'OFF'}`; break;
+              case 'fireball': stat = `${UPGR.fireball?`range ${fmt(UPGR.fireballRange)} period ${UPGR.fireballPeriod.toFixed(2)}s`:'OFF'}`; break;
               case 'focus': stat = `spell CD ${fmtPct(1 - UPGR.spellCooldownMult)} faster`; break;
               case 'piercing': stat = `pierce ON`; break;
               case 'barbed': stat = `arrow dmg ${UPGR.arrowDmg}`; break;

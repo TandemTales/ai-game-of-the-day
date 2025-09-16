@@ -88,6 +88,13 @@
     .small { font-size: 11px; color: #a6e3ff; }
     .hidden { display:none; }
 
+    @media (hover: none) and (pointer: coarse) {
+      body, .wrap, .panel, .panel * {
+        -webkit-user-select: none;
+        user-select: none;
+      }
+    }
+
     /* Shop styles */
     .shop { max-width: 880px; }
     .shop .choices { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-top: 14px; }

@@ -662,6 +662,9 @@
     const SHIELD = { period: 1.5, timer: 0, active: false, t: 0, dur: 0.18, range: 56, width: 80, height: 44, knock: 260, stunDur: 2.5, dmg: 0, hits: new Set() };
     // Frost Nova damage radius (visuals remain at ~90)
     const NOVA_RADIUS = 120;
+    const ORB_MAX_COUNT = 4;
+    const ORB_BASE_SPEED = 13.5 * 0.7; // 70% of previous 13.5 baseline
+    const ORB_SPEED_LEVEL_STEP = 0.10; // +10% per upgrade
     // Separate hitbox scaling so we can tighten player damage range
     // Reduce player hitbox for fairness: smaller damage window
     const HITBOX = { player: 0.24, enemy: 0.3 };
@@ -812,7 +815,7 @@
         { id:'piercing', type:'Weapon', name:'Piercing Shot', desc:'Arrows pass through enemies.', note:'Unique', unique:true, apply:()=>{ UPGR.arrowPierce = true; } },
       ],
       wizard: [
-        { id:'orbs', type:'Spell', name:'Arcane Orbs', desc:'Summon orbiting orbs that damage foes.', note:'Stacks add more orbs', apply:()=>{ UPGR.orbs += 1; } },
+        { id:'orbs', type:'Spell', name:'Arcane Orbs', desc:'Summon orbiting orbs that damage foes. Each upgrade adds an orb and speeds their orbit.', note:'Adds up to 4 orbs with +10% speed per level.', maxLevel: ORB_MAX_COUNT, apply:()=>{ UPGR.orbs = Math.min(ORB_MAX_COUNT, UPGR.orbs + 1); } },
         { id:'nova', type:'Spell', name:'Frost Nova', desc:'Every few seconds, blast and slow nearby foes.', note:'Improves with repeats', apply:()=>{ if(!UPGR.nova){ UPGR.nova=true; } else { UPGR.novaPeriod=Math.max(2.2, UPGR.novaPeriod*0.9); UPGR.novaDmg+=1; } } },
         { id:'polymorph', type:'Spell', name:'Polymorph', desc:'Release a transforming wave that turns foes into demon goats that drop coins or hearts.', note:'Chance increases with repeats (max 50%). Bosses are immune.', maxLevel:5, apply:()=>{ refreshPolymorphState(true); } },
         { id:'shards', type:'Spell', name:'Arcane Missiles', desc:'Periodically fire magic missiles.', note:'More with repeats', apply:()=>{ if(!UPGR.shards){ UPGR.shards=true; } else { UPGR.shardCount=Math.min(6, UPGR.shardCount+1); } } },
@@ -902,7 +905,7 @@
       KEYS.value = 0; drawKeys();
       // Reset upgrades and spell state
       Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleCoinChance:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:72, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, polymorph:false, polyPeriod:7, polyTimer:0, polyChance:0, polyLevel:0, polyRadius:0, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1, arrowPeriod:0.90, arrowTimer:0, arrowSpeed:360, arrowDmg:1, arrowCount:1, arrowPierce:false });
-      if (stats.startOrbs) { UPGR.orbs = stats.startOrbs; }
+      if (stats.startOrbs) { UPGR.orbs = Math.min(ORB_MAX_COUNT, stats.startOrbs); }
       // Reset upgrade tracking
       for (const k in UPGRADE_LEVELS) delete UPGRADE_LEVELS[k];
       for (const k in TAKEN_UPGRADES) delete TAKEN_UPGRADES[k];
@@ -1814,10 +1817,11 @@
 
       // Spells: orbiting orbs damage
       if (UPGR.orbs>0){
-        const count = UPGR.orbs;
+        const count = Math.min(ORB_MAX_COUNT, UPGR.orbs);
         if (ORBS.length !== count){ ORBS = []; for (let i=0;i<count;i++) ORBS.push({ a: i*(Math.PI*2/count), r: UPGR.orbRadius, t:0, cd:0 }); }
+        const orbSpeed = ORB_BASE_SPEED * (1 + ORB_SPEED_LEVEL_STEP * (count - 1));
         for (let i=0;i<ORBS.length;i++){
-          const o = ORBS[i]; o.t += dt; o.a += 13.5*dt; // orbit speed (9x total)
+          const o = ORBS[i]; o.t += dt; o.a += orbSpeed*dt; // orbit speed scales with level
           const ox = P.x + Math.cos(o.a)*o.r; const oy = P.y + Math.sin(o.a)*o.r;
           // Hit enemies on contact with a tiny cooldown
           o.cd = Math.max(0, o.cd - dt);

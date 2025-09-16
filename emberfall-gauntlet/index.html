@@ -794,6 +794,12 @@
       polyChance: 0,
       polyLevel: 0,
       polyRadius: 0,
+      sleep: false,
+      sleepPeriod: 8,
+      sleepTimer: 0,
+      sleepChance: 0,
+      sleepLevel: 0,
+      sleepDuration: 0,
       shards: false,
       shardPeriod: 0.85,
       shardTimer: 0,
@@ -820,6 +826,18 @@
         UPGR.polyTimer = UPGR.polyPeriod;
       }
     }
+
+    function refreshSleepState(fromUpgrade = false){
+      const prev = UPGR.sleep;
+      const level = Math.min(5, UPGRADE_LEVELS.sleep || 0);
+      UPGR.sleep = level > 0;
+      UPGR.sleepLevel = level;
+      UPGR.sleepChance = level > 0 ? 0.33 : 0;
+      UPGR.sleepDuration = level > 0 ? 5 + (level - 1) * 5 : 0;
+      if (fromUpgrade && level > 0 && !prev){
+        UPGR.sleepTimer = UPGR.sleepPeriod;
+      }
+    }
     let PROJECTILES = [];
     let BOSS_PROJECTILES = [];
     let ORBS = [];
@@ -827,6 +845,7 @@
     // Visual FX containers
     const FX_NOVA = [];
     const POLY_WAVES = [];
+    const SLEEP_WAVES = [];
     let NOVA_FLASH = 0; // brief blue flash when nova triggers
     let enemies = [];
     let drops = [];
@@ -870,6 +889,7 @@
     registerSpellCooldown({ periodKey: 'novaPeriod', timerKey: 'novaTimer', min: 2.2 });
     registerSpellCooldown({ periodKey: 'polyPeriod', timerKey: 'polyTimer', min: 0.5 });
     registerSpellCooldown({ periodKey: 'shardPeriod', timerKey: 'shardTimer', min: 0.2 });
+    registerSpellCooldown({ periodKey: 'sleepPeriod', timerKey: 'sleepTimer', min: 2 });
 
     const POOLS = {
       fighter: [
@@ -904,6 +924,7 @@
         { id:'orbs', type:'Spell', name:'Arcane Orbs', desc:'Summon orbiting orbs that damage foes. Each upgrade adds an orb and speeds their orbit.', note:'Adds up to 4 orbs with +10% speed per level.', maxLevel: ORB_MAX_COUNT, apply:()=>{ UPGR.orbs = Math.min(ORB_MAX_COUNT, UPGR.orbs + 1); } },
         { id:'nova', type:'Spell', name:'Frost Nova', desc:'Every few seconds, blast and slow nearby foes.', note:'Improves with repeats', apply:()=>{ if(!UPGR.nova){ UPGR.nova=true; } else { UPGR.novaPeriod=Math.max(2.2, UPGR.novaPeriod*0.9); UPGR.novaDmg+=1; } } },
         { id:'polymorph', type:'Spell', name:'Polymorph', desc:'Release a transforming wave that turns foes into demon goats that drop coins or hearts.', note:'Chance increases with repeats (max 50%). Bosses are immune.', maxLevel:5, apply:()=>{ refreshPolymorphState(true); } },
+        { id:'sleep', type:'Spell', name:'Sleep', desc:'Send out a drowsy wave that can lull foes to sleep.', note:'200px wave, 33% sleep for 5s (+5s per level).', maxLevel:5, apply:()=>{ refreshSleepState(true); } },
         { id:'shards', type:'Spell', name:'Arcane Missiles', desc:'Periodically fire magic missiles.', note:'More with repeats', apply:()=>{ if(!UPGR.shards){ UPGR.shards=true; } else { UPGR.shardCount=Math.min(6, UPGR.shardCount+1); } } },
         { id:'focus', type:'Spell', name:'Spell Focus', desc:'Reduce all spell cooldowns by 12%.', note:'Stacks multiplicatively', apply:()=>{ const factor = 0.88; reduceSpellCooldowns(factor); UPGR.spellCooldownMult = +(UPGR.spellCooldownMult * factor).toFixed(3); } },
         { id:'wisdom', type:'Upgrade', name:'Wisdom', desc:'Max HP +1 and heal 1.', apply:()=>{ P.hpMax += 1; P.hp = Math.min(P.hpMax, P.hp+1); drawHearts(); } },
@@ -990,13 +1011,14 @@
       COINS.value = 0; coinsEl.textContent = COINS.value; SHOP.idx = 0; SHOP.open = false;
       KEYS.value = 0; drawKeys();
       // Reset upgrades and spell state
-      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleCoinChance:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:72, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, polymorph:false, polyPeriod:7, polyTimer:0, polyChance:0, polyLevel:0, polyRadius:0, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1, spellCooldownMult:1, arrowPeriod:0.90, arrowTimer:0, arrowSpeed:360, arrowDmg:1, arrowCount:1, arrowPierce:false });
+      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleCoinChance:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:72, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, polymorph:false, polyPeriod:7, polyTimer:0, polyChance:0, polyLevel:0, polyRadius:0, sleep:false, sleepPeriod:8, sleepTimer:0, sleepChance:0, sleepLevel:0, sleepDuration:0, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1, spellCooldownMult:1, arrowPeriod:0.90, arrowTimer:0, arrowSpeed:360, arrowDmg:1, arrowCount:1, arrowPierce:false });
       if (stats.startOrbs) { UPGR.orbs = Math.min(ORB_MAX_COUNT, stats.startOrbs); }
       // Reset upgrade tracking
       for (const k in UPGRADE_LEVELS) delete UPGRADE_LEVELS[k];
       for (const k in TAKEN_UPGRADES) delete TAKEN_UPGRADES[k];
       PROJECTILES = []; BOSS_PROJECTILES = []; ORBS = [];
       POLY_WAVES.length = 0;
+      SLEEP_WAVES.length = 0;
       stage = 0;
       loadStage();
       drawHearts();
@@ -1156,7 +1178,7 @@
       w *= 1.75;
       h *= 1.75;
 
-      const enemy = { kind, x, y, vx:0, vy:0, kx:0, ky:0, w, h, hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0, dir:'down', frame:0, animT:0 };
+      const enemy = { kind, x, y, vx:0, vy:0, kx:0, ky:0, w, h, hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0, dir:'down', frame:0, animT:0, sleepT:0, sleepMax:0 };
       if (needsKeys() && !SPAWN.keyAssigned){ enemy.hasKey = true; SPAWN.keyAssigned = true; }
       enemies.push(enemy);
     }
@@ -1182,7 +1204,7 @@
       }
       // Reduce boss health by 50%
       hp *= 0.5;
-        const b = { kind:'boss', bossType, x, y, vx:0, vy:0, kx:0, ky:0, w:ENEMY.w*4*1.5, h:ENEMY.h*4*1.5, hp, hpMax:hp, spd:75 * stageSpd, score:2000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0, atkT:0, blastT:0, facing:0, freezeT:0, pulse:0, nextAtk:'pulse', rayT:0 };
+        const b = { kind:'boss', bossType, x, y, vx:0, vy:0, kx:0, ky:0, w:ENEMY.w*4*1.5, h:ENEMY.h*4*1.5, hp, hpMax:hp, spd:75 * stageSpd, score:2000, t:0, ang:0, wanderT:0, dir:'down', frame:0, animT:0, atkT:0, blastT:0, facing:0, freezeT:0, pulse:0, nextAtk:'pulse', rayT:0, sleepT:0, sleepMax:0 };
       if (bossType === 'hillGiant') b.slamCd = 3;
       switchMusic(BOSS_TRACKS);
       enemies.push(b);
@@ -1238,6 +1260,8 @@
       e.slowMul = 0;
       e.pulse = 0;
       e.pulseRange = 0;
+      e.sleepT = 0;
+      e.sleepMax = 0;
       e.animT = 0;
       e.frame = 0;
       e.dir = 'down';
@@ -1383,6 +1407,17 @@
     polymorphWaveBurst(x,y);
   }
 
+  function emitSleepWave(x,y){
+    const chance = UPGR.sleepChance || 0;
+    const duration = UPGR.sleepDuration || 0;
+    if (chance <= 0 || duration <= 0) return;
+    const radius = 200;
+    const ttl = 1.6;
+    const speed = radius / ttl;
+    SLEEP_WAVES.push({ x, y, r: 0, speed, life: 0, ttl, chance, duration, maxR: radius, hit: new Set() });
+    sleepWaveBurst(x,y);
+  }
+
   function polymorphWaveBurst(x,y){
     for(let i=0;i<24;i++){
       const a = rand(0, Math.PI*2);
@@ -1400,6 +1435,17 @@
       const sz = rand(8, 14);
       const ttl = rand(0.35, 0.6);
       PARTICLES.push({ x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:0, ttl, color: kind==='heart' ? '#ffb4c8' : '#ffe7aa', size:sz });
+    }
+  }
+
+  function sleepWaveBurst(x,y){
+    for(let i=0;i<20;i++){
+      const a = rand(0, Math.PI*2);
+      const sp = rand(70, 150);
+      const sz = rand(8, 16);
+      const ttl = rand(0.45, 0.85);
+      const palette = Math.random() < 0.5 ? '#d8ccff' : '#bfa9ff';
+      PARTICLES.push({ x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:0, ttl, color:palette, size:sz });
     }
   }
 
@@ -1560,22 +1606,26 @@
         if (e.slowT && e.slowT > 0) { e.slowT = Math.max(0, e.slowT - dt); }
         if (e.slowAmp && e.slowAmp > 0) { e.slowAmp = Math.max(0, e.slowAmp - dt*3); }
         if (e.freezeT && e.freezeT > 0) { e.freezeT = Math.max(0, e.freezeT - dt); }
+        if (e.sleepT && e.sleepT > 0) { e.sleepT = Math.max(0, e.sleepT - dt); if (e.sleepT <= 0) e.sleepMax = 0; }
         if (e.pulse && e.pulse > 0) { e.pulse = Math.max(0, e.pulse - dt); }
         const dx = P.x - e.x, dy = P.y - e.y; const dist = Math.hypot(dx,dy);
         const isGoat = e.kind === 'goatCoin' || e.kind === 'goatHeart';
+        const sleeping = e.sleepT && e.sleepT > 0;
         if (e.kind === 'boss'){
-          const targetAng = Math.atan2(dy, dx);
-          let turnRate = 0.9; // rad/sec baseline
-          if (e.bossType === 'muck') turnRate /= 1.5;
-          else if (e.bossType === 'abomination') turnRate = Math.PI * 24; // Stage 3 boss snaps to the player
-          const diff = angleDiff(targetAng, e.facing);
-          const maxTurn = turnRate * dt;
-          if (Math.abs(diff) < maxTurn) e.facing = targetAng;
-          else e.facing += Math.sign(diff) * maxTurn;
-          if (Math.abs(Math.cos(e.facing)) > Math.abs(Math.sin(e.facing))){
-            e.dir = Math.cos(e.facing) > 0 ? 'right' : 'left';
-          } else {
-            e.dir = Math.sin(e.facing) > 0 ? 'down' : 'up';
+          if (!sleeping){
+            const targetAng = Math.atan2(dy, dx);
+            let turnRate = 0.9; // rad/sec baseline
+            if (e.bossType === 'muck') turnRate /= 1.5;
+            else if (e.bossType === 'abomination') turnRate = Math.PI * 24; // Stage 3 boss snaps to the player
+            const diff = angleDiff(targetAng, e.facing);
+            const maxTurn = turnRate * dt;
+            if (Math.abs(diff) < maxTurn) e.facing = targetAng;
+            else e.facing += Math.sign(diff) * maxTurn;
+            if (Math.abs(Math.cos(e.facing)) > Math.abs(Math.sin(e.facing))){
+              e.dir = Math.cos(e.facing) > 0 ? 'right' : 'left';
+            } else {
+              e.dir = Math.sin(e.facing) > 0 ? 'down' : 'up';
+            }
           }
         }
         // Use per-enemy speed (with a global pacing modifier similar to previous tuning)
@@ -1597,7 +1647,9 @@
           }
         }
 
-        if (e.freezeT > 0) {
+        if (sleeping) {
+          e.vx = 0; e.vy = 0;
+        } else if (e.freezeT > 0) {
           e.vx = 0; e.vy = 0;
         } else if (dist > AI.chaseRadius) {
           // Wander: keep a direction for a short time, occasionally change
@@ -1657,7 +1709,8 @@
         // Final boundary clamp
         clampToArena(e, AI.wallPad);
 
-          if (e.kind === 'boss'){
+        if (e.kind === 'boss'){
+          if (!sleeping){
             e.atkT += dt;
             if (e.bossType === 'hungerDemon' || e.bossType === 'beholder') e.blastT = (e.blastT || 0) + dt;
             if (e.bossType === 'beholder') e.rayT = (e.rayT || 0) + dt;
@@ -1773,6 +1826,7 @@
               if (e.slam.t >= e.slam.tele + 0.3){ e.slam = null; }
             }
           }
+          }
         }
 
         // Walk animation for goblins, imps, orcs, and bosses
@@ -1811,6 +1865,7 @@
           let canHit = true;
           // Stunned/frozen enemies do not deal contact damage
           if (e.freezeT && e.freezeT > 0) canHit = false;
+          if (sleeping) canHit = false;
           if (isGoat) canHit = false;
           if (e.kind === 'boss'){
             const angToPlayer = Math.atan2(P.y - e.y, P.x - e.x);
@@ -1960,6 +2015,13 @@
           emitPolymorphWave(P.x, P.y);
         }
       }
+      if (UPGR.sleep){
+        UPGR.sleepTimer += dt;
+        if (UPGR.sleepTimer >= UPGR.sleepPeriod){
+          UPGR.sleepTimer = 0;
+          emitSleepWave(P.x, P.y);
+        }
+      }
       if (POLY_WAVES.length){
         for (let i=POLY_WAVES.length-1;i>=0;i--){
           const wave = POLY_WAVES[i];
@@ -1978,6 +2040,34 @@
             }
           }
           if (wave.life >= wave.ttl){ POLY_WAVES.splice(i,1); }
+        }
+      }
+      if (SLEEP_WAVES.length){
+        for (let i=SLEEP_WAVES.length-1;i>=0;i--){
+          const wave = SLEEP_WAVES[i];
+          wave.life += dt;
+          const maxR = wave.maxR ?? Infinity;
+          wave.r = Math.min(maxR, wave.r + wave.speed * dt);
+          for (const e of enemies){
+            if (e.hp<=0) continue;
+            if (wave.hit.has(e)) continue;
+            const buffer = Math.max(e.w||0, e.h||0) * 0.35;
+            if (len(e.x-wave.x, e.y-wave.y) <= wave.r + buffer){
+              wave.hit.add(e);
+              if (wave.chance > 0 && Math.random() < wave.chance){
+                const dur = wave.duration || 0;
+                if (dur > 0){
+                  const next = Math.max(dur, e.sleepT||0);
+                  e.sleepT = next;
+                  e.sleepMax = Math.max(e.sleepMax||0, next);
+                  e.vx = 0; e.vy = 0;
+                  e.animT = 0;
+                  e.frame = 0;
+                }
+              }
+            }
+          }
+          if (wave.life >= wave.ttl){ SLEEP_WAVES.splice(i,1); }
         }
       }
 
@@ -2158,11 +2248,31 @@
           ctx.restore();
         }
       }
+      if (SLEEP_WAVES.length){
+        for (const wave of SLEEP_WAVES){
+          const progress = Math.min(1, wave.life / wave.ttl);
+          const baseAlpha = Math.max(0, 0.26 * (1 - progress));
+          if (baseAlpha <= 0) continue;
+          ctx.save();
+          ctx.beginPath();
+          ctx.lineWidth = 11 * (1 - progress) + 3;
+          ctx.strokeStyle = `rgba(190,160,255,${baseAlpha.toFixed(3)})`;
+          ctx.arc(wave.x, wave.y, wave.r, 0, Math.PI*2);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.lineWidth = Math.max(1.5, 5 * (1 - progress));
+          ctx.strokeStyle = `rgba(235,225,255,${(baseAlpha*0.75).toFixed(3)})`;
+          ctx.arc(wave.x, wave.y, wave.r, 0, Math.PI*2);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
 
       // Draw enemies with shadow (use sprite per type, size by enemy)
       for (const e of enemies){
         // shadow scaled to enemy size
         ctx.drawImage(IMG.shadow, e.x - e.w*0.7, e.y - e.h*0.35, e.w*1.4, e.h*0.7);
+        const sleeping = e.sleepT && e.sleepT > 0;
         if (e.kind === 'boss'){
           if (e.bossType === 'hillGiant' && e.slam){
             const half = e.slam.arc/2;
@@ -2237,6 +2347,32 @@
             ctx.lineWidth = 1.5;
             ctx.fill();
             ctx.stroke();
+          }
+        }
+        if (sleeping){
+          const baseRatio = e.sleepMax ? clamp(e.sleepT / e.sleepMax, 0, 1) : 1;
+          const haloR = Math.max(12, Math.min(24, Math.max(e.w, e.h) * 0.45));
+          const glow = 0.22 + 0.18 * baseRatio + 0.08 * Math.sin((e.t||0)*3);
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(190,170,255,${glow.toFixed(3)})`;
+          ctx.arc(e.x, e.y - e.h*0.3, haloR, 0, Math.PI*2);
+          ctx.fill();
+          const baseY = e.y - e.h * 0.85;
+          for (let i=0;i<3;i++){
+            const size = 6 + i*2;
+            const sway = Math.sin((e.t||0)*2 + i*0.8) * 2;
+            ctx.save();
+            ctx.translate(e.x + 8 + i*3, baseY - i*9 - sway);
+            ctx.rotate(-0.25);
+            ctx.strokeStyle = 'rgba(225,210,255,0.85)';
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.moveTo(-size/2, -size/2);
+            ctx.lineTo(size/2, -size/2);
+            ctx.lineTo(-size/2, size/2);
+            ctx.lineTo(size/2, size/2);
+            ctx.stroke();
+            ctx.restore();
           }
         }
         // Slow effect visual: pulsing frosty halo while slowed
@@ -2601,6 +2737,7 @@
         if (cls === 'wizard') lines.push(`<div><b>Orbs:</b> ${UPGR.orbs||0} (dmg ${UPGR.orbDmg||0}, radius ${UPGR.orbRadius||0})</div>`);
         if (cls === 'wizard') lines.push(`<div><b>Frost Nova:</b> ${UPGR.nova?`ON (period ${UPGR.novaPeriod.toFixed(2)}s, dmg ${UPGR.novaDmg})`:'OFF'}</div>`);
         if (cls === 'wizard') lines.push(`<div><b>Polymorph:</b> ${UPGR.polymorph?`ON (chance ${fmtPct(UPGR.polyChance)} per wave, period ${UPGR.polyPeriod.toFixed(2)}s)`:'OFF'}</div>`);
+        if (cls === 'wizard') lines.push(`<div><b>Sleep:</b> ${UPGR.sleep?`ON (chance ${fmtPct(UPGR.sleepChance)}, period ${UPGR.sleepPeriod.toFixed(2)}s, duration ${UPGR.sleepDuration.toFixed(0)}s)`:'OFF'}</div>`);
         if (cls === 'wizard') lines.push(`<div><b>Arcane Missiles:</b> ${UPGR.shards?`ON (count ${UPGR.shardCount}, period ${UPGR.shardPeriod.toFixed(2)}s, speed ${UPGR.shardSpeed})`:'OFF'}</div>`);
         if (cls === 'wizard' && UPGR.spellCooldownMult < 0.999) lines.push(`<div><b>Spell Focus:</b> ${fmtPct(1 - UPGR.spellCooldownMult)} faster cooldowns</div>`);
 
@@ -2635,6 +2772,7 @@
               case 'orbs': stat = `orbs ${UPGR.orbs} dmg ${UPGR.orbDmg}`; break;
               case 'nova': stat = `${UPGR.nova?`period ${UPGR.novaPeriod.toFixed(2)}s dmg ${UPGR.novaDmg}`:'OFF'}`; break;
               case 'polymorph': stat = `${UPGR.polymorph?`chance ${fmtPct(UPGR.polyChance)} period ${UPGR.polyPeriod.toFixed(2)}s`:'OFF'}`; break;
+              case 'sleep': stat = `${UPGR.sleep?`chance ${fmtPct(UPGR.sleepChance)} dur ${UPGR.sleepDuration.toFixed(0)}s`:'OFF'}`; break;
               case 'shards': stat = `${UPGR.shards?`count ${UPGR.shardCount} period ${UPGR.shardPeriod.toFixed(2)}s`:'OFF'}`; break;
               case 'focus': stat = `spell CD ${fmtPct(1 - UPGR.spellCooldownMult)} faster`; break;
               case 'piercing': stat = `pierce ON`; break;

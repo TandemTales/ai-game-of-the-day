@@ -203,6 +203,15 @@
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
 
+    const BASE_WIDTH = canvas.width;
+    const BASE_HEIGHT = canvas.height;
+    const MAP_ZOOM = 1.75; // zoom factor for the battle map (lower = wider view)
+    let W = BASE_WIDTH;
+    let H = BASE_HEIGHT;
+    let VIEW_W = W / MAP_ZOOM;
+    let VIEW_H = H / MAP_ZOOM;
+    let onViewportDimensionsChanged;
+
     function getViewportSize() {
       if (window.visualViewport) {
         return { width: window.visualViewport.width, height: window.visualViewport.height };
@@ -212,14 +221,35 @@
 
     function resizeCanvas() {
       const { width: vw, height: vh } = getViewportSize();
-      const scale = Math.min(vw / canvas.width, vh / canvas.height);
+      const widthRatio = vw / BASE_WIDTH;
+      const heightRatio = vh / BASE_HEIGHT;
+      const scale = Math.min(widthRatio, heightRatio);
       if (!Number.isFinite(scale) || scale <= 0) {
         return;
       }
-      const displayWidth = Math.max(1, Math.round(canvas.width * scale));
-      const displayHeight = Math.max(1, Math.round(canvas.height * scale));
+
+      if (widthRatio < heightRatio) {
+        W = BASE_WIDTH;
+        H = Math.max(BASE_HEIGHT, Math.round(vh / scale));
+      } else {
+        W = Math.max(BASE_WIDTH, Math.round(vw / scale));
+        H = BASE_HEIGHT;
+      }
+
+      canvas.width = W;
+      canvas.height = H;
+
+      VIEW_W = W / MAP_ZOOM;
+      VIEW_H = H / MAP_ZOOM;
+
+      const displayWidth = Math.max(1, Math.round(W * scale));
+      const displayHeight = Math.max(1, Math.round(H * scale));
       canvas.style.width = `${displayWidth}px`;
       canvas.style.height = `${displayHeight}px`;
+
+      if (onViewportDimensionsChanged) {
+        onViewportDimensionsChanged();
+      }
     }
 
     window.addEventListener('resize', resizeCanvas);
@@ -652,10 +682,7 @@
       wizard: { hp:3, spd:2200, startOrbs:1 },
     };
 
-    // Game constants
-    const W = canvas.width, H = canvas.height;
-    const MAP_ZOOM = 1.25;//1.75; // zoom factor for the battle map (lower = wider view)
-    const VIEW_W = W / MAP_ZOOM, VIEW_H = H / MAP_ZOOM;
+    // Game constants (viewport metrics updated in resizeCanvas)
     // Arena dimensions will match the chosen map image
     const ARENA = { x: 0, y: 0, w: 0, h: 0 };
     const CAM = { x: 0, y: 0 };
@@ -671,6 +698,10 @@
     const AI = { chaseRadius: 300, wanderMin: 0.8, wanderMax: 2.0, wallPad: 12, sepRadius: 28, sepWeight: 1.0 };
     let DENSITY = 1;
     const DROP = { w: 18, h: 18 };
+    onViewportDimensionsChanged = () => {
+      DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / VIEW_W, ARENA.h / VIEW_H) * 1.5));
+    };
+    onViewportDimensionsChanged();
     // Delay before coin magnet pulls begin (seconds)
     const MAGNET_DELAY = 0.6;
     // Melee arc narrowed so default swings are a tight cone ahead

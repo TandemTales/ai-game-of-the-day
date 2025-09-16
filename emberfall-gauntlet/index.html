@@ -1210,6 +1210,20 @@
     const len = (x,y)=>Math.hypot(x,y);
     const norm = (x,y)=>{const l=Math.hypot(x,y)||1;return [x/l,y/l];};
     const angleDiff = (a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
+    const pushPlayerByVector = (dx,dy,distance=100)=>{
+      let mag = Math.hypot(dx, dy);
+      if (mag < 1e-4){
+        const dir = P.dir || 0;
+        dx = Math.cos(dir);
+        dy = Math.sin(dir);
+        mag = 1;
+      }
+      const nx = dx / mag;
+      const ny = dy / mag;
+      P.x = clamp(P.x + nx * distance, ARENA.x + 24, ARENA.x + ARENA.w - 24);
+      P.y = clamp(P.y + ny * distance, ARENA.y + 24, ARENA.y + ARENA.h - 24);
+    };
+    const pushPlayerAwayFrom = (sx,sy,distance=100)=>pushPlayerByVector(P.x - sx, P.y - sy, distance);
     const now = ()=>performance.now();
     let last = now();
     let accumulator = 0;
@@ -1844,9 +1858,9 @@
                 e.pulse = 0.3;
                 e.pulseRange = range;
                 if (dist < range && P.iT<=0){
-                  if (CHEAT.active){ P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
+                  if (CHEAT.active){ pushPlayerAwayFrom(e.x, e.y); P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
                   else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-                  else { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
+                  else { pushPlayerAwayFrom(e.x, e.y); P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
                 }
                 e.nextAtk = 'wave';
               }
@@ -1869,9 +1883,9 @@
               e.pulse = 0.4;
               e.pulseRange = range;
               if (dist < range && P.iT<=0){
-                if (CHEAT.active){ P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
+                if (CHEAT.active){ pushPlayerAwayFrom(e.x, e.y); P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
                 else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-                else { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
+                else { pushPlayerAwayFrom(e.x, e.y); P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
               }
               e.freezeT = 1.2;
             }
@@ -1901,11 +1915,9 @@
               e.pulseRange = range;
               if (dist < range && P.iT<=0){
                 const [nx,ny]=norm(P.x-e.x,P.y-e.y);
-                P.vx += nx*200;
-                P.vy += ny*200;
-                if (CHEAT.active){ P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
+                if (CHEAT.active){ pushPlayerByVector(nx, ny); P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
                 else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-                else { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
+                else { pushPlayerByVector(nx, ny); P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
               }
               e.freezeT = 1.5;
             }
@@ -1936,9 +1948,9 @@
               e.slam.t += dt;
               if (!e.slam.done && e.slam.t >= e.slam.tele){
                 if (hitArc(e.x, e.y, e.facing, e.slam.arc, e.slam.range, P.x, P.y) && P.iT<=0){
-                  if (CHEAT.active){ P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
+                  if (CHEAT.active){ pushPlayerAwayFrom(e.x, e.y); P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
                   else if (UPGR.dodgeChance > 0 && Math.random() < UPGR.dodgeChance){ P.iT = 0.6; P.hitFlash = 0.25; spark(P.x,P.y,'#a1ffd4'); }
-                  else { P.hp -= 1; P.iT = 2.0; P.hitFlash = 0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
+                  else { pushPlayerAwayFrom(e.x, e.y); P.hp -= 1; P.iT = 2.0; P.hitFlash = 0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
                 }
                 e.slam.done = true;
               }
@@ -1992,11 +2004,13 @@
           }
           if (canHit){
             if (CHEAT.active) {
+              if (e.kind === 'boss') pushPlayerAwayFrom(e.x, e.y);
               P.hitFlash = 0.25;
               spark(P.x,P.y,'#ff8a8a');
             } else if (UPGR.dodgeChance > 0 && Math.random() < UPGR.dodgeChance) {
               P.iT = 0.6; P.hitFlash = 0.25; spark(P.x,P.y,'#a1ffd4');
             } else {
+              if (e.kind === 'boss') pushPlayerAwayFrom(e.x, e.y);
               P.hp -= 1; P.iT = 2.0; P.hitFlash = 0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver();
             }
           }
@@ -2252,9 +2266,9 @@
           const d = len(P.x - p.x, P.y - p.y);
           if (Math.abs(d - p.r) < p.width/2 && P.iT<=0){
             const dmg = p.dmg || 1;
-            if (CHEAT.active){ P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
+            if (CHEAT.active){ pushPlayerAwayFrom(p.x, p.y); P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
             else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-            else { P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
+            else { pushPlayerAwayFrom(p.x, p.y); P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
           }
           if (p.r > p.maxR){ BOSS_PROJECTILES.splice(i,1); }
           continue;
@@ -2268,9 +2282,9 @@
           const perp = Math.abs(relX * Math.sin(p.ang) - relY * Math.cos(p.ang));
           if (proj > 0 && proj < lenB && perp < bw && P.iT<=0){
             const dmg = p.dmg || 1;
-            if (CHEAT.active){ P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
+            if (CHEAT.active){ pushPlayerAwayFrom(p.x, p.y); P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
             else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-            else { P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
+            else { pushPlayerAwayFrom(p.x, p.y); P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
           }
           continue;
         }
@@ -2284,9 +2298,9 @@
         if (len(p.x-P.x,p.y-P.y) < 20){
           if (P.iT<=0){
             const dmg = p.dmg || 1;
-            if (CHEAT.active){ P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
+            if (CHEAT.active){ pushPlayerByVector(p.vx, p.vy); P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
             else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-            else { P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
+            else { pushPlayerByVector(p.vx, p.vy); P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
           }
           BOSS_PROJECTILES.splice(i,1);
         }

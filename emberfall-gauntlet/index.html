@@ -2058,7 +2058,7 @@
           const maxR = wave.maxR ?? Infinity;
           wave.r = Math.min(maxR, wave.r + wave.speed * dt);
           for (const e of enemies){
-            if (e.hp<=0) continue;
+            if (e.hp<=0 || e.kind === 'boss') continue;
             if (wave.hit.has(e)) continue;
             const buffer = Math.max(e.w||0, e.h||0) * 0.35;
             if (len(e.x-wave.x, e.y-wave.y) <= wave.r + buffer){

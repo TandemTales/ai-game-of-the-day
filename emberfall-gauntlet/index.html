@@ -948,7 +948,7 @@
       fighter: [
         { id:'twin', type:'Weapon', name:'Twin Strikes', desc:'Your melee hits strike twice.', note:'+1 multistrike', apply:()=>{ UPGR.multistrike+=1; } },
         { id:'longblade', type:'Weapon', name:'Longblade', desc:'Increase melee reach by 20%.', apply:()=>{ PHYS.atkRange = Math.round(PHYS.atkRange*1.2); } },
-        { id:'sweeping', type:'Weapon', name:'Sweeping Arc', desc:'Widen melee arc by 15%.', apply:()=>{ PHYS.atkArc = Math.min(Math.PI*1.6, PHYS.atkArc*1.15); } },
+        { id:'sweeping', type:'Weapon', name:'Sweeping Arc', desc:'Widen melee arc by 20%.', apply:()=>{ PHYS.atkArc = Math.min(Math.PI*1.6, PHYS.atkArc*1.20); } },
         { id:'leech', type:'Upgrade', name:'Vampiric Edge', desc:'On kill, small chance to heal 1.', apply:()=>{ UPGR.lifeStealChance = Math.min(0.20, UPGR.lifeStealChance + 0.04); } },
         { id:'heart', type:'Upgrade', name:'Heart Vessel', desc:'Max HP +1 and heal 1.', apply:()=>{ P.hpMax += 1; P.hp = Math.min(P.hpMax, P.hp+1); drawHearts(); } },
         // Fighter-specific shield upgrades

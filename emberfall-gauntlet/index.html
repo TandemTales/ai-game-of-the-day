@@ -1971,15 +1971,17 @@
       // Wave & spawns (scale with larger world)
       if (!boss && !awaitingStage) {
         SPAWN.t += dt;
-        const alive = enemies.filter(e=>e.hp>0).length;
+        const livingThreats = enemies.filter(e => e.hp > 0 && e.kind !== 'goatCoin' && e.kind !== 'goatHeart');
+        // Demon goats created by Polymorph still need to be cleared before a boss can spawn.
+        const goatsRemain = enemies.some(e => e.hp > 0 && (e.kind === 'goatCoin' || e.kind === 'goatHeart'));
         const targetCount = Math.min((6 + SPAWN.wave*2) * DENSITY, WAVE_LIMIT);
-        if (SPAWN.count < WAVE_LIMIT && alive < targetCount && SPAWN.t > SPAWN.cd){
+        if (SPAWN.count < WAVE_LIMIT && livingThreats.length < targetCount && SPAWN.t > SPAWN.cd){
           SPAWN.t = 0;
           let group = Math.min(8, Math.max(2, Math.ceil(DENSITY/2)) * Math.min(4, 1 + Math.floor(SPAWN.wave/2)));
           group = Math.min(group, WAVE_LIMIT - SPAWN.count);
           for (let i=0;i<group; i++){ spawnEnemy(); SPAWN.count++; }
         }
-        if (SPAWN.count >= WAVE_LIMIT && alive === 0){
+        if (SPAWN.count >= WAVE_LIMIT && livingThreats.length === 0 && !goatsRemain){
           if (SPAWN.wave < STAGE_WAVES){
             SPAWN.wave += 1; waveEl.textContent = SPAWN.wave; SPAWN.count = 0; SPAWN.t = 0; SPAWN.keyAssigned = false;
             spawnChest();

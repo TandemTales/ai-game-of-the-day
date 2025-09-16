@@ -1383,6 +1383,10 @@
           if (dropKind === 'coin' && UPGR.doubleCoinChance > 0 && Math.random() < UPGR.doubleCoinChance){ dropCoin(e.x + rand(-6,6), e.y + rand(-6,6)); }
         }
       } else {
+        if (e.sleepT && e.sleepT > 0){
+          e.sleepT = 0;
+          e.sleepMax = 0;
+        }
         // Non-lethal hit: apply knockback impulse (away from source)
         if (kb > 0 && (kx !== 0 || ky !== 0)){
           const d = Math.hypot(kx, ky) || 1;

@@ -739,6 +739,9 @@
     const BASE_ATK_RANGE = 64;
     const EXTENDED_ATK_RANGE = Math.round(BASE_ATK_RANGE * 1.5);
     const ROGUE_ATK_RANGE = Math.round(EXTENDED_ATK_RANGE * 0.75);
+    const ROGUE_BASE_CHEST_CHANCE = 0.05;
+    const ROGUE_CHEST_CHANCE_STEP = 0.05;
+    const PICKPOCKET_MAX_LEVEL = 5;
     const PHYS = { friction: 0.86, atkDur: 0.18, atkRange: BASE_ATK_RANGE, atkArc: Math.PI*0.35 };
     // Knockback tuning
     const KNOCK = { friction: 0.88, melee: 200, orb: 0, nova: 160, projectile: 180 };
@@ -818,6 +821,7 @@
       critChance: 0,
       critMult: 1.6,
       doubleCoinChance: 0,
+      chestChanceBonus: 0,
       dodgeChance: 0,
       orbs: 0,
       orbDmg: 1,
@@ -889,6 +893,11 @@
       if (fromUpgrade && level > 0 && !prev){
         UPGR.fireballTimer = UPGR.fireballPeriod;
       }
+    }
+
+    function refreshPickpocketState(){
+      const level = Math.min(PICKPOCKET_MAX_LEVEL, UPGRADE_LEVELS.pickpocket || 0);
+      UPGR.chestChanceBonus = level * ROGUE_CHEST_CHANCE_STEP;
     }
     let PROJECTILES = [];
     let BOSS_PROJECTILES = [];
@@ -966,6 +975,7 @@
         { id:'crit', type:'Skill', name:'Deadly Precision', desc:'+10% crit chance.', apply:()=>{ UPGR.critChance = Math.min(0.6, UPGR.critChance + 0.10); } },
         { id:'dodge', type:'Skill', name:'Evasion', desc:'Chance to evade incoming hits.', note:'Chance increases with repeats', apply:()=>{ UPGR.dodgeChance = Math.min(0.5, (UPGR.dodgeChance||0) + 0.15); } },
         { id:'heart', type:'Skill', name:'Second Wind', desc:'Max HP +1 and heal 1.', apply:()=>{ P.hpMax += 1; P.hp = Math.min(P.hpMax, P.hp+1); drawHearts(); } },
+        { id:'pickpocket', type:'Skill', name:'Pickpocket', desc:'Increase chest drop chance by 5% per level.', note:'+5% per level (max +25%).', maxLevel:PICKPOCKET_MAX_LEVEL, apply:()=>{ refreshPickpocketState(); } },
         // Rogue-only arrow upgrades
         { id:'barbed', type:'Weapon', name:'Barbed Arrows', desc:'Arrow damage +1.', apply:()=>{ UPGR.arrowDmg += 1; } },
         { id:'rapid', type:'Weapon', name:'Rapid Shot', desc:'Fire arrows 12% faster.', apply:()=>{ UPGR.arrowPeriod = Math.max(0.25, UPGR.arrowPeriod * 0.88); } },
@@ -1069,7 +1079,7 @@
       COINS.value = 0; coinsEl.textContent = COINS.value; SHOP.idx = 0; SHOP.open = false;
       KEYS.value = 0; drawKeys();
       // Reset upgrades and spell state
-      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleCoinChance:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:72, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, polymorph:false, polyPeriod:7, polyTimer:0, polyChance:0, polyLevel:0, polyRadius:0, sleep:false, sleepPeriod:8, sleepTimer:0, sleepChance:0, sleepLevel:0, sleepDuration:0, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1, fireball:false, fireballPeriod:FIREBALL_PERIOD_BASE, fireballTimer:0, fireballRange:0, fireballLevel:0, fireballDmg:FIREBALL_DMG, spellCooldownMult:1, arrowPeriod:0.90, arrowTimer:0, arrowSpeed:360, arrowDmg:1, arrowCount:1, arrowPierce:false });
+      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleCoinChance:0, chestChanceBonus:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:72, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, polymorph:false, polyPeriod:7, polyTimer:0, polyChance:0, polyLevel:0, polyRadius:0, sleep:false, sleepPeriod:8, sleepTimer:0, sleepChance:0, sleepLevel:0, sleepDuration:0, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1, fireball:false, fireballPeriod:FIREBALL_PERIOD_BASE, fireballTimer:0, fireballRange:0, fireballLevel:0, fireballDmg:FIREBALL_DMG, spellCooldownMult:1, arrowPeriod:0.90, arrowTimer:0, arrowSpeed:360, arrowDmg:1, arrowCount:1, arrowPierce:false });
       if (stats.startOrbs) { UPGR.orbs = Math.min(ORB_MAX_COUNT, stats.startOrbs); }
       // Reset upgrade tracking
       for (const k in UPGRADE_LEVELS) delete UPGRADE_LEVELS[k];
@@ -1404,8 +1414,11 @@
           const dropKind = isGoat ? (e.goatDrop || (e.kind === 'goatHeart' ? 'heart' : 'coin')) : 'coin';
           if (dropKind === 'heart'){ dropHeart(e.x, e.y); }
           else { dropCoin(e.x, e.y); }
-          if (currentClass === 'rogue' && Math.random() < 0.10){
-            addChest(e.x, e.y);
+          if (currentClass === 'rogue'){
+            const chestChance = Math.min(1, ROGUE_BASE_CHEST_CHANCE + (UPGR.chestChanceBonus||0));
+            if (Math.random() < chestChance){
+              addChest(e.x, e.y);
+            }
           }
           // Life steal on kill
           if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }
@@ -2862,6 +2875,8 @@
         if (cls !== 'wizard') lines.push(`<div><b>Estimated DPS:</b> ~${estDps} (multistrike x${UPGR.multistrike||1})</div>`);
         lines.push(`<div><b>Melee Range:</b> ${PHYS.atkRange}px, <b>Arc:</b> ${arcDeg}°</div>`);
         if (cls === 'rogue'){
+          const chestChance = Math.min(1, ROGUE_BASE_CHEST_CHANCE + (UPGR.chestChanceBonus||0));
+          lines.push(`<div><b>Chest Drops:</b> ${fmtPct(chestChance)} chance on kill</div>`);
           lines.push(`<div class=\"section\">Bow</div>`);
           lines.push(`<div><b>Arrows:</b> count ${UPGR.arrowCount||1}, period ${UPGR.arrowPeriod.toFixed(2)}s, speed ${fmt(UPGR.arrowSpeed)}, dmg ${UPGR.arrowDmg}${UPGR.arrowPierce?`, pierce ON`:''}</div>`);
         }

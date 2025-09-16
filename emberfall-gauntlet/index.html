@@ -810,6 +810,18 @@
     const SHOP = { milestones: [7, 14, 28, 56, 84, 140, 210, 350, 490, 630, 840], idx: 0, open: false };
     const UPGRADE_LEVELS = Object.create(null);
     const TAKEN_UPGRADES = Object.create(null); // id -> { id, name, type, desc, levels }
+
+    function getPlayerLevel(){
+      let total = 0;
+      for (const key in UPGRADE_LEVELS){
+        total += Number(UPGRADE_LEVELS[key]) || 0;
+      }
+      return Math.max(1, 1 + total);
+    }
+
+    function getRogueChestDropChance(){
+      return Math.min(1, 0.05 * getPlayerLevel());
+    }
     const UPGR = {
       meleeDmg: 1,
       multistrike: 1,
@@ -1404,8 +1416,11 @@
           const dropKind = isGoat ? (e.goatDrop || (e.kind === 'goatHeart' ? 'heart' : 'coin')) : 'coin';
           if (dropKind === 'heart'){ dropHeart(e.x, e.y); }
           else { dropCoin(e.x, e.y); }
-          if (currentClass === 'rogue' && Math.random() < 0.10){
-            addChest(e.x, e.y);
+          if (currentClass === 'rogue'){
+            const chestChance = getRogueChestDropChance();
+            if (Math.random() < chestChance){
+              addChest(e.x, e.y);
+            }
           }
           // Life steal on kill
           if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }

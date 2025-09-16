@@ -105,19 +105,18 @@
     /* Mobile controls */
     .mobile-ctrls {
       position: absolute;
-      left: 12px;
-      right: 12px;
-      bottom: 12px;
+      top: 0;
+      left: 0;
       z-index: 7;
       pointer-events: none;
       display: flex;
+      flex-direction: column;
       align-items: flex-end;
-      justify-content: space-between;
       gap: 16px;
-      flex-wrap: wrap;
+      max-width: 220px;
     }
-    .mobile-ctrls .movement { pointer-events: auto; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
-    .mobile-ctrls .movement .label { font-size: 11px; color: rgba(255,255,255,0.75); letter-spacing: 0.08em; text-transform: uppercase; }
+    .mobile-ctrls .movement { pointer-events: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+    .mobile-ctrls .movement .label { font-size: 11px; color: rgba(255,255,255,0.75); letter-spacing: 0.08em; text-transform: uppercase; text-align: right; }
     .move-pad {
       width: 160px;
       height: 160px;
@@ -1052,6 +1051,57 @@
       if (!isTouch || !ctrls) return;
       ctrls.classList.remove('hidden');
       ctrls.setAttribute('aria-hidden', 'false');
+      ctrls.style.visibility = 'hidden';
+
+      const repositionMobileCtrls = ()=>{
+        const rect = canvas.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        const margin = 12;
+        const gap = 16;
+        const ctrlRect = ctrls.getBoundingClientRect();
+        const ctrlWidth = ctrlRect.width;
+        const ctrlHeight = ctrlRect.height;
+
+        const spaceRight = window.innerWidth - rect.right;
+        const spaceLeft = rect.left;
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const spaceAbove = rect.top;
+
+        let left;
+        let top = rect.top + rect.height / 2 - ctrlHeight / 2;
+
+        if (spaceRight >= ctrlWidth + gap + margin) {
+          left = rect.right + gap;
+        } else if (spaceLeft >= ctrlWidth + gap + margin) {
+          left = rect.left - ctrlWidth - gap;
+        } else {
+          left = window.innerWidth - ctrlWidth - margin;
+          if (spaceBelow >= ctrlHeight + gap + margin) {
+            top = rect.bottom + gap;
+          } else if (spaceAbove >= ctrlHeight + gap + margin) {
+            top = rect.top - ctrlHeight - gap;
+          }
+        }
+
+        const maxLeft = window.innerWidth - ctrlWidth - margin;
+        if (left == null) left = Math.min(rect.right + gap, maxLeft);
+        left = Math.max(margin, Math.min(left, maxLeft));
+
+        const maxTop = window.innerHeight - ctrlHeight - margin;
+        top = Math.max(margin, Math.min(top, maxTop));
+
+        ctrls.style.left = `${Math.round(left)}px`;
+        ctrls.style.top = `${Math.round(top)}px`;
+      };
+
+      const revealControls = ()=>{
+        repositionMobileCtrls();
+        ctrls.style.visibility = '';
+      };
+
+      requestAnimationFrame(revealControls);
+      window.addEventListener('resize', repositionMobileCtrls);
+      window.addEventListener('orientationchange', repositionMobileCtrls);
 
       const btnPause = document.getElementById('btnPause');
       if (btnPause) btnPause.addEventListener('click', ()=> { paused = !paused; });

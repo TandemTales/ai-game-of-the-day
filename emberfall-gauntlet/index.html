@@ -211,6 +211,7 @@
     let VIEW_W = W / MAP_ZOOM;
     let VIEW_H = H / MAP_ZOOM;
     let onViewportDimensionsChanged;
+    let cameraTopMarginWorld = 0;
 
     function getViewportSize() {
       if (window.visualViewport) {
@@ -247,6 +248,12 @@
       canvas.style.width = `${displayWidth}px`;
       canvas.style.height = `${displayHeight}px`;
 
+      const hudRect = hudEl ? hudEl.getBoundingClientRect() : null;
+      const headerRect = headerEl ? headerEl.getBoundingClientRect() : null;
+      const overlayExtent = Math.max(hudRect ? hudRect.bottom : 0, headerRect ? headerRect.bottom : 0);
+      const safePadPx = overlayExtent ? overlayExtent + 16 : 16;
+      cameraTopMarginWorld = (displayHeight > 0) ? (safePadPx / displayHeight) * VIEW_H : 0;
+
       if (onViewportDimensionsChanged) {
         onViewportDimensionsChanged();
       }
@@ -257,6 +264,8 @@
       window.visualViewport.addEventListener('resize', resizeCanvas);
       window.visualViewport.addEventListener('scroll', resizeCanvas);
     }
+    const hudEl = document.querySelector('.hud');
+    const headerEl = document.querySelector('header');
     resizeCanvas();
     const scoreEl = document.getElementById('score');
     const waveEl = document.getElementById('wave');
@@ -2210,8 +2219,11 @@
       ctx.fillStyle = '#0b0f18'; ctx.fillRect(0,0,W,H);
 
       // Update camera to follow player, clamped to the world plus border tiles
+      const minCamY = ARENA.y - cameraTopMarginWorld;
+      const maxCamY = ARENA.y + ARENA.h - VIEW_H;
+      const upperLimit = Math.max(minCamY, maxCamY);
       CAM.x = clamp(P.x - VIEW_W/2, ARENA.x, ARENA.x + ARENA.w - VIEW_W);
-      CAM.y = clamp(P.y - VIEW_H/2, ARENA.y, ARENA.y + ARENA.h - VIEW_H);
+      CAM.y = clamp(P.y - VIEW_H/2, minCamY, upperLimit);
 
       ctx.save();
       ctx.scale(MAP_ZOOM, MAP_ZOOM);

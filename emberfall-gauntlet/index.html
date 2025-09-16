@@ -2110,7 +2110,9 @@
           ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
         }
         // Stun visual: spinning stars above the head while frozen
-        if (e.freezeT && e.freezeT > 0){
+        // Stage 3 boss (Abomination) has a unique silhouette; keep head clear of stun stars.
+        const skipStunStars = e.kind === 'boss' && e.bossType === 'abomination';
+        if (e.freezeT && e.freezeT > 0 && !skipStunStars){
           const cx = e.x;
           const cy = e.y - e.h * 0.85;
           const base = (e.t || 0) * 6; // spin speed

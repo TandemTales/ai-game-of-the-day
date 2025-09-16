@@ -24,7 +24,7 @@
       --emerald: #34d399;
     }
     * { box-sizing: border-box; }
-    html, body { height: 100%; }
+    html, body { height: 100%; min-height: 100vh; min-height: 100dvh; }
     body {
       margin: 0;
       background:
@@ -36,9 +36,9 @@
       overflow: hidden;
       touch-action: manipulation;
     }
-    .wrap { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+    .wrap { position: relative; width: 100%; height: 100%; min-height: 100vh; min-height: 100dvh; overflow: hidden; }
     header {
-      position: absolute; top: 10px; left: 10px; right: 10px; z-index: 5;
+      position: absolute; top: calc(10px + env(safe-area-inset-top)); left: calc(10px + env(safe-area-inset-left)); right: calc(10px + env(safe-area-inset-right)); z-index: 5;
       display: flex; align-items: center; justify-content: space-between; gap: 12px;
     }
     .title { display:flex; align-items:center; gap:12px; }
@@ -58,10 +58,10 @@
     .class-btn img { width:40px; height:40px; image-rendering:pixelated; }
     .class-btn span { margin-top:4px; font-size:10px; color:var(--ink); }
 
-    .stage { position:absolute; inset:0; display:grid; place-items:center; }
-    canvas { width: 960px; height: 540px; image-rendering: pixelated; image-rendering: crisp-edges; border-radius: 12px; border: 3px solid rgba(255,215,0,0.25); background: #0b0f18; }
+    .stage { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+    canvas { image-rendering: pixelated; image-rendering: crisp-edges; border-radius: 12px; border: 3px solid rgba(255,215,0,0.25); background: #0b0f18; display: block; max-width: 100%; max-height: 100%; }
 
-    .hud { position:absolute; top:56px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:18px; z-index:4; }
+    .hud { position:absolute; top: calc(56px + env(safe-area-inset-top)); left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:18px; z-index:4; }
     .chip { background: var(--ui); border: 2px solid var(--gold); color: var(--ink); padding: 8px 12px; border-radius: 10px; font-size: 12px; box-shadow: 0 4px 14px rgba(255,215,0,0.25); }
     .hearts { display:flex; align-items:center; gap: 6px; }
     .hearts img { width: 20px; height: 20px; image-rendering: pixelated; }
@@ -98,12 +98,8 @@
     .card .body { font-size: 12px; color:#cfe9ff; line-height:1.5; }
     .card .note { font-size: 10px; color:#a1ffd4; margin-top:6px; opacity:0.9; }
 
-    @media (max-width: 1100px) {
-      canvas { width: min(96vw, 960px); height: auto; }
-    }
-
     /* Mobile controls */
-    .mobile-ctrls { position: absolute; right: 12px; bottom: 10px; z-index: 7; pointer-events: none; }
+    .mobile-ctrls { position: absolute; right: calc(12px + env(safe-area-inset-right)); bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 7; pointer-events: none; }
     .actions { pointer-events: auto; }
     .ctrl { width: 60px; height: 60px; border-radius: 14px; border: 2px solid var(--gold); background: rgba(0,0,0,0.55); color: #fff; display: grid; place-items: center; font-size: 16px; user-select: none; -webkit-user-select: none; touch-action: none; box-shadow: 0 4px 12px rgba(0,0,0,0.35); }
     .ctrl:active { filter: brightness(1.15); }
@@ -206,6 +202,32 @@
   <script>
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
+
+    function getViewportSize() {
+      if (window.visualViewport) {
+        return { width: window.visualViewport.width, height: window.visualViewport.height };
+      }
+      return { width: window.innerWidth, height: window.innerHeight };
+    }
+
+    function resizeCanvas() {
+      const { width: vw, height: vh } = getViewportSize();
+      const scale = Math.min(vw / canvas.width, vh / canvas.height);
+      if (!Number.isFinite(scale) || scale <= 0) {
+        return;
+      }
+      const displayWidth = Math.max(1, Math.round(canvas.width * scale));
+      const displayHeight = Math.max(1, Math.round(canvas.height * scale));
+      canvas.style.width = `${displayWidth}px`;
+      canvas.style.height = `${displayHeight}px`;
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', resizeCanvas);
+      window.visualViewport.addEventListener('scroll', resizeCanvas);
+    }
+    resizeCanvas();
     const scoreEl = document.getElementById('score');
     const waveEl = document.getElementById('wave');
     const coinsEl = document.getElementById('coins');
@@ -632,7 +654,7 @@
 
     // Game constants
     const W = canvas.width, H = canvas.height;
-    const MAP_ZOOM = 2; // zoom factor for the battle map
+    const MAP_ZOOM = 1.25;//1.75; // zoom factor for the battle map (lower = wider view)
     const VIEW_W = W / MAP_ZOOM, VIEW_H = H / MAP_ZOOM;
     // Arena dimensions will match the chosen map image
     const ARENA = { x: 0, y: 0, w: 0, h: 0 };

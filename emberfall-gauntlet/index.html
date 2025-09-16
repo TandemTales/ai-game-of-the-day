@@ -746,6 +746,7 @@
       shardTimer: 0,
       shardSpeed: 320,
       shardCount: 1,
+      spellCooldownMult: 1,
       // Rogue bow defaults
       arrowPeriod: 0.90,
       arrowTimer: 0,
@@ -785,6 +786,38 @@
 
     let currentMap = null;
 
+    const SPELL_COOLDOWNS = [];
+
+    function registerSpellCooldown({ periodKey, timerKey, container = UPGR, min = 0.1 }){
+      SPELL_COOLDOWNS.push({ periodKey, timerKey, container, min });
+    }
+
+    function reduceSpellCooldowns(mult){
+      if (!Number.isFinite(mult) || mult <= 0) return;
+      for (const entry of SPELL_COOLDOWNS){
+        const store = entry.container;
+        if (!store) continue;
+        const key = entry.periodKey;
+        if (!key || !(key in store)) continue;
+        const prev = store[key];
+        if (!Number.isFinite(prev) || prev <= 0) continue;
+        const min = entry.min ?? 0;
+        const next = Math.max(min, prev * mult);
+        store[key] = next;
+        if (entry.timerKey && entry.timerKey in store){
+          const timer = store[entry.timerKey];
+          if (Number.isFinite(timer) && timer > 0){
+            const ratio = next / prev;
+            store[entry.timerKey] = Math.min(next, timer * ratio);
+          }
+        }
+      }
+    }
+
+    registerSpellCooldown({ periodKey: 'novaPeriod', timerKey: 'novaTimer', min: 2.2 });
+    registerSpellCooldown({ periodKey: 'polyPeriod', timerKey: 'polyTimer', min: 0.5 });
+    registerSpellCooldown({ periodKey: 'shardPeriod', timerKey: 'shardTimer', min: 0.2 });
+
     const POOLS = {
       fighter: [
         { id:'twin', type:'Weapon', name:'Twin Strikes', desc:'Your melee hits strike twice.', note:'+1 multistrike', apply:()=>{ UPGR.multistrike+=1; } },
@@ -819,7 +852,7 @@
         { id:'nova', type:'Spell', name:'Frost Nova', desc:'Every few seconds, blast and slow nearby foes.', note:'Improves with repeats', apply:()=>{ if(!UPGR.nova){ UPGR.nova=true; } else { UPGR.novaPeriod=Math.max(2.2, UPGR.novaPeriod*0.9); UPGR.novaDmg+=1; } } },
         { id:'polymorph', type:'Spell', name:'Polymorph', desc:'Release a transforming wave that turns foes into demon goats that drop coins or hearts.', note:'Chance increases with repeats (max 50%). Bosses are immune.', maxLevel:5, apply:()=>{ refreshPolymorphState(true); } },
         { id:'shards', type:'Spell', name:'Arcane Missiles', desc:'Periodically fire magic missiles.', note:'More with repeats', apply:()=>{ if(!UPGR.shards){ UPGR.shards=true; } else { UPGR.shardCount=Math.min(6, UPGR.shardCount+1); } } },
-        { id:'focus', type:'Spell', name:'Spell Focus', desc:'Cast more often (-12% cooldown).', apply:()=>{ AUTO.atkPeriod = Math.max(0.25, AUTO.atkPeriod*0.88); } },
+        { id:'focus', type:'Spell', name:'Spell Focus', desc:'Reduce all spell cooldowns by 12%.', note:'Stacks multiplicatively', apply:()=>{ const factor = 0.88; reduceSpellCooldowns(factor); UPGR.spellCooldownMult = +(UPGR.spellCooldownMult * factor).toFixed(3); } },
         { id:'wisdom', type:'Upgrade', name:'Wisdom', desc:'Max HP +1 and heal 1.', apply:()=>{ P.hpMax += 1; P.hp = Math.min(P.hpMax, P.hp+1); drawHearts(); } },
       ],
     };
@@ -904,7 +937,7 @@
       COINS.value = 0; coinsEl.textContent = COINS.value; SHOP.idx = 0; SHOP.open = false;
       KEYS.value = 0; drawKeys();
       // Reset upgrades and spell state
-      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleCoinChance:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:72, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, polymorph:false, polyPeriod:7, polyTimer:0, polyChance:0, polyLevel:0, polyRadius:0, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1, arrowPeriod:0.90, arrowTimer:0, arrowSpeed:360, arrowDmg:1, arrowCount:1, arrowPierce:false });
+      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleCoinChance:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:72, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, polymorph:false, polyPeriod:7, polyTimer:0, polyChance:0, polyLevel:0, polyRadius:0, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1, spellCooldownMult:1, arrowPeriod:0.90, arrowTimer:0, arrowSpeed:360, arrowDmg:1, arrowCount:1, arrowPierce:false });
       if (stats.startOrbs) { UPGR.orbs = Math.min(ORB_MAX_COUNT, stats.startOrbs); }
       // Reset upgrade tracking
       for (const k in UPGRADE_LEVELS) delete UPGRADE_LEVELS[k];
@@ -2502,6 +2535,7 @@
         if (cls === 'wizard') lines.push(`<div><b>Frost Nova:</b> ${UPGR.nova?`ON (period ${UPGR.novaPeriod.toFixed(2)}s, dmg ${UPGR.novaDmg})`:'OFF'}</div>`);
         if (cls === 'wizard') lines.push(`<div><b>Polymorph:</b> ${UPGR.polymorph?`ON (chance ${fmtPct(UPGR.polyChance)} per wave, period ${UPGR.polyPeriod.toFixed(2)}s)`:'OFF'}</div>`);
         if (cls === 'wizard') lines.push(`<div><b>Arcane Missiles:</b> ${UPGR.shards?`ON (count ${UPGR.shardCount}, period ${UPGR.shardPeriod.toFixed(2)}s, speed ${UPGR.shardSpeed})`:'OFF'}</div>`);
+        if (cls === 'wizard' && UPGR.spellCooldownMult < 0.999) lines.push(`<div><b>Spell Focus:</b> ${fmtPct(1 - UPGR.spellCooldownMult)} faster cooldowns</div>`);
 
         lines.push(`<div class="section">Survival & Utility</div>`);
         lines.push(`<div><b>Dodge Chance:</b> ${fmtPct(UPGR.dodgeChance)}</div>`);
@@ -2535,7 +2569,7 @@
               case 'nova': stat = `${UPGR.nova?`period ${UPGR.novaPeriod.toFixed(2)}s dmg ${UPGR.novaDmg}`:'OFF'}`; break;
               case 'polymorph': stat = `${UPGR.polymorph?`chance ${fmtPct(UPGR.polyChance)} period ${UPGR.polyPeriod.toFixed(2)}s`:'OFF'}`; break;
               case 'shards': stat = `${UPGR.shards?`count ${UPGR.shardCount} period ${UPGR.shardPeriod.toFixed(2)}s`:'OFF'}`; break;
-              case 'focus': stat = `attack period ${AUTO.atkPeriod.toFixed(2)}s`; break;
+              case 'focus': stat = `spell CD ${fmtPct(1 - UPGR.spellCooldownMult)} faster`; break;
               case 'piercing': stat = `pierce ON`; break;
               case 'barbed': stat = `arrow dmg ${UPGR.arrowDmg}`; break;
               case 'rapid': stat = `arrow period ${UPGR.arrowPeriod.toFixed(2)}s`; break;

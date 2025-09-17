@@ -668,6 +668,10 @@
       chestOpen: new Image(),
       shield: new Image(),
       swampTree03: new Image(),
+      swampBush03: new Image(),
+      swampBush04: new Image(),
+      swampRock02: new Image(),
+      swampRock03: new Image(),
       hero: CLASS_IMG.fighter,
     };
     IMG.coin.src = 'assets/eg_coin.svg';
@@ -680,6 +684,10 @@
     // Inline SVG shield image (horizontal, pointed to the right)
     IMG.shield.src = "assets/EG_shield.png";
     IMG.swampTree03.src = 'assets/EG_terrain_swamp_tree03_small.png';
+    IMG.swampBush03.src = 'assets/EG_terrain_swamp_bush03_small.png';
+    IMG.swampBush04.src = 'assets/EG_terrain_swamp_bush04_small.png';
+    IMG.swampRock02.src = 'assets/EG_terrain_swamp_rock02_small.png';
+    IMG.swampRock03.src = 'assets/EG_terrain_swamp_rock03_small.png';
 
     const MAP_FILES = [
       'assets/EG_map_mirewatch01.png',
@@ -690,17 +698,213 @@
     ];
     const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
 
+    const TERRAIN_MIN_DISTANCE = 150;
+    const TERRAIN_BASE_ATTEMPTS = 200;
+
+    function generateStageZeroTerrain(){
+      if (!ARENA || !ARENA.w || !ARENA.h) return [];
+
+      const marginX = Math.max(72, Math.min(ARENA.w * 0.08, 140));
+      const marginY = Math.max(72, Math.min(ARENA.h * 0.08, 140));
+      const minX = ARENA.x + marginX;
+      const maxX = ARENA.x + ARENA.w - marginX;
+      const minY = ARENA.y + marginY;
+      const maxY = ARENA.y + ARENA.h - marginY;
+      if (minX >= maxX || minY >= maxY) return [];
+
+      const centerX = ARENA.x + ARENA.w / 2;
+      const centerY = ARENA.y + ARENA.h / 2;
+      const centerHalfW = Math.min(ARENA.w * 0.25, 260);
+      const centerHalfH = Math.min(ARENA.h * 0.25, 220);
+
+      const treeWidth = IMG.swampTree03.width || 128;
+      const treeHeight = IMG.swampTree03.height || 128;
+      const bush03Width = ((IMG.swampBush03.width || 0) * 0.5) || 64;
+      const bush03Height = ((IMG.swampBush03.height || 0) * 0.5) || 64;
+      const bush04Width = ((IMG.swampBush04.width || 0) * 0.5) || 64;
+      const bush04Height = ((IMG.swampBush04.height || 0) * 0.5) || 64;
+      const rock02Width = ((IMG.swampRock02.width || 0) * 0.5) || 64;
+      const rock02Height = ((IMG.swampRock02.height || 0) * 0.5) || 64;
+      const rock03Width = ((IMG.swampRock03.width || 0) * 0.5) || 64;
+      const rock03Height = ((IMG.swampRock03.height || 0) * 0.5) || 64;
+
+      const meta = {
+        tree: {
+          img: IMG.swampTree03,
+          anchor: 'bottom',
+          width: treeWidth,
+          height: treeHeight,
+          collider: { w: 64, h: 64, anchor: 'bottom' },
+        },
+        bush03: {
+          img: IMG.swampBush03,
+          anchor: 'bottom',
+          width: bush03Width,
+          height: bush03Height,
+          collider: { w: bush03Width * 0.7, h: bush03Height * 0.5, anchor: 'bottom' },
+        },
+        bush04: {
+          img: IMG.swampBush04,
+          anchor: 'bottom',
+          width: bush04Width,
+          height: bush04Height,
+          collider: { w: bush04Width * 0.7, h: bush04Height * 0.5, anchor: 'bottom' },
+        },
+        rock02: {
+          img: IMG.swampRock02,
+          anchor: 'bottom',
+          width: rock02Width,
+          height: rock02Height,
+          collider: { w: rock02Width * 0.8, h: rock02Height * 0.6, anchor: 'bottom' },
+        },
+        rock03: {
+          img: IMG.swampRock03,
+          anchor: 'bottom',
+          width: rock03Width,
+          height: rock03Height,
+          collider: { w: rock03Width * 0.8, h: rock03Height * 0.6, anchor: 'bottom' },
+        },
+      };
+
+      const placements = [];
+      const results = [];
+      const counts = { tree: 3, bush03: 5, bush04: 5, rock02: 6, rock03: 6 };
+
+      function withinBounds(x, y){
+        return x >= minX && x <= maxX && y >= minY && y <= maxY;
+      }
+
+      function inCenterClear(x, y){
+        return Math.abs(x - centerX) < centerHalfW && Math.abs(y - centerY) < centerHalfH;
+      }
+
+      function hasSpacing(x, y, ignore = null){
+        for (const p of placements){
+          if (ignore && p === ignore) continue;
+          if (Math.hypot(x - p.x, y - p.y) < TERRAIN_MIN_DISTANCE) return false;
+        }
+        return true;
+      }
+
+      function farFromTrees(x, y, dist){
+        for (const p of placements){
+          if (p.type !== 'tree') continue;
+          if (Math.hypot(x - p.x, y - p.y) < dist) return false;
+        }
+        return true;
+      }
+
+      function recordPlacement(type, x, y){
+        const cfg = meta[type];
+        if (!cfg) return null;
+        const obj = {
+          img: cfg.img,
+          x,
+          y,
+          sortY: y,
+          anchor: cfg.anchor,
+        };
+        if (cfg.width) obj.w = cfg.width;
+        if (cfg.height) obj.h = cfg.height;
+        if (cfg.collider) obj.collider = { ...cfg.collider };
+        const placement = { type, x, y, obj };
+        placements.push(placement);
+        results.push(obj);
+        return placement;
+      }
+
+      function findPosition(opts = {}){
+        const attempts = opts.attempts || TERRAIN_BASE_ATTEMPTS;
+        const avoidUntil = opts.allowCenterAfter != null ? opts.allowCenterAfter : Math.floor(attempts * 0.6);
+        for (let i = 0; i < attempts; i++){
+          const x = Math.round(rand(minX, maxX));
+          const y = Math.round(rand(minY, maxY));
+          if (!withinBounds(x, y)) continue;
+          if (i < avoidUntil && inCenterClear(x, y)) continue;
+          if (!hasSpacing(x, y)) continue;
+          if (opts.filter && !opts.filter(x, y)) continue;
+          return { x, y };
+        }
+        return null;
+      }
+
+      function placeGeneral(type, opts = {}){
+        const primary = findPosition(opts);
+        if (primary) return recordPlacement(type, primary.x, primary.y);
+        const relaxed = findPosition({ ...opts, allowCenterAfter: 0 });
+        if (!relaxed) return null;
+        return recordPlacement(type, relaxed.x, relaxed.y);
+      }
+
+      function placeNear(type, target, range = {}, filter){
+        if (!target) return null;
+        const min = range.min != null ? range.min : TERRAIN_MIN_DISTANCE;
+        const max = range.max != null ? Math.max(range.max, min) : min + 160;
+        const attempts = range.attempts || TERRAIN_BASE_ATTEMPTS;
+        for (let phase = 0; phase < 2; phase++){
+          for (let i = 0; i < attempts; i++){
+            const dist = rand(min, max);
+            const angle = rand(0, Math.PI * 2);
+            const x = Math.round(target.x + Math.cos(angle) * dist);
+            const y = Math.round(target.y + Math.sin(angle) * dist);
+            if (!withinBounds(x, y)) continue;
+            if (phase === 0 && inCenterClear(x, y)) continue;
+            if (!hasSpacing(x, y, target)) continue;
+            const actual = Math.hypot(x - target.x, y - target.y);
+            if (actual < min || actual > max) continue;
+            if (filter && !filter(x, y)) continue;
+            return recordPlacement(type, x, y);
+          }
+        }
+        return null;
+      }
+
+      function placeRemaining(type, opts){
+        while (counts[type] > 0){
+          const placed = placeGeneral(type, opts);
+          if (!placed) break;
+          counts[type]--;
+        }
+      }
+
+      const treeForRock = placeGeneral('tree');
+      if (treeForRock) counts.tree--;
+      let rockNearTree = treeForRock ? placeNear('rock02', treeForRock, { min: TERRAIN_MIN_DISTANCE, max: TERRAIN_MIN_DISTANCE + 140 }) : null;
+      if (!rockNearTree && treeForRock) {
+        rockNearTree = placeNear('rock02', treeForRock, { min: TERRAIN_MIN_DISTANCE, max: TERRAIN_MIN_DISTANCE + 220, attempts: TERRAIN_BASE_ATTEMPTS * 2 });
+      }
+      if (rockNearTree) counts.rock02--;
+
+      const treeForBush = placeGeneral('tree');
+      if (treeForBush) counts.tree--;
+      let bushNearTree = treeForBush ? placeNear('bush03', treeForBush, { min: TERRAIN_MIN_DISTANCE, max: TERRAIN_MIN_DISTANCE + 140 }) : null;
+      if (!bushNearTree && treeForBush) {
+        bushNearTree = placeNear('bush03', treeForBush, { min: TERRAIN_MIN_DISTANCE, max: TERRAIN_MIN_DISTANCE + 220, attempts: TERRAIN_BASE_ATTEMPTS * 2 });
+      }
+      if (bushNearTree) counts.bush03--;
+
+      const extraTree = placeGeneral('tree');
+      if (extraTree) counts.tree--;
+
+      const bushForRock = placeGeneral('bush04', { filter: (x, y) => farFromTrees(x, y, 200) });
+      if (bushForRock) counts.bush04--;
+      let rockNearBush = bushForRock ? placeNear('rock03', bushForRock, { min: TERRAIN_MIN_DISTANCE, max: TERRAIN_MIN_DISTANCE + 140 }, (x, y) => farFromTrees(x, y, 200)) : null;
+      if (!rockNearBush && bushForRock) {
+        rockNearBush = placeNear('rock03', bushForRock, { min: TERRAIN_MIN_DISTANCE, max: TERRAIN_MIN_DISTANCE + 220, attempts: TERRAIN_BASE_ATTEMPTS * 2 }, (x, y) => farFromTrees(x, y, 200));
+      }
+      if (rockNearBush) counts.rock03--;
+
+      placeRemaining('tree');
+      placeRemaining('bush03');
+      placeRemaining('bush04');
+      placeRemaining('rock02');
+      placeRemaining('rock03');
+
+      return results;
+    }
+
     const STAGE_TERRAIN_TEMPLATES = Array.from({ length: MAP_FILES.length }, () => []);
-    STAGE_TERRAIN_TEMPLATES[0] = [
-      {
-        img: IMG.swampTree03,
-        x: 288,
-        y: 704,
-        anchor: 'bottom',
-        sortY: 704,
-        collider: { w: 64, h: 64, anchor: 'bottom' },
-      },
-    ];
+    STAGE_TERRAIN_TEMPLATES[0] = generateStageZeroTerrain;
 
     let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length + Object.keys(GOAT_ANIM).length + Object.keys(MUCK_PROJECTILE_ANIM).length + Object.keys(HILL_GIANT_PROJECTILE_ANIM).length + Object.keys(SLIME_PROJECTILE_ANIM).length + Object.keys(FIREBALL_PROJECTILE_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -976,7 +1180,9 @@
     }
 
     function applyStageTerrain(stageIndex){
-      const defs = STAGE_TERRAIN_TEMPLATES[stageIndex] || [];
+      let defs = STAGE_TERRAIN_TEMPLATES[stageIndex] || [];
+      if (typeof defs === 'function') defs = defs();
+      if (!Array.isArray(defs)) defs = [];
       terrainObjects = defs.map(cloneTerrainObject).filter(Boolean);
       rebuildTerrainColliders();
     }

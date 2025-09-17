@@ -744,7 +744,20 @@
     const ENEMY_SPEED = Math.round(ENEMY.spd * 0.45);
     const GOAT = { w: 32, h: 32, frames: 4, animRate: 0.2 };
     // Simple AI tuning: chase when close, wander when far; keep away from arena walls
-    const AI = { chaseRadius: 300, wanderMin: 0.8, wanderMax: 2.0, wallPad: 12, sepRadius: 28, sepWeight: 1.0 };
+    const AI = {
+      chaseRadius: 300,
+      wanderMin: 0.8,
+      wanderMax: 2.0,
+      wallPad: 12,
+      sepRadius: 28,
+      sepWeight: 1.0,
+      lookAhead: 64,
+      lookStep: 18,
+      blockPenalty: 900,
+      turnPenalty: 120,
+      futureWeight: 0.45,
+      chaseOffsets: [0, Math.PI / 6, -Math.PI / 6, Math.PI / 3, -Math.PI / 3, Math.PI / 2, -Math.PI / 2],
+    };
     let DENSITY = 1;
     const DROP = { w: 18, h: 18 };
     onViewportDimensionsChanged = () => {
@@ -1039,6 +1052,25 @@
       entity.x = ex;
       entity.y = ey;
       return result;
+    }
+
+    function willCollideWithTerrain(entity, x, y, { scaleX = 0.5, scaleY = scaleX } = {}){
+      if (!terrainColliders.length || !entity) return false;
+      const halfW = (entity.w || 0) * scaleX;
+      const halfH = (entity.h || entity.w || 0) * scaleY;
+      if (!(halfW > 0 && halfH > 0)) return false;
+      const minX = x - halfW;
+      const maxX = x + halfW;
+      const minY = y - halfH;
+      const maxY = y + halfH;
+      for (const coll of terrainColliders){
+        const bounds = getColliderBounds(coll);
+        if (!bounds) continue;
+        if (maxX > bounds.minX && minX < bounds.maxX && maxY > bounds.minY && minY < bounds.maxY){
+          return true;
+        }
+      }
+      return false;
     }
     // Debug: toggle drawing collision AABBs with '[' key
     let DEBUG_HITBOX = false;
@@ -1996,8 +2028,48 @@
         } else {
           // Chase player when close
           const [bdx,bdy]=norm(dx,dy);
+          let chaseDx = bdx;
+          let chaseDy = bdy;
+          const lookAhead = AI.lookAhead || 0;
+          if (lookAhead > 0){
+            const baseAng = Math.atan2(dy, dx);
+            const offsets = AI.chaseOffsets || [0];
+            const stepDist = Math.max(8, AI.lookStep || lookAhead);
+            const steps = Math.max(1, Math.round(lookAhead / stepDist));
+            const blockPenalty = AI.blockPenalty || 0;
+            const turnPenalty = AI.turnPenalty || 0;
+            const futureWeight = AI.futureWeight || 0;
+            let bestDir = null;
+            for (const offset of offsets){
+              const ang = baseAng + offset;
+              const dirX = Math.cos(ang);
+              const dirY = Math.sin(ang);
+              let score = Math.abs(offset) * turnPenalty;
+              for (let s=1; s<=steps; s++){
+                const distAhead = Math.min(lookAhead, s * stepDist);
+                const testX = e.x + dirX * distAhead;
+                const testY = e.y + dirY * distAhead;
+                if (willCollideWithTerrain(e, testX, testY, { scaleX: 0.5, scaleY: 0.5 })){
+                  score += blockPenalty * (1 + (steps - s) / steps);
+                  break;
+                }
+              }
+              const futureX = e.x + dirX * lookAhead;
+              const futureY = e.y + dirY * lookAhead;
+              const futureDX = P.x - futureX;
+              const futureDY = P.y - futureY;
+              score += Math.hypot(futureDX, futureDY) * futureWeight;
+              if (!bestDir || score < bestDir.score){
+                bestDir = { score, dx: dirX, dy: dirY };
+              }
+            }
+            if (bestDir){
+              chaseDx = bestDir.dx;
+              chaseDy = bestDir.dy;
+            }
+          }
           // Blend chase with separation, then normalize to maintain speed
-          let cdx = bdx + rx * AI.sepWeight, cdy = bdy + ry * AI.sepWeight;
+          let cdx = chaseDx + rx * AI.sepWeight, cdy = chaseDy + ry * AI.sepWeight;
           const nd = Math.hypot(cdx, cdy) || 1; cdx /= nd; cdy /= nd;
           e.vx = cdx * speed; e.vy = cdy * speed;
           e.x += e.vx*dt; e.y += e.vy*dt;

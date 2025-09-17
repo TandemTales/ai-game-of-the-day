@@ -667,6 +667,7 @@
       chest: new Image(),
       chestOpen: new Image(),
       shield: new Image(),
+      swampTree03: new Image(),
       hero: CLASS_IMG.fighter,
     };
     IMG.coin.src = 'assets/eg_coin.svg';
@@ -678,6 +679,7 @@
     IMG.chestOpen.src = 'assets/EG_chest_open_small.png';
     // Inline SVG shield image (horizontal, pointed to the right)
     IMG.shield.src = "assets/EG_shield.png";
+    IMG.swampTree03.src = 'assets/EG_terrain_swamp_tree03_small.png';
 
     const MAP_FILES = [
       'assets/EG_map_mirewatch01.png',
@@ -687,6 +689,18 @@
       'assets/EG_map_mountain01.png',
     ];
     const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
+
+    const STAGE_TERRAIN_TEMPLATES = Array.from({ length: MAP_FILES.length }, () => []);
+    STAGE_TERRAIN_TEMPLATES[0] = [
+      {
+        img: IMG.swampTree03,
+        x: 288,
+        y: 704,
+        anchor: 'bottom',
+        sortY: 704,
+        collider: { w: 64, h: 64, anchor: 'bottom' },
+      },
+    ];
 
     let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length + Object.keys(GOAT_ANIM).length + Object.keys(MUCK_PROJECTILE_ANIM).length + Object.keys(HILL_GIANT_PROJECTILE_ANIM).length + Object.keys(SLIME_PROJECTILE_ANIM).length + Object.keys(FIREBALL_PROJECTILE_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -916,6 +930,116 @@
     let drops = [];
     let chests = [];
     let terrainObjects = [];
+    let terrainColliders = [];
+
+    function cloneTerrainObject(def){
+      if (!def) return null;
+      const copy = { ...def };
+      if (def.collider) copy.collider = { ...def.collider };
+      return copy;
+    }
+
+    function rebuildTerrainColliders(){
+      terrainColliders = [];
+      for (const obj of terrainObjects){
+        if (!obj || !obj.collider) continue;
+        const coll = obj.collider;
+        const w = Number(coll.w) || 0;
+        const h = Number(coll.h) || 0;
+        if (w <= 0 || h <= 0) continue;
+        const anchor = coll.anchor || 'center';
+        const offsetX = Number(coll.offsetX) || 0;
+        const offsetY = Number(coll.offsetY) || 0;
+        const baseX = Number.isFinite(coll.x) ? coll.x : (obj.x ?? 0);
+        const baseY = Number.isFinite(coll.y) ? coll.y : (obj.y ?? 0);
+        terrainColliders.push({
+          x: baseX + offsetX,
+          y: baseY + offsetY,
+          w,
+          h,
+          anchor,
+        });
+      }
+    }
+
+    function applyStageTerrain(stageIndex){
+      const defs = STAGE_TERRAIN_TEMPLATES[stageIndex] || [];
+      terrainObjects = defs.map(cloneTerrainObject).filter(Boolean);
+      rebuildTerrainColliders();
+    }
+
+    function getColliderBounds(coll){
+      if (!coll) return null;
+      const w = coll.w;
+      const h = coll.h;
+      if (!(w > 0 && h > 0)) return null;
+      const anchor = coll.anchor || 'center';
+      const x = coll.x || 0;
+      const y = coll.y || 0;
+      const minX = x - w / 2;
+      const maxX = x + w / 2;
+      let minY;
+      let maxY;
+      if (anchor === 'bottom'){
+        maxY = y;
+        minY = y - h;
+      } else if (anchor === 'top'){
+        minY = y;
+        maxY = y + h;
+      } else {
+        minY = y - h / 2;
+        maxY = y + h / 2;
+      }
+      return { minX, minY, maxX, maxY };
+    }
+
+    function resolveTerrainCollision(entity, { scaleX = 0.5, scaleY = scaleX } = {}){
+      const result = { collided: false, collidedX: false, collidedY: false };
+      if (!terrainColliders.length || !entity) return result;
+      const halfW = (entity.w || 0) * scaleX;
+      const halfH = (entity.h || entity.w || 0) * scaleY;
+      if (!(halfW > 0 && halfH > 0)) return result;
+      let ex = entity.x;
+      let ey = entity.y;
+      for (const coll of terrainColliders){
+        const bounds = getColliderBounds(coll);
+        if (!bounds) continue;
+        let iterations = 0;
+        while (iterations < 4){
+          const minX = ex - halfW;
+          const maxX = ex + halfW;
+          const minY = ey - halfH;
+          const maxY = ey + halfH;
+          if (maxX <= bounds.minX || minX >= bounds.maxX || maxY <= bounds.minY || minY >= bounds.maxY){
+            break;
+          }
+          const overlapLeft = maxX - bounds.minX;
+          const overlapRight = bounds.maxX - minX;
+          const overlapTop = maxY - bounds.minY;
+          const overlapBottom = bounds.maxY - minY;
+          const penX = Math.min(overlapLeft, overlapRight);
+          const penY = Math.min(overlapTop, overlapBottom);
+          if (penX <= 0 || penY <= 0) break;
+          if (penX < penY){
+            const centerX = (minX + maxX) / 2;
+            const colliderCenterX = (bounds.minX + bounds.maxX) / 2;
+            ex += centerX < colliderCenterX ? -penX : penX;
+            result.collided = true;
+            result.collidedX = true;
+          } else {
+            const centerY = (minY + maxY) / 2;
+            const colliderCenterY = (bounds.minY + bounds.maxY) / 2;
+            ey += centerY < colliderCenterY ? -penY : penY;
+            result.collided = true;
+            result.collidedY = true;
+          }
+          iterations++;
+        }
+      }
+      entity.x = ex;
+      entity.y = ey;
+      return result;
+    }
     // Debug: toggle drawing collision AABBs with '[' key
     let DEBUG_HITBOX = false;
     let paused = false, running = false, gameOverHandled = false;
@@ -1069,6 +1193,7 @@
       currentMap = MAPS[0];
       ARENA.x = 0; ARENA.y = 0; ARENA.w = currentMap.width; ARENA.h = currentMap.height;
       DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / VIEW_W, ARENA.h / VIEW_H) * 1.5));
+      applyStageTerrain(stage);
       drawHearts();
       attachControls();
       setupMobileControls();
@@ -1088,12 +1213,13 @@
       currentMap = MAPS[stage];
       ARENA.x = 0; ARENA.y = 0; ARENA.w = currentMap.width; ARENA.h = currentMap.height;
       DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / VIEW_W, ARENA.h / VIEW_H) * 1.5));
-      enemies = []; drops = []; chests = []; terrainObjects = []; PARTICLES.length = 0; BOSS_PROJECTILES = [];
+      enemies = []; drops = []; chests = []; terrainObjects = []; terrainColliders = []; PARTICLES.length = 0; BOSS_PROJECTILES = [];
       // Ensure hero visuals and aim face down on stage start
       WIZ_ANIM_STATE.dir = 'down'; WIZ_ANIM_STATE.frame = 0; WIZ_ANIM_STATE.t = 0;
       FIGHT_ANIM_STATE.dir = 'down'; FIGHT_ANIM_STATE.frame = 0; FIGHT_ANIM_STATE.t = 0;
       ROGUE_ANIM_STATE.dir = 'down'; ROGUE_ANIM_STATE.frame = 0; ROGUE_ANIM_STATE.t = 0;
       Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:Math.PI/2, aimDir:Math.PI/2, swingAim:Math.PI/2, iT:0, atkT:0, autoT:0 });
+      applyStageTerrain(stage);
       const stageMult = Math.pow(1.2, stage);
       Object.assign(SPAWN, { t:0, cd:2.2 / stageMult, wave:1, count:0, keyAssigned:false });
       updateWaveLimit();
@@ -1773,6 +1899,9 @@
       const pF = Math.pow(PHYS.friction, dt * 60);
       P.vx *= pF; P.vy *= pF;
       P.x += P.vx*dt; P.y += P.vy*dt;
+      const pTerrainHit = resolveTerrainCollision(P, { scaleX: 0.5, scaleY: 0.5 });
+      if (pTerrainHit.collidedX) P.vx = 0;
+      if (pTerrainHit.collidedY) P.vy = 0;
       // Clamp to arena
         P.x = clamp(P.x, ARENA.x+24, ARENA.x+ARENA.w-24); P.y = clamp(P.y, ARENA.y+24, ARENA.y+ARENA.h-24);
         if (currentClass === 'wizard') updateWizardAnim(dt);
@@ -1889,6 +2018,9 @@
         }
         // Final boundary clamp
         clampToArena(e, AI.wallPad);
+        const eTerrainHit = resolveTerrainCollision(e, { scaleX: 0.5, scaleY: 0.5 });
+        if (eTerrainHit.collidedX){ e.vx = 0; e.kx = 0; }
+        if (eTerrainHit.collidedY){ e.vy = 0; e.ky = 0; }
 
         if (e.kind === 'boss'){
           if (!sleeping){
@@ -2844,6 +2976,16 @@
           const ehh = e.h * sc.y;
           ctx.fillRect(e.x - ehw, e.y - ehh, ehw*2, ehh*2);
           ctx.strokeRect(e.x - ehw, e.y - ehh, ehw*2, ehh*2);
+        }
+        ctx.strokeStyle = 'rgba(0,128,255,0.9)';
+        ctx.fillStyle = 'rgba(0,128,255,0.18)';
+        for (const coll of terrainColliders){
+          const bounds = getColliderBounds(coll);
+          if (!bounds) continue;
+          const w = bounds.maxX - bounds.minX;
+          const h = bounds.maxY - bounds.minY;
+          ctx.fillRect(bounds.minX, bounds.minY, w, h);
+          ctx.strokeRect(bounds.minX, bounds.minY, w, h);
         }
         ctx.restore();
       }

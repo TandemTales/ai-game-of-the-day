@@ -985,7 +985,7 @@
         { id:'barbed', type:'Weapon', name:'Barbed Arrows', desc:'Arrow damage +1.', apply:()=>{ UPGR.arrowDmg += 1; } },
         { id:'rapid', type:'Weapon', name:'Rapid Shot', desc:'Fire arrows 12% faster.', apply:()=>{ UPGR.arrowPeriod = Math.max(0.25, UPGR.arrowPeriod * 0.88); } },
         { id:'fletching', type:'Weapon', name:'Fine Fletching', desc:'Increase arrow speed by 20%.', apply:()=>{ UPGR.arrowSpeed = Math.round(UPGR.arrowSpeed * 1.2); } },
-        { id:'multishot', type:'Weapon', name:'Multishot', desc:'Fire an additional arrow.', note:'+1 arrow (up to 5)', apply:()=>{ UPGR.arrowCount = Math.min(5, (UPGR.arrowCount||1) + 1); } },
+        { id:'multishot', type:'Weapon', name:'Multishot', desc:'Fire an additional arrow.', note:'+1 arrow (up to 5)', maxLevel: 4, apply:()=>{ UPGR.arrowCount = Math.min(5, (UPGR.arrowCount||1) + 1); } },
         { id:'piercing', type:'Weapon', name:'Piercing Shot', desc:'Arrows pass through enemies.', note:'Unique', unique:true, apply:()=>{ UPGR.arrowPierce = true; } },
       ],
       wizard: [

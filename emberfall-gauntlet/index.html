@@ -660,29 +660,78 @@
       heart: new Image(),
       shadow: new Image(),
       spark: new Image(),
-      chest: new Image(),
-      chestOpen: new Image(),
-      shield: new Image(),
-      hero: CLASS_IMG.fighter,
-    };
+    chest: new Image(),
+    chestOpen: new Image(),
+    shield: new Image(),
+    swampTree01: new Image(),
+    hero: CLASS_IMG.fighter,
+  };
     IMG.coin.src = 'assets/eg_coin.svg';
     IMG.key.src = 'assets/EG_key_small.png';
     IMG.heart.src = 'assets/eg_heart.svg';
     IMG.shadow.src = 'assets/eg_shadow.svg';
     IMG.spark.src = 'assets/eg_spark.svg';
-    IMG.chest.src = 'assets/EG_chest_closed_small.png';
-    IMG.chestOpen.src = 'assets/EG_chest_open_small.png';
-    // Inline SVG shield image (horizontal, pointed to the right)
-    IMG.shield.src = "assets/EG_shield.png";
+  IMG.chest.src = 'assets/EG_chest_closed_small.png';
+  IMG.chestOpen.src = 'assets/EG_chest_open_small.png';
+  // Inline SVG shield image (horizontal, pointed to the right)
+  IMG.shield.src = "assets/EG_shield.png";
+  IMG.swampTree01.src = 'assets/EG_terrain_swamp_tree01_small.png';
 
-    const MAP_FILES = [
-      'assets/EG_map_mirewatch01.png',
-      'assets/EG_map_forest01.png',
-      'assets/EG_map_feywild01.png',
-      'assets/EG_map_corruption01.png',
-      'assets/EG_map_mountain01.png',
-    ];
-    const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
+  const MAP_FILES = [
+    'assets/EG_map_mirewatch01.png',
+    'assets/EG_map_forest01.png',
+    'assets/EG_map_feywild01.png',
+    'assets/EG_map_corruption01.png',
+    'assets/EG_map_mountain01.png',
+  ];
+  const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
+
+  const MAP_DECOR_CONFIG = [
+    [
+      {
+        imgKey: 'swampTree01',
+        x: 320,
+        y: 420,
+        width: 256,
+        height: 256,
+        collWidth: 128,
+        collHeight: 128,
+        layer: 'top',
+      },
+    ],
+    [],
+    [],
+    [],
+    [],
+  ];
+
+  let stageDecor = [];
+
+  function buildStageDecor(idx){
+    const defs = MAP_DECOR_CONFIG[idx] || [];
+    stageDecor = defs.map(cfg => {
+      const img = IMG[cfg.imgKey];
+      const width = cfg.width ?? (img?.width || 0);
+      const height = cfg.height ?? (img?.height || 0);
+      const collWidth = cfg.collWidth ?? width;
+      const collHeight = cfg.collHeight ?? height;
+      const collider = (collWidth > 0 && collHeight > 0) ? {
+        x: cfg.x - collWidth / 2,
+        y: cfg.y - collHeight,
+        w: collWidth,
+        h: collHeight,
+      } : null;
+      return {
+        ...cfg,
+        img,
+        width,
+        height,
+        drawX: cfg.x - width / 2,
+        drawY: cfg.y - height,
+        collider,
+      };
+    });
+  }
 
     let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length + Object.keys(GOAT_ANIM).length + Object.keys(MUCK_PROJECTILE_ANIM).length + Object.keys(HILL_GIANT_PROJECTILE_ANIM).length + Object.keys(SLIME_PROJECTILE_ANIM).length + Object.keys(FIREBALL_PROJECTILE_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -1019,6 +1068,7 @@
 
     function init() {
       currentMap = MAPS[0];
+      buildStageDecor(0);
       ARENA.x = 0; ARENA.y = 0; ARENA.w = currentMap.width; ARENA.h = currentMap.height;
       DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / VIEW_W, ARENA.h / VIEW_H) * 1.5));
       drawHearts();
@@ -1038,6 +1088,7 @@
     function loadStage() {
       if (currentTracks !== STANDARD_TRACKS) switchMusic(STANDARD_TRACKS);
       currentMap = MAPS[stage];
+      buildStageDecor(stage);
       ARENA.x = 0; ARENA.y = 0; ARENA.w = currentMap.width; ARENA.h = currentMap.height;
       DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / VIEW_W, ARENA.h / VIEW_H) * 1.5));
       enemies = []; drops = []; chests = []; PARTICLES.length = 0; BOSS_PROJECTILES = [];
@@ -1207,6 +1258,54 @@
       obj.x = clamp(obj.x, ARENA.x + pad, ARENA.x + ARENA.w - pad);
       obj.y = clamp(obj.y, ARENA.y + pad, ARENA.y + ARENA.h - pad);
     };
+
+    function resolveDecorCollisions(obj, halfW, halfH){
+      if (!stageDecor.length) return;
+      const hx = Number.isFinite(halfW) ? halfW : ((obj.w || 0) * 0.35);
+      const hy = Number.isFinite(halfH) ? halfH : ((obj.h || 0) * 0.28);
+      if (!(hx > 0 && hy > 0)) return;
+      for (const deco of stageDecor){
+        const col = deco.collider;
+        if (!col) continue;
+        const ex1 = obj.x - hx;
+        const ex2 = obj.x + hx;
+        const ey1 = obj.y - hy;
+        const ey2 = obj.y + hy;
+        const cx1 = col.x;
+        const cx2 = col.x + col.w;
+        const cy1 = col.y;
+        const cy2 = col.y + col.h;
+        const overlapX = Math.min(ex2, cx2) - Math.max(ex1, cx1);
+        const overlapY = Math.min(ey2, cy2) - Math.max(ey1, cy1);
+        if (overlapX > 0 && overlapY > 0){
+          if (overlapX < overlapY){
+            const entityCenterX = (ex1 + ex2) / 2;
+            const colliderCenterX = (cx1 + cx2) / 2;
+            if (entityCenterX < colliderCenterX){
+              obj.x -= overlapX;
+              if ('vx' in obj && obj.vx > 0) obj.vx = 0;
+              if ('kx' in obj && obj.kx > 0) obj.kx = 0;
+            } else {
+              obj.x += overlapX;
+              if ('vx' in obj && obj.vx < 0) obj.vx = 0;
+              if ('kx' in obj && obj.kx < 0) obj.kx = 0;
+            }
+          } else {
+            const entityCenterY = (ey1 + ey2) / 2;
+            const colliderCenterY = (cy1 + cy2) / 2;
+            if (entityCenterY < colliderCenterY){
+              obj.y -= overlapY;
+              if ('vy' in obj && obj.vy > 0) obj.vy = 0;
+              if ('ky' in obj && obj.ky > 0) obj.ky = 0;
+            } else {
+              obj.y += overlapY;
+              if ('vy' in obj && obj.vy < 0) obj.vy = 0;
+              if ('ky' in obj && obj.ky < 0) obj.ky = 0;
+            }
+          }
+        }
+      }
+    }
     const len = (x,y)=>Math.hypot(x,y);
     const norm = (x,y)=>{const l=Math.hypot(x,y)||1;return [x/l,y/l];};
     const angleDiff = (a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
@@ -1726,10 +1825,12 @@
       P.vx *= pF; P.vy *= pF;
       P.x += P.vx*dt; P.y += P.vy*dt;
       // Clamp to arena
-        P.x = clamp(P.x, ARENA.x+24, ARENA.x+ARENA.w-24); P.y = clamp(P.y, ARENA.y+24, ARENA.y+ARENA.h-24);
-        if (currentClass === 'wizard') updateWizardAnim(dt);
-        else if (currentClass === 'fighter') updateFighterAnim(dt);
-        else if (currentClass === 'rogue') updateRogueAnim(dt);
+      P.x = clamp(P.x, ARENA.x+24, ARENA.x+ARENA.w-24); P.y = clamp(P.y, ARENA.y+24, ARENA.y+ARENA.h-24);
+      resolveDecorCollisions(P);
+      P.x = clamp(P.x, ARENA.x+24, ARENA.x+ARENA.w-24); P.y = clamp(P.y, ARENA.y+24, ARENA.y+ARENA.h-24);
+      if (currentClass === 'wizard') updateWizardAnim(dt);
+      else if (currentClass === 'fighter') updateFighterAnim(dt);
+      else if (currentClass === 'rogue') updateRogueAnim(dt);
 
       // Enemy logic
       const kF = Math.pow(KNOCK.friction, dt * 60);
@@ -1840,6 +1941,8 @@
           e.y = clamp(e.y, ARENA.y + AI.wallPad, ARENA.y + ARENA.h - AI.wallPad);
         }
         // Final boundary clamp
+        clampToArena(e, AI.wallPad);
+        resolveDecorCollisions(e);
         clampToArena(e, AI.wallPad);
 
         if (e.kind === 'boss'){
@@ -2349,6 +2452,16 @@
       if (currentMap) ctx.drawImage(currentMap, ARENA.x, ARENA.y, ARENA.w, ARENA.h);
     }
 
+    function drawDecorLayer(layer){
+      if (!stageDecor.length) return;
+      for (const deco of stageDecor){
+        if ((deco.layer || 'base') !== layer) continue;
+        const img = deco.img;
+        if (!img || !img.complete) continue;
+        ctx.drawImage(img, deco.drawX, deco.drawY, deco.width, deco.height);
+      }
+    }
+
     function draw(){
       const t = now();
       accumulator += Math.min(0.25, (t - last)/1000);
@@ -2374,6 +2487,7 @@
       ctx.scale(MAP_ZOOM, MAP_ZOOM);
       ctx.translate(-CAM.x, -CAM.y);
       drawBackground();
+      drawDecorLayer('base');
 
       // Draw chests
       for (const c of chests) { const img = c.opened ? IMG.chestOpen : IMG.chest; ctx.drawImage(img, c.x-16, c.y-16, 32, 32); }
@@ -2746,7 +2860,9 @@
           }
         }
       }
-      
+
+      drawDecorLayer('top');
+
       // Debug draw: player/enemy AABB hitboxes used for contact damage
       if (DEBUG_HITBOX){
         ctx.save();
@@ -2765,6 +2881,16 @@
           const ehh = e.h * sc.y;
           ctx.fillRect(e.x - ehw, e.y - ehh, ehw*2, ehh*2);
           ctx.strokeRect(e.x - ehw, e.y - ehh, ehw*2, ehh*2);
+        }
+        if (stageDecor.length){
+          ctx.fillStyle = 'rgba(0,255,0,0.12)';
+          ctx.strokeStyle = 'rgba(0,255,0,0.8)';
+          for (const deco of stageDecor){
+            if (!deco.collider) continue;
+            const col = deco.collider;
+            ctx.fillRect(col.x, col.y, col.w, col.h);
+            ctx.strokeRect(col.x, col.y, col.w, col.h);
+          }
         }
         ctx.restore();
       }

@@ -668,6 +668,10 @@
       chestOpen: new Image(),
       shield: new Image(),
       swampTree03: new Image(),
+      swampBush03: new Image(),
+      swampBush04: new Image(),
+      swampRock02: new Image(),
+      swampRock03: new Image(),
       hero: CLASS_IMG.fighter,
     };
     IMG.coin.src = 'assets/eg_coin.svg';
@@ -680,6 +684,10 @@
     // Inline SVG shield image (horizontal, pointed to the right)
     IMG.shield.src = "assets/EG_shield.png";
     IMG.swampTree03.src = 'assets/EG_terrain_swamp_tree03_small.png';
+    IMG.swampBush03.src = 'assets/EG_terrain_swamp_bush03_small.png';
+    IMG.swampBush04.src = 'assets/EG_terrain_swamp_bush04_small.png';
+    IMG.swampRock02.src = 'assets/EG_terrain_swamp_rock02_small.png';
+    IMG.swampRock03.src = 'assets/EG_terrain_swamp_rock03_small.png';
 
     const MAP_FILES = [
       'assets/EG_map_mirewatch01.png',
@@ -692,6 +700,7 @@
 
     const STAGE_TERRAIN_TEMPLATES = Array.from({ length: MAP_FILES.length }, () => []);
     STAGE_TERRAIN_TEMPLATES[0] = [
+      // Trees
       {
         img: IMG.swampTree03,
         x: 288,
@@ -699,6 +708,231 @@
         anchor: 'bottom',
         sortY: 704,
         collider: { w: 64, h: 64, anchor: 'bottom' },
+      },
+      // Tree positioned beside a rock (allowed close placement)
+      {
+        img: IMG.swampTree03,
+        x: 820,
+        y: 520,
+        anchor: 'bottom',
+        sortY: 520,
+        collider: { w: 64, h: 64, anchor: 'bottom' },
+      },
+      // Tree positioned beside a bush (allowed close placement)
+      {
+        img: IMG.swampTree03,
+        x: 480,
+        y: 260,
+        anchor: 'bottom',
+        sortY: 260,
+        collider: { w: 64, h: 64, anchor: 'bottom' },
+      },
+
+      // Bushes (EG_terrain_swamp_bush03_small.png scaled to 50%)
+      {
+        img: IMG.swampBush03,
+        x: 545,
+        y: 255,
+        anchor: 'bottom',
+        sortY: 255,
+        scale: 0.5,
+        collider: { w: 34, h: 44, anchor: 'bottom' },
+      },
+      {
+        img: IMG.swampBush03,
+        x: 180,
+        y: 540,
+        anchor: 'bottom',
+        sortY: 540,
+        scale: 0.5,
+        collider: { w: 34, h: 44, anchor: 'bottom' },
+      },
+      {
+        img: IMG.swampBush03,
+        x: 640,
+        y: 760,
+        anchor: 'bottom',
+        sortY: 760,
+        scale: 0.5,
+        collider: { w: 34, h: 44, anchor: 'bottom' },
+      },
+      {
+        img: IMG.swampBush03,
+        x: 900,
+        y: 180,
+        anchor: 'bottom',
+        sortY: 180,
+        scale: 0.5,
+        collider: { w: 34, h: 44, anchor: 'bottom' },
+      },
+      {
+        img: IMG.swampBush03,
+        x: 360,
+        y: 900,
+        anchor: 'bottom',
+        sortY: 900,
+        scale: 0.5,
+        collider: { w: 34, h: 44, anchor: 'bottom' },
+      },
+
+      // Bushes (EG_terrain_swamp_bush04_small.png scaled to 50%)
+      // Bush set beside a rock (allowed close placement)
+      {
+        img: IMG.swampBush04,
+        x: 210,
+        y: 300,
+        anchor: 'bottom',
+        sortY: 300,
+        scale: 0.5,
+        collider: { w: 32, h: 28, anchor: 'bottom' },
+      },
+      {
+        img: IMG.swampBush04,
+        x: 700,
+        y: 180,
+        anchor: 'bottom',
+        sortY: 180,
+        scale: 0.5,
+        collider: { w: 32, h: 28, anchor: 'bottom' },
+      },
+      {
+        img: IMG.swampBush04,
+        x: 940,
+        y: 640,
+        anchor: 'bottom',
+        sortY: 640,
+        scale: 0.5,
+        collider: { w: 32, h: 28, anchor: 'bottom' },
+      },
+      {
+        img: IMG.swampBush04,
+        x: 120,
+        y: 860,
+        anchor: 'bottom',
+        sortY: 860,
+        scale: 0.5,
+        collider: { w: 32, h: 28, anchor: 'bottom' },
+      },
+      {
+        img: IMG.swampBush04,
+        x: 560,
+        y: 600,
+        anchor: 'bottom',
+        sortY: 600,
+        scale: 0.5,
+        collider: { w: 32, h: 28, anchor: 'bottom' },
+      },
+
+      // Rocks (EG_terrain_swamp_rock02_small.png scaled to 50%)
+      {
+        img: IMG.swampRock02,
+        x: 880,
+        y: 530,
+        anchor: 'bottom',
+        sortY: 530,
+        scale: 0.5,
+        collider: { w: 30, h: 22, anchor: 'bottom' },
+      },
+      {
+        img: IMG.swampRock02,
+        x: 300,
+        y: 420,
+        anchor: 'bottom',
+        sortY: 420,
+        scale: 0.5,
+        collider: { w: 30, h: 22, anchor: 'bottom' },
+      },
+      {
+        img: IMG.swampRock02,
+        x: 600,
+        y: 440,
+        anchor: 'bottom',
+        sortY: 440,
+        scale: 0.5,
+        collider: { w: 30, h: 22, anchor: 'bottom' },
+      },
+      {
+        img: IMG.swampRock02,
+        x: 760,
+        y: 820,
+        anchor: 'bottom',
+        sortY: 820,
+        scale: 0.5,
+        collider: { w: 30, h: 22, anchor: 'bottom' },
+      },
+      {
+        img: IMG.swampRock02,
+        x: 100,
+        y: 200,
+        anchor: 'bottom',
+        sortY: 200,
+        scale: 0.5,
+        collider: { w: 30, h: 22, anchor: 'bottom' },
+      },
+      {
+        img: IMG.swampRock02,
+        x: 920,
+        y: 880,
+        anchor: 'bottom',
+        sortY: 880,
+        scale: 0.5,
+        collider: { w: 30, h: 22, anchor: 'bottom' },
+      },
+
+      // Rocks (EG_terrain_swamp_rock03_small.png scaled to 50%)
+      {
+        img: IMG.swampRock03,
+        x: 255,
+        y: 320,
+        anchor: 'bottom',
+        sortY: 320,
+        scale: 0.5,
+        collider: { w: 48, h: 32, anchor: 'bottom' },
+      },
+      {
+        img: IMG.swampRock03,
+        x: 460,
+        y: 520,
+        anchor: 'bottom',
+        sortY: 520,
+        scale: 0.5,
+        collider: { w: 48, h: 32, anchor: 'bottom' },
+      },
+      {
+        img: IMG.swampRock03,
+        x: 840,
+        y: 300,
+        anchor: 'bottom',
+        sortY: 300,
+        scale: 0.5,
+        collider: { w: 48, h: 32, anchor: 'bottom' },
+      },
+      {
+        img: IMG.swampRock03,
+        x: 180,
+        y: 720,
+        anchor: 'bottom',
+        sortY: 720,
+        scale: 0.5,
+        collider: { w: 48, h: 32, anchor: 'bottom' },
+      },
+      {
+        img: IMG.swampRock03,
+        x: 700,
+        y: 960,
+        anchor: 'bottom',
+        sortY: 960,
+        scale: 0.5,
+        collider: { w: 48, h: 32, anchor: 'bottom' },
+      },
+      {
+        img: IMG.swampRock03,
+        x: 500,
+        y: 720,
+        anchor: 'bottom',
+        sortY: 720,
+        scale: 0.5,
+        collider: { w: 48, h: 32, anchor: 'bottom' },
       },
     ];
 
@@ -2641,8 +2875,14 @@
         const sortY = Number.isFinite(obj.sortY) ? obj.sortY : (obj.y ?? 0);
         queueRenderable(sortY, () => {
           const img = image;
-          const width = obj.w ?? obj.width ?? img.width;
-          const height = obj.h ?? obj.height ?? img.height;
+          const rawWidth = obj.w ?? obj.width ?? img.width;
+          const rawHeight = obj.h ?? obj.height ?? img.height;
+          const scaleX = obj.scaleX ?? obj.scale ?? 1;
+          const scaleY = obj.scaleY ?? obj.scale ?? 1;
+          const baseWidth = rawWidth || img.width;
+          const baseHeight = rawHeight || img.height;
+          const width = baseWidth * scaleX;
+          const height = baseHeight * scaleY;
           const offsetX = obj.offsetX ?? 0;
           const offsetY = obj.offsetY ?? 0;
           const anchor = obj.anchor ?? obj.anchorY ?? 'center';

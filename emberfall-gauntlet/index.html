@@ -915,6 +915,7 @@
     let enemies = [];
     let drops = [];
     let chests = [];
+    let terrainObjects = [];
     // Debug: toggle drawing collision AABBs with '[' key
     let DEBUG_HITBOX = false;
     let paused = false, running = false, gameOverHandled = false;
@@ -1087,7 +1088,7 @@
       currentMap = MAPS[stage];
       ARENA.x = 0; ARENA.y = 0; ARENA.w = currentMap.width; ARENA.h = currentMap.height;
       DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / VIEW_W, ARENA.h / VIEW_H) * 1.5));
-      enemies = []; drops = []; chests = []; PARTICLES.length = 0; BOSS_PROJECTILES = [];
+      enemies = []; drops = []; chests = []; terrainObjects = []; PARTICLES.length = 0; BOSS_PROJECTILES = [];
       // Ensure hero visuals and aim face down on stage start
       WIZ_ANIM_STATE.dir = 'down'; WIZ_ANIM_STATE.frame = 0; WIZ_ANIM_STATE.t = 0;
       FIGHT_ANIM_STATE.dir = 'down'; FIGHT_ANIM_STATE.frame = 0; FIGHT_ANIM_STATE.t = 0;
@@ -2422,15 +2423,58 @@
       ctx.translate(-CAM.x, -CAM.y);
       drawBackground();
 
-      // Draw chests
-      for (const c of chests) { const img = c.opened ? IMG.chestOpen : IMG.chest; ctx.drawImage(img, c.x-16, c.y-16, 32, 32); }
+      const renderQueue = [];
+      let renderOrder = 0;
+      const queueRenderable = (y, drawFn) => {
+        renderQueue.push({ y, order: renderOrder++, draw: drawFn });
+      };
 
-      // Draw drops
+      // Queue terrain objects (static scenery pieces that participate in depth sorting)
+      for (const obj of terrainObjects) {
+        if (!obj) continue;
+        const image = obj.img || obj.image;
+        if (!image || !image.width || !image.height) continue;
+        const sortY = Number.isFinite(obj.sortY) ? obj.sortY : (obj.y ?? 0);
+        queueRenderable(sortY, () => {
+          const img = image;
+          const width = obj.w ?? obj.width ?? img.width;
+          const height = obj.h ?? obj.height ?? img.height;
+          const offsetX = obj.offsetX ?? 0;
+          const offsetY = obj.offsetY ?? 0;
+          const anchor = obj.anchor ?? obj.anchorY ?? 'center';
+          let drawX = obj.x ?? 0;
+          let drawY = obj.y ?? 0;
+          if (anchor === 'bottom') {
+            drawX -= width / 2;
+            drawY -= height;
+          } else if (anchor === 'top') {
+            drawX -= width / 2;
+          } else {
+            drawX -= width / 2;
+            drawY -= height / 2;
+          }
+          drawX += offsetX;
+          drawY += offsetY;
+          ctx.drawImage(img, drawX, drawY, width, height);
+        });
+      }
+
+      // Queue chests
+      for (const c of chests) {
+        queueRenderable(c.y, () => {
+          const img = c.opened ? IMG.chestOpen : IMG.chest;
+          ctx.drawImage(img, c.x - 16, c.y - 16, 32, 32);
+        });
+      }
+
+      // Queue drops
       for (const d of drops) {
-        let img = IMG.coin;
-        if (d.kind==='key') img = IMG.key;
-        else if (d.kind==='heart') img = IMG.heart;
-        ctx.drawImage(img, d.x-12, d.y-12, 24, 24);
+        queueRenderable(d.y, () => {
+          let img = IMG.coin;
+          if (d.kind === 'key') img = IMG.key;
+          else if (d.kind === 'heart') img = IMG.heart;
+          ctx.drawImage(img, d.x - 12, d.y - 12, 24, 24);
+        });
       }
 
       if (POLY_WAVES.length){
@@ -2472,221 +2516,200 @@
         }
       }
 
-      // Draw enemies with shadow (use sprite per type, size by enemy)
+      // Queue enemies with shadow (use sprite per type, size by enemy)
       for (const e of enemies){
-        // shadow scaled to enemy size
-        ctx.drawImage(IMG.shadow, e.x - e.w*0.7, e.y - e.h*0.35, e.w*1.4, e.h*0.7);
-        const sleeping = e.sleepT && e.sleepT > 0;
-        if (e.kind === 'boss'){
-          if (e.bossType === 'hillGiant' && e.slam){
-            const half = e.slam.arc/2;
-            const a0 = e.facing - half;
-            const a1 = e.facing + half;
-            ctx.fillStyle = e.slam.t < e.slam.tele ? 'rgba(255,0,0,0.3)' : 'rgba(255,165,0,0.5)';
-            ctx.beginPath();
-            ctx.moveTo(e.x, e.y);
-            ctx.arc(e.x, e.y, e.slam.range, a0, a1);
-            ctx.closePath();
-            ctx.fill();
-          } else if (e.pulse > 0){
-            ctx.fillStyle = 'rgba(255,0,0,0.3)';
-            ctx.beginPath();
-            ctx.arc(e.x, e.y, e.pulseRange || 90, 0, Math.PI*2);
-            ctx.fill();
-          }
-        }
-        if (e.kind === 'goblin'){
-          const sheet = GOBLIN_ANIM[e.dir];
-          const fw = sheet.width / 4;
-          const fh = sheet.height;
-          ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
-        } else if (e.kind === 'imp') {
-          const sheet = IMP_ANIM[e.dir];
-          const fw = sheet.width / 4;
-          const fh = sheet.height;
-          ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
-        } else if (e.kind === 'orc') {
-          const sheet = ORC_ANIM[e.dir];
-          const fw = sheet.width / 4;
-          const fh = sheet.height;
-          ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
-        } else if (e.kind === 'goatCoin' || e.kind === 'goatHeart') {
-          const sheet = e.kind === 'goatCoin' ? GOAT_ANIM.coin : GOAT_ANIM.heart;
-          const frame = Math.min(GOAT.frames - 1, e.frame || 0);
-          const fw = sheet.width / GOAT.frames;
-          const fh = sheet.height;
-          ctx.drawImage(sheet, frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
-        } else if (e.kind === 'boss') {
-          const anim = e.bossType === 'hillGiant' ? HILL_GIANT_ANIM : e.bossType === 'abomination' ? ABOMINATION_ANIM : e.bossType === 'hungerDemon' ? HUNGER_DEMON_ANIM : e.bossType === 'beholder' ? BEHOLDER_ANIM : MUCK_ANIM;
-          const sheet = anim[e.dir];
-          const fw = sheet.width / 4;
-          const fh = sheet.height;
-          ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
-        }
-        // Stun visual: spinning stars above the head while frozen
-        // Stage 3 boss (Abomination) has a unique silhouette; keep head clear of stun stars.
-        const skipStunStars = e.kind === 'boss' && e.bossType === 'abomination';
-        if (e.freezeT && e.freezeT > 0 && !skipStunStars){
-          const cx = e.x;
-          const cy = e.y - e.h * 0.85;
-          const base = (e.t || 0) * 6; // spin speed
-          const count = 3;
-          const orbitR = Math.max(8, Math.min(14, Math.max(e.w, e.h) * 0.35));
-          for (let i=0;i<count;i++){
-            const a = base + i * (Math.PI * 2 / count);
-            const sx = cx + Math.cos(a) * orbitR;
-            const sy = cy + Math.sin(a) * Math.max(5, orbitR*0.35);
-            const R = 4; const r = 2;
-            ctx.beginPath();
-            for (let k=0;k<10;k++){
-              const ang = a + k * Math.PI/5;
-              const rad = (k % 2 === 0) ? R : r;
-              const px = sx + Math.cos(ang) * rad;
-              const py = sy + Math.sin(ang) * rad;
-              if (k===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+        queueRenderable(e.y, () => {
+          ctx.drawImage(IMG.shadow, e.x - e.w * 0.7, e.y - e.h * 0.35, e.w * 1.4, e.h * 0.7);
+          const sleeping = e.sleepT && e.sleepT > 0;
+          if (e.kind === 'boss'){
+            if (e.bossType === 'hillGiant' && e.slam){
+              const half = e.slam.arc/2;
+              const a0 = e.facing - half;
+              const a1 = e.facing + half;
+              ctx.fillStyle = e.slam.t < e.slam.tele ? 'rgba(255,0,0,0.3)' : 'rgba(255,165,0,0.5)';
+              ctx.beginPath();
+              ctx.moveTo(e.x, e.y);
+              ctx.arc(e.x, e.y, e.slam.range, a0, a1);
+              ctx.closePath();
+              ctx.fill();
+            } else if (e.pulse > 0){
+              ctx.fillStyle = 'rgba(255,0,0,0.3)';
+              ctx.beginPath();
+              ctx.arc(e.x, e.y, e.pulseRange || 90, 0, Math.PI*2);
+              ctx.fill();
             }
-            ctx.closePath();
-            ctx.fillStyle = 'rgba(255, 221, 120, 0.9)';
-            ctx.strokeStyle = 'rgba(255, 255, 200, 0.85)';
-            ctx.lineWidth = 1.5;
-            ctx.fill();
-            ctx.stroke();
           }
-        }
-        if (sleeping){
-          const baseRatio = e.sleepMax ? clamp(e.sleepT / e.sleepMax, 0, 1) : 1;
-          const haloR = Math.max(12, Math.min(24, Math.max(e.w, e.h) * 0.45));
-          const glow = 0.22 + 0.18 * baseRatio + 0.08 * Math.sin((e.t||0)*3);
-          ctx.beginPath();
-          ctx.fillStyle = `rgba(190,170,255,${glow.toFixed(3)})`;
-          ctx.arc(e.x, e.y - e.h*0.3, haloR, 0, Math.PI*2);
-          ctx.fill();
-          const baseY = e.y - e.h * 0.85;
-          for (let i=0;i<3;i++){
-            const size = 6 + i*2;
-            const sway = Math.sin((e.t||0)*2 + i*0.8) * 2;
-            ctx.save();
-            ctx.translate(e.x + 8 + i*3, baseY - i*9 - sway);
-            ctx.rotate(-0.25);
-            ctx.strokeStyle = 'rgba(225,210,255,0.85)';
-            ctx.lineWidth = 1.4;
+          if (e.kind === 'goblin'){
+            const sheet = GOBLIN_ANIM[e.dir];
+            const fw = sheet.width / 4;
+            const fh = sheet.height;
+            ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
+          } else if (e.kind === 'imp') {
+            const sheet = IMP_ANIM[e.dir];
+            const fw = sheet.width / 4;
+            const fh = sheet.height;
+            ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
+          } else if (e.kind === 'orc') {
+            const sheet = ORC_ANIM[e.dir];
+            const fw = sheet.width / 4;
+            const fh = sheet.height;
+            ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
+          } else if (e.kind === 'goatCoin' || e.kind === 'goatHeart') {
+            const sheet = e.kind === 'goatCoin' ? GOAT_ANIM.coin : GOAT_ANIM.heart;
+            const frame = Math.min(GOAT.frames - 1, e.frame || 0);
+            const fw = sheet.width / GOAT.frames;
+            const fh = sheet.height;
+            ctx.drawImage(sheet, frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
+          } else if (e.kind === 'boss') {
+            const anim = e.bossType === 'hillGiant' ? HILL_GIANT_ANIM : e.bossType === 'abomination' ? ABOMINATION_ANIM : e.bossType === 'hungerDemon' ? HUNGER_DEMON_ANIM : e.bossType === 'beholder' ? BEHOLDER_ANIM : MUCK_ANIM;
+            const sheet = anim[e.dir];
+            const fw = sheet.width / 4;
+            const fh = sheet.height;
+            ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
+          }
+          const skipStunStars = e.kind === 'boss' && e.bossType === 'abomination';
+          if (e.freezeT && e.freezeT > 0 && !skipStunStars){
+            const cx = e.x;
+            const cy = e.y - e.h * 0.85;
+            const base = (e.t || 0) * 6;
+            const count = 3;
+            const orbitR = Math.max(8, Math.min(14, Math.max(e.w, e.h) * 0.35));
+            for (let i=0;i<count;i++){
+              const a = base + i * (Math.PI * 2 / count);
+              const sx = cx + Math.cos(a) * orbitR;
+              const sy = cy + Math.sin(a) * Math.max(5, orbitR*0.35);
+              const R = 4; const r = 2;
+              ctx.beginPath();
+              for (let k=0;k<10;k++){
+                const ang = a + k * Math.PI/5;
+                const rad = (k % 2 === 0) ? R : r;
+                const px = sx + Math.cos(ang) * rad;
+                const py = sy + Math.sin(ang) * rad;
+                if (k===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+              }
+              ctx.closePath();
+              ctx.fillStyle = 'rgba(255, 221, 120, 0.9)';
+              ctx.strokeStyle = 'rgba(255, 255, 200, 0.85)';
+              ctx.lineWidth = 1.5;
+              ctx.fill();
+              ctx.stroke();
+            }
+          }
+          if (sleeping){
+            const baseRatio = e.sleepMax ? clamp(e.sleepT / e.sleepMax, 0, 1) : 1;
+            const haloR = Math.max(12, Math.min(24, Math.max(e.w, e.h) * 0.45));
+            const glow = 0.22 + 0.18 * baseRatio + 0.08 * Math.sin((e.t||0)*3);
             ctx.beginPath();
-            ctx.moveTo(-size/2, -size/2);
-            ctx.lineTo(size/2, -size/2);
-            ctx.lineTo(-size/2, size/2);
-            ctx.lineTo(size/2, size/2);
-            ctx.stroke();
-            ctx.restore();
+            ctx.fillStyle = `rgba(190,170,255,${glow.toFixed(3)})`;
+            ctx.arc(e.x, e.y - e.h*0.3, haloR, 0, Math.PI*2);
+            ctx.fill();
+            const baseY = e.y - e.h * 0.85;
+            for (let i=0;i<3;i++){
+              const size = 6 + i*2;
+              const sway = Math.sin((e.t||0)*2 + i*0.8) * 2;
+              ctx.save();
+              ctx.translate(e.x + 8 + i*3, baseY - i*9 - sway);
+              ctx.rotate(-0.25);
+              ctx.strokeStyle = 'rgba(225,210,255,0.85)';
+              ctx.lineWidth = 1.4;
+              ctx.beginPath();
+              ctx.moveTo(-size/2, -size/2);
+              ctx.lineTo(size/2, -size/2);
+              ctx.lineTo(-size/2, size/2);
+              ctx.lineTo(size/2, size/2);
+              ctx.stroke();
+              ctx.restore();
+            }
           }
-        }
-        // Slow effect visual: pulsing frosty halo while slowed
-        if (e.slowT && e.slowT > 0){
-          const baseA = 0.20;
-          const pulse = 0.18 * (0.5 + 0.5*Math.sin((e.t||0)*10));
-          const burst = (e.slowAmp||0) * 0.6;
-          const a = Math.min(0.85, baseA + pulse + burst);
-          const rr = Math.max(12, Math.min(26, Math.max(e.w, e.h)*0.6));
-          ctx.beginPath();
-          ctx.lineWidth = 3;
-          ctx.strokeStyle = `rgba(160,220,255,${a.toFixed(3)})`;
-          ctx.arc(e.x, e.y - e.h*0.25, rr, 0, Math.PI*2);
-          ctx.stroke();
-        }
+          if (e.slowT && e.slowT > 0){
+            const baseA = 0.20;
+            const pulse = 0.18 * (0.5 + 0.5*Math.sin((e.t||0)*10));
+            const burst = (e.slowAmp||0) * 0.6;
+            const a = Math.min(0.85, baseA + pulse + burst);
+            const rr = Math.max(12, Math.min(26, Math.max(e.w, e.h)*0.6));
+            ctx.beginPath();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = `rgba(160,220,255,${a.toFixed(3)})`;
+            ctx.arc(e.x, e.y - e.h*0.25, rr, 0, Math.PI*2);
+            ctx.stroke();
+          }
+        });
       }
 
-      // Draw player shadow + hero (blink on i-frames)
-      ctx.drawImage(IMG.shadow, P.x-30, P.y-15, 60, 30);
-      // Fighter shield visual (periodic left-side push)
-      if (currentClass === 'fighter' && SHIELD.active){
-        const baseAng = (P.swingAim || P.aimDir || P.dir || 0);
-        const ang = baseAng - Math.PI/2;
-        const progress = Math.max(0, Math.min(1, SHIELD.t / SHIELD.dur));
-        const len = SHIELD.range * (1 - Math.pow(1-progress, 2));
-        const offset = 14;
-        const shieldW = 56, shieldH = SHIELD.height; // fixed visual width; gameplay/visual thickness uses SHIELD.height
-        ctx.save();
-        ctx.translate(P.x, P.y);
-        ctx.rotate(ang);
-        // Slight motion blur trail
-        const trailN = 3;
-        for (let i=trailN-1; i>=0; i--){
-          const f = i/(trailN);
-          const p = len * (0.6 + 0.4*f);
-          ctx.globalAlpha = 0.25 * (1 - f);
-          ctx.drawImage(IMG.shield, offset + p - shieldW*0.5, -shieldH*0.5, shieldW, shieldH);
-        }
-        // Main shield
-        ctx.globalAlpha = 1;
-        ctx.drawImage(IMG.shield, offset + len - shieldW*0.5, -shieldH*0.5, shieldW, shieldH);
-        ctx.restore();
-      }
-      // Sword trail when attacking (non-wizard only)
-      if (currentClass !== 'wizard' && P.atkT>0){
-        ctx.save();
-        ctx.translate(P.x,P.y);
-        ctx.rotate(P.swingAim || P.aimDir);
-        const prog = 1 - (P.atkT/PHYS.atkDur);
-        const arc = PHYS.atkArc;
-        // Leading edge of the swing (moves from +arc/2 to -arc/2)
-        const lead = arc*0.5 - prog*arc;
-        // Sword geometry used by both blade and trail
-        const inner = 12;                           // where the blade starts from the hand
-        // Visual scale: make rogue's sword 75% width; keep length tied to reach
-        const swordScale = (currentClass === 'rogue') ? 0.75 : 1;
-        // Keep blade length matched to melee hit radius (minus inner/edge margins)
-        const bladeLen = Math.max(12, PHYS.atkRange - inner - 6);
-        const bladeW = Math.max(2, Math.round(6 * swordScale));
-
-        // Draw the sword first
-        ctx.save();
-        ctx.rotate(lead);
-        // Steel gradient from base (darker) to tip (bright)
-        const gb = ctx.createLinearGradient(inner,0, inner+bladeLen,0);
-        gb.addColorStop(0.00, '#bfc7d5');
-        gb.addColorStop(0.60, '#e3e9f5');
-        gb.addColorStop(1.00, '#ffffff');
-        ctx.beginPath();
-        ctx.moveTo(inner, -bladeW/2);
-        ctx.lineTo(inner + bladeLen - 6, -bladeW/2);
-        ctx.lineTo(inner + bladeLen, 0);           // pointed tip
-        ctx.lineTo(inner + bladeLen - 6, bladeW/2);
-        ctx.lineTo(inner, bladeW/2);
-        ctx.closePath();
-        ctx.fillStyle = gb;
-        ctx.fill();
-        // Subtle outline for definition
-        ctx.strokeStyle = 'rgba(0,0,0,0.35)';
-        ctx.lineWidth = 1.2;
-        ctx.stroke();
-        // Small cross-guard
-        ctx.fillStyle = '#d1a74a';
-        ctx.fillRect(inner-2, -bladeW, 3, bladeW*2);
-        ctx.restore();
-
-        // Now draw a subtle, fading trail on top of the sword, centered on the blade
-        // Total trail length (angular) fades behind the blade
-        const trail = Math.max(0.16, Math.min(0.46, arc * 0.40));
-        const trailCenterR = inner + bladeLen - 4; // keep inside blade tip
-        const layers = 4;
-        for (let i=0; i<layers; i++){
-          const t0 = i / layers;
-          const t1 = (i+1) / layers;
-          const a0 = lead + t0 * trail;     // closest to blade
-          const a1 = lead + t1 * trail;     // further from blade
-          const alpha = 0.28 * (1 - t0);    // fade as it gets further
-          const r = trailCenterR - i*1.2;   // nudge inward for inner layers
-          ctx.beginPath();
-          ctx.arc(0,0,r, a0, a1);
-          // Trail thickness scales with sword size; keep sensible minimum
-          ctx.lineWidth = Math.max(1, (7 - i*1.6) * swordScale);        // thinner further from blade
-          ctx.strokeStyle = `rgba(255,215,0,${alpha.toFixed(3)})`;
-          ctx.stroke();
-        }
-
-        ctx.restore();
-      }
-      // Hero body with blink: toggle visibility while invulnerable
       const blinking = (P.iT > 0) && ((Math.floor(t/80) % 2) === 0);
+      queueRenderable(P.y, () => {
+        ctx.drawImage(IMG.shadow, P.x - 30, P.y - 15, 60, 30);
+        if (currentClass === 'fighter' && SHIELD.active){
+          const baseAng = (P.swingAim || P.aimDir || P.dir || 0);
+          const ang = baseAng - Math.PI/2;
+          const progress = Math.max(0, Math.min(1, SHIELD.t / SHIELD.dur));
+          const len = SHIELD.range * (1 - Math.pow(1-progress, 2));
+          const offset = 14;
+          const shieldW = 56, shieldH = SHIELD.height;
+          ctx.save();
+          ctx.translate(P.x, P.y);
+          ctx.rotate(ang);
+          const trailN = 3;
+          for (let i=trailN-1; i>=0; i--){
+            const f = i/(trailN);
+            const p = len * (0.6 + 0.4*f);
+            ctx.globalAlpha = 0.25 * (1 - f);
+            ctx.drawImage(IMG.shield, offset + p - shieldW*0.5, -shieldH*0.5, shieldW, shieldH);
+          }
+          ctx.globalAlpha = 1;
+          ctx.drawImage(IMG.shield, offset + len - shieldW*0.5, -shieldH*0.5, shieldW, shieldH);
+          ctx.restore();
+        }
+        if (currentClass !== 'wizard' && P.atkT>0){
+          ctx.save();
+          ctx.translate(P.x,P.y);
+          ctx.rotate(P.swingAim || P.aimDir);
+          const prog = 1 - (P.atkT/PHYS.atkDur);
+          const arc = PHYS.atkArc;
+          const lead = arc*0.5 - prog*arc;
+          const inner = 12;
+          const swordScale = (currentClass === 'rogue') ? 0.75 : 1;
+          const bladeLen = Math.max(12, PHYS.atkRange - inner - 6);
+          const bladeW = Math.max(2, Math.round(6 * swordScale));
+          ctx.save();
+          ctx.rotate(lead);
+          const gb = ctx.createLinearGradient(inner,0, inner+bladeLen,0);
+          gb.addColorStop(0.00, '#bfc7d5');
+          gb.addColorStop(0.60, '#e3e9f5');
+          gb.addColorStop(1.00, '#ffffff');
+          ctx.beginPath();
+          ctx.moveTo(inner, -bladeW/2);
+          ctx.lineTo(inner + bladeLen - 6, -bladeW/2);
+          ctx.lineTo(inner + bladeLen, 0);
+          ctx.lineTo(inner + bladeLen - 6, bladeW/2);
+          ctx.lineTo(inner, bladeW/2);
+          ctx.closePath();
+          ctx.fillStyle = gb;
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+          ctx.fillStyle = '#d1a74a';
+          ctx.fillRect(inner-2, -bladeW, 3, bladeW*2);
+          ctx.restore();
+          const trail = Math.max(0.16, Math.min(0.46, arc * 0.40));
+          const trailCenterR = inner + bladeLen - 4;
+          const layers = 4;
+          for (let i=0; i<layers; i++){
+            const t0 = i / layers;
+            const t1 = (i+1) / layers;
+            const a0 = lead + t0 * trail;
+            const a1 = lead + t1 * trail;
+            const alpha = 0.28 * (1 - t0);
+            const r = trailCenterR - i*1.2;
+            ctx.beginPath();
+            ctx.arc(0,0,r, a0, a1);
+            ctx.lineWidth = Math.max(1, (7 - i*1.6) * swordScale);
+            ctx.strokeStyle = `rgba(255,215,0,${alpha.toFixed(3)})`;
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
         if (!blinking){
           ctx.save();
           ctx.translate(P.x, P.y);
@@ -2711,6 +2734,15 @@
           }
           ctx.restore();
         }
+      });
+
+      renderQueue.sort((a, b) => {
+        if (a.y === b.y) return a.order - b.order;
+        return a.y - b.y;
+      });
+      for (const entry of renderQueue) {
+        entry.draw();
+      }
 
       // FX: Frost Nova now uses disc-filling particles only (no ring overlay)
 

@@ -666,6 +666,14 @@
       spark: new Image(),
       chest: new Image(),
       chestOpen: new Image(),
+      swampBush01: new Image(),
+      swampBush02: new Image(),
+      swampBush03: new Image(),
+      swampBush04: new Image(),
+      swampGrass01: new Image(),
+      swampRock01: new Image(),
+      swampRock02: new Image(),
+      swampRock03: new Image(),
       shield: new Image(),
       swampTree03: new Image(),
       hero: CLASS_IMG.fighter,
@@ -679,6 +687,14 @@
     IMG.chestOpen.src = 'assets/EG_chest_open_small.png';
     // Inline SVG shield image (horizontal, pointed to the right)
     IMG.shield.src = "assets/EG_shield.png";
+    IMG.swampBush01.src = 'assets/EG_terrain_swamp_bush01_small.png';
+    IMG.swampBush02.src = 'assets/EG_terrain_swamp_bush02_small.png';
+    IMG.swampBush03.src = 'assets/EG_terrain_swamp_bush03_small.png';
+    IMG.swampBush04.src = 'assets/EG_terrain_swamp_bush04_small.png';
+    IMG.swampGrass01.src = 'assets/EG_terrain_swamp_grass01_small.png';
+    IMG.swampRock01.src = 'assets/EG_terrain_swamp_rock01_small.png';
+    IMG.swampRock02.src = 'assets/EG_terrain_swamp_rock02_small.png';
+    IMG.swampRock03.src = 'assets/EG_terrain_swamp_rock03_small.png';
     IMG.swampTree03.src = 'assets/EG_terrain_swamp_tree03_small.png';
 
     const MAP_FILES = [
@@ -690,17 +706,93 @@
     ];
     const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
 
-    const STAGE_TERRAIN_TEMPLATES = Array.from({ length: MAP_FILES.length }, () => []);
-    STAGE_TERRAIN_TEMPLATES[0] = [
-      {
-        img: IMG.swampTree03,
-        x: 288,
-        y: 704,
+    function createTerrainPiece(img, x, y, extras = {}) {
+      return {
+        img,
+        x,
+        y,
         anchor: 'bottom',
-        sortY: 704,
-        collider: { w: 64, h: 64, anchor: 'bottom' },
-      },
+        sortY: y,
+        ...extras,
+      };
+    }
+
+    function addTerrainPieces(list, img, coords, collider) {
+      if (!list || !img || !Array.isArray(coords)) return;
+      for (const [x, y] of coords) {
+        if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+        const extras = collider ? { collider: { ...collider } } : {};
+        list.push(createTerrainPiece(img, x, y, extras));
+      }
+    }
+
+    const STAGE_TERRAIN_TEMPLATES = Array.from({ length: MAP_FILES.length }, () => []);
+    const stage0Terrain = [
+      createTerrainPiece(IMG.swampTree03, 288, 704, { collider: { w: 64, h: 64, anchor: 'bottom' } }),
+      createTerrainPiece(IMG.swampTree03, 152, 760, { collider: { w: 64, h: 64, anchor: 'bottom' } }),
+      createTerrainPiece(IMG.swampTree03, 904, 736, { collider: { w: 64, h: 64, anchor: 'bottom' } }),
     ];
+
+    const BUSH_COLLIDER = { w: 48, h: 30, anchor: 'bottom' };
+    const ROCK_COLLIDER = { w: 44, h: 28, anchor: 'bottom' };
+
+    addTerrainPieces(stage0Terrain, IMG.swampBush01, [
+      [176, 640],
+      [232, 700],
+      [808, 632],
+      [864, 692],
+    ], BUSH_COLLIDER);
+
+    addTerrainPieces(stage0Terrain, IMG.swampBush02, [
+      [168, 568],
+      [284, 752],
+      [796, 572],
+      [912, 744],
+    ], BUSH_COLLIDER);
+
+    addTerrainPieces(stage0Terrain, IMG.swampBush03, [
+      [216, 752],
+      [312, 608],
+      [752, 748],
+      [888, 612],
+    ], BUSH_COLLIDER);
+
+    addTerrainPieces(stage0Terrain, IMG.swampBush04, [
+      [256, 544],
+      [352, 664],
+      [736, 540],
+      [928, 660],
+    ], BUSH_COLLIDER);
+
+    addTerrainPieces(stage0Terrain, IMG.swampGrass01, [
+      [368, 520],
+      [456, 560],
+      [672, 524],
+      [760, 564],
+    ]);
+
+    addTerrainPieces(stage0Terrain, IMG.swampRock01, [
+      [128, 508],
+      [304, 472],
+      [720, 472],
+      [900, 508],
+    ], ROCK_COLLIDER);
+
+    addTerrainPieces(stage0Terrain, IMG.swampRock02, [
+      [180, 484],
+      [340, 536],
+      [684, 540],
+      [872, 484],
+    ], ROCK_COLLIDER);
+
+    addTerrainPieces(stage0Terrain, IMG.swampRock03, [
+      [224, 508],
+      [384, 492],
+      [648, 496],
+      [840, 512],
+    ], ROCK_COLLIDER);
+
+    STAGE_TERRAIN_TEMPLATES[0] = stage0Terrain;
 
     let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length + Object.keys(GOAT_ANIM).length + Object.keys(MUCK_PROJECTILE_ANIM).length + Object.keys(HILL_GIANT_PROJECTILE_ANIM).length + Object.keys(SLIME_PROJECTILE_ANIM).length + Object.keys(FIREBALL_PROJECTILE_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });

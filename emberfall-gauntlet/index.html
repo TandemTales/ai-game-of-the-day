@@ -663,6 +663,7 @@
       chest: new Image(),
       chestOpen: new Image(),
       shield: new Image(),
+      swampTree: new Image(),
       hero: CLASS_IMG.fighter,
     };
     IMG.coin.src = 'assets/eg_coin.svg';
@@ -674,6 +675,7 @@
     IMG.chestOpen.src = 'assets/EG_chest_open_small.png';
     // Inline SVG shield image (horizontal, pointed to the right)
     IMG.shield.src = "assets/EG_shield.png";
+    IMG.swampTree.src = 'assets/EG_terrain_swamp_tree03_small.png';
 
     const MAP_FILES = [
       'assets/EG_map_mirewatch01.png',
@@ -683,6 +685,59 @@
       'assets/EG_map_mountain01.png',
     ];
     const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
+
+    const STAGE_STATIC_OBJECTS = [
+      [
+        {
+          key: 'swampTree',
+          x: 820,
+          y: 640,
+          colliderScale: { x: 0.5, y: 0.5 },
+        },
+      ],
+      [],
+      [],
+      [],
+      [],
+    ];
+
+    function instantiateStaticObject(def){
+      if (!def) return null;
+      const img = IMG[def.key];
+      if (!img) return null;
+      const imgW = img.width || 0;
+      const imgH = img.height || 0;
+      const width = def.width ?? imgW;
+      const height = def.height ?? imgH;
+      const colliderScale = def.colliderScale || {};
+      const colliderWidth = def.colliderWidth ?? (width * (colliderScale.x ?? 0.5));
+      const colliderHeight = def.colliderHeight ?? (height * (colliderScale.y ?? 0.5));
+      const collider = {
+        x: def.x - colliderWidth / 2,
+        y: def.y - colliderHeight,
+        w: colliderWidth,
+        h: colliderHeight,
+      };
+      return {
+        key: def.key,
+        img,
+        x: def.x,
+        y: def.y,
+        width,
+        height,
+        collider,
+      };
+    }
+
+    function createStaticObjectsForStage(stageIndex){
+      const defs = STAGE_STATIC_OBJECTS[stageIndex] || [];
+      const list = [];
+      for (const def of defs){
+        const obj = instantiateStaticObject(def);
+        if (obj) list.push(obj);
+      }
+      return list;
+    }
 
     let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length + Object.keys(GOAT_ANIM).length + Object.keys(MUCK_PROJECTILE_ANIM).length + Object.keys(HILL_GIANT_PROJECTILE_ANIM).length + Object.keys(SLIME_PROJECTILE_ANIM).length + Object.keys(FIREBALL_PROJECTILE_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -918,6 +973,7 @@
     let nextStageInterval = null;
 
     let currentMap = null;
+    let STATIC_OBJECTS = [];
 
     const SPELL_COOLDOWNS = [];
 
@@ -1020,6 +1076,7 @@
     function init() {
       currentMap = MAPS[0];
       ARENA.x = 0; ARENA.y = 0; ARENA.w = currentMap.width; ARENA.h = currentMap.height;
+      STATIC_OBJECTS = createStaticObjectsForStage(0);
       DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / VIEW_W, ARENA.h / VIEW_H) * 1.5));
       drawHearts();
       attachControls();
@@ -1040,12 +1097,14 @@
       currentMap = MAPS[stage];
       ARENA.x = 0; ARENA.y = 0; ARENA.w = currentMap.width; ARENA.h = currentMap.height;
       DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / VIEW_W, ARENA.h / VIEW_H) * 1.5));
+      STATIC_OBJECTS = createStaticObjectsForStage(stage);
       enemies = []; drops = []; chests = []; PARTICLES.length = 0; BOSS_PROJECTILES = [];
       // Ensure hero visuals and aim face down on stage start
       WIZ_ANIM_STATE.dir = 'down'; WIZ_ANIM_STATE.frame = 0; WIZ_ANIM_STATE.t = 0;
       FIGHT_ANIM_STATE.dir = 'down'; FIGHT_ANIM_STATE.frame = 0; FIGHT_ANIM_STATE.t = 0;
       ROGUE_ANIM_STATE.dir = 'down'; ROGUE_ANIM_STATE.frame = 0; ROGUE_ANIM_STATE.t = 0;
       Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:Math.PI/2, aimDir:Math.PI/2, swingAim:Math.PI/2, iT:0, atkT:0, autoT:0 });
+      resolveStaticCollisions(P);
       const stageMult = Math.pow(1.2, stage);
       Object.assign(SPAWN, { t:0, cd:2.2 / stageMult, wave:1, count:0, keyAssigned:false });
       updateWaveLimit();
@@ -1203,6 +1262,83 @@
     // Utility
     function needsKeys(){ return currentClass !== 'rogue'; }
     const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+
+    function staticCollisionForRect(x, y, w, h){
+      if (!STATIC_OBJECTS.length || !Number.isFinite(w) || !Number.isFinite(h)) return null;
+      const left = x - w/2;
+      const top = y - h/2;
+      const right = left + w;
+      const bottom = top + h;
+      for (const obj of STATIC_OBJECTS){
+        const c = obj && obj.collider;
+        if (!c) continue;
+        if (right > c.x && left < c.x + c.w && bottom > c.y && top < c.y + c.h){
+          return obj;
+        }
+      }
+      return null;
+    }
+
+    function collidesWithStaticRect(x, y, w, h){
+      return !!staticCollisionForRect(x, y, w, h);
+    }
+
+    function separateFromStatic(x, y, w, h, obj){
+      if (!obj || !obj.collider) return { x, y };
+      const c = obj.collider;
+      const cx = c.x + c.w / 2;
+      const cy = c.y + c.h / 2;
+      let dx = x - cx;
+      let dy = y - cy;
+      if (Math.abs(dx) < 1e-3 && Math.abs(dy) < 1e-3){ dx = 1; dy = 0; }
+      const mag = Math.hypot(dx, dy) || 1;
+      const clearance = Math.max(c.w, c.h)/2 + Math.max(w, h)/2 + 12;
+      return {
+        x: clamp(cx + dx / mag * clearance, ARENA.x + w/2, ARENA.x + ARENA.w - w/2),
+        y: clamp(cy + dy / mag * clearance, ARENA.y + h/2, ARENA.y + ARENA.h - h/2),
+      };
+    }
+
+    function resolveStaticCollisions(entity){
+      if (!STATIC_OBJECTS.length || !entity) return;
+      const w = entity.w || 0;
+      const h = entity.h || 0;
+      if (!w || !h) return;
+      const halfW = w / 2;
+      const halfH = h / 2;
+      for (const obj of STATIC_OBJECTS){
+        const c = obj && obj.collider;
+        if (!c) continue;
+        const left = entity.x - halfW;
+        const right = entity.x + halfW;
+        const top = entity.y - halfH;
+        const bottom = entity.y + halfH;
+        const cLeft = c.x;
+        const cRight = c.x + c.w;
+        const cTop = c.y;
+        const cBottom = c.y + c.h;
+        if (right <= cLeft || left >= cRight || bottom <= cTop || top >= cBottom) continue;
+
+        const overlapX = Math.min(right - cLeft, cRight - left);
+        const overlapY = Math.min(bottom - cTop, cBottom - top);
+        if (overlapX <= 0 || overlapY <= 0) continue;
+
+        const colCenterX = cLeft + c.w / 2;
+        const colCenterY = cTop + c.h / 2;
+        if (overlapX < overlapY){
+          const dir = entity.x < colCenterX ? -1 : 1;
+          entity.x += dir * overlapX;
+          if ('vx' in entity) entity.vx = 0;
+          if ('kx' in entity) entity.kx = 0;
+        } else {
+          const dir = entity.y < colCenterY ? -1 : 1;
+          entity.y += dir * overlapY;
+          if ('vy' in entity) entity.vy = 0;
+          if ('ky' in entity) entity.ky = 0;
+        }
+      }
+    }
+
     const clampToArena = (obj, pad=0)=>{
       obj.x = clamp(obj.x, ARENA.x + pad, ARENA.x + ARENA.w - pad);
       obj.y = clamp(obj.y, ARENA.y + pad, ARENA.y + ARENA.h - pad);
@@ -1249,14 +1385,6 @@
 
     // Spawning
     function spawnEnemy(){
-      // Spawn outside player vicinity along arena edges
-      const side = Math.floor(Math.random()*4);
-      let x=ARENA.x+8, y=ARENA.y+8;
-      if (side===0) { x = rand(ARENA.x+16, ARENA.x+ARENA.w-16); y = ARENA.y+10; }
-      if (side===1) { x = ARENA.x+ARENA.w-10; y = rand(ARENA.y+16, ARENA.y+ARENA.h-16); }
-      if (side===2) { x = rand(ARENA.x+16, ARENA.x+ARENA.w-16); y = ARENA.y+ARENA.h-10; }
-      if (side===3) { x = ARENA.x+10; y = rand(ARENA.y+16, ARENA.y+ARENA.h-16); }
-
       // Choose monster type: guarantee variety from the start
       const r = Math.random();
       // Base distribution (more goblins, some imp, some orc)
@@ -1272,6 +1400,24 @@
       else if (kind==='orc'){ w=ENEMY.w*2; h=ENEMY.h*2; spd=60 * stageSpd; hp=(3+Math.floor(SPAWN.wave/1.5))*3; score=240; }
       w *= 1.75;
       h *= 1.75;
+
+      let x = ARENA.x + 8;
+      let y = ARENA.y + 8;
+      let blocker = null;
+      for (let attempts = 0; attempts < 12; attempts++){
+        const side = Math.floor(Math.random()*4);
+        if (side===0) { x = rand(ARENA.x+16, ARENA.x+ARENA.w-16); y = ARENA.y+10; }
+        if (side===1) { x = ARENA.x+ARENA.w-10; y = rand(ARENA.y+16, ARENA.y+ARENA.h-16); }
+        if (side===2) { x = rand(ARENA.x+16, ARENA.x+ARENA.w-16); y = ARENA.y+ARENA.h-10; }
+        if (side===3) { x = ARENA.x+10; y = rand(ARENA.y+16, ARENA.y+ARENA.h-16); }
+        blocker = staticCollisionForRect(x, y, w, h);
+        if (!blocker) break;
+      }
+      if (blocker){
+        const separated = separateFromStatic(x, y, w, h, blocker);
+        x = separated.x;
+        y = separated.y;
+      }
 
       const enemy = { kind, x, y, vx:0, vy:0, kx:0, ky:0, w, h, hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0, dir:'down', frame:0, animT:0, sleepT:0, sleepMax:0 };
       if (needsKeys() && !SPAWN.keyAssigned){ enemy.hasKey = true; SPAWN.keyAssigned = true; }
@@ -1374,6 +1520,12 @@
     function addChest(x, y){
       const chest = { x, y, w:32, h:32, opened:false };
       clampToArena(chest, 16);
+      const blocker = staticCollisionForRect(chest.x, chest.y, chest.w, chest.h);
+      if (blocker){
+        const separated = separateFromStatic(chest.x, chest.y, chest.w, chest.h, blocker);
+        chest.x = separated.x;
+        chest.y = separated.y;
+      }
       chests.push(chest);
       return chest;
     }
@@ -1725,6 +1877,7 @@
       const pF = Math.pow(PHYS.friction, dt * 60);
       P.vx *= pF; P.vy *= pF;
       P.x += P.vx*dt; P.y += P.vy*dt;
+      resolveStaticCollisions(P);
       // Clamp to arena
         P.x = clamp(P.x, ARENA.x+24, ARENA.x+ARENA.w-24); P.y = clamp(P.y, ARENA.y+24, ARENA.y+ARENA.h-24);
         if (currentClass === 'wizard') updateWizardAnim(dt);
@@ -1840,6 +1993,7 @@
           e.y = clamp(e.y, ARENA.y + AI.wallPad, ARENA.y + ARENA.h - AI.wallPad);
         }
         // Final boundary clamp
+        resolveStaticCollisions(e);
         clampToArena(e, AI.wallPad);
 
         if (e.kind === 'boss'){
@@ -2374,6 +2528,21 @@
       ctx.scale(MAP_ZOOM, MAP_ZOOM);
       ctx.translate(-CAM.x, -CAM.y);
       drawBackground();
+
+      if (STATIC_OBJECTS.length){
+        for (const obj of STATIC_OBJECTS){
+          const img = obj.img;
+          if (!img) continue;
+          const w = obj.width || img.width;
+          const h = obj.height || img.height;
+          ctx.drawImage(img, obj.x - w/2, obj.y - h, w, h);
+          if (DEBUG_HITBOX && obj.collider){
+            ctx.strokeStyle = 'rgba(255,0,0,0.6)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(obj.collider.x, obj.collider.y, obj.collider.w, obj.collider.h);
+          }
+        }
+      }
 
       // Draw chests
       for (const c of chests) { const img = c.opened ? IMG.chestOpen : IMG.chest; ctx.drawImage(img, c.x-16, c.y-16, 32, 32); }

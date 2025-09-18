@@ -1564,7 +1564,7 @@
     const BASE_ATK_RANGE = 64;
     const EXTENDED_ATK_RANGE = Math.round(BASE_ATK_RANGE * 1.5);
     const ROGUE_ATK_RANGE = Math.round(EXTENDED_ATK_RANGE * 0.75);
-    const ROGUE_BASE_CHEST_CHANCE = 0.05;
+    const ROGUE_BASE_CHEST_CHANCE = 0.00;
     const ROGUE_CHEST_CHANCE_STEP = 0.05;
     const PICKPOCKET_MAX_LEVEL = 5;
     const PHYS = { friction: 0.86, atkDur: 0.18, atkRange: BASE_ATK_RANGE, atkArc: Math.PI*0.35 };
@@ -1931,7 +1931,7 @@
         { id:'crit', type:'Skill', name:'Deadly Precision', desc:'+10% crit chance.', apply:()=>{ UPGR.critChance = Math.min(0.6, UPGR.critChance + 0.10); } },
         { id:'dodge', type:'Skill', name:'Evasion', desc:'Chance to evade incoming hits.', note:'Chance increases with repeats', apply:()=>{ UPGR.dodgeChance = Math.min(0.5, (UPGR.dodgeChance||0) + 0.15); } },
         { id:'heart', type:'Skill', name:'Second Wind', desc:'Max HP +1 and heal 1.', apply:()=>{ P.hpMax += 1; P.hp = Math.min(P.hpMax, P.hp+1); drawHearts(); } },
-        { id:'pickpocket', type:'Skill', name:'Pickpocket', desc:'Increase chest drop chance by 5% per level.', note:'+5% per level (max +25%).', maxLevel:PICKPOCKET_MAX_LEVEL, apply:()=>{ refreshPickpocketState(); } },
+        { id:'pickpocket', type:'Skill', name:'Pickpocket', desc:'Gain a chance for enemies to drop chests on kill.', note:'Each level increases chest drop chance by +5% (max +25%).', maxLevel:PICKPOCKET_MAX_LEVEL, apply:()=>{ refreshPickpocketState(); } },
         // Rogue-only arrow upgrades
         { id:'barbed', type:'Weapon', name:'Barbed Arrows', desc:'Arrow damage +1.', apply:()=>{ UPGR.arrowDmg += 1; } },
         { id:'rapid', type:'Weapon', name:'Rapid Shot', desc:'Fire arrows 12% faster.', apply:()=>{ UPGR.arrowPeriod = Math.max(0.25, UPGR.arrowPeriod * 0.88); } },

@@ -683,6 +683,16 @@
       forestRock02: new Image(),
       forestRock03: new Image(),
       forestRock04: new Image(),
+      feyTree01: new Image(),
+      feyBush01: new Image(),
+      feyBush02: new Image(),
+      feyBush03: new Image(),
+      feyBush04: new Image(),
+      feyBush05: new Image(),
+      feyBush06: new Image(),
+      feyBush07: new Image(),
+      feyBush08: new Image(),
+      feyRock01: new Image(),
       hero: CLASS_IMG.fighter,
     };
     IMG.coin.src = 'assets/eg_coin.svg';
@@ -710,6 +720,16 @@
     IMG.forestRock02.src = 'assets/EG_terrain_forest_rock02_small.png';
     IMG.forestRock03.src = 'assets/EG_terrain_forest_rock03_small.png';
     IMG.forestRock04.src = 'assets/EG_terrain_forest_rock04_small.png';
+    IMG.feyTree01.src = 'assets/EG_terrain_feywild_tree01_small.png';
+    IMG.feyBush01.src = 'assets/EG_terrain_feywild_bush01_small.png';
+    IMG.feyBush02.src = 'assets/EG_terrain_feywild_bush02_small.png';
+    IMG.feyBush03.src = 'assets/EG_terrain_feywild_bush03_small.png';
+    IMG.feyBush04.src = 'assets/EG_terrain_feywild_bush04_small.png';
+    IMG.feyBush05.src = 'assets/EG_terrain_feywild_bush05_small.png';
+    IMG.feyBush06.src = 'assets/EG_terrain_feywild_bush06_small.png';
+    IMG.feyBush07.src = 'assets/EG_terrain_feywild_bush07_small.png';
+    IMG.feyBush08.src = 'assets/EG_terrain_feywild_bush08_small.png';
+    IMG.feyRock01.src = 'assets/EG_terrain_feywild_rock01_small.png';
 
     const MAP_FILES = [
       'assets/EG_map_mirewatch01.png',
@@ -1203,9 +1223,278 @@
       return results;
     }
 
+    function generateStageTwoTerrain(){
+      if (!ARENA || !ARENA.w || !ARENA.h) return [];
+
+      const marginX = Math.max(72, Math.min(ARENA.w * 0.08, 140));
+      const marginY = Math.max(72, Math.min(ARENA.h * 0.08, 140));
+      const minX = ARENA.x + marginX;
+      const maxX = ARENA.x + ARENA.w - marginX;
+      const minY = ARENA.y + marginY;
+      const maxY = ARENA.y + ARENA.h - marginY;
+      if (minX >= maxX || minY >= maxY) return [];
+
+      const centerX = ARENA.x + ARENA.w / 2;
+      const centerY = ARENA.y + ARENA.h / 2;
+      const centerHalfW = Math.min(ARENA.w * 0.24, 250);
+      const centerHalfH = Math.min(ARENA.h * 0.24, 220);
+
+      const treeWidth = IMG.feyTree01.width || 128;
+      const treeHeight = IMG.feyTree01.height || 128;
+      const bush01Width = (IMG.feyBush01.width || 0) * 0.5 || 64;
+      const bush01Height = (IMG.feyBush01.height || 0) * 0.5 || 64;
+      const bush02Width = (IMG.feyBush02.width || 0) * 0.5 || 64;
+      const bush02Height = (IMG.feyBush02.height || 0) * 0.5 || 64;
+      const bush03Width = (IMG.feyBush03.width || 0) * 0.5 || 64;
+      const bush03Height = (IMG.feyBush03.height || 0) * 0.5 || 64;
+      const bush04Width = (IMG.feyBush04.width || 0) * 0.5 || 64;
+      const bush04Height = (IMG.feyBush04.height || 0) * 0.5 || 64;
+      const bush05Width = (IMG.feyBush05.width || 0) * 0.5 || 64;
+      const bush05Height = (IMG.feyBush05.height || 0) * 0.5 || 64;
+      const bush06Width = (IMG.feyBush06.width || 0) * 0.5 || 64;
+      const bush06Height = (IMG.feyBush06.height || 0) * 0.5 || 64;
+      const bush07Width = (IMG.feyBush07.width || 0) * 0.5 || 64;
+      const bush07Height = (IMG.feyBush07.height || 0) * 0.5 || 64;
+      const bush08Width = (IMG.feyBush08.width || 0) * 0.5 || 64;
+      const bush08Height = (IMG.feyBush08.height || 0) * 0.5 || 64;
+      const rockWidth = (IMG.feyRock01.width || 0) * 0.5 || 64;
+      const rockHeight = (IMG.feyRock01.height || 0) * 0.5 || 64;
+
+      const meta = {
+        tree: {
+          img: IMG.feyTree01,
+          anchor: 'bottom',
+          width: treeWidth,
+          height: treeHeight,
+          collider: { w: treeWidth * 0.5, h: Math.min(100, treeHeight * 0.58), anchor: 'bottom' },
+        },
+        bush01: {
+          img: IMG.feyBush01,
+          anchor: 'bottom',
+          width: bush01Width,
+          height: bush01Height,
+          collider: { w: bush01Width * 0.7, h: bush01Height * 0.55, anchor: 'bottom' },
+        },
+        bush02: {
+          img: IMG.feyBush02,
+          anchor: 'bottom',
+          width: bush02Width,
+          height: bush02Height,
+          collider: { w: bush02Width * 0.7, h: bush02Height * 0.55, anchor: 'bottom' },
+        },
+        bush03: {
+          img: IMG.feyBush03,
+          anchor: 'bottom',
+          width: bush03Width,
+          height: bush03Height,
+          collider: { w: bush03Width * 0.7, h: bush03Height * 0.55, anchor: 'bottom' },
+        },
+        bush04: {
+          img: IMG.feyBush04,
+          anchor: 'bottom',
+          width: bush04Width,
+          height: bush04Height,
+          collider: { w: bush04Width * 0.7, h: bush04Height * 0.55, anchor: 'bottom' },
+        },
+        bush05: {
+          img: IMG.feyBush05,
+          anchor: 'bottom',
+          width: bush05Width,
+          height: bush05Height,
+          collider: { w: bush05Width * 0.7, h: bush05Height * 0.55, anchor: 'bottom' },
+        },
+        bush06: {
+          img: IMG.feyBush06,
+          anchor: 'bottom',
+          width: bush06Width,
+          height: bush06Height,
+          collider: { w: bush06Width * 0.7, h: bush06Height * 0.55, anchor: 'bottom' },
+        },
+        bush07: {
+          img: IMG.feyBush07,
+          anchor: 'bottom',
+          width: bush07Width,
+          height: bush07Height,
+          collider: { w: bush07Width * 0.7, h: bush07Height * 0.55, anchor: 'bottom' },
+        },
+        bush08: {
+          img: IMG.feyBush08,
+          anchor: 'bottom',
+          width: bush08Width,
+          height: bush08Height,
+          collider: { w: bush08Width * 0.7, h: bush08Height * 0.55, anchor: 'bottom' },
+        },
+        rock: {
+          img: IMG.feyRock01,
+          anchor: 'bottom',
+          width: rockWidth,
+          height: rockHeight,
+          collider: { w: rockWidth * 0.8, h: rockHeight * 0.7, anchor: 'bottom' },
+        },
+      };
+
+      const placements = [];
+      const results = [];
+      const counts = {
+        tree: 3,
+        bush01: 2,
+        bush02: 2,
+        bush03: 2,
+        bush04: 2,
+        bush05: 2,
+        bush06: 2,
+        bush07: 2,
+        bush08: 2,
+        rock: 4,
+      };
+
+      const treeTypes = ['tree'];
+
+      function withinBounds(x, y){
+        return x >= minX && x <= maxX && y >= minY && y <= maxY;
+      }
+
+      function inCenterClear(x, y){
+        return Math.abs(x - centerX) < centerHalfW && Math.abs(y - centerY) < centerHalfH;
+      }
+
+      function hasSpacing(x, y, ignore = null){
+        for (const p of placements){
+          if (ignore && p === ignore) continue;
+          if (Math.hypot(x - p.x, y - p.y) < TERRAIN_MIN_DISTANCE) return false;
+        }
+        return true;
+      }
+
+      function farFromTrees(x, y, dist = 200){
+        for (const p of placements){
+          if (!treeTypes.includes(p.type)) continue;
+          if (Math.hypot(x - p.x, y - p.y) < dist) return false;
+        }
+        return true;
+      }
+
+      function recordPlacement(type, x, y){
+        const cfg = meta[type];
+        if (!cfg) return null;
+        const obj = {
+          img: cfg.img,
+          x,
+          y,
+          sortY: y,
+          anchor: cfg.anchor,
+        };
+        if (cfg.width) obj.w = cfg.width;
+        if (cfg.height) obj.h = cfg.height;
+        if (cfg.collider) obj.collider = { ...cfg.collider };
+        const placement = { type, x, y, obj };
+        placements.push(placement);
+        results.push(obj);
+        return placement;
+      }
+
+      function findPosition(opts = {}){
+        const attempts = opts.attempts || TERRAIN_BASE_ATTEMPTS;
+        const avoidUntil = opts.allowCenterAfter != null ? opts.allowCenterAfter : Math.floor(attempts * 0.6);
+        for (let i = 0; i < attempts; i++){
+          const x = Math.round(rand(minX, maxX));
+          const y = Math.round(rand(minY, maxY));
+          if (!withinBounds(x, y)) continue;
+          if (i < avoidUntil && inCenterClear(x, y)) continue;
+          if (!hasSpacing(x, y)) continue;
+          if (opts.filter && !opts.filter(x, y)) continue;
+          return { x, y };
+        }
+        return null;
+      }
+
+      function placeGeneral(type, opts = {}){
+        const primary = findPosition(opts);
+        if (primary) return recordPlacement(type, primary.x, primary.y);
+        const relaxed = findPosition({ ...opts, allowCenterAfter: 0 });
+        if (!relaxed) return null;
+        return recordPlacement(type, relaxed.x, relaxed.y);
+      }
+
+      function placeNear(type, target, range = {}, filter){
+        if (!target || counts[type] <= 0) return null;
+        const min = range.min != null ? range.min : TERRAIN_MIN_DISTANCE;
+        const max = range.max != null ? Math.max(range.max, min) : min + 160;
+        const attempts = range.attempts || TERRAIN_BASE_ATTEMPTS;
+        for (let phase = 0; phase < 2; phase++){
+          for (let i = 0; i < attempts; i++){
+            const dist = rand(min, max);
+            const angle = rand(0, Math.PI * 2);
+            const x = Math.round(target.x + Math.cos(angle) * dist);
+            const y = Math.round(target.y + Math.sin(angle) * dist);
+            if (!withinBounds(x, y)) continue;
+            if (phase === 0 && inCenterClear(x, y)) continue;
+            if (!hasSpacing(x, y, target)) continue;
+            const actual = Math.hypot(x - target.x, y - target.y);
+            if (actual < min || actual > max) continue;
+            if (filter && !filter(x, y)) continue;
+            return recordPlacement(type, x, y);
+          }
+        }
+        return null;
+      }
+
+      function placeRemaining(type, opts){
+        while (counts[type] > 0){
+          const placed = placeGeneral(type, opts);
+          if (!placed) break;
+          counts[type]--;
+        }
+      }
+
+      const treeNearRock = counts.tree > 0 ? placeGeneral('tree') : null;
+      if (treeNearRock) counts.tree--;
+      if (treeNearRock && counts.rock > 0){
+        let rockByTree = placeNear('rock', treeNearRock, { min: TERRAIN_MIN_DISTANCE, max: TERRAIN_MIN_DISTANCE + 140 }, (x, y) => farFromTrees(x, y, 180));
+        if (!rockByTree){
+          rockByTree = placeNear('rock', treeNearRock, { min: TERRAIN_MIN_DISTANCE, max: TERRAIN_MIN_DISTANCE + 220, attempts: TERRAIN_BASE_ATTEMPTS * 2 }, (x, y) => farFromTrees(x, y, 180));
+        }
+        if (rockByTree) counts.rock--;
+      }
+
+      const treeNearBush = counts.tree > 0 ? placeGeneral('tree') : null;
+      if (treeNearBush) counts.tree--;
+      if (treeNearBush && counts.bush01 > 0){
+        let bushByTree = placeNear('bush01', treeNearBush, { min: TERRAIN_MIN_DISTANCE, max: TERRAIN_MIN_DISTANCE + 140 });
+        if (!bushByTree){
+          bushByTree = placeNear('bush01', treeNearBush, { min: TERRAIN_MIN_DISTANCE, max: TERRAIN_MIN_DISTANCE + 220, attempts: TERRAIN_BASE_ATTEMPTS * 2 });
+        }
+        if (bushByTree) counts.bush01--;
+      }
+
+      const bushNearRock = counts.bush02 > 0 ? placeGeneral('bush02', { filter: (x, y) => farFromTrees(x, y, 200) }) : null;
+      if (bushNearRock) counts.bush02--;
+      if (bushNearRock && counts.rock > 0){
+        let rockByBush = placeNear('rock', bushNearRock, { min: TERRAIN_MIN_DISTANCE, max: TERRAIN_MIN_DISTANCE + 140 }, (x, y) => farFromTrees(x, y, 180));
+        if (!rockByBush){
+          rockByBush = placeNear('rock', bushNearRock, { min: TERRAIN_MIN_DISTANCE, max: TERRAIN_MIN_DISTANCE + 220, attempts: TERRAIN_BASE_ATTEMPTS * 2 }, (x, y) => farFromTrees(x, y, 180));
+        }
+        if (rockByBush) counts.rock--;
+      }
+
+      placeRemaining('tree');
+      placeRemaining('bush01');
+      placeRemaining('bush02', { filter: (x, y) => farFromTrees(x, y, 200) });
+      placeRemaining('bush03');
+      placeRemaining('bush04');
+      placeRemaining('bush05');
+      placeRemaining('bush06');
+      placeRemaining('bush07');
+      placeRemaining('bush08');
+      placeRemaining('rock', { filter: (x, y) => farFromTrees(x, y, 160) });
+
+      return results;
+    }
+
     const STAGE_TERRAIN_TEMPLATES = Array.from({ length: MAP_FILES.length }, () => []);
     STAGE_TERRAIN_TEMPLATES[0] = generateStageZeroTerrain;
     STAGE_TERRAIN_TEMPLATES[1] = generateStageOneTerrain;
+    STAGE_TERRAIN_TEMPLATES[2] = generateStageTwoTerrain;
 
     let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length + Object.keys(GOAT_ANIM).length + Object.keys(MUCK_PROJECTILE_ANIM).length + Object.keys(HILL_GIANT_PROJECTILE_ANIM).length + Object.keys(SLIME_PROJECTILE_ANIM).length + Object.keys(FIREBALL_PROJECTILE_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });

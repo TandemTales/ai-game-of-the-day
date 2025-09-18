@@ -2297,6 +2297,7 @@
       entity.muckGeneration = generation;
       entity.muckBaseHp = baseHp;
       entity.muckBaseSize = baseSize;
+      entity.muckPolymorphed = false;
       enemies.push(entity);
       clampToArena(entity, Math.max(24, Math.min(entity.w, entity.h) * 0.5));
       return entity;
@@ -2465,6 +2466,13 @@
     }
     function dropHeart(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'heart', v: rand(40,70), a: rand(0,Math.PI*2) }); }
 
+    function isMuckSpellVulnerable(e){
+      if (!e || e.kind !== 'boss') return false;
+      if (e.bossType !== 'muck') return false;
+      const gen = e.muckGeneration || 0;
+      return gen >= 2;
+    }
+
     function handleMuckBossDeath(e){
       if (!e) return { defeated: true };
       const tracker = e.bossController;
@@ -2474,6 +2482,18 @@
       tracker.nodes.delete(e);
       const baseSize = tracker.muckBaseSize || { w: ENEMY.w*4*1.5, h: ENEMY.h*4*1.5 };
       const generation = e.muckGeneration || 0;
+      const dropCoins = (count)=>{
+        for (let i=0;i<count;i++){
+          dropCoin(e.x + rand(-20,20), e.y + rand(-20,20));
+        }
+      };
+      if (generation === 0){
+        dropCoins(15);
+      } else if (generation === 1){
+        dropCoins(10);
+      } else {
+        dropCoins(5);
+      }
       if (generation === 0){
         const spread = Math.max(32, (baseSize.w || e.w) * 0.35);
         const offsets = [
@@ -2510,7 +2530,9 @@
     }
 
     function polymorphEnemy(e){
-      if (!e || e.hp <= 0 || e.kind === 'boss' || e.kind === 'goatCoin' || e.kind === 'goatHeart') return;
+      if (!e || e.hp <= 0) return;
+      const muckMini = isMuckSpellVulnerable(e);
+      if ((e.kind === 'boss' && !muckMini) || e.kind === 'goatCoin' || e.kind === 'goatHeart') return;
       const roll = Math.random();
       const dropKind = roll < 0.75 ? 'coin' : 'heart';
       polymorphBurst(e.x, e.y, dropKind);
@@ -2538,7 +2560,13 @@
       e.wanderT = 0;
       e.w = GOAT.w;
       e.h = GOAT.h;
-      e.score = e.score || 50;
+      if (muckMini){
+        e.muckPolymorphed = true;
+        if (e.score == null) e.score = 0;
+      } else {
+        e.muckPolymorphed = false;
+        e.score = e.score || 50;
+      }
     }
 
     function addChest(x, y){
@@ -2598,14 +2626,22 @@
           else if (e.bossType === 'hungerDemon') playSfx('bossHungerDemonKilled');
           else if (e.bossType === 'beholder') playSfx('bossBeholderKilled');
           addScore(e.score||1000);
-          for (let i=0;i<10;i++) dropCoin(e.x + rand(-20,20), e.y + rand(-20,20));
+          if (e.bossType !== 'muck'){
+            for (let i=0;i<10;i++) dropCoin(e.x + rand(-20,20), e.y + rand(-20,20));
+          }
           if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }
           if (UPGR.doubleCoinChance > 0 && Math.random() < UPGR.doubleCoinChance){ dropCoin(e.x + rand(-6,6), e.y + rand(-6,6)); }
           handleBossDefeat();
         } else {
-          addScore(e.score||50);
-          if (e.hasKey) dropKey(e.x, e.y);
           const isGoat = e.kind === 'goatCoin' || e.kind === 'goatHeart';
+          const isMuckGoat = isGoat && e.bossType === 'muck' && e.muckPolymorphed;
+          let muckResult = null;
+          if (isMuckGoat){
+            muckResult = handleMuckBossDeath(e);
+          }
+          const scoreValue = isMuckGoat ? (e.score ?? 0) : (e.score||50);
+          addScore(scoreValue);
+          if (e.hasKey) dropKey(e.x, e.y);
           const dropKind = isGoat ? (e.goatDrop || (e.kind === 'goatHeart' ? 'heart' : 'coin')) : 'coin';
           if (dropKind === 'heart'){ dropHeart(e.x, e.y); }
           else { dropCoin(e.x, e.y); }
@@ -2619,6 +2655,10 @@
           if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }
           // Extra coin chance (goats only if they drop coins)
           if (dropKind === 'coin' && UPGR.doubleCoinChance > 0 && Math.random() < UPGR.doubleCoinChance){ dropCoin(e.x + rand(-6,6), e.y + rand(-6,6)); }
+          if (isMuckGoat && muckResult && muckResult.defeated){
+            playSfx('bossMudMonsterKilled');
+            handleBossDefeat();
+          }
         }
       } else {
         if (e.sleepT && e.sleepT > 0){
@@ -3389,7 +3429,7 @@
           const maxR = wave.maxR ?? Infinity;
           wave.r = Math.min(maxR, wave.r + wave.speed * dt);
           for (const e of enemies){
-            if (e.hp<=0 || e.kind === 'boss') continue;
+            if (e.hp<=0 || (e.kind === 'boss' && !isMuckSpellVulnerable(e))) continue;
             if (wave.hit.has(e)) continue;
             const buffer = Math.max(e.w||0, e.h||0) * 0.35;
             if (len(e.x-wave.x, e.y-wave.y) <= wave.r + buffer){
@@ -3409,7 +3449,7 @@
           const maxR = wave.maxR ?? Infinity;
           wave.r = Math.min(maxR, wave.r + wave.speed * dt);
           for (const e of enemies){
-            if (e.hp<=0 || e.kind === 'boss') continue;
+            if (e.hp<=0 || (e.kind === 'boss' && !isMuckSpellVulnerable(e))) continue;
             if (wave.hit.has(e)) continue;
             const buffer = Math.max(e.w||0, e.h||0) * 0.35;
             if (len(e.x-wave.x, e.y-wave.y) <= wave.r + buffer){

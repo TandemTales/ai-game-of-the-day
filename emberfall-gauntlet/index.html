@@ -480,6 +480,7 @@
       if (e.kind === 'imp') playSfx('impHurt');
       else if (e.kind === 'orc') playSfx('orcHurt');
       else if (e.kind === 'goblin') playSfx('goblinHurt');
+      else if (e.kind === 'babyBeholder') playSfx('bossBeholderHurt');
       else if (e.kind === 'boss' && e.bossType === 'muck' && e.hp > 0) playSfx('bossMudMonsterHurt');
       else if (e.kind === 'boss' && e.bossType === 'hillGiant' && e.hp > 0) playSfx('bossHillGiantHurt');
       else if (e.kind === 'boss' && e.bossType === 'abomination' && e.hp > 0) playSfx('bossAbominationHurt');
@@ -649,6 +650,17 @@
     BEHOLDER_ANIM.up.src = 'assets/EG_enemy_boss_beholder_animation_walking_up_small.png';
     BEHOLDER_ANIM.left.src = 'assets/EG_enemy_boss_beholder_animation_walking_left_small.png';
     BEHOLDER_ANIM.right.src = 'assets/EG_enemy_boss_beholder_animation_walking_right_small.png';
+
+    const BABY_BEHOLDER_ANIM = {
+      down: new Image(),
+      up: new Image(),
+      left: new Image(),
+      right: new Image(),
+    };
+    BABY_BEHOLDER_ANIM.down.src = 'assets/EG_enemy_baby_beholder_animation_walking_down_small.png';
+    BABY_BEHOLDER_ANIM.up.src = 'assets/EG_enemy_baby_beholder_animation_walking_up_small.png';
+    BABY_BEHOLDER_ANIM.left.src = 'assets/EG_enemy_baby_beholder_animation_walking_left_small.png';
+    BABY_BEHOLDER_ANIM.right.src = 'assets/EG_enemy_baby_beholder_animation_walking_right_small.png';
 
     const GOAT_ANIM = {
       coin: new Image(),
@@ -1496,7 +1508,7 @@
     STAGE_TERRAIN_TEMPLATES[1] = generateStageOneTerrain;
     STAGE_TERRAIN_TEMPLATES[2] = generateStageTwoTerrain;
 
-    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length + Object.keys(GOAT_ANIM).length + Object.keys(MUCK_PROJECTILE_ANIM).length + Object.keys(HILL_GIANT_PROJECTILE_ANIM).length + Object.keys(SLIME_PROJECTILE_ANIM).length + Object.keys(FIREBALL_PROJECTILE_ANIM).length;
+    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length + Object.keys(BABY_BEHOLDER_ANIM).length + Object.keys(GOAT_ANIM).length + Object.keys(MUCK_PROJECTILE_ANIM).length + Object.keys(HILL_GIANT_PROJECTILE_ANIM).length + Object.keys(SLIME_PROJECTILE_ANIM).length + Object.keys(FIREBALL_PROJECTILE_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const img of MAPS) img.addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in WIZ_ANIM) WIZ_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -1510,6 +1522,7 @@
     for (const k in ABOMINATION_ANIM) ABOMINATION_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in HUNGER_DEMON_ANIM) HUNGER_DEMON_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in BEHOLDER_ANIM) BEHOLDER_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
+    for (const k in BABY_BEHOLDER_ANIM) BABY_BEHOLDER_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in GOAT_ANIM) GOAT_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in MUCK_PROJECTILE_ANIM) MUCK_PROJECTILE_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in HILL_GIANT_PROJECTILE_ANIM) HILL_GIANT_PROJECTILE_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -1598,6 +1611,7 @@
       orc:    { x: HITBOX.enemy, y: HITBOX.enemy },
       goatCoin:  { x: HITBOX.enemy, y: HITBOX.enemy },
       goatHeart: { x: HITBOX.enemy, y: HITBOX.enemy },
+      babyBeholder: { x: HITBOX.enemy, y: HITBOX.enemy },
       // Bosses (overridden per bossType if desired)
       boss:   { x: HITBOX.enemy, y: HITBOX.enemy },
       muck:         { x: HITBOX.enemy, y: HITBOX.enemy },
@@ -2302,6 +2316,51 @@
       clampToArena(entity, Math.max(24, Math.min(entity.w, entity.h) * 0.5));
       return entity;
     }
+
+    function spawnBabyBeholder(parent){
+      const stageSpd = Math.pow(1.2, stage);
+      const width = ENEMY.w * 2.2;
+      const height = ENEMY.h * 2.2;
+      const hp = 24;
+      const baseX = parent && typeof parent.x === 'number' ? parent.x : ARENA.x + ARENA.w / 2;
+      const baseY = parent && typeof parent.y === 'number' ? parent.y : ARENA.y + ARENA.h / 2;
+      const baseFacing = parent && typeof parent.facing === 'number' ? parent.facing : 0;
+      const baby = {
+        kind:'babyBeholder',
+        x: clamp(baseX + rand(-28, 28), ARENA.x + 16, ARENA.x + ARENA.w - 16),
+        y: clamp(baseY + rand(-28, 28), ARENA.y + 16, ARENA.y + ARENA.h - 16),
+        vx:0,
+        vy:0,
+        kx:0,
+        ky:0,
+        w: width,
+        h: height,
+        hp,
+        hpMax: hp,
+        spd: 65 * stageSpd,
+        score: 400,
+        t:0,
+        ang: Math.random() * Math.PI * 2,
+        wanderT: 0,
+        dir:'down',
+        frame:0,
+        animT:0,
+        atkT: rand(0.2, 1.6),
+        blastT: rand(0.5, 2.5),
+        rayT: rand(0.4, 2.4),
+        facing: baseFacing,
+        freezeT:0,
+        pulse:0,
+        sleepT:0,
+        sleepMax:0,
+        slowT:0,
+        slowMul:0.5,
+        slowAmp:0,
+      };
+      clampToArena(baby, Math.max(16, Math.min(width, height) * 0.5));
+      enemies.push(baby);
+      return baby;
+    }
     const len = (x,y)=>Math.hypot(x,y);
     const norm = (x,y)=>{const l=Math.hypot(x,y)||1;return [x/l,y/l];};
     const angleDiff = (a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
@@ -2967,6 +3026,7 @@
         if (e.pulse && e.pulse > 0) { e.pulse = Math.max(0, e.pulse - dt); }
         const dx = P.x - e.x, dy = P.y - e.y; const dist = Math.hypot(dx,dy);
         const isGoat = e.kind === 'goatCoin' || e.kind === 'goatHeart';
+        const isBabyBeholder = e.kind === 'babyBeholder';
         const sleeping = e.sleepT && e.sleepT > 0;
         if (e.kind === 'boss'){
           if (!sleeping){
@@ -2983,6 +3043,19 @@
             } else {
               e.dir = Math.sin(e.facing) > 0 ? 'down' : 'up';
             }
+          }
+        }
+        if (isBabyBeholder && !sleeping){
+          const targetAng = Math.atan2(dy, dx);
+          const currentFacing = Number.isFinite(e.facing) ? e.facing : 0;
+          const diff = angleDiff(targetAng, currentFacing);
+          const maxTurn = 0.9 * dt;
+          if (Math.abs(diff) < maxTurn) e.facing = targetAng;
+          else e.facing = currentFacing + Math.sign(diff) * maxTurn;
+          if (Math.abs(Math.cos(e.facing)) > Math.abs(Math.sin(e.facing))){
+            e.dir = Math.cos(e.facing) > 0 ? 'right' : 'left';
+          } else {
+            e.dir = Math.sin(e.facing) > 0 ? 'down' : 'up';
           }
         }
         // Use per-enemy speed (with a global pacing modifier similar to previous tuning)
@@ -3114,10 +3187,24 @@
             e.atkT += dt;
             if (e.bossType === 'hungerDemon' || e.bossType === 'beholder') e.blastT = (e.blastT || 0) + dt;
             if (e.bossType === 'beholder') e.rayT = (e.rayT || 0) + dt;
-          if (e.bossType === 'abomination') {
-            if (e.freezeT <= 0 && e.atkT >= 2.4){
-              e.atkT = 0;
-              const range = 120;
+            if (e.bossType === 'beholder'){
+              e.minionTimer = (e.minionTimer || 0) + dt;
+              if (e.minionTimer >= 3){
+                e.minionTimer = 0;
+                let babies = 0;
+                for (const other of enemies){
+                  if (other === e || other.hp <= 0) continue;
+                  if (other.kind === 'babyBeholder') babies++;
+                }
+                if (babies < 5){
+                  spawnBabyBeholder(e);
+                }
+              }
+            }
+            if (e.bossType === 'abomination') {
+              if (e.freezeT <= 0 && e.atkT >= 2.4){
+                e.atkT = 0;
+                const range = 120;
               if (e.nextAtk === 'wave') {
                 BOSS_PROJECTILES.push({ kind:'wave', x:e.x, y:e.y, r:0, maxR:range*2, speed:200, width:20, dmg:1, life:0 });
                 e.nextAtk = 'pulse';
@@ -3225,13 +3312,55 @@
             }
           }
           }
+        } else if (isBabyBeholder){
+          if (!sleeping){
+            e.atkT = (e.atkT || 0) + dt;
+            e.blastT = (e.blastT || 0) + dt;
+            e.rayT = (e.rayT || 0) + dt;
+            if (e.freezeT <= 0 && e.atkT >= 2){
+              e.atkT = 0;
+              const count = 8;
+              const slowSpeed = 45;
+              const fastSpeed = 90;
+              const pushDist = 50;
+              for (let i=0; i<count; i++){
+                const ang = (Math.PI*2 / count) * i;
+                const vxSlow = Math.cos(ang) * slowSpeed;
+                const vySlow = Math.sin(ang) * slowSpeed;
+                BOSS_PROJECTILES.push({ kind:'slime', source:'babyBeholder', dmg:1, dir: vxSlow < 0 ? 'left' : 'right', x:e.x, y:e.y, vx:vxSlow, vy:vySlow, life:0, ttl:2, frame:0, animT:0, scale:0.5, push:pushDist });
+                const vxFast = Math.cos(ang) * fastSpeed;
+                const vyFast = Math.sin(ang) * fastSpeed;
+                BOSS_PROJECTILES.push({ kind:'slime', source:'babyBeholder', dmg:0.5, dir: vxFast < 0 ? 'left' : 'right', x:e.x, y:e.y, vx:vxFast, vy:vyFast, life:0, ttl:1, frame:0, animT:0, scale:0.5, push:pushDist });
+              }
+              if (e.rayT >= 4){
+                const beamAng = Math.atan2(dy, dx);
+                BOSS_PROJECTILES.push({ kind:'beam', source:'babyBeholder', dmg:0.5, x:e.x, y:e.y, ang:beamAng, life:0, ttl:0.5, scale:0.5, push:50, length:120 });
+                e.rayT = 0;
+              }
+            }
+            if (e.freezeT <= 0 && e.blastT >= 6){
+              e.blastT = 0;
+              const range = 100;
+              const pushDist = 50;
+              const dmg = 0.5;
+              e.pulse = 0.25;
+              e.pulseRange = range;
+              if (dist < range && P.iT<=0){
+                const [nx,ny]=norm(P.x-e.x,P.y-e.y);
+                if (CHEAT.active){ pushPlayerByVector(nx, ny, pushDist); P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
+                else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
+                else { pushPlayerByVector(nx, ny, pushDist); P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
+              }
+              e.freezeT = 1.5;
+            }
+          }
         }
 
         // Walk animation for goblins, imps, orcs, and bosses
-        if (e.kind === 'goblin' || e.kind === 'imp' || e.kind === 'orc' || e.kind === 'boss'){
+        if (e.kind === 'goblin' || e.kind === 'imp' || e.kind === 'orc' || e.kind === 'boss' || isBabyBeholder){
           const spd = Math.hypot(e.vx, e.vy);
           if (spd > 5){
-            if (e.kind !== 'boss'){
+            if (e.kind !== 'boss' && !isBabyBeholder){
               if (Math.abs(e.vx) > Math.abs(e.vy)){
                 e.dir = e.vx > 0 ? 'right' : 'left';
               } else {
@@ -3573,25 +3702,27 @@
           const d = len(P.x - p.x, P.y - p.y);
           if (Math.abs(d - p.r) < p.width/2 && P.iT<=0){
             const dmg = p.dmg || 1;
-            if (CHEAT.active){ pushPlayerAwayFrom(p.x, p.y); P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
+            const pushDist = p.push;
+            if (CHEAT.active){ pushPlayerAwayFrom(p.x, p.y, pushDist); P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
             else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-            else { pushPlayerAwayFrom(p.x, p.y); P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
+            else { pushPlayerAwayFrom(p.x, p.y, pushDist); P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
           }
           if (p.r > p.maxR){ BOSS_PROJECTILES.splice(i,1); }
           continue;
         }
         if (p.kind === 'beam'){
           if (p.life > p.ttl){ BOSS_PROJECTILES.splice(i,1); continue; }
-          const lenB = 240;
-          const bw = 8;
+          const lenB = p.length || 240;
+          const bw = (8 * (p.scale || 1));
           const relX = P.x - p.x, relY = P.y - p.y;
           const proj = relX * Math.cos(p.ang) + relY * Math.sin(p.ang);
           const perp = Math.abs(relX * Math.sin(p.ang) - relY * Math.cos(p.ang));
           if (proj > 0 && proj < lenB && perp < bw && P.iT<=0){
             const dmg = p.dmg || 1;
-            if (CHEAT.active){ pushPlayerAwayFrom(p.x, p.y); P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
+            const pushDist = p.push;
+            if (CHEAT.active){ pushPlayerAwayFrom(p.x, p.y, pushDist); P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
             else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-            else { pushPlayerAwayFrom(p.x, p.y); P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
+            else { pushPlayerAwayFrom(p.x, p.y, pushDist); P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
           }
           continue;
         }
@@ -3606,9 +3737,10 @@
         if (len(p.x-P.x,p.y-P.y) < hitRadius){
           if (P.iT<=0){
             const dmg = p.dmg || 1;
-            if (CHEAT.active){ pushPlayerByVector(p.vx, p.vy); P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
+            const pushDist = p.push;
+            if (CHEAT.active){ pushPlayerByVector(p.vx, p.vy, pushDist); P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
             else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-            else { pushPlayerByVector(p.vx, p.vy); P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
+            else { pushPlayerByVector(p.vx, p.vy, pushDist); P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
           }
           BOSS_PROJECTILES.splice(i,1);
         }
@@ -3820,6 +3952,11 @@
             const fw = sheet.width / GOAT.frames;
             const fh = sheet.height;
             ctx.drawImage(sheet, frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
+          } else if (e.kind === 'babyBeholder') {
+            const sheet = BABY_BEHOLDER_ANIM[e.dir];
+            const fw = sheet.width / 4;
+            const fh = sheet.height;
+            ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
           } else if (e.kind === 'boss') {
             const anim = e.bossType === 'hillGiant' ? HILL_GIANT_ANIM : e.bossType === 'abomination' ? ABOMINATION_ANIM : e.bossType === 'hungerDemon' ? HUNGER_DEMON_ANIM : e.bossType === 'beholder' ? BEHOLDER_ANIM : MUCK_ANIM;
             const sheet = anim[e.dir];
@@ -4070,7 +4207,10 @@
             ctx.translate(bp.x, bp.y);
             ctx.rotate(bp.ang);
             ctx.fillStyle = 'purple';
-            ctx.fillRect(0, -4, 240, 8);
+            const scale = bp.scale || 1;
+            const width = 8 * scale;
+            const length = bp.length || 240;
+            ctx.fillRect(0, -width/2, length, width);
             ctx.restore();
           } else if (bp.kind === 'wave'){
             ctx.strokeStyle = 'rgba(255,0,0,0.5)';
@@ -4097,7 +4237,10 @@
             const sheet = SLIME_PROJECTILE_ANIM[bp.dir];
             const fw = sheet.width / 4;
             const fh = sheet.height;
-            ctx.drawImage(sheet, bp.frame * fw, 0, fw, fh, bp.x - fw/2, bp.y - fh/2, fw, fh);
+            const scale = bp.scale || 1;
+            const dw = fw * scale;
+            const dh = fh * scale;
+            ctx.drawImage(sheet, bp.frame * fw, 0, fw, fh, bp.x - dw/2, bp.y - dh/2, dw, dh);
           } else {
             ctx.fillStyle = bp.kind === 'slow' ? 'red' : bp.kind === 'fast' ? 'orange' : 'brown';
             ctx.beginPath();

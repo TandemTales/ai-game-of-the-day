@@ -1680,6 +1680,14 @@
       arrowDmg: 1,
       arrowCount: 1,
       arrowPierce: false,
+      // Rogue blade storm defaults
+      bladeStorm: false,
+      bladePeriod: 1.6,
+      bladeTimer: 0,
+      bladeCount: 2,
+      bladeSpin: 0,
+      bladeCadence: 0.12,
+      bladeBurst: null,
     };
 
     function refreshPolymorphState(fromUpgrade = false){
@@ -1909,6 +1917,8 @@
     registerSpellCooldown({ periodKey: 'shardPeriod', timerKey: 'shardTimer', min: 0.2 });
     registerSpellCooldown({ periodKey: 'sleepPeriod', timerKey: 'sleepTimer', min: 2 });
     registerSpellCooldown({ periodKey: 'fireballPeriod', timerKey: 'fireballTimer', min: 1 });
+    // Rogue blade storm cooldown is affected by Spell Focus
+    registerSpellCooldown({ periodKey: 'bladePeriod', timerKey: 'bladeTimer', min: 0.3 });
 
     const POOLS = {
       fighter: [
@@ -1932,6 +1942,8 @@
         { id:'dodge', type:'Skill', name:'Evasion', desc:'Chance to evade incoming hits.', note:'Chance increases with repeats', apply:()=>{ UPGR.dodgeChance = Math.min(0.5, (UPGR.dodgeChance||0) + 0.15); } },
         { id:'heart', type:'Skill', name:'Second Wind', desc:'Max HP +1 and heal 1.', apply:()=>{ P.hpMax += 1; P.hp = Math.min(P.hpMax, P.hp+1); drawHearts(); } },
         { id:'pickpocket', type:'Skill', name:'Pickpocket', desc:'Gain a chance for enemies to drop chests on kill.', note:'Each level increases chest drop chance by +5% (max +25%).', maxLevel:PICKPOCKET_MAX_LEVEL, apply:()=>{ refreshPickpocketState(); } },
+        // Rogue-only blade storm
+        { id:'blade_storm', type:'Weapon', name:'Blade Storm', desc:'Spin and hurl knives around you.', note:'+1 knife per level, evenly spaced', apply:()=>{ if(!UPGR.bladeStorm){ UPGR.bladeStorm=true; UPGR.bladeTimer = UPGR.bladePeriod; } UPGR.bladeCount = Math.max(2, (UPGR.bladeCount||2) + 1); } },
         // Rogue-only arrow upgrades
         { id:'barbed', type:'Weapon', name:'Barbed Arrows', desc:'Arrow damage +1.', apply:()=>{ UPGR.arrowDmg += 1; } },
         { id:'rapid', type:'Weapon', name:'Rapid Shot', desc:'Fire arrows 12% faster.', apply:()=>{ UPGR.arrowPeriod = Math.max(0.25, UPGR.arrowPeriod * 0.88); } },
@@ -1972,6 +1984,7 @@
         crit: 'assets/EG_ability_rogue_deadlyPrecision_small.png',
         dodge: 'assets/EG_ability_rogue_evasion_small.png',
         heart: 'assets/EG_ability_rogue_secondWind_small.png',
+        // No specific art available for Blade Storm; leave blank mapping
         barbed: 'assets/EG_ability_rogue_barbedArrows_small.png',
         rapid: 'assets/EG_ability_rogue_rapidShot_small.png',
         fletching: 'assets/EG_ability_rogue_fineFletching_small.png',
@@ -2080,7 +2093,7 @@
       COINS.value = 0; coinsEl.textContent = COINS.value; SHOP.idx = 0; SHOP.open = false;
       KEYS.value = 0; drawKeys();
       // Reset upgrades and spell state
-      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleCoinChance:0, chestChanceBonus:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:72, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, polymorph:false, polyPeriod:7, polyTimer:0, polyChance:0, polyLevel:0, polyRadius:0, sleep:false, sleepPeriod:8, sleepTimer:0, sleepChance:0, sleepLevel:0, sleepDuration:0, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1, fireball:false, fireballPeriod:FIREBALL_PERIOD_BASE, fireballTimer:0, fireballRange:0, fireballLevel:0, fireballDmg:FIREBALL_DMG, spellCooldownMult:1, arrowPeriod:0.90, arrowTimer:0, arrowSpeed:360, arrowDmg:1, arrowCount:1, arrowPierce:false });
+      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleCoinChance:0, chestChanceBonus:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:72, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, polymorph:false, polyPeriod:7, polyTimer:0, polyChance:0, polyLevel:0, polyRadius:0, sleep:false, sleepPeriod:8, sleepTimer:0, sleepChance:0, sleepLevel:0, sleepDuration:0, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1, fireball:false, fireballPeriod:FIREBALL_PERIOD_BASE, fireballTimer:0, fireballRange:0, fireballLevel:0, fireballDmg:FIREBALL_DMG, spellCooldownMult:1, arrowPeriod:0.90, arrowTimer:0, arrowSpeed:360, arrowDmg:1, arrowCount:1, arrowPierce:false, bladeStorm:false, bladePeriod:1.6, bladeTimer:0, bladeCount:2, bladeSpin:0, bladeCadence:0.12, bladeBurst:null });
       if (stats.startOrbs) { UPGR.orbs = Math.min(ORB_MAX_COUNT, stats.startOrbs); }
       // Reset upgrade tracking
       for (const k in UPGRADE_LEVELS) delete UPGRADE_LEVELS[k];
@@ -3262,6 +3275,46 @@
         }
       }
 
+      // Rogue: Blade Storm (evenly spaced knives, staggered within the burst)
+      if (UPGR.bladeStorm){
+        // Passive spin phase (flavor only)
+        UPGR.bladeSpin = (UPGR.bladeSpin || 0) + dt * 6.0;
+        UPGR.bladeTimer += dt;
+        if (UPGR.bladeTimer >= UPGR.bladePeriod && !UPGR.bladeBurst){
+          UPGR.bladeTimer = 0;
+          const n = Math.max(2, UPGR.bladeCount || 2);
+          const spacing = Math.PI * 2 / n;
+          const base = (P.aimDir || P.dir);
+          UPGR.bladeBurst = { n, spacing, base, idx: 0, t: 0 };
+          // Fire the first knife immediately
+          const a0 = base;
+          const cs0 = Math.cos(a0), sn0 = Math.sin(a0);
+          const speed0 = Math.max(320, UPGR.arrowSpeed + 40);
+          const ttl0 = 0.9;
+          const dmg0 = UPGR.arrowDmg;
+          const ox0 = cs0 * 14, oy0 = sn0 * 14;
+          PROJECTILES.push({ kind:'knife', x:P.x + ox0, y:P.y + oy0, vx: cs0*speed0, vy: sn0*speed0, ang:a0, life:0, ttl:ttl0, dmg:dmg0 });
+          UPGR.bladeBurst.idx = 1;
+        }
+        if (UPGR.bladeBurst){
+          const burst = UPGR.bladeBurst;
+          burst.t += dt;
+          const cadence = UPGR.bladeCadence || 0.08;
+          while (burst.idx < burst.n && burst.t >= cadence){
+            burst.t -= cadence;
+            const a = burst.base + burst.idx * burst.spacing;
+            burst.idx++;
+            const cs = Math.cos(a), sn = Math.sin(a);
+            const speed = Math.max(320, UPGR.arrowSpeed + 40);
+            const ttl = 0.9;
+            const dmg = UPGR.arrowDmg;
+            const ox = cs * 14, oy = sn * 14;
+            PROJECTILES.push({ kind:'knife', x:P.x + ox, y:P.y + oy, vx: cs*speed, vy: sn*speed, ang:a, life:0, ttl, dmg });
+          }
+          if (burst.idx >= burst.n){ UPGR.bladeBurst = null; }
+        }
+      }
+
       // Update projectiles
       for (let i=PROJECTILES.length-1;i>=0;i--){
         const p=PROJECTILES[i];
@@ -3771,6 +3824,22 @@
             ctx.fillStyle = '#7b9bb3';
             ctx.fillRect(-8, -2, 3, 4);
             ctx.restore();
+          } else if (pr.kind === 'knife'){
+            ctx.save();
+            ctx.translate(pr.x, pr.y);
+            ctx.rotate(pr.ang || Math.atan2(pr.vy, pr.vx));
+            // Blade
+            ctx.fillStyle = '#cfd6dd';
+            ctx.beginPath();
+            ctx.moveTo(-6, -2);
+            ctx.lineTo(6, 0);
+            ctx.lineTo(-6, 2);
+            ctx.closePath();
+            ctx.fill();
+            // Hilt
+            ctx.fillStyle = '#5a4636';
+            ctx.fillRect(-8, -1.5, 3, 3);
+            ctx.restore();
           } else if (pr.kind === 'fireball'){
             const sheet = FIREBALL_PROJECTILE_ANIM[pr.dir];
             if (sheet && sheet.width){
@@ -3997,6 +4066,9 @@
           lines.push(`<div><b>Chest Drops:</b> ${fmtPct(chestChance)} chance on kill</div>`);
           lines.push(`<div class=\"section\">Bow</div>`);
           lines.push(`<div><b>Arrows:</b> count ${UPGR.arrowCount||1}, period ${UPGR.arrowPeriod.toFixed(2)}s, speed ${fmt(UPGR.arrowSpeed)}, dmg ${UPGR.arrowDmg}${UPGR.arrowPierce?`, pierce ON`:''}</div>`);
+          if (UPGR.bladeStorm){
+            lines.push(`<div><b>Blade Storm:</b> ON (knives ${UPGR.bladeCount}, period ${UPGR.bladePeriod.toFixed(2)}s)</div>`);
+          }
         }
         // Fighter-specific shield stats
         if (cls === 'fighter'){
@@ -4055,6 +4127,7 @@
               case 'rapid': stat = `arrow period ${UPGR.arrowPeriod.toFixed(2)}s`; break;
               case 'fletching': stat = `arrow speed ${fmt(UPGR.arrowSpeed)}`; break;
               case 'multishot': stat = `arrows ${UPGR.arrowCount}`; break;
+              case 'blade_storm': stat = `${UPGR.bladeStorm?`knives ${UPGR.bladeCount} period ${UPGR.bladePeriod.toFixed(2)}s`:'OFF'}`; break;
               case 'shield_cadence': stat = `period ${SHIELD.period.toFixed(2)}s`; break;
               case 'shield_ram': stat = `knock ${fmt(SHIELD.knock)}`; break;
               case 'tower_shield': stat = `height ${fmt(SHIELD.height)}px`; break;

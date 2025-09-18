@@ -1923,8 +1923,7 @@
         { id:'tower_shield', type:'Shield', name:'Tower Shield', desc:'Shield height +30%.', apply:()=>{ SHIELD.height = Math.round(SHIELD.height * 1.3); } },
         { id:'shield_reach', type:'Shield', name:'Shield Reach', desc:'Shield range +30%.', apply:()=>{ SHIELD.range = Math.round(SHIELD.range * 1.3); } },
         { id:'concussive_bash', type:'Shield', name:'Concussive Bash', desc:'Stun duration +0.8s.', apply:()=>{ SHIELD.stunDur = +(SHIELD.stunDur + 0.8).toFixed(2); } },
-        { id:'shield_spikes', type:'Shield', name:'Shield Spikes', desc:'Shield bash deals damage.', note:'Unique', unique:true, apply:()=>{ SHIELD.dmg = Math.max(SHIELD.dmg||0, 2); } },
-        { id:'reinforced_rim', type:'Shield', name:'Reinforced Rim', desc:'Shield damage +2.', apply:()=>{ SHIELD.dmg = (SHIELD.dmg||0) + 2; } },
+        { id:'shield_spikes', type:'Shield', name:'Shield Spikes', desc:'Shield bash deals damage.', note:'+2 damage per level', apply:()=>{ SHIELD.dmg = (SHIELD.dmg||0) + 2; } },
       ],
       rogue: [
         { id:'shadowstep', type:'Skill', name:'Shadowstep', desc:'Move 20% faster.', apply:()=>{ P.spd = Math.round(P.spd*1.2); } },
@@ -1965,7 +1964,6 @@
         tower_shield: 'assets/EG_ability_fighter_towerShield_small.png',
         shield_reach: 'assets/EG_ability_fighter_shieldReach_small.png',
         concussive_bash: 'assets/EG_ability_fighter_concussiveBash_small.png',
-        reinforced_rim: 'assets/EG_ability_fighter_reinforcedRim_small.png',
         shield_spikes: 'assets/EG_ability_fighter_shieldSpikes_small.png',
       },
       rogue: {
@@ -4063,7 +4061,6 @@
               case 'shield_reach': stat = `range ${fmt(SHIELD.range)}px`; break;
               case 'concussive_bash': stat = `stun ${SHIELD.stunDur.toFixed(1)}s`; break;
               case 'shield_spikes': stat = `damage ${fmt(SHIELD.dmg)}`; break;
-              case 'reinforced_rim': stat = `damage ${fmt(SHIELD.dmg)}`; break;
               default: stat = '';
             }
             lines.push(`<div><b>${u.name}</b> (Lv ${u.levels})${stat?`: ${stat}`:''}</div>`);

@@ -2332,6 +2332,7 @@
       const baseX = parent && typeof parent.x === 'number' ? parent.x : ARENA.x + ARENA.w / 2;
       const baseY = parent && typeof parent.y === 'number' ? parent.y : ARENA.y + ARENA.h / 2;
       const baseFacing = parent && typeof parent.facing === 'number' ? parent.facing : 0;
+      const parentSpeed = parent && typeof parent.spd === 'number' ? parent.spd : 75 * stageSpd;
       const baby = {
         kind:'babyBeholder',
         x: clamp(baseX + rand(-28, 28), ARENA.x + 16, ARENA.x + ARENA.w - 16),
@@ -2344,8 +2345,8 @@
         h: height,
         hp,
         hpMax: hp,
-        spd: 65 * stageSpd,
-        score: 400,
+        spd: parentSpeed * 2,
+        score: 50,
         t:0,
         ang: Math.random() * Math.PI * 2,
         wanderT: 0,
@@ -3196,7 +3197,7 @@
             if (e.bossType === 'beholder') e.rayT = (e.rayT || 0) + dt;
             if (e.bossType === 'beholder'){
               e.minionTimer = (e.minionTimer || 0) + dt;
-              if (e.minionTimer >= 3){
+              if (e.minionTimer >= 5){
                 e.minionTimer = 0;
                 let babies = 0;
                 for (const other of enemies){
@@ -3334,14 +3335,14 @@
                 const ang = (Math.PI*2 / count) * i;
                 const vxSlow = Math.cos(ang) * slowSpeed;
                 const vySlow = Math.sin(ang) * slowSpeed;
-                BOSS_PROJECTILES.push({ kind:'slime', source:'babyBeholder', dmg:1, dir: vxSlow < 0 ? 'left' : 'right', x:e.x, y:e.y, vx:vxSlow, vy:vySlow, life:0, ttl:2, frame:0, animT:0, scale:0.5, push:pushDist });
+                BOSS_PROJECTILES.push({ kind:'slime', source:'babyBeholder', dmg:1, dir: vxSlow < 0 ? 'left' : 'right', x:e.x, y:e.y, vx:vxSlow, vy:vySlow, life:0, ttl:4, frame:0, animT:0, scale:0.5, push:pushDist });
                 const vxFast = Math.cos(ang) * fastSpeed;
                 const vyFast = Math.sin(ang) * fastSpeed;
-                BOSS_PROJECTILES.push({ kind:'slime', source:'babyBeholder', dmg:0.5, dir: vxFast < 0 ? 'left' : 'right', x:e.x, y:e.y, vx:vxFast, vy:vyFast, life:0, ttl:1, frame:0, animT:0, scale:0.5, push:pushDist });
+                BOSS_PROJECTILES.push({ kind:'slime', source:'babyBeholder', dmg:0.5, dir: vxFast < 0 ? 'left' : 'right', x:e.x, y:e.y, vx:vxFast, vy:vyFast, life:0, ttl:2, frame:0, animT:0, scale:0.5, push:pushDist });
               }
               if (e.rayT >= 4){
                 const beamAng = Math.atan2(dy, dx);
-                BOSS_PROJECTILES.push({ kind:'beam', source:'babyBeholder', dmg:0.5, x:e.x, y:e.y, ang:beamAng, life:0, ttl:0.5, scale:0.5, push:50, length:120 });
+                BOSS_PROJECTILES.push({ kind:'beam', source:'babyBeholder', dmg:0.5, x:e.x, y:e.y, ang:beamAng, life:0, ttl:0.5, scale:0.5, push:50, length:240 });
                 e.rayT = 0;
               }
             }
@@ -3565,7 +3566,8 @@
           const maxR = wave.maxR ?? Infinity;
           wave.r = Math.min(maxR, wave.r + wave.speed * dt);
           for (const e of enemies){
-            if (e.hp<=0 || (e.kind === 'boss' && !isMuckSpellVulnerable(e))) continue;
+            const isBabyBeholder = e.kind === 'babyBeholder';
+            if (e.hp<=0 || (!isBabyBeholder && e.kind === 'boss' && !isMuckSpellVulnerable(e))) continue;
             if (wave.hit.has(e)) continue;
             const buffer = Math.max(e.w||0, e.h||0) * 0.35;
             if (len(e.x-wave.x, e.y-wave.y) <= wave.r + buffer){
@@ -3585,7 +3587,8 @@
           const maxR = wave.maxR ?? Infinity;
           wave.r = Math.min(maxR, wave.r + wave.speed * dt);
           for (const e of enemies){
-            if (e.hp<=0 || (e.kind === 'boss' && !isMuckSpellVulnerable(e))) continue;
+            const isBabyBeholder = e.kind === 'babyBeholder';
+            if (e.hp<=0 || (!isBabyBeholder && e.kind === 'boss' && !isMuckSpellVulnerable(e))) continue;
             if (wave.hit.has(e)) continue;
             const buffer = Math.max(e.w||0, e.h||0) * 0.35;
             if (len(e.x-wave.x, e.y-wave.y) <= wave.r + buffer){

@@ -134,7 +134,7 @@
     <div class="hud">
       <div class="chip">Score: <span id="score">0</span></div>
       <div class="chip">Wave: <span id="wave">1</span></div>
-      <div class="chip" title="Coins collected">Coins: <span id="coins">0</span></div>
+      <div class="chip" title="Experience earned">XP: <span id="xp">0</span> | Level: <span id="level">1</span></div>
       <div class="chip hearts" id="hearts"></div>
       <div class="chip keys hidden" id="keys"></div>
       <div class="chip hidden" id="stageTimer"></div>
@@ -189,8 +189,8 @@
     <!-- Shop Overlay -->
     <div id="shopOverlay" class="overlay" aria-hidden="true">
       <div class="panel shop">
-        <div class="title">Wanderer's Emporium</div>
-        <div class="desc">You found a quiet alcove. Choose one boon to continue your run.</div>
+        <div class="title" id="shopTitle">Level Up!</div>
+        <div class="desc" id="shopDesc">You reached a new level. Choose a power to grow stronger.</div>
         <div id="shopChoices" class="choices"></div>
         <div class="small" id="shopHint">Tip: Some boons can stack for greater effect.</div>
       </div>
@@ -280,7 +280,8 @@
     resizeCanvas();
     const scoreEl = document.getElementById('score');
     const waveEl = document.getElementById('wave');
-    const coinsEl = document.getElementById('coins');
+    const xpEl = document.getElementById('xp');
+    const levelEl = document.getElementById('level');
     const heartsEl = document.getElementById('hearts');
     const keysEl = document.getElementById('keys');
     const stageTimerEl = document.getElementById('stageTimer');
@@ -288,6 +289,8 @@
     const gameOverOverlay = document.getElementById('gameOver');
     const shopOverlay = document.getElementById('shopOverlay');
     const shopChoices = document.getElementById('shopChoices');
+    const shopTitle = document.getElementById('shopTitle');
+    const shopDesc = document.getElementById('shopDesc');
     const finalScoreEl = document.getElementById('finalScore');
     const startBtn = document.getElementById('startBtn');
     const againBtn = document.getElementById('againBtn');
@@ -442,7 +445,7 @@
     [
       ['heroFighterHit', 'assets/sfx_hero_fighter_hit.wav'],
       ['heroWizardHit', 'assets/sfx_hero_wizard_hit.wav'],
-      ['coin', 'assets/sfx_coin.wav'],
+      ['xp', 'assets/sfx_xp.wav'],
       ['key', 'assets/sfx_key.wav'],
       ['treasure', 'assets/sfx_treasure.wav'],
       ['goblinHurt', 'assets/sfx_goblin_hurt.wav'],
@@ -663,15 +666,15 @@
     BABY_BEHOLDER_ANIM.right.src = 'assets/EG_enemy_baby_beholder_animation_walking_right_small.png';
 
     const GOAT_ANIM = {
-      coin: new Image(),
+      xp: new Image(),
       heart: new Image(),
     };
-    GOAT_ANIM.coin.src = 'assets/EG_polymorph_animation_goat_coin_small.png';
+    GOAT_ANIM.xp.src = 'assets/EG_polymorph_animation_goat_coin_small.png';
     GOAT_ANIM.heart.src = 'assets/EG_polymorph_animation_goat_heart_small.png';
 
 
     const IMG = {
-      coin: new Image(),
+      xpGem: new Image(),
       key: new Image(),
       heart: new Image(),
       shadow: new Image(),
@@ -707,7 +710,7 @@
       feyRock01: new Image(),
       hero: CLASS_IMG.fighter,
     };
-    IMG.coin.src = 'assets/eg_coin.svg';
+    IMG.xpGem.src = 'assets/xp.png';
     IMG.key.src = 'assets/EG_key_small.png';
     IMG.heart.src = 'assets/eg_heart.svg';
     IMG.shadow.src = 'assets/eg_shadow.svg';
@@ -1571,7 +1574,7 @@
       DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / VIEW_W, ARENA.h / VIEW_H) * 1.5));
     };
     onViewportDimensionsChanged();
-    // Delay before coin magnet pulls begin (seconds)
+    // Delay before XP magnet pulls begin (seconds)
     const MAGNET_DELAY = 0.6;
     // Melee arc narrowed so default swings are a tight cone ahead
     const BASE_ATK_RANGE = 64;
@@ -1609,7 +1612,7 @@
       goblin: { x: HITBOX.enemy, y: HITBOX.enemy },
       imp:    { x: HITBOX.enemy, y: HITBOX.enemy },
       orc:    { x: HITBOX.enemy, y: HITBOX.enemy },
-      goatCoin:  { x: HITBOX.enemy, y: HITBOX.enemy },
+      goatXp:  { x: HITBOX.enemy, y: HITBOX.enemy },
       goatHeart: { x: HITBOX.enemy, y: HITBOX.enemy },
       babyBeholder: { x: HITBOX.enemy, y: HITBOX.enemy },
       // Bosses (overridden per bossType if desired)
@@ -1650,7 +1653,7 @@
       }
     }
     let boss = null;
-    const COINS = { value: 0 };
+    const XP = { value: 0, level: 1 };
     const KEYS = { value: 0 };
     const SHOP = { milestones: [7, 14, 28, 56, 84, 140, 210, 350, 490, 630, 840], idx: 0, open: false };
     const UPGRADE_LEVELS = Object.create(null);
@@ -1662,7 +1665,7 @@
       magnet: 1,
       critChance: 0,
       critMult: 1.6,
-      doubleCoinChance: 0,
+      doubleXpChance: 0,
       chestChanceBonus: 0,
       dodgeChance: 0,
       orbs: 0,
@@ -1971,7 +1974,7 @@
       wizard: [
         { id:'orbs', type:'Spell', name:'Arcane Orbs', desc:'Summon orbiting orbs that damage foes. Each upgrade adds an orb and speeds their orbit.', note:'Adds up to 4 orbs with +10% speed per level.', maxLevel: ORB_MAX_COUNT, apply:()=>{ UPGR.orbs = Math.min(ORB_MAX_COUNT, UPGR.orbs + 1); } },
         { id:'nova', type:'Spell', name:'Frost Nova', desc:'Every few seconds, blast and slow nearby foes.', note:'Improves with repeats', apply:()=>{ if(!UPGR.nova){ UPGR.nova=true; } else { UPGR.novaPeriod=Math.max(2.2, UPGR.novaPeriod*0.9); UPGR.novaDmg+=1; } } },
-        { id:'polymorph', type:'Spell', name:'Polymorph', desc:'Release a transforming wave that turns foes into demon goats that drop coins or hearts.', note:'Chance increases with repeats (max 50%). Bosses are immune.', maxLevel:5, apply:()=>{ refreshPolymorphState(true); } },
+        { id:'polymorph', type:'Spell', name:'Polymorph', desc:'Release a transforming wave that turns foes into demon goats that drop XP gems or hearts.', note:'Chance increases with repeats (max 50%). Bosses are immune.', maxLevel:5, apply:()=>{ refreshPolymorphState(true); } },
         { id:'sleep', type:'Spell', name:'Sleep', desc:'Send out a drowsy wave that can lull foes to sleep.', note:'200px wave, 33% sleep for 5s (+5s per level).', maxLevel:5, apply:()=>{ refreshSleepState(true); } },
         { id:'fireball', type:'Spell', name:'Fireball', desc:'Periodically launch piercing fireballs in all four directions.', note:'Range +50px per level (max 400px).', maxLevel:5, apply:()=>{ refreshFireballState(true); } },
         { id:'shards', type:'Spell', name:'Arcane Missiles', desc:'Periodically fire magic missiles.', note:'More with repeats', apply:()=>{ if(!UPGR.shards){ UPGR.shards=true; } else { UPGR.shardCount=Math.min(6, UPGR.shardCount+1); } } },
@@ -2107,10 +2110,14 @@
       // Reset shield core stats
       SHIELD.period = 1.5; SHIELD.range = 56; SHIELD.width = 80; SHIELD.height = 44; SHIELD.knock = 260; SHIELD.stunDur = 2.5; SHIELD.dmg = 0;
       SCORE.value = 0; scoreEl.textContent = SCORE.value;
-      COINS.value = 0; coinsEl.textContent = COINS.value; SHOP.idx = 0; SHOP.open = false;
+      XP.value = 0;
+      XP.level = 1;
+      xpEl.textContent = XP.value;
+      levelEl.textContent = XP.level;
+      SHOP.idx = 0; SHOP.open = false;
       KEYS.value = 0; drawKeys();
       // Reset upgrades and spell state
-      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleCoinChance:0, chestChanceBonus:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:72, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, polymorph:false, polyPeriod:7, polyTimer:0, polyChance:0, polyLevel:0, polyRadius:0, sleep:false, sleepPeriod:8, sleepTimer:0, sleepChance:0, sleepLevel:0, sleepDuration:0, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1, fireball:false, fireballPeriod:FIREBALL_PERIOD_BASE, fireballTimer:0, fireballRange:0, fireballLevel:0, fireballDmg:FIREBALL_DMG, spellCooldownMult:1, arrowPeriod:0.90, arrowTimer:0, arrowSpeed:360, arrowDmg:1, arrowCount:1, arrowPierce:false, bladeStorm:false, bladePeriod:1.6, bladeTimer:0, bladeCount:2, bladeSpin:0, bladeCadence:0.12, bladeBurst:null });
+      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleXpChance:0, chestChanceBonus:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:72, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, polymorph:false, polyPeriod:7, polyTimer:0, polyChance:0, polyLevel:0, polyRadius:0, sleep:false, sleepPeriod:8, sleepTimer:0, sleepChance:0, sleepLevel:0, sleepDuration:0, shards:false, shardPeriod:0.85, shardTimer:0, shardSpeed:320, shardCount:1, fireball:false, fireballPeriod:FIREBALL_PERIOD_BASE, fireballTimer:0, fireballRange:0, fireballLevel:0, fireballDmg:FIREBALL_DMG, spellCooldownMult:1, arrowPeriod:0.90, arrowTimer:0, arrowSpeed:360, arrowDmg:1, arrowCount:1, arrowPierce:false, bladeStorm:false, bladePeriod:1.6, bladeTimer:0, bladeCount:2, bladeSpin:0, bladeCadence:0.12, bladeBurst:null });
       if (stats.startOrbs) { UPGR.orbs = Math.min(ORB_MAX_COUNT, stats.startOrbs); }
       // Reset upgrade tracking
       for (const k in UPGRADE_LEVELS) delete UPGRADE_LEVELS[k];
@@ -2518,7 +2525,7 @@
       }, 1000);
     }
 
-    function dropCoin(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'coin', v: rand(40,70), a: rand(0,Math.PI*2) }); }
+    function dropXpGem(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'xp', v: rand(40,70), a: rand(0,Math.PI*2) }); }
     function dropKey(x,y){
       if (!needsKeys()) return;
       drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'key', v: rand(40,70), a: rand(0,Math.PI*2) });
@@ -2541,17 +2548,17 @@
       tracker.nodes.delete(e);
       const baseSize = tracker.muckBaseSize || { w: ENEMY.w*4*1.5, h: ENEMY.h*4*1.5 };
       const generation = e.muckGeneration || 0;
-      const dropCoins = (count)=>{
+      const dropXpGems = (count)=>{
         for (let i=0;i<count;i++){
-          dropCoin(e.x + rand(-20,20), e.y + rand(-20,20));
+          dropXpGem(e.x + rand(-20,20), e.y + rand(-20,20));
         }
       };
       if (generation === 0){
-        dropCoins(15);
+        dropXpGems(15);
       } else if (generation === 1){
-        dropCoins(10);
+        dropXpGems(10);
       } else {
-        dropCoins(5);
+        dropXpGems(5);
       }
       if (generation === 0){
         const spread = Math.max(32, (baseSize.w || e.w) * 0.35);
@@ -2591,12 +2598,12 @@
     function polymorphEnemy(e){
       if (!e || e.hp <= 0) return;
       const muckMini = isMuckSpellVulnerable(e);
-      if ((e.kind === 'boss' && !muckMini) || e.kind === 'goatCoin' || e.kind === 'goatHeart') return;
+      if ((e.kind === 'boss' && !muckMini) || e.kind === 'goatXp' || e.kind === 'goatHeart') return;
       const roll = Math.random();
-      const dropKind = roll < 0.75 ? 'coin' : 'heart';
+      const dropKind = roll < 0.75 ? 'xp' : 'heart';
       polymorphBurst(e.x, e.y, dropKind);
       playSfx('treasure');
-      e.kind = dropKind === 'coin' ? 'goatCoin' : 'goatHeart';
+      e.kind = dropKind === 'xp' ? 'goatXp' : 'goatHeart';
       e.goatDrop = dropKind;
       e.hp = 1;
       e.hpMax = 1;
@@ -2686,13 +2693,13 @@
           else if (e.bossType === 'beholder') playSfx('bossBeholderKilled');
           addScore(e.score||1000);
           if (e.bossType !== 'muck'){
-            for (let i=0;i<10;i++) dropCoin(e.x + rand(-20,20), e.y + rand(-20,20));
+            for (let i=0;i<10;i++) dropXpGem(e.x + rand(-20,20), e.y + rand(-20,20));
           }
           if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }
-          if (UPGR.doubleCoinChance > 0 && Math.random() < UPGR.doubleCoinChance){ dropCoin(e.x + rand(-6,6), e.y + rand(-6,6)); }
+          if (UPGR.doubleXpChance > 0 && Math.random() < UPGR.doubleXpChance){ dropXpGem(e.x + rand(-6,6), e.y + rand(-6,6)); }
           handleBossDefeat();
         } else {
-          const isGoat = e.kind === 'goatCoin' || e.kind === 'goatHeart';
+          const isGoat = e.kind === 'goatXp' || e.kind === 'goatHeart';
           const isMuckGoat = isGoat && e.bossType === 'muck' && e.muckPolymorphed;
           let muckResult = null;
           if (isMuckGoat){
@@ -2701,9 +2708,9 @@
           const scoreValue = isMuckGoat ? (e.score ?? 0) : (e.score||50);
           addScore(scoreValue);
           if (e.hasKey) dropKey(e.x, e.y);
-          const dropKind = isGoat ? (e.goatDrop || (e.kind === 'goatHeart' ? 'heart' : 'coin')) : 'coin';
+          const dropKind = isGoat ? (e.goatDrop || (e.kind === 'goatHeart' ? 'heart' : 'xp')) : 'xp';
           if (dropKind === 'heart'){ dropHeart(e.x, e.y); }
-          else { dropCoin(e.x, e.y); }
+          else { dropXpGem(e.x, e.y); }
           if (currentClass === 'rogue'){
             const chestChance = Math.min(1, ROGUE_BASE_CHEST_CHANCE + (UPGR.chestChanceBonus||0));
             if (Math.random() < chestChance){
@@ -2712,8 +2719,8 @@
           }
           // Life steal on kill
           if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }
-          // Extra coin chance (goats only if they drop coins)
-          if (dropKind === 'coin' && UPGR.doubleCoinChance > 0 && Math.random() < UPGR.doubleCoinChance){ dropCoin(e.x + rand(-6,6), e.y + rand(-6,6)); }
+          // Extra xp chance (goats only if they drop xp)
+          if (dropKind === 'xp' && UPGR.doubleXpChance > 0 && Math.random() < UPGR.doubleXpChance){ dropXpGem(e.x + rand(-6,6), e.y + rand(-6,6)); }
           if (isMuckGoat && muckResult && muckResult.defeated){
             playSfx('bossMudMonsterKilled');
             handleBossDefeat();
@@ -2841,7 +2848,7 @@
     }
   }
 
-  function polymorphBurst(x,y,kind='coin'){
+  function polymorphBurst(x,y,kind='xp'){
     for(let i=0;i<16;i++){
       const a = rand(0, Math.PI*2);
       const sp = rand(80, 160);
@@ -3025,7 +3032,7 @@
         if (e.sleepT && e.sleepT > 0) { e.sleepT = Math.max(0, e.sleepT - dt); if (e.sleepT <= 0) e.sleepMax = 0; }
         if (e.pulse && e.pulse > 0) { e.pulse = Math.max(0, e.pulse - dt); }
         const dx = P.x - e.x, dy = P.y - e.y; const dist = Math.hypot(dx,dy);
-        const isGoat = e.kind === 'goatCoin' || e.kind === 'goatHeart';
+        const isGoat = e.kind === 'goatXp' || e.kind === 'goatHeart';
         const isBabyBeholder = e.kind === 'babyBeholder';
         const sleeping = e.sleepT && e.sleepT > 0;
         if (e.kind === 'boss'){
@@ -3437,8 +3444,8 @@
       for (const c of chests){
         const canOpen = currentClass === 'rogue' || KEYS.value > 0;
         if (!c.opened && canOpen && len(P.x-c.x,P.y-c.y) < 28){
-          const coinCount = Math.floor(rand(10,31));
-          for (let j=0;j<coinCount;j++) dropCoin(c.x + rand(-12,12), c.y + rand(-12,12));
+          const gemCount = Math.floor(rand(10,31));
+          for (let j=0;j<gemCount;j++) dropXpGem(c.x + rand(-12,12), c.y + rand(-12,12));
           const heartDrops = 1;
           for (let h=0; h<heartDrops; h++) {
             dropHeart(c.x + rand(-12,12), c.y + rand(-12,12));
@@ -3455,8 +3462,8 @@
       // Collect drops
       for (let i=drops.length-1;i>=0;i--){
         const d=drops[i]; d.t += dt; const drift = Math.min(1,d.t*3);
-        // Magnet effect pulls coins toward the player with a short delay and ramp-up
-        if (d.kind==='coin' && UPGR.magnet>0 && d.t > MAGNET_DELAY){
+        // Magnet effect pulls XP toward the player with a short delay and ramp-up
+        if (d.kind==='xp' && UPGR.magnet>0 && d.t > MAGNET_DELAY){
           const dx = P.x-d.x, dy = P.y-d.y; const dist = Math.hypot(dx,dy);
           const mR = 50 + UPGR.magnet*40;
           if (dist < mR){
@@ -3474,9 +3481,9 @@
         clampToArena(d, 8);
         if (len(P.x-d.x,P.y-d.y)<22){
           let consumed = false;
-          if (d.kind==='coin'){
+          if (d.kind==='xp'){
             addScore(10);
-            COINS.value += 1; coinsEl.textContent = COINS.value; spark(d.x,d.y,'#ffd16b'); playSfx('coin');
+            XP.value += 1; xpEl.textContent = XP.value; spark(d.x,d.y,'#76e2ff'); playSfx('xp');
             maybeOpenShop();
             consumed = true;
           } else if (d.kind==='key'){
@@ -3753,7 +3760,7 @@
         const treatGoatsAsDead = SPAWN.wave === STAGE_WAVES;
         const alive = enemies.filter(e => {
           if (e.hp <= 0) return false;
-          if (treatGoatsAsDead && (e.kind === 'goatCoin' || e.kind === 'goatHeart')) return false;
+          if (treatGoatsAsDead && (e.kind === 'goatXp' || e.kind === 'goatHeart')) return false;
           return true;
         }).length;
         const targetCount = Math.min((6 + SPAWN.wave*2) * DENSITY, WAVE_LIMIT);
@@ -3862,7 +3869,7 @@
       // Queue drops
       for (const d of drops) {
         queueRenderable(d.y, () => {
-          let img = IMG.coin;
+          let img = IMG.xpGem;
           if (d.kind === 'key') img = IMG.key;
           else if (d.kind === 'heart') img = IMG.heart;
           ctx.drawImage(img, d.x - 12, d.y - 12, 24, 24);
@@ -3946,8 +3953,8 @@
             const fw = sheet.width / 4;
             const fh = sheet.height;
             ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
-          } else if (e.kind === 'goatCoin' || e.kind === 'goatHeart') {
-            const sheet = e.kind === 'goatCoin' ? GOAT_ANIM.coin : GOAT_ANIM.heart;
+          } else if (e.kind === 'goatXp' || e.kind === 'goatHeart') {
+            const sheet = e.kind === 'goatXp' ? GOAT_ANIM.xp : GOAT_ANIM.heart;
             const frame = Math.min(GOAT.frames - 1, e.frame || 0);
             const fw = sheet.width / GOAT.frames;
             const fh = sheet.height;
@@ -4323,11 +4330,20 @@
         const last = SHOP.milestones[SHOP.milestones.length - 1];
         next = last + 210 * (SHOP.idx - SHOP.milestones.length + 1);
       }
-      if (COINS.value >= next){ openShop(); }
+      if (XP.value >= next){ const reached = levelUp(); openShop(reached); }
     }
 
-    function openShop(){
+    function levelUp(){
+      XP.level += 1;
+      levelEl.textContent = XP.level;
+      return XP.level;
+    }
+
+    function openShop(levelReached){
       SHOP.open = true; paused = true;
+      const levelLabel = Number.isFinite(levelReached) ? levelReached : XP.level;
+      if (shopTitle) shopTitle.textContent = 'Level Up!';
+      if (shopDesc) shopDesc.textContent = `Level ${levelLabel} reached. Choose an upgrade.`;
       shopChoices.innerHTML = '';
       const options = rollShopOptions();
       for (const opt of options){
@@ -4446,12 +4462,13 @@
         lines.push(`<div class="section">Survival & Utility</div>`);
         lines.push(`<div><b>Dodge Chance:</b> ${fmtPct(UPGR.dodgeChance)}</div>`);
         lines.push(`<div><b>Life Steal:</b> ${fmtPct(UPGR.lifeStealChance)} on kill</div>`);
-        if (UPGR.doubleCoinChance) lines.push(`<div><b>Double Coin Chance:</b> ${fmtPct(UPGR.doubleCoinChance)}</div>`);
+        if (UPGR.doubleXpChance) lines.push(`<div><b>Double XP Chance:</b> ${fmtPct(UPGR.doubleXpChance)}</div>`);
         if (UPGR.magnet) lines.push(`<div><b>Magnet:</b> ${fmt(50 + UPGR.magnet*40)}px</div>`);
+        lines.push(`<div><b>XP:</b> ${XP.value} &nbsp; <b>Level:</b> ${XP.level}</div>`);
         if (currentClass === 'rogue') {
-          lines.push(`<div><b>Coins:</b> ${COINS.value} &nbsp; <b>picks locks</b></div>`);
+          lines.push(`<div><b>Keys:</b> Picks locks without keys</div>`);
         } else {
-          lines.push(`<div><b>Coins:</b> ${COINS.value} &nbsp; <b>Keys:</b> ${KEYS.value}</div>`);
+          lines.push(`<div><b>Keys:</b> ${KEYS.value}</div>`);
         }
         lines.push(`<div class="subtle">Stage ${stage+1}, Wave ${SPAWN.wave}</div>`);
 

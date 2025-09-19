@@ -1640,6 +1640,8 @@
       [150, 180],
       [200, 250],
     ];
+    const BEHOLDER_MINION_INTERVAL = 5;
+    const BEHOLDER_STAGE_FIVE_INTERVAL = BEHOLDER_MINION_INTERVAL * (2 / 3);
     let WAVE_LIMIT = STAGE_WAVE_COUNTS[0][0];
     const SPAWN = { t: 0, cd: 2.2, wave: 1, count: 0, keyAssigned: false };
     let stage = 0;
@@ -3197,7 +3199,8 @@
             if (e.bossType === 'beholder') e.rayT = (e.rayT || 0) + dt;
             if (e.bossType === 'beholder'){
               e.minionTimer = (e.minionTimer || 0) + dt;
-              if (e.minionTimer >= 5){
+              const minionInterval = stage === 4 ? BEHOLDER_STAGE_FIVE_INTERVAL : BEHOLDER_MINION_INTERVAL;
+              if (e.minionTimer >= minionInterval){
                 e.minionTimer = 0;
                 let babies = 0;
                 for (const other of enemies){

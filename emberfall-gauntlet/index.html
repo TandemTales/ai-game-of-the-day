@@ -3003,6 +3003,9 @@
                 e.pulseRange = 36;
                 // Stun (freeze) for a few seconds
                 e.freezeT = Math.max(e.freezeT||0, SHIELD.stunDur);
+                if (e.kind === 'boss' && e.bossType === 'beholder') {
+                  e.pauseAfterAttack = 0;
+                }
                 SHIELD.hits.add(e);
               }
             }
@@ -3031,6 +3034,11 @@
         if (e.slowT && e.slowT > 0) { e.slowT = Math.max(0, e.slowT - dt); }
         if (e.slowAmp && e.slowAmp > 0) { e.slowAmp = Math.max(0, e.slowAmp - dt*3); }
         if (e.freezeT && e.freezeT > 0) { e.freezeT = Math.max(0, e.freezeT - dt); }
+        if (e.pauseAfterAttack && e.pauseAfterAttack > 0) {
+          e.pauseAfterAttack = Math.max(0, e.pauseAfterAttack - dt);
+        } else if (e.pauseAfterAttack && e.freezeT <= 0) {
+          e.pauseAfterAttack = 0;
+        }
         if (e.sleepT && e.sleepT > 0) { e.sleepT = Math.max(0, e.sleepT - dt); if (e.sleepT <= 0) e.sleepMax = 0; }
         if (e.pulse && e.pulse > 0) { e.pulse = Math.max(0, e.pulse - dt); }
         const dx = P.x - e.x, dy = P.y - e.y; const dist = Math.hypot(dx,dy);
@@ -3283,6 +3291,7 @@
                 else { pushPlayerByVector(nx, ny); P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
               }
               e.freezeT = 1.5;
+              e.pauseAfterAttack = e.freezeT;
             }
           } else if (e.atkT >= 2.4){
             e.atkT = 0;
@@ -3985,7 +3994,8 @@
             ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
           }
           const skipStunStars = (e.kind === 'boss' && e.bossType === 'abomination') || e.kind === 'babyBeholder';
-          if (e.freezeT && e.freezeT > 0 && !skipStunStars){
+          const skipBeholderPauseStars = e.kind === 'boss' && e.bossType === 'beholder' && (e.pauseAfterAttack || 0) > 0;
+          if (e.freezeT && e.freezeT > 0 && !skipStunStars && !skipBeholderPauseStars){
             const cx = e.x;
             const cy = e.y - e.h * 0.85;
             const base = (e.t || 0) * 6;

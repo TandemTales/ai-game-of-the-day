@@ -220,11 +220,12 @@
 
     const BASE_WIDTH = canvas.width;
     const BASE_HEIGHT = canvas.height;
-    const MAP_ZOOM = 1.25; // zoom factor for the battle map (lower = wider view)
+    const BASE_MAP_ZOOM = 1.25; // zoom factor for the battle map (lower = wider view)
+    let mapZoom = BASE_MAP_ZOOM;
     let W = BASE_WIDTH;
     let H = BASE_HEIGHT;
-    let VIEW_W = W / MAP_ZOOM;
-    let VIEW_H = H / MAP_ZOOM;
+    let VIEW_W = W / mapZoom;
+    let VIEW_H = H / mapZoom;
     let onViewportDimensionsChanged;
     let cameraTopMarginWorld = 0;
     const MOBILE_ZOOM_MULTIPLIER = 2;
@@ -257,13 +258,12 @@
       canvas.width = W;
       canvas.height = H;
 
-      VIEW_W = W / MAP_ZOOM;
-      VIEW_H = H / MAP_ZOOM;
-      const zoomMultiplier = (mobileZoomQuery && mobileZoomQuery.matches) ? MOBILE_ZOOM_MULTIPLIER : 1;
-      const displayScale = baseScale * zoomMultiplier;
+      mapZoom = (mobileZoomQuery && mobileZoomQuery.matches) ? BASE_MAP_ZOOM * MOBILE_ZOOM_MULTIPLIER : BASE_MAP_ZOOM;
+      VIEW_W = W / mapZoom;
+      VIEW_H = H / mapZoom;
 
-      const displayWidth = Math.max(1, Math.round(W * displayScale));
-      const displayHeight = Math.max(1, Math.round(H * displayScale));
+      const displayWidth = Math.max(1, Math.round(W * baseScale));
+      const displayHeight = Math.max(1, Math.round(H * baseScale));
       canvas.style.width = `${displayWidth}px`;
       canvas.style.height = `${displayHeight}px`;
 
@@ -3995,7 +3995,7 @@
       CAM.y = clamp(P.y - VIEW_H/2, minCamY, upperLimit);
 
       ctx.save();
-      ctx.scale(MAP_ZOOM, MAP_ZOOM);
+      ctx.scale(mapZoom, mapZoom);
       ctx.translate(-CAM.x, -CAM.y);
       drawBackground();
 

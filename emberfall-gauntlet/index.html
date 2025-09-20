@@ -227,6 +227,8 @@
     let VIEW_H = H / MAP_ZOOM;
     let onViewportDimensionsChanged;
     let cameraTopMarginWorld = 0;
+    const MOBILE_ZOOM_MULTIPLIER = 2;
+    const mobileZoomQuery = window.matchMedia ? window.matchMedia('(hover: none) and (pointer: coarse)') : null;
 
     function getViewportSize() {
       if (window.visualViewport) {
@@ -239,16 +241,16 @@
       const { width: vw, height: vh } = getViewportSize();
       const widthRatio = vw / BASE_WIDTH;
       const heightRatio = vh / BASE_HEIGHT;
-      const scale = Math.min(widthRatio, heightRatio);
-      if (!Number.isFinite(scale) || scale <= 0) {
+      const baseScale = Math.min(widthRatio, heightRatio);
+      if (!Number.isFinite(baseScale) || baseScale <= 0) {
         return;
       }
 
       if (widthRatio < heightRatio) {
         W = BASE_WIDTH;
-        H = Math.max(BASE_HEIGHT, Math.round(vh / scale));
+        H = Math.max(BASE_HEIGHT, Math.round(vh / baseScale));
       } else {
-        W = Math.max(BASE_WIDTH, Math.round(vw / scale));
+        W = Math.max(BASE_WIDTH, Math.round(vw / baseScale));
         H = BASE_HEIGHT;
       }
 
@@ -257,9 +259,11 @@
 
       VIEW_W = W / MAP_ZOOM;
       VIEW_H = H / MAP_ZOOM;
+      const zoomMultiplier = (mobileZoomQuery && mobileZoomQuery.matches) ? MOBILE_ZOOM_MULTIPLIER : 1;
+      const displayScale = baseScale * zoomMultiplier;
 
-      const displayWidth = Math.max(1, Math.round(W * scale));
-      const displayHeight = Math.max(1, Math.round(H * scale));
+      const displayWidth = Math.max(1, Math.round(W * displayScale));
+      const displayHeight = Math.max(1, Math.round(H * displayScale));
       canvas.style.width = `${displayWidth}px`;
       canvas.style.height = `${displayHeight}px`;
 
@@ -278,6 +282,15 @@
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', resizeCanvas);
       window.visualViewport.addEventListener('scroll', resizeCanvas);
+    }
+
+    if (mobileZoomQuery) {
+      const handleMobileZoomChange = () => resizeCanvas();
+      if (typeof mobileZoomQuery.addEventListener === 'function') {
+        mobileZoomQuery.addEventListener('change', handleMobileZoomChange);
+      } else if (typeof mobileZoomQuery.addListener === 'function') {
+        mobileZoomQuery.addListener(handleMobileZoomChange);
+      }
     }
     const hudEl = document.querySelector('.hud');
     const headerEl = document.querySelector('header');

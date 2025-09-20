@@ -486,7 +486,7 @@
     function playHeroHit(){ playSfx(currentClass === 'wizard' ? 'heroWizardHit' : 'heroFighterHit'); }
     function playEnemyHit(e){
       if (e.kind === 'imp') playSfx('impHurt');
-      else if (e.kind === 'orc') playSfx('orcHurt');
+      else if (e.kind === 'orc' || e.kind === 'tentacle') playSfx('orcHurt');
       else if (e.kind === 'goblin') playSfx('goblinHurt');
       else if (e.kind === 'babyBeholder') playSfx('bossBeholderHurt');
       else if (e.kind === 'boss' && e.bossType === 'muck' && e.hp > 0) playSfx('bossMudMonsterHurt');
@@ -571,6 +571,13 @@
     ORC_ANIM.up.src = 'assets/EG_enemy_orc_animation_walking_up_small.png';
     ORC_ANIM.left.src = 'assets/EG_enemy_orc_animation_walking_left_small.png';
     ORC_ANIM.right.src = 'assets/EG_enemy_orc_animation_walking_right_small.png';
+
+    const TENTACLE_ANIM = {
+      left: new Image(),
+      right: new Image(),
+    };
+    TENTACLE_ANIM.left.src = 'assets/EG_enemy_boss_abomination_tentacleSpawn_left_small.png';
+    TENTACLE_ANIM.right.src = 'assets/EG_enemy_boss_abomination_tentacleSpawn_right_small.png';
 
     const MUCK_ANIM = {
       down: new Image(),
@@ -1516,7 +1523,7 @@
     STAGE_TERRAIN_TEMPLATES[1] = generateStageOneTerrain;
     STAGE_TERRAIN_TEMPLATES[2] = generateStageTwoTerrain;
 
-    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length + Object.keys(BABY_BEHOLDER_ANIM).length + Object.keys(GOAT_ANIM).length + Object.keys(MUCK_PROJECTILE_ANIM).length + Object.keys(HILL_GIANT_PROJECTILE_ANIM).length + Object.keys(SLIME_PROJECTILE_ANIM).length + Object.keys(FIREBALL_PROJECTILE_ANIM).length;
+    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(TENTACLE_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length + Object.keys(BABY_BEHOLDER_ANIM).length + Object.keys(GOAT_ANIM).length + Object.keys(MUCK_PROJECTILE_ANIM).length + Object.keys(HILL_GIANT_PROJECTILE_ANIM).length + Object.keys(SLIME_PROJECTILE_ANIM).length + Object.keys(FIREBALL_PROJECTILE_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const img of MAPS) img.addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in WIZ_ANIM) WIZ_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -1525,6 +1532,7 @@
     for (const k in GOBLIN_ANIM) GOBLIN_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in IMP_ANIM) IMP_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in ORC_ANIM) ORC_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
+    for (const k in TENTACLE_ANIM) TENTACLE_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in MUCK_ANIM) MUCK_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in HILL_GIANT_ANIM) HILL_GIANT_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in ABOMINATION_ANIM) ABOMINATION_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -1555,6 +1563,9 @@
     const FIGHT_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
     const ROGUE_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
     const ENEMY = { spd: 90, w: 26, h: 22 }; // default goblin baseline
+    const TENTACLE_FRAMES = 6;
+    const TENTACLE_FRAME_TIME = 0.12;
+    const TENTACLE_DAMAGE_RADIUS = 100;
     // Fixed enemy speed: 45% of baseline (55% slower), no scaling
     const ENEMY_SPEED = Math.round(ENEMY.spd * 0.45);
     const GOAT = { w: 32, h: 32, frames: 4, animRate: 0.2 };
@@ -1617,6 +1628,7 @@
       goblin: { x: HITBOX.enemy, y: HITBOX.enemy },
       imp:    { x: HITBOX.enemy, y: HITBOX.enemy },
       orc:    { x: HITBOX.enemy, y: HITBOX.enemy },
+      tentacle: { x: HITBOX.enemy, y: HITBOX.enemy },
       goatXp:  { x: HITBOX.enemy, y: HITBOX.enemy },
       goatHeart: { x: HITBOX.enemy, y: HITBOX.enemy },
       babyBeholder: { x: HITBOX.enemy, y: HITBOX.enemy },
@@ -2376,6 +2388,71 @@
       enemies.push(baby);
       return baby;
     }
+
+    function spawnAbominationTentacle(tracker){
+      if (!tracker) return null;
+      const pad = 36;
+      const width = ENEMY.w * 2 * 1.75;
+      const height = ENEMY.h * 2 * 1.75;
+      const attemptEntity = { w: width, h: height };
+      let x = ARENA.x + ARENA.w / 2;
+      let y = ARENA.y + ARENA.h / 2;
+      let found = false;
+      for (let attempt = 0; attempt < 12; attempt++){
+        const tx = rand(ARENA.x + pad, ARENA.x + ARENA.w - pad);
+        const ty = rand(ARENA.y + pad, ARENA.y + ARENA.h - pad);
+        attemptEntity.x = tx;
+        attemptEntity.y = ty;
+        const farFromPlayer = len(P.x - tx, P.y - ty) > TENTACLE_DAMAGE_RADIUS + 20;
+        const blocked = willCollideWithTerrain(attemptEntity, tx, ty, { scaleX: 0.5, scaleY: 0.5 });
+        if (!found){
+          x = tx;
+          y = ty;
+        }
+        if (farFromPlayer && !blocked){
+          x = tx;
+          y = ty;
+          found = true;
+          break;
+        }
+      }
+      if (!found){
+        attemptEntity.x = x;
+        attemptEntity.y = y;
+        if (willCollideWithTerrain(attemptEntity, x, y, { scaleX: 0.5, scaleY: 0.5 })){
+          x = ARENA.x + ARENA.w / 2;
+          y = ARENA.y + ARENA.h / 2;
+        }
+      }
+      const hp = (3 + Math.floor(SPAWN.wave / 1.5)) * 3;
+      const tentacle = {
+        kind:'tentacle',
+        x,
+        y,
+        vx:0,
+        vy:0,
+        kx:0,
+        ky:0,
+        w: width,
+        h: height,
+        hp,
+        hpMax: hp,
+        spd:0,
+        score:240,
+        t:0,
+        ang:0,
+        wanderT:0,
+        dir: Math.random() < 0.5 ? 'left' : 'right',
+        frame:0,
+        animT:0,
+        sleepT:0,
+        sleepMax:0,
+        damageRadius: TENTACLE_DAMAGE_RADIUS,
+      };
+      clampToArena(tentacle, Math.max(16, Math.min(width, height) * 0.5));
+      enemies.push(tentacle);
+      return tentacle;
+    }
     const len = (x,y)=>Math.hypot(x,y);
     const norm = (x,y)=>{const l=Math.hypot(x,y)||1;return [x/l,y/l];};
     const angleDiff = (a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
@@ -2471,6 +2548,10 @@
       const tracker = createBossTracker(bossType, stageSpd);
       tracker.rewardScore = 2000;
       tracker.baseHp = hp;
+      if (bossType === 'abomination'){
+        tracker.tentacleTimer = 0;
+        tracker.tentacleInterval = 5;
+      }
       switchMusic(BOSS_TRACKS);
       if (bossType === 'muck'){
         tracker.muckBaseSize = { w: ENEMY.w*4*1.5, h: ENEMY.h*4*1.5 };
@@ -3032,6 +3113,21 @@
         else if (currentClass === 'fighter') updateFighterAnim(dt);
         else if (currentClass === 'rogue') updateRogueAnim(dt);
 
+      if (boss && boss.bossType === 'abomination' && boss.nodes){
+        let living = false;
+        for (const node of boss.nodes){
+          if (node && node.hp > 0){ living = true; break; }
+        }
+        if (living){
+          boss.tentacleTimer = (boss.tentacleTimer || 0) + dt;
+          const interval = boss.tentacleInterval || 5;
+          if (boss.tentacleTimer >= interval){
+            boss.tentacleTimer -= interval;
+            spawnAbominationTentacle(boss);
+          }
+        }
+      }
+
       // Enemy logic
       const kF = Math.pow(KNOCK.friction, dt * 60);
       for (const e of enemies){
@@ -3051,6 +3147,9 @@
         const isGoat = e.kind === 'goatXp' || e.kind === 'goatHeart';
         const isBabyBeholder = e.kind === 'babyBeholder';
         const sleeping = e.sleepT && e.sleepT > 0;
+        if (e.kind === 'tentacle'){
+          e.dir = P.x >= e.x ? 'right' : 'left';
+        }
         if (e.kind === 'boss'){
           if (!sleeping){
             const targetAng = Math.atan2(dy, dx);
@@ -3100,7 +3199,9 @@
           }
         }
 
-        if (sleeping) {
+        if (e.kind === 'tentacle') {
+          e.vx = 0; e.vy = 0;
+        } else if (sleeping) {
           e.vx = 0; e.vy = 0;
         } else if (e.freezeT > 0) {
           e.vx = 0; e.vy = 0;
@@ -3421,6 +3522,37 @@
           }
         }
 
+        if (e.kind === 'tentacle'){
+          e.animT = (e.animT || 0) + dt;
+          while (e.animT >= TENTACLE_FRAME_TIME){
+            e.animT -= TENTACLE_FRAME_TIME;
+            e.frame = ((e.frame || 0) + 1) % TENTACLE_FRAMES;
+          }
+          if (P.iT <= 0){
+            const radius = e.damageRadius || TENTACLE_DAMAGE_RADIUS;
+            if (len(P.x - e.x, P.y - e.y) <= radius){
+              if (CHEAT.active){
+                pushPlayerAwayFrom(e.x, e.y);
+                P.hitFlash = 0.25;
+                spark(P.x,P.y,'#ff8a8a');
+              } else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){
+                P.iT = 0.6;
+                P.hitFlash = 0.25;
+                spark(P.x,P.y,'#a1ffd4');
+              } else {
+                pushPlayerAwayFrom(e.x, e.y);
+                P.hp -= 1;
+                P.iT = 2.0;
+                P.hitFlash = 0.25;
+                drawHearts();
+                spark(P.x,P.y,'#ff8a8a');
+                playHeroHit();
+                if (P.hp<=0) return gameOver();
+              }
+            }
+          }
+        }
+
         // Attack collision when close and player is vulnerable
         const _hb = getEnemyHitboxScale(e);
         if (P.iT<=0 && Math.abs(P.x-e.x)<(e.w*_hb.x + P.w*HITBOX.player) && Math.abs(P.y-e.y)<(e.h*_hb.y + P.h*HITBOX.player)){
@@ -3429,6 +3561,7 @@
           if (e.freezeT && e.freezeT > 0) canHit = false;
           if (sleeping) canHit = false;
           if (isGoat) canHit = false;
+          if (e.kind === 'tentacle') canHit = false;
           if (e.kind === 'boss'){
             const angToPlayer = Math.atan2(P.y - e.y, P.x - e.x);
             canHit = Math.abs(angleDiff(angToPlayer, e.facing)) <= Math.PI/2;
@@ -3981,6 +4114,23 @@
             const fw = sheet.width / 4;
             const fh = sheet.height;
             ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
+          } else if (e.kind === 'tentacle') {
+            const dir = e.dir === 'right' ? 'right' : 'left';
+            const sheet = TENTACLE_ANIM[dir];
+            const frames = TENTACLE_FRAMES;
+            const fw = sheet.width / frames;
+            const fh = sheet.height;
+            const frame = Math.min(frames - 1, e.frame || 0);
+            if (e.damageRadius){
+              ctx.save();
+              ctx.globalAlpha = 0.12;
+              ctx.fillStyle = 'rgba(255, 80, 80, 0.4)';
+              ctx.beginPath();
+              ctx.arc(e.x, e.y, e.damageRadius, 0, Math.PI*2);
+              ctx.fill();
+              ctx.restore();
+            }
+            ctx.drawImage(sheet, frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
           } else if (e.kind === 'goatXp' || e.kind === 'goatHeart') {
             const sheet = e.kind === 'goatXp' ? GOAT_ANIM.xp : GOAT_ANIM.heart;
             const frame = Math.min(GOAT.frames - 1, e.frame || 0);

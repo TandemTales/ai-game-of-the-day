@@ -1724,6 +1724,7 @@
     let stage = 0;
     const STAGE_WAVES = 2;
     const HUNGER_DEMON_MINION_PERIOD = 2;
+    const HILL_GIANT_GOBLIN_PERIOD = 1;
     function updateWaveLimit() {
       const cfg = STAGE_WAVE_COUNTS[stage];
       if (cfg && cfg[SPAWN.wave - 1] != null) {
@@ -2590,6 +2591,43 @@
       enemies.push(enemy);
     }
 
+    function spawnHillGiantGoblin(){
+      const side = Math.floor(Math.random() * 4);
+      let x = ARENA.x + 8;
+      let y = ARENA.y + 8;
+      if (side === 0) { x = rand(ARENA.x + 16, ARENA.x + ARENA.w - 16); y = ARENA.y + 10; }
+      if (side === 1) { x = ARENA.x + ARENA.w - 10; y = rand(ARENA.y + 16, ARENA.y + ARENA.h - 16); }
+      if (side === 2) { x = rand(ARENA.x + 16, ARENA.x + ARENA.w - 16); y = ARENA.y + ARENA.h - 10; }
+      if (side === 3) { x = ARENA.x + 10; y = rand(ARENA.y + 16, ARENA.y + ARENA.h - 16); }
+
+      const stageSpd = Math.pow(1.2, stage);
+      const waveForStats = Math.max(1, SPAWN.wave || STAGE_WAVES);
+      const enemy = {
+        kind: 'goblin',
+        x,
+        y,
+        vx: 0,
+        vy: 0,
+        kx: 0,
+        ky: 0,
+        w: ENEMY.w * 1.75,
+        h: ENEMY.h * 1.75,
+        hp: 2 + Math.floor(waveForStats / 2),
+        spd: ENEMY.spd * stageSpd,
+        score: 50,
+        t: 0,
+        ang: Math.random() * Math.PI * 2,
+        wanderT: 0,
+        dir: 'down',
+        frame: 0,
+        animT: 0,
+        sleepT: 0,
+        sleepMax: 0,
+      };
+      enemies.push(enemy);
+      return enemy;
+    }
+
     function spawnHungerDemonMinion(bossEntity){
       let x = ARENA.x + ARENA.w / 2;
       let y = ARENA.y + ARENA.h / 2;
@@ -2696,7 +2734,11 @@
           sleepT:0,
           sleepMax:0,
         }, tracker);
-        if (bossType === 'hillGiant') b.slamCd = 3;
+        if (bossType === 'hillGiant') {
+          b.slamCd = 3;
+          tracker.goblinSpawnTimer = 0;
+          tracker.goblinSpawnPeriod = HILL_GIANT_GOBLIN_PERIOD;
+        }
         if (bossType === 'hungerDemon') {
           b.minionTimer = 0;
           b.minionPeriod = HUNGER_DEMON_MINION_PERIOD;
@@ -3245,6 +3287,21 @@
           if (boss.tentacleTimer >= interval){
             boss.tentacleTimer -= interval;
             spawnAbominationTentacle(boss);
+          }
+        }
+      }
+
+      if (boss && stage === 1 && boss.bossType === 'hillGiant' && boss.nodes){
+        let hillGiantAlive = false;
+        for (const node of boss.nodes){
+          if (node && node.hp > 0){ hillGiantAlive = true; break; }
+        }
+        if (hillGiantAlive){
+          const period = boss.goblinSpawnPeriod || HILL_GIANT_GOBLIN_PERIOD;
+          boss.goblinSpawnTimer = (boss.goblinSpawnTimer || 0) + dt;
+          if (boss.goblinSpawnTimer >= period){
+            boss.goblinSpawnTimer -= period;
+            spawnHillGiantGoblin();
           }
         }
       }

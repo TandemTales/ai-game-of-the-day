@@ -611,6 +611,17 @@
     IMP_ANIM.left.src = 'assets/EG_enemy_imp_animation_walking_left_small.png';
     IMP_ANIM.right.src = 'assets/EG_enemy_imp_animation_walking_right_small.png';
 
+    const IMP_GREEN_ANIM = {
+      down: new Image(),
+      up: new Image(),
+      left: new Image(),
+      right: new Image(),
+    };
+    IMP_GREEN_ANIM.down.src = 'assets/EG_enemy_imp_green_animation_walking_down_small.png';
+    IMP_GREEN_ANIM.up.src = 'assets/EG_enemy_imp_green_animation_walking_up_small.png';
+    IMP_GREEN_ANIM.left.src = 'assets/EG_enemy_imp_green_animation_walking_left_small.png';
+    IMP_GREEN_ANIM.right.src = 'assets/EG_enemy_imp_green_animation_walking_right_small.png';
+
     const ORC_ANIM = {
       down: new Image(),
       up: new Image(),
@@ -1573,7 +1584,7 @@
     STAGE_TERRAIN_TEMPLATES[1] = generateStageOneTerrain;
     STAGE_TERRAIN_TEMPLATES[2] = generateStageTwoTerrain;
 
-    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(TENTACLE_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length + Object.keys(BABY_BEHOLDER_ANIM).length + Object.keys(GOAT_ANIM).length + Object.keys(MUCK_PROJECTILE_ANIM).length + Object.keys(HILL_GIANT_PROJECTILE_ANIM).length + Object.keys(SLIME_PROJECTILE_ANIM).length + Object.keys(FIREBALL_PROJECTILE_ANIM).length;
+    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(IMP_GREEN_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(TENTACLE_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length + Object.keys(BABY_BEHOLDER_ANIM).length + Object.keys(GOAT_ANIM).length + Object.keys(MUCK_PROJECTILE_ANIM).length + Object.keys(HILL_GIANT_PROJECTILE_ANIM).length + Object.keys(SLIME_PROJECTILE_ANIM).length + Object.keys(FIREBALL_PROJECTILE_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const img of MAPS) img.addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in WIZ_ANIM) WIZ_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -1581,6 +1592,7 @@
     for (const k in ROGUE_ANIM) ROGUE_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in GOBLIN_ANIM) GOBLIN_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in IMP_ANIM) IMP_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
+    for (const k in IMP_GREEN_ANIM) IMP_GREEN_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in ORC_ANIM) ORC_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in TENTACLE_ANIM) TENTACLE_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in MUCK_ANIM) MUCK_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -1711,6 +1723,7 @@
     const SPAWN = { t: 0, cd: 2.2, wave: 1, count: 0, keyAssigned: false };
     let stage = 0;
     const STAGE_WAVES = 2;
+    const HUNGER_DEMON_MINION_PERIOD = 3;
     function updateWaveLimit() {
       const cfg = STAGE_WAVE_COUNTS[stage];
       if (cfg && cfg[SPAWN.wave - 1] != null) {
@@ -2577,6 +2590,49 @@
       enemies.push(enemy);
     }
 
+    function spawnHungerDemonMinion(){
+      const side = Math.floor(Math.random()*4);
+      let x = ARENA.x + 8;
+      let y = ARENA.y + 8;
+      if (side === 0) { x = rand(ARENA.x + 16, ARENA.x + ARENA.w - 16); y = ARENA.y + 10; }
+      if (side === 1) { x = ARENA.x + ARENA.w - 10; y = rand(ARENA.y + 16, ARENA.y + ARENA.h - 16); }
+      if (side === 2) { x = rand(ARENA.x + 16, ARENA.x + ARENA.w - 16); y = ARENA.y + ARENA.h - 10; }
+      if (side === 3) { x = ARENA.x + 10; y = rand(ARENA.y + 16, ARENA.y + ARENA.h - 16); }
+
+      const stageSpd = Math.pow(1.2, stage);
+      const w = 22 * 1.75;
+      const h = 18 * 1.75;
+      const baseHp = Math.max(1, 1 + Math.floor(Math.max(1, SPAWN.wave) / 3));
+      const hp = baseHp * 2;
+      const enemy = {
+        kind: 'imp',
+        variant: 'green',
+        x,
+        y,
+        vx: 0,
+        vy: 0,
+        kx: 0,
+        ky: 0,
+        w,
+        h,
+        hp,
+        hpMax: hp,
+        spd: 130 * stageSpd,
+        score: 40,
+        t: 0,
+        ang: Math.random() * Math.PI * 2,
+        wanderT: 0,
+        dir: 'down',
+        frame: 0,
+        animT: 0,
+        sleepT: 0,
+        sleepMax: 0,
+        contactDmg: 2,
+      };
+      enemies.push(enemy);
+      return enemy;
+    }
+
     function spawnBoss(){
       const x = ARENA.x + ARENA.w/2;
       const y = ARENA.y + ARENA.h/2;
@@ -2633,6 +2689,10 @@
           sleepMax:0,
         }, tracker);
         if (bossType === 'hillGiant') b.slamCd = 3;
+        if (bossType === 'hungerDemon') {
+          b.minionTimer = 0;
+          b.minionPeriod = HUNGER_DEMON_MINION_PERIOD;
+        }
         enemies.push(b);
       }
       return tracker;
@@ -3398,6 +3458,14 @@
               e.freezeT = 1.2;
             }
           } else if (e.bossType === 'hungerDemon') {
+            if (stage === 3 && e.hp > 0){
+              const period = e.minionPeriod || HUNGER_DEMON_MINION_PERIOD;
+              e.minionTimer = (e.minionTimer || 0) + dt;
+              if (e.minionTimer >= period){
+                e.minionTimer -= period;
+                spawnHungerDemonMinion();
+              }
+            }
             if (e.freezeT <= 0 && e.atkT >= 2.4){
               e.atkT = 0;
               const count = 8;
@@ -3628,7 +3696,8 @@
               P.iT = 0.6; P.hitFlash = 0.25; spark(P.x,P.y,'#a1ffd4');
             } else {
               if (e.kind === 'boss') pushPlayerAwayFrom(e.x, e.y);
-              P.hp -= 1; P.iT = 2.0; P.hitFlash = 0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver();
+              const contactDmg = e.contactDmg != null ? e.contactDmg : 1;
+              P.hp -= contactDmg; P.iT = 2.0; P.hitFlash = 0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver();
             }
           }
         }
@@ -4158,7 +4227,8 @@
             const fh = sheet.height;
             ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
           } else if (e.kind === 'imp') {
-            const sheet = IMP_ANIM[e.dir];
+            const anim = e.variant === 'green' ? IMP_GREEN_ANIM : IMP_ANIM;
+            const sheet = anim[e.dir];
             const fw = sheet.width / 4;
             const fh = sheet.height;
             ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);

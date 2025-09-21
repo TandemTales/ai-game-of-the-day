@@ -1723,7 +1723,7 @@
     const SPAWN = { t: 0, cd: 2.2, wave: 1, count: 0, keyAssigned: false };
     let stage = 0;
     const STAGE_WAVES = 2;
-    const HUNGER_DEMON_MINION_PERIOD = 3;
+    const HUNGER_DEMON_MINION_PERIOD = 2;
     function updateWaveLimit() {
       const cfg = STAGE_WAVE_COUNTS[stage];
       if (cfg && cfg[SPAWN.wave - 1] != null) {
@@ -2590,14 +2590,22 @@
       enemies.push(enemy);
     }
 
-    function spawnHungerDemonMinion(){
-      const side = Math.floor(Math.random()*4);
-      let x = ARENA.x + 8;
-      let y = ARENA.y + 8;
-      if (side === 0) { x = rand(ARENA.x + 16, ARENA.x + ARENA.w - 16); y = ARENA.y + 10; }
-      if (side === 1) { x = ARENA.x + ARENA.w - 10; y = rand(ARENA.y + 16, ARENA.y + ARENA.h - 16); }
-      if (side === 2) { x = rand(ARENA.x + 16, ARENA.x + ARENA.w - 16); y = ARENA.y + ARENA.h - 10; }
-      if (side === 3) { x = ARENA.x + 10; y = rand(ARENA.y + 16, ARENA.y + ARENA.h - 16); }
+    function spawnHungerDemonMinion(bossEntity){
+      let x = ARENA.x + ARENA.w / 2;
+      let y = ARENA.y + ARENA.h / 2;
+      if (bossEntity && typeof bossEntity.x === 'number' && typeof bossEntity.y === 'number') {
+        const offset = 18;
+        x = clamp(bossEntity.x + rand(-offset, offset), ARENA.x + AI.wallPad, ARENA.x + ARENA.w - AI.wallPad);
+        y = clamp(bossEntity.y + rand(-offset, offset), ARENA.y + AI.wallPad, ARENA.y + ARENA.h - AI.wallPad);
+      } else {
+        const side = Math.floor(Math.random()*4);
+        x = ARENA.x + 8;
+        y = ARENA.y + 8;
+        if (side === 0) { x = rand(ARENA.x + 16, ARENA.x + ARENA.w - 16); y = ARENA.y + 10; }
+        if (side === 1) { x = ARENA.x + ARENA.w - 10; y = rand(ARENA.y + 16, ARENA.y + ARENA.h - 16); }
+        if (side === 2) { x = rand(ARENA.x + 16, ARENA.x + ARENA.w - 16); y = ARENA.y + ARENA.h - 10; }
+        if (side === 3) { x = ARENA.x + 10; y = rand(ARENA.y + 16, ARENA.y + ARENA.h - 16); }
+      }
 
       const stageSpd = Math.pow(1.2, stage);
       const w = 22 * 1.75;
@@ -3463,7 +3471,7 @@
               e.minionTimer = (e.minionTimer || 0) + dt;
               if (e.minionTimer >= period){
                 e.minionTimer -= period;
-                spawnHungerDemonMinion();
+                spawnHungerDemonMinion(e);
               }
             }
             if (e.freezeT <= 0 && e.atkT >= 2.4){

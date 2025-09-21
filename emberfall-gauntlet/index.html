@@ -1711,6 +1711,38 @@
       if (ENEMY_HITBOX[e.kind]) return ENEMY_HITBOX[e.kind];
       return ENEMY_HITBOX.default;
     }
+    // Half-width/height (pixels) used when testing projectile to enemy collisions.
+    const PROJECTILE_HITBOX = {
+      default: { x: 6, y: 6 },
+      arrow: { x: 8, y: 4 },
+      knife: { x: 8, y: 5 },
+      fireball: { x: 10, y: 10 },
+    };
+    function getProjectileHitbox(p){
+      if (!p) return PROJECTILE_HITBOX.default;
+      if (p.hitbox && typeof p.hitbox.x === 'number' && typeof p.hitbox.y === 'number') return p.hitbox;
+      const hb = PROJECTILE_HITBOX[p.kind] || PROJECTILE_HITBOX.default;
+      if (p.scale && typeof p.scale === 'number' && p.scale > 0){
+        return { x: hb.x * p.scale, y: hb.y * p.scale };
+      }
+      if (typeof p.hw === 'number' || typeof p.hh === 'number'){
+        return {
+          x: typeof p.hw === 'number' ? p.hw : hb.x,
+          y: typeof p.hh === 'number' ? p.hh : hb.y,
+        };
+      }
+      return hb;
+    }
+    function projectileIntersectsEnemy(p, e){
+      if (!p || !e || e.hp <= 0) return false;
+      const enemyScale = getEnemyHitboxScale(e);
+      const ehw = (e.w || 0) * enemyScale.x;
+      const ehh = (e.h || e.w || 0) * enemyScale.y;
+      const projHb = getProjectileHitbox(p);
+      const phw = projHb.x;
+      const phh = projHb.y;
+      return Math.abs(p.x - e.x) <= ehw + phw && Math.abs(p.y - e.y) <= ehh + phh;
+    }
     const AUTO = { atkPeriod: 0.7 };
     const STAGE_WAVE_COUNTS = [
       [10, 20],
@@ -4034,7 +4066,7 @@
         for (const e of enemies){
           if (e.hp<=0) continue;
           if (hitStore && hitStore.has(e)) continue;
-          if (len(p.x-e.x,p.y-e.y) < 16){
+          if (projectileIntersectsEnemy(p, e)){
             applyDamage(e, p.dmg, p.vx, p.vy, KNOCK.projectile);
             if (hitStore){
               hitStore.add(e);

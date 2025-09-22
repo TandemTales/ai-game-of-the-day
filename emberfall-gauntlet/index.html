@@ -541,6 +541,7 @@
       else if (e.kind === 'babyBeholder') playSfx('bossBeholderHurt');
       else if (e.kind === 'boss' && e.bossType === 'muck' && e.hp > 0) playSfx('bossMudMonsterHurt');
       else if (e.kind === 'boss' && e.bossType === 'hillGiant' && e.hp > 0) playSfx('bossHillGiantHurt');
+      else if (e.kind === 'boss' && e.bossType === 'evilFairy' && e.hp > 0) playSfx('bossBeholderHurt');
       else if (e.kind === 'boss' && e.bossType === 'abomination' && e.hp > 0) playSfx('bossAbominationHurt');
       else if (e.kind === 'boss' && e.bossType === 'hungerDemon' && e.hp > 0) playSfx('bossHungerDemonHurt');
       else if (e.kind === 'boss' && e.bossType === 'beholder' && e.hp > 0) playSfx('bossBeholderHurt');
@@ -693,6 +694,17 @@
     HILL_GIANT_ANIM.up.src = 'assets/EG_enemy_boss_hillGiant_animation_walking_up_small.png';
     HILL_GIANT_ANIM.left.src = 'assets/EG_enemy_boss_hillGiant_animation_walking_left_small.png';
     HILL_GIANT_ANIM.right.src = 'assets/EG_enemy_boss_hillGiant_animation_walking_right_small.png';
+
+    const EVIL_FAIRY_ANIM = {
+      down: new Image(),
+      up: new Image(),
+      left: new Image(),
+      right: new Image(),
+    };
+    EVIL_FAIRY_ANIM.down.src = 'assets/EG_enemy_boss_evilFairy_animation_walking_down_small.png';
+    EVIL_FAIRY_ANIM.up.src = 'assets/EG_enemy_boss_evilFairy_animation_walking_up_small.png';
+    EVIL_FAIRY_ANIM.left.src = 'assets/EG_enemy_boss_evilFairy_animation_walking_left_small.png';
+    EVIL_FAIRY_ANIM.right.src = 'assets/EG_enemy_boss_evilFairy_animation_walking_right_small.png';
 
     const ABOMINATION_ANIM = {
       down: new Image(),
@@ -2192,7 +2204,7 @@
     STAGE_TERRAIN_TEMPLATES[3] = generateStageThreeTerrain;
     STAGE_TERRAIN_TEMPLATES[4] = generateStageFourTerrain;
 
-    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(IMP_GREEN_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(TENTACLE_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length + Object.keys(BABY_BEHOLDER_ANIM).length + Object.keys(GOAT_ANIM).length + Object.keys(MUCK_PROJECTILE_ANIM).length + Object.keys(HILL_GIANT_PROJECTILE_ANIM).length + Object.keys(SLIME_PROJECTILE_ANIM).length + Object.keys(FIREBALL_PROJECTILE_ANIM).length;
+    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(IMP_GREEN_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(TENTACLE_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(EVIL_FAIRY_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length + Object.keys(BABY_BEHOLDER_ANIM).length + Object.keys(GOAT_ANIM).length + Object.keys(MUCK_PROJECTILE_ANIM).length + Object.keys(HILL_GIANT_PROJECTILE_ANIM).length + Object.keys(SLIME_PROJECTILE_ANIM).length + Object.keys(FIREBALL_PROJECTILE_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const img of MAPS) img.addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in WIZ_ANIM) WIZ_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -2205,6 +2217,7 @@
     for (const k in TENTACLE_ANIM) TENTACLE_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in MUCK_ANIM) MUCK_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in HILL_GIANT_ANIM) HILL_GIANT_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
+    for (const k in EVIL_FAIRY_ANIM) EVIL_FAIRY_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in ABOMINATION_ANIM) ABOMINATION_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in HUNGER_DEMON_ANIM) HUNGER_DEMON_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in BEHOLDER_ANIM) BEHOLDER_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -2228,7 +2241,7 @@
     // Arena dimensions will match the chosen map image
     const ARENA = { x: 0, y: 0, w: 0, h: 0 };
     const CAM = { x: 0, y: 0 };
-    const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 42, h: 42, dir: Math.PI/2, aimDir: Math.PI/2, swingAim: Math.PI/2, hp: 5, hpMax: 5, iT: 0, atkT: 0, autoT: 0, hitFlash: 0 };
+    const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 42, h: 42, dir: Math.PI/2, aimDir: Math.PI/2, swingAim: Math.PI/2, hp: 5, hpMax: 5, iT: 0, atkT: 0, autoT: 0, hitFlash: 0, sleepT: 0, sleepMax: 0 };
     const WIZ_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
     const FIGHT_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
     const ROGUE_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
@@ -2306,6 +2319,7 @@
       boss:   { x: HITBOX.enemy, y: HITBOX.enemy },
       muck:         { x: HITBOX.enemy, y: HITBOX.enemy },
       hillGiant:    { x: HITBOX.enemy, y: HITBOX.enemy },
+      evilFairy:    { x: HITBOX.enemy, y: HITBOX.enemy },
       abomination:  { x: HITBOX.enemy, y: HITBOX.enemy },
       hungerDemon:  { x: HITBOX.enemy, y: HITBOX.enemy },
       beholder:     { x: HITBOX.enemy, y: HITBOX.enemy },
@@ -2481,6 +2495,7 @@
     const FX_NOVA = [];
     const POLY_WAVES = [];
     const SLEEP_WAVES = [];
+    const FAIRY_SLEEP_WAVES = [];
     let NOVA_FLASH = 0; // brief blue flash when nova triggers
     let enemies = [];
     let drops = [];
@@ -2794,12 +2809,12 @@
       currentMap = MAPS[stage];
       ARENA.x = 0; ARENA.y = 0; ARENA.w = currentMap.width; ARENA.h = currentMap.height;
       DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / VIEW_W, ARENA.h / VIEW_H) * 1.5));
-      enemies = []; drops = []; chests = []; terrainObjects = []; terrainColliders = []; PARTICLES.length = 0; BOSS_PROJECTILES = [];
+      enemies = []; drops = []; chests = []; terrainObjects = []; terrainColliders = []; PARTICLES.length = 0; BOSS_PROJECTILES = []; FAIRY_SLEEP_WAVES.length = 0;
       // Ensure hero visuals and aim face down on stage start
       WIZ_ANIM_STATE.dir = 'down'; WIZ_ANIM_STATE.frame = 0; WIZ_ANIM_STATE.t = 0;
       FIGHT_ANIM_STATE.dir = 'down'; FIGHT_ANIM_STATE.frame = 0; FIGHT_ANIM_STATE.t = 0;
       ROGUE_ANIM_STATE.dir = 'down'; ROGUE_ANIM_STATE.frame = 0; ROGUE_ANIM_STATE.t = 0;
-      Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:Math.PI/2, aimDir:Math.PI/2, swingAim:Math.PI/2, iT:0, atkT:0, autoT:0 });
+      Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:Math.PI/2, aimDir:Math.PI/2, swingAim:Math.PI/2, iT:0, atkT:0, autoT:0, sleepT:0, sleepMax:0 });
       applyStageTerrain(stage);
       const stageMult = Math.pow(1.2, stage);
       Object.assign(SPAWN, { t:0, cd:2.2 / stageMult, wave:1, count:0, keyAssigned:false });
@@ -2840,6 +2855,8 @@
       KEYS.value = 0; drawKeys();
       // Reset upgrades and spell state
       Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleXpChance:0, chestChanceBonus:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:72, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, polymorph:false, polyPeriod:7, polyTimer:0, polyChance:0, polyLevel:0, polyRadius:0, sleep:false, sleepPeriod:8, sleepTimer:0, sleepChance:0, sleepLevel:0, sleepDuration:0, shards:false, shardPeriod:0.567, shardTimer:0, shardSpeed:320, shardCount:1, fireball:false, fireballPeriod:FIREBALL_PERIOD_BASE, fireballTimer:0, fireballRange:0, fireballLevel:0, fireballDmg:FIREBALL_DMG, spellCooldownMult:1, arrowPeriod:0.90, arrowTimer:0, arrowSpeed:360, arrowDmg:0.5, arrowCount:1, arrowPierce:false, bladeStorm:false, bladePeriod:1.6, bladeTimer:0, bladeCount:2, bladeSpin:0, bladeCadence:0.12, bladeBurst:null });
+      P.sleepT = 0; P.sleepMax = 0;
+      FAIRY_SLEEP_WAVES.length = 0;
       if (stats.startOrbs) { UPGR.orbs = Math.min(ORB_MAX_COUNT, stats.startOrbs); }
       // Reset upgrade tracking
       for (const k in UPGRADE_LEVELS) delete UPGRADE_LEVELS[k];
@@ -3325,12 +3342,14 @@
       const stageSpd = Math.pow(1.2, stage);
       let bossType = 'muck';
       let hp = 60;
+      let fairyPhase = false;
       if (stage === 1){
         bossType = 'hillGiant';
         hp = 90;
       } else if (stage === 2) {
-        bossType = 'abomination';
+        bossType = 'evilFairy';
         hp = 120;
+        fairyPhase = true;
       } else if (stage === 3) {
         bossType = 'hungerDemon';
         hp = 150;
@@ -3352,12 +3371,14 @@
         tracker.muckBaseSize = { w: ENEMY.w*4*1.5, h: ENEMY.h*4*1.5 };
         createMuckBossEntity(tracker, 0, x, y, { spd: 75 * stageSpd, score: tracker.rewardScore });
       } else {
+        const sizeScale = bossType === 'evilFairy' ? 0.75 : 1.5;
+        const baseScore = bossType === 'evilFairy' ? 0 : 2000;
         const b = registerBossEntity({
           kind:'boss', bossType, x, y, vx:0, vy:0, kx:0, ky:0,
-          w:ENEMY.w*4*1.5, h:ENEMY.h*4*1.5,
+          w:ENEMY.w*4*sizeScale, h:ENEMY.h*4*sizeScale,
           hp, hpMax:hp,
           spd:75* stageSpd,
-          score:2000,
+          score:baseScore,
           t:0,
           ang:0,
           wanderT:0,
@@ -3383,9 +3404,62 @@
           b.minionTimer = 0;
           b.minionPeriod = HUNGER_DEMON_MINION_PERIOD;
         }
+        if (fairyPhase){
+          b.magicTimer = 0;
+          b.magicPeriod = 1.25;
+          b.magicSpeed = 220;
+          b.sleepTimer = 0;
+          b.sleepCooldown = 3;
+          tracker.transitionTarget = 'abomination';
+          tracker.pendingScore = tracker.rewardScore;
+        }
         enemies.push(b);
       }
       return tracker;
+    }
+
+    function transformEvilFairyToAbomination(entity){
+      if (!entity || entity.bossType !== 'evilFairy') return false;
+      const tracker = entity.bossController;
+      if (!tracker) return false;
+      const stageSpd = tracker.stageSpd || 1;
+      const hp = Math.max(1, tracker.baseHp || 60);
+      const score = tracker.pendingScore ?? tracker.rewardScore ?? 2000;
+      for (let i=0;i<36;i++){
+        const a = rand(0, Math.PI * 2);
+        const sp = rand(120, 240);
+        const sz = rand(8, 16);
+        const ttl = rand(0.45, 0.85);
+        const palette = Math.random() < 0.5 ? '#f8cfff' : '#c6a9ff';
+        PARTICLES.push({ x: entity.x, y: entity.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0, ttl, color: palette, size: sz });
+      }
+      entity.bossType = 'abomination';
+      entity.w = ENEMY.w * 4 * 1.5;
+      entity.h = ENEMY.h * 4 * 1.5;
+      entity.hp = hp;
+      entity.hpMax = hp;
+      entity.score = score;
+      entity.spd = 75 * stageSpd;
+      entity.magicTimer = 0;
+      entity.magicPeriod = 0;
+      entity.magicSpeed = 0;
+      entity.sleepTimer = 0;
+      entity.sleepCooldown = 0;
+      entity.dir = 'down';
+      entity.frame = 0;
+      entity.animT = 0;
+      entity.atkT = 0;
+      entity.nextAtk = 'pulse';
+      entity.blastT = 0;
+      entity.transformFx = 0.6;
+      tracker.bossType = 'abomination';
+      tracker.transitionTarget = null;
+      tracker.pendingScore = null;
+      tracker.tentacleTimer = 0;
+      tracker.tentacleInterval = 5;
+      recalcBossTracker(tracker);
+      BOSS_PROJECTILES = [];
+      return true;
     }
     function handleBossDefeat(){
       const tracker = boss;
@@ -3570,6 +3644,12 @@
       }
       if (e.hp<=0){
         if (e.kind === 'boss'){
+          if (e.bossType === 'evilFairy'){
+            const transformed = transformEvilFairyToAbomination(e);
+            if (transformed){
+              return;
+            }
+          }
           if (e.bossType === 'muck'){
             const result = handleMuckBossDeath(e);
             if (!result.defeated){
@@ -3712,6 +3792,32 @@
     sleepWaveBurst(x,y);
   }
 
+  function applyHeroSleep(duration){
+    if (!duration || duration <= 0) return;
+    const next = Math.max(duration, P.sleepT || 0);
+    P.sleepT = next;
+    P.sleepMax = Math.max(P.sleepMax || 0, next);
+    P.vx = 0;
+    P.vy = 0;
+    P.autoT = 0;
+  }
+
+  function wakeHeroFromSleep(){
+    if (P.sleepT && P.sleepT > 0){
+      P.sleepT = 0;
+      P.sleepMax = 0;
+    }
+  }
+
+  function emitFairySleepWave(x,y){
+    const radius = 200;
+    const ttl = 1.6;
+    const speed = radius / ttl;
+    const duration = 25;
+    FAIRY_SLEEP_WAVES.push({ x, y, r: 0, speed, life: 0, ttl, duration, maxR: radius, hit: false });
+    sleepWaveBurst(x,y);
+  }
+
   function emitFireballBurst(x,y){
     const range = UPGR.fireballRange || 0;
     if (range <= 0) return;
@@ -3822,13 +3928,20 @@
     function step(dt){
       if (!running || paused) return;
 
+      if (P.sleepT && P.sleepT > 0){
+        P.sleepT = Math.max(0, P.sleepT - dt);
+        if (P.sleepT <= 0) P.sleepMax = 0;
+      }
+      const heroSleeping = P.sleepT > 0;
+
       // Player input velocity
-      let ix = (key.right?1:0) - (key.left?1:0);
-      let iy = (key.down?1:0) - (key.up?1:0);
+      let ix = heroSleeping ? 0 : (key.right?1:0) - (key.left?1:0);
+      let iy = heroSleeping ? 0 : (key.down?1:0) - (key.up?1:0);
       if (ix || iy) { const [nx,ny]=norm(ix,iy); P.vx += nx*P.spd*dt; P.vy += ny*P.spd*dt; P.dir = Math.atan2(ny,nx); P.aimDir = P.dir; }
+      else if (heroSleeping){ P.vx = 0; P.vy = 0; }
       // Auto-attack on a fixed period (non-wizard only)
-      P.autoT += dt;
-      if (currentClass !== 'wizard' && P.atkT<=0 && P.autoT >= AUTO.atkPeriod) {
+      if (heroSleeping) P.autoT = 0; else P.autoT += dt;
+      if (!heroSleeping && currentClass !== 'wizard' && P.atkT<=0 && P.autoT >= AUTO.atkPeriod) {
         // Lock swing to current facing; avoid re-aiming while idle
         P.aimDir = P.dir;
         P.swingAim = P.aimDir;
@@ -3836,8 +3949,12 @@
       }
       // Rogue: periodic arrow shots
       if (currentClass === 'rogue'){
-        UPGR.arrowTimer += dt;
-        if (UPGR.arrowTimer >= UPGR.arrowPeriod){
+        if (heroSleeping){
+          UPGR.arrowTimer = 0;
+        } else {
+          UPGR.arrowTimer += dt;
+        }
+        if (!heroSleeping && UPGR.arrowTimer >= UPGR.arrowPeriod){
           UPGR.arrowTimer = 0;
           const dir = P.aimDir || P.dir;
           const count = Math.max(1, (UPGR.arrowCount||1));
@@ -3961,6 +4078,7 @@
         }
         if (e.sleepT && e.sleepT > 0) { e.sleepT = Math.max(0, e.sleepT - dt); if (e.sleepT <= 0) e.sleepMax = 0; }
         if (e.pulse && e.pulse > 0) { e.pulse = Math.max(0, e.pulse - dt); }
+        if (e.transformFx && e.transformFx > 0) { e.transformFx = Math.max(0, e.transformFx - dt); }
         const dx = P.x - e.x, dy = P.y - e.y; const dist = Math.hypot(dx,dy);
         const isGoat = e.kind === 'goatXp' || e.kind === 'goatHeart';
         const isBabyBeholder = e.kind === 'babyBeholder';
@@ -3973,6 +4091,7 @@
             const targetAng = Math.atan2(dy, dx);
             let turnRate = 0.9; // rad/sec baseline
             if (e.bossType === 'muck') turnRate /= 1.5;
+            else if (e.bossType === 'evilFairy') turnRate = Math.PI * 1.6;
             else if (e.bossType === 'abomination') turnRate = Math.PI * 24; // Stage 3 boss snaps to the player
             const diff = angleDiff(targetAng, e.facing);
             const maxTurn = turnRate * dt;
@@ -4143,7 +4262,28 @@
                 }
               }
             }
-            if (e.bossType === 'abomination') {
+            if (e.bossType === 'evilFairy') {
+              const magicPeriod = Math.max(0.4, e.magicPeriod || 1.25);
+              const sleepCd = Math.max(0.6, e.sleepCooldown || 3);
+              e.magicTimer = (e.magicTimer || 0) + dt;
+              if (e.freezeT <= 0){
+                while (e.magicTimer >= magicPeriod){
+                  e.magicTimer -= magicPeriod;
+                  const ang = Math.atan2(dy, dx);
+                  const speed = e.magicSpeed || 220;
+                  const vx = Math.cos(ang) * speed;
+                  const vy = Math.sin(ang) * speed;
+                  BOSS_PROJECTILES.push({ kind:'magicMissile', x:e.x, y:e.y, vx, vy, life:0, ttl:2.6, dmg:1, push:90, scale:0.8 });
+                }
+              }
+              if (e.freezeT <= 0){
+                e.sleepTimer = (e.sleepTimer || 0) + dt;
+                if (e.sleepTimer >= sleepCd){
+                  e.sleepTimer -= sleepCd;
+                  emitFairySleepWave(e.x, e.y);
+                }
+              }
+            } else if (e.bossType === 'abomination') {
               if (e.freezeT <= 0 && e.atkT >= 2.4){
                 e.atkT = 0;
                 const range = 120;
@@ -4156,7 +4296,7 @@
                 if (dist < range && P.iT<=0){
                   if (CHEAT.active){ pushPlayerAwayFrom(e.x, e.y); P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
                   else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-                  else { pushPlayerAwayFrom(e.x, e.y); P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
+                  else { pushPlayerAwayFrom(e.x, e.y); wakeHeroFromSleep(); P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
                 }
                 e.nextAtk = 'wave';
               }
@@ -4189,7 +4329,7 @@
               if (dist < range && P.iT<=0){
                 if (CHEAT.active){ pushPlayerAwayFrom(e.x, e.y); P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
                 else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-                else { pushPlayerAwayFrom(e.x, e.y); P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
+                else { pushPlayerAwayFrom(e.x, e.y); wakeHeroFromSleep(); P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
               }
               e.freezeT = 1.2;
             }
@@ -4221,7 +4361,7 @@
                 const [nx,ny]=norm(P.x-e.x,P.y-e.y);
                 if (CHEAT.active){ pushPlayerByVector(nx, ny); P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
                 else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-                else { pushPlayerByVector(nx, ny); P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
+                else { pushPlayerByVector(nx, ny); wakeHeroFromSleep(); P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
               }
               e.freezeT = 1.5;
               e.pauseAfterAttack = e.freezeT;
@@ -4255,7 +4395,7 @@
                 if (hitArc(e.x, e.y, e.facing, e.slam.arc, e.slam.range, P.x, P.y) && P.iT<=0){
                   if (CHEAT.active){ pushPlayerAwayFrom(e.x, e.y); P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
                   else if (UPGR.dodgeChance > 0 && Math.random() < UPGR.dodgeChance){ P.iT = 0.6; P.hitFlash = 0.25; spark(P.x,P.y,'#a1ffd4'); }
-                  else { pushPlayerAwayFrom(e.x, e.y); P.hp -= 1; P.iT = 2.0; P.hitFlash = 0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
+                  else { pushPlayerAwayFrom(e.x, e.y); wakeHeroFromSleep(); P.hp -= 1; P.iT = 2.0; P.hitFlash = 0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
                 }
                 e.slam.done = true;
               }
@@ -4311,7 +4451,7 @@
                 const [nx,ny]=norm(P.x-e.x,P.y-e.y);
                 if (CHEAT.active){ pushPlayerByVector(nx, ny, pushDist); P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
                 else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-                else { pushPlayerByVector(nx, ny, pushDist); P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
+                else { pushPlayerByVector(nx, ny, pushDist); wakeHeroFromSleep(); P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
               }
               e.freezeT = 1.5;
             }
@@ -4367,6 +4507,7 @@
                 spark(P.x,P.y,'#a1ffd4');
               } else {
                 pushPlayerAwayFrom(e.x, e.y);
+                wakeHeroFromSleep();
                 P.hp -= 1;
                 P.iT = 2.0;
                 P.hitFlash = 0.25;
@@ -4402,6 +4543,7 @@
             } else {
               if (e.kind === 'boss') pushPlayerAwayFrom(e.x, e.y);
               const contactDmg = e.contactDmg != null ? e.contactDmg : 1;
+              wakeHeroFromSleep();
               P.hp -= contactDmg; P.iT = 2.0; P.hitFlash = 0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver();
             }
           }
@@ -4594,6 +4736,19 @@
           if (wave.life >= wave.ttl){ SLEEP_WAVES.splice(i,1); }
         }
       }
+      if (FAIRY_SLEEP_WAVES.length){
+        for (let i=FAIRY_SLEEP_WAVES.length-1;i>=0;i--){
+          const wave = FAIRY_SLEEP_WAVES[i];
+          wave.life += dt;
+          const maxR = wave.maxR ?? Infinity;
+          wave.r = Math.min(maxR, wave.r + wave.speed * dt);
+          if (!wave.hit && len(P.x - wave.x, P.y - wave.y) <= wave.r + 18){
+            wave.hit = true;
+            applyHeroSleep(wave.duration || 0);
+          }
+          if (wave.life >= wave.ttl){ FAIRY_SLEEP_WAVES.splice(i,1); }
+        }
+      }
 
       // Spells: forward shards
       if (UPGR.shards){ UPGR.shardTimer += dt; if (UPGR.shardTimer >= UPGR.shardPeriod){ UPGR.shardTimer = 0; const dir = P.aimDir; const spread = 0.22; const cnt = UPGR.shardCount; for (let i=0;i<cnt;i++){ const a = dir + (i-(cnt-1)/2)*spread; PROJECTILES.push({ x:P.x, y:P.y, vx:Math.cos(a)*320, vy:Math.sin(a)*320, life:0, ttl:1.2, dmg:1 }); } } }
@@ -4700,7 +4855,7 @@
             const pushDist = p.push;
             if (CHEAT.active){ pushPlayerAwayFrom(p.x, p.y, pushDist); P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
             else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-            else { pushPlayerAwayFrom(p.x, p.y, pushDist); P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
+            else { pushPlayerAwayFrom(p.x, p.y, pushDist); wakeHeroFromSleep(); P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
           }
           if (p.r > p.maxR){ BOSS_PROJECTILES.splice(i,1); }
           continue;
@@ -4717,7 +4872,7 @@
             const pushDist = p.push;
             if (CHEAT.active){ pushPlayerAwayFrom(p.x, p.y, pushDist); P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
             else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-            else { pushPlayerAwayFrom(p.x, p.y, pushDist); P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
+            else { pushPlayerAwayFrom(p.x, p.y, pushDist); wakeHeroFromSleep(); P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
           }
           continue;
         }
@@ -4735,7 +4890,7 @@
             const pushDist = p.push;
             if (CHEAT.active){ pushPlayerByVector(p.vx, p.vy, pushDist); P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
             else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-            else { pushPlayerByVector(p.vx, p.vy, pushDist); P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
+            else { pushPlayerByVector(p.vx, p.vy, pushDist); wakeHeroFromSleep(); P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
           }
           BOSS_PROJECTILES.splice(i,1);
         }
@@ -4902,6 +5057,25 @@
           ctx.restore();
         }
       }
+      if (FAIRY_SLEEP_WAVES.length){
+        for (const wave of FAIRY_SLEEP_WAVES){
+          const progress = Math.min(1, wave.life / wave.ttl);
+          const baseAlpha = Math.max(0, 0.3 * (1 - progress));
+          if (baseAlpha <= 0) continue;
+          ctx.save();
+          ctx.beginPath();
+          ctx.lineWidth = 10 * (1 - progress) + 2;
+          ctx.strokeStyle = `rgba(255,140,255,${baseAlpha.toFixed(3)})`;
+          ctx.arc(wave.x, wave.y, wave.r, 0, Math.PI*2);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.lineWidth = Math.max(1.2, 4 * (1 - progress));
+          ctx.strokeStyle = `rgba(255,220,255,${(baseAlpha*0.7).toFixed(3)})`;
+          ctx.arc(wave.x, wave.y, wave.r, 0, Math.PI*2);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
 
       // Queue enemies with shadow (use sprite per type, size by enemy)
       for (const e of enemies){
@@ -4971,11 +5145,24 @@
             const fh = sheet.height;
             ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
           } else if (e.kind === 'boss') {
-            const anim = e.bossType === 'hillGiant' ? HILL_GIANT_ANIM : e.bossType === 'abomination' ? ABOMINATION_ANIM : e.bossType === 'hungerDemon' ? HUNGER_DEMON_ANIM : e.bossType === 'beholder' ? BEHOLDER_ANIM : MUCK_ANIM;
+            const anim = e.bossType === 'hillGiant' ? HILL_GIANT_ANIM : e.bossType === 'evilFairy' ? EVIL_FAIRY_ANIM : e.bossType === 'abomination' ? ABOMINATION_ANIM : e.bossType === 'hungerDemon' ? HUNGER_DEMON_ANIM : e.bossType === 'beholder' ? BEHOLDER_ANIM : MUCK_ANIM;
             const sheet = anim[e.dir];
             const fw = sheet.width / 4;
             const fh = sheet.height;
             ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
+            if (e.transformFx && e.transformFx > 0){
+              const alpha = Math.min(0.7, e.transformFx);
+              const radius = Math.max(e.w, e.h) * 0.8;
+              ctx.save();
+              const gradient = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, radius);
+              gradient.addColorStop(0, `rgba(255,220,255,${alpha.toFixed(3)})`);
+              gradient.addColorStop(1, 'rgba(140,0,140,0)');
+              ctx.fillStyle = gradient;
+              ctx.beginPath();
+              ctx.arc(e.x, e.y, radius, 0, Math.PI*2);
+              ctx.fill();
+              ctx.restore();
+            }
           }
           const skipStunStars = (e.kind === 'boss' && e.bossType === 'abomination') || e.kind === 'babyBeholder';
           const skipBeholderPauseStars = e.kind === 'boss' && e.bossType === 'beholder' && (e.pauseAfterAttack || 0) > 0;
@@ -5145,6 +5332,17 @@
           }
           ctx.restore();
         }
+        if (P.sleepT && P.sleepT > 0){
+          const baseRatio = P.sleepMax ? clamp(P.sleepT / P.sleepMax, 0, 1) : 1;
+          const glow = 0.28 + 0.22 * baseRatio;
+          ctx.save();
+          ctx.strokeStyle = `rgba(190,170,255,${glow.toFixed(3)})`;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(P.x, P.y - 24, 28, 0, Math.PI*2);
+          ctx.stroke();
+          ctx.restore();
+        }
       });
 
       renderQueue.sort((a, b) => {
@@ -5242,6 +5440,20 @@
               const dh = fh * scale;
               ctx.drawImage(sheet, bp.frame * fw, 0, fw, fh, bp.x - dw/2, bp.y - dh/2, dw, dh);
             }
+          } else if (bp.kind === 'magicMissile'){
+            const glow = 0.6 + 0.4 * Math.sin((bp.life || 0) * 10);
+            const radius = 10;
+            ctx.save();
+            ctx.beginPath();
+            ctx.fillStyle = `rgba(210,170,255,${(0.7 + 0.2*Math.sin((bp.life||0)*8)).toFixed(3)})`;
+            ctx.arc(bp.x, bp.y, radius, 0, Math.PI*2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = `rgba(120,200,255,${glow.toFixed(3)})`;
+            ctx.arc(bp.x, bp.y, radius + 4, 0, Math.PI*2);
+            ctx.stroke();
+            ctx.restore();
           } else if (bp.kind === 'rock'){
             const sheet = HILL_GIANT_PROJECTILE_ANIM[bp.dir];
             const fw = sheet.width / 4;

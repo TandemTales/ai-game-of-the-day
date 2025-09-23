@@ -3806,8 +3806,16 @@
       }
     }
 
-    function addChest(x, y){
-      const chest = { x, y, w:32, h:32, opened:false };
+    const WAVE_CHEST_STAGE_BONUS = 0.5;
+    function getWaveChestLootMultiplier(stageIndex = stage){
+      const idx = Math.max(0, stageIndex|0);
+      return 1 + idx * WAVE_CHEST_STAGE_BONUS;
+    }
+
+    function addChest(x, y, opts={}){
+      const lootMult = opts.lootMult != null ? opts.lootMult : 1;
+      const source = opts.source || 'generic';
+      const chest = { x, y, w:32, h:32, opened:false, lootMult, source };
       clampToArena(chest, 16);
       chests.push(chest);
       return chest;
@@ -3836,7 +3844,7 @@
           x = ARENA.x + pad;
           y = rand(ARENA.y+pad, ARENA.y+ARENA.h-pad);
         }
-        addChest(x,y);
+        addChest(x,y,{ source:'wave', lootMult:getWaveChestLootMultiplier() });
       }
     }
 
@@ -3889,7 +3897,7 @@
           if (currentClass === 'rogue'){
             const chestChance = Math.min(1, ROGUE_BASE_CHEST_CHANCE + (UPGR.chestChanceBonus||0));
             if (Math.random() < chestChance){
-              addChest(e.x, e.y);
+              addChest(e.x, e.y, { source:'pickpocket', lootMult:1 });
             }
           }
           // Life steal on kill
@@ -4753,9 +4761,14 @@
       for (const c of chests){
         const canOpen = currentClass === 'rogue' || KEYS.value > 0;
         if (!c.opened && canOpen && len(P.x-c.x,P.y-c.y) < 28){
-          const gemCount = Math.floor(rand(10,31));
+          const lootMult = c.lootMult != null ? c.lootMult : 1;
+          const baseGemCount = Math.floor(rand(10,31));
+          const gemCount = Math.max(1, Math.floor(baseGemCount * lootMult));
           for (let j=0;j<gemCount;j++) dropXpGem(c.x + rand(-12,12), c.y + rand(-12,12));
-          const heartDrops = 1;
+          const baseHearts = 1;
+          const bonusHearts = Math.max(0, (lootMult - 1) * baseHearts);
+          let heartDrops = baseHearts + Math.floor(bonusHearts);
+          if (Math.random() < (bonusHearts - Math.floor(bonusHearts))) heartDrops += 1;
           for (let h=0; h<heartDrops; h++) {
             dropHeart(c.x + rand(-12,12), c.y + rand(-12,12));
           }

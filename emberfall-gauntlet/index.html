@@ -3136,6 +3136,13 @@
       obj.x = clamp(obj.x, ARENA.x + pad, ARENA.x + ARENA.w - pad);
       obj.y = clamp(obj.y, ARENA.y + pad, ARENA.y + ARENA.h - pad);
     };
+    const FLYING_BOSS_TYPES = new Set(['evilFairy', 'hungerDemon', 'beholder']);
+    function isFlyingEnemy(entity){
+      if (!entity) return false;
+      if (entity.kind === 'imp') return true;
+      if (entity.kind === 'boss' && entity.bossType && FLYING_BOSS_TYPES.has(entity.bossType)) return true;
+      return false;
+    }
     function createBossTracker(bossType, stageSpd){
       return { bossType, stageSpd, nodes: new Set(), hp: 0, hpMax: 1, rewardScore: 2000 };
     }
@@ -4250,6 +4257,7 @@
         const isGoat = e.kind === 'goatXp' || e.kind === 'goatHeart';
         const isBabyBeholder = e.kind === 'babyBeholder';
         const sleeping = e.sleepT && e.sleepT > 0;
+        const isFlying = isFlyingEnemy(e);
         if (e.kind === 'tentacle'){
           e.dir = P.x >= e.x ? 'right' : 'left';
         }
@@ -4365,7 +4373,7 @@
                 const distAhead = Math.min(lookAhead, s * stepDist);
                 const testX = e.x + dirX * distAhead;
                 const testY = e.y + dirY * distAhead;
-                if (willCollideWithTerrain(e, testX, testY, { scaleX: 0.5, scaleY: 0.5 })){
+                if (!isFlying && willCollideWithTerrain(e, testX, testY, { scaleX: 0.5, scaleY: 0.5 })){
                   score += blockPenalty * (1 + (steps - s) / steps);
                   break;
                 }
@@ -4406,9 +4414,11 @@
         }
         // Final boundary clamp
         clampToArena(e, AI.wallPad);
-        const eTerrainHit = resolveTerrainCollision(e, { scaleX: 0.5, scaleY: 0.5 });
-        if (eTerrainHit.collidedX){ e.vx = 0; e.kx = 0; }
-        if (eTerrainHit.collidedY){ e.vy = 0; e.ky = 0; }
+        if (!isFlying){
+          const eTerrainHit = resolveTerrainCollision(e, { scaleX: 0.5, scaleY: 0.5 });
+          if (eTerrainHit.collidedX){ e.vx = 0; e.kx = 0; }
+          if (eTerrainHit.collidedY){ e.vy = 0; e.ky = 0; }
+        }
 
         if (e.kind === 'boss'){
           if (!sleeping){
@@ -5136,8 +5146,9 @@
 
       const renderQueue = [];
       let renderOrder = 0;
-      const queueRenderable = (y, drawFn) => {
-        renderQueue.push({ y, order: renderOrder++, draw: drawFn });
+      const queueRenderable = (y, drawFn, options) => {
+        const priority = options && typeof options.priority === 'number' ? options.priority : 0;
+        renderQueue.push({ y, order: renderOrder++, priority, draw: drawFn });
       };
 
       // Queue terrain objects (static scenery pieces that participate in depth sorting)
@@ -5229,6 +5240,7 @@
 
       // Queue enemies with shadow (use sprite per type, size by enemy)
       for (const e of enemies){
+        const priority = isFlyingEnemy(e) ? 1 : 0;
         queueRenderable(e.y, () => {
           ctx.drawImage(IMG.shadow, e.x - e.w * 0.7, e.y - e.h * 0.35, e.w * 1.4, e.h * 0.7);
           const sleeping = e.sleepT && e.sleepT > 0;
@@ -5368,7 +5380,7 @@
             ctx.arc(e.x, e.y - e.h*0.25, rr, 0, Math.PI*2);
             ctx.stroke();
           }
-        });
+        }, { priority });
       }
 
       const blinking = (P.iT > 0) && ((Math.floor(t/80) % 2) === 0);
@@ -5472,6 +5484,7 @@
       });
 
       renderQueue.sort((a, b) => {
+        if (a.priority !== b.priority) return a.priority - b.priority;
         if (a.y === b.y) return a.order - b.order;
         return a.y - b.y;
       });

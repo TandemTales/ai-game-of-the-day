@@ -705,6 +705,17 @@
     ABOMINATION_ANIM.left.src = 'assets/EG_enemy_boss_abomination_animation_walking_left_small.png';
     ABOMINATION_ANIM.right.src = 'assets/EG_enemy_boss_abomination_animation_walking_right_small.png';
 
+    const EVIL_FAIRY_ANIM = {
+      down: new Image(),
+      up: new Image(),
+      left: new Image(),
+      right: new Image(),
+    };
+    EVIL_FAIRY_ANIM.down.src = 'assets/EG_enemy_boss_evilFairy_animation_walking_down_small.png';
+    EVIL_FAIRY_ANIM.up.src = 'assets/EG_enemy_boss_evilFairy_animation_walking_up_small.png';
+    EVIL_FAIRY_ANIM.left.src = 'assets/EG_enemy_boss_evilFairy_animation_walking_left_small.png';
+    EVIL_FAIRY_ANIM.right.src = 'assets/EG_enemy_boss_evilFairy_animation_walking_right_small.png';
+
     const HUNGER_DEMON_ANIM = {
       down: new Image(),
       up: new Image(),
@@ -2192,7 +2203,7 @@
     STAGE_TERRAIN_TEMPLATES[3] = generateStageThreeTerrain;
     STAGE_TERRAIN_TEMPLATES[4] = generateStageFourTerrain;
 
-    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(IMP_GREEN_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(TENTACLE_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length + Object.keys(BABY_BEHOLDER_ANIM).length + Object.keys(GOAT_ANIM).length + Object.keys(MUCK_PROJECTILE_ANIM).length + Object.keys(HILL_GIANT_PROJECTILE_ANIM).length + Object.keys(SLIME_PROJECTILE_ANIM).length + Object.keys(FIREBALL_PROJECTILE_ANIM).length;
+    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(IMP_GREEN_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(TENTACLE_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(EVIL_FAIRY_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length + Object.keys(BABY_BEHOLDER_ANIM).length + Object.keys(GOAT_ANIM).length + Object.keys(MUCK_PROJECTILE_ANIM).length + Object.keys(HILL_GIANT_PROJECTILE_ANIM).length + Object.keys(SLIME_PROJECTILE_ANIM).length + Object.keys(FIREBALL_PROJECTILE_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const img of MAPS) img.addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in WIZ_ANIM) WIZ_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -2206,6 +2217,7 @@
     for (const k in MUCK_ANIM) MUCK_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in HILL_GIANT_ANIM) HILL_GIANT_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in ABOMINATION_ANIM) ABOMINATION_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
+    for (const k in EVIL_FAIRY_ANIM) EVIL_FAIRY_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in HUNGER_DEMON_ANIM) HUNGER_DEMON_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in BEHOLDER_ANIM) BEHOLDER_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in BABY_BEHOLDER_ANIM) BABY_BEHOLDER_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -2228,7 +2240,7 @@
     // Arena dimensions will match the chosen map image
     const ARENA = { x: 0, y: 0, w: 0, h: 0 };
     const CAM = { x: 0, y: 0 };
-    const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 42, h: 42, dir: Math.PI/2, aimDir: Math.PI/2, swingAim: Math.PI/2, hp: 5, hpMax: 5, iT: 0, atkT: 0, autoT: 0, hitFlash: 0 };
+    const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 42, h: 42, dir: Math.PI/2, aimDir: Math.PI/2, swingAim: Math.PI/2, hp: 5, hpMax: 5, iT: 0, atkT: 0, autoT: 0, hitFlash: 0, freezeT: 0 };
     const WIZ_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
     const FIGHT_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
     const ROGUE_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
@@ -2307,6 +2319,7 @@
       muck:         { x: HITBOX.enemy, y: HITBOX.enemy },
       hillGiant:    { x: HITBOX.enemy, y: HITBOX.enemy },
       abomination:  { x: HITBOX.enemy, y: HITBOX.enemy },
+      evilFairy:    { x: HITBOX.enemy, y: HITBOX.enemy },
       hungerDemon:  { x: HITBOX.enemy, y: HITBOX.enemy },
       beholder:     { x: HITBOX.enemy, y: HITBOX.enemy },
     };
@@ -2799,7 +2812,7 @@
       WIZ_ANIM_STATE.dir = 'down'; WIZ_ANIM_STATE.frame = 0; WIZ_ANIM_STATE.t = 0;
       FIGHT_ANIM_STATE.dir = 'down'; FIGHT_ANIM_STATE.frame = 0; FIGHT_ANIM_STATE.t = 0;
       ROGUE_ANIM_STATE.dir = 'down'; ROGUE_ANIM_STATE.frame = 0; ROGUE_ANIM_STATE.t = 0;
-      Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:Math.PI/2, aimDir:Math.PI/2, swingAim:Math.PI/2, iT:0, atkT:0, autoT:0 });
+      Object.assign(P, { x: ARENA.x + ARENA.w/2, y: ARENA.y + ARENA.h/2, vx:0, vy:0, dir:Math.PI/2, aimDir:Math.PI/2, swingAim:Math.PI/2, iT:0, atkT:0, autoT:0, freezeT:0 });
       applyStageTerrain(stage);
       const stageMult = Math.pow(1.2, stage);
       Object.assign(SPAWN, { t:0, cd:2.2 / stageMult, wave:1, count:0, keyAssigned:false });
@@ -2822,6 +2835,7 @@
       P.hpMax = stats.hp;
       P.hp = P.hpMax;
       P.spd = stats.spd;
+      P.freezeT = 0;
       // Reset combat tuning that upgrades may have modified
       PHYS.atkRange = (currentClass === 'wizard') ? BASE_ATK_RANGE : (currentClass === 'rogue' ? ROGUE_ATK_RANGE : EXTENDED_ATK_RANGE);
       // Keep the default melee arc narrow on reset as well
@@ -3329,8 +3343,8 @@
         bossType = 'hillGiant';
         hp = 90;
       } else if (stage === 2) {
-        bossType = 'abomination';
-        hp = 120;
+        bossType = 'evilFairy';
+        hp = 60;
       } else if (stage === 3) {
         bossType = 'hungerDemon';
         hp = 150;
@@ -3347,16 +3361,26 @@
         tracker.tentacleTimer = 0;
         tracker.tentacleInterval = 5;
       }
+      if (bossType === 'evilFairy'){
+        tracker.phase = 'fairy';
+        tracker.abominationHp = Math.round(120 * 0.5);
+        tracker.tentacleTimer = 0;
+        tracker.tentacleInterval = 5;
+      }
       switchMusic(BOSS_TRACKS);
       if (bossType === 'muck'){
         tracker.muckBaseSize = { w: ENEMY.w*4*1.5, h: ENEMY.h*4*1.5 };
         createMuckBossEntity(tracker, 0, x, y, { spd: 75 * stageSpd, score: tracker.rewardScore });
       } else {
+        const baseW = ENEMY.w*4*1.5;
+        const baseH = ENEMY.h*4*1.5;
+        const sizeMult = bossType === 'evilFairy' ? 0.5 : 1;
+        const bossSpd = bossType === 'evilFairy' ? 95 * stageSpd : 75 * stageSpd;
         const b = registerBossEntity({
           kind:'boss', bossType, x, y, vx:0, vy:0, kx:0, ky:0,
-          w:ENEMY.w*4*1.5, h:ENEMY.h*4*1.5,
+          w:baseW * sizeMult, h:baseH * sizeMult,
           hp, hpMax:hp,
-          spd:75* stageSpd,
+          spd: bossSpd,
           score:2000,
           t:0,
           ang:0,
@@ -3383,9 +3407,53 @@
           b.minionTimer = 0;
           b.minionPeriod = HUNGER_DEMON_MINION_PERIOD;
         }
+        if (bossType === 'evilFairy'){
+          b.missileTimer = 0;
+          b.missilePeriod = 1.3;
+          b.waveTimer = 0;
+          b.wavePeriod = 3;
+          b.fairyPhase = true;
+      }
         enemies.push(b);
       }
       return tracker;
+    }
+
+    function transformEvilFairyToAbomination(entity){
+      if (!entity) return;
+      const tracker = entity.bossController;
+      const stageSpd = tracker && tracker.stageSpd ? tracker.stageSpd : Math.pow(1.2, stage);
+      const targetHp = tracker && tracker.abominationHp ? tracker.abominationHp : Math.round(120 * 0.5);
+      evilFairyTransformBurst(entity.x, entity.y);
+      entity.bossType = 'abomination';
+      entity.w = ENEMY.w*4*1.5;
+      entity.h = ENEMY.h*4*1.5;
+      entity.hp = targetHp;
+      entity.hpMax = targetHp;
+      entity.spd = 75 * stageSpd;
+      entity.frame = 0;
+      entity.animT = 0;
+      entity.atkT = 0;
+      entity.blastT = 0;
+      entity.nextAtk = 'pulse';
+      entity.pulse = 0;
+      entity.pulseRange = 0;
+      entity.dir = 'down';
+      entity.facing = 0;
+      entity.freezeT = Math.max(entity.freezeT || 0, 1.2);
+      delete entity.missileTimer;
+      delete entity.missilePeriod;
+      delete entity.waveTimer;
+      delete entity.wavePeriod;
+      delete entity.fairyPhase;
+      if (tracker){
+        tracker.bossType = 'abomination';
+        tracker.baseHp = targetHp;
+        tracker.phase = 'abomination';
+        tracker.tentacleTimer = 0;
+        tracker.tentacleInterval = tracker.tentacleInterval || 5;
+        recalcBossTracker(tracker);
+      }
     }
     function handleBossDefeat(){
       const tracker = boss;
@@ -3569,6 +3637,10 @@
         recalcBossTracker(e.bossController);
       }
       if (e.hp<=0){
+        if (e.kind === 'boss' && e.bossType === 'evilFairy'){
+          transformEvilFairyToAbomination(e);
+          return;
+        }
         if (e.kind === 'boss'){
           if (e.bossType === 'muck'){
             const result = handleMuckBossDeath(e);
@@ -3682,6 +3754,68 @@
       const sz = rand(6, 12);
       PARTICLES.push({ x:px, y:py, vx, vy, life:0, ttl, color:'#cfefff', size:sz });
     }
+  }
+
+  function fairySparkle(x,y,count=18){
+    for (let i=0;i<count;i++){
+      const a = rand(0, Math.PI * 2);
+      const sp = rand(80, 160);
+      const ttl = rand(0.3, 0.6);
+      const sz = rand(6, 12);
+      const palette = ['#ffd6ff', '#d0a2ff', '#a4b9ff'];
+      const color = palette[Math.floor(Math.random() * palette.length)] || '#ffd6ff';
+      PARTICLES.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life:0, ttl, color, size:sz });
+    }
+  }
+
+  function evilFairyTransformBurst(x,y){
+    fairySparkle(x, y, 28);
+    for (let i=0; i<20; i++){
+      const a = rand(0, Math.PI * 2);
+      const dist = rand(20, 60);
+      const px = x + Math.cos(a) * dist;
+      const py = y + Math.sin(a) * dist;
+      PARTICLES.push({ x:px, y:py, vx:0, vy:0, life:0, ttl: rand(0.4, 0.7), color:'#ffffff', size:rand(4,8) });
+    }
+    frostDisc(x, y, 80);
+  }
+
+  function evilFairyWaveFx(x,y,r=200){
+    const count = 32;
+    for (let i=0;i<count;i++){
+      const ang = (Math.PI * 2 / count) * i;
+      const px = x + Math.cos(ang) * r;
+      const py = y + Math.sin(ang) * r;
+      PARTICLES.push({ x:px, y:py, vx:0, vy:0, life:0, ttl: rand(0.35, 0.6), color:'#c2a3ff', size:rand(6, 10) });
+    }
+  }
+
+  function freezePlayer(duration){
+    const dur = Math.max(0, duration || 0);
+    if (dur <= 0) return;
+    P.freezeT = Math.max(P.freezeT || 0, dur);
+    P.vx = 0;
+    P.vy = 0;
+    fairySparkle(P.x, P.y, 14);
+    frostDisc(P.x, P.y, 70);
+  }
+
+  function fireEvilFairyMissile(e){
+    if (!e) return;
+    const ang = Math.atan2(P.y - e.y, P.x - e.x);
+    const speed = 260;
+    const vx = Math.cos(ang) * speed;
+    const vy = Math.sin(ang) * speed;
+    const ttl = 2.6;
+    const missile = { kind:'fairyMissile', x:e.x, y:e.y, vx, vy, life:0, ttl, dmg:1, push:90, scale:0.6, spin:0 };
+    BOSS_PROJECTILES.push(missile);
+    fairySparkle(e.x, e.y, 12);
+  }
+
+  function emitEvilFairyWave(e){
+    if (!e) return;
+    evilFairyWaveFx(e.x, e.y, 200);
+    BOSS_PROJECTILES.push({ kind:'wave', x:e.x, y:e.y, r:0, maxR:200, speed:220, width:18, dmg:1, life:0, push:120, freezeChance:0.5, freezeDuration:1 });
   }
 
   function emitNova(x,y){
@@ -3822,20 +3956,30 @@
     function step(dt){
       if (!running || paused) return;
 
+      if (P.freezeT && P.freezeT > 0){
+        P.freezeT = Math.max(0, P.freezeT - dt);
+      }
+      const frozen = P.freezeT > 0;
       // Player input velocity
-      let ix = (key.right?1:0) - (key.left?1:0);
-      let iy = (key.down?1:0) - (key.up?1:0);
+      let ix = 0;
+      let iy = 0;
+      if (!frozen){
+        ix = (key.right?1:0) - (key.left?1:0);
+        iy = (key.down?1:0) - (key.up?1:0);
+      }
       if (ix || iy) { const [nx,ny]=norm(ix,iy); P.vx += nx*P.spd*dt; P.vy += ny*P.spd*dt; P.dir = Math.atan2(ny,nx); P.aimDir = P.dir; }
       // Auto-attack on a fixed period (non-wizard only)
-      P.autoT += dt;
-      if (currentClass !== 'wizard' && P.atkT<=0 && P.autoT >= AUTO.atkPeriod) {
-        // Lock swing to current facing; avoid re-aiming while idle
-        P.aimDir = P.dir;
-        P.swingAim = P.aimDir;
-        P.atkT = PHYS.atkDur; P.autoT = 0;
+      if (!frozen){
+        P.autoT += dt;
+        if (currentClass !== 'wizard' && P.atkT<=0 && P.autoT >= AUTO.atkPeriod) {
+          // Lock swing to current facing; avoid re-aiming while idle
+          P.aimDir = P.dir;
+          P.swingAim = P.aimDir;
+          P.atkT = PHYS.atkDur; P.autoT = 0;
+        }
       }
       // Rogue: periodic arrow shots
-      if (currentClass === 'rogue'){
+      if (!frozen && currentClass === 'rogue'){
         UPGR.arrowTimer += dt;
         if (UPGR.arrowTimer >= UPGR.arrowPeriod){
           UPGR.arrowTimer = 0;
@@ -3973,6 +4117,7 @@
             const targetAng = Math.atan2(dy, dx);
             let turnRate = 0.9; // rad/sec baseline
             if (e.bossType === 'muck') turnRate /= 1.5;
+            else if (e.bossType === 'evilFairy') turnRate = Math.PI * 10;
             else if (e.bossType === 'abomination') turnRate = Math.PI * 24; // Stage 3 boss snaps to the player
             const diff = angleDiff(targetAng, e.facing);
             const maxTurn = turnRate * dt;
@@ -4143,7 +4288,20 @@
                 }
               }
             }
-            if (e.bossType === 'abomination') {
+            if (e.bossType === 'evilFairy') {
+              const missilePeriod = e.missilePeriod || 1.3;
+              e.missileTimer = (e.missileTimer || 0) + dt;
+              if (e.freezeT <= 0 && e.missileTimer >= missilePeriod){
+                e.missileTimer -= missilePeriod;
+                fireEvilFairyMissile(e);
+              }
+              const wavePeriod = e.wavePeriod || 3;
+              e.waveTimer = (e.waveTimer || 0) + dt;
+              if (e.freezeT <= 0 && e.waveTimer >= wavePeriod){
+                e.waveTimer -= wavePeriod;
+                emitEvilFairyWave(e);
+              }
+            } else if (e.bossType === 'abomination') {
               if (e.freezeT <= 0 && e.atkT >= 2.4){
                 e.atkT = 0;
                 const range = 120;
@@ -4700,7 +4858,19 @@
             const pushDist = p.push;
             if (CHEAT.active){ pushPlayerAwayFrom(p.x, p.y, pushDist); P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
             else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-            else { pushPlayerAwayFrom(p.x, p.y, pushDist); P.hp-=dmg; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); }
+            else {
+              pushPlayerAwayFrom(p.x, p.y, pushDist);
+              P.hp-=dmg;
+              P.iT=2.0;
+              P.hitFlash=0.25;
+              drawHearts();
+              spark(P.x,P.y,'#ff8a8a');
+              if (p.freezeChance && Math.random() < p.freezeChance){
+                freezePlayer(p.freezeDuration || 0);
+              }
+              playHeroHit();
+              if (P.hp<=0) return gameOver();
+            }
           }
           if (p.r > p.maxR){ BOSS_PROJECTILES.splice(i,1); }
           continue;
@@ -4726,6 +4896,8 @@
         if (p.kind === 'muck' || p.kind === 'rock' || p.kind === 'slime'){
           p.animT += dt;
           if (p.animT >= 0.12){ p.animT = 0; p.frame = (p.frame + 1) % 4; }
+        } else if (p.kind === 'fairyMissile'){
+          p.spin = (p.spin || 0) + dt * 8;
         }
         if (p.life > p.ttl){ BOSS_PROJECTILES.splice(i,1); continue; }
         const hitRadius = 20 * (p.scale || 1);
@@ -4971,7 +5143,7 @@
             const fh = sheet.height;
             ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
           } else if (e.kind === 'boss') {
-            const anim = e.bossType === 'hillGiant' ? HILL_GIANT_ANIM : e.bossType === 'abomination' ? ABOMINATION_ANIM : e.bossType === 'hungerDemon' ? HUNGER_DEMON_ANIM : e.bossType === 'beholder' ? BEHOLDER_ANIM : MUCK_ANIM;
+            const anim = e.bossType === 'hillGiant' ? HILL_GIANT_ANIM : e.bossType === 'evilFairy' ? EVIL_FAIRY_ANIM : e.bossType === 'abomination' ? ABOMINATION_ANIM : e.bossType === 'hungerDemon' ? HUNGER_DEMON_ANIM : e.bossType === 'beholder' ? BEHOLDER_ANIM : MUCK_ANIM;
             const sheet = anim[e.dir];
             const fw = sheet.width / 4;
             const fh = sheet.height;
@@ -5255,6 +5427,20 @@
             const dw = fw * scale;
             const dh = fh * scale;
             ctx.drawImage(sheet, bp.frame * fw, 0, fw, fh, bp.x - dw/2, bp.y - dh/2, dw, dh);
+          } else if (bp.kind === 'fairyMissile'){
+            ctx.save();
+            ctx.translate(bp.x, bp.y);
+            ctx.rotate(bp.spin || 0);
+            const radius = 10;
+            const gradient = ctx.createRadialGradient(0, 0, 2, 0, 0, radius);
+            gradient.addColorStop(0, 'rgba(255,255,255,0.9)');
+            gradient.addColorStop(0.45, 'rgba(221,180,255,0.75)');
+            gradient.addColorStop(1, 'rgba(151,110,255,0.35)');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
           } else {
             ctx.fillStyle = bp.kind === 'slow' ? 'red' : bp.kind === 'fast' ? 'orange' : 'brown';
             ctx.beginPath();

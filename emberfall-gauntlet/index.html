@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <!-- Google tag (gtag.js) -->
@@ -111,6 +111,13 @@
 
     .overlay { position:absolute; inset:0; display:none; align-items:center; justify-content:center; background: rgba(0,0,0,0.55); z-index: 6; }
     .overlay.show { display:flex; }
+    .overlay.loading { z-index: 10; backdrop-filter: blur(2px); }
+    .overlay.loading .panel { display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; }
+    .overlay.loading .title { font-size: 16px; }
+    .loading-progress { width: 220px; height: 10px; border-radius: 6px; border: 1px solid rgba(255,215,0,0.6); padding: 2px; background: rgba(0,0,0,0.35); overflow:hidden; }
+    .loading-progress-bar { height:100%; width:0%; border-radius:4px; background:linear-gradient(90deg, var(--teal), var(--gold)); transition: width 0.2s ease; }
+    #loadingStatus { font-size: 12px; color: var(--ink); opacity: 0.9; }
+    .btn[disabled] { opacity: 0.5; pointer-events: none; cursor: not-allowed; filter: saturate(0.65); }
     .panel { background: rgba(0,0,0,0.85); border: 3px solid var(--gold); border-radius: 12px; padding: 20px; text-align:center; box-shadow: 0 0 40px rgba(255,215,0,0.35); max-width: 560px; width: calc(100vw - 40px); }
     .panel .title { font-size: 18px; margin-bottom: 8px; }
     .panel .desc { font-size: 12px; color: var(--teal); line-height: 1.6; margin: 8px 0 12px; }
@@ -199,7 +206,17 @@
         </div>
       </div>
 
-    <div id="startOverlay" class="overlay show">
+    <div id="loadingOverlay" class="overlay show loading" role="status" aria-live="polite" aria-hidden="false">
+      <div class="panel">
+        <div class="title" style="background:linear-gradient(45deg,var(--gold),#ffa500);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Summoning Emberfall...</div>
+        <div id="loadingStatus" class="small">Loading assets...</div>
+        <div class="loading-progress" aria-hidden="true">
+          <div id="loadingProgress" class="loading-progress-bar"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="startOverlay" class="overlay" aria-hidden="true">
       <div class="panel">
         <div class="title" style="background:linear-gradient(45deg,var(--gold),#ffa500);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Emberfall Gauntlet</div>
         <div class="desc">Step into an arena of glowing stone, carve through swarming foes with swift strikes, and scoop shimmering shards to chase the highest score.</div>
@@ -209,7 +226,7 @@
           <button class="class-btn" data-class="wizard"><img src="assets/EG_hero_wizard.png" alt="Wizard"><span>Wizard</span></button>
         </div>
         <div class="row">
-          <button id="startBtn" class="btn">Start</button>
+          <button id="startBtn" class="btn" disabled>Start</button>
           <a class="btn" href="../leaderboard.html?gameId=emberfall-gauntlet">Leaderboard</a>
         </div>
           <div class="small" style="margin-top:10px">Move: WASD/Arrows or touch & drag. Pause: P. Audio: M. Stats: C</div>
@@ -340,6 +357,9 @@
     const heartsEl = document.getElementById('hearts');
     const keysEl = document.getElementById('keys');
     const stageTimerEl = document.getElementById('stageTimer');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingStatus = document.getElementById('loadingStatus');
+    const loadingProgress = document.getElementById('loadingProgress');
     const startOverlay = document.getElementById('startOverlay');
     const gameOverOverlay = document.getElementById('gameOver');
     const shopOverlay = document.getElementById('shopOverlay');
@@ -491,13 +511,15 @@
     // Sound effects using Web Audio for low latency
     const SFX = {};
     function loadSfx(name, src){
-      fetch(src)
-        .then(r => r.arrayBuffer())
+      return fetch(src)
+        .then(r => {
+          if (!r.ok) throw new Error(`Failed to load SFX ${name}: ${r.status}`);
+          return r.arrayBuffer();
+        })
         .then(b => audioCtx.decodeAudioData(b))
-        .then(buf => { SFX[name] = buf; })
-        .catch(() => {});
+        .then(buf => { SFX[name] = buf; });
     }
-    [
+    const SFX_ASSETS = [
       ['heroFighterHit', 'assets/sfx_hero_fighter_hit.wav'],
       ['heroWizardHit', 'assets/sfx_hero_wizard_hit.wav'],
       ['xp', 'assets/sfx_xp.wav'],
@@ -516,7 +538,7 @@
       ['bossHungerDemonKilled', 'assets/sfx_boss_hungerDemon_killed.wav'],
       ['bossBeholderHurt', 'assets/sfx_boss_beholder_hurt.wav'],
       ['bossBeholderKilled', 'assets/sfx_boss_beholder_killed.wav'],
-    ].forEach(([n, s]) => loadSfx(n, s));
+    ];
 
     function playSfx(name){
       if (muted) return;
@@ -877,6 +899,120 @@
       'assets/EG_map_mountain01.png',
     ];
     const MAPS = MAP_FILES.map(src => { const i = new Image(); i.src = src; return i; });
+
+    // Track preload progress so the loading overlay can reflect status
+    const assetProgress = { total: 0, loaded: 0 };
+    let assetsReady = false;
+
+    function updateLoadingProgress(){
+      const { total, loaded } = assetProgress;
+      const ratio = total > 0 ? loaded / total : 0;
+      if (loadingProgress) {
+        const pct = Math.max(0, Math.min(100, ratio * 100));
+        loadingProgress.style.width = `${pct.toFixed(1)}%`;
+      }
+      if (loadingStatus) {
+        if (total === 0) {
+          loadingStatus.textContent = 'Loading assets...';
+        } else if (ratio >= 1) {
+          loadingStatus.textContent = 'Loading complete!';
+        } else {
+          loadingStatus.textContent = `Loading assets... ${Math.round(ratio * 100)}%`;
+        }
+      }
+    }
+
+    function trackAsset(promise, label){
+      assetProgress.total += 1;
+      updateLoadingProgress();
+      return promise.catch(err => {
+        console.warn(`Asset failed to load${label ? ` (${label})` : ''}`, err);
+      }).then(() => {
+        assetProgress.loaded += 1;
+        updateLoadingProgress();
+      });
+    }
+
+    function waitForImage(img){
+      if (!img) return Promise.resolve();
+      if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+      return new Promise(resolve => {
+        const done = () => resolve();
+        img.addEventListener('load', done, { once: true });
+        img.addEventListener('error', done, { once: true });
+      });
+    }
+
+    function gatherImageAssets(){
+      const groups = [
+        CLASS_IMG,
+        WIZ_ANIM,
+        FIGHT_ANIM,
+        ROGUE_ANIM,
+        GOBLIN_ANIM,
+        IMP_ANIM,
+        IMP_GREEN_ANIM,
+        ORC_ANIM,
+        TENTACLE_ANIM,
+        MUCK_ANIM,
+        MUCK_PROJECTILE_ANIM,
+        HILL_GIANT_PROJECTILE_ANIM,
+        SLIME_PROJECTILE_ANIM,
+        FIREBALL_PROJECTILE_ANIM,
+        HILL_GIANT_ANIM,
+        ABOMINATION_ANIM,
+        HUNGER_DEMON_ANIM,
+        BEHOLDER_ANIM,
+        BABY_BEHOLDER_ANIM,
+        GOAT_ANIM,
+        IMG,
+      ];
+      const seen = new Set();
+      const list = [];
+      for (const group of groups){
+        if (!group) continue;
+        for (const key in group){
+          const img = group[key];
+          if (img instanceof Image && !seen.has(img)){
+            seen.add(img);
+            list.push({ img, label: img.src || key });
+          }
+        }
+      }
+      MAPS.forEach((img, idx) => {
+        if (img instanceof Image && !seen.has(img)){
+          seen.add(img);
+          list.push({ img, label: img.src || `map-${idx + 1}` });
+        }
+      });
+      return list;
+    }
+
+    async function preloadAssets(){
+      if (startBtn) startBtn.disabled = true;
+      updateLoadingProgress();
+      const pending = [];
+      for (const { img, label } of gatherImageAssets()){
+        pending.push(trackAsset(waitForImage(img), label));
+      }
+      for (const [name, src] of SFX_ASSETS){
+        pending.push(trackAsset(loadSfx(name, src), src));
+      }
+      await Promise.all(pending);
+      assetsReady = true;
+      updateLoadingProgress();
+      if (loadingOverlay){
+        loadingOverlay.classList.remove('show');
+        loadingOverlay.setAttribute('aria-hidden', 'true');
+      }
+      if (startOverlay){
+        startOverlay.classList.add('show');
+        startOverlay.setAttribute('aria-hidden', 'false');
+      }
+      if (startBtn) startBtn.disabled = false;
+    }
+
+    preloadAssets().catch(err => console.error('Asset preloading failed', err));
 
     const TERRAIN_MIN_DISTANCE = 150;
     const TERRAIN_BASE_ATTEMPTS = 200;
@@ -2868,12 +3004,20 @@
     }
 
     function start() {
+      if (!assetsReady) return;
       resumeAudio();
       reset();
       running = true;
       paused = false;
-      startOverlay.classList.remove('show');
-      gameOverOverlay.classList.remove('show');
+      if (startOverlay) {
+        startOverlay.classList.remove('show');
+        startOverlay.setAttribute('aria-hidden', 'true');
+      }
+      if (loadingOverlay) {
+        loadingOverlay.classList.remove('show');
+        loadingOverlay.setAttribute('aria-hidden', 'true');
+      }
+      if (gameOverOverlay) gameOverOverlay.classList.remove('show');
     }
     function gameOver(win = false) {
       if (gameOverHandled) return;
@@ -2889,13 +3033,21 @@
       maybeSubmitLeaderboard();
     }
 
-    startBtn.addEventListener('click', () => { start(); gameOverHandled = false; });
-    againBtn.addEventListener('click', () => {
+    if (startBtn) startBtn.addEventListener('click', () => {
+      if (!assetsReady) return;
+      start();
+      gameOverHandled = false;
+    });
+    if (againBtn) againBtn.addEventListener('click', () => {
       // Return to character selection instead of immediately starting
       running = false;
       paused = true;
-      gameOverOverlay.classList.remove('show');
-      startOverlay.classList.add('show');
+      if (gameOverOverlay) gameOverOverlay.classList.remove('show');
+      if (startOverlay) {
+        startOverlay.classList.add('show');
+        startOverlay.setAttribute('aria-hidden', 'false');
+      }
+      if (startBtn) startBtn.disabled = false;
       gameOverHandled = false;
     });
 

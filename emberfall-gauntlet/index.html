@@ -4575,7 +4575,7 @@
           if (e.bossType === 'hillGiant'){
             e.slamCd = (e.slamCd||0) - dt;
             if (!e.slam && e.slamCd <= 0){
-              e.slam = { t:0, tele:0.8, arc:Math.PI/2, range:120, done:false };
+              e.slam = { t:0, tele:0.8, arc:Math.PI/2, range:240, done:false };
               e.slamCd = 5;
             }
             if (e.slam){

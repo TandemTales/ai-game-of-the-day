@@ -541,6 +541,7 @@
       else if (e.kind === 'babyBeholder') playSfx('bossBeholderHurt');
       else if (e.kind === 'boss' && e.bossType === 'muck' && e.hp > 0) playSfx('bossMudMonsterHurt');
       else if (e.kind === 'boss' && e.bossType === 'hillGiant' && e.hp > 0) playSfx('bossHillGiantHurt');
+      else if (e.kind === 'boss' && e.bossType === 'evilFairy' && e.hp > 0) playSfx('bossBeholderHurt');
       else if (e.kind === 'boss' && e.bossType === 'abomination' && e.hp > 0) playSfx('bossAbominationHurt');
       else if (e.kind === 'boss' && e.bossType === 'hungerDemon' && e.hp > 0) playSfx('bossHungerDemonHurt');
       else if (e.kind === 'boss' && e.bossType === 'beholder' && e.hp > 0) playSfx('bossBeholderHurt');
@@ -704,6 +705,17 @@
     ABOMINATION_ANIM.up.src = 'assets/EG_enemy_boss_abomination_animation_walking_up_small.png';
     ABOMINATION_ANIM.left.src = 'assets/EG_enemy_boss_abomination_animation_walking_left_small.png';
     ABOMINATION_ANIM.right.src = 'assets/EG_enemy_boss_abomination_animation_walking_right_small.png';
+
+    const EVIL_FAIRY_ANIM = {
+      down: new Image(),
+      up: new Image(),
+      left: new Image(),
+      right: new Image(),
+    };
+    EVIL_FAIRY_ANIM.down.src = 'assets/EG_enemy_boss_evilFairy_animation_walking_down_small.png';
+    EVIL_FAIRY_ANIM.up.src = 'assets/EG_enemy_boss_evilFairy_animation_walking_up_small.png';
+    EVIL_FAIRY_ANIM.left.src = 'assets/EG_enemy_boss_evilFairy_animation_walking_left_small.png';
+    EVIL_FAIRY_ANIM.right.src = 'assets/EG_enemy_boss_evilFairy_animation_walking_right_small.png';
 
     const HUNGER_DEMON_ANIM = {
       down: new Image(),
@@ -2192,7 +2204,7 @@
     STAGE_TERRAIN_TEMPLATES[3] = generateStageThreeTerrain;
     STAGE_TERRAIN_TEMPLATES[4] = generateStageFourTerrain;
 
-    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(IMP_GREEN_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(TENTACLE_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length + Object.keys(BABY_BEHOLDER_ANIM).length + Object.keys(GOAT_ANIM).length + Object.keys(MUCK_PROJECTILE_ANIM).length + Object.keys(HILL_GIANT_PROJECTILE_ANIM).length + Object.keys(SLIME_PROJECTILE_ANIM).length + Object.keys(FIREBALL_PROJECTILE_ANIM).length;
+    let loaded = 0; const need = Object.keys(IMG).length + MAPS.length + 2 + Object.keys(WIZ_ANIM).length + Object.keys(FIGHT_ANIM).length + Object.keys(ROGUE_ANIM).length + Object.keys(GOBLIN_ANIM).length + Object.keys(IMP_ANIM).length + Object.keys(IMP_GREEN_ANIM).length + Object.keys(ORC_ANIM).length + Object.keys(TENTACLE_ANIM).length + Object.keys(MUCK_ANIM).length + Object.keys(HILL_GIANT_ANIM).length + Object.keys(ABOMINATION_ANIM).length + Object.keys(EVIL_FAIRY_ANIM).length + Object.keys(HUNGER_DEMON_ANIM).length + Object.keys(BEHOLDER_ANIM).length + Object.keys(BABY_BEHOLDER_ANIM).length + Object.keys(GOAT_ANIM).length + Object.keys(MUCK_PROJECTILE_ANIM).length + Object.keys(HILL_GIANT_PROJECTILE_ANIM).length + Object.keys(SLIME_PROJECTILE_ANIM).length + Object.keys(FIREBALL_PROJECTILE_ANIM).length;
     for (const k in IMG) IMG[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const img of MAPS) img.addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in WIZ_ANIM) WIZ_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -2206,6 +2218,7 @@
     for (const k in MUCK_ANIM) MUCK_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in HILL_GIANT_ANIM) HILL_GIANT_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in ABOMINATION_ANIM) ABOMINATION_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
+    for (const k in EVIL_FAIRY_ANIM) EVIL_FAIRY_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in HUNGER_DEMON_ANIM) HUNGER_DEMON_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in BEHOLDER_ANIM) BEHOLDER_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
     for (const k in BABY_BEHOLDER_ANIM) BABY_BEHOLDER_ANIM[k].addEventListener('load', () => { if (++loaded === need) init(); });
@@ -2228,7 +2241,7 @@
     // Arena dimensions will match the chosen map image
     const ARENA = { x: 0, y: 0, w: 0, h: 0 };
     const CAM = { x: 0, y: 0 };
-    const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 42, h: 42, dir: Math.PI/2, aimDir: Math.PI/2, swingAim: Math.PI/2, hp: 5, hpMax: 5, iT: 0, atkT: 0, autoT: 0, hitFlash: 0 };
+    const P = { x: W/2, y: H/2, vx: 0, vy: 0, spd: 2400, w: 42, h: 42, dir: Math.PI/2, aimDir: Math.PI/2, swingAim: Math.PI/2, hp: 5, hpMax: 5, iT: 0, atkT: 0, autoT: 0, hitFlash: 0, slowT: 0, slowMul: 1 };
     const WIZ_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
     const FIGHT_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
     const ROGUE_ANIM_STATE = { dir: 'down', frame: 0, t: 0 };
@@ -2306,6 +2319,7 @@
       boss:   { x: HITBOX.enemy, y: HITBOX.enemy },
       muck:         { x: HITBOX.enemy, y: HITBOX.enemy },
       hillGiant:    { x: HITBOX.enemy, y: HITBOX.enemy },
+      evilFairy:    { x: HITBOX.enemy, y: HITBOX.enemy },
       abomination:  { x: HITBOX.enemy, y: HITBOX.enemy },
       hungerDemon:  { x: HITBOX.enemy, y: HITBOX.enemy },
       beholder:     { x: HITBOX.enemy, y: HITBOX.enemy },
@@ -3177,6 +3191,14 @@
       P.y = clamp(P.y + ny * distance, ARENA.y + 24, ARENA.y + ARENA.h - 24);
     };
     const pushPlayerAwayFrom = (sx,sy,distance=100)=>pushPlayerByVector(P.x - sx, P.y - sy, distance);
+
+    function applyHeroSlow(mult = 0.5, duration = 3){
+      if (!Number.isFinite(mult) || mult <= 0) mult = 0.5;
+      if (!Number.isFinite(duration) || duration <= 0) duration = 0;
+      if (duration <= 0) return;
+      P.slowMul = Math.min(P.slowMul || 1, mult);
+      P.slowT = Math.max(P.slowT || 0, duration);
+    }
     const now = ()=>performance.now();
     let last = now();
     let accumulator = 0;
@@ -3323,39 +3345,86 @@
       const x = ARENA.x + ARENA.w/2;
       const y = ARENA.y + ARENA.h/2;
       const stageSpd = Math.pow(1.2, stage);
+      const baseSize = { w: ENEMY.w*4*1.5, h: ENEMY.h*4*1.5 };
       let bossType = 'muck';
-      let hp = 60;
+      let baseHp = 60;
       if (stage === 1){
         bossType = 'hillGiant';
-        hp = 90;
+        baseHp = 90;
       } else if (stage === 2) {
         bossType = 'abomination';
-        hp = 120;
+        baseHp = 120;
       } else if (stage === 3) {
         bossType = 'hungerDemon';
-        hp = 150;
+        baseHp = 150;
       } else if (stage === 4) {
         bossType = 'beholder';
-        hp = 180;
+        baseHp = 180;
       }
-      // Reduce boss health by 50%
-      hp *= 0.5;
+      const hpScale = 0.5;
+      const scaledHp = baseHp * hpScale;
+
+      if (stage === 2){
+        const tracker = createBossTracker('evilFairy', stageSpd);
+        tracker.rewardScore = 2000;
+        tracker.baseHp = scaledHp;
+        tracker.pendingAbominationHp = scaledHp;
+        tracker.pendingAbominationSize = baseSize;
+        tracker.pendingAbominationType = 'abomination';
+        tracker.pendingTentacleInterval = 5;
+        switchMusic(BOSS_TRACKS);
+        const fairyHp = Math.max(1, Math.round(scaledHp * 0.5));
+        const fairySizeMult = 0.5;
+        const fairy = registerBossEntity({
+          kind:'boss', bossType:'evilFairy', x, y, vx:0, vy:0, kx:0, ky:0,
+          w: baseSize.w * fairySizeMult, h: baseSize.h * fairySizeMult,
+          hp: fairyHp, hpMax: fairyHp,
+          spd:75 * stageSpd,
+          score:0,
+          t:0,
+          ang:0,
+          wanderT:0,
+          dir:'down',
+          frame:0,
+          animT:0,
+          atkT:0,
+          blastT:0,
+          facing:0,
+          freezeT:0,
+          pulse:0,
+          nextAtk:'pulse',
+          rayT:0,
+          sleepT:0,
+          sleepMax:0,
+          waveTimer:0,
+          wavePeriod:3,
+          waveRadius:200,
+          waveSlowMul:0.5,
+          waveSlowDur:3,
+          magicPeriod:1.4,
+        }, tracker);
+        fairy.magicPeriod = fairy.magicPeriod || 1.4;
+        enemies.push(fairy);
+        return tracker;
+      }
+
       const tracker = createBossTracker(bossType, stageSpd);
       tracker.rewardScore = 2000;
-      tracker.baseHp = hp;
+      tracker.baseHp = scaledHp;
       if (bossType === 'abomination'){
         tracker.tentacleTimer = 0;
         tracker.tentacleInterval = 5;
       }
       switchMusic(BOSS_TRACKS);
       if (bossType === 'muck'){
-        tracker.muckBaseSize = { w: ENEMY.w*4*1.5, h: ENEMY.h*4*1.5 };
+        tracker.muckBaseSize = { w: baseSize.w, h: baseSize.h };
         createMuckBossEntity(tracker, 0, x, y, { spd: 75 * stageSpd, score: tracker.rewardScore });
       } else {
+        const bossHp = scaledHp;
         const b = registerBossEntity({
           kind:'boss', bossType, x, y, vx:0, vy:0, kx:0, ky:0,
-          w:ENEMY.w*4*1.5, h:ENEMY.h*4*1.5,
-          hp, hpMax:hp,
+          w: baseSize.w, h: baseSize.h,
+          hp: bossHp, hpMax: bossHp,
           spd:75* stageSpd,
           score:2000,
           t:0,
@@ -3386,6 +3455,57 @@
         enemies.push(b);
       }
       return tracker;
+    }
+
+    function transformEvilFairyBoss(fairy){
+      if (!fairy) return;
+      const tracker = fairy.bossController || boss;
+      const x = fairy.x;
+      const y = fairy.y;
+      frostBurst(x, y);
+      FX_NOVA.push({ x, y, t: 0, ttl: 0.5, r: 120 });
+      for (let i=0;i<16;i++) spark(x + rand(-12,12), y + rand(-12,12), '#d6b5ff');
+      unregisterBossEntity(fairy);
+      const idx = enemies.indexOf(fairy);
+      if (idx !== -1) enemies.splice(idx, 1);
+      const stageSpd = tracker && tracker.stageSpd ? tracker.stageSpd : Math.pow(1.2, stage);
+      const size = tracker && tracker.pendingAbominationSize ? tracker.pendingAbominationSize : { w: ENEMY.w*4*1.5, h: ENEMY.h*4*1.5 };
+      const abominationHp = Math.max(1, Math.round((tracker && tracker.pendingAbominationHp) || (tracker && tracker.baseHp) || 60));
+      const bossType = (tracker && tracker.pendingAbominationType) || 'abomination';
+      if (tracker){
+        tracker.baseHp = abominationHp;
+        tracker.bossType = bossType;
+        tracker.tentacleTimer = 0;
+        tracker.tentacleInterval = tracker.pendingTentacleInterval || 5;
+        delete tracker.pendingAbominationHp;
+        delete tracker.pendingAbominationSize;
+        delete tracker.pendingAbominationType;
+        delete tracker.pendingTentacleInterval;
+      }
+      const abomination = registerBossEntity({
+        kind:'boss', bossType, x, y, vx:0, vy:0, kx:0, ky:0,
+        w: size.w, h: size.h,
+        hp: abominationHp, hpMax: abominationHp,
+        spd:75 * stageSpd,
+        score: tracker ? tracker.rewardScore : 2000,
+        t:0,
+        ang:0,
+        wanderT:0,
+        dir:'down',
+        frame:0,
+        animT:0,
+        atkT:0,
+        blastT:0,
+        facing:0,
+        freezeT:0,
+        pulse:0,
+        nextAtk:'pulse',
+        rayT:0,
+        sleepT:0,
+        sleepMax:0,
+      }, tracker);
+      enemies.push(abomination);
+      playSfx('bossAbominationHurt');
     }
     function handleBossDefeat(){
       const tracker = boss;
@@ -3570,6 +3690,10 @@
       }
       if (e.hp<=0){
         if (e.kind === 'boss'){
+          if (e.bossType === 'evilFairy'){
+            transformEvilFairyBoss(e);
+            return;
+          }
           if (e.bossType === 'muck'){
             const result = handleMuckBossDeath(e);
             if (!result.defeated){
@@ -3825,7 +3949,8 @@
       // Player input velocity
       let ix = (key.right?1:0) - (key.left?1:0);
       let iy = (key.down?1:0) - (key.up?1:0);
-      if (ix || iy) { const [nx,ny]=norm(ix,iy); P.vx += nx*P.spd*dt; P.vy += ny*P.spd*dt; P.dir = Math.atan2(ny,nx); P.aimDir = P.dir; }
+      const moveSpeed = P.spd * (P.slowT > 0 ? Math.max(0.1, P.slowMul || 0.5) : 1);
+      if (ix || iy) { const [nx,ny]=norm(ix,iy); P.vx += nx*moveSpeed*dt; P.vy += ny*moveSpeed*dt; P.dir = Math.atan2(ny,nx); P.aimDir = P.dir; }
       // Auto-attack on a fixed period (non-wizard only)
       P.autoT += dt;
       if (currentClass !== 'wizard' && P.atkT<=0 && P.autoT >= AUTO.atkPeriod) {
@@ -3853,7 +3978,15 @@
         }
       }
       // Timers
-      if (P.atkT>0) P.atkT -= dt; if (P.iT>0) P.iT -= dt; if (P.hitFlash>0) P.hitFlash = Math.max(0, P.hitFlash - dt);
+      if (P.atkT>0) P.atkT -= dt;
+      if (P.iT>0) P.iT -= dt;
+      if (P.hitFlash>0) P.hitFlash = Math.max(0, P.hitFlash - dt);
+      if (P.slowT > 0) {
+        P.slowT = Math.max(0, P.slowT - dt);
+        if (P.slowT <= 0) {
+          P.slowMul = 1;
+        }
+      }
 
       // Fighter: periodic shield push from left side (90° from sword)
       if (currentClass === 'fighter'){
@@ -3973,6 +4106,7 @@
             const targetAng = Math.atan2(dy, dx);
             let turnRate = 0.9; // rad/sec baseline
             if (e.bossType === 'muck') turnRate /= 1.5;
+            else if (e.bossType === 'evilFairy') turnRate = Math.PI * 12;
             else if (e.bossType === 'abomination') turnRate = Math.PI * 24; // Stage 3 boss snaps to the player
             const diff = angleDiff(targetAng, e.facing);
             const maxTurn = turnRate * dt;
@@ -4128,6 +4262,7 @@
           if (!sleeping){
             e.atkT += dt;
             if (e.bossType === 'hungerDemon' || e.bossType === 'beholder') e.blastT = (e.blastT || 0) + dt;
+            if (e.bossType === 'evilFairy') e.waveTimer = (e.waveTimer || 0) + dt;
             if (e.bossType === 'beholder') e.rayT = (e.rayT || 0) + dt;
             if (e.bossType === 'beholder'){
               e.minionTimer = (e.minionTimer || 0) + dt;
@@ -4143,7 +4278,31 @@
                 }
               }
             }
-            if (e.bossType === 'abomination') {
+            if (e.bossType === 'evilFairy') {
+              const magicPeriod = e.magicPeriod || 1.4;
+              if (e.freezeT <= 0 && e.atkT >= magicPeriod){
+                e.atkT -= magicPeriod;
+                const aimAng = Math.atan2(dy, dx);
+                const speedMag = 220;
+                const vx = Math.cos(aimAng) * speedMag;
+                const vy = Math.sin(aimAng) * speedMag;
+                let dir = 'down';
+                if (Math.abs(vx) > Math.abs(vy)) dir = vx >= 0 ? 'right' : 'left';
+                else dir = vy >= 0 ? 'down' : 'up';
+                BOSS_PROJECTILES.push({ kind:'magicMissile', dmg:1, dir, x:e.x, y:e.y, vx, vy, life:0, ttl:2.5, frame:0, animT:0, hitRadius:14, push:90 });
+              }
+              const wavePeriod = e.wavePeriod || 3;
+              const waveTimer = e.waveTimer || 0;
+              if (e.freezeT <= 0 && waveTimer >= wavePeriod){
+                e.waveTimer = waveTimer - wavePeriod;
+                const radius = e.waveRadius || 200;
+                const speed = Math.max(160, radius / 0.6);
+                const waveWidth = 18;
+                BOSS_PROJECTILES.push({ kind:'wave', x:e.x, y:e.y, r:0, maxR:radius, speed, width:waveWidth, dmg:0, life:0, slow:true, slowMul:e.waveSlowMul || 0.5, slowDur:e.waveSlowDur || 3 });
+                e.pulse = Math.max(e.pulse || 0, 0.35);
+                e.pulseRange = radius;
+              }
+            } else if (e.bossType === 'abomination') {
               if (e.freezeT <= 0 && e.atkT >= 2.4){
                 e.atkT = 0;
                 const range = 120;
@@ -4695,7 +4854,13 @@
         if (p.kind === 'wave'){
           p.r += p.speed * dt;
           const d = len(P.x - p.x, P.y - p.y);
-          if (Math.abs(d - p.r) < p.width/2 && P.iT<=0){
+          const hitsRing = Math.abs(d - p.r) < p.width/2;
+          if (p.slow){
+            if (hitsRing && !p.hit){
+              applyHeroSlow(p.slowMul || 0.5, p.slowDur || 3);
+              p.hit = true;
+            }
+          } else if (hitsRing && P.iT<=0){
             const dmg = p.dmg || 1;
             const pushDist = p.push;
             if (CHEAT.active){ pushPlayerAwayFrom(p.x, p.y, pushDist); P.hitFlash=0.25; spark(P.x,P.y,'#ff8a8a'); }
@@ -4704,6 +4869,13 @@
           }
           if (p.r > p.maxR){ BOSS_PROJECTILES.splice(i,1); }
           continue;
+        }
+        if (p.kind === 'magicMissile'){
+          p.animT = (p.animT || 0) + dt;
+          if (p.animT >= 0.12){
+            p.animT -= 0.12;
+            p.frame = ((p.frame || 0) + 1) % 4;
+          }
         }
         if (p.kind === 'beam'){
           if (p.life > p.ttl){ BOSS_PROJECTILES.splice(i,1); continue; }
@@ -4728,7 +4900,7 @@
           if (p.animT >= 0.12){ p.animT = 0; p.frame = (p.frame + 1) % 4; }
         }
         if (p.life > p.ttl){ BOSS_PROJECTILES.splice(i,1); continue; }
-        const hitRadius = 20 * (p.scale || 1);
+        const hitRadius = p.hitRadius || (20 * (p.scale || 1));
         if (len(p.x-P.x,p.y-P.y) < hitRadius){
           if (P.iT<=0){
             const dmg = p.dmg || 1;
@@ -4971,7 +5143,7 @@
             const fh = sheet.height;
             ctx.drawImage(sheet, e.frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
           } else if (e.kind === 'boss') {
-            const anim = e.bossType === 'hillGiant' ? HILL_GIANT_ANIM : e.bossType === 'abomination' ? ABOMINATION_ANIM : e.bossType === 'hungerDemon' ? HUNGER_DEMON_ANIM : e.bossType === 'beholder' ? BEHOLDER_ANIM : MUCK_ANIM;
+          const anim = e.bossType === 'hillGiant' ? HILL_GIANT_ANIM : e.bossType === 'evilFairy' ? EVIL_FAIRY_ANIM : e.bossType === 'abomination' ? ABOMINATION_ANIM : e.bossType === 'hungerDemon' ? HUNGER_DEMON_ANIM : e.bossType === 'beholder' ? BEHOLDER_ANIM : MUCK_ANIM;
             const sheet = anim[e.dir];
             const fw = sheet.width / 4;
             const fh = sheet.height;
@@ -5227,11 +5399,21 @@
             ctx.fillRect(0, -width/2, length, width);
             ctx.restore();
           } else if (bp.kind === 'wave'){
-            ctx.strokeStyle = 'rgba(255,0,0,0.5)';
+            ctx.strokeStyle = bp.slow ? 'rgba(140,190,255,0.55)' : 'rgba(255,0,0,0.5)';
             ctx.lineWidth = bp.width;
             ctx.beginPath();
             ctx.arc(bp.x, bp.y, bp.r, 0, Math.PI*2);
             ctx.stroke();
+          } else if (bp.kind === 'magicMissile'){
+            const sheet = FIREBALL_PROJECTILE_ANIM[bp.dir];
+            if (sheet && sheet.width){
+              const fw = sheet.width / 4;
+              const fh = sheet.height;
+              const frame = (bp.frame || 0) % 4;
+              ctx.drawImage(sheet, frame * fw, 0, fw, fh, bp.x - fw/2, bp.y - fh/2, fw, fh);
+            } else {
+              ctx.drawImage(IMG.spark, bp.x - 10, bp.y - 10, 20, 20);
+            }
           } else if (bp.kind === 'muck'){
             const sheet = MUCK_PROJECTILE_ANIM[bp.dir];
             if (sheet && sheet.width){

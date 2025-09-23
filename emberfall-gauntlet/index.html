@@ -2435,6 +2435,7 @@
     const FIREBALL_SPEED = 360;
     const FIREBALL_FRAME_TIME = 0.09;
     const FIREBALL_DMG = 4;
+    const FIREBALL_BLAST_RADIUS = 100;
     // Separate hitbox scaling so we can tighten player damage range
     // Reduce player hitbox for fairness: smaller damage window
     const HITBOX = { player: 0.24, enemy: 0.3 };
@@ -2629,6 +2630,7 @@
     const PARTICLES = [];
     // Visual FX containers
     const FX_NOVA = [];
+    const FIREBALL_BLASTS = [];
     const POLY_WAVES = [];
     const SLEEP_WAVES = [];
     let NOVA_FLASH = 0; // brief blue flash when nova triggers
@@ -2847,7 +2849,7 @@
         { id:'nova', type:'Spell', name:'Frost Nova', desc:'Every few seconds, blast and slow nearby foes.', note:'Improves with repeats', apply:()=>{ if(!UPGR.nova){ UPGR.nova=true; } else { UPGR.novaPeriod=Math.max(2.2, UPGR.novaPeriod*0.9); UPGR.novaDmg+=1; } } },
         { id:'polymorph', type:'Spell', name:'Polymorph', desc:'Release a transforming wave that turns foes into demon goats that drop XP gems or hearts.', note:'Chance increases with repeats (max 50%). Bosses are immune.', maxLevel:5, apply:()=>{ refreshPolymorphState(true); } },
         { id:'sleep', type:'Spell', name:'Sleep', desc:'Send out a drowsy wave that can lull foes to sleep.', note:'200px wave, 33% sleep for 5s (+5s per level).', maxLevel:5, apply:()=>{ refreshSleepState(true); } },
-        { id:'fireball', type:'Spell', name:'Fireball', desc:'Periodically launch piercing fireballs in all four directions.', note:'Range +50px per level (max 400px).', maxLevel:5, apply:()=>{ refreshFireballState(true); } },
+        { id:'fireball', type:'Spell', name:'Fireball', desc:'Periodically launch piercing fireballs that scale with level.', note:'Range +50px per level (max 400px). Lv3: adds diagonals. Lv5: explosive finales (100px).', maxLevel:5, apply:()=>{ refreshFireballState(true); } },
         { id:'shards', type:'Spell', name:'Arcane Missiles', desc:'Periodically fire magic missiles.', note:'More with repeats', apply:()=>{ if(!UPGR.shards){ UPGR.shards=true; } else { UPGR.shardCount=Math.min(6, UPGR.shardCount+1); } } },
         { id:'focus', type:'Spell', name:'Spell Focus', desc:'Reduce all spell cooldowns by 12%.', note:'Stacks multiplicatively', apply:()=>{ const factor = 0.88; reduceSpellCooldowns(factor); UPGR.spellCooldownMult = +(UPGR.spellCooldownMult * factor).toFixed(3); } },
         { id:'wisdom', type:'Upgrade', name:'Wisdom', desc:'Max HP +1 and heal 1.', apply:()=>{ P.hpMax += 1; P.hp = Math.min(P.hpMax, P.hp+1); drawHearts(); } },
@@ -2945,6 +2947,7 @@
       ARENA.x = 0; ARENA.y = 0; ARENA.w = currentMap.width; ARENA.h = currentMap.height;
       DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / VIEW_W, ARENA.h / VIEW_H) * 1.5));
       enemies = []; drops = []; chests = []; terrainObjects = []; terrainColliders = []; PARTICLES.length = 0; BOSS_PROJECTILES = [];
+      FIREBALL_BLASTS.length = 0;
       // Ensure hero visuals and aim face down on stage start
       WIZ_ANIM_STATE.dir = 'down'; WIZ_ANIM_STATE.frame = 0; WIZ_ANIM_STATE.t = 0;
       FIGHT_ANIM_STATE.dir = 'down'; FIGHT_ANIM_STATE.frame = 0; FIGHT_ANIM_STATE.t = 0;
@@ -2995,6 +2998,7 @@
       for (const k in UPGRADE_LEVELS) delete UPGRADE_LEVELS[k];
       for (const k in TAKEN_UPGRADES) delete TAKEN_UPGRADES[k];
       PROJECTILES = []; BOSS_PROJECTILES = []; ORBS = [];
+      FIREBALL_BLASTS.length = 0;
       POLY_WAVES.length = 0;
       SLEEP_WAVES.length = 0;
       stage = 0;
@@ -4010,15 +4014,48 @@
     const ttl = range / speed;
     const dmg = UPGR.fireballDmg || FIREBALL_DMG;
     const dirs = [
-      { dir: 'left', vx: -speed, vy: 0 },
-      { dir: 'right', vx: speed, vy: 0 },
-      { dir: 'up', vx: 0, vy: -speed },
-      { dir: 'down', vx: 0, vy: speed },
+      { dir: 'left', vx: -speed, vy: 0, spriteDir: 'left', angle: 0 },
+      { dir: 'right', vx: speed, vy: 0, spriteDir: 'right', angle: 0 },
+      { dir: 'up', vx: 0, vy: -speed, spriteDir: 'up', angle: 0 },
+      { dir: 'down', vx: 0, vy: speed, spriteDir: 'down', angle: 0 },
     ];
+    if ((UPGR.fireballLevel || 0) >= 3){
+      const diagSpeed = speed / Math.SQRT2;
+      dirs.push(
+        { dir: 'upLeft', vx: -diagSpeed, vy: -diagSpeed, spriteDir: 'right' },
+        { dir: 'upRight', vx: diagSpeed, vy: -diagSpeed, spriteDir: 'right' },
+        { dir: 'downLeft', vx: -diagSpeed, vy: diagSpeed, spriteDir: 'right' },
+        { dir: 'downRight', vx: diagSpeed, vy: diagSpeed, spriteDir: 'right' },
+      );
+    }
     for (const info of dirs){
-      PROJECTILES.push({ kind:'fireball', dir:info.dir, x, y, vx:info.vx, vy:info.vy, life:0, ttl, dmg, frame:0, animT:0, pierce:true });
+      const spriteDir = info.spriteDir || info.dir;
+      const angle = Number.isFinite(info.angle) ? info.angle : (Math.atan2(info.vy, info.vx) || 0);
+      PROJECTILES.push({ kind:'fireball', dir:info.dir, spriteDir, angle, x, y, vx:info.vx, vy:info.vy, life:0, ttl, dmg, frame:0, animT:0, pierce:true });
     }
     spark(x, y, '#ff9d4d');
+  }
+
+  function emitFireballExplosion(x, y, dmgOverride = null){
+    FIREBALL_BLASTS.push({ x, y, t: 0, ttl: 0.45, r: FIREBALL_BLAST_RADIUS });
+    for (let i=0;i<24;i++){
+      const a = rand(0, Math.PI*2);
+      const sp = rand(120, 240);
+      const ttl = rand(0.35, 0.6);
+      const size = rand(8, 18);
+      const color = Math.random() < 0.5 ? '#ffae62' : '#ffdba5';
+      PARTICLES.push({ x, y, vx: Math.cos(a)*sp, vy: Math.sin(a)*sp, life:0, ttl, color, size });
+    }
+    const dmg = Number.isFinite(dmgOverride) ? dmgOverride : (UPGR.fireballDmg || FIREBALL_DMG);
+    for (const e of enemies){
+      if (e.hp <= 0) continue;
+      const buffer = Math.max(e.w||0, e.h||0) * 0.35;
+      if (len(e.x - x, e.y - y) <= FIREBALL_BLAST_RADIUS + buffer){
+        const kdx = e.x - x;
+        const kdy = e.y - y;
+        applyDamage(e, dmg, kdx, kdy, KNOCK.projectile);
+      }
+    }
   }
 
   function polymorphWaveBurst(x,y){
@@ -4993,8 +5030,17 @@
         }
         p.x+=p.vx*dt;
         p.y+=p.vy*dt;
-        if (p.x < ARENA.x || p.x > ARENA.x + ARENA.w || p.y < ARENA.y || p.y > ARENA.y + ARENA.h){ PROJECTILES.splice(i,1); continue; }
-        if (p.life>p.ttl){ PROJECTILES.splice(i,1); continue; }
+        const fireballExplodes = (p.kind === 'fireball' && (UPGR.fireballLevel || 0) >= 5);
+        if (p.x < ARENA.x || p.x > ARENA.x + ARENA.w || p.y < ARENA.y || p.y > ARENA.y + ARENA.h){
+          if (fireballExplodes) emitFireballExplosion(p.x, p.y, p.dmg);
+          PROJECTILES.splice(i,1);
+          continue;
+        }
+        if (p.life>p.ttl){
+          if (fireballExplodes) emitFireballExplosion(p.x, p.y, p.dmg);
+          PROJECTILES.splice(i,1);
+          continue;
+        }
         let removed = false;
         const canPierce = p.pierce || (p.kind==='arrow' && UPGR.arrowPierce);
         let hitStore = null;
@@ -5013,6 +5059,7 @@
             if (hitStore){
               hitStore.add(e);
             } else {
+              if (fireballExplodes) emitFireballExplosion(p.x, p.y, p.dmg);
               PROJECTILES.splice(i,1);
               removed = true;
               break;
@@ -5122,7 +5169,8 @@
       // Particles
       for (let i=PARTICLES.length-1;i>=0;i--){ const p=PARTICLES[i]; p.life+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; if (p.life>p.ttl) PARTICLES.splice(i,1); }
 
-      // FX: nova rings + flash fade
+      // FX cleanup
+      for (let i=FIREBALL_BLASTS.length-1;i>=0;i--){ const f=FIREBALL_BLASTS[i]; f.t += dt; if (f.t > f.ttl) FIREBALL_BLASTS.splice(i,1); }
       for (let i=FX_NOVA.length-1;i>=0;i--){ const f=FX_NOVA[i]; f.t += dt; if (f.t > f.ttl) FX_NOVA.splice(i,1); }
       NOVA_FLASH = Math.max(0, NOVA_FLASH - dt*1.6);
     }
@@ -5510,6 +5558,27 @@
       // Particles
       for (const p of PARTICLES){ ctx.globalAlpha = 1 - p.life/p.ttl; ctx.drawImage(IMG.spark, p.x - p.size/2, p.y - p.size/2, p.size, p.size); ctx.globalAlpha = 1; }
 
+      if (FIREBALL_BLASTS.length){
+        for (const blast of FIREBALL_BLASTS){
+          const prog = Math.max(0, Math.min(1, blast.t / blast.ttl));
+          const outerR = blast.r * (0.8 + 0.4 * prog);
+          const innerR = blast.r * 0.4 * (1 - prog);
+          const alpha = 0.55 * (1 - prog);
+          ctx.save();
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(255,120,40,${alpha.toFixed(3)})`;
+          ctx.arc(blast.x, blast.y, outerR, 0, Math.PI*2);
+          ctx.fill();
+          if (innerR > 4){
+            ctx.beginPath();
+            ctx.fillStyle = `rgba(255,200,120,${(0.35 * (1 - prog)).toFixed(3)})`;
+            ctx.arc(blast.x, blast.y, innerR, 0, Math.PI*2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+      }
+
       // Orbs & projectiles
       if (ORBS.length){ for (const o of ORBS){ ctx.drawImage(IMG.spark, (o.x||P.x)-8, (o.y||P.y)-8, 16, 16); } }
       if (PROJECTILES.length){
@@ -5550,12 +5619,17 @@
             ctx.fillRect(-8, -1.5, 3, 3);
             ctx.restore();
           } else if (pr.kind === 'fireball'){
-            const sheet = FIREBALL_PROJECTILE_ANIM[pr.dir];
+            const dirKey = pr.spriteDir || pr.dir;
+            const sheet = FIREBALL_PROJECTILE_ANIM[dirKey];
             if (sheet && sheet.width){
               const fw = sheet.width / 4;
               const fh = sheet.height;
               const frame = (pr.frame||0) % 4;
-              ctx.drawImage(sheet, frame * fw, 0, fw, fh, pr.x - fw/2, pr.y - fh/2, fw, fh);
+              ctx.save();
+              ctx.translate(pr.x, pr.y);
+              if (pr.angle) ctx.rotate(pr.angle);
+              ctx.drawImage(sheet, frame * fw, 0, fw, fh, -fw/2, -fh/2, fw, fh);
+              ctx.restore();
             } else {
               ctx.drawImage(IMG.spark, pr.x-8, pr.y-8, 16, 16);
             }
@@ -5583,12 +5657,17 @@
             ctx.arc(bp.x, bp.y, bp.r, 0, Math.PI*2);
             ctx.stroke();
           } else if (bp.kind === 'magicMissile'){
-            const sheet = FIREBALL_PROJECTILE_ANIM[bp.dir];
+            const dirKey = bp.spriteDir || bp.dir;
+            const sheet = FIREBALL_PROJECTILE_ANIM[dirKey];
             if (sheet && sheet.width){
               const fw = sheet.width / 4;
               const fh = sheet.height;
               const frame = (bp.frame || 0) % 4;
-              ctx.drawImage(sheet, frame * fw, 0, fw, fh, bp.x - fw/2, bp.y - fh/2, fw, fh);
+              ctx.save();
+              ctx.translate(bp.x, bp.y);
+              if (bp.angle) ctx.rotate(bp.angle);
+              ctx.drawImage(sheet, frame * fw, 0, fw, fh, -fw/2, -fh/2, fw, fh);
+              ctx.restore();
             } else {
               ctx.drawImage(IMG.spark, bp.x - 10, bp.y - 10, 20, 20);
             }

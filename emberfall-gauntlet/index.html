@@ -4776,21 +4776,46 @@
 
       // Player sword hits (non-wizard only)
       if (currentClass !== 'wizard' && P.atkT>0){
+        const swingDir = (P.swingAim || P.aimDir || P.dir || 0);
+        const arc = PHYS.atkArc;
+        const range = PHYS.atkRange;
         for (const e of enemies){
           if (e.hp<=0) continue;
-          if (hitArc(P.x,P.y,(P.swingAim||P.aimDir),PHYS.atkArc,PHYS.atkRange,e.x,e.y)){
-            // Multistrike + crit
-            let hits = Math.max(1, Math.floor(UPGR.multistrike));
-            let totalDmg = 0;
-            for (let h=0; h<hits; h++){
-              let dmg = UPGR.meleeDmg;
-              if (UPGR.critChance>0 && Math.random()<UPGR.critChance) dmg = Math.ceil(dmg*UPGR.critMult);
-              totalDmg += dmg;
+          let inArc = hitArc(P.x, P.y, swingDir, arc, range, e.x, e.y);
+          if (!inArc){
+            const scale = getEnemyHitboxScale(e);
+            const baseW = typeof e.w === 'number' ? e.w : 0;
+            const baseH = typeof e.h === 'number' ? e.h : baseW;
+            const ehw = baseW * (scale ? scale.x : 1);
+            const ehh = baseH * (scale ? scale.y : 1);
+            if (ehw > 0 && ehh > 0){
+              // Sample hitbox corners to catch edge grazes
+              const corners = [
+                { x: e.x - ehw, y: e.y - ehh },
+                { x: e.x + ehw, y: e.y - ehh },
+                { x: e.x - ehw, y: e.y + ehh },
+                { x: e.x + ehw, y: e.y + ehh },
+              ];
+              for (const corner of corners){
+                if (hitArc(P.x, P.y, swingDir, arc, range, corner.x, corner.y)){
+                  inArc = true;
+                  break;
+                }
+              }
             }
-            // Knockback away from the player on melee
-            const kdx = e.x - P.x, kdy = e.y - P.y;
-            applyDamage(e, totalDmg, kdx, kdy, KNOCK.melee);
           }
+          if (!inArc) continue;
+          // Multistrike + crit
+          let hits = Math.max(1, Math.floor(UPGR.multistrike));
+          let totalDmg = 0;
+          for (let h=0; h<hits; h++){
+            let dmg = UPGR.meleeDmg;
+            if (UPGR.critChance>0 && Math.random()<UPGR.critChance) dmg = Math.ceil(dmg*UPGR.critMult);
+            totalDmg += dmg;
+          }
+          // Knockback away from the player on melee
+          const kdx = e.x - P.x, kdy = e.y - P.y;
+          applyDamage(e, totalDmg, kdx, kdy, KNOCK.melee);
         }
       }
 
@@ -5721,6 +5746,24 @@
           const ehh = e.h * sc.y;
           ctx.fillRect(e.x - ehw, e.y - ehh, ehw*2, ehh*2);
           ctx.strokeRect(e.x - ehw, e.y - ehh, ehw*2, ehh*2);
+        }
+        // Visualize melee sword collision arc when swing is active
+        if (currentClass !== 'wizard' && P.atkT > 0){
+          const swingDir = typeof P.swingAim === 'number' ? P.swingAim : (typeof P.aimDir === 'number' ? P.aimDir : null);
+          if (swingDir != null && typeof PHYS.atkRange === 'number' && PHYS.atkRange > 0 && typeof PHYS.atkArc === 'number' && PHYS.atkArc > 0){
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255,215,0,0.8)';
+            ctx.fillStyle = 'rgba(255,215,0,0.22)';
+            const start = swingDir - PHYS.atkArc * 0.5;
+            const end = swingDir + PHYS.atkArc * 0.5;
+            ctx.beginPath();
+            ctx.moveTo(P.x, P.y);
+            ctx.arc(P.x, P.y, PHYS.atkRange, start, end);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+          }
         }
         ctx.strokeStyle = 'rgba(0,128,255,0.9)';
         ctx.fillStyle = 'rgba(0,128,255,0.18)';

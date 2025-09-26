@@ -2385,7 +2385,11 @@
     const ENEMY = { spd: 90, w: 26, h: 22 }; // default goblin baseline
     const TENTACLE_FRAMES = 6;
     const TENTACLE_FRAME_TIME = 0.12;
-    const TENTACLE_DAMAGE_RADIUS = 100;
+    const TENTACLE_WAVE_START_RADIUS = 36;
+    const TENTACLE_WAVE_MAX_RADIUS = 200;
+    const TENTACLE_WAVE_THICKNESS = 36;
+    const TENTACLE_WAVE_SPEED = 170;
+    const TENTACLE_WAVE_REST = 1.6;
     // Fixed enemy speed: 45% of baseline (55% slower), no scaling
     const ENEMY_SPEED = Math.round(ENEMY.spd * 0.45);
     const GOAT = { w: 32, h: 32, frames: 4, animRate: 0.2 };
@@ -3475,7 +3479,7 @@
         }
         attemptEntity.x = tx;
         attemptEntity.y = ty;
-        const farFromPlayer = len(P.x - tx, P.y - ty) > TENTACLE_DAMAGE_RADIUS + 20;
+        const farFromPlayer = len(P.x - tx, P.y - ty) > TENTACLE_WAVE_MAX_RADIUS + 20;
         const blocked = willCollideWithTerrain(attemptEntity, tx, ty, { scaleX: 0.5, scaleY: 0.5 });
         if (!found){
           x = tx;
@@ -3519,7 +3523,18 @@
         animT:0,
         sleepT:0,
         sleepMax:0,
-        damageRadius: TENTACLE_DAMAGE_RADIUS,
+        damageRadius: 0,
+        wave: {
+          radius: 0,
+          cooldown: rand(0.4, 1.0),
+          active: false,
+          playerHit: false,
+        },
+        waveSpeed: TENTACLE_WAVE_SPEED,
+        waveThickness: TENTACLE_WAVE_THICKNESS,
+        waveMaxRadius: TENTACLE_WAVE_MAX_RADIUS,
+        waveStartRadius: TENTACLE_WAVE_START_RADIUS,
+        waveRest: TENTACLE_WAVE_REST,
       };
       clampToArena(tentacle, Math.max(16, Math.min(width, height) * 0.5));
       tentacle.bossController = tracker;
@@ -5004,9 +5019,35 @@
             e.animT -= TENTACLE_FRAME_TIME;
             e.frame = ((e.frame || 0) + 1) % TENTACLE_FRAMES;
           }
-          if (P.iT <= 0){
-            const radius = e.damageRadius || TENTACLE_DAMAGE_RADIUS;
-            if (len(P.x - e.x, P.y - e.y) <= radius){
+          const wave = e.wave || (e.wave = { radius: 0, cooldown: rand(0.4, 1.0), active: false, playerHit: false });
+          const waveSpeed = e.waveSpeed || TENTACLE_WAVE_SPEED;
+          const waveMax = e.waveMaxRadius || TENTACLE_WAVE_MAX_RADIUS;
+          const waveStart = e.waveStartRadius || TENTACLE_WAVE_START_RADIUS;
+          const waveRest = e.waveRest || TENTACLE_WAVE_REST;
+          const thickness = e.waveThickness || TENTACLE_WAVE_THICKNESS;
+          if (wave.active){
+            wave.radius += waveSpeed * dt;
+            if (wave.radius >= waveMax){
+              wave.active = false;
+              wave.radius = 0;
+              wave.cooldown = waveRest;
+              wave.playerHit = false;
+            }
+          } else {
+            wave.cooldown = (wave.cooldown || 0) - dt;
+            if (wave.cooldown <= 0){
+              wave.active = true;
+              wave.radius = waveStart;
+              wave.playerHit = false;
+            }
+          }
+          if (wave.active && P.iT <= 0){
+            const distToPlayer = len(P.x - e.x, P.y - e.y);
+            const half = thickness * 0.5;
+            const inner = Math.max(0, wave.radius - half);
+            const outer = wave.radius + half;
+            if (!wave.playerHit && distToPlayer >= inner && distToPlayer <= outer){
+              wave.playerHit = true;
               if (CHEAT.active){
                 pushPlayerAwayFrom(e.x, e.y);
                 P.hitFlash = 0.25;
@@ -5645,14 +5686,39 @@
             const fw = sheet.width / frames;
             const fh = sheet.height;
             const frame = Math.min(frames - 1, e.frame || 0);
-            if (e.damageRadius){
-              ctx.save();
-              ctx.globalAlpha = 0.12;
-              ctx.fillStyle = 'rgba(255, 80, 80, 0.4)';
-              ctx.beginPath();
-              ctx.arc(e.x, e.y, e.damageRadius, 0, Math.PI*2);
-              ctx.fill();
-              ctx.restore();
+            const wave = e.wave;
+            if (wave){
+              if (wave.active){
+                const maxRadius = e.waveMaxRadius || TENTACLE_WAVE_MAX_RADIUS;
+                const progress = maxRadius > 0 ? clamp(wave.radius / maxRadius, 0, 1) : 0;
+                const outerAlpha = 0.35 * (1 - progress * 0.4);
+                const thickness = e.waveThickness || TENTACLE_WAVE_THICKNESS;
+                const wideWidth = Math.max(4, thickness * 0.6);
+                const narrowWidth = Math.max(2, thickness * 0.35);
+                ctx.save();
+                ctx.beginPath();
+                ctx.lineWidth = wideWidth;
+                ctx.strokeStyle = `rgba(255, 80, 80, ${outerAlpha.toFixed(3)})`;
+                ctx.arc(e.x, e.y, wave.radius, 0, Math.PI*2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.lineWidth = narrowWidth;
+                ctx.strokeStyle = `rgba(255, 200, 180, ${(outerAlpha*0.7).toFixed(3)})`;
+                ctx.arc(e.x, e.y, wave.radius, 0, Math.PI*2);
+                ctx.stroke();
+                ctx.restore();
+              } else if (typeof wave.cooldown === 'number' && wave.cooldown <= 0.45){
+                const telegraphProgress = clamp(1 - wave.cooldown / 0.45, 0, 1);
+                const teleAlpha = 0.25 + telegraphProgress * 0.25;
+                const teleRadius = e.waveStartRadius || TENTACLE_WAVE_START_RADIUS;
+                ctx.save();
+                ctx.beginPath();
+                ctx.lineWidth = 6;
+                ctx.strokeStyle = `rgba(255, 120, 80, ${teleAlpha.toFixed(3)})`;
+                ctx.arc(e.x, e.y, teleRadius, 0, Math.PI*2);
+                ctx.stroke();
+                ctx.restore();
+              }
             }
             ctx.drawImage(sheet, frame * fw, 0, fw, fh, e.x - e.w/2, e.y - e.h/2 - 6, e.w, e.h + 6);
           } else if (e.kind === 'goatXp' || e.kind === 'goatHeart') {

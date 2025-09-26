@@ -3436,12 +3436,30 @@
       const width = ENEMY.w * 2 * 1.75;
       const height = ENEMY.h * 2 * 1.75;
       const attemptEntity = { w: width, h: height };
-      let x = ARENA.x + ARENA.w / 2;
-      let y = ARENA.y + ARENA.h / 2;
+      const maxDistance = 300;
+      const minDistance = 40;
+      let originX = ARENA.x + ARENA.w / 2;
+      let originY = ARENA.y + ARENA.h / 2;
+      if (tracker.nodes && tracker.nodes.size){
+        for (const node of tracker.nodes){
+          if (node && node.hp > 0){
+            originX = node.x;
+            originY = node.y;
+            break;
+          }
+        }
+      }
+      let x = originX;
+      let y = originY;
       let found = false;
       for (let attempt = 0; attempt < 12; attempt++){
-        const tx = rand(ARENA.x + pad, ARENA.x + ARENA.w - pad);
-        const ty = rand(ARENA.y + pad, ARENA.y + ARENA.h - pad);
+        const ang = rand(0, Math.PI * 2);
+        const dist = rand(minDistance, maxDistance);
+        const tx = originX + Math.cos(ang) * dist;
+        const ty = originY + Math.sin(ang) * dist;
+        if (tx < ARENA.x + pad || tx > ARENA.x + ARENA.w - pad || ty < ARENA.y + pad || ty > ARENA.y + ARENA.h - pad){
+          continue;
+        }
         attemptEntity.x = tx;
         attemptEntity.y = ty;
         const farFromPlayer = len(P.x - tx, P.y - ty) > TENTACLE_DAMAGE_RADIUS + 20;
@@ -3461,8 +3479,8 @@
         attemptEntity.x = x;
         attemptEntity.y = y;
         if (willCollideWithTerrain(attemptEntity, x, y, { scaleX: 0.5, scaleY: 0.5 })){
-          x = ARENA.x + ARENA.w / 2;
-          y = ARENA.y + ARENA.h / 2;
+          x = originX;
+          y = originY;
         }
       }
       const hp = (3 + Math.floor(SPAWN.wave / 1.5)) * 3;

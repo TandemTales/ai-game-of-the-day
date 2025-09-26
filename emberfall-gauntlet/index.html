@@ -2858,10 +2858,35 @@
       return dx * dx + dy * dy < r * r;
     }
 
+    function getArenaBoundaryClearance(circle){
+      if (!circle) return { minGap: Infinity, clearance: Infinity };
+      const pad = AI.wallPad || 0;
+      const leftGap = circle.cx - (ARENA.x + pad);
+      const rightGap = (ARENA.x + ARENA.w - pad) - circle.cx;
+      const topGap = circle.cy - (ARENA.y + pad);
+      const bottomGap = (ARENA.y + ARENA.h - pad) - circle.cy;
+      const minGap = Math.min(leftGap, rightGap, topGap, bottomGap);
+      return { minGap, clearance: minGap - circle.radius };
+    }
+
+    function isPinchedAgainstArena(circle, terrainGap){
+      if (!circle) return false;
+      const { clearance } = getArenaBoundaryClearance(circle);
+      if (!Number.isFinite(clearance)) return false;
+      // Hard fail if the circle already overlaps the boundary margin by a noticeable amount
+      if (clearance <= -0.5) return true;
+      const softBoundary = Math.min(circle.radius * 0.12, 6);
+      if (clearance > softBoundary) return false;
+      const pinchTerrainGap = Number.isFinite(terrainGap) ? terrainGap : Infinity;
+      const softTerrain = Math.min(circle.radius * 0.12, 6);
+      return pinchTerrainGap <= softTerrain;
+    }
+
     function willCollideWithTerrain(entity, x, y, opts = {}){
       if (!terrainColliders.length || !entity) return false;
       const circle = getEntityTerrainCircle(entity, { ...opts, x, y });
       if (!circle) return false;
+      let minTerrainGap = Infinity;
       for (const coll of terrainColliders){
         const other = getColliderCircle(coll);
         if (!other) continue;
@@ -2871,7 +2896,10 @@
         if (dx * dx + dy * dy < minDist * minDist){
           return true;
         }
+        const gap = Math.sqrt(dx * dx + dy * dy) - minDist;
+        if (gap < minTerrainGap) minTerrainGap = gap;
       }
+      if (isPinchedAgainstArena(circle, minTerrainGap)) return true;
       return false;
     }
 

@@ -2703,11 +2703,14 @@
       return { minX, minY, maxX, maxY };
     }
 
-    function resolveTerrainCollision(entity, { scaleX = 0.5, scaleY = scaleX } = {}){
+    function resolveTerrainCollision(entity, opts = {}){
       const result = { collided: false, collidedX: false, collidedY: false };
       if (!terrainColliders.length || !entity) return result;
-      const halfW = (entity.w || 0) * scaleX;
-      const halfH = (entity.h || entity.w || 0) * scaleY;
+      const baseScale = getTerrainCollisionScale(entity);
+      const sx = Number.isFinite(opts.scaleX) ? opts.scaleX : baseScale.x;
+      const sy = Number.isFinite(opts.scaleY) ? opts.scaleY : baseScale.y;
+      const halfW = (entity.w || 0) * sx;
+      const halfH = (entity.h || entity.w || 0) * sy;
       if (!(halfW > 0 && halfH > 0)) return result;
       let ex = entity.x;
       let ey = entity.y;
@@ -2751,10 +2754,54 @@
       return result;
     }
 
-    function willCollideWithTerrain(entity, x, y, { scaleX = 0.5, scaleY = scaleX } = {}){
+    function getTerrainCollisionScale(entity){
+      const fallback = { x: 0.5, y: 0.5 };
+      if (!entity) return fallback;
+      if (entity === P || entity.isPlayer){
+        const s = Number.isFinite(HITBOX.player) ? HITBOX.player : fallback.x;
+        return { x: s, y: s };
+      }
+      if (entity.kind){
+        const sc = getEnemyHitboxScale(entity) || {};
+        const sx = Number.isFinite(sc.x) ? sc.x : fallback.x;
+        const sy = Number.isFinite(sc.y) ? sc.y : sx;
+        return { x: sx, y: sy };
+      }
+      return fallback;
+    }
+
+    function getTerrainCollisionAABB(entity, opts = {}){
+      if (!entity) return null;
+      const baseW = (entity.w || 0);
+      const baseH = (entity.h || entity.w || 0);
+      if (!(baseW > 0 && baseH > 0)) return null;
+      const scale = getTerrainCollisionScale(entity);
+      const sx = Number.isFinite(opts.scaleX) ? opts.scaleX : scale.x;
+      const sy = Number.isFinite(opts.scaleY) ? opts.scaleY : scale.y;
+      const halfW = baseW * sx;
+      const halfH = baseH * sy;
+      const cx = typeof entity.x === 'number' ? entity.x : 0;
+      const cy = typeof entity.y === 'number' ? entity.y : 0;
+      return {
+        minX: cx - halfW,
+        maxX: cx + halfW,
+        minY: cy - halfH,
+        maxY: cy + halfH,
+      };
+    }
+
+    function aabbIntersects(a, b){
+      if (!a || !b) return false;
+      return a.maxX > b.minX && a.minX < b.maxX && a.maxY > b.minY && a.minY < b.maxY;
+    }
+
+    function willCollideWithTerrain(entity, x, y, opts = {}){
       if (!terrainColliders.length || !entity) return false;
-      const halfW = (entity.w || 0) * scaleX;
-      const halfH = (entity.h || entity.w || 0) * scaleY;
+      const scale = getTerrainCollisionScale(entity);
+      const sx = Number.isFinite(opts.scaleX) ? opts.scaleX : scale.x;
+      const sy = Number.isFinite(opts.scaleY) ? opts.scaleY : scale.y;
+      const halfW = (entity.w || 0) * sx;
+      const halfH = (entity.h || entity.w || 0) * sy;
       if (!(halfW > 0 && halfH > 0)) return false;
       const minX = x - halfW;
       const maxX = x + halfW;
@@ -2769,6 +2816,7 @@
       }
       return false;
     }
+
     // Debug: toggle drawing collision AABBs with '[' key
     let DEBUG_HITBOX = false;
     let paused = false, running = false, gameOverHandled = false;
@@ -4244,7 +4292,7 @@
       const pF = Math.pow(PHYS.friction, dt * 60);
       P.vx *= pF; P.vy *= pF;
       P.x += P.vx*dt; P.y += P.vy*dt;
-      const pTerrainHit = resolveTerrainCollision(P, { scaleX: 0.5, scaleY: 0.5 });
+      const pTerrainHit = resolveTerrainCollision(P);
       if (pTerrainHit.collidedX) P.vx = 0;
       if (pTerrainHit.collidedY) P.vy = 0;
       // Clamp to arena
@@ -4418,7 +4466,7 @@
                 const distAhead = Math.min(lookAhead, s * stepDist);
                 const testX = e.x + dirX * distAhead;
                 const testY = e.y + dirY * distAhead;
-                if (!isFlying && willCollideWithTerrain(e, testX, testY, { scaleX: 0.5, scaleY: 0.5 })){
+                if (!isFlying && willCollideWithTerrain(e, testX, testY)){
                   score += blockPenalty * (1 + (steps - s) / steps);
                   break;
                 }
@@ -4460,7 +4508,7 @@
         // Final boundary clamp
         clampToArena(e, AI.wallPad);
         if (!isFlying){
-          const eTerrainHit = resolveTerrainCollision(e, { scaleX: 0.5, scaleY: 0.5 });
+          const eTerrainHit = resolveTerrainCollision(e);
           if (eTerrainHit.collidedX){ e.vx = 0; e.kx = 0; }
           if (eTerrainHit.collidedY){ e.vy = 0; e.ky = 0; }
         }
@@ -5740,12 +5788,40 @@
         ctx.fillRect(P.x - phw, P.y - phh, phw*2, phh*2);
         ctx.strokeRect(P.x - phw, P.y - phh, phw*2, phh*2);
         // Enemies AABBs (scaled per enemy type)
+        const enemyTerrainAABBs = [];
         for (const e of enemies){
           const sc = getEnemyHitboxScale(e);
           const ehw = e.w * sc.x;
           const ehh = e.h * sc.y;
           ctx.fillRect(e.x - ehw, e.y - ehh, ehw*2, ehh*2);
           ctx.strokeRect(e.x - ehw, e.y - ehh, ehw*2, ehh*2);
+          const enemyBox = getTerrainCollisionAABB(e);
+          if (enemyBox) enemyTerrainAABBs.push(enemyBox);
+        }
+        const playerTerrainAABB = getTerrainCollisionAABB(P);
+        if (playerTerrainAABB || enemyTerrainAABBs.length){
+          ctx.save();
+          ctx.setLineDash([4,2]);
+          ctx.lineWidth = 1;
+          const drawTerrainAABB = (box, fill, stroke)=>{
+            if (!box) return;
+            const w = box.maxX - box.minX;
+            const h = box.maxY - box.minY;
+            if (!(w > 0 && h > 0)) return;
+            ctx.fillStyle = fill;
+            ctx.strokeStyle = stroke;
+            ctx.fillRect(box.minX, box.minY, w, h);
+            ctx.strokeRect(box.minX, box.minY, w, h);
+          };
+          if (playerTerrainAABB){
+            drawTerrainAABB(playerTerrainAABB, 'rgba(50,205,50,0.18)', 'rgba(50,205,50,0.85)');
+          }
+          if (enemyTerrainAABBs.length){
+            for (const box of enemyTerrainAABBs){
+              drawTerrainAABB(box, 'rgba(255,140,0,0.16)', 'rgba(255,140,0,0.8)');
+            }
+          }
+          ctx.restore();
         }
         // Visualize melee sword collision arc when swing is active
         if (currentClass !== 'wizard' && P.atkT > 0){
@@ -5765,13 +5841,31 @@
             ctx.restore();
           }
         }
-        ctx.strokeStyle = 'rgba(0,128,255,0.9)';
-        ctx.fillStyle = 'rgba(0,128,255,0.18)';
+        const colliderStyles = {
+          none: { fill: 'rgba(0,128,255,0.18)', stroke: 'rgba(0,128,255,0.9)' },
+          player: { fill: 'rgba(50,205,50,0.2)', stroke: 'rgba(50,205,50,0.85)' },
+          enemy: { fill: 'rgba(255,140,0,0.22)', stroke: 'rgba(255,140,0,0.85)' },
+          both: { fill: 'rgba(186,85,211,0.24)', stroke: 'rgba(186,85,211,0.9)' },
+        };
         for (const coll of terrainColliders){
           const bounds = getColliderBounds(coll);
           if (!bounds) continue;
           const w = bounds.maxX - bounds.minX;
           const h = bounds.maxY - bounds.minY;
+          if (!(w > 0 && h > 0)) continue;
+          const hitsPlayer = playerTerrainAABB ? aabbIntersects(playerTerrainAABB, bounds) : false;
+          let hitsEnemy = false;
+          if (!hitsEnemy){
+            for (const box of enemyTerrainAABBs){
+              if (aabbIntersects(box, bounds)){
+                hitsEnemy = true;
+                break;
+              }
+            }
+          }
+          const style = hitsPlayer && hitsEnemy ? colliderStyles.both : hitsPlayer ? colliderStyles.player : hitsEnemy ? colliderStyles.enemy : colliderStyles.none;
+          ctx.fillStyle = style.fill;
+          ctx.strokeStyle = style.stroke;
           ctx.fillRect(bounds.minX, bounds.minY, w, h);
           ctx.strokeRect(bounds.minX, bounds.minY, w, h);
         }

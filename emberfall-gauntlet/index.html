@@ -2512,6 +2512,14 @@
     ];
     let WAVE_LIMIT = STAGE_WAVE_COUNTS[0][0];
     const SPAWN = { t: 0, cd: 2.2, wave: 1, count: 0, keyAssigned: false };
+    const ENEMY_MODS = {
+      goblinHpBonus: 0,
+      orcHpBonus: 0,
+      goblinContactBonus: 0,
+      impContactBonus: 0,
+      stage3Applied: false,
+      stage5Applied: false,
+    };
     let stage = 0;
     const STAGE_WAVES = 2;
     const HUNGER_DEMON_MINION_PERIOD = 2;
@@ -2956,6 +2964,16 @@
       applyStageTerrain(stage);
       const stageMult = Math.pow(1.2, stage);
       Object.assign(SPAWN, { t:0, cd:2.2 / stageMult, wave:1, count:0, keyAssigned:false });
+      if (!ENEMY_MODS.stage3Applied && stage >= 2) {
+        ENEMY_MODS.goblinHpBonus += 1;
+        ENEMY_MODS.orcHpBonus += 2;
+        ENEMY_MODS.stage3Applied = true;
+      }
+      if (!ENEMY_MODS.stage5Applied && stage >= 4) {
+        ENEMY_MODS.impContactBonus += 2;
+        ENEMY_MODS.goblinContactBonus += 1;
+        ENEMY_MODS.stage5Applied = true;
+      }
       updateWaveLimit();
       waveEl.textContent = SPAWN.wave;
       if (stageEl) stageEl.textContent = (stage + 1);
@@ -2993,6 +3011,12 @@
       KEYS.value = 0; drawKeys();
       // Reset upgrades and spell state
       Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleXpChance:0, chestChanceBonus:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:72, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, polymorph:false, polyPeriod:7, polyTimer:0, polyChance:0, polyLevel:0, polyRadius:0, sleep:false, sleepPeriod:8, sleepTimer:0, sleepChance:0, sleepLevel:0, sleepDuration:0, shards:false, shardPeriod:0.567, shardTimer:0, shardSpeed:320, shardCount:1, fireball:false, fireballPeriod:FIREBALL_PERIOD_BASE, fireballTimer:0, fireballRange:0, fireballLevel:0, fireballDmg:FIREBALL_DMG, spellCooldownMult:1, arrowPeriod:0.90, arrowTimer:0, arrowSpeed:360, arrowDmg:0.5, arrowCount:1, arrowPierce:false, bladeStorm:false, bladePeriod:1.6, bladeTimer:0, bladeCount:2, bladeSpin:0, bladeCadence:0.12, bladeBurst:null });
+      ENEMY_MODS.goblinHpBonus = 0;
+      ENEMY_MODS.orcHpBonus = 0;
+      ENEMY_MODS.goblinContactBonus = 0;
+      ENEMY_MODS.impContactBonus = 0;
+      ENEMY_MODS.stage3Applied = false;
+      ENEMY_MODS.stage5Applied = false;
       if (stats.startOrbs) { UPGR.orbs = Math.min(ORB_MAX_COUNT, stats.startOrbs); }
       // Reset upgrade tracking
       for (const k in UPGRADE_LEVELS) delete UPGRADE_LEVELS[k];
@@ -3405,13 +3429,16 @@
       // Stats per type
       const stageSpd = Math.pow(1.2, stage);
       let w=ENEMY.w, h=ENEMY.h, spd=ENEMY.spd * stageSpd, hp=2+Math.floor(SPAWN.wave/2), score=50;
+      let contactDmg = 1 + ENEMY_MODS.goblinContactBonus;
       // Make imp a bit faster than baseline and orc slower; reward orcs more
-      if (kind==='imp'){ w=22; h=18; spd=130 * stageSpd; hp=Math.max(1,1+Math.floor(SPAWN.wave/3)); score=40; }
-      else if (kind==='orc'){ w=ENEMY.w*2; h=ENEMY.h*2; spd=60 * stageSpd; hp=(3+Math.floor(SPAWN.wave/1.5))*3; score=240; }
+      if (kind==='imp'){ w=22; h=18; spd=130 * stageSpd; hp=Math.max(1,1+Math.floor(SPAWN.wave/3)); score=40; contactDmg = 1 + ENEMY_MODS.impContactBonus; }
+      else if (kind==='orc'){ w=ENEMY.w*2; h=ENEMY.h*2; spd=60 * stageSpd; hp=(3+Math.floor(SPAWN.wave/1.5))*3 + ENEMY_MODS.orcHpBonus; score=240; contactDmg = 1; }
+      else { hp += ENEMY_MODS.goblinHpBonus; }
       w *= 1.75;
       h *= 1.75;
 
-      const enemy = { kind, x, y, vx:0, vy:0, kx:0, ky:0, w, h, hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0, dir:'down', frame:0, animT:0, sleepT:0, sleepMax:0 };
+      const enemy = { kind, x, y, vx:0, vy:0, kx:0, ky:0, w, h, hp, hpMax: hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0, dir:'down', frame:0, animT:0, sleepT:0, sleepMax:0 };
+      if (contactDmg !== 1) enemy.contactDmg = contactDmg;
       if (needsKeys() && !SPAWN.keyAssigned){ enemy.hasKey = true; SPAWN.keyAssigned = true; }
       enemies.push(enemy);
     }
@@ -3427,6 +3454,8 @@
 
       const stageSpd = Math.pow(1.2, stage);
       const waveForStats = Math.max(1, SPAWN.wave || STAGE_WAVES);
+      const hp = 2 + Math.floor(waveForStats / 2) + ENEMY_MODS.goblinHpBonus;
+      const contactDmg = 1 + ENEMY_MODS.goblinContactBonus;
       const enemy = {
         kind: 'goblin',
         x,
@@ -3437,7 +3466,8 @@
         ky: 0,
         w: ENEMY.w * 1.75,
         h: ENEMY.h * 1.75,
-        hp: 2 + Math.floor(waveForStats / 2),
+        hp,
+        hpMax: hp,
         spd: ENEMY.spd * stageSpd,
         score: 50,
         t: 0,
@@ -3449,6 +3479,7 @@
         sleepT: 0,
         sleepMax: 0,
       };
+      if (contactDmg !== 1) enemy.contactDmg = contactDmg;
       enemies.push(enemy);
       return enemy;
     }
@@ -3475,6 +3506,7 @@
       const h = 18 * 1.75;
       const baseHp = Math.max(1, 1 + Math.floor(Math.max(1, SPAWN.wave) / 3));
       const hp = baseHp * 2;
+      const contactDmg = 2 + ENEMY_MODS.impContactBonus;
       const enemy = {
         kind: 'imp',
         variant: 'green',
@@ -3498,7 +3530,7 @@
         animT: 0,
         sleepT: 0,
         sleepMax: 0,
-        contactDmg: 2,
+        contactDmg,
       };
       enemies.push(enemy);
       return enemy;

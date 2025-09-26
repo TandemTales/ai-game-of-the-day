@@ -3724,7 +3724,8 @@
         tracker.pendingAbominationType = 'abomination';
         tracker.pendingTentacleInterval = 5;
         switchMusic(BOSS_TRACKS);
-        const fairyHp = Math.max(1, Math.round(scaledHp * 0.5));
+        // Tougher Stage 3 boss: double the evil fairy's health (was scaledHp * 0.5)
+        const fairyHp = Math.max(1, Math.round(scaledHp));
         const fairySizeMult = 0.5;
         const fairy = registerBossEntity({
           kind:'boss', bossType:'evilFairy', x, y, vx:0, vy:0, kx:0, ky:0,

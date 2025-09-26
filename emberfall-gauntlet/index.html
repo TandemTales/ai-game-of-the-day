@@ -558,7 +558,8 @@
     function playHeroHit(){ playSfx(currentClass === 'wizard' ? 'heroWizardHit' : 'heroFighterHit'); }
     function playEnemyHit(e){
       if (e.kind === 'imp') playSfx('impHurt');
-      else if (e.kind === 'orc' || e.kind === 'tentacle') playSfx('orcHurt');
+      else if (e.kind === 'orc') playSfx('orcHurt');
+      else if (e.kind === 'tentacle') playSfx('bossAbominationHurt');
       else if (e.kind === 'goblin') playSfx('goblinHurt');
       else if (e.kind === 'babyBeholder') playSfx('bossBeholderHurt');
       else if (e.kind === 'boss' && e.bossType === 'muck' && e.hp > 0) playSfx('bossMudMonsterHurt');

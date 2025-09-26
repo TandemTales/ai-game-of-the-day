@@ -2514,6 +2514,7 @@
     let WAVE_LIMIT = STAGE_WAVE_COUNTS[0][0];
     const SPAWN = { t: 0, cd: 2.2, wave: 1, count: 0, keyAssigned: false };
     let stage = 0;
+    let bossLootDropped = false;
     const STAGE_WAVES = 2;
     const HUNGER_DEMON_MINION_PERIOD = 2;
     const HILL_GIANT_GOBLIN_PERIOD = 1;
@@ -3113,6 +3114,7 @@
       waveEl.textContent = SPAWN.wave;
       if (stageEl) stageEl.textContent = (stage + 1);
       boss = null;
+      bossLootDropped = false;
       const initial = Math.min(Math.floor(WAVE_LIMIT * 0.5), 40);
       for (let i=0; i<initial; i++){ spawnEnemy(); SPAWN.count++; }
       spawnChest();
@@ -3999,9 +4001,33 @@
     }
 
     const WAVE_CHEST_STAGE_BONUS = 0.5;
+    const BOSS_LOOT_MULTIPLIER = 2;
     function getWaveChestLootMultiplier(stageIndex = stage){
       const idx = Math.max(0, stageIndex|0);
       return 1 + idx * WAVE_CHEST_STAGE_BONUS;
+    }
+
+    function getBossLootMultiplier(stageIndex = stage){
+      return getWaveChestLootMultiplier(stageIndex) * BOSS_LOOT_MULTIPLIER;
+    }
+
+    function dropChestLoot(x, y, lootMult = 1){
+      const baseGemCount = Math.floor(rand(10,31));
+      const gemCount = Math.max(1, Math.floor(baseGemCount * lootMult));
+      for (let j=0;j<gemCount;j++) dropXpGem(x + rand(-12,12), y + rand(-12,12));
+      const baseHearts = 1;
+      const bonusHearts = Math.max(0, (lootMult - 1) * baseHearts);
+      let heartDrops = baseHearts + Math.floor(bonusHearts);
+      if (Math.random() < (bonusHearts - Math.floor(bonusHearts))) heartDrops += 1;
+      for (let h=0; h<heartDrops; h++) {
+        dropHeart(x + rand(-12,12), y + rand(-12,12));
+      }
+    }
+
+    function dropBossLoot(x, y, stageIndex = stage){
+      if (bossLootDropped) return;
+      bossLootDropped = true;
+      dropChestLoot(x, y, getBossLootMultiplier(stageIndex));
     }
 
     function addChest(x, y, opts={}){
@@ -4067,9 +4093,7 @@
           else if (e.bossType === 'hungerDemon') playSfx('bossHungerDemonKilled');
           else if (e.bossType === 'beholder') playSfx('bossBeholderKilled');
           addScore(e.score||1000);
-          if (e.bossType !== 'muck'){
-            for (let i=0;i<10;i++) dropXpGem(e.x + rand(-20,20), e.y + rand(-20,20));
-          }
+          dropBossLoot(e.x, e.y);
           if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }
           if (UPGR.doubleXpChance > 0 && Math.random() < UPGR.doubleXpChance){ dropXpGem(e.x + rand(-6,6), e.y + rand(-6,6)); }
           handleBossDefeat();
@@ -4097,6 +4121,7 @@
           // Extra xp chance (goats only if they drop xp)
           if (dropKind === 'xp' && UPGR.doubleXpChance > 0 && Math.random() < UPGR.doubleXpChance){ dropXpGem(e.x + rand(-6,6), e.y + rand(-6,6)); }
           if (isMuckGoat && muckResult && muckResult.defeated){
+            dropBossLoot(e.x, e.y);
             playSfx('bossMudMonsterKilled');
             handleBossDefeat();
           }
@@ -5039,16 +5064,7 @@
         const canOpen = currentClass === 'rogue' || KEYS.value > 0;
         if (!c.opened && canOpen && len(P.x-c.x,P.y-c.y) < 28){
           const lootMult = c.lootMult != null ? c.lootMult : 1;
-          const baseGemCount = Math.floor(rand(10,31));
-          const gemCount = Math.max(1, Math.floor(baseGemCount * lootMult));
-          for (let j=0;j<gemCount;j++) dropXpGem(c.x + rand(-12,12), c.y + rand(-12,12));
-          const baseHearts = 1;
-          const bonusHearts = Math.max(0, (lootMult - 1) * baseHearts);
-          let heartDrops = baseHearts + Math.floor(bonusHearts);
-          if (Math.random() < (bonusHearts - Math.floor(bonusHearts))) heartDrops += 1;
-          for (let h=0; h<heartDrops; h++) {
-            dropHeart(c.x + rand(-12,12), c.y + rand(-12,12));
-          }
+          dropChestLoot(c.x, c.y, lootMult);
           c.opened = true;
           playSfx('treasure');
           if (currentClass !== 'rogue'){

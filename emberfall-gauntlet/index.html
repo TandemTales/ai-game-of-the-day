@@ -5404,11 +5404,10 @@
       // Wave & spawns (scale with larger world)
       if (!boss && !awaitingStage) {
         SPAWN.t += dt;
-        // Wave 2 (final wave) should ignore polymorph goats when checking for completion
-        const treatGoatsAsDead = SPAWN.wave === STAGE_WAVES;
+        // Polymorph goats should never block new waves from spawning
         const alive = enemies.filter(e => {
           if (e.hp <= 0) return false;
-          if (treatGoatsAsDead && (e.kind === 'goatXp' || e.kind === 'goatHeart')) return false;
+          if (e.kind === 'goatXp' || e.kind === 'goatHeart') return false;
           return true;
         }).length;
         const targetCount = Math.min((6 + SPAWN.wave*2) * DENSITY, WAVE_LIMIT);

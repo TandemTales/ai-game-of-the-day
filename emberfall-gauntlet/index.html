@@ -3895,6 +3895,39 @@
     }
     function dropHeart(x,y){ drops.push({ x, y, w:DROP.w, h:DROP.h, t:0, kind:'heart', v: rand(40,70), a: rand(0,Math.PI*2) }); }
 
+    function rollChestLootCounts(lootMult = 1){
+      const baseGemCount = Math.floor(rand(10,31));
+      const gemCount = Math.max(1, Math.floor(baseGemCount * lootMult));
+      const baseHearts = 1;
+      const bonusHearts = Math.max(0, (lootMult - 1) * baseHearts);
+      let heartDrops = baseHearts + Math.floor(bonusHearts);
+      if (Math.random() < (bonusHearts - Math.floor(bonusHearts))) heartDrops += 1;
+      return { gemCount, heartDrops };
+    }
+
+    function dropChestLoot(x, y, lootMult = 1, scatter = 12){
+      const { gemCount, heartDrops } = rollChestLootCounts(lootMult);
+      for (let j=0;j<gemCount;j++) dropXpGem(x + rand(-scatter,scatter), y + rand(-scatter,scatter));
+      for (let h=0;h<heartDrops;h++) dropHeart(x + rand(-scatter,scatter), y + rand(-scatter,scatter));
+      return { gemCount, heartDrops };
+    }
+
+    function dropBossLoot(e){
+      if (!e) return;
+      const stageIndex = Math.max(0, stage|0);
+      const scatter = 20;
+      if (stageIndex >= 1){
+        const lootMult = getWaveChestLootMultiplier(stageIndex);
+        const { gemCount, heartDrops } = rollChestLootCounts(lootMult);
+        const totalGems = Math.max(1, gemCount * 2);
+        const totalHearts = Math.max(0, heartDrops * 2);
+        for (let j=0;j<totalGems;j++) dropXpGem(e.x + rand(-scatter,scatter), e.y + rand(-scatter,scatter));
+        for (let h=0;h<totalHearts;h++) dropHeart(e.x + rand(-scatter,scatter), e.y + rand(-scatter,scatter));
+      } else {
+        for (let i=0;i<10;i++) dropXpGem(e.x + rand(-scatter,scatter), e.y + rand(-scatter,scatter));
+      }
+    }
+
     function isMuckSpellVulnerable(e){
       if (!e || e.kind !== 'boss') return false;
       if (e.bossType !== 'muck') return false;
@@ -4067,9 +4100,7 @@
           else if (e.bossType === 'hungerDemon') playSfx('bossHungerDemonKilled');
           else if (e.bossType === 'beholder') playSfx('bossBeholderKilled');
           addScore(e.score||1000);
-          if (e.bossType !== 'muck'){
-            for (let i=0;i<10;i++) dropXpGem(e.x + rand(-20,20), e.y + rand(-20,20));
-          }
+          dropBossLoot(e);
           if (UPGR.lifeStealChance > 0 && Math.random() < UPGR.lifeStealChance){ if (P.hp < P.hpMax){ P.hp += 1; drawHearts(); } }
           if (UPGR.doubleXpChance > 0 && Math.random() < UPGR.doubleXpChance){ dropXpGem(e.x + rand(-6,6), e.y + rand(-6,6)); }
           handleBossDefeat();
@@ -5039,16 +5070,7 @@
         const canOpen = currentClass === 'rogue' || KEYS.value > 0;
         if (!c.opened && canOpen && len(P.x-c.x,P.y-c.y) < 28){
           const lootMult = c.lootMult != null ? c.lootMult : 1;
-          const baseGemCount = Math.floor(rand(10,31));
-          const gemCount = Math.max(1, Math.floor(baseGemCount * lootMult));
-          for (let j=0;j<gemCount;j++) dropXpGem(c.x + rand(-12,12), c.y + rand(-12,12));
-          const baseHearts = 1;
-          const bonusHearts = Math.max(0, (lootMult - 1) * baseHearts);
-          let heartDrops = baseHearts + Math.floor(bonusHearts);
-          if (Math.random() < (bonusHearts - Math.floor(bonusHearts))) heartDrops += 1;
-          for (let h=0; h<heartDrops; h++) {
-            dropHeart(c.x + rand(-12,12), c.y + rand(-12,12));
-          }
+          dropChestLoot(c.x, c.y, lootMult, 12);
           c.opened = true;
           playSfx('treasure');
           if (currentClass !== 'rogue'){

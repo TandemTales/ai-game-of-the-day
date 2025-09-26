@@ -2402,6 +2402,7 @@
       turnPenalty: 120,
       futureWeight: 0.45,
       chaseOffsets: [0, Math.PI / 6, -Math.PI / 6, Math.PI / 3, -Math.PI / 3, Math.PI / 2, -Math.PI / 2],
+      repathHysteresis: 90,
     };
     let DENSITY = 1;
     const DROP = { w: 18, h: 18 };
@@ -2660,14 +2661,46 @@
         const offsetY = Number(coll.offsetY) || 0;
         const baseX = Number.isFinite(coll.x) ? coll.x : (obj.x ?? 0);
         const baseY = Number.isFinite(coll.y) ? coll.y : (obj.y ?? 0);
+        const posX = baseX + offsetX;
+        const posY = baseY + offsetY;
+        const { cx, cy } = getColliderCenterFromRect(posX, posY, w, h, anchor);
+        const radius = Math.min(w, h) * 0.5;
         terrainColliders.push({
-          x: baseX + offsetX,
-          y: baseY + offsetY,
+          x: posX,
+          y: posY,
           w,
           h,
           anchor,
+          cx,
+          cy,
+          radius,
+          radiusSq: radius * radius,
         });
       }
+    }
+
+    function getColliderCenterFromRect(x, y, w, h, anchor = 'center'){
+      let cx = x;
+      let cy = y;
+      const normAnchor = typeof anchor === 'string' ? anchor.toLowerCase() : 'center';
+      const includes = (keyword) => normAnchor.includes(keyword);
+      if (includes('bottom') && !includes('top')){
+        cy = y - h / 2;
+      } else if (includes('top') && !includes('bottom')){
+        cy = y + h / 2;
+      }
+      if (includes('right') && !includes('left')){
+        cx = x - w / 2;
+      } else if (includes('left') && !includes('right')){
+        cx = x + w / 2;
+      }
+      if (!includes('top') && !includes('bottom') && normAnchor === 'center'){
+        cy = y;
+      }
+      if (!includes('left') && !includes('right') && normAnchor === 'center'){
+        cx = x;
+      }
+      return { cx, cy };
     }
 
     function applyStageTerrain(stageIndex){
@@ -2678,79 +2711,94 @@
       rebuildTerrainColliders();
     }
 
-    function getColliderBounds(coll){
+    function getColliderCircle(coll){
       if (!coll) return null;
-      const w = coll.w;
-      const h = coll.h;
+      let w = Number(coll.w) || 0;
+      let h = Number(coll.h) || 0;
       if (!(w > 0 && h > 0)) return null;
-      const anchor = coll.anchor || 'center';
-      const x = coll.x || 0;
-      const y = coll.y || 0;
-      const minX = x - w / 2;
-      const maxX = x + w / 2;
-      let minY;
-      let maxY;
-      if (anchor === 'bottom'){
-        maxY = y;
-        minY = y - h;
-      } else if (anchor === 'top'){
-        minY = y;
-        maxY = y + h;
-      } else {
-        minY = y - h / 2;
-        maxY = y + h / 2;
+      let radius = Number(coll.radius);
+      if (!(radius > 0)){
+        radius = Math.min(w, h) * 0.5;
       }
-      return { minX, minY, maxX, maxY };
+      let cx = Number(coll.cx);
+      let cy = Number(coll.cy);
+      if (!Number.isFinite(cx) || !Number.isFinite(cy)){
+        const anchor = coll.anchor || 'center';
+        const baseX = Number.isFinite(coll.x) ? coll.x : 0;
+        const baseY = Number.isFinite(coll.y) ? coll.y : 0;
+        const center = getColliderCenterFromRect(baseX, baseY, w, h, anchor);
+        cx = center.cx;
+        cy = center.cy;
+      }
+      return { cx, cy, radius, radiusSq: radius * radius };
     }
 
     function resolveTerrainCollision(entity, opts = {}){
-      const result = { collided: false, collidedX: false, collidedY: false };
+      const result = { collided: false, normalX: 0, normalY: 0 };
       if (!terrainColliders.length || !entity) return result;
       const baseScale = getTerrainCollisionScale(entity);
       const sx = Number.isFinite(opts.scaleX) ? opts.scaleX : baseScale.x;
       const sy = Number.isFinite(opts.scaleY) ? opts.scaleY : baseScale.y;
-      const halfW = (entity.w || 0) * sx;
-      const halfH = (entity.h || entity.w || 0) * sy;
-      if (!(halfW > 0 && halfH > 0)) return result;
-      let ex = entity.x;
-      let ey = entity.y;
+      const radius = getTerrainCollisionRadius(entity, { scaleX: sx, scaleY: sy });
+      if (!(radius > 0)) return result;
+      let ex = Number.isFinite(entity.x) ? entity.x : 0;
+      let ey = Number.isFinite(entity.y) ? entity.y : 0;
       for (const coll of terrainColliders){
-        const bounds = getColliderBounds(coll);
-        if (!bounds) continue;
+        const circle = getColliderCircle(coll);
+        if (!circle) continue;
         let iterations = 0;
         while (iterations < 4){
-          const minX = ex - halfW;
-          const maxX = ex + halfW;
-          const minY = ey - halfH;
-          const maxY = ey + halfH;
-          if (maxX <= bounds.minX || minX >= bounds.maxX || maxY <= bounds.minY || minY >= bounds.maxY){
+          const dx = ex - circle.cx;
+          const dy = ey - circle.cy;
+          const minDist = radius + circle.radius;
+          const minDistSq = minDist * minDist;
+          const distSq = dx * dx + dy * dy;
+          if (distSq >= minDistSq || minDist <= 0){
             break;
           }
-          const overlapLeft = maxX - bounds.minX;
-          const overlapRight = bounds.maxX - minX;
-          const overlapTop = maxY - bounds.minY;
-          const overlapBottom = bounds.maxY - minY;
-          const penX = Math.min(overlapLeft, overlapRight);
-          const penY = Math.min(overlapTop, overlapBottom);
-          if (penX <= 0 || penY <= 0) break;
-          if (penX < penY){
-            const centerX = (minX + maxX) / 2;
-            const colliderCenterX = (bounds.minX + bounds.maxX) / 2;
-            ex += centerX < colliderCenterX ? -penX : penX;
-            result.collided = true;
-            result.collidedX = true;
+          let dist = Math.sqrt(distSq);
+          let nx;
+          let ny;
+          if (dist > 0){
+            const invDist = 1 / dist;
+            nx = dx * invDist;
+            ny = dy * invDist;
           } else {
-            const centerY = (minY + maxY) / 2;
-            const colliderCenterY = (bounds.minY + bounds.maxY) / 2;
-            ey += centerY < colliderCenterY ? -penY : penY;
-            result.collided = true;
-            result.collidedY = true;
+            const evx = Number.isFinite(entity.vx) ? entity.vx : 0;
+            const evy = Number.isFinite(entity.vy) ? entity.vy : 0;
+            const evLen = Math.hypot(evx, evy);
+            if (evLen > 0){
+              nx = -evx / evLen;
+              ny = -evy / evLen;
+            } else {
+              const ang = Math.random() * Math.PI * 2;
+              nx = Math.cos(ang);
+              ny = Math.sin(ang);
+            }
+            dist = 0;
           }
+          const overlap = minDist - dist;
+          if (overlap <= 0) break;
+          ex += nx * overlap;
+          ey += ny * overlap;
+          result.collided = true;
+          result.normalX += nx * overlap;
+          result.normalY += ny * overlap;
           iterations++;
         }
       }
       entity.x = ex;
       entity.y = ey;
+      if (result.collided){
+        const len = Math.hypot(result.normalX, result.normalY);
+        if (len > 0){
+          result.normalX /= len;
+          result.normalY /= len;
+        } else {
+          result.normalX = 0;
+          result.normalY = 0;
+        }
+      }
       return result;
     }
 
@@ -2770,51 +2818,80 @@
       return fallback;
     }
 
-    function getTerrainCollisionAABB(entity, opts = {}){
-      if (!entity) return null;
-      const baseW = (entity.w || 0);
-      const baseH = (entity.h || entity.w || 0);
-      if (!(baseW > 0 && baseH > 0)) return null;
+    function getTerrainCollisionRadius(entity, opts = {}){
+      if (!entity) return 0;
+      const baseW = Number(entity.w) || 0;
+      const baseH = Number(entity.h) || Number(entity.w) || 0;
+      if (!(baseW > 0 && baseH > 0)) return 0;
       const scale = getTerrainCollisionScale(entity);
       const sx = Number.isFinite(opts.scaleX) ? opts.scaleX : scale.x;
       const sy = Number.isFinite(opts.scaleY) ? opts.scaleY : scale.y;
-      const halfW = baseW * sx;
-      const halfH = baseH * sy;
-      const cx = typeof entity.x === 'number' ? entity.x : 0;
-      const cy = typeof entity.y === 'number' ? entity.y : 0;
+      const radius = Math.min(baseW * sx, baseH * sy);
+      return radius > 0 ? radius : 0;
+    }
+
+    function getEntityTerrainCircle(entity, opts = {}){
+      const radius = getTerrainCollisionRadius(entity, opts);
+      if (!(radius > 0)) return null;
+      const cx = Number.isFinite(opts.x) ? opts.x : (Number.isFinite(entity.x) ? entity.x : 0);
+      const cy = Number.isFinite(opts.y) ? opts.y : (Number.isFinite(entity.y) ? entity.y : 0);
+      return { cx, cy, radius, radiusSq: radius * radius };
+    }
+
+    function getTerrainCollisionAABB(entity, opts = {}){
+      const circle = getEntityTerrainCircle(entity, opts);
+      if (!circle) return null;
+      const { cx, cy, radius } = circle;
       return {
-        minX: cx - halfW,
-        maxX: cx + halfW,
-        minY: cy - halfH,
-        maxY: cy + halfH,
+        minX: cx - radius,
+        maxX: cx + radius,
+        minY: cy - radius,
+        maxY: cy + radius,
       };
     }
 
-    function aabbIntersects(a, b){
+    function circlesOverlap(a, b){
       if (!a || !b) return false;
-      return a.maxX > b.minX && a.minX < b.maxX && a.maxY > b.minY && a.minY < b.maxY;
+      const dx = a.cx - b.cx;
+      const dy = a.cy - b.cy;
+      const r = a.radius + b.radius;
+      return dx * dx + dy * dy < r * r;
     }
 
     function willCollideWithTerrain(entity, x, y, opts = {}){
       if (!terrainColliders.length || !entity) return false;
-      const scale = getTerrainCollisionScale(entity);
-      const sx = Number.isFinite(opts.scaleX) ? opts.scaleX : scale.x;
-      const sy = Number.isFinite(opts.scaleY) ? opts.scaleY : scale.y;
-      const halfW = (entity.w || 0) * sx;
-      const halfH = (entity.h || entity.w || 0) * sy;
-      if (!(halfW > 0 && halfH > 0)) return false;
-      const minX = x - halfW;
-      const maxX = x + halfW;
-      const minY = y - halfH;
-      const maxY = y + halfH;
+      const circle = getEntityTerrainCircle(entity, { ...opts, x, y });
+      if (!circle) return false;
       for (const coll of terrainColliders){
-        const bounds = getColliderBounds(coll);
-        if (!bounds) continue;
-        if (maxX > bounds.minX && minX < bounds.maxX && maxY > bounds.minY && minY < bounds.maxY){
+        const other = getColliderCircle(coll);
+        if (!other) continue;
+        const dx = circle.cx - other.cx;
+        const dy = circle.cy - other.cy;
+        const minDist = circle.radius + other.radius;
+        if (dx * dx + dy * dy < minDist * minDist){
           return true;
         }
       }
       return false;
+    }
+
+    function applyTerrainCollisionResponse(entity, hit){
+      if (!entity || !hit || !hit.collided) return;
+      const nx = Number.isFinite(hit.normalX) ? hit.normalX : 0;
+      const ny = Number.isFinite(hit.normalY) ? hit.normalY : 0;
+      if (nx === 0 && ny === 0) return;
+      const adjust = (keyX, keyY) => {
+        const vx = entity[keyX];
+        const vy = entity[keyY];
+        if (!Number.isFinite(vx) || !Number.isFinite(vy)) return;
+        const dot = vx * nx + vy * ny;
+        if (dot > 0){
+          entity[keyX] = vx - dot * nx;
+          entity[keyY] = vy - dot * ny;
+        }
+      };
+      adjust('vx', 'vy');
+      adjust('kx', 'ky');
     }
 
     // Debug: toggle drawing collision AABBs with '[' key
@@ -4292,9 +4369,8 @@
       const pF = Math.pow(PHYS.friction, dt * 60);
       P.vx *= pF; P.vy *= pF;
       P.x += P.vx*dt; P.y += P.vy*dt;
-      const pTerrainHit = resolveTerrainCollision(P);
-      if (pTerrainHit.collidedX) P.vx = 0;
-      if (pTerrainHit.collidedY) P.vy = 0;
+        const pTerrainHit = resolveTerrainCollision(P);
+        applyTerrainCollisionResponse(P, pTerrainHit);
       // Clamp to arena
         P.x = clamp(P.x, ARENA.x+24, ARENA.x+ARENA.w-24); P.y = clamp(P.y, ARENA.y+24, ARENA.y+ARENA.h-24);
         if (currentClass === 'wizard') updateWizardAnim(dt);
@@ -4456,18 +4532,22 @@
             const blockPenalty = AI.blockPenalty || 0;
             const turnPenalty = AI.turnPenalty || 0;
             const futureWeight = AI.futureWeight || 0;
+            const hysteresis = AI.repathHysteresis ?? 0;
             let bestDir = null;
+            const options = [];
             for (const offset of offsets){
               const ang = baseAng + offset;
               const dirX = Math.cos(ang);
               const dirY = Math.sin(ang);
               let score = Math.abs(offset) * turnPenalty;
+              let blocked = false;
               for (let s=1; s<=steps; s++){
                 const distAhead = Math.min(lookAhead, s * stepDist);
                 const testX = e.x + dirX * distAhead;
                 const testY = e.y + dirY * distAhead;
                 if (!isFlying && willCollideWithTerrain(e, testX, testY)){
                   score += blockPenalty * (1 + (steps - s) / steps);
+                  blocked = true;
                   break;
                 }
               }
@@ -4476,13 +4556,38 @@
               const futureDX = P.x - futureX;
               const futureDY = P.y - futureY;
               score += Math.hypot(futureDX, futureDY) * futureWeight;
+              const choice = { offset, score, dx: dirX, dy: dirY, blocked };
+              options.push(choice);
               if (!bestDir || score < bestDir.score){
-                bestDir = { score, dx: dirX, dy: dirY };
+                bestDir = choice;
               }
             }
-            if (bestDir){
-              chaseDx = bestDir.dx;
-              chaseDy = bestDir.dy;
+            if (options.length){
+              let chosen = bestDir;
+              const prevOffset = e.chaseChoiceOffset;
+              if (Number.isFinite(prevOffset)){
+                const prev = options.find(opt => Math.abs(opt.offset - prevOffset) < 1e-6);
+                if (prev){
+                  if (!prev.blocked && bestDir){
+                    const improvement = prev.score - bestDir.score;
+                    if (improvement < hysteresis){
+                      chosen = prev;
+                    }
+                  } else if (prev.blocked && (!bestDir || bestDir.blocked) && (!chosen || prev.score < chosen.score)){
+                    chosen = prev;
+                  }
+                }
+              }
+              if (chosen && chosen.blocked && bestDir && !bestDir.blocked){
+                chosen = bestDir;
+              }
+              if (chosen){
+                e.chaseChoiceOffset = chosen.offset;
+                e.chaseChoiceScore = chosen.score;
+                e.chaseChoiceBlocked = chosen.blocked;
+                chaseDx = chosen.dx;
+                chaseDy = chosen.dy;
+              }
             }
           }
           // Blend chase with separation, then normalize to maintain speed
@@ -4509,8 +4614,7 @@
         clampToArena(e, AI.wallPad);
         if (!isFlying){
           const eTerrainHit = resolveTerrainCollision(e);
-          if (eTerrainHit.collidedX){ e.vx = 0; e.kx = 0; }
-          if (eTerrainHit.collidedY){ e.vy = 0; e.ky = 0; }
+          applyTerrainCollisionResponse(e, eTerrainHit);
         }
 
         if (e.kind === 'boss'){
@@ -5788,37 +5892,36 @@
         ctx.fillRect(P.x - phw, P.y - phh, phw*2, phh*2);
         ctx.strokeRect(P.x - phw, P.y - phh, phw*2, phh*2);
         // Enemies AABBs (scaled per enemy type)
-        const enemyTerrainAABBs = [];
+        const enemyTerrainCircles = [];
         for (const e of enemies){
           const sc = getEnemyHitboxScale(e);
           const ehw = e.w * sc.x;
           const ehh = e.h * sc.y;
           ctx.fillRect(e.x - ehw, e.y - ehh, ehw*2, ehh*2);
           ctx.strokeRect(e.x - ehw, e.y - ehh, ehw*2, ehh*2);
-          const enemyBox = getTerrainCollisionAABB(e);
-          if (enemyBox) enemyTerrainAABBs.push(enemyBox);
+          const enemyCircle = getEntityTerrainCircle(e);
+          if (enemyCircle) enemyTerrainCircles.push(enemyCircle);
         }
-        const playerTerrainAABB = getTerrainCollisionAABB(P);
-        if (playerTerrainAABB || enemyTerrainAABBs.length){
+        const playerTerrainCircle = getEntityTerrainCircle(P);
+        if (playerTerrainCircle || enemyTerrainCircles.length){
           ctx.save();
           ctx.setLineDash([4,2]);
           ctx.lineWidth = 1;
-          const drawTerrainAABB = (box, fill, stroke)=>{
-            if (!box) return;
-            const w = box.maxX - box.minX;
-            const h = box.maxY - box.minY;
-            if (!(w > 0 && h > 0)) return;
+          const drawTerrainCircle = (circle, fill, stroke)=>{
+            if (!circle || !(circle.radius > 0)) return;
             ctx.fillStyle = fill;
             ctx.strokeStyle = stroke;
-            ctx.fillRect(box.minX, box.minY, w, h);
-            ctx.strokeRect(box.minX, box.minY, w, h);
+            ctx.beginPath();
+            ctx.arc(circle.cx, circle.cy, circle.radius, 0, Math.PI*2);
+            ctx.fill();
+            ctx.stroke();
           };
-          if (playerTerrainAABB){
-            drawTerrainAABB(playerTerrainAABB, 'rgba(50,205,50,0.18)', 'rgba(50,205,50,0.85)');
+          if (playerTerrainCircle){
+            drawTerrainCircle(playerTerrainCircle, 'rgba(50,205,50,0.18)', 'rgba(50,205,50,0.85)');
           }
-          if (enemyTerrainAABBs.length){
-            for (const box of enemyTerrainAABBs){
-              drawTerrainAABB(box, 'rgba(255,140,0,0.16)', 'rgba(255,140,0,0.8)');
+          if (enemyTerrainCircles.length){
+            for (const circle of enemyTerrainCircles){
+              drawTerrainCircle(circle, 'rgba(255,140,0,0.16)', 'rgba(255,140,0,0.8)');
             }
           }
           ctx.restore();
@@ -5848,16 +5951,13 @@
           both: { fill: 'rgba(186,85,211,0.24)', stroke: 'rgba(186,85,211,0.9)' },
         };
         for (const coll of terrainColliders){
-          const bounds = getColliderBounds(coll);
-          if (!bounds) continue;
-          const w = bounds.maxX - bounds.minX;
-          const h = bounds.maxY - bounds.minY;
-          if (!(w > 0 && h > 0)) continue;
-          const hitsPlayer = playerTerrainAABB ? aabbIntersects(playerTerrainAABB, bounds) : false;
+          const colliderCircle = getColliderCircle(coll);
+          if (!colliderCircle) continue;
+          const hitsPlayer = playerTerrainCircle ? circlesOverlap(playerTerrainCircle, colliderCircle) : false;
           let hitsEnemy = false;
-          if (!hitsEnemy){
-            for (const box of enemyTerrainAABBs){
-              if (aabbIntersects(box, bounds)){
+          if (!hitsEnemy && enemyTerrainCircles.length){
+            for (const circle of enemyTerrainCircles){
+              if (circlesOverlap(circle, colliderCircle)){
                 hitsEnemy = true;
                 break;
               }
@@ -5866,8 +5966,10 @@
           const style = hitsPlayer && hitsEnemy ? colliderStyles.both : hitsPlayer ? colliderStyles.player : hitsEnemy ? colliderStyles.enemy : colliderStyles.none;
           ctx.fillStyle = style.fill;
           ctx.strokeStyle = style.stroke;
-          ctx.fillRect(bounds.minX, bounds.minY, w, h);
-          ctx.strokeRect(bounds.minX, bounds.minY, w, h);
+          ctx.beginPath();
+          ctx.arc(colliderCircle.cx, colliderCircle.cy, colliderCircle.radius, 0, Math.PI*2);
+          ctx.fill();
+          ctx.stroke();
         }
         ctx.restore();
       }
@@ -6134,4 +6236,3 @@
   </script>
 </body>
 </html>
-

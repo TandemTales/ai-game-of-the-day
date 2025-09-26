@@ -3431,8 +3431,20 @@
       return baby;
     }
 
+    const ABOMINATION_MAX_TENTACLES = 6;
     function spawnAbominationTentacle(tracker){
       if (!tracker) return null;
+      const livingTentacles = (tracker.tentacles || []).filter(t => t && t.hp > 0);
+      tracker.tentacles = livingTentacles;
+      if (livingTentacles.length >= ABOMINATION_MAX_TENTACLES){
+        const oldest = livingTentacles.shift();
+        if (oldest){
+          oldest.despawned = true;
+          oldest.hp = 0;
+          const idx = enemies.indexOf(oldest);
+          if (idx !== -1) enemies.splice(idx, 1);
+        }
+      }
       const pad = 36;
       const width = ENEMY.w * 2 * 1.75;
       const height = ENEMY.h * 2 * 1.75;
@@ -3510,6 +3522,8 @@
         damageRadius: TENTACLE_DAMAGE_RADIUS,
       };
       clampToArena(tentacle, Math.max(16, Math.min(width, height) * 0.5));
+      tentacle.bossController = tracker;
+      livingTentacles.push(tentacle);
       enemies.push(tentacle);
       return tentacle;
     }
@@ -3745,7 +3759,7 @@
         tracker.pendingAbominationHp = scaledHp;
         tracker.pendingAbominationSize = baseSize;
         tracker.pendingAbominationType = 'abomination';
-        tracker.pendingTentacleInterval = 5;
+        tracker.pendingTentacleInterval = 2.5;
         switchMusic(BOSS_TRACKS);
         const fairyHp = Math.max(1, Math.round(scaledHp * 0.5));
         const fairySizeMult = 0.5;
@@ -3787,7 +3801,7 @@
       tracker.baseHp = scaledHp;
       if (bossType === 'abomination'){
         tracker.tentacleTimer = 0;
-        tracker.tentacleInterval = 5;
+        tracker.tentacleInterval = stage === 2 ? 2.5 : 5;
       }
       switchMusic(BOSS_TRACKS);
       if (bossType === 'muck'){
@@ -3850,7 +3864,8 @@
         tracker.baseHp = abominationHp;
         tracker.bossType = bossType;
         tracker.tentacleTimer = 0;
-        tracker.tentacleInterval = tracker.pendingTentacleInterval || 5;
+        const pendingInterval = tracker.pendingTentacleInterval;
+        tracker.tentacleInterval = Number.isFinite(pendingInterval) ? pendingInterval : (stage === 2 ? 2.5 : 5);
         delete tracker.pendingAbominationHp;
         delete tracker.pendingAbominationSize;
         delete tracker.pendingAbominationType;

@@ -3538,6 +3538,38 @@
       keysEl.classList.toggle('hidden', KEYS.value===0);
     }
 
+    function getStageEnemyBonuses(kind){
+      let hpBonus = 0;
+      let dmgBonus = 0;
+      if (stage >= 1){
+        if (kind === 'imp' || kind === 'goblin') hpBonus += 1;
+        else if (kind === 'orc') hpBonus += 2;
+      }
+      if (stage >= 3){
+        if (kind === 'imp' || kind === 'goblin') hpBonus += 1;
+        else if (kind === 'orc') hpBonus += 2;
+      }
+      if (stage >= 2 && kind === 'imp'){
+        dmgBonus += 1;
+      }
+      if (stage >= 4){
+        if (kind === 'imp') dmgBonus += 1;
+        if (kind === 'goblin' || kind === 'orc') dmgBonus += 1;
+      }
+      return { hpBonus, dmgBonus };
+    }
+
+    function applyStageEnemyBonuses(kind, enemy){
+      if (!enemy) return;
+      const { hpBonus, dmgBonus } = getStageEnemyBonuses(kind);
+      if (hpBonus){
+        if (typeof enemy.hp === 'number') enemy.hp += hpBonus;
+        if (typeof enemy.hpMax === 'number') enemy.hpMax += hpBonus;
+      }
+      const baseContact = enemy.contactDmg != null ? enemy.contactDmg : 1;
+      enemy.contactDmg = baseContact + dmgBonus;
+    }
+
     // Spawning
     function spawnEnemy(){
       // Spawn outside player vicinity along arena edges
@@ -3565,6 +3597,7 @@
       h *= 1.75;
 
       const enemy = { kind, x, y, vx:0, vy:0, kx:0, ky:0, w, h, hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0, dir:'down', frame:0, animT:0, sleepT:0, sleepMax:0 };
+      applyStageEnemyBonuses(kind, enemy);
       if (needsKeys() && !SPAWN.keyAssigned){ enemy.hasKey = true; SPAWN.keyAssigned = true; }
       enemies.push(enemy);
     }
@@ -3602,6 +3635,7 @@
         sleepT: 0,
         sleepMax: 0,
       };
+      applyStageEnemyBonuses('goblin', enemy);
       enemies.push(enemy);
       return enemy;
     }
@@ -3653,6 +3687,7 @@
         sleepMax: 0,
         contactDmg: 2,
       };
+      applyStageEnemyBonuses('imp', enemy);
       enemies.push(enemy);
       return enemy;
     }

@@ -3455,6 +3455,7 @@
       const attemptEntity = { w: width, h: height };
       const maxDistance = 300;
       const minDistance = 40;
+      const waveMaxRadius = stage === 2 ? 100 : TENTACLE_WAVE_MAX_RADIUS;
       let originX = ARENA.x + ARENA.w / 2;
       let originY = ARENA.y + ARENA.h / 2;
       if (tracker.nodes && tracker.nodes.size){
@@ -3479,7 +3480,7 @@
         }
         attemptEntity.x = tx;
         attemptEntity.y = ty;
-        const farFromPlayer = len(P.x - tx, P.y - ty) > TENTACLE_WAVE_MAX_RADIUS + 20;
+        const farFromPlayer = len(P.x - tx, P.y - ty) > waveMaxRadius + 20;
         const blocked = willCollideWithTerrain(attemptEntity, tx, ty, { scaleX: 0.5, scaleY: 0.5 });
         if (!found){
           x = tx;
@@ -3532,7 +3533,7 @@
         },
         waveSpeed: TENTACLE_WAVE_SPEED,
         waveThickness: TENTACLE_WAVE_THICKNESS,
-        waveMaxRadius: TENTACLE_WAVE_MAX_RADIUS,
+        waveMaxRadius,
         waveStartRadius: TENTACLE_WAVE_START_RADIUS,
         waveRest: TENTACLE_WAVE_REST,
       };

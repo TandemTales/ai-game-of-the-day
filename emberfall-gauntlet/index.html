@@ -4426,8 +4426,21 @@
       // Player input velocity
       let ix = (key.right?1:0) - (key.left?1:0);
       let iy = (key.down?1:0) - (key.up?1:0);
-      const moveSpeed = P.spd * (P.slowT > 0 ? Math.max(0.1, P.slowMul || 0.5) : 1);
-      if (ix || iy) { const [nx,ny]=norm(ix,iy); P.vx += nx*moveSpeed*dt; P.vy += ny*moveSpeed*dt; P.dir = Math.atan2(ny,nx); P.aimDir = P.dir; }
+      const moveStat = P.spd * (P.slowT > 0 ? Math.max(0.1, P.slowMul || 0.5) : 1);
+      // Translate speed stat into the previous steady-state velocity for instant movement.
+      const frictionStep = Math.pow(PHYS.friction, dt * 60);
+      const denom = 1 - frictionStep;
+      const targetSpeed = denom > 1e-6 ? moveStat * dt * (frictionStep / denom) : moveStat * dt * 60;
+      if (ix || iy) {
+        const [nx,ny] = norm(ix,iy);
+        P.vx = nx * targetSpeed;
+        P.vy = ny * targetSpeed;
+        P.dir = Math.atan2(ny,nx);
+        P.aimDir = P.dir;
+      } else {
+        P.vx = 0;
+        P.vy = 0;
+      }
       // Auto-attack on a fixed period (non-wizard only)
       P.autoT += dt;
       if (currentClass !== 'wizard' && P.atkT<=0 && P.autoT >= AUTO.atkPeriod) {
@@ -4513,9 +4526,6 @@
         }
       }
 
-      // Apply friction (frame-rate independent)
-      const pF = Math.pow(PHYS.friction, dt * 60);
-      P.vx *= pF; P.vy *= pF;
       P.x += P.vx*dt; P.y += P.vy*dt;
         const pTerrainHit = resolveTerrainCollision(P);
         applyTerrainCollisionResponse(P, pTerrainHit);

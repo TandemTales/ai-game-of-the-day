@@ -3763,7 +3763,7 @@
         baseHp = 150;
       } else if (stage === 4) {
         bossType = 'beholder';
-        baseHp = 180;
+        baseHp = 360;
       }
       const hpScale = 0.5;
       const scaledHp = baseHp * hpScale;
@@ -4877,14 +4877,14 @@
                   const ang = (Math.PI*2 / count) * i;
                   const vxSlow = Math.cos(ang) * 90;
                   const vySlow = Math.sin(ang) * 90;
-                  BOSS_PROJECTILES.push({ kind:'slime', dmg:2, dir: vxSlow < 0 ? 'left' : 'right', x:e.x, y:e.y, vx:vxSlow, vy:vySlow, life:0, ttl:4, frame:0, animT:0 });
+                  BOSS_PROJECTILES.push({ kind:'slime', dmg:4, dir: vxSlow < 0 ? 'left' : 'right', x:e.x, y:e.y, vx:vxSlow, vy:vySlow, life:0, ttl:4, frame:0, animT:0 });
                   const vxFast = Math.cos(ang) * 180;
                   const vyFast = Math.sin(ang) * 180;
-                  BOSS_PROJECTILES.push({ kind:'slime', dmg:1, dir: vxFast < 0 ? 'left' : 'right', x:e.x, y:e.y, vx:vxFast, vy:vyFast, life:0, ttl:2, frame:0, animT:0 });
+                  BOSS_PROJECTILES.push({ kind:'slime', dmg:2, dir: vxFast < 0 ? 'left' : 'right', x:e.x, y:e.y, vx:vxFast, vy:vyFast, life:0, ttl:2, frame:0, animT:0 });
                 }
                 if (e.rayT >= 4){
                   const beamAng = Math.atan2(dy, dx);
-                  BOSS_PROJECTILES.push({ kind:'beam', dmg:1, x:e.x, y:e.y, ang:beamAng, life:0, ttl:1 });
+                  BOSS_PROJECTILES.push({ kind:'beam', dmg:2, x:e.x, y:e.y, ang:beamAng, life:0, ttl:1 });
                   e.rayT = 0;
                 }
               }

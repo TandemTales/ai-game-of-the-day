@@ -2516,6 +2516,7 @@
     const ORB_MAX_COUNT = 4;
     const ORB_BASE_SPEED = 13.5 * 0.7; // 70% of previous 13.5 baseline
     const ORB_SPEED_LEVEL_STEP = 0.10; // +10% per upgrade
+    const ORB_HIT_RADIUS = 18;
     const FIREBALL_BASE_RANGE = 200;
     const FIREBALL_RANGE_STEP = 50;
     const FIREBALL_MAX_RANGE = 400;
@@ -2589,6 +2590,16 @@
       const phw = projHb.x;
       const phh = projHb.y;
       return Math.abs(p.x - e.x) <= ehw + phw && Math.abs(p.y - e.y) <= ehh + phh;
+    }
+    function orbHitsEnemy(x, y, enemy){
+      if (!enemy || enemy.hp <= 0) return false;
+      const enemyScale = getEnemyHitboxScale(enemy);
+      const halfW = (enemy.w || 0) * enemyScale.x;
+      const halfH = (enemy.h || enemy.w || 0) * enemyScale.y;
+      if (halfW <= 0 && halfH <= 0){
+        return len(x - enemy.x, y - enemy.y) <= ORB_HIT_RADIUS;
+      }
+      return Math.abs(x - enemy.x) <= halfW + ORB_HIT_RADIUS && Math.abs(y - enemy.y) <= halfH + ORB_HIT_RADIUS;
     }
     const AUTO = { atkPeriod: 0.7 };
     const STAGE_WAVE_COUNTS = [
@@ -5319,7 +5330,13 @@
           // Hit enemies on contact with a tiny cooldown
           o.cd = Math.max(0, o.cd - dt);
           if (o.cd<=0){
-            for (const e of enemies){ if (e.hp<=0) continue; if (len(ox-e.x,oy-e.y) < 18){ const kdx = e.x - ox, kdy = e.y - oy; applyDamage(e, UPGR.orbDmg, kdx, kdy, KNOCK.orb); o.cd = 0.12; break; } }
+            for (const e of enemies){
+              if (!orbHitsEnemy(ox, oy, e)) continue;
+              const kdx = e.x - ox, kdy = e.y - oy;
+              applyDamage(e, UPGR.orbDmg, kdx, kdy, KNOCK.orb);
+              o.cd = 0.12;
+              break;
+            }
           }
           o.x=ox; o.y=oy;
         }

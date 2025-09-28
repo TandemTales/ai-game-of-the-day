@@ -1041,14 +1041,22 @@
       const treeDisplayHeight = treeHeight * treeScale;
       const treeColliderWidth = (treeWidth * 0.5) * treeScale;
       const treeColliderHeight = (treeHeight * 0.5) * treeScale;
-      const bush03Width = ((IMG.swampBush03.width || 0) * 0.5) || 64;
-      const bush03Height = ((IMG.swampBush03.height || 0) * 0.5) || 64;
-      const bush04Width = ((IMG.swampBush04.width || 0) * 0.5) || 64;
-      const bush04Height = ((IMG.swampBush04.height || 0) * 0.5) || 64;
-      const rock02Width = ((IMG.swampRock02.width || 0) * 0.5) || 64;
-      const rock02Height = ((IMG.swampRock02.height || 0) * 0.5) || 64;
-      const rock03Width = ((IMG.swampRock03.width || 0) * 0.5) || 64;
-      const rock03Height = ((IMG.swampRock03.height || 0) * 0.5) || 64;
+      const bush03BaseWidth = (IMG.swampBush03.width || 0) * 0.5;
+      const bush03BaseHeight = (IMG.swampBush03.height || 0) * 0.5;
+      const bush03Width = (bush03BaseWidth || 64);
+      const bush03Height = (bush03BaseHeight || 64);
+      const bush04BaseWidth = (IMG.swampBush04.width || 0) * 0.5;
+      const bush04BaseHeight = (IMG.swampBush04.height || 0) * 0.5;
+      const bush04Width = (bush04BaseWidth || 64);
+      const bush04Height = (bush04BaseHeight || 64);
+      const rock02BaseWidth = (IMG.swampRock02.width || 0) * 0.5;
+      const rock02BaseHeight = (IMG.swampRock02.height || 0) * 0.5;
+      const rock02Width = (rock02BaseWidth || 64) * 2;
+      const rock02Height = (rock02BaseHeight || 64) * 2;
+      const rock03BaseWidth = (IMG.swampRock03.width || 0) * 0.5;
+      const rock03BaseHeight = (IMG.swampRock03.height || 0) * 0.5;
+      const rock03Width = (rock03BaseWidth || 64);
+      const rock03Height = (rock03BaseHeight || 64);
 
       const meta = {
         tree: {
@@ -1070,7 +1078,7 @@
           anchor: 'bottom',
           width: bush04Width,
           height: bush04Height,
-          collider: { w: bush04Width * 0.7, h: bush04Height * 0.5, anchor: 'bottom' },
+          priority: -10,
         },
         rock02: {
           img: IMG.swampRock02,
@@ -1128,6 +1136,7 @@
         };
         if (cfg.width) obj.w = cfg.width;
         if (cfg.height) obj.h = cfg.height;
+        if (cfg.priority != null) obj.priority = cfg.priority;
         if (cfg.collider) obj.collider = { ...cfg.collider };
         const placement = { type, x, y, obj };
         placements.push(placement);
@@ -1305,21 +1314,21 @@
           anchor: 'bottom',
           width: bush02Width,
           height: bush02Height,
-          collider: { w: bush02Width * 0.7, h: bush02Height * 0.55, anchor: 'bottom' },
+          priority: -10,
         },
         bush03: {
           img: IMG.forestBush03,
           anchor: 'bottom',
           width: bush03Width,
           height: bush03Height,
-          collider: { w: bush03Width * 0.7, h: bush03Height * 0.55, anchor: 'bottom' },
+          priority: -10,
         },
         rock01: {
           img: IMG.forestRock01,
           anchor: 'bottom',
           width: rock01Width,
           height: rock01Height,
-          collider: { w: rock01Width * 0.8, h: rock01Height * 0.7, anchor: 'bottom' },
+          priority: -10,
         },
         rock02: {
           img: IMG.forestRock02,
@@ -1333,7 +1342,7 @@
           anchor: 'bottom',
           width: rock03Width,
           height: rock03Height,
-          collider: { w: rock03Width * 0.8, h: rock03Height * 0.7, anchor: 'bottom' },
+          priority: -10,
         },
         rock04: {
           img: IMG.forestRock04,
@@ -1398,6 +1407,7 @@
         };
         if (cfg.width) obj.w = cfg.width;
         if (cfg.height) obj.h = cfg.height;
+        if (cfg.priority != null) obj.priority = cfg.priority;
         if (cfg.collider) obj.collider = { ...cfg.collider };
         const placement = { type, x, y, obj };
         placements.push(placement);
@@ -1526,24 +1536,42 @@
       const treeDisplayHeight = treeHeight * treeScale;
       const treeColliderWidth = (treeWidth * 0.5) * treeScale;
       const treeColliderHeight = Math.min(100, treeHeight * 0.58) * treeScale;
-      const bush01Width = (IMG.feyBush01.width || 0) * 0.5 || 64;
-      const bush01Height = (IMG.feyBush01.height || 0) * 0.5 || 64;
-      const bush02Width = (IMG.feyBush02.width || 0) * 0.5 || 64;
-      const bush02Height = (IMG.feyBush02.height || 0) * 0.5 || 64;
-      const bush03Width = (IMG.feyBush03.width || 0) * 0.5 || 64;
-      const bush03Height = (IMG.feyBush03.height || 0) * 0.5 || 64;
-      const bush04Width = (IMG.feyBush04.width || 0) * 0.5 || 64;
-      const bush04Height = (IMG.feyBush04.height || 0) * 0.5 || 64;
-      const bush05Width = (IMG.feyBush05.width || 0) * 0.5 || 64;
-      const bush05Height = (IMG.feyBush05.height || 0) * 0.5 || 64;
-      const bush06Width = (IMG.feyBush06.width || 0) * 0.5 || 64;
-      const bush06Height = (IMG.feyBush06.height || 0) * 0.5 || 64;
-      const bush07Width = (IMG.feyBush07.width || 0) * 0.5 || 64;
-      const bush07Height = (IMG.feyBush07.height || 0) * 0.5 || 64;
-      const bush08Width = (IMG.feyBush08.width || 0) * 0.5 || 64;
-      const bush08Height = (IMG.feyBush08.height || 0) * 0.5 || 64;
-      const rockWidth = (IMG.feyRock01.width || 0) * 0.5 || 64;
-      const rockHeight = (IMG.feyRock01.height || 0) * 0.5 || 64;
+      const bush01BaseWidth = (IMG.feyBush01.width || 0) * 0.5;
+      const bush01BaseHeight = (IMG.feyBush01.height || 0) * 0.5;
+      const bush01Width = (bush01BaseWidth || 64) * 2;
+      const bush01Height = (bush01BaseHeight || 64) * 2;
+      const bush02BaseWidth = (IMG.feyBush02.width || 0) * 0.5;
+      const bush02BaseHeight = (IMG.feyBush02.height || 0) * 0.5;
+      const bush02Width = (bush02BaseWidth || 64) * 2;
+      const bush02Height = (bush02BaseHeight || 64) * 2;
+      const bush03BaseWidth = (IMG.feyBush03.width || 0) * 0.5;
+      const bush03BaseHeight = (IMG.feyBush03.height || 0) * 0.5;
+      const bush03Width = (bush03BaseWidth || 64) * 4;
+      const bush03Height = (bush03BaseHeight || 64) * 4;
+      const bush04BaseWidth = (IMG.feyBush04.width || 0) * 0.5;
+      const bush04BaseHeight = (IMG.feyBush04.height || 0) * 0.5;
+      const bush04Width = (bush04BaseWidth || 64);
+      const bush04Height = (bush04BaseHeight || 64);
+      const bush05BaseWidth = (IMG.feyBush05.width || 0) * 0.5;
+      const bush05BaseHeight = (IMG.feyBush05.height || 0) * 0.5;
+      const bush05Width = (bush05BaseWidth || 64);
+      const bush05Height = (bush05BaseHeight || 64);
+      const bush06BaseWidth = (IMG.feyBush06.width || 0) * 0.5;
+      const bush06BaseHeight = (IMG.feyBush06.height || 0) * 0.5;
+      const bush06Width = (bush06BaseWidth || 64) * 4;
+      const bush06Height = (bush06BaseHeight || 64) * 4;
+      const bush07BaseWidth = (IMG.feyBush07.width || 0) * 0.5;
+      const bush07BaseHeight = (IMG.feyBush07.height || 0) * 0.5;
+      const bush07Width = (bush07BaseWidth || 64);
+      const bush07Height = (bush07BaseHeight || 64);
+      const bush08BaseWidth = (IMG.feyBush08.width || 0) * 0.5;
+      const bush08BaseHeight = (IMG.feyBush08.height || 0) * 0.5;
+      const bush08Width = (bush08BaseWidth || 64);
+      const bush08Height = (bush08BaseHeight || 64);
+      const rockBaseWidth = (IMG.feyRock01.width || 0) * 0.5;
+      const rockBaseHeight = (IMG.feyRock01.height || 0) * 0.5;
+      const rockWidth = (rockBaseWidth || 64) * 2;
+      const rockHeight = (rockBaseHeight || 64) * 2;
 
       const meta = {
         tree: {
@@ -1579,14 +1607,14 @@
           anchor: 'bottom',
           width: bush04Width,
           height: bush04Height,
-          collider: { w: bush04Width * 0.7, h: bush04Height * 0.55, anchor: 'bottom' },
+          priority: -10,
         },
         bush05: {
           img: IMG.feyBush05,
           anchor: 'bottom',
           width: bush05Width,
           height: bush05Height,
-          collider: { w: bush05Width * 0.7, h: bush05Height * 0.55, anchor: 'bottom' },
+          priority: -10,
         },
         bush06: {
           img: IMG.feyBush06,
@@ -1600,14 +1628,14 @@
           anchor: 'bottom',
           width: bush07Width,
           height: bush07Height,
-          collider: { w: bush07Width * 0.7, h: bush07Height * 0.55, anchor: 'bottom' },
+          priority: -10,
         },
         bush08: {
           img: IMG.feyBush08,
           anchor: 'bottom',
           width: bush08Width,
           height: bush08Height,
-          collider: { w: bush08Width * 0.7, h: bush08Height * 0.55, anchor: 'bottom' },
+          priority: -10,
         },
         rock: {
           img: IMG.feyRock01,
@@ -1671,6 +1699,7 @@
         };
         if (cfg.width) obj.w = cfg.width;
         if (cfg.height) obj.h = cfg.height;
+        if (cfg.priority != null) obj.priority = cfg.priority;
         if (cfg.collider) obj.collider = { ...cfg.collider };
         const placement = { type, x, y, obj };
         placements.push(placement);
@@ -1792,22 +1821,38 @@
       const centerHalfW = Math.min(ARENA.w * 0.23, 240);
       const centerHalfH = Math.min(ARENA.h * 0.23, 210);
 
-      const bush01Width = (IMG.corruptionBush01.width || 0) * 0.5 || 64;
-      const bush01Height = (IMG.corruptionBush01.height || 0) * 0.5 || 64;
-      const bush02Width = (IMG.corruptionBush02.width || 0) * 0.5 || 64;
-      const bush02Height = (IMG.corruptionBush02.height || 0) * 0.5 || 64;
-      const bush03Width = (IMG.corruptionBush03.width || 0) * 0.5 || 64;
-      const bush03Height = (IMG.corruptionBush03.height || 0) * 0.5 || 64;
-      const bush04Width = (IMG.corruptionBush04.width || 0) * 0.5 || 64;
-      const bush04Height = (IMG.corruptionBush04.height || 0) * 0.5 || 64;
-      const rock01Width = (IMG.corruptionRock01.width || 0) * 0.5 || 64;
-      const rock01Height = (IMG.corruptionRock01.height || 0) * 0.5 || 64;
-      const rock02Width = (IMG.corruptionRock02.width || 0) * 0.5 || 64;
-      const rock02Height = (IMG.corruptionRock02.height || 0) * 0.5 || 64;
-      const rock03Width = (IMG.corruptionRock03.width || 0) * 0.5 || 64;
-      const rock03Height = (IMG.corruptionRock03.height || 0) * 0.5 || 64;
-      const rock04Width = (IMG.corruptionRock04.width || 0) * 0.5 || 64;
-      const rock04Height = (IMG.corruptionRock04.height || 0) * 0.5 || 64;
+      const bush01BaseWidth = (IMG.corruptionBush01.width || 0) * 0.5;
+      const bush01BaseHeight = (IMG.corruptionBush01.height || 0) * 0.5;
+      const bush01Width = (bush01BaseWidth || 64);
+      const bush01Height = (bush01BaseHeight || 64);
+      const bush02BaseWidth = (IMG.corruptionBush02.width || 0) * 0.5;
+      const bush02BaseHeight = (IMG.corruptionBush02.height || 0) * 0.5;
+      const bush02Width = (bush02BaseWidth || 64) * 2;
+      const bush02Height = (bush02BaseHeight || 64) * 2;
+      const bush03BaseWidth = (IMG.corruptionBush03.width || 0) * 0.5;
+      const bush03BaseHeight = (IMG.corruptionBush03.height || 0) * 0.5;
+      const bush03Width = (bush03BaseWidth || 64) * 2;
+      const bush03Height = (bush03BaseHeight || 64) * 2;
+      const bush04BaseWidth = (IMG.corruptionBush04.width || 0) * 0.5;
+      const bush04BaseHeight = (IMG.corruptionBush04.height || 0) * 0.5;
+      const bush04Width = (bush04BaseWidth || 64) * 2;
+      const bush04Height = (bush04BaseHeight || 64) * 2;
+      const rock01BaseWidth = (IMG.corruptionRock01.width || 0) * 0.5;
+      const rock01BaseHeight = (IMG.corruptionRock01.height || 0) * 0.5;
+      const rock01Width = (rock01BaseWidth || 64) * 2;
+      const rock01Height = (rock01BaseHeight || 64) * 2;
+      const rock02BaseWidth = (IMG.corruptionRock02.width || 0) * 0.5;
+      const rock02BaseHeight = (IMG.corruptionRock02.height || 0) * 0.5;
+      const rock02Width = (rock02BaseWidth || 64) * 2;
+      const rock02Height = (rock02BaseHeight || 64) * 2;
+      const rock03BaseWidth = (IMG.corruptionRock03.width || 0) * 0.5;
+      const rock03BaseHeight = (IMG.corruptionRock03.height || 0) * 0.5;
+      const rock03Width = (rock03BaseWidth || 64) * 2;
+      const rock03Height = (rock03BaseHeight || 64) * 2;
+      const rock04BaseWidth = (IMG.corruptionRock04.width || 0) * 0.5;
+      const rock04BaseHeight = (IMG.corruptionRock04.height || 0) * 0.5;
+      const rock04Width = (rock04BaseWidth || 64) * 2;
+      const rock04Height = (rock04BaseHeight || 64) * 2;
 
       const meta = {
         bush01: {
@@ -1815,7 +1860,7 @@
           anchor: 'bottom',
           width: bush01Width,
           height: bush01Height,
-          collider: { w: bush01Width * 0.72, h: bush01Height * 0.55, anchor: 'bottom' },
+          priority: -10,
         },
         bush02: {
           img: IMG.corruptionBush02,
@@ -1909,6 +1954,7 @@
         };
         if (cfg.width) obj.w = cfg.width;
         if (cfg.height) obj.h = cfg.height;
+        if (cfg.priority != null) obj.priority = cfg.priority;
         if (cfg.collider) obj.collider = { ...cfg.collider };
         const placement = { type, x, y, obj };
         placements.push(placement);
@@ -2038,22 +2084,38 @@
       const tree01ColliderHeight = Math.min(90, tree01Height * 0.65) * treeScale;
       const tree02ColliderWidth = (tree02Width * 0.58) * treeScale;
       const tree02ColliderHeight = Math.min(90, tree02Height * 0.65) * treeScale;
-      const bush01Width = ((IMG.mountainBush01.width || 0) * 0.5) || 64;
-      const bush01Height = ((IMG.mountainBush01.height || 0) * 0.5) || 64;
-      const bush02Width = ((IMG.mountainBush02.width || 0) * 0.5) || 64;
-      const bush02Height = ((IMG.mountainBush02.height || 0) * 0.5) || 64;
-      const bush03Width = ((IMG.mountainBush03.width || 0) * 0.5) || 64;
-      const bush03Height = ((IMG.mountainBush03.height || 0) * 0.5) || 64;
-      const bush04Width = ((IMG.mountainBush04.width || 0) * 0.5) || 64;
-      const bush04Height = ((IMG.mountainBush04.height || 0) * 0.5) || 64;
-      const rock01Width = ((IMG.mountainRock01.width || 0) * 0.5) || 64;
-      const rock01Height = ((IMG.mountainRock01.height || 0) * 0.5) || 64;
-      const rock02Width = ((IMG.mountainRock02.width || 0) * 0.5) || 64;
-      const rock02Height = ((IMG.mountainRock02.height || 0) * 0.5) || 64;
-      const rock03Width = ((IMG.mountainRock03.width || 0) * 0.5) || 64;
-      const rock03Height = ((IMG.mountainRock03.height || 0) * 0.5) || 64;
-      const rock04Width = ((IMG.mountainRock04.width || 0) * 0.5) || 64;
-      const rock04Height = ((IMG.mountainRock04.height || 0) * 0.5) || 64;
+      const bush01BaseWidth = (IMG.mountainBush01.width || 0) * 0.5;
+      const bush01BaseHeight = (IMG.mountainBush01.height || 0) * 0.5;
+      const bush01Width = (bush01BaseWidth || 64);
+      const bush01Height = (bush01BaseHeight || 64);
+      const bush02BaseWidth = (IMG.mountainBush02.width || 0) * 0.5;
+      const bush02BaseHeight = (IMG.mountainBush02.height || 0) * 0.5;
+      const bush02Width = (bush02BaseWidth || 64);
+      const bush02Height = (bush02BaseHeight || 64);
+      const bush03BaseWidth = (IMG.mountainBush03.width || 0) * 0.5;
+      const bush03BaseHeight = (IMG.mountainBush03.height || 0) * 0.5;
+      const bush03Width = (bush03BaseWidth || 64) * 2;
+      const bush03Height = (bush03BaseHeight || 64) * 2;
+      const bush04BaseWidth = (IMG.mountainBush04.width || 0) * 0.5;
+      const bush04BaseHeight = (IMG.mountainBush04.height || 0) * 0.5;
+      const bush04Width = (bush04BaseWidth || 64);
+      const bush04Height = (bush04BaseHeight || 64);
+      const rock01BaseWidth = (IMG.mountainRock01.width || 0) * 0.5;
+      const rock01BaseHeight = (IMG.mountainRock01.height || 0) * 0.5;
+      const rock01Width = (rock01BaseWidth || 64) * 2;
+      const rock01Height = (rock01BaseHeight || 64) * 2;
+      const rock02BaseWidth = (IMG.mountainRock02.width || 0) * 0.5;
+      const rock02BaseHeight = (IMG.mountainRock02.height || 0) * 0.5;
+      const rock02Width = (rock02BaseWidth || 64) * 2;
+      const rock02Height = (rock02BaseHeight || 64) * 2;
+      const rock03BaseWidth = (IMG.mountainRock03.width || 0) * 0.5;
+      const rock03BaseHeight = (IMG.mountainRock03.height || 0) * 0.5;
+      const rock03Width = (rock03BaseWidth || 64) * 2;
+      const rock03Height = (rock03BaseHeight || 64) * 2;
+      const rock04BaseWidth = (IMG.mountainRock04.width || 0) * 0.5;
+      const rock04BaseHeight = (IMG.mountainRock04.height || 0) * 0.5;
+      const rock04Width = (rock04BaseWidth || 64) * 2;
+      const rock04Height = (rock04BaseHeight || 64) * 2;
       const rock05Width = ((IMG.mountainRock05.width || 0) * 0.5) || 64;
       const rock05Height = ((IMG.mountainRock05.height || 0) * 0.5) || 64;
 
@@ -2077,14 +2139,14 @@
           anchor: 'bottom',
           width: bush01Width,
           height: bush01Height,
-          collider: { w: bush01Width * 0.75, h: bush01Height * 0.55, anchor: 'bottom' },
+          priority: -10,
         },
         bush02: {
           img: IMG.mountainBush02,
           anchor: 'bottom',
           width: bush02Width,
           height: bush02Height,
-          collider: { w: bush02Width * 0.75, h: bush02Height * 0.55, anchor: 'bottom' },
+          priority: -10,
         },
         bush03: {
           img: IMG.mountainBush03,
@@ -2098,7 +2160,7 @@
           anchor: 'bottom',
           width: bush04Width,
           height: bush04Height,
-          collider: { w: bush04Width * 0.75, h: bush04Height * 0.55, anchor: 'bottom' },
+          priority: -10,
         },
         rock01: {
           img: IMG.mountainRock01,
@@ -2184,6 +2246,7 @@
         };
         if (cfg.width) obj.w = cfg.width;
         if (cfg.height) obj.h = cfg.height;
+        if (cfg.priority != null) obj.priority = cfg.priority;
         if (cfg.collider) obj.collider = { ...cfg.collider };
         const placement = { type, x, y, obj };
         placements.push(placement);
@@ -5601,6 +5664,8 @@
         const image = obj.img || obj.image;
         if (!image || !image.width || !image.height) continue;
         const sortY = Number.isFinite(obj.sortY) ? obj.sortY : (obj.y ?? 0);
+        const renderPriority = Number.isFinite(obj.priority) ? obj.priority : 0;
+        const queueOptions = renderPriority !== 0 ? { priority: renderPriority } : undefined;
         queueRenderable(sortY, () => {
           const img = image;
           const width = obj.w ?? obj.width ?? img.width;
@@ -5622,7 +5687,7 @@
           drawX += offsetX;
           drawY += offsetY;
           ctx.drawImage(img, drawX, drawY, width, height);
-        });
+        }, queueOptions);
       }
 
       // Queue chests

@@ -3118,7 +3118,7 @@
         { id:'polymorph', type:'Spell', name:'Polymorph', desc:'Release a transforming wave that turns foes into demon goats that drop XP gems or hearts.', note:'Chance increases with repeats (max 50%). Bosses are immune.', maxLevel:5, apply:()=>{ refreshPolymorphState(true); } },
         { id:'sleep', type:'Spell', name:'Sleep', desc:'Send out a drowsy wave that can lull foes to sleep.', note:'240px wave, 50% sleep for 6s (+6s per level).', maxLevel:5, apply:()=>{ refreshSleepState(true); } },
         { id:'fireball', type:'Spell', name:'Fireball', desc:'Periodically launch piercing fireballs that scale with level.', note:'Range +50px per level (max 400px). Lv3: adds diagonals. Lv5: explosive finales (100px).', maxLevel:5, apply:()=>{ refreshFireballState(true); } },
-        { id:'shards', type:'Spell', name:'Arcane Missiles', desc:'Periodically fire magic missiles.', note:'More with repeats', apply:()=>{ if(!UPGR.shards){ UPGR.shards=true; } else { UPGR.shardCount=Math.min(6, UPGR.shardCount+1); } } },
+        { id:'shards', type:'Spell', name:'Arcane Missiles', desc:'Periodically fire magic missiles.', note:'More with repeats', maxLevel:6, apply:()=>{ if(!UPGR.shards){ UPGR.shards=true; } else { UPGR.shardCount=Math.min(6, UPGR.shardCount+1); } } },
         { id:'arcane_armor', type:'Spell', name:'Arcane Armor', desc:'A protective ward that blocks the next damage. After blocking, it recharges over time.', note:'30s cooldown (reduced by Spell Focus).', unique:true, apply:()=>{ if(!UPGR.arcaneArmor){ UPGR.arcaneArmor=true; UPGR.arcaneArmorUp=true; UPGR.arcaneArmorTimer=0; } } },
         { id:'focus', type:'Spell', name:'Spell Focus', desc:'Reduce all spell cooldowns by 12%.', note:'Stacks multiplicatively', apply:()=>{ const factor = 0.88; reduceSpellCooldowns(factor); UPGR.spellCooldownMult = +(UPGR.spellCooldownMult * factor).toFixed(3); } },
         { id:'wisdom', type:'Upgrade', name:'Book of Wisdom', desc:'XP gain +25%.', apply:()=>{ UPGR.xpMultiplier = +(UPGR.xpMultiplier * (1 + WISDOM_XP_BONUS)).toFixed(3); } },
@@ -3274,6 +3274,8 @@
       // Reset upgrade tracking
       for (const k in UPGRADE_LEVELS) delete UPGRADE_LEVELS[k];
       for (const k in TAKEN_UPGRADES) delete TAKEN_UPGRADES[k];
+      // Seed max-level tracking: count starting orbs toward Arcane Orbs levels
+      if ((UPGR.orbs||0) > 0) { UPGRADE_LEVELS.orbs = Math.min(ORB_MAX_COUNT, UPGR.orbs|0); }
       PROJECTILES = []; BOSS_PROJECTILES = []; ORBS = [];
       FIREBALL_BLASTS.length = 0;
       POLY_WAVES.length = 0;

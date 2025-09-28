@@ -1034,8 +1034,13 @@
       const centerHalfW = Math.min(ARENA.w * 0.25, 260);
       const centerHalfH = Math.min(ARENA.h * 0.25, 220);
 
+      const treeScale = 2;
       const treeWidth = IMG.swampTree03.width || 128;
       const treeHeight = IMG.swampTree03.height || 128;
+      const treeDisplayWidth = treeWidth * treeScale;
+      const treeDisplayHeight = treeHeight * treeScale;
+      const treeColliderWidth = (treeWidth * 0.5) * treeScale;
+      const treeColliderHeight = (treeHeight * 0.5) * treeScale;
       const bush03Width = ((IMG.swampBush03.width || 0) * 0.5) || 64;
       const bush03Height = ((IMG.swampBush03.height || 0) * 0.5) || 64;
       const bush04Width = ((IMG.swampBush04.width || 0) * 0.5) || 64;
@@ -1049,9 +1054,9 @@
         tree: {
           img: IMG.swampTree03,
           anchor: 'bottom',
-          width: treeWidth,
-          height: treeHeight,
-          collider: { w: 64, h: 64, anchor: 'bottom' },
+          width: treeDisplayWidth,
+          height: treeDisplayHeight,
+          collider: { w: treeColliderWidth, h: treeColliderHeight, anchor: 'bottom' },
         },
         bush03: {
           img: IMG.swampBush03,
@@ -1514,8 +1519,13 @@
       const centerHalfW = Math.min(ARENA.w * 0.24, 250);
       const centerHalfH = Math.min(ARENA.h * 0.24, 220);
 
+      const treeScale = 2;
       const treeWidth = IMG.feyTree01.width || 128;
       const treeHeight = IMG.feyTree01.height || 128;
+      const treeDisplayWidth = treeWidth * treeScale;
+      const treeDisplayHeight = treeHeight * treeScale;
+      const treeColliderWidth = (treeWidth * 0.5) * treeScale;
+      const treeColliderHeight = Math.min(100, treeHeight * 0.58) * treeScale;
       const bush01Width = (IMG.feyBush01.width || 0) * 0.5 || 64;
       const bush01Height = (IMG.feyBush01.height || 0) * 0.5 || 64;
       const bush02Width = (IMG.feyBush02.width || 0) * 0.5 || 64;
@@ -1539,9 +1549,9 @@
         tree: {
           img: IMG.feyTree01,
           anchor: 'bottom',
-          width: treeWidth,
-          height: treeHeight,
-          collider: { w: treeWidth * 0.5, h: Math.min(100, treeHeight * 0.58), anchor: 'bottom' },
+          width: treeDisplayWidth,
+          height: treeDisplayHeight,
+          collider: { w: treeColliderWidth, h: treeColliderHeight, anchor: 'bottom' },
         },
         bush01: {
           img: IMG.feyBush01,
@@ -2015,10 +2025,19 @@
       const centerHalfW = Math.min(ARENA.w * 0.22, 230);
       const centerHalfH = Math.min(ARENA.h * 0.22, 200);
 
+      const treeScale = 2;
       const tree01Width = ((IMG.mountainTree01.width || 0) * 0.5) || 64;
       const tree01Height = ((IMG.mountainTree01.height || 0) * 0.5) || 64;
       const tree02Width = ((IMG.mountainTree02.width || 0) * 0.5) || 64;
       const tree02Height = ((IMG.mountainTree02.height || 0) * 0.5) || 64;
+      const tree01DisplayWidth = tree01Width * treeScale;
+      const tree01DisplayHeight = tree01Height * treeScale;
+      const tree02DisplayWidth = tree02Width * treeScale;
+      const tree02DisplayHeight = tree02Height * treeScale;
+      const tree01ColliderWidth = (tree01Width * 0.58) * treeScale;
+      const tree01ColliderHeight = Math.min(90, tree01Height * 0.65) * treeScale;
+      const tree02ColliderWidth = (tree02Width * 0.58) * treeScale;
+      const tree02ColliderHeight = Math.min(90, tree02Height * 0.65) * treeScale;
       const bush01Width = ((IMG.mountainBush01.width || 0) * 0.5) || 64;
       const bush01Height = ((IMG.mountainBush01.height || 0) * 0.5) || 64;
       const bush02Width = ((IMG.mountainBush02.width || 0) * 0.5) || 64;
@@ -2042,16 +2061,16 @@
         tree01: {
           img: IMG.mountainTree01,
           anchor: 'bottom',
-          width: tree01Width,
-          height: tree01Height,
-          collider: { w: tree01Width * 0.58, h: Math.min(90, tree01Height * 0.65), anchor: 'bottom' },
+          width: tree01DisplayWidth,
+          height: tree01DisplayHeight,
+          collider: { w: tree01ColliderWidth, h: tree01ColliderHeight, anchor: 'bottom' },
         },
         tree02: {
           img: IMG.mountainTree02,
           anchor: 'bottom',
-          width: tree02Width,
-          height: tree02Height,
-          collider: { w: tree02Width * 0.58, h: Math.min(90, tree02Height * 0.65), anchor: 'bottom' },
+          width: tree02DisplayWidth,
+          height: tree02DisplayHeight,
+          collider: { w: tree02ColliderWidth, h: tree02ColliderHeight, anchor: 'bottom' },
         },
         bush01: {
           img: IMG.mountainBush01,

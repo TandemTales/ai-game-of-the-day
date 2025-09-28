@@ -2626,7 +2626,7 @@
       }
     }
     let boss = null;
-    const WISDOM_XP_BONUS = 0.50;
+    const WISDOM_XP_BONUS = 0.25;
     const XP = { value: 0, level: 1 };
     const formatXpValue = (value) => Number.isInteger(value) ? value.toString() : value.toFixed(1).replace(/\.0+$/, '');
     const updateXpDisplay = () => {
@@ -2668,7 +2668,7 @@
       polyLevel: 0,
       polyRadius: 0,
       sleep: false,
-      sleepPeriod: 8,
+      sleepPeriod: 6,
       sleepTimer: 0,
       sleepChance: 0,
       sleepLevel: 0,
@@ -2713,8 +2713,8 @@
       const level = Math.min(5, UPGRADE_LEVELS.sleep || 0);
       UPGR.sleep = level > 0;
       UPGR.sleepLevel = level;
-      UPGR.sleepChance = level > 0 ? 0.33 : 0;
-      UPGR.sleepDuration = level > 0 ? 5 + (level - 1) * 5 : 0;
+      UPGR.sleepChance = level > 0 ? 0.50 : 0;
+      UPGR.sleepDuration = level > 0 ? 6 + (level - 1) * 6 : 0;
       if (fromUpgrade && level > 0 && !prev){
         UPGR.sleepTimer = UPGR.sleepPeriod;
       }
@@ -3116,12 +3116,12 @@
         { id:'orbs', type:'Spell', name:'Arcane Orbs', desc:'Summon orbiting orbs that damage foes. Each upgrade adds an orb and speeds their orbit.', note:'Adds up to 4 orbs with +10% speed per level.', maxLevel: ORB_MAX_COUNT, apply:()=>{ UPGR.orbs = Math.min(ORB_MAX_COUNT, UPGR.orbs + 1); } },
         { id:'nova', type:'Spell', name:'Frost Nova', desc:'Every few seconds, blast and slow nearby foes.', note:'Improves with repeats', apply:()=>{ if(!UPGR.nova){ UPGR.nova=true; } else { UPGR.novaPeriod=Math.max(2.2, UPGR.novaPeriod*0.9); UPGR.novaDmg+=1; } } },
         { id:'polymorph', type:'Spell', name:'Polymorph', desc:'Release a transforming wave that turns foes into demon goats that drop XP gems or hearts.', note:'Chance increases with repeats (max 50%). Bosses are immune.', maxLevel:5, apply:()=>{ refreshPolymorphState(true); } },
-        { id:'sleep', type:'Spell', name:'Sleep', desc:'Send out a drowsy wave that can lull foes to sleep.', note:'200px wave, 33% sleep for 5s (+5s per level).', maxLevel:5, apply:()=>{ refreshSleepState(true); } },
+        { id:'sleep', type:'Spell', name:'Sleep', desc:'Send out a drowsy wave that can lull foes to sleep.', note:'240px wave, 50% sleep for 6s (+6s per level).', maxLevel:5, apply:()=>{ refreshSleepState(true); } },
         { id:'fireball', type:'Spell', name:'Fireball', desc:'Periodically launch piercing fireballs that scale with level.', note:'Range +50px per level (max 400px). Lv3: adds diagonals. Lv5: explosive finales (100px).', maxLevel:5, apply:()=>{ refreshFireballState(true); } },
         { id:'shards', type:'Spell', name:'Arcane Missiles', desc:'Periodically fire magic missiles.', note:'More with repeats', apply:()=>{ if(!UPGR.shards){ UPGR.shards=true; } else { UPGR.shardCount=Math.min(6, UPGR.shardCount+1); } } },
         { id:'arcane_armor', type:'Spell', name:'Arcane Armor', desc:'A protective ward that blocks the next damage. After blocking, it recharges over time.', note:'30s cooldown (reduced by Spell Focus).', unique:true, apply:()=>{ if(!UPGR.arcaneArmor){ UPGR.arcaneArmor=true; UPGR.arcaneArmorUp=true; UPGR.arcaneArmorTimer=0; } } },
         { id:'focus', type:'Spell', name:'Spell Focus', desc:'Reduce all spell cooldowns by 12%.', note:'Stacks multiplicatively', apply:()=>{ const factor = 0.88; reduceSpellCooldowns(factor); UPGR.spellCooldownMult = +(UPGR.spellCooldownMult * factor).toFixed(3); } },
-        { id:'wisdom', type:'Upgrade', name:'Wisdom', desc:'XP gain +50%.', apply:()=>{ UPGR.xpMultiplier = +(UPGR.xpMultiplier * (1 + WISDOM_XP_BONUS)).toFixed(3); } },
+        { id:'wisdom', type:'Upgrade', name:'Book of Wisdom', desc:'XP gain +25%.', apply:()=>{ UPGR.xpMultiplier = +(UPGR.xpMultiplier * (1 + WISDOM_XP_BONUS)).toFixed(3); } },
       ],
     };
 
@@ -3266,7 +3266,7 @@
       SHOP.idx = 0; SHOP.open = false;
       KEYS.value = 0; drawKeys();
       // Reset upgrades and spell state
-      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleXpChance:0, xpMultiplier:1, chestChanceBonus:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:72, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, polymorph:false, polyPeriod:7, polyTimer:0, polyChance:0, polyLevel:0, polyRadius:0, sleep:false, sleepPeriod:8, sleepTimer:0, sleepChance:0, sleepLevel:0, sleepDuration:0, shards:false, shardPeriod:0.567, shardTimer:0, shardSpeed:320, shardCount:1, fireball:false, fireballPeriod:FIREBALL_PERIOD_BASE, fireballTimer:0, fireballRange:0, fireballLevel:0, fireballDmg:FIREBALL_DMG, 
+      Object.assign(UPGR, { meleeDmg:1, multistrike:1, lifeStealChance:0, magnet:1, critChance:0, critMult:1.6, doubleXpChance:0, xpMultiplier:1, chestChanceBonus:0, dodgeChance:0, orbs:0, orbDmg:1, orbRadius:72, nova:false, novaPeriod:6, novaTimer:0, novaDmg:1, polymorph:false, polyPeriod:7, polyTimer:0, polyChance:0, polyLevel:0, polyRadius:0, sleep:false, sleepPeriod:6, sleepTimer:0, sleepChance:0, sleepLevel:0, sleepDuration:0, shards:false, shardPeriod:0.567, shardTimer:0, shardSpeed:320, shardCount:1, fireball:false, fireballPeriod:FIREBALL_PERIOD_BASE, fireballTimer:0, fireballRange:0, fireballLevel:0, fireballDmg:FIREBALL_DMG, 
         // Arcane Armor (wizard): absorbs next damage, then recharges
         arcaneArmor:false, arcaneArmorUp:false, arcaneArmorPeriod:30, arcaneArmorTimer:0,
         spellCooldownMult:1, arrowPeriod:0.90, arrowTimer:0, arrowSpeed:360, arrowDmg:0.5, arrowCount:1, arrowPierce:false, bladeStorm:false, bladePeriod:1.6, bladeTimer:0, bladeCount:2, bladeSpin:0, bladeCadence:0.12, bladeBurst:null });
@@ -4402,7 +4402,7 @@
     const chance = UPGR.sleepChance || 0;
     const duration = UPGR.sleepDuration || 0;
     if (chance <= 0 || duration <= 0) return;
-    const radius = 200;
+    const radius = 240;
     const ttl = 1.6;
     const speed = radius / ttl;
     SLEEP_WAVES.push({ x, y, r: 0, speed, life: 0, ttl, chance, duration, maxR: radius, hit: new Set() });

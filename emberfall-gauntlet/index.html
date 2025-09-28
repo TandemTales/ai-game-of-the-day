@@ -4040,6 +4040,8 @@
       stageTimerEl.classList.remove('hidden');
       if (nextStageInterval) { clearInterval(nextStageInterval); }
       nextStageInterval = setInterval(() => {
+        // Respect game pause (shop/stats): do not decrement while paused
+        if (paused) return;
         remaining--;
         if (remaining > 0){
           stageTimerEl.textContent = `Next Stage in ${remaining} seconds`;

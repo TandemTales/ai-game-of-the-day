@@ -56,10 +56,10 @@
     .back-home { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:6px 10px; line-height:1; border-radius:8px; }
     .back-home .icon { font-size:14px; line-height:1; }
 
-    .class-btn { border:2px solid var(--gold); background:rgba(0,0,0,0.6); padding:8px; border-radius:10px; display:flex; flex-direction:column; align-items:center; cursor:pointer; }
-    .class-btn.selected { background:linear-gradient(45deg, var(--teal), #4682B4); }
+    .class-btn, .diff-btn { border:2px solid var(--gold); background:rgba(0,0,0,0.6); padding:8px; border-radius:10px; display:flex; flex-direction:column; align-items:center; cursor:pointer; }
+    .class-btn.selected, .diff-btn.selected { background:linear-gradient(45deg, var(--teal), #4682B4); }
     .class-btn img { width:40px; height:40px; image-rendering:pixelated; }
-    .class-btn span { margin-top:4px; font-size:10px; color:var(--ink); }
+    .class-btn span, .diff-btn span { margin-top:4px; font-size:10px; color:var(--ink); }
 
     .stage { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding: calc(env(safe-area-inset-top) + 56px) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
     canvas { image-rendering: pixelated; image-rendering: crisp-edges; border-radius: 12px; border: 3px solid rgba(255,215,0,0.25); background: #0b0f18; display: block; max-width: 100%; max-height: 100%; touch-action: none; }
@@ -225,6 +225,11 @@
           <button class="class-btn" data-class="rogue"><img src="assets/EG_hero_rogue.png" alt="Rogue"><span>Rogue</span></button>
           <button class="class-btn" data-class="wizard"><img src="assets/EG_hero_wizard.png" alt="Wizard"><span>Wizard</span></button>
         </div>
+        <div class="row" id="difficultySelect" aria-label="Select difficulty">
+          <span class="small" style="color:#fff; opacity:0.9; margin-right:4px">Difficulty:</span>
+          <button class="diff-btn selected" data-diff="normal"><span>Normal</span></button>
+          <button class="diff-btn" data-diff="brutal"><span>Brutal</span></button>
+        </div>
         <div class="row">
           <button id="startBtn" class="btn" disabled>Start</button>
           <a class="btn" href="../leaderboard.html?gameId=emberfall-gauntlet">Leaderboard</a>
@@ -370,6 +375,7 @@
     const startBtn = document.getElementById('startBtn');
     const againBtn = document.getElementById('againBtn');
     const classBtns = document.querySelectorAll('.class-btn');
+    const diffBtns = document.querySelectorAll('.diff-btn');
     const logo = document.getElementById('logo');
     const audioIcon = document.getElementById('audioIcon');
     const audioIconImg = document.getElementById('audioIconImg');
@@ -2452,6 +2458,23 @@
     CLASS_IMG.wizard.addEventListener('load', () => { if (++loaded === need) init(); });
 
     let currentClass = 'fighter';
+    // Difficulty state (default: normal)
+    let currentDifficulty = 'normal';
+    const DIFF = { mode: 'normal', xpMult: 1, enemyHpMult: 1 };
+    function setDifficulty(mode){
+      DIFF.mode = (mode === 'brutal') ? 'brutal' : 'normal';
+      currentDifficulty = DIFF.mode;
+      DIFF.xpMult = (DIFF.mode === 'brutal') ? 0.5 : 1;
+      DIFF.enemyHpMult = (DIFF.mode === 'brutal') ? 3 : 1;
+    }
+    function applyDifficultyEnemyHp(entity){
+      if (!entity) return;
+      const mul = (DIFF && DIFF.enemyHpMult) || 1;
+      if (mul !== 1){
+        if (typeof entity.hp === 'number') entity.hp *= mul;
+        if (typeof entity.hpMax === 'number') entity.hpMax *= mul;
+      }
+    }
     const CLASS_STATS = {
       fighter: { hp:5, spd:2400 },
       rogue: { hp:4, spd:2600 },
@@ -2633,7 +2656,7 @@
       xpEl.textContent = formatXpValue(XP.value);
     };
     const applyXpGain = (base = 1) => {
-      const gain = +(base * (UPGR.xpMultiplier || 1)).toFixed(2);
+      const gain = +(base * (UPGR.xpMultiplier || 1) * ((DIFF && DIFF.xpMult) || 1)).toFixed(2);
       XP.value = +(XP.value + gain).toFixed(2);
       updateXpDisplay();
       return gain;
@@ -3196,6 +3219,17 @@
     });
     setClass(currentClass);
 
+    // Difficulty selection wiring
+    diffBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        diffBtns.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        setDifficulty(btn.dataset.diff || 'normal');
+      });
+    });
+    // Ensure default difficulty is applied
+    setDifficulty('normal');
+
     function init() {
       currentMap = MAPS[0];
       ARENA.x = 0; ARENA.y = 0; ARENA.w = currentMap.width; ARENA.h = currentMap.height;
@@ -3445,6 +3479,8 @@
       tracker.hpMax = hpMax > 0 ? hpMax : 1;
     }
     function registerBossEntity(entity, tracker){
+      // Apply difficulty scaling to boss entities too
+      applyDifficultyEnemyHp(entity);
       if (!tracker) return entity;
       tracker.nodes.add(entity);
       entity.bossController = tracker;
@@ -3548,6 +3584,7 @@
         slowAmp:0,
       };
       clampToArena(baby, Math.max(16, Math.min(width, height) * 0.5));
+      applyDifficultyEnemyHp(baby);
       enemies.push(baby);
       return baby;
     }
@@ -3655,6 +3692,7 @@
         waveRest: TENTACLE_WAVE_REST,
       };
       clampToArena(tentacle, Math.max(16, Math.min(width, height) * 0.5));
+      applyDifficultyEnemyHp(tentacle);
       tentacle.bossController = tracker;
       livingTentacles.push(tentacle);
       enemies.push(tentacle);
@@ -3768,6 +3806,7 @@
 
       const enemy = { kind, x, y, vx:0, vy:0, kx:0, ky:0, w, h, hp, spd, score, t:0, ang: Math.random()*Math.PI*2, wanderT: 0, dir:'down', frame:0, animT:0, sleepT:0, sleepMax:0 };
       applyStageEnemyBonuses(kind, enemy);
+      applyDifficultyEnemyHp(enemy);
       if (needsKeys() && !SPAWN.keyAssigned){ enemy.hasKey = true; SPAWN.keyAssigned = true; }
       enemies.push(enemy);
     }
@@ -3806,6 +3845,7 @@
         sleepMax: 0,
       };
       applyStageEnemyBonuses('goblin', enemy);
+      applyDifficultyEnemyHp(enemy);
       enemies.push(enemy);
       return enemy;
     }
@@ -3858,6 +3898,7 @@
         contactDmg: 2,
       };
       applyStageEnemyBonuses('imp', enemy);
+      applyDifficultyEnemyHp(enemy);
       enemies.push(enemy);
       return enemy;
     }
@@ -6477,6 +6518,13 @@
         const lines = [];
         lines.push(`<div class="section">Core</div>`);
         lines.push(`<div><b>Class:</b> ${cls[0].toUpperCase()+cls.slice(1)}</div>`);
+        try {
+          const mode = (DIFF && DIFF.mode) || 'normal';
+          const xpM = (DIFF && DIFF.xpMult) != null ? DIFF.xpMult : 1;
+          const hpM = (DIFF && DIFF.enemyHpMult) != null ? DIFF.enemyHpMult : 1;
+          const label = mode.charAt(0).toUpperCase() + mode.slice(1);
+          lines.push(`<div><b>Difficulty:</b> ${label} (xp x${xpM.toFixed(2)}, enemy HP x${Number(hpM).toFixed(2)})</div>`);
+        } catch {}
         lines.push(`<div><b>HP:</b> ${P.hp}/${P.hpMax}</div>`);
         lines.push(`<div><b>Speed:</b> ${fmt(P.spd)} (base ${fmt(base.spd)})</div>`);
         if (cls === 'wizard') lines.push(`<div><b>XP Multiplier:</b> x${UPGR.xpMultiplier.toFixed(2)}</div>`);

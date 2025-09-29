@@ -422,7 +422,8 @@
 
     function addScore(amount) {
       if (!CHEAT.active) {
-        SCORE.value += amount;
+        const mult = (DIFF && DIFF.scoreMult) ? DIFF.scoreMult : 1;
+        SCORE.value += amount * mult;
       } else {
         SCORE.value = 0;
       }
@@ -2460,12 +2461,15 @@
     let currentClass = 'fighter';
     // Difficulty state (default: normal)
     let currentDifficulty = 'normal';
-    const DIFF = { mode: 'normal', xpMult: 1, enemyHpMult: 1 };
+    const DIFF = { mode: 'normal', xpMult: 1, enemyHpMult: 1, enemySpeedMult: 1, scoreMult: 1 };
     function setDifficulty(mode){
       DIFF.mode = (mode === 'brutal') ? 'brutal' : 'normal';
       currentDifficulty = DIFF.mode;
       DIFF.xpMult = (DIFF.mode === 'brutal') ? 0.5 : 1;
       DIFF.enemyHpMult = (DIFF.mode === 'brutal') ? 3 : 1;
+      // Brutal difficulty: faster enemies and higher score gains
+      DIFF.enemySpeedMult = (DIFF.mode === 'brutal') ? 1.5 : 1;
+      DIFF.scoreMult = (DIFF.mode === 'brutal') ? 2 : 1;
     }
     function applyDifficultyEnemyHp(entity){
       if (!entity) return;
@@ -4793,8 +4797,10 @@
             e.dir = Math.sin(e.facing) > 0 ? 'down' : 'up';
           }
         }
-        // Use per-enemy speed (with a global pacing modifier similar to previous tuning)
+        // Use per-enemy speed (with a global pacing modifier and difficulty multiplier)
         let speed = Math.round((e.spd || ENEMY.spd) * 0.45);
+        const enemySpdMult = (DIFF && DIFF.enemySpeedMult) ? DIFF.enemySpeedMult : 1;
+        if (enemySpdMult !== 1) speed = Math.round(speed * enemySpdMult);
         if (isGoat) speed = 0;
         if (e.slowT && e.slowT > 0) { speed = Math.max(10, Math.round(speed * (e.slowMul || 0.5))); }
 
@@ -6523,7 +6529,7 @@
           const xpM = (DIFF && DIFF.xpMult) != null ? DIFF.xpMult : 1;
           const hpM = (DIFF && DIFF.enemyHpMult) != null ? DIFF.enemyHpMult : 1;
           const label = mode.charAt(0).toUpperCase() + mode.slice(1);
-          lines.push(`<div><b>Difficulty:</b> ${label} (xp x${xpM.toFixed(2)}, enemy HP x${Number(hpM).toFixed(2)})</div>`);
+          lines.push(`<div><b>Difficulty:</b> ${label}</div>`);
         } catch {}
         lines.push(`<div><b>HP:</b> ${P.hp}/${P.hpMax}</div>`);
         lines.push(`<div><b>Speed:</b> ${fmt(P.spd)} (base ${fmt(base.spd)})</div>`);

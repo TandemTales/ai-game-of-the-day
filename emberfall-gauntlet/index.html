@@ -230,6 +230,7 @@
           <button class="diff-btn selected" data-diff="normal"><span>Normal</span></button>
           <button class="diff-btn" data-diff="brutal"><span>Brutal</span></button>
         </div>
+        <div id="classHint" class="small" style="margin-top:6px"></div>
         <div class="row">
           <button id="startBtn" class="btn" disabled>Start</button>
           <a class="btn" href="../leaderboard.html?gameId=emberfall-gauntlet">Leaderboard</a>
@@ -3208,6 +3209,21 @@
       IMG.hero = CLASS_IMG[cls];
       currentPool = POOLS[cls];
       PHYS.atkRange = (cls === 'wizard') ? BASE_ATK_RANGE : (cls === 'rogue' ? ROGUE_ATK_RANGE : EXTENDED_ATK_RANGE);
+      // Update class-specific chest/key hint on the start screen
+      try {
+        const hintEl = document.getElementById('classHint');
+        if (hintEl) {
+          if (cls === 'rogue') {
+            hintEl.textContent = 'Rogue: You do not need keys to open chests.';
+          } else if (cls === 'wizard') {
+            hintEl.textContent = 'Wizard: Find keys to open chests.';
+          } else if (cls === 'fighter') {
+            hintEl.textContent = 'Fighter: Find keys to open chests.';
+          } else {
+            hintEl.textContent = '';
+          }
+        }
+      } catch(e) { /* ignore */ }
       if (!needsKeys()) {
         KEYS.value = 0;
       }

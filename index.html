@@ -116,6 +116,12 @@
 			color: #F5F5DC;
 		}
 
+		/* Hide removed games */
+		li[data-id="ocean-explorer"],
+		li[data-id="memory-match"] {
+			display: none !important;
+		}
+
                 .play-btn {
                         display: inline-block;
                         background: linear-gradient(45deg, #5F9EA0, #4682B4);
@@ -412,6 +418,15 @@
 			</li>
         </ul>
 	</div>
+
+       <script>
+       // Remove deprecated games from DOM
+       document.addEventListener('DOMContentLoaded', function () {
+         document.querySelectorAll('[data-id="ocean-explorer"], [data-id="memory-match"]').forEach(function(el){
+           try { el.remove(); } catch (e) {}
+         });
+       });
+       </script>
 
        <script>
                // Rating system

@@ -625,6 +625,21 @@
 
     // Pickups and upgrades
     function spawnDrop(e) {
+      if (e.boss && e.type !== 'X4') {
+        const offsets = [-18, 18];
+        for (const off of offsets) {
+          drops.push({
+            x: e.x + off,
+            y: e.y,
+            vx: (Math.random()-0.5)*1.2,
+            vy: 1.6,
+            t: 0,
+            type: 'U',
+            kind: pickUpgrade()
+          });
+        }
+        return;
+      }
       // Drop chances; extra life and shield unchanged. Upgrades increased after wave 5.
       const lifeChance = e.boss ? 0.08 : 0.01;     // 8% boss, 1% normal
       // Suppress shield drops if player already has an active shield

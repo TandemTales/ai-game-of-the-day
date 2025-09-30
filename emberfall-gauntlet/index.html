@@ -3864,6 +3864,7 @@
         animT: 0,
         sleepT: 0,
         sleepMax: 0,
+        summonedByHillGiant: true,
       };
       applyStageEnemyBonuses('goblin', enemy);
       applyDifficultyEnemyHp(enemy);
@@ -4093,6 +4094,20 @@
     }
     function handleBossDefeat(){
       const tracker = boss;
+      if (tracker && tracker.bossType === 'hillGiant'){
+        const removal = new Set();
+        for (const e of enemies){
+          if (e && e.kind === 'goblin' && e.summonedByHillGiant){
+            removal.add(e);
+            for (let i = 0; i < 6; i++){
+              spark(e.x + rand(-6, 6), e.y + rand(-6, 6), '#ffd27f');
+            }
+          }
+        }
+        if (removal.size){
+          enemies = enemies.filter(e => !removal.has(e));
+        }
+      }
       if (tracker && tracker.nodes && typeof tracker.nodes.clear === 'function'){
         tracker.nodes.clear();
       }

@@ -218,20 +218,22 @@
 			padding: 0;
 		}
 
-		li {
-			margin: 15px 0;
-			background: rgba(255, 215, 0, 0.05);
-			padding: 15px;
-			border-radius: 10px;
-			border: 1px solid rgba(255, 215, 0, 0.2);
-			transition: all 0.3s ease;
-		}
+                li {
+                        margin: 15px 0;
+                        background: rgba(255, 215, 0, 0.05);
+                        padding: 15px;
+                        border-radius: 10px;
+                        border: 1px solid rgba(255, 215, 0, 0.2);
+                        transition: all 0.3s ease;
+                        overflow: hidden;
+                }
 
-		li:hover {
-			background: rgba(255, 215, 0, 0.1);
-			transform: translateY(-2px);
-			box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
-		}
+                li:hover,
+                li:focus-within {
+                        background: rgba(255, 215, 0, 0.1);
+                        transform: translateY(-2px);
+                        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+                }
 
 		li a {
 			font-size: 18px;
@@ -240,10 +242,27 @@
 			transition: color 0.3s ease;
 		}
 
-		li a:hover {
-			color: #FFD700;
-			text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
-		}
+                li a:hover {
+                        color: #FFD700;
+                        text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+                }
+
+        .game-description {
+            margin: 12px auto 0;
+            max-width: 560px;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #F5F5DC;
+            opacity: 0;
+            max-height: 0;
+            transition: opacity 0.3s ease, max-height 0.3s ease;
+        }
+
+        li:hover .game-description,
+        li:focus-within .game-description {
+            opacity: 1;
+            max-height: 500px;
+        }
 
         /* Small tagline for company and AI note */
         .tagline {
@@ -327,6 +346,7 @@
                     <span data-star="5">★</span>
                 </div>
                 <span class="score"></span>
+                <p class="game-description">Stabilize a collapsing mining colony by blasting swarms of robots, swapping weapons on the fly, and protecting the fusion core for as long as you can.</p>
                 <div class="actions">
                         <a href="core-crisis/index.html" class="play-btn">Play Now!</a>
                         <a href="leaderboard.html?gameId=core-crisis" class="leaderboard-btn">View Leaderboard</a>
@@ -341,6 +361,7 @@
                     <span data-star="5">�~.</span>
                 </div>
                 <span class="score"></span>
+                <p class="game-description">Launch into a neon starfield, chain together charged shots, and weave through bullet-hell patterns to climb the intergalactic high score table.</p>
                 <div class="actions">
                         <a href="nova-striker/index.html" class="play-btn">Play Now!</a>
                         <a href="leaderboard.html?gameId=nova-striker" class="leaderboard-btn">View Leaderboard</a>
@@ -355,6 +376,7 @@
                     <span data-star="5">★</span>
                 </div>
                 <span class="score"></span>
+                <p class="game-description">Draft the perfect mix of defenders, upgrade your siege engines, and hold off endless waves of enemies in this strategic auto-battler.</p>
                 <div class="actions">
                         <a href="bastion-builder/index.html" class="play-btn">Play Now!</a>
                         <a href="leaderboard.html?gameId=bastion-builder" class="leaderboard-btn">View Leaderboard</a>
@@ -369,6 +391,7 @@
                     <span data-star="5">★</span>
                 </div>
                 <span class="score"></span>
+                <p class="game-description">Build a shimmering gauntlet of towers, combine elemental damage types, and adapt your layout to repel crystalline invaders marching on your base.</p>
                 <div class="actions">
                         <a href="aurora-tower-defense/index.html" class="play-btn">Play Now!</a>
                         <a href="leaderboard.html?gameId=aurora-tower-defense" class="leaderboard-btn">View Leaderboard</a>
@@ -383,6 +406,7 @@
                     <span data-star="5">★</span>
                 </div>
                 <span class="score"></span>
+                <p class="game-description">Smash glowing brick formations with multi-ball powerups, warp portals, and screen-filling lasers in this synthwave take on the arcade classic.</p>
                 <div class="actions">
                         <a href="neon-brick-breaker/index.html" class="play-btn">Play Now!</a>
                         <a href="leaderboard.html?gameId=neon-brick-breaker" class="leaderboard-btn">View Leaderboard</a>

@@ -532,6 +532,7 @@
       ['heroWizardHit', 'assets/sfx_hero_wizard_hit.wav'],
       ['xp', 'assets/sfx_xp.wav'],
       ['key', 'assets/sfx_key.wav'],
+      ['heart', 'assets/sfx_heart.wav'],
       ['treasure', 'assets/sfx_treasure.wav'],
       ['goblinHurt', 'assets/sfx_goblin_hurt.wav'],
       ['impHurt', 'assets/sfx_imp_hurt.wav'],
@@ -5402,6 +5403,7 @@
             if (P.hp < P.hpMax){
               P.hp += 1; drawHearts();
               spark(d.x,d.y,'#ff8a8a');
+              playSfx('heart');
               consumed = true;
             }
           }

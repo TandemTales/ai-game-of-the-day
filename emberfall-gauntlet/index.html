@@ -5388,7 +5388,8 @@
       for (let i=drops.length-1;i>=0;i--){
         const d=drops[i]; d.t += dt; const drift = Math.min(1,d.t*3);
         // Magnet effect pulls XP toward the player with a short delay and ramp-up
-        if (d.kind==='xp' && UPGR.magnet>0 && d.t > MAGNET_DELAY){
+        const magneticDrop = d.kind === 'xp' || d.kind === 'key';
+        if (magneticDrop && UPGR.magnet>0 && d.t > MAGNET_DELAY){
           const dx = P.x-d.x, dy = P.y-d.y; const dist = Math.hypot(dx,dy);
           const mR = 50 + UPGR.magnet*40;
           if (dist < mR){

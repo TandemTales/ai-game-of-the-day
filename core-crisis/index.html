@@ -1302,7 +1302,7 @@
         const w = h * (IMG.smasher.width / IMG.smasher.height);
         const peek = 30;
         const y = -h/2 + peek;
-        smashers.push({ x, y, w, h, state: 'peek', timer: 0.9, dropSpeed: 900, hitX: 0.9, hitY: 1.0 });
+        smashers.push({ x, y, w, h, state: 'peek', timer: 0.9, dropSpeed: 900, hitX: 0.9, hitY: 1.0, justDropped: 0 });
           smasherTimer = rand(14, 28) / difficulty; // reduced smasher spawn frequency
       }
 
@@ -1335,8 +1335,13 @@
           if (sm.timer <= 0) sm.state = 'drop';
         } else if (sm.state === 'drop') {
           sm.y += sm.dropSpeed * dt;
-          if (sm.y >= sm.h/2) { sm.y = sm.h/2; sm.state = 'down'; }
+          if (sm.y >= sm.h/2) {
+            sm.y = sm.h/2;
+            sm.state = 'down';
+            sm.justDropped = 0.25;
+          }
         }
+        if (sm.justDropped > 0) sm.justDropped = Math.max(0, sm.justDropped - dt);
       }
 
       for (let i = cogs.length - 1; i >= 0; i--) {
@@ -1533,7 +1538,35 @@
           hitGrace = 2; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
           return;
         }
+        function getBounds(entity) {
+          const cx = entity.x + (entity.hitOffsetX || 0);
+          const cy = entity.y + (entity.hitOffsetY || 0);
+          const w = entity.w * (entity.hitX || 1);
+          const h = entity.h * (entity.hitY || 1);
+          return {
+            cx,
+            cy,
+            w,
+            h,
+            left: cx - w/2,
+            right: cx + w/2,
+            top: cy - h/2,
+            bottom: cy + h/2,
+          };
+        }
+
+        function smasherCrushesPlayer(player, smasher) {
+          if (!(smasher.state === 'drop' || smasher.justDropped > 0)) return false;
+          const pb = getBounds(player);
+          const sb = getBounds(smasher);
+          if (pb.cy <= sb.cy) return false;
+          if (pb.top >= sb.bottom) return false;
+          if (pb.cx < sb.left || pb.cx > sb.right) return false;
+          return true;
+        }
+
         for (const sm of smashers) if (sm.state !== 'peek' && hit(P, sm)) {
+          if (!smasherCrushesPlayer(P, sm)) continue;
           if (!consumeShieldOnHit()) {
             heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
             loseRandomItem();

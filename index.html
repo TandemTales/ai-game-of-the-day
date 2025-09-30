@@ -218,22 +218,52 @@
 			padding: 0;
 		}
 
-		li {
-			margin: 15px 0;
-			background: rgba(255, 215, 0, 0.05);
-			padding: 15px;
-			border-radius: 10px;
-			border: 1px solid rgba(255, 215, 0, 0.2);
-			transition: all 0.3s ease;
-		}
+                li {
+                        margin: 15px 0;
+                        background: rgba(255, 215, 0, 0.05);
+                        padding: 15px;
+                        border-radius: 10px;
+                        border: 1px solid rgba(255, 215, 0, 0.2);
+                        transition: all 0.3s ease;
+                        cursor: pointer;
+                        position: relative;
+                        overflow: hidden;
+                }
 
-		li:hover {
-			background: rgba(255, 215, 0, 0.1);
-			transform: translateY(-2px);
-			box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
-		}
+                li:hover {
+                        background: rgba(255, 215, 0, 0.1);
+                        transform: translateY(-2px);
+                        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+                }
 
-		li a {
+                li:focus-visible {
+                        outline: 3px solid #FFD700;
+                        outline-offset: 4px;
+                }
+
+                li .game-description {
+                        max-height: 0;
+                        opacity: 0;
+                        overflow: hidden;
+                        transition: max-height 0.3s ease, opacity 0.3s ease;
+                        font-size: 13px;
+                        line-height: 1.5;
+                        color: #F5F5DC;
+                        margin: 0;
+                }
+
+                li.expanded {
+                        background: rgba(255, 215, 0, 0.15);
+                        box-shadow: 0 6px 18px rgba(255, 215, 0, 0.25);
+                }
+
+                li.expanded .game-description {
+                        max-height: 400px;
+                        opacity: 1;
+                        margin-top: 12px;
+                }
+
+                li a {
 			font-size: 18px;
 			color: #5F9EA0;
 			text-decoration: none;
@@ -327,6 +357,8 @@
                     <span data-star="5">★</span>
                 </div>
                 <span class="score"></span>
+                <p class="game-description">Defend unstable power cores from swarms of rogue machines by swapping between
+                beam, pulse, and shield modes in this frantic arena defense challenge.</p>
                 <div class="actions">
                         <a href="core-crisis/index.html" class="play-btn">Play Now!</a>
                         <a href="leaderboard.html?gameId=core-crisis" class="leaderboard-btn">View Leaderboard</a>
@@ -341,6 +373,8 @@
                     <span data-star="5">�~.</span>
                 </div>
                 <span class="score"></span>
+                <p class="game-description">Pilot the strike craft Nova and weave through meteor fields while unleashing
+                charged shots to dismantle invading armadas across the galaxy.</p>
                 <div class="actions">
                         <a href="nova-striker/index.html" class="play-btn">Play Now!</a>
                         <a href="leaderboard.html?gameId=nova-striker" class="leaderboard-btn">View Leaderboard</a>
@@ -355,6 +389,8 @@
                     <span data-star="5">★</span>
                 </div>
                 <span class="score"></span>
+                <p class="game-description">Gather resources, raise fortified walls, and deploy clever traps to keep the
+                encroaching hordes at bay while your settlement grows stronger.</p>
                 <div class="actions">
                         <a href="bastion-builder/index.html" class="play-btn">Play Now!</a>
                         <a href="leaderboard.html?gameId=bastion-builder" class="leaderboard-btn">View Leaderboard</a>
@@ -369,6 +405,8 @@
                     <span data-star="5">★</span>
                 </div>
                 <span class="score"></span>
+                <p class="game-description">Channel the power of the aurora to place elemental towers that freeze, shock,
+                and shatter crystalline invaders marching toward your portal.</p>
                 <div class="actions">
                         <a href="aurora-tower-defense/index.html" class="play-btn">Play Now!</a>
                         <a href="leaderboard.html?gameId=aurora-tower-defense" class="leaderboard-btn">View Leaderboard</a>
@@ -383,6 +421,8 @@
                     <span data-star="5">★</span>
                 </div>
                 <span class="score"></span>
+                <p class="game-description">Bounce a blazing neon orb, snag power-ups, and vaporize layered brick patterns
+                in a synthwave spin on classic paddle-and-ball action.</p>
                 <div class="actions">
                         <a href="neon-brick-breaker/index.html" class="play-btn">Play Now!</a>
                         <a href="leaderboard.html?gameId=neon-brick-breaker" class="leaderboard-btn">View Leaderboard</a>
@@ -418,6 +458,85 @@
 			</li>
         </ul>
 	</div>
+
+       <script>
+         document.addEventListener('DOMContentLoaded', function() {
+           const gameItems = Array.from(document.querySelectorAll('#games > li'));
+           if (!gameItems.length) return;
+
+           const collapseOthers = (activeItem) => {
+             gameItems.forEach(item => {
+               if (item !== activeItem) {
+                 item.classList.remove('expanded');
+                 item.setAttribute('aria-expanded', 'false');
+               }
+             });
+           };
+
+           const toggleItem = (item) => {
+             const isExpanded = item.classList.contains('expanded');
+             collapseOthers(item);
+             if (isExpanded) {
+               item.classList.remove('expanded');
+               item.setAttribute('aria-expanded', 'false');
+             } else {
+               item.classList.add('expanded');
+               item.setAttribute('aria-expanded', 'true');
+             }
+           };
+
+           gameItems.forEach(item => {
+             item.setAttribute('tabindex', '0');
+             item.setAttribute('role', 'button');
+             item.setAttribute('aria-expanded', 'false');
+
+             const primaryLink = item.querySelector(':scope > a');
+             if (primaryLink) {
+               primaryLink.setAttribute('tabindex', '-1');
+             }
+
+             item.addEventListener('click', function(event) {
+               const target = event.target;
+               if (!(target instanceof Element)) {
+                 return;
+               }
+
+               if (target.closest('.actions') || target.closest('.rate')) {
+                 return;
+               }
+
+               if (primaryLink && (target === primaryLink || target.closest('a') === primaryLink)) {
+                 event.preventDefault();
+               }
+
+               toggleItem(item);
+             });
+
+             item.addEventListener('keydown', function(event) {
+               if (event.key === 'Enter' || event.key === ' ') {
+                 event.preventDefault();
+                 toggleItem(item);
+               }
+             });
+           });
+
+           document.addEventListener('click', function(event) {
+             const target = event.target;
+             if (!(target instanceof Element)) {
+               return;
+             }
+
+             if (target.closest('#games > li')) {
+               return;
+             }
+
+             gameItems.forEach(item => {
+               item.classList.remove('expanded');
+               item.setAttribute('aria-expanded', 'false');
+             });
+           });
+         });
+       </script>
 
        <script>
        // Remove deprecated games from DOM

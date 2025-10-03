@@ -3615,6 +3615,7 @@
       return baby;
     }
 
+    const BEHOLDER_BABY_SPAWN_LIMIT = 30;
     const ABOMINATION_MAX_TENTACLES = 10;
     const ABOMINATION_TOTAL_TENTACLE_LIMIT = 20;
     const ABOMINATION_WAVE_BASE_RANGE = 120;
@@ -4077,6 +4078,9 @@
           sleepT:0,
           sleepMax:0,
         }, tracker);
+        if (bossType === 'beholder'){
+          b.totalBabyBeholderSpawned = 0;
+        }
         if (bossType === 'hungerDemon'){
           b.hungerImpEmpowered = false;
         }
@@ -5126,8 +5130,13 @@
                   if (other === e || other.hp <= 0) continue;
                   if (other.kind === 'babyBeholder') babies++;
                 }
-                if (babies < 5){
+                const totalSpawned = e.totalBabyBeholderSpawned || 0;
+                const reachedLimit = stage === 4 && totalSpawned >= BEHOLDER_BABY_SPAWN_LIMIT;
+                if (babies < 5 && !reachedLimit){
                   spawnBabyBeholder(e);
+                  if (stage === 4){
+                    e.totalBabyBeholderSpawned = totalSpawned + 1;
+                  }
                 }
               }
             }

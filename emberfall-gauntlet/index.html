@@ -2645,6 +2645,9 @@
     let stage = 0;
     const STAGE_WAVES = 2;
     const HUNGER_DEMON_MINION_PERIOD = 2;
+    const HUNGER_DEMON_IMP_LIMIT = 30;
+    const HUNGER_DEMON_PROJECTILE_BASE_TTL = 3;
+    const HUNGER_DEMON_PROJECTILE_BASE_DMG = 1;
     const HILL_GIANT_GOBLIN_LIMIT = 30;
     const HILL_GIANT_GOBLIN_WINDOW = 10;
     const HILL_GIANT_GOBLIN_PERIOD = HILL_GIANT_GOBLIN_WINDOW / HILL_GIANT_GOBLIN_LIMIT;
@@ -3883,6 +3886,15 @@
     }
 
     function spawnHungerDemonMinion(bossEntity){
+      const controller = bossEntity && bossEntity.bossController ? bossEntity.bossController : (boss && boss.bossType === 'hungerDemon' ? boss : null);
+      const limit = controller && controller.hungerImpSpawnLimit != null ? controller.hungerImpSpawnLimit : HUNGER_DEMON_IMP_LIMIT;
+      if (controller){
+        controller.hungerImpSpawned = controller.hungerImpSpawned || 0;
+        controller.hungerImpActive = controller.hungerImpActive || 0;
+        if (controller.hungerImpSpawned >= limit){
+          return null;
+        }
+      }
       let x = ARENA.x + ARENA.w / 2;
       let y = ARENA.y + ARENA.h / 2;
       if (bossEntity && typeof bossEntity.x === 'number' && typeof bossEntity.y === 'number') {
@@ -3928,9 +3940,15 @@
         sleepT: 0,
         sleepMax: 0,
         contactDmg: 2,
+        summonedByHungerDemon: true,
+        hungerDemonController: controller,
       };
       applyStageEnemyBonuses('imp', enemy);
       applyDifficultyEnemyHp(enemy);
+      if (controller){
+        controller.hungerImpSpawned += 1;
+        controller.hungerImpActive += 1;
+      }
       enemies.push(enemy);
       return enemy;
     }
@@ -4008,6 +4026,11 @@
       if (bossType === 'abomination'){
         tracker.tentacleTimer = 0;
         tracker.tentacleInterval = stage === 2 ? 2.5 : 5;
+      } else if (bossType === 'hungerDemon'){
+        tracker.hungerImpSpawnLimit = HUNGER_DEMON_IMP_LIMIT;
+        tracker.hungerImpSpawned = 0;
+        tracker.hungerImpActive = 0;
+        tracker.hungerImpEmpowered = false;
       }
       switchMusic(BOSS_TRACKS);
       if (bossType === 'muck'){
@@ -4037,6 +4060,9 @@
           sleepT:0,
           sleepMax:0,
         }, tracker);
+        if (bossType === 'hungerDemon'){
+          b.hungerImpEmpowered = false;
+        }
         if (bossType === 'hillGiant') {
           b.slamCd = 3;
           tracker.goblinSpawnTimer = 0;
@@ -4411,6 +4437,24 @@
                 }
                 if (!anyLiving){
                   boss.goblinEnraged = true;
+                }
+              }
+            }
+          }
+          if (e.summonedByHungerDemon){
+            const tracker = e.hungerDemonController || (boss && boss.bossType === 'hungerDemon' ? boss : null);
+            if (tracker){
+              const active = Math.max(0, (tracker.hungerImpActive || 0) - 1);
+              tracker.hungerImpActive = active;
+              const limit = tracker.hungerImpSpawnLimit != null ? tracker.hungerImpSpawnLimit : HUNGER_DEMON_IMP_LIMIT;
+              if (!tracker.hungerImpEmpowered && active === 0 && (tracker.hungerImpSpawned || 0) >= limit){
+                tracker.hungerImpEmpowered = true;
+                if (tracker.nodes && tracker.nodes.size){
+                  for (const node of tracker.nodes){
+                    if (node && node.kind === 'boss' && node.bossType === 'hungerDemon'){
+                      node.hungerImpEmpowered = true;
+                    }
+                  }
                 }
               }
             }
@@ -5107,11 +5151,16 @@
             if (e.freezeT <= 0 && e.atkT >= 2.4){
               e.atkT = 0;
               const count = 8;
+              const baseSpeed = 140;
+              const controller = e.bossController;
+              const empowered = !!(e.hungerImpEmpowered || (controller && controller.hungerImpEmpowered));
+              const projectileTtl = empowered ? HUNGER_DEMON_PROJECTILE_BASE_TTL * 2 : HUNGER_DEMON_PROJECTILE_BASE_TTL;
+              const projectileDmg = empowered ? HUNGER_DEMON_PROJECTILE_BASE_DMG * 2 : HUNGER_DEMON_PROJECTILE_BASE_DMG;
               for (let i=0;i<count;i++){
                 const ang = (Math.PI*2 / count) * i;
-                const vx = Math.cos(ang) * 140;
-                const vy = Math.sin(ang) * 140;
-                BOSS_PROJECTILES.push({ kind:'slime', dir: vx < 0 ? 'left' : 'right', x:e.x, y:e.y, vx, vy, life:0, ttl:3, frame:0, animT:0 });
+                const vx = Math.cos(ang) * baseSpeed;
+                const vy = Math.sin(ang) * baseSpeed;
+                BOSS_PROJECTILES.push({ kind:'slime', dmg:projectileDmg, dir: vx < 0 ? 'left' : 'right', x:e.x, y:e.y, vx, vy, life:0, ttl:projectileTtl, frame:0, animT:0 });
               }
             }
             if (e.freezeT <= 0 && e.blastT >= 5){

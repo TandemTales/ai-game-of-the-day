@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17405200669"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'AW-17405200669');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Starlight Rift Rally</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
+  <style>
+    :root {
+      --gold: #ffd700;
+      --teal: #5f9ea0;
+      --ink: #f5f5dc;
+      --violet: #472c88;
+      --crimson: #ff4571;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; padding: 0; background: radial-gradient(circle at 20% 12%, rgba(95,158,160,0.18), transparent 45%), linear-gradient(145deg, #05020d 0%, #110b2c 55%, #1b0834 100%); color: var(--ink); font-family: 'Press Start 2P', monospace; overflow: hidden; }
+    body { display: flex; flex-direction: column; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: rgba(0,0,0,0.55); border-bottom: 2px solid var(--gold); gap: 12px; z-index: 10; }
+    .topbar h1 { margin: 0; font-size: 16px; letter-spacing: 1px; background: linear-gradient(45deg, var(--gold), #ffa500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; text-align: center; flex: 1; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; color: white; background: linear-gradient(45deg, var(--teal), #4682b4); border: 2px solid var(--gold); border-radius: 12px; padding: 10px 16px; font-size: 12px; box-shadow: 0 4px 16px rgba(95,158,160,0.35); transition: transform 0.15s ease, box-shadow 0.15s ease; }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(95,158,160,0.55); }
+    .btn.disabled { opacity: 0.55; pointer-events: none; }
+    .btn.small { padding: 8px 10px; font-size: 11px; }
+    .game-shell { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    canvas { width: min(960px, 100%); max-width: 960px; aspect-ratio: 16 / 9; border: 3px solid rgba(255,215,0,0.35); border-radius: 16px; background: #03010d; image-rendering: pixelated; box-shadow: 0 14px 48px rgba(0,0,0,0.6); }
+    .hud { position: absolute; top: 34px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; background: rgba(0,0,0,0.55); padding: 10px 16px; border-radius: 12px; border: 2px solid rgba(255,215,0,0.55); font-size: 11px; letter-spacing: 0.5px; z-index: 12; }
+    .hud span { display: inline-flex; align-items: center; gap: 6px; }
+    .hud .label { color: var(--teal); }
+    .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 20px; padding: 20px; background: radial-gradient(circle at 50% 40%, rgba(8, 0, 15, 0.9), rgba(4, 0, 20, 0.95)); border-radius: 16px; border: 2px solid rgba(255,215,0,0.35); color: var(--ink); }
+    .overlay h2 { margin: 0; font-size: 20px; color: var(--gold); }
+    .overlay p { margin: 0; font-size: 12px; line-height: 1.6; color: #d3f3ff; }
+    .overlay.hidden { display: none; }
+    .overlay .score-line { color: var(--teal); font-size: 14px; }
+    .touch-controls { position: absolute; inset: 0; display: flex; pointer-events: none; }
+    .touch-controls .touch-zone { flex: 1; }
+    .touch-controls:not(.active) .touch-zone { pointer-events: none; }
+    .touch-controls.active { pointer-events: auto; }
+    .touch-controls.active .touch-zone { pointer-events: auto; }
+    .touch-zone + .touch-zone { border-left: 1px solid rgba(255,255,255,0.05); }
+    .touch-zone.active { background: rgba(95,158,160,0.15); }
+    @media (max-width: 720px) {
+      .topbar { flex-wrap: wrap; gap: 8px; }
+      .topbar h1 { font-size: 14px; order: 2; flex-basis: 100%; }
+      .btn { font-size: 11px; padding: 8px 12px; }
+      .hud { top: 20px; font-size: 10px; flex-wrap: wrap; justify-content: center; }
+      .overlay h2 { font-size: 18px; }
+      .overlay p { font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="btn" href="../index.html">Back to Home</a>
+    <h1>Starlight Rift Rally</h1>
+    <a id="lbLink" class="btn" href="../leaderboard.html?gameId=starlight-rift-rally">Leaderboard</a>
+  </header>
+  <div class="game-shell">
+    <canvas id="game" width="960" height="540"></canvas>
+    <div class="hud" id="hud">
+      <span><span class="label">Lap</span><span id="lap">1</span></span>
+      <span><span class="label">Speed</span><span id="speed">0</span> km/h</span>
+      <span><span class="label">Energy</span><span id="energy">100%</span></span>
+      <span><span class="label">Score</span><span id="score">0</span></span>
+    </div>
+    <div class="overlay" id="overlay">
+      <h2>Welcome to the Rift</h2>
+      <p>Thread your hovercraft through cascading astral lanes. Drift between hazards, ride energy rings, and chain boosts to set a record-breaking score.</p>
+      <p>Controls: Left/Right or A/D to shift lanes, Up/X to engage pulse boost. Tap sides of the screen on mobile.</p>
+      <a id="startBtn" class="btn" href="#">Start Race</a>
+      <a id="viewHome" class="btn small" href="../index.html">Back to Home</a>
+    </div>
+    <div class="overlay hidden" id="gameover">
+      <h2>Pulse Core Spent</h2>
+      <p class="score-line">Score: <span id="finalScore">0</span></p>
+      <p>Deepen your rhythm, refine your drift, and dive back into the Rift to climb the leaderboard.</p>
+      <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center;">
+        <a id="playAgain" class="btn" href="#">Race Again</a>
+        <a id="goLeaderboard" class="btn" href="../leaderboard.html?gameId=starlight-rift-rally">View Leaderboard</a>
+      </div>
+      <a class="btn small" href="../index.html">Back to Home</a>
+    </div>
+    <div class="touch-controls">
+      <div class="touch-zone" data-action="left"></div>
+      <div class="touch-zone" data-action="boost"></div>
+      <div class="touch-zone" data-action="right"></div>
+    </div>
+  </div>
+  <script>
+    const GAME_ID = 'starlight-rift-rally';
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const WIDTH = 960;
+    const HEIGHT = 540;
+    const hudScore = document.getElementById('score');
+    const hudLap = document.getElementById('lap');
+    const hudSpeed = document.getElementById('speed');
+    const hudEnergy = document.getElementById('energy');
+    const overlay = document.getElementById('overlay');
+    const startBtn = document.getElementById('startBtn');
+    const gameover = document.getElementById('gameover');
+    const finalScoreEl = document.getElementById('finalScore');
+    const playAgainBtn = document.getElementById('playAgain');
+    const goLeaderboardBtn = document.getElementById('goLeaderboard');
+    const touchZones = Array.from(document.querySelectorAll('.touch-zone'));
+    const touchControls = document.querySelector('.touch-controls');
+    const lbLink = document.getElementById('lbLink');
+    const startLabelDefault = startBtn ? startBtn.textContent.trim() : 'Start Race';
+    let pendingStart = false;
+
+    if (touchControls) {
+      touchControls.classList.remove('active');
+    }
+
+
+    function setStartLoading(isLoading) {
+      if (!startBtn) return;
+      if (isLoading) {
+        startBtn.classList.add('disabled');
+        startBtn.setAttribute('aria-busy', 'true');
+        startBtn.textContent = 'Preparing...';
+      } else {
+        startBtn.classList.remove('disabled');
+        startBtn.removeAttribute('aria-busy');
+        startBtn.textContent = startLabelDefault;
+      }
+    }
+
+    const assets = {
+      track: 'assets/track.png',
+      hovercraft: 'assets/hovercraft.png',
+      sky: 'assets/rift-sky.png'
+    };
+    const IMAGES = {};
+
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+      });
+    }
+
+    const LANE_OFFSETS = [-180, 0, 180];
+    const state = {
+      playing: false,
+      ready: false,
+      lane: 1,
+      targetLane: 1,
+      boostTimer: 0,
+      speed: 180,
+      maxSpeed: 420,
+      time: 0,
+      distance: 0,
+      lap: 1,
+      lapLength: 2400,
+      energy: 100,
+      combo: 0,
+      score: 0,
+      trackOffset: 0,
+      hazardTimer: 0,
+      ringTimer: 0,
+      auroraPulse: 0,
+      hazards: [],
+      rings: [],
+      sparks: [],
+      lastTimestamp: 0,
+      gameOverHandled: false
+    };
+
+    const HAZARD_SPEED = 230;
+    const RING_SPEED = 200;
+    const PLAYER = { x: WIDTH / 2, y: HEIGHT - 160, wobble: 0 };
+
+    function resetGame() {
+      state.playing = true;
+      if (touchControls) {
+        touchControls.classList.add('active');
+      }
+      state.lane = 1;
+      state.targetLane = 1;
+      state.boostTimer = 0;
+      state.speed = 220;
+      state.maxSpeed = 460;
+      state.time = 0;
+      state.distance = 0;
+      state.lap = 1;
+      state.energy = 100;
+      state.combo = 0;
+      state.score = 0;
+      state.trackOffset = 0;
+      state.hazardTimer = 0;
+      state.ringTimer = 0;
+      state.auroraPulse = 0;
+      state.hazards.length = 0;
+      state.rings.length = 0;
+      state.sparks.length = 0;
+      state.lastTimestamp = performance.now();
+      state.gameOverHandled = false;
+      hudScore.textContent = '0';
+      hudLap.textContent = '1';
+      hudEnergy.textContent = '100%';
+      hudSpeed.textContent = '0';
+      overlay.classList.add('hidden');
+      gameover.classList.add('hidden');
+      requestAnimationFrame(loop);
+    }
+
+    function spawnHazard() {
+      const lane = Math.floor(Math.random() * 3);
+      const size = 54 + Math.random() * 48;
+      state.hazards.push({ lane, y: -120, size, wobble: Math.random() * Math.PI * 2 });
+    }
+
+    function spawnRing() {
+      const lane = Math.floor(Math.random() * 3);
+      const width = 90;
+      state.rings.push({ lane, y: -150, width, taken: false, pulse: 0 });
+    }
+
+    function addSparks(x, y, color) {
+      for (let i = 0; i < 14; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 80 + Math.random() * 160;
+        state.sparks.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 0.4 + Math.random() * 0.25,
+          color
+        });
+      }
+    }
+
+    function lerp(a, b, t) { return a + (b - a) * t; }
+
+    function update(dt) {
+      state.time += dt;
+      state.trackOffset = (state.trackOffset + state.speed * dt * 0.6) % IMAGES.track.height;
+      state.hazardTimer -= dt;
+      state.ringTimer -= dt;
+      state.auroraPulse += dt;
+
+      const laneX = WIDTH / 2 + LANE_OFFSETS[state.lane];
+      const targetX = WIDTH / 2 + LANE_OFFSETS[state.targetLane];
+      PLAYER.x = lerp(laneX, targetX, Math.min(1, dt * 6));
+      if (Math.abs(targetX - PLAYER.x) < 4) {
+        state.lane = state.targetLane;
+      }
+
+      if (state.boostTimer > 0) {
+        state.boostTimer -= dt;
+        state.speed = Math.min(state.maxSpeed, state.speed + 160 * dt);
+      } else {
+        state.speed = lerp(state.speed, 260 + state.combo * 18, 0.6 * dt);
+      }
+
+      state.speed = Math.min(state.speed, state.maxSpeed + state.combo * 8);
+      state.distance += state.speed * dt;
+      const lapNumber = Math.floor(state.distance / state.lapLength) + 1;
+      if (lapNumber !== state.lap) {
+        state.lap = lapNumber;
+        state.energy = Math.min(100, state.energy + 12);
+        state.combo += 1;
+        addSparks(WIDTH / 2, 110, 'lap');
+      }
+
+      if (state.hazardTimer <= 0) {
+        spawnHazard();
+        state.hazardTimer = 0.9 - Math.min(0.45, state.time * 0.005);
+      }
+      if (state.ringTimer <= 0) {
+        spawnRing();
+        state.ringTimer = 3.2 - Math.min(1.4, state.time * 0.003);
+      }
+
+      state.hazards.forEach(h => {
+        h.y += (HAZARD_SPEED + state.speed * 0.45) * dt;
+        h.wobble += dt * 2;
+      });
+      state.hazards = state.hazards.filter(h => h.y < HEIGHT + 160);
+
+      state.rings.forEach(r => {
+        r.y += (RING_SPEED + state.speed * 0.50) * dt;
+        r.pulse += dt * 6;
+      });
+      state.rings = state.rings.filter(r => r.y < HEIGHT + 200 && !r.expired);
+
+      for (const s of state.sparks) {
+        s.life -= dt;
+        s.x += s.vx * dt;
+        s.y += s.vy * dt;
+        s.vx *= 0.94;
+        s.vy *= 0.94;
+      }
+      state.sparks = state.sparks.filter(s => s.life > 0);
+
+      handleCollisions();
+      updateScoreHud();
+
+      if (state.energy <= 0 && !state.gameOverHandled) {
+        endRun();
+      }
+    }
+
+    function handleCollisions() {
+      const playerLane = state.targetLane;
+      const px = WIDTH / 2 + LANE_OFFSETS[playerLane];
+      const py = PLAYER.y;
+
+      for (const hazard of state.hazards) {
+        const hx = WIDTH / 2 + LANE_OFFSETS[hazard.lane];
+        const hy = hazard.y;
+        const dist = Math.hypot(px - hx, py - hy);
+        if (dist < hazard.size * 0.65) {
+          state.energy -= 18;
+          state.combo = 0;
+          addSparks(hx, hy, 'hit');
+          hazard.y = HEIGHT + 400;
+        }
+      }
+
+      for (const ring of state.rings) {
+        if (ring.taken) continue;
+        const rx = WIDTH / 2 + LANE_OFFSETS[ring.lane];
+        const ry = ring.y;
+        const dist = Math.hypot(px - rx, py - ry);
+        if (dist < ring.width * 0.6) {
+          ring.taken = true;
+          state.energy = Math.min(100, state.energy + 10);
+          state.combo += 1;
+          state.boostTimer = Math.min(2.8, state.boostTimer + 1.2);
+          addSparks(rx, ry, 'ring');
+        }
+        if (ring.taken && !ring.expired) {
+          ring.expired = true;
+        }
+      }
+    }
+
+    function updateScoreHud() {
+      const comboBonus = state.combo * 80;
+      state.score = Math.floor(state.distance * 0.45 + state.lap * 420 + comboBonus);
+      hudScore.textContent = state.score.toLocaleString();
+      hudLap.textContent = state.lap.toString();
+      hudSpeed.textContent = Math.round(state.speed).toString();
+      hudEnergy.textContent = Math.max(0, Math.round(state.energy)).toString() + '%';
+    }
+
+    function render() {
+      if (!IMAGES.track || !IMAGES.hovercraft || !IMAGES.sky) {
+        ctx.clearRect(0, 0, WIDTH, HEIGHT);
+        ctx.fillStyle = '#06021a';
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+        ctx.fillStyle = '#5f9ea0';
+        ctx.font = '24px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('Loading...', WIDTH / 2, HEIGHT / 2);
+        ctx.textAlign = 'left';
+        return;
+      }
+      ctx.clearRect(0, 0, WIDTH, HEIGHT);
+      drawBackground();
+      drawTrack();
+      drawRings();
+      drawHazards();
+      drawPlayer();
+      drawSparks();
+      drawAuroraPulse();
+    }
+
+    function drawBackground() {
+      const sky = IMAGES.sky;
+      const scale = WIDTH / sky.width;
+      const height = sky.height * scale;
+      ctx.drawImage(sky, (WIDTH - sky.width * scale) / 2, -60, sky.width * scale, height);
+    }
+
+    function drawTrack() {
+      const img = IMAGES.track;
+      const scale = Math.min(1, WIDTH / img.width);
+      const w = img.width * scale;
+      const h = img.height * scale;
+      let y = -state.trackOffset * scale;
+      while (y < HEIGHT) {
+        ctx.drawImage(img, (WIDTH - w) / 2, y, w, h);
+        y += h;
+      }
+      ctx.save();
+      ctx.globalAlpha = 0.3 + Math.sin(state.time * 1.4) * 0.1;
+      ctx.fillStyle = 'rgba(80, 245, 255, 0.14)';
+      ctx.beginPath();
+      ctx.ellipse(WIDTH / 2, HEIGHT * 0.45, 280, 160, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawHazards() {
+      ctx.save();
+      for (const hazard of state.hazards) {
+        const x = WIDTH / 2 + LANE_OFFSETS[hazard.lane];
+        const y = hazard.y;
+        const size = hazard.size;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(Math.sin(hazard.wobble) * 0.4);
+        const gradient = ctx.createLinearGradient(-size, -size, size, size);
+        gradient.addColorStop(0, 'rgba(255,70,112,0.9)');
+        gradient.addColorStop(0.5, 'rgba(108,22,168,0.9)');
+        gradient.addColorStop(1, 'rgba(255,219,112,0.95)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.moveTo(0, -size * 0.6);
+        ctx.lineTo(size * 0.55, 0);
+        ctx.lineTo(0, size * 0.6);
+        ctx.lineTo(-size * 0.55, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+
+    function drawRings() {
+      ctx.save();
+      for (const ring of state.rings) {
+        const x = WIDTH / 2 + LANE_OFFSETS[ring.lane];
+        const y = ring.y;
+        const w = ring.width;
+        const pulse = Math.sin(ring.pulse) * 0.4;
+        ctx.beginPath();
+        ctx.lineWidth = 10 + pulse * 6;
+        ctx.strokeStyle = 'rgba(65,255,225,0.8)';
+        ctx.arc(x, y, w * 0.5 + pulse * 8, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+        ctx.arc(x, y, w * 0.38 + pulse * 4, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawPlayer() {
+      const img = IMAGES.hovercraft;
+      const bob = Math.sin(state.time * 6) * 4;
+      const laneX = WIDTH / 2 + LANE_OFFSETS[state.targetLane];
+      ctx.save();
+      ctx.translate(laneX, PLAYER.y + bob);
+      const tilt = (state.targetLane - 1) * 0.15 + Math.sin(state.time * 8) * 0.02;
+      ctx.rotate(tilt);
+      const scale = 0.78;
+      ctx.drawImage(img, -img.width * scale * 0.5, -img.height * scale * 0.5, img.width * scale, img.height * scale);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = 'rgba(90, 220, 255, 0.28)';
+      ctx.beginPath();
+      ctx.ellipse(0, img.height * scale * 0.34, img.width * scale * 0.36, 18, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawSparks() {
+      for (const spark of state.sparks) {
+        const alpha = Math.max(0, spark.life * 2);
+        let color;
+        if (spark.color === 'hit') color = `rgba(255,120,120,${alpha})`;
+        else if (spark.color === 'ring') color = `rgba(120,255,235,${alpha})`;
+        else color = `rgba(255,255,180,${alpha})`;
+        ctx.fillStyle = color;
+        ctx.fillRect(spark.x - 2, spark.y - 2, 4, 4);
+      }
+    }
+
+    function drawAuroraPulse() {
+      const pulse = 0.35 + Math.sin(state.time * 1.3) * 0.12;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const gradient = ctx.createRadialGradient(WIDTH / 2, HEIGHT * 0.36, 60, WIDTH / 2, HEIGHT * 0.36, 360);
+      gradient.addColorStop(0, `rgba(80,255,230,${0.25 + pulse * 0.4})`);
+      gradient.addColorStop(0.6, 'rgba(128,30,255,0.12)');
+      gradient.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.restore();
+    }
+
+    function loop(ts) {
+      if (!state.playing) return;
+      const dt = Math.min(0.05, (ts - state.lastTimestamp) / 1000 || 0.016);
+      state.lastTimestamp = ts;
+      update(dt);
+      render();
+      if (state.playing) requestAnimationFrame(loop);
+    }
+
+    function changeLane(dir) {
+      state.targetLane = Math.min(2, Math.max(0, state.targetLane + dir));
+    }
+
+    function engageBoost() {
+      state.boostTimer = Math.min(3.5, state.boostTimer + 0.6);
+      state.maxSpeed = Math.min(540, state.maxSpeed + 12);
+    }
+
+    function endRun() {
+      state.playing = false;
+      state.gameOverHandled = true;
+      if (touchControls) {
+        touchControls.classList.remove('active');
+      }
+      finalScoreEl.textContent = state.score.toLocaleString();
+      gameover.classList.remove('hidden');
+      maybeSubmitLeaderboard();
+    }
+
+    function computeScore() {
+      return state.score;
+    }
+
+    async function maybeSubmitLeaderboard() {
+      const score = computeScore();
+      let dest = `../leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
+      try {
+        const res = await fetch(`/api/leaderboard/rank?gameId=${encodeURIComponent(GAME_ID)}&score=${encodeURIComponent(score)}`, { headers: { 'Accept': 'application/json' } });
+        if (res.ok) {
+          const data = await res.json();
+          const rank = Number(data?.rank);
+          const qualifies = Number.isFinite(rank) && rank > 0 && rank <= 20;
+          if (qualifies) {
+            let name = prompt(`New High Score! You placed #${rank}. Enter your name (max 20 chars):`, '');
+            if (name != null) {
+              name = name.trim().replace(/[^\w \-'.!]/g, '').slice(0, 20);
+              if (name) {
+                let submitted = false;
+                try {
+                  await fetch('/api/leaderboard/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gameId: GAME_ID, name, score })
+                  });
+                  submitted = true;
+                } catch {}
+                if (submitted) {
+                  dest += `&highlightRank=${encodeURIComponent(rank)}`;
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        goLeaderboardBtn.href = dest;
+        lbLink.href = dest;
+      }
+    }
+
+    function bindInputs() {
+      window.addEventListener('keydown', (ev) => {
+        if (!state.ready && ev.code === 'Enter') {
+          ev.preventDefault();
+          return startRace();
+        }
+        if (!state.playing) return;
+        if (ev.repeat) return;
+        if (ev.code === 'ArrowLeft' || ev.code === 'KeyA') changeLane(-1);
+        if (ev.code === 'ArrowRight' || ev.code === 'KeyD') changeLane(1);
+        if (ev.code === 'ArrowUp' || ev.code === 'KeyW' || ev.code === 'KeyX') engageBoost();
+      });
+
+      window.addEventListener('touchstart', handleTouch);
+      window.addEventListener('touchend', handleTouchEnd);
+
+      touchZones.forEach(zone => {
+        zone.addEventListener('touchstart', (ev) => {
+          ev.preventDefault();
+          zone.classList.add('active');
+          if (!state.playing) return;
+          const action = zone.dataset.action;
+          if (action === 'left') changeLane(-1);
+          if (action === 'right') changeLane(1);
+          if (action === 'boost') engageBoost();
+        });
+        zone.addEventListener('touchend', () => zone.classList.remove('active'));
+        zone.addEventListener('touchcancel', () => zone.classList.remove('active'));
+      });
+    }
+
+    function handleTouch(ev) {
+      if (!state.playing) return;
+      const x = ev.touches[0]?.clientX;
+      if (x == null) return;
+      const rect = canvas.getBoundingClientRect();
+      const relative = (x - rect.left) / rect.width;
+      if (relative < 0.33) changeLane(-1);
+      else if (relative > 0.66) changeLane(1);
+      else engageBoost();
+    }
+
+    function handleTouchEnd() {
+      touchZones.forEach(zone => zone.classList.remove('active'));
+    }
+
+    function startRace() {
+      if (!state.ready) {
+        pendingStart = true;
+        setStartLoading(true);
+        if (touchControls) {
+          touchControls.classList.remove('active');
+        }
+        return;
+      }
+      pendingStart = false;
+      setStartLoading(false);
+      resetGame();
+    }
+
+    startBtn.addEventListener('click', (ev) => { ev.preventDefault(); startRace(); });
+    playAgainBtn.addEventListener('click', (ev) => { ev.preventDefault(); startRace(); });
+
+    function resize() {
+      const scale = window.devicePixelRatio || 1;
+      canvas.width = Math.round(WIDTH * scale);
+      canvas.height = Math.round(HEIGHT * scale);
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    }
+
+    window.addEventListener('resize', () => {
+      resize();
+      if (!state.playing) render();
+    });
+
+    Promise.all(Object.entries(assets).map(async ([key, src]) => {
+      const img = await loadImage(src);
+      IMAGES[key] = img;
+    })).then(() => {
+      state.ready = true;
+      resize();
+      render();
+      if (pendingStart) {
+        startRace();
+      } else {
+        setStartLoading(false);
+      }
+    }).catch(() => {
+      overlay.querySelector('p').textContent = 'Failed to load assets. Refresh to try again.';
+      setStartLoading(false);
+    });
+
+    bindInputs();
+    resize();
+    render();
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+

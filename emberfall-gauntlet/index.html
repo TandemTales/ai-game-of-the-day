@@ -3615,19 +3615,35 @@
       return baby;
     }
 
-    const ABOMINATION_MAX_TENTACLES = 6;
+    const ABOMINATION_MAX_TENTACLES = 10;
+    const ABOMINATION_TOTAL_TENTACLE_LIMIT = 20;
+    const ABOMINATION_WAVE_BASE_RANGE = 120;
+
+    function boostAbominationWaveRange(tracker){
+      if (!tracker || tracker.abominationWaveBoosted) return;
+      const currentRange = tracker.abominationWaveRange || ABOMINATION_WAVE_BASE_RANGE;
+      const boostedRange = currentRange * 2;
+      tracker.abominationWaveBoosted = true;
+      tracker.abominationWaveRange = boostedRange;
+      if (tracker.nodes && tracker.nodes.size){
+        for (const node of tracker.nodes){
+          if (!node || node.kind !== 'boss' || node.bossType !== 'abomination') continue;
+          node.waveRange = boostedRange;
+        }
+      }
+    }
     function spawnAbominationTentacle(tracker){
       if (!tracker) return null;
       const livingTentacles = (tracker.tentacles || []).filter(t => t && t.hp > 0);
       tracker.tentacles = livingTentacles;
-      if (livingTentacles.length >= ABOMINATION_MAX_TENTACLES){
-        const oldest = livingTentacles.shift();
-        if (oldest){
-          oldest.despawned = true;
-          oldest.hp = 0;
-          const idx = enemies.indexOf(oldest);
-          if (idx !== -1) enemies.splice(idx, 1);
-        }
+      const activeLimit = tracker.tentacleActiveLimit ?? ABOMINATION_MAX_TENTACLES;
+      if (livingTentacles.length >= activeLimit){
+        return null;
+      }
+      const totalLimit = tracker.tentacleTotalLimit ?? ABOMINATION_TOTAL_TENTACLE_LIMIT;
+      const spawnedTotal = tracker.tentacleSpawnedTotal || 0;
+      if (spawnedTotal >= totalLimit){
+        return null;
       }
       const pad = 36;
       const width = ENEMY.w * 2 * 1.75;
@@ -3721,6 +3737,7 @@
       applyDifficultyEnemyHp(tentacle);
       tentacle.bossController = tracker;
       livingTentacles.push(tentacle);
+      tracker.tentacleSpawnedTotal = spawnedTotal + 1;
       enemies.push(tentacle);
       return tentacle;
     }
@@ -4103,6 +4120,12 @@
         tracker.tentacleTimer = 0;
         const pendingInterval = tracker.pendingTentacleInterval;
         tracker.tentacleInterval = Number.isFinite(pendingInterval) ? pendingInterval : (stage === 2 ? 2.5 : 5);
+        tracker.tentacles = [];
+        tracker.tentacleSpawnedTotal = 0;
+        tracker.tentacleActiveLimit = ABOMINATION_MAX_TENTACLES;
+        tracker.tentacleTotalLimit = ABOMINATION_TOTAL_TENTACLE_LIMIT;
+        tracker.abominationWaveBoosted = false;
+        tracker.abominationWaveRange = ABOMINATION_WAVE_BASE_RANGE;
         delete tracker.pendingAbominationHp;
         delete tracker.pendingAbominationSize;
         delete tracker.pendingAbominationType;
@@ -4129,6 +4152,7 @@
         rayT:0,
         sleepT:0,
         sleepMax:0,
+        waveRange: tracker ? tracker.abominationWaveRange : ABOMINATION_WAVE_BASE_RANGE,
       }, tracker);
       enemies.push(abomination);
       playSfx('bossAbominationHurt');
@@ -4401,6 +4425,17 @@
           let muckResult = null;
           if (isMuckGoat){
             muckResult = handleMuckBossDeath(e);
+          }
+          if (e.kind === 'tentacle'){
+            const tracker = e.bossController;
+            if (tracker){
+              const remaining = (tracker.tentacles || []).filter(t => t && t !== e && t.hp > 0);
+              tracker.tentacles = remaining;
+              const totalLimit = tracker.tentacleTotalLimit ?? ABOMINATION_TOTAL_TENTACLE_LIMIT;
+              if ((tracker.tentacleSpawnedTotal || 0) >= totalLimit && remaining.length === 0){
+                boostAbominationWaveRange(tracker);
+              }
+            }
           }
           const scoreValue = isMuckGoat ? (e.score ?? 0) : (e.score||50);
           addScore(scoreValue);
@@ -5123,58 +5158,63 @@
             } else if (e.bossType === 'abomination') {
               if (e.freezeT <= 0 && e.atkT >= 2.4){
                 e.atkT = 0;
+                const controller = e.bossController;
+                if (!Number.isFinite(e.waveRange)){
+                  const trackerRange = controller && controller.abominationWaveRange;
+                  e.waveRange = trackerRange || ABOMINATION_WAVE_BASE_RANGE;
+                }
+                const range = e.waveRange || ABOMINATION_WAVE_BASE_RANGE;
+                if (e.nextAtk === 'wave') {
+                  BOSS_PROJECTILES.push({ kind:'wave', x:e.x, y:e.y, r:0, maxR:range*2, speed:200, width:20, dmg:1, life:0 });
+                  e.nextAtk = 'pulse';
+                } else {
+                  e.pulse = 0.3;
+                  e.pulseRange = range;
+                  if (dist < range && P.iT<=0){
+                    if (CHEAT.active){ pushPlayerAwayFrom(e.x, e.y); P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
+                    else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
+                    else { pushPlayerAwayFrom(e.x, e.y); if (!tryConsumeArcaneArmor()) { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); } }
+                  }
+                  e.nextAtk = 'wave';
+                }
+                e.freezeT = 1.2;
+              }
+            } else if (e.bossType === 'hungerDemon') {
+              if (stage === 3 && e.hp > 0){
+                const period = e.minionPeriod || HUNGER_DEMON_MINION_PERIOD;
+                e.minionTimer = (e.minionTimer || 0) + dt;
+                if (e.minionTimer >= period){
+                  e.minionTimer -= period;
+                  spawnHungerDemonMinion(e);
+                }
+              }
+              if (e.freezeT <= 0 && e.atkT >= 2.4){
+                e.atkT = 0;
+                const count = 8;
+                const baseSpeed = 140;
+                const controller = e.bossController;
+                const empowered = !!(e.hungerImpEmpowered || (controller && controller.hungerImpEmpowered));
+                const projectileTtl = empowered ? HUNGER_DEMON_PROJECTILE_BASE_TTL * 2 : HUNGER_DEMON_PROJECTILE_BASE_TTL;
+                const projectileDmg = empowered ? HUNGER_DEMON_PROJECTILE_BASE_DMG * 2 : HUNGER_DEMON_PROJECTILE_BASE_DMG;
+                for (let i=0;i<count;i++){
+                  const ang = (Math.PI*2 / count) * i;
+                  const vx = Math.cos(ang) * baseSpeed;
+                  const vy = Math.sin(ang) * baseSpeed;
+                  BOSS_PROJECTILES.push({ kind:'slime', dmg:projectileDmg, dir: vx < 0 ? 'left' : 'right', x:e.x, y:e.y, vx, vy, life:0, ttl:projectileTtl, frame:0, animT:0 });
+                }
+              }
+              if (e.freezeT <= 0 && e.blastT >= 5){
+                e.blastT = 0;
                 const range = 120;
-              if (e.nextAtk === 'wave') {
-                BOSS_PROJECTILES.push({ kind:'wave', x:e.x, y:e.y, r:0, maxR:range*2, speed:200, width:20, dmg:1, life:0 });
-                e.nextAtk = 'pulse';
-              } else {
-                e.pulse = 0.3;
+                e.pulse = 0.4;
                 e.pulseRange = range;
                 if (dist < range && P.iT<=0){
                   if (CHEAT.active){ pushPlayerAwayFrom(e.x, e.y); P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
                   else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
                   else { pushPlayerAwayFrom(e.x, e.y); if (!tryConsumeArcaneArmor()) { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); } }
                 }
-                e.nextAtk = 'wave';
+                e.freezeT = 1.2;
               }
-              e.freezeT = 1.2;
-            }
-          } else if (e.bossType === 'hungerDemon') {
-            if (stage === 3 && e.hp > 0){
-              const period = e.minionPeriod || HUNGER_DEMON_MINION_PERIOD;
-              e.minionTimer = (e.minionTimer || 0) + dt;
-              if (e.minionTimer >= period){
-                e.minionTimer -= period;
-                spawnHungerDemonMinion(e);
-              }
-            }
-            if (e.freezeT <= 0 && e.atkT >= 2.4){
-              e.atkT = 0;
-              const count = 8;
-              const baseSpeed = 140;
-              const controller = e.bossController;
-              const empowered = !!(e.hungerImpEmpowered || (controller && controller.hungerImpEmpowered));
-              const projectileTtl = empowered ? HUNGER_DEMON_PROJECTILE_BASE_TTL * 2 : HUNGER_DEMON_PROJECTILE_BASE_TTL;
-              const projectileDmg = empowered ? HUNGER_DEMON_PROJECTILE_BASE_DMG * 2 : HUNGER_DEMON_PROJECTILE_BASE_DMG;
-              for (let i=0;i<count;i++){
-                const ang = (Math.PI*2 / count) * i;
-                const vx = Math.cos(ang) * baseSpeed;
-                const vy = Math.sin(ang) * baseSpeed;
-                BOSS_PROJECTILES.push({ kind:'slime', dmg:projectileDmg, dir: vx < 0 ? 'left' : 'right', x:e.x, y:e.y, vx, vy, life:0, ttl:projectileTtl, frame:0, animT:0 });
-              }
-            }
-            if (e.freezeT <= 0 && e.blastT >= 5){
-              e.blastT = 0;
-              const range = 120;
-              e.pulse = 0.4;
-              e.pulseRange = range;
-              if (dist < range && P.iT<=0){
-                if (CHEAT.active){ pushPlayerAwayFrom(e.x, e.y); P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
-                else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-                else { pushPlayerAwayFrom(e.x, e.y); if (!tryConsumeArcaneArmor()) { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); } }
-              }
-              e.freezeT = 1.2;
-            }
             } else if (e.bossType === 'beholder') {
               if (e.freezeT <= 0 && e.atkT >= 2){
                 e.atkT = 0;

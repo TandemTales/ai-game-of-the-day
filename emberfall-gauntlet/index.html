@@ -3615,12 +3615,21 @@
       return baby;
     }
 
-    const ABOMINATION_MAX_TENTACLES = 6;
+    const ABOMINATION_DEFAULT_MAX_TENTACLES = 6;
+    const ABOMINATION_SECOND_PHASE_MAX_TENTACLES = 30;
+    function getAbominationTentacleLimit(tracker){
+      if (!tracker) return ABOMINATION_DEFAULT_MAX_TENTACLES;
+      if (Number.isFinite(tracker.abominationTentacleLimit)){
+        return tracker.abominationTentacleLimit;
+      }
+      return ABOMINATION_DEFAULT_MAX_TENTACLES;
+    }
     function spawnAbominationTentacle(tracker){
       if (!tracker) return null;
       const livingTentacles = (tracker.tentacles || []).filter(t => t && t.hp > 0);
       tracker.tentacles = livingTentacles;
-      if (livingTentacles.length >= ABOMINATION_MAX_TENTACLES){
+      const maxTentacles = getAbominationTentacleLimit(tracker);
+      if (livingTentacles.length >= maxTentacles){
         const oldest = livingTentacles.shift();
         if (oldest){
           oldest.despawned = true;
@@ -3721,6 +3730,7 @@
       applyDifficultyEnemyHp(tentacle);
       tentacle.bossController = tracker;
       livingTentacles.push(tentacle);
+      tracker.tentacles = livingTentacles;
       enemies.push(tentacle);
       return tentacle;
     }
@@ -3984,6 +3994,10 @@
         tracker.pendingAbominationSize = baseSize;
         tracker.pendingAbominationType = 'abomination';
         tracker.pendingTentacleInterval = 2.5;
+        tracker.tentacles = [];
+        tracker.abominationTentacleLimit = ABOMINATION_DEFAULT_MAX_TENTACLES;
+        tracker.abominationWaveDouble = false;
+        tracker.abominationPhase = 'fairy';
         switchMusic(BOSS_TRACKS);
         const fairyHp = Math.max(1, Math.round(scaledHp * 0.5));
         const fairySizeMult = 0.5;
@@ -4026,6 +4040,10 @@
       if (bossType === 'abomination'){
         tracker.tentacleTimer = 0;
         tracker.tentacleInterval = stage === 2 ? 2.5 : 5;
+        tracker.tentacles = tracker.tentacles || [];
+        tracker.abominationTentacleLimit = ABOMINATION_DEFAULT_MAX_TENTACLES;
+        tracker.abominationWaveDouble = false;
+        tracker.abominationPhase = 'abomination';
       } else if (bossType === 'hungerDemon'){
         tracker.hungerImpSpawnLimit = HUNGER_DEMON_IMP_LIMIT;
         tracker.hungerImpSpawned = 0;
@@ -4103,6 +4121,11 @@
         tracker.tentacleTimer = 0;
         const pendingInterval = tracker.pendingTentacleInterval;
         tracker.tentacleInterval = Number.isFinite(pendingInterval) ? pendingInterval : (stage === 2 ? 2.5 : 5);
+        const stageThreeSecondPhase = stage === 2;
+        tracker.abominationPhase = 'abomination';
+        tracker.abominationTentacleLimit = stageThreeSecondPhase ? ABOMINATION_SECOND_PHASE_MAX_TENTACLES : ABOMINATION_DEFAULT_MAX_TENTACLES;
+        tracker.abominationWaveDouble = false;
+        tracker.tentacles = (tracker.tentacles || []).filter(t => t && t.hp > 0);
         delete tracker.pendingAbominationHp;
         delete tracker.pendingAbominationSize;
         delete tracker.pendingAbominationType;
@@ -4130,6 +4153,7 @@
         sleepT:0,
         sleepMax:0,
       }, tracker);
+      abomination.abominationWaveDouble = tracker ? !!tracker.abominationWaveDouble : false;
       enemies.push(abomination);
       playSfx('bossAbominationHurt');
     }
@@ -4421,6 +4445,25 @@
           if (isMuckGoat && muckResult && muckResult.defeated){
             playSfx('bossMudMonsterKilled');
             handleBossDefeat();
+          }
+          if (e.kind === 'tentacle'){
+            const tracker = e.bossController || (boss && boss.bossType === 'abomination' ? boss : null);
+            if (tracker){
+              const remaining = (tracker.tentacles || []).filter(t => t && t !== e && t.hp > 0);
+              tracker.tentacles = remaining;
+              const limit = Number.isFinite(tracker.abominationTentacleLimit) ? tracker.abominationTentacleLimit : ABOMINATION_DEFAULT_MAX_TENTACLES;
+              const stageThreeSecondPhase = limit >= ABOMINATION_SECOND_PHASE_MAX_TENTACLES;
+              if (stageThreeSecondPhase && remaining.length === 0){
+                tracker.abominationWaveDouble = true;
+                if (tracker.nodes && tracker.nodes.size){
+                  for (const node of tracker.nodes){
+                    if (node && node.kind === 'boss' && node.bossType === 'abomination'){
+                      node.abominationWaveDouble = true;
+                    }
+                  }
+                }
+              }
+            }
           }
           if (e.summonedByHillGiant){
             if (boss && boss.bossType === 'hillGiant' && !boss.goblinEnraged){
@@ -5120,25 +5163,38 @@
                 e.pulse = Math.max(e.pulse || 0, 0.35);
                 e.pulseRange = radius;
               }
-            } else if (e.bossType === 'abomination') {
-              if (e.freezeT <= 0 && e.atkT >= 2.4){
-                e.atkT = 0;
-                const range = 120;
-              if (e.nextAtk === 'wave') {
-                BOSS_PROJECTILES.push({ kind:'wave', x:e.x, y:e.y, r:0, maxR:range*2, speed:200, width:20, dmg:1, life:0 });
-                e.nextAtk = 'pulse';
-              } else {
-                e.pulse = 0.3;
-                e.pulseRange = range;
-                if (dist < range && P.iT<=0){
-                  if (CHEAT.active){ pushPlayerAwayFrom(e.x, e.y); P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
-                  else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
-                  else { pushPlayerAwayFrom(e.x, e.y); if (!tryConsumeArcaneArmor()) { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); } }
+              } else if (e.bossType === 'abomination') {
+                const tracker = e.bossController;
+                const waveEnraged = !!(e.abominationWaveDouble || (tracker && tracker.abominationWaveDouble));
+                if (waveEnraged){
+                  e.abominationWaveDouble = true;
+                  if (tracker) tracker.abominationWaveDouble = true;
                 }
-                e.nextAtk = 'wave';
+                if (e.freezeT <= 0 && e.atkT >= 2.4){
+                  e.atkT = 0;
+                  const range = 120;
+                  const castWave = () => {
+                    BOSS_PROJECTILES.push({ kind:'wave', x:e.x, y:e.y, r:0, maxR:range*2, speed:200, width:20, dmg:1, life:0 });
+                  };
+                  if (e.nextAtk === 'wave') {
+                    castWave();
+                    e.nextAtk = 'pulse';
+                  } else {
+                    e.pulse = 0.3;
+                    e.pulseRange = range;
+                    if (dist < range && P.iT<=0){
+                      if (CHEAT.active){ pushPlayerAwayFrom(e.x, e.y); P.hitFlash = 0.25; spark(P.x,P.y,'#ff8a8a'); }
+                      else if (UPGR.dodgeChance>0 && Math.random()<UPGR.dodgeChance){ P.iT=0.6; P.hitFlash=0.25; spark(P.x,P.y,'#a1ffd4'); }
+                      else { pushPlayerAwayFrom(e.x, e.y); if (!tryConsumeArcaneArmor()) { P.hp-=1; P.iT=2.0; P.hitFlash=0.25; drawHearts(); spark(P.x,P.y,'#ff8a8a'); playHeroHit(); if (P.hp<=0) return gameOver(); } }
+                    }
+                    e.nextAtk = 'wave';
+                    if (waveEnraged){
+                      castWave();
+                    }
+                  }
+                  e.freezeT = 1.2;
+                }
               }
-              e.freezeT = 1.2;
-            }
           } else if (e.bossType === 'hungerDemon') {
             if (stage === 3 && e.hp > 0){
               const period = e.minionPeriod || HUNGER_DEMON_MINION_PERIOD;

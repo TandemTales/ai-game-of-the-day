@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- Speed boost power-up -->
+  <defs>
+    <linearGradient id="speedGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#EF4444;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Glow -->
+  <circle cx="12" cy="12" r="10" fill="#F59E0B" opacity="0.3"/>
+  
+  <!-- Lightning bolt -->
+  <path d="M 14 2 L 8 12 L 12 12 L 10 22 L 16 12 L 12 12 Z" 
+        fill="url(#speedGrad)" stroke="#B45309" stroke-width="1"/>
+  
+  <!-- Speed lines -->
+  <line x1="2" y1="8" x2="6" y2="8" stroke="#F59E0B" stroke-width="1.5" opacity="0.6"/>
+  <line x1="3" y1="12" x2="7" y2="12" stroke="#F59E0B" stroke-width="1.5" opacity="0.6"/>
+  <line x1="2" y1="16" x2="6" y2="16" stroke="#F59E0B" stroke-width="1.5" opacity="0.6"/>
+</svg>

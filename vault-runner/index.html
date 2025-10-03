@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-17405200669"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'AW-17405200669');
+</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vault Runner</title>
+  <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gold: #FFD700;
+      --teal: #5F9EA0;
+      --ink: #F5F5DC;
+      --ui: rgba(0,0,0,0.75);
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    html, body { height: 100%; margin: 0; overflow: hidden; }
+    body {
+      background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: var(--ink);
+      font-family: 'Press Start 2P', monospace;
+      touch-action: manipulation;
+    }
+    .wrap {
+      position: relative;
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+    }
+    canvas { 
+      position: absolute; inset: 0; margin: auto;
+      image-rendering: pixelated; image-rendering: crisp-edges;
+      background: #0a0e27;
+    }
+    .hud {
+      position: absolute; inset: 0; pointer-events: none;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .topbar {
+      display: flex; gap: 12px; align-items: flex-start; justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .chip {
+      background: var(--ui); border: 2px solid var(--gold); color: var(--ink);
+      padding: 8px 12px; border-radius: 10px; font-size: 11px;
+      box-shadow: 0 4px 14px rgba(255,215,0,0.25);
+      white-space: nowrap;
+    }
+    .btn { 
+      pointer-events: auto; text-decoration: none; cursor: pointer; 
+      display: inline-block;
+    }
+    .btn-primary {
+      background: linear-gradient(45deg, var(--teal), #4682B4);
+      border: 2px solid var(--gold); color: #fff; border-radius: 10px; 
+      padding: 12px 18px; font-size: 12px;
+      box-shadow: 0 4px 15px rgba(95,158,160,0.4);
+      font-family: inherit;
+    }
+    .btn-primary:hover { filter: brightness(1.1); }
+    .back { position: absolute; top: 12px; right: 12px; }
+    .center { 
+      position: absolute; inset: 0; display: grid; place-items: center; 
+      background: rgba(0,0,0,0.7);
+    }
+    .panel {
+      background: rgba(0,0,0,0.9);
+      border: 3px solid var(--gold);
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      box-shadow: 0 0 40px rgba(255, 215, 0, 0.4);
+      max-width: 600px; width: calc(100vw - 40px);
+    }
+    .title { 
+      font-size: 20px; margin: 0 0 16px 0; 
+      background: linear-gradient(45deg, var(--gold), #FFA500); 
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
+      background-clip: text; 
+    }
+    .small { font-size: 11px; color: var(--teal); line-height: 1.6; margin: 12px 0; }
+    .row { 
+      display:flex; gap:12px; justify-content:center; align-items:center; 
+      flex-wrap:wrap; margin-top: 16px; 
+    }
+    .controls-hint {
+      margin-top: 16px;
+      padding: 12px;
+      background: rgba(95, 158, 160, 0.1);
+      border-radius: 8px;
+      font-size: 10px;
+      line-height: 1.8;
+    }
+    .hidden { display: none !important; }
+    #mobileCtrls {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      pointer-events: auto;
+    }
+    #mobileCtrls .btn-primary {
+      padding: 16px 20px;
+      font-size: 13px;
+      min-width: 60px;
+    }
+    @media (max-width: 600px) {
+      .chip { font-size: 9px; padding: 6px 10px; }
+      .title { font-size: 16px; }
+      .small { font-size: 9px; }
+    }
+  </style>
+  <script>
+    const GAME_ID = 'vault-runner';
+  </script>
+</head>
+<body>
+  <div class="wrap">
+    <canvas id="canvas"></canvas>
+    
+    <div class="hud">
+      <div class="topbar">
+        <div class="chip">Score: <span id="scoreVal">0</span></div>
+        <div class="chip">Crystals: <span id="crystalVal">0</span></div>
+        <div class="chip">Distance: <span id="distVal">0</span>m</div>
+        <div class="chip">Lives: <span id="livesVal">3</span></div>
+      </div>
+    </div>
+
+    <a href="../index.html" class="btn btn-primary back">Back to Home</a>
+
+    <!-- Start Screen -->
+    <div id="startScreen" class="center">
+      <div class="panel">
+        <div class="title">Vault Runner</div>
+        <div class="small">
+          Navigate through ancient vaults filled with traps and guardians. 
+          Collect crystals, unlock power-ups, and see how far you can run!
+        </div>
+        <div class="row">
+          <button id="startBtn" class="btn btn-primary">Start Game</button>
+          <a class="btn btn-primary" href="../leaderboard.html?gameId=vault-runner">Leaderboard</a>
+        </div>
+        <div class="controls-hint">
+          <strong>Desktop:</strong> Arrow Keys or WASD to move, SPACE to jump, Click to grapple<br>
+          <strong>Mobile:</strong> Use on-screen buttons
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameOverScreen" class="center hidden">
+      <div class="panel">
+        <div class="title">Vault Cleared!</div>
+        <div id="finalScore" class="small">Score: 0</div>
+        <div class="row">
+          <button id="againBtn" class="btn btn-primary">Play Again</button>
+          <a id="lbBtn" class="btn btn-primary" href="../leaderboard.html?gameId=vault-runner">View Leaderboard</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Controls -->
+    <div id="mobileCtrls" class="hidden">
+      <button id="leftBtn" class="btn btn-primary">←</button>
+      <button id="rightBtn" class="btn btn-primary">→</button>
+      <button id="jumpBtn" class="btn btn-primary">Jump</button>
+      <button id="grappleBtn" class="btn btn-primary">Hook</button>
+    </div>
+  </div>
+
+  <script>
+    // Canvas setup
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    let W = 800, H = 600;
+    function resizeCanvas() {
+      const ratio = W / H;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      if (vw / vh > ratio) {
+        canvas.height = vh;
+        canvas.width = vh * ratio;
+      } else {
+        canvas.width = vw;
+        canvas.height = vw / ratio;
+      }
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Mobile detection
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
+      document.getElementById('mobileCtrls').classList.remove('hidden');
+    }
+
+    // Asset loading
+    const SPRITES = {};
+    const assetList = [
+      'player', 'crystal', 'platform', 'spike', 'enemy', 
+      'grapple_hook', 'double_jump', 'speed_boost', 'checkpoint'
+    ];
+    
+    let assetsLoaded = 0;
+    assetList.forEach(name => {
+      const img = new Image();
+      img.src = `assets/${name}.svg`;
+      img.onload = () => {
+        assetsLoaded++;
+        SPRITES[name] = img;
+      };
+    });
+
+    // Game state
+    let state = {
+      running: false,
+      paused: false,
+      score: 0,
+      crystals: 0,
+      distance: 0,
+      lives: 3,
+      time: 0
+    };
+
+    // Player
+    const player = {
+      x: 100,
+      y: 300,
+      w: 32,
+      h: 32,
+      vx: 0,
+      vy: 0,
+      grounded: false,
+      hasGrapple: false,
+      hasDoubleJump: false,
+      doubleJumpUsed: false,
+      speedBoost: 0,
+      grappling: false,
+      grappleX: 0,
+      grappleY: 0,
+      invulnerable: 0
+    };
+
+    // Input
+    const keys = {};
+    const mouse = { x: 0, y: 0, down: false };
+
+    window.addEventListener('keydown', e => {
+      keys[e.code] = true;
+      if (e.code === 'Space' && state.running) {
+        e.preventDefault();
+        jump();
+      }
+    });
+    window.addEventListener('keyup', e => { keys[e.code] = false; });
+    
+    canvas.addEventListener('mousedown', e => {
+      if (!state.running) return;
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = (e.clientX - rect.left) * (W / canvas.width);
+      mouse.y = (e.clientY - rect.top) * (H / canvas.height);
+      mouse.down = true;
+      if (player.hasGrapple) {
+        startGrapple(mouse.x, mouse.y);
+      }
+    });
+    canvas.addEventListener('mouseup', () => { mouse.down = false; });
+    canvas.addEventListener('mousemove', e => {
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = (e.clientX - rect.left) * (W / canvas.width);
+      mouse.y = (e.clientY - rect.top) * (H / canvas.height);
+    });
+
+    // Mobile controls
+    document.getElementById('leftBtn').addEventListener('touchstart', e => {
+      e.preventDefault();
+      keys.ArrowLeft = true;
+    });
+    document.getElementById('leftBtn').addEventListener('touchend', e => {
+      e.preventDefault();
+      keys.ArrowLeft = false;
+    });
+    document.getElementById('rightBtn').addEventListener('touchstart', e => {
+      e.preventDefault();
+      keys.ArrowRight = true;
+    });
+    document.getElementById('rightBtn').addEventListener('touchend', e => {
+      e.preventDefault();
+      keys.ArrowRight = false;
+    });
+    document.getElementById('jumpBtn').addEventListener('touchstart', e => {
+      e.preventDefault();
+      jump();
+    });
+    document.getElementById('grappleBtn').addEventListener('touchstart', e => {
+      e.preventDefault();
+      if (player.hasGrapple) {
+        startGrapple(player.x + 100, player.y - 100);
+      }
+    });
+
+    // Game objects
+    let platforms = [];
+    let spikes = [];
+    let enemies = [];
+    let crystals = [];
+    let powerups = [];
+    let particles = [];
+    let checkpoints = [];
+
+    // Camera
+    let cameraX = 0;
+
+    // Level generation
+    let levelProgress = 0;
+    let nextPlatformX = 200;
+
+    function generateLevel() {
+      // Clear old objects that are off-screen
+      const cleanupX = cameraX - 200;
+      platforms = platforms.filter(p => p.x + p.w > cleanupX);
+      spikes = spikes.filter(s => s.x + s.w > cleanupX);
+      enemies = enemies.filter(e => e.x + e.w > cleanupX);
+      crystals = crystals.filter(c => c.x + c.w > cleanupX);
+      powerups = powerups.filter(p => p.x + p.w > cleanupX);
+      checkpoints = checkpoints.filter(c => c.x + c.w > cleanupX);
+
+      // Generate new platforms ahead
+      while (nextPlatformX < cameraX + W + 400) {
+        const platformW = 64 + Math.random() * 128;
+        const platformH = 16;
+        const platformX = nextPlatformX;
+        const platformY = 400 + Math.random() * 150 - 75;
+        
+        platforms.push({ x: platformX, y: platformY, w: platformW, h: platformH });
+
+        // Add hazards and collectibles
+        if (Math.random() < 0.3) {
+          spikes.push({ x: platformX + platformW / 2 - 16, y: platformY - 16, w: 32, h: 16 });
+        }
+        
+        if (Math.random() < 0.4) {
+          crystals.push({ 
+            x: platformX + platformW / 2 - 12, 
+            y: platformY - 60, 
+            w: 24, 
+            h: 24,
+            collected: false
+          });
+        }
+
+        if (Math.random() < 0.15) {
+          enemies.push({
+            x: platformX + 20,
+            y: platformY - 32,
+            w: 32,
+            h: 32,
+            vx: Math.random() < 0.5 ? -1 : 1,
+            platformX: platformX,
+            platformW: platformW
+          });
+        }
+
+        // Power-ups
+        if (levelProgress > 500 && !player.hasGrapple && Math.random() < 0.05) {
+          powerups.push({ x: platformX + platformW / 2 - 12, y: platformY - 50, w: 24, h: 24, type: 'grapple' });
+        }
+        if (levelProgress > 300 && !player.hasDoubleJump && Math.random() < 0.08) {
+          powerups.push({ x: platformX + platformW / 2 - 12, y: platformY - 50, w: 24, h: 24, type: 'doublejump' });
+        }
+        if (Math.random() < 0.06) {
+          powerups.push({ x: platformX + platformW / 2 - 12, y: platformY - 50, w: 24, h: 24, type: 'speed' });
+        }
+
+        // Checkpoints every 1000 units
+        if (Math.floor(nextPlatformX / 1000) > Math.floor((nextPlatformX - 200) / 1000)) {
+          checkpoints.push({ x: platformX + platformW / 2 - 16, y: platformY - 48, w: 32, h: 48, activated: false });
+        }
+
+        nextPlatformX += 150 + Math.random() * 200;
+        levelProgress = nextPlatformX;
+      }
+    }
+
+    function jump() {
+      if (!state.running || state.paused) return;
+      
+      if (player.grounded) {
+        player.vy = -12;
+        player.grounded = false;
+        player.doubleJumpUsed = false;
+        spawnParticles(player.x + player.w / 2, player.y + player.h, 5, '#60A5FA');
+      } else if (player.hasDoubleJump && !player.doubleJumpUsed) {
+        player.vy = -12;
+        player.doubleJumpUsed = true;
+        spawnParticles(player.x + player.w / 2, player.y + player.h / 2, 8, '#60A5FA');
+      }
+    }
+
+    function startGrapple(targetX, targetY) {
+      if (player.grappling) return;
+      
+      // Find nearest platform point within range
+      let closestDist = 300;
+      let closestPoint = null;
+      
+      platforms.forEach(plat => {
+        if (plat.x > cameraX - 100 && plat.x < cameraX + W + 100) {
+          const px = plat.x + plat.w / 2;
+          const py = plat.y;
+          const dist = Math.hypot(px - (player.x + player.w / 2), py - (player.y + player.h / 2));
+          if (dist < closestDist) {
+            closestDist = dist;
+            closestPoint = { x: px, y: py };
+          }
+        }
+      });
+
+      if (closestPoint) {
+        player.grappling = true;
+        player.grappleX = closestPoint.x;
+        player.grappleY = closestPoint.y;
+      }
+    }
+
+    function updateGrapple(dt) {
+      if (!player.grappling) return;
+
+      const dx = player.grappleX - (player.x + player.w / 2);
+      const dy = player.grappleY - (player.y + player.h / 2);
+      const dist = Math.hypot(dx, dy);
+
+      if (dist > 10) {
+        const pullForce = 0.5;
+        player.vx += (dx / dist) * pullForce;
+        player.vy += (dy / dist) * pullForce;
+      }
+
+      // Release grapple if too far or player presses space
+      if (dist > 350 || keys.Space) {
+        player.grappling = false;
+      }
+    }
+
+    function spawnParticles(x, y, count, color) {
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x, y,
+          vx: (Math.random() - 0.5) * 4,
+          vy: (Math.random() - 0.5) * 4,
+          life: 1,
+          color
+        });
+      }
+    }
+
+    function updatePlayer(dt) {
+      // Horizontal movement
+      const baseSpeed = 5;
+      const speed = player.speedBoost > 0 ? baseSpeed * 1.5 : baseSpeed;
+      
+      if (keys.ArrowLeft || keys.KeyA) player.vx = -speed;
+      else if (keys.ArrowRight || keys.KeyD) player.vx = speed;
+      else player.vx *= 0.85;
+
+      // Gravity
+      if (!player.grounded) {
+        player.vy += 0.5;
+      }
+
+      // Grapple physics
+      if (player.grappling) {
+        updateGrapple(dt);
+      }
+
+      // Update position
+      player.x += player.vx;
+      player.y += player.vy;
+
+      // Collision with platforms
+      player.grounded = false;
+      platforms.forEach(plat => {
+        if (player.x + player.w > plat.x && player.x < plat.x + plat.w) {
+          if (player.y + player.h > plat.y && player.y + player.h < plat.y + plat.h + 10 && player.vy >= 0) {
+            player.y = plat.y - player.h;
+            player.vy = 0;
+            player.grounded = true;
+            player.grappling = false;
+          }
+        }
+      });
+
+      // Collision with spikes
+      if (player.invulnerable <= 0) {
+        spikes.forEach(spike => {
+          if (checkCollision(player, spike)) {
+            takeDamage();
+          }
+        });
+      }
+
+      // Collision with enemies
+      if (player.invulnerable <= 0) {
+        enemies.forEach(enemy => {
+          if (checkCollision(player, enemy)) {
+            takeDamage();
+          }
+        });
+      }
+
+      // Collect crystals
+      crystals.forEach(crystal => {
+        if (!crystal.collected && checkCollision(player, crystal)) {
+          crystal.collected = true;
+          state.crystals++;
+          state.score += 100;
+          spawnParticles(crystal.x + crystal.w / 2, crystal.y + crystal.h / 2, 10, '#A78BFA');
+        }
+      });
+
+      // Collect powerups
+      powerups = powerups.filter(powerup => {
+        if (checkCollision(player, powerup)) {
+          if (powerup.type === 'grapple') {
+            player.hasGrapple = true;
+            spawnParticles(powerup.x + powerup.w / 2, powerup.y + powerup.h / 2, 15, '#10B981');
+          } else if (powerup.type === 'doublejump') {
+            player.hasDoubleJump = true;
+            spawnParticles(powerup.x + powerup.w / 2, powerup.y + powerup.h / 2, 15, '#60A5FA');
+          } else if (powerup.type === 'speed') {
+            player.speedBoost = 300; // 5 seconds at 60fps
+            spawnParticles(powerup.x + powerup.w / 2, powerup.y + powerup.h / 2, 15, '#F59E0B');
+          }
+          state.score += 50;
+          return false;
+        }
+        return true;
+      });
+
+      // Activate checkpoints
+      checkpoints.forEach(cp => {
+        if (!cp.activated && checkCollision(player, cp)) {
+          cp.activated = true;
+          state.score += 500;
+          spawnParticles(cp.x + cp.w / 2, cp.y + cp.h / 2, 20, '#34D399');
+        }
+      });
+
+      // Update timers
+      if (player.invulnerable > 0) player.invulnerable--;
+      if (player.speedBoost > 0) player.speedBoost--;
+
+      // Death by falling
+      if (player.y > H + 100) {
+        takeDamage();
+        player.y = 200;
+        player.x = cameraX + 100;
+      }
+
+      // Update camera
+      cameraX = Math.max(0, player.x - 200);
+
+      // Update distance
+      state.distance = Math.floor(player.x / 10);
+      state.score = Math.max(state.score, state.distance);
+    }
+
+    function takeDamage() {
+      state.lives--;
+      player.invulnerable = 120; // 2 seconds
+      spawnParticles(player.x + player.w / 2, player.y + player.h / 2, 20, '#EF4444');
+      
+      if (state.lives <= 0) {
+        gameOver();
+      }
+    }
+
+    function checkCollision(a, b) {
+      return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    }
+
+    function updateEnemies(dt) {
+      enemies.forEach(enemy => {
+        enemy.x += enemy.vx;
+        
+        // Patrol platform
+        if (enemy.x < enemy.platformX) {
+          enemy.x = enemy.platformX;
+          enemy.vx *= -1;
+        }
+        if (enemy.x + enemy.w > enemy.platformX + enemy.platformW) {
+          enemy.x = enemy.platformX + enemy.platformW - enemy.w;
+          enemy.vx *= -1;
+        }
+      });
+    }
+
+    function updateParticles(dt) {
+      particles = particles.filter(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.2;
+        p.life -= 0.02;
+        return p.life > 0;
+      });
+    }
+
+    function update(dt) {
+      if (!state.running || state.paused) return;
+      
+      state.time += dt;
+      generateLevel();
+      updatePlayer(dt);
+      updateEnemies(dt);
+      updateParticles(dt);
+      updateHUD();
+    }
+
+    function updateHUD() {
+      document.getElementById('scoreVal').textContent = state.score;
+      document.getElementById('crystalVal').textContent = state.crystals;
+      document.getElementById('distVal').textContent = state.distance;
+      document.getElementById('livesVal').textContent = state.lives;
+    }
+
+    function draw() {
+      // Clear
+      ctx.fillStyle = '#0a0e27';
+      ctx.fillRect(0, 0, W, H);
+
+      // Background gradient
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, '#1a1a2e');
+      grad.addColorStop(1, '#0f3460');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      // Stars
+      ctx.fillStyle = '#FFF';
+      for (let i = 0; i < 50; i++) {
+        const x = (i * 137 + cameraX * 0.1) % W;
+        const y = (i * 211) % H;
+        ctx.fillRect(x, y, 2, 2);
+      }
+
+      ctx.save();
+      ctx.translate(-cameraX, 0);
+
+      // Draw platforms
+      platforms.forEach(plat => {
+        if (plat.x + plat.w > cameraX && plat.x < cameraX + W) {
+          const pattern = Math.floor(plat.w / 64);
+          for (let i = 0; i <= pattern; i++) {
+            if (SPRITES.platform) {
+              ctx.drawImage(SPRITES.platform, plat.x + i * 64, plat.y, 64, plat.h);
+            } else {
+              ctx.fillStyle = '#6B7280';
+              ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+            }
+          }
+        }
+      });
+
+      // Draw spikes
+      spikes.forEach(spike => {
+        if (spike.x + spike.w > cameraX && spike.x < cameraX + W) {
+          if (SPRITES.spike) {
+            ctx.drawImage(SPRITES.spike, spike.x, spike.y, spike.w, spike.h);
+          } else {
+            ctx.fillStyle = '#DC2626';
+            ctx.fillRect(spike.x, spike.y, spike.w, spike.h);
+          }
+        }
+      });
+
+      // Draw checkpoints
+      checkpoints.forEach(cp => {
+        if (cp.x + cp.w > cameraX && cp.x < cameraX + W) {
+          if (SPRITES.checkpoint) {
+            ctx.save();
+            if (cp.activated) {
+              ctx.globalAlpha = 0.5;
+            }
+            ctx.drawImage(SPRITES.checkpoint, cp.x, cp.y, cp.w, cp.h);
+            ctx.restore();
+          }
+        }
+      });
+
+      // Draw crystals
+      crystals.forEach(crystal => {
+        if (!crystal.collected && crystal.x + crystal.w > cameraX && crystal.x < cameraX + W) {
+          if (SPRITES.crystal) {
+            ctx.save();
+            const pulse = Math.sin(state.time * 0.005) * 0.1 + 1;
+            ctx.translate(crystal.x + crystal.w / 2, crystal.y + crystal.h / 2);
+            ctx.scale(pulse, pulse);
+            ctx.drawImage(SPRITES.crystal, -crystal.w / 2, -crystal.h / 2, crystal.w, crystal.h);
+            ctx.restore();
+          } else {
+            ctx.fillStyle = '#A78BFA';
+            ctx.fillRect(crystal.x, crystal.y, crystal.w, crystal.h);
+          }
+        }
+      });
+
+      // Draw powerups
+      powerups.forEach(powerup => {
+        if (powerup.x + powerup.w > cameraX && powerup.x < cameraX + W) {
+          const sprite = powerup.type === 'grapple' ? SPRITES.grapple_hook :
+                        powerup.type === 'doublejump' ? SPRITES.double_jump :
+                        SPRITES.speed_boost;
+          if (sprite) {
+            ctx.save();
+            const float = Math.sin(state.time * 0.003) * 5;
+            ctx.drawImage(sprite, powerup.x, powerup.y + float, powerup.w, powerup.h);
+            ctx.restore();
+          }
+        }
+      });
+
+      // Draw enemies
+      enemies.forEach(enemy => {
+        if (enemy.x + enemy.w > cameraX && enemy.x < cameraX + W) {
+          if (SPRITES.enemy) {
+            ctx.drawImage(SPRITES.enemy, enemy.x, enemy.y, enemy.w, enemy.h);
+          } else {
+            ctx.fillStyle = '#EF4444';
+            ctx.fillRect(enemy.x, enemy.y, enemy.w, enemy.h);
+          }
+        }
+      });
+
+      // Draw grapple line
+      if (player.grappling) {
+        ctx.strokeStyle = '#10B981';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(player.x + player.w / 2, player.y + player.h / 2);
+        ctx.lineTo(player.grappleX, player.grappleY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // Grapple point
+        ctx.fillStyle = '#10B981';
+        ctx.beginPath();
+        ctx.arc(player.grappleX, player.grappleY, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Draw particles
+      particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life;
+        ctx.fillRect(p.x, p.y, 3, 3);
+        ctx.globalAlpha = 1;
+      });
+
+      // Draw player
+      if (SPRITES.player) {
+        ctx.save();
+        if (player.invulnerable > 0 && Math.floor(player.invulnerable / 10) % 2 === 0) {
+          ctx.globalAlpha = 0.5;
+        }
+        if (player.speedBoost > 0) {
+          ctx.shadowColor = '#F59E0B';
+          ctx.shadowBlur = 10;
+        }
+        ctx.drawImage(SPRITES.player, player.x, player.y, player.w, player.h);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = '#4ECDC4';
+        ctx.fillRect(player.x, player.y, player.w, player.h);
+      }
+
+      ctx.restore();
+    }
+
+    // Game loop
+    let lastTime = 0;
+    function gameLoop(time) {
+      const dt = Math.min(time - lastTime, 32);
+      lastTime = time;
+      
+      update(dt);
+      draw();
+      
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Start game
+    function startGame() {
+      state = {
+        running: true,
+        paused: false,
+        score: 0,
+        crystals: 0,
+        distance: 0,
+        lives: 3,
+        time: 0
+      };
+      
+      player.x = 100;
+      player.y = 300;
+      player.vx = 0;
+      player.vy = 0;
+      player.grounded = false;
+      player.hasGrapple = false;
+      player.hasDoubleJump = false;
+      player.doubleJumpUsed = false;
+      player.speedBoost = 0;
+      player.grappling = false;
+      player.invulnerable = 0;
+
+      platforms = [
+        { x: 0, y: 450, w: 300, h: 16 }
+      ];
+      spikes = [];
+      enemies = [];
+      crystals = [];
+      powerups = [];
+      particles = [];
+      checkpoints = [];
+      cameraX = 0;
+      levelProgress = 0;
+      nextPlatformX = 200;
+
+      document.getElementById('startScreen').classList.add('hidden');
+      document.getElementById('gameOverScreen').classList.add('hidden');
+      updateHUD();
+    }
+
+    function gameOver() {
+      state.running = false;
+      document.getElementById('finalScore').textContent = 
+        `Score: ${state.score} | Crystals: ${state.crystals} | Distance: ${state.distance}m`;
+      document.getElementById('gameOverScreen').classList.remove('hidden');
+      
+      // Submit to leaderboard
+      maybeSubmitScore(state.score);
+    }
+
+    // Event listeners
+    document.getElementById('startBtn').addEventListener('click', startGame);
+    document.getElementById('againBtn').addEventListener('click', startGame);
+
+    // Leaderboard integration
+    let lbGuard = false;
+    async function maybeSubmitScore(score) {
+      if (lbGuard) return;
+      lbGuard = true;
+      
+      try {
+        const rankRes = await fetch(`/api/leaderboard/rank?gameId=${encodeURIComponent(GAME_ID)}&score=${encodeURIComponent(score)}`, 
+          { headers: { 'Accept': 'application/json' } });
+        let rank = 0;
+        if (rankRes.ok) {
+          const data = await rankRes.json().catch(() => null);
+          rank = Number(data?.rank || 0);
+        }
+        
+        let dest = `../leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
+        
+        if (rank > 0 && rank <= 20) {
+          const want = confirm(`Your score is ${score}! You're in the top 20! Submit to leaderboard?`);
+          if (!want) {
+            window.location.href = dest;
+            return;
+          }
+          
+          let name = prompt('Enter your name (max 20 chars):', 'Runner');
+          if (name != null) {
+            name = name.trim().slice(0, 20);
+            if (name) {
+              try {
+                await fetch('/api/leaderboard/submit', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ gameId: GAME_ID, name, score })
+                });
+                dest += `&highlightRank=${rank}`;
+              } catch (err) {
+                console.error('Submit failed:', err);
+              }
+            }
+          }
+        }
+        
+        // Redirect after a short delay
+        setTimeout(() => { window.location.href = dest; }, 500);
+      } catch (err) {
+        console.error('Leaderboard error:', err);
+      }
+    }
+
+    // Start game loop
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>

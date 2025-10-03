@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- Double jump power-up -->
+  <defs>
+    <linearGradient id="jumpGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#60A5FA;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563EB;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Glow -->
+  <circle cx="12" cy="12" r="10" fill="#60A5FA" opacity="0.3"/>
+  
+  <!-- Boot/shoe icon -->
+  <path d="M 8 14 L 8 10 L 12 8 L 16 10 L 16 14 L 14 16 L 10 16 Z" 
+        fill="url(#jumpGrad)" stroke="#1E40AF" stroke-width="1"/>
+  
+  <!-- Jump trails -->
+  <path d="M 6 18 Q 8 16 10 18" fill="none" stroke="#60A5FA" stroke-width="1.5" opacity="0.6"/>
+  <path d="M 14 18 Q 16 16 18 18" fill="none" stroke="#60A5FA" stroke-width="1.5" opacity="0.6"/>
+  
+  <!-- Double arrow up -->
+  <path d="M 12 6 L 10 8 M 12 6 L 14 8" stroke="#FFF" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M 12 3 L 10 5 M 12 3 L 14 5" stroke="#FFF" stroke-width="1.5" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 48">
+  <!-- Checkpoint flag -->
+  <defs>
+    <linearGradient id="flagGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#34D399;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#10B981;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Pole -->
+  <rect x="4" y="0" width="3" height="48" fill="#6B7280" stroke="#374151" stroke-width="0.5"/>
+  
+  <!-- Flag -->
+  <path d="M 7 4 L 28 4 L 28 20 L 7 20 Z" fill="url(#flagGrad)" stroke="#059669" stroke-width="1"/>
+  
+  <!-- Flag pattern -->
+  <rect x="10" y="8" width="4" height="4" fill="#FFF" opacity="0.3"/>
+  <rect x="18" y="8" width="4" height="4" fill="#FFF" opacity="0.3"/>
+  <rect x="14" y="12" width="4" height="4" fill="#FFF" opacity="0.3"/>
+  
+  <!-- Base -->
+  <ellipse cx="5.5" cy="46" rx="5" ry="2" fill="#374151"/>
+</svg>

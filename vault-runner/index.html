@@ -191,17 +191,23 @@
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     
-    let W = 800, H = 600;
+    const W = 800, H = 600;
     function resizeCanvas() {
       const ratio = W / H;
       const vw = window.innerWidth;
       const vh = window.innerHeight;
+      
+      // Set canvas internal resolution
+      canvas.width = W;
+      canvas.height = H;
+      
+      // Scale display size to fit screen
       if (vw / vh > ratio) {
-        canvas.height = vh;
-        canvas.width = vh * ratio;
+        canvas.style.height = vh + 'px';
+        canvas.style.width = (vh * ratio) + 'px';
       } else {
-        canvas.width = vw;
-        canvas.height = vw / ratio;
+        canvas.style.width = vw + 'px';
+        canvas.style.height = (vw / ratio) + 'px';
       }
     }
     resizeCanvas();
@@ -276,8 +282,8 @@
     canvas.addEventListener('mousedown', e => {
       if (!state.running) return;
       const rect = canvas.getBoundingClientRect();
-      mouse.x = (e.clientX - rect.left) * (W / canvas.width);
-      mouse.y = (e.clientY - rect.top) * (H / canvas.height);
+      mouse.x = (e.clientX - rect.left) * (W / rect.width);
+      mouse.y = (e.clientY - rect.top) * (H / rect.height);
       mouse.down = true;
       if (player.hasGrapple) {
         startGrapple(mouse.x, mouse.y);
@@ -286,8 +292,8 @@
     canvas.addEventListener('mouseup', () => { mouse.down = false; });
     canvas.addEventListener('mousemove', e => {
       const rect = canvas.getBoundingClientRect();
-      mouse.x = (e.clientX - rect.left) * (W / canvas.width);
-      mouse.y = (e.clientY - rect.top) * (H / canvas.height);
+      mouse.x = (e.clientX - rect.left) * (W / rect.width);
+      mouse.y = (e.clientY - rect.top) * (H / rect.height);
     });
 
     // Mobile controls

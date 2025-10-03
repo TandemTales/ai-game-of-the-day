@@ -1,0 +1,928 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17405200669"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'AW-17405200669');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Pulse Prism</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
+  <style>
+    :root {
+      --ink: #f5f5dc;
+      --accent: #5df2ff;
+      --accent-2: #ff79ff;
+      --accent-3: #ffc857;
+      --bg: #05061a;
+      --panel: rgba(5, 8, 28, 0.86);
+      --gold: #ffd700;
+      --teal: #5f9ea0;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      min-height: 100vh;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Press Start 2P', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      color: var(--ink);
+      background: radial-gradient(circle at 20% -10%, rgba(93,242,255,0.3), transparent 60%),
+                  radial-gradient(circle at 80% 10%, rgba(255,121,255,0.28), transparent 65%),
+                  linear-gradient(160deg, #040511 0%, #031433 55%, #021d2c 100%);
+      display: flex;
+      justify-content: center;
+      padding: calc(env(safe-area-inset-top) + 20px) calc(env(safe-area-inset-right) + 20px) calc(env(safe-area-inset-bottom) + 28px) calc(env(safe-area-inset-left) + 20px);
+      position: relative;
+      overflow-y: auto;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url('assets/pulse-backdrop.svg');
+      background-size: cover;
+      background-position: center;
+      opacity: 0.38;
+      pointer-events: none;
+      z-index: -2;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at 50% 85%, rgba(93,242,255,0.14), transparent 62%);
+      mix-blend-mode: screen;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .wrap {
+      width: min(100%, 960px);
+      background: var(--panel);
+      border: 4px solid rgba(93,242,255,0.35);
+      border-radius: 28px;
+      box-shadow: 0 0 40px rgba(93,242,255,0.28), 0 0 80px rgba(255,121,255,0.18);
+      padding: clamp(18px, 2.8vw, 32px);
+      backdrop-filter: blur(32px);
+      display: flex;
+      flex-direction: column;
+      gap: clamp(18px, 3vw, 28px);
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .title {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .title img {
+      width: clamp(44px, 6vw, 56px);
+      height: clamp(44px, 6vw, 56px);
+      border-radius: 50%;
+      border: 3px solid rgba(255,215,0,0.8);
+      box-shadow: 0 0 18px rgba(255,215,0,0.5);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(20px, 3vw, 28px);
+      letter-spacing: 1.2px;
+      background: linear-gradient(90deg, var(--accent), #ffffff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 12px rgba(93,242,255,0.4);
+    }
+
+    .tagline {
+      margin: 6px 0 0;
+      font-size: clamp(11px, 2vw, 13px);
+      color: rgba(245,245,220,0.8);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 18px;
+      font-size: 12px;
+      text-decoration: none;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      background: linear-gradient(135deg, rgba(93,242,255,0.9), rgba(255,121,255,0.8));
+      color: #0b1025;
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      box-shadow: 0 8px 20px rgba(93,242,255,0.28);
+      transition: transform 0.16s ease, box-shadow 0.16s ease;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(255,121,255,0.34);
+    }
+
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: wait;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .panel {
+      display: grid;
+      gap: clamp(16px, 2.8vw, 24px);
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+    }
+
+    .metric {
+      background: linear-gradient(135deg, rgba(10,22,42,0.9), rgba(12,32,60,0.9));
+      border: 1.5px solid rgba(93,242,255,0.25);
+      border-radius: 14px;
+      padding: 12px;
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: inset 0 0 18px rgba(93,242,255,0.12);
+    }
+
+    .metric span {
+      font-size: 18px;
+      color: var(--accent);
+      text-shadow: 0 0 8px rgba(93,242,255,0.6);
+    }
+
+    .metric span.combo {
+      color: var(--accent-2);
+    }
+
+    .metric span.flow {
+      color: var(--accent-3);
+    }
+
+    .stage {
+      position: relative;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 2px solid rgba(93,242,255,0.3);
+      background: linear-gradient(180deg, rgba(6,10,30,0.92), rgba(3,17,36,0.92));
+      box-shadow: inset 0 0 24px rgba(4,14,30,0.9), 0 16px 40px rgba(0,0,0,0.45);
+      aspect-ratio: 9 / 16;
+      max-width: 420px;
+      width: min(100%, 420px);
+      margin: 0 auto;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+      user-select: none;
+      background: transparent;
+    }
+
+    .touch-strip {
+      position: absolute;
+      inset: auto 0 0 0;
+      height: 36%;
+      display: flex;
+      pointer-events: none;
+      background: linear-gradient(180deg, transparent 0%, rgba(7,14,30,0.4) 32%, rgba(7,14,30,0.85) 100%);
+      backdrop-filter: blur(12px);
+    }
+
+    .touch-strip button {
+      pointer-events: auto;
+      flex: 1;
+      border: none;
+      background: radial-gradient(circle at 50% 15%, rgba(93,242,255,0.45), rgba(93,242,255,0.05)),
+                  linear-gradient(180deg, rgba(93,242,255,0.18), rgba(7,10,32,0.85));
+      margin: 0;
+      color: rgba(245,245,220,0.6);
+      font-size: 11px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 18px;
+      transition: background 0.12s ease, color 0.12s ease;
+    }
+
+    .touch-strip button:active,
+    .touch-strip button.is-pressed {
+      background: linear-gradient(180deg, rgba(255,200,87,0.4), rgba(7,10,32,0.9));
+      color: #ffe6a8;
+    }
+
+    .touch-strip button:not(:last-child) {
+      border-right: 1px solid rgba(93,242,255,0.18);
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 30px;
+      background: rgba(4, 6, 24, 0.82);
+      backdrop-filter: blur(18px);
+      flex-direction: column;
+      gap: 16px;
+      z-index: 4;
+    }
+
+    .overlay.show {
+      display: flex;
+    }
+
+    .overlay h2 {
+      margin: 0;
+      font-size: 20px;
+      color: var(--accent);
+      text-shadow: 0 0 12px rgba(93,242,255,0.6);
+    }
+
+    .overlay p {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.6;
+      color: rgba(245,245,220,0.85);
+    }
+
+    .overlay .btn {
+      padding: 12px 24px;
+    }
+
+    .tips {
+      background: rgba(7, 12, 32, 0.82);
+      border-radius: 18px;
+      border: 1.5px solid rgba(93,242,255,0.22);
+      padding: clamp(16px, 3vw, 22px);
+      box-shadow: inset 0 0 12px rgba(93,242,255,0.12);
+      font-size: 11px;
+      line-height: 1.7;
+    }
+
+    .tips h2 {
+      margin: 0 0 12px;
+      font-size: 14px;
+      color: var(--accent);
+    }
+
+    .tips ul {
+      margin: 0 0 10px 20px;
+      padding: 0;
+    }
+
+    .tips li {
+      margin-bottom: 8px;
+    }
+
+    .tips .controls {
+      margin: 12px 0 0;
+      color: rgba(245,245,220,0.78);
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: calc(env(safe-area-inset-top) + 12px) calc(env(safe-area-inset-right) + 12px) calc(env(safe-area-inset-bottom) + 16px) calc(env(safe-area-inset-left) + 12px);
+      }
+      .wrap {
+        border-radius: 22px;
+        padding: 18px;
+      }
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .actions {
+        width: 100%;
+      }
+      .actions .btn {
+        flex: 1 1 auto;
+        justify-content: center;
+      }
+      .hud {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .touch-strip button {
+        font-size: 10px;
+      }
+    }
+
+    @media (min-width: 980px) {
+      body::after {
+        opacity: 0.55;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <img src="../images/botbuiltarcade-icon-face.png" alt="Bot Built Arcade logo">
+        <div>
+          <h1>Pulse Prism</h1>
+          <p class="tagline">Sync taps with radiant pulses in a neon rhythm gauntlet.</p>
+        </div>
+      </div>
+      <div class="actions">
+        <a class="btn back" href="../index.html" aria-label="Back to home">Back to Home</a>
+        <a class="btn" id="lbBtn" href="../leaderboard.html?gameId=pulse-prism" aria-label="Open leaderboard">Leaderboard</a>
+      </div>
+    </header>
+
+    <div class="panel">
+      <div class="hud">
+        <div class="metric">Score<span id="score">0</span></div>
+        <div class="metric">Combo<span id="combo" class="combo">0</span></div>
+        <div class="metric">Flow<span id="flow" class="flow">Calm</span></div>
+        <div class="metric">Misses<span id="misses">0</span>/3</div>
+      </div>
+
+      <div class="stage">
+        <canvas id="board" width="360" height="640" role="img" aria-label="Pulse Prism gameplay field"></canvas>
+        <div class="touch-strip" aria-hidden="true">
+          <button type="button" data-lane="0">Left</button>
+          <button type="button" data-lane="1">Center</button>
+          <button type="button" data-lane="2">Right</button>
+        </div>
+        <div class="overlay show" id="overlay">
+          <h2 id="overlayTitle">Pulse Prism</h2>
+          <p id="overlayText">Loading neon art...</p>
+          <button class="btn start" id="startBtn" type="button" disabled>Start Session</button>
+        </div>
+      </div>
+
+      <div class="tips">
+        <h2>How to Play</h2>
+        <ul>
+          <li>Tap any lane (or press A / S / D or Left / Down / Right Arrow) when its pulse hits the strike ring.</li>
+          <li>Stack perfect timings to amplify your combo multiplier and watch the score soar.</li>
+          <li>Stay in rhythm - three misses will collapse the prism flow.</li>
+        </ul>
+        <p class="controls"><strong>Pro tip:</strong> swipe or drum your thumbs for alternating patterns once the tempo surges.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const GAME_ID = 'pulse-prism';
+
+    const canvas = document.getElementById('board');
+    const ctx = canvas.getContext('2d');
+
+    const baseWidth = 360;
+    const baseHeight = 640;
+    const laneWidth = baseWidth / 3;
+    const HIT_Y = baseHeight - 140;
+    const HIT_WINDOW = 88;
+    const MAX_MISSES = 3;
+
+    const overlay = document.getElementById('overlay');
+    const overlayTitle = document.getElementById('overlayTitle');
+    const overlayText = document.getElementById('overlayText');
+    const startBtn = document.getElementById('startBtn');
+    const lbBtn = document.getElementById('lbBtn');
+
+    const scoreEl = document.getElementById('score');
+    const comboEl = document.getElementById('combo');
+    const flowEl = document.getElementById('flow');
+    const missesEl = document.getElementById('misses');
+
+    const laneButtons = Array.from(document.querySelectorAll('.touch-strip button'));
+
+    const ratio = Math.min(window.devicePixelRatio || 1, 2.5);
+    canvas.width = baseWidth * ratio;
+    canvas.height = baseHeight * ratio;
+    canvas.style.width = baseWidth + 'px';
+    canvas.style.height = baseHeight + 'px';
+    ctx.scale(ratio, ratio);
+
+    const keyToLane = new Map([
+      ['ArrowLeft', 0], ['ArrowDown', 1], ['ArrowRight', 2],
+      ['a', 0], ['A', 0], ['s', 1], ['S', 1], ['d', 2], ['D', 2]
+    ]);
+
+    const assets = { notes: [] };
+    const manifest = [
+      { id: 'background', src: 'assets/pulse-backdrop.svg' },
+      { id: 'hit', src: 'assets/pulse-hit-ring.svg' },
+      { id: 'notes', src: 'assets/pulse-note-cyan.svg' },
+      { id: 'notes', src: 'assets/pulse-note-magenta.svg' },
+      { id: 'notes', src: 'assets/pulse-note-amber.svg' }
+    ];
+
+    let loadedCount = 0;
+    function loadImage(entry) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = entry.src;
+      }).then(img => {
+        if (entry.id === 'notes') {
+          assets.notes.push(img);
+        } else {
+          assets[entry.id] = img;
+        }
+        loadedCount += 1;
+        overlayText.textContent = 'Loading neon art... ' + Math.round((loadedCount / manifest.length) * 100) + '%';
+      });
+    }
+
+    Promise.all(manifest.map(loadImage)).then(() => {
+      overlayText.textContent = 'Tap Start Session to ride the beat.';
+      startBtn.disabled = false;
+    }).catch(() => {
+      overlayText.textContent = 'Tap Start Session to ride the beat. (Art streaming hiccup - retry if visuals look off.)';
+      startBtn.disabled = false;
+    });
+
+    const state = {
+      running: false,
+      notes: [],
+      floaties: [],
+      laneFlash: [0, 0, 0],
+      lastTime: 0,
+      time: 0,
+      spawnClock: 0,
+      spawnInterval: 0.68,
+      speed: 280,
+      score: 0,
+      combo: 0,
+      bestCombo: 0,
+      misses: 0,
+      frame: null
+    };
+
+    function resetState() {
+      state.notes = [];
+      state.floaties = [];
+      state.laneFlash = [0, 0, 0];
+      state.lastTime = performance.now();
+      state.time = 0;
+      state.spawnClock = 0;
+      state.spawnInterval = 0.68;
+      state.speed = 280;
+      state.score = 0;
+      state.combo = 0;
+      state.bestCombo = 0;
+      state.misses = 0;
+      updateHud();
+    }
+
+    function startGame() {
+      if (state.running) { return; }
+      resetState();
+      state.running = true;
+      overlay.classList.remove('show');
+      startBtn.disabled = true;
+      startBtn.textContent = 'Session Running';
+      state.frame = requestAnimationFrame(loop);
+    }
+
+    startBtn.addEventListener('click', startGame);
+
+    function endGame(reason) {
+      if (!state.running) { return; }
+      state.running = false;
+      if (state.frame) {
+        cancelAnimationFrame(state.frame);
+        state.frame = null;
+      }
+      overlayTitle.textContent = 'Session Complete';
+      overlayText.innerHTML = (reason || 'The beat slipped away.') +
+        '<br><strong>Score:</strong> ' + Math.round(state.score).toLocaleString() +
+        '<br><strong>Best Combo:</strong> ' + state.bestCombo;
+      startBtn.textContent = 'Play Again';
+      startBtn.disabled = false;
+      overlay.classList.add('show');
+      maybeSubmitLeaderboard();
+    }
+
+    function flowName(combo) {
+      if (combo >= 28) { return 'Blaze'; }
+      if (combo >= 18) { return 'Surge'; }
+      if (combo >= 10) { return 'Pulse'; }
+      if (combo >= 4) { return 'Spark'; }
+      return 'Calm';
+    }
+
+    function updateHud() {
+      scoreEl.textContent = Math.round(state.score).toLocaleString();
+      comboEl.textContent = state.combo;
+      flowEl.textContent = flowName(state.combo);
+      missesEl.textContent = state.misses;
+    }
+
+    function spawnNote(lane) {
+      const noteLane = (typeof lane === 'number') ? lane : Math.floor(Math.random() * 3);
+      const artIndex = assets.notes.length ? Math.floor(Math.random() * assets.notes.length) : 0;
+      const baseSize = 110 + Math.random() * 18;
+      state.notes.push({
+        lane: noteLane,
+        y: -baseSize,
+        size: baseSize,
+        art: artIndex,
+        state: 'falling',
+        life: 1,
+        wobble: Math.random() * Math.PI * 2
+      });
+    }
+
+    function spawnPattern() {
+      const baseLane = Math.floor(Math.random() * 3);
+      spawnNote(baseLane);
+      if (Math.random() < 0.2) {
+        spawnNote((baseLane + 1) % 3);
+      }
+      if (Math.random() < 0.08) {
+        spawnNote((baseLane + 2) % 3);
+      }
+    }
+
+    function loop(now) {
+      if (!state.running) { return; }
+      const dt = Math.min((now - state.lastTime) / 1000, 0.12);
+      state.lastTime = now;
+      state.time += dt;
+      state.spawnClock += dt;
+
+      const targetInterval = Math.max(0.36, state.spawnInterval - state.time * 0.01);
+      const targetSpeed = 280 + Math.min(240, state.time * 22);
+
+      state.spawnInterval += (targetInterval - state.spawnInterval) * 0.04;
+      state.speed += (targetSpeed - state.speed) * 0.04;
+
+      while (state.spawnClock >= state.spawnInterval) {
+        spawnPattern();
+        state.spawnClock -= state.spawnInterval;
+      }
+
+      updateNotes(dt);
+      updateFloaties(dt);
+      updateLaneFlash(dt);
+      draw();
+      state.frame = requestAnimationFrame(loop);
+    }
+
+    function updateNotes(dt) {
+      for (const note of state.notes) {
+        if (note.state === 'falling') {
+          note.y += state.speed * dt;
+          note.wobble += dt * 6;
+          if (note.y >= HIT_Y + HIT_WINDOW) {
+            note.state = 'missed';
+            note.life = 0.55;
+            registerMiss(note.lane);
+          }
+        } else {
+          note.life -= dt * 3.2;
+        }
+      }
+      state.notes = state.notes.filter(note => note.y < baseHeight + 200 && note.life > 0);
+    }
+
+    function updateFloaties(dt) {
+      for (const floater of state.floaties) {
+        floater.life -= dt;
+        floater.y -= dt * 90;
+      }
+      state.floaties = state.floaties.filter(f => f.life > 0);
+    }
+
+    function updateLaneFlash(dt) {
+      for (let i = 0; i < state.laneFlash.length; i += 1) {
+        state.laneFlash[i] = Math.max(0, state.laneFlash[i] - dt * 2.6);
+      }
+    }
+
+    function drawBackground() {
+      if (assets.background) {
+        ctx.drawImage(assets.background, 0, 0, baseWidth, baseHeight);
+      } else {
+        const gradient = ctx.createLinearGradient(0, 0, baseWidth, baseHeight);
+        gradient.addColorStop(0, '#040b1f');
+        gradient.addColorStop(1, '#02283a');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, baseWidth, baseHeight);
+      }
+    }
+
+    function drawLanes() {
+      for (let i = 0; i < 3; i += 1) {
+        const x = i * laneWidth;
+        const alpha = 0.16 + i * 0.03;
+        ctx.fillStyle = 'rgba(17,30,56,' + alpha + ')';
+        ctx.fillRect(x, 0, laneWidth, baseHeight);
+
+        if (state.laneFlash[i] > 0) {
+          const flashGrad = ctx.createLinearGradient(x, HIT_Y - 140, x, baseHeight);
+          flashGrad.addColorStop(0, 'rgba(93,242,255,' + (0.25 * state.laneFlash[i]) + ')');
+          flashGrad.addColorStop(1, 'rgba(255,200,87,' + (0.65 * state.laneFlash[i]) + ')');
+          ctx.fillStyle = flashGrad;
+          ctx.fillRect(x, HIT_Y - 140, laneWidth, 220);
+        }
+
+        if (i > 0) {
+          ctx.fillStyle = 'rgba(93,242,255,0.12)';
+          ctx.fillRect(x - 1, HIT_Y - 180, 2, 260);
+        }
+      }
+    }
+
+    function drawHitZone() {
+      const size = baseWidth * 0.82;
+      const x = (baseWidth - size) / 2;
+      const y = HIT_Y - size * 0.45;
+      if (assets.hit) {
+        ctx.globalAlpha = 0.9;
+        ctx.drawImage(assets.hit, x, y, size, size);
+        ctx.globalAlpha = 1;
+      } else {
+        ctx.strokeStyle = 'rgba(93,242,255,0.6)';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.arc(baseWidth / 2, HIT_Y, size * 0.4, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    function drawNotes() {
+      for (const note of state.notes) {
+        const cx = note.lane * laneWidth + laneWidth / 2;
+        let size = note.size;
+        let alpha = 1;
+
+        if (note.state === 'hit') {
+          size *= 0.5 + note.life * 0.5;
+          alpha = Math.max(0, note.life * 2.2);
+        } else if (note.state === 'missed') {
+          alpha = Math.max(0, note.life * 2.4);
+          size *= 0.95 + (1 - note.life) * 0.2;
+        }
+
+        ctx.save();
+        ctx.translate(cx, note.y);
+        ctx.globalAlpha = alpha;
+        ctx.rotate(Math.sin(note.wobble) * 0.08);
+
+        let art = null;
+        if (assets.notes.length) {
+          art = assets.notes[note.art % assets.notes.length];
+        }
+        if (art) {
+          ctx.drawImage(art, -size / 2, -size / 2, size, size);
+        } else {
+          const radial = ctx.createRadialGradient(0, 0, 10, 0, 0, size / 2);
+          radial.addColorStop(0, '#5df2ff');
+          radial.addColorStop(1, 'rgba(5,20,40,0)');
+          ctx.fillStyle = radial;
+          ctx.beginPath();
+          ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        if (note.state === 'missed') {
+          ctx.globalAlpha = alpha * 0.6;
+          ctx.fillStyle = 'rgba(255,80,110,0.6)';
+          ctx.beginPath();
+          ctx.arc(0, 0, size * 0.42, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+      }
+    }
+
+    function drawFloaties() {
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (const floater of state.floaties) {
+        const cx = floater.lane * laneWidth + laneWidth / 2;
+        const opacity = Math.min(1, floater.life / floater.duration);
+        ctx.globalAlpha = opacity;
+        ctx.fillStyle = floater.color;
+        ctx.font = floater.size + 'px "Press Start 2P", system-ui';
+        ctx.fillText(floater.text, cx, floater.y);
+      }
+      ctx.restore();
+    }
+
+    function draw() {
+      drawBackground();
+      drawLanes();
+      drawHitZone();
+      drawNotes();
+      drawFloaties();
+
+      const vignette = ctx.createRadialGradient(baseWidth / 2, baseHeight * 0.6, baseWidth * 0.2, baseWidth / 2, baseHeight * 0.6, baseWidth * 0.7);
+      vignette.addColorStop(0, 'rgba(4,6,20,0)');
+      vignette.addColorStop(1, 'rgba(4,6,20,0.8)');
+      ctx.fillStyle = vignette;
+      ctx.fillRect(0, 0, baseWidth, baseHeight);
+    }
+
+    function findCandidate(lane) {
+      let candidate = null;
+      let bestDist = Number.POSITIVE_INFINITY;
+      for (const note of state.notes) {
+        if (note.lane !== lane || note.state !== 'falling') { continue; }
+        const dist = Math.abs(note.y - HIT_Y);
+        if (dist <= HIT_WINDOW && dist < bestDist) {
+          candidate = note;
+          bestDist = dist;
+        }
+      }
+      return candidate;
+    }
+
+    function handleStrike(lane) {
+      if (!state.running) { return; }
+      state.laneFlash[lane] = 1;
+      const candidate = findCandidate(lane);
+      const button = laneButtons[lane];
+      if (button) {
+        button.classList.add('is-pressed');
+        setTimeout(() => button.classList.remove('is-pressed'), 80);
+      }
+
+      if (candidate) {
+        registerHit(candidate);
+      } else {
+        registerMiss(lane);
+      }
+    }
+
+    function registerHit(note) {
+      note.state = 'hit';
+      note.life = 0.42;
+      const dist = Math.abs(note.y - HIT_Y);
+      const accuracy = Math.max(0, 1 - dist / HIT_WINDOW);
+      const label = accuracy > 0.85 ? 'Perfect' : (accuracy > 0.6 ? 'Great' : 'Good');
+
+      state.combo += 1;
+      state.bestCombo = Math.max(state.bestCombo, state.combo);
+      const baseScore = 220 + accuracy * 160;
+      const comboBonus = 1 + Math.min(2.5, state.combo * 0.05);
+      const earned = Math.round(baseScore * comboBonus);
+      state.score += earned;
+
+      state.floaties.push({
+        text: '+' + earned,
+        lane: note.lane,
+        y: HIT_Y - 40,
+        color: '#5df2ff',
+        life: 0.9,
+        duration: 0.9,
+        size: 14
+      });
+
+      state.floaties.push({
+        text: label,
+        lane: note.lane,
+        y: HIT_Y - 72,
+        color: label === 'Perfect' ? '#ffd166' : '#a5f4d3',
+        life: 0.7,
+        duration: 0.7,
+        size: 12
+      });
+
+      updateHud();
+    }
+
+    function registerMiss(lane) {
+      state.floaties.push({
+        text: 'Miss',
+        lane: lane,
+        y: HIT_Y - 30,
+        color: '#ff6b81',
+        life: 0.6,
+        duration: 0.6,
+        size: 12
+      });
+      state.combo = 0;
+      state.misses += 1;
+      updateHud();
+      if (state.misses >= MAX_MISSES) {
+        endGame('The prism lost sync.');
+      }
+    }
+
+    function pointerToLane(clientX) {
+      const rect = canvas.getBoundingClientRect();
+      const x = ((clientX - rect.left) / rect.width) * baseWidth;
+      return Math.min(2, Math.max(0, Math.floor(x / laneWidth)));
+    }
+
+    canvas.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      const lane = pointerToLane(event.clientX);
+      handleStrike(lane);
+    });
+
+    laneButtons.forEach(btn => {
+      btn.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        const lane = Number(btn.dataset.lane || 0);
+        handleStrike(lane);
+      });
+    });
+
+    window.addEventListener('keydown', (event) => {
+      const lane = keyToLane.get(event.key);
+      if (lane !== undefined) {
+        event.preventDefault();
+        handleStrike(lane);
+      }
+    });
+
+    window.addEventListener('blur', () => {
+      if (state.running) {
+        endGame('Paused - window focus lost.');
+      }
+    });
+
+    async function maybeSubmitLeaderboard() {
+      let dest = '../leaderboard.html?gameId=' + encodeURIComponent(GAME_ID);
+      try {
+        const rankResponse = await fetch('/api/leaderboard/rank?gameId=' + encodeURIComponent(GAME_ID) + '&score=' + encodeURIComponent(Math.round(state.score)), {
+          headers: { 'Accept': 'application/json' }
+        });
+        if (rankResponse.ok) {
+          const data = await rankResponse.json();
+          const rank = Number(data?.rank);
+          if (Number.isFinite(rank) && rank > 0 && rank <= 20) {
+            let name = prompt('New High Score! You placed #' + rank + '. Enter your name (20 characters max):', '');
+            if (name !== null) {
+              name = name.trim().replace(/[^\w \-'.!]/g, '').slice(0, 20);
+              if (name) {
+                let submitted = false;
+                try {
+                  const submitResponse = await fetch('/api/leaderboard/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gameId: GAME_ID, name, score: Math.round(state.score) })
+                  });
+                  submitted = submitResponse.ok;
+                } catch (error) {
+                  console.error('Leaderboard submit failed', error);
+                }
+                if (submitted) {
+                  dest += '&highlightRank=' + encodeURIComponent(rank);
+                }
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Leaderboard rank lookup failed', error);
+      } finally {
+        lbBtn.href = dest;
+      }
+    }
+  </script>
+</body>
+</html>

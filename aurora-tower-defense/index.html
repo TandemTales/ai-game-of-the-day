@@ -198,15 +198,15 @@
 
   <div class="toolbar" id="toolbar">
     <div class="tool selected" data-type="basic" data-cost="25">
-      <img src="assets/td_tower_basic.svg" alt="basic">
+      <img src="assets/ATD_tower_basic_small.png" alt="basic">
       <div>Basic 25</div>
     </div>
     <div class="tool" data-type="slow" data-cost="35">
-      <img src="assets/td_tower_slow.svg" alt="slow">
+      <img src="assets/ATD_tower_frost_small.png" alt="slow">
       <div>Frost 35</div>
     </div>
     <div class="tool" data-type="pierce" data-cost="50">
-      <img src="assets/td_tower_pierce.svg" alt="pierce">
+      <img src="assets/ATD_tower_piercing_small.png" alt="pierce">
       <div>Pierce 50</div>
     </div>
   </div>
@@ -253,9 +253,12 @@
     const assets = {
       grass: 'assets/td_tile_grass.svg',
       path: 'assets/td_tile_path.svg',
-      tower_basic: 'assets/td_tower_basic.svg',
-      tower_slow: 'assets/td_tower_slow.svg',
-      tower_pierce: 'assets/td_tower_pierce.svg',
+      tower_basic: 'assets/ATD_tower_basic_small.png',
+      tower_basic_shoot: 'assets/ATD_tower_animation_basic_shooting_small.png',
+      tower_slow: 'assets/ATD_tower_frost_small.png',
+      tower_slow_shoot: 'assets/ATD_tower_frost_animation_shooting_small.png',
+      tower_pierce: 'assets/ATD_tower_piercing_small.png',
+      tower_pierce_shoot: 'assets/ATD_tower_animation_piercing_shooting_small.png',
       enemy: 'assets/td_enemy_bug.svg',
       enemy_fast: 'assets/td_enemy_fast.svg',
       enemy_armored: 'assets/td_enemy_armored.svg',
@@ -295,10 +298,13 @@
       leaks: 0,
     };
 
-    const towers = []; // {gx, gy, type, cd, lvl}
+    const towers = []; // {gx, gy, type, cd, lvl, animFrame, animTimer, animPlaying}
     const bullets = []; // {x,y,vx,vy,spd, dmg, slow, slowDur, targetId, bonus}
     let enemies = []; // {id, x,y, seg, t, spd, hp, maxHp, slow, slowTimer}
     let nextEnemyId = 1;
+
+    const SHOOT_ANIM_FRAMES = 4;
+    const SHOOT_ANIM_FRAME_TIME = 0.08;
 
     const TOWER_CONF = {
       basic: { range: 2.6, rof: 0.8, dmg: 16, spd: 420, cost: 25 },
@@ -494,7 +500,7 @@
       const cost = conf.cost;
       if(state.coins < cost) return;
       state.coins -= cost;
-      towers.push({ gx, gy, type: selectedTower, cd: 0, lvl: 1 });
+      towers.push({ gx, gy, type: selectedTower, cd: 0, lvl: 1, animFrame: 0, animTimer: 0, animPlaying: false });
       updateHUD();
     }, {passive:true});
 
@@ -520,7 +526,9 @@
       const conf = TOWER_CONF[selectedTower];
       const cost = conf.cost;
       if(state.coins < cost) return;
-      state.coins -= cost; towers.push({ gx, gy, type: selectedTower, cd: 0, lvl: 1 }); updateHUD();
+      state.coins -= cost;
+      towers.push({ gx, gy, type: selectedTower, cd: 0, lvl: 1, animFrame: 0, animTimer: 0, animPlaying: false });
+      updateHUD();
       e.preventDefault();
     }, {passive:false});
 
@@ -551,6 +559,26 @@
           const spd = conf.spd; const dx = best.x - tx, dy = best.y - ty; const d = Math.hypot(dx,dy)||1;
           bullets.push({ x: tx, y: ty, vx: dx/d, vy: dy/d, spd, dmg: conf.dmg, slow: conf.slow||0, slowDur: conf.slowDur||0, targetId: best.id, bonus: conf.bonus||{} });
           t.cd = 1/conf.rof; // cooldown seconds
+          t.animFrame = 0;
+          t.animTimer = 0;
+          t.animPlaying = true;
+        }
+      }
+    }
+
+    function updateTowerAnimations(){
+      for(const t of towers){
+        if(!t.animPlaying) continue;
+        t.animTimer += dt;
+        while(t.animTimer >= SHOOT_ANIM_FRAME_TIME){
+          t.animTimer -= SHOOT_ANIM_FRAME_TIME;
+          t.animFrame++;
+          if(t.animFrame >= SHOOT_ANIM_FRAMES){
+            t.animPlaying = false;
+            t.animFrame = 0;
+            t.animTimer = 0;
+            break;
+          }
         }
       }
     }
@@ -658,8 +686,23 @@
     function drawTowers(){
       for(const t of towers){
         const x = t.gx*tile, y = t.gy*tile;
-        const img = Images['tower_'+t.type];
-        ctx.drawImage(img, x, y, tile, tile);
+        const baseKey = 'tower_'+t.type;
+        const img = Images[baseKey];
+        const animKey = baseKey + '_shoot';
+        const animImg = Images[animKey];
+        let drawn = false;
+        if(t.animPlaying && animImg){
+          const frameHeight = animImg.height / SHOOT_ANIM_FRAMES;
+          const frameWidth = animImg.width;
+          if(frameWidth > 0 && frameHeight > 0){
+            const frame = Math.min(t.animFrame, SHOOT_ANIM_FRAMES - 1);
+            ctx.drawImage(animImg, 0, frameHeight * frame, frameWidth, frameHeight, x, y, tile, tile);
+            drawn = true;
+          }
+        }
+        if(!drawn && img){
+          ctx.drawImage(img, x, y, tile, tile);
+        }
         if((t.lvl||1) > 1){
           ctx.save();
           ctx.fillStyle = '#FFD700';
@@ -706,6 +749,7 @@
       state.time += dt;
       aimAndShoot();
       moveBullets();
+      updateTowerAnimations();
       moveEnemies();
       updateWaves();
       updateHUD();

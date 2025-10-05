@@ -256,6 +256,12 @@
       tower_basic: 'assets/td_tower_basic.svg',
       tower_slow: 'assets/td_tower_slow.svg',
       tower_pierce: 'assets/td_tower_pierce.svg',
+      tower_basic_idle: 'assets/ATD_tower_basic_small.png',
+      tower_basic_shoot: 'assets/ATD_tower_basic_shooting_small.png',
+      tower_slow_idle: 'assets/ATD_tower_frost_small.png',
+      tower_slow_shoot: 'assets/ATD_tower_frost_shooting_small.png',
+      tower_pierce_idle: 'assets/ATD_tower_piercing_small.png',
+      tower_pierce_shoot: 'assets/ATD_tower_piercing_shooting_small.png',
       enemy: 'assets/td_enemy_bug.svg',
       enemy_fast: 'assets/td_enemy_fast.svg',
       enemy_armored: 'assets/td_enemy_armored.svg',
@@ -295,7 +301,75 @@
       leaks: 0,
     };
 
-    const towers = []; // {gx, gy, type, cd, lvl}
+    function ensureTowerAnim(t){
+      if(!t.anim){ t.anim = { state: 'idle', frame: 0, timer: 0 }; }
+      return t.anim;
+    }
+    function setTowerAnim(t, state){
+      const atlas = TOWER_ANIM[t.type];
+      if(!atlas || !atlas[state]) state = 'idle';
+      const anim = ensureTowerAnim(t);
+      if(anim.state === state) return;
+      anim.state = state;
+      anim.frame = 0;
+      anim.timer = 0;
+    }
+    function towerAnimFrame(t){
+      const atlas = TOWER_ANIM[t.type];
+      const anim = ensureTowerAnim(t);
+      const state = (atlas && atlas[anim.state]) ? anim.state : 'idle';
+      const config = atlas ? (atlas[state] || atlas.idle) : null;
+      if(!config) return null;
+      const img = Images[config.key];
+      if(!img) return null;
+      const frames = Math.max(1, config.frames || 1);
+      const frameIndex = Math.min(anim.frame || 0, frames-1);
+      if(frames === 1){
+        return { img, sx: 0, sy: 0, sw: img.width, sh: img.height };
+      }
+      const vertical = Number.isInteger(img.height / frames);
+      if(vertical){
+        const sh = img.height / frames;
+        return { img, sx: 0, sy: sh * frameIndex, sw: img.width, sh };
+      }
+      const sw = img.width / frames;
+      return { img, sx: sw * frameIndex, sy: 0, sw, sh: img.height };
+    }
+    function updateTowerAnimations(){
+      for(const t of towers){
+        const atlas = TOWER_ANIM[t.type];
+        if(!atlas) continue;
+        const anim = ensureTowerAnim(t);
+        let config = atlas[anim.state] || atlas.idle;
+        if(!config){ setTowerAnim(t, 'idle'); config = atlas.idle; }
+        if(!config) continue;
+        const frames = Math.max(1, config.frames || 1);
+        if(frames <= 1){ anim.frame = 0; anim.timer = 0; continue; }
+        const fps = config.fps || 6;
+        if(fps <= 0) continue;
+        anim.timer += dt;
+        const frameDuration = 1 / fps;
+        while(anim.timer >= frameDuration){
+          anim.timer -= frameDuration;
+          anim.frame = (anim.frame || 0) + 1;
+          if(anim.frame >= frames){
+            if(config.loop === false){
+              setTowerAnim(t, 'idle');
+              break;
+            }
+            anim.frame = 0;
+          }
+        }
+      }
+    }
+
+    function createTower(gx, gy, type){
+      const tower = { gx, gy, type, cd: 0, lvl: 1 };
+      ensureTowerAnim(tower);
+      return tower;
+    }
+
+    const towers = []; // {gx, gy, type, cd, lvl, anim}
     const bullets = []; // {x,y,vx,vy,spd, dmg, slow, slowDur, targetId, bonus}
     let enemies = []; // {id, x,y, seg, t, spd, hp, maxHp, slow, slowTimer}
     let nextEnemyId = 1;
@@ -304,6 +378,21 @@
       basic: { range: 2.6, rof: 0.8, dmg: 16, spd: 420, cost: 25 },
       slow:  { range: 2.2, rof: 1.2, dmg: 8,  spd: 380, slow: 0.55, slowDur: 1.4, cost: 35 },
       pierce:{ range: 2.4, rof: 0.6, dmg: 32, spd: 450, cost: 50, bonus: { armored: 24 } },
+    };
+
+    const TOWER_ANIM = {
+      basic: {
+        idle:  { key: 'tower_basic_idle', frames: 4, fps: 6, loop: true },
+        shoot: { key: 'tower_basic_shoot', frames: 4, fps: 10, loop: false },
+      },
+      slow: {
+        idle:  { key: 'tower_slow_idle', frames: 4, fps: 6, loop: true },
+        shoot: { key: 'tower_slow_shoot', frames: 4, fps: 10, loop: false },
+      },
+      pierce: {
+        idle:  { key: 'tower_pierce_idle', frames: 1, fps: 1, loop: true },
+        shoot: { key: 'tower_pierce_shoot', frames: 4, fps: 10, loop: false },
+      }
     };
 
     function towerStats(t){
@@ -494,7 +583,7 @@
       const cost = conf.cost;
       if(state.coins < cost) return;
       state.coins -= cost;
-      towers.push({ gx, gy, type: selectedTower, cd: 0, lvl: 1 });
+      towers.push(createTower(gx, gy, selectedTower));
       updateHUD();
     }, {passive:true});
 
@@ -520,7 +609,7 @@
       const conf = TOWER_CONF[selectedTower];
       const cost = conf.cost;
       if(state.coins < cost) return;
-      state.coins -= cost; towers.push({ gx, gy, type: selectedTower, cd: 0, lvl: 1 }); updateHUD();
+      state.coins -= cost; towers.push(createTower(gx, gy, selectedTower)); updateHUD();
       e.preventDefault();
     }, {passive:false});
 
@@ -537,6 +626,7 @@
 
     function aimAndShoot(){
       for(const t of towers){
+        ensureTowerAnim(t);
         const conf = towerStats(t);
         t.cd = Math.max(0, t.cd - dt);
         if(t.cd>0) continue;
@@ -551,6 +641,7 @@
           const spd = conf.spd; const dx = best.x - tx, dy = best.y - ty; const d = Math.hypot(dx,dy)||1;
           bullets.push({ x: tx, y: ty, vx: dx/d, vy: dy/d, spd, dmg: conf.dmg, slow: conf.slow||0, slowDur: conf.slowDur||0, targetId: best.id, bonus: conf.bonus||{} });
           t.cd = 1/conf.rof; // cooldown seconds
+          setTowerAnim(t, 'shoot');
         }
       }
     }
@@ -658,8 +749,13 @@
     function drawTowers(){
       for(const t of towers){
         const x = t.gx*tile, y = t.gy*tile;
-        const img = Images['tower_'+t.type];
-        ctx.drawImage(img, x, y, tile, tile);
+        const sprite = towerAnimFrame(t);
+        if(sprite){
+          ctx.drawImage(sprite.img, sprite.sx, sprite.sy, sprite.sw, sprite.sh, x, y, tile, tile);
+        } else {
+          const fallback = Images['tower_'+t.type];
+          if(fallback){ ctx.drawImage(fallback, x, y, tile, tile); }
+        }
         if((t.lvl||1) > 1){
           ctx.save();
           ctx.fillStyle = '#FFD700';
@@ -705,6 +801,7 @@
       dt = Math.min(0.033, (ts - last)/1000 || 0.016); last = ts;
       state.time += dt;
       aimAndShoot();
+      updateTowerAnimations();
       moveBullets();
       moveEnemies();
       updateWaves();

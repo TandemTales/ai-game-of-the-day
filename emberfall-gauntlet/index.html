@@ -5115,7 +5115,10 @@
           applyTerrainCollisionResponse(e, eTerrainHit);
         }
 
-        if (e.kind === 'boss'){
+        const isBoss = e.kind === 'boss';
+        const isBeholderBoss = isBoss && e.bossType === 'beholder';
+
+        if (isBoss){
           if (!sleeping){
             e.atkT += dt;
             if (e.bossType === 'hungerDemon' || e.bossType === 'beholder') e.blastT = (e.blastT || 0) + dt;
@@ -5351,6 +5354,21 @@
               }
               e.freezeT = 1.5;
             }
+          }
+        }
+
+        if (isBeholderBoss){
+          // Stage indices are zero-based, so stage 4 corresponds to the fifth stage (the Beholder arena)
+          const stageSupportsRegen = stage >= 4;
+          if (stageSupportsRegen && e.hp > 0 && e.hp < e.hpMax){
+            e.regenTimer = (e.regenTimer || 0) + dt;
+            while (e.regenTimer >= 3 && e.hp < e.hpMax){
+              e.regenTimer -= 3;
+              const healAmount = Math.max(1, Math.round(e.hpMax * 0.1));
+              e.hp = Math.min(e.hp + healAmount, e.hpMax);
+            }
+          } else if (e.regenTimer){
+            e.regenTimer = 0;
           }
         }
 

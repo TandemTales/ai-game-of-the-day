@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="960" viewBox="0 0 800 960">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a0230"/>
+      <stop offset="0.45" stop-color="#31094b"/>
+      <stop offset="0.75" stop-color="#69123f"/>
+      <stop offset="1" stop-color="#a5332b"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.72" cy="0.12" r="0.35">
+      <stop offset="0" stop-color="#ffd38a" stop-opacity="0.9"/>
+      <stop offset="0.4" stop-color="#ff9b4a" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#ff5b36" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ridge" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#381a54"/>
+      <stop offset="0.5" stop-color="#541f63"/>
+      <stop offset="1" stop-color="#7c296a"/>
+    </linearGradient>
+    <linearGradient id="ridge2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6c1c3a"/>
+      <stop offset="0.5" stop-color="#a43040"/>
+      <stop offset="1" stop-color="#d34a3c"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="960" fill="url(#sky)"/>
+  <circle cx="590" cy="140" r="220" fill="url(#glow)"/>
+
+  <g fill="#ffe9c9" opacity="0.7">
+    <circle cx="110" cy="100" r="2.5"/>
+    <circle cx="180" cy="60" r="3"/>
+    <circle cx="230" cy="190" r="2"/>
+    <circle cx="70" cy="260" r="2.4"/>
+    <circle cx="360" cy="90" r="2.2"/>
+    <circle cx="480" cy="40" r="2.7"/>
+    <circle cx="650" cy="80" r="2.1"/>
+    <circle cx="720" cy="220" r="2.9"/>
+    <circle cx="420" cy="210" r="2.5"/>
+    <circle cx="540" cy="260" r="2"/>
+    <circle cx="320" cy="40" r="1.8"/>
+  </g>
+
+  <g fill="none" stroke="#ffcf8f" stroke-width="1.6" opacity="0.4">
+    <path d="M40 180c18-12 40-18 60-9 22 10 33 34 55 41 21 7 48-3 70-14 22-11 48-21 72-17 40 7 69 43 109 51 33 6 62-8 92-22 34-16 70-30 108-27 37 3 72 24 108 40 26 12 54 19 82 16"/>
+    <path d="M10 250c24-8 48-8 68 3 23 13 40 40 68 48 23 6 52-2 75-13 31-15 63-32 96-32 35 0 66 18 98 30 31 11 65 15 98 8 36-8 66-31 101-43 24-9 51-11 76-6 34 6 64 23 96 34"/>
+  </g>
+
+  <path d="M0 530c52-20 108-34 164-24 68 12 128 56 200 54 70-1 130-46 200-60 70-15 146 2 236 45v395H0Z" fill="url(#ridge)" opacity="0.65"/>
+  <path d="M0 640c42-22 90-40 140-36 80 6 150 58 232 62 80 4 148-46 228-56 78-10 130 22 200 56v294H0Z" fill="url(#ridge2)" opacity="0.88"/>
+</svg>

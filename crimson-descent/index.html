@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-17405200669"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'AW-17405200669');
+</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Crimson Descent</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
+  <style>
+    :root {
+      --gold: #FFD700;
+      --teal: #5F9EA0;
+      --crimson: #a5332b;
+      --ink: #F5F5DC;
+      --topbar-h: 56px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: radial-gradient(circle at 60% 10%, #ffe1a6 0%, #ff8351 22%, #7a1535 62%, #25072b 100%);
+      font-family: 'Press Start 2P', cursive;
+      color: var(--ink);
+      overflow: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image: url('../images/botbuiltarcade-icon-face.png');
+      background-size: 220px 220px;
+      background-repeat: no-repeat;
+      background-position: top right;
+      opacity: 0.08;
+      z-index: -1;
+    }
+    .topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      background: rgba(15, 7, 24, 0.72);
+      border-bottom: 2px solid var(--gold);
+      backdrop-filter: blur(10px);
+      z-index: 30;
+    }
+    .title {
+      flex: 1;
+      text-align: center;
+      font-size: 14px;
+      letter-spacing: 1px;
+      background: linear-gradient(45deg, var(--gold), #FFA500);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .top-actions {
+      display: flex;
+      gap: 10px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 12px;
+      font-size: 11px;
+      border-radius: 10px;
+      text-decoration: none;
+      color: #fff;
+      border: 2px solid var(--gold);
+      background: linear-gradient(45deg, var(--teal), #4682B4);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+      cursor: pointer;
+      transition: transform 0.2s ease, filter 0.2s ease;
+    }
+    .btn:hover { transform: translateY(-2px); filter: brightness(1.05); }
+    .btn:active { transform: translateY(1px); }
+    .hud {
+      position: fixed;
+      top: calc(var(--topbar-h) + 12px);
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 14px;
+      padding: 8px 14px;
+      border-radius: 12px;
+      background: rgba(12, 6, 22, 0.72);
+      border: 2px solid rgba(255, 215, 0, 0.35);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      font-size: 11px;
+      z-index: 25;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .hud span { display: inline-flex; align-items: center; gap: 6px; }
+    .hud label { opacity: 0.8; font-size: 10px; }
+    .hud strong { color: var(--gold); font-weight: 400; }
+    .game-wrap {
+      position: fixed;
+      top: calc(var(--topbar-h) + 0px);
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(720px, 100vw);
+      height: calc(min(720px, 100vw) * 4 / 3);
+      max-height: calc(100vh - var(--topbar-h));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-top: 12px;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      max-height: calc(100vh - var(--topbar-h) - 80px);
+      image-rendering: pixelated;
+      border-radius: 16px;
+      border: 3px solid rgba(242, 149, 90, 0.4);
+      background: #1a1126;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      text-align: center;
+      padding: 24px;
+      background: radial-gradient(680px 540px at 50% 40%, rgba(12, 4, 16, 0.8), rgba(8, 3, 14, 0.92));
+      color: var(--ink);
+      z-index: 40;
+    }
+    .overlay.show { display: flex; }
+    .overlay h2 { margin: 0 0 16px; font-size: 20px; color: var(--gold); }
+    .overlay p { margin: 8px 0; font-size: 12px; line-height: 1.5; }
+    .overlay small { margin-top: 16px; font-size: 10px; color: var(--teal); }
+    .overlay .stats { margin-top: 18px; font-size: 11px; line-height: 1.4; color: #ffe4b5; }
+    .panel {
+      max-width: 560px;
+      background: rgba(22, 11, 32, 0.92);
+      border: 2px solid rgba(255, 215, 0, 0.45);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 14px 36px rgba(0,0,0,0.55);
+      text-align: left;
+    }
+    .panel h3 { margin: 4px 0 12px; font-size: 14px; color: var(--gold); }
+    .panel ul { margin: 0; padding-left: 18px; font-size: 11px; line-height: 1.6; }
+    .panel li { margin-bottom: 6px; }
+    .touch-controls {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      width: min(420px, 90vw);
+      z-index: 35;
+    }
+    .touch-btn {
+      padding: 16px 10px;
+      font-size: 12px;
+      border-radius: 12px;
+      border: 2px solid rgba(255, 215, 0, 0.35);
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.18), rgba(95, 158, 160, 0.15));
+      color: var(--gold);
+      text-shadow: 0 2px 6px rgba(0,0,0,0.6);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+      user-select: none;
+      touch-action: none;
+    }
+    .touch-btn:active { filter: brightness(1.15); }
+    @media (min-width: 900px) {
+      .touch-controls { display: none; }
+    }
+    @media (max-width: 480px) {
+      .topbar { padding: 10px; }
+      .btn { font-size: 10px; padding: 8px 10px; }
+      .title { font-size: 12px; }
+      .hud { gap: 10px; font-size: 10px; }
+      .hud label { font-size: 9px; }
+      .overlay h2 { font-size: 18px; }
+      .overlay p { font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar" id="topbar">
+    <a class="btn" href="../index.html">⟵ Back to Home</a>
+    <div class="title">Crimson Descent</div>
+    <div class="top-actions">
+      <a class="btn" href="../leaderboard.html?gameId=crimson-descent">Leaderboard</a>
+      <button class="btn" id="howToBtn">How to Play</button>
+    </div>
+  </div>
+
+  <div class="hud" id="hud">
+    <span><label>Fuel</label><strong id="fuel">100</strong>%</span>
+    <span><label>Vertical</label><strong id="vertical">0</strong></span>
+    <span><label>Horizontal</label><strong id="horizontal">0</strong></span>
+    <span><label>Altitude</label><strong id="altitude">0</strong></span>
+    <span><label>Elapsed</label><strong id="time">0.0</strong>s</span>
+    <span><label>Score</label><strong id="score">--</strong></span>
+  </div>
+
+  <div class="game-wrap">
+    <canvas id="game" aria-label="Crimson Descent"></canvas>
+    <div class="overlay show" id="startScreen">
+      <h2>Crimson Descent</h2>
+      <p>Feather your thrusters and guide the expedition lander onto the Phobos Prospect landing pad. High atmosphere winds will punish rough touchdowns, so keep your velocity and tilt in check.</p>
+      <p>Ready? Tap, click, or press Space to ignite and begin descent.</p>
+      <small>Controls · Arrow/WASD to rotate · Space/Up to fire main thruster · On-screen buttons available on touch devices.</small>
+    </div>
+    <div class="overlay" id="resultScreen">
+      <h2 id="resultTitle">Mission Status</h2>
+      <p id="resultMessage"></p>
+      <div class="stats" id="resultStats"></div>
+      <small>Tap, click, or press Space to attempt another landing.</small>
+    </div>
+    <div class="overlay" id="howTo">
+      <div class="panel">
+        <h3>Mission Briefing</h3>
+        <ul>
+          <li>Maintain vertical speed under 35 and horizontal drift under 20 when touching down.</li>
+          <li>Keep your tilt within 20° as you settle onto the pad.</li>
+          <li>Saving fuel earns big bonuses. Fire thrusters only when you must.</li>
+          <li>Score is based on touchdown precision, remaining fuel, and time spent in descent.</li>
+          <li>Cratering ends the run, but you can still submit your score.</li>
+        </ul>
+        <h3>Controls</h3>
+        <ul>
+          <li><strong>Rotate</strong>: Arrow Left/Right or A/D</li>
+          <li><strong>Main Thruster</strong>: Arrow Up, W, or Spacebar</li>
+          <li><strong>Touch</strong>: Use the on-screen buttons for rotate and thrust</li>
+        </ul>
+      </div>
+      <small>Tap anywhere to close.</small>
+    </div>
+  </div>
+
+  <div class="touch-controls" id="touchControls">
+    <button class="touch-btn" data-control="left">⟲ Rotate</button>
+    <button class="touch-btn" data-control="thrust">▲ Thrust</button>
+    <button class="touch-btn" data-control="right">Rotate ⟳</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const startScreen = document.getElementById('startScreen');
+    const resultScreen = document.getElementById('resultScreen');
+    const howTo = document.getElementById('howTo');
+    const howToBtn = document.getElementById('howToBtn');
+    const topbar = document.getElementById('topbar');
+    const hudEl = document.getElementById('hud');
+    const touchControls = document.getElementById('touchControls');
+
+    const hudFuel = document.getElementById('fuel');
+    const hudVertical = document.getElementById('vertical');
+    const hudHorizontal = document.getElementById('horizontal');
+    const hudAltitude = document.getElementById('altitude');
+    const hudTime = document.getElementById('time');
+    const hudScore = document.getElementById('score');
+
+    const resultTitle = document.getElementById('resultTitle');
+    const resultMessage = document.getElementById('resultMessage');
+    const resultStats = document.getElementById('resultStats');
+
+    const WIDTH = 720;
+    const HEIGHT = 960;
+    const pixelRatio = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+    canvas.width = WIDTH * pixelRatio;
+    canvas.height = HEIGHT * pixelRatio;
+    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
+    function resize() {
+      const rect = topbar.getBoundingClientRect();
+      document.documentElement.style.setProperty('--topbar-h', rect.height + 'px');
+    }
+    resize();
+    if (typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(resize).observe(topbar);
+    }
+    window.addEventListener('resize', resize);
+
+    const assets = {
+      background: 'assets/mars_background.svg',
+      lander: 'assets/lander.svg',
+      pad: 'assets/landing_pad.svg'
+    };
+    const Images = {};
+
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('Failed to load ' + src));
+        img.src = src;
+      });
+    }
+
+    let assetsReady = false;
+    Promise.all(Object.entries(assets).map(([key, src]) => loadImage(src).then(img => { Images[key] = img; })))
+      .then(() => {
+        assetsReady = true;
+        startScreen.querySelector('p').textContent = 'Ready? Tap, click, or press Space to ignite and begin descent.';
+      })
+      .catch(err => {
+        console.error(err);
+        startScreen.querySelector('p').textContent = 'Asset load failed. Refresh to retry.';
+      });
+
+    const LANDER_WIDTH = 120;
+    const LANDER_HEIGHT = 140;
+    const pad = {
+      x: WIDTH / 2 - 110,
+      y: HEIGHT - 150,
+      width: 220,
+      height: 120
+    };
+
+    const GRAVITY = 32;
+    const MAIN_THRUST = 52;
+    const FUEL_BURN_RATE = 22; // units per second
+    const ROT_SPEED = 1.8; // radians per second
+    const MAX_VERTICAL_FOR_LAND = 35;
+    const MAX_HORIZONTAL_FOR_LAND = 20;
+    const MAX_ANGLE_FOR_LAND = 0.35; // radians (~20°)
+
+    const GAME_ID = 'crimson-descent';
+
+    const state = {
+      phase: 'intro',
+      time: 0,
+      finalScore: 0,
+      submitted: false,
+      landingStats: null,
+      currentScore: null
+    };
+
+    const lander = {
+      x: WIDTH / 2,
+      y: 200,
+      vx: 0,
+      vy: 0,
+      rotation: 0,
+      fuel: 100,
+      thrusting: false,
+      flameTimer: 0
+    };
+
+    const keys = { left: false, right: false, thrust: false };
+
+    function resetLander() {
+      lander.x = WIDTH / 2;
+      lander.y = 200;
+      lander.vx = 0;
+      lander.vy = 12;
+      lander.rotation = 0;
+      lander.fuel = 100;
+      lander.thrusting = false;
+      lander.flameTimer = 0;
+      state.time = 0;
+      state.finalScore = 0;
+      state.submitted = false;
+      state.landingStats = null;
+      state.currentScore = null;
+    }
+
+    function showStart() {
+      startScreen.classList.add('show');
+      resultScreen.classList.remove('show');
+      state.phase = 'intro';
+      updateHUD();
+    }
+
+    function startGame() {
+      if (!assetsReady) return;
+      state.phase = 'playing';
+      state.time = 0;
+      state.finalScore = 0;
+      state.currentScore = null;
+      startScreen.classList.remove('show');
+      resultScreen.classList.remove('show');
+    }
+
+    function endRound(success) {
+      state.phase = success ? 'landed' : 'crashed';
+      const vx = lander.vx;
+      const vy = lander.vy;
+      const angle = lander.rotation;
+      const fuelRemaining = Math.max(0, lander.fuel);
+      const elapsed = state.time;
+      const angleDeg = Math.abs(angle) * 180 / Math.PI;
+      const precisionBonus = Math.max(0, 220 - Math.abs(vy) * 140);
+      const driftBonus = Math.max(0, 160 - Math.abs(vx) * 160);
+      const angleBonus = Math.max(0, 180 - angleDeg * 4);
+      const fuelBonus = fuelRemaining * 12;
+      const timePenalty = Math.floor(elapsed * 35);
+      const base = success ? 1500 : 400;
+      const score = Math.max(0, Math.round(base + precisionBonus + driftBonus + angleBonus + fuelBonus - timePenalty));
+      state.finalScore = score;
+      state.currentScore = score;
+      state.landingStats = { vx, vy, angleDeg, fuelRemaining, elapsed };
+
+      resultTitle.textContent = success ? 'Touchdown Achieved' : 'Mission Failed';
+      if (success) {
+        resultMessage.textContent = 'Excellent piloting! The colony has fresh supplies thanks to your steady hands.';
+      } else {
+        resultMessage.textContent = 'The lander broke apart on the regolith. Review your approach and try again.';
+      }
+      resultStats.innerHTML = `Velocity V: ${vy.toFixed(1)} &nbsp;|&nbsp; Velocity H: ${vx.toFixed(1)}<br>` +
+        `Tilt: ${angleDeg.toFixed(1)}° &nbsp;|&nbsp; Fuel Remaining: ${fuelRemaining.toFixed(1)}<br>` +
+        `Elapsed Time: ${elapsed.toFixed(1)}s &nbsp;|&nbsp; Score: ${score}`;
+      resultScreen.classList.add('show');
+      if (!state.submitted) {
+        state.submitted = true;
+        maybeSubmitLeaderboard(success).catch(console.error);
+      }
+    }
+
+    function updateHUD() {
+      hudFuel.textContent = Math.max(0, lander.fuel).toFixed(0);
+      hudVertical.textContent = lander.vy.toFixed(1);
+      hudHorizontal.textContent = lander.vx.toFixed(1);
+      const altitude = Math.max(0, pad.y - (lander.y + LANDER_HEIGHT * 0.46));
+      hudAltitude.textContent = altitude.toFixed(0);
+      hudTime.textContent = state.time.toFixed(1);
+      hudScore.textContent = state.currentScore == null ? '--' : state.currentScore;
+    }
+
+    function update(dt) {
+      if (state.phase !== 'playing') {
+        lander.thrusting = false;
+        return;
+      }
+      state.time += dt;
+      const rot = ROT_SPEED * dt;
+      if (keys.left) lander.rotation -= rot;
+      if (keys.right) lander.rotation += rot;
+      lander.rotation = ((lander.rotation + Math.PI) % (Math.PI * 2)) - Math.PI;
+
+      const canThrust = keys.thrust && lander.fuel > 0;
+      if (canThrust) {
+        lander.fuel = Math.max(0, lander.fuel - FUEL_BURN_RATE * dt);
+        const thrust = MAIN_THRUST * dt;
+        const s = Math.sin(lander.rotation);
+        const c = Math.cos(lander.rotation);
+        lander.vx += s * thrust;
+        lander.vy -= c * thrust;
+        lander.thrusting = true;
+        lander.flameTimer += dt * 9;
+      } else {
+        lander.thrusting = false;
+        lander.flameTimer = 0;
+      }
+
+      lander.vy += GRAVITY * dt;
+      lander.x += lander.vx * dt;
+      lander.y += lander.vy * dt;
+
+      const halfW = LANDER_WIDTH * 0.42;
+      if (lander.x < halfW) {
+        lander.x = halfW;
+        lander.vx *= -0.3;
+      } else if (lander.x > WIDTH - halfW) {
+        lander.x = WIDTH - halfW;
+        lander.vx *= -0.3;
+      }
+
+      const bottom = lander.y + LANDER_HEIGHT * 0.46;
+      const padTop = pad.y - 12;
+      if (bottom >= padTop) {
+        const withinPad = lander.x > pad.x + 40 && lander.x < pad.x + pad.width - 40;
+        const softLanding = Math.abs(lander.vy) <= MAX_VERTICAL_FOR_LAND && Math.abs(lander.vx) <= MAX_HORIZONTAL_FOR_LAND && Math.abs(lander.rotation) <= MAX_ANGLE_FOR_LAND;
+        lander.y = padTop - LANDER_HEIGHT * 0.46;
+        lander.vx = 0;
+        lander.vy = 0;
+        if (withinPad && softLanding) {
+          endRound(true);
+        } else {
+          endRound(false);
+        }
+      }
+
+      if (lander.y < -200) {
+        lander.y = -200;
+        lander.vy = 0;
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, WIDTH, HEIGHT);
+      if (assetsReady && Images.background) {
+        ctx.drawImage(Images.background, 0, 0, WIDTH, HEIGHT);
+      } else {
+        ctx.fillStyle = '#201030';
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      }
+
+      if (assetsReady && Images.pad) {
+        ctx.drawImage(Images.pad, pad.x - 70, pad.y - 100, 360, 200);
+      }
+
+      ctx.save();
+      ctx.translate(lander.x, lander.y);
+      ctx.rotate(lander.rotation);
+      if (lander.thrusting) {
+        const flicker = 10 + Math.sin(lander.flameTimer) * 6;
+        const gradient = ctx.createLinearGradient(0, LANDER_HEIGHT * 0.34, 0, LANDER_HEIGHT * 0.6 + flicker);
+        gradient.addColorStop(0, 'rgba(255, 240, 200, 0.9)');
+        gradient.addColorStop(0.4, 'rgba(255, 160, 60, 0.85)');
+        gradient.addColorStop(1, 'rgba(255, 60, 40, 0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.moveTo(-18, LANDER_HEIGHT * 0.32);
+        ctx.lineTo(0, LANDER_HEIGHT * 0.6 + flicker);
+        ctx.lineTo(18, LANDER_HEIGHT * 0.32);
+        ctx.closePath();
+        ctx.fill();
+      }
+      if (assetsReady && Images.lander) {
+        ctx.drawImage(Images.lander, -LANDER_WIDTH / 2, -LANDER_HEIGHT / 2, LANDER_WIDTH, LANDER_HEIGHT);
+      } else {
+        ctx.fillStyle = '#ccc';
+        ctx.fillRect(-20, -40, 40, 80);
+      }
+      ctx.restore();
+
+      // HUD helper markers
+      ctx.save();
+      ctx.translate(lander.x, lander.y + LANDER_HEIGHT * 0.45);
+      ctx.strokeStyle = 'rgba(255, 220, 180, 0.25)';
+      ctx.beginPath();
+      ctx.moveTo(-40, 8);
+      ctx.lineTo(40, 8);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    let last = performance.now();
+    function loop(now) {
+      const dt = Math.min(0.05, (now - last) / 1000 || 0.016);
+      last = now;
+      update(dt);
+      draw();
+      updateHUD();
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    function handleStart() {
+      if (state.phase === 'intro' || state.phase === 'landed' || state.phase === 'crashed') {
+        resetLander();
+        startGame();
+      }
+    }
+
+    function handleSpaceStart(e) {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (state.phase === 'intro') {
+          handleStart();
+        } else if (state.phase === 'landed' || state.phase === 'crashed') {
+          showStart();
+          handleStart();
+        } else {
+          keys.thrust = true;
+        }
+      }
+    }
+
+    startScreen.addEventListener('click', () => { handleStart(); });
+    startScreen.addEventListener('touchstart', (e) => { e.preventDefault(); handleStart(); }, { passive: false });
+    resultScreen.addEventListener('click', () => { showStart(); });
+    resultScreen.addEventListener('touchstart', (e) => { e.preventDefault(); showStart(); }, { passive: false });
+
+    howToBtn.addEventListener('click', () => {
+      howTo.classList.add('show');
+    });
+    howTo.addEventListener('click', () => {
+      howTo.classList.remove('show');
+    });
+    howTo.addEventListener('touchstart', (e) => { e.preventDefault(); howTo.classList.remove('show'); }, { passive: false });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.repeat) return;
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
+      if (e.code === 'ArrowUp' || e.code === 'KeyW') keys.thrust = true;
+      if (e.code === 'Space') {
+        handleSpaceStart(e);
+      }
+    });
+    document.addEventListener('keyup', (e) => {
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
+      if (e.code === 'ArrowUp' || e.code === 'KeyW') keys.thrust = false;
+      if (e.code === 'Space') keys.thrust = false;
+    });
+
+    window.addEventListener('blur', () => {
+      keys.left = keys.right = keys.thrust = false;
+    });
+
+    // Touch controls
+    const activeTouches = new Map();
+    function setControl(control, active) {
+      if (control === 'left') keys.left = active;
+      if (control === 'right') keys.right = active;
+      if (control === 'thrust') keys.thrust = active;
+    }
+    touchControls.addEventListener('pointerdown', (e) => {
+      const btn = e.target.closest('[data-control]');
+      if (!btn) return;
+      e.preventDefault();
+      btn.setPointerCapture(e.pointerId);
+      activeTouches.set(e.pointerId, btn.dataset.control);
+      setControl(btn.dataset.control, true);
+    });
+    touchControls.addEventListener('pointerup', (e) => {
+      const control = activeTouches.get(e.pointerId);
+      if (control) {
+        setControl(control, false);
+        activeTouches.delete(e.pointerId);
+      }
+    });
+    touchControls.addEventListener('pointercancel', (e) => {
+      const control = activeTouches.get(e.pointerId);
+      if (control) {
+        setControl(control, false);
+        activeTouches.delete(e.pointerId);
+      }
+    });
+    touchControls.addEventListener('pointerleave', (e) => {
+      const control = activeTouches.get(e.pointerId);
+      if (control) {
+        setControl(control, false);
+        activeTouches.delete(e.pointerId);
+      }
+    });
+
+    function computeScore() {
+      return state.finalScore || 0;
+    }
+
+    async function maybeSubmitLeaderboard(success) {
+      const score = computeScore();
+      const outcomeText = success ? 'Touchdown!' : 'Impact detected.';
+      let dest = `../leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
+      try {
+        const rankRes = await fetch(`/api/leaderboard/rank?gameId=${encodeURIComponent(GAME_ID)}&score=${encodeURIComponent(score)}`, {
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!rankRes.ok) {
+          window.location.href = dest;
+          return;
+        }
+        const data = await rankRes.json();
+        const rank = Number(data?.rank);
+        const qualifies = Number.isFinite(rank) && rank > 0 && rank <= 20;
+        if (qualifies) {
+          let name = '';
+          const promptMsg = `${outcomeText} Enter your name (3-12 characters) for the leaderboard:`;
+          while (true) {
+            name = window.prompt(promptMsg, 'Pilot');
+            if (name === null) break;
+            name = name.trim().slice(0, 12);
+            if (name.length >= 3) break;
+          }
+          if (name) {
+            const submitRes = await fetch('/api/leaderboard/submit', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ gameId: GAME_ID, score, name })
+            });
+            if (submitRes.ok) {
+              const payload = await submitRes.json().catch(() => ({}));
+              const placed = Number(payload?.rank);
+              if (Number.isFinite(placed) && placed > 0) {
+                dest += `&highlightRank=${placed}`;
+              } else {
+                dest += `&highlightRank=${rank}`;
+              }
+            }
+          } else {
+            dest += `&highlightRank=${rank}`;
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setTimeout(() => {
+          window.location.href = dest;
+        }, 600);
+      }
+    }
+
+    // Initialize landing state
+    resetLander();
+    updateHUD();
+  </script>
+</body>
+</html>

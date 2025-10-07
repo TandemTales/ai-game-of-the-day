@@ -51,7 +51,11 @@
       border: 2px solid var(--gold); border-radius: 10px;
       padding: 8px 10px; font-size: 12px;
       box-shadow: 0 4px 12px rgba(95,158,160,0.4);
+      display: inline-flex; align-items: center; gap: 6px;
+      cursor: pointer;
+      font-family: inherit;
     }
+    .back-btn .sound-icon { font-size: 14px; }
     .title {
       font-size: 14px; letter-spacing: 1px; margin: 0 auto; text-align: center; flex: 1;
       background: linear-gradient(45deg, #FFD700, #FFA500);
@@ -158,6 +162,10 @@
     <div class="title">
       Aurora Tower Defense
     </div>
+    <button class="back-btn" id="soundToggle" type="button" aria-pressed="false" aria-label="Toggle sound">
+      <span class="sound-icon" aria-hidden="true">🔊</span>
+      <span class="sound-label">Sound On</span>
+    </button>
     <button class="back-btn" id="howToBtn">Instructions</button>
     <button class="back-btn" id="enemyRefBtn">Enemies</button>
   </div>
@@ -230,6 +238,7 @@
     const topbarEl = document.querySelector('.topbar');
     const root = document.documentElement;
     const toolbar = document.getElementById('toolbar');
+    const soundToggleBtn = document.getElementById('soundToggle');
 
     // Leaderboard integration
     const GAME_ID = 'aurora-tower-defense';
@@ -346,6 +355,7 @@
       let lastTrack = null;
       let unlocked = false;
       let discoveryStarted = false;
+      let muted = false;
 
       function ensureQueue(){
         if(!tracks.length) return;
@@ -366,7 +376,9 @@
         lastTrack = next;
         audio.src = next;
         audio.currentTime = 0;
-        audio.play().catch(()=>{});
+        if(!muted){
+          audio.play().catch(()=>{});
+        }
       }
 
       audio.addEventListener('ended', playNext);
@@ -391,7 +403,7 @@
       return {
         begin(){
           if(unlocked){
-            if(audio.paused && tracks.length){
+            if(audio.paused && tracks.length && !muted){
               audio.play().catch(()=>{});
             }
             return;
@@ -404,9 +416,62 @@
           discover();
         },
         pause(){ audio.pause(); },
-        resume(){ if(unlocked && audio.paused){ audio.play().catch(()=>{}); } }
+        resume(){ if(unlocked && audio.paused && !muted){ audio.play().catch(()=>{}); } },
+        setMuted(flag){
+          muted = !!flag;
+          audio.muted = muted;
+          if(muted){
+            audio.pause();
+          } else if(unlocked && audio.paused){
+            audio.play().catch(()=>{});
+          }
+        },
+        isMuted(){ return muted; }
       };
     })();
+
+    const SOUND_PREF_KEY = 'auroraTowerDefense.muted';
+    function loadSoundPref(){
+      try {
+        return localStorage.getItem(SOUND_PREF_KEY) === '1';
+      } catch {
+        return false;
+      }
+    }
+
+    function saveSoundPref(value){
+      try {
+        if(value){
+          localStorage.setItem(SOUND_PREF_KEY, '1');
+        } else {
+          localStorage.removeItem(SOUND_PREF_KEY);
+        }
+      } catch {}
+    }
+
+    function updateSoundToggleUI(isMuted){
+      if(!soundToggleBtn) return;
+      const muted = !!isMuted;
+      soundToggleBtn.setAttribute('aria-pressed', muted ? 'true' : 'false');
+      soundToggleBtn.setAttribute('aria-label', muted ? 'Unmute sound' : 'Mute sound');
+      const icon = soundToggleBtn.querySelector('.sound-icon');
+      const label = soundToggleBtn.querySelector('.sound-label');
+      if(icon){ icon.textContent = muted ? '🔇' : '🔊'; }
+      if(label){ label.textContent = muted ? 'Sound Off' : 'Sound On'; }
+    }
+
+    let initialMuted = loadSoundPref();
+    soundtrackManager.setMuted(initialMuted);
+    updateSoundToggleUI(initialMuted);
+
+    if(soundToggleBtn){
+      soundToggleBtn.addEventListener('click', ()=>{
+        const next = !soundtrackManager.isMuted();
+        soundtrackManager.setMuted(next);
+        saveSoundPref(next);
+        updateSoundToggleUI(next);
+      });
+    }
 
     function lerp(a,b,t){ return a+(b-a)*t; }
     function gridToPx(gx, gy){ return { x: gx*tile + tile/2, y: gy*tile + tile/2 }; }

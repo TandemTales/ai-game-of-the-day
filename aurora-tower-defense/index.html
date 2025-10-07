@@ -772,15 +772,14 @@
           if(animImg && typeof t.animStart === 'number'){
             const elapsed = state.time - t.animStart;
             if(elapsed >= 0 && elapsed <= TOWER_SHOT_ANIM_DURATION){
-              const frameCount = 4;
-              const frameHeight = animImg.height / frameCount;
-              const frameWidth = animImg.width;
-              if(frameHeight > 0 && frameWidth > 0){
-                const normalized = Math.min(1, elapsed / TOWER_SHOT_ANIM_DURATION);
-                let frameIndex = Math.floor(normalized * frameCount);
+              const frameSize = animImg.width;
+              const frameCount = frameSize > 0 ? Math.max(1, Math.floor(animImg.height / frameSize)) : 0;
+              if(frameSize > 0 && frameCount > 0){
+                const perFrame = TOWER_SHOT_ANIM_DURATION / frameCount;
+                let frameIndex = Math.floor(elapsed / perFrame);
                 if(frameIndex >= frameCount) frameIndex = frameCount - 1;
-                const sy = frameIndex * frameHeight;
-                ctx.drawImage(animImg, 0, sy, frameWidth, frameHeight, centerX - size/2, centerY - size/2, size, size);
+                const sy = frameIndex * frameSize;
+                ctx.drawImage(animImg, 0, sy, frameSize, frameSize, centerX - size/2, centerY - size/2, size, size);
               }
             }
           }

@@ -296,6 +296,118 @@
       path = MAPS[(level-1) % MAPS.length];
     }
 
+    const SOUNDTRACK_FALLBACKS = [
+      'assets/ATD_soundtrack001.mp3',
+      'assets/ATD_soundtrack002.mp3',
+      'assets/ATD_soundtrack003.mp3',
+      'assets/ATD_soundtrack004.mp3',
+    ].map(src => new URL(src, window.location.href).href);
+
+    function shuffleArray(arr){
+      const copy = arr.slice();
+      for(let i = copy.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    async function discoverSoundtracks(){
+      const discovered = new Set();
+      const directories = [new URL('./', window.location.href).href, new URL('./assets/', window.location.href).href];
+      const pattern = /href="([^"?#]+soundtrack[^"?#]*\.mp3)"/gi;
+      for(const dir of directories){
+        try {
+          const res = await fetch(dir);
+          if(!res.ok) continue;
+          const text = await res.text();
+          let match;
+          while((match = pattern.exec(text))){
+            try {
+              const absolute = new URL(match[1], dir).href;
+              discovered.add(absolute);
+            } catch {}
+          }
+        } catch {}
+      }
+      if(discovered.size === 0){
+        return SOUNDTRACK_FALLBACKS.slice();
+      }
+      return Array.from(discovered).filter(src => src.toLowerCase().includes('soundtrack'));
+    }
+
+    const soundtrackManager = (() => {
+      const audio = new Audio();
+      audio.loop = false;
+      audio.preload = 'auto';
+      audio.volume = 0.4;
+      let tracks = SOUNDTRACK_FALLBACKS.slice();
+      let queue = [];
+      let lastTrack = null;
+      let unlocked = false;
+      let discoveryStarted = false;
+
+      function ensureQueue(){
+        if(!tracks.length) return;
+        if(queue.length === 0){
+          queue = shuffleArray(tracks);
+          if(queue.length > 1 && queue[0] === lastTrack){
+            const first = queue.shift();
+            queue.push(first);
+          }
+        }
+      }
+
+      function playNext(){
+        if(!tracks.length) return;
+        ensureQueue();
+        const next = queue.shift();
+        if(!next) return;
+        lastTrack = next;
+        audio.src = next;
+        audio.currentTime = 0;
+        audio.play().catch(()=>{});
+      }
+
+      audio.addEventListener('ended', playNext);
+      audio.addEventListener('error', playNext);
+
+      async function discover(){
+        if(discoveryStarted) return;
+        discoveryStarted = true;
+        try {
+          const found = await discoverSoundtracks();
+          if(found.length){
+            const unique = Array.from(new Set(found.map(src => new URL(src, window.location.href).href)));
+            tracks = unique;
+            queue = [];
+            if(unlocked && !audio.paused){
+              playNext();
+            }
+          }
+        } catch {}
+      }
+
+      return {
+        begin(){
+          if(unlocked){
+            if(audio.paused && tracks.length){
+              audio.play().catch(()=>{});
+            }
+            return;
+          }
+          unlocked = true;
+          if(tracks.length){
+            queue = [];
+            playNext();
+          }
+          discover();
+        },
+        pause(){ audio.pause(); },
+        resume(){ if(unlocked && audio.paused){ audio.play().catch(()=>{}); } }
+      };
+    })();
+
     function lerp(a,b,t){ return a+(b-a)*t; }
     function gridToPx(gx, gy){ return { x: gx*tile + tile/2, y: gy*tile + tile/2 }; }
 
@@ -819,6 +931,7 @@
     async function start(){
       overlay.classList.remove('show');
       setOverlayMode(false);
+      soundtrackManager.begin();
       // load assets once
       await ensureAssetsLoaded();
       chooseMap(state.level);

@@ -256,6 +256,9 @@
       tower_basic: 'assets/ATD_tower_basic_small.png',
       tower_slow: 'assets/ATD_tower_frost_small.png',
       tower_pierce: 'assets/ATD_tower_piercing_small.png',
+      tower_basic_anim: 'assets/ATD_tower_animation_basic_shooting_small.png',
+      tower_slow_anim: 'assets/ATD_tower_animation_frost_shooting_small.png',
+      tower_pierce_anim: 'assets/ATD_tower_animation_piercing_shooting_small.png',
       enemy: 'assets/td_enemy_bug.svg',
       enemy_fast: 'assets/td_enemy_fast.svg',
       enemy_armored: 'assets/td_enemy_armored.svg',
@@ -311,7 +314,7 @@
       leaks: 0,
     };
 
-    const towers = []; // {gx, gy, type, cd, lvl}
+    const towers = []; // {gx, gy, type, cd, lvl, prepTimer, animating, animTime}
     const bullets = []; // {x,y,vx,vy,spd, dmg, slow, slowDur, targetId, bonus}
     let enemies = []; // {id, x,y, seg, t, spd, hp, maxHp, slow, slowTimer}
     let nextEnemyId = 1;
@@ -320,6 +323,12 @@
       basic: { range: 2.6, rof: 0.8, dmg: 16, spd: 420, cost: 25 },
       slow:  { range: 2.2, rof: 1.2, dmg: 8,  spd: 380, slow: 0.55, slowDur: 1.4, cost: 35 },
       pierce:{ range: 2.4, rof: 0.6, dmg: 32, spd: 450, cost: 50, bonus: { armored: 24 } },
+    };
+
+    const TOWER_ANIM_KEYS = {
+      basic: 'tower_basic_anim',
+      slow: 'tower_slow_anim',
+      pierce: 'tower_pierce_anim',
     };
 
     function towerStats(t){
@@ -510,7 +519,7 @@
       const cost = conf.cost;
       if(state.coins < cost) return;
       state.coins -= cost;
-      towers.push({ gx, gy, type: selectedTower, cd: 0, lvl: 1 });
+      towers.push({ gx, gy, type: selectedTower, cd: 0, lvl: 1, prepTimer: 0, animating: false, animTime: 0 });
       updateHUD();
     }, {passive:true});
 
@@ -536,7 +545,7 @@
       const conf = TOWER_CONF[selectedTower];
       const cost = conf.cost;
       if(state.coins < cost) return;
-      state.coins -= cost; towers.push({ gx, gy, type: selectedTower, cd: 0, lvl: 1 }); updateHUD();
+      state.coins -= cost; towers.push({ gx, gy, type: selectedTower, cd: 0, lvl: 1, prepTimer: 0, animating: false, animTime: 0 }); updateHUD();
       e.preventDefault();
     }, {passive:false});
 
@@ -551,23 +560,73 @@
       hudScore.textContent = computeScore();
     }
 
+    function towerMuzzle(t){
+      return { x: t.gx*tile + tile/2, y: t.gy*tile + tile*0.35 };
+    }
+
+    function findTowerTarget(t, conf, origin){
+      let best = null, bestD = Infinity;
+      const ox = origin.x, oy = origin.y;
+      for(const e of enemies){
+        const dx = e.x - ox, dy = e.y - oy; const d = Math.hypot(dx,dy);
+        if(d < conf.range*tile && d < bestD){ best = e; bestD = d; }
+      }
+      return best;
+    }
+
+    function completeTowerPrep(t, conf){
+      const origin = towerMuzzle(t);
+      const target = findTowerTarget(t, conf, origin);
+      if(target){
+        const spd = conf.spd;
+        const dx = target.x - origin.x, dy = target.y - origin.y;
+        const d = Math.hypot(dx,dy)||1;
+        bullets.push({ x: origin.x, y: origin.y, vx: dx/d, vy: dy/d, spd, dmg: conf.dmg, slow: conf.slow||0, slowDur: conf.slowDur||0, targetId: target.id, bonus: conf.bonus||{} });
+        t.cd = Math.max(0, 1/conf.rof - 1);
+      } else {
+        t.cd = 0;
+      }
+      t.prepTimer = 0;
+      t.animating = false;
+      t.animTime = 0;
+    }
+
     function aimAndShoot(){
       for(const t of towers){
         const conf = towerStats(t);
-        t.cd = Math.max(0, t.cd - dt);
-        if(t.cd>0) continue;
-        // find nearest enemy within range (in tiles)
-        const tx = t.gx*tile + tile/2;
-        const ty = t.gy*tile + tile*0.35;
-        let best = null, bestD = 1e9;
-        for(const e of enemies){
-          const dx = e.x - tx, dy = e.y - ty; const d = Math.hypot(dx,dy);
-          if(d < conf.range*tile && d < bestD){ best = e; bestD = d; }
+        if(typeof t.prepTimer !== 'number') t.prepTimer = 0;
+        if(typeof t.animTime !== 'number') t.animTime = 0;
+        t.cd = Math.max(0, (t.cd || 0) - dt);
+
+        if(t.prepTimer && t.prepTimer > 0){
+          t.animating = true;
+          t.animTime = Math.min(1, (t.animTime || 0) + dt);
+          t.prepTimer = Math.max(0, t.prepTimer - dt);
+          if(t.prepTimer <= 0){
+            completeTowerPrep(t, conf);
+          }
+          continue;
         }
-        if(best){
-          const spd = conf.spd; const dx = best.x - tx, dy = best.y - ty; const d = Math.hypot(dx,dy)||1;
-          bullets.push({ x: tx, y: ty, vx: dx/d, vy: dy/d, spd, dmg: conf.dmg, slow: conf.slow||0, slowDur: conf.slowDur||0, targetId: best.id, bonus: conf.bonus||{} });
-          t.cd = 1/conf.rof; // cooldown seconds
+
+        if(t.cd <= 0){
+          const origin = towerMuzzle(t);
+          const target = findTowerTarget(t, conf, origin);
+          if(target){
+            t.prepTimer = 1;
+            t.animating = true;
+            t.animTime = 0;
+            t.animTime = Math.min(1, (t.animTime || 0) + dt);
+            t.prepTimer = Math.max(0, t.prepTimer - dt);
+            if(t.prepTimer <= 0){
+              completeTowerPrep(t, conf);
+            }
+          } else {
+            t.animating = false;
+            t.animTime = 0;
+          }
+        } else {
+          t.animating = false;
+          t.animTime = 0;
         }
       }
     }
@@ -682,6 +741,16 @@
         const img = Images['tower_'+t.type];
         if(img){
           ctx.drawImage(img, centerX - size/2, centerY - size/2, size, size);
+        }
+        const animKey = TOWER_ANIM_KEYS[t.type];
+        const animImg = animKey ? Images[animKey] : null;
+        if(animImg && t.prepTimer && t.prepTimer > 0){
+          const frames = 4;
+          const frameHeight = animImg.height / frames;
+          const frameWidth = animImg.width;
+          const progress = Math.min(0.999, Math.max(0, t.animTime || 0));
+          const frameIndex = Math.min(frames - 1, Math.floor(progress * frames));
+          ctx.drawImage(animImg, 0, frameIndex * frameHeight, frameWidth, frameHeight, centerX - size/2, centerY - size/2, size, size);
         }
         if((t.lvl||1) > 1){
           ctx.save();

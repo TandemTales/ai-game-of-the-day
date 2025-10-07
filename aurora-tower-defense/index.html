@@ -198,15 +198,15 @@
 
   <div class="toolbar" id="toolbar">
     <div class="tool selected" data-type="basic" data-cost="25">
-      <img src="assets/td_tower_basic.svg" alt="basic">
+      <img src="assets/ATD_tower_basic_small.png" alt="basic">
       <div>Basic 25</div>
     </div>
     <div class="tool" data-type="slow" data-cost="35">
-      <img src="assets/td_tower_slow.svg" alt="slow">
+      <img src="assets/ATD_tower_frost_small.png" alt="slow">
       <div>Frost 35</div>
     </div>
     <div class="tool" data-type="pierce" data-cost="50">
-      <img src="assets/td_tower_pierce.svg" alt="pierce">
+      <img src="assets/ATD_tower_piercing_small.png" alt="pierce">
       <div>Pierce 50</div>
     </div>
   </div>
@@ -253,9 +253,9 @@
     const assets = {
       grass: 'assets/td_tile_grass.svg',
       path: 'assets/td_tile_path.svg',
-      tower_basic: 'assets/td_tower_basic.svg',
-      tower_slow: 'assets/td_tower_slow.svg',
-      tower_pierce: 'assets/td_tower_pierce.svg',
+      tower_basic: 'assets/ATD_tower_basic_small.png',
+      tower_slow: 'assets/ATD_tower_frost_small.png',
+      tower_pierce: 'assets/ATD_tower_piercing_small.png',
       enemy: 'assets/td_enemy_bug.svg',
       enemy_fast: 'assets/td_enemy_fast.svg',
       enemy_armored: 'assets/td_enemy_armored.svg',
@@ -265,6 +265,22 @@
     };
     const Images = {};
     function loadImg(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }); }
+    const assetEntries = Object.entries(assets);
+    let assetLoadPromise = null;
+    function ensureAssetsLoaded(){
+      if(!assetLoadPromise){
+        assetLoadPromise = (async () => {
+          for(const [k, src] of assetEntries){
+            if(!Images[k]){
+              Images[k] = await loadImg(src);
+            }
+          }
+          return Images;
+        })();
+      }
+      return assetLoadPromise;
+    }
+    ensureAssetsLoaded();
 
     // Path definitions (grid points)
     const MAPS = [
@@ -541,7 +557,8 @@
         t.cd = Math.max(0, t.cd - dt);
         if(t.cd>0) continue;
         // find nearest enemy within range (in tiles)
-        const tx = t.gx*tile + tile/2, ty = t.gy*tile + tile/2;
+        const tx = t.gx*tile + tile/2;
+        const ty = t.gy*tile + tile*0.35;
         let best = null, bestD = 1e9;
         for(const e of enemies){
           const dx = e.x - tx, dy = e.y - ty; const d = Math.hypot(dx,dy);
@@ -657,16 +674,22 @@
 
     function drawTowers(){
       for(const t of towers){
-        const x = t.gx*tile, y = t.gy*tile;
+        const baseX = t.gx*tile;
+        const baseY = t.gy*tile;
+        const centerX = baseX + tile/2;
+        const centerY = baseY + tile/2;
+        const size = tile;
         const img = Images['tower_'+t.type];
-        ctx.drawImage(img, x, y, tile, tile);
+        if(img){
+          ctx.drawImage(img, centerX - size/2, centerY - size/2, size, size);
+        }
         if((t.lvl||1) > 1){
           ctx.save();
           ctx.fillStyle = '#FFD700';
           ctx.font = Math.max(10, tile*0.4)+"px 'Press Start 2P'";
           ctx.textAlign = 'center';
           ctx.textBaseline = 'bottom';
-          ctx.fillText(t.lvl, x + tile/2, y + tile - 4);
+          ctx.fillText(t.lvl, centerX, baseY + tile - 4);
           ctx.restore();
         }
       }
@@ -797,10 +820,7 @@
       overlay.classList.remove('show');
       setOverlayMode(false);
       // load assets once
-      if(!Images.grass){
-        const entries = Object.entries(assets);
-        for(const [k,src] of entries){ Images[k] = await loadImg(src); }
-      }
+      await ensureAssetsLoaded();
       chooseMap(state.level);
       // reset state (except level)
       state.coins = 85 + (state.level-1)*40; state.lives = 20; state.wave = 1; state.kills = 0; state.leaks = 0; enemies = []; bullets.length = 0; towers.length = 0; spawning=false; pendingSpawns=0; waveTimer=3.0; last=performance.now(); gameOverHandled = false;

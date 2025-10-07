@@ -188,10 +188,10 @@
     <div class="overlay" id="enemyRef">
       <h2>Enemy Reference</h2>
       <div class="enemy-list">
-        <div class="enemy-row"><img src="assets/td_enemy_bug.svg" alt="Bug"><span>Bug - Balanced scout.</span></div>
-        <div class="enemy-row"><img src="assets/td_enemy_fast.svg" alt="Runner"><span>Runner - Quick but fragile.</span></div>
-        <div class="enemy-row"><img src="assets/td_enemy_armored.svg" alt="Armored"><span>Armored - Slow, heavily protected.</span></div>
-        <div class="enemy-row"><img src="assets/td_enemy_brute.svg" alt="Brute"><span>Brute - Titanic and tough.</span></div>
+        <div class="enemy-row"><img src="assets/ATD_enemy_bug_animation_walking_down_small.png" alt="Bug"><span>Bug - Balanced scout.</span></div>
+        <div class="enemy-row"><img src="assets/ATD_enemy_runner_animation_walking_right_small.png" alt="Runner"><span>Runner - Quick but fragile.</span></div>
+        <div class="enemy-row"><img src="assets/ATD_enemy_armored_animation_walking_down_small.png" alt="Armored"><span>Armored - Slow, heavily protected.</span></div>
+        <div class="enemy-row"><img src="assets/ATD_enemy_heavy_animation_walking_down_small.png" alt="Brute"><span>Brute - Titanic and tough.</span></div>
       </div>
       <p class="tap">Tap to close</p>
     </div>
@@ -265,10 +265,18 @@
       tower_basic: 'assets/ATD_tower_animation_basic_shooting_small.png',
       tower_slow: 'assets/ATD_tower_animation_frost_shooting_small.png',
       tower_pierce: 'assets/ATD_tower_animation_piercing_shooting_small.png',
-      enemy: 'assets/td_enemy_bug.svg',
-      enemy_fast: 'assets/td_enemy_fast.svg',
-      enemy_armored: 'assets/td_enemy_armored.svg',
-      enemy_brute: 'assets/td_enemy_brute.svg',
+      enemy_bug_walk_down: 'assets/ATD_enemy_bug_animation_walking_down_small.png',
+      enemy_bug_walk_left: 'assets/ATD_enemy_bug_animation_walking_left_small.png',
+      enemy_bug_walk_right: 'assets/ATD_enemy_bug_animation_walking_right_small.png',
+      enemy_runner_walk_right: 'assets/ATD_enemy_runner_animation_walking_right_small.png',
+      enemy_runner_walk_left: 'assets/ATD_enemy_runner_animation_walking_left_small.png',
+      enemy_runner_walk_down: 'assets/ATD_enemy_runner_animation_walking_right_small.png',
+      enemy_armored_walk_down: 'assets/ATD_enemy_armored_animation_walking_down_small.png',
+      enemy_armored_walk_right: 'assets/ATD_enemy_armored_animation_walking_down_small.png',
+      enemy_armored_walk_left: 'assets/ATD_enemy_armored_animation_walking_left_small.png',
+      enemy_brute_walk_right: 'assets/ATD_enemy_heavy_animation_walking_right_small.png',
+      enemy_brute_walk_down: 'assets/ATD_enemy_heavy_animation_walking_down_small.png',
+      enemy_brute_walk_left: 'assets/ATD_enemy_heavy_animation_walking_left_small.png',
       bullet: 'assets/td_bullet.svg',
       portal: 'assets/td_portal.svg',
     };
@@ -512,11 +520,46 @@
     const WAVE_SPEED_INCREMENT = 3;
     const MAX_WAVE_SPEED = 130;
     const ENEMY_CONF = { hp: 36, hpInc: 12 };
+    const ENEMY_ANIM_FRAMES = 4;
+    const ENEMY_DISTANCE_PER_FRAME_FACTOR = 0.25;
+
     const ENEMY_TYPES = {
-      bug:    { img: 'enemy',         spdMul: 1,   hpMul: 1 },
-      fast:   { img: 'enemy_fast',    spdMul: 1.8, hpMul: 0.6 },
-      armored:{ img: 'enemy_armored', spdMul: 0.8, hpMul: 2.2 },
-      brute:  { img: 'enemy_brute',   spdMul: 0.6, hpMul: 4 },
+      bug: {
+        anim: {
+          down: 'enemy_bug_walk_down',
+          left: 'enemy_bug_walk_left',
+          right: 'enemy_bug_walk_right',
+        },
+        spdMul: 1,
+        hpMul: 1,
+      },
+      runner: {
+        anim: {
+          down: 'enemy_runner_walk_down',
+          left: 'enemy_runner_walk_left',
+          right: 'enemy_runner_walk_right',
+        },
+        spdMul: 1.8,
+        hpMul: 0.6,
+      },
+      armored: {
+        anim: {
+          down: 'enemy_armored_walk_down',
+          left: 'enemy_armored_walk_left',
+          right: 'enemy_armored_walk_right',
+        },
+        spdMul: 0.8,
+        hpMul: 2.2,
+      },
+      brute: {
+        anim: {
+          down: 'enemy_brute_walk_down',
+          left: 'enemy_brute_walk_left',
+          right: 'enemy_brute_walk_right',
+        },
+        spdMul: 0.6,
+        hpMul: 4,
+      },
     };
 
     // UI selection
@@ -610,6 +653,17 @@
       return { ax:a.x, ay:a.y, bx:b.x, by:b.y };
     }
 
+    function segmentDirection(seg){
+      if(seg < 0 || seg >= path.length - 1) return null;
+      const a = path[seg];
+      const b = path[seg + 1];
+      if(b.x > a.x) return 'right';
+      if(b.x < a.x) return 'left';
+      if(b.y > a.y) return 'down';
+      if(b.y < a.y) return 'up';
+      return null;
+    }
+
     function addEnemy(type='bug'){
       const waveNumber = state.wave;
       const level = state.level;
@@ -621,7 +675,25 @@
       const baseHp  = (ENEMY_CONF.hp + (waveNumber-1)*ENEMY_CONF.hpInc + (level-1)*25) * (hardWave ? 1.2 : 1);
       const conf = ENEMY_TYPES[type] || ENEMY_TYPES.bug;
       const hp = baseHp * conf.hpMul;
-      enemies.push({ id: nextEnemyId++, type, ...gridToPx(path[0].x, path[0].y), seg:0, t:0, spd: baseSpd * conf.spdMul, hp, maxHp: hp, slow:1, slowTimer:0 });
+      const start = gridToPx(path[0].x, path[0].y);
+      const initialDirRaw = segmentDirection(0) || 'down';
+      const initialDir = initialDirRaw === 'up' ? 'down' : initialDirRaw;
+      enemies.push({
+        id: nextEnemyId++,
+        type,
+        x: start.x,
+        y: start.y,
+        seg: 0,
+        t: 0,
+        spd: baseSpd * conf.spdMul,
+        hp,
+        maxHp: hp,
+        slow: 1,
+        slowTimer: 0,
+        dir: initialDir,
+        animFrame: 0,
+        animDistance: 0,
+      });
     }
 
     function spawnWave(){
@@ -640,9 +712,9 @@
         let type = 'bug';
         if(level > 1 && r < (hardWave ? 0.2 : 0.15)) type = 'brute';
         else if(hardWave && r < 0.45) type = 'armored';
-        else if(hardWave && r < 0.65) type = 'fast';
+        else if(hardWave && r < 0.65) type = 'runner';
         else if(waveNumber + (level-1)*WAVES_PER_LEVEL > 8 && r < 0.2) type = 'armored';
-        else if(waveNumber + (level-1)*WAVES_PER_LEVEL > 4 && r < 0.5) type = 'fast';
+        else if(waveNumber + (level-1)*WAVES_PER_LEVEL > 4 && r < 0.5) type = 'runner';
         addEnemy(type);
         i++;
         pendingSpawns = Math.max(0, pendingSpawns - 1);
@@ -850,10 +922,19 @@
     }
 
     function moveEnemies(){
+      const distPerFrame = Math.max(4, tile * ENEMY_DISTANCE_PER_FRAME_FACTOR);
       for(const e of enemies){
         if(e.slowTimer>0){ e.slowTimer -= dt; if(e.slowTimer<=0) e.slow = 1; }
+        const prevX = e.x;
+        const prevY = e.y;
         let remaining = e.spd * e.slow * dt;
         while(remaining>0 && !e.reached){
+          if(e.seg >= path.length-1){
+            e.reached = true;
+            break;
+          }
+          const dir = segmentDirection(e.seg);
+          if(dir){ e.dir = (dir === 'up') ? 'down' : dir; }
           const s = segToPx(e.seg);
           const dx = s.bx - s.ax, dy = s.by - s.ay; const length = Math.hypot(dx,dy)||1;
           const dist = length * (1 - e.t);
@@ -866,6 +947,14 @@
             e.t += remaining/length;
             e.x = s.ax + dx*e.t; e.y = s.ay + dy*e.t;
             remaining = 0;
+          }
+        }
+        const movedDist = Math.hypot((e.x||0) - (prevX||0), (e.y||0) - (prevY||0));
+        if(movedDist > 0){
+          e.animDistance = (e.animDistance || 0) + movedDist;
+          while(e.animDistance >= distPerFrame){
+            e.animDistance -= distPerFrame;
+            e.animFrame = ((e.animFrame||0) + 1) % ENEMY_ANIM_FRAMES;
           }
         }
         // fail-safe for any stray enemies leaving bounds
@@ -969,10 +1058,29 @@
     }
 
     function drawEnemies(){
+      const fallbackImg = Images.enemy_bug_walk_down;
       for(const e of enemies){
         const s = tile*0.9;
-        const imgKey = ENEMY_TYPES[e.type].img;
-        ctx.drawImage(Images[imgKey], e.x - s/2, e.y - s/2, s, s);
+        const conf = ENEMY_TYPES[e.type] || ENEMY_TYPES.bug;
+        const anim = conf.anim || {};
+        let dir = e.dir || 'down';
+        if(dir === 'up' && !anim.up){ dir = anim.down ? 'down' : dir; }
+        let imgKey = anim[dir];
+        if(!imgKey){ imgKey = anim.down || anim.right || anim.left; }
+        let img = imgKey ? Images[imgKey] : null;
+        if(!img){ img = fallbackImg; }
+        if(img){
+          const frames = ENEMY_ANIM_FRAMES;
+          const frameW = img.width / frames;
+          const frameH = img.height;
+          if(frameW && frameH){
+            const frameIdx = (e.animFrame || 0) % frames;
+            const sx = frameIdx * frameW;
+            ctx.drawImage(img, sx, 0, frameW, frameH, e.x - s/2, e.y - s/2, s, s);
+          } else {
+            ctx.drawImage(img, e.x - s/2, e.y - s/2, s, s);
+          }
+        }
         // HP bar
         const bw = Math.max(16, tile*0.8), bh = 5;
         const pct = Math.max(0, e.hp/e.maxHp);

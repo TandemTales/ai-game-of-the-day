@@ -256,6 +256,9 @@
       tower_basic: 'assets/ATD_tower_basic_small.png',
       tower_slow: 'assets/ATD_tower_frost_small.png',
       tower_pierce: 'assets/ATD_tower_piercing_small.png',
+      tower_basic_anim: 'assets/ATD_tower_animation_basic_shooting_small.png',
+      tower_slow_anim: 'assets/ATD_tower_animation_frost_shooting_small.png',
+      tower_pierce_anim: 'assets/ATD_tower_animation_piercing_shooting_small.png',
       enemy: 'assets/td_enemy_bug.svg',
       enemy_fast: 'assets/td_enemy_fast.svg',
       enemy_armored: 'assets/td_enemy_armored.svg',
@@ -311,7 +314,7 @@
       leaks: 0,
     };
 
-    const towers = []; // {gx, gy, type, cd, lvl}
+    const towers = []; // {gx, gy, type, lvl, preparing, animStart, nextShotAt, nextPrepTime}
     const bullets = []; // {x,y,vx,vy,spd, dmg, slow, slowDur, targetId, bonus}
     let enemies = []; // {id, x,y, seg, t, spd, hp, maxHp, slow, slowTimer}
     let nextEnemyId = 1;
@@ -321,6 +324,14 @@
       slow:  { range: 2.2, rof: 1.2, dmg: 8,  spd: 380, slow: 0.55, slowDur: 1.4, cost: 35 },
       pierce:{ range: 2.4, rof: 0.6, dmg: 32, spd: 450, cost: 50, bonus: { armored: 24 } },
     };
+
+    const TOWER_ANIM_KEYS = {
+      basic: 'tower_basic_anim',
+      slow: 'tower_slow_anim',
+      pierce: 'tower_pierce_anim',
+    };
+
+    const TOWER_SHOT_ANIM_DURATION = 1;
 
     function towerStats(t){
       const base = TOWER_CONF[t.type];
@@ -502,6 +513,9 @@
         if(state.coins < cost) return;
         state.coins -= cost;
         existing.lvl = lvl + 1;
+        if(typeof existing.nextPrepTime === 'number'){
+          existing.nextPrepTime = Math.min(existing.nextPrepTime, state.time);
+        }
         updateHUD();
         return;
       }
@@ -510,7 +524,16 @@
       const cost = conf.cost;
       if(state.coins < cost) return;
       state.coins -= cost;
-      towers.push({ gx, gy, type: selectedTower, cd: 0, lvl: 1 });
+      towers.push({
+        gx,
+        gy,
+        type: selectedTower,
+        lvl: 1,
+        preparing: false,
+        animStart: null,
+        nextShotAt: null,
+        nextPrepTime: state.time
+      });
       updateHUD();
     }, {passive:true});
 
@@ -528,6 +551,9 @@
         if(state.coins < cost) return;
         state.coins -= cost;
         existing.lvl = lvl + 1;
+        if(typeof existing.nextPrepTime === 'number'){
+          existing.nextPrepTime = Math.min(existing.nextPrepTime, state.time);
+        }
         updateHUD();
         e.preventDefault();
         return;
@@ -536,7 +562,18 @@
       const conf = TOWER_CONF[selectedTower];
       const cost = conf.cost;
       if(state.coins < cost) return;
-      state.coins -= cost; towers.push({ gx, gy, type: selectedTower, cd: 0, lvl: 1 }); updateHUD();
+      state.coins -= cost;
+      towers.push({
+        gx,
+        gy,
+        type: selectedTower,
+        lvl: 1,
+        preparing: false,
+        animStart: null,
+        nextShotAt: null,
+        nextPrepTime: state.time
+      });
+      updateHUD();
       e.preventDefault();
     }, {passive:false});
 
@@ -554,20 +591,66 @@
     function aimAndShoot(){
       for(const t of towers){
         const conf = towerStats(t);
-        t.cd = Math.max(0, t.cd - dt);
-        if(t.cd>0) continue;
-        // find nearest enemy within range (in tiles)
         const tx = t.gx*tile + tile/2;
         const ty = t.gy*tile + tile*0.35;
-        let best = null, bestD = 1e9;
-        for(const e of enemies){
-          const dx = e.x - tx, dy = e.y - ty; const d = Math.hypot(dx,dy);
-          if(d < conf.range*tile && d < bestD){ best = e; bestD = d; }
-        }
-        if(best){
-          const spd = conf.spd; const dx = best.x - tx, dy = best.y - ty; const d = Math.hypot(dx,dy)||1;
-          bullets.push({ x: tx, y: ty, vx: dx/d, vy: dy/d, spd, dmg: conf.dmg, slow: conf.slow||0, slowDur: conf.slowDur||0, targetId: best.id, bonus: conf.bonus||{} });
-          t.cd = 1/conf.rof; // cooldown seconds
+        const acquireTarget = () => {
+          let best = null;
+          let bestD = 1e9;
+          for(const e of enemies){
+            const dx = e.x - tx, dy = e.y - ty;
+            const d = Math.hypot(dx,dy);
+            if(d < conf.range*tile && d < bestD){
+              best = e;
+              bestD = d;
+            }
+          }
+          return best;
+        };
+        const period = 1 / conf.rof;
+        const shotLead = TOWER_SHOT_ANIM_DURATION;
+
+        if(t.preparing){
+          const shotTime = typeof t.nextShotAt === 'number' ? t.nextShotAt : (t.animStart || state.time) + shotLead;
+          if(state.time >= shotTime){
+            const target = acquireTarget();
+            if(target){
+              const dx = target.x - tx;
+              const dy = target.y - ty;
+              const dist = Math.hypot(dx,dy) || 1;
+              bullets.push({
+                x: tx,
+                y: ty,
+                vx: dx/dist,
+                vy: dy/dist,
+                spd: conf.spd,
+                dmg: conf.dmg,
+                slow: conf.slow || 0,
+                slowDur: conf.slowDur || 0,
+                targetId: target.id,
+                bonus: conf.bonus || {}
+              });
+              t.preparing = false;
+              t.animStart = null;
+              t.nextShotAt = null;
+              const nextPrep = state.time + period - shotLead;
+              t.nextPrepTime = Math.max(state.time, nextPrep);
+            } else {
+              t.preparing = false;
+              t.animStart = null;
+              t.nextShotAt = null;
+              t.nextPrepTime = state.time;
+            }
+          }
+        } else {
+          const readyTime = typeof t.nextPrepTime === 'number' ? t.nextPrepTime : 0;
+          if(state.time >= readyTime){
+            const target = acquireTarget();
+            if(target){
+              t.preparing = true;
+              t.animStart = state.time;
+              t.nextShotAt = state.time + shotLead;
+            }
+          }
         }
       }
     }
@@ -682,6 +765,25 @@
         const img = Images['tower_'+t.type];
         if(img){
           ctx.drawImage(img, centerX - size/2, centerY - size/2, size, size);
+        }
+        const animKey = TOWER_ANIM_KEYS[t.type];
+        if(animKey){
+          const animImg = Images[animKey];
+          if(animImg && typeof t.animStart === 'number'){
+            const elapsed = state.time - t.animStart;
+            if(elapsed >= 0 && elapsed <= TOWER_SHOT_ANIM_DURATION){
+              const frameCount = 4;
+              const frameHeight = animImg.height / frameCount;
+              const frameWidth = animImg.width;
+              if(frameHeight > 0 && frameWidth > 0){
+                const normalized = Math.min(1, elapsed / TOWER_SHOT_ANIM_DURATION);
+                let frameIndex = Math.floor(normalized * frameCount);
+                if(frameIndex >= frameCount) frameIndex = frameCount - 1;
+                const sy = frameIndex * frameHeight;
+                ctx.drawImage(animImg, 0, sy, frameWidth, frameHeight, centerX - size/2, centerY - size/2, size, size);
+              }
+            }
+          }
         }
         if((t.lvl||1) > 1){
           ctx.save();
@@ -823,7 +925,20 @@
       await ensureAssetsLoaded();
       chooseMap(state.level);
       // reset state (except level)
-      state.coins = 85 + (state.level-1)*40; state.lives = 20; state.wave = 1; state.kills = 0; state.leaks = 0; enemies = []; bullets.length = 0; towers.length = 0; spawning=false; pendingSpawns=0; waveTimer=3.0; last=performance.now(); gameOverHandled = false;
+      state.coins = 85 + (state.level-1)*40;
+      state.lives = 20;
+      state.wave = 1;
+      state.kills = 0;
+      state.leaks = 0;
+      state.time = 0;
+      enemies = [];
+      bullets.length = 0;
+      towers.length = 0;
+      spawning = false;
+      pendingSpawns = 0;
+      waveTimer = 3.0;
+      last = performance.now();
+      gameOverHandled = false;
       running = true;
       // First wave begins after a 3s prep time (handled by updateWaves)
     }

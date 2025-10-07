@@ -262,9 +262,9 @@
     const assets = {
       grass: 'assets/td_tile_grass.svg',
       path: 'assets/td_tile_path.svg',
-      tower_basic: 'assets/ATD_tower_basic_small.png',
-      tower_slow: 'assets/ATD_tower_frost_small.png',
-      tower_pierce: 'assets/ATD_tower_piercing_small.png',
+      tower_basic: 'assets/ATD_tower_animation_basic_shooting_small.png',
+      tower_slow: 'assets/ATD_tower_animation_frost_shooting_small.png',
+      tower_pierce: 'assets/ATD_tower_animation_piercing_shooting_small.png',
       enemy: 'assets/td_enemy_bug.svg',
       enemy_fast: 'assets/td_enemy_fast.svg',
       enemy_armored: 'assets/td_enemy_armored.svg',
@@ -679,6 +679,12 @@
         if(state.coins < cost) return;
         state.coins -= cost;
         existing.lvl = lvl + 1;
+        const nextStats = towerStats(existing);
+        existing.cooldown = Math.max(0, 1/nextStats.rof - 1);
+        existing.animating = false;
+        existing.animTime = 0;
+        existing.holdFrame = 0;
+        existing.holdTimer = 0;
         updateHUD();
         return;
       }
@@ -687,7 +693,18 @@
       const cost = conf.cost;
       if(state.coins < cost) return;
       state.coins -= cost;
-      towers.push({ gx, gy, type: selectedTower, cd: 0, lvl: 1 });
+      const prepDelay = Math.max(0, 1/conf.rof - 1);
+      towers.push({
+        gx,
+        gy,
+        type: selectedTower,
+        lvl: 1,
+        cooldown: prepDelay,
+        animTime: 0,
+        animating: false,
+        holdFrame: 0,
+        holdTimer: 0,
+      });
       updateHUD();
     }, {passive:true});
 
@@ -705,6 +722,12 @@
         if(state.coins < cost) return;
         state.coins -= cost;
         existing.lvl = lvl + 1;
+        const nextStats = towerStats(existing);
+        existing.cooldown = Math.max(0, 1/nextStats.rof - 1);
+        existing.animating = false;
+        existing.animTime = 0;
+        existing.holdFrame = 0;
+        existing.holdTimer = 0;
         updateHUD();
         e.preventDefault();
         return;
@@ -713,7 +736,20 @@
       const conf = TOWER_CONF[selectedTower];
       const cost = conf.cost;
       if(state.coins < cost) return;
-      state.coins -= cost; towers.push({ gx, gy, type: selectedTower, cd: 0, lvl: 1 }); updateHUD();
+      state.coins -= cost;
+      const prepDelay = Math.max(0, 1/conf.rof - 1);
+      towers.push({
+        gx,
+        gy,
+        type: selectedTower,
+        lvl: 1,
+        cooldown: prepDelay,
+        animTime: 0,
+        animating: false,
+        holdFrame: 0,
+        holdTimer: 0,
+      });
+      updateHUD();
       e.preventDefault();
     }, {passive:false});
 
@@ -731,21 +767,66 @@
     function aimAndShoot(){
       for(const t of towers){
         const conf = towerStats(t);
-        t.cd = Math.max(0, t.cd - dt);
-        if(t.cd>0) continue;
-        // find nearest enemy within range (in tiles)
+        if(typeof t.cooldown !== 'number'){ t.cooldown = Math.max(0, 1/conf.rof - 1); }
+        if(typeof t.animTime !== 'number'){ t.animTime = 0; }
+        if(typeof t.animating !== 'boolean'){ t.animating = false; }
+        if(typeof t.holdFrame !== 'number'){ t.holdFrame = 0; }
+        if(typeof t.holdTimer !== 'number'){ t.holdTimer = 0; }
+
+        t.holdTimer = Math.max(0, t.holdTimer - dt);
+        if(t.holdTimer <= 0){ t.holdFrame = 0; }
+
         const tx = t.gx*tile + tile/2;
         const ty = t.gy*tile + tile*0.35;
-        let best = null, bestD = 1e9;
+        let best = null, bestD = Infinity;
         for(const e of enemies){
-          const dx = e.x - tx, dy = e.y - ty; const d = Math.hypot(dx,dy);
-          if(d < conf.range*tile && d < bestD){ best = e; bestD = d; }
+          const dx = e.x - tx, dy = e.y - ty;
+          const d = Math.hypot(dx,dy);
+          if(d < conf.range*tile && d < bestD){
+            bestD = d;
+            best = e;
+          }
         }
-        if(best){
-          const spd = conf.spd; const dx = best.x - tx, dy = best.y - ty; const d = Math.hypot(dx,dy)||1;
-          bullets.push({ x: tx, y: ty, vx: dx/d, vy: dy/d, spd, dmg: conf.dmg, slow: conf.slow||0, slowDur: conf.slowDur||0, targetId: best.id, bonus: conf.bonus||{} });
-          t.cd = 1/conf.rof; // cooldown seconds
+
+        if(t.animating){
+          if(!best){
+            t.animating = false;
+            t.animTime = 0;
+            continue;
+          }
+          t.animTime = Math.min(1, t.animTime + dt);
+          if(t.animTime >= 1){
+            const spd = conf.spd;
+            const dx = best.x - tx, dy = best.y - ty;
+            const dist = Math.hypot(dx,dy) || 1;
+            bullets.push({
+              x: tx,
+              y: ty,
+              vx: dx/dist,
+              vy: dy/dist,
+              spd,
+              dmg: conf.dmg,
+              slow: conf.slow||0,
+              slowDur: conf.slowDur||0,
+              targetId: best.id,
+              bonus: conf.bonus||{},
+            });
+            t.animating = false;
+            t.animTime = 0;
+            t.cooldown = Math.max(0, 1/conf.rof - 1);
+            t.holdFrame = 3;
+            t.holdTimer = 0.12;
+          }
+          continue;
         }
+
+        t.cooldown = Math.max(0, t.cooldown - dt);
+        if(t.cooldown > 0 || !best){
+          continue;
+        }
+
+        t.animating = true;
+        t.animTime = 0;
       }
     }
 
@@ -858,7 +939,22 @@
         const size = tile;
         const img = Images['tower_'+t.type];
         if(img){
-          ctx.drawImage(img, centerX - size/2, centerY - size/2, size, size);
+          const frames = 4;
+          const frameW = img.width / frames;
+          const frameH = img.height;
+          if(frameW > 0 && frameH > 0){
+            let frameIdx = 0;
+            if(t.animating){
+              const progress = Math.max(0, Math.min(0.999, t.animTime || 0));
+              frameIdx = Math.min(frames - 1, Math.floor(progress * frames));
+            } else if(t.holdTimer > 0){
+              frameIdx = Math.max(0, Math.min(frames - 1, Math.floor(t.holdFrame || 0)));
+            }
+            const sx = frameIdx * frameW;
+            ctx.drawImage(img, sx, 0, frameW, frameH, centerX - size/2, centerY - size/2, size, size);
+          } else {
+            ctx.drawImage(img, centerX - size/2, centerY - size/2, size, size);
+          }
         }
         if((t.lvl||1) > 1){
           ctx.save();

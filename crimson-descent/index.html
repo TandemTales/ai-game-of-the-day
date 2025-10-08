@@ -306,6 +306,9 @@
       pad: 'assets/landing_pad.svg'
     };
     const Images = {};
+    const BASE_LANDER_WIDTH = 120;
+    let landerWidth = BASE_LANDER_WIDTH;
+    let landerHeight = BASE_LANDER_WIDTH;
 
     function loadImage(src) {
       return new Promise((resolve, reject) => {
@@ -320,6 +323,11 @@
     Promise.all(Object.entries(assets).map(([key, src]) => loadImage(src).then(img => { Images[key] = img; })))
       .then(() => {
         assetsReady = true;
+        if (Images.lander && Images.lander.width) {
+          const scale = BASE_LANDER_WIDTH / Images.lander.width;
+          landerWidth = BASE_LANDER_WIDTH;
+          landerHeight = Math.round(Images.lander.height * scale);
+        }
         startScreen.querySelector('p').textContent = 'Ready? Tap, click, or press Space to ignite and begin descent.';
       })
       .catch(err => {
@@ -327,8 +335,6 @@
         startScreen.querySelector('p').textContent = 'Asset load failed. Refresh to retry.';
       });
 
-    const LANDER_WIDTH = 120;
-    const LANDER_HEIGHT = 140;
     const pad = {
       x: WIDTH / 2 - 110,
       y: HEIGHT - 150,
@@ -440,7 +446,7 @@
       hudFuel.textContent = Math.max(0, lander.fuel).toFixed(0);
       hudVertical.textContent = lander.vy.toFixed(1);
       hudHorizontal.textContent = lander.vx.toFixed(1);
-      const altitude = Math.max(0, pad.y - (lander.y + LANDER_HEIGHT * 0.46));
+      const altitude = Math.max(0, pad.y - (lander.y + landerHeight * 0.46));
       hudAltitude.textContent = altitude.toFixed(0);
       hudTime.textContent = state.time.toFixed(1);
       hudScore.textContent = state.currentScore == null ? '--' : state.currentScore;
@@ -476,7 +482,7 @@
       lander.x += lander.vx * dt;
       lander.y += lander.vy * dt;
 
-      const halfW = LANDER_WIDTH * 0.42;
+      const halfW = landerWidth * 0.42;
       if (lander.x < halfW) {
         lander.x = halfW;
         lander.vx *= -0.3;
@@ -485,12 +491,12 @@
         lander.vx *= -0.3;
       }
 
-      const bottom = lander.y + LANDER_HEIGHT * 0.46;
+      const bottom = lander.y + landerHeight * 0.46;
       const padTop = pad.y - 12;
       if (bottom >= padTop) {
         const withinPad = lander.x > pad.x + 40 && lander.x < pad.x + pad.width - 40;
         const softLanding = Math.abs(lander.vy) <= MAX_VERTICAL_FOR_LAND && Math.abs(lander.vx) <= MAX_HORIZONTAL_FOR_LAND && Math.abs(lander.rotation) <= MAX_ANGLE_FOR_LAND;
-        lander.y = padTop - LANDER_HEIGHT * 0.46;
+        lander.y = padTop - landerHeight * 0.46;
         lander.vx = 0;
         lander.vy = 0;
         if (withinPad && softLanding) {
@@ -524,20 +530,24 @@
       ctx.rotate(lander.rotation);
       if (lander.thrusting) {
         const flicker = 10 + Math.sin(lander.flameTimer) * 6;
-        const gradient = ctx.createLinearGradient(0, LANDER_HEIGHT * 0.34, 0, LANDER_HEIGHT * 0.6 + flicker);
+        const gradient = ctx.createLinearGradient(0, landerHeight * 0.34, 0, landerHeight * 0.6 + flicker);
         gradient.addColorStop(0, 'rgba(255, 240, 200, 0.9)');
         gradient.addColorStop(0.4, 'rgba(255, 160, 60, 0.85)');
         gradient.addColorStop(1, 'rgba(255, 60, 40, 0)');
         ctx.fillStyle = gradient;
         ctx.beginPath();
-        ctx.moveTo(-18, LANDER_HEIGHT * 0.32);
-        ctx.lineTo(0, LANDER_HEIGHT * 0.6 + flicker);
-        ctx.lineTo(18, LANDER_HEIGHT * 0.32);
+        ctx.moveTo(-18, landerHeight * 0.32);
+        ctx.lineTo(0, landerHeight * 0.6 + flicker);
+        ctx.lineTo(18, landerHeight * 0.32);
         ctx.closePath();
         ctx.fill();
       }
       if (assetsReady && Images.lander) {
-        ctx.drawImage(Images.lander, -LANDER_WIDTH / 2, -LANDER_HEIGHT / 2, LANDER_WIDTH, LANDER_HEIGHT);
+        const scale = landerWidth / Images.lander.width;
+        ctx.save();
+        ctx.scale(scale, scale);
+        ctx.drawImage(Images.lander, -Images.lander.width / 2, -Images.lander.height / 2);
+        ctx.restore();
       } else {
         ctx.fillStyle = '#ccc';
         ctx.fillRect(-20, -40, 40, 80);
@@ -546,7 +556,7 @@
 
       // HUD helper markers
       ctx.save();
-      ctx.translate(lander.x, lander.y + LANDER_HEIGHT * 0.45);
+      ctx.translate(lander.x, lander.y + landerHeight * 0.45);
       ctx.strokeStyle = 'rgba(255, 220, 180, 0.25)';
       ctx.beginPath();
       ctx.moveTo(-40, 8);

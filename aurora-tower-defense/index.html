@@ -297,6 +297,7 @@
       enemy_brute_walk_left: 'assets/ATD_enemy_heavy_animation_walking_left_small.png',
       bullet: 'assets/td_bullet.svg',
       portal: 'assets/td_portal.svg',
+      core: 'assets/ATD_core.png',
     };
     const Images = {};
     const TileImages = { grass: [], path: [] };
@@ -1089,14 +1090,20 @@
       // portal at start
       const p0 = gridToPx(path[0].x, path[0].y);
       const s = tile*0.95; ctx.drawImage(Images.portal, p0.x - s/2, p0.y - s/2, s, s);
-      // core at end (glowing circle)
+      // core at end
       const p1 = gridToPx(path[path.length-1].x, path[path.length-1].y);
-      const r = Math.max(12, tile*0.32);
-      const grd = ctx.createRadialGradient(p1.x, p1.y, 3, p1.x, p1.y, r);
-      grd.addColorStop(0, 'rgba(160,255,240,0.95)');
-      grd.addColorStop(1, 'rgba(60,200,220,0.05)');
-      ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(p1.x, p1.y, r, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle = '#7fffd4'; ctx.lineWidth = 2; ctx.stroke();
+      const coreImg = Images.core;
+      if(coreImg){
+        const size = tile * 1.2;
+        ctx.drawImage(coreImg, p1.x - size/2, p1.y - size/2, size, size);
+      } else {
+        const r = Math.max(12, tile*0.32);
+        const grd = ctx.createRadialGradient(p1.x, p1.y, 3, p1.x, p1.y, r);
+        grd.addColorStop(0, 'rgba(160,255,240,0.95)');
+        grd.addColorStop(1, 'rgba(60,200,220,0.05)');
+        ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(p1.x, p1.y, r, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#7fffd4'; ctx.lineWidth = 2; ctx.stroke();
+      }
     }
 
     function drawTowers(){

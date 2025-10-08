@@ -159,6 +159,25 @@
     .tower-cards { display: grid; grid-template-columns: 1fr; gap: 10px; }
     @media (min-width: 600px) { .tower-cards { grid-template-columns: 1fr 1fr; } }
     .tower-card { border: 1px solid rgba(255,215,0,0.3); border-radius: 8px; padding: 8px; background: rgba(0,0,0,0.25); }
+
+    #damage-flash {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at center, rgba(255,120,120,0.75) 0%, rgba(200,0,0,0.85) 45%, rgba(120,0,0,0.9) 100%);
+      opacity: 0;
+      z-index: 30;
+    }
+
+    .damage-flash-animate {
+      animation: damage-flash-pulse 420ms ease-out;
+    }
+
+    @keyframes damage-flash-pulse {
+      0% { opacity: 0; }
+      15% { opacity: 0.85; }
+      100% { opacity: 0; }
+    }
   </style>
 </head>
 <body>
@@ -209,6 +228,8 @@
     </div>
   </div>
 
+  <div id="damage-flash" aria-hidden="true"></div>
+
   <div class="toolbar" id="toolbar">
     <div class="tool selected" data-type="basic" data-cost="25">
       <img src="assets/ATD_tower_basic_small.png" alt="basic">
@@ -244,6 +265,11 @@
     const root = document.documentElement;
     const toolbar = document.getElementById('toolbar');
     const soundToggleBtn = document.getElementById('soundToggle');
+    const damageFlash = document.getElementById('damage-flash');
+
+    if(damageFlash){
+      damageFlash.addEventListener('animationend', () => damageFlash.classList.remove('damage-flash-animate'));
+    }
 
     // Leaderboard integration
     const GAME_ID = 'aurora-tower-defense';
@@ -1036,14 +1062,23 @@
           state.lives -= 1;
           state.leaks += 1;
           enemies.splice(i,1);
+          triggerDamageFlash();
           if(state.lives<=0) gameOver();
         }
         else if(e.hp<=0){ sfxManager.playDeath(e.type); state.coins += 10; state.kills += 1; enemies.splice(i,1); }
-      }
     }
+  }
 
-    // Wave management
-    let waveTimer = 0; let spawning = false; let pendingSpawns = 0;
+  function triggerDamageFlash(){
+    if(!damageFlash) return;
+    damageFlash.classList.remove('damage-flash-animate');
+    // Force reflow so the animation restarts even if triggered rapidly
+    void damageFlash.offsetWidth;
+    damageFlash.classList.add('damage-flash-animate');
+  }
+
+  // Wave management
+  let waveTimer = 0; let spawning = false; let pendingSpawns = 0;
     function updateWaves(){
       if(spawning){
         if(enemies.length===0 && pendingSpawns===0){

@@ -259,9 +259,19 @@
     const WAVES_PER_LEVEL = 10;
 
     // Assets
+    const TILE_VARIANTS = {
+      grass: [
+        'assets/ATD_tile_grass_green01.png',
+        'assets/ATD_tile_grass_green02.png',
+        'assets/ATD_tile_grass_green03.png',
+      ],
+      path: [
+        'assets/ATD_tile_dirt01.png',
+        'assets/ATD_tile_dirt02.png',
+        'assets/ATD_tile_dirt03.png',
+      ],
+    };
     const assets = {
-      grass: 'assets/td_tile_grass.svg',
-      path: 'assets/td_tile_path.svg',
       tower_basic: 'assets/ATD_tower_animation_basic_shooting_small.png',
       tower_slow: 'assets/ATD_tower_animation_frost_shooting_small.png',
       tower_pierce: 'assets/ATD_tower_animation_piercing_shooting_small.png',
@@ -281,17 +291,27 @@
       portal: 'assets/td_portal.svg',
     };
     const Images = {};
+    const TileImages = { grass: [], path: [] };
     function loadImg(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }); }
-    const assetEntries = Object.entries(assets);
     let assetLoadPromise = null;
     function ensureAssetsLoaded(){
       if(!assetLoadPromise){
         assetLoadPromise = (async () => {
-          for(const [k, src] of assetEntries){
+          const pending = [];
+          for(const [k, src] of Object.entries(assets)){
             if(!Images[k]){
-              Images[k] = await loadImg(src);
+              pending.push(loadImg(src).then(img => { Images[k] = img; }));
             }
           }
+          for(const [key, sources] of Object.entries(TILE_VARIANTS)){
+            if(!TileImages[key]){ TileImages[key] = []; }
+            sources.forEach((src, idx) => {
+              if(!TileImages[key][idx]){
+                pending.push(loadImg(src).then(img => { TileImages[key][idx] = img; }));
+              }
+            });
+          }
+          await Promise.all(pending);
           return Images;
         })();
       }
@@ -990,8 +1010,17 @@
       }
     }
 
+    function selectTileImage(type, x, y){
+      const variants = TileImages[type];
+      if(!variants || !variants.length) return null;
+      const offset = type === 'path' ? 0x9E3779B9 : 0x7F4A7C15;
+      let hash = x * 374761393 + y * 668265263 + offset;
+      hash = (hash ^ (hash >> 13)) >>> 0;
+      return variants[hash % variants.length] || null;
+    }
+
     function drawBackground(){
-      if(!Images.grass || !Images.path || !Images.portal) return;
+      if(!TileImages.grass.length || !TileImages.path.length || !Images.portal) return;
       // draw tiles
       for(let y=0;y<ROWS;y++){
         for(let x=0;x<COLS;x++){
@@ -1002,8 +1031,11 @@
             if(a.y===b.y && y===a.y && x>=Math.min(a.x,b.x) && x<=Math.max(a.x,b.x)) { onPath=true; break; }
             if(a.x===b.x && x===a.x && y>=Math.min(a.y,b.y) && y<=Math.max(a.y,b.y)) { onPath=true; break; }
           }
-          const img = onPath ? Images.path : Images.grass;
-          ctx.drawImage(img, x*tile, y*tile, tile, tile);
+          const type = onPath ? 'path' : 'grass';
+          const img = selectTileImage(type, x, y);
+          if(img){
+            ctx.drawImage(img, x*tile, y*tile, tile, tile);
+          }
         }
       }
       // portal at start
@@ -1095,7 +1127,7 @@
     }
 
     function draw(){
-      if(!Images.grass) return;
+      if(!TileImages.grass.length || !TileImages.path.length) return;
       ctx.clearRect(0,0,canvas.width, canvas.height);
       drawBackground();
       drawTowers();

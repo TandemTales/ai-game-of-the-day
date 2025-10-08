@@ -567,6 +567,7 @@
     const bullets = []; // {x,y,vx,vy,spd, dmg, slow, slowDur, targetId, bonus}
     let enemies = []; // {id, x,y, seg, t, spd, hp, maxHp, slow, slowTimer}
     let nextEnemyId = 1;
+    let coreFlashTimer = 0;
 
     const TOWER_CONF = {
       basic: { range: 2.6, rof: 0.8, dmg: 16, spd: 420, cost: 25 },
@@ -589,6 +590,7 @@
     const ENEMY_CONF = { hp: 36, hpInc: 12 };
     const ENEMY_ANIM_FRAMES = 4;
     const ENEMY_DISTANCE_PER_FRAME_FACTOR = 0.25;
+    const CORE_FLASH_DURATION = 0.35;
 
     const ENEMY_TYPES = {
       bug: {
@@ -1033,6 +1035,7 @@
         const e = enemies[i];
         if(e.reached){
           sfxManager.playLeak();
+          coreFlashTimer = CORE_FLASH_DURATION;
           state.lives -= 1;
           state.leaks += 1;
           enemies.splice(i,1);
@@ -1182,10 +1185,34 @@
       for(const b of bullets){ const s = tile*0.35; ctx.drawImage(Images.bullet, b.x - s/2, b.y - s/2, s, s); }
     }
 
+    function drawCoreFlash(){
+      if(coreFlashTimer <= 0 || !path || !path.length) return;
+      const endNode = path[path.length - 1];
+      if(!endNode) return;
+      const center = gridToPx(endNode.x, endNode.y);
+      const progress = Math.max(0, Math.min(1, coreFlashTimer / CORE_FLASH_DURATION));
+      const alpha = 0.7 * progress;
+      if(alpha <= 0) return;
+      const radius = tile * lerp(1.1, 2.1, 1 - progress);
+      const innerRadius = tile * 0.25;
+      const gradient = ctx.createRadialGradient(center.x, center.y, innerRadius, center.x, center.y, radius);
+      gradient.addColorStop(0, `rgba(255, 100, 100, ${alpha})`);
+      gradient.addColorStop(0.5, `rgba(255, 0, 0, ${alpha * 0.75})`);
+      gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+      const prevOp = ctx.globalCompositeOperation;
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(center.x, center.y, radius, 0, Math.PI*2);
+      ctx.fill();
+      ctx.globalCompositeOperation = prevOp;
+    }
+
     function draw(){
       if(!TileImages.grass.length || !TileImages.path.length) return;
       ctx.clearRect(0,0,canvas.width, canvas.height);
       drawBackground();
+      drawCoreFlash();
       drawTowers();
       drawEnemies();
       drawBullets();
@@ -1200,6 +1227,9 @@
       moveBullets();
       moveEnemies();
       updateWaves();
+      if(coreFlashTimer > 0){
+        coreFlashTimer = Math.max(0, coreFlashTimer - dt);
+      }
       updateHUD();
       draw();
       requestAnimationFrame(loop);
@@ -1293,7 +1323,7 @@
       await ensureAssetsLoaded();
       chooseMap(state.level);
       // reset state (except level)
-      state.coins = 85 + (state.level-1)*40; state.lives = 20; state.wave = 1; state.kills = 0; state.leaks = 0; enemies = []; bullets.length = 0; towers.length = 0; spawning=false; pendingSpawns=0; waveTimer=3.0; last=performance.now(); gameOverHandled = false;
+      state.coins = 85 + (state.level-1)*40; state.lives = 20; state.wave = 1; state.kills = 0; state.leaks = 0; enemies = []; bullets.length = 0; towers.length = 0; spawning=false; pendingSpawns=0; waveTimer=3.0; last=performance.now(); gameOverHandled = false; coreFlashTimer = 0;
       running = true;
       // First wave begins after a 3s prep time (handled by updateWaves)
     }

@@ -165,10 +165,11 @@
     @media (min-width: 900px) {
       .game-wrap {
         flex-direction: row;
-        align-items: center;
-        justify-content: center;
+        align-items: flex-start;
+        justify-content: flex-start;
         gap: clamp(24px, 6vw, 80px);
         padding: 0 clamp(20px, 5vw, 80px);
+        padding-left: clamp(16px, 5vw, 140px);
       }
       .toolbar {
         position: static;
@@ -177,6 +178,7 @@
         flex-wrap: nowrap;
         align-items: stretch;
         width: min(220px, 18vw);
+        align-self: flex-start;
       }
       .hud {
         position: fixed;
@@ -260,6 +262,20 @@
   </div>
 
   <div class="game-wrap">
+    <div class="toolbar" id="toolbar">
+      <div class="tool selected" data-type="basic" data-cost="25">
+        <img src="assets/ATD_tower_basic_small.png" alt="basic">
+        <div>Basic 25</div>
+      </div>
+      <div class="tool" data-type="slow" data-cost="35">
+        <img src="assets/ATD_tower_frost_small.png" alt="slow">
+        <div>Frost 35</div>
+      </div>
+      <div class="tool" data-type="pierce" data-cost="50">
+        <img src="assets/ATD_tower_piercing_small.png" alt="pierce">
+        <div>Pierce 50</div>
+      </div>
+    </div>
     <div class="playfield">
       <canvas id="game"></canvas>
       <div class="overlay show" id="overlay">
@@ -283,20 +299,6 @@
           <div id="howToContent"></div>
         </div>
         <p class="tap">Tap to close</p>
-      </div>
-    </div>
-    <div class="toolbar" id="toolbar">
-      <div class="tool selected" data-type="basic" data-cost="25">
-        <img src="assets/ATD_tower_basic_small.png" alt="basic">
-        <div>Basic 25</div>
-      </div>
-      <div class="tool" data-type="slow" data-cost="35">
-        <img src="assets/ATD_tower_frost_small.png" alt="slow">
-        <div>Frost 35</div>
-      </div>
-      <div class="tool" data-type="pierce" data-cost="50">
-        <img src="assets/ATD_tower_piercing_small.png" alt="pierce">
-        <div>Pierce 50</div>
       </div>
     </div>
   </div>

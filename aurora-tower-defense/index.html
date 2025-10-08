@@ -63,9 +63,28 @@
     }
 
     .game-wrap {
-      position: fixed; left: 50%; top: var(--topbar-h); right: 0; bottom: var(--toolbar-h); transform: translateX(-50%);
-      display: flex; align-items: center; justify-content: center; width: 100vw; height: calc(100vh - var(--topbar-h) - var(--toolbar-h));
+      position: fixed;
+      left: 50%;
+      top: var(--topbar-h);
+      right: 0;
+      bottom: var(--toolbar-h);
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      width: 100vw;
+      height: calc(100vh - var(--topbar-h) - var(--toolbar-h));
       z-index: 10;
+      padding: 0 16px;
+      box-sizing: border-box;
+    }
+    .playfield {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     canvas { background: transparent; image-rendering: pixelated; touch-action: none; }
 
@@ -84,11 +103,20 @@
     .hud .hud-value { font-variant-numeric: tabular-nums; }
 
     .toolbar {
-      position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%);
-      display: flex; gap: 10px; z-index: 15; opacity: 0.98; flex-wrap: wrap;
+      position: static;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: center;
+      gap: 10px;
+      z-index: 15;
+      opacity: 0.98;
+      width: min(220px, 28vw);
     }
     .tool {
-      min-width: 120px; display: flex; align-items: center; gap: 8px;
+      min-width: 0;
+      width: 100%;
+      display: flex; align-items: center; gap: 8px;
       background: linear-gradient(145deg, rgba(95,158,160,0.22), rgba(0,0,0,0.5));
       border: 2px solid var(--gold); border-radius: 12px; padding: 8px 10px;
       box-shadow: inset 0 4px 8px rgba(0,0,0,0.4), 0 6px 18px rgba(0,0,0,0.4);
@@ -113,8 +141,43 @@
       image-rendering: pixelated;
     }
 
+    @media (max-width: 899px) {
+      .game-wrap {
+        gap: 0;
+        padding: 0;
+      }
+      .toolbar {
+        position: fixed;
+        left: 50%;
+        bottom: clamp(14px, 4vh, 28px);
+        transform: translateX(-50%);
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        width: auto;
+      }
+      .tool {
+        min-width: 120px;
+        width: auto;
+      }
+    }
+
     @media (min-width: 900px) {
-      .toolbar { bottom: 20px; }
+      .game-wrap {
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: clamp(24px, 6vw, 80px);
+        padding: 0 clamp(20px, 5vw, 80px);
+      }
+      .toolbar {
+        position: static;
+        transform: none;
+        flex-direction: column;
+        flex-wrap: nowrap;
+        align-items: stretch;
+        width: min(220px, 18vw);
+      }
       .hud {
         position: fixed;
         top: calc(var(--topbar-h) + 16px);
@@ -197,43 +260,44 @@
   </div>
 
   <div class="game-wrap">
-    <canvas id="game"></canvas>
-    <div class="overlay show" id="overlay">
-      <h2>Defend the Aurora Core</h2>
-      <p>Place towers on grass. Stop neon bugs from reaching the core.</p>
-      <p class="tap">Tap to start · Pinch zoom is disabled for precise taps</p>
-    </div>
-    <div class="overlay" id="enemyRef">
-      <h2>Enemy Reference</h2>
-      <div class="enemy-list">
-        <div class="enemy-row"><div class="enemy-thumb" role="img" aria-label="Bug" style="background-image: url('assets/ATD_enemy_bug_animation_walking_right_small.png');"></div><span>Bug - Balanced scout.</span></div>
-        <div class="enemy-row"><div class="enemy-thumb" role="img" aria-label="Runner" style="background-image: url('assets/ATD_enemy_runner_animation_walking_right_small.png');"></div><span>Runner - Quick but fragile.</span></div>
-        <div class="enemy-row"><div class="enemy-thumb" role="img" aria-label="Armored" style="background-image: url('assets/ATD_enemy_armored_animation_walking_right_small.png');"></div><span>Armored - Slow, heavily protected.</span></div>
-        <div class="enemy-row"><div class="enemy-thumb" role="img" aria-label="Brute" style="background-image: url('assets/ATD_enemy_heavy_animation_walking_right_small.png');"></div><span>Brute - Titanic and tough.</span></div>
+    <div class="playfield">
+      <canvas id="game"></canvas>
+      <div class="overlay show" id="overlay">
+        <h2>Defend the Aurora Core</h2>
+        <p>Place towers on grass. Stop neon bugs from reaching the core.</p>
+        <p class="tap">Tap to start · Pinch zoom is disabled for precise taps</p>
       </div>
-      <p class="tap">Tap to close</p>
-    </div>
-    <div class="overlay" id="howTo">
-      <h2>How to Play</h2>
-      <div class="panel">
-        <div id="howToContent"></div>
+      <div class="overlay" id="enemyRef">
+        <h2>Enemy Reference</h2>
+        <div class="enemy-list">
+          <div class="enemy-row"><div class="enemy-thumb" role="img" aria-label="Bug" style="background-image: url('assets/ATD_enemy_bug_animation_walking_right_small.png');"></div><span>Bug - Balanced scout.</span></div>
+          <div class="enemy-row"><div class="enemy-thumb" role="img" aria-label="Runner" style="background-image: url('assets/ATD_enemy_runner_animation_walking_right_small.png');"></div><span>Runner - Quick but fragile.</span></div>
+          <div class="enemy-row"><div class="enemy-thumb" role="img" aria-label="Armored" style="background-image: url('assets/ATD_enemy_armored_animation_walking_right_small.png');"></div><span>Armored - Slow, heavily protected.</span></div>
+          <div class="enemy-row"><div class="enemy-thumb" role="img" aria-label="Brute" style="background-image: url('assets/ATD_enemy_heavy_animation_walking_right_small.png');"></div><span>Brute - Titanic and tough.</span></div>
+        </div>
+        <p class="tap">Tap to close</p>
       </div>
-      <p class="tap">Tap to close</p>
+      <div class="overlay" id="howTo">
+        <h2>How to Play</h2>
+        <div class="panel">
+          <div id="howToContent"></div>
+        </div>
+        <p class="tap">Tap to close</p>
+      </div>
     </div>
-  </div>
-
-  <div class="toolbar" id="toolbar">
-    <div class="tool selected" data-type="basic" data-cost="25">
-      <img src="assets/ATD_tower_basic_small.png" alt="basic">
-      <div>Basic 25</div>
-    </div>
-    <div class="tool" data-type="slow" data-cost="35">
-      <img src="assets/ATD_tower_frost_small.png" alt="slow">
-      <div>Frost 35</div>
-    </div>
-    <div class="tool" data-type="pierce" data-cost="50">
-      <img src="assets/ATD_tower_piercing_small.png" alt="pierce">
-      <div>Pierce 50</div>
+    <div class="toolbar" id="toolbar">
+      <div class="tool selected" data-type="basic" data-cost="25">
+        <img src="assets/ATD_tower_basic_small.png" alt="basic">
+        <div>Basic 25</div>
+      </div>
+      <div class="tool" data-type="slow" data-cost="35">
+        <img src="assets/ATD_tower_frost_small.png" alt="slow">
+        <div>Frost 35</div>
+      </div>
+      <div class="tool" data-type="pierce" data-cost="50">
+        <img src="assets/ATD_tower_piercing_small.png" alt="pierce">
+        <div>Pierce 50</div>
+      </div>
     </div>
   </div>
 
@@ -717,10 +781,11 @@
     }
 
     function resize(){
-      const availW = Math.min(window.innerWidth, 900);
+      const isMobileLayout = window.innerWidth < 900;
+      const availW = Math.min(isMobileLayout ? window.innerWidth : window.innerWidth * 0.72, 900);
       const topH = Math.ceil(topbarEl.getBoundingClientRect().height);
-      const toolbarH = Math.ceil(toolbar.getBoundingClientRect().height || 0);
-      const reserved = toolbarH; // toolbar height
+      const toolbarH = isMobileLayout ? Math.ceil(toolbar.getBoundingClientRect().height || 0) : 0;
+      const reserved = toolbarH + (isMobileLayout ? 24 : 0);
       root.style.setProperty('--toolbar-h', reserved + 'px');
       const availH = window.innerHeight - topH - reserved;
       tile = Math.floor(Math.min(availW / COLS, availH / ROWS));

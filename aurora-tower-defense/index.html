@@ -373,6 +373,42 @@
       return Array.from(discovered).filter(src => src.toLowerCase().includes('soundtrack'));
     }
 
+    const sfxManager = (() => {
+      const BASE_PATH = 'assets/';
+      const SFX_VOLUME = Math.min(1, 1 * 1.5); // 50% louder, capped at maximum volume
+      const files = {
+        enter: {
+          bug: 'ATD_sfx_enemy_bug_enter.wav',
+          runner: 'ATD_sfx_enemy_runner_enter.wav',
+          armored: 'ATD_sfx_enemy_armored_enter.wav',
+          brute: 'ATD_sfx_enemy_heavy_enter.wav',
+        },
+        death: {
+          bug: 'ATD_sfx_enemy_bug_killed.wav',
+          runner: 'ATD_sfx_enemy_runner_killed.wav',
+          armored: 'ATD_sfx_enemy_bug_killed.wav',
+          brute: 'ATD_sfx_enemy_heavy_killed.wav',
+        },
+        leak: 'ATD_sfx_damaged.wav',
+      };
+      let muted = false;
+
+      function playFile(name){
+        if(muted || !name) return;
+        const audio = new Audio(BASE_PATH + name);
+        audio.volume = SFX_VOLUME;
+        audio.play().catch(()=>{});
+      }
+
+      return {
+        playEnter(type){ playFile(files.enter[type] || null); },
+        playDeath(type){ playFile(files.death[type] || null); },
+        playLeak(){ playFile(files.leak); },
+        setMuted(flag){ muted = !!flag; },
+        isMuted(){ return muted; },
+      };
+    })();
+
     const soundtrackManager = (() => {
       const audio = new Audio();
       audio.loop = false;
@@ -490,12 +526,14 @@
 
     let initialMuted = loadSoundPref();
     soundtrackManager.setMuted(initialMuted);
+    sfxManager.setMuted(initialMuted);
     updateSoundToggleUI(initialMuted);
 
     if(soundToggleBtn){
       soundToggleBtn.addEventListener('click', ()=>{
         const next = !soundtrackManager.isMuted();
         soundtrackManager.setMuted(next);
+        sfxManager.setMuted(next);
         saveSoundPref(next);
         updateSoundToggleUI(next);
       });
@@ -714,6 +752,7 @@
         animFrame: 0,
         animDistance: 0,
       });
+      sfxManager.playEnter(type);
     }
 
     function spawnWave(){
@@ -984,12 +1023,13 @@
       for(let i=enemies.length-1;i>=0;i--){
         const e = enemies[i];
         if(e.reached){
+          sfxManager.playLeak();
           state.lives -= 1;
           state.leaks += 1;
           enemies.splice(i,1);
           if(state.lives<=0) gameOver();
         }
-        else if(e.hp<=0){ state.coins += 10; state.kills += 1; enemies.splice(i,1); }
+        else if(e.hp<=0){ sfxManager.playDeath(e.type); state.coins += 10; state.kills += 1; enemies.splice(i,1); }
       }
     }
 

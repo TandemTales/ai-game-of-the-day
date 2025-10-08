@@ -23,6 +23,7 @@
       --bg2: #0e1620;
       --topbar-h: 54px; /* measured on load/resize */
       --toolbar-h: 90px; /* measured on load/resize */
+      --toolbar-stack-offset: 0px; /* desktop toolbar offset below HUD */
       --hud-offset: clamp(60px, 10vh, 140px); /* extra spacing below topbar for HUD visibility */
     }
     html, body {
@@ -112,6 +113,7 @@
       z-index: 15;
       opacity: 0.98;
       width: min(220px, 28vw);
+      margin-top: 0;
     }
     .tool {
       min-width: 0;
@@ -179,6 +181,7 @@
         align-items: stretch;
         width: min(220px, 18vw);
         align-self: flex-start;
+        margin-top: var(--toolbar-stack-offset, 0px);
       }
       .hud {
         position: fixed;
@@ -322,20 +325,40 @@
     const topbarEl = document.querySelector('.topbar');
     const root = document.documentElement;
     const toolbar = document.getElementById('toolbar');
+    const hudPanel = document.getElementById('hud');
     const soundToggleBtn = document.getElementById('soundToggle');
 
     // Leaderboard integration
     const GAME_ID = 'aurora-tower-defense';
     let gameOverHandled = false;
 
+    function syncToolbarStack(isMobileLayout = window.innerWidth < 900){
+      if(!toolbar) return;
+      if(isMobileLayout){
+        root.style.removeProperty('--toolbar-stack-offset');
+        return;
+      }
+      if(!hudPanel) return;
+      const hudRect = hudPanel.getBoundingClientRect();
+      const topbarHeight = Math.ceil(topbarEl.getBoundingClientRect().height);
+      const stackGap = 12;
+      const offset = Math.max(0, Math.ceil(hudRect.bottom - topbarHeight + stackGap));
+      root.style.setProperty('--toolbar-stack-offset', offset + 'px');
+    }
+
     function setTopbarHeight(){
       const h = Math.ceil(topbarEl.getBoundingClientRect().height);
       root.style.setProperty('--topbar-h', h + 'px');
+      syncToolbarStack();
     }
     // React to dynamic topbar height changes (e.g., font load, wrapping)
     if (typeof ResizeObserver !== 'undefined') {
       const ro = new ResizeObserver(() => { setTopbarHeight(); });
       ro.observe(topbarEl);
+      if(hudPanel){
+        const hudObserver = new ResizeObserver(() => { syncToolbarStack(); });
+        hudObserver.observe(hudPanel);
+      }
     }
 
     let COLS = 12, ROWS = 8, tile = 48; // computed on resize
@@ -789,6 +812,7 @@
       const toolbarH = isMobileLayout ? Math.ceil(toolbar.getBoundingClientRect().height || 0) : 0;
       const reserved = toolbarH + (isMobileLayout ? 24 : 0);
       root.style.setProperty('--toolbar-h', reserved + 'px');
+      syncToolbarStack(isMobileLayout);
       const availH = window.innerHeight - topH - reserved;
       tile = Math.floor(Math.min(availW / COLS, availH / ROWS));
       const w = COLS*tile, h = ROWS*tile;

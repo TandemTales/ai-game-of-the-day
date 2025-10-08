@@ -280,6 +280,9 @@
       tower_basic: 'assets/ATD_tower_animation_basic_shooting_small.png',
       tower_slow: 'assets/ATD_tower_animation_frost_shooting_small.png',
       tower_pierce: 'assets/ATD_tower_animation_piercing_shooting_small.png',
+      tower_basic_idle: 'assets/ATD_tower_basic_small.png',
+      tower_slow_idle: 'assets/ATD_tower_frost_small.png',
+      tower_pierce_idle: 'assets/ATD_tower_piercing_small.png',
       enemy_bug_walk_down: 'assets/ATD_enemy_bug_animation_walking_down_small.png',
       enemy_bug_walk_left: 'assets/ATD_enemy_bug_animation_walking_left_small.png',
       enemy_bug_walk_right: 'assets/ATD_enemy_bug_animation_walking_right_small.png',
@@ -1103,21 +1106,30 @@
         const centerX = baseX + tile/2;
         const centerY = baseY + tile/2;
         const size = tile;
-        const img = Images['tower_'+t.type];
+        const animKey = 'tower_' + t.type;
+        const idleKey = animKey + '_idle';
+        const animImg = Images[animKey];
+        const idleImg = Images[idleKey];
+        const useAnim = (t.animating || t.holdTimer > 0) && animImg;
+        const img = useAnim ? animImg : (idleImg || animImg);
         if(img){
-          const frames = 4;
-          const frameW = img.width / frames;
-          const frameH = img.height;
-          if(frameW > 0 && frameH > 0){
-            let frameIdx = 0;
-            if(t.animating){
-              const progress = Math.max(0, Math.min(0.999, t.animTime || 0));
-              frameIdx = Math.min(frames - 1, Math.floor(progress * frames));
-            } else if(t.holdTimer > 0){
-              frameIdx = Math.max(0, Math.min(frames - 1, Math.floor(t.holdFrame || 0)));
+          if(useAnim){
+            const frames = 4;
+            const frameW = img.width / frames;
+            const frameH = img.height;
+            if(frameW > 0 && frameH > 0){
+              let frameIdx = 0;
+              if(t.animating){
+                const progress = Math.max(0, Math.min(0.999, t.animTime || 0));
+                frameIdx = Math.min(frames - 1, Math.floor(progress * frames));
+              } else if(t.holdTimer > 0){
+                frameIdx = Math.max(0, Math.min(frames - 1, Math.floor(t.holdFrame || 0)));
+              }
+              const sx = frameIdx * frameW;
+              ctx.drawImage(img, sx, 0, frameW, frameH, centerX - size/2, centerY - size/2, size, size);
+            } else {
+              ctx.drawImage(img, centerX - size/2, centerY - size/2, size, size);
             }
-            const sx = frameIdx * frameW;
-            ctx.drawImage(img, sx, 0, frameW, frameH, centerX - size/2, centerY - size/2, size, size);
           } else {
             ctx.drawImage(img, centerX - size/2, centerY - size/2, size, size);
           }

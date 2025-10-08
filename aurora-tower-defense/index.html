@@ -115,6 +115,19 @@
 
     @media (min-width: 900px) {
       .toolbar { bottom: 20px; }
+      .hud {
+        position: fixed;
+        top: calc(var(--topbar-h) + 16px);
+        left: clamp(16px, 5vw, 140px);
+        transform: none;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 12px 14px;
+        background: rgba(0, 0, 0, 0.45);
+        box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+      }
+      .hud .hud-item { justify-content: flex-start; }
     }
 
     @media (max-width: 480px) {

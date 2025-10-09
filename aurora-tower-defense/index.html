@@ -144,23 +144,55 @@
     }
 
     @media (max-width: 899px) {
+      html, body {
+        overflow-x: hidden;
+        overflow-y: auto;
+        height: auto;
+        min-height: 100%;
+      }
       .game-wrap {
-        gap: 0;
-        padding: 0;
+        position: relative;
+        top: 0;
+        bottom: auto;
+        left: 0;
+        right: 0;
+        transform: none;
+        width: 100%;
+        height: auto;
+        min-height: calc(100vh - var(--topbar-h));
+        margin: calc(var(--topbar-h) + clamp(8px, 3vh, 24px)) auto 0;
+        padding: 0 clamp(12px, 5vw, 28px) clamp(80px, 18vh, 140px);
+        box-sizing: border-box;
+        justify-content: flex-start;
+        gap: clamp(18px, 5vh, 36px);
+      }
+      .playfield {
+        order: 1;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
       .toolbar {
-        position: fixed;
-        left: 50%;
-        bottom: clamp(14px, 4vh, 28px);
-        transform: translateX(-50%);
+        order: 2;
+        position: static;
+        left: auto;
+        right: auto;
+        bottom: auto;
+        transform: none;
         flex-direction: row;
         flex-wrap: wrap;
         justify-content: center;
-        width: auto;
+        align-items: stretch;
+        width: min(520px, 100%);
+        margin: 0 auto;
+        padding: 0 clamp(8px, 4vw, 16px);
+        gap: clamp(8px, 3vw, 16px);
       }
       .tool {
         min-width: 120px;
-        width: auto;
+        width: calc(50% - clamp(8px, 3vw, 16px));
+        max-width: 220px;
       }
     }
 
@@ -809,8 +841,8 @@
       const isMobileLayout = window.innerWidth < 900;
       const availW = Math.min(isMobileLayout ? window.innerWidth : window.innerWidth * 0.72, 900);
       const topH = Math.ceil(topbarEl.getBoundingClientRect().height);
-      const toolbarH = isMobileLayout ? Math.ceil(toolbar.getBoundingClientRect().height || 0) : 0;
-      const reserved = toolbarH + (isMobileLayout ? 24 : 0);
+      const toolbarH = toolbar ? Math.ceil(toolbar.getBoundingClientRect().height || 0) : 0;
+      const reserved = isMobileLayout ? 0 : toolbarH + 24;
       root.style.setProperty('--toolbar-h', reserved + 'px');
       syncToolbarStack(isMobileLayout);
       const availH = window.innerHeight - topH - reserved;

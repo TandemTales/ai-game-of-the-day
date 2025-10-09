@@ -302,6 +302,7 @@
 
     const LANDER_WIDTH = 120;
     const LANDER_HEIGHT = 140;
+    const LANDER_COLLISION_HALF = LANDER_WIDTH * 0.42;
 
     const assets = {
       background: 'assets/mars_background.svg',
@@ -310,6 +311,7 @@
     };
     const Images = {};
     const landerSprite = { width: LANDER_WIDTH, height: LANDER_HEIGHT };
+    let landerHalfWidth = LANDER_COLLISION_HALF;
 
     function loadImage(src) {
       return new Promise((resolve, reject) => {
@@ -324,10 +326,11 @@
     Promise.all(Object.entries(assets).map(([key, src]) => loadImage(src).then(img => {
         Images[key] = img;
         if (key === 'lander') {
-          const aspect = img.width / img.height;
-          if (Number.isFinite(aspect) && aspect > 0) {
+          if (Number.isFinite(img.width) && Number.isFinite(img.height) && img.width > 0 && img.height > 0) {
+            const scale = LANDER_HEIGHT / img.height;
             landerSprite.height = LANDER_HEIGHT;
-            landerSprite.width = LANDER_HEIGHT * aspect;
+            landerSprite.width = img.width * scale;
+            landerHalfWidth = LANDER_COLLISION_HALF * scale;
           }
         }
       })))
@@ -487,7 +490,7 @@
       lander.x += lander.vx * dt;
       lander.y += lander.vy * dt;
 
-      const halfW = LANDER_WIDTH * 0.42;
+      const halfW = landerHalfWidth;
       if (lander.x < halfW) {
         lander.x = halfW;
         lander.vx *= -0.3;

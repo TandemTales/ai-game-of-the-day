@@ -145,18 +145,26 @@
 
     @media (max-width: 899px) {
       .game-wrap {
-        gap: 0;
-        padding: 0;
+        gap: clamp(16px, 5vh, 28px);
+        padding: clamp(12px, 4vw, 24px) 16px max(clamp(14px, 4vh, 28px), env(safe-area-inset-bottom, 0px));
+        bottom: 0;
+        height: auto;
+        justify-content: flex-start;
+      }
+      .playfield {
+        order: 1;
       }
       .toolbar {
-        position: fixed;
-        left: 50%;
-        bottom: clamp(14px, 4vh, 28px);
-        transform: translateX(-50%);
+        position: static;
+        order: 2;
+        left: auto;
+        bottom: auto;
+        transform: none;
         flex-direction: row;
         flex-wrap: wrap;
         justify-content: center;
-        width: auto;
+        width: min(520px, calc(100vw - 32px));
+        margin: 0 auto max(clamp(14px, 4vh, 32px), env(safe-area-inset-bottom, 0px));
       }
       .tool {
         min-width: 120px;

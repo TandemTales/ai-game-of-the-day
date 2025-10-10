@@ -89,19 +89,32 @@
     }
     canvas { background: transparent; image-rendering: pixelated; touch-action: none; }
 
+    .control-bar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: clamp(12px, 3vw, 24px);
+      width: 100%;
+      max-width: min(720px, 100%);
+      margin: clamp(16px, 4vh, 32px) auto 0;
+      flex-wrap: wrap;
+    }
+
     .hud {
       position: relative;
-      top: auto; left: auto; transform: none;
-      color: var(--teal); text-shadow: 0 2px 6px rgba(0,0,0,0.6);
-      font-size: 12px; z-index: 25;
-      display: flex; align-items: center; justify-content: center;
-      flex-wrap: wrap; gap: 12px;
+      color: var(--teal);
+      text-shadow: 0 2px 6px rgba(0,0,0,0.6);
+      font-size: 12px;
+      z-index: 25;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
       line-height: 1.2;
-      background: rgba(0,0,0,0.35);
-      padding: 8px 12px;
+      background: rgba(0,0,0,0.45);
+      padding: 12px 14px;
       border-radius: 12px;
-      width: min(520px, calc(100% - 32px));
-      margin: clamp(12px, 3vh, 24px) auto 0;
+      min-width: min(240px, 70vw);
       box-sizing: border-box;
     }
 
@@ -119,8 +132,8 @@
       gap: 10px;
       z-index: 15;
       opacity: 0.98;
-      width: min(220px, 28vw);
-      margin-top: 0;
+      width: min(220px, 32vw);
+      min-width: 180px;
     }
     .tool {
       min-width: 0;
@@ -159,86 +172,55 @@
         align-items: center;
         overflow-y: auto;
       }
+      .control-bar {
+        justify-content: center;
+        max-width: 520px;
+      }
       .toolbar {
-        position: static;
-        transform: none;
-        order: 2;
         flex-direction: row;
         flex-wrap: wrap;
         justify-content: center;
-        align-self: center;
-        width: min(520px, 100%);
-        gap: 10px;
+        width: 100%;
       }
       .tool {
         min-width: clamp(120px, 40vw, 180px);
         width: auto;
       }
-      .playfield { order: 1; }
       .hud {
-        order: 0;
-        width: min(520px, 100%);
+        min-width: auto;
+        width: 100%;
+        align-items: center;
       }
     }
 
     @media (min-width: 900px) {
       .game-wrap {
-        flex-direction: row;
-        align-items: flex-start;
-        justify-content: flex-start;
-        gap: clamp(24px, 6vw, 80px);
-        padding: 0 clamp(20px, 5vw, 80px);
-        padding-left: clamp(16px, 5vw, 140px);
-      }
-      .toolbar {
-        position: static;
-        transform: none;
         flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        gap: clamp(24px, 6vh, 48px);
+        padding: 0 clamp(20px, 5vw, 80px);
+      }
+      .control-bar {
         flex-wrap: nowrap;
-        align-items: stretch;
-        width: min(220px, 18vw);
-        align-self: flex-start;
-        margin-top: var(--toolbar-stack-offset, 0px);
+        justify-content: center;
+        max-width: clamp(520px, 60vw, 720px);
       }
       .hud {
-        position: fixed;
-        top: calc(var(--topbar-h) + 16px);
-        left: clamp(16px, 5vw, 140px);
-        transform: none;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-        padding: 12px 14px;
-        background: rgba(0, 0, 0, 0.45);
-        box-shadow: 0 6px 18px rgba(0,0,0,0.35);
-        width: auto;
-        margin: 0;
+        min-width: 240px;
       }
-      .hud .hud-item { justify-content: flex-start; }
+      .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        width: auto;
+        min-width: 220px;
+      }
     }
 
     @media (max-width: 480px) {
       .back-btn { padding: 6px 8px; font-size: 11px; }
       .title { font-size: 12px; }
-      .hud { font-size: 11px; gap: 10px; padding: 5px 8px; }
-    }
-    /* Nudge HUD upward on small screens to avoid overlapping playfield */
-    @media (max-width: 600px) {
-      :root { --hud-offset: clamp(0px, 0.5vh, 8px); }
-      /* Prevent HUD from being cut off; widen and use 2-column layout */
-      .hud {
-        width: calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 24px);
-        padding-left: max(10px, env(safe-area-inset-left, 0px));
-        padding-right: max(10px, env(safe-area-inset-right, 0px));
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        justify-content: center;
-        align-items: center;
-        justify-items: center;
-        white-space: normal;
-        gap: 8px 16px; /* row gap / column gap */
-      }
-      .hud .hud-item:last-child { grid-column: 1 / -1; justify-content: center; }
+      .hud { font-size: 11px; gap: 8px; padding: 10px 12px; }
     }
     /* Generic scrollable modal panel inside overlays (for mobile-fit) */
     .overlay .panel {
@@ -275,25 +257,27 @@
   </div>
 
   <div class="game-wrap">
-    <div class="hud" id="hud">
-      <span class="hud-item"><span class="hud-emoji" aria-hidden="true">💰</span><span id="coins" class="hud-value">0</span></span>
-      <span class="hud-item"><span class="hud-emoji" aria-hidden="true">❤️</span><span id="lives" class="hud-value">0</span></span>
-      <span class="hud-item"><span class="hud-emoji" aria-hidden="true">🎚️</span><span class="hud-label">Level</span><span id="level" class="hud-value">1</span></span>
-      <span class="hud-item"><span class="hud-emoji" aria-hidden="true">🌊</span><span class="hud-label">Wave</span><span id="wave" class="hud-value">1</span></span>
-      <span class="hud-item"><span class="hud-emoji" aria-hidden="true">⭐</span><span class="hud-label">Score</span><span id="score" class="hud-value">0</span></span>
-    </div>
-    <div class="toolbar" id="toolbar">
-      <div class="tool selected" data-type="basic" data-cost="25">
-        <img src="assets/ATD_tower_basic_small.png" alt="basic">
-        <div>Basic 25</div>
+    <div class="control-bar">
+      <div class="hud" id="hud">
+        <span class="hud-item"><span class="hud-emoji" aria-hidden="true">💰</span><span id="coins" class="hud-value">0</span></span>
+        <span class="hud-item"><span class="hud-emoji" aria-hidden="true">❤️</span><span id="lives" class="hud-value">0</span></span>
+        <span class="hud-item"><span class="hud-emoji" aria-hidden="true">🎚️</span><span class="hud-label">Level</span><span id="level" class="hud-value">1</span></span>
+        <span class="hud-item"><span class="hud-emoji" aria-hidden="true">🌊</span><span class="hud-label">Wave</span><span id="wave" class="hud-value">1</span></span>
+        <span class="hud-item"><span class="hud-emoji" aria-hidden="true">⭐</span><span class="hud-label">Score</span><span id="score" class="hud-value">0</span></span>
       </div>
-      <div class="tool" data-type="slow" data-cost="35">
-        <img src="assets/ATD_tower_frost_small.png" alt="slow">
-        <div>Frost 35</div>
-      </div>
-      <div class="tool" data-type="pierce" data-cost="50">
-        <img src="assets/ATD_tower_piercing_small.png" alt="pierce">
-        <div>Pierce 50</div>
+      <div class="toolbar" id="toolbar">
+        <div class="tool selected" data-type="basic" data-cost="25">
+          <img src="assets/ATD_tower_basic_small.png" alt="basic">
+          <div>Basic 25</div>
+        </div>
+        <div class="tool" data-type="slow" data-cost="35">
+          <img src="assets/ATD_tower_frost_small.png" alt="slow">
+          <div>Frost 35</div>
+        </div>
+        <div class="tool" data-type="pierce" data-cost="50">
+          <img src="assets/ATD_tower_piercing_small.png" alt="pierce">
+          <div>Pierce 50</div>
+        </div>
       </div>
     </div>
     <div class="playfield">

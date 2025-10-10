@@ -317,7 +317,15 @@
     }
 
     let assetsReady = false;
-    Promise.all(Object.entries(assets).map(([key, src]) => loadImage(src).then(img => { Images[key] = img; })))
+    Promise.all(Object.entries(assets).map(([key, src]) => loadImage(src).then(img => {
+      Images[key] = img;
+      if (key === 'lander' && img.width && img.height) {
+        const scale = LANDER_WIDTH / img.width;
+        landerDrawWidth = LANDER_WIDTH;
+        landerDrawHeight = img.height * scale;
+        LANDER_HEIGHT = landerDrawHeight;
+      }
+    })))
       .then(() => {
         assetsReady = true;
         startScreen.querySelector('p').textContent = 'Ready? Tap, click, or press Space to ignite and begin descent.';
@@ -327,8 +335,10 @@
         startScreen.querySelector('p').textContent = 'Asset load failed. Refresh to retry.';
       });
 
-    const LANDER_WIDTH = 120;
-    const LANDER_HEIGHT = 140;
+    let LANDER_WIDTH = 120;
+    let LANDER_HEIGHT = 140;
+    let landerDrawWidth = LANDER_WIDTH;
+    let landerDrawHeight = LANDER_HEIGHT;
     const pad = {
       x: WIDTH / 2 - 110,
       y: HEIGHT - 150,
@@ -537,7 +547,7 @@
         ctx.fill();
       }
       if (assetsReady && Images.lander) {
-        ctx.drawImage(Images.lander, -LANDER_WIDTH / 2, -LANDER_HEIGHT / 2, LANDER_WIDTH, LANDER_HEIGHT);
+        ctx.drawImage(Images.lander, -landerDrawWidth / 2, -landerDrawHeight / 2, landerDrawWidth, landerDrawHeight);
       } else {
         ctx.fillStyle = '#ccc';
         ctx.fillRect(-20, -40, 40, 80);

@@ -91,36 +91,36 @@
 
     .control-bar {
       display: flex;
-      align-items: flex-start;
+      align-items: stretch;
       justify-content: center;
-      gap: clamp(12px, 3vw, 24px);
-      width: 100%;
-      max-width: min(720px, 100%);
-      margin: clamp(16px, 4vh, 32px) auto 0;
-      flex-wrap: wrap;
+      gap: clamp(8px, 2vw, 16px);
+      width: min(640px, 95vw);
+      margin: clamp(12px, 3vh, 24px) auto 0;
+      flex-wrap: nowrap;
     }
 
     .hud {
       position: relative;
       color: var(--teal);
       text-shadow: 0 2px 6px rgba(0,0,0,0.6);
-      font-size: 12px;
+      font-size: clamp(9px, 1.8vw, 11px);
       z-index: 25;
       display: flex;
       flex-direction: column;
       align-items: flex-start;
-      gap: 10px;
+      gap: clamp(6px, 1.5vw, 10px);
       line-height: 1.2;
       background: rgba(0,0,0,0.45);
-      padding: 12px 14px;
+      padding: clamp(8px, 1.8vw, 12px) clamp(10px, 2.2vw, 14px);
       border-radius: 12px;
-      min-width: min(240px, 70vw);
+      min-width: 0;
+      width: clamp(150px, 38vw, 200px);
       box-sizing: border-box;
     }
 
-    .hud .hud-item { display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; }
-    .hud .hud-emoji { font-size: 14px; line-height: 1; transform: translateY(1px); }
-    .hud .hud-label { font-size: 12px; opacity: 0.95; }
+    .hud .hud-item { display: inline-flex; align-items: baseline; gap: clamp(4px, 1vw, 6px); white-space: nowrap; }
+    .hud .hud-emoji { font-size: clamp(12px, 2.6vw, 14px); line-height: 1; transform: translateY(1px); }
+    .hud .hud-label { font-size: clamp(9px, 1.9vw, 11px); opacity: 0.95; }
     .hud .hud-value { font-variant-numeric: tabular-nums; }
 
     .toolbar {
@@ -129,23 +129,23 @@
       flex-direction: column;
       align-items: stretch;
       justify-content: center;
-      gap: 10px;
+      gap: clamp(6px, 1.6vw, 12px);
       z-index: 15;
       opacity: 0.98;
-      width: min(220px, 32vw);
-      min-width: 180px;
+      width: clamp(170px, 45vw, 220px);
+      min-width: 0;
     }
     .tool {
       min-width: 0;
       width: 100%;
-      display: flex; align-items: center; gap: 8px;
+      display: flex; align-items: center; gap: clamp(6px, 1.4vw, 8px);
       background: linear-gradient(145deg, rgba(95,158,160,0.22), rgba(0,0,0,0.5));
-      border: 2px solid var(--gold); border-radius: 12px; padding: 8px 10px;
+      border: 2px solid var(--gold); border-radius: 12px; padding: clamp(6px, 1.4vw, 8px) clamp(8px, 1.8vw, 10px);
       box-shadow: inset 0 4px 8px rgba(0,0,0,0.4), 0 6px 18px rgba(0,0,0,0.4);
-      color: var(--gold); font-size: 12px; user-select: none;
+      color: var(--gold); font-size: clamp(10px, 2vw, 12px); user-select: none;
     }
     .tool.selected { outline: 3px solid #7fffd4; }
-    .tool img { width: 28px; height: 28px; }
+    .tool img { width: clamp(24px, 5vw, 28px); height: clamp(24px, 5vw, 28px); }
 
     .overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column;
       background: radial-gradient(800px 400px at 50% 40%, rgba(0,0,0,0.6), rgba(0,0,0,0.9)); z-index: 18; text-align: center; padding: 24px; gap: 14px; }
@@ -173,23 +173,19 @@
         overflow-y: auto;
       }
       .control-bar {
-        justify-content: center;
-        max-width: 520px;
+        width: min(520px, 95vw);
       }
       .toolbar {
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: center;
-        width: 100%;
+        flex-direction: column;
+        width: clamp(170px, 48vw, 210px);
       }
       .tool {
-        min-width: clamp(120px, 40vw, 180px);
-        width: auto;
+        min-width: 0;
+        width: 100%;
       }
       .hud {
-        min-width: auto;
-        width: 100%;
-        align-items: center;
+        width: clamp(150px, 42vw, 200px);
+        align-items: flex-start;
       }
     }
 
@@ -202,18 +198,13 @@
         padding: 0 clamp(20px, 5vw, 80px);
       }
       .control-bar {
-        flex-wrap: nowrap;
         justify-content: center;
         max-width: clamp(520px, 60vw, 720px);
-      }
-      .hud {
-        min-width: 240px;
       }
       .toolbar {
         flex-direction: column;
         align-items: stretch;
-        width: auto;
-        min-width: 220px;
+        width: clamp(190px, 32vw, 220px);
       }
     }
 

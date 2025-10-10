@@ -36,8 +36,18 @@
     }
     .wrap {
       position: relative;
-      width: 100vw; height: 100vh;
+      width: 100vw;
+      height: 100vh;
       overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .stage {
+      position: relative;
+      flex: 0 0 auto;
+      width: min(960px, 100%);
+      height: 100%;
     }
     canvas { 
       position: absolute; inset: 0; margin: 0; 
@@ -157,70 +167,80 @@
 </head>
 <body>
   <div class="wrap">
-    <canvas id="game" width="960" height="540"></canvas>
-    <div class="hud">
-      <div class="topbar">
-        <div class="chip" id="scoreHud">Score: 0</div>
-        <div class="chip" id="heatHud">
-          <div class="heat-label">Heat</div>
-          <div class="heatbar"><div class="heatbar-fill" id="heatFill"></div><div class="heatbar-text" id="heatText">0%</div></div>
+    <div class="stage">
+      <canvas id="game" width="960" height="540"></canvas>
+      <div class="hud">
+        <div class="topbar">
+          <div class="chip" id="scoreHud">Score: 0</div>
+          <div class="chip" id="heatHud">
+            <div class="heat-label">Heat</div>
+            <div class="heatbar">
+              <div class="heatbar-fill" id="heatFill"></div>
+              <div class="heatbar-text" id="heatText">0%</div>
+            </div>
+          </div>
+          <div class="chip hidden" id="jetHud">
+            <div class="jet-label">Jetpack</div>
+            <div class="jetbar">
+              <div class="jetbar-fill" id="jetFill"></div>
+              <div class="jetbar-text" id="jetText">0%</div>
+            </div>
+          </div>
+          <div class="chip hidden" id="gliderHud">
+            <div class="jet-label">Glider</div>
+          </div>
+          <div class="chip hidden" id="gunHud">
+            <div class="jet-label">Gun</div>
+          </div>
+          <div class="chip hidden" id="shieldHud">
+            <div class="jet-label">Shield</div>
+          </div>
+          <div class="audio-toggle" title="Toggle Audio (M)">
+            <div id="audioIcon">
+              <img id="audioIconImg" src="../nova-striker/assets/unmuted.png" alt="Audio">
+            </div>
+          </div>
+          <a href="../index.html" class="btn btn-primary back">← Back to Home</a>
         </div>
-        <div class="chip hidden" id="jetHud">
-          <div class="jet-label">Jetpack</div>
-          <div class="jetbar"><div class="jetbar-fill" id="jetFill"></div><div class="jetbar-text" id="jetText">0%</div></div>
+        <div id="bossHud" class="hidden">
+          <div class="boss-label">Boss</div>
+          <div class="bossbar"><div class="bossbar-fill" id="bossFill"></div></div>
         </div>
-        <div class="chip hidden" id="gliderHud">
-          <div class="jet-label">Glider</div>
-        </div>
-      <div class="chip hidden" id="gunHud">
-        <div class="jet-label">Gun</div>
+        <div id="upgradeNotify" class="upgrade-notify"></div>
+        <div id="bossNotify" class="upgrade-notify"></div>
       </div>
-        <div class="chip hidden" id="shieldHud">
-          <div class="jet-label">Shield</div>
+
+      <div class="center" id="startScreen">
+        <div class="panel">
+          <div class="title">Core Crisis</div>
+          <div class="small">Dash across floating isles, vault hazards, and snatch radiant shards while the world streams by in gleaming parallax.</div>
+          <div class="row">
+            <button id="startBtn" class="btn btn-primary">Start</button>
+            <a class="btn btn-primary" href="../leaderboard.html?gameId=core-crisis">Leaderboard</a>
+          </div>
+          <div class="small" style="margin-top:10px">Controls: Left-click hold/Space to glide (after picking up Glider), Right-click to dive. Tap anywhere on mobile.</div>
         </div>
-        <div class="audio-toggle" title="Toggle Audio (M)">
-          <div id="audioIcon">
-            <img id="audioIconImg" src="../nova-striker/assets/unmuted.png" alt="Audio">
+      </div>
+
+      <div id="mobileCtrls" class="hidden"></div>
+
+      <div class="center hidden" id="gameOver">
+        <div class="panel">
+          <div class="title">Game Over</div>
+          <div id="finalScore" class="small">Score: 0</div>
+          <div class="row">
+            <button id="againBtn" class="btn btn-primary">Play Again</button>
+            <a id="lbBtn" class="btn btn-primary" href="../leaderboard.html?gameId=core-crisis">View Leaderboard</a>
           </div>
         </div>
-      <a href="../index.html" class="btn btn-primary back">← Back to Home</a>
-    </div>
-    <div id="bossHud" class="hidden">
-      <div class="boss-label">Boss</div>
-      <div class="bossbar"><div class="bossbar-fill" id="bossFill"></div></div>
-    </div>
-    <div id="upgradeNotify" class="upgrade-notify"></div>
-    <div id="bossNotify" class="upgrade-notify"></div>
-  </div>
-
-    <div class="center" id="startScreen">
-      <div class="panel">
-        <div class="title">Core Crisis</div>
-        <div class="small">Dash across floating isles, vault hazards, and snatch radiant shards while the world streams by in gleaming parallax.</div>
-        <div class="row">
-          <button id="startBtn" class="btn btn-primary">Start</button>
-          <a class="btn btn-primary" href="../leaderboard.html?gameId=core-crisis">Leaderboard</a>
-        </div>
-        <div class="small" style="margin-top:10px">Controls: Left-click hold/Space to glide (after picking up Glider), Right-click to dive. Tap anywhere on mobile.</div>
-      </div>
-    </div>
-
-    <div id="mobileCtrls" class="hidden"></div>
-
-    <div class="center hidden" id="gameOver">
-      <div class="panel">
-        <div class="title">Game Over</div>
-        <div id="finalScore" class="small">Score: 0</div>
-        <div class="row">
-          <button id="againBtn" class="btn btn-primary">Play Again</button>
-          <a id="lbBtn" class="btn btn-primary" href="../leaderboard.html?gameId=core-crisis">View Leaderboard</a>
-        </div>
       </div>
     </div>
   </div>
+
 
   <script>
   (function(){
+    const stage = document.querySelector('.stage');
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
     let W = canvas.width, H = canvas.height;
@@ -249,13 +269,26 @@
     const isTouch = window.matchMedia('(pointer: coarse)').matches;
     function resize() {
       const ratio = 16/9;
-      let w = window.innerWidth;
       const topOffset = isTouch ? topbar.offsetHeight : 0;
-      let h = window.innerHeight - topOffset;
-      if (w/h > ratio) { w = h * ratio; } else { h = w / ratio; }
-      canvas.style.width = w + 'px';
-      canvas.style.height = h + 'px';
-      canvas.style.top = topOffset + 'px';
+      const maxHeight = Math.max(0, window.innerHeight - topOffset);
+      const maxWidth = Math.min(window.innerWidth, 960);
+      let displayWidth = maxWidth;
+      let displayHeight = displayWidth / ratio;
+
+      if (displayHeight > maxHeight && maxHeight > 0) {
+        displayHeight = maxHeight;
+        displayWidth = displayHeight * ratio;
+      }
+
+      if (stage) {
+        stage.style.width = displayWidth + 'px';
+        stage.style.height = displayHeight + 'px';
+        stage.style.marginTop = topOffset + 'px';
+      }
+      canvas.style.width = displayWidth + 'px';
+      canvas.style.height = displayHeight + 'px';
+      canvas.style.top = '0px';
+      canvas.style.left = '0px';
     }
     window.addEventListener('resize', resize); resize();
 

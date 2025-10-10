@@ -108,6 +108,25 @@
       white-space: nowrap;
     }
     .hud span { display: inline-flex; align-items: center; gap: 6px; }
+    .hud .hud-audio { pointer-events: auto; }
+    .hud .mute-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 215, 0, 0.6);
+      background: rgba(15, 7, 24, 0.65);
+      color: var(--gold);
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.45);
+      pointer-events: auto;
+      transition: transform 0.2s ease, filter 0.2s ease;
+    }
+    .hud .mute-btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+    .hud .mute-btn:active { transform: translateY(1px); }
     .hud label { opacity: 0.8; font-size: 10px; }
     .hud strong { color: var(--gold); font-weight: 400; }
     .game-wrap {
@@ -218,6 +237,9 @@
     <span><label>Altitude</label><strong id="altitude">0</strong></span>
     <span><label>Elapsed</label><strong id="time">0.0</strong>s</span>
     <span><label>Score</label><strong id="score">--</strong></span>
+    <span class="hud-audio">
+      <button class="mute-btn" id="muteBtn" type="button" aria-pressed="false" aria-label="Toggle soundtrack">🔊</button>
+    </span>
   </div>
 
   <div class="game-wrap">
@@ -271,6 +293,7 @@
     const topbar = document.getElementById('topbar');
     const hudEl = document.getElementById('hud');
     const touchControls = document.getElementById('touchControls');
+    const muteBtn = document.getElementById('muteBtn');
 
     const hudFuel = document.getElementById('fuel');
     const hudVertical = document.getElementById('vertical');
@@ -282,6 +305,17 @@
     const resultTitle = document.getElementById('resultTitle');
     const resultMessage = document.getElementById('resultMessage');
     const resultStats = document.getElementById('resultStats');
+
+    const soundtrackFiles = [
+      'assets/CD_soundtrack01.mp3',
+      'assets/CD_soundtrack02.mp3',
+      'assets/CD_soundtrack03.mp3',
+      'assets/CD_soundtrack04.mp3'
+    ].filter(src => src.toLowerCase().includes('soundtrack'));
+
+    let soundtrackQueue = [];
+    let soundtrackAudio = null;
+    let soundtrackEnabled = true;
 
     const WIDTH = 720;
     const HEIGHT = 960;
@@ -326,6 +360,86 @@
         console.error(err);
         startScreen.querySelector('p').textContent = 'Asset load failed. Refresh to retry.';
       });
+
+    function shuffleTracks(list) {
+      const copy = list.slice();
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function refillSoundtrackQueue() {
+      if (!soundtrackQueue.length && soundtrackFiles.length) {
+        soundtrackQueue = shuffleTracks(soundtrackFiles);
+      }
+    }
+
+    function ensureSoundtrackAudio() {
+      if (!soundtrackFiles.length) return null;
+      if (!soundtrackAudio) {
+        soundtrackAudio = new Audio();
+        soundtrackAudio.preload = 'auto';
+        soundtrackAudio.volume = 0.6;
+        soundtrackAudio.addEventListener('ended', () => {
+          startNextSoundtrack();
+        });
+      }
+      soundtrackAudio.muted = !soundtrackEnabled;
+      return soundtrackAudio;
+    }
+
+    function startNextSoundtrack() {
+      const audioEl = ensureSoundtrackAudio();
+      if (!audioEl) return;
+      refillSoundtrackQueue();
+      if (!soundtrackQueue.length) return;
+      const nextSrc = soundtrackQueue.shift();
+      audioEl.src = nextSrc;
+      audioEl.currentTime = 0;
+      audioEl.muted = !soundtrackEnabled;
+      if (soundtrackEnabled) {
+        audioEl.play().catch(() => {});
+      }
+    }
+
+    function resumeSoundtrack() {
+      const audioEl = ensureSoundtrackAudio();
+      if (!audioEl) return;
+      if (!audioEl.src) {
+        startNextSoundtrack();
+        return;
+      }
+      audioEl.muted = !soundtrackEnabled;
+      if (soundtrackEnabled) {
+        audioEl.play().catch(() => {});
+      }
+    }
+
+    function updateMuteButton() {
+      if (!muteBtn) return;
+      muteBtn.textContent = soundtrackEnabled ? '🔊' : '🔇';
+      muteBtn.setAttribute('aria-pressed', (!soundtrackEnabled).toString());
+      muteBtn.setAttribute('aria-label', soundtrackEnabled ? 'Mute soundtrack' : 'Unmute soundtrack');
+    }
+
+    if (muteBtn) {
+      updateMuteButton();
+      muteBtn.addEventListener('click', () => {
+        soundtrackEnabled = !soundtrackEnabled;
+        const audioEl = ensureSoundtrackAudio();
+        if (audioEl) {
+          audioEl.muted = !soundtrackEnabled;
+          if (soundtrackEnabled && audioEl.paused) {
+            audioEl.play().catch(() => {});
+          } else if (!soundtrackEnabled) {
+            audioEl.pause();
+          }
+        }
+        updateMuteButton();
+      });
+    }
 
     const LANDER_WIDTH = 120;
     const LANDER_HEIGHT = 140;
@@ -399,6 +513,7 @@
       state.currentScore = null;
       startScreen.classList.remove('show');
       resultScreen.classList.remove('show');
+      resumeSoundtrack();
     }
 
     function endRound(success) {

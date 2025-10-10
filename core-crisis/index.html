@@ -33,22 +33,55 @@
       font-family: 'Press Start 2P', system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
       overflow: hidden;
       touch-action: manipulation;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: clamp(8px, 3vw, 16px);
+    }
+    .game-layout {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      width: fit-content;
+      max-width: 100%;
+    }
+    .info-panel {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+    .topbar {
+      position: relative;
+      display: flex; gap: 12px; align-items: center; justify-content: flex-start;
+      flex-wrap: wrap;
+      pointer-events: auto;
+      background: rgba(0,0,0,0.8);
+      border: 2px solid var(--gold);
+      border-radius: 12px;
+      padding: 12px 16px;
+      box-shadow: 0 10px 28px rgba(12, 16, 32, 0.55);
+      width: 100%;
+    }
+    .play-shell {
+      display: flex;
+      justify-content: center;
+      width: 100%;
     }
     .wrap {
       position: relative;
-      width: 100vw; height: 100vh;
       overflow: hidden;
+      margin: 0 auto;
     }
-    canvas { 
-      position: absolute; inset: 0; margin: 0; 
+    canvas {
+      position: absolute; inset: 0; margin: 0;
+      width: 100%; height: 100%;
       image-rendering: pixelated; image-rendering: crisp-edges;
     }
     .hud {
       position: absolute; inset: 0; pointer-events: none;
       padding: 10px;
-    }
-    .topbar {
-      display: flex; gap: 12px; align-items: center; justify-content: flex-start;
     }
     .chip {
       background: var(--ui); border: 2px solid var(--gold); color: var(--ink);
@@ -110,7 +143,7 @@
       box-shadow: 0 4px 15px rgba(95,158,160,0.4);
     }
     .btn-primary:hover { filter: brightness(1.06); }
-    .back { position: absolute; top: 10px; right: 10px; }
+    .back { margin-left: auto; }
     .center { position: absolute; inset: 0; display: grid; place-items: center; }
     .panel {
       background: rgba(0,0,0,0.85);
@@ -156,9 +189,8 @@
   </script>
 </head>
 <body>
-  <div class="wrap">
-    <canvas id="game" width="960" height="540"></canvas>
-    <div class="hud">
+  <div class="game-layout">
+    <header class="info-panel">
       <div class="topbar">
         <div class="chip" id="scoreHud">Score: 0</div>
         <div class="chip" id="heatHud">
@@ -172,9 +204,9 @@
         <div class="chip hidden" id="gliderHud">
           <div class="jet-label">Glider</div>
         </div>
-      <div class="chip hidden" id="gunHud">
-        <div class="jet-label">Gun</div>
-      </div>
+        <div class="chip hidden" id="gunHud">
+          <div class="jet-label">Gun</div>
+        </div>
         <div class="chip hidden" id="shieldHud">
           <div class="jet-label">Shield</div>
         </div>
@@ -183,15 +215,20 @@
             <img id="audioIconImg" src="../nova-striker/assets/unmuted.png" alt="Audio">
           </div>
         </div>
-      <a href="../index.html" class="btn btn-primary back">← Back to Home</a>
-    </div>
-    <div id="bossHud" class="hidden">
-      <div class="boss-label">Boss</div>
-      <div class="bossbar"><div class="bossbar-fill" id="bossFill"></div></div>
-    </div>
-    <div id="upgradeNotify" class="upgrade-notify"></div>
-    <div id="bossNotify" class="upgrade-notify"></div>
-  </div>
+        <a href="../index.html" class="btn btn-primary back">← Back to Home</a>
+      </div>
+    </header>
+    <div class="play-shell">
+      <div class="wrap">
+        <canvas id="game" width="960" height="540"></canvas>
+        <div class="hud">
+          <div id="bossHud" class="hidden">
+            <div class="boss-label">Boss</div>
+            <div class="bossbar"><div class="bossbar-fill" id="bossFill"></div></div>
+          </div>
+          <div id="upgradeNotify" class="upgrade-notify"></div>
+          <div id="bossNotify" class="upgrade-notify"></div>
+        </div>
 
     <div class="center" id="startScreen">
       <div class="panel">
@@ -205,15 +242,17 @@
       </div>
     </div>
 
-    <div id="mobileCtrls" class="hidden"></div>
+        <div id="mobileCtrls" class="hidden"></div>
 
-    <div class="center hidden" id="gameOver">
-      <div class="panel">
-        <div class="title">Game Over</div>
-        <div id="finalScore" class="small">Score: 0</div>
-        <div class="row">
-          <button id="againBtn" class="btn btn-primary">Play Again</button>
-          <a id="lbBtn" class="btn btn-primary" href="../leaderboard.html?gameId=core-crisis">View Leaderboard</a>
+        <div class="center hidden" id="gameOver">
+          <div class="panel">
+            <div class="title">Game Over</div>
+            <div id="finalScore" class="small">Score: 0</div>
+            <div class="row">
+              <button id="againBtn" class="btn btn-primary">Play Again</button>
+              <a id="lbBtn" class="btn btn-primary" href="../leaderboard.html?gameId=core-crisis">View Leaderboard</a>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -226,6 +265,8 @@
     let W = canvas.width, H = canvas.height;
 
     const topbar = document.querySelector('.topbar');
+    const wrap = document.querySelector('.wrap');
+    const infoPanel = document.querySelector('.info-panel');
     const upgradeNotify = document.getElementById('upgradeNotify');
     const bossNotify = document.getElementById('bossNotify');
     const audioIcon = document.getElementById('audioIcon');
@@ -246,16 +287,63 @@
         bossNotify.style.opacity = 0;
       }, 1000);
     }
-    const isTouch = window.matchMedia('(pointer: coarse)').matches;
     function resize() {
       const ratio = 16/9;
-      let w = window.innerWidth;
-      const topOffset = isTouch ? topbar.offsetHeight : 0;
-      let h = window.innerHeight - topOffset;
-      if (w/h > ratio) { w = h * ratio; } else { h = w / ratio; }
-      canvas.style.width = w + 'px';
-      canvas.style.height = h + 'px';
-      canvas.style.top = topOffset + 'px';
+      const gap = 12; // space between info panel and play area (matches .game-layout gap)
+
+      const sizeFor = (infoHeight) => {
+        const bodyStyles = window.getComputedStyle(document.body);
+        const padX = (parseFloat(bodyStyles.paddingLeft) || 0) + (parseFloat(bodyStyles.paddingRight) || 0);
+        const padY = (parseFloat(bodyStyles.paddingTop) || 0) + (parseFloat(bodyStyles.paddingBottom) || 0);
+
+        let availWidth = window.innerWidth - padX;
+        if (availWidth <= 0) availWidth = window.innerWidth;
+
+        let availHeight = window.innerHeight - padY - infoHeight - gap;
+        if (availHeight <= 0) availHeight = window.innerHeight - padY;
+        if (availHeight <= 0) availHeight = window.innerHeight;
+
+        let w = availWidth;
+        let h = w / ratio;
+        if (h > availHeight) {
+          h = availHeight;
+          w = h * ratio;
+        }
+        if (w > availWidth) {
+          w = availWidth;
+          h = w / ratio;
+        }
+        return { w, h };
+      };
+
+      let infoHeight = infoPanel ? infoPanel.offsetHeight : 0;
+      let { w, h } = sizeFor(infoHeight);
+
+      if (infoPanel) infoPanel.style.width = `${w}px`;
+      if (wrap) {
+        wrap.style.width = `${w}px`;
+        wrap.style.height = `${h}px`;
+      }
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+      canvas.style.top = '0px';
+
+      if (infoPanel) {
+        const updatedInfoHeight = infoPanel.offsetHeight;
+        if (Math.abs(updatedInfoHeight - infoHeight) > 1) {
+          infoHeight = updatedInfoHeight;
+          ({ w, h } = sizeFor(infoHeight));
+          infoPanel.style.width = `${w}px`;
+          if (wrap) {
+            wrap.style.width = `${w}px`;
+            wrap.style.height = `${h}px`;
+          }
+          canvas.style.width = `${w}px`;
+          canvas.style.height = `${h}px`;
+        }
+      }
+
+      positionBossHud();
     }
     window.addEventListener('resize', resize); resize();
 
@@ -631,10 +719,14 @@
     const bossFill = document.getElementById('bossFill');
 
     function positionBossHud(){
-      if (!bossHud || !heatHud) return;
-      bossHud.style.left = `${heatHud.offsetLeft}px`;
-      bossHud.style.top = `${heatHud.offsetTop + heatHud.offsetHeight + 8}px`;
-      bossHud.style.width = `${heatHud.offsetWidth}px`;
+      if (!bossHud || !heatHud || !wrap) return;
+      const heatRect = heatHud.getBoundingClientRect();
+      const wrapRect = wrap.getBoundingClientRect();
+      const left = heatRect.left - wrapRect.left;
+      const top = heatRect.bottom - wrapRect.top + 8;
+      bossHud.style.left = `${left}px`;
+      bossHud.style.top = `${top}px`;
+      bossHud.style.width = `${heatRect.width}px`;
     }
     window.addEventListener('resize', positionBossHud);
     positionBossHud();

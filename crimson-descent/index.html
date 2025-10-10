@@ -323,6 +323,7 @@
     canvas.width = WIDTH * pixelRatio;
     canvas.height = HEIGHT * pixelRatio;
     ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    ctx.imageSmoothingEnabled = false;
 
     function resize() {
       const rect = topbar.getBoundingClientRect();
@@ -334,12 +335,62 @@
     }
     window.addEventListener('resize', resize);
 
+    const TARGET_LANDER_HEIGHT = 140;
+    let LANDER_WIDTH = 120;
+    let LANDER_HEIGHT = TARGET_LANDER_HEIGHT;
+    const LANDER_FRAME_STEP = Math.PI / 180; // 1° increments
+    const TWO_PI = Math.PI * 2;
+    const LANDER_FRAME_COUNT = Math.round(TWO_PI / LANDER_FRAME_STEP);
+    let landerFrames = [];
+    let landerFrameSize = 0;
+
     const assets = {
       background: 'assets/mars_background.svg',
       lander: 'assets/CD_rocket_001_small.png',
       pad: 'assets/landing_pad.svg'
     };
     const Images = {};
+
+    function normalizeAngle(angle) {
+      return (angle % TWO_PI + TWO_PI) % TWO_PI;
+    }
+
+    function updateLanderDimensions() {
+      if (!Images.lander) return;
+      const aspect = Images.lander.width && Images.lander.height ? Images.lander.width / Images.lander.height : 1;
+      LANDER_HEIGHT = TARGET_LANDER_HEIGHT;
+      LANDER_WIDTH = TARGET_LANDER_HEIGHT * aspect;
+    }
+
+    function prepareLanderFrames() {
+      if (!Images.lander) return;
+      updateLanderDimensions();
+      const diag = Math.ceil(Math.sqrt(LANDER_WIDTH * LANDER_WIDTH + LANDER_HEIGHT * LANDER_HEIGHT));
+      landerFrameSize = diag + 8;
+      landerFrames = new Array(LANDER_FRAME_COUNT);
+      for (let i = 0; i < LANDER_FRAME_COUNT; i++) {
+        const angle = i * LANDER_FRAME_STEP;
+        const frame = document.createElement('canvas');
+        frame.width = frame.height = landerFrameSize;
+        const fCtx = frame.getContext('2d');
+        if (!fCtx) {
+          landerFrames[i] = null;
+          continue;
+        }
+        fCtx.imageSmoothingEnabled = false;
+        fCtx.translate(landerFrameSize / 2, landerFrameSize / 2);
+        fCtx.rotate(angle);
+        fCtx.drawImage(Images.lander, -LANDER_WIDTH / 2, -LANDER_HEIGHT / 2, LANDER_WIDTH, LANDER_HEIGHT);
+        landerFrames[i] = frame;
+      }
+    }
+
+    function getLanderFrame(angle) {
+      if (!landerFrames.length) return null;
+      const norm = normalizeAngle(angle);
+      const index = Math.round(norm / LANDER_FRAME_STEP) % landerFrames.length;
+      return landerFrames[index] || null;
+    }
 
     function loadImage(src) {
       return new Promise((resolve, reject) => {
@@ -354,6 +405,7 @@
     Promise.all(Object.entries(assets).map(([key, src]) => loadImage(src).then(img => { Images[key] = img; })))
       .then(() => {
         assetsReady = true;
+        prepareLanderFrames();
         startScreen.querySelector('p').textContent = 'Ready? Tap, click, or press Space to ignite and begin descent.';
       })
       .catch(err => {
@@ -441,8 +493,6 @@
       });
     }
 
-    const LANDER_WIDTH = 120;
-    const LANDER_HEIGHT = 140;
     const pad = {
       x: WIDTH / 2 - 110,
       y: HEIGHT - 150,
@@ -651,13 +701,28 @@
         ctx.closePath();
         ctx.fill();
       }
-      if (assetsReady && Images.lander) {
-        ctx.drawImage(Images.lander, -LANDER_WIDTH / 2, -LANDER_HEIGHT / 2, LANDER_WIDTH, LANDER_HEIGHT);
+      ctx.restore();
+
+      if (assetsReady) {
+        const frame = getLanderFrame(lander.rotation);
+        if (frame) {
+          const offset = landerFrameSize / 2;
+          ctx.drawImage(frame, lander.x - offset, lander.y - offset);
+        } else if (Images.lander) {
+          ctx.save();
+          ctx.translate(lander.x, lander.y);
+          ctx.rotate(lander.rotation);
+          ctx.drawImage(Images.lander, -LANDER_WIDTH / 2, -LANDER_HEIGHT / 2, LANDER_WIDTH, LANDER_HEIGHT);
+          ctx.restore();
+        }
       } else {
+        ctx.save();
+        ctx.translate(lander.x, lander.y);
+        ctx.rotate(lander.rotation);
         ctx.fillStyle = '#ccc';
         ctx.fillRect(-20, -40, 40, 80);
+        ctx.restore();
       }
-      ctx.restore();
 
       // HUD helper markers
       ctx.save();

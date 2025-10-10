@@ -22,9 +22,9 @@
       --bg1: #0a0f14;
       --bg2: #0e1620;
       --topbar-h: 54px; /* measured on load/resize */
-      --toolbar-h: 90px; /* measured on load/resize */
       --toolbar-stack-offset: 0px; /* desktop toolbar offset below HUD */
-      --hud-offset: clamp(60px, 10vh, 140px); /* extra spacing below topbar for HUD visibility */
+      --game-top-gap: clamp(6px, 1.2vh, 14px);
+      --game-bottom-gap: clamp(10px, 3vh, 22px);
     }
     html, body {
       margin: 0;
@@ -66,20 +66,18 @@
     .game-wrap {
       position: fixed;
       left: 50%;
-      top: var(--topbar-h);
-      right: 0;
-      bottom: var(--toolbar-h);
       transform: translateX(-50%);
+      top: calc(var(--topbar-h) + var(--game-top-gap));
+      bottom: var(--game-bottom-gap);
+      width: min(960px, 100vw);
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 18px;
-      width: 100vw;
-      height: calc(100vh - var(--topbar-h) - var(--toolbar-h));
-      z-index: 10;
-      padding: 0 16px;
+      justify-content: flex-start;
+      gap: clamp(10px, 1.8vh, 18px);
+      padding: clamp(6px, 1.3vh, 12px) clamp(16px, 4vw, 32px) clamp(8px, 2vh, 16px);
       box-sizing: border-box;
+      z-index: 10;
     }
     .playfield {
       position: relative;
@@ -94,8 +92,8 @@
       align-items: stretch;
       justify-content: center;
       gap: 8px;
-      width: min(540px, calc(100% - 32px));
-      margin: clamp(12px, 3vh, 24px) auto 0;
+      width: min(520px, calc(100% - 32px));
+      margin: 0 auto;
       box-sizing: border-box;
       flex-wrap: nowrap;
     }
@@ -138,7 +136,7 @@
       gap: 10px;
       z-index: 15;
       opacity: 0.98;
-      width: clamp(150px, 28vw, 210px);
+      width: clamp(140px, 26vw, 210px);
       margin-top: 0;
       flex: 0 0 auto;
     }
@@ -171,16 +169,17 @@
     }
 
     @media (max-width: 899px) {
-      :root { --toolbar-h: 0px; }
       .game-wrap {
-        gap: clamp(16px, 4vh, 28px);
-        padding: clamp(12px, 4vh, 28px) clamp(10px, 5vw, 24px) clamp(24px, 8vh, 48px);
+        max-width: 100vw;
+        gap: clamp(14px, 3vh, 26px);
+        padding: clamp(8px, 2.4vh, 16px) clamp(10px, 5vw, 22px) clamp(14px, 5vh, 26px);
         justify-content: flex-start;
         align-items: center;
         overflow-y: auto;
+        bottom: clamp(14px, 6vh, 32px);
       }
       .hud-toolbar-wrap {
-        width: calc(100% - 24px);
+        width: calc(100% - 20px);
         gap: 8px;
       }
       .hud {
@@ -225,7 +224,6 @@
     }
     /* Nudge HUD upward on small screens to avoid overlapping playfield */
     @media (max-width: 600px) {
-      :root { --hud-offset: clamp(0px, 0.5vh, 8px); }
       .hud-toolbar-wrap {
         width: calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 20px);
         padding-left: max(6px, env(safe-area-inset-left, 0px));
@@ -346,6 +344,7 @@
     const topbarEl = document.querySelector('.topbar');
     const root = document.documentElement;
     const toolbar = document.getElementById('toolbar');
+    const hudToolbarWrap = document.querySelector('.hud-toolbar-wrap');
     const hudPanel = document.getElementById('hud');
     const soundToggleBtn = document.getElementById('soundToggle');
 
@@ -827,17 +826,41 @@
 
     function resize(){
       const isMobileLayout = window.innerWidth < 900;
-      const availW = Math.min(isMobileLayout ? window.innerWidth : window.innerWidth * 0.72, 900);
-      const topH = Math.ceil(topbarEl.getBoundingClientRect().height);
-      const toolbarH = isMobileLayout ? Math.ceil(toolbar.getBoundingClientRect().height || 0) : 0;
-      const reserved = toolbarH + (isMobileLayout ? 24 : 0);
-      root.style.setProperty('--toolbar-h', reserved + 'px');
       syncToolbarStack(isMobileLayout);
-      const availH = window.innerHeight - topH - reserved;
-      tile = Math.floor(Math.min(availW / COLS, availH / ROWS));
-      const w = COLS*tile, h = ROWS*tile;
-      canvas.style.width = w+'px'; canvas.style.height = h+'px';
-      canvas.width = w*pixelRatio; canvas.height = h*pixelRatio;
+      const wrapStyles = gameWrap ? getComputedStyle(gameWrap) : null;
+      const paddingTop = wrapStyles ? parseFloat(wrapStyles.paddingTop) || 0 : 0;
+      const paddingBottom = wrapStyles ? parseFloat(wrapStyles.paddingBottom) || 0 : 0;
+      const paddingLeft = wrapStyles ? parseFloat(wrapStyles.paddingLeft) || 0 : 0;
+      const paddingRight = wrapStyles ? parseFloat(wrapStyles.paddingRight) || 0 : 0;
+      const gapY = wrapStyles ? parseFloat(wrapStyles.rowGap || wrapStyles.gap) || 0 : 0;
+      const wrapRect = gameWrap ? gameWrap.getBoundingClientRect() : { top: 0, bottom: window.innerHeight };
+      const hudRect = hudToolbarWrap ? hudToolbarWrap.getBoundingClientRect() : null;
+      const bottomInset = Math.max(0, Math.ceil(window.innerHeight - wrapRect.bottom));
+      const availableVertical = window.innerHeight - Math.ceil(wrapRect.top) - bottomInset - paddingTop - paddingBottom;
+      const hudHeight = hudRect ? Math.ceil(hudRect.height) : 0;
+      const availH = Math.max(0, availableVertical - hudHeight - gapY);
+      const innerWidth = Math.max(0, gameWrap ? gameWrap.clientWidth - paddingLeft - paddingRight : window.innerWidth);
+      let widthCandidate = innerWidth;
+      if (!isMobileLayout) {
+        widthCandidate = Math.min(widthCandidate, Math.floor(window.innerWidth * 0.75));
+      }
+      if (widthCandidate <= 0) {
+        widthCandidate = Math.min(window.innerWidth - paddingLeft - paddingRight, 900);
+      }
+      const availW = Math.max(0, Math.min(widthCandidate, 900));
+      let tileCandidate = Math.min(
+        availW > 0 ? (availW / COLS) : Infinity,
+        availH > 0 ? (availH / ROWS) : Infinity
+      );
+      if (!Number.isFinite(tileCandidate) || tileCandidate <= 0) {
+        tileCandidate = availW > 0 ? (availW / COLS) : 0;
+      }
+      tile = Math.max(1, Math.floor(tileCandidate));
+      const w = COLS * tile, h = ROWS * tile;
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      canvas.width = w * pixelRatio;
+      canvas.height = h * pixelRatio;
       ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
     }
 

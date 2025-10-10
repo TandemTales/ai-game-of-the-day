@@ -133,6 +133,18 @@
     }
     .tool.selected { outline: 3px solid #7fffd4; }
     .tool img { width: 28px; height: 28px; }
+    .tool-label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 8px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(255, 215, 0, 0.35);
+      line-height: 1.1;
+      white-space: nowrap;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.35);
+    }
 
     .overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column;
       background: radial-gradient(800px 400px at 50% 40%, rgba(0,0,0,0.6), rgba(0,0,0,0.9)); z-index: 18; text-align: center; padding: 24px; gap: 14px; }
@@ -285,15 +297,15 @@
     <div class="toolbar" id="toolbar">
       <div class="tool selected" data-type="basic" data-cost="25">
         <img src="assets/ATD_tower_basic_small.png" alt="basic">
-        <div>Basic 25</div>
+        <div class="tool-label">Basic 25</div>
       </div>
       <div class="tool" data-type="slow" data-cost="35">
         <img src="assets/ATD_tower_frost_small.png" alt="slow">
-        <div>Frost 35</div>
+        <div class="tool-label">Frost 35</div>
       </div>
       <div class="tool" data-type="pierce" data-cost="50">
         <img src="assets/ATD_tower_piercing_small.png" alt="pierce">
-        <div>Pierce 50</div>
+        <div class="tool-label">Pierce 50</div>
       </div>
     </div>
     <div class="playfield">

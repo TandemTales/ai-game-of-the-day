@@ -1,0 +1,6 @@
+{
+  "0": { "name": "Empty" },
+  "1": { "name": "Floor", "image": "floor.png" },
+  "2": { "name": "Wall", "image": "wall.png" },
+  "3": { "name": "Spawn", "image": "spawn.png" }
+}

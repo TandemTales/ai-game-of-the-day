@@ -73,13 +73,23 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 18px;
+      justify-content: flex-start;
+      gap: 16px;
       width: 100vw;
       height: calc(100vh - var(--topbar-h) - var(--toolbar-h));
       z-index: 10;
       padding: 0 16px;
       box-sizing: border-box;
+    }
+    .control-bar {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: stretch;
+      justify-content: center;
+      gap: 10px;
+      width: min(760px, calc(100% - 16px));
+      margin: clamp(10px, 3vh, 20px) auto 0;
+      min-width: 0;
     }
     .playfield {
       position: relative;
@@ -93,19 +103,23 @@
       position: relative;
       top: auto; left: auto; transform: none;
       color: var(--teal); text-shadow: 0 2px 6px rgba(0,0,0,0.6);
-      font-size: 12px; z-index: 25;
-      display: flex; align-items: center; justify-content: center;
-      flex-wrap: wrap; gap: 12px;
+      font-size: clamp(9px, 1.9vw, 12px);
+      z-index: 25;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      justify-items: start;
+      align-items: center;
+      gap: 6px 12px;
       line-height: 1.2;
-      background: rgba(0,0,0,0.35);
-      padding: 8px 12px;
+      background: rgba(0,0,0,0.4);
+      padding: 8px 10px;
       border-radius: 12px;
-      width: min(520px, calc(100% - 32px));
-      margin: clamp(12px, 3vh, 24px) auto 0;
+      flex: 1 1 auto;
+      min-width: 0;
       box-sizing: border-box;
     }
 
-    .hud .hud-item { display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+    .hud .hud-item { display: inline-flex; align-items: baseline; justify-content: flex-start; gap: 6px; white-space: nowrap; width: 100%; }
     .hud .hud-emoji { font-size: 14px; line-height: 1; transform: translateY(1px); }
     .hud .hud-label { font-size: 12px; opacity: 0.95; }
     .hud .hud-value { font-variant-numeric: tabular-nums; }
@@ -116,20 +130,21 @@
       flex-direction: column;
       align-items: stretch;
       justify-content: center;
-      gap: 10px;
+      gap: 8px;
       z-index: 15;
       opacity: 0.98;
-      width: min(220px, 28vw);
+      width: clamp(150px, 22vw, 210px);
       margin-top: 0;
+      flex: 0 0 auto;
     }
     .tool {
       min-width: 0;
       width: 100%;
-      display: flex; align-items: center; gap: 8px;
+      display: flex; align-items: center; gap: 6px;
       background: linear-gradient(145deg, rgba(95,158,160,0.22), rgba(0,0,0,0.5));
-      border: 2px solid var(--gold); border-radius: 12px; padding: 8px 10px;
+      border: 2px solid var(--gold); border-radius: 10px; padding: 6px 8px;
       box-shadow: inset 0 4px 8px rgba(0,0,0,0.4), 0 6px 18px rgba(0,0,0,0.4);
-      color: var(--gold); font-size: 12px; user-select: none;
+      color: var(--gold); font-size: clamp(10px, 2vw, 12px); user-select: none;
     }
     .tool.selected { outline: 3px solid #7fffd4; }
     .tool img { width: 28px; height: 28px; }
@@ -153,68 +168,41 @@
     @media (max-width: 899px) {
       :root { --toolbar-h: 0px; }
       .game-wrap {
-        gap: clamp(16px, 4vh, 28px);
+        gap: clamp(16px, 4vh, 24px);
         padding: clamp(12px, 4vh, 28px) clamp(10px, 5vw, 24px) clamp(24px, 8vh, 48px);
         justify-content: flex-start;
         align-items: center;
         overflow-y: auto;
       }
+      .control-bar {
+        width: 100%;
+        margin-top: clamp(12px, 4vh, 20px);
+      }
       .toolbar {
-        position: static;
-        transform: none;
-        order: 2;
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: center;
-        align-self: center;
-        width: min(520px, 100%);
-        gap: 10px;
+        width: clamp(140px, 32vw, 200px);
       }
-      .tool {
-        min-width: clamp(120px, 40vw, 180px);
-        width: auto;
-      }
-      .playfield { order: 1; }
+      .tool img { width: 24px; height: 24px; }
       .hud {
-        order: 0;
-        width: min(520px, 100%);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px 10px;
+        padding: 6px 8px;
       }
     }
 
     @media (min-width: 900px) {
       .game-wrap {
-        flex-direction: row;
-        align-items: flex-start;
+        padding: clamp(12px, 4vh, 40px) clamp(20px, 6vw, 80px);
         justify-content: flex-start;
-        gap: clamp(24px, 6vw, 80px);
-        padding: 0 clamp(20px, 5vw, 80px);
-        padding-left: clamp(16px, 5vw, 140px);
       }
-      .toolbar {
-        position: static;
-        transform: none;
-        flex-direction: column;
-        flex-wrap: nowrap;
-        align-items: stretch;
-        width: min(220px, 18vw);
-        align-self: flex-start;
-        margin-top: var(--toolbar-stack-offset, 0px);
+      .control-bar {
+        width: min(820px, 90%);
+        margin-top: clamp(16px, 4vh, 28px);
       }
       .hud {
-        position: fixed;
-        top: calc(var(--topbar-h) + 16px);
-        left: clamp(16px, 5vw, 140px);
-        transform: none;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-        padding: 12px 14px;
-        background: rgba(0, 0, 0, 0.45);
-        box-shadow: 0 6px 18px rgba(0,0,0,0.35);
-        width: auto;
-        margin: 0;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 8px 16px;
+        padding: 10px 12px;
       }
-      .hud .hud-item { justify-content: flex-start; }
     }
 
     @media (max-width: 480px) {
@@ -225,20 +213,17 @@
     /* Nudge HUD upward on small screens to avoid overlapping playfield */
     @media (max-width: 600px) {
       :root { --hud-offset: clamp(0px, 0.5vh, 8px); }
-      /* Prevent HUD from being cut off; widen and use 2-column layout */
-      .hud {
-        width: calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 24px);
-        padding-left: max(10px, env(safe-area-inset-left, 0px));
-        padding-right: max(10px, env(safe-area-inset-right, 0px));
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        justify-content: center;
-        align-items: center;
-        justify-items: center;
-        white-space: normal;
-        gap: 8px 16px; /* row gap / column gap */
+      .control-bar {
+        width: calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 16px);
+        padding-left: max(0px, env(safe-area-inset-left, 0px));
+        padding-right: max(0px, env(safe-area-inset-right, 0px));
       }
-      .hud .hud-item:last-child { grid-column: 1 / -1; justify-content: center; }
+      .hud {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        justify-items: flex-start;
+        white-space: normal;
+      }
+      .hud .hud-item:last-child { grid-column: 1 / -1; }
     }
     /* Generic scrollable modal panel inside overlays (for mobile-fit) */
     .overlay .panel {
@@ -275,14 +260,15 @@
   </div>
 
   <div class="game-wrap">
-    <div class="hud" id="hud">
+    <div class="control-bar">
+      <div class="hud" id="hud">
       <span class="hud-item"><span class="hud-emoji" aria-hidden="true">💰</span><span id="coins" class="hud-value">0</span></span>
       <span class="hud-item"><span class="hud-emoji" aria-hidden="true">❤️</span><span id="lives" class="hud-value">0</span></span>
       <span class="hud-item"><span class="hud-emoji" aria-hidden="true">🎚️</span><span class="hud-label">Level</span><span id="level" class="hud-value">1</span></span>
       <span class="hud-item"><span class="hud-emoji" aria-hidden="true">🌊</span><span class="hud-label">Wave</span><span id="wave" class="hud-value">1</span></span>
       <span class="hud-item"><span class="hud-emoji" aria-hidden="true">⭐</span><span class="hud-label">Score</span><span id="score" class="hud-value">0</span></span>
-    </div>
-    <div class="toolbar" id="toolbar">
+      </div>
+      <div class="toolbar" id="toolbar">
       <div class="tool selected" data-type="basic" data-cost="25">
         <img src="assets/ATD_tower_basic_small.png" alt="basic">
         <div>Basic 25</div>
@@ -294,6 +280,7 @@
       <div class="tool" data-type="pierce" data-cost="50">
         <img src="assets/ATD_tower_piercing_small.png" alt="pierce">
         <div>Pierce 50</div>
+      </div>
       </div>
     </div>
     <div class="playfield">

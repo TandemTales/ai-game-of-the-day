@@ -324,6 +324,13 @@
     let ballVX = 0, ballVY = 0;
     let minimumBallSpeed = null;
     let bricks = [];
+    let rowAliveCounts = [];
+    let colAliveCounts = [];
+    let activeRowCombo = null;
+    let activeColCombo = null;
+
+    const PERFECT_ROW_BONUS = 250;
+    const PERFECT_COLUMN_BONUS = 250;
     let lastTime = 0;
     let magnetActive = false;
     let magnetTimer = 0;
@@ -424,8 +431,12 @@
       const totalWidth = BRICK_COLS*BRICK_W + (BRICK_COLS-1)*BRICK_GAP;
       const leftOffset = (canvas.width - totalWidth)/2;
       bricks = [];
+      rowAliveCounts = [];
+      colAliveCounts = Array(BRICK_COLS).fill(0);
       for (let r=0; r<rows; r++) {
         for (let c=0; c<BRICK_COLS; c++) {
+          rowAliveCounts[r] = (rowAliveCounts[r] || 0) + 1;
+          colAliveCounts[c] += 1;
           bricks.push({
             x: leftOffset + c*(BRICK_W+BRICK_GAP),
             y: topOffset + r*(BRICK_H+BRICK_GAP),
@@ -433,7 +444,9 @@
             h: BRICK_H,
             hp: 1 + Math.floor((level-1)/3),
             img: (r%2===0) ? imgBrick1 : imgBrick2,
-            alive: true
+            alive: true,
+            row: r,
+            col: c
           });
         }
       }
@@ -450,6 +463,7 @@
       magnetActive = false;
       magnetTimer = 0;
       magnetPulse = 0;
+      clearPerfectCombos();
       resizeGame();
     }
 
@@ -525,6 +539,7 @@
           ballVX = ballVY = 0;
           ballX = paddleX + PADDLE_W/2; ballY = PADDLE_Y - BALL_R - 2;
         }
+        clearPerfectCombos();
       }
 
       // Paddle collision
@@ -573,9 +588,53 @@
           } else {
             ballVX *= -1; // horizontal flip
           }
+          const brickRow = br.row;
+          const brickCol = br.col;
+
+          if (activeRowCombo && activeRowCombo.row !== brickRow) activeRowCombo = null;
+          if (!activeRowCombo) activeRowCombo = { row: brickRow };
+
+          if (activeColCombo && activeColCombo.col !== brickCol) activeColCombo = null;
+          if (!activeColCombo) activeColCombo = { col: brickCol };
+
           br.hp -= 1;
-          if (br.hp <= 0) { br.alive = false; score += 50; }
-          else { score += 20; }
+          let destroyed = false;
+          if (br.hp <= 0) {
+            br.alive = false;
+            destroyed = true;
+            score += 50;
+            rowAliveCounts[brickRow] -= 1;
+            colAliveCounts[brickCol] -= 1;
+          } else {
+            score += 20;
+          }
+
+          if (destroyed) {
+            let bonus = 0;
+            let messageParts = [];
+            const rowCleared = rowAliveCounts[brickRow] === 0 && activeRowCombo && activeRowCombo.row === brickRow;
+            const colCleared = colAliveCounts[brickCol] === 0 && activeColCombo && activeColCombo.col === brickCol;
+
+            if (rowCleared) {
+              bonus += PERFECT_ROW_BONUS;
+              messageParts.push('Perfect Row!');
+              activeRowCombo = null;
+            }
+
+            if (colCleared) {
+              bonus += PERFECT_COLUMN_BONUS;
+              messageParts.push('Perfect Column!');
+              activeColCombo = null;
+            }
+
+            if (bonus > 0) {
+              score += bonus;
+              if (messageParts.length) {
+                showUpgradeBanner(`${messageParts.join(' ')} +${bonus}`);
+              }
+            }
+          }
+
           scoreEl.textContent = score;
           enforceMinimumBallSpeed();
           break;
@@ -590,6 +649,11 @@
         running = false;
         resetLevel(level + 1);
       }
+    }
+
+    function clearPerfectCombos() {
+      activeRowCombo = null;
+      activeColCombo = null;
     }
 
     function restartOnce(e) {

@@ -120,7 +120,7 @@
       top: 22%;
       left: 50%;
       transform: translate(-50%, -20px) scale(0.9);
-      font-size: clamp(26px, 6vw, 44px);
+      font-size: clamp(13px, 3vw, 22px);
       color: var(--gold);
       text-shadow: 0 0 16px rgba(0, 255, 255, 0.8), 0 0 32px rgba(255, 62, 223, 0.6);
       opacity: 0;
@@ -340,7 +340,7 @@
       ballX = paddleX + PADDLE_W/2;
       ballY = PADDLE_Y - BALL_R - 2;
       const angle = (Math.random()*0.5 + 0.8) * (servingRight ? 1 : -1); // direction
-      const speed = (6 + level * 0.8) * 0.5 * 60;
+      const speed = (6 + level * 0.8) * 0.75 * 60;
       ballVX = Math.cos(angle) * speed;
       ballVY = -Math.abs(Math.sin(angle) * speed) - 120;
       running = true;

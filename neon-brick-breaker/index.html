@@ -34,12 +34,14 @@
       align-items: center;
       justify-content: center;
       min-height: 100vh;
+      padding: 0 8px;
     }
     #wrap {
       width: 100%;
       max-width: 980px;
       padding: clamp(14px, 4vw, 24px);
       margin: 0 auto;
+      transition: padding 0.2s ease;
     }
     .panel {
       background: rgba(0,0,0,0.7);
@@ -47,6 +49,7 @@
       border-radius: 16px;
       box-shadow: 0 0 40px rgba(255,215,0,0.25);
       padding: 18px;
+      transition: padding 0.2s ease, border-width 0.2s ease;
     }
     header {
       display: flex;
@@ -111,6 +114,7 @@
       padding: 12px;
       max-width: 100%;
       margin: 0 auto;
+      transition: padding 0.2s ease, border-width 0.2s ease;
     }
 
     canvas { width: 100%; height: auto; display: block; background: transparent; touch-action: none; }
@@ -168,6 +172,51 @@
     .overlay p { margin: 4px 0; font-size: 12px; color: #9fd; }
 
     .controls { margin-top: 10px; font-size: 11px; color: #8ec; opacity: 0.9; }
+
+    @media (max-width: 640px) {
+      body {
+        align-items: stretch;
+        justify-content: flex-start;
+        padding: 6px;
+      }
+
+      #wrap {
+        max-width: none;
+        padding: 8px;
+      }
+
+      .panel {
+        padding: 14px;
+        border-width: 3px;
+      }
+
+      header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+
+      .btn {
+        width: 100%;
+        text-align: center;
+        font-size: 11px;
+        padding: 10px;
+      }
+
+      .hud {
+        font-size: 11px;
+        gap: 6px 10px;
+      }
+
+      .hud > div {
+        flex: 1 1 80px;
+      }
+
+      .stage {
+        padding: 6px;
+        border-width: 1.5px;
+      }
+    }
 
     @media (max-width: 560px) {
       .title h1 { font-size: 18px; }
@@ -705,16 +754,19 @@
       const stageBorderX = parseFloat(stageStyles.borderLeftWidth) + parseFloat(stageStyles.borderRightWidth);
       const stageBorderY = parseFloat(stageStyles.borderTopWidth) + parseFloat(stageStyles.borderBottomWidth);
 
-      const viewportW = window.innerWidth;
-      const viewportH = window.innerHeight;
+      const viewportW = window.innerWidth || document.documentElement.clientWidth || canvas.width;
+      const viewportH = (window.visualViewport ? window.visualViewport.height : window.innerHeight) || document.documentElement.clientHeight || canvas.height;
+      const isMobile = viewportW <= 640;
 
-      const maxWrapWidth = Math.min(980, Math.max(viewportW - 16, 240));
+      const horizontalMargin = isMobile ? 0 : 16;
+      const maxWrapWidth = isMobile ? viewportW : Math.min(980, Math.max(viewportW - horizontalMargin, 240));
       wrapEl.style.maxWidth = maxWrapWidth + 'px';
       wrapEl.style.width = '100%';
 
       const actualWrapWidth = wrapEl.clientWidth || maxWrapWidth;
       const availableWidth = actualWrapWidth - wrapPaddingX - panelPaddingX - stagePaddingX - stageBorderX;
-      const availableHeight = viewportH - wrapPaddingY - panelPaddingY - stagePaddingY - stageBorderY - headerEl.offsetHeight - hudEl.offsetHeight - 24;
+      const verticalBuffer = isMobile ? 8 : 24;
+      const availableHeight = viewportH - wrapPaddingY - panelPaddingY - stagePaddingY - stageBorderY - headerEl.offsetHeight - hudEl.offsetHeight - verticalBuffer;
 
       const widthScale = availableWidth > 0 ? availableWidth / canvas.width : Number.POSITIVE_INFINITY;
       const heightScale = availableHeight > 0 ? availableHeight / canvas.height : Number.POSITIVE_INFINITY;
@@ -739,14 +791,19 @@
       canvas.style.width = `${displayWidth}px`;
       canvas.style.height = `${displayHeight}px`;
 
-      const stageOuterWidth = displayWidth + stagePaddingX + stageBorderX;
       const containerInnerWidth = actualWrapWidth - wrapPaddingX - panelPaddingX;
+      const stageContentMax = Math.max(containerInnerWidth - stagePaddingX - stageBorderX, 0);
+      const horizontalLimit = stageContentMax > 0 ? stageContentMax : Math.max(containerInnerWidth, 0);
+      const maxStageContentWidth = Math.min(displayWidth, horizontalLimit);
       stageEl.style.maxWidth = '100%';
-      stageEl.style.width = `${Math.min(stageOuterWidth, containerInnerWidth)}px`;
+      stageEl.style.width = `${maxStageContentWidth}px`;
       stageEl.style.margin = '0 auto';
     }
 
     window.addEventListener('resize', resizeGame);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', resizeGame);
+    }
     resizeGame();
   </script>
 </body>

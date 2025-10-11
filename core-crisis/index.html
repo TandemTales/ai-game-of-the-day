@@ -36,19 +36,61 @@
     }
     .wrap {
       position: relative;
-      width: 100vw; height: 100vh;
+      width: 100vw;
+      height: 100vh;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      padding: clamp(12px, 4vw, 28px);
     }
-    canvas { 
-      position: absolute; inset: 0; margin: 0; 
-      image-rendering: pixelated; image-rendering: crisp-edges;
+    .info-panel {
+      display: grid;
+      justify-items: center;
+      gap: 12px;
+      pointer-events: auto;
+      text-align: center;
+      width: min(90vw, 960px);
     }
-    .hud {
-      position: absolute; inset: 0; pointer-events: none;
-      padding: 10px;
+    .brand-logo {
+      width: min(320px, 50vw);
+      max-width: 100%;
+      height: auto;
+      filter: drop-shadow(0 6px 18px rgba(0,0,0,0.45));
     }
     .topbar {
-      display: flex; gap: 12px; align-items: center; justify-content: flex-start;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: center;
+    }
+    .play-shell {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto;
+      border: 3px solid rgba(255, 215, 0, 0.4);
+      border-radius: 18px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+      background: rgba(0,0,0,0.35);
+      overflow: hidden;
+    }
+    canvas {
+      position: absolute;
+      inset: 0;
+      margin: 0;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    .hud {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      padding: 10px;
     }
     .chip {
       background: var(--ui); border: 2px solid var(--gold); color: var(--ink);
@@ -110,7 +152,11 @@
       box-shadow: 0 4px 15px rgba(95,158,160,0.4);
     }
     .btn-primary:hover { filter: brightness(1.06); }
-    .back { position: absolute; top: 10px; right: 10px; }
+    .back {
+      position: relative;
+      top: auto;
+      right: auto;
+    }
     .center { position: absolute; inset: 0; display: grid; place-items: center; }
     .panel {
       background: rgba(0,0,0,0.85);
@@ -119,7 +165,7 @@
       padding: 20px;
       text-align: center;
       box-shadow: 0 0 40px rgba(255, 215, 0, 0.35);
-      max-width: 560px; width: calc(100vw - 40px);
+      width: min(560px, calc(100% - 40px));
     }
     .title { font-size: 18px; margin: 6px 0 12px 0; background: linear-gradient(45deg, var(--gold), #FFA500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
     .small { font-size: 11px; color: var(--teal); }
@@ -157,8 +203,8 @@
 </head>
 <body>
   <div class="wrap">
-    <canvas id="game" width="960" height="540"></canvas>
-    <div class="hud">
+    <div class="info-panel">
+      <img src="../images/botbuiltarcade.png" alt="Bot Built Arcade" class="brand-logo">
       <div class="topbar">
         <div class="chip" id="scoreHud">Score: 0</div>
         <div class="chip" id="heatHud">
@@ -172,9 +218,9 @@
         <div class="chip hidden" id="gliderHud">
           <div class="jet-label">Glider</div>
         </div>
-      <div class="chip hidden" id="gunHud">
-        <div class="jet-label">Gun</div>
-      </div>
+        <div class="chip hidden" id="gunHud">
+          <div class="jet-label">Gun</div>
+        </div>
         <div class="chip hidden" id="shieldHud">
           <div class="jet-label">Shield</div>
         </div>
@@ -183,37 +229,39 @@
             <img id="audioIconImg" src="../nova-striker/assets/unmuted.png" alt="Audio">
           </div>
         </div>
-      <a href="../index.html" class="btn btn-primary back">← Back to Home</a>
-    </div>
-    <div id="bossHud" class="hidden">
-      <div class="boss-label">Boss</div>
-      <div class="bossbar"><div class="bossbar-fill" id="bossFill"></div></div>
-    </div>
-    <div id="upgradeNotify" class="upgrade-notify"></div>
-    <div id="bossNotify" class="upgrade-notify"></div>
-  </div>
-
-    <div class="center" id="startScreen">
-      <div class="panel">
-        <div class="title">Core Crisis</div>
-        <div class="small">Dash across floating isles, vault hazards, and snatch radiant shards while the world streams by in gleaming parallax.</div>
-        <div class="row">
-          <button id="startBtn" class="btn btn-primary">Start</button>
-          <a class="btn btn-primary" href="../leaderboard.html?gameId=core-crisis">Leaderboard</a>
-        </div>
-        <div class="small" style="margin-top:10px">Controls: Left-click hold/Space to glide (after picking up Glider), Right-click to dive. Tap anywhere on mobile.</div>
+        <a href="../index.html" class="btn btn-primary back">← Back to Home</a>
       </div>
     </div>
-
-    <div id="mobileCtrls" class="hidden"></div>
-
-    <div class="center hidden" id="gameOver">
-      <div class="panel">
-        <div class="title">Game Over</div>
-        <div id="finalScore" class="small">Score: 0</div>
-        <div class="row">
-          <button id="againBtn" class="btn btn-primary">Play Again</button>
-          <a id="lbBtn" class="btn btn-primary" href="../leaderboard.html?gameId=core-crisis">View Leaderboard</a>
+    <div class="play-shell">
+      <canvas id="game" width="960" height="540"></canvas>
+      <div class="hud">
+        <div id="bossHud" class="hidden">
+          <div class="boss-label">Boss</div>
+          <div class="bossbar"><div class="bossbar-fill" id="bossFill"></div></div>
+        </div>
+        <div id="upgradeNotify" class="upgrade-notify"></div>
+        <div id="bossNotify" class="upgrade-notify"></div>
+      </div>
+      <div id="mobileCtrls" class="hidden"></div>
+      <div class="center" id="startScreen">
+        <div class="panel">
+          <div class="title">Core Crisis</div>
+          <div class="small">Dash across floating isles, vault hazards, and snatch radiant shards while the world streams by in gleaming parallax.</div>
+          <div class="row">
+            <button id="startBtn" class="btn btn-primary">Start</button>
+            <a class="btn btn-primary" href="../leaderboard.html?gameId=core-crisis">Leaderboard</a>
+          </div>
+          <div class="small" style="margin-top:10px">Controls: Left-click hold/Space to glide (after picking up Glider), Right-click to dive. Tap anywhere on mobile.</div>
+        </div>
+      </div>
+      <div class="center hidden" id="gameOver">
+        <div class="panel">
+          <div class="title">Game Over</div>
+          <div id="finalScore" class="small">Score: 0</div>
+          <div class="row">
+            <button id="againBtn" class="btn btn-primary">Play Again</button>
+            <a id="lbBtn" class="btn btn-primary" href="../leaderboard.html?gameId=core-crisis">View Leaderboard</a>
+          </div>
         </div>
       </div>
     </div>
@@ -225,7 +273,9 @@
     const ctx = canvas.getContext('2d');
     let W = canvas.width, H = canvas.height;
 
-    const topbar = document.querySelector('.topbar');
+    const wrapEl = document.querySelector('.wrap');
+    const infoPanel = document.querySelector('.info-panel');
+    const playShell = document.querySelector('.play-shell');
     const upgradeNotify = document.getElementById('upgradeNotify');
     const bossNotify = document.getElementById('bossNotify');
     const audioIcon = document.getElementById('audioIcon');
@@ -249,13 +299,35 @@
     const isTouch = window.matchMedia('(pointer: coarse)').matches;
     function resize() {
       const ratio = 16/9;
-      let w = window.innerWidth;
-      const topOffset = isTouch ? topbar.offsetHeight : 0;
-      let h = window.innerHeight - topOffset;
-      if (w/h > ratio) { w = h * ratio; } else { h = w / ratio; }
+      const infoHeight = infoPanel ? infoPanel.offsetHeight : 0;
+      let availableWidth = window.innerWidth;
+      let availableHeight = window.innerHeight - infoHeight;
+      if (wrapEl) {
+        const styles = getComputedStyle(wrapEl);
+        const padX = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight);
+        const padY = parseFloat(styles.paddingTop) + parseFloat(styles.paddingBottom);
+        availableWidth -= padX;
+        availableHeight -= padY;
+      }
+      if (isTouch) {
+        availableHeight -= 12; // small buffer between info panel and playfield on mobile
+      }
+      availableWidth = Math.max(availableWidth, 320);
+      availableHeight = Math.max(availableHeight, 180);
+      let w = Math.min(availableWidth, availableHeight * ratio);
+      let h = w / ratio;
+      if (h > availableHeight) {
+        h = availableHeight;
+        w = h * ratio;
+      }
+      if (playShell) {
+        playShell.style.width = w + 'px';
+        playShell.style.height = h + 'px';
+      }
       canvas.style.width = w + 'px';
       canvas.style.height = h + 'px';
-      canvas.style.top = topOffset + 'px';
+      canvas.style.top = '0px';
+      positionBossHud();
     }
     window.addEventListener('resize', resize); resize();
 
@@ -631,10 +703,13 @@
     const bossFill = document.getElementById('bossFill');
 
     function positionBossHud(){
-      if (!bossHud || !heatHud) return;
-      bossHud.style.left = `${heatHud.offsetLeft}px`;
-      bossHud.style.top = `${heatHud.offsetTop + heatHud.offsetHeight + 8}px`;
-      bossHud.style.width = `${heatHud.offsetWidth}px`;
+      if (!bossHud || !playShell) return;
+      const shellWidth = playShell.offsetWidth;
+      const width = Math.max(Math.min(shellWidth * 0.7, 360), 180);
+      const left = (shellWidth - width) / 2;
+      bossHud.style.width = `${width}px`;
+      bossHud.style.left = `${Math.max(left, 12)}px`;
+      bossHud.style.top = '16px';
     }
     window.addEventListener('resize', positionBossHud);
     positionBossHud();

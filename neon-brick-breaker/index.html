@@ -545,7 +545,7 @@
         }
       }
 
-      // Magnet attraction gently pulls the ball toward the paddle
+      // Magnet attraction: lock the ball's trajectory directly toward the paddle center
       if (magnetActive) {
         const paddleCenterX = paddleX + PADDLE_W / 2;
         const paddleCenterY = PADDLE_Y + PADDLE_H / 2;
@@ -553,10 +553,13 @@
         const dy = paddleCenterY - ballY;
         const dist = Math.hypot(dx, dy);
         if (dist > 1) {
-          const pull = 240 * dt / Math.max(dist, 120);
-          ballVX += dx * pull;
-          ballVY += dy * pull * 0.9;
-          enforceMinimumBallSpeed();
+          const directionX = dx / dist;
+          const directionY = dy / dist;
+          const currentSpeed = Math.hypot(ballVX, ballVY);
+          const baseSpeed = currentSpeed > 0 ? currentSpeed : (minimumBallSpeed ?? 360);
+          const targetSpeed = Math.max(baseSpeed, minimumBallSpeed ?? 0);
+          ballVX = directionX * targetSpeed;
+          ballVY = directionY * targetSpeed;
         }
       }
 

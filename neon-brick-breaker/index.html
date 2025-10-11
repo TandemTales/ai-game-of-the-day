@@ -305,6 +305,10 @@
     const BRICK_W = 110, BRICK_H = 30, BRICK_GAP = 10;
     const BRICK_ROWS_START = 4, BRICK_COLS = 7;
 
+    const BASE_BALL_SPEED = (6 + 0.8) * 0.75 * 60;
+    const LEVEL_SPEED_GROWTH = 1.10;
+    const BRICK_SPEED_BOOST = 1.05;
+
     const SPECIAL_BAR = {
       w: 180,
       h: 24,
@@ -328,6 +332,7 @@
     let magnetActive = false;
     let magnetTimer = 0;
     let magnetPulse = 0;
+    let ballSpeedBoost = 1;
 
     const input = { left:false, right:false };
     // Leaderboard integration
@@ -386,11 +391,23 @@
     }
     function hideOverlay(){ overlayEl.classList.remove('show'); }
 
-    function captureInitialBallSpeed() {
-      if (minimumBallSpeed === null) {
-        const speed = Math.hypot(ballVX, ballVY);
-        if (speed > 0) minimumBallSpeed = speed;
+    function getBaseBallSpeedForLevel() {
+      return BASE_BALL_SPEED * Math.pow(LEVEL_SPEED_GROWTH, level - 1);
+    }
+
+    function updateMinimumBallSpeedFromVelocity() {
+      const speed = Math.hypot(ballVX, ballVY);
+      if (speed > 0 && (minimumBallSpeed === null || speed > minimumBallSpeed)) {
+        minimumBallSpeed = speed;
       }
+    }
+
+    function applyBallSpeedMultiplier(multiplier) {
+      if (multiplier <= 0) return;
+      ballVX *= multiplier;
+      ballVY *= multiplier;
+      ballSpeedBoost *= multiplier;
+      updateMinimumBallSpeedFromVelocity();
     }
 
     function enforceMinimumBallSpeed() {
@@ -408,10 +425,10 @@
       ballX = paddleX + PADDLE_W/2;
       ballY = PADDLE_Y - BALL_R - 2;
       const angle = (Math.random()*0.5 + 0.8) * (servingRight ? 1 : -1); // direction
-      const speed = (6 + level * 0.8) * 0.75 * 60;
+      const speed = getBaseBallSpeedForLevel() * ballSpeedBoost;
       ballVX = Math.cos(angle) * speed;
-      ballVY = -Math.abs(Math.sin(angle) * speed) - 120;
-      captureInitialBallSpeed();
+      ballVY = -Math.abs(Math.sin(angle) * speed);
+      updateMinimumBallSpeedFromVelocity();
       enforceMinimumBallSpeed();
       running = true;
     }
@@ -419,6 +436,8 @@
     function resetLevel(n) {
       level = n;
       levelEl.textContent = level;
+      ballSpeedBoost = 1;
+      minimumBallSpeed = null;
       const rows = BRICK_ROWS_START + Math.floor((level-1)%4);
       const topOffset = 80;
       const totalWidth = BRICK_COLS*BRICK_W + (BRICK_COLS-1)*BRICK_GAP;
@@ -574,8 +593,13 @@
             ballVX *= -1; // horizontal flip
           }
           br.hp -= 1;
-          if (br.hp <= 0) { br.alive = false; score += 50; }
-          else { score += 20; }
+          if (br.hp <= 0) {
+            br.alive = false;
+            score += 50;
+            applyBallSpeedMultiplier(BRICK_SPEED_BOOST);
+          } else {
+            score += 20;
+          }
           scoreEl.textContent = score;
           enforceMinimumBallSpeed();
           break;

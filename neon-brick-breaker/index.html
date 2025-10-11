@@ -264,7 +264,7 @@
       ballX = paddleX + PADDLE_W/2;
       ballY = PADDLE_Y - BALL_R - 2;
       const angle = (Math.random()*0.5 + 0.8) * (servingRight ? 1 : -1); // direction
-      const speed = 6 + level * 0.8;
+      const speed = (6 + level * 0.8) * 0.5;
       ballVX = Math.cos(angle) * speed;
       ballVY = -Math.abs(Math.sin(angle) * speed) - 2;
       running = true;

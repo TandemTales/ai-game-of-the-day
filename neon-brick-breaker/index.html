@@ -208,7 +208,9 @@
       x: 0,
       y: 42,
       speed: 3.4,
-      dir: 1
+      dir: 1,
+      maxHp: 3,
+      hp: 3
     };
 
     // Game state
@@ -308,6 +310,7 @@
       SPECIAL_BAR.x = (canvas.width - SPECIAL_BAR.w) / 2;
       SPECIAL_BAR.dir = Math.random() > 0.5 ? 1 : -1;
       SPECIAL_BAR.speed = 3.4 + Math.min(level - 1, 6) * 0.35;
+      SPECIAL_BAR.hp = SPECIAL_BAR.maxHp;
       showOverlay('Level ' + level, 'Tap/Click or press Space to launch');
     }
 
@@ -351,11 +354,18 @@
       const barRight = SPECIAL_BAR.x + SPECIAL_BAR.w;
       const barTop = SPECIAL_BAR.y;
       const barBottom = SPECIAL_BAR.y + SPECIAL_BAR.h;
-      if (ballVY < 0 && ballY + BALL_R >= barTop && ballY - BALL_R <= barBottom && ballX >= barLeft && ballX <= barRight) {
+      if (SPECIAL_BAR.hp > 0 && ballVY < 0 && ballY + BALL_R >= barTop && ballY - BALL_R <= barBottom && ballX >= barLeft && ballX <= barRight) {
         ballY = barBottom + BALL_R;
         ballVY *= -1;
         const offset = (ballX - (barLeft + SPECIAL_BAR.w / 2)) / (SPECIAL_BAR.w / 2);
         ballVX += offset * 1.2;
+        SPECIAL_BAR.hp = Math.max(0, SPECIAL_BAR.hp - 1);
+        if (SPECIAL_BAR.hp > 0) {
+          score += 20;
+        } else {
+          score += 50;
+        }
+        scoreEl.textContent = score;
       }
 
       // Bottom
@@ -494,21 +504,7 @@
         ctx.drawImage(img, br.x, br.y, br.w, br.h);
       }
 
-      // Draw special bar
-      ctx.save();
-      const grad = ctx.createLinearGradient(SPECIAL_BAR.x, SPECIAL_BAR.y, SPECIAL_BAR.x + SPECIAL_BAR.w, SPECIAL_BAR.y);
-      grad.addColorStop(0, 'rgba(0, 255, 180, 0.95)');
-      grad.addColorStop(0.5, 'rgba(255, 80, 220, 0.95)');
-      grad.addColorStop(1, 'rgba(0, 200, 255, 0.95)');
-      ctx.fillStyle = grad;
-      ctx.shadowColor = 'rgba(0, 255, 255, 0.6)';
-      ctx.shadowBlur = 12;
-      ctx.fillRect(SPECIAL_BAR.x, SPECIAL_BAR.y, SPECIAL_BAR.w, SPECIAL_BAR.h);
-      ctx.shadowBlur = 0;
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-      ctx.strokeRect(SPECIAL_BAR.x, SPECIAL_BAR.y, SPECIAL_BAR.w, SPECIAL_BAR.h);
-      ctx.restore();
+      drawSpecialBar();
 
       // Draw paddle
       ctx.drawImage(imgPaddle, paddleX, PADDLE_Y, PADDLE_W, PADDLE_H);
@@ -518,6 +514,49 @@
 
       if (running && !paused) update();
       requestAnimationFrame(draw);
+    }
+
+    function drawSpecialBar() {
+      if (SPECIAL_BAR.hp <= 0) return;
+      ctx.save();
+      const { x, y, w, h, hp, maxHp } = SPECIAL_BAR;
+      const damageRatio = hp / maxHp;
+      const alpha = damageRatio === 1 ? 0.95 : damageRatio >= 2/3 ? 0.78 : 0.65;
+      const grad = ctx.createLinearGradient(x, y, x + w, y);
+      grad.addColorStop(0, `rgba(0, 255, 180, ${alpha})`);
+      grad.addColorStop(0.5, `rgba(255, 80, 220, ${alpha})`);
+      grad.addColorStop(1, `rgba(0, 200, 255, ${alpha})`);
+      ctx.fillStyle = grad;
+      ctx.shadowColor = 'rgba(0, 255, 255, 0.6)';
+      ctx.shadowBlur = 12 * damageRatio;
+      ctx.fillRect(x, y, w, h);
+      ctx.shadowBlur = 0;
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.strokeRect(x, y, w, h);
+
+      // Draw crack detail as HP decreases
+      if (hp <= maxHp - 1) {
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+        ctx.beginPath();
+        ctx.moveTo(x + w * 0.22, y + h * 0.2);
+        ctx.lineTo(x + w * 0.45, y + h * 0.45);
+        ctx.lineTo(x + w * 0.38, y + h * 0.82);
+        ctx.stroke();
+      }
+      if (hp <= maxHp - 2) {
+        ctx.beginPath();
+        ctx.moveTo(x + w * 0.68, y + h * 0.18);
+        ctx.lineTo(x + w * 0.52, y + h * 0.5);
+        ctx.lineTo(x + w * 0.56, y + h * 0.88);
+        ctx.moveTo(x + w * 0.08, y + h * 0.62);
+        ctx.lineTo(x + w * 0.28, y + h * 0.42);
+        ctx.lineTo(x + w * 0.48, y + h * 0.5);
+        ctx.stroke();
+      }
+
+      ctx.restore();
     }
   </script>
 </body>

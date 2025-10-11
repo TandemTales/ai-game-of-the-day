@@ -405,10 +405,13 @@
     }
 
     function resetBall(servingRight = Math.random() > 0.5) {
+      minimumBallSpeed = null;
       ballX = paddleX + PADDLE_W/2;
       ballY = PADDLE_Y - BALL_R - 2;
       const angle = (Math.random()*0.5 + 0.8) * (servingRight ? 1 : -1); // direction
-      const speed = (6 + level * 0.8) * 0.75 * 60;
+      const baseSpeed = (6 + level * 0.8) * 0.75 * 60;
+      const levelSpeedMultiplier = 1 + Math.max(0, level - 1) * 0.02;
+      const speed = baseSpeed * levelSpeedMultiplier;
       ballVX = Math.cos(angle) * speed;
       ballVY = -Math.abs(Math.sin(angle) * speed) - 120;
       captureInitialBallSpeed();
@@ -442,6 +445,7 @@
       paddleX = (canvas.width - PADDLE_W) / 2;
       ballX = canvas.width / 2; ballY = PADDLE_Y - BALL_R - 2;
       ballVX = 0; ballVY = 0; running = false; paused = false;
+      minimumBallSpeed = null;
       SPECIAL_BAR.x = (canvas.width - SPECIAL_BAR.w) / 2;
       SPECIAL_BAR.dir = Math.random() > 0.5 ? 1 : -1;
       SPECIAL_BAR.speed = (3.4 + Math.min(level - 1, 6) * 0.35) * 60;
@@ -577,6 +581,9 @@
           if (br.hp <= 0) { br.alive = false; score += 50; }
           else { score += 20; }
           scoreEl.textContent = score;
+          if (!br.alive) {
+            increaseBallSpeedForBrickBreak();
+          }
           enforceMinimumBallSpeed();
           break;
         }
@@ -589,6 +596,18 @@
         score += 200; scoreEl.textContent = score;
         running = false;
         resetLevel(level + 1);
+      }
+    }
+
+    function increaseBallSpeedForBrickBreak() {
+      const boostMultiplier = 1 + level * 0.005;
+      ballVX *= boostMultiplier;
+      ballVY *= boostMultiplier;
+      const currentSpeed = Math.hypot(ballVX, ballVY);
+      if (currentSpeed > 0) {
+        minimumBallSpeed = minimumBallSpeed === null
+          ? currentSpeed
+          : Math.max(minimumBallSpeed, currentSpeed);
       }
     }
 

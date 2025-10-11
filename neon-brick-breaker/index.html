@@ -273,6 +273,7 @@
     let paddleX = (canvas.width - PADDLE_W) / 2;
     let ballX = canvas.width / 2, ballY = PADDLE_Y - BALL_R - 2;
     let ballVX = 0, ballVY = 0;
+    let minimumBallSpeed = null;
     let bricks = [];
     let lastTime = 0;
     let magnetActive = false;
@@ -336,6 +337,24 @@
     }
     function hideOverlay(){ overlayEl.classList.remove('show'); }
 
+    function captureInitialBallSpeed() {
+      if (minimumBallSpeed === null) {
+        const speed = Math.hypot(ballVX, ballVY);
+        if (speed > 0) minimumBallSpeed = speed;
+      }
+    }
+
+    function enforceMinimumBallSpeed() {
+      if (minimumBallSpeed === null) return;
+      const currentSpeed = Math.hypot(ballVX, ballVY);
+      if (currentSpeed === 0) return;
+      if (currentSpeed < minimumBallSpeed) {
+        const scale = minimumBallSpeed / currentSpeed;
+        ballVX *= scale;
+        ballVY *= scale;
+      }
+    }
+
     function resetBall(servingRight = Math.random() > 0.5) {
       ballX = paddleX + PADDLE_W/2;
       ballY = PADDLE_Y - BALL_R - 2;
@@ -343,6 +362,8 @@
       const speed = (6 + level * 0.8) * 0.75 * 60;
       ballVX = Math.cos(angle) * speed;
       ballVY = -Math.abs(Math.sin(angle) * speed) - 120;
+      captureInitialBallSpeed();
+      enforceMinimumBallSpeed();
       running = true;
     }
 
@@ -467,6 +488,7 @@
           const angle = hit * 1.0; // -1..1 rad
           ballVX = speed * Math.sin(angle);
           ballVY = -Math.abs(speed * Math.cos(angle));
+          enforceMinimumBallSpeed();
         }
       }
 
@@ -481,6 +503,7 @@
           const pull = 240 * dt / Math.max(dist, 120);
           ballVX += dx * pull;
           ballVY += dy * pull * 0.9;
+          enforceMinimumBallSpeed();
         }
       }
 
@@ -505,9 +528,12 @@
           if (br.hp <= 0) { br.alive = false; score += 50; }
           else { score += 20; }
           scoreEl.textContent = score;
+          enforceMinimumBallSpeed();
           break;
         }
       }
+
+      enforceMinimumBallSpeed();
 
       if (remaining === 0) {
         // Next level

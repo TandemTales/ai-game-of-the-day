@@ -223,7 +223,7 @@
       h: 24,
       x: 0,
       y: 42,
-      speed: 3.4,
+      speed: 3.4 * 60,
       dir: 1,
       maxHp: 3,
       hp: 3
@@ -236,6 +236,7 @@
     let ballX = canvas.width / 2, ballY = PADDLE_Y - BALL_R - 2;
     let ballVX = 0, ballVY = 0;
     let bricks = [];
+    let lastTime = 0;
 
     const input = { left:false, right:false };
     // Leaderboard integration
@@ -245,7 +246,9 @@
     function init() {
       resetLevel(1);
       showOverlay('Neon Brick Breaker', 'Tap/Click or press Space to launch');
-      draw();
+      render();
+      lastTime = 0;
+      requestAnimationFrame(loop);
       attachControls();
       resizeGame();
     }
@@ -277,8 +280,12 @@
 
     function togglePause() {
       paused = !paused;
-      if (paused) showOverlay('Paused', 'Press P to resume');
-      else hideOverlay();
+      if (paused) {
+        showOverlay('Paused', 'Press P to resume');
+      } else {
+        hideOverlay();
+        lastTime = performance.now();
+      }
     }
 
     function showOverlay(title, sub) {
@@ -292,9 +299,9 @@
       ballX = paddleX + PADDLE_W/2;
       ballY = PADDLE_Y - BALL_R - 2;
       const angle = (Math.random()*0.5 + 0.8) * (servingRight ? 1 : -1); // direction
-      const speed = (6 + level * 0.8) * 0.5;
+      const speed = (6 + level * 0.8) * 0.5 * 60;
       ballVX = Math.cos(angle) * speed;
-      ballVY = -Math.abs(Math.sin(angle) * speed) - 2;
+      ballVY = -Math.abs(Math.sin(angle) * speed) - 120;
       running = true;
     }
 
@@ -326,7 +333,7 @@
       ballVX = 0; ballVY = 0; running = false; paused = false;
       SPECIAL_BAR.x = (canvas.width - SPECIAL_BAR.w) / 2;
       SPECIAL_BAR.dir = Math.random() > 0.5 ? 1 : -1;
-      SPECIAL_BAR.speed = 3.4 + Math.min(level - 1, 6) * 0.35;
+      SPECIAL_BAR.speed = (3.4 + Math.min(level - 1, 6) * 0.35) * 60;
       SPECIAL_BAR.hp = SPECIAL_BAR.maxHp;
       showOverlay('Level ' + level, 'Tap/Click or press Space to launch');
       resizeGame();
@@ -340,17 +347,17 @@
       }
     }
 
-    function update() {
+    function update(dt) {
       // Paddle movement
-      const paddleSpeed = 9 + level*0.4;
-      if (input.left) paddleX -= paddleSpeed;
-      if (input.right) paddleX += paddleSpeed;
+      const paddleSpeed = (9 + level*0.4) * 60;
+      if (input.left) paddleX -= paddleSpeed * dt;
+      if (input.right) paddleX += paddleSpeed * dt;
       paddleX = Math.max(0, Math.min(canvas.width - PADDLE_W, paddleX));
 
       // Special bar movement
       const leftBound = 16;
       const rightBound = canvas.width - SPECIAL_BAR.w - 16;
-      SPECIAL_BAR.x += SPECIAL_BAR.speed * SPECIAL_BAR.dir;
+      SPECIAL_BAR.x += SPECIAL_BAR.speed * SPECIAL_BAR.dir * dt;
       if (SPECIAL_BAR.x <= leftBound) {
         SPECIAL_BAR.x = leftBound;
         SPECIAL_BAR.dir = 1;
@@ -360,7 +367,9 @@
       }
 
       // Ball physics
-      ballX += ballVX; ballY += ballVY;
+      const prevBallX = ballX;
+      const prevBallY = ballY;
+      ballX += ballVX * dt; ballY += ballVY * dt;
 
       // Walls
       if (ballX - BALL_R < 0) { ballX = BALL_R; ballVX *= -1; }
@@ -376,7 +385,7 @@
         ballY = barBottom + BALL_R;
         ballVY *= -1;
         const offset = (ballX - (barLeft + SPECIAL_BAR.w / 2)) / (SPECIAL_BAR.w / 2);
-        ballVX += offset * 1.2;
+        ballVX += offset * 1.2 * 60;
         SPECIAL_BAR.hp = Math.max(0, SPECIAL_BAR.hp - 1);
         if (SPECIAL_BAR.hp > 0) {
           score += 20;
@@ -424,8 +433,8 @@
         if (ballX + BALL_R > br.x && ballX - BALL_R < br.x + br.w &&
             ballY + BALL_R > br.y && ballY - BALL_R < br.y + br.h) {
           // Determine shallowest penetration axis
-          const prevX = ballX - ballVX;
-          const prevY = ballY - ballVY;
+          const prevX = prevBallX;
+          const prevY = prevBallY;
           const wasAbove = prevY + BALL_R <= br.y;
           const wasBelow = prevY - BALL_R >= br.y + br.h;
           if (wasAbove || wasBelow) {
@@ -511,7 +520,7 @@
       ctx.restore();
     }
 
-    function draw() {
+    function render() {
       ctx.clearRect(0,0,canvas.width,canvas.height);
       drawNeonGrid();
 
@@ -529,9 +538,15 @@
 
       // Draw ball (centered)
       ctx.drawImage(imgBall, ballX - BALL_R*1.5, ballY - BALL_R*1.5, BALL_R*3, BALL_R*3);
+    }
 
-      if (running && !paused) update();
-      requestAnimationFrame(draw);
+    function loop(timestamp) {
+      if (!lastTime) lastTime = timestamp;
+      const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+      lastTime = timestamp;
+      if (running && !paused) update(dt);
+      render();
+      requestAnimationFrame(loop);
     }
 
     function drawSpecialBar() {

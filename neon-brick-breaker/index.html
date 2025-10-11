@@ -553,9 +553,10 @@
         const dy = paddleCenterY - ballY;
         const dist = Math.hypot(dx, dy);
         if (dist > 1) {
-          const pull = 240 * dt / Math.max(dist, 120);
+          const falloff = Math.max(dist, 90);
+          const pull = (420 * dt) / falloff;
           ballVX += dx * pull;
-          ballVY += dy * pull * 0.9;
+          ballVY += dy * pull * 1.1;
           enforceMinimumBallSpeed();
         }
       }

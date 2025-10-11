@@ -328,6 +328,7 @@
     let magnetActive = false;
     let magnetTimer = 0;
     let magnetPulse = 0;
+    let magnetLockedSpeed = null;
 
     const input = { left:false, right:false };
     // Leaderboard integration
@@ -454,6 +455,7 @@
       magnetActive = false;
       magnetTimer = 0;
       magnetPulse = 0;
+      magnetLockedSpeed = null;
       resizeGame();
     }
 
@@ -485,6 +487,35 @@
       }
 
       // Ball physics
+      if (magnetActive && ballVY > 0) {
+        const targetX = paddleX + PADDLE_W / 2;
+        const targetY = PADDLE_Y + PADDLE_H / 2;
+        let speed = magnetLockedSpeed;
+        if (!speed || speed <= 0) {
+          const currentSpeed = Math.hypot(ballVX, ballVY);
+          if (currentSpeed > 0) {
+            speed = currentSpeed;
+          } else if (minimumBallSpeed) {
+            speed = minimumBallSpeed;
+          } else {
+            speed = 0;
+          }
+          if (speed > 0) magnetLockedSpeed = speed;
+        }
+        if (speed > 0) {
+          const dx = targetX - ballX;
+          const dy = targetY - ballY;
+          const dist = Math.hypot(dx, dy);
+          if (dist > 1) {
+            ballVX = (dx / dist) * speed;
+            ballVY = (dy / dist) * speed;
+          } else {
+            ballVX = 0;
+            ballVY = speed;
+          }
+        }
+      }
+
       const prevBallX = ballX;
       const prevBallY = ballY;
       ballX += ballVX * dt; ballY += ballVY * dt;
@@ -528,6 +559,10 @@
           showOverlay('Life Lost', 'Tap/Click or press Space to relaunch');
           ballVX = ballVY = 0;
           ballX = paddleX + PADDLE_W/2; ballY = PADDLE_Y - BALL_R - 2;
+          magnetActive = false;
+          magnetTimer = 0;
+          magnetPulse = 0;
+          magnetLockedSpeed = null;
         }
       }
 
@@ -535,28 +570,26 @@
       if (ballY + BALL_R >= PADDLE_Y && ballY + BALL_R <= PADDLE_Y + PADDLE_H) {
         if (ballX >= paddleX && ballX <= paddleX + PADDLE_W && ballVY > 0) {
           ballY = PADDLE_Y - BALL_R - 1;
-          // Reflect based on where it hit the paddle
-          const hit = (ballX - (paddleX + PADDLE_W/2)) / (PADDLE_W/2);
-          const speed = Math.sqrt(ballVX*ballVX + ballVY*ballVY) * 1.03;
-          const angle = hit * 1.0; // -1..1 rad
-          ballVX = speed * Math.sin(angle);
-          ballVY = -Math.abs(speed * Math.cos(angle));
-          enforceMinimumBallSpeed();
-        }
-      }
-
-      // Magnet attraction gently pulls the ball toward the paddle
-      if (magnetActive) {
-        const paddleCenterX = paddleX + PADDLE_W / 2;
-        const paddleCenterY = PADDLE_Y + PADDLE_H / 2;
-        const dx = paddleCenterX - ballX;
-        const dy = paddleCenterY - ballY;
-        const dist = Math.hypot(dx, dy);
-        if (dist > 1) {
-          const pull = 240 * dt / Math.max(dist, 120);
-          ballVX += dx * pull;
-          ballVY += dy * pull * 0.9;
-          enforceMinimumBallSpeed();
+          if (magnetActive) {
+            const reboundSpeed = magnetLockedSpeed ?? Math.hypot(ballVX, ballVY);
+            ballX = paddleX + PADDLE_W / 2;
+            ballVX = 0;
+            if (reboundSpeed && reboundSpeed > 0) {
+              ballVY = -Math.abs(reboundSpeed);
+            } else {
+              const fallbackSpeed = minimumBallSpeed || (6 + level * 0.8) * 0.75 * 60;
+              ballVY = -Math.abs(fallbackSpeed);
+            }
+            magnetLockedSpeed = Math.abs(ballVY);
+          } else {
+            // Reflect based on where it hit the paddle
+            const hit = (ballX - (paddleX + PADDLE_W/2)) / (PADDLE_W/2);
+            const speed = Math.sqrt(ballVX*ballVX + ballVY*ballVY) * 1.03;
+            const angle = hit * 1.0; // -1..1 rad
+            ballVX = speed * Math.sin(angle);
+            ballVY = -Math.abs(speed * Math.cos(angle));
+            enforceMinimumBallSpeed();
+          }
         }
       }
 
@@ -662,6 +695,12 @@
       magnetActive = true;
       magnetTimer = 15;
       magnetPulse = 0;
+      const currentSpeed = Math.hypot(ballVX, ballVY);
+      if (currentSpeed > 0) {
+        magnetLockedSpeed = currentSpeed;
+      } else if (minimumBallSpeed) {
+        magnetLockedSpeed = minimumBallSpeed;
+      }
       showUpgradeBanner('Upgrade: Magnet Paddle!');
     }
 
@@ -736,9 +775,11 @@
         if (magnetTimer <= 0) {
           magnetActive = false;
           magnetTimer = 0;
+          magnetLockedSpeed = null;
         }
       } else if (magnetPulse !== 0) {
         magnetPulse = 0;
+        magnetLockedSpeed = null;
       }
     }
 

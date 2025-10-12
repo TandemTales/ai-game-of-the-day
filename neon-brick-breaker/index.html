@@ -472,6 +472,11 @@
     const BRICK_BASE_POINTS = 50;
     const BRICK_HIT_POINTS = 20;
     const SHIELDED_BRICK_MULTIPLIER = 1.5;
+    const EXPLOSIVE_NEIGHBOR_CHANCE = 0.5;
+    const EXPLOSIVE_POINT_RATIO = 0.5;
+    const EXPLOSIVE_CRACK_DURATION = 0.65;
+    const EXPLOSION_PARTICLE_COUNT = 12;
+    const EXPLOSION_PARTICLE_LIFE = 0.35;
     const SHIELDED_BASE_CHANCE = 0.2;
     const SHIELDED_LEVEL_BONUS = 0.03;
     const SHIELDED_MAX_CHANCE = 0.45;
@@ -511,6 +516,7 @@
     let balls = [];
     let minimumBallSpeed = null;
     let bricks = [];
+    let brickGrid = [];
     let brickIdCounter = 0;
     let frameCounter = 0;
     let lastTime = 0;
@@ -518,6 +524,7 @@
     let magnetTimer = 0;
     let magnetPulse = 0;
     let magnetLockedSpeed = null;
+    const explosionParticles = [];
 
     const paddleBuff = typeof createPaddleSizeBuffManager === 'function'
       ? createPaddleSizeBuffManager({
@@ -714,16 +721,20 @@
         SHIELDED_BASE_CHANCE + Math.max(0, level - 1) * SHIELDED_LEVEL_BONUS
       );
       bricks = [];
+      brickGrid = [];
       brickIdCounter = 0;
       frameCounter = 0;
       for (let r=0; r<rows; r++) {
+        if (!brickGrid[r]) {
+          brickGrid[r] = [];
+        }
         for (let c=0; c<BRICK_COLS; c++) {
           const rowBonus = (rows - r) / rows * 0.06;
           const shieldChance = Math.min(SHIELDED_MAX_CHANCE, baseShieldChance + rowBonus);
           const shielded = Math.random() < shieldChance;
           const maxShieldHealth = shielded ? 1 : 0;
           const brickHp = shielded ? 1 : baseHp;
-          bricks.push({
+          const brick = {
             id: brickIdCounter++,
             x: leftOffset + c*(BRICK_W+BRICK_GAP),
             y: topOffset + r*(BRICK_H+BRICK_GAP),
@@ -740,10 +751,18 @@
             shieldFade: maxShieldHealth > 0 ? 1 : 0,
             shieldGlowPhase: Math.random() * Math.PI * 2,
             shieldCrackTimer: 0,
-          });
+            gridRow: r,
+            gridCol: c,
+            explosive: false,
+            lastExplosionFrame: -1,
+            crackTimer: 0,
+          };
+          bricks.push(brick);
+          brickGrid[r][c] = brick;
         }
       }
 
+      assignExplosiveBricks();
       assignEmbeddedBalls();
       scoreEl.textContent = score;
       livesEl.textContent = lives;
@@ -794,9 +813,134 @@
       }
     }
 
+    function assignExplosiveBricks() {
+      if (!bricks.length) return;
+      const pool = bricks.slice();
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      const count = Math.min(pool.length, Math.random() < 0.5 ? 1 : 2);
+      for (let i = 0; i < count; i++) {
+        const br = pool[i];
+        if (br) {
+          br.explosive = true;
+        }
+      }
+    }
+
+    function getBrickAt(row, col) {
+      if (row < 0 || col < 0) return null;
+      const rowData = brickGrid[row];
+      if (!rowData) return null;
+      return rowData[col] || null;
+    }
+
+    function awardBrickPoints(brick, ratio = 1) {
+      const multiplier = brick.maxShieldHealth > 0 ? SHIELDED_BRICK_MULTIPLIER : 1;
+      const rawPoints = brick.basePoints * multiplier * ratio;
+      const awarded = Math.max(1, Math.round(rawPoints));
+      score += awarded;
+      scoreEl.textContent = score;
+      return awarded;
+    }
+
+    function applyCrackedState(brick) {
+      if (!brick || !brick.alive) return;
+      if (brick.maxShieldHealth > 0 && brick.shieldHealth > 0) {
+        brick.shieldCrackTimer = Math.max(brick.shieldCrackTimer, SHIELD_CRACK_DURATION);
+        brick.shieldFade = 1;
+      } else {
+        brick.crackTimer = Math.max(brick.crackTimer, EXPLOSIVE_CRACK_DURATION);
+      }
+    }
+
+    function triggerExplosiveBrick(brick) {
+      if (!brick || !brick.explosive) return;
+      if (brick.lastExplosionFrame === frameCounter) return;
+      brick.lastExplosionFrame = frameCounter;
+      const centerX = brick.x + brick.w / 2;
+      const centerY = brick.y + brick.h / 2;
+      spawnExplosionParticles(centerX, centerY);
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const neighbor = getBrickAt(brick.gridRow + dr, brick.gridCol + dc);
+          if (!neighbor || !neighbor.alive) continue;
+          if (neighbor.lastExplosionFrame === frameCounter) continue;
+          neighbor.lastExplosionFrame = frameCounter;
+          if (Math.random() < EXPLOSIVE_NEIGHBOR_CHANCE) {
+            neighbor.hp = 0;
+            neighbor.shieldHealth = 0;
+            neighbor.shieldFade = 0;
+            neighbor.shieldCrackTimer = 0;
+            neighbor.alive = false;
+            awardBrickPoints(neighbor, EXPLOSIVE_POINT_RATIO);
+            handleBrickDestroyed(neighbor, null, { triggeredByExplosion: true });
+          } else {
+            applyCrackedState(neighbor);
+          }
+        }
+      }
+    }
+
+    function spawnExplosionParticles(x, y) {
+      for (let i = 0; i < EXPLOSION_PARTICLE_COUNT; i++) {
+        const angle = (Math.PI * 2 * (i / EXPLOSION_PARTICLE_COUNT)) + (Math.random() - 0.5) * 0.35;
+        const speed = 180 + Math.random() * 120;
+        explosionParticles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: EXPLOSION_PARTICLE_LIFE,
+          maxLife: EXPLOSION_PARTICLE_LIFE,
+        });
+      }
+    }
+
+    function updateExplosionParticles(dt) {
+      for (let i = explosionParticles.length - 1; i >= 0; i--) {
+        const p = explosionParticles[i];
+        p.life -= dt;
+        if (p.life <= 0) {
+          explosionParticles.splice(i, 1);
+          continue;
+        }
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vx *= 0.9;
+        p.vy *= 0.9;
+      }
+    }
+
+    function renderExplosionParticles() {
+      if (!explosionParticles.length) return;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      for (const p of explosionParticles) {
+        const lifeRatio = Math.max(0, p.life / p.maxLife);
+        const radius = 8 + (1 - lifeRatio) * 12;
+        const alpha = 0.5 * lifeRatio + 0.2;
+        const gradient = ctx.createRadialGradient(p.x, p.y, radius * 0.25, p.x, p.y, radius);
+        gradient.addColorStop(0, `rgba(0, 255, 255, ${alpha})`);
+        gradient.addColorStop(0.6, `rgba(255, 62, 223, ${alpha * 0.85})`);
+        gradient.addColorStop(1, 'rgba(255, 62, 223, 0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
     function updateBrickVisualState(dt) {
       for (const br of bricks) {
-        if (!br.alive || !br.maxShieldHealth) continue;
+        if (!br.alive) continue;
+        if (br.crackTimer > 0) {
+          br.crackTimer = Math.max(0, br.crackTimer - dt);
+        }
+        if (!br.maxShieldHealth) continue;
         if (br.shieldHealth > 0) {
           br.shieldFade = Math.min(1, br.shieldFade + dt * 4);
         } else if (br.shieldFade > 0) {
@@ -993,10 +1137,7 @@
             br.hp -= 1;
             if (br.hp <= 0) {
               br.alive = false;
-              const multiplier = br.maxShieldHealth > 0 ? SHIELDED_BRICK_MULTIPLIER : 1;
-              const awarded = Math.round(br.basePoints * multiplier);
-              score += awarded;
-              scoreEl.textContent = score;
+              awardBrickPoints(br, 1);
               handleBrickDestroyed(br, ball);
             } else {
               score += BRICK_HIT_POINTS;
@@ -1043,13 +1184,20 @@
       }
     }
 
-    function handleBrickDestroyed(brick, ball) {
-      increaseBallSpeedForBrickBreak(ball);
+    function handleBrickDestroyed(brick, ball, options = {}) {
+      const { triggeredByExplosion = false } = options;
+      if (ball) {
+        increaseBallSpeedForBrickBreak(ball);
+      }
       registerBrickCombo();
       if (brick.embeddedBall && !brick.embeddedBallReleased) {
         brick.embeddedBallReleased = true;
         brick.embeddedBall = false;
-        releaseEmbeddedBall(brick, ball);
+        const referenceBall = ball || getReferenceBallForExplosion();
+        releaseEmbeddedBall(brick, referenceBall);
+      }
+      if (brick.explosive && !triggeredByExplosion) {
+        triggerExplosiveBrick(brick);
       }
     }
 
@@ -1065,13 +1213,20 @@
       }
     }
 
+    function getReferenceBallForExplosion() {
+      const active = balls.find(b => !b.lockedToPaddle && (b.vx || b.vy));
+      return active || balls[0] || null;
+    }
+
     function releaseEmbeddedBall(brick, sourceBall) {
       const spawnX = brick.x + brick.w / 2;
       const spawnY = brick.y + brick.h / 2;
       const newBall = createBall(spawnX, spawnY, false);
       const defaultSpeed = (6 + level * 0.8) * 0.75 * 60;
-      const sourceSpeed = Math.hypot(sourceBall.vx, sourceBall.vy);
-      const referenceSpeed = Math.max(defaultSpeed, sourceSpeed, minimumBallSpeed || 0);
+      const sourceSpeed = sourceBall ? Math.hypot(sourceBall.vx, sourceBall.vy) : 0;
+      const reference = sourceBall || getReferenceBallForExplosion();
+      const referenceBallSpeed = reference ? Math.hypot(reference.vx, reference.vy) : 0;
+      const referenceSpeed = Math.max(defaultSpeed, sourceSpeed, referenceBallSpeed, minimumBallSpeed || 0);
       const angle = Math.PI * 0.25 + Math.random() * Math.PI * 0.5;
       const direction = Math.random() < 0.5 ? -1 : 1;
       newBall.vx = Math.cos(angle) * referenceSpeed * direction;
@@ -1197,6 +1352,21 @@
           ctx.strokeRect(br.x - 1, br.y - 1, br.w + 2, br.h + 2);
           ctx.restore();
         }
+        if (br.crackTimer > 0) {
+          ctx.save();
+          const crackIntensity = Math.min(1, br.crackTimer / EXPLOSIVE_CRACK_DURATION);
+          ctx.strokeStyle = `rgba(255, 62, 223, ${0.55 * crackIntensity})`;
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.moveTo(br.x + br.w * 0.18, br.y + br.h * 0.22);
+          ctx.lineTo(br.x + br.w * 0.38, br.y + br.h * 0.5);
+          ctx.lineTo(br.x + br.w * 0.3, br.y + br.h * 0.82);
+          ctx.moveTo(br.x + br.w * 0.66, br.y + br.h * 0.18);
+          ctx.lineTo(br.x + br.w * 0.52, br.y + br.h * 0.48);
+          ctx.lineTo(br.x + br.w * 0.7, br.y + br.h * 0.78);
+          ctx.stroke();
+          ctx.restore();
+        }
         if (br.embeddedBall && !br.embeddedBallReleased) {
           ctx.save();
           ctx.globalAlpha = 0.85;
@@ -1219,6 +1389,8 @@
           ctx.restore();
         }
       }
+
+      renderExplosionParticles();
 
       drawSpecialBar();
 
@@ -1261,6 +1433,8 @@
       if (!lastTime) lastTime = timestamp;
       const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
       lastTime = timestamp;
+
+      updateExplosionParticles(dt);
 
       if (SPECIAL_BAR.hp > 0) {
         updateSpecialBarState(dt);

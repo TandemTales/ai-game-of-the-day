@@ -85,9 +85,20 @@
       transition: transform 0.15s ease, box-shadow 0.15s ease;
       font-size: 12px;
       white-space: nowrap;
-      margin-left: auto;
+      cursor: pointer;
+      font-family: 'Press Start 2P', cursive;
     }
     .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(95,158,160,0.6); }
+    .btn:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-left: auto;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
 
     .hud {
       display: flex;
@@ -196,7 +207,12 @@
         gap: 10px;
       }
 
-      .btn {
+      .actions {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .actions .btn {
         width: 100%;
         text-align: center;
         font-size: 11px;
@@ -236,12 +252,15 @@
     <div class="panel">
       <header>
         <div class="title">
-          <img src="../images/botbuiltarcade-icon-face.png" alt="BotBuilt" width="36" height="36" style="border-radius:50%; border:2px solid var(--gold)"> 
+          <img src="../images/botbuiltarcade-icon-face.png" alt="BotBuilt" width="36" height="36" style="border-radius:50%; border:2px solid var(--gold)">
           <div>
             <h1>Neon Brick Breaker</h1>
           </div>
         </div>
-        <a class="btn" href="../index.html">⟵ Back to Home</a>
+        <div class="actions">
+          <button class="btn" id="mute-btn" type="button" aria-pressed="false">🔇 Mute</button>
+          <a class="btn" href="../index.html">⟵ Back to Home</a>
+        </div>
       </header>
 
       <div class="hud">
@@ -296,6 +315,82 @@
     const headerEl = document.querySelector('header');
     const hudEl = document.querySelector('.hud');
     const upgradeBanner = document.getElementById('upgrade-banner');
+    const muteBtn = document.getElementById('mute-btn');
+
+    const SOUNDTRACK_FILES = [
+      'assets/NBB_soundtrack01.mp3',
+      'assets/NBB_soundtrack02.mp3',
+      'assets/NBB_soundtrack03.mp3',
+      'assets/NBB_soundtrack04.mp3'
+    ].filter(src => src && src.toLowerCase().includes('soundtrack'));
+
+    const backgroundAudio = new Audio();
+    backgroundAudio.preload = 'auto';
+    backgroundAudio.loop = false;
+    backgroundAudio.volume = 0.45;
+
+    let soundtrackQueue = [];
+    let soundtrackStarted = false;
+    let isMuted = false;
+
+    function shuffleTracks(list) {
+      const arr = list.slice();
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function refreshSoundtrackQueue() {
+      soundtrackQueue = shuffleTracks(SOUNDTRACK_FILES);
+    }
+
+    function playNextTrack() {
+      if (!SOUNDTRACK_FILES.length) return;
+      if (!soundtrackQueue.length) refreshSoundtrackQueue();
+      const nextSrc = soundtrackQueue.shift();
+      if (!nextSrc) return;
+      backgroundAudio.src = nextSrc;
+      backgroundAudio.currentTime = 0;
+      backgroundAudio.muted = isMuted;
+      const playPromise = backgroundAudio.play();
+      if (playPromise) {
+        playPromise.catch(() => {
+          soundtrackStarted = false;
+          if (!soundtrackQueue.includes(nextSrc)) {
+            soundtrackQueue.unshift(nextSrc);
+          }
+        });
+      }
+    }
+
+    backgroundAudio.addEventListener('ended', playNextTrack);
+
+    function ensureSoundtrackStarted() {
+      if (soundtrackStarted || !SOUNDTRACK_FILES.length) return;
+      soundtrackStarted = true;
+      playNextTrack();
+    }
+
+    function updateMuteButton() {
+      if (!muteBtn) return;
+      muteBtn.textContent = isMuted ? '🔊 Unmute' : '🔇 Mute';
+      muteBtn.setAttribute('aria-pressed', String(isMuted));
+    }
+
+    updateMuteButton();
+
+    if (muteBtn) {
+      muteBtn.addEventListener('click', () => {
+        isMuted = !isMuted;
+        backgroundAudio.muted = isMuted;
+        updateMuteButton();
+        if (!isMuted) {
+          ensureSoundtrackStarted();
+        }
+      });
+    }
 
     // Game constants (canvas is 900x600 logical)
     const PADDLE_W = 200, PADDLE_H = 28;
@@ -364,6 +459,7 @@
         if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = true;
         if (e.code === 'Space') launch();
         if (e.code === 'KeyP') togglePause();
+        ensureSoundtrackStarted();
       });
       window.addEventListener('keyup', (e) => {
         if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = false;
@@ -378,7 +474,7 @@
         paddleX = Math.max(0, Math.min(canvas.width - PADDLE_W, cx - PADDLE_W/2));
       }
       [canvas, overlayEl].forEach(el => {
-        el.addEventListener('pointerdown', (e) => { movePaddle(e); launch(); });
+        el.addEventListener('pointerdown', (e) => { movePaddle(e); launch(); ensureSoundtrackStarted(); });
         el.addEventListener('pointermove', movePaddle);
       });
     }

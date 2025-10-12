@@ -526,6 +526,12 @@
     const ENERGY_TRAIL_MAX_LENGTH = 140;
     const ENERGY_GLOW_SPEED = 2.6;
     const ENERGY_GLOW_DECAY = 1.8;
+    const ENERGY_ARC_REFRESH_MIN = 0.08;
+    const ENERGY_ARC_REFRESH_MAX = 0.22;
+    const ENERGY_ARC_LIFETIME = 0.25;
+    const ENERGY_ARC_JITTER = 7;
+    const ENERGY_ARC_MIN_COUNT = 1;
+    const ENERGY_ARC_MAX_COUNT = 3;
     const EXPLOSION_SHOCKWAVE_MAX_RADIUS = 150;
     const BRICK_SHAKE_DURATION = 0.3;
     const BRICK_SHAKE_INTENSITY = 6;
@@ -1004,6 +1010,8 @@
             energyGlowPhase: Math.random() * Math.PI * 2,
             energyGlowBoost: 0,
             energyActivated: false,
+            energyArcs: [],
+            energyArcTimer: 0,
           };
           bricks.push(brick);
           brickGrid[r][c] = brick;
@@ -1116,6 +1124,10 @@
         br.energyActivated = false;
         br.energyGlowBoost = 1;
         br.energyGlowPhase = Math.random() * Math.PI * 2;
+        br.energyArcs = [];
+        const range = Math.max(0.0001, ENERGY_ARC_REFRESH_MAX - ENERGY_ARC_REFRESH_MIN);
+        br.energyArcTimer = ENERGY_ARC_REFRESH_MIN + Math.random() * range;
+        addEnergyArc(br);
         if (br.maxShieldHealth > 0) {
           br.maxShieldHealth = 0;
           br.shieldHealth = 0;
@@ -1758,6 +1770,103 @@
       ctx.restore();
     }
 
+    function ensureEnergyArcState(br) {
+      if (!Array.isArray(br.energyArcs)) {
+        br.energyArcs = [];
+      }
+      const range = Math.max(0.0001, ENERGY_ARC_REFRESH_MAX - ENERGY_ARC_REFRESH_MIN);
+      if (!Number.isFinite(br.energyArcTimer)) {
+        br.energyArcTimer = ENERGY_ARC_REFRESH_MIN + Math.random() * range;
+      }
+    }
+
+    function jitterEnergyArc(br, arc) {
+      if (!arc || !arc.points || !arc.basePoints) return;
+      const minY = br.y + br.h * 0.08;
+      const maxY = br.y + br.h * 0.92;
+      for (let i = 1; i < arc.points.length - 1; i++) {
+        const base = arc.basePoints[i];
+        if (!base) continue;
+        arc.points[i].x = base.x + (Math.random() - 0.5) * ENERGY_ARC_JITTER;
+        arc.points[i].y = clamp(base.y + (Math.random() - 0.5) * ENERGY_ARC_JITTER, minY, maxY);
+      }
+    }
+
+    function createEnergyArc(br, intensity = 1) {
+      const segments = 5 + Math.floor(Math.random() * 4);
+      const minY = br.y + br.h * 0.12;
+      const maxY = br.y + br.h * 0.88;
+      const centralY = clamp(br.y + br.h * (0.25 + Math.random() * 0.5), minY, maxY);
+      const amplitude = br.h * 0.35 * Math.min(2, intensity);
+      const sway = br.w * 0.08 * Math.min(2, intensity);
+      const basePoints = [];
+      for (let i = 0; i < segments; i++) {
+        const t = segments <= 1 ? 0 : i / (segments - 1);
+        const x = br.x + t * br.w;
+        const sine = Math.sin((t + Math.random() * 0.2) * Math.PI * (1 + Math.random())) * amplitude * 0.4;
+        const jitterY = (Math.random() - 0.5) * amplitude * 0.4;
+        const jitterX = (Math.random() - 0.5) * sway;
+        const y = clamp(centralY + sine + jitterY, minY, maxY);
+        basePoints.push({ x: x + jitterX, y });
+      }
+      const arc = {
+        basePoints,
+        points: basePoints.map(pt => ({ ...pt })),
+        life: ENERGY_ARC_LIFETIME,
+        maxLife: ENERGY_ARC_LIFETIME,
+        alpha: 0.45 + Math.random() * 0.35 * Math.min(1.6, intensity),
+        width: 1 + Math.random() * 1.2 * Math.min(1.6, intensity),
+        jitterTimer: 0,
+      };
+      jitterEnergyArc(br, arc);
+      return arc;
+    }
+
+    function addEnergyArc(br, intensity = 1) {
+      ensureEnergyArcState(br);
+      const arc = createEnergyArc(br, intensity);
+      br.energyArcs.push(arc);
+      if (br.energyArcs.length > 14) {
+        br.energyArcs.splice(0, br.energyArcs.length - 14);
+      }
+    }
+
+    function updateEnergyArcs(br, dt) {
+      ensureEnergyArcState(br);
+      const range = Math.max(0.0001, ENERGY_ARC_REFRESH_MAX - ENERGY_ARC_REFRESH_MIN);
+      const intensity = 1 + Math.min(1.4, (br.energyGlowBoost || 0) * 0.8 + (br.energyActivated ? 0.7 : 0));
+      br.energyArcTimer -= dt * intensity;
+      while (br.energyArcTimer <= 0) {
+        const countRange = ENERGY_ARC_MAX_COUNT - ENERGY_ARC_MIN_COUNT + 1;
+        const spawnCount = ENERGY_ARC_MIN_COUNT + Math.floor(Math.random() * Math.max(1, countRange));
+        for (let i = 0; i < spawnCount; i++) {
+          addEnergyArc(br, intensity);
+        }
+        br.energyArcTimer += ENERGY_ARC_REFRESH_MIN + Math.random() * range;
+      }
+      if (!Array.isArray(br.energyArcs) || !br.energyArcs.length) return;
+      br.energyArcs = br.energyArcs.filter(arc => {
+        arc.life -= dt;
+        if (arc.life <= 0) return false;
+        arc.jitterTimer -= dt;
+        if (arc.jitterTimer <= 0) {
+          arc.jitterTimer = 0.016 + Math.random() * 0.035;
+          jitterEnergyArc(br, arc);
+        }
+        return true;
+      });
+    }
+
+    function triggerEnergyArcBurst(br) {
+      ensureEnergyArcState(br);
+      const intensity = 1.4 + Math.min(1, br.energyGlowBoost || 0);
+      const burstCount = 2 + Math.floor(Math.random() * 2);
+      for (let i = 0; i < burstCount; i++) {
+        addEnergyArc(br, intensity);
+      }
+      br.energyArcTimer = Math.min(br.energyArcTimer, ENERGY_ARC_REFRESH_MIN);
+    }
+
     function updateBrickVisualState(dt) {
       for (const br of bricks) {
         if (!br.alive) continue;
@@ -1815,8 +1924,12 @@
           if (br.energyGlowBoost > 0) {
             br.energyGlowBoost = Math.max(0, br.energyGlowBoost - dt * ENERGY_GLOW_DECAY);
           }
+          updateEnergyArcs(br, dt);
         } else if (br.energyGlowBoost > 0) {
           br.energyGlowBoost = Math.max(0, br.energyGlowBoost - dt * ENERGY_GLOW_DECAY);
+          if (Array.isArray(br.energyArcs) && br.energyArcs.length) {
+            br.energyArcs.length = 0;
+          }
         }
         if (br.crackTimer > 0) {
           br.crackTimer = Math.max(0, br.crackTimer - dt);
@@ -2328,6 +2441,38 @@
           ctx.fill();
           ctx.restore();
 
+          if (Array.isArray(br.energyArcs) && br.energyArcs.length) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            for (const arc of br.energyArcs) {
+              if (!arc || !arc.points || arc.points.length < 2) continue;
+              const lifeRatio = arc.maxLife > 0 ? Math.max(0, Math.min(1, arc.life / arc.maxLife)) : 0;
+              const fade = Math.pow(lifeRatio, 0.6);
+              const baseAlpha = (arc.alpha || 0.6) * fade * (0.6 + glowStrength * 0.8);
+              if (baseAlpha <= 0.01) continue;
+              const lineWidth = Math.max(1, (arc.width || 1.4) + boost * 1.1);
+              ctx.lineWidth = lineWidth;
+              ctx.strokeStyle = `rgba(0, 255, 255, ${baseAlpha})`;
+              ctx.beginPath();
+              ctx.moveTo(arc.points[0].x, arc.points[0].y);
+              for (let i = 1; i < arc.points.length; i++) {
+                const p = arc.points[i];
+                ctx.lineTo(p.x, p.y);
+              }
+              ctx.stroke();
+              ctx.lineWidth = Math.max(0.8, lineWidth * 0.55);
+              ctx.strokeStyle = `rgba(255, 255, 255, ${baseAlpha * 0.75})`;
+              ctx.beginPath();
+              ctx.moveTo(arc.points[0].x, arc.points[0].y);
+              for (let i = 1; i < arc.points.length; i++) {
+                const p = arc.points[i];
+                ctx.lineTo(p.x, p.y);
+              }
+              ctx.stroke();
+            }
+            ctx.restore();
+          }
+
           ctx.save();
           ctx.globalAlpha = 0.25 + glowStrength * 0.35;
           ctx.strokeStyle = `rgba(0, 255, 255, ${0.45 + glowStrength * 0.35})`;
@@ -2779,6 +2924,7 @@
       const boost = Math.max(0.6, brick.energyGlowBoost || 0);
       brick.energyGlowBoost = Math.max(boost, 1.2);
       brick.energyActivated = true;
+      triggerEnergyArcBurst(brick);
     }
 
     function handleSplitBarsCollision(ball, prevBallX, prevBallY) {

@@ -520,7 +520,8 @@
     const EXPLOSION_PARTICLE_BASE_RADIUS = 16;
     const EXPLOSION_PARTICLE_RADIUS_VARIANCE = 26;
     const EXPLOSION_SHOCKWAVE_LIFE = 0.4;
-    const ENERGY_BRICK_SPEED_BOOST = 0.05;
+    const ENERGY_BRICK_SPEED_MULTIPLIER = 1.25;
+    const ENERGY_BRICK_SPEED_DURATION = 3;
     const ENERGY_TRAIL_DURATION = 0.5;
     const ENERGY_TRAIL_MIN_LENGTH = 60;
     const ENERGY_TRAIL_MAX_LENGTH = 140;
@@ -800,6 +801,7 @@
         lastPortalTime: -Infinity,
         portalSpeedRecovery: null,
         energyTrailTimer: 0,
+        energySpeedBoosts: [],
       };
     }
 
@@ -1980,6 +1982,22 @@
         if (ball.energyTrailTimer > 0) {
           ball.energyTrailTimer = Math.max(0, ball.energyTrailTimer - dt);
         }
+        if (Array.isArray(ball.energySpeedBoosts) && ball.energySpeedBoosts.length) {
+          const remainingBoosts = [];
+          for (const boost of ball.energySpeedBoosts) {
+            if (!boost) continue;
+            const { endTime, multiplier } = boost;
+            if (Number.isFinite(endTime) && gameTime >= endTime) {
+              if (Number.isFinite(multiplier) && multiplier > 0) {
+                ball.vx /= multiplier;
+                ball.vy /= multiplier;
+              }
+            } else {
+              remainingBoosts.push(boost);
+            }
+          }
+          ball.energySpeedBoosts = remainingBoosts;
+        }
         if (ball.lockedToPaddle) {
           ball.x = paddleX + paddleWidth / 2;
           ball.y = PADDLE_Y - BALL_R - 2;
@@ -2913,9 +2931,24 @@
       }
     }
 
+    function applyTemporaryBallSpeedBoost(ball, multiplier, duration) {
+      if (!ball) return;
+      if (!Number.isFinite(multiplier) || multiplier <= 0) return;
+      if (!Number.isFinite(duration) || duration <= 0) return;
+      ball.vx *= multiplier;
+      ball.vy *= multiplier;
+      if (!Array.isArray(ball.energySpeedBoosts)) {
+        ball.energySpeedBoosts = [];
+      }
+      ball.energySpeedBoosts.push({
+        multiplier,
+        endTime: gameTime + duration,
+      });
+    }
+
     function applyEnergyBrickEffect(brick, ball) {
       if (!brick || !brick.isEnergy || !ball) return;
-      boostBallSpeed(ball, ENERGY_BRICK_SPEED_BOOST);
+      applyTemporaryBallSpeedBoost(ball, ENERGY_BRICK_SPEED_MULTIPLIER, ENERGY_BRICK_SPEED_DURATION);
       const existingTimer = Number.isFinite(ball.energyTrailTimer) ? ball.energyTrailTimer : 0;
       ball.energyTrailTimer = Math.max(existingTimer, ENERGY_TRAIL_DURATION);
       if (!Number.isFinite(brick.energyGlowPhase)) {

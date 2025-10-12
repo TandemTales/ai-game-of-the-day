@@ -942,6 +942,7 @@
             shakeOffsetY: 0,
             isTeleport: false,
             teleportActive: false,
+            teleportUsesRemaining: 0,
             teleportTimer: 0,
             teleportFlashTimer: 0,
           };
@@ -1053,6 +1054,7 @@
         if (!br) continue;
         br.isTeleport = true;
         br.teleportActive = true;
+        br.teleportUsesRemaining = 1;
         br.teleportTimer = TELEPORT_BRICK_INTERVAL;
         br.teleportFlashTimer = 0;
         assigned++;
@@ -1062,6 +1064,10 @@
     function updateTeleportBricks(dt) {
       for (const br of bricks) {
         if (!br || !br.alive || !br.isTeleport) continue;
+        if (br.teleportUsesRemaining !== undefined && br.teleportUsesRemaining <= 0) {
+          br.teleportActive = false;
+          continue;
+        }
         if (!br.teleportActive) {
           br.teleportActive = true;
           if (!Number.isFinite(br.teleportTimer) || br.teleportTimer <= 0) {
@@ -1244,6 +1250,12 @@
       const spawn = findPortalSpawnPosition(ball);
       teleportBallThroughPortal(ball, brick, spawn);
       brick.teleportFlashTimer = TELEPORT_FLASH_DURATION;
+      if (brick.teleportUsesRemaining !== undefined) {
+        brick.teleportUsesRemaining = Math.max(0, brick.teleportUsesRemaining - 1);
+        if (brick.teleportUsesRemaining <= 0) {
+          brick.teleportActive = false;
+        }
+      }
       score += PORTAL_BONUS_POINTS;
       scoreEl.textContent = score;
       showPortalTag();

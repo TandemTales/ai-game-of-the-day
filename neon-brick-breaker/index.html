@@ -664,11 +664,38 @@
           const barRight = SPECIAL_BAR.x + SPECIAL_BAR.w;
           const barTop = SPECIAL_BAR.y;
           const barBottom = SPECIAL_BAR.y + SPECIAL_BAR.h;
-          if (ball.vy < 0 && ball.y + BALL_R >= barTop && ball.y - BALL_R <= barBottom && ball.x >= barLeft && ball.x <= barRight) {
-            ball.y = barBottom + BALL_R;
-            ball.vy *= -1;
-            const offset = (ball.x - (barLeft + SPECIAL_BAR.w / 2)) / (SPECIAL_BAR.w / 2);
-            ball.vx += offset * 1.2 * 60;
+          const intersectsBar =
+            ball.x + BALL_R >= barLeft &&
+            ball.x - BALL_R <= barRight &&
+            ball.y + BALL_R >= barTop &&
+            ball.y - BALL_R <= barBottom;
+          if (intersectsBar) {
+            const prevTop = prevBallY - BALL_R;
+            const prevBottom = prevBallY + BALL_R;
+            let verticalBounce = false;
+
+            if (ball.vy > 0 && prevBottom <= barTop) {
+              ball.y = barTop - BALL_R;
+              ball.vy = -Math.abs(ball.vy);
+              verticalBounce = true;
+            } else if (ball.vy < 0 && prevTop >= barBottom) {
+              ball.y = barBottom + BALL_R;
+              ball.vy = Math.abs(ball.vy);
+              verticalBounce = true;
+            } else {
+              if (prevBallX + BALL_R <= barLeft) {
+                ball.x = barLeft - BALL_R;
+              } else if (prevBallX - BALL_R >= barRight) {
+                ball.x = barRight + BALL_R;
+              }
+              ball.vx *= -1;
+            }
+
+            if (verticalBounce) {
+              const offset = (ball.x - (barLeft + SPECIAL_BAR.w / 2)) / (SPECIAL_BAR.w / 2);
+              ball.vx += offset * 1.2 * 60;
+            }
+
             SPECIAL_BAR.hp = Math.max(0, SPECIAL_BAR.hp - 1);
             if (SPECIAL_BAR.hp > 0) {
               score += 20;
@@ -679,7 +706,7 @@
             scoreEl.textContent = score;
           }
         } else if (splitBars.length) {
-          handleSplitBarsCollision(ball);
+          handleSplitBarsCollision(ball, prevBallX, prevBallY);
         }
 
         if (ball.y - BALL_R > canvas.height) {
@@ -1183,26 +1210,53 @@
       }
     }
 
-    function handleSplitBarsCollision(ball) {
+    function handleSplitBarsCollision(ball, prevBallX, prevBallY) {
       for (const bar of splitBars) {
         if (bar.hp <= 0) continue;
         const barTop = bar.y;
         const barBottom = bar.y + bar.h;
         const barLeft = bar.x;
         const barRight = bar.x + bar.w;
-        if (ball.vy < 0 && ball.y + BALL_R >= barTop && ball.y - BALL_R <= barBottom && ball.x >= barLeft && ball.x <= barRight) {
+        const intersects =
+          ball.x + BALL_R >= barLeft &&
+          ball.x - BALL_R <= barRight &&
+          ball.y + BALL_R >= barTop &&
+          ball.y - BALL_R <= barBottom;
+        if (!intersects) continue;
+
+        const prevTop = prevBallY - BALL_R;
+        const prevBottom = prevBallY + BALL_R;
+        let verticalBounce = false;
+
+        if (ball.vy > 0 && prevBottom <= barTop) {
+          ball.y = barTop - BALL_R;
+          ball.vy = -Math.abs(ball.vy);
+          verticalBounce = true;
+        } else if (ball.vy < 0 && prevTop >= barBottom) {
           ball.y = barBottom + BALL_R;
-          ball.vy *= -1;
+          ball.vy = Math.abs(ball.vy);
+          verticalBounce = true;
+        } else {
+          if (prevBallX + BALL_R <= barLeft) {
+            ball.x = barLeft - BALL_R;
+          } else if (prevBallX - BALL_R >= barRight) {
+            ball.x = barRight + BALL_R;
+          }
+          ball.vx *= -1;
+        }
+
+        if (verticalBounce) {
           const offset = (ball.x - (barLeft + bar.w / 2)) / (bar.w / 2);
           ball.vx += offset * 1.1 * 60;
-          enforceMinimumBallSpeed(ball);
-          bar.hp = Math.max(0, bar.hp - 1);
-          if (bar.hp <= 0) {
-            score += 50;
-            scoreEl.textContent = score;
-          }
-          break;
         }
+
+        enforceMinimumBallSpeed(ball);
+        bar.hp = Math.max(0, bar.hp - 1);
+        if (bar.hp <= 0) {
+          score += 50;
+          scoreEl.textContent = score;
+        }
+        break;
       }
       cleanupSplitBars();
     }

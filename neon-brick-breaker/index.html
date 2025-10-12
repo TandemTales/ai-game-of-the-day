@@ -520,6 +520,12 @@
     const EXPLOSION_PARTICLE_BASE_RADIUS = 16;
     const EXPLOSION_PARTICLE_RADIUS_VARIANCE = 26;
     const EXPLOSION_SHOCKWAVE_LIFE = 0.4;
+    const ENERGY_BRICK_SPEED_BOOST = 0.05;
+    const ENERGY_TRAIL_DURATION = 0.5;
+    const ENERGY_TRAIL_MIN_LENGTH = 60;
+    const ENERGY_TRAIL_MAX_LENGTH = 140;
+    const ENERGY_GLOW_SPEED = 2.6;
+    const ENERGY_GLOW_DECAY = 1.8;
     const EXPLOSION_SHOCKWAVE_MAX_RADIUS = 150;
     const BRICK_SHAKE_DURATION = 0.3;
     const BRICK_SHAKE_INTENSITY = 6;
@@ -787,6 +793,7 @@
         lastPortalId: null,
         lastPortalTime: -Infinity,
         portalSpeedRecovery: null,
+        energyTrailTimer: 0,
       };
     }
 
@@ -993,12 +1000,17 @@
             teleportUsesRemaining: 0,
             teleportTimer: 0,
             teleportFlashTimer: 0,
+            isEnergy: false,
+            energyGlowPhase: Math.random() * Math.PI * 2,
+            energyGlowBoost: 0,
+            energyActivated: false,
           };
           bricks.push(brick);
           brickGrid[r][c] = brick;
         }
       }
 
+      assignEnergyBricks();
       assignTeleportBricks();
       assignExplosiveBricks();
       assignEmbeddedBalls();
@@ -1047,7 +1059,7 @@
 
     function assignEmbeddedBalls() {
       if (!bricks.length) return;
-      const aliveBricks = bricks.filter(br => br.alive && !br.isTeleport);
+      const aliveBricks = bricks.filter(br => br.alive && !br.isTeleport && !br.isEnergy);
       if (!aliveBricks.length) return;
       const targetCount = Math.min(aliveBricks.length, 2 + Math.floor(Math.random() * 3));
       const chosen = new Set();
@@ -1066,7 +1078,7 @@
 
     function assignExplosiveBricks() {
       if (!bricks.length) return;
-      const pool = bricks.filter(br => br.alive && !br.isTeleport);
+      const pool = bricks.filter(br => br.alive && !br.isTeleport && !br.isEnergy);
       for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -1082,6 +1094,38 @@
       }
     }
 
+    function getEnergyBrickCountForLevel(currentLevel) {
+      if (currentLevel < 2) return 0;
+      const capped = Math.min(currentLevel, 20);
+      return 1 + Math.floor((capped - 2) / 4);
+    }
+
+    function assignEnergyBricks() {
+      if (!bricks.length) return;
+      const desired = Math.min(getEnergyBrickCountForLevel(level), bricks.length);
+      if (desired <= 0) return;
+      const pool = bricks.filter(br => br.alive && !br.isTeleport && !br.explosive);
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      let assigned = 0;
+      for (const br of pool) {
+        if (!br || assigned >= desired) break;
+        br.isEnergy = true;
+        br.energyActivated = false;
+        br.energyGlowBoost = 1;
+        br.energyGlowPhase = Math.random() * Math.PI * 2;
+        if (br.maxShieldHealth > 0) {
+          br.maxShieldHealth = 0;
+          br.shieldHealth = 0;
+          br.shieldFade = 0;
+          br.shieldCrackTimer = 0;
+        }
+        assigned++;
+      }
+    }
+
     function getTeleportBrickCountForLevel(currentLevel) {
       if (currentLevel < 2) return 0;
       const growth = Math.floor((currentLevel - 2) / 2);
@@ -1091,7 +1135,7 @@
     function assignTeleportBricks() {
       const desired = Math.min(getTeleportBrickCountForLevel(level), bricks.length);
       if (desired <= 0) return;
-      const pool = bricks.slice();
+      const pool = bricks.filter(br => br.alive && !br.isEnergy);
       for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -1760,6 +1804,20 @@
         } else if (br.explosiveGlowPulse) {
           br.explosiveGlowPulse = Math.max(0, br.explosiveGlowPulse - dt * 1.2);
         }
+        if (br.isEnergy) {
+          if (!Number.isFinite(br.energyGlowPhase)) {
+            br.energyGlowPhase = Math.random() * Math.PI * 2;
+          }
+          br.energyGlowPhase = (br.energyGlowPhase + dt * ENERGY_GLOW_SPEED) % (Math.PI * 2);
+          if (!Number.isFinite(br.energyGlowBoost)) {
+            br.energyGlowBoost = 0;
+          }
+          if (br.energyGlowBoost > 0) {
+            br.energyGlowBoost = Math.max(0, br.energyGlowBoost - dt * ENERGY_GLOW_DECAY);
+          }
+        } else if (br.energyGlowBoost > 0) {
+          br.energyGlowBoost = Math.max(0, br.energyGlowBoost - dt * ENERGY_GLOW_DECAY);
+        }
         if (br.crackTimer > 0) {
           br.crackTimer = Math.max(0, br.crackTimer - dt);
         }
@@ -1805,6 +1863,9 @@
         if (ball.shieldHitFrame !== frameCounter) {
           ball.shieldHits.clear();
           ball.shieldHitFrame = frameCounter;
+        }
+        if (ball.energyTrailTimer > 0) {
+          ball.energyTrailTimer = Math.max(0, ball.energyTrailTimer - dt);
         }
         if (ball.lockedToPaddle) {
           ball.x = paddleX + paddleWidth / 2;
@@ -1993,6 +2054,7 @@
               break;
             }
 
+            applyEnergyBrickEffect(br, ball);
             br.hp -= 1;
             if (br.hp <= 0) {
               br.alive = false;
@@ -2244,6 +2306,35 @@
             ctx.restore();
           }
         }
+        if (br.isEnergy) {
+          const glowPhase = Number.isFinite(br.energyGlowPhase) ? br.energyGlowPhase : 0;
+          const basePulse = 0.55 + Math.sin(glowPhase * 2.1) * 0.35;
+          const boost = Math.max(0, br.energyGlowBoost || 0);
+          const glowStrength = Math.min(1, basePulse * 0.6 + boost * 0.6);
+          const centerX = drawX + br.w / 2;
+          const centerY = drawY + br.h / 2;
+          const innerRadius = Math.max(6, Math.min(br.w, br.h) * 0.28);
+          const outerRadius = Math.max(br.w, br.h) * (1.1 + boost * 0.5);
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = 0.2 + glowStrength * 0.45;
+          const gradient = ctx.createRadialGradient(centerX, centerY, innerRadius, centerX, centerY, outerRadius);
+          gradient.addColorStop(0, 'rgba(0, 255, 255, 0.85)');
+          gradient.addColorStop(0.5, 'rgba(146, 80, 255, 0.4)');
+          gradient.addColorStop(1, 'rgba(255, 62, 223, 0)');
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          ctx.save();
+          ctx.globalAlpha = 0.25 + glowStrength * 0.35;
+          ctx.strokeStyle = `rgba(0, 255, 255, ${0.45 + glowStrength * 0.35})`;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(drawX - 1.5, drawY - 1.5, br.w + 3, br.h + 3);
+          ctx.restore();
+        }
         if (br.explosive) {
           const glowPulse = Math.max(0, Math.min(1, br.explosiveGlowPulse || 0));
           if (glowPulse > 0.01) {
@@ -2370,6 +2461,38 @@
       }
 
       ctx.drawImage(imgPaddle, paddleDrawX, paddleDrawY, paddleDrawWidth, paddleDrawHeight);
+
+      for (const ball of balls) {
+        if (!ball) continue;
+        if (ball.energyTrailTimer > 0) {
+          const normalized = Math.max(0, Math.min(1, ball.energyTrailTimer / ENERGY_TRAIL_DURATION));
+          const speed = Math.hypot(ball.vx, ball.vy);
+          if (speed > 1) {
+            const dirX = ball.vx / speed;
+            const dirY = ball.vy / speed;
+            const clampedSpeed = Math.min(speed, 900);
+            const baseLength = ENERGY_TRAIL_MIN_LENGTH + (clampedSpeed / 900) * (ENERGY_TRAIL_MAX_LENGTH - ENERGY_TRAIL_MIN_LENGTH);
+            const trailLength = baseLength * normalized;
+            const endX = ball.x - dirX * trailLength;
+            const endY = ball.y - dirY * trailLength;
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = 0.25 + normalized * 0.45;
+            const gradient = ctx.createLinearGradient(ball.x, ball.y, endX, endY);
+            gradient.addColorStop(0, 'rgba(0, 255, 255, 0.9)');
+            gradient.addColorStop(0.4, 'rgba(146, 80, 255, 0.4)');
+            gradient.addColorStop(1, 'rgba(255, 62, 223, 0)');
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = BALL_R * 1.6;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(ball.x, ball.y);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+      }
 
       for (const ball of balls) {
         ctx.drawImage(imgBall, ball.x - BALL_R*1.5, ball.y - BALL_R*1.5, BALL_R*3, BALL_R*3);
@@ -2626,6 +2749,36 @@
             : Math.max(minimumBallSpeed, newSpeed);
         }
       }
+    }
+
+    function boostBallSpeed(ball, percent) {
+      if (!ball) return;
+      const speed = Math.hypot(ball.vx, ball.vy);
+      if (speed <= 0) return;
+      const multiplier = 1 + percent;
+      const newSpeed = speed * multiplier;
+      const dirX = ball.vx / speed;
+      const dirY = ball.vy / speed;
+      ball.vx = dirX * newSpeed;
+      ball.vy = dirY * newSpeed;
+      if (newSpeed > 0) {
+        minimumBallSpeed = minimumBallSpeed === null
+          ? newSpeed
+          : Math.max(minimumBallSpeed, newSpeed);
+      }
+    }
+
+    function applyEnergyBrickEffect(brick, ball) {
+      if (!brick || !brick.isEnergy || !ball) return;
+      boostBallSpeed(ball, ENERGY_BRICK_SPEED_BOOST);
+      const existingTimer = Number.isFinite(ball.energyTrailTimer) ? ball.energyTrailTimer : 0;
+      ball.energyTrailTimer = Math.max(existingTimer, ENERGY_TRAIL_DURATION);
+      if (!Number.isFinite(brick.energyGlowPhase)) {
+        brick.energyGlowPhase = Math.random() * Math.PI * 2;
+      }
+      const boost = Math.max(0.6, brick.energyGlowBoost || 0);
+      brick.energyGlowBoost = Math.max(boost, 1.2);
+      brick.energyActivated = true;
     }
 
     function handleSplitBarsCollision(ball, prevBallX, prevBallY) {

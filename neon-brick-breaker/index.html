@@ -472,6 +472,9 @@
     const BRICK_BASE_POINTS = 50;
     const BRICK_HIT_POINTS = 20;
     const SHIELDED_BRICK_MULTIPLIER = 1.5;
+    const TELEPORT_BRICK_INTERVAL = 1.0;
+    const TELEPORT_FLASH_DURATION = 0.3;
+    const TELEPORT_FLASH_MAX_ALPHA = 0.45;
     const EXPLOSIVE_NEIGHBOR_CHANCE = 0.5;
     const EXPLOSIVE_POINT_RATIO = 0.5;
     const EXPLOSIVE_CRACK_DURATION = 0.65;
@@ -532,6 +535,8 @@
     let minimumBallSpeed = null;
     let bricks = [];
     let brickGrid = [];
+    let brickGridLeft = 0;
+    let brickGridTop = 0;
     let brickIdCounter = 0;
     let frameCounter = 0;
     let lastTime = 0;
@@ -732,6 +737,8 @@
       const topOffset = 80;
       const totalWidth = BRICK_COLS*BRICK_W + (BRICK_COLS-1)*BRICK_GAP;
       const leftOffset = (canvas.width - totalWidth)/2;
+      brickGridLeft = leftOffset;
+      brickGridTop = topOffset;
       const baseShieldChance = Math.min(
         SHIELDED_MAX_CHANCE,
         SHIELDED_BASE_CHANCE + Math.max(0, level - 1) * SHIELDED_LEVEL_BONUS
@@ -780,12 +787,17 @@
             shakePhase: Math.random() * Math.PI * 2,
             shakeOffsetX: 0,
             shakeOffsetY: 0,
+            isTeleport: false,
+            teleportActive: false,
+            teleportTimer: 0,
+            teleportFlashTimer: 0,
           };
           bricks.push(brick);
           brickGrid[r][c] = brick;
         }
       }
 
+      assignTeleportBricks();
       assignExplosiveBricks();
       assignEmbeddedBalls();
       scoreEl.textContent = score;
@@ -825,7 +837,7 @@
 
     function assignEmbeddedBalls() {
       if (!bricks.length) return;
-      const aliveBricks = bricks.filter(br => br.alive);
+      const aliveBricks = bricks.filter(br => br.alive && !br.isTeleport);
       if (!aliveBricks.length) return;
       const targetCount = Math.min(aliveBricks.length, 2 + Math.floor(Math.random() * 3));
       const chosen = new Set();
@@ -844,7 +856,7 @@
 
     function assignExplosiveBricks() {
       if (!bricks.length) return;
-      const pool = bricks.slice();
+      const pool = bricks.filter(br => br.alive && !br.isTeleport);
       for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -860,6 +872,150 @@
       }
     }
 
+    function getTeleportBrickCountForLevel(currentLevel) {
+      if (currentLevel < 2) return 0;
+      const growth = Math.floor((currentLevel - 2) / 2);
+      return Math.min(6, 1 + growth);
+    }
+
+    function assignTeleportBricks() {
+      const desired = Math.min(getTeleportBrickCountForLevel(level), bricks.length);
+      if (desired <= 0) return;
+      const pool = bricks.slice();
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      let assigned = 0;
+      for (let i = 0; i < pool.length && assigned < desired; i++) {
+        const br = pool[i];
+        if (!br) continue;
+        br.isTeleport = true;
+        br.teleportActive = true;
+        br.teleportTimer = TELEPORT_BRICK_INTERVAL;
+        br.teleportFlashTimer = 0;
+        assigned++;
+      }
+    }
+
+    function updateTeleportBricks(dt) {
+      for (const br of bricks) {
+        if (!br || !br.alive || !br.isTeleport) continue;
+        if (!br.teleportActive) {
+          br.teleportActive = true;
+          if (!Number.isFinite(br.teleportTimer) || br.teleportTimer <= 0) {
+            br.teleportTimer = TELEPORT_BRICK_INTERVAL;
+          }
+        }
+        if (br.teleportFlashTimer > 0) {
+          br.teleportFlashTimer = Math.max(0, br.teleportFlashTimer - dt);
+        }
+        if (!Number.isFinite(br.teleportTimer)) {
+          br.teleportTimer = TELEPORT_BRICK_INTERVAL;
+        }
+        br.teleportTimer -= dt;
+        let safety = 0;
+        while (br.teleportTimer <= 0 && safety < 8) {
+          const moved = teleportBrickToRandomCell(br);
+          if (!moved) {
+            br.teleportTimer = TELEPORT_BRICK_INTERVAL;
+            break;
+          }
+          br.teleportTimer += TELEPORT_BRICK_INTERVAL;
+          safety++;
+        }
+      }
+    }
+
+    function teleportBrickToRandomCell(brick) {
+      const oldRow = brick.gridRow;
+      const oldCol = brick.gridCol;
+      if (brickGrid[oldRow] && brickGrid[oldRow][oldCol] === brick) {
+        brickGrid[oldRow][oldCol] = null;
+      }
+      const emptyCells = [];
+      const rowCount = brickGrid.length;
+      for (let r = 0; r < rowCount; r++) {
+        const rowData = brickGrid[r] || [];
+        for (let c = 0; c < BRICK_COLS; c++) {
+          const occupant = rowData[c];
+          const occupied = occupant && occupant !== brick && occupant.alive;
+          if (!occupied) {
+            emptyCells.push({ row: r, col: c });
+          }
+        }
+      }
+      if (!emptyCells.length) {
+        if (!brickGrid[oldRow]) brickGrid[oldRow] = [];
+        brickGrid[oldRow][oldCol] = brick;
+        return false;
+      }
+      let candidates = emptyCells;
+      if (candidates.length > 1) {
+        const filtered = candidates.filter(cell => cell.row !== oldRow || cell.col !== oldCol);
+        if (filtered.length) {
+          candidates = filtered;
+        }
+      }
+      const target = candidates[Math.floor(Math.random() * candidates.length)];
+      if (!target) {
+        if (!brickGrid[oldRow]) brickGrid[oldRow] = [];
+        brickGrid[oldRow][oldCol] = brick;
+        return false;
+      }
+      if (target.row === oldRow && target.col === oldCol) {
+        if (!brickGrid[oldRow]) brickGrid[oldRow] = [];
+        brickGrid[oldRow][oldCol] = brick;
+        return false;
+      }
+      if (!brickGrid[target.row]) brickGrid[target.row] = [];
+      const occupant = brickGrid[target.row][target.col];
+      if (occupant && occupant !== brick && occupant.alive) {
+        if (!brickGrid[oldRow]) brickGrid[oldRow] = [];
+        brickGrid[oldRow][oldCol] = brick;
+        return false;
+      }
+      brick.gridRow = target.row;
+      brick.gridCol = target.col;
+      brick.x = brickGridLeft + target.col * (BRICK_W + BRICK_GAP);
+      brick.y = brickGridTop + target.row * (BRICK_H + BRICK_GAP);
+      brickGrid[target.row][target.col] = brick;
+      brick.teleportFlashTimer = TELEPORT_FLASH_DURATION;
+      adjustBallsAfterTeleport(brick);
+      return true;
+    }
+
+    function adjustBallsAfterTeleport(brick) {
+      if (!balls.length) return;
+      const left = brick.x;
+      const right = brick.x + brick.w;
+      const top = brick.y;
+      const bottom = brick.y + brick.h;
+      for (const ball of balls) {
+        if (!ball) continue;
+        if (ball.x + BALL_R <= left || ball.x - BALL_R >= right || ball.y + BALL_R <= top || ball.y - BALL_R >= bottom) {
+          continue;
+        }
+        const overlaps = [];
+        const overlapLeft = (ball.x + BALL_R) - left;
+        if (overlapLeft > 0) overlaps.push({ axis: 'x', dir: -1, amount: overlapLeft });
+        const overlapRight = right - (ball.x - BALL_R);
+        if (overlapRight > 0) overlaps.push({ axis: 'x', dir: 1, amount: overlapRight });
+        const overlapTop = (ball.y + BALL_R) - top;
+        if (overlapTop > 0) overlaps.push({ axis: 'y', dir: -1, amount: overlapTop });
+        const overlapBottom = bottom - (ball.y - BALL_R);
+        if (overlapBottom > 0) overlaps.push({ axis: 'y', dir: 1, amount: overlapBottom });
+        if (!overlaps.length) continue;
+        overlaps.sort((a, b) => a.amount - b.amount);
+        const best = overlaps[0];
+        if (best.axis === 'x') {
+          ball.x += best.dir * best.amount;
+        } else {
+          ball.y += best.dir * best.amount;
+        }
+      }
+    }
+
     function getBrickAt(row, col) {
       if (row < 0 || col < 0) return null;
       const rowData = brickGrid[row];
@@ -868,7 +1024,8 @@
     }
 
     function awardBrickPoints(brick, ratio = 1) {
-      const multiplier = brick.maxShieldHealth > 0 ? SHIELDED_BRICK_MULTIPLIER : 1;
+      const teleportBonus = brick.isTeleport ? 1.5 : 1;
+      const multiplier = (brick.maxShieldHealth > 0 ? SHIELDED_BRICK_MULTIPLIER : 1) * teleportBonus;
       const rawPoints = brick.basePoints * multiplier * ratio;
       const awarded = Math.max(1, Math.round(rawPoints));
       score += awarded;
@@ -1413,6 +1570,12 @@
         increaseBallSpeedForBrickBreak(ball);
       }
       registerBrickCombo();
+      if (brickGrid[brick.gridRow] && brickGrid[brick.gridRow][brick.gridCol] === brick) {
+        brickGrid[brick.gridRow][brick.gridCol] = null;
+      }
+      if (brick.isTeleport) {
+        brick.teleportActive = false;
+      }
       if (triggeredByExplosion) {
         spawnBrickDebris(brick);
       }
@@ -1564,6 +1727,29 @@
         const drawX = br.x + (br.shakeOffsetX || 0);
         const drawY = br.y + (br.shakeOffsetY || 0);
         ctx.drawImage(br.img, drawX, drawY, br.w, br.h);
+        if (br.isTeleport) {
+          if (br.teleportFlashTimer > 0) {
+            const flashNormalized = Math.max(0, Math.min(1, br.teleportFlashTimer / TELEPORT_FLASH_DURATION));
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = TELEPORT_FLASH_MAX_ALPHA * flashNormalized;
+            const gradient = ctx.createRadialGradient(
+              drawX + br.w / 2,
+              drawY + br.h / 2,
+              Math.max(8, br.w * 0.2),
+              drawX + br.w / 2,
+              drawY + br.h / 2,
+              Math.max(br.w, br.h) * 0.9
+            );
+            gradient.addColorStop(0, 'rgba(0, 255, 255, 0.8)');
+            gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(drawX + br.w / 2, drawY + br.h / 2, Math.max(br.w, br.h), 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+        }
         if (br.explosive) {
           const glowPulse = Math.max(0, Math.min(1, br.explosiveGlowPulse || 0));
           if (glowPulse > 0.01) {
@@ -1723,6 +1909,10 @@
       if (paddleGrowTimer > 0) {
         paddleGrowTimer = Math.max(0, paddleGrowTimer - dt);
       }
+      if (!paused) {
+        updateTeleportBricks(dt);
+      }
+
       if (running && !paused) {
         updateComboTimer(dt);
         update(dt);

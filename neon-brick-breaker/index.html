@@ -153,6 +153,29 @@
       transform: translateY(0) scale(1);
     }
 
+    #portal-tag {
+      position: absolute;
+      top: 64px;
+      left: 50%;
+      transform: translate(-50%, -16px) scale(0.9);
+      padding: 6px 14px;
+      border-radius: 12px;
+      border: 2px solid var(--accent);
+      background: rgba(12, 6, 18, 0.8);
+      color: var(--accent);
+      text-shadow: 0 0 12px rgba(255, 62, 223, 0.8);
+      font-size: clamp(7px, 1.1vw, 12px);
+      letter-spacing: 1px;
+      opacity: 0;
+      transition: opacity 0.22s ease, transform 0.22s ease;
+      pointer-events: none;
+    }
+
+    #portal-tag.show {
+      opacity: 1;
+      transform: translate(-50%, 0) scale(1);
+    }
+
     #upgrade-banner {
       position: absolute;
       top: 22%;
@@ -296,6 +319,7 @@
         <canvas id="game" width="900" height="600"></canvas>
         <div id="upgrade-banner"></div>
         <div id="paddle-buff-tag" aria-hidden="true">Paddle Engaged</div>
+        <div id="portal-tag" aria-hidden="true">Portal Hop!</div>
         <div class="overlay" id="overlay">
           <div>
             <h2 id="ov-title">Neon Brick Breaker</h2>
@@ -342,10 +366,15 @@
     const hudEl = document.querySelector('.hud');
     const upgradeBanner = document.getElementById('upgrade-banner');
     const paddleBuffTag = document.getElementById('paddle-buff-tag');
+    const portalTag = document.getElementById('portal-tag');
     const muteBtn = document.getElementById('mute-btn');
 
     if (paddleBuffTag) {
       paddleBuffTag.setAttribute('aria-hidden', 'true');
+    }
+
+    if (portalTag) {
+      portalTag.setAttribute('aria-hidden', 'true');
     }
 
     const SOUNDTRACK_FILES = [
@@ -363,6 +392,7 @@
     let soundtrackQueue = [];
     let soundtrackStarted = false;
     let isMuted = false;
+    let portalTagTimeout = null;
 
     function shuffleTracks(list) {
       const arr = list.slice();
@@ -475,6 +505,11 @@
     const TELEPORT_BRICK_INTERVAL = 1.0;
     const TELEPORT_FLASH_DURATION = 0.3;
     const TELEPORT_FLASH_MAX_ALPHA = 0.45;
+    const PORTAL_MIN_LAUNCH_SPEED = 8 * 60;
+    const PORTAL_GRACE_PERIOD = 0.3;
+    const PORTAL_BONUS_POINTS = 35;
+    const PORTAL_VERTICAL_BAND_MIN = 0.25;
+    const PORTAL_VERTICAL_BAND_MAX = 0.5;
     const EXPLOSIVE_NEIGHBOR_CHANCE = 0.5;
     const EXPLOSIVE_POINT_RATIO = 0.5;
     const EXPLOSIVE_CRACK_DURATION = 0.65;
@@ -540,6 +575,7 @@
     let brickIdCounter = 0;
     let frameCounter = 0;
     let lastTime = 0;
+    let gameTime = 0;
     let magnetActive = false;
     let magnetTimer = 0;
     let magnetPulse = 0;
@@ -575,6 +611,7 @@
       showOverlay('Neon Brick Breaker', 'Tap/Click or press Space to launch');
       render();
       lastTime = 0;
+      gameTime = 0;
       requestAnimationFrame(loop);
       attachControls();
       resizeGame();
@@ -633,6 +670,8 @@
         lockedToPaddle,
         shieldHitFrame: -1,
         shieldHits: new Set(),
+        lastPortalId: null,
+        lastPortalTime: -Infinity,
       };
     }
 
@@ -803,6 +842,14 @@
       scoreEl.textContent = score;
       livesEl.textContent = lives;
       resetComboMultiplier();
+      if (portalTagTimeout) {
+        clearTimeout(portalTagTimeout);
+        portalTagTimeout = null;
+      }
+      if (portalTag) {
+        portalTag.classList.remove('show');
+        portalTag.setAttribute('aria-hidden', 'true');
+      }
       if (paddleBuff) {
         paddleBuff.reset();
         paddleWidth = paddleBuff.getCurrentWidth();
@@ -983,6 +1030,129 @@
       brick.teleportFlashTimer = TELEPORT_FLASH_DURATION;
       adjustBallsAfterTeleport(brick);
       return true;
+    }
+
+    function clamp(value, min, max) {
+      if (!Number.isFinite(value)) return min;
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function getTopMostBrickY() {
+      let top = Infinity;
+      for (const br of bricks) {
+        if (br && br.alive) {
+          top = Math.min(top, br.y);
+        }
+      }
+      return top === Infinity ? null : top;
+    }
+
+    function circleIntersectsRect(cx, cy, radius, rect) {
+      const closestX = clamp(cx, rect.x, rect.x + rect.w);
+      const closestY = clamp(cy, rect.y, rect.y + rect.h);
+      const dx = cx - closestX;
+      const dy = cy - closestY;
+      return dx * dx + dy * dy < radius * radius;
+    }
+
+    function isPortalSpawnPositionSafe(x, y) {
+      if (x < BALL_R || x > canvas.width - BALL_R) return false;
+      if (y < BALL_R || y > canvas.height - BALL_R) return false;
+      const radius = BALL_R;
+      for (const br of bricks) {
+        if (!br || !br.alive) continue;
+        if (circleIntersectsRect(x, y, radius, br)) return false;
+      }
+      if (SPECIAL_BAR && SPECIAL_BAR.hp > 0) {
+        const specialRect = { x: SPECIAL_BAR.x, y: SPECIAL_BAR.y, w: SPECIAL_BAR.w, h: SPECIAL_BAR.h };
+        if (circleIntersectsRect(x, y, radius, specialRect)) return false;
+      }
+      for (const bar of splitBars) {
+        if (!bar || bar.hp <= 0) continue;
+        if (circleIntersectsRect(x, y, radius, bar)) return false;
+      }
+      return true;
+    }
+
+    function findPortalSpawnPosition(ball) {
+      const bandMin = canvas.height * PORTAL_VERTICAL_BAND_MIN;
+      const bandMax = canvas.height * PORTAL_VERTICAL_BAND_MAX;
+      let spawnY = bandMin + Math.random() * Math.max(0.0001, bandMax - bandMin);
+      const topMost = getTopMostBrickY();
+      if (topMost !== null) {
+        spawnY = Math.min(spawnY, topMost + BRICK_H);
+      }
+      spawnY = Math.max(BALL_R * 1.5, spawnY);
+      const leftBound = BALL_R;
+      const rightBound = canvas.width - BALL_R;
+      let fallbackX = clamp(ball ? ball.x : canvas.width / 2, leftBound, rightBound);
+      const attempts = 48;
+      for (let i = 0; i < attempts; i++) {
+        const candidateX = leftBound + Math.random() * (rightBound - leftBound);
+        if (isPortalSpawnPositionSafe(candidateX, spawnY)) {
+          return { x: candidateX, y: spawnY };
+        }
+      }
+      const segmentCount = Math.max(1, BRICK_COLS * 2);
+      for (let i = 0; i < segmentCount; i++) {
+        const ratio = (i + 0.5) / (segmentCount + 0.5);
+        const candidateX = leftBound + ratio * (rightBound - leftBound);
+        if (isPortalSpawnPositionSafe(candidateX, spawnY)) {
+          return { x: candidateX, y: spawnY };
+        }
+      }
+      if (isPortalSpawnPositionSafe(fallbackX, spawnY)) {
+        return { x: fallbackX, y: spawnY };
+      }
+      for (let i = 0; i < attempts; i++) {
+        const offset = (i % 2 === 0 ? 1 : -1) * Math.ceil(i / 2) * BALL_R * 1.5;
+        const candidateX = clamp(fallbackX + offset, leftBound, rightBound);
+        if (isPortalSpawnPositionSafe(candidateX, spawnY)) {
+          return { x: candidateX, y: spawnY };
+        }
+      }
+      return { x: fallbackX, y: spawnY };
+    }
+
+    function handlePortalCollision(ball, brick) {
+      if (!brick.teleportActive) return false;
+      if (ball.lastPortalId === brick.id && (gameTime - ball.lastPortalTime) < PORTAL_GRACE_PERIOD) {
+        return false;
+      }
+      const spawn = findPortalSpawnPosition(ball);
+      teleportBallThroughPortal(ball, brick, spawn);
+      brick.teleportFlashTimer = TELEPORT_FLASH_DURATION;
+      score += PORTAL_BONUS_POINTS;
+      scoreEl.textContent = score;
+      showPortalTag();
+      return true;
+    }
+
+    function teleportBallThroughPortal(ball, brick, spawn) {
+      ball.x = spawn.x;
+      ball.y = spawn.y;
+      ball.lockedToPaddle = false;
+      const currentSpeed = Math.hypot(ball.vx, ball.vy);
+      const baseline = minimumBallSpeed === null ? 0 : minimumBallSpeed;
+      const speed = Math.max(currentSpeed, baseline, PORTAL_MIN_LAUNCH_SPEED);
+      const angleDeg = 25 + Math.random() * 40;
+      const angleRad = angleDeg * (Math.PI / 180);
+      const direction = Math.random() < 0.5 ? -1 : 1;
+      ball.vx = Math.cos(angleRad) * speed * direction;
+      ball.vy = -Math.abs(Math.sin(angleRad) * speed);
+      ball.lastPortalId = brick.id;
+      ball.lastPortalTime = gameTime;
+      if (ball.shieldHits && typeof ball.shieldHits.clear === 'function') {
+        ball.shieldHits.clear();
+      }
+      const resultingSpeed = Math.hypot(ball.vx, ball.vy);
+      if (resultingSpeed > 0) {
+        minimumBallSpeed = minimumBallSpeed === null
+          ? resultingSpeed
+          : Math.max(minimumBallSpeed, resultingSpeed);
+      }
+      captureInitialBallSpeed(ball);
+      enforceMinimumBallSpeed(ball);
     }
 
     function adjustBallsAfterTeleport(brick) {
@@ -1490,6 +1660,16 @@
           if (!br.alive) continue;
           if (ball.x + BALL_R > br.x && ball.x - BALL_R < br.x + br.w &&
               ball.y + BALL_R > br.y && ball.y - BALL_R < br.y + br.h) {
+            if (br.isTeleport) {
+              if (ball.lastPortalId === br.id && (gameTime - ball.lastPortalTime) < PORTAL_GRACE_PERIOD) {
+                continue;
+              }
+              const portalHandled = handlePortalCollision(ball, br);
+              if (portalHandled) {
+                enforceMinimumBallSpeed(ball);
+                break;
+              }
+            }
             const prevX = prevBallX;
             const prevY = prevBallY;
             const wasAbove = prevY + BALL_R <= br.y;
@@ -1702,6 +1882,20 @@
       upgradeBanner.classList.add('show');
     }
 
+    function showPortalTag() {
+      if (!portalTag) return;
+      if (portalTagTimeout) {
+        clearTimeout(portalTagTimeout);
+      }
+      portalTag.classList.add('show');
+      portalTag.setAttribute('aria-hidden', 'false');
+      portalTagTimeout = setTimeout(() => {
+        portalTag.classList.remove('show');
+        portalTag.setAttribute('aria-hidden', 'true');
+        portalTagTimeout = null;
+      }, 1200);
+    }
+
     function drawNeonGrid() {
       // subtle glow grid for retro vibe
       ctx.save();
@@ -1886,6 +2080,7 @@
       if (!lastTime) lastTime = timestamp;
       const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
       lastTime = timestamp;
+      gameTime += dt;
 
       updateExplosionShockwaves(dt);
       updateBrickDebris(dt);

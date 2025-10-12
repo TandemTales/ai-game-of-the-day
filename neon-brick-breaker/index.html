@@ -333,6 +333,13 @@
     let soundtrackStarted = false;
     let isMuted = false;
 
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    let audioSourceNode = null;
+    let audioAnalyser = null;
+    let audioDataArray = null;
+    let audioGlowLevel = 0;
+
     function shuffleTracks(list) {
       const arr = list.slice();
       for (let i = arr.length - 1; i > 0; i--) {
@@ -346,6 +353,62 @@
       soundtrackQueue = shuffleTracks(SOUNDTRACK_FILES);
     }
 
+    function setupAudioAnalyser() {
+      if (!AudioContextClass) return;
+      if (!audioCtx) {
+        try {
+          audioCtx = new AudioContextClass();
+        } catch (err) {
+          console.warn('Unable to create audio context for analyser', err);
+          audioCtx = null;
+          return;
+        }
+      }
+      if (audioSourceNode || !audioCtx) return;
+      try {
+        audioSourceNode = audioCtx.createMediaElementSource(backgroundAudio);
+        audioAnalyser = audioCtx.createAnalyser();
+        audioAnalyser.fftSize = 256;
+        audioAnalyser.smoothingTimeConstant = 0.8;
+        audioDataArray = new Uint8Array(audioAnalyser.frequencyBinCount);
+        audioSourceNode.connect(audioAnalyser);
+        audioAnalyser.connect(audioCtx.destination);
+      } catch (err) {
+        console.warn('Audio analyser setup failed', err);
+        audioSourceNode = null;
+        audioAnalyser = null;
+        audioDataArray = null;
+      }
+    }
+
+    function resumeAudioContext() {
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(() => {});
+      }
+    }
+
+    function updateAudioReactiveGlow() {
+      if (isMuted || backgroundAudio.paused) {
+        audioGlowLevel *= 0.88;
+        return;
+      }
+      if (audioAnalyser && audioDataArray) {
+        audioAnalyser.getByteFrequencyData(audioDataArray);
+        let sum = 0;
+        let max = 0;
+        for (let i = 0; i < audioDataArray.length; i++) {
+          const val = audioDataArray[i];
+          sum += val;
+          if (val > max) max = val;
+        }
+        const avg = sum / audioDataArray.length;
+        const normalized = Math.min(1, (avg * 0.6 + max * 0.4) / 255);
+        audioGlowLevel = audioGlowLevel * 0.78 + normalized * 0.22;
+      } else {
+        audioGlowLevel *= 0.9;
+      }
+    }
+
     function playNextTrack() {
       if (!SOUNDTRACK_FILES.length) return;
       if (!soundtrackQueue.length) refreshSoundtrackQueue();
@@ -354,6 +417,8 @@
       backgroundAudio.src = nextSrc;
       backgroundAudio.currentTime = 0;
       backgroundAudio.muted = isMuted;
+      setupAudioAnalyser();
+      resumeAudioContext();
       const playPromise = backgroundAudio.play();
       if (playPromise) {
         playPromise.catch(() => {
@@ -370,6 +435,8 @@
     function ensureSoundtrackStarted() {
       if (soundtrackStarted || !SOUNDTRACK_FILES.length) return;
       soundtrackStarted = true;
+      setupAudioAnalyser();
+      resumeAudioContext();
       playNextTrack();
     }
 
@@ -388,6 +455,8 @@
         updateMuteButton();
         if (!isMuted) {
           ensureSoundtrackStarted();
+          setupAudioAnalyser();
+          resumeAudioContext();
         }
       });
     }
@@ -460,6 +529,8 @@
         if (e.code === 'Space') launch();
         if (e.code === 'KeyP') togglePause();
         ensureSoundtrackStarted();
+        setupAudioAnalyser();
+        resumeAudioContext();
       });
       window.addEventListener('keyup', (e) => {
         if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = false;
@@ -474,7 +545,13 @@
         paddleX = Math.max(0, Math.min(canvas.width - PADDLE_W, cx - PADDLE_W/2));
       }
       [canvas, overlayEl].forEach(el => {
-        el.addEventListener('pointerdown', (e) => { movePaddle(e); launch(); ensureSoundtrackStarted(); });
+        el.addEventListener('pointerdown', (e) => {
+          movePaddle(e);
+          launch();
+          ensureSoundtrackStarted();
+          setupAudioAnalyser();
+          resumeAudioContext();
+        });
         el.addEventListener('pointermove', movePaddle);
       });
     }
@@ -935,10 +1012,39 @@
       ctx.clearRect(0,0,canvas.width,canvas.height);
       drawNeonGrid();
 
+      const now = performance.now();
+      const reactiveLevel = Math.min(1, Math.max(0, audioGlowLevel));
+
       // Draw bricks
       for (const br of bricks) {
         if (!br.alive) continue;
         ctx.drawImage(br.img, br.x, br.y, br.w, br.h);
+
+        if (reactiveLevel > 0.01) {
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          const shimmer = Math.sin((now / 1000) * 6 + (br.x + br.y) * 0.015) * 0.05;
+          const alpha = Math.min(0.88, Math.max(0, 0.18 + reactiveLevel * 1.6 + shimmer));
+          ctx.globalAlpha = alpha;
+          const glowX = br.x + br.w / 2;
+          const glowY = br.y + br.h / 2;
+          const innerRadius = Math.max(6, br.h * 0.35);
+          const outerRadius = Math.max(br.w, br.h) * 1.05;
+          const gradient = ctx.createRadialGradient(glowX, glowY, innerRadius, glowX, glowY, outerRadius);
+          gradient.addColorStop(0, 'rgba(0, 255, 255, 0.95)');
+          gradient.addColorStop(0.45, 'rgba(0, 180, 255, 0.6)');
+          gradient.addColorStop(1, 'rgba(255, 62, 223, 0)');
+          ctx.fillStyle = gradient;
+          if (typeof ctx.ellipse === 'function') {
+            ctx.beginPath();
+            ctx.ellipse(glowX, glowY, br.w * 0.72, br.h * 1.4, 0, 0, Math.PI * 2);
+            ctx.fill();
+          } else {
+            ctx.fillRect(br.x - br.w * 0.2, br.y - br.h * 0.3, br.w * 1.4, br.h * 1.6);
+          }
+          ctx.restore();
+        }
+
         if (br.embeddedBall && !br.embeddedBallReleased) {
           ctx.save();
           ctx.globalAlpha = 0.85;
@@ -994,6 +1100,7 @@
       }
 
       updateMagnet(dt);
+      updateAudioReactiveGlow();
       if (running && !paused) update(dt);
       render();
       requestAnimationFrame(loop);

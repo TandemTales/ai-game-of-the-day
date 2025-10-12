@@ -484,6 +484,12 @@
     const BRICK_SHAKE_DURATION = 0.3;
     const BRICK_SHAKE_INTENSITY = 6;
     const BRICK_SHAKE_FREQUENCY = 46;
+    const EXPLOSIVE_GLOW_SPEED = 3.4;
+    const EXPLOSIVE_GLOW_MIN_ALPHA = 0.18;
+    const EXPLOSIVE_GLOW_MAX_ALPHA = 0.55;
+    const EXPLOSIVE_WARNING_INTERVAL_MIN = 1.6;
+    const EXPLOSIVE_WARNING_INTERVAL_MAX = 3.4;
+    const EXPLOSIVE_WARNING_SHAKE_MULTIPLIER = 0.65;
     const EXPLOSION_DEBRIS_COUNT = 16;
     const EXPLOSION_DEBRIS_LIFE = 0.65;
     const SHIELDED_BASE_CHANCE = 0.2;
@@ -764,6 +770,9 @@
             gridRow: r,
             gridCol: c,
             explosive: false,
+            explosiveGlowPhase: Math.random() * Math.PI * 2,
+            explosiveGlowPulse: 0,
+            explosiveWarningTimer: 0,
             lastExplosionFrame: -1,
             crackTimer: 0,
             shakeTimer: 0,
@@ -828,6 +837,11 @@
       }
     }
 
+    function getExplosiveWarningDelay() {
+      const range = EXPLOSIVE_WARNING_INTERVAL_MAX - EXPLOSIVE_WARNING_INTERVAL_MIN;
+      return EXPLOSIVE_WARNING_INTERVAL_MIN + Math.random() * Math.max(0.0001, range);
+    }
+
     function assignExplosiveBricks() {
       if (!bricks.length) return;
       const pool = bricks.slice();
@@ -840,6 +854,8 @@
         const br = pool[i];
         if (br) {
           br.explosive = true;
+          br.explosiveGlowPulse = 0.8;
+          br.explosiveWarningTimer = getExplosiveWarningDelay();
         }
       }
     }
@@ -884,6 +900,8 @@
       if (!brick || !brick.explosive) return;
       if (brick.lastExplosionFrame === frameCounter) return;
       brick.lastExplosionFrame = frameCounter;
+      brick.explosiveGlowPulse = 1;
+      brick.explosiveWarningTimer = getExplosiveWarningDelay();
       const centerX = brick.x + brick.w / 2;
       const centerY = brick.y + brick.h / 2;
       spawnExplosionParticles(centerX, centerY);
@@ -1119,6 +1137,28 @@
             br.shakeOffsetY = 0;
             br.shakeIntensity = 0;
           }
+        }
+        if (br.explosive) {
+          if (!Number.isFinite(br.explosiveGlowPhase)) {
+            br.explosiveGlowPhase = Math.random() * Math.PI * 2;
+          }
+          br.explosiveGlowPhase = (br.explosiveGlowPhase + dt * EXPLOSIVE_GLOW_SPEED) % (Math.PI * 2);
+          const basePulse = (Math.sin(br.explosiveGlowPhase) + 1) / 2;
+          const flicker = (Math.sin(br.explosiveGlowPhase * 3.1) + 1) / 2 * 0.35;
+          const normalized = Math.min(1, Math.max(0, Math.pow(basePulse, 1.4) * (0.7 + flicker)));
+          br.explosiveGlowPulse = normalized;
+          if (!Number.isFinite(br.explosiveWarningTimer) || br.explosiveWarningTimer <= 0) {
+            br.explosiveWarningTimer = getExplosiveWarningDelay();
+          } else {
+            br.explosiveWarningTimer -= dt;
+            if (br.explosiveWarningTimer <= 0) {
+              br.explosiveWarningTimer = getExplosiveWarningDelay();
+              br.explosiveGlowPulse = 1;
+              applyShake(br, EXPLOSIVE_WARNING_SHAKE_MULTIPLIER + Math.random() * 0.35);
+            }
+          }
+        } else if (br.explosiveGlowPulse) {
+          br.explosiveGlowPulse = Math.max(0, br.explosiveGlowPulse - dt * 1.2);
         }
         if (br.crackTimer > 0) {
           br.crackTimer = Math.max(0, br.crackTimer - dt);
@@ -1524,6 +1564,43 @@
         const drawX = br.x + (br.shakeOffsetX || 0);
         const drawY = br.y + (br.shakeOffsetY || 0);
         ctx.drawImage(br.img, drawX, drawY, br.w, br.h);
+        if (br.explosive) {
+          const glowPulse = Math.max(0, Math.min(1, br.explosiveGlowPulse || 0));
+          if (glowPulse > 0.01) {
+            const glowStrength = EXPLOSIVE_GLOW_MIN_ALPHA + glowPulse * (EXPLOSIVE_GLOW_MAX_ALPHA - EXPLOSIVE_GLOW_MIN_ALPHA);
+            const glowX = drawX + br.w / 2;
+            const glowY = drawY + br.h / 2;
+            const innerRadius = Math.max(6, Math.min(br.w, br.h) * 0.3);
+            const outerRadius = Math.max(br.w, br.h) * 1.1;
+            const gradient = ctx.createRadialGradient(glowX, glowY, innerRadius, glowX, glowY, outerRadius);
+            gradient.addColorStop(0, 'rgba(255, 120, 120, 1)');
+            gradient.addColorStop(0.45, 'rgba(255, 60, 60, 0.7)');
+            gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = glowStrength;
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(glowX, glowY, outerRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            ctx.save();
+            ctx.globalAlpha = glowStrength * 0.8;
+            ctx.fillStyle = 'rgba(255, 40, 40, 0.85)';
+            ctx.fillRect(drawX, drawY, br.w, br.h);
+            ctx.restore();
+
+            if (glowPulse > 0.65) {
+              ctx.save();
+              ctx.globalAlpha = glowStrength * 0.75;
+              ctx.strokeStyle = 'rgba(255, 160, 160, 1)';
+              ctx.lineWidth = 2;
+              ctx.strokeRect(drawX - 1, drawY - 1, br.w + 2, br.h + 2);
+              ctx.restore();
+            }
+          }
+        }
         if (br.maxShieldHealth > 0 && (br.shieldHealth > 0 || br.shieldFade > 0.01)) {
           const pulse = 0.75 + Math.sin(br.shieldGlowPhase * 2) * 0.25;
           const overlayStrength = br.shieldHealth > 0 ? 0.22 : 0.18 * br.shieldFade;

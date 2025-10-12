@@ -319,8 +319,8 @@
       y: 42,
       speed: 3.4 * 60,
       dir: 1,
-      maxHp: 3,
-      hp: 3,
+      maxHp: 1,
+      hp: 1,
       stateIndex: 0,
       stateTime: 0,
       flashTimer: 0.12,
@@ -637,7 +637,7 @@
 
       enforceMinimumBallSpeed();
 
-      if (remaining === 0) {
+      if (remaining === 0 && splitBars.length === 0) {
         // Next level
         score += 200; scoreEl.textContent = score;
         running = false;
@@ -861,6 +861,7 @@
       } else if (splitBars.length) {
         ctx.save();
         for (const bar of splitBars) {
+          if (bar.hp <= 0) continue;
           ctx.shadowColor = 'rgba(255, 80, 60, 0.55)';
           ctx.shadowBlur = 14;
           ctx.fillStyle = 'rgba(255, 70, 70, 0.9)';
@@ -933,8 +934,8 @@
       const leftStart = Math.max(16, center - gap / 2 - segmentWidth);
       const rightStart = Math.min(canvas.width - segmentWidth - 16, center + gap / 2);
       splitBars = [
-        { x: leftStart, y: SPECIAL_BAR.y, w: segmentWidth, h: SPECIAL_BAR.h, dir: -1, speed: baseSpeed },
-        { x: rightStart, y: SPECIAL_BAR.y, w: segmentWidth, h: SPECIAL_BAR.h, dir: 1, speed: baseSpeed }
+        { x: leftStart, y: SPECIAL_BAR.y, w: segmentWidth, h: SPECIAL_BAR.h, dir: -1, speed: baseSpeed, hp: 1, maxHp: 1 },
+        { x: rightStart, y: SPECIAL_BAR.y, w: segmentWidth, h: SPECIAL_BAR.h, dir: 1, speed: baseSpeed, hp: 1, maxHp: 1 }
       ];
     }
 
@@ -942,6 +943,7 @@
       const leftWall = 16;
       const rightWall = canvas.width - 16;
       for (const bar of splitBars) {
+        if (bar.hp <= 0) continue;
         bar.x += bar.speed * bar.dir * dt;
         if (bar.x <= leftWall) {
           bar.x = leftWall;
@@ -971,6 +973,7 @@
           right.dir = 1;
         }
       }
+      cleanupSplitBars();
     }
 
     function handleSpecialBarDestroyed() {
@@ -1000,6 +1003,7 @@
 
     function handleSplitBarsCollision() {
       for (const bar of splitBars) {
+        if (bar.hp <= 0) continue;
         const barTop = bar.y;
         const barBottom = bar.y + bar.h;
         const barLeft = bar.x;
@@ -1010,8 +1014,20 @@
           const offset = (ballX - (barLeft + bar.w / 2)) / (bar.w / 2);
           ballVX += offset * 1.1 * 60;
           enforceMinimumBallSpeed();
+          bar.hp = Math.max(0, bar.hp - 1);
+          if (bar.hp <= 0) {
+            score += 50;
+            scoreEl.textContent = score;
+          }
+          break;
         }
       }
+      cleanupSplitBars();
+    }
+
+    function cleanupSplitBars() {
+      if (!splitBars.length) return;
+      splitBars = splitBars.filter(bar => bar.hp > 0);
     }
 
     function resizeGame() {

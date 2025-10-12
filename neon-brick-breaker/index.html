@@ -558,6 +558,15 @@
       flashVisible: true
     };
 
+    const WALL_BUMP_SETTINGS = {
+      radius: 28,
+      topOffset: 60,
+      bottomOffset: 80,
+      sparkleLife: 0.45,
+    };
+    const WALL_BUMP_SCORE = 25;
+    const WALL_BUMP_REFLECT_COOLDOWN = 0.25;
+
     let splitBars = [];
 
     // Game state
@@ -583,6 +592,9 @@
     const explosionParticles = [];
     const explosionShockwaves = [];
     const brickDebrisParticles = [];
+    const bumpSparkles = [];
+
+    let wallBumps = [];
 
     const paddleBuff = typeof createPaddleSizeBuffManager === 'function'
       ? createPaddleSizeBuffManager({
@@ -862,6 +874,7 @@
         }
       }
       paddleX = (canvas.width - paddleWidth) / 2;
+      setupWallBumps();
       balls = [createBall(paddleX + paddleWidth / 2, PADDLE_Y - BALL_R - 2, true)];
       running = false; paused = false;
       minimumBallSpeed = null;
@@ -1328,6 +1341,154 @@
       }
     }
 
+    function computeWallBumpSpacingForLevel(levelValue) {
+      const step = Math.floor(Math.max(0, levelValue - 1) / 2);
+      return Math.max(80, 200 - step * 10);
+    }
+
+    function createWallBump(wall, y, id) {
+      return {
+        id,
+        wall,
+        y,
+        radius: WALL_BUMP_SETTINGS.radius,
+        cooldown: 0,
+      };
+    }
+
+    function setupWallBumps() {
+      wallBumps = [];
+      const spacing = computeWallBumpSpacingForLevel(level);
+      const startY = WALL_BUMP_SETTINGS.topOffset;
+      const endY = canvas.height - WALL_BUMP_SETTINGS.bottomOffset;
+      if (endY <= startY) return;
+      let index = 0;
+      for (let y = startY; y <= endY; y += spacing) {
+        wallBumps.push(createWallBump('left', y, index++));
+        wallBumps.push(createWallBump('right', y, index++));
+      }
+    }
+
+    function updateWallBumps(dt) {
+      if (!wallBumps.length) return;
+      for (const bump of wallBumps) {
+        if (bump.cooldown > 0) {
+          bump.cooldown = Math.max(0, bump.cooldown - dt);
+        }
+      }
+    }
+
+    function spawnBumpSparkle(x, y) {
+      const count = 6 + Math.floor(Math.random() * 4);
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 90 + Math.random() * 70;
+        const life = WALL_BUMP_SETTINGS.sparkleLife * (0.65 + Math.random() * 0.5);
+        bumpSparkles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life,
+          maxLife: life,
+          radius: 5 + Math.random() * 3,
+        });
+      }
+    }
+
+    function updateBumpSparkles(dt) {
+      for (let i = bumpSparkles.length - 1; i >= 0; i--) {
+        const p = bumpSparkles[i];
+        p.life -= dt;
+        if (p.life <= 0) {
+          bumpSparkles.splice(i, 1);
+          continue;
+        }
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vx *= 0.86;
+        p.vy *= 0.86;
+      }
+    }
+
+    function renderWallBumps() {
+      if (!wallBumps.length) return;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(0, 255, 255, 0.22)';
+      ctx.lineWidth = 3;
+      ctx.shadowBlur = 18;
+      ctx.shadowColor = 'rgba(0, 255, 255, 0.35)';
+      for (const bump of wallBumps) {
+        const cx = bump.wall === 'left'
+          ? bump.radius
+          : canvas.width - bump.radius;
+        const startAngle = bump.wall === 'left' ? -Math.PI / 2 : Math.PI / 2;
+        const endAngle = bump.wall === 'left' ? Math.PI / 2 : -Math.PI / 2;
+        ctx.beginPath();
+        ctx.arc(cx, bump.y, bump.radius, startAngle, endAngle, bump.wall === 'right');
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function renderBumpSparkles() {
+      if (!bumpSparkles.length) return;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      for (const p of bumpSparkles) {
+        const lifeRatio = Math.max(0, p.life / p.maxLife);
+        const radius = p.radius * (0.6 + lifeRatio * 0.6);
+        const gradient = ctx.createRadialGradient(p.x, p.y, radius * 0.2, p.x, p.y, radius);
+        gradient.addColorStop(0, `rgba(255, 255, 255, ${0.65 * lifeRatio + 0.2})`);
+        gradient.addColorStop(0.45, `rgba(0, 255, 255, ${0.55 * lifeRatio + 0.1})`);
+        gradient.addColorStop(1, 'rgba(255, 62, 223, 0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function handleWallBumpCollision(ball) {
+      if (!wallBumps.length) return false;
+      let collided = false;
+      for (const bump of wallBumps) {
+        const cx = bump.wall === 'left'
+          ? bump.radius
+          : canvas.width - bump.radius;
+        const cy = bump.y;
+        const dx = ball.x - cx;
+        const dy = ball.y - cy;
+        const dist = Math.hypot(dx, dy);
+        const target = bump.radius + BALL_R - 1.5;
+        if (dist > target) continue;
+        const normalX = dist === 0 ? (bump.wall === 'left' ? 1 : -1) : dx / dist;
+        const normalY = dist === 0 ? 0 : dy / dist;
+        const dot = ball.vx * normalX + ball.vy * normalY;
+        if (dot > 0) {
+          ball.vx = Math.abs(ball.vx) * (bump.wall === 'left' ? 1 : -1);
+        } else {
+          ball.vx -= 2 * dot * normalX;
+          ball.vy -= 2 * dot * normalY;
+        }
+        const separation = target + 1;
+        ball.x = cx + normalX * separation;
+        ball.y = cy + normalY * separation;
+        collided = true;
+
+        if (bump.cooldown <= 0) {
+          bump.cooldown = WALL_BUMP_REFLECT_COOLDOWN;
+          score += WALL_BUMP_SCORE;
+          scoreEl.textContent = score;
+          registerBrickCombo();
+          spawnBumpSparkle(ball.x, ball.y);
+        }
+        enforceMinimumBallSpeed(ball);
+      }
+      return collided;
+    }
+
     function updateExplosionParticles(dt) {
       for (let i = explosionParticles.length - 1; i >= 0; i--) {
         const p = explosionParticles[i];
@@ -1572,8 +1733,16 @@
         const prevBallY = ball.y;
         ball.x += ball.vx * dt; ball.y += ball.vy * dt;
 
-        if (ball.x - BALL_R < 0) { ball.x = BALL_R; ball.vx *= -1; }
-        if (ball.x + BALL_R > canvas.width) { ball.x = canvas.width - BALL_R; ball.vx *= -1; }
+        const hitBump = handleWallBumpCollision(ball);
+
+        if (!hitBump && ball.x - BALL_R < 0) {
+          ball.x = BALL_R;
+          ball.vx *= -1;
+        }
+        if (!hitBump && ball.x + BALL_R > canvas.width) {
+          ball.x = canvas.width - BALL_R;
+          ball.vx *= -1;
+        }
         if (ball.y - BALL_R < 0) { ball.y = BALL_R; ball.vy *= -1; }
 
         if (SPECIAL_BAR.hp > 0) {
@@ -1914,6 +2083,7 @@
     function render() {
       ctx.clearRect(0,0,canvas.width,canvas.height);
       drawNeonGrid();
+      renderWallBumps();
 
       // Draw bricks
       for (const br of bricks) {
@@ -2038,6 +2208,7 @@
       renderExplosionShockwaves();
       renderBrickDebris();
       renderExplosionParticles();
+      renderBumpSparkles();
 
       drawSpecialBar();
 
@@ -2085,6 +2256,8 @@
       updateExplosionShockwaves(dt);
       updateBrickDebris(dt);
       updateExplosionParticles(dt);
+      updateBumpSparkles(dt);
+      updateWallBumps(dt);
 
       if (SPECIAL_BAR.hp > 0) {
         updateSpecialBarState(dt);

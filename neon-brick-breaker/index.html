@@ -333,6 +333,10 @@
     let soundtrackStarted = false;
     let isMuted = false;
 
+    const MIN_PLAYBACK_RATE = 0.9;
+    const MAX_PLAYBACK_RATE = 1.4;
+    let targetPlaybackRate = 1;
+
     function shuffleTracks(list) {
       const arr = list.slice();
       for (let i = arr.length - 1; i > 0; i--) {
@@ -346,6 +350,10 @@
       soundtrackQueue = shuffleTracks(SOUNDTRACK_FILES);
     }
 
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
     function playNextTrack() {
       if (!SOUNDTRACK_FILES.length) return;
       if (!soundtrackQueue.length) refreshSoundtrackQueue();
@@ -353,6 +361,7 @@
       if (!nextSrc) return;
       backgroundAudio.src = nextSrc;
       backgroundAudio.currentTime = 0;
+      backgroundAudio.playbackRate = clamp(targetPlaybackRate, MIN_PLAYBACK_RATE, MAX_PLAYBACK_RATE);
       backgroundAudio.muted = isMuted;
       const playPromise = backgroundAudio.play();
       if (playPromise) {
@@ -431,6 +440,7 @@
     let paddleX = (canvas.width - PADDLE_W) / 2;
     let balls = [];
     let minimumBallSpeed = null;
+    let baselineBallSpeed = null;
     let bricks = [];
     let lastTime = 0;
     let magnetActive = false;
@@ -503,7 +513,10 @@
     function captureInitialBallSpeed(ball) {
       if (minimumBallSpeed === null) {
         const speed = Math.hypot(ball.vx, ball.vy);
-        if (speed > 0) minimumBallSpeed = speed;
+        if (speed > 0) {
+          minimumBallSpeed = speed;
+          if (baselineBallSpeed === null) baselineBallSpeed = speed;
+        }
       }
     }
 
@@ -564,6 +577,9 @@
       balls = [createBall(paddleX + PADDLE_W / 2, PADDLE_Y - BALL_R - 2, true)];
       running = false; paused = false;
       minimumBallSpeed = null;
+      baselineBallSpeed = null;
+      targetPlaybackRate = 1;
+      backgroundAudio.playbackRate = 1;
       SPECIAL_BAR.x = (canvas.width - SPECIAL_BAR.w) / 2;
       SPECIAL_BAR.dir = Math.random() > 0.5 ? 1 : -1;
       SPECIAL_BAR.speed = (3.4 + Math.min(level - 1, 6) * 0.35) * 60;
@@ -790,6 +806,9 @@
           magnetPulse = 0;
           magnetLockedSpeed = null;
           minimumBallSpeed = null;
+          baselineBallSpeed = null;
+          targetPlaybackRate = 1;
+          backgroundAudio.playbackRate = 1;
         }
         return;
       }
@@ -995,8 +1014,39 @@
 
       updateMagnet(dt);
       if (running && !paused) update(dt);
+      updateSoundtrackPlaybackRate(dt);
       render();
       requestAnimationFrame(loop);
+    }
+
+    function updateSoundtrackPlaybackRate(dt) {
+      if (!soundtrackStarted) return;
+      if (!baselineBallSpeed || baselineBallSpeed <= 0) return;
+
+      let desiredRate = 1;
+      let fastestSpeed = 0;
+      let activeCount = 0;
+
+      for (const ball of balls) {
+        if (ball.lockedToPaddle) continue;
+        activeCount++;
+        const speed = Math.hypot(ball.vx, ball.vy);
+        if (speed > fastestSpeed) fastestSpeed = speed;
+      }
+
+      if (activeCount > 0 && fastestSpeed > 0) {
+        const ratio = fastestSpeed / baselineBallSpeed;
+        desiredRate = clamp(1 + (ratio - 1) * 0.55, MIN_PLAYBACK_RATE, MAX_PLAYBACK_RATE);
+      }
+
+      targetPlaybackRate = desiredRate;
+
+      const smoothing = clamp(dt * 6, 0, 1);
+      const currentRate = backgroundAudio.playbackRate || 1;
+      const blendedRate = currentRate + (targetPlaybackRate - currentRate) * smoothing;
+      if (Number.isFinite(blendedRate)) {
+        backgroundAudio.playbackRate = clamp(blendedRate, MIN_PLAYBACK_RATE, MAX_PLAYBACK_RATE);
+      }
     }
 
     function updateMagnet(dt) {

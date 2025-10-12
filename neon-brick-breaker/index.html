@@ -317,10 +317,11 @@
     const imgBall = new Image();   imgBall.src   = 'assets/neon_ball.svg';
     const imgBrick1 = new Image(); imgBrick1.src = 'assets/neon_brick_blue.svg';
     const imgBrick2 = new Image(); imgBrick2.src = 'assets/neon_brick_pink.svg';
+    const imgBrickCrack = new Image(); imgBrickCrack.src = 'assets/neon_brick_shield_crack.svg';
 
     let assetsLoaded = 0;
-    const needed = 4;
-    [imgPaddle, imgBall, imgBrick1, imgBrick2].forEach(img => {
+    const needed = 5;
+    [imgPaddle, imgBall, imgBrick1, imgBrick2, imgBrickCrack].forEach(img => {
       img.addEventListener('load', () => {
         assetsLoaded++;
         if (assetsLoaded === needed) init();
@@ -411,13 +412,44 @@
 
     updateMuteButton();
 
+    const ShieldAudioContext = window.AudioContext || window.webkitAudioContext || null;
+    const shieldAudioCtx = ShieldAudioContext ? new ShieldAudioContext({ latencyHint: 'interactive' }) : null;
+
+    function resumeShieldAudio() {
+      if (!shieldAudioCtx) return;
+      if (shieldAudioCtx.state === 'suspended') {
+        shieldAudioCtx.resume().catch(() => {});
+      }
+    }
+
+    function playShieldCrackSound() {
+      if (!shieldAudioCtx || isMuted) return;
+      resumeShieldAudio();
+      const now = shieldAudioCtx.currentTime;
+      const osc = shieldAudioCtx.createOscillator();
+      const gain = shieldAudioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(760, now);
+      osc.frequency.exponentialRampToValueAtTime(1320, now + 0.12);
+      gain.gain.setValueAtTime(0.26, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+      osc.connect(gain).connect(shieldAudioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.32);
+    }
+
+    function primeAudio() {
+      resumeShieldAudio();
+      ensureSoundtrackStarted();
+    }
+
     if (muteBtn) {
       muteBtn.addEventListener('click', () => {
         isMuted = !isMuted;
         backgroundAudio.muted = isMuted;
         updateMuteButton();
         if (!isMuted) {
-          ensureSoundtrackStarted();
+          primeAudio();
         }
       });
     }
@@ -436,6 +468,14 @@
 
     const BRICK_W = 110, BRICK_H = 30, BRICK_GAP = 10;
     const BRICK_ROWS_START = 4, BRICK_COLS = 7;
+
+    const BRICK_BASE_POINTS = 50;
+    const BRICK_HIT_POINTS = 20;
+    const SHIELDED_BRICK_MULTIPLIER = 1.5;
+    const SHIELDED_BASE_CHANCE = 0.2;
+    const SHIELDED_LEVEL_BONUS = 0.03;
+    const SHIELDED_MAX_CHANCE = 0.45;
+    const SHIELD_CRACK_DURATION = 0.35;
 
     const SPECIAL_BAR_PHASES = [
       { color: 'red', type: 'solid', duration: 4 },
@@ -471,6 +511,8 @@
     let balls = [];
     let minimumBallSpeed = null;
     let bricks = [];
+    let brickIdCounter = 0;
+    let frameCounter = 0;
     let lastTime = 0;
     let magnetActive = false;
     let magnetTimer = 0;
@@ -515,7 +557,7 @@
         if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = true;
         if (e.code === 'Space') launch();
         if (e.code === 'KeyP') togglePause();
-        ensureSoundtrackStarted();
+        primeAudio();
       });
       window.addEventListener('keyup', (e) => {
         if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = false;
@@ -531,7 +573,7 @@
         updateLockedBallsPosition();
       }
       [canvas, overlayEl].forEach(el => {
-        el.addEventListener('pointerdown', (e) => { movePaddle(e); launch(); ensureSoundtrackStarted(); });
+        el.addEventListener('pointerdown', (e) => { movePaddle(e); launch(); primeAudio(); });
         el.addEventListener('pointermove', movePaddle);
       });
     }
@@ -554,7 +596,15 @@
     function hideOverlay(){ overlayEl.classList.remove('show'); }
 
     function createBall(x, y, lockedToPaddle = false) {
-      return { x, y, vx: 0, vy: 0, lockedToPaddle };
+      return {
+        x,
+        y,
+        vx: 0,
+        vy: 0,
+        lockedToPaddle,
+        shieldHitFrame: -1,
+        shieldHits: new Set(),
+      };
     }
 
     function handlePaddleWidthChange(newWidth, previousWidth = paddleWidth) {
@@ -658,19 +708,38 @@
       const topOffset = 80;
       const totalWidth = BRICK_COLS*BRICK_W + (BRICK_COLS-1)*BRICK_GAP;
       const leftOffset = (canvas.width - totalWidth)/2;
+      const baseHp = 1 + Math.floor((level-1)/3);
+      const baseShieldChance = Math.min(
+        SHIELDED_MAX_CHANCE,
+        SHIELDED_BASE_CHANCE + Math.max(0, level - 1) * SHIELDED_LEVEL_BONUS
+      );
       bricks = [];
+      brickIdCounter = 0;
+      frameCounter = 0;
       for (let r=0; r<rows; r++) {
         for (let c=0; c<BRICK_COLS; c++) {
+          const rowBonus = (rows - r) / rows * 0.06;
+          const shieldChance = Math.min(SHIELDED_MAX_CHANCE, baseShieldChance + rowBonus);
+          const shielded = Math.random() < shieldChance;
+          const maxShieldHealth = shielded ? 1 : 0;
+          const brickHp = shielded ? 1 : baseHp;
           bricks.push({
+            id: brickIdCounter++,
             x: leftOffset + c*(BRICK_W+BRICK_GAP),
             y: topOffset + r*(BRICK_H+BRICK_GAP),
             w: BRICK_W,
             h: BRICK_H,
-            hp: 1 + Math.floor((level-1)/3),
+            hp: brickHp,
             img: (r%2===0) ? imgBrick1 : imgBrick2,
             alive: true,
             embeddedBall: false,
-            embeddedBallReleased: false
+            embeddedBallReleased: false,
+            basePoints: BRICK_BASE_POINTS,
+            shieldHealth: maxShieldHealth,
+            maxShieldHealth,
+            shieldFade: maxShieldHealth > 0 ? 1 : 0,
+            shieldGlowPhase: Math.random() * Math.PI * 2,
+            shieldCrackTimer: 0,
           });
         }
       }
@@ -725,6 +794,21 @@
       }
     }
 
+    function updateBrickVisualState(dt) {
+      for (const br of bricks) {
+        if (!br.alive || !br.maxShieldHealth) continue;
+        if (br.shieldHealth > 0) {
+          br.shieldFade = Math.min(1, br.shieldFade + dt * 4);
+        } else if (br.shieldFade > 0) {
+          br.shieldFade = Math.max(0, br.shieldFade - dt * 3.2);
+        }
+        br.shieldGlowPhase = (br.shieldGlowPhase + dt * 2.6) % (Math.PI * 2);
+        if (br.shieldCrackTimer > 0) {
+          br.shieldCrackTimer = Math.max(0, br.shieldCrackTimer - dt);
+        }
+      }
+    }
+
     function launch() {
       if (paused) { togglePause(); return; }
       if (!running) {
@@ -738,6 +822,8 @@
     }
 
     function update(dt) {
+      frameCounter++;
+      updateBrickVisualState(dt);
       const paddleSpeed = (9 + level*0.4) * 60;
       if (input.left) paddleX -= paddleSpeed * dt;
       if (input.right) paddleX += paddleSpeed * dt;
@@ -746,6 +832,13 @@
       const ballsToRemove = [];
 
       for (const ball of balls) {
+        if (!ball.shieldHits) {
+          ball.shieldHits = new Set();
+        }
+        if (ball.shieldHitFrame !== frameCounter) {
+          ball.shieldHits.clear();
+          ball.shieldHitFrame = frameCounter;
+        }
         if (ball.lockedToPaddle) {
           ball.x = paddleX + paddleWidth / 2;
           ball.y = PADDLE_Y - BALL_R - 2;
@@ -882,14 +975,31 @@
             } else {
               ball.vx *= -1;
             }
+
+            if (br.shieldHealth > 0) {
+              if (!ball.shieldHits.has(br.id)) {
+                ball.shieldHits.add(br.id);
+                br.shieldHealth = Math.max(0, br.shieldHealth - 1);
+                br.shieldFade = 1;
+                br.shieldCrackTimer = SHIELD_CRACK_DURATION;
+                playShieldCrackSound();
+                score += BRICK_HIT_POINTS;
+                scoreEl.textContent = score;
+              }
+              enforceMinimumBallSpeed(ball);
+              break;
+            }
+
             br.hp -= 1;
             if (br.hp <= 0) {
               br.alive = false;
-              score += 50;
+              const multiplier = br.maxShieldHealth > 0 ? SHIELDED_BRICK_MULTIPLIER : 1;
+              const awarded = Math.round(br.basePoints * multiplier);
+              score += awarded;
               scoreEl.textContent = score;
               handleBrickDestroyed(br, ball);
             } else {
-              score += 20;
+              score += BRICK_HIT_POINTS;
               scoreEl.textContent = score;
             }
             enforceMinimumBallSpeed(ball);
@@ -1071,6 +1181,22 @@
       for (const br of bricks) {
         if (!br.alive) continue;
         ctx.drawImage(br.img, br.x, br.y, br.w, br.h);
+        if (br.maxShieldHealth > 0 && (br.shieldHealth > 0 || br.shieldFade > 0.01)) {
+          const pulse = 0.75 + Math.sin(br.shieldGlowPhase * 2) * 0.25;
+          const overlayStrength = br.shieldHealth > 0 ? 0.22 : 0.18 * br.shieldFade;
+          ctx.save();
+          ctx.globalAlpha = Math.min(0.35, overlayStrength * pulse);
+          ctx.fillStyle = 'rgba(0, 255, 255, 1)';
+          ctx.fillRect(br.x, br.y, br.w, br.h);
+          ctx.restore();
+
+          ctx.save();
+          const edgeAlpha = Math.min(0.55, (br.shieldHealth > 0 ? 0.45 : 0.45 * br.shieldFade) * pulse);
+          ctx.strokeStyle = `rgba(0, 255, 255, ${edgeAlpha})`;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(br.x - 1, br.y - 1, br.w + 2, br.h + 2);
+          ctx.restore();
+        }
         if (br.embeddedBall && !br.embeddedBallReleased) {
           ctx.save();
           ctx.globalAlpha = 0.85;
@@ -1083,6 +1209,13 @@
           ctx.beginPath();
           ctx.arc(glowX, glowY, 18, 0, Math.PI * 2);
           ctx.fill();
+          ctx.restore();
+        }
+        if (br.shieldCrackTimer > 0) {
+          ctx.save();
+          const crackAlpha = Math.min(1, br.shieldCrackTimer / SHIELD_CRACK_DURATION);
+          ctx.globalAlpha = crackAlpha;
+          ctx.drawImage(imgBrickCrack, br.x - 6, br.y - 4, br.w + 12, br.h + 8);
           ctx.restore();
         }
       }

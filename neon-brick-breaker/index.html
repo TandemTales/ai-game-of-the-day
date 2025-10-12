@@ -475,8 +475,17 @@
     const EXPLOSIVE_NEIGHBOR_CHANCE = 0.5;
     const EXPLOSIVE_POINT_RATIO = 0.5;
     const EXPLOSIVE_CRACK_DURATION = 0.65;
-    const EXPLOSION_PARTICLE_COUNT = 12;
-    const EXPLOSION_PARTICLE_LIFE = 0.35;
+    const EXPLOSION_PARTICLE_COUNT = 24;
+    const EXPLOSION_PARTICLE_LIFE = 0.55;
+    const EXPLOSION_PARTICLE_BASE_RADIUS = 16;
+    const EXPLOSION_PARTICLE_RADIUS_VARIANCE = 26;
+    const EXPLOSION_SHOCKWAVE_LIFE = 0.4;
+    const EXPLOSION_SHOCKWAVE_MAX_RADIUS = 150;
+    const BRICK_SHAKE_DURATION = 0.3;
+    const BRICK_SHAKE_INTENSITY = 6;
+    const BRICK_SHAKE_FREQUENCY = 46;
+    const EXPLOSION_DEBRIS_COUNT = 16;
+    const EXPLOSION_DEBRIS_LIFE = 0.65;
     const SHIELDED_BASE_CHANCE = 0.2;
     const SHIELDED_LEVEL_BONUS = 0.03;
     const SHIELDED_MAX_CHANCE = 0.45;
@@ -525,6 +534,8 @@
     let magnetPulse = 0;
     let magnetLockedSpeed = null;
     const explosionParticles = [];
+    const explosionShockwaves = [];
+    const brickDebrisParticles = [];
 
     const paddleBuff = typeof createPaddleSizeBuffManager === 'function'
       ? createPaddleSizeBuffManager({
@@ -756,6 +767,11 @@
             explosive: false,
             lastExplosionFrame: -1,
             crackTimer: 0,
+            shakeTimer: 0,
+            shakeIntensity: 0,
+            shakePhase: Math.random() * Math.PI * 2,
+            shakeOffsetX: 0,
+            shakeOffsetY: 0,
           };
           bricks.push(brick);
           brickGrid[r][c] = brick;
@@ -855,6 +871,16 @@
       }
     }
 
+    function applyShake(brick, multiplier = 1) {
+      if (!brick || !brick.alive) return;
+      brick.shakeTimer = Math.max(brick.shakeTimer, BRICK_SHAKE_DURATION);
+      const targetIntensity = BRICK_SHAKE_INTENSITY * Math.max(0.1, multiplier);
+      brick.shakeIntensity = Math.max(brick.shakeIntensity, targetIntensity);
+      if (!Number.isFinite(brick.shakePhase)) {
+        brick.shakePhase = Math.random() * Math.PI * 2;
+      }
+    }
+
     function triggerExplosiveBrick(brick) {
       if (!brick || !brick.explosive) return;
       if (brick.lastExplosionFrame === frameCounter) return;
@@ -862,6 +888,7 @@
       const centerX = brick.x + brick.w / 2;
       const centerY = brick.y + brick.h / 2;
       spawnExplosionParticles(centerX, centerY);
+      spawnExplosionShockwave(centerX, centerY);
       for (let dr = -1; dr <= 1; dr++) {
         for (let dc = -1; dc <= 1; dc++) {
           if (dr === 0 && dc === 0) continue;
@@ -879,22 +906,80 @@
             handleBrickDestroyed(neighbor, null, { triggeredByExplosion: true });
           } else {
             applyCrackedState(neighbor);
+            applyShake(neighbor, 1);
           }
         }
       }
     }
 
     function spawnExplosionParticles(x, y) {
-      for (let i = 0; i < EXPLOSION_PARTICLE_COUNT; i++) {
-        const angle = (Math.PI * 2 * (i / EXPLOSION_PARTICLE_COUNT)) + (Math.random() - 0.5) * 0.35;
-        const speed = 180 + Math.random() * 120;
+      const mainCount = EXPLOSION_PARTICLE_COUNT + Math.floor(Math.random() * 8);
+      for (let i = 0; i < mainCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 220 + Math.random() * 200;
+        const life = EXPLOSION_PARTICLE_LIFE + Math.random() * 0.18;
         explosionParticles.push({
           x,
           y,
           vx: Math.cos(angle) * speed,
           vy: Math.sin(angle) * speed,
-          life: EXPLOSION_PARTICLE_LIFE,
-          maxLife: EXPLOSION_PARTICLE_LIFE,
+          life,
+          maxLife: life,
+          baseRadius: EXPLOSION_PARTICLE_BASE_RADIUS * (0.75 + Math.random() * 0.65),
+          radiusRange: EXPLOSION_PARTICLE_RADIUS_VARIANCE * (0.7 + Math.random() * 0.9),
+          hueBias: Math.random(),
+        });
+      }
+      const emberCount = Math.floor(EXPLOSION_PARTICLE_COUNT * 0.6);
+      for (let i = 0; i < emberCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 120 + Math.random() * 140;
+        const life = (EXPLOSION_PARTICLE_LIFE * 0.75) + Math.random() * 0.18;
+        explosionParticles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life,
+          maxLife: life,
+          baseRadius: EXPLOSION_PARTICLE_BASE_RADIUS * (0.45 + Math.random() * 0.35),
+          radiusRange: EXPLOSION_PARTICLE_RADIUS_VARIANCE * (0.35 + Math.random() * 0.4),
+          hueBias: Math.random(),
+          spark: true,
+        });
+      }
+    }
+
+    function spawnExplosionShockwave(x, y) {
+      explosionShockwaves.push({
+        x,
+        y,
+        life: EXPLOSION_SHOCKWAVE_LIFE,
+        maxLife: EXPLOSION_SHOCKWAVE_LIFE,
+        radius: 0,
+      });
+    }
+
+    function spawnBrickDebris(brick) {
+      if (!brick) return;
+      const centerX = brick.x + brick.w / 2;
+      const centerY = brick.y + brick.h / 2;
+      const count = EXPLOSION_DEBRIS_COUNT + Math.floor(Math.random() * 6);
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 160 + Math.random() * 160;
+        const life = EXPLOSION_DEBRIS_LIFE + Math.random() * 0.2;
+        brickDebrisParticles.push({
+          x: centerX,
+          y: centerY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life,
+          maxLife: life,
+          size: 3 + Math.random() * 4,
+          rotation: Math.random() * Math.PI * 2,
+          rotationSpeed: (Math.random() - 0.5) * 12,
+          colorMix: Math.random(),
         });
       }
     }
@@ -914,17 +999,50 @@
       }
     }
 
+    function updateExplosionShockwaves(dt) {
+      for (let i = explosionShockwaves.length - 1; i >= 0; i--) {
+        const sw = explosionShockwaves[i];
+        sw.life -= dt;
+        if (sw.life <= 0) {
+          explosionShockwaves.splice(i, 1);
+          continue;
+        }
+        const lifeRatio = 1 - Math.max(0, sw.life / sw.maxLife);
+        sw.radius = lifeRatio * EXPLOSION_SHOCKWAVE_MAX_RADIUS;
+      }
+    }
+
+    function updateBrickDebris(dt) {
+      for (let i = brickDebrisParticles.length - 1; i >= 0; i--) {
+        const p = brickDebrisParticles[i];
+        p.life -= dt;
+        if (p.life <= 0) {
+          brickDebrisParticles.splice(i, 1);
+          continue;
+        }
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vx *= 0.88;
+        p.vy = p.vy * 0.88 + 240 * dt;
+        p.rotation += p.rotationSpeed * dt;
+      }
+    }
+
     function renderExplosionParticles() {
       if (!explosionParticles.length) return;
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       for (const p of explosionParticles) {
         const lifeRatio = Math.max(0, p.life / p.maxLife);
-        const radius = 8 + (1 - lifeRatio) * 12;
-        const alpha = 0.5 * lifeRatio + 0.2;
-        const gradient = ctx.createRadialGradient(p.x, p.y, radius * 0.25, p.x, p.y, radius);
-        gradient.addColorStop(0, `rgba(0, 255, 255, ${alpha})`);
-        gradient.addColorStop(0.6, `rgba(255, 62, 223, ${alpha * 0.85})`);
+        const radius = (p.baseRadius || EXPLOSION_PARTICLE_BASE_RADIUS) + (1 - lifeRatio) * (p.radiusRange || EXPLOSION_PARTICLE_RADIUS_VARIANCE);
+        const alphaBase = (p.spark ? 0.55 : 0.65) * lifeRatio + 0.2;
+        const mix = p.hueBias ?? 0.5;
+        const cyanAlpha = alphaBase * (1 - mix * 0.25);
+        const magentaAlpha = alphaBase * (0.7 + mix * 0.4);
+        const gradient = ctx.createRadialGradient(p.x, p.y, radius * 0.22, p.x, p.y, radius);
+        gradient.addColorStop(0, `rgba(0, 255, 255, ${cyanAlpha})`);
+        gradient.addColorStop(0.55, `rgba(120, 255, 255, ${cyanAlpha * 0.85})`);
+        gradient.addColorStop(0.9, `rgba(255, 62, 223, ${magentaAlpha})`);
         gradient.addColorStop(1, 'rgba(255, 62, 223, 0)');
         ctx.fillStyle = gradient;
         ctx.beginPath();
@@ -934,9 +1052,75 @@
       ctx.restore();
     }
 
+    function renderExplosionShockwaves() {
+      if (!explosionShockwaves.length) return;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      for (const sw of explosionShockwaves) {
+        const lifeRatio = Math.max(0, sw.life / sw.maxLife);
+        const radius = Math.max(4, sw.radius || 0);
+        const alpha = 0.4 * lifeRatio + 0.1;
+        const innerRadius = radius * 0.35;
+        const gradient = ctx.createRadialGradient(sw.x, sw.y, innerRadius, sw.x, sw.y, radius);
+        gradient.addColorStop(0, `rgba(0, 255, 255, ${alpha})`);
+        gradient.addColorStop(0.6, `rgba(0, 255, 255, ${alpha * 0.4})`);
+        gradient.addColorStop(0.85, `rgba(255, 62, 223, ${alpha * 0.6})`);
+        gradient.addColorStop(1, 'rgba(255, 62, 223, 0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(sw.x, sw.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function renderBrickDebris() {
+      if (!brickDebrisParticles.length) return;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      for (const p of brickDebrisParticles) {
+        const lifeRatio = Math.max(0, p.life / p.maxLife);
+        const mix = Math.min(1, Math.max(0, p.colorMix));
+        const r = Math.round(0 * (1 - mix) + 255 * mix);
+        const g = Math.round(255 * (1 - mix) + 62 * mix);
+        const b = Math.round(255 * (1 - mix) + 223 * mix);
+        const alpha = 0.7 * lifeRatio + 0.15;
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation);
+        const width = p.size * (1 + (1 - lifeRatio) * 0.5);
+        const height = p.size * 0.45;
+        ctx.fillRect(-width / 2, -height / 2, width, height);
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+
     function updateBrickVisualState(dt) {
       for (const br of bricks) {
         if (!br.alive) continue;
+        if (br.shakeTimer > 0) {
+          br.shakeTimer = Math.max(0, br.shakeTimer - dt);
+          br.shakePhase += dt * BRICK_SHAKE_FREQUENCY;
+          const normalized = Math.max(0, Math.min(1, br.shakeTimer / BRICK_SHAKE_DURATION));
+          const intensity = br.shakeIntensity * Math.pow(normalized, 0.65);
+          br.shakeOffsetX = Math.sin(br.shakePhase * 1.9) * intensity;
+          br.shakeOffsetY = Math.cos(br.shakePhase * 2.3) * intensity * 0.75;
+          if (br.shakeTimer <= 0) {
+            br.shakeOffsetX = 0;
+            br.shakeOffsetY = 0;
+            br.shakeIntensity = 0;
+          }
+        } else if (Math.abs(br.shakeOffsetX) > 0.01 || Math.abs(br.shakeOffsetY) > 0.01) {
+          br.shakeOffsetX *= 0.6;
+          br.shakeOffsetY *= 0.6;
+          if (Math.abs(br.shakeOffsetX) < 0.01 && Math.abs(br.shakeOffsetY) < 0.01) {
+            br.shakeOffsetX = 0;
+            br.shakeOffsetY = 0;
+            br.shakeIntensity = 0;
+          }
+        }
         if (br.crackTimer > 0) {
           br.crackTimer = Math.max(0, br.crackTimer - dt);
         }
@@ -1190,6 +1374,9 @@
         increaseBallSpeedForBrickBreak(ball);
       }
       registerBrickCombo();
+      if (triggeredByExplosion) {
+        spawnBrickDebris(brick);
+      }
       if (brick.embeddedBall && !brick.embeddedBallReleased) {
         brick.embeddedBallReleased = true;
         brick.embeddedBall = false;
@@ -1335,21 +1522,23 @@
       // Draw bricks
       for (const br of bricks) {
         if (!br.alive) continue;
-        ctx.drawImage(br.img, br.x, br.y, br.w, br.h);
+        const drawX = br.x + (br.shakeOffsetX || 0);
+        const drawY = br.y + (br.shakeOffsetY || 0);
+        ctx.drawImage(br.img, drawX, drawY, br.w, br.h);
         if (br.maxShieldHealth > 0 && (br.shieldHealth > 0 || br.shieldFade > 0.01)) {
           const pulse = 0.75 + Math.sin(br.shieldGlowPhase * 2) * 0.25;
           const overlayStrength = br.shieldHealth > 0 ? 0.22 : 0.18 * br.shieldFade;
           ctx.save();
           ctx.globalAlpha = Math.min(0.35, overlayStrength * pulse);
           ctx.fillStyle = 'rgba(0, 255, 255, 1)';
-          ctx.fillRect(br.x, br.y, br.w, br.h);
+          ctx.fillRect(drawX, drawY, br.w, br.h);
           ctx.restore();
 
           ctx.save();
           const edgeAlpha = Math.min(0.55, (br.shieldHealth > 0 ? 0.45 : 0.45 * br.shieldFade) * pulse);
           ctx.strokeStyle = `rgba(0, 255, 255, ${edgeAlpha})`;
           ctx.lineWidth = 2;
-          ctx.strokeRect(br.x - 1, br.y - 1, br.w + 2, br.h + 2);
+          ctx.strokeRect(drawX - 1, drawY - 1, br.w + 2, br.h + 2);
           ctx.restore();
         }
         if (br.crackTimer > 0) {
@@ -1358,20 +1547,20 @@
           ctx.strokeStyle = `rgba(255, 62, 223, ${0.55 * crackIntensity})`;
           ctx.lineWidth = 1.4;
           ctx.beginPath();
-          ctx.moveTo(br.x + br.w * 0.18, br.y + br.h * 0.22);
-          ctx.lineTo(br.x + br.w * 0.38, br.y + br.h * 0.5);
-          ctx.lineTo(br.x + br.w * 0.3, br.y + br.h * 0.82);
-          ctx.moveTo(br.x + br.w * 0.66, br.y + br.h * 0.18);
-          ctx.lineTo(br.x + br.w * 0.52, br.y + br.h * 0.48);
-          ctx.lineTo(br.x + br.w * 0.7, br.y + br.h * 0.78);
+          ctx.moveTo(drawX + br.w * 0.18, drawY + br.h * 0.22);
+          ctx.lineTo(drawX + br.w * 0.38, drawY + br.h * 0.5);
+          ctx.lineTo(drawX + br.w * 0.3, drawY + br.h * 0.82);
+          ctx.moveTo(drawX + br.w * 0.66, drawY + br.h * 0.18);
+          ctx.lineTo(drawX + br.w * 0.52, drawY + br.h * 0.48);
+          ctx.lineTo(drawX + br.w * 0.7, drawY + br.h * 0.78);
           ctx.stroke();
           ctx.restore();
         }
         if (br.embeddedBall && !br.embeddedBallReleased) {
           ctx.save();
           ctx.globalAlpha = 0.85;
-          const glowX = br.x + br.w / 2;
-          const glowY = br.y + br.h / 2;
+          const glowX = drawX + br.w / 2;
+          const glowY = drawY + br.h / 2;
           const gradient = ctx.createRadialGradient(glowX, glowY, 4, glowX, glowY, 18);
           gradient.addColorStop(0, 'rgba(0, 255, 255, 0.85)');
           gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
@@ -1385,11 +1574,13 @@
           ctx.save();
           const crackAlpha = Math.min(1, br.shieldCrackTimer / SHIELD_CRACK_DURATION);
           ctx.globalAlpha = crackAlpha;
-          ctx.drawImage(imgBrickCrack, br.x - 6, br.y - 4, br.w + 12, br.h + 8);
+          ctx.drawImage(imgBrickCrack, drawX - 6, drawY - 4, br.w + 12, br.h + 8);
           ctx.restore();
         }
       }
 
+      renderExplosionShockwaves();
+      renderBrickDebris();
       renderExplosionParticles();
 
       drawSpecialBar();
@@ -1434,6 +1625,8 @@
       const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
       lastTime = timestamp;
 
+      updateExplosionShockwaves(dt);
+      updateBrickDebris(dt);
       updateExplosionParticles(dt);
 
       if (SPECIAL_BAR.hp > 0) {

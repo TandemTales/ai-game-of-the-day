@@ -1167,6 +1167,24 @@
       return top === Infinity ? null : top;
     }
 
+    function getLowestAliveBricks() {
+      let maxBottom = -Infinity;
+      const lowest = [];
+      const tolerance = 1;
+      for (const br of bricks) {
+        if (!br || !br.alive) continue;
+        const bottom = br.y + br.h;
+        if (bottom > maxBottom + tolerance) {
+          maxBottom = bottom;
+          lowest.length = 0;
+          lowest.push(br);
+        } else if (Math.abs(bottom - maxBottom) <= tolerance) {
+          lowest.push(br);
+        }
+      }
+      return lowest;
+    }
+
     function circleIntersectsRect(cx, cy, radius, rect) {
       const closestX = clamp(cx, rect.x, rect.x + rect.w);
       const closestY = clamp(cy, rect.y, rect.y + rect.h);
@@ -1197,6 +1215,56 @@
     }
 
     function findPortalSpawnPosition(ball) {
+      const lowestBricks = getLowestAliveBricks();
+      if (lowestBricks.length) {
+        const targetBrick = lowestBricks[Math.floor(Math.random() * lowestBricks.length)];
+        const maxSpawnY = Math.min(PADDLE_Y - BALL_R * 2, canvas.height - BALL_R * 1.5);
+        let spawnY = targetBrick.y + targetBrick.h + BALL_R * 1.5;
+        spawnY = Math.min(maxSpawnY, Math.max(BALL_R * 1.5, spawnY));
+        let leftBound = getLeftWallX(spawnY) + BALL_R;
+        let rightBound = getRightWallX(spawnY) - BALL_R;
+        if (!(rightBound > leftBound)) {
+          const center = canvas.width / 2;
+          leftBound = center - BALL_R;
+          rightBound = center + BALL_R;
+        }
+        const targetLeft = Math.max(leftBound, targetBrick.x + BALL_R * 0.75);
+        const targetRight = Math.min(rightBound, targetBrick.x + targetBrick.w - BALL_R * 0.75);
+        const attempts = 32;
+        if (targetLeft <= targetRight) {
+          const span = Math.max(0, targetRight - targetLeft);
+          for (let i = 0; i < attempts; i++) {
+            const candidateX = targetLeft + Math.random() * span;
+            if (isPortalSpawnPositionSafe(candidateX, spawnY)) {
+              return { x: candidateX, y: spawnY };
+            }
+          }
+          const midX = clamp(targetBrick.x + targetBrick.w / 2, targetLeft, targetRight);
+          if (isPortalSpawnPositionSafe(midX, spawnY)) {
+            return { x: midX, y: spawnY };
+          }
+        }
+        let fallbackX = clamp(targetBrick.x + targetBrick.w / 2, leftBound, rightBound);
+        if (ball) {
+          const biased = clamp(ball.x, leftBound, rightBound);
+          if (isPortalSpawnPositionSafe(biased, spawnY)) {
+            return { x: biased, y: spawnY };
+          }
+          fallbackX = biased;
+        }
+        if (isPortalSpawnPositionSafe(fallbackX, spawnY)) {
+          return { x: fallbackX, y: spawnY };
+        }
+        for (let i = 0; i < attempts; i++) {
+          const offset = (i % 2 === 0 ? 1 : -1) * Math.ceil(i / 2) * BALL_R * 1.5;
+          const candidateX = clamp(fallbackX + offset, leftBound, rightBound);
+          if (isPortalSpawnPositionSafe(candidateX, spawnY)) {
+            return { x: candidateX, y: spawnY };
+          }
+        }
+        return { x: fallbackX, y: spawnY };
+      }
+
       const bandMin = canvas.height * PORTAL_VERTICAL_BAND_MIN;
       const bandMax = canvas.height * PORTAL_VERTICAL_BAND_MAX;
       let spawnY = bandMin + Math.random() * Math.max(0.0001, bandMax - bandMin);

@@ -508,6 +508,8 @@
     const PORTAL_MIN_LAUNCH_SPEED = 8 * 60;
     const PORTAL_GRACE_PERIOD = 0.3;
     const PORTAL_BONUS_POINTS = 35;
+    const PORTAL_SLOW_DURATION = 1;
+    const PORTAL_RECOVERY_DURATION = 3;
     const PORTAL_VERTICAL_BAND_MIN = 0.25;
     const PORTAL_VERTICAL_BAND_MAX = 0.5;
     const EXPLOSIVE_NEIGHBOR_CHANCE = 0.5;
@@ -784,6 +786,7 @@
         shieldHits: new Set(),
         lastPortalId: null,
         lastPortalTime: -Infinity,
+        portalSpeedRecovery: null,
       };
     }
 
@@ -827,12 +830,57 @@
 
     function enforceMinimumBallSpeed(ball) {
       if (minimumBallSpeed === null) return;
+      if (ball && ball.portalSpeedRecovery && gameTime < ball.portalSpeedRecovery.rampEnd) {
+        return;
+      }
       const currentSpeed = Math.hypot(ball.vx, ball.vy);
       if (currentSpeed === 0) return;
       if (currentSpeed < minimumBallSpeed) {
         const scale = minimumBallSpeed / currentSpeed;
         ball.vx *= scale;
         ball.vy *= scale;
+      }
+    }
+
+    function applyPortalSpeedRecovery(ball) {
+      const state = ball.portalSpeedRecovery;
+      if (!state) return;
+
+      const { slowUntil, rampEnd, slowSpeed, targetSpeed, dirX, dirY } = state;
+      if (targetSpeed <= 0) {
+        ball.portalSpeedRecovery = null;
+        return;
+      }
+
+      let desiredSpeed;
+      if (gameTime < slowUntil) {
+        desiredSpeed = slowSpeed;
+      } else if (gameTime < rampEnd) {
+        const rampDuration = Math.max(0.0001, rampEnd - slowUntil);
+        const t = Math.min(1, Math.max(0, (gameTime - slowUntil) / rampDuration));
+        desiredSpeed = slowSpeed + (targetSpeed - slowSpeed) * t;
+      } else {
+        desiredSpeed = targetSpeed;
+      }
+
+      if (desiredSpeed <= 0) {
+        ball.portalSpeedRecovery = null;
+        return;
+      }
+
+      const currentSpeed = Math.hypot(ball.vx, ball.vy);
+      if (currentSpeed > 0) {
+        const scale = desiredSpeed / currentSpeed;
+        ball.vx *= scale;
+        ball.vy *= scale;
+      } else {
+        const magnitude = Math.hypot(dirX, dirY) || 1;
+        ball.vx = (dirX / magnitude) * desiredSpeed;
+        ball.vy = (dirY / magnitude) * desiredSpeed;
+      }
+
+      if (gameTime >= rampEnd) {
+        ball.portalSpeedRecovery = null;
       }
     }
 
@@ -1315,8 +1363,9 @@
       if (ball.lastPortalId === brick.id && (gameTime - ball.lastPortalTime) < PORTAL_GRACE_PERIOD) {
         return false;
       }
+      const previousSpeed = Math.hypot(ball.vx, ball.vy);
       const spawn = findPortalSpawnPosition(ball);
-      teleportBallThroughPortal(ball, brick, spawn);
+      teleportBallThroughPortal(ball, brick, spawn, previousSpeed);
       brick.teleportFlashTimer = TELEPORT_FLASH_DURATION;
       if (brick.teleportUsesRemaining !== undefined) {
         brick.teleportUsesRemaining = Math.max(0, brick.teleportUsesRemaining - 1);
@@ -1330,31 +1379,53 @@
       return true;
     }
 
-    function teleportBallThroughPortal(ball, brick, spawn) {
+    function teleportBallThroughPortal(ball, brick, spawn, previousSpeed) {
       ball.x = spawn.x;
       ball.y = spawn.y;
       ball.lockedToPaddle = false;
-      const currentSpeed = Math.hypot(ball.vx, ball.vy);
+      ball.portalSpeedRecovery = null;
+
       const baseline = minimumBallSpeed === null ? 0 : minimumBallSpeed;
-      const speed = Math.max(currentSpeed, baseline, PORTAL_MIN_LAUNCH_SPEED);
+      const prior = Number.isFinite(previousSpeed) ? Math.max(0, previousSpeed) : 0;
+      const baseSpeed = Math.max(prior, baseline, PORTAL_MIN_LAUNCH_SPEED);
       const angleDeg = 25 + Math.random() * 40;
       const angleRad = angleDeg * (Math.PI / 180);
       const direction = Math.random() < 0.5 ? -1 : 1;
-      ball.vx = Math.cos(angleRad) * speed * direction;
-      ball.vy = -Math.abs(Math.sin(angleRad) * speed);
+      const dirX = Math.cos(angleRad) * direction;
+      const dirY = -Math.abs(Math.sin(angleRad));
+      const dirMag = Math.hypot(dirX, dirY) || 1;
+      const normX = dirX / dirMag;
+      const normY = dirY / dirMag;
+
+      ball.vx = normX * baseSpeed;
+      ball.vy = normY * baseSpeed;
+      captureInitialBallSpeed(ball);
+      enforceMinimumBallSpeed(ball);
+      const launchSpeed = Math.hypot(ball.vx, ball.vy);
+      const slowSpeed = launchSpeed * 0.5;
+      ball.vx = normX * slowSpeed;
+      ball.vy = normY * slowSpeed;
+
+      ball.portalSpeedRecovery = {
+        slowUntil: gameTime + PORTAL_SLOW_DURATION,
+        rampEnd: gameTime + PORTAL_SLOW_DURATION + PORTAL_RECOVERY_DURATION,
+        slowSpeed,
+        targetSpeed: launchSpeed,
+        dirX: normX,
+        dirY: normY,
+      };
+
       ball.lastPortalId = brick.id;
       ball.lastPortalTime = gameTime;
       if (ball.shieldHits && typeof ball.shieldHits.clear === 'function') {
         ball.shieldHits.clear();
       }
-      const resultingSpeed = Math.hypot(ball.vx, ball.vy);
+      const resultingSpeed = launchSpeed;
       if (resultingSpeed > 0) {
         minimumBallSpeed = minimumBallSpeed === null
           ? resultingSpeed
           : Math.max(minimumBallSpeed, resultingSpeed);
       }
-      captureInitialBallSpeed(ball);
-      enforceMinimumBallSpeed(ball);
     }
 
     function adjustBallsAfterTeleport(brick) {
@@ -1768,6 +1839,10 @@
               ball.vy = speed;
             }
           }
+        }
+
+        if (ball.portalSpeedRecovery) {
+          applyPortalSpeedRecovery(ball);
         }
 
         const prevBallX = ball.x;

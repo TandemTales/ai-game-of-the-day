@@ -629,6 +629,11 @@
     const GHOST_BRICK_FLICKER_AMPLITUDE = 0.25;
     const GHOST_BRICK_FLICKER_SPEED = 1.8;
     const GHOST_BRICK_MAX_COUNT = 6;
+    const PHASE_BRICK_TOGGLE_INTERVAL = 0.75;
+    const PHASE_BRICK_INTANGIBLE_ALPHA = 0.2;
+    const PHASE_BRICK_SCORE_MULTIPLIER = 1.5;
+    const PHASE_BRICK_MAX_COUNT = 6;
+    const PHASE_BRICK_GLOW_SPEED = 2.6;
 
     const BULGE_WIDTH_PX = 80;
     const PULSE_DURATION_SEC = 3.0;
@@ -1192,12 +1197,19 @@
             energyActivated: false,
             energyArcs: [],
             energyArcTimer: 0,
+            isPhase: false,
+            phaseTangible: true,
+            phaseTimer: PHASE_BRICK_TOGGLE_INTERVAL,
+            phaseVisibility: 1,
+            phaseGlowPhase: Math.random() * Math.PI * 2,
+            phaseGlowPulse: 0,
           };
           bricks.push(brick);
           brickGrid[r][c] = brick;
         }
       }
 
+      assignPhaseBricks();
       assignGhostBricks();
       assignEnergyBricks();
       assignTeleportBricks();
@@ -1248,7 +1260,7 @@
 
     function assignEmbeddedBalls() {
       if (!bricks.length) return;
-      const aliveBricks = bricks.filter(br => br.alive && !br.isTeleport && !br.isEnergy && !br.isGhost);
+      const aliveBricks = bricks.filter(br => br.alive && !br.isTeleport && !br.isEnergy && !br.isGhost && !br.isPhase);
       if (!aliveBricks.length) return;
       const targetCount = Math.min(aliveBricks.length, 2 + Math.floor(Math.random() * 3));
       const chosen = new Set();
@@ -1265,9 +1277,49 @@
       return EXPLOSIVE_WARNING_INTERVAL_MIN + Math.random() * Math.max(0.0001, range);
     }
 
+    function getPhaseBrickCountForLevel(currentLevel) {
+      if (currentLevel <= 0) return 0;
+      const increments = Math.floor(Math.max(0, currentLevel - 1) / 2);
+      const desired = 1 + increments;
+      return Math.min(PHASE_BRICK_MAX_COUNT, desired);
+    }
+
+    function assignPhaseBricks() {
+      if (!bricks.length) return;
+      const desired = Math.min(getPhaseBrickCountForLevel(level), bricks.length);
+      if (desired <= 0) return;
+      const pool = bricks.filter(br => br.alive && !br.isTeleport && !br.isEnergy && !br.isGhost && !br.explosive);
+      if (!pool.length) return;
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      const limit = Math.min(desired, pool.length);
+      for (let i = 0; i < limit; i++) {
+        const br = pool[i];
+        if (!br) continue;
+        br.isPhase = true;
+        br.phaseTangible = true;
+        br.phaseTimer = Math.random() * PHASE_BRICK_TOGGLE_INTERVAL;
+        br.phaseVisibility = 1;
+        br.phaseGlowPhase = Math.random() * Math.PI * 2;
+        br.phaseGlowPulse = 0;
+        if (br.maxShieldHealth > 0) {
+          br.maxShieldHealth = 0;
+          br.shieldHealth = 0;
+          br.shieldFade = 0;
+          br.shieldCrackTimer = 0;
+        }
+        if (br.embeddedBall) {
+          br.embeddedBall = false;
+          br.embeddedBallReleased = false;
+        }
+      }
+    }
+
     function assignExplosiveBricks() {
       if (!bricks.length) return;
-      const pool = bricks.filter(br => br.alive && !br.isTeleport && !br.isEnergy && !br.isGhost);
+      const pool = bricks.filter(br => br.alive && !br.isTeleport && !br.isEnergy && !br.isGhost && !br.isPhase);
       for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -1299,7 +1351,7 @@
       if (!bricks.length) return;
       const desired = Math.min(getGhostBrickCountForLevel(level), bricks.length);
       if (desired <= 0) return;
-      const pool = bricks.filter(br => br.alive && !br.isGhost && !br.explosive);
+      const pool = bricks.filter(br => br.alive && !br.isGhost && !br.explosive && !br.isPhase);
       for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -1319,7 +1371,7 @@
       if (!bricks.length) return;
       const desired = Math.min(getEnergyBrickCountForLevel(level), bricks.length);
       if (desired <= 0) return;
-      const pool = bricks.filter(br => br.alive && !br.isEnergy && !br.explosive);
+      const pool = bricks.filter(br => br.alive && !br.isEnergy && !br.explosive && !br.isPhase);
       for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -1348,7 +1400,7 @@
     function assignTeleportBricks() {
       const desired = Math.min(getTeleportBrickCountForLevel(level), bricks.length);
       if (desired <= 0) return;
-      const pool = bricks.filter(br => br.alive && !br.isTeleport && !br.explosive);
+      const pool = bricks.filter(br => br.alive && !br.isTeleport && !br.explosive && !br.isPhase);
       for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -1730,6 +1782,7 @@
       if (brick.isTeleport) traits.push('teleport');
       if (brick.isEnergy) traits.push('energy');
       if (brick.isGhost) traits.push('ghost');
+      if (brick.isPhase) traits.push('phase');
       return traits;
     }
 
@@ -1741,6 +1794,9 @@
       }
       if (traits.includes('teleport')) {
         multiplier *= TELEPORT_BRICK_SCORE_MULTIPLIER;
+      }
+      if (traits.includes('phase')) {
+        multiplier *= PHASE_BRICK_SCORE_MULTIPLIER;
       }
       const extraTraitCount = Math.max(0, traits.length - 1);
       if (extraTraitCount > 0) {
@@ -2134,6 +2190,39 @@
         } else if (br.explosiveGlowPulse) {
           br.explosiveGlowPulse = Math.max(0, br.explosiveGlowPulse - dt * 1.2);
         }
+        if (br.isPhase) {
+          if (!Number.isFinite(br.phaseTimer)) {
+            br.phaseTimer = PHASE_BRICK_TOGGLE_INTERVAL;
+          }
+          br.phaseTimer -= dt;
+          while (br.phaseTimer <= 0) {
+            br.phaseTimer += PHASE_BRICK_TOGGLE_INTERVAL;
+            br.phaseTangible = !br.phaseTangible;
+          }
+          const targetVisibility = br.phaseTangible ? 1 : PHASE_BRICK_INTANGIBLE_ALPHA;
+          if (!Number.isFinite(br.phaseVisibility)) {
+            br.phaseVisibility = targetVisibility;
+          } else {
+            const lerpRate = Math.min(1, dt * 8);
+            br.phaseVisibility += (targetVisibility - br.phaseVisibility) * lerpRate;
+          }
+          if (!Number.isFinite(br.phaseGlowPhase)) {
+            br.phaseGlowPhase = Math.random() * Math.PI * 2;
+          }
+          br.phaseGlowPhase = (br.phaseGlowPhase + dt * PHASE_BRICK_GLOW_SPEED) % (Math.PI * 2);
+          const glowBase = (Math.sin(br.phaseGlowPhase) + 1) / 2;
+          const intangibleBoost = br.phaseTangible ? 0.25 : 0.65;
+          br.phaseGlowPulse = Math.min(1, Math.max(0, glowBase * (0.6 + intangibleBoost)));
+        } else if (br.phaseGlowPulse) {
+          br.phaseGlowPulse = Math.max(0, br.phaseGlowPulse - dt * 2.4);
+          if (!br.isPhase && Number.isFinite(br.phaseVisibility)) {
+            const lerpRate = Math.min(1, dt * 8);
+            br.phaseVisibility += (1 - br.phaseVisibility) * lerpRate;
+            if (Math.abs(1 - br.phaseVisibility) < 0.01) {
+              br.phaseVisibility = 1;
+            }
+          }
+        }
         if (br.isGhost) {
           if (!Number.isFinite(br.ghostPhase)) {
             br.ghostPhase = Math.random() * Math.PI * 2;
@@ -2375,6 +2464,7 @@
 
         for (const br of bricks) {
           if (!br.alive) continue;
+          if (br.isPhase && !br.phaseTangible) continue;
           if (ball.x + BALL_R > br.x && ball.x - BALL_R < br.x + br.w &&
               ball.y + BALL_R > br.y && ball.y - BALL_R < br.y + br.h) {
             if (br.isTeleport && ball.lastPortalId === br.id && (gameTime - ball.lastPortalTime) < PORTAL_GRACE_PERIOD) {
@@ -2646,8 +2736,13 @@
           ghostFlicker = Number.isFinite(br.ghostFlicker) ? br.ghostFlicker : 0;
           ghostAlpha = Math.max(0.15, Math.min(1, GHOST_BRICK_BASE_ALPHA + ghostFlicker * GHOST_BRICK_FLICKER_AMPLITUDE));
         }
+        let phaseVisibility = 1;
+        if (br.isPhase) {
+          const visibility = Number.isFinite(br.phaseVisibility) ? br.phaseVisibility : (br.phaseTangible ? 1 : PHASE_BRICK_INTANGIBLE_ALPHA);
+          phaseVisibility = Math.max(0.05, Math.min(1, visibility));
+        }
         ctx.save();
-        ctx.globalAlpha = ghostAlpha;
+        ctx.globalAlpha = ghostAlpha * phaseVisibility;
         ctx.drawImage(br.img, drawX, drawY, br.w, br.h);
         ctx.restore();
         if (br.isGhost) {
@@ -2667,6 +2762,37 @@
           ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2);
           ctx.fill();
           ctx.restore();
+        }
+        if (br.isPhase) {
+          const pulse = Number.isFinite(br.phaseGlowPulse) ? br.phaseGlowPulse : 0;
+          const centerX = drawX + br.w / 2;
+          const centerY = drawY + br.h / 2;
+          const overlayAlpha = br.phaseTangible ? 0.35 + pulse * 0.2 : 0.55 + pulse * 0.35;
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = Math.min(1, overlayAlpha);
+          const innerRadius = Math.max(6, Math.min(br.w, br.h) * 0.22);
+          const outerRadius = Math.max(br.w, br.h) * (br.phaseTangible ? 0.9 : 1.3);
+          const gradient = ctx.createRadialGradient(centerX, centerY, innerRadius, centerX, centerY, outerRadius);
+          gradient.addColorStop(0, br.phaseTangible ? 'rgba(180, 255, 255, 0.9)' : 'rgba(120, 220, 255, 0.9)');
+          gradient.addColorStop(0.55, br.phaseTangible ? 'rgba(120, 200, 255, 0.35)' : 'rgba(80, 160, 255, 0.45)');
+          gradient.addColorStop(1, 'rgba(60, 140, 255, 0)');
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          if (!br.phaseTangible) {
+            ctx.save();
+            ctx.globalAlpha = Math.min(0.5, 0.18 + pulse * 0.25);
+            ctx.strokeStyle = 'rgba(80, 160, 255, 0.95)';
+            ctx.setLineDash([6, 6]);
+            ctx.lineDashOffset = (pulse * 12 + frameCounter * 0.6) % 12;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(drawX - 2, drawY - 2, br.w + 4, br.h + 4);
+            ctx.restore();
+          }
         }
         if (br.isTeleport) {
           if (br.teleportFlashTimer > 0) {

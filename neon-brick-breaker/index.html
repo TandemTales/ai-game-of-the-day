@@ -587,21 +587,33 @@
     let paddleGrowTimer = 0;
     let paddleX = (canvas.width - paddleWidth) / 2;
 
+    function getPaddleGrowthPulse() {
+      if (paddleGrowTimer > 0 && PADDLE_GROW_ANIM_TIME > 0) {
+        const normalized = Math.min(1, Math.max(0, 1 - paddleGrowTimer / PADDLE_GROW_ANIM_TIME));
+        return Math.sin(normalized * Math.PI);
+      }
+      return 0;
+    }
+
     function clampPaddleX(value, width = paddleWidth) {
       const sampleY = PADDLE_Y + PADDLE_H / 2;
       const leftLimitRaw = getLeftWallX(sampleY);
       const rightLimitRaw = getRightWallX(sampleY);
       const leftLimit = Number.isFinite(leftLimitRaw) ? leftLimitRaw : 0;
       const rightLimit = Number.isFinite(rightLimitRaw) ? rightLimitRaw : canvas.width;
-      const maxX = rightLimit - width;
-      if (maxX < leftLimit) {
-        const centered = (leftLimit + rightLimit - width) / 2;
+      const pulse = getPaddleGrowthPulse();
+      const extraVisualWidth = Math.max(0, width * pulse * 0.12);
+      const visualLeftLimit = leftLimit + extraVisualWidth / 2;
+      const visualRightLimit = rightLimit - extraVisualWidth / 2;
+      const maxX = visualRightLimit - width;
+      if (maxX < visualLeftLimit) {
+        const centered = (visualLeftLimit + visualRightLimit - width) / 2;
         if (Number.isFinite(centered)) {
           return centered;
         }
-        return leftLimit;
+        return visualLeftLimit;
       }
-      return Math.max(leftLimit, Math.min(maxX, value));
+      return Math.max(visualLeftLimit, Math.min(maxX, value));
     }
 
     let balls = [];
@@ -2608,11 +2620,10 @@
       let paddleDrawHeight = PADDLE_H;
       let paddleDrawX = paddleX;
       let paddleDrawY = PADDLE_Y;
-      if (paddleGrowTimer > 0 && PADDLE_GROW_ANIM_TIME > 0) {
-        const normalized = Math.min(1, Math.max(0, 1 - paddleGrowTimer / PADDLE_GROW_ANIM_TIME));
-        const pulse = Math.sin(normalized * Math.PI);
-        const widthScale = 1 + pulse * 0.12;
-        const heightScale = 1 + pulse * 0.08;
+      const growthPulse = getPaddleGrowthPulse();
+      if (growthPulse > 0) {
+        const widthScale = 1 + growthPulse * 0.12;
+        const heightScale = 1 + growthPulse * 0.08;
         paddleDrawWidth = paddleWidth * widthScale;
         paddleDrawHeight = PADDLE_H * heightScale;
         paddleDrawX = paddleX - (paddleDrawWidth - paddleWidth) / 2;

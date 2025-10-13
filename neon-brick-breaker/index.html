@@ -199,6 +199,30 @@
       transform: translateY(0) scale(1);
     }
 
+    #shield-wall-tag {
+      position: absolute;
+      top: 138px;
+      right: 24px;
+      padding: 6px 12px;
+      border-radius: 12px;
+      border: 2px solid rgba(0, 255, 255, 0.75);
+      background: rgba(10, 18, 28, 0.78);
+      color: rgba(0, 255, 255, 0.85);
+      text-shadow: 0 0 14px rgba(0, 255, 255, 0.7);
+      font-size: clamp(7px, 1.1vw, 12px);
+      letter-spacing: 0.8px;
+      opacity: 0;
+      transform: translateY(-16px) scale(0.9);
+      transition: opacity 0.22s ease, transform 0.22s ease;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    #shield-wall-tag.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
     #portal-tag {
       position: absolute;
       top: 64px;
@@ -368,6 +392,7 @@
         <div id="ghost-mode-tag" aria-hidden="true">Ghost Paddle</div>
         <div id="portal-tag" aria-hidden="true">Portal Hop!</div>
         <div id="trap-tag" aria-hidden="true">☠ Controls Inverted</div>
+        <div id="shield-wall-tag" aria-hidden="true">Shield Wall Ready</div>
         <div class="overlay" id="overlay">
           <div>
             <h2 id="ov-title">Neon Brick Breaker</h2>
@@ -417,6 +442,7 @@
     const ghostModeTag = document.getElementById('ghost-mode-tag');
     const portalTag = document.getElementById('portal-tag');
     const trapTag = document.getElementById('trap-tag');
+    const shieldWallTag = document.getElementById('shield-wall-tag');
     const muteBtn = document.getElementById('mute-btn');
 
     if (paddleBuffTag) {
@@ -434,6 +460,13 @@
 
     if (trapTag) {
       trapTag.setAttribute('aria-hidden', 'true');
+    }
+
+    let shieldWallTagLastText = '';
+    if (shieldWallTag) {
+      shieldWallTag.setAttribute('aria-hidden', 'true');
+      shieldWallTagLastText = shieldWallTag.textContent || '';
+      setShieldWallTagDisplay('Shield Wall Ready', false);
     }
 
     const SOUNDTRACK_FILES = [
@@ -708,6 +741,17 @@
     const TRAP_GLOW_MIN_ALPHA = 0.18;
     const TRAP_GLOW_MAX_ALPHA = 0.45;
 
+    const SHIELD_WALL_CONFIG = {
+      goodThreshold: 3,
+      greatThreshold: 5,
+      goodDuration: 5,
+      greatDuration: 10,
+      offset: 4,
+      height: 8,
+      horizontalPadding: 20,
+      shallowAngle: Math.PI / 8,
+    };
+
     const BULGE_WIDTH_PX = 80;
     const PULSE_DURATION_SEC = 3.0;
     const INTERVAL_START_SEC = 10.0;
@@ -750,6 +794,15 @@
     let inputInvertActive = false;
     let inputInvertTimer = 0;
 
+    const shieldWallState = {
+      active: false,
+      timer: 0,
+      duration: 0,
+      tier: null,
+      pulse: 0,
+      lastBounceTime: -Infinity,
+    };
+
     function getPaddleGrowthPulse() {
       if (paddleGrowTimer > 0 && PADDLE_GROW_ANIM_TIME > 0) {
         const normalized = Math.min(1, Math.max(0, 1 - paddleGrowTimer / PADDLE_GROW_ANIM_TIME));
@@ -791,6 +844,38 @@
         width: effectiveWidth,
         left: paddleX + offset,
         right: paddleX + offset + effectiveWidth,
+      };
+    }
+
+    function getShieldWallBounds() {
+      const padding = Number.isFinite(SHIELD_WALL_CONFIG.horizontalPadding)
+        ? SHIELD_WALL_CONFIG.horizontalPadding
+        : 0;
+      const desiredWidth = Math.max(40, Math.min(canvas.width, paddleWidth + padding * 2));
+      const centerX = paddleX + paddleWidth / 2;
+      let left = centerX - desiredWidth / 2;
+      if (left < 0) {
+        left = 0;
+      }
+      let right = left + desiredWidth;
+      if (right > canvas.width) {
+        right = canvas.width;
+        left = Math.max(0, right - desiredWidth);
+      }
+      const width = Math.max(0, right - left);
+      const height = Math.max(4, SHIELD_WALL_CONFIG.height);
+      const rawTop = PADDLE_Y + PADDLE_H + (SHIELD_WALL_CONFIG.offset || 0);
+      const maxTop = Math.max(0, canvas.height - height);
+      const top = Math.min(Math.max(0, rawTop), maxTop);
+      const bottom = top + height;
+      return {
+        left,
+        right,
+        width,
+        top,
+        bottom,
+        height,
+        centerX: left + width / 2,
       };
     }
 
@@ -1045,6 +1130,85 @@
       }
     }
 
+    function setShieldWallTagDisplay(text, visible) {
+      if (!shieldWallTag) return;
+      if (typeof text === 'string' && text !== shieldWallTagLastText) {
+        shieldWallTag.textContent = text;
+        shieldWallTagLastText = text;
+      }
+      if (visible) {
+        shieldWallTag.classList.add('show');
+        shieldWallTag.setAttribute('aria-hidden', 'false');
+      } else {
+        shieldWallTag.classList.remove('show');
+        shieldWallTag.setAttribute('aria-hidden', 'true');
+      }
+    }
+
+    function refreshShieldWallTagCountdown() {
+      if (!shieldWallState.active || !shieldWallTag) return;
+      const baseLabel = shieldWallState.tier === 'great' ? 'Shield Wall ++' : 'Shield Wall';
+      const seconds = Math.max(0, Math.ceil(shieldWallState.timer));
+      setShieldWallTagDisplay(`${baseLabel} ${seconds}s`, true);
+    }
+
+    function deactivateShieldWall() {
+      if (shieldWallState.active) {
+        shieldWallState.active = false;
+      }
+      shieldWallState.timer = 0;
+      shieldWallState.duration = 0;
+      shieldWallState.tier = null;
+      shieldWallState.pulse = 0;
+      shieldWallState.lastBounceTime = -Infinity;
+      setShieldWallTagDisplay('Shield Wall Ready', false);
+    }
+
+    function activateShieldWall(tier) {
+      if (!tier) return;
+      const duration = tier === 'great'
+        ? SHIELD_WALL_CONFIG.greatDuration
+        : SHIELD_WALL_CONFIG.goodDuration;
+      if (!Number.isFinite(duration) || duration <= 0) return;
+      const previousTier = shieldWallState.tier;
+      shieldWallState.active = true;
+      shieldWallState.timer = duration;
+      shieldWallState.duration = duration;
+      shieldWallState.tier = tier;
+      shieldWallState.pulse = tier === previousTier ? Math.min(1.2, (shieldWallState.pulse || 0) + 0.6) : 1.2;
+      shieldWallState.lastBounceTime = gameTime;
+      refreshShieldWallTagCountdown();
+    }
+
+    function handleShieldWallCombo(comboMultiplier) {
+      const comboValue = Number.isFinite(comboMultiplier) ? comboMultiplier : 0;
+      let tier = null;
+      if (comboValue >= SHIELD_WALL_CONFIG.greatThreshold) {
+        tier = 'great';
+      } else if (comboValue >= SHIELD_WALL_CONFIG.goodThreshold) {
+        tier = 'good';
+      }
+      if (!tier) return;
+      activateShieldWall(tier);
+    }
+
+    function updateShieldWall(dt) {
+      if (shieldWallState.pulse > 0) {
+        shieldWallState.pulse = Math.max(0, shieldWallState.pulse - dt * 2.2);
+      }
+      if (!shieldWallState.active) return;
+      if (!running || paused) {
+        refreshShieldWallTagCountdown();
+        return;
+      }
+      shieldWallState.timer -= dt;
+      if (shieldWallState.timer <= 0) {
+        deactivateShieldWall();
+        return;
+      }
+      refreshShieldWallTagCountdown();
+    }
+
     function updateGhostModeTagText() {
       if (!ghostModeTag) return;
       if (ghostModeActive) {
@@ -1162,6 +1326,7 @@
       if (paddleBuff) {
         paddleBuff.handleComboChange(comboState.multiplier);
       }
+      handleShieldWallCombo(comboState.multiplier);
     }
 
     function resetComboMultiplier() {
@@ -1300,6 +1465,7 @@
       scoreEl.textContent = score;
       livesEl.textContent = lives;
       resetComboMultiplier();
+      deactivateShieldWall();
       if (portalTagTimeout) {
         clearTimeout(portalTagTimeout);
         portalTagTimeout = null;
@@ -2403,6 +2569,50 @@
       }
     }
 
+    function handleShieldWallCollision(ball, prevBallX, prevBallY) {
+      if (!shieldWallState.active) return false;
+      if (ball.vy <= 0) return false;
+      const bounds = getShieldWallBounds();
+      if (!bounds || bounds.width <= 0) return false;
+      const prevBottom = prevBallY + BALL_R;
+      const currBottom = ball.y + BALL_R;
+      const prevTop = prevBallY - BALL_R;
+      const currTop = ball.y - BALL_R;
+      const crossedTop = prevBottom <= bounds.top && currBottom >= bounds.top;
+      const withinVertical = currBottom >= bounds.top && currTop <= bounds.bottom;
+      if (!crossedTop && !withinVertical) return false;
+      const ballLeft = ball.x - BALL_R;
+      const ballRight = ball.x + BALL_R;
+      if (ballRight < bounds.left || ballLeft > bounds.right) return false;
+      ball.y = bounds.top - BALL_R - 0.5;
+      const currentSpeed = Math.hypot(ball.vx, ball.vy);
+      const fallbackSpeed = (6 + level * 0.8) * 0.75 * 60;
+      const minSpeed = minimumBallSpeed ? Math.max(minimumBallSpeed, fallbackSpeed) : fallbackSpeed;
+      const speed = Math.max(minSpeed, currentSpeed || 0, 220);
+      const centerX = bounds.centerX;
+      const offset = ball.x - centerX;
+      let direction = 0;
+      if (Math.abs(offset) > 1) {
+        direction = offset > 0 ? 1 : -1;
+      } else if (ball.vx !== 0) {
+        direction = ball.vx > 0 ? 1 : -1;
+      } else if (Number.isFinite(prevBallX)) {
+        direction = prevBallX > centerX ? 1 : -1;
+      } else {
+        direction = Math.random() < 0.5 ? -1 : 1;
+      }
+      const angle = Math.max(Math.PI / 12, Math.min(Math.PI / 5, SHIELD_WALL_CONFIG.shallowAngle || (Math.PI / 8)));
+      ball.vx = Math.cos(angle) * speed * (direction || 1);
+      ball.vy = -Math.abs(Math.sin(angle) * speed);
+      if (Math.abs(ball.vx) < speed * 0.35) {
+        ball.vx = speed * 0.35 * (direction || 1);
+      }
+      shieldWallState.pulse = Math.min(1.5, 1 + (shieldWallState.pulse || 0));
+      shieldWallState.lastBounceTime = gameTime;
+      refreshShieldWallTagCountdown();
+      return true;
+    }
+
     function update(dt) {
       frameCounter++;
       updateBrickVisualState(dt);
@@ -2548,6 +2758,11 @@
           }
         } else if (splitBars.length) {
           handleSplitBarsCollision(ball, prevBallX, prevBallY);
+        }
+
+        if (handleShieldWallCollision(ball, prevBallX, prevBallY)) {
+          enforceMinimumBallSpeed(ball);
+          continue;
         }
 
         if (ball.y - BALL_R > canvas.height) {
@@ -2855,6 +3070,48 @@
       ctx.restore();
     }
 
+    function drawShieldWall() {
+      if (!shieldWallState.active) return;
+      const bounds = getShieldWallBounds();
+      if (!bounds || bounds.width <= 0) return;
+      const ratio = shieldWallState.duration > 0
+        ? Math.max(0, Math.min(1, shieldWallState.timer / shieldWallState.duration))
+        : 0;
+      const pulse = Math.max(0, shieldWallState.pulse || 0);
+      const wave = 0.65 + Math.sin(gameTime * 6) * 0.1;
+      const baseAlpha = Math.min(1, 0.28 + pulse * 0.35 + wave * 0.12);
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const gradient = ctx.createLinearGradient(bounds.left, bounds.top, bounds.right, bounds.top);
+      gradient.addColorStop(0, 'rgba(0, 255, 255, 0.8)');
+      gradient.addColorStop(0.5, 'rgba(255, 62, 223, 0.95)');
+      gradient.addColorStop(1, 'rgba(0, 255, 255, 0.8)');
+      ctx.globalAlpha = baseAlpha;
+      ctx.fillStyle = gradient;
+      ctx.fillRect(bounds.left, bounds.top, bounds.width, bounds.height);
+      ctx.globalAlpha = Math.min(0.9, 0.55 + pulse * 0.3);
+      ctx.shadowColor = 'rgba(0, 255, 255, 0.75)';
+      ctx.shadowBlur = 16 + pulse * 18;
+      ctx.strokeStyle = 'rgba(0, 255, 255, 0.9)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(bounds.left - 1, bounds.top - 1, bounds.width + 2, bounds.height + 2);
+      ctx.restore();
+
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      const inset = 3;
+      const barWidth = Math.max(0, bounds.width - inset * 2);
+      if (barWidth > 0) {
+        const barX = bounds.left + inset;
+        const barY = bounds.top + bounds.height / 2 - 1.5;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+        ctx.fillRect(barX, barY, barWidth, 3);
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.9)';
+        ctx.fillRect(barX, barY, barWidth * ratio, 3);
+      }
+      ctx.restore();
+    }
+
     function render() {
       ctx.clearRect(0,0,canvas.width,canvas.height);
       drawNeonGrid();
@@ -3144,6 +3401,7 @@
       renderExplosionParticles();
 
       drawSpecialBar();
+      drawShieldWall();
 
       // Draw paddle
       let paddleDrawWidth = paddleWidth;
@@ -3256,6 +3514,7 @@
       }
 
       updateMagnet(dt);
+      updateShieldWall(dt);
       if (paddleBuff) {
         paddleBuff.update(dt);
       }

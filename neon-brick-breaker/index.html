@@ -258,6 +258,79 @@
       }
     }
 
+    #trick-feed {
+      position: absolute;
+      top: 26%;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none;
+      z-index: 6;
+    }
+
+    .trick-toast {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      background: rgba(14, 16, 32, 0.82);
+      border: 2px solid rgba(0, 255, 255, 0.55);
+      border-radius: 14px;
+      color: #f8fbff;
+      font-size: clamp(7px, 1.35vw, 12px);
+      letter-spacing: 0.6px;
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.35);
+      animation: trickToastPop 2.4s ease forwards;
+      text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+      min-width: 0;
+    }
+
+    .trick-tag {
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(0, 255, 255, 0.16);
+      border: 1px solid rgba(0, 255, 255, 0.55);
+      text-transform: uppercase;
+      font-size: 0.75em;
+      letter-spacing: 1.2px;
+      color: var(--teal);
+      text-shadow: none;
+      white-space: nowrap;
+    }
+
+    .trick-name {
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .trick-points {
+      margin-left: auto;
+      color: var(--gold);
+      white-space: nowrap;
+    }
+
+    @keyframes trickToastPop {
+      0% {
+        opacity: 0;
+        transform: translateY(-18px) scale(0.82);
+      }
+      14% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+      68% {
+        opacity: 1;
+        transform: translateY(6px) scale(1.05);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(26px) scale(0.9);
+      }
+    }
+
     .overlay {
       position: absolute;
       inset: 12px;
@@ -368,6 +441,7 @@
         <div id="ghost-mode-tag" aria-hidden="true">Ghost Paddle</div>
         <div id="portal-tag" aria-hidden="true">Portal Hop!</div>
         <div id="trap-tag" aria-hidden="true">☠ Controls Inverted</div>
+        <div id="trick-feed" aria-live="polite" aria-atomic="false"></div>
         <div class="overlay" id="overlay">
           <div>
             <h2 id="ov-title">Neon Brick Breaker</h2>
@@ -418,6 +492,7 @@
     const portalTag = document.getElementById('portal-tag');
     const trapTag = document.getElementById('trap-tag');
     const muteBtn = document.getElementById('mute-btn');
+    const trickFeed = document.getElementById('trick-feed');
 
     if (paddleBuffTag) {
       paddleBuffTag.setAttribute('aria-hidden', 'true');
@@ -721,6 +796,29 @@
     const TRAP_GLOW_SPEED = 3.1;
     const TRAP_GLOW_MIN_ALPHA = 0.18;
     const TRAP_GLOW_MAX_ALPHA = 0.45;
+
+    const TRICK_SHOT_DEFS = {
+      cleanBank: { name: 'Clean Bank', points: 150, tagText: 'Trick Clean Bank' },
+      backboard: { name: 'Backboard', points: 130 },
+      threader: { name: 'Threader', points: 180 },
+      edgeKiss: { name: 'Edge Kiss', points: 110 },
+      longRail: { name: 'Long Rail', points: 170 },
+      perfectSave: { name: 'Perfect Save', points: 160 },
+    };
+
+    const TRICK_SHOT_SETTINGS = {
+      cleanBankWallsRequired: 2,
+      backboardWindow: 0.3,
+      threaderWindow: 0.25,
+      perfectSaveWindow: 0.2,
+      perfectSaveTolerance: 4,
+      longRailWindow: 1.5,
+      edgeKissAngle: 10 * (Math.PI / 180),
+      edgeKissWindow: 0.2,
+      threaderGapMax: BRICK_W * 2 + BRICK_GAP * 3,
+    };
+
+    const EDGE_KISS_SIN_THRESHOLD = Math.sin(TRICK_SHOT_SETTINGS.edgeKissAngle);
 
     const BULGE_WIDTH_PX = 80;
     const PULSE_DURATION_SEC = 3.0;
@@ -1026,8 +1124,93 @@
     }
     function hideOverlay(){ overlayEl.classList.remove('show'); }
 
-    function createBall(x, y, lockedToPaddle = false) {
+    function createTrickState() {
       return {
+        wallHitsSincePaddle: new Set(),
+        lastWallHitTime: -Infinity,
+        lastCeilingHitTime: -Infinity,
+        lastThreaderPassTime: -Infinity,
+        lastPaddleHitTime: gameTime,
+        perfectSaveWindow: null,
+        edgeKissCandidateTime: -Infinity,
+      };
+    }
+
+    function ensureTrickState(ball) {
+      if (!ball.trickState) {
+        ball.trickState = createTrickState();
+      }
+      return ball.trickState;
+    }
+
+    function markBallAsRestingOnPaddle(ball) {
+      const state = ensureTrickState(ball);
+      state.lastPaddleHitTime = gameTime;
+      state.lastWallHitTime = -Infinity;
+      state.lastCeilingHitTime = -Infinity;
+      state.lastThreaderPassTime = -Infinity;
+      state.edgeKissCandidateTime = -Infinity;
+      if (state.wallHitsSincePaddle && typeof state.wallHitsSincePaddle.clear === 'function') {
+        state.wallHitsSincePaddle.clear();
+      } else {
+        state.wallHitsSincePaddle = new Set();
+      }
+      state.perfectSaveWindow = null;
+    }
+
+    function markBallLaunched(ball) {
+      const state = ensureTrickState(ball);
+      state.lastPaddleHitTime = gameTime;
+      state.lastWallHitTime = -Infinity;
+      state.lastCeilingHitTime = -Infinity;
+      state.lastThreaderPassTime = -Infinity;
+      state.edgeKissCandidateTime = -Infinity;
+      if (state.wallHitsSincePaddle && typeof state.wallHitsSincePaddle.clear === 'function') {
+        state.wallHitsSincePaddle.clear();
+      } else {
+        state.wallHitsSincePaddle = new Set();
+      }
+      state.perfectSaveWindow = null;
+    }
+
+    function notePaddleContact(ball, contactDelta, { allowPerfectSave = true } = {}) {
+      const state = ensureTrickState(ball);
+      state.lastPaddleHitTime = gameTime;
+      state.lastWallHitTime = -Infinity;
+      state.lastCeilingHitTime = -Infinity;
+      state.lastThreaderPassTime = -Infinity;
+      state.edgeKissCandidateTime = -Infinity;
+      if (state.wallHitsSincePaddle && typeof state.wallHitsSincePaddle.clear === 'function') {
+        state.wallHitsSincePaddle.clear();
+      } else {
+        state.wallHitsSincePaddle = new Set();
+      }
+      if (allowPerfectSave && Number.isFinite(contactDelta) && Math.abs(contactDelta) <= TRICK_SHOT_SETTINGS.perfectSaveTolerance) {
+        state.perfectSaveWindow = gameTime + TRICK_SHOT_SETTINGS.perfectSaveWindow;
+      } else {
+        state.perfectSaveWindow = null;
+      }
+    }
+
+    function noteWallContact(ball, wall) {
+      const state = ensureTrickState(ball);
+      if (!state.wallHitsSincePaddle || typeof state.wallHitsSincePaddle.add !== 'function') {
+        state.wallHitsSincePaddle = new Set();
+      }
+      state.wallHitsSincePaddle.add(wall);
+      state.lastWallHitTime = gameTime;
+      if (wall === 'ceiling') {
+        state.lastCeilingHitTime = gameTime;
+      }
+    }
+
+    function registerEdgeKissCandidate(ball) {
+      const state = ensureTrickState(ball);
+      state.edgeKissCandidateTime = gameTime;
+    }
+
+    function createBall(x, y, lockedToPaddle = false) {
+      const ball = {
         x,
         y,
         vx: 0,
@@ -1039,7 +1222,149 @@
         lastPortalTime: -Infinity,
         portalSpeedRecovery: null,
         energyTrailTimer: 0,
+        trickState: createTrickState(),
       };
+      if (lockedToPaddle) {
+        markBallAsRestingOnPaddle(ball);
+      } else {
+        markBallLaunched(ball);
+      }
+      return ball;
+    }
+
+    function detectThreaderPassage(ball) {
+      if (!ball || ball.lockedToPaddle || ball.vy >= 0) return;
+      const state = ensureTrickState(ball);
+      const ballLeft = ball.x - BALL_R;
+      const ballRight = ball.x + BALL_R;
+      const ballTop = ball.y - BALL_R;
+      const ballBottom = ball.y + BALL_R;
+      let leftBrick = null;
+      let rightBrick = null;
+      for (const br of bricks) {
+        if (!br || !br.alive) continue;
+        if (br.isPhase && !br.phaseTangible) continue;
+        const top = br.y;
+        const bottom = br.y + br.h;
+        if (ballBottom < top || ballTop > bottom) continue;
+        if (br.x + br.w <= ballLeft) {
+          if (!leftBrick || br.x > leftBrick.x) leftBrick = br;
+        } else if (br.x >= ballRight) {
+          if (!rightBrick || br.x < rightBrick.x) rightBrick = br;
+        }
+      }
+      if (!leftBrick || !rightBrick) return;
+      const gapStart = leftBrick.x + leftBrick.w;
+      const gapEnd = rightBrick.x;
+      const gapWidth = gapEnd - gapStart;
+      if (!(gapWidth > BALL_R * 2)) return;
+      if (ballLeft <= gapStart || ballRight >= gapEnd) return;
+      if (gapWidth <= TRICK_SHOT_SETTINGS.threaderGapMax) {
+        state.lastThreaderPassTime = gameTime;
+      }
+    }
+
+    function maybeRegisterTrickShot(ball, { willBreak = false } = {}) {
+      if (!ball) return;
+      const state = ensureTrickState(ball);
+      const awards = [];
+      const walls = state.wallHitsSincePaddle;
+      if (walls && typeof walls.size === 'number') {
+        if (
+          walls.size >= TRICK_SHOT_SETTINGS.cleanBankWallsRequired &&
+          state.lastWallHitTime > state.lastPaddleHitTime
+        ) {
+          awards.push('cleanBank');
+          if (typeof walls.clear === 'function') walls.clear();
+          state.lastWallHitTime = -Infinity;
+        }
+      }
+
+      if (
+        state.edgeKissCandidateTime > -Infinity &&
+        gameTime - state.edgeKissCandidateTime <= TRICK_SHOT_SETTINGS.edgeKissWindow
+      ) {
+        awards.push('edgeKiss');
+        state.edgeKissCandidateTime = -Infinity;
+      }
+
+      if (willBreak) {
+        if (
+          state.lastCeilingHitTime > -Infinity &&
+          gameTime - state.lastCeilingHitTime <= TRICK_SHOT_SETTINGS.backboardWindow
+        ) {
+          awards.push('backboard');
+          state.lastCeilingHitTime = -Infinity;
+        }
+        if (
+          state.lastThreaderPassTime > -Infinity &&
+          gameTime - state.lastThreaderPassTime <= TRICK_SHOT_SETTINGS.threaderWindow
+        ) {
+          awards.push('threader');
+          state.lastThreaderPassTime = -Infinity;
+        }
+        if (state.perfectSaveWindow && gameTime <= state.perfectSaveWindow) {
+          awards.push('perfectSave');
+          state.perfectSaveWindow = null;
+        }
+        if (
+          Number.isFinite(state.lastPaddleHitTime) &&
+          gameTime - state.lastPaddleHitTime >= TRICK_SHOT_SETTINGS.longRailWindow
+        ) {
+          awards.push('longRail');
+          state.lastPaddleHitTime = gameTime;
+        }
+      }
+
+      if (!awards.length) return;
+      for (const key of awards) {
+        registerTrickShot(key);
+      }
+    }
+
+    function registerTrickShot(key) {
+      const def = TRICK_SHOT_DEFS[key];
+      if (!def) return;
+      const points = Number.isFinite(def.points) ? Math.round(def.points) : 0;
+      if (points) {
+        score += points;
+        scoreEl.textContent = score;
+      }
+      showTrickNotification(def);
+    }
+
+    function showTrickNotification(def) {
+      if (!trickFeed) return;
+      const toast = document.createElement('div');
+      toast.className = 'trick-toast';
+      toast.setAttribute('role', 'status');
+
+      const tag = document.createElement('span');
+      tag.className = 'trick-tag';
+      tag.textContent = def.tagText || 'Trick Shot';
+      toast.appendChild(tag);
+
+      const name = document.createElement('span');
+      name.className = 'trick-name';
+      name.textContent = def.name || 'Trick';
+      toast.appendChild(name);
+
+      if (def.points) {
+        const pointsEl = document.createElement('span');
+        pointsEl.className = 'trick-points';
+        pointsEl.textContent = `+${Math.round(def.points)}`;
+        toast.appendChild(pointsEl);
+      }
+
+      trickFeed.appendChild(toast);
+
+      const remove = () => {
+        if (toast.parentNode === trickFeed) {
+          trickFeed.removeChild(toast);
+        }
+      };
+      toast.addEventListener('animationend', remove, { once: true });
+      setTimeout(remove, 2600);
     }
 
     function handlePaddleWidthChange(newWidth, previousWidth = paddleWidth) {
@@ -1348,6 +1673,7 @@
       ball.vx = Math.cos(angle) * speed;
       ball.vy = -Math.abs(Math.sin(angle) * speed) - 120;
       ball.lockedToPaddle = false;
+      markBallLaunched(ball);
       captureInitialBallSpeed(ball);
       enforceMinimumBallSpeed(ball);
       running = true;
@@ -2602,6 +2928,7 @@
         if (ball.lockedToPaddle) {
           ball.x = paddleX + paddleWidth / 2;
           ball.y = PADDLE_Y - BALL_R - 2;
+          markBallAsRestingOnPaddle(ball);
           continue;
         }
 
@@ -2652,6 +2979,7 @@
           if (ball.vx === 0) {
             ball.vx = Math.max(180, minimumBallSpeed || 0);
           }
+          noteWallContact(ball, 'left');
         }
 
         const rightBoundPrev = getRightWallX(prevBallY);
@@ -2665,8 +2993,15 @@
             const fallback = Math.max(180, minimumBallSpeed || 0);
             ball.vx = -fallback;
           }
+          noteWallContact(ball, 'right');
         }
-        if (ball.y - BALL_R < 0) { ball.y = BALL_R; ball.vy *= -1; }
+        if (ball.y - BALL_R < 0) {
+          ball.y = BALL_R;
+          ball.vy *= -1;
+          noteWallContact(ball, 'ceiling');
+        }
+
+        detectThreaderPassage(ball);
 
         if (SPECIAL_BAR.hp > 0) {
           const barLeft = SPECIAL_BAR.x;
@@ -2754,6 +3089,7 @@
               ball.vy = -Math.abs(fallbackSpeed);
             }
             magnetLockedSpeed = Math.abs(ball.vy);
+            notePaddleContact(ball, 0, { allowPerfectSave: false });
           } else {
             const clampedX = Math.min(paddleHitRight, Math.max(paddleHitLeft, ball.x));
             const denominator = paddleHitWidth / 2 || 1;
@@ -2763,6 +3099,7 @@
             ball.vx = speed * Math.sin(angle);
             ball.vy = -Math.abs(speed * Math.cos(angle));
             enforceMinimumBallSpeed(ball);
+            notePaddleContact(ball, clampedX - paddleHitCenter);
           }
         }
 
@@ -2777,6 +3114,25 @@
             const prevY = prevBallY;
             const wasAbove = prevY + BALL_R <= br.y;
             const wasBelow = prevY - BALL_R >= br.y + br.h;
+            const collisionOrientation = (wasAbove || wasBelow) ? 'vertical' : 'horizontal';
+            const impactVx = ball.vx;
+            const impactVy = ball.vy;
+            const impactSpeed = Math.hypot(impactVx, impactVy);
+            if (impactSpeed > 0) {
+              if (collisionOrientation === 'vertical') {
+                const ratio = Math.abs(impactVy) / impactSpeed;
+                if (ratio <= EDGE_KISS_SIN_THRESHOLD) {
+                  registerEdgeKissCandidate(ball);
+                }
+              } else {
+                const ratio = Math.abs(impactVx) / impactSpeed;
+                if (ratio <= EDGE_KISS_SIN_THRESHOLD) {
+                  registerEdgeKissCandidate(ball);
+                }
+              }
+            }
+            const willBreak = br.shieldHealth <= 0 && br.hp <= 1;
+            maybeRegisterTrickShot(ball, { willBreak });
             if (wasAbove || wasBelow) {
               ball.vy *= -1;
             } else {

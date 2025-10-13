@@ -153,6 +153,29 @@
       transform: translateY(0) scale(1);
     }
 
+    #ghost-mode-tag {
+      position: absolute;
+      top: 54px;
+      right: 24px;
+      padding: 6px 12px;
+      border-radius: 12px;
+      border: 2px solid rgba(255, 255, 255, 0.65);
+      background: rgba(20, 20, 32, 0.8);
+      color: rgba(255, 255, 255, 0.85);
+      text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+      font-size: clamp(7px, 1.1vw, 12px);
+      letter-spacing: 0.8px;
+      opacity: 0;
+      transform: translateY(-16px) scale(0.9);
+      transition: opacity 0.22s ease, transform 0.22s ease;
+      pointer-events: none;
+    }
+
+    #ghost-mode-tag.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
     #portal-tag {
       position: absolute;
       top: 64px;
@@ -319,6 +342,7 @@
         <canvas id="game" width="900" height="600"></canvas>
         <div id="upgrade-banner"></div>
         <div id="paddle-buff-tag" aria-hidden="true">Paddle Engaged</div>
+        <div id="ghost-mode-tag" aria-hidden="true">Ghost Paddle</div>
         <div id="portal-tag" aria-hidden="true">Portal Hop!</div>
         <div class="overlay" id="overlay">
           <div>
@@ -366,11 +390,17 @@
     const hudEl = document.querySelector('.hud');
     const upgradeBanner = document.getElementById('upgrade-banner');
     const paddleBuffTag = document.getElementById('paddle-buff-tag');
+    const ghostModeTag = document.getElementById('ghost-mode-tag');
     const portalTag = document.getElementById('portal-tag');
     const muteBtn = document.getElementById('mute-btn');
 
     if (paddleBuffTag) {
       paddleBuffTag.setAttribute('aria-hidden', 'true');
+    }
+
+    if (ghostModeTag) {
+      ghostModeTag.setAttribute('aria-hidden', 'true');
+      ghostModeTag.textContent = 'Ghost Paddle';
     }
 
     if (portalTag) {
@@ -452,6 +482,8 @@
       }
     }
 
+    let ghostWhooshBuffer = null;
+
     function playShieldCrackSound() {
       if (!shieldAudioCtx || isMuted) return;
       resumeShieldAudio();
@@ -466,6 +498,46 @@
       osc.connect(gain).connect(shieldAudioCtx.destination);
       osc.start(now);
       osc.stop(now + 0.32);
+    }
+
+    function getGhostWhooshBuffer() {
+      if (!shieldAudioCtx) return null;
+      if (ghostWhooshBuffer) return ghostWhooshBuffer;
+      const duration = 0.45;
+      const sampleRate = shieldAudioCtx.sampleRate;
+      const frameCount = Math.max(1, Math.floor(sampleRate * duration));
+      const buffer = shieldAudioCtx.createBuffer(1, frameCount, sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < frameCount; i++) {
+        const progress = i / frameCount;
+        const fadeOut = Math.pow(1 - progress, 1.2);
+        const fadeIn = Math.pow(progress, 0.4);
+        data[i] = (Math.random() * 2 - 1) * fadeOut * (0.45 + 0.55 * fadeIn);
+      }
+      ghostWhooshBuffer = buffer;
+      return ghostWhooshBuffer;
+    }
+
+    function playGhostWhooshSound() {
+      if (!shieldAudioCtx || isMuted) return;
+      resumeShieldAudio();
+      const buffer = getGhostWhooshBuffer();
+      if (!buffer) return;
+      const now = shieldAudioCtx.currentTime;
+      const source = shieldAudioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.playbackRate.setValueAtTime(1.25, now);
+      source.playbackRate.exponentialRampToValueAtTime(0.65, now + 0.45);
+      const filter = shieldAudioCtx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(520, now);
+      filter.Q.setValueAtTime(1.4, now);
+      const gain = shieldAudioCtx.createGain();
+      gain.gain.setValueAtTime(0.22, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+      source.connect(filter).connect(gain).connect(shieldAudioCtx.destination);
+      source.start(now);
+      source.stop(now + 0.5);
     }
 
     function primeAudio() {
@@ -548,6 +620,13 @@
     const SHIELDED_LEVEL_BONUS = 0.03;
     const SHIELDED_MAX_CHANCE = 0.45;
     const SHIELD_CRACK_DURATION = 0.35;
+    const GHOST_MODE_DURATION = 2.0;
+    const GHOST_PADDLE_ALPHA = 0.4;
+    const GHOST_HITBOX_FACTOR = 0.5;
+    const GHOST_BRICK_BASE_ALPHA = 0.55;
+    const GHOST_BRICK_FLICKER_AMPLITUDE = 0.25;
+    const GHOST_BRICK_FLICKER_SPEED = 1.8;
+    const GHOST_BRICK_MAX_COUNT = 6;
 
     const BULGE_WIDTH_PX = 80;
     const PULSE_DURATION_SEC = 3.0;
@@ -586,6 +665,8 @@
     let paddleWidth = PADDLE_CONFIG.baseWidth;
     let paddleGrowTimer = 0;
     let paddleX = (canvas.width - paddleWidth) / 2;
+    let ghostModeActive = false;
+    let ghostModeTimer = 0;
 
     function getPaddleGrowthPulse() {
       if (paddleGrowTimer > 0 && PADDLE_GROW_ANIM_TIME > 0) {
@@ -614,6 +695,21 @@
         return visualLeftLimit;
       }
       return Math.max(visualLeftLimit, Math.min(maxX, value));
+    }
+
+    function getPaddleHitboxFactor() {
+      return ghostModeActive ? GHOST_HITBOX_FACTOR : 1;
+    }
+
+    function getPaddleHitbox() {
+      const factor = getPaddleHitboxFactor();
+      const effectiveWidth = paddleWidth * factor;
+      const offset = (paddleWidth - effectiveWidth) / 2;
+      return {
+        width: effectiveWidth,
+        left: paddleX + offset,
+        right: paddleX + offset + effectiveWidth,
+      };
     }
 
     let balls = [];
@@ -864,6 +960,54 @@
       }
     }
 
+    function updateGhostModeTagText() {
+      if (!ghostModeTag) return;
+      if (ghostModeActive) {
+        const seconds = Math.max(0, ghostModeTimer);
+        ghostModeTag.textContent = `Ghost Paddle ${seconds.toFixed(1)}s`;
+      } else {
+        ghostModeTag.textContent = 'Ghost Paddle';
+      }
+    }
+
+    function showGhostModeTag() {
+      if (!ghostModeTag) return;
+      updateGhostModeTagText();
+      ghostModeTag.classList.add('show');
+      ghostModeTag.setAttribute('aria-hidden', 'false');
+    }
+
+    function hideGhostModeTag() {
+      if (!ghostModeTag) return;
+      ghostModeTag.classList.remove('show');
+      ghostModeTag.setAttribute('aria-hidden', 'true');
+      updateGhostModeTagText();
+    }
+
+    function activateGhostMode() {
+      ghostModeActive = true;
+      ghostModeTimer = GHOST_MODE_DURATION;
+      updateGhostModeTagText();
+      showGhostModeTag();
+      playGhostWhooshSound();
+    }
+
+    function deactivateGhostMode() {
+      ghostModeActive = false;
+      ghostModeTimer = 0;
+      hideGhostModeTag();
+    }
+
+    function updateGhostMode(dt) {
+      if (!ghostModeActive) return;
+      ghostModeTimer -= dt;
+      if (ghostModeTimer <= 0) {
+        deactivateGhostMode();
+      } else {
+        updateGhostModeTagText();
+      }
+    }
+
     function captureInitialBallSpeed(ball) {
       if (minimumBallSpeed === null) {
         const speed = Math.hypot(ball.vx, ball.vy);
@@ -991,6 +1135,7 @@
       brickGrid = [];
       brickIdCounter = 0;
       frameCounter = 0;
+      deactivateGhostMode();
       for (let r=0; r<rows; r++) {
         if (!brickGrid[r]) {
           brickGrid[r] = [];
@@ -1036,6 +1181,9 @@
             teleportUsesRemaining: 0,
             teleportTimer: 0,
             teleportFlashTimer: 0,
+            isGhost: false,
+            ghostPhase: Math.random() * Math.PI * 2,
+            ghostFlicker: 0,
             isEnergy: false,
             energyGlowPhase: Math.random() * Math.PI * 2,
             energyGlowBoost: 0,
@@ -1048,6 +1196,7 @@
         }
       }
 
+      assignGhostBricks();
       assignEnergyBricks();
       assignTeleportBricks();
       assignExplosiveBricks();
@@ -1097,7 +1246,7 @@
 
     function assignEmbeddedBalls() {
       if (!bricks.length) return;
-      const aliveBricks = bricks.filter(br => br.alive && !br.isTeleport && !br.isEnergy);
+      const aliveBricks = bricks.filter(br => br.alive && !br.isTeleport && !br.isEnergy && !br.isGhost);
       if (!aliveBricks.length) return;
       const targetCount = Math.min(aliveBricks.length, 2 + Math.floor(Math.random() * 3));
       const chosen = new Set();
@@ -1116,7 +1265,7 @@
 
     function assignExplosiveBricks() {
       if (!bricks.length) return;
-      const pool = bricks.filter(br => br.alive && !br.isTeleport && !br.isEnergy);
+      const pool = bricks.filter(br => br.alive && !br.isTeleport && !br.isEnergy && !br.isGhost);
       for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -1138,11 +1287,45 @@
       return 1 + Math.floor((capped - 2) / 4);
     }
 
+    function getGhostBrickCountForLevel(currentLevel) {
+      if (currentLevel < 3) return 0;
+      const growth = Math.floor((Math.max(currentLevel, 3) - 3) / 4);
+      return Math.min(GHOST_BRICK_MAX_COUNT, 1 + growth);
+    }
+
+    function assignGhostBricks() {
+      if (!bricks.length) return;
+      const desired = Math.min(getGhostBrickCountForLevel(level), bricks.length);
+      if (desired <= 0) return;
+      const pool = bricks.filter(br => br.alive && !br.isGhost && !br.isTeleport && !br.isEnergy && !br.explosive);
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      let assigned = 0;
+      for (const br of pool) {
+        if (!br || assigned >= desired) break;
+        br.isGhost = true;
+        br.isTeleport = false;
+        br.isEnergy = false;
+        br.explosive = false;
+        br.ghostPhase = Math.random() * Math.PI * 2;
+        br.ghostFlicker = Math.random();
+        if (br.maxShieldHealth > 0) {
+          br.maxShieldHealth = 0;
+          br.shieldHealth = 0;
+          br.shieldFade = 0;
+          br.shieldCrackTimer = 0;
+        }
+        assigned++;
+      }
+    }
+
     function assignEnergyBricks() {
       if (!bricks.length) return;
       const desired = Math.min(getEnergyBrickCountForLevel(level), bricks.length);
       if (desired <= 0) return;
-      const pool = bricks.filter(br => br.alive && !br.isTeleport && !br.explosive);
+      const pool = bricks.filter(br => br.alive && !br.isTeleport && !br.explosive && !br.isGhost);
       for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -1177,7 +1360,7 @@
     function assignTeleportBricks() {
       const desired = Math.min(getTeleportBrickCountForLevel(level), bricks.length);
       if (desired <= 0) return;
-      const pool = bricks.filter(br => br.alive && !br.isEnergy);
+      const pool = bricks.filter(br => br.alive && !br.isEnergy && !br.isGhost);
       for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -1943,6 +2126,15 @@
         } else if (br.explosiveGlowPulse) {
           br.explosiveGlowPulse = Math.max(0, br.explosiveGlowPulse - dt * 1.2);
         }
+        if (br.isGhost) {
+          if (!Number.isFinite(br.ghostPhase)) {
+            br.ghostPhase = Math.random() * Math.PI * 2;
+          }
+          br.ghostPhase = (br.ghostPhase + dt * GHOST_BRICK_FLICKER_SPEED) % (Math.PI * 2);
+          br.ghostFlicker = (Math.sin(br.ghostPhase) + 1) / 2;
+        } else if (br.ghostFlicker) {
+          br.ghostFlicker = Math.max(0, br.ghostFlicker - dt * 4);
+        }
         if (br.isEnergy) {
           if (!Number.isFinite(br.energyGlowPhase)) {
             br.energyGlowPhase = Math.random() * Math.PI * 2;
@@ -2139,7 +2331,12 @@
         const prevBottom = prevBallY + BALL_R;
         const currBottom = ball.y + BALL_R;
         const currTop = ball.y - BALL_R;
-        const overlapsHorizontally = ball.x + BALL_R >= paddleX && ball.x - BALL_R <= paddleX + paddleWidth;
+        const paddleHit = getPaddleHitbox();
+        const paddleHitLeft = paddleHit.left;
+        const paddleHitRight = paddleHit.right;
+        const paddleHitWidth = paddleHit.width;
+        const paddleHitCenter = paddleHitLeft + paddleHitWidth / 2;
+        const overlapsHorizontally = ball.x + BALL_R >= paddleHitLeft && ball.x - BALL_R <= paddleHitRight;
         const crossedPaddleTop = prevBottom <= paddleTop && currBottom >= paddleTop;
         const withinVerticalRange = currBottom >= paddleTop && currTop <= paddleBottom;
 
@@ -2147,7 +2344,7 @@
           ball.y = paddleTop - BALL_R - 1;
           if (magnetActive) {
             const reboundSpeed = magnetLockedSpeed ?? Math.hypot(ball.vx, ball.vy);
-            ball.x = paddleX + paddleWidth / 2;
+            ball.x = paddleHitCenter;
             ball.vx = 0;
             if (reboundSpeed && reboundSpeed > 0) {
               ball.vy = -Math.abs(reboundSpeed);
@@ -2157,8 +2354,9 @@
             }
             magnetLockedSpeed = Math.abs(ball.vy);
           } else {
-            const clampedX = Math.min(paddleX + paddleWidth, Math.max(paddleX, ball.x));
-            const hit = (clampedX - (paddleX + paddleWidth / 2)) / (paddleWidth / 2 || 1);
+            const clampedX = Math.min(paddleHitRight, Math.max(paddleHitLeft, ball.x));
+            const denominator = paddleHitWidth / 2 || 1;
+            const hit = denominator !== 0 ? (clampedX - paddleHitCenter) / denominator : 0;
             const speed = Math.sqrt(ball.vx*ball.vx + ball.vy*ball.vy) * 1.03;
             const angle = hit * 1.0;
             ball.vx = speed * Math.sin(angle);
@@ -2205,6 +2403,7 @@
               break;
             }
 
+            applyGhostBrickEffect(br);
             applyEnergyBrickEffect(br, ball);
             br.hp -= 1;
             if (br.hp <= 0) {
@@ -2433,7 +2632,32 @@
         if (!br.alive) continue;
         const drawX = br.x + (br.shakeOffsetX || 0);
         const drawY = br.y + (br.shakeOffsetY || 0);
-        ctx.drawImage(br.img, drawX, drawY, br.w, br.h);
+        if (br.isGhost) {
+          const flicker = Number.isFinite(br.ghostFlicker) ? br.ghostFlicker : 0;
+          const ghostAlpha = Math.max(0.15, Math.min(1, GHOST_BRICK_BASE_ALPHA + flicker * GHOST_BRICK_FLICKER_AMPLITUDE));
+          ctx.save();
+          ctx.globalAlpha = ghostAlpha;
+          ctx.drawImage(br.img, drawX, drawY, br.w, br.h);
+          ctx.restore();
+          const centerX = drawX + br.w / 2;
+          const centerY = drawY + br.h / 2;
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = 0.2 + flicker * 0.35;
+          const innerRadius = Math.max(6, Math.min(br.w, br.h) * 0.25);
+          const outerRadius = Math.max(br.w, br.h) * 0.75;
+          const gradient = ctx.createRadialGradient(centerX, centerY, innerRadius, centerX, centerY, outerRadius);
+          gradient.addColorStop(0, 'rgba(180, 255, 255, 0.85)');
+          gradient.addColorStop(0.7, 'rgba(120, 200, 255, 0.25)');
+          gradient.addColorStop(1, 'rgba(120, 200, 255, 0)');
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        } else {
+          ctx.drawImage(br.img, drawX, drawY, br.w, br.h);
+        }
         if (br.isTeleport) {
           if (br.teleportFlashTimer > 0) {
             const flashNormalized = Math.max(0, Math.min(1, br.teleportFlashTimer / TELEPORT_FLASH_DURATION));
@@ -2642,7 +2866,30 @@
         ctx.restore();
       }
 
-      ctx.drawImage(imgPaddle, paddleDrawX, paddleDrawY, paddleDrawWidth, paddleDrawHeight);
+      if (ghostModeActive) {
+        ctx.save();
+        ctx.globalAlpha = GHOST_PADDLE_ALPHA;
+        ctx.drawImage(imgPaddle, paddleDrawX, paddleDrawY, paddleDrawWidth, paddleDrawHeight);
+        ctx.restore();
+        const hitbox = getPaddleHitbox();
+        const widthScale = paddleWidth > 0 ? paddleDrawWidth / paddleWidth : 1;
+        const effectiveDrawWidth = hitbox.width * widthScale;
+        const effectiveDrawX = paddleDrawX + (paddleDrawWidth - effectiveDrawWidth) / 2;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 0.28;
+        const highlightHeight = paddleDrawHeight * 0.7;
+        const highlightY = paddleDrawY + (paddleDrawHeight - highlightHeight) / 2;
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.6)';
+        ctx.fillRect(effectiveDrawX, highlightY, effectiveDrawWidth, highlightHeight);
+        ctx.globalAlpha = 0.18;
+        ctx.strokeStyle = 'rgba(0, 255, 255, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(effectiveDrawX, highlightY, effectiveDrawWidth, highlightHeight);
+        ctx.restore();
+      } else {
+        ctx.drawImage(imgPaddle, paddleDrawX, paddleDrawY, paddleDrawWidth, paddleDrawHeight);
+      }
 
       for (const ball of balls) {
         if (!ball) continue;
@@ -2711,6 +2958,7 @@
       }
       if (!paused) {
         updateWallPulse(dt);
+        updateGhostMode(dt);
         updateTeleportBricks(dt);
       }
 
@@ -2948,6 +3196,11 @@
           ? newSpeed
           : Math.max(minimumBallSpeed, newSpeed);
       }
+    }
+
+    function applyGhostBrickEffect(brick) {
+      if (!brick || !brick.isGhost) return;
+      activateGhostMode();
     }
 
     function applyEnergyBrickEffect(brick, ball) {

@@ -574,6 +574,8 @@
     const BRICK_BASE_POINTS = 50;
     const BRICK_HIT_POINTS = 20;
     const SHIELDED_BRICK_MULTIPLIER = 1.5;
+    const TELEPORT_BRICK_SCORE_MULTIPLIER = 1.5;
+    const EXTRA_TRAIT_STACK_MULTIPLIER = 1.25;
     const TELEPORT_BRICK_INTERVAL = 1.0;
     const TELEPORT_FLASH_DURATION = 0.3;
     const TELEPORT_FLASH_MAX_ALPHA = 0.45;
@@ -1297,7 +1299,7 @@
       if (!bricks.length) return;
       const desired = Math.min(getGhostBrickCountForLevel(level), bricks.length);
       if (desired <= 0) return;
-      const pool = bricks.filter(br => br.alive && !br.isGhost && !br.isTeleport && !br.isEnergy && !br.explosive);
+      const pool = bricks.filter(br => br.alive && !br.isGhost && !br.explosive);
       for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -1306,17 +1308,9 @@
       for (const br of pool) {
         if (!br || assigned >= desired) break;
         br.isGhost = true;
-        br.isTeleport = false;
-        br.isEnergy = false;
         br.explosive = false;
         br.ghostPhase = Math.random() * Math.PI * 2;
         br.ghostFlicker = Math.random();
-        if (br.maxShieldHealth > 0) {
-          br.maxShieldHealth = 0;
-          br.shieldHealth = 0;
-          br.shieldFade = 0;
-          br.shieldCrackTimer = 0;
-        }
         assigned++;
       }
     }
@@ -1325,7 +1319,7 @@
       if (!bricks.length) return;
       const desired = Math.min(getEnergyBrickCountForLevel(level), bricks.length);
       if (desired <= 0) return;
-      const pool = bricks.filter(br => br.alive && !br.isTeleport && !br.explosive && !br.isGhost);
+      const pool = bricks.filter(br => br.alive && !br.isEnergy && !br.explosive);
       for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -1341,12 +1335,6 @@
         const range = Math.max(0.0001, ENERGY_ARC_REFRESH_MAX - ENERGY_ARC_REFRESH_MIN);
         br.energyArcTimer = ENERGY_ARC_REFRESH_MIN + Math.random() * range;
         addEnergyArc(br);
-        if (br.maxShieldHealth > 0) {
-          br.maxShieldHealth = 0;
-          br.shieldHealth = 0;
-          br.shieldFade = 0;
-          br.shieldCrackTimer = 0;
-        }
         assigned++;
       }
     }
@@ -1360,7 +1348,7 @@
     function assignTeleportBricks() {
       const desired = Math.min(getTeleportBrickCountForLevel(level), bricks.length);
       if (desired <= 0) return;
-      const pool = bricks.filter(br => br.alive && !br.isEnergy && !br.isGhost);
+      const pool = bricks.filter(br => br.alive && !br.isTeleport && !br.explosive);
       for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -1735,9 +1723,29 @@
       return rowData[col] || null;
     }
 
+    function getActiveBrickTraits(brick) {
+      if (!brick) return [];
+      const traits = [];
+      if (brick.maxShieldHealth > 0) traits.push('shield');
+      if (brick.isTeleport) traits.push('teleport');
+      if (brick.isEnergy) traits.push('energy');
+      if (brick.isGhost) traits.push('ghost');
+      return traits;
+    }
+
     function awardBrickPoints(brick, ratio = 1) {
-      const teleportBonus = brick.isTeleport ? 1.5 : 1;
-      const multiplier = (brick.maxShieldHealth > 0 ? SHIELDED_BRICK_MULTIPLIER : 1) * teleportBonus;
+      const traits = getActiveBrickTraits(brick);
+      let multiplier = 1;
+      if (traits.includes('shield')) {
+        multiplier *= SHIELDED_BRICK_MULTIPLIER;
+      }
+      if (traits.includes('teleport')) {
+        multiplier *= TELEPORT_BRICK_SCORE_MULTIPLIER;
+      }
+      const extraTraitCount = Math.max(0, traits.length - 1);
+      if (extraTraitCount > 0) {
+        multiplier *= Math.pow(EXTRA_TRAIT_STACK_MULTIPLIER, extraTraitCount);
+      }
       const rawPoints = brick.basePoints * multiplier * ratio;
       const awarded = Math.max(1, Math.round(rawPoints));
       score += awarded;
@@ -2369,17 +2377,9 @@
           if (!br.alive) continue;
           if (ball.x + BALL_R > br.x && ball.x - BALL_R < br.x + br.w &&
               ball.y + BALL_R > br.y && ball.y - BALL_R < br.y + br.h) {
-            if (br.isTeleport) {
-              if (ball.lastPortalId === br.id && (gameTime - ball.lastPortalTime) < PORTAL_GRACE_PERIOD) {
-                continue;
-              }
-              const portalHandled = handlePortalCollision(ball, br);
-              if (portalHandled) {
-                enforceMinimumBallSpeed(ball);
-                break;
-              }
+            if (br.isTeleport && ball.lastPortalId === br.id && (gameTime - ball.lastPortalTime) < PORTAL_GRACE_PERIOD) {
+              continue;
             }
-            const prevX = prevBallX;
             const prevY = prevBallY;
             const wasAbove = prevY + BALL_R <= br.y;
             const wasBelow = prevY - BALL_R >= br.y + br.h;
@@ -2405,6 +2405,14 @@
 
             applyGhostBrickEffect(br);
             applyEnergyBrickEffect(br, ball);
+            let portalHandled = false;
+            if (br.isTeleport) {
+              portalHandled = handlePortalCollision(ball, br);
+            }
+            if (portalHandled) {
+              enforceMinimumBallSpeed(ball);
+              break;
+            }
             br.hp -= 1;
             if (br.hp <= 0) {
               br.alive = false;
@@ -2632,18 +2640,22 @@
         if (!br.alive) continue;
         const drawX = br.x + (br.shakeOffsetX || 0);
         const drawY = br.y + (br.shakeOffsetY || 0);
+        let ghostFlicker = 0;
+        let ghostAlpha = 1;
         if (br.isGhost) {
-          const flicker = Number.isFinite(br.ghostFlicker) ? br.ghostFlicker : 0;
-          const ghostAlpha = Math.max(0.15, Math.min(1, GHOST_BRICK_BASE_ALPHA + flicker * GHOST_BRICK_FLICKER_AMPLITUDE));
-          ctx.save();
-          ctx.globalAlpha = ghostAlpha;
-          ctx.drawImage(br.img, drawX, drawY, br.w, br.h);
-          ctx.restore();
+          ghostFlicker = Number.isFinite(br.ghostFlicker) ? br.ghostFlicker : 0;
+          ghostAlpha = Math.max(0.15, Math.min(1, GHOST_BRICK_BASE_ALPHA + ghostFlicker * GHOST_BRICK_FLICKER_AMPLITUDE));
+        }
+        ctx.save();
+        ctx.globalAlpha = ghostAlpha;
+        ctx.drawImage(br.img, drawX, drawY, br.w, br.h);
+        ctx.restore();
+        if (br.isGhost) {
           const centerX = drawX + br.w / 2;
           const centerY = drawY + br.h / 2;
           ctx.save();
           ctx.globalCompositeOperation = 'lighter';
-          ctx.globalAlpha = 0.2 + flicker * 0.35;
+          ctx.globalAlpha = 0.2 + ghostFlicker * 0.35;
           const innerRadius = Math.max(6, Math.min(br.w, br.h) * 0.25);
           const outerRadius = Math.max(br.w, br.h) * 0.75;
           const gradient = ctx.createRadialGradient(centerX, centerY, innerRadius, centerX, centerY, outerRadius);
@@ -2655,8 +2667,6 @@
           ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2);
           ctx.fill();
           ctx.restore();
-        } else {
-          ctx.drawImage(br.img, drawX, drawY, br.w, br.h);
         }
         if (br.isTeleport) {
           if (br.teleportFlashTimer > 0) {

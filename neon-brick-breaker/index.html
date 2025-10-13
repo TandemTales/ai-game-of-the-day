@@ -586,6 +586,24 @@
     let paddleWidth = PADDLE_CONFIG.baseWidth;
     let paddleGrowTimer = 0;
     let paddleX = (canvas.width - paddleWidth) / 2;
+
+    function clampPaddleX(value, width = paddleWidth) {
+      const sampleY = PADDLE_Y + PADDLE_H / 2;
+      const leftLimitRaw = getLeftWallX(sampleY);
+      const rightLimitRaw = getRightWallX(sampleY);
+      const leftLimit = Number.isFinite(leftLimitRaw) ? leftLimitRaw : 0;
+      const rightLimit = Number.isFinite(rightLimitRaw) ? rightLimitRaw : canvas.width;
+      const maxX = rightLimit - width;
+      if (maxX < leftLimit) {
+        const centered = (leftLimit + rightLimit - width) / 2;
+        if (Number.isFinite(centered)) {
+          return centered;
+        }
+        return leftLimit;
+      }
+      return Math.max(leftLimit, Math.min(maxX, value));
+    }
+
     let balls = [];
     let minimumBallSpeed = null;
     let bricks = [];
@@ -661,7 +679,7 @@
         // Convert to canvas space
         const scale = canvas.width / rect.width;
         const cx = x * scale;
-        paddleX = Math.max(0, Math.min(canvas.width - paddleWidth, cx - paddleWidth / 2));
+        paddleX = clampPaddleX(cx - paddleWidth / 2);
         updateLockedBallsPosition();
       }
       [canvas, overlayEl].forEach(el => {
@@ -807,7 +825,7 @@
       const prevWidth = Number.isFinite(previousWidth) ? previousWidth : paddleWidth;
       const center = paddleX + prevWidth / 2;
       paddleWidth = newWidth;
-      paddleX = Math.max(0, Math.min(canvas.width - paddleWidth, center - paddleWidth / 2));
+      paddleX = clampPaddleX(center - paddleWidth / 2);
       updateLockedBallsPosition();
       if (newWidth > PADDLE_CONFIG.baseWidth + 0.01) {
         paddleGrowTimer = PADDLE_GROW_ANIM_TIME;
@@ -1044,7 +1062,7 @@
           paddleBuffTag.setAttribute('aria-hidden', 'true');
         }
       }
-      paddleX = (canvas.width - paddleWidth) / 2;
+      paddleX = clampPaddleX((canvas.width - paddleWidth) / 2);
       balls = [createBall(paddleX + paddleWidth / 2, PADDLE_Y - BALL_R - 2, true)];
       running = false; paused = false;
       minimumBallSpeed = null;
@@ -1965,7 +1983,7 @@
       const paddleSpeed = (9 + level*0.4) * 60;
       if (input.left) paddleX -= paddleSpeed * dt;
       if (input.right) paddleX += paddleSpeed * dt;
-      paddleX = Math.max(0, Math.min(canvas.width - paddleWidth, paddleX));
+      paddleX = clampPaddleX(paddleX);
 
       const ballsToRemove = [];
 
@@ -2104,28 +2122,36 @@
           continue;
         }
 
-        if (ball.y + BALL_R >= PADDLE_Y && ball.y + BALL_R <= PADDLE_Y + PADDLE_H) {
-          if (ball.x >= paddleX && ball.x <= paddleX + paddleWidth && ball.vy > 0) {
-            ball.y = PADDLE_Y - BALL_R - 1;
-            if (magnetActive) {
-              const reboundSpeed = magnetLockedSpeed ?? Math.hypot(ball.vx, ball.vy);
-              ball.x = paddleX + paddleWidth / 2;
-              ball.vx = 0;
-              if (reboundSpeed && reboundSpeed > 0) {
-                ball.vy = -Math.abs(reboundSpeed);
-              } else {
-                const fallbackSpeed = minimumBallSpeed || (6 + level * 0.8) * 0.75 * 60;
-                ball.vy = -Math.abs(fallbackSpeed);
-              }
-              magnetLockedSpeed = Math.abs(ball.vy);
+        const paddleTop = PADDLE_Y;
+        const paddleBottom = PADDLE_Y + PADDLE_H;
+        const prevBottom = prevBallY + BALL_R;
+        const currBottom = ball.y + BALL_R;
+        const currTop = ball.y - BALL_R;
+        const overlapsHorizontally = ball.x + BALL_R >= paddleX && ball.x - BALL_R <= paddleX + paddleWidth;
+        const crossedPaddleTop = prevBottom <= paddleTop && currBottom >= paddleTop;
+        const withinVerticalRange = currBottom >= paddleTop && currTop <= paddleBottom;
+
+        if (ball.vy > 0 && overlapsHorizontally && (crossedPaddleTop || withinVerticalRange)) {
+          ball.y = paddleTop - BALL_R - 1;
+          if (magnetActive) {
+            const reboundSpeed = magnetLockedSpeed ?? Math.hypot(ball.vx, ball.vy);
+            ball.x = paddleX + paddleWidth / 2;
+            ball.vx = 0;
+            if (reboundSpeed && reboundSpeed > 0) {
+              ball.vy = -Math.abs(reboundSpeed);
             } else {
-              const hit = (ball.x - (paddleX + paddleWidth / 2)) / (paddleWidth / 2);
-              const speed = Math.sqrt(ball.vx*ball.vx + ball.vy*ball.vy) * 1.03;
-              const angle = hit * 1.0;
-              ball.vx = speed * Math.sin(angle);
-              ball.vy = -Math.abs(speed * Math.cos(angle));
-              enforceMinimumBallSpeed(ball);
+              const fallbackSpeed = minimumBallSpeed || (6 + level * 0.8) * 0.75 * 60;
+              ball.vy = -Math.abs(fallbackSpeed);
             }
+            magnetLockedSpeed = Math.abs(ball.vy);
+          } else {
+            const clampedX = Math.min(paddleX + paddleWidth, Math.max(paddleX, ball.x));
+            const hit = (clampedX - (paddleX + paddleWidth / 2)) / (paddleWidth / 2 || 1);
+            const speed = Math.sqrt(ball.vx*ball.vx + ball.vy*ball.vy) * 1.03;
+            const angle = hit * 1.0;
+            ball.vx = speed * Math.sin(angle);
+            ball.vy = -Math.abs(speed * Math.cos(angle));
+            enforceMinimumBallSpeed(ball);
           }
         }
 

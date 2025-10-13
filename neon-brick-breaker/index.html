@@ -659,11 +659,13 @@
     const EXPLOSION_PARTICLE_BASE_RADIUS = 16;
     const EXPLOSION_PARTICLE_RADIUS_VARIANCE = 26;
 
-    const SHIELD_WALL_GOOD_THRESHOLD = 3;
-    const SHIELD_WALL_GREAT_THRESHOLD = 5;
+    const SHIELD_WALL_GOOD_THRESHOLD = 5;
+    const SHIELD_WALL_GREAT_THRESHOLD = 10;
+    const SHIELD_WALL_GOOD_WINDOW = 3;
+    const SHIELD_WALL_GREAT_WINDOW = 6;
     const SHIELD_WALL_CONFIG = {
-      good: { duration: 5, widthRatio: 0.25 },
-      great: { duration: 10, widthRatio: 0.5 },
+      good: { duration: 1, widthRatio: 0.25 },
+      great: { duration: 2, widthRatio: 0.5 },
       thickness: 16,
       verticalOffset: 14,
       minReturnSpeed: 520,
@@ -845,13 +847,15 @@
       : null;
 
     const COMBO_SETTINGS = {
-      decayWindow: 5,
+      decayWindow: SHIELD_WALL_GREAT_WINDOW,
     };
 
     const comboState = {
       multiplier: 0,
       timer: 0,
     };
+
+    const comboHistory = [];
 
     const input = { left:false, right:false };
     // Leaderboard integration
@@ -1184,6 +1188,9 @@
       const prevMultiplier = comboState.multiplier;
       comboState.multiplier += 1;
       comboState.timer = COMBO_SETTINGS.decayWindow;
+      const now = gameTime;
+      comboHistory.push(now);
+      pruneComboHistory(now);
       if (paddleBuff) {
         paddleBuff.handleComboChange(comboState.multiplier);
       }
@@ -1195,6 +1202,7 @@
         comboState.multiplier = 0;
         comboState.timer = 0;
       }
+      comboHistory.length = 0;
       if (paddleBuff) {
         paddleBuff.handleComboChange(0);
       }
@@ -1207,6 +1215,7 @@
       if (comboState.timer <= 0) {
         comboState.multiplier = 0;
         comboState.timer = 0;
+        comboHistory.length = 0;
         if (paddleBuff) {
           paddleBuff.handleComboChange(0);
         }
@@ -1289,16 +1298,42 @@
       }
     }
 
+    function pruneComboHistory(now = gameTime) {
+      const cutoff = now - SHIELD_WALL_GREAT_WINDOW;
+      while (comboHistory.length > 0 && comboHistory[0] < cutoff) {
+        comboHistory.shift();
+      }
+    }
+
+    function getComboCountWithin(windowSeconds) {
+      if (!Number.isFinite(windowSeconds) || windowSeconds <= 0) return 0;
+      pruneComboHistory(gameTime);
+      const cutoff = gameTime - windowSeconds;
+      let count = 0;
+      for (let i = comboHistory.length - 1; i >= 0; i--) {
+        if (comboHistory[i] >= cutoff) {
+          count += 1;
+        } else {
+          break;
+        }
+      }
+      return count;
+    }
+
     function considerShieldWallReward(prevMultiplier, currentMultiplier) {
-      if (currentMultiplier >= SHIELD_WALL_GREAT_THRESHOLD) {
+      const greatCombos = getComboCountWithin(SHIELD_WALL_GREAT_WINDOW);
+      if (currentMultiplier >= SHIELD_WALL_GREAT_THRESHOLD && greatCombos >= SHIELD_WALL_GREAT_THRESHOLD) {
         if (currentMultiplier > shieldWallState.lastAwardedMultiplier || shieldWallState.type !== 'great') {
           activateShieldWalls('great', currentMultiplier);
         }
         return;
       }
-      if (currentMultiplier >= SHIELD_WALL_GOOD_THRESHOLD && shieldWallState.type !== 'great') {
-        if (currentMultiplier > shieldWallState.lastAwardedMultiplier || shieldWallState.type !== 'good') {
-          activateShieldWalls('good', currentMultiplier);
+      if (shieldWallState.type !== 'great') {
+        const goodCombos = getComboCountWithin(SHIELD_WALL_GOOD_WINDOW);
+        if (currentMultiplier >= SHIELD_WALL_GOOD_THRESHOLD && goodCombos >= SHIELD_WALL_GOOD_THRESHOLD) {
+          if (currentMultiplier > shieldWallState.lastAwardedMultiplier || shieldWallState.type !== 'good') {
+            activateShieldWalls('good', currentMultiplier);
+          }
         }
       }
     }

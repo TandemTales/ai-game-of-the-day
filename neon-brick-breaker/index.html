@@ -176,6 +176,29 @@
       transform: translateY(0) scale(1);
     }
 
+    #trap-tag {
+      position: absolute;
+      top: 96px;
+      right: 24px;
+      padding: 6px 12px;
+      border-radius: 12px;
+      border: 2px solid rgba(255, 150, 150, 0.8);
+      background: rgba(40, 12, 20, 0.8);
+      color: #ff9a9a;
+      text-shadow: 0 0 12px rgba(255, 120, 120, 0.8);
+      font-size: clamp(7px, 1.1vw, 12px);
+      letter-spacing: 0.8px;
+      opacity: 0;
+      transform: translateY(-16px) scale(0.9);
+      transition: opacity 0.22s ease, transform 0.22s ease;
+      pointer-events: none;
+    }
+
+    #trap-tag.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
     #portal-tag {
       position: absolute;
       top: 64px;
@@ -344,6 +367,7 @@
         <div id="paddle-buff-tag" aria-hidden="true">Paddle Engaged</div>
         <div id="ghost-mode-tag" aria-hidden="true">Ghost Paddle</div>
         <div id="portal-tag" aria-hidden="true">Portal Hop!</div>
+        <div id="trap-tag" aria-hidden="true">☠ Controls Inverted</div>
         <div class="overlay" id="overlay">
           <div>
             <h2 id="ov-title">Neon Brick Breaker</h2>
@@ -392,6 +416,7 @@
     const paddleBuffTag = document.getElementById('paddle-buff-tag');
     const ghostModeTag = document.getElementById('ghost-mode-tag');
     const portalTag = document.getElementById('portal-tag');
+    const trapTag = document.getElementById('trap-tag');
     const muteBtn = document.getElementById('mute-btn');
 
     if (paddleBuffTag) {
@@ -405,6 +430,10 @@
 
     if (portalTag) {
       portalTag.setAttribute('aria-hidden', 'true');
+    }
+
+    if (trapTag) {
+      trapTag.setAttribute('aria-hidden', 'true');
     }
 
     const SOUNDTRACK_FILES = [
@@ -471,6 +500,42 @@
     }
 
     updateMuteButton();
+
+    function updateTrapTagVisual() {
+      if (!trapTag) return;
+      if (!inputInvertActive) {
+        trapTag.classList.remove('show');
+        trapTag.setAttribute('aria-hidden', 'true');
+        return;
+      }
+      const timeLeft = Math.max(0, inputInvertTimer);
+      const display = timeLeft > 0 ? timeLeft.toFixed(1) : '0.0';
+      trapTag.textContent = `☠ Controls Inverted (${display}s)`;
+      trapTag.classList.add('show');
+      trapTag.setAttribute('aria-hidden', 'false');
+    }
+
+    function resetInputInversion() {
+      inputInvertActive = false;
+      inputInvertTimer = 0;
+      updateTrapTagVisual();
+    }
+
+    function activateInputInversion() {
+      inputInvertActive = true;
+      inputInvertTimer = TRAP_BRICK_INVERT_DURATION;
+      updateTrapTagVisual();
+    }
+
+    function updateInputInversion(dt) {
+      if (!inputInvertActive) return;
+      inputInvertTimer = Math.max(0, inputInvertTimer - dt);
+      if (inputInvertTimer <= 0) {
+        inputInvertActive = false;
+        inputInvertTimer = 0;
+      }
+      updateTrapTagVisual();
+    }
 
     const ShieldAudioContext = window.AudioContext || window.webkitAudioContext || null;
     const shieldAudioCtx = ShieldAudioContext ? new ShieldAudioContext({ latencyHint: 'interactive' }) : null;
@@ -634,6 +699,14 @@
     const PHASE_BRICK_SCORE_MULTIPLIER = 1.5;
     const PHASE_BRICK_MAX_COUNT = 6;
     const PHASE_BRICK_GLOW_SPEED = 2.6;
+    const TRAP_BRICK_START_LEVEL = 3;
+    const TRAP_BRICK_LEVEL_STEP = 3;
+    const TRAP_BRICK_MAX_COUNT = 4;
+    const TRAP_BRICK_SCORE_MULTIPLIER = 2;
+    const TRAP_BRICK_INVERT_DURATION = 3;
+    const TRAP_GLOW_SPEED = 3.1;
+    const TRAP_GLOW_MIN_ALPHA = 0.18;
+    const TRAP_GLOW_MAX_ALPHA = 0.45;
 
     const BULGE_WIDTH_PX = 80;
     const PULSE_DURATION_SEC = 3.0;
@@ -674,6 +747,8 @@
     let paddleX = (canvas.width - paddleWidth) / 2;
     let ghostModeActive = false;
     let ghostModeTimer = 0;
+    let inputInvertActive = false;
+    let inputInvertTimer = 0;
 
     function getPaddleGrowthPulse() {
       if (paddleGrowTimer > 0 && PADDLE_GROW_ANIM_TIME > 0) {
@@ -1203,6 +1278,9 @@
             phaseVisibility: 1,
             phaseGlowPhase: Math.random() * Math.PI * 2,
             phaseGlowPulse: 0,
+            isTrap: false,
+            trapGlowPhase: Math.random() * Math.PI * 2,
+            trapGlowPulse: 0,
           };
           bricks.push(brick);
           brickGrid[r][c] = brick;
@@ -1214,6 +1292,7 @@
       assignEnergyBricks();
       assignTeleportBricks();
       assignExplosiveBricks();
+      assignTrapBricks();
       assignEmbeddedBalls();
       scoreEl.textContent = score;
       livesEl.textContent = lives;
@@ -1226,6 +1305,7 @@
         portalTag.classList.remove('show');
         portalTag.setAttribute('aria-hidden', 'true');
       }
+      resetInputInversion();
       if (paddleBuff) {
         paddleBuff.reset();
         paddleWidth = paddleBuff.getCurrentWidth();
@@ -1332,6 +1412,32 @@
           br.explosiveGlowPulse = 0.8;
           br.explosiveWarningTimer = getExplosiveWarningDelay();
         }
+      }
+    }
+
+    function getTrapBrickCountForLevel(currentLevel) {
+      if (currentLevel < TRAP_BRICK_START_LEVEL) return 0;
+      const offset = currentLevel - TRAP_BRICK_START_LEVEL;
+      const base = 1 + Math.floor(offset / TRAP_BRICK_LEVEL_STEP);
+      return Math.min(TRAP_BRICK_MAX_COUNT, Math.max(0, base));
+    }
+
+    function assignTrapBricks() {
+      const desired = Math.min(getTrapBrickCountForLevel(level), bricks.length);
+      if (desired <= 0) return;
+      const pool = bricks.filter(br => br.alive && !br.isTrap && !br.isTeleport && !br.isEnergy && !br.isGhost && !br.isPhase && !br.explosive);
+      if (!pool.length) return;
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      const limit = Math.min(desired, pool.length);
+      for (let i = 0; i < limit; i++) {
+        const br = pool[i];
+        if (!br) continue;
+        br.isTrap = true;
+        br.trapGlowPhase = Math.random() * Math.PI * 2;
+        br.trapGlowPulse = 1;
       }
     }
 
@@ -1783,6 +1889,7 @@
       if (brick.isEnergy) traits.push('energy');
       if (brick.isGhost) traits.push('ghost');
       if (brick.isPhase) traits.push('phase');
+      if (brick.isTrap) traits.push('trap');
       return traits;
     }
 
@@ -1797,6 +1904,9 @@
       }
       if (traits.includes('phase')) {
         multiplier *= PHASE_BRICK_SCORE_MULTIPLIER;
+      }
+      if (traits.includes('trap')) {
+        multiplier *= TRAP_BRICK_SCORE_MULTIPLIER;
       }
       const extraTraitCount = Math.max(0, traits.length - 1);
       if (extraTraitCount > 0) {
@@ -2190,6 +2300,18 @@
         } else if (br.explosiveGlowPulse) {
           br.explosiveGlowPulse = Math.max(0, br.explosiveGlowPulse - dt * 1.2);
         }
+        if (br.isTrap) {
+          if (!Number.isFinite(br.trapGlowPhase)) {
+            br.trapGlowPhase = Math.random() * Math.PI * 2;
+          }
+          br.trapGlowPhase = (br.trapGlowPhase + dt * TRAP_GLOW_SPEED) % (Math.PI * 2);
+          const basePulse = (Math.sin(br.trapGlowPhase) + 1) / 2;
+          const flicker = (Math.sin(br.trapGlowPhase * 2.7) + 1) / 2 * 0.3;
+          const normalized = Math.min(1, Math.max(0, basePulse * 0.6 + flicker * 0.4));
+          br.trapGlowPulse = TRAP_GLOW_MIN_ALPHA + normalized * (TRAP_GLOW_MAX_ALPHA - TRAP_GLOW_MIN_ALPHA);
+        } else if (br.trapGlowPulse) {
+          br.trapGlowPulse = Math.max(0, br.trapGlowPulse - dt * 2.2);
+        }
         if (br.isPhase) {
           if (!Number.isFinite(br.phaseTimer)) {
             br.phaseTimer = PHASE_BRICK_TOGGLE_INTERVAL;
@@ -2282,8 +2404,15 @@
       frameCounter++;
       updateBrickVisualState(dt);
       const paddleSpeed = (9 + level*0.4) * 60;
-      if (input.left) paddleX -= paddleSpeed * dt;
-      if (input.right) paddleX += paddleSpeed * dt;
+      let moveLeft = input.left;
+      let moveRight = input.right;
+      if (inputInvertActive) {
+        const swapped = moveLeft;
+        moveLeft = moveRight;
+        moveRight = swapped;
+      }
+      if (moveLeft) paddleX -= paddleSpeed * dt;
+      if (moveRight) paddleX += paddleSpeed * dt;
       paddleX = clampPaddleX(paddleX);
 
       const ballsToRemove = [];
@@ -2567,6 +2696,9 @@
       }
       if (triggeredByExplosion) {
         spawnBrickDebris(brick);
+      }
+      if (brick.isTrap) {
+        activateInputInversion();
       }
       if (brick.embeddedBall && !brick.embeddedBallReleased) {
         brick.embeddedBallReleased = true;
@@ -2878,6 +3010,41 @@
           ctx.strokeRect(drawX - 1.5, drawY - 1.5, br.w + 3, br.h + 3);
           ctx.restore();
         }
+        if (br.isTrap) {
+          const glowAlpha = Math.max(0, Math.min(1, br.trapGlowPulse || 0));
+          const centerX = drawX + br.w / 2;
+          const centerY = drawY + br.h / 2;
+          if (glowAlpha > 0.01) {
+            const innerRadius = Math.max(6, Math.min(br.w, br.h) * 0.32);
+            const outerRadius = Math.max(br.w, br.h) * 1.05;
+            const gradient = ctx.createRadialGradient(centerX, centerY, innerRadius, centerX, centerY, outerRadius);
+            gradient.addColorStop(0, 'rgba(255, 140, 140, 0.9)');
+            gradient.addColorStop(0.7, 'rgba(255, 90, 90, 0.35)');
+            gradient.addColorStop(1, 'rgba(255, 120, 120, 0)');
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = glowAlpha;
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+          ctx.save();
+          const fontSize = Math.round(br.h * 0.62);
+          ctx.font = `bold ${fontSize}px "Press Start 2P", "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#ffe6e6';
+          ctx.shadowColor = 'rgba(255, 120, 120, 0.9)';
+          ctx.shadowBlur = 12 + glowAlpha * 24;
+          ctx.fillText('☠', centerX, centerY + br.h * 0.02);
+          ctx.shadowBlur = 0;
+          ctx.strokeStyle = 'rgba(80, 0, 0, 0.4)';
+          ctx.lineWidth = 1.4;
+          ctx.strokeText('☠', centerX, centerY + br.h * 0.02);
+          ctx.restore();
+        }
         if (br.explosive) {
           const glowPulse = Math.max(0, Math.min(1, br.explosiveGlowPulse || 0));
           if (glowPulse > 0.01) {
@@ -3096,6 +3263,7 @@
         updateWallPulse(dt);
         updateGhostMode(dt);
         updateTeleportBricks(dt);
+        updateInputInversion(dt);
       }
 
       if (running && !paused) {

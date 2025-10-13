@@ -112,6 +112,205 @@
     }
     .hud > div { flex: 1 1 120px; text-align: center; }
 
+    .game-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(220px, 320px);
+      gap: clamp(14px, 2vw, 24px);
+      align-items: start;
+      margin-top: clamp(12px, 2vw, 18px);
+    }
+
+    .notification-panel {
+      background: linear-gradient(160deg, rgba(6, 10, 26, 0.82), rgba(12, 18, 38, 0.78));
+      border: 2px solid rgba(0, 255, 255, 0.28);
+      border-radius: 14px;
+      box-shadow: 0 0 24px rgba(0, 255, 255, 0.18);
+      padding: clamp(14px, 2vw, 18px);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .notification-panel::after {
+      content: '';
+      position: absolute;
+      inset: -120px -40px 60% -40px;
+      background: radial-gradient(circle at 30% 40%, rgba(0, 255, 255, 0.18), transparent 65%);
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .notification-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .notification-header h2 {
+      margin: 0;
+      font-size: 14px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    .notification-live {
+      font-size: 10px;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: #091118;
+      background: linear-gradient(90deg, var(--accent), #ff9fe9);
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 0 12px rgba(255, 62, 223, 0.45);
+    }
+
+    .notification-description {
+      margin: 0;
+      font-size: 11px;
+      color: rgba(167, 231, 255, 0.85);
+      line-height: 1.5;
+      position: relative;
+      z-index: 1;
+    }
+
+    .notification-feed {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      max-height: 420px;
+      padding-right: 4px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .notification-feed::-webkit-scrollbar {
+      width: 6px;
+    }
+    .notification-feed::-webkit-scrollbar-thumb {
+      background: rgba(0, 255, 255, 0.3);
+      border-radius: 999px;
+    }
+    .notification-feed::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .notification-empty {
+      margin: 0;
+      font-size: 11px;
+      color: rgba(167, 231, 255, 0.75);
+      text-align: center;
+      padding: 16px 12px;
+      border: 1px dashed rgba(0, 255, 255, 0.25);
+      border-radius: 12px;
+      letter-spacing: 0.8px;
+    }
+
+    .notification-item {
+      position: relative;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 255, 255, 0.35);
+      background: linear-gradient(160deg, rgba(10, 16, 32, 0.92), rgba(8, 12, 28, 0.75));
+      box-shadow: 0 0 18px rgba(0, 255, 255, 0.18);
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(10px) scale(0.98);
+      transition: opacity 0.24s ease, transform 0.24s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .notification-item::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 12px;
+      background: linear-gradient(120deg, rgba(0, 255, 255, 0.08), transparent 60%);
+      pointer-events: none;
+    }
+
+    .notification-item.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    .notification-item-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .notification-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.4px;
+      color: var(--teal);
+    }
+
+    .notification-time {
+      font-size: 10px;
+      color: rgba(167, 231, 255, 0.68);
+      letter-spacing: 1px;
+    }
+
+    .notification-detail {
+      margin: 0;
+      font-size: 11px;
+      color: rgba(245, 245, 220, 0.9);
+      line-height: 1.6;
+      position: relative;
+      z-index: 1;
+    }
+
+    .notification-item.notification-success {
+      border-color: rgba(255, 215, 0, 0.5);
+      box-shadow: 0 0 18px rgba(255, 215, 0, 0.22);
+    }
+
+    .notification-item.notification-warning {
+      border-color: rgba(255, 165, 0, 0.55);
+      box-shadow: 0 0 18px rgba(255, 165, 0, 0.25);
+    }
+
+    .notification-item.notification-alert {
+      border-color: rgba(255, 99, 132, 0.6);
+      box-shadow: 0 0 18px rgba(255, 99, 132, 0.28);
+    }
+
+    @media (max-width: 1024px) {
+      .game-layout {
+        grid-template-columns: minmax(0, 1fr) minmax(200px, 280px);
+      }
+    }
+
+    @media (max-width: 900px) {
+      .game-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .notification-panel {
+        order: 2;
+        max-height: 320px;
+      }
+
+      .notification-feed {
+        max-height: 240px;
+      }
+    }
+
     .stage {
       position: relative;
       background: radial-gradient(circle at 50% 20%, rgba(0,255,255,0.05), rgba(0,0,0,0.2)),
@@ -434,21 +633,33 @@
         <div>Lives: <span id="lives">3</span></div>
       </div>
 
-      <div class="stage">
-        <canvas id="game" width="900" height="600"></canvas>
-        <div id="upgrade-banner"></div>
-        <div id="paddle-buff-tag" aria-hidden="true">Paddle Engaged</div>
-        <div id="ghost-mode-tag" aria-hidden="true">Ghost Paddle</div>
-        <div id="portal-tag" aria-hidden="true">Portal Hop!</div>
-        <div id="trap-tag" aria-hidden="true">☠ Controls Inverted</div>
-        <div id="trick-feed" aria-live="polite" aria-atomic="false"></div>
-        <div class="overlay" id="overlay">
-          <div>
-            <h2 id="ov-title">Neon Brick Breaker</h2>
-            <p id="ov-sub">Tap/Click or press Space to launch</p>
-            <div class="controls">Move: Arrow Keys / A & D / Drag. Pause: P</div>
+      <div class="game-layout">
+        <div class="stage">
+          <canvas id="game" width="900" height="600"></canvas>
+          <div id="upgrade-banner"></div>
+          <div id="paddle-buff-tag" aria-hidden="true">Paddle Engaged</div>
+          <div id="ghost-mode-tag" aria-hidden="true">Ghost Paddle</div>
+          <div id="portal-tag" aria-hidden="true">Portal Hop!</div>
+          <div id="trap-tag" aria-hidden="true">☠ Controls Inverted</div>
+          <div id="trick-feed" aria-live="polite" aria-atomic="false"></div>
+          <div class="overlay" id="overlay">
+            <div>
+              <h2 id="ov-title">Neon Brick Breaker</h2>
+              <p id="ov-sub">Tap/Click or press Space to launch</p>
+              <div class="controls">Move: Arrow Keys / A & D / Drag. Pause: P</div>
+            </div>
           </div>
         </div>
+        <aside class="notification-panel" aria-label="Arena notifications">
+          <div class="notification-header">
+            <h2>Mission Feed</h2>
+            <span class="notification-live">Live</span>
+          </div>
+          <p class="notification-description">Alerts from the neon arena will land here while you play.</p>
+          <div class="notification-feed" id="notification-feed" role="log" aria-live="polite" aria-atomic="false" aria-relevant="additions text">
+            <div class="notification-empty" id="notification-empty">Launch the ball to receive mission updates.</div>
+          </div>
+        </aside>
       </div>
     </div>
   </div>
@@ -493,6 +704,74 @@
     const trapTag = document.getElementById('trap-tag');
     const muteBtn = document.getElementById('mute-btn');
     const trickFeed = document.getElementById('trick-feed');
+    const notificationFeed = document.getElementById('notification-feed');
+    const notificationEmptyState = document.getElementById('notification-empty');
+    const MAX_NOTIFICATIONS = 6;
+
+    function formatNotificationTime(date) {
+      if (!(date instanceof Date)) {
+        return '';
+      }
+      try {
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      } catch (err) {
+        return date.toLocaleTimeString();
+      }
+    }
+
+    function updateNotificationEmptyState() {
+      if (!notificationEmptyState) return;
+      const hasItems = notificationFeed && notificationFeed.querySelector('.notification-item');
+      notificationEmptyState.style.display = hasItems ? 'none' : 'block';
+    }
+
+    function pushNotification(title, detail = '', { type = 'info' } = {}) {
+      if (!notificationFeed) return;
+      const normalizedType = (typeof type === 'string' && type.trim()) ? type.trim().toLowerCase() : 'info';
+      const item = document.createElement('article');
+      item.classList.add('notification-item', `notification-${normalizedType}`);
+      item.setAttribute('role', 'group');
+
+      const header = document.createElement('div');
+      header.className = 'notification-item-header';
+
+      const label = document.createElement('div');
+      label.className = 'notification-title';
+      label.textContent = title;
+
+      const timeEl = document.createElement('time');
+      timeEl.className = 'notification-time';
+      const timestamp = new Date();
+      timeEl.dateTime = timestamp.toISOString();
+      timeEl.textContent = formatNotificationTime(timestamp);
+
+      header.append(label, timeEl);
+      item.appendChild(header);
+
+      if (detail) {
+        const detailEl = document.createElement('p');
+        detailEl.className = 'notification-detail';
+        detailEl.textContent = detail;
+        item.appendChild(detailEl);
+      }
+
+      notificationFeed.prepend(item);
+
+      requestAnimationFrame(() => {
+        item.classList.add('show');
+      });
+
+      const items = notificationFeed.querySelectorAll('.notification-item');
+      items.forEach((entry, index) => {
+        if (index >= MAX_NOTIFICATIONS) {
+          entry.remove();
+        }
+      });
+
+      updateNotificationEmptyState();
+    }
+
+    updateNotificationEmptyState();
 
     if (paddleBuffTag) {
       paddleBuffTag.setAttribute('aria-hidden', 'true');
@@ -600,6 +879,7 @@
       inputInvertActive = true;
       inputInvertTimer = TRAP_BRICK_INVERT_DURATION;
       updateTrapTagVisual();
+      pushNotification('Trap Triggered', `Controls inverted for ${TRAP_BRICK_INVERT_DURATION.toFixed(0)}s`, { type: 'warning' });
     }
 
     function updateInputInversion(dt) {
@@ -692,6 +972,11 @@
         updateMuteButton();
         if (!isMuted) {
           primeAudio();
+        }
+        if (isMuted) {
+          pushNotification('Sound Muted', 'The neon soundtrack is paused until you unmute.', { type: 'warning' });
+        } else {
+          pushNotification('Sound Restored', 'Neon beats are back online.', { type: 'success' });
         }
       });
     }
@@ -968,6 +1253,7 @@
 
     function init() {
       resetLevel(1);
+      pushNotification('Mission Briefing', 'Stack combos, dodge traps, and chase the leaderboard glory.');
       showOverlay('Neon Brick Breaker', 'Tap/Click or press Space to launch');
       render();
       lastTime = 0;
@@ -1603,6 +1889,10 @@
         } else {
           showUpgradeBanner('Shield Wall Ready!');
         }
+        const wallMessage = tier === 'great'
+          ? 'Great combo streak fortified the arena with radiant shields.'
+          : 'Combos deployed energy shields along the flanks.';
+        pushNotification('Shield Walls Deployed', wallMessage, { type: 'success' });
       }
     }
 
@@ -1817,6 +2107,10 @@
       magnetTimer = 0;
       magnetPulse = 0;
       magnetLockedSpeed = null;
+      const nextStageDetail = level === 1
+        ? 'The opening grid is aligned. Launch when you are ready.'
+        : `Brick formation recalibrated. Stage ${level} is online.`;
+      pushNotification(`Stage ${level} Ready`, nextStageDetail, { type: 'info' });
       resizeGame();
     }
 
@@ -3188,11 +3482,14 @@
         lives--; livesEl.textContent = lives;
         resetComboMultiplier();
         if (lives <= 0) {
+          pushNotification('Systems Offline', 'No lives remaining. Press Space to restart your run.', { type: 'alert' });
           running = false;
           showOverlay('Game Over', 'Press Space to restart');
           if (!gameOverHandled) { gameOverHandled = true; maybeSubmitLeaderboard().catch(console.error); }
           window.addEventListener('keydown', restartOnce, { once: true });
         } else {
+          const livesRemaining = lives;
+          pushNotification('Life Lost', `${livesRemaining} ${livesRemaining === 1 ? 'life' : 'lives'} remaining.`, { type: 'warning' });
           running = false;
           showOverlay('Life Lost', 'Tap/Click or press Space to relaunch');
           balls = [createBall(paddleX + paddleWidth / 2, PADDLE_Y - BALL_R - 2, true)];
@@ -3209,6 +3506,7 @@
       if (remaining === 0 && splitBars.length === 0) {
         score += 200; scoreEl.textContent = score;
         running = false;
+        pushNotification('Stage Cleared', 'Bonus 200 points for clearing the grid!', { type: 'success' });
         resetLevel(level + 1);
       }
     }

@@ -520,7 +520,8 @@
     const EXPLOSION_PARTICLE_BASE_RADIUS = 16;
     const EXPLOSION_PARTICLE_RADIUS_VARIANCE = 26;
     const EXPLOSION_SHOCKWAVE_LIFE = 0.4;
-    const ENERGY_BRICK_SPEED_BOOST = 0.05;
+    const ENERGY_BRICK_SPEED_BOOST = 0.25;
+    const ENERGY_BRICK_SPEED_DURATION = 2;
     const ENERGY_TRAIL_DURATION = 0.5;
     const ENERGY_TRAIL_MIN_LENGTH = 60;
     const ENERGY_TRAIL_MAX_LENGTH = 140;
@@ -800,6 +801,10 @@
         lastPortalTime: -Infinity,
         portalSpeedRecovery: null,
         energyTrailTimer: 0,
+        energySpeedBoostTimer: 0,
+        energySpeedBoostBaseSpeed: null,
+        energySpeedBoostDirX: null,
+        energySpeedBoostDirY: null,
       };
     }
 
@@ -1980,6 +1985,34 @@
         if (ball.energyTrailTimer > 0) {
           ball.energyTrailTimer = Math.max(0, ball.energyTrailTimer - dt);
         }
+        if (ball.energySpeedBoostTimer > 0) {
+          const currentSpeed = Math.hypot(ball.vx, ball.vy);
+          if (currentSpeed > 0) {
+            ball.energySpeedBoostDirX = ball.vx / currentSpeed;
+            ball.energySpeedBoostDirY = ball.vy / currentSpeed;
+          }
+          ball.energySpeedBoostTimer = Math.max(0, ball.energySpeedBoostTimer - dt);
+          if (ball.energySpeedBoostTimer === 0 && Number.isFinite(ball.energySpeedBoostBaseSpeed) && ball.energySpeedBoostBaseSpeed > 0) {
+            const targetSpeed = ball.energySpeedBoostBaseSpeed;
+            const restoredSpeed = Math.hypot(ball.vx, ball.vy);
+            if (restoredSpeed > 0) {
+              const dirX = ball.vx / restoredSpeed;
+              const dirY = ball.vy / restoredSpeed;
+              ball.vx = dirX * targetSpeed;
+              ball.vy = dirY * targetSpeed;
+            } else if (!ball.lockedToPaddle) {
+              const dirX = Number.isFinite(ball.energySpeedBoostDirX) ? ball.energySpeedBoostDirX : 0;
+              const dirY = Number.isFinite(ball.energySpeedBoostDirY) ? ball.energySpeedBoostDirY : -1;
+              const magnitude = Math.hypot(dirX, dirY) || 1;
+              ball.vx = (dirX / magnitude) * targetSpeed;
+              ball.vy = (dirY / magnitude) * targetSpeed;
+            }
+            enforceMinimumBallSpeed(ball);
+            ball.energySpeedBoostBaseSpeed = null;
+            ball.energySpeedBoostDirX = null;
+            ball.energySpeedBoostDirY = null;
+          }
+        }
         if (ball.lockedToPaddle) {
           ball.x = paddleX + paddleWidth / 2;
           ball.y = PADDLE_Y - BALL_R - 2;
@@ -2915,7 +2948,24 @@
 
     function applyEnergyBrickEffect(brick, ball) {
       if (!brick || !brick.isEnergy || !ball) return;
-      boostBallSpeed(ball, ENERGY_BRICK_SPEED_BOOST);
+      const speedBeforeBoost = Math.hypot(ball.vx, ball.vy);
+      if (speedBeforeBoost > 0) {
+        ball.energySpeedBoostBaseSpeed = speedBeforeBoost;
+        ball.energySpeedBoostTimer = ENERGY_BRICK_SPEED_DURATION;
+        const multiplier = 1 + ENERGY_BRICK_SPEED_BOOST;
+        const boostedSpeed = speedBeforeBoost * multiplier;
+        const dirX = ball.vx / speedBeforeBoost;
+        const dirY = ball.vy / speedBeforeBoost;
+        ball.vx = dirX * boostedSpeed;
+        ball.vy = dirY * boostedSpeed;
+        ball.energySpeedBoostDirX = dirX;
+        ball.energySpeedBoostDirY = dirY;
+      } else {
+        ball.energySpeedBoostBaseSpeed = null;
+        ball.energySpeedBoostTimer = 0;
+        ball.energySpeedBoostDirX = null;
+        ball.energySpeedBoostDirY = null;
+      }
       const existingTimer = Number.isFinite(ball.energyTrailTimer) ? ball.energyTrailTimer : 0;
       ball.energyTrailTimer = Math.max(existingTimer, ENERGY_TRAIL_DURATION);
       if (!Number.isFinite(brick.energyGlowPhase)) {

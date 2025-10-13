@@ -506,6 +506,7 @@
     const TELEPORT_FLASH_DURATION = 0.3;
     const TELEPORT_FLASH_MAX_ALPHA = 0.45;
     const PORTAL_MIN_LAUNCH_SPEED = 8 * 60;
+    const PORTAL_SPEED_BOOST = 1.5;
     const PORTAL_GRACE_PERIOD = 0.3;
     const PORTAL_BONUS_POINTS = 35;
     const PORTAL_SLOW_DURATION = 1;
@@ -1462,6 +1463,7 @@
       const baseline = minimumBallSpeed === null ? 0 : minimumBallSpeed;
       const prior = Number.isFinite(previousSpeed) ? Math.max(0, previousSpeed) : 0;
       const baseSpeed = Math.max(prior, baseline, PORTAL_MIN_LAUNCH_SPEED);
+      const boostedSpeed = baseSpeed * PORTAL_SPEED_BOOST;
       const angleDeg = 25 + Math.random() * 40;
       const angleRad = angleDeg * (Math.PI / 180);
       const direction = Math.random() < 0.5 ? -1 : 1;
@@ -1471,8 +1473,8 @@
       const normX = dirX / dirMag;
       const normY = dirY / dirMag;
 
-      ball.vx = normX * baseSpeed;
-      ball.vy = normY * baseSpeed;
+      ball.vx = normX * boostedSpeed;
+      ball.vy = normY * boostedSpeed;
       captureInitialBallSpeed(ball);
       enforceMinimumBallSpeed(ball);
       const launchSpeed = Math.hypot(ball.vx, ball.vy);

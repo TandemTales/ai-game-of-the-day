@@ -652,6 +652,9 @@
     let ghostModeNoticeActive = false;
     let trapNoticeActive = false;
 
+    const comboSfx = createSfxAudio('assets/NBB_sfx_combo05.wav');
+    const bonusSfx = createSfxAudio('assets/NBB_sfx_combo18.wav');
+
     function shuffleTracks(list) {
       const arr = list.slice();
       for (let i = arr.length - 1; i > 0; i--) {
@@ -692,6 +695,42 @@
       playNextTrack();
     }
 
+    function createSfxAudio(src) {
+      if (!src) return null;
+      const audio = new Audio(src);
+      audio.preload = 'auto';
+      audio.muted = isMuted;
+      audio.volume = 0.7;
+      return audio;
+    }
+
+    function playSfx(audio) {
+      if (!audio) return;
+      audio.muted = isMuted;
+      try {
+        audio.currentTime = 0;
+      } catch (_) {
+        audio.load();
+      }
+      const playPromise = audio.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {});
+      }
+    }
+
+    function playComboSfx() {
+      playSfx(comboSfx);
+    }
+
+    function playBonusSfx() {
+      playSfx(bonusSfx);
+    }
+
+    function updateSfxMuteState() {
+      if (comboSfx) comboSfx.muted = isMuted;
+      if (bonusSfx) bonusSfx.muted = isMuted;
+    }
+
     function updateMuteButton() {
       if (!muteBtn) return;
       muteBtn.textContent = isMuted ? '🔊 Unmute' : '🔇 Mute';
@@ -699,6 +738,7 @@
     }
 
     updateMuteButton();
+    updateSfxMuteState();
 
     function resetInputInversion() {
       if (trapNoticeActive) {
@@ -820,6 +860,7 @@
         isMuted = !isMuted;
         backgroundAudio.muted = isMuted;
         updateMuteButton();
+        updateSfxMuteState();
         if (!isMuted) {
           primeAudio();
         }
@@ -1462,6 +1503,7 @@
       if (points) {
         score += points;
         scoreEl.textContent = score;
+        playBonusSfx();
       }
       showTrickNotification(def);
     }
@@ -1620,6 +1662,9 @@
         paddleBuff.handleComboChange(comboState.multiplier);
       }
       considerShieldWallReward(prevMultiplier, comboState.multiplier);
+      if (comboState.multiplier > 0) {
+        playComboSfx();
+      }
     }
 
     function resetComboMultiplier() {
@@ -2376,6 +2421,7 @@
       }
       score += PORTAL_BONUS_POINTS;
       scoreEl.textContent = score;
+      playBonusSfx();
       showPortalTag();
       return true;
     }
@@ -3137,6 +3183,7 @@
               handleSpecialBarDestroyed();
             }
             scoreEl.textContent = score;
+            playBonusSfx();
           }
         } else if (splitBars.length) {
           handleSplitBarsCollision(ball, prevBallX, prevBallY);
@@ -3296,7 +3343,9 @@
 
       const remaining = bricks.reduce((acc, br) => br.alive ? acc + 1 : acc, 0);
       if (remaining === 0 && splitBars.length === 0) {
-        score += 200; scoreEl.textContent = score;
+        score += 200;
+        scoreEl.textContent = score;
+        playBonusSfx();
         running = false;
         resetLevel(level + 1);
       }
@@ -4262,6 +4311,7 @@
         if (bar.hp <= 0) {
           score += 50;
           scoreEl.textContent = score;
+          playBonusSfx();
         }
         break;
       }

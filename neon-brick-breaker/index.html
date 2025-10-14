@@ -38,7 +38,7 @@
     }
     #wrap {
       width: 100%;
-      max-width: 980px;
+      max-width: min(100%, 1180px);
       padding: clamp(14px, 4vw, 24px);
       margin: 0 auto;
       transition: padding 0.2s ease;
@@ -4151,7 +4151,19 @@
       const isMobile = viewportW <= 640;
 
       const horizontalMargin = isMobile ? 0 : 16;
-      const maxWrapWidth = isMobile ? viewportW : Math.min(980, Math.max(viewportW - horizontalMargin, 240));
+      const fullScaleWrapWidth = canvas.width + stagePaddingX + stageBorderX + panelPaddingX + wrapPaddingX;
+      const widthAllowance = Math.max(viewportW - horizontalMargin, 240);
+
+      let maxWrapWidth;
+      if (isMobile) {
+        maxWrapWidth = viewportW;
+      } else if (widthAllowance >= fullScaleWrapWidth) {
+        const desktopCap = fullScaleWrapWidth + 260;
+        maxWrapWidth = Math.min(widthAllowance, desktopCap);
+      } else {
+        maxWrapWidth = widthAllowance;
+      }
+
       wrapEl.style.maxWidth = maxWrapWidth + 'px';
       wrapEl.style.width = '100%';
 

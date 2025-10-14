@@ -640,6 +640,51 @@
       'assets/NBB_soundtrack04.mp3'
     ].filter(src => src && src.toLowerCase().includes('soundtrack'));
 
+    let isMuted = false;
+
+    const EVENT_SFX_FILES = Array.from({ length: 40 }, (_, i) => {
+      const suffix = String(i + 1).padStart(2, '0');
+      return `assets/NBB_sfx_combo${suffix}.wav`;
+    }).filter(src => src && src.toLowerCase().includes('sfx'));
+
+    const EVENT_SFX_VOLUME = 0.55;
+    const eventSfxPool = EVENT_SFX_FILES.map(src => {
+      const audio = new Audio(src);
+      audio.preload = 'auto';
+      audio.volume = EVENT_SFX_VOLUME;
+      audio.muted = isMuted;
+      return audio;
+    });
+
+    updateSfxMuteState();
+
+    function updateSfxMuteState() {
+      for (const audio of eventSfxPool) {
+        audio.muted = isMuted;
+      }
+    }
+
+    function playRandomEventSfx() {
+      if (isMuted || !eventSfxPool.length) return false;
+      const base = eventSfxPool[Math.floor(Math.random() * eventSfxPool.length)];
+      if (!base) return false;
+      let playable = base;
+      if (!base.paused && !base.ended) {
+        playable = base.cloneNode(true);
+        playable.volume = base.volume;
+        playable.muted = isMuted;
+        playable.preload = 'auto';
+      } else {
+        playable.currentTime = 0;
+        playable.muted = isMuted;
+      }
+      const playPromise = playable.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {});
+      }
+      return true;
+    }
+
     const backgroundAudio = new Audio();
     backgroundAudio.preload = 'auto';
     backgroundAudio.loop = false;
@@ -647,7 +692,6 @@
 
     let soundtrackQueue = [];
     let soundtrackStarted = false;
-    let isMuted = false;
     let paddleBuffActive = false;
     let ghostModeNoticeActive = false;
     let trapNoticeActive = false;
@@ -696,6 +740,7 @@
       if (!muteBtn) return;
       muteBtn.textContent = isMuted ? '🔊 Unmute' : '🔇 Mute';
       muteBtn.setAttribute('aria-pressed', String(isMuted));
+      updateSfxMuteState();
     }
 
     updateMuteButton();
@@ -819,6 +864,7 @@
       muteBtn.addEventListener('click', () => {
         isMuted = !isMuted;
         backgroundAudio.muted = isMuted;
+        updateSfxMuteState();
         updateMuteButton();
         if (!isMuted) {
           primeAudio();
@@ -1463,6 +1509,7 @@
         score += points;
         scoreEl.textContent = score;
       }
+      playRandomEventSfx();
       showTrickNotification(def);
     }
 
@@ -1620,6 +1667,9 @@
         paddleBuff.handleComboChange(comboState.multiplier);
       }
       considerShieldWallReward(prevMultiplier, comboState.multiplier);
+      if (comboState.multiplier > 1) {
+        playRandomEventSfx();
+      }
     }
 
     function resetComboMultiplier() {
@@ -2377,6 +2427,7 @@
       score += PORTAL_BONUS_POINTS;
       scoreEl.textContent = score;
       showPortalTag();
+      playRandomEventSfx();
       return true;
     }
 
@@ -2477,6 +2528,14 @@
       if (brick.isPhase) traits.push('phase');
       if (brick.isTrap) traits.push('trap');
       return traits;
+    }
+
+    function isSpecialBrick(brick) {
+      if (!brick) return false;
+      const traits = getActiveBrickTraits(brick);
+      if (traits.length > 0) return true;
+      if (brick.explosive || brick.embeddedBall) return true;
+      return false;
     }
 
     function awardBrickPoints(brick, ratio = 1) {
@@ -3304,6 +3363,7 @@
 
     function handleBrickDestroyed(brick, ball, options = {}) {
       const { triggeredByExplosion = false } = options;
+      const specialBrick = isSpecialBrick(brick);
       if (ball) {
         increaseBallSpeedForBrickBreak(ball);
       }
@@ -3328,6 +3388,9 @@
       }
       if (brick.explosive && !triggeredByExplosion) {
         triggerExplosiveBrick(brick);
+      }
+      if (specialBrick) {
+        playRandomEventSfx();
       }
     }
 
@@ -4164,6 +4227,7 @@
         increaseBallSpeedByPercentage(0.2);
         showUpgradeBanner('Ball Speed +20%!');
       }
+      playRandomEventSfx();
     }
 
     function increaseBallSpeedByPercentage(percent) {

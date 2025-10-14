@@ -36,6 +36,92 @@
       min-height: 100vh;
       padding: 0 8px;
     }
+
+    .loading-screen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 50% 30%, rgba(0, 255, 255, 0.08), transparent 65%),
+                  rgba(4, 6, 14, 0.92);
+      color: #f6faff;
+      font-family: 'Press Start 2P', cursive;
+      z-index: 999;
+      transition: opacity 0.45s ease, visibility 0.45s ease;
+    }
+
+    .loading-screen.loading-hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .loading-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+      padding: 32px clamp(18px, 5vw, 42px);
+      border-radius: 18px;
+      border: 3px solid rgba(0, 255, 255, 0.3);
+      background: rgba(10, 14, 28, 0.75);
+      box-shadow: 0 0 32px rgba(0, 255, 255, 0.25), 0 0 12px rgba(255, 215, 0, 0.2);
+      text-align: center;
+    }
+
+    .loading-orb {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      border: 4px solid rgba(0, 255, 255, 0.25);
+      border-top-color: var(--accent);
+      border-right-color: rgba(255, 215, 0, 0.8);
+      animation: loading-spin 1.15s linear infinite;
+      position: relative;
+      box-shadow: 0 0 22px rgba(0, 255, 255, 0.35);
+    }
+
+    .loading-orb::after {
+      content: '';
+      position: absolute;
+      inset: 14px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 215, 0, 0.4);
+      box-shadow: 0 0 16px rgba(255, 215, 0, 0.35);
+    }
+
+    @keyframes loading-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .loading-orb {
+        animation: none;
+      }
+    }
+
+    .loading-title {
+      font-size: clamp(14px, 3vw, 16px);
+      color: var(--gold);
+      letter-spacing: 1.2px;
+      margin: 0;
+    }
+
+    .loading-sub {
+      margin: 0;
+      font-size: clamp(10px, 2.2vw, 12px);
+      color: #a8f4ff;
+      letter-spacing: 1px;
+    }
+
+    .loading-progress {
+      font-size: clamp(12px, 2.6vw, 14px);
+      color: #ffffff;
+      letter-spacing: 1.4px;
+      margin: 0;
+    }
     #wrap {
       width: 100%;
       max-width: min(100%, 1180px);
@@ -340,6 +426,14 @@
   </style>
 </head>
 <body>
+  <div id="loading-screen" class="loading-screen" role="status" aria-live="polite">
+    <div class="loading-card">
+      <div class="loading-orb" aria-hidden="true"></div>
+      <p class="loading-title">Booting Neon Systems…</p>
+      <p class="loading-sub" id="loading-status">Preparing assets</p>
+      <p class="loading-progress"><span id="loading-progress">0</span>%</p>
+    </div>
+  </div>
   <div id="wrap">
     <div class="panel">
       <header>
@@ -393,11 +487,56 @@
 
     let assetsLoaded = 0;
     const needed = 5;
+    const loadingScreenEl = document.getElementById('loading-screen');
+    const loadingProgressEl = document.getElementById('loading-progress');
+    const loadingStatusEl = document.getElementById('loading-status');
+    let loadingScreenDismissed = false;
+
+    function updateLoadingProgress(current, total) {
+      if (!loadingProgressEl) return;
+      const pct = Math.min(100, Math.round((current / total) * 100));
+      loadingProgressEl.textContent = String(pct);
+    }
+
+    function markLoadingStatus(text) {
+      if (loadingStatusEl && text) {
+        loadingStatusEl.textContent = text;
+      }
+    }
+
+    function hideLoadingScreen() {
+      if (!loadingScreenEl || loadingScreenDismissed) return;
+      loadingScreenDismissed = true;
+      loadingScreenEl.classList.add('loading-hidden');
+      setTimeout(() => {
+        if (loadingScreenEl && loadingScreenEl.parentElement) {
+          loadingScreenEl.parentElement.removeChild(loadingScreenEl);
+        }
+      }, 600);
+    }
+
+    function checkAssetsReady() {
+      updateLoadingProgress(assetsLoaded, needed);
+      if (assetsLoaded >= needed) {
+        markLoadingStatus('Link established');
+        hideLoadingScreen();
+        init();
+      }
+    }
+
+    updateLoadingProgress(0, needed);
+    markLoadingStatus('Preparing assets');
+
     [imgPaddle, imgBall, imgBrick1, imgBrick2, imgBrickCrack].forEach(img => {
-      img.addEventListener('load', () => {
+      const handleAssetComplete = () => {
         assetsLoaded++;
-        if (assetsLoaded === needed) init();
-      });
+        checkAssetsReady();
+      };
+      img.addEventListener('load', handleAssetComplete, { once: true });
+      img.addEventListener('error', () => {
+        markLoadingStatus('Calibrating backup visuals');
+        handleAssetComplete();
+      }, { once: true });
     });
 
     // HUD
@@ -960,6 +1099,7 @@
     let wallPulseStrength = 0;
 
     function init() {
+      hideLoadingScreen();
       resetLevel(1);
       showOverlay('Neon Brick Breaker', 'Tap/Click or press Space to launch');
       render();

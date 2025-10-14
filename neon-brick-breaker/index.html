@@ -104,13 +104,44 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin: 8px 0 12px 0;
+      margin: 8px 0 8px 0;
       font-size: 12px;
       color: #A7E7FF;
       flex-wrap: wrap;
       gap: 8px 16px;
     }
     .hud > div { flex: 1 1 120px; text-align: center; }
+
+    .notification-bar {
+      margin: 4px 0 12px;
+      padding: 8px clamp(6px, 1.6vw, 12px);
+      border-radius: 12px;
+      border: 2px solid rgba(0, 255, 255, 0.35);
+      background: linear-gradient(135deg, rgba(10, 18, 36, 0.8), rgba(9, 14, 28, 0.72));
+      box-shadow: inset 0 0 18px rgba(0, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      min-height: clamp(54px, 12vw, 82px);
+    }
+
+    .notification-stack {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tag-tray {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+    }
 
     .stage {
       position: relative;
@@ -130,109 +161,66 @@
 
     canvas { width: 100%; height: auto; display: block; background: transparent; touch-action: none; }
 
-    #paddle-buff-tag {
-      position: absolute;
-      top: 18px;
-      right: 24px;
+    #paddle-buff-tag,
+    #ghost-mode-tag,
+    #portal-tag,
+    #trap-tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       padding: 6px 12px;
       border-radius: 12px;
-      border: 2px solid var(--teal);
-      background: rgba(10, 10, 18, 0.75);
+      border: 2px solid transparent;
+      background: rgba(12, 18, 32, 0.78);
       color: var(--teal);
-      text-shadow: 0 0 12px rgba(0, 255, 255, 0.8);
+      text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
       font-size: clamp(7px, 1.2vw, 12px);
       letter-spacing: 0.8px;
       opacity: 0;
-      transform: translateY(-16px) scale(0.9);
+      transform: translateY(-12px) scale(0.92);
       transition: opacity 0.22s ease, transform 0.22s ease;
       pointer-events: none;
     }
 
-    #paddle-buff-tag.show {
-      opacity: 1;
-      transform: translateY(0) scale(1);
+    #paddle-buff-tag {
+      border-color: var(--teal);
     }
 
     #ghost-mode-tag {
-      position: absolute;
-      top: 54px;
-      right: 24px;
-      padding: 6px 12px;
-      border-radius: 12px;
-      border: 2px solid rgba(255, 255, 255, 0.65);
-      background: rgba(20, 20, 32, 0.8);
+      border-color: rgba(255, 255, 255, 0.65);
       color: rgba(255, 255, 255, 0.85);
-      text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
-      font-size: clamp(7px, 1.1vw, 12px);
-      letter-spacing: 0.8px;
-      opacity: 0;
-      transform: translateY(-16px) scale(0.9);
-      transition: opacity 0.22s ease, transform 0.22s ease;
-      pointer-events: none;
-    }
-
-    #ghost-mode-tag.show {
-      opacity: 1;
-      transform: translateY(0) scale(1);
     }
 
     #trap-tag {
-      position: absolute;
-      top: 96px;
-      right: 24px;
-      padding: 6px 12px;
-      border-radius: 12px;
-      border: 2px solid rgba(255, 150, 150, 0.8);
-      background: rgba(40, 12, 20, 0.8);
-      color: #ff9a9a;
-      text-shadow: 0 0 12px rgba(255, 120, 120, 0.8);
-      font-size: clamp(7px, 1.1vw, 12px);
-      letter-spacing: 0.8px;
-      opacity: 0;
-      transform: translateY(-16px) scale(0.9);
-      transition: opacity 0.22s ease, transform 0.22s ease;
-      pointer-events: none;
+      border-color: rgba(255, 150, 150, 0.85);
+      color: #ffb0b0;
+      text-shadow: 0 0 12px rgba(255, 120, 120, 0.7);
     }
 
+    #portal-tag {
+      border-color: var(--accent);
+      color: var(--accent);
+      letter-spacing: 1px;
+      text-shadow: 0 0 12px rgba(255, 62, 223, 0.8);
+    }
+
+    #paddle-buff-tag.show,
+    #ghost-mode-tag.show,
+    #portal-tag.show,
     #trap-tag.show {
       opacity: 1;
       transform: translateY(0) scale(1);
     }
 
-    #portal-tag {
-      position: absolute;
-      top: 64px;
-      left: 50%;
-      transform: translate(-50%, -16px) scale(0.9);
-      padding: 6px 14px;
-      border-radius: 12px;
-      border: 2px solid var(--accent);
-      background: rgba(12, 6, 18, 0.8);
-      color: var(--accent);
-      text-shadow: 0 0 12px rgba(255, 62, 223, 0.8);
-      font-size: clamp(7px, 1.1vw, 12px);
-      letter-spacing: 1px;
-      opacity: 0;
-      transition: opacity 0.22s ease, transform 0.22s ease;
-      pointer-events: none;
-    }
-
-    #portal-tag.show {
-      opacity: 1;
-      transform: translate(-50%, 0) scale(1);
-    }
-
     #upgrade-banner {
-      position: absolute;
-      top: 22%;
-      left: 50%;
-      transform: translate(-50%, -20px) scale(0.9);
-      font-size: clamp(6.5px, 1.5vw, 11px);
+      min-height: 0;
+      font-size: clamp(6.5px, 1.4vw, 12px);
       color: var(--gold);
       text-shadow: 0 0 16px rgba(0, 255, 255, 0.8), 0 0 32px rgba(255, 62, 223, 0.6);
       opacity: 0;
       pointer-events: none;
       white-space: nowrap;
+      transform: translateY(-16px) scale(0.9);
     }
 
     #upgrade-banner.show {
@@ -242,33 +230,29 @@
     @keyframes upgradeFade {
       0% {
         opacity: 0;
-        transform: translate(-50%, -40px) scale(0.7);
+        transform: translateY(-18px) scale(0.85);
       }
       10% {
         opacity: 1;
-        transform: translate(-50%, 0) scale(1);
+        transform: translateY(0) scale(1);
       }
       70% {
         opacity: 1;
-        transform: translate(-50%, 6px) scale(1.04);
+        transform: translateY(4px) scale(1.04);
       }
       100% {
         opacity: 0;
-        transform: translate(-50%, 40px) scale(0.92);
+        transform: translateY(16px) scale(0.94);
       }
     }
 
     #trick-feed {
-      position: absolute;
-      top: 26%;
-      left: 50%;
-      transform: translateX(-50%);
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 8px;
       pointer-events: none;
-      z-index: 6;
+      width: 100%;
     }
 
     .trick-toast {
@@ -393,6 +377,25 @@
         flex: 1 1 80px;
       }
 
+      .notification-bar {
+        margin: 4px 0 10px;
+        padding: 6px 8px;
+        min-height: clamp(48px, 20vw, 72px);
+      }
+
+      .notification-stack {
+        gap: 4px;
+      }
+
+      .tag-tray {
+        gap: 6px;
+      }
+
+      .trick-toast {
+        font-size: clamp(7px, 3.2vw, 11px);
+        padding: 7px 12px;
+      }
+
       .stage {
         padding: 6px;
         border-width: 1.5px;
@@ -434,14 +437,21 @@
         <div>Lives: <span id="lives">3</span></div>
       </div>
 
+      <div class="notification-bar" id="notification-bar" aria-live="polite" aria-atomic="false">
+        <div class="notification-stack">
+          <div id="upgrade-banner" aria-hidden="true"></div>
+          <div class="tag-tray" role="presentation">
+            <div id="paddle-buff-tag" aria-hidden="true">Paddle Engaged</div>
+            <div id="ghost-mode-tag" aria-hidden="true">Ghost Paddle</div>
+            <div id="portal-tag" aria-hidden="true">Portal Hop!</div>
+            <div id="trap-tag" aria-hidden="true">☠ Controls Inverted</div>
+          </div>
+          <div id="trick-feed" aria-live="polite" aria-atomic="false"></div>
+        </div>
+      </div>
+
       <div class="stage">
         <canvas id="game" width="900" height="600"></canvas>
-        <div id="upgrade-banner"></div>
-        <div id="paddle-buff-tag" aria-hidden="true">Paddle Engaged</div>
-        <div id="ghost-mode-tag" aria-hidden="true">Ghost Paddle</div>
-        <div id="portal-tag" aria-hidden="true">Portal Hop!</div>
-        <div id="trap-tag" aria-hidden="true">☠ Controls Inverted</div>
-        <div id="trick-feed" aria-live="polite" aria-atomic="false"></div>
         <div class="overlay" id="overlay">
           <div>
             <h2 id="ov-title">Neon Brick Breaker</h2>
@@ -493,6 +503,7 @@
     const trapTag = document.getElementById('trap-tag');
     const muteBtn = document.getElementById('mute-btn');
     const trickFeed = document.getElementById('trick-feed');
+    let upgradeBannerHideTimeout = null;
 
     if (paddleBuffTag) {
       paddleBuffTag.setAttribute('aria-hidden', 'true');
@@ -3387,10 +3398,19 @@
     }
 
     function showUpgradeBanner(text) {
+      if (!upgradeBanner) return;
       upgradeBanner.textContent = text;
       upgradeBanner.classList.remove('show');
       void upgradeBanner.offsetWidth;
       upgradeBanner.classList.add('show');
+      upgradeBanner.setAttribute('aria-hidden', 'false');
+      if (upgradeBannerHideTimeout) {
+        clearTimeout(upgradeBannerHideTimeout);
+      }
+      upgradeBannerHideTimeout = setTimeout(() => {
+        upgradeBanner.setAttribute('aria-hidden', 'true');
+        upgradeBannerHideTimeout = null;
+      }, 2600);
     }
 
     function showPortalTag() {

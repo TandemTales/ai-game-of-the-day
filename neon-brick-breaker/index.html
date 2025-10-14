@@ -2247,7 +2247,7 @@
 
       const baseline = minimumBallSpeed === null ? 0 : minimumBallSpeed;
       const prior = Number.isFinite(previousSpeed) ? Math.max(0, previousSpeed) : 0;
-      const baseSpeed = Math.max(prior, baseline, PORTAL_MIN_LAUNCH_SPEED);
+      const baseSpeed = prior > 0 ? prior : Math.max(baseline, PORTAL_MIN_LAUNCH_SPEED);
       const angleDeg = 25 + Math.random() * 40;
       const angleRad = angleDeg * (Math.PI / 180);
       const direction = Math.random() < 0.5 ? -1 : 1;
@@ -2261,26 +2261,13 @@
       ball.vy = normY * baseSpeed;
       captureInitialBallSpeed(ball);
       enforceMinimumBallSpeed(ball);
-      const launchSpeed = Math.hypot(ball.vx, ball.vy);
-      const slowSpeed = launchSpeed * 0.5;
-      ball.vx = normX * slowSpeed;
-      ball.vy = normY * slowSpeed;
-
-      ball.portalSpeedRecovery = {
-        slowUntil: gameTime + PORTAL_SLOW_DURATION,
-        rampEnd: gameTime + PORTAL_SLOW_DURATION + PORTAL_RECOVERY_DURATION,
-        slowSpeed,
-        targetSpeed: launchSpeed,
-        dirX: normX,
-        dirY: normY,
-      };
+      const resultingSpeed = Math.hypot(ball.vx, ball.vy);
 
       ball.lastPortalId = brick.id;
       ball.lastPortalTime = gameTime;
       if (ball.shieldHits && typeof ball.shieldHits.clear === 'function') {
         ball.shieldHits.clear();
       }
-      const resultingSpeed = launchSpeed;
       if (resultingSpeed > 0) {
         minimumBallSpeed = minimumBallSpeed === null
           ? resultingSpeed

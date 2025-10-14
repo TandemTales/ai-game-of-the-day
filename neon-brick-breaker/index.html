@@ -4195,19 +4195,53 @@
         if (scale <= 0) scale = 0.25;
       }
 
-      const displayWidth = canvas.width * scale;
-      const displayHeight = canvas.height * scale;
-
-      canvas.style.width = `${displayWidth}px`;
-      canvas.style.height = `${displayHeight}px`;
-
       const containerInnerWidth = actualWrapWidth - wrapPaddingX - panelPaddingX;
       const stageContentMax = Math.max(containerInnerWidth - stagePaddingX - stageBorderX, 0);
       const horizontalLimit = stageContentMax > 0 ? stageContentMax : Math.max(containerInnerWidth, 0);
-      const maxStageContentWidth = Math.min(displayWidth, horizontalLimit);
-      stageEl.style.maxWidth = '100%';
-      stageEl.style.width = `${maxStageContentWidth}px`;
-      stageEl.style.margin = '0 auto';
+
+      function applyScale(nextScale) {
+        const safeScale = Math.max(0.1, Math.min(nextScale, 1));
+        const displayWidth = canvas.width * safeScale;
+        const displayHeight = canvas.height * safeScale;
+
+        canvas.style.width = `${displayWidth}px`;
+        canvas.style.height = `${displayHeight}px`;
+
+        const maxStageContentWidth = Math.min(displayWidth, horizontalLimit);
+        stageEl.style.maxWidth = '100%';
+        stageEl.style.width = `${maxStageContentWidth}px`;
+        stageEl.style.margin = '0 auto';
+
+        return { scale: safeScale, displayWidth, displayHeight };
+      }
+
+      let applied = applyScale(scale);
+
+      if (!isMobile) {
+        const maxIterations = 2;
+        for (let i = 0; i < maxIterations; i++) {
+          const panelRect = panelEl.getBoundingClientRect();
+          const chromeHeight = Math.max(panelRect.height - applied.displayHeight, 0);
+          const heightAllowance = viewportH - wrapPaddingY - verticalBuffer - chromeHeight;
+          if (heightAllowance >= applied.displayHeight - 0.5) {
+            break;
+          }
+          const maxHeightScale = heightAllowance > 0 ? Math.min(heightAllowance / canvas.height, 1) : 0;
+          const nextScale = Math.min(applied.scale, maxHeightScale);
+
+          if (!Number.isFinite(nextScale) || nextScale <= 0) {
+            if (applied.scale <= 0.1) break;
+            applied = applyScale(0.1);
+            continue;
+          }
+
+          if (nextScale < applied.scale - 0.001) {
+            applied = applyScale(nextScale);
+            continue;
+          }
+          break;
+        }
+      }
     }
 
     window.updateWallPulseIntervalForLevel = updateWallPulseIntervalForLevel;

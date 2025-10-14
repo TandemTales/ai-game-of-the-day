@@ -648,37 +648,157 @@
     }).filter(src => src && src.toLowerCase().includes('sfx'));
 
     const EVENT_SFX_VOLUME = 0.55;
-    const eventSfxPool = EVENT_SFX_FILES.map(src => {
-      const audio = new Audio(src);
-      audio.preload = 'auto';
-      audio.volume = EVENT_SFX_VOLUME;
-      audio.muted = isMuted;
-      return audio;
-    });
+    const EventSfxAudioContext = window.AudioContext || window.webkitAudioContext || null;
+    let eventSfxCtx = null;
+    let eventSfxGainNode = null;
+    let eventSfxBuffers = [];
+    let eventSfxLoadPromise = null;
+    const EVENT_SFX_FALLBACK_POOL = [];
+    let eventSfxFallbackIndex = 0;
 
     updateSfxMuteState();
 
+    function ensureEventSfxContext() {
+      if (!EventSfxAudioContext) {
+        return null;
+      }
+      if (!eventSfxCtx) {
+        try {
+          eventSfxCtx = new EventSfxAudioContext({ latencyHint: 'interactive' });
+        } catch (err) {
+          eventSfxCtx = null;
+          return null;
+        }
+      }
+      if (eventSfxCtx.state === 'suspended') {
+        eventSfxCtx.resume().catch(() => {});
+      }
+      return eventSfxCtx;
+    }
+
+    function ensureEventSfxGain() {
+      const ctx = ensureEventSfxContext();
+      if (!ctx) return null;
+      if (!eventSfxGainNode) {
+        eventSfxGainNode = ctx.createGain();
+        eventSfxGainNode.gain.value = isMuted ? 0 : EVENT_SFX_VOLUME;
+        eventSfxGainNode.connect(ctx.destination);
+      } else {
+        eventSfxGainNode.gain.value = isMuted ? 0 : EVENT_SFX_VOLUME;
+      }
+      return eventSfxGainNode;
+    }
+
+    function decodeEventSfxBuffer(ctx, arrayBuffer) {
+      return new Promise((resolve, reject) => {
+        ctx.decodeAudioData(arrayBuffer.slice(0), resolve, reject);
+      });
+    }
+
+    function loadEventSfxBuffers() {
+      const ctx = ensureEventSfxContext();
+      if (!ctx || !EVENT_SFX_FILES.length) {
+        return Promise.resolve([]);
+      }
+      if (!eventSfxLoadPromise) {
+        eventSfxLoadPromise = Promise.all(EVENT_SFX_FILES.map(async (src) => {
+          try {
+            const response = await fetch(src);
+            if (!response.ok) {
+              throw new Error(`Failed to fetch ${src}`);
+            }
+            const arrayBuffer = await response.arrayBuffer();
+            const buffer = await decodeEventSfxBuffer(ctx, arrayBuffer);
+            return buffer;
+          } catch (error) {
+            console.warn('Failed to prepare event SFX', src, error);
+            return null;
+          }
+        })).then((buffers) => {
+          eventSfxBuffers = buffers.filter(Boolean);
+          return eventSfxBuffers;
+        }).catch((error) => {
+          console.warn('Failed to cache event SFX buffers', error);
+          eventSfxLoadPromise = null;
+          return [];
+        });
+      }
+      return eventSfxLoadPromise;
+    }
+
+    function ensureEventSfxFallbackPool() {
+      if (EVENT_SFX_FALLBACK_POOL.length || EventSfxAudioContext) {
+        return;
+      }
+      const poolSize = Math.min(4, EVENT_SFX_FILES.length);
+      for (let i = 0; i < poolSize; i++) {
+        const audio = new Audio();
+        audio.preload = 'auto';
+        audio.volume = EVENT_SFX_VOLUME;
+        audio.muted = isMuted;
+        EVENT_SFX_FALLBACK_POOL.push(audio);
+      }
+    }
+
+    function primeEventSfx() {
+      if (!EVENT_SFX_FILES.length) return;
+      ensureEventSfxGain();
+      if (!EventSfxAudioContext) {
+        ensureEventSfxFallbackPool();
+        return;
+      }
+      if (!eventSfxBuffers.length && !eventSfxLoadPromise) {
+        loadEventSfxBuffers();
+      }
+    }
+
     function updateSfxMuteState() {
-      for (const audio of eventSfxPool) {
+      if (eventSfxGainNode) {
+        eventSfxGainNode.gain.value = isMuted ? 0 : EVENT_SFX_VOLUME;
+      }
+      for (const audio of EVENT_SFX_FALLBACK_POOL) {
         audio.muted = isMuted;
       }
     }
 
     function playRandomEventSfx() {
-      if (isMuted || !eventSfxPool.length) return false;
-      const base = eventSfxPool[Math.floor(Math.random() * eventSfxPool.length)];
-      if (!base) return false;
-      let playable = base;
-      if (!base.paused && !base.ended) {
-        playable = base.cloneNode(true);
-        playable.volume = base.volume;
-        playable.muted = isMuted;
-        playable.preload = 'auto';
-      } else {
-        playable.currentTime = 0;
-        playable.muted = isMuted;
+      if (isMuted || !EVENT_SFX_FILES.length) return false;
+
+      if (EventSfxAudioContext) {
+        ensureEventSfxGain();
+        if (!eventSfxBuffers.length) {
+          loadEventSfxBuffers();
+        }
+        if (eventSfxBuffers.length) {
+          const buffer = eventSfxBuffers[Math.floor(Math.random() * eventSfxBuffers.length)];
+          if (buffer) {
+            const ctx = ensureEventSfxContext();
+            if (!ctx) return false;
+            const gain = ensureEventSfxGain();
+            const source = ctx.createBufferSource();
+            source.buffer = buffer;
+            if (gain) {
+              source.connect(gain);
+            } else {
+              source.connect(ctx.destination);
+            }
+            source.start();
+            return true;
+          }
+        }
       }
-      const playPromise = playable.play();
+
+      ensureEventSfxFallbackPool();
+      if (!EVENT_SFX_FALLBACK_POOL.length) return false;
+      const player = EVENT_SFX_FALLBACK_POOL[eventSfxFallbackIndex % EVENT_SFX_FALLBACK_POOL.length];
+      eventSfxFallbackIndex = (eventSfxFallbackIndex + 1) % EVENT_SFX_FALLBACK_POOL.length;
+      const src = EVENT_SFX_FILES[Math.floor(Math.random() * EVENT_SFX_FILES.length)];
+      if (!player || !src) return false;
+      player.muted = isMuted;
+      player.volume = EVENT_SFX_VOLUME;
+      player.src = src;
+      player.currentTime = 0;
+      const playPromise = player.play();
       if (playPromise && typeof playPromise.catch === 'function') {
         playPromise.catch(() => {});
       }
@@ -858,6 +978,7 @@
     function primeAudio() {
       resumeShieldAudio();
       ensureSoundtrackStarted();
+      primeEventSfx();
     }
 
     if (muteBtn) {

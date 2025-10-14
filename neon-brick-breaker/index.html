@@ -512,6 +512,95 @@
     let paddleBuffActive = false;
     let ghostModeNoticeActive = false;
     let trapNoticeActive = false;
+    const activeSfxInstances = new Set();
+
+    function updateActiveSfxMuteState() {
+      activeSfxInstances.forEach(instance => {
+        if (!instance) return;
+        instance.muted = isMuted;
+      });
+    }
+
+    function createSfxPlayer(src, { volume = 0.7 } = {}) {
+      if (typeof Audio === 'undefined') {
+        return () => {};
+      }
+      const base = new Audio(src);
+      base.preload = 'auto';
+      base.volume = volume;
+      if (typeof base.load === 'function') {
+        try { base.load(); } catch {}
+      }
+      return () => {
+        if (isMuted) return;
+        const sound = base.cloneNode(true);
+        sound.volume = volume;
+        sound.muted = isMuted;
+        activeSfxInstances.add(sound);
+        const cleanup = () => {
+          activeSfxInstances.delete(sound);
+        };
+        sound.addEventListener('ended', cleanup, { once: true });
+        sound.addEventListener('error', cleanup, { once: true });
+        const playPromise = sound.play();
+        if (playPromise && typeof playPromise.catch === 'function') {
+          playPromise.catch(() => cleanup());
+        }
+      };
+    }
+
+    const SFX_FILES = Array.from({ length: 40 }, (_, i) => {
+      const id = String(i + 1).padStart(2, '0');
+      return `assets/NBB_sfx_combo${id}.wav`;
+    });
+
+    const comboSfxPlayers = SFX_FILES.map((src, index) => {
+      const volume = 0.45 + Math.min(index * 0.01, 0.35);
+      return createSfxPlayer(src, { volume });
+    });
+
+    const upgradeSfxPlayers = {
+      paddleEngaged: createSfxPlayer(SFX_FILES[4], { volume: 0.68 }),
+      paddleNormalized: createSfxPlayer(SFX_FILES[1], { volume: 0.6 }),
+      shieldWallGood: createSfxPlayer(SFX_FILES[9], { volume: 0.72 }),
+      shieldWallGreat: createSfxPlayer(SFX_FILES[14], { volume: 0.78 }),
+      magnet: createSfxPlayer(SFX_FILES[19], { volume: 0.74 }),
+      bonusLife: createSfxPlayer(SFX_FILES[24], { volume: 0.82 }),
+      ballSpeedBoost: createSfxPlayer(SFX_FILES[29], { volume: 0.8 }),
+    };
+
+    function playUpgradeSound(key) {
+      const player = upgradeSfxPlayers[key];
+      if (typeof player === 'function') {
+        player();
+      }
+    }
+
+    function playComboSound(multiplier) {
+      if (!Number.isFinite(multiplier) || multiplier <= 0) return;
+      const index = Math.min(comboSfxPlayers.length, Math.floor(multiplier)) - 1;
+      if (index < 0) return;
+      const player = comboSfxPlayers[index];
+      if (typeof player === 'function') {
+        player();
+      }
+    }
+
+    function playUpgradeBannerSound(text) {
+      if (!text) return;
+      const normalized = text.toLowerCase();
+      if (normalized.includes('great combo')) {
+        playUpgradeSound('shieldWallGreat');
+      } else if (normalized.includes('shield wall')) {
+        playUpgradeSound('shieldWallGood');
+      } else if (normalized.includes('magnet')) {
+        playUpgradeSound('magnet');
+      } else if (normalized.includes('bonus life')) {
+        playUpgradeSound('bonusLife');
+      } else if (normalized.includes('ball speed')) {
+        playUpgradeSound('ballSpeedBoost');
+      }
+    }
 
     function shuffleTracks(list) {
       const arr = list.slice();
@@ -680,6 +769,7 @@
       muteBtn.addEventListener('click', () => {
         isMuted = !isMuted;
         backgroundAudio.muted = isMuted;
+        updateActiveSfxMuteState();
         updateMuteButton();
         if (!isMuted) {
           primeAudio();
@@ -1353,12 +1443,14 @@
           tag: 'Paddle',
           title: 'Paddle Engaged',
         });
+        playUpgradeSound('paddleEngaged');
       } else if (!buffActive && paddleBuffActive) {
         enqueueNotification({
           type: 'upgrade',
           tag: 'Paddle',
           title: 'Paddle Normalized',
         });
+        playUpgradeSound('paddleNormalized');
       }
       paddleBuffActive = buffActive;
     }
@@ -1472,6 +1564,7 @@
     function registerBrickCombo() {
       const prevMultiplier = comboState.multiplier;
       comboState.multiplier += 1;
+      playComboSound(comboState.multiplier);
       comboState.timer = COMBO_SETTINGS.decayWindow;
       const now = gameTime;
       comboHistory.push(now);
@@ -3341,6 +3434,7 @@
         tag: 'Upgrade',
         title: text,
       });
+      playUpgradeBannerSound(text);
     }
 
     function showPortalTag() {

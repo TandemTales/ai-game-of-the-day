@@ -4146,6 +4146,12 @@
       const stageBorderX = parseFloat(stageStyles.borderLeftWidth) + parseFloat(stageStyles.borderRightWidth);
       const stageBorderY = parseFloat(stageStyles.borderTopWidth) + parseFloat(stageStyles.borderBottomWidth);
 
+      const stageOffsetHeight = stageEl.offsetHeight || (canvas.height + stagePaddingY + stageBorderY);
+      const panelOffsetHeight = panelEl.offsetHeight || stageOffsetHeight;
+      const panelNonStageHeight = Math.max(panelOffsetHeight - stageOffsetHeight, 0);
+
+      const stageExtrasY = stagePaddingY + stageBorderY;
+
       const viewportW = window.innerWidth || document.documentElement.clientWidth || canvas.width;
       const viewportH = (window.visualViewport ? window.visualViewport.height : window.innerHeight) || document.documentElement.clientHeight || canvas.height;
       const isMobile = viewportW <= 640;
@@ -4170,7 +4176,7 @@
       const actualWrapWidth = wrapEl.clientWidth || maxWrapWidth;
       const availableWidth = actualWrapWidth - wrapPaddingX - panelPaddingX - stagePaddingX - stageBorderX;
       const verticalBuffer = isMobile ? 8 : 24;
-      const availableHeight = viewportH - wrapPaddingY - panelPaddingY - stagePaddingY - stageBorderY - headerEl.offsetHeight - hudEl.offsetHeight - verticalBuffer;
+      const availableHeight = viewportH - wrapPaddingY - panelNonStageHeight - stageExtrasY - verticalBuffer;
 
       const widthScale = availableWidth > 0 ? availableWidth / canvas.width : Number.POSITIVE_INFINITY;
       const heightScale = availableHeight > 0 ? availableHeight / canvas.height : Number.POSITIVE_INFINITY;
@@ -4206,10 +4212,30 @@
 
     window.updateWallPulseIntervalForLevel = updateWallPulseIntervalForLevel;
 
-    window.addEventListener('resize', resizeGame);
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', resizeGame);
+    let resizeScheduled = false;
+    function scheduleResize() {
+      if (resizeScheduled) return;
+      resizeScheduled = true;
+      window.requestAnimationFrame(() => {
+        resizeScheduled = false;
+        resizeGame();
+      });
     }
+
+    if ('ResizeObserver' in window) {
+      const observer = new ResizeObserver(scheduleResize);
+      [headerEl, hudEl, notificationBar].filter(Boolean).forEach(el => observer.observe(el));
+    }
+
+    window.addEventListener('resize', scheduleResize);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', scheduleResize);
+    }
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => scheduleResize());
+    }
+
     resizeGame();
   </script>
 </body>

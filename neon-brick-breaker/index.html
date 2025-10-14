@@ -700,6 +700,7 @@
     const BALL_R = 16; // ball image ~48 px, we will scale
 
     const BRICK_W = 110, BRICK_H = 30, BRICK_GAP = 10;
+    const BRICK_ALIGNMENT_OFFSET = -6;
     const BRICK_ROWS_START = 4, BRICK_COLS = 7;
 
     const BRICK_BASE_POINTS = 50;
@@ -1646,7 +1647,7 @@
       const rows = BRICK_ROWS_START + Math.floor((level-1)%4);
       const topOffset = 80;
       const totalWidth = BRICK_COLS*BRICK_W + (BRICK_COLS-1)*BRICK_GAP;
-      const leftOffset = (canvas.width - totalWidth)/2;
+      const leftOffset = (canvas.width - totalWidth)/2 + BRICK_ALIGNMENT_OFFSET;
       brickGridLeft = leftOffset;
       brickGridTop = topOffset;
       const baseShieldChance = Math.min(

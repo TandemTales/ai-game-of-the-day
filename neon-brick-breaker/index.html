@@ -136,8 +136,8 @@
       right: 24px;
       padding: 6px 12px;
       border-radius: 12px;
-      border: 2px solid var(--teal);
-      background: rgba(10, 10, 18, 0.75);
+      border: none;
+      background: transparent;
       color: var(--teal);
       text-shadow: 0 0 12px rgba(0, 255, 255, 0.8);
       font-size: clamp(7px, 1.2vw, 12px);
@@ -149,7 +149,7 @@
     }
 
     #paddle-buff-tag.show {
-      opacity: 1;
+      opacity: 0.9;
       transform: translateY(0) scale(1);
     }
 
@@ -159,8 +159,8 @@
       right: 24px;
       padding: 6px 12px;
       border-radius: 12px;
-      border: 2px solid rgba(255, 255, 255, 0.65);
-      background: rgba(20, 20, 32, 0.8);
+      border: none;
+      background: transparent;
       color: rgba(255, 255, 255, 0.85);
       text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
       font-size: clamp(7px, 1.1vw, 12px);
@@ -172,7 +172,7 @@
     }
 
     #ghost-mode-tag.show {
-      opacity: 1;
+      opacity: 0.9;
       transform: translateY(0) scale(1);
     }
 
@@ -182,8 +182,8 @@
       right: 24px;
       padding: 6px 12px;
       border-radius: 12px;
-      border: 2px solid rgba(255, 150, 150, 0.8);
-      background: rgba(40, 12, 20, 0.8);
+      border: none;
+      background: transparent;
       color: #ff9a9a;
       text-shadow: 0 0 12px rgba(255, 120, 120, 0.8);
       font-size: clamp(7px, 1.1vw, 12px);
@@ -195,7 +195,7 @@
     }
 
     #trap-tag.show {
-      opacity: 1;
+      opacity: 0.9;
       transform: translateY(0) scale(1);
     }
 
@@ -206,8 +206,8 @@
       transform: translate(-50%, -16px) scale(0.9);
       padding: 6px 14px;
       border-radius: 12px;
-      border: 2px solid var(--accent);
-      background: rgba(12, 6, 18, 0.8);
+      border: none;
+      background: transparent;
       color: var(--accent);
       text-shadow: 0 0 12px rgba(255, 62, 223, 0.8);
       font-size: clamp(7px, 1.1vw, 12px);
@@ -218,7 +218,7 @@
     }
 
     #portal-tag.show {
-      opacity: 1;
+      opacity: 0.9;
       transform: translate(-50%, 0) scale(1);
     }
 
@@ -245,11 +245,11 @@
         transform: translate(-50%, -40px) scale(0.7);
       }
       10% {
-        opacity: 1;
+        opacity: 0.9;
         transform: translate(-50%, 0) scale(1);
       }
       70% {
-        opacity: 1;
+        opacity: 0.9;
         transform: translate(-50%, 6px) scale(1.04);
       }
       100% {
@@ -276,13 +276,13 @@
       align-items: center;
       gap: 10px;
       padding: 8px 14px;
-      background: rgba(14, 16, 32, 0.82);
-      border: 2px solid rgba(0, 255, 255, 0.55);
+      background: transparent;
+      border: none;
       border-radius: 14px;
       color: #f8fbff;
       font-size: clamp(7px, 1.35vw, 12px);
       letter-spacing: 0.6px;
-      box-shadow: 0 0 20px rgba(0, 255, 255, 0.35);
+      box-shadow: none;
       animation: trickToastPop 2.4s ease forwards;
       text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
       min-width: 0;
@@ -291,8 +291,8 @@
     .trick-tag {
       padding: 4px 8px;
       border-radius: 999px;
-      background: rgba(0, 255, 255, 0.16);
-      border: 1px solid rgba(0, 255, 255, 0.55);
+      background: transparent;
+      border: none;
       text-transform: uppercase;
       font-size: 0.75em;
       letter-spacing: 1.2px;
@@ -318,11 +318,11 @@
         transform: translateY(-18px) scale(0.82);
       }
       14% {
-        opacity: 1;
+        opacity: 0.9;
         transform: translateY(0) scale(1);
       }
       68% {
-        opacity: 1;
+        opacity: 0.9;
         transform: translateY(6px) scale(1.05);
       }
       100% {

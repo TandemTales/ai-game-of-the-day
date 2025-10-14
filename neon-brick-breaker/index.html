@@ -130,204 +130,141 @@
 
     canvas { width: 100%; height: auto; display: block; background: transparent; touch-action: none; }
 
-    #paddle-buff-tag {
-      position: absolute;
-      top: 18px;
-      right: 24px;
-      padding: 6px 12px;
-      border-radius: 12px;
-      border: 2px solid var(--teal);
-      background: rgba(10, 10, 18, 0.75);
-      color: var(--teal);
-      text-shadow: 0 0 12px rgba(0, 255, 255, 0.8);
-      font-size: clamp(7px, 1.2vw, 12px);
-      letter-spacing: 0.8px;
-      opacity: 0;
-      transform: translateY(-16px) scale(0.9);
-      transition: opacity 0.22s ease, transform 0.22s ease;
-      pointer-events: none;
-    }
-
-    #paddle-buff-tag.show {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-
-    #ghost-mode-tag {
-      position: absolute;
-      top: 54px;
-      right: 24px;
-      padding: 6px 12px;
-      border-radius: 12px;
-      border: 2px solid rgba(255, 255, 255, 0.65);
-      background: rgba(20, 20, 32, 0.8);
-      color: rgba(255, 255, 255, 0.85);
-      text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
-      font-size: clamp(7px, 1.1vw, 12px);
-      letter-spacing: 0.8px;
-      opacity: 0;
-      transform: translateY(-16px) scale(0.9);
-      transition: opacity 0.22s ease, transform 0.22s ease;
-      pointer-events: none;
-    }
-
-    #ghost-mode-tag.show {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-
-    #trap-tag {
-      position: absolute;
-      top: 96px;
-      right: 24px;
-      padding: 6px 12px;
-      border-radius: 12px;
-      border: 2px solid rgba(255, 150, 150, 0.8);
-      background: rgba(40, 12, 20, 0.8);
-      color: #ff9a9a;
-      text-shadow: 0 0 12px rgba(255, 120, 120, 0.8);
-      font-size: clamp(7px, 1.1vw, 12px);
-      letter-spacing: 0.8px;
-      opacity: 0;
-      transform: translateY(-16px) scale(0.9);
-      transition: opacity 0.22s ease, transform 0.22s ease;
-      pointer-events: none;
-    }
-
-    #trap-tag.show {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-
-    #portal-tag {
-      position: absolute;
-      top: 64px;
-      left: 50%;
-      transform: translate(-50%, -16px) scale(0.9);
-      padding: 6px 14px;
-      border-radius: 12px;
-      border: 2px solid var(--accent);
-      background: rgba(12, 6, 18, 0.8);
-      color: var(--accent);
-      text-shadow: 0 0 12px rgba(255, 62, 223, 0.8);
-      font-size: clamp(7px, 1.1vw, 12px);
-      letter-spacing: 1px;
-      opacity: 0;
-      transition: opacity 0.22s ease, transform 0.22s ease;
-      pointer-events: none;
-    }
-
-    #portal-tag.show {
-      opacity: 1;
-      transform: translate(-50%, 0) scale(1);
-    }
-
-    #upgrade-banner {
-      position: absolute;
-      top: 22%;
-      left: 50%;
-      transform: translate(-50%, -20px) scale(0.9);
-      font-size: clamp(6.5px, 1.5vw, 11px);
-      color: var(--gold);
-      text-shadow: 0 0 16px rgba(0, 255, 255, 0.8), 0 0 32px rgba(255, 62, 223, 0.6);
-      opacity: 0;
-      pointer-events: none;
-      white-space: nowrap;
-    }
-
-    #upgrade-banner.show {
-      animation: upgradeFade 2.6s ease forwards;
-    }
-
-    @keyframes upgradeFade {
-      0% {
-        opacity: 0;
-        transform: translate(-50%, -40px) scale(0.7);
-      }
-      10% {
-        opacity: 1;
-        transform: translate(-50%, 0) scale(1);
-      }
-      70% {
-        opacity: 1;
-        transform: translate(-50%, 6px) scale(1.04);
-      }
-      100% {
-        opacity: 0;
-        transform: translate(-50%, 40px) scale(0.92);
-      }
-    }
-
-    #trick-feed {
-      position: absolute;
-      top: 26%;
-      left: 50%;
-      transform: translateX(-50%);
+    #notification-box {
+      margin-top: 16px;
+      background: rgba(6, 10, 24, 0.78);
+      border: 2px solid rgba(0, 255, 255, 0.25);
+      border-radius: 14px;
+      padding: 12px 14px;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      pointer-events: none;
-      z-index: 6;
+      gap: 10px;
+      box-shadow: inset 0 0 24px rgba(0, 255, 255, 0.08);
+      max-height: clamp(140px, 32vh, 220px);
+      overflow: hidden;
     }
 
-    .trick-toast {
+    .notification-header {
+      font-size: clamp(8px, 1.1vw, 12px);
+      letter-spacing: 1.2px;
+      color: rgba(167, 231, 255, 0.85);
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #notification-feed {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow: hidden;
+      min-height: 48px;
+    }
+
+    .notification-toast {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 8px 14px;
-      background: rgba(14, 16, 32, 0.82);
-      border: 2px solid rgba(0, 255, 255, 0.55);
-      border-radius: 14px;
+      padding: 8px 12px;
+      background: rgba(14, 16, 32, 0.9);
+      border: 2px solid rgba(0, 255, 255, 0.45);
+      border-radius: 12px;
       color: #f8fbff;
-      font-size: clamp(7px, 1.35vw, 12px);
+      font-size: clamp(7px, 1.25vw, 12px);
       letter-spacing: 0.6px;
-      box-shadow: 0 0 20px rgba(0, 255, 255, 0.35);
-      animation: trickToastPop 2.4s ease forwards;
-      text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+      box-shadow: 0 0 16px rgba(0, 255, 255, 0.35);
+      text-shadow: 0 0 8px rgba(0, 255, 255, 0.45);
       min-width: 0;
+      animation: notificationPop 0.28s ease;
     }
 
-    .trick-tag {
+    .notification-toast.is-persistent {
+      animation: none;
+    }
+
+    .notification-toast.notification-upgrade {
+      border-color: rgba(255, 215, 0, 0.6);
+      box-shadow: 0 0 18px rgba(255, 215, 0, 0.35);
+      color: var(--gold);
+    }
+
+    .notification-toast.notification-warning {
+      border-color: rgba(255, 120, 120, 0.6);
+      box-shadow: 0 0 18px rgba(255, 120, 120, 0.35);
+      color: #ffb8b8;
+    }
+
+    .notification-toast.notification-portal {
+      border-color: rgba(255, 62, 223, 0.55);
+      box-shadow: 0 0 20px rgba(255, 62, 223, 0.3);
+      color: #ff9dff;
+    }
+
+    .notification-tag {
       padding: 4px 8px;
       border-radius: 999px;
-      background: rgba(0, 255, 255, 0.16);
-      border: 1px solid rgba(0, 255, 255, 0.55);
+      background: rgba(0, 255, 255, 0.12);
+      border: 1px solid rgba(0, 255, 255, 0.4);
       text-transform: uppercase;
       font-size: 0.75em;
       letter-spacing: 1.2px;
       color: var(--teal);
       text-shadow: none;
       white-space: nowrap;
+      flex-shrink: 0;
     }
 
-    .trick-name {
+    .notification-toast.notification-upgrade .notification-tag {
+      background: rgba(255, 215, 0, 0.12);
+      border-color: rgba(255, 215, 0, 0.6);
+      color: var(--gold);
+    }
+
+    .notification-toast.notification-warning .notification-tag {
+      background: rgba(255, 120, 120, 0.12);
+      border-color: rgba(255, 120, 120, 0.6);
+      color: #ff9a9a;
+    }
+
+    .notification-toast.notification-portal .notification-tag {
+      background: rgba(255, 62, 223, 0.12);
+      border-color: rgba(255, 62, 223, 0.6);
+      color: var(--accent);
+    }
+
+    .notification-message {
       font-weight: 700;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    .trick-points {
+    .notification-points {
       margin-left: auto;
       color: var(--gold);
       white-space: nowrap;
     }
 
-    @keyframes trickToastPop {
+    @keyframes notificationPop {
       0% {
         opacity: 0;
-        transform: translateY(-18px) scale(0.82);
+        transform: translateY(12px) scale(0.92);
       }
-      14% {
+      100% {
         opacity: 1;
         transform: translateY(0) scale(1);
       }
-      68% {
+    }
+
+    @keyframes notificationFade {
+      0% {
         opacity: 1;
-        transform: translateY(6px) scale(1.05);
+        transform: translateY(0) scale(1);
       }
       100% {
         opacity: 0;
-        transform: translateY(26px) scale(0.9);
+        transform: translateY(-6px) scale(0.94);
       }
     }
 
@@ -397,6 +334,19 @@
         padding: 6px;
         border-width: 1.5px;
       }
+
+      #notification-box {
+        padding: 10px;
+        max-height: clamp(120px, 36vh, 200px);
+      }
+
+      .notification-header {
+        font-size: clamp(8px, 2.5vw, 11px);
+      }
+
+      .notification-toast {
+        font-size: clamp(7px, 3.2vw, 11px);
+      }
     }
 
     @media (max-width: 560px) {
@@ -436,12 +386,6 @@
 
       <div class="stage">
         <canvas id="game" width="900" height="600"></canvas>
-        <div id="upgrade-banner"></div>
-        <div id="paddle-buff-tag" aria-hidden="true">Paddle Engaged</div>
-        <div id="ghost-mode-tag" aria-hidden="true">Ghost Paddle</div>
-        <div id="portal-tag" aria-hidden="true">Portal Hop!</div>
-        <div id="trap-tag" aria-hidden="true">☠ Controls Inverted</div>
-        <div id="trick-feed" aria-live="polite" aria-atomic="false"></div>
         <div class="overlay" id="overlay">
           <div>
             <h2 id="ov-title">Neon Brick Breaker</h2>
@@ -449,6 +393,11 @@
             <div class="controls">Move: Arrow Keys / A & D / Drag. Pause: P</div>
           </div>
         </div>
+      </div>
+
+      <div id="notification-box" aria-live="polite" aria-atomic="false">
+        <div class="notification-header">Highlights</div>
+        <div id="notification-feed"></div>
       </div>
     </div>
   </div>
@@ -486,29 +435,125 @@
     const stageEl = document.querySelector('.stage');
     const headerEl = document.querySelector('header');
     const hudEl = document.querySelector('.hud');
-    const upgradeBanner = document.getElementById('upgrade-banner');
-    const paddleBuffTag = document.getElementById('paddle-buff-tag');
-    const ghostModeTag = document.getElementById('ghost-mode-tag');
-    const portalTag = document.getElementById('portal-tag');
-    const trapTag = document.getElementById('trap-tag');
+    const notificationFeed = document.getElementById('notification-feed');
     const muteBtn = document.getElementById('mute-btn');
-    const trickFeed = document.getElementById('trick-feed');
+    const trickFeed = notificationFeed;
 
-    if (paddleBuffTag) {
-      paddleBuffTag.setAttribute('aria-hidden', 'true');
+    const activeNotifications = new Map();
+    const MAX_NOTIFICATIONS = 4;
+
+    function buildNotificationContent(target, { tagText, message, points }) {
+      if (!target) return;
+      target.innerHTML = '';
+
+      if (tagText) {
+        const tag = document.createElement('span');
+        tag.className = 'notification-tag';
+        tag.textContent = tagText;
+        target.appendChild(tag);
+      }
+
+      const messageEl = document.createElement('span');
+      messageEl.className = 'notification-message';
+      messageEl.textContent = message || '';
+      target.appendChild(messageEl);
+
+      if (Number.isFinite(points) && points !== 0) {
+        const pointsEl = document.createElement('span');
+        pointsEl.className = 'notification-points';
+        pointsEl.textContent = `+${Math.round(points)}`;
+        target.appendChild(pointsEl);
+      }
     }
 
-    if (ghostModeTag) {
-      ghostModeTag.setAttribute('aria-hidden', 'true');
-      ghostModeTag.textContent = 'Ghost Paddle';
+    function removeNotificationElement(toast, { immediate = false } = {}) {
+      if (!toast || !notificationFeed) return;
+      if (toast._timeoutId) {
+        clearTimeout(toast._timeoutId);
+        toast._timeoutId = null;
+      }
+      const id = toast.dataset.id;
+      if (id) {
+        activeNotifications.delete(id);
+      }
+      if (!toast.parentNode || toast.parentNode !== notificationFeed) return;
+      if (immediate) {
+        notificationFeed.removeChild(toast);
+        return;
+      }
+      toast.style.animation = 'notificationFade 0.22s ease forwards';
+      setTimeout(() => {
+        if (toast.parentNode === notificationFeed) {
+          notificationFeed.removeChild(toast);
+        }
+      }, 220);
     }
 
-    if (portalTag) {
-      portalTag.setAttribute('aria-hidden', 'true');
+    function enforceNotificationLimit() {
+      if (!notificationFeed) return;
+      const nodes = Array.from(notificationFeed.children);
+      while (nodes.length > MAX_NOTIFICATIONS) {
+        const removable = nodes.find(node => !node.classList.contains('is-persistent'));
+        if (!removable) break;
+        removeNotificationElement(removable);
+        nodes.splice(nodes.indexOf(removable), 1);
+      }
     }
 
-    if (trapTag) {
-      trapTag.setAttribute('aria-hidden', 'true');
+    function pushNotification({
+      id = null,
+      tagText = '',
+      message = '',
+      points = null,
+      duration = 2600,
+      variant = '',
+      persistent = false,
+    }) {
+      if (!notificationFeed || !message) return;
+      let toast = null;
+      if (id && activeNotifications.has(id)) {
+        toast = activeNotifications.get(id);
+      }
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.className = 'notification-toast';
+        toast.setAttribute('role', 'status');
+        if (id) {
+          toast.dataset.id = id;
+          activeNotifications.set(id, toast);
+        }
+        notificationFeed.appendChild(toast);
+      }
+
+      toast.className = 'notification-toast';
+      if (variant) {
+        toast.classList.add(`notification-${variant}`);
+      }
+      if (persistent) {
+        toast.classList.add('is-persistent');
+      } else {
+        toast.classList.remove('is-persistent');
+      }
+
+      buildNotificationContent(toast, { tagText, message, points });
+
+      if (toast._timeoutId) {
+        clearTimeout(toast._timeoutId);
+        toast._timeoutId = null;
+      }
+      if (!persistent) {
+        toast._timeoutId = setTimeout(() => {
+          removeNotificationElement(toast);
+        }, Number.isFinite(duration) ? duration : 2600);
+      }
+
+      enforceNotificationLimit();
+    }
+
+    function clearNotificationById(id) {
+      if (!id || !activeNotifications.has(id)) return;
+      const toast = activeNotifications.get(id);
+      removeNotificationElement(toast, { immediate: true });
     }
 
     const SOUNDTRACK_FILES = [
@@ -526,7 +571,6 @@
     let soundtrackQueue = [];
     let soundtrackStarted = false;
     let isMuted = false;
-    let portalTagTimeout = null;
 
     function shuffleTracks(list) {
       const arr = list.slice();
@@ -576,30 +620,32 @@
 
     updateMuteButton();
 
-    function updateTrapTagVisual() {
-      if (!trapTag) return;
+    function updateTrapNotification() {
       if (!inputInvertActive) {
-        trapTag.classList.remove('show');
-        trapTag.setAttribute('aria-hidden', 'true');
+        clearNotificationById('trap-warning');
         return;
       }
       const timeLeft = Math.max(0, inputInvertTimer);
       const display = timeLeft > 0 ? timeLeft.toFixed(1) : '0.0';
-      trapTag.textContent = `☠ Controls Inverted (${display}s)`;
-      trapTag.classList.add('show');
-      trapTag.setAttribute('aria-hidden', 'false');
+      pushNotification({
+        id: 'trap-warning',
+        tagText: 'Hazard',
+        message: `Controls Inverted (${display}s)`,
+        variant: 'warning',
+        persistent: true,
+      });
     }
 
     function resetInputInversion() {
       inputInvertActive = false;
       inputInvertTimer = 0;
-      updateTrapTagVisual();
+      updateTrapNotification();
     }
 
     function activateInputInversion() {
       inputInvertActive = true;
       inputInvertTimer = TRAP_BRICK_INVERT_DURATION;
-      updateTrapTagVisual();
+      updateTrapNotification();
     }
 
     function updateInputInversion(dt) {
@@ -609,7 +655,7 @@
         inputInvertActive = false;
         inputInvertTimer = 0;
       }
-      updateTrapTagVisual();
+      updateTrapNotification();
     }
 
     const ShieldAudioContext = window.AudioContext || window.webkitAudioContext || null;
@@ -1335,36 +1381,12 @@
 
     function showTrickNotification(def) {
       if (!trickFeed) return;
-      const toast = document.createElement('div');
-      toast.className = 'trick-toast';
-      toast.setAttribute('role', 'status');
-
-      const tag = document.createElement('span');
-      tag.className = 'trick-tag';
-      tag.textContent = def.tagText || 'Trick Shot';
-      toast.appendChild(tag);
-
-      const name = document.createElement('span');
-      name.className = 'trick-name';
-      name.textContent = def.name || 'Trick';
-      toast.appendChild(name);
-
-      if (def.points) {
-        const pointsEl = document.createElement('span');
-        pointsEl.className = 'trick-points';
-        pointsEl.textContent = `+${Math.round(def.points)}`;
-        toast.appendChild(pointsEl);
-      }
-
-      trickFeed.appendChild(toast);
-
-      const remove = () => {
-        if (toast.parentNode === trickFeed) {
-          trickFeed.removeChild(toast);
-        }
-      };
-      toast.addEventListener('animationend', remove, { once: true });
-      setTimeout(remove, 2600);
+      pushNotification({
+        tagText: def.tagText || 'Trick Shot',
+        message: def.name || 'Trick',
+        points: def.points ? Math.round(def.points) : null,
+        duration: 2600,
+      });
     }
 
     function handlePaddleWidthChange(newWidth, previousWidth = paddleWidth) {
@@ -1378,14 +1400,18 @@
       } else if (newWidth < prevWidth - 0.01) {
         paddleGrowTimer = 0;
       }
-      if (paddleBuffTag) {
-        if (newWidth > PADDLE_CONFIG.baseWidth + 0.01) {
-          paddleBuffTag.classList.add('show');
-          paddleBuffTag.setAttribute('aria-hidden', 'false');
-        } else {
-          paddleBuffTag.classList.remove('show');
-          paddleBuffTag.setAttribute('aria-hidden', 'true');
-        }
+      const buffActive = newWidth > PADDLE_CONFIG.baseWidth + 0.01;
+      const wasActive = prevWidth > PADDLE_CONFIG.baseWidth + 0.01;
+      if (buffActive && !wasActive) {
+        pushNotification({
+          id: 'paddle-buff',
+          tagText: 'Buff',
+          message: 'Paddle Engaged',
+          variant: 'upgrade',
+          duration: 2400,
+        });
+      } else if (!buffActive && wasActive) {
+        clearNotificationById('paddle-buff');
       }
     }
 
@@ -1398,52 +1424,42 @@
       }
     }
 
-    function updateGhostModeTagText() {
-      if (!ghostModeTag) return;
-      if (ghostModeActive) {
-        const seconds = Math.max(0, ghostModeTimer);
-        ghostModeTag.textContent = `Ghost Paddle ${seconds.toFixed(1)}s`;
-      } else {
-        ghostModeTag.textContent = 'Ghost Paddle';
-      }
-    }
-
-    function showGhostModeTag() {
-      if (!ghostModeTag) return;
-      updateGhostModeTagText();
-      ghostModeTag.classList.add('show');
-      ghostModeTag.setAttribute('aria-hidden', 'false');
-    }
-
-    function hideGhostModeTag() {
-      if (!ghostModeTag) return;
-      ghostModeTag.classList.remove('show');
-      ghostModeTag.setAttribute('aria-hidden', 'true');
-      updateGhostModeTagText();
-    }
-
     function activateGhostMode() {
       ghostModeActive = true;
       ghostModeTimer = GHOST_MODE_DURATION;
-      updateGhostModeTagText();
-      showGhostModeTag();
+      updateGhostModeNotification();
       playGhostWhooshSound();
     }
 
     function deactivateGhostMode() {
       ghostModeActive = false;
       ghostModeTimer = 0;
-      hideGhostModeTag();
+      updateGhostModeNotification();
     }
 
     function updateGhostMode(dt) {
       if (!ghostModeActive) return;
-      ghostModeTimer -= dt;
+      ghostModeTimer = Math.max(0, ghostModeTimer - dt);
       if (ghostModeTimer <= 0) {
         deactivateGhostMode();
-      } else {
-        updateGhostModeTagText();
+        return;
       }
+      updateGhostModeNotification();
+    }
+
+    function updateGhostModeNotification() {
+      if (!ghostModeActive) {
+        clearNotificationById('ghost-mode');
+        return;
+      }
+      const seconds = Math.max(0, ghostModeTimer);
+      pushNotification({
+        id: 'ghost-mode',
+        tagText: 'Phase',
+        message: `Ghost Paddle ${seconds.toFixed(1)}s`,
+        variant: 'upgrade',
+        persistent: true,
+      });
     }
 
     function captureInitialBallSpeed(ball) {
@@ -1779,14 +1795,10 @@
       scoreEl.textContent = score;
       livesEl.textContent = lives;
       resetComboMultiplier();
-      if (portalTagTimeout) {
-        clearTimeout(portalTagTimeout);
-        portalTagTimeout = null;
-      }
-      if (portalTag) {
-        portalTag.classList.remove('show');
-        portalTag.setAttribute('aria-hidden', 'true');
-      }
+      clearNotificationById('portal-hop');
+      clearNotificationById('ghost-mode');
+      clearNotificationById('trap-warning');
+      clearNotificationById('paddle-buff');
       resetInputInversion();
       if (paddleBuff) {
         paddleBuff.reset();
@@ -1794,10 +1806,6 @@
       } else {
         paddleWidth = PADDLE_CONFIG.baseWidth;
         paddleGrowTimer = 0;
-        if (paddleBuffTag) {
-          paddleBuffTag.classList.remove('show');
-          paddleBuffTag.setAttribute('aria-hidden', 'true');
-        }
       }
       paddleX = clampPaddleX((canvas.width - paddleWidth) / 2);
       balls = [createBall(paddleX + paddleWidth / 2, PADDLE_Y - BALL_R - 2, true)];
@@ -3387,24 +3395,22 @@
     }
 
     function showUpgradeBanner(text) {
-      upgradeBanner.textContent = text;
-      upgradeBanner.classList.remove('show');
-      void upgradeBanner.offsetWidth;
-      upgradeBanner.classList.add('show');
+      pushNotification({
+        tagText: 'Upgrade',
+        message: text,
+        variant: 'upgrade',
+        duration: 2800,
+      });
     }
 
     function showPortalTag() {
-      if (!portalTag) return;
-      if (portalTagTimeout) {
-        clearTimeout(portalTagTimeout);
-      }
-      portalTag.classList.add('show');
-      portalTag.setAttribute('aria-hidden', 'false');
-      portalTagTimeout = setTimeout(() => {
-        portalTag.classList.remove('show');
-        portalTag.setAttribute('aria-hidden', 'true');
-        portalTagTimeout = null;
-      }, 1200);
+      pushNotification({
+        id: 'portal-hop',
+        tagText: 'Portal',
+        message: 'Portal Hop!',
+        variant: 'portal',
+        duration: 1800,
+      });
     }
 
     function drawNeonGrid() {

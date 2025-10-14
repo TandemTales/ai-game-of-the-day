@@ -715,6 +715,7 @@
     const PORTAL_GRACE_PERIOD = 0.3;
     const PORTAL_BONUS_POINTS = 35;
     const PORTAL_SLOW_DURATION = 1;
+    const PORTAL_EXIT_SPEED_RATIO = 0.9;
     const PORTAL_RECOVERY_DURATION = 3;
     const PORTAL_VERTICAL_BAND_MIN = 0.25;
     const PORTAL_VERTICAL_BAND_MAX = 0.5;
@@ -2262,14 +2263,14 @@
       captureInitialBallSpeed(ball);
       enforceMinimumBallSpeed(ball);
       const launchSpeed = Math.hypot(ball.vx, ball.vy);
-      const slowSpeed = launchSpeed * 0.5;
-      ball.vx = normX * slowSpeed;
-      ball.vy = normY * slowSpeed;
+      const exitSpeed = launchSpeed * PORTAL_EXIT_SPEED_RATIO;
+      ball.vx = normX * exitSpeed;
+      ball.vy = normY * exitSpeed;
 
       ball.portalSpeedRecovery = {
         slowUntil: gameTime + PORTAL_SLOW_DURATION,
         rampEnd: gameTime + PORTAL_SLOW_DURATION + PORTAL_RECOVERY_DURATION,
-        slowSpeed,
+        slowSpeed: exitSpeed,
         targetSpeed: launchSpeed,
         dirX: normX,
         dirY: normY,

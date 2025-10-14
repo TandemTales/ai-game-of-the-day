@@ -112,6 +112,12 @@
     }
     .hud > div { flex: 1 1 120px; text-align: center; }
 
+    .play-area-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
     .stage {
       position: relative;
       background: radial-gradient(circle at 50% 20%, rgba(0,255,255,0.05), rgba(0,0,0,0.2)),
@@ -124,14 +130,16 @@
       box-shadow: inset 0 0 30px rgba(0,255,255,0.25);
       padding: 12px;
       max-width: 100%;
-      margin: 0 auto;
+      margin: 0;
       transition: padding 0.2s ease, border-width 0.2s ease;
+      flex: 1 1 0;
+      min-width: 0;
     }
 
     canvas { width: 100%; height: auto; display: block; background: transparent; touch-action: none; }
 
     #notification-box {
-      margin-top: 16px;
+      margin: 0;
       background: rgba(6, 10, 24, 0.78);
       border: 2px solid rgba(0, 255, 255, 0.25);
       border-radius: 14px;
@@ -142,6 +150,7 @@
       box-shadow: inset 0 0 24px rgba(0, 255, 255, 0.08);
       max-height: clamp(140px, 32vh, 220px);
       overflow: hidden;
+      flex: 0 0 auto;
     }
 
     .notification-header {
@@ -349,6 +358,23 @@
       }
     }
 
+    @media (min-width: 861px) {
+      .play-area-layout {
+        flex-direction: row;
+        align-items: flex-start;
+      }
+
+      #notification-box {
+        order: 2;
+        max-width: 320px;
+        width: 100%;
+      }
+
+      .play-area-layout .stage {
+        order: 1;
+      }
+    }
+
     @media (max-width: 560px) {
       .title h1 { font-size: 18px; }
       .btn {
@@ -384,20 +410,22 @@
         <div>Lives: <span id="lives">3</span></div>
       </div>
 
-      <div class="stage">
-        <canvas id="game" width="900" height="600"></canvas>
-        <div class="overlay" id="overlay">
-          <div>
-            <h2 id="ov-title">Neon Brick Breaker</h2>
-            <p id="ov-sub">Tap/Click or press Space to launch</p>
-            <div class="controls">Move: Arrow Keys / A & D / Drag. Pause: P</div>
+      <div class="play-area-layout">
+        <div id="notification-box" aria-live="polite" aria-atomic="false">
+          <div class="notification-header">Highlights</div>
+          <div id="notification-feed"></div>
+        </div>
+
+        <div class="stage">
+          <canvas id="game" width="900" height="600"></canvas>
+          <div class="overlay" id="overlay">
+            <div>
+              <h2 id="ov-title">Neon Brick Breaker</h2>
+              <p id="ov-sub">Tap/Click or press Space to launch</p>
+              <div class="controls">Move: Arrow Keys / A & D / Drag. Pause: P</div>
+            </div>
           </div>
         </div>
-      </div>
-
-      <div id="notification-box" aria-live="polite" aria-atomic="false">
-        <div class="notification-header">Highlights</div>
-        <div id="notification-feed"></div>
       </div>
     </div>
   </div>

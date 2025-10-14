@@ -352,6 +352,83 @@
 
     .controls { margin-top: 10px; font-size: 11px; color: #8ec; opacity: 0.9; }
 
+    .mobile-slider-wrapper {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .mobile-slider-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.6px;
+      color: rgba(0, 255, 255, 0.85);
+      text-align: center;
+    }
+
+    .mobile-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 26px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(0, 255, 255, 0.35), rgba(255, 62, 223, 0.35));
+      border: 2px solid rgba(0, 255, 255, 0.45);
+      box-shadow: 0 0 16px rgba(0, 255, 255, 0.18);
+      outline: none;
+      padding: 0 12px;
+      position: relative;
+    }
+
+    .mobile-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #fff, #ffe066 45%, #ff3edf 100%);
+      border: 2px solid rgba(255, 255, 255, 0.7);
+      box-shadow: 0 0 20px rgba(255, 62, 223, 0.6);
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+
+    .mobile-slider::-moz-range-thumb {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #fff, #ffe066 45%, #ff3edf 100%);
+      border: 2px solid rgba(255, 255, 255, 0.7);
+      box-shadow: 0 0 20px rgba(255, 62, 223, 0.6);
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+
+    .mobile-slider:active::-webkit-slider-thumb,
+    .mobile-slider:active::-moz-range-thumb {
+      transform: scale(1.08);
+      box-shadow: 0 0 26px rgba(255, 62, 223, 0.75);
+    }
+
+    .mobile-slider::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(0, 255, 255, 0.18);
+    }
+
+    .mobile-slider::-moz-range-track {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(0, 255, 255, 0.18);
+    }
+
+    @media (max-width: 880px), (pointer: coarse) {
+      .mobile-slider-wrapper {
+        display: flex;
+      }
+    }
+
     @media (max-width: 640px) {
       body {
         align-items: stretch;
@@ -469,6 +546,10 @@
             <div class="controls">Move: Arrow Keys / A & D / Drag. Pause: P</div>
           </div>
         </div>
+      </div>
+      <div class="mobile-slider-wrapper" id="mobile-slider-wrapper">
+        <span class="mobile-slider-label">Slide to move paddle</span>
+        <input type="range" id="mobile-slider" class="mobile-slider" min="0" max="1000" value="500" aria-label="Move paddle">
       </div>
     </div>
   </div>
@@ -1255,6 +1336,25 @@
     const comboHistory = [];
 
     const input = { left:false, right:false };
+    const mobileSlider = document.getElementById('mobile-slider');
+    let mobileSliderActive = false;
+
+    function syncSliderToPaddle(force = false) {
+      if (!mobileSlider) return;
+      if (!force && mobileSliderActive) return;
+      const min = Number(mobileSlider.min || 0);
+      const max = Number(mobileSlider.max || 100);
+      const range = max - min;
+      if (!Number.isFinite(range) || range === 0) return;
+      const center = paddleX + paddleWidth / 2;
+      const normalized = Math.max(0, Math.min(1, center / canvas.width));
+      const value = min + normalized * range;
+      const valueStr = String(Math.round(value));
+      if (mobileSlider.value !== valueStr) {
+        mobileSlider.value = valueStr;
+      }
+    }
+
     // Leaderboard integration
     const GAME_ID = 'neon-brick-breaker';
     let gameOverHandled = false;
@@ -1300,11 +1400,54 @@
         }
         paddleX = clampPaddleX(cx - paddleWidth / 2);
         updateLockedBallsPosition();
+        syncSliderToPaddle();
       }
       [canvas, overlayEl].forEach(el => {
         el.addEventListener('pointerdown', (e) => { movePaddle(e); launch(); primeAudio(); });
         el.addEventListener('pointermove', movePaddle);
       });
+      if (mobileSlider) {
+        const min = Number(mobileSlider.min || 0);
+        const max = Number(mobileSlider.max || 100);
+        const range = max - min || 1;
+        const applySliderValue = (value) => {
+          const numericValue = Number(value);
+          if (!Number.isFinite(numericValue)) return;
+          let ratio = (numericValue - min) / range;
+          if (!Number.isFinite(ratio)) ratio = 0;
+          ratio = Math.max(0, Math.min(1, ratio));
+          let cx = ratio * canvas.width;
+          if (inputInvertActive) {
+            cx = canvas.width - cx;
+          }
+          paddleX = clampPaddleX(cx - paddleWidth / 2);
+          updateLockedBallsPosition();
+        };
+        mobileSlider.addEventListener('input', (event) => {
+          mobileSliderActive = true;
+          applySliderValue(event.target.value);
+        });
+        mobileSlider.addEventListener('change', (event) => {
+          mobileSliderActive = false;
+          applySliderValue(event.target.value);
+          syncSliderToPaddle(true);
+        });
+        mobileSlider.addEventListener('pointerdown', () => {
+          mobileSliderActive = true;
+        });
+        mobileSlider.addEventListener('pointerup', () => {
+          mobileSliderActive = false;
+          syncSliderToPaddle(true);
+        });
+        mobileSlider.addEventListener('pointercancel', () => {
+          mobileSliderActive = false;
+        });
+        mobileSlider.addEventListener('blur', () => {
+          mobileSliderActive = false;
+          syncSliderToPaddle(true);
+        });
+        syncSliderToPaddle(true);
+      }
     }
 
     function getWallPulseIntervalForLevel(currentLevel) {
@@ -3180,6 +3323,7 @@
       if (moveLeft) paddleX -= paddleSpeed * dt;
       if (moveRight) paddleX += paddleSpeed * dt;
       paddleX = clampPaddleX(paddleX);
+      syncSliderToPaddle();
 
       const ballsToRemove = [];
 

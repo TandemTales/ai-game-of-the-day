@@ -78,6 +78,54 @@
 
     .controls { margin-top: 10px; font-size: 11px; color:#8ec; opacity: .9; }
 
+    .mobile-slider {
+      margin-top: 16px;
+      background: rgba(0,0,0,0.45);
+      border: 2px solid rgba(0,229,255,0.35);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 6px 20px rgba(0,229,255,0.18);
+    }
+    .mobile-slider label {
+      font-size: 11px;
+      text-align: center;
+      color: var(--neon);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .mobile-slider input[type="range"] {
+      width: 100%;
+      -webkit-appearance: none;
+      height: 8px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.12);
+      outline: none;
+      accent-color: var(--neon);
+    }
+    .mobile-slider input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--neon);
+      border: 2px solid rgba(255,215,0,0.8);
+      box-shadow: 0 0 12px rgba(0,229,255,0.7);
+      cursor: pointer;
+    }
+    .mobile-slider input[type="range"]::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--neon);
+      border: 2px solid rgba(255,215,0,0.8);
+      box-shadow: 0 0 12px rgba(0,229,255,0.7);
+      cursor: pointer;
+    }
+
     .wave-banner { position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); padding:10px 20px; background:rgba(0,0,0,0.6); border:2px solid rgba(255,215,0,0.4); border-radius:8px; color:var(--gold); font-size:20px; opacity:0; pointer-events:none; transition:opacity 0.5s; }
     .wave-banner.show { opacity:1; }
     /* Audio toggle icon button */
@@ -119,9 +167,13 @@
           <div>
             <h2 id="ov-title">Nova Striker</h2>
             <p id="ov-sub">Tap/Click or press Space to launch</p>
-            <div class="controls">Move: Arrow Keys / A & D / Drag. Shoot: Auto-fire. Pause: P. Audio: M</div>
+            <div class="controls">Move: Arrow Keys / A & D / Drag / Slider. Shoot: Auto-fire. Pause: P. Audio: M</div>
           </div>
         </div>
+      </div>
+      <div class="mobile-slider" id="sliderControls">
+        <label for="controlSlider">Slide to Steer</label>
+        <input type="range" id="controlSlider" min="0" max="100" value="50" aria-label="Slide to steer your ship">
       </div>
     </div>
   </div>
@@ -242,6 +294,7 @@
     const audioIcon = document.getElementById('audioIcon');
     const audioIconImg = document.getElementById('audioIconImg');
     const logoEl = document.getElementById('logo');
+    const sliderEl = document.getElementById('controlSlider');
 
     // Game constants
     const GAME_ID = 'nova-striker';
@@ -333,6 +386,24 @@
     }
 
     const input = { left:false, right:false };
+    let sliderActive = false;
+
+    function sliderValueToPlayer(value) {
+      if (!Number.isFinite(value)) return;
+      const minX = P.w / 2;
+      const maxX = W - P.w / 2;
+      const t = Math.max(0, Math.min(1, value / 100));
+      P.x = minX + (maxX - minX) * t;
+    }
+
+    function updateSliderFromPlayer() {
+      if (!sliderEl || sliderActive) return;
+      const minX = P.w / 2;
+      const maxX = W - P.w / 2;
+      const span = Math.max(1, maxX - minX);
+      const t = Math.max(0, Math.min(1, (P.x - minX) / span));
+      sliderEl.value = Math.round(t * 100);
+    }
 
     function init() {
       makeStars();
@@ -383,6 +454,7 @@
         const scaleX = W / rect.width;
         const x = (e.clientX - rect.left) * scaleX;
         P.x = Math.max(P.w/2, Math.min(W - P.w/2, x));
+        updateSliderFromPlayer();
       }
       function onPointerDown(e) {
         e.preventDefault();
@@ -428,6 +500,26 @@
           moveToPointer(e);
         }
       });
+
+      if (sliderEl) {
+        const releaseSlider = () => {
+          sliderActive = false;
+          updateSliderFromPlayer();
+        };
+        sliderEl.addEventListener('pointerdown', () => { sliderActive = true; });
+        sliderEl.addEventListener('input', (e) => {
+          sliderActive = true;
+          sliderValueToPlayer(Number(e.target.value));
+        });
+        sliderEl.addEventListener('change', releaseSlider);
+        sliderEl.addEventListener('pointerup', releaseSlider);
+        sliderEl.addEventListener('pointercancel', releaseSlider);
+        sliderEl.addEventListener('pointerleave', releaseSlider);
+        sliderEl.addEventListener('touchend', releaseSlider, { passive: true });
+        sliderEl.addEventListener('blur', releaseSlider);
+        sliderEl.addEventListener('keyup', releaseSlider);
+        updateSliderFromPlayer();
+      }
     }
 
     function togglePause() {
@@ -1058,6 +1150,7 @@
       const spd = P.speed * (1 + wave*0.04);
       if (input.left) P.x -= spd * dt60; if (input.right) P.x += spd * dt60;
       P.x = Math.max(P.w/2, Math.min(W - P.w/2, P.x));
+      updateSliderFromPlayer();
 
       // Auto fire when running (disabled after death)
       if (!playerDead) shoot(dt);

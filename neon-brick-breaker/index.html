@@ -4107,18 +4107,60 @@
         }
         if (br.maxShieldHealth > 0 && (br.shieldHealth > 0 || br.shieldFade > 0.01)) {
           const pulse = 0.75 + Math.sin(br.shieldGlowPhase * 2) * 0.25;
-          const overlayStrength = br.shieldHealth > 0 ? 0.22 : 0.18 * br.shieldFade;
+          const baseIntensity = br.shieldHealth > 0 ? 1 : br.shieldFade;
+
           ctx.save();
-          ctx.globalAlpha = Math.min(0.35, overlayStrength * pulse);
-          ctx.fillStyle = 'rgba(0, 255, 255, 1)';
+          ctx.globalCompositeOperation = 'lighter';
+          const overlayStrength = br.shieldHealth > 0 ? 0.36 : 0.26 * br.shieldFade;
+          ctx.globalAlpha = Math.min(0.6, overlayStrength * pulse);
+          const overlayGradient = ctx.createLinearGradient(drawX, drawY, drawX + br.w, drawY + br.h);
+          overlayGradient.addColorStop(0, 'rgba(0, 255, 255, 0.15)');
+          overlayGradient.addColorStop(0.5, 'rgba(0, 200, 255, 0.55)');
+          overlayGradient.addColorStop(1, 'rgba(0, 255, 255, 0.15)');
+          ctx.fillStyle = overlayGradient;
           ctx.fillRect(drawX, drawY, br.w, br.h);
           ctx.restore();
 
           ctx.save();
-          const edgeAlpha = Math.min(0.55, (br.shieldHealth > 0 ? 0.45 : 0.45 * br.shieldFade) * pulse);
+          ctx.globalCompositeOperation = 'lighter';
+          const glowX = drawX + br.w / 2;
+          const glowY = drawY + br.h / 2;
+          const outerRadius = Math.max(br.w, br.h) * 0.85;
+          const innerRadius = Math.max(4, Math.min(br.w, br.h) * 0.2);
+          const glowGradient = ctx.createRadialGradient(glowX, glowY, innerRadius, glowX, glowY, outerRadius);
+          glowGradient.addColorStop(0, 'rgba(0, 255, 255, 0.8)');
+          glowGradient.addColorStop(0.45, 'rgba(0, 200, 255, 0.45)');
+          glowGradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
+          const glowAlpha = Math.min(0.55, (0.35 + 0.25 * Math.sin(br.shieldGlowPhase * 3)) * baseIntensity);
+          ctx.globalAlpha = glowAlpha;
+          ctx.fillStyle = glowGradient;
+          ctx.beginPath();
+          ctx.arc(glowX, glowY, outerRadius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          const edgeAlpha = Math.min(0.85, (0.55 + 0.25 * Math.sin(br.shieldGlowPhase * 4)) * baseIntensity * pulse);
           ctx.strokeStyle = `rgba(0, 255, 255, ${edgeAlpha})`;
-          ctx.lineWidth = 2;
-          ctx.strokeRect(drawX - 1, drawY - 1, br.w + 2, br.h + 2);
+          ctx.lineWidth = 2.4 + 1.1 * (1 - Math.cos(br.shieldGlowPhase * 2));
+          ctx.shadowColor = `rgba(0, 255, 255, ${0.5 * baseIntensity})`;
+          ctx.shadowBlur = 6 + 10 * baseIntensity;
+          ctx.strokeRect(drawX - 1.5, drawY - 1.5, br.w + 3, br.h + 3);
+          ctx.restore();
+
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          const shimmerAlpha = Math.min(0.35, 0.25 * baseIntensity);
+          ctx.globalAlpha = shimmerAlpha;
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+          ctx.lineWidth = 1;
+          const shimmerOffset = (Math.sin(br.shieldGlowPhase * 6 + frameCounter * 0.08) + 1) / 2;
+          const shimmerY = drawY + shimmerOffset * br.h;
+          ctx.beginPath();
+          ctx.moveTo(drawX + 2, shimmerY);
+          ctx.lineTo(drawX + br.w - 2, shimmerY - br.h * 0.3);
+          ctx.stroke();
           ctx.restore();
         }
         if (br.crackTimer > 0) {

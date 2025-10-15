@@ -239,6 +239,9 @@
     const bullets = []; // {x,y,vx,vy,spd,dmg,owner}
     const placementHistory = []; // stack of actions to support Undo during build
 
+    // Fast occupancy lookup grid so placement checks stay snappy even with many walls
+    let occupancy = createOccupancyGrid();
+
     // Enclosed area mask (computed at end of build phase)
     let enclosedMask = null; // Array[ROWS][COLS] of booleans
 
@@ -391,13 +394,19 @@
       if(act.type === 'wall'){
         for(const cell of act.cells){
           const idx = walls.findIndex(w=>w.gx===cell.gx && w.gy===cell.gy);
-          if(idx>=0) walls.splice(idx,1);
+          if(idx>=0){
+            walls.splice(idx,1);
+            setOccupiedCell(cell.gx, cell.gy, false);
+          }
         }
         state.bricks += act.cost;
         state.placedWalls = Math.max(0, state.placedWalls - act.cost);
       } else if(act.type === 'cannon'){
         const idx = cannons.findIndex(c=>c.gx===act.gx && c.gy===act.gy);
-        if(idx>=0) cannons.splice(idx,1);
+        if(idx>=0){
+          cannons.splice(idx,1);
+          markCannonFootprint(act.gx, act.gy, false);
+        }
         state.bricks += 6;
       }
       // Restore piece queue
@@ -449,6 +458,32 @@
     function gridToPx(gx, gy){ return { x: gx*tile + tile/2, y: gy*tile + tile/2 }; }
     function worldToGrid(x,y){ return { gx: Math.floor(x/tile), gy: Math.floor(y/tile) }; }
 
+    function createOccupancyGrid(){
+      return Array.from({ length: ROWS }, ()=>Array(COLS).fill(false));
+    }
+    function resetOccupancy(){
+      occupancy = createOccupancyGrid();
+      for(const w of walls){
+        if(w.gx>=0 && w.gx<COLS && w.gy>=0 && w.gy<ROWS){
+          occupancy[w.gy][w.gx] = true;
+        }
+      }
+      for(const c of cannons){
+        markCannonFootprint(c.gx, c.gy, true);
+      }
+    }
+    function setOccupiedCell(gx, gy, value){
+      if(gy<0 || gy>=ROWS || gx<0 || gx>=COLS) return;
+      occupancy[gy][gx] = value;
+    }
+    function markCannonFootprint(gx, gy, value){
+      for(let dy=0; dy<2; dy++){
+        for(let dx=0; dx<2; dx++){
+          setOccupiedCell(gx+dx, gy+dy, value);
+        }
+      }
+    }
+
     function inKeep(gx, gy){ return gx>=keepRect.x && gy>=keepRect.y && gx<keepRect.x+keepRect.w && gy<keepRect.y+keepRect.h; }
     function inKeepRing(gx, gy){
       // 1-tile ring around the 3x3 keep: bounding box expanded by 1, excluding the keep itself
@@ -459,12 +494,8 @@
     }
     function occupied(gx, gy){
       if (inKeep(gx,gy)) return true;
-      for (const w of walls) if (w.gx===gx && w.gy===gy) return true;
-      // Cannons occupy a 2x2 area with (gx,gy) as top-left
-      for (const c of cannons) {
-        if (gx>=c.gx && gx<c.gx+2 && gy>=c.gy && gy<c.gy+2) return true;
-      }
-      return false;
+      if(!occupancy || gy<0 || gy>=ROWS || gx<0 || gx>=COLS) return false;
+      return occupancy[gy][gx];
     }
 
     // Check if there is a wall exactly at the given grid cell
@@ -563,6 +594,7 @@
       for(const [dx,dy] of currentPiece){
         const x = gx+dx, y = gy+dy;
         walls.push({ gx:x, gy:y, hp:60, placedAt: state.time });
+        setOccupiedCell(x, y, true);
       }
       state.bricks -= currentPiece.length;
       state.placedWalls += currentPiece.length;
@@ -573,6 +605,7 @@
       const cost = 6;
       if (!canPlaceCannon(gx, gy)) return false;
       state.bricks -= cost; cannons.push({ gx, gy, cd: 0, enclosed: false });
+      markCannonFootprint(gx, gy, true);
       return true;
     }
 
@@ -1139,7 +1172,12 @@
       }
       // cleanup
       for(let i=bullets.length-1;i>=0;i--){ if(bullets[i].dead) bullets.splice(i,1); }
-      for(let i=walls.length-1;i>=0;i--){ if(walls[i].hp<=0) walls.splice(i,1); }
+      for(let i=walls.length-1;i>=0;i--){
+        if(walls[i].hp<=0){
+          const removed = walls.splice(i,1)[0];
+          if(removed){ setOccupiedCell(removed.gx, removed.gy, false); }
+        }
+      }
       for(let i=ships.length-1;i>=0;i--){ if(ships[i].dead) ships.splice(i,1); }
     }
 
@@ -1159,6 +1197,7 @@
       for(const c of cannons){ c.enclosed = false; }
       // clear undo history for the new build phase
       placementHistory.length = 0;
+      resetOccupancy();
       updateHUD();
       updateUndoBtnState();
     }
@@ -1234,6 +1273,7 @@
       // Reset state for a new run
       if(spawnIv){ clearInterval(spawnIv); spawnIv=null; }
       state.bricks = 50; state.keepHP = KEEP_MAX_HP; state.wave = 1; state.kills = 0; state.placedWalls=0; walls.length=0; cannons.length=0; ships.length=0; bullets.length=0; placementHistory.length=0; gameOverHandled=false; buildTimer = BUILD_TIME * TIME_FACTOR; spawning=false; waveDoneCheck=0; selectedTool='wall';
+      resetOccupancy();
       startBuild(); running = true;
     }
 

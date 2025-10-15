@@ -170,6 +170,16 @@
     .overlay p { margin: 8px 0; font-size: 12px; line-height: 1.5; }
     .overlay small { margin-top: 16px; font-size: 10px; color: var(--teal); }
     .overlay .stats { margin-top: 18px; font-size: 11px; line-height: 1.4; color: #ffe4b5; }
+    .overlay .actions {
+      margin-top: 20px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .overlay .actions .btn {
+      min-width: 140px;
+    }
     .panel {
       max-width: 560px;
       background: rgba(22, 11, 32, 0.92);
@@ -254,7 +264,11 @@
       <h2 id="resultTitle">Mission Status</h2>
       <p id="resultMessage"></p>
       <div class="stats" id="resultStats"></div>
-      <small>Tap, click, or press Space to attempt another landing.</small>
+      <div class="actions">
+        <button class="btn" id="playAgainBtn" type="button">Play Again</button>
+        <button class="btn" id="viewLeaderboardBtn" type="button">View Leaderboard</button>
+      </div>
+      <small>Use the buttons above to retry or review the mission rankings.</small>
     </div>
     <div class="overlay" id="howTo">
       <div class="panel">
@@ -305,6 +319,8 @@
     const resultTitle = document.getElementById('resultTitle');
     const resultMessage = document.getElementById('resultMessage');
     const resultStats = document.getElementById('resultStats');
+    const playAgainBtn = document.getElementById('playAgainBtn');
+    const viewLeaderboardBtn = document.getElementById('viewLeaderboardBtn');
 
     const soundtrackFiles = [
       'assets/CD_soundtrack01.mp3',
@@ -338,8 +354,6 @@
     let LANDER_WIDTH = 28;
     let LANDER_HEIGHT = 32;
     const TARGET_LANDER_HEIGHT = LANDER_HEIGHT;
-    // let LANDER_WIDTH = 120;
-    // let LANDER_HEIGHT = TARGET_LANDER_HEIGHT;
     const LANDER_FRAME_STEP = Math.PI / 180; // 1° increments
     const TWO_PI = Math.PI * 2;
     const LANDER_FRAME_COUNT = Math.round(TWO_PI / LANDER_FRAME_STEP);
@@ -566,7 +580,7 @@
 
     const GRAVITY = 32;
     const MAIN_THRUST = 52;
-    const FUEL_BURN_RATE = 22; // units per second
+    const FUEL_BURN_RATE = 2.2; // units per second
     const ROT_SPEED = 1.8; // radians per second
     const MAX_VERTICAL_FOR_LAND = 35;
     const MAX_HORIZONTAL_FOR_LAND = 20;
@@ -580,7 +594,8 @@
       finalScore: 0,
       submitted: false,
       landingStats: null,
-      currentScore: null
+      currentScore: null,
+      leaderboardUrl: null
     };
 
     const lander = {
@@ -612,6 +627,8 @@
       state.submitted = false;
       state.landingStats = null;
       state.currentScore = null;
+      state.leaderboardUrl = null;
+      updateLeaderboardButton();
       updateCamera(true);
       lastCrashDetail = null;
     }
@@ -621,6 +638,17 @@
       resultScreen.classList.remove('show');
       state.phase = 'intro';
       updateHUD();
+      updateLeaderboardButton();
+    }
+
+    function baseLeaderboardUrl() {
+      return `../leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
+    }
+
+    function updateLeaderboardButton() {
+      if (!viewLeaderboardBtn) return;
+      const url = state.leaderboardUrl || baseLeaderboardUrl();
+      viewLeaderboardBtn.dataset.url = url;
     }
 
     function startGame() {
@@ -663,6 +691,8 @@
         `Tilt: ${angleDeg.toFixed(1)}° &nbsp;|&nbsp; Fuel Remaining: ${fuelRemaining.toFixed(1)}<br>` +
         `Elapsed Time: ${elapsed.toFixed(1)}s &nbsp;|&nbsp; Score: ${score}`;
       resultScreen.classList.add('show');
+      state.leaderboardUrl = baseLeaderboardUrl();
+      updateLeaderboardButton();
       if (!success) {
         if (lastCrashDetail) {
           console.warn('Crimson Descent crash detail:', lastCrashDetail);
@@ -1015,8 +1045,31 @@
 
     startScreen.addEventListener('click', () => { handleStart(); });
     startScreen.addEventListener('touchstart', (e) => { e.preventDefault(); handleStart(); }, { passive: false });
-    resultScreen.addEventListener('click', () => { showStart(); });
-    resultScreen.addEventListener('touchstart', (e) => { e.preventDefault(); showStart(); }, { passive: false });
+    resultScreen.addEventListener('click', (e) => {
+      if (e.target === resultScreen) {
+        showStart();
+      }
+    });
+    resultScreen.addEventListener('touchstart', (e) => {
+      if (e.target === resultScreen) {
+        e.preventDefault();
+        showStart();
+      }
+    }, { passive: false });
+
+    if (playAgainBtn) {
+      playAgainBtn.addEventListener('click', () => {
+        showStart();
+        handleStart();
+      });
+    }
+
+    if (viewLeaderboardBtn) {
+      viewLeaderboardBtn.addEventListener('click', () => {
+        const url = viewLeaderboardBtn.dataset.url || baseLeaderboardUrl();
+        window.location.href = url;
+      });
+    }
 
     howToBtn.addEventListener('click', () => {
       howTo.classList.add('show');
@@ -1090,18 +1143,20 @@
     async function maybeSubmitLeaderboard(success) {
       const score = computeScore();
       const outcomeText = success ? 'Touchdown!' : 'Impact detected.';
-      let dest = `../leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
+      let dest = baseLeaderboardUrl();
+      state.leaderboardUrl = dest;
+      updateLeaderboardButton();
       try {
         const rankRes = await fetch(`/api/leaderboard/rank?gameId=${encodeURIComponent(GAME_ID)}&score=${encodeURIComponent(score)}`, {
           headers: { 'Accept': 'application/json' }
         });
         if (!rankRes.ok) {
-          window.location.href = dest;
           return;
         }
         const data = await rankRes.json();
         const rank = Number(data?.rank);
         const qualifies = Number.isFinite(rank) && rank > 0 && rank <= 20;
+
         if (qualifies) {
           let name = '';
           const promptMsg = `${outcomeText} Enter your name (3-12 characters) for the leaderboard:`;
@@ -1132,11 +1187,9 @@
         }
       } catch (err) {
         console.error(err);
-      } finally {
-        setTimeout(() => {
-          window.location.href = dest;
-        }, 600);
       }
+      state.leaderboardUrl = dest;
+      updateLeaderboardButton();
     }
 
     // Initialize landing state

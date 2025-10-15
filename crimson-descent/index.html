@@ -335,9 +335,11 @@
     }
     window.addEventListener('resize', resize);
 
-    const TARGET_LANDER_HEIGHT = 140;
-    let LANDER_WIDTH = 120;
-    let LANDER_HEIGHT = TARGET_LANDER_HEIGHT;
+    let LANDER_WIDTH = 28;
+    let LANDER_HEIGHT = 32;
+    const TARGET_LANDER_HEIGHT = LANDER_HEIGHT;
+    // let LANDER_WIDTH = 120;
+    // let LANDER_HEIGHT = TARGET_LANDER_HEIGHT;
     const LANDER_FRAME_STEP = Math.PI / 180; // 1° increments
     const TWO_PI = Math.PI * 2;
     const LANDER_FRAME_COUNT = Math.round(TWO_PI / LANDER_FRAME_STEP);
@@ -350,6 +352,18 @@
       pad: 'assets/landing_pad.svg'
     };
     const Images = {};
+    const levelUrl = 'assets/level01.lvl';
+    const GRID_SIZE = 128;
+    const TILE_SIZE = 32;
+    const WORLD_WIDTH = GRID_SIZE * TILE_SIZE;
+    const WORLD_HEIGHT = GRID_SIZE * TILE_SIZE;
+    const TILES = { EMPTY: 0, WALL: 1, SPAWN: 2, PAD: 3 };
+    const level = new Uint8Array(GRID_SIZE * GRID_SIZE);
+    let spawnPoint = { x: WIDTH / 2, y: 200 };
+    const camera = { x: 0, y: 0, width: WIDTH, height: HEIGHT };
+    let levelReady = false;
+    let assetsReady = false;
+    let ready = false;
 
     function normalizeAngle(angle) {
       return (angle % TWO_PI + TWO_PI) % TWO_PI;
@@ -401,12 +415,62 @@
       });
     }
 
-    let assetsReady = false;
-    Promise.all(Object.entries(assets).map(([key, src]) => loadImage(src).then(img => { Images[key] = img; })))
+    function loadLevelFile() {
+      return fetch(levelUrl)
+        .then(res => {
+          if (!res.ok) throw new Error('Failed to load level data');
+          return res.arrayBuffer();
+        })
+        .then(buffer => {
+          if (buffer.byteLength < level.length) throw new Error('Unexpected level size');
+          const bytes = new Uint8Array(buffer, 0, level.length);
+          level.set(bytes);
+          parseLevel();
+          levelReady = true;
+        });
+    }
+
+    function parseLevel() {
+      let spawnFound = false;
+      for (let y = 0; y < GRID_SIZE; y++) {
+        for (let x = 0; x < GRID_SIZE; x++) {
+          const tile = level[worldIndex(x, y)];
+          if (!spawnFound && tile === TILES.SPAWN) {
+            spawnPoint = {
+              x: (x + 0.5) * TILE_SIZE,
+              y: y * TILE_SIZE - LANDER_HEIGHT * 0.46 - 16
+            };
+            spawnFound = true;
+          }
+        }
+      }
+      if (!spawnFound) {
+        spawnPoint = {
+          x: WORLD_WIDTH / 2,
+          y: TILE_SIZE * 4 - LANDER_HEIGHT * 0.46
+        };
+      }
+      spawnPoint.x = clamp(spawnPoint.x, TILE_SIZE, WORLD_WIDTH - TILE_SIZE);
+      spawnPoint.y = clamp(spawnPoint.y, TILE_SIZE, WORLD_HEIGHT - TILE_SIZE * 2);
+      if (state.phase !== 'playing') {
+        resetLander();
+        updateCamera(true);
+      }
+    }
+
+    const imagePromises = Object.entries(assets).map(([key, src]) => loadImage(src).then(img => { Images[key] = img; }));
+    const levelPromise = loadLevelFile();
+
+    Promise.all([...imagePromises, levelPromise])
       .then(() => {
         assetsReady = true;
         prepareLanderFrames();
-        startScreen.querySelector('p').textContent = 'Ready? Tap, click, or press Space to ignite and begin descent.';
+        ready = assetsReady && levelReady;
+        if (ready) {
+          startScreen.querySelector('p').textContent = 'Ready? Tap, click, or press Space to ignite and begin descent.';
+          resetLander();
+          updateCamera(true);
+        }
       })
       .catch(err => {
         console.error(err);
@@ -530,11 +594,13 @@
       flameTimer: 0
     };
 
+    let lastCrashDetail = null;
+
     const keys = { left: false, right: false, thrust: false };
 
     function resetLander() {
-      lander.x = WIDTH / 2;
-      lander.y = 200;
+      lander.x = spawnPoint.x;
+      lander.y = spawnPoint.y;
       lander.vx = 0;
       lander.vy = 12;
       lander.rotation = 0;
@@ -546,6 +612,8 @@
       state.submitted = false;
       state.landingStats = null;
       state.currentScore = null;
+      updateCamera(true);
+      lastCrashDetail = null;
     }
 
     function showStart() {
@@ -556,7 +624,7 @@
     }
 
     function startGame() {
-      if (!assetsReady) return;
+      if (!ready) return;
       state.phase = 'playing';
       state.time = 0;
       state.finalScore = 0;
@@ -595,6 +663,14 @@
         `Tilt: ${angleDeg.toFixed(1)}° &nbsp;|&nbsp; Fuel Remaining: ${fuelRemaining.toFixed(1)}<br>` +
         `Elapsed Time: ${elapsed.toFixed(1)}s &nbsp;|&nbsp; Score: ${score}`;
       resultScreen.classList.add('show');
+      if (!success) {
+        if (lastCrashDetail) {
+          console.warn('Crimson Descent crash detail:', lastCrashDetail);
+        } else {
+          console.warn('Crimson Descent crash: no detail recorded');
+        }
+      }
+      lastCrashDetail = null;
       if (!state.submitted) {
         state.submitted = true;
         maybeSubmitLeaderboard(success).catch(console.error);
@@ -605,7 +681,7 @@
       hudFuel.textContent = Math.max(0, lander.fuel).toFixed(0);
       hudVertical.textContent = lander.vy.toFixed(1);
       hudHorizontal.textContent = lander.vx.toFixed(1);
-      const altitude = Math.max(0, pad.y - (lander.y + LANDER_HEIGHT * 0.46));
+      const altitude = computeAltitude();
       hudAltitude.textContent = altitude.toFixed(0);
       hudTime.textContent = state.time.toFixed(1);
       hudScore.textContent = state.currentScore == null ? '--' : state.currentScore;
@@ -640,34 +716,11 @@
       lander.vy += GRAVITY * dt;
       lander.x += lander.vx * dt;
       lander.y += lander.vy * dt;
-
-      const halfW = LANDER_WIDTH * 0.42;
-      if (lander.x < halfW) {
-        lander.x = halfW;
-        lander.vx *= -0.3;
-      } else if (lander.x > WIDTH - halfW) {
-        lander.x = WIDTH - halfW;
-        lander.vx *= -0.3;
-      }
-
-      const bottom = lander.y + LANDER_HEIGHT * 0.46;
-      const padTop = pad.y - 12;
-      if (bottom >= padTop) {
-        const withinPad = lander.x > pad.x + 40 && lander.x < pad.x + pad.width - 40;
-        const softLanding = Math.abs(lander.vy) <= MAX_VERTICAL_FOR_LAND && Math.abs(lander.vx) <= MAX_HORIZONTAL_FOR_LAND && Math.abs(lander.rotation) <= MAX_ANGLE_FOR_LAND;
-        lander.y = padTop - LANDER_HEIGHT * 0.46;
-        lander.vx = 0;
-        lander.vy = 0;
-        if (withinPad && softLanding) {
-          endRound(true);
-        } else {
-          endRound(false);
-        }
-      }
-
-      if (lander.y < -200) {
-        lander.y = -200;
-        lander.vy = 0;
+      clampToWorld();
+      updateCamera();
+      if (attemptLanding()) return;
+      if (checkWallCollision()) {
+        endRound(false);
       }
     }
 
@@ -679,25 +732,23 @@
         ctx.fillStyle = '#201030';
         ctx.fillRect(0, 0, WIDTH, HEIGHT);
       }
-
-      if (assetsReady && Images.pad) {
-        ctx.drawImage(Images.pad, pad.x - 70, pad.y - 100, 360, 200);
-      }
-
+      ctx.save();
+      ctx.translate(-camera.x, -camera.y);
+      drawTerrain();
       ctx.save();
       ctx.translate(lander.x, lander.y);
       ctx.rotate(lander.rotation);
       if (lander.thrusting) {
-        const flicker = 10 + Math.sin(lander.flameTimer) * 6;
-        const gradient = ctx.createLinearGradient(0, LANDER_HEIGHT * 0.34, 0, LANDER_HEIGHT * 0.6 + flicker);
+        const flicker = 4 + Math.sin(lander.flameTimer) * 2.5;
+        const gradient = ctx.createLinearGradient(0, LANDER_HEIGHT * 0.3, 0, LANDER_HEIGHT * 0.6 + flicker);
         gradient.addColorStop(0, 'rgba(255, 240, 200, 0.9)');
         gradient.addColorStop(0.4, 'rgba(255, 160, 60, 0.85)');
         gradient.addColorStop(1, 'rgba(255, 60, 40, 0)');
         ctx.fillStyle = gradient;
         ctx.beginPath();
-        ctx.moveTo(-18, LANDER_HEIGHT * 0.32);
+        ctx.moveTo(-8, LANDER_HEIGHT * 0.3);
         ctx.lineTo(0, LANDER_HEIGHT * 0.6 + flicker);
-        ctx.lineTo(18, LANDER_HEIGHT * 0.32);
+        ctx.lineTo(8, LANDER_HEIGHT * 0.3);
         ctx.closePath();
         ctx.fill();
       }
@@ -720,7 +771,7 @@
         ctx.translate(lander.x, lander.y);
         ctx.rotate(lander.rotation);
         ctx.fillStyle = '#ccc';
-        ctx.fillRect(-20, -40, 40, 80);
+        ctx.fillRect(-LANDER_WIDTH / 2, -LANDER_HEIGHT / 2, LANDER_WIDTH, LANDER_HEIGHT);
         ctx.restore();
       }
 
@@ -729,10 +780,205 @@
       ctx.translate(lander.x, lander.y + LANDER_HEIGHT * 0.45);
       ctx.strokeStyle = 'rgba(255, 220, 180, 0.25)';
       ctx.beginPath();
-      ctx.moveTo(-40, 8);
-      ctx.lineTo(40, 8);
+      ctx.moveTo(-LANDER_WIDTH * 0.7, 6);
+      ctx.lineTo(LANDER_WIDTH * 0.7, 6);
       ctx.stroke();
       ctx.restore();
+      ctx.restore();
+    }
+
+    function worldIndex(x, y) {
+      return y * GRID_SIZE + x;
+    }
+
+    function sampleTile(tx, ty) {
+      if (tx < 0 || ty < 0 || tx >= GRID_SIZE || ty >= GRID_SIZE) return TILES.WALL;
+      return level[worldIndex(tx, ty)];
+    }
+
+    function tileAtPixel(px, py) {
+      if (px < 0 || px >= WORLD_WIDTH) return TILES.WALL;
+      if (py < 0) return TILES.EMPTY;
+      if (py >= WORLD_HEIGHT) return TILES.WALL;
+      return sampleTile(Math.floor(px / TILE_SIZE), Math.floor(py / TILE_SIZE));
+    }
+
+    function clampToWorld() {
+      const halfW = LANDER_WIDTH * 0.42;
+      const halfH = LANDER_HEIGHT * 0.45;
+      lander.x = clamp(lander.x, halfW, WORLD_WIDTH - halfW);
+      lander.y = clamp(lander.y, -TILE_SIZE * 6, WORLD_HEIGHT - halfH);
+    }
+
+    function updateCamera(force = false) {
+      if (!ready && !force) return;
+      camera.x = clamp(lander.x - camera.width / 2, 0, Math.max(0, WORLD_WIDTH - camera.width));
+      camera.y = clamp(lander.y - camera.height / 2, 0, Math.max(0, WORLD_HEIGHT - camera.height));
+    }
+
+    function drawTerrain() {
+      const startX = Math.max(0, Math.floor(camera.x / TILE_SIZE));
+      const endX = Math.min(GRID_SIZE - 1, Math.ceil((camera.x + camera.width) / TILE_SIZE));
+      const startY = Math.max(0, Math.floor(camera.y / TILE_SIZE));
+      const endY = Math.min(GRID_SIZE - 1, Math.ceil((camera.y + camera.height) / TILE_SIZE));
+
+      for (let ty = startY; ty <= endY; ty++) {
+        for (let tx = startX; tx <= endX; tx++) {
+          const tile = sampleTile(tx, ty);
+          if (tile === TILES.EMPTY) continue;
+          const px = tx * TILE_SIZE;
+          const py = ty * TILE_SIZE;
+          switch (tile) {
+            case TILES.WALL:
+              ctx.fillStyle = '#3f1423';
+              ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+              ctx.fillStyle = 'rgba(255, 120, 90, 0.08)';
+              ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE * 0.35);
+              break;
+            case TILES.SPAWN:
+              ctx.fillStyle = 'rgba(80, 200, 255, 0.25)';
+              ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+              break;
+            case TILES.PAD:
+              ctx.fillStyle = 'rgba(255, 230, 120, 0.18)';
+              ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+              if (Images.pad && shouldDrawPadArt(tx, ty)) {
+                const drawX = px - TILE_SIZE * 0.6;
+                const drawY = py - TILE_SIZE * 0.4;
+                const drawW = TILE_SIZE * 2.2;
+                const drawH = TILE_SIZE * 1.5;
+                ctx.drawImage(Images.pad, drawX, drawY, drawW, drawH);
+              }
+              break;
+          }
+        }
+      }
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.lineWidth = 1;
+      for (let tx = startX; tx <= endX; tx++) {
+        const gx = tx * TILE_SIZE;
+        ctx.beginPath();
+        ctx.moveTo(gx, startY * TILE_SIZE);
+        ctx.lineTo(gx, (endY + 1) * TILE_SIZE);
+        ctx.stroke();
+      }
+      for (let ty = startY; ty <= endY; ty++) {
+        const gy = ty * TILE_SIZE;
+        ctx.beginPath();
+        ctx.moveTo(startX * TILE_SIZE, gy);
+        ctx.lineTo((endX + 1) * TILE_SIZE, gy);
+        ctx.stroke();
+      }
+    }
+
+    function shouldDrawPadArt(tx, ty) {
+      if (sampleTile(tx, ty) !== TILES.PAD) return false;
+      return sampleTile(tx - 1, ty) !== TILES.PAD;
+    }
+
+    function attemptLanding() {
+      const bottom = lander.y + LANDER_HEIGHT * 0.46;
+      const left = lander.x - LANDER_WIDTH * 0.28;
+      const right = lander.x + LANDER_WIDTH * 0.28;
+      if (lander.vy < -2) return false;
+      const tileRow = Math.floor((bottom + 2) / TILE_SIZE);
+      if (tileRow < 0 || tileRow >= GRID_SIZE) return false;
+      const startCol = Math.floor(left / TILE_SIZE);
+      const endCol = Math.floor(right / TILE_SIZE);
+      let padDetected = false;
+      for (let tx = startCol; tx <= endCol; tx++) {
+        if (sampleTile(tx, tileRow) === TILES.PAD) {
+          padDetected = true;
+          break;
+        }
+      }
+      if (!padDetected) return false;
+      const padTop = tileRow * TILE_SIZE;
+      const penetration = bottom - padTop;
+      if (penetration < -4) return false;
+      const impactVX = lander.vx;
+      const impactVY = lander.vy;
+      const impactAngle = lander.rotation;
+      lander.y = padTop - LANDER_HEIGHT * 0.46;
+      lander.vx *= 0.65;
+      lander.vy = 0;
+      const softLanding = Math.abs(impactVX) <= MAX_HORIZONTAL_FOR_LAND && Math.abs(impactVY) <= MAX_VERTICAL_FOR_LAND && Math.abs(impactAngle) <= MAX_ANGLE_FOR_LAND;
+      if (softLanding) {
+        endRound(true);
+      } else {
+        lastCrashDetail = {
+          type: 'hard-landing',
+          padRow: tileRow,
+          impact: {
+            vx: Number(impactVX.toFixed(2)),
+            vy: Number(impactVY.toFixed(2)),
+            angle: Number(impactAngle.toFixed(2))
+          },
+          time: Number(state.time.toFixed(2))
+        };
+        console.debug('Hard landing detected', lastCrashDetail);
+        endRound(false);
+      }
+      return true;
+    }
+
+    function checkWallCollision() {
+      const points = [
+        { x: lander.x, y: lander.y - LANDER_HEIGHT * 0.45 },
+        { x: lander.x, y: lander.y + LANDER_HEIGHT * 0.46 },
+        { x: lander.x - LANDER_WIDTH * 0.45, y: lander.y },
+        { x: lander.x + LANDER_WIDTH * 0.45, y: lander.y },
+        { x: lander.x - LANDER_WIDTH * 0.35, y: lander.y + LANDER_HEIGHT * 0.35 },
+        { x: lander.x + LANDER_WIDTH * 0.35, y: lander.y + LANDER_HEIGHT * 0.35 }
+      ];
+      for (const p of points) {
+        const tile = tileAtPixel(p.x, p.y);
+        if (tile === TILES.WALL) {
+          const tileX = Math.floor(p.x / TILE_SIZE);
+          const tileY = Math.floor(p.y / TILE_SIZE);
+          lastCrashDetail = {
+            type: 'wall',
+            point: { x: Number(p.x.toFixed(2)), y: Number(p.y.toFixed(2)) },
+            tile: { x: tileX, y: tileY },
+            velocity: { vx: Number(lander.vx.toFixed(2)), vy: Number(lander.vy.toFixed(2)) },
+            time: Number(state.time.toFixed(2))
+          };
+          console.debug('Collision sample hit wall', lastCrashDetail);
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function computeAltitude() {
+      const bottom = lander.y + LANDER_HEIGHT * 0.46;
+      const cols = [
+        Math.floor((lander.x - LANDER_WIDTH * 0.25) / TILE_SIZE),
+        Math.floor(lander.x / TILE_SIZE),
+        Math.floor((lander.x + LANDER_WIDTH * 0.25) / TILE_SIZE)
+      ];
+      const startRow = Math.max(0, Math.floor(bottom / TILE_SIZE));
+      let minDist = WORLD_HEIGHT - bottom;
+      for (const col of cols) {
+        if (col < 0 || col >= GRID_SIZE) continue;
+        for (let row = startRow; row < GRID_SIZE; row++) {
+          const tile = sampleTile(col, row);
+          if (tile === TILES.WALL || tile === TILES.PAD) {
+            const top = row * TILE_SIZE;
+            const dist = top - bottom;
+            if (dist >= 0 && dist < minDist) {
+              minDist = dist;
+            }
+            break;
+          }
+        }
+      }
+      return Math.max(0, minDist);
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
     }
 
     let last = performance.now();

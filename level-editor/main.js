@@ -17,6 +17,8 @@
     const paletteElement = document.getElementById("palette");
     const selectedTilePreview = document.getElementById("selectedTilePreview");
     const downloadButton = document.getElementById("downloadButton");
+    const loadButton = document.getElementById("loadButton");
+    const levelLoadInput = document.getElementById("levelLoadInput");
     const clearButton = document.getElementById("clearButton");
 
     const levelData = new Uint8Array(TOTAL_CELLS);
@@ -50,6 +52,8 @@
     tileMapInput.addEventListener("change", handleTileMappingUpload);
     tileImageInput.addEventListener("change", handleTileImagesUpload);
     downloadButton.addEventListener("click", handleDownloadLevel);
+    loadButton.addEventListener("click", () => levelLoadInput.click());
+    levelLoadInput.addEventListener("change", handleLevelLoad);
     clearButton.addEventListener("click", handleClearLevel);
 
     canvas.addEventListener("contextmenu", (event) => {
@@ -321,7 +325,7 @@
             titleParts.unshift(definition.name);
         }
 
-        selectedTilePreview.title = titleParts.join(" · ");
+        selectedTilePreview.title = titleParts.join(" \u00b7 ");
 
         const imageRecord = definition && definition.imageKey ? tileImages.get(definition.imageKey) : null;
 
@@ -375,6 +379,32 @@
     function handleClearLevel() {
         levelData.fill(0);
         draw();
+    }
+
+    function handleLevelLoad(event) {
+        const [file] = event.target.files;
+        if (!file) {
+            return;
+        }
+
+        file.arrayBuffer()
+            .then((buffer) => {
+                if (buffer.byteLength !== TOTAL_CELLS) {
+                    throw new Error(`Unexpected level size. Expected ${TOTAL_CELLS} bytes but received ${buffer.byteLength}.`);
+                }
+
+                const bytes = new Uint8Array(buffer);
+                levelData.set(bytes);
+                lastPaintedKey = null;
+                draw();
+            })
+            .catch((error) => {
+                console.error("Failed to load level file", error);
+                window.alert("Failed to load level file. Ensure it was created with this editor.");
+            })
+            .finally(() => {
+                levelLoadInput.value = "";
+            });
     }
 
     function handleDownloadLevel() {

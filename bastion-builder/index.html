@@ -203,7 +203,8 @@
     }
 
     // Grid and sizing
-    let COLS = 14, ROWS = 10, tile = 48; // computed on resize
+    // Expand the board footprint by 50% (per dimension) to give more build space
+    let COLS = 21, ROWS = 15, tile = 48; // computed on resize
     let pixelRatio = Math.max(1, Math.floor(window.devicePixelRatio || 1));
 
     // Assets

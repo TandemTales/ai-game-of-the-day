@@ -1285,7 +1285,12 @@
         }
         if((t.lvl||1) > 1){
           ctx.save();
-          ctx.fillStyle = '#FFD700';
+          const lvlColor = ({
+            basic: '#FFFFFF',
+            slow: '#AEE4FF',
+            pierce: '#FFD700',
+          })[t.type] || '#FFD700';
+          ctx.fillStyle = lvlColor;
           ctx.font = Math.max(10, tile*0.4)+"px 'Press Start 2P'";
           ctx.textAlign = 'center';
           ctx.textBaseline = 'bottom';

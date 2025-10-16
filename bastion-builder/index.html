@@ -961,7 +961,7 @@
     function drawCannons(){ for(const c of cannons){ ctx.drawImage(Images.cannon, c.gx*tile, c.gy*tile, tile*2, tile*2); } }
     function drawShips(){
       for(const s of ships){
-        const size = tile*1.4;
+        const size = tile*2.8;
         const movingLeft = (s.vx || 0) < 0;
         const sprite = movingLeft ? (Images.shipLeft || Images.shipRight) : (Images.shipRight || Images.shipLeft);
         if(!sprite) continue;

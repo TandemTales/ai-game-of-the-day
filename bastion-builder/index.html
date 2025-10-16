@@ -213,7 +213,8 @@
       wall: 'assets/BB_block_small.png',
       castle: 'assets/BB_fortress01.png',
       cannon: 'assets/cannon.svg',
-      ship: 'assets/ship.svg',
+      shipLeft: 'assets/BB_ship01_left.png',
+      shipRight: 'assets/BB_ship01_right.png',
       ball: 'assets/cannonball.svg',
       boom: 'assets/explosion.svg',
     };
@@ -958,7 +959,15 @@
       }
     }
     function drawCannons(){ for(const c of cannons){ ctx.drawImage(Images.cannon, c.gx*tile, c.gy*tile, tile*2, tile*2); } }
-    function drawShips(){ for(const s of ships){ const size = tile*1.4; ctx.drawImage(Images.ship, s.x - size/2, s.y - size/2, size, size*0.67); } }
+    function drawShips(){
+      for(const s of ships){
+        const size = tile*1.4;
+        const movingLeft = (s.vx || 0) < 0;
+        const sprite = movingLeft ? (Images.shipLeft || Images.shipRight) : (Images.shipRight || Images.shipLeft);
+        if(!sprite) continue;
+        ctx.drawImage(sprite, s.x - size/2, s.y - size/2, size, size*0.67);
+      }
+    }
     function drawBullets(){ for(const b of bullets){ const s = tile*0.35; ctx.drawImage(Images.ball, b.x - s/2, b.y - s/2, s, s); } }
 
     function drawKeepHealthBar(){

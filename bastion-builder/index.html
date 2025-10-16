@@ -217,6 +217,8 @@
       cannon: 'assets/BB_cannon.png',
       shipLeft: 'assets/BB_ship01_left.png',
       shipRight: 'assets/BB_ship01_right.png',
+      shipHeavyLeft: 'assets/BB_ship02_left.png',
+      shipHeavyRight: 'assets/BB_ship02_right.png',
       ball: 'assets/cannonball.svg',
       boom: 'assets/explosion.svg',
     };
@@ -340,6 +342,24 @@
     
     // Enemy rate-of-fire tuning (lower than 1 => faster, >1 => slower)
     const ENEMY_FIRE_RATE_MULT = 0.6;
+    const ENEMY_SHIP_TYPES = {
+      basic: {
+        id: 'basic',
+        hpMultiplier: 1,
+        speedMultiplier: 1,
+        fireCdMultiplier: 1,
+        spriteLeft: 'shipLeft',
+        spriteRight: 'shipRight'
+      },
+      dreadnought: {
+        id: 'dreadnought',
+        hpMultiplier: 1.5,
+        speedMultiplier: 0.75,
+        fireCdMultiplier: 1 / 1.5,
+        spriteLeft: 'shipHeavyLeft',
+        spriteRight: 'shipHeavyRight'
+      }
+    };
 
     const KEEP_SIZE = 3; // 3x3 center keep
     let keepRect = { x: Math.floor(COLS/2) - 1, y: Math.floor(ROWS/2) - 1, w: KEEP_SIZE, h: KEEP_SIZE };
@@ -992,7 +1012,11 @@
       for(const s of ships){
         const size = tile*2.8;
         const movingLeft = (s.vx || 0) < 0;
-        const sprite = movingLeft ? (Images.shipLeft || Images.shipRight) : (Images.shipRight || Images.shipLeft);
+        const leftKey = s.spriteLeft || 'shipLeft';
+        const rightKey = s.spriteRight || 'shipRight';
+        const leftSprite = Images[leftKey];
+        const rightSprite = Images[rightKey];
+        const sprite = movingLeft ? (leftSprite || rightSprite) : (rightSprite || leftSprite);
         if(!sprite) continue;
         ctx.drawImage(sprite, s.x - size/2, s.y - size/2, size, size*0.67);
       }
@@ -1132,9 +1156,27 @@
         else if(side===2){ x = Math.random()*COLS*tile; y = -pad; }
         else { x = Math.random()*COLS*tile; y = ROWS*tile+pad; }
         const dx = target.x - x, dy = target.y - y; const d = Math.hypot(dx,dy)||1; vx = dx/d; vy = dy/d;
-        const spd = 28 + state.wave*6;
-        const hp = 80 + state.wave*30;
-        ships.push({ x, y, vx, vy, spd, hp, maxHp: hp, cd: (1.2 + Math.random()*1.2) * ENEMY_FIRE_RATE_MULT });
+        const baseSpd = 28 + state.wave*6;
+        const baseHp = 80 + state.wave*30;
+        const heavyChance = state.wave <= 1 ? 0 : Math.min(0.2 + state.wave * 0.12, 0.7);
+        const type = (Math.random() < heavyChance) ? ENEMY_SHIP_TYPES.dreadnought : ENEMY_SHIP_TYPES.basic;
+        const spd = baseSpd * type.speedMultiplier;
+        const hp = Math.round(baseHp * type.hpMultiplier);
+        const fireCdMultiplier = type.fireCdMultiplier;
+        ships.push({
+          x,
+          y,
+          vx,
+          vy,
+          spd,
+          hp,
+          maxHp: hp,
+          cd: (1.2 + Math.random()*1.2) * ENEMY_FIRE_RATE_MULT * fireCdMultiplier,
+          fireCdMultiplier,
+          spriteLeft: type.spriteLeft,
+          spriteRight: type.spriteRight,
+          shipType: type.id
+        });
         spawned++;
         // Switch to attack phase on the first enemy appearing
         if(state.phase!=='battle'){ state.phase='battle'; updateHUD(); }
@@ -1185,7 +1227,8 @@
             for(const w of walls){ const p = gridToPx(w.gx, w.gy); const d = Math.hypot(p.x - s.x, p.y - s.y); if(d < td){ td = d; target = { x: p.x, y: p.y, type:'wall', ref:w }; } }
             if(!target){ const k = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2); target = { x:k.x, y:k.y, type:'keep' }; td = Math.hypot(k.x-s.x, k.y-s.y); }
           }
-          if(td < tile*9){ const dx=target.x - s.x, dy=target.y - s.y; const L=Math.hypot(dx,dy)||1; bullets.push({ x:s.x, y:s.y, vx:dx/L, vy:dy/L, spd: 220, dmg: 22, owner:'ship' }); s.cd = (1.6 + Math.random()*1.2) * ENEMY_FIRE_RATE_MULT; } else { s.cd = 0.5 * ENEMY_FIRE_RATE_MULT; }
+          const fireCdMul = s.fireCdMultiplier || 1;
+          if(td < tile*9){ const dx=target.x - s.x, dy=target.y - s.y; const L=Math.hypot(dx,dy)||1; bullets.push({ x:s.x, y:s.y, vx:dx/L, vy:dy/L, spd: 220, dmg: 22, owner:'ship' }); s.cd = (1.6 + Math.random()*1.2) * ENEMY_FIRE_RATE_MULT * fireCdMul; } else { s.cd = 0.5 * ENEMY_FIRE_RATE_MULT * fireCdMul; }
         }
       }
     }

@@ -605,7 +605,7 @@
     function placeCannon(gx, gy){
       const cost = 6;
       if (!canPlaceCannon(gx, gy)) return false;
-      state.bricks -= cost; cannons.push({ gx, gy, cd: 0, enclosed: false });
+      state.bricks -= cost; cannons.push({ gx, gy, cd: 0, enclosed: false, angle: Math.PI/2 });
       markCannonFootprint(gx, gy, true);
       return true;
     }
@@ -958,7 +958,20 @@
         }
       }
     }
-    function drawCannons(){ for(const c of cannons){ ctx.drawImage(Images.cannon, c.gx*tile, c.gy*tile, tile*2, tile*2); } }
+    function drawCannons(){
+      for(const c of cannons){
+        const baseAngle = (typeof c.angle === 'number') ? c.angle : Math.PI/2;
+        const x = c.gx * tile;
+        const y = c.gy * tile;
+        const cx = x + tile;
+        const cy = y + tile;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(baseAngle - Math.PI/2);
+        ctx.drawImage(Images.cannon, -tile, -tile, tile*2, tile*2);
+        ctx.restore();
+      }
+    }
     function drawShips(){
       for(const s of ships){
         const size = tile*2.8;
@@ -1133,7 +1146,7 @@
         // target nearest ship; cannon center is middle of its 2x2 footprint
         const px = c.gx*tile + tile, py = c.gy*tile + tile;
         let best=null, bestD=1e9; for(const s of ships){ const d = Math.hypot(s.x-px, s.y-py); if(d<bestD){ best=s; bestD=d; } }
-        if(best && bestD < tile*8){ const dx=best.x-px, dy=best.y-py; const L=Math.hypot(dx,dy)||1; bullets.push({ x:px, y:py, vx:dx/L, vy:dy/L, spd: 260, dmg: 34, owner:'cannon' }); c.cd = 0.6; }
+        if(best && bestD < tile*8){ const dx=best.x-px, dy=best.y-py; const L=Math.hypot(dx,dy)||1; c.angle = Math.atan2(dy,dx); bullets.push({ x:px, y:py, vx:dx/L, vy:dy/L, spd: 260, dmg: 34, owner:'cannon' }); c.cd = 0.6; }
       }
     }
 

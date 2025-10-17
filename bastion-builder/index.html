@@ -219,6 +219,8 @@
       shipRight: 'assets/BB_ship01_right.png',
       shipHeavyLeft: 'assets/BB_ship02_left.png',
       shipHeavyRight: 'assets/BB_ship02_right.png',
+      shipBossLeft: 'assets/BB_ship_boss01_left.png',
+      shipBossRight: 'assets/BB_ship_boss01_right.png',
       ball: 'assets/cannonball.svg',
       boom: 'assets/explosion.svg',
     };
@@ -342,6 +344,7 @@
     
     // Enemy rate-of-fire tuning (lower than 1 => faster, >1 => slower)
     const ENEMY_FIRE_RATE_MULT = 0.6;
+    const BOSS_WAVE = 4;
     const ENEMY_SHIP_TYPES = {
       basic: {
         id: 'basic',
@@ -358,6 +361,14 @@
         fireCdMultiplier: 1 / 1.5,
         spriteLeft: 'shipHeavyLeft',
         spriteRight: 'shipHeavyRight'
+      },
+      boss: {
+        id: 'boss',
+        hpMultiplier: 2.5,
+        speedMultiplier: 1.25,
+        fireCdMultiplier: 1 / 2.5,
+        spriteLeft: 'shipBossLeft',
+        spriteRight: 'shipBossRight'
       }
     };
 
@@ -1141,7 +1152,8 @@
     function distance(a,b){ const dx=a.x-b.x, dy=a.y-b.y; return Math.hypot(dx,dy); }
 
     function spawnWave(){
-      const count = 4 + Math.floor(state.wave*1.8);
+      const isBossWave = state.wave === BOSS_WAVE;
+      const count = isBossWave ? 1 : 4 + Math.floor(state.wave*1.8);
       let spawned = 0;
       const delay = Math.max(400, 1100 - state.wave*120);
 
@@ -1158,8 +1170,8 @@
         const dx = target.x - x, dy = target.y - y; const d = Math.hypot(dx,dy)||1; vx = dx/d; vy = dy/d;
         const baseSpd = 28 + state.wave*6;
         const baseHp = 80 + state.wave*30;
-        const heavyChance = state.wave <= 1 ? 0 : Math.min(0.2 + state.wave * 0.12, 0.7);
-        const type = (Math.random() < heavyChance) ? ENEMY_SHIP_TYPES.dreadnought : ENEMY_SHIP_TYPES.basic;
+        const heavyChance = isBossWave ? 0 : (state.wave <= 1 ? 0 : Math.min(0.2 + state.wave * 0.12, 0.7));
+        const type = isBossWave ? ENEMY_SHIP_TYPES.boss : ((Math.random() < heavyChance) ? ENEMY_SHIP_TYPES.dreadnought : ENEMY_SHIP_TYPES.basic);
         const spd = baseSpd * type.speedMultiplier;
         const hp = Math.round(baseHp * type.hpMultiplier);
         const fireCdMultiplier = type.fireCdMultiplier;

@@ -1231,6 +1231,9 @@
           const bossOccurrences = Math.max(0, state.wave - 5);
           const extraFactor = 1 + 0.5 * (bossOccurrences + 1);
           hpMultiplier *= extraFactor;
+        } else {
+          // Toughen up the standard fleet by 50%
+          hpMultiplier *= 1.5;
         }
         const hp = Math.round(baseHp * hpMultiplier);
         const fireCdMultiplier = type.fireCdMultiplier || 1;

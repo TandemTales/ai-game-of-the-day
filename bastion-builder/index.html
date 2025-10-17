@@ -1247,7 +1247,9 @@
           fireCdMultiplier,
           spriteLeft: type.spriteLeft,
           spriteRight: type.spriteRight,
-          shipType: type.id
+          shipType: type.id,
+          orbiting: false,
+          orbitDirection: Math.random() < 0.5 ? 1 : -1
         };
         if(type.isBoss){
           ship.isBoss = true;
@@ -1323,11 +1325,44 @@
     }
 
     function shipsAct(dt){
+      const keepCenter = gridToPx(keepRect.x + keepRect.w/2, keepRect.y + keepRect.h/2);
+      const shipFireRange = tile * 9;
+      const minOrbitRadius = tile * 4.5;
+      const maxOrbitRadius = shipFireRange * 0.95;
       for(const s of ships){
         const { gx, gy } = worldToGrid(s.x, s.y);
         const nearKeep = inKeepRing(gx, gy);
         const overWall = hasWallAt(gx, gy);
-        const speedMul = nearKeep ? 0 : (overWall ? 0.2 : 1);
+
+        const dxKeep = keepCenter.x - s.x;
+        const dyKeep = keepCenter.y - s.y;
+        const distToKeep = Math.hypot(dxKeep, dyKeep) || 1;
+
+        if(!s.orbiting){
+          s.vx = dxKeep / distToKeep;
+          s.vy = dyKeep / distToKeep;
+          if(distToKeep <= shipFireRange){
+            s.orbiting = true;
+            s.orbitRadius = Math.max(minOrbitRadius, Math.min(distToKeep, maxOrbitRadius));
+          }
+        } else {
+          const inwardX = dxKeep / distToKeep;
+          const inwardY = dyKeep / distToKeep;
+          const tangentX = -inwardY * (s.orbitDirection || 1);
+          const tangentY = inwardX * (s.orbitDirection || 1);
+          const radiusTarget = Math.max(minOrbitRadius, Math.min(s.orbitRadius || distToKeep, maxOrbitRadius));
+          const dr = distToKeep - radiusTarget;
+          const correction = Math.max(-0.6, Math.min(0.6, dr / Math.max(radiusTarget, 1)));
+          let vx = tangentX + inwardX * correction;
+          let vy = tangentY + inwardY * correction;
+          const mag = Math.hypot(vx, vy) || 1;
+          s.vx = vx / mag;
+          s.vy = vy / mag;
+          s.orbitRadius = radiusTarget;
+        }
+
+        let speedMul = overWall ? 0.2 : 1;
+        if(nearKeep && !s.orbiting) speedMul = 0;
         s.x += s.vx*s.spd*dt*speedMul; s.y += s.vy*s.spd*dt*speedMul;
         s.cd -= dt;
         if(typeof s.fireballCd === 'number'){ s.fireballCd = Math.max(0, s.fireballCd - dt); }
@@ -1344,7 +1379,7 @@
             if(!target){ const k = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2); target = { x:k.x, y:k.y, type:'keep' }; td = Math.hypot(k.x-s.x, k.y-s.y); }
           }
           const fireCdMul = s.fireCdMultiplier || 1;
-          if(td < tile*9){
+          if(td < shipFireRange){
             const dx=target.x - s.x, dy=target.y - s.y; const L=Math.hypot(dx,dy)||1;
             const vx = dx/L, vy = dy/L;
             bullets.push({ x:s.x, y:s.y, vx, vy, spd: 220, dmg: 22, owner:'ship' });

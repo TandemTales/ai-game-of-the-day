@@ -219,6 +219,8 @@
       shipRight: 'assets/BB_ship01_right.png',
       shipHeavyLeft: 'assets/BB_ship02_left.png',
       shipHeavyRight: 'assets/BB_ship02_right.png',
+      shipBossLeft: 'assets/BB_ship_boss01_left.png',
+      shipBossRight: 'assets/BB_ship_boss01_right.png',
       ball: 'assets/cannonball.svg',
       boom: 'assets/explosion.svg',
     };
@@ -227,6 +229,7 @@
 
     // Game state
     const KEEP_MAX_HP = 500;
+    const CANNON_MAX_HP = 120;
     let running = false;
     const state = {
       bricks: 50,
@@ -239,13 +242,14 @@
     };
 
     const walls = []; // {gx, gy, hp}
-    const cannons = []; // {gx, gy, cd, enclosed?}
+    const cannons = []; // {gx, gy, cd, enclosed?, hp}
     const ships = []; // {x,y,vx,vy,spd,hp,maxHp,cd}
     const bullets = []; // {x,y,vx,vy,spd,dmg,owner}
     const placementHistory = []; // stack of actions to support Undo during build
 
     // Fast occupancy lookup grid so placement checks stay snappy even with many walls
     let occupancy = createOccupancyGrid();
+    let burnedCells = createBurnedGrid();
 
     // Enclosed area mask (computed at end of build phase)
     let enclosedMask = null; // Array[ROWS][COLS] of booleans
@@ -358,8 +362,18 @@
         fireCdMultiplier: 1 / 1.5,
         spriteLeft: 'shipHeavyLeft',
         spriteRight: 'shipHeavyRight'
+      },
+      boss: {
+        id: 'boss',
+        hpMultiplier: 5,
+        speedMultiplier: 2,
+        fireCdMultiplier: 1/3,
+        spriteLeft: 'shipBossLeft',
+        spriteRight: 'shipBossRight'
       }
     };
+    const BOSS_WAVE = 4;
+    let bossSpawned = false;
 
     const KEEP_SIZE = 3; // 3x3 center keep
     let keepRect = { x: Math.floor(COLS/2) - 1, y: Math.floor(ROWS/2) - 1, w: KEEP_SIZE, h: KEEP_SIZE };
@@ -492,6 +506,12 @@
     function createOccupancyGrid(){
       return Array.from({ length: ROWS }, ()=>Array(COLS).fill(false));
     }
+    function createBurnedGrid(){
+      return Array.from({ length: ROWS }, ()=>Array(COLS).fill(false));
+    }
+    function resetBurnedCells(){
+      burnedCells = createBurnedGrid();
+    }
     function resetOccupancy(){
       occupancy = createOccupancyGrid();
       for(const w of walls){
@@ -506,6 +526,22 @@
     function setOccupiedCell(gx, gy, value){
       if(gy<0 || gy>=ROWS || gx<0 || gx>=COLS) return;
       occupancy[gy][gx] = value;
+    }
+    function burnCell(gx, gy){
+      if(gy<0 || gy>=ROWS || gx<0 || gx>=COLS) return;
+      if(!burnedCells){ burnedCells = createBurnedGrid(); }
+      burnedCells[gy][gx] = true;
+    }
+    function burnArea(gx, gy, w=1, h=1){
+      for(let dy=0; dy<h; dy++){
+        for(let dx=0; dx<w; dx++){
+          burnCell(gx+dx, gy+dy);
+        }
+      }
+    }
+    function isCellBurned(gx, gy){
+      if(gy<0 || gy>=ROWS || gx<0 || gx>=COLS) return false;
+      return Boolean(burnedCells && burnedCells[gy] && burnedCells[gy][gx]);
     }
     function markCannonFootprint(gx, gy, value){
       for(let dy=0; dy<2; dy++){
@@ -564,6 +600,7 @@
       for(const [dx,dy] of piece){
         const x = gx+dx, y = gy+dy;
         if(x<0||y<0||x>=COLS||y>=ROWS) return false;
+        if(isCellBurned(x,y)) return false;
         if(occupied(x,y)) return false;
       }
       return true;
@@ -577,7 +614,7 @@
       // Check all 4 cells for occupancy (includes keep overlap)
       for (let dx=0; dx<2; dx++){
         for (let dy=0; dy<2; dy++){
-          if (occupied(gx+dx, gy+dy)) return false;
+          if (occupied(gx+dx, gy+dy) || isCellBurned(gx+dx, gy+dy)) return false;
         }
       }
       return true;
@@ -635,7 +672,7 @@
     function placeCannon(gx, gy){
       const cost = 6;
       if (!canPlaceCannon(gx, gy)) return false;
-      state.bricks -= cost; cannons.push({ gx, gy, cd: 0, enclosed: false, angle: Math.PI/2 });
+      state.bricks -= cost; cannons.push({ gx, gy, cd: 0, enclosed: false, angle: Math.PI/2, hp: CANNON_MAX_HP });
       markCannonFootprint(gx, gy, true);
       return true;
     }
@@ -963,6 +1000,27 @@
       ctx.drawImage(Images.castle, kx, ky, keepSizePx, keepSizePx);
     }
 
+    function drawBurnedTiles(){
+      if(!burnedCells) return;
+      const t = state.time || 0;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      for(let y=0; y<ROWS; y++){
+        for(let x=0; x<COLS; x++){
+          if(!burnedCells[y][x]) continue;
+          const baseX = x*tile;
+          const baseY = y*tile;
+          const flicker = 0.6 + 0.3*Math.sin((t + (x+y)*0.37) * 6.2);
+          const alpha = 0.35 + 0.3*Math.sin((t*2.7) + (x*0.4 - y*0.3));
+          ctx.fillStyle = `rgba(255, ${Math.floor(90 + flicker*110)}, 0, ${Math.max(0.2, Math.min(0.75, alpha))})`;
+          ctx.fillRect(baseX, baseY, tile, tile);
+          ctx.fillStyle = `rgba(255, ${Math.floor(150 + flicker*70)}, 30, 0.35)`;
+          ctx.fillRect(baseX + tile*0.2, baseY + tile*0.2, tile*0.6, tile*0.6);
+        }
+      }
+      ctx.restore();
+    }
+
     function drawWalls(){
       for(const w of walls){
         const age = state.time - (w.placedAt || 0);
@@ -1004,8 +1062,22 @@
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(baseAngle - Math.PI/2);
+        const hpPct = (typeof c.hp === 'number' && CANNON_MAX_HP > 0) ? Math.max(0, Math.min(1, c.hp / CANNON_MAX_HP)) : 1;
+        ctx.globalAlpha = 0.55 + 0.45 * hpPct;
         ctx.drawImage(Images.cannon, -tile, -tile, tile*2, tile*2);
         ctx.restore();
+        if(typeof c.hp === 'number' && c.hp < CANNON_MAX_HP){
+          const barW = tile*2;
+          const barH = Math.max(3, tile*0.14);
+          const px = x;
+          const py = y - barH - 2;
+          ctx.save();
+          ctx.fillStyle = 'rgba(0,0,0,0.6)';
+          ctx.fillRect(px, py, barW, barH);
+          ctx.fillStyle = '#ff7547';
+          ctx.fillRect(px+1, py+1, Math.max(0, (barW-2)*hpPct), barH-2);
+          ctx.restore();
+        }
       }
     }
     function drawShips(){
@@ -1019,9 +1091,43 @@
         const sprite = movingLeft ? (leftSprite || rightSprite) : (rightSprite || leftSprite);
         if(!sprite) continue;
         ctx.drawImage(sprite, s.x - size/2, s.y - size/2, size, size*0.67);
+        if(s.behavior === 'boss'){
+          const pct = Math.max(0, Math.min(1, (s.hp || 0) / (s.maxHp || 1)));
+          const barW = size * 0.8;
+          const barH = Math.max(6, tile*0.18);
+          const px = s.x - barW/2;
+          const py = s.y - size*0.45 - barH;
+          ctx.save();
+          ctx.fillStyle = 'rgba(0,0,0,0.65)';
+          ctx.fillRect(px, py, barW, barH);
+          ctx.fillStyle = '#ff3b3b';
+          ctx.fillRect(px+1, py+1, Math.max(0, (barW-2)*pct), barH-2);
+          ctx.restore();
+        }
       }
     }
-    function drawBullets(){ for(const b of bullets){ const s = tile*0.35; ctx.drawImage(Images.ball, b.x - s/2, b.y - s/2, s, s); } }
+    function drawBullets(){
+      for(const b of bullets){
+        if(b.owner === 'bossFire'){
+          const r = tile*0.42;
+          const inner = r*0.55;
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.fillStyle = 'rgba(255,90,0,0.85)';
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, r, 0, Math.PI*2);
+          ctx.fill();
+          ctx.fillStyle = 'rgba(255,200,60,0.9)';
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, inner, 0, Math.PI*2);
+          ctx.fill();
+          ctx.restore();
+        } else {
+          const s = tile*0.35;
+          ctx.drawImage(Images.ball, b.x - s/2, b.y - s/2, s, s);
+        }
+      }
+    }
 
     function drawKeepHealthBar(){
       const maxHP = KEEP_MAX_HP;
@@ -1129,6 +1235,7 @@
       drawBackground();
       // Highlight enclosed cells during defend phase
       if(state.phase==='battle') drawEnclosedOverlay();
+      drawBurnedTiles();
       drawWalls();
       drawCannons();
       drawShips();
@@ -1140,10 +1247,66 @@
     // Battle mechanics
     function distance(a,b){ const dx=a.x-b.x, dy=a.y-b.y; return Math.hypot(dx,dy); }
 
+    function getBossWaypoints(){
+      const pad = tile * 0.6;
+      const top = tile * 0.8;
+      const bottom = ROWS*tile - tile * 0.8;
+      const left = -pad;
+      const right = COLS*tile + pad;
+      return [
+        { x: left, y: top },
+        { x: right, y: top },
+        { x: right, y: bottom },
+        { x: left, y: bottom }
+      ];
+    }
+
+    function spawnBossShip(){
+      const type = ENEMY_SHIP_TYPES.boss;
+      const baseSpd = 28 + state.wave*6;
+      const baseHp = 80 + state.wave*30;
+      const waypoints = getBossWaypoints();
+      const start = waypoints[0];
+      const spd = baseSpd * type.speedMultiplier;
+      const hp = Math.round(baseHp * type.hpMultiplier);
+      const fireCdMultiplier = type.fireCdMultiplier;
+      ships.push({
+        x: start.x,
+        y: start.y,
+        vx: 1,
+        vy: 0,
+        spd,
+        hp,
+        maxHp: hp,
+        cd: (0.9 + Math.random()*0.6) * ENEMY_FIRE_RATE_MULT * fireCdMultiplier,
+        fireCdMultiplier,
+        spriteLeft: type.spriteLeft,
+        spriteRight: type.spriteRight,
+        shipType: type.id,
+        behavior: 'boss',
+        bossPathIndex: 1
+      });
+      bossSpawned = true;
+      if(state.phase!=='battle'){ state.phase='battle'; updateHUD(); }
+    }
+
     function spawnWave(){
       const count = 4 + Math.floor(state.wave*1.8);
       let spawned = 0;
       const delay = Math.max(400, 1100 - state.wave*120);
+      const bossThisWave = state.wave === BOSS_WAVE && !bossSpawned;
+
+      function finalizeSpawning(){
+        if(bossThisWave && !bossSpawned){
+          setTimeout(()=>{
+            if(!running){ spawning = false; return; }
+            spawnBossShip();
+            spawning = false;
+          }, 900);
+        } else {
+          spawning = false;
+        }
+      }
 
       function spawnOne(){
         // If spawning was cancelled, stop scheduling further spawns
@@ -1182,7 +1345,7 @@
         if(state.phase!=='battle'){ state.phase='battle'; updateHUD(); }
         if(spawned>=count){
           if(spawnIv){ clearInterval(spawnIv); spawnIv=null; }
-          spawning=false;
+          finalizeSpawning();
         }
       }
 
@@ -1191,7 +1354,7 @@
       if(spawned < count){
         spawnIv = setInterval(spawnOne, delay);
       } else {
-        spawning=false;
+        finalizeSpawning();
       }
     }
 
@@ -1208,8 +1371,72 @@
       }
     }
 
+    function bossFireWeapons(s){
+      const keepCenter = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2);
+      const dx = keepCenter.x - s.x;
+      const dy = keepCenter.y - s.y;
+      const L = Math.hypot(dx, dy) || 1;
+      const vx = dx / L;
+      const vy = dy / L;
+      const fireCdMul = s.fireCdMultiplier || 1;
+      bullets.push({ x: s.x, y: s.y, vx, vy, spd: 240, dmg: 26, owner: 'ship' });
+      bullets.push({ x: s.x, y: s.y, vx, vy, spd: 210, dmg: 26, owner: 'bossFire' });
+      s.cd = (1.1 + Math.random()*0.9) * ENEMY_FIRE_RATE_MULT * fireCdMul;
+    }
+
+    function updateBossShip(s, dt){
+      const waypoints = getBossWaypoints();
+      if(!waypoints || waypoints.length === 0) return;
+      if(typeof s.bossPathIndex !== 'number' || s.bossPathIndex >= waypoints.length){
+        s.bossPathIndex = 1;
+      }
+      const target = waypoints[s.bossPathIndex];
+      let vx = target.x - s.x;
+      let vy = target.y - s.y;
+      let dist = Math.hypot(vx, vy) || 1;
+      vx /= dist; vy /= dist;
+      let avoidX = 0, avoidY = 0;
+      for(const b of bullets){
+        if(b.owner !== 'cannon') continue;
+        const toShipX = s.x - b.x;
+        const toShipY = s.y - b.y;
+        const bDist = Math.hypot(toShipX, toShipY);
+        if(bDist > tile*5) continue;
+        const approach = b.vx * toShipX + b.vy * toShipY;
+        if(approach > 0){
+          avoidX += -toShipY;
+          avoidY += toShipX;
+        }
+      }
+      if(avoidX || avoidY){
+        const avoidLen = Math.hypot(avoidX, avoidY) || 1;
+        const ax = avoidX / avoidLen;
+        const ay = avoidY / avoidLen;
+        vx = vx*0.7 + ax*0.3;
+        vy = vy*0.7 + ay*0.3;
+        const n = Math.hypot(vx, vy) || 1;
+        vx /= n; vy /= n;
+      }
+      s.vx = vx;
+      s.vy = vy;
+      s.x += s.vx * s.spd * dt;
+      s.y += s.vy * s.spd * dt;
+      dist = Math.hypot(target.x - s.x, target.y - s.y);
+      if(dist < tile*0.9){
+        s.bossPathIndex = (s.bossPathIndex + 1) % waypoints.length;
+      }
+      s.cd -= dt;
+      if(s.cd <= 0){
+        bossFireWeapons(s);
+      }
+    }
+
     function shipsAct(dt){
       for(const s of ships){
+        if(s.behavior === 'boss'){
+          updateBossShip(s, dt);
+          continue;
+        }
         const { gx, gy } = worldToGrid(s.x, s.y);
         const nearKeep = inKeepRing(gx, gy);
         const overWall = hasWallAt(gx, gy);
@@ -1242,6 +1469,44 @@
         if(b.x < -40 || b.y < -40 || b.x > COLS*tile+40 || b.y > ROWS*tile+40){ b.dead=true; continue; }
         if(b.owner==='cannon'){
           for(const s of ships){ if(Math.hypot(s.x-b.x, s.y-b.y) < tile*0.5){ s.hp -= b.dmg; b.dead = true; if(s.hp<=0){ s.dead = true; state.kills++; } break; } }
+        } else if(b.owner==='bossFire'){
+          let hit = false;
+          // walls first
+          for(const w of walls){
+            const p = gridToPx(w.gx, w.gy);
+            if(Math.hypot(p.x-b.x, p.y-b.y) < tile*0.6){
+              w.hp -= b.dmg;
+              burnCell(w.gx, w.gy);
+              hit = true;
+              break;
+            }
+          }
+          // cannons take double damage
+          if(!hit){
+            for(const c of cannons){
+              const cx = c.gx*tile + tile;
+              const cy = c.gy*tile + tile;
+              if(Math.hypot(cx - b.x, cy - b.y) < tile*1.0){
+                const currentHp = (typeof c.hp === 'number') ? c.hp : CANNON_MAX_HP;
+                c.hp = Math.max(0, currentHp - b.dmg * 2);
+                burnArea(c.gx, c.gy, 2, 2);
+                hit = true;
+                break;
+              }
+            }
+          }
+          // keep damage if no structure hit
+          if(!hit){
+            const kc = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2);
+            if(Math.hypot(kc.x-b.x, kc.y-b.y) < tile*1.25){
+              state.keepHP = Math.max(0, state.keepHP - b.dmg);
+              hit = true;
+              if(state.keepHP<=0) gameOver('destroyed');
+            }
+          }
+          const impactCell = worldToGrid(b.x, b.y);
+          burnCell(impactCell.gx, impactCell.gy);
+          b.dead = true;
         } else { // ship bullet
           // walls
           for(const w of walls){ const p = gridToPx(w.gx, w.gy); if(Math.hypot(p.x-b.x, p.y-b.y) < tile*0.6){ w.hp -= b.dmg; b.dead=true; break; } }
@@ -1257,6 +1522,12 @@
         if(walls[i].hp<=0){
           const removed = walls.splice(i,1)[0];
           if(removed){ setOccupiedCell(removed.gx, removed.gy, false); }
+        }
+      }
+      for(let i=cannons.length-1;i>=0;i--){
+        if(typeof cannons[i].hp === 'number' && cannons[i].hp <= 0){
+          const removed = cannons.splice(i,1)[0];
+          if(removed){ markCannonFootprint(removed.gx, removed.gy, false); }
         }
       }
       for(let i=ships.length-1;i>=0;i--){ if(ships[i].dead) ships.splice(i,1); }
@@ -1354,6 +1625,8 @@
       // Reset state for a new run
       if(spawnIv){ clearInterval(spawnIv); spawnIv=null; }
       state.bricks = 50; state.keepHP = KEEP_MAX_HP; state.wave = 1; state.kills = 0; state.placedWalls=0; walls.length=0; cannons.length=0; ships.length=0; bullets.length=0; placementHistory.length=0; gameOverHandled=false; buildTimer = BUILD_TIME * TIME_FACTOR; spawning=false; waveDoneCheck=0; selectedTool='wall';
+      resetBurnedCells();
+      bossSpawned = false;
       resetOccupancy();
       startBuild(); running = true;
     }

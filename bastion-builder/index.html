@@ -334,8 +334,8 @@
       drawCurrentPreview();
     }
 
-    const BUILD_TIME = 18; // seconds per build phase (waves 2+)
-    const FIRST_BUILD_TIME = 29; // slightly longer first build phase
+    const BASE_BUILD_TIME = 18; // seconds per build phase (waves 2+)
+    const BASE_FIRST_BUILD_TIME = 29; // slightly longer first build phase
     const MAX_WAVES = 6;
     // Mobile time scaling: triple phase durations on mobile only
     const IS_MOBILE = (
@@ -344,6 +344,9 @@
       typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches
     );
     const TIME_FACTOR = IS_MOBILE ? 3 : 1;
+    const EXTRA_PC_BUILD_TIME = IS_MOBILE ? 0 : 10; // add 10s per placement phase on desktop
+    const BUILD_TIME = BASE_BUILD_TIME + EXTRA_PC_BUILD_TIME;
+    const FIRST_BUILD_TIME = BASE_FIRST_BUILD_TIME + EXTRA_PC_BUILD_TIME;
     
     // Enemy rate-of-fire tuning (lower than 1 => faster, >1 => slower)
     // Increase enemy fire rate by 100% by halving the cooldown multiplier.

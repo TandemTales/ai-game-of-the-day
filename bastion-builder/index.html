@@ -349,8 +349,8 @@
     const FIRST_BUILD_TIME = BASE_FIRST_BUILD_TIME + EXTRA_PC_BUILD_TIME;
     
     // Enemy rate-of-fire tuning (lower than 1 => faster, >1 => slower)
-    // Increase enemy fire rate by 100% by halving the cooldown multiplier.
-    const ENEMY_FIRE_RATE_MULT = 0.3;
+    // Increase the multiplier to slow enemy barrages; higher means longer cooldowns.
+    const ENEMY_FIRE_RATE_MULT = 0.3 * 1.25; // 25% slower volleys across all ships
     const ENEMY_SHIP_TYPES = {
       basic: {
         id: 'basic',

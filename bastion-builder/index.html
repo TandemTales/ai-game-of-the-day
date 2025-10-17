@@ -542,9 +542,44 @@
         }
       }
     }
-    function burnCell(gx, gy){
+    function burnCell(gx, gy, opts = {}){
       if(gx<0 || gy<0 || gx>=COLS || gy>=ROWS) return;
+      const { enforceSpacing = false } = opts;
+      if(enforceSpacing){
+        const placement = findSpacedBurnCell(gx, gy);
+        if(!placement) return;
+        gx = placement.gx;
+        gy = placement.gy;
+      }
       burnedCells.add(`${gx},${gy}`);
+    }
+
+    function findSpacedBurnCell(gx, gy){
+      const maxRadius = Math.max(COLS, ROWS);
+      for(let radius=0; radius<maxRadius; radius++){
+        for(let dy=-radius; dy<=radius; dy++){
+          for(let dx=-radius; dx<=radius; dx++){
+            if(Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
+            const nx = gx + dx;
+            const ny = gy + dy;
+            if(nx<0 || ny<0 || nx>=COLS || ny>=ROWS) continue;
+            if(isCellBurned(nx, ny)) continue;
+            let tooClose = false;
+            for(const key of burnedCells){
+              const [bxStr, byStr] = key.split(',');
+              const bx = Number(bxStr), by = Number(byStr);
+              if(Math.max(Math.abs(bx-nx), Math.abs(by-ny)) < 2){
+                tooClose = true;
+                break;
+              }
+            }
+            if(!tooClose){
+              return { gx: nx, gy: ny };
+            }
+          }
+        }
+      }
+      return null;
     }
     function isCellBurned(gx, gy){
       if(gx<0 || gy<0 || gx>=COLS || gy>=ROWS) return false;
@@ -1491,7 +1526,7 @@
           }
           if(isFireball && !b.dead){
             const { gx, gy } = worldToGrid(b.x, b.y);
-            burnCell(gx, gy);
+            burnCell(gx, gy, { enforceSpacing: true });
             b.dead = true;
           }
         }

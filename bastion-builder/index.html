@@ -346,7 +346,8 @@
     const TIME_FACTOR = IS_MOBILE ? 3 : 1;
     
     // Enemy rate-of-fire tuning (lower than 1 => faster, >1 => slower)
-    const ENEMY_FIRE_RATE_MULT = 0.6;
+    // Increase enemy fire rate by 100% by halving the cooldown multiplier.
+    const ENEMY_FIRE_RATE_MULT = 0.3;
     const ENEMY_SHIP_TYPES = {
       basic: {
         id: 'basic',

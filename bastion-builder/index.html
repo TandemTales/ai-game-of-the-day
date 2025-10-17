@@ -1372,13 +1372,23 @@
     function loop(ts){ if(!running){ requestAnimationFrame(loop); return; } dt = Math.min(0.033, (ts-last)/1000 || 0.016); last=ts;
       state.time += dt; aimCannons(dt); shipsAct(dt); moveBullets(dt); handleCollisions(); updatePhase(dt); updateHUD(); draw(); requestAnimationFrame(loop); }
 
-    async function start(){ overlay.classList.remove('show'); setOverlayMode(false);
-      if(!Images.grass){ const entries = Object.entries(assets); for(const [k,src] of entries){ Images[k] = await loadImg(src); } }
-      // Reset state for a new run
-      if(spawnIv){ clearInterval(spawnIv); spawnIv=null; }
-      state.bricks = 50; state.keepHP = KEEP_MAX_HP; state.wave = 1; state.kills = 0; state.placedWalls=0; walls.length=0; cannons.length=0; ships.length=0; bullets.length=0; placementHistory.length=0; gameOverHandled=false; buildTimer = BUILD_TIME * TIME_FACTOR; spawning=false; waveDoneCheck=0; selectedTool='wall';
-      resetOccupancy();
-      startBuild(); running = true;
+    let starting = false;
+    async function start(){
+      if(starting) return;
+      starting = true;
+      try {
+        overlay.classList.remove('show');
+        setOverlayMode(false);
+        if(!Images.grass){ const entries = Object.entries(assets); for(const [k,src] of entries){ Images[k] = await loadImg(src); } }
+        // Reset state for a new run
+        if(spawnIv){ clearInterval(spawnIv); spawnIv=null; }
+        state.bricks = 50; state.keepHP = KEEP_MAX_HP; state.wave = 1; state.kills = 0; state.placedWalls=0; walls.length=0; cannons.length=0; ships.length=0; bullets.length=0; placementHistory.length=0; gameOverHandled=false; buildTimer = BUILD_TIME * TIME_FACTOR; spawning=false; waveDoneCheck=0; selectedTool='wall';
+        resetOccupancy();
+        startBuild();
+        running = true;
+      } finally {
+        starting = false;
+      }
     }
 
     window.addEventListener('resize', ()=>{ setTopbarHeight(); setHudHeight(); resize(); draw(); });
@@ -1388,6 +1398,7 @@
     setTimeout(()=>{ setTopbarHeight(); setHudHeight(); resize(); draw(); }, 250);
     setTimeout(()=>{ setTopbarHeight(); setHudHeight(); resize(); draw(); }, 1000);
     resize(); updateHUD(); requestAnimationFrame(loop);
+    start();
   </script>
 </body>
 </html>

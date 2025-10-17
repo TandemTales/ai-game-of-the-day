@@ -219,6 +219,8 @@
       shipRight: 'assets/BB_ship01_right.png',
       shipHeavyLeft: 'assets/BB_ship02_left.png',
       shipHeavyRight: 'assets/BB_ship02_right.png',
+      bossShipLeft: 'assets/BB_ship_boss01_left.png',
+      bossShipRight: 'assets/BB_ship_boss01_right.png',
       ball: 'assets/cannonball.svg',
       boom: 'assets/explosion.svg',
     };
@@ -243,6 +245,7 @@
     const ships = []; // {x,y,vx,vy,spd,hp,maxHp,cd}
     const bullets = []; // {x,y,vx,vy,spd,dmg,owner}
     const placementHistory = []; // stack of actions to support Undo during build
+    const burnedCells = new Set(); // 'gx,gy' cells that remain on fire for the run
 
     // Fast occupancy lookup grid so placement checks stay snappy even with many walls
     let occupancy = createOccupancyGrid();
@@ -358,6 +361,16 @@
         fireCdMultiplier: 1 / 1.5,
         spriteLeft: 'shipHeavyLeft',
         spriteRight: 'shipHeavyRight'
+      },
+      boss: {
+        id: 'boss',
+        hpMultiplier: 5,
+        speedMultiplier: 1.5,
+        fireCdMultiplier: 0.5,
+        spriteLeft: 'bossShipLeft',
+        spriteRight: 'bossShipRight',
+        isBoss: true,
+        fireballRateMultiplier: 1.5
       }
     };
 
@@ -457,6 +470,7 @@
           <li><strong>Defend:</strong> Ships sail in and fire at your defenses. Cannons auto-fire at ships.</li>
         </ul>
         <p>Score points by destroying ships and surviving waves. The game ends when the keep is destroyed, or you clear all ${MAX_WAVES} waves.</p>
+        <p><strong>Wave 4:</strong> A boss man-o-war arrives after the fleet. Its blazing volleys leave permanent fire and melt cannons, so protect your core defenses.</p>
         <p>Tips: Place cannons behind walls. Repair damage during the next build phase. On desktop, click to place pieces and press <kbd>R</kbd> to rotate them. On mobile, long press to place and tap to rotate. The current piece is shown in the HUD.</p>
       `;
     }
@@ -514,6 +528,15 @@
         }
       }
     }
+    function burnCell(gx, gy){
+      if(gx<0 || gy<0 || gx>=COLS || gy>=ROWS) return;
+      burnedCells.add(`${gx},${gy}`);
+    }
+    function isCellBurned(gx, gy){
+      if(gx<0 || gy<0 || gx>=COLS || gy>=ROWS) return false;
+      return burnedCells.has(`${gx},${gy}`);
+    }
+    function clearBurnedCells(){ burnedCells.clear(); }
 
     function inKeep(gx, gy){ return gx>=keepRect.x && gy>=keepRect.y && gx<keepRect.x+keepRect.w && gy<keepRect.y+keepRect.h; }
     function inKeepRing(gx, gy){
@@ -525,6 +548,7 @@
     }
     function occupied(gx, gy){
       if (inKeep(gx,gy)) return true;
+      if(isCellBurned(gx, gy)) return true;
       if(!occupancy || gy<0 || gy>=ROWS || gx<0 || gx>=COLS) return false;
       return occupancy[gy][gx];
     }
@@ -994,6 +1018,28 @@
         }
       }
     }
+    function drawBurned(){
+      if(!burnedCells.size) return;
+      const flicker = 0.55 + 0.25 * Math.sin(state.time * 6);
+      ctx.save();
+      for(const key of burnedCells){
+        const [gxStr, gyStr] = key.split(',');
+        const gx = Number(gxStr), gy = Number(gyStr);
+        const x = gx * tile;
+        const y = gy * tile;
+        const cx = x + tile/2;
+        const cy = y + tile/2;
+        const grad = ctx.createRadialGradient(cx, cy, tile*0.1, cx, cy, tile*0.8);
+        grad.addColorStop(0, `rgba(255, 220, 120, ${Math.min(0.9, flicker+0.1)})`);
+        grad.addColorStop(1, 'rgba(180, 40, 0, 0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(x, y, tile, tile);
+        ctx.strokeStyle = `rgba(255, 90, 0, ${0.35 + 0.2*Math.sin(state.time * 10 + gx + gy)})`;
+        ctx.lineWidth = Math.max(1, tile * 0.05);
+        ctx.strokeRect(x+1, y+1, tile-2, tile-2);
+      }
+      ctx.restore();
+    }
     function drawCannons(){
       for(const c of cannons){
         const baseAngle = (typeof c.angle === 'number') ? c.angle : Math.PI/2;
@@ -1021,7 +1067,25 @@
         ctx.drawImage(sprite, s.x - size/2, s.y - size/2, size, size*0.67);
       }
     }
-    function drawBullets(){ for(const b of bullets){ const s = tile*0.35; ctx.drawImage(Images.ball, b.x - s/2, b.y - s/2, s, s); } }
+    function drawBullets(){
+      for(const b of bullets){
+        if(b.variant === 'fireball'){
+          const radius = tile * 0.45;
+          const glow = tile * 0.8;
+          const grad = ctx.createRadialGradient(b.x, b.y, radius * 0.3, b.x, b.y, glow);
+          grad.addColorStop(0, 'rgba(255, 240, 160, 0.95)');
+          grad.addColorStop(0.6, 'rgba(255, 120, 0, 0.75)');
+          grad.addColorStop(1, 'rgba(120, 20, 0, 0)');
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, glow, 0, Math.PI*2);
+          ctx.fill();
+        } else {
+          const s = tile*0.35;
+          ctx.drawImage(Images.ball, b.x - s/2, b.y - s/2, s, s);
+        }
+      }
+    }
 
     function drawKeepHealthBar(){
       const maxHP = KEEP_MAX_HP;
@@ -1130,6 +1194,7 @@
       // Highlight enclosed cells during defend phase
       if(state.phase==='battle') drawEnclosedOverlay();
       drawWalls();
+      drawBurned();
       drawCannons();
       drawShips();
       drawBullets();
@@ -1144,51 +1209,74 @@
       const count = 4 + Math.floor(state.wave*1.8);
       let spawned = 0;
       const delay = Math.max(400, 1100 - state.wave*120);
+      const isBossWave = state.wave === 4;
+      let bossPending = isBossWave;
 
-      function spawnOne(){
-        // If spawning was cancelled, stop scheduling further spawns
-        if(!spawning){ if(spawnIv){ clearInterval(spawnIv); spawnIv=null; } return; }
+      function spawnShipOfType(type, spawn){
+        const baseSpd = 28 + state.wave*6;
+        const baseHp = 80 + state.wave*30;
+        const spd = baseSpd * (type.speedMultiplier || 1);
+        const hp = Math.round(baseHp * (type.hpMultiplier || 1));
+        const fireCdMultiplier = type.fireCdMultiplier || 1;
+        const initialCd = (1.2 + Math.random()*1.2) * ENEMY_FIRE_RATE_MULT * fireCdMultiplier;
+        const ship = {
+          x: spawn.x,
+          y: spawn.y,
+          vx: spawn.vx,
+          vy: spawn.vy,
+          spd,
+          hp,
+          maxHp: hp,
+          cd: initialCd,
+          fireCdMultiplier,
+          spriteLeft: type.spriteLeft,
+          spriteRight: type.spriteRight,
+          shipType: type.id
+        };
+        if(type.isBoss){
+          ship.isBoss = true;
+          ship.fireballRateMultiplier = type.fireballRateMultiplier || 1.5;
+          ship.fireballCd = initialCd * ship.fireballRateMultiplier;
+        }
+        ships.push(ship);
+        if(state.phase!=='battle'){ state.phase='battle'; updateHUD(); }
+      }
+
+      function computeSpawn(){
         const side = Math.floor(Math.random()*4);
-        let x,y,vx,vy; const target = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2);
+        let x,y; const target = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2);
         const pad = tile*0.5;
         if(side===0){ x = -pad; y = Math.random()*ROWS*tile; }
         else if(side===1){ x = COLS*tile+pad; y = Math.random()*ROWS*tile; }
         else if(side===2){ x = Math.random()*COLS*tile; y = -pad; }
         else { x = Math.random()*COLS*tile; y = ROWS*tile+pad; }
-        const dx = target.x - x, dy = target.y - y; const d = Math.hypot(dx,dy)||1; vx = dx/d; vy = dy/d;
-        const baseSpd = 28 + state.wave*6;
-        const baseHp = 80 + state.wave*30;
-        const heavyChance = state.wave <= 1 ? 0 : Math.min(0.2 + state.wave * 0.12, 0.7);
-        const type = (Math.random() < heavyChance) ? ENEMY_SHIP_TYPES.dreadnought : ENEMY_SHIP_TYPES.basic;
-        const spd = baseSpd * type.speedMultiplier;
-        const hp = Math.round(baseHp * type.hpMultiplier);
-        const fireCdMultiplier = type.fireCdMultiplier;
-        ships.push({
-          x,
-          y,
-          vx,
-          vy,
-          spd,
-          hp,
-          maxHp: hp,
-          cd: (1.2 + Math.random()*1.2) * ENEMY_FIRE_RATE_MULT * fireCdMultiplier,
-          fireCdMultiplier,
-          spriteLeft: type.spriteLeft,
-          spriteRight: type.spriteRight,
-          shipType: type.id
-        });
-        spawned++;
-        // Switch to attack phase on the first enemy appearing
-        if(state.phase!=='battle'){ state.phase='battle'; updateHUD(); }
-        if(spawned>=count){
-          if(spawnIv){ clearInterval(spawnIv); spawnIv=null; }
-          spawning=false;
-        }
+        const dx = target.x - x, dy = target.y - y; const d = Math.hypot(dx,dy)||1;
+        return { x, y, vx: dx/d, vy: dy/d };
       }
 
-      // Spawn first immediately so phase flips when enemies show up
+      function spawnOne(){
+        if(!spawning){ if(spawnIv){ clearInterval(spawnIv); spawnIv=null; } return; }
+        if(spawned < count){
+          const heavyChance = state.wave <= 1 ? 0 : Math.min(0.2 + state.wave * 0.12, 0.7);
+          const type = (Math.random() < heavyChance) ? ENEMY_SHIP_TYPES.dreadnought : ENEMY_SHIP_TYPES.basic;
+          spawnShipOfType(type, computeSpawn());
+          spawned++;
+          return;
+        }
+        if(bossPending){
+          spawnShipOfType(ENEMY_SHIP_TYPES.boss, computeSpawn());
+          bossPending = false;
+          if(spawnIv){ clearInterval(spawnIv); spawnIv=null; }
+          spawning=false;
+          return;
+        }
+        if(spawnIv){ clearInterval(spawnIv); spawnIv=null; }
+        spawning=false;
+      }
+
+      // Spawn first immediately so the battle phase starts as soon as enemies appear
       spawnOne();
-      if(spawned < count){
+      if(spawned < count || bossPending){
         spawnIv = setInterval(spawnOne, delay);
       } else {
         spawning=false;
@@ -1215,7 +1303,9 @@
         const overWall = hasWallAt(gx, gy);
         const speedMul = nearKeep ? 0 : (overWall ? 0.2 : 1);
         s.x += s.vx*s.spd*dt*speedMul; s.y += s.vy*s.spd*dt*speedMul;
-        s.cd -= dt; if(s.cd<=0){
+        s.cd -= dt;
+        if(typeof s.fireballCd === 'number'){ s.fireballCd = Math.max(0, s.fireballCd - dt); }
+        if(s.cd<=0){
           let target = null; let td = 1e9;
           if (nearKeep) {
             // If parked next to the keep, always fire at the keep from now on
@@ -1228,7 +1318,20 @@
             if(!target){ const k = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2); target = { x:k.x, y:k.y, type:'keep' }; td = Math.hypot(k.x-s.x, k.y-s.y); }
           }
           const fireCdMul = s.fireCdMultiplier || 1;
-          if(td < tile*9){ const dx=target.x - s.x, dy=target.y - s.y; const L=Math.hypot(dx,dy)||1; bullets.push({ x:s.x, y:s.y, vx:dx/L, vy:dy/L, spd: 220, dmg: 22, owner:'ship' }); s.cd = (1.6 + Math.random()*1.2) * ENEMY_FIRE_RATE_MULT * fireCdMul; } else { s.cd = 0.5 * ENEMY_FIRE_RATE_MULT * fireCdMul; }
+          if(td < tile*9){
+            const dx=target.x - s.x, dy=target.y - s.y; const L=Math.hypot(dx,dy)||1;
+            const vx = dx/L, vy = dy/L;
+            bullets.push({ x:s.x, y:s.y, vx, vy, spd: 220, dmg: 22, owner:'ship' });
+            const nextCd = (1.6 + Math.random()*1.2) * ENEMY_FIRE_RATE_MULT * fireCdMul;
+            s.cd = nextCd;
+            if(s.isBoss && s.fireballCd<=0){
+              bullets.push({ x:s.x, y:s.y, vx, vy, spd: 200, dmg: 26, owner:'ship', variant:'fireball' });
+              const slowMul = s.fireballRateMultiplier || 1.5;
+              s.fireballCd = nextCd * slowMul;
+            }
+          } else {
+            s.cd = 0.5 * ENEMY_FIRE_RATE_MULT * fireCdMul;
+          }
         }
       }
     }
@@ -1243,11 +1346,55 @@
         if(b.owner==='cannon'){
           for(const s of ships){ if(Math.hypot(s.x-b.x, s.y-b.y) < tile*0.5){ s.hp -= b.dmg; b.dead = true; if(s.hp<=0){ s.dead = true; state.kills++; } break; } }
         } else { // ship bullet
+          const isFireball = b.variant === 'fireball';
           // walls
-          for(const w of walls){ const p = gridToPx(w.gx, w.gy); if(Math.hypot(p.x-b.x, p.y-b.y) < tile*0.6){ w.hp -= b.dmg; b.dead=true; break; } }
+          for(const w of walls){
+            const p = gridToPx(w.gx, w.gy);
+            if(Math.hypot(p.x-b.x, p.y-b.y) < tile*0.6){
+              w.hp -= isFireball ? b.dmg * 2 : b.dmg;
+              if(isFireball) burnCell(w.gx, w.gy);
+              b.dead=true;
+              break;
+            }
+          }
+          // cannons (fireball only)
+          if(!b.dead && isFireball){
+            for(let i=cannons.length-1;i>=0;i--){
+              const c = cannons[i];
+              const cx = (c.gx + 1) * tile;
+              const cy = (c.gy + 1) * tile;
+              if(Math.hypot(cx-b.x, cy-b.y) < tile){
+                cannons.splice(i,1);
+                markCannonFootprint(c.gx, c.gy, false);
+                for(let dy=0; dy<2; dy++){
+                  for(let dx=0; dx<2; dx++){
+                    burnCell(c.gx+dx, c.gy+dy);
+                  }
+                }
+                b.dead = true;
+                break;
+              }
+            }
+          }
           if(!b.dead){ // keep
             const kc = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2);
-            if(Math.hypot(kc.x-b.x, kc.y-b.y) < tile*1.2){ state.keepHP = Math.max(0, state.keepHP - b.dmg); b.dead = true; if(state.keepHP<=0) gameOver('destroyed'); }
+            if(Math.hypot(kc.x-b.x, kc.y-b.y) < tile*1.2){
+              state.keepHP = Math.max(0, state.keepHP - b.dmg);
+              if(isFireball){
+                for(let dy=0; dy<keepRect.h; dy++){
+                  for(let dx=0; dx<keepRect.w; dx++){
+                    burnCell(keepRect.x+dx, keepRect.y+dy);
+                  }
+                }
+              }
+              b.dead = true;
+              if(state.keepHP<=0) gameOver('destroyed');
+            }
+          }
+          if(isFireball && !b.dead){
+            const { gx, gy } = worldToGrid(b.x, b.y);
+            burnCell(gx, gy);
+            b.dead = true;
           }
         }
       }
@@ -1354,6 +1501,7 @@
       // Reset state for a new run
       if(spawnIv){ clearInterval(spawnIv); spawnIv=null; }
       state.bricks = 50; state.keepHP = KEEP_MAX_HP; state.wave = 1; state.kills = 0; state.placedWalls=0; walls.length=0; cannons.length=0; ships.length=0; bullets.length=0; placementHistory.length=0; gameOverHandled=false; buildTimer = BUILD_TIME * TIME_FACTOR; spawning=false; waveDoneCheck=0; selectedTool='wall';
+      clearBurnedCells();
       resetOccupancy();
       startBuild(); running = true;
     }

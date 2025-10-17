@@ -1215,6 +1215,41 @@
     // Battle mechanics
     function distance(a,b){ const dx=a.x-b.x, dy=a.y-b.y; return Math.hypot(dx,dy); }
 
+    function leadIntercept(px, py, target, bulletSpeed){
+      const tx = target.x;
+      const ty = target.y;
+      const tvx = target.vxActual || 0;
+      const tvy = target.vyActual || 0;
+      const dx = tx - px;
+      const dy = ty - py;
+      const a = tvx*tvx + tvy*tvy - bulletSpeed*bulletSpeed;
+      const b = 2*(dx*tvx + dy*tvy);
+      const c = dx*dx + dy*dy;
+      let t;
+      if(Math.abs(a) < 1e-6){
+        t = Math.abs(b) > 1e-6 ? (-c / b) : 0;
+      } else {
+        const disc = b*b - 4*a*c;
+        if(disc >= 0){
+          const sqrtDisc = Math.sqrt(disc);
+          const t1 = (-b - sqrtDisc) / (2*a);
+          const t2 = (-b + sqrtDisc) / (2*a);
+          t = Math.min(t1, t2);
+          if(t < 0) t = Math.max(t1, t2);
+        }
+      }
+      if(!t || t < 0){
+        const baseDist = Math.hypot(dx, dy);
+        t = baseDist / bulletSpeed;
+      }
+      const aimX = tx + tvx * t;
+      const aimY = ty + tvy * t;
+      const leadDx = aimX - px;
+      const leadDy = aimY - py;
+      const L = Math.hypot(leadDx, leadDy) || 1;
+      return { vx: leadDx / L, vy: leadDy / L };
+    }
+
     function spawnWave(){
       const count = 4 + Math.floor(state.wave*1.8);
       let spawned = 0;
@@ -1240,6 +1275,11 @@
           y: spawn.y,
           vx: spawn.vx,
           vy: spawn.vy,
+          vxActual: spawn.vx * spd,
+          vyActual: spawn.vy * spd,
+          mode: 'approach',
+          orbitDir: Math.random() < 0.5 ? -1 : 1,
+          orbitRadius: null,
           spd,
           hp,
           maxHp: hp,
@@ -1318,30 +1358,76 @@
         // target nearest ship; cannon center is middle of its 2x2 footprint
         const px = c.gx*tile + tile, py = c.gy*tile + tile;
         let best=null, bestD=1e9; for(const s of ships){ const d = Math.hypot(s.x-px, s.y-py); if(d<bestD){ best=s; bestD=d; } }
-        if(best && bestD < tile*8){ const dx=best.x-px, dy=best.y-py; const L=Math.hypot(dx,dy)||1; c.angle = Math.atan2(dy,dx); bullets.push({ x:px, y:py, vx:dx/L, vy:dy/L, spd: 260, dmg: 34, owner:'cannon' }); c.cd = 0.6; }
+        if(best && bestD < tile*8){
+          const intercept = leadIntercept(px, py, best, 260);
+          c.angle = Math.atan2(intercept.vy, intercept.vx);
+          bullets.push({ x:px, y:py, vx:intercept.vx, vy:intercept.vy, spd: 260, dmg: 34, owner:'cannon' });
+          c.cd = 0.6;
+        }
       }
     }
 
     function shipsAct(dt){
+      const keepCenter = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2);
+      const orbitTriggerRange = tile * 6.5;
+      const minOrbitRadius = tile * 2.4;
+      const maxOrbitRadius = tile * 6.5;
       for(const s of ships){
+        const toKeepX = keepCenter.x - s.x;
+        const toKeepY = keepCenter.y - s.y;
+        const distToKeep = Math.hypot(toKeepX, toKeepY) || 1;
+        if(s.mode === 'orbit' && distToKeep > orbitTriggerRange * 1.25){
+          s.mode = 'approach';
+        }
+        if(s.mode !== 'orbit'){
+          const L = distToKeep || 1;
+          s.vx = toKeepX / L;
+          s.vy = toKeepY / L;
+          if(distToKeep <= orbitTriggerRange){
+            s.mode = 'orbit';
+            s.orbitRadius = distToKeep;
+          }
+        } else {
+          const radialX = s.x - keepCenter.x;
+          const radialY = s.y - keepCenter.y;
+          const radialDist = Math.hypot(radialX, radialY) || 1;
+          const desiredRadius = Math.max(minOrbitRadius, Math.min(maxOrbitRadius, s.orbitRadius || radialDist));
+          s.orbitRadius = desiredRadius;
+          const tangentX = s.orbitDir > 0 ? -radialY : radialY;
+          const tangentY = s.orbitDir > 0 ? radialX : -radialX;
+          const tangentLen = Math.hypot(tangentX, tangentY) || 1;
+          let vx = tangentX / tangentLen;
+          let vy = tangentY / tangentLen;
+          const radiusError = desiredRadius - radialDist;
+          const radialDirX = radialX / radialDist;
+          const radialDirY = radialY / radialDist;
+          const adjust = Math.max(-0.8, Math.min(0.8, radiusError / Math.max(desiredRadius, 1)));
+          vx += radialDirX * adjust;
+          vy += radialDirY * adjust;
+          const moveLen = Math.hypot(vx, vy) || 1;
+          s.vx = vx / moveLen;
+          s.vy = vy / moveLen;
+        }
         const { gx, gy } = worldToGrid(s.x, s.y);
-        const nearKeep = inKeepRing(gx, gy);
         const overWall = hasWallAt(gx, gy);
-        const speedMul = nearKeep ? 0 : (overWall ? 0.2 : 1);
-        s.x += s.vx*s.spd*dt*speedMul; s.y += s.vy*s.spd*dt*speedMul;
+        const speedMul = overWall ? 0.2 : 1;
+        const actualSpeed = s.spd * speedMul;
+        s.x += s.vx * actualSpeed * dt;
+        s.y += s.vy * actualSpeed * dt;
+        s.vxActual = s.vx * actualSpeed;
+        s.vyActual = s.vy * actualSpeed;
         s.cd -= dt;
         if(typeof s.fireballCd === 'number'){ s.fireballCd = Math.max(0, s.fireballCd - dt); }
         if(s.cd<=0){
           let target = null; let td = 1e9;
-          if (nearKeep) {
-            // If parked next to the keep, always fire at the keep from now on
-            const k = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2);
-            target = { x:k.x, y:k.y, type:'keep' };
-            td = Math.hypot(k.x - s.x, k.y - s.y);
+          const keepTarget = { x: keepCenter.x, y: keepCenter.y, type: 'keep' };
+          const keepDist = Math.hypot(keepCenter.x - s.x, keepCenter.y - s.y);
+          if(keepDist < tile * 9){
+            target = keepTarget;
+            td = keepDist;
           } else {
-            // choose target: nearest wall else keep
             for(const w of walls){ const p = gridToPx(w.gx, w.gy); const d = Math.hypot(p.x - s.x, p.y - s.y); if(d < td){ td = d; target = { x: p.x, y: p.y, type:'wall', ref:w }; } }
-            if(!target){ const k = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2); target = { x:k.x, y:k.y, type:'keep' }; td = Math.hypot(k.x-s.x, k.y-s.y); }
+            if(!target){ target = keepTarget; td = keepDist; }
           }
           const fireCdMul = s.fireCdMultiplier || 1;
           if(td < tile*9){

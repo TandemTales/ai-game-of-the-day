@@ -219,6 +219,8 @@
       shipRight: 'assets/BB_ship01_right.png',
       shipHeavyLeft: 'assets/BB_ship02_left.png',
       shipHeavyRight: 'assets/BB_ship02_right.png',
+      shipBossLeft: 'assets/BB_ship04_left.png',
+      shipBossRight: 'assets/BB_ship04_right.png',
       ball: 'assets/cannonball.svg',
       boom: 'assets/explosion.svg',
     };
@@ -332,6 +334,7 @@
     const BUILD_TIME = 18; // seconds per build phase (waves 2+)
     const FIRST_BUILD_TIME = 29; // slightly longer first build phase
     const MAX_WAVES = 6;
+    const BOSS_WAVE = 4;
     // Mobile time scaling: triple phase durations on mobile only
     const IS_MOBILE = (
       typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod|Windows Phone|webOS|BlackBerry|Opera Mini|IEMobile/i.test(navigator.userAgent)
@@ -358,6 +361,14 @@
         fireCdMultiplier: 1 / 1.5,
         spriteLeft: 'shipHeavyLeft',
         spriteRight: 'shipHeavyRight'
+      },
+      boss: {
+        id: 'boss',
+        hpMultiplier: 2.5,
+        speedMultiplier: 1.25,
+        fireCdMultiplier: 1 / 2.5,
+        spriteLeft: 'shipBossLeft',
+        spriteRight: 'shipBossRight'
       }
     };
 
@@ -1141,13 +1152,13 @@
     function distance(a,b){ const dx=a.x-b.x, dy=a.y-b.y; return Math.hypot(dx,dy); }
 
     function spawnWave(){
-      const count = 4 + Math.floor(state.wave*1.8);
       let spawned = 0;
+      const baseSpd = 28 + state.wave*6;
+      const baseHp = 80 + state.wave*30;
       const delay = Math.max(400, 1100 - state.wave*120);
 
-      function spawnOne(){
-        // If spawning was cancelled, stop scheduling further spawns
-        if(!spawning){ if(spawnIv){ clearInterval(spawnIv); spawnIv=null; } return; }
+      function spawnShip(type){
+        const shipType = type || ENEMY_SHIP_TYPES.basic;
         const side = Math.floor(Math.random()*4);
         let x,y,vx,vy; const target = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2);
         const pad = tile*0.5;
@@ -1156,13 +1167,11 @@
         else if(side===2){ x = Math.random()*COLS*tile; y = -pad; }
         else { x = Math.random()*COLS*tile; y = ROWS*tile+pad; }
         const dx = target.x - x, dy = target.y - y; const d = Math.hypot(dx,dy)||1; vx = dx/d; vy = dy/d;
-        const baseSpd = 28 + state.wave*6;
-        const baseHp = 80 + state.wave*30;
-        const heavyChance = state.wave <= 1 ? 0 : Math.min(0.2 + state.wave * 0.12, 0.7);
-        const type = (Math.random() < heavyChance) ? ENEMY_SHIP_TYPES.dreadnought : ENEMY_SHIP_TYPES.basic;
-        const spd = baseSpd * type.speedMultiplier;
-        const hp = Math.round(baseHp * type.hpMultiplier);
-        const fireCdMultiplier = type.fireCdMultiplier;
+        const speedMultiplier = shipType.speedMultiplier ?? 1;
+        const hpMultiplier = shipType.hpMultiplier ?? 1;
+        const fireCdMultiplier = shipType.fireCdMultiplier ?? 1;
+        const spd = baseSpd * speedMultiplier;
+        const hp = Math.round(baseHp * hpMultiplier);
         ships.push({
           x,
           y,
@@ -1173,20 +1182,34 @@
           maxHp: hp,
           cd: (1.2 + Math.random()*1.2) * ENEMY_FIRE_RATE_MULT * fireCdMultiplier,
           fireCdMultiplier,
-          spriteLeft: type.spriteLeft,
-          spriteRight: type.spriteRight,
-          shipType: type.id
+          spriteLeft: shipType.spriteLeft,
+          spriteRight: shipType.spriteRight,
+          shipType: shipType.id
         });
         spawned++;
-        // Switch to attack phase on the first enemy appearing
         if(state.phase!=='battle'){ state.phase='battle'; updateHUD(); }
+      }
+
+      if(state.wave === BOSS_WAVE){
+        if(spawnIv){ clearInterval(spawnIv); spawnIv = null; }
+        spawnShip(ENEMY_SHIP_TYPES.boss);
+        spawning=false;
+        return;
+      }
+
+      const count = 4 + Math.floor(state.wave*1.8);
+      const heavyChance = state.wave <= 1 ? 0 : Math.min(0.2 + state.wave * 0.12, 0.7);
+
+      function spawnOne(){
+        if(!spawning){ if(spawnIv){ clearInterval(spawnIv); spawnIv=null; } return; }
+        const type = (Math.random() < heavyChance) ? ENEMY_SHIP_TYPES.dreadnought : ENEMY_SHIP_TYPES.basic;
+        spawnShip(type);
         if(spawned>=count){
           if(spawnIv){ clearInterval(spawnIv); spawnIv=null; }
           spawning=false;
         }
       }
 
-      // Spawn first immediately so phase flips when enemies show up
       spawnOne();
       if(spawned < count){
         spawnIv = setInterval(spawnOne, delay);

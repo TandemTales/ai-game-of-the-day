@@ -1247,7 +1247,12 @@
           fireCdMultiplier,
           spriteLeft: type.spriteLeft,
           spriteRight: type.spriteRight,
-          shipType: type.id
+          shipType: type.id,
+          mode: 'approach',
+          orbitAngle: null,
+          orbitDir: 0,
+          orbitRadius: 0,
+          lastTargetType: null
         };
         if(type.isBoss){
           ship.isBoss = true;
@@ -1323,30 +1328,89 @@
     }
 
     function shipsAct(dt){
+      const keepCenter = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2);
+      const orbitTriggerRadius = tile * 4.5;
+      const keepFireRange = tile * 6.75;
+      const wallPriorityRange = tile * 5.5;
       for(const s of ships){
+        if(!s.mode) s.mode = 'approach';
         const { gx, gy } = worldToGrid(s.x, s.y);
-        const nearKeep = inKeepRing(gx, gy);
         const overWall = hasWallAt(gx, gy);
-        const speedMul = nearKeep ? 0 : (overWall ? 0.2 : 1);
-        s.x += s.vx*s.spd*dt*speedMul; s.y += s.vy*s.spd*dt*speedMul;
+        const keepDx = keepCenter.x - s.x;
+        const keepDy = keepCenter.y - s.y;
+        let keepDist = Math.hypot(keepDx, keepDy) || 1;
+
+        if(s.mode !== 'orbit' && keepDist <= orbitTriggerRadius){
+          s.mode = 'orbit';
+          s.orbitRadius = Math.max(tile * 3.2, keepDist);
+          s.orbitAngle = Math.atan2(s.y - keepCenter.y, s.x - keepCenter.x);
+          const cross = s.vx * keepDy - s.vy * keepDx;
+          s.orbitDir = cross >= 0 ? 1 : -1;
+          if(!s.orbitDir) s.orbitDir = Math.random() < 0.5 ? 1 : -1;
+        }
+
+        if(s.mode === 'orbit'){
+          const radius = s.orbitRadius || Math.max(tile * 3.2, keepDist);
+          const tangentialSpeed = s.spd * 0.85;
+          const angularStep = (tangentialSpeed / radius) * dt;
+          s.orbitAngle = (s.orbitAngle ?? Math.atan2(s.y - keepCenter.y, s.x - keepCenter.x)) + angularStep * s.orbitDir;
+          const cosA = Math.cos(s.orbitAngle);
+          const sinA = Math.sin(s.orbitAngle);
+          s.x = keepCenter.x + cosA * radius;
+          s.y = keepCenter.y + sinA * radius;
+          s.vx = -sinA * s.orbitDir;
+          s.vy = cosA * s.orbitDir;
+          keepDist = radius;
+        } else {
+          const dirLen = keepDist;
+          s.vx = keepDx / dirLen;
+          s.vy = keepDy / dirLen;
+          const speedMul = overWall ? 0.25 : (keepDist <= orbitTriggerRadius ? 0.6 : 1);
+          s.x += s.vx * s.spd * dt * speedMul;
+          s.y += s.vy * s.spd * dt * speedMul;
+          keepDist = Math.hypot(keepCenter.x - s.x, keepCenter.y - s.y) || keepDist;
+        }
+
         s.cd -= dt;
         if(typeof s.fireballCd === 'number'){ s.fireballCd = Math.max(0, s.fireballCd - dt); }
         if(s.cd<=0){
-          let target = null; let td = 1e9;
-          if (nearKeep) {
-            // If parked next to the keep, always fire at the keep from now on
-            const k = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2);
-            target = { x:k.x, y:k.y, type:'keep' };
-            td = Math.hypot(k.x - s.x, k.y - s.y);
-          } else {
-            // choose target: nearest wall else keep
-            for(const w of walls){ const p = gridToPx(w.gx, w.gy); const d = Math.hypot(p.x - s.x, p.y - s.y); if(d < td){ td = d; target = { x: p.x, y: p.y, type:'wall', ref:w }; } }
-            if(!target){ const k = gridToPx(keepRect.x+keepRect.w/2, keepRect.y+keepRect.h/2); target = { x:k.x, y:k.y, type:'keep' }; td = Math.hypot(k.x-s.x, k.y-s.y); }
+          const canHitKeep = keepDist <= keepFireRange;
+          let target = null;
+          let td = Infinity;
+          let nearestWall = null;
+          let nearestWallDist = Infinity;
+          for(const w of walls){
+            const p = gridToPx(w.gx, w.gy);
+            const d = Math.hypot(p.x - s.x, p.y - s.y);
+            if(d < nearestWallDist){
+              nearestWallDist = d;
+              nearestWall = { x: p.x, y: p.y, type:'wall', ref:w };
+            }
           }
+          if(nearestWall){
+            target = nearestWall;
+            td = nearestWallDist;
+          }
+          if(canHitKeep){
+            const keepTarget = { x: keepCenter.x, y: keepCenter.y, type:'keep' };
+            const wantKeep = s.mode === 'orbit' && s.lastTargetType !== 'keep';
+            if(!target){
+              target = keepTarget;
+              td = keepDist;
+            } else if(wantKeep || keepDist <= td * 0.85 || td > wallPriorityRange){
+              target = keepTarget;
+              td = keepDist;
+            }
+          }
+
           const fireCdMul = s.fireCdMultiplier || 1;
-          if(td < tile*9){
-            const dx=target.x - s.x, dy=target.y - s.y; const L=Math.hypot(dx,dy)||1;
-            const vx = dx/L, vy = dy/L;
+          if(target && td < tile*9){
+            s.lastTargetType = target.type;
+            const dx = target.x - s.x;
+            const dy = target.y - s.y;
+            const L = Math.hypot(dx,dy) || 1;
+            const vx = dx / L;
+            const vy = dy / L;
             bullets.push({ x:s.x, y:s.y, vx, vy, spd: 220, dmg: 22, owner:'ship' });
             const nextCd = (1.6 + Math.random()*1.2) * ENEMY_FIRE_RATE_MULT * fireCdMul;
             s.cd = nextCd;
@@ -1366,11 +1430,12 @@
 
     function handleCollisions(){
       // bullet vs ships / walls / keep
+      const cannonHitRadius = tile * 0.625;
       for(const b of bullets){
         // out of bounds
         if(b.x < -40 || b.y < -40 || b.x > COLS*tile+40 || b.y > ROWS*tile+40){ b.dead=true; continue; }
         if(b.owner==='cannon'){
-          for(const s of ships){ if(Math.hypot(s.x-b.x, s.y-b.y) < tile*0.5){ s.hp -= b.dmg; b.dead = true; if(s.hp<=0){ s.dead = true; state.kills++; } break; } }
+          for(const s of ships){ if(Math.hypot(s.x-b.x, s.y-b.y) < cannonHitRadius){ s.hp -= b.dmg; b.dead = true; if(s.hp<=0){ s.dead = true; state.kills++; } break; } }
         } else { // ship bullet
           const isFireball = b.variant === 'fireball';
           // walls

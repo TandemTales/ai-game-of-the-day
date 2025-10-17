@@ -217,6 +217,8 @@
       cannon: 'assets/BB_cannon.png',
       shipLeft: 'assets/BB_ship02_left.png',
       shipRight: 'assets/BB_ship02_right.png',
+      shipAirLeft: 'assets/BB_ship01_left.png',
+      shipAirRight: 'assets/BB_ship01_right.png',
       shipHeavyLeft: 'assets/BB_ship03_left.png',
       shipHeavyRight: 'assets/BB_ship03_right.png',
       bossShipLeft: 'assets/BB_ship_boss01_left.png',
@@ -353,6 +355,14 @@
         fireCdMultiplier: 1,
         spriteLeft: 'shipLeft',
         spriteRight: 'shipRight'
+      },
+      airship: {
+        id: 'airship',
+        hpMultiplier: 0.5,
+        speedMultiplier: 2,
+        fireCdMultiplier: 2,
+        spriteLeft: 'shipAirLeft',
+        spriteRight: 'shipAirRight'
       },
       dreadnought: {
         id: 'dreadnought',
@@ -1258,7 +1268,17 @@
         if(!spawning){ if(spawnIv){ clearInterval(spawnIv); spawnIv=null; } return; }
         if(spawned < count){
           const heavyChance = state.wave <= 1 ? 0 : Math.min(0.2 + state.wave * 0.12, 0.7);
-          const type = (Math.random() < heavyChance) ? ENEMY_SHIP_TYPES.dreadnought : ENEMY_SHIP_TYPES.basic;
+          const airshipChance = Math.min(0.25 + state.wave * 0.08, 0.65);
+          const adjustedHeavyChance = Math.min(heavyChance, Math.max(0, 1 - airshipChance));
+          const roll = Math.random();
+          let type;
+          if(roll < airshipChance){
+            type = ENEMY_SHIP_TYPES.airship;
+          } else if(roll < airshipChance + adjustedHeavyChance){
+            type = ENEMY_SHIP_TYPES.dreadnought;
+          } else {
+            type = ENEMY_SHIP_TYPES.basic;
+          }
           spawnShipOfType(type, computeSpawn());
           spawned++;
           return;

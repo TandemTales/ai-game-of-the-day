@@ -153,7 +153,7 @@
     <div class="overlay show" id="overlay">
       <h2>Rebuild the Bastion</h2>
       <p>Defend the keep against incoming ships.</p>
-      <p>Mobile: tap to rotate, long press to place. Desktop: click to place, press R to rotate.</p>
+      <p>Mobile: tap to rotate, double tap to place walls (long press to deploy cannons). Desktop: click to place, press R to rotate.</p>
       <p class="tap">Tap to start · Pinch zoom is disabled</p>
     </div>
     <div class="overlay" id="howTo">
@@ -168,7 +168,7 @@
     <div class="tool" data-type="cannon" data-cost="6"><img src="assets/BB_cannon.png" alt="cannon"><div>Cannon 6</div></div>
     <div class="tool action" id="undoBtn"><div>↩ Undo</div></div>
     <div class="tool action" id="finishTurnBtn"><div>Finish Turn</div></div>
-    <div class="instructions">Mobile: tap to rotate, long press to place<br>Desktop: click to place, press R to rotate</div>
+    <div class="instructions">Mobile: tap to rotate, double tap to place walls (long press for cannons)<br>Desktop: click to place, press R to rotate</div>
   </div>
 
   <script>
@@ -279,6 +279,9 @@
     let longPressAnimStart = 0;
     let longPressAnimProgress = 0;
     let longPressReady = false;
+    const DOUBLE_TAP_DELAY = 320;
+    let lastTapTime = 0;
+    let lastTapCell = null;
     let touchMoved = false;
     let touchStartX = 0, touchStartY = 0;
 
@@ -286,7 +289,7 @@
     const LONG_PRESS_ANIM_MS = 200;
 
     function canLongPress(){
-      return state.phase==='build' && ((selectedTool==='wall' && currentPiece) || selectedTool==='cannon');
+      return state.phase==='build' && selectedTool==='cannon';
     }
 
     // Determine if a placement is currently possible at the hover/anchor position
@@ -422,6 +425,8 @@
       for(const el of toolbar.querySelectorAll('.tool')) el.classList.remove('selected');
       item.classList.add('selected');
       selectedTool = type;
+      lastTapTime = 0;
+      lastTapCell = null;
     }
 
     // Undo button enable/disable based on phase and history
@@ -485,7 +490,7 @@
         </ul>
         <p>Score points by destroying ships and surviving waves. The game ends when the keep is destroyed, or you clear all ${MAX_WAVES} waves.</p>
         <p><strong>Wave 5:</strong> A boss man-o-war arrives after the fleet. Its blazing volleys leave permanent fire and melt cannons, so protect your core defenses. Each time it returns, it brings 50% more hull plating.</p>
-        <p>Tips: Place cannons behind walls. Repair damage during the next build phase. On desktop, click to place pieces and press <kbd>R</kbd> to rotate them. On mobile, long press to place and tap to rotate. The current piece is shown in the HUD.</p>
+        <p>Tips: Place cannons behind walls. Repair damage during the next build phase. On desktop, click to place pieces and press <kbd>R</kbd> to rotate them. On mobile, tap to rotate, double tap to place walls, and long press to deploy cannons. The current piece is shown in the HUD.</p>
       `;
     }
 
@@ -856,6 +861,10 @@
           if(nextPiece && nextPiece.length > state.bricks){ nextPiece = genPiece(state.bricks); }
           drawCurrentPreview();
         }
+        if(selectedTool==='wall'){
+          lastTapTime = 0;
+          lastTapCell = null;
+        }
         updateHUD();
         draw();
         updateUndoBtnState();
@@ -960,16 +969,23 @@
           longPressAnimating = false;
           longPressReady = false;
           longPressAnimProgress = 0;
-        } else if(state.phase==='build'){ 
-        if(selectedTool==='wall' && currentPiece){
-          if(longPressReady && !touchMoved){
+        } else if(state.phase==='build'){
+        if(touchMoved){
+          lastTapTime = 0;
+          lastTapCell = null;
+        } else if(selectedTool==='wall' && currentPiece){
+          const now = performance.now();
+          const sameCell = hoverCell && lastTapCell && hoverCell.gx === lastTapCell.gx && hoverCell.gy === lastTapCell.gy;
+          if(sameCell && (now - lastTapTime) <= DOUBLE_TAP_DELAY){
             finalizePlacement();
-            longPressReady = false;
-            longPressAnimating = false;
-          }else if(!longPressReady && !touchMoved){
+            lastTapTime = 0;
+            lastTapCell = null;
+          } else {
             currentPiece = rotatePiece(currentPiece);
             draw();
             drawCurrentPreview();
+            lastTapTime = now;
+            lastTapCell = hoverCell ? { gx: hoverCell.gx, gy: hoverCell.gy } : null;
           }
         } else if(selectedTool==='cannon' && longPressReady && !touchMoved){
           finalizePlacement();

@@ -153,7 +153,7 @@
     <div class="overlay show" id="overlay">
       <h2>Rebuild the Bastion</h2>
       <p>Defend the keep against incoming ships.</p>
-      <p>Mobile: tap to rotate, long press to place. Desktop: click to place, press R to rotate.</p>
+      <p>Mobile: double tap to rotate, long press to place. Desktop: click to place, press R to rotate.</p>
       <p class="tap">Tap to start · Pinch zoom is disabled</p>
     </div>
     <div class="overlay" id="howTo">
@@ -168,7 +168,7 @@
     <div class="tool" data-type="cannon" data-cost="6"><img src="assets/BB_cannon.png" alt="cannon"><div>Cannon 6</div></div>
     <div class="tool action" id="undoBtn"><div>↩ Undo</div></div>
     <div class="tool action" id="finishTurnBtn"><div>Finish Turn</div></div>
-    <div class="instructions">Mobile: tap to rotate, long press to place<br>Desktop: click to place, press R to rotate</div>
+    <div class="instructions">Mobile: double tap to rotate, long press to place<br>Desktop: click to place, press R to rotate</div>
   </div>
 
   <script>
@@ -281,9 +281,14 @@
     let longPressReady = false;
     let touchMoved = false;
     let touchStartX = 0, touchStartY = 0;
+    let lastTapTime = 0;
+    let lastTapX = 0;
+    let lastTapY = 0;
 
     const LONG_PRESS_DELAY = 600;
     const LONG_PRESS_ANIM_MS = 200;
+    const DOUBLE_TAP_MS = 320;
+    const DOUBLE_TAP_DISTANCE = 24; // pixels
 
     function canLongPress(){
       return state.phase==='build' && ((selectedTool==='wall' && currentPiece) || selectedTool==='cannon');
@@ -485,7 +490,7 @@
         </ul>
         <p>Score points by destroying ships and surviving waves. The game ends when the keep is destroyed, or you clear all ${MAX_WAVES} waves.</p>
         <p><strong>Wave 5:</strong> A boss man-o-war arrives after the fleet. Its blazing volleys leave permanent fire and melt cannons, so protect your core defenses. Each time it returns, it brings 50% more hull plating.</p>
-        <p>Tips: Place cannons behind walls. Repair damage during the next build phase. On desktop, click to place pieces and press <kbd>R</kbd> to rotate them. On mobile, long press to place and tap to rotate. The current piece is shown in the HUD.</p>
+        <p>Tips: Place cannons behind walls. Repair damage during the next build phase. On desktop, click to place pieces and press <kbd>R</kbd> to rotate them. On mobile, long press to place and double tap to rotate. The current piece is shown in the HUD.</p>
       `;
     }
 
@@ -802,6 +807,7 @@
       longPressAnimating = true;
       longPressAnimStart = performance.now();
       longPressAnimProgress = 0;
+      lastTapTime = 0;
       requestAnimationFrame(stepLongPressAnim);
     }
 
@@ -902,6 +908,20 @@
       const t = e.changedTouches[0];
       const r = canvas.getBoundingClientRect();
       updateHover(t.clientX - r.left, t.clientY - r.top);
+      if(!touchMoved){
+        const dx = t.clientX - touchStartX;
+        const dy = t.clientY - touchStartY;
+        if(Math.abs(dx) > 10 || Math.abs(dy) > 10){
+          touchMoved = true;
+          lastTapTime = 0;
+          if(longPressTimeout){ clearTimeout(longPressTimeout); longPressTimeout = null; }
+          if(longPressAnimating){
+            longPressAnimating = false;
+            longPressReady = false;
+            longPressAnimProgress = 0;
+          }
+        }
+      }
       /*
       if(longPressReady){
         longPressReady = false;
@@ -956,27 +976,44 @@
     }, {passive:false});
     function endTouch(e){
       if(longPressTimeout){ clearTimeout(longPressTimeout); longPressTimeout=null; }
+      const t = e.changedTouches[0];
+      const releaseX = t ? t.clientX : touchStartX;
+      const releaseY = t ? t.clientY : touchStartY;
       if(longPressAnimating){
           longPressAnimating = false;
           longPressReady = false;
           longPressAnimProgress = 0;
-        } else if(state.phase==='build'){ 
+          lastTapTime = 0;
+        } else if(state.phase==='build'){
         if(selectedTool==='wall' && currentPiece){
           if(longPressReady && !touchMoved){
             finalizePlacement();
             longPressReady = false;
             longPressAnimating = false;
+            lastTapTime = 0;
           }else if(!longPressReady && !touchMoved){
-            currentPiece = rotatePiece(currentPiece);
-            draw();
-            drawCurrentPreview();
+            const now = performance.now();
+            const isQuickTap = now - lastTapTime <= DOUBLE_TAP_MS;
+            const closeEnough = Math.hypot(releaseX - lastTapX, releaseY - lastTapY) <= DOUBLE_TAP_DISTANCE;
+            if(isQuickTap && closeEnough){
+              currentPiece = rotatePiece(currentPiece);
+              draw();
+              drawCurrentPreview();
+              lastTapTime = 0;
+            } else {
+              lastTapTime = now;
+              lastTapX = releaseX;
+              lastTapY = releaseY;
+            }
           }
         } else if(selectedTool==='cannon' && longPressReady && !touchMoved){
           finalizePlacement();
           longPressReady = false;
           longPressAnimating = false;
+          lastTapTime = 0;
         }
       }
+      touchMoved = false;
       e.preventDefault();
     }
     canvas.addEventListener('touchend', endTouch, {passive:false});

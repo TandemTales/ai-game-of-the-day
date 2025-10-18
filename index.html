@@ -243,7 +243,8 @@
                 }
 
                 li:hover,
-                li:focus-within {
+                li:focus-within,
+                li.hovering {
                         background: rgba(255, 215, 0, 0.1);
                         box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
                         border-color: rgba(255, 215, 0, 0.4);
@@ -270,11 +271,12 @@
             color: #F5F5DC;
             opacity: 0;
             max-height: 0;
-            transition: opacity 0.3s ease, max-height 0.3s ease;
+            transition: opacity 0.25s ease, max-height 0.08s ease-out;
         }
 
         li:hover .game-description,
-        li:focus-within .game-description {
+        li:focus-within .game-description,
+        li.hovering .game-description {
             opacity: 1;
             max-height: 500px;
         }
@@ -557,6 +559,34 @@
            if (nsRate) {
              nsRate.querySelectorAll('span[data-star]').forEach(function(el){ el.textContent = '★'; });
            }
+         });
+       </script>
+       <script>
+         // Keep hover expansions active briefly so fast cursor movement still reveals descriptions
+         document.addEventListener('DOMContentLoaded', function() {
+           const gameItems = document.querySelectorAll('#games li');
+           gameItems.forEach(function(item) {
+             let hideTimer;
+
+             const show = function() {
+               clearTimeout(hideTimer);
+               item.classList.add('hovering');
+             };
+
+             const hide = function() {
+               clearTimeout(hideTimer);
+               hideTimer = setTimeout(function() {
+                 if (!item.matches(':hover') && !item.matches(':focus-within')) {
+                   item.classList.remove('hovering');
+                 }
+               }, 700);
+             };
+
+             item.addEventListener('mouseenter', show);
+             item.addEventListener('mouseleave', hide);
+             item.addEventListener('focusin', show);
+             item.addEventListener('focusout', hide);
+           });
          });
        </script>
 </body>

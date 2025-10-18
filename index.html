@@ -269,16 +269,8 @@
             font-size: 12px;
             line-height: 1.6;
             color: #F5F5DC;
-            opacity: 0;
-            max-height: 0;
-            transition: opacity 0.25s ease, max-height 0.08s ease-out;
-        }
-
-        li:hover .game-description,
-        li:focus-within .game-description,
-        li.hovering .game-description {
             opacity: 1;
-            max-height: 500px;
+            max-height: none;
         }
 
         /* Small tagline for company and AI note */
@@ -559,34 +551,6 @@
            if (nsRate) {
              nsRate.querySelectorAll('span[data-star]').forEach(function(el){ el.textContent = '★'; });
            }
-         });
-       </script>
-       <script>
-         // Keep hover expansions active briefly so fast cursor movement still reveals descriptions
-         document.addEventListener('DOMContentLoaded', function() {
-           const gameItems = document.querySelectorAll('#games li');
-           gameItems.forEach(function(item) {
-             let hideTimer;
-
-             const show = function() {
-               clearTimeout(hideTimer);
-               item.classList.add('hovering');
-             };
-
-             const hide = function() {
-               clearTimeout(hideTimer);
-               hideTimer = setTimeout(function() {
-                 if (!item.matches(':hover') && !item.matches(':focus-within')) {
-                   item.classList.remove('hovering');
-                 }
-               }, 700);
-             };
-
-             item.addEventListener('mouseenter', show);
-             item.addEventListener('mouseleave', hide);
-             item.addEventListener('focusin', show);
-             item.addEventListener('focusout', hide);
-           });
          });
        </script>
 </body>

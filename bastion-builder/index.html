@@ -865,6 +865,18 @@
     canvas.addEventListener('mousemove', (e)=>{ const r = canvas.getBoundingClientRect(); updateHover(e.clientX - r.left, e.clientY - r.top); }, {passive:true});
     canvas.addEventListener('mouseleave', ()=>{ hoverCell = null; draw(); });
     canvas.addEventListener('click', (e)=>{ const r = canvas.getBoundingClientRect(); updateHover(e.clientX - r.left, e.clientY - r.top); finalizePlacement(); }, {passive:true});
+    canvas.addEventListener('mousedown', (e)=>{
+      if(e.button !== 2) return;
+      const r = canvas.getBoundingClientRect();
+      updateHover(e.clientX - r.left, e.clientY - r.top);
+      if(state.phase==='build' && selectedTool==='wall' && currentPiece){
+        currentPiece = rotatePiece(currentPiece);
+        draw();
+        drawCurrentPreview();
+      }
+      e.preventDefault();
+    });
+    canvas.addEventListener('contextmenu', (e)=> e.preventDefault());
     canvas.addEventListener('touchstart', (e)=>{
       const t = e.changedTouches[0];
       const r = canvas.getBoundingClientRect();

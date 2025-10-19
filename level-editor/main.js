@@ -12,18 +12,19 @@
     const ctx = canvas.getContext("2d", { alpha: false });
     ctx.imageSmoothingEnabled = false;
 
-    const tileMapInput = document.getElementById("tileMapInput");
-    const tileImageInput = document.getElementById("tileImageInput");
     const paletteElement = document.getElementById("palette");
     const selectedTilePreview = document.getElementById("selectedTilePreview");
     const downloadButton = document.getElementById("downloadButton");
     const loadButton = document.getElementById("loadButton");
-    const levelLoadInput = document.getElementById("levelLoadInput");
+    const levelFolderInput = document.getElementById("levelFolderInput");
     const clearButton = document.getElementById("clearButton");
 
     const levelData = new Uint8Array(TOTAL_CELLS);
     const tileDefinitions = new Map();
     const tileImages = new Map();
+
+    let currentLevelFileName = "level.lvl";
+    let currentLevelFolderName = null;
 
     let selectedTileId = 0;
     let isPainting = false;
@@ -49,11 +50,9 @@
     setSelectedTile(0);
     draw();
 
-    tileMapInput.addEventListener("change", handleTileMappingUpload);
-    tileImageInput.addEventListener("change", handleTileImagesUpload);
     downloadButton.addEventListener("click", handleDownloadLevel);
-    loadButton.addEventListener("click", () => levelLoadInput.click());
-    levelLoadInput.addEventListener("change", handleLevelLoad);
+    loadButton.addEventListener("click", () => levelFolderInput.click());
+    levelFolderInput.addEventListener("change", handleLevelFolderSelection);
     clearButton.addEventListener("click", handleClearLevel);
 
     canvas.addEventListener("contextmenu", (event) => {
@@ -145,13 +144,41 @@
         draw();
     }, { passive: false });
 
-    function handleTileMappingUpload(event) {
-        const [file] = event.target.files;
-        if (!file) {
+    function handleLevelFolderSelection(event) {
+        const files = Array.from(event.target.files || []);
+        if (!files.length) {
             return;
         }
 
-        file.text()
+        const folderMarker = files[0].webkitRelativePath ? files[0].webkitRelativePath.split("/")[0] : null;
+        if (!folderMarker) {
+            window.alert("Please select a folder.");
+            levelFolderInput.value = "";
+            return;
+        }
+
+        currentLevelFolderName = folderMarker;
+
+        const folderFiles = files.filter((file) => {
+            const relativePath = file.webkitRelativePath || file.name;
+            return relativePath.startsWith(folderMarker + "/");
+        });
+
+        const jsonFiles = folderFiles.filter((file) => /\.json$/i.test(file.name));
+        const tilemapFile = jsonFiles.find((file) => /tilemap/i.test(file.name)) || jsonFiles[0];
+        const levelFile = folderFiles.find((file) => /\.lvl$/i.test(file.name));
+        const imageFiles = folderFiles.filter((file) => /^.+\.(png|jpg|jpeg|gif)$/i.test(file.name));
+
+        tileImages.clear();
+
+        Promise.resolve()
+            .then(() => {
+                if (!tilemapFile) {
+                    window.alert("The selected folder does not contain a tile map JSON file.");
+                    throw new Error("Missing tile map JSON");
+                }
+                return tilemapFile.text();
+            })
             .then((text) => {
                 try {
                     const json = JSON.parse(text);
@@ -159,35 +186,34 @@
                 } catch (error) {
                     console.error("Failed to parse tile mapping JSON", error);
                     window.alert("Failed to parse tile mapping JSON. Check console for details.");
+                    throw error;
                 }
             })
-            .catch((error) => {
-                console.error("Failed to read tile mapping file", error);
-                window.alert("Unable to read tile mapping file.");
-            })
-            .finally(() => {
-                tileMapInput.value = "";
-            });
-    }
-
-    function handleTileImagesUpload(event) {
-        const files = Array.from(event.target.files || []);
-        if (!files.length) {
-            return;
-        }
-
-        Promise.all(files.map(loadImageFile))
+            .then(() => Promise.all(imageFiles.map(loadImageFile)))
             .then(() => {
                 renderPalette();
                 updateSelectedTilePreview();
                 draw();
             })
-            .catch((error) => {
-                console.error("Failed to load one or more images", error);
-                window.alert("One or more images failed to load. Check console for details.");
+            .then(() => {
+                if (levelFile) {
+                    currentLevelFileName = levelFile.name;
+                    return loadLevelFile(levelFile);
+                }
+                currentLevelFileName = `${currentLevelFolderName || "level"}.lvl`;
+                levelData.fill(0);
+                draw();
+                return null;
             })
             .finally(() => {
-                tileImageInput.value = "";
+                levelFolderInput.value = "";
+            })
+            .catch((error) => {
+                if (error && error.message !== "Missing tile map JSON") {
+                    console.error("Failed to process level folder", error);
+                    window.alert("The level folder could not be loaded. Check console for details.");
+                    currentLevelFolderName = null;
+                }
             });
     }
 
@@ -198,11 +224,15 @@
             reader.onload = () => {
                 const img = new Image();
                 img.onload = () => {
-                    const key = normalizeFileKey(file.name);
-                    tileImages.set(key, {
+                    const relativePath = file.webkitRelativePath || file.name;
+                    const normalizedRelative = normalizeRelativePath(relativePath);
+                    const filenameKey = normalizedRelative.split("/").pop();
+                    const record = {
                         image: img,
                         dataUrl: reader.result
-                    });
+                    };
+                    tileImages.set(normalizedRelative, record);
+                    tileImages.set(filenameKey, record);
                     resolve();
                 };
                 img.onerror = () => {
@@ -297,9 +327,16 @@
             return null;
         }
 
-        const segments = value.split(/\\|\//);
-        const filename = segments[segments.length - 1];
-        return filename.trim().toLowerCase();
+        const normalized = normalizeRelativePath(value);
+        return normalized.split("/").pop();
+    }
+
+    function normalizeRelativePath(value) {
+        return value
+            .replace(/\\/g, "/")
+            .replace(/^\.\//, "")
+            .trim()
+            .toLowerCase();
     }
 
     function setSelectedTile(tileId) {
@@ -381,13 +418,8 @@
         draw();
     }
 
-    function handleLevelLoad(event) {
-        const [file] = event.target.files;
-        if (!file) {
-            return;
-        }
-
-        file.arrayBuffer()
+    function loadLevelFile(file) {
+        return file.arrayBuffer()
             .then((buffer) => {
                 if (buffer.byteLength !== TOTAL_CELLS) {
                     throw new Error(`Unexpected level size. Expected ${TOTAL_CELLS} bytes but received ${buffer.byteLength}.`);
@@ -397,13 +429,6 @@
                 levelData.set(bytes);
                 lastPaintedKey = null;
                 draw();
-            })
-            .catch((error) => {
-                console.error("Failed to load level file", error);
-                window.alert("Failed to load level file. Ensure it was created with this editor.");
-            })
-            .finally(() => {
-                levelLoadInput.value = "";
             });
     }
 
@@ -412,7 +437,7 @@
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement("a");
         anchor.href = url;
-        anchor.download = "level.lvl";
+        anchor.download = currentLevelFileName;
         document.body.appendChild(anchor);
         anchor.click();
         anchor.remove();

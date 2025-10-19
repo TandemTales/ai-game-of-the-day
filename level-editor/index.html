@@ -13,19 +13,13 @@
     <main class="layout">
         <section class="sidebar" aria-label="Editor controls">
             <div class="control-group">
-                <label for="tileMapInput">Tile mapping JSON</label>
-                <input type="file" id="tileMapInput" accept=".json">
-                <p class="hint">Maps tile ids (0-255) to image filenames.</p>
-            </div>
-            <div class="control-group">
-                <label for="tileImageInput">Tile images</label>
-                <input type="file" id="tileImageInput" accept="image/*" multiple>
-                <p class="hint">Provide images referenced by the mapping JSON.</p>
+                <label for="loadButton">Level folder</label>
+                <input type="file" id="levelFolderInput" webkitdirectory directory hidden>
+                <button type="button" id="loadButton">Choose Level Folder</button>
+                <p class="hint">Select the folder that holds the tilemap JSON, tile images, and optional level file.</p>
             </div>
             <div class="control-group compact">
                 <button type="button" id="clearButton">Clear Level</button>
-                <input type="file" id="levelLoadInput" accept=".lvl" hidden>
-                <button type="button" id="loadButton">Load Level (.lvl)</button>
                 <button type="button" id="downloadButton">Download Level (.lvl)</button>
             </div>
             <div class="control-group">

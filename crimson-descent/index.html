@@ -366,18 +366,141 @@
       pad: 'assets/landing_pad.svg'
     };
     const Images = {};
-    const levelUrl = 'assets/level01.lvl';
+    const LEVEL_FOLDER = 'assets/level01/';
+    const LEVEL_FILE = LEVEL_FOLDER + 'map.lvl';
+    const TILEMAP_FILE = LEVEL_FOLDER + 'tilemap.json';
     const GRID_SIZE = 128;
     const TILE_SIZE = 32;
     const WORLD_WIDTH = GRID_SIZE * TILE_SIZE;
     const WORLD_HEIGHT = GRID_SIZE * TILE_SIZE;
     const TILES = { EMPTY: 0, WALL: 1, SPAWN: 2, PAD: 3 };
+    const tileDefinitions = new Map();
+    const tileImages = new Map();
+    tileDefinitions.set(0, { id: 0, name: 'Empty', imageFile: null });
     const level = new Uint8Array(GRID_SIZE * GRID_SIZE);
     let spawnPoint = { x: WIDTH / 2, y: 200 };
     const camera = { x: 0, y: 0, width: WIDTH, height: HEIGHT };
     let levelReady = false;
+    let baseAssetsReady = false;
+    let tileAssetsReady = false;
     let assetsReady = false;
     let ready = false;
+    let announcedReady = false;
+
+    function levelAssetPath(file) {
+      if (!file) return null;
+      let normalized = file.replace(/\\/g, '/').replace(/^\.\//, '').trim();
+      if (!normalized) return null;
+      if (normalized.startsWith(LEVEL_FOLDER) || normalized.startsWith('assets/')) {
+        return normalized;
+      }
+      if (normalized.startsWith('./')) {
+        normalized = normalized.slice(2);
+      }
+      if (normalized.startsWith('../')) {
+        return normalized;
+      }
+      return LEVEL_FOLDER + normalized;
+    }
+
+    function normalizeFileKey(value) {
+      if (!value) return null;
+      const parts = value.split(/\\|\//);
+      return parts[parts.length - 1].trim().toLowerCase();
+    }
+
+    function normalizeMappingEntries(data) {
+      if (!data) return [];
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data.tiles)) return data.tiles;
+      return Object.entries(data).map(([id, value]) => {
+        if (value && typeof value === 'object') {
+          return { id, ...value };
+        }
+        return { id, image: value };
+      });
+    }
+
+    function applyTileMapping(data) {
+      const entries = normalizeMappingEntries(data);
+      tileDefinitions.clear();
+      tileDefinitions.set(0, { id: 0, name: 'Empty', imageFile: null, imageKey: null });
+
+      entries.forEach((entry) => {
+        const id = Number(entry.id);
+        if (!Number.isFinite(id) || id < 0 || id > 255) {
+          return;
+        }
+        const imageFile = entry.image || entry.file || entry.filename || entry.src || null;
+        const imageKey = imageFile ? normalizeFileKey(imageFile) : null;
+        tileDefinitions.set(id, {
+          id,
+          name: entry.name || entry.label || `Tile ${id}`,
+          imageFile: imageFile || null,
+          imageKey
+        });
+      });
+
+      [TILES.WALL, TILES.SPAWN, TILES.PAD].forEach((id) => {
+        if (!tileDefinitions.has(id)) {
+          tileDefinitions.set(id, { id, name: `Tile ${id}`, imageFile: null, imageKey: null });
+        }
+      });
+    }
+
+    function loadTileMap() {
+      return fetch(TILEMAP_FILE)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error('Failed to load tile map JSON');
+          }
+          return res.json();
+        })
+        .then((json) => {
+          applyTileMapping(json);
+        });
+    }
+
+    function loadTileImages() {
+      tileImages.clear();
+      const seen = new Set();
+      const loads = [];
+      tileDefinitions.forEach((definition) => {
+        if (!definition || !definition.imageFile || !definition.imageKey) {
+          return;
+        }
+        if (seen.has(definition.imageKey)) {
+          return;
+        }
+        seen.add(definition.imageKey);
+        const src = levelAssetPath(definition.imageFile);
+        if (!src) {
+          return;
+        }
+        loads.push(
+          loadImage(src).then((img) => {
+            tileImages.set(definition.imageKey, { image: img, src });
+          })
+        );
+      });
+      return Promise.all(loads);
+    }
+
+    function updateReadiness() {
+      assetsReady = baseAssetsReady && tileAssetsReady;
+      ready = assetsReady && levelReady;
+      if (ready && !announcedReady) {
+        announcedReady = true;
+        startScreen.querySelector('p').textContent = 'Ready? Tap, click, or press Space to ignite and begin descent.';
+        resetLander();
+        updateCamera(true);
+      }
+    }
+
+    function handleLoadError(err) {
+      console.error(err);
+      startScreen.querySelector('p').textContent = 'Asset load failed. Refresh to retry.';
+    }
 
     function normalizeAngle(angle) {
       return (angle % TWO_PI + TWO_PI) % TWO_PI;
@@ -430,7 +553,7 @@
     }
 
     function loadLevelFile() {
-      return fetch(levelUrl)
+      return fetch(LEVEL_FILE)
         .then(res => {
           if (!res.ok) throw new Error('Failed to load level data');
           return res.arrayBuffer();
@@ -441,6 +564,7 @@
           level.set(bytes);
           parseLevel();
           levelReady = true;
+          updateReadiness();
         });
     }
 
@@ -473,23 +597,24 @@
     }
 
     const imagePromises = Object.entries(assets).map(([key, src]) => loadImage(src).then(img => { Images[key] = img; }));
-    const levelPromise = loadLevelFile();
-
-    Promise.all([...imagePromises, levelPromise])
+    Promise.all(imagePromises)
       .then(() => {
-        assetsReady = true;
+        baseAssetsReady = true;
         prepareLanderFrames();
-        ready = assetsReady && levelReady;
-        if (ready) {
-          startScreen.querySelector('p').textContent = 'Ready? Tap, click, or press Space to ignite and begin descent.';
-          resetLander();
-          updateCamera(true);
-        }
+        updateReadiness();
       })
-      .catch(err => {
-        console.error(err);
-        startScreen.querySelector('p').textContent = 'Asset load failed. Refresh to retry.';
-      });
+      .catch(handleLoadError);
+
+    Promise.resolve()
+      .then(loadTileMap)
+      .then(loadTileImages)
+      .then(() => {
+        tileAssetsReady = true;
+        updateReadiness();
+      })
+      .catch(handleLoadError);
+
+    const levelPromise = loadLevelFile();
 
     function shuffleTracks(list) {
       const copy = list.slice();
@@ -858,28 +983,39 @@
           if (tile === TILES.EMPTY) continue;
           const px = tx * TILE_SIZE;
           const py = ty * TILE_SIZE;
-          switch (tile) {
-            case TILES.WALL:
-              ctx.fillStyle = '#3f1423';
-              ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-              ctx.fillStyle = 'rgba(255, 120, 90, 0.08)';
-              ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE * 0.35);
-              break;
-            case TILES.SPAWN:
-              ctx.fillStyle = 'rgba(80, 200, 255, 0.25)';
-              ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-              break;
-            case TILES.PAD:
-              ctx.fillStyle = 'rgba(255, 230, 120, 0.18)';
-              ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-              if (Images.pad && shouldDrawPadArt(tx, ty)) {
-                const drawX = px - TILE_SIZE * 0.6;
-                const drawY = py - TILE_SIZE * 0.4;
-                const drawW = TILE_SIZE * 2.2;
-                const drawH = TILE_SIZE * 1.5;
-                ctx.drawImage(Images.pad, drawX, drawY, drawW, drawH);
-              }
-              break;
+          const definition = tileDefinitions.get(tile);
+          const imageKey = definition ? definition.imageKey : null;
+          const imageRecord = imageKey ? tileImages.get(imageKey) : null;
+          if (imageRecord && imageRecord.image) {
+            ctx.drawImage(imageRecord.image, px, py, TILE_SIZE, TILE_SIZE);
+          } else {
+            switch (tile) {
+              case TILES.WALL:
+                ctx.fillStyle = '#3f1423';
+                ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                ctx.fillStyle = 'rgba(255, 120, 90, 0.08)';
+                ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE * 0.35);
+                break;
+              case TILES.SPAWN:
+                ctx.fillStyle = 'rgba(80, 200, 255, 0.25)';
+                ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                break;
+              case TILES.PAD:
+                ctx.fillStyle = 'rgba(255, 230, 120, 0.18)';
+                ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                if (Images.pad && shouldDrawPadArt(tx, ty)) {
+                  const drawX = px - TILE_SIZE * 0.6;
+                  const drawY = py - TILE_SIZE * 0.4;
+                  const drawW = TILE_SIZE * 2.2;
+                  const drawH = TILE_SIZE * 1.5;
+                  ctx.drawImage(Images.pad, drawX, drawY, drawW, drawH);
+                }
+                break;
+              default:
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+                ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                break;
+            }
           }
         }
       }

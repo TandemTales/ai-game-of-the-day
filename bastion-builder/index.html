@@ -335,7 +335,7 @@
     }
 
     const BASE_BUILD_TIME = 18; // seconds per build phase (waves 2+)
-    const BASE_FIRST_BUILD_TIME = 29; // slightly longer first build phase
+    const BASE_FIRST_BUILD_TIME = 110; // target 120s on desktop (adds extra PC time)
     const MAX_WAVES = 6;
     // Mobile time scaling: triple phase durations on mobile only
     const IS_MOBILE = (
@@ -1563,7 +1563,7 @@
       spawning=false;
       state.phase = 'build';
       buildTimer = ((state.wave === 1) ? FIRST_BUILD_TIME : BUILD_TIME) * TIME_FACTOR;
-      state.bricks = (state.wave === 1) ? 50 : (30 + state.wave*6);
+      state.bricks = 60;
       initPieces();
       // reset enclosed markers
       enclosedMask = null;
@@ -1645,7 +1645,7 @@
       if(!Images.grass){ const entries = Object.entries(assets); for(const [k,src] of entries){ Images[k] = await loadImg(src); } }
       // Reset state for a new run
       if(spawnIv){ clearInterval(spawnIv); spawnIv=null; }
-      state.bricks = 50; state.keepHP = KEEP_MAX_HP; state.wave = 1; state.kills = 0; state.placedWalls=0; walls.length=0; cannons.length=0; ships.length=0; bullets.length=0; placementHistory.length=0; gameOverHandled=false; buildTimer = BUILD_TIME * TIME_FACTOR; spawning=false; waveDoneCheck=0; selectedTool='wall';
+      state.bricks = 60; state.keepHP = KEEP_MAX_HP; state.wave = 1; state.kills = 0; state.placedWalls=0; walls.length=0; cannons.length=0; ships.length=0; bullets.length=0; placementHistory.length=0; gameOverHandled=false; buildTimer = BUILD_TIME * TIME_FACTOR; spawning=false; waveDoneCheck=0; selectedTool='wall';
       clearBurnedCells();
       resetOccupancy();
       startBuild(); running = true;

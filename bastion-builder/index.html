@@ -336,7 +336,28 @@
 
     const BASE_BUILD_TIME = 18; // seconds per build phase (waves 2+)
     const BASE_FIRST_BUILD_TIME = 110; // target 120s on desktop (adds extra PC time)
-    const MAX_WAVES = 6;
+    const WAVE_CONFIG = [
+      { stage: 1, wave: 1, ships: { basic: 4 } },
+      { stage: 1, wave: 2, ships: { basic: 4 } },
+      { stage: 2, wave: 1, ships: { basic: 3, airship: 2 } },
+      { stage: 2, wave: 2, ships: { basic: 4, airship: 3 } },
+      { stage: 3, wave: 1, ships: { basic: 4, airship: 2, dreadnought: 2 } },
+      { stage: 3, wave: 2, ships: { basic: 5, airship: 3, dreadnought: 3 } },
+      { stage: 4, wave: 1, ships: { basic: 4, airship: 4, dreadnought: 4 } },
+      { stage: 4, wave: 2, ships: { basic: 4, airship: 4, dreadnought: 4 }, boss: true },
+      { stage: 5, wave: 1, ships: { basic: 5, airship: 3, dreadnought: 3 } },
+      { stage: 5, wave: 2, ships: { basic: 5, airship: 4, dreadnought: 4 } },
+      { stage: 6, wave: 1, ships: { basic: 6, airship: 5, dreadnought: 5 } },
+      { stage: 6, wave: 2, ships: { basic: 7, airship: 5, dreadnought: 5 } },
+      { stage: 7, wave: 1, ships: { basic: 7, airship: 6, dreadnought: 6 } },
+      { stage: 7, wave: 2, ships: { basic: 8, airship: 6, dreadnought: 6 } },
+      { stage: 8, wave: 1, ships: { basic: 8, airship: 7, dreadnought: 7 } },
+      { stage: 8, wave: 2, ships: { basic: 9, airship: 8, dreadnought: 8 }, boss: true }
+    ];
+    const BOSS_WAVES = WAVE_CONFIG
+      .map((cfg, idx) => (cfg.boss ? idx + 1 : null))
+      .filter((idx) => idx !== null);
+    const MAX_WAVES = WAVE_CONFIG.length;
     // Mobile time scaling: triple phase durations on mobile only
     const IS_MOBILE = (
       typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod|Windows Phone|webOS|BlackBerry|Opera Mini|IEMobile/i.test(navigator.userAgent)
@@ -484,7 +505,8 @@
           <li><strong>Defend:</strong> Ships sail in and fire at your defenses. Cannons auto-fire at ships.</li>
         </ul>
         <p>Score points by destroying ships and surviving waves. The game ends when the keep is destroyed, or you clear all ${MAX_WAVES} waves.</p>
-        <p><strong>Wave 5:</strong> A boss man-o-war arrives after the fleet. Its blazing volleys leave permanent fire and melt cannons, so protect your core defenses. Each time it returns, it brings 50% more hull plating.</p>
+        <p><strong>Stages:</strong> Eight escalating stages send two waves each, mixing in fast airships and hulking dreadnoughts as you advance.</p>
+        <p><strong>Boss:</strong> A boss man-o-war joins the final wave of stages 4 and 8. Its blazing volleys leave permanent fire and melt cannons, so protect your core defenses. Each time it returns, it brings 50% more hull plating.</p>
         <p>Tips: Place cannons behind walls. Repair damage during the next build phase. On desktop, click to place pieces and press <kbd>R</kbd> to rotate them. On mobile, long press to place and tap to rotate. The current piece is shown in the HUD.</p>
       `;
     }
@@ -1267,11 +1289,26 @@
     function distance(a,b){ const dx=a.x-b.x, dy=a.y-b.y; return Math.hypot(dx,dy); }
 
     function spawnWave(){
-      const count = 4 + Math.floor(state.wave*1.8);
+      const waveIdx = Math.max(0, Math.min(WAVE_CONFIG.length - 1, state.wave - 1));
+      const config = WAVE_CONFIG[waveIdx] || { ships: {} };
+      const spawnQueue = [];
+      for(const [typeName, amount] of Object.entries(config.ships || {})){
+        const typeDef = ENEMY_SHIP_TYPES[typeName];
+        if(!typeDef) continue;
+        for(let i=0; i<amount; i++){ spawnQueue.push(typeDef); }
+      }
+      for(let i=spawnQueue.length-1; i>0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [spawnQueue[i], spawnQueue[j]] = [spawnQueue[j], spawnQueue[i]];
+      }
+      const count = spawnQueue.length;
+      if(count === 0 && !config.boss){
+        spawning = false;
+        return;
+      }
       let spawned = 0;
       const delay = Math.max(400, 1100 - state.wave*120);
-      const isBossWave = state.wave >= 5;
-      let bossPending = isBossWave;
+      let bossPending = Boolean(config.boss);
 
       function spawnShipOfType(type, spawn){
         const baseSpd = 28 + state.wave*6;
@@ -1279,8 +1316,8 @@
         const spd = baseSpd * (type.speedMultiplier || 1);
         let hpMultiplier = type.hpMultiplier || 1;
         if(type.isBoss){
-          const bossOccurrences = Math.max(0, state.wave - 5);
-          const extraFactor = 1 + 0.5 * (bossOccurrences + 1);
+          const bossIndex = Math.max(0, BOSS_WAVES.indexOf(state.wave));
+          const extraFactor = 1 + 0.5 * (bossIndex + 1);
           hpMultiplier *= extraFactor;
         } else {
           // Toughen up the standard fleet by 50%
@@ -1332,19 +1369,10 @@
       function spawnOne(){
         if(!spawning){ if(spawnIv){ clearInterval(spawnIv); spawnIv=null; } return; }
         if(spawned < count){
-          const heavyChance = state.wave <= 1 ? 0 : Math.min(0.2 + state.wave * 0.12, 0.7);
-          const airshipChance = Math.min(0.25 + state.wave * 0.08, 0.65);
-          const adjustedHeavyChance = Math.min(heavyChance, Math.max(0, 1 - airshipChance));
-          const roll = Math.random();
-          let type;
-          if(roll < airshipChance){
-            type = ENEMY_SHIP_TYPES.airship;
-          } else if(roll < airshipChance + adjustedHeavyChance){
-            type = ENEMY_SHIP_TYPES.dreadnought;
-          } else {
-            type = ENEMY_SHIP_TYPES.basic;
+          const type = spawnQueue[spawned];
+          if(type){
+            spawnShipOfType(type, computeSpawn());
           }
-          spawnShipOfType(type, computeSpawn());
           spawned++;
           return;
         }

@@ -295,6 +295,7 @@
     <button class="touch-btn" data-control="left">⟲ Rotate</button>
     <button class="touch-btn" data-control="thrust">▲ Thrust</button>
     <button class="touch-btn" data-control="right">Rotate ⟳</button>
+    <button class="touch-btn" data-control="fire">✷ Fire</button>
   </div>
 
   <script>
@@ -373,11 +374,12 @@
     const TILE_SIZE = 32;
     const WORLD_WIDTH = GRID_SIZE * TILE_SIZE;
     const WORLD_HEIGHT = GRID_SIZE * TILE_SIZE;
-    const TILES = { EMPTY: 0, WALL: 1, SPAWN: 2, PAD: 3 };
+    const TILES = { EMPTY: 0, WALL: 1, SPAWN: 2, PAD: 3, GUN: 4 };
     const tileDefinitions = new Map();
     const tileImages = new Map();
     tileDefinitions.set(0, { id: 0, name: 'Empty', imageFile: null });
     const level = new Uint8Array(GRID_SIZE * GRID_SIZE);
+    let baseLevel = null;
     let spawnPoint = { x: WIDTH / 2, y: 200 };
     const camera = { x: 0, y: 0, width: WIDTH, height: HEIGHT };
     let levelReady = false;
@@ -441,7 +443,7 @@
         });
       });
 
-      [TILES.WALL, TILES.SPAWN, TILES.PAD].forEach((id) => {
+      [TILES.WALL, TILES.SPAWN, TILES.PAD, TILES.GUN].forEach((id) => {
         if (!tileDefinitions.has(id)) {
           tileDefinitions.set(id, { id, name: `Tile ${id}`, imageFile: null, imageKey: null });
         }
@@ -561,6 +563,10 @@
         .then(buffer => {
           if (buffer.byteLength < level.length) throw new Error('Unexpected level size');
           const bytes = new Uint8Array(buffer, 0, level.length);
+          if (!baseLevel) {
+            baseLevel = new Uint8Array(level.length);
+          }
+          baseLevel.set(bytes);
           level.set(bytes);
           parseLevel();
           levelReady = true;
@@ -734,11 +740,22 @@
       flameTimer: 0
     };
 
+    const weapon = {
+      hasGun: false,
+      cooldown: 1,
+      nextFireTime: 0
+    };
+
+    const projectiles = [];
+
     let lastCrashDetail = null;
 
-    const keys = { left: false, right: false, thrust: false };
+    const keys = { left: false, right: false, thrust: false, fire: false };
 
     function resetLander() {
+      if (baseLevel) {
+        level.set(baseLevel);
+      }
       lander.x = spawnPoint.x;
       lander.y = spawnPoint.y;
       lander.vx = 0;
@@ -747,6 +764,10 @@
       lander.fuel = 100;
       lander.thrusting = false;
       lander.flameTimer = 0;
+      weapon.hasGun = false;
+      weapon.nextFireTime = 0;
+      projectiles.length = 0;
+      keys.fire = false;
       state.time = 0;
       state.finalScore = 0;
       state.submitted = false;
@@ -843,6 +864,7 @@
     }
 
     function update(dt) {
+      updateProjectiles(dt);
       if (state.phase !== 'playing') {
         lander.thrusting = false;
         return;
@@ -873,6 +895,10 @@
       lander.y += lander.vy * dt;
       clampToWorld();
       updateCamera();
+      handleGunPickup();
+      if (keys.fire) {
+        tryFireGun();
+      }
       if (attemptLanding()) return;
       if (checkWallCollision()) {
         endRound(false);
@@ -890,6 +916,7 @@
       ctx.save();
       ctx.translate(-camera.x, -camera.y);
       drawTerrain();
+      drawProjectiles();
       ctx.save();
       ctx.translate(lander.x, lander.y);
       ctx.rotate(lander.rotation);
@@ -1117,6 +1144,92 @@
       return false;
     }
 
+    function handleGunPickup() {
+      if (weapon.hasGun) return;
+      const minX = Math.floor((lander.x - LANDER_WIDTH * 0.3) / TILE_SIZE);
+      const maxX = Math.floor((lander.x + LANDER_WIDTH * 0.3) / TILE_SIZE);
+      const minY = Math.floor((lander.y - LANDER_HEIGHT * 0.4) / TILE_SIZE);
+      const maxY = Math.floor((lander.y + LANDER_HEIGHT * 0.4) / TILE_SIZE);
+      for (let ty = minY; ty <= maxY; ty++) {
+        if (ty < 0 || ty >= GRID_SIZE) continue;
+        for (let tx = minX; tx <= maxX; tx++) {
+          if (tx < 0 || tx >= GRID_SIZE) continue;
+          const idx = worldIndex(tx, ty);
+          if (level[idx] === TILES.GUN) {
+            level[idx] = TILES.EMPTY;
+            weapon.hasGun = true;
+            weapon.nextFireTime = state.time;
+            return;
+          }
+        }
+      }
+    }
+
+    function tryFireGun() {
+      if (!weapon.hasGun) return false;
+      if (state.phase !== 'playing') return false;
+      if (state.time < weapon.nextFireTime) return false;
+      spawnProjectile();
+      weapon.nextFireTime = state.time + weapon.cooldown;
+      return true;
+    }
+
+    function spawnProjectile() {
+      const speed = 320;
+      const sin = Math.sin(lander.rotation);
+      const cos = Math.cos(lander.rotation);
+      const startX = lander.x + sin * LANDER_HEIGHT * 0.5;
+      const startY = lander.y - cos * LANDER_HEIGHT * 0.5;
+      projectiles.push({
+        x: startX,
+        y: startY,
+        vx: sin * speed + lander.vx,
+        vy: -cos * speed + lander.vy,
+        life: 2
+      });
+    }
+
+    function updateProjectiles(dt) {
+      if (!projectiles.length) return;
+      if (state.phase !== 'playing') {
+        projectiles.length = 0;
+        return;
+      }
+      for (let i = projectiles.length - 1; i >= 0; i--) {
+        const shot = projectiles[i];
+        shot.life -= dt;
+        shot.x += shot.vx * dt;
+        shot.y += shot.vy * dt;
+        if (shot.life <= 0 || shot.x < 0 || shot.x > WORLD_WIDTH || shot.y < -TILE_SIZE * 8 || shot.y > WORLD_HEIGHT) {
+          projectiles.splice(i, 1);
+          continue;
+        }
+        const tile = tileAtPixel(shot.x, shot.y);
+        if (tile === TILES.WALL) {
+          const tx = Math.floor(shot.x / TILE_SIZE);
+          const ty = Math.floor(shot.y / TILE_SIZE);
+          if (tx >= 0 && ty >= 0 && tx < GRID_SIZE && ty < GRID_SIZE) {
+            level[worldIndex(tx, ty)] = TILES.EMPTY;
+          }
+          projectiles.splice(i, 1);
+        } else if (tile === TILES.GUN) {
+          projectiles.splice(i, 1);
+        }
+      }
+    }
+
+    function drawProjectiles() {
+      if (!projectiles.length) return;
+      ctx.save();
+      ctx.fillStyle = '#ffd65b';
+      projectiles.forEach((shot) => {
+        ctx.beginPath();
+        ctx.arc(shot.x, shot.y, 4, 0, TWO_PI);
+        ctx.fill();
+      });
+      ctx.restore();
+    }
+
     function computeAltitude() {
       const bottom = lander.y + LANDER_HEIGHT * 0.46;
       const cols = [
@@ -1220,6 +1333,10 @@
       if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
       if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
       if (e.code === 'ArrowUp' || e.code === 'KeyW') keys.thrust = true;
+      if (e.code === 'KeyF' || e.code === 'KeyJ') {
+        keys.fire = true;
+        tryFireGun();
+      }
       if (e.code === 'Space') {
         handleSpaceStart(e);
       }
@@ -1228,11 +1345,15 @@
       if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
       if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
       if (e.code === 'ArrowUp' || e.code === 'KeyW') keys.thrust = false;
+      if (e.code === 'KeyF' || e.code === 'KeyJ') keys.fire = false;
       if (e.code === 'Space') keys.thrust = false;
     });
 
     window.addEventListener('blur', () => {
-      keys.left = keys.right = keys.thrust = false;
+      keys.left = false;
+      keys.right = false;
+      keys.thrust = false;
+      keys.fire = false;
     });
 
     // Touch controls
@@ -1241,6 +1362,12 @@
       if (control === 'left') keys.left = active;
       if (control === 'right') keys.right = active;
       if (control === 'thrust') keys.thrust = active;
+      if (control === 'fire') {
+        keys.fire = active;
+        if (active) {
+          tryFireGun();
+        }
+      }
     }
     touchControls.addEventListener('pointerdown', (e) => {
       const btn = e.target.closest('[data-control]');

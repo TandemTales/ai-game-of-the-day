@@ -628,6 +628,25 @@
       return null;
     }
 
+    function spawnGroundPickup(list, x, w, h, img, nowSec, extra = {}) {
+      if (tryReserveRow(0, 0, nowSec) === null) return;
+      const y = GROUND_Y + 34 - h / 2;
+      list.push({
+        x,
+        y,
+        baseY: y,
+        w,
+        h,
+        img,
+        t: 0,
+        bob: 0,
+        hitX: 0.70,
+        hitY: 0.70,
+        grounded: true,
+        ...extra
+      });
+    }
+
     // Heat system
     const HEAT_MAX = 100;
     const HEAT_GAIN_RATE = 3; // per second (slower passive increase)
@@ -1226,6 +1245,7 @@
           if (row !== null) {
             const y = yForRow(row);
             jetpacks.push({ x, y, baseY: y, w, h, img: IMG.jetpack, t: 0, hitX: 0.70, hitY: 0.70 });
+            spawnGroundPickup(jetpacks, x, w, h, IMG.jetpack, nowSec);
           }
           // schedule next appearance only if it scrolls off without pickup
           jetpackTimer = rand(8, 16);
@@ -1247,6 +1267,7 @@
           if (row !== null) {
             const y = yForRow(row);
             gliders.push({ x, y, baseY: y, w, h, img: IMG.glider, t: 0, hitX: 0.70, hitY: 0.70 });
+            spawnGroundPickup(gliders, x, w, h, IMG.glider, nowSec);
           }
           gliderTimer = rand(7, 14);
         }
@@ -1269,6 +1290,7 @@
           if (row !== null) {
             const y = yForRow(row);
             guns.push({ x, y, baseY: y, w, h, img: IMG.gun, t: 0, hitX: 0.70, hitY: 0.70 });
+            spawnGroundPickup(guns, x, w, h, IMG.gun, nowSec);
           }
           gunTimer = rand(8, 16);
         }
@@ -1290,6 +1312,7 @@
           if (row !== null) {
             const y = yForRow(row);
             shields.push({ x, y, baseY: y, w, h, img: IMG.shield, t: 0, hitX: 0.70, hitY: 0.70 });
+            spawnGroundPickup(shields, x, w, h, IMG.shield, nowSec);
           }
           shieldTimer = rand(7, 14);
         }
@@ -1369,10 +1392,34 @@
       for (const s of spikes) s.x = move(s.x);
       for (const pl of platforms) pl.x = move(pl.x);
       for (const gobj of gems) { gobj.x = move(gobj.x); gobj.t += dt; gobj.y = (gobj.baseY ?? gobj.y) + Math.sin(gobj.t * 6.1) * 14; }
-      for (const jp of jetpacks) { jp.x = move(jp.x); jp.t += dt; jp.y = (jp.baseY ?? jp.y) + Math.sin(jp.t * 3.7) * 10; }
-      for (const gl of gliders) { gl.x = move(gl.x); gl.t += dt; gl.y = (gl.baseY ?? gl.y) + Math.sin(gl.t * 3.9) * 10; }
-      for (const gu of guns) { gu.x = move(gu.x); gu.t += dt; gu.y = (gu.baseY ?? gu.y) + Math.sin(gu.t * 3.5) * 10; }
-      for (const sh of shields) { sh.x = move(sh.x); sh.t += dt; sh.y = (sh.baseY ?? sh.y) + Math.sin(sh.t * 3.6) * 10; }
+      for (const jp of jetpacks) {
+        jp.x = move(jp.x);
+        jp.t += dt;
+        const amp = jp.bob ?? 10;
+        const freq = jp.freq ?? 3.7;
+        jp.y = (jp.baseY ?? jp.y) + Math.sin(jp.t * freq) * amp;
+      }
+      for (const gl of gliders) {
+        gl.x = move(gl.x);
+        gl.t += dt;
+        const amp = gl.bob ?? 10;
+        const freq = gl.freq ?? 3.9;
+        gl.y = (gl.baseY ?? gl.y) + Math.sin(gl.t * freq) * amp;
+      }
+      for (const gu of guns) {
+        gu.x = move(gu.x);
+        gu.t += dt;
+        const amp = gu.bob ?? 10;
+        const freq = gu.freq ?? 3.5;
+        gu.y = (gu.baseY ?? gu.y) + Math.sin(gu.t * freq) * amp;
+      }
+      for (const sh of shields) {
+        sh.x = move(sh.x);
+        sh.t += dt;
+        const amp = sh.bob ?? 10;
+        const freq = sh.freq ?? 3.6;
+        sh.y = (sh.baseY ?? sh.y) + Math.sin(sh.t * freq) * amp;
+      }
       for (const c of coolants) { c.x = move(c.x); c.t += dt; c.y = (c.baseY ?? c.y) + Math.sin(c.t * 5.0) * 12; }
 
       for (const sm of smashers) {

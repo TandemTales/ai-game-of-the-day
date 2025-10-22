@@ -331,6 +331,7 @@
     const BOSS_TELEGRAPH_MIN = 0.4;
     const FINAL_MISSILE_COOLDOWN_MAX = 3.5;
     const FINAL_MISSILE_COOLDOWN_MIN = 1.6;
+    const FINAL_MISSILE_FREQUENCY_MULT = 1.25;
     const FINAL_MISSILE_SPEED = 360;
     const FINAL_MISSILE_STEER = 4.5;
     const FINAL_MISSILE_SIZE = 42;
@@ -341,7 +342,8 @@
     function bossTelegraphFor(b){ const pct = b.hp / b.maxHp; return BOSS_TELEGRAPH_MIN + (BOSS_TELEGRAPH_MAX - BOSS_TELEGRAPH_MIN) * pct; }
     function finalMissileCooldownFor(b){
       const pct = b.hp / b.maxHp;
-      return FINAL_MISSILE_COOLDOWN_MIN + (FINAL_MISSILE_COOLDOWN_MAX - FINAL_MISSILE_COOLDOWN_MIN) * pct;
+      const base = FINAL_MISSILE_COOLDOWN_MIN + (FINAL_MISSILE_COOLDOWN_MAX - FINAL_MISSILE_COOLDOWN_MIN) * pct;
+      return base / FINAL_MISSILE_FREQUENCY_MULT; // fire 25% more frequently by reducing cooldown
     }
     function spawnFinalMissile(b){
       const originX = b.x;
@@ -844,7 +846,7 @@
             openingImg,
             closingImg,
             openImg,
-            missileTimer: isFinal ? rand(1.2, 2.4) : 0
+            missileTimer: isFinal ? rand(1.2, 2.4) / FINAL_MISSILE_FREQUENCY_MULT : 0
           };
         } else {
           const moveImg = IMG.bossCraneMove;

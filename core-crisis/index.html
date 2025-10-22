@@ -293,6 +293,10 @@
       bossOpen: 'assets/boss_eyeball_open.png',
       bossClose: 'assets/boss_eyeball_close.png',
       bossLaser: 'assets/boss_eyeball_laser.png',
+      bossFinalClosed: 'assets/boss_final_closed.png',
+      bossFinalOpening: 'assets/boss_final_opening.png',
+      bossFinalClosing: 'assets/boss_final_closing.png',
+      bossFinalOpen: 'assets/boss_final_open.png',
       bossCraneMove: 'assets/boss_crane_moving.png',
       bossCraneAttackHigh: 'assets/boss_crane_attack_high.png',
       bossCraneAttackLow: 'assets/boss_crane_attack_low.png',
@@ -788,8 +792,14 @@
       // Boss spawn and HUD
       if (!boss && time >= bossNextTime) {
         if (difficulty % 2 === 1) {
+          const isFinal = difficulty === 3;
+          const closedImg = isFinal ? IMG.bossFinalClosed : IMG.bossShut;
+          const openingImg = isFinal ? IMG.bossFinalOpening : IMG.bossOpen;
+          const closingImg = isFinal ? IMG.bossFinalClosing : IMG.bossClose;
+          const openImg = isFinal ? IMG.bossFinalOpen : IMG.bossLaser;
           boss = {
             type: 'eyeball',
+            skin: isFinal ? 'final' : 'eyeball',
             x: W + 200,
             y: BOSS_LANES[1],
             lane: 1,
@@ -806,7 +816,11 @@
             spawnedFlyer: false,
             flash: 0,
             hitX: 0.3,
-            hitY: 0.3
+            hitY: 0.3,
+            closedImg,
+            openingImg,
+            closingImg,
+            openImg
           };
         } else {
           const moveImg = IMG.bossCraneMove;
@@ -1815,8 +1829,8 @@
         if (boss.type === 'eyeball') {
           if (boss.state === 'open') drawBossOpen(boss);
           else if (boss.state === 'close') drawBossClose(boss);
-          else if (boss.state === 'laser' || boss.state === 'post') drawBossImage(IMG.bossLaser, boss);
-          else drawBossImage(IMG.bossShut, boss);
+          else if (boss.state === 'laser' || boss.state === 'post') drawBossImage(boss.openImg || IMG.bossLaser, boss);
+          else drawBossImage(boss.closedImg || IMG.bossShut, boss);
         } else {
           drawCrane(boss);
         }
@@ -1930,7 +1944,7 @@
     }
 
     function drawBossOpen(b){
-      const img = IMG.bossOpen;
+      const img = b?.openingImg || IMG.bossOpen;
       if (!img || !img.width) return;
       const frames = 3;
       const fw = img.width / frames;
@@ -1950,7 +1964,7 @@
     }
 
     function drawBossClose(b){
-      const img = IMG.bossClose;
+      const img = b?.closingImg || IMG.bossClose;
       if (!img || !img.width) return;
       const frames = 3;
       const fw = img.width / frames;

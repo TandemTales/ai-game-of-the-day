@@ -329,8 +329,8 @@
     const BOSS_COOLDOWN_MIN = 2;
     const BOSS_TELEGRAPH_MAX = 1.5;
     const BOSS_TELEGRAPH_MIN = 0.4;
-    const FINAL_MISSILE_COOLDOWN_MAX = 3.5;
-    const FINAL_MISSILE_COOLDOWN_MIN = 1.6;
+    const FINAL_MISSILE_COOLDOWN_MAX = 3.5 * (2/3);
+    const FINAL_MISSILE_COOLDOWN_MIN = 1.6 * (2/3);
     const FINAL_MISSILE_SPEED = 360;
     const FINAL_MISSILE_STEER = 4.5;
     const FINAL_MISSILE_SIZE = 42;
@@ -844,7 +844,7 @@
             openingImg,
             closingImg,
             openImg,
-            missileTimer: isFinal ? rand(1.2, 2.4) : 0
+            missileTimer: isFinal ? rand(1.2, 2.4) * (2/3) : 0
           };
         } else {
           const moveImg = IMG.bossCraneMove;

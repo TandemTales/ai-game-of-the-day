@@ -297,6 +297,7 @@
       bossFinalOpening: 'assets/boss_final_opening.png',
       bossFinalClosing: 'assets/boss_final_closing.png',
       bossFinalOpen: 'assets/boss_final_open.png',
+      bossFinalClawing: 'assets/boss_final_clawing.png',
       bossCraneMove: 'assets/boss_crane_moving.png',
       bossCraneAttackHigh: 'assets/boss_crane_attack_high.png',
       bossCraneAttackLow: 'assets/boss_crane_attack_low.png',
@@ -338,6 +339,16 @@
     const FINAL_MISSILE_OFFSET_Y = 46;
     const FINAL_MISSILE_MAX_TIME = 6;
     const FINAL_MISSILE_STATES = new Set(['idle','telegraph','open','laser','post']);
+    const FINAL_CLAW_TARGET_MARGIN = 30;
+    const FINAL_CLAW_FLOOR_BUFFER = 12;
+    const FINAL_CLAW_SPEED = 700;
+    const FINAL_CLAW_RETURN_SPEED = 560;
+    const FINAL_CLAW_HOLD = 0.45;
+    const FINAL_CLAW_FRAME_DUR = 0.08;
+    const FINAL_CLAW_FRAMES = 5;
+    const FINAL_CLAW_HIT_HEIGHT_RATIO = 0.45;
+    const FINAL_CLAW_HIT_WIDTH_RATIO = 0.65;
+    const FINAL_CLAW_STATES = new Set(['clawDash','clawStrike','clawRetreat']);
     function bossCooldownFor(b){ const pct = b.hp / b.maxHp; return BOSS_COOLDOWN_MIN + (BOSS_COOLDOWN_MAX - BOSS_COOLDOWN_MIN) * pct; }
     function bossTelegraphFor(b){ const pct = b.hp / b.maxHp; return BOSS_TELEGRAPH_MIN + (BOSS_TELEGRAPH_MAX - BOSS_TELEGRAPH_MIN) * pct; }
     function finalMissileCooldownFor(b){
@@ -354,6 +365,31 @@
       const vx = (dx / len) * FINAL_MISSILE_SPEED;
       const vy = (dy / len) * FINAL_MISSILE_SPEED;
       missiles.push({ x: originX, y: originY, w: FINAL_MISSILE_SIZE, h: FINAL_MISSILE_SIZE, vx, vy, t: 0, passed: false, hitX:0.7, hitY:0.7 });
+    }
+    function beginFinalClaw(b){
+      if (!b) return;
+      b.state = 'clawDash';
+      b.vulnerable = false;
+      b.clawFrame = 0;
+      b.clawAnimT = 0;
+      b.clawReturnX = b.x;
+      b.clawReturnY = b.y;
+      b.timer = 0;
+      const leftLimit = FINAL_CLAW_TARGET_MARGIN + b.w / 2;
+      const floorY = GROUND_Y + 34 - b.h / 2;
+      const bottomLimit = H - b.h / 2 - FINAL_CLAW_FLOOR_BUFFER;
+      b.clawTargetX = Math.max(b.w / 2, Math.min(b.x, leftLimit));
+      b.clawTargetY = Math.min(floorY, bottomLimit);
+    }
+    function advanceFinalClawAnim(b, dt){
+      if (!b) return;
+      if (typeof b.clawFrame !== 'number') b.clawFrame = 0;
+      if (typeof b.clawAnimT !== 'number') b.clawAnimT = 0;
+      b.clawAnimT += dt;
+      while (b.clawAnimT >= FINAL_CLAW_FRAME_DUR) {
+        b.clawAnimT -= FINAL_CLAW_FRAME_DUR;
+        b.clawFrame = (b.clawFrame + 1) % FINAL_CLAW_FRAMES;
+      }
     }
     const CRANE_COOLDOWN_MAX = 3.5;
     const CRANE_COOLDOWN_MIN = 1.2;
@@ -865,7 +901,13 @@
             openingImg,
             closingImg,
             openImg,
-            missileTimer: isFinal ? rand(1.2, 2.4) / FINAL_MISSILE_FREQUENCY_MULT : 0
+            missileTimer: isFinal ? rand(1.2, 2.4) / FINAL_MISSILE_FREQUENCY_MULT : 0,
+            clawFrame: 0,
+            clawAnimT: 0,
+            clawTargetX: 0,
+            clawTargetY: 0,
+            clawReturnX: 0,
+            clawReturnY: 0
           };
         } else {
           const moveImg = IMG.bossCraneMove;
@@ -931,8 +973,59 @@
               break;
             case 'post':
               boss.timer -= dt;
-              if (boss.timer <= 0) { boss.state = 'close'; boss.animT = 0; boss.vulnerable = false; }
+              if (boss.timer <= 0) {
+                if (boss.skin === 'final') {
+                  beginFinalClaw(boss);
+                } else {
+                  boss.state = 'close';
+                  boss.animT = 0;
+                  boss.vulnerable = false;
+                }
+              }
               break;
+            case 'clawDash': {
+              advanceFinalClawAnim(boss, dt);
+              boss.vulnerable = false;
+              const dx = boss.clawTargetX - boss.x;
+              const dy = boss.clawTargetY - boss.y;
+              const dist = Math.hypot(dx, dy);
+              const speed = FINAL_CLAW_SPEED;
+              if (dist <= speed * dt || dist === 0) {
+                boss.x = boss.clawTargetX;
+                boss.y = boss.clawTargetY;
+                boss.state = 'clawStrike';
+                boss.timer = FINAL_CLAW_HOLD;
+              } else {
+                boss.x += (dx / dist) * speed * dt;
+                boss.y += (dy / dist) * speed * dt;
+              }
+              break;
+            }
+            case 'clawStrike':
+              advanceFinalClawAnim(boss, dt);
+              boss.vulnerable = false;
+              boss.timer -= dt;
+              if (boss.timer <= 0) boss.state = 'clawRetreat';
+              break;
+            case 'clawRetreat': {
+              advanceFinalClawAnim(boss, dt);
+              boss.vulnerable = false;
+              const dx = boss.clawReturnX - boss.x;
+              const dy = boss.clawReturnY - boss.y;
+              const dist = Math.hypot(dx, dy);
+              const speed = FINAL_CLAW_RETURN_SPEED;
+              if (dist <= speed * dt || dist === 0) {
+                boss.x = boss.clawReturnX;
+                boss.y = boss.clawReturnY;
+                boss.state = 'close';
+                boss.animT = 0;
+                boss.vulnerable = false;
+              } else {
+                boss.x += (dx / dist) * speed * dt;
+                boss.y += (dy / dist) * speed * dt;
+              }
+              break;
+            }
             case 'close':
               boss.animT += dt;
               if (boss.animT >= BOSS_CLOSE_DURATION) {
@@ -1612,6 +1705,28 @@
             return;
           }
         }
+        if (boss && boss.skin === 'final' && FINAL_CLAW_STATES.has(boss.state)) {
+          const clawHeight = boss.h * FINAL_CLAW_HIT_HEIGHT_RATIO;
+          const clawWidth = boss.w * FINAL_CLAW_HIT_WIDTH_RATIO;
+          const clawHit = {
+            x: boss.x,
+            y: boss.y + boss.h / 2 - clawHeight / 2,
+            w: clawWidth,
+            h: clawHeight,
+            hitX: 1,
+            hitY: 1
+          };
+          if (hit(P, clawHit)) {
+            if (!consumeShieldOnHit()) {
+              heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
+              loseRandomItem();
+            }
+            P.vy = Math.min(P.vy, -350);
+            P.onGround = false;
+            hitGrace = 2; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
+            return;
+          }
+        }
         if (boss && boss.type === 'crane') {
           if ((boss.state === 'attackHigh' || boss.state === 'attackLow') && boss.animFrame >= 1 && boss.animFrame <= 3) {
             if (hit(P, boss)) {
@@ -1956,7 +2071,8 @@
       }
       if (boss) {
         if (boss.type === 'eyeball') {
-          if (boss.state === 'open') drawBossOpen(boss);
+          if (boss.skin === 'final' && FINAL_CLAW_STATES.has(boss.state)) drawBossClaw(boss);
+          else if (boss.state === 'open') drawBossOpen(boss);
           else if (boss.state === 'close') drawBossClose(boss);
           else if (boss.state === 'laser' || boss.state === 'post') drawBossImage(boss.openImg || IMG.bossLaser, boss);
           else drawBossImage(boss.closedImg || IMG.bossShut, boss);
@@ -2120,6 +2236,26 @@
       const fw = img.width / frames;
       const fh = img.height;
       const frame = Math.min(frames - 1, Math.floor((b.animT / BOSS_CLOSE_DURATION) * frames));
+      const x = Math.round(b.x - b.w/2);
+      const y = Math.round(b.y - b.h/2);
+      ctx.save();
+      ctx.drawImage(img, frame * fw, 0, fw, fh, x, y, b.w, b.h);
+      if (b.flash > 0) {
+        const alpha = Math.min(1, b.flash * 4);
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(img, frame * fw, 0, fw, fh, x, y, b.w, b.h);
+      }
+      ctx.restore();
+    }
+
+    function drawBossClaw(b){
+      const img = IMG.bossFinalClawing;
+      if (!img || !img.width) return;
+      const frames = FINAL_CLAW_FRAMES;
+      const fw = img.width / frames;
+      const fh = img.height;
+      const frame = ((b?.clawFrame) || 0) % frames;
       const x = Math.round(b.x - b.w/2);
       const y = Math.round(b.y - b.h/2);
       ctx.save();

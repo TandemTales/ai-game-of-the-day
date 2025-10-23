@@ -297,6 +297,7 @@
       bossFinalOpening: 'assets/boss_final_opening.png',
       bossFinalClosing: 'assets/boss_final_closing.png',
       bossFinalOpen: 'assets/boss_final_open.png',
+      bossFinalClawing: 'assets/boss_final_clawing.png',
       bossCraneMove: 'assets/boss_crane_moving.png',
       bossCraneAttackHigh: 'assets/boss_crane_attack_high.png',
       bossCraneAttackLow: 'assets/boss_crane_attack_low.png',
@@ -338,6 +339,18 @@
     const FINAL_MISSILE_OFFSET_Y = 46;
     const FINAL_MISSILE_MAX_TIME = 6;
     const FINAL_MISSILE_STATES = new Set(['idle','telegraph','open','laser','post']);
+    const FINAL_CLAW_FRAME_DUR = 0.08;
+    const FINAL_CLAW_SPEED_MIN = 420;
+    const FINAL_CLAW_SPEED_MAX = 640;
+    const FINAL_CLAW_ENTRY_SPEED = 320;
+    const FINAL_CLAW_TARGET_TIME_MIN = 0.6;
+    const FINAL_CLAW_TARGET_TIME_MAX = 1.4;
+    const FINAL_CLAW_BOTTOM_RATIO = 0.5;
+    const FINAL_CLAW_BOTTOM_WIDTH = 0.65;
+    const FINAL_CLAW_MARGIN_X = 140;
+    const FINAL_CLAW_TOP_MARGIN = 120;
+    const FINAL_CLAW_BOTTOM_MARGIN = 36;
+    const FINAL_CLAW_MISSILE_STATES = new Set(['swoop']);
     function bossCooldownFor(b){ const pct = b.hp / b.maxHp; return BOSS_COOLDOWN_MIN + (BOSS_COOLDOWN_MAX - BOSS_COOLDOWN_MIN) * pct; }
     function bossTelegraphFor(b){ const pct = b.hp / b.maxHp; return BOSS_TELEGRAPH_MIN + (BOSS_TELEGRAPH_MAX - BOSS_TELEGRAPH_MIN) * pct; }
     function finalMissileCooldownFor(b){
@@ -628,6 +641,43 @@
       return null;
     }
 
+    function finalClawSpeedFor(b){
+      const pct = 1 - b.hp / b.maxHp;
+      return FINAL_CLAW_SPEED_MIN + (FINAL_CLAW_SPEED_MAX - FINAL_CLAW_SPEED_MIN) * pct;
+    }
+
+    function finalClawBounds(){
+      const left = FINAL_CLAW_MARGIN_X;
+      const right = W - FINAL_CLAW_MARGIN_X;
+      const top = FINAL_CLAW_TOP_MARGIN;
+      const bottom = Math.max(top + 40, GROUND_Y - FINAL_CLAW_BOTTOM_MARGIN);
+      return { left, right, top, bottom };
+    }
+
+    function chooseFinalClawTarget(b){
+      const bounds = finalClawBounds();
+      b.targetX = rand(bounds.left, bounds.right);
+      b.targetY = rand(bounds.top, bounds.bottom);
+      b.targetTimer = rand(FINAL_CLAW_TARGET_TIME_MIN, FINAL_CLAW_TARGET_TIME_MAX);
+    }
+
+    function finalClawBottomHitbox(b){
+      const ratio = b.bottomHitRatio ?? FINAL_CLAW_BOTTOM_RATIO;
+      const widthRatio = b.bottomHitWidth ?? FINAL_CLAW_BOTTOM_WIDTH;
+      const height = b.h * ratio;
+      const centerY = b.y + b.h / 2 - height / 2;
+      return {
+        x: b.x,
+        y: centerY,
+        w: b.w,
+        h: height,
+        hitX: widthRatio,
+        hitY: 1,
+        hitOffsetX: b.hitOffsetX || 0,
+        hitOffsetY: b.hitOffsetY || 0,
+      };
+    }
+
     function spawnGroundPickup(list, x, w, h, img, nowSec, extra = {}) {
       if (tryReserveRow(0, 0, nowSec) === null) return;
       const y = GROUND_Y + 34 - h / 2;
@@ -836,37 +886,69 @@
       // Boss spawn and HUD
       if (!boss && time >= bossNextTime) {
         if (difficulty % 2 === 1) {
-          const isFinal = difficulty === 3;
-          const closedImg = isFinal ? IMG.bossFinalClosed : IMG.bossShut;
-          const openingImg = isFinal ? IMG.bossFinalOpening : IMG.bossOpen;
-          const closingImg = isFinal ? IMG.bossFinalClosing : IMG.bossClose;
-          const openImg = isFinal ? IMG.bossFinalOpen : IMG.bossLaser;
-          boss = {
-            type: 'eyeball',
-            skin: isFinal ? 'final' : 'eyeball',
-            x: W + 200,
-            y: BOSS_LANES[1],
-            lane: 1,
-            targetLane: 1,
-            w: 320,
-            h: 320,
-            state: 'entry',
-            hp: BOSS_MAX_HP * difficulty,
-            maxHp: BOSS_MAX_HP * difficulty,
-            timer: 0,
-            cooldown: 3,
-            animT: 0,
-            vulnerable: false,
-            spawnedFlyer: false,
-            flash: 0,
-            hitX: 0.3,
-            hitY: 0.3,
-            closedImg,
-            openingImg,
-            closingImg,
-            openImg,
-            missileTimer: isFinal ? rand(1.2, 2.4) / FINAL_MISSILE_FREQUENCY_MULT : 0
-          };
+          if (difficulty === 3) {
+            const bounds = finalClawBounds();
+            const entryX = bounds.right - 20;
+            const entryY = (bounds.top + bounds.bottom) / 2;
+            boss = {
+              type: 'finalClaw',
+              skin: 'finalClaw',
+              x: W + 200,
+              y: entryY,
+              w: 320,
+              h: 320,
+              state: 'entry',
+              hp: BOSS_MAX_HP * difficulty,
+              maxHp: BOSS_MAX_HP * difficulty,
+              timer: 0,
+              cooldown: 0,
+              animT: 0,
+              animFrame: 0,
+              vulnerable: false,
+              flash: 0,
+              hitX: 0.6,
+              hitY: 0.6,
+              bottomHitRatio: FINAL_CLAW_BOTTOM_RATIO,
+              bottomHitWidth: FINAL_CLAW_BOTTOM_WIDTH,
+              entryX,
+              entryY,
+              targetX: entryX,
+              targetY: entryY,
+              targetTimer: 0,
+              missileTimer: rand(1.2, 2.4) / FINAL_MISSILE_FREQUENCY_MULT,
+              missileStates: FINAL_CLAW_MISSILE_STATES
+            };
+          } else {
+            const closedImg = IMG.bossShut;
+            const openingImg = IMG.bossOpen;
+            const closingImg = IMG.bossClose;
+            const openImg = IMG.bossLaser;
+            boss = {
+              type: 'eyeball',
+              skin: 'eyeball',
+              x: W + 200,
+              y: BOSS_LANES[1],
+              lane: 1,
+              targetLane: 1,
+              w: 320,
+              h: 320,
+              state: 'entry',
+              hp: BOSS_MAX_HP * difficulty,
+              maxHp: BOSS_MAX_HP * difficulty,
+              timer: 0,
+              cooldown: 3,
+              animT: 0,
+              vulnerable: false,
+              spawnedFlyer: false,
+              flash: 0,
+              hitX: 0.3,
+              hitY: 0.3,
+              closedImg,
+              openingImg,
+              closingImg,
+              openImg
+            };
+          }
         } else {
           const moveImg = IMG.bossCraneMove;
           const frames = 4;
@@ -959,13 +1041,54 @@
               }
               break;
           }
-          if (boss.skin === 'final') {
-            boss.missileTimer -= dt;
-            if (FINAL_MISSILE_STATES.has(boss.state) && boss.missileTimer <= 0) {
-              spawnFinalMissile(boss);
-              boss.missileTimer = finalMissileCooldownFor(boss);
+        } else if (boss.type === 'finalClaw') {
+          const bounds = finalClawBounds();
+          boss.animT += dt;
+          while (boss.animT >= FINAL_CLAW_FRAME_DUR) {
+            boss.animT -= FINAL_CLAW_FRAME_DUR;
+            boss.animFrame = (boss.animFrame + 1) % 5;
+          }
+          if (boss.state === 'entry') {
+            const dx = boss.entryX - boss.x;
+            const dy = boss.entryY - boss.y;
+            const dist = Math.hypot(dx, dy);
+            const sp = FINAL_CLAW_ENTRY_SPEED;
+            if (dist <= sp * dt || dist === 0) {
+              boss.x = boss.entryX;
+              boss.y = boss.entryY;
+              boss.state = 'swoop';
+              boss.vulnerable = true;
+              chooseFinalClawTarget(boss);
+            } else {
+              const inv = 1 / dist;
+              boss.x += dx * inv * sp * dt;
+              boss.y += dy * inv * sp * dt;
+            }
+          } else if (boss.state === 'swoop') {
+            boss.vulnerable = true;
+            if (!Number.isFinite(boss.targetX) || !Number.isFinite(boss.targetY)) chooseFinalClawTarget(boss);
+            boss.targetTimer -= dt;
+            const dx = boss.targetX - boss.x;
+            const dy = boss.targetY - boss.y;
+            const dist = Math.hypot(dx, dy);
+            const sp = finalClawSpeedFor(boss);
+            if (dist > 0) {
+              const step = sp * dt;
+              if (dist <= step) {
+                boss.x = boss.targetX;
+                boss.y = boss.targetY;
+              } else {
+                const inv = 1 / dist;
+                boss.x += dx * inv * step;
+                boss.y += dy * inv * step;
+              }
+            }
+            if (boss.targetTimer <= 0 || dist <= sp * dt) {
+              chooseFinalClawTarget(boss);
             }
           }
+          boss.x = clamp(boss.x, bounds.left, bounds.right);
+          boss.y = clamp(boss.y, bounds.top, bounds.bottom);
         } else if (boss.type === 'crane') {
           boss.y = CRANE_Y; // ensure crane stays grounded
           switch (boss.state) {
@@ -1050,6 +1173,13 @@
               boss.timer -= dt;
               if (boss.timer <= 0) boss.state = 'retreat';
               break;
+          }
+        }
+        if (boss.missileStates instanceof Set && typeof boss.missileTimer === 'number') {
+          boss.missileTimer -= dt;
+          if (boss.missileStates.has(boss.state) && boss.missileTimer <= 0) {
+            spawnFinalMissile(boss);
+            boss.missileTimer = finalMissileCooldownFor(boss);
           }
         }
       } else if (bossHud) {
@@ -1636,6 +1766,19 @@
             return;
           }
         }
+        if (boss && boss.type === 'finalClaw') {
+          const clawHit = finalClawBottomHitbox(boss);
+          if (hit(P, clawHit)) {
+            if (!consumeShieldOnHit()) {
+              heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
+              loseRandomItem();
+            }
+            P.vy = Math.min(P.vy, -350);
+            P.onGround = false;
+            hitGrace = 2; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
+            return;
+          }
+        }
         for (const s of spikes) if (hit(P, s)) {
           if (!consumeShieldOnHit()) {
             // Apply heat penalty based on whether a jetpack was owned at impact
@@ -1960,6 +2103,8 @@
           else if (boss.state === 'close') drawBossClose(boss);
           else if (boss.state === 'laser' || boss.state === 'post') drawBossImage(boss.openImg || IMG.bossLaser, boss);
           else drawBossImage(boss.closedImg || IMG.bossShut, boss);
+        } else if (boss.type === 'finalClaw') {
+          drawFinalClaw(boss);
         } else {
           drawCrane(boss);
         }
@@ -2120,6 +2265,26 @@
       const fw = img.width / frames;
       const fh = img.height;
       const frame = Math.min(frames - 1, Math.floor((b.animT / BOSS_CLOSE_DURATION) * frames));
+      const x = Math.round(b.x - b.w/2);
+      const y = Math.round(b.y - b.h/2);
+      ctx.save();
+      ctx.drawImage(img, frame * fw, 0, fw, fh, x, y, b.w, b.h);
+      if (b.flash > 0) {
+        const alpha = Math.min(1, b.flash * 4);
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(img, frame * fw, 0, fw, fh, x, y, b.w, b.h);
+      }
+      ctx.restore();
+    }
+
+    function drawFinalClaw(b){
+      const img = IMG.bossFinalClawing;
+      if (!img || !img.width) return;
+      const frames = 5;
+      const fw = img.width / frames;
+      const fh = img.height;
+      const frame = Math.max(0, Math.floor(b.animFrame || 0) % frames);
       const x = Math.round(b.x - b.w/2);
       const y = Math.round(b.y - b.h/2);
       ctx.save();

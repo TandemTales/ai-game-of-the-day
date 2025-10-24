@@ -301,6 +301,7 @@
       bossCraneMove: 'assets/boss_crane_moving.png',
       bossCraneAttackHigh: 'assets/boss_crane_attack_high.png',
       bossCraneAttackLow: 'assets/boss_crane_attack_low.png',
+      finalMissile: 'assets/cc_missile.png',
     };
 
     const IMG = {};
@@ -335,10 +336,12 @@
     const FINAL_MISSILE_FREQUENCY_MULT = 1.25;
     const FINAL_MISSILE_SPEED = 360;
     const FINAL_MISSILE_STEER = 4.5;
-    const FINAL_MISSILE_SIZE = 42;
+    const FINAL_MISSILE_SIZE = 63;
     const FINAL_MISSILE_OFFSET_Y = 46;
     const FINAL_MISSILE_MAX_TIME = 6;
     const FINAL_MISSILE_STATES = new Set(['idle','telegraph','open','laser','post']);
+    const FINAL_MISSILE_FRAMES = 4;
+    const FINAL_MISSILE_FRAME_DUR = 0.08;
     const FINAL_CLAW_TARGET_MARGIN = 30;
     const FINAL_CLAW_FLOOR_BUFFER = 12;
     const FINAL_CLAW_SPEED = 700;
@@ -2186,23 +2189,17 @@
     }
 
     function drawMissile(m){
+      const img = IMG.finalMissile;
+      if (!img || !img.width) return;
       ctx.save();
       ctx.translate(Math.round(m.x), Math.round(m.y));
       const angle = Math.atan2(m.vy, m.vx);
       ctx.rotate(angle);
-      const bodyL = m.w * 0.7;
-      const bodyH = m.h * 0.45;
-      ctx.fillStyle = '#f97316';
-      ctx.fillRect(-bodyL * 0.5, -bodyH / 2, bodyL, bodyH);
-      ctx.fillStyle = '#facc15';
-      ctx.beginPath();
-      ctx.moveTo(bodyL / 2 + m.w * 0.25, 0);
-      ctx.lineTo(bodyL / 2, -bodyH * 0.8);
-      ctx.lineTo(bodyL / 2, bodyH * 0.8);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.fillRect(-bodyL * 0.45, -bodyH * 0.35, bodyL * 0.5, bodyH * 0.7);
+      const frameW = img.width / FINAL_MISSILE_FRAMES;
+      const frameH = img.height;
+      const animFrame = FINAL_MISSILE_FRAMES - 1 - Math.floor((m.t / FINAL_MISSILE_FRAME_DUR) % FINAL_MISSILE_FRAMES);
+      const sx = Math.floor(animFrame * frameW);
+      ctx.drawImage(img, sx, 0, frameW, frameH, -m.w / 2, -m.h / 2, m.w, m.h);
       ctx.restore();
     }
 

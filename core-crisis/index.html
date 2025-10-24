@@ -1646,16 +1646,24 @@
       // Collisions
       // Axis-aligned bounding box with adjustable per-entity hitbox scale.
       // Using slightly smaller hitboxes reduces premature collision triggers.
+      function hitBox(entity, overrides){
+        const scaleX = overrides?.x ?? (entity.hitX || 1);
+        const scaleY = overrides?.y ?? (entity.hitY || 1);
+        return {
+          x: entity.x + (entity.hitOffsetX || 0),
+          y: entity.y + (entity.hitOffsetY || 0),
+          w: entity.w * scaleX,
+          h: entity.h * scaleY
+        };
+      }
+      function boxesOverlap(a, b){
+        return Math.abs(a.x - b.x) * 2 < (a.w + b.w) && Math.abs(a.y - b.y) * 2 < (a.h + b.h);
+      }
       function hit(a,b){
-        const ax = a.x + (a.hitOffsetX || 0);
-        const ay = a.y + (a.hitOffsetY || 0);
-        const bx = b.x + (b.hitOffsetX || 0);
-        const by = b.y + (b.hitOffsetY || 0);
-        const aw = a.w * (a.hitX || 1);
-        const ah = a.h * (a.hitY || 1);
-        const bw = b.w * (b.hitX || 1);
-        const bh = b.h * (b.hitY || 1);
-        return Math.abs(ax - bx) * 2 < (aw + bw) && Math.abs(ay - by) * 2 < (ah + bh);
+        return boxesOverlap(hitBox(a), hitBox(b));
+      }
+      function hitWithOverrides(a, b, overrideA, overrideB){
+        return boxesOverlap(hitBox(a, overrideA), hitBox(b, overrideB));
       }
       // Hazard collisions: add heat and drop items. If shield is owned, it absorbs the hit, losing one durability and preventing heat gain.
       if (hitGrace <= 0) {
@@ -1945,28 +1953,37 @@
             if (hit(b, missiles[j])) { missiles.splice(j,1); hitSomething = true; if (!heatCheat) score += 1; playSfx(SFX.enemyHit); break; }
           }
         }
-        if (!hitSomething && boss && boss.vulnerable && hit(b, boss)) {
-          boss.hp -= GUN_DAMAGE;
-          boss.flash = 0.25;
-          hitSomething = true;
-          playSfx(SFX.enemyHit);
-          if (boss.hp <= 0) {
-            playSfx(SFX.bossKill);
-            if (!heatCheat) score += 10;
-            showBossDefeated();
-            const GEM_W = 34, GEM_H = 34;
-            for (let g = 0; g < 5; g++) {
-              const gx = boss.x + rand(-60,60);
-              const gy = boss.y + rand(-60,60);
-              gems.push({ x: gx, y: gy, baseY: gy, w: GEM_W, h: GEM_H, img: IMG.gem, t: 0, hitX:0.60, hitY:0.60 });
+        if (!hitSomething && boss && boss.vulnerable) {
+          let damage = 0;
+          const weakHit = hit(b, boss);
+          if (weakHit) {
+            damage = GUN_DAMAGE * 2;
+          } else if (hitWithOverrides(b, boss, null, { x: 1, y: 1 })) {
+            damage = GUN_DAMAGE;
+          }
+          if (damage > 0) {
+            boss.hp -= damage;
+            boss.flash = 0.25;
+            hitSomething = true;
+            playSfx(SFX.enemyHit);
+            if (boss.hp <= 0) {
+              playSfx(SFX.bossKill);
+              if (!heatCheat) score += 10;
+              showBossDefeated();
+              const GEM_W = 34, GEM_H = 34;
+              for (let g = 0; g < 5; g++) {
+                const gx = boss.x + rand(-60,60);
+                const gy = boss.y + rand(-60,60);
+                gems.push({ x: gx, y: gy, baseY: gy, w: GEM_W, h: GEM_H, img: IMG.gem, t: 0, hitX:0.60, hitY:0.60 });
+              }
+              boss = null;
+              bossNextTime = time + 30;
+              difficulty++;
+              runSpeed = RUN_SPEED * (1 + 0.1 * (difficulty - 1));
+              if (bossHud) bossHud.classList.add('hidden');
+            } else {
+              playSfx(SFX.bossHit);
             }
-            boss = null;
-            bossNextTime = time + 30;
-            difficulty++;
-            runSpeed = RUN_SPEED * (1 + 0.1 * (difficulty - 1));
-            if (bossHud) bossHud.classList.add('hidden');
-          } else {
-            playSfx(SFX.bossHit);
           }
         }
         if (hitSomething) { pshots.splice(i,1); }

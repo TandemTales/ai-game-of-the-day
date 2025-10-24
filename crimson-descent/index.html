@@ -1042,6 +1042,7 @@
         for (let tx = startX; tx <= endX; tx++) {
           const tile = sampleTile(tx, ty);
           if (tile === TILES.EMPTY) continue;
+          if (tile === TILES.SPAWN || tile === TILES.ENEMY) continue;
           const px = tx * TILE_SIZE;
           const py = ty * TILE_SIZE;
           const definition = tileDefinitions.get(tile);

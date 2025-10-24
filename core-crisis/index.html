@@ -301,6 +301,7 @@
       bossCraneMove: 'assets/boss_crane_moving.png',
       bossCraneAttackHigh: 'assets/boss_crane_attack_high.png',
       bossCraneAttackLow: 'assets/boss_crane_attack_low.png',
+      finalMissile: 'assets/cc_missile.png',
     };
 
     const IMG = {};
@@ -338,6 +339,8 @@
     const FINAL_MISSILE_SIZE = 42;
     const FINAL_MISSILE_OFFSET_Y = 46;
     const FINAL_MISSILE_MAX_TIME = 6;
+    const FINAL_MISSILE_FRAME_DUR = 0.08;
+    const FINAL_MISSILE_FRAMES = 4;
     const FINAL_MISSILE_STATES = new Set(['idle','telegraph','open','laser','post']);
     const FINAL_CLAW_TARGET_MARGIN = 30;
     const FINAL_CLAW_FLOOR_BUFFER = 12;
@@ -2186,23 +2189,42 @@
     }
 
     function drawMissile(m){
+      const img = IMG.finalMissile;
       ctx.save();
       ctx.translate(Math.round(m.x), Math.round(m.y));
       const angle = Math.atan2(m.vy, m.vx);
       ctx.rotate(angle);
-      const bodyL = m.w * 0.7;
-      const bodyH = m.h * 0.45;
-      ctx.fillStyle = '#f97316';
-      ctx.fillRect(-bodyL * 0.5, -bodyH / 2, bodyL, bodyH);
-      ctx.fillStyle = '#facc15';
-      ctx.beginPath();
-      ctx.moveTo(bodyL / 2 + m.w * 0.25, 0);
-      ctx.lineTo(bodyL / 2, -bodyH * 0.8);
-      ctx.lineTo(bodyL / 2, bodyH * 0.8);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.fillRect(-bodyL * 0.45, -bodyH * 0.35, bodyL * 0.5, bodyH * 0.7);
+      if (img && img.width) {
+        const frames = FINAL_MISSILE_FRAMES;
+        const fw = img.width / frames;
+        const fh = img.height;
+        const frame = Math.floor((m.t || 0) / FINAL_MISSILE_FRAME_DUR) % frames;
+        ctx.drawImage(
+          img,
+          frame * fw,
+          0,
+          fw,
+          fh,
+          Math.round(-m.w / 2),
+          Math.round(-m.h / 2),
+          m.w,
+          m.h
+        );
+      } else {
+        const bodyL = m.w * 0.7;
+        const bodyH = m.h * 0.45;
+        ctx.fillStyle = '#f97316';
+        ctx.fillRect(-bodyL * 0.5, -bodyH / 2, bodyL, bodyH);
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath();
+        ctx.moveTo(bodyL / 2 + m.w * 0.25, 0);
+        ctx.lineTo(bodyL / 2, -bodyH * 0.8);
+        ctx.lineTo(bodyL / 2, bodyH * 0.8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.fillRect(-bodyL * 0.45, -bodyH * 0.35, bodyL * 0.5, bodyH * 0.7);
+      }
       ctx.restore();
     }
 

@@ -687,6 +687,13 @@
 
     if (muteBtn) {
       updateMuteButton();
+      const suppressMuteHotkeys = (e) => {
+        if (e.code === 'Space' || e.code === 'Enter') {
+          e.preventDefault();
+        }
+      };
+      muteBtn.addEventListener('keydown', suppressMuteHotkeys);
+      muteBtn.addEventListener('keyup', suppressMuteHotkeys);
       muteBtn.addEventListener('click', () => {
         soundtrackEnabled = !soundtrackEnabled;
         const audioEl = ensureSoundtrackAudio();

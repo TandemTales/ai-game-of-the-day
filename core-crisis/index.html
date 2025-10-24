@@ -301,6 +301,7 @@
       bossCraneMove: 'assets/boss_crane_moving.png',
       bossCraneAttackHigh: 'assets/boss_crane_attack_high.png',
       bossCraneAttackLow: 'assets/boss_crane_attack_low.png',
+      finalMissile: 'assets/cc_missile.png',
     };
 
     const IMG = {};
@@ -335,7 +336,9 @@
     const FINAL_MISSILE_FREQUENCY_MULT = 1.25;
     const FINAL_MISSILE_SPEED = 360;
     const FINAL_MISSILE_STEER = 4.5;
-    const FINAL_MISSILE_SIZE = 42;
+    const FINAL_MISSILE_SIZE = 63;
+    const FINAL_MISSILE_FRAMES = 4;
+    const FINAL_MISSILE_FRAME_DUR = 0.08;
     const FINAL_MISSILE_OFFSET_Y = 46;
     const FINAL_MISSILE_MAX_TIME = 6;
     const FINAL_MISSILE_STATES = new Set(['idle','telegraph','open','laser','post']);
@@ -364,7 +367,7 @@
       const len = Math.hypot(dx, dy) || 1;
       const vx = (dx / len) * FINAL_MISSILE_SPEED;
       const vy = (dy / len) * FINAL_MISSILE_SPEED;
-      missiles.push({ x: originX, y: originY, w: FINAL_MISSILE_SIZE, h: FINAL_MISSILE_SIZE, vx, vy, t: 0, passed: false, hitX:0.7, hitY:0.7 });
+      missiles.push({ x: originX, y: originY, w: FINAL_MISSILE_SIZE, h: FINAL_MISSILE_SIZE, vx, vy, t: 0, passed: false, hitX:0.7, hitY:0.7, frame: 0, animT: 0 });
     }
     function beginFinalClaw(b){
       if (!b) return;
@@ -1598,6 +1601,13 @@
       for (let i = missiles.length - 1; i >= 0; i--) {
         const m = missiles[i];
         m.t += dt;
+        if (typeof m.animT !== 'number') m.animT = 0;
+        if (typeof m.frame !== 'number') m.frame = 0;
+        m.animT += dt;
+        while (m.animT >= FINAL_MISSILE_FRAME_DUR) {
+          m.animT -= FINAL_MISSILE_FRAME_DUR;
+          m.frame = (m.frame + 1) % FINAL_MISSILE_FRAMES;
+        }
         const ahead = m.x > P.x + 24;
         if (ahead) {
           const dx = P.x - m.x;
@@ -2190,19 +2200,31 @@
       ctx.translate(Math.round(m.x), Math.round(m.y));
       const angle = Math.atan2(m.vy, m.vx);
       ctx.rotate(angle);
-      const bodyL = m.w * 0.7;
-      const bodyH = m.h * 0.45;
-      ctx.fillStyle = '#f97316';
-      ctx.fillRect(-bodyL * 0.5, -bodyH / 2, bodyL, bodyH);
-      ctx.fillStyle = '#facc15';
-      ctx.beginPath();
-      ctx.moveTo(bodyL / 2 + m.w * 0.25, 0);
-      ctx.lineTo(bodyL / 2, -bodyH * 0.8);
-      ctx.lineTo(bodyL / 2, bodyH * 0.8);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.fillRect(-bodyL * 0.45, -bodyH * 0.35, bodyL * 0.5, bodyH * 0.7);
+      const img = IMG.finalMissile;
+      if (img && img.width) {
+        const frames = FINAL_MISSILE_FRAMES;
+        const fw = img.width / frames;
+        const fh = img.height;
+        const frame = (typeof m.frame === 'number' ? m.frame : 0) % frames;
+        const sx = Math.floor(frame) * fw;
+        const dw = m.w;
+        const dh = m.h;
+        ctx.drawImage(img, sx, 0, fw, fh, Math.round(-dw / 2), Math.round(-dh / 2), dw, dh);
+      } else {
+        const bodyL = m.w * 0.7;
+        const bodyH = m.h * 0.45;
+        ctx.fillStyle = '#f97316';
+        ctx.fillRect(-bodyL * 0.5, -bodyH / 2, bodyL, bodyH);
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath();
+        ctx.moveTo(bodyL / 2 + m.w * 0.25, 0);
+        ctx.lineTo(bodyL / 2, -bodyH * 0.8);
+        ctx.lineTo(bodyL / 2, bodyH * 0.8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.fillRect(-bodyL * 0.45, -bodyH * 0.35, bodyL * 0.5, bodyH * 0.7);
+      }
       ctx.restore();
     }
 

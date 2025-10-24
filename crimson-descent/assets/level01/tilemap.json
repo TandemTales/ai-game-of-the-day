@@ -3,5 +3,6 @@
   "1": { "name": "Wall", "image": "wall.png" },
   "2": { "name": "Spawn", "image": "spawn.png" },
   "3": { "name": "Landing Pad", "image": "landing.png" },
-  "4": { "name": "Gun", "image": "gun.png" }
+  "4": { "name": "Gun", "image": "gun.png" },
+  "5": { "name": "Enemy01", "image": "enemy01.png" }
 }

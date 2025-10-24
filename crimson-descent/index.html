@@ -374,7 +374,7 @@
     const TILE_SIZE = 32;
     const WORLD_WIDTH = GRID_SIZE * TILE_SIZE;
     const WORLD_HEIGHT = GRID_SIZE * TILE_SIZE;
-    const TILES = { EMPTY: 0, WALL: 1, SPAWN: 2, PAD: 3, GUN: 4 };
+    const TILES = { EMPTY: 0, WALL: 1, SPAWN: 2, PAD: 3, GUN: 4, ENEMY: 5 };
     const tileDefinitions = new Map();
     const tileImages = new Map();
     tileDefinitions.set(0, { id: 0, name: 'Empty', imageFile: null });
@@ -443,7 +443,7 @@
         });
       });
 
-      [TILES.WALL, TILES.SPAWN, TILES.PAD, TILES.GUN].forEach((id) => {
+      [TILES.WALL, TILES.SPAWN, TILES.PAD, TILES.GUN, TILES.ENEMY].forEach((id) => {
         if (!tileDefinitions.has(id)) {
           tileDefinitions.set(id, { id, name: `Tile ${id}`, imageFile: null, imageKey: null });
         }
@@ -576,6 +576,8 @@
 
     function parseLevel() {
       let spawnFound = false;
+      enemies.length = 0;
+      enemyProjectiles.length = 0;
       for (let y = 0; y < GRID_SIZE; y++) {
         for (let x = 0; x < GRID_SIZE; x++) {
           const tile = level[worldIndex(x, y)];
@@ -585,6 +587,22 @@
               y: y * TILE_SIZE - LANDER_HEIGHT * 0.46 - 16
             };
             spawnFound = true;
+          }
+          if (tile === TILES.ENEMY) {
+            const centerX = (x + 0.5) * TILE_SIZE;
+            const centerY = (y + 0.5) * TILE_SIZE;
+            enemies.push({
+              x: centerX,
+              y: centerY,
+              originY: centerY,
+              dir: 1,
+              range: TILE_SIZE * 1.5,
+              speed: 36,
+              width: TILE_SIZE * 0.9,
+              height: TILE_SIZE * 0.9,
+              fireCooldown: 2.2,
+              fireTimer: 0.6 + Math.random() * 1.2
+            });
           }
         }
       }
@@ -597,7 +615,6 @@
       spawnPoint.x = clamp(spawnPoint.x, TILE_SIZE, WORLD_WIDTH - TILE_SIZE);
       spawnPoint.y = clamp(spawnPoint.y, TILE_SIZE, WORLD_HEIGHT - TILE_SIZE * 2);
       if (state.phase !== 'playing') {
-        resetLander();
         updateCamera(true);
       }
     }
@@ -754,6 +771,8 @@
     };
 
     const projectiles = [];
+    const enemies = [];
+    const enemyProjectiles = [];
 
     let lastCrashDetail = null;
 
@@ -763,6 +782,7 @@
       if (baseLevel) {
         level.set(baseLevel);
       }
+      parseLevel();
       lander.x = spawnPoint.x;
       lander.y = spawnPoint.y;
       lander.vx = 0;
@@ -774,6 +794,7 @@
       weapon.hasGun = false;
       weapon.nextFireTime = 0;
       projectiles.length = 0;
+      enemyProjectiles.length = 0;
       keys.fire = false;
       state.time = 0;
       state.finalScore = 0;
@@ -871,7 +892,11 @@
     }
 
     function update(dt) {
+      if (state.phase === 'playing') {
+        updateEnemies(dt);
+      }
       updateProjectiles(dt);
+      updateEnemyProjectiles(dt);
       if (state.phase !== 'playing') {
         lander.thrusting = false;
         return;
@@ -923,6 +948,8 @@
       ctx.save();
       ctx.translate(-camera.x, -camera.y);
       drawTerrain();
+      drawEnemies();
+      drawEnemyProjectiles();
       drawProjectiles();
       ctx.save();
       ctx.translate(lander.x, lander.y);
@@ -1221,6 +1248,21 @@
           projectiles.splice(i, 1);
         } else if (tile === TILES.GUN) {
           projectiles.splice(i, 1);
+        } else {
+          let hitEnemy = false;
+          for (let j = enemies.length - 1; j >= 0; j--) {
+            const enemy = enemies[j];
+            const halfW = enemy.width * 0.5;
+            const halfH = enemy.height * 0.5;
+            if (Math.abs(shot.x - enemy.x) <= halfW && Math.abs(shot.y - enemy.y) <= halfH) {
+              enemies.splice(j, 1);
+              hitEnemy = true;
+              break;
+            }
+          }
+          if (hitEnemy) {
+            projectiles.splice(i, 1);
+          }
         }
       }
     }
@@ -1235,6 +1277,107 @@
         ctx.fill();
       });
       ctx.restore();
+    }
+
+    function updateEnemies(dt) {
+      if (!enemies.length || state.phase !== 'playing') return;
+      enemies.forEach((enemy) => {
+        const minY = Math.max(enemy.height * 0.5, enemy.originY - enemy.range);
+        const maxY = Math.min(WORLD_HEIGHT - enemy.height * 0.5, enemy.originY + enemy.range);
+        enemy.y += enemy.speed * enemy.dir * dt;
+        if (enemy.y <= minY) {
+          enemy.y = minY;
+          enemy.dir = 1;
+        } else if (enemy.y >= maxY) {
+          enemy.y = maxY;
+          enemy.dir = -1;
+        }
+        enemy.fireTimer -= dt;
+        if (enemy.fireTimer <= 0) {
+          spawnEnemyProjectile(enemy);
+          enemy.fireTimer = enemy.fireCooldown;
+        }
+      });
+    }
+
+    function spawnEnemyProjectile(enemy) {
+      enemyProjectiles.push({
+        x: enemy.x - enemy.width * 0.55,
+        y: enemy.y,
+        vx: -220,
+        vy: 0,
+        life: 4
+      });
+    }
+
+    function updateEnemyProjectiles(dt) {
+      if (!enemyProjectiles.length) return;
+      if (state.phase !== 'playing') {
+        enemyProjectiles.length = 0;
+        return;
+      }
+      const halfW = LANDER_WIDTH * 0.42;
+      const halfH = LANDER_HEIGHT * 0.45;
+      for (let i = enemyProjectiles.length - 1; i >= 0; i--) {
+        const shot = enemyProjectiles[i];
+        shot.life -= dt;
+        shot.x += shot.vx * dt;
+        shot.y += shot.vy * dt;
+        if (shot.life <= 0 || shot.x < -TILE_SIZE * 4 || shot.x > WORLD_WIDTH + TILE_SIZE * 2 || shot.y < -TILE_SIZE * 8 || shot.y > WORLD_HEIGHT + TILE_SIZE * 2) {
+          enemyProjectiles.splice(i, 1);
+          continue;
+        }
+        const tile = tileAtPixel(shot.x, shot.y);
+        if (tile === TILES.WALL) {
+          enemyProjectiles.splice(i, 1);
+          continue;
+        }
+        if (Math.abs(shot.x - lander.x) <= halfW && Math.abs(shot.y - lander.y) <= halfH) {
+          enemyProjectiles.splice(i, 1);
+          crashFromEnemy('enemy-bullet', { x: Number(shot.x.toFixed(2)), y: Number(shot.y.toFixed(2)) });
+        }
+      }
+    }
+
+    function drawEnemies() {
+      if (!enemies.length) return;
+      const definition = tileDefinitions.get(TILES.ENEMY);
+      const imageKey = definition ? definition.imageKey : null;
+      const imageRecord = imageKey ? tileImages.get(imageKey) : null;
+      ctx.save();
+      enemies.forEach((enemy) => {
+        if (imageRecord && imageRecord.image) {
+          ctx.drawImage(imageRecord.image, enemy.x - enemy.width / 2, enemy.y - enemy.height / 2, enemy.width, enemy.height);
+        } else {
+          ctx.fillStyle = '#ff6c8b';
+          ctx.beginPath();
+          ctx.ellipse(enemy.x, enemy.y, enemy.width * 0.5, enemy.height * 0.45, 0, 0, TWO_PI);
+          ctx.fill();
+        }
+      });
+      ctx.restore();
+    }
+
+    function drawEnemyProjectiles() {
+      if (!enemyProjectiles.length) return;
+      ctx.save();
+      ctx.fillStyle = '#ff4d4d';
+      enemyProjectiles.forEach((shot) => {
+        ctx.beginPath();
+        ctx.arc(shot.x, shot.y, 4, 0, TWO_PI);
+        ctx.fill();
+      });
+      ctx.restore();
+    }
+
+    function crashFromEnemy(type, data) {
+      if (state.phase !== 'playing') return;
+      lastCrashDetail = {
+        type,
+        point: data,
+        time: Number(state.time.toFixed(2))
+      };
+      endRound(false);
     }
 
     function computeAltitude() {

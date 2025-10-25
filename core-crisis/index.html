@@ -340,9 +340,10 @@
     const FINAL_MISSILE_FRAME_DUR = 0.08;
     const FINAL_MISSILE_FRAME_WIDTH = 128;
     const FINAL_MISSILE_FRAME_HEIGHT = 64;
-    const FINAL_MISSILE_SCALE = 1.5;
+    const FINAL_MISSILE_SCALE = 0.75;
     const FINAL_MISSILE_WIDTH = FINAL_MISSILE_FRAME_WIDTH * FINAL_MISSILE_SCALE;
     const FINAL_MISSILE_HEIGHT = FINAL_MISSILE_FRAME_HEIGHT * FINAL_MISSILE_SCALE;
+    const FINAL_MISSILE_ORIENTATION_OFFSET = Math.PI;
     const FINAL_MISSILE_OFFSET_Y = 46;
     const FINAL_MISSILE_MAX_TIME = 6;
     const FINAL_MISSILE_STATES = new Set(['idle','telegraph','open','laser','post']);
@@ -2217,7 +2218,7 @@
       if (!img || !img.width) {
         ctx.save();
         ctx.translate(Math.round(m.x), Math.round(m.y));
-        const fallbackAngle = Math.atan2(m.vy, m.vx);
+        const fallbackAngle = Math.atan2(m.vy, m.vx) + FINAL_MISSILE_ORIENTATION_OFFSET;
         ctx.rotate(fallbackAngle);
         const bodyL = m.w * 0.7;
         const bodyH = m.h * 0.45;
@@ -2238,7 +2239,7 @@
 
       ctx.save();
       ctx.translate(Math.round(m.x), Math.round(m.y));
-      const angle = Math.atan2(m.vy, m.vx);
+      const angle = Math.atan2(m.vy, m.vx) + FINAL_MISSILE_ORIENTATION_OFFSET;
       ctx.rotate(angle);
       const frameWidth = img.width / FINAL_MISSILE_FRAME_COUNT;
       const frameHeight = img.height;

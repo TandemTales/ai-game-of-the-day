@@ -242,6 +242,7 @@
 
   <div class="hud" id="hud">
     <span><label>Fuel</label><strong id="fuel">100</strong>%</span>
+    <span><label>Ammo</label><strong id="ammo">0/50</strong></span>
     <span><label>Vertical</label><strong id="vertical">0</strong></span>
     <span><label>Horizontal</label><strong id="horizontal">0</strong></span>
     <span><label>Altitude</label><strong id="altitude">0</strong></span>
@@ -311,6 +312,7 @@
     const muteBtn = document.getElementById('muteBtn');
 
     const hudFuel = document.getElementById('fuel');
+    const hudAmmo = document.getElementById('ammo');
     const hudVertical = document.getElementById('vertical');
     const hudHorizontal = document.getElementById('horizontal');
     const hudAltitude = document.getElementById('altitude');
@@ -735,6 +737,7 @@
 
     const GRAVITY = 32;
     const MAIN_THRUST = 72;
+    const TAKEOFF_BOOST = 48; // Extra thrust when taking off from landing pad
     const FUEL_BURN_RATE = 2.2; // units per second
     const ROT_SPEED = 1.8; // radians per second
     const MAX_VERTICAL_FOR_LAND = 35;
@@ -766,9 +769,13 @@
 
     const weapon = {
       hasGun: false,
-      cooldown: 1,
-      nextFireTime: 0
+      cooldown: 0.25,
+      nextFireTime: 0,
+      ammo: 0,
+      maxAmmo: 50
     };
+
+    const RECOIL_FORCE = 45;
 
     const projectiles = [];
     const enemies = [];
@@ -793,6 +800,7 @@
       lander.flameTimer = 0;
       weapon.hasGun = false;
       weapon.nextFireTime = 0;
+      weapon.ammo = 0;
       projectiles.length = 0;
       enemyProjectiles.length = 0;
       keys.fire = false;
@@ -883,6 +891,7 @@
 
     function updateHUD() {
       hudFuel.textContent = Math.max(0, lander.fuel).toFixed(0);
+      hudAmmo.textContent = weapon.hasGun ? `${weapon.ammo}/${weapon.maxAmmo}` : '0/50';
       hudVertical.textContent = lander.vy.toFixed(1);
       hudHorizontal.textContent = lander.vx.toFixed(1);
       const altitude = computeAltitude();
@@ -910,7 +919,13 @@
       const canThrust = keys.thrust && lander.fuel > 0;
       if (canThrust) {
         lander.fuel = Math.max(0, lander.fuel - FUEL_BURN_RATE * dt);
-        const thrust = MAIN_THRUST * dt;
+        let thrust = MAIN_THRUST * dt;
+        
+        // Apply takeoff boost when on landing pad with low upward velocity
+        if (isOnLandingPad() && lander.vy > -10) {
+          thrust += TAKEOFF_BOOST * dt;
+        }
+        
         const s = Math.sin(lander.rotation);
         const c = Math.cos(lander.rotation);
         lander.vx += s * thrust;
@@ -1110,11 +1125,30 @@
       return sampleTile(tx - 1, ty) !== TILES.PAD;
     }
 
+    function isOnLandingPad() {
+      const bottom = lander.y + LANDER_HEIGHT * 0.46;
+      const left = lander.x - LANDER_WIDTH * 0.28;
+      const right = lander.x + LANDER_WIDTH * 0.28;
+      const tileRow = Math.floor((bottom + 2) / TILE_SIZE);
+      if (tileRow < 0 || tileRow >= GRID_SIZE) return false;
+      const startCol = Math.floor(left / TILE_SIZE);
+      const endCol = Math.floor(right / TILE_SIZE);
+      for (let tx = startCol; tx <= endCol; tx++) {
+        if (sampleTile(tx, tileRow) === TILES.PAD) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     function attemptLanding() {
       const bottom = lander.y + LANDER_HEIGHT * 0.46;
       const left = lander.x - LANDER_WIDTH * 0.28;
       const right = lander.x + LANDER_WIDTH * 0.28;
-      if (lander.vy < -2) return false;
+      
+      // Only attempt landing when descending, not when taking off
+      if (lander.vy < 0) return false;
+      
       const tileRow = Math.floor((bottom + 2) / TILE_SIZE);
       if (tileRow < 0 || tileRow >= GRID_SIZE) return false;
       const startCol = Math.floor(left / TILE_SIZE);
@@ -1140,6 +1174,10 @@
       if (softLanding) {
         // Recharge fuel to 100% on successful landing
         lander.fuel = 100;
+        // Refill ammo if player has gun
+        if (weapon.hasGun) {
+          weapon.ammo = weapon.maxAmmo;
+        }
       } else {
         lastCrashDetail = {
           type: 'hard-landing',
@@ -1210,6 +1248,7 @@
             level[idx] = TILES.EMPTY;
             weapon.hasGun = true;
             weapon.nextFireTime = state.time;
+            weapon.ammo = weapon.maxAmmo;
             return;
           }
         }
@@ -1220,7 +1259,9 @@
       if (!weapon.hasGun) return false;
       if (state.phase !== 'playing') return false;
       if (state.time < weapon.nextFireTime) return false;
+      if (weapon.ammo <= 0) return false;
       spawnProjectile();
+      weapon.ammo--;
       weapon.nextFireTime = state.time + weapon.cooldown;
       return true;
     }
@@ -1238,6 +1279,10 @@
         vy: -cos * speed + lander.vy,
         life: 2
       });
+      
+      // Apply recoil: propel ship away from direction of shot
+      lander.vx -= sin * RECOIL_FORCE;
+      lander.vy += cos * RECOIL_FORCE;
     }
 
     function updateProjectiles(dt) {

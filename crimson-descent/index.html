@@ -374,7 +374,7 @@
     const TILE_SIZE = 32;
     const WORLD_WIDTH = GRID_SIZE * TILE_SIZE;
     const WORLD_HEIGHT = GRID_SIZE * TILE_SIZE;
-    const TILES = { EMPTY: 0, WALL: 1, SPAWN: 2, PAD: 3, GUN: 4, ENEMY: 5 };
+    const TILES = { EMPTY: 0, WALL: 1, SPAWN: 2, PAD: 3, GUN: 4, ENEMY: 5, EXIT: 6 };
     const tileDefinitions = new Map();
     const tileImages = new Map();
     tileDefinitions.set(0, { id: 0, name: 'Empty', imageFile: null });
@@ -443,7 +443,7 @@
         });
       });
 
-      [TILES.WALL, TILES.SPAWN, TILES.PAD, TILES.GUN, TILES.ENEMY].forEach((id) => {
+      [TILES.WALL, TILES.SPAWN, TILES.PAD, TILES.GUN, TILES.ENEMY, TILES.EXIT].forEach((id) => {
         if (!tileDefinitions.has(id)) {
           tileDefinitions.set(id, { id, name: `Tile ${id}`, imageFile: null, imageKey: null });
         }
@@ -931,6 +931,7 @@
       if (keys.fire) {
         tryFireGun();
       }
+      if (attemptExit()) return;
       if (attemptLanding()) return;
       if (checkWallCollision()) {
         endRound(false);
@@ -1073,6 +1074,10 @@
                   ctx.drawImage(Images.pad, drawX, drawY, drawW, drawH);
                 }
                 break;
+              case TILES.EXIT:
+                ctx.fillStyle = 'rgba(0, 255, 136, 0.15)';
+                ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                break;
               default:
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
                 ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
@@ -1133,7 +1138,8 @@
       lander.vy = 0;
       const softLanding = Math.abs(impactVX) <= MAX_HORIZONTAL_FOR_LAND && Math.abs(impactVY) <= MAX_VERTICAL_FOR_LAND && Math.abs(impactAngle) <= MAX_ANGLE_FOR_LAND;
       if (softLanding) {
-        endRound(true);
+        // Recharge fuel to 100% on successful landing
+        lander.fuel = 100;
       } else {
         lastCrashDetail = {
           type: 'hard-landing',
@@ -1149,6 +1155,16 @@
         endRound(false);
       }
       return true;
+    }
+
+    function attemptExit() {
+      // Check if the center of the lander is in an exit tile
+      const tile = tileAtPixel(lander.x, lander.y);
+      if (tile === TILES.EXIT) {
+        endRound(true);
+        return true;
+      }
+      return false;
     }
 
     function checkWallCollision() {
@@ -1394,7 +1410,7 @@
         if (col < 0 || col >= GRID_SIZE) continue;
         for (let row = startRow; row < GRID_SIZE; row++) {
           const tile = sampleTile(col, row);
-          if (tile === TILES.WALL || tile === TILES.PAD) {
+          if (tile === TILES.WALL || tile === TILES.PAD || tile === TILES.EXIT) {
             const top = row * TILE_SIZE;
             const dist = top - bottom;
             if (dist >= 0 && dist < minDist) {

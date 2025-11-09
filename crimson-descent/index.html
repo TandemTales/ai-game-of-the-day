@@ -343,6 +343,8 @@
     canvas.height = HEIGHT * pixelRatio;
     ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
     ctx.imageSmoothingEnabled = false;
+    
+    console.log('Crimson Descent - Level Progression v2.2 loaded - Added loading phase and debug logs');
 
     function resize() {
       const rect = topbar.getBoundingClientRect();
@@ -369,9 +371,10 @@
       pad: 'assets/landing_pad.svg'
     };
     const Images = {};
-    const LEVEL_FOLDER = 'assets/level01/';
-    const LEVEL_FILE = LEVEL_FOLDER + 'map.lvl';
-    const TILEMAP_FILE = LEVEL_FOLDER + 'tilemap.json';
+    let LEVEL_FOLDER = 'assets/level01/';
+    let LEVEL_FILE = LEVEL_FOLDER + 'map.lvl';
+    let TILEMAP_FILE = LEVEL_FOLDER + 'tilemap.json';
+    const AVAILABLE_LEVELS = [1, 2]; // Add more level numbers as they're created
     const GRID_SIZE = 128;
     const TILE_SIZE = 32;
     const WORLD_WIDTH = GRID_SIZE * TILE_SIZE;
@@ -765,7 +768,10 @@
       submitted: false,
       landingStats: null,
       currentScore: null,
-      leaderboardUrl: null
+      leaderboardUrl: null,
+      currentLevel: 1,
+      totalScore: 0,
+      levelStartTime: 0
     };
 
     const lander = {
@@ -798,7 +804,7 @@
 
     const keys = { left: false, right: false, thrust: false, fire: false };
 
-    function resetLander() {
+    function resetLander(preserveWeapon = false) {
       if (baseLevel) {
         level.set(baseLevel);
       }
@@ -811,9 +817,11 @@
       lander.fuel = 100;
       lander.thrusting = false;
       lander.flameTimer = 0;
-      weapon.hasGun = false;
-      weapon.nextFireTime = 0;
-      weapon.ammo = 0;
+      if (!preserveWeapon) {
+        weapon.hasGun = false;
+        weapon.nextFireTime = 0;
+        weapon.ammo = 0;
+      }
       projectiles.length = 0;
       enemyProjectiles.length = 0;
       keys.fire = false;
@@ -826,6 +834,33 @@
       updateLeaderboardButton();
       updateCamera(true);
       lastCrashDetail = null;
+    }
+
+    function loadLevel(levelNumber) {
+      // Update level paths
+      const levelStr = String(levelNumber).padStart(2, '0');
+      LEVEL_FOLDER = `assets/level${levelStr}/`;
+      LEVEL_FILE = LEVEL_FOLDER + 'map.lvl';
+      TILEMAP_FILE = LEVEL_FOLDER + 'tilemap.json';
+      
+      // Reset readiness flags
+      levelReady = false;
+      tileAssetsReady = false;
+      ready = false;
+      announcedReady = false;
+      
+      // Load the new level
+      return Promise.resolve()
+        .then(loadTileMap)
+        .then(loadTileImages)
+        .then(() => {
+          tileAssetsReady = true;
+          return loadLevelFile();
+        })
+        .then(() => {
+          updateReadiness();
+        })
+        .catch(handleLoadError);
     }
 
     function showStart() {
@@ -850,6 +885,7 @@
       if (!ready) return;
       state.phase = 'playing';
       state.time = 0;
+      state.levelStartTime = 0;
       state.finalScore = 0;
       state.currentScore = null;
       startScreen.classList.remove('show');
@@ -858,7 +894,6 @@
     }
 
     function endRound(success) {
-      state.phase = success ? 'landed' : 'crashed';
       const vx = lander.vx;
       const vy = lander.vy;
       const angle = lander.rotation;
@@ -874,20 +909,50 @@
       const score = Math.max(0, Math.round(base + precisionBonus + driftBonus + angleBonus + fuelBonus - timePenalty));
       state.finalScore = score;
       state.currentScore = score;
+      state.totalScore += score;
       state.landingStats = { vx, vy, angleDeg, fuelRemaining, elapsed };
 
-      resultTitle.textContent = success ? 'Touchdown Achieved' : 'Mission Failed';
+      const isLastLevel = state.currentLevel >= AVAILABLE_LEVELS.length;
+      const hasNextLevel = !isLastLevel && success;
+
+      console.log('endRound:', { success, currentLevel: state.currentLevel, isLastLevel, hasNextLevel });
+
+      // If advancing to next level, do it seamlessly without showing result screen
+      if (hasNextLevel) {
+        console.log('Advancing to next level seamlessly...');
+        state.phase = 'loading'; // Prevent any game updates during transition
+        state.currentLevel++;
+        console.log('Loading level', AVAILABLE_LEVELS[state.currentLevel - 1]);
+        loadLevel(AVAILABLE_LEVELS[state.currentLevel - 1]).then(() => {
+          console.log('Level loaded, resetting lander...');
+          resetLander(true); // Preserve weapon
+          console.log('Starting game...');
+          startGame();
+          console.log('Game started, phase:', state.phase);
+        });
+        return;
+      }
+
+      // Show result screen only for final level or crash
+      state.phase = success ? 'landed' : 'crashed';
+      
       if (success) {
-        resultMessage.textContent = 'Excellent piloting! The colony has fresh supplies thanks to your steady hands.';
+        resultTitle.textContent = 'Mission Complete!';
+        resultMessage.textContent = `All levels conquered! Final Score: ${state.totalScore}`;
       } else {
+        resultTitle.textContent = 'Mission Failed';
         resultMessage.textContent = 'The lander broke apart on the regolith. Review your approach and try again.';
       }
-      resultStats.innerHTML = `Velocity V: ${vy.toFixed(1)} &nbsp;|&nbsp; Velocity H: ${vx.toFixed(1)}<br>` +
+      
+      resultStats.innerHTML = `Level: ${state.currentLevel} &nbsp;|&nbsp; Velocity V: ${vy.toFixed(1)} &nbsp;|&nbsp; Velocity H: ${vx.toFixed(1)}<br>` +
         `Tilt: ${angleDeg.toFixed(1)}° &nbsp;|&nbsp; Fuel Remaining: ${fuelRemaining.toFixed(1)}<br>` +
-        `Elapsed Time: ${elapsed.toFixed(1)}s &nbsp;|&nbsp; Score: ${score}`;
+        `Elapsed Time: ${elapsed.toFixed(1)}s &nbsp;|&nbsp; Level Score: ${score}<br>` +
+        `Total Score: ${state.totalScore}`;
+      
       resultScreen.classList.add('show');
       state.leaderboardUrl = baseLeaderboardUrl();
       updateLeaderboardButton();
+      
       if (!success) {
         if (lastCrashDetail) {
           console.warn('Crimson Descent crash detail:', lastCrashDetail);
@@ -896,9 +961,11 @@
         }
       }
       lastCrashDetail = null;
-      if (!state.submitted) {
+      
+      // Submit to leaderboard only on final level completion or failure
+      if (!state.submitted && (isLastLevel || !success)) {
         state.submitted = true;
-        maybeSubmitLeaderboard(success).catch(console.error);
+        maybeSubmitLeaderboard(success && isLastLevel).catch(console.error);
       }
     }
 
@@ -910,7 +977,8 @@
       const altitude = computeAltitude();
       hudAltitude.textContent = altitude.toFixed(0);
       hudTime.textContent = state.time.toFixed(1);
-      hudScore.textContent = state.currentScore == null ? '--' : state.currentScore;
+      const scoreText = state.currentScore == null ? state.totalScore : state.totalScore;
+      hudScore.textContent = `L${state.currentLevel}: ${scoreText}`;
     }
 
     function update(dt) {
@@ -924,6 +992,7 @@
         return;
       }
       state.time += dt;
+      state.levelStartTime += dt;
       const rot = ROT_SPEED * dt;
       if (keys.left) lander.rotation -= rot;
       if (keys.right) lander.rotation += rot;
@@ -1218,9 +1287,12 @@
     function attemptExit() {
       // Check if the center of the lander is in an exit tile
       // Only allow exit if all hostages are rescued
+      // Add grace period to prevent immediate exit on level start
+      if (state.levelStartTime < 0.5) return false;
       if (!areAllHostagesRescued()) return false;
       const tile = tileAtPixel(lander.x, lander.y);
       if (tile === TILES.EXIT) {
+        console.log('EXIT tile detected, calling endRound(true), levelStartTime:', state.levelStartTime);
         endRound(true);
         return true;
       }
@@ -1567,6 +1639,22 @@
 
     function handleStart() {
       if (state.phase === 'intro' || state.phase === 'landed' || state.phase === 'crashed') {
+        // Reset to level 1 if starting from intro or after crash
+        if (state.phase === 'intro' || state.phase === 'crashed') {
+          state.currentLevel = 1;
+          state.totalScore = 0;
+          if (state.phase === 'intro') {
+            // Load level 1 if needed
+            const levelStr = String(AVAILABLE_LEVELS[0]).padStart(2, '0');
+            if (LEVEL_FOLDER !== `assets/level${levelStr}/`) {
+              loadLevel(AVAILABLE_LEVELS[0]).then(() => {
+                resetLander();
+                startGame();
+              });
+              return;
+            }
+          }
+        }
         resetLander();
         startGame();
       }
@@ -1694,7 +1782,7 @@
     });
 
     function computeScore() {
-      return state.finalScore || 0;
+      return state.totalScore || 0;
     }
 
     async function maybeSubmitLeaderboard(success) {

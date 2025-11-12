@@ -393,6 +393,7 @@
     let assetsReady = false;
     let ready = false;
     let announcedReady = false;
+    let isLevelTransition = false;
 
     function levelAssetPath(file) {
       if (!file) return null;
@@ -499,7 +500,8 @@
       if (ready && !announcedReady) {
         announcedReady = true;
         startScreen.querySelector('p').textContent = 'Ready? Tap, click, or press Space to ignite and begin descent.';
-        resetLander();
+        console.log('updateReadiness calling resetLander, isLevelTransition:', isLevelTransition);
+        resetLander(isLevelTransition);
         updateCamera(true);
       }
     }
@@ -805,6 +807,7 @@
     const keys = { left: false, right: false, thrust: false, fire: false };
 
     function resetLander(preserveWeapon = false) {
+      console.log('resetLander called, preserveWeapon:', preserveWeapon, 'weapon.hasGun before:', weapon.hasGun, 'weapon.ammo before:', weapon.ammo);
       if (baseLevel) {
         level.set(baseLevel);
       }
@@ -821,6 +824,9 @@
         weapon.hasGun = false;
         weapon.nextFireTime = 0;
         weapon.ammo = 0;
+      } else {
+        // When preserving weapon, reset nextFireTime so player can fire immediately in new level
+        weapon.nextFireTime = 0;
       }
       projectiles.length = 0;
       enemyProjectiles.length = 0;
@@ -834,6 +840,7 @@
       updateLeaderboardButton();
       updateCamera(true);
       lastCrashDetail = null;
+      console.log('resetLander done, weapon.hasGun after:', weapon.hasGun, 'weapon.ammo after:', weapon.ammo);
     }
 
     function loadLevel(levelNumber) {
@@ -919,13 +926,16 @@
 
       // If advancing to next level, do it seamlessly without showing result screen
       if (hasNextLevel) {
-        console.log('Advancing to next level seamlessly...');
+        console.log('Advancing to next level seamlessly... weapon.hasGun:', weapon.hasGun, 'weapon.ammo:', weapon.ammo);
         state.phase = 'loading'; // Prevent any game updates during transition
         state.currentLevel++;
-        console.log('Loading level', AVAILABLE_LEVELS[state.currentLevel - 1]);
+        isLevelTransition = true; // Mark that we're transitioning between levels
+        console.log('Set isLevelTransition = true, loading level', AVAILABLE_LEVELS[state.currentLevel - 1]);
         loadLevel(AVAILABLE_LEVELS[state.currentLevel - 1]).then(() => {
-          console.log('Level loaded, resetting lander...');
+          console.log('Level loaded promise resolved, weapon.hasGun:', weapon.hasGun, 'weapon.ammo:', weapon.ammo);
+          console.log('About to call resetLander(true)...');
           resetLander(true); // Preserve weapon
+          isLevelTransition = false; // Clear transition flag
           console.log('Starting game...');
           startGame();
           console.log('Game started, phase:', state.phase);

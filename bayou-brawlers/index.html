@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17405200669"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'AW-17405200669');
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bayou Brawlers: Gearbound</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
+  <style>
+    :root {
+      --gold: #FFD700;
+      --teal: #5F9EA0;
+      --ink: #F5F5DC;
+      --ui: rgba(0, 0, 0, 0.82);
+      --crimson: #ff4d6d;
+      --emerald: #2dd4bf;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 15% 20%, rgba(95,158,160,0.14), transparent 40%),
+        radial-gradient(circle at 80% 80%, rgba(255,215,0,0.12), transparent 45%),
+        linear-gradient(160deg, #0c0f14 0%, #11141f 40%, #0a0f1a 100%);
+      color: var(--ink);
+      font-family: 'Press Start 2P', system-ui, sans-serif;
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+    .wrap {
+      position: relative;
+      height: 100%;
+      width: 100%;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    header {
+      position: absolute;
+      top: calc(12px + env(safe-area-inset-top));
+      left: calc(12px + env(safe-area-inset-left));
+      right: calc(12px + env(safe-area-inset-right));
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .title h1 {
+      margin: 0;
+      font-size: 16px;
+      background: linear-gradient(45deg, var(--gold), #ffa500);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: 0 2px 10px rgba(255,215,0,0.4);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: 2px solid var(--gold);
+      background: linear-gradient(45deg, var(--teal), #4682B4);
+      color: #fff;
+      text-decoration: none;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 10px;
+      box-shadow: 0 4px 15px rgba(95,158,160,0.4);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      white-space: nowrap;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(95,158,160,0.6);
+    }
+    .back-home { padding: 6px 10px; }
+    .banner {
+      position: absolute;
+      top: calc(56px + env(safe-area-inset-top));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 4;
+    }
+    .banner img {
+      width: min(420px, 90vw);
+      image-rendering: pixelated;
+      border: 2px solid rgba(255,215,0,0.35);
+      border-radius: 8px;
+      background: rgba(0,0,0,0.5);
+      padding: 4px;
+    }
+    .hud {
+      position: absolute;
+      top: calc(118px + env(safe-area-inset-top));
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      z-index: 5;
+      padding: 6px 10px;
+      background: rgba(0,0,0,0.5);
+      border-radius: 12px;
+      border: 1px solid rgba(255,215,0,0.25);
+    }
+    .chip {
+      background: var(--ui);
+      border: 2px solid var(--gold);
+      color: var(--ink);
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 10px;
+      box-shadow: 0 3px 12px rgba(255,215,0,0.2);
+      white-space: nowrap;
+    }
+    .hp-bar {
+      width: 120px;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,215,0,0.4);
+      overflow: hidden;
+    }
+    .hp-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #ff7b7b, #ffb347);
+    }
+    .stage {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: calc(160px + env(safe-area-inset-top)) 20px calc(140px + env(safe-area-inset-bottom)) 20px;
+    }
+    canvas {
+      border-radius: 14px;
+      border: 3px solid rgba(255,215,0,0.2);
+      background: #0a0f14;
+      max-width: 100%;
+      max-height: 100%;
+      image-rendering: pixelated;
+      touch-action: none;
+    }
+    .panel {
+      background: rgba(0,0,0,0.85);
+      border: 3px solid var(--gold);
+      border-radius: 12px;
+      padding: 18px;
+      text-align: center;
+      box-shadow: 0 0 40px rgba(255,215,0,0.35);
+      max-width: 720px;
+      width: calc(100vw - 40px);
+    }
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 16px;
+      color: var(--gold);
+    }
+    .panel p {
+      font-size: 11px;
+      line-height: 1.6;
+      color: #b9d4d8;
+      margin: 6px 0 10px;
+    }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.55);
+      z-index: 10;
+      padding: 20px;
+    }
+    .overlay.show { display: flex; }
+    .character-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .card {
+      border: 2px solid rgba(255,215,0,0.4);
+      border-radius: 12px;
+      padding: 10px;
+      background: rgba(10,12,16,0.8);
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .card.selected {
+      border-color: var(--gold);
+      box-shadow: 0 0 16px rgba(255,215,0,0.4);
+      transform: translateY(-2px);
+    }
+    .card img {
+      width: 60px;
+      height: 60px;
+      image-rendering: pixelated;
+      margin-bottom: 6px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 6px;
+      background: #0b0f12;
+    }
+    .card h3 {
+      margin: 4px 0 6px;
+      font-size: 11px;
+      color: #fff;
+    }
+    .card .stat {
+      font-size: 9px;
+      color: #9fd6cf;
+      line-height: 1.4;
+    }
+    .card .move {
+      font-size: 8px;
+      color: #f3d28a;
+      margin-top: 4px;
+    }
+    .controls {
+      position: absolute;
+      bottom: calc(20px + env(safe-area-inset-bottom));
+      left: calc(16px + env(safe-area-inset-left));
+      right: calc(16px + env(safe-area-inset-right));
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      pointer-events: none;
+      z-index: 6;
+      gap: 12px;
+    }
+    .dpad, .action-pad { pointer-events: auto; }
+    .dpad {
+      display: grid;
+      grid-template-columns: repeat(3, 44px);
+      grid-template-rows: repeat(3, 44px);
+      gap: 6px;
+      align-items: center;
+      justify-items: center;
+    }
+    .pad-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      border: 2px solid rgba(255,215,0,0.6);
+      background: rgba(0,0,0,0.5);
+      color: #fff;
+      font-size: 12px;
+      display: grid;
+      place-items: center;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+    .pad-btn.primary {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: linear-gradient(45deg, var(--teal), #4682B4);
+    }
+    .pad-btn.warn {
+      background: linear-gradient(45deg, #ff7b7b, #ffb347);
+    }
+    .pad-spacer { visibility: hidden; }
+    .action-pad {
+      display: grid;
+      grid-template-columns: repeat(2, 56px);
+      grid-template-rows: repeat(2, 56px);
+      gap: 8px;
+    }
+    .action-pad .pad-btn {
+      width: 56px;
+      height: 56px;
+      font-size: 10px;
+    }
+    .instructions {
+      font-size: 9px;
+      color: #9fd6cf;
+      line-height: 1.6;
+      margin-top: 10px;
+      text-align: left;
+    }
+
+    @media (max-width: 720px) {
+      header { gap: 8px; }
+      .title h1 { font-size: 14px; }
+      .hud { top: calc(102px + env(safe-area-inset-top)); font-size: 9px; }
+      .banner { top: calc(52px + env(safe-area-inset-top)); }
+      .banner img { width: min(300px, 86vw); }
+      .stage { padding: calc(150px + env(safe-area-inset-top)) 12px calc(140px + env(safe-area-inset-bottom)) 12px; }
+    }
+
+    @media (max-width: 600px) {
+      .controls { flex-direction: row; align-items: center; }
+      .dpad { grid-template-columns: repeat(3, 38px); grid-template-rows: repeat(3, 38px); }
+      .pad-btn { width: 38px; height: 38px; font-size: 10px; }
+      .action-pad { grid-template-columns: repeat(2, 48px); grid-template-rows: repeat(2, 48px); }
+      .action-pad .pad-btn { width: 48px; height: 48px; font-size: 9px; }
+    }
+  </style>
+  <script>
+    const GAME_ID = 'bayou-brawlers';
+  </script>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <img src="../images/botbuiltarcade-icon-face.png" alt="Arcade" width="36" height="36" style="border-radius:50%; border:2px solid var(--gold)">
+        <h1>Bayou Brawlers: Gearbound</h1>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <a href="../index.html" class="btn back-home" aria-label="Back to Home">
+          <span aria-hidden="true">&#x27F5;</span> Home
+        </a>
+        <a class="btn" href="../leaderboard.html?gameId=bayou-brawlers">Leaderboard</a>
+      </div>
+    </header>
+
+    <div class="banner" aria-hidden="true">
+      <img src="assets/title-banner.svg" alt="Bayou Brawlers banner">
+    </div>
+
+    <div class="hud" id="hud">
+      <div class="chip">Score: <span id="score">0</span></div>
+      <div class="chip">Level: <span id="level">1</span></div>
+      <div class="chip">Wave: <span id="wave">1</span></div>
+      <div class="chip" style="display:flex; gap:6px; align-items:center;">HP
+        <div class="hp-bar"><div class="hp-fill" id="hpFill"></div></div>
+      </div>
+      <div class="chip">Special: <span id="specialReady">Ready</span></div>
+    </div>
+
+    <div class="stage">
+      <canvas id="game" width="960" height="540"></canvas>
+    </div>
+
+    <div class="controls" id="mobileControls">
+      <div class="dpad">
+        <button class="pad-btn pad-spacer" aria-hidden="true"></button>
+        <button class="pad-btn" data-input="up">▲</button>
+        <button class="pad-btn pad-spacer" aria-hidden="true"></button>
+        <button class="pad-btn" data-input="left">◀</button>
+        <button class="pad-btn" data-input="down">▼</button>
+        <button class="pad-btn" data-input="right">▶</button>
+        <button class="pad-btn pad-spacer" aria-hidden="true"></button>
+        <button class="pad-btn" data-input="block">■</button>
+        <button class="pad-btn pad-spacer" aria-hidden="true"></button>
+      </div>
+      <div class="action-pad">
+        <button class="pad-btn primary" data-input="fast">FAST</button>
+        <button class="pad-btn" data-input="jump">JUMP</button>
+        <button class="pad-btn warn" data-input="power">POWER</button>
+        <button class="pad-btn" data-input="special">SPEC</button>
+      </div>
+    </div>
+
+    <div class="overlay show" id="loadingOverlay">
+      <div class="panel">
+        <h2>Loading Bayou Brawlers</h2>
+        <p id="loadingStatus">Preparing the steampunk swamp...</p>
+      </div>
+    </div>
+
+    <div class="overlay" id="startOverlay">
+      <div class="panel">
+        <h2>Pick Your Brawler</h2>
+        <p>Choose a fighter with distinct stats and unique abilities. Every character has a fast strike, a power hit, and a signature special.</p>
+        <div class="character-grid" id="characterGrid"></div>
+        <button class="btn" id="startBtn" disabled>Start the Journey</button>
+        <div class="instructions">
+          <strong>Desktop:</strong> Move (WASD/Arrows), Fast (J), Power (K), Special (L), Jump (Space), Block (Shift).<br>
+          <strong>Mobile:</strong> Use the on-screen controls. Hold Block to reduce damage.
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="messageOverlay">
+      <div class="panel">
+        <h2 id="messageTitle">Stage Complete</h2>
+        <p id="messageBody"></p>
+        <button class="btn" id="messageBtn">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    const state = {
+      ready: false,
+      running: false,
+      player: null,
+      enemies: [],
+      projectiles: [],
+      pickups: [],
+      effects: [],
+      score: 0,
+      levelIndex: 0,
+      waveIndex: 0,
+      levelWidth: 2400,
+      levelHeight: 400,
+      cameraX: 0,
+      cameraY: 0,
+      lockX: null,
+      lastTime: 0,
+      gameOver: false,
+      victory: false,
+      bossActive: false,
+      ally: null,
+      shake: 0,
+      submitting: false
+    };
+
+    const input = {
+      left: false,
+      right: false,
+      up: false,
+      down: false,
+      fast: false,
+      power: false,
+      special: false,
+      jump: false,
+      block: false
+    };
+
+    const assets = {
+      backgrounds: {},
+      characters: {},
+      enemies: {},
+      boss: null,
+      pickup: null,
+      banner: null
+    };
+
+    const characters = [
+      {
+        id: 'rustblade',
+        name: 'Rustblade Rook',
+        portrait: 'assets/char-rustblade.svg',
+        sprite: 'assets/char-rustblade.svg',
+        stats: { speed: 3.2, power: 1.1, range: 42, durability: 110 },
+        moves: {
+          fast: 'Quick cleave combo',
+          power: 'Heavy wrench uppercut',
+          special: 'Steamguard (damage shield)'
+        },
+        special: (player) => {
+          player.shieldTimer = 240;
+        }
+      },
+      {
+        id: 'bayou-bruiser',
+        name: 'Bayou Bruiser',
+        portrait: 'assets/char-bayou-bruiser.svg',
+        sprite: 'assets/char-bayou-bruiser.svg',
+        stats: { speed: 2.8, power: 1.35, range: 36, durability: 135 },
+        moves: {
+          fast: 'Knee rush',
+          power: 'Swamp slam (knockback)',
+          special: 'Mudshock (stun wave)'
+        },
+        special: (player) => {
+          spawnShockwave(player.x + (player.facing * 30), player.y, 50, 26, 24, 80);
+        }
+      },
+      {
+        id: 'fume-alchemist',
+        name: 'Fume Alchemist',
+        portrait: 'assets/char-fume-alchemist.svg',
+        sprite: 'assets/char-fume-alchemist.svg',
+        stats: { speed: 3.4, power: 0.95, range: 46, durability: 95 },
+        moves: {
+          fast: 'Quick vial jab',
+          power: 'Corrosive burst',
+          special: 'Toxic flare (ranged)'
+        },
+        special: (player) => {
+          spawnProjectile(player, 9, 28, true, '#7aff9c');
+        }
+      },
+      {
+        id: 'grove-sentinel',
+        name: 'Grove Sentinel',
+        portrait: 'assets/char-grove-sentinel.svg',
+        sprite: 'assets/char-grove-sentinel.svg',
+        stats: { speed: 2.9, power: 1.2, range: 52, durability: 125 },
+        moves: {
+          fast: 'Vine whip',
+          power: 'Rooted crusher',
+          special: 'Thorn snare (root)'
+        },
+        special: (player) => {
+          rootEnemies(player.x, player.y, 90);
+        }
+      },
+      {
+        id: 'clockwire',
+        name: 'Clockwire Duelist',
+        portrait: 'assets/char-clockwire-duelist.svg',
+        sprite: 'assets/char-clockwire-duelist.svg',
+        stats: { speed: 3.8, power: 0.9, range: 40, durability: 100 },
+        moves: {
+          fast: 'Gear slash',
+          power: 'Timebreaker strike',
+          special: 'Dash cut (invuln)'
+        },
+        special: (player) => {
+          player.dashTimer = 30;
+        }
+      },
+      {
+        id: 'lantern-seer',
+        name: 'Lantern Seer',
+        portrait: 'assets/char-lantern-seer.svg',
+        sprite: 'assets/char-lantern-seer.svg',
+        stats: { speed: 3.0, power: 1.05, range: 50, durability: 115 },
+        moves: {
+          fast: 'Lantern jab',
+          power: 'Spectral swing',
+          special: 'Summon wisp ally'
+        },
+        special: (player) => {
+          state.ally = { x: player.x, y: player.y - 20, timer: 360 };
+        }
+      }
+    ];
+
+    const levels = [
+      { id: 'swamp', name: 'The Swamp', background: 'background-swamp', waves: [
+        { types: ['goblin', 'swamp'], count: 4 },
+        { types: ['swamp', 'thug'], count: 5 },
+        { types: ['goblin', 'swamp'], count: 6 }
+      ], boss: { name: 'Miremaw Behemoth', type: 'brute' } },
+      { id: 'mirewatch', name: 'Mirewatch (Town)', background: 'background-mirewatch', waves: [
+        { types: ['thug'], count: 5 },
+        { types: ['thug', 'ranged'], count: 6 },
+        { types: ['thug', 'automaton'], count: 6 }
+      ], boss: { name: 'Warden Brassjaw', type: 'elite' } },
+      { id: 'portal', name: 'Fey Realm Portal', background: 'background-portal', waves: [
+        { types: ['fey', 'ranged'], count: 5 },
+        { types: ['fey'], count: 6 },
+        { types: ['fey', 'automaton'], count: 6 }
+      ], boss: { name: 'Riftcaller Nyx', type: 'mage' } },
+      { id: 'fairy-forest', name: 'Fey Realm: Fairy Forest', background: 'background-fairy-forest', waves: [
+        { types: ['fey'], count: 6 },
+        { types: ['fey', 'swamp'], count: 7 },
+        { types: ['fey', 'ranged'], count: 7 }
+      ], boss: { name: 'Spriggan Trickster', type: 'elite' } },
+      { id: 'ruins', name: 'Clearcut Ruins', background: 'background-world-tree-ruins', waves: [
+        { types: ['automaton', 'thug'], count: 6 },
+        { types: ['automaton'], count: 7 },
+        { types: ['automaton', 'fey'], count: 7 }
+      ], boss: { name: 'Rootcrusher', type: 'brute' } },
+      { id: 'tockman', name: 'The Tockman\'s Lair', background: 'background-tockman', waves: [
+        { types: ['automaton'], count: 7 },
+        { types: ['automaton', 'ranged'], count: 7 },
+        { types: ['automaton', 'elite'], count: 6 }
+      ], boss: { name: 'Tockman Prime', type: 'elite' } },
+      { id: 'unseelie', name: 'The Unseelie Fortress', background: 'background-unseelie', waves: [
+        { types: ['fey', 'elite'], count: 7 },
+        { types: ['fey', 'ranged'], count: 8 },
+        { types: ['fey', 'elite'], count: 8 }
+      ], boss: { name: 'Unseelie Captain', type: 'elite' } },
+      { id: 'casino', name: 'Lash LeGrim\'s Casino Riverboat', background: 'background-casino', waves: [
+        { types: ['goblin', 'thug'], count: 7 },
+        { types: ['goblin', 'ranged'], count: 8 },
+        { types: ['goblin', 'elite'], count: 8 }
+      ], boss: { name: 'Lash LeGrim', type: 'boss' } },
+      { id: 'mansion', name: 'The Sunken Mansion', background: 'background-mansion', waves: [
+        { types: ['swamp', 'fey'], count: 8 },
+        { types: ['swamp', 'ranged'], count: 8 },
+        { types: ['automaton', 'swamp'], count: 8 }
+      ], boss: { name: 'Drowned Count', type: 'brute' } },
+      { id: 'emberfall', name: 'Emberfall Trade District', background: 'background-emberfall', waves: [
+        { types: ['thug', 'ranged'], count: 8 },
+        { types: ['thug', 'automaton'], count: 9 },
+        { types: ['elite', 'thug'], count: 9 }
+      ], boss: { name: 'Mercantile Reaper', type: 'elite' } },
+      { id: 'docks', name: 'The Docks', background: 'background-docks', waves: [
+        { types: ['thug', 'goblin'], count: 9 },
+        { types: ['ranged', 'goblin'], count: 9 },
+        { types: ['elite', 'goblin'], count: 9 }
+      ], boss: { name: 'Harbor Chains', type: 'brute' } },
+      { id: 'world-tree', name: 'The World Tree', background: 'background-world-tree', waves: [
+        { types: ['fey', 'swamp'], count: 9 },
+        { types: ['fey', 'elite'], count: 9 },
+        { types: ['fey', 'ranged'], count: 9 }
+      ], boss: { name: 'Eldergloom', type: 'boss' } },
+      { id: 'goblin-tower', name: 'Goblin Tower', background: 'background-goblin-tower', waves: [
+        { types: ['goblin', 'automaton'], count: 9 },
+        { types: ['goblin', 'ranged'], count: 10 },
+        { types: ['elite', 'goblin'], count: 10 }
+      ], boss: { name: 'Clockwork Foreman', type: 'elite' } },
+      { id: 'finale', name: 'Lash LeGrim\'s Pub / Theatre', background: 'background-final-theatre', waves: [
+        { types: ['elite', 'ranged'], count: 10 },
+        { types: ['elite', 'fey'], count: 10 },
+        { types: ['elite', 'automaton'], count: 10 }
+      ], boss: { name: 'Lash LeGrim Ascendant', type: 'boss' } }
+    ];
+
+    const enemyTypes = {
+      goblin: { hp: 30, speed: 1.7, damage: 8, range: 18, score: 60, sprite: 'enemy-goblin' },
+      swamp: { hp: 45, speed: 1.3, damage: 10, range: 18, score: 80, sprite: 'enemy-goblin' },
+      thug: { hp: 40, speed: 1.6, damage: 9, range: 18, score: 70, sprite: 'enemy-thug' },
+      automaton: { hp: 55, speed: 1.2, damage: 12, range: 20, score: 90, sprite: 'enemy-automaton' },
+      fey: { hp: 38, speed: 1.9, damage: 9, range: 18, score: 85, sprite: 'enemy-fey' },
+      ranged: { hp: 30, speed: 1.4, damage: 7, range: 140, score: 95, sprite: 'enemy-fey', ranged: true },
+      elite: { hp: 70, speed: 1.5, damage: 14, range: 22, score: 140, sprite: 'enemy-automaton' },
+      brute: { hp: 120, speed: 1.1, damage: 18, range: 24, score: 200, sprite: 'enemy-thug' },
+      mage: { hp: 90, speed: 1.3, damage: 16, range: 120, score: 180, sprite: 'enemy-fey', ranged: true },
+      boss: { hp: 200, speed: 1.2, damage: 20, range: 26, score: 350, sprite: 'boss' }
+    };
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function rand(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function createPlayer(charData) {
+      return {
+        name: charData.name,
+        sprite: assets.characters[charData.sprite],
+        x: 80,
+        y: 280,
+        z: 0,
+        vx: 0,
+        vy: 0,
+        hp: charData.stats.durability,
+        maxHp: charData.stats.durability,
+        speed: charData.stats.speed,
+        power: charData.stats.power,
+        range: charData.stats.range,
+        facing: 1,
+        attackCooldown: 0,
+        powerCooldown: 0,
+        specialCooldown: 0,
+        jumpCooldown: 0,
+        block: false,
+        shieldTimer: 0,
+        dashTimer: 0,
+        charData
+      };
+    }
+
+    function createEnemy(typeId, x, y, isBoss = false) {
+      const base = enemyTypes[typeId];
+      return {
+        type: typeId,
+        x,
+        y,
+        z: 0,
+        hp: base.hp * (isBoss ? 1.4 : 1),
+        maxHp: base.hp * (isBoss ? 1.4 : 1),
+        speed: base.speed,
+        damage: base.damage,
+        range: base.range,
+        score: base.score,
+        sprite: base.sprite === 'boss' ? assets.boss : assets.enemies[base.sprite],
+        cooldown: rand(40, 80),
+        windup: 0,
+        stun: 0,
+        ranged: base.ranged || false,
+        isBoss
+      };
+    }
+
+    function spawnWave(level, waveIndex) {
+      const wave = level.waves[waveIndex];
+      if (!wave) return;
+      state.enemies = [];
+      const baseX = 320 + waveIndex * 520;
+      for (let i = 0; i < wave.count; i += 1) {
+        const typeId = wave.types[i % wave.types.length];
+        const enemy = createEnemy(typeId, baseX + rand(-80, 80) + i * 40, rand(220, 340));
+        state.enemies.push(enemy);
+      }
+      state.lockX = baseX + 220;
+      updateWaveHud();
+    }
+
+    function spawnBoss(level) {
+      const bossType = level.boss.type;
+      const boss = createEnemy(bossType, state.levelWidth - 220, 280, true);
+      boss.hp += 120;
+      boss.maxHp = boss.hp;
+      boss.score += 250;
+      boss.name = level.boss.name;
+      state.enemies = [boss];
+      state.bossActive = true;
+      state.lockX = state.levelWidth - 140;
+    }
+
+    function updateWaveHud() {
+      document.getElementById('wave').textContent = String(state.waveIndex + 1);
+      document.getElementById('level').textContent = String(state.levelIndex + 1);
+    }
+
+    function addScore(amount) {
+      state.score += amount;
+      document.getElementById('score').textContent = String(state.score);
+    }
+
+    function damagePlayer(amount) {
+      const player = state.player;
+      if (!player || player.hp <= 0) return;
+      let finalAmount = amount;
+      if (player.block || player.shieldTimer > 0) {
+        finalAmount *= 0.45;
+      }
+      player.hp = clamp(player.hp - finalAmount, 0, player.maxHp);
+      state.shake = 6;
+      updateHpBar();
+      if (player.hp <= 0) {
+        endGame(false);
+      }
+    }
+
+    function updateHpBar() {
+      const fill = document.getElementById('hpFill');
+      if (!state.player) return;
+      fill.style.width = `${(state.player.hp / state.player.maxHp) * 100}%`;
+    }
+
+    function spawnPickup(x, y) {
+      state.pickups.push({ x, y, timer: 600 });
+    }
+
+    function spawnProjectile(owner, speed, damage, friendly, color = '#f5d07a') {
+      const dir = owner.facing;
+      state.projectiles.push({
+        x: owner.x + dir * 20,
+        y: owner.y - 10,
+        vx: dir * speed,
+        damage,
+        friendly,
+        life: 180,
+        color
+      });
+    }
+
+    function spawnShockwave(x, y, radius, damage, knockback, stun) {
+      state.effects.push({ x, y, radius, timer: 30, damage, knockback, stun, type: 'shock' });
+    }
+
+    function rootEnemies(x, y, radius) {
+      state.effects.push({ x, y, radius, timer: 50, damage: 0, knockback: 0, stun: 90, type: 'root' });
+    }
+
+    function handleAttacks() {
+      const player = state.player;
+      if (!player) return;
+      if (input.fast && player.attackCooldown <= 0) {
+        player.attackCooldown = 22;
+        doAttack(player, 12, player.range, 18);
+      }
+      if (input.power && player.powerCooldown <= 0) {
+        player.powerCooldown = 45;
+        doAttack(player, 24, player.range + 16, 30, 28);
+      }
+      if (input.special && player.specialCooldown <= 0) {
+        player.specialCooldown = 240;
+        player.charData.special(player);
+      }
+    }
+
+    function doAttack(player, baseDamage, range, knockback, stun = 14) {
+      const hitbox = {
+        x: player.x + player.facing * range,
+        y: player.y - 20,
+        width: 36,
+        height: 40
+      };
+      const damage = baseDamage * player.power;
+      state.enemies.forEach(enemy => {
+        if (enemy.hp <= 0) return;
+        if (rectOverlap(hitbox, enemy)) {
+          enemy.hp -= damage;
+          enemy.stun = Math.max(enemy.stun, stun);
+          enemy.x += player.facing * knockback;
+          state.effects.push({ x: enemy.x, y: enemy.y, timer: 16, type: 'hit' });
+          if (enemy.hp <= 0) {
+            addScore(enemy.score);
+            if (Math.random() < 0.2) spawnPickup(enemy.x, enemy.y);
+          }
+        }
+      });
+    }
+
+    function rectOverlap(hitbox, enemy) {
+      const ex = enemy.x - 16;
+      const ey = enemy.y - 32;
+      return hitbox.x < ex + 32 && hitbox.x + hitbox.width > ex && hitbox.y < ey + 40 && hitbox.y + hitbox.height > ey;
+    }
+
+    function updatePlayer(dt) {
+      const player = state.player;
+      if (!player) return;
+      player.vx = 0;
+      if (input.left) player.vx -= player.speed;
+      if (input.right) player.vx += player.speed;
+      if (input.up) player.y -= player.speed * 0.6;
+      if (input.down) player.y += player.speed * 0.6;
+      if (player.vx !== 0) player.facing = player.vx > 0 ? 1 : -1;
+      player.block = input.block;
+
+      if (input.jump && player.jumpCooldown <= 0) {
+        player.vy = -6.5;
+        player.jumpCooldown = 40;
+      }
+
+      if (player.dashTimer > 0) {
+        player.x += player.facing * 6.5;
+        player.dashTimer -= 1;
+      }
+
+      player.x += player.vx;
+      player.y += player.vy;
+
+      player.vy += 0.28;
+      if (player.y > 320) {
+        player.y = 320;
+        player.vy = 0;
+      }
+
+      player.x = clamp(player.x, 40, state.levelWidth - 40);
+      player.y = clamp(player.y, 220, 340);
+
+      if (state.lockX !== null && player.x > state.lockX) {
+        player.x = state.lockX;
+      }
+
+      player.attackCooldown = Math.max(0, player.attackCooldown - 1);
+      player.powerCooldown = Math.max(0, player.powerCooldown - 1);
+      player.specialCooldown = Math.max(0, player.specialCooldown - 1);
+      player.jumpCooldown = Math.max(0, player.jumpCooldown - 1);
+      player.shieldTimer = Math.max(0, player.shieldTimer - 1);
+
+      document.getElementById('specialReady').textContent = player.specialCooldown <= 0 ? 'Ready' : `${Math.ceil(player.specialCooldown / 60)}s`;
+    }
+
+    function updateEnemies() {
+      const player = state.player;
+      state.enemies.forEach(enemy => {
+        if (enemy.hp <= 0) return;
+        if (enemy.stun > 0) {
+          enemy.stun -= 1;
+          return;
+        }
+        const dx = player.x - enemy.x;
+        const dy = player.y - enemy.y;
+        const distance = Math.hypot(dx, dy);
+
+        if (enemy.ranged && distance > enemy.range * 0.7) {
+          enemy.x += Math.sign(dx) * enemy.speed * 0.6;
+          enemy.y += Math.sign(dy) * enemy.speed * 0.4;
+        } else if (distance > enemy.range) {
+          enemy.x += Math.sign(dx) * enemy.speed;
+          enemy.y += Math.sign(dy) * enemy.speed * 0.6;
+        } else {
+          if (enemy.windup <= 0 && enemy.cooldown <= 0) {
+            enemy.windup = 18;
+          }
+        }
+
+        if (enemy.windup > 0) {
+          enemy.windup -= 1;
+          if (enemy.windup === 0) {
+            if (enemy.ranged) {
+              state.projectiles.push({
+                x: enemy.x,
+                y: enemy.y - 10,
+                vx: Math.sign(dx) * 4.5,
+                damage: enemy.damage,
+                friendly: false,
+                life: 140,
+                color: '#ff7b7b'
+              });
+            } else {
+              if (distance < enemy.range + 10) {
+                damagePlayer(enemy.damage);
+              }
+            }
+            enemy.cooldown = rand(40, 80);
+          }
+        } else {
+          enemy.cooldown = Math.max(0, enemy.cooldown - 1);
+        }
+      });
+
+      state.enemies = state.enemies.filter(enemy => enemy.hp > 0);
+    }
+
+    function updateProjectiles() {
+      const player = state.player;
+      state.projectiles.forEach(projectile => {
+        projectile.x += projectile.vx;
+        projectile.life -= 1;
+
+        if (projectile.friendly) {
+          state.enemies.forEach(enemy => {
+            if (enemy.hp <= 0) return;
+            if (Math.abs(projectile.x - enemy.x) < 20 && Math.abs(projectile.y - enemy.y) < 24) {
+              enemy.hp -= projectile.damage;
+              enemy.stun = Math.max(enemy.stun, 20);
+              projectile.life = 0;
+              state.effects.push({ x: enemy.x, y: enemy.y, timer: 16, type: 'hit' });
+              if (enemy.hp <= 0) {
+                addScore(enemy.score);
+                if (Math.random() < 0.2) spawnPickup(enemy.x, enemy.y);
+              }
+            }
+          });
+        } else if (player && Math.abs(projectile.x - player.x) < 20 && Math.abs(projectile.y - player.y) < 24) {
+          damagePlayer(projectile.damage);
+          projectile.life = 0;
+        }
+      });
+      state.projectiles = state.projectiles.filter(projectile => projectile.life > 0);
+    }
+
+    function updatePickups() {
+      const player = state.player;
+      state.pickups.forEach(pickup => {
+        pickup.timer -= 1;
+        if (Math.abs(player.x - pickup.x) < 30 && Math.abs(player.y - pickup.y) < 26) {
+          player.hp = clamp(player.hp + 25, 0, player.maxHp);
+          updateHpBar();
+          addScore(40);
+          pickup.timer = 0;
+        }
+      });
+      state.pickups = state.pickups.filter(pickup => pickup.timer > 0);
+    }
+
+    function updateEffects() {
+      state.effects.forEach(effect => {
+        effect.timer -= 1;
+        if (effect.timer === 20 && (effect.type === 'shock' || effect.type === 'root')) {
+          state.enemies.forEach(enemy => {
+            const distance = Math.hypot(enemy.x - effect.x, enemy.y - effect.y);
+            if (distance < effect.radius) {
+              enemy.hp -= effect.damage;
+              enemy.stun = Math.max(enemy.stun, effect.stun || 0);
+              enemy.x += Math.sign(enemy.x - effect.x) * (effect.knockback || 0);
+              state.effects.push({ x: enemy.x, y: enemy.y, timer: 14, type: 'hit' });
+              if (enemy.hp <= 0) {
+                addScore(enemy.score);
+                if (Math.random() < 0.2) spawnPickup(enemy.x, enemy.y);
+              }
+            }
+          });
+        }
+      });
+      state.effects = state.effects.filter(effect => effect.timer > 0);
+    }
+
+    function updateAlly() {
+      if (!state.ally) return;
+      const ally = state.ally;
+      ally.timer -= 1;
+      ally.x = state.player.x + Math.sin(Date.now() / 200) * 30;
+      ally.y = state.player.y - 40;
+      if (ally.timer % 30 === 0) {
+        const target = state.enemies[0];
+        if (target) {
+          target.hp -= 12;
+          state.effects.push({ x: target.x, y: target.y, timer: 12, type: 'hit' });
+          if (target.hp <= 0) {
+            addScore(target.score);
+          }
+        }
+      }
+      if (ally.timer <= 0) {
+        state.ally = null;
+      }
+    }
+
+    function updateStageProgress() {
+      if (state.enemies.length > 0) return;
+      const level = levels[state.levelIndex];
+      if (!state.bossActive) {
+        if (state.waveIndex < level.waves.length - 1) {
+          state.waveIndex += 1;
+          spawnWave(level, state.waveIndex);
+          showMessage(`${level.name}`, `Wave ${state.waveIndex + 1} incoming!`, 'Fight');
+        } else {
+          spawnBoss(level);
+          showMessage(`${level.boss.name}`, 'Boss rush! Brace for impact.', 'Engage');
+        }
+      } else {
+        state.bossActive = false;
+        state.lockX = null;
+        if (state.levelIndex < levels.length - 1) {
+          state.levelIndex += 1;
+          state.waveIndex = 0;
+          setupLevel();
+          showMessage('Stage Cleared', `${levels[state.levelIndex].name} awaits.`, 'Advance');
+        } else {
+          endGame(true);
+        }
+      }
+    }
+
+    function setupLevel() {
+      const level = levels[state.levelIndex];
+      state.levelWidth = 2200 + state.levelIndex * 120;
+      state.bossActive = false;
+      state.enemies = [];
+      state.projectiles = [];
+      state.pickups = [];
+      state.effects = [];
+      state.lockX = null;
+      spawnWave(level, state.waveIndex);
+      updateWaveHud();
+    }
+
+    function endGame(victory) {
+      state.running = false;
+      state.gameOver = true;
+      state.victory = victory;
+      const title = victory ? 'Legend of the Bayou!' : 'Brawler Down';
+      const body = victory
+        ? `You cleared all 14 stages with a final score of ${state.score}. The bayou remembers your name.`
+        : `The swamp swallows even legends. Final score: ${state.score}.`;
+      showMessage(title, body, 'Submit Score');
+    }
+
+    function showMessage(title, body, buttonText) {
+      const overlay = document.getElementById('messageOverlay');
+      document.getElementById('messageTitle').textContent = title;
+      document.getElementById('messageBody').textContent = body;
+      const btn = document.getElementById('messageBtn');
+      btn.textContent = buttonText;
+      overlay.classList.add('show');
+      state.running = false;
+    }
+
+    async function submitScore() {
+      if (state.submitting) return;
+      state.submitting = true;
+      const score = Math.max(0, Math.floor(state.score));
+      const leaderboardUrl = `../leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
+      try {
+        const rankRes = await fetch(`/api/leaderboard/rank?gameId=${encodeURIComponent(GAME_ID)}&score=${encodeURIComponent(score)}`);
+        if (!rankRes.ok) {
+          window.location.href = leaderboardUrl;
+          return;
+        }
+        const rankData = await rankRes.json();
+        if (!rankData || !rankData.qualifies) {
+          window.location.href = leaderboardUrl;
+          return;
+        }
+        const name = prompt(`${rankData.message || 'New high score!'} Enter your name (3-12 characters):`);
+        if (!name) {
+          window.location.href = leaderboardUrl;
+          return;
+        }
+        await fetch('/api/leaderboard/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gameId: GAME_ID, score, name })
+        });
+        window.location.href = leaderboardUrl;
+      } catch (error) {
+        window.location.href = leaderboardUrl;
+      }
+    }
+
+    function drawBackground() {
+      const level = levels[state.levelIndex];
+      const bg = assets.backgrounds[level.background];
+      if (bg) {
+        ctx.drawImage(bg, -state.cameraX * 0.25, -state.cameraY * 0.15, canvas.width + 200, canvas.height + 100);
+      }
+      ctx.fillStyle = '#1e2628';
+      ctx.fillRect(0, 360 - state.cameraY, canvas.width, 200);
+      ctx.fillStyle = '#11151a';
+      ctx.fillRect(0, 380 - state.cameraY, canvas.width, 200);
+      ctx.strokeStyle = 'rgba(255,215,0,0.2)';
+      ctx.beginPath();
+      ctx.moveTo(0, 360 - state.cameraY);
+      ctx.lineTo(canvas.width, 360 - state.cameraY);
+      ctx.stroke();
+    }
+
+    function drawEntity(entity, size, colorOverride) {
+      const x = entity.x - state.cameraX;
+      const y = entity.y - state.cameraY - 32 - entity.z;
+      if (entity.sprite) {
+        ctx.drawImage(entity.sprite, x - size / 2, y, size, size);
+      } else {
+        ctx.fillStyle = colorOverride || '#fff';
+        ctx.fillRect(x - size / 2, y, size, size);
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (state.shake > 0) {
+        ctx.save();
+        ctx.translate(rand(-state.shake, state.shake), rand(-state.shake, state.shake));
+        state.shake -= 1;
+      }
+
+      drawBackground();
+
+      state.pickups.forEach(pickup => {
+        const x = pickup.x - state.cameraX;
+        const y = pickup.y - state.cameraY - 12;
+        ctx.drawImage(assets.pickup, x - 10, y, 20, 20);
+      });
+
+      state.enemies.forEach(enemy => {
+        const size = enemy.isBoss ? 80 : 48;
+        drawEntity(enemy, size);
+        const barWidth = enemy.isBoss ? 70 : 40;
+        const hpPct = enemy.hp / enemy.maxHp;
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(enemy.x - state.cameraX - barWidth / 2, enemy.y - state.cameraY - 44, barWidth, 6);
+        ctx.fillStyle = '#ff7b7b';
+        ctx.fillRect(enemy.x - state.cameraX - barWidth / 2, enemy.y - state.cameraY - 44, barWidth * hpPct, 6);
+      });
+
+      if (state.ally) {
+        ctx.fillStyle = '#fff2a3';
+        ctx.fillRect(state.ally.x - state.cameraX - 6, state.ally.y - state.cameraY - 6, 12, 12);
+      }
+
+      if (state.player) {
+        drawEntity(state.player, 56);
+        if (state.player.shieldTimer > 0) {
+          ctx.strokeStyle = 'rgba(125, 241, 210, 0.8)';
+          ctx.beginPath();
+          ctx.arc(state.player.x - state.cameraX, state.player.y - state.cameraY - 10, 26, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+
+      state.projectiles.forEach(projectile => {
+        ctx.fillStyle = projectile.color;
+        ctx.fillRect(projectile.x - state.cameraX - 4, projectile.y - state.cameraY - 4, 8, 8);
+      });
+
+      state.effects.forEach(effect => {
+        if (effect.type === 'hit') {
+          ctx.fillStyle = 'rgba(255,215,0,0.9)';
+          ctx.fillRect(effect.x - state.cameraX - 6, effect.y - state.cameraY - 24, 12, 12);
+        }
+        if (effect.type === 'shock') {
+          ctx.strokeStyle = 'rgba(125, 241, 210, 0.7)';
+          ctx.beginPath();
+          ctx.arc(effect.x - state.cameraX, effect.y - state.cameraY - 10, effect.radius * (effect.timer / 30), 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        if (effect.type === 'root') {
+          ctx.strokeStyle = 'rgba(122, 255, 156, 0.7)';
+          ctx.beginPath();
+          ctx.arc(effect.x - state.cameraX, effect.y - state.cameraY - 10, effect.radius * (effect.timer / 50), 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      });
+
+      if (state.shake > 0) {
+        ctx.restore();
+      }
+    }
+
+    function updateCamera() {
+      if (!state.player) return;
+      state.cameraX = clamp(state.player.x - canvas.width / 2, 0, state.levelWidth - canvas.width);
+      state.cameraY = clamp(state.player.y - 260, 0, state.levelHeight - canvas.height + 60);
+    }
+
+    function gameLoop(timestamp) {
+      if (!state.running) return;
+      const dt = timestamp - state.lastTime;
+      state.lastTime = timestamp;
+
+      updatePlayer(dt);
+      handleAttacks();
+      updateEnemies();
+      updateProjectiles();
+      updatePickups();
+      updateEffects();
+      updateAlly();
+      updateStageProgress();
+      updateCamera();
+      draw();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    function startGame() {
+      state.running = true;
+      state.gameOver = false;
+      state.victory = false;
+      state.lastTime = performance.now();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function setupControls() {
+      window.addEventListener('keydown', (event) => {
+        if (event.repeat) return;
+        if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') input.left = true;
+        if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') input.right = true;
+        if (event.key === 'ArrowUp' || event.key.toLowerCase() === 'w') input.up = true;
+        if (event.key === 'ArrowDown' || event.key.toLowerCase() === 's') input.down = true;
+        if (event.key.toLowerCase() === 'j') input.fast = true;
+        if (event.key.toLowerCase() === 'k') input.power = true;
+        if (event.key.toLowerCase() === 'l') input.special = true;
+        if (event.key === ' ') input.jump = true;
+        if (event.key === 'Shift') input.block = true;
+      });
+      window.addEventListener('keyup', (event) => {
+        if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') input.left = false;
+        if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') input.right = false;
+        if (event.key === 'ArrowUp' || event.key.toLowerCase() === 'w') input.up = false;
+        if (event.key === 'ArrowDown' || event.key.toLowerCase() === 's') input.down = false;
+        if (event.key.toLowerCase() === 'j') input.fast = false;
+        if (event.key.toLowerCase() === 'k') input.power = false;
+        if (event.key.toLowerCase() === 'l') input.special = false;
+        if (event.key === ' ') input.jump = false;
+        if (event.key === 'Shift') input.block = false;
+      });
+
+      document.querySelectorAll('[data-input]').forEach(button => {
+        const key = button.dataset.input;
+        button.addEventListener('pointerdown', () => {
+          input[key] = true;
+        });
+        button.addEventListener('pointerup', () => {
+          input[key] = false;
+        });
+        button.addEventListener('pointerleave', () => {
+          input[key] = false;
+        });
+      });
+    }
+
+    function initCharacterSelection() {
+      const grid = document.getElementById('characterGrid');
+      let selected = null;
+      characters.forEach(character => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <img src="${character.portrait}" alt="${character.name}">
+          <h3>${character.name}</h3>
+          <div class="stat">Speed ${character.stats.speed.toFixed(1)} | Power ${character.stats.power.toFixed(2)}</div>
+          <div class="stat">Range ${character.stats.range} | Durability ${character.stats.durability}</div>
+          <div class="move">Fast: ${character.moves.fast}</div>
+          <div class="move">Power: ${character.moves.power}</div>
+          <div class="move">Special: ${character.moves.special}</div>
+        `;
+        card.addEventListener('click', () => {
+          document.querySelectorAll('.card').forEach(el => el.classList.remove('selected'));
+          card.classList.add('selected');
+          selected = character;
+          document.getElementById('startBtn').disabled = false;
+        });
+        grid.appendChild(card);
+      });
+
+      document.getElementById('startBtn').addEventListener('click', () => {
+        if (!selected) return;
+        state.player = createPlayer(selected);
+        updateHpBar();
+        setupLevel();
+        document.getElementById('startOverlay').classList.remove('show');
+        startGame();
+      });
+    }
+
+    function handleMessageButton() {
+      const overlay = document.getElementById('messageOverlay');
+      document.getElementById('messageBtn').addEventListener('click', () => {
+        overlay.classList.remove('show');
+        if (state.gameOver) {
+          submitScore();
+          return;
+        }
+        startGame();
+      });
+    }
+
+    function loadImage(src) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.src = src;
+      });
+    }
+
+    async function loadAssets() {
+      const loading = document.getElementById('loadingStatus');
+      const promises = [];
+
+      const backgroundKeys = {
+        'background-swamp': 'assets/background-swamp.svg',
+        'background-mirewatch': 'assets/background-mirewatch.svg',
+        'background-portal': 'assets/background-portal.svg',
+        'background-fairy-forest': 'assets/background-fairy-forest.svg',
+        'background-world-tree-ruins': 'assets/background-world-tree-ruins.svg',
+        'background-tockman': 'assets/background-tockman.svg',
+        'background-unseelie': 'assets/background-unseelie.svg',
+        'background-casino': 'assets/background-casino.svg',
+        'background-mansion': 'assets/background-mansion.svg',
+        'background-emberfall': 'assets/background-emberfall.svg',
+        'background-docks': 'assets/background-docks.svg',
+        'background-world-tree': 'assets/background-world-tree.svg',
+        'background-goblin-tower': 'assets/background-goblin-tower.svg',
+        'background-final-theatre': 'assets/background-final-theatre.svg'
+      };
+
+      Object.entries(backgroundKeys).forEach(([key, src]) => {
+        promises.push(loadImage(src).then(img => { assets.backgrounds[key] = img; }));
+      });
+
+      const characterSprites = {
+        'assets/char-rustblade.svg': 'assets/char-rustblade.svg',
+        'assets/char-bayou-bruiser.svg': 'assets/char-bayou-bruiser.svg',
+        'assets/char-fume-alchemist.svg': 'assets/char-fume-alchemist.svg',
+        'assets/char-grove-sentinel.svg': 'assets/char-grove-sentinel.svg',
+        'assets/char-clockwire-duelist.svg': 'assets/char-clockwire-duelist.svg',
+        'assets/char-lantern-seer.svg': 'assets/char-lantern-seer.svg'
+      };
+
+      Object.entries(characterSprites).forEach(([key, src]) => {
+        promises.push(loadImage(src).then(img => { assets.characters[key] = img; }));
+      });
+
+      const enemySprites = {
+        'enemy-goblin': 'assets/enemy-goblin.svg',
+        'enemy-fey': 'assets/enemy-fey.svg',
+        'enemy-automaton': 'assets/enemy-automaton.svg',
+        'enemy-thug': 'assets/enemy-thug.svg'
+      };
+
+      Object.entries(enemySprites).forEach(([key, src]) => {
+        promises.push(loadImage(src).then(img => { assets.enemies[key] = img; }));
+      });
+
+      promises.push(loadImage('assets/boss-legrim.svg').then(img => { assets.boss = img; }));
+      promises.push(loadImage('assets/pickup-gumbo.svg').then(img => { assets.pickup = img; }));
+
+      let loaded = 0;
+      promises.forEach(promise => {
+        promise.then(() => {
+          loaded += 1;
+          loading.textContent = `Loading art ${loaded}/${promises.length}`;
+        });
+      });
+
+      await Promise.all(promises);
+    }
+
+    async function init() {
+      await loadAssets();
+      document.getElementById('loadingOverlay').classList.remove('show');
+      document.getElementById('startOverlay').classList.add('show');
+      setupControls();
+      initCharacterSelection();
+      handleMessageButton();
+      state.ready = true;
+    }
+
+    init();
+  </script>
+</body>
+</html>

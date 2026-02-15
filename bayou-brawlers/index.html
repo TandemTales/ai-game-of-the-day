@@ -453,6 +453,9 @@
       banner: null
     };
 
+    const DEFAULT_BG_WIDTH = 4096;
+    const DEFAULT_BG_HEIGHT = 256;
+
     const characters = [
       {
         id: 'rustblade',
@@ -1027,7 +1030,9 @@
 
     function setupLevel() {
       const level = levels[state.levelIndex];
-      state.levelWidth = 2200 + state.levelIndex * 120;
+      const baseLevelWidth = 2200 + state.levelIndex * 120;
+      const bgDimensions = getBackgroundDimensions(level);
+      state.levelWidth = Math.max(baseLevelWidth, bgDimensions.width);
       state.bossActive = false;
       state.enemies = [];
       state.projectiles = [];
@@ -1036,6 +1041,17 @@
       state.lockX = null;
       spawnWave(level, state.waveIndex);
       updateWaveHud();
+    }
+
+    function getBackgroundDimensions(level) {
+      const bg = assets.backgrounds[level.background];
+      if (!bg) {
+        return { width: DEFAULT_BG_WIDTH, height: DEFAULT_BG_HEIGHT };
+      }
+      return {
+        width: bg.naturalWidth || bg.width || DEFAULT_BG_WIDTH,
+        height: bg.naturalHeight || bg.height || DEFAULT_BG_HEIGHT
+      };
     }
 
     function endGame(victory) {
@@ -1095,7 +1111,17 @@
       const level = levels[state.levelIndex];
       const bg = assets.backgrounds[level.background];
       if (bg) {
-        ctx.drawImage(bg, -state.cameraX * 0.25, -state.cameraY * 0.15, canvas.width + 200, canvas.height + 100);
+        const bgDimensions = getBackgroundDimensions(level);
+        const horizonY = 360 - state.cameraY;
+        const scale = Math.max((horizonY + 32) / bgDimensions.height, canvas.width / bgDimensions.width);
+        const drawWidth = bgDimensions.width * scale;
+        const drawHeight = bgDimensions.height * scale;
+        const cameraMax = Math.max(1, state.levelWidth - canvas.width);
+        const cameraProgress = state.cameraX / cameraMax;
+        const maxShift = Math.max(0, drawWidth - canvas.width);
+        const drawX = -maxShift * cameraProgress;
+        const drawY = horizonY - drawHeight + 22;
+        ctx.drawImage(bg, drawX, drawY, drawWidth, drawHeight);
       }
       ctx.fillStyle = '#1e2628';
       ctx.fillRect(0, 360 - state.cameraY, canvas.width, 200);
@@ -1321,7 +1347,7 @@
       const promises = [];
 
       const backgroundKeys = {
-        'background-swamp': 'assets/background-swamp.svg',
+        'background-swamp': 'assets/BB_bg_swamp001.png',
         'background-mirewatch': 'assets/background-mirewatch.svg',
         'background-portal': 'assets/background-portal.svg',
         'background-fairy-forest': 'assets/background-fairy-forest.svg',

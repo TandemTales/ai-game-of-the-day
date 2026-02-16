@@ -1095,7 +1095,30 @@
       const level = levels[state.levelIndex];
       const bg = assets.backgrounds[level.background];
       if (bg) {
-        ctx.drawImage(bg, -state.cameraX * 0.25, -state.cameraY * 0.15, canvas.width + 200, canvas.height + 100);
+        const maxCameraX = Math.max(1, state.levelWidth - canvas.width);
+        const maxCameraY = Math.max(1, state.levelHeight - canvas.height + 60);
+        const cameraXPct = clamp(state.cameraX / maxCameraX, 0, 1);
+        const cameraYPct = clamp(state.cameraY / maxCameraY, 0, 1);
+
+        const targetSkyHeight = Math.max(220, Math.floor(canvas.height * 0.68));
+        let scale = targetSkyHeight / bg.height;
+        let drawWidth = bg.width * scale;
+        let drawHeight = bg.height * scale;
+
+        // Support panoramic (e.g. 4096x256) and portrait background textures.
+        // If the initial fit is too narrow, switch to width-fit and pan vertically.
+        if (drawWidth < canvas.width) {
+          scale = canvas.width / bg.width;
+          drawWidth = canvas.width;
+          drawHeight = bg.height * scale;
+        }
+
+        const maxPanX = Math.max(0, drawWidth - canvas.width);
+        const maxPanY = Math.max(0, drawHeight - targetSkyHeight);
+        const drawX = -maxPanX * cameraXPct;
+        const drawY = -maxPanY * cameraYPct - state.cameraY * 0.08;
+
+        ctx.drawImage(bg, drawX, drawY, drawWidth, drawHeight);
       }
       ctx.fillStyle = '#1e2628';
       ctx.fillRect(0, 360 - state.cameraY, canvas.width, 200);
@@ -1321,7 +1344,7 @@
       const promises = [];
 
       const backgroundKeys = {
-        'background-swamp': 'assets/background-swamp.svg',
+        'background-swamp': 'assets/BB_bg_swamp001.png',
         'background-mirewatch': 'assets/background-mirewatch.svg',
         'background-portal': 'assets/background-portal.svg',
         'background-fairy-forest': 'assets/background-fairy-forest.svg',

@@ -878,6 +878,30 @@
       updateLeaderboardButton();
     }
 
+    // Debug helper: skip to next level with 'L'
+    function debugSkipLevel() {
+      const nextIndex = Math.min(AVAILABLE_LEVELS.length, state.currentLevel + 1);
+      if (nextIndex === state.currentLevel) return; // Already at last level
+      state.phase = 'loading';
+      state.currentLevel = nextIndex;
+      isLevelTransition = true;
+      console.warn('Debug skip to level', state.currentLevel);
+      loadLevel(AVAILABLE_LEVELS[state.currentLevel - 1]).then(() => {
+        resetLander(true);
+        isLevelTransition = false;
+        startGame();
+      });
+    }
+
+    // Debug helper: grant gun with 'G'
+    function debugGiveGun() {
+      weapon.hasGun = true;
+      weapon.ammo = weapon.maxAmmo;
+      weapon.nextFireTime = state.time;
+      console.warn('Debug: granted gun attachment');
+      updateHUD();
+    }
+
     function baseLeaderboardUrl() {
       return `../leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
     }
@@ -1744,6 +1768,8 @@
       if (e.code === 'ArrowUp' || e.code === 'KeyW') keys.thrust = true;
       if (e.code === 'KeyQ') tryFireGun('left');
       if (e.code === 'KeyE') tryFireGun('right');
+      if (e.code === 'KeyL') debugSkipLevel();
+      if (e.code === 'KeyG') debugGiveGun();
       if (e.code === 'Space') {
         handleSpaceStart(e);
       }

@@ -634,6 +634,12 @@
 
     const INITIAL_WAVE_ENEMY_MULTIPLIER = 0.75;
     const ENEMY_SPEED_MULTIPLIER = 0.82;
+    const PLAYER_DRAW_SIZE = 56;
+    const ENEMY_DRAW_SIZE = 48;
+    const BOSS_DRAW_SIZE = 80;
+    const PLAYER_GROUND_Y = 320;
+    const BRAWL_LANE_MIN_Y = Math.floor((canvas.height / 2) + 4);
+    const BRAWL_LANE_MAX_Y = 340;
 
     function clamp(value, min, max) {
       return Math.max(min, Math.min(max, value));
@@ -701,7 +707,7 @@
         : wave.count;
       for (let i = 0; i < spawnCount; i += 1) {
         const typeId = wave.types[i % wave.types.length];
-        const enemy = createEnemy(typeId, baseX + rand(-80, 80) + i * 40, rand(220, 340));
+        const enemy = createEnemy(typeId, baseX + rand(-80, 80) + i * 40, rand(BRAWL_LANE_MIN_Y, BRAWL_LANE_MAX_Y));
         state.enemies.push(enemy);
       }
       state.lockX = baseX + 220;
@@ -710,7 +716,7 @@
 
     function spawnBoss(level) {
       const bossType = level.boss.type;
-      const boss = createEnemy(bossType, state.levelWidth - 220, 280, true);
+      const boss = createEnemy(bossType, state.levelWidth - 220, clamp(280, BRAWL_LANE_MIN_Y, BRAWL_LANE_MAX_Y), true);
       boss.hp += 120;
       boss.maxHp = boss.hp;
       boss.score += 250;
@@ -847,13 +853,13 @@
       player.y += player.vy;
 
       player.vy += 0.28;
-      if (player.y > 320) {
-        player.y = 320;
+      if (player.y > PLAYER_GROUND_Y) {
+        player.y = PLAYER_GROUND_Y;
         player.vy = 0;
       }
 
       player.x = clamp(player.x, 40, state.levelWidth - 40);
-      player.y = clamp(player.y, 220, 340);
+      player.y = clamp(player.y, BRAWL_LANE_MIN_Y, BRAWL_LANE_MAX_Y);
 
       if (state.lockX !== null && player.x > state.lockX) {
         player.x = state.lockX;
@@ -915,6 +921,8 @@
         } else {
           enemy.cooldown = Math.max(0, enemy.cooldown - 1);
         }
+
+        enemy.y = clamp(enemy.y, BRAWL_LANE_MIN_Y, BRAWL_LANE_MAX_Y);
       });
 
       state.enemies = state.enemies.filter(enemy => enemy.hp > 0);
@@ -1164,9 +1172,24 @@
         ctx.drawImage(assets.pickup, x - 10, y, 20, 20);
       });
 
+      const renderQueue = state.enemies
+        .filter(enemy => enemy.hp > 0)
+        .map(enemy => ({
+          entity: enemy,
+          size: enemy.isBoss ? BOSS_DRAW_SIZE : ENEMY_DRAW_SIZE,
+          sortY: enemy.y
+        }));
+
+      if (state.player) {
+        renderQueue.push({ entity: state.player, size: PLAYER_DRAW_SIZE, sortY: state.player.y });
+      }
+
+      renderQueue.sort((a, b) => a.sortY - b.sortY);
+      renderQueue.forEach(({ entity, size }) => {
+        drawEntity(entity, size);
+      });
+
       state.enemies.forEach(enemy => {
-        const size = enemy.isBoss ? 80 : 48;
-        drawEntity(enemy, size);
         const barWidth = enemy.isBoss ? 70 : 40;
         const hpPct = enemy.hp / enemy.maxHp;
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
@@ -1181,7 +1204,6 @@
       }
 
       if (state.player) {
-        drawEntity(state.player, 56);
         if (state.player.shieldTimer > 0) {
           ctx.strokeStyle = 'rgba(125, 241, 210, 0.8)';
           ctx.beginPath();

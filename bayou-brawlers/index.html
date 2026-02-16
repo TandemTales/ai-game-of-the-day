@@ -825,6 +825,7 @@
     function updatePlayer(dt) {
       const player = state.player;
       if (!player) return;
+      const upperMoveLimit = canvas.height * 0.5;
       player.vx = 0;
       if (input.left) player.vx -= player.speed;
       if (input.right) player.vx += player.speed;
@@ -853,7 +854,7 @@
       }
 
       player.x = clamp(player.x, 40, state.levelWidth - 40);
-      player.y = clamp(player.y, 220, 340);
+      player.y = clamp(player.y, upperMoveLimit, 340);
 
       if (state.lockX !== null && player.x > state.lockX) {
         player.x = state.lockX;

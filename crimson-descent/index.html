@@ -379,6 +379,7 @@
     const TILE_SIZE = 32;
     const WORLD_WIDTH = GRID_SIZE * TILE_SIZE;
     const WORLD_HEIGHT = GRID_SIZE * TILE_SIZE;
+    const ENEMY_SHOT_RANGE = TILE_SIZE * 12;
     const TILES = { EMPTY: 0, WALL: 1, SPAWN: 2, PAD: 3, GUN: 4, ENEMY: 5, EXIT: 6, HOSTAGE: 7 };
     const tileDefinitions = new Map();
     const tileImages = new Map();
@@ -1536,12 +1537,16 @@
     }
 
     function spawnEnemyProjectile(enemy) {
+      const startX = enemy.x - enemy.width * 0.55;
+      const startY = enemy.y;
       enemyProjectiles.push({
-        x: enemy.x - enemy.width * 0.55,
-        y: enemy.y,
+        x: startX,
+        y: startY,
         vx: -220,
         vy: 0,
-        life: 4
+        life: 4,
+        traveled: 0,
+        range: ENEMY_SHOT_RANGE
       });
     }
 
@@ -1556,9 +1561,12 @@
       for (let i = enemyProjectiles.length - 1; i >= 0; i--) {
         const shot = enemyProjectiles[i];
         shot.life -= dt;
-        shot.x += shot.vx * dt;
-        shot.y += shot.vy * dt;
-        if (shot.life <= 0 || shot.x < -TILE_SIZE * 4 || shot.x > WORLD_WIDTH + TILE_SIZE * 2 || shot.y < -TILE_SIZE * 8 || shot.y > WORLD_HEIGHT + TILE_SIZE * 2) {
+        const dx = shot.vx * dt;
+        const dy = shot.vy * dt;
+        shot.x += dx;
+        shot.y += dy;
+        shot.traveled += Math.hypot(dx, dy);
+        if (shot.life <= 0 || shot.traveled >= shot.range || shot.x < -TILE_SIZE * 4 || shot.x > WORLD_WIDTH + TILE_SIZE * 2 || shot.y < -TILE_SIZE * 8 || shot.y > WORLD_HEIGHT + TILE_SIZE * 2) {
           enemyProjectiles.splice(i, 1);
           continue;
         }

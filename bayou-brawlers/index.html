@@ -637,7 +637,6 @@
     const PLAYER_DRAW_SIZE = 56;
     const ENEMY_DRAW_SIZE = 48;
     const BOSS_DRAW_SIZE = 80;
-    const PLAYER_GROUND_Y = 320;
     const BRAWL_LANE_MIN_Y = Math.floor((canvas.height / 2) + 4);
     const BRAWL_LANE_MAX_Y = 340;
 
@@ -657,7 +656,7 @@
         y: 280,
         z: 0,
         vx: 0,
-        vy: 0,
+        vz: 0,
         hp: charData.stats.durability,
         maxHp: charData.stats.durability,
         speed: charData.stats.speed,
@@ -839,8 +838,8 @@
       if (player.vx !== 0) player.facing = player.vx > 0 ? 1 : -1;
       player.block = input.block;
 
-      if (input.jump && player.jumpCooldown <= 0) {
-        player.vy = -6.5;
+      if (input.jump && player.jumpCooldown <= 0 && player.z <= 0) {
+        player.vz = 6.5;
         player.jumpCooldown = 40;
       }
 
@@ -850,12 +849,12 @@
       }
 
       player.x += player.vx;
-      player.y += player.vy;
+      player.z += player.vz;
 
-      player.vy += 0.28;
-      if (player.y > PLAYER_GROUND_Y) {
-        player.y = PLAYER_GROUND_Y;
-        player.vy = 0;
+      player.vz -= 0.28;
+      if (player.z < 0) {
+        player.z = 0;
+        player.vz = 0;
       }
 
       player.x = clamp(player.x, 40, state.levelWidth - 40);

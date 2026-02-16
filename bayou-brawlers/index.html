@@ -170,6 +170,12 @@
       max-width: 720px;
       width: calc(100vw - 40px);
     }
+    .panel.start-panel {
+      max-height: min(88vh, 880px);
+      overflow: auto;
+      overscroll-behavior: contain;
+      padding-bottom: calc(18px + env(safe-area-inset-bottom));
+    }
     .panel h2 {
       margin: 0 0 10px;
       font-size: 16px;
@@ -194,17 +200,25 @@
     .overlay.show { display: flex; }
     .character-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
       gap: 12px;
       margin-top: 12px;
     }
     .card {
       border: 2px solid rgba(255,215,0,0.4);
       border-radius: 12px;
-      padding: 10px;
+      padding: 10px 8px;
       background: rgba(10,12,16,0.8);
       cursor: pointer;
       transition: transform 0.15s ease, box-shadow 0.15s ease;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      min-height: 132px;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      position: relative;
     }
     .card.selected {
       border-color: var(--gold);
@@ -212,8 +226,8 @@
       transform: translateY(-2px);
     }
     .card img {
-      width: 60px;
-      height: 60px;
+      width: clamp(46px, 8vw, 60px);
+      height: clamp(46px, 8vw, 60px);
       image-rendering: pixelated;
       margin-bottom: 6px;
       border: 1px solid rgba(255,255,255,0.2);
@@ -222,18 +236,59 @@
     }
     .card h3 {
       margin: 4px 0 6px;
-      font-size: 11px;
+      font-size: clamp(9px, 1.8vw, 11px);
       color: #fff;
     }
-    .card .stat {
-      font-size: 9px;
+    .card .hold-tip {
+      font-size: 7px;
       color: #9fd6cf;
       line-height: 1.4;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
     }
-    .card .move {
-      font-size: 8px;
-      color: #f3d28a;
-      margin-top: 4px;
+    .hold-progress {
+      width: 100%;
+      height: 5px;
+      border-radius: 99px;
+      margin-top: 6px;
+      background: rgba(255,255,255,0.12);
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+    .card.holding .hold-progress { opacity: 1; }
+    .hold-progress-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #5F9EA0, #FFD700);
+    }
+    .character-detail {
+      text-align: left;
+      margin-top: 14px;
+      border: 2px solid rgba(255,215,0,0.45);
+      border-radius: 10px;
+      background: rgba(6,8,11,0.9);
+      padding: 12px;
+      display: none;
+    }
+    .character-detail.show { display: block; }
+    .character-detail h3 {
+      margin: 0 0 8px;
+      color: var(--gold);
+      font-size: 12px;
+    }
+    .character-detail .stat,
+    .character-detail .move {
+      font-size: 9px;
+      line-height: 1.5;
+      margin: 0;
+    }
+    .character-detail .stat { color: #9fd6cf; }
+    .character-detail .move { color: #f3d28a; }
+    .character-detail-actions {
+      margin-top: 8px;
+      display: flex;
+      justify-content: flex-end;
     }
     .controls {
       position: absolute;
@@ -309,11 +364,26 @@
     }
 
     @media (max-width: 600px) {
+      .panel { width: calc(100vw - 24px); padding: 14px; }
       .controls { flex-direction: row; align-items: center; }
       .dpad { grid-template-columns: repeat(3, 38px); grid-template-rows: repeat(3, 38px); }
       .pad-btn { width: 38px; height: 38px; font-size: 10px; }
       .action-pad { grid-template-columns: repeat(2, 48px); grid-template-rows: repeat(2, 48px); }
       .action-pad .pad-btn { width: 48px; height: 48px; font-size: 9px; }
+      .character-grid { grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 8px; }
+      .card { min-height: 116px; }
+      .instructions { font-size: 8px; }
+    }
+
+    @media (max-width: 420px) {
+      .title h1 { font-size: 11px; }
+      .btn { padding: 7px 9px; font-size: 9px; }
+      .hud { top: calc(96px + env(safe-area-inset-top)); padding: 4px 8px; gap: 6px; }
+      .chip { font-size: 8px; padding: 3px 6px; }
+      .hp-bar { width: 92px; }
+      .stage { padding-top: calc(138px + env(safe-area-inset-top)); }
+      .panel h2 { font-size: 13px; }
+      .panel p { font-size: 9px; }
     }
   </style>
   <script>
@@ -381,10 +451,11 @@
     </div>
 
     <div class="overlay" id="startOverlay">
-      <div class="panel">
+      <div class="panel start-panel">
         <h2>Pick Your Brawler</h2>
-        <p>Choose a fighter with distinct stats and unique abilities. Every character has a fast strike, a power hit, and a signature special.</p>
+        <p>Choose a fighter with distinct stats and unique abilities. Every character has a fast strike, a power hit, and a signature special. Press and hold any thumbnail for a full stat card.</p>
         <div class="character-grid" id="characterGrid"></div>
+        <div class="character-detail" id="characterDetail" aria-live="polite"></div>
         <button class="btn" id="startBtn" disabled>Start the Journey</button>
         <div class="instructions">
           <strong>Desktop:</strong> Move (WASD/Arrows), Fast (J), Power (K), Special (L), Jump (Space), Block (Shift).<br>
@@ -1314,24 +1385,100 @@
 
     function initCharacterSelection() {
       const grid = document.getElementById('characterGrid');
+      const detailPanel = document.getElementById('characterDetail');
+      const HOLD_TO_OPEN_MS = 1200;
       let selected = null;
+
+      const renderDetail = (character) => {
+        detailPanel.classList.add('show');
+        detailPanel.innerHTML = `
+          <h3>${character.name}</h3>
+          <p class="stat">Speed ${character.stats.speed.toFixed(1)} | Power ${character.stats.power.toFixed(2)} | Range ${character.stats.range} | Durability ${character.stats.durability}</p>
+          <p class="move"><strong>Fast:</strong> ${character.moves.fast}</p>
+          <p class="move"><strong>Power:</strong> ${character.moves.power}</p>
+          <p class="move"><strong>Special:</strong> ${character.moves.special}</p>
+          <div class="character-detail-actions">
+            <button class="btn" type="button" id="closeDetailBtn">Close Details</button>
+          </div>
+        `;
+        const closeButton = document.getElementById('closeDetailBtn');
+        closeButton.addEventListener('click', () => {
+          detailPanel.classList.remove('show');
+          detailPanel.innerHTML = '';
+        });
+      };
+
       characters.forEach(character => {
         const card = document.createElement('div');
         card.className = 'card';
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', '0');
+        card.setAttribute('aria-label', `${character.name}. Press to select. Press and hold for details.`);
         card.innerHTML = `
           <img src="${character.portrait}" alt="${character.name}">
           <h3>${character.name}</h3>
-          <div class="stat">Speed ${character.stats.speed.toFixed(1)} | Power ${character.stats.power.toFixed(2)}</div>
-          <div class="stat">Range ${character.stats.range} | Durability ${character.stats.durability}</div>
-          <div class="move">Fast: ${character.moves.fast}</div>
-          <div class="move">Power: ${character.moves.power}</div>
-          <div class="move">Special: ${character.moves.special}</div>
+          <div class="hold-tip">Tap to Select • Hold for Details</div>
+          <div class="hold-progress" aria-hidden="true"><div class="hold-progress-fill"></div></div>
         `;
+        const progressFill = card.querySelector('.hold-progress-fill');
+        let holdTimer = null;
+        let progressTimer = null;
+        let holdTriggered = false;
+
+        const clearHold = () => {
+          if (holdTimer) {
+            clearTimeout(holdTimer);
+            holdTimer = null;
+          }
+          if (progressTimer) {
+            clearInterval(progressTimer);
+            progressTimer = null;
+          }
+          card.classList.remove('holding');
+          progressFill.style.width = '0%';
+        };
+
+        const beginHold = () => {
+          holdTriggered = false;
+          clearHold();
+          card.classList.add('holding');
+          const start = performance.now();
+          progressTimer = setInterval(() => {
+            const elapsed = performance.now() - start;
+            const progress = Math.min(100, (elapsed / HOLD_TO_OPEN_MS) * 100);
+            progressFill.style.width = `${progress}%`;
+          }, 16);
+
+          holdTimer = setTimeout(() => {
+            holdTriggered = true;
+            clearHold();
+            renderDetail(character);
+          }, HOLD_TO_OPEN_MS);
+        };
+
+        card.addEventListener('pointerdown', beginHold);
+        card.addEventListener('pointerup', clearHold);
+        card.addEventListener('pointerleave', clearHold);
+        card.addEventListener('pointercancel', clearHold);
         card.addEventListener('click', () => {
+          if (holdTriggered) {
+            holdTriggered = false;
+            return;
+          }
           document.querySelectorAll('.card').forEach(el => el.classList.remove('selected'));
           card.classList.add('selected');
           selected = character;
           document.getElementById('startBtn').disabled = false;
+        });
+        card.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            card.click();
+          }
+          if (event.key.toLowerCase() === 'i') {
+            event.preventDefault();
+            renderDetail(character);
+          }
         });
         grid.appendChild(card);
       });

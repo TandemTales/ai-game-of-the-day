@@ -632,6 +632,9 @@
       boss: { hp: 200, speed: 1.2, damage: 20, range: 26, score: 350, sprite: 'boss' }
     };
 
+    const INITIAL_WAVE_ENEMY_MULTIPLIER = 0.75;
+    const ENEMY_SPEED_MULTIPLIER = 0.82;
+
     function clamp(value, min, max) {
       return Math.max(min, Math.min(max, value));
     }
@@ -675,7 +678,7 @@
         z: 0,
         hp: base.hp * (isBoss ? 1.4 : 1),
         maxHp: base.hp * (isBoss ? 1.4 : 1),
-        speed: base.speed,
+        speed: base.speed * ENEMY_SPEED_MULTIPLIER,
         damage: base.damage,
         range: base.range,
         score: base.score,
@@ -693,7 +696,10 @@
       if (!wave) return;
       state.enemies = [];
       const baseX = 320 + waveIndex * 520;
-      for (let i = 0; i < wave.count; i += 1) {
+      const spawnCount = waveIndex === 0
+        ? Math.max(2, Math.round(wave.count * INITIAL_WAVE_ENEMY_MULTIPLIER))
+        : wave.count;
+      for (let i = 0; i < spawnCount; i += 1) {
         const typeId = wave.types[i % wave.types.length];
         const enemy = createEnemy(typeId, baseX + rand(-80, 80) + i * 40, rand(220, 340));
         state.enemies.push(enemy);

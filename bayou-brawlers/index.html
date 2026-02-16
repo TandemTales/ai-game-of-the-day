@@ -1199,7 +1199,9 @@
 
         const maxPanX = Math.max(0, drawWidth - canvas.width);
         const maxPanY = Math.max(0, drawHeight - targetSkyHeight);
-        const drawX = -maxPanX * cameraXPct;
+        // Keep horizontal background movement from outrunning player/camera movement
+        // on ultra-wide background textures.
+        const drawX = -Math.min(maxPanX * cameraXPct, state.cameraX);
         const drawY = -maxPanY * cameraYPct - state.cameraY * 0.08;
 
         ctx.drawImage(bg, drawX, drawY, drawWidth, drawHeight);

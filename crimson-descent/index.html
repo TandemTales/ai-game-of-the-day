@@ -796,7 +796,7 @@
       maxAmmo: 50
     };
 
-    const RECOIL_FORCE = 45;
+    const RECOIL_FORCE = 5;
 
     const projectiles = [];
     const enemies = [];
@@ -1466,6 +1466,9 @@
       } else if (side === 'left') {
         fireDir = { x: -right.x, y: -right.y };
         sideSign = -1;
+      } else {
+        fireDir = forward;
+        sideSign = 0;
       }
 
       const startX = lander.x + right.x * LANDER_WIDTH * 0.55 * sideSign + forward.x * LANDER_HEIGHT * 0.1;
@@ -1477,7 +1480,7 @@
         vy: fireDir.y * speed + lander.vy,
         life: 2
       });
-      
+
       // Apply recoil opposite to the firing direction
       lander.vx -= fireDir.x * RECOIL_FORCE;
       lander.vy -= fireDir.y * RECOIL_FORCE;

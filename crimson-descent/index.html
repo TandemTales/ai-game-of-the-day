@@ -805,7 +805,7 @@
 
     let lastCrashDetail = null;
 
-    const keys = { left: false, right: false, thrust: false };
+    const keys = { left: false, right: false, thrust: false, fireLeft: false, fireRight: false, fireForward: false };
 
     function resetLander(preserveWeapon = false) {
       console.log('resetLander called, preserveWeapon:', preserveWeapon, 'weapon.hasGun before:', weapon.hasGun, 'weapon.ammo before:', weapon.ammo);
@@ -1052,6 +1052,9 @@
         lander.thrusting = false;
         lander.flameTimer = 0;
       }
+
+      // Auto-fire while a fire control is held
+      handleAutoFire();
 
       lander.vy += GRAVITY * dt;
       lander.x += lander.vx * dt;
@@ -1313,6 +1316,12 @@
         endRound(false);
       }
       return true;
+    }
+
+    function handleAutoFire() {
+      if (keys.fireLeft) tryFireGun('left');
+      if (keys.fireRight) tryFireGun('right');
+      if (keys.fireForward) tryFireGun('forward');
     }
 
     function attemptExit() {
@@ -1769,25 +1778,32 @@
       if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
       if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
       if (e.code === 'ArrowUp' || e.code === 'KeyW') keys.thrust = true;
-      if (e.code === 'KeyQ') tryFireGun('left');
-      if (e.code === 'KeyE') tryFireGun('right');
-      if (e.code === 'KeyL') debugSkipLevel();
-      if (e.code === 'KeyG') debugGiveGun();
+      if (e.code === 'KeyQ') keys.fireLeft = true;
+      if (e.code === 'KeyE') keys.fireRight = true;
       if (e.code === 'Space') {
+        keys.fireForward = true;
         handleSpaceStart(e);
       }
+      if (e.code === 'KeyL') debugSkipLevel();
+      if (e.code === 'KeyG') debugGiveGun();
     });
     document.addEventListener('keyup', (e) => {
       if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
       if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
       if (e.code === 'ArrowUp' || e.code === 'KeyW') keys.thrust = false;
       if (e.code === 'Space') keys.thrust = false;
+      if (e.code === 'KeyQ') keys.fireLeft = false;
+      if (e.code === 'KeyE') keys.fireRight = false;
+      if (e.code === 'Space') keys.fireForward = false;
     });
 
     window.addEventListener('blur', () => {
       keys.left = false;
       keys.right = false;
       keys.thrust = false;
+      keys.fireLeft = false;
+      keys.fireRight = false;
+      keys.fireForward = false;
     });
 
     // Touch controls
@@ -1796,31 +1812,29 @@
       if (control === 'left') keys.left = active;
       if (control === 'right') keys.right = active;
       if (control === 'thrust') keys.thrust = active;
-      if (control === 'fire' && active) {
-        tryFireGun('right');
-      }
+      if (control === 'fire') keys.fireForward = active;
+      if (control === 'fireLeft') keys.fireLeft = active;
+      if (control === 'fireRight') keys.fireRight = active;
     }
     touchControls.addEventListener('pointerdown', (e) => {
       const btn = e.target.closest('[data-control]');
       if (!btn) return;
       e.preventDefault();
-      btn.setPointerCapture(e.pointerId);
-      activeTouches.set(e.pointerId, btn.dataset.control);
-      setControl(btn.dataset.control, true);
+      const control = btn.dataset.control;
+      activeTouches.set(e.pointerId, control);
+      setControl(control, true);
     });
     touchControls.addEventListener('pointerup', (e) => {
       const control = activeTouches.get(e.pointerId);
-      if (control) {
-        setControl(control, false);
-        activeTouches.delete(e.pointerId);
-      }
+      if (!control) return;
+      setControl(control, false);
+      activeTouches.delete(e.pointerId);
     });
     touchControls.addEventListener('pointercancel', (e) => {
       const control = activeTouches.get(e.pointerId);
-      if (control) {
-        setControl(control, false);
-        activeTouches.delete(e.pointerId);
-      }
+      if (!control) return;
+      setControl(control, false);
+      activeTouches.delete(e.pointerId);
     });
     touchControls.addEventListener('pointerleave', (e) => {
       const control = activeTouches.get(e.pointerId);

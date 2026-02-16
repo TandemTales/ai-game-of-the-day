@@ -10,7 +10,7 @@
     gtag('config', 'AW-17405200669');
   </script>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Bayou Brawlers: Gearbound</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
@@ -22,6 +22,10 @@
       --ui: rgba(0, 0, 0, 0.82);
       --crimson: #ff4d6d;
       --emerald: #2dd4bf;
+      --top-ui-space: clamp(130px, 20vh, 180px);
+      --bottom-ui-space: clamp(118px, 18vh, 165px);
+      --pad-size: clamp(34px, 7.5vw, 52px);
+      --pad-gap: clamp(5px, 1.2vw, 10px);
     }
     * { box-sizing: border-box; }
     html, body { height: 100%; }
@@ -62,7 +66,7 @@
     }
     .title h1 {
       margin: 0;
-      font-size: 16px;
+      font-size: clamp(11px, 1.5vw, 16px);
       background: linear-gradient(45deg, var(--gold), #ffa500);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -80,7 +84,7 @@
       text-decoration: none;
       padding: 8px 12px;
       border-radius: 10px;
-      font-size: 10px;
+      font-size: clamp(8px, 1vw, 10px);
       box-shadow: 0 4px 15px rgba(95,158,160,0.4);
       transition: transform 0.15s ease, box-shadow 0.15s ease;
       white-space: nowrap;
@@ -92,13 +96,13 @@
     .back-home { padding: 6px 10px; }
     .banner {
       position: absolute;
-      top: calc(56px + env(safe-area-inset-top));
+      top: calc(clamp(52px, 8.5vh, 70px) + env(safe-area-inset-top));
       left: 50%;
       transform: translateX(-50%);
       z-index: 4;
     }
     .banner img {
-      width: min(420px, 90vw);
+      width: min(420px, 88vw);
       image-rendering: pixelated;
       border: 2px solid rgba(255,215,0,0.35);
       border-radius: 8px;
@@ -107,7 +111,7 @@
     }
     .hud {
       position: absolute;
-      top: calc(118px + env(safe-area-inset-top));
+      top: calc(clamp(98px, 14vh, 126px) + env(safe-area-inset-top));
       left: 50%;
       transform: translateX(-50%);
       display: flex;
@@ -115,7 +119,7 @@
       gap: 8px;
       flex-wrap: wrap;
       z-index: 5;
-      padding: 6px 10px;
+      padding: clamp(5px, 1.2vw, 8px) clamp(7px, 1.8vw, 12px);
       background: rgba(0,0,0,0.5);
       border-radius: 12px;
       border: 1px solid rgba(255,215,0,0.25);
@@ -126,7 +130,7 @@
       color: var(--ink);
       padding: 4px 8px;
       border-radius: 8px;
-      font-size: 10px;
+      font-size: clamp(8px, 0.95vw, 10px);
       box-shadow: 0 3px 12px rgba(255,215,0,0.2);
       white-space: nowrap;
     }
@@ -149,7 +153,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: calc(160px + env(safe-area-inset-top)) 20px calc(140px + env(safe-area-inset-bottom)) 20px;
+      padding: calc(var(--top-ui-space) + env(safe-area-inset-top)) clamp(8px, 2vw, 20px) calc(var(--bottom-ui-space) + env(safe-area-inset-bottom)) clamp(8px, 2vw, 20px);
     }
     canvas {
       border-radius: 14px;
@@ -246,24 +250,25 @@
       pointer-events: none;
       z-index: 6;
       gap: 12px;
+      visibility: hidden;
     }
     .dpad, .action-pad { pointer-events: auto; }
     .dpad {
       display: grid;
-      grid-template-columns: repeat(3, 44px);
-      grid-template-rows: repeat(3, 44px);
-      gap: 6px;
+      grid-template-columns: repeat(3, var(--pad-size));
+      grid-template-rows: repeat(3, var(--pad-size));
+      gap: var(--pad-gap);
       align-items: center;
       justify-items: center;
     }
     .pad-btn {
-      width: 44px;
-      height: 44px;
+      width: var(--pad-size);
+      height: var(--pad-size);
       border-radius: 12px;
       border: 2px solid rgba(255,215,0,0.6);
       background: rgba(0,0,0,0.5);
       color: #fff;
-      font-size: 12px;
+      font-size: clamp(9px, 1.8vw, 12px);
       display: grid;
       place-items: center;
       user-select: none;
@@ -271,8 +276,8 @@
       touch-action: none;
     }
     .pad-btn.primary {
-      width: 56px;
-      height: 56px;
+      width: calc(var(--pad-size) * 1.22);
+      height: calc(var(--pad-size) * 1.22);
       border-radius: 16px;
       background: linear-gradient(45deg, var(--teal), #4682B4);
     }
@@ -282,14 +287,14 @@
     .pad-spacer { visibility: hidden; }
     .action-pad {
       display: grid;
-      grid-template-columns: repeat(2, 56px);
-      grid-template-rows: repeat(2, 56px);
-      gap: 8px;
+      grid-template-columns: repeat(2, calc(var(--pad-size) * 1.22));
+      grid-template-rows: repeat(2, calc(var(--pad-size) * 1.22));
+      gap: var(--pad-gap);
     }
     .action-pad .pad-btn {
-      width: 56px;
-      height: 56px;
-      font-size: 10px;
+      width: calc(var(--pad-size) * 1.22);
+      height: calc(var(--pad-size) * 1.22);
+      font-size: clamp(8px, 1.5vw, 10px);
     }
     .instructions {
       font-size: 9px;
@@ -299,21 +304,73 @@
       text-align: left;
     }
 
-    @media (max-width: 720px) {
-      header { gap: 8px; }
-      .title h1 { font-size: 14px; }
-      .hud { top: calc(102px + env(safe-area-inset-top)); font-size: 9px; }
-      .banner { top: calc(52px + env(safe-area-inset-top)); }
-      .banner img { width: min(300px, 86vw); }
-      .stage { padding: calc(150px + env(safe-area-inset-top)) 12px calc(140px + env(safe-area-inset-bottom)) 12px; }
+    .touch-controls .controls {
+      visibility: visible;
     }
 
-    @media (max-width: 600px) {
-      .controls { flex-direction: row; align-items: center; }
-      .dpad { grid-template-columns: repeat(3, 38px); grid-template-rows: repeat(3, 38px); }
-      .pad-btn { width: 38px; height: 38px; font-size: 10px; }
-      .action-pad { grid-template-columns: repeat(2, 48px); grid-template-rows: repeat(2, 48px); }
-      .action-pad .pad-btn { width: 48px; height: 48px; font-size: 9px; }
+    @media (hover: none) and (pointer: coarse) {
+      :root {
+        --top-ui-space: clamp(130px, 25vh, 195px);
+        --bottom-ui-space: clamp(128px, 24vh, 220px);
+      }
+    }
+
+    @media (max-width: 900px) {
+      header { gap: 8px; }
+      .title h1 { font-size: clamp(10px, 2.1vw, 14px); }
+      .banner img { width: min(300px, 84vw); }
+      .panel { width: calc(100vw - 24px); }
+    }
+
+    @media (max-width: 700px) {
+      :root {
+        --top-ui-space: clamp(120px, 25vh, 170px);
+      }
+      header {
+        justify-content: center;
+      }
+      .title {
+        justify-content: center;
+        width: 100%;
+      }
+      .hud {
+        width: calc(100vw - 16px);
+        justify-content: center;
+      }
+      .panel {
+        padding: 14px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .controls {
+        gap: clamp(8px, 4vw, 14px);
+      }
+      .panel h2 {
+        font-size: 13px;
+      }
+      .panel p {
+        font-size: 10px;
+      }
+      .character-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-height: 540px) and (orientation: landscape) {
+      :root {
+        --top-ui-space: 108px;
+        --bottom-ui-space: 96px;
+      }
+      .banner {
+        display: none;
+      }
+      .hud {
+        top: calc(62px + env(safe-area-inset-top));
+      }
+      .controls {
+        bottom: calc(8px + env(safe-area-inset-bottom));
+      }
     }
   </style>
   <script>
@@ -405,6 +462,8 @@
   <script>
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
+    const isTouchDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+    document.body.classList.toggle('touch-controls', isTouchDevice);
     ctx.imageSmoothingEnabled = false;
 
     const state = {

@@ -633,6 +633,7 @@
     };
 
     const INITIAL_WAVE_ENEMY_MULTIPLIER = 0.75;
+    const MOVEMENT_SPEED_MULTIPLIER = 0.25;
     const ENEMY_SPEED_MULTIPLIER = 0.82;
     const PLAYER_DRAW_SIZE = 56;
     const ENEMY_DRAW_SIZE = 48;
@@ -659,7 +660,7 @@
         vz: 0,
         hp: charData.stats.durability,
         maxHp: charData.stats.durability,
-        speed: charData.stats.speed,
+        speed: charData.stats.speed * MOVEMENT_SPEED_MULTIPLIER,
         power: charData.stats.power,
         range: charData.stats.range,
         facing: 1,
@@ -683,7 +684,7 @@
         z: 0,
         hp: base.hp * (isBoss ? 1.4 : 1),
         maxHp: base.hp * (isBoss ? 1.4 : 1),
-        speed: base.speed * ENEMY_SPEED_MULTIPLIER,
+        speed: base.speed * ENEMY_SPEED_MULTIPLIER * MOVEMENT_SPEED_MULTIPLIER,
         damage: base.damage,
         range: base.range,
         score: base.score,

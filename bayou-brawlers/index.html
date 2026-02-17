@@ -500,7 +500,8 @@
       bossActive: false,
       ally: null,
       shake: 0,
-      submitting: false
+      submitting: false,
+      continueArrowTimer: 0
     };
 
     const input = {
@@ -1170,7 +1171,7 @@
         if (state.waveIndex < level.waves.length - 1) {
           state.waveIndex += 1;
           spawnWave(level, state.waveIndex);
-          showMessage(`${level.name}`, `Wave ${state.waveIndex + 1} incoming!`, 'Fight');
+          state.continueArrowTimer = 300;
         } else {
           spawnBoss(level);
           showMessage(`${level.boss.name}`, 'Boss rush! Brace for impact.', 'Engage');
@@ -1363,9 +1364,37 @@
         }
       });
 
+      drawContinueArrow();
+
       if (state.shake > 0) {
         ctx.restore();
       }
+    }
+
+    function drawContinueArrow() {
+      if (state.continueArrowTimer <= 0) return;
+      const alpha = 0.25 + (((Math.sin(performance.now() / 350) + 1) / 2) * 0.75);
+      const arrowX = canvas.width - 28;
+      const arrowY = canvas.height / 2;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = '#ffd65c';
+      ctx.strokeStyle = '#0f1319';
+      ctx.lineWidth = 3;
+
+      ctx.beginPath();
+      ctx.moveTo(arrowX - 30, arrowY - 24);
+      ctx.lineTo(arrowX + 18, arrowY - 24);
+      ctx.lineTo(arrowX + 18, arrowY - 36);
+      ctx.lineTo(arrowX + 44, arrowY);
+      ctx.lineTo(arrowX + 18, arrowY + 36);
+      ctx.lineTo(arrowX + 18, arrowY + 24);
+      ctx.lineTo(arrowX - 30, arrowY + 24);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
     }
 
     function updateCamera() {
@@ -1387,6 +1416,7 @@
       updateEffects();
       updateAlly();
       updateStageProgress();
+      state.continueArrowTimer = Math.max(0, state.continueArrowTimer - 1);
       updateCamera();
       draw();
 

@@ -719,6 +719,52 @@
       return Math.random() * (max - min) + min;
     }
 
+    function getBackgroundDrawMetrics(level = levels[state.levelIndex]) {
+      const bg = level ? assets.backgrounds[level.background] : null;
+      if (!bg) {
+        return null;
+      }
+
+      const maxCameraX = Math.max(1, state.levelWidth - canvas.width);
+      const maxCameraY = Math.max(1, state.levelHeight - canvas.height + 60);
+      const cameraXPct = clamp(state.cameraX / maxCameraX, 0, 1);
+      const cameraYPct = clamp(state.cameraY / maxCameraY, 0, 1);
+      const targetSkyHeight = Math.max(220, Math.floor(canvas.height * 0.68));
+
+      let scale = targetSkyHeight / bg.height;
+      let drawWidth = bg.width * scale;
+      let drawHeight = bg.height * scale;
+
+      if (drawWidth < canvas.width) {
+        scale = canvas.width / bg.width;
+        drawWidth = canvas.width;
+        drawHeight = bg.height * scale;
+      }
+
+      const maxPanX = Math.max(0, drawWidth - canvas.width);
+      const maxPanY = Math.max(0, drawHeight - targetSkyHeight);
+      const drawX = -Math.min(maxPanX * cameraXPct, state.cameraX);
+      const drawY = -maxPanY * cameraYPct - state.cameraY * 0.08;
+
+      return {
+        bg,
+        drawX,
+        drawY,
+        drawWidth,
+        drawHeight
+      };
+    }
+
+    function getBrawlLaneMinY() {
+      const bgMetrics = getBackgroundDrawMetrics();
+      if (!bgMetrics) {
+        return BRAWL_LANE_MIN_Y;
+      }
+
+      const halfwayUpBackgroundWorldY = bgMetrics.drawY + (bgMetrics.drawHeight * 0.5) + state.cameraY;
+      return clamp(Math.floor(halfwayUpBackgroundWorldY), 80, BRAWL_LANE_MAX_Y - 10);
+    }
+
     function createPlayer(charData) {
       return {
         name: charData.name,
@@ -777,7 +823,7 @@
         : wave.count;
       for (let i = 0; i < spawnCount; i += 1) {
         const typeId = wave.types[i % wave.types.length];
-        const enemy = createEnemy(typeId, baseX + rand(-80, 80) + i * 40, rand(BRAWL_LANE_MIN_Y, BRAWL_LANE_MAX_Y));
+        const enemy = createEnemy(typeId, baseX + rand(-80, 80) + i * 40, rand(getBrawlLaneMinY(), BRAWL_LANE_MAX_Y));
         state.enemies.push(enemy);
       }
       state.lockX = baseX + 220;
@@ -786,7 +832,7 @@
 
     function spawnBoss(level) {
       const bossType = level.boss.type;
-      const boss = createEnemy(bossType, state.levelWidth - 220, clamp(280, BRAWL_LANE_MIN_Y, BRAWL_LANE_MAX_Y), true);
+      const boss = createEnemy(bossType, state.levelWidth - 220, clamp(280, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y), true);
       boss.hp += 120;
       boss.maxHp = boss.hp;
       boss.score += 250;
@@ -929,7 +975,7 @@
       }
 
       player.x = clamp(player.x, 40, state.levelWidth - 40);
-      player.y = clamp(player.y, BRAWL_LANE_MIN_Y, BRAWL_LANE_MAX_Y);
+      player.y = clamp(player.y, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
 
       if (state.lockX !== null && player.x > state.lockX) {
         player.x = state.lockX;
@@ -992,7 +1038,7 @@
           enemy.cooldown = Math.max(0, enemy.cooldown - 1);
         }
 
-        enemy.y = clamp(enemy.y, BRAWL_LANE_MIN_Y, BRAWL_LANE_MAX_Y);
+        enemy.y = clamp(enemy.y, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
       });
 
       state.enemies = state.enemies.filter(enemy => enemy.hp > 0);
@@ -1176,35 +1222,9 @@
     }
 
     function drawBackground() {
-      const level = levels[state.levelIndex];
-      const bg = assets.backgrounds[level.background];
-      if (bg) {
-        const maxCameraX = Math.max(1, state.levelWidth - canvas.width);
-        const maxCameraY = Math.max(1, state.levelHeight - canvas.height + 60);
-        const cameraXPct = clamp(state.cameraX / maxCameraX, 0, 1);
-        const cameraYPct = clamp(state.cameraY / maxCameraY, 0, 1);
-
-        const targetSkyHeight = Math.max(220, Math.floor(canvas.height * 0.68));
-        let scale = targetSkyHeight / bg.height;
-        let drawWidth = bg.width * scale;
-        let drawHeight = bg.height * scale;
-
-        // Support panoramic (e.g. 4096x256) and portrait background textures.
-        // If the initial fit is too narrow, switch to width-fit and pan vertically.
-        if (drawWidth < canvas.width) {
-          scale = canvas.width / bg.width;
-          drawWidth = canvas.width;
-          drawHeight = bg.height * scale;
-        }
-
-        const maxPanX = Math.max(0, drawWidth - canvas.width);
-        const maxPanY = Math.max(0, drawHeight - targetSkyHeight);
-        // Keep horizontal background movement from outrunning player/camera movement
-        // on ultra-wide background textures.
-        const drawX = -Math.min(maxPanX * cameraXPct, state.cameraX);
-        const drawY = -maxPanY * cameraYPct - state.cameraY * 0.08;
-
-        ctx.drawImage(bg, drawX, drawY, drawWidth, drawHeight);
+      const bgMetrics = getBackgroundDrawMetrics();
+      if (bgMetrics) {
+        ctx.drawImage(bgMetrics.bg, bgMetrics.drawX, bgMetrics.drawY, bgMetrics.drawWidth, bgMetrics.drawHeight);
       }
       ctx.fillStyle = '#1e2628';
       ctx.fillRect(0, 360 - state.cameraY, canvas.width, 200);

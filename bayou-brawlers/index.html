@@ -719,6 +719,46 @@
       return Math.random() * (max - min) + min;
     }
 
+    function normalizeBackgroundImage(img) {
+      if (!img || img.height <= img.width * 2) {
+        return img;
+      }
+
+      const rotatedCanvas = document.createElement('canvas');
+      rotatedCanvas.width = img.height;
+      rotatedCanvas.height = img.width;
+      const rotatedCtx = rotatedCanvas.getContext('2d');
+      rotatedCtx.imageSmoothingEnabled = false;
+
+      rotatedCtx.translate(rotatedCanvas.width / 2, rotatedCanvas.height / 2);
+      rotatedCtx.rotate(Math.PI / 2);
+      rotatedCtx.drawImage(img, -img.width / 2, -img.height / 2);
+
+      return rotatedCanvas;
+    }
+
+    function getTargetSkyHeight() {
+      return Math.max(220, Math.floor(canvas.height * 0.68));
+    }
+
+    function getBackgroundScale(bg) {
+      let scale = getTargetSkyHeight() / bg.height;
+      if ((bg.width * scale) < canvas.width) {
+        scale = canvas.width / bg.width;
+      }
+      return scale;
+    }
+
+    function getLevelWorldWidth(level, fallbackWidth) {
+      const bg = level ? assets.backgrounds[level.background] : null;
+      if (!bg) {
+        return fallbackWidth;
+      }
+
+      const bgWorldWidth = Math.floor(bg.width * getBackgroundScale(bg));
+      return Math.max(canvas.width + 640, bgWorldWidth + 420, fallbackWidth);
+    }
+
     function getBackgroundDrawMetrics(level = levels[state.levelIndex]) {
       const bg = level ? assets.backgrounds[level.background] : null;
       if (!bg) {
@@ -729,17 +769,11 @@
       const maxCameraY = Math.max(1, state.levelHeight - canvas.height + 60);
       const cameraXPct = clamp(state.cameraX / maxCameraX, 0, 1);
       const cameraYPct = clamp(state.cameraY / maxCameraY, 0, 1);
-      const targetSkyHeight = Math.max(220, Math.floor(canvas.height * 0.68));
+      const targetSkyHeight = getTargetSkyHeight();
 
-      let scale = targetSkyHeight / bg.height;
-      let drawWidth = bg.width * scale;
-      let drawHeight = bg.height * scale;
-
-      if (drawWidth < canvas.width) {
-        scale = canvas.width / bg.width;
-        drawWidth = canvas.width;
-        drawHeight = bg.height * scale;
-      }
+      const scale = getBackgroundScale(bg);
+      const drawWidth = bg.width * scale;
+      const drawHeight = bg.height * scale;
 
       const maxPanX = Math.max(0, drawWidth - canvas.width);
       const maxPanY = Math.max(0, drawHeight - targetSkyHeight);
@@ -1157,7 +1191,8 @@
 
     function setupLevel() {
       const level = levels[state.levelIndex];
-      state.levelWidth = 2200 + state.levelIndex * 120;
+      const defaultLevelWidth = 2200 + state.levelIndex * 120;
+      state.levelWidth = getLevelWorldWidth(level, defaultLevelWidth);
       state.bossActive = false;
       state.enemies = [];
       state.projectiles = [];
@@ -1557,7 +1592,7 @@
       };
 
       Object.entries(backgroundKeys).forEach(([key, src]) => {
-        promises.push(loadImage(src).then(img => { assets.backgrounds[key] = img; }));
+        promises.push(loadImage(src).then(img => { assets.backgrounds[key] = normalizeBackgroundImage(img); }));
       });
 
       const characterSprites = {

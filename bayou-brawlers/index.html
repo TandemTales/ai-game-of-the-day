@@ -717,8 +717,8 @@
     const PLAYER_DRAW_SIZE = 56;
     const ENEMY_DRAW_SIZE = 48;
     const BOSS_DRAW_SIZE = 80;
-    const BRAWL_LANE_MIN_Y = Math.floor((canvas.height / 2) + 4);
-    const BRAWL_LANE_MAX_Y = 340;
+    const BRAWL_LANE_MIN_Y = Math.floor(canvas.height * 0.5);
+    const BRAWL_LANE_MAX_Y = canvas.height - 44;
 
     function clamp(value, min, max) {
       return Math.max(min, Math.min(max, value));
@@ -747,7 +747,7 @@
     }
 
     function getTargetSkyHeight() {
-      return Math.max(220, Math.floor(canvas.height * 0.68));
+      return canvas.height;
     }
 
     function getBackgroundScale(bg) {
@@ -799,13 +799,7 @@
     }
 
     function getBrawlLaneMinY() {
-      const bgMetrics = getBackgroundDrawMetrics();
-      if (!bgMetrics) {
-        return BRAWL_LANE_MIN_Y;
-      }
-
-      const halfwayUpBackgroundWorldY = bgMetrics.drawY + (bgMetrics.drawHeight * 0.5) + state.cameraY;
-      return clamp(Math.floor(halfwayUpBackgroundWorldY), 80, BRAWL_LANE_MAX_Y - 10);
+      return BRAWL_LANE_MIN_Y;
     }
 
     function createPlayer(charData) {
@@ -1333,15 +1327,6 @@
       if (bgMetrics) {
         ctx.drawImage(bgMetrics.bg, bgMetrics.drawX, bgMetrics.drawY, bgMetrics.drawWidth, bgMetrics.drawHeight);
       }
-      ctx.fillStyle = '#1e2628';
-      ctx.fillRect(0, 360 - state.cameraY, canvas.width, 200);
-      ctx.fillStyle = '#11151a';
-      ctx.fillRect(0, 380 - state.cameraY, canvas.width, 200);
-      ctx.strokeStyle = 'rgba(255,215,0,0.2)';
-      ctx.beginPath();
-      ctx.moveTo(0, 360 - state.cameraY);
-      ctx.lineTo(canvas.width, 360 - state.cameraY);
-      ctx.stroke();
     }
 
     function drawEntity(entity, size, colorOverride) {

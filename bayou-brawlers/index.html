@@ -523,6 +523,7 @@
     const assets = {
       backgrounds: {},
       characters: {},
+      characterAnimations: {},
       enemies: {},
       boss: null,
       pickup: null,
@@ -606,10 +607,22 @@
         }
       },
       {
-        id: 'lantern-seer',
-        name: 'Lantern Seer',
-        portrait: 'assets/char-lantern-seer.svg',
-        sprite: 'assets/char-lantern-seer.svg',
+        id: 'billy-boxby',
+        name: 'Billy Boxby',
+        portrait: 'assets/BB_profile_billyBoxby.png',
+        sprite: 'assets/BB_billyBoxby_right.png',
+        animations: {
+          idleRight: { src: 'assets/BB_billyBoxby_right.png', frames: 1 },
+          idleLeft: { src: 'assets/BB_billyBoxby_left.png', frames: 1 },
+          walkRight: { src: 'assets/BB_billyBoxby_walking_right.png', frames: 4 },
+          walkLeft: { src: 'assets/BB_billyBoxby_walking_left.png', frames: 4 },
+          damagedRight: { src: 'assets/BB_billyBoxby_damaged_right.png', frames: 4 },
+          damagedLeft: { src: 'assets/BB_billyBoxby_damaged_left.png', frames: 4 },
+          attackRight: { src: 'assets/BB_billyBoxby_attack_heavy_right.png', frames: 7 },
+          attackLeft: { src: 'assets/BB_billyBoxby_attack_heavy_left.png', frames: 7 },
+          killedRight: { src: 'assets/BB_billyBoxby_killed_right.png', frames: 5 },
+          killedLeft: { src: 'assets/BB_billyBoxby_killed_left.png', frames: 5 }
+        },
         stats: { speed: 3.0, power: 1.05, range: 50, durability: 115 },
         moves: {
           fast: 'Lantern jab',
@@ -830,6 +843,11 @@
         block: false,
         shieldTimer: 0,
         dashTimer: 0,
+        hurtTimer: 0,
+        attackTimer: 0,
+        deathTimer: 0,
+        dead: false,
+        animationTick: 0,
         charData
       };
     }
@@ -923,10 +941,14 @@
         finalAmount *= 0.45;
       }
       player.hp = clamp(player.hp - finalAmount, 0, player.maxHp);
+      if (player.hp > 0) {
+        player.hurtTimer = 24;
+      }
       state.shake = 6;
       updateHpBar();
-      if (player.hp <= 0) {
-        endGame(false);
+      if (player.hp <= 0 && !player.dead) {
+        player.dead = true;
+        player.deathTimer = 40;
       }
     }
 
@@ -964,16 +986,20 @@
     function handleAttacks() {
       const player = state.player;
       if (!player) return;
+      if (player.dead || player.hp <= 0) return;
       if (input.fast && player.attackCooldown <= 0) {
         player.attackCooldown = 22;
+        player.attackTimer = 35;
         doAttack(player, 12, player.range, 18);
       }
       if (input.power && player.powerCooldown <= 0) {
         player.powerCooldown = 45;
+        player.attackTimer = 35;
         doAttack(player, 24, player.range + 16, 30, 28);
       }
       if (input.special && player.specialCooldown <= 0) {
         player.specialCooldown = 240;
+        player.attackTimer = 35;
         player.charData.special(player);
       }
     }
@@ -1010,6 +1036,19 @@
     function updatePlayer(dt) {
       const player = state.player;
       if (!player) return;
+
+      if (player.dead || player.hp <= 0) {
+        player.vx = 0;
+        player.vz = 0;
+        player.hurtTimer = 0;
+        player.attackTimer = 0;
+        player.deathTimer = Math.max(0, player.deathTimer - 1);
+        if (player.deathTimer <= 0 && !state.gameOver) {
+          endGame(false);
+        }
+        return;
+      }
+
       player.vx = 0;
       if (input.left) player.vx -= player.speed;
       if (input.right) player.vx += player.speed;
@@ -1066,6 +1105,9 @@
       player.specialCooldown = Math.max(0, player.specialCooldown - 1);
       player.jumpCooldown = Math.max(0, player.jumpCooldown - 1);
       player.shieldTimer = Math.max(0, player.shieldTimer - 1);
+      player.hurtTimer = Math.max(0, player.hurtTimer - 1);
+      player.attackTimer = Math.max(0, player.attackTimer - 1);
+      player.animationTick += 1;
 
       document.getElementById('specialReady').textContent = player.specialCooldown <= 0 ? 'Ready' : `${Math.ceil(player.specialCooldown / 60)}s`;
     }
@@ -1347,6 +1389,46 @@
     function drawEntity(entity, size, colorOverride) {
       const x = entity.x - state.cameraX;
       const y = entity.y - state.cameraY - 32 - entity.z;
+      const isPlayer = entity === state.player;
+      const hasAnimationSheets = isPlayer && entity.charData && entity.charData.animations;
+
+      if (hasAnimationSheets) {
+        const facingRight = entity.facing >= 0;
+        const moving = Math.abs(entity.vx) > 0.01 || Math.abs(entity.vz) > 0.01 || input.up || input.down;
+        let animationName = facingRight ? 'idleRight' : 'idleLeft';
+
+        if (entity.dead || entity.hp <= 0) {
+          animationName = facingRight ? 'killedRight' : 'killedLeft';
+        } else if (entity.hurtTimer > 0) {
+          animationName = facingRight ? 'damagedRight' : 'damagedLeft';
+        } else if (entity.attackTimer > 0) {
+          animationName = facingRight ? 'attackRight' : 'attackLeft';
+        } else if (moving) {
+          animationName = facingRight ? 'walkRight' : 'walkLeft';
+        }
+
+        const anim = entity.charData.animations[animationName];
+        const image = assets.characterAnimations[anim.src] || entity.sprite;
+        if (image) {
+          const frameCount = Math.max(1, anim.frames || 1);
+          const frameSize = 256;
+          const frameDuration = animationName.includes('attack') ? 5 : 7;
+          const frame = frameCount === 1 ? 0 : Math.floor((entity.animationTick || 0) / frameDuration) % frameCount;
+          ctx.drawImage(
+            image,
+            0,
+            frame * frameSize,
+            frameSize,
+            frameSize,
+            x - size / 2,
+            y,
+            size,
+            size
+          );
+          return;
+        }
+      }
+
       if (entity.sprite) {
         ctx.drawImage(entity.sprite, x - size / 2, y, size, size);
       } else {
@@ -1701,11 +1783,28 @@
         'assets/char-fume-alchemist.svg': 'assets/char-fume-alchemist.svg',
         'assets/char-grove-sentinel.svg': 'assets/char-grove-sentinel.svg',
         'assets/char-clockwire-duelist.svg': 'assets/char-clockwire-duelist.svg',
-        'assets/char-lantern-seer.svg': 'assets/char-lantern-seer.svg'
+        'assets/BB_billyBoxby_right.png': 'assets/BB_billyBoxby_right.png'
       };
 
       Object.entries(characterSprites).forEach(([key, src]) => {
         promises.push(loadImage(src).then(img => { assets.characters[key] = img; }));
+      });
+
+      const characterAnimationSprites = {
+        'assets/BB_billyBoxby_right.png': 'assets/BB_billyBoxby_right.png',
+        'assets/BB_billyBoxby_left.png': 'assets/BB_billyBoxby_left.png',
+        'assets/BB_billyBoxby_walking_right.png': 'assets/BB_billyBoxby_walking_right.png',
+        'assets/BB_billyBoxby_walking_left.png': 'assets/BB_billyBoxby_walking_left.png',
+        'assets/BB_billyBoxby_damaged_right.png': 'assets/BB_billyBoxby_damaged_right.png',
+        'assets/BB_billyBoxby_damaged_left.png': 'assets/BB_billyBoxby_damaged_left.png',
+        'assets/BB_billyBoxby_attack_heavy_right.png': 'assets/BB_billyBoxby_attack_heavy_right.png',
+        'assets/BB_billyBoxby_attack_heavy_left.png': 'assets/BB_billyBoxby_attack_heavy_left.png',
+        'assets/BB_billyBoxby_killed_right.png': 'assets/BB_billyBoxby_killed_right.png',
+        'assets/BB_billyBoxby_killed_left.png': 'assets/BB_billyBoxby_killed_left.png'
+      };
+
+      Object.entries(characterAnimationSprites).forEach(([key, src]) => {
+        promises.push(loadImage(src).then(img => { assets.characterAnimations[key] = img; }));
       });
 
       const enemySprites = {

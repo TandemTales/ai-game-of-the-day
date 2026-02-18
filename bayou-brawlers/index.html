@@ -765,7 +765,7 @@
       }
 
       const bgWorldWidth = Math.floor(bg.width * getBackgroundScale(bg));
-      return Math.max(canvas.width + 640, bgWorldWidth + 420, fallbackWidth);
+      return Math.max(canvas.width, bgWorldWidth);
     }
 
     function getBackgroundDrawMetrics(level = levels[state.levelIndex]) {
@@ -806,6 +806,16 @@
 
       const halfwayUpBackgroundWorldY = bgMetrics.drawY + (bgMetrics.drawHeight * 0.5) + state.cameraY;
       return clamp(Math.floor(halfwayUpBackgroundWorldY), 80, BRAWL_LANE_MAX_Y - 10);
+    }
+
+    function getBrawlLaneMaxY() {
+      const bgMetrics = getBackgroundDrawMetrics();
+      if (!bgMetrics) {
+        return BRAWL_LANE_MAX_Y;
+      }
+
+      const backgroundBottomWorldY = bgMetrics.drawY + bgMetrics.drawHeight + state.cameraY;
+      return clamp(Math.floor(backgroundBottomWorldY - 18), getBrawlLaneMinY() + 6, BRAWL_LANE_MAX_Y);
     }
 
     function createPlayer(charData) {
@@ -1038,7 +1048,7 @@
       }
 
       player.x = clamp(player.x, 40, state.levelWidth - 40);
-      player.y = clamp(player.y, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
+      player.y = clamp(player.y, getBrawlLaneMinY(), getBrawlLaneMaxY());
 
       if (state.lockX !== null && player.x > state.lockX) {
         player.x = state.lockX;
@@ -1118,7 +1128,7 @@
           enemy.cooldown = Math.max(0, enemy.cooldown - 1);
         }
 
-        enemy.y = clamp(enemy.y, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
+        enemy.y = clamp(enemy.y, getBrawlLaneMinY(), getBrawlLaneMaxY());
       });
 
       state.enemies = state.enemies.filter(enemy => enemy.hp > 0);
@@ -1270,7 +1280,7 @@
       state.idleFrames = 0;
       if (state.player) {
         state.player.x = 80;
-        state.player.y = clamp(state.player.y, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
+        state.player.y = clamp(state.player.y, getBrawlLaneMinY(), getBrawlLaneMaxY());
       }
       updateWaveHud();
     }
@@ -1333,15 +1343,6 @@
       if (bgMetrics) {
         ctx.drawImage(bgMetrics.bg, bgMetrics.drawX, bgMetrics.drawY, bgMetrics.drawWidth, bgMetrics.drawHeight);
       }
-      ctx.fillStyle = '#1e2628';
-      ctx.fillRect(0, 360 - state.cameraY, canvas.width, 200);
-      ctx.fillStyle = '#11151a';
-      ctx.fillRect(0, 380 - state.cameraY, canvas.width, 200);
-      ctx.strokeStyle = 'rgba(255,215,0,0.2)';
-      ctx.beginPath();
-      ctx.moveTo(0, 360 - state.cameraY);
-      ctx.lineTo(canvas.width, 360 - state.cameraY);
-      ctx.stroke();
     }
 
     function drawEntity(entity, size, colorOverride) {

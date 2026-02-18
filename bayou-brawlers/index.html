@@ -982,7 +982,7 @@
       const damage = baseDamage * player.power;
       state.enemies.forEach(enemy => {
         if (enemy.hp <= 0) return;
-        if (rectOverlap(hitbox, enemy)) {
+        if (rectOverlap(hitbox, enemy) || playerBodyOverlap(player, enemy)) {
           enemy.hp -= damage;
           enemy.stun = Math.max(enemy.stun, stun);
           enemy.x += player.facing * knockback;
@@ -993,6 +993,27 @@
           }
         }
       });
+    }
+
+    function playerBodyOverlap(player, enemy) {
+      const playerBody = {
+        x: player.x - 16,
+        y: player.y - 32,
+        width: 32,
+        height: 40
+      };
+      const enemyBody = {
+        x: enemy.x - 16,
+        y: enemy.y - 32,
+        width: 32,
+        height: 40
+      };
+      return (
+        playerBody.x < enemyBody.x + enemyBody.width &&
+        playerBody.x + playerBody.width > enemyBody.x &&
+        playerBody.y < enemyBody.y + enemyBody.height &&
+        playerBody.y + playerBody.height > enemyBody.y
+      );
     }
 
     function rectOverlap(hitbox, enemy) {

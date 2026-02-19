@@ -524,6 +524,7 @@
       backgrounds: {},
       characters: {},
       enemies: {},
+      enemyAnimations: {},
       boss: null,
       pickup: null,
       banner: null
@@ -628,7 +629,7 @@
         { types: ['goblin', 'swamp'], count: 4 },
         { types: ['swamp', 'thug'], count: 5 },
         { types: ['goblin', 'swamp'], count: 6 }
-      ], boss: { name: 'Miremaw Behemoth', type: 'brute' } },
+      ], boss: { name: 'Bramble Drone', type: 'bramble-drone' } },
       { id: 'mirewatch', name: 'Mirewatch (Town)', background: 'background-mirewatch', waves: [
         { types: ['thug'], count: 5 },
         { types: ['thug', 'ranged'], count: 6 },
@@ -706,6 +707,7 @@
       elite: { hp: 70, speed: 1.5, damage: 14, range: 22, score: 140, sprite: 'enemy-automaton' },
       brute: { hp: 120, speed: 1.1, damage: 18, range: 24, score: 200, sprite: 'enemy-thug' },
       mage: { hp: 90, speed: 1.3, damage: 16, range: 120, score: 180, sprite: 'enemy-fey', ranged: true },
+      'bramble-drone': { hp: 170, speed: 1.3, damage: 18, range: 28, score: 280, sprite: 'bramble-drone' },
       boss: { hp: 200, speed: 1.2, damage: 20, range: 26, score: 350, sprite: 'boss' }
     };
 
@@ -959,6 +961,7 @@
 
     function createEnemy(typeId, x, y, isBoss = false) {
       const base = enemyTypes[typeId];
+      const animationTracks = assets.enemyAnimations[typeId] || null;
       return {
         type: typeId,
         x,
@@ -971,12 +974,69 @@
         range: base.range,
         score: base.score,
         sprite: base.sprite === 'boss' ? assets.boss : assets.enemies[base.sprite],
+        facing: -1,
+        animation: animationTracks ? {
+          state: 'idle',
+          facing: 'left',
+          frameIndex: 0,
+          elapsedMs: 0,
+          complete: false,
+          tracks: animationTracks
+        } : null,
         cooldown: rand(40, 80),
         windup: 0,
         stun: 0,
         ranged: base.ranged || false,
         isBoss
       };
+    }
+
+    function getEnemyAnimTrack(enemy, stateName, facingName) {
+      if (!enemy.animation || !enemy.animation.tracks) return null;
+      const stateTracks = enemy.animation.tracks[stateName];
+      if (!stateTracks) return null;
+      return stateTracks[facingName];
+    }
+
+    function updateEnemyAnimation(enemy, dt) {
+      if (!enemy.animation) return;
+      const anim = enemy.animation;
+      const facingName = enemy.facing >= 0 ? 'right' : 'left';
+      const nextState = enemy.windup > 0 ? 'attack' : (enemy.isMoving ? 'walk' : 'idle');
+
+      if (anim.state !== nextState) {
+        anim.state = nextState;
+        anim.frameIndex = 0;
+        anim.elapsedMs = 0;
+        anim.complete = false;
+      }
+
+      anim.facing = facingName;
+
+      const track = getEnemyAnimTrack(enemy, anim.state, anim.facing);
+      if (!track || track.frames.length <= 1 || !track.fps) {
+        anim.frameIndex = 0;
+        anim.elapsedMs = 0;
+        anim.complete = true;
+        return;
+      }
+
+      const frameTime = 1000 / track.fps;
+      anim.elapsedMs += dt;
+      while (anim.elapsedMs >= frameTime) {
+        anim.elapsedMs -= frameTime;
+        if (track.loop) {
+          anim.frameIndex = (anim.frameIndex + 1) % track.frames.length;
+          continue;
+        }
+        if (anim.frameIndex < track.frames.length - 1) {
+          anim.frameIndex += 1;
+        } else {
+          anim.complete = true;
+          anim.elapsedMs = 0;
+          break;
+        }
+      }
     }
 
     function getWaveTriggerX(waveIndex) {
@@ -1222,24 +1282,30 @@
       document.getElementById('specialReady').textContent = player.specialCooldown <= 0 ? 'Ready' : `${Math.ceil(player.specialCooldown / 60)}s`;
     }
 
-    function updateEnemies() {
+    function updateEnemies(dt) {
       const player = state.player;
       state.enemies.forEach(enemy => {
         if (enemy.hp <= 0) return;
         if (enemy.stun > 0) {
           enemy.stun -= 1;
+          enemy.isMoving = false;
+          updateEnemyAnimation(enemy, dt);
           return;
         }
         const dx = player.x - enemy.x;
         const dy = player.y - enemy.y;
         const distance = Math.hypot(dx, dy);
+        enemy.isMoving = false;
+        enemy.facing = dx >= 0 ? 1 : -1;
 
         if (enemy.ranged && distance > enemy.range * 0.7) {
           enemy.x += Math.sign(dx) * enemy.speed * 0.6;
           enemy.y += Math.sign(dy) * enemy.speed * 0.4;
+          enemy.isMoving = true;
         } else if (distance > enemy.range) {
           enemy.x += Math.sign(dx) * enemy.speed;
           enemy.y += Math.sign(dy) * enemy.speed * 0.6;
+          enemy.isMoving = true;
         } else {
           if (enemy.windup <= 0 && enemy.cooldown <= 0) {
             enemy.windup = 18;
@@ -1271,6 +1337,7 @@
         }
 
         enemy.y = clamp(enemy.y, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
+        updateEnemyAnimation(enemy, dt);
       });
 
       state.enemies = state.enemies.filter(enemy => enemy.hp > 0);
@@ -1509,6 +1576,25 @@
           return;
         }
       }
+      if (entity.animation && entity.animation.tracks) {
+        const track = getEnemyAnimTrack(entity, entity.animation.state, entity.animation.facing);
+        if (track && track.img) {
+          const frame = track.frames[entity.animation.frameIndex] || track.frames[0];
+          const drawSize = size * (entity.renderScale || 1);
+          ctx.drawImage(
+            track.img,
+            frame.x,
+            frame.y,
+            frame.width,
+            frame.height,
+            x - drawSize / 2,
+            y,
+            drawSize,
+            drawSize
+          );
+          return;
+        }
+      }
       if (entity.sprite) {
         ctx.drawImage(entity.sprite, x - size / 2, y, size, size);
       } else {
@@ -1643,7 +1729,7 @@
 
       updatePlayer(dt);
       handleAttacks();
-      updateEnemies();
+      updateEnemies(dt);
       updateProjectiles();
       updatePickups();
       updateEffects();
@@ -1892,6 +1978,28 @@
         });
       });
       assets.characters['billy-boxby'] = { tracks: billyTracks };
+
+      const brambleDroneSpriteSheets = {
+        idle: { right: ['assets/BB_brambleDrone_right.png', 1], left: ['assets/BB_brambleDrone_left.png', 1], fps: 0, loop: false },
+        walk: { right: ['assets/BB_brambleDrone_controlSquare_right.png', 4], left: ['assets/BB_brambleDrone_controlSquare_left.png', 4], fps: 10, loop: true },
+        attack: { right: ['assets/BB_brambleDrone_attack_right.png', 7], left: ['assets/BB_brambleDrone_attack_left.png', 7], fps: 14, loop: false }
+      };
+
+      const brambleDroneTracks = { idle: {}, walk: {}, attack: {} };
+      Object.entries(brambleDroneSpriteSheets).forEach(([stateName, config]) => {
+        ['right', 'left'].forEach((facingName) => {
+          const [src, frameCount] = config[facingName];
+          promises.push(loadImage(src).then((img) => {
+            brambleDroneTracks[stateName][facingName] = {
+              img,
+              frames: buildFrameRects(img, frameCount),
+              fps: config.fps,
+              loop: config.loop
+            };
+          }));
+        });
+      });
+      assets.enemyAnimations['bramble-drone'] = brambleDroneTracks;
 
       const enemySprites = {
         'enemy-goblin': 'assets/enemy-goblin.svg',

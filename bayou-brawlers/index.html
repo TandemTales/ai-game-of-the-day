@@ -718,7 +718,7 @@
     const IDLE_ARROW_DELAY_FRAMES = 300;
     const PLAYER_DRAW_SIZE = 56;
     const PLAYER_SPRITE_FRAME_SIZE = 256;
-    const BILLY_RENDER_SCALE = 3;
+    const BILLY_RENDER_SCALE = 0.75;
     const BILLY_MOVE_THRESHOLD = 0.05;
     const PLAYER_ANIMATIONS = {
       idle: { frames: 1, fps: 0, loop: false },
@@ -822,7 +822,7 @@
       const now = performance.now();
       if (player.hurtUntil && now < player.hurtUntil) return 'hurt';
       if (player.attackAnimUntil && now < player.attackAnimUntil) return 'attack';
-      if (Math.abs(player.vx) > BILLY_MOVE_THRESHOLD || Math.abs(player.vz) > BILLY_MOVE_THRESHOLD) return 'walk';
+      if (player.isMoving) return 'walk';
       return 'idle';
     }
 
@@ -830,19 +830,26 @@
       if (!player || !player.animationController || player.charData.id !== 'billy-boxby') return;
       const controller = player.animationController;
       const stateKey = getBillyAnimationState(player);
-      const facing = player.facing < 0 ? 'left' : 'right';
-      const nextTrack = `${stateKey}-${facing}`;
-      const frameCount = controller.tracks[nextTrack].frames.length;
+      const facingKey = player.facing < 0 ? 'left' : 'right';
+      const nextTrack = `${stateKey}-${facingKey}`;
+      const track = controller.tracks[nextTrack];
+      if (!track) return;
 
       if (controller.currentTrack !== nextTrack) {
-        const prevProgress = controller.currentFrameIndex / Math.max(1, controller.currentFrameCount - 1);
+        const previousTrack = controller.tracks[controller.currentTrack];
+        const previousFrameCount = previousTrack ? previousTrack.frames.length : controller.currentFrameCount;
+        const normalizedProgress = previousFrameCount > 1
+          ? controller.currentFrameIndex / (previousFrameCount - 1)
+          : 0;
+
         controller.currentTrack = nextTrack;
-        controller.currentFrameCount = frameCount;
-        controller.accumulator = 0;
+        controller.currentFrameCount = track.frames.length;
+
         if (controller.currentState !== stateKey) {
           controller.currentFrameIndex = 0;
+          controller.accumulator = 0;
         } else {
-          controller.currentFrameIndex = Math.min(frameCount - 1, Math.round(prevProgress * Math.max(0, frameCount - 1)));
+          controller.currentFrameIndex = Math.round(normalizedProgress * Math.max(0, track.frames.length - 1));
         }
       }
 
@@ -853,24 +860,24 @@
       }
 
       const animDef = PLAYER_ANIMATIONS[stateKey];
-      if (animDef.frames <= 1 || animDef.fps <= 0) {
+      if (!animDef || animDef.fps <= 0 || track.frames.length <= 1) {
         controller.currentFrameIndex = 0;
-        controller.currentFrameCount = frameCount;
+        controller.currentFrameCount = track.frames.length;
         return;
       }
 
-      const frameDuration = 1000 / animDef.fps;
+      const frameDurationMs = 1000 / animDef.fps;
       controller.accumulator += dt;
-      while (controller.accumulator >= frameDuration) {
-        controller.accumulator -= frameDuration;
+      while (controller.accumulator >= frameDurationMs) {
+        controller.accumulator -= frameDurationMs;
         if (animDef.loop) {
-          controller.currentFrameIndex = (controller.currentFrameIndex + 1) % frameCount;
-        } else if (controller.currentFrameIndex < frameCount - 1) {
+          controller.currentFrameIndex = (controller.currentFrameIndex + 1) % track.frames.length;
+        } else if (controller.currentFrameIndex < track.frames.length - 1) {
           controller.currentFrameIndex += 1;
         }
       }
 
-      controller.currentFrameCount = frameCount;
+      controller.currentFrameCount = track.frames.length;
     }
 
     function createPlayer(charData) {
@@ -898,6 +905,7 @@
         dashTimer: 0,
         attackAnimUntil: 0,
         hurtUntil: 0,
+        isMoving: false,
         renderScale: isBillyBoxby ? BILLY_RENDER_SCALE : 1,
         animationController: isBillyBoxby ? {
           currentState: 'idle',
@@ -1118,14 +1126,16 @@
       if (player.hp <= 0) {
         player.vx = 0;
         player.vz = 0;
+        player.isMoving = false;
         return;
       }
 
       player.vx = 0;
       if (input.left) player.vx -= player.speed;
       if (input.right) player.vx += player.speed;
-      if (input.up) player.y -= player.speed * 0.6;
-      if (input.down) player.y += player.speed * 0.6;
+      const verticalInput = (input.up ? -1 : 0) + (input.down ? 1 : 0);
+      if (verticalInput !== 0) player.y += verticalInput * player.speed * 0.6;
+      player.isMoving = Math.abs(player.vx) > BILLY_MOVE_THRESHOLD || verticalInput !== 0 || player.dashTimer > 0;
       if (Math.abs(player.vx) > BILLY_MOVE_THRESHOLD) player.facing = player.vx > 0 ? 1 : -1;
       player.block = input.block;
 

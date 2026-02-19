@@ -1965,6 +1965,23 @@
       });
     }
 
+    function loadImageWithFallback(sources) {
+      const queue = Array.isArray(sources) ? sources : [sources];
+      return new Promise((resolve) => {
+        const tryNext = (index) => {
+          if (index >= queue.length) {
+            resolve(null);
+            return;
+          }
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => tryNext(index + 1);
+          img.src = queue[index];
+        };
+        tryNext(0);
+      });
+    }
+
     async function loadAssets() {
       const loading = document.getElementById('loadingStatus');
       const promises = [];
@@ -2028,7 +2045,12 @@
 
       const brambleDroneSpriteSheets = {
         idle: { right: ['assets/BB_brambleDrone_right.png', 1], left: ['assets/BB_brambleDrone_left.png', 1], fps: 0, loop: false },
-        walk: { right: ['assets/BB_brambleDrone_Walking_right.png', 4], left: ['assets/BB_brambleDrone_Walking_left.png', 4], fps: 10, loop: true },
+        walk: {
+          right: [['assets/BB_brambleDrone_Walking_right.png', 'assets/BB_brambleDrone_controlSquare_right.png'], 4],
+          left: [['assets/BB_brambleDrone_Walking_left.png', 'assets/BB_brambleDrone_controlSquare_left.png'], 4],
+          fps: 10,
+          loop: true
+        },
         attack: { right: ['assets/BB_brambleDrone_attack_right.png', 7], left: ['assets/BB_brambleDrone_attack_left.png', 7], fps: 14, loop: false }
       };
 
@@ -2036,7 +2058,8 @@
       Object.entries(brambleDroneSpriteSheets).forEach(([stateName, config]) => {
         ['right', 'left'].forEach((facingName) => {
           const [src, frameCount] = config[facingName];
-          promises.push(loadImage(src).then((img) => {
+          promises.push(loadImageWithFallback(src).then((img) => {
+            if (!img) return;
             brambleDroneTracks[stateName][facingName] = {
               img,
               frames: buildFrameRects(img, frameCount),

@@ -723,6 +723,8 @@
     const BOSS_DRAW_SIZE = 80;
     const PLAYER_HITBOX_WIDTH = 32 * PLAYER_SCALE_MULTIPLIER;
     const PLAYER_HITBOX_HEIGHT = 40 * PLAYER_SCALE_MULTIPLIER;
+    const BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER = 5;
+    const BRAMBLE_DRONE_BOSS_HITBOX_SCALE_MULTIPLIER = 5;
     const BRAWL_LANE_MIN_Y = Math.floor(canvas.height * 0.5);
     const BRAWL_LANE_MAX_Y = canvas.height - 44;
     const MOVE_EPSILON = 0.05;
@@ -962,6 +964,7 @@
     function createEnemy(typeId, x, y, isBoss = false) {
       const base = enemyTypes[typeId];
       const animationTracks = assets.enemyAnimations[typeId] || null;
+      const isBrambleDroneBoss = isBoss && typeId === 'bramble-drone';
       return {
         type: typeId,
         x,
@@ -987,7 +990,38 @@
         windup: 0,
         stun: 0,
         ranged: base.ranged || false,
-        isBoss
+        isBoss,
+        renderScale: isBrambleDroneBoss ? BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER : 1,
+        hitboxScale: isBrambleDroneBoss ? BRAMBLE_DRONE_BOSS_HITBOX_SCALE_MULTIPLIER : 1
+      };
+    }
+
+    function getEnemyHitbox(enemy) {
+      const scale = enemy.hitboxScale || 1;
+      const width = 32 * scale;
+      const height = 40 * scale;
+      return {
+        x: enemy.x - (width / 2),
+        y: enemy.y - (32 * scale),
+        width,
+        height
+      };
+    }
+
+    function getEnemyVerticalBounds(enemy) {
+      if (!(enemy.isBoss && enemy.type === 'bramble-drone')) {
+        return {
+          minY: getBrawlLaneMinY(),
+          maxY: BRAWL_LANE_MAX_Y
+        };
+      }
+
+      const drawSize = BOSS_DRAW_SIZE * (enemy.renderScale || 1);
+      const minY = 32;
+      const maxY = canvas.height - drawSize + 32;
+      return {
+        minY,
+        maxY: Math.max(minY, maxY)
       };
     }
 
@@ -1076,6 +1110,8 @@
     function spawnBoss(level) {
       const bossType = level.boss.type;
       const boss = createEnemy(bossType, state.levelWidth - 220, clamp(280, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y), true);
+      const verticalBounds = getEnemyVerticalBounds(boss);
+      boss.y = clamp(boss.y, verticalBounds.minY, verticalBounds.maxY);
       boss.hp += 120;
       boss.maxHp = boss.hp;
       boss.score += 250;
@@ -1195,12 +1231,7 @@
         width: PLAYER_HITBOX_WIDTH,
         height: PLAYER_HITBOX_HEIGHT
       };
-      const enemyBody = {
-        x: enemy.x - 16,
-        y: enemy.y - 32,
-        width: 32,
-        height: 40
-      };
+      const enemyBody = getEnemyHitbox(enemy);
       return (
         playerBody.x < enemyBody.x + enemyBody.width &&
         playerBody.x + playerBody.width > enemyBody.x &&
@@ -1210,9 +1241,11 @@
     }
 
     function rectOverlap(hitbox, enemy) {
-      const ex = enemy.x - 16;
-      const ey = enemy.y - 32;
-      return hitbox.x < ex + 32 && hitbox.x + hitbox.width > ex && hitbox.y < ey + 40 && hitbox.y + hitbox.height > ey;
+      const enemyBody = getEnemyHitbox(enemy);
+      return hitbox.x < enemyBody.x + enemyBody.width
+        && hitbox.x + hitbox.width > enemyBody.x
+        && hitbox.y < enemyBody.y + enemyBody.height
+        && hitbox.y + hitbox.height > enemyBody.y;
     }
 
     function updatePlayer(dt) {
@@ -1336,7 +1369,8 @@
           enemy.cooldown = Math.max(0, enemy.cooldown - 1);
         }
 
-        enemy.y = clamp(enemy.y, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
+        const verticalBounds = getEnemyVerticalBounds(enemy);
+        enemy.y = clamp(enemy.y, verticalBounds.minY, verticalBounds.maxY);
         updateEnemyAnimation(enemy, dt);
       });
 
@@ -1352,7 +1386,13 @@
         if (projectile.friendly) {
           state.enemies.forEach(enemy => {
             if (enemy.hp <= 0) return;
-            if (Math.abs(projectile.x - enemy.x) < 20 && Math.abs(projectile.y - enemy.y) < 24) {
+            const enemyBody = getEnemyHitbox(enemy);
+            if (
+              projectile.x > enemyBody.x &&
+              projectile.x < enemyBody.x + enemyBody.width &&
+              projectile.y > enemyBody.y &&
+              projectile.y < enemyBody.y + enemyBody.height
+            ) {
               enemy.hp -= projectile.damage;
               enemy.stun = Math.max(enemy.stun, 20);
               projectile.life = 0;

@@ -505,7 +505,8 @@
       submitting: false,
       continueArrowTimer: 0,
       lastForwardX: 80,
-      idleFrames: 0
+      idleFrames: 0,
+      pendingGameOver: false
     };
 
     const input = {
@@ -523,6 +524,7 @@
     const assets = {
       backgrounds: {},
       characters: {},
+      billy: {},
       enemies: {},
       boss: null,
       pickup: null,
@@ -606,15 +608,15 @@
         }
       },
       {
-        id: 'lantern-seer',
-        name: 'Lantern Seer',
-        portrait: 'assets/char-lantern-seer.svg',
-        sprite: 'assets/char-lantern-seer.svg',
+        id: 'billy-boxby',
+        name: 'Billy Boxby',
+        portrait: 'assets/BB_profile_billyBoxby.png',
+        sprite: 'billy-boxby',
         stats: { speed: 3.0, power: 1.05, range: 50, durability: 115 },
         moves: {
-          fast: 'Lantern jab',
-          power: 'Spectral swing',
-          special: 'Summon wisp ally'
+          fast: 'Box jab',
+          power: 'Heavy crate swing',
+          special: 'Summon crate wisp ally'
         },
         special: (player) => {
           state.ally = { x: player.x, y: player.y - 20, timer: 360 };
@@ -715,6 +717,18 @@
     const WAVE_TRIGGER_PCTS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
     const IDLE_ARROW_DELAY_FRAMES = 300;
     const PLAYER_DRAW_SIZE = 56;
+    const PLAYER_SPRITE_FRAME_SIZE = 256;
+    const BILLY_RENDER_SCALE = 3;
+    const BILLY_MOVE_THRESHOLD = 0.05;
+    const PLAYER_ANIMATIONS = {
+      idle: { frames: 1, fps: 0, loop: false },
+      walk: { frames: 4, fps: 10, loop: true },
+      attack: { frames: 7, fps: 14, loop: false },
+      hurt: { frames: 4, fps: 12, loop: false },
+      death: { frames: 5, fps: 8, loop: false }
+    };
+    const PLAYER_ATTACK_ANIM_MS = (PLAYER_ANIMATIONS.attack.frames / PLAYER_ANIMATIONS.attack.fps) * 1000;
+    const PLAYER_HURT_ANIM_MS = (PLAYER_ANIMATIONS.hurt.frames / PLAYER_ANIMATIONS.hurt.fps) * 1000;
     const ENEMY_DRAW_SIZE = 48;
     const BOSS_DRAW_SIZE = 80;
     const BRAWL_LANE_MIN_Y = Math.floor(canvas.height * 0.5);
@@ -802,10 +816,68 @@
       return BRAWL_LANE_MIN_Y;
     }
 
+    function getBillyAnimationState(player) {
+      if (!player) return 'idle';
+      if (player.hp <= 0) return 'death';
+      const now = performance.now();
+      if (player.hurtUntil && now < player.hurtUntil) return 'hurt';
+      if (player.attackAnimUntil && now < player.attackAnimUntil) return 'attack';
+      if (Math.abs(player.vx) > BILLY_MOVE_THRESHOLD || Math.abs(player.vz) > BILLY_MOVE_THRESHOLD) return 'walk';
+      return 'idle';
+    }
+
+    function updateBillyAnimation(player, dt) {
+      if (!player || !player.animationController || player.charData.id !== 'billy-boxby') return;
+      const controller = player.animationController;
+      const stateKey = getBillyAnimationState(player);
+      const facing = player.facing < 0 ? 'left' : 'right';
+      const nextTrack = `${stateKey}-${facing}`;
+      const frameCount = controller.tracks[nextTrack].frames.length;
+
+      if (controller.currentTrack !== nextTrack) {
+        const prevProgress = controller.currentFrameIndex / Math.max(1, controller.currentFrameCount - 1);
+        controller.currentTrack = nextTrack;
+        controller.currentFrameCount = frameCount;
+        controller.accumulator = 0;
+        if (controller.currentState !== stateKey) {
+          controller.currentFrameIndex = 0;
+        } else {
+          controller.currentFrameIndex = Math.min(frameCount - 1, Math.round(prevProgress * Math.max(0, frameCount - 1)));
+        }
+      }
+
+      if (controller.currentState !== stateKey) {
+        controller.currentState = stateKey;
+        controller.currentFrameIndex = 0;
+        controller.accumulator = 0;
+      }
+
+      const animDef = PLAYER_ANIMATIONS[stateKey];
+      if (animDef.frames <= 1 || animDef.fps <= 0) {
+        controller.currentFrameIndex = 0;
+        controller.currentFrameCount = frameCount;
+        return;
+      }
+
+      const frameDuration = 1000 / animDef.fps;
+      controller.accumulator += dt;
+      while (controller.accumulator >= frameDuration) {
+        controller.accumulator -= frameDuration;
+        if (animDef.loop) {
+          controller.currentFrameIndex = (controller.currentFrameIndex + 1) % frameCount;
+        } else if (controller.currentFrameIndex < frameCount - 1) {
+          controller.currentFrameIndex += 1;
+        }
+      }
+
+      controller.currentFrameCount = frameCount;
+    }
+
     function createPlayer(charData) {
+      const isBillyBoxby = charData.id === 'billy-boxby';
       return {
         name: charData.name,
-        sprite: assets.characters[charData.sprite],
+        sprite: isBillyBoxby ? null : assets.characters[charData.sprite],
         x: 80,
         y: 280,
         z: 0,
@@ -824,6 +896,17 @@
         block: false,
         shieldTimer: 0,
         dashTimer: 0,
+        attackAnimUntil: 0,
+        hurtUntil: 0,
+        renderScale: isBillyBoxby ? BILLY_RENDER_SCALE : 1,
+        animationController: isBillyBoxby ? {
+          currentState: 'idle',
+          currentTrack: 'idle-right',
+          currentFrameIndex: 0,
+          currentFrameCount: PLAYER_ANIMATIONS.idle.frames,
+          accumulator: 0,
+          tracks: assets.billy
+        } : null,
         charData
       };
     }
@@ -917,10 +1000,14 @@
         finalAmount *= 0.45;
       }
       player.hp = clamp(player.hp - finalAmount, 0, player.maxHp);
+      player.hurtUntil = performance.now() + PLAYER_HURT_ANIM_MS;
       state.shake = 6;
       updateHpBar();
       if (player.hp <= 0) {
-        endGame(false);
+        player.attackAnimUntil = 0;
+        player.hurtUntil = 0;
+        player.deathStartedAt = performance.now();
+        state.pendingGameOver = true;
       }
     }
 
@@ -957,17 +1044,20 @@
 
     function handleAttacks() {
       const player = state.player;
-      if (!player) return;
+      if (!player || player.hp <= 0) return;
       if (input.fast && player.attackCooldown <= 0) {
         player.attackCooldown = 22;
+        player.attackAnimUntil = performance.now() + PLAYER_ATTACK_ANIM_MS;
         doAttack(player, 12, player.range, 18);
       }
       if (input.power && player.powerCooldown <= 0) {
         player.powerCooldown = 45;
+        player.attackAnimUntil = performance.now() + PLAYER_ATTACK_ANIM_MS;
         doAttack(player, 24, player.range + 16, 30, 28);
       }
       if (input.special && player.specialCooldown <= 0) {
         player.specialCooldown = 240;
+        player.attackAnimUntil = performance.now() + PLAYER_ATTACK_ANIM_MS;
         player.charData.special(player);
       }
     }
@@ -1025,12 +1115,18 @@
     function updatePlayer(dt) {
       const player = state.player;
       if (!player) return;
+      if (player.hp <= 0) {
+        player.vx = 0;
+        player.vz = 0;
+        return;
+      }
+
       player.vx = 0;
       if (input.left) player.vx -= player.speed;
       if (input.right) player.vx += player.speed;
       if (input.up) player.y -= player.speed * 0.6;
       if (input.down) player.y += player.speed * 0.6;
-      if (player.vx !== 0) player.facing = player.vx > 0 ? 1 : -1;
+      if (Math.abs(player.vx) > BILLY_MOVE_THRESHOLD) player.facing = player.vx > 0 ? 1 : -1;
       player.block = input.block;
 
       if (input.jump && player.jumpCooldown <= 0 && player.z <= 0) {
@@ -1353,6 +1449,28 @@
     function drawEntity(entity, size, colorOverride) {
       const x = entity.x - state.cameraX;
       const y = entity.y - state.cameraY - 32 - entity.z;
+
+      if (entity.charData?.id === 'billy-boxby' && entity.animationController) {
+        const controller = entity.animationController;
+        const track = controller.tracks[controller.currentTrack];
+        if (track && track.image && track.frames.length > 0) {
+          const frame = track.frames[Math.min(controller.currentFrameIndex, track.frames.length - 1)];
+          const drawSize = PLAYER_SPRITE_FRAME_SIZE * entity.renderScale;
+          ctx.drawImage(
+            track.image,
+            frame.x,
+            frame.y,
+            frame.width,
+            frame.height,
+            x - drawSize / 2,
+            y - (drawSize - size),
+            drawSize,
+            drawSize
+          );
+          return;
+        }
+      }
+
       if (entity.sprite) {
         ctx.drawImage(entity.sprite, x - size / 2, y, size, size);
       } else {
@@ -1486,6 +1604,7 @@
       state.lastTime = timestamp;
 
       updatePlayer(dt);
+      updateBillyAnimation(state.player, dt);
       handleAttacks();
       updateEnemies();
       updateProjectiles();
@@ -1496,10 +1615,20 @@
       updateCamera();
       draw();
 
+      if (state.pendingGameOver && state.player) {
+        const deathDuration = (PLAYER_ANIMATIONS.death.frames / PLAYER_ANIMATIONS.death.fps) * 1000;
+        if (performance.now() - (state.player.deathStartedAt || 0) >= deathDuration) {
+          state.pendingGameOver = false;
+          endGame(false);
+          return;
+        }
+      }
+
       requestAnimationFrame(gameLoop);
     }
 
     function startGame() {
+      state.pendingGameOver = false;
       state.running = true;
       state.gameOver = false;
       state.victory = false;
@@ -1706,12 +1835,33 @@
         'assets/char-bayou-bruiser.svg': 'assets/char-bayou-bruiser.svg',
         'assets/char-fume-alchemist.svg': 'assets/char-fume-alchemist.svg',
         'assets/char-grove-sentinel.svg': 'assets/char-grove-sentinel.svg',
-        'assets/char-clockwire-duelist.svg': 'assets/char-clockwire-duelist.svg',
-        'assets/char-lantern-seer.svg': 'assets/char-lantern-seer.svg'
+        'assets/char-clockwire-duelist.svg': 'assets/char-clockwire-duelist.svg'
       };
 
       Object.entries(characterSprites).forEach(([key, src]) => {
         promises.push(loadImage(src).then(img => { assets.characters[key] = img; }));
+      });
+
+      const billySprites = {
+        'idle-right': { src: 'assets/BB_billyBoxby_right.png', frames: 1 },
+        'idle-left': { src: 'assets/BB_billyBoxby_left.png', frames: 1 },
+        'walk-right': { src: 'assets/BB_billyBoxby_walking_right.png', frames: 4 },
+        'walk-left': { src: 'assets/BB_billyBoxby_walking_left.png', frames: 4 },
+        'hurt-right': { src: 'assets/BB_billyBoxby_damaged_right.png', frames: 4 },
+        'hurt-left': { src: 'assets/BB_billyBoxby_damaged_left.png', frames: 4 },
+        'attack-right': { src: 'assets/BB_billyBoxby_attack_heavy_right.png', frames: 7 },
+        'attack-left': { src: 'assets/BB_billyBoxby_attack_heavy_left.png', frames: 7 },
+        'death-right': { src: 'assets/BB_billyBoxby_killed_right.png', frames: 5 },
+        'death-left': { src: 'assets/BB_billyBoxby_killed_left.png', frames: 5 }
+      };
+
+      Object.entries(billySprites).forEach(([key, config]) => {
+        promises.push(loadImage(config.src).then(img => {
+          assets.billy[key] = {
+            image: img,
+            frames: Array.from({ length: config.frames }, (_, i) => ({ x: 0, y: i * PLAYER_SPRITE_FRAME_SIZE, width: PLAYER_SPRITE_FRAME_SIZE, height: PLAYER_SPRITE_FRAME_SIZE }))
+          };
+        }));
       });
 
       const enemySprites = {

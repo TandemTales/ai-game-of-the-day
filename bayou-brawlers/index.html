@@ -725,6 +725,8 @@
     const PLAYER_HITBOX_HEIGHT = 40 * PLAYER_SCALE_MULTIPLIER;
     const BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER = 5;
     const BRAMBLE_DRONE_BOSS_HITBOX_SCALE_MULTIPLIER = 5;
+    const BRAMBLE_DRONE_BOSS_ANIM_FPS_MULTIPLIER = 0.5;
+    const ENEMY_FACING_DEADZONE_X = 6;
     const BRAWL_LANE_MIN_Y = Math.floor(canvas.height * 0.5);
     const BRAWL_LANE_MAX_Y = canvas.height - 44;
     const MOVE_EPSILON = 0.05;
@@ -1055,7 +1057,10 @@
         return;
       }
 
-      const frameTime = 1000 / track.fps;
+      const adjustedFps = (enemy.isBoss && enemy.type === 'bramble-drone')
+        ? track.fps * BRAMBLE_DRONE_BOSS_ANIM_FPS_MULTIPLIER
+        : track.fps;
+      const frameTime = 1000 / adjustedFps;
       anim.elapsedMs += dt;
       while (anim.elapsedMs >= frameTime) {
         anim.elapsedMs -= frameTime;
@@ -1329,7 +1334,9 @@
         const dy = player.y - enemy.y;
         const distance = Math.hypot(dx, dy);
         enemy.isMoving = false;
-        enemy.facing = dx >= 0 ? 1 : -1;
+        if (Math.abs(dx) > ENEMY_FACING_DEADZONE_X) {
+          enemy.facing = dx >= 0 ? 1 : -1;
+        }
 
         if (enemy.ranged && distance > enemy.range * 0.7) {
           enemy.x += Math.sign(dx) * enemy.speed * 0.6;

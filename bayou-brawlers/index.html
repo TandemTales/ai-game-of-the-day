@@ -721,6 +721,7 @@
     const PLAYER_DRAW_SIZE = 56 * PLAYER_SCALE_MULTIPLIER;
     const ENEMY_DRAW_SIZE = 48;
     const BOSS_DRAW_SIZE = 80;
+    const BRAMBLE_DRONE_BOSS_SCALE = 6;
     const PLAYER_HITBOX_WIDTH = 32 * PLAYER_SCALE_MULTIPLIER;
     const PLAYER_HITBOX_HEIGHT = 40 * PLAYER_SCALE_MULTIPLIER;
     const BRAWL_LANE_MIN_Y = Math.floor(canvas.height * 0.5);
@@ -962,6 +963,10 @@
     function createEnemy(typeId, x, y, isBoss = false) {
       const base = enemyTypes[typeId];
       const animationTracks = assets.enemyAnimations[typeId] || null;
+      const isStageOneBrambleBoss = isBoss && typeId === 'bramble-drone';
+      const drawSize = isStageOneBrambleBoss ? (BOSS_DRAW_SIZE * BRAMBLE_DRONE_BOSS_SCALE) : (isBoss ? BOSS_DRAW_SIZE : ENEMY_DRAW_SIZE);
+      const hitboxWidth = isStageOneBrambleBoss ? (32 * BRAMBLE_DRONE_BOSS_SCALE) : 32;
+      const hitboxHeight = isStageOneBrambleBoss ? (40 * BRAMBLE_DRONE_BOSS_SCALE) : 40;
       return {
         type: typeId,
         x,
@@ -987,7 +992,10 @@
         windup: 0,
         stun: 0,
         ranged: base.ranged || false,
-        isBoss
+        isBoss,
+        drawSize,
+        hitboxWidth,
+        hitboxHeight
       };
     }
 
@@ -1196,10 +1204,10 @@
         height: PLAYER_HITBOX_HEIGHT
       };
       const enemyBody = {
-        x: enemy.x - 16,
-        y: enemy.y - 32,
-        width: 32,
-        height: 40
+        x: enemy.x - (enemy.hitboxWidth / 2),
+        y: enemy.y - (enemy.hitboxHeight * 0.8),
+        width: enemy.hitboxWidth,
+        height: enemy.hitboxHeight
       };
       return (
         playerBody.x < enemyBody.x + enemyBody.width &&
@@ -1210,9 +1218,9 @@
     }
 
     function rectOverlap(hitbox, enemy) {
-      const ex = enemy.x - 16;
-      const ey = enemy.y - 32;
-      return hitbox.x < ex + 32 && hitbox.x + hitbox.width > ex && hitbox.y < ey + 40 && hitbox.y + hitbox.height > ey;
+      const ex = enemy.x - (enemy.hitboxWidth / 2);
+      const ey = enemy.y - (enemy.hitboxHeight * 0.8);
+      return hitbox.x < ex + enemy.hitboxWidth && hitbox.x + hitbox.width > ex && hitbox.y < ey + enemy.hitboxHeight && hitbox.y + hitbox.height > ey;
     }
 
     function updatePlayer(dt) {
@@ -1623,7 +1631,7 @@
         .filter(enemy => enemy.hp > 0)
         .map(enemy => ({
           entity: enemy,
-          size: enemy.isBoss ? BOSS_DRAW_SIZE : ENEMY_DRAW_SIZE,
+          size: enemy.drawSize,
           sortY: enemy.y
         }));
 

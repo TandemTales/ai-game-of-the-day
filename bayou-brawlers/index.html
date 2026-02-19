@@ -607,16 +607,16 @@
         }
       },
       {
-        id: 'billy-boxby',
-        name: 'Billy Boxby',
-        portrait: 'assets/BB_profile_billyBoxby.png',
-        sprite: 'billy-boxby',
+        id: 'briar-drone',
+        name: 'Briar Drone',
+        portrait: 'assets/BB_profile_briarDrone.png',
+        sprite: 'briar-drone',
         renderScale: 0.75,
         stats: { speed: 3.0, power: 1.05, range: 50, durability: 115 },
         moves: {
-          fast: 'Boxing jab',
-          power: 'Heavy crate smash',
-          special: 'Summon helper ally'
+          fast: 'Rotary jab',
+          power: 'Thorn impact burst',
+          special: 'Deploy helper ally'
         },
         special: (player) => {
           state.ally = { x: player.x, y: player.y - 20, timer: 360 };
@@ -723,9 +723,9 @@
     const BOSS_DRAW_SIZE = 80;
     const PLAYER_HITBOX_WIDTH = 32 * PLAYER_SCALE_MULTIPLIER;
     const PLAYER_HITBOX_HEIGHT = 40 * PLAYER_SCALE_MULTIPLIER;
-    const BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER = 5;
-    const BRAMBLE_DRONE_BOSS_HITBOX_SCALE_MULTIPLIER = 5;
-    const BRAMBLE_DRONE_BOSS_ANIM_FPS_MULTIPLIER = 0.5;
+    const BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER = 0.75;
+    const BRAMBLE_DRONE_BOSS_HITBOX_SCALE_MULTIPLIER = 1;
+    const BRAMBLE_DRONE_BOSS_ANIM_FPS_MULTIPLIER = 1;
     const ENEMY_FACING_DEADZONE_X = 6;
     const BRAWL_LANE_MIN_Y = Math.floor(canvas.height * 0.5);
     const BRAWL_LANE_MAX_Y = canvas.height - 44;
@@ -875,6 +875,7 @@
         shieldTimer: 0,
         dashTimer: 0,
         renderScale: charData.renderScale || 1,
+        attackFacing: 1,
         animation: {
           state: 'idle',
           facing: 'right',
@@ -1190,16 +1191,25 @@
       const player = state.player;
       if (!player) return;
       if (input.fast && player.attackCooldown <= 0) {
+        const attackFacing = input.left ? -1 : (input.right ? 1 : player.attackFacing);
+        player.attackFacing = attackFacing;
+        player.facing = attackFacing;
         player.attackCooldown = 22;
         player.animationSignals.attack = true;
         doAttack(player, 12, player.range, 18);
       }
       if (input.power && player.powerCooldown <= 0) {
+        const attackFacing = input.left ? -1 : (input.right ? 1 : player.attackFacing);
+        player.attackFacing = attackFacing;
+        player.facing = attackFacing;
         player.powerCooldown = 45;
         player.animationSignals.attack = true;
         doAttack(player, 24, player.range + 16, 30, 28);
       }
       if (input.special && player.specialCooldown <= 0) {
+        const attackFacing = input.left ? -1 : (input.right ? 1 : player.attackFacing);
+        player.attackFacing = attackFacing;
+        player.facing = attackFacing;
         player.specialCooldown = 240;
         player.animationSignals.attack = true;
         player.charData.special(player);
@@ -1256,6 +1266,8 @@
     function updatePlayer(dt) {
       const player = state.player;
       if (!player) return;
+      const prevX = player.x;
+      const prevY = player.y;
       player.vx = 0;
       let moveY = 0;
       if (input.left) player.vx -= player.speed;
@@ -1263,8 +1275,10 @@
       if (input.up) moveY -= player.speed * 0.6;
       if (input.down) moveY += player.speed * 0.6;
       player.y += moveY;
-      player.isMoving = Math.hypot(player.vx, moveY) > MOVE_EPSILON;
-      if (player.vx !== 0) player.facing = player.vx > 0 ? 1 : -1;
+      if (player.vx !== 0) {
+        player.facing = player.vx > 0 ? 1 : -1;
+        player.attackFacing = player.facing;
+      }
       player.block = input.block;
 
       if (input.jump && player.jumpCooldown <= 0 && player.z <= 0) {
@@ -1288,6 +1302,7 @@
 
       player.x = clamp(player.x, 40, state.levelWidth - 40);
       player.y = clamp(player.y, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
+      player.isMoving = Math.hypot(player.x - prevX, player.y - prevY) > MOVE_EPSILON;
 
       if (state.lockX !== null && player.x > state.lockX) {
         player.x = state.lockX;
@@ -2002,20 +2017,20 @@
         promises.push(loadImage(src).then(img => { assets.characters[key] = img; }));
       });
 
-      const billySpriteSheets = {
-        idle: { right: ['assets/BB_billyBoxby_right.png', 1], left: ['assets/BB_billyBoxby_left.png', 1], fps: 0, loop: false },
-        walk: { right: ['assets/BB_billyBoxby_walking_right.png', 4], left: ['assets/BB_billyBoxby_walking_left.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
-        hurt: { right: ['assets/BB_billyBoxby_damaged_right.png', 4], left: ['assets/BB_billyBoxby_damaged_left.png', 4], fps: PLAYER_ANIM_FPS.hurt, loop: false },
-        attack: { right: ['assets/BB_billyBoxby_attack_heavy_right.png', 7], left: ['assets/BB_billyBoxby_attack_heavy_left.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
-        death: { right: ['assets/BB_billyBoxby_killed_right.png', 5], left: ['assets/BB_billyBoxby_killed_left.png', 5], fps: PLAYER_ANIM_FPS.death, loop: false }
+      const briarDroneSpriteSheets = {
+        idle: { right: ['assets/BB_briarDrone_right.png', 1], left: ['assets/BB_briarDrone_left.png', 1], fps: 0, loop: false },
+        walk: { right: ['assets/BB_briarDrone_walking_right.png', 8], left: ['assets/BB_briarDrone_walking_left.png', 8], fps: PLAYER_ANIM_FPS.walk, loop: true },
+        hurt: { right: ['assets/BB_briarDrone_damaged_right.png', 5], left: ['assets/BB_briarDrone_damaged_left.png', 5], fps: PLAYER_ANIM_FPS.hurt, loop: false },
+        attack: { right: ['assets/BB_briarDrone_attack_right.png', 7], left: ['assets/BB_briarDrone_attack_left.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
+        death: { right: ['assets/BB_briarDrone_killed_right.png', 6], left: ['assets/BB_briarDrone_killed_left.png', 6], fps: PLAYER_ANIM_FPS.death, loop: false }
       };
 
-      const billyTracks = { idle: {}, walk: {}, hurt: {}, attack: {}, death: {} };
-      Object.entries(billySpriteSheets).forEach(([stateName, config]) => {
+      const briarDroneTracks = { idle: {}, walk: {}, hurt: {}, attack: {}, death: {} };
+      Object.entries(briarDroneSpriteSheets).forEach(([stateName, config]) => {
         ['right', 'left'].forEach((facingName) => {
           const [src, frameCount] = config[facingName];
           promises.push(loadImage(src).then((img) => {
-            billyTracks[stateName][facingName] = {
+            briarDroneTracks[stateName][facingName] = {
               img,
               frames: buildFrameRects(img, frameCount),
               fps: config.fps,
@@ -2024,15 +2039,17 @@
           }));
         });
       });
-      assets.characters['billy-boxby'] = { tracks: billyTracks };
+      assets.characters['briar-drone'] = { tracks: briarDroneTracks };
 
       const brambleDroneSpriteSheets = {
-        idle: { right: ['assets/BB_brambleDrone_right.png', 1], left: ['assets/BB_brambleDrone_left.png', 1], fps: 0, loop: false },
-        walk: { right: ['assets/BB_brambleDrone_controlSquare_right.png', 4], left: ['assets/BB_brambleDrone_controlSquare_left.png', 4], fps: 10, loop: true },
-        attack: { right: ['assets/BB_brambleDrone_attack_right.png', 7], left: ['assets/BB_brambleDrone_attack_left.png', 7], fps: 14, loop: false }
+        idle: { right: ['assets/BB_briarDrone_right.png', 1], left: ['assets/BB_briarDrone_left.png', 1], fps: 0, loop: false },
+        walk: { right: ['assets/BB_briarDrone_walking_right.png', 8], left: ['assets/BB_briarDrone_walking_left.png', 8], fps: 10, loop: true },
+        hurt: { right: ['assets/BB_briarDrone_damaged_right.png', 5], left: ['assets/BB_briarDrone_damaged_left.png', 5], fps: 12, loop: false },
+        attack: { right: ['assets/BB_briarDrone_attack_right.png', 7], left: ['assets/BB_briarDrone_attack_left.png', 7], fps: 14, loop: false },
+        death: { right: ['assets/BB_briarDrone_killed_right.png', 6], left: ['assets/BB_briarDrone_killed_left.png', 6], fps: 8, loop: false }
       };
 
-      const brambleDroneTracks = { idle: {}, walk: {}, attack: {} };
+      const brambleDroneTracks = { idle: {}, walk: {}, hurt: {}, attack: {}, death: {} };
       Object.entries(brambleDroneSpriteSheets).forEach(([stateName, config]) => {
         ['right', 'left'].forEach((facingName) => {
           const [src, frameCount] = config[facingName];

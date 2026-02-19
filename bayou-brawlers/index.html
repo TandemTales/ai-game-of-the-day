@@ -1815,6 +1815,32 @@
       });
     }
 
+    function buildFrameRects(img, frameCount) {
+      const frameSize = PLAYER_SPRITE_FRAME_SIZE;
+      const isVerticalSheet = img.height >= frameSize * frameCount;
+      const isHorizontalSheet = img.width >= frameSize * frameCount;
+
+      if (isVerticalSheet) {
+        return Array.from({ length: frameCount }, (_, i) => ({
+          x: 0,
+          y: i * frameSize,
+          width: frameSize,
+          height: frameSize
+        }));
+      }
+
+      if (isHorizontalSheet) {
+        return Array.from({ length: frameCount }, (_, i) => ({
+          x: i * frameSize,
+          y: 0,
+          width: frameSize,
+          height: frameSize
+        }));
+      }
+
+      return [{ x: 0, y: 0, width: frameSize, height: frameSize }];
+    }
+
     async function loadAssets() {
       const loading = document.getElementById('loadingStatus');
       const promises = [];
@@ -1869,7 +1895,7 @@
         promises.push(loadImage(config.src).then(img => {
           assets.billy[key] = {
             image: img,
-            frames: Array.from({ length: config.frames }, (_, i) => ({ x: 0, y: i * PLAYER_SPRITE_FRAME_SIZE, width: PLAYER_SPRITE_FRAME_SIZE, height: PLAYER_SPRITE_FRAME_SIZE }))
+            frames: buildFrameRects(img, config.frames)
           };
         }));
       });

@@ -1230,9 +1230,10 @@
     }
 
     function doAttack(player, baseDamage, range, knockback, stun = 14) {
+      const playerBody = getPlayerHitbox(player);
       const hitbox = {
         x: player.x + player.facing * range,
-        y: player.y - 20,
+        y: playerBody.y + 18,
         width: 36,
         height: 40
       };
@@ -1253,12 +1254,7 @@
     }
 
     function playerBodyOverlap(player, enemy) {
-      const playerBody = {
-        x: player.x - (PLAYER_HITBOX_WIDTH / 2),
-        y: player.y - PLAYER_HITBOX_HEIGHT,
-        width: PLAYER_HITBOX_WIDTH,
-        height: PLAYER_HITBOX_HEIGHT
-      };
+      const playerBody = getPlayerHitbox(player);
       const enemyBody = getEnemyHitbox(enemy);
       return (
         playerBody.x < enemyBody.x + enemyBody.width &&
@@ -1274,6 +1270,15 @@
         && hitbox.x + hitbox.width > enemyBody.x
         && hitbox.y < enemyBody.y + enemyBody.height
         && hitbox.y + hitbox.height > enemyBody.y;
+    }
+
+    function getPlayerHitbox(player) {
+      return {
+        x: player.x - (PLAYER_HITBOX_WIDTH / 2),
+        y: player.y + 12,
+        width: PLAYER_HITBOX_WIDTH,
+        height: PLAYER_HITBOX_HEIGHT
+      };
     }
 
     function updatePlayer(dt) {
@@ -1444,9 +1449,17 @@
               }
             }
           });
-        } else if (player && Math.abs(projectile.x - player.x) < (PLAYER_HITBOX_WIDTH / 2) && Math.abs(projectile.y - player.y) < (PLAYER_HITBOX_HEIGHT * 0.6)) {
-          damagePlayer(projectile.damage);
-          projectile.life = 0;
+        } else if (player) {
+          const playerBody = getPlayerHitbox(player);
+          if (
+            projectile.x > playerBody.x &&
+            projectile.x < playerBody.x + playerBody.width &&
+            projectile.y > playerBody.y &&
+            projectile.y < playerBody.y + playerBody.height
+          ) {
+            damagePlayer(projectile.damage);
+            projectile.life = 0;
+          }
         }
       });
       state.projectiles = state.projectiles.filter(projectile => projectile.life > 0);
@@ -1456,7 +1469,18 @@
       const player = state.player;
       state.pickups.forEach(pickup => {
         pickup.timer -= 1;
-        if (Math.abs(player.x - pickup.x) < 30 && Math.abs(player.y - pickup.y) < 26) {
+        const playerBody = getPlayerHitbox(player);
+        const pickupHitbox = {
+          x: pickup.x - 10,
+          y: pickup.y - 12,
+          width: 20,
+          height: 20
+        };
+        const touchesPickup = playerBody.x < pickupHitbox.x + pickupHitbox.width
+          && playerBody.x + playerBody.width > pickupHitbox.x
+          && playerBody.y < pickupHitbox.y + pickupHitbox.height
+          && playerBody.y + playerBody.height > pickupHitbox.y;
+        if (touchesPickup) {
           player.hp = clamp(player.hp + 25, 0, player.maxHp);
           updateHpBar();
           addScore(40);

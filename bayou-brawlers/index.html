@@ -991,7 +991,7 @@
         } : null,
         cooldown: rand(40, 80),
         windup: 0,
-        attackAnimActive: false,
+        attackAnimTimer: 0,
         stun: 0,
         ranged: base.ranged || false,
         isBoss,
@@ -1042,9 +1042,8 @@
       const facingName = enemy.facing >= 0 ? 'right' : 'left';
       let nextState = enemy.isMoving ? 'walk' : 'idle';
 
-      if ((anim.state === 'attack' && !anim.complete) || enemy.attackAnimActive || enemy.windup > 0) {
+      if ((anim.state === 'attack' && !anim.complete) || enemy.attackAnimTimer > 0 || enemy.windup > 0) {
         nextState = 'attack';
-        enemy.attackAnimActive = false;
       }
 
       if (anim.state !== nextState) {
@@ -1370,7 +1369,7 @@
         } else {
           if (enemy.windup <= 0 && enemy.cooldown <= 0) {
             enemy.windup = 18;
-            enemy.attackAnimActive = true;
+            enemy.attackAnimTimer = Math.max(enemy.attackAnimTimer, 18);
           }
         }
 
@@ -1396,6 +1395,10 @@
           }
         } else {
           enemy.cooldown = Math.max(0, enemy.cooldown - 1);
+        }
+
+        if (enemy.attackAnimTimer > 0) {
+          enemy.attackAnimTimer -= 1;
         }
 
         const verticalBounds = getEnemyVerticalBounds(enemy);

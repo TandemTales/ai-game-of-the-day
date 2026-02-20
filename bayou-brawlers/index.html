@@ -699,7 +699,7 @@
 
     const enemyTypes = {
       goblin: { hp: 30, speed: 1.7, damage: 8, range: 18, score: 60, sprite: 'enemy-goblin' },
-      swamp: { hp: 45, speed: 1.3, damage: 10, range: 18, score: 80, sprite: 'enemy-goblin' },
+      swamp: { hp: 45, speed: 1.3, damage: 10, range: 18, score: 80, sprite: 'choking-blossom' },
       thug: { hp: 40, speed: 1.6, damage: 9, range: 18, score: 70, sprite: 'enemy-thug' },
       automaton: { hp: 55, speed: 1.2, damage: 12, range: 20, score: 90, sprite: 'enemy-automaton' },
       fey: { hp: 38, speed: 1.9, damage: 9, range: 18, score: 85, sprite: 'enemy-fey' },
@@ -2100,6 +2100,30 @@
         });
       });
       assets.enemyAnimations['bramble-drone'] = brambleDroneTracks;
+
+      const chokingBlossomSpriteSheets = {
+        idle: { right: ['assets/bb_chokingblossom_right.png', 1], left: ['assets/bb_chokingblossom_left.png', 1], fps: 0, loop: false },
+        walk: { right: ['assets/bb_chokingblossom_walking_right.png', 8], left: ['assets/bb_chokingblossom_walking_left.png', 8], fps: 10, loop: true },
+        hurt: { right: ['assets/bb_chokingblossom_damaged_right.png', 5], left: ['assets/bb_chokingblossom_damaged_left.png', 5], fps: 12, loop: false },
+        attack: { right: ['assets/bb_chokingblossom_attack_right.png', 7], left: ['assets/bb_chokingblossom_attack_left.png', 7], fps: 14, loop: false },
+        death: { right: ['assets/bb_chokingblossom_killed_right.png', 6], left: ['assets/bb_chokingblossom_killed_left.png', 6], fps: 8, loop: false }
+      };
+
+      const chokingBlossomTracks = { idle: {}, walk: {}, hurt: {}, attack: {}, death: {} };
+      Object.entries(chokingBlossomSpriteSheets).forEach(([stateName, config]) => {
+        ['right', 'left'].forEach((facingName) => {
+          const [src, frameCount] = config[facingName];
+          promises.push(loadImage(src).then((img) => {
+            chokingBlossomTracks[stateName][facingName] = {
+              img,
+              frames: buildFrameRects(img, frameCount),
+              fps: config.fps,
+              loop: config.loop
+            };
+          }));
+        });
+      });
+      assets.enemyAnimations.swamp = chokingBlossomTracks;
 
       const enemySprites = {
         'enemy-goblin': 'assets/enemy-goblin.svg',

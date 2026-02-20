@@ -726,6 +726,7 @@
     const BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER = 4;
     const BRAMBLE_DRONE_BOSS_HITBOX_SCALE_MULTIPLIER = 4;
     const BRAMBLE_DRONE_BOSS_ANIM_FPS_MULTIPLIER = 1;
+    const CHOKING_BLOSSOM_SCALE_MULTIPLIER = 2;
     const ENEMY_FACING_DEADZONE_X = 6;
     const BRAWL_LANE_MIN_Y = Math.floor(canvas.height * 0.5);
     const BRAWL_LANE_MAX_Y = canvas.height - 44;
@@ -981,6 +982,7 @@
       const base = enemyTypes[typeId];
       const animationTracks = assets.enemyAnimations[typeId] || null;
       const isBrambleDroneBoss = isBoss && typeId === 'bramble-drone';
+      const isChokingBlossom = typeId === 'swamp';
       return {
         type: typeId,
         x,
@@ -1008,8 +1010,12 @@
         stun: 0,
         ranged: base.ranged || false,
         isBoss,
-        renderScale: isBrambleDroneBoss ? BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER : 1,
-        hitboxScale: isBrambleDroneBoss ? BRAMBLE_DRONE_BOSS_HITBOX_SCALE_MULTIPLIER : 1
+        renderScale: isBrambleDroneBoss
+          ? BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER
+          : (isChokingBlossom ? CHOKING_BLOSSOM_SCALE_MULTIPLIER : 1),
+        hitboxScale: isBrambleDroneBoss
+          ? BRAMBLE_DRONE_BOSS_HITBOX_SCALE_MULTIPLIER
+          : (isChokingBlossom ? CHOKING_BLOSSOM_SCALE_MULTIPLIER : 1)
       };
     }
 

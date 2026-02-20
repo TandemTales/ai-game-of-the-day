@@ -607,16 +607,16 @@
         }
       },
       {
-        id: 'briar-drone',
-        name: 'Briar Drone',
-        portrait: 'assets/BB_profile_briarDrone.png',
-        sprite: 'briar-drone',
+        id: 'billy-boxby',
+        name: 'Billy Boxby',
+        portrait: 'assets/BB_profile_billyBoxby.png',
+        sprite: 'billy-boxby',
         renderScale: 0.75,
         stats: { speed: 3.0, power: 1.05, range: 50, durability: 115 },
         moves: {
-          fast: 'Rotary jab',
-          power: 'Thorn impact burst',
-          special: 'Deploy helper ally'
+          fast: 'Boxing jab',
+          power: 'Heavy crate smash',
+          special: 'Summon helper ally'
         },
         special: (player) => {
           state.ally = { x: player.x, y: player.y - 20, timer: 360 };
@@ -2034,20 +2034,20 @@
         promises.push(loadImage(src).then(img => { assets.characters[key] = img; }));
       });
 
-      const briarDroneSpriteSheets = {
-        idle: { right: ['assets/BB_briarDrone_right.png', 1], left: ['assets/BB_briarDrone_left.png', 1], fps: 0, loop: false },
-        walk: { right: ['assets/BB_briarDrone_walking_right.png', 8], left: ['assets/BB_briarDrone_walking_left.png', 8], fps: PLAYER_ANIM_FPS.walk, loop: true },
-        hurt: { right: ['assets/BB_briarDrone_damaged_right.png', 5], left: ['assets/BB_briarDrone_damaged_left.png', 5], fps: PLAYER_ANIM_FPS.hurt, loop: false },
-        attack: { right: ['assets/BB_briarDrone_attack_right.png', 7], left: ['assets/BB_briarDrone_attack_left.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
-        death: { right: ['assets/BB_briarDrone_killed_right.png', 6], left: ['assets/BB_briarDrone_killed_left.png', 6], fps: PLAYER_ANIM_FPS.death, loop: false }
+      const billySpriteSheets = {
+        idle: { right: ['assets/BB_billyBoxby_right.png', 1], left: ['assets/BB_billyBoxby_left.png', 1], fps: 0, loop: false },
+        walk: { right: ['assets/BB_billyBoxby_walking_right.png', 4], left: ['assets/BB_billyBoxby_walking_left.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
+        hurt: { right: ['assets/BB_billyBoxby_damaged_right.png', 4], left: ['assets/BB_billyBoxby_damaged_left.png', 4], fps: PLAYER_ANIM_FPS.hurt, loop: false },
+        attack: { right: ['assets/BB_billyBoxby_attack_heavy_right.png', 7], left: ['assets/BB_billyBoxby_attack_heavy_left.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
+        death: { right: ['assets/BB_billyBoxby_killed_right.png', 5], left: ['assets/BB_billyBoxby_killed_left.png', 5], fps: PLAYER_ANIM_FPS.death, loop: false }
       };
 
-      const briarDroneTracks = { idle: {}, walk: {}, hurt: {}, attack: {}, death: {} };
-      Object.entries(briarDroneSpriteSheets).forEach(([stateName, config]) => {
+      const billyTracks = { idle: {}, walk: {}, hurt: {}, attack: {}, death: {} };
+      Object.entries(billySpriteSheets).forEach(([stateName, config]) => {
         ['right', 'left'].forEach((facingName) => {
           const [src, frameCount] = config[facingName];
           promises.push(loadImage(src).then((img) => {
-            briarDroneTracks[stateName][facingName] = {
+            billyTracks[stateName][facingName] = {
               img,
               frames: buildFrameRects(img, frameCount),
               fps: config.fps,
@@ -2056,7 +2056,7 @@
           }));
         });
       });
-      assets.characters['briar-drone'] = { tracks: briarDroneTracks };
+      assets.characters['billy-boxby'] = { tracks: billyTracks };
 
       const brambleDroneSpriteSheets = {
         idle: { right: ['assets/BB_briarDrone_right.png', 1], left: ['assets/BB_briarDrone_left.png', 1], fps: 0, loop: false },

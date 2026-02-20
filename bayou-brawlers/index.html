@@ -991,6 +991,7 @@
         } : null,
         cooldown: rand(40, 80),
         windup: 0,
+        attackAnimActive: false,
         stun: 0,
         ranged: base.ranged || false,
         isBoss,
@@ -1039,7 +1040,12 @@
       if (!enemy.animation) return;
       const anim = enemy.animation;
       const facingName = enemy.facing >= 0 ? 'right' : 'left';
-      const nextState = enemy.windup > 0 ? 'attack' : (enemy.isMoving ? 'walk' : 'idle');
+      let nextState = enemy.isMoving ? 'walk' : 'idle';
+
+      if ((anim.state === 'attack' && !anim.complete) || enemy.attackAnimActive || enemy.windup > 0) {
+        nextState = 'attack';
+        enemy.attackAnimActive = false;
+      }
 
       if (anim.state !== nextState) {
         anim.state = nextState;
@@ -1364,6 +1370,7 @@
         } else {
           if (enemy.windup <= 0 && enemy.cooldown <= 0) {
             enemy.windup = 18;
+            enemy.attackAnimActive = true;
           }
         }
 

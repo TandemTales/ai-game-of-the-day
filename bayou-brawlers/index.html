@@ -851,6 +851,19 @@
       return BRAWL_LANE_MIN_Y;
     }
 
+    function getEntityMaxYForDrawSize(drawSize) {
+      return canvas.height - Math.max(0, drawSize - 32);
+    }
+
+    function getPlayerVerticalBounds(player) {
+      const drawSize = PLAYER_DRAW_SIZE * (player.renderScale || 1);
+      const minY = getBrawlLaneMinY();
+      return {
+        minY,
+        maxY: Math.max(minY, Math.min(BRAWL_LANE_MAX_Y, getEntityMaxYForDrawSize(drawSize)))
+      };
+    }
+
     function createPlayer(charData) {
       return {
         name: charData.name,
@@ -1013,16 +1026,11 @@
     }
 
     function getEnemyVerticalBounds(enemy) {
-      if (!(enemy.isBoss && enemy.type === 'bramble-drone')) {
-        return {
-          minY: getBrawlLaneMinY(),
-          maxY: BRAWL_LANE_MAX_Y
-        };
-      }
-
-      const drawSize = BOSS_DRAW_SIZE * (enemy.renderScale || 1);
-      const minY = 32;
-      const maxY = canvas.height - drawSize + 32;
+      const drawSize = (enemy.isBoss ? BOSS_DRAW_SIZE : ENEMY_DRAW_SIZE) * (enemy.renderScale || 1);
+      const minY = enemy.isBoss && enemy.type === 'bramble-drone' ? 32 : getBrawlLaneMinY();
+      const maxY = enemy.isBoss && enemy.type === 'bramble-drone'
+        ? getEntityMaxYForDrawSize(drawSize)
+        : Math.min(BRAWL_LANE_MAX_Y, getEntityMaxYForDrawSize(drawSize));
       return {
         minY,
         maxY: Math.max(minY, maxY)
@@ -1306,7 +1314,8 @@
       }
 
       player.x = clamp(player.x, 40, state.levelWidth - 40);
-      player.y = clamp(player.y, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
+      const playerVerticalBounds = getPlayerVerticalBounds(player);
+      player.y = clamp(player.y, playerVerticalBounds.minY, playerVerticalBounds.maxY);
       player.isMoving = Math.hypot(player.x - prevX, player.y - prevY) > MOVE_EPSILON;
 
       if (state.lockX !== null && player.x > state.lockX) {

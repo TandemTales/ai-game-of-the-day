@@ -1020,6 +1020,29 @@
     }
 
     function getEnemyHitbox(enemy) {
+      const drawSize = (enemy.isBoss ? BOSS_DRAW_SIZE : ENEMY_DRAW_SIZE) * (enemy.renderScale || 1);
+
+      if (enemy.isBoss && enemy.type === 'bramble-drone') {
+        return {
+          x: enemy.x - (drawSize / 2),
+          y: enemy.y - 32,
+          width: drawSize,
+          height: drawSize
+        };
+      }
+
+      if (enemy.type === 'swamp') {
+        const hitboxSize = drawSize * (2 / 3);
+        const imageTop = enemy.y - 32;
+        const lowerThirdCenterY = imageTop + (drawSize * (5 / 6));
+        return {
+          x: enemy.x - (hitboxSize / 2),
+          y: lowerThirdCenterY - (hitboxSize / 2),
+          width: hitboxSize,
+          height: hitboxSize
+        };
+      }
+
       const scale = enemy.hitboxScale || 1;
       const width = 32 * scale;
       const height = 40 * scale;
@@ -1028,6 +1051,26 @@
         y: enemy.y - (32 * scale),
         width,
         height
+      };
+    }
+
+    function getPlayerHitbox(player) {
+      if (player?.charData?.id === 'billy-boxby') {
+        const drawSize = PLAYER_DRAW_SIZE * (player.renderScale || 1);
+        const hitboxSize = drawSize * (2 / 3);
+        return {
+          x: player.x - (hitboxSize / 2),
+          y: player.y - (hitboxSize / 2),
+          width: hitboxSize,
+          height: hitboxSize
+        };
+      }
+
+      return {
+        x: player.x - (PLAYER_HITBOX_WIDTH / 2),
+        y: player.y - PLAYER_HITBOX_HEIGHT,
+        width: PLAYER_HITBOX_WIDTH,
+        height: PLAYER_HITBOX_HEIGHT
       };
     }
 
@@ -1259,12 +1302,7 @@
     }
 
     function playerBodyOverlap(player, enemy) {
-      const playerBody = {
-        x: player.x - (PLAYER_HITBOX_WIDTH / 2),
-        y: player.y - PLAYER_HITBOX_HEIGHT,
-        width: PLAYER_HITBOX_WIDTH,
-        height: PLAYER_HITBOX_HEIGHT
-      };
+      const playerBody = getPlayerHitbox(player);
       const enemyBody = getEnemyHitbox(enemy);
       return (
         playerBody.x < enemyBody.x + enemyBody.width &&
@@ -1450,9 +1488,17 @@
               }
             }
           });
-        } else if (player && Math.abs(projectile.x - player.x) < (PLAYER_HITBOX_WIDTH / 2) && Math.abs(projectile.y - player.y) < (PLAYER_HITBOX_HEIGHT * 0.6)) {
-          damagePlayer(projectile.damage);
-          projectile.life = 0;
+        } else if (player) {
+          const playerBody = getPlayerHitbox(player);
+          if (
+            projectile.x > playerBody.x &&
+            projectile.x < playerBody.x + playerBody.width &&
+            projectile.y > playerBody.y &&
+            projectile.y < playerBody.y + playerBody.height
+          ) {
+            damagePlayer(projectile.damage);
+            projectile.life = 0;
+          }
         }
       });
       state.projectiles = state.projectiles.filter(projectile => projectile.life > 0);

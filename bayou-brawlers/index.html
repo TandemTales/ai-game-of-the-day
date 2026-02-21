@@ -1015,7 +1015,8 @@
           : (isChokingBlossom ? CHOKING_BLOSSOM_SCALE_MULTIPLIER : 1),
         hitboxScale: isBrambleDroneBoss
           ? BRAMBLE_DRONE_BOSS_HITBOX_SCALE_MULTIPLIER
-          : (isChokingBlossom ? CHOKING_BLOSSOM_SCALE_MULTIPLIER : 1)
+          : (isChokingBlossom ? CHOKING_BLOSSOM_SCALE_MULTIPLIER : 1),
+        targetBodyAimBias: rand(35, 85) / 100
       };
     }
 
@@ -1072,6 +1073,24 @@
         width: PLAYER_HITBOX_WIDTH,
         height: PLAYER_HITBOX_HEIGHT
       };
+    }
+
+    function rectsOverlap(a, b) {
+      return a.x < b.x + b.width
+        && a.x + a.width > b.x
+        && a.y < b.y + b.height
+        && a.y + a.height > b.y;
+    }
+
+    function getEnemyAimTargetY(enemy, player) {
+      const playerBody = getPlayerHitbox(player);
+      const enemyBody = getEnemyHitbox(enemy);
+      const playerArea = playerBody.width * playerBody.height;
+      const enemyArea = enemyBody.width * enemyBody.height;
+
+      if (enemyArea < playerArea * 0.5) return playerBody.y + (playerBody.height * 0.82);
+      if (enemyArea > playerArea * 1.5) return playerBody.y + (playerBody.height * 0.2);
+      return playerBody.y + (playerBody.height * enemy.targetBodyAimBias);
     }
 
     function getEnemyVerticalBounds(enemy) {
@@ -1314,10 +1333,7 @@
 
     function rectOverlap(hitbox, enemy) {
       const enemyBody = getEnemyHitbox(enemy);
-      return hitbox.x < enemyBody.x + enemyBody.width
-        && hitbox.x + hitbox.width > enemyBody.x
-        && hitbox.y < enemyBody.y + enemyBody.height
-        && hitbox.y + hitbox.height > enemyBody.y;
+      return rectsOverlap(hitbox, enemyBody);
     }
 
     function updatePlayer(dt) {
@@ -1404,7 +1420,8 @@
           return;
         }
         const dx = player.x - enemy.x;
-        const dy = player.y - enemy.y;
+        const targetY = getEnemyAimTargetY(enemy, player);
+        const dy = targetY - enemy.y;
         const distance = Math.hypot(dx, dy);
         enemy.isMoving = false;
         if (Math.abs(dx) > ENEMY_FACING_DEADZONE_X) {
@@ -1506,9 +1523,16 @@
 
     function updatePickups() {
       const player = state.player;
+      const playerBody = getPlayerHitbox(player);
       state.pickups.forEach(pickup => {
         pickup.timer -= 1;
-        if (Math.abs(player.x - pickup.x) < 30 && Math.abs(player.y - pickup.y) < 26) {
+        const pickupBody = {
+          x: pickup.x - 10,
+          y: pickup.y - 12,
+          width: 20,
+          height: 20
+        };
+        if (rectsOverlap(playerBody, pickupBody)) {
           player.hp = clamp(player.hp + 25, 0, player.maxHp);
           updateHpBar();
           addScore(40);

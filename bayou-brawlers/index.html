@@ -852,6 +852,14 @@
       return BRAWL_LANE_MIN_Y;
     }
 
+    function getDepthScaleForY(y) {
+      const laneDepth = Math.max(1, BRAWL_LANE_MAX_Y - getBrawlLaneMinY());
+      const laneProgress = clamp((y - getBrawlLaneMinY()) / laneDepth, 0, 1);
+      const minDepthScale = 0.76;
+      const maxDepthScale = 1.14;
+      return minDepthScale + ((maxDepthScale - minDepthScale) * laneProgress);
+    }
+
     function getEntityMaxYForDrawSize(drawSize) {
       return canvas.height - Math.max(0, drawSize - 32);
     }
@@ -1729,11 +1737,12 @@
     function drawEntity(entity, size, colorOverride) {
       const x = entity.x - state.cameraX;
       const y = entity.y - state.cameraY - 32 - entity.z;
+      const depthScale = getDepthScaleForY(entity.y);
       if (entity.animation && entity.charData) {
         const track = getPlayerAnimTrack(entity, entity.animation.state, entity.animation.facing);
         if (track && track.img) {
           const frame = track.frames[entity.animation.frameIndex] || track.frames[0];
-          const drawSize = size * (entity.renderScale || 1);
+          const drawSize = size * (entity.renderScale || 1) * depthScale;
           ctx.drawImage(
             track.img,
             frame.x,
@@ -1752,7 +1761,7 @@
         const track = getEnemyAnimTrack(entity, entity.animation.state, entity.animation.facing);
         if (track && track.img) {
           const frame = track.frames[entity.animation.frameIndex] || track.frames[0];
-          const drawSize = size * (entity.renderScale || 1);
+          const drawSize = size * (entity.renderScale || 1) * depthScale;
           ctx.drawImage(
             track.img,
             frame.x,
@@ -1768,10 +1777,12 @@
         }
       }
       if (entity.sprite) {
-        ctx.drawImage(entity.sprite, x - size / 2, y, size, size);
+        const drawSize = size * depthScale;
+        ctx.drawImage(entity.sprite, x - drawSize / 2, y, drawSize, drawSize);
       } else {
+        const drawSize = size * depthScale;
         ctx.fillStyle = colorOverride || '#fff';
-        ctx.fillRect(x - size / 2, y, size, size);
+        ctx.fillRect(x - drawSize / 2, y, drawSize, drawSize);
       }
     }
 

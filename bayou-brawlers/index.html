@@ -1028,13 +1028,19 @@
       };
     }
 
+    function getSpriteLowerCenterY(worldY, drawSize) {
+      const imageTop = worldY - 32;
+      return imageTop + (drawSize * 0.75);
+    }
+
     function getEnemyHitbox(enemy) {
       const drawSize = (enemy.isBoss ? BOSS_DRAW_SIZE : ENEMY_DRAW_SIZE) * (enemy.renderScale || 1);
 
       if (enemy.isBoss && enemy.type === 'bramble-drone') {
+        const centerY = getSpriteLowerCenterY(enemy.y, drawSize);
         return {
           x: enemy.x - (drawSize / 2),
-          y: enemy.y - 32,
+          y: centerY - (drawSize / 2),
           width: drawSize,
           height: drawSize
         };
@@ -1067,9 +1073,10 @@
       if (player?.charData?.id === 'billy-boxby') {
         const drawSize = PLAYER_DRAW_SIZE * (player.renderScale || 1);
         const hitboxSize = drawSize * (2 / 3);
+        const centerY = getSpriteLowerCenterY(player.y, drawSize);
         return {
           x: player.x - (hitboxSize / 2),
-          y: player.y - (hitboxSize / 2),
+          y: centerY - (hitboxSize / 2),
           width: hitboxSize,
           height: hitboxSize
         };
@@ -1099,10 +1106,10 @@
     }
 
     function rectsOverlap(a, b) {
-      return a.x < b.x + b.width
-        && a.x + a.width > b.x
-        && a.y < b.y + b.height
-        && a.y + a.height > b.y;
+      return a.x <= b.x + b.width
+        && a.x + a.width >= b.x
+        && a.y <= b.y + b.height
+        && a.y + a.height >= b.y;
     }
 
     function getEnemyAimTargetY(enemy, player) {
@@ -1480,7 +1487,7 @@
                 color: '#ff7b7b'
               });
             } else {
-              if (distance < enemy.range + 10) {
+              if (rectsOverlap(getPlayerHitbox(player), getEnemyHitbox(enemy))) {
                 damagePlayer(enemy.damage);
               }
             }

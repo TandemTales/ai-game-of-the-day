@@ -1037,7 +1037,7 @@
       const drawSize = (enemy.isBoss ? BOSS_DRAW_SIZE : ENEMY_DRAW_SIZE) * (enemy.renderScale || 1);
 
       if (enemy.isBoss && enemy.type === 'bramble-drone') {
-        const centerY = getSpriteLowerCenterY(enemy.y, drawSize);
+        const centerY = getSpriteLowerCenterY(enemy.y, drawSize, 0.58);
         return {
           x: enemy.x - (drawSize / 2),
           y: centerY - (drawSize / 2),
@@ -1073,7 +1073,7 @@
       if (player?.charData?.id === 'billy-boxby') {
         const drawSize = PLAYER_DRAW_SIZE * (player.renderScale || 1);
         const hitboxSize = drawSize * (2 / 3);
-        const centerY = getSpriteLowerCenterY(player.y, drawSize, 0.72);
+        const centerY = getSpriteLowerCenterY(player.y, drawSize, 0.6);
         return {
           x: player.x - (hitboxSize / 2),
           y: centerY - (hitboxSize / 2),
@@ -1489,8 +1489,7 @@
             } else {
               const playerBody = getPlayerHitbox(player);
               const enemyBody = getEnemyHitbox(enemy);
-              const closeEnoughForMelee = Math.hypot(player.x - enemy.x, player.y - enemy.y) <= enemy.range + 10;
-              if (closeEnoughForMelee && rectsOverlap(playerBody, enemyBody)) {
+              if (rectsOverlap(playerBody, enemyBody)) {
                 damagePlayer(enemy.damage);
               }
             }

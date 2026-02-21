@@ -1105,6 +1105,25 @@
         && a.y + a.height > b.y;
     }
 
+    function rectDistance(a, b) {
+      const dx = Math.max(a.x - (b.x + b.width), b.x - (a.x + a.width), 0);
+      const dy = Math.max(a.y - (b.y + b.height), b.y - (a.y + a.height), 0);
+      return Math.hypot(dx, dy);
+    }
+
+    function enemyCanMeleeHitPlayer(enemy, player, fallbackDistance) {
+      if (!enemy || !player || enemy.ranged) return false;
+
+      if (enemy.isBoss && enemy.type === 'bramble-drone') {
+        const enemyBody = getEnemyHitbox(enemy);
+        const playerBody = getPlayerHitbox(player);
+        const contactPadding = 6;
+        return rectDistance(enemyBody, playerBody) <= contactPadding;
+      }
+
+      return fallbackDistance < enemy.range + 10;
+    }
+
     function getEnemyAimTargetY(enemy, player) {
       const playerBody = getPlayerHitbox(player);
       const enemyBody = getEnemyHitbox(enemy);
@@ -1480,7 +1499,7 @@
                 color: '#ff7b7b'
               });
             } else {
-              if (distance < enemy.range + 10) {
+              if (enemyCanMeleeHitPlayer(enemy, player, distance)) {
                 damagePlayer(enemy.damage);
               }
             }

@@ -1075,6 +1075,21 @@
       };
     }
 
+    function getPlayerPickupHitbox(player) {
+      const body = getPlayerHitbox(player);
+      const drawSize = PLAYER_DRAW_SIZE * (player?.renderScale || 1);
+      const spriteTop = player.y - 32;
+      const spriteBottom = spriteTop + drawSize;
+      const bodyBottom = body.y + body.height;
+      if (bodyBottom >= spriteBottom) return body;
+      return {
+        x: body.x,
+        y: body.y,
+        width: body.width,
+        height: body.height + (spriteBottom - bodyBottom)
+      };
+    }
+
     function rectsOverlap(a, b) {
       return a.x < b.x + b.width
         && a.x + a.width > b.x
@@ -1523,7 +1538,7 @@
 
     function updatePickups() {
       const player = state.player;
-      const playerBody = getPlayerHitbox(player);
+      const playerBody = getPlayerPickupHitbox(player);
       state.pickups.forEach(pickup => {
         pickup.timer -= 1;
         const pickupBody = {

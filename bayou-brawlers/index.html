@@ -1142,14 +1142,9 @@
     }
 
     function getEnemyAimTargetY(enemy, player) {
-      const playerBody = getPlayerHitbox(player);
-      const enemyBody = getEnemyHitbox(enemy);
-      const playerArea = playerBody.width * playerBody.height;
-      const enemyArea = enemyBody.width * enemyBody.height;
-
-      if (enemyArea < playerArea * 0.5) return playerBody.y + (playerBody.height * 0.82);
-      if (enemyArea > playerArea * 1.5) return playerBody.y + (playerBody.height * 0.2);
-      return playerBody.y + (playerBody.height * enemy.targetBodyAimBias);
+      // Feet-anchor based tracking keeps tall/large enemies (like Bramble Drone boss)
+      // from "orbiting" the player's head due to body-center bias.
+      return player.y;
     }
 
     function getEnemyVerticalBounds(enemy) {
@@ -1481,9 +1476,9 @@
         const dy = targetY - enemy.y;
         const playerBody = getPlayerHitbox(player);
         const enemyBody = getEnemyHitbox(enemy);
-        const centerDx = (playerBody.x + (playerBody.width / 2)) - (enemyBody.x + (enemyBody.width / 2));
-        const centerDy = (playerBody.y + (playerBody.height / 2)) - (enemyBody.y + (enemyBody.height / 2));
-        const distance = Math.hypot(centerDx, centerDy);
+        // Use feet-anchor delta for chase/attack distance so large sprites with
+        // tall hitboxes do not over-weight vertical center offsets.
+        const distance = Math.hypot(dx, dy);
         enemy.isMoving = false;
         if (Math.abs(dx) > ENEMY_FACING_DEADZONE_X) {
           enemy.facing = dx >= 0 ? 1 : -1;
@@ -1518,10 +1513,11 @@
                 color: '#ff7b7b'
               });
             } else {
+              const forwardReach = enemy.range + 10;
               const meleeZone = {
-                x: enemyBody.x + (enemy.facing >= 0 ? enemyBody.width : -(enemy.range + 10)),
+                x: enemy.facing >= 0 ? enemyBody.x : enemyBody.x - forwardReach,
                 y: enemyBody.y,
-                width: enemy.range + 10,
+                width: enemyBody.width + forwardReach,
                 height: enemyBody.height
               };
               if (rectsOverlap(meleeZone, playerBody)) {

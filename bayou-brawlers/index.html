@@ -722,6 +722,7 @@
     const REGULAR_WAVE_COUNT = 8;
     const TOTAL_WAVE_COUNT = 9;
     const WAVE_TRIGGER_PCTS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
+    const WAVE_LOCK_FORWARD_ALLOWANCE = 160;
     const IDLE_ARROW_DELAY_FRAMES = 300;
     const PLAYER_SCALE_MULTIPLIER = 4;
     const PLAYER_DRAW_SIZE = 56 * PLAYER_SCALE_MULTIPLIER;
@@ -1217,6 +1218,10 @@
       return clamp(40 + ((state.levelWidth - 80) * pct), 40, state.levelWidth - 40);
     }
 
+    function getWaveLockX(waveIndex) {
+      return clamp(getWaveTriggerX(waveIndex) + WAVE_LOCK_FORWARD_ALLOWANCE, 40, state.levelWidth - 40);
+    }
+
     function getRegularWave(level, waveIndex) {
       const baseWave = level.waves[waveIndex % level.waves.length];
       const cycle = Math.floor(waveIndex / level.waves.length);
@@ -1242,7 +1247,7 @@
       }
       state.waveIndex = waveIndex;
       state.waveActive = true;
-      state.lockX = waveLockX;
+      state.lockX = getWaveLockX(waveIndex);
       updateWaveHud();
     }
 
@@ -1259,7 +1264,7 @@
       state.waveIndex = REGULAR_WAVE_COUNT;
       state.waveActive = true;
       state.bossActive = true;
-      state.lockX = getWaveTriggerX(REGULAR_WAVE_COUNT);
+      state.lockX = getWaveLockX(REGULAR_WAVE_COUNT);
       updateWaveHud();
     }
 

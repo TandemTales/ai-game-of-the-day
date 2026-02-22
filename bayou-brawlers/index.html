@@ -1513,7 +1513,8 @@
                 color: '#ff7b7b'
               });
             } else {
-              const forwardReach = enemy.range + 10;
+              const attackReachMultiplier = (enemy.isBoss && enemy.type === 'bramble-drone') ? 2 : 1;
+              const forwardReach = ((enemy.range + 10) * attackReachMultiplier);
               const meleeZone = {
                 x: enemy.facing >= 0 ? enemyBody.x : enemyBody.x - forwardReach,
                 y: enemyBody.y,

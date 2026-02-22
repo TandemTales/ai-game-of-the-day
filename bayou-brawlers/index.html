@@ -536,6 +536,7 @@
         name: 'Rustblade Rook',
         portrait: 'assets/char-rustblade.svg',
         sprite: 'assets/char-rustblade.svg',
+        physicsProfileId: 'player-rustblade',
         stats: { speed: 3.2, power: 1.1, range: 42, durability: 110 },
         moves: {
           fast: 'Quick cleave combo',
@@ -551,6 +552,7 @@
         name: 'Bayou Bruiser',
         portrait: 'assets/char-bayou-bruiser.svg',
         sprite: 'assets/char-bayou-bruiser.svg',
+        physicsProfileId: 'player-bayou-bruiser',
         stats: { speed: 2.8, power: 1.35, range: 36, durability: 135 },
         moves: {
           fast: 'Knee rush',
@@ -566,6 +568,7 @@
         name: 'Fume Alchemist',
         portrait: 'assets/char-fume-alchemist.svg',
         sprite: 'assets/char-fume-alchemist.svg',
+        physicsProfileId: 'player-fume-alchemist',
         stats: { speed: 3.4, power: 0.95, range: 46, durability: 95 },
         moves: {
           fast: 'Quick vial jab',
@@ -581,6 +584,7 @@
         name: 'Grove Sentinel',
         portrait: 'assets/char-grove-sentinel.svg',
         sprite: 'assets/char-grove-sentinel.svg',
+        physicsProfileId: 'player-grove-sentinel',
         stats: { speed: 2.9, power: 1.2, range: 52, durability: 125 },
         moves: {
           fast: 'Vine whip',
@@ -596,6 +600,7 @@
         name: 'Clockwire Duelist',
         portrait: 'assets/char-clockwire-duelist.svg',
         sprite: 'assets/char-clockwire-duelist.svg',
+        physicsProfileId: 'player-clockwire',
         stats: { speed: 3.8, power: 0.9, range: 40, durability: 100 },
         moves: {
           fast: 'Gear slash',
@@ -612,6 +617,7 @@
         portrait: 'assets/BB_profile_billyBoxby.png',
         sprite: 'billy-boxby',
         renderScale: 0.75,
+        physicsProfileId: 'player-billy-boxby',
         stats: { speed: 3.0, power: 1.05, range: 50, durability: 115 },
         moves: {
           fast: 'Boxing jab',
@@ -721,12 +727,10 @@
     const PLAYER_DRAW_SIZE = 56 * PLAYER_SCALE_MULTIPLIER;
     const ENEMY_DRAW_SIZE = 48;
     const BOSS_DRAW_SIZE = 80;
-    const PLAYER_HITBOX_WIDTH = 32 * PLAYER_SCALE_MULTIPLIER;
-    const PLAYER_HITBOX_HEIGHT = 40 * PLAYER_SCALE_MULTIPLIER;
     const BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER = 4;
-    const BRAMBLE_DRONE_BOSS_HITBOX_SCALE_MULTIPLIER = 4;
     const BRAMBLE_DRONE_BOSS_ANIM_FPS_MULTIPLIER = 1;
     const CHOKING_BLOSSOM_SCALE_MULTIPLIER = 2;
+    const PHYSICS_HITBOX_PADDING = 3;
     const ENEMY_FACING_DEADZONE_X = 6;
     const BRAWL_LANE_MIN_Y = Math.floor(canvas.height * 0.5);
     const BRAWL_LANE_MAX_Y = canvas.height - 44;
@@ -739,6 +743,9 @@
       hurt: 12,
       death: 8
     };
+
+    const physicsProfiles = {};
+    let showCollisionDebug = false;
 
     function clamp(value, min, max) {
       return Math.max(min, Math.min(max, value));
@@ -794,6 +801,84 @@
       rotatedCtx.drawImage(img, -img.width / 2, -img.height / 2);
 
       return rotatedCanvas;
+    }
+
+
+    function getOpaqueBounds(img, frame) {
+      const sourceX = Math.floor(frame?.x || 0);
+      const sourceY = Math.floor(frame?.y || 0);
+      const sourceW = Math.max(1, Math.floor(frame?.width || img.width || SPRITE_FRAME_SIZE));
+      const sourceH = Math.max(1, Math.floor(frame?.height || img.height || SPRITE_FRAME_SIZE));
+      const scanCanvas = document.createElement('canvas');
+      scanCanvas.width = sourceW;
+      scanCanvas.height = sourceH;
+      const scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
+      scanCtx.clearRect(0, 0, sourceW, sourceH);
+      scanCtx.drawImage(img, sourceX, sourceY, sourceW, sourceH, 0, 0, sourceW, sourceH);
+      const pixels = scanCtx.getImageData(0, 0, sourceW, sourceH).data;
+
+      let minX = sourceW;
+      let minY = sourceH;
+      let maxX = -1;
+      let maxY = -1;
+      for (let y = 0; y < sourceH; y += 1) {
+        for (let x = 0; x < sourceW; x += 1) {
+          if (pixels[((y * sourceW) + x) * 4 + 3] <= 0) continue;
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+      }
+
+      if (maxX < 0 || maxY < 0) {
+        return { x: 0, y: 0, width: sourceW, height: sourceH };
+      }
+
+      const paddedMinX = clamp(minX - PHYSICS_HITBOX_PADDING, 0, sourceW - 1);
+      const paddedMinY = clamp(minY - PHYSICS_HITBOX_PADDING, 0, sourceH - 1);
+      const paddedMaxX = clamp(maxX + PHYSICS_HITBOX_PADDING, 0, sourceW - 1);
+      const paddedMaxY = clamp(maxY + PHYSICS_HITBOX_PADDING, 0, sourceH - 1);
+
+      return {
+        x: paddedMinX,
+        y: paddedMinY,
+        width: Math.max(1, paddedMaxX - paddedMinX + 1),
+        height: Math.max(1, paddedMaxY - paddedMinY + 1)
+      };
+    }
+
+    function createPhysicsProfile(profileId, img, frameRect, drawSize) {
+      const frame = frameRect || { x: 0, y: 0, width: img.width || SPRITE_FRAME_SIZE, height: img.height || SPRITE_FRAME_SIZE };
+      const bounds = getOpaqueBounds(img, frame);
+      const scaleX = drawSize / frame.width;
+      const scaleY = drawSize / frame.height;
+
+      const sourceCenterX = bounds.x + (bounds.width / 2);
+      const sourceBottomY = bounds.y + bounds.height;
+      const centerOffsetX = (sourceCenterX - (frame.width / 2)) * scaleX;
+      const footOffsetY = (frame.height - sourceBottomY) * scaleY;
+
+      physicsProfiles[profileId] = {
+        width: bounds.width * scaleX,
+        height: bounds.height * scaleY,
+        centerOffsetX,
+        footOffsetY
+      };
+    }
+
+    function getPhysicsProfile(profileId) {
+      return physicsProfiles[profileId] || { width: 32, height: 40, centerOffsetX: 0, footOffsetY: 0 };
+    }
+
+    function getPhysicsBody(entity) {
+      const profile = getPhysicsProfile(entity.physicsProfileId);
+      return {
+        x: entity.x + profile.centerOffsetX - (profile.width / 2),
+        y: entity.y - profile.footOffsetY - profile.height,
+        width: profile.width,
+        height: profile.height
+      };
     }
 
     function getTargetSkyHeight() {
@@ -861,7 +946,7 @@
     }
 
     function getEntityMaxYForDrawSize(drawSize) {
-      return canvas.height - Math.max(0, drawSize - 32);
+      return BRAWL_LANE_MAX_Y;
     }
 
     function getPlayerVerticalBounds(player) {
@@ -897,6 +982,7 @@
         shieldTimer: 0,
         dashTimer: 0,
         renderScale: charData.renderScale || 1,
+        physicsProfileId: charData.physicsProfileId,
         attackFacing: 1,
         animation: {
           state: 'idle',
@@ -1021,73 +1107,23 @@
         renderScale: isBrambleDroneBoss
           ? BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER
           : (isChokingBlossom ? CHOKING_BLOSSOM_SCALE_MULTIPLIER : 1),
-        hitboxScale: isBrambleDroneBoss
-          ? BRAMBLE_DRONE_BOSS_HITBOX_SCALE_MULTIPLIER
-          : (isChokingBlossom ? CHOKING_BLOSSOM_SCALE_MULTIPLIER : 1),
+        physicsProfileId: isBrambleDroneBoss ? 'enemy-bramble-drone-boss' : `enemy-${typeId}`,
         targetBodyAimBias: rand(35, 85) / 100
       };
     }
 
     function getEnemyHitbox(enemy) {
-      const drawSize = (enemy.isBoss ? BOSS_DRAW_SIZE : ENEMY_DRAW_SIZE) * (enemy.renderScale || 1);
-
-      if (enemy.isBoss && enemy.type === 'bramble-drone') {
-        return {
-          x: enemy.x - (drawSize / 2),
-          y: enemy.y - 32,
-          width: drawSize,
-          height: drawSize
-        };
-      }
-
-      if (enemy.type === 'swamp') {
-        const hitboxSize = drawSize * (2 / 3);
-        const imageTop = enemy.y - 32;
-        const lowerThirdCenterY = imageTop + (drawSize * (5 / 6));
-        return {
-          x: enemy.x - (hitboxSize / 2),
-          y: lowerThirdCenterY - (hitboxSize / 2),
-          width: hitboxSize,
-          height: hitboxSize
-        };
-      }
-
-      const scale = enemy.hitboxScale || 1;
-      const width = 32 * scale;
-      const height = 40 * scale;
-      return {
-        x: enemy.x - (width / 2),
-        y: enemy.y - (32 * scale),
-        width,
-        height
-      };
+      return getPhysicsBody(enemy);
     }
 
     function getPlayerHitbox(player) {
-      if (player?.charData?.id === 'billy-boxby') {
-        const drawSize = PLAYER_DRAW_SIZE * (player.renderScale || 1);
-        const hitboxSize = drawSize * (2 / 3);
-        return {
-          x: player.x - (hitboxSize / 2),
-          y: player.y - (hitboxSize / 2),
-          width: hitboxSize,
-          height: hitboxSize
-        };
-      }
-
-      return {
-        x: player.x - (PLAYER_HITBOX_WIDTH / 2),
-        y: player.y - PLAYER_HITBOX_HEIGHT,
-        width: PLAYER_HITBOX_WIDTH,
-        height: PLAYER_HITBOX_HEIGHT
-      };
+      return getPhysicsBody(player);
     }
 
     function getPlayerPickupHitbox(player) {
       const body = getPlayerHitbox(player);
       const drawSize = PLAYER_DRAW_SIZE * (player?.renderScale || 1);
-      const spriteTop = player.y - 32;
-      const spriteBottom = spriteTop + drawSize;
+      const spriteBottom = player.y;
       const bodyBottom = body.y + body.height;
       if (bodyBottom >= spriteBottom) return body;
       return {
@@ -1118,10 +1154,8 @@
 
     function getEnemyVerticalBounds(enemy) {
       const drawSize = (enemy.isBoss ? BOSS_DRAW_SIZE : ENEMY_DRAW_SIZE) * (enemy.renderScale || 1);
-      const minY = enemy.isBoss && enemy.type === 'bramble-drone' ? 32 : getBrawlLaneMinY();
-      const maxY = enemy.isBoss && enemy.type === 'bramble-drone'
-        ? getEntityMaxYForDrawSize(drawSize)
-        : Math.min(BRAWL_LANE_MAX_Y, getEntityMaxYForDrawSize(drawSize));
+      const minY = getBrawlLaneMinY();
+      const maxY = Math.min(BRAWL_LANE_MAX_Y, getEntityMaxYForDrawSize(drawSize));
       return {
         minY,
         maxY: Math.max(minY, maxY)
@@ -1323,7 +1357,7 @@
     function doAttack(player, baseDamage, range, knockback, stun = 14) {
       const hitbox = {
         x: player.x + player.facing * range,
-        y: player.y - 20,
+        y: player.y - 56,
         width: 36,
         height: 40
       };
@@ -1445,7 +1479,11 @@
         const dx = player.x - enemy.x;
         const targetY = getEnemyAimTargetY(enemy, player);
         const dy = targetY - enemy.y;
-        const distance = Math.hypot(dx, dy);
+        const playerBody = getPlayerHitbox(player);
+        const enemyBody = getEnemyHitbox(enemy);
+        const centerDx = (playerBody.x + (playerBody.width / 2)) - (enemyBody.x + (enemyBody.width / 2));
+        const centerDy = (playerBody.y + (playerBody.height / 2)) - (enemyBody.y + (enemyBody.height / 2));
+        const distance = Math.hypot(centerDx, centerDy);
         enemy.isMoving = false;
         if (Math.abs(dx) > ENEMY_FACING_DEADZONE_X) {
           enemy.facing = dx >= 0 ? 1 : -1;
@@ -1472,7 +1510,7 @@
             if (enemy.ranged) {
               state.projectiles.push({
                 x: enemy.x,
-                y: enemy.y - 10,
+                y: enemyBody.y + (enemyBody.height * 0.4),
                 vx: Math.sign(dx) * 4.5,
                 damage: enemy.damage,
                 friendly: false,
@@ -1480,7 +1518,13 @@
                 color: '#ff7b7b'
               });
             } else {
-              if (distance < enemy.range + 10) {
+              const meleeZone = {
+                x: enemyBody.x + (enemy.facing >= 0 ? enemyBody.width : -(enemy.range + 10)),
+                y: enemyBody.y,
+                width: enemy.range + 10,
+                height: enemyBody.height
+              };
+              if (rectsOverlap(meleeZone, playerBody)) {
                 damagePlayer(enemy.damage);
               }
             }
@@ -1736,7 +1780,7 @@
 
     function drawEntity(entity, size, colorOverride) {
       const x = entity.x - state.cameraX;
-      const y = entity.y - state.cameraY - 32 - entity.z;
+      const y = entity.y - state.cameraY - entity.z;
       const depthScale = getDepthScaleForY(entity.y);
       if (entity.animation && entity.charData) {
         const track = getPlayerAnimTrack(entity, entity.animation.state, entity.animation.facing);
@@ -1750,7 +1794,7 @@
             frame.width,
             frame.height,
             x - drawSize / 2,
-            y,
+            y - drawSize,
             drawSize,
             drawSize
           );
@@ -1769,7 +1813,7 @@
             frame.width,
             frame.height,
             x - drawSize / 2,
-            y,
+            y - drawSize,
             drawSize,
             drawSize
           );
@@ -1778,11 +1822,11 @@
       }
       if (entity.sprite) {
         const drawSize = size * depthScale;
-        ctx.drawImage(entity.sprite, x - drawSize / 2, y, drawSize, drawSize);
+        ctx.drawImage(entity.sprite, x - drawSize / 2, y - drawSize, drawSize, drawSize);
       } else {
         const drawSize = size * depthScale;
         ctx.fillStyle = colorOverride || '#fff';
-        ctx.fillRect(x - drawSize / 2, y, drawSize, drawSize);
+        ctx.fillRect(x - drawSize / 2, y - drawSize, drawSize, drawSize);
       }
     }
 
@@ -1827,6 +1871,21 @@
         ctx.fillStyle = '#ff7b7b';
         ctx.fillRect(enemy.x - state.cameraX - barWidth / 2, enemy.y - state.cameraY - 44, barWidth * hpPct, 6);
       });
+
+      if (showCollisionDebug) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 75, 75, 0.9)';
+        ctx.lineWidth = 2;
+        if (state.player) {
+          const playerBody = getPlayerHitbox(state.player);
+          ctx.strokeRect(playerBody.x - state.cameraX, playerBody.y - state.cameraY, playerBody.width, playerBody.height);
+        }
+        state.enemies.forEach(enemy => {
+          const enemyBody = getEnemyHitbox(enemy);
+          ctx.strokeRect(enemyBody.x - state.cameraX, enemyBody.y - state.cameraY, enemyBody.width, enemyBody.height);
+        });
+        ctx.restore();
+      }
 
       if (state.ally) {
         ctx.fillStyle = '#fff2a3';
@@ -1944,6 +2003,7 @@
         if (event.key.toLowerCase() === 'l') input.special = true;
         if (event.key === ' ') input.jump = true;
         if (event.key === 'Shift') input.block = true;
+        if (event.key.toLowerCase() === 'b') showCollisionDebug = !showCollisionDebug;
       });
       window.addEventListener('keyup', (event) => {
         if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') input.left = false;
@@ -2152,7 +2212,17 @@
       };
 
       Object.entries(characterSprites).forEach(([key, src]) => {
-        promises.push(loadImage(src).then(img => { assets.characters[key] = img; }));
+        promises.push(loadImage(src).then(img => {
+          assets.characters[key] = img;
+          const playerProfileMap = {
+            'assets/char-rustblade.svg': 'player-rustblade',
+            'assets/char-bayou-bruiser.svg': 'player-bayou-bruiser',
+            'assets/char-fume-alchemist.svg': 'player-fume-alchemist',
+            'assets/char-grove-sentinel.svg': 'player-grove-sentinel',
+            'assets/char-clockwire-duelist.svg': 'player-clockwire'
+          };
+          createPhysicsProfile(playerProfileMap[key], img, null, PLAYER_DRAW_SIZE);
+        }));
       });
 
       const billySpriteSheets = {
@@ -2168,12 +2238,16 @@
         ['right', 'left'].forEach((facingName) => {
           const [src, frameCount] = config[facingName];
           promises.push(loadImage(src).then((img) => {
+            const frames = buildFrameRects(img, frameCount);
             billyTracks[stateName][facingName] = {
               img,
-              frames: buildFrameRects(img, frameCount),
+              frames,
               fps: config.fps,
               loop: config.loop
             };
+            if (stateName === 'idle' && facingName === 'right') {
+              createPhysicsProfile('player-billy-boxby', img, frames[0], PLAYER_DRAW_SIZE * 0.75);
+            }
           }));
         });
       });
@@ -2192,12 +2266,17 @@
         ['right', 'left'].forEach((facingName) => {
           const [src, frameCount] = config[facingName];
           promises.push(loadImage(src).then((img) => {
+            const frames = buildFrameRects(img, frameCount);
             brambleDroneTracks[stateName][facingName] = {
               img,
-              frames: buildFrameRects(img, frameCount),
+              frames,
               fps: config.fps,
               loop: config.loop
             };
+            if (stateName === 'idle' && facingName === 'right') {
+              createPhysicsProfile('enemy-bramble-drone', img, frames[0], ENEMY_DRAW_SIZE);
+              createPhysicsProfile('enemy-bramble-drone-boss', img, frames[0], BOSS_DRAW_SIZE * BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER);
+            }
           }));
         });
       });
@@ -2216,12 +2295,16 @@
         ['right', 'left'].forEach((facingName) => {
           const [src, frameCount] = config[facingName];
           promises.push(loadImage(src).then((img) => {
+            const frames = buildFrameRects(img, frameCount);
             chokingBlossomTracks[stateName][facingName] = {
               img,
-              frames: buildFrameRects(img, frameCount),
+              frames,
               fps: config.fps,
               loop: config.loop
             };
+            if (stateName === 'idle' && facingName === 'right') {
+              createPhysicsProfile('enemy-swamp', img, frames[0], ENEMY_DRAW_SIZE * CHOKING_BLOSSOM_SCALE_MULTIPLIER);
+            }
           }));
         });
       });
@@ -2235,10 +2318,17 @@
       };
 
       Object.entries(enemySprites).forEach(([key, src]) => {
-        promises.push(loadImage(src).then(img => { assets.enemies[key] = img; }));
+        promises.push(loadImage(src).then(img => {
+          assets.enemies[key] = img;
+          const typeId = key.replace('enemy-', '');
+          createPhysicsProfile(`enemy-${typeId}`, img, null, ENEMY_DRAW_SIZE);
+        }));
       });
 
-      promises.push(loadImage('assets/boss-legrim.svg').then(img => { assets.boss = img; }));
+      promises.push(loadImage('assets/boss-legrim.svg').then(img => {
+        assets.boss = img;
+        createPhysicsProfile('enemy-boss', img, null, BOSS_DRAW_SIZE);
+      }));
       promises.push(loadImage('assets/pickup-gumbo.svg').then(img => { assets.pickup = img; }));
 
       let loaded = 0;

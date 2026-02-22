@@ -785,6 +785,109 @@
       return frameRects;
     }
 
+    function inferDirectionalSourcePath(src, targetFacing) {
+      if (!src || !targetFacing) return src;
+      const replaceDirectionalToken = (value, fromToken, toToken) => {
+        const tokenRegex = new RegExp(fromToken, 'gi');
+        if (!tokenRegex.test(value)) return value;
+        return value.replace(tokenRegex, (match) => {
+          if (match === match.toUpperCase()) return toToken.toUpperCase();
+          if (match[0] === match[0].toUpperCase()) {
+            return toToken[0].toUpperCase() + toToken.slice(1);
+          }
+          return toToken;
+        });
+      };
+
+      if (targetFacing === 'right') {
+        return replaceDirectionalToken(src, 'left', 'right');
+      }
+      if (targetFacing === 'left') {
+        return replaceDirectionalToken(src, 'right', 'left');
+      }
+      return src;
+    }
+
+    async function createDirectionalAnimationTracks(spriteSheets, onTrackLoaded) {
+      const tracks = {};
+      const facings = ['right', 'left'];
+
+      for (const [stateName, config] of Object.entries(spriteSheets)) {
+        tracks[stateName] = {};
+        for (const facingName of facings) {
+          const facingConfig = config[facingName];
+          if (!facingConfig) continue;
+          const [src, frameCount] = facingConfig;
+          const img = await loadImage(src);
+          const frames = buildFrameRects(img, frameCount);
+          tracks[stateName][facingName] = {
+            img,
+            frames,
+            fps: config.fps,
+            loop: config.loop,
+            flipX: false,
+            renderOffsetX: 0
+          };
+          if (onTrackLoaded) {
+            onTrackLoaded({ stateName, facingName, img, frames });
+          }
+        }
+
+        for (const facingName of facings) {
+          if (tracks[stateName][facingName]) continue;
+          const oppositeFacing = facingName === 'right' ? 'left' : 'right';
+          const oppositeTrack = tracks[stateName][oppositeFacing];
+          if (oppositeTrack) {
+            tracks[stateName][facingName] = {
+              img: oppositeTrack.img,
+              frames: oppositeTrack.frames,
+              fps: config.fps,
+              loop: config.loop,
+              flipX: !oppositeTrack.flipX,
+              renderOffsetX: oppositeTrack.renderOffsetX || 0
+            };
+            continue;
+          }
+
+          const oppositeConfig = config[oppositeFacing];
+          if (!oppositeConfig) continue;
+          const [oppositeSrc, oppositeFrameCount] = oppositeConfig;
+          const inferredSrc = inferDirectionalSourcePath(oppositeSrc, facingName);
+          if (inferredSrc === oppositeSrc) continue;
+
+          try {
+            const img = await loadImage(inferredSrc);
+            const frames = buildFrameRects(img, oppositeFrameCount);
+            tracks[stateName][facingName] = {
+              img,
+              frames,
+              fps: config.fps,
+              loop: config.loop,
+              flipX: false,
+              renderOffsetX: 0
+            };
+            if (onTrackLoaded) {
+              onTrackLoaded({ stateName, facingName, img, frames });
+            }
+          } catch (error) {
+            // Fallback to runtime horizontal flip using the opposite facing sprite and frame order.
+            const fallbackTrack = tracks[stateName][oppositeFacing];
+            if (!fallbackTrack) continue;
+            tracks[stateName][facingName] = {
+              img: fallbackTrack.img,
+              frames: fallbackTrack.frames,
+              fps: config.fps,
+              loop: config.loop,
+              flipX: !fallbackTrack.flipX,
+              renderOffsetX: fallbackTrack.renderOffsetX || 0
+            };
+          }
+        }
+      }
+
+      return tracks;
+    }
+
     function normalizeBackgroundImage(img) {
       if (!img || img.height <= img.width * 2) {
         return img;
@@ -1802,17 +1905,36 @@
         if (track && track.img) {
           const frame = track.frames[entity.animation.frameIndex] || track.frames[0];
           const drawSize = size * (entity.renderScale || 1) * depthScale;
-          ctx.drawImage(
-            track.img,
-            frame.x,
-            frame.y,
-            frame.width,
-            frame.height,
-            x - drawSize / 2,
-            y - drawSize,
-            drawSize,
-            drawSize
-          );
+          const offsetX = track.renderOffsetX || 0;
+          if (track.flipX) {
+            ctx.save();
+            ctx.translate(x + offsetX, y);
+            ctx.scale(-1, 1);
+            ctx.drawImage(
+              track.img,
+              frame.x,
+              frame.y,
+              frame.width,
+              frame.height,
+              -drawSize / 2,
+              -drawSize,
+              drawSize,
+              drawSize
+            );
+            ctx.restore();
+          } else {
+            ctx.drawImage(
+              track.img,
+              frame.x,
+              frame.y,
+              frame.width,
+              frame.height,
+              x - drawSize / 2 + offsetX,
+              y - drawSize,
+              drawSize,
+              drawSize
+            );
+          }
           return;
         }
       }
@@ -1821,17 +1943,36 @@
         if (track && track.img) {
           const frame = track.frames[entity.animation.frameIndex] || track.frames[0];
           const drawSize = size * (entity.renderScale || 1) * depthScale;
-          ctx.drawImage(
-            track.img,
-            frame.x,
-            frame.y,
-            frame.width,
-            frame.height,
-            x - drawSize / 2,
-            y - drawSize,
-            drawSize,
-            drawSize
-          );
+          const offsetX = track.renderOffsetX || 0;
+          if (track.flipX) {
+            ctx.save();
+            ctx.translate(x + offsetX, y);
+            ctx.scale(-1, 1);
+            ctx.drawImage(
+              track.img,
+              frame.x,
+              frame.y,
+              frame.width,
+              frame.height,
+              -drawSize / 2,
+              -drawSize,
+              drawSize,
+              drawSize
+            );
+            ctx.restore();
+          } else {
+            ctx.drawImage(
+              track.img,
+              frame.x,
+              frame.y,
+              frame.width,
+              frame.height,
+              x - drawSize / 2 + offsetX,
+              y - drawSize,
+              drawSize,
+              drawSize
+            );
+          }
           return;
         }
       }
@@ -2252,25 +2393,13 @@
         death: { right: ['assets/BB_billyBoxby_killed_right.png', 5], left: ['assets/BB_billyBoxby_killed_left.png', 5], fps: PLAYER_ANIM_FPS.death, loop: false }
       };
 
-      const billyTracks = { idle: {}, walk: {}, hurt: {}, attack: {}, death: {} };
-      Object.entries(billySpriteSheets).forEach(([stateName, config]) => {
-        ['right', 'left'].forEach((facingName) => {
-          const [src, frameCount] = config[facingName];
-          promises.push(loadImage(src).then((img) => {
-            const frames = buildFrameRects(img, frameCount);
-            billyTracks[stateName][facingName] = {
-              img,
-              frames,
-              fps: config.fps,
-              loop: config.loop
-            };
-            if (stateName === 'idle' && facingName === 'right') {
-              createPhysicsProfile('player-billy-boxby', img, frames[0], PLAYER_DRAW_SIZE * 0.75);
-            }
-          }));
-        });
-      });
-      assets.characters['billy-boxby'] = { tracks: billyTracks };
+      promises.push(createDirectionalAnimationTracks(billySpriteSheets, ({ stateName, facingName, img, frames }) => {
+        if (stateName === 'idle' && facingName === 'right') {
+          createPhysicsProfile('player-billy-boxby', img, frames[0], PLAYER_DRAW_SIZE * 0.75);
+        }
+      }).then((tracks) => {
+        assets.characters['billy-boxby'] = { tracks };
+      }));
 
       const brambleDroneSpriteSheets = {
         idle: { right: ['assets/BB_brambleDrone_right.png', 1], left: ['assets/BB_brambleDrone_left.png', 1], fps: 0, loop: false },
@@ -2280,26 +2409,14 @@
         death: { right: ['assets/BB_brambleDrone_killed_right.png', 6], left: ['assets/BB_brambleDrone_killed_left.png', 6], fps: 8, loop: false }
       };
 
-      const brambleDroneTracks = { idle: {}, walk: {}, hurt: {}, attack: {}, death: {} };
-      Object.entries(brambleDroneSpriteSheets).forEach(([stateName, config]) => {
-        ['right', 'left'].forEach((facingName) => {
-          const [src, frameCount] = config[facingName];
-          promises.push(loadImage(src).then((img) => {
-            const frames = buildFrameRects(img, frameCount);
-            brambleDroneTracks[stateName][facingName] = {
-              img,
-              frames,
-              fps: config.fps,
-              loop: config.loop
-            };
-            if (stateName === 'idle' && facingName === 'right') {
-              createPhysicsProfile('enemy-bramble-drone', img, frames[0], ENEMY_DRAW_SIZE);
-              createPhysicsProfile('enemy-bramble-drone-boss', img, frames[0], BOSS_DRAW_SIZE * BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER);
-            }
-          }));
-        });
-      });
-      assets.enemyAnimations['bramble-drone'] = brambleDroneTracks;
+      promises.push(createDirectionalAnimationTracks(brambleDroneSpriteSheets, ({ stateName, facingName, img, frames }) => {
+        if (stateName === 'idle' && facingName === 'right') {
+          createPhysicsProfile('enemy-bramble-drone', img, frames[0], ENEMY_DRAW_SIZE);
+          createPhysicsProfile('enemy-bramble-drone-boss', img, frames[0], BOSS_DRAW_SIZE * BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER);
+        }
+      }).then((tracks) => {
+        assets.enemyAnimations['bramble-drone'] = tracks;
+      }));
 
       const chokingBlossomSpriteSheets = {
         idle: { right: ['assets/BB_chokingBlossom_right.png', 1], left: ['assets/BB_chokingBlossom_left.png', 1], fps: 0, loop: false },
@@ -2309,25 +2426,13 @@
         death: { right: ['assets/BB_chokingBlossom_killed_right.png', 6], left: ['assets/BB_chokingBlossom_killed_left.png', 6], fps: 8, loop: false }
       };
 
-      const chokingBlossomTracks = { idle: {}, walk: {}, hurt: {}, attack: {}, death: {} };
-      Object.entries(chokingBlossomSpriteSheets).forEach(([stateName, config]) => {
-        ['right', 'left'].forEach((facingName) => {
-          const [src, frameCount] = config[facingName];
-          promises.push(loadImage(src).then((img) => {
-            const frames = buildFrameRects(img, frameCount);
-            chokingBlossomTracks[stateName][facingName] = {
-              img,
-              frames,
-              fps: config.fps,
-              loop: config.loop
-            };
-            if (stateName === 'idle' && facingName === 'right') {
-              createPhysicsProfile('enemy-swamp', img, frames[0], ENEMY_DRAW_SIZE * CHOKING_BLOSSOM_SCALE_MULTIPLIER);
-            }
-          }));
-        });
-      });
-      assets.enemyAnimations.swamp = chokingBlossomTracks;
+      promises.push(createDirectionalAnimationTracks(chokingBlossomSpriteSheets, ({ stateName, facingName, img, frames }) => {
+        if (stateName === 'idle' && facingName === 'right') {
+          createPhysicsProfile('enemy-swamp', img, frames[0], ENEMY_DRAW_SIZE * CHOKING_BLOSSOM_SCALE_MULTIPLIER);
+        }
+      }).then((tracks) => {
+        assets.enemyAnimations.swamp = tracks;
+      }));
 
       const enemySprites = {
         'enemy-goblin': 'assets/enemy-goblin.svg',

@@ -1878,14 +1878,18 @@
         drawEntity(entity, size);
       });
 
-      state.enemies.forEach(enemy => {
-        const barWidth = enemy.isBoss ? 70 : 40;
-        const hpPct = enemy.hp / enemy.maxHp;
-        ctx.fillStyle = 'rgba(0,0,0,0.5)';
-        ctx.fillRect(enemy.x - state.cameraX - barWidth / 2, enemy.y - state.cameraY - 44, barWidth, 6);
-        ctx.fillStyle = '#ff7b7b';
-        ctx.fillRect(enemy.x - state.cameraX - barWidth / 2, enemy.y - state.cameraY - 44, barWidth * hpPct, 6);
-      });
+      state.enemies
+        .filter(enemy => enemy.isBoss && enemy.hp > 0)
+        .forEach(enemy => {
+          const barWidth = 70;
+          const hpPct = enemy.hp / enemy.maxHp;
+          const barY = enemy.y - state.cameraY + 8;
+
+          ctx.fillStyle = 'rgba(0,0,0,0.5)';
+          ctx.fillRect(enemy.x - state.cameraX - barWidth / 2, barY, barWidth, 6);
+          ctx.fillStyle = '#ff7b7b';
+          ctx.fillRect(enemy.x - state.cameraX - barWidth / 2, barY, barWidth * hpPct, 6);
+        });
 
       if (showCollisionDebug) {
         ctx.save();

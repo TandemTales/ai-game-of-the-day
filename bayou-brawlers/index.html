@@ -1212,9 +1212,27 @@
       }
     }
 
-    function getWaveTriggerX(waveIndex) {
+    function getWaveTriggerXForLevelWidth(waveIndex, levelWidth) {
       const pct = WAVE_TRIGGER_PCTS[waveIndex] || 0.9;
-      return clamp(40 + ((state.levelWidth - 80) * pct), 40, state.levelWidth - 40);
+      return clamp(40 + ((levelWidth - 80) * pct), 40, levelWidth - 40);
+    }
+
+    function getWaveTriggerX(waveIndex) {
+      return getWaveTriggerXForLevelWidth(waveIndex, state.levelWidth);
+    }
+
+    function getWaveForwardRevealDistance() {
+      const stageOne = levels[0];
+      const stageOneDefaultWidth = 2200;
+      const stageOneLevelWidth = getLevelWorldWidth(stageOne, stageOneDefaultWidth);
+      const stageOneBossTriggerX = getWaveTriggerXForLevelWidth(REGULAR_WAVE_COUNT, stageOneLevelWidth);
+      return Math.max(0, (stageOneLevelWidth - 40) - stageOneBossTriggerX);
+    }
+
+    function getWaveLockX(waveIndex) {
+      const triggerX = getWaveTriggerX(waveIndex);
+      const revealDistance = getWaveForwardRevealDistance();
+      return clamp(triggerX + revealDistance, triggerX, state.levelWidth - 40);
     }
 
     function getRegularWave(level, waveIndex) {
@@ -1229,7 +1247,7 @@
     function spawnWave(level, waveIndex) {
       const wave = getRegularWave(level, waveIndex);
       if (!wave) return;
-      const waveLockX = getWaveTriggerX(waveIndex);
+      const waveLockX = getWaveLockX(waveIndex);
       state.enemies = [];
       const baseX = clamp(waveLockX + 180, waveLockX + 80, state.levelWidth - 160);
       const spawnCount = waveIndex === 0
@@ -1259,7 +1277,7 @@
       state.waveIndex = REGULAR_WAVE_COUNT;
       state.waveActive = true;
       state.bossActive = true;
-      state.lockX = getWaveTriggerX(REGULAR_WAVE_COUNT);
+      state.lockX = getWaveLockX(REGULAR_WAVE_COUNT);
       updateWaveHud();
     }
 

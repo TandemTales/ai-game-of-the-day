@@ -2387,10 +2387,10 @@
 
       const billySpriteSheets = {
         idle: { right: ['assets/BB_billyBoxby_right.png', 1], left: ['assets/BB_billyBoxby_left.png', 1], fps: 0, loop: false },
-        walk: { right: ['assets/BB_billyBoxby_walking_right.png', 4], left: ['assets/BB_billyBoxby_walking_left.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
-        hurt: { right: ['assets/BB_billyBoxby_damaged_right.png', 4], left: ['assets/BB_billyBoxby_damaged_left.png', 4], fps: PLAYER_ANIM_FPS.hurt, loop: false },
-        attack: { right: ['assets/BB_billyBoxby_attack_heavy_right.png', 7], left: ['assets/BB_billyBoxby_attack_heavy_left.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
-        death: { right: ['assets/BB_billyBoxby_killed_right.png', 5], left: ['assets/BB_billyBoxby_killed_left.png', 5], fps: PLAYER_ANIM_FPS.death, loop: false }
+        walk: { right: ['assets/BB_billyBoxby_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
+        hurt: { right: ['assets/BB_billyBoxby_damaged_right.png', 4], fps: PLAYER_ANIM_FPS.hurt, loop: false },
+        attack: { right: ['assets/BB_billyBoxby_attack_heavy_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
+        death: { right: ['assets/BB_billyBoxby_killed_right.png', 5], fps: PLAYER_ANIM_FPS.death, loop: false }
       };
 
       promises.push(createDirectionalAnimationTracks(billySpriteSheets, ({ stateName, facingName, img, frames }) => {
@@ -2403,10 +2403,10 @@
 
       const brambleDroneSpriteSheets = {
         idle: { right: ['assets/BB_brambleDrone_right.png', 1], left: ['assets/BB_brambleDrone_left.png', 1], fps: 0, loop: false },
-        walk: { right: ['assets/BB_brambleDrone_walking_right.png', 8], left: ['assets/BB_brambleDrone_walking_left.png', 8], fps: 10, loop: true },
-        hurt: { right: ['assets/BB_brambleDrone_damaged_right.png', 5], left: ['assets/BB_brambleDrone_damaged_left.png', 5], fps: 12, loop: false },
-        attack: { right: ['assets/BB_brambleDrone_attack_right.png', 7], left: ['assets/BB_brambleDrone_attack_left.png', 7], fps: 14, loop: false },
-        death: { right: ['assets/BB_brambleDrone_killed_right.png', 6], left: ['assets/BB_brambleDrone_killed_left.png', 6], fps: 8, loop: false }
+        walk: { right: ['assets/BB_brambleDrone_walking_right.png', 8], fps: 10, loop: true },
+        hurt: { right: ['assets/BB_brambleDrone_damaged_right.png', 5], fps: 12, loop: false },
+        attack: { right: ['assets/BB_brambleDrone_attack_right.png', 7], fps: 14, loop: false },
+        death: { right: ['assets/BB_brambleDrone_killed_right.png', 6], fps: 8, loop: false }
       };
 
       promises.push(createDirectionalAnimationTracks(brambleDroneSpriteSheets, ({ stateName, facingName, img, frames }) => {
@@ -2420,10 +2420,10 @@
 
       const chokingBlossomSpriteSheets = {
         idle: { right: ['assets/BB_chokingBlossom_right.png', 1], left: ['assets/BB_chokingBlossom_left.png', 1], fps: 0, loop: false },
-        walk: { right: ['assets/BB_chokingBlossom_walking_right.png', 8], left: ['assets/BB_chokingBlossom_walking_left.png', 8], fps: 10, loop: true },
-        hurt: { right: ['assets/BB_chokingBlossom_damaged_right.png', 5], left: ['assets/BB_chokingBlossom_damaged_left.png', 5], fps: 12, loop: false },
-        attack: { right: ['assets/BB_chokingBlossom_attack_right.png', 7], left: ['assets/BB_chokingBlossom_attack_left.png', 7], fps: 14, loop: false },
-        death: { right: ['assets/BB_chokingBlossom_killed_right.png', 6], left: ['assets/BB_chokingBlossom_killed_left.png', 6], fps: 8, loop: false }
+        walk: { right: ['assets/BB_chokingBlossom_walking_right.png', 8], fps: 10, loop: true },
+        hurt: { right: ['assets/BB_chokingBlossom_damaged_right.png', 5], fps: 12, loop: false },
+        attack: { right: ['assets/BB_chokingBlossom_attack_right.png', 7], fps: 14, loop: false },
+        death: { right: ['assets/BB_chokingBlossom_killed_right.png', 6], fps: 8, loop: false }
       };
 
       promises.push(createDirectionalAnimationTracks(chokingBlossomSpriteSheets, ({ stateName, facingName, img, frames }) => {

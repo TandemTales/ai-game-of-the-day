@@ -532,86 +532,6 @@
 
     const characters = [
       {
-        id: 'rustblade',
-        name: 'Rustblade Rook',
-        portrait: 'assets/char-rustblade.svg',
-        sprite: 'assets/char-rustblade.svg',
-        physicsProfileId: 'player-rustblade',
-        stats: { speed: 3.2, power: 1.1, range: 42, durability: 110 },
-        moves: {
-          fast: 'Quick cleave combo',
-          power: 'Heavy wrench uppercut',
-          special: 'Steamguard (damage shield)'
-        },
-        special: (player) => {
-          player.shieldTimer = 240;
-        }
-      },
-      {
-        id: 'bayou-bruiser',
-        name: 'Bayou Bruiser',
-        portrait: 'assets/char-bayou-bruiser.svg',
-        sprite: 'assets/char-bayou-bruiser.svg',
-        physicsProfileId: 'player-bayou-bruiser',
-        stats: { speed: 2.8, power: 1.35, range: 36, durability: 135 },
-        moves: {
-          fast: 'Knee rush',
-          power: 'Swamp slam (knockback)',
-          special: 'Mudshock (stun wave)'
-        },
-        special: (player) => {
-          spawnShockwave(player.x + (player.facing * 30), player.y, 50, 26, 24, 80);
-        }
-      },
-      {
-        id: 'fume-alchemist',
-        name: 'Fume Alchemist',
-        portrait: 'assets/char-fume-alchemist.svg',
-        sprite: 'assets/char-fume-alchemist.svg',
-        physicsProfileId: 'player-fume-alchemist',
-        stats: { speed: 3.4, power: 0.95, range: 46, durability: 95 },
-        moves: {
-          fast: 'Quick vial jab',
-          power: 'Corrosive burst',
-          special: 'Toxic flare (ranged)'
-        },
-        special: (player) => {
-          spawnProjectile(player, 9, 28, true, '#7aff9c');
-        }
-      },
-      {
-        id: 'grove-sentinel',
-        name: 'Grove Sentinel',
-        portrait: 'assets/char-grove-sentinel.svg',
-        sprite: 'assets/char-grove-sentinel.svg',
-        physicsProfileId: 'player-grove-sentinel',
-        stats: { speed: 2.9, power: 1.2, range: 52, durability: 125 },
-        moves: {
-          fast: 'Vine whip',
-          power: 'Rooted crusher',
-          special: 'Thorn snare (root)'
-        },
-        special: (player) => {
-          rootEnemies(player.x, player.y, 90);
-        }
-      },
-      {
-        id: 'clockwire',
-        name: 'Clockwire Duelist',
-        portrait: 'assets/char-clockwire-duelist.svg',
-        sprite: 'assets/char-clockwire-duelist.svg',
-        physicsProfileId: 'player-clockwire',
-        stats: { speed: 3.8, power: 0.9, range: 40, durability: 100 },
-        moves: {
-          fast: 'Gear slash',
-          power: 'Timebreaker strike',
-          special: 'Dash cut (invuln)'
-        },
-        special: (player) => {
-          player.dashTimer = 30;
-        }
-      },
-      {
         id: 'billy-boxby',
         name: 'Billy Boxby',
         portrait: 'assets/BB_profile_billyBoxby.png',
@@ -626,6 +546,125 @@
         },
         special: (player) => {
           state.ally = { x: player.x, y: player.y - 20, timer: 360 };
+        }
+      },
+      {
+        id: 'green-fairy',
+        name: 'Green Fairy',
+        portrait: 'assets/BB_profile_greenFairy.png',
+        sprite: 'green-fairy',
+        renderScale: 0.75,
+        physicsProfileId: 'player-green-fairy',
+        stats: { speed: 3.5, power: 0.9, range: 58, durability: 95 },
+        moves: {
+          fast: 'Quick wand tap',
+          power: 'Fey burst',
+          special: 'Arc shot (ranged)'
+        },
+        special: (player) => {
+          spawnProjectile(player, 9, 34, true, '#7aff9c');
+        }
+      },
+      {
+        id: 'grimma-the-feared',
+        name: 'Grimma the Feared',
+        portrait: 'assets/BB_profile_grimmaTheFeared.png',
+        sprite: 'grimma-the-feared',
+        renderScale: 0.75,
+        physicsProfileId: 'player-grimma-the-feared',
+        stats: { speed: 2.9, power: 1.3, range: 42, durability: 135 },
+        moves: {
+          fast: 'Axe hook',
+          power: 'Fearsome cleave',
+          special: 'Battle roar (shockwave)'
+        },
+        special: (player) => {
+          spawnShockwave(player.x + (player.facing * 30), player.y, 50, 26, 24, 80);
+        }
+      },
+      {
+        id: 'old-man-croc',
+        name: 'Old Man Croc',
+        portrait: 'assets/BB_profile_oldManCroc.png',
+        sprite: 'old-man-croc',
+        renderScale: 0.75,
+        physicsProfileId: 'player-old-man-croc',
+        stats: { speed: 2.8, power: 1.35, range: 36, durability: 140 },
+        moves: {
+          fast: 'Tail swipe',
+          power: 'Gator crush',
+          special: 'Mud wall (shield)'
+        },
+        special: (player) => {
+          player.shieldTimer = 240;
+        }
+      },
+      {
+        id: 'possumatli',
+        name: 'Possumatli',
+        portrait: 'assets/BB_profile_possumatli.png',
+        sprite: 'possumatli',
+        renderScale: 0.75,
+        physicsProfileId: 'player-possumatli',
+        stats: { speed: 3.8, power: 0.9, range: 40, durability: 100 },
+        moves: {
+          fast: 'Scramble slash',
+          power: 'Pounce combo',
+          special: 'Dash cut (invuln)'
+        },
+        special: (player) => {
+          player.dashTimer = 30;
+        }
+      },
+      {
+        id: 'rustbucket',
+        name: 'Rustbucket',
+        portrait: 'assets/BB_profile_rustbucket.png',
+        sprite: 'rustbucket',
+        renderScale: 0.75,
+        physicsProfileId: 'player-rustbucket',
+        stats: { speed: 3.2, power: 1.1, range: 42, durability: 110 },
+        moves: {
+          fast: 'Quick cleave combo',
+          power: 'Heavy wrench uppercut',
+          special: 'Steamguard (damage shield)'
+        },
+        special: (player) => {
+          player.shieldTimer = 240;
+        }
+      },
+      {
+        id: 'scarlett-glumpkin',
+        name: 'Scarlett Glumpkin',
+        portrait: 'assets/BB_profile_scarlettGlumpkin.png',
+        sprite: 'scarlett-glumpkin',
+        renderScale: 0.75,
+        physicsProfileId: 'player-scarlett-glumpkin',
+        stats: { speed: 3.4, power: 0.95, range: 46, durability: 98 },
+        moves: {
+          fast: 'Needle jab',
+          power: 'Clockwork burst',
+          special: 'Toxic flare (ranged)'
+        },
+        special: (player) => {
+          spawnProjectile(player, 9, 30, true, '#ff8fd6');
+        }
+      },
+      {
+        id: 'shunky-rooster',
+        name: 'Shunky Rooster',
+        portrait: 'assets/BB_profile_shunkyRooster.png',
+        sprite: 'shunky-rooster',
+        renderScale: 0.75,
+        physicsProfileId: 'player-shunky-rooster',
+        stats: { speed: 3.1, power: 1.15, range: 52, durability: 122 },
+        moves: {
+          fast: 'Spur peck',
+          power: 'Wing haymaker',
+          special: 'Thorn snare (root)'
+        },
+        special: (player) => {
+          rootEnemies(player.x, player.y, 90);
         }
       }
     ];
@@ -704,15 +743,15 @@
     ];
 
     const enemyTypes = {
-      goblin: { hp: 30, speed: 1.7, damage: 8, range: 18, score: 60, sprite: 'enemy-goblin' },
-      swamp: { hp: 45, speed: 1.3, damage: 10, range: 18, score: 80, sprite: 'choking-blossom' },
-      thug: { hp: 40, speed: 1.6, damage: 9, range: 18, score: 70, sprite: 'enemy-thug' },
-      automaton: { hp: 55, speed: 1.2, damage: 12, range: 20, score: 90, sprite: 'enemy-automaton' },
-      fey: { hp: 38, speed: 1.9, damage: 9, range: 18, score: 85, sprite: 'enemy-fey' },
-      ranged: { hp: 30, speed: 1.4, damage: 7, range: 140, score: 95, sprite: 'enemy-fey', ranged: true },
-      elite: { hp: 70, speed: 1.5, damage: 14, range: 22, score: 140, sprite: 'enemy-automaton' },
-      brute: { hp: 120, speed: 1.1, damage: 18, range: 24, score: 200, sprite: 'enemy-thug' },
-      mage: { hp: 90, speed: 1.3, damage: 16, range: 120, score: 180, sprite: 'enemy-fey', ranged: true },
+      goblin: { hp: 30, speed: 1.7, damage: 8, range: 18, score: 60, sprite: 'goblin' },
+      swamp: { hp: 45, speed: 1.3, damage: 10, range: 18, score: 80, sprite: 'swamp' },
+      thug: { hp: 40, speed: 1.6, damage: 9, range: 18, score: 70, sprite: 'thug' },
+      automaton: { hp: 55, speed: 1.2, damage: 12, range: 20, score: 90, sprite: 'automaton' },
+      fey: { hp: 38, speed: 1.9, damage: 9, range: 18, score: 85, sprite: 'fey' },
+      ranged: { hp: 30, speed: 1.4, damage: 7, range: 140, score: 95, sprite: 'fey', ranged: true },
+      elite: { hp: 70, speed: 1.5, damage: 14, range: 22, score: 140, sprite: 'automaton' },
+      brute: { hp: 120, speed: 1.1, damage: 18, range: 24, score: 200, sprite: 'thug' },
+      mage: { hp: 90, speed: 1.3, damage: 16, range: 120, score: 180, sprite: 'fey', ranged: true },
       'bramble-drone': { hp: 170, speed: 1.3, damage: 18, range: 28, score: 280, sprite: 'bramble-drone' },
       boss: { hp: 200, speed: 1.2, damage: 20, range: 26, score: 350, sprite: 'boss' }
     };
@@ -735,7 +774,7 @@
     const BRAWL_LANE_MIN_Y = Math.floor(canvas.height * 0.5);
     const BRAWL_LANE_MAX_Y = canvas.height - 44;
     const MOVE_EPSILON = 0.05;
-    const SPRITE_FRAME_SIZE = 256;
+    const SPRITE_FRAME_SIZE = 128;
 
     const PLAYER_ANIM_FPS = {
       walk: 10,
@@ -2363,96 +2402,201 @@
         promises.push(loadImage(src).then(img => { assets.backgrounds[key] = normalizeBackgroundImage(img); }));
       });
 
-      const characterSprites = {
-        'assets/char-rustblade.svg': 'assets/char-rustblade.svg',
-        'assets/char-bayou-bruiser.svg': 'assets/char-bayou-bruiser.svg',
-        'assets/char-fume-alchemist.svg': 'assets/char-fume-alchemist.svg',
-        'assets/char-grove-sentinel.svg': 'assets/char-grove-sentinel.svg',
-        'assets/char-clockwire-duelist.svg': 'assets/char-clockwire-duelist.svg'
+      const playerSpriteSheets = {
+        'billy-boxby': {
+          profileId: 'player-billy-boxby',
+          sizeMultiplier: 0.75,
+          states: {
+            idle: { right: ['assets/BB_billyBoxby_right.png', 1], fps: 0, loop: false },
+            walk: { right: ['assets/BB_billyBoxby_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
+            hurt: { right: ['assets/BB_billyBoxby_damaged_right.png', 4], fps: PLAYER_ANIM_FPS.hurt, loop: false },
+            attack: { right: ['assets/BB_billyBoxby_attack_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
+            death: { right: ['assets/BB_billyBoxby_killed_right.png', 5], fps: PLAYER_ANIM_FPS.death, loop: false }
+          }
+        },
+        'green-fairy': {
+          profileId: 'player-green-fairy',
+          sizeMultiplier: 0.75,
+          states: {
+            idle: { right: ['assets/BB_greenFairy_right.png', 1], fps: 0, loop: false },
+            walk: { right: ['assets/BB_greenFairy_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
+            hurt: { right: ['assets/BB_greenFairy_damaged_right.png', 4], fps: PLAYER_ANIM_FPS.hurt, loop: false },
+            attack: { right: ['assets/BB_greenFairy_attack_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
+            death: { right: ['assets/BB_greenFairy_killed_right.png', 5], fps: PLAYER_ANIM_FPS.death, loop: false }
+          }
+        },
+        'grimma-the-feared': {
+          profileId: 'player-grimma-the-feared',
+          sizeMultiplier: 0.75,
+          states: {
+            idle: { right: ['assets/BB_grimmaTheFeared_right.png', 1], fps: 0, loop: false },
+            walk: { right: ['assets/BB_grimmaTheFeared_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
+            hurt: { right: ['assets/BB_grimmaTheFeared_damaged_right.png', 4], fps: PLAYER_ANIM_FPS.hurt, loop: false },
+            attack: { right: ['assets/BB_grimmaTheFeared_attack_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
+            death: { right: ['assets/BB_grimmaTheFeared_killed_right.png', 5], fps: PLAYER_ANIM_FPS.death, loop: false }
+          }
+        },
+        'old-man-croc': {
+          profileId: 'player-old-man-croc',
+          sizeMultiplier: 0.75,
+          states: {
+            idle: { right: ['assets/BB_oldManCroc_right.png', 1], fps: 0, loop: false },
+            walk: { right: ['assets/BB_oldManCroc_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
+            hurt: { right: ['assets/BB_oldManCroc_damaged_right.png', 4], fps: PLAYER_ANIM_FPS.hurt, loop: false },
+            attack: { right: ['assets/BB_oldManCroc_attack_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
+            death: { right: ['assets/BB_oldManCroc_killed_right.png', 5], fps: PLAYER_ANIM_FPS.death, loop: false }
+          }
+        },
+        possumatli: {
+          profileId: 'player-possumatli',
+          sizeMultiplier: 0.75,
+          states: {
+            idle: { right: ['assets/BB_possumatli_controlSquare_right.png', 1], fps: 0, loop: false },
+            walk: { right: ['assets/BB_possumatli_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
+            hurt: { right: ['assets/BB_possumatli_damaged_right.png', 4], fps: PLAYER_ANIM_FPS.hurt, loop: false },
+            attack: { right: ['assets/BB_possumatli_attack_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
+            death: { right: ['assets/BB_possumatli_killed_right.png', 5], fps: PLAYER_ANIM_FPS.death, loop: false }
+          }
+        },
+        rustbucket: {
+          profileId: 'player-rustbucket',
+          sizeMultiplier: 0.75,
+          states: {
+            idle: { right: ['assets/BB_Rustbucket_right.png', 1], fps: 0, loop: false },
+            walk: { right: ['assets/BB_rustbucket_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
+            hurt: { right: ['assets/BB_rustbucket_damaged_right.png', 4], fps: PLAYER_ANIM_FPS.hurt, loop: false },
+            attack: { right: ['assets/BB_rustbucket_attack_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
+            death: { right: ['assets/BB_rustbucket_killed_right.png', 5], fps: PLAYER_ANIM_FPS.death, loop: false }
+          }
+        },
+        'scarlett-glumpkin': {
+          profileId: 'player-scarlett-glumpkin',
+          sizeMultiplier: 0.75,
+          states: {
+            idle: { right: ['assets/BB_scarlettGlumpkin_right.png', 1], fps: 0, loop: false },
+            walk: { right: ['assets/BB_scarlettGlumpkin_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
+            hurt: { right: ['assets/BB_scarlettGlumpkin_damaged_right.png', 4], fps: PLAYER_ANIM_FPS.hurt, loop: false },
+            attack: { right: ['assets/BB_scarlettGlumpkin_attack_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
+            death: { right: ['assets/BB_scarlettGlumpkin_killed_right.png', 5], fps: PLAYER_ANIM_FPS.death, loop: false }
+          }
+        },
+        'shunky-rooster': {
+          profileId: 'player-shunky-rooster',
+          sizeMultiplier: 0.75,
+          states: {
+            idle: { right: ['assets/BB_shunkyRooster_controlSquare_right.png', 1], fps: 0, loop: false },
+            walk: { right: ['assets/BB_shunkyRooster_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
+            hurt: { right: ['assets/BB_shunkyRooster_damaged_right.png', 4], fps: PLAYER_ANIM_FPS.hurt, loop: false },
+            attack: { right: ['assets/BB_shunkyRooster_attack_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
+            death: { right: ['assets/BB_shunkyRooster_killed_right.png', 5], fps: PLAYER_ANIM_FPS.death, loop: false }
+          }
+        }
       };
 
-      Object.entries(characterSprites).forEach(([key, src]) => {
-        promises.push(loadImage(src).then(img => {
-          assets.characters[key] = img;
-          const playerProfileMap = {
-            'assets/char-rustblade.svg': 'player-rustblade',
-            'assets/char-bayou-bruiser.svg': 'player-bayou-bruiser',
-            'assets/char-fume-alchemist.svg': 'player-fume-alchemist',
-            'assets/char-grove-sentinel.svg': 'player-grove-sentinel',
-            'assets/char-clockwire-duelist.svg': 'player-clockwire'
-          };
-          createPhysicsProfile(playerProfileMap[key], img, null, PLAYER_DRAW_SIZE);
+      Object.entries(playerSpriteSheets).forEach(([characterKey, config]) => {
+        promises.push(createDirectionalAnimationTracks(config.states, ({ stateName, facingName, img, frames }) => {
+          if (stateName === 'idle' && facingName === 'right') {
+            createPhysicsProfile(config.profileId, img, frames[0], PLAYER_DRAW_SIZE * config.sizeMultiplier);
+          }
+        }).then((tracks) => {
+          assets.characters[characterKey] = { tracks };
         }));
       });
 
-      const billySpriteSheets = {
-        idle: { right: ['assets/BB_billyBoxby_right.png', 1], left: ['assets/BB_billyBoxby_left.png', 1], fps: 0, loop: false },
-        walk: { right: ['assets/BB_billyBoxby_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
-        hurt: { right: ['assets/BB_billyBoxby_damaged_right.png', 4], fps: PLAYER_ANIM_FPS.hurt, loop: false },
-        attack: { right: ['assets/BB_billyBoxby_attack_heavy_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
-        death: { right: ['assets/BB_billyBoxby_killed_right.png', 5], fps: PLAYER_ANIM_FPS.death, loop: false }
-      };
-
-      promises.push(createDirectionalAnimationTracks(billySpriteSheets, ({ stateName, facingName, img, frames }) => {
-        if (stateName === 'idle' && facingName === 'right') {
-          createPhysicsProfile('player-billy-boxby', img, frames[0], PLAYER_DRAW_SIZE * 0.75);
+      const enemySpriteSheets = {
+        swamp: {
+          profileId: 'enemy-swamp',
+          sizeMultiplier: CHOKING_BLOSSOM_SCALE_MULTIPLIER,
+          states: {
+            idle: { left: ['assets/animation_chokingBlossom_red_controlSquare_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_chokingBlossom_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_chokingBlossom_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_chokingBlossom_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_chokingBlossom_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        'bramble-drone': {
+          profileId: 'enemy-bramble-drone',
+          bossProfileId: 'enemy-bramble-drone-boss',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_brambleDrone_red_controlSquare_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_brambleDrone_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_brambleDrone_stage1_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_brambleDrone_stage1_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_brambleDrone_stage1_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        goblin: {
+          profileId: 'enemy-goblin',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_kingOfThieves_rat_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_kingOfThieves_rat_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_kingOfThieves_rat_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_kingOfThieves_rat_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_kingOfThieves_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        thug: {
+          profileId: 'enemy-thug',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_hiredGun_red_controlSquare_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_hiredGun_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_hiredGun_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_hiredGun_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_hiredGun_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        automaton: {
+          profileId: 'enemy-automaton',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_automatick_red_controlSquare_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_automatick_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_automatick_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_automatick_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_automatick_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        fey: {
+          profileId: 'enemy-fey',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_queenOfHearts_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_queenOfHearts_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_queenOfHearts_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_queenOfHearts_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_queenOfHearts_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        boss: {
+          profileId: 'enemy-boss',
+          sizeMultiplier: BOSS_DRAW_SIZE / ENEMY_DRAW_SIZE,
+          states: {
+            idle: { left: ['assets/animation_viciousVercosus_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_viciousVercosus_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_viciousVercosus_stage3_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_viciousVercosus_stage3_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_viciousVercosus_stage3_red_killed_left.png', 6], fps: 8, loop: false }
+          }
         }
-      }).then((tracks) => {
-        assets.characters['billy-boxby'] = { tracks };
-      }));
-
-      const brambleDroneSpriteSheets = {
-        idle: { right: ['assets/BB_brambleDrone_right.png', 1], left: ['assets/BB_brambleDrone_left.png', 1], fps: 0, loop: false },
-        walk: { right: ['assets/BB_brambleDrone_walking_right.png', 8], fps: 10, loop: true },
-        hurt: { right: ['assets/BB_brambleDrone_damaged_right.png', 5], fps: 12, loop: false },
-        attack: { right: ['assets/BB_brambleDrone_attack_right.png', 7], fps: 14, loop: false },
-        death: { right: ['assets/BB_brambleDrone_killed_right.png', 6], fps: 8, loop: false }
       };
 
-      promises.push(createDirectionalAnimationTracks(brambleDroneSpriteSheets, ({ stateName, facingName, img, frames }) => {
-        if (stateName === 'idle' && facingName === 'right') {
-          createPhysicsProfile('enemy-bramble-drone', img, frames[0], ENEMY_DRAW_SIZE);
-          createPhysicsProfile('enemy-bramble-drone-boss', img, frames[0], BOSS_DRAW_SIZE * BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER);
-        }
-      }).then((tracks) => {
-        assets.enemyAnimations['bramble-drone'] = tracks;
-      }));
-
-      const chokingBlossomSpriteSheets = {
-        idle: { right: ['assets/BB_chokingBlossom_right.png', 1], left: ['assets/BB_chokingBlossom_left.png', 1], fps: 0, loop: false },
-        walk: { right: ['assets/BB_chokingBlossom_walking_right.png', 8], fps: 10, loop: true },
-        hurt: { right: ['assets/BB_chokingBlossom_damaged_right.png', 5], fps: 12, loop: false },
-        attack: { right: ['assets/BB_chokingBlossom_attack_right.png', 7], fps: 14, loop: false },
-        death: { right: ['assets/BB_chokingBlossom_killed_right.png', 6], fps: 8, loop: false }
-      };
-
-      promises.push(createDirectionalAnimationTracks(chokingBlossomSpriteSheets, ({ stateName, facingName, img, frames }) => {
-        if (stateName === 'idle' && facingName === 'right') {
-          createPhysicsProfile('enemy-swamp', img, frames[0], ENEMY_DRAW_SIZE * CHOKING_BLOSSOM_SCALE_MULTIPLIER);
-        }
-      }).then((tracks) => {
-        assets.enemyAnimations.swamp = tracks;
-      }));
-
-      const enemySprites = {
-        'enemy-goblin': 'assets/enemy-goblin.svg',
-        'enemy-fey': 'assets/enemy-fey.svg',
-        'enemy-automaton': 'assets/enemy-automaton.svg',
-        'enemy-thug': 'assets/enemy-thug.svg'
-      };
-
-      Object.entries(enemySprites).forEach(([key, src]) => {
-        promises.push(loadImage(src).then(img => {
-          assets.enemies[key] = img;
-          const typeId = key.replace('enemy-', '');
-          createPhysicsProfile(`enemy-${typeId}`, img, null, ENEMY_DRAW_SIZE);
+      Object.entries(enemySpriteSheets).forEach(([enemyKey, config]) => {
+        promises.push(createDirectionalAnimationTracks(config.states, ({ stateName, facingName, img, frames }) => {
+          if (stateName === 'idle' && facingName === 'left') {
+            createPhysicsProfile(config.profileId, img, frames[0], ENEMY_DRAW_SIZE * config.sizeMultiplier);
+            if (config.bossProfileId) {
+              createPhysicsProfile(config.bossProfileId, img, frames[0], BOSS_DRAW_SIZE * BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER);
+            }
+          }
+        }).then((tracks) => {
+          assets.enemyAnimations[enemyKey] = tracks;
         }));
       });
 
-      promises.push(loadImage('assets/boss-legrim.svg').then(img => {
-        assets.boss = img;
-        createPhysicsProfile('enemy-boss', img, null, BOSS_DRAW_SIZE);
-      }));
       promises.push(loadImage('assets/pickup-gumbo.svg').then(img => { assets.pickup = img; }));
 
       let loaded = 0;

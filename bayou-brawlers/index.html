@@ -2193,6 +2193,15 @@
       const x = entity.x - state.cameraX;
       const y = entity.y - state.cameraY - entity.z;
       const depthScale = getDepthScaleForY(entity.y);
+      const fadeAlpha = (entity && entity.spawnFadeFrames > 0)
+        ? clamp(1 - (entity.spawnFadeFrames / 21), 0.25, 1)
+        : 1;
+      const useFade = fadeAlpha < 1;
+      if (useFade) {
+        ctx.save();
+        ctx.globalAlpha = fadeAlpha;
+      }
+
       if (entity.animation && entity.charData) {
         const track = getPlayerAnimTrack(entity, entity.animation.state, entity.animation.facing);
         if (track && track.img) {
@@ -2228,7 +2237,7 @@
               drawSize
             );
           }
-          if (fadeAlpha < 1) ctx.restore();
+          if (useFade) ctx.restore();
           return;
         }
       }
@@ -2267,6 +2276,7 @@
               drawSize
             );
           }
+          if (useFade) ctx.restore();
           return;
         }
       }
@@ -2278,7 +2288,7 @@
         ctx.fillStyle = colorOverride || '#fff';
         ctx.fillRect(x - drawSize / 2, y - drawSize, drawSize, drawSize);
       }
-      if (fadeAlpha < 1) ctx.restore();
+      if (useFade) ctx.restore();
     }
 
     function draw() {

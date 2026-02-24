@@ -505,7 +505,15 @@
       submitting: false,
       continueArrowTimer: 0,
       lastForwardX: 80,
-      idleFrames: 0
+      idleFrames: 0,
+      debug: { enemyStates: false, waves: false },
+      enemyUid: 0,
+      waveScript: null,
+      spawnQueue: [],
+      bossEncounter: null,
+      hazards: [],
+      commandBuffTimer: 0,
+      chokeHoldOwnerId: null
     };
 
     const input = {
@@ -674,7 +682,7 @@
         { types: ['goblin', 'swamp'], count: 4 },
         { types: ['swamp', 'thug'], count: 5 },
         { types: ['goblin', 'swamp'], count: 6 }
-      ], boss: { name: 'Bramble Drone', type: 'bramble-drone' } },
+      ], boss: { name: 'Vicious Vercosus', type: 'vicious-vercosus' } },
       { id: 'mirewatch', name: 'Mirewatch (Town)', background: 'background-mirewatch', waves: [
         { types: ['thug'], count: 5 },
         { types: ['thug', 'ranged'], count: 6 },
@@ -744,7 +752,9 @@
 
     const enemyTypes = {
       goblin: { hp: 30, speed: 1.7, damage: 8, range: 18, score: 60, sprite: 'goblin' },
-      swamp: { hp: 45, speed: 1.3, damage: 10, range: 18, score: 80, sprite: 'swamp' },
+      swamp: { hp: 39, speed: 1.45, damage: 9, range: 22, score: 80, sprite: 'swamp' },
+      daphodilus: { hp: 21, speed: 1.25, damage: 12, range: 22, score: 95, sprite: 'daphodilus' },
+      'choking-blossom': { hp: 39, speed: 1.45, damage: 9, range: 22, score: 90, sprite: 'swamp' },
       thug: { hp: 40, speed: 1.6, damage: 9, range: 18, score: 70, sprite: 'thug' },
       automaton: { hp: 55, speed: 1.2, damage: 12, range: 20, score: 90, sprite: 'automaton' },
       fey: { hp: 38, speed: 1.9, damage: 9, range: 18, score: 85, sprite: 'fey' },
@@ -752,7 +762,8 @@
       elite: { hp: 70, speed: 1.5, damage: 14, range: 22, score: 140, sprite: 'automaton' },
       brute: { hp: 120, speed: 1.1, damage: 18, range: 24, score: 200, sprite: 'thug' },
       mage: { hp: 90, speed: 1.3, damage: 16, range: 120, score: 180, sprite: 'fey', ranged: true },
-      'bramble-drone': { hp: 170, speed: 1.3, damage: 18, range: 28, score: 280, sprite: 'bramble-drone' },
+      'bramble-drone': { hp: 60, speed: 1.25, damage: 11, range: 28, score: 280, sprite: 'bramble-drone' },
+      'vicious-vercosus': { hp: 90, speed: 1.32, damage: 12, range: 32, score: 450, sprite: 'vicious-vercosus' },
       boss: { hp: 200, speed: 1.2, damage: 20, range: 26, score: 350, sprite: 'boss' }
     };
 
@@ -785,6 +796,63 @@
 
     const physicsProfiles = {};
     let showCollisionDebug = false;
+    const STAGED_ENEMY_TYPES = new Set(['bramble-drone', 'vicious-vercosus']);
+    const CHOKING_HOLD_FRAMES = 60;
+    const ROOT_SNARE_FRAMES = 90;
+
+    function debugLog(channel, ...args) {
+      if (state.debug && state.debug[channel]) {
+        console.log(`[${channel}]`, ...args);
+      }
+    }
+
+    function getStagedStats(typeId, stage) {
+      const base = enemyTypes[typeId];
+      if (!base) return { hp: 10, speed: 1, damage: 1, range: 20, score: 10 };
+      if (typeId === 'bramble-drone') {
+        if (stage === 3) return { hp: base.hp * 1, speed: base.speed * 1, damage: base.damage * 1, range: base.range, score: base.score };
+        if (stage === 2) return { hp: base.hp * 0.55, speed: base.speed * 1.08, damage: base.damage * 0.92, range: base.range, score: Math.round(base.score * 0.55) };
+        return { hp: base.hp * 0.35, speed: base.speed * 1.15, damage: base.damage * 0.82, range: base.range, score: Math.round(base.score * 0.35) };
+      }
+      if (typeId === 'vicious-vercosus') {
+        if (stage === 3) return { hp: base.hp * 1, speed: base.speed * 1, damage: base.damage * 1, range: base.range, score: base.score };
+        if (stage === 2) return { hp: base.hp * 0.43, speed: base.speed * 1.06, damage: base.damage * 0.92, range: base.range, score: Math.round(base.score * 0.45) };
+        return { hp: base.hp * 0.27, speed: base.speed * 1.12, damage: base.damage * 0.84, range: base.range, score: Math.round(base.score * 0.3) };
+      }
+      return { hp: base.hp, speed: base.speed, damage: base.damage, range: base.range, score: base.score };
+    }
+
+    function countUndergroundDaphodilus() {
+      return state.enemies.filter(e => e.hp > 0 && e.type === 'daphodilus' && e.aiState === 'Underground').length;
+    }
+
+    function getUndergroundCap() {
+      let cap = state.bossActive ? 2 : 1;
+      if (state.commandBuffTimer > 0) cap += 1;
+      return clamp(cap, 1, 3);
+    }
+
+    function canGoUnderground() {
+      return countUndergroundDaphodilus() < getUndergroundCap();
+    }
+
+    function setEnemyState(enemy, nextState) {
+      if (enemy.aiState === nextState) return;
+      enemy.aiState = nextState;
+      enemy.aiTimer = 0;
+      enemy.animationSignal = nextState;
+      debugLog('enemyStates', enemy.type, enemy.uid, '->', nextState);
+    }
+
+    function queueSpawn(type, delayFrames, opts = {}) {
+      state.spawnQueue.push({ type, frames: Math.max(0, delayFrames), opts });
+    }
+
+    function isSpawnOverlappingPlayer(x, y, minDist = 70) {
+      const player = state.player;
+      if (!player) return false;
+      return Math.hypot(player.x - x, player.y - y) < minDist;
+    }
 
     function clamp(value, min, max) {
       return Math.max(min, Math.min(max, value));
@@ -1214,22 +1282,26 @@
       }
     }
 
-    function createEnemy(typeId, x, y, isBoss = false) {
+    function createEnemy(typeId, x, y, isBoss = false, options = {}) {
       const base = enemyTypes[typeId];
-      const animationTracks = assets.enemyAnimations[typeId] || null;
+      const stage = STAGED_ENEMY_TYPES.has(typeId) ? (options.stage || 3) : 1;
+      const stats = STAGED_ENEMY_TYPES.has(typeId) ? getStagedStats(typeId, stage) : base;
+      const animationTracks = assets.enemyAnimations[typeId] || assets.enemyAnimations.swamp || null;
       const isBrambleDroneBoss = isBoss && typeId === 'bramble-drone';
-      const isChokingBlossom = typeId === 'swamp';
-      return {
+      const isChokingBlossom = typeId === 'swamp' || typeId === 'choking-blossom';
+      const enemy = {
+        uid: ++state.enemyUid,
         type: typeId,
         x,
         y,
         z: 0,
-        hp: base.hp * (isBoss ? 1.4 : 1),
-        maxHp: base.hp * (isBoss ? 1.4 : 1),
-        speed: base.speed * ENEMY_SPEED_MULTIPLIER,
-        damage: base.damage,
-        range: base.range,
-        score: base.score,
+        stage,
+        hp: stats.hp * (isBoss ? 1.15 : 1),
+        maxHp: stats.hp * (isBoss ? 1.15 : 1),
+        speed: stats.speed * ENEMY_SPEED_MULTIPLIER,
+        damage: stats.damage,
+        range: stats.range,
+        score: stats.score,
         sprite: base.sprite === 'boss' ? assets.boss : assets.enemies[base.sprite],
         facing: -1,
         animation: animationTracks ? {
@@ -1249,9 +1321,22 @@
         renderScale: isBrambleDroneBoss
           ? BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER
           : (isChokingBlossom ? CHOKING_BLOSSOM_SCALE_MULTIPLIER : 1),
-        physicsProfileId: isBrambleDroneBoss ? 'enemy-bramble-drone-boss' : `enemy-${typeId}`,
-        targetBodyAimBias: rand(35, 85) / 100
+        physicsProfileId: isBrambleDroneBoss ? 'enemy-bramble-drone-boss' : `enemy-${typeId === 'choking-blossom' ? 'swamp' : typeId}`,
+        targetBodyAimBias: rand(35, 85) / 100,
+        invulnFrames: options.invulnFrames || 0,
+        spawnFadeFrames: options.spawnFadeFrames || 0,
+        noDigUntil: options.noDigUntil || 0,
+        aiState: options.aiState || 'Idle',
+        aiTimer: 0,
+        burrowCooldown: options.burrowCooldown || 120,
+        commandCooldown: rand(360, 600),
+        rage: false,
+        holdTargetFrames: 0,
+        holdOwner: false,
+        pressureBoost: 1,
+        bossEncounterId: options.bossEncounterId || null
       };
+      return enemy;
     }
 
     function getEnemyHitbox(enemy) {
@@ -1303,7 +1388,9 @@
       if (!enemy.animation || !enemy.animation.tracks) return null;
       const stateTracks = enemy.animation.tracks[stateName];
       if (!stateTracks) return null;
-      return stateTracks[facingName];
+      const stageKey = STAGED_ENEMY_TYPES.has(enemy.type) ? `stage${enemy.stage || 3}` : null;
+      const scopedTracks = stageKey && stateTracks[stageKey] ? stateTracks[stageKey] : stateTracks;
+      return scopedTracks[facingName];
     }
 
     function updateEnemyAnimation(enemy, dt) {
@@ -1312,7 +1399,11 @@
       const facingName = enemy.facing >= 0 ? 'right' : 'left';
       let nextState = enemy.isMoving ? 'walk' : 'idle';
 
-      if ((anim.state === 'attack' && !anim.complete) || enemy.attackAnimTimer > 0 || enemy.windup > 0) {
+      if (enemy.type === 'daphodilus' && (enemy.aiState === 'Underground' || enemy.aiState === 'DigStart')) {
+        nextState = 'burrow';
+      } else if (enemy.type === 'daphodilus' && enemy.aiState === 'Emerge') {
+        nextState = 'emerge';
+      } else if ((anim.state === 'attack' && !anim.complete) || enemy.attackAnimTimer > 0 || enemy.windup > 0) {
         nextState = 'attack';
       }
 
@@ -1387,6 +1478,30 @@
     }
 
     function spawnWave(level, waveIndex) {
+      if (level.id === 'swamp') {
+        const script = [
+          [{ type: 'daphodilus', delay: 0 }, { type: 'daphodilus', delay: 120 }],
+          [{ type: 'daphodilus', delay: 0 }, { type: 'goblin', delay: 10 }],
+          [{ type: 'choking-blossom', delay: 0 }, { type: 'daphodilus', delay: 180 }],
+          [{ type: 'choking-blossom', delay: 0 }, { type: 'choking-blossom', delay: 8 }, { type: 'daphodilus', delay: 240 }],
+          [{ type: 'choking-blossom', delay: 0 }, { type: 'daphodilus', delay: 0 }, { type: 'daphodilus', delay: 240 }],
+          [{ type: 'choking-blossom', delay: 0 }, { type: 'choking-blossom', delay: 8 }, { type: 'daphodilus', delay: 180, opts: { burrowCooldown: 120 } }],
+          [{ type: 'bramble-drone', delay: 0, opts: { stage: 3 } }],
+          [{ type: 'bramble-drone', delay: 0, opts: { stage: 3 } }, { type: 'daphodilus', delay: 180 }]
+        ];
+        const entries = script[waveIndex] || [];
+        const waveLockX = getWaveLockX(waveIndex);
+        state.lockX = waveLockX;
+        state.enemies = [];
+        state.spawnQueue = [];
+        entries.forEach(item => {
+          queueSpawn(item.type, item.delay, item.opts || {});
+        });
+        state.waveIndex = waveIndex;
+        state.waveActive = true;
+        updateWaveHud();
+        return;
+      }
       const wave = getRegularWave(level, waveIndex);
       if (!wave) return;
       const waveLockX = getWaveLockX(waveIndex);
@@ -1408,17 +1523,16 @@
 
     function spawnBoss(level) {
       const bossType = level.boss.type;
-      const boss = createEnemy(bossType, state.levelWidth - 220, clamp(280, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y), true);
+      const encounterId = `boss-${Date.now()}`;
+      const boss = createEnemy(bossType, state.levelWidth - 220, clamp(280, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y), true, { stage: 3, bossEncounterId: encounterId });
       const verticalBounds = getEnemyVerticalBounds(boss);
       boss.y = clamp(boss.y, verticalBounds.minY, verticalBounds.maxY);
-      boss.hp += 120;
-      boss.maxHp = boss.hp;
-      boss.score += 250;
       boss.name = level.boss.name;
       state.enemies = [boss];
       state.waveIndex = REGULAR_WAVE_COUNT;
       state.waveActive = true;
       state.bossActive = true;
+      state.bossEncounter = { id: encounterId, add10: false, add20: false, stopAdds: false };
       state.lockX = getWaveLockX(REGULAR_WAVE_COUNT);
       updateWaveHud();
     }
@@ -1431,6 +1545,43 @@
     function addScore(amount) {
       state.score += amount;
       document.getElementById('score').textContent = String(state.score);
+    }
+
+    function handleEnemyDeath(enemy) {
+      addScore(enemy.score);
+      if (Math.random() < 0.2) spawnPickup(enemy.x, enemy.y);
+      if (STAGED_ENEMY_TYPES.has(enemy.type) && enemy.stage > 1) {
+        const nextStage = enemy.stage - 1;
+        const childCount = enemy.type === 'vicious-vercosus' && enemy.stage === 3 ? 4 : 2;
+        for (let i = 0; i < childCount; i += 1) {
+          const horizontal = (i - ((childCount - 1) / 2)) * 30;
+          const child = createEnemy(
+            enemy.type,
+            enemy.x + horizontal,
+            clamp(enemy.y + rand(-14, 14), getBrawlLaneMinY(), BRAWL_LANE_MAX_Y),
+            enemy.isBoss,
+            {
+              stage: nextStage,
+              invulnFrames: 21,
+              spawnFadeFrames: 21,
+              noDigUntil: 50,
+              bossEncounterId: enemy.bossEncounterId
+            }
+          );
+          child.cooldown = 35;
+          state.enemies.push(child);
+        }
+      }
+    }
+
+    function damageEnemy(enemy, amount, stun = 0) {
+      if (!enemy || enemy.hp <= 0 || enemy.invulnFrames > 0 || enemy.untargetable) return;
+      enemy.hp -= amount;
+      enemy.stun = Math.max(enemy.stun, stun);
+      state.effects.push({ x: enemy.x, y: enemy.y, timer: 16, type: 'hit' });
+      if (enemy.hp <= 0) {
+        handleEnemyDeath(enemy);
+      }
     }
 
     function damagePlayer(amount) {
@@ -1520,14 +1671,8 @@
       state.enemies.forEach(enemy => {
         if (enemy.hp <= 0) return;
         if (rectOverlap(hitbox, enemy) || playerBodyOverlap(player, enemy)) {
-          enemy.hp -= damage;
-          enemy.stun = Math.max(enemy.stun, stun);
+          damageEnemy(enemy, damage, stun);
           enemy.x += player.facing * knockback;
-          state.effects.push({ x: enemy.x, y: enemy.y, timer: 16, type: 'hit' });
-          if (enemy.hp <= 0) {
-            addScore(enemy.score);
-            if (Math.random() < 0.2) spawnPickup(enemy.x, enemy.y);
-          }
         }
       });
     }
@@ -1623,39 +1768,130 @@
 
     function updateEnemies(dt) {
       const player = state.player;
+      const hasUndergroundDaph = countUndergroundDaphodilus() > 0;
+      state.commandBuffTimer = Math.max(0, state.commandBuffTimer - 1);
       state.enemies.forEach(enemy => {
         if (enemy.hp <= 0) return;
+        enemy.invulnFrames = Math.max(0, enemy.invulnFrames - 1);
+        enemy.spawnFadeFrames = Math.max(0, enemy.spawnFadeFrames - 1);
+        enemy.noDigUntil = Math.max(0, enemy.noDigUntil - 1);
         if (enemy.stun > 0) {
           enemy.stun -= 1;
           enemy.isMoving = false;
           updateEnemyAnimation(enemy, dt);
           return;
         }
+
         const dx = player.x - enemy.x;
-        const targetY = getEnemyAimTargetY(enemy, player);
-        const dy = targetY - enemy.y;
+        const dy = getEnemyAimTargetY(enemy, player) - enemy.y;
+        const distance = Math.hypot(dx, dy);
         const playerBody = getPlayerHitbox(player);
         const enemyBody = getEnemyHitbox(enemy);
-        // Use feet-anchor delta for chase/attack distance so large sprites with
-        // tall hitboxes do not over-weight vertical center offsets.
-        const distance = Math.hypot(dx, dy);
         enemy.isMoving = false;
-        if (Math.abs(dx) > ENEMY_FACING_DEADZONE_X) {
-          enemy.facing = dx >= 0 ? 1 : -1;
-        }
+        if (Math.abs(dx) > ENEMY_FACING_DEADZONE_X) enemy.facing = dx >= 0 ? 1 : -1;
 
-        if (enemy.ranged && distance > enemy.range * 0.7) {
-          enemy.x += Math.sign(dx) * enemy.speed * 0.6;
-          enemy.y += Math.sign(dy) * enemy.speed * 0.4;
-          enemy.isMoving = true;
-        } else if (distance > enemy.range) {
-          enemy.x += Math.sign(dx) * enemy.speed;
-          enemy.y += Math.sign(dy) * enemy.speed * 0.6;
-          enemy.isMoving = true;
-        } else {
+        if (enemy.type === 'daphodilus') {
+          enemy.burrowCooldown = Math.max(0, enemy.burrowCooldown - 1);
+          if (enemy.aiState === 'Underground') {
+            enemy.untargetable = true;
+            enemy.aiTimer += 1;
+            if (enemy.aiTimer > rand(48, 72)) {
+              enemy.untargetable = false;
+              enemy.x = clamp(enemy.targetX || enemy.x, state.cameraX + 40, state.cameraX + canvas.width - 40);
+              if (Math.abs(enemy.x - player.x) < 40) {
+                enemy.x += enemy.facing >= 0 ? 40 : -40;
+              }
+              setEnemyState(enemy, 'Emerge');
+            }
+          } else if (enemy.aiState === 'Emerge') {
+            enemy.aiTimer += 1;
+            if (enemy.aiTimer > 15) {
+              setEnemyState(enemy, 'PopAttack');
+              enemy.windup = 8;
+              enemy.attackAnimTimer = 14;
+            }
+          } else if (enemy.aiState === 'Recover') {
+            enemy.aiTimer += 1;
+            if (enemy.aiTimer > 48) {
+              setEnemyState(enemy, 'Approach');
+            }
+          } else {
+            if (distance > 190) {
+              enemy.x += Math.sign(dx) * enemy.speed * 0.8;
+              enemy.y += Math.sign(dy) * enemy.speed * 0.4;
+              enemy.isMoving = true;
+            }
+            if (distance > 150 && distance < 350 && enemy.burrowCooldown <= 0 && enemy.noDigUntil <= 0 && canGoUnderground()) {
+              setEnemyState(enemy, 'Underground');
+              enemy.aiTimer = 0;
+              const preferBehindX = player.x - (player.facing >= 0 ? 70 : -70);
+              const fallbackX = player.x + (player.facing >= 0 ? 70 : -70);
+              enemy.targetX = clamp(preferBehindX, state.cameraX + 30, state.cameraX + canvas.width - 30);
+              if (Math.abs(enemy.targetX - player.x) < 40) {
+                enemy.targetX = clamp(fallbackX, state.cameraX + 30, state.cameraX + canvas.width - 30);
+              }
+            } else if (distance <= enemy.range && enemy.cooldown <= 0) {
+              enemy.windup = 10;
+              enemy.attackAnimTimer = 14;
+            }
+          }
+        } else if (enemy.type === 'swamp' || enemy.type === 'choking-blossom') {
+          const speedBoost = hasUndergroundDaph ? 1.15 : 1;
+          const desired = 75;
+          const delta = distance - desired;
+          if (Math.abs(delta) > 8) {
+            enemy.x += Math.sign(dx) * enemy.speed * 0.85 * speedBoost;
+            enemy.y += Math.sign(dy) * enemy.speed * 0.45 * speedBoost;
+            enemy.isMoving = true;
+          }
+          const shoveCooldownFactor = hasUndergroundDaph ? 0.75 : 1;
           if (enemy.windup <= 0 && enemy.cooldown <= 0) {
+            enemy.windup = 12;
+            enemy.attackAnimTimer = 14;
+          }
+          if (enemy.windup === 1 && rectsOverlap({x: enemyBody.x - 12, y: enemyBody.y, width: enemyBody.width + 24, height: enemyBody.height}, playerBody)) {
+            damagePlayer(enemy.damage);
+            if (distance < 45 && Math.random() < (0.35 + (state.commandBuffTimer > 0 ? 0.1 : 0)) && !state.chokeHoldOwnerId) {
+              state.chokeHoldOwnerId = enemy.uid;
+              enemy.holdTargetFrames = CHOKING_HOLD_FRAMES;
+            }
+          }
+          if (enemy.holdTargetFrames > 0 && state.chokeHoldOwnerId === enemy.uid) {
+            enemy.holdTargetFrames -= 1;
+            if (enemy.holdTargetFrames % 20 === 0) damagePlayer(Math.max(1, enemy.damage * 0.35));
+            if (enemy.holdTargetFrames <= 0) state.chokeHoldOwnerId = null;
+          }
+          if (enemy.cooldown <= 0) {
+            enemy.cooldown = rand(35, 70) * shoveCooldownFactor;
+          }
+        } else {
+          if (enemy.ranged && distance > enemy.range * 0.7) {
+            enemy.x += Math.sign(dx) * enemy.speed * 0.6;
+            enemy.y += Math.sign(dy) * enemy.speed * 0.4;
+            enemy.isMoving = true;
+          } else if (distance > enemy.range) {
+            enemy.x += Math.sign(dx) * enemy.speed;
+            enemy.y += Math.sign(dy) * enemy.speed * 0.6;
+            enemy.isMoving = true;
+          } else if (enemy.windup <= 0 && enemy.cooldown <= 0) {
             enemy.windup = 18;
             enemy.attackAnimTimer = Math.max(enemy.attackAnimTimer, 18);
+          }
+        }
+
+        if ((enemy.type === 'bramble-drone' || enemy.type === 'vicious-vercosus') && enemy.stage > 1) {
+          if (!enemy.rage && enemy.hp < enemy.maxHp * 0.4) enemy.rage = true;
+          enemy.commandCooldown -= 1;
+          if (enemy.stage > 1 && enemy.commandCooldown <= 0) {
+            state.commandBuffTimer = 180;
+            enemy.commandCooldown = enemy.rage ? rand(240, 360) : rand(360, 600);
+          }
+          if (enemy.type === 'vicious-vercosus' && enemy.stage === 3) {
+            enemy.snareCooldown = (enemy.snareCooldown || rand(480, 720)) - 1;
+            if (enemy.snareCooldown <= 0) {
+              state.hazards.push({ x: player.x, y: player.y, w: 140, h: 70, frames: ROOT_SNARE_FRAMES, kind: 'root-snare' });
+              enemy.snareCooldown = rand(480, 720);
+            }
           }
         }
 
@@ -1663,42 +1899,39 @@
           enemy.windup -= 1;
           if (enemy.windup === 0) {
             if (enemy.ranged) {
-              state.projectiles.push({
-                x: enemy.x,
-                y: enemyBody.y + (enemyBody.height * 0.4),
-                vx: Math.sign(dx) * 4.5,
-                damage: enemy.damage,
-                friendly: false,
-                life: 140,
-                color: '#ff7b7b'
-              });
+              state.projectiles.push({ x: enemy.x, y: enemyBody.y + (enemyBody.height * 0.4), vx: Math.sign(dx) * 4.5, damage: enemy.damage, friendly: false, life: 140, color: '#ff7b7b' });
             } else {
               const attackReachMultiplier = (enemy.isBoss && enemy.type === 'bramble-drone') ? 2 : 1;
               const forwardReach = ((enemy.range + 10) * attackReachMultiplier);
-              const meleeZone = {
-                x: enemy.facing >= 0 ? enemyBody.x : enemyBody.x - forwardReach,
-                y: enemyBody.y,
-                width: enemyBody.width + forwardReach,
-                height: enemyBody.height
-              };
-              if (rectsOverlap(meleeZone, playerBody)) {
-                damagePlayer(enemy.damage);
-              }
+              const meleeZone = { x: enemy.facing >= 0 ? enemyBody.x : enemyBody.x - forwardReach, y: enemyBody.y, width: enemyBody.width + forwardReach, height: enemyBody.height };
+              if (rectsOverlap(meleeZone, playerBody)) damagePlayer(enemy.damage);
             }
             enemy.cooldown = rand(40, 80);
+            if (enemy.type === 'daphodilus' && enemy.aiState === 'PopAttack') {
+              setEnemyState(enemy, 'Recover');
+              enemy.burrowCooldown = 300;
+            }
           }
         } else {
           enemy.cooldown = Math.max(0, enemy.cooldown - 1);
         }
 
-        if (enemy.attackAnimTimer > 0) {
-          enemy.attackAnimTimer -= 1;
-        }
-
+        if (enemy.attackAnimTimer > 0) enemy.attackAnimTimer -= 1;
         const verticalBounds = getEnemyVerticalBounds(enemy);
         enemy.y = clamp(enemy.y, verticalBounds.minY, verticalBounds.maxY);
         updateEnemyAnimation(enemy, dt);
       });
+
+      state.hazards.forEach(h => {
+        h.frames -= 1;
+        const player = state.player;
+        if (!player) return;
+        const overlap = Math.abs(player.x - h.x) < h.w * 0.5 && Math.abs(player.y - h.y) < h.h * 0.5;
+        if (overlap && h.kind === 'root-snare') {
+          player.vx *= 0.7;
+        }
+      });
+      state.hazards = state.hazards.filter(h => h.frames > 0);
 
       state.enemies = state.enemies.filter(enemy => enemy.hp > 0);
     }
@@ -1719,14 +1952,8 @@
               projectile.y > enemyBody.y &&
               projectile.y < enemyBody.y + enemyBody.height
             ) {
-              enemy.hp -= projectile.damage;
-              enemy.stun = Math.max(enemy.stun, 20);
+              damageEnemy(enemy, projectile.damage, 20);
               projectile.life = 0;
-              state.effects.push({ x: enemy.x, y: enemy.y, timer: 16, type: 'hit' });
-              if (enemy.hp <= 0) {
-                addScore(enemy.score);
-                if (Math.random() < 0.2) spawnPickup(enemy.x, enemy.y);
-              }
             }
           });
         } else if (player) {
@@ -1773,14 +2000,8 @@
           state.enemies.forEach(enemy => {
             const distance = Math.hypot(enemy.x - effect.x, enemy.y - effect.y);
             if (distance < effect.radius) {
-              enemy.hp -= effect.damage;
-              enemy.stun = Math.max(enemy.stun, effect.stun || 0);
+              damageEnemy(enemy, effect.damage, effect.stun || 0);
               enemy.x += Math.sign(enemy.x - effect.x) * (effect.knockback || 0);
-              state.effects.push({ x: enemy.x, y: enemy.y, timer: 14, type: 'hit' });
-              if (enemy.hp <= 0) {
-                addScore(enemy.score);
-                if (Math.random() < 0.2) spawnPickup(enemy.x, enemy.y);
-              }
             }
           });
         }
@@ -1797,11 +2018,7 @@
       if (ally.timer % 30 === 0) {
         const target = state.enemies[0];
         if (target) {
-          target.hp -= 12;
-          state.effects.push({ x: target.x, y: target.y, timer: 12, type: 'hit' });
-          if (target.hp <= 0) {
-            addScore(target.score);
-          }
+          damageEnemy(target, 12, 0);
         }
       }
       if (ally.timer <= 0) {
@@ -1812,16 +2029,51 @@
     function updateStageProgress() {
       const level = levels[state.levelIndex];
 
+      if (state.spawnQueue.length > 0) {
+        state.spawnQueue.forEach(entry => { entry.frames -= 1; });
+        const ready = state.spawnQueue.filter(entry => entry.frames <= 0);
+        state.spawnQueue = state.spawnQueue.filter(entry => entry.frames > 0);
+        ready.forEach(entry => {
+          const spawnX = clamp(state.cameraX + canvas.width + 140 + rand(0, 60), state.cameraX + canvas.width + 120, state.levelWidth - 60);
+          const spawnY = clamp(rand(getBrawlLaneMinY(), BRAWL_LANE_MAX_Y), getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
+          const finalX = isSpawnOverlappingPlayer(spawnX, spawnY) ? (spawnX + 100) : spawnX;
+          const enemy = createEnemy(entry.type, finalX, spawnY, false, Object.assign({ noDigUntil: 48 }, entry.opts || {}));
+          state.enemies.push(enemy);
+          debugLog('waves', 'spawn', entry.type, 'wave', state.waveIndex + 1);
+        });
+      }
+
       if (state.waveActive) {
-        if (state.enemies.length > 0) return;
+        if (state.bossActive && state.bossEncounter) {
+          const aliveBossLineage = state.enemies.filter(e => e.hp > 0 && e.type === 'vicious-vercosus' && e.bossEncounterId === state.bossEncounter.id);
+          if (!state.bossEncounter.add10 && state.player && state.player.attackCooldown >= 0) {
+            state.bossEncounter.timer = (state.bossEncounter.timer || 0) + 1;
+            if (state.bossEncounter.timer >= 600) {
+              queueSpawn('choking-blossom', 0);
+              state.bossEncounter.add10 = true;
+            }
+            if (state.bossEncounter.timer >= 1200) {
+              queueSpawn('daphodilus', 0);
+              state.bossEncounter.add20 = true;
+            }
+          }
+          if (aliveBossLineage.some(e => e.stage === 2)) state.bossEncounter.stopAdds = true;
+          if (state.bossEncounter.stopAdds) state.spawnQueue = state.spawnQueue.filter(e => !['choking-blossom', 'daphodilus'].includes(e.type));
+
+          if (aliveBossLineage.length === 0 && state.spawnQueue.length === 0) {
+            state.waveActive = false;
+            state.bossActive = false;
+            state.bossEncounter = null;
+            state.lockX = null;
+            state.nextWaveToSpawn = TOTAL_WAVE_COUNT;
+          }
+          return;
+        }
+
+        if (state.enemies.length > 0 || state.spawnQueue.length > 0) return;
 
         state.waveActive = false;
         state.lockX = null;
-
-        if (state.bossActive) {
-          state.bossActive = false;
-          state.nextWaveToSpawn = TOTAL_WAVE_COUNT;
-        }
       }
 
       if (state.nextWaveToSpawn < TOTAL_WAVE_COUNT) {
@@ -1936,6 +2188,8 @@
     }
 
     function drawEntity(entity, size, colorOverride) {
+      if (entity && entity.aiState === 'Underground') return;
+
       const x = entity.x - state.cameraX;
       const y = entity.y - state.cameraY - entity.z;
       const depthScale = getDepthScaleForY(entity.y);
@@ -1974,6 +2228,7 @@
               drawSize
             );
           }
+          if (fadeAlpha < 1) ctx.restore();
           return;
         }
       }
@@ -2023,6 +2278,7 @@
         ctx.fillStyle = colorOverride || '#fff';
         ctx.fillRect(x - drawSize / 2, y - drawSize, drawSize, drawSize);
       }
+      if (fadeAlpha < 1) ctx.restore();
     }
 
     function draw() {
@@ -2377,6 +2633,42 @@
       });
     }
 
+    function stageIndexFromPath(path) {
+      const value = String(path || '').toLowerCase();
+      if (value.includes('state1') || value.includes('stage1')) return 1;
+      if (value.includes('state2') || value.includes('stage2')) return 2;
+      return 3;
+    }
+
+    function toStageAwareStates(baseStates) {
+      const out = {};
+      Object.entries(baseStates).forEach(([stateName, cfg]) => {
+        const grouped = {};
+        Object.entries(cfg).forEach(([facing, val]) => {
+          if (facing === 'fps' || facing === 'loop') return;
+          const stageIndex = stageIndexFromPath(val[0]);
+          const key = `stage${stageIndex}`;
+          grouped[key] = grouped[key] || { fps: cfg.fps, loop: cfg.loop };
+          grouped[key][facing] = val;
+        });
+        out[stateName] = grouped;
+      });
+      return out;
+    }
+
+    async function createStageDirectionalAnimationTracks(stagedStates, onTrackLoaded) {
+      const out = {};
+      for (const [stateName, stageMap] of Object.entries(stagedStates)) {
+        out[stateName] = {};
+        for (const [stageKey, stateCfg] of Object.entries(stageMap)) {
+          out[stateName][stageKey] = await createDirectionalAnimationTracks({ [stateName]: stateCfg }, ({ img, frames, facingName }) => {
+            if (onTrackLoaded && stateName === 'idle' && facingName === 'left') onTrackLoaded({ img, frames });
+          }).then(tracks => tracks[stateName]);
+        }
+      }
+      return out;
+    }
+
     async function loadAssets() {
       const loading = document.getElementById('loadingStatus');
       const promises = [];
@@ -2515,16 +2807,42 @@
             death: { left: ['assets/animation_chokingBlossom_red_killed_left.png', 6], fps: 8, loop: false }
           }
         },
+        daphodilus: {
+          profileId: 'enemy-daphodilus',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_delvingDaphodilus_red_controlSquare_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_delvingDaphodilus_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_delvingDaphodilus_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_delvingDaphodilus_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_delvingDaphodilus_red_killed_left.png', 6], fps: 8, loop: false },
+            burrow: { left: ['assets/animation_delvingDaphodilus_red_digDown_left.png', 5], fps: 12, loop: false },
+            emerge: { left: ['assets/animation_delvingDaphodilus_red_digUp_left.png', 5], fps: 12, loop: false }
+          }
+        },
         'bramble-drone': {
           profileId: 'enemy-bramble-drone',
           bossProfileId: 'enemy-bramble-drone-boss',
+          staged: true,
           sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_brambleDrone_red_controlSquare_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_brambleDrone_red_walking_left.png', 8], fps: 10, loop: true },
-            hurt: { left: ['assets/animation_brambleDrone_stage1_red_damaged_left.png', 5], fps: 12, loop: false },
-            attack: { left: ['assets/animation_brambleDrone_stage1_red_attack_left.png', 7], fps: 14, loop: false },
-            death: { left: ['assets/animation_brambleDrone_stage1_red_killed_left.png', 6], fps: 8, loop: false }
+            hurt: { left: ['assets/animation_brambleDrone_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_brambleDrone_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_brambleDrone_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        'vicious-vercosus': {
+          profileId: 'enemy-vicious-vercosus',
+          staged: true,
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_viciousVercosus_red_controlSquare_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_viciousVercosus_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_viciousVercosus_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_viciousVercosus_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_viciousVercosus_red_killed_left.png', 6], fps: 8, loop: false }
           }
         },
         goblin: {
@@ -2577,22 +2895,30 @@
           states: {
             idle: { left: ['assets/animation_viciousVercosus_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_viciousVercosus_red_walking_left.png', 8], fps: 10, loop: true },
-            hurt: { left: ['assets/animation_viciousVercosus_stage3_red_damaged_left.png', 5], fps: 12, loop: false },
-            attack: { left: ['assets/animation_viciousVercosus_stage3_red_attack_left.png', 7], fps: 14, loop: false },
-            death: { left: ['assets/animation_viciousVercosus_stage3_red_killed_left.png', 6], fps: 8, loop: false }
+            hurt: { left: ['assets/animation_viciousVercosus_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_viciousVercosus_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_viciousVercosus_red_killed_left.png', 6], fps: 8, loop: false }
           }
         }
       };
 
       Object.entries(enemySpriteSheets).forEach(([enemyKey, config]) => {
-        promises.push(createDirectionalAnimationTracks(config.states, ({ stateName, facingName, img, frames }) => {
-          if (stateName === 'idle' && facingName === 'left') {
+        const loader = config.staged
+          ? createStageDirectionalAnimationTracks(toStageAwareStates(config.states), ({ img, frames }) => {
             createPhysicsProfile(config.profileId, img, frames[0], ENEMY_DRAW_SIZE * config.sizeMultiplier);
             if (config.bossProfileId) {
               createPhysicsProfile(config.bossProfileId, img, frames[0], BOSS_DRAW_SIZE * BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER);
             }
-          }
-        }).then((tracks) => {
+          })
+          : createDirectionalAnimationTracks(config.states, ({ stateName, facingName, img, frames }) => {
+            if (stateName === 'idle' && facingName === 'left') {
+              createPhysicsProfile(config.profileId, img, frames[0], ENEMY_DRAW_SIZE * config.sizeMultiplier);
+              if (config.bossProfileId) {
+                createPhysicsProfile(config.bossProfileId, img, frames[0], BOSS_DRAW_SIZE * BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER);
+              }
+            }
+          });
+        promises.push(loader.then((tracks) => {
           assets.enemyAnimations[enemyKey] = tracks;
         }));
       });

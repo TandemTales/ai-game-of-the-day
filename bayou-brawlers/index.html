@@ -779,7 +779,7 @@
     const BOSS_DRAW_SIZE = 80;
     const BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER = 4;
     const BRAMBLE_DRONE_BOSS_ANIM_FPS_MULTIPLIER = 1;
-    const CHOKING_BLOSSOM_SCALE_MULTIPLIER = 2;
+    const DEFAULT_PLAYER_RENDER_SCALE = 0.75;
     const PHYSICS_HITBOX_PADDING = 3;
     const ENEMY_FACING_DEADZONE_X = 6;
     const BRAWL_LANE_MIN_Y = Math.floor(canvas.height * 0.5);
@@ -820,6 +820,29 @@
         return { hp: base.hp * 0.27, speed: base.speed * 1.12, damage: base.damage * 0.84, range: base.range, score: Math.round(base.score * 0.3) };
       }
       return { hp: base.hp, speed: base.speed, damage: base.damage, range: base.range, score: base.score };
+    }
+
+    function getEnemyRenderScale(typeId, stage, isBoss) {
+      const playerSize = PLAYER_DRAW_SIZE * DEFAULT_PLAYER_RENDER_SCALE;
+      const enemyBaseSize = isBoss ? BOSS_DRAW_SIZE : ENEMY_DRAW_SIZE;
+      const asPlayerSizeRatio = (ratio) => (playerSize * ratio) / enemyBaseSize;
+
+      if (typeId === 'choking-blossom' || typeId === 'swamp') return asPlayerSizeRatio(0.5);
+      if (typeId === 'daphodilus') return asPlayerSizeRatio(1);
+
+      if (typeId === 'bramble-drone') {
+        if (stage === 3) return asPlayerSizeRatio(2);
+        if (stage === 2) return asPlayerSizeRatio(1);
+        return asPlayerSizeRatio(0.5);
+      }
+
+      if (typeId === 'vicious-vercosus') {
+        if (stage === 3) return asPlayerSizeRatio(3);
+        if (stage === 2) return asPlayerSizeRatio(2);
+        return asPlayerSizeRatio(1);
+      }
+
+      return isBoss ? BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER : 1;
     }
 
     function countUndergroundDaphodilus() {
@@ -1288,7 +1311,6 @@
       const stats = STAGED_ENEMY_TYPES.has(typeId) ? getStagedStats(typeId, stage) : base;
       const animationTracks = assets.enemyAnimations[typeId] || assets.enemyAnimations.swamp || null;
       const isBrambleDroneBoss = isBoss && typeId === 'bramble-drone';
-      const isChokingBlossom = typeId === 'swamp' || typeId === 'choking-blossom';
       const enemy = {
         uid: ++state.enemyUid,
         type: typeId,
@@ -1318,9 +1340,7 @@
         stun: 0,
         ranged: base.ranged || false,
         isBoss,
-        renderScale: isBrambleDroneBoss
-          ? BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER
-          : (isChokingBlossom ? CHOKING_BLOSSOM_SCALE_MULTIPLIER : 1),
+        renderScale: getEnemyRenderScale(typeId, stage, isBoss),
         physicsProfileId: isBrambleDroneBoss ? 'enemy-bramble-drone-boss' : `enemy-${typeId === 'choking-blossom' ? 'swamp' : typeId}`,
         targetBodyAimBias: rand(35, 85) / 100,
         invulnFrames: options.invulnFrames || 0,

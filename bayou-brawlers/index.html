@@ -780,7 +780,8 @@
     const BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER = 4;
     const BRAMBLE_DRONE_BOSS_ANIM_FPS_MULTIPLIER = 1;
     const DEFAULT_PLAYER_RENDER_SCALE = 0.75;
-    const CHOKING_BLOSSOM_SCALE_MULTIPLIER = ((PLAYER_DRAW_SIZE * DEFAULT_PLAYER_RENDER_SCALE) * 0.5) / ENEMY_DRAW_SIZE;
+    const SWAMP_SCALE_MULTIPLIER = ((PLAYER_DRAW_SIZE * DEFAULT_PLAYER_RENDER_SCALE) * 0.5) / ENEMY_DRAW_SIZE;
+    const CHOKING_BLOSSOM_SCALE_MULTIPLIER = SWAMP_SCALE_MULTIPLIER * 2;
     const PHYSICS_HITBOX_PADDING = 3;
     const ENEMY_FACING_DEADZONE_X = 6;
     const BRAWL_LANE_MIN_Y = Math.floor(canvas.height * 0.5);
@@ -828,7 +829,8 @@
       const enemyBaseSize = isBoss ? BOSS_DRAW_SIZE : ENEMY_DRAW_SIZE;
       const asPlayerSizeRatio = (ratio) => (playerSize * ratio) / enemyBaseSize;
 
-      if (typeId === 'choking-blossom' || typeId === 'swamp') return asPlayerSizeRatio(0.5);
+      if (typeId === 'choking-blossom') return asPlayerSizeRatio(1);
+      if (typeId === 'swamp') return asPlayerSizeRatio(0.5);
       if (typeId === 'daphodilus') return asPlayerSizeRatio(1);
 
       if (typeId === 'bramble-drone') {
@@ -1342,7 +1344,7 @@
         ranged: base.ranged || false,
         isBoss,
         renderScale: getEnemyRenderScale(typeId, stage, isBoss),
-        physicsProfileId: isBrambleDroneBoss ? 'enemy-bramble-drone-boss' : `enemy-${typeId === 'choking-blossom' ? 'swamp' : typeId}`,
+        physicsProfileId: isBrambleDroneBoss ? 'enemy-bramble-drone-boss' : `enemy-${typeId}`,
         targetBodyAimBias: rand(35, 85) / 100,
         invulnFrames: options.invulnFrames || 0,
         spawnFadeFrames: options.spawnFadeFrames || 0,
@@ -2868,6 +2870,17 @@
       const enemySpriteSheets = {
         swamp: {
           profileId: 'enemy-swamp',
+          sizeMultiplier: SWAMP_SCALE_MULTIPLIER,
+          states: {
+            idle: { left: ['assets/animation_chokingBlossom_red_controlSquare_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_chokingBlossom_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_chokingBlossom_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_chokingBlossom_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_chokingBlossom_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        'choking-blossom': {
+          profileId: 'enemy-choking-blossom',
           sizeMultiplier: CHOKING_BLOSSOM_SCALE_MULTIPLIER,
           states: {
             idle: { left: ['assets/animation_chokingBlossom_red_controlSquare_left.png', 1], fps: 0, loop: false },

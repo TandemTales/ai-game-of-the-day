@@ -198,6 +198,39 @@
       padding: 20px;
     }
     .overlay.show { display: flex; }
+    .boss-popup {
+      position: fixed;
+      top: 118px;
+      left: 50%;
+      transform: translate(-50%, -8px);
+      width: min(560px, calc(100vw - 28px));
+      padding: 16px 20px;
+      border-radius: 14px;
+      border: 2px solid rgba(245, 196, 103, 0.82);
+      background: linear-gradient(180deg, rgba(24, 28, 42, 0.97), rgba(15, 18, 30, 0.94));
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.48), 0 0 20px rgba(245, 196, 103, 0.2);
+      color: var(--text);
+      text-align: center;
+      z-index: 9;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 220ms ease, transform 220ms ease;
+    }
+    .boss-popup.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+    .boss-popup h2 {
+      margin: 0 0 6px;
+      font-size: 19px;
+      color: var(--gold);
+      letter-spacing: 0.6px;
+    }
+    .boss-popup p {
+      margin: 0;
+      color: #d5deff;
+      font-size: 13px;
+    }
     .character-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
@@ -423,6 +456,11 @@
       <canvas id="game" width="960" height="540"></canvas>
     </div>
 
+    <div class="boss-popup" id="bossPopup" role="status" aria-live="assertive" aria-atomic="true">
+      <h2 id="bossPopupTitle">Boss Incoming!</h2>
+      <p id="bossPopupBody">Brace for impact.</p>
+    </div>
+
     <div class="controls" id="mobileControls">
       <div class="dpad">
         <button class="pad-btn pad-spacer" aria-hidden="true"></button>
@@ -515,6 +553,8 @@
       commandBuffTimer: 0,
       chokeHoldOwnerId: null
     };
+
+    let bossPopupTimeout = null;
 
     const input = {
       left: false,
@@ -2106,7 +2146,7 @@
             spawnWave(level, state.nextWaveToSpawn);
           } else {
             spawnBoss(level);
-            showMessage(`${level.boss.name}`, 'Boss rush! Brace for impact.', 'Engage');
+            showBossPopup(`${level.boss.name}`, 'Boss rush! Brace for impact.');
           }
           state.nextWaveToSpawn += 1;
         }
@@ -2169,6 +2209,20 @@
       btn.textContent = buttonText;
       overlay.classList.add('show');
       state.running = false;
+    }
+
+    function showBossPopup(title, body, durationMs = 2800) {
+      const popup = document.getElementById('bossPopup');
+      document.getElementById('bossPopupTitle').textContent = title;
+      document.getElementById('bossPopupBody').textContent = body;
+      popup.classList.add('show');
+      if (bossPopupTimeout) {
+        clearTimeout(bossPopupTimeout);
+      }
+      bossPopupTimeout = setTimeout(() => {
+        popup.classList.remove('show');
+        bossPopupTimeout = null;
+      }, durationMs);
     }
 
     async function submitScore() {

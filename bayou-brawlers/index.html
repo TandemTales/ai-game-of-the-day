@@ -2650,17 +2650,56 @@
       return 3;
     }
 
-    function toStageAwareStates(baseStates) {
+    function toStageAwareStates(baseStates, enemyKey = '') {
       const out = {};
+      const isStagedSwampCaptain = enemyKey === 'bramble-drone' || enemyKey === 'vicious-vercosus';
+
+      const inferStageSource = (src, stageIndex) => {
+        if (!isStagedSwampCaptain) return src;
+        const lower = String(src || '').toLowerCase();
+        if (lower.includes('stage1') || lower.includes('stage2') || lower.includes('stage3')
+          || lower.includes('state1') || lower.includes('state2') || lower.includes('state3')) {
+          if (stageIndex === 1) return src.replace(/stage2|stage3|state2|state3/ig, (m) => m.toLowerCase().startsWith('state') ? 'state1' : 'stage1');
+          if (stageIndex === 2) return src.replace(/stage1|stage3|state1|state3/ig, (m) => m.toLowerCase().startsWith('state') ? 'state2' : 'stage2');
+          return src.replace(/_stage[12]_|_state[12]_/ig, '_');
+        }
+        // Unnumbered art is final stage; only synthesize stage1/stage2 siblings for anim sets
+        // that actually ship stage variants (attack/damaged/killed). Idle/walk/controlSquare stay shared.
+        if (stageIndex === 3) return src;
+        if (!/(attack|damaged|killed)/i.test(src)) return src;
+        return src.replace(/_(red|blue|green|gold)_/i, `_stage${stageIndex}_$1_`);
+      };
+
       Object.entries(baseStates).forEach(([stateName, cfg]) => {
-        const grouped = {};
+        const grouped = {
+          stage1: { fps: cfg.fps, loop: cfg.loop },
+          stage2: { fps: cfg.fps, loop: cfg.loop },
+          stage3: { fps: cfg.fps, loop: cfg.loop }
+        };
+
         Object.entries(cfg).forEach(([facing, val]) => {
           if (facing === 'fps' || facing === 'loop') return;
-          const stageIndex = stageIndexFromPath(val[0]);
-          const key = `stage${stageIndex}`;
-          grouped[key] = grouped[key] || { fps: cfg.fps, loop: cfg.loop };
-          grouped[key][facing] = val;
+          const [src, frameCount] = val;
+          const detectedStage = stageIndexFromPath(src);
+
+          if (detectedStage === 3 && isStagedSwampCaptain) {
+            grouped.stage1[facing] = [inferStageSource(src, 1), frameCount];
+            grouped.stage2[facing] = [inferStageSource(src, 2), frameCount];
+            grouped.stage3[facing] = [inferStageSource(src, 3), frameCount];
+          } else {
+            const key = `stage${detectedStage}`;
+            grouped[key][facing] = val;
+          }
         });
+
+        // Ensure every stage has a track; fallback order prefers exact -> stage3 -> stage2 -> stage1.
+        ['left', 'right'].forEach((facing) => {
+          const fallback = grouped.stage3[facing] || grouped.stage2[facing] || grouped.stage1[facing];
+          if (!grouped.stage1[facing] && fallback) grouped.stage1[facing] = fallback;
+          if (!grouped.stage2[facing] && fallback) grouped.stage2[facing] = fallback;
+          if (!grouped.stage3[facing] && fallback) grouped.stage3[facing] = fallback;
+        });
+
         out[stateName] = grouped;
       });
       return out;
@@ -2914,7 +2953,7 @@
 
       Object.entries(enemySpriteSheets).forEach(([enemyKey, config]) => {
         const loader = config.staged
-          ? createStageDirectionalAnimationTracks(toStageAwareStates(config.states), ({ img, frames }) => {
+          ? createStageDirectionalAnimationTracks(toStageAwareStates(config.states, enemyKey), ({ img, frames }) => {
             createPhysicsProfile(config.profileId, img, frames[0], ENEMY_DRAW_SIZE * config.sizeMultiplier);
             if (config.bossProfileId) {
               createPhysicsProfile(config.bossProfileId, img, frames[0], BOSS_DRAW_SIZE * BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER);

@@ -1855,7 +1855,13 @@
 
         if (enemy.type === 'daphodilus') {
           enemy.burrowCooldown = Math.max(0, enemy.burrowCooldown - 1);
-          if (enemy.aiState === 'Underground') {
+          if (enemy.aiState === 'DigStart') {
+            enemy.untargetable = true;
+            enemy.aiTimer += 1;
+            if (enemy.aiTimer > 15) {
+              setEnemyState(enemy, 'Underground');
+            }
+          } else if (enemy.aiState === 'Underground') {
             enemy.untargetable = true;
             enemy.aiTimer += 1;
             if (enemy.aiTimer > rand(48, 72)) {
@@ -1885,7 +1891,7 @@
               enemy.isMoving = true;
             }
             if (distance > 150 && distance < 350 && enemy.burrowCooldown <= 0 && enemy.noDigUntil <= 0 && canGoUnderground()) {
-              setEnemyState(enemy, 'Underground');
+              setEnemyState(enemy, 'DigStart');
               enemy.aiTimer = 0;
               const preferBehindX = player.x - (player.facing >= 0 ? 70 : -70);
               const fallbackX = player.x + (player.facing >= 0 ? 70 : -70);

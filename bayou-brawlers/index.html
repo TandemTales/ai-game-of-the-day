@@ -2742,7 +2742,7 @@
       const out = {};
       const isStagedSwampCaptain = enemyKey === 'bramble-drone' || enemyKey === 'vicious-vercosus';
 
-      const inferStageSource = (src, stageIndex) => {
+      const inferStageSource = (src, stageIndex, stateName = '') => {
         if (!isStagedSwampCaptain) return src;
         const lower = String(src || '').toLowerCase();
         if (lower.includes('stage1') || lower.includes('stage2') || lower.includes('stage3')
@@ -2751,6 +2751,9 @@
           if (stageIndex === 2) return src.replace(/stage1|stage3|state1|state3/ig, (m) => m.toLowerCase().startsWith('state') ? 'state2' : 'stage2');
           return src.replace(/stage1|stage2|state1|state2/ig, (m) => m.toLowerCase().startsWith('state') ? 'state3' : 'stage3');
         }
+        // Unnumbered art is the initial/top-stage look. Only attack/hurt/death ship stage variants.
+        if (stageIndex === 3) return src;
+        if (!/(attack|damaged|killed)/i.test(stateName) && !/(attack|damaged|killed)/i.test(src)) return src;
         return src.replace(/_(red|blue|green|gold)_/i, `_stage${stageIndex}_$1_`);
       };
 
@@ -2767,9 +2770,9 @@
           const detectedStage = stageIndexFromPath(src);
 
           if (detectedStage === 3 && isStagedSwampCaptain) {
-            grouped.stage1[facing] = [inferStageSource(src, 1), frameCount];
-            grouped.stage2[facing] = [inferStageSource(src, 2), frameCount];
-            grouped.stage3[facing] = [inferStageSource(src, 3), frameCount];
+            grouped.stage1[facing] = [inferStageSource(src, 1, stateName), frameCount];
+            grouped.stage2[facing] = [inferStageSource(src, 2, stateName), frameCount];
+            grouped.stage3[facing] = [inferStageSource(src, 3, stateName), frameCount];
           } else {
             const key = `stage${detectedStage}`;
             grouped[key][facing] = val;

@@ -2752,9 +2752,10 @@
           if (stageIndex === 3) return src.replace(/stage1|stage2|state1|state2/ig, (m) => m.toLowerCase().startsWith('state') ? 'state3' : 'stage3');
           return src.replace(/_stage[123]_|_state[123]_/ig, '_');
         }
-        // Unnumbered art is first appearance (largest): stage4. Synthesized stage3/2/1
-        // variants are used after each split where those assets exist.
+        // Unnumbered art is first appearance (largest): stage4. Only attack/damaged/killed
+        // have split-specific sheets; walking/idle controlSquare stays shared.
         if (stageIndex === 4) return src;
+        if (!/(attack|damaged|killed)/i.test(src)) return src;
         return src.replace(/_(red|blue|green|gold)_/i, `_stage${stageIndex}_$1_`);
       };
 

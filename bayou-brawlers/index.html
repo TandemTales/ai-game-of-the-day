@@ -852,14 +852,16 @@
       const base = enemyTypes[typeId];
       if (!base) return { hp: 10, speed: 1, damage: 1, range: 20, score: 10 };
       if (typeId === 'bramble-drone') {
-        if (stage === 3) return { hp: base.hp * 1, speed: base.speed * 1, damage: base.damage * 1, range: base.range, score: base.score };
-        if (stage === 2) return { hp: base.hp * 0.55, speed: base.speed * 1.08, damage: base.damage * 0.92, range: base.range, score: Math.round(base.score * 0.55) };
-        return { hp: base.hp * 0.35, speed: base.speed * 1.15, damage: base.damage * 0.82, range: base.range, score: Math.round(base.score * 0.35) };
+        if (stage === 4) return { hp: base.hp * 1, speed: base.speed * 1, damage: base.damage * 1, range: base.range, score: base.score };
+        if (stage === 3) return { hp: base.hp * 0.7, speed: base.speed * 1.05, damage: base.damage * 0.95, range: base.range, score: Math.round(base.score * 0.7) };
+        if (stage === 2) return { hp: base.hp * 0.45, speed: base.speed * 1.1, damage: base.damage * 0.88, range: base.range, score: Math.round(base.score * 0.45) };
+        return { hp: base.hp * 0.28, speed: base.speed * 1.16, damage: base.damage * 0.8, range: base.range, score: Math.round(base.score * 0.28) };
       }
       if (typeId === 'vicious-vercosus') {
-        if (stage === 3) return { hp: base.hp * 1, speed: base.speed * 1, damage: base.damage * 1, range: base.range, score: base.score };
-        if (stage === 2) return { hp: base.hp * 0.43, speed: base.speed * 1.06, damage: base.damage * 0.92, range: base.range, score: Math.round(base.score * 0.45) };
-        return { hp: base.hp * 0.27, speed: base.speed * 1.12, damage: base.damage * 0.84, range: base.range, score: Math.round(base.score * 0.3) };
+        if (stage === 4) return { hp: base.hp * 1, speed: base.speed * 1, damage: base.damage * 1, range: base.range, score: base.score };
+        if (stage === 3) return { hp: base.hp * 0.62, speed: base.speed * 1.04, damage: base.damage * 0.95, range: base.range, score: Math.round(base.score * 0.62) };
+        if (stage === 2) return { hp: base.hp * 0.38, speed: base.speed * 1.08, damage: base.damage * 0.89, range: base.range, score: Math.round(base.score * 0.4) };
+        return { hp: base.hp * 0.23, speed: base.speed * 1.14, damage: base.damage * 0.82, range: base.range, score: Math.round(base.score * 0.24) };
       }
       return { hp: base.hp, speed: base.speed, damage: base.damage, range: base.range, score: base.score };
     }
@@ -874,14 +876,16 @@
       if (typeId === 'daphodilus') return asPlayerSizeRatio(1);
 
       if (typeId === 'bramble-drone') {
-        if (stage === 3) return asPlayerSizeRatio(1.5);
-        if (stage === 2) return asPlayerSizeRatio(1);
-        return asPlayerSizeRatio(0.5);
+        if (stage === 4) return asPlayerSizeRatio(1.5);
+        if (stage === 3) return asPlayerSizeRatio(1.1);
+        if (stage === 2) return asPlayerSizeRatio(0.8);
+        return asPlayerSizeRatio(0.55);
       }
 
       if (typeId === 'vicious-vercosus') {
-        if (stage === 3) return asPlayerSizeRatio(2.25);
-        if (stage === 2) return asPlayerSizeRatio(2);
+        if (stage === 4) return asPlayerSizeRatio(2.25);
+        if (stage === 3) return asPlayerSizeRatio(1.75);
+        if (stage === 2) return asPlayerSizeRatio(1.4);
         return asPlayerSizeRatio(1);
       }
 
@@ -1350,7 +1354,7 @@
 
     function createEnemy(typeId, x, y, isBoss = false, options = {}) {
       const base = enemyTypes[typeId];
-      const stage = STAGED_ENEMY_TYPES.has(typeId) ? (options.stage || 3) : 1;
+      const stage = STAGED_ENEMY_TYPES.has(typeId) ? (options.stage || 4) : 1;
       const stats = STAGED_ENEMY_TYPES.has(typeId) ? getStagedStats(typeId, stage) : base;
       const animationTracks = assets.enemyAnimations[typeId] || assets.enemyAnimations.swamp || null;
       const isBrambleDroneBoss = isBoss && typeId === 'bramble-drone';
@@ -1451,7 +1455,7 @@
       if (!enemy.animation || !enemy.animation.tracks) return null;
       const stateTracks = enemy.animation.tracks[stateName];
       if (!stateTracks) return null;
-      const stageKey = STAGED_ENEMY_TYPES.has(enemy.type) ? `stage${enemy.stage || 3}` : null;
+      const stageKey = STAGED_ENEMY_TYPES.has(enemy.type) ? `stage${enemy.stage || 4}` : null;
       const scopedTracks = stageKey && stateTracks[stageKey] ? stateTracks[stageKey] : stateTracks;
       return scopedTracks[facingName];
     }
@@ -1549,8 +1553,8 @@
           [{ type: 'choking-blossom', delay: 0 }, { type: 'choking-blossom', delay: 8 }, { type: 'daphodilus', delay: 240 }],
           [{ type: 'choking-blossom', delay: 0 }, { type: 'daphodilus', delay: 0 }, { type: 'daphodilus', delay: 240 }],
           [{ type: 'choking-blossom', delay: 0 }, { type: 'choking-blossom', delay: 8 }, { type: 'daphodilus', delay: 180, opts: { burrowCooldown: 120 } }],
-          [{ type: 'bramble-drone', delay: 0, opts: { stage: 3 } }],
-          [{ type: 'bramble-drone', delay: 0, opts: { stage: 3 } }, { type: 'daphodilus', delay: 180 }]
+          [{ type: 'bramble-drone', delay: 0, opts: { stage: 4 } }],
+          [{ type: 'bramble-drone', delay: 0, opts: { stage: 4 } }, { type: 'daphodilus', delay: 180 }]
         ];
         const entries = script[waveIndex] || [];
         const waveLockX = getWaveLockX(waveIndex);
@@ -1587,7 +1591,7 @@
     function spawnBoss(level) {
       const bossType = level.boss.type;
       const encounterId = `boss-${Date.now()}`;
-      const boss = createEnemy(bossType, state.levelWidth - 220, clamp(280, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y), true, { stage: 3, bossEncounterId: encounterId });
+      const boss = createEnemy(bossType, state.levelWidth - 220, clamp(280, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y), true, { stage: 4, bossEncounterId: encounterId });
       const verticalBounds = getEnemyVerticalBounds(boss);
       boss.y = clamp(boss.y, verticalBounds.minY, verticalBounds.maxY);
       boss.name = level.boss.name;
@@ -1615,7 +1619,7 @@
       if (Math.random() < 0.2) spawnPickup(enemy.x, enemy.y);
       if (STAGED_ENEMY_TYPES.has(enemy.type) && enemy.stage > 1) {
         const nextStage = enemy.stage - 1;
-        const childCount = enemy.type === 'vicious-vercosus' && enemy.stage === 3 ? 4 : 2;
+        const childCount = 2;
         for (let i = 0; i < childCount; i += 1) {
           const horizontal = (i - ((childCount - 1) / 2)) * 30;
           const child = createEnemy(
@@ -1955,7 +1959,7 @@
             state.commandBuffTimer = 180;
             enemy.commandCooldown = enemy.rage ? rand(240, 360) : rand(360, 600);
           }
-          if (enemy.type === 'vicious-vercosus' && enemy.stage === 3) {
+          if (enemy.type === 'vicious-vercosus' && enemy.stage === 4) {
             enemy.snareCooldown = (enemy.snareCooldown || rand(480, 720)) - 1;
             if (enemy.snareCooldown <= 0) {
               state.hazards.push({ x: player.x, y: player.y, w: 140, h: 70, frames: ROOT_SNARE_FRAMES, kind: 'root-snare' });
@@ -2728,9 +2732,10 @@
 
     function stageIndexFromPath(path) {
       const value = String(path || '').toLowerCase();
+      if (value.includes('state3') || value.includes('stage3')) return 3;
       if (value.includes('state1') || value.includes('stage1')) return 1;
       if (value.includes('state2') || value.includes('stage2')) return 2;
-      return 3;
+      return 4;
     }
 
     function toStageAwareStates(baseStates, enemyKey = '') {
@@ -2744,12 +2749,12 @@
           || lower.includes('state1') || lower.includes('state2') || lower.includes('state3')) {
           if (stageIndex === 1) return src.replace(/stage2|stage3|state2|state3/ig, (m) => m.toLowerCase().startsWith('state') ? 'state1' : 'stage1');
           if (stageIndex === 2) return src.replace(/stage1|stage3|state1|state3/ig, (m) => m.toLowerCase().startsWith('state') ? 'state2' : 'stage2');
-          return src.replace(/_stage[12]_|_state[12]_/ig, '_');
+          if (stageIndex === 3) return src.replace(/stage1|stage2|state1|state2/ig, (m) => m.toLowerCase().startsWith('state') ? 'state3' : 'stage3');
+          return src.replace(/_stage[123]_|_state[123]_/ig, '_');
         }
-        // Unnumbered art is final stage; only synthesize stage1/stage2 siblings for anim sets
-        // that actually ship stage variants (attack/damaged/killed). Idle/walk/controlSquare stay shared.
-        if (stageIndex === 3) return src;
-        if (!/(attack|damaged|killed)/i.test(src)) return src;
+        // Unnumbered art is first appearance (largest): stage4. Synthesized stage3/2/1
+        // variants are used after each split where those assets exist.
+        if (stageIndex === 4) return src;
         return src.replace(/_(red|blue|green|gold)_/i, `_stage${stageIndex}_$1_`);
       };
 
@@ -2757,7 +2762,8 @@
         const grouped = {
           stage1: { fps: cfg.fps, loop: cfg.loop },
           stage2: { fps: cfg.fps, loop: cfg.loop },
-          stage3: { fps: cfg.fps, loop: cfg.loop }
+          stage3: { fps: cfg.fps, loop: cfg.loop },
+          stage4: { fps: cfg.fps, loop: cfg.loop }
         };
 
         Object.entries(cfg).forEach(([facing, val]) => {
@@ -2765,22 +2771,24 @@
           const [src, frameCount] = val;
           const detectedStage = stageIndexFromPath(src);
 
-          if (detectedStage === 3 && isStagedSwampCaptain) {
+          if (detectedStage === 4 && isStagedSwampCaptain) {
             grouped.stage1[facing] = [inferStageSource(src, 1), frameCount];
             grouped.stage2[facing] = [inferStageSource(src, 2), frameCount];
             grouped.stage3[facing] = [inferStageSource(src, 3), frameCount];
+            grouped.stage4[facing] = [inferStageSource(src, 4), frameCount];
           } else {
             const key = `stage${detectedStage}`;
             grouped[key][facing] = val;
           }
         });
 
-        // Ensure every stage has a track; fallback order prefers exact -> stage3 -> stage2 -> stage1.
+        // Ensure every stage has a track; fallback order prefers exact -> stage4 -> stage3 -> stage2 -> stage1.
         ['left', 'right'].forEach((facing) => {
-          const fallback = grouped.stage3[facing] || grouped.stage2[facing] || grouped.stage1[facing];
+          const fallback = grouped.stage4[facing] || grouped.stage3[facing] || grouped.stage2[facing] || grouped.stage1[facing];
           if (!grouped.stage1[facing] && fallback) grouped.stage1[facing] = fallback;
           if (!grouped.stage2[facing] && fallback) grouped.stage2[facing] = fallback;
           if (!grouped.stage3[facing] && fallback) grouped.stage3[facing] = fallback;
+          if (!grouped.stage4[facing] && fallback) grouped.stage4[facing] = fallback;
         });
 
         out[stateName] = grouped;

@@ -1350,7 +1350,7 @@
 
     function createEnemy(typeId, x, y, isBoss = false, options = {}) {
       const base = enemyTypes[typeId];
-      const stage = STAGED_ENEMY_TYPES.has(typeId) ? (options.stage || 3) : 1;
+      const stage = STAGED_ENEMY_TYPES.has(typeId) ? (options.stage || 4) : 1;
       const stats = STAGED_ENEMY_TYPES.has(typeId) ? getStagedStats(typeId, stage) : base;
       const animationTracks = assets.enemyAnimations[typeId] || assets.enemyAnimations.swamp || null;
       const isBrambleDroneBoss = isBoss && typeId === 'bramble-drone';
@@ -1451,7 +1451,7 @@
       if (!enemy.animation || !enemy.animation.tracks) return null;
       const stateTracks = enemy.animation.tracks[stateName];
       if (!stateTracks) return null;
-      const stageKey = STAGED_ENEMY_TYPES.has(enemy.type) ? `stage${enemy.stage || 3}` : null;
+      const stageKey = STAGED_ENEMY_TYPES.has(enemy.type) ? `stage${enemy.stage || 4}` : null;
       const scopedTracks = stageKey && stateTracks[stageKey] ? stateTracks[stageKey] : stateTracks;
       return scopedTracks[facingName];
     }
@@ -1549,8 +1549,8 @@
           [{ type: 'choking-blossom', delay: 0 }, { type: 'choking-blossom', delay: 8 }, { type: 'daphodilus', delay: 240 }],
           [{ type: 'choking-blossom', delay: 0 }, { type: 'daphodilus', delay: 0 }, { type: 'daphodilus', delay: 240 }],
           [{ type: 'choking-blossom', delay: 0 }, { type: 'choking-blossom', delay: 8 }, { type: 'daphodilus', delay: 180, opts: { burrowCooldown: 120 } }],
-          [{ type: 'bramble-drone', delay: 0, opts: { stage: 3 } }],
-          [{ type: 'bramble-drone', delay: 0, opts: { stage: 3 } }, { type: 'daphodilus', delay: 180 }]
+          [{ type: 'bramble-drone', delay: 0, opts: { stage: 4 } }],
+          [{ type: 'bramble-drone', delay: 0, opts: { stage: 4 } }, { type: 'daphodilus', delay: 180 }]
         ];
         const entries = script[waveIndex] || [];
         const waveLockX = getWaveLockX(waveIndex);
@@ -1587,7 +1587,7 @@
     function spawnBoss(level) {
       const bossType = level.boss.type;
       const encounterId = `boss-${Date.now()}`;
-      const boss = createEnemy(bossType, state.levelWidth - 220, clamp(280, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y), true, { stage: 3, bossEncounterId: encounterId });
+      const boss = createEnemy(bossType, state.levelWidth - 220, clamp(280, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y), true, { stage: 4, bossEncounterId: encounterId });
       const verticalBounds = getEnemyVerticalBounds(boss);
       boss.y = clamp(boss.y, verticalBounds.minY, verticalBounds.maxY);
       boss.name = level.boss.name;
@@ -2730,7 +2730,8 @@
       const value = String(path || '').toLowerCase();
       if (value.includes('state1') || value.includes('stage1')) return 1;
       if (value.includes('state2') || value.includes('stage2')) return 2;
-      return 3;
+      if (value.includes('state3') || value.includes('stage3')) return 3;
+      return 4;
     }
 
     function toStageAwareStates(baseStates, enemyKey = '') {
@@ -2744,12 +2745,13 @@
           || lower.includes('state1') || lower.includes('state2') || lower.includes('state3')) {
           if (stageIndex === 1) return src.replace(/stage2|stage3|state2|state3/ig, (m) => m.toLowerCase().startsWith('state') ? 'state1' : 'stage1');
           if (stageIndex === 2) return src.replace(/stage1|stage3|state1|state3/ig, (m) => m.toLowerCase().startsWith('state') ? 'state2' : 'stage2');
-          return src.replace(/_stage[12]_|_state[12]_/ig, '_');
+          if (stageIndex === 3) return src.replace(/stage1|stage2|state1|state2/ig, (m) => m.toLowerCase().startsWith('state') ? 'state3' : 'stage3');
+          return src.replace(/_stage[123]_|_state[123]_/ig, '_');
         }
-        // Unnumbered art is final stage; only synthesize stage1/stage2 siblings for anim sets
-        // that actually ship stage variants (attack/damaged/killed). Idle/walk/controlSquare stay shared.
-        if (stageIndex === 3) return src;
-        if (!/(attack|damaged|killed)/i.test(src)) return src;
+        // Unnumbered art is the initial stage. Only animations with stage-specific sheets
+        // should synthesize numbered variants; controlSquare/idle art remains shared.
+        if (stageIndex === 4) return src;
+        if (!/(walking|attack|damaged|killed)/i.test(src)) return src;
         return src.replace(/_(red|blue|green|gold)_/i, `_stage${stageIndex}_$1_`);
       };
 
@@ -2757,7 +2759,8 @@
         const grouped = {
           stage1: { fps: cfg.fps, loop: cfg.loop },
           stage2: { fps: cfg.fps, loop: cfg.loop },
-          stage3: { fps: cfg.fps, loop: cfg.loop }
+          stage3: { fps: cfg.fps, loop: cfg.loop },
+          stage4: { fps: cfg.fps, loop: cfg.loop }
         };
 
         Object.entries(cfg).forEach(([facing, val]) => {
@@ -2765,22 +2768,24 @@
           const [src, frameCount] = val;
           const detectedStage = stageIndexFromPath(src);
 
-          if (detectedStage === 3 && isStagedSwampCaptain) {
+          if (detectedStage === 4 && isStagedSwampCaptain) {
             grouped.stage1[facing] = [inferStageSource(src, 1), frameCount];
             grouped.stage2[facing] = [inferStageSource(src, 2), frameCount];
             grouped.stage3[facing] = [inferStageSource(src, 3), frameCount];
+            grouped.stage4[facing] = [inferStageSource(src, 4), frameCount];
           } else {
             const key = `stage${detectedStage}`;
             grouped[key][facing] = val;
           }
         });
 
-        // Ensure every stage has a track; fallback order prefers exact -> stage3 -> stage2 -> stage1.
+        // Ensure every stage has a track; fallback order prefers exact -> stage4 -> stage3 -> stage2 -> stage1.
         ['left', 'right'].forEach((facing) => {
-          const fallback = grouped.stage3[facing] || grouped.stage2[facing] || grouped.stage1[facing];
+          const fallback = grouped.stage4[facing] || grouped.stage3[facing] || grouped.stage2[facing] || grouped.stage1[facing];
           if (!grouped.stage1[facing] && fallback) grouped.stage1[facing] = fallback;
           if (!grouped.stage2[facing] && fallback) grouped.stage2[facing] = fallback;
           if (!grouped.stage3[facing] && fallback) grouped.stage3[facing] = fallback;
+          if (!grouped.stage4[facing] && fallback) grouped.stage4[facing] = fallback;
         });
 
         out[stateName] = grouped;

@@ -852,12 +852,12 @@
       const base = enemyTypes[typeId];
       if (!base) return { hp: 10, speed: 1, damage: 1, range: 20, score: 10 };
       if (typeId === 'bramble-drone') {
-        if (stage === 3) return { hp: base.hp * 1, speed: base.speed * 1, damage: base.damage * 1, range: base.range, score: base.score };
+        if (stage >= 3) return { hp: base.hp * 1, speed: base.speed * 1, damage: base.damage * 1, range: base.range, score: base.score };
         if (stage === 2) return { hp: base.hp * 0.55, speed: base.speed * 1.08, damage: base.damage * 0.92, range: base.range, score: Math.round(base.score * 0.55) };
         return { hp: base.hp * 0.35, speed: base.speed * 1.15, damage: base.damage * 0.82, range: base.range, score: Math.round(base.score * 0.35) };
       }
       if (typeId === 'vicious-vercosus') {
-        if (stage === 3) return { hp: base.hp * 1, speed: base.speed * 1, damage: base.damage * 1, range: base.range, score: base.score };
+        if (stage >= 3) return { hp: base.hp * 1, speed: base.speed * 1, damage: base.damage * 1, range: base.range, score: base.score };
         if (stage === 2) return { hp: base.hp * 0.43, speed: base.speed * 1.06, damage: base.damage * 0.92, range: base.range, score: Math.round(base.score * 0.45) };
         return { hp: base.hp * 0.27, speed: base.speed * 1.12, damage: base.damage * 0.84, range: base.range, score: Math.round(base.score * 0.3) };
       }
@@ -874,12 +874,14 @@
       if (typeId === 'daphodilus') return asPlayerSizeRatio(1);
 
       if (typeId === 'bramble-drone') {
+        if (stage >= 4) return asPlayerSizeRatio(2);
         if (stage === 3) return asPlayerSizeRatio(1.5);
         if (stage === 2) return asPlayerSizeRatio(1);
         return asPlayerSizeRatio(0.5);
       }
 
       if (typeId === 'vicious-vercosus') {
+        if (stage >= 4) return asPlayerSizeRatio(2.5);
         if (stage === 3) return asPlayerSizeRatio(2.25);
         if (stage === 2) return asPlayerSizeRatio(2);
         return asPlayerSizeRatio(1);
@@ -1350,7 +1352,7 @@
 
     function createEnemy(typeId, x, y, isBoss = false, options = {}) {
       const base = enemyTypes[typeId];
-      const stage = STAGED_ENEMY_TYPES.has(typeId) ? (options.stage || 3) : 1;
+      const stage = STAGED_ENEMY_TYPES.has(typeId) ? (options.stage || 4) : 1;
       const stats = STAGED_ENEMY_TYPES.has(typeId) ? getStagedStats(typeId, stage) : base;
       const animationTracks = assets.enemyAnimations[typeId] || assets.enemyAnimations.swamp || null;
       const isBrambleDroneBoss = isBoss && typeId === 'bramble-drone';
@@ -1451,8 +1453,11 @@
       if (!enemy.animation || !enemy.animation.tracks) return null;
       const stateTracks = enemy.animation.tracks[stateName];
       if (!stateTracks) return null;
-      const stageKey = STAGED_ENEMY_TYPES.has(enemy.type) ? `stage${enemy.stage || 3}` : null;
-      const scopedTracks = stageKey && stateTracks[stageKey] ? stateTracks[stageKey] : stateTracks;
+      const stageKey = STAGED_ENEMY_TYPES.has(enemy.type) ? `stage${enemy.stage || 4}` : null;
+      const fallbackStageKey = STAGED_ENEMY_TYPES.has(enemy.type) ? 'stage3' : null;
+      const scopedTracks = stageKey && stateTracks[stageKey]
+        ? stateTracks[stageKey]
+        : (fallbackStageKey && stateTracks[fallbackStageKey] ? stateTracks[fallbackStageKey] : stateTracks);
       return scopedTracks[facingName];
     }
 
@@ -1549,8 +1554,8 @@
           [{ type: 'choking-blossom', delay: 0 }, { type: 'choking-blossom', delay: 8 }, { type: 'daphodilus', delay: 240 }],
           [{ type: 'choking-blossom', delay: 0 }, { type: 'daphodilus', delay: 0 }, { type: 'daphodilus', delay: 240 }],
           [{ type: 'choking-blossom', delay: 0 }, { type: 'choking-blossom', delay: 8 }, { type: 'daphodilus', delay: 180, opts: { burrowCooldown: 120 } }],
-          [{ type: 'bramble-drone', delay: 0, opts: { stage: 3 } }],
-          [{ type: 'bramble-drone', delay: 0, opts: { stage: 3 } }, { type: 'daphodilus', delay: 180 }]
+          [{ type: 'bramble-drone', delay: 0, opts: { stage: 4 } }],
+          [{ type: 'bramble-drone', delay: 0, opts: { stage: 4 } }, { type: 'daphodilus', delay: 180 }]
         ];
         const entries = script[waveIndex] || [];
         const waveLockX = getWaveLockX(waveIndex);
@@ -1587,7 +1592,7 @@
     function spawnBoss(level) {
       const bossType = level.boss.type;
       const encounterId = `boss-${Date.now()}`;
-      const boss = createEnemy(bossType, state.levelWidth - 220, clamp(280, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y), true, { stage: 3, bossEncounterId: encounterId });
+      const boss = createEnemy(bossType, state.levelWidth - 220, clamp(280, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y), true, { stage: 4, bossEncounterId: encounterId });
       const verticalBounds = getEnemyVerticalBounds(boss);
       boss.y = clamp(boss.y, verticalBounds.minY, verticalBounds.maxY);
       boss.name = level.boss.name;
@@ -1615,7 +1620,7 @@
       if (Math.random() < 0.2) spawnPickup(enemy.x, enemy.y);
       if (STAGED_ENEMY_TYPES.has(enemy.type) && enemy.stage > 1) {
         const nextStage = enemy.stage - 1;
-        const childCount = enemy.type === 'vicious-vercosus' && enemy.stage === 3 ? 4 : 2;
+        const childCount = enemy.type === 'vicious-vercosus' && enemy.stage >= 4 ? 4 : 2;
         for (let i = 0; i < childCount; i += 1) {
           const horizontal = (i - ((childCount - 1) / 2)) * 30;
           const child = createEnemy(
@@ -1955,7 +1960,7 @@
             state.commandBuffTimer = 180;
             enemy.commandCooldown = enemy.rage ? rand(240, 360) : rand(360, 600);
           }
-          if (enemy.type === 'vicious-vercosus' && enemy.stage === 3) {
+          if (enemy.type === 'vicious-vercosus' && enemy.stage >= 3) {
             enemy.snareCooldown = (enemy.snareCooldown || rand(480, 720)) - 1;
             if (enemy.snareCooldown <= 0) {
               state.hazards.push({ x: player.x, y: player.y, w: 140, h: 70, frames: ROOT_SNARE_FRAMES, kind: 'root-snare' });
@@ -2744,12 +2749,8 @@
           || lower.includes('state1') || lower.includes('state2') || lower.includes('state3')) {
           if (stageIndex === 1) return src.replace(/stage2|stage3|state2|state3/ig, (m) => m.toLowerCase().startsWith('state') ? 'state1' : 'stage1');
           if (stageIndex === 2) return src.replace(/stage1|stage3|state1|state3/ig, (m) => m.toLowerCase().startsWith('state') ? 'state2' : 'stage2');
-          return src.replace(/_stage[12]_|_state[12]_/ig, '_');
+          return src.replace(/stage1|stage2|state1|state2/ig, (m) => m.toLowerCase().startsWith('state') ? 'state3' : 'stage3');
         }
-        // Unnumbered art is final stage; only synthesize stage1/stage2 siblings for anim sets
-        // that actually ship stage variants (attack/damaged/killed). Idle/walk/controlSquare stay shared.
-        if (stageIndex === 3) return src;
-        if (!/(attack|damaged|killed)/i.test(src)) return src;
         return src.replace(/_(red|blue|green|gold)_/i, `_stage${stageIndex}_$1_`);
       };
 

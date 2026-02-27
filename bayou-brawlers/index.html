@@ -839,6 +839,80 @@
     const physicsProfiles = {};
     let showCollisionDebug = false;
     const STAGED_ENEMY_TYPES = new Set(['bramble-drone', 'vicious-vercosus']);
+    const STAGED_STAGE_SCALE = {
+      4: 1,
+      3: 0.82,
+      2: 0.66,
+      1: 0.52
+    };
+    const STAGED_STAGE_MULTIPLIERS = {
+      'bramble-drone': {
+        4: { hp: 1, damage: 1, speed: 1 },
+        3: { hp: 0.65, damage: 0.75, speed: 1 },
+        2: { hp: 0.42, damage: 0.55, speed: 1 },
+        1: { hp: 0.28, damage: 0.4, speed: 1 }
+      },
+      'vicious-vercosus': {
+        4: { hp: 1, damage: 1, speed: 1 },
+        3: { hp: 0.65, damage: 0.75, speed: 1 },
+        2: { hp: 0.42, damage: 0.55, speed: 1 },
+        1: { hp: 0.28, damage: 0.4, speed: 1 }
+      }
+    };
+    const STAGED_ANIM_MAP = {
+      'bramble-drone': {
+        4: {
+          walk: 'assets/animation_brambleDrone_red_walking_left.png',
+          damaged: 'assets/animation_brambleDrone_red_damaged_left.png',
+          attack: 'assets/animation_brambleDrone_red_attack_left.png',
+          killed: 'assets/animation_brambleDrone_red_killed_left.png'
+        },
+        3: {
+          walk: 'assets/animation_brambleDrone_stage3_red_walking_left.png',
+          damaged: 'assets/animation_brambleDrone_stage3_red_damaged_left.png',
+          attack: 'assets/animation_brambleDrone_stage3_red_attack_left.png',
+          killed: 'assets/animation_brambleDrone_stage3_red_killed_left.png'
+        },
+        2: {
+          walk: 'assets/animation_brambleDrone_stage2_red_walking_left.png',
+          damaged: 'assets/animation_brambleDrone_stage2_red_damaged_left.png',
+          attack: 'assets/animation_brambleDrone_stage2_red_attack_left.png',
+          killed: 'assets/animation_brambleDrone_stage2_red_killed_left.png'
+        },
+        1: {
+          walk: 'assets/animation_brambleDrone_stage1_red_walking_left.png',
+          damaged: 'assets/animation_brambleDrone_stage1_red_damaged_left.png',
+          attack: 'assets/animation_brambleDrone_stage1_red_attack_left.png',
+          killed: 'assets/animation_brambleDrone_stage1_red_killed_left.png'
+        }
+      },
+      'vicious-vercosus': {
+        4: {
+          walk: 'assets/animation_viciousVercosus_red_walking_left.png',
+          damaged: 'assets/animation_viciousVercosus_red_damaged_left.png',
+          attack: 'assets/animation_viciousVercosus_red_attack_left.png',
+          killed: 'assets/animation_viciousVercosus_red_killed_left.png'
+        },
+        3: {
+          walk: 'assets/animation_viciousVercosus_stage3_red_walking_left.png',
+          damaged: 'assets/animation_viciousVercosus_stage3_red_damaged_left.png',
+          attack: 'assets/animation_viciousVercosus_stage3_red_attack_left.png',
+          killed: 'assets/animation_viciousVercosus_stage3_red_killed_left.png'
+        },
+        2: {
+          walk: 'assets/animation_viciousVercosus_stage2_red_walking_left.png',
+          damaged: 'assets/animation_viciousVercosus_stage2_red_damaged_left.png',
+          attack: 'assets/animation_viciousVercosus_stage2_red_attack_left.png',
+          killed: 'assets/animation_viciousVercosus_stage2_red_killed_left.png'
+        },
+        1: {
+          walk: 'assets/animation_viciousVercosus_stage1_red_walking_left.png',
+          damaged: 'assets/animation_viciousVercosus_stage1_red_damaged_left.png',
+          attack: 'assets/animation_viciousVercosus_stage1_red_attack_left.png',
+          killed: 'assets/animation_viciousVercosus_stage1_red_killed_left.png'
+        }
+      }
+    };
     const CHOKING_HOLD_FRAMES = 60;
     const ROOT_SNARE_FRAMES = 90;
 
@@ -848,20 +922,49 @@
       }
     }
 
+    function getExplicitStageAnimations(enemyType, stage, facing = 'left') {
+      const stageMap = STAGED_ANIM_MAP[enemyType];
+      if (!stageMap) return null;
+      const clampedStage = clamp(Math.round(stage || 4), 1, 4);
+      const stageAssets = stageMap[clampedStage] || stageMap[4];
+      if (!stageAssets) return null;
+      const primaryFacing = 'left';
+      const selectedFacing = facing === 'right' ? 'right' : 'left';
+      const resolve = (src, frames, fps, loop) => ({
+        [primaryFacing]: [src, frames],
+        fps,
+        loop
+      });
+      const walkSrc = stageAssets.walk;
+      return {
+        idle: resolve(walkSrc, 1, 0, false),
+        walk: resolve(walkSrc, 8, 10, true),
+        hurt: resolve(stageAssets.damaged, 5, 12, false),
+        attack: resolve(stageAssets.attack, 7, 14, false),
+        death: resolve(stageAssets.killed, 6, 8, false),
+        __facingHint: selectedFacing
+      };
+    }
+
+    function warnIfExplicitStageAssetMissing(enemyType, stage, stateName, src, track) {
+      if (!src || !track || !track.frames || track.frames.length === 0) {
+        console.warn(`[staged-anim] Missing mapped asset track for ${enemyType} stage ${stage} state ${stateName}: ${src}`);
+      }
+    }
+
     function getStagedStats(typeId, stage) {
       const base = enemyTypes[typeId];
       if (!base) return { hp: 10, speed: 1, damage: 1, range: 20, score: 10 };
-      if (typeId === 'bramble-drone') {
-        if (stage === 3) return { hp: base.hp * 1, speed: base.speed * 1, damage: base.damage * 1, range: base.range, score: base.score };
-        if (stage === 2) return { hp: base.hp * 0.55, speed: base.speed * 1.08, damage: base.damage * 0.92, range: base.range, score: Math.round(base.score * 0.55) };
-        return { hp: base.hp * 0.35, speed: base.speed * 1.15, damage: base.damage * 0.82, range: base.range, score: Math.round(base.score * 0.35) };
-      }
-      if (typeId === 'vicious-vercosus') {
-        if (stage === 3) return { hp: base.hp * 1, speed: base.speed * 1, damage: base.damage * 1, range: base.range, score: base.score };
-        if (stage === 2) return { hp: base.hp * 0.43, speed: base.speed * 1.06, damage: base.damage * 0.92, range: base.range, score: Math.round(base.score * 0.45) };
-        return { hp: base.hp * 0.27, speed: base.speed * 1.12, damage: base.damage * 0.84, range: base.range, score: Math.round(base.score * 0.3) };
-      }
-      return { hp: base.hp, speed: base.speed, damage: base.damage, range: base.range, score: base.score };
+      const clampedStage = clamp(Math.round(stage || 4), 1, 4);
+      const multipliers = STAGED_STAGE_MULTIPLIERS[typeId]?.[clampedStage];
+      if (!multipliers) return { hp: base.hp, speed: base.speed, damage: base.damage, range: base.range, score: base.score };
+      return {
+        hp: base.hp * multipliers.hp,
+        speed: base.speed * multipliers.speed,
+        damage: base.damage * multipliers.damage,
+        range: base.range,
+        score: Math.round(base.score * multipliers.hp)
+      };
     }
 
     function getEnemyRenderScale(typeId, stage, isBoss) {
@@ -873,16 +976,8 @@
       if (typeId === 'swamp') return asPlayerSizeRatio(0.5);
       if (typeId === 'daphodilus') return asPlayerSizeRatio(1);
 
-      if (typeId === 'bramble-drone') {
-        if (stage === 3) return asPlayerSizeRatio(1.5);
-        if (stage === 2) return asPlayerSizeRatio(1);
-        return asPlayerSizeRatio(0.5);
-      }
-
-      if (typeId === 'vicious-vercosus') {
-        if (stage === 3) return asPlayerSizeRatio(2.25);
-        if (stage === 2) return asPlayerSizeRatio(2);
-        return asPlayerSizeRatio(1);
+      if (STAGED_ENEMY_TYPES.has(typeId)) {
+        return asPlayerSizeRatio(STAGED_STAGE_SCALE[clamp(Math.round(stage || 4), 1, 4)] || 1);
       }
 
       return isBoss ? BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER : 1;
@@ -1350,7 +1445,7 @@
 
     function createEnemy(typeId, x, y, isBoss = false, options = {}) {
       const base = enemyTypes[typeId];
-      const stage = STAGED_ENEMY_TYPES.has(typeId) ? (options.stage || 3) : 1;
+      const stage = STAGED_ENEMY_TYPES.has(typeId) ? clamp(Math.round(options.stage || 4), 1, 4) : 1;
       const stats = STAGED_ENEMY_TYPES.has(typeId) ? getStagedStats(typeId, stage) : base;
       const animationTracks = assets.enemyAnimations[typeId] || assets.enemyAnimations.swamp || null;
       const isBrambleDroneBoss = isBoss && typeId === 'bramble-drone';
@@ -1451,7 +1546,7 @@
       if (!enemy.animation || !enemy.animation.tracks) return null;
       const stateTracks = enemy.animation.tracks[stateName];
       if (!stateTracks) return null;
-      const stageKey = STAGED_ENEMY_TYPES.has(enemy.type) ? `stage${enemy.stage || 3}` : null;
+      const stageKey = STAGED_ENEMY_TYPES.has(enemy.type) ? `stage${clamp(Math.round(enemy.stage || 4), 1, 4)}` : null;
       const scopedTracks = stageKey && stateTracks[stageKey] ? stateTracks[stageKey] : stateTracks;
       return scopedTracks[facingName];
     }
@@ -1549,8 +1644,8 @@
           [{ type: 'choking-blossom', delay: 0 }, { type: 'choking-blossom', delay: 8 }, { type: 'daphodilus', delay: 240 }],
           [{ type: 'choking-blossom', delay: 0 }, { type: 'daphodilus', delay: 0 }, { type: 'daphodilus', delay: 240 }],
           [{ type: 'choking-blossom', delay: 0 }, { type: 'choking-blossom', delay: 8 }, { type: 'daphodilus', delay: 180, opts: { burrowCooldown: 120 } }],
-          [{ type: 'bramble-drone', delay: 0, opts: { stage: 3 } }],
-          [{ type: 'bramble-drone', delay: 0, opts: { stage: 3 } }, { type: 'daphodilus', delay: 180 }]
+          [{ type: 'bramble-drone', delay: 0, opts: { stage: 4 } }],
+          [{ type: 'bramble-drone', delay: 0, opts: { stage: 4 } }, { type: 'daphodilus', delay: 180 }]
         ];
         const entries = script[waveIndex] || [];
         const waveLockX = getWaveLockX(waveIndex);
@@ -1587,7 +1682,7 @@
     function spawnBoss(level) {
       const bossType = level.boss.type;
       const encounterId = `boss-${Date.now()}`;
-      const boss = createEnemy(bossType, state.levelWidth - 220, clamp(280, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y), true, { stage: 3, bossEncounterId: encounterId });
+      const boss = createEnemy(bossType, state.levelWidth - 220, clamp(280, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y), true, { stage: 4, bossEncounterId: encounterId });
       const verticalBounds = getEnemyVerticalBounds(boss);
       boss.y = clamp(boss.y, verticalBounds.minY, verticalBounds.maxY);
       boss.name = level.boss.name;
@@ -1615,7 +1710,7 @@
       if (Math.random() < 0.2) spawnPickup(enemy.x, enemy.y);
       if (STAGED_ENEMY_TYPES.has(enemy.type) && enemy.stage > 1) {
         const nextStage = enemy.stage - 1;
-        const childCount = enemy.type === 'vicious-vercosus' && enemy.stage === 3 ? 4 : 2;
+        const childCount = 2;
         for (let i = 0; i < childCount; i += 1) {
           const horizontal = (i - ((childCount - 1) / 2)) * 30;
           const child = createEnemy(
@@ -1955,7 +2050,7 @@
             state.commandBuffTimer = 180;
             enemy.commandCooldown = enemy.rage ? rand(240, 360) : rand(360, 600);
           }
-          if (enemy.type === 'vicious-vercosus' && enemy.stage === 3) {
+          if (enemy.type === 'vicious-vercosus' && enemy.stage === 4) {
             enemy.snareCooldown = (enemy.snareCooldown || rand(480, 720)) - 1;
             if (enemy.snareCooldown <= 0) {
               state.hazards.push({ x: player.x, y: player.y, w: 140, h: 70, frames: ROOT_SNARE_FRAMES, kind: 'root-snare' });
@@ -2728,30 +2823,38 @@
 
     function stageIndexFromPath(path) {
       const value = String(path || '').toLowerCase();
+      if (value.includes('state4') || value.includes('stage4')) return 4;
+      if (value.includes('state3') || value.includes('stage3')) return 3;
       if (value.includes('state1') || value.includes('stage1')) return 1;
       if (value.includes('state2') || value.includes('stage2')) return 2;
       return 3;
     }
 
+    function toExplicitStageAwareStates(enemyKey) {
+      if (!STAGED_ANIM_MAP[enemyKey]) return null;
+      const stageOrder = [1, 2, 3, 4];
+      const out = {
+        idle: {},
+        walk: {},
+        hurt: {},
+        attack: {},
+        death: {}
+      };
+      stageOrder.forEach((stage) => {
+        const stageAnimations = getExplicitStageAnimations(enemyKey, stage, 'left');
+        if (!stageAnimations) return;
+        out.idle[`stage${stage}`] = stageAnimations.idle;
+        out.walk[`stage${stage}`] = stageAnimations.walk;
+        out.hurt[`stage${stage}`] = stageAnimations.hurt;
+        out.attack[`stage${stage}`] = stageAnimations.attack;
+        out.death[`stage${stage}`] = stageAnimations.death;
+      });
+      return out;
+    }
+
     function toStageAwareStates(baseStates, enemyKey = '') {
       const out = {};
-      const isStagedSwampCaptain = enemyKey === 'bramble-drone' || enemyKey === 'vicious-vercosus';
-
-      const inferStageSource = (src, stageIndex) => {
-        if (!isStagedSwampCaptain) return src;
-        const lower = String(src || '').toLowerCase();
-        if (lower.includes('stage1') || lower.includes('stage2') || lower.includes('stage3')
-          || lower.includes('state1') || lower.includes('state2') || lower.includes('state3')) {
-          if (stageIndex === 1) return src.replace(/stage2|stage3|state2|state3/ig, (m) => m.toLowerCase().startsWith('state') ? 'state1' : 'stage1');
-          if (stageIndex === 2) return src.replace(/stage1|stage3|state1|state3/ig, (m) => m.toLowerCase().startsWith('state') ? 'state2' : 'stage2');
-          return src.replace(/_stage[12]_|_state[12]_/ig, '_');
-        }
-        // Unnumbered art is final stage; only synthesize stage1/stage2 siblings for anim sets
-        // that actually ship stage variants (attack/damaged/killed). Idle/walk/controlSquare stay shared.
-        if (stageIndex === 3) return src;
-        if (!/(attack|damaged|killed)/i.test(src)) return src;
-        return src.replace(/_(red|blue|green|gold)_/i, `_stage${stageIndex}_$1_`);
-      };
+      const maxStage = 3;
 
       Object.entries(baseStates).forEach(([stateName, cfg]) => {
         const grouped = {
@@ -2764,15 +2867,8 @@
           if (facing === 'fps' || facing === 'loop') return;
           const [src, frameCount] = val;
           const detectedStage = stageIndexFromPath(src);
-
-          if (detectedStage === 3 && isStagedSwampCaptain) {
-            grouped.stage1[facing] = [inferStageSource(src, 1), frameCount];
-            grouped.stage2[facing] = [inferStageSource(src, 2), frameCount];
-            grouped.stage3[facing] = [inferStageSource(src, 3), frameCount];
-          } else {
-            const key = `stage${detectedStage}`;
-            grouped[key][facing] = val;
-          }
+          const key = `stage${clamp(detectedStage, 1, maxStage)}`;
+          grouped[key][facing] = val;
         });
 
         // Ensure every stage has a track; fallback order prefers exact -> stage3 -> stage2 -> stage1.
@@ -3046,12 +3142,28 @@
       };
 
       Object.entries(enemySpriteSheets).forEach(([enemyKey, config]) => {
-        const loader = config.staged
-          ? createStageDirectionalAnimationTracks(toStageAwareStates(config.states, enemyKey), ({ img, frames }) => {
+        const explicitStageMap = STAGED_ANIM_MAP[enemyKey];
+        const explicitStageStates = explicitStageMap ? toExplicitStageAwareStates(enemyKey) : null;
+        const stagedStates = explicitStageStates || (config.staged ? toStageAwareStates(config.states, enemyKey) : null);
+        const loader = stagedStates
+          ? createStageDirectionalAnimationTracks(stagedStates, ({ img, frames }) => {
             createPhysicsProfile(config.profileId, img, frames[0], ENEMY_DRAW_SIZE * config.sizeMultiplier);
             if (config.bossProfileId) {
               createPhysicsProfile(config.bossProfileId, img, frames[0], BOSS_DRAW_SIZE * BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER);
             }
+          }).then((tracks) => {
+            if (explicitStageMap) {
+              [1, 2, 3, 4].forEach((stage) => {
+                const leftSet = getExplicitStageAnimations(enemyKey, stage, 'left');
+                if (!leftSet) return;
+                warnIfExplicitStageAssetMissing(enemyKey, stage, 'idle', leftSet.idle.left[0], tracks.idle?.[`stage${stage}`]?.left);
+                warnIfExplicitStageAssetMissing(enemyKey, stage, 'walk', leftSet.walk.left[0], tracks.walk?.[`stage${stage}`]?.left);
+                warnIfExplicitStageAssetMissing(enemyKey, stage, 'hurt', leftSet.hurt.left[0], tracks.hurt?.[`stage${stage}`]?.left);
+                warnIfExplicitStageAssetMissing(enemyKey, stage, 'attack', leftSet.attack.left[0], tracks.attack?.[`stage${stage}`]?.left);
+                warnIfExplicitStageAssetMissing(enemyKey, stage, 'death', leftSet.death.left[0], tracks.death?.[`stage${stage}`]?.left);
+              });
+            }
+            return tracks;
           })
           : createDirectionalAnimationTracks(config.states, ({ stateName, facingName, img, frames }) => {
             if (stateName === 'idle' && facingName === 'left') {

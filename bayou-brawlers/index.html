@@ -840,6 +840,7 @@
     const STAGED_ENEMY_TYPES = new Set();
     const CHOKING_HOLD_FRAMES = 60;
     const ROOT_SNARE_FRAMES = 90;
+    const ENEMY_DEATH_HOLD_FRAMES = 120;
 
     function debugLog(channel, ...args) {
       if (state.debug && state.debug[channel]) {
@@ -1375,7 +1376,9 @@
         holdTargetFrames: 0,
         holdOwner: false,
         pressureBoost: 1,
-        bossEncounterId: options.bossEncounterId || null
+        bossEncounterId: options.bossEncounterId || null,
+        hurtTimer: 0,
+        deathHoldFrames: 0
       };
       return enemy;
     }
@@ -1440,7 +1443,11 @@
       const facingName = enemy.facing >= 0 ? 'right' : 'left';
       let nextState = enemy.isMoving ? 'walk' : 'idle';
 
-      if (enemy.type === 'daphodilus' && (enemy.aiState === 'Underground' || enemy.aiState === 'DigStart')) {
+      if (enemy.hp <= 0 || enemy.deathHoldFrames > 0) {
+        nextState = 'death';
+      } else if (enemy.hurtTimer > 0) {
+        nextState = 'hurt';
+      } else if (enemy.type === 'daphodilus' && (enemy.aiState === 'Underground' || enemy.aiState === 'DigStart')) {
         nextState = 'burrow';
       } else if (enemy.type === 'daphodilus' && enemy.aiState === 'Emerge') {
         nextState = 'emerge';
@@ -1619,8 +1626,14 @@
       if (!enemy || enemy.hp <= 0 || enemy.invulnFrames > 0 || enemy.untargetable) return;
       enemy.hp -= amount;
       enemy.stun = Math.max(enemy.stun, stun);
+      enemy.hurtTimer = Math.max(enemy.hurtTimer, 12);
       state.effects.push({ x: enemy.x, y: enemy.y, timer: 16, type: 'hit' });
       if (enemy.hp <= 0) {
+        enemy.hp = 0;
+        enemy.hurtTimer = 0;
+        enemy.windup = 0;
+        enemy.attackAnimTimer = 0;
+        enemy.deathHoldFrames = ENEMY_DEATH_HOLD_FRAMES;
         handleEnemyDeath(enemy);
       }
     }
@@ -1812,10 +1825,16 @@
       const hasUndergroundDaph = countUndergroundDaphodilus() > 0;
       state.commandBuffTimer = Math.max(0, state.commandBuffTimer - 1);
       state.enemies.forEach(enemy => {
-        if (enemy.hp <= 0) return;
+        if (enemy.hp <= 0) {
+          enemy.isMoving = false;
+          if (enemy.deathHoldFrames > 0) enemy.deathHoldFrames -= 1;
+          updateEnemyAnimation(enemy, dt);
+          return;
+        }
         enemy.invulnFrames = Math.max(0, enemy.invulnFrames - 1);
         enemy.spawnFadeFrames = Math.max(0, enemy.spawnFadeFrames - 1);
         enemy.noDigUntil = Math.max(0, enemy.noDigUntil - 1);
+        enemy.hurtTimer = Math.max(0, enemy.hurtTimer - 1);
         if (enemy.stun > 0) {
           enemy.stun -= 1;
           enemy.isMoving = false;
@@ -1973,7 +1992,7 @@
       });
       state.hazards = state.hazards.filter(h => h.frames > 0);
 
-      state.enemies = state.enemies.filter(enemy => enemy.hp > 0);
+      state.enemies = state.enemies.filter(enemy => enemy.hp > 0 || enemy.deathHoldFrames > 0);
     }
 
     function updateProjectiles() {
@@ -2362,7 +2381,7 @@
       });
 
       const renderQueue = state.enemies
-        .filter(enemy => enemy.hp > 0)
+        .filter(enemy => enemy.hp > 0 || enemy.deathHoldFrames > 0)
         .map(enemy => ({
           entity: enemy,
           size: enemy.isBoss ? BOSS_DRAW_SIZE : ENEMY_DRAW_SIZE,

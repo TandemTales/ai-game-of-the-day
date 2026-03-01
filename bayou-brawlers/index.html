@@ -719,9 +719,9 @@
 
     const levels = [
       { id: 'swamp', name: 'The Swamp', background: 'background-swamp', waves: [
-        { types: ['goblin', 'swamp'], count: 4 },
+        { types: ['thug', 'swamp'], count: 4 },
         { types: ['swamp', 'thug'], count: 5 },
-        { types: ['goblin', 'swamp'], count: 6 }
+        { types: ['thug', 'swamp'], count: 6 }
       ], boss: { name: 'Mud Monster', type: 'mud-monster' } },
       { id: 'mirewatch', name: 'Mirewatch (Town)', background: 'background-mirewatch', waves: [
         { types: ['thug'], count: 5 },
@@ -754,9 +754,9 @@
         { types: ['fey', 'elite'], count: 8 }
       ], boss: { name: 'Unseelie Captain', type: 'elite' } },
       { id: 'casino', name: 'Lash LeGrim\'s Casino Riverboat', background: 'background-casino', waves: [
-        { types: ['goblin', 'thug'], count: 7 },
-        { types: ['goblin', 'ranged'], count: 8 },
-        { types: ['goblin', 'elite'], count: 8 }
+        { types: ['thug', 'thug'], count: 7 },
+        { types: ['thug', 'ranged'], count: 8 },
+        { types: ['thug', 'elite'], count: 8 }
       ], boss: { name: 'Lash LeGrim', type: 'boss' } },
       { id: 'mansion', name: 'The Sunken Mansion', background: 'background-mansion', waves: [
         { types: ['swamp', 'fey'], count: 8 },
@@ -769,19 +769,19 @@
         { types: ['elite', 'thug'], count: 9 }
       ], boss: { name: 'Mercantile Reaper', type: 'elite' } },
       { id: 'docks', name: 'The Docks', background: 'background-docks', waves: [
-        { types: ['thug', 'goblin'], count: 9 },
-        { types: ['ranged', 'goblin'], count: 9 },
-        { types: ['elite', 'goblin'], count: 9 }
+        { types: ['thug', 'swamp'], count: 9 },
+        { types: ['ranged', 'swamp'], count: 9 },
+        { types: ['elite', 'swamp'], count: 9 }
       ], boss: { name: 'Harbor Chains', type: 'brute' } },
       { id: 'world-tree', name: 'The World Tree', background: 'background-world-tree', waves: [
         { types: ['fey', 'swamp'], count: 9 },
         { types: ['fey', 'elite'], count: 9 },
         { types: ['fey', 'ranged'], count: 9 }
       ], boss: { name: 'Eldergloom', type: 'boss' } },
-      { id: 'goblin-tower', name: 'Goblin Tower', background: 'background-goblin-tower', waves: [
-        { types: ['goblin', 'automaton'], count: 9 },
-        { types: ['goblin', 'ranged'], count: 10 },
-        { types: ['elite', 'goblin'], count: 10 }
+      { id: 'clockwork-tower', name: 'Clockwork Tower', background: 'background-clockwork-tower', waves: [
+        { types: ['thug', 'automaton'], count: 9 },
+        { types: ['thug', 'ranged'], count: 10 },
+        { types: ['elite', 'thug'], count: 10 }
       ], boss: { name: 'Clockwork Foreman', type: 'elite' } },
       { id: 'finale', name: 'Lash LeGrim\'s Pub / Theatre', background: 'background-final-theatre', waves: [
         { types: ['elite', 'ranged'], count: 10 },
@@ -791,7 +791,6 @@
     ];
 
     const enemyTypes = {
-      goblin: { hp: 30, speed: 1.7, damage: 8, range: 18, score: 60, sprite: 'goblin' },
       swamp: { hp: 39, speed: 1.45, damage: 9, range: 22, score: 80, sprite: 'swamp' },
       daphodilus: { hp: 21, speed: 1.25, damage: 12, range: 22, score: 95, sprite: 'daphodilus' },
       'choking-blossom': { hp: 39, speed: 1.45, damage: 9, range: 22, score: 90, sprite: 'swamp' },
@@ -1529,7 +1528,7 @@
       if (level.id === 'swamp') {
         const script = [
           [{ type: 'daphodilus', delay: 0 }, { type: 'daphodilus', delay: 120 }],
-          [{ type: 'daphodilus', delay: 0 }, { type: 'goblin', delay: 10 }],
+          [{ type: 'daphodilus', delay: 0 }, { type: 'thug', delay: 10 }],
           [{ type: 'choking-blossom', delay: 0 }, { type: 'daphodilus', delay: 180 }],
           [{ type: 'choking-blossom', delay: 0 }, { type: 'choking-blossom', delay: 8 }, { type: 'daphodilus', delay: 240 }],
           [{ type: 'choking-blossom', delay: 0 }, { type: 'daphodilus', delay: 0 }, { type: 'daphodilus', delay: 240 }],
@@ -2808,7 +2807,7 @@
         'background-emberfall': 'assets/background-emberfall.svg',
         'background-docks': 'assets/background-docks.svg',
         'background-world-tree': 'assets/background-world-tree.svg',
-        'background-goblin-tower': 'assets/background-goblin-tower.svg',
+        'background-clockwork-tower': 'assets/background-goblin-tower.svg',
         'background-final-theatre': 'assets/background-final-theatre.svg'
       };
 
@@ -2962,17 +2961,6 @@
             hurt: { left: ['assets/animation_mudMonster_red_damaged_left.png', 5], fps: 12, loop: false },
             attack: { left: ['assets/animation_mudMonster_red_attack_left.png', 7], fps: 14, loop: false },
             death: { left: ['assets/animation_mudMonster_red_killed_left.png', 6], fps: 8, loop: false }
-          }
-        },
-        goblin: {
-          profileId: 'enemy-goblin',
-          sizeMultiplier: 1,
-          states: {
-            idle: { left: ['assets/animation_kingOfThieves_rat_red_walking_left.png', 1], fps: 0, loop: false },
-            walk: { left: ['assets/animation_kingOfThieves_rat_red_walking_left.png', 8], fps: 10, loop: true },
-            hurt: { left: ['assets/animation_kingOfThieves_rat_red_damaged_left.png', 5], fps: 12, loop: false },
-            attack: { left: ['assets/animation_kingOfThieves_rat_red_attack_left.png', 7], fps: 14, loop: false },
-            death: { left: ['assets/animation_kingOfThieves_red_killed_left.png', 6], fps: 8, loop: false }
           }
         },
         thug: {

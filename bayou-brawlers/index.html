@@ -722,7 +722,7 @@
         { types: ['goblin', 'swamp'], count: 4 },
         { types: ['swamp', 'thug'], count: 5 },
         { types: ['goblin', 'swamp'], count: 6 }
-      ], boss: { name: 'Vicious Vercosus', type: 'vicious-vercosus' } },
+      ], boss: { name: 'Mud Monster', type: 'mud-monster' } },
       { id: 'mirewatch', name: 'Mirewatch (Town)', background: 'background-mirewatch', waves: [
         { types: ['thug'], count: 5 },
         { types: ['thug', 'ranged'], count: 6 },
@@ -802,8 +802,7 @@
       elite: { hp: 70, speed: 1.5, damage: 14, range: 22, score: 140, sprite: 'automaton' },
       brute: { hp: 120, speed: 1.1, damage: 18, range: 24, score: 200, sprite: 'thug' },
       mage: { hp: 90, speed: 1.3, damage: 16, range: 120, score: 180, sprite: 'fey', ranged: true },
-      'bramble-drone': { hp: 60, speed: 1.25, damage: 11, range: 28, score: 280, sprite: 'bramble-drone' },
-      'vicious-vercosus': { hp: 90, speed: 1.32, damage: 12, range: 32, score: 450, sprite: 'vicious-vercosus' },
+      'mud-monster': { hp: 160, speed: 1.15, damage: 18, range: 34, score: 520, sprite: 'mud-monster' },
       boss: { hp: 200, speed: 1.2, damage: 20, range: 26, score: 350, sprite: 'boss' }
     };
 
@@ -817,8 +816,8 @@
     const PLAYER_DRAW_SIZE = 56 * PLAYER_SCALE_MULTIPLIER;
     const ENEMY_DRAW_SIZE = 48;
     const BOSS_DRAW_SIZE = 80;
-    const BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER = 4;
-    const BRAMBLE_DRONE_BOSS_ANIM_FPS_MULTIPLIER = 1;
+    const BOSS_RENDER_SCALE_MULTIPLIER = 4;
+    const BOSS_ANIM_FPS_MULTIPLIER = 1;
     const DEFAULT_PLAYER_RENDER_SCALE = 0.75;
     const SWAMP_SCALE_MULTIPLIER = ((PLAYER_DRAW_SIZE * DEFAULT_PLAYER_RENDER_SCALE) * 0.5) / ENEMY_DRAW_SIZE;
     const CHOKING_BLOSSOM_SCALE_MULTIPLIER = SWAMP_SCALE_MULTIPLIER * 2;
@@ -838,7 +837,7 @@
 
     const physicsProfiles = {};
     let showCollisionDebug = false;
-    const STAGED_ENEMY_TYPES = new Set(['bramble-drone', 'vicious-vercosus']);
+    const STAGED_ENEMY_TYPES = new Set();
     const CHOKING_HOLD_FRAMES = 60;
     const ROOT_SNARE_FRAMES = 90;
 
@@ -851,16 +850,6 @@
     function getStagedStats(typeId, stage) {
       const base = enemyTypes[typeId];
       if (!base) return { hp: 10, speed: 1, damage: 1, range: 20, score: 10 };
-      if (typeId === 'bramble-drone') {
-        if (stage === 3) return { hp: base.hp * 1, speed: base.speed * 1, damage: base.damage * 1, range: base.range, score: base.score };
-        if (stage === 2) return { hp: base.hp * 0.55, speed: base.speed * 1.08, damage: base.damage * 0.92, range: base.range, score: Math.round(base.score * 0.55) };
-        return { hp: base.hp * 0.35, speed: base.speed * 1.15, damage: base.damage * 0.82, range: base.range, score: Math.round(base.score * 0.35) };
-      }
-      if (typeId === 'vicious-vercosus') {
-        if (stage === 3) return { hp: base.hp * 1, speed: base.speed * 1, damage: base.damage * 1, range: base.range, score: base.score };
-        if (stage === 2) return { hp: base.hp * 0.43, speed: base.speed * 1.06, damage: base.damage * 0.92, range: base.range, score: Math.round(base.score * 0.45) };
-        return { hp: base.hp * 0.27, speed: base.speed * 1.12, damage: base.damage * 0.84, range: base.range, score: Math.round(base.score * 0.3) };
-      }
       return { hp: base.hp, speed: base.speed, damage: base.damage, range: base.range, score: base.score };
     }
 
@@ -873,19 +862,9 @@
       if (typeId === 'swamp') return asPlayerSizeRatio(0.5);
       if (typeId === 'daphodilus') return asPlayerSizeRatio(1);
 
-      if (typeId === 'bramble-drone') {
-        if (stage === 3) return asPlayerSizeRatio(1.5);
-        if (stage === 2) return asPlayerSizeRatio(1);
-        return asPlayerSizeRatio(0.5);
-      }
+      if (typeId === 'mud-monster') return isBoss ? asPlayerSizeRatio(2.1) : asPlayerSizeRatio(1.6);
 
-      if (typeId === 'vicious-vercosus') {
-        if (stage === 3) return asPlayerSizeRatio(2.25);
-        if (stage === 2) return asPlayerSizeRatio(2);
-        return asPlayerSizeRatio(1);
-      }
-
-      return isBoss ? BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER : 1;
+      return isBoss ? BOSS_RENDER_SCALE_MULTIPLIER : 1;
     }
 
     function countUndergroundDaphodilus() {
@@ -1353,7 +1332,6 @@
       const stage = STAGED_ENEMY_TYPES.has(typeId) ? (options.stage || 3) : 1;
       const stats = STAGED_ENEMY_TYPES.has(typeId) ? getStagedStats(typeId, stage) : base;
       const animationTracks = assets.enemyAnimations[typeId] || assets.enemyAnimations.swamp || null;
-      const isBrambleDroneBoss = isBoss && typeId === 'bramble-drone';
       const enemy = {
         uid: ++state.enemyUid,
         type: typeId,
@@ -1384,7 +1362,7 @@
         ranged: base.ranged || false,
         isBoss,
         renderScale: getEnemyRenderScale(typeId, stage, isBoss),
-        physicsProfileId: isBrambleDroneBoss ? 'enemy-bramble-drone-boss' : `enemy-${typeId}`,
+        physicsProfileId: `enemy-${typeId}`,
         targetBodyAimBias: rand(35, 85) / 100,
         invulnFrames: options.invulnFrames || 0,
         spawnFadeFrames: options.spawnFadeFrames || 0,
@@ -1432,8 +1410,8 @@
     }
 
     function getEnemyAimTargetY(enemy, player) {
-      // Feet-anchor based tracking keeps tall/large enemies (like Bramble Drone boss)
-      // from "orbiting" the player's head due to body-center bias.
+      // Feet-anchor based tracking keeps tall/large enemies grounded to the lane
+      // and prevents "orbiting" around the player's head.
       return player.y;
     }
 
@@ -1487,8 +1465,8 @@
         return;
       }
 
-      const adjustedFps = (enemy.isBoss && enemy.type === 'bramble-drone')
-        ? track.fps * BRAMBLE_DRONE_BOSS_ANIM_FPS_MULTIPLIER
+      const adjustedFps = enemy.isBoss
+        ? track.fps * BOSS_ANIM_FPS_MULTIPLIER
         : track.fps;
       const frameTime = 1000 / adjustedFps;
       anim.elapsedMs += dt;
@@ -1549,8 +1527,8 @@
           [{ type: 'choking-blossom', delay: 0 }, { type: 'choking-blossom', delay: 8 }, { type: 'daphodilus', delay: 240 }],
           [{ type: 'choking-blossom', delay: 0 }, { type: 'daphodilus', delay: 0 }, { type: 'daphodilus', delay: 240 }],
           [{ type: 'choking-blossom', delay: 0 }, { type: 'choking-blossom', delay: 8 }, { type: 'daphodilus', delay: 180, opts: { burrowCooldown: 120 } }],
-          [{ type: 'bramble-drone', delay: 0, opts: { stage: 3 } }],
-          [{ type: 'bramble-drone', delay: 0, opts: { stage: 3 } }, { type: 'daphodilus', delay: 180 }]
+          [{ type: 'choking-blossom', delay: 0 }, { type: 'daphodilus', delay: 180, opts: { burrowCooldown: 120 } }],
+          [{ type: 'choking-blossom', delay: 0 }, { type: 'choking-blossom', delay: 8 }, { type: 'daphodilus', delay: 210, opts: { burrowCooldown: 90 } }]
         ];
         const entries = script[waveIndex] || [];
         const waveLockX = getWaveLockX(waveIndex);
@@ -1587,7 +1565,7 @@
     function spawnBoss(level) {
       const bossType = level.boss.type;
       const encounterId = `boss-${Date.now()}`;
-      const boss = createEnemy(bossType, state.levelWidth - 220, clamp(280, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y), true, { stage: 3, bossEncounterId: encounterId });
+      const boss = createEnemy(bossType, state.levelWidth - 220, clamp(280, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y), true, { bossEncounterId: encounterId });
       const verticalBounds = getEnemyVerticalBounds(boss);
       boss.y = clamp(boss.y, verticalBounds.minY, verticalBounds.maxY);
       boss.name = level.boss.name;
@@ -1615,7 +1593,7 @@
       if (Math.random() < 0.2) spawnPickup(enemy.x, enemy.y);
       if (STAGED_ENEMY_TYPES.has(enemy.type) && enemy.stage > 1) {
         const nextStage = enemy.stage - 1;
-        const childCount = enemy.type === 'vicious-vercosus' && enemy.stage === 3 ? 4 : 2;
+        const childCount = 2;
         for (let i = 0; i < childCount; i += 1) {
           const horizontal = (i - ((childCount - 1) / 2)) * 30;
           const child = createEnemy(
@@ -1948,19 +1926,12 @@
           }
         }
 
-        if ((enemy.type === 'bramble-drone' || enemy.type === 'vicious-vercosus') && enemy.stage > 1) {
+        if (STAGED_ENEMY_TYPES.has(enemy.type) && enemy.stage > 1) {
           if (!enemy.rage && enemy.hp < enemy.maxHp * 0.4) enemy.rage = true;
           enemy.commandCooldown -= 1;
           if (enemy.stage > 1 && enemy.commandCooldown <= 0) {
             state.commandBuffTimer = 180;
             enemy.commandCooldown = enemy.rage ? rand(240, 360) : rand(360, 600);
-          }
-          if (enemy.type === 'vicious-vercosus' && enemy.stage === 3) {
-            enemy.snareCooldown = (enemy.snareCooldown || rand(480, 720)) - 1;
-            if (enemy.snareCooldown <= 0) {
-              state.hazards.push({ x: player.x, y: player.y, w: 140, h: 70, frames: ROOT_SNARE_FRAMES, kind: 'root-snare' });
-              enemy.snareCooldown = rand(480, 720);
-            }
           }
         }
 
@@ -1970,7 +1941,7 @@
             if (enemy.ranged) {
               state.projectiles.push({ x: enemy.x, y: enemyBody.y + (enemyBody.height * 0.4), vx: Math.sign(dx) * 4.5, damage: enemy.damage, friendly: false, life: 140, color: '#ff7b7b' });
             } else {
-              const attackReachMultiplier = (enemy.isBoss && enemy.type === 'bramble-drone') ? 2 : 1;
+              const attackReachMultiplier = enemy.isBoss ? 2 : 1;
               const forwardReach = ((enemy.range + 10) * attackReachMultiplier);
               const meleeZone = { x: enemy.facing >= 0 ? enemyBody.x : enemyBody.x - forwardReach, y: enemyBody.y, width: enemyBody.width + forwardReach, height: enemyBody.height };
               if (rectsOverlap(meleeZone, playerBody)) damagePlayer(enemy.damage);
@@ -2114,7 +2085,7 @@
 
       if (state.waveActive) {
         if (state.bossActive && state.bossEncounter) {
-          const aliveBossLineage = state.enemies.filter(e => e.hp > 0 && e.type === 'vicious-vercosus' && e.bossEncounterId === state.bossEncounter.id);
+          const aliveBossLineage = state.enemies.filter(e => e.hp > 0 && e.bossEncounterId === state.bossEncounter.id);
           if (!state.bossEncounter.add10 && state.player && state.player.attackCooldown >= 0) {
             state.bossEncounter.timer = (state.bossEncounter.timer || 0) + 1;
             if (state.bossEncounter.timer >= 600) {
@@ -2735,7 +2706,7 @@
 
     function toStageAwareStates(baseStates, enemyKey = '') {
       const out = {};
-      const isStagedSwampCaptain = enemyKey === 'bramble-drone' || enemyKey === 'vicious-vercosus';
+      const isStagedSwampCaptain = STAGED_ENEMY_TYPES.has(enemyKey);
 
       const inferStageSource = (src, stageIndex) => {
         if (!isStagedSwampCaptain) return src;
@@ -2963,29 +2934,15 @@
             emerge: { left: ['assets/animation_delvingDaphodilus_red_digUp_left.png', 5], fps: 12, loop: false }
           }
         },
-        'bramble-drone': {
-          profileId: 'enemy-bramble-drone',
-          bossProfileId: 'enemy-bramble-drone-boss',
-          staged: true,
-          sizeMultiplier: 1,
+        'mud-monster': {
+          profileId: 'enemy-mud-monster',
+          sizeMultiplier: BOSS_DRAW_SIZE / ENEMY_DRAW_SIZE,
           states: {
-            idle: { left: ['assets/animation_brambleDrone_red_controlSquare_left.png', 1], fps: 0, loop: false },
-            walk: { left: ['assets/animation_brambleDrone_red_walking_left.png', 8], fps: 10, loop: true },
-            hurt: { left: ['assets/animation_brambleDrone_red_damaged_left.png', 5], fps: 12, loop: false },
-            attack: { left: ['assets/animation_brambleDrone_red_attack_left.png', 7], fps: 14, loop: false },
-            death: { left: ['assets/animation_brambleDrone_red_killed_left.png', 6], fps: 8, loop: false }
-          }
-        },
-        'vicious-vercosus': {
-          profileId: 'enemy-vicious-vercosus',
-          staged: true,
-          sizeMultiplier: 1,
-          states: {
-            idle: { left: ['assets/animation_viciousVercosus_red_controlSquare_left.png', 1], fps: 0, loop: false },
-            walk: { left: ['assets/animation_viciousVercosus_red_walking_left.png', 8], fps: 10, loop: true },
-            hurt: { left: ['assets/animation_viciousVercosus_red_damaged_left.png', 5], fps: 12, loop: false },
-            attack: { left: ['assets/animation_viciousVercosus_red_attack_left.png', 7], fps: 14, loop: false },
-            death: { left: ['assets/animation_viciousVercosus_red_killed_left.png', 6], fps: 8, loop: false }
+            idle: { left: ['assets/animation_mudMonster_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_mudMonster_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_mudMonster_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_mudMonster_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_mudMonster_red_killed_left.png', 6], fps: 8, loop: false }
           }
         },
         goblin: {
@@ -3036,11 +2993,11 @@
           profileId: 'enemy-boss',
           sizeMultiplier: BOSS_DRAW_SIZE / ENEMY_DRAW_SIZE,
           states: {
-            idle: { left: ['assets/animation_viciousVercosus_red_walking_left.png', 1], fps: 0, loop: false },
-            walk: { left: ['assets/animation_viciousVercosus_red_walking_left.png', 8], fps: 10, loop: true },
-            hurt: { left: ['assets/animation_viciousVercosus_red_damaged_left.png', 5], fps: 12, loop: false },
-            attack: { left: ['assets/animation_viciousVercosus_red_attack_left.png', 7], fps: 14, loop: false },
-            death: { left: ['assets/animation_viciousVercosus_red_killed_left.png', 6], fps: 8, loop: false }
+            idle: { left: ['assets/animation_mudMonster_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_mudMonster_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_mudMonster_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_mudMonster_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_mudMonster_red_killed_left.png', 6], fps: 8, loop: false }
           }
         }
       };
@@ -3050,14 +3007,14 @@
           ? createStageDirectionalAnimationTracks(toStageAwareStates(config.states, enemyKey), ({ img, frames }) => {
             createPhysicsProfile(config.profileId, img, frames[0], ENEMY_DRAW_SIZE * config.sizeMultiplier);
             if (config.bossProfileId) {
-              createPhysicsProfile(config.bossProfileId, img, frames[0], BOSS_DRAW_SIZE * BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER);
+              createPhysicsProfile(config.bossProfileId, img, frames[0], BOSS_DRAW_SIZE * BOSS_RENDER_SCALE_MULTIPLIER);
             }
           })
           : createDirectionalAnimationTracks(config.states, ({ stateName, facingName, img, frames }) => {
             if (stateName === 'idle' && facingName === 'left') {
               createPhysicsProfile(config.profileId, img, frames[0], ENEMY_DRAW_SIZE * config.sizeMultiplier);
               if (config.bossProfileId) {
-                createPhysicsProfile(config.bossProfileId, img, frames[0], BOSS_DRAW_SIZE * BRAMBLE_DRONE_BOSS_SCALE_MULTIPLIER);
+                createPhysicsProfile(config.bossProfileId, img, frames[0], BOSS_DRAW_SIZE * BOSS_RENDER_SCALE_MULTIPLIER);
               }
             }
           });

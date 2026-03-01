@@ -719,9 +719,9 @@
 
     const levels = [
       { id: 'swamp', name: 'The Swamp', background: 'background-swamp', waves: [
-        { types: ['goblin', 'swamp'], count: 4 },
-        { types: ['swamp', 'thug'], count: 5 },
-        { types: ['goblin', 'swamp'], count: 6 }
+        { types: ['daphodilus', 'choking-blossom'], count: 4 },
+        { types: ['choking-blossom', 'daphodilus'], count: 5 },
+        { types: ['daphodilus', 'choking-blossom'], count: 6 }
       ], boss: { name: 'Mud Monster', type: 'mud-monster' } },
       { id: 'mirewatch', name: 'Mirewatch (Town)', background: 'background-mirewatch', waves: [
         { types: ['thug'], count: 5 },
@@ -1529,7 +1529,7 @@
       if (level.id === 'swamp') {
         const script = [
           [{ type: 'daphodilus', delay: 0 }, { type: 'daphodilus', delay: 120 }],
-          [{ type: 'daphodilus', delay: 0 }, { type: 'goblin', delay: 10 }],
+          [{ type: 'daphodilus', delay: 0 }, { type: 'choking-blossom', delay: 10 }],
           [{ type: 'choking-blossom', delay: 0 }, { type: 'daphodilus', delay: 180 }],
           [{ type: 'choking-blossom', delay: 0 }, { type: 'choking-blossom', delay: 8 }, { type: 'daphodilus', delay: 240 }],
           [{ type: 'choking-blossom', delay: 0 }, { type: 'daphodilus', delay: 0 }, { type: 'daphodilus', delay: 240 }],

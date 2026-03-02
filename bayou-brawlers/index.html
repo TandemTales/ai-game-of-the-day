@@ -570,6 +570,8 @@
 
     const assets = {
       backgrounds: {},
+      barriers: {},
+      barrierMasks: {},
       characters: {},
       enemies: {},
       enemyAnimations: {},
@@ -828,6 +830,8 @@
     const BRAWL_LANE_MAX_Y = canvas.height - BRAWL_LANE_BOTTOM_PADDING;
     const MOVE_EPSILON = 0.05;
     const SPRITE_FRAME_SIZE = 128;
+    const MOVEMENT_MASK_RED_MIN = 120;
+    const MOVEMENT_MASK_RED_DELTA = 25;
 
     const PLAYER_ANIM_FPS = {
       walk: 10,
@@ -1188,6 +1192,76 @@
         drawWidth,
         drawHeight
       };
+    }
+
+    function getMovementMaskDrawMetrics(level = levels[state.levelIndex]) {
+      const levelId = level ? level.id : '';
+      const mask = assets.barriers[levelId];
+      if (!mask) return null;
+      const bgMetrics = getBackgroundDrawMetrics(level);
+      if (!bgMetrics) return null;
+      return {
+        mask,
+        drawX: bgMetrics.drawX,
+        drawY: bgMetrics.drawY,
+        drawWidth: bgMetrics.drawWidth,
+        drawHeight: bgMetrics.drawHeight
+      };
+    }
+
+    function ensureMovementMaskData(level = levels[state.levelIndex]) {
+      if (!level) return null;
+      if (assets.barrierMasks[level.id]) return assets.barrierMasks[level.id];
+      const maskImage = assets.barriers[level.id];
+      if (!maskImage) return null;
+      const cacheCanvas = document.createElement('canvas');
+      cacheCanvas.width = maskImage.width;
+      cacheCanvas.height = maskImage.height;
+      const cacheCtx = cacheCanvas.getContext('2d', { willReadFrequently: true });
+      cacheCtx.clearRect(0, 0, cacheCanvas.width, cacheCanvas.height);
+      cacheCtx.drawImage(maskImage, 0, 0);
+      assets.barrierMasks[level.id] = {
+        width: maskImage.width,
+        height: maskImage.height,
+        pixels: cacheCtx.getImageData(0, 0, maskImage.width, maskImage.height).data
+      };
+      return assets.barrierMasks[level.id];
+    }
+
+    function isWalkableWorldPosition(worldX, worldY) {
+      const level = levels[state.levelIndex];
+      const metrics = getMovementMaskDrawMetrics(level);
+      if (!metrics) return true;
+      const maskData = ensureMovementMaskData(level);
+      if (!maskData) return true;
+      const screenX = worldX - state.cameraX;
+      const screenY = worldY - state.cameraY;
+      const sampleX = Math.floor(((screenX - metrics.drawX) / metrics.drawWidth) * maskData.width);
+      const sampleY = Math.floor(((screenY - metrics.drawY) / metrics.drawHeight) * maskData.height);
+      if (sampleX < 0 || sampleY < 0 || sampleX >= maskData.width || sampleY >= maskData.height) {
+        return false;
+      }
+      const idx = ((sampleY * maskData.width) + sampleX) * 4;
+      const red = maskData.pixels[idx];
+      const green = maskData.pixels[idx + 1];
+      const blue = maskData.pixels[idx + 2];
+      return red >= MOVEMENT_MASK_RED_MIN && red >= green + MOVEMENT_MASK_RED_DELTA && red >= blue + MOVEMENT_MASK_RED_DELTA;
+    }
+
+    function applyMovementMaskClamp(entity, prevX, prevY) {
+      const movedX = Math.abs(entity.x - prevX) > MOVE_EPSILON;
+      const movedY = Math.abs(entity.y - prevY) > MOVE_EPSILON;
+      if (isWalkableWorldPosition(entity.x, entity.y)) return;
+      if (movedX && isWalkableWorldPosition(prevX, entity.y)) {
+        entity.x = prevX;
+        return;
+      }
+      if (movedY && isWalkableWorldPosition(entity.x, prevY)) {
+        entity.y = prevY;
+        return;
+      }
+      entity.x = prevX;
+      entity.y = prevY;
     }
 
     function getBrawlLaneMinY() {
@@ -1788,6 +1862,7 @@
       player.x = clamp(player.x, 40, state.levelWidth - 40);
       const playerVerticalBounds = getPlayerVerticalBounds(player);
       player.y = clamp(player.y, playerVerticalBounds.minY, playerVerticalBounds.maxY);
+      applyMovementMaskClamp(player, prevX, prevY);
       player.isMoving = Math.hypot(player.x - prevX, player.y - prevY) > MOVE_EPSILON;
 
       if (state.lockX !== null && player.x > state.lockX) {
@@ -1826,6 +1901,8 @@
       const hasUndergroundDaph = countUndergroundDaphodilus() > 0;
       state.commandBuffTimer = Math.max(0, state.commandBuffTimer - 1);
       state.enemies.forEach(enemy => {
+        const prevX = enemy.x;
+        const prevY = enemy.y;
         if (enemy.hp <= 0) {
           enemy.isMoving = false;
           if (enemy.deathHoldFrames > 0) enemy.deathHoldFrames -= 1;
@@ -1979,6 +2056,7 @@
         if (enemy.attackAnimTimer > 0) enemy.attackAnimTimer -= 1;
         const verticalBounds = getEnemyVerticalBounds(enemy);
         enemy.y = clamp(enemy.y, verticalBounds.minY, verticalBounds.maxY);
+        applyMovementMaskClamp(enemy, prevX, prevY);
         updateEnemyAnimation(enemy, dt);
       });
 
@@ -2184,6 +2262,7 @@
         state.player.x = 80;
         state.player.y = clamp(state.player.y, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
       }
+      updateCamera();
       updateWaveHud();
     }
 
@@ -2812,9 +2891,16 @@
         'background-goblin-tower': 'assets/background-goblin-tower.svg',
         'background-final-theatre': 'assets/background-final-theatre.svg'
       };
+      const barrierKeysByLevelId = {
+        swamp: 'assets/BB_bg_swamp001_barrier.png'
+      };
 
       Object.entries(backgroundKeys).forEach(([key, src]) => {
         promises.push(loadImage(src).then(img => { assets.backgrounds[key] = normalizeBackgroundImage(img); }));
+      });
+
+      Object.entries(barrierKeysByLevelId).forEach(([levelId, src]) => {
+        promises.push(loadImage(src).then((img) => { assets.barriers[levelId] = img; }));
       });
 
       const playerSpriteSheets = {

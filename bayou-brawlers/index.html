@@ -830,8 +830,8 @@
     const BRAWL_LANE_MAX_Y = canvas.height - BRAWL_LANE_BOTTOM_PADDING;
     const MOVE_EPSILON = 0.05;
     const SPRITE_FRAME_SIZE = 128;
-    const MOVEMENT_MASK_RED_MIN = 120;
-    const MOVEMENT_MASK_RED_DELTA = 25;
+    const MOVEMENT_MASK_RED_MIN = 80;
+    const MOVEMENT_MASK_ALPHA_MIN = 16;
 
     const PLAYER_ANIM_FPS = {
       walk: 10,
@@ -1245,13 +1245,19 @@
       const red = maskData.pixels[idx];
       const green = maskData.pixels[idx + 1];
       const blue = maskData.pixels[idx + 2];
-      return red >= MOVEMENT_MASK_RED_MIN && red >= green + MOVEMENT_MASK_RED_DELTA && red >= blue + MOVEMENT_MASK_RED_DELTA;
+      const alpha = maskData.pixels[idx + 3];
+      if (alpha < MOVEMENT_MASK_ALPHA_MIN) return false;
+      return red >= MOVEMENT_MASK_RED_MIN && red >= green && red >= blue;
     }
 
     function applyMovementMaskClamp(entity, prevX, prevY) {
       const movedX = Math.abs(entity.x - prevX) > MOVE_EPSILON;
       const movedY = Math.abs(entity.y - prevY) > MOVE_EPSILON;
+      const prevIsWalkable = isWalkableWorldPosition(prevX, prevY);
       if (isWalkableWorldPosition(entity.x, entity.y)) return;
+      // If an entity starts outside the walkable red zone (e.g. spawn mismatch),
+      // do not hard-lock movement. Allow motion until it re-enters a walkable pixel.
+      if (!prevIsWalkable) return;
       if (movedX && isWalkableWorldPosition(prevX, entity.y)) {
         entity.x = prevX;
         return;

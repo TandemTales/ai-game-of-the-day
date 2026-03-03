@@ -1932,7 +1932,7 @@
         player.animationSignals.attack = true;
         doAttack(player, true, isAir, tuning);
         player.heavyChargeFrames = 0;
-        state.shake = Math.max(state.shake, 7);
+        state.shake = Math.max(state.shake, 10);
         return;
       }
 
@@ -3036,9 +3036,10 @@
       document.getElementById('startBtn').addEventListener('click', () => {
         if (!selected) return;
         state.player = createPlayer(selected);
-        const progress = loadProgress();
-        state.player.level = clamp(progress.level || 1, 1, MAX_LEVEL);
-        state.player.xp = Math.max(0, progress.xp || 0);
+        state.player.level = 1;
+        state.player.xp = 0;
+        state.player.magic = 0;
+        localStorage.removeItem(SAVE_SLOT_KEY);
         updateHpBar();
         updateProgressHud(state.player);
         updateMagicHud(state.player);

@@ -853,7 +853,9 @@
     const MAX_LEVEL = 10;
     const SPECIAL_COST = 50;
     const SUPER_COST = 100;
-    const XP_TABLE = [0, 60, 140, 260, 420, 620, 860, 1160, 1540, 2050];
+    // XP required to advance from the current level to the next one.
+    // Tuned so a full-clear run lands around level 10 by the end of stage 6.
+    const XP_TABLE = [140, 220, 320, 450, 620, 850, 1120, 1460, 1820];
     const XP_BY_TIER = { small: 14, medium: 24, elite: 45, boss: 100 };
     const MAGIC_BY_TIER = { small: 5, medium: 8, elite: 12, boss: 15 };
     const SAVE_SLOT_KEY = `${GAME_ID}:slot:default:progress`;

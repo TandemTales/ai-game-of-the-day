@@ -1875,12 +1875,12 @@
         x: player.x + player.facing * 26,
         y: player.y - 36,
         vx: player.facing * (9.5 + speedBonus),
-        vy: heavy ? -0.12 : 0,
+        vy: 0,
         damage: (heavy ? tuning.heavy : tuning.light) * player.power * getDamageMultiplier(player),
         friendly: true,
         life: heavy ? 110 : 90,
         color: paletteByCharacter[id] || '#f5d07a',
-        tracking: true,
+        tracking: false,
         turnRate: heavy ? 0.18 : 0.12,
         ownerId: id,
         trailEvery: 3,
@@ -1970,7 +1970,7 @@
       if (input.fast && player.attackCooldown <= 0) {
         player.attackFacing = attackFacing;
         player.facing = attackFacing;
-        player.attackCooldown = 18;
+        player.attackCooldown = player.charData.id === 'rustbucket' ? 36 : 18;
         player.animationSignals.attack = true;
         doAttack(player, false, isAir, tuning);
       }

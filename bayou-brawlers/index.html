@@ -1307,11 +1307,13 @@
     }
 
     function createPlayer(charData) {
+      const startX = 40;
+      const startY = BRAWL_LANE_MAX_Y;
       return {
         name: charData.name,
         sprite: assets.characters[charData.sprite],
-        x: 80,
-        y: 280,
+        x: startX,
+        y: startY,
         z: 0,
         vx: 0,
         vz: 0,

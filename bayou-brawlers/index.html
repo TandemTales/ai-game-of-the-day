@@ -1988,7 +1988,7 @@
       if (input.fast && player.attackCooldown <= 0) {
         player.attackFacing = attackFacing;
         player.facing = attackFacing;
-        player.attackCooldown = player.charData.id === 'rustbucket' ? 36 : 18;
+        player.attackCooldown = player.charData.id === 'rustbucket' ? 36 : (player.charData.id === 'shunky-rooster' ? 180 : 18);
         player.animationSignals.attack = true;
         doAttack(player, false, isAir, tuning);
       }
@@ -2007,42 +2007,71 @@
 
     function doAttack(player, heavy, isAir, tuning) {
       const characterId = player.charData.id;
-      const rangedAttackers = new Set(['rustbucket', 'shunky-rooster', 'billy-boxby']);
+      const rangedAttackers = new Set(['rustbucket']);
       const aoeAttackers = new Set(['green-fairy', 'scarlett-glumpkin']);
       const brutalDirectionalAttackers = new Set(['old-man-croc', 'possumatli', 'grimma-the-feared']);
 
-      if (rangedAttackers.has(characterId)) {
-        spawnPlayerAttackProjectile(player, heavy, tuning);
-        if (characterId === 'billy-boxby') {
-          state.effects.push({
-            x: player.x + player.facing * 10,
-            y: player.y - 44,
-            timer: heavy ? 14 : 10,
-            type: 'flash-cone',
-            facing: player.facing,
-            length: heavy ? 138 : 112,
-            spread: heavy ? 0.48 : 0.38
-          });
-        }
-        if (characterId === 'shunky-rooster') {
-          state.effects.push({
-            x: player.x + player.facing * 8,
-            y: player.y - 46,
-            timer: heavy ? 12 : 9,
-            type: 'chest-beam',
-            facing: player.facing,
-            length: heavy ? 128 : 102
-          });
+      if (characterId === 'billy-boxby') {
+        const coneLength = heavy ? 420 : 336;
+        const coneSpread = heavy ? 1.32 : 1.14;
+        const baseDmg = (heavy ? tuning.heavy : tuning.light) * player.power * getDamageMultiplier(player);
+        const coneOriginX = player.x + player.facing * 16;
+        const coneOriginY = player.y - 44;
+        let hitCount = 0;
+        state.enemies.forEach(enemy => {
+          if (enemy.hp <= 0) return;
+          const enemyBody = getEnemyHitbox(enemy);
+          const targetX = enemyBody.x + enemyBody.width * 0.5;
+          const targetY = enemyBody.y + enemyBody.height * 0.45;
+          const relX = (targetX - coneOriginX) * player.facing;
+          if (relX < 0 || relX > coneLength) return;
+          const verticalLimit = 8 + (relX * coneSpread);
+          if (Math.abs(targetY - coneOriginY) > verticalLimit) return;
+          damageEnemy(enemy, baseDmg, heavy ? 24 : 16);
+          enemy.x += player.facing * (heavy ? 20 : 12);
+          applyCharacterOnHitStatus(player, enemy, heavy);
+          hitCount += 1;
+        });
+        if (hitCount > 0) {
+          player.comboHits += hitCount;
+          player.comboTimer = 120;
         }
         state.effects.push({
-          x: player.x + player.facing * 22,
-          y: player.y - 44,
-          timer: 14,
-          type: 'projectile-muzzle',
-          color: characterId === 'shunky-rooster'
-            ? (heavy ? 'rgba(128,255,236,0.95)' : 'rgba(72,227,204,0.9)')
-            : (heavy ? '#fff2a8' : '#ffd27a')
+          x: coneOriginX,
+          y: coneOriginY,
+          timer: heavy ? 16 : 12,
+          maxTimer: heavy ? 16 : 12,
+          type: 'flash-cone',
+          facing: player.facing,
+          length: coneLength,
+          spread: coneSpread
         });
+        return;
+      }
+
+      if (characterId === 'shunky-rooster') {
+        const beamDuration = 60;
+        player.attackCooldown = Math.max(player.attackCooldown, 180);
+        player.powerCooldown = Math.max(player.powerCooldown, 180);
+        state.effects.push({
+          type: 'shunky-laser',
+          x: player.x + player.facing * 12,
+          y: player.y - 44,
+          facing: player.facing,
+          width: heavy ? 64 : 48,
+          length: Math.max(canvas.width + 260, 1280),
+          timer: beamDuration,
+          maxTimer: beamDuration,
+          damage: (heavy ? tuning.heavy : tuning.light) * player.power * getDamageMultiplier(player) * 0.4,
+          stun: heavy ? 12 : 8,
+          owner: player
+        });
+        return;
+      }
+
+      if (rangedAttackers.has(characterId)) {
+        spawnPlayerAttackProjectile(player, heavy, tuning);
+        state.effects.push({ x: player.x + player.facing * 22, y: player.y - 44, timer: 14, type: 'projectile-muzzle', color: heavy ? '#fff2a8' : '#ffd27a' });
         return;
       }
 
@@ -2580,6 +2609,29 @@
             }
           });
         }
+        if (effect.type === 'shunky-laser' && effect.timer % 12 === 0) {
+          const endX = effect.x + (effect.length * effect.facing);
+          const left = Math.min(effect.x, endX);
+          const right = Math.max(effect.x, endX);
+          const halfWidth = effect.width * 0.5;
+          let hitCount = 0;
+          state.enemies.forEach(enemy => {
+            if (enemy.hp <= 0) return;
+            const enemyBody = getEnemyHitbox(enemy);
+            const centerX = enemyBody.x + enemyBody.width * 0.5;
+            const centerY = enemyBody.y + enemyBody.height * 0.5;
+            if (centerX < left || centerX > right) return;
+            if (Math.abs(centerY - effect.y) > halfWidth) return;
+            damageEnemy(enemy, effect.damage, effect.stun || 0);
+            enemy.x += effect.facing * 6;
+            if (effect.owner) applyCharacterOnHitStatus(effect.owner, enemy, false);
+            hitCount += 1;
+          });
+          if (hitCount > 0 && effect.owner) {
+            effect.owner.comboHits += hitCount;
+            effect.owner.comboTimer = 120;
+          }
+        }
       });
       state.effects = state.effects.filter(effect => effect.timer > 0);
     }
@@ -3006,47 +3058,57 @@
           ctx.fillStyle = effect.color || 'rgba(255,255,180,0.9)';
           ctx.fillRect(effect.x - state.cameraX - 6, effect.y - state.cameraY - 6, 12, 12);
         }
-        if (effect.type === 'chest-beam') {
-          const alpha = clamp(effect.timer / 12, 0, 1);
-          const x = effect.x - state.cameraX;
-          const y = effect.y - state.cameraY;
-          const direction = effect.facing || 1;
-          ctx.save();
-          ctx.globalAlpha = alpha;
-          const grad = ctx.createLinearGradient(x, y, x + (effect.length * direction), y);
-          grad.addColorStop(0, 'rgba(145, 255, 236, 0.95)');
-          grad.addColorStop(0.6, 'rgba(64, 218, 194, 0.72)');
-          grad.addColorStop(1, 'rgba(64, 218, 194, 0)');
-          ctx.strokeStyle = grad;
-          ctx.lineWidth = 10;
-          ctx.beginPath();
-          ctx.moveTo(x, y);
-          ctx.lineTo(x + (effect.length * direction), y);
-          ctx.stroke();
-          ctx.restore();
-        }
         if (effect.type === 'flash-cone') {
-          const maxTimer = effect.length > 120 ? 14 : 10;
+          const maxTimer = effect.maxTimer || 12;
           const progress = clamp(effect.timer / maxTimer, 0, 1);
           const x = effect.x - state.cameraX;
           const y = effect.y - state.cameraY;
           const direction = effect.facing || 1;
-          const length = effect.length * (0.7 + (0.3 * progress));
-          const spread = effect.spread || 0.4;
+          const length = effect.length * (0.82 + (0.18 * progress));
+          const spread = effect.spread || 1.1;
           ctx.save();
-          ctx.globalAlpha = 0.85 * progress;
+          ctx.globalAlpha = 0.78 * progress;
           const gradient = ctx.createLinearGradient(x, y, x + (length * direction), y);
-          gradient.addColorStop(0, 'rgba(255, 249, 200, 0.82)');
-          gradient.addColorStop(0.55, 'rgba(255, 232, 128, 0.5)');
-          gradient.addColorStop(1, 'rgba(255, 232, 128, 0)');
+          gradient.addColorStop(0, 'rgba(255, 255, 220, 0.88)');
+          gradient.addColorStop(0.45, 'rgba(255, 242, 170, 0.62)');
+          gradient.addColorStop(1, 'rgba(255, 242, 170, 0)');
           ctx.fillStyle = gradient;
           ctx.beginPath();
-          ctx.moveTo(x, y - 6);
+          ctx.moveTo(x, y - 8);
           ctx.lineTo(x + (length * direction), y - (length * spread));
           ctx.lineTo(x + (length * direction), y + (length * spread));
-          ctx.lineTo(x, y + 6);
+          ctx.lineTo(x, y + 8);
           ctx.closePath();
           ctx.fill();
+          ctx.restore();
+        }
+        if (effect.type === 'shunky-laser') {
+          const maxTimer = effect.maxTimer || 60;
+          const alpha = clamp((effect.timer / maxTimer) * 1.1, 0, 1);
+          const x = effect.x - state.cameraX;
+          const y = effect.y - state.cameraY;
+          const direction = effect.facing || 1;
+          const endX = x + (effect.length * direction);
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          const outer = ctx.createLinearGradient(x, y, endX, y);
+          outer.addColorStop(0, 'rgba(78, 233, 205, 0.95)');
+          outer.addColorStop(0.4, 'rgba(62, 220, 192, 0.86)');
+          outer.addColorStop(1, 'rgba(62, 220, 192, 0.55)');
+          ctx.strokeStyle = outer;
+          ctx.lineWidth = effect.width;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(endX, y);
+          ctx.stroke();
+
+          ctx.strokeStyle = 'rgba(198, 255, 242, 0.95)';
+          ctx.lineWidth = Math.max(8, effect.width * 0.32);
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(endX, y);
+          ctx.stroke();
           ctx.restore();
         }
         if (effect.type === 'projectile-burst') {

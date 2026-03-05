@@ -2298,7 +2298,7 @@
         if (canPromptForward && Math.abs(player.vx) < 0.01) {
           state.idleFrames += 1;
           if (state.idleFrames > IDLE_ARROW_DELAY_FRAMES) {
-            state.continueArrowTimer = 1;
+            state.continueArrowTimer += 1;
           }
         } else {
           state.idleFrames = 0;
@@ -3137,7 +3137,10 @@
 
     function drawContinueArrow() {
       if (state.continueArrowTimer <= 0) return;
-      const alpha = 0.25 + (((Math.sin(performance.now() / 350) + 1) / 2) * 0.75);
+      const shouldFlash = state.continueArrowTimer > 120;
+      const alpha = shouldFlash
+        ? 0.25 + (((Math.sin(performance.now() / 350) + 1) / 2) * 0.75)
+        : 1;
       const arrowX = canvas.width - 52;
       const arrowY = canvas.height / 2;
 
@@ -3150,9 +3153,9 @@
       ctx.beginPath();
       ctx.moveTo(arrowX - 30, arrowY - 24);
       ctx.lineTo(arrowX + 18, arrowY - 24);
-      ctx.lineTo(arrowX + 18, arrowY - 36);
-      ctx.lineTo(arrowX + 44, arrowY);
-      ctx.lineTo(arrowX + 18, arrowY + 36);
+      ctx.lineTo(arrowX + 18, arrowY - 40);
+      ctx.lineTo(arrowX + 52, arrowY);
+      ctx.lineTo(arrowX + 18, arrowY + 40);
       ctx.lineTo(arrowX + 18, arrowY + 24);
       ctx.lineTo(arrowX - 30, arrowY + 24);
       ctx.closePath();

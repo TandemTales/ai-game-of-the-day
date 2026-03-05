@@ -1870,12 +1870,30 @@
         'rustbucket': '#ffb871',
         'shunky-rooster': '#ff6f6f'
       };
-      const speedBonus = heavy ? 2.2 : 0;
+      const speed = 9.5 + (heavy ? 2.2 : 0);
+      const originX = player.x + player.facing * 26;
+      const originY = player.y - 36;
+      const forwardTargets = state.enemies
+        .filter(enemy => enemy.hp > 0 && ((enemy.x - player.x) * player.facing) > 0)
+        .sort((a, b) => Math.abs(a.x - player.x) - Math.abs(b.x - player.x));
+      const target = forwardTargets[0] || null;
+      let vx = player.facing * speed;
+      let vy = 0;
+      if (target) {
+        const enemyBody = getEnemyHitbox(target);
+        const targetX = enemyBody.x + enemyBody.width * 0.5;
+        const targetY = enemyBody.y + enemyBody.height * 0.5;
+        const dx = targetX - originX;
+        const dy = targetY - originY;
+        const dist = Math.hypot(dx, dy) || 1;
+        vx = (dx / dist) * speed;
+        vy = (dy / dist) * speed;
+      }
       const projectile = {
-        x: player.x + player.facing * 26,
-        y: player.y - 36,
-        vx: player.facing * (9.5 + speedBonus),
-        vy: 0,
+        x: originX,
+        y: originY,
+        vx,
+        vy,
         damage: (heavy ? tuning.heavy : tuning.light) * player.power * getDamageMultiplier(player),
         friendly: true,
         life: heavy ? 110 : 90,

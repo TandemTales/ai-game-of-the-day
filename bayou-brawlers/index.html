@@ -1868,7 +1868,7 @@
       const paletteByCharacter = {
         'billy-boxby': '#ffd27a',
         'rustbucket': '#ffb871',
-        'shunky-rooster': '#ff6f6f'
+        'shunky-rooster': '#39d3c0'
       };
       const speed = 9.5 + (heavy ? 2.2 : 0);
       const originX = player.x + player.facing * 26;
@@ -2013,7 +2013,36 @@
 
       if (rangedAttackers.has(characterId)) {
         spawnPlayerAttackProjectile(player, heavy, tuning);
-        state.effects.push({ x: player.x + player.facing * 22, y: player.y - 44, timer: 14, type: 'projectile-muzzle', color: heavy ? '#fff2a8' : '#ffd27a' });
+        if (characterId === 'billy-boxby') {
+          state.effects.push({
+            x: player.x + player.facing * 10,
+            y: player.y - 44,
+            timer: heavy ? 14 : 10,
+            type: 'flash-cone',
+            facing: player.facing,
+            length: heavy ? 138 : 112,
+            spread: heavy ? 0.48 : 0.38
+          });
+        }
+        if (characterId === 'shunky-rooster') {
+          state.effects.push({
+            x: player.x + player.facing * 8,
+            y: player.y - 46,
+            timer: heavy ? 12 : 9,
+            type: 'chest-beam',
+            facing: player.facing,
+            length: heavy ? 128 : 102
+          });
+        }
+        state.effects.push({
+          x: player.x + player.facing * 22,
+          y: player.y - 44,
+          timer: 14,
+          type: 'projectile-muzzle',
+          color: characterId === 'shunky-rooster'
+            ? (heavy ? 'rgba(128,255,236,0.95)' : 'rgba(72,227,204,0.9)')
+            : (heavy ? '#fff2a8' : '#ffd27a')
+        });
         return;
       }
 
@@ -2929,6 +2958,20 @@
       }
 
       state.projectiles.forEach(projectile => {
+        if (projectile.ownerId === 'shunky-rooster') {
+          const screenX = projectile.x - state.cameraX;
+          const screenY = projectile.y - state.cameraY;
+          const angle = Math.atan2(projectile.vy || 0, projectile.vx || 1);
+          ctx.save();
+          ctx.translate(screenX, screenY);
+          ctx.rotate(angle);
+          ctx.fillStyle = 'rgba(105, 255, 230, 0.92)';
+          ctx.fillRect(-16, -3, 32, 6);
+          ctx.fillStyle = 'rgba(195, 255, 245, 0.95)';
+          ctx.fillRect(-12, -1.5, 24, 3);
+          ctx.restore();
+          return;
+        }
         ctx.fillStyle = projectile.color;
         ctx.fillRect(projectile.x - state.cameraX - 4, projectile.y - state.cameraY - 4, 8, 8);
       });
@@ -2962,6 +3005,49 @@
         if (effect.type === 'projectile-muzzle') {
           ctx.fillStyle = effect.color || 'rgba(255,255,180,0.9)';
           ctx.fillRect(effect.x - state.cameraX - 6, effect.y - state.cameraY - 6, 12, 12);
+        }
+        if (effect.type === 'chest-beam') {
+          const alpha = clamp(effect.timer / 12, 0, 1);
+          const x = effect.x - state.cameraX;
+          const y = effect.y - state.cameraY;
+          const direction = effect.facing || 1;
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          const grad = ctx.createLinearGradient(x, y, x + (effect.length * direction), y);
+          grad.addColorStop(0, 'rgba(145, 255, 236, 0.95)');
+          grad.addColorStop(0.6, 'rgba(64, 218, 194, 0.72)');
+          grad.addColorStop(1, 'rgba(64, 218, 194, 0)');
+          ctx.strokeStyle = grad;
+          ctx.lineWidth = 10;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + (effect.length * direction), y);
+          ctx.stroke();
+          ctx.restore();
+        }
+        if (effect.type === 'flash-cone') {
+          const maxTimer = effect.length > 120 ? 14 : 10;
+          const progress = clamp(effect.timer / maxTimer, 0, 1);
+          const x = effect.x - state.cameraX;
+          const y = effect.y - state.cameraY;
+          const direction = effect.facing || 1;
+          const length = effect.length * (0.7 + (0.3 * progress));
+          const spread = effect.spread || 0.4;
+          ctx.save();
+          ctx.globalAlpha = 0.85 * progress;
+          const gradient = ctx.createLinearGradient(x, y, x + (length * direction), y);
+          gradient.addColorStop(0, 'rgba(255, 249, 200, 0.82)');
+          gradient.addColorStop(0.55, 'rgba(255, 232, 128, 0.5)');
+          gradient.addColorStop(1, 'rgba(255, 232, 128, 0)');
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.moveTo(x, y - 6);
+          ctx.lineTo(x + (length * direction), y - (length * spread));
+          ctx.lineTo(x + (length * direction), y + (length * spread));
+          ctx.lineTo(x, y + 6);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
         }
         if (effect.type === 'projectile-burst') {
           ctx.strokeStyle = effect.color || 'rgba(255,205,150,0.9)';

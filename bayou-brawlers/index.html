@@ -328,12 +328,66 @@
     }
     .dpad, .action-pad { pointer-events: auto; }
     .dpad {
-      display: grid;
-      grid-template-columns: repeat(3, 44px);
-      grid-template-rows: repeat(3, 44px);
-      gap: 6px;
+      display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-items: center;
+      gap: 6px;
+    }
+    .direction-pad {
+      position: relative;
+      width: 132px;
+      height: 132px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,215,0,0.55);
+      background:
+        radial-gradient(circle at 35% 30%, rgba(255,255,255,0.12), rgba(0,0,0,0.2) 46%, rgba(0,0,0,0.5)),
+        rgba(0,0,0,0.5);
+      box-shadow: inset 0 0 20px rgba(255,215,0,0.18), 0 10px 20px rgba(0,0,0,0.3);
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .direction-pad::before,
+    .direction-pad::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      background: rgba(255,255,255,0.14);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    .direction-pad::before {
+      width: 2px;
+      height: 76%;
+      border-radius: 999px;
+    }
+    .direction-pad::after {
+      width: 76%;
+      height: 2px;
+      border-radius: 999px;
+    }
+    .direction-pad-knob {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,215,0,0.8);
+      background: linear-gradient(145deg, rgba(95,158,160,0.9), rgba(70,130,180,0.72));
+      box-shadow: 0 5px 12px rgba(0,0,0,0.35);
+      transform: translate(-50%, -50%);
+      transition: transform 0.08s ease-out;
+      pointer-events: none;
+    }
+    .direction-pad.active .direction-pad-knob {
+      box-shadow: 0 8px 14px rgba(0,0,0,0.4), 0 0 14px rgba(255,215,0,0.3);
+    }
+    .direction-label {
+      font-size: 9px;
+      color: #9fd6cf;
+      letter-spacing: 0.6px;
     }
     .pad-btn {
       width: 44px;
@@ -358,11 +412,10 @@
     .pad-btn.warn {
       background: linear-gradient(45deg, #ff7b7b, #ffb347);
     }
-    .pad-spacer { visibility: hidden; }
     .action-pad {
       display: grid;
       grid-template-columns: repeat(2, 56px);
-      grid-template-rows: repeat(2, 56px);
+      grid-template-rows: repeat(3, 56px);
       gap: 8px;
     }
     .action-pad .pad-btn {
@@ -388,9 +441,10 @@
     @media (max-width: 600px) {
       .panel { width: calc(100vw - 24px); padding: 14px; }
       .controls { flex-direction: row; align-items: center; }
-      .dpad { grid-template-columns: repeat(3, 38px); grid-template-rows: repeat(3, 38px); }
+      .direction-pad { width: 118px; height: 118px; }
+      .direction-pad-knob { width: 48px; height: 48px; }
       .pad-btn { width: 38px; height: 38px; font-size: 10px; }
-      .action-pad { grid-template-columns: repeat(2, 48px); grid-template-rows: repeat(2, 48px); }
+      .action-pad { grid-template-columns: repeat(2, 48px); grid-template-rows: repeat(3, 48px); }
       .action-pad .pad-btn { width: 48px; height: 48px; font-size: 9px; }
       .character-grid { grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 8px; }
       .card { min-height: 116px; }
@@ -452,21 +506,17 @@
 
     <div class="controls" id="mobileControls">
       <div class="dpad">
-        <button class="pad-btn pad-spacer" aria-hidden="true"></button>
-        <button class="pad-btn" data-input="up">▲</button>
-        <button class="pad-btn pad-spacer" aria-hidden="true"></button>
-        <button class="pad-btn" data-input="left">◀</button>
-        <button class="pad-btn" data-input="down">▼</button>
-        <button class="pad-btn" data-input="right">▶</button>
-        <button class="pad-btn pad-spacer" aria-hidden="true"></button>
-        <button class="pad-btn" data-input="block">■</button>
-        <button class="pad-btn pad-spacer" aria-hidden="true"></button>
+        <div class="direction-pad" id="directionPad" aria-label="Movement direction pad">
+          <div class="direction-pad-knob" id="directionKnob"></div>
+        </div>
+        <div class="direction-label">MOVE</div>
       </div>
       <div class="action-pad">
         <button class="pad-btn primary" data-input="fast">FAST</button>
         <button class="pad-btn" data-input="jump">JUMP</button>
         <button class="pad-btn warn" data-input="power">POWER</button>
         <button class="pad-btn" data-input="special">SPEC</button>
+        <button class="pad-btn" data-input="block">BLOCK</button>
       </div>
     </div>
 
@@ -3308,6 +3358,58 @@
           input[key] = false;
         });
       });
+
+      const directionPad = document.getElementById('directionPad');
+      const directionKnob = document.getElementById('directionKnob');
+      if (directionPad && directionKnob) {
+        const resetDirectionInput = () => {
+          input.left = false;
+          input.right = false;
+          input.up = false;
+          input.down = false;
+          directionPad.classList.remove('active');
+          directionKnob.style.transform = 'translate(-50%, -50%)';
+        };
+
+        const updateDirectionInput = (pointerEvent) => {
+          const rect = directionPad.getBoundingClientRect();
+          const centerX = rect.left + (rect.width / 2);
+          const centerY = rect.top + (rect.height / 2);
+          const maxOffset = rect.width * 0.28;
+          const deadZone = rect.width * 0.12;
+          let deltaX = pointerEvent.clientX - centerX;
+          let deltaY = pointerEvent.clientY - centerY;
+
+          const distance = Math.hypot(deltaX, deltaY);
+          if (distance > maxOffset && distance > 0) {
+            const clampRatio = maxOffset / distance;
+            deltaX *= clampRatio;
+            deltaY *= clampRatio;
+          }
+
+          directionPad.classList.add('active');
+          directionKnob.style.transform = `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px))`;
+
+          input.left = deltaX < -deadZone;
+          input.right = deltaX > deadZone;
+          input.up = deltaY < -deadZone;
+          input.down = deltaY > deadZone;
+        };
+
+        directionPad.addEventListener('pointerdown', (event) => {
+          directionPad.setPointerCapture(event.pointerId);
+          updateDirectionInput(event);
+        });
+
+        directionPad.addEventListener('pointermove', (event) => {
+          if (event.buttons === 0) return;
+          updateDirectionInput(event);
+        });
+
+        directionPad.addEventListener('pointerup', resetDirectionInput);
+        directionPad.addEventListener('pointercancel', resetDirectionInput);
+        directionPad.addEventListener('lostpointercapture', resetDirectionInput);
+      }
     }
 
     function initCharacterSelection() {

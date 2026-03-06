@@ -2437,6 +2437,8 @@
             if (enemy.aiTimer > rand(48, 72)) {
               enemy.untargetable = false;
               enemy.x = clamp(enemy.targetX || enemy.x, state.cameraX + 40, state.cameraX + canvas.width - 40);
+              const verticalBounds = getEnemyVerticalBounds(enemy);
+              enemy.y = clamp(enemy.targetY || enemy.y, verticalBounds.minY, verticalBounds.maxY);
               if (Math.abs(enemy.x - player.x) < 40) {
                 enemy.x += enemy.facing >= 0 ? 40 : -40;
               }
@@ -2460,7 +2462,8 @@
               enemy.y += Math.sign(dy) * enemy.speed * 0.4;
               enemy.isMoving = true;
             }
-            if (distance > 150 && distance < 350 && enemy.burrowCooldown <= 0 && enemy.noDigUntil <= 0 && canGoUnderground()) {
+            const verticalGap = Math.abs(player.y - enemy.y);
+            if (distance > 150 && distance < 350 && verticalGap < 110 && enemy.burrowCooldown <= 0 && enemy.noDigUntil <= 0 && canGoUnderground()) {
               setEnemyState(enemy, 'DigStart');
               enemy.aiTimer = 0;
               const preferBehindX = player.x - (player.facing >= 0 ? 70 : -70);
@@ -2469,6 +2472,8 @@
               if (Math.abs(enemy.targetX - player.x) < 40) {
                 enemy.targetX = clamp(fallbackX, state.cameraX + 30, state.cameraX + canvas.width - 30);
               }
+              const verticalBounds = getEnemyVerticalBounds(enemy);
+              enemy.targetY = clamp(player.y + rand(-18, 18), verticalBounds.minY, verticalBounds.maxY);
             } else if (distance <= enemy.range && enemy.cooldown <= 0) {
               enemy.windup = 10;
               enemy.attackAnimTimer = 14;

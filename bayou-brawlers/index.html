@@ -1869,18 +1869,18 @@
       enemy.hurtTimer = Math.max(enemy.hurtTimer, 12);
       state.effects.push({ x: enemy.x, y: enemy.y, timer: 16, type: 'hit' });
       if (enemy.type === 'mud-monster') {
-        const splashCount = 6;
+        const splashCount = 18;
         for (let i = 0; i < splashCount; i += 1) {
-          const angle = rand(-Math.PI * 0.9, -Math.PI * 0.1);
-          const speed = rand(1.2, 3.4);
+          const angle = rand(-Math.PI * 0.98, -Math.PI * 0.02);
+          const speed = rand(2.2, 6.2);
           state.effects.push({
-            x: enemy.x + rand(-18, 18),
-            y: enemy.y - 24 + rand(-8, 6),
+            x: enemy.x + rand(-60, 60),
+            y: enemy.y - 34 + rand(-34, 24),
             vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed,
-            gravity: rand(0.1, 0.18),
-            size: rand(4, 9),
-            timer: 24,
+            gravity: rand(0.14, 0.26),
+            size: rand(9, 18),
+            timer: 34,
             type: 'mud-splash'
           });
         }
@@ -3180,10 +3180,14 @@
           ctx.fillRect(effect.x - state.cameraX - 6, effect.y - state.cameraY - 6, 12, 12);
         }
         if (effect.type === 'mud-splash') {
-          const alpha = clamp(effect.timer / 24, 0, 1);
-          const drawSize = effect.size * (0.7 + alpha * 0.5);
-          ctx.fillStyle = `rgba(94, 64, 40, ${0.45 + (alpha * 0.45)})`;
-          ctx.fillRect(effect.x - state.cameraX - drawSize / 2, effect.y - state.cameraY - drawSize / 2, drawSize, drawSize);
+          const alpha = clamp(effect.timer / 34, 0, 1);
+          const drawSize = effect.size * (0.9 + alpha * 0.9);
+          const drawX = effect.x - state.cameraX;
+          const drawY = effect.y - state.cameraY;
+          ctx.fillStyle = `rgba(94, 64, 40, ${0.5 + (alpha * 0.4)})`;
+          ctx.beginPath();
+          ctx.ellipse(drawX, drawY, drawSize * 0.65, drawSize * 0.45, 0, 0, Math.PI * 2);
+          ctx.fill();
         }
         if (effect.type === 'flash-cone') {
           const maxTimer = effect.maxTimer || 12;

@@ -1868,6 +1868,23 @@
       enemy.stun = Math.max(enemy.stun, stun);
       enemy.hurtTimer = Math.max(enemy.hurtTimer, 12);
       state.effects.push({ x: enemy.x, y: enemy.y, timer: 16, type: 'hit' });
+      if (enemy.type === 'mud-monster') {
+        const splashCount = 6;
+        for (let i = 0; i < splashCount; i += 1) {
+          const angle = rand(-Math.PI * 0.9, -Math.PI * 0.1);
+          const speed = rand(1.2, 3.4);
+          state.effects.push({
+            x: enemy.x + rand(-18, 18),
+            y: enemy.y - 24 + rand(-8, 6),
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            gravity: rand(0.1, 0.18),
+            size: rand(4, 9),
+            timer: 24,
+            type: 'mud-splash'
+          });
+        }
+      }
       if (enemy.hp <= 0) {
         enemy.hp = 0;
         enemy.hurtTimer = 0;
@@ -2654,6 +2671,12 @@
     function updateEffects() {
       state.effects.forEach(effect => {
         effect.timer -= 1;
+        if (effect.type === 'mud-splash') {
+          effect.x += effect.vx;
+          effect.y += effect.vy;
+          effect.vy += effect.gravity;
+          effect.vx *= 0.96;
+        }
         if (['shock', 'root', 'beam', 'root-poison'].includes(effect.type) && (effect.timer % (effect.type === 'beam' ? 8 : 18) === 0)) {
           state.enemies.forEach(enemy => {
             const distance = Math.hypot(enemy.x - effect.x, enemy.y - effect.y);
@@ -3155,6 +3178,12 @@
         if (effect.type === 'projectile-muzzle') {
           ctx.fillStyle = effect.color || 'rgba(255,255,180,0.9)';
           ctx.fillRect(effect.x - state.cameraX - 6, effect.y - state.cameraY - 6, 12, 12);
+        }
+        if (effect.type === 'mud-splash') {
+          const alpha = clamp(effect.timer / 24, 0, 1);
+          const drawSize = effect.size * (0.7 + alpha * 0.5);
+          ctx.fillStyle = `rgba(94, 64, 40, ${0.45 + (alpha * 0.45)})`;
+          ctx.fillRect(effect.x - state.cameraX - drawSize / 2, effect.y - state.cameraY - drawSize / 2, drawSize, drawSize);
         }
         if (effect.type === 'flash-cone') {
           const maxTimer = effect.maxTimer || 12;

@@ -450,9 +450,6 @@
       <div class="chip" style="display:flex; gap:6px; align-items:center;">HP
         <div class="hp-bar"><div class="hp-fill" id="hpFill"></div></div>
       </div>
-      <div class="chip" style="display:flex; gap:6px; align-items:center;">Magic
-        <div class="hp-bar"><div class="hp-fill" id="magicFill" style="background:linear-gradient(90deg,#5ef1ff,#7a95ff)"></div></div>
-      </div>
       <div class="chip">Ability: <span id="specialReady">Locked</span></div>
     </div>
 
@@ -1777,7 +1774,7 @@
     function updateMagicHud(player) {
       if (!player) return;
       const fill = document.getElementById('magicFill');
-      fill.style.width = `${player.magic}%`;
+      if (fill) fill.style.width = `${player.magic}%`;
       const ready = document.getElementById('specialReady');
       if (!hasLevel(player, 3)) ready.textContent = 'Locked';
       else if (player.magic >= SUPER_COST && hasLevel(player, 5)) ready.textContent = 'Super Ready';

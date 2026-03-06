@@ -427,7 +427,7 @@
   <div class="wrap">
     <header>
       <div class="title">
-        <img src="../images/botbuiltarcade-icon-face.png" alt="Arcade" width="36" height="36" style="border-radius:50%; border:2px solid var(--gold)">
+        <img id="arcadeLogo" src="../images/botbuiltarcade-icon-face.png" alt="Arcade" width="36" height="36" style="border-radius:50%; border:2px solid var(--gold)">
         <h1>Bayou Brawlers: Gearbound</h1>
       </div>
       <div style="display:flex; gap:8px; align-items:center;">
@@ -555,8 +555,19 @@
       bossEncounter: null,
       hazards: [],
       commandBuffTimer: 0,
-      chokeHoldOwnerId: null
+      chokeHoldOwnerId: null,
+      cheats: {
+        invincible: false,
+        lockScoreToZero: false,
+        logoClickStreak: 0,
+        logoLastClickAt: 0,
+        arrowClickStreak: 0,
+        arrowLastClickAt: 0
+      }
     };
+
+    const CHEAT_STREAK_RESET_MS = 2000;
+    const CHEAT_REQUIRED_CLICKS = 7;
 
     let bossPopupTimeout = null;
 
@@ -1695,8 +1706,21 @@
     }
 
     function addScore(amount) {
+      if (state.cheats.lockScoreToZero) {
+        state.score = 0;
+        document.getElementById('score').textContent = '0';
+        return;
+      }
       state.score += amount;
       document.getElementById('score').textContent = String(state.score);
+    }
+
+    function activateLogoCheat() {
+      if (state.cheats.invincible && state.cheats.lockScoreToZero) return;
+      state.cheats.invincible = true;
+      state.cheats.lockScoreToZero = true;
+      state.score = 0;
+      document.getElementById('score').textContent = '0';
     }
 
     function loadProgress() {
@@ -1823,6 +1847,7 @@
     function damagePlayer(amount, sourceEnemy = null) {
       const player = state.player;
       if (!player || player.hp <= 0) return;
+      if (state.cheats.invincible) return;
       let finalAmount = amount;
       if (sourceEnemy?.statuses?.WEAKEN) finalAmount *= (1 - sourceEnemy.statuses.WEAKEN.magnitude);
       if (player.block || player.shieldTimer > 0) {
@@ -2761,6 +2786,35 @@
       updateWaveHud();
     }
 
+    function skipToNextStage() {
+      if (!state.running || state.gameOver || state.victory) return;
+      state.cheats.arrowClickStreak = 0;
+      state.cheats.arrowLastClickAt = 0;
+      if (state.levelIndex >= levels.length - 1) {
+        endGame(true);
+        return;
+      }
+      state.levelIndex += 1;
+      setupLevel();
+      showMessage('Stage Skipped', `${levels[state.levelIndex].name} begins now.`, 'Advance');
+    }
+
+    function getCanvasPoint(event) {
+      const rect = canvas.getBoundingClientRect();
+      if (!rect.width || !rect.height) return null;
+      return {
+        x: (event.clientX - rect.left) * (canvas.width / rect.width),
+        y: (event.clientY - rect.top) * (canvas.height / rect.height)
+      };
+    }
+
+    function isContinueArrowClicked(point) {
+      if (!point || state.continueArrowTimer <= 0 || !state.running || state.waveActive || state.nextWaveToSpawn >= TOTAL_WAVE_COUNT) return false;
+      const arrowX = canvas.width - 52;
+      const arrowY = canvas.height / 2;
+      return point.x >= arrowX - 40 && point.x <= arrowX + 56 && point.y >= arrowY - 48 && point.y <= arrowY + 48;
+    }
+
     function endGame(victory) {
       state.running = false;
       state.gameOver = true;
@@ -3198,6 +3252,40 @@
     }
 
     function setupControls() {
+      const logo = document.getElementById('arcadeLogo');
+      if (logo) {
+        logo.addEventListener('click', () => {
+          const now = performance.now();
+          if ((now - state.cheats.logoLastClickAt) > CHEAT_STREAK_RESET_MS) {
+            state.cheats.logoClickStreak = 0;
+          }
+          state.cheats.logoLastClickAt = now;
+          state.cheats.logoClickStreak += 1;
+          if (state.cheats.logoClickStreak >= CHEAT_REQUIRED_CLICKS) {
+            activateLogoCheat();
+            state.cheats.logoClickStreak = 0;
+            state.cheats.logoLastClickAt = 0;
+          }
+        });
+      }
+
+      canvas.addEventListener('pointerdown', (event) => {
+        const clickPoint = getCanvasPoint(event);
+        if (!isContinueArrowClicked(clickPoint)) {
+          state.cheats.arrowClickStreak = 0;
+          return;
+        }
+        const now = performance.now();
+        if ((now - state.cheats.arrowLastClickAt) > CHEAT_STREAK_RESET_MS) {
+          state.cheats.arrowClickStreak = 0;
+        }
+        state.cheats.arrowLastClickAt = now;
+        state.cheats.arrowClickStreak += 1;
+        if (state.cheats.arrowClickStreak >= CHEAT_REQUIRED_CLICKS) {
+          skipToNextStage();
+        }
+      });
+
       window.addEventListener('keydown', (event) => {
         if (event.repeat) return;
         if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') input.left = true;

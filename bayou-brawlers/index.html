@@ -50,10 +50,9 @@
       right: calc(12px + env(safe-area-inset-right));
       z-index: 5;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
+      gap: 8px;
     }
     .title {
       display: flex;
@@ -68,6 +67,13 @@
       -webkit-text-fill-color: transparent;
       background-clip: text;
       text-shadow: 0 2px 10px rgba(255,215,0,0.4);
+    }
+    .title-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
     }
     .btn {
       display: inline-flex;
@@ -90,24 +96,9 @@
       box-shadow: 0 6px 18px rgba(95,158,160,0.6);
     }
     .back-home { padding: 6px 10px; }
-    .banner {
-      position: absolute;
-      top: calc(56px + env(safe-area-inset-top));
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 4;
-    }
-    .banner img {
-      width: min(420px, 90vw);
-      image-rendering: pixelated;
-      border: 2px solid rgba(255,215,0,0.35);
-      border-radius: 8px;
-      background: rgba(0,0,0,0.5);
-      padding: 4px;
-    }
     .hud {
       position: absolute;
-      top: calc(118px + env(safe-area-inset-top));
+      top: calc(132px + env(safe-area-inset-top));
       left: 50%;
       transform: translateX(-50%);
       display: flex;
@@ -390,9 +381,7 @@
     @media (max-width: 720px) {
       header { gap: 8px; }
       .title h1 { font-size: 14px; }
-      .hud { top: calc(102px + env(safe-area-inset-top)); font-size: 9px; }
-      .banner { top: calc(52px + env(safe-area-inset-top)); }
-      .banner img { width: min(300px, 86vw); }
+      .hud { top: calc(122px + env(safe-area-inset-top)); font-size: 9px; }
       .stage { padding: calc(150px + env(safe-area-inset-top)) 12px calc(140px + env(safe-area-inset-bottom)) 12px; }
     }
 
@@ -411,7 +400,7 @@
     @media (max-width: 420px) {
       .title h1 { font-size: 11px; }
       .btn { padding: 7px 9px; font-size: 9px; }
-      .hud { top: calc(96px + env(safe-area-inset-top)); padding: 4px 8px; gap: 6px; }
+      .hud { top: calc(116px + env(safe-area-inset-top)); padding: 4px 8px; gap: 6px; }
       .chip { font-size: 8px; padding: 3px 6px; }
       .hp-bar { width: 92px; }
       .stage { padding-top: calc(138px + env(safe-area-inset-top)); }
@@ -430,17 +419,13 @@
         <img id="arcadeLogo" src="../images/botbuiltarcade-icon-face.png" alt="Arcade" width="36" height="36" style="border-radius:50%; border:2px solid var(--gold)">
         <h1>Bayou Brawlers: Gearbound</h1>
       </div>
-      <div style="display:flex; gap:8px; align-items:center;">
+      <div class="title-actions">
         <a href="../index.html" class="btn back-home" aria-label="Back to Home">
           <span aria-hidden="true">&#x27F5;</span> Home
         </a>
         <a class="btn" href="../leaderboard.html?gameId=bayou-brawlers">Leaderboard</a>
       </div>
     </header>
-
-    <div class="banner" aria-hidden="true">
-      <img src="assets/title-banner.svg" alt="Bayou Brawlers banner">
-    </div>
 
     <div class="hud" id="hud">
       <div class="chip">Score: <span id="score">0</span></div>
@@ -591,8 +576,7 @@
       enemies: {},
       enemyAnimations: {},
       boss: null,
-      pickup: null,
-      banner: null
+      pickup: null
     };
 
     const characters = [

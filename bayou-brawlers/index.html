@@ -328,12 +328,36 @@
     }
     .dpad, .action-pad { pointer-events: auto; }
     .dpad {
-      display: grid;
-      grid-template-columns: repeat(3, 44px);
-      grid-template-rows: repeat(3, 44px);
-      gap: 6px;
+      display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-items: center;
+      gap: 8px;
+    }
+    .dpad-stickzone {
+      width: 146px;
+      height: 146px;
+      border-radius: 999px;
+      border: 2px solid rgba(255,215,0,0.6);
+      background:
+        radial-gradient(circle at center, rgba(255,255,255,0.1) 0 20%, transparent 22%),
+        radial-gradient(circle at center, rgba(95,158,160,0.2), rgba(0,0,0,0.45));
+      display: grid;
+      place-items: center;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      box-shadow: inset 0 0 18px rgba(0,0,0,0.4);
+    }
+    .dpad-thumb {
+      width: 54px;
+      height: 54px;
+      border-radius: 999px;
+      border: 2px solid rgba(255,215,0,0.85);
+      background: linear-gradient(45deg, rgba(95,158,160,0.95), rgba(70,130,180,0.95));
+      box-shadow: 0 8px 14px rgba(0,0,0,0.35);
+      transform: translate3d(0,0,0);
+      transition: transform 70ms linear;
+      pointer-events: none;
     }
     .pad-btn {
       width: 44px;
@@ -358,7 +382,6 @@
     .pad-btn.warn {
       background: linear-gradient(45deg, #ff7b7b, #ffb347);
     }
-    .pad-spacer { visibility: hidden; }
     .action-pad {
       display: grid;
       grid-template-columns: repeat(2, 56px);
@@ -388,7 +411,8 @@
     @media (max-width: 600px) {
       .panel { width: calc(100vw - 24px); padding: 14px; }
       .controls { flex-direction: row; align-items: center; }
-      .dpad { grid-template-columns: repeat(3, 38px); grid-template-rows: repeat(3, 38px); }
+      .dpad-stickzone { width: 126px; height: 126px; }
+      .dpad-thumb { width: 46px; height: 46px; }
       .pad-btn { width: 38px; height: 38px; font-size: 10px; }
       .action-pad { grid-template-columns: repeat(2, 48px); grid-template-rows: repeat(2, 48px); }
       .action-pad .pad-btn { width: 48px; height: 48px; font-size: 9px; }
@@ -452,15 +476,10 @@
 
     <div class="controls" id="mobileControls">
       <div class="dpad">
-        <button class="pad-btn pad-spacer" aria-hidden="true"></button>
-        <button class="pad-btn" data-input="up">▲</button>
-        <button class="pad-btn pad-spacer" aria-hidden="true"></button>
-        <button class="pad-btn" data-input="left">◀</button>
-        <button class="pad-btn" data-input="down">▼</button>
-        <button class="pad-btn" data-input="right">▶</button>
-        <button class="pad-btn pad-spacer" aria-hidden="true"></button>
-        <button class="pad-btn" data-input="block">■</button>
-        <button class="pad-btn pad-spacer" aria-hidden="true"></button>
+        <div class="dpad-stickzone" id="dpadStickzone" aria-label="Directional pad" role="application">
+          <div class="dpad-thumb" id="dpadThumb"></div>
+        </div>
+        <button class="pad-btn" data-input="block">BLOCK</button>
       </div>
       <div class="action-pad">
         <button class="pad-btn primary" data-input="fast">FAST</button>
@@ -485,8 +504,8 @@
         <div class="character-detail" id="characterDetail" aria-live="polite"></div>
         <button class="btn" id="startBtn" disabled>Start the Journey</button>
         <div class="instructions">
-          <strong>Desktop:</strong> Move (WASD or D-pad), Fast (J), Power (K), Special (L), Jump (Space), Block (Shift).<br>
-          <strong>Mobile:</strong> Use the on-screen controls. Hold Block to reduce damage.
+          <strong>Desktop:</strong> Move (WASD), Fast (J), Power (K), Special (L), Jump (Space), Block (Shift).<br>
+          <strong>Mobile:</strong> Use the on-screen direction pad and action buttons. Hold Block to reduce damage.
         </div>
       </div>
     </div>
@@ -3295,6 +3314,60 @@
         if (event.key === ' ') input.jump = false;
         if (event.key === 'Shift') input.block = false;
       });
+
+      const stickzone = document.getElementById('dpadStickzone');
+      const dpadThumb = document.getElementById('dpadThumb');
+      if (stickzone && dpadThumb) {
+        const maxOffset = 38;
+        const directionThreshold = 10;
+        let activePointerId = null;
+
+        const resetDpadDirection = () => {
+          input.left = false;
+          input.right = false;
+          input.up = false;
+          input.down = false;
+          dpadThumb.style.transform = 'translate3d(0px, 0px, 0px)';
+        };
+
+        const updateDpadDirection = (event) => {
+          const rect = stickzone.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          const rawDx = event.clientX - centerX;
+          const rawDy = event.clientY - centerY;
+          const distance = Math.hypot(rawDx, rawDy) || 1;
+          const clampedDistance = Math.min(distance, maxOffset);
+          const dx = (rawDx / distance) * clampedDistance;
+          const dy = (rawDy / distance) * clampedDistance;
+
+          dpadThumb.style.transform = `translate3d(${dx}px, ${dy}px, 0px)`;
+          input.left = dx < -directionThreshold;
+          input.right = dx > directionThreshold;
+          input.up = dy < -directionThreshold;
+          input.down = dy > directionThreshold;
+        };
+
+        stickzone.addEventListener('pointerdown', (event) => {
+          activePointerId = event.pointerId;
+          stickzone.setPointerCapture(event.pointerId);
+          updateDpadDirection(event);
+        });
+        stickzone.addEventListener('pointermove', (event) => {
+          if (event.pointerId !== activePointerId) return;
+          updateDpadDirection(event);
+        });
+        stickzone.addEventListener('pointerup', (event) => {
+          if (event.pointerId !== activePointerId) return;
+          activePointerId = null;
+          resetDpadDirection();
+        });
+        stickzone.addEventListener('pointercancel', (event) => {
+          if (event.pointerId !== activePointerId) return;
+          activePointerId = null;
+          resetDpadDirection();
+        });
+      }
 
       document.querySelectorAll('[data-input]').forEach(button => {
         const key = button.dataset.input;

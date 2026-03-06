@@ -485,7 +485,7 @@
         <div class="character-detail" id="characterDetail" aria-live="polite"></div>
         <button class="btn" id="startBtn" disabled>Start the Journey</button>
         <div class="instructions">
-          <strong>Desktop:</strong> Move (WASD/Arrows), Fast (J), Power (K), Special (L), Jump (Space), Block (Shift).<br>
+          <strong>Desktop:</strong> Move (WASD or D-pad), Fast (J), Power (K), Special (L), Jump (Space), Block (Shift).<br>
           <strong>Mobile:</strong> Use the on-screen controls. Hold Block to reduce damage.
         </div>
       </div>
@@ -3272,10 +3272,10 @@
 
       window.addEventListener('keydown', (event) => {
         if (event.repeat) return;
-        if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') input.left = true;
-        if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') input.right = true;
-        if (event.key === 'ArrowUp' || event.key.toLowerCase() === 'w') input.up = true;
-        if (event.key === 'ArrowDown' || event.key.toLowerCase() === 's') input.down = true;
+        if (event.key.toLowerCase() === 'a') input.left = true;
+        if (event.key.toLowerCase() === 'd') input.right = true;
+        if (event.key.toLowerCase() === 'w') input.up = true;
+        if (event.key.toLowerCase() === 's') input.down = true;
         if (event.key.toLowerCase() === 'j') input.fast = true;
         if (event.key.toLowerCase() === 'k') input.power = true;
         if (event.key.toLowerCase() === 'l') input.special = true;
@@ -3285,10 +3285,10 @@
         if (event.key.toLowerCase() === 'r') { localStorage.removeItem(SAVE_SLOT_KEY); if (state.player) { state.player.level = 1; state.player.xp = 0; updateProgressHud(state.player); } }
       });
       window.addEventListener('keyup', (event) => {
-        if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') input.left = false;
-        if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') input.right = false;
-        if (event.key === 'ArrowUp' || event.key.toLowerCase() === 'w') input.up = false;
-        if (event.key === 'ArrowDown' || event.key.toLowerCase() === 's') input.down = false;
+        if (event.key.toLowerCase() === 'a') input.left = false;
+        if (event.key.toLowerCase() === 'd') input.right = false;
+        if (event.key.toLowerCase() === 'w') input.up = false;
+        if (event.key.toLowerCase() === 's') input.down = false;
         if (event.key.toLowerCase() === 'j') input.fast = false;
         if (event.key.toLowerCase() === 'k') input.power = false;
         if (event.key.toLowerCase() === 'l') input.special = false;

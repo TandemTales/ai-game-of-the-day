@@ -2469,9 +2469,14 @@
               enemy.attackAnimTimer = 14;
             }
           } else {
-            if (distance > 190) {
-              enemy.x += Math.sign(dx) * enemy.speed * 0.8;
-              enemy.y += Math.sign(dy) * enemy.speed * 0.4;
+            if (distance > enemy.range * 1.2) {
+              enemy.x += Math.sign(dx) * enemy.speed * 0.9;
+              enemy.y += Math.sign(dy) * enemy.speed * 0.55;
+              enemy.isMoving = true;
+            } else if (enemy.cooldown > 0) {
+              const orbitDir = Math.sign(dy) || (enemy.uid % 2 === 0 ? 1 : -1);
+              enemy.y += orbitDir * enemy.speed * 0.45;
+              enemy.x += Math.sign(dx) * enemy.speed * 0.2;
               enemy.isMoving = true;
             }
             const verticalGap = Math.abs(player.y - enemy.y);
@@ -2486,8 +2491,8 @@
               }
               const verticalBounds = getEnemyVerticalBounds(enemy);
               enemy.targetY = clamp(player.y + rand(-18, 18), verticalBounds.minY, verticalBounds.maxY);
-            } else if (distance <= enemy.range && enemy.cooldown <= 0) {
-              enemy.windup = 10;
+            } else if (distance <= enemy.range * 1.2 && enemy.cooldown <= 0) {
+              enemy.windup = 8;
               enemy.attackAnimTimer = 14;
             }
           }
@@ -2558,7 +2563,7 @@
             enemy.cooldown = rand(40, 80);
             if (enemy.type === 'daphodilus' && enemy.aiState === 'PopAttack') {
               setEnemyState(enemy, 'Approach');
-              enemy.cooldown = rand(22, 34);
+              enemy.cooldown = rand(18, 24);
               enemy.burrowCooldown = 300;
             }
           }

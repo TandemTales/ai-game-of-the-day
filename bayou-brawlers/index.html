@@ -2468,11 +2468,6 @@
               enemy.windup = 8;
               enemy.attackAnimTimer = 14;
             }
-          } else if (enemy.aiState === 'Recover') {
-            enemy.aiTimer += 1;
-            if (enemy.aiTimer > 48) {
-              setEnemyState(enemy, 'Approach');
-            }
           } else {
             if (distance > 190) {
               enemy.x += Math.sign(dx) * enemy.speed * 0.8;
@@ -2562,7 +2557,8 @@
             }
             enemy.cooldown = rand(40, 80);
             if (enemy.type === 'daphodilus' && enemy.aiState === 'PopAttack') {
-              setEnemyState(enemy, 'Recover');
+              setEnemyState(enemy, 'Approach');
+              enemy.cooldown = rand(22, 34);
               enemy.burrowCooldown = 300;
             }
           }

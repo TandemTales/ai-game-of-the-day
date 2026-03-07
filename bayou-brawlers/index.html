@@ -2465,9 +2465,9 @@
               enemy.cooldown = 0;
             }
           } else {
-            if (distance > 190) {
-              enemy.x += Math.sign(dx) * enemy.speed * 0.8;
-              enemy.y += Math.sign(dy) * enemy.speed * 0.4;
+            if (distance > enemy.range) {
+              enemy.x += Math.sign(dx) * enemy.speed * 0.85;
+              enemy.y += Math.sign(dy) * enemy.speed * 0.45;
               enemy.isMoving = true;
             }
             const verticalGap = Math.abs(player.y - enemy.y);

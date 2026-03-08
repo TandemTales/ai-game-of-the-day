@@ -134,6 +134,11 @@
       width: 100%;
       background: linear-gradient(90deg, #ff7b7b, #ffb347);
     }
+    .hp-fill.super-ready {
+      background: linear-gradient(90deg, #8bff9a, #5ef1ff, #b68dff);
+      box-shadow: 0 0 14px rgba(142, 255, 184, 0.85);
+      animation: superPulse 0.85s ease-in-out infinite alternate;
+    }
     .stage {
       position: absolute;
       inset: 0;
@@ -403,6 +408,12 @@
       -webkit-user-select: none;
       touch-action: none;
     }
+    .pad-btn.super-ready {
+      border-color: rgba(142, 255, 184, 0.95);
+      background: linear-gradient(145deg, rgba(80, 210, 170, 0.9), rgba(73, 131, 255, 0.92));
+      box-shadow: 0 0 15px rgba(122, 255, 193, 0.72), 0 0 26px rgba(115, 148, 255, 0.58);
+      animation: superPulse 0.85s ease-in-out infinite alternate;
+    }
     .pad-btn.primary {
       width: 56px;
       height: 56px;
@@ -429,6 +440,11 @@
       line-height: 1.6;
       margin-top: 10px;
       text-align: left;
+    }
+
+    @keyframes superPulse {
+      from { transform: scale(1); filter: saturate(1); }
+      to { transform: scale(1.035); filter: saturate(1.22); }
     }
 
     @media (max-width: 720px) {
@@ -905,8 +921,9 @@
     const ROOT_SNARE_FRAMES = 90;
     const ENEMY_DEATH_HOLD_FRAMES = 240;
     const MAX_LEVEL = 10;
-    const SPECIAL_COST = 50;
-    const SUPER_COST = 100;
+    const MAX_MAGIC = 100;
+    const SPECIAL_COST = MAX_MAGIC / 3;
+    const SUPER_COST = MAX_MAGIC;
     const XP_TABLE = [0, 60, 140, 260, 420, 620, 860, 1160, 1540, 2050];
     const XP_BY_TIER = { small: 14, medium: 24, elite: 45, boss: 100 };
     const MAGIC_BY_TIER = { small: 5, medium: 8, elite: 12, boss: 15 };
@@ -1799,7 +1816,7 @@
 
     function addMagic(player, amount) {
       if (!player) return;
-      player.magic = clamp(player.magic + amount, 0, 100);
+      player.magic = clamp(player.magic + amount, 0, MAX_MAGIC);
       updateMagicHud(player);
     }
 
@@ -1826,9 +1843,13 @@
       if (!player) return;
       const fill = document.getElementById('magicFill');
       fill.style.width = `${player.magic}%`;
+      const isSuperReady = hasLevel(player, 5) && player.magic >= SUPER_COST;
+      fill.classList.toggle('super-ready', isSuperReady);
+      const specialButton = document.querySelector('[data-input="special"]');
+      if (specialButton) specialButton.classList.toggle('super-ready', isSuperReady);
       const ready = document.getElementById('specialReady');
       if (!hasLevel(player, 3)) ready.textContent = 'Locked';
-      else if (player.magic >= SUPER_COST && hasLevel(player, 5)) ready.textContent = 'Super Ready';
+      else if (isSuperReady) ready.textContent = 'Super Ready';
       else if (player.magic >= SPECIAL_COST) ready.textContent = 'Special Ready';
       else ready.textContent = 'Charging';
     }
@@ -2087,13 +2108,13 @@
       }
 
       if (input.special && player.specialCooldown <= 0 && hasLevel(player, 3) && player.magic >= SPECIAL_COST) {
-        const castSuper = hasLevel(player, 5) && player.magic >= SUPER_COST && input.block;
+        const castSuper = hasLevel(player, 5) && player.magic >= SUPER_COST;
         player.attackFacing = attackFacing;
         player.facing = attackFacing;
         player.specialCooldown = castSuper ? 360 : 210;
         player.actionLock = 20;
         player.animationSignals.attack = true;
-        addMagic(player, -(castSuper ? SUPER_COST : SPECIAL_COST));
+        addMagic(player, -SPECIAL_COST);
         castCharacterAbility(player, castSuper);
       }
     }
@@ -2271,6 +2292,30 @@
     function castCharacterAbility(player, isSuper) {
       const id = player.charData.id;
       const radiusBoost = hasLevel(player, 9) ? 1.35 : 1;
+      const applyRegularAbility = () => {
+        if (id === 'green-fairy') {
+          const target = state.enemies.find(e => e.hp > 0 && Math.sign(e.x - player.x) === player.facing && Math.abs(e.x - player.x) < 220);
+          if (target) applyStatus(target, 'CHARM', hasLevel(player, 10) ? 900 : 360, 1);
+          else state.effects.push({ x: player.x + player.facing * 50, y: player.y - 30, radius: 80, timer: 24, damage: 8, stun: 20, type: 'shock' });
+        } else if (id === 'billy-boxby') {
+          state.effects.push({ x: player.x, y: player.y, radius: 96, timer: 240, damage: hasLevel(player, 7) ? 1 : 0, stun: 0, knockback: 0, type: 'frost-patch', owner: player });
+        } else if (id === 'rustbucket') {
+          player.sentryTimer = 150;
+        } else if (id === 'shunky-rooster') {
+          state.effects.push({ x: player.x + player.facing * 90, y: player.y - 40, radius: 150, timer: 48, damage: 10, knockback: 30, stun: 40, type: 'beam' });
+        } else if (id === 'grimma-the-feared') {
+          state.effects.push({ x: player.x, y: player.y, radius: 96, timer: 40, damage: 8, knockback: 0, stun: 42, type: 'root' });
+        } else if (id === 'scarlett-glumpkin') {
+          state.effects.push({ x: player.x + player.facing * 80, y: player.y, radius: 120, timer: 44, damage: 7, knockback: 8, stun: 18, type: 'root-poison' });
+        } else if (id === 'possumatli') {
+          player.dashTimer = 26;
+          state.effects.push({ x: player.x, y: player.y, radius: 70, timer: 20, damage: 8, knockback: 12, stun: 72, type: 'shock' });
+        } else if (id === 'old-man-croc') {
+          state.effects.push({ x: player.x + player.facing * 35, y: player.y, radius: 72, timer: 28, damage: 16, knockback: 10, stun: 30, type: 'shock' });
+        }
+      };
+
+      applyRegularAbility();
       if (isSuper) {
         state.shake = 10;
         state.effects.push({ x: player.x, y: player.y - 80, radius: 220 * radiusBoost, timer: 36, damage: 30 * radiusBoost, knockback: 30, stun: 70, type: 'shock' });
@@ -2284,10 +2329,6 @@
               charmed += 1;
             }
           });
-        } else {
-          const target = state.enemies.find(e => e.hp > 0 && Math.sign(e.x - player.x) === player.facing && Math.abs(e.x - player.x) < 220);
-          if (target) applyStatus(target, 'CHARM', hasLevel(player, 10) ? 900 : 360, 1);
-          else state.effects.push({ x: player.x + player.facing * 50, y: player.y - 30, radius: 80, timer: 24, damage: 8, stun: 20, type: 'shock' });
         }
       } else if (id === 'billy-boxby') {
         if (isSuper) {
@@ -2295,25 +2336,19 @@
             applyStatus(enemy, 'SLOW', (hasLevel(player, 9) ? 300 : 240), 0.6);
             if (getEnemyTier(enemy) !== 'boss') applyStatus(enemy, 'FREEZE', hasLevel(player, 9) ? 240 : 180, 1);
           });
-        } else {
-          state.effects.push({ x: player.x, y: player.y, radius: 96, timer: 240, damage: hasLevel(player, 7) ? 1 : 0, stun: 0, knockback: 0, type: 'frost-patch', owner: player });
         }
       } else if (id === 'rustbucket') {
         if (isSuper) state.effects.push({ x: player.x, y: player.y, radius: 260 * radiusBoost, timer: 30, damage: 24 * radiusBoost, knockback: 25, stun: 40, type: 'shock' });
-        else player.sentryTimer = 150;
       } else if (id === 'shunky-rooster') {
         if (isSuper) state.effects.push({ x: player.x + player.facing * 90, y: player.y - 40, radius: 240 * radiusBoost, timer: hasLevel(player, 9) ? 80 : 60, damage: 3, knockback: 28, stun: 24, type: 'beam' });
-        else state.effects.push({ x: player.x + player.facing * 90, y: player.y - 40, radius: 150, timer: 48, damage: 10, knockback: 30, stun: 40, type: 'beam' });
       } else if (id === 'grimma-the-feared') {
-        state.effects.push({ x: player.x, y: player.y, radius: isSuper ? 170 * radiusBoost : 96, timer: isSuper ? (hasLevel(player, 9) ? 168 : 120) : 40, damage: isSuper ? 2 : 8, knockback: 0, stun: isSuper ? 8 : 42, type: 'root' });
+        if (isSuper) state.effects.push({ x: player.x, y: player.y, radius: 170 * radiusBoost, timer: hasLevel(player, 9) ? 168 : 120, damage: 2, knockback: 0, stun: 8, type: 'root' });
       } else if (id === 'scarlett-glumpkin') {
-        state.effects.push({ x: player.x + player.facing * 80, y: player.y, radius: isSuper ? 210 * radiusBoost : 120, timer: isSuper ? 100 : 44, damage: isSuper ? 2 : 7, knockback: 8, stun: 18, type: 'root-poison' });
+        if (isSuper) state.effects.push({ x: player.x + player.facing * 80, y: player.y, radius: 210 * radiusBoost, timer: 100, damage: 2, knockback: 8, stun: 18, type: 'root-poison' });
       } else if (id === 'possumatli') {
         if (isSuper) player.tempestTimer = hasLevel(player, 9) ? 160 : 120;
-        else { player.dashTimer = 26; state.effects.push({ x: player.x, y: player.y, radius: 70, timer: 20, damage: 8, knockback: 12, stun: 72, type: 'shock' }); }
       } else if (id === 'old-man-croc') {
         if (isSuper) player.frenzyTimer = hasLevel(player, 9) ? 170 : 132;
-        else state.effects.push({ x: player.x + player.facing * 35, y: player.y, radius: 72, timer: 28, damage: 16, knockback: 10, stun: 30, type: 'shock' });
       }
     }
 

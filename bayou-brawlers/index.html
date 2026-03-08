@@ -2873,7 +2873,8 @@
           return;
         }
 
-        if (state.enemies.length > 0 || state.spawnQueue.length > 0) return;
+        const hasLivingEnemies = state.enemies.some(enemy => enemy.hp > 0);
+        if (hasLivingEnemies || state.spawnQueue.length > 0) return;
 
         state.waveActive = false;
         state.lockX = null;

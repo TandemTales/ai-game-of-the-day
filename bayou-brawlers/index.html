@@ -1880,7 +1880,8 @@
       if (!enemy || enemy.hp <= 0 || enemy.invulnFrames > 0 || enemy.untargetable) return;
       enemy.hp -= amount;
       enemy.stun = Math.max(enemy.stun, stun);
-      enemy.hurtTimer = Math.max(enemy.hurtTimer, 12);
+      const hurtDurationFrames = enemy.type === 'mud-monster' && enemy.isBoss ? 24 : 12;
+      enemy.hurtTimer = Math.max(enemy.hurtTimer, hurtDurationFrames);
       state.effects.push({ x: enemy.x, y: enemy.y, timer: 16, type: 'hit' });
       if (enemy.type === 'mud-monster') {
         const splashCount = 18;
@@ -3964,7 +3965,7 @@
           states: {
             idle: { left: ['assets/animation_mudMonster_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_mudMonster_red_walking_left.png', 8], fps: 10, loop: true },
-            hurt: { left: ['assets/animation_mudMonster_red_damaged_left.png', 5], fps: 12, loop: false },
+            hurt: { left: ['assets/animation_mudMonster_red_damaged_left.png', 5], fps: 10, loop: false },
             attack: { left: ['assets/animation_mudMonster_red_attack_left.png', 7], fps: 14, loop: false },
             death: { left: ['assets/animation_mudMonster_red_killed_left.png', 6], fps: 8, loop: false }
           }
@@ -4063,7 +4064,7 @@
           states: {
             idle: { left: ['assets/animation_mudMonster_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_mudMonster_red_walking_left.png', 8], fps: 10, loop: true },
-            hurt: { left: ['assets/animation_mudMonster_red_damaged_left.png', 5], fps: 12, loop: false },
+            hurt: { left: ['assets/animation_mudMonster_red_damaged_left.png', 5], fps: 10, loop: false },
             attack: { left: ['assets/animation_mudMonster_red_attack_left.png', 7], fps: 14, loop: false },
             death: { left: ['assets/animation_mudMonster_red_killed_left.png', 6], fps: 8, loop: false }
           }

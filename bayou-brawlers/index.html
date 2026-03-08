@@ -574,6 +574,7 @@
       cameraY: 0,
       lockX: null,
       lastTime: 0,
+      frameAccumulator: 0,
       gameOver: false,
       victory: false,
       bossActive: false,
@@ -867,6 +868,9 @@
     const TOTAL_WAVE_COUNT = 9;
     const WAVE_TRIGGER_PCTS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
     const IDLE_ARROW_DELAY_FRAMES = 300;
+    const FIXED_TIMESTEP_MS = 1000 / 60;
+    const MAX_FRAME_DELTA_MS = 1000;
+    const MAX_CATCH_UP_STEPS = 6;
     const PLAYER_SCALE_MULTIPLIER = 4;
     const PLAYER_DRAW_SIZE = 56 * PLAYER_SCALE_MULTIPLIER;
     const ENEMY_DRAW_SIZE = 48;
@@ -3383,18 +3387,31 @@
 
     function gameLoop(timestamp) {
       if (!state.running) return;
-      const dt = timestamp - state.lastTime;
+
+      const rawDt = timestamp - state.lastTime;
+      const dt = Math.min(MAX_FRAME_DELTA_MS, Math.max(0, rawDt));
       state.lastTime = timestamp;
 
-      updatePlayer(dt);
-      handleAttacks();
-      updateEnemies(dt);
-      updateProjectiles();
-      updatePickups();
-      updateEffects();
-      updateAlly();
-      updateStageProgress();
-      updateCamera();
+      state.frameAccumulator += dt;
+      let steps = 0;
+      while (state.frameAccumulator >= FIXED_TIMESTEP_MS && steps < MAX_CATCH_UP_STEPS) {
+        updatePlayer(FIXED_TIMESTEP_MS);
+        handleAttacks();
+        updateEnemies(FIXED_TIMESTEP_MS);
+        updateProjectiles();
+        updatePickups();
+        updateEffects();
+        updateAlly();
+        updateStageProgress();
+        updateCamera();
+        state.frameAccumulator -= FIXED_TIMESTEP_MS;
+        steps += 1;
+      }
+
+      if (steps === MAX_CATCH_UP_STEPS) {
+        state.frameAccumulator = Math.min(state.frameAccumulator, FIXED_TIMESTEP_MS);
+      }
+
       draw();
 
       requestAnimationFrame(gameLoop);
@@ -3405,6 +3422,7 @@
       state.gameOver = false;
       state.victory = false;
       state.lastTime = performance.now();
+      state.frameAccumulator = 0;
       requestAnimationFrame(gameLoop);
     }
 

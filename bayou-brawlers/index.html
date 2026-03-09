@@ -134,9 +134,15 @@
       width: 100%;
       background: linear-gradient(90deg, #ff7b7b, #ffb347);
     }
-    .hp-fill.super-ready {
+    #magicFill {
+      background: linear-gradient(90deg, #5ef1ff, #7a95ff);
+      box-shadow: 0 0 8px rgba(94, 182, 255, 0.35);
+      transition: box-shadow 0.16s ease, filter 0.16s ease, background 0.16s ease;
+    }
+    #magicFill.super-ready {
       background: linear-gradient(90deg, #8bff9a, #5ef1ff, #b68dff);
-      box-shadow: 0 0 14px rgba(142, 255, 184, 0.85);
+      box-shadow: 0 0 18px rgba(142, 255, 184, 0.95), 0 0 30px rgba(112, 149, 255, 0.65);
+      filter: saturate(1.2);
       animation: superPulse 0.85s ease-in-out infinite alternate;
     }
     .stage {
@@ -410,8 +416,10 @@
     }
     .pad-btn.super-ready {
       border-color: rgba(142, 255, 184, 0.95);
-      background: linear-gradient(145deg, rgba(80, 210, 170, 0.9), rgba(73, 131, 255, 0.92));
-      box-shadow: 0 0 15px rgba(122, 255, 193, 0.72), 0 0 26px rgba(115, 148, 255, 0.58);
+      background: linear-gradient(145deg, rgba(80, 210, 170, 0.92), rgba(73, 131, 255, 0.95));
+      box-shadow: 0 0 18px rgba(122, 255, 193, 0.82), 0 0 32px rgba(115, 148, 255, 0.68);
+      text-shadow: 0 0 8px rgba(223, 255, 246, 0.95);
+      filter: saturate(1.15);
       animation: superPulse 0.85s ease-in-out infinite alternate;
     }
     .pad-btn.primary {
@@ -506,7 +514,7 @@
         <div class="hp-bar"><div class="hp-fill" id="hpFill"></div></div>
       </div>
       <div class="chip" style="display:flex; gap:6px; align-items:center;">Magic
-        <div class="hp-bar"><div class="hp-fill" id="magicFill" style="background:linear-gradient(90deg,#5ef1ff,#7a95ff)"></div></div>
+        <div class="hp-bar"><div class="hp-fill" id="magicFill"></div></div>
       </div>
       <div class="chip">Ability: <span id="specialReady">Locked</span></div>
     </div>

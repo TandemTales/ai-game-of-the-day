@@ -222,6 +222,41 @@
       color: #d5deff;
       font-size: 13px;
     }
+    .notification-stack {
+      position: fixed;
+      right: calc(18px + env(safe-area-inset-right));
+      bottom: calc(22px + env(safe-area-inset-bottom));
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      z-index: 12;
+      pointer-events: none;
+    }
+    .notification-bubble {
+      min-width: min(320px, calc(100vw - 36px));
+      max-width: min(420px, calc(100vw - 36px));
+      padding: 11px 14px;
+      border-radius: 12px;
+      border: 2px solid rgba(255, 215, 0, 0.56);
+      background: linear-gradient(145deg, rgba(10, 14, 22, 0.94), rgba(17, 25, 37, 0.92));
+      color: #eef7ff;
+      font-size: 10px;
+      line-height: 1.45;
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.42), 0 0 16px rgba(255, 215, 0, 0.2);
+      opacity: 0;
+      transform: translateY(12px) scale(0.97);
+      transition: opacity 340ms ease, transform 340ms ease;
+    }
+    .notification-bubble.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .notification-bubble.hide {
+      opacity: 0;
+      transform: translateY(8px) scale(0.96);
+      transition: opacity 1700ms ease, transform 1700ms ease;
+    }
     .character-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
@@ -527,6 +562,8 @@
       <p id="bossPopupBody">Brace for impact.</p>
     </div>
 
+    <div class="notification-stack" id="notificationStack" aria-live="polite" aria-atomic="false"></div>
+
     <div class="controls" id="mobileControls">
       <div class="dpad">
         <div class="direction-pad" id="directionPad" aria-label="Movement direction pad">
@@ -629,6 +666,7 @@
     const CHEAT_REQUIRED_CLICKS = 7;
 
     let bossPopupTimeout = null;
+    let notificationId = 0;
 
     const input = {
       left: false,
@@ -1798,6 +1836,29 @@
       state.cheats.lockScoreToZero = true;
       state.score = 0;
       document.getElementById('score').textContent = '0';
+      showNotification('Cheat active: Invulnerability enabled. Score is now locked at zero.');
+    }
+
+    function showNotification(message, holdMs = 2400) {
+      const stack = document.getElementById('notificationStack');
+      if (!stack || !message) return;
+      const bubble = document.createElement('div');
+      bubble.className = 'notification-bubble';
+      bubble.textContent = message;
+      bubble.dataset.id = String(notificationId += 1);
+      stack.appendChild(bubble);
+
+      requestAnimationFrame(() => {
+        bubble.classList.add('show');
+      });
+
+      window.setTimeout(() => {
+        bubble.classList.add('hide');
+      }, holdMs);
+
+      window.setTimeout(() => {
+        bubble.remove();
+      }, holdMs + 1800);
     }
 
     function loadProgress() {
@@ -1867,6 +1928,12 @@
       fill.style.width = `${player.magic}%`;
       const ready = document.getElementById('specialReady');
       const isSuperReady = hasLevel(player, 3) && player.magic >= MAX_MAGIC;
+      if (isSuperReady && !player.superReadyNotified) {
+        showNotification('Super Special charged! Your ultimate attack is ready.');
+        player.superReadyNotified = true;
+      } else if (!isSuperReady) {
+        player.superReadyNotified = false;
+      }
       setSuperReadyGlow(isSuperReady);
       if (!hasLevel(player, 3)) ready.textContent = 'Locked';
       else if (isSuperReady) ready.textContent = 'Super Ready';

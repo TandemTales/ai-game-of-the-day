@@ -1431,7 +1431,8 @@
         },
         animationSignals: {
           attack: false,
-          hurt: false
+          hurt: false,
+          special: false
         },
         charData
       };
@@ -1455,8 +1456,9 @@
       } else if ((anim.state === 'hurt' && !anim.complete) || player.animationSignals.hurt) {
         nextState = 'hurt';
         player.animationSignals.hurt = false;
-      } else if (player.actionLock > 0) {
+      } else if ((anim.state === 'special' && !anim.complete) || player.animationSignals.special || player.actionLock > 0) {
         nextState = 'special';
+        player.animationSignals.special = false;
       } else if ((anim.state === 'attack' && !anim.complete) || player.animationSignals.attack) {
         nextState = 'attack';
         player.animationSignals.attack = false;
@@ -2093,6 +2095,13 @@
       return table[id] || { light: 10, heavy: 20, range: player.range };
     }
 
+    function getSpecialAnimationLockFrames(player, facing = player.facing) {
+      const facingName = facing >= 0 ? 'right' : 'left';
+      const specialTrack = getPlayerAnimTrack(player, 'special', facingName);
+      if (!specialTrack || !specialTrack.frames || specialTrack.frames.length <= 1 || !specialTrack.fps) return 20;
+      return Math.max(20, Math.ceil((specialTrack.frames.length / specialTrack.fps) * 60));
+    }
+
     function handleAttacks() {
       const player = state.player;
       if (!player) return;
@@ -2130,8 +2139,8 @@
         player.attackFacing = attackFacing;
         player.facing = attackFacing;
         player.specialCooldown = castSuper ? 360 : 210;
-        player.actionLock = 20;
-        player.animationSignals.attack = true;
+        player.actionLock = getSpecialAnimationLockFrames(player, attackFacing);
+        player.animationSignals.special = true;
         addMagic(player, -(castSuper ? SUPER_COST : SPECIAL_COST));
         castCharacterAbility(player, castSuper);
       }

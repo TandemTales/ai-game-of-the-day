@@ -929,6 +929,10 @@
     const STING_ATTACH_FRAMES = 150;
     const ROOT_SNARE_FRAMES = 90;
     const ENEMY_DEATH_HOLD_FRAMES = 240;
+    const ENEMY_SEPARATION_RADIUS = 82;
+    const ENEMY_SEPARATION_FORCE = 0.36;
+    const ENEMY_WANDER_STEP = 0.28;
+    const ENEMY_WANDER_PUSH = 0.22;
     const MAX_LEVEL = 10;
     const MAX_MAGIC = 100;
     const SPECIAL_COST = MAX_MAGIC / 3;
@@ -1567,12 +1571,36 @@
         dashFrames: 0,
         dashCooldown: rand(90, 160),
         pressureBoost: 1,
+        wanderAngle: rand(0, 360) * (Math.PI / 180),
+        wanderDrift: rand(8, 22) / 100,
+        wanderTimer: rand(18, 60),
         bossEncounterId: options.bossEncounterId || null,
         hurtTimer: 0,
         deathHoldFrames: 0,
         statuses: {}
       };
       return enemy;
+    }
+
+    function applyEnemyCrowdSteering(enemy) {
+      let pushX = 0;
+      let pushY = 0;
+      let neighbors = 0;
+      state.enemies.forEach(other => {
+        if (other === enemy || other.hp <= 0) return;
+        const ox = enemy.x - other.x;
+        const oy = enemy.y - other.y;
+        const dist = Math.hypot(ox, oy);
+        if (dist <= 0.01 || dist > ENEMY_SEPARATION_RADIUS) return;
+        const influence = (ENEMY_SEPARATION_RADIUS - dist) / ENEMY_SEPARATION_RADIUS;
+        pushX += (ox / dist) * influence;
+        pushY += (oy / dist) * influence;
+        neighbors += 1;
+      });
+      if (neighbors <= 0) return;
+      enemy.x += (pushX / neighbors) * ENEMY_SEPARATION_FORCE;
+      enemy.y += (pushY / neighbors) * ENEMY_SEPARATION_FORCE;
+      enemy.isMoving = true;
     }
 
     function getEnemyHitbox(enemy) {
@@ -2710,6 +2738,17 @@
         }
 
         if (enemy.attackAnimTimer > 0) enemy.attackAnimTimer -= 1;
+        if (enemy.aiState !== 'Underground' && enemy.attachTargetFrames <= 0 && enemy.holdTargetFrames <= 0) {
+          enemy.wanderTimer -= 1;
+          if (enemy.wanderTimer <= 0) {
+            enemy.wanderTimer = rand(20, 64);
+            enemy.wanderDrift = rand(8, 22) / 100;
+          }
+          enemy.wanderAngle += rand(-100, 100) / 1000;
+          enemy.x += Math.cos(enemy.wanderAngle) * enemy.wanderDrift * ENEMY_WANDER_PUSH;
+          enemy.y += Math.sin(enemy.wanderAngle) * enemy.wanderDrift * ENEMY_WANDER_STEP;
+          applyEnemyCrowdSteering(enemy);
+        }
         const verticalBounds = getEnemyVerticalBounds(enemy);
         enemy.y = clamp(enemy.y, verticalBounds.minY, verticalBounds.maxY);
         applyMovementMaskClamp(enemy, prevX, prevY);

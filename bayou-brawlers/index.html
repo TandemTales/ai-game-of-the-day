@@ -1430,6 +1430,7 @@
         },
         animationSignals: {
           attack: false,
+          special: false,
           hurt: false
         },
         charData
@@ -1454,6 +1455,9 @@
       } else if ((anim.state === 'hurt' && !anim.complete) || player.animationSignals.hurt) {
         nextState = 'hurt';
         player.animationSignals.hurt = false;
+      } else if ((anim.state === 'special' && !anim.complete) || player.animationSignals.special) {
+        nextState = 'special';
+        player.animationSignals.special = false;
       } else if (player.actionLock > 0) {
         nextState = 'special';
       } else if ((anim.state === 'attack' && !anim.complete) || player.animationSignals.attack) {
@@ -2130,7 +2134,7 @@
         player.facing = attackFacing;
         player.specialCooldown = castSuper ? 360 : 210;
         player.actionLock = 20;
-        player.animationSignals.attack = true;
+        player.animationSignals.special = true;
         addMagic(player, -(castSuper ? SUPER_COST : SPECIAL_COST));
         castCharacterAbility(player, castSuper);
       }

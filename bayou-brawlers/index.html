@@ -917,6 +917,7 @@
     const PLAYER_ANIM_FPS = {
       walk: 10,
       attack: 14,
+      controlSquareSpecial: 7,
       hurt: 12,
       death: 8
     };
@@ -3863,7 +3864,7 @@
             walk: { right: ['assets/BB_billyBoxby_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
             hurt: { right: ['assets/BB_billyBoxby_damaged_right.png', 4], fps: PLAYER_ANIM_FPS.hurt, loop: false },
             attack: { right: ['assets/BB_billyBoxby_attack_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
-            special: { right: ['assets/BB_billyBoxby_controlSquare_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
+            special: { right: ['assets/BB_billyBoxby_controlSquare_right.png', 7], fps: PLAYER_ANIM_FPS.controlSquareSpecial, loop: false },
             death: { right: ['assets/BB_billyBoxby_killed_right.png', 5], fps: PLAYER_ANIM_FPS.death, loop: false }
           }
         },
@@ -3875,7 +3876,7 @@
             walk: { right: ['assets/BB_greenFairy_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
             hurt: { right: ['assets/BB_greenFairy_damaged_right.png', 4], fps: PLAYER_ANIM_FPS.hurt, loop: false },
             attack: { right: ['assets/BB_greenFairy_attack_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
-            special: { right: ['assets/BB_greenFairy_controlSquare_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
+            special: { right: ['assets/BB_greenFairy_controlSquare_right.png', 7], fps: PLAYER_ANIM_FPS.controlSquareSpecial, loop: false },
             death: { right: ['assets/BB_greenFairy_killed_right.png', 5], fps: PLAYER_ANIM_FPS.death, loop: false }
           }
         },
@@ -3887,7 +3888,7 @@
             walk: { right: ['assets/BB_grimmaTheFeared_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
             hurt: { right: ['assets/BB_grimmaTheFeared_damaged_right.png', 4], fps: PLAYER_ANIM_FPS.hurt, loop: false },
             attack: { right: ['assets/BB_grimmaTheFeared_attack_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
-            special: { right: ['assets/BB_grimmaTheFeared_controlSquare_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
+            special: { right: ['assets/BB_grimmaTheFeared_controlSquare_right.png', 7], fps: PLAYER_ANIM_FPS.controlSquareSpecial, loop: false },
             death: { right: ['assets/BB_grimmaTheFeared_killed_right.png', 5], fps: PLAYER_ANIM_FPS.death, loop: false }
           }
         },
@@ -3911,7 +3912,7 @@
             walk: { right: ['assets/BB_possumatli_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
             hurt: { right: ['assets/BB_possumatli_damaged_right.png', 4], fps: PLAYER_ANIM_FPS.hurt, loop: false },
             attack: { right: ['assets/BB_possumatli_attack_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
-            special: { right: ['assets/BB_possumatli_controlSquare_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
+            special: { right: ['assets/BB_possumatli_controlSquare_right.png', 7], fps: PLAYER_ANIM_FPS.controlSquareSpecial, loop: false },
             death: { right: ['assets/BB_possumatli_killed_right.png', 5], fps: PLAYER_ANIM_FPS.death, loop: false }
           }
         },
@@ -3923,7 +3924,7 @@
             walk: { right: ['assets/BB_rustbucket_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
             hurt: { right: ['assets/BB_rustbucket_damaged_right.png', 4], fps: PLAYER_ANIM_FPS.hurt, loop: false },
             attack: { right: ['assets/BB_rustbucket_attack_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
-            special: { right: ['assets/BB_rustbucket_controlSquare_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
+            special: { right: ['assets/BB_rustbucket_controlSquare_right.png', 7], fps: PLAYER_ANIM_FPS.controlSquareSpecial, loop: false },
             death: { right: ['assets/BB_rustbucket_killed_right.png', 5], fps: PLAYER_ANIM_FPS.death, loop: false }
           }
         },
@@ -3935,7 +3936,7 @@
             walk: { right: ['assets/BB_scarlettGlumpkin_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
             hurt: { right: ['assets/BB_scarlettGlumpkin_damaged_right.png', 4], fps: PLAYER_ANIM_FPS.hurt, loop: false },
             attack: { right: ['assets/BB_scarlettGlumpkin_attack_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
-            special: { right: ['assets/BB_scarlettGlumpkin_controlSquare_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
+            special: { right: ['assets/BB_scarlettGlumpkin_controlSquare_right.png', 7], fps: PLAYER_ANIM_FPS.controlSquareSpecial, loop: false },
             death: { right: ['assets/BB_scarlettGlumpkin_killed_right.png', 5], fps: PLAYER_ANIM_FPS.death, loop: false }
           }
         },
@@ -3947,7 +3948,7 @@
             walk: { right: ['assets/BB_shunkyRooster_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
             hurt: { right: ['assets/BB_shunkyRooster_damaged_right.png', 4], fps: PLAYER_ANIM_FPS.hurt, loop: false },
             attack: { right: ['assets/BB_shunkyRooster_attack_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
-            special: { right: ['assets/BB_shunkyRooster_controlSquare_right.png', 7], fps: PLAYER_ANIM_FPS.attack, loop: false },
+            special: { right: ['assets/BB_shunkyRooster_controlSquare_right.png', 7], fps: PLAYER_ANIM_FPS.controlSquareSpecial, loop: false },
             death: { right: ['assets/BB_shunkyRooster_killed_right.png', 5], fps: PLAYER_ANIM_FPS.death, loop: false }
           }
         }

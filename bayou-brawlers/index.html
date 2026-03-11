@@ -224,11 +224,12 @@
     }
     .notification-stack {
       position: fixed;
-      right: calc(18px + env(safe-area-inset-right));
-      bottom: calc(22px + env(safe-area-inset-bottom));
+      left: 50%;
+      top: calc(176px + env(safe-area-inset-top));
+      transform: translateX(-50%);
       display: flex;
       flex-direction: column;
-      align-items: flex-end;
+      align-items: center;
       gap: 8px;
       z-index: 12;
       pointer-events: none;
@@ -241,7 +242,7 @@
       border: 2px solid rgba(255, 215, 0, 0.56);
       background: linear-gradient(145deg, rgba(10, 14, 22, 0.94), rgba(17, 25, 37, 0.92));
       color: #eef7ff;
-      font-size: 10px;
+      font-size: 12px;
       line-height: 1.45;
       box-shadow: 0 12px 24px rgba(0, 0, 0, 0.42), 0 0 16px rgba(255, 215, 0, 0.2);
       opacity: 0;
@@ -1836,7 +1837,7 @@
       state.cheats.lockScoreToZero = true;
       state.score = 0;
       document.getElementById('score').textContent = '0';
-      showNotification('Cheat active: Invulnerability enabled. Score is now locked at zero.');
+      showNotification('Invulnerability activated. Score set to zero.');
     }
 
     function showNotification(message, holdMs = 2400) {
@@ -1929,7 +1930,7 @@
       const ready = document.getElementById('specialReady');
       const isSuperReady = hasLevel(player, 3) && player.magic >= MAX_MAGIC;
       if (isSuperReady && !player.superReadyNotified) {
-        showNotification('Super Special charged! Your ultimate attack is ready.');
+        showNotification('Super special charged');
         player.superReadyNotified = true;
       } else if (!isSuperReady) {
         player.superReadyNotified = false;

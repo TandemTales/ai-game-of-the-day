@@ -244,6 +244,7 @@
       color: #eef7ff;
       font-size: 12px;
       line-height: 1.45;
+      white-space: pre-line;
       box-shadow: 0 12px 24px rgba(0, 0, 0, 0.42), 0 0 16px rgba(255, 215, 0, 0.2);
       opacity: 0;
       transform: translateY(12px) scale(0.97);
@@ -1837,7 +1838,7 @@
       state.cheats.lockScoreToZero = true;
       state.score = 0;
       document.getElementById('score').textContent = '0';
-      showNotification('Invulnerability activated. Score set to zero.');
+      showNotification('Invulnerability activated.\nScore set to zero.');
     }
 
     function showNotification(message, holdMs = 2400) {

@@ -140,7 +140,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: calc(160px + env(safe-area-inset-top)) 20px calc(80px + env(safe-area-inset-bottom)) 20px;
+      padding: calc(160px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom)) 20px;
     }
     canvas {
       border-radius: 14px;
@@ -472,9 +472,9 @@
       to { transform: scale(1.03); }
     }
     .action-pad {
-      display: grid;
-      grid-template-columns: repeat(2, 56px);
-      grid-template-rows: repeat(3, 56px);
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
       gap: 8px;
     }
     .action-pad .pad-btn {
@@ -494,16 +494,16 @@
       header { gap: 8px; }
       .title h1 { font-size: 14px; }
       .hud { top: calc(122px + env(safe-area-inset-top)); font-size: 9px; }
-      .stage { padding: calc(150px + env(safe-area-inset-top)) 12px calc(78px + env(safe-area-inset-bottom)) 12px; }
+      .stage { padding: calc(150px + env(safe-area-inset-top)) 12px calc(20px + env(safe-area-inset-bottom)) 12px; }
     }
 
     @media (max-width: 600px) {
       .panel { width: calc(100vw - 24px); padding: 14px; }
-      .controls { flex-direction: row; align-items: center; }
+      .controls { flex-direction: row; align-items: center; gap: 10px; }
       .direction-pad { width: 118px; height: 118px; }
       .direction-pad-knob { width: 48px; height: 48px; }
       .pad-btn { width: 38px; height: 38px; font-size: 10px; }
-      .action-pad { grid-template-columns: repeat(2, 48px); grid-template-rows: repeat(3, 48px); }
+      .action-pad { gap: 6px; }
       .action-pad .pad-btn { width: 48px; height: 48px; font-size: 9px; }
       .character-grid { grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 8px; }
       .card { min-height: 116px; }
@@ -577,7 +577,6 @@
         <button class="pad-btn" data-input="jump">JUMP</button>
         <button class="pad-btn warn" data-input="power">POWER</button>
         <button class="pad-btn" data-input="special">SPEC</button>
-        <button class="pad-btn" data-input="block">BLOCK</button>
       </div>
     </div>
 

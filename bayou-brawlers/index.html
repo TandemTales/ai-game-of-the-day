@@ -934,6 +934,7 @@
     const MAX_FRAME_DELTA_MS = 1000;
     const MAX_CATCH_UP_STEPS = 6;
     const ENTITY_DISPLAY_SCALE_BOOST = 1.2;
+    const STAGE_TWO_HIRED_GUN_SCALE_MULTIPLIER = 4;
     const PLAYER_SCALE_MULTIPLIER = 4;
     const PLAYER_DRAW_SIZE = (56 * PLAYER_SCALE_MULTIPLIER) * ENTITY_DISPLAY_SCALE_BOOST;
     const ENEMY_DRAW_SIZE = 48 * ENTITY_DISPLAY_SCALE_BOOST;
@@ -999,6 +1000,10 @@
       if (typeId === 'daphodilus') return asPlayerSizeRatio(1);
 
       if (typeId === 'mud-monster') return isBoss ? asPlayerSizeRatio(2.1) : asPlayerSizeRatio(1.6);
+
+      if (typeId === 'hiredGun' && state.levelIndex === 1) {
+        return STAGE_TWO_HIRED_GUN_SCALE_MULTIPLIER;
+      }
 
       return isBoss ? BOSS_RENDER_SCALE_MULTIPLIER : 1;
     }

@@ -352,7 +352,8 @@
     }
     .levelup-panel { max-width: 640px; }
     .levelup-choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
-    .levelup-choice { text-align: left; background: rgba(17,22,30,0.95); border: 1px solid rgba(255,214,92,0.35); border-radius: 10px; padding: 10px; color: #f8f8ef; cursor: pointer; }
+    .levelup-choice { text-align: left; background: rgba(17,22,30,0.95); border: 1px solid rgba(255,214,92,0.35); border-radius: 10px; padding: 10px; color: #f8f8ef; cursor: pointer; display: flex; flex-direction: column; gap: 8px; }
+    .levelup-choice-image { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; border: 1px solid rgba(255,214,92,0.25); background: rgba(0,0,0,0.25); }
     .levelup-choice h4 { margin: 0 0 6px 0; font-size: 12px; color: #ffd65c; }
     .levelup-choice p { margin: 0; font-size: 10px; color: #bdd9d3; }
     .levelup-tag { display: inline-block; margin-bottom: 6px; font-size: 9px; letter-spacing: 0.08em; color: #f3d28a; text-transform: uppercase; }
@@ -995,6 +996,15 @@
     const MAGIC_BY_TIER = { small: 5, medium: 8, elite: 12, boss: 15 };
     const SAVE_SLOT_KEY = `${GAME_ID}:slot:default:progress`;
 
+
+
+    const UPGRADE_IMAGE_OVERRIDES = {
+      'possumatli:*': { characterToken: 'possomatli' },
+      'billy-boxby:whiteout': { upgradeToken: 'whiteOut' },
+      'billy-boxby:icebreaker': { upgradeToken: 'iceBreaker' },
+      'billy-boxby:ice-in-the-veins': { upgradeToken: 'iceInTheVanes' },
+      'grimma-the-feared:veilwalker': { upgradeToken: 'veilWalker' }
+    };
 
     const AUTO_LEVEL_GAINS = {
       2: ['+8% max health', '+5% basic attack damage'],
@@ -2172,6 +2182,21 @@
       showNotification(`${upgrade.name} unlocked`);
     }
 
+    function toUpgradeAssetToken(value) {
+      return (value || '')
+        .replace(/[^a-zA-Z0-9]+(.)/g, (_, chr) => chr.toUpperCase())
+        .replace(/^[A-Z]/, (chr) => chr.toLowerCase());
+    }
+
+    function getUpgradeImagePath(player, upgrade) {
+      if (!player || !upgrade) return '';
+      const upgradeKey = `${player.charData.id}:${upgrade.id}`;
+      const override = UPGRADE_IMAGE_OVERRIDES[upgradeKey] || UPGRADE_IMAGE_OVERRIDES[`${player.charData.id}:*`] || {};
+      const characterToken = override.characterToken || toUpgradeAssetToken(player.charData.id);
+      const upgradeToken = override.upgradeToken || toUpgradeAssetToken(upgrade.id);
+      return `assets/upgrade_${characterToken}_${upgradeToken}.png`;
+    }
+
     function showLevelUpOverlay(player, level) {
       const overlay = document.getElementById('levelUpOverlay');
       const title = document.getElementById('levelUpTitle');
@@ -2197,7 +2222,8 @@
         choiceList.forEach((upgrade) => {
           const button = document.createElement('button');
           button.className = 'levelup-choice';
-          button.innerHTML = `<span class="levelup-tag">${upgrade.tag}</span><h4>${upgrade.name}</h4><p>${upgrade.description}</p>`;
+          const imagePath = getUpgradeImagePath(player, upgrade);
+          button.innerHTML = `<img class="levelup-choice-image" src="${imagePath}" alt="${upgrade.name}"><span class="levelup-tag">${upgrade.tag}</span><h4>${upgrade.name}</h4><p>${upgrade.description}</p>`;
           button.addEventListener('click', () => {
             applyChosenUpgrade(player, upgrade);
             overlay.classList.remove('show');

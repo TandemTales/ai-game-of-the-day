@@ -350,6 +350,12 @@
       display: flex;
       justify-content: flex-end;
     }
+    .levelup-panel { max-width: 640px; }
+    .levelup-choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+    .levelup-choice { text-align: left; background: rgba(17,22,30,0.95); border: 1px solid rgba(255,214,92,0.35); border-radius: 10px; padding: 10px; color: #f8f8ef; cursor: pointer; }
+    .levelup-choice h4 { margin: 0 0 6px 0; font-size: 12px; color: #ffd65c; }
+    .levelup-choice p { margin: 0; font-size: 10px; color: #bdd9d3; }
+    .levelup-tag { display: inline-block; margin-bottom: 6px; font-size: 9px; letter-spacing: 0.08em; color: #f3d28a; text-transform: uppercase; }
     .controls {
       position: absolute;
       bottom: calc(8px + env(safe-area-inset-bottom));
@@ -506,6 +512,7 @@
       .action-pad { gap: 6px; }
       .action-pad .pad-btn { width: 48px; height: 48px; font-size: 9px; }
       .character-grid { grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 8px; }
+      .levelup-choices { grid-template-columns: 1fr; }
       .card { min-height: 116px; }
       .instructions { font-size: 8px; }
     }
@@ -608,6 +615,14 @@
         <button class="btn" id="messageBtn">Continue</button>
       </div>
     </div>
+
+    <div class="overlay" id="levelUpOverlay">
+      <div class="panel levelup-panel">
+        <h2 id="levelUpTitle">Level Up</h2>
+        <p id="levelUpAuto"></p>
+        <div class="levelup-choices" id="levelUpChoices"></div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -652,6 +667,9 @@
       hazards: [],
       commandBuffTimer: 0,
       chokeHoldOwnerId: null,
+      paused: false,
+      pendingLevelUps: [],
+      currentLevelUp: null,
       cheats: {
         invincible: false,
         lockScoreToZero: false,
@@ -968,14 +986,194 @@
     const STING_ATTACH_FRAMES = 150;
     const ROOT_SNARE_FRAMES = 90;
     const ENEMY_DEATH_HOLD_FRAMES = 240;
-    const MAX_LEVEL = 10;
-    const MAX_MAGIC = 100;
-    const SPECIAL_COST = MAX_MAGIC / 3;
+    const MAX_LEVEL = Number.POSITIVE_INFINITY;
+    const BASE_MAX_MAGIC = 100;
+    const SPECIAL_COST = BASE_MAX_MAGIC / 3;
     const SUPER_COST = SPECIAL_COST;
     const XP_TABLE = [0, 60, 140, 260, 420, 620, 860, 1160, 1540, 2050];
     const XP_BY_TIER = { small: 7, medium: 12, elite: 22.5, boss: 50 };
     const MAGIC_BY_TIER = { small: 5, medium: 8, elite: 12, boss: 15 };
     const SAVE_SLOT_KEY = `${GAME_ID}:slot:default:progress`;
+
+
+    const AUTO_LEVEL_GAINS = {
+      2: ['+8% max health', '+5% basic attack damage'],
+      3: ['Unlock special ability use', '+20 max power meter'],
+      4: ['+5% heavy attack damage', '+5% movement speed'],
+      5: ['Unlock super special ability use', '+20 max power meter'],
+      6: ['+8% max health', '+5% special ability damage/effect strength'],
+      7: ['+5% basic attack damage', '+5% stun or knockback resistance'],
+      8: ['+10 max power meter', '+5% heavy attack damage'],
+      9: ['+8% max health', '+5% special/super effect strength'],
+      10: ['+5% all damage', '+10 max power meter', 'Unlock final passive trait']
+    };
+
+    const FINAL_SIGNATURE_PASSIVES = {
+      'billy-boxby': 'All slow effects last 50% longer',
+      'green-fairy': 'Charm lasts 15 seconds',
+      'shunky-rooster': '35% reduced knockback taken',
+      'grimma-the-feared': 'Heavy attacks heal for a small amount',
+      possumatli: 'Combo meter decays much slower',
+      rustbucket: '20% chance for bullets to ricochet',
+      'scarlett-glumpkin': 'Poison can stack up to 5 times',
+      'old-man-croc': 'Heal 3% max HP on each enemy defeat'
+    };
+
+    const CHARACTER_UPGRADES = {
+      'billy-boxby': [
+        { id: 'cold-barrel', name: 'Cold Barrel', tag: 'Attack', description: 'Basic attacks apply stronger slow to non-ghost enemies.' },
+        { id: 'long-freeze-tube', name: 'Long Freeze Tube', tag: 'Attack', description: 'Increase basic attack range slightly.' },
+        { id: 'snap-frost', name: 'Snap Frost', tag: 'Attack', description: 'Basic attacks deal bonus damage to slowed or frozen enemies.' },
+        { id: 'deep-chill-blast', name: 'Deep Chill Blast', tag: 'Heavy', description: 'Heavy attack slow effect lasts longer.' },
+        { id: 'cryo-knockback', name: 'Cryo Knockback', tag: 'Heavy', description: 'Heavy attacks knock enemies back farther.' },
+        { id: 'icebreaker', name: 'Icebreaker', tag: 'Heavy', description: 'Heavy attacks deal big bonus damage to frozen enemies.' },
+        { id: 'wider-cryo-patch', name: 'Wider Cryo Patch', tag: 'Special', description: 'Special frost patch covers more ground.' },
+        { id: 'black-ice', name: 'Black Ice', tag: 'Special', description: 'Enemies in cryo patch have reduced movement and attack speed.' },
+        { id: 'lingering-chill', name: 'Lingering Chill', tag: 'Special', description: 'Cryo patch remains active longer.' },
+        { id: 'whiteout', name: 'Whiteout', tag: 'Super', description: 'Super affects a wider area.' },
+        { id: 'hard-freeze', name: 'Hard Freeze', tag: 'Super', description: 'Super briefly freezes then slows non-ghost enemies.' },
+        { id: 'spirit-lock', name: 'Spirit Lock', tag: 'Super', description: 'Ghost enemies stay frozen much longer and take more super damage.' },
+        { id: 'cold-reservoir', name: 'Cold Reservoir', tag: 'Utility', description: 'Gain more power meter from freezing enemies.' },
+        { id: 'ghost-hunters-aim', name: "Ghost Hunter’s Aim", tag: 'Utility', description: 'Bonus damage against ghost and incorporeal enemies.' },
+        { id: 'permafrost-boots', name: 'Permafrost Boots', tag: 'Utility', description: 'Reduced slowdown and damage from environmental hazards.' },
+        { id: 'shatter-shock', name: 'Shatter Shock', tag: 'Utility', description: 'Frozen enemies explode in frost on defeat.' },
+        { id: 'ice-in-the-veins', name: 'Ice in the Veins', tag: 'Utility', description: 'Taking damage increases duration of active freeze effects.' }
+      ],
+      'green-fairy': [
+        { id: 'irritating-pollen', name: 'Irritating Pollen', tag: 'Attack', description: 'Basic attacks slightly slow enemies.' },
+        { id: 'glitter-burst', name: 'Glitter Burst', tag: 'Attack', description: 'Basic attack hit area becomes wider.' },
+        { id: 'sweet-sting', name: 'Sweet Sting', tag: 'Attack', description: 'Basic attacks deal bonus damage to non-charmed enemies.' },
+        { id: 'blinding-dust', name: 'Blinding Dust', tag: 'Heavy', description: 'Heavy attack has a chance to briefly confuse enemies.' },
+        { id: 'fairy-flurry', name: 'Fairy Flurry', tag: 'Heavy', description: 'Heavy attack does more damage.' },
+        { id: 'twinkling-blowback', name: 'Twinkling Blowback', tag: 'Heavy', description: 'Heavy attacks push enemies back farther.' },
+        { id: 'deeper-enchantment', name: 'Deeper Enchantment', tag: 'Special', description: 'Charm effects last +10 seconds.' },
+        { id: 'mass-suggestion', name: 'Mass Suggestion', tag: 'Special', description: 'Special can affect two additional enemies.' },
+        { id: 'helpful-friends', name: 'Helpful Friends', tag: 'Special', description: 'Charmed enemies deal more damage while allied.' },
+        { id: 'pixie-dominion-plus', name: 'Pixie Dominion Plus', tag: 'Super', description: 'Super radius increased.' },
+        { id: 'royal-command', name: 'Royal Command', tag: 'Super', description: 'Super works against more enemies at once.' },
+        { id: 'cruel-kindness', name: 'Cruel Kindness', tag: 'Super', description: 'Enemies released from charm are briefly stunned.' },
+        { id: 'dust-collector', name: 'Dust Collector', tag: 'Utility', description: 'Gain extra power meter when charmed enemies damage each other.' },
+        { id: 'bewitching-presence', name: 'Bewitching Presence', tag: 'Utility', description: 'Nearby enemies may walk away briefly instead of attacking.' },
+        { id: 'float-step', name: 'Float Step', tag: 'Utility', description: 'Reduced hazard damage and slow effects.' },
+        { id: 'sparkle-bloom', name: 'Sparkle Bloom', tag: 'Utility', description: 'Defeated charmed enemies burst in a dust cloud that stuns others.' },
+        { id: 'long-glamour', name: 'Long Glamour', tag: 'Utility', description: 'Gain 2 seconds of invulnerability whenever an enemy is charmed.' },
+        { id: 'perfect-glamour', name: 'Perfect Glamour', tag: 'Utility', description: 'Slowly gain health and power while enemies are charmed.', requiresLevel: 10 }
+      ],
+      'shunky-rooster': [
+        { id: 'staggering-blast', name: 'Staggering Blast', tag: 'Attack', description: 'Basic attacks deal more stun.' },
+        { id: 'momentum-multiplier', name: 'Momentum Multiplier', tag: 'Attack', description: 'Slightly faster basic attacks.' },
+        { id: 'penetrating-beam', name: 'Penetrating Beam', tag: 'Attack', description: 'Increase basic attack damage.' },
+        { id: 'shockwave', name: 'Shockwave', tag: 'Heavy', description: 'Heavy attack creates a small damaging shockwave.' },
+        { id: 'smashing-beam', name: 'Smashing Beam', tag: 'Heavy', description: 'Heavy attacks do much more knockback.' },
+        { id: 'core-boost', name: 'Core Boost', tag: 'Heavy', description: 'Heavy attacks cannot be interrupted.' },
+        { id: 'focused-chest-ray', name: 'Focused Chest Ray', tag: 'Special', description: 'Special beam deals higher single-target damage.' },
+        { id: 'broad-chest-ray', name: 'Broad Chest Ray', tag: 'Special', description: 'Special beam becomes wider.' },
+        { id: 'overheated-core', name: 'Overheated Core', tag: 'Special', description: 'Special leaves burning damage over time.' },
+        { id: 'meltdown-sweep', name: 'Meltdown Sweep', tag: 'Super', description: 'Super lasts longer.' },
+        { id: 'armor-overcharge', name: 'Armor Overcharge', tag: 'Super', description: 'Temporary damage resistance during super.' },
+        { id: 'scorched-ground', name: 'Scorched Ground', tag: 'Super', description: 'Super leaves burning ground patches.' },
+        { id: 'reinforced-plating', name: 'Reinforced Plating', tag: 'Utility', description: 'Increase max health.' },
+        { id: 'power-dynamo', name: 'Power Dynamo', tag: 'Utility', description: 'Gain extra power meter when taking hits.' },
+        { id: 'heavy-frame', name: 'Heavy Frame', tag: 'Utility', description: 'Reduced knockback from enemy attacks.' },
+        { id: 'emergency-venting', name: 'Emergency Venting', tag: 'Utility', description: 'Chance to push nearby enemies away on low health.' },
+        { id: 'mechanized-momentum', name: 'Mechanized Momentum', tag: 'Utility', description: 'Consecutive hits increase damage briefly.' }
+      ],
+      'grimma-the-feared': [
+        { id: 'long-lash', name: 'Long Lash', tag: 'Attack', description: 'Increase whip range.' },
+        { id: 'barbed-snap', name: 'Barbed Snap', tag: 'Attack', description: 'Basic attacks cause damage over time.' },
+        { id: 'hunters-precision', name: 'Hunter’s Precision', tag: 'Attack', description: 'Bonus basic attack damage.' },
+        { id: 'cruel-crack', name: 'Cruel Crack', tag: 'Heavy', description: 'Heavy attacks deal increased stun.' },
+        { id: 'hook-lash', name: 'Hook Lash', tag: 'Heavy', description: 'Heavy attacks pull enemies closer.' },
+        { id: 'execution-stroke', name: 'Execution Stroke', tag: 'Heavy', description: 'Heavy attacks deal more damage to low-health enemies.' },
+        { id: 'deeper-shadows', name: 'Deeper Shadows', tag: 'Special', description: 'Root effect lasts longer.' },
+        { id: 'hungry-dark', name: 'Hungry Dark', tag: 'Special', description: 'Rooted enemies take damage over time.' },
+        { id: 'shared-pain', name: 'Shared Pain', tag: 'Special', description: 'Rooted enemies spread a small debuff.' },
+        { id: 'night-carnival-extended', name: 'Night Carnival Extended', tag: 'Super', description: 'Super lasts longer.' },
+        { id: 'black-halo', name: 'Black Halo', tag: 'Super', description: 'Super radius increases.' },
+        { id: 'soul-drain', name: 'Soul Drain', tag: 'Super', description: 'Super heals Grimma based on damage dealt.' },
+        { id: 'demon-slayer', name: 'Demon Slayer', tag: 'Utility', description: 'Bonus damage against demons and ghosts.' },
+        { id: 'sadists-grace', name: 'Sadist’s Grace', tag: 'Utility', description: 'Chance of a small heal on enemy kill.' },
+        { id: 'dancers-step', name: 'Dancer’s Step', tag: 'Utility', description: 'Small chance to dodge enemy attacks.' },
+        { id: 'veilwalker', name: 'Veilwalker', tag: 'Utility', description: 'Brief damage reduction after using special.' },
+        { id: 'whip-mastery', name: 'Whip Mastery', tag: 'Utility', description: 'Enemies are worth more experience points.' }
+      ],
+      possumatli: [
+        { id: 'rapid-strikes', name: 'Rapid Strikes', tag: 'Attack', description: 'Basic attack speed increased.' },
+        { id: 'extended-reach', name: 'Extended Reach', tag: 'Attack', description: 'Basic attack has longer range.' },
+        { id: 'flow-state', name: 'Flow State', tag: 'Attack', description: 'Multiple basic hits can stun and briefly boost movement.' },
+        { id: 'sweeping-staff', name: 'Sweeping Staff', tag: 'Heavy', description: 'Heavy attack has increased range.' },
+        { id: 'knockdown', name: 'Knockdown', tag: 'Heavy', description: 'Heavy attacks have increased knockback and stun.' },
+        { id: 'counter-staff', name: 'Counter Staff', tag: 'Heavy', description: 'Heavy attack grants a small amount of health.' },
+        { id: 'longer-feint', name: 'Longer Feint', tag: 'Special', description: 'Special invulnerability window lasts much longer.' },
+        { id: 'sharp-recovery', name: 'Sharp Recovery', tag: 'Special', description: 'Recover from stun faster.' },
+        { id: 'feint-mastery', name: 'Feint Mastery', tag: 'Special', description: 'Enemies affected by special deal less damage.' },
+        { id: 'bayou-tempest-extended', name: 'Bayou Tempest Extended', tag: 'Super', description: 'Super duration increased.' },
+        { id: 'tornado-staff', name: 'Tornado Staff', tag: 'Super', description: 'Super hits a wider area.' },
+        { id: 'relentless-advance', name: 'Relentless Advance', tag: 'Super', description: 'Super movement lasts longer and cuts hazard penalties.' },
+        { id: 'spirit-mastery', name: 'Spirit Mastery', tag: 'Utility', description: 'Longer combo timeout and attacks hit incorporeal creatures.' },
+        { id: 'possum-nerves', name: 'Possum Nerves', tag: 'Utility', description: 'Reduced damage during and after stun.' },
+        { id: 'mischief-energy', name: 'Mischief Energy', tag: 'Utility', description: 'Gain extra power meter from long combos.' },
+        { id: 'uncatchable', name: 'Uncatchable', tag: 'Utility', description: 'Enemy attacks do no damage briefly after using special.' },
+        { id: 'master-of-the-bayou-path', name: 'Master of the Bayou Path', tag: 'Utility', description: 'No movement penalty from hazards.' }
+      ],
+      rustbucket: [
+        { id: 'faster-draw', name: 'Faster Draw', tag: 'Attack', description: 'Basic attack speed increases.' },
+        { id: 'hardened-rounds', name: 'Hardened Rounds', tag: 'Attack', description: 'Basic attack deals more damage.' },
+        { id: 'steady-aim', name: 'Steady Aim', tag: 'Attack', description: 'Basic attack range increased.' },
+        { id: 'piercing-shot', name: 'Piercing Shot', tag: 'Heavy', description: 'Heavy attack passes through an additional enemy.' },
+        { id: 'concussive-round', name: 'Concussive Round', tag: 'Heavy', description: 'Heavy attacks deal stronger knockback.' },
+        { id: 'hot-chamber', name: 'Hot Chamber', tag: 'Heavy', description: 'Heavy attack causes increased damage.' },
+        { id: 'extended-sentry', name: 'Extended Sentry', tag: 'Special', description: 'Turret mode lasts longer.' },
+        { id: 'suppressive-fire', name: 'Suppressive Fire', tag: 'Special', description: 'Special attack stuns enemies.' },
+        { id: 'gyro-stabilizers', name: 'Gyro Stabilizers', tag: 'Special', description: 'Take less damage while in turret mode.' },
+        { id: 'bullet-storm-max', name: 'Bullet Storm Max', tag: 'Super', description: 'Super fires more shots.' },
+        { id: 'targeting-upgrade', name: 'Targeting Upgrade', tag: 'Super', description: 'Super tracks enemies more reliably.' },
+        { id: 'shrapnel-protocol', name: 'Shrapnel Protocol', tag: 'Super', description: 'Super hits create secondary splash projectiles.' },
+        { id: 'auto-loader', name: 'Auto Loader', tag: 'Utility', description: 'Gain attack speed boost after heavy attack.' },
+        { id: 'ricochet-logic', name: 'Ricochet Logic', tag: 'Utility', description: 'Basic shots have a chance to bounce to another enemy.' },
+        { id: 'power-recycler', name: 'Power Recycler', tag: 'Utility', description: 'Gain extra power meter from kills.' },
+        { id: 'steel-sheriff', name: 'Steel Sheriff', tag: 'Utility', description: 'Reduced damage taken.' },
+        { id: 'quick-reboot', name: 'Quick Reboot', tag: 'Utility', description: 'Recover from stun faster.' }
+      ],
+      'scarlett-glumpkin': [
+        { id: 'toxic-blend', name: 'Toxic Blend', tag: 'Attack', description: 'Basic attack poison effect lasts longer.' },
+        { id: 'wider-scatter', name: 'Wider Scatter', tag: 'Attack', description: 'Basic attack hits a larger area.' },
+        { id: 'corrosive-dust', name: 'Corrosive Dust', tag: 'Attack', description: 'Poisoned enemies take extra damage from heavy attacks.' },
+        { id: 'volatile-seeds', name: 'Volatile Seeds', tag: 'Heavy', description: 'Heavy seed blast hits larger area.' },
+        { id: 'thorn-charge', name: 'Thorn Charge', tag: 'Heavy', description: 'Heavy attacks apply stronger poison.' },
+        { id: 'botanical-recoil', name: 'Botanical Recoil', tag: 'Heavy', description: 'Heavy attacks knock enemies back more.' },
+        { id: 'deep-roots', name: 'Deep Roots', tag: 'Special', description: 'Root lasts longer.' },
+        { id: 'spreading-vines', name: 'Spreading Vines', tag: 'Special', description: 'Root area becomes wider.' },
+        { id: 'toxic-bind', name: 'Toxic Bind', tag: 'Special', description: 'Rooted enemies are poisoned automatically.' },
+        { id: 'floral-cascade', name: 'Floral Cascade', tag: 'Super', description: 'Super gets an extra vine wave.' },
+        { id: 'carnivorous-bloom', name: 'Carnivorous Bloom', tag: 'Super', description: 'Super deals extra damage.' },
+        { id: 'garden-of-thorns', name: 'Garden of Thorns', tag: 'Super', description: 'Super leaves damaging hazard patches.' },
+        { id: 'compound-formula', name: 'Compound Formula', tag: 'Utility', description: 'All poison deals increased damage.' },
+        { id: 'field-research', name: 'Field Research', tag: 'Utility', description: 'Gain extra power meter when poisoned enemies die.' },
+        { id: 'thornproof-gloves', name: 'Thornproof Gloves', tag: 'Utility', description: 'Reduced damage and slow effects from hazards.' },
+        { id: 'chain-reaction-spores', name: 'Chain Reaction Spores', tag: 'Utility', description: 'Poisoned enemies burst and poison nearby enemies on defeat.' },
+        { id: 'wild-growth', name: 'Wild Growth', tag: 'Utility', description: 'Poison ticks can heal Scarlett.' }
+      ],
+      'old-man-croc': [
+        { id: 'powerful-bite', name: 'Powerful Bite', tag: 'Attack', description: 'Basic attacks deal more damage.' },
+        { id: 'lockjaw', name: 'Lockjaw', tag: 'Attack', description: 'Basic bites stun enemies longer.' },
+        { id: 'blood-scent', name: 'Blood Scent', tag: 'Attack', description: 'Bonus damage against injured enemies.' },
+        { id: 'bone-crunch', name: 'Bone Crunch', tag: 'Heavy', description: 'Heavy bite deals longer stun.' },
+        { id: 'ripping-jaws', name: 'Ripping Jaws', tag: 'Heavy', description: 'Heavy bite causes damage over time.' },
+        { id: 'savage-chomp', name: 'Savage Chomp', tag: 'Heavy', description: 'Heavy attack knockback greatly increased.' },
+        { id: 'long-roll', name: 'Long Roll', tag: 'Special', description: 'Death Roll lasts longer.' },
+        { id: 'crushing-spin', name: 'Crushing Spin', tag: 'Special', description: 'Death Roll hits nearby enemies for more damage.' },
+        { id: 'mauling-grip', name: 'Mauling Grip', tag: 'Special', description: 'Special deals increased damage.' },
+        { id: 'mauling-frenzy', name: 'Mauling Frenzy', tag: 'Super', description: 'Super grants brief invulnerability.' },
+        { id: 'predator-rush', name: 'Predator Rush', tag: 'Super', description: 'Super lasts longer and movement becomes faster.' },
+        { id: 'ravenous-recovery', name: 'Ravenous Recovery', tag: 'Super', description: 'Heal a portion of damage dealt during super.' },
+        { id: 'thick-hide', name: 'Thick Hide', tag: 'Utility', description: 'Increase max health.' },
+        { id: 'swamp-hunger', name: 'Swamp Hunger', tag: 'Utility', description: 'Heal slightly on enemy kills.' },
+        { id: 'gator-lunge', name: 'Gator Lunge', tag: 'Utility', description: 'Slight move speed increase when approaching enemies.' },
+        { id: 'territorial-beast', name: 'Territorial Beast', tag: 'Utility', description: 'Deal more damage near hazards before/after they occur.' },
+        { id: 'cold-blooded', name: 'Cold Blooded', tag: 'Utility', description: 'Take less damage while below half health.' }
+      ]
+    };
 
     function debugLog(channel, ...args) {
       if (state.debug && state.debug[channel]) {
@@ -1457,7 +1655,15 @@
         level: 1,
         xp: 0,
         magic: 0,
+        maxMagic: BASE_MAX_MAGIC,
         passiveCooldown: 0,
+        basicDamageMultiplier: 1,
+        heavyDamageMultiplier: 1,
+        specialEffectMultiplier: 1,
+        allDamageMultiplier: 1,
+        stunResistanceMultiplier: 1,
+        knockbackResistanceMultiplier: 1,
+        selectedUpgrades: new Set(),
         renderScale: charData.renderScale || 1,
         physicsProfileId: charData.physicsProfileId,
         attackFacing: 1,
@@ -1884,13 +2090,19 @@
       return player.level >= levelReq;
     }
 
-    function getDamageMultiplier(player) {
-      return hasLevel(player, 2) ? 1.1 : 1;
+    function getBasicDamageMultiplier(player) {
+      if (!player) return 1;
+      return player.basicDamageMultiplier * player.allDamageMultiplier;
+    }
+
+    function getHeavyDamageMultiplier(player) {
+      if (!player) return 1;
+      return player.heavyDamageMultiplier * player.allDamageMultiplier;
     }
 
     function addMagic(player, amount) {
       if (!player) return;
-      player.magic = clamp(player.magic + amount, 0, MAX_MAGIC);
+      player.magic = clamp(player.magic + amount, 0, player.maxMagic || BASE_MAX_MAGIC);
       updateMagicHud(player);
     }
 
@@ -1904,31 +2116,138 @@
       if (magicBar) magicBar.classList.toggle('super-ready', active);
     }
 
+    function getAutoLevelGainLines(level, player) {
+      const baseLines = [...(AUTO_LEVEL_GAINS[level] || [])];
+      if (level === 10 && FINAL_SIGNATURE_PASSIVES[player.charData.id]) {
+        baseLines.push(`Signature Passive: ${FINAL_SIGNATURE_PASSIVES[player.charData.id]}`);
+      }
+      return baseLines;
+    }
+
+    function applyAutoLevelGains(player, level) {
+      if (!player) return;
+      if ([2, 6, 9].includes(level)) {
+        player.maxHp *= 1.08;
+        player.hp = clamp(player.hp + (player.maxHp * 0.08), 0, player.maxHp);
+      }
+      if ([3, 5].includes(level)) player.maxMagic += 20;
+      if ([8, 10].includes(level)) player.maxMagic += 10;
+      if ([2, 7].includes(level)) player.basicDamageMultiplier *= 1.05;
+      if ([4, 8].includes(level)) player.heavyDamageMultiplier *= 1.05;
+      if ([6, 9].includes(level)) player.specialEffectMultiplier *= 1.05;
+      if (level === 4) player.speed *= 1.05;
+      if (level === 7) {
+        player.stunResistanceMultiplier *= 0.95;
+        player.knockbackResistanceMultiplier *= 0.95;
+      }
+      if (level === 10) player.allDamageMultiplier *= 1.05;
+      player.magic = clamp(player.magic, 0, player.maxMagic);
+      updateHpBar();
+      updateMagicHud(player);
+    }
+
+    function getEligibleUpgradeChoices(player) {
+      const pool = CHARACTER_UPGRADES[player.charData.id] || [];
+      return pool.filter((entry) => {
+        if (player.selectedUpgrades.has(entry.id)) return false;
+        if (entry.requiresLevel && player.level < entry.requiresLevel) return false;
+        return true;
+      });
+    }
+
+    function pickUpgradeChoices(player, count = 3) {
+      const eligible = [...getEligibleUpgradeChoices(player)];
+      const picks = [];
+      while (eligible.length > 0 && picks.length < count) {
+        const idx = Math.floor(Math.random() * eligible.length);
+        picks.push(eligible[idx]);
+        eligible.splice(idx, 1);
+      }
+      return picks;
+    }
+
+    function applyChosenUpgrade(player, upgrade) {
+      if (!player || !upgrade) return;
+      player.selectedUpgrades.add(upgrade.id);
+      showNotification(`${upgrade.name} unlocked`);
+    }
+
+    function showLevelUpOverlay(player, level) {
+      const overlay = document.getElementById('levelUpOverlay');
+      const title = document.getElementById('levelUpTitle');
+      const auto = document.getElementById('levelUpAuto');
+      const choicesWrap = document.getElementById('levelUpChoices');
+      const choiceList = pickUpgradeChoices(player, 3);
+      state.currentLevelUp = { level, choices: choiceList };
+      title.textContent = `Level ${level} Reached`;
+      auto.innerHTML = `<strong>Auto gains:</strong><br>• ${getAutoLevelGainLines(level, player).join('<br>• ')}<br><br><strong>Choose one:</strong>`;
+      choicesWrap.innerHTML = '';
+      if (choiceList.length === 0) {
+        const button = document.createElement('button');
+        button.className = 'btn';
+        button.textContent = 'Continue';
+        button.addEventListener('click', () => {
+          overlay.classList.remove('show');
+          state.paused = false;
+          state.currentLevelUp = null;
+          processNextPendingLevelUp();
+        });
+        choicesWrap.appendChild(button);
+      } else {
+        choiceList.forEach((upgrade) => {
+          const button = document.createElement('button');
+          button.className = 'levelup-choice';
+          button.innerHTML = `<span class="levelup-tag">${upgrade.tag}</span><h4>${upgrade.name}</h4><p>${upgrade.description}</p>`;
+          button.addEventListener('click', () => {
+            applyChosenUpgrade(player, upgrade);
+            overlay.classList.remove('show');
+            state.paused = false;
+            state.currentLevelUp = null;
+            processNextPendingLevelUp();
+          });
+          choicesWrap.appendChild(button);
+        });
+      }
+      overlay.classList.add('show');
+      state.paused = true;
+    }
+
+    function processNextPendingLevelUp() {
+      const player = state.player;
+      if (!player || state.pendingLevelUps.length === 0 || state.currentLevelUp) return;
+      const nextLevel = state.pendingLevelUps.shift();
+      showLevelUpOverlay(player, nextLevel);
+    }
+
     function addXp(player, amount) {
       if (!player || amount <= 0) return;
       player.xp += amount;
-      while (player.level < MAX_LEVEL && player.xp >= xpToNext(player.level)) {
+      while (player.xp >= xpToNext(player.level)) {
         player.xp -= xpToNext(player.level);
         player.level += 1;
+        applyAutoLevelGains(player, player.level);
+        state.pendingLevelUps.push(player.level);
         state.effects.push({ x: player.x, y: player.y - 70, timer: 35, type: 'levelup' });
       }
       updateProgressHud(player);
       saveProgress(player);
+      processNextPendingLevelUp();
     }
 
     function updateProgressHud(player) {
       if (!player) return;
       document.getElementById('level').textContent = String(player.level);
       document.getElementById('xp').textContent = String(Math.floor(player.xp));
-      document.getElementById('xpNext').textContent = String(player.level >= MAX_LEVEL ? 0 : xpToNext(player.level));
+      document.getElementById('xpNext').textContent = String(xpToNext(player.level));
     }
 
     function updateMagicHud(player) {
       if (!player) return;
       const fill = document.getElementById('magicFill');
-      fill.style.width = `${player.magic}%`;
+      const currentMaxMagic = player.maxMagic || BASE_MAX_MAGIC;
+      fill.style.width = `${(player.magic / currentMaxMagic) * 100}%`;
       const ready = document.getElementById('specialReady');
-      const isSuperReady = hasLevel(player, 3) && player.magic >= MAX_MAGIC;
+      const isSuperReady = hasLevel(player, 5) && player.magic >= currentMaxMagic;
       if (isSuperReady && !player.superReadyNotified) {
         showNotification('Super special charged');
         player.superReadyNotified = true;
@@ -1938,7 +2257,7 @@
       setSuperReadyGlow(isSuperReady);
       if (!hasLevel(player, 3)) ready.textContent = 'Locked';
       else if (isSuperReady) ready.textContent = 'Super Ready';
-      else if (player.magic >= SPECIAL_COST) ready.textContent = 'Special Ready';
+      else if (player.magic >= SPECIAL_COST) ready.textContent = hasLevel(player, 5) ? 'Special Ready' : 'Ability Ready';
       else ready.textContent = 'Charging';
     }
 
@@ -2096,7 +2415,7 @@
         y: originY,
         vx,
         vy,
-        damage: (heavy ? tuning.heavy : tuning.light) * player.power * getDamageMultiplier(player),
+        damage: (heavy ? tuning.heavy : tuning.light) * player.power * (heavy ? getHeavyDamageMultiplier(player) : getBasicDamageMultiplier(player)),
         friendly: true,
         life: heavy ? 110 : 90,
         color: paletteByCharacter[id] || '#f5d07a',
@@ -2203,7 +2522,7 @@
       }
 
       if (input.special && player.specialCooldown <= 0 && hasLevel(player, 3) && player.magic >= SPECIAL_COST) {
-        const castSuper = player.magic >= MAX_MAGIC;
+        const castSuper = hasLevel(player, 5) && player.magic >= (player.maxMagic || BASE_MAX_MAGIC);
         player.attackFacing = attackFacing;
         player.facing = attackFacing;
         player.specialCooldown = castSuper ? 360 : 210;
@@ -2223,7 +2542,7 @@
       if (characterId === 'billy-boxby') {
         const coneLength = heavy ? 420 : 336;
         const coneSpread = heavy ? 0.66 : 0.57;
-        const baseDmg = (heavy ? tuning.heavy : tuning.light) * player.power * getDamageMultiplier(player);
+        const baseDmg = (heavy ? tuning.heavy : tuning.light) * player.power * (heavy ? getHeavyDamageMultiplier(player) : getBasicDamageMultiplier(player));
         const coneOriginX = player.x + player.facing * 16;
         const coneOriginY = player.y - 44;
         let hitCount = 0;
@@ -2271,7 +2590,7 @@
           length: Math.max(canvas.width + 260, 1280),
           timer: beamDuration,
           maxTimer: beamDuration,
-          damage: (heavy ? tuning.heavy : tuning.light) * player.power * getDamageMultiplier(player) * 0.4,
+          damage: (heavy ? tuning.heavy : tuning.light) * player.power * (heavy ? getHeavyDamageMultiplier(player) : getBasicDamageMultiplier(player)) * 0.4,
           stun: heavy ? 12 : 8,
           owner: player
         });
@@ -2286,7 +2605,7 @@
 
       const isFinisher = !heavy && !isAir && hasLevel(player, 6) && player.comboHits >= 3;
       const base = heavy ? tuning.heavy : tuning.light;
-      const dmg = base * player.power * getDamageMultiplier(player) * (isFinisher ? 1.4 : 1);
+      const dmg = base * player.power * (heavy ? getHeavyDamageMultiplier(player) : getBasicDamageMultiplier(player)) * (isFinisher ? 1.4 : 1);
       const range = tuning.range + (heavy ? 14 : 0);
       const knockback = heavy ? (hasLevel(player, 4) ? 36 : 24) : (isFinisher ? 28 : 16);
       const stun = heavy ? 26 : (isFinisher ? 32 : 14);
@@ -2386,7 +2705,7 @@
 
     function castCharacterAbility(player, isSuper) {
       const id = player.charData.id;
-      const radiusBoost = hasLevel(player, 9) ? 1.35 : 1;
+      const radiusBoost = player.specialEffectMultiplier || 1;
       if (isSuper) {
         state.shake = 10;
         state.effects.push({ x: player.x, y: player.y - 80, radius: 220 * radiusBoost, timer: 36, damage: 30 * radiusBoost, knockback: 30, stun: 70, type: 'shock' });
@@ -3511,6 +3830,12 @@
       const dt = Math.min(MAX_FRAME_DELTA_MS, Math.max(0, rawDt));
       state.lastTime = timestamp;
 
+      if (state.paused) {
+        draw();
+        requestAnimationFrame(gameLoop);
+        return;
+      }
+
       state.frameAccumulator += dt;
       let steps = 0;
       while (state.frameAccumulator >= FIXED_TIMESTEP_MS && steps < MAX_CATCH_UP_STEPS) {
@@ -3778,6 +4103,10 @@
         state.player.level = 1;
         state.player.xp = 0;
         state.player.magic = 0;
+        state.paused = false;
+        state.pendingLevelUps = [];
+        state.currentLevelUp = null;
+        document.getElementById('levelUpOverlay').classList.remove('show');
         localStorage.removeItem(SAVE_SLOT_KEY);
         updateHpBar();
         updateProgressHud(state.player);

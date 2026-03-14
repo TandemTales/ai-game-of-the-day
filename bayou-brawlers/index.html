@@ -1028,6 +1028,7 @@
     };
 
     const INITIAL_WAVE_ENEMY_MULTIPLIER = 0.75;
+    const ENEMY_DAMAGE_MULTIPLIER = 0.75;
     const ENEMY_COUNT_MULTIPLIER = 2;
     const ENEMY_SPEED_MULTIPLIER = 0.82;
     const REGULAR_WAVE_COUNT = 8;
@@ -1296,7 +1297,7 @@
     function getStagedStats(typeId, stage) {
       const base = enemyTypes[typeId];
       if (!base) return { hp: 10, speed: 1, damage: 1, range: 20, score: 10 };
-      return { hp: base.hp, speed: base.speed, damage: base.damage, range: base.range, score: base.score };
+      return { hp: base.hp, speed: base.speed, damage: base.damage * ENEMY_DAMAGE_MULTIPLIER, range: base.range, score: base.score };
     }
 
     function getEnemyRenderScale(typeId, stage, isBoss) {

@@ -564,6 +564,7 @@
           <span aria-hidden="true">&#x27F5;</span> Home
         </a>
         <a class="btn" href="../leaderboard.html?gameId=bayou-brawlers">Leaderboard</a>
+        <button class="btn" id="muteBtn" type="button" aria-pressed="false">Mute</button>
       </div>
     </header>
 
@@ -706,6 +707,24 @@
     let bossPopupTimeout = null;
     let notificationId = 0;
 
+    const SOUNDTRACK_VOLUME = 0.45;
+    const soundtrackFiles = [
+      'assets/BB_soundtrack001.mp3',
+      'assets/BB_soundtrack002.mp3'
+    ];
+    const soundtrackState = {
+      muted: false,
+      queue: [],
+      audio: new Audio(),
+      button: null
+    };
+    soundtrackState.audio.volume = SOUNDTRACK_VOLUME;
+    soundtrackState.audio.preload = 'auto';
+    soundtrackState.audio.addEventListener('ended', () => {
+      playNextSoundtrackTrack();
+    });
+
+
     const input = {
       left: false,
       right: false,
@@ -728,6 +747,53 @@
       boss: null,
       pickup: null
     };
+
+
+    function reshuffleSoundtrackQueue() {
+      soundtrackState.queue = [...soundtrackFiles];
+      for (let i = soundtrackState.queue.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [soundtrackState.queue[i], soundtrackState.queue[j]] = [soundtrackState.queue[j], soundtrackState.queue[i]];
+      }
+    }
+
+    function updateMuteButton() {
+      if (!soundtrackState.button) return;
+      soundtrackState.button.textContent = soundtrackState.muted ? 'Unmute' : 'Mute';
+      soundtrackState.button.setAttribute('aria-label', soundtrackState.muted ? 'Unmute soundtrack' : 'Mute soundtrack');
+      soundtrackState.button.setAttribute('aria-pressed', soundtrackState.muted ? 'true' : 'false');
+      soundtrackState.button.title = soundtrackState.muted ? 'Unmute soundtrack' : 'Mute soundtrack';
+    }
+
+    function playNextSoundtrackTrack() {
+      if (!soundtrackFiles.length) return;
+      if (!soundtrackState.queue.length) {
+        reshuffleSoundtrackQueue();
+      }
+      const nextTrack = soundtrackState.queue.shift();
+      soundtrackState.audio.src = nextTrack;
+      soundtrackState.audio.currentTime = 0;
+      soundtrackState.audio.muted = soundtrackState.muted;
+      soundtrackState.audio.play().catch(() => {
+        // Audio playback can be blocked by browser autoplay policy.
+      });
+    }
+
+    function restartSoundtrackForLevel() {
+      soundtrackState.audio.pause();
+      playNextSoundtrackTrack();
+    }
+
+    function setupSoundtrackControls() {
+      soundtrackState.button = document.getElementById('muteBtn');
+      if (!soundtrackState.button) return;
+      soundtrackState.button.addEventListener('click', () => {
+        soundtrackState.muted = !soundtrackState.muted;
+        soundtrackState.audio.muted = soundtrackState.muted;
+        updateMuteButton();
+      });
+      updateMuteButton();
+    }
 
     const characters = [
       {
@@ -3426,6 +3492,7 @@
       }
       updateCamera();
       updateWaveHud();
+      restartSoundtrackForLevel();
     }
 
     function skipToNextStage() {
@@ -3461,6 +3528,7 @@
       state.running = false;
       state.gameOver = true;
       state.victory = victory;
+      soundtrackState.audio.pause();
       const title = victory ? 'Legend of the Bayou!' : 'Brawler Down';
       const body = victory
         ? `You cleared all 14 stages with a final score of ${state.score}. The bayou remembers your name.`
@@ -4612,6 +4680,7 @@
       setupControls();
       initCharacterSelection();
       handleMessageButton();
+      setupSoundtrackControls();
       state.ready = true;
     }
 

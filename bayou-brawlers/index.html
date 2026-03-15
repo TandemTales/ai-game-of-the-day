@@ -1030,6 +1030,7 @@
     const INITIAL_WAVE_ENEMY_MULTIPLIER = 0.75;
     const ENEMY_COUNT_MULTIPLIER = 2;
     const ENEMY_SPEED_MULTIPLIER = 0.82;
+    const ENEMY_DAMAGE_MULTIPLIER = 0.5;
     const REGULAR_WAVE_COUNT = 8;
     const TOTAL_WAVE_COUNT = 9;
     const WAVE_TRIGGER_PCTS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
@@ -1886,7 +1887,7 @@
         hp: stats.hp * (isBoss ? 1.15 : 1),
         maxHp: stats.hp * (isBoss ? 1.15 : 1),
         speed: stats.speed * ENEMY_SPEED_MULTIPLIER,
-        damage: stats.damage,
+        damage: stats.damage * ENEMY_DAMAGE_MULTIPLIER,
         range: stats.range,
         score: stats.score,
         sprite: base.sprite === 'boss' ? assets.boss : assets.enemies[base.sprite],

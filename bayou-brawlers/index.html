@@ -1072,6 +1072,7 @@
     const STING_ATTACH_FRAMES = 150;
     const ROOT_SNARE_FRAMES = 90;
     const ENEMY_DEATH_HOLD_FRAMES = 240;
+    const ENEMY_DAMAGE_MULTIPLIER = 0.75;
     const MAX_LEVEL = Number.POSITIVE_INFINITY;
     const BASE_MAX_MAGIC = 100;
     const SPECIAL_COST = BASE_MAX_MAGIC / 3;
@@ -2461,7 +2462,7 @@
       const player = state.player;
       if (!player || player.hp <= 0) return;
       if (state.cheats.invincible) return;
-      let finalAmount = amount;
+      let finalAmount = amount * ENEMY_DAMAGE_MULTIPLIER;
       if (sourceEnemy?.statuses?.WEAKEN) finalAmount *= (1 - sourceEnemy.statuses.WEAKEN.magnitude);
       if (player.block || player.shieldTimer > 0) {
         finalAmount *= 0.45;

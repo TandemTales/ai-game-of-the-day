@@ -2503,6 +2503,14 @@
     const TENTACLE_WAVE_THICKNESS = 36;
     const TENTACLE_WAVE_SPEED = 170;
     const TENTACLE_WAVE_REST = 1.6;
+    const MUD_TRAIL_MAX = 180;
+    const MUD_TRAIL_SPAWN_PERIOD = 0.2;
+    const MUD_TRAIL_MIN_DISTANCE = 16;
+    const MUD_TRAIL_RADIUS = 26;
+    const MUD_TRAIL_LIFETIME = 9;
+    const MUD_TRAIL_SLOW_MUL = 0.3;
+    const MUD_TRAIL_SLOW_DUR = 1.2;
+    const MUD_TRAIL_SLOW_REFRESH = 0.22;
     // Fixed enemy speed: 45% of baseline (55% slower), no scaling
     const ENEMY_SPEED = Math.round(ENEMY.spd * 0.45);
     const GOAT = { w: 32, h: 32, frames: 4, animRate: 0.2 };
@@ -2523,6 +2531,7 @@
       repathHysteresis: 90,
     };
     let DENSITY = 1;
+    let MUD_HAZARDS = [];
     const DROP = { w: 18, h: 18 };
     onViewportDimensionsChanged = () => {
       DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / VIEW_W, ARENA.h / VIEW_H) * 1.5));
@@ -3280,7 +3289,7 @@
       currentMap = MAPS[stage];
       ARENA.x = 0; ARENA.y = 0; ARENA.w = currentMap.width; ARENA.h = currentMap.height;
       DENSITY = Math.max(1, Math.round(Math.max(ARENA.w / VIEW_W, ARENA.h / VIEW_H) * 1.5));
-      enemies = []; drops = []; chests = []; terrainObjects = []; terrainColliders = []; PARTICLES.length = 0; BOSS_PROJECTILES = [];
+      enemies = []; drops = []; chests = []; terrainObjects = []; terrainColliders = []; PARTICLES.length = 0; BOSS_PROJECTILES = []; MUD_HAZARDS = [];
       FIREBALL_BLASTS.length = 0;
       // Ensure hero visuals and aim face down on stage start
       WIZ_ANIM_STATE.dir = 'down'; WIZ_ANIM_STATE.frame = 0; WIZ_ANIM_STATE.t = 0;
@@ -3336,7 +3345,7 @@
       for (const k in TAKEN_UPGRADES) delete TAKEN_UPGRADES[k];
       // Seed max-level tracking: count starting orbs toward Arcane Orbs levels
       if ((UPGR.orbs||0) > 0) { UPGRADE_LEVELS.orbs = Math.min(ORB_MAX_COUNT, UPGR.orbs|0); }
-      PROJECTILES = []; BOSS_PROJECTILES = []; ORBS = [];
+      PROJECTILES = []; BOSS_PROJECTILES = []; ORBS = []; MUD_HAZARDS = [];
       FIREBALL_BLASTS.length = 0;
       POLY_WAVES.length = 0;
       SLEEP_WAVES.length = 0;
@@ -3766,6 +3775,25 @@
       if (duration <= 0) return;
       P.slowMul = Math.min(P.slowMul || 1, mult);
       P.slowT = Math.max(P.slowT || 0, duration);
+    }
+    function dropMudTrail(x, y, radius = MUD_TRAIL_RADIUS){
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+      const clampedRadius = Math.max(12, radius);
+      const edgePad = clampedRadius + AI.wallPad;
+      const hx = clamp(x, ARENA.x + edgePad, ARENA.x + ARENA.w - edgePad);
+      const hy = clamp(y, ARENA.y + edgePad, ARENA.y + ARENA.h - edgePad);
+      MUD_HAZARDS.push({
+        x: hx,
+        y: hy,
+        r: clampedRadius,
+        life: 0,
+        ttl: MUD_TRAIL_LIFETIME,
+        slowMul: MUD_TRAIL_SLOW_MUL,
+        slowDur: MUD_TRAIL_SLOW_DUR,
+      });
+      if (MUD_HAZARDS.length > MUD_TRAIL_MAX){
+        MUD_HAZARDS.splice(0, MUD_HAZARDS.length - MUD_TRAIL_MAX);
+      }
     }
     const now = ()=>performance.now();
     let last = now();
@@ -4961,6 +4989,7 @@
         let speed = Math.round((e.spd || ENEMY.spd) * 0.45);
         const enemySpdMult = (DIFF && DIFF.enemySpeedMult) ? DIFF.enemySpeedMult : 1;
         if (enemySpdMult !== 1) speed = Math.round(speed * enemySpdMult);
+        if (e.kind === 'boss' && e.bossType === 'muck') speed = Math.round(speed * 2);
         if (isGoat) speed = 0;
         if (e.slowT && e.slowT > 0) { speed = Math.max(10, Math.round(speed * (e.slowMul || 0.5))); }
 
@@ -5088,6 +5117,26 @@
               }
             }
           }
+          if (e.kind === 'boss' && e.bossType === 'muck'){
+            const orbitDir = e.muckOrbitDir || (Math.random() < 0.5 ? -1 : 1);
+            e.muckOrbitDir = orbitDir;
+            const desiredRadius = Math.max(120, ((e.w || 0) + (P.w || 0)) * 0.7);
+            const radialDiff = dist - desiredRadius;
+            const radialWeight = clamp(radialDiff / desiredRadius, -0.9, 0.9);
+            const tangentX = -bdy * orbitDir;
+            const tangentY = bdx * orbitDir;
+            const swapTimer = (e.muckSwapT || 0) - dt;
+            if (swapTimer <= 0){
+              e.muckSwapT = rand(2.4, 4.8);
+              if (Math.random() < 0.35) e.muckOrbitDir *= -1;
+            } else {
+              e.muckSwapT = swapTimer;
+            }
+            const radialWeightAbs = Math.abs(radialWeight);
+            const orbitWeight = 1.15 - Math.min(0.65, radialWeightAbs * 0.75);
+            chaseDx = tangentX * orbitWeight + bdx * (1 - orbitWeight) + bdx * radialWeight * 0.95;
+            chaseDy = tangentY * orbitWeight + bdy * (1 - orbitWeight) + bdy * radialWeight * 0.95;
+          }
           // Blend chase with separation, then normalize to maintain speed
           let cdx = chaseDx + rx * AI.sepWeight, cdy = chaseDy + ry * AI.sepWeight;
           const nd = Math.hypot(cdx, cdy) || 1; cdx /= nd; cdy /= nd;
@@ -5113,6 +5162,19 @@
         if (!isFlying){
           const eTerrainHit = resolveTerrainCollision(e);
           applyTerrainCollisionResponse(e, eTerrainHit);
+        }
+
+        if (e.kind === 'boss' && e.bossType === 'muck' && !sleeping && e.freezeT <= 0){
+          e.mudTrailT = (e.mudTrailT || 0) + dt;
+          if (e.mudTrailT >= MUD_TRAIL_SPAWN_PERIOD){
+            e.mudTrailT -= MUD_TRAIL_SPAWN_PERIOD;
+            const last = e.mudTrailLast;
+            const shouldSpawn = !last || len(e.x - last.x, e.y - last.y) >= MUD_TRAIL_MIN_DISTANCE;
+            if (shouldSpawn){
+              dropMudTrail(e.x, e.y, MUD_TRAIL_RADIUS * Math.max(0.7, Math.min(1.25, e.projectileScale || 1)));
+              e.mudTrailLast = { x: e.x, y: e.y };
+            }
+          }
         }
 
         if (e.kind === 'boss'){
@@ -5868,6 +5930,25 @@
         }
       }
 
+      for (let i=MUD_HAZARDS.length-1; i>=0; i--){
+        const hazard = MUD_HAZARDS[i];
+        hazard.life += dt;
+        if (hazard.life >= hazard.ttl){
+          MUD_HAZARDS.splice(i, 1);
+          continue;
+        }
+        const combined = hazard.r + Math.min(P.w, P.h) * 0.38;
+        if (len(P.x - hazard.x, P.y - hazard.y) <= combined){
+          hazard.touchT = (hazard.touchT || 0) + dt;
+          if (hazard.touchT >= MUD_TRAIL_SLOW_REFRESH){
+            hazard.touchT = 0;
+            applyHeroSlow(hazard.slowMul || MUD_TRAIL_SLOW_MUL, hazard.slowDur || MUD_TRAIL_SLOW_DUR);
+          }
+        } else {
+          hazard.touchT = 0;
+        }
+      }
+
       // Wave & spawns (scale with larger world)
       if (!boss && !awaitingStage) {
         SPAWN.t += dt;
@@ -6407,6 +6488,21 @@
           } else {
             ctx.drawImage(IMG.spark, pr.x-6, pr.y-6, 12, 12);
           }
+        }
+      }
+      if (MUD_HAZARDS.length){
+        for (const hazard of MUD_HAZARDS){
+          const lifePct = 1 - ((hazard.life || 0) / (hazard.ttl || 1));
+          const alpha = Math.max(0.08, Math.min(0.3, lifePct * 0.28));
+          ctx.fillStyle = `rgba(101, 67, 33, ${alpha})`;
+          ctx.beginPath();
+          ctx.arc(hazard.x, hazard.y, hazard.r, 0, Math.PI*2);
+          ctx.fill();
+          ctx.strokeStyle = `rgba(145, 97, 51, ${Math.max(0.12, alpha + 0.06)})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(hazard.x, hazard.y, hazard.r * 0.92, 0, Math.PI*2);
+          ctx.stroke();
         }
       }
       if (BOSS_PROJECTILES.length){

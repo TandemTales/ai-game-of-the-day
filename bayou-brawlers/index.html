@@ -1949,6 +1949,7 @@
         bossEncounterId: options.bossEncounterId || null,
         hurtTimer: 0,
         deathHoldFrames: 0,
+        mudTrailDropCooldown: options.mudTrailDropCooldown || rand(8, 14),
         statuses: {}
       };
       return enemy;
@@ -1981,6 +1982,40 @@
         && a.x + a.width > b.x
         && a.y < b.y + b.height
         && a.y + a.height > b.y;
+    }
+
+    function hasUpgrade(player, upgradeId) {
+      return !!(player && player.selectedUpgrades && player.selectedUpgrades.has(upgradeId));
+    }
+
+    function getEnvironmentalHazardSlowMultiplier(player) {
+      if (!player) return 1;
+      if (hasUpgrade(player, 'master-of-the-bayou-path')) return 0;
+
+      let multiplier = 1;
+      if (hasUpgrade(player, 'permafrost-boots')) multiplier *= 0.6;
+      if (hasUpgrade(player, 'float-step')) multiplier *= 0.6;
+      if (hasUpgrade(player, 'thornproof-gloves')) multiplier *= 0.7;
+      if (player.tempestTimer > 0 && hasUpgrade(player, 'relentless-advance')) multiplier *= 0.6;
+
+      return clamp(multiplier, 0, 1);
+    }
+
+    function spawnMudTrailPatch(x, y) {
+      const width = rand(42, 62);
+      const height = rand(28, 40);
+      const nearExistingPatch = state.hazards.some(h => h.kind === 'mud-trail'
+        && Math.abs(h.x - x) < ((h.w + width) * 0.3)
+        && Math.abs(h.y - y) < ((h.h + height) * 0.3));
+      if (nearExistingPatch) return;
+      state.hazards.push({
+        kind: 'mud-trail',
+        x,
+        y,
+        w: width,
+        h: height,
+        frames: Number.POSITIVE_INFINITY
+      });
     }
 
     function getEnemyAimTargetY(enemy, player) {
@@ -3241,16 +3276,32 @@
         const verticalBounds = getEnemyVerticalBounds(enemy);
         enemy.y = clamp(enemy.y, verticalBounds.minY, verticalBounds.maxY);
         applyMovementMaskClamp(enemy, prevX, prevY);
+
+        if (enemy.isBoss && enemy.type === 'mud-monster' && enemy.stage === 1 && enemy.hp > 0) {
+          enemy.mudTrailDropCooldown -= 1;
+          if (enemy.isMoving && enemy.mudTrailDropCooldown <= 0) {
+            spawnMudTrailPatch(enemy.x, enemy.y - 2);
+            enemy.mudTrailDropCooldown = rand(8, 14);
+          }
+        }
+
         updateEnemyAnimation(enemy, dt);
       });
 
       state.hazards.forEach(h => {
-        h.frames -= 1;
         const player = state.player;
         if (!player) return;
         const overlap = Math.abs(player.x - h.x) < h.w * 0.5 && Math.abs(player.y - h.y) < h.h * 0.5;
-        if (overlap && h.kind === 'root-snare') {
+        if (!overlap) return;
+
+        if (h.kind === 'root-snare') {
           player.vx *= 0.7;
+        } else if (h.kind === 'mud-trail') {
+          const slowdown = 0.28 * getEnvironmentalHazardSlowMultiplier(player);
+          if (slowdown > 0) {
+            const velocityScale = clamp(1 - slowdown, 0.2, 1);
+            player.vx *= velocityScale;
+          }
         }
       });
       state.hazards = state.hazards.filter(h => h.frames > 0);
@@ -3501,6 +3552,7 @@
       state.projectiles = [];
       state.pickups = [];
       state.effects = [];
+      state.hazards = [];
       state.lockX = null;
       state.waveIndex = 0;
       state.nextWaveToSpawn = 0;
@@ -3734,6 +3786,16 @@
       }
 
       drawBackground();
+
+      state.hazards.forEach(hazard => {
+        if (hazard.kind !== 'mud-trail') return;
+        const x = hazard.x - state.cameraX;
+        const y = hazard.y - state.cameraY;
+        ctx.fillStyle = 'rgba(109, 74, 51, 0.34)';
+        ctx.beginPath();
+        ctx.ellipse(x, y, hazard.w * 0.5, hazard.h * 0.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+      });
 
       state.pickups.forEach(pickup => {
         const x = pickup.x - state.cameraX;

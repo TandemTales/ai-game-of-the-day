@@ -1286,6 +1286,12 @@
       }
     };
 
+    const ENEMY_SIZE_BOOST_BY_TYPE = {
+      hiredGun: 3,
+      sidewinder: 3,
+      stingy: 3
+    };
+
     function toAssetCamelCase(value) {
       if (!value) return '';
       return String(value)
@@ -1316,12 +1322,15 @@
       const playerSize = PLAYER_DRAW_SIZE * DEFAULT_PLAYER_RENDER_SCALE;
       const enemyBaseSize = isBoss ? BOSS_DRAW_SIZE : ENEMY_DRAW_SIZE;
       const asPlayerSizeRatio = (ratio) => (playerSize * ratio) / enemyBaseSize;
+      const boostedSize = ENEMY_SIZE_BOOST_BY_TYPE[typeId];
 
       if (typeId === 'choking-blossom') return asPlayerSizeRatio(1);
       if (typeId === 'swamp') return asPlayerSizeRatio(0.5);
       if (typeId === 'daphodilus') return asPlayerSizeRatio(1);
 
       if (typeId === 'mud-monster') return isBoss ? asPlayerSizeRatio(2.1) : asPlayerSizeRatio(1.6);
+
+      if (boostedSize) return boostedSize;
 
       return isBoss ? BOSS_RENDER_SCALE_MULTIPLIER : 1;
     }
@@ -4597,7 +4606,7 @@
         },
         hiredGun: {
           profileId: 'enemy-hiredGun',
-          sizeMultiplier: 1,
+          sizeMultiplier: ENEMY_SIZE_BOOST_BY_TYPE.hiredGun || 1,
           states: {
             idle: { left: ['assets/animation_hiredGun_red_controlSquare_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_hiredGun_red_walking_left.png', 8], fps: 10, loop: true },
@@ -4608,7 +4617,7 @@
         },
         stingy: {
           profileId: 'enemy-stingy',
-          sizeMultiplier: 1,
+          sizeMultiplier: ENEMY_SIZE_BOOST_BY_TYPE.stingy || 1,
           states: {
             idle: { left: ['assets/animation_stingy_red_controlSquare_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_stingy_red_walking_left.png', 8], fps: 10, loop: true },
@@ -4619,7 +4628,7 @@
         },
         sidewinder: {
           profileId: 'enemy-sidewinder',
-          sizeMultiplier: 1,
+          sizeMultiplier: ENEMY_SIZE_BOOST_BY_TYPE.sidewinder || 1,
           states: {
             idle: { left: ['assets/animation_sidewinder_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_sidewinder_red_walking_left.png', 8], fps: 10, loop: true },

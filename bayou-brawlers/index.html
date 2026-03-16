@@ -24,7 +24,10 @@
       --emerald: #2dd4bf;
     }
     * { box-sizing: border-box; }
-    html, body { height: 100%; }
+    html, body {
+      height: 100%;
+      min-height: 100dvh;
+    }
     body {
       margin: 0;
       background:
@@ -38,21 +41,22 @@
     }
     .wrap {
       position: relative;
-      height: 100%;
+      height: 100dvh;
+      min-height: 100svh;
       width: 100%;
       min-height: 100vh;
       overflow: hidden;
     }
     header {
       position: absolute;
-      top: calc(12px + env(safe-area-inset-top));
+      top: calc(8px + env(safe-area-inset-top));
       left: calc(12px + env(safe-area-inset-left));
       right: calc(12px + env(safe-area-inset-right));
       z-index: 5;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
     .title {
       display: flex;
@@ -98,15 +102,15 @@
     .back-home { padding: 6px 10px; }
     .hud {
       position: absolute;
-      top: calc(132px + env(safe-area-inset-top));
+      top: calc(106px + env(safe-area-inset-top));
       left: 50%;
       transform: translateX(-50%);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       flex-wrap: wrap;
       z-index: 5;
-      padding: 6px 10px;
+      padding: 5px 8px;
       background: rgba(0,0,0,0.5);
       border-radius: 12px;
       border: 1px solid rgba(255,215,0,0.25);
@@ -140,7 +144,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: calc(160px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom)) 20px;
+      padding: calc(136px + env(safe-area-inset-top)) 16px calc(148px + env(safe-area-inset-bottom)) 16px;
     }
     canvas {
       border-radius: 14px;
@@ -162,7 +166,7 @@
       width: calc(100vw - 40px);
     }
     .panel.start-panel {
-      max-height: min(88vh, 880px);
+      max-height: min(84dvh, 820px);
       overflow: auto;
       overscroll-behavior: contain;
       padding-bottom: calc(18px + env(safe-area-inset-bottom));
@@ -378,15 +382,15 @@
     .levelup-tag { display: inline-block; margin-bottom: 6px; font-size: 9px; letter-spacing: 0.08em; color: #f3d28a; text-transform: uppercase; }
     .controls {
       position: absolute;
-      bottom: calc(8px + env(safe-area-inset-bottom));
+      bottom: calc(18px + env(safe-area-inset-bottom));
       left: calc(16px + env(safe-area-inset-left));
       right: calc(16px + env(safe-area-inset-right));
       display: flex;
       justify-content: space-between;
-      align-items: flex-end;
+      align-items: center;
       pointer-events: none;
       z-index: 6;
-      gap: 12px;
+      gap: 10px;
     }
     .dpad, .action-pad { pointer-events: auto; }
     .dpad {
@@ -397,8 +401,8 @@
     }
     .direction-pad {
       position: relative;
-      width: 132px;
-      height: 132px;
+      width: clamp(94px, 16vw, 124px);
+      height: clamp(94px, 16vw, 124px);
       border-radius: 50%;
       border: 2px solid rgba(255,215,0,0.55);
       background:
@@ -433,8 +437,8 @@
       position: absolute;
       left: 50%;
       top: 50%;
-      width: 52px;
-      height: 52px;
+      width: clamp(38px, 7vw, 50px);
+      height: clamp(38px, 7vw, 50px);
       border-radius: 50%;
       border: 2px solid rgba(255,215,0,0.8);
       background: linear-gradient(145deg, rgba(95,158,160,0.9), rgba(70,130,180,0.72));
@@ -452,8 +456,8 @@
       letter-spacing: 0.6px;
     }
     .pad-btn {
-      width: 44px;
-      height: 44px;
+      width: clamp(34px, 6.4vw, 42px);
+      height: clamp(34px, 6.4vw, 42px);
       border-radius: 12px;
       border: 2px solid rgba(255,215,0,0.6);
       background: rgba(0,0,0,0.5);
@@ -466,8 +470,8 @@
       touch-action: none;
     }
     .pad-btn.primary {
-      width: 56px;
-      height: 56px;
+      width: clamp(44px, 7.2vw, 54px);
+      height: clamp(44px, 7.2vw, 54px);
       border-radius: 16px;
       background: linear-gradient(45deg, var(--teal), #4682B4);
     }
@@ -501,12 +505,12 @@
       display: flex;
       flex-wrap: nowrap;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
     .action-pad .pad-btn {
-      width: 56px;
-      height: 56px;
-      font-size: 10px;
+      width: clamp(44px, 7.2vw, 54px);
+      height: clamp(44px, 7.2vw, 54px);
+      font-size: clamp(8px, 1.5vw, 10px);
     }
     .instructions {
       font-size: 9px;
@@ -519,18 +523,18 @@
     @media (max-width: 720px) {
       header { gap: 8px; }
       .title h1 { font-size: 14px; }
-      .hud { top: calc(122px + env(safe-area-inset-top)); font-size: 9px; }
-      .stage { padding: calc(150px + env(safe-area-inset-top)) 12px calc(20px + env(safe-area-inset-bottom)) 12px; }
+      .hud { top: calc(102px + env(safe-area-inset-top)); font-size: 9px; }
+      .stage { padding: calc(130px + env(safe-area-inset-top)) 12px calc(138px + env(safe-area-inset-bottom)) 12px; }
     }
 
     @media (max-width: 600px) {
       .panel { width: calc(100vw - 24px); padding: 14px; }
-      .controls { flex-direction: row; align-items: center; gap: 10px; }
-      .direction-pad { width: 118px; height: 118px; }
-      .direction-pad-knob { width: 48px; height: 48px; }
+      .controls { flex-direction: row; align-items: center; gap: 8px; bottom: calc(24px + env(safe-area-inset-bottom)); }
+      .direction-pad { width: 104px; height: 104px; }
+      .direction-pad-knob { width: 40px; height: 40px; }
       .pad-btn { width: 38px; height: 38px; font-size: 10px; }
-      .action-pad { gap: 6px; }
-      .action-pad .pad-btn { width: 48px; height: 48px; font-size: 9px; }
+      .action-pad { gap: 5px; }
+      .action-pad .pad-btn { width: 44px; height: 44px; font-size: 8px; }
       .character-grid { grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 8px; }
       .levelup-choices { grid-template-columns: 1fr; }
       .card { min-height: 116px; }
@@ -540,10 +544,15 @@
     @media (max-width: 420px) {
       .title h1 { font-size: 11px; }
       .btn { padding: 7px 9px; font-size: 9px; }
-      .hud { top: calc(116px + env(safe-area-inset-top)); padding: 4px 8px; gap: 6px; }
+      .hud { top: calc(92px + env(safe-area-inset-top)); padding: 4px 7px; gap: 5px; }
       .chip { font-size: 8px; padding: 3px 6px; }
       .hp-bar { width: 92px; }
-      .stage { padding-top: calc(138px + env(safe-area-inset-top)); }
+      .stage { padding-top: calc(120px + env(safe-area-inset-top)); }
+      .controls {
+        left: calc(10px + env(safe-area-inset-left));
+        right: calc(10px + env(safe-area-inset-right));
+        bottom: calc(26px + env(safe-area-inset-bottom));
+      }
       .panel h2 { font-size: 13px; }
       .panel p { font-size: 9px; }
     }

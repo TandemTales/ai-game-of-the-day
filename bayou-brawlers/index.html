@@ -1949,7 +1949,7 @@
         bossEncounterId: options.bossEncounterId || null,
         hurtTimer: 0,
         deathHoldFrames: 0,
-        mudTrailDropCooldown: options.mudTrailDropCooldown || rand(8, 14),
+        mudTrailDropCooldown: options.mudTrailDropCooldown || rand(4, 7),
         statuses: {}
       };
       return enemy;
@@ -2001,12 +2001,23 @@
       return clamp(multiplier, 0, 1);
     }
 
+    function getMudTrailMovementScale(player, targetX, targetY) {
+      const slowMultiplier = getEnvironmentalHazardSlowMultiplier(player);
+      if (slowMultiplier <= 0) return 1;
+      const touchingMudTrail = state.hazards.some(h => h.kind === 'mud-trail'
+        && Math.abs(targetX - h.x) < h.w * 0.5
+        && Math.abs(targetY - h.y) < h.h * 0.5);
+      if (!touchingMudTrail) return 1;
+      const slowdown = 0.28 * slowMultiplier;
+      return clamp(1 - slowdown, 0.2, 1);
+    }
+
     function spawnMudTrailPatch(x, y) {
       const width = rand(42, 62);
       const height = rand(28, 40);
       const nearExistingPatch = state.hazards.some(h => h.kind === 'mud-trail'
-        && Math.abs(h.x - x) < ((h.w + width) * 0.3)
-        && Math.abs(h.y - y) < ((h.h + height) * 0.3));
+        && Math.abs(h.x - x) < ((h.w + width) * 0.2)
+        && Math.abs(h.y - y) < ((h.h + height) * 0.2));
       if (nearExistingPatch) return;
       state.hazards.push({
         kind: 'mud-trail',
@@ -2957,6 +2968,15 @@
       if (input.right) player.vx += player.speed;
       if (input.up) moveY -= player.speed * 0.6;
       if (input.down) moveY += player.speed * 0.6;
+
+      const intendedX = player.x + player.vx;
+      const intendedY = player.y + moveY;
+      const mudTrailMovementScale = getMudTrailMovementScale(player, intendedX, intendedY);
+      if (mudTrailMovementScale < 1) {
+        player.vx *= mudTrailMovementScale;
+        moveY *= mudTrailMovementScale;
+      }
+
       player.y += moveY;
       if (player.vx !== 0) {
         player.facing = player.vx > 0 ? 1 : -1;
@@ -3277,11 +3297,11 @@
         enemy.y = clamp(enemy.y, verticalBounds.minY, verticalBounds.maxY);
         applyMovementMaskClamp(enemy, prevX, prevY);
 
-        if (enemy.isBoss && enemy.type === 'mud-monster' && enemy.stage === 1 && enemy.hp > 0) {
+        if (enemy.isBoss && enemy.type === 'mud-monster' && state.levelIndex === 0 && enemy.hp > 0) {
           enemy.mudTrailDropCooldown -= 1;
           if (enemy.isMoving && enemy.mudTrailDropCooldown <= 0) {
             spawnMudTrailPatch(enemy.x, enemy.y - 2);
-            enemy.mudTrailDropCooldown = rand(8, 14);
+            enemy.mudTrailDropCooldown = rand(4, 7);
           }
         }
 
@@ -3296,12 +3316,6 @@
 
         if (h.kind === 'root-snare') {
           player.vx *= 0.7;
-        } else if (h.kind === 'mud-trail') {
-          const slowdown = 0.28 * getEnvironmentalHazardSlowMultiplier(player);
-          if (slowdown > 0) {
-            const velocityScale = clamp(1 - slowdown, 0.2, 1);
-            player.vx *= velocityScale;
-          }
         }
       });
       state.hazards = state.hazards.filter(h => h.frames > 0);

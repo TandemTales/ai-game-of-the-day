@@ -1083,6 +1083,9 @@
     const CHOKING_HOLD_FRAMES = 60;
     const STING_ATTACH_FRAMES = 150;
     const ROOT_SNARE_FRAMES = 90;
+    const ENEMY_PERSONAL_SPACE = 34;
+    const ENEMY_PERSONAL_SPACE_BUFFER = 68;
+    const ENEMY_SEPARATION_PUSH = 0.95;
     const ENEMY_DEATH_HOLD_FRAMES = 240;
     const ENEMY_DAMAGE_MULTIPLIER = 0.75;
     const MAX_LEVEL = Number.POSITIVE_INFINITY;
@@ -1979,6 +1982,53 @@
 
     function getEnemyHitbox(enemy) {
       return getPhysicsBody(enemy);
+    }
+
+    function getEnemySpacingAdjustment(enemy) {
+      if (!enemy || enemy.hp <= 0 || enemy.attachTargetFrames > 0) {
+        return { moveScale: 1, pushX: 0, pushY: 0, crowding: 0 };
+      }
+
+      let pushX = 0;
+      let pushY = 0;
+      let crowding = 0;
+      let nearbyCount = 0;
+
+      state.enemies.forEach(other => {
+        if (!other || other === enemy || other.hp <= 0 || other.attachTargetFrames > 0) return;
+        const dx = enemy.x - other.x;
+        const dy = enemy.y - other.y;
+        const distance = Math.hypot(dx, dy) || 0.0001;
+        const desiredSpacing = ENEMY_PERSONAL_SPACE + (enemy.isBoss ? 14 : 0) + (other.isBoss ? 14 : 0);
+        const softSpacing = ENEMY_PERSONAL_SPACE_BUFFER + (enemy.isBoss || other.isBoss ? 22 : 0);
+        if (distance >= softSpacing) return;
+
+        const pressure = clamp((softSpacing - distance) / softSpacing, 0, 1);
+        crowding = Math.max(crowding, pressure);
+        nearbyCount += 1;
+
+        if (distance < desiredSpacing) {
+          const overlapPressure = clamp((desiredSpacing - distance) / desiredSpacing, 0, 1);
+          pushX += (dx / distance) * overlapPressure;
+          pushY += (dy / distance) * overlapPressure;
+        }
+
+        const sideStepPressure = pressure * 0.3;
+        const sideStepDirection = enemy.uid < other.uid ? -1 : 1;
+        pushY += sideStepDirection * sideStepPressure;
+      });
+
+      const localDensityPenalty = clamp(nearbyCount * 0.05, 0, 0.2);
+      const moveScale = crowding > 0.65
+        ? 0.76 - localDensityPenalty
+        : 1 + (crowding * 0.16);
+
+      return {
+        moveScale: clamp(moveScale, 0.58, 1.18),
+        pushX: pushX * ENEMY_SEPARATION_PUSH,
+        pushY: pushY * ENEMY_SEPARATION_PUSH,
+        crowding
+      };
     }
 
     function getPlayerHitbox(player) {
@@ -3105,6 +3155,8 @@
         const dx = player.x - enemy.x;
         const dy = getEnemyAimTargetY(enemy, player) - enemy.y;
         const distance = Math.hypot(dx, dy);
+        const spacing = getEnemySpacingAdjustment(enemy);
+        const moveSpeed = enemy.speed * spacing.moveScale;
         const playerBody = getPlayerHitbox(player);
         const enemyBody = getEnemyHitbox(enemy);
         enemy.isMoving = false;
@@ -3145,8 +3197,8 @@
             }
           } else {
             if (distance > 190) {
-              enemy.x += Math.sign(dx) * enemy.speed * 0.8;
-              enemy.y += Math.sign(dy) * enemy.speed * 0.4;
+              enemy.x += Math.sign(dx) * moveSpeed * 0.8;
+              enemy.y += Math.sign(dy) * moveSpeed * 0.4;
               enemy.isMoving = true;
             }
             const verticalGap = Math.abs(player.y - enemy.y);
@@ -3171,8 +3223,8 @@
           const desired = 75;
           const delta = distance - desired;
           if (Math.abs(delta) > 8) {
-            enemy.x += Math.sign(dx) * enemy.speed * 0.85 * speedBoost;
-            enemy.y += Math.sign(dy) * enemy.speed * 0.45 * speedBoost;
+            enemy.x += Math.sign(dx) * moveSpeed * 0.85 * speedBoost;
+            enemy.y += Math.sign(dy) * moveSpeed * 0.45 * speedBoost;
             enemy.isMoving = true;
           }
           const shoveCooldownFactor = hasUndergroundDaph ? 0.75 : 1;
@@ -3204,8 +3256,8 @@
             if (enemy.attachTargetFrames % 15 === 0) damagePlayer(Math.max(1, enemy.damage * 0.45), enemy);
           } else {
             if (distance > 26) {
-              enemy.x += Math.sign(dx) * enemy.speed * 1.1;
-              enemy.y += Math.sign(dy) * enemy.speed * 0.7;
+              enemy.x += Math.sign(dx) * moveSpeed * 1.1;
+              enemy.y += Math.sign(dy) * moveSpeed * 0.7;
               enemy.isMoving = true;
             } else if (enemy.cooldown <= 0) {
               enemy.windup = 10;
@@ -3223,8 +3275,8 @@
           enemy.dashCooldown = Math.max(0, enemy.dashCooldown - 1);
           if (enemy.dashFrames > 0) {
             enemy.dashFrames -= 1;
-            enemy.x += enemy.facing * enemy.speed * 2.7;
-            enemy.y += Math.sign(dy) * enemy.speed * 0.2;
+            enemy.x += enemy.facing * moveSpeed * 2.7;
+            enemy.y += Math.sign(dy) * moveSpeed * 0.2;
             enemy.isMoving = true;
             if (rectsOverlap({ x: enemyBody.x - 14, y: enemyBody.y - 2, width: enemyBody.width + 28, height: enemyBody.height + 4 }, playerBody)) {
               damagePlayer(enemy.damage, enemy);
@@ -3238,16 +3290,16 @@
             enemy.dashFrames = rand(16, 24);
             enemy.attackAnimTimer = Math.max(enemy.attackAnimTimer, 16);
           } else {
-            enemy.x += Math.sign(dx) * enemy.speed * 0.7;
-            enemy.y += Math.sign(dy) * enemy.speed * 0.35;
+            enemy.x += Math.sign(dx) * moveSpeed * 0.7;
+            enemy.y += Math.sign(dy) * moveSpeed * 0.35;
             enemy.isMoving = true;
           }
         } else if (enemy.type === 'sweetykins') {
           enemy.dashCooldown = Math.max(0, enemy.dashCooldown - 1);
           if (enemy.dashFrames > 0) {
             enemy.dashFrames -= 1;
-            enemy.x += enemy.facing * enemy.speed * 2.9;
-            enemy.y += Math.sign(dy) * enemy.speed * 0.25;
+            enemy.x += enemy.facing * moveSpeed * 2.9;
+            enemy.y += Math.sign(dy) * moveSpeed * 0.25;
             enemy.isMoving = true;
             if (rectsOverlap({ x: enemyBody.x - 18, y: enemyBody.y - 8, width: enemyBody.width + 36, height: enemyBody.height + 16 }, playerBody)) {
               damagePlayer(Math.round(enemy.damage * 1.2), enemy);
@@ -3264,23 +3316,31 @@
           } else {
             const closeDistance = 100;
             if (distance > closeDistance) {
-              enemy.x += Math.sign(dx) * enemy.speed * 0.9;
-              enemy.y += Math.sign(dy) * enemy.speed * 0.45;
+              enemy.x += Math.sign(dx) * moveSpeed * 0.9;
+              enemy.y += Math.sign(dy) * moveSpeed * 0.45;
               enemy.isMoving = true;
             }
           }
         } else {
           if (enemy.ranged && distance > enemy.range * 0.7) {
-            enemy.x += Math.sign(dx) * enemy.speed * 0.6;
-            enemy.y += Math.sign(dy) * enemy.speed * 0.4;
+            enemy.x += Math.sign(dx) * moveSpeed * 0.6;
+            enemy.y += Math.sign(dy) * moveSpeed * 0.4;
             enemy.isMoving = true;
           } else if (distance > enemy.range) {
-            enemy.x += Math.sign(dx) * enemy.speed;
-            enemy.y += Math.sign(dy) * enemy.speed * 0.6;
+            enemy.x += Math.sign(dx) * moveSpeed;
+            enemy.y += Math.sign(dy) * moveSpeed * 0.6;
             enemy.isMoving = true;
           } else if (enemy.windup <= 0 && enemy.cooldown <= 0) {
             enemy.windup = 18;
             enemy.attackAnimTimer = Math.max(enemy.attackAnimTimer, 18);
+          }
+        }
+
+        if (spacing.crowding > 0) {
+          enemy.x += spacing.pushX;
+          enemy.y += spacing.pushY;
+          if (Math.abs(spacing.pushX) > MOVE_EPSILON || Math.abs(spacing.pushY) > MOVE_EPSILON) {
+            enemy.isMoving = true;
           }
         }
 

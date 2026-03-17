@@ -1822,6 +1822,7 @@
         allDamageMultiplier: 1,
         stunResistanceMultiplier: 1,
         knockbackResistanceMultiplier: 1,
+        stun: 0,
         selectedUpgrades: new Set(),
         renderScale: charData.renderScale || 1,
         physicsProfileId: charData.physicsProfileId,
@@ -1975,6 +1976,8 @@
         hurtTimer: 0,
         deathHoldFrames: 0,
         mudTrailDropCooldown: options.mudTrailDropCooldown || rand(4, 7),
+        stunWanderTimer: 0,
+        stunWanderAngle: rand(0, Math.PI * 2),
         statuses: {}
       };
       return enemy;
@@ -2597,7 +2600,7 @@
       }
     }
 
-    function damagePlayer(amount, sourceEnemy = null) {
+    function damagePlayer(amount, sourceEnemy = null, stun = 0) {
       const player = state.player;
       if (!player || player.hp <= 0) return;
       if (state.cheats.invincible) return;
@@ -2608,6 +2611,10 @@
       }
       player.hp = clamp(player.hp - finalAmount, 0, player.maxHp);
       player.animationSignals.hurt = true;
+      if (stun > 0) {
+        const resist = Math.max(0.25, player.stunResistanceMultiplier || 1);
+        player.stun = Math.max(player.stun || 0, Math.round(stun * resist));
+      }
       state.shake = 6;
       updateHpBar();
       if (player.hp <= 0) {
@@ -2752,6 +2759,7 @@
       const player = state.player;
       if (!player) return;
       if (player.actionLock > 0) return;
+      if (player.stun > 0) return;
 
       if (input.fast) player.heavyChargeFrames += 1;
       else player.heavyChargeFrames = 0;
@@ -3034,12 +3042,16 @@
       if (!player) return;
       const prevX = player.x;
       const prevY = player.y;
+      if (player.stun > 0) player.stun -= 1;
+      const isStunned = player.stun > 0;
       player.vx = 0;
       let moveY = 0;
-      if (input.left) player.vx -= player.speed;
-      if (input.right) player.vx += player.speed;
-      if (input.up) moveY -= player.speed * 0.6;
-      if (input.down) moveY += player.speed * 0.6;
+      if (!isStunned) {
+        if (input.left) player.vx -= player.speed;
+        if (input.right) player.vx += player.speed;
+        if (input.up) moveY -= player.speed * 0.6;
+        if (input.down) moveY += player.speed * 0.6;
+      }
 
       const intendedX = player.x + player.vx;
       const intendedY = player.y + moveY;
@@ -3054,14 +3066,16 @@
         player.facing = player.vx > 0 ? 1 : -1;
         player.attackFacing = player.facing;
       }
-      player.block = input.block;
+      player.block = !isStunned && input.block;
 
-      if (input.jump && player.jumpCooldown <= 0 && player.z <= 0) {
+      if (!isStunned && input.jump && player.jumpCooldown <= 0 && player.z <= 0) {
         player.vz = 6.5;
         player.jumpCooldown = 40;
       }
 
-      if (player.dashTimer > 0) {
+      if (isStunned) {
+        player.dashTimer = 0;
+      } else if (player.dashTimer > 0) {
         player.x += player.facing * 6.5;
         player.dashTimer -= 1;
       }
@@ -3147,7 +3161,31 @@
         updateEnemyStatuses(enemy);
         if (enemy.stun > 0) {
           enemy.stun -= 1;
-          enemy.isMoving = false;
+          enemy.windup = 0;
+          enemy.attackAnimTimer = 0;
+          enemy.dashFrames = 0;
+          enemy.attachTargetFrames = 0;
+          enemy.holdTargetFrames = 0;
+          if (state.chokeHoldOwnerId === enemy.uid) state.chokeHoldOwnerId = null;
+
+          const spacing = getEnemySpacingAdjustment(enemy);
+          const moveSpeed = enemy.speed * spacing.moveScale;
+          if (enemy.stunWanderTimer <= 0) {
+            enemy.stunWanderTimer = rand(8, 20);
+            enemy.stunWanderAngle = rand(0, Math.PI * 2);
+          }
+          enemy.stunWanderTimer -= 1;
+          enemy.x += Math.cos(enemy.stunWanderAngle) * moveSpeed * 0.75;
+          enemy.y += Math.sin(enemy.stunWanderAngle) * moveSpeed * 0.45;
+          if (spacing.crowding > 0) {
+            enemy.x += spacing.pushX;
+            enemy.y += spacing.pushY;
+          }
+          enemy.isMoving = true;
+          enemy.cooldown = Math.max(0, enemy.cooldown - 1);
+          const verticalBounds = getEnemyVerticalBounds(enemy);
+          enemy.y = clamp(enemy.y, verticalBounds.minY, verticalBounds.maxY);
+          applyMovementMaskClamp(enemy, prevX, prevY);
           updateEnemyAnimation(enemy, dt);
           return;
         }
@@ -3873,6 +3911,46 @@
       if (useFade) ctx.restore();
     }
 
+    function drawStar(x, y, size, rotation = 0) {
+      const inner = size * 0.45;
+      ctx.beginPath();
+      for (let i = 0; i < 10; i += 1) {
+        const radius = i % 2 === 0 ? size : inner;
+        const angle = rotation + (Math.PI * i) / 5;
+        const px = x + Math.cos(angle) * radius;
+        const py = y + Math.sin(angle) * radius;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawStunStars(entity, size) {
+      if (!entity || entity.stun <= 0 || entity.hp <= 0) return;
+      const depthScale = getDepthScaleForY(entity.y);
+      const drawSize = size * (entity.renderScale || 1) * depthScale;
+      const centerX = entity.x - state.cameraX;
+      const centerY = entity.y - state.cameraY - entity.z - drawSize + Math.max(14, drawSize * 0.2);
+      const orbitRadius = Math.max(12, drawSize * 0.2);
+      const orbitScaleY = 0.44;
+      const spin = performance.now() / 220;
+
+      ctx.save();
+      ctx.fillStyle = '#ffe27a';
+      ctx.strokeStyle = 'rgba(84, 45, 0, 0.85)';
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < 3; i += 1) {
+        const angle = spin + (i * ((Math.PI * 2) / 3));
+        const x = centerX + Math.cos(angle) * orbitRadius;
+        const y = centerY + Math.sin(angle) * orbitRadius * orbitScaleY;
+        const starSize = Math.max(3.5, drawSize * 0.04);
+        drawStar(x, y, starSize, angle + Math.PI / 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       if (state.shake > 0) {
@@ -3914,6 +3992,7 @@
       renderQueue.sort((a, b) => a.sortY - b.sortY);
       renderQueue.forEach(({ entity, size }) => {
         drawEntity(entity, size);
+        drawStunStars(entity, size);
       });
 
       state.enemies

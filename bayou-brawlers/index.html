@@ -3809,6 +3809,25 @@
       }
     }
 
+    const freezeTintCanvas = document.createElement('canvas');
+    const freezeTintCtx = freezeTintCanvas.getContext('2d');
+
+    function drawAnimationFrame(sourceImage, frame, dx, dy, dw, dh, tint = null) {
+      if (!tint) {
+        ctx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, dx, dy, dw, dh);
+        return;
+      }
+      freezeTintCanvas.width = frame.width;
+      freezeTintCanvas.height = frame.height;
+      freezeTintCtx.clearRect(0, 0, frame.width, frame.height);
+      freezeTintCtx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, 0, 0, frame.width, frame.height);
+      freezeTintCtx.globalCompositeOperation = 'source-atop';
+      freezeTintCtx.fillStyle = tint;
+      freezeTintCtx.fillRect(0, 0, frame.width, frame.height);
+      freezeTintCtx.globalCompositeOperation = 'source-over';
+      ctx.drawImage(freezeTintCanvas, 0, 0, frame.width, frame.height, dx, dy, dw, dh);
+    }
+
     function drawEntity(entity, size, colorOverride) {
       if (entity && entity.aiState === 'Underground') return;
 
@@ -3819,6 +3838,8 @@
         ? clamp(1 - (entity.spawnFadeFrames / 21), 0.25, 1)
         : 1;
       const useFade = fadeAlpha < 1;
+      const hasFreezeTint = !!(entity?.statuses?.FREEZE?.duration > 0);
+      const tintColor = hasFreezeTint ? 'rgba(120, 205, 255, 0.52)' : null;
       if (useFade) {
         ctx.save();
         ctx.globalAlpha = fadeAlpha;
@@ -3834,29 +3855,25 @@
             ctx.save();
             ctx.translate(x + offsetX, y);
             ctx.scale(-1, 1);
-            ctx.drawImage(
+            drawAnimationFrame(
               track.img,
-              frame.x,
-              frame.y,
-              frame.width,
-              frame.height,
+              frame,
               -drawSize / 2,
               -drawSize,
               drawSize,
-              drawSize
+              drawSize,
+              tintColor
             );
             ctx.restore();
           } else {
-            ctx.drawImage(
+            drawAnimationFrame(
               track.img,
-              frame.x,
-              frame.y,
-              frame.width,
-              frame.height,
+              frame,
               x - drawSize / 2 + offsetX,
               y - drawSize,
               drawSize,
-              drawSize
+              drawSize,
+              tintColor
             );
           }
           if (useFade) ctx.restore();
@@ -3873,29 +3890,25 @@
             ctx.save();
             ctx.translate(x + offsetX, y);
             ctx.scale(-1, 1);
-            ctx.drawImage(
+            drawAnimationFrame(
               track.img,
-              frame.x,
-              frame.y,
-              frame.width,
-              frame.height,
+              frame,
               -drawSize / 2,
               -drawSize,
               drawSize,
-              drawSize
+              drawSize,
+              tintColor
             );
             ctx.restore();
           } else {
-            ctx.drawImage(
+            drawAnimationFrame(
               track.img,
-              frame.x,
-              frame.y,
-              frame.width,
-              frame.height,
+              frame,
               x - drawSize / 2 + offsetX,
               y - drawSize,
               drawSize,
-              drawSize
+              drawSize,
+              tintColor
             );
           }
           if (useFade) ctx.restore();

@@ -3832,6 +3832,35 @@
       return blinkOn ? 'rgba(74, 142, 224, 0.6)' : null;
     }
 
+    function hasActiveCharmCondition(entity) {
+      return !!(entity?.statuses?.CHARM?.duration > 0);
+    }
+
+    function drawCharmIndicator(entity, size) {
+      if (!hasActiveCharmCondition(entity)) return;
+
+      const time = performance.now();
+      const pulse = 1 + Math.sin(time * 0.012) * 0.08;
+      const bob = Math.sin((time * 0.01) + (entity.x * 0.03)) * 2;
+      const cx = entity.x - state.cameraX;
+      const cy = entity.y - state.cameraY - (size * 0.95) + bob;
+      const heartSize = Math.max(6, size * 0.09) * pulse;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.fillStyle = '#ff4f9f';
+      ctx.strokeStyle = 'rgba(255, 226, 242, 0.9)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, heartSize * 0.9);
+      ctx.bezierCurveTo(heartSize * 1.35, heartSize * 0.2, heartSize * 1.35, -heartSize * 1.1, 0, -heartSize * 0.35);
+      ctx.bezierCurveTo(-heartSize * 1.35, -heartSize * 1.1, -heartSize * 1.35, heartSize * 0.2, 0, heartSize * 0.9);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
     function drawAnimationFrame(sourceImage, frame, dx, dy, dw, dh, tint = null) {
       if (!tint) {
         ctx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, dx, dy, dw, dh);
@@ -3986,6 +4015,7 @@
       renderQueue.sort((a, b) => a.sortY - b.sortY);
       renderQueue.forEach(({ entity, size }) => {
         drawEntity(entity, size);
+        drawCharmIndicator(entity, size);
         const isStunned = (entity.hp > 0) && (entity.stun > 0);
         if (isStunned) {
           const centerX = entity.x - state.cameraX;

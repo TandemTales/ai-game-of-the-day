@@ -1086,6 +1086,8 @@
     const ENEMY_PERSONAL_SPACE = 34;
     const ENEMY_PERSONAL_SPACE_BUFFER = 68;
     const ENEMY_SEPARATION_PUSH = 0.95;
+    const STUN_CONDITION_THRESHOLD = 28;
+    const PLAYER_STUN_TYPES = new Set(['brute', 'boss', 'mud-monster', 'sweetykins']);
     const ENEMY_DEATH_HOLD_FRAMES = 240;
     const ENEMY_DAMAGE_MULTIPLIER = 0.75;
     const MAX_LEVEL = Number.POSITIVE_INFINITY;
@@ -1811,6 +1813,7 @@
         heavyChargeFrames: 0,
         comboHits: 0,
         comboTimer: 0,
+        stun: 0,
         level: 1,
         xp: 0,
         magic: 0,
@@ -1950,6 +1953,10 @@
         windup: 0,
         attackAnimTimer: 0,
         stun: 0,
+        hitStun: 0,
+        stunDirX: rand(-1, 1),
+        stunDirY: rand(-1, 1),
+        stunRetargetTimer: rand(8, 18),
         ranged: base.ranged || false,
         isBoss,
         renderScale: getEnemyRenderScale(typeId, stage, isBoss),
@@ -2566,7 +2573,13 @@
     function damageEnemy(enemy, amount, stun = 0) {
       if (!enemy || enemy.hp <= 0 || enemy.invulnFrames > 0 || enemy.untargetable) return;
       enemy.hp -= amount;
-      enemy.stun = Math.max(enemy.stun, stun);
+      if (stun > 0) {
+        const shortHitStun = Math.min(12, Math.round(stun * 0.45));
+        enemy.hitStun = Math.max(enemy.hitStun || 0, shortHitStun);
+        if (stun >= STUN_CONDITION_THRESHOLD) {
+          enemy.stun = Math.max(enemy.stun, stun);
+        }
+      }
       const hurtDurationFrames = enemy.type === 'mud-monster' && enemy.isBoss ? 24 : 12;
       enemy.hurtTimer = Math.max(enemy.hurtTimer, hurtDurationFrames);
       state.effects.push({ x: enemy.x, y: enemy.y, timer: 16, type: 'hit' });
@@ -2605,6 +2618,9 @@
       if (sourceEnemy?.statuses?.WEAKEN) finalAmount *= (1 - sourceEnemy.statuses.WEAKEN.magnitude);
       if (player.block || player.shieldTimer > 0) {
         finalAmount *= 0.45;
+      }
+      if (sourceEnemy && PLAYER_STUN_TYPES.has(sourceEnemy.type) && rand(0, 1) < (sourceEnemy.isBoss ? 0.4 : 0.18)) {
+        player.stun = Math.max(player.stun, sourceEnemy.isBoss ? 42 : 24);
       }
       player.hp = clamp(player.hp - finalAmount, 0, player.maxHp);
       player.animationSignals.hurt = true;
@@ -2751,7 +2767,7 @@
     function handleAttacks() {
       const player = state.player;
       if (!player) return;
-      if (player.actionLock > 0) return;
+      if (player.actionLock > 0 || player.stun > 0) return;
 
       if (input.fast) player.heavyChargeFrames += 1;
       else player.heavyChargeFrames = 0;
@@ -3034,12 +3050,17 @@
       if (!player) return;
       const prevX = player.x;
       const prevY = player.y;
+      if (player.stun > 0) {
+        player.stun -= 1;
+      }
       player.vx = 0;
       let moveY = 0;
-      if (input.left) player.vx -= player.speed;
-      if (input.right) player.vx += player.speed;
-      if (input.up) moveY -= player.speed * 0.6;
-      if (input.down) moveY += player.speed * 0.6;
+      if (player.stun <= 0) {
+        if (input.left) player.vx -= player.speed;
+        if (input.right) player.vx += player.speed;
+        if (input.up) moveY -= player.speed * 0.6;
+        if (input.down) moveY += player.speed * 0.6;
+      }
 
       const intendedX = player.x + player.vx;
       const intendedY = player.y + moveY;
@@ -3054,9 +3075,9 @@
         player.facing = player.vx > 0 ? 1 : -1;
         player.attackFacing = player.facing;
       }
-      player.block = input.block;
+      player.block = player.stun <= 0 && input.block;
 
-      if (input.jump && player.jumpCooldown <= 0 && player.z <= 0) {
+      if (player.stun <= 0 && input.jump && player.jumpCooldown <= 0 && player.z <= 0) {
         player.vz = 6.5;
         player.jumpCooldown = 40;
       }
@@ -3145,9 +3166,27 @@
         enemy.noDigUntil = Math.max(0, enemy.noDigUntil - 1);
         enemy.hurtTimer = Math.max(0, enemy.hurtTimer - 1);
         updateEnemyStatuses(enemy);
+        enemy.hitStun = Math.max(0, (enemy.hitStun || 0) - 1);
+        if (enemy.hitStun > 0) {
+          enemy.isMoving = false;
+          updateEnemyAnimation(enemy, dt);
+          return;
+        }
         if (enemy.stun > 0) {
           enemy.stun -= 1;
-          enemy.isMoving = false;
+          enemy.stunRetargetTimer = Math.max(0, (enemy.stunRetargetTimer || 0) - 1);
+          if (enemy.stunRetargetTimer <= 0) {
+            enemy.stunDirX = rand(-1, 1);
+            enemy.stunDirY = rand(-1, 1);
+            enemy.stunRetargetTimer = rand(8, 18);
+          }
+          const norm = Math.hypot(enemy.stunDirX, enemy.stunDirY) || 1;
+          const verticalBounds = getEnemyVerticalBounds(enemy);
+          enemy.x += (enemy.stunDirX / norm) * enemy.speed * 0.55;
+          enemy.y += (enemy.stunDirY / norm) * enemy.speed * 0.38;
+          enemy.x = clamp(enemy.x, state.cameraX + 20, state.cameraX + canvas.width - 20);
+          enemy.y = clamp(enemy.y, verticalBounds.minY, verticalBounds.maxY);
+          enemy.isMoving = true;
           updateEnemyAnimation(enemy, dt);
           return;
         }
@@ -3914,6 +3953,21 @@
       renderQueue.sort((a, b) => a.sortY - b.sortY);
       renderQueue.forEach(({ entity, size }) => {
         drawEntity(entity, size);
+        const isStunned = (entity.hp > 0) && (entity.stun > 0);
+        if (isStunned) {
+          const centerX = entity.x - state.cameraX;
+          const centerY = entity.y - state.cameraY - (size * 0.82);
+          const orbit = size * 0.16;
+          for (let i = 0; i < 3; i += 1) {
+            const angle = (performance.now() * 0.006) + (i * (Math.PI * 2 / 3));
+            const x = centerX + Math.cos(angle) * orbit;
+            const y = centerY + Math.sin(angle) * (orbit * 0.6);
+            ctx.fillStyle = '#ffe37d';
+            ctx.beginPath();
+            ctx.arc(x, y, 4, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
       });
 
       state.enemies

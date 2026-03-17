@@ -3196,7 +3196,8 @@
         const dy = getEnemyAimTargetY(enemy, player) - enemy.y;
         const distance = Math.hypot(dx, dy);
         const spacing = getEnemySpacingAdjustment(enemy);
-        const moveSpeed = enemy.speed * spacing.moveScale;
+        const isSlowed = (enemy.statuses?.SLOW?.duration || 0) > 0;
+        const moveSpeed = enemy.speed * spacing.moveScale * (isSlowed ? 0.5 : 1);
         const playerBody = getPlayerHitbox(player);
         const enemyBody = getEnemyHitbox(enemy);
         enemy.isMoving = false;

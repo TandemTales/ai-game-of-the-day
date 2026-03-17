@@ -2729,6 +2729,10 @@
         tick: 0
       };
       if (type === 'ROOT' || type === 'FREEZE') enemy.stun = Math.max(enemy.stun, finalDuration + STUN_DURATION_BONUS_FRAMES);
+      if (type === 'CHARM') {
+        enemy.cooldown = 0;
+        enemy.windup = 0;
+      }
     }
 
     function updateEnemyStatuses(enemy) {
@@ -3202,6 +3206,58 @@
         const enemyBody = getEnemyHitbox(enemy);
         enemy.isMoving = false;
         if (Math.abs(dx) > ENEMY_FACING_DEADZONE_X) enemy.facing = dx >= 0 ? 1 : -1;
+
+        const isCharmed = (enemy.statuses?.CHARM?.duration || 0) > 0;
+        if (isCharmed) {
+          let charmTarget = null;
+          let charmTargetDistance = Number.POSITIVE_INFINITY;
+          state.enemies.forEach(otherEnemy => {
+            if (otherEnemy === enemy || otherEnemy.hp <= 0) return;
+            if ((otherEnemy.statuses?.CHARM?.duration || 0) > 0) return;
+            const otherDistance = Math.hypot(otherEnemy.x - enemy.x, otherEnemy.y - enemy.y);
+            if (otherDistance < charmTargetDistance) {
+              charmTargetDistance = otherDistance;
+              charmTarget = otherEnemy;
+            }
+          });
+
+          if (charmTarget) {
+            const targetDx = charmTarget.x - enemy.x;
+            const targetDy = getEnemyAimTargetY(enemy, charmTarget) - enemy.y;
+            const targetDistance = Math.hypot(targetDx, targetDy);
+            if (Math.abs(targetDx) > ENEMY_FACING_DEADZONE_X) enemy.facing = targetDx >= 0 ? 1 : -1;
+
+            if (targetDistance > enemy.range * 0.82) {
+              enemy.x += Math.sign(targetDx) * moveSpeed * 0.95;
+              enemy.y += Math.sign(targetDy) * moveSpeed * 0.55;
+              enemy.isMoving = true;
+            } else if (enemy.windup <= 0 && enemy.cooldown <= 0) {
+              enemy.windup = 6;
+              enemy.attackAnimTimer = Math.max(enemy.attackAnimTimer, 12);
+            }
+
+            if (enemy.windup > 0) {
+              enemy.windup -= 1;
+              if (enemy.windup === 0 && charmTarget.hp > 0) {
+                const charmDamage = Math.max(2, enemy.damage * (enemy.ranged ? 0.85 : 0.95));
+                const charmStun = enemy.ranged ? 8 : 14;
+                damageEnemy(charmTarget, charmDamage, charmStun);
+                enemy.cooldown = rand(24, 40);
+              }
+            } else {
+              enemy.cooldown = Math.max(0, enemy.cooldown - 1);
+            }
+          } else {
+            enemy.cooldown = Math.max(0, enemy.cooldown - 1);
+          }
+
+          if (enemy.attackAnimTimer > 0) enemy.attackAnimTimer -= 1;
+          const verticalBounds = getEnemyVerticalBounds(enemy);
+          enemy.y = clamp(enemy.y, verticalBounds.minY, verticalBounds.maxY);
+          applyMovementMaskClamp(enemy, prevX, prevY);
+          updateEnemyAnimation(enemy, dt);
+          return;
+        }
 
         if (enemy.type === 'daphodilus') {
           enemy.burrowCooldown = Math.max(0, enemy.burrowCooldown - 1);
@@ -3945,6 +4001,32 @@
       if (useFade) ctx.restore();
     }
 
+    function drawCharmHeart(entity, size) {
+      const x = entity.x - state.cameraX;
+      const y = entity.y - state.cameraY - (size * 0.98);
+      const pulse = 1 + (Math.sin(performance.now() * 0.01) * 0.08);
+      const heartSize = Math.max(14, size * 0.16) * pulse;
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(heartSize / 16, heartSize / 16);
+      ctx.fillStyle = 'rgba(255, 110, 196, 0.95)';
+      ctx.strokeStyle = 'rgba(255, 215, 244, 0.95)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, 6);
+      ctx.bezierCurveTo(0, 1, -8, -5, -12, 0);
+      ctx.bezierCurveTo(-15, 4, -12, 9, -8, 12);
+      ctx.lineTo(0, 18);
+      ctx.lineTo(8, 12);
+      ctx.bezierCurveTo(12, 9, 15, 4, 12, 0);
+      ctx.bezierCurveTo(8, -5, 0, 1, 0, 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       if (state.shake > 0) {
@@ -3986,6 +4068,9 @@
       renderQueue.sort((a, b) => a.sortY - b.sortY);
       renderQueue.forEach(({ entity, size }) => {
         drawEntity(entity, size);
+        if ((entity.statuses?.CHARM?.duration || 0) > 0) {
+          drawCharmHeart(entity, size);
+        }
         const isStunned = (entity.hp > 0) && (entity.stun > 0);
         if (isStunned) {
           const centerX = entity.x - state.cameraX;

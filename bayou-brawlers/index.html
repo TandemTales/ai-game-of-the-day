@@ -1079,7 +1079,7 @@
 
     const physicsProfiles = {};
     let showCollisionDebug = false;
-    const STAGED_ENEMY_TYPES = new Set();
+    const STAGED_ENEMY_TYPES = new Set(['mud-monster']);
     const CHOKING_HOLD_FRAMES = 60;
     const STING_ATTACH_FRAMES = 150;
     const ROOT_SNARE_FRAMES = 90;
@@ -1315,6 +1315,21 @@
     function getStagedStats(typeId, stage) {
       const base = enemyTypes[typeId];
       if (!base) return { hp: 10, speed: 1, damage: 1, range: 20, score: 10 };
+      if (typeId === 'mud-monster') {
+        const stageStatScale = {
+          3: { hp: 1, speed: 1, damage: 1, score: 1 },
+          2: { hp: 0.62, speed: 1.08, damage: 0.72, score: 0.58 },
+          1: { hp: 0.36, speed: 1.14, damage: 0.5, score: 0.34 }
+        };
+        const scale = stageStatScale[stage] || stageStatScale[1];
+        return {
+          hp: base.hp * scale.hp,
+          speed: base.speed * scale.speed,
+          damage: base.damage * scale.damage,
+          range: base.range,
+          score: base.score * scale.score
+        };
+      }
       return { hp: base.hp, speed: base.speed, damage: base.damage, range: base.range, score: base.score };
     }
 
@@ -1328,7 +1343,14 @@
       if (typeId === 'swamp') return asPlayerSizeRatio(0.5);
       if (typeId === 'daphodilus') return asPlayerSizeRatio(1);
 
-      if (typeId === 'mud-monster') return isBoss ? asPlayerSizeRatio(2.1) : asPlayerSizeRatio(1.6);
+      if (typeId === 'mud-monster') {
+        const mudMonsterScaleByStage = {
+          3: 2.1,
+          2: 1.45,
+          1: 1.05
+        };
+        return asPlayerSizeRatio(mudMonsterScaleByStage[stage] || mudMonsterScaleByStage[1]);
+      }
 
       if (boostedSize) return boostedSize;
 

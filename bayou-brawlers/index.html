@@ -3809,23 +3809,42 @@
       }
     }
 
-    const freezeTintCanvas = document.createElement('canvas');
-    const freezeTintCtx = freezeTintCanvas.getContext('2d');
+    const statusTintCanvas = document.createElement('canvas');
+    const statusTintCtx = statusTintCanvas.getContext('2d');
+
+    function hasActiveSlowCondition(entity) {
+      if (!entity) return false;
+
+      if (entity.statuses?.SLOW?.duration > 0) return true;
+      if (!entity.charData) return false;
+
+      return getMudTrailMovementScale(entity, entity.x, entity.y) < 0.999;
+    }
+
+    function getEntityStatusTint(entity) {
+      const hasFreezeTint = !!(entity?.statuses?.FREEZE?.duration > 0);
+      if (hasFreezeTint) return 'rgba(120, 205, 255, 0.52)';
+
+      if (!hasActiveSlowCondition(entity)) return null;
+
+      const blinkOn = Math.floor(performance.now() / 170) % 2 === 0;
+      return blinkOn ? 'rgba(74, 142, 224, 0.6)' : null;
+    }
 
     function drawAnimationFrame(sourceImage, frame, dx, dy, dw, dh, tint = null) {
       if (!tint) {
         ctx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, dx, dy, dw, dh);
         return;
       }
-      freezeTintCanvas.width = frame.width;
-      freezeTintCanvas.height = frame.height;
-      freezeTintCtx.clearRect(0, 0, frame.width, frame.height);
-      freezeTintCtx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, 0, 0, frame.width, frame.height);
-      freezeTintCtx.globalCompositeOperation = 'source-atop';
-      freezeTintCtx.fillStyle = tint;
-      freezeTintCtx.fillRect(0, 0, frame.width, frame.height);
-      freezeTintCtx.globalCompositeOperation = 'source-over';
-      ctx.drawImage(freezeTintCanvas, 0, 0, frame.width, frame.height, dx, dy, dw, dh);
+      statusTintCanvas.width = frame.width;
+      statusTintCanvas.height = frame.height;
+      statusTintCtx.clearRect(0, 0, frame.width, frame.height);
+      statusTintCtx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, 0, 0, frame.width, frame.height);
+      statusTintCtx.globalCompositeOperation = 'source-atop';
+      statusTintCtx.fillStyle = tint;
+      statusTintCtx.fillRect(0, 0, frame.width, frame.height);
+      statusTintCtx.globalCompositeOperation = 'source-over';
+      ctx.drawImage(statusTintCanvas, 0, 0, frame.width, frame.height, dx, dy, dw, dh);
     }
 
     function drawEntity(entity, size, colorOverride) {
@@ -3838,8 +3857,7 @@
         ? clamp(1 - (entity.spawnFadeFrames / 21), 0.25, 1)
         : 1;
       const useFade = fadeAlpha < 1;
-      const hasFreezeTint = !!(entity?.statuses?.FREEZE?.duration > 0);
-      const tintColor = hasFreezeTint ? 'rgba(120, 205, 255, 0.52)' : null;
+      const tintColor = getEntityStatusTint(entity);
       if (useFade) {
         ctx.save();
         ctx.globalAlpha = fadeAlpha;

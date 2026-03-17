@@ -1087,6 +1087,7 @@
     const ENEMY_PERSONAL_SPACE_BUFFER = 68;
     const ENEMY_SEPARATION_PUSH = 0.95;
     const STUN_CONDITION_THRESHOLD = 28;
+    const STUN_DURATION_BONUS_FRAMES = 120;
     const PLAYER_STUN_TYPES = new Set(['brute', 'boss', 'mud-monster', 'sweetykins']);
     const ENEMY_DEATH_HOLD_FRAMES = 240;
     const ENEMY_DAMAGE_MULTIPLIER = 0.75;
@@ -2577,7 +2578,7 @@
         const shortHitStun = Math.min(12, Math.round(stun * 0.45));
         enemy.hitStun = Math.max(enemy.hitStun || 0, shortHitStun);
         if (stun >= STUN_CONDITION_THRESHOLD) {
-          enemy.stun = Math.max(enemy.stun, stun);
+          enemy.stun = Math.max(enemy.stun, stun + STUN_DURATION_BONUS_FRAMES);
         }
       }
       const hurtDurationFrames = enemy.type === 'mud-monster' && enemy.isBoss ? 24 : 12;
@@ -2620,7 +2621,7 @@
         finalAmount *= 0.45;
       }
       if (sourceEnemy && PLAYER_STUN_TYPES.has(sourceEnemy.type) && rand(0, 1) < (sourceEnemy.isBoss ? 0.4 : 0.18)) {
-        player.stun = Math.max(player.stun, sourceEnemy.isBoss ? 42 : 24);
+        player.stun = Math.max(player.stun, (sourceEnemy.isBoss ? 42 : 24) + STUN_DURATION_BONUS_FRAMES);
       }
       player.hp = clamp(player.hp - finalAmount, 0, player.maxHp);
       player.animationSignals.hurt = true;
@@ -2727,7 +2728,7 @@
         magnitude: Math.max(magnitude, existing ? existing.magnitude : 0),
         tick: 0
       };
-      if (type === 'ROOT' || type === 'FREEZE') enemy.stun = Math.max(enemy.stun, finalDuration);
+      if (type === 'ROOT' || type === 'FREEZE') enemy.stun = Math.max(enemy.stun, finalDuration + STUN_DURATION_BONUS_FRAMES);
     }
 
     function updateEnemyStatuses(enemy) {

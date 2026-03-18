@@ -2735,6 +2735,7 @@
       }
     }
 
+
     function updateEnemyStatuses(enemy) {
       if (!enemy.statuses) return;
       Object.keys(enemy.statuses).forEach((key) => {
@@ -2745,6 +2746,14 @@
         if (key === 'BURN' && st.tick % 24 === 0) damageEnemy(enemy, 3 + st.magnitude, 0);
         if (st.duration <= 0) delete enemy.statuses[key];
       });
+    }
+
+    function isCharmed(entity) {
+      return (entity?.statuses?.CHARM?.duration || 0) > 0;
+    }
+
+    function canPlayerAffectEnemy(enemy) {
+      return enemy && !isCharmed(enemy);
     }
 
     function getCharacterTuning(player) {
@@ -2827,7 +2836,7 @@
         const coneOriginY = player.y - 44;
         let hitCount = 0;
         state.enemies.forEach(enemy => {
-          if (enemy.hp <= 0) return;
+          if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
           const enemyBody = getEnemyHitbox(enemy);
           const targetX = enemyBody.x + enemyBody.width * 0.5;
           const targetY = enemyBody.y + enemyBody.height * 0.45;
@@ -2897,7 +2906,7 @@
         const weakAoeRadius = heavy ? 90 : 72;
         let hitCount = 0;
         state.enemies.forEach(enemy => {
-          if (enemy.hp <= 0) return;
+          if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
           const distance = Math.hypot(enemy.x - player.x, enemy.y - player.y);
           if (distance <= weakAoeRadius) {
             damageEnemy(enemy, weakAoeDamage, Math.max(8, stun * 0.5));
@@ -2928,7 +2937,7 @@
         const frontDamage = dmg * (heavy ? 1.7 : 1.5);
         let hitCount = 0;
         state.enemies.forEach(enemy => {
-          if (enemy.hp <= 0) return;
+          if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
           if (rectOverlap(hitbox, enemy)) {
             damageEnemy(enemy, frontDamage, stun + 8);
             enemy.x += player.facing * (knockback + 10);
@@ -2946,7 +2955,7 @@
 
       let hitCount = 0;
       state.enemies.forEach(enemy => {
-        if (enemy.hp <= 0) return;
+        if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
         if (rectOverlap(hitbox, enemy) || playerBodyOverlap(player, enemy)) {
           damageEnemy(enemy, dmg, stun);
           enemy.x += player.facing * knockback;
@@ -2964,6 +2973,7 @@
     }
 
     function applyCharacterOnHitStatus(player, enemy, heavy) {
+      if (!canPlayerAffectEnemy(enemy)) return;
       const id = player.charData.id;
       if (id === 'billy-boxby') {
         const slow = heavy ? 0.4 : 0.2;
@@ -3010,6 +3020,7 @@
         state.effects.push({ x: player.x, y: player.y, radius: 96, timer: 240, damage: hasLevel(player, 7) ? 1 : 0, stun: 0, knockback: 0, type: 'frost-patch', owner: player });
         if (isSuper) {
           state.enemies.forEach(enemy => {
+            if (!canPlayerAffectEnemy(enemy)) return;
             applyStatus(enemy, 'SLOW', (hasLevel(player, 9) ? 300 : 240), 0.6);
             if (getEnemyTier(enemy) !== 'boss') applyStatus(enemy, 'FREEZE', hasLevel(player, 9) ? 240 : 180, 1);
           });
@@ -3507,7 +3518,7 @@
       state.projectiles.forEach(projectile => {
         if (projectile.friendly && projectile.tracking) {
           const target = state.enemies
-            .filter(enemy => enemy.hp > 0)
+            .filter(enemy => enemy.hp > 0 && canPlayerAffectEnemy(enemy))
             .sort((a, b) => Math.hypot(a.x - projectile.x, a.y - projectile.y) - Math.hypot(b.x - projectile.x, b.y - projectile.y))[0];
           if (target) {
             const dx = target.x - projectile.x;
@@ -3528,7 +3539,7 @@
 
         if (projectile.friendly) {
           state.enemies.forEach(enemy => {
-            if (enemy.hp <= 0) return;
+            if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
             const enemyBody = getEnemyHitbox(enemy);
             if (
               projectile.x > enemyBody.x &&
@@ -3592,6 +3603,7 @@
           state.enemies.forEach(enemy => {
             const distance = Math.hypot(enemy.x - effect.x, enemy.y - effect.y);
             if (distance < effect.radius) {
+              if (!canPlayerAffectEnemy(enemy)) return;
               damageEnemy(enemy, effect.damage, effect.stun || 0);
               enemy.x += Math.sign(enemy.x - effect.x) * (effect.knockback || 0);
               if (effect.type === 'root' || effect.type === 'root-poison') applyStatus(enemy, 'ROOT', 110, 1);
@@ -3604,6 +3616,7 @@
           state.enemies.forEach(enemy => {
             const distance = Math.hypot(enemy.x - effect.x, enemy.y - effect.y);
             if (distance < effect.radius) {
+              if (!canPlayerAffectEnemy(enemy)) return;
               applyStatus(enemy, 'SLOW', 120, 0.6);
               if (effect.damage > 0 && effect.timer % 30 === 0) damageEnemy(enemy, effect.damage, 0);
             }
@@ -3622,7 +3635,7 @@
           };
           let hitCount = 0;
           state.enemies.forEach(enemy => {
-            if (enemy.hp <= 0) return;
+            if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
             const enemyBody = getEnemyHitbox(enemy);
             if (!rectsOverlap(beamRect, enemyBody)) return;
             damageEnemy(enemy, effect.damage, effect.stun || 0);
@@ -3647,7 +3660,7 @@
       ally.y = state.player.y - 40;
       if (ally.timer % 30 === 0) {
         const target = state.enemies[0];
-        if (target) {
+        if (target && canPlayerAffectEnemy(target)) {
           damageEnemy(target, 12, 0);
         }
       }
@@ -4001,11 +4014,61 @@
       if (useFade) ctx.restore();
     }
 
+    const charmHeartPixelScanCanvas = document.createElement('canvas');
+    const charmHeartPixelScanCtx = charmHeartPixelScanCanvas.getContext('2d');
+    const charmWalkTopPixelCache = new Map();
+
+    function getWalkTrackForCharmHeart(entity) {
+      if (!entity || !entity.animation) return null;
+      const facingName = entity.facing >= 0 ? 'right' : 'left';
+      if (entity.charData) {
+        return getPlayerAnimTrack(entity, 'walk', facingName) || getPlayerAnimTrack(entity, 'walk', facingName === 'right' ? 'left' : 'right');
+      }
+      return getEnemyAnimTrack(entity, 'walk', facingName) || getEnemyAnimTrack(entity, 'walk', facingName === 'right' ? 'left' : 'right');
+    }
+
+    function getWalkTrackTopOpaquePixel(track) {
+      if (!track || !track.img || !track.frames || !track.frames.length) return 0;
+      const frame = track.frames[0];
+      const cacheKey = `${track.img.src}|${frame.x}|${frame.y}|${frame.width}|${frame.height}`;
+      if (charmWalkTopPixelCache.has(cacheKey)) return charmWalkTopPixelCache.get(cacheKey);
+
+      charmHeartPixelScanCanvas.width = frame.width;
+      charmHeartPixelScanCanvas.height = frame.height;
+      charmHeartPixelScanCtx.clearRect(0, 0, frame.width, frame.height);
+      charmHeartPixelScanCtx.drawImage(track.img, frame.x, frame.y, frame.width, frame.height, 0, 0, frame.width, frame.height);
+      const data = charmHeartPixelScanCtx.getImageData(0, 0, frame.width, frame.height).data;
+
+      let topOpaquePixel = 0;
+      const alphaThreshold = 24;
+      let found = false;
+      for (let y = 0; y < frame.height && !found; y += 1) {
+        for (let x = 0; x < frame.width; x += 1) {
+          const idx = ((y * frame.width) + x) * 4;
+          if (data[idx + 3] > alphaThreshold) {
+            topOpaquePixel = y;
+            found = true;
+            break;
+          }
+        }
+      }
+
+      charmWalkTopPixelCache.set(cacheKey, topOpaquePixel);
+      return topOpaquePixel;
+    }
+
     function drawCharmHeart(entity, size) {
+      const depthScale = getDepthScaleForY(entity.y);
+      const drawSize = size * (entity.renderScale || 1) * depthScale;
+      const drawTopY = entity.y - state.cameraY - entity.z - drawSize;
       const x = entity.x - state.cameraX;
-      const y = entity.y - state.cameraY - (size * 0.98);
+      const walkTrack = getWalkTrackForCharmHeart(entity);
+      const walkFrame = walkTrack?.frames?.[0];
+      const topOpaquePixel = getWalkTrackTopOpaquePixel(walkTrack);
+      const topOpaqueY = walkFrame ? (drawTopY + ((topOpaquePixel / Math.max(1, walkFrame.height)) * drawSize)) : drawTopY;
+      const y = topOpaqueY - Math.max(24, drawSize * 0.22);
       const pulse = 1 + (Math.sin(performance.now() * 0.01) * 0.08);
-      const heartSize = Math.max(14, size * 0.16) * pulse;
+      const heartSize = Math.max(30, drawSize * 0.34) * pulse;
 
       ctx.save();
       ctx.translate(x, y);

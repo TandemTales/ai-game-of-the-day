@@ -2643,18 +2643,19 @@
 
     function spawnHealPlusCluster(entity, healedAmount = 0) {
       if (!entity || healedAmount <= 0) return;
-      const symbolCount = 8;
+      const topOpaqueWorldY = getEntityWalkTopOpaqueWorldY(entity, PLAYER_DRAW_SIZE);
+      const symbolCount = 9;
       for (let i = 0; i < symbolCount; i += 1) {
         state.effects.push({
           type: 'heal-plus',
-          x: entity.x + rand(-22, 22),
-          y: entity.y - 78 + rand(-16, 10),
-          vx: rand(-0.45, 0.45),
-          vy: rand(-1.4, -0.85),
+          x: entity.x + rand(-18, 18),
+          y: topOpaqueWorldY - rand(8, 24),
+          vx: rand(-0.35, 0.35),
+          vy: rand(-1.5, -0.95),
           drift: rand(-0.05, 0.05),
-          size: rand(10, 17),
-          timer: rand(26, 38),
-          maxTimer: 38
+          size: rand(14, 20),
+          timer: rand(28, 42),
+          maxTimer: 42
         });
       }
     }
@@ -4105,6 +4106,20 @@
       return topOpaquePixel;
     }
 
+    function getEntityWalkTopOpaqueWorldY(entity, defaultSize = PLAYER_DRAW_SIZE) {
+      if (!entity) return 0;
+      const depthScale = getDepthScaleForY(entity.y);
+      const drawSize = defaultSize * (entity.renderScale || 1) * depthScale;
+      const drawTopScreenY = entity.y - state.cameraY - entity.z - drawSize;
+      const walkTrack = getWalkTrackForCharmHeart(entity);
+      const walkFrame = walkTrack?.frames?.[0];
+      const topOpaquePixel = getWalkTrackTopOpaquePixel(walkTrack);
+      const topOpaqueScreenY = walkFrame
+        ? (drawTopScreenY + ((topOpaquePixel / Math.max(1, walkFrame.height)) * drawSize))
+        : drawTopScreenY;
+      return topOpaqueScreenY + state.cameraY;
+    }
+
     function drawCharmHeart(entity, size) {
       const depthScale = getDepthScaleForY(entity.y);
       const drawSize = size * (entity.renderScale || 1) * depthScale;
@@ -4364,18 +4379,20 @@
           ctx.fillRect(effect.x - state.cameraX - 2, effect.y - state.cameraY - 2, 3, 3);
         }
         if (effect.type === 'heal-plus') {
-          const maxTimer = effect.maxTimer || 38;
+          const maxTimer = effect.maxTimer || 42;
           const alpha = clamp(effect.timer / maxTimer, 0, 1);
           const x = effect.x - state.cameraX;
           const y = effect.y - state.cameraY;
-          const size = effect.size || 12;
+          const size = effect.size || 16;
           const half = size * 0.5;
           const thickness = Math.max(2, size * 0.22);
           ctx.save();
           ctx.globalAlpha = alpha;
-          ctx.fillStyle = 'rgba(255, 92, 92, 0.95)';
-          ctx.strokeStyle = 'rgba(255, 205, 205, 0.95)';
-          ctx.lineWidth = 1.4;
+          ctx.shadowColor = 'rgba(255, 0, 0, 0.85)';
+          ctx.shadowBlur = 8;
+          ctx.fillStyle = 'rgba(255, 0, 0, 0.98)';
+          ctx.strokeStyle = 'rgba(255, 205, 205, 0.98)';
+          ctx.lineWidth = 1.6;
           ctx.fillRect(x - (thickness / 2), y - half, thickness, size);
           ctx.fillRect(x - half, y - (thickness / 2), size, thickness);
           ctx.strokeRect(x - (thickness / 2), y - half, thickness, size);

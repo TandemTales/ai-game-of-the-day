@@ -1092,6 +1092,7 @@
     const PLAYER_STUN_TYPES = new Set(['brute', 'boss', 'mud-monster', 'sweetykins']);
     const ENEMY_DEATH_HOLD_FRAMES = 240;
     const ENEMY_DAMAGE_MULTIPLIER = 0.75;
+    const DANCERS_STEP_DODGE_CHANCE = 0.14;
     const MAX_LEVEL = Number.POSITIVE_INFINITY;
     const BASE_MAX_MAGIC = 100;
     const SPECIAL_COST = BASE_MAX_MAGIC / 3;
@@ -2624,6 +2625,19 @@
       const player = state.player;
       if (!player || player.hp <= 0) return;
       if (state.cheats.invincible) return;
+      if (hasUpgrade(player, 'dancers-step') && Math.random() < DANCERS_STEP_DODGE_CHANCE) {
+        state.effects.push({
+          type: 'dodged-text',
+          text: 'Dodged',
+          x: player.x + rand(-8, 8),
+          y: player.y - PLAYER_DRAW_SIZE * 0.82,
+          vy: -0.75,
+          drift: rand(-0.08, 0.08),
+          timer: 38,
+          maxTimer: 38
+        });
+        return;
+      }
       let finalAmount = amount * ENEMY_DAMAGE_MULTIPLIER;
       if (sourceEnemy?.statuses?.WEAKEN) finalAmount *= (1 - sourceEnemy.statuses.WEAKEN.magnitude);
       if (player.block || player.shieldTimer > 0) {
@@ -3644,6 +3658,11 @@
           effect.vy = (effect.vy || 0) - 0.03;
           effect.vx = ((effect.vx || 0) * 0.97) + (effect.drift || 0);
         }
+        if (effect.type === 'dodged-text') {
+          effect.x += effect.drift || 0;
+          effect.y += effect.vy || -0.75;
+          effect.vy = (effect.vy || -0.75) * 0.98;
+        }
         if (['shock', 'root', 'beam', 'root-poison'].includes(effect.type) && (effect.timer % (effect.type === 'beam' ? 8 : 18) === 0)) {
           state.enemies.forEach(enemy => {
             const distance = Math.hypot(enemy.x - effect.x, enemy.y - effect.y);
@@ -4400,6 +4419,23 @@
           ctx.fillRect(x - half, y - (thickness / 2), size, thickness);
           ctx.strokeRect(x - (thickness / 2), y - half, thickness, size);
           ctx.strokeRect(x - half, y - (thickness / 2), size, thickness);
+          ctx.restore();
+        }
+        if (effect.type === 'dodged-text') {
+          const maxTimer = effect.maxTimer || 38;
+          const alpha = clamp(effect.timer / maxTimer, 0, 1);
+          const x = effect.x - state.cameraX;
+          const y = effect.y - state.cameraY;
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.font = 'italic 700 16px system-ui, -apple-system, Segoe UI, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = 'rgba(32, 24, 16, 0.72)';
+          ctx.fillStyle = 'rgba(255, 244, 194, 0.98)';
+          ctx.strokeText(effect.text || 'Dodged', x, y);
+          ctx.fillText(effect.text || 'Dodged', x, y);
           ctx.restore();
         }
       });

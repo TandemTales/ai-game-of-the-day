@@ -2399,7 +2399,7 @@
       if (!player) return;
       if ([2, 6, 9].includes(level)) {
         player.maxHp *= 1.08;
-        player.hp = clamp(player.hp + (player.maxHp * 0.08), 0, player.maxHp);
+        healPlayer(player.maxHp * 0.08);
       }
       if ([3, 5].includes(level)) player.maxMagic += 20;
       if ([8, 10].includes(level)) player.maxMagic += 10;
@@ -2413,7 +2413,6 @@
       }
       if (level === 10) player.allDamageMultiplier *= 1.05;
       player.magic = clamp(player.magic, 0, player.maxMagic);
-      updateHpBar();
       updateMagicHud(player);
     }
 
@@ -2552,9 +2551,8 @@
         addXp(player, XP_BY_TIER[tier] || 12);
         addMagic(player, MAGIC_BY_TIER[tier] || 5);
         if (player.charData.id === 'old-man-croc' && hasLevel(player, 10) && player.passiveCooldown <= 0) {
-          player.hp = clamp(player.hp + (player.maxHp * 0.03), 0, player.maxHp);
+          healPlayer(player.maxHp * 0.03);
           player.passiveCooldown = 30;
-          updateHpBar();
         }
       }
       if (Math.random() < 0.2) spawnPickup(enemy.x, enemy.y);
@@ -2641,6 +2639,37 @@
       if (player.hp <= 0) {
         endGame(false);
       }
+    }
+
+    function spawnHealPlusCluster(entity, healedAmount = 0) {
+      if (!entity || healedAmount <= 0) return;
+      const symbolCount = 8;
+      for (let i = 0; i < symbolCount; i += 1) {
+        state.effects.push({
+          type: 'heal-plus',
+          x: entity.x + rand(-22, 22),
+          y: entity.y - 78 + rand(-16, 10),
+          vx: rand(-0.45, 0.45),
+          vy: rand(-1.4, -0.85),
+          drift: rand(-0.05, 0.05),
+          size: rand(10, 17),
+          timer: rand(26, 38),
+          maxTimer: 38
+        });
+      }
+    }
+
+    function healPlayer(amount) {
+      const player = state.player;
+      if (!player || amount <= 0 || player.hp <= 0) return 0;
+      const before = player.hp;
+      player.hp = clamp(player.hp + amount, 0, player.maxHp);
+      const healed = Math.max(0, player.hp - before);
+      if (healed > 0) {
+        updateHpBar();
+        spawnHealPlusCluster(player, healed);
+      }
+      return healed;
     }
 
     function updateHpBar() {
@@ -2999,8 +3028,7 @@
       if (id === 'rustbucket' && heavy && hasLevel(player, 4)) enemy.x += player.facing * 14;
       if (id === 'old-man-croc' && heavy && hasLevel(player, 7)) applyStatus(enemy, 'WEAKEN', 300, 0.25);
       if (id === 'grimma-the-feared' && heavy && hasLevel(player, 10)) {
-        player.hp = clamp(player.hp + (player.maxHp * 0.08), 0, player.maxHp);
-        updateHpBar();
+        healPlayer(player.maxHp * 0.08);
       }
     }
 
@@ -3591,8 +3619,7 @@
           height: 20
         };
         if (rectsOverlap(playerBody, pickupBody)) {
-          player.hp = clamp(player.hp + 25, 0, player.maxHp);
-          updateHpBar();
+          healPlayer(25);
           addScore(40);
           addMagic(player, 10);
           pickup.timer = 0;
@@ -3609,6 +3636,12 @@
           effect.y += effect.vy;
           effect.vy += effect.gravity;
           effect.vx *= 0.96;
+        }
+        if (effect.type === 'heal-plus') {
+          effect.x += (effect.vx || 0);
+          effect.y += (effect.vy || 0);
+          effect.vy = (effect.vy || 0) - 0.03;
+          effect.vx = ((effect.vx || 0) * 0.97) + (effect.drift || 0);
         }
         if (['shock', 'root', 'beam', 'root-poison'].includes(effect.type) && (effect.timer % (effect.type === 'beam' ? 8 : 18) === 0)) {
           state.enemies.forEach(enemy => {
@@ -4329,6 +4362,25 @@
         if (effect.type === 'sprinkle') {
           ctx.fillStyle = effect.color || 'rgba(200,255,220,0.9)';
           ctx.fillRect(effect.x - state.cameraX - 2, effect.y - state.cameraY - 2, 3, 3);
+        }
+        if (effect.type === 'heal-plus') {
+          const maxTimer = effect.maxTimer || 38;
+          const alpha = clamp(effect.timer / maxTimer, 0, 1);
+          const x = effect.x - state.cameraX;
+          const y = effect.y - state.cameraY;
+          const size = effect.size || 12;
+          const half = size * 0.5;
+          const thickness = Math.max(2, size * 0.22);
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = 'rgba(255, 92, 92, 0.95)';
+          ctx.strokeStyle = 'rgba(255, 205, 205, 0.95)';
+          ctx.lineWidth = 1.4;
+          ctx.fillRect(x - (thickness / 2), y - half, thickness, size);
+          ctx.fillRect(x - half, y - (thickness / 2), size, thickness);
+          ctx.strokeRect(x - (thickness / 2), y - half, thickness, size);
+          ctx.strokeRect(x - half, y - (thickness / 2), size, thickness);
+          ctx.restore();
         }
       });
 

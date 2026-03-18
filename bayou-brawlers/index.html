@@ -4068,7 +4068,7 @@
       const topOpaqueY = walkFrame ? (drawTopY + ((topOpaquePixel / Math.max(1, walkFrame.height)) * drawSize)) : drawTopY;
       const y = topOpaqueY - Math.max(24, drawSize * 0.22);
       const pulse = 1 + (Math.sin(performance.now() * 0.01) * 0.08);
-      const heartSize = Math.max(30, drawSize * 0.34) * pulse;
+      const heartSize = Math.max(15, drawSize * 0.17) * pulse;
 
       ctx.save();
       ctx.translate(x, y);

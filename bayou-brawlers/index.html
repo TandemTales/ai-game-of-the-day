@@ -1083,8 +1083,9 @@
     const CHOKING_HOLD_FRAMES = 60;
     const STING_ATTACH_FRAMES = 150;
     const ROOT_SNARE_FRAMES = 90;
-    const ENEMY_PERSONAL_SPACE = 34;
-    const ENEMY_PERSONAL_SPACE_BUFFER = 68;
+    const ENEMY_PERSONAL_SPACE = 46;
+    const ENEMY_PERSONAL_SPACE_BUFFER = 88;
+    const ENEMY_GROUP_SPAWN_SPACING = 120;
     const ENEMY_SEPARATION_PUSH = 0.95;
     const STUN_CONDITION_THRESHOLD = 28;
     const STUN_DURATION_BONUS_FRAMES = 120;
@@ -1385,8 +1386,8 @@
       debugLog('enemyStates', enemy.type, enemy.uid, '->', nextState);
     }
 
-    function queueSpawn(type, delayFrames, opts = {}) {
-      state.spawnQueue.push({ type, frames: Math.max(0, delayFrames), opts });
+    function queueSpawn(type, delayFrames, opts = {}, side = null) {
+      state.spawnQueue.push({ type, frames: Math.max(0, delayFrames), opts, side });
     }
 
     function isSpawnOverlappingPlayer(x, y, minDist = 70) {
@@ -2240,8 +2241,10 @@
         state.lockX = waveLockX;
         state.enemies = [];
         state.spawnQueue = [];
-        doubledEntries.forEach(item => {
-          queueSpawn(item.type, item.delay, item.opts || {});
+        const splitIndex = Math.ceil(doubledEntries.length / 2);
+        doubledEntries.forEach((item, idx) => {
+          const side = idx < splitIndex ? 'left' : 'right';
+          queueSpawn(item.type, item.delay, item.opts || {}, side);
         });
         state.waveIndex = waveIndex;
         state.waveActive = true;
@@ -2252,13 +2255,21 @@
       if (!wave) return;
       const waveLockX = getWaveLockX(waveIndex);
       state.enemies = [];
-      const baseX = clamp(waveLockX + 180, waveLockX + 80, state.levelWidth - 160);
       const spawnCount = (waveIndex === 0
         ? Math.max(2, Math.round(wave.count * INITIAL_WAVE_ENEMY_MULTIPLIER))
         : wave.count) * ENEMY_COUNT_MULTIPLIER;
+      const leftCount = Math.ceil(spawnCount / 2);
+      const rightBaseX = clamp(waveLockX + 180, waveLockX + 80, state.levelWidth - 160);
+      const leftBaseX = clamp(waveLockX - 180, 60, state.levelWidth - 160);
       for (let i = 0; i < spawnCount; i += 1) {
         const typeId = wave.types[i % wave.types.length];
-        const enemy = createEnemy(typeId, baseX + rand(-80, 80) + i * 40, rand(getBrawlLaneMinY(), BRAWL_LANE_MAX_Y));
+        const isLeftGroup = i < leftCount;
+        const groupIndex = isLeftGroup ? i : (i - leftCount);
+        const laneOffset = groupIndex * ENEMY_GROUP_SPAWN_SPACING;
+        const spawnX = isLeftGroup
+          ? (leftBaseX - laneOffset + rand(-35, 35))
+          : (rightBaseX + laneOffset + rand(-35, 35));
+        const enemy = createEnemy(typeId, spawnX, rand(getBrawlLaneMinY(), BRAWL_LANE_MAX_Y));
         state.enemies.push(enemy);
       }
       state.waveIndex = waveIndex;
@@ -3677,9 +3688,13 @@
         const ready = state.spawnQueue.filter(entry => entry.frames <= 0);
         state.spawnQueue = state.spawnQueue.filter(entry => entry.frames > 0);
         ready.forEach(entry => {
-          const spawnX = clamp(state.cameraX + canvas.width + 140 + rand(0, 60), state.cameraX + canvas.width + 120, state.levelWidth - 60);
+          const side = entry.side || (Math.random() < 0.5 ? 'left' : 'right');
+          const spawnX = (side === 'left')
+            ? (state.cameraX - 140 - rand(0, 60))
+            : clamp(state.cameraX + canvas.width + 140 + rand(0, 60), state.cameraX + canvas.width + 120, state.levelWidth - 60);
           const spawnY = clamp(rand(getBrawlLaneMinY(), BRAWL_LANE_MAX_Y), getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
-          const finalX = isSpawnOverlappingPlayer(spawnX, spawnY) ? (spawnX + 100) : spawnX;
+          const offsetAwayFromPlayer = side === 'left' ? -100 : 100;
+          const finalX = isSpawnOverlappingPlayer(spawnX, spawnY) ? (spawnX + offsetAwayFromPlayer) : spawnX;
           const enemy = createEnemy(entry.type, finalX, spawnY, false, Object.assign({ noDigUntil: 48 }, entry.opts || {}));
           state.enemies.push(enemy);
           debugLog('waves', 'spawn', entry.type, 'wave', state.waveIndex + 1);

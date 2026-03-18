@@ -3901,8 +3901,10 @@
       return blinkOn ? 'rgba(74, 142, 224, 0.6)' : null;
     }
 
-    function drawAnimationFrame(sourceImage, frame, dx, dy, dw, dh, tint = null) {
-      if (!tint) {
+    function drawAnimationFrame(sourceImage, frame, dx, dy, dw, dh, drawOptions = null) {
+      const tint = drawOptions?.tint || null;
+      const alphaMask = drawOptions?.alphaMask || null;
+      if (!tint && alphaMask === null) {
         ctx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, dx, dy, dw, dh);
         return;
       }
@@ -3910,11 +3912,29 @@
       statusTintCanvas.height = frame.height;
       statusTintCtx.clearRect(0, 0, frame.width, frame.height);
       statusTintCtx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, 0, 0, frame.width, frame.height);
-      statusTintCtx.globalCompositeOperation = 'source-atop';
-      statusTintCtx.fillStyle = tint;
-      statusTintCtx.fillRect(0, 0, frame.width, frame.height);
+      if (tint) {
+        statusTintCtx.globalCompositeOperation = 'source-atop';
+        statusTintCtx.fillStyle = tint;
+        statusTintCtx.fillRect(0, 0, frame.width, frame.height);
+      }
+      if (alphaMask !== null) {
+        statusTintCtx.globalCompositeOperation = 'destination-in';
+        statusTintCtx.fillStyle = `rgba(0, 0, 0, ${clamp(alphaMask, 0, 1)})`;
+        statusTintCtx.fillRect(0, 0, frame.width, frame.height);
+      }
       statusTintCtx.globalCompositeOperation = 'source-over';
       ctx.drawImage(statusTintCanvas, 0, 0, frame.width, frame.height, dx, dy, dw, dh);
+    }
+
+    function getEntityInvulnerabilityAlpha(entity) {
+      if (!entity) return null;
+      const isInvulnerable = (entity === state.player)
+        ? entity.shieldTimer > 0
+        : (entity.invulnFrames || 0) > 0;
+      if (!isInvulnerable) return null;
+
+      const blinkOn = Math.floor(performance.now() / 110) % 2 === 0;
+      return blinkOn ? 0.5 : null;
     }
 
     function drawEntity(entity, size, colorOverride) {
@@ -3928,6 +3948,11 @@
         : 1;
       const useFade = fadeAlpha < 1;
       const tintColor = getEntityStatusTint(entity);
+      const invulnerabilityAlpha = getEntityInvulnerabilityAlpha(entity);
+      const drawOptions = {
+        tint: tintColor,
+        alphaMask: invulnerabilityAlpha
+      };
       if (useFade) {
         ctx.save();
         ctx.globalAlpha = fadeAlpha;
@@ -3950,7 +3975,7 @@
               -drawSize,
               drawSize,
               drawSize,
-              tintColor
+              drawOptions
             );
             ctx.restore();
           } else {
@@ -3961,7 +3986,7 @@
               y - drawSize,
               drawSize,
               drawSize,
-              tintColor
+              drawOptions
             );
           }
           if (useFade) ctx.restore();
@@ -3985,7 +4010,7 @@
               -drawSize,
               drawSize,
               drawSize,
-              tintColor
+              drawOptions
             );
             ctx.restore();
           } else {
@@ -3996,7 +4021,7 @@
               y - drawSize,
               drawSize,
               drawSize,
-              tintColor
+              drawOptions
             );
           }
           if (useFade) ctx.restore();
@@ -4005,7 +4030,19 @@
       }
       if (entity.sprite) {
         const drawSize = size * depthScale;
-        ctx.drawImage(entity.sprite, x - drawSize / 2, y - drawSize, drawSize, drawSize);
+        if (invulnerabilityAlpha !== null) {
+          statusTintCanvas.width = entity.sprite.width;
+          statusTintCanvas.height = entity.sprite.height;
+          statusTintCtx.clearRect(0, 0, entity.sprite.width, entity.sprite.height);
+          statusTintCtx.drawImage(entity.sprite, 0, 0);
+          statusTintCtx.globalCompositeOperation = 'destination-in';
+          statusTintCtx.fillStyle = `rgba(0, 0, 0, ${clamp(invulnerabilityAlpha, 0, 1)})`;
+          statusTintCtx.fillRect(0, 0, entity.sprite.width, entity.sprite.height);
+          statusTintCtx.globalCompositeOperation = 'source-over';
+          ctx.drawImage(statusTintCanvas, x - drawSize / 2, y - drawSize, drawSize, drawSize);
+        } else {
+          ctx.drawImage(entity.sprite, x - drawSize / 2, y - drawSize, drawSize, drawSize);
+        }
       } else {
         const drawSize = size * depthScale;
         ctx.fillStyle = colorOverride || '#fff';

@@ -3941,6 +3941,9 @@
     }
 
     function getEntityStatusTint(entity) {
+      const hasPoisonTint = !!(entity?.statuses?.POISON?.duration > 0);
+      if (hasPoisonTint) return 'rgba(70, 255, 95, 0.72)';
+
       const hasFreezeTint = !!(entity?.statuses?.FREEZE?.duration > 0);
       if (hasFreezeTint) return 'rgba(120, 205, 255, 0.52)';
 

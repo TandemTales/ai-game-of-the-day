@@ -1984,6 +1984,7 @@
         hurtTimer: 0,
         deathHoldFrames: 0,
         mudTrailDropCooldown: options.mudTrailDropCooldown || rand(4, 7),
+        teleportChaseFrames: 0,
         statuses: {}
       };
       return enemy;
@@ -3369,21 +3370,13 @@
               enemy.windup = 8;
               enemy.attackAnimTimer = 14;
             }
-          } else if (enemy.aiState === 'Recover') {
-            enemy.aiTimer += 1;
-            if (enemy.aiTimer > 48) {
-              setEnemyState(enemy, 'Approach');
-            }
           } else {
-            if (distance > 190) {
-              enemy.x += Math.sign(dx) * moveSpeed * 0.8;
-              enemy.y += Math.sign(dy) * moveSpeed * 0.4;
-              enemy.isMoving = true;
-            }
             const verticalGap = Math.abs(player.y - enemy.y);
-            if (distance > 150 && distance < 350 && verticalGap < 110 && enemy.burrowCooldown <= 0 && enemy.noDigUntil <= 0 && canGoUnderground()) {
+            const canBurrowNow = enemy.burrowCooldown <= 0 && enemy.noDigUntil <= 0 && canGoUnderground();
+            const startBurrowAttack = () => {
               setEnemyState(enemy, 'DigStart');
               enemy.aiTimer = 0;
+              enemy.teleportChaseFrames = 0;
               const preferBehindX = player.x - (player.facing >= 0 ? 70 : -70);
               const fallbackX = player.x + (player.facing >= 0 ? 70 : -70);
               enemy.targetX = clamp(preferBehindX, state.cameraX + 30, state.cameraX + canvas.width - 30);
@@ -3392,6 +3385,30 @@
               }
               const verticalBounds = getEnemyVerticalBounds(enemy);
               enemy.targetY = clamp(player.y + rand(-18, 18), verticalBounds.minY, verticalBounds.maxY);
+            };
+
+            if (distance > 190) {
+              enemy.x += Math.sign(dx) * moveSpeed * 0.8;
+              enemy.y += Math.sign(dy) * moveSpeed * 0.4;
+              enemy.isMoving = true;
+            }
+
+            const farDistanceForTeleport = 350;
+            const chaseBeforeTeleportFrames = 24;
+            if (distance > farDistanceForTeleport) {
+              enemy.teleportChaseFrames += 1;
+              enemy.x += Math.sign(dx) * moveSpeed * 0.45;
+              enemy.y += Math.sign(dy) * moveSpeed * 0.25;
+              enemy.isMoving = true;
+              if (enemy.teleportChaseFrames >= chaseBeforeTeleportFrames && verticalGap < 130 && canBurrowNow) {
+                startBurrowAttack();
+              }
+            } else {
+              enemy.teleportChaseFrames = 0;
+            }
+
+            if (distance > 150 && distance < 350 && verticalGap < 110 && canBurrowNow) {
+              startBurrowAttack();
             } else if (distance <= enemy.range && enemy.cooldown <= 0) {
               enemy.windup = 10;
               enemy.attackAnimTimer = 14;
@@ -3545,7 +3562,7 @@
             }
             enemy.cooldown = rand(40, 80);
             if (enemy.type === 'daphodilus' && enemy.aiState === 'PopAttack') {
-              setEnemyState(enemy, 'Recover');
+              setEnemyState(enemy, 'Approach');
               enemy.burrowCooldown = 300;
             }
           }

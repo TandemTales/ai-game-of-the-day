@@ -3387,9 +3387,11 @@
               enemy.targetY = clamp(player.y + rand(-18, 18), verticalBounds.minY, verticalBounds.maxY);
             };
 
-            if (distance > 190) {
-              enemy.x += Math.sign(dx) * moveSpeed * 0.8;
-              enemy.y += Math.sign(dy) * moveSpeed * 0.4;
+            if (distance > enemy.range) {
+              const chaseScaleX = distance > 190 ? 0.8 : 0.95;
+              const chaseScaleY = distance > 190 ? 0.4 : 0.55;
+              enemy.x += Math.sign(dx) * moveSpeed * chaseScaleX;
+              enemy.y += Math.sign(dy) * moveSpeed * chaseScaleY;
               enemy.isMoving = true;
             }
 
@@ -3397,9 +3399,6 @@
             const chaseBeforeTeleportFrames = 24;
             if (distance > farDistanceForTeleport) {
               enemy.teleportChaseFrames += 1;
-              enemy.x += Math.sign(dx) * moveSpeed * 0.45;
-              enemy.y += Math.sign(dy) * moveSpeed * 0.25;
-              enemy.isMoving = true;
               if (enemy.teleportChaseFrames >= chaseBeforeTeleportFrames && verticalGap < 130 && canBurrowNow) {
                 startBurrowAttack();
               }

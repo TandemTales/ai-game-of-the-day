@@ -3375,9 +3375,10 @@
               setEnemyState(enemy, 'Approach');
             }
           } else {
-            if (distance > 190) {
-              enemy.x += Math.sign(dx) * moveSpeed * 0.8;
-              enemy.y += Math.sign(dy) * moveSpeed * 0.4;
+            if (distance > enemy.range) {
+              const chaseSpeedScale = distance > 190 ? 0.8 : 0.95;
+              enemy.x += Math.sign(dx) * moveSpeed * chaseSpeedScale;
+              enemy.y += Math.sign(dy) * moveSpeed * 0.45;
               enemy.isMoving = true;
             }
             const verticalGap = Math.abs(player.y - enemy.y);
@@ -3540,12 +3541,18 @@
             } else {
               const attackReachMultiplier = enemy.isBoss ? 2 : 1;
               const forwardReach = ((enemy.range + 10) * attackReachMultiplier);
-              const meleeZone = { x: enemy.facing >= 0 ? enemyBody.x : enemyBody.x - forwardReach, y: enemyBody.y, width: enemyBody.width + forwardReach, height: enemyBody.height };
-              if (rectsOverlap(meleeZone, playerBody)) damagePlayer(enemy.damage);
+              const overlapReach = 12;
+              const meleeZone = {
+                x: (enemy.facing >= 0 ? enemyBody.x : enemyBody.x - forwardReach) - overlapReach,
+                y: enemyBody.y,
+                width: enemyBody.width + forwardReach + (overlapReach * 2),
+                height: enemyBody.height
+              };
+              if (rectsOverlap(meleeZone, playerBody) || rectsOverlap(enemyBody, playerBody)) damagePlayer(enemy.damage, enemy);
             }
             enemy.cooldown = rand(40, 80);
             if (enemy.type === 'daphodilus' && enemy.aiState === 'PopAttack') {
-              setEnemyState(enemy, 'Recover');
+              setEnemyState(enemy, 'Approach');
               enemy.burrowCooldown = 300;
             }
           }

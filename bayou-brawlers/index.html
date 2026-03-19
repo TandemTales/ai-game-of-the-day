@@ -3393,7 +3393,7 @@
               }
               const verticalBounds = getEnemyVerticalBounds(enemy);
               enemy.targetY = clamp(player.y + rand(-18, 18), verticalBounds.minY, verticalBounds.maxY);
-            } else if (distance <= enemy.range && enemy.cooldown <= 0) {
+            } else if ((distance <= enemy.range || rectsOverlap(enemyBody, playerBody)) && enemy.cooldown <= 0) {
               enemy.windup = 10;
               enemy.attackAnimTimer = 14;
             }
@@ -3506,7 +3506,7 @@
             enemy.x += Math.sign(dx) * moveSpeed * 0.6;
             enemy.y += Math.sign(dy) * moveSpeed * 0.4;
             enemy.isMoving = true;
-          } else if (distance > enemy.range) {
+          } else if (distance > enemy.range && !rectsOverlap(enemyBody, playerBody)) {
             enemy.x += Math.sign(dx) * moveSpeed;
             enemy.y += Math.sign(dy) * moveSpeed * 0.6;
             enemy.isMoving = true;

@@ -2094,7 +2094,7 @@
     }
 
     function spawnMudTrailPatch(x, y) {
-      const width = rand(42, 62);
+      const width = rand(84, 124);
       const height = rand(28, 40);
       const nearExistingPatch = state.hazards.some(h => h.kind === 'mud-trail'
         && Math.abs(h.x - x) < ((h.w + width) * 0.2)

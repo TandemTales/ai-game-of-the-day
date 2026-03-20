@@ -3393,7 +3393,7 @@
               }
               const verticalBounds = getEnemyVerticalBounds(enemy);
               enemy.targetY = clamp(player.y + rand(-18, 18), verticalBounds.minY, verticalBounds.maxY);
-            } else if ((distance <= enemy.range || rectsOverlap(enemyBody, playerBody)) && enemy.cooldown <= 0) {
+            } else if ((distance <= enemy.range || rectsOverlap(enemyBody, playerBody)) && enemy.cooldown <= 0 && enemy.windup <= 0) {
               enemy.windup = 10;
               enemy.attackAnimTimer = 14;
             }

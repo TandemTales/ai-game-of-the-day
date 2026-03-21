@@ -1100,6 +1100,12 @@
             }
             case 'attackHigh':
             case 'attackLow':
+              {
+                const attackX = P.x + P.w/2 + boss.w/2 + 24;
+                const chaseSpeed = craneSpeedFor(boss) * 0.7;
+                const dx = attackX - boss.x;
+                boss.x += clamp(dx, -chaseSpeed * dt, chaseSpeed * dt);
+              }
               boss.animT += dt;
               if (boss.animT >= CRANE_ATTACK_FRAME_DUR) { boss.animT -= CRANE_ATTACK_FRAME_DUR; boss.animFrame++; }
               boss.vulnerable = boss.animFrame === 0;
@@ -1542,7 +1548,8 @@
       for (let i = flyers.length - 1; i >= 0; i--) {
         const f = flyers[i];
         f.t += dt; f.bobT += dt;
-        const targetX = Math.max(W - 260, P.x + 320);
+        const safeLead = P.w * 0.5 + f.w * 0.5 + 26;
+        const targetX = Math.max(W - 260, P.x + Math.max(320, safeLead));
         if (f.state === 'approach') {
           const dx = targetX - f.x;
           // Match world scroll and steer towards target
@@ -1665,6 +1672,85 @@
       function hitWithOverrides(a, b, overrideA, overrideB){
         return boxesOverlap(hitBox(a, overrideA), hitBox(b, overrideB));
       }
+      function separateEnemyFromPlayer(enemy, options = {}) {
+        const enemyBox = hitBox(enemy, options.enemyHitbox);
+        const playerBox = hitBox(P, options.playerHitbox);
+        const overlapX = (enemyBox.w + playerBox.w) * 0.5 - Math.abs(enemyBox.x - playerBox.x);
+        const overlapY = (enemyBox.h + playerBox.h) * 0.5 - Math.abs(enemyBox.y - playerBox.y);
+        if (overlapX <= 0 || overlapY <= 0) return false;
+
+        const preferHorizontal = options.preferHorizontal ?? (overlapX <= overlapY);
+        if (preferHorizontal) {
+          const dirX = enemyBox.x >= playerBox.x ? 1 : -1;
+          enemy.x += dirX * (overlapX + 2);
+        } else {
+          const dirY = enemyBox.y >= playerBox.y ? 1 : -1;
+          enemy.y += dirY * (overlapY + 2);
+          if (typeof enemy.baseY === 'number') enemy.baseY = enemy.y;
+        }
+        return true;
+      }
+
+      // Ensure moving enemies avoid sitting inside the player.
+      for (const f of flyers) {
+        if (separateEnemyFromPlayer(f)) {
+          f.x = Math.max(P.x + P.w * 0.35 + f.w * 0.5 + 8, f.x);
+          f.y = clamp(f.y, 24, GROUND_Y - 40);
+          if (typeof f.baseY === 'number') f.baseY = clamp(f.baseY, 24, GROUND_Y - 40);
+        }
+      }
+      if (boss) {
+        separateEnemyFromPlayer(boss, { preferHorizontal: true });
+      }
+
+      // Player bullet collisions: destroy flyers and damage boss when vulnerable
+      for (let i = pshots.length - 1; i >= 0; i--) {
+        const b = pshots[i];
+        let hitSomething = false;
+        for (let j = flyers.length - 1; j >= 0; j--) {
+          if (hit(b, flyers[j])) { flyers.splice(j,1); hitSomething = true; if (!heatCheat) score += 1; playSfx(SFX.enemyHit); break; }
+        }
+        if (!hitSomething) {
+          for (let j = missiles.length - 1; j >= 0; j--) {
+            if (hit(b, missiles[j])) { missiles.splice(j,1); hitSomething = true; if (!heatCheat) score += 1; playSfx(SFX.enemyHit); break; }
+          }
+        }
+        if (!hitSomething && boss && boss.vulnerable) {
+          let damage = 0;
+          const weakHit = hit(b, boss);
+          if (weakHit) {
+            damage = GUN_DAMAGE * 2;
+          } else if (hitWithOverrides(b, boss, null, { x: 1, y: 1 })) {
+            damage = GUN_DAMAGE;
+          }
+          if (damage > 0) {
+            boss.hp -= damage;
+            boss.flash = 0.25;
+            hitSomething = true;
+            playSfx(SFX.enemyHit);
+            if (boss.hp <= 0) {
+              playSfx(SFX.bossKill);
+              if (!heatCheat) score += 10;
+              showBossDefeated();
+              const GEM_W = 34, GEM_H = 34;
+              for (let g = 0; g < 5; g++) {
+                const gx = boss.x + rand(-60,60);
+                const gy = boss.y + rand(-60,60);
+                gems.push({ x: gx, y: gy, baseY: gy, w: GEM_W, h: GEM_H, img: IMG.gem, t: 0, hitX:0.60, hitY:0.60 });
+              }
+              boss = null;
+              bossNextTime = time + 30;
+              difficulty++;
+              runSpeed = RUN_SPEED * (1 + 0.1 * (difficulty - 1));
+              if (bossHud) bossHud.classList.add('hidden');
+            } else {
+              playSfx(SFX.bossHit);
+            }
+          }
+        }
+        if (hitSomething) { pshots.splice(i,1); }
+      }
+
       // Hazard collisions: add heat and drop items. If shield is owned, it absorbs the hit, losing one durability and preventing heat gain.
       if (hitGrace <= 0) {
         function consumeShieldOnHit() {
@@ -1941,53 +2027,6 @@
         }
       }
 
-      // Player bullet collisions: destroy flyers and damage boss when vulnerable
-      for (let i = pshots.length - 1; i >= 0; i--) {
-        const b = pshots[i];
-        let hitSomething = false;
-        for (let j = flyers.length - 1; j >= 0; j--) {
-          if (hit(b, flyers[j])) { flyers.splice(j,1); hitSomething = true; if (!heatCheat) score += 1; playSfx(SFX.enemyHit); break; }
-        }
-        if (!hitSomething) {
-          for (let j = missiles.length - 1; j >= 0; j--) {
-            if (hit(b, missiles[j])) { missiles.splice(j,1); hitSomething = true; if (!heatCheat) score += 1; playSfx(SFX.enemyHit); break; }
-          }
-        }
-        if (!hitSomething && boss && boss.vulnerable) {
-          let damage = 0;
-          const weakHit = hit(b, boss);
-          if (weakHit) {
-            damage = GUN_DAMAGE * 2;
-          } else if (hitWithOverrides(b, boss, null, { x: 1, y: 1 })) {
-            damage = GUN_DAMAGE;
-          }
-          if (damage > 0) {
-            boss.hp -= damage;
-            boss.flash = 0.25;
-            hitSomething = true;
-            playSfx(SFX.enemyHit);
-            if (boss.hp <= 0) {
-              playSfx(SFX.bossKill);
-              if (!heatCheat) score += 10;
-              showBossDefeated();
-              const GEM_W = 34, GEM_H = 34;
-              for (let g = 0; g < 5; g++) {
-                const gx = boss.x + rand(-60,60);
-                const gy = boss.y + rand(-60,60);
-                gems.push({ x: gx, y: gy, baseY: gy, w: GEM_W, h: GEM_H, img: IMG.gem, t: 0, hitX:0.60, hitY:0.60 });
-              }
-              boss = null;
-              bossNextTime = time + 30;
-              difficulty++;
-              runSpeed = RUN_SPEED * (1 + 0.1 * (difficulty - 1));
-              if (bossHud) bossHud.classList.add('hidden');
-            } else {
-              playSfx(SFX.bossHit);
-            }
-          }
-        }
-        if (hitSomething) { pshots.splice(i,1); }
-      }
     }
 
     function die(){

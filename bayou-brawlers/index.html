@@ -1096,6 +1096,7 @@
     const BASE_MAX_MAGIC = 100;
     const SPECIAL_COST = BASE_MAX_MAGIC / 3;
     const SUPER_COST = SPECIAL_COST;
+    const COLD_RESERVOIR_MAGIC_PER_FREEZE = 5;
     const XP_TABLE = [0, 60, 140, 260, 420, 620, 860, 1160, 1540, 2050];
     const XP_BY_TIER = { small: 7, medium: 12, elite: 22.5, boss: 50 };
     const MAGIC_BY_TIER = { small: 5, medium: 8, elite: 12, boss: 15 };
@@ -2691,6 +2692,25 @@
       }
     }
 
+    function spawnPowerPlusCluster(entity, bonusAmount = 0) {
+      if (!entity || bonusAmount <= 0) return;
+      const topOpaqueWorldY = getEntityWalkTopOpaqueWorldY(entity, PLAYER_DRAW_SIZE);
+      const symbolCount = 8;
+      for (let i = 0; i < symbolCount; i += 1) {
+        state.effects.push({
+          type: 'power-plus',
+          x: entity.x + rand(-18, 18),
+          y: topOpaqueWorldY - rand(8, 24),
+          vx: rand(-0.35, 0.35),
+          vy: rand(-1.45, -0.9),
+          drift: rand(-0.05, 0.05),
+          size: rand(14, 20),
+          timer: rand(28, 42),
+          maxTimer: 42
+        });
+      }
+    }
+
     function healPlayer(amount) {
       const player = state.player;
       if (!player || amount <= 0 || player.hp <= 0) return 0;
@@ -3051,8 +3071,15 @@
         const slow = heavy ? 0.4 : 0.2;
         const freezeDur = enemy.type.includes('ghost') ? (heavy ? 120 : 72) : 0;
         const bonusDur = hasLevel(player, 10) ? 1.5 : 1;
+        const wasFrozen = (enemy.statuses?.FREEZE?.duration || 0) > 0;
         applyStatus(enemy, 'SLOW', Math.floor((heavy ? 180 : 150) * bonusDur), slow);
-        if (freezeDur > 0) applyStatus(enemy, 'FREEZE', freezeDur, 1);
+        if (freezeDur > 0) {
+          applyStatus(enemy, 'FREEZE', freezeDur, 1);
+          if (!wasFrozen && hasUpgrade(player, 'cold-reservoir')) {
+            addMagic(player, COLD_RESERVOIR_MAGIC_PER_FREEZE);
+            spawnPowerPlusCluster(player, COLD_RESERVOIR_MAGIC_PER_FREEZE);
+          }
+        }
       }
       if (id === 'green-fairy' && heavy && Math.random() < 0.2) applyStatus(enemy, 'CONFUSE', 90, 1);
       if (id === 'grimma-the-feared' && heavy && getEnemyTier(enemy) === 'small') enemy.x += (player.x - enemy.x) * 0.2;
@@ -3090,11 +3117,22 @@
       } else if (id === 'billy-boxby') {
         state.effects.push({ x: player.x, y: player.y, radius: 96, timer: 240, damage: hasLevel(player, 7) ? 1 : 0, stun: 0, knockback: 0, type: 'frost-patch', owner: player });
         if (isSuper) {
+          let coldReservoirBonus = 0;
           state.enemies.forEach(enemy => {
             if (!canPlayerAffectEnemy(enemy)) return;
+            const wasFrozen = (enemy.statuses?.FREEZE?.duration || 0) > 0;
             applyStatus(enemy, 'SLOW', (hasLevel(player, 9) ? 300 : 240), 0.6);
-            if (getEnemyTier(enemy) !== 'boss') applyStatus(enemy, 'FREEZE', hasLevel(player, 9) ? 240 : 180, 1);
+            if (getEnemyTier(enemy) !== 'boss') {
+              applyStatus(enemy, 'FREEZE', hasLevel(player, 9) ? 240 : 180, 1);
+              if (!wasFrozen && hasUpgrade(player, 'cold-reservoir')) {
+                coldReservoirBonus += COLD_RESERVOIR_MAGIC_PER_FREEZE;
+              }
+            }
           });
+          if (coldReservoirBonus > 0) {
+            addMagic(player, coldReservoirBonus);
+            spawnPowerPlusCluster(player, coldReservoirBonus);
+          }
         }
       } else if (id === 'rustbucket') {
         player.sentryTimer = 150;
@@ -3746,6 +3784,12 @@
           effect.vx *= 0.96;
         }
         if (effect.type === 'heal-plus') {
+          effect.x += (effect.vx || 0);
+          effect.y += (effect.vy || 0);
+          effect.vy = (effect.vy || 0) - 0.03;
+          effect.vx = ((effect.vx || 0) * 0.97) + (effect.drift || 0);
+        }
+        if (effect.type === 'power-plus') {
           effect.x += (effect.vx || 0);
           effect.y += (effect.vy || 0);
           effect.vy = (effect.vy || 0) - 0.03;
@@ -4508,6 +4552,27 @@
           ctx.shadowBlur = 8;
           ctx.fillStyle = 'rgba(255, 0, 0, 0.98)';
           ctx.strokeStyle = 'rgba(255, 205, 205, 0.98)';
+          ctx.lineWidth = 1.6;
+          ctx.fillRect(x - (thickness / 2), y - half, thickness, size);
+          ctx.fillRect(x - half, y - (thickness / 2), size, thickness);
+          ctx.strokeRect(x - (thickness / 2), y - half, thickness, size);
+          ctx.strokeRect(x - half, y - (thickness / 2), size, thickness);
+          ctx.restore();
+        }
+        if (effect.type === 'power-plus') {
+          const maxTimer = effect.maxTimer || 42;
+          const alpha = clamp(effect.timer / maxTimer, 0, 1);
+          const x = effect.x - state.cameraX;
+          const y = effect.y - state.cameraY;
+          const size = effect.size || 16;
+          const half = size * 0.5;
+          const thickness = Math.max(2, size * 0.22);
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.shadowColor = 'rgba(96, 177, 255, 0.88)';
+          ctx.shadowBlur = 8;
+          ctx.fillStyle = 'rgba(82, 176, 255, 0.98)';
+          ctx.strokeStyle = 'rgba(206, 236, 255, 0.98)';
           ctx.lineWidth = 1.6;
           ctx.fillRect(x - (thickness / 2), y - half, thickness, size);
           ctx.fillRect(x - half, y - (thickness / 2), size, thickness);

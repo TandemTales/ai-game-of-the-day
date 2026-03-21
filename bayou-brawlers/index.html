@@ -2235,6 +2235,7 @@
       if (enemy.type !== 'sweetykins') return null;
       if (!enemy.sweetykinsCycle) {
         const initialDirection = enemy.x > state.player.x ? -1 : 1;
+        enemy.x = getSweetykinsOffscreenX(initialDirection);
         enemy.sweetykinsCycle = {
           phase: 'charge',
           runsCompleted: 0,
@@ -2252,6 +2253,13 @@
       return direction >= 0
         ? state.cameraX - margin
         : state.cameraX + canvas.width + margin;
+    }
+
+    function getSweetykinsExitOffscreenX(direction) {
+      const margin = 120;
+      return direction >= 0
+        ? state.cameraX + canvas.width + margin
+        : state.cameraX - margin;
     }
 
     function updateEnemyAnimation(enemy, dt) {
@@ -3645,7 +3653,7 @@
                 cycle.turnTimer = 8;
               } else {
                 cycle.phase = 'approach';
-                enemy.x = getSweetykinsOffscreenX(cycle.chargeDirection);
+                enemy.x = getSweetykinsExitOffscreenX(cycle.chargeDirection);
                 enemy.facing = player.x >= enemy.x ? 1 : -1;
               }
             }
@@ -3657,8 +3665,8 @@
             const approachDistance = Math.hypot(approachDx, approachDy);
             if (Math.abs(approachDx) > ENEMY_FACING_DEADZONE_X) enemy.facing = approachDx >= 0 ? 1 : -1;
             if (approachDistance > enemy.range * 0.95) {
-              enemy.x += Math.sign(approachDx) * moveSpeed * 0.9;
-              enemy.y += Math.sign(approachDy) * moveSpeed * 0.45;
+              enemy.x += Math.sign(approachDx) * moveSpeed * 1.25;
+              enemy.y += Math.sign(approachDy) * moveSpeed * 0.62;
               enemy.isMoving = true;
             } else {
               cycle.phase = 'brawl';

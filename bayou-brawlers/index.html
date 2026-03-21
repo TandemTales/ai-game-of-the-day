@@ -2828,6 +2828,12 @@
       return enemy && !isCharmed(enemy);
     }
 
+    function isIncorporealEnemy(enemy) {
+      if (!enemy || !enemy.type) return false;
+      const type = String(enemy.type).toLowerCase();
+      return type.includes('ghost') || type.includes('incorporeal');
+    }
+
     function getCharacterTuning(player) {
       const id = player.charData.id;
       const table = {
@@ -3048,11 +3054,23 @@
       if (!canPlayerAffectEnemy(enemy)) return;
       const id = player.charData.id;
       if (id === 'billy-boxby') {
-        const slow = heavy ? 0.4 : 0.2;
-        const freezeDur = enemy.type.includes('ghost') ? (heavy ? 120 : 72) : 0;
+        const incorporeal = isIncorporealEnemy(enemy);
         const bonusDur = hasLevel(player, 10) ? 1.5 : 1;
-        applyStatus(enemy, 'SLOW', Math.floor((heavy ? 180 : 150) * bonusDur), slow);
-        if (freezeDur > 0) applyStatus(enemy, 'FREEZE', freezeDur, 1);
+        if (!heavy) {
+          const slowChance = incorporeal ? 0.75 : 0.25;
+          if (Math.random() < slowChance) {
+            applyStatus(enemy, 'SLOW', Math.floor(150 * bonusDur), 0.2);
+          }
+        } else {
+          const slowChance = incorporeal ? 1 : 0.5;
+          const freezeChance = incorporeal ? 0.5 : 0.1;
+          if (Math.random() < slowChance) {
+            applyStatus(enemy, 'SLOW', Math.floor(180 * bonusDur), 0.4);
+          }
+          if (Math.random() < freezeChance) {
+            applyStatus(enemy, 'FREEZE', Math.floor((incorporeal ? 150 : 90) * bonusDur), 1);
+          }
+        }
       }
       if (id === 'green-fairy' && heavy && Math.random() < 0.2) applyStatus(enemy, 'CONFUSE', 90, 1);
       if (id === 'grimma-the-feared' && heavy && getEnemyTier(enemy) === 'small') enemy.x += (player.x - enemy.x) * 0.2;
@@ -3092,8 +3110,14 @@
         if (isSuper) {
           state.enemies.forEach(enemy => {
             if (!canPlayerAffectEnemy(enemy)) return;
-            applyStatus(enemy, 'SLOW', (hasLevel(player, 9) ? 300 : 240), 0.6);
-            if (getEnemyTier(enemy) !== 'boss') applyStatus(enemy, 'FREEZE', hasLevel(player, 9) ? 240 : 180, 1);
+            applyStatus(enemy, 'SLOW', (hasLevel(player, 9) ? 330 : 270), 0.55);
+            if (getEnemyTier(enemy) !== 'boss') {
+              const incorporeal = isIncorporealEnemy(enemy);
+              const freezeDuration = hasLevel(player, 9)
+                ? (incorporeal ? 300 : 240)
+                : (incorporeal ? 240 : 200);
+              applyStatus(enemy, 'FREEZE', freezeDuration, 1);
+            }
           });
         }
       } else if (id === 'rustbucket') {
@@ -3776,6 +3800,13 @@
             if (distance < effect.radius) {
               if (!canPlayerAffectEnemy(enemy)) return;
               applyStatus(enemy, 'SLOW', 120, 0.6);
+              if (effect.owner && effect.owner.charData?.id === 'billy-boxby' && effect.timer % 20 === 0 && getEnemyTier(enemy) !== 'boss') {
+                const freezeChance = isIncorporealEnemy(enemy) ? 0.35 : 0.15;
+                if (Math.random() < freezeChance) {
+                  const freezeDuration = isIncorporealEnemy(enemy) ? 72 : 48;
+                  applyStatus(enemy, 'FREEZE', freezeDuration, 1);
+                }
+              }
               if (effect.damage > 0 && effect.timer % 30 === 0) damageEnemy(enemy, effect.damage, 0);
             }
           });

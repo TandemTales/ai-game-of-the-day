@@ -1136,6 +1136,9 @@
     const ENEMY_PERSONAL_SPACE_BUFFER = 88;
     const ENEMY_GROUP_SPAWN_SPACING = 120;
     const ENEMY_SEPARATION_PUSH = 0.95;
+    const ENEMY_PLAYER_PERSONAL_SPACE = 34;
+    const ENEMY_PLAYER_FRONT_OFFSET = 62;
+    const ENEMY_PLAYER_FRONT_REPOSITION_SPEED = 0.7;
     const STUN_CONDITION_THRESHOLD = 28;
     const STUN_DURATION_BONUS_FRAMES = 120;
     const PLAYER_STUN_TYPES = new Set(['brute', 'boss', 'mud-monster', 'sweetykins']);
@@ -2089,6 +2092,50 @@
       };
     }
 
+    function getEnemyPlayerSpacingAdjustment(enemy, player, moveSpeed = enemy?.speed || 1) {
+      if (!enemy || !player || enemy.hp <= 0 || enemy.attachTargetFrames > 0) {
+        return { pushX: 0, pushY: 0, needsFrontReposition: false };
+      }
+
+      const enemyBody = getEnemyHitbox(enemy);
+      const playerBody = getPlayerHitbox(player);
+      const enemyCenterX = enemyBody.x + enemyBody.width * 0.5;
+      const enemyCenterY = enemyBody.y + enemyBody.height * 0.5;
+      const playerCenterX = playerBody.x + playerBody.width * 0.5;
+      const playerCenterY = playerBody.y + playerBody.height * 0.5;
+      const dx = enemyCenterX - playerCenterX;
+      const dy = enemyCenterY - playerCenterY;
+      const distance = Math.hypot(dx, dy) || 0.0001;
+      const overlap = rectsOverlap(enemyBody, playerBody);
+
+      let pushX = 0;
+      let pushY = 0;
+      if (distance < ENEMY_PLAYER_PERSONAL_SPACE || overlap) {
+        const pressure = overlap
+          ? 1
+          : clamp((ENEMY_PLAYER_PERSONAL_SPACE - distance) / ENEMY_PLAYER_PERSONAL_SPACE, 0, 1);
+        const awayX = overlap ? (dx || player.facing || 1) : dx;
+        const awayY = overlap ? (dy || (enemy.uid % 2 === 0 ? 1 : -1)) : dy;
+        const awayNorm = Math.hypot(awayX, awayY) || 1;
+        pushX += (awayX / awayNorm) * pressure * ENEMY_SEPARATION_PUSH * 1.35;
+        pushY += (awayY / awayNorm) * pressure * ENEMY_SEPARATION_PUSH;
+      }
+
+      const desiredFrontX = player.x + (player.facing * ENEMY_PLAYER_FRONT_OFFSET);
+      const frontDeltaX = desiredFrontX - enemy.x;
+      const enemyIsBehindPlayer = Math.sign(enemy.x - player.x || 0) === -player.facing;
+      if (enemyIsBehindPlayer && Math.abs(frontDeltaX) > ENEMY_FACING_DEADZONE_X) {
+        const frontStep = Math.sign(frontDeltaX) * moveSpeed * ENEMY_PLAYER_FRONT_REPOSITION_SPEED;
+        pushX += frontStep;
+      }
+
+      return {
+        pushX,
+        pushY,
+        needsFrontReposition: enemyIsBehindPlayer
+      };
+    }
+
     function getPlayerHitbox(player) {
       return getPhysicsBody(player);
     }
@@ -2958,6 +3005,13 @@
         let hitCount = 0;
         state.enemies.forEach(enemy => {
           if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
+          if (playerBodyOverlap(player, enemy)) {
+            damageEnemy(enemy, baseDmg, heavy ? 24 : 16);
+            enemy.x += player.facing * (heavy ? 20 : 12);
+            applyCharacterOnHitStatus(player, enemy, heavy);
+            hitCount += 1;
+            return;
+          }
           const enemyBody = getEnemyHitbox(enemy);
           const targetX = enemyBody.x + enemyBody.width * 0.5;
           const targetY = enemyBody.y + enemyBody.height * 0.45;
@@ -3059,7 +3113,7 @@
         let hitCount = 0;
         state.enemies.forEach(enemy => {
           if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
-          if (rectOverlap(hitbox, enemy)) {
+          if (rectOverlap(hitbox, enemy) || playerBodyOverlap(player, enemy)) {
             damageEnemy(enemy, frontDamage, stun + 8);
             enemy.x += player.facing * (knockback + 10);
             applyCharacterOnHitStatus(player, enemy, heavy);
@@ -3340,6 +3394,7 @@
         const spacing = getEnemySpacingAdjustment(enemy);
         const isSlowed = (enemy.statuses?.SLOW?.duration || 0) > 0;
         const moveSpeed = enemy.speed * spacing.moveScale * (isSlowed ? 0.5 : 1);
+        const playerSpacing = getEnemyPlayerSpacingAdjustment(enemy, player, moveSpeed);
         const playerBody = getPlayerHitbox(player);
         const enemyBody = getEnemyHitbox(enemy);
         enemy.isMoving = false;
@@ -3649,6 +3704,12 @@
           }
         }
 
+        if (Math.abs(playerSpacing.pushX) > MOVE_EPSILON || Math.abs(playerSpacing.pushY) > MOVE_EPSILON) {
+          enemy.x += playerSpacing.pushX;
+          enemy.y += playerSpacing.pushY;
+          enemy.isMoving = true;
+        }
+
         if (STAGED_ENEMY_TYPES.has(enemy.type) && enemy.stage > 1) {
           if (!enemy.rage && enemy.hp < enemy.maxHp * 0.4) enemy.rage = true;
           enemy.commandCooldown -= 1;
@@ -3659,21 +3720,37 @@
         }
 
         if (enemy.windup > 0) {
+          if (enemy.attachTargetFrames <= 0 && enemy.dashFrames <= 0) {
+            const inContactWithPlayer = rectsOverlap(enemyBody, playerBody);
+            const advanceSpeed = moveSpeed * (enemy.ranged ? 0.28 : 0.42);
+            const strafeDir = enemy.uid % 2 === 0 ? 1 : -1;
+            if (inContactWithPlayer || playerSpacing.needsFrontReposition) {
+              enemy.x += player.facing * advanceSpeed * 0.9;
+              enemy.y += strafeDir * moveSpeed * 0.14;
+              enemy.isMoving = true;
+            } else if (!enemy.ranged && distance > enemy.range * 0.72) {
+              enemy.x += Math.sign(dx) * advanceSpeed;
+              enemy.y += Math.sign(dy) * moveSpeed * 0.18;
+              enemy.isMoving = true;
+            }
+          }
           enemy.windup -= 1;
           if (enemy.windup === 0) {
+            const enemyAttackBody = getEnemyHitbox(enemy);
+            const playerAttackBody = getPlayerHitbox(player);
             if (enemy.ranged) {
-              state.projectiles.push({ x: enemy.x, y: enemyBody.y + (enemyBody.height * 0.4), vx: Math.sign(dx) * 4.5, damage: enemy.damage, friendly: false, life: 140, color: '#ff7b7b' });
+              state.projectiles.push({ x: enemy.x, y: enemyAttackBody.y + (enemyAttackBody.height * 0.4), vx: Math.sign(dx) * 4.5, damage: enemy.damage, friendly: false, life: 140, color: '#ff7b7b' });
             } else {
               const attackReachMultiplier = enemy.isBoss ? 2 : 1;
               const forwardReach = ((enemy.range + 10) * attackReachMultiplier);
               const overlapReach = 12;
               const meleeZone = {
-                x: (enemy.facing >= 0 ? enemyBody.x : enemyBody.x - forwardReach) - overlapReach,
-                y: enemyBody.y,
-                width: enemyBody.width + forwardReach + (overlapReach * 2),
-                height: enemyBody.height
+                x: (enemy.facing >= 0 ? enemyAttackBody.x : enemyAttackBody.x - forwardReach) - overlapReach,
+                y: enemyAttackBody.y,
+                width: enemyAttackBody.width + forwardReach + (overlapReach * 2),
+                height: enemyAttackBody.height
               };
-              if (rectsOverlap(meleeZone, playerBody) || rectsOverlap(enemyBody, playerBody)) damagePlayer(enemy.damage, enemy);
+              if (rectsOverlap(meleeZone, playerAttackBody) || rectsOverlap(enemyAttackBody, playerAttackBody)) damagePlayer(enemy.damage, enemy);
             }
             enemy.cooldown = rand(40, 80);
             if (enemy.type === 'daphodilus' && enemy.aiState === 'PopAttack') {

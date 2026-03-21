@@ -263,87 +263,77 @@
       transition: opacity 1700ms ease, transform 1700ms ease;
     }
     .character-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-      gap: 12px;
       margin-top: 12px;
+      width: min(100%, 680px);
+      margin-inline: auto;
     }
-    .card {
-      border: 2px solid rgba(255,215,0,0.4);
-      border-radius: 12px;
-      padding: 10px 8px;
-      background: rgba(10,12,16,0.8);
+    .thumbnail-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin: 8px 4px;
+    }
+    .thumb-card {
+      border: 2px solid rgba(159,214,207,0.45);
+      border-radius: 8px;
+      padding: 4px;
+      background: rgba(8,10,14,0.9);
       cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
       display: grid;
       place-items: center;
-      text-align: center;
-      min-height: 132px;
       user-select: none;
       -webkit-user-select: none;
-      touch-action: none;
-      position: relative;
+      touch-action: manipulation;
     }
-    .card.selected {
-      border-color: var(--gold);
-      box-shadow: 0 0 16px rgba(255,215,0,0.4);
-      transform: translateY(-2px);
-    }
-    .card img {
-      width: clamp(46px, 8vw, 60px);
-      height: clamp(46px, 8vw, 60px);
+    .thumb-card img {
+      width: clamp(34px, 6vw, 46px);
+      height: clamp(34px, 6vw, 46px);
       image-rendering: pixelated;
-      margin-bottom: 6px;
-      border: 1px solid rgba(255,255,255,0.2);
       border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.2);
       background: #0b0f12;
     }
-    .card h3 {
-      margin: 4px 0 6px;
-      font-size: clamp(9px, 1.8vw, 11px);
-      color: #fff;
-    }
-    .card .hold-tip {
-      font-size: 7px;
-      color: #9fd6cf;
-      line-height: 1.4;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-    }
-    .hold-progress {
-      width: 100%;
-      height: 5px;
-      border-radius: 99px;
-      margin-top: 6px;
-      background: rgba(255,255,255,0.12);
-      overflow: hidden;
-      opacity: 0;
-      transition: opacity 0.15s ease;
-    }
-    .card.holding .hold-progress { opacity: 1; }
-    .hold-progress-fill {
-      width: 0%;
-      height: 100%;
-      background: linear-gradient(90deg, #5F9EA0, #FFD700);
+    .thumb-card.selected {
+      border-color: #5F9EA0;
+      box-shadow: 0 0 0 1px #5F9EA0, 0 0 14px rgba(95,158,160,0.8);
+      transform: translateY(-1px);
     }
     .character-detail {
       text-align: left;
-      margin-top: 14px;
       border: 2px solid rgba(255,215,0,0.45);
-      border-radius: 10px;
-      background: rgba(6,8,11,0.9);
+      border-radius: 12px;
+      background: rgba(6,8,11,0.94);
       padding: 12px;
-      display: none;
+      display: grid;
+      grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+      gap: 14px;
+      align-items: center;
+      touch-action: pan-y;
     }
-    .character-detail.show { display: block; }
+    .character-hero-img {
+      width: 100%;
+      max-width: 240px;
+      aspect-ratio: 1 / 1;
+      object-fit: contain;
+      image-rendering: pixelated;
+      border: 2px solid rgba(95,158,160,0.6);
+      border-radius: 10px;
+      background: radial-gradient(circle at 50% 36%, rgba(95,158,160,0.16), rgba(4,7,10,0.96));
+      justify-self: center;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .character-detail.show { display: grid; }
+    .character-detail-main { min-width: 0; }
     .character-detail h3 {
       margin: 0 0 8px;
       color: var(--gold);
-      font-size: 12px;
+      font-size: 14px;
     }
     .character-detail .stat,
     .character-detail .move {
-      font-size: 9px;
+      font-size: 10px;
       line-height: 1.5;
       margin: 0;
     }
@@ -352,7 +342,7 @@
     .character-detail-actions {
       margin-top: 8px;
       display: flex;
-      justify-content: flex-end;
+      justify-content: flex-start;
     }
     .levelup-panel { max-width: 640px; }
     .levelup-choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
@@ -535,9 +525,15 @@
       .pad-btn { width: 38px; height: 38px; font-size: 10px; }
       .action-pad { gap: 5px; }
       .action-pad .pad-btn { width: 44px; height: 44px; font-size: 8px; }
-      .character-grid { grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 8px; }
+      .thumbnail-row { gap: 8px; }
+      .character-detail {
+        grid-template-columns: 1fr;
+        justify-items: center;
+      }
+      .character-detail-main {
+        width: 100%;
+      }
       .levelup-choices { grid-template-columns: 1fr; }
-      .card { min-height: 116px; }
       .instructions { font-size: 8px; }
     }
 
@@ -627,7 +623,7 @@
     <div class="overlay" id="startOverlay">
       <div class="panel start-panel">
         <h2>Pick Your Brawler</h2>
-        <p>Choose a fighter with distinct stats and unique abilities. Every character has a fast strike, a power hit, and a signature special. Press and hold any thumbnail for a full stat card.</p>
+        <p>Choose a fighter with distinct stats and unique abilities. Tap a thumbnail or swipe left/right on the main portrait to cycle through every brawler.</p>
         <div class="character-grid" id="characterGrid"></div>
         <div class="character-detail" id="characterDetail" aria-live="polite"></div>
         <button class="btn" id="startBtn" disabled>Start the Journey</button>
@@ -4760,102 +4756,102 @@
     function initCharacterSelection() {
       const grid = document.getElementById('characterGrid');
       const detailPanel = document.getElementById('characterDetail');
-      const HOLD_TO_OPEN_MS = 1200;
-      let selected = null;
+      let selectedIndex = 0;
+      let selected = characters[selectedIndex];
+
+      const topRow = document.createElement('div');
+      const bottomRow = document.createElement('div');
+      topRow.className = 'thumbnail-row';
+      bottomRow.className = 'thumbnail-row';
+      grid.appendChild(topRow);
+      grid.appendChild(detailPanel);
+      grid.appendChild(bottomRow);
+
+      const thumbnails = [];
+      const splitIndex = Math.ceil(characters.length / 2);
+      const makeThumb = (character, index) => {
+        const thumb = document.createElement('button');
+        thumb.type = 'button';
+        thumb.className = 'thumb-card';
+        thumb.setAttribute('aria-label', `Select ${character.name}`);
+        thumb.innerHTML = `<img src="${character.portrait}" alt="${character.name} portrait">`;
+        thumb.addEventListener('click', () => {
+          selectCharacter(index);
+        });
+        thumbnails[index] = thumb;
+        return thumb;
+      };
+
+      characters.slice(0, splitIndex).forEach((character, index) => {
+        topRow.appendChild(makeThumb(character, index));
+      });
+      characters.slice(splitIndex).forEach((character, offset) => {
+        const index = splitIndex + offset;
+        bottomRow.appendChild(makeThumb(character, index));
+      });
 
       const renderDetail = (character) => {
         detailPanel.classList.add('show');
         detailPanel.innerHTML = `
-          <h3>${character.name}</h3>
-          <p class="stat">Speed ${character.stats.speed.toFixed(1)} | Power ${character.stats.power.toFixed(2)} | Range ${character.stats.range} | Durability ${character.stats.durability}</p>
-          <p class="move"><strong>Fast:</strong> ${character.moves.fast}</p>
-          <p class="move"><strong>Power:</strong> ${character.moves.power}</p>
-          <p class="move"><strong>Special:</strong> ${character.moves.special}</p>
-          <div class="character-detail-actions">
-            <button class="btn" type="button" id="closeDetailBtn">Close Details</button>
+          <img class="character-hero-img" src="${character.portrait}" alt="${character.name}">
+          <div class="character-detail-main">
+            <h3>${character.name}</h3>
+            <p class="stat">Speed ${character.stats.speed.toFixed(1)} | Power ${character.stats.power.toFixed(2)} | Range ${character.stats.range} | Durability ${character.stats.durability}</p>
+            <p class="move"><strong>Fast:</strong> ${character.moves.fast}</p>
+            <p class="move"><strong>Power:</strong> ${character.moves.power}</p>
+            <p class="move"><strong>Special:</strong> ${character.moves.special}</p>
+            <div class="character-detail-actions">
+              <button class="btn" type="button" id="confirmCharacterBtn">Use ${character.name}</button>
+            </div>
           </div>
         `;
-        const closeButton = document.getElementById('closeDetailBtn');
-        closeButton.addEventListener('click', () => {
-          detailPanel.classList.remove('show');
-          detailPanel.innerHTML = '';
+        const confirmButton = document.getElementById('confirmCharacterBtn');
+        confirmButton.addEventListener('click', () => {
+          document.getElementById('startBtn').click();
+        });
+        bindPortraitSwipe();
+      };
+
+      const updateHighlight = () => {
+        thumbnails.forEach((thumb, index) => {
+          if (!thumb) return;
+          thumb.classList.toggle('selected', index === selectedIndex);
         });
       };
 
-      characters.forEach(character => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.setAttribute('role', 'button');
-        card.setAttribute('tabindex', '0');
-        card.setAttribute('aria-label', `${character.name}. Press to select. Press and hold for details.`);
-        card.innerHTML = `
-          <img src="${character.portrait}" alt="${character.name}">
-          <h3>${character.name}</h3>
-          <div class="hold-tip">Tap to Select • Hold for Details</div>
-          <div class="hold-progress" aria-hidden="true"><div class="hold-progress-fill"></div></div>
-        `;
-        const progressFill = card.querySelector('.hold-progress-fill');
-        let holdTimer = null;
-        let progressTimer = null;
-        let holdTriggered = false;
+      const selectCharacter = (index) => {
+        selectedIndex = (index + characters.length) % characters.length;
+        selected = characters[selectedIndex];
+        updateHighlight();
+        renderDetail(selected);
+        document.getElementById('startBtn').disabled = false;
+      };
 
-        const clearHold = () => {
-          if (holdTimer) {
-            clearTimeout(holdTimer);
-            holdTimer = null;
-          }
-          if (progressTimer) {
-            clearInterval(progressTimer);
-            progressTimer = null;
-          }
-          card.classList.remove('holding');
-          progressFill.style.width = '0%';
-        };
+      const bindPortraitSwipe = () => {
+        const heroPortrait = detailPanel.querySelector('.character-hero-img');
+        if (!heroPortrait) return;
 
-        const beginHold = () => {
-          holdTriggered = false;
-          clearHold();
-          card.classList.add('holding');
-          const start = performance.now();
-          progressTimer = setInterval(() => {
-            const elapsed = performance.now() - start;
-            const progress = Math.min(100, (elapsed / HOLD_TO_OPEN_MS) * 100);
-            progressFill.style.width = `${progress}%`;
-          }, 16);
-
-          holdTimer = setTimeout(() => {
-            holdTriggered = true;
-            clearHold();
-            renderDetail(character);
-          }, HOLD_TO_OPEN_MS);
-        };
-
-        card.addEventListener('pointerdown', beginHold);
-        card.addEventListener('pointerup', clearHold);
-        card.addEventListener('pointerleave', clearHold);
-        card.addEventListener('pointercancel', clearHold);
-        card.addEventListener('click', () => {
-          if (holdTriggered) {
-            holdTriggered = false;
-            return;
-          }
-          document.querySelectorAll('.card').forEach(el => el.classList.remove('selected'));
-          card.classList.add('selected');
-          selected = character;
-          document.getElementById('startBtn').disabled = false;
+        let pointerStartX = null;
+        heroPortrait.addEventListener('pointerdown', (event) => {
+          pointerStartX = event.clientX;
         });
-        card.addEventListener('keydown', (event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            card.click();
-          }
-          if (event.key.toLowerCase() === 'i') {
-            event.preventDefault();
-            renderDetail(character);
+        heroPortrait.addEventListener('pointerup', (event) => {
+          if (pointerStartX === null) return;
+          const deltaX = event.clientX - pointerStartX;
+          pointerStartX = null;
+          if (Math.abs(deltaX) < 30) return;
+          if (deltaX < 0) {
+            selectCharacter(selectedIndex + 1);
+          } else {
+            selectCharacter(selectedIndex - 1);
           }
         });
-        grid.appendChild(card);
-      });
+        heroPortrait.addEventListener('pointercancel', () => {
+          pointerStartX = null;
+        });
+      };
+
+      selectCharacter(0);
 
       document.getElementById('startBtn').addEventListener('click', () => {
         if (!selected) return;

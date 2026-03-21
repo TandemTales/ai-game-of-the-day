@@ -262,97 +262,75 @@
       transform: translateY(8px) scale(0.96);
       transition: opacity 1700ms ease, transform 1700ms ease;
     }
-    .character-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-      gap: 12px;
+    .character-carousel {
       margin-top: 12px;
+      width: 100%;
     }
-    .card {
-      border: 2px solid rgba(255,215,0,0.4);
+    .character-viewport {
+      border: 2px solid rgba(255, 215, 0, 0.5);
       border-radius: 12px;
-      padding: 10px 8px;
-      background: rgba(10,12,16,0.8);
-      cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-      display: grid;
-      place-items: center;
-      text-align: center;
-      min-height: 132px;
+      background: rgba(6, 8, 11, 0.94);
+      min-height: clamp(240px, 46vh, 340px);
+      padding: 12px;
+      touch-action: pan-y;
       user-select: none;
       -webkit-user-select: none;
-      touch-action: none;
-      position: relative;
+      cursor: grab;
     }
-    .card.selected {
-      border-color: var(--gold);
-      box-shadow: 0 0 16px rgba(255,215,0,0.4);
-      transform: translateY(-2px);
-    }
-    .card img {
-      width: clamp(46px, 8vw, 60px);
-      height: clamp(46px, 8vw, 60px);
-      image-rendering: pixelated;
-      margin-bottom: 6px;
-      border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 6px;
-      background: #0b0f12;
-    }
-    .card h3 {
-      margin: 4px 0 6px;
-      font-size: clamp(9px, 1.8vw, 11px);
-      color: #fff;
-    }
-    .card .hold-tip {
-      font-size: 7px;
-      color: #9fd6cf;
-      line-height: 1.4;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-    }
-    .hold-progress {
-      width: 100%;
-      height: 5px;
-      border-radius: 99px;
-      margin-top: 6px;
-      background: rgba(255,255,255,0.12);
-      overflow: hidden;
-      opacity: 0;
-      transition: opacity 0.15s ease;
-    }
-    .card.holding .hold-progress { opacity: 1; }
-    .hold-progress-fill {
-      width: 0%;
-      height: 100%;
-      background: linear-gradient(90deg, #5F9EA0, #FFD700);
-    }
-    .character-detail {
+    .character-viewport:active { cursor: grabbing; }
+    .character-slide {
+      display: grid;
+      grid-template-columns: minmax(140px, 36%) 1fr;
+      gap: 14px;
+      align-items: stretch;
       text-align: left;
-      margin-top: 14px;
-      border: 2px solid rgba(255,215,0,0.45);
+      min-height: 100%;
+    }
+    .character-portrait-wrap {
+      border: 1px solid rgba(255,255,255,0.22);
       border-radius: 10px;
-      background: rgba(6,8,11,0.9);
-      padding: 12px;
-      display: none;
-    }
-    .character-detail.show { display: block; }
-    .character-detail h3 {
-      margin: 0 0 8px;
-      color: var(--gold);
-      font-size: 12px;
-    }
-    .character-detail .stat,
-    .character-detail .move {
-      font-size: 9px;
-      line-height: 1.5;
-      margin: 0;
-    }
-    .character-detail .stat { color: #9fd6cf; }
-    .character-detail .move { color: #f3d28a; }
-    .character-detail-actions {
-      margin-top: 8px;
+      background: radial-gradient(circle at 35% 30%, rgba(95,158,160,0.26), rgba(7,11,14,0.9));
       display: flex;
-      justify-content: flex-end;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+    }
+    .character-portrait-wrap img {
+      width: min(100%, 240px);
+      max-height: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: contain;
+      image-rendering: pixelated;
+    }
+    .character-info h3 {
+      margin: 0 0 10px;
+      color: var(--gold);
+      font-size: clamp(11px, 1.8vw, 14px);
+    }
+    .character-info .stat,
+    .character-info .move {
+      font-size: clamp(8px, 1.25vw, 10px);
+      line-height: 1.65;
+      margin: 0 0 6px;
+    }
+    .character-info .stat { color: #9fd6cf; }
+    .character-info .move { color: #f3d28a; }
+    .character-nav {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .character-nav .btn {
+      min-width: 108px;
+      padding-inline: 10px;
+    }
+    .character-index {
+      font-size: 9px;
+      color: #d7e5e8;
+      text-align: center;
+      flex: 1;
     }
     .levelup-panel { max-width: 640px; }
     .levelup-choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
@@ -535,9 +513,10 @@
       .pad-btn { width: 38px; height: 38px; font-size: 10px; }
       .action-pad { gap: 5px; }
       .action-pad .pad-btn { width: 44px; height: 44px; font-size: 8px; }
-      .character-grid { grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 8px; }
+      .character-slide { grid-template-columns: 1fr; }
+      .character-viewport { min-height: clamp(312px, 52vh, 420px); }
+      .character-portrait-wrap { min-height: 140px; }
       .levelup-choices { grid-template-columns: 1fr; }
-      .card { min-height: 116px; }
       .instructions { font-size: 8px; }
     }
 
@@ -627,9 +606,15 @@
     <div class="overlay" id="startOverlay">
       <div class="panel start-panel">
         <h2>Pick Your Brawler</h2>
-        <p>Choose a fighter with distinct stats and unique abilities. Every character has a fast strike, a power hit, and a signature special. Press and hold any thumbnail for a full stat card.</p>
-        <div class="character-grid" id="characterGrid"></div>
-        <div class="character-detail" id="characterDetail" aria-live="polite"></div>
+        <p>Choose a fighter with distinct stats and unique abilities. Swipe left or right to browse, then start with the highlighted brawler.</p>
+        <div class="character-carousel">
+          <div class="character-viewport" id="characterViewport" role="button" tabindex="0" aria-label="Character selection swiper"></div>
+          <div class="character-nav">
+            <button class="btn" type="button" id="characterPrevBtn">◀ Prev</button>
+            <div class="character-index" id="characterIndexLabel" aria-live="polite"></div>
+            <button class="btn" type="button" id="characterNextBtn">Next ▶</button>
+          </div>
+        </div>
         <button class="btn" id="startBtn" disabled>Start the Journey</button>
         <div class="instructions">
           <strong>Desktop:</strong> Move (WASD/Arrows), Fast (J), Power (K), Special (L), Jump (Space), Block (Shift).<br>
@@ -4758,107 +4743,73 @@
     }
 
     function initCharacterSelection() {
-      const grid = document.getElementById('characterGrid');
-      const detailPanel = document.getElementById('characterDetail');
-      const HOLD_TO_OPEN_MS = 1200;
-      let selected = null;
+      const viewport = document.getElementById('characterViewport');
+      const indexLabel = document.getElementById('characterIndexLabel');
+      const prevBtn = document.getElementById('characterPrevBtn');
+      const nextBtn = document.getElementById('characterNextBtn');
+      const startBtn = document.getElementById('startBtn');
+      let selectedIndex = 0;
+      let swipeStartX = null;
+      const SWIPE_THRESHOLD = 40;
 
-      const renderDetail = (character) => {
-        detailPanel.classList.add('show');
-        detailPanel.innerHTML = `
-          <h3>${character.name}</h3>
-          <p class="stat">Speed ${character.stats.speed.toFixed(1)} | Power ${character.stats.power.toFixed(2)} | Range ${character.stats.range} | Durability ${character.stats.durability}</p>
-          <p class="move"><strong>Fast:</strong> ${character.moves.fast}</p>
-          <p class="move"><strong>Power:</strong> ${character.moves.power}</p>
-          <p class="move"><strong>Special:</strong> ${character.moves.special}</p>
-          <div class="character-detail-actions">
-            <button class="btn" type="button" id="closeDetailBtn">Close Details</button>
-          </div>
+      const renderCharacter = () => {
+        const character = characters[selectedIndex];
+        viewport.innerHTML = `
+          <article class="character-slide" aria-label="${character.name}">
+            <div class="character-portrait-wrap">
+              <img src="${character.portrait}" alt="${character.name}">
+            </div>
+            <div class="character-info">
+              <h3>${character.name}</h3>
+              <p class="stat">Speed ${character.stats.speed.toFixed(1)} | Power ${character.stats.power.toFixed(2)} | Range ${character.stats.range} | Durability ${character.stats.durability}</p>
+              <p class="move"><strong>Fast:</strong> ${character.moves.fast}</p>
+              <p class="move"><strong>Power:</strong> ${character.moves.power}</p>
+              <p class="move"><strong>Special:</strong> ${character.moves.special}</p>
+            </div>
+          </article>
         `;
-        const closeButton = document.getElementById('closeDetailBtn');
-        closeButton.addEventListener('click', () => {
-          detailPanel.classList.remove('show');
-          detailPanel.innerHTML = '';
-        });
+        indexLabel.textContent = `${selectedIndex + 1} / ${characters.length} • Swipe to change`;
+        startBtn.disabled = false;
       };
 
-      characters.forEach(character => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.setAttribute('role', 'button');
-        card.setAttribute('tabindex', '0');
-        card.setAttribute('aria-label', `${character.name}. Press to select. Press and hold for details.`);
-        card.innerHTML = `
-          <img src="${character.portrait}" alt="${character.name}">
-          <h3>${character.name}</h3>
-          <div class="hold-tip">Tap to Select • Hold for Details</div>
-          <div class="hold-progress" aria-hidden="true"><div class="hold-progress-fill"></div></div>
-        `;
-        const progressFill = card.querySelector('.hold-progress-fill');
-        let holdTimer = null;
-        let progressTimer = null;
-        let holdTriggered = false;
+      const moveSelection = (delta) => {
+        selectedIndex = (selectedIndex + delta + characters.length) % characters.length;
+        renderCharacter();
+      };
 
-        const clearHold = () => {
-          if (holdTimer) {
-            clearTimeout(holdTimer);
-            holdTimer = null;
-          }
-          if (progressTimer) {
-            clearInterval(progressTimer);
-            progressTimer = null;
-          }
-          card.classList.remove('holding');
-          progressFill.style.width = '0%';
-        };
+      prevBtn.addEventListener('click', () => moveSelection(-1));
+      nextBtn.addEventListener('click', () => moveSelection(1));
 
-        const beginHold = () => {
-          holdTriggered = false;
-          clearHold();
-          card.classList.add('holding');
-          const start = performance.now();
-          progressTimer = setInterval(() => {
-            const elapsed = performance.now() - start;
-            const progress = Math.min(100, (elapsed / HOLD_TO_OPEN_MS) * 100);
-            progressFill.style.width = `${progress}%`;
-          }, 16);
-
-          holdTimer = setTimeout(() => {
-            holdTriggered = true;
-            clearHold();
-            renderDetail(character);
-          }, HOLD_TO_OPEN_MS);
-        };
-
-        card.addEventListener('pointerdown', beginHold);
-        card.addEventListener('pointerup', clearHold);
-        card.addEventListener('pointerleave', clearHold);
-        card.addEventListener('pointercancel', clearHold);
-        card.addEventListener('click', () => {
-          if (holdTriggered) {
-            holdTriggered = false;
-            return;
-          }
-          document.querySelectorAll('.card').forEach(el => el.classList.remove('selected'));
-          card.classList.add('selected');
-          selected = character;
-          document.getElementById('startBtn').disabled = false;
-        });
-        card.addEventListener('keydown', (event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            card.click();
-          }
-          if (event.key.toLowerCase() === 'i') {
-            event.preventDefault();
-            renderDetail(character);
-          }
-        });
-        grid.appendChild(card);
+      viewport.addEventListener('pointerdown', (event) => {
+        swipeStartX = event.clientX;
+      });
+      viewport.addEventListener('pointerup', (event) => {
+        if (swipeStartX === null) return;
+        const deltaX = event.clientX - swipeStartX;
+        swipeStartX = null;
+        if (Math.abs(deltaX) < SWIPE_THRESHOLD) return;
+        if (deltaX < 0) moveSelection(1);
+        else moveSelection(-1);
+      });
+      viewport.addEventListener('pointercancel', () => {
+        swipeStartX = null;
       });
 
+      viewport.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowLeft') {
+          event.preventDefault();
+          moveSelection(-1);
+        }
+        if (event.key === 'ArrowRight') {
+          event.preventDefault();
+          moveSelection(1);
+        }
+      });
+
+      renderCharacter();
+
       document.getElementById('startBtn').addEventListener('click', () => {
-        if (!selected) return;
+        const selected = characters[selectedIndex];
         state.player = createPlayer(selected);
         state.player.level = 1;
         state.player.xp = 0;

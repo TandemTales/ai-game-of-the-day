@@ -2031,6 +2031,12 @@
         attachOffsetY: 0,
         dashFrames: 0,
         dashCooldown: rand(90, 160),
+        chargePhase: typeId === 'sweetykins' ? 'charge-setup' : null,
+        chargePassesRemaining: typeId === 'sweetykins' ? 2 : 0,
+        chargeTargetY: y,
+        phaseTimer: 0,
+        runDamageCooldown: 0,
+        hitsTakenThisCycle: 0,
         pressureBoost: 1,
         bossEncounterId: options.bossEncounterId || null,
         hurtTimer: 0,
@@ -2676,9 +2682,24 @@
       }
     }
 
+    function markSweetykinsHit(enemy) {
+      if (!enemy || enemy.type !== 'sweetykins' || enemy.hp <= 0) return;
+      if (enemy.chargePhase !== 'brawl') return;
+      enemy.hitsTakenThisCycle = (enemy.hitsTakenThisCycle || 0) + 1;
+      if (enemy.hitsTakenThisCycle >= 3) {
+        enemy.hitsTakenThisCycle = 0;
+        enemy.chargePhase = 'retreat';
+        enemy.phaseTimer = 0;
+        enemy.windup = 0;
+        enemy.attackAnimTimer = 0;
+        enemy.cooldown = 0;
+      }
+    }
+
     function damageEnemy(enemy, amount, stun = 0) {
       if (!enemy || enemy.hp <= 0 || enemy.invulnFrames > 0 || enemy.untargetable) return;
       enemy.hp -= amount;
+      markSweetykinsHit(enemy);
       if (stun > 0) {
         const shortHitStun = Math.min(12, Math.round(stun * 0.45));
         enemy.hitStun = Math.max(enemy.hitStun || 0, shortHitStun);
@@ -3586,30 +3607,70 @@
             enemy.isMoving = true;
           }
         } else if (enemy.type === 'sweetykins') {
-          enemy.dashCooldown = Math.max(0, enemy.dashCooldown - 1);
-          if (enemy.dashFrames > 0) {
-            enemy.dashFrames -= 1;
-            enemy.x += enemy.facing * moveSpeed * 2.9;
-            enemy.y += Math.sign(dy) * moveSpeed * 0.25;
+          enemy.phaseTimer = Math.max(0, (enemy.phaseTimer || 0) - 1);
+          enemy.runDamageCooldown = Math.max(0, (enemy.runDamageCooldown || 0) - 1);
+          const leftOffscreenX = state.cameraX - 90;
+          const rightOffscreenX = state.cameraX + canvas.width + 90;
+
+          if (enemy.chargePhase === 'charge-setup') {
+            const startFromLeft = player.x >= (state.cameraX + (canvas.width * 0.5));
+            enemy.x = startFromLeft ? leftOffscreenX : rightOffscreenX;
+            enemy.chargeTargetY = clamp(player.y + rand(-16, 16), getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
+            enemy.facing = startFromLeft ? 1 : -1;
+            enemy.chargePhase = 'charge-run';
+            enemy.phaseTimer = 42;
+            enemy.runDamageCooldown = 0;
+            enemy.dashFrames = 0;
+            enemy.windup = 0;
+            enemy.cooldown = 0;
+            enemy.attackAnimTimer = 0;
+          } else if (enemy.chargePhase === 'charge-run') {
+            enemy.x += enemy.facing * moveSpeed * 4.1;
+            const targetY = enemy.chargeTargetY ?? player.y;
+            enemy.y += Math.sign(targetY - enemy.y) * moveSpeed * 0.42;
             enemy.isMoving = true;
-            if (rectsOverlap({ x: enemyBody.x - 18, y: enemyBody.y - 8, width: enemyBody.width + 36, height: enemyBody.height + 16 }, playerBody)) {
-              damagePlayer(Math.round(enemy.damage * 1.2), enemy);
+            const runHitbox = { x: enemyBody.x - 18, y: enemyBody.y - 8, width: enemyBody.width + 36, height: enemyBody.height + 16 };
+            if (enemy.runDamageCooldown <= 0 && rectsOverlap(runHitbox, playerBody)) {
+              damagePlayer(Math.round(enemy.damage * 1.25), enemy);
+              enemy.runDamageCooldown = 15;
             }
-            if (enemy.dashFrames <= 0) {
-              enemy.cooldown = rand(40, 70);
-              enemy.dashCooldown = rand(60, 110);
+            const exitedRun = enemy.facing > 0 ? enemy.x > rightOffscreenX : enemy.x < leftOffscreenX;
+            if (exitedRun || enemy.phaseTimer <= 0) {
+              enemy.chargePassesRemaining = Math.max(0, (enemy.chargePassesRemaining || 0) - 1);
+              if (enemy.chargePassesRemaining > 0) {
+                enemy.chargePhase = 'charge-setup';
+                enemy.phaseTimer = 18;
+              } else {
+                enemy.chargePhase = 'brawl-enter';
+                enemy.phaseTimer = 12;
+              }
             }
-          } else if (enemy.dashCooldown <= 0 && distance < 380) {
-            enemy.facing = dx >= 0 ? 1 : -1;
-            enemy.dashFrames = rand(24, 34);
-            enemy.windup = 8;
-            enemy.attackAnimTimer = Math.max(enemy.attackAnimTimer, 20);
+          } else if (enemy.chargePhase === 'brawl-enter') {
+            const spawnToLeft = player.x > state.cameraX + (canvas.width * 0.5);
+            enemy.x = spawnToLeft ? leftOffscreenX + 10 : rightOffscreenX - 10;
+            enemy.facing = spawnToLeft ? 1 : -1;
+            enemy.chargePhase = 'brawl';
+            enemy.cooldown = 0;
+            enemy.windup = 0;
+            enemy.attackAnimTimer = 0;
+            enemy.hitsTakenThisCycle = 0;
+          } else if (enemy.chargePhase === 'retreat') {
+            enemy.x = enemy.facing >= 0 ? leftOffscreenX : rightOffscreenX;
+            enemy.chargePassesRemaining = 2;
+            enemy.chargePhase = 'charge-setup';
+            enemy.phaseTimer = 20;
+            enemy.runDamageCooldown = 0;
+            enemy.windup = 0;
+            enemy.attackAnimTimer = 0;
+            enemy.cooldown = 0;
           } else {
-            const closeDistance = 100;
-            if (distance > closeDistance) {
-              enemy.x += Math.sign(dx) * moveSpeed * 0.9;
-              enemy.y += Math.sign(dy) * moveSpeed * 0.45;
+            if (distance > enemy.range * 0.92 && !rectsOverlap(enemyBody, playerBody)) {
+              enemy.x += Math.sign(dx) * moveSpeed * 0.98;
+              enemy.y += Math.sign(dy) * moveSpeed * 0.5;
               enemy.isMoving = true;
+            } else if (enemy.windup <= 0 && enemy.cooldown <= 0) {
+              enemy.windup = 10;
+              enemy.attackAnimTimer = Math.max(enemy.attackAnimTimer, 14);
             }
           }
         } else if (enemy.type === 'mud-monster' && enemy.isBoss && enemy.stage < 3 && state.levelIndex === 0) {
@@ -3765,7 +3826,14 @@
         if (enemy.attackAnimTimer > 0) enemy.attackAnimTimer -= 1;
         const verticalBounds = getEnemyVerticalBounds(enemy);
         enemy.y = clamp(enemy.y, verticalBounds.minY, verticalBounds.maxY);
-        applyMovementMaskClamp(enemy, prevX, prevY);
+        const sweetykinsOffscreenPhase = enemy.type === 'sweetykins'
+          && (enemy.chargePhase === 'charge-setup'
+            || enemy.chargePhase === 'charge-run'
+            || enemy.chargePhase === 'brawl-enter'
+            || enemy.chargePhase === 'retreat');
+        if (!sweetykinsOffscreenPhase) {
+          applyMovementMaskClamp(enemy, prevX, prevY);
+        }
 
         if (enemy.isBoss && enemy.type === 'mud-monster' && state.levelIndex === 0 && enemy.hp > 0 && enemy.stage === 3) {
           enemy.mudTrailDropCooldown -= 1;

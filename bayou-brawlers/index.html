@@ -2903,7 +2903,7 @@
       if (characterId === 'billy-boxby') {
         const coneLength = heavy ? 420 : 336;
         const coneSpread = heavy ? 0.66 : 0.57;
-        const baseDmg = (heavy ? tuning.heavy : tuning.light) * player.power * (heavy ? getHeavyDamageMultiplier(player) : getBasicDamageMultiplier(player));
+        const baseDmg = (heavy ? tuning.heavy : tuning.light) * player.power * (heavy ? getHeavyDamageMultiplier(player) : getBasicDamageMultiplier(player)) * 0.5;
         const coneOriginX = player.x + player.facing * 16;
         const coneOriginY = player.y - 44;
         let hitCount = 0;
@@ -3048,11 +3048,18 @@
       if (!canPlayerAffectEnemy(enemy)) return;
       const id = player.charData.id;
       if (id === 'billy-boxby') {
+        const isIncorporeal = enemy.type.includes('ghost');
+        const slowChance = heavy
+          ? (isIncorporeal ? 1 : 0.75)
+          : (isIncorporeal ? 0.8 : 0.4);
+        const freezeChance = heavy
+          ? (isIncorporeal ? 0.6 : 0.25)
+          : 0;
         const slow = heavy ? 0.4 : 0.2;
-        const freezeDur = enemy.type.includes('ghost') ? (heavy ? 120 : 72) : 0;
+        const freezeDur = heavy ? 120 : 0;
         const bonusDur = hasLevel(player, 10) ? 1.5 : 1;
-        applyStatus(enemy, 'SLOW', Math.floor((heavy ? 180 : 150) * bonusDur), slow);
-        if (freezeDur > 0) applyStatus(enemy, 'FREEZE', freezeDur, 1);
+        if (Math.random() < slowChance) applyStatus(enemy, 'SLOW', Math.floor((heavy ? 180 : 150) * bonusDur), slow);
+        if (freezeDur > 0 && Math.random() < freezeChance) applyStatus(enemy, 'FREEZE', freezeDur, 1);
       }
       if (id === 'green-fairy' && heavy && Math.random() < 0.2) applyStatus(enemy, 'CONFUSE', 90, 1);
       if (id === 'grimma-the-feared' && heavy && getEnemyTier(enemy) === 'small') enemy.x += (player.x - enemy.x) * 0.2;

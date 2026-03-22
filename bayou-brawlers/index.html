@@ -634,8 +634,8 @@
       <div class="chip" style="display:flex; gap:6px; align-items:center;">HP
         <div class="hp-bar"><div class="hp-fill" id="hpFill"></div></div>
       </div>
-      <div class="chip" style="display:flex; gap:6px; align-items:center;">Magic
-        <div class="hp-bar"><div class="hp-fill" id="magicFill" style="background:linear-gradient(90deg,#5ef1ff,#7a95ff)"></div></div>
+      <div class="chip" style="display:flex; gap:6px; align-items:center;">Power
+        <div class="hp-bar"><div class="hp-fill" id="powerFill" style="background:linear-gradient(90deg,#5ef1ff,#7a95ff)"></div></div>
       </div>
       <div class="chip">Ability: <span id="specialReady">Locked</span></div>
     </div>
@@ -1145,12 +1145,12 @@
     const ENEMY_DEATH_HOLD_FRAMES = 240;
     const ENEMY_DAMAGE_MULTIPLIER = 0.75;
     const MAX_LEVEL = Number.POSITIVE_INFINITY;
-    const BASE_MAX_MAGIC = 100;
-    const SPECIAL_COST = BASE_MAX_MAGIC / 3;
+    const BASE_MAX_POWER = 100;
+    const SPECIAL_COST = BASE_MAX_POWER / 3;
     const SUPER_COST = SPECIAL_COST;
     const XP_TABLE = [0, 60, 140, 260, 420, 620, 860, 1160, 1540, 2050];
     const XP_BY_TIER = { small: 7, medium: 12, elite: 22.5, boss: 50 };
-    const MAGIC_BY_TIER = { small: 5, medium: 8, elite: 12, boss: 15 };
+    const POWER_BY_TIER = { small: 5, medium: 8, elite: 12, boss: 15 };
     const SAVE_SLOT_KEY = `${GAME_ID}:slot:default:progress`;
 
 
@@ -1870,8 +1870,8 @@
         stun: 0,
         level: 1,
         xp: 0,
-        magic: 0,
-        maxMagic: BASE_MAX_MAGIC,
+        power: 0,
+        maxPower: BASE_MAX_POWER,
         passiveCooldown: 0,
         basicDamageMultiplier: 1,
         heavyDamageMultiplier: 1,
@@ -2467,20 +2467,20 @@
       return player.heavyDamageMultiplier * player.allDamageMultiplier;
     }
 
-    function addMagic(player, amount) {
+    function addPower(player, amount) {
       if (!player) return;
-      player.magic = clamp(player.magic + amount, 0, player.maxMagic || BASE_MAX_MAGIC);
-      updateMagicHud(player);
+      player.power = clamp(player.power + amount, 0, player.maxPower || BASE_MAX_POWER);
+      updatePowerHud(player);
     }
 
     function setSuperReadyGlow(active) {
       document.querySelectorAll('[data-input="special"]').forEach((button) => {
         button.classList.toggle('super-ready', active);
       });
-      const magicFill = document.getElementById('magicFill');
-      const magicBar = magicFill ? magicFill.parentElement : null;
-      if (magicFill) magicFill.classList.toggle('super-ready', active);
-      if (magicBar) magicBar.classList.toggle('super-ready', active);
+      const powerFill = document.getElementById('powerFill');
+      const powerBar = powerFill ? powerFill.parentElement : null;
+      if (powerFill) powerFill.classList.toggle('super-ready', active);
+      if (powerBar) powerBar.classList.toggle('super-ready', active);
     }
 
     function getAutoLevelGainLines(level, player) {
@@ -2497,8 +2497,8 @@
         player.maxHp *= 1.08;
         healPlayer(player.maxHp * 0.08);
       }
-      if ([3, 5].includes(level)) player.maxMagic += 20;
-      if ([8, 10].includes(level)) player.maxMagic += 10;
+      if ([3, 5].includes(level)) player.maxPower += 20;
+      if ([8, 10].includes(level)) player.maxPower += 10;
       if ([2, 7].includes(level)) player.basicDamageMultiplier *= 1.05;
       if ([4, 8].includes(level)) player.heavyDamageMultiplier *= 1.05;
       if ([6, 9].includes(level)) player.specialEffectMultiplier *= 1.05;
@@ -2508,8 +2508,8 @@
         player.knockbackResistanceMultiplier *= 0.95;
       }
       if (level === 10) player.allDamageMultiplier *= 1.05;
-      player.magic = clamp(player.magic, 0, player.maxMagic);
-      updateMagicHud(player);
+      player.power = clamp(player.power, 0, player.maxPower);
+      updatePowerHud(player);
     }
 
     function getEligibleUpgradeChoices(player) {
@@ -2614,13 +2614,13 @@
       document.getElementById('xpNext').textContent = String(xpToNext(player.level));
     }
 
-    function updateMagicHud(player) {
+    function updatePowerHud(player) {
       if (!player) return;
-      const fill = document.getElementById('magicFill');
-      const currentMaxMagic = player.maxMagic || BASE_MAX_MAGIC;
-      fill.style.width = `${(player.magic / currentMaxMagic) * 100}%`;
+      const fill = document.getElementById('powerFill');
+      const currentMaxPower = player.maxPower || BASE_MAX_POWER;
+      fill.style.width = `${(player.power / currentMaxPower) * 100}%`;
       const ready = document.getElementById('specialReady');
-      const isSuperReady = hasLevel(player, 5) && player.magic >= currentMaxMagic;
+      const isSuperReady = hasLevel(player, 5) && player.power >= currentMaxPower;
       if (isSuperReady && !player.superReadyNotified) {
         showNotification('Super special charged');
         player.superReadyNotified = true;
@@ -2630,7 +2630,7 @@
       setSuperReadyGlow(isSuperReady);
       if (!hasLevel(player, 3)) ready.textContent = 'Locked';
       else if (isSuperReady) ready.textContent = 'Super Ready';
-      else if (player.magic >= SPECIAL_COST) ready.textContent = hasLevel(player, 5) ? 'Special Ready' : 'Ability Ready';
+      else if (player.power >= SPECIAL_COST) ready.textContent = hasLevel(player, 5) ? 'Special Ready' : 'Ability Ready';
       else ready.textContent = 'Charging';
     }
 
@@ -2645,7 +2645,7 @@
       if (player) {
         const tier = getEnemyTier(enemy);
         addXp(player, XP_BY_TIER[tier] || 12);
-        addMagic(player, MAGIC_BY_TIER[tier] || 5);
+        addPower(player, POWER_BY_TIER[tier] || 5);
         if (player.charData.id === 'old-man-croc' && hasLevel(player, 10) && player.passiveCooldown <= 0) {
           healPlayer(player.maxHp * 0.03);
           player.passiveCooldown = 30;
@@ -2992,14 +2992,14 @@
         doAttack(player, false, isAir, tuning);
       }
 
-      if (input.special && player.specialCooldown <= 0 && hasLevel(player, 3) && player.magic >= SPECIAL_COST) {
-        const castSuper = hasLevel(player, 5) && player.magic >= (player.maxMagic || BASE_MAX_MAGIC);
+      if (input.special && player.specialCooldown <= 0 && hasLevel(player, 3) && player.power >= SPECIAL_COST) {
+        const castSuper = hasLevel(player, 5) && player.power >= (player.maxPower || BASE_MAX_POWER);
         player.attackFacing = attackFacing;
         player.facing = attackFacing;
         player.specialCooldown = castSuper ? 360 : 210;
         player.actionLock = getSpecialAnimationLockFrames(player, attackFacing);
         player.animationSignals.special = true;
-        addMagic(player, -(castSuper ? SUPER_COST : SPECIAL_COST));
+        addPower(player, -(castSuper ? SUPER_COST : SPECIAL_COST));
         castCharacterAbility(player, castSuper);
       }
     }
@@ -3155,8 +3155,8 @@
       if (hitCount > 0) {
         player.comboHits += hitCount;
         player.comboTimer = 120;
-        if (player.comboHits === 10) { addMagic(player, 5); addXp(player, 20); }
-        if (player.comboHits === 20) { addMagic(player, 10); addXp(player, 45); }
+        if (player.comboHits === 10) { addPower(player, 5); addXp(player, 20); }
+        if (player.comboHits === 20) { addPower(player, 10); addXp(player, 45); }
       }
       state.effects.push({ x: player.x + player.facing * 36, y: player.y - 58, timer: heavy ? 14 : 10, type: heavy ? 'heavy-hit' : 'hit' });
     }
@@ -3356,7 +3356,7 @@
       }
       updatePlayerAnimation(player, dt);
       updateProgressHud(player);
-      updateMagicHud(player);
+      updatePowerHud(player);
     }
 
     function updateEnemies(dt) {
@@ -3876,7 +3876,7 @@
         if (rectsOverlap(playerBody, pickupBody)) {
           healPlayer(25);
           addScore(40);
-          addMagic(player, 10);
+          addPower(player, 10);
           pickup.timer = 0;
         }
       });
@@ -5009,7 +5009,7 @@
         state.player = createPlayer(selected);
         state.player.level = 1;
         state.player.xp = 0;
-        state.player.magic = 0;
+        state.player.power = 0;
         state.paused = false;
         state.pendingLevelUps = [];
         state.currentLevelUp = null;
@@ -5017,7 +5017,7 @@
         localStorage.removeItem(SAVE_SLOT_KEY);
         updateHpBar();
         updateProgressHud(state.player);
-        updateMagicHud(state.player);
+        updatePowerHud(state.player);
         setupLevel();
         document.getElementById('startOverlay').classList.remove('show');
         startGame();

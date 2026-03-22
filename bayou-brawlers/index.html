@@ -1852,7 +1852,7 @@
         hp: charData.stats.durability,
         maxHp: charData.stats.durability,
         speed: charData.stats.speed,
-        power: charData.stats.power,
+        attackPower: charData.stats.power,
         range: charData.stats.range,
         facing: 1,
         attackCooldown: 0,
@@ -2873,7 +2873,7 @@
         y: originY,
         vx,
         vy,
-        damage: (heavy ? tuning.heavy : tuning.light) * player.power * (heavy ? getHeavyDamageMultiplier(player) : getBasicDamageMultiplier(player)),
+        damage: (heavy ? tuning.heavy : tuning.light) * player.attackPower * (heavy ? getHeavyDamageMultiplier(player) : getBasicDamageMultiplier(player)),
         friendly: true,
         life: heavy ? 110 : 90,
         color: paletteByCharacter[id] || '#f5d07a',
@@ -3013,7 +3013,7 @@
       if (characterId === 'billy-boxby') {
         const coneLength = heavy ? 420 : 336;
         const coneSpread = heavy ? 0.66 : 0.57;
-        const baseDmg = (heavy ? tuning.heavy : tuning.light) * player.power * (heavy ? getHeavyDamageMultiplier(player) : getBasicDamageMultiplier(player)) * 0.5;
+        const baseDmg = (heavy ? tuning.heavy : tuning.light) * player.attackPower * (heavy ? getHeavyDamageMultiplier(player) : getBasicDamageMultiplier(player)) * 0.5;
         const coneOriginX = player.x + player.facing * 16;
         const coneOriginY = player.y - 44;
         let hitCount = 0;
@@ -3068,7 +3068,7 @@
           length: Math.max(canvas.width + 260, 1280),
           timer: beamDuration,
           maxTimer: beamDuration,
-          damage: (heavy ? tuning.heavy : tuning.light) * player.power * (heavy ? getHeavyDamageMultiplier(player) : getBasicDamageMultiplier(player)) * 0.4,
+          damage: (heavy ? tuning.heavy : tuning.light) * player.attackPower * (heavy ? getHeavyDamageMultiplier(player) : getBasicDamageMultiplier(player)) * 0.4,
           stun: heavy ? 12 : 8,
           owner: player
         });
@@ -3083,7 +3083,7 @@
 
       const isFinisher = !heavy && !isAir && hasLevel(player, 6) && player.comboHits >= 3;
       const base = heavy ? tuning.heavy : tuning.light;
-      const dmg = base * player.power * (heavy ? getHeavyDamageMultiplier(player) : getBasicDamageMultiplier(player)) * (isFinisher ? 1.4 : 1);
+      const dmg = base * player.attackPower * (heavy ? getHeavyDamageMultiplier(player) : getBasicDamageMultiplier(player)) * (isFinisher ? 1.4 : 1);
       const range = tuning.range + (heavy ? 14 : 0);
       const knockback = heavy ? (hasLevel(player, 4) ? 36 : 24) : (isFinisher ? 28 : 16);
       const stun = heavy ? 26 : (isFinisher ? 32 : 14);
@@ -4769,6 +4769,7 @@
     }
 
     function startGame() {
+      if (state.running) return;
       state.running = true;
       state.gameOver = false;
       state.victory = false;

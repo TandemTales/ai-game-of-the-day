@@ -2983,8 +2983,8 @@
         const st = enemy.statuses[key];
         st.duration -= 1;
         st.tick += 1;
-        if (key === 'POISON' && st.tick % 30 === 0) damageEnemy(enemy, 2 + st.magnitude, 0);
-        if (key === 'BURN' && st.tick % 24 === 0) damageEnemy(enemy, 3 + st.magnitude, 0);
+        if (key === 'POISON' && st.tick % 30 === 0 && canPlayerAffectEnemy(enemy)) damageEnemy(enemy, 2 + st.magnitude, 0);
+        if (key === 'BURN' && st.tick % 24 === 0 && canPlayerAffectEnemy(enemy)) damageEnemy(enemy, 3 + st.magnitude, 0);
         if (st.duration <= 0) delete enemy.statuses[key];
       });
     }

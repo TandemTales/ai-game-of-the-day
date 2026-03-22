@@ -3470,10 +3470,32 @@
         const playerSpacing = getEnemyPlayerSpacingAdjustment(enemy, player, moveSpeed);
         const playerBody = getPlayerHitbox(player);
         const enemyBody = getEnemyHitbox(enemy);
+        const hasBewitchingPresence = player.charData.id === 'green-fairy' && hasUpgrade(player, 'bewitching-presence');
         enemy.isMoving = false;
         if (Math.abs(dx) > ENEMY_FACING_DEADZONE_X) enemy.facing = dx >= 0 ? 1 : -1;
 
         const isCharmed = (enemy.statuses?.CHARM?.duration || 0) > 0;
+        enemy.bewitchingPresenceTimer = Math.max(0, (enemy.bewitchingPresenceTimer || 0) - 1);
+        if (!isCharmed && hasBewitchingPresence && enemy.bewitchingPresenceTimer <= 0 && distance < 170 && enemy.cooldown <= 0 && enemy.windup <= 0 && Math.random() < 0.018) {
+          enemy.bewitchingPresenceTimer = rand(46, 84);
+          enemy.cooldown = Math.max(enemy.cooldown, 20);
+          enemy.windup = 0;
+        }
+        if (!isCharmed && enemy.bewitchingPresenceTimer > 0) {
+          const awayX = enemy.x - player.x;
+          const awayY = enemy.y - getEnemyAimTargetY(enemy, player);
+          const awayNorm = Math.hypot(awayX, awayY) || 1;
+          if (Math.abs(awayX) > ENEMY_FACING_DEADZONE_X) enemy.facing = awayX >= 0 ? 1 : -1;
+          enemy.x += (awayX / awayNorm) * moveSpeed * 1.05;
+          enemy.y += (awayY / awayNorm) * moveSpeed * 0.62;
+          enemy.cooldown = Math.max(enemy.cooldown, 8);
+          enemy.isMoving = true;
+          const verticalBounds = getEnemyVerticalBounds(enemy);
+          enemy.y = clamp(enemy.y, verticalBounds.minY, verticalBounds.maxY);
+          applyMovementMaskClamp(enemy, prevX, prevY);
+          updateEnemyAnimation(enemy, dt);
+          return;
+        }
         if (isCharmed) {
           let charmTarget = null;
           let charmTargetDistance = Number.POSITIVE_INFINITY;
@@ -4490,6 +4512,40 @@
       ctx.restore();
     }
 
+    function drawBewitchingPresenceHeart(entity, size) {
+      const blinkOn = Math.floor((performance.now() + (entity.uid * 71)) / 170) % 2 === 0;
+      if (!blinkOn) return;
+      const depthScale = getDepthScaleForY(entity.y);
+      const drawSize = size * (entity.renderScale || 1) * depthScale;
+      const drawTopY = entity.y - state.cameraY - entity.z - drawSize;
+      const x = entity.x - state.cameraX;
+      const walkTrack = getWalkTrackForCharmHeart(entity);
+      const walkFrame = walkTrack?.frames?.[0];
+      const topOpaquePixel = getWalkTrackTopOpaquePixel(walkTrack);
+      const topOpaqueY = walkFrame ? (drawTopY + ((topOpaquePixel / Math.max(1, walkFrame.height)) * drawSize)) : drawTopY;
+      const y = topOpaqueY - Math.max(18, drawSize * 0.15);
+      const heartSize = Math.max(8, drawSize * 0.1);
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(heartSize / 16, heartSize / 16);
+      ctx.fillStyle = 'rgba(255, 138, 212, 0.95)';
+      ctx.strokeStyle = 'rgba(255, 228, 247, 0.95)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, 6);
+      ctx.bezierCurveTo(0, 1, -8, -5, -12, 0);
+      ctx.bezierCurveTo(-15, 4, -12, 9, -8, 12);
+      ctx.lineTo(0, 18);
+      ctx.lineTo(8, 12);
+      ctx.bezierCurveTo(12, 9, 15, 4, 12, 0);
+      ctx.bezierCurveTo(8, -5, 0, 1, 0, 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       if (state.shake > 0) {
@@ -4533,6 +4589,9 @@
         drawEntity(entity, size);
         if ((entity.statuses?.CHARM?.duration || 0) > 0) {
           drawCharmHeart(entity, size);
+        }
+        if ((entity.bewitchingPresenceTimer || 0) > 0) {
+          drawBewitchingPresenceHeart(entity, size);
         }
         const isStunned = (entity.hp > 0) && (entity.stun > 0);
         if (isStunned) {

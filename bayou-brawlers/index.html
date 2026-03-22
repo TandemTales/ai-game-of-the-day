@@ -2994,7 +2994,9 @@
     }
 
     function canPlayerAffectEnemy(enemy) {
-      return enemy && !isCharmed(enemy);
+      if (!enemy) return false;
+      if (!isCharmed(enemy)) return true;
+      return !state.enemies.some(otherEnemy => otherEnemy.hp > 0 && !isCharmed(otherEnemy));
     }
 
     function getCharacterTuning(player) {

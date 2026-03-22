@@ -2775,14 +2775,14 @@
       for (let i = 0; i < symbolCount; i += 1) {
         state.effects.push({
           type: 'heal-plus',
-          x: entity.x + rand(-18, 18),
-          y: topOpaqueWorldY - rand(8, 24),
-          vx: rand(-0.35, 0.35),
-          vy: rand(-1.5, -0.95),
+          x: entity.x + rand(-28, 28),
+          y: topOpaqueWorldY - rand(10, 34),
+          vx: rand(-0.28, 0.28),
+          vy: rand(-0.95, -0.55),
           drift: rand(-0.05, 0.05),
-          size: rand(14, 20),
-          timer: rand(28, 42),
-          maxTimer: 42
+          size: rand(20, 28),
+          timer: rand(36, 52),
+          maxTimer: 52
         });
       }
     }
@@ -3881,7 +3881,7 @@
         if (effect.type === 'heal-plus') {
           effect.x += (effect.vx || 0);
           effect.y += (effect.vy || 0);
-          effect.vy = (effect.vy || 0) - 0.03;
+          effect.vy = (effect.vy || 0) - 0.012;
           effect.vx = ((effect.vx || 0) * 0.97) + (effect.drift || 0);
         }
         if (effect.type === 'floating-text') {
@@ -4628,7 +4628,7 @@
           ctx.fillRect(effect.x - state.cameraX - 2, effect.y - state.cameraY - 2, 3, 3);
         }
         if (effect.type === 'heal-plus') {
-          const maxTimer = effect.maxTimer || 42;
+          const maxTimer = effect.maxTimer || 52;
           const alpha = clamp(effect.timer / maxTimer, 0, 1);
           const x = effect.x - state.cameraX;
           const y = effect.y - state.cameraY;

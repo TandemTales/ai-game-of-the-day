@@ -2468,9 +2468,12 @@
     }
 
     function addPower(player, amount) {
-      if (!player) return;
+      if (!player || amount === 0) return 0;
+      const before = player.power;
       player.power = clamp(player.power + amount, 0, player.maxPower || BASE_MAX_POWER);
+      const gained = player.power - before;
       updatePowerHud(player);
+      return gained;
     }
 
     function setSuperReadyGlow(active) {
@@ -2768,8 +2771,8 @@
       });
     }
 
-    function spawnHealPlusCluster(entity, healedAmount = 0) {
-      if (!entity || healedAmount <= 0) return;
+    function spawnPlusCluster(entity, amount = 0, type = 'heal-plus') {
+      if (!entity || amount <= 0) return;
       const topOpaqueWorldY = getEntityWalkTopOpaqueWorldY(entity, PLAYER_DRAW_SIZE);
       const symbolCount = 9;
       for (let i = 0; i < symbolCount; i += 1) {
@@ -2779,26 +2782,34 @@
         const centerX = entity.x + rand(-8, 8);
         const centerY = topOpaqueWorldY - rand(18, 34);
         state.effects.push({
-          type: 'heal-plus',
+          type,
           x: centerX + Math.cos(angle) * baseRadius,
           y: centerY + Math.sin(angle) * (baseRadius * 0.52),
           centerX,
           centerY,
-          vx: rand(-0.13, 0.13),
-          vy: rand(-0.52, -0.34),
-          drift: rand(-0.01, 0.01),
+          vx: rand(-0.1, 0.1),
+          vy: rand(-0.38, -0.24),
+          drift: rand(-0.008, 0.008),
           size,
-          timer: rand(48, 66),
-          maxTimer: 66,
+          timer: rand(56, 76),
+          maxTimer: 76,
           orbitAngle: angle + rand(-0.06, 0.06),
-          orbitSpeed: rand(0.06, 0.1) * (i % 2 === 0 ? 1 : -1),
+          orbitSpeed: rand(0.034, 0.06) * (i % 2 === 0 ? 1 : -1),
           orbitRadiusX: baseRadius,
           orbitRadiusY: baseRadius * rand(0.48, 0.6),
           pulsePhase: rand(0, Math.PI * 2),
-          pulseSpeed: rand(0.12, 0.18),
+          pulseSpeed: rand(0.1, 0.15),
           pulseAmount: rand(4, 10)
         });
       }
+    }
+
+    function spawnHealPlusCluster(entity, healedAmount = 0) {
+      spawnPlusCluster(entity, healedAmount, 'heal-plus');
+    }
+
+    function spawnPowerPlusCluster(entity, powerAmount = 0) {
+      spawnPlusCluster(entity, powerAmount, 'power-plus');
     }
 
     function healPlayer(amount) {
@@ -2911,6 +2922,14 @@
         tick: 0
       };
       if (type === 'ROOT' || type === 'FREEZE') enemy.stun = Math.max(enemy.stun, finalDuration + STUN_DURATION_BONUS_FRAMES);
+      if (type === 'FREEZE' && (!existing || existing.duration <= 0)) {
+        const player = state.player;
+        if (player && player.charData.id === 'billy-boxby' && hasUpgrade(player, 'cold-reservoir')) {
+          const bonusPower = hasLevel(player, 10) ? 10 : 6;
+          const gainedPower = addPower(player, bonusPower);
+          if (gainedPower > 0) spawnPowerPlusCluster(player, gainedPower);
+        }
+      }
       if (type === 'CHARM') {
         enemy.cooldown = 0;
         enemy.windup = 0;
@@ -3892,7 +3911,7 @@
           effect.vy += effect.gravity;
           effect.vx *= 0.96;
         }
-        if (effect.type === 'heal-plus') {
+        if (effect.type === 'heal-plus' || effect.type === 'power-plus') {
           effect.centerX = (effect.centerX ?? effect.x) + (effect.vx || 0);
           effect.centerY = (effect.centerY ?? effect.y) + (effect.vy || 0);
           effect.vy = ((effect.vy || 0) * 0.988) - 0.004;
@@ -4648,7 +4667,7 @@
           ctx.fillStyle = effect.color || 'rgba(200,255,220,0.9)';
           ctx.fillRect(effect.x - state.cameraX - 2, effect.y - state.cameraY - 2, 3, 3);
         }
-        if (effect.type === 'heal-plus') {
+        if (effect.type === 'heal-plus' || effect.type === 'power-plus') {
           const maxTimer = effect.maxTimer || 42;
           const alpha = clamp(effect.timer / maxTimer, 0, 1);
           const x = effect.x - state.cameraX;
@@ -4656,12 +4675,13 @@
           const size = effect.size || 16;
           const half = size * 0.5;
           const thickness = Math.max(2, size * 0.22);
+          const isPower = effect.type === 'power-plus';
           ctx.save();
           ctx.globalAlpha = alpha;
-          ctx.shadowColor = 'rgba(255, 0, 0, 0.85)';
+          ctx.shadowColor = isPower ? 'rgba(64, 164, 255, 0.9)' : 'rgba(255, 0, 0, 0.85)';
           ctx.shadowBlur = 8;
-          ctx.fillStyle = 'rgba(255, 0, 0, 0.98)';
-          ctx.strokeStyle = 'rgba(255, 205, 205, 0.98)';
+          ctx.fillStyle = isPower ? 'rgba(70, 174, 255, 0.98)' : 'rgba(255, 0, 0, 0.98)';
+          ctx.strokeStyle = isPower ? 'rgba(206, 236, 255, 0.98)' : 'rgba(255, 205, 205, 0.98)';
           ctx.lineWidth = 1.6;
           ctx.fillRect(x - (thickness / 2), y - half, thickness, size);
           ctx.fillRect(x - half, y - (thickness / 2), size, thickness);

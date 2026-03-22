@@ -1148,6 +1148,7 @@
     const BASE_MAX_POWER = 100;
     const SPECIAL_COST = BASE_MAX_POWER / 3;
     const SUPER_COST = SPECIAL_COST;
+    const COLD_RESERVOIR_POWER_BONUS = 8;
     const XP_TABLE = [0, 60, 140, 260, 420, 620, 860, 1160, 1540, 2050];
     const XP_BY_TIER = { small: 7, medium: 12, elite: 22.5, boss: 50 };
     const POWER_BY_TIER = { small: 5, medium: 8, elite: 12, boss: 15 };
@@ -2468,9 +2469,11 @@
     }
 
     function addPower(player, amount) {
-      if (!player) return;
+      if (!player || amount === 0) return 0;
+      const before = player.power;
       player.power = clamp(player.power + amount, 0, player.maxPower || BASE_MAX_POWER);
       updatePowerHud(player);
+      return Math.max(0, player.power - before);
     }
 
     function setSuperReadyGlow(active) {
@@ -2768,8 +2771,8 @@
       });
     }
 
-    function spawnHealPlusCluster(entity, healedAmount = 0) {
-      if (!entity || healedAmount <= 0) return;
+    function spawnPlusCluster(entity, amount = 0, plusType = 'heal-plus') {
+      if (!entity || amount <= 0) return;
       const topOpaqueWorldY = getEntityWalkTopOpaqueWorldY(entity, PLAYER_DRAW_SIZE);
       const symbolCount = 9;
       for (let i = 0; i < symbolCount; i += 1) {
@@ -2779,26 +2782,34 @@
         const centerX = entity.x + rand(-8, 8);
         const centerY = topOpaqueWorldY - rand(18, 34);
         state.effects.push({
-          type: 'heal-plus',
+          type: plusType,
           x: centerX + Math.cos(angle) * baseRadius,
           y: centerY + Math.sin(angle) * (baseRadius * 0.52),
           centerX,
           centerY,
-          vx: rand(-0.13, 0.13),
-          vy: rand(-0.52, -0.34),
-          drift: rand(-0.01, 0.01),
+          vx: rand(-0.09, 0.09),
+          vy: rand(-0.35, -0.22),
+          drift: rand(-0.008, 0.008),
           size,
-          timer: rand(48, 66),
-          maxTimer: 66,
+          timer: rand(52, 72),
+          maxTimer: 72,
           orbitAngle: angle + rand(-0.06, 0.06),
-          orbitSpeed: rand(0.06, 0.1) * (i % 2 === 0 ? 1 : -1),
+          orbitSpeed: rand(0.032, 0.056) * (i % 2 === 0 ? 1 : -1),
           orbitRadiusX: baseRadius,
           orbitRadiusY: baseRadius * rand(0.48, 0.6),
           pulsePhase: rand(0, Math.PI * 2),
-          pulseSpeed: rand(0.12, 0.18),
+          pulseSpeed: rand(0.09, 0.14),
           pulseAmount: rand(4, 10)
         });
       }
+    }
+
+    function spawnHealPlusCluster(entity, healedAmount = 0) {
+      spawnPlusCluster(entity, healedAmount, 'heal-plus');
+    }
+
+    function spawnPowerPlusCluster(entity, powerAmount = 0) {
+      spawnPlusCluster(entity, powerAmount, 'power-plus');
     }
 
     function healPlayer(amount) {
@@ -2902,7 +2913,7 @@
 
     function applyStatus(enemy, type, duration, magnitude = 0) {
       const finalDuration = statusDurationForEnemy(enemy, duration);
-      if (finalDuration <= 0 && ['CHARM', 'FREEZE'].includes(type)) return;
+      if (finalDuration <= 0 && ['CHARM', 'FREEZE'].includes(type)) return false;
       if (!enemy.statuses) enemy.statuses = {};
       const existing = enemy.statuses[type];
       enemy.statuses[type] = {
@@ -2915,8 +2926,15 @@
         enemy.cooldown = 0;
         enemy.windup = 0;
       }
+      return true;
     }
 
+
+    function grantColdReservoirPower(player) {
+      if (!player || !hasUpgrade(player, 'cold-reservoir')) return;
+      const gainedPower = addPower(player, COLD_RESERVOIR_POWER_BONUS);
+      if (gainedPower > 0) spawnPowerPlusCluster(player, gainedPower);
+    }
 
     function updateEnemyStatuses(enemy) {
       if (!enemy.statuses) return;
@@ -3176,7 +3194,11 @@
         const freezeDur = heavy ? 120 : 0;
         const bonusDur = hasLevel(player, 10) ? 1.5 : 1;
         if (Math.random() < slowChance) applyStatus(enemy, 'SLOW', Math.floor((heavy ? 180 : 150) * bonusDur), slow);
-        if (freezeDur > 0 && Math.random() < freezeChance) applyStatus(enemy, 'FREEZE', freezeDur, 1);
+        if (freezeDur > 0 && Math.random() < freezeChance) {
+          const wasFrozen = (enemy.statuses?.FREEZE?.duration || 0) > 0;
+          const freezeApplied = applyStatus(enemy, 'FREEZE', freezeDur, 1);
+          if (freezeApplied && !wasFrozen) grantColdReservoirPower(player);
+        }
       }
       if (id === 'green-fairy' && heavy && Math.random() < 0.2) applyStatus(enemy, 'CONFUSE', 90, 1);
       if (id === 'grimma-the-feared' && heavy && getEnemyTier(enemy) === 'small') enemy.x += (player.x - enemy.x) * 0.2;
@@ -3217,7 +3239,11 @@
           state.enemies.forEach(enemy => {
             if (!canPlayerAffectEnemy(enemy)) return;
             applyStatus(enemy, 'SLOW', (hasLevel(player, 9) ? 300 : 240), 0.6);
-            if (getEnemyTier(enemy) !== 'boss') applyStatus(enemy, 'FREEZE', hasLevel(player, 9) ? 240 : 180, 1);
+            if (getEnemyTier(enemy) !== 'boss') {
+              const wasFrozen = (enemy.statuses?.FREEZE?.duration || 0) > 0;
+              const freezeApplied = applyStatus(enemy, 'FREEZE', hasLevel(player, 9) ? 240 : 180, 1);
+              if (freezeApplied && !wasFrozen) grantColdReservoirPower(player);
+            }
           });
         }
       } else if (id === 'rustbucket') {
@@ -3892,7 +3918,7 @@
           effect.vy += effect.gravity;
           effect.vx *= 0.96;
         }
-        if (effect.type === 'heal-plus') {
+        if (effect.type === 'heal-plus' || effect.type === 'power-plus') {
           effect.centerX = (effect.centerX ?? effect.x) + (effect.vx || 0);
           effect.centerY = (effect.centerY ?? effect.y) + (effect.vy || 0);
           effect.vy = ((effect.vy || 0) * 0.988) - 0.004;
@@ -4648,7 +4674,7 @@
           ctx.fillStyle = effect.color || 'rgba(200,255,220,0.9)';
           ctx.fillRect(effect.x - state.cameraX - 2, effect.y - state.cameraY - 2, 3, 3);
         }
-        if (effect.type === 'heal-plus') {
+        if (effect.type === 'heal-plus' || effect.type === 'power-plus') {
           const maxTimer = effect.maxTimer || 42;
           const alpha = clamp(effect.timer / maxTimer, 0, 1);
           const x = effect.x - state.cameraX;
@@ -4658,10 +4684,11 @@
           const thickness = Math.max(2, size * 0.22);
           ctx.save();
           ctx.globalAlpha = alpha;
-          ctx.shadowColor = 'rgba(255, 0, 0, 0.85)';
+          const isPowerPlus = effect.type === 'power-plus';
+          ctx.shadowColor = isPowerPlus ? 'rgba(58, 142, 255, 0.88)' : 'rgba(255, 0, 0, 0.85)';
           ctx.shadowBlur = 8;
-          ctx.fillStyle = 'rgba(255, 0, 0, 0.98)';
-          ctx.strokeStyle = 'rgba(255, 205, 205, 0.98)';
+          ctx.fillStyle = isPowerPlus ? 'rgba(58, 142, 255, 0.98)' : 'rgba(255, 0, 0, 0.98)';
+          ctx.strokeStyle = isPowerPlus ? 'rgba(188, 224, 255, 0.98)' : 'rgba(255, 205, 205, 0.98)';
           ctx.lineWidth = 1.6;
           ctx.fillRect(x - (thickness / 2), y - half, thickness, size);
           ctx.fillRect(x - half, y - (thickness / 2), size, thickness);

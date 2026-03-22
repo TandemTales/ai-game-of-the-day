@@ -2710,11 +2710,15 @@
         }
       }
       if (enemy.hp <= 0) {
+        const player = state.player;
+        const isFrozenOnDefeat = (enemy.statuses?.FREEZE?.duration || 0) > 0;
+        const shouldTriggerShatterShock = !!(player && hasUpgrade(player, 'shatter-shock') && isFrozenOnDefeat);
         enemy.hp = 0;
         enemy.hurtTimer = 0;
         enemy.windup = 0;
         enemy.attackAnimTimer = 0;
-        enemy.deathHoldFrames = ENEMY_DEATH_HOLD_FRAMES;
+        enemy.deathHoldFrames = shouldTriggerShatterShock ? 0 : ENEMY_DEATH_HOLD_FRAMES;
+        if (shouldTriggerShatterShock) spawnShatterShockBurst(enemy.x, enemy.y);
         handleEnemyDeath(enemy);
       }
     }
@@ -2899,6 +2903,29 @@
 
     function spawnShockwave(x, y, radius, damage, knockback, stun) {
       state.effects.push({ x, y, radius, timer: 30, damage, knockback, stun, type: 'shock' });
+    }
+
+    function spawnShatterShockBurst(x, y) {
+      const shardCount = 28;
+      const icePalette = ['#ecf9ff', '#dff3ff', '#d1edff', '#c3e4ff', '#b4dbff', '#a4d0ff', '#9bc8ff'];
+      for (let i = 0; i < shardCount; i += 1) {
+        const angle = rand(-Math.PI * 0.95, -Math.PI * 0.05);
+        const speed = rand(1.8, 7.4);
+        state.effects.push({
+          type: 'ice-shard',
+          x: x + rand(-10, 10),
+          y: y - 18 + rand(-20, 8),
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          gravity: rand(0.12, 0.24),
+          size: rand(5, 12),
+          timer: 40,
+          maxTimer: 40,
+          rotation: rand(0, Math.PI * 2),
+          spin: rand(-0.25, 0.25),
+          color: icePalette[Math.floor(rand(0, icePalette.length))]
+        });
+      }
     }
 
     function rootEnemies(x, y, radius) {
@@ -3911,6 +3938,13 @@
           effect.vy += effect.gravity;
           effect.vx *= 0.96;
         }
+        if (effect.type === 'ice-shard') {
+          effect.x += effect.vx;
+          effect.y += effect.vy;
+          effect.vy += effect.gravity;
+          effect.vx *= 0.98;
+          effect.rotation += effect.spin || 0;
+        }
         if (effect.type === 'heal-plus' || effect.type === 'power-plus') {
           effect.centerX = (effect.centerX ?? effect.x) + (effect.vx || 0);
           effect.centerY = (effect.centerY ?? effect.y) + (effect.vy || 0);
@@ -4603,6 +4637,26 @@
           ctx.beginPath();
           ctx.ellipse(drawX, drawY, drawSize * 0.65, drawSize * 0.45, 0, 0, Math.PI * 2);
           ctx.fill();
+        }
+        if (effect.type === 'ice-shard') {
+          const maxTimer = effect.maxTimer || 40;
+          const alpha = clamp(effect.timer / maxTimer, 0, 1);
+          const drawX = effect.x - state.cameraX;
+          const drawY = effect.y - state.cameraY;
+          const shardSize = effect.size * (0.8 + alpha * 0.5);
+          ctx.save();
+          ctx.translate(drawX, drawY);
+          ctx.rotate(effect.rotation || 0);
+          ctx.globalAlpha = 0.45 + (alpha * 0.55);
+          ctx.fillStyle = effect.color || '#d9efff';
+          ctx.beginPath();
+          ctx.moveTo(0, -shardSize);
+          ctx.lineTo(shardSize * 0.55, 0);
+          ctx.lineTo(0, shardSize);
+          ctx.lineTo(-shardSize * 0.42, 0);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
         }
         if (effect.type === 'flash-cone') {
           const maxTimer = effect.maxTimer || 12;

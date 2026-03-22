@@ -2784,12 +2784,12 @@
           y: centerY + Math.sin(angle) * (baseRadius * 0.52),
           centerX,
           centerY,
-          vx: rand(-0.16, 0.16),
-          vy: rand(-0.62, -0.42),
-          drift: rand(-0.012, 0.012),
+          vx: rand(-0.13, 0.13),
+          vy: rand(-0.52, -0.34),
+          drift: rand(-0.01, 0.01),
           size,
-          timer: rand(40, 56),
-          maxTimer: 56,
+          timer: rand(48, 66),
+          maxTimer: 66,
           orbitAngle: angle + rand(-0.06, 0.06),
           orbitSpeed: rand(0.06, 0.1) * (i % 2 === 0 ? 1 : -1),
           orbitRadiusX: baseRadius,
@@ -3895,8 +3895,8 @@
         if (effect.type === 'heal-plus') {
           effect.centerX = (effect.centerX ?? effect.x) + (effect.vx || 0);
           effect.centerY = (effect.centerY ?? effect.y) + (effect.vy || 0);
-          effect.vy = ((effect.vy || 0) * 0.985) - 0.006;
-          effect.vx = ((effect.vx || 0) * 0.985) + (effect.drift || 0);
+          effect.vy = ((effect.vy || 0) * 0.988) - 0.004;
+          effect.vx = ((effect.vx || 0) * 0.988) + (effect.drift || 0);
           effect.orbitAngle = (effect.orbitAngle || 0) + (effect.orbitSpeed || 0);
           effect.pulsePhase = (effect.pulsePhase || 0) + (effect.pulseSpeed || 0);
           const pulse = 1 + (Math.sin(effect.pulsePhase || 0) * (effect.pulseAmount || 0) / Math.max(1, effect.orbitRadiusX || 1));

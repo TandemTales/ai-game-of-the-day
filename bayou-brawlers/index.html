@@ -3586,30 +3586,115 @@
             enemy.isMoving = true;
           }
         } else if (enemy.type === 'sweetykins') {
-          enemy.dashCooldown = Math.max(0, enemy.dashCooldown - 1);
-          if (enemy.dashFrames > 0) {
-            enemy.dashFrames -= 1;
-            enemy.x += enemy.facing * moveSpeed * 2.9;
-            enemy.y += Math.sign(dy) * moveSpeed * 0.25;
-            enemy.isMoving = true;
-            if (rectsOverlap({ x: enemyBody.x - 18, y: enemyBody.y - 8, width: enemyBody.width + 36, height: enemyBody.height + 16 }, playerBody)) {
-              damagePlayer(Math.round(enemy.damage * 1.2), enemy);
+          const isStage2Boss = enemy.isBoss && enemy.stage === 2;
+          if (isStage2Boss) {
+            const screenLeft = state.cameraX - 130;
+            const screenRight = state.cameraX + canvas.width + 130;
+            if (!enemy.sweetykinsCycleState) {
+              enemy.sweetykinsCycleState = 'charge-first';
+              enemy.sweetykinsChargeDirection = enemy.x >= player.x ? -1 : 1;
+              enemy.sweetykinsAttackTimer = 0;
+              enemy.sweetykinsAttackTick = 0;
+              enemy.sweetykinsRetreatDirection = 0;
             }
-            if (enemy.dashFrames <= 0) {
-              enemy.cooldown = rand(40, 70);
-              enemy.dashCooldown = rand(60, 110);
-            }
-          } else if (enemy.dashCooldown <= 0 && distance < 380) {
-            enemy.facing = dx >= 0 ? 1 : -1;
-            enemy.dashFrames = rand(24, 34);
-            enemy.windup = 8;
-            enemy.attackAnimTimer = Math.max(enemy.attackAnimTimer, 20);
-          } else {
-            const closeDistance = 100;
-            if (distance > closeDistance) {
-              enemy.x += Math.sign(dx) * moveSpeed * 0.9;
-              enemy.y += Math.sign(dy) * moveSpeed * 0.45;
+            const trampleHitbox = { x: enemyBody.x - 20, y: enemyBody.y - 10, width: enemyBody.width + 40, height: enemyBody.height + 20 };
+            const heavyMeleeHitbox = { x: enemyBody.x - 10, y: enemyBody.y - 4, width: enemyBody.width + 20, height: enemyBody.height + 8 };
+            if (enemy.sweetykinsCycleState === 'charge-first' || enemy.sweetykinsCycleState === 'charge-second') {
+              const chargeDirection = enemy.sweetykinsChargeDirection || (enemy.x >= player.x ? -1 : 1);
+              enemy.facing = chargeDirection;
+              enemy.x += chargeDirection * moveSpeed * 4.35;
+              enemy.y += Math.sign(dy) * moveSpeed * 0.3;
               enemy.isMoving = true;
+              if (rectsOverlap(trampleHitbox, playerBody)) {
+                damagePlayer(Math.round(enemy.damage * 1.25), enemy);
+              }
+              const finishedCharge = (chargeDirection < 0 && enemy.x <= screenLeft) || (chargeDirection > 0 && enemy.x >= screenRight);
+              if (finishedCharge) {
+                if (enemy.sweetykinsCycleState === 'charge-first') {
+                  enemy.sweetykinsCycleState = 'charge-second';
+                  enemy.sweetykinsChargeDirection = -chargeDirection;
+                  enemy.x = enemy.sweetykinsChargeDirection > 0 ? screenLeft : screenRight;
+                } else {
+                  enemy.sweetykinsCycleState = 'approach-after-charge';
+                  enemy.sweetykinsAttackTimer = 0;
+                  enemy.sweetykinsAttackTick = 0;
+                }
+              }
+            } else if (enemy.sweetykinsCycleState === 'approach-after-charge') {
+              enemy.facing = dx >= 0 ? 1 : -1;
+              enemy.x += Math.sign(dx) * moveSpeed * 1.18;
+              enemy.y += Math.sign(dy) * moveSpeed * 0.58;
+              enemy.isMoving = true;
+              if (distance <= enemy.range * 1.05 || rectsOverlap(heavyMeleeHitbox, playerBody)) {
+                enemy.sweetykinsCycleState = 'attack-five-seconds';
+                enemy.sweetykinsAttackTimer = 300;
+                enemy.sweetykinsAttackTick = 0;
+                enemy.windup = 0;
+                enemy.cooldown = 0;
+              }
+            } else if (enemy.sweetykinsCycleState === 'attack-five-seconds') {
+              enemy.facing = dx >= 0 ? 1 : -1;
+              enemy.sweetykinsAttackTimer = Math.max(0, enemy.sweetykinsAttackTimer - 1);
+              enemy.sweetykinsAttackTick = (enemy.sweetykinsAttackTick || 0) + 1;
+              if (distance > enemy.range * 0.8 && !rectsOverlap(heavyMeleeHitbox, playerBody)) {
+                enemy.x += Math.sign(dx) * moveSpeed * 0.9;
+                enemy.y += Math.sign(dy) * moveSpeed * 0.42;
+                enemy.isMoving = true;
+              }
+              if (enemy.cooldown <= 0 && enemy.windup <= 0) {
+                enemy.windup = 8;
+                enemy.attackAnimTimer = Math.max(enemy.attackAnimTimer, 18);
+                enemy.cooldown = 12;
+              }
+              if (rectsOverlap(heavyMeleeHitbox, playerBody) && enemy.sweetykinsAttackTick % 32 === 0) {
+                damagePlayer(Math.max(1, Math.round(enemy.damage * 0.75)), enemy);
+              }
+              if (enemy.sweetykinsAttackTimer <= 0) {
+                enemy.sweetykinsCycleState = 'retreat';
+                enemy.sweetykinsRetreatDirection = enemy.x >= player.x ? 1 : -1;
+                enemy.windup = 0;
+              }
+            } else if (enemy.sweetykinsCycleState === 'retreat') {
+              const retreatDirection = enemy.sweetykinsRetreatDirection || (enemy.x >= player.x ? 1 : -1);
+              enemy.facing = retreatDirection;
+              enemy.x += retreatDirection * moveSpeed * 4.8;
+              enemy.y += Math.sign(dy) * moveSpeed * 0.18;
+              enemy.isMoving = true;
+              const fullyOffscreen = (retreatDirection < 0 && enemy.x <= screenLeft) || (retreatDirection > 0 && enemy.x >= screenRight);
+              if (fullyOffscreen) {
+                enemy.sweetykinsCycleState = 'charge-first';
+                enemy.sweetykinsChargeDirection = -retreatDirection;
+                enemy.sweetykinsAttackTimer = 0;
+                enemy.sweetykinsAttackTick = 0;
+                enemy.x = enemy.sweetykinsChargeDirection > 0 ? screenLeft : screenRight;
+              }
+            }
+          } else {
+            enemy.dashCooldown = Math.max(0, enemy.dashCooldown - 1);
+            if (enemy.dashFrames > 0) {
+              enemy.dashFrames -= 1;
+              enemy.x += enemy.facing * moveSpeed * 2.9;
+              enemy.y += Math.sign(dy) * moveSpeed * 0.25;
+              enemy.isMoving = true;
+              if (rectsOverlap({ x: enemyBody.x - 18, y: enemyBody.y - 8, width: enemyBody.width + 36, height: enemyBody.height + 16 }, playerBody)) {
+                damagePlayer(Math.round(enemy.damage * 1.2), enemy);
+              }
+              if (enemy.dashFrames <= 0) {
+                enemy.cooldown = rand(40, 70);
+                enemy.dashCooldown = rand(60, 110);
+              }
+            } else if (enemy.dashCooldown <= 0 && distance < 380) {
+              enemy.facing = dx >= 0 ? 1 : -1;
+              enemy.dashFrames = rand(24, 34);
+              enemy.windup = 8;
+              enemy.attackAnimTimer = Math.max(enemy.attackAnimTimer, 20);
+            } else {
+              const closeDistance = 100;
+              if (distance > closeDistance) {
+                enemy.x += Math.sign(dx) * moveSpeed * 0.9;
+                enemy.y += Math.sign(dy) * moveSpeed * 0.45;
+                enemy.isMoving = true;
+              }
             }
           }
         } else if (enemy.type === 'mud-monster' && enemy.isBoss && enemy.stage < 3 && state.levelIndex === 0) {

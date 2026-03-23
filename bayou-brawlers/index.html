@@ -3294,7 +3294,8 @@
 
       if (aoeAttackers.has(characterId)) {
         const weakAoeDamage = dmg * 0.65;
-        const weakAoeRadius = heavy ? 90 : 72;
+        const aoeRadiusMultiplier = characterId === 'green-fairy' ? 2 : 1;
+        const weakAoeRadius = (heavy ? 90 : 72) * aoeRadiusMultiplier;
         let hitCount = 0;
         state.enemies.forEach(enemy => {
           if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
@@ -3380,7 +3381,10 @@
         if (Math.random() < slowChance) applyStatus(enemy, 'SLOW', Math.floor((heavy ? 180 : 150) * bonusDur), slow);
         if (freezeDur > 0 && Math.random() < freezeChance) applyStatus(enemy, 'FREEZE', freezeDur, 1);
       }
-      if (id === 'green-fairy' && heavy && Math.random() < 0.2) applyStatus(enemy, 'CONFUSE', 90, 1);
+      if (id === 'green-fairy') {
+        if (!heavy && Math.random() < 0.25) applyStatus(enemy, 'SLOW', 150, 0.2);
+        if (heavy && Math.random() < 0.5) enemy.stun = Math.max(enemy.stun || 0, 72 + STUN_DURATION_BONUS_FRAMES);
+      }
       if (id === 'grimma-the-feared' && heavy && getEnemyTier(enemy) === 'small') enemy.x += (player.x - enemy.x) * 0.2;
       if (id === 'scarlett-glumpkin') applyStatus(enemy, 'POISON', heavy ? 360 : 240, heavy ? 2 : 1);
       if (id === 'rustbucket' && heavy && hasLevel(player, 4)) enemy.x += player.facing * 14;

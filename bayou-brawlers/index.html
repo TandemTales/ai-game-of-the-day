@@ -4427,8 +4427,10 @@
     const statusTintCtx = statusTintCanvas.getContext('2d');
     const invulnerabilityOverlayCanvas = document.createElement('canvas');
     const invulnerabilityOverlayCtx = invulnerabilityOverlayCanvas.getContext('2d');
-    const invulnerabilityGlowCanvas = document.createElement('canvas');
-    const invulnerabilityGlowCtx = invulnerabilityGlowCanvas.getContext('2d');
+    const invulnerabilityOutlineCanvas = document.createElement('canvas');
+    const invulnerabilityOutlineCtx = invulnerabilityOutlineCanvas.getContext('2d');
+    const invulnerabilityMaskCanvas = document.createElement('canvas');
+    const invulnerabilityMaskCtx = invulnerabilityMaskCanvas.getContext('2d');
 
     function isPlayerInvulnerable(player) {
       if (!player) return false;
@@ -4440,6 +4442,44 @@
       if (!entity) return false;
       if (entity.charData) return isPlayerInvulnerable(entity);
       return (entity.invulnFrames || 0) > 0;
+    }
+
+    function drawInvulnerabilityOutline(maskWidth, maskHeight, drawMaskFn, dx, dy, dw, dh, blinkPhaseSeed = 0) {
+      invulnerabilityMaskCanvas.width = maskWidth;
+      invulnerabilityMaskCanvas.height = maskHeight;
+      invulnerabilityMaskCtx.clearRect(0, 0, maskWidth, maskHeight);
+      drawMaskFn(invulnerabilityMaskCtx, maskWidth, maskHeight);
+
+      invulnerabilityOutlineCanvas.width = maskWidth;
+      invulnerabilityOutlineCanvas.height = maskHeight;
+      invulnerabilityOutlineCtx.clearRect(0, 0, maskWidth, maskHeight);
+
+      const thinOffsets = [
+        [-1, 0], [1, 0], [0, -1], [0, 1],
+        [-1, -1], [1, -1], [-1, 1], [1, 1]
+      ];
+      thinOffsets.forEach(([ox, oy]) => {
+        invulnerabilityOutlineCtx.drawImage(invulnerabilityMaskCanvas, ox, oy);
+      });
+
+      const shift = (performance.now() * 0.05) + (blinkPhaseSeed * 23);
+      const outlineGradient = invulnerabilityOutlineCtx.createLinearGradient(0, 0, maskWidth, maskHeight);
+      outlineGradient.addColorStop(0, `hsla(${shift % 360}deg, 96%, 64%, 0.82)`);
+      outlineGradient.addColorStop(0.5, 'rgba(255, 242, 110, 0.92)');
+      outlineGradient.addColorStop(1, `hsla(${(shift + 140) % 360}deg, 94%, 62%, 0.82)`);
+      invulnerabilityOutlineCtx.globalCompositeOperation = 'source-in';
+      invulnerabilityOutlineCtx.fillStyle = outlineGradient;
+      invulnerabilityOutlineCtx.fillRect(0, 0, maskWidth, maskHeight);
+      invulnerabilityOutlineCtx.globalCompositeOperation = 'destination-out';
+      invulnerabilityOutlineCtx.drawImage(invulnerabilityMaskCanvas, 0, 0);
+      invulnerabilityOutlineCtx.globalCompositeOperation = 'source-over';
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(255, 234, 112, 0.92)';
+      ctx.shadowBlur = 5;
+      ctx.globalAlpha = 0.95;
+      ctx.drawImage(invulnerabilityOutlineCanvas, 0, 0, maskWidth, maskHeight, dx, dy, dw, dh);
+      ctx.restore();
     }
 
     function hasActiveSlowCondition(entity) {
@@ -4486,7 +4526,6 @@
       const rainbowShift = (performance.now() * 0.05) + (blinkPhaseSeed * 23);
       const rainbowA = `hsla(${rainbowShift % 360}deg, 98%, 64%, ${invulnAlpha})`;
       const rainbowB = `hsla(${(rainbowShift + 130) % 360}deg, 96%, 61%, ${invulnAlpha})`;
-      const rainbowC = `hsla(${(rainbowShift + 255) % 360}deg, 94%, 62%, ${invulnAlpha})`;
 
       invulnerabilityOverlayCanvas.width = frame.width;
       invulnerabilityOverlayCanvas.height = frame.height;
@@ -4502,21 +4541,18 @@
       invulnerabilityOverlayCtx.globalCompositeOperation = 'source-over';
       ctx.drawImage(invulnerabilityOverlayCanvas, 0, 0, frame.width, frame.height, dx, dy, dw, dh);
 
-      invulnerabilityGlowCanvas.width = frame.width;
-      invulnerabilityGlowCanvas.height = frame.height;
-      invulnerabilityGlowCtx.clearRect(0, 0, frame.width, frame.height);
-      invulnerabilityGlowCtx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, 0, 0, frame.width, frame.height);
-      invulnerabilityGlowCtx.globalCompositeOperation = 'source-atop';
-      invulnerabilityGlowCtx.fillStyle = rainbowC;
-      invulnerabilityGlowCtx.fillRect(0, 0, frame.width, frame.height);
-      invulnerabilityGlowCtx.globalCompositeOperation = 'source-over';
-
-      ctx.save();
-      ctx.shadowColor = 'rgba(255, 234, 112, 0.95)';
-      ctx.shadowBlur = 15;
-      ctx.globalAlpha = 0.88;
-      ctx.drawImage(invulnerabilityGlowCanvas, 0, 0, frame.width, frame.height, dx, dy, dw, dh);
-      ctx.restore();
+      drawInvulnerabilityOutline(
+        frame.width,
+        frame.height,
+        (maskCtx) => {
+          maskCtx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, 0, 0, frame.width, frame.height);
+        },
+        dx,
+        dy,
+        dw,
+        dh,
+        blinkPhaseSeed
+      );
     }
 
     function drawEntity(entity, size, colorOverride) {
@@ -4636,12 +4672,19 @@
             invulnerabilityOverlayCtx.fillStyle = rainbowGradient;
             invulnerabilityOverlayCtx.fillRect(0, 0, spriteWidth, spriteHeight);
             invulnerabilityOverlayCtx.globalCompositeOperation = 'source-over';
-            ctx.save();
-            ctx.shadowColor = 'rgba(255, 234, 112, 0.95)';
-            ctx.shadowBlur = 15;
-            ctx.globalAlpha = 0.88;
             ctx.drawImage(invulnerabilityOverlayCanvas, 0, 0, spriteWidth, spriteHeight, x - drawSize / 2, y - drawSize, drawSize, drawSize);
-            ctx.restore();
+            drawInvulnerabilityOutline(
+              spriteWidth,
+              spriteHeight,
+              (maskCtx) => {
+                maskCtx.drawImage(entity.sprite, 0, 0, spriteWidth, spriteHeight);
+              },
+              x - drawSize / 2,
+              y - drawSize,
+              drawSize,
+              drawSize,
+              blinkPhaseSeed
+            );
           }
         }
       } else {

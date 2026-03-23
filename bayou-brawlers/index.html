@@ -4425,6 +4425,8 @@
 
     const statusTintCanvas = document.createElement('canvas');
     const statusTintCtx = statusTintCanvas.getContext('2d');
+    const invulnFxCanvas = document.createElement('canvas');
+    const invulnFxCtx = invulnFxCanvas.getContext('2d');
 
     function hasActiveSlowCondition(entity) {
       if (!entity) return false;
@@ -4448,20 +4450,57 @@
       return blinkOn ? 'rgba(74, 142, 224, 0.6)' : null;
     }
 
-    function drawAnimationFrame(sourceImage, frame, dx, dy, dw, dh, tint = null) {
+    function hasInvulnerabilityCondition(entity) {
+      if (!entity) return false;
+      if (entity.charData) return (entity.dashTimer || 0) > 0;
+      return (entity.invulnFrames || 0) > 0;
+    }
+
+    function drawAnimationFrame(sourceImage, frame, dx, dy, dw, dh, tint = null, invulnEffect = null) {
       if (!tint) {
         ctx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, dx, dy, dw, dh);
-        return;
+      } else {
+        statusTintCanvas.width = frame.width;
+        statusTintCanvas.height = frame.height;
+        statusTintCtx.clearRect(0, 0, frame.width, frame.height);
+        statusTintCtx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, 0, 0, frame.width, frame.height);
+        statusTintCtx.globalCompositeOperation = 'source-atop';
+        statusTintCtx.fillStyle = tint;
+        statusTintCtx.fillRect(0, 0, frame.width, frame.height);
+        statusTintCtx.globalCompositeOperation = 'source-over';
+        ctx.drawImage(statusTintCanvas, 0, 0, frame.width, frame.height, dx, dy, dw, dh);
       }
-      statusTintCanvas.width = frame.width;
-      statusTintCanvas.height = frame.height;
-      statusTintCtx.clearRect(0, 0, frame.width, frame.height);
-      statusTintCtx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, 0, 0, frame.width, frame.height);
-      statusTintCtx.globalCompositeOperation = 'source-atop';
-      statusTintCtx.fillStyle = tint;
-      statusTintCtx.fillRect(0, 0, frame.width, frame.height);
-      statusTintCtx.globalCompositeOperation = 'source-over';
-      ctx.drawImage(statusTintCanvas, 0, 0, frame.width, frame.height, dx, dy, dw, dh);
+
+      if (!invulnEffect?.active) return;
+
+      const pulse = 0.48 + (Math.sin((performance.now() * 0.02) + invulnEffect.phase) * 0.2);
+      invulnFxCanvas.width = frame.width;
+      invulnFxCanvas.height = frame.height;
+      invulnFxCtx.clearRect(0, 0, frame.width, frame.height);
+      invulnFxCtx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, 0, 0, frame.width, frame.height);
+      invulnFxCtx.globalCompositeOperation = 'source-atop';
+
+      invulnFxCtx.fillStyle = `rgba(255, 235, 110, ${0.34 + pulse * 0.38})`;
+      invulnFxCtx.fillRect(0, 0, frame.width, frame.height);
+
+      const rainbow = invulnFxCtx.createLinearGradient(0, 0, frame.width, frame.height);
+      rainbow.addColorStop(0.0, `rgba(255, 120, 160, ${0.18 + pulse * 0.15})`);
+      rainbow.addColorStop(0.2, `rgba(255, 180, 70, ${0.2 + pulse * 0.14})`);
+      rainbow.addColorStop(0.4, `rgba(255, 245, 120, ${0.18 + pulse * 0.12})`);
+      rainbow.addColorStop(0.6, `rgba(120, 255, 160, ${0.16 + pulse * 0.11})`);
+      rainbow.addColorStop(0.8, `rgba(120, 200, 255, ${0.16 + pulse * 0.12})`);
+      rainbow.addColorStop(1.0, `rgba(215, 140, 255, ${0.18 + pulse * 0.13})`);
+      invulnFxCtx.fillStyle = rainbow;
+      invulnFxCtx.fillRect(0, 0, frame.width, frame.height);
+
+      invulnFxCtx.globalCompositeOperation = 'source-over';
+
+      ctx.save();
+      ctx.globalAlpha = 0.72 + (pulse * 0.2);
+      ctx.shadowColor = `rgba(255, 221, 120, ${0.86 + (pulse * 0.1)})`;
+      ctx.shadowBlur = Math.max(8, Math.round(Math.max(dw, dh) * 0.08));
+      ctx.drawImage(invulnFxCanvas, 0, 0, frame.width, frame.height, dx, dy, dw, dh);
+      ctx.restore();
     }
 
     function drawEntity(entity, size, colorOverride) {
@@ -4475,6 +4514,10 @@
         : 1;
       const useFade = fadeAlpha < 1;
       const tintColor = getEntityStatusTint(entity);
+      const invulnBlinkOn = Math.floor((performance.now() + ((entity?.uid || 0) * 83)) / 120) % 2 === 0;
+      const invulnEffect = hasInvulnerabilityCondition(entity)
+        ? { active: invulnBlinkOn, phase: (entity?.uid || 0) * 0.47 }
+        : null;
       if (useFade) {
         ctx.save();
         ctx.globalAlpha = fadeAlpha;
@@ -4497,7 +4540,8 @@
               -drawSize,
               drawSize,
               drawSize,
-              tintColor
+              tintColor,
+              invulnEffect
             );
             ctx.restore();
           } else {
@@ -4508,7 +4552,8 @@
               y - drawSize,
               drawSize,
               drawSize,
-              tintColor
+              tintColor,
+              invulnEffect
             );
           }
           if (useFade) ctx.restore();
@@ -4532,7 +4577,8 @@
               -drawSize,
               drawSize,
               drawSize,
-              tintColor
+              tintColor,
+              invulnEffect
             );
             ctx.restore();
           } else {
@@ -4543,7 +4589,8 @@
               y - drawSize,
               drawSize,
               drawSize,
-              tintColor
+              tintColor,
+              invulnEffect
             );
           }
           if (useFade) ctx.restore();

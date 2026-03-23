@@ -4445,6 +4445,11 @@
     function isPlayerInvulnerable(player) {
       if (!player) return false;
       if (state.cheats.invincible) return true;
+      if (
+        player.charData?.id === 'green-fairy'
+        && hasUpgrade(player, 'long-glamour')
+        && state.enemies.some(enemy => enemy.hp > 0 && isCharmed(enemy))
+      ) return true;
       return player.dashTimer > 0;
     }
 

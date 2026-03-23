@@ -1095,6 +1095,8 @@
     const TOTAL_WAVE_COUNT = 9;
     const WAVE_TRIGGER_PCTS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
     const IDLE_ARROW_DELAY_FRAMES = 300;
+    const WAVE_BARRIER_PLAYER_MARGIN = 12;
+    const WAVE_BARRIER_SCREEN_MARGIN = 12;
     const FIXED_TIMESTEP_MS = 1000 / 60;
     const MAX_FRAME_DELTA_MS = 1000;
     const MAX_CATCH_UP_STEPS = 6;
@@ -2077,6 +2079,9 @@
         mudTrailDropCooldown: options.mudTrailDropCooldown || rand(4, 7),
         statuses: {}
       };
+      if (state.waveActive && state.lockX !== null) {
+        enemy.waveBarrierSpawnSide = x <= state.lockX ? 'left' : 'right';
+      }
       return enemy;
     }
 
@@ -2350,6 +2355,46 @@
       const triggerX = getWaveTriggerX(waveIndex);
       const revealDistance = getWaveForwardRevealDistance();
       return clamp(triggerX + revealDistance, triggerX, state.levelWidth - 40);
+    }
+
+    function getWaveBarrierX() {
+      return state.waveActive && state.lockX !== null ? state.lockX : null;
+    }
+
+    function getWaveBarrierPlayerMaxX() {
+      const barrierX = getWaveBarrierX();
+      if (barrierX === null) return state.levelWidth - 40;
+      return clamp(barrierX - WAVE_BARRIER_PLAYER_MARGIN, 40, state.levelWidth - 40);
+    }
+
+    function getWaveBarrierCameraMaxX() {
+      const barrierX = getWaveBarrierX();
+      if (barrierX === null) return state.levelWidth - canvas.width;
+      const cappedMaxX = barrierX - canvas.width + WAVE_BARRIER_SCREEN_MARGIN;
+      return clamp(cappedMaxX, 0, state.levelWidth - canvas.width);
+    }
+
+    function enforceEnemyWaveBarrier(enemy) {
+      const barrierX = getWaveBarrierX();
+      if (!enemy || enemy.hp <= 0 || barrierX === null) return;
+      const playerSide = state.player && state.player.x <= barrierX ? 'left' : 'right';
+
+      if (!enemy.waveBarrierSpawnSide) {
+        enemy.waveBarrierSpawnSide = enemy.x <= barrierX ? 'left' : 'right';
+      }
+
+      if (enemy.waveBarrierCrossedToPlayerSide !== true) {
+        if (playerSide === 'left' && enemy.waveBarrierSpawnSide === 'right' && enemy.x <= barrierX) {
+          enemy.waveBarrierCrossedToPlayerSide = true;
+        } else if (playerSide === 'right' && enemy.waveBarrierSpawnSide === 'left' && enemy.x >= barrierX) {
+          enemy.waveBarrierCrossedToPlayerSide = true;
+        }
+      }
+
+      if (enemy.waveBarrierCrossedToPlayerSide === true) {
+        if (playerSide === 'left') enemy.x = Math.min(enemy.x, barrierX);
+        else enemy.x = Math.max(enemy.x, barrierX);
+      }
     }
 
     function getRegularWave(level, waveIndex) {
@@ -3452,15 +3497,12 @@
         player.vz = 0;
       }
 
-      player.x = clamp(player.x, 40, state.levelWidth - 40);
+      const playerMaxX = getWaveBarrierPlayerMaxX();
+      player.x = clamp(player.x, 40, playerMaxX);
       const playerVerticalBounds = getPlayerVerticalBounds(player);
       player.y = clamp(player.y, playerVerticalBounds.minY, playerVerticalBounds.maxY);
       applyMovementMaskClamp(player, prevX, prevY);
       player.isMoving = Math.hypot(player.x - prevX, player.y - prevY) > MOVE_EPSILON;
-
-      if (state.lockX !== null && player.x > state.lockX) {
-        player.x = state.lockX;
-      }
 
       if (player.x > state.lastForwardX + 0.5) {
         state.lastForwardX = player.x;
@@ -3971,6 +4013,9 @@
         }
       });
       state.hazards = state.hazards.filter(h => h.frames > 0);
+      state.enemies.forEach(enemy => {
+        enforceEnemyWaveBarrier(enemy);
+      });
 
       state.enemies = state.enemies.filter(enemy => enemy.hp > 0 || enemy.deathHoldFrames > 0);
     }
@@ -4981,7 +5026,8 @@
 
     function updateCamera() {
       if (!state.player) return;
-      state.cameraX = clamp(state.player.x - canvas.width / 2, 0, state.levelWidth - canvas.width);
+      const cameraMaxX = getWaveBarrierCameraMaxX();
+      state.cameraX = clamp(state.player.x - canvas.width / 2, 0, cameraMaxX);
       state.cameraY = clamp(state.player.y - 260, 0, state.levelHeight - canvas.height + 60);
     }
 

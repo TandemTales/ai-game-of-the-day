@@ -1213,7 +1213,7 @@
         { id: 'dust-collector', name: 'Dust Collector', tag: 'Utility', description: 'Gain extra power meter when charmed enemies damage each other.' },
         { id: 'bewitching-presence', name: 'Bewitching Presence', tag: 'Utility', description: 'Nearby enemies may walk away briefly instead of attacking.' },
         { id: 'float-step', name: 'Float Step', tag: 'Utility', description: 'Reduced hazard damage and slow effects.' },
-        { id: 'sparkle-bloom', name: 'Sparkle Bloom', tag: 'Utility', description: 'Defeated charmed enemies burst in a dust cloud that stuns others.' },
+        { id: 'sparkle-bloom', name: 'Sparkle Bloom', tag: 'Utility', description: 'Some defeated enemies burst in a small dust cloud that stuns nearby non-charmed enemies.' },
         { id: 'long-glamour', name: 'Long Glamour', tag: 'Utility', description: 'Gain 2 seconds of invulnerability whenever an enemy is charmed.' },
         { id: 'perfect-glamour', name: 'Perfect Glamour', tag: 'Utility', description: 'Slowly gain health and power while enemies are charmed.', requiresLevel: 10 }
       ],
@@ -2723,13 +2723,55 @@
         const player = state.player;
         const isFrozenOnDefeat = (enemy.statuses?.FREEZE?.duration || 0) > 0;
         const shouldTriggerShatterShock = !!(player && hasUpgrade(player, 'shatter-shock') && isFrozenOnDefeat);
+        const shouldTriggerSparkleBloom = !!(
+          player &&
+          player.charData.id === 'green-fairy' &&
+          hasUpgrade(player, 'sparkle-bloom') &&
+          Math.random() < 0.4
+        );
         enemy.hp = 0;
         enemy.hurtTimer = 0;
         enemy.windup = 0;
         enemy.attackAnimTimer = 0;
         enemy.deathHoldFrames = shouldTriggerShatterShock ? 0 : ENEMY_DEATH_HOLD_FRAMES;
         if (shouldTriggerShatterShock) spawnShatterShockBurst(enemy.x, enemy.y);
+        if (shouldTriggerSparkleBloom) triggerSparkleBloom(enemy);
         handleEnemyDeath(enemy);
+      }
+    }
+
+    function triggerSparkleBloom(defeatedEnemy) {
+      if (!defeatedEnemy) return;
+      const bloomRadius = 120;
+      const bloomStunFrames = 70 + STUN_DURATION_BONUS_FRAMES;
+      state.enemies.forEach(otherEnemy => {
+        if (!otherEnemy || otherEnemy === defeatedEnemy || otherEnemy.hp <= 0) return;
+        if (isCharmed(otherEnemy)) return;
+        const distance = Math.hypot(otherEnemy.x - defeatedEnemy.x, otherEnemy.y - defeatedEnemy.y);
+        if (distance > bloomRadius) return;
+        otherEnemy.stun = Math.max(otherEnemy.stun, bloomStunFrames);
+      });
+
+      const particleCount = 18;
+      for (let i = 0; i < particleCount; i += 1) {
+        const angle = rand(0, Math.PI * 2);
+        const speed = rand(1.1, 4.2);
+        const particleTimer = rand(18, 34);
+        state.effects.push({
+          type: 'sparkle-bloom-cloud',
+          x: defeatedEnemy.x,
+          y: defeatedEnemy.y - 26 + rand(-10, 10),
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed * 0.72,
+          size: rand(4, 10),
+          growth: rand(0.03, 0.2),
+          driftX: rand(-0.03, 0.03),
+          driftY: rand(-0.05, -0.01),
+          alpha: rand(0.35, 0.62),
+          hue: Math.random() < 0.5 ? 'pink' : 'purple',
+          timer: particleTimer,
+          maxTimer: particleTimer
+        });
       }
     }
 
@@ -3983,6 +4025,14 @@
           effect.vx *= 0.98;
           effect.rotation += effect.spin || 0;
         }
+        if (effect.type === 'sparkle-bloom-cloud') {
+          effect.x += effect.vx;
+          effect.y += effect.vy;
+          effect.vx = (effect.vx || 0) * 0.95 + (effect.driftX || 0);
+          effect.vy = (effect.vy || 0) * 0.92 + (effect.driftY || 0);
+          effect.size += effect.growth || 0;
+          effect.alpha = Math.max(0, (effect.alpha || 0) * 0.96);
+        }
         if (effect.type === 'heal-plus' || effect.type === 'power-plus') {
           effect.centerX = (effect.centerX ?? effect.x) + (effect.vx || 0);
           effect.centerY = (effect.centerY ?? effect.y) + (effect.vy || 0);
@@ -4732,6 +4782,20 @@
           ctx.closePath();
           ctx.fill();
           ctx.restore();
+        }
+        if (effect.type === 'sparkle-bloom-cloud') {
+          const maxTimer = effect.maxTimer || 34;
+          const lifePct = clamp(effect.timer / maxTimer, 0, 1);
+          const drawX = effect.x - state.cameraX;
+          const drawY = effect.y - state.cameraY;
+          const radius = (effect.size || 6) * (0.9 + ((1 - lifePct) * 0.75));
+          const color = effect.hue === 'purple'
+            ? `rgba(180, 120, 255, ${(effect.alpha || 0.5) * lifePct})`
+            : `rgba(255, 145, 230, ${(effect.alpha || 0.5) * lifePct})`;
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(drawX, drawY, radius, 0, Math.PI * 2);
+          ctx.fill();
         }
         if (effect.type === 'flash-cone') {
           const maxTimer = effect.maxTimer || 12;

@@ -1266,7 +1266,7 @@
         { id: 'soul-drain', name: 'Soul Drain', tag: 'Super', description: 'Super heals Grimma based on damage dealt.' },
         { id: 'demon-slayer', name: 'Demon Slayer', tag: 'Utility', description: 'Bonus damage against demons and ghosts.' },
         { id: 'sadists-grace', name: 'Sadist’s Grace', tag: 'Utility', description: 'Chance of a small heal on enemy kill.' },
-        { id: 'dancers-step', name: 'Dancer’s Step', tag: 'Utility', description: 'Small chance to dodge enemy attacks.' },
+        { id: 'dancers-step', name: 'Dancer’s Step', tag: 'Utility', description: 'Gain +10% dodge chance (stacks, up to 50% total dodge chance).', requiresLevel: 5, repeatable: true },
         { id: 'veilwalker', name: 'Veilwalker', tag: 'Utility', description: 'Brief damage reduction after using special.' },
         { id: 'whip-mastery', name: 'Whip Mastery', tag: 'Utility', description: 'Enemies are worth more experience points.' }
       ],
@@ -1932,6 +1932,7 @@
         stunResistanceMultiplier: 1,
         knockbackResistanceMultiplier: 1,
         selectedUpgrades: new Set(),
+        upgradeRanks: {},
         renderScale: charData.renderScale || 1,
         physicsProfileId: charData.physicsProfileId,
         attackFacing: 1,
@@ -2221,6 +2222,11 @@
 
     function hasUpgrade(player, upgradeId) {
       return !!(player && player.selectedUpgrades && player.selectedUpgrades.has(upgradeId));
+    }
+
+    function getUpgradeRank(player, upgradeId) {
+      if (!player || !player.upgradeRanks) return 0;
+      return player.upgradeRanks[upgradeId] || 0;
     }
 
     function getEnvironmentalHazardSlowMultiplier(player) {
@@ -2656,8 +2662,9 @@
     function getEligibleUpgradeChoices(player) {
       const pool = CHARACTER_UPGRADES[player.charData.id] || [];
       return pool.filter((entry) => {
-        if (player.selectedUpgrades.has(entry.id)) return false;
+        if (!entry.repeatable && player.selectedUpgrades.has(entry.id)) return false;
         if (entry.requiresLevel && player.level < entry.requiresLevel) return false;
+        if (entry.id === 'dancers-step' && getPlayerDodgeChance(player) >= 0.5) return false;
         return true;
       });
     }
@@ -2676,6 +2683,7 @@
     function applyChosenUpgrade(player, upgrade) {
       if (!player || !upgrade) return;
       player.selectedUpgrades.add(upgrade.id);
+      player.upgradeRanks[upgrade.id] = getUpgradeRank(player, upgrade.id) + 1;
       showNotification(`${upgrade.name} unlocked`);
     }
 
@@ -2936,9 +2944,9 @@
     function getPlayerDodgeChance(player) {
       if (!player) return 0;
       let chance = 0;
-      if (hasUpgrade(player, 'dancers-step')) chance += 0.12;
+      chance += getUpgradeRank(player, 'dancers-step') * 0.1;
       if (player.charData.id === 'grimma-the-feared' && hasLevel5SignaturePassive(player)) chance += 0.2;
-      return clamp(chance, 0, 0.9);
+      return clamp(chance, 0, 0.5);
     }
 
     function spawnDodgedText(entity) {

@@ -4425,8 +4425,6 @@
 
     const statusTintCanvas = document.createElement('canvas');
     const statusTintCtx = statusTintCanvas.getContext('2d');
-    const invulnerabilityOverlayCanvas = document.createElement('canvas');
-    const invulnerabilityOverlayCtx = invulnerabilityOverlayCanvas.getContext('2d');
     const invulnerabilityOutlineCanvas = document.createElement('canvas');
     const invulnerabilityOutlineCtx = invulnerabilityOutlineCanvas.getContext('2d');
     const invulnerabilityMaskCanvas = document.createElement('canvas');
@@ -4522,25 +4520,6 @@
 
       const blinkOn = Math.floor((performance.now() + (blinkPhaseSeed * 73)) / 165) % 2 === 0;
       if (!blinkOn) return;
-      const invulnAlpha = 0.6;
-      const rainbowShift = (performance.now() * 0.05) + (blinkPhaseSeed * 23);
-      const rainbowA = `hsla(${rainbowShift % 360}deg, 98%, 64%, ${invulnAlpha})`;
-      const rainbowB = `hsla(${(rainbowShift + 130) % 360}deg, 96%, 61%, ${invulnAlpha})`;
-
-      invulnerabilityOverlayCanvas.width = frame.width;
-      invulnerabilityOverlayCanvas.height = frame.height;
-      invulnerabilityOverlayCtx.clearRect(0, 0, frame.width, frame.height);
-      invulnerabilityOverlayCtx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, 0, 0, frame.width, frame.height);
-      invulnerabilityOverlayCtx.globalCompositeOperation = 'source-atop';
-      const rainbowGradient = invulnerabilityOverlayCtx.createLinearGradient(0, 0, frame.width, frame.height);
-      rainbowGradient.addColorStop(0, rainbowA);
-      rainbowGradient.addColorStop(0.5, 'rgba(255, 242, 120, 0.72)');
-      rainbowGradient.addColorStop(1, rainbowB);
-      invulnerabilityOverlayCtx.fillStyle = rainbowGradient;
-      invulnerabilityOverlayCtx.fillRect(0, 0, frame.width, frame.height);
-      invulnerabilityOverlayCtx.globalCompositeOperation = 'source-over';
-      ctx.drawImage(invulnerabilityOverlayCanvas, 0, 0, frame.width, frame.height, dx, dy, dw, dh);
-
       drawInvulnerabilityOutline(
         frame.width,
         frame.height,
@@ -4659,20 +4638,6 @@
           if (blinkOn) {
             const spriteWidth = entity.sprite.naturalWidth || entity.sprite.width || drawSize;
             const spriteHeight = entity.sprite.naturalHeight || entity.sprite.height || drawSize;
-            invulnerabilityOverlayCanvas.width = spriteWidth;
-            invulnerabilityOverlayCanvas.height = spriteHeight;
-            invulnerabilityOverlayCtx.clearRect(0, 0, spriteWidth, spriteHeight);
-            invulnerabilityOverlayCtx.drawImage(entity.sprite, 0, 0, spriteWidth, spriteHeight);
-            invulnerabilityOverlayCtx.globalCompositeOperation = 'source-atop';
-            const shift = (performance.now() * 0.05) + (blinkPhaseSeed * 23);
-            const rainbowGradient = invulnerabilityOverlayCtx.createLinearGradient(0, 0, spriteWidth, spriteHeight);
-            rainbowGradient.addColorStop(0, `hsla(${shift % 360}deg, 98%, 64%, 0.58)`);
-            rainbowGradient.addColorStop(0.5, 'rgba(255, 245, 112, 0.7)');
-            rainbowGradient.addColorStop(1, `hsla(${(shift + 130) % 360}deg, 96%, 62%, 0.58)`);
-            invulnerabilityOverlayCtx.fillStyle = rainbowGradient;
-            invulnerabilityOverlayCtx.fillRect(0, 0, spriteWidth, spriteHeight);
-            invulnerabilityOverlayCtx.globalCompositeOperation = 'source-over';
-            ctx.drawImage(invulnerabilityOverlayCanvas, 0, 0, spriteWidth, spriteHeight, x - drawSize / 2, y - drawSize, drawSize, drawSize);
             drawInvulnerabilityOutline(
               spriteWidth,
               spriteHeight,

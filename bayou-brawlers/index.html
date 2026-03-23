@@ -2865,7 +2865,7 @@
     function damagePlayer(amount, sourceEnemy = null) {
       const player = state.player;
       if (!player || player.hp <= 0) return;
-      if (state.cheats.invincible) return;
+      if (isPlayerInvulnerable(player)) return;
       const dodgeChance = getPlayerDodgeChance(player);
       const dodged = player.dashTimer > 0 || (dodgeChance > 0 && Math.random() < dodgeChance);
       if (dodged) {
@@ -4425,6 +4425,22 @@
 
     const statusTintCanvas = document.createElement('canvas');
     const statusTintCtx = statusTintCanvas.getContext('2d');
+    const invulnerabilityOverlayCanvas = document.createElement('canvas');
+    const invulnerabilityOverlayCtx = invulnerabilityOverlayCanvas.getContext('2d');
+    const invulnerabilityGlowCanvas = document.createElement('canvas');
+    const invulnerabilityGlowCtx = invulnerabilityGlowCanvas.getContext('2d');
+
+    function isPlayerInvulnerable(player) {
+      if (!player) return false;
+      if (state.cheats.invincible) return true;
+      return player.dashTimer > 0;
+    }
+
+    function isEntityInvulnerable(entity) {
+      if (!entity) return false;
+      if (entity.charData) return isPlayerInvulnerable(entity);
+      return (entity.invulnFrames || 0) > 0;
+    }
 
     function hasActiveSlowCondition(entity) {
       if (!entity) return false;
@@ -4448,20 +4464,59 @@
       return blinkOn ? 'rgba(74, 142, 224, 0.6)' : null;
     }
 
-    function drawAnimationFrame(sourceImage, frame, dx, dy, dw, dh, tint = null) {
+    function drawAnimationFrame(sourceImage, frame, dx, dy, dw, dh, tint = null, invulnerable = false, blinkPhaseSeed = 0) {
       if (!tint) {
         ctx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, dx, dy, dw, dh);
-        return;
+      } else {
+        statusTintCanvas.width = frame.width;
+        statusTintCanvas.height = frame.height;
+        statusTintCtx.clearRect(0, 0, frame.width, frame.height);
+        statusTintCtx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, 0, 0, frame.width, frame.height);
+        statusTintCtx.globalCompositeOperation = 'source-atop';
+        statusTintCtx.fillStyle = tint;
+        statusTintCtx.fillRect(0, 0, frame.width, frame.height);
+        statusTintCtx.globalCompositeOperation = 'source-over';
+        ctx.drawImage(statusTintCanvas, 0, 0, frame.width, frame.height, dx, dy, dw, dh);
       }
-      statusTintCanvas.width = frame.width;
-      statusTintCanvas.height = frame.height;
-      statusTintCtx.clearRect(0, 0, frame.width, frame.height);
-      statusTintCtx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, 0, 0, frame.width, frame.height);
-      statusTintCtx.globalCompositeOperation = 'source-atop';
-      statusTintCtx.fillStyle = tint;
-      statusTintCtx.fillRect(0, 0, frame.width, frame.height);
-      statusTintCtx.globalCompositeOperation = 'source-over';
-      ctx.drawImage(statusTintCanvas, 0, 0, frame.width, frame.height, dx, dy, dw, dh);
+      if (!invulnerable) return;
+
+      const blinkOn = Math.floor((performance.now() + (blinkPhaseSeed * 73)) / 165) % 2 === 0;
+      if (!blinkOn) return;
+      const invulnAlpha = 0.6;
+      const rainbowShift = (performance.now() * 0.05) + (blinkPhaseSeed * 23);
+      const rainbowA = `hsla(${rainbowShift % 360}deg, 98%, 64%, ${invulnAlpha})`;
+      const rainbowB = `hsla(${(rainbowShift + 130) % 360}deg, 96%, 61%, ${invulnAlpha})`;
+      const rainbowC = `hsla(${(rainbowShift + 255) % 360}deg, 94%, 62%, ${invulnAlpha})`;
+
+      invulnerabilityOverlayCanvas.width = frame.width;
+      invulnerabilityOverlayCanvas.height = frame.height;
+      invulnerabilityOverlayCtx.clearRect(0, 0, frame.width, frame.height);
+      invulnerabilityOverlayCtx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, 0, 0, frame.width, frame.height);
+      invulnerabilityOverlayCtx.globalCompositeOperation = 'source-atop';
+      const rainbowGradient = invulnerabilityOverlayCtx.createLinearGradient(0, 0, frame.width, frame.height);
+      rainbowGradient.addColorStop(0, rainbowA);
+      rainbowGradient.addColorStop(0.5, 'rgba(255, 242, 120, 0.72)');
+      rainbowGradient.addColorStop(1, rainbowB);
+      invulnerabilityOverlayCtx.fillStyle = rainbowGradient;
+      invulnerabilityOverlayCtx.fillRect(0, 0, frame.width, frame.height);
+      invulnerabilityOverlayCtx.globalCompositeOperation = 'source-over';
+      ctx.drawImage(invulnerabilityOverlayCanvas, 0, 0, frame.width, frame.height, dx, dy, dw, dh);
+
+      invulnerabilityGlowCanvas.width = frame.width;
+      invulnerabilityGlowCanvas.height = frame.height;
+      invulnerabilityGlowCtx.clearRect(0, 0, frame.width, frame.height);
+      invulnerabilityGlowCtx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, 0, 0, frame.width, frame.height);
+      invulnerabilityGlowCtx.globalCompositeOperation = 'source-atop';
+      invulnerabilityGlowCtx.fillStyle = rainbowC;
+      invulnerabilityGlowCtx.fillRect(0, 0, frame.width, frame.height);
+      invulnerabilityGlowCtx.globalCompositeOperation = 'source-over';
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(255, 234, 112, 0.95)';
+      ctx.shadowBlur = 15;
+      ctx.globalAlpha = 0.88;
+      ctx.drawImage(invulnerabilityGlowCanvas, 0, 0, frame.width, frame.height, dx, dy, dw, dh);
+      ctx.restore();
     }
 
     function drawEntity(entity, size, colorOverride) {
@@ -4475,6 +4530,8 @@
         : 1;
       const useFade = fadeAlpha < 1;
       const tintColor = getEntityStatusTint(entity);
+      const invulnerable = isEntityInvulnerable(entity);
+      const blinkPhaseSeed = entity.uid || 0;
       if (useFade) {
         ctx.save();
         ctx.globalAlpha = fadeAlpha;
@@ -4497,7 +4554,9 @@
               -drawSize,
               drawSize,
               drawSize,
-              tintColor
+              tintColor,
+              invulnerable,
+              blinkPhaseSeed
             );
             ctx.restore();
           } else {
@@ -4508,7 +4567,9 @@
               y - drawSize,
               drawSize,
               drawSize,
-              tintColor
+              tintColor,
+              invulnerable,
+              blinkPhaseSeed
             );
           }
           if (useFade) ctx.restore();
@@ -4532,7 +4593,9 @@
               -drawSize,
               drawSize,
               drawSize,
-              tintColor
+              tintColor,
+              invulnerable,
+              blinkPhaseSeed
             );
             ctx.restore();
           } else {
@@ -4543,7 +4606,9 @@
               y - drawSize,
               drawSize,
               drawSize,
-              tintColor
+              tintColor,
+              invulnerable,
+              blinkPhaseSeed
             );
           }
           if (useFade) ctx.restore();
@@ -4553,6 +4618,32 @@
       if (entity.sprite) {
         const drawSize = size * depthScale;
         ctx.drawImage(entity.sprite, x - drawSize / 2, y - drawSize, drawSize, drawSize);
+        if (invulnerable) {
+          const blinkOn = Math.floor((performance.now() + (blinkPhaseSeed * 73)) / 165) % 2 === 0;
+          if (blinkOn) {
+            const spriteWidth = entity.sprite.naturalWidth || entity.sprite.width || drawSize;
+            const spriteHeight = entity.sprite.naturalHeight || entity.sprite.height || drawSize;
+            invulnerabilityOverlayCanvas.width = spriteWidth;
+            invulnerabilityOverlayCanvas.height = spriteHeight;
+            invulnerabilityOverlayCtx.clearRect(0, 0, spriteWidth, spriteHeight);
+            invulnerabilityOverlayCtx.drawImage(entity.sprite, 0, 0, spriteWidth, spriteHeight);
+            invulnerabilityOverlayCtx.globalCompositeOperation = 'source-atop';
+            const shift = (performance.now() * 0.05) + (blinkPhaseSeed * 23);
+            const rainbowGradient = invulnerabilityOverlayCtx.createLinearGradient(0, 0, spriteWidth, spriteHeight);
+            rainbowGradient.addColorStop(0, `hsla(${shift % 360}deg, 98%, 64%, 0.58)`);
+            rainbowGradient.addColorStop(0.5, 'rgba(255, 245, 112, 0.7)');
+            rainbowGradient.addColorStop(1, `hsla(${(shift + 130) % 360}deg, 96%, 62%, 0.58)`);
+            invulnerabilityOverlayCtx.fillStyle = rainbowGradient;
+            invulnerabilityOverlayCtx.fillRect(0, 0, spriteWidth, spriteHeight);
+            invulnerabilityOverlayCtx.globalCompositeOperation = 'source-over';
+            ctx.save();
+            ctx.shadowColor = 'rgba(255, 234, 112, 0.95)';
+            ctx.shadowBlur = 15;
+            ctx.globalAlpha = 0.88;
+            ctx.drawImage(invulnerabilityOverlayCanvas, 0, 0, spriteWidth, spriteHeight, x - drawSize / 2, y - drawSize, drawSize, drawSize);
+            ctx.restore();
+          }
+        }
       } else {
         const drawSize = size * depthScale;
         ctx.fillStyle = colorOverride || '#fff';

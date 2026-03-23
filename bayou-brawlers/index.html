@@ -1148,11 +1148,11 @@
     const PLAYER_STUN_TYPES = new Set(['brute', 'boss', 'mud-monster', 'sweetykins']);
     const ENEMY_DEATH_HOLD_FRAMES = 240;
     const ENEMY_DAMAGE_MULTIPLIER = 0.75;
-    const MAX_LEVEL = Number.POSITIVE_INFINITY;
+    const MAX_LEVEL = 20;
     const BASE_MAX_POWER = 100;
     const SPECIAL_COST = BASE_MAX_POWER / 3;
     const SUPER_COST = SPECIAL_COST;
-    const XP_TABLE = [0, 60, 140, 260, 420, 620, 860, 1160, 1540, 2050];
+    const XP_TABLE = [0, 45, 90, 150, 230, 320, 420, 530, 650, 780];
     const XP_BY_TIER = { small: 7, medium: 12, elite: 22.5, boss: 50 };
     const POWER_BY_TIER = { small: 5, medium: 8, elite: 12, boss: 15 };
     const SAVE_SLOT_KEY = `${GAME_ID}:slot:default:progress`;
@@ -2535,9 +2535,17 @@
       localStorage.setItem(SAVE_SLOT_KEY, JSON.stringify({ level: player.level, xp: player.xp }));
     }
 
+    function getLevelCyclePosition(level) {
+      return ((Math.max(1, level) - 1) % 10) + 1;
+    }
+
     function xpToNext(level) {
-      const idx = clamp(level - 1, 0, XP_TABLE.length - 1);
-      return XP_TABLE[idx];
+      if (level >= MAX_LEVEL) return 0;
+      const cyclePosition = getLevelCyclePosition(level);
+      const cycleIndex = Math.floor((Math.max(1, level) - 1) / 10);
+      const idx = clamp(cyclePosition - 1, 0, XP_TABLE.length - 1);
+      const scaledXp = Math.round(XP_TABLE[idx] * (0.7 ** cycleIndex));
+      return Math.max(20, scaledXp);
     }
 
     function hasLevel(player, levelReq) {
@@ -2584,30 +2592,33 @@
     }
 
     function getAutoLevelGainLines(level, player) {
-      const baseLines = [...(AUTO_LEVEL_GAINS[level] || [])];
-      if (level === 10 && FINAL_SIGNATURE_PASSIVES[player.charData.id]) {
+      const cyclePosition = getLevelCyclePosition(level);
+      const baseLines = [...(AUTO_LEVEL_GAINS[cyclePosition] || [])];
+      if (cyclePosition === 10 && FINAL_SIGNATURE_PASSIVES[player.charData.id]) {
         baseLines.push(`Signature Passive: ${FINAL_SIGNATURE_PASSIVES[player.charData.id]}`);
       }
+      if (baseLines.length === 0) baseLines.push('No automatic stat bonus this level');
       return baseLines;
     }
 
     function applyAutoLevelGains(player, level) {
       if (!player) return;
-      if ([2, 6, 9].includes(level)) {
+      const cyclePosition = getLevelCyclePosition(level);
+      if ([2, 6, 9].includes(cyclePosition)) {
         player.maxHp *= 1.08;
         healPlayer(player.maxHp * 0.08);
       }
-      if ([3, 5].includes(level)) player.maxPower += 20;
-      if ([8, 10].includes(level)) player.maxPower += 10;
-      if ([2, 7].includes(level)) player.basicDamageMultiplier *= 1.05;
-      if ([4, 8].includes(level)) player.heavyDamageMultiplier *= 1.05;
-      if ([6, 9].includes(level)) player.specialEffectMultiplier *= 1.05;
-      if (level === 4) player.speed *= 1.05;
-      if (level === 7) {
+      if ([3, 5].includes(cyclePosition)) player.maxPower += 20;
+      if ([8, 10].includes(cyclePosition)) player.maxPower += 10;
+      if ([2, 7].includes(cyclePosition)) player.basicDamageMultiplier *= 1.05;
+      if ([4, 8].includes(cyclePosition)) player.heavyDamageMultiplier *= 1.05;
+      if ([6, 9].includes(cyclePosition)) player.specialEffectMultiplier *= 1.05;
+      if (cyclePosition === 4) player.speed *= 1.05;
+      if (cyclePosition === 7) {
         player.stunResistanceMultiplier *= 0.95;
         player.knockbackResistanceMultiplier *= 0.95;
       }
-      if (level === 10) player.allDamageMultiplier *= 1.05;
+      if (cyclePosition === 10) player.allDamageMultiplier *= 1.05;
       player.power = clamp(player.power, 0, player.maxPower);
       updatePowerHud(player);
     }
@@ -2695,13 +2706,14 @@
     function addXp(player, amount) {
       if (!player || amount <= 0) return;
       player.xp += amount;
-      while (player.xp >= xpToNext(player.level)) {
+      while (player.level < MAX_LEVEL && player.xp >= xpToNext(player.level)) {
         player.xp -= xpToNext(player.level);
         player.level += 1;
         applyAutoLevelGains(player, player.level);
         state.pendingLevelUps.push(player.level);
         state.effects.push({ x: player.x, y: player.y - 70, timer: 35, type: 'levelup' });
       }
+      if (player.level >= MAX_LEVEL) player.xp = 0;
       updateProgressHud(player);
       saveProgress(player);
       processNextPendingLevelUp();

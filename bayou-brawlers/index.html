@@ -1181,6 +1181,17 @@
       'old-man-croc': 'Heal 3% max HP on each enemy defeat'
     };
 
+    const LEVEL_5_SIGNATURE_PASSIVES = {
+      'billy-boxby': 'Slow effects last 25% longer',
+      'green-fairy': 'Charm effects last 20% longer',
+      'shunky-rooster': '25% reduced knockback and 10% reduced damage taken',
+      'grimma-the-feared': 'Gain 20% dodge chance',
+      possumatli: 'Combo meter decays much slower and regenerate 1% max power per second',
+      rustbucket: '+25% chance for bullets to ricochet to additional enemies',
+      'scarlett-glumpkin': 'Poison effects last 20% longer',
+      'old-man-croc': 'Heal 3% max HP on each enemy defeat'
+    };
+
     const CHARACTER_UPGRADES = {
       'billy-boxby': [
         { id: 'cold-barrel', name: 'Cold Barrel', tag: 'Attack', description: 'Basic attacks apply stronger slow to non-ghost enemies.' },
@@ -2552,6 +2563,19 @@
       return player.level >= levelReq;
     }
 
+    function hasLevel5SignaturePassive(player) {
+      return !!(player && hasLevel(player, 5));
+    }
+
+    function getStatusDurationMultiplierForPlayer(player, type) {
+      if (!hasLevel5SignaturePassive(player)) return 1;
+      const id = player.charData.id;
+      if (id === 'billy-boxby' && type === 'SLOW') return 1.25;
+      if (id === 'green-fairy' && type === 'CHARM') return 1.2;
+      if (id === 'scarlett-glumpkin' && type === 'POISON') return 1.2;
+      return 1;
+    }
+
     function getBasicDamageMultiplier(player) {
       if (!player) return 1;
       return player.basicDamageMultiplier * player.allDamageMultiplier;
@@ -2594,6 +2618,9 @@
     function getAutoLevelGainLines(level, player) {
       const cyclePosition = getLevelCyclePosition(level);
       const baseLines = [...(AUTO_LEVEL_GAINS[cyclePosition] || [])];
+      if (cyclePosition === 5 && LEVEL_5_SIGNATURE_PASSIVES[player.charData.id]) {
+        baseLines.push(`Signature Passive: ${LEVEL_5_SIGNATURE_PASSIVES[player.charData.id]}`);
+      }
       if (cyclePosition === 10 && FINAL_SIGNATURE_PASSIVES[player.charData.id]) {
         baseLines.push(`Signature Passive: ${FINAL_SIGNATURE_PASSIVES[player.charData.id]}`);
       }
@@ -2609,6 +2636,9 @@
         healPlayer(player.maxHp * 0.08);
       }
       if ([3, 5].includes(cyclePosition)) player.maxPower += 20;
+      if (cyclePosition === 5 && player.charData.id === 'shunky-rooster') {
+        player.knockbackResistanceMultiplier *= 0.75;
+      }
       if ([8, 10].includes(cyclePosition)) player.maxPower += 10;
       if ([2, 7].includes(cyclePosition)) player.basicDamageMultiplier *= 1.05;
       if ([4, 8].includes(cyclePosition)) player.heavyDamageMultiplier *= 1.05;
@@ -2758,9 +2788,8 @@
         const tier = getEnemyTier(enemy);
         addXp(player, XP_BY_TIER[tier] || 12);
         addPower(player, POWER_BY_TIER[tier] || 5);
-        if (player.charData.id === 'old-man-croc' && hasLevel(player, 10) && player.passiveCooldown <= 0) {
+        if (player.charData.id === 'old-man-croc' && hasLevel5SignaturePassive(player)) {
           healPlayer(player.maxHp * 0.03);
-          player.passiveCooldown = 30;
         }
       }
       if (Math.random() < 0.2) spawnPickup(enemy.x, enemy.y);
@@ -2889,6 +2918,9 @@
       if (player.block || player.shieldTimer > 0) {
         finalAmount *= 0.45;
       }
+      if (player.charData.id === 'shunky-rooster' && hasLevel5SignaturePassive(player)) {
+        finalAmount *= 0.9;
+      }
       if (sourceEnemy && PLAYER_STUN_TYPES.has(sourceEnemy.type) && rand(0, 1) < (sourceEnemy.isBoss ? 0.4 : 0.18)) {
         player.stun = Math.max(player.stun, (sourceEnemy.isBoss ? 42 : 24) + STUN_DURATION_BONUS_FRAMES);
       }
@@ -2905,6 +2937,7 @@
       if (!player) return 0;
       let chance = 0;
       if (hasUpgrade(player, 'dancers-step')) chance += 0.12;
+      if (player.charData.id === 'grimma-the-feared' && hasLevel5SignaturePassive(player)) chance += 0.2;
       return clamp(chance, 0, 0.9);
     }
 
@@ -2995,6 +3028,7 @@
 
     function spawnProjectile(owner, speed, damage, friendly, color = '#f5d07a') {
       const dir = owner.facing;
+      const ownerId = owner?.charData?.id || null;
       state.projectiles.push({
         x: owner.x + dir * 20,
         y: owner.y - 10,
@@ -3006,8 +3040,9 @@
         color,
         tracking: false,
         turnRate: 0,
-        ownerId: owner?.charData?.id || null,
-        trailEvery: 0
+        ownerId,
+        trailEvery: 0,
+        ricochetRemaining: ownerId === 'rustbucket' ? 1 : 0
       });
     }
 
@@ -3050,7 +3085,8 @@
         turnRate: heavy ? 0.18 : 0.12,
         ownerId: id,
         trailEvery: 3,
-        burstRadius: heavy ? 18 : 12
+        burstRadius: heavy ? 18 : 12,
+        ricochetRemaining: id === 'rustbucket' ? 1 : 0
       };
       state.projectiles.push(projectile);
     }
@@ -3093,7 +3129,10 @@
     }
 
     function applyStatus(enemy, type, duration, magnitude = 0) {
-      const finalDuration = statusDurationForEnemy(enemy, duration);
+      const player = state.player;
+      const durationMultiplier = getStatusDurationMultiplierForPlayer(player, type);
+      const scaledDuration = Math.floor(duration * durationMultiplier);
+      const finalDuration = statusDurationForEnemy(enemy, scaledDuration);
       if (finalDuration <= 0 && ['CHARM', 'FREEZE'].includes(type)) return;
       if (!enemy.statuses) enemy.statuses = {};
       const existing = enemy.statuses[type];
@@ -3104,7 +3143,6 @@
       };
       if (type === 'ROOT' || type === 'FREEZE') enemy.stun = Math.max(enemy.stun, finalDuration + STUN_DURATION_BONUS_FRAMES);
       if (type === 'FREEZE' && (!existing || existing.duration <= 0)) {
-        const player = state.player;
         if (player && player.charData.id === 'billy-boxby' && hasUpgrade(player, 'cold-reservoir')) {
           const bonusPower = hasLevel(player, 10) ? 10 : 6;
           const gainedPower = addPower(player, bonusPower);
@@ -3545,7 +3583,17 @@
       player.actionLock = Math.max(0, player.actionLock - 1);
       player.passiveCooldown = Math.max(0, player.passiveCooldown - 1);
       if (player.comboTimer > 0) player.comboTimer -= 1;
-      else player.comboHits = Math.max(0, player.comboHits - (hasLevel(player, 10) && player.charData.id === 'possumatli' ? 0.5 : 1));
+      else player.comboHits = Math.max(0, player.comboHits - (hasLevel5SignaturePassive(player) && player.charData.id === 'possumatli' ? 0.5 : 1));
+      if (player.charData.id === 'possumatli' && hasLevel5SignaturePassive(player)) {
+        player.signaturePowerRegenTick = (player.signaturePowerRegenTick || 0) + 1;
+        if (player.signaturePowerRegenTick >= 60) {
+          const regenAmount = (player.maxPower || BASE_MAX_POWER) * 0.01;
+          addPower(player, regenAmount);
+          player.signaturePowerRegenTick = 0;
+        }
+      } else {
+        player.signaturePowerRegenTick = 0;
+      }
       if (player.sentryTimer > 0 && player.sentryTimer % 18 === 0) spawnProjectile(player, 11, hasLevel(player, 7) ? 9 : 7, true, '#ffe8aa');
       if (player.tempestTimer > 0) {
         player.tempestTimer -= 1;
@@ -4072,6 +4120,39 @@
             ) {
               damageEnemy(enemy, projectile.damage, 20);
               state.effects.push({ x: projectile.x, y: projectile.y, timer: 16, radius: projectile.burstRadius || 12, type: 'projectile-burst', color: projectile.color });
+              if (
+                player
+                && projectile.ownerId === 'rustbucket'
+                && hasLevel5SignaturePassive(player)
+                && (projectile.ricochetRemaining || 0) > 0
+                && Math.random() < 0.25
+              ) {
+                const ricochetTarget = state.enemies
+                  .filter(other => other.hp > 0 && other.uid !== enemy.uid && canPlayerAffectEnemy(other))
+                  .sort((a, b) => Math.hypot(a.x - projectile.x, a.y - projectile.y) - Math.hypot(b.x - projectile.x, b.y - projectile.y))[0];
+                if (ricochetTarget) {
+                  const ricochetDx = ricochetTarget.x - projectile.x;
+                  const ricochetDy = ricochetTarget.y - projectile.y;
+                  const ricochetDistance = Math.hypot(ricochetDx, ricochetDy) || 1;
+                  const ricochetSpeed = Math.hypot(projectile.vx || 0, projectile.vy || 0) || 9.5;
+                  state.projectiles.push({
+                    x: projectile.x,
+                    y: projectile.y,
+                    vx: (ricochetDx / ricochetDistance) * ricochetSpeed,
+                    vy: (ricochetDy / ricochetDistance) * ricochetSpeed,
+                    damage: projectile.damage,
+                    friendly: true,
+                    life: Math.max(36, projectile.life),
+                    color: projectile.color,
+                    tracking: false,
+                    turnRate: projectile.turnRate || 0,
+                    ownerId: projectile.ownerId,
+                    trailEvery: projectile.trailEvery || 0,
+                    burstRadius: projectile.burstRadius || 12,
+                    ricochetRemaining: (projectile.ricochetRemaining || 1) - 1
+                  });
+                }
+              }
               projectile.life = 0;
             }
           });

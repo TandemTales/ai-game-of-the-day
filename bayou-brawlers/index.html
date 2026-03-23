@@ -1117,6 +1117,8 @@
     const SPRITE_FRAME_SIZE = 128;
     const MOVEMENT_MASK_RED_MIN = 80;
     const MOVEMENT_MASK_ALPHA_MIN = 16;
+    const MOVEMENT_MASK_DETOUR_SAMPLE_ANGLES = [0, 0.4, -0.4, 0.75, -0.75, 1.15, -1.15, Math.PI];
+    const MOVEMENT_MASK_DETOUR_SAMPLE_RADII = [1, 0.7, 1.35, 1.8];
 
     const PLAYER_ANIM_FPS = {
       walk: 10,
@@ -1793,20 +1795,57 @@
       return red >= MOVEMENT_MASK_RED_MIN && red >= green && red >= blue;
     }
 
-    function applyMovementMaskClamp(entity, prevX, prevY) {
+    function findWalkableDetourFrom(prevX, prevY, dx, dy, stepSize) {
+      const travelLength = Math.hypot(dx, dy);
+      const safeLength = Math.max(stepSize || 0, travelLength || 0);
+      if (safeLength <= MOVE_EPSILON) return null;
+      const baseAngle = Math.atan2(dy || 0, dx || 1);
+      for (const radiusScale of MOVEMENT_MASK_DETOUR_SAMPLE_RADII) {
+        const radius = safeLength * radiusScale;
+        for (const angleOffset of MOVEMENT_MASK_DETOUR_SAMPLE_ANGLES) {
+          const angle = baseAngle + angleOffset;
+          const candidateX = prevX + Math.cos(angle) * radius;
+          const candidateY = prevY + Math.sin(angle) * radius;
+          if (isWalkableWorldPosition(candidateX, candidateY)) {
+            return { x: candidateX, y: candidateY };
+          }
+        }
+      }
+      return null;
+    }
+
+    function applyMovementMaskClamp(entity, prevX, prevY, options = {}) {
+      const {
+        allowOutOfBoundsStart = true,
+        detourStepSize = Math.max(1.4, Math.hypot(entity.x - prevX, entity.y - prevY))
+      } = options;
       const movedX = Math.abs(entity.x - prevX) > MOVE_EPSILON;
       const movedY = Math.abs(entity.y - prevY) > MOVE_EPSILON;
       const prevIsWalkable = isWalkableWorldPosition(prevX, prevY);
       if (isWalkableWorldPosition(entity.x, entity.y)) return;
       // If an entity starts outside the walkable red zone (e.g. spawn mismatch),
       // do not hard-lock movement. Allow motion until it re-enters a walkable pixel.
-      if (!prevIsWalkable) return;
+      if (!prevIsWalkable) {
+        if (allowOutOfBoundsStart) return;
+        const recovery = findWalkableDetourFrom(prevX, prevY, entity.x - prevX, entity.y - prevY, detourStepSize);
+        if (recovery) {
+          entity.x = recovery.x;
+          entity.y = recovery.y;
+        }
+        return;
+      }
       if (movedX && isWalkableWorldPosition(prevX, entity.y)) {
         entity.x = prevX;
         return;
       }
       if (movedY && isWalkableWorldPosition(entity.x, prevY)) {
         entity.y = prevY;
+        return;
+      }
+      const detour = findWalkableDetourFrom(prevX, prevY, entity.x - prevX, entity.y - prevY, detourStepSize);
+      if (detour) {
+        entity.x = detour.x;
+        entity.y = detour.y;
         return;
       }
       entity.x = prevX;
@@ -2076,7 +2115,10 @@
 
         const sideStepPressure = pressure * 0.3;
         const sideStepDirection = enemy.uid < other.uid ? -1 : 1;
-        pushY += sideStepDirection * sideStepPressure;
+        const perpX = (-dy / distance) * sideStepDirection;
+        const perpY = (dx / distance) * sideStepDirection;
+        pushX += perpX * sideStepPressure * 0.55;
+        pushY += perpY * sideStepPressure;
       });
 
       const localDensityPenalty = clamp(nearbyCount * 0.05, 0, 0.2);
@@ -3536,7 +3578,7 @@
           enemy.isMoving = true;
           const verticalBounds = getEnemyVerticalBounds(enemy);
           enemy.y = clamp(enemy.y, verticalBounds.minY, verticalBounds.maxY);
-          applyMovementMaskClamp(enemy, prevX, prevY);
+          applyMovementMaskClamp(enemy, prevX, prevY, { allowOutOfBoundsStart: false, detourStepSize: Math.max(2, moveSpeed * 1.8) });
           updateEnemyAnimation(enemy, dt);
           return;
         }
@@ -3587,7 +3629,7 @@
           if (enemy.attackAnimTimer > 0) enemy.attackAnimTimer -= 1;
           const verticalBounds = getEnemyVerticalBounds(enemy);
           enemy.y = clamp(enemy.y, verticalBounds.minY, verticalBounds.maxY);
-          applyMovementMaskClamp(enemy, prevX, prevY);
+          applyMovementMaskClamp(enemy, prevX, prevY, { allowOutOfBoundsStart: false, detourStepSize: Math.max(2, moveSpeed * 1.8) });
           updateEnemyAnimation(enemy, dt);
           return;
         }
@@ -3905,7 +3947,7 @@
         if (enemy.attackAnimTimer > 0) enemy.attackAnimTimer -= 1;
         const verticalBounds = getEnemyVerticalBounds(enemy);
         enemy.y = clamp(enemy.y, verticalBounds.minY, verticalBounds.maxY);
-        applyMovementMaskClamp(enemy, prevX, prevY);
+        applyMovementMaskClamp(enemy, prevX, prevY, { allowOutOfBoundsStart: false, detourStepSize: Math.max(2, moveSpeed * 1.8) });
 
         if (enemy.isBoss && enemy.type === 'mud-monster' && state.levelIndex === 0 && enemy.hp > 0 && enemy.stage === 3) {
           enemy.mudTrailDropCooldown -= 1;

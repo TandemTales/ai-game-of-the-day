@@ -3549,7 +3549,9 @@
           timer: lifeFrames,
           maxTimer: lifeFrames,
           size: rand(16, 28),
-          seed: Math.random() * Math.PI * 2
+          seed: Math.random() * Math.PI * 2,
+          damage: 2.2,
+          tickEvery: 18
         });
       }
     }
@@ -4377,6 +4379,18 @@
         }
         if (effect.type === 'scorched-ground-fire') {
           effect.flicker = (effect.flicker || 0) + 0.12;
+          const tickRate = Math.max(1, Math.floor(effect.tickEvery || 18));
+          if (effect.timer % tickRate === 0) {
+            const fireRadius = (effect.size || 20) * 1.25;
+            state.enemies.forEach(enemy => {
+              if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
+              const distance = Math.hypot(enemy.x - effect.x, enemy.y - effect.y);
+              if (distance <= fireRadius) {
+                damageEnemy(enemy, effect.damage || 2, 0);
+                applyStatus(enemy, 'BURN', 120, 1, { effectSource: 'scorched-ground' });
+              }
+            });
+          }
         }
         if (['shock', 'root', 'beam', 'root-poison'].includes(effect.type) && (effect.timer % (effect.type === 'beam' ? 8 : 18) === 0)) {
           state.enemies.forEach(enemy => {

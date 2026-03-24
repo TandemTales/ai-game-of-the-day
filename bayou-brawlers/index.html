@@ -1933,6 +1933,7 @@
         knockbackResistanceMultiplier: 1,
         selectedUpgrades: new Set(),
         upgradeRanks: {},
+        perfectGlamourPlusTimer: 0,
         renderScale: charData.renderScale || 1,
         physicsProfileId: charData.physicsProfileId,
         attackFacing: 1,
@@ -3060,6 +3061,36 @@
       spawnPlusCluster(entity, powerAmount, 'power-plus');
     }
 
+    function spawnPerfectGlamourPlusCluster(entity) {
+      if (!entity) return;
+      const topOpaqueWorldY = getEntityWalkTopOpaqueWorldY(entity, PLAYER_DRAW_SIZE);
+      const symbolCount = Math.floor(rand(6, 10));
+      for (let i = 0; i < symbolCount; i += 1) {
+        const isPower = Math.random() < 0.5;
+        const size = rand(16, 26);
+        state.effects.push({
+          type: isPower ? 'power-plus' : 'heal-plus',
+          x: entity.x + rand(-34, 34),
+          y: topOpaqueWorldY - rand(26, 56),
+          centerX: entity.x + rand(-26, 26),
+          centerY: topOpaqueWorldY - rand(24, 52),
+          vx: rand(-0.08, 0.08),
+          vy: rand(-0.46, -0.28),
+          drift: rand(-0.006, 0.006),
+          size,
+          timer: rand(30, 44),
+          maxTimer: 44,
+          orbitAngle: rand(0, Math.PI * 2),
+          orbitSpeed: rand(-0.018, 0.018),
+          orbitRadiusX: rand(3, 10),
+          orbitRadiusY: rand(3, 8),
+          pulsePhase: rand(0, Math.PI * 2),
+          pulseSpeed: rand(0.09, 0.14),
+          pulseAmount: rand(2, 4)
+        });
+      }
+    }
+
     function healPlayer(amount) {
       const player = state.player;
       if (!player || amount <= 0 || player.hp <= 0) return 0;
@@ -3656,6 +3687,18 @@
         }
       } else {
         player.signaturePowerRegenTick = 0;
+      }
+      const perfectGlamourActive = player.charData.id === 'green-fairy'
+        && hasUpgrade(player, 'perfect-glamour')
+        && state.enemies.some(enemy => enemy.hp > 0 && isCharmed(enemy));
+      if (perfectGlamourActive) {
+        player.perfectGlamourPlusTimer = Math.max(0, (player.perfectGlamourPlusTimer || 0) - 1);
+        if (player.perfectGlamourPlusTimer <= 0) {
+          spawnPerfectGlamourPlusCluster(player);
+          player.perfectGlamourPlusTimer = rand(20, 34);
+        }
+      } else {
+        player.perfectGlamourPlusTimer = 0;
       }
       if (player.sentryTimer > 0 && player.sentryTimer % 18 === 0) spawnProjectile(player, 11, hasLevel(player, 7) ? 9 : 7, true, '#ffe8aa');
       if (player.tempestTimer > 0) {

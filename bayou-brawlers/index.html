@@ -2271,6 +2271,43 @@
       });
     }
 
+    function spawnScorchedGroundHazards(player) {
+      if (!player || !hasUpgrade(player, 'scorched-ground')) return;
+      const flameCount = rand(12, 20);
+      const minY = getBrawlLaneMinY() + 10;
+      const maxY = BRAWL_LANE_MAX_Y - 6;
+      const spawnRadiusX = 340;
+      const spawnRadiusY = 120;
+      const spreadBias = 0.35;
+
+      for (let i = 0; i < flameCount; i += 1) {
+        const angle = rand(0, Math.PI * 2);
+        const radial = Math.pow(Math.random(), spreadBias);
+        const offsetX = Math.cos(angle) * spawnRadiusX * radial;
+        const offsetY = Math.sin(angle) * spawnRadiusY * radial;
+        const x = clamp(player.x + offsetX, 42, state.levelWidth - 42);
+        const y = clamp(player.y + offsetY, minY, maxY);
+        const radius = rand(22, 38);
+        const durationFrames = rand(480, 960);
+
+        state.hazards.push({
+          kind: 'scorched-ground',
+          x,
+          y,
+          w: radius * 2.1,
+          h: radius * 1.5,
+          radius,
+          dangerRadius: radius * 1.2,
+          damage: 5,
+          tickEvery: 30,
+          tickOffset: rand(0, 29),
+          frames: durationFrames,
+          ttl: durationFrames,
+          seed: Math.random() * 1000
+        });
+      }
+    }
+
     function getEnemyAimTargetY(enemy, player) {
       // Feet-anchor based tracking keeps tall/large enemies grounded to the lane
       // and prevents "orbiting" around the player's head.
@@ -3567,7 +3604,10 @@
         if (isSuper) state.effects.push({ x: player.x, y: player.y, radius: 260 * radiusBoost, timer: 30, damage: 24 * radiusBoost, knockback: 25, stun: 40, type: 'shock' });
       } else if (id === 'shunky-rooster') {
         state.effects.push({ x: player.x + player.facing * 90, y: player.y - 40, radius: 150, timer: 48, damage: 10, knockback: 30, stun: 40, type: 'beam', owner: player });
-        if (isSuper) state.effects.push({ x: player.x + player.facing * 90, y: player.y - 40, radius: 240 * radiusBoost, timer: hasLevel(player, 9) ? 80 : 60, damage: 3, knockback: 28, stun: 24, type: 'beam', owner: player });
+        if (isSuper) {
+          state.effects.push({ x: player.x + player.facing * 90, y: player.y - 40, radius: 240 * radiusBoost, timer: hasLevel(player, 9) ? 80 : 60, damage: 3, knockback: 28, stun: 24, type: 'beam', owner: player });
+          spawnScorchedGroundHazards(player);
+        }
       } else if (id === 'grimma-the-feared') {
         state.effects.push({ x: player.x, y: player.y, radius: isSuper ? 170 * radiusBoost : 96, timer: isSuper ? (hasLevel(player, 9) ? 168 : 120) : 40, damage: isSuper ? 2 : 8, knockback: 0, stun: isSuper ? 8 : 42, type: 'root' });
       } else if (id === 'scarlett-glumpkin') {
@@ -4179,11 +4219,25 @@
       state.hazards.forEach(h => {
         const player = state.player;
         if (!player) return;
+        if (Number.isFinite(h.frames)) h.frames = Math.max(0, h.frames - 1);
         const overlap = Math.abs(player.x - h.x) < h.w * 0.5 && Math.abs(player.y - h.y) < h.h * 0.5;
-        if (!overlap) return;
-
         if (h.kind === 'root-snare') {
+          if (!overlap) return;
           player.vx *= 0.7;
+          return;
+        }
+
+        if (h.kind === 'scorched-ground' && (h.frames % h.tickEvery === h.tickOffset)) {
+          state.enemies.forEach(enemy => {
+            if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
+            const enemyBody = getEnemyHitbox(enemy);
+            const enemyCenterX = enemyBody.x + (enemyBody.width * 0.5);
+            const enemyCenterY = enemyBody.y + (enemyBody.height * 0.6);
+            if (Math.hypot(enemyCenterX - h.x, enemyCenterY - h.y) <= h.dangerRadius) {
+              damageEnemy(enemy, h.damage, 0);
+              if (Math.random() < 0.32) applyStatus(enemy, 'BURN', 120, 1, { effectSource: 'scorched-ground' });
+            }
+          });
         }
       });
       state.hazards = state.hazards.filter(h => h.frames > 0);
@@ -4803,6 +4857,48 @@
       ctx.restore();
     }
 
+    function drawScorchedGroundHazard(hazard) {
+      const x = hazard.x - state.cameraX;
+      const y = hazard.y - state.cameraY;
+      const radius = hazard.radius || Math.max(20, hazard.w * 0.45);
+      const lifePct = clamp((hazard.frames || 0) / Math.max(1, hazard.ttl || 1), 0, 1);
+      const flicker = 0.78 + (Math.sin((performance.now() * 0.012) + (hazard.seed || 0)) * 0.22);
+      const baseAlpha = clamp(0.34 + (lifePct * 0.4), 0.22, 0.82) * flicker;
+
+      const glow = ctx.createRadialGradient(x, y, radius * 0.16, x, y, radius * 1.4);
+      glow.addColorStop(0, `rgba(255, 236, 175, ${baseAlpha * 0.88})`);
+      glow.addColorStop(0.45, `rgba(255, 135, 54, ${baseAlpha * 0.78})`);
+      glow.addColorStop(1, 'rgba(255, 80, 28, 0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.ellipse(x, y, radius * 1.2, radius * 0.92, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const tongues = 6;
+      for (let i = 0; i < tongues; i += 1) {
+        const phase = (performance.now() * 0.014) + ((hazard.seed || 0) * 0.5) + i;
+        const ang = (i / tongues) * Math.PI * 2;
+        const ox = Math.cos(ang) * radius * 0.25;
+        const oy = Math.sin(ang) * radius * 0.18;
+        const flameHeight = radius * (0.62 + ((Math.sin(phase * 1.4) + 1) * 0.16));
+        const flameWidth = radius * (0.2 + ((Math.cos(phase * 1.9) + 1) * 0.035));
+        const tipX = x + ox + (Math.sin(phase) * radius * 0.12);
+        const tipY = y + oy - flameHeight;
+        ctx.fillStyle = i % 2 === 0
+          ? `rgba(255, 182, 82, ${baseAlpha})`
+          : `rgba(255, 112, 48, ${baseAlpha * 0.95})`;
+        ctx.beginPath();
+        ctx.moveTo(x + ox - flameWidth, y + oy + 1);
+        ctx.quadraticCurveTo(x + ox - flameWidth * 0.5, y + oy - flameHeight * 0.45, tipX, tipY);
+        ctx.quadraticCurveTo(x + ox + flameWidth * 0.5, y + oy - flameHeight * 0.42, x + ox + flameWidth, y + oy + 1);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
     function drawAnimationFrame(sourceImage, frame, dx, dy, dw, dh, tint = null, invulnerable = false, blinkPhaseSeed = 0, burnOverlay = false) {
       if (!tint) {
         ctx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, dx, dy, dw, dh);
@@ -5145,13 +5241,18 @@
       drawBackground();
 
       state.hazards.forEach(hazard => {
-        if (hazard.kind !== 'mud-trail') return;
-        const x = hazard.x - state.cameraX;
-        const y = hazard.y - state.cameraY;
-        ctx.fillStyle = 'rgba(109, 74, 51, 0.34)';
-        ctx.beginPath();
-        ctx.ellipse(x, y, hazard.w * 0.5, hazard.h * 0.5, 0, 0, Math.PI * 2);
-        ctx.fill();
+        if (hazard.kind === 'mud-trail') {
+          const x = hazard.x - state.cameraX;
+          const y = hazard.y - state.cameraY;
+          ctx.fillStyle = 'rgba(109, 74, 51, 0.34)';
+          ctx.beginPath();
+          ctx.ellipse(x, y, hazard.w * 0.5, hazard.h * 0.5, 0, 0, Math.PI * 2);
+          ctx.fill();
+          return;
+        }
+        if (hazard.kind === 'scorched-ground') {
+          drawScorchedGroundHazard(hazard);
+        }
       });
 
       state.pickups.forEach(pickup => {

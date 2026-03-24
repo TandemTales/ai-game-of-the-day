@@ -3563,8 +3563,8 @@
         player.sentryTimer = 150;
         if (isSuper) state.effects.push({ x: player.x, y: player.y, radius: 260 * radiusBoost, timer: 30, damage: 24 * radiusBoost, knockback: 25, stun: 40, type: 'shock' });
       } else if (id === 'shunky-rooster') {
-        state.effects.push({ x: player.x + player.facing * 90, y: player.y - 40, radius: 150, timer: 48, damage: 10, knockback: 30, stun: 40, type: 'beam' });
-        if (isSuper) state.effects.push({ x: player.x + player.facing * 90, y: player.y - 40, radius: 240 * radiusBoost, timer: hasLevel(player, 9) ? 80 : 60, damage: 3, knockback: 28, stun: 24, type: 'beam' });
+        state.effects.push({ x: player.x + player.facing * 90, y: player.y - 40, radius: 150, timer: 48, damage: 10, knockback: 30, stun: 40, type: 'beam', owner: player });
+        if (isSuper) state.effects.push({ x: player.x + player.facing * 90, y: player.y - 40, radius: 240 * radiusBoost, timer: hasLevel(player, 9) ? 80 : 60, damage: 3, knockback: 28, stun: 24, type: 'beam', owner: player });
       } else if (id === 'grimma-the-feared') {
         state.effects.push({ x: player.x, y: player.y, radius: isSuper ? 170 * radiusBoost : 96, timer: isSuper ? (hasLevel(player, 9) ? 168 : 120) : 40, damage: isSuper ? 2 : 8, knockback: 0, stun: isSuper ? 8 : 42, type: 'root' });
       } else if (id === 'scarlett-glumpkin') {
@@ -4352,7 +4352,12 @@
               enemy.x += Math.sign(enemy.x - effect.x) * (effect.knockback || 0);
               if (effect.type === 'root' || effect.type === 'root-poison') applyStatus(enemy, 'ROOT', 110, 1);
               if (effect.type === 'root-poison') applyStatus(enemy, 'POISON', 240, 1);
-              if (effect.type === 'beam' && effect.owner && effect.owner.charData.id === 'shunky-rooster' && hasLevel(effect.owner, 7)) applyStatus(enemy, 'BURN', 180, 1);
+              if (effect.type === 'beam'
+                && effect.owner
+                && effect.owner.charData.id === 'shunky-rooster'
+                && hasUpgrade(effect.owner, 'overheated-core')) {
+                applyStatus(enemy, 'BURN', 180, 1);
+              }
             }
           });
         }
@@ -4644,6 +4649,8 @@
 
     const statusTintCanvas = document.createElement('canvas');
     const statusTintCtx = statusTintCanvas.getContext('2d');
+    const burnOverlayCanvas = document.createElement('canvas');
+    const burnOverlayCtx = burnOverlayCanvas.getContext('2d');
     const invulnerabilityOutlineCanvas = document.createElement('canvas');
     const invulnerabilityOutlineCtx = invulnerabilityOutlineCanvas.getContext('2d');
     const invulnerabilityMaskCanvas = document.createElement('canvas');
@@ -4726,7 +4733,7 @@
       return blinkOn ? 'rgba(74, 142, 224, 0.6)' : null;
     }
 
-    function drawAnimationFrame(sourceImage, frame, dx, dy, dw, dh, tint = null, invulnerable = false, blinkPhaseSeed = 0) {
+    function drawAnimationFrame(sourceImage, frame, dx, dy, dw, dh, tint = null, invulnerable = false, blinkPhaseSeed = 0, burnOverlay = false) {
       if (!tint) {
         ctx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, dx, dy, dw, dh);
       } else {
@@ -4739,6 +4746,43 @@
         statusTintCtx.fillRect(0, 0, frame.width, frame.height);
         statusTintCtx.globalCompositeOperation = 'source-over';
         ctx.drawImage(statusTintCanvas, 0, 0, frame.width, frame.height, dx, dy, dw, dh);
+      }
+      if (burnOverlay) {
+        burnOverlayCanvas.width = frame.width;
+        burnOverlayCanvas.height = frame.height;
+        burnOverlayCtx.clearRect(0, 0, frame.width, frame.height);
+        burnOverlayCtx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, 0, 0, frame.width, frame.height);
+        burnOverlayCtx.globalCompositeOperation = 'source-in';
+        const pulse = 0.52 + (Math.sin((performance.now() + (blinkPhaseSeed * 41)) * 0.02) * 0.18);
+        burnOverlayCtx.fillStyle = `rgba(255, 84, 32, ${pulse})`;
+        burnOverlayCtx.fillRect(0, 0, frame.width, frame.height);
+        burnOverlayCtx.globalCompositeOperation = 'source-over';
+
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.shadowColor = 'rgba(255, 124, 58, 0.82)';
+        ctx.shadowBlur = 10;
+        ctx.drawImage(burnOverlayCanvas, 0, 0, frame.width, frame.height, dx, dy, dw, dh);
+        ctx.restore();
+
+        burnOverlayCtx.clearRect(0, 0, frame.width, frame.height);
+        for (let i = 0; i < 6; i += 1) {
+          const drift = (performance.now() * 0.03) + (blinkPhaseSeed * 19) + (i * 2.1);
+          const px = ((Math.sin(drift) * 0.5) + 0.5) * Math.max(1, frame.width - 3);
+          const rise = ((performance.now() * 0.08) + (i * 9) + (blinkPhaseSeed * 7)) % Math.max(4, frame.height * 0.8);
+          const py = frame.height - rise;
+          const flameSize = 1.6 + ((Math.sin(drift * 1.3) + 1) * 1.6);
+          burnOverlayCtx.fillStyle = i % 2 === 0 ? 'rgba(255, 170, 78, 0.92)' : 'rgba(255, 112, 40, 0.86)';
+          burnOverlayCtx.fillRect(px, py - flameSize, 1.6, flameSize);
+        }
+        burnOverlayCtx.globalCompositeOperation = 'destination-in';
+        burnOverlayCtx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, 0, 0, frame.width, frame.height);
+        burnOverlayCtx.globalCompositeOperation = 'source-over';
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 0.85;
+        ctx.drawImage(burnOverlayCanvas, 0, 0, frame.width, frame.height, dx, dy, dw, dh);
+        ctx.restore();
       }
       if (!invulnerable) return;
 
@@ -4768,7 +4812,12 @@
         ? clamp(1 - (entity.spawnFadeFrames / 21), 0.25, 1)
         : 1;
       const useFade = fadeAlpha < 1;
-      const tintColor = getEntityStatusTint(entity);
+      const hasBurn = !!(entity?.statuses?.BURN?.duration > 0);
+      const tintColor = hasBurn
+        ? (Math.floor((performance.now() + (entity.uid || 0) * 73) / 120) % 2 === 0
+          ? 'rgba(255, 86, 45, 0.64)'
+          : 'rgba(255, 154, 64, 0.58)')
+        : getEntityStatusTint(entity);
       const invulnerable = isEntityInvulnerable(entity);
       const blinkPhaseSeed = entity.uid || 0;
       if (useFade) {
@@ -4795,7 +4844,8 @@
               drawSize,
               tintColor,
               invulnerable,
-              blinkPhaseSeed
+              blinkPhaseSeed,
+              !entity.charData && hasBurn
             );
             ctx.restore();
           } else {
@@ -4808,7 +4858,8 @@
               drawSize,
               tintColor,
               invulnerable,
-              blinkPhaseSeed
+              blinkPhaseSeed,
+              !entity.charData && hasBurn
             );
           }
           if (useFade) ctx.restore();
@@ -4834,7 +4885,8 @@
               drawSize,
               tintColor,
               invulnerable,
-              blinkPhaseSeed
+              blinkPhaseSeed,
+              !entity.charData && hasBurn
             );
             ctx.restore();
           } else {
@@ -4847,7 +4899,8 @@
               drawSize,
               tintColor,
               invulnerable,
-              blinkPhaseSeed
+              blinkPhaseSeed,
+              !entity.charData && hasBurn
             );
           }
           if (useFade) ctx.restore();

@@ -2297,10 +2297,10 @@
           w: radius * 2.1,
           h: radius * 1.5,
           radius,
-          dangerRadius: radius * 1.2,
-          damage: 5,
-          tickEvery: 30,
-          tickOffset: rand(0, 29),
+          dangerRadius: radius * 1.45,
+          damage: 2,
+          tickEvery: 12,
+          tickOffset: rand(0, 11),
           frames: durationFrames,
           ttl: durationFrames,
           seed: Math.random() * 1000
@@ -4229,13 +4229,11 @@
 
         if (h.kind === 'scorched-ground' && (h.frames % h.tickEvery === h.tickOffset)) {
           state.enemies.forEach(enemy => {
-            if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
-            const enemyBody = getEnemyHitbox(enemy);
-            const enemyCenterX = enemyBody.x + (enemyBody.width * 0.5);
-            const enemyCenterY = enemyBody.y + (enemyBody.height * 0.6);
-            if (Math.hypot(enemyCenterX - h.x, enemyCenterY - h.y) <= h.dangerRadius) {
+            if (enemy.hp <= 0) return;
+            const closeToFlames = Math.hypot(enemy.x - h.x, enemy.y - h.y) <= h.dangerRadius;
+            if (closeToFlames) {
               damageEnemy(enemy, h.damage, 0);
-              if (Math.random() < 0.32) applyStatus(enemy, 'BURN', 120, 1, { effectSource: 'scorched-ground' });
+              if (Math.random() < 0.24) applyStatus(enemy, 'BURN', 120, 1, { effectSource: 'scorched-ground' });
             }
           });
         }

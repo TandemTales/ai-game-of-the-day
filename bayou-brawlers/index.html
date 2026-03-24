@@ -1236,7 +1236,7 @@
         { id: 'staggering-blast', name: 'Staggering Blast', tag: 'Attack', description: 'Basic attacks deal more stun.' },
         { id: 'momentum-multiplier', name: 'Momentum Multiplier', tag: 'Attack', description: 'Slightly faster basic attacks.' },
         { id: 'penetrating-beam', name: 'Penetrating Beam', tag: 'Attack', description: 'Increase basic attack damage.' },
-        { id: 'shockwave', name: 'Shockwave', tag: 'Heavy', description: 'Heavy attack creates a small damaging shockwave.' },
+        { id: 'shockwave', name: 'Shockwave', tag: 'Heavy', description: 'Heavy attack has a 25% chance to create a large damaging shockwave.' },
         { id: 'smashing-beam', name: 'Smashing Beam', tag: 'Heavy', description: 'Heavy attacks do much more knockback.' },
         { id: 'core-boost', name: 'Core Boost', tag: 'Heavy', description: 'Heavy attacks cannot be interrupted.' },
         { id: 'focused-chest-ray', name: 'Focused Chest Ray', tag: 'Special', description: 'Special beam deals higher single-target damage.' },
@@ -4384,7 +4384,7 @@
             if (!rectsOverlap(beamRect, enemyBody)) return;
             damageEnemy(enemy, effect.damage, effect.stun || 0);
             enemy.x += effect.facing * 6;
-            if (effect.heavy && effect.owner && hasUpgrade(effect.owner, 'shockwave')) {
+            if (effect.heavy && effect.owner && hasUpgrade(effect.owner, 'shockwave') && Math.random() < 0.25) {
               const impactY = enemyBody.y + enemyBody.height * 0.5;
               const impactX = effect.facing > 0 ? enemyBody.x : (enemyBody.x + enemyBody.width);
               state.effects.push({
@@ -4394,8 +4394,8 @@
                 facing: effect.facing,
                 timer: 24,
                 maxTimer: 24,
-                startRadiusX: 18,
-                endRadiusX: 64,
+                startRadiusX: 36,
+                endRadiusX: 128,
                 radiusYRatio: 0.56
               });
             }

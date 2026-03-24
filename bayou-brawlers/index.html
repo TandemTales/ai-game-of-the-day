@@ -4745,20 +4745,20 @@
       if (!hasOverheatedCoreBurn(entity)) return;
       const time = performance.now();
       const baseRadius = drawSize * 0.31;
-      const flameTopY = y - (drawSize * 0.7);
-      const smokeOriginY = y - (drawSize * 0.95);
+      const flameBaseY = y - (drawSize * 0.08);
+      const smokeOriginY = y - (drawSize * 0.24);
 
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = 0.82;
 
-      const coreGradient = ctx.createRadialGradient(x, y - drawSize * 0.55, drawSize * 0.12, x, y - drawSize * 0.55, baseRadius * 1.2);
+      const coreGradient = ctx.createRadialGradient(x, flameBaseY, drawSize * 0.12, x, flameBaseY, baseRadius * 1.2);
       coreGradient.addColorStop(0, 'rgba(255, 236, 176, 0.64)');
       coreGradient.addColorStop(0.42, 'rgba(255, 148, 62, 0.46)');
       coreGradient.addColorStop(1, 'rgba(255, 82, 32, 0)');
       ctx.fillStyle = coreGradient;
       ctx.beginPath();
-      ctx.ellipse(x, y - drawSize * 0.55, baseRadius * 1.08, baseRadius * 0.96, 0, 0, Math.PI * 2);
+      ctx.ellipse(x, flameBaseY, baseRadius * 1.08, baseRadius * 0.96, 0, 0, Math.PI * 2);
       ctx.fill();
 
       const tongueCount = 8;
@@ -4770,7 +4770,7 @@
         const anchorAngle = (i / tongueCount) * Math.PI * 2;
         const anchorRadius = baseRadius * (0.45 + (Math.sin(phase * 0.85) * 0.06));
         const anchorX = x + Math.cos(anchorAngle) * anchorRadius;
-        const anchorY = flameTopY + Math.sin(anchorAngle) * (baseRadius * 0.24);
+        const anchorY = flameBaseY + Math.sin(anchorAngle) * (baseRadius * 0.24);
         const tipX = anchorX + sway;
         const tipY = anchorY - tongueHeight;
 

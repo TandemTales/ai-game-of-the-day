@@ -2837,7 +2837,9 @@
       }
       const hurtDurationFrames = enemy.type === 'mud-monster' && enemy.isBoss ? 24 : 12;
       enemy.hurtTimer = Math.max(enemy.hurtTimer, hurtDurationFrames);
-      state.effects.push({ x: enemy.x, y: enemy.y, timer: 16, type: 'hit' });
+      spawnImpactBurst(enemy.x, enemy.y - 22, {
+        strength: clamp(0.7 + (amount / 16), 0.7, 2.1)
+      });
       if (enemy.type === 'mud-monster') {
         const splashCount = 18;
         for (let i = 0; i < splashCount; i += 1) {
@@ -2933,6 +2935,11 @@
         player.stun = Math.max(player.stun, (sourceEnemy.isBoss ? 42 : 24) + STUN_DURATION_BONUS_FRAMES);
       }
       player.hp = clamp(player.hp - finalAmount, 0, player.maxHp);
+      const sourceAngle = sourceEnemy ? Math.atan2(player.y - sourceEnemy.y, player.x - sourceEnemy.x) : null;
+      spawnImpactBurst(player.x, player.y - 36, {
+        strength: clamp(0.7 + (finalAmount / 9), 0.75, 2.45),
+        baseAngle: sourceAngle
+      });
       player.animationSignals.hurt = true;
       state.shake = 6;
       updateHpBar();
@@ -2964,6 +2971,48 @@
         maxTimer: 34,
         color: 'rgba(230, 255, 195, 0.98)',
         outline: 'rgba(50, 65, 38, 0.95)'
+      });
+    }
+
+    function spawnImpactBurst(x, y, options = {}) {
+      const strength = clamp(options.strength ?? 1, 0.65, 2.6);
+      const maxTimer = Math.round(8 + (strength * 4));
+      const spokeCount = Math.round(rand(6, 10) + strength * 5);
+      const baseAngle = Number.isFinite(options.baseAngle) ? options.baseAngle : rand(0, Math.PI * 2);
+      const spread = Math.PI * (0.35 + (0.45 / Math.max(1, strength)));
+      const spokes = [];
+      for (let i = 0; i < spokeCount; i += 1) {
+        const t = spokeCount <= 1 ? 0.5 : (i / (spokeCount - 1));
+        const angle = baseAngle + ((t - 0.5) * spread) + rand(-0.2, 0.2);
+        const len = rand(8, 16) * (0.75 + (strength * 0.8));
+        spokes.push({
+          angle,
+          len,
+          width: rand(1.2, 3.2) * (0.75 + strength * 0.2),
+          jitter: rand(-3.5, 3.5),
+          twist: rand(-0.22, 0.22)
+        });
+      }
+      const shardCount = Math.round(rand(2, 4) + strength * 2.4);
+      const shards = [];
+      for (let i = 0; i < shardCount; i += 1) {
+        const angle = baseAngle + rand(-spread * 0.5, spread * 0.5);
+        const dist = rand(5, 12) * (0.75 + strength * 0.6);
+        shards.push({
+          angle,
+          dist,
+          size: rand(3, 9) * (0.7 + strength * 0.35),
+          skew: rand(-0.5, 0.5)
+        });
+      }
+      state.effects.push({
+        type: 'impact-burst',
+        x,
+        y,
+        timer: maxTimer,
+        maxTimer,
+        spokes,
+        shards
       });
     }
 
@@ -3387,7 +3436,10 @@
           player.comboHits += hitCount;
           player.comboTimer = 120;
         }
-        state.effects.push({ x: player.x + player.facing * 46, y: player.y - 58, timer: heavy ? 16 : 12, type: 'heavy-hit' });
+        spawnImpactBurst(player.x + player.facing * 46, player.y - 58, {
+          strength: heavy ? 2.1 : 1.5,
+          baseAngle: player.facing >= 0 ? 0 : Math.PI
+        });
         return;
       }
 
@@ -3407,7 +3459,10 @@
         if (player.comboHits === 10) { addPower(player, 5); addXp(player, 20); }
         if (player.comboHits === 20) { addPower(player, 10); addXp(player, 45); }
       }
-      state.effects.push({ x: player.x + player.facing * 36, y: player.y - 58, timer: heavy ? 14 : 10, type: heavy ? 'heavy-hit' : 'hit' });
+      spawnImpactBurst(player.x + player.facing * 36, player.y - 58, {
+        strength: heavy ? 1.85 : 1.05,
+        baseAngle: player.facing >= 0 ? 0 : Math.PI
+      });
     }
 
     function applyCharacterOnHitStatus(player, enemy, heavy) {
@@ -5020,10 +5075,49 @@
       });
 
       state.effects.forEach(effect => {
-        if (effect.type === 'hit' || effect.type === 'heavy-hit') {
-          ctx.fillStyle = effect.type === 'heavy-hit' ? 'rgba(255,120,80,0.95)' : 'rgba(255,215,0,0.9)';
-          const size = effect.type === 'heavy-hit' ? 18 : 12;
-          ctx.fillRect(effect.x - state.cameraX - (size / 2), effect.y - state.cameraY - 24, size, size);
+        if (effect.type === 'impact-burst') {
+          const maxTimer = Math.max(1, effect.maxTimer || 12);
+          const lifePct = clamp(effect.timer / maxTimer, 0, 1);
+          const screenX = effect.x - state.cameraX;
+          const screenY = effect.y - state.cameraY;
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.strokeStyle = `rgba(255,255,255,${0.5 + lifePct * 0.5})`;
+          ctx.fillStyle = `rgba(255,255,255,${0.2 + lifePct * 0.5})`;
+          const lineScale = 0.5 + (1 - lifePct) * 0.8;
+          (effect.spokes || []).forEach(spoke => {
+            const lineLength = spoke.len * (0.25 + lifePct * 0.95) * lineScale;
+            const startLen = Math.max(1, lineLength * 0.12);
+            const startX = screenX + Math.cos(spoke.angle) * startLen + spoke.jitter * (1 - lifePct) * 0.4;
+            const startY = screenY + Math.sin(spoke.angle) * startLen + spoke.jitter * (1 - lifePct) * 0.2;
+            const endX = screenX + Math.cos(spoke.angle + spoke.twist * (1 - lifePct)) * lineLength;
+            const endY = screenY + Math.sin(spoke.angle + spoke.twist * (1 - lifePct)) * lineLength;
+            ctx.lineWidth = Math.max(0.8, spoke.width * (0.55 + lifePct * 0.7));
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+          });
+          (effect.shards || []).forEach(shard => {
+            const dist = shard.dist * (0.3 + lifePct * 0.9);
+            const centerX = screenX + Math.cos(shard.angle) * dist;
+            const centerY = screenY + Math.sin(shard.angle) * dist;
+            const shardSize = shard.size * (0.45 + lifePct * 0.7);
+            const normalAngle = shard.angle + (Math.PI / 2);
+            const p1x = centerX + Math.cos(shard.angle) * shardSize;
+            const p1y = centerY + Math.sin(shard.angle) * shardSize;
+            const p2x = centerX - Math.cos(shard.angle) * shardSize * 0.3 + Math.cos(normalAngle) * shardSize * (0.45 + shard.skew * 0.25);
+            const p2y = centerY - Math.sin(shard.angle) * shardSize * 0.3 + Math.sin(normalAngle) * shardSize * (0.45 + shard.skew * 0.25);
+            const p3x = centerX - Math.cos(shard.angle) * shardSize * 0.3 - Math.cos(normalAngle) * shardSize * (0.45 - shard.skew * 0.25);
+            const p3y = centerY - Math.sin(shard.angle) * shardSize * 0.3 - Math.sin(normalAngle) * shardSize * (0.45 - shard.skew * 0.25);
+            ctx.beginPath();
+            ctx.moveTo(p1x, p1y);
+            ctx.lineTo(p2x, p2y);
+            ctx.lineTo(p3x, p3y);
+            ctx.closePath();
+            ctx.fill();
+          });
+          ctx.restore();
         }
         if (effect.type === 'shock') {
           ctx.strokeStyle = 'rgba(125, 241, 210, 0.7)';

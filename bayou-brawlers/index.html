@@ -5330,6 +5330,8 @@
           const y = effect.y - state.cameraY;
           const direction = effect.facing || 1;
           const endX = x + (effect.length * direction);
+          const hasOverheatedCore = effect.owner && hasUpgrade(effect.owner, 'overheated-core');
+          const beamProgress = 1 - clamp(effect.timer / maxTimer, 0, 1);
           ctx.save();
           ctx.globalAlpha = alpha;
           const outer = ctx.createLinearGradient(x, y, endX, y);
@@ -5350,6 +5352,50 @@
           ctx.moveTo(x, y);
           ctx.lineTo(endX, y);
           ctx.stroke();
+
+          if (hasOverheatedCore) {
+            const pulseTime = (Date.now() * 0.014) + (beamProgress * 9);
+            const beamLen = Math.max(18, Math.abs(effect.length));
+            const flameCount = Math.max(3, Math.floor(beamLen / 34));
+            const smokeCount = Math.max(2, Math.floor(beamLen / 52));
+
+            for (let i = 0; i < flameCount; i += 1) {
+              const t = flameCount === 1 ? 0.5 : (i / (flameCount - 1));
+              const flameX = x + (effect.length * direction * t);
+              const flicker = Math.sin((pulseTime * 1.9) + (i * 0.95));
+              const flameHeight = (6 + (Math.abs(flicker) * 6)) * (0.92 + (alpha * 0.4));
+              const flameWidth = (3.5 + (Math.abs(Math.cos(pulseTime + i)) * 3.5)) * (0.92 + (alpha * 0.25));
+              const lift = Math.sin((pulseTime * 1.35) + (i * 1.2)) * 2.2;
+              const baseY = y - (effect.width * 0.22) - 3 + lift;
+
+              const flameGrad = ctx.createLinearGradient(flameX, baseY, flameX, baseY - flameHeight);
+              flameGrad.addColorStop(0, 'rgba(255, 120, 36, 0.88)');
+              flameGrad.addColorStop(0.45, 'rgba(255, 180, 72, 0.84)');
+              flameGrad.addColorStop(1, 'rgba(255, 234, 176, 0.24)');
+              ctx.fillStyle = flameGrad;
+              ctx.beginPath();
+              ctx.moveTo(flameX - flameWidth, baseY);
+              ctx.quadraticCurveTo(flameX - (flameWidth * 0.18), baseY - (flameHeight * 0.72), flameX, baseY - flameHeight);
+              ctx.quadraticCurveTo(flameX + (flameWidth * 0.2), baseY - (flameHeight * 0.68), flameX + flameWidth, baseY);
+              ctx.closePath();
+              ctx.fill();
+            }
+
+            for (let i = 0; i < smokeCount; i += 1) {
+              const t = smokeCount === 1 ? 0.5 : (i / (smokeCount - 1));
+              const smokeX = x + (effect.length * direction * t) - (direction * ((beamProgress * 28) + (i * 8)));
+              const smokeY = y - (effect.width * 0.65) - 8 - (beamProgress * 26) - (Math.sin((pulseTime * 0.68) + (i * 0.85)) * 3);
+              const smokeRadius = 6 + ((1 - t) * 6) + (beamProgress * 4);
+              const smokeGrad = ctx.createRadialGradient(smokeX, smokeY, 0, smokeX, smokeY, smokeRadius);
+              smokeGrad.addColorStop(0, `rgba(145, 148, 154, ${0.28 * alpha})`);
+              smokeGrad.addColorStop(0.65, `rgba(96, 100, 106, ${0.18 * alpha})`);
+              smokeGrad.addColorStop(1, 'rgba(70, 74, 80, 0)');
+              ctx.fillStyle = smokeGrad;
+              ctx.beginPath();
+              ctx.arc(smokeX, smokeY, smokeRadius, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
           ctx.restore();
         }
         if (effect.type === 'shunky-beam-shockwave') {

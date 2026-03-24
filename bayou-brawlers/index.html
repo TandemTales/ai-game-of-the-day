@@ -3392,6 +3392,7 @@
           x: player.x + player.facing * 12,
           y: player.y - 44,
           facing: player.facing,
+          heavy,
           width: heavy ? 64 : 48,
           length: Math.max(canvas.width + 260, 1280),
           timer: beamDuration,
@@ -4383,6 +4384,21 @@
             if (!rectsOverlap(beamRect, enemyBody)) return;
             damageEnemy(enemy, effect.damage, effect.stun || 0);
             enemy.x += effect.facing * 6;
+            if (effect.heavy && effect.owner && hasUpgrade(effect.owner, 'shockwave')) {
+              const impactY = enemyBody.y + enemyBody.height * 0.5;
+              const impactX = effect.facing > 0 ? enemyBody.x : (enemyBody.x + enemyBody.width);
+              state.effects.push({
+                type: 'shunky-beam-shockwave',
+                x: impactX,
+                y: impactY,
+                facing: effect.facing,
+                timer: 24,
+                maxTimer: 24,
+                startRadiusX: 18,
+                endRadiusX: 64,
+                radiusYRatio: 0.56
+              });
+            }
             if (effect.owner) applyCharacterOnHitStatus(effect.owner, enemy, false);
             hitCount += 1;
           });
@@ -5280,6 +5296,30 @@
           ctx.beginPath();
           ctx.moveTo(x, y);
           ctx.lineTo(endX, y);
+          ctx.stroke();
+          ctx.restore();
+        }
+        if (effect.type === 'shunky-beam-shockwave') {
+          const maxTimer = effect.maxTimer || 24;
+          const progress = 1 - clamp(effect.timer / maxTimer, 0, 1);
+          const alpha = (1 - progress) * 0.9;
+          const x = effect.x - state.cameraX;
+          const y = effect.y - state.cameraY;
+          const radiusX = (effect.startRadiusX || 14) + ((effect.endRadiusX || 56) - (effect.startRadiusX || 14)) * progress;
+          const radiusY = radiusX * (effect.radiusYRatio || 0.55);
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.strokeStyle = 'rgba(196, 255, 245, 0.95)';
+          ctx.lineWidth = Math.max(2, 8 - (5.5 * progress));
+          ctx.beginPath();
+          ctx.ellipse(x, y, radiusX, radiusY, 0, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.globalAlpha = alpha * 0.55;
+          ctx.strokeStyle = 'rgba(120, 239, 220, 0.9)';
+          ctx.lineWidth = Math.max(1.5, 5 - (3.4 * progress));
+          ctx.beginPath();
+          ctx.ellipse(x, y, radiusX * 0.7, radiusY * 0.7, 0, 0, Math.PI * 2);
           ctx.stroke();
           ctx.restore();
         }

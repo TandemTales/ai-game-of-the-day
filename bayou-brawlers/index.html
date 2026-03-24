@@ -3216,7 +3216,7 @@
       return isElite ? Math.floor(baseDuration * 0.5) : baseDuration;
     }
 
-    function applyStatus(enemy, type, duration, magnitude = 0) {
+    function applyStatus(enemy, type, duration, magnitude = 0, options = null) {
       const player = state.player;
       const durationMultiplier = getStatusDurationMultiplierForPlayer(player, type);
       const scaledDuration = Math.floor(duration * durationMultiplier);
@@ -3224,11 +3224,14 @@
       if (finalDuration <= 0 && ['CHARM', 'FREEZE'].includes(type)) return;
       if (!enemy.statuses) enemy.statuses = {};
       const existing = enemy.statuses[type];
-      enemy.statuses[type] = {
+      const mergedStatus = {
         duration: Math.max(finalDuration, existing ? existing.duration : 0),
         magnitude: Math.max(magnitude, existing ? existing.magnitude : 0),
         tick: 0
       };
+      const effectSource = options?.effectSource || existing?.effectSource || null;
+      if (effectSource) mergedStatus.effectSource = effectSource;
+      enemy.statuses[type] = mergedStatus;
       if (type === 'ROOT' || type === 'FREEZE') enemy.stun = Math.max(enemy.stun, finalDuration + STUN_DURATION_BONUS_FRAMES);
       if (type === 'FREEZE' && (!existing || existing.duration <= 0)) {
         if (player && player.charData.id === 'billy-boxby' && hasUpgrade(player, 'cold-reservoir')) {
@@ -4356,7 +4359,7 @@
                 && effect.owner
                 && effect.owner.charData.id === 'shunky-rooster'
                 && hasUpgrade(effect.owner, 'overheated-core')) {
-                applyStatus(enemy, 'BURN', 180, 1);
+                applyStatus(enemy, 'BURN', 180, 1, { effectSource: 'overheated-core' });
               }
             }
           });
@@ -4733,6 +4736,72 @@
       return blinkOn ? 'rgba(74, 142, 224, 0.6)' : null;
     }
 
+
+    function hasOverheatedCoreBurn(entity) {
+      return entity?.statuses?.BURN?.duration > 0 && entity?.statuses?.BURN?.effectSource === 'overheated-core';
+    }
+
+    function drawOverheatedCoreFlames(entity, x, y, drawSize) {
+      if (!hasOverheatedCoreBurn(entity)) return;
+      const time = performance.now();
+      const baseRadius = drawSize * 0.62;
+      const flameTopY = y - (drawSize * 0.7);
+      const smokeOriginY = y - (drawSize * 0.95);
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+
+      const coreGradient = ctx.createRadialGradient(x, y - drawSize * 0.55, drawSize * 0.12, x, y - drawSize * 0.55, baseRadius * 1.25);
+      coreGradient.addColorStop(0, 'rgba(255, 244, 188, 0.78)');
+      coreGradient.addColorStop(0.42, 'rgba(255, 156, 68, 0.56)');
+      coreGradient.addColorStop(1, 'rgba(255, 82, 32, 0)');
+      ctx.fillStyle = coreGradient;
+      ctx.beginPath();
+      ctx.ellipse(x, y - drawSize * 0.55, baseRadius * 1.08, baseRadius * 0.96, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const tongueCount = 8;
+      for (let i = 0; i < tongueCount; i += 1) {
+        const phase = (time * 0.01) + (i * (Math.PI * 2 / tongueCount)) + ((entity.uid || 0) * 0.09);
+        const sway = Math.sin(phase * 1.35) * drawSize * 0.14;
+        const tongueHeight = drawSize * (0.42 + ((Math.sin(phase * 1.65) + 1) * 0.16));
+        const tongueWidth = drawSize * (0.14 + ((Math.cos(phase * 1.9) + 1) * 0.03));
+        const anchorAngle = (i / tongueCount) * Math.PI * 2;
+        const anchorRadius = baseRadius * (0.45 + (Math.sin(phase * 0.85) * 0.06));
+        const anchorX = x + Math.cos(anchorAngle) * anchorRadius;
+        const anchorY = flameTopY + Math.sin(anchorAngle) * (baseRadius * 0.24);
+        const tipX = anchorX + sway;
+        const tipY = anchorY - tongueHeight;
+
+        ctx.fillStyle = i % 2 === 0 ? 'rgba(255, 191, 92, 0.72)' : 'rgba(255, 122, 40, 0.78)';
+        ctx.beginPath();
+        ctx.moveTo(anchorX - tongueWidth * 0.48, anchorY);
+        ctx.quadraticCurveTo(anchorX - tongueWidth * 0.36, anchorY - tongueHeight * 0.46, tipX, tipY);
+        ctx.quadraticCurveTo(anchorX + tongueWidth * 0.36, anchorY - tongueHeight * 0.48, anchorX + tongueWidth * 0.48, anchorY);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      ctx.restore();
+
+      ctx.save();
+      const smokeCount = 5;
+      for (let i = 0; i < smokeCount; i += 1) {
+        const t = (time * 0.0024) + (i * 0.82) + ((entity.uid || 0) * 0.05);
+        const smokeLife = (t % 1);
+        const rise = smokeLife * drawSize * 0.95;
+        const puffX = x + Math.sin((time * 0.0038) + (i * 1.4) + ((entity.uid || 0) * 0.3)) * drawSize * 0.18;
+        const puffY = smokeOriginY - rise;
+        const puffRadius = drawSize * (0.15 + ((1 - smokeLife) * 0.14));
+        ctx.globalAlpha = 0.24 * (1 - smokeLife);
+        ctx.fillStyle = i % 2 === 0 ? 'rgba(64, 64, 64, 0.7)' : 'rgba(88, 88, 88, 0.68)';
+        ctx.beginPath();
+        ctx.arc(puffX, puffY, puffRadius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
     function drawAnimationFrame(sourceImage, frame, dx, dy, dw, dh, tint = null, invulnerable = false, blinkPhaseSeed = 0, burnOverlay = false) {
       if (!tint) {
         ctx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, dx, dy, dw, dh);
@@ -4862,6 +4931,7 @@
               !entity.charData && hasBurn
             );
           }
+          drawOverheatedCoreFlames(entity, x, y, drawSize);
           if (useFade) ctx.restore();
           return;
         }
@@ -4903,6 +4973,7 @@
               !entity.charData && hasBurn
             );
           }
+          drawOverheatedCoreFlames(entity, x, y, drawSize);
           if (useFade) ctx.restore();
           return;
         }
@@ -4910,6 +4981,7 @@
       if (entity.sprite) {
         const drawSize = size * depthScale;
         ctx.drawImage(entity.sprite, x - drawSize / 2, y - drawSize, drawSize, drawSize);
+        drawOverheatedCoreFlames(entity, x, y, drawSize);
         if (invulnerable) {
           const blinkOn = Math.floor((performance.now() + (blinkPhaseSeed * 73)) / 165) % 2 === 0;
           if (blinkOn) {

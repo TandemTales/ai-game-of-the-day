@@ -3530,6 +3530,30 @@
       }
     }
 
+
+    function spawnScorchedGroundFireEffects(player, count = 6) {
+      if (!player) return;
+      const laneMinY = getBrawlLaneMinY();
+      const laneMaxY = BRAWL_LANE_MAX_Y;
+      const aroundX = 150;
+      const aroundY = 90;
+      const playerMaxX = getWaveBarrierPlayerMaxX();
+      for (let i = 0; i < count; i += 1) {
+        const fireX = clamp(player.x + rand(-aroundX, aroundX), 60, playerMaxX);
+        const fireY = clamp(player.y + rand(-aroundY, aroundY), laneMinY, laneMaxY);
+        const lifeFrames = rand(240, 480);
+        state.effects.push({
+          type: 'scorched-ground-fire',
+          x: fireX,
+          y: fireY,
+          timer: lifeFrames,
+          maxTimer: lifeFrames,
+          size: rand(16, 28),
+          seed: Math.random() * Math.PI * 2
+        });
+      }
+    }
+
     function castCharacterAbility(player, isSuper) {
       const id = player.charData.id;
       const radiusBoost = player.specialEffectMultiplier || 1;
@@ -3567,7 +3591,12 @@
         if (isSuper) state.effects.push({ x: player.x, y: player.y, radius: 260 * radiusBoost, timer: 30, damage: 24 * radiusBoost, knockback: 25, stun: 40, type: 'shock' });
       } else if (id === 'shunky-rooster') {
         state.effects.push({ x: player.x + player.facing * 90, y: player.y - 40, radius: 150, timer: 48, damage: 10, knockback: 30, stun: 40, type: 'beam', owner: player });
-        if (isSuper) state.effects.push({ x: player.x + player.facing * 90, y: player.y - 40, radius: 240 * radiusBoost, timer: hasLevel(player, 9) ? 80 : 60, damage: 3, knockback: 28, stun: 24, type: 'beam', owner: player });
+        if (isSuper) {
+          state.effects.push({ x: player.x + player.facing * 90, y: player.y - 40, radius: 240 * radiusBoost, timer: hasLevel(player, 9) ? 80 : 60, damage: 3, knockback: 28, stun: 24, type: 'beam', owner: player });
+          if (hasUpgrade(player, 'scorched-ground')) {
+            spawnScorchedGroundFireEffects(player, 8);
+          }
+        }
       } else if (id === 'grimma-the-feared') {
         state.effects.push({ x: player.x, y: player.y, radius: isSuper ? 170 * radiusBoost : 96, timer: isSuper ? (hasLevel(player, 9) ? 168 : 120) : 40, damage: isSuper ? 2 : 8, knockback: 0, stun: isSuper ? 8 : 42, type: 'root' });
       } else if (id === 'scarlett-glumpkin') {
@@ -4345,6 +4374,9 @@
           effect.y += (effect.vy || 0);
           effect.vy = ((effect.vy || 0) * 0.98) - 0.02;
           effect.vx = ((effect.vx || 0) * 0.96) + (effect.drift || 0);
+        }
+        if (effect.type === 'scorched-ground-fire') {
+          effect.flicker = (effect.flicker || 0) + 0.12;
         }
         if (['shock', 'root', 'beam', 'root-poison'].includes(effect.type) && (effect.timer % (effect.type === 'beam' ? 8 : 18) === 0)) {
           state.enemies.forEach(enemy => {
@@ -5447,6 +5479,50 @@
           ctx.beginPath();
           ctx.ellipse(x, y, radiusX * 0.7, radiusY * 0.7, 0, 0, Math.PI * 2);
           ctx.stroke();
+          ctx.restore();
+        }
+        if (effect.type === 'scorched-ground-fire') {
+          const maxTimer = Math.max(1, effect.maxTimer || 240);
+          const lifePct = clamp(effect.timer / maxTimer, 0, 1);
+          const screenX = effect.x - state.cameraX;
+          const screenY = effect.y - state.cameraY;
+          const baseSize = effect.size || 20;
+          const flicker = (Math.sin((effect.flicker || 0) + (effect.seed || 0)) + 1) * 0.5;
+          const flameHeight = baseSize * (0.9 + (flicker * 0.8));
+          const coreRadius = baseSize * (0.45 + (flicker * 0.18));
+
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          const glow = ctx.createRadialGradient(screenX, screenY, 1, screenX, screenY, baseSize * 1.9);
+          glow.addColorStop(0, `rgba(255, 230, 150, ${0.42 * lifePct})`);
+          glow.addColorStop(0.4, `rgba(255, 143, 64, ${0.34 * lifePct})`);
+          glow.addColorStop(1, 'rgba(255, 76, 30, 0)');
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.ellipse(screenX, screenY, baseSize * 1.4, baseSize * 0.82, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = `rgba(255, 108, 38, ${0.58 * lifePct})`;
+          ctx.beginPath();
+          ctx.ellipse(screenX, screenY + 2, coreRadius * 1.15, coreRadius * 0.72, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          for (let i = 0; i < 3; i += 1) {
+            const offset = i - 1;
+            const tongueHeight = flameHeight * (0.68 + (i * 0.12));
+            const tongueWidth = baseSize * (0.23 + (i * 0.04));
+            const tongueX = screenX + (offset * baseSize * 0.25) + Math.sin((effect.flicker || 0) * 2.4 + i + (effect.seed || 0)) * 2;
+            const tongueY = screenY - (baseSize * 0.15);
+            ctx.fillStyle = i === 1
+              ? `rgba(255, 206, 120, ${0.78 * lifePct})`
+              : `rgba(255, 138, 52, ${0.72 * lifePct})`;
+            ctx.beginPath();
+            ctx.moveTo(tongueX - tongueWidth, tongueY + 2);
+            ctx.quadraticCurveTo(tongueX - tongueWidth * 0.35, tongueY - tongueHeight * 0.42, tongueX, tongueY - tongueHeight);
+            ctx.quadraticCurveTo(tongueX + tongueWidth * 0.35, tongueY - tongueHeight * 0.42, tongueX + tongueWidth, tongueY + 2);
+            ctx.closePath();
+            ctx.fill();
+          }
           ctx.restore();
         }
         if (effect.type === 'projectile-burst') {

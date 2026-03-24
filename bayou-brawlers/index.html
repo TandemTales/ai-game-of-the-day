@@ -3398,7 +3398,8 @@
           maxTimer: beamDuration,
           damage: (heavy ? tuning.heavy : tuning.light) * player.attackPower * (heavy ? getHeavyDamageMultiplier(player) : getBasicDamageMultiplier(player)) * 0.4,
           stun: heavy ? 12 : 8,
-          owner: player
+          owner: player,
+          isHeavy: heavy
         });
         return;
       }
@@ -4389,6 +4390,32 @@
           if (hitCount > 0 && effect.owner) {
             effect.owner.comboHits += hitCount;
             effect.owner.comboTimer = 120;
+            if (effect.isHeavy && hasUpgrade(effect.owner, 'shockwave')) {
+              let impactX = effect.x + (effect.facing * 120);
+              let impactY = effect.y;
+              let closestDistance = Infinity;
+              state.enemies.forEach(enemy => {
+                if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
+                const enemyBody = getEnemyHitbox(enemy);
+                if (!rectsOverlap(beamRect, enemyBody)) return;
+                const collisionX = effect.facing >= 0 ? enemyBody.x : (enemyBody.x + enemyBody.width);
+                const distance = Math.abs(collisionX - effect.x);
+                if (distance < closestDistance) {
+                  closestDistance = distance;
+                  impactX = collisionX;
+                  impactY = enemyBody.y + (enemyBody.height * 0.52);
+                }
+              });
+              state.effects.push({
+                type: 'beam-impact-shockwave',
+                x: impactX,
+                y: impactY,
+                timer: 16,
+                maxTimer: 16,
+                maxRadiusX: 36,
+                maxRadiusY: 18
+              });
+            }
           }
         }
       });
@@ -5281,6 +5308,28 @@
           ctx.moveTo(x, y);
           ctx.lineTo(endX, y);
           ctx.stroke();
+          ctx.restore();
+        }
+        if (effect.type === 'beam-impact-shockwave') {
+          const maxTimer = effect.maxTimer || 16;
+          const life = clamp(effect.timer / maxTimer, 0, 1);
+          const progress = 1 - life;
+          const radiusX = (effect.maxRadiusX || 34) * progress;
+          const radiusY = (effect.maxRadiusY || 17) * progress;
+          const x = effect.x - state.cameraX;
+          const y = effect.y - state.cameraY;
+          ctx.save();
+          ctx.globalAlpha = 0.7 * life;
+          ctx.strokeStyle = 'rgba(198, 255, 242, 0.95)';
+          ctx.lineWidth = 2 + (2 * life);
+          ctx.beginPath();
+          ctx.ellipse(x, y, Math.max(1, radiusX), Math.max(1, radiusY), 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.globalAlpha = 0.22 * life;
+          ctx.fillStyle = 'rgba(124, 240, 220, 0.9)';
+          ctx.beginPath();
+          ctx.ellipse(x, y, Math.max(1, radiusX * 0.8), Math.max(1, radiusY * 0.75), 0, 0, Math.PI * 2);
+          ctx.fill();
           ctx.restore();
         }
         if (effect.type === 'projectile-burst') {

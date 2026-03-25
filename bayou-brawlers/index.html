@@ -4450,10 +4450,10 @@
             state.enemies.forEach(enemy => {
               if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
               const enemyBody = getEnemyHitbox(enemy);
-              const enemyGroundRadius = Math.max(8, Math.min(enemyBody.width, enemyBody.height) * 0.35);
-              const burnRange = effect.radius + enemyGroundRadius;
-              const distanceToEnemyGround = Math.hypot(enemy.x - effect.x, enemy.y - effect.y);
-              if (distanceToEnemyGround > burnRange) return;
+              const nearestX = clamp(effect.x, enemyBody.x, enemyBody.x + enemyBody.width);
+              const nearestY = clamp(effect.y, enemyBody.y, enemyBody.y + enemyBody.height);
+              const distanceToEnemyBody = Math.hypot(effect.x - nearestX, effect.y - nearestY);
+              if (distanceToEnemyBody > effect.radius) return;
               damageEnemy(enemy, effect.damage || 4, 0);
               applyStatus(enemy, 'BURN', 45, 1, { effectSource: 'scorched-ground' });
             });

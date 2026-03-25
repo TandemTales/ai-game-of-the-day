@@ -2997,12 +2997,16 @@
       if (player.emergencyVentingCooldown > 0) return;
 
       const sideOffsets = [-140, -104, -68, 68, 104, 140];
-      const ventHotboxes = sideOffsets.map(offsetX => ({
-        x: player.x + offsetX - 48,
-        y: player.y - 104 + rand(-10, 14),
-        width: 96,
-        height: 232
-      }));
+      const ventReachExtension = 22;
+      const ventHotboxes = sideOffsets.map(offsetX => {
+        const side = Math.sign(offsetX) || 1;
+        return {
+          x: player.x + offsetX - 48 - (side < 0 ? ventReachExtension : 0),
+          y: player.y - 104 + rand(-10, 14),
+          width: 96 + ventReachExtension,
+          height: 232
+        };
+      });
 
       const steamParticles = [];
       sideOffsets.forEach(offsetX => {

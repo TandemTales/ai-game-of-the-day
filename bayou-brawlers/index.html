@@ -2971,6 +2971,7 @@
         player.stun = Math.max(player.stun, (sourceEnemy.isBoss ? 42 : 24) + STUN_DURATION_BONUS_FRAMES);
       }
       player.hp = clamp(player.hp - finalAmount, 0, player.maxHp);
+      maybeTriggerEmergencyVenting(player);
       const sourceAngle = sourceEnemy ? Math.atan2(player.y - sourceEnemy.y, player.x - sourceEnemy.x) : null;
       spawnImpactBurst(player.x, player.y - 36, {
         strength: clamp(0.7 + (finalAmount / 9), 0.75, 2.45),
@@ -2982,6 +2983,51 @@
       if (player.hp <= 0) {
         endGame(false);
       }
+    }
+
+    function maybeTriggerEmergencyVenting(player) {
+      if (!player || player.charData.id !== 'shunky-rooster' || !hasUpgrade(player, 'emergency-venting')) return;
+      if (player.hp <= 0) return;
+      const healthThreshold = player.maxHp * 0.5;
+      if (player.hp > healthThreshold) return;
+      player.emergencyVentingCooldown = Math.max(0, (player.emergencyVentingCooldown || 0) - 1);
+      if (player.emergencyVentingCooldown > 0) return;
+
+      const sideOffsets = [-52, -36, -20, 20, 36, 52];
+      const ventHotboxes = sideOffsets.map(offsetX => ({
+        x: player.x + offsetX - 18,
+        y: player.y - 88 + rand(-8, 12),
+        width: 36,
+        height: 92
+      }));
+
+      const steamParticles = [];
+      sideOffsets.forEach(offsetX => {
+        const side = Math.sign(offsetX) || 1;
+        const burstCount = 4;
+        for (let i = 0; i < burstCount; i += 1) {
+          steamParticles.push({
+            x: player.x + offsetX + rand(-5, 5),
+            y: player.y - 72 + rand(-15, 14),
+            vx: side * rand(0.8, 2.3) + rand(-0.5, 0.5),
+            vy: rand(-1.15, -0.25),
+            growth: rand(0.45, 0.9),
+            radius: rand(10, 20),
+            alpha: rand(0.18, 0.38)
+          });
+        }
+      });
+
+      state.effects.push({
+        type: 'emergency-venting',
+        owner: player,
+        timer: 12,
+        maxTimer: 12,
+        hotboxes: ventHotboxes,
+        steamParticles,
+        pushForce: 72
+      });
+      player.emergencyVentingCooldown = 170;
     }
 
     function getPlayerDodgeChance(player) {
@@ -3778,6 +3824,7 @@
       player.specialCooldown = Math.max(0, player.specialCooldown - 1);
       player.jumpCooldown = Math.max(0, player.jumpCooldown - 1);
       player.shieldTimer = Math.max(0, player.shieldTimer - 1);
+      player.emergencyVentingCooldown = Math.max(0, (player.emergencyVentingCooldown || 0) - 1);
       player.actionLock = Math.max(0, player.actionLock - 1);
       player.passiveCooldown = Math.max(0, player.passiveCooldown - 1);
       if (player.comboTimer > 0) player.comboTimer -= 1;
@@ -4435,6 +4482,47 @@
           effect.vy = (effect.vy || 0) * 0.92 + (effect.driftY || 0);
           effect.size += effect.growth || 0;
           effect.alpha = Math.max(0, (effect.alpha || 0) * 0.98);
+        }
+        if (effect.type === 'emergency-venting') {
+          const owner = effect.owner;
+          if (!owner || owner.hp <= 0) {
+            effect.timer = 0;
+          } else {
+            const sideOffsets = [-52, -36, -20, 20, 36, 52];
+            const baseY = owner.y - 88;
+            effect.hotboxes = sideOffsets.map((offsetX, idx) => {
+              const priorHotbox = effect.hotboxes?.[idx];
+              return {
+                x: owner.x + offsetX - 18,
+                y: (priorHotbox?.y ?? baseY) + rand(-0.8, 0.8),
+                width: 36,
+                height: 92
+              };
+            });
+            (effect.steamParticles || []).forEach(particle => {
+              particle.x += particle.vx;
+              particle.y += particle.vy;
+              particle.vx *= 0.9;
+              particle.vy *= 0.92;
+              particle.radius += particle.growth;
+              particle.alpha *= 0.92;
+            });
+            if (effect.timer % 2 === 0) {
+              state.enemies.forEach(enemy => {
+                if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
+                const enemyBody = getEnemyHitbox(enemy);
+                const overlappingHotbox = effect.hotboxes.find(hotbox => rectsOverlap(hotbox, enemyBody));
+                if (!overlappingHotbox) return;
+                const hotboxCenterX = overlappingHotbox.x + (overlappingHotbox.width * 0.5);
+                const pushDir = Math.sign(enemy.x - hotboxCenterX) || (enemy.x >= owner.x ? 1 : -1);
+                const centerY = enemyBody.y + (enemyBody.height * 0.5);
+                const verticalDir = Math.sign(centerY - (owner.y - 44));
+                enemy.x += pushDir * (effect.pushForce || 72);
+                enemy.y += verticalDir * 6;
+                enemy.stun = Math.max(enemy.stun, 20 + STUN_DURATION_BONUS_FRAMES);
+              });
+            }
+          }
         }
         if (effect.type === 'heal-plus' || effect.type === 'power-plus') {
           effect.centerX = (effect.centerX ?? effect.x) + (effect.vx || 0);
@@ -5546,6 +5634,27 @@
           ctx.beginPath();
           ctx.arc(drawX, drawY, radius, 0, Math.PI * 2);
           ctx.fill();
+        }
+        if (effect.type === 'emergency-venting') {
+          const lifePct = clamp(effect.timer / Math.max(1, effect.maxTimer || 12), 0, 1);
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          (effect.steamParticles || []).forEach(particle => {
+            if ((particle.alpha || 0) <= 0.01) return;
+            const x = particle.x - state.cameraX;
+            const y = particle.y - state.cameraY;
+            const particleAlpha = clamp((particle.alpha || 0) * lifePct, 0, 0.42);
+            const radius = particle.radius || 8;
+            const steamGradient = ctx.createRadialGradient(x, y, radius * 0.22, x, y, radius);
+            steamGradient.addColorStop(0, `rgba(255, 255, 255, ${particleAlpha})`);
+            steamGradient.addColorStop(0.7, `rgba(255, 255, 255, ${particleAlpha * 0.45})`);
+            steamGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = steamGradient;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+          });
+          ctx.restore();
         }
         if (effect.type === 'flash-cone') {
           const maxTimer = effect.maxTimer || 12;

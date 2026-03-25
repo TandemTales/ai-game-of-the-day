@@ -1189,6 +1189,9 @@
     const PLAYER_STUN_TYPES = new Set(['brute', 'boss', 'mud-monster', 'sweetykins']);
     const ENEMY_DEATH_HOLD_FRAMES = 240;
     const ENEMY_DAMAGE_MULTIPLIER = 0.75;
+    const MECHANIZED_MOMENTUM_MAX_STACKS = 12;
+    const MECHANIZED_MOMENTUM_STACK_MULTIPLIER = 0.03;
+    const MECHANIZED_MOMENTUM_DURATION_FRAMES = 120;
     const MAX_LEVEL = 20;
     const BASE_MAX_POWER = 100;
     const SPECIAL_COST = BASE_MAX_POWER / 3;
@@ -1961,6 +1964,8 @@
         heavyChargeFrames: 0,
         comboHits: 0,
         comboTimer: 0,
+        mechanizedMomentumStacks: 0,
+        mechanizedMomentumTimer: 0,
         stun: 0,
         level: 1,
         xp: 0,
@@ -2662,12 +2667,47 @@
 
     function getBasicDamageMultiplier(player) {
       if (!player) return 1;
-      return player.basicDamageMultiplier * player.allDamageMultiplier;
+      return player.basicDamageMultiplier * player.allDamageMultiplier * (1 + getMechanizedMomentumBonusPct(player));
     }
 
     function getHeavyDamageMultiplier(player) {
       if (!player) return 1;
-      return player.heavyDamageMultiplier * player.allDamageMultiplier;
+      return player.heavyDamageMultiplier * player.allDamageMultiplier * (1 + getMechanizedMomentumBonusPct(player));
+    }
+
+    function getMechanizedMomentumBonusPct(player) {
+      if (!player || player.charData?.id !== 'shunky-rooster' || !hasUpgrade(player, 'mechanized-momentum')) return 0;
+      if ((player.mechanizedMomentumTimer || 0) <= 0) return 0;
+      const stacks = clamp(player.mechanizedMomentumStacks || 0, 0, MECHANIZED_MOMENTUM_MAX_STACKS);
+      return stacks * MECHANIZED_MOMENTUM_STACK_MULTIPLIER;
+    }
+
+    function spawnMechanizedMomentumText(enemy, bonusPct) {
+      if (!enemy || bonusPct <= 0) return;
+      const topOpaqueWorldY = getEntityWalkTopOpaqueWorldY(enemy, enemy.isBoss ? BOSS_DRAW_SIZE : ENEMY_DRAW_SIZE);
+      const bonusPercentText = Math.round(bonusPct * 100);
+      state.effects.push({
+        type: 'floating-text',
+        text: `+${bonusPercentText}% DMG`,
+        x: enemy.x + rand(-10, 10),
+        y: topOpaqueWorldY - 18,
+        vx: rand(-0.08, 0.08),
+        vy: -0.86,
+        drift: rand(-0.02, 0.02),
+        timer: 40,
+        maxTimer: 40,
+        color: 'rgba(255, 70, 70, 0.98)',
+        outline: 'rgba(80, 10, 10, 0.95)'
+      });
+    }
+
+    function registerMechanizedMomentumHit(player, enemy) {
+      if (!player || !enemy) return;
+      if (player.charData?.id !== 'shunky-rooster' || !hasUpgrade(player, 'mechanized-momentum')) return;
+      player.mechanizedMomentumStacks = clamp((player.mechanizedMomentumStacks || 0) + 1, 0, MECHANIZED_MOMENTUM_MAX_STACKS);
+      player.mechanizedMomentumTimer = MECHANIZED_MOMENTUM_DURATION_FRAMES;
+      const bonusPct = getMechanizedMomentumBonusPct(player);
+      spawnMechanizedMomentumText(enemy, bonusPct);
     }
 
     function addPower(player, amount) {
@@ -3697,6 +3737,7 @@
 
     function applyCharacterOnHitStatus(player, enemy, heavy) {
       if (!canPlayerAffectEnemy(enemy)) return;
+      registerMechanizedMomentumHit(player, enemy);
       const id = player.charData.id;
       if (id === 'billy-boxby') {
         const isIncorporeal = enemy.type.includes('ghost');
@@ -3906,6 +3947,12 @@
       player.passiveCooldown = Math.max(0, player.passiveCooldown - 1);
       if (player.comboTimer > 0) player.comboTimer -= 1;
       else player.comboHits = Math.max(0, player.comboHits - (hasLevel5SignaturePassive(player) && player.charData.id === 'possumatli' ? 0.5 : 1));
+      if ((player.mechanizedMomentumTimer || 0) > 0) {
+        player.mechanizedMomentumTimer -= 1;
+      } else {
+        player.mechanizedMomentumTimer = 0;
+        player.mechanizedMomentumStacks = 0;
+      }
       if (player.charData.id === 'possumatli' && hasLevel5SignaturePassive(player)) {
         player.signaturePowerRegenTick = (player.signaturePowerRegenTick || 0) + 1;
         if (player.signaturePowerRegenTick >= 60) {

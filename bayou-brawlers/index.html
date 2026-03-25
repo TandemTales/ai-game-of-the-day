@@ -2862,6 +2862,15 @@
       else ready.textContent = 'Charging';
     }
 
+    function layoutEmergencyVentingHud() {
+      const wrap = document.getElementById('emergencyVentingStatus');
+      const hud = document.getElementById('hud');
+      if (!wrap || !hud) return;
+      const hudTop = hud.offsetTop;
+      const hudBottom = hudTop + hud.offsetHeight;
+      wrap.style.top = `${hudBottom + 8}px`;
+    }
+
     function updateEmergencyVentingHud(player) {
       const wrap = document.getElementById('emergencyVentingStatus');
       const fill = document.getElementById('emergencyVentingFill');
@@ -2875,6 +2884,7 @@
       );
       wrap.style.display = show ? 'inline-flex' : 'none';
       if (!show) return;
+      layoutEmergencyVentingHud();
       const cooldown = Math.max(0, player.emergencyVentingCooldown || 0);
       const progress = 1 - (cooldown / EMERGENCY_VENTING_RECHARGE_FRAMES);
       fill.style.width = `${Math.round(clamp(progress, 0, 1) * 100)}%`;
@@ -6110,6 +6120,10 @@
         directionPad.addEventListener('lostpointercapture', resetDirectionInput);
       }
     }
+
+    window.addEventListener('resize', () => {
+      layoutEmergencyVentingHud();
+    });
 
     function initCharacterSelection() {
       const grid = document.getElementById('characterGrid');

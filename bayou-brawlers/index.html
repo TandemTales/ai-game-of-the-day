@@ -4432,10 +4432,11 @@
           const endX = effect.x + (effect.length * effect.facing);
           const left = Math.min(effect.x, endX);
           const right = Math.max(effect.x, endX);
-          const halfWidth = effect.width * 0.85;
+          const hitboxCenterY = effect.y + 24;
+          const halfWidth = Math.max(effect.width * 1.25, 72);
           const beamRect = {
             x: left,
-            y: effect.y - halfWidth,
+            y: hitboxCenterY - halfWidth,
             width: right - left,
             height: halfWidth * 2
           };

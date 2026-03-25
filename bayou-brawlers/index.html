@@ -138,6 +138,37 @@
       width: 100%;
       background: linear-gradient(90deg, #ff7b7b, #ffb347);
     }
+    .status-strip {
+      position: absolute;
+      top: calc(146px + env(safe-area-inset-top));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 5;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(57, 211, 192, 0.75);
+      background: rgba(4, 20, 22, 0.84);
+      font-size: 8px;
+      color: #d8fff8;
+      box-shadow: 0 0 14px rgba(57, 211, 192, 0.24);
+    }
+    .status-strip .status-bar {
+      width: 92px;
+      height: 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(57, 211, 192, 0.75);
+      background: rgba(255, 255, 255, 0.12);
+      overflow: hidden;
+    }
+    .status-strip .status-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #4fe9d4, #99fff0);
+      transition: width 0.08s linear;
+    }
     .stage {
       position: absolute;
       inset: 0;
@@ -534,6 +565,7 @@
       header { gap: 8px; }
       .title h1 { font-size: 14px; }
       .hud { top: calc(102px + env(safe-area-inset-top)); font-size: 9px; }
+      .status-strip { top: calc(138px + env(safe-area-inset-top)); }
       .stage { padding: calc(130px + env(safe-area-inset-top)) 12px calc(138px + env(safe-area-inset-bottom)) 12px; }
     }
 
@@ -569,6 +601,7 @@
       .title h1 { font-size: 11px; }
       .btn { padding: 7px 9px; font-size: 9px; }
       .hud { top: calc(92px + env(safe-area-inset-top)); padding: 4px 7px; gap: 5px; }
+      .status-strip { top: calc(124px + env(safe-area-inset-top)); }
       .chip { font-size: 8px; padding: 3px 6px; }
       .hp-bar { width: 92px; }
       .stage { padding-top: calc(120px + env(safe-area-inset-top)); }
@@ -638,6 +671,13 @@
         <div class="hp-bar"><div class="hp-fill" id="powerFill" style="background:linear-gradient(90deg,#5ef1ff,#7a95ff)"></div></div>
       </div>
       <div class="chip">Ability: <span id="specialReady">Locked</span></div>
+    </div>
+    <div class="status-strip" id="emergencyVentingStatus" aria-live="polite">
+      <span>Emergency Venting</span>
+      <div class="status-bar" aria-hidden="true">
+        <div class="status-fill" id="emergencyVentingFill"></div>
+      </div>
+      <span id="emergencyVentingText">Ready</span>
     </div>
 
     <div class="stage">
@@ -1098,6 +1138,7 @@
     const WAVE_BARRIER_PLAYER_MARGIN = 12;
     const WAVE_BARRIER_SCREEN_MARGIN = 12;
     const FIXED_TIMESTEP_MS = 1000 / 60;
+    const EMERGENCY_VENTING_RECHARGE_FRAMES = 5 * 60;
     const MAX_FRAME_DELTA_MS = 1000;
     const MAX_CATCH_UP_STEPS = 6;
     const ENTITY_DISPLAY_SCALE_BOOST = 1.2;
@@ -1915,6 +1956,7 @@
         block: false,
         isMoving: false,
         shieldTimer: 0,
+        emergencyVentingCooldown: 0,
         dashTimer: 0,
         heavyChargeFrames: 0,
         comboHits: 0,
@@ -2820,6 +2862,25 @@
       else ready.textContent = 'Charging';
     }
 
+    function updateEmergencyVentingHud(player) {
+      const wrap = document.getElementById('emergencyVentingStatus');
+      const fill = document.getElementById('emergencyVentingFill');
+      const text = document.getElementById('emergencyVentingText');
+      if (!wrap || !fill || !text) return;
+      const show = Boolean(
+        player
+        && player.charData?.id === 'shunky-rooster'
+        && hasUpgrade(player, 'emergency-venting')
+        && state.running
+      );
+      wrap.style.display = show ? 'inline-flex' : 'none';
+      if (!show) return;
+      const cooldown = Math.max(0, player.emergencyVentingCooldown || 0);
+      const progress = 1 - (cooldown / EMERGENCY_VENTING_RECHARGE_FRAMES);
+      fill.style.width = `${Math.round(clamp(progress, 0, 1) * 100)}%`;
+      text.textContent = cooldown > 0 ? `Recharging ${Math.ceil(cooldown / 60)}s` : 'Ready';
+    }
+
     function getEnemyTier(enemy) {
       const meta = enemyTypes[enemy.type] || {};
       return meta.tier || (enemy.isBoss ? 'boss' : 'small');
@@ -2993,7 +3054,6 @@
       if (player.hp <= 0) return;
       const healthThreshold = player.maxHp * 0.5;
       if (player.hp > healthThreshold) return;
-      player.emergencyVentingCooldown = Math.max(0, (player.emergencyVentingCooldown || 0) - 1);
       if (player.emergencyVentingCooldown > 0) return;
 
       const sideOffsets = [-140, -104, -68, 68, 104, 140];
@@ -3034,7 +3094,7 @@
         steamParticles,
         pushForce: 144
       });
-      player.emergencyVentingCooldown = 170;
+      player.emergencyVentingCooldown = EMERGENCY_VENTING_RECHARGE_FRAMES;
     }
 
     function getPlayerDodgeChance(player) {
@@ -3872,6 +3932,7 @@
       updatePlayerAnimation(player, dt);
       updateProgressHud(player);
       updatePowerHud(player);
+      updateEmergencyVentingHud(player);
     }
 
     function updateEnemies(dt) {

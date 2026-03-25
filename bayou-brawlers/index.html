@@ -2952,7 +2952,9 @@
     function damagePlayer(amount, sourceEnemy = null) {
       const player = state.player;
       if (!player || player.hp <= 0) return;
-      if (isPlayerInvulnerable(player)) return;
+      const invulnerable = isPlayerInvulnerable(player);
+      maybeTriggerEmergencyVenting(player);
+      if (invulnerable) return;
       const dodgeChance = getPlayerDodgeChance(player);
       const dodged = player.dashTimer > 0 || (dodgeChance > 0 && Math.random() < dodgeChance);
       if (dodged) {
@@ -2989,9 +2991,8 @@
       if (!player || player.charData.id !== 'shunky-rooster' || !hasUpgrade(player, 'emergency-venting')) return;
       if (player.hp <= 0) return;
       if (player.passiveCooldown > 0) return;
-      const lowHealthThreshold = player.maxHp * 0.35;
+      const lowHealthThreshold = player.maxHp * 0.5;
       if (player.hp > lowHealthThreshold) return;
-      if (Math.random() >= 0.4) return;
 
       const ventRadius = 170;
       state.enemies.forEach(enemy => {

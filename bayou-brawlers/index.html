@@ -3423,12 +3423,13 @@
 
       if (characterId === 'shunky-rooster') {
         const beamDuration = 60;
+        const beamOriginYOffset = 62;
         player.attackCooldown = Math.max(player.attackCooldown, 180);
         player.powerCooldown = Math.max(player.powerCooldown, 180);
         state.effects.push({
           type: 'shunky-laser',
           x: player.x + player.facing * 12,
-          y: player.y - 44,
+          y: player.y - beamOriginYOffset,
           facing: player.facing,
           heavy,
           width: heavy ? 64 : 48,

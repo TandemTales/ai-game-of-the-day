@@ -4423,6 +4423,11 @@
             }
           });
         }
+        if (effect.type === 'shunky-laser' && effect.owner) {
+          const beamOrigin = getShunkyLaserOrigin(effect.owner);
+          effect.x = beamOrigin.x;
+          effect.y = beamOrigin.y;
+        }
         if (effect.type === 'shunky-laser' && effect.timer % 12 === 0) {
           const endX = effect.x + (effect.length * effect.facing);
           const left = Math.min(effect.x, endX);

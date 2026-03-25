@@ -2221,12 +2221,6 @@
         && a.y + a.height > b.y;
     }
 
-    function pointDistanceToRect(px, py, rect) {
-      const dx = Math.max(rect.x - px, 0, px - (rect.x + rect.width));
-      const dy = Math.max(rect.y - py, 0, py - (rect.y + rect.height));
-      return Math.hypot(dx, dy);
-    }
-
     function hasUpgrade(player, upgradeId) {
       return !!(player && player.selectedUpgrades && player.selectedUpgrades.has(upgradeId));
     }
@@ -2296,8 +2290,8 @@
           radius,
           timer: lifetime,
           maxTimer: lifetime,
-          damage: 4,
-          tickRate: 15,
+          damage: 5,
+          tickRate: 10,
           phase: Math.random() * Math.PI * 2
         });
       }
@@ -4456,8 +4450,10 @@
             state.enemies.forEach(enemy => {
               if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
               const enemyBody = getEnemyHitbox(enemy);
-              const burnRange = effect.radius;
-              if (pointDistanceToRect(effect.x, effect.y, enemyBody) > burnRange) return;
+              const enemyGroundRadius = Math.max(8, Math.min(enemyBody.width, enemyBody.height) * 0.35);
+              const burnRange = effect.radius + enemyGroundRadius;
+              const distanceToEnemyGround = Math.hypot(enemy.x - effect.x, enemy.y - effect.y);
+              if (distanceToEnemyGround > burnRange) return;
               damageEnemy(enemy, effect.damage || 4, 0);
               applyStatus(enemy, 'BURN', 45, 1, { effectSource: 'scorched-ground' });
             });

@@ -2952,7 +2952,10 @@
     function damagePlayer(amount, sourceEnemy = null) {
       const player = state.player;
       if (!player || player.hp <= 0) return;
-      if (isPlayerInvulnerable(player)) return;
+      if (isPlayerInvulnerable(player)) {
+        maybeTriggerEmergencyVenting(player);
+        return;
+      }
       const dodgeChance = getPlayerDodgeChance(player);
       const dodged = player.dashTimer > 0 || (dodgeChance > 0 && Math.random() < dodgeChance);
       if (dodged) {
@@ -2993,12 +2996,12 @@
       player.emergencyVentingCooldown = Math.max(0, (player.emergencyVentingCooldown || 0) - 1);
       if (player.emergencyVentingCooldown > 0) return;
 
-      const sideOffsets = [-52, -36, -20, 20, 36, 52];
+      const sideOffsets = [-70, -52, -34, 34, 52, 70];
       const ventHotboxes = sideOffsets.map(offsetX => ({
-        x: player.x + offsetX - 18,
-        y: player.y - 88 + rand(-8, 12),
-        width: 36,
-        height: 92
+        x: player.x + offsetX - 24,
+        y: player.y - 104 + rand(-10, 14),
+        width: 48,
+        height: 116
       }));
 
       const steamParticles = [];
@@ -3008,12 +3011,12 @@
         for (let i = 0; i < burstCount; i += 1) {
           steamParticles.push({
             x: player.x + offsetX + rand(-5, 5),
-            y: player.y - 72 + rand(-15, 14),
-            vx: side * rand(0.8, 2.3) + rand(-0.5, 0.5),
-            vy: rand(-1.15, -0.25),
-            growth: rand(0.45, 0.9),
-            radius: rand(10, 20),
-            alpha: rand(0.18, 0.38)
+            y: player.y - 82 + rand(-20, 16),
+            vx: side * rand(1.1, 2.8) + rand(-0.6, 0.6),
+            vy: rand(-1.4, -0.35),
+            growth: rand(0.65, 1.15),
+            radius: rand(16, 30),
+            alpha: rand(0.2, 0.42)
           });
         }
       });
@@ -3021,8 +3024,8 @@
       state.effects.push({
         type: 'emergency-venting',
         owner: player,
-        timer: 12,
-        maxTimer: 12,
+        timer: 24,
+        maxTimer: 24,
         hotboxes: ventHotboxes,
         steamParticles,
         pushForce: 72
@@ -4488,15 +4491,15 @@
           if (!owner || owner.hp <= 0) {
             effect.timer = 0;
           } else {
-            const sideOffsets = [-52, -36, -20, 20, 36, 52];
-            const baseY = owner.y - 88;
+            const sideOffsets = [-70, -52, -34, 34, 52, 70];
+            const baseY = owner.y - 104;
             effect.hotboxes = sideOffsets.map((offsetX, idx) => {
               const priorHotbox = effect.hotboxes?.[idx];
               return {
-                x: owner.x + offsetX - 18,
+                x: owner.x + offsetX - 24,
                 y: (priorHotbox?.y ?? baseY) + rand(-0.8, 0.8),
-                width: 36,
-                height: 92
+                width: 48,
+                height: 116
               };
             });
             (effect.steamParticles || []).forEach(particle => {

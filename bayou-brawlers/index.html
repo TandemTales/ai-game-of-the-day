@@ -22,11 +22,13 @@
       --ui: rgba(0, 0, 0, 0.82);
       --crimson: #ff4d6d;
       --emerald: #2dd4bf;
+      --app-height: 100dvh;
+      --viewport-offset-bottom: 0px;
     }
     * { box-sizing: border-box; }
     html, body {
       height: 100%;
-      min-height: 100dvh;
+      min-height: var(--app-height);
     }
     body {
       margin: 0;
@@ -41,7 +43,7 @@
     }
     .wrap {
       position: relative;
-      height: 100dvh;
+      height: var(--app-height);
       min-height: 100svh;
       width: 100%;
       min-height: 100vh;
@@ -419,7 +421,7 @@
     .levelup-tag { display: inline-block; margin-bottom: 6px; font-size: 9px; letter-spacing: 0.08em; color: #f3d28a; text-transform: uppercase; }
     .controls {
       position: absolute;
-      bottom: calc(18px + env(safe-area-inset-bottom));
+      bottom: calc(18px + env(safe-area-inset-bottom) + var(--viewport-offset-bottom));
       left: calc(16px + env(safe-area-inset-left));
       right: calc(16px + env(safe-area-inset-right));
       display: flex;
@@ -549,6 +551,25 @@
       height: clamp(44px, 7.2vw, 54px);
       font-size: clamp(8px, 1.5vw, 10px);
     }
+    .controls.compact .direction-pad {
+      width: 88px;
+      height: 88px;
+    }
+    .controls.compact .direction-pad-knob {
+      width: 34px;
+      height: 34px;
+    }
+    .controls.compact .action-pad {
+      gap: 4px;
+    }
+    .controls.compact .action-pad .pad-btn {
+      width: 40px;
+      height: 40px;
+      font-size: 8px;
+    }
+    .controls.compact .direction-label {
+      font-size: 8px;
+    }
     .instructions {
       font-size: clamp(7px, 1.2vh, 9px);
       color: #9fd6cf;
@@ -575,7 +596,7 @@
         height: min(94dvh, 780px);
         padding: 12px;
       }
-      .controls { flex-direction: row; align-items: center; gap: 8px; bottom: calc(24px + env(safe-area-inset-bottom)); }
+      .controls { flex-direction: row; align-items: center; gap: 8px; bottom: calc(24px + env(safe-area-inset-bottom) + var(--viewport-offset-bottom)); }
       .direction-pad { width: 104px; height: 104px; }
       .direction-pad-knob { width: 40px; height: 40px; }
       .pad-btn { width: 38px; height: 38px; font-size: 10px; }
@@ -608,7 +629,7 @@
       .controls {
         left: calc(10px + env(safe-area-inset-left));
         right: calc(10px + env(safe-area-inset-right));
-        bottom: calc(26px + env(safe-area-inset-bottom));
+        bottom: calc(26px + env(safe-area-inset-bottom) + var(--viewport-offset-bottom));
       }
       .panel h2 { font-size: 13px; }
       .panel p { font-size: 9px; }
@@ -6168,9 +6189,37 @@
       }
     }
 
+    function updateAdaptiveViewportLayout() {
+      const root = document.documentElement;
+      const controls = document.getElementById('mobileControls');
+      const viewport = window.visualViewport;
+      const viewportHeight = viewport ? viewport.height : window.innerHeight;
+      const viewportWidth = viewport ? viewport.width : window.innerWidth;
+      const viewportBottom = viewport ? (viewport.offsetTop + viewport.height) : window.innerHeight;
+      const bottomOverlap = Math.max(0, window.innerHeight - viewportBottom);
+
+      root.style.setProperty('--app-height', `${Math.max(1, Math.round(viewportHeight))}px`);
+      root.style.setProperty('--viewport-offset-bottom', `${Math.round(bottomOverlap)}px`);
+
+      if (!controls) return;
+      const touchPreferred = matchMedia('(pointer: coarse)').matches;
+      const compactLayout = touchPreferred && (
+        viewportHeight <= 460
+        || viewportWidth <= 760
+      );
+      controls.classList.toggle('compact', compactLayout);
+    }
+
     window.addEventListener('resize', () => {
+      updateAdaptiveViewportLayout();
       layoutEmergencyVentingHud();
     });
+
+    window.addEventListener('orientationchange', updateAdaptiveViewportLayout);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', updateAdaptiveViewportLayout);
+      window.visualViewport.addEventListener('scroll', updateAdaptiveViewportLayout);
+    }
 
     function initCharacterSelection() {
       const grid = document.getElementById('characterGrid');
@@ -6728,6 +6777,7 @@
     }
 
     async function init() {
+      updateAdaptiveViewportLayout();
       await loadAssets();
       document.getElementById('loadingOverlay').classList.remove('show');
       document.getElementById('startOverlay').classList.add('show');

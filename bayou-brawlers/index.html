@@ -551,6 +551,44 @@
       height: clamp(44px, 7.2vw, 54px);
       font-size: clamp(8px, 1.5vw, 10px);
     }
+    .wrap.tight-ui header {
+      top: calc(4px + env(safe-area-inset-top));
+      gap: 4px;
+    }
+    .wrap.tight-ui .title h1 {
+      font-size: 11px;
+    }
+    .wrap.tight-ui .btn {
+      padding: 6px 8px;
+      font-size: 8px;
+    }
+    .wrap.tight-ui .hud {
+      top: calc(78px + env(safe-area-inset-top));
+      gap: 4px;
+      padding: 4px 6px;
+    }
+    .wrap.tight-ui .status-strip {
+      top: calc(106px + env(safe-area-inset-top));
+    }
+    .wrap.tight-ui .chip {
+      font-size: 8px;
+      padding: 3px 6px;
+    }
+    .wrap.tight-ui .hp-bar {
+      width: 84px;
+    }
+    .wrap.tight-ui .stage {
+      padding: calc(104px + env(safe-area-inset-top)) 10px calc(96px + env(safe-area-inset-bottom)) 10px;
+    }
+    .wrap.tight-ui .controls {
+      bottom: calc(8px + env(safe-area-inset-bottom) + var(--viewport-offset-bottom));
+    }
+    .wrap.tight-ui .dpad {
+      gap: 3px;
+    }
+    .wrap.tight-ui .direction-label {
+      display: none;
+    }
     .controls.compact .direction-pad {
       width: 88px;
       height: 88px;
@@ -6192,6 +6230,7 @@
     function updateAdaptiveViewportLayout() {
       const root = document.documentElement;
       const controls = document.getElementById('mobileControls');
+      const wrap = document.querySelector('.wrap');
       const viewport = window.visualViewport;
       const viewportHeight = viewport ? viewport.height : window.innerHeight;
       const viewportWidth = viewport ? viewport.width : window.innerWidth;
@@ -6208,6 +6247,14 @@
         || viewportWidth <= 760
       );
       controls.classList.toggle('compact', compactLayout);
+
+      if (wrap) {
+        const tightUiLayout = touchPreferred && (
+          viewportHeight <= 780
+          || viewportWidth <= 920
+        );
+        wrap.classList.toggle('tight-ui', tightUiLayout);
+      }
     }
 
     window.addEventListener('resize', () => {

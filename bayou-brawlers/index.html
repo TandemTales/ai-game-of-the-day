@@ -2979,9 +2979,61 @@
       player.animationSignals.hurt = true;
       state.shake = 6;
       updateHpBar();
+      maybeTriggerEmergencyVenting(player);
       if (player.hp <= 0) {
         endGame(false);
       }
+    }
+
+    function maybeTriggerEmergencyVenting(player) {
+      if (!player || player.charData.id !== 'shunky-rooster' || !hasUpgrade(player, 'emergency-venting')) return;
+      if (player.hp <= 0) return;
+      if (player.passiveCooldown > 0) return;
+      const lowHealthThreshold = player.maxHp * 0.35;
+      if (player.hp > lowHealthThreshold) return;
+      if (Math.random() >= 0.4) return;
+
+      const ventRadius = 170;
+      state.enemies.forEach(enemy => {
+        if (!enemy || enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
+        const dx = enemy.x - player.x;
+        const dy = enemy.y - player.y;
+        const distance = Math.hypot(dx, dy);
+        if (distance <= 0 || distance > ventRadius) return;
+        const falloff = 1 - (distance / ventRadius);
+        const pushPower = 18 + (14 * falloff);
+        enemy.x += (dx / distance) * pushPower;
+        enemy.y += (dy / distance) * (5 + (6 * falloff));
+      });
+
+      spawnEmergencyVentingSteam(player);
+      player.passiveCooldown = 210;
+    }
+
+    function spawnEmergencyVentingSteam(player) {
+      if (!player) return;
+      const sideOffsets = [-1, 1];
+      sideOffsets.forEach((side) => {
+        for (let i = 0; i < 6; i += 1) {
+          const anchorX = player.x + (side * rand(40, 62));
+          const anchorY = player.y - rand(42, 96);
+          const speed = rand(2.2, 4.6);
+          const angle = (side < 0 ? Math.PI : 0) + rand(-0.46, 0.46);
+          const timer = rand(14, 22);
+          state.effects.push({
+            type: 'emergency-venting-steam',
+            x: anchorX + rand(-6, 6),
+            y: anchorY + rand(-10, 10),
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed * 0.45 + rand(-0.35, 0.12),
+            size: rand(14, 28),
+            growth: rand(0.38, 0.85),
+            alpha: rand(0.15, 0.3),
+            timer,
+            maxTimer: timer
+          });
+        }
+      });
     }
 
     function getPlayerDodgeChance(player) {
@@ -4365,6 +4417,14 @@
           effect.size += effect.growth || 0;
           effect.alpha = Math.max(0, (effect.alpha || 0) * 0.98);
         }
+        if (effect.type === 'emergency-venting-steam') {
+          effect.x += effect.vx;
+          effect.y += effect.vy;
+          effect.vx = (effect.vx || 0) * 0.86;
+          effect.vy = (effect.vy || 0) * 0.9 - 0.08;
+          effect.size += effect.growth || 0;
+          effect.alpha = Math.max(0, (effect.alpha || 0) * 0.93);
+        }
         if (effect.type === 'heal-plus' || effect.type === 'power-plus') {
           effect.centerX = (effect.centerX ?? effect.x) + (effect.vx || 0);
           effect.centerY = (effect.centerY ?? effect.y) + (effect.vy || 0);
@@ -5429,6 +5489,24 @@
           ctx.beginPath();
           ctx.arc(drawX, drawY, radius, 0, Math.PI * 2);
           ctx.fill();
+        }
+        if (effect.type === 'emergency-venting-steam') {
+          const maxTimer = effect.maxTimer || 18;
+          const lifePct = clamp(effect.timer / maxTimer, 0, 1);
+          const x = effect.x - state.cameraX;
+          const y = effect.y - state.cameraY;
+          const radius = (effect.size || 10) * (0.65 + ((1 - lifePct) * 0.45));
+          ctx.save();
+          ctx.globalCompositeOperation = 'screen';
+          const gradient = ctx.createRadialGradient(x, y, radius * 0.12, x, y, radius);
+          gradient.addColorStop(0, `rgba(255, 255, 255, ${(effect.alpha || 0.2) * lifePct * 0.95})`);
+          gradient.addColorStop(0.58, `rgba(245, 252, 255, ${(effect.alpha || 0.2) * lifePct * 0.45})`);
+          gradient.addColorStop(1, 'rgba(245, 252, 255, 0)');
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.ellipse(x, y, radius * 1.15, radius * 0.78, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
         }
         if (effect.type === 'flash-cone') {
           const maxTimer = effect.maxTimer || 12;

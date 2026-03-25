@@ -3385,6 +3385,28 @@
       const rangedAttackers = new Set(['rustbucket']);
       const aoeAttackers = new Set(['green-fairy', 'scarlett-glumpkin']);
       const brutalDirectionalAttackers = new Set(['old-man-croc', 'possumatli', 'grimma-the-feared']);
+      const contactDamage = (heavy ? tuning.heavy : tuning.light) * player.attackPower * (heavy ? getHeavyDamageMultiplier(player) : getBasicDamageMultiplier(player));
+      const contactStun = heavy ? 26 : 14;
+
+      const applyOverlappingContactHits = (damage, stun, knockback = 0) => {
+        let hitCount = 0;
+        state.enemies.forEach(enemy => {
+          if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
+          if (!playerBodyOverlap(player, enemy)) return;
+          damageEnemy(enemy, damage, stun);
+          if (knockback !== 0) {
+            const pushDir = Math.sign(enemy.x - player.x || player.facing || 1);
+            enemy.x += pushDir * knockback;
+          }
+          applyCharacterOnHitStatus(player, enemy, heavy);
+          hitCount += 1;
+        });
+        if (hitCount > 0) {
+          player.comboHits += hitCount;
+          player.comboTimer = 120;
+        }
+        return hitCount;
+      };
 
       if (characterId === 'billy-boxby') {
         const coneLength = heavy ? 420 : 336;
@@ -3435,6 +3457,7 @@
         const beamDuration = 60;
         const beamOrigin = getShunkyLaserOrigin(player);
         const hitboxWidth = heavy ? 86 : 68;
+        applyOverlappingContactHits(contactDamage, contactStun, heavy ? 20 : 12);
         player.attackCooldown = Math.max(player.attackCooldown, 180);
         player.powerCooldown = Math.max(player.powerCooldown, 180);
         state.effects.push({
@@ -3456,6 +3479,7 @@
       }
 
       if (rangedAttackers.has(characterId)) {
+        applyOverlappingContactHits(contactDamage, contactStun, heavy ? 16 : 10);
         spawnPlayerAttackProjectile(player, heavy, tuning);
         state.effects.push({ x: player.x + player.facing * 22, y: player.y - 44, timer: 14, type: 'projectile-muzzle', color: heavy ? '#fff2a8' : '#ffd27a' });
         return;
@@ -4196,15 +4220,24 @@
         if (enemy.windup > 0) {
           if (enemy.attachTargetFrames <= 0 && enemy.dashFrames <= 0) {
             const inContactWithPlayer = rectsOverlap(enemyBody, playerBody);
-            const advanceSpeed = moveSpeed * (enemy.ranged ? 0.28 : 0.42);
+            const retreatSpeed = moveSpeed * (enemy.ranged ? 0.42 : 0.56);
             const strafeDir = enemy.uid % 2 === 0 ? 1 : -1;
-            if (inContactWithPlayer || playerSpacing.needsFrontReposition) {
-              enemy.x += player.facing * advanceSpeed * 0.9;
+            const tooCloseToPlayer = inContactWithPlayer || distance < ENEMY_PLAYER_PERSONAL_SPACE;
+            if (tooCloseToPlayer) {
+              const awayX = enemy.x - player.x;
+              const awayY = enemy.y - getEnemyAimTargetY(enemy, player);
+              const awayNorm = Math.hypot(awayX, awayY) || 1;
+              enemy.x += (awayX / awayNorm) * retreatSpeed;
+              enemy.y += (awayY / awayNorm) * retreatSpeed * 0.62;
+              enemy.y += strafeDir * moveSpeed * 0.08;
+              enemy.isMoving = true;
+            } else if (playerSpacing.needsFrontReposition) {
+              enemy.x += Math.sign(player.x - enemy.x) * retreatSpeed * 0.24;
               enemy.y += strafeDir * moveSpeed * 0.14;
               enemy.isMoving = true;
-            } else if (!enemy.ranged && distance > enemy.range * 0.72) {
-              enemy.x += Math.sign(dx) * advanceSpeed;
-              enemy.y += Math.sign(dy) * moveSpeed * 0.18;
+            } else if (!enemy.ranged && distance > enemy.range * 0.86) {
+              enemy.x += Math.sign(dx) * retreatSpeed * 0.48;
+              enemy.y += Math.sign(dy) * moveSpeed * 0.16;
               enemy.isMoving = true;
             }
           }

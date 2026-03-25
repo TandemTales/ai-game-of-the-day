@@ -3214,6 +3214,16 @@
       state.projectiles.push(projectile);
     }
 
+    function getShunkyLaserOrigin(player) {
+      const depthScale = getDepthScaleForY(player.y);
+      const drawSize = PLAYER_DRAW_SIZE * (player.renderScale || 1) * depthScale;
+      const topOpaqueWorldY = getEntityWalkTopOpaqueWorldY(player, PLAYER_DRAW_SIZE);
+      return {
+        x: player.x + (player.facing * drawSize * 0.12),
+        y: topOpaqueWorldY + (drawSize * 0.3)
+      };
+    }
+
     function spawnShockwave(x, y, radius, damage, knockback, stun) {
       state.effects.push({ x, y, radius, timer: 30, damage, knockback, stun, type: 'shock' });
     }
@@ -3423,12 +3433,13 @@
 
       if (characterId === 'shunky-rooster') {
         const beamDuration = 60;
+        const beamOrigin = getShunkyLaserOrigin(player);
         player.attackCooldown = Math.max(player.attackCooldown, 180);
         player.powerCooldown = Math.max(player.powerCooldown, 180);
         state.effects.push({
           type: 'shunky-laser',
-          x: player.x + player.facing * 12,
-          y: player.y - 44,
+          x: beamOrigin.x,
+          y: beamOrigin.y,
           facing: player.facing,
           heavy,
           width: heavy ? 64 : 48,

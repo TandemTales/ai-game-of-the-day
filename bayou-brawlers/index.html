@@ -2272,22 +2272,43 @@
     }
 
     function spawnScorchedGroundFires(player) {
-      const fireCount = 14;
-      for (let i = 0; i < fireCount; i += 1) {
-        const angle = Math.random() * Math.PI * 2;
-        const distance = rand(90, 340);
-        const offsetX = Math.cos(angle) * distance * rand(0.8, 1.15);
-        const offsetY = Math.sin(angle) * distance * rand(0.35, 0.8);
-        const x = clamp(player.x + offsetX, 48, getWaveBarrierPlayerMaxX() - 24);
-        const yBounds = getPlayerVerticalBounds(player);
-        const y = clamp(player.y + offsetY, yBounds.minY + 6, yBounds.maxY + 4);
-        const radius = rand(26, 44);
-        const lifetime = rand(8 * 60, 16 * 60);
+      const spacing = 64;
+      const visibleLeft = state.cameraX;
+      const visibleRight = state.cameraX + canvas.width;
+      const visibleTop = state.cameraY;
+      const visibleBottom = state.cameraY + canvas.height;
+
+      const yBounds = getPlayerVerticalBounds(player);
+      const minY = Math.max(yBounds.minY, visibleTop + 6);
+      const maxY = Math.min(yBounds.maxY + 4, visibleBottom - 6);
+
+      let spawned = 0;
+      for (let y = minY; y <= maxY; y += spacing) {
+        for (let x = visibleLeft + 10; x <= visibleRight - 10; x += spacing) {
+          if (!isWalkableWorldPosition(x, y)) continue;
+          const lifetime = rand(10 * 60, 18 * 60);
+          state.effects.push({
+            type: 'scorched-ground-fire',
+            x: x + rand(-10, 10),
+            y: y + rand(-8, 8),
+            radius: rand(34, 50),
+            timer: lifetime,
+            maxTimer: lifetime,
+            damage: 5,
+            tickRate: 10,
+            phase: Math.random() * Math.PI * 2
+          });
+          spawned += 1;
+        }
+      }
+
+      if (spawned === 0) {
+        const lifetime = rand(10 * 60, 18 * 60);
         state.effects.push({
           type: 'scorched-ground-fire',
-          x,
-          y,
-          radius,
+          x: clamp(player.x + player.facing * 90, 48, getWaveBarrierPlayerMaxX() - 24),
+          y: clamp(player.y - 10, yBounds.minY + 6, yBounds.maxY + 4),
+          radius: 46,
           timer: lifetime,
           maxTimer: lifetime,
           damage: 5,

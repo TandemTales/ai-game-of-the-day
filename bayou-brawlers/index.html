@@ -3757,6 +3757,10 @@
         if (!heavy && Math.random() < 0.25) applyStatus(enemy, 'SLOW', 150, 0.2);
         if (heavy && Math.random() < 0.5) enemy.stun = Math.max(enemy.stun || 0, 72 + STUN_DURATION_BONUS_FRAMES);
       }
+      if (id === 'grimma-the-feared' && heavy && hasUpgrade(player, 'hook-lash') && getEnemyTier(enemy) !== 'boss') {
+        enemy.hookLashPullTimer = Math.max(enemy.hookLashPullTimer || 0, 20);
+        enemy.hookLashPullStrength = Math.max(enemy.hookLashPullStrength || 0, getEnemyTier(enemy) === 'small' ? 18 : 12);
+      }
       if (id === 'grimma-the-feared' && heavy && getEnemyTier(enemy) === 'small') enemy.x += (player.x - enemy.x) * 0.2;
       if (id === 'scarlett-glumpkin') applyStatus(enemy, 'POISON', heavy ? 360 : 240, heavy ? 2 : 1);
       if (id === 'rustbucket' && heavy && hasLevel(player, 4)) enemy.x += player.facing * 14;
@@ -3764,6 +3768,40 @@
       if (id === 'grimma-the-feared' && heavy && hasLevel(player, 10)) {
         healPlayer(player.maxHp * 0.08);
       }
+    }
+
+    function applyHookLashPull(enemy, player, prevX, prevY) {
+      if (!enemy || (enemy.hookLashPullTimer || 0) <= 0) return false;
+      if (!player || player.hp <= 0 || enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) {
+        enemy.hookLashPullTimer = 0;
+        return false;
+      }
+      const pullToX = player.x;
+      const pullToY = player.y;
+      const dx = pullToX - enemy.x;
+      const dy = pullToY - enemy.y;
+      const distance = Math.hypot(dx, dy);
+      const stopDistance = Math.max(24, enemy.width * 0.55);
+      if (distance <= stopDistance || playerBodyOverlap(player, enemy)) {
+        enemy.hookLashPullTimer = 0;
+        return false;
+      }
+
+      enemy.hookLashPullTimer -= 1;
+      const pullStrength = Math.max(6, enemy.hookLashPullStrength || 10);
+      const norm = distance || 1;
+      const step = Math.min(pullStrength, Math.max(3, distance * 0.3));
+      enemy.x += (dx / norm) * step;
+      enemy.y += (dy / norm) * Math.min(step * 0.35, 4.5);
+      enemy.stun = Math.max(enemy.stun, 2 + STUN_DURATION_BONUS_FRAMES);
+      enemy.isMoving = true;
+      const verticalBounds = getEnemyVerticalBounds(enemy);
+      enemy.y = clamp(enemy.y, verticalBounds.minY, verticalBounds.maxY);
+      applyMovementMaskClamp(enemy, prevX, prevY, { allowOutOfBoundsStart: false, detourStepSize: Math.max(2, pullStrength) });
+      if (enemy.hookLashPullTimer <= 0 || playerBodyOverlap(player, enemy) || Math.abs(player.x - enemy.x) <= stopDistance) {
+        enemy.hookLashPullTimer = 0;
+      }
+      return (enemy.hookLashPullTimer || 0) > 0;
     }
 
     function castCharacterAbility(player, isSuper) {
@@ -4011,6 +4049,10 @@
         enemy.hurtTimer = Math.max(0, enemy.hurtTimer - 1);
         updateEnemyStatuses(enemy);
         enemy.hitStun = Math.max(0, (enemy.hitStun || 0) - 1);
+        if (applyHookLashPull(enemy, player, prevX, prevY)) {
+          updateEnemyAnimation(enemy, dt);
+          return;
+        }
         if (enemy.hitStun > 0) {
           enemy.isMoving = false;
           updateEnemyAnimation(enemy, dt);
@@ -5482,6 +5524,44 @@
       ctx.restore();
     }
 
+    function drawHookLashMarker(entity, size) {
+      if ((entity?.hookLashPullTimer || 0) <= 0) return;
+      const depthScale = getDepthScaleForY(entity.y);
+      const drawSize = size * (entity.renderScale || 1) * depthScale;
+      const drawTopY = entity.y - state.cameraY - entity.z - drawSize;
+      const walkTrack = getWalkTrackForCharmHeart(entity);
+      const walkFrame = walkTrack?.frames?.[0];
+      const topOpaquePixel = getWalkTrackTopOpaquePixel(walkTrack);
+      const topOpaqueY = walkFrame ? (drawTopY + ((topOpaquePixel / Math.max(1, walkFrame.height)) * drawSize)) : drawTopY;
+      const x = entity.x - state.cameraX;
+      const y = topOpaqueY - Math.max(34, drawSize * 0.28);
+      const sway = Math.sin((performance.now() * 0.01) + (entity.uid || 0)) * 2.8;
+      const hookScale = Math.max(1, drawSize * 0.012);
+
+      ctx.save();
+      ctx.translate(x + sway, y);
+      ctx.strokeStyle = 'rgba(255, 235, 172, 0.92)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, -24);
+      ctx.lineTo(0, -6);
+      ctx.stroke();
+
+      ctx.strokeStyle = 'rgba(245, 247, 255, 0.95)';
+      ctx.fillStyle = 'rgba(255, 214, 125, 0.94)';
+      ctx.lineWidth = Math.max(2.2, 2.6 * hookScale);
+      ctx.beginPath();
+      ctx.moveTo(-6 * hookScale, -6 * hookScale);
+      ctx.lineTo(7 * hookScale, -6 * hookScale);
+      ctx.lineTo(2 * hookScale, 6 * hookScale);
+      ctx.bezierCurveTo(0, 12 * hookScale, -6 * hookScale, 13 * hookScale, -11 * hookScale, 6 * hookScale);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(-7 * hookScale, 5 * hookScale, 3.3 * hookScale, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       if (state.shake > 0) {
@@ -5523,6 +5603,9 @@
       renderQueue.sort((a, b) => a.sortY - b.sortY);
       renderQueue.forEach(({ entity, size }) => {
         drawEntity(entity, size);
+        if (entity !== state.player) {
+          drawHookLashMarker(entity, size);
+        }
         if ((entity.statuses?.CHARM?.duration || 0) > 0) {
           drawCharmHeart(entity, size);
         }

@@ -1339,7 +1339,7 @@
         { id: 'faster-draw', name: 'Faster Draw', tag: 'Attack', description: 'Basic attack speed increases.' },
         { id: 'hardened-rounds', name: 'Hardened Rounds', tag: 'Attack', description: 'Basic attack deals more damage.' },
         { id: 'steady-aim', name: 'Steady Aim', tag: 'Attack', description: 'Basic attack range increased.' },
-        { id: 'piercing-shot', name: 'Piercing Shot', tag: 'Heavy', description: 'Heavy attack passes through an additional enemy.' },
+        { id: 'piercing-shot', name: 'Piercing Shot', tag: 'Heavy', description: 'Heavy attack projectile passes through enemies, damaging all enemies in its path.' },
         { id: 'concussive-round', name: 'Concussive Round', tag: 'Heavy', description: 'Heavy attacks deal stronger knockback.' },
         { id: 'hot-chamber', name: 'Hot Chamber', tag: 'Heavy', description: 'Heavy attack causes increased damage.' },
         { id: 'extended-sentry', name: 'Extended Sentry', tag: 'Special', description: 'Turret mode lasts longer.' },
@@ -3374,7 +3374,9 @@
         ownerId: id,
         trailEvery: 3,
         burstRadius: heavy ? 18 : 12,
-        ricochetRemaining: id === 'rustbucket' ? 1 : 0
+        ricochetRemaining: id === 'rustbucket' ? 1 : 0,
+        passThroughEnemies: id === 'rustbucket' && heavy && hasUpgrade(player, 'piercing-shot'),
+        hitEnemyUids: []
       };
       state.projectiles.push(projectile);
     }
@@ -4503,7 +4505,9 @@
 
         if (projectile.friendly) {
           state.enemies.forEach(enemy => {
+            if (projectile.life <= 0) return;
             if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
+            if (projectile.hitEnemyUids && projectile.hitEnemyUids.includes(enemy.uid)) return;
             const enemyBody = getEnemyHitbox(enemy);
             if (
               projectile.x > enemyBody.x &&
@@ -4512,6 +4516,7 @@
               projectile.y < enemyBody.y + enemyBody.height
             ) {
               damageEnemy(enemy, projectile.damage, 20);
+              if (projectile.hitEnemyUids) projectile.hitEnemyUids.push(enemy.uid);
               state.effects.push({ x: projectile.x, y: projectile.y, timer: 16, radius: projectile.burstRadius || 12, type: 'projectile-burst', color: projectile.color });
               if (
                 player
@@ -4542,11 +4547,13 @@
                     ownerId: projectile.ownerId,
                     trailEvery: projectile.trailEvery || 0,
                     burstRadius: projectile.burstRadius || 12,
-                    ricochetRemaining: (projectile.ricochetRemaining || 1) - 1
+                    ricochetRemaining: (projectile.ricochetRemaining || 1) - 1,
+                    passThroughEnemies: false,
+                    hitEnemyUids: []
                   });
                 }
               }
-              projectile.life = 0;
+              if (!projectile.passThroughEnemies) projectile.life = 0;
             }
           });
         } else if (player) {

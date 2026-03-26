@@ -2841,6 +2841,7 @@
       const auto = document.getElementById('levelUpAuto');
       const choicesWrap = document.getElementById('levelUpChoices');
       const choiceList = pickUpgradeChoices(player, 3);
+      const choicesUnlockAt = performance.now() + 1000;
       state.currentLevelUp = { level, choices: choiceList };
       title.textContent = `Level ${level} Reached`;
       auto.innerHTML = `<strong>Auto gains:</strong><br>• ${getAutoLevelGainLines(level, player).join('<br>• ')}<br><br><strong>Choose one:</strong>`;
@@ -2850,6 +2851,7 @@
         button.className = 'btn';
         button.textContent = 'Continue';
         button.addEventListener('click', () => {
+          if (performance.now() < choicesUnlockAt) return;
           overlay.classList.remove('show');
           state.paused = false;
           state.currentLevelUp = null;
@@ -2869,6 +2871,7 @@
               <p>${upgrade.description}</p>
             </div>`;
           button.addEventListener('click', () => {
+            if (performance.now() < choicesUnlockAt) return;
             applyChosenUpgrade(player, upgrade);
             overlay.classList.remove('show');
             state.paused = false;

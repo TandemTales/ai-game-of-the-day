@@ -2328,6 +2328,34 @@
       });
     }
 
+    function spawnGardenOfThornsPatches(player) {
+      const patchCount = hasLevel(player, 9) ? 8 : 6;
+      const baseDamage = getCharacterTuning(player).light;
+      for (let i = 0; i < patchCount; i += 1) {
+        const angle = (Math.PI * 2 * (i / patchCount)) + (Math.random() * 0.4);
+        const distance = rand(70, 210);
+        const offsetX = Math.cos(angle) * distance * rand(0.85, 1.1);
+        const offsetY = Math.sin(angle) * distance * rand(0.45, 0.85);
+        const x = clamp(player.x + offsetX + (player.facing * 24), 48, getWaveBarrierPlayerMaxX() - 20);
+        const yBounds = getPlayerVerticalBounds(player);
+        const y = clamp(player.y + offsetY, yBounds.minY + 6, yBounds.maxY + 2);
+        const lifetime = rand(8 * 60, 12 * 60);
+        state.hazards.push({
+          kind: 'thorn-patch',
+          x,
+          y,
+          w: rand(68, 110),
+          h: rand(32, 52),
+          frames: lifetime,
+          maxFrames: lifetime,
+          damage: Math.max(5, Math.round(baseDamage * 0.42)),
+          hitInterval: 18 + rand(0, 8),
+          touchingEnemies: new Set(),
+          phase: Math.random() * Math.PI * 2
+        });
+      }
+    }
+
     function spawnScorchedGroundFires(player) {
       const fireCount = 14;
       const shunkyBaseBasicAttackDamage = getCharacterTuning({ charData: { id: 'shunky-rooster' }, range: 52 }).light;
@@ -3913,6 +3941,9 @@
         state.effects.push({ x: player.x, y: player.y, radius: isSuper ? 170 * radiusBoost : 96, timer: isSuper ? (hasLevel(player, 9) ? 168 : 120) : 40, damage: isSuper ? 2 : 8, knockback: 0, stun: isSuper ? 8 : 42, type: 'root' });
       } else if (id === 'scarlett-glumpkin') {
         state.effects.push({ x: player.x + player.facing * 80, y: player.y, radius: isSuper ? 210 * radiusBoost : 120, timer: isSuper ? 100 : 44, damage: isSuper ? 2 : 7, knockback: 8, stun: 18, type: 'root-poison' });
+        if (isSuper && hasUpgrade(player, 'garden-of-thorns')) {
+          spawnGardenOfThornsPatches(player);
+        }
       } else if (id === 'possumatli') {
         player.dashTimer = 26;
         state.effects.push({ x: player.x, y: player.y, radius: 70, timer: 20, damage: 8, knockback: 12, stun: 72, type: 'shock' });
@@ -4544,11 +4575,38 @@
         const player = state.player;
         if (!player) return;
         const overlap = Math.abs(player.x - h.x) < h.w * 0.5 && Math.abs(player.y - h.y) < h.h * 0.5;
-        if (!overlap) return;
-
-        if (h.kind === 'root-snare') {
+        if (overlap && h.kind === 'root-snare') {
           player.vx *= 0.7;
         }
+
+        if (h.kind === 'thorn-patch') {
+          h.phase = (h.phase || 0) + 0.15;
+          state.enemies.forEach(enemy => {
+            if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) {
+              h.touchingEnemies?.delete(enemy);
+              return;
+            }
+            const enemyBody = getEnemyHitbox(enemy);
+            const centerX = enemyBody.x + (enemyBody.width * 0.5);
+            const centerY = enemyBody.y + (enemyBody.height * 0.5);
+            const nx = (centerX - h.x) / Math.max(1, h.w * 0.5);
+            const ny = (centerY - h.y) / Math.max(1, h.h * 0.5);
+            const insidePatch = ((nx * nx) + (ny * ny)) <= 1;
+            if (!insidePatch) {
+              h.touchingEnemies?.delete(enemy);
+              return;
+            }
+            if (h.touchingEnemies?.has(enemy)) return;
+            h.touchingEnemies?.add(enemy);
+            damageEnemy(enemy, h.damage || 6, 0);
+            applyStatus(enemy, 'POISON', 45, 1);
+          });
+          if (h.touchingEnemies && h.frames % Math.max(1, h.hitInterval || 20) !== 0) {
+            h.touchingEnemies.clear();
+          }
+        }
+
+        if (Number.isFinite(h.frames)) h.frames -= 1;
       });
       state.hazards = state.hazards.filter(h => h.frames > 0);
       state.enemies.forEach(enemy => {
@@ -5606,13 +5664,57 @@
       drawBackground();
 
       state.hazards.forEach(hazard => {
-        if (hazard.kind !== 'mud-trail') return;
         const x = hazard.x - state.cameraX;
         const y = hazard.y - state.cameraY;
-        ctx.fillStyle = 'rgba(109, 74, 51, 0.34)';
-        ctx.beginPath();
-        ctx.ellipse(x, y, hazard.w * 0.5, hazard.h * 0.5, 0, 0, Math.PI * 2);
-        ctx.fill();
+        if (hazard.kind === 'mud-trail') {
+          ctx.fillStyle = 'rgba(109, 74, 51, 0.34)';
+          ctx.beginPath();
+          ctx.ellipse(x, y, hazard.w * 0.5, hazard.h * 0.5, 0, 0, Math.PI * 2);
+          ctx.fill();
+          return;
+        }
+        if (hazard.kind === 'thorn-patch') {
+          const fadeIn = clamp(((hazard.maxFrames || (12 * 60)) - hazard.frames) / 24, 0, 1);
+          const lifePct = clamp(hazard.frames / (hazard.maxFrames || (12 * 60)), 0, 1);
+          const alpha = Math.max(0.22, Math.min(0.85, fadeIn * lifePct));
+          const radiusX = hazard.w * 0.5;
+          const radiusY = hazard.h * 0.5;
+          const pulse = 0.9 + (Math.sin(hazard.phase || 0) * 0.08);
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          const glow = ctx.createRadialGradient(x, y, radiusY * 0.2, x, y, radiusX);
+          glow.addColorStop(0, `rgba(126, 255, 124, ${0.5 * alpha})`);
+          glow.addColorStop(0.6, `rgba(68, 205, 82, ${0.36 * alpha})`);
+          glow.addColorStop(1, 'rgba(41, 153, 56, 0)');
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.ellipse(x, y, radiusX * pulse, radiusY * pulse, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.strokeStyle = `rgba(188, 255, 182, ${0.65 * alpha})`;
+          ctx.lineWidth = Math.max(1.5, radiusY * 0.08);
+          ctx.beginPath();
+          ctx.ellipse(x, y, radiusX * 0.92, radiusY * 0.92, 0, 0, Math.PI * 2);
+          ctx.stroke();
+
+          const thornCount = 8;
+          for (let i = 0; i < thornCount; i += 1) {
+            const angle = (Math.PI * 2 * i / thornCount) + ((hazard.phase || 0) * 0.18);
+            const px = x + Math.cos(angle) * radiusX * 0.42;
+            const py = y + Math.sin(angle) * radiusY * 0.3;
+            const thornLen = 6 + (i % 3);
+            ctx.strokeStyle = `rgba(31, 114, 41, ${0.88 * alpha})`;
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.moveTo(px, py);
+            ctx.lineTo(px + Math.cos(angle + 0.45) * thornLen, py + Math.sin(angle + 0.45) * thornLen * 0.6);
+            ctx.moveTo(px, py);
+            ctx.lineTo(px + Math.cos(angle - 0.45) * thornLen, py + Math.sin(angle - 0.45) * thornLen * 0.6);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
       });
 
       state.pickups.forEach(pickup => {

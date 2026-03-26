@@ -1349,7 +1349,7 @@
         { id: 'targeting-upgrade', name: 'Targeting Upgrade', tag: 'Super', description: 'Super tracks enemies more reliably.' },
         { id: 'shrapnel-protocol', name: 'Shrapnel Protocol', tag: 'Super', description: 'Heavy, special, and super-special hits fire secondary shrapnel projectiles in all directions.' },
         { id: 'auto-loader', name: 'Auto Loader', tag: 'Utility', description: 'Gain attack speed boost after heavy attack.' },
-        { id: 'ricochet-logic', name: 'Ricochet Logic', tag: 'Utility', description: 'Basic shots have a chance to bounce to another enemy.' },
+        { id: 'ricochet-logic', name: 'Ricochet Logic', tag: 'Utility', description: 'Basic and heavy shots have a 25% chance to ricochet to another enemy on hit.' },
         { id: 'power-recycler', name: 'Power Recycler', tag: 'Utility', description: 'Gain extra power meter from kills.' },
         { id: 'steel-sheriff', name: 'Steel Sheriff', tag: 'Utility', description: 'Reduced damage taken.' },
         { id: 'quick-reboot', name: 'Quick Reboot', tag: 'Utility', description: 'Recover from stun faster.' }
@@ -3335,6 +3335,9 @@
       });
     }
 
+    const RUSTBUCKET_RICOCHET_CHANCE = 0.25;
+    const RUSTBUCKET_RICOCHET_MAX_BOUNCES = 8;
+
     function spawnPlayerAttackProjectile(player, heavy, tuning) {
       const id = player.charData.id;
       const paletteByCharacter = {
@@ -3375,7 +3378,7 @@
         ownerId: id,
         trailEvery: 3,
         burstRadius: heavy ? 18 : 12,
-        ricochetRemaining: id === 'rustbucket' ? 1 : 0,
+        ricochetRemaining: id === 'rustbucket' && hasUpgrade(player, 'ricochet-logic') ? RUSTBUCKET_RICOCHET_MAX_BOUNCES : 0,
         attackKind: heavy ? 'heavy' : 'basic',
         passThroughEnemies: id === 'rustbucket' && heavy && hasUpgrade(player, 'piercing-shot'),
         hitEnemyUids: []
@@ -4608,9 +4611,10 @@
               if (
                 player
                 && projectile.ownerId === 'rustbucket'
-                && hasLevel5SignaturePassive(player)
+                && hasUpgrade(player, 'ricochet-logic')
+                && ['basic', 'heavy'].includes(projectile.attackKind || '')
                 && (projectile.ricochetRemaining || 0) > 0
-                && Math.random() < 0.25
+                && Math.random() < RUSTBUCKET_RICOCHET_CHANCE
               ) {
                 const ricochetTarget = state.enemies
                   .filter(other => other.hp > 0 && other.uid !== enemy.uid && canPlayerAffectEnemy(other))
@@ -4636,7 +4640,8 @@
                     burstRadius: projectile.burstRadius || 12,
                     ricochetRemaining: (projectile.ricochetRemaining || 1) - 1,
                     passThroughEnemies: false,
-                    hitEnemyUids: []
+                    attackKind: projectile.attackKind || null,
+                    hitEnemyUids: [enemy.uid]
                   });
                 }
               }

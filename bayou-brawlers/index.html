@@ -2339,13 +2339,13 @@
         const x = clamp(player.x + offsetX + (player.facing * 24), 48, getWaveBarrierPlayerMaxX() - 20);
         const yBounds = getPlayerVerticalBounds(player);
         const y = clamp(player.y + offsetY, yBounds.minY + 6, yBounds.maxY + 2);
-        const lifetime = rand(8 * 60, 12 * 60);
+        const lifetime = rand(8 * 60, 12 * 60) * 2;
         state.hazards.push({
           kind: 'thorn-patch',
           x,
           y,
-          w: rand(68, 110),
-          h: rand(32, 52),
+          w: rand(68, 110) * 2,
+          h: rand(32, 52) * 2,
           frames: lifetime,
           maxFrames: lifetime,
           damage: Math.max(5, Math.round(baseDamage * 0.42)),

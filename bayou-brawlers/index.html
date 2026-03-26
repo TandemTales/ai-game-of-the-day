@@ -4574,12 +4574,14 @@
         projectile.x += projectile.vx;
         projectile.y += projectile.vy || 0;
         projectile.life -= 1;
+        if (projectile.armingFrames && projectile.armingFrames > 0) projectile.armingFrames -= 1;
 
         if (projectile.trailEvery && projectile.life % projectile.trailEvery === 0) {
           state.effects.push({ x: projectile.x, y: projectile.y, timer: 10, type: 'projectile-trail', color: projectile.color });
         }
 
         if (projectile.friendly) {
+          if ((projectile.armingFrames || 0) > 0) return;
           state.enemies.forEach(enemy => {
             if (projectile.life <= 0) return;
             if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
@@ -4632,11 +4634,13 @@
                     tracking: false,
                     turnRate: projectile.turnRate || 0,
                     ownerId: projectile.ownerId,
-                    trailEvery: projectile.trailEvery || 0,
+                    trailEvery: projectile.trailEvery || 2,
                     burstRadius: projectile.burstRadius || 12,
                     ricochetRemaining: (projectile.ricochetRemaining || 1) - 1,
                     passThroughEnemies: false,
-                    hitEnemyUids: []
+                    hitEnemyUids: [],
+                    armingFrames: 2,
+                    isRicochet: true
                   });
                 }
               }
@@ -5708,6 +5712,20 @@
           ctx.fillRect(-16, -3, 32, 6);
           ctx.fillStyle = 'rgba(195, 255, 245, 0.95)';
           ctx.fillRect(-12, -1.5, 24, 3);
+          ctx.restore();
+          return;
+        }
+        if (projectile.isRicochet) {
+          const screenX = projectile.x - state.cameraX;
+          const screenY = projectile.y - state.cameraY;
+          const angle = Math.atan2(projectile.vy || 0, projectile.vx || 1);
+          ctx.save();
+          ctx.translate(screenX, screenY);
+          ctx.rotate(angle);
+          ctx.fillStyle = 'rgba(255, 226, 162, 0.9)';
+          ctx.fillRect(-14, -2.5, 20, 5);
+          ctx.fillStyle = projectile.color || '#ffb871';
+          ctx.fillRect(-6, -3.5, 12, 7);
           ctx.restore();
           return;
         }

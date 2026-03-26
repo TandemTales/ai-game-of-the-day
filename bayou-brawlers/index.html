@@ -22,6 +22,11 @@
       --ui: rgba(0, 0, 0, 0.82);
       --crimson: #ff4d6d;
       --emerald: #2dd4bf;
+      --stage-top-pad: calc(136px + env(safe-area-inset-top));
+      --stage-bottom-pad: calc(148px + env(safe-area-inset-bottom));
+      --controls-side-pad: 16px;
+      --controls-gap-to-canvas: 6px;
+      --controls-bottom: calc(18px + env(safe-area-inset-bottom));
     }
     * { box-sizing: border-box; }
     html, body {
@@ -175,7 +180,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: calc(136px + env(safe-area-inset-top)) 16px calc(148px + env(safe-area-inset-bottom)) 16px;
+      padding: var(--stage-top-pad) 16px var(--stage-bottom-pad) 16px;
     }
     canvas {
       border-radius: 14px;
@@ -419,9 +424,10 @@
     .levelup-tag { display: inline-block; margin-bottom: 6px; font-size: 9px; letter-spacing: 0.08em; color: #f3d28a; text-transform: uppercase; }
     .controls {
       position: absolute;
-      bottom: calc(18px + env(safe-area-inset-bottom));
-      left: calc(16px + env(safe-area-inset-left));
-      right: calc(16px + env(safe-area-inset-right));
+      bottom: var(--controls-bottom);
+      left: calc(var(--controls-side-pad) + env(safe-area-inset-left));
+      right: calc(var(--controls-side-pad) + env(safe-area-inset-right));
+      transform-origin: center bottom;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -566,7 +572,7 @@
       .title h1 { font-size: 14px; }
       .hud { top: calc(102px + env(safe-area-inset-top)); font-size: 9px; }
       .status-strip { top: calc(138px + env(safe-area-inset-top)); }
-      .stage { padding: calc(130px + env(safe-area-inset-top)) 12px calc(138px + env(safe-area-inset-bottom)) 12px; }
+      :root { --stage-top-pad: calc(130px + env(safe-area-inset-top)); --stage-bottom-pad: calc(138px + env(safe-area-inset-bottom)); }
     }
 
     @media (max-width: 600px) {
@@ -575,7 +581,8 @@
         height: min(94dvh, 780px);
         padding: 12px;
       }
-      .controls { flex-direction: row; align-items: center; gap: 8px; bottom: calc(24px + env(safe-area-inset-bottom)); }
+      :root { --controls-bottom: calc(24px + env(safe-area-inset-bottom)); --controls-side-pad: 12px; }
+      .controls { flex-direction: row; align-items: center; gap: 8px; }
       .direction-pad { width: 104px; height: 104px; }
       .direction-pad-knob { width: 40px; height: 40px; }
       .pad-btn { width: 38px; height: 38px; font-size: 10px; }
@@ -604,12 +611,7 @@
       .status-strip { top: calc(124px + env(safe-area-inset-top)); }
       .chip { font-size: 8px; padding: 3px 6px; }
       .hp-bar { width: 92px; }
-      .stage { padding-top: calc(120px + env(safe-area-inset-top)); }
-      .controls {
-        left: calc(10px + env(safe-area-inset-left));
-        right: calc(10px + env(safe-area-inset-right));
-        bottom: calc(26px + env(safe-area-inset-bottom));
-      }
+      :root { --stage-top-pad: calc(120px + env(safe-area-inset-top)); --controls-side-pad: 10px; --controls-bottom: calc(26px + env(safe-area-inset-bottom)); }
       .panel h2 { font-size: 13px; }
       .panel p { font-size: 9px; }
       .start-panel > p {
@@ -6168,8 +6170,39 @@
       }
     }
 
-    window.addEventListener('resize', () => {
+    function layoutAdaptiveUi() {
       layoutEmergencyVentingHud();
+      const wrap = document.querySelector('.wrap');
+      const controls = document.getElementById('mobileControls');
+      if (!wrap || !controls) return;
+
+      const canvasRect = canvas.getBoundingClientRect();
+      const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
+      const safeBottom = 18;
+      const controlsRect = controls.getBoundingClientRect();
+      const controlsHeight = controlsRect.height || 0;
+
+      const spaceBelowCanvas = Math.max(0, viewportH - canvasRect.bottom - safeBottom);
+      const cssGap = parseFloat(getComputedStyle(wrap).getPropertyValue('--controls-gap-to-canvas'));
+      const targetGap = Number.isFinite(cssGap) ? cssGap : 6;
+      const minScale = 0.82;
+      const scale = clamp((spaceBelowCanvas - 2) / Math.max(1, controlsHeight), minScale, 1);
+      controls.style.transform = `scale(${scale.toFixed(3)})`;
+
+      const scaledHeight = controlsHeight * scale;
+      const maxTop = viewportH - safeBottom - scaledHeight;
+      const preferredTop = canvasRect.bottom + targetGap;
+      const minTop = Math.max(0, canvasRect.top + 8);
+      const top = clamp(preferredTop, minTop, maxTop);
+      controls.style.top = `${Math.round(top)}px`;
+      controls.style.bottom = 'auto';
+
+      const reservedBottom = Math.max(64, Math.ceil(scaledHeight + targetGap + safeBottom + 6));
+      wrap.style.setProperty('--stage-bottom-pad', `${reservedBottom}px`);
+    }
+
+    window.addEventListener('resize', () => {
+      layoutAdaptiveUi();
     });
 
     function initCharacterSelection() {
@@ -6735,6 +6768,7 @@
       initCharacterSelection();
       handleMessageButton();
       setupSoundtrackControls();
+      layoutAdaptiveUi();
       state.ready = true;
     }
 

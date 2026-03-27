@@ -4830,7 +4830,7 @@
         }
         if (projectile.shrapnel && projectile.life <= 0 && !projectile.impactBurstSpawned) {
           projectile.impactBurstSpawned = true;
-          spawnRustbucketShrapnelBurst(projectile.x, projectile.y, {
+          spawnRustbucketShrapnelBurst(projectile.x, projectile.y - 10, {
             shardCount: rand(8, 12),
             speedMin: 1.2,
             speedMax: 4.2,

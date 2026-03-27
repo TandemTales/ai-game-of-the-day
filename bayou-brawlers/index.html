@@ -3455,9 +3455,13 @@
         x: originX,
         y: originY,
         timer: 16,
+        maxTimer: 16,
         radius: 14,
         type: 'projectile-burst',
-        color: 'rgba(255, 224, 160, 0.95)'
+        color: 'rgba(255, 224, 160, 0.95)',
+        isometric: true,
+        verticalSquash: 0.62,
+        viewTilt: 0.52
       });
     }
 
@@ -6172,10 +6176,39 @@
           ctx.restore();
         }
         if (effect.type === 'projectile-burst') {
+          const x = effect.x - state.cameraX;
+          const y = effect.y - state.cameraY;
+          const maxTimer = effect.maxTimer || 16;
+          const progress = 1 - clamp(effect.timer / Math.max(1, maxTimer), 0, 1);
+          const radius = effect.radius * progress;
+          const alpha = clamp((1 - progress) * 1.15, 0, 1);
+          ctx.save();
+          ctx.globalAlpha = alpha;
           ctx.strokeStyle = effect.color || 'rgba(255,205,150,0.9)';
-          ctx.beginPath();
-          ctx.arc(effect.x - state.cameraX, effect.y - state.cameraY, effect.radius * (effect.timer / 16), 0, Math.PI * 2);
-          ctx.stroke();
+          ctx.lineWidth = 1.4;
+          if (effect.isometric) {
+            const verticalSquash = effect.verticalSquash || 0.6;
+            const viewTilt = effect.viewTilt || 0.5;
+            const ringY = y - (radius * viewTilt);
+            ctx.beginPath();
+            ctx.ellipse(x, ringY, radius, Math.max(1, radius * verticalSquash), 0, 0, Math.PI * 2);
+            ctx.stroke();
+            const spokeCount = 10;
+            for (let i = 0; i < spokeCount; i += 1) {
+              const angle = (Math.PI * 2 * i) / spokeCount;
+              const tipX = x + Math.cos(angle) * radius;
+              const tipY = ringY + Math.sin(angle) * radius * verticalSquash;
+              ctx.beginPath();
+              ctx.moveTo(x, y - (radius * viewTilt * 0.4));
+              ctx.lineTo(tipX, tipY);
+              ctx.stroke();
+            }
+          } else {
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+          ctx.restore();
         }
         if (effect.type === 'sprinkle') {
           ctx.fillStyle = effect.color || 'rgba(200,255,220,0.9)';

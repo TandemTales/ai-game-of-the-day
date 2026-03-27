@@ -1411,6 +1411,11 @@
       sidewinder: 3,
       stingy: 3
     };
+    const LEVEL_ENEMY_DAMAGE_MULTIPLIERS = {
+      mirewatch: {
+        sidewinder: 0.25
+      }
+    };
 
     function toAssetCamelCase(value) {
       if (!value) return '';
@@ -1451,6 +1456,14 @@
         };
       }
       return { hp: base.hp, speed: base.speed, damage: base.damage, range: base.range, score: base.score };
+    }
+
+    function getEnemyDamageForLevel(typeId, baseDamage) {
+      const level = levels[state.levelIndex];
+      const levelMultipliers = level ? LEVEL_ENEMY_DAMAGE_MULTIPLIERS[level.id] : null;
+      const damageMultiplier = levelMultipliers ? levelMultipliers[typeId] : null;
+      if (typeof damageMultiplier !== 'number') return baseDamage;
+      return baseDamage * damageMultiplier;
     }
 
     function getEnemyRenderScale(typeId, stage, isBoss) {
@@ -2093,7 +2106,7 @@
         hp: stats.hp * (isBoss ? 1.15 : 1),
         maxHp: stats.hp * (isBoss ? 1.15 : 1),
         speed: stats.speed * ENEMY_SPEED_MULTIPLIER,
-        damage: stats.damage,
+        damage: getEnemyDamageForLevel(typeId, stats.damage),
         range: stats.range,
         score: stats.score,
         sprite: base.sprite === 'boss' ? assets.boss : assets.enemies[base.sprite],

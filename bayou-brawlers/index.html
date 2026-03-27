@@ -2083,6 +2083,7 @@
       const stage = STAGED_ENEMY_TYPES.has(typeId) ? (options.stage || 3) : 1;
       const stats = STAGED_ENEMY_TYPES.has(typeId) ? getStagedStats(typeId, stage) : base;
       const animationTracks = assets.enemyAnimations[typeId] || assets.enemyAnimations.swamp || null;
+      const damageMultiplier = Number.isFinite(options.damageMultiplier) ? options.damageMultiplier : 1;
       const enemy = {
         uid: ++state.enemyUid,
         type: typeId,
@@ -2093,7 +2094,7 @@
         hp: stats.hp * (isBoss ? 1.15 : 1),
         maxHp: stats.hp * (isBoss ? 1.15 : 1),
         speed: stats.speed * ENEMY_SPEED_MULTIPLIER,
-        damage: stats.damage,
+        damage: stats.damage * damageMultiplier,
         range: stats.range,
         score: stats.score,
         sprite: base.sprite === 'boss' ? assets.boss : assets.enemies[base.sprite],
@@ -2582,7 +2583,10 @@
         const spawnX = isLeftGroup
           ? (leftBaseX - laneOffset + rand(-35, 35))
           : (rightBaseX + laneOffset + rand(-35, 35));
-        const enemy = createEnemy(typeId, spawnX, rand(getBrawlLaneMinY(), BRAWL_LANE_MAX_Y));
+        const spawnOptions = (level.id === 'mirewatch' && typeId === 'sidewinder')
+          ? { damageMultiplier: 0.5 }
+          : {};
+        const enemy = createEnemy(typeId, spawnX, rand(getBrawlLaneMinY(), BRAWL_LANE_MAX_Y), false, spawnOptions);
         state.enemies.push(enemy);
       }
       state.waveIndex = waveIndex;

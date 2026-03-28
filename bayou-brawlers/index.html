@@ -1411,6 +1411,7 @@
       sidewinder: 3,
       stingy: 3
     };
+    const LEVEL_ONE_DAPHODILUS_SCALE_MULTIPLIER = 2;
 
     function toAssetCamelCase(value) {
       if (!value) return '';
@@ -2083,6 +2084,8 @@
       const stage = STAGED_ENEMY_TYPES.has(typeId) ? (options.stage || 3) : 1;
       const stats = STAGED_ENEMY_TYPES.has(typeId) ? getStagedStats(typeId, stage) : base;
       const animationTracks = assets.enemyAnimations[typeId] || assets.enemyAnimations.swamp || null;
+      const isLevelOneDaphodilus = typeId === 'daphodilus' && state.levelIndex === 0;
+      const levelOneDaphodilusScale = isLevelOneDaphodilus ? LEVEL_ONE_DAPHODILUS_SCALE_MULTIPLIER : 1;
       const enemy = {
         uid: ++state.enemyUid,
         type: typeId,
@@ -2116,8 +2119,8 @@
         stunRetargetTimer: rand(8, 18),
         ranged: base.ranged || false,
         isBoss,
-        renderScale: getEnemyRenderScale(typeId, stage, isBoss),
-        physicsProfileId: `enemy-${typeId}`,
+        renderScale: getEnemyRenderScale(typeId, stage, isBoss) * levelOneDaphodilusScale,
+        physicsProfileId: isLevelOneDaphodilus ? 'enemy-daphodilus-level1' : `enemy-${typeId}`,
         targetBodyAimBias: rand(35, 85) / 100,
         invulnFrames: options.invulnFrames || 0,
         spawnFadeFrames: options.spawnFadeFrames || 0,
@@ -7144,6 +7147,9 @@
           : createDirectionalAnimationTracks(config.states, ({ stateName, facingName, img, frames }) => {
             if (stateName === 'idle' && facingName === 'left') {
               createPhysicsProfile(config.profileId, img, frames[0], ENEMY_DRAW_SIZE * config.sizeMultiplier);
+              if (enemyKey === 'daphodilus') {
+                createPhysicsProfile('enemy-daphodilus-level1', img, frames[0], ENEMY_DRAW_SIZE * config.sizeMultiplier * LEVEL_ONE_DAPHODILUS_SCALE_MULTIPLIER);
+              }
               if (config.bossProfileId) {
                 createPhysicsProfile(config.bossProfileId, img, frames[0], BOSS_DRAW_SIZE * BOSS_RENDER_SCALE_MULTIPLIER);
               }

@@ -5539,6 +5539,28 @@
       ctx.restore();
     }
 
+    function drawMaulingFrenzyGlow(entity, x, y, drawSize) {
+      if (!entity || entity.charData?.id !== 'old-man-croc' || !hasUpgrade(entity, 'mauling-frenzy')) return;
+
+      const time = performance.now();
+      const pulse = 0.86 + (Math.sin((time * 0.0042) + ((entity.uid || 0) * 0.3)) * 0.14);
+      const glowRadius = drawSize * (0.88 + (pulse * 0.14));
+      const originY = y - (drawSize * 0.58);
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const glow = ctx.createRadialGradient(x, originY, glowRadius * 0.1, x, originY, glowRadius);
+      glow.addColorStop(0, 'rgba(255, 104, 96, 0.68)');
+      glow.addColorStop(0.36, 'rgba(255, 52, 44, 0.48)');
+      glow.addColorStop(0.72, 'rgba(198, 24, 20, 0.26)');
+      glow.addColorStop(1, 'rgba(128, 10, 8, 0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.ellipse(x, originY, glowRadius * 1.02, glowRadius * 0.82, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
     function drawAnimationFrame(sourceImage, frame, dx, dy, dw, dh, tint = null, invulnerable = false, blinkPhaseSeed = 0, burnOverlay = false) {
       if (!tint) {
         ctx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, dx, dy, dw, dh);
@@ -5636,6 +5658,7 @@
         if (track && track.img) {
           const frame = track.frames[entity.animation.frameIndex] || track.frames[0];
           const drawSize = size * (entity.renderScale || 1) * depthScale;
+          drawMaulingFrenzyGlow(entity, x, y, drawSize);
           const offsetX = track.renderOffsetX || 0;
           if (track.flipX) {
             ctx.save();
@@ -5678,6 +5701,7 @@
         if (track && track.img) {
           const frame = track.frames[entity.animation.frameIndex] || track.frames[0];
           const drawSize = size * (entity.renderScale || 1) * depthScale;
+          drawMaulingFrenzyGlow(entity, x, y, drawSize);
           const offsetX = track.renderOffsetX || 0;
           if (track.flipX) {
             ctx.save();
@@ -5717,6 +5741,7 @@
       }
       if (entity.sprite) {
         const drawSize = size * depthScale;
+        drawMaulingFrenzyGlow(entity, x, y, drawSize);
         ctx.drawImage(entity.sprite, x - drawSize / 2, y - drawSize, drawSize, drawSize);
         drawOverheatedCoreFlames(entity, x, y, drawSize);
         if (invulnerable) {

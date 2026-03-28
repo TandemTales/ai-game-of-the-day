@@ -3413,6 +3413,8 @@
         ricochetRemaining: id === 'rustbucket' && hasUpgrade(player, 'ricochet-logic') ? RUSTBUCKET_RICOCHET_MAX_BOUNCES : 0,
         attackKind: heavy ? 'heavy' : 'basic',
         passThroughEnemies: id === 'rustbucket' && heavy && hasUpgrade(player, 'piercing-shot'),
+        penetrationsRemaining: id === 'rustbucket' && heavy && hasUpgrade(player, 'piercing-shot') ? 2 : 0,
+        penetrationDamageMultiplier: 1,
         hitEnemyUids: []
       };
       state.projectiles.push(projectile);
@@ -4767,7 +4769,8 @@
               projectile.y > enemyBody.y &&
               projectile.y < enemyBody.y + enemyBody.height
             ) {
-              damageEnemy(enemy, projectile.damage, 20);
+              const projectileDamage = projectile.damage * (projectile.penetrationDamageMultiplier || 1);
+              damageEnemy(enemy, projectileDamage, 20);
               if (
                 projectile.ownerId === 'rustbucket'
                 && !projectile.shrapnel
@@ -4819,7 +4822,12 @@
                   });
                 }
               }
-              if (!projectile.passThroughEnemies) projectile.life = 0;
+              if (projectile.passThroughEnemies && (projectile.penetrationsRemaining || 0) > 0) {
+                projectile.penetrationsRemaining -= 1;
+                projectile.penetrationDamageMultiplier = (projectile.penetrationDamageMultiplier || 1) * 0.5;
+              } else {
+                projectile.life = 0;
+              }
             }
           });
         } else if (player) {

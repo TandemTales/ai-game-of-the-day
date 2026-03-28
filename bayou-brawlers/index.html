@@ -4834,20 +4834,27 @@
         }
         if (projectile.shrapnel && projectile.life <= 0 && !projectile.impactBurstSpawned) {
           projectile.impactBurstSpawned = true;
-          spawnRustbucketShrapnelBurst(projectile.x, projectile.y, {
-            shardCount: rand(8, 12),
-            speedMin: 1.2,
-            speedMax: 4.2,
-            timer: 16,
-            gravity: 0.28,
-            drag: 0.78,
-            lengthMin: 4,
-            lengthMax: 10,
-            thicknessMin: 0.9,
-            thicknessMax: 1.8,
-            spread: 0.5,
-            groundY: BRAWL_LANE_MAX_Y - rand(2, 8)
-          });
+          const shrapnelProtocolActive = Boolean(
+            player
+            && projectile.ownerId === 'rustbucket'
+            && hasUpgrade(player, 'shrapnel-protocol')
+          );
+          if (!shrapnelProtocolActive || Math.random() < 0.5) {
+            spawnRustbucketShrapnelBurst(projectile.x, projectile.y, {
+              shardCount: rand(8, 12),
+              speedMin: 1.2,
+              speedMax: 4.2,
+              timer: 16,
+              gravity: 0.28,
+              drag: 0.78,
+              lengthMin: 4,
+              lengthMax: 10,
+              thicknessMin: 0.9,
+              thicknessMax: 1.8,
+              spread: 0.5,
+              groundY: BRAWL_LANE_MAX_Y - rand(2, 8)
+            });
+          }
         }
       });
       state.projectiles = state.projectiles.filter(projectile => projectile.life > 0);

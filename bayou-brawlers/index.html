@@ -5541,6 +5541,10 @@
 
     function drawMaulingFrenzyGlow(entity, x, y, drawSize) {
       if (!entity || entity.charData?.id !== 'old-man-croc' || !hasUpgrade(entity, 'mauling-frenzy')) return;
+      const specialActive = entity.animation?.state === 'special' || entity.actionLock > 0;
+      const superSpecialActive = (entity.frenzyTimer || 0) > 0;
+      if (!specialActive && !superSpecialActive) return;
+      if (!isEntityInvulnerable(entity)) return;
 
       const time = performance.now();
       const pulse = 0.86 + (Math.sin((time * 0.0042) + ((entity.uid || 0) * 0.3)) * 0.14);

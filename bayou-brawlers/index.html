@@ -3015,7 +3015,7 @@
       }
     }
 
-    function damageEnemy(enemy, amount, stun = 0) {
+    function damageEnemy(enemy, amount, stun = 0, options = null) {
       if (!enemy || enemy.hp <= 0 || enemy.invulnFrames > 0 || enemy.untargetable) return;
       enemy.hp -= amount;
       if (stun > 0) {
@@ -3050,7 +3050,14 @@
       if (enemy.hp <= 0) {
         const player = state.player;
         const isFrozenOnDefeat = (enemy.statuses?.FREEZE?.duration || 0) > 0;
+        const isPoisonKill = options?.source === 'poison-tick';
         const shouldTriggerShatterShock = !!(player && hasUpgrade(player, 'shatter-shock') && isFrozenOnDefeat);
+        const shouldTriggerChainReactionSpores = !!(
+          player
+          && player.charData.id === 'scarlett-glumpkin'
+          && hasUpgrade(player, 'chain-reaction-spores')
+          && isPoisonKill
+        );
         const shouldTriggerSparkleBloom = !!(
           player &&
           player.charData.id === 'green-fairy' &&
@@ -3063,8 +3070,42 @@
         enemy.attackAnimTimer = 0;
         enemy.deathHoldFrames = shouldTriggerShatterShock ? 0 : ENEMY_DEATH_HOLD_FRAMES;
         if (shouldTriggerShatterShock) spawnShatterShockBurst(enemy.x, enemy.y);
+        if (shouldTriggerChainReactionSpores) triggerChainReactionSpores(enemy);
         if (shouldTriggerSparkleBloom) triggerSparkleBloom(enemy);
         handleEnemyDeath(enemy);
+      }
+    }
+
+    function triggerChainReactionSpores(defeatedEnemy) {
+      if (!defeatedEnemy) return;
+      const cloudRadius = 170;
+      state.enemies.forEach(otherEnemy => {
+        if (!otherEnemy || otherEnemy === defeatedEnemy || otherEnemy.hp <= 0) return;
+        if (!canPlayerAffectEnemy(otherEnemy)) return;
+        const distance = Math.hypot(otherEnemy.x - defeatedEnemy.x, otherEnemy.y - defeatedEnemy.y);
+        if (distance > cloudRadius) return;
+        applyStatus(otherEnemy, 'POISON', 210, 1);
+      });
+
+      const cloudCount = 28;
+      for (let i = 0; i < cloudCount; i += 1) {
+        const angle = rand(0, Math.PI * 2);
+        const speed = rand(0.5, 2.4);
+        const particleTimer = rand(48, 84);
+        state.effects.push({
+          type: 'chain-reaction-spore-cloud',
+          x: defeatedEnemy.x + Math.cos(angle) * rand(8, 28),
+          y: defeatedEnemy.y - 24 + Math.sin(angle) * rand(4, 24),
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed * 0.68,
+          size: rand(26, 62),
+          growth: rand(0.22, 0.75),
+          driftX: rand(-0.025, 0.025),
+          driftY: rand(-0.06, -0.02),
+          alpha: rand(0.3, 0.62),
+          timer: particleTimer,
+          maxTimer: particleTimer
+        });
       }
     }
 
@@ -3604,7 +3645,7 @@
         const st = enemy.statuses[key];
         st.duration -= 1;
         st.tick += 1;
-        if (key === 'POISON' && st.tick % 30 === 0 && canPlayerAffectEnemy(enemy)) damageEnemy(enemy, 2 + st.magnitude, 0);
+        if (key === 'POISON' && st.tick % 30 === 0 && canPlayerAffectEnemy(enemy)) damageEnemy(enemy, 2 + st.magnitude, 0, { source: 'poison-tick' });
         if (key === 'BURN' && st.tick % 24 === 0 && canPlayerAffectEnemy(enemy)) damageEnemy(enemy, 3 + st.magnitude, 0);
         if (st.duration <= 0) delete enemy.statuses[key];
       });
@@ -4917,6 +4958,14 @@
           effect.size += effect.growth || 0;
           effect.alpha = Math.max(0, (effect.alpha || 0) * 0.98);
         }
+        if (effect.type === 'chain-reaction-spore-cloud') {
+          effect.x += effect.vx;
+          effect.y += effect.vy;
+          effect.vx = (effect.vx || 0) * 0.94 + (effect.driftX || 0);
+          effect.vy = (effect.vy || 0) * 0.9 + (effect.driftY || 0);
+          effect.size += effect.growth || 0;
+          effect.alpha = Math.max(0, (effect.alpha || 0) * 0.974);
+        }
         if (effect.type === 'rustbucket-shrapnel-burst') {
           const groundY = effect.groundY || BRAWL_LANE_MAX_Y - 4;
           (effect.pieces || []).forEach(piece => {
@@ -6143,6 +6192,34 @@
           ctx.beginPath();
           ctx.arc(drawX, drawY, radius, 0, Math.PI * 2);
           ctx.fill();
+        }
+        if (effect.type === 'chain-reaction-spore-cloud') {
+          const maxTimer = effect.maxTimer || 64;
+          const lifePct = clamp(effect.timer / maxTimer, 0, 1);
+          const fadeIn = clamp((maxTimer - effect.timer) / 12, 0, 1);
+          const alpha = (effect.alpha || 0.45) * lifePct * fadeIn;
+          const drawX = effect.x - state.cameraX;
+          const drawY = effect.y - state.cameraY;
+          const radius = (effect.size || 20) * (0.75 + ((1 - lifePct) * 0.9));
+
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          const fogGradient = ctx.createRadialGradient(drawX, drawY, radius * 0.18, drawX, drawY, radius);
+          fogGradient.addColorStop(0, `rgba(186, 255, 145, ${alpha * 0.82})`);
+          fogGradient.addColorStop(0.4, `rgba(121, 224, 111, ${alpha * 0.58})`);
+          fogGradient.addColorStop(1, 'rgba(59, 146, 64, 0)');
+          ctx.fillStyle = fogGradient;
+          ctx.beginPath();
+          ctx.arc(drawX, drawY, radius, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.strokeStyle = `rgba(197, 255, 182, ${alpha * 0.6})`;
+          ctx.lineWidth = Math.max(1.4, radius * 0.05);
+          ctx.beginPath();
+          ctx.arc(drawX, drawY, radius * 0.72, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
         }
         if (effect.type === 'emergency-venting') {
           const lifePct = clamp(effect.timer / Math.max(1, effect.maxTimer || 12), 0, 1);

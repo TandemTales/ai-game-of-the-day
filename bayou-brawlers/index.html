@@ -4984,7 +4984,9 @@
                 && effect.shrapnelSource
               ) {
                 const enemyBody = getEnemyHitbox(enemy);
-                const shrapnelOriginY = enemyBody.y + (enemyBody.height * 0.45);
+                const ownerBody = getPhysicsBody(effect.owner);
+                const extraLift = ownerBody.height * 0.5;
+                const shrapnelOriginY = enemyBody.y + (enemyBody.height * 0.45) - extraLift;
                 spawnRustbucketShrapnelProjectiles(effect.owner, enemy.x, shrapnelOriginY, effect.damage, {
                   excludeEnemyUid: enemy.uid,
                   shardCount: effect.shrapnelSource === 'super-special' ? 12 : 9,

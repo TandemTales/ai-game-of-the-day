@@ -1477,6 +1477,11 @@
       return isBoss ? BOSS_RENDER_SCALE_MULTIPLIER : 1;
     }
 
+    function getDaphodilusLevelOneScale(typeId) {
+      if (typeId !== 'daphodilus') return 1;
+      return state.levelIndex === 0 ? 1.5 : 1;
+    }
+
     function countUndergroundDaphodilus() {
       return state.enemies.filter(e => e.hp > 0 && e.type === 'daphodilus' && e.aiState === 'Underground').length;
     }
@@ -1738,11 +1743,14 @@
 
     function getPhysicsBody(entity) {
       const profile = getPhysicsProfile(entity.physicsProfileId);
+      const hitboxScale = entity.hitboxScale || 1;
+      const width = profile.width * hitboxScale;
+      const height = profile.height * hitboxScale;
       return {
-        x: entity.x + profile.centerOffsetX - (profile.width / 2),
-        y: entity.y - profile.footOffsetY - profile.height,
-        width: profile.width,
-        height: profile.height
+        x: entity.x + profile.centerOffsetX - (width / 2),
+        y: entity.y - profile.footOffsetY - height,
+        width,
+        height
       };
     }
 
@@ -2116,7 +2124,8 @@
         stunRetargetTimer: rand(8, 18),
         ranged: base.ranged || false,
         isBoss,
-        renderScale: getEnemyRenderScale(typeId, stage, isBoss),
+        renderScale: getEnemyRenderScale(typeId, stage, isBoss) * getDaphodilusLevelOneScale(typeId),
+        hitboxScale: getDaphodilusLevelOneScale(typeId),
         physicsProfileId: `enemy-${typeId}`,
         targetBodyAimBias: rand(35, 85) / 100,
         invulnFrames: options.invulnFrames || 0,

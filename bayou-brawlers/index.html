@@ -3427,6 +3427,7 @@
       const lifeMax = options?.lifeMax || 42;
       const damageScale = options?.damageScale || 0.24;
       const excludeEnemyUid = options?.excludeEnemyUid || null;
+      const burstBottomY = Number.isFinite(options?.burstBottomY) ? options.burstBottomY : null;
       const shrapnelDamage = Math.max(2, baseDamage * damageScale);
       for (let i = 0; i < shardCount; i += 1) {
         const angle = ((Math.PI * 2 * i) / shardCount) + rand(-0.22, 0.22);
@@ -3461,7 +3462,8 @@
         lengthMin: 7,
         lengthMax: 20,
         thicknessMin: 1.2,
-        thicknessMax: 2.9
+        thicknessMax: 2.9,
+        y: burstBottomY !== null ? (burstBottomY - 18) : originY
       });
     }
 
@@ -3491,10 +3493,11 @@
           dead: false
         });
       }
+      const burstY = Number.isFinite(options?.y) ? options.y : y;
       state.effects.push({
         type: 'rustbucket-shrapnel-burst',
         x,
-        y,
+        y: burstY,
         timer,
         maxTimer: timer,
         gravity,
@@ -4771,7 +4774,8 @@
                 spawnRustbucketShrapnelProjectiles(state.player, projectile.x, projectile.y, projectile.damage, {
                   excludeEnemyUid: enemy.uid,
                   shardCount: projectile.attackKind === 'super-special' ? 12 : 9,
-                  damageScale: projectile.attackKind === 'heavy' ? 0.24 : 0.2
+                  damageScale: projectile.attackKind === 'heavy' ? 0.24 : 0.2,
+                  burstBottomY: enemy.y
                 });
               }
               if (projectile.hitEnemyUids) projectile.hitEnemyUids.push(enemy.uid);
@@ -4986,7 +4990,8 @@
                 spawnRustbucketShrapnelProjectiles(effect.owner, enemy.x, enemy.y - 16, effect.damage, {
                   excludeEnemyUid: enemy.uid,
                   shardCount: effect.shrapnelSource === 'super-special' ? 12 : 9,
-                  damageScale: effect.shrapnelSource === 'super-special' ? 0.25 : 0.2
+                  damageScale: effect.shrapnelSource === 'super-special' ? 0.25 : 0.2,
+                  burstBottomY: enemy.y
                 });
               }
               enemy.x += Math.sign(enemy.x - effect.x) * (effect.knockback || 0);

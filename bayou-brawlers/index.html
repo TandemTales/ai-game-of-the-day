@@ -3420,7 +3420,7 @@
 
     function spawnRustbucketShrapnelProjectiles(player, originX, originY, baseDamage, options = null) {
       if (!player || player.charData.id !== 'rustbucket' || !hasUpgrade(player, 'shrapnel-protocol')) return;
-      const procChance = options?.procChance ?? 0.5;
+      const procChance = options?.procChance ?? 0.25;
       if (Math.random() >= procChance) return;
       const shardCount = options?.shardCount || 10;
       const speedMin = options?.speedMin || 4.2;

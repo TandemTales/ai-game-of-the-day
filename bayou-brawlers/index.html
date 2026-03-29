@@ -774,7 +774,7 @@
       gameOver: false,
       victory: false,
       bossActive: false,
-      bossArenaMinX: null,
+      backtrackMinX: 40,
       ally: null,
       shake: 0,
       submitting: false,
@@ -2509,8 +2509,13 @@
     }
 
     function getPlayerMinX() {
-      if (!state.bossActive || state.bossArenaMinX === null) return 40;
-      return clamp(state.bossArenaMinX, 40, state.levelWidth - 40);
+      return clamp(state.backtrackMinX ?? 40, 40, state.levelWidth - 40);
+    }
+
+    function setBacktrackLimit(anchorX) {
+      const safeAnchor = Number.isFinite(anchorX) ? anchorX : (state.player ? state.player.x : 40);
+      const nextLimit = clamp(safeAnchor - (canvas.width * 0.5), 40, state.levelWidth - 40);
+      state.backtrackMinX = Math.max(state.backtrackMinX ?? 40, nextLimit);
     }
 
     function getWaveBarrierCameraMaxX() {
@@ -2619,7 +2624,7 @@
       state.waveIndex = REGULAR_WAVE_COUNT;
       state.waveActive = true;
       state.bossActive = true;
-      state.bossArenaMinX = clamp(bossLockX - (canvas.width * 0.5), 40, state.levelWidth - 40);
+      setBacktrackLimit(bossLockX);
       state.bossEncounter = { id: encounterId, add10: false, add20: false, stopAdds: false };
       state.lockX = bossLockX;
       updateWaveHud();
@@ -5221,7 +5226,7 @@
           if (aliveBossLineage.length === 0 && state.spawnQueue.length === 0) {
             state.waveActive = false;
             state.bossActive = false;
-            state.bossArenaMinX = null;
+            setBacktrackLimit(Math.max(state.lastForwardX, state.player ? state.player.x : 40));
             state.bossEncounter = null;
             state.lockX = null;
             state.nextWaveToSpawn = TOTAL_WAVE_COUNT;
@@ -5232,6 +5237,7 @@
         const hasLivingEnemies = state.enemies.some(enemy => enemy.hp > 0);
         if (hasLivingEnemies || state.spawnQueue.length > 0) return;
 
+        setBacktrackLimit(Math.max(state.lastForwardX, state.player ? state.player.x : 40));
         state.waveActive = false;
         state.lockX = null;
       }
@@ -5252,7 +5258,6 @@
 
       if (!state.bossActive && !state.waveActive && state.enemies.length === 0) {
         state.bossActive = false;
-        state.bossArenaMinX = null;
         state.lockX = null;
         if (state.levelIndex < levels.length - 1) {
           if (state.player) addXp(state.player, 90 + (state.levelIndex * 18));
@@ -5271,7 +5276,7 @@
       const defaultLevelWidth = 2200 + state.levelIndex * 120;
       state.levelWidth = getLevelWorldWidth(level, defaultLevelWidth);
       state.bossActive = false;
-      state.bossArenaMinX = null;
+      state.backtrackMinX = 40;
       state.enemies = [];
       state.projectiles = [];
       state.pickups = [];

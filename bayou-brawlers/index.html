@@ -5403,6 +5403,14 @@
         && hasUpgrade(player, 'long-glamour')
         && state.enemies.some(enemy => enemy.hp > 0 && isCharmed(enemy))
       ) return true;
+      if (
+        player.charData?.id === 'old-man-croc'
+        && hasUpgrade(player, 'mauling-frenzy')
+      ) {
+        const specialActive = player.animation?.state === 'special' || player.actionLock > 0;
+        const superSpecialActive = (player.frenzyTimer || 0) > 0;
+        if (specialActive || superSpecialActive) return true;
+      }
       return player.dashTimer > 0;
     }
 

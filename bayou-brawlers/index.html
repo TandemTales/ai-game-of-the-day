@@ -774,6 +774,7 @@
       gameOver: false,
       victory: false,
       bossActive: false,
+      bossArenaMinX: null,
       ally: null,
       shake: 0,
       submitting: false,
@@ -2507,6 +2508,11 @@
       return clamp(barrierX - WAVE_BARRIER_PLAYER_MARGIN, 40, state.levelWidth - 40);
     }
 
+    function getPlayerMinX() {
+      if (!state.bossActive || state.bossArenaMinX === null) return 40;
+      return clamp(state.bossArenaMinX, 40, state.levelWidth - 40);
+    }
+
     function getWaveBarrierCameraMaxX() {
       const barrierX = getWaveBarrierX();
       if (barrierX === null) return state.levelWidth - canvas.width;
@@ -2604,6 +2610,7 @@
     function spawnBoss(level) {
       const bossType = level.boss.type;
       const encounterId = `boss-${Date.now()}`;
+      const bossLockX = getWaveLockX(REGULAR_WAVE_COUNT);
       const boss = createEnemy(bossType, state.levelWidth - 220, clamp(280, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y), true, { bossEncounterId: encounterId });
       const verticalBounds = getEnemyVerticalBounds(boss);
       boss.y = clamp(boss.y, verticalBounds.minY, verticalBounds.maxY);
@@ -2612,8 +2619,9 @@
       state.waveIndex = REGULAR_WAVE_COUNT;
       state.waveActive = true;
       state.bossActive = true;
+      state.bossArenaMinX = clamp(bossLockX - (canvas.width * 0.5), 40, state.levelWidth - 40);
       state.bossEncounter = { id: encounterId, add10: false, add20: false, stopAdds: false };
-      state.lockX = getWaveLockX(REGULAR_WAVE_COUNT);
+      state.lockX = bossLockX;
       updateWaveHud();
     }
 
@@ -4126,7 +4134,7 @@
       }
 
       const playerMaxX = getWaveBarrierPlayerMaxX();
-      player.x = clamp(player.x, 40, playerMaxX);
+      player.x = clamp(player.x, getPlayerMinX(), playerMaxX);
       const playerVerticalBounds = getPlayerVerticalBounds(player);
       player.y = clamp(player.y, playerVerticalBounds.minY, playerVerticalBounds.maxY);
       applyMovementMaskClamp(player, prevX, prevY);
@@ -5213,6 +5221,7 @@
           if (aliveBossLineage.length === 0 && state.spawnQueue.length === 0) {
             state.waveActive = false;
             state.bossActive = false;
+            state.bossArenaMinX = null;
             state.bossEncounter = null;
             state.lockX = null;
             state.nextWaveToSpawn = TOTAL_WAVE_COUNT;
@@ -5243,6 +5252,7 @@
 
       if (!state.bossActive && !state.waveActive && state.enemies.length === 0) {
         state.bossActive = false;
+        state.bossArenaMinX = null;
         state.lockX = null;
         if (state.levelIndex < levels.length - 1) {
           if (state.player) addXp(state.player, 90 + (state.levelIndex * 18));
@@ -5261,6 +5271,7 @@
       const defaultLevelWidth = 2200 + state.levelIndex * 120;
       state.levelWidth = getLevelWorldWidth(level, defaultLevelWidth);
       state.bossActive = false;
+      state.bossArenaMinX = null;
       state.enemies = [];
       state.projectiles = [];
       state.pickups = [];

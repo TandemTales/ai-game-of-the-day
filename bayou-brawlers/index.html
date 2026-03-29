@@ -2507,6 +2507,12 @@
       return clamp(barrierX - WAVE_BARRIER_PLAYER_MARGIN, 40, state.levelWidth - 40);
     }
 
+    function getBacktrackPlayerMinX() {
+      const halfScreenBacktrack = canvas.width * 0.5;
+      const minFromProgress = state.lastForwardX - halfScreenBacktrack;
+      return clamp(minFromProgress, 40, state.levelWidth - 40);
+    }
+
     function getWaveBarrierCameraMaxX() {
       const barrierX = getWaveBarrierX();
       if (barrierX === null) return state.levelWidth - canvas.width;
@@ -4125,8 +4131,9 @@
         player.vz = 0;
       }
 
+      const playerMinX = getBacktrackPlayerMinX();
       const playerMaxX = getWaveBarrierPlayerMaxX();
-      player.x = clamp(player.x, 40, playerMaxX);
+      player.x = clamp(player.x, playerMinX, playerMaxX);
       const playerVerticalBounds = getPlayerVerticalBounds(player);
       player.y = clamp(player.y, playerVerticalBounds.minY, playerVerticalBounds.maxY);
       applyMovementMaskClamp(player, prevX, prevY);

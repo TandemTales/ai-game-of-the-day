@@ -2510,7 +2510,19 @@
     function getBacktrackPlayerMinX() {
       const halfScreenBacktrack = canvas.width * 0.5;
       const minFromProgress = state.lastForwardX - halfScreenBacktrack;
-      return clamp(minFromProgress, 40, state.levelWidth - 40);
+      let minFromLootOrBodies = minFromProgress;
+
+      state.pickups.forEach(pickup => {
+        if (!pickup || pickup.timer <= 0) return;
+        minFromLootOrBodies = Math.min(minFromLootOrBodies, pickup.x - 28);
+      });
+
+      state.enemies.forEach(enemy => {
+        if (!enemy || enemy.hp > 0 || enemy.deathHoldFrames <= 0) return;
+        minFromLootOrBodies = Math.min(minFromLootOrBodies, enemy.x - 40);
+      });
+
+      return clamp(minFromLootOrBodies, 40, state.levelWidth - 40);
     }
 
     function getWaveBarrierCameraMaxX() {

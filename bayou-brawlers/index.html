@@ -2171,7 +2171,8 @@
       if (typeId === 'shapeshifter') {
         const earlierEnemyTypes = ['daphodilus', 'choking-blossom', 'hiredGun', 'stingy', 'sidewinder', 'sentroid', 'vengefulGhost', 'chainedSpirit', 'lurkerInTheHalls', 'silentOne', 'riverDweller', 'automatick', 'tickles', 'bulwarkBernie', 'hatred', 'malice', 'revulsion', 'disgust', 'arrogance'];
         enemy.shapeshiftForm = pick(earlierEnemyTypes);
-        enemy.shapeshiftTimer = 7 * 60;
+        enemy.shapeshiftRevealHp = enemy.maxHp * 0.55;
+        enemy.trueFormRevealed = false;
         const disguiseTracks = assets.enemyAnimations[enemy.shapeshiftForm];
         if (disguiseTracks && enemy.animation) {
           enemy.animation.tracks = disguiseTracks;
@@ -4386,15 +4387,19 @@
           return;
         }
 
-        if (enemy.type === 'shapeshifter' && enemy.shapeshiftTimer > 0) {
-          enemy.shapeshiftTimer -= 1;
-          if (enemy.shapeshiftTimer <= 0 && enemy.animation && assets.enemyAnimations.shapeshifter) {
-            enemy.animation.tracks = assets.enemyAnimations.shapeshifter;
-            enemy.animation.state = 'idle';
-            enemy.animation.frameIndex = 0;
-            enemy.animation.elapsedMs = 0;
-            enemy.animation.complete = false;
-          }
+        if (
+          enemy.type === 'shapeshifter'
+          && !enemy.trueFormRevealed
+          && enemy.hp <= (enemy.shapeshiftRevealHp || (enemy.maxHp * 0.55))
+          && enemy.animation
+          && assets.enemyAnimations.shapeshifter
+        ) {
+          enemy.animation.tracks = assets.enemyAnimations.shapeshifter;
+          enemy.animation.state = 'idle';
+          enemy.animation.frameIndex = 0;
+          enemy.animation.elapsedMs = 0;
+          enemy.animation.complete = false;
+          enemy.trueFormRevealed = true;
         }
 
         if (enemy.type === 'daphodilus') {

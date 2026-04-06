@@ -1194,6 +1194,9 @@
     const MECHANIZED_MOMENTUM_MAX_STACKS = 12;
     const MECHANIZED_MOMENTUM_STACK_MULTIPLIER = 0.03;
     const MECHANIZED_MOMENTUM_DURATION_FRAMES = 120;
+    const TERRITORIAL_BEAST_DAMAGE_MULTIPLIER = 1.22;
+    const TERRITORIAL_BEAST_PROXIMITY_RADIUS = 180;
+    const TERRITORIAL_BEAST_HAZARD_SOURCE_TYPES = new Set(['mud-monster', 'choking-blossom', 'daphodilus']);
     const MAX_LEVEL = 20;
     const BASE_MAX_POWER = 100;
     const SPECIAL_COST = BASE_MAX_POWER / 3;
@@ -1389,7 +1392,7 @@
         { id: 'thick-hide', name: 'Thick Hide', tag: 'Utility', description: 'Increase max health.' },
         { id: 'swamp-hunger', name: 'Swamp Hunger', tag: 'Utility', description: 'Heal slightly on enemy kills.' },
         { id: 'gator-lunge', name: 'Gator Lunge', tag: 'Utility', description: 'Slight move speed increase when approaching enemies.' },
-        { id: 'territorial-beast', name: 'Territorial Beast', tag: 'Utility', description: 'Deal more damage near hazards before/after they occur.' },
+        { id: 'territorial-beast', name: 'Territorial Beast', tag: 'Utility', description: 'Deal more damage near hazards (before/after trigger) and enemy bosses.' },
         { id: 'cold-blooded', name: 'Cold Blooded', tag: 'Utility', description: 'Take less damage while below half health.' }
       ]
     };
@@ -2725,12 +2728,51 @@
 
     function getBasicDamageMultiplier(player) {
       if (!player) return 1;
-      return player.basicDamageMultiplier * player.allDamageMultiplier * (1 + getMechanizedMomentumBonusPct(player));
+      return getTerritorialBeastDamageMultiplier(player)
+        * player.basicDamageMultiplier
+        * player.allDamageMultiplier
+        * (1 + getMechanizedMomentumBonusPct(player));
     }
 
     function getHeavyDamageMultiplier(player) {
       if (!player) return 1;
-      return player.heavyDamageMultiplier * player.allDamageMultiplier * (1 + getMechanizedMomentumBonusPct(player));
+      return getTerritorialBeastDamageMultiplier(player)
+        * player.heavyDamageMultiplier
+        * player.allDamageMultiplier
+        * (1 + getMechanizedMomentumBonusPct(player));
+    }
+
+    function isNearHazardRect(targetX, targetY, hazard, proximityRadius = TERRITORIAL_BEAST_PROXIMITY_RADIUS) {
+      if (!hazard) return false;
+      const halfW = (hazard.w || 0) * 0.5;
+      const halfH = (hazard.h || 0) * 0.5;
+      const clampedX = clamp(targetX, hazard.x - halfW, hazard.x + halfW);
+      const clampedY = clamp(targetY, hazard.y - halfH, hazard.y + halfH);
+      return Math.hypot(targetX - clampedX, targetY - clampedY) <= proximityRadius;
+    }
+
+    function isTerritorialBeastDamageBoostActive(player) {
+      if (!player || player.charData?.id !== 'old-man-croc' || !hasUpgrade(player, 'territorial-beast')) return false;
+
+      const nearHazard = state.hazards.some(hazard => isNearHazardRect(player.x, player.y, hazard));
+      if (nearHazard) return true;
+
+      const nearEnemyHazardSource = state.enemies.some(enemy =>
+        enemy.hp > 0
+        && TERRITORIAL_BEAST_HAZARD_SOURCE_TYPES.has(enemy.type)
+        && Math.hypot(enemy.x - player.x, enemy.y - player.y) <= TERRITORIAL_BEAST_PROXIMITY_RADIUS
+      );
+      if (nearEnemyHazardSource) return true;
+
+      return state.enemies.some(enemy =>
+        enemy.hp > 0
+        && (enemy.isBoss || getEnemyTier(enemy) === 'boss')
+        && Math.hypot(enemy.x - player.x, enemy.y - player.y) <= TERRITORIAL_BEAST_PROXIMITY_RADIUS
+      );
+    }
+
+    function getTerritorialBeastDamageMultiplier(player) {
+      return isTerritorialBeastDamageBoostActive(player) ? TERRITORIAL_BEAST_DAMAGE_MULTIPLIER : 1;
     }
 
     function getMechanizedMomentumBonusPct(player) {
@@ -5592,6 +5634,31 @@
       ctx.restore();
     }
 
+    function drawTerritorialBeastGlow(entity, x, y, drawSize) {
+      if (!entity || entity.charData?.id !== 'old-man-croc') return;
+      if (!isTerritorialBeastDamageBoostActive(entity)) return;
+
+      const time = performance.now();
+      const pulse = 0.88 + (Math.sin((time * 0.0048) + ((entity.uid || 0) * 0.4)) * 0.12);
+      const glowRadius = drawSize * (0.82 + (pulse * 0.18));
+      const facing = entity.facing || entity.attackFacing || 1;
+      const originX = x - (facing * drawSize * 0.24);
+      const originY = y - (drawSize * 0.54);
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const glow = ctx.createRadialGradient(originX, originY, glowRadius * 0.08, originX, originY, glowRadius * 1.06);
+      glow.addColorStop(0, 'rgba(132, 255, 156, 0.66)');
+      glow.addColorStop(0.4, 'rgba(72, 226, 118, 0.42)');
+      glow.addColorStop(0.74, 'rgba(24, 138, 72, 0.22)');
+      glow.addColorStop(1, 'rgba(6, 64, 28, 0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.ellipse(originX, originY, glowRadius, glowRadius * 0.78, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
     function drawAnimationFrame(sourceImage, frame, dx, dy, dw, dh, tint = null, invulnerable = false, blinkPhaseSeed = 0, burnOverlay = false) {
       if (!tint) {
         ctx.drawImage(sourceImage, frame.x, frame.y, frame.width, frame.height, dx, dy, dw, dh);
@@ -5689,6 +5756,7 @@
         if (track && track.img) {
           const frame = track.frames[entity.animation.frameIndex] || track.frames[0];
           const drawSize = size * (entity.renderScale || 1) * depthScale;
+          drawTerritorialBeastGlow(entity, x, y, drawSize);
           drawMaulingFrenzyGlow(entity, x, y, drawSize);
           const offsetX = track.renderOffsetX || 0;
           if (track.flipX) {
@@ -5732,6 +5800,7 @@
         if (track && track.img) {
           const frame = track.frames[entity.animation.frameIndex] || track.frames[0];
           const drawSize = size * (entity.renderScale || 1) * depthScale;
+          drawTerritorialBeastGlow(entity, x, y, drawSize);
           drawMaulingFrenzyGlow(entity, x, y, drawSize);
           const offsetX = track.renderOffsetX || 0;
           if (track.flipX) {
@@ -5772,6 +5841,7 @@
       }
       if (entity.sprite) {
         const drawSize = size * depthScale;
+        drawTerritorialBeastGlow(entity, x, y, drawSize);
         drawMaulingFrenzyGlow(entity, x, y, drawSize);
         ctx.drawImage(entity.sprite, x - drawSize / 2, y - drawSize, drawSize, drawSize);
         drawOverheatedCoreFlames(entity, x, y, drawSize);

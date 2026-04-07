@@ -1139,6 +1139,7 @@
     const IDLE_ARROW_DELAY_FRAMES = 300;
     const WAVE_BARRIER_PLAYER_MARGIN = 12;
     const WAVE_BARRIER_SCREEN_MARGIN = 12;
+    const MIN_PLAYER_TRAVEL_SCREENS = 1.5;
     const FIXED_TIMESTEP_MS = 1000 / 60;
     const EMERGENCY_VENTING_RECHARGE_FRAMES = 5 * 60;
     const MAX_FRAME_DELTA_MS = 1000;
@@ -2525,6 +2526,19 @@
       });
 
       return clamp(minFromLootOrBodies, 40, state.levelWidth - 40);
+    }
+
+    function getPlayerHorizontalBounds() {
+      const rawMinX = getBacktrackPlayerMinX();
+      const rawMaxX = getWaveBarrierPlayerMaxX();
+      const minimumTravelDistance = canvas.width * MIN_PLAYER_TRAVEL_SCREENS;
+      const maxAllowedMinX = rawMaxX - minimumTravelDistance;
+      const clampedMinX = Math.min(rawMinX, maxAllowedMinX);
+      const minX = clamp(clampedMinX, 40, rawMaxX);
+      return {
+        minX,
+        maxX: rawMaxX
+      };
     }
 
     function getWaveBarrierCameraMaxX() {
@@ -4184,9 +4198,8 @@
         player.vz = 0;
       }
 
-      const playerMinX = getBacktrackPlayerMinX();
-      const playerMaxX = getWaveBarrierPlayerMaxX();
-      player.x = clamp(player.x, playerMinX, playerMaxX);
+      const playerHorizontalBounds = getPlayerHorizontalBounds();
+      player.x = clamp(player.x, playerHorizontalBounds.minX, playerHorizontalBounds.maxX);
       const playerVerticalBounds = getPlayerVerticalBounds(player);
       player.y = clamp(player.y, playerVerticalBounds.minY, playerVerticalBounds.maxY);
       applyMovementMaskClamp(player, prevX, prevY);

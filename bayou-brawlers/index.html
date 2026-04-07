@@ -2507,7 +2507,14 @@
     function getWaveBarrierPlayerMaxX() {
       const barrierX = getWaveBarrierX();
       if (barrierX === null) return state.levelWidth - 40;
-      return clamp(barrierX - WAVE_BARRIER_PLAYER_MARGIN, 40, state.levelWidth - 40);
+      const baseMaxX = clamp(barrierX - WAVE_BARRIER_PLAYER_MARGIN, 40, state.levelWidth - 40);
+      const furthestEnemyX = state.enemies.reduce((maxX, enemy) => {
+        if (!enemy || enemy.hp <= 0) return maxX;
+        return Math.max(maxX, enemy.x);
+      }, -Infinity);
+      if (!Number.isFinite(furthestEnemyX)) return baseMaxX;
+      const enemyReachMaxX = clamp(furthestEnemyX + 24, 40, state.levelWidth - 40);
+      return Math.max(baseMaxX, enemyReachMaxX);
     }
 
     function getBacktrackPlayerMinX() {
@@ -2545,7 +2552,8 @@
       const barrierX = getWaveBarrierX();
       if (barrierX === null) return state.levelWidth - canvas.width;
       const cappedMaxX = barrierX - canvas.width + WAVE_BARRIER_SCREEN_MARGIN;
-      return clamp(cappedMaxX, 0, state.levelWidth - canvas.width);
+      const playerReachMaxX = getWaveBarrierPlayerMaxX() - canvas.width + WAVE_BARRIER_SCREEN_MARGIN;
+      return clamp(Math.max(cappedMaxX, playerReachMaxX), 0, state.levelWidth - canvas.width);
     }
 
     function enforceEnemyWaveBarrier(enemy) {

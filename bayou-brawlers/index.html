@@ -1196,7 +1196,6 @@
     const MECHANIZED_MOMENTUM_DURATION_FRAMES = 120;
     const TERRITORIAL_BEAST_DAMAGE_MULTIPLIER = 1.22;
     const TERRITORIAL_BEAST_PROXIMITY_RADIUS = 180;
-    const TERRITORIAL_BEAST_HAZARD_SOURCE_TYPES = new Set(['mud-monster', 'choking-blossom', 'daphodilus']);
     const MAX_LEVEL = 20;
     const BASE_MAX_POWER = 100;
     const SPECIAL_COST = BASE_MAX_POWER / 3;
@@ -2751,18 +2750,18 @@
       return Math.hypot(targetX - clampedX, targetY - clampedY) <= proximityRadius;
     }
 
+    function getTerritorialBeastHazards() {
+      const hazardPools = [state.hazards];
+      if (Array.isArray(state.environmentalHazards)) hazardPools.push(state.environmentalHazards);
+      if (Array.isArray(state.pendingEnvironmentalHazards)) hazardPools.push(state.pendingEnvironmentalHazards);
+      return hazardPools.flat().filter(Boolean);
+    }
+
     function isTerritorialBeastDamageBoostActive(player) {
       if (!player || player.charData?.id !== 'old-man-croc' || !hasUpgrade(player, 'territorial-beast')) return false;
 
-      const nearHazard = state.hazards.some(hazard => isNearHazardRect(player.x, player.y, hazard));
+      const nearHazard = getTerritorialBeastHazards().some(hazard => isNearHazardRect(player.x, player.y, hazard));
       if (nearHazard) return true;
-
-      const nearEnemyHazardSource = state.enemies.some(enemy =>
-        enemy.hp > 0
-        && TERRITORIAL_BEAST_HAZARD_SOURCE_TYPES.has(enemy.type)
-        && Math.hypot(enemy.x - player.x, enemy.y - player.y) <= TERRITORIAL_BEAST_PROXIMITY_RADIUS
-      );
-      if (nearEnemyHazardSource) return true;
 
       return state.enemies.some(enemy =>
         enemy.hp > 0

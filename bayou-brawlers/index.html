@@ -2726,7 +2726,7 @@
       const cyclePosition = getLevelCyclePosition(level);
       const cycleIndex = Math.floor((Math.max(1, level) - 1) / 10);
       const idx = clamp(cyclePosition - 1, 0, XP_TABLE.length - 1);
-      const scaledXp = Math.round(XP_TABLE[idx] * (0.7 ** cycleIndex));
+      const scaledXp = Math.round(XP_TABLE[idx] * (1.35 ** cycleIndex));
       return Math.max(20, scaledXp);
     }
 

@@ -808,6 +808,7 @@
     let notificationId = 0;
 
     const SOUNDTRACK_VOLUME = 0.45;
+    const SFX_VOLUME = 0.6;
     const soundtrackFiles = [
       'assets/BB_soundtrack_01.mp3',
       'assets/BB_soundtrack_02.mp3',
@@ -815,6 +816,64 @@
       'assets/BB_soundtrack_04.mp3',
       'assets/BB_soundtrack_05.mp3'
     ];
+    const PLAYER_CHARACTER_SFX = {
+      'billy-boxby': {
+        hit: 'assets/BB_sfx_billyBoxby_hit.mp3',
+        killed: 'assets/BB_sfx_billyBoxby_killed.mp3',
+        attackFast: 'assets/BB_sfx_billyBoxby_attack_fast.mp3',
+        attackHeavy: 'assets/BB_sfx_billyBoxby_attack_heavy.mp3',
+        attackSpecial: 'assets/BB_sfx_billyBoxby_attack_special.mp3'
+      },
+      'green-fairy': {
+        hit: 'assets/BB_sfx_greenFairy_hit.mp3',
+        killed: 'assets/BB_sfx_greenFairy_killed.mp3',
+        attackFast: 'assets/BB_sfx_greenFairy_attack_fast.mp3',
+        attackHeavy: 'assets/BB_sfx_greenFairy_attack_heavy.mp3',
+        attackSpecial: 'assets/BB_sfx_greenFairy_attack_special.mp3'
+      },
+      'grimma-the-feared': {
+        hit: 'assets/BB_sfx_grimmaTheFeared_hit.mp3',
+        killed: 'assets/BB_sfx_grimmaTheFeared_killed.mp3',
+        attackFast: 'assets/BB_sfx_grimmaTheFeared_attack_fast.mp3',
+        attackHeavy: 'assets/BB_sfx_grimmaTheFeared_attack_heavy.mp3',
+        attackSpecial: 'assets/BB_sfx_grimmaTheFeared_attack_special.mp3'
+      },
+      'old-man-croc': {
+        hit: 'assets/BB_sfx_oldManCroc_hit.mp3',
+        killed: 'assets/BB_sfx_oldManCroc_killed.mp3',
+        attackFast: 'assets/BB_sfx_oldManCroc_attack_fast.mp3',
+        attackHeavy: 'assets/BB_sfx_oldManCroc_attack_heavy.mp3',
+        attackSpecial: 'assets/BB_sfx_oldManCroc_attack_special.mp3'
+      },
+      possumatli: {
+        hit: 'assets/BB_sfx_possomatli_hit.mp3',
+        killed: 'assets/BB_sfx_possomatli_killed.mp3',
+        attackFast: 'assets/BB_sfx_possomatli_attack_fast.mp3',
+        attackHeavy: 'assets/BB_sfx_possomatli_attack_heavy.mp3',
+        attackSpecial: 'assets/BB_sfx_possomatli_attack_special.mp3'
+      },
+      rustbucket: {
+        hit: 'assets/BB_sfx_rustbucket_hit.mp3',
+        killed: 'assets/BB_sfx_rustbucket_killed.mp3',
+        attackFast: 'assets/BB_sfx_rustbucket_attack_fast.mp3',
+        attackHeavy: 'assets/BB_sfx_rustbucket_attack_heavy.mp3',
+        attackSpecial: 'assets/BB_sfx_rustbucket_attack_special.mp3'
+      },
+      'scarlett-glumpkin': {
+        hit: 'assets/BB_sfx_scarlettGlumpkin_hit.mp3',
+        killed: 'assets/BB_sfx_scarlettGlumpkin_killed.mp3',
+        attackFast: 'assets/BB_sfx_scarlettGlumpkin_attack_fast.mp3',
+        attackHeavy: 'assets/BB_sfx_scarlettGlumpkin_attack_heavy.mp3',
+        attackSpecial: 'assets/BB_sfx_scarlettGlumpkin_special.mp3'
+      },
+      'shunky-rooster': {
+        hit: 'assets/BB_sfx_shunkyRooster_hit.mp3',
+        killed: 'assets/BB_sfx_shunkyRooster_killed.mp3',
+        attackFast: 'assets/BB_sfx_shunkyRooster_attack_fast.mp3',
+        attackHeavy: 'assets/BB_sfx_shunkyRooster_attack_heavy.mp3',
+        attackSpecial: 'assets/BB_sfx_shunkyRooster_attack_special.mp3'
+      }
+    };
     const soundtrackState = {
       muted: false,
       queue: [],
@@ -896,6 +955,18 @@
         updateMuteButton();
       });
       updateMuteButton();
+    }
+
+    function playPlayerSfx(player, action) {
+      if (soundtrackState.muted) return;
+      const characterSfx = PLAYER_CHARACTER_SFX[player?.charData?.id];
+      const src = characterSfx ? characterSfx[action] : null;
+      if (!src) return;
+      const oneShot = new Audio(src);
+      oneShot.volume = SFX_VOLUME;
+      oneShot.play().catch(() => {
+        // Audio playback can be blocked by browser autoplay policy.
+      });
     }
 
     const characters = [
@@ -3274,7 +3345,10 @@
       state.shake = 6;
       updateHpBar();
       if (player.hp <= 0) {
+        playPlayerSfx(player, 'killed');
         endGame(false);
+      } else {
+        playPlayerSfx(player, 'hit');
       }
     }
 
@@ -3796,6 +3870,7 @@
         player.facing = attackFacing;
         player.powerCooldown = isAir ? 52 : 45;
         player.animationSignals.attack = true;
+        playPlayerSfx(player, 'attackHeavy');
         doAttack(player, true, isAir, tuning);
         player.heavyChargeFrames = 0;
         state.shake = Math.max(state.shake, 10);
@@ -3807,6 +3882,7 @@
         player.facing = attackFacing;
         player.attackCooldown = player.charData.id === 'rustbucket' ? 36 : (player.charData.id === 'shunky-rooster' ? 180 : 18);
         player.animationSignals.attack = true;
+        playPlayerSfx(player, 'attackFast');
         doAttack(player, false, isAir, tuning);
       }
 
@@ -3818,6 +3894,7 @@
         player.actionLock = getSpecialAnimationLockFrames(player, attackFacing);
         player.animationSignals.special = true;
         addPower(player, -(castSuper ? SUPER_COST : SPECIAL_COST));
+        playPlayerSfx(player, 'attackSpecial');
         castCharacterAbility(player, castSuper);
       }
     }

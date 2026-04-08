@@ -899,6 +899,11 @@
       audio: new Audio(),
       button: null
     };
+    const SFX_POOL_SIZE = 4;
+    const sfxState = {
+      pools: new Map(),
+      primed: false
+    };
     soundtrackState.audio.volume = SOUNDTRACK_VOLUME;
     soundtrackState.audio.preload = 'auto';
     soundtrackState.audio.addEventListener('ended', () => {
@@ -976,28 +981,59 @@
       updateMuteButton();
     }
 
-    function playPlayerSfx(player, action) {
-      if (soundtrackState.muted) return;
-      const characterSfx = PLAYER_CHARACTER_SFX[player?.charData?.id];
-      const src = characterSfx ? characterSfx[action] : null;
-      if (!src) return;
-      const oneShot = new Audio(src);
-      oneShot.volume = SFX_VOLUME;
-      oneShot.play().catch(() => {
+    function collectAllSfxSources() {
+      const allSources = [
+        ...Object.values(PLAYER_CHARACTER_SFX).flatMap((character) => Object.values(character || {})),
+        ...Object.values(ENEMY_CHARACTER_SFX).flatMap((enemy) => Object.values(enemy || {}))
+      ];
+      return Array.from(new Set(allSources.filter(Boolean)));
+    }
+
+    function buildSfxPool(src) {
+      const pool = [];
+      for (let i = 0; i < SFX_POOL_SIZE; i += 1) {
+        const audio = new Audio(src);
+        audio.preload = 'auto';
+        audio.volume = SFX_VOLUME;
+        audio.load();
+        pool.push(audio);
+      }
+      sfxState.pools.set(src, pool);
+      return pool;
+    }
+
+    function getSfxPool(src) {
+      if (sfxState.pools.has(src)) return sfxState.pools.get(src);
+      return buildSfxPool(src);
+    }
+
+    function primeSfxPool() {
+      if (sfxState.primed) return;
+      sfxState.primed = true;
+      collectAllSfxSources().forEach((src) => {
+        buildSfxPool(src);
+      });
+    }
+
+    function playSfx(src) {
+      if (soundtrackState.muted || !src) return;
+      const pool = getSfxPool(src);
+      const available = pool.find((audio) => audio.paused || audio.ended) || pool[0];
+      available.currentTime = 0;
+      available.volume = SFX_VOLUME;
+      available.play().catch(() => {
         // Audio playback can be blocked by browser autoplay policy.
       });
     }
 
+    function playPlayerSfx(player, action) {
+      const characterSfx = PLAYER_CHARACTER_SFX[player?.charData?.id];
+      playSfx(characterSfx ? characterSfx[action] : null);
+    }
+
     function playEnemySfx(enemy, action) {
-      if (soundtrackState.muted) return;
       const enemySfx = ENEMY_CHARACTER_SFX[enemy?.type];
-      const src = enemySfx ? enemySfx[action] : null;
-      if (!src) return;
-      const oneShot = new Audio(src);
-      oneShot.volume = SFX_VOLUME;
-      oneShot.play().catch(() => {
-        // Audio playback can be blocked by browser autoplay policy.
-      });
+      playSfx(enemySfx ? enemySfx[action] : null);
     }
 
     const characters = [
@@ -7553,6 +7589,15 @@
       initCharacterSelection();
       handleMessageButton();
       setupSoundtrackControls();
+      if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(() => {
+          primeSfxPool();
+        }, { timeout: 1500 });
+      } else {
+        setTimeout(() => {
+          primeSfxPool();
+        }, 300);
+      }
       layoutAdaptiveUi();
       state.ready = true;
     }

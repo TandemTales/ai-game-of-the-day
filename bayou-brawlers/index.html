@@ -982,21 +982,32 @@
     }
 
     function collectAllSfxSources() {
-      const allSources = [
-        ...Object.values(PLAYER_CHARACTER_SFX).flatMap((character) => Object.values(character || {})),
-        ...Object.values(ENEMY_CHARACTER_SFX).flatMap((enemy) => Object.values(enemy || {}))
-      ];
-      return Array.from(new Set(allSources.filter(Boolean)));
+      const unique = new Set();
+      const appendSources = (catalog) => {
+        Object.values(catalog || {}).forEach((entry) => {
+          Object.values(entry || {}).forEach((src) => {
+            if (src) unique.add(src);
+          });
+        });
+      };
+
+      appendSources(PLAYER_CHARACTER_SFX);
+      appendSources(ENEMY_CHARACTER_SFX);
+      return Array.from(unique);
     }
 
-    function buildSfxPool(src) {
+    function createSfxAudio(src) {
+      const audio = new Audio(src);
+      audio.preload = 'auto';
+      audio.volume = SFX_VOLUME;
+      return audio;
+    }
+
+    function buildSfxPool(src, initialSize = SFX_POOL_SIZE) {
       const pool = [];
-      for (let i = 0; i < SFX_POOL_SIZE; i += 1) {
-        const audio = new Audio(src);
-        audio.preload = 'auto';
-        audio.volume = SFX_VOLUME;
-        audio.load();
-        pool.push(audio);
+      const size = Math.max(1, initialSize | 0);
+      for (let i = 0; i < size; i += 1) {
+        pool.push(createSfxAudio(src));
       }
       sfxState.pools.set(src, pool);
       return pool;
@@ -1011,14 +1022,19 @@
       if (sfxState.primed) return;
       sfxState.primed = true;
       collectAllSfxSources().forEach((src) => {
-        buildSfxPool(src);
+        buildSfxPool(src, 1);
       });
     }
 
     function playSfx(src) {
       if (soundtrackState.muted || !src) return;
       const pool = getSfxPool(src);
-      const available = pool.find((audio) => audio.paused || audio.ended) || pool[0];
+      let available = pool.find((audio) => audio.paused || audio.ended);
+      if (!available && pool.length < SFX_POOL_SIZE) {
+        available = createSfxAudio(src);
+        pool.push(available);
+      }
+      if (!available) available = pool[0];
       available.currentTime = 0;
       available.volume = SFX_VOLUME;
       available.play().catch(() => {

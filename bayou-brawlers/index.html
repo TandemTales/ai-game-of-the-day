@@ -874,6 +874,25 @@
         attackSpecial: 'assets/BB_sfx_shunkyRooster_attack_special.mp3'
       }
     };
+    const ENEMY_CHARACTER_SFX = {
+      swamp: { attack: 'assets/BB_sfx_chokingBlossom_attack.mp3', hit: 'assets/BB_sfx_chokingBlossom_hit.mp3', killed: 'assets/BB_sfx_chokingBlossom_killed.mp3' },
+      'choking-blossom': { attack: 'assets/BB_sfx_chokingBlossom_attack.mp3', hit: 'assets/BB_sfx_chokingBlossom_hit.mp3', killed: 'assets/BB_sfx_chokingBlossom_killed.mp3' },
+      daphodilus: { attack: 'assets/BB_sfx_delvingDaphodilus_attack.mp3', hit: 'assets/BB_sfx_delvingDaphodilus_hit.mp3', killed: 'assets/BB_sfx_delvingDaphodilus_killed.mp3' },
+      'mud-monster': { attack: 'assets/BB_sfx_mudMonster_attack.mp3', hit: 'assets/BB_sfx_mudMonster_hit.mp3', killed: 'assets/BB_sfx_mudMonster_killed.mp3' },
+      goblin: { attack: 'assets/BB_sfx_tattoo_rat_attack.mp3', hit: 'assets/BB_sfx_tattoo_rat_hit.mp3', killed: 'assets/BB_sfx_tattoo_rat_killed.mp3' },
+      thug: { attack: 'assets/BB_sfx_hiredGun_attack.mp3', hit: 'assets/BB_sfx_hiredGun_hit.mp3', killed: 'assets/BB_sfx_hiredGun_killed.mp3' },
+      automaton: { attack: 'assets/BB_sfx_automatick_attack.mp3', hit: 'assets/BB_sfx_automatick_hit.mp3', killed: 'assets/BB_sfx_automatick_killed.mp3', walking: 'assets/BB_sfx_automatick_walking.mp3' },
+      fey: { attack: 'assets/BB_sfx_ladyWorthington_attack.mp3', hit: 'assets/BB_sfx_queenOfHearts_hit.mp3', killed: 'assets/BB_sfx_ladyWorthington_dying.mp3' },
+      ranged: { attack: 'assets/BB_sfx_ladyWorthington_attack.mp3', hit: 'assets/BB_sfx_queenOfHearts_hit.mp3', killed: 'assets/BB_sfx_ladyWorthington_dying.mp3' },
+      hiredGun: { attack: 'assets/BB_sfx_hiredGun_attack.mp3', hit: 'assets/BB_sfx_hiredGun_hit.mp3', killed: 'assets/BB_sfx_hiredGun_killed.mp3' },
+      stingy: { attack: 'assets/BB_sfx_stingy_attack.mp3', hit: 'assets/BB_sfx_stingy_hit.mp3', killed: 'assets/BB_sfx_stingy_killed.mp3', walking: 'assets/BB_sfx_stingy_walking.mp3' },
+      sidewinder: { attack: 'assets/BB_sfx_sidewinder_walking.mp3', hit: 'assets/BB_sfx_sidewinder_hit.mp3', killed: 'assets/BB_sfx_sidewinder_killed.mp3', walking: 'assets/BB_sfx_sidewinder_walking.mp3' },
+      elite: { attack: 'assets/BB_sfx_automatick_attack.mp3', hit: 'assets/BB_sfx_automatick_hit.mp3', killed: 'assets/BB_sfx_automatick_killed.mp3', walking: 'assets/BB_sfx_automatick_walking.mp3' },
+      brute: { attack: 'assets/BB_sfx_hiredGun_attack.mp3', hit: 'assets/BB_sfx_hiredGun_hit.mp3', killed: 'assets/BB_sfx_hiredGun_killed.mp3' },
+      mage: { attack: 'assets/BB_sfx_ladyWorthington_attack.mp3', hit: 'assets/BB_sfx_queenOfHearts_hit.mp3', killed: 'assets/BB_sfx_ladyWorthington_dying.mp3' },
+      sweetykins: { attack: 'assets/BB_sfx_tickles_attack.mp3', hit: 'assets/BB_sfx_tickles_hit.mp3', killed: 'assets/BB_sfx_tickles_killed.mp3' },
+      boss: { attack: 'assets/BB_sfx_mudMonster_attack.mp3', hit: 'assets/BB_sfx_mudMonster_hit.mp3', killed: 'assets/BB_sfx_mudMonster_killed.mp3' }
+    };
     const soundtrackState = {
       muted: false,
       queue: [],
@@ -961,6 +980,18 @@
       if (soundtrackState.muted) return;
       const characterSfx = PLAYER_CHARACTER_SFX[player?.charData?.id];
       const src = characterSfx ? characterSfx[action] : null;
+      if (!src) return;
+      const oneShot = new Audio(src);
+      oneShot.volume = SFX_VOLUME;
+      oneShot.play().catch(() => {
+        // Audio playback can be blocked by browser autoplay policy.
+      });
+    }
+
+    function playEnemySfx(enemy, action) {
+      if (soundtrackState.muted) return;
+      const enemySfx = ENEMY_CHARACTER_SFX[enemy?.type];
+      const src = enemySfx ? enemySfx[action] : null;
       if (!src) return;
       const oneShot = new Audio(src);
       oneShot.volume = SFX_VOLUME;
@@ -2191,6 +2222,7 @@
         cooldown: rand(40, 80),
         windup: 0,
         attackAnimTimer: 0,
+        walkSfxCooldown: 0,
         stun: 0,
         hitStun: 0,
         stunDirX: rand(-1, 1),
@@ -3184,6 +3216,9 @@
     function damageEnemy(enemy, amount, stun = 0, options = null) {
       if (!enemy || enemy.hp <= 0 || enemy.invulnFrames > 0 || enemy.untargetable) return;
       enemy.hp -= amount;
+      const defeated = enemy.hp <= 0;
+      if (defeated) playEnemySfx(enemy, 'killed');
+      else playEnemySfx(enemy, 'hit');
       if (stun > 0) {
         const shortHitStun = Math.min(12, Math.round(stun * 0.45));
         enemy.hitStun = Math.max(enemy.hitStun || 0, shortHitStun);
@@ -4846,6 +4881,7 @@
           }
           enemy.windup -= 1;
           if (enemy.windup === 0) {
+            playEnemySfx(enemy, 'attack');
             const enemyAttackBody = getEnemyHitbox(enemy);
             const playerAttackBody = getPlayerHitbox(player);
             if (enemy.ranged) {
@@ -4881,6 +4917,15 @@
           }
         } else {
           enemy.cooldown = Math.max(0, enemy.cooldown - 1);
+        }
+
+        enemy.walkSfxCooldown = Math.max(0, (enemy.walkSfxCooldown || 0) - 1);
+        if (enemy.isMoving && enemy.walkSfxCooldown <= 0) {
+          const walkingSfx = ENEMY_CHARACTER_SFX[enemy.type]?.walking;
+          if (walkingSfx) {
+            playEnemySfx(enemy, 'walking');
+            enemy.walkSfxCooldown = enemy.isBoss ? 22 : 28;
+          }
         }
 
         if (enemy.attackAnimTimer > 0) enemy.attackAnimTimer -= 1;

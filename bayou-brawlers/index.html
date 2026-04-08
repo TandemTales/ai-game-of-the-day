@@ -900,9 +900,12 @@
       button: null
     };
     const SFX_POOL_SIZE = 4;
+    const SFX_MIN_INTERVAL_MS = 45;
+    const SFX_MAX_ACTIVE_INSTANCES = 24;
     const sfxState = {
       pools: new Map(),
-      primed: false
+      primed: false,
+      lastPlayedAt: new Map()
     };
     soundtrackState.audio.volume = SOUNDTRACK_VOLUME;
     soundtrackState.audio.preload = 'auto';
@@ -1028,15 +1031,30 @@
 
     function playSfx(src) {
       if (soundtrackState.muted || !src) return;
+      const now = performance.now();
+      const lastPlayedAt = sfxState.lastPlayedAt.get(src) || 0;
+      if (now - lastPlayedAt < SFX_MIN_INTERVAL_MS) return;
+
+      let activeInstances = 0;
+      sfxState.pools.forEach((pool) => {
+        pool.forEach((audio) => {
+          if (!audio.paused && !audio.ended) {
+            activeInstances += 1;
+          }
+        });
+      });
+      if (activeInstances >= SFX_MAX_ACTIVE_INSTANCES) return;
+
       const pool = getSfxPool(src);
       let available = pool.find((audio) => audio.paused || audio.ended);
       if (!available && pool.length < SFX_POOL_SIZE) {
         available = createSfxAudio(src);
         pool.push(available);
       }
-      if (!available) available = pool[0];
+      if (!available) return;
       available.currentTime = 0;
       available.volume = SFX_VOLUME;
+      sfxState.lastPlayedAt.set(src, now);
       available.play().catch(() => {
         // Audio playback can be blocked by browser autoplay policy.
       });

@@ -2723,11 +2723,25 @@
 
     function xpToNext(level) {
       if (level >= MAX_LEVEL) return 0;
-      const cyclePosition = getLevelCyclePosition(level);
-      const cycleIndex = Math.floor((Math.max(1, level) - 1) / 10);
-      const idx = clamp(cyclePosition - 1, 0, XP_TABLE.length - 1);
-      const scaledXp = Math.round(XP_TABLE[idx] * (0.7 ** cycleIndex));
-      return Math.max(20, scaledXp);
+      const normalizedLevel = Math.max(1, level);
+      const tableLength = XP_TABLE.length;
+      const idx = clamp(normalizedLevel - 1, 0, tableLength - 1);
+      if (normalizedLevel <= tableLength) {
+        return Math.max(20, XP_TABLE[idx]);
+      }
+
+      const safeTable = XP_TABLE.slice(0, tableLength);
+      const lastIdx = safeTable.length - 1;
+      let lastStep = safeTable[lastIdx] - safeTable[lastIdx - 1];
+      const previousStep = safeTable[lastIdx - 1] - safeTable[lastIdx - 2];
+      const stepGrowth = Math.max(0, lastStep - previousStep);
+
+      for (let reqLevel = tableLength + 1; reqLevel <= normalizedLevel; reqLevel += 1) {
+        lastStep += stepGrowth;
+        safeTable.push(safeTable[safeTable.length - 1] + lastStep);
+      }
+
+      return Math.max(20, safeTable[normalizedLevel - 1]);
     }
 
     function hasLevel(player, levelReq) {

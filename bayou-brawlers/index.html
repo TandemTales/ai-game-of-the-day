@@ -1062,6 +1062,7 @@
 
     const assets = {
       backgrounds: {},
+      foregrounds: {},
       barriers: {},
       barrierMasks: {},
       characters: {},
@@ -2144,6 +2145,21 @@
       if (!bgMetrics) return null;
       return {
         mask,
+        drawX: bgMetrics.drawX,
+        drawY: bgMetrics.drawY,
+        drawWidth: bgMetrics.drawWidth,
+        drawHeight: bgMetrics.drawHeight
+      };
+    }
+
+    function getForegroundDrawMetrics(level = levels[state.levelIndex]) {
+      const levelId = level ? level.id : '';
+      const foreground = assets.foregrounds[levelId];
+      if (!foreground) return null;
+      const bgMetrics = getBackgroundDrawMetrics(level);
+      if (!bgMetrics) return null;
+      return {
+        foreground,
         drawX: bgMetrics.drawX,
         drawY: bgMetrics.drawY,
         drawWidth: bgMetrics.drawWidth,
@@ -5847,6 +5863,18 @@
       }
     }
 
+    function drawForeground() {
+      const foregroundMetrics = getForegroundDrawMetrics();
+      if (!foregroundMetrics) return;
+      ctx.drawImage(
+        foregroundMetrics.foreground,
+        foregroundMetrics.drawX,
+        foregroundMetrics.drawY,
+        foregroundMetrics.drawWidth,
+        foregroundMetrics.drawHeight
+      );
+    }
+
     const statusTintCanvas = document.createElement('canvas');
     const statusTintCtx = statusTintCanvas.getContext('2d');
     const burnOverlayCanvas = document.createElement('canvas');
@@ -6503,6 +6531,8 @@
           }
         }
       });
+
+      drawForeground();
 
       state.enemies
         .filter(enemy => enemy.isBoss && enemy.hp > 0)
@@ -7637,6 +7667,15 @@
         emberfall: 'assets/BB_bg_tomsMachine_barrier.png',
         docks: 'assets/BB_bg_docks001_barrier.png'
       };
+      const foregroundKeysByLevelId = {
+        mirewatch: 'assets/BB_bg_mirewatch001_foreground.png',
+        'mirewatch-docks': 'assets/BB_bg_docks001_foreground.png',
+        'haunted-bayou': 'assets/BB_bg_hauntedBayou001_foreground.png',
+        'mirror-realm': 'assets/BB_bg_mirrorRealm001_foreground.png',
+        airship: 'assets/BB_bg_airship001_foreground.png',
+        'hell-gate': 'assets/BB_bg_hellGate001_foreground.png',
+        docks: 'assets/BB_bg_docks001_foreground.png'
+      };
 
       Object.entries(backgroundKeys).forEach(([key, src]) => {
         promises.push(loadImage(src).then(img => { assets.backgrounds[key] = normalizeBackgroundImage(img); }));
@@ -7644,6 +7683,10 @@
 
       Object.entries(barrierKeysByLevelId).forEach(([levelId, src]) => {
         promises.push(loadImage(src).then((img) => { assets.barriers[levelId] = img; }));
+      });
+
+      Object.entries(foregroundKeysByLevelId).forEach(([levelId, src]) => {
+        promises.push(loadImage(src).then((img) => { assets.foregrounds[levelId] = img; }));
       });
 
       const playerSpriteSheets = {

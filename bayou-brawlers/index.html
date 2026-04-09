@@ -120,6 +120,56 @@
       border-radius: 12px;
       border: 1px solid rgba(255,215,0,0.25);
     }
+    .character-sheet-chip {
+      padding: 2px;
+      border-color: rgba(95, 158, 160, 0.8);
+      background: rgba(4, 10, 15, 0.9);
+    }
+    .character-sheet-trigger {
+      position: relative;
+      width: 38px;
+      height: 38px;
+      border: 2px solid rgba(95, 158, 160, 0.85);
+      border-radius: 8px;
+      background: radial-gradient(circle at 28% 24%, rgba(95, 158, 160, 0.4), rgba(5, 12, 19, 0.95));
+      padding: 0;
+      cursor: pointer;
+      overflow: hidden;
+      transition: transform 120ms ease, box-shadow 160ms ease, border-color 160ms ease;
+    }
+    .character-sheet-trigger:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 12px rgba(95, 158, 160, 0.65);
+    }
+    .character-sheet-trigger:active,
+    .character-sheet-trigger.pressed {
+      transform: scale(0.94);
+      box-shadow: 0 0 18px rgba(95, 158, 160, 0.95);
+      border-color: #7ee7db;
+    }
+    .character-sheet-trigger img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      image-rendering: pixelated;
+      display: block;
+    }
+    .character-sheet-trigger::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      background: radial-gradient(circle, rgba(255, 230, 164, 0.35), rgba(95, 158, 160, 0));
+      pointer-events: none;
+    }
+    .character-sheet-trigger.flash::after {
+      animation: characterSheetFlash 280ms ease;
+    }
+    @keyframes characterSheetFlash {
+      0% { opacity: 0; transform: scale(0.5); }
+      40% { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; transform: scale(1.2); }
+    }
     .chip {
       background: var(--ui);
       border: 2px solid var(--gold);
@@ -422,6 +472,59 @@
     .levelup-choice h4 { margin: 0 0 6px 0; font-size: 12px; color: #ffd65c; }
     .levelup-choice p { margin: 0; font-size: 10px; color: #bdd9d3; }
     .levelup-tag { display: inline-block; margin-bottom: 6px; font-size: 9px; letter-spacing: 0.08em; color: #f3d28a; text-transform: uppercase; }
+    .character-sheet-panel {
+      max-width: 740px;
+      width: min(740px, calc(100vw - 28px));
+      max-height: min(88vh, 760px);
+      overflow-y: auto;
+      text-align: left;
+      display: grid;
+      grid-template-columns: minmax(140px, 200px) minmax(0, 1fr);
+      gap: 14px;
+    }
+    .character-sheet-portrait {
+      width: 100%;
+      border: 2px solid rgba(95, 158, 160, 0.85);
+      border-radius: 10px;
+      image-rendering: pixelated;
+      background: radial-gradient(circle at 50% 34%, rgba(95,158,160,0.2), rgba(4,7,10,0.95));
+    }
+    .character-sheet-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .character-sheet-stat {
+      font-size: 9px;
+      border: 1px solid rgba(255, 215, 0, 0.35);
+      border-radius: 8px;
+      padding: 7px 8px;
+      background: rgba(12, 16, 24, 0.86);
+      color: #d6f5ed;
+    }
+    .character-sheet-lines {
+      margin: 0;
+      padding-left: 14px;
+      display: grid;
+      gap: 4px;
+      font-size: 9px;
+      line-height: 1.45;
+      color: #d8e9f0;
+    }
+    .character-sheet-lines li::marker {
+      color: #ffd65c;
+    }
+    .character-sheet-section-title {
+      margin: 10px 0 6px;
+      font-size: 10px;
+      color: #ffd65c;
+    }
+    .character-sheet-empty {
+      color: #8fa7ae;
+      font-size: 9px;
+      margin: 0 0 2px;
+    }
     .controls {
       position: absolute;
       bottom: var(--controls-bottom);
@@ -597,6 +700,11 @@
         width: 100%;
       }
       .levelup-choices { grid-template-columns: 1fr; }
+      .character-sheet-panel { grid-template-columns: 1fr; }
+      .character-sheet-portrait {
+        width: min(220px, 58vw);
+        justify-self: center;
+      }
       .instructions { font-size: 8px; }
     }
 
@@ -673,6 +781,11 @@
         <div class="hp-bar"><div class="hp-fill" id="powerFill" style="background:linear-gradient(90deg,#5ef1ff,#7a95ff)"></div></div>
       </div>
       <div class="chip">Ability: <span id="specialReady">Locked</span></div>
+      <div class="chip character-sheet-chip">
+        <button id="characterSheetTrigger" class="character-sheet-trigger" type="button" aria-label="Open character sheet" title="Character Sheet">
+          <img id="characterSheetThumb" src="assets/BB_profile_billyBoxby.png" alt="Selected character portrait" width="64" height="64">
+        </button>
+      </div>
     </div>
     <div class="status-strip" id="emergencyVentingStatus" aria-live="polite">
       <span>Emergency Venting</span>
@@ -743,6 +856,10 @@
         <p id="levelUpAuto"></p>
         <div class="levelup-choices" id="levelUpChoices"></div>
       </div>
+    </div>
+
+    <div class="overlay" id="characterSheetOverlay">
+      <div class="panel character-sheet-panel" id="characterSheetPanel" aria-live="polite"></div>
     </div>
   </div>
 
@@ -817,6 +934,10 @@
       'assets/BB_soundtrack_04.mp3',
       'assets/BB_soundtrack_05.mp3'
     ];
+    const UI_SFX = {
+      characterSheetOpen: 'assets/BB_sfx_telematron_teleport.mp3',
+      characterSheetClose: 'assets/BB_sfx_curiousSpirit_walking.mp3'
+    };
     const PLAYER_CHARACTER_SFX = {
       'billy-boxby': {
         hit: 'assets/BB_sfx_billyBoxby_hit.mp3',
@@ -3145,10 +3266,12 @@
       player.selectedUpgrades.add(upgrade.id);
       player.upgradeRanks[upgrade.id] = getUpgradeRank(player, upgrade.id) + 1;
       showNotification(`${upgrade.name} unlocked`);
+      refreshCharacterSheetIfVisible();
     }
 
     function showLevelUpOverlay(player, level) {
       const overlay = document.getElementById('levelUpOverlay');
+      document.getElementById('characterSheetOverlay').classList.remove('show');
       const title = document.getElementById('levelUpTitle');
       const auto = document.getElementById('levelUpAuto');
       const choicesWrap = document.getElementById('levelUpChoices');
@@ -3225,6 +3348,7 @@
       document.getElementById('level').textContent = String(player.level);
       document.getElementById('xp').textContent = String(Math.floor(player.xp));
       document.getElementById('xpNext').textContent = String(xpToNext(player.level));
+      refreshCharacterSheetIfVisible();
     }
 
     function updatePowerHud(player) {
@@ -3245,6 +3369,7 @@
       else if (isSuperReady) ready.textContent = 'Super Ready';
       else if (player.power >= SPECIAL_COST) ready.textContent = hasLevel(player, 5) ? 'Special Ready' : 'Ability Ready';
       else ready.textContent = 'Charging';
+      refreshCharacterSheetIfVisible();
     }
 
     function layoutEmergencyVentingHud() {
@@ -3698,6 +3823,7 @@
       const fill = document.getElementById('hpFill');
       if (!state.player) return;
       fill.style.width = `${(state.player.hp / state.player.maxHp) * 100}%`;
+      refreshCharacterSheetIfVisible();
     }
 
     function spawnPickup(x, y) {
@@ -6973,6 +7099,14 @@
 
       window.addEventListener('keydown', (event) => {
         if (event.repeat) return;
+        if (event.key.toLowerCase() === 'c') {
+          event.preventDefault();
+          toggleCharacterSheet();
+          return;
+        }
+        if (event.key === 'Escape') {
+          toggleCharacterSheet(false);
+        }
         if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') input.left = true;
         if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') input.right = true;
         if (event.key === 'ArrowUp' || event.key.toLowerCase() === 'w') input.up = true;
@@ -7098,6 +7232,135 @@
       layoutAdaptiveUi();
     });
 
+    function formatPercent(value) {
+      return `${Math.round(value * 100)}%`;
+    }
+
+    function getCharacterSheetAbilityLines(player) {
+      if (!player || !player.charData) return [];
+      const lines = [
+        `Fast: ${player.charData.moves.fast}`,
+        `Power: ${player.charData.moves.power}`
+      ];
+      if (player.level >= 3) {
+        lines.push(`Special: ${player.charData.moves.special}`);
+      } else {
+        lines.push('Special unlocks at level 3');
+      }
+      lines.push(player.level >= 5 ? 'Super ability unlocked (Power meter tier 2)' : 'Super unlocks at level 5');
+      if (player.level >= 5) {
+        lines.push(`Signature Passive: ${LEVEL_5_SIGNATURE_PASSIVES[player.charData.id] || 'Unlocked at level 5'}`);
+      }
+      if (player.level >= 10) {
+        lines.push(`Final Passive: ${FINAL_SIGNATURE_PASSIVES[player.charData.id] || 'Unlocked at level 10'}`);
+      }
+      return lines;
+    }
+
+    function getCharacterSheetUpgradeLines(player) {
+      if (!player || !player.charData || !player.selectedUpgrades) return [];
+      const upgradeEntries = CHARACTER_UPGRADES[player.charData.id] || [];
+      return upgradeEntries
+        .filter((upgrade) => player.selectedUpgrades.has(upgrade.id))
+        .map((upgrade) => {
+          const rank = getUpgradeRank(player, upgrade.id);
+          const rankSuffix = rank > 1 ? ` (Rank ${rank})` : '';
+          return `${upgrade.name}${rankSuffix} — ${upgrade.description}`;
+        });
+    }
+
+    function renderCharacterSheetPanel() {
+      const panel = document.getElementById('characterSheetPanel');
+      const player = state.player;
+      if (!panel || !player || !player.charData) return;
+
+      const base = player.charData.stats;
+      const levelCycle = getLevelCyclePosition(player.level);
+      const abilityLines = getCharacterSheetAbilityLines(player);
+      const upgradeLines = getCharacterSheetUpgradeLines(player);
+
+      panel.innerHTML = `
+        <img class="character-sheet-portrait" src="${player.charData.portrait}" alt="${player.name} portrait" width="256" height="256">
+        <div>
+          <h2>${player.name} • Level ${player.level}</h2>
+          <div class="character-sheet-grid">
+            <div class="character-sheet-stat">HP: ${Math.ceil(player.hp)} / ${Math.ceil(player.maxHp)}</div>
+            <div class="character-sheet-stat">Power Meter: ${Math.round(player.power)} / ${Math.round(player.maxPower)}</div>
+            <div class="character-sheet-stat">Base Speed: ${base.speed.toFixed(1)} • Current Speed Mod: ${formatPercent(player.speed / Math.max(0.01, base.speed))}</div>
+            <div class="character-sheet-stat">Base Power: ${base.power.toFixed(2)} • Damage Mod: ${formatPercent(player.allDamageMultiplier)}</div>
+            <div class="character-sheet-stat">Range: ${base.range} • Durability: ${base.durability}</div>
+            <div class="character-sheet-stat">XP: ${Math.floor(player.xp)} / ${xpToNext(player.level)} • Cycle Stage: ${levelCycle}/10</div>
+          </div>
+          <h3 class="character-sheet-section-title">Abilities Unlocked So Far</h3>
+          <ul class="character-sheet-lines">${abilityLines.map((line) => `<li>${line}</li>`).join('')}</ul>
+          <h3 class="character-sheet-section-title">Chosen Upgrades</h3>
+          ${upgradeLines.length > 0
+            ? `<ul class="character-sheet-lines">${upgradeLines.map((line) => `<li>${line}</li>`).join('')}</ul>`
+            : '<p class="character-sheet-empty">No upgrades chosen yet. Gain XP and level up to collect upgrades.</p>'
+          }
+          <div class="character-detail-actions" style="margin-top:12px;">
+            <button class="btn" id="closeCharacterSheetBtn" type="button">Back to Battle</button>
+          </div>
+        </div>
+      `;
+
+      const closeBtn = document.getElementById('closeCharacterSheetBtn');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+          toggleCharacterSheet(false);
+        });
+      }
+    }
+
+    function toggleCharacterSheet(shouldShow) {
+      const overlay = document.getElementById('characterSheetOverlay');
+      const trigger = document.getElementById('characterSheetTrigger');
+      if (!overlay || !trigger || !state.player || !state.running) return;
+
+      const isOpen = overlay.classList.contains('show');
+      const nextOpen = typeof shouldShow === 'boolean' ? shouldShow : !isOpen;
+      if (nextOpen === isOpen) return;
+
+      trigger.classList.add('flash');
+      trigger.classList.add('pressed');
+      setTimeout(() => trigger.classList.remove('pressed'), 130);
+      setTimeout(() => trigger.classList.remove('flash'), 280);
+
+      if (nextOpen) {
+        renderCharacterSheetPanel();
+        overlay.classList.add('show');
+        state.paused = true;
+        playSfx(UI_SFX.characterSheetOpen);
+      } else {
+        overlay.classList.remove('show');
+        state.paused = false;
+        playSfx(UI_SFX.characterSheetClose);
+      }
+    }
+
+    function refreshCharacterSheetIfVisible() {
+      const overlay = document.getElementById('characterSheetOverlay');
+      if (overlay && overlay.classList.contains('show')) {
+        renderCharacterSheetPanel();
+      }
+    }
+
+    function setupCharacterSheetControls() {
+      const trigger = document.getElementById('characterSheetTrigger');
+      const overlay = document.getElementById('characterSheetOverlay');
+      if (!trigger || !overlay) return;
+
+      trigger.addEventListener('click', () => {
+        toggleCharacterSheet();
+      });
+
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) {
+          toggleCharacterSheet(false);
+        }
+      });
+    }
+
     function initCharacterSelection() {
       const grid = document.getElementById('characterGrid');
       const detailPanel = document.getElementById('characterDetail');
@@ -7167,6 +7430,11 @@
       const selectCharacter = (index) => {
         selectedIndex = (index + characters.length) % characters.length;
         selected = characters[selectedIndex];
+        const sheetThumb = document.getElementById('characterSheetThumb');
+        if (sheetThumb) {
+          sheetThumb.src = selected.portrait;
+          sheetThumb.alt = `${selected.name} portrait`;
+        }
         updateHighlight();
         renderDetail(selected);
         document.getElementById('startBtn').disabled = false;
@@ -7207,7 +7475,13 @@
         state.paused = false;
         state.pendingLevelUps = [];
         state.currentLevelUp = null;
+        const sheetThumb = document.getElementById('characterSheetThumb');
+        if (sheetThumb) {
+          sheetThumb.src = selected.portrait;
+          sheetThumb.alt = `${selected.name} portrait`;
+        }
         document.getElementById('levelUpOverlay').classList.remove('show');
+        document.getElementById('characterSheetOverlay').classList.remove('show');
         localStorage.removeItem(SAVE_SLOT_KEY);
         updateHpBar();
         updateProgressHud(state.player);
@@ -7690,6 +7964,7 @@
       document.getElementById('loadingOverlay').classList.remove('show');
       document.getElementById('startOverlay').classList.add('show');
       setupControls();
+      setupCharacterSheetControls();
       initCharacterSelection();
       handleMessageButton();
       setupSoundtrackControls();

@@ -6303,6 +6303,10 @@
     const charmHeartPixelScanCanvas = document.createElement('canvas');
     const charmHeartPixelScanCtx = charmHeartPixelScanCanvas.getContext('2d');
     const charmWalkTopPixelCache = new Map();
+    const foregroundBottomPixelScanCanvas = document.createElement('canvas');
+    const foregroundBottomPixelScanCtx = foregroundBottomPixelScanCanvas.getContext('2d');
+    const foregroundBottomOpaquePixelCache = new Map();
+    const entityBottomOpaquePixelCache = new Map();
 
     function getWalkTrackForCharmHeart(entity) {
       if (!entity || !entity.animation) return null;
@@ -6341,6 +6345,108 @@
 
       charmWalkTopPixelCache.set(cacheKey, topOpaquePixel);
       return topOpaquePixel;
+    }
+
+    function getFrameBottomOpaquePixel(image, frame) {
+      if (!image || !frame) return frame?.height ? (frame.height - 1) : 0;
+      const cacheKey = `${image.src}|${frame.x}|${frame.y}|${frame.width}|${frame.height}|bottom`;
+      if (entityBottomOpaquePixelCache.has(cacheKey)) return entityBottomOpaquePixelCache.get(cacheKey);
+
+      foregroundBottomPixelScanCanvas.width = frame.width;
+      foregroundBottomPixelScanCanvas.height = frame.height;
+      foregroundBottomPixelScanCtx.clearRect(0, 0, frame.width, frame.height);
+      foregroundBottomPixelScanCtx.drawImage(image, frame.x, frame.y, frame.width, frame.height, 0, 0, frame.width, frame.height);
+      const data = foregroundBottomPixelScanCtx.getImageData(0, 0, frame.width, frame.height).data;
+
+      const alphaThreshold = 24;
+      let bottomOpaquePixel = frame.height - 1;
+      let found = false;
+      for (let y = frame.height - 1; y >= 0 && !found; y -= 1) {
+        for (let x = 0; x < frame.width; x += 1) {
+          const idx = ((y * frame.width) + x) * 4;
+          if (data[idx + 3] > alphaThreshold) {
+            bottomOpaquePixel = y;
+            found = true;
+            break;
+          }
+        }
+      }
+
+      entityBottomOpaquePixelCache.set(cacheKey, bottomOpaquePixel);
+      return bottomOpaquePixel;
+    }
+
+    function getForegroundBottomOpaqueWorldY(level = levels[state.levelIndex]) {
+      if (!level) return null;
+      const metrics = getForegroundDrawMetrics(level);
+      if (!metrics) return null;
+      const cacheKey = level.id;
+      let bottomOpaquePixel = foregroundBottomOpaquePixelCache.get(cacheKey);
+      if (bottomOpaquePixel == null) {
+        const fg = metrics.foreground;
+        foregroundBottomPixelScanCanvas.width = fg.width;
+        foregroundBottomPixelScanCanvas.height = fg.height;
+        foregroundBottomPixelScanCtx.clearRect(0, 0, fg.width, fg.height);
+        foregroundBottomPixelScanCtx.drawImage(fg, 0, 0);
+        const data = foregroundBottomPixelScanCtx.getImageData(0, 0, fg.width, fg.height).data;
+        const alphaThreshold = 24;
+        bottomOpaquePixel = fg.height - 1;
+        let found = false;
+        for (let y = fg.height - 1; y >= 0 && !found; y -= 1) {
+          for (let x = 0; x < fg.width; x += 1) {
+            const idx = ((y * fg.width) + x) * 4;
+            if (data[idx + 3] > alphaThreshold) {
+              bottomOpaquePixel = y;
+              found = true;
+              break;
+            }
+          }
+        }
+        foregroundBottomOpaquePixelCache.set(cacheKey, bottomOpaquePixel);
+      }
+      const screenY = metrics.drawY + ((bottomOpaquePixel / Math.max(1, metrics.foreground.height)) * metrics.drawHeight);
+      return screenY + state.cameraY;
+    }
+
+    function getEntityBottomOpaqueWorldY(entity, defaultSize = PLAYER_DRAW_SIZE) {
+      if (!entity) return null;
+      const depthScale = getDepthScaleForY(entity.y);
+      const drawSize = defaultSize * (entity.renderScale || 1) * depthScale;
+      const drawTopScreenY = entity.y - state.cameraY - entity.z - drawSize;
+      const track = entity.charData
+        ? getPlayerAnimTrack(entity, entity.animation?.state, entity.animation?.facing)
+        : getEnemyAnimTrack(entity, entity.animation?.state, entity.animation?.facing);
+      const frameSource = track?.img;
+      const frameData = track?.frames?.[entity.animation?.frameIndex] || track?.frames?.[0];
+      const bottomOpaquePixel = getFrameBottomOpaquePixel(frameSource, frameData);
+      const bottomOpaqueScreenY = frameData
+        ? (drawTopScreenY + ((bottomOpaquePixel / Math.max(1, frameData.height)) * drawSize))
+        : (entity.y - state.cameraY - entity.z);
+      return bottomOpaqueScreenY + state.cameraY;
+    }
+
+    function drawEntityWithStatusEffects(entity, size) {
+      drawEntity(entity, size);
+      if ((entity.statuses?.CHARM?.duration || 0) > 0) {
+        drawCharmHeart(entity, size);
+      }
+      if ((entity.bewitchingPresenceTimer || 0) > 0) {
+        drawBewitchingPresenceHeart(entity, size);
+      }
+      const isStunned = (entity.hp > 0) && (entity.stun > 0);
+      if (!isStunned) return;
+      const centerX = entity.x - state.cameraX;
+      const centerY = entity.y - state.cameraY - (size * 0.82);
+      const orbit = size * 0.16;
+      for (let i = 0; i < 3; i += 1) {
+        const angle = (performance.now() * 0.006) + (i * (Math.PI * 2 / 3));
+        const x = centerX + Math.cos(angle) * orbit;
+        const y = centerY + Math.sin(angle) * (orbit * 0.6);
+        ctx.fillStyle = '#ffe37d';
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
     function getEntityWalkTopOpaqueWorldY(entity, defaultSize = PLAYER_DRAW_SIZE) {
@@ -6507,32 +6613,24 @@
       }
 
       renderQueue.sort((a, b) => a.sortY - b.sortY);
+      const playerBottomWorldY = getEntityBottomOpaqueWorldY(state.player, PLAYER_DRAW_SIZE);
+      const foregroundBottomWorldY = getForegroundBottomOpaqueWorldY();
+      const drawPlayerInFrontOfForeground = (
+        playerBottomWorldY != null
+        && foregroundBottomWorldY != null
+        && playerBottomWorldY > foregroundBottomWorldY
+      );
+
       renderQueue.forEach(({ entity, size }) => {
-        drawEntity(entity, size);
-        if ((entity.statuses?.CHARM?.duration || 0) > 0) {
-          drawCharmHeart(entity, size);
-        }
-        if ((entity.bewitchingPresenceTimer || 0) > 0) {
-          drawBewitchingPresenceHeart(entity, size);
-        }
-        const isStunned = (entity.hp > 0) && (entity.stun > 0);
-        if (isStunned) {
-          const centerX = entity.x - state.cameraX;
-          const centerY = entity.y - state.cameraY - (size * 0.82);
-          const orbit = size * 0.16;
-          for (let i = 0; i < 3; i += 1) {
-            const angle = (performance.now() * 0.006) + (i * (Math.PI * 2 / 3));
-            const x = centerX + Math.cos(angle) * orbit;
-            const y = centerY + Math.sin(angle) * (orbit * 0.6);
-            ctx.fillStyle = '#ffe37d';
-            ctx.beginPath();
-            ctx.arc(x, y, 4, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        }
+        if (drawPlayerInFrontOfForeground && entity === state.player) return;
+        drawEntityWithStatusEffects(entity, size);
       });
 
       drawForeground();
+
+      if (drawPlayerInFrontOfForeground && state.player) {
+        drawEntityWithStatusEffects(state.player, PLAYER_DRAW_SIZE);
+      }
 
       state.enemies
         .filter(enemy => enemy.isBoss && enemy.hp > 0)

@@ -338,8 +338,8 @@
       touch-action: manipulation;
     }
     .thumb-card img {
-      width: clamp(28px, 4.8vh, 44px);
-      height: clamp(28px, 4.8vh, 44px);
+      width: clamp(32px, 5.2vh, 52px);
+      height: clamp(32px, 5.2vh, 52px);
       image-rendering: pixelated;
       border-radius: 6px;
       border: 1px solid rgba(255,255,255,0.2);
@@ -357,7 +357,7 @@
       background: rgba(6,8,11,0.94);
       padding: clamp(8px, 1.4vh, 12px);
       display: grid;
-      grid-template-columns: minmax(130px, 28vh) minmax(0, 1fr);
+      grid-template-columns: minmax(150px, 32vh) minmax(0, 1fr);
       gap: clamp(8px, 1.1vh, 14px);
       align-items: center;
       touch-action: pan-y;
@@ -365,7 +365,7 @@
     }
     .character-hero-img {
       width: 100%;
-      max-width: min(28vh, 220px);
+      max-width: min(32vh, 256px);
       aspect-ratio: 1 / 1;
       object-fit: contain;
       image-rendering: pixelated;
@@ -7119,7 +7119,7 @@
         thumb.type = 'button';
         thumb.className = 'thumb-card';
         thumb.setAttribute('aria-label', `Select ${character.name}`);
-        thumb.innerHTML = `<img src="${character.portrait}" alt="${character.name} portrait">`;
+        thumb.innerHTML = `<img src="${character.portrait}" alt="${character.name} portrait" width="256" height="256">`;
         thumb.addEventListener('click', () => {
           selectCharacter(index);
         });
@@ -7138,7 +7138,7 @@
       const renderDetail = (character) => {
         detailPanel.classList.add('show');
         detailPanel.innerHTML = `
-          <img class="character-hero-img" src="${character.portrait}" alt="${character.name}">
+          <img class="character-hero-img" src="${character.portrait}" alt="${character.name}" width="256" height="256">
           <div class="character-detail-main">
             <h3>${character.name}</h3>
             <p class="stat">Speed ${character.stats.speed.toFixed(1)} | Power ${character.stats.power.toFixed(2)} | Range ${character.stats.range} | Durability ${character.stats.durability}</p>

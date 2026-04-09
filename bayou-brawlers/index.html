@@ -886,7 +886,7 @@
       ranged: { attack: 'assets/BB_sfx_ladyWorthington_attack.mp3', hit: 'assets/BB_sfx_queenOfHearts_hit.mp3', killed: 'assets/BB_sfx_ladyWorthington_dying.mp3' },
       hiredGun: { attack: 'assets/BB_sfx_hiredGun_attack.mp3', hit: 'assets/BB_sfx_hiredGun_hit.mp3', killed: 'assets/BB_sfx_hiredGun_killed.mp3' },
       stingy: { attack: 'assets/BB_sfx_stingy_attack.mp3', hit: 'assets/BB_sfx_stingy_hit.mp3', killed: 'assets/BB_sfx_stingy_killed.mp3', walking: 'assets/BB_sfx_stingy_walking.mp3' },
-      sidewinder: { attack: 'assets/BB_sfx_sidewinder_walking.mp3', hit: 'assets/BB_sfx_sidewinder_hit.mp3', killed: 'assets/BB_sfx_sidewinder_killed.mp3', walking: 'assets/BB_sfx_sidewinder_walking.mp3' },
+      sidewinder: { attack: 'assets/BB_sfx_bambo_attack.wav', hit: 'assets/BB_sfx_bambo_hit.wav', killed: 'assets/BB_sfx_bambo_killed.wav', walking: 'assets/BB_sfx_bambo_walking.wav' },
       elite: { attack: 'assets/BB_sfx_automatick_attack.mp3', hit: 'assets/BB_sfx_automatick_hit.mp3', killed: 'assets/BB_sfx_automatick_killed.mp3', walking: 'assets/BB_sfx_automatick_walking.mp3' },
       brute: { attack: 'assets/BB_sfx_hiredGun_attack.mp3', hit: 'assets/BB_sfx_hiredGun_hit.mp3', killed: 'assets/BB_sfx_hiredGun_killed.mp3' },
       mage: { attack: 'assets/BB_sfx_ladyWorthington_attack.mp3', hit: 'assets/BB_sfx_queenOfHearts_hit.mp3', killed: 'assets/BB_sfx_ladyWorthington_dying.mp3' },
@@ -7573,11 +7573,11 @@
           profileId: 'enemy-sidewinder',
           sizeMultiplier: ENEMY_SIZE_BOOST_BY_TYPE.sidewinder || 1,
           states: {
-            idle: { left: ['assets/animation_sidewinder_red_walking_left.png', 1], fps: 0, loop: false },
-            walk: { left: ['assets/animation_sidewinder_red_walking_left.png', 8], fps: 10, loop: true },
-            hurt: { left: ['assets/animation_sidewinder_red_damaged_left.png', 5], fps: 12, loop: false },
-            attack: { left: ['assets/animation_sidewinder_red_attack_left.png', 7], fps: 14, loop: false },
-            death: { left: ['assets/animation_sidewinder_red_killed_left.png', 6], fps: 8, loop: false }
+            idle: { left: ['assets/animation_bambo_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_bambo_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_bambo_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_bambo_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_bambo_red_killed_left.png', 6], fps: 8, loop: false }
           }
         },
         sweetykins: {

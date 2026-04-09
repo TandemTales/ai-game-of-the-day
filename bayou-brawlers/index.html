@@ -903,11 +903,14 @@
       button: null
     };
     const SFX_POOL_SIZE = 3;
+    const SFX_ALLOW_RUNTIME_POOL_GROWTH = false;
     const SFX_MIN_INTERVAL_MS = 70;
     const SFX_GLOBAL_INTERVAL_MS = 25;
     const SFX_WINDOW_MS = 50;
     const SFX_MAX_PLAYS_PER_WINDOW = 8;
     const SFX_MAX_ACTIVE_INSTANCES = 12;
+    const ENEMY_WALKING_SFX_MAX_PER_FRAME = 1;
+    const ENEMY_WALKING_SFX_NEARBY_DISTANCE = 260;
     const sfxState = {
       pools: new Map(),
       primed: false,
@@ -1063,7 +1066,7 @@
 
       const pool = getSfxPool(src);
       let available = pool.find((audio) => audio.paused || audio.ended);
-      if (!available && pool.length < SFX_POOL_SIZE) {
+      if (!available && SFX_ALLOW_RUNTIME_POOL_GROWTH && pool.length < SFX_POOL_SIZE) {
         available = createSfxAudio(src);
         pool.push(available);
       }
@@ -4522,6 +4525,7 @@
       const player = state.player;
       const hasUndergroundDaph = countUndergroundDaphodilus() > 0;
       state.commandBuffTimer = Math.max(0, state.commandBuffTimer - 1);
+      let enemyWalkingSfxPlayedThisFrame = 0;
       state.enemies.forEach(enemy => {
         const prevX = enemy.x;
         const prevY = enemy.y;
@@ -5023,10 +5027,15 @@
         enemy.walkSfxCooldown = Math.max(0, (enemy.walkSfxCooldown || 0) - 1);
         if (enemy.isMoving && enemy.walkSfxCooldown <= 0) {
           const walkingSfx = ENEMY_CHARACTER_SFX[enemy.type]?.walking;
-          if (walkingSfx) {
+          const playerDistance = Math.hypot(enemy.x - player.x, enemy.y - player.y);
+          const tooFarForWalkingSfx = playerDistance > ENEMY_WALKING_SFX_NEARBY_DISTANCE;
+          if (walkingSfx && !tooFarForWalkingSfx && enemyWalkingSfxPlayedThisFrame < ENEMY_WALKING_SFX_MAX_PER_FRAME) {
             playEnemySfx(enemy, 'walking');
-            enemy.walkSfxCooldown = enemy.isBoss ? 22 : 28;
+            enemyWalkingSfxPlayedThisFrame += 1;
           }
+          const crowdingScale = Math.max(0, state.enemies.length - 10);
+          const baseWalkCooldown = enemy.isBoss ? 22 : 28;
+          enemy.walkSfxCooldown = baseWalkCooldown + Math.min(24, crowdingScale);
         }
 
         if (enemy.attackAnimTimer > 0) enemy.attackAnimTimer -= 1;

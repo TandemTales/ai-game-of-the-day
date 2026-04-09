@@ -2826,7 +2826,16 @@
           const typeId = wave.types[i % wave.types.length];
           const isLeftGroup = i < leftCount;
           const groupIndex = isLeftGroup ? i : (i - leftCount);
-          queueSpawn(typeId, groupIndex * 8, {}, isLeftGroup ? 'left' : 'right');
+          const laneOffset = groupIndex * ENEMY_GROUP_SPAWN_SPACING;
+          const baseSpawnX = isLeftGroup
+            ? (state.cameraX - 90 - laneOffset + rand(-24, 24))
+            : (state.cameraX + canvas.width + 90 + laneOffset + rand(-24, 24));
+          const spawnX = clamp(baseSpawnX, 60, state.levelWidth - 60);
+          const spawnY = rand(getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
+          const offsetAwayFromPlayer = spawnX <= state.player.x ? -75 : 75;
+          const safeSpawnX = isSpawnOverlappingPlayer(spawnX, spawnY) ? (spawnX + offsetAwayFromPlayer) : spawnX;
+          const enemy = createEnemy(typeId, clamp(safeSpawnX, 60, state.levelWidth - 60), spawnY);
+          state.enemies.push(enemy);
         }
         state.waveIndex = waveIndex;
         state.waveActive = true;

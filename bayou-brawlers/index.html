@@ -4180,6 +4180,11 @@
       }
     }
 
+    function getAoeRangeMultiplier(characterId) {
+      if (characterId === 'green-fairy' || characterId === 'scarlett-glumpkin') return 3;
+      return 1;
+    }
+
     function doAttack(player, heavy, isAir, tuning) {
       const characterId = player.charData.id;
       const rangedAttackers = new Set(['rustbucket']);
@@ -4296,7 +4301,7 @@
 
       if (aoeAttackers.has(characterId)) {
         const weakAoeDamage = dmg * 0.65;
-        const aoeRadiusMultiplier = characterId === 'green-fairy' ? 2 : 1;
+        const aoeRadiusMultiplier = (characterId === 'green-fairy' ? 2 : 1) * getAoeRangeMultiplier(characterId);
         const weakAoeRadius = (heavy ? 90 : 72) * aoeRadiusMultiplier;
         let hitCount = 0;
         state.enemies.forEach(enemy => {
@@ -4406,12 +4411,13 @@
     function castCharacterAbility(player, isSuper) {
       const id = player.charData.id;
       const radiusBoost = player.specialEffectMultiplier || 1;
+      const aoeRangeMultiplier = getAoeRangeMultiplier(id);
       if (isSuper) {
         state.shake = 10;
         state.effects.push({
           x: player.x,
           y: player.y - 80,
-          radius: 220 * radiusBoost,
+          radius: 220 * radiusBoost * aoeRangeMultiplier,
           timer: 36,
           damage: 30 * radiusBoost,
           knockback: 30,
@@ -4425,13 +4431,13 @@
         const applyRegular = () => {
           const target = state.enemies.find(e => e.hp > 0 && Math.sign(e.x - player.x) === player.facing && Math.abs(e.x - player.x) < 220);
           if (target) applyStatus(target, 'CHARM', hasLevel(player, 10) ? 900 : 360, 1);
-          else state.effects.push({ x: player.x + player.facing * 50, y: player.y - 30, radius: 80, timer: 24, damage: 8, stun: 20, type: 'shock' });
+          else state.effects.push({ x: player.x + player.facing * 50, y: player.y - 30, radius: 80 * aoeRangeMultiplier, timer: 24, damage: 8, stun: 20, type: 'shock' });
         };
         applyRegular();
         if (isSuper) {
           let charmed = 0;
           state.enemies.forEach(enemy => {
-            if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < 180 * radiusBoost && charmed < (hasLevel(player, 9) ? 6 : 4)) {
+            if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < 180 * radiusBoost * aoeRangeMultiplier && charmed < (hasLevel(player, 9) ? 6 : 4)) {
               applyStatus(enemy, 'CHARM', hasLevel(player, 10) ? 900 : 360, 1);
               charmed += 1;
             }
@@ -4497,7 +4503,7 @@
       } else if (id === 'grimma-the-feared') {
         state.effects.push({ x: player.x, y: player.y, radius: isSuper ? 170 * radiusBoost : 96, timer: isSuper ? (hasLevel(player, 9) ? 168 : 120) : 40, damage: isSuper ? 2 : 8, knockback: 0, stun: isSuper ? 8 : 42, type: 'root' });
       } else if (id === 'scarlett-glumpkin') {
-        state.effects.push({ x: player.x + player.facing * 80, y: player.y, radius: isSuper ? 210 * radiusBoost : 120, timer: isSuper ? 100 : 44, damage: isSuper ? 2 : 7, knockback: 8, stun: 18, type: 'root-poison' });
+        state.effects.push({ x: player.x + player.facing * 80, y: player.y, radius: (isSuper ? 210 * radiusBoost : 120) * aoeRangeMultiplier, timer: isSuper ? 100 : 44, damage: isSuper ? 2 : 7, knockback: 8, stun: 18, type: 'root-poison' });
         if (isSuper && hasUpgrade(player, 'garden-of-thorns')) {
           spawnGardenOfThornsPatches(player);
         }

@@ -831,7 +831,7 @@
     <div class="overlay" id="startOverlay">
       <div class="panel start-panel">
         <h2>Pick Your Brawler</h2>
-        <p>Choose a fighter with distinct stats and unique abilities. Tap a thumbnail or swipe left/right on the main portrait to cycle through every brawler.</p>
+        <p>Choose a fighter with distinct stats and unique abilities. Tap a thumbnail or swipe left/right on the main portrait to cycle through every brawler. Starting at Stage 3, and again at Stage 7, you can recruit an additional computer-controlled brawler.</p>
         <div class="character-grid" id="characterGrid"></div>
         <div class="character-detail" id="characterDetail" aria-live="polite"></div>
         <button class="btn" id="startBtn" disabled>Start the Journey</button>
@@ -847,6 +847,14 @@
         <h2 id="messageTitle">Stage Complete</h2>
         <p id="messageBody"></p>
         <button class="btn" id="messageBtn">Continue</button>
+      </div>
+    </div>
+
+    <div class="overlay" id="companionOverlay">
+      <div class="panel">
+        <h2 id="companionTitle">Recruit a Companion</h2>
+        <p id="companionBody">Pick a computer-controlled brawler to join your squad.</p>
+        <div class="character-grid" id="companionGrid"></div>
       </div>
     </div>
 
@@ -892,6 +900,8 @@
       victory: false,
       bossActive: false,
       ally: null,
+      companions: [],
+      pendingCompanionRecruitStage: null,
       shake: 0,
       submitting: false,
       continueArrowTimer: 0,
@@ -918,6 +928,9 @@
         arrowLastClickAt: 0
       }
     };
+
+    const COMPANION_RECRUIT_STAGE_INDEXES = new Set([2, 6]); // Stage 3 and Stage 7
+    const MAX_COMPANIONS = 2;
 
     const CHEAT_STREAK_RESET_MS = 2000;
     const CHEAT_REQUIRED_CLICKS = 7;
@@ -2354,6 +2367,20 @@
         },
         charData
       };
+    }
+
+    function createCompanion(charData, slotIndex = 0) {
+      const companion = createPlayer(charData);
+      companion.isCompanion = true;
+      companion.slotIndex = slotIndex;
+      companion.level = 1;
+      companion.xp = 0;
+      companion.power = 0;
+      companion.maxHp = Math.round(companion.maxHp * 0.75);
+      companion.hp = companion.maxHp;
+      companion.attackPower *= 0.85;
+      companion.speed *= 0.92;
+      return companion;
     }
 
     function getPlayerAnimTrack(player, stateName, facingName) {
@@ -4669,6 +4696,66 @@
       updateEmergencyVentingHud(player);
     }
 
+    function updateCompanions(dt) {
+      if (!state.companions.length) return;
+      const player = state.player;
+      state.companions.forEach((companion, index) => {
+        if (!companion || companion.hp <= 0) return;
+        const prevX = companion.x;
+        const prevY = companion.y;
+        const nearestEnemy = state.enemies
+          .filter(enemy => enemy.hp > 0)
+          .sort((a, b) => Math.hypot(a.x - companion.x, a.y - companion.y) - Math.hypot(b.x - companion.x, b.y - companion.y))[0];
+
+        let targetX = player ? player.x - (28 + index * 24) : companion.x;
+        let targetY = player ? player.y : companion.y;
+        let attackTargetInRange = false;
+        if (nearestEnemy) {
+          const distanceX = nearestEnemy.x - companion.x;
+          const distanceY = nearestEnemy.y - companion.y;
+          const targetDistance = Math.hypot(distanceX, distanceY);
+          attackTargetInRange = targetDistance < (companion.range + 48);
+          if (!attackTargetInRange) {
+            targetX = nearestEnemy.x - Math.sign(distanceX || 1) * 32;
+            targetY = nearestEnemy.y;
+          } else {
+            companion.facing = distanceX >= 0 ? 1 : -1;
+          }
+        }
+
+        const followX = targetX - companion.x;
+        const followY = targetY - companion.y;
+        const followDistance = Math.hypot(followX, followY);
+        if (followDistance > 3) {
+          companion.x += (followX / followDistance) * companion.speed * 0.82;
+          companion.y += (followY / followDistance) * companion.speed * 0.52;
+          if (Math.abs(followX) > 2) companion.facing = followX > 0 ? 1 : -1;
+        }
+
+        if (attackTargetInRange && companion.attackCooldown <= 0 && companion.stun <= 0) {
+          companion.attackCooldown = companion.charData.id === 'rustbucket' ? 40 : 22;
+          companion.attackFacing = companion.facing;
+          companion.animationSignals.attack = true;
+          doAttack(companion, false, false, getCharacterTuning(companion));
+        }
+
+        companion.attackCooldown = Math.max(0, companion.attackCooldown - 1);
+        companion.powerCooldown = Math.max(0, companion.powerCooldown - 1);
+        companion.specialCooldown = Math.max(0, companion.specialCooldown - 1);
+        companion.jumpCooldown = Math.max(0, companion.jumpCooldown - 1);
+        companion.shieldTimer = Math.max(0, companion.shieldTimer - 1);
+        companion.actionLock = Math.max(0, companion.actionLock - 1);
+
+        const companionHorizontalBounds = getPlayerHorizontalBounds();
+        companion.x = clamp(companion.x, companionHorizontalBounds.minX, companionHorizontalBounds.maxX);
+        const companionVerticalBounds = getPlayerVerticalBounds(companion);
+        companion.y = clamp(companion.y, companionVerticalBounds.minY, companionVerticalBounds.maxY);
+        applyMovementMaskClamp(companion, prevX, prevY);
+        companion.isMoving = Math.hypot(companion.x - prevX, companion.y - prevY) > MOVE_EPSILON;
+        updatePlayerAnimation(companion, dt);
+      });
+    }
+
     function updateEnemies(dt) {
       const player = state.player;
       const hasUndergroundDaph = countUndergroundDaphodilus() > 0;
@@ -5731,7 +5818,12 @@
           state.levelIndex += 1;
           state.waveIndex = 0;
           setupLevel();
-          showMessage('Stage Cleared', `${levels[state.levelIndex].name} awaits.`, 'Advance');
+          if (shouldOfferCompanionRecruit()) {
+            state.pendingCompanionRecruitStage = state.levelIndex;
+            showCompanionRecruitOverlay();
+          } else {
+            showMessage('Stage Cleared', `${levels[state.levelIndex].name} awaits.`, 'Advance');
+          }
         } else {
           endGame(true);
         }
@@ -5760,9 +5852,59 @@
         state.player.x = 80;
         state.player.y = clamp(state.player.y, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
       }
+      if (state.companions.length > 0) {
+        state.companions.forEach((companion, index) => {
+          companion.x = 80 - ((index + 1) * 26);
+          companion.y = state.player ? state.player.y : clamp(companion.y, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
+        });
+      }
       updateCamera();
       updateWaveHud();
       restartSoundtrackForLevel();
+    }
+
+    function shouldOfferCompanionRecruit() {
+      if (!state.player) return false;
+      if (state.pendingCompanionRecruitStage !== null) return false;
+      if (state.companions.length >= MAX_COMPANIONS) return false;
+      if (!COMPANION_RECRUIT_STAGE_INDEXES.has(state.levelIndex)) return false;
+      return state.companions.length < (state.levelIndex >= 6 ? 2 : 1);
+    }
+
+    function getRecruitableCompanions() {
+      const excluded = new Set([state.player?.charData?.id, ...state.companions.map(c => c.charData.id)]);
+      return characters.filter(character => !excluded.has(character.id));
+    }
+
+    function showCompanionRecruitOverlay() {
+      const overlay = document.getElementById('companionOverlay');
+      const grid = document.getElementById('companionGrid');
+      if (!overlay || !grid) return;
+      const available = getRecruitableCompanions();
+      if (!available.length) return;
+      grid.innerHTML = '';
+      available.forEach((character) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'thumb-card';
+        button.innerHTML = `<img src="${character.portrait}" alt="${character.name}" width="256" height="256">`;
+        button.addEventListener('click', () => {
+          const companion = createCompanion(character, state.companions.length);
+          const baseX = (state.player?.x || 80) - (36 + (state.companions.length * 28));
+          companion.x = clamp(baseX, 20, state.levelWidth - 20);
+          companion.y = state.player?.y || BRAWL_LANE_MAX_Y;
+          state.companions.push(companion);
+          state.pendingCompanionRecruitStage = null;
+          overlay.classList.remove('show');
+          state.paused = false;
+          showNotification(`${character.name} joined your crew!`);
+          startGame();
+        });
+        grid.appendChild(button);
+      });
+      overlay.classList.add('show');
+      state.running = false;
+      state.paused = true;
     }
 
     function skipToNextStage() {
@@ -5775,7 +5917,12 @@
       }
       state.levelIndex += 1;
       setupLevel();
-      showMessage('Stage Skipped', `${levels[state.levelIndex].name} begins now.`, 'Advance');
+      if (shouldOfferCompanionRecruit()) {
+        state.pendingCompanionRecruitStage = state.levelIndex;
+        showCompanionRecruitOverlay();
+      } else {
+        showMessage('Stage Skipped', `${levels[state.levelIndex].name} begins now.`, 'Advance');
+      }
     }
 
     function getCanvasPoint(event) {
@@ -6617,6 +6764,12 @@
       if (state.player) {
         renderQueue.push({ entity: state.player, size: PLAYER_DRAW_SIZE, sortY: state.player.y });
       }
+      if (state.companions.length) {
+        state.companions.forEach((companion) => {
+          if (!companion || companion.hp <= 0) return;
+          renderQueue.push({ entity: companion, size: PLAYER_DRAW_SIZE, sortY: companion.y });
+        });
+      }
 
       renderQueue.sort((a, b) => a.sortY - b.sortY);
       const playerBottomWorldY = getEntityBottomOpaqueWorldY(state.player, PLAYER_DRAW_SIZE);
@@ -7165,6 +7318,7 @@
       let steps = 0;
       while (state.frameAccumulator >= FIXED_TIMESTEP_MS && steps < MAX_CATCH_UP_STEPS) {
         updatePlayer(FIXED_TIMESTEP_MS);
+        updateCompanions(FIXED_TIMESTEP_MS);
         handleAttacks();
         updateEnemies(FIXED_TIMESTEP_MS);
         updateProjectiles();
@@ -7603,6 +7757,8 @@
       document.getElementById('startBtn').addEventListener('click', () => {
         if (!selected) return;
         state.player = createPlayer(selected);
+        state.companions = [];
+        state.pendingCompanionRecruitStage = null;
         state.player.level = 1;
         state.player.xp = 0;
         state.player.power = 0;
@@ -7616,6 +7772,7 @@
         }
         document.getElementById('levelUpOverlay').classList.remove('show');
         document.getElementById('characterSheetOverlay').classList.remove('show');
+        document.getElementById('companionOverlay').classList.remove('show');
         localStorage.removeItem(SAVE_SLOT_KEY);
         updateHpBar();
         updateProgressHud(state.player);

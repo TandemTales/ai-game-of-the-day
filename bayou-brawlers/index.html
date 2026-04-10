@@ -4736,6 +4736,7 @@
           companion.attackCooldown = companion.charData.id === 'rustbucket' ? 40 : 22;
           companion.attackFacing = companion.facing;
           companion.animationSignals.attack = true;
+          playPlayerSfx(companion, 'attackFast');
           doAttack(companion, false, false, getCharacterTuning(companion));
         }
 

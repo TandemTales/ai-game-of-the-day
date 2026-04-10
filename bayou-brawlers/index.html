@@ -6808,6 +6808,24 @@
           ctx.fillRect(enemy.x - state.cameraX - barWidth / 2, barY, barWidth * hpPct, 6);
         });
 
+      state.companions
+        .filter(companion => companion && companion.hp > 0)
+        .forEach(companion => {
+          const barWidth = 34;
+          const barHeight = 5;
+          const hpPct = clamp(companion.hp / companion.maxHp, 0, 1);
+          const topOpaqueWorldY = getEntityWalkTopOpaqueWorldY(companion, PLAYER_DRAW_SIZE);
+          const barY = topOpaqueWorldY - state.cameraY - 12;
+          const barX = companion.x - state.cameraX - (barWidth / 2);
+
+          ctx.fillStyle = 'rgba(0,0,0,0.58)';
+          ctx.fillRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2);
+          ctx.fillStyle = 'rgba(28, 45, 34, 0.95)';
+          ctx.fillRect(barX, barY, barWidth, barHeight);
+          ctx.fillStyle = '#71f1a4';
+          ctx.fillRect(barX, barY, barWidth * hpPct, barHeight);
+        });
+
       if (showCollisionDebug) {
         ctx.save();
         ctx.strokeStyle = 'rgba(255, 75, 75, 0.9)';

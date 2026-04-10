@@ -2723,6 +2723,7 @@
         const yBounds = getPlayerVerticalBounds(player);
         const y = clamp(player.y + offsetY, yBounds.minY + 6, yBounds.maxY + 2);
         const lifetime = rand(8 * 60, 12 * 60) * 2;
+        const thornPatchDamage = Math.max(1, Math.round(Math.max(5, Math.round(baseDamage * 0.42)) * 0.25));
         state.hazards.push({
           kind: 'thorn-patch',
           x,
@@ -2731,7 +2732,7 @@
           h: rand(32, 52) * 2,
           frames: lifetime,
           maxFrames: lifetime,
-          damage: Math.max(5, Math.round(baseDamage * 0.42)),
+          damage: thornPatchDamage,
           hitInterval: 18 + rand(0, 8),
           touchingEnemies: new Set(),
           phase: Math.random() * Math.PI * 2

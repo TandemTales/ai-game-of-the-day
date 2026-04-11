@@ -1561,6 +1561,12 @@
     const ENEMY_PLAYER_PERSONAL_SPACE = 34;
     const ENEMY_PLAYER_FRONT_OFFSET = 62;
     const ENEMY_PLAYER_FRONT_REPOSITION_SPEED = 0.7;
+    const COMPANION_PLAYER_PERSONAL_SPACE = 58;
+    const COMPANION_COMPANION_PERSONAL_SPACE = 44;
+    const COMPANION_FOLLOW_X_OFFSET = 64;
+    const COMPANION_FOLLOW_X_STAGGER = 24;
+    const COMPANION_FOLLOW_Y_STAGGER = 22;
+    const COMPANION_REPOSITION_SPEED_BOOST = 1.28;
     const STUN_CONDITION_THRESHOLD = 28;
     const STUN_DURATION_BONUS_FRAMES = 120;
     const PLAYER_STUN_TYPES = new Set(['brute', 'boss', 'mud-monster', 'sweetykins']);
@@ -4796,8 +4802,14 @@
         const prevY = companion.y;
         const targetEnemy = selectCompanionTarget(companion, player);
 
-        let targetX = player ? player.x - (28 + index * 24) : companion.x;
-        let targetY = player ? player.y : companion.y;
+        const hasOddCompanionIndex = index % 2 === 1;
+        const trailingRows = Math.floor(index / 2);
+        const formationSide = hasOddCompanionIndex ? -1 : 1;
+        const formationXOffset = COMPANION_FOLLOW_X_OFFSET + (trailingRows * COMPANION_FOLLOW_X_STAGGER);
+        const formationYOffset = formationSide * (COMPANION_FOLLOW_Y_STAGGER + trailingRows * 8);
+
+        let targetX = player ? (player.x - (player.facing * formationXOffset)) : companion.x;
+        let targetY = player ? (player.y + formationYOffset) : companion.y;
         let attackTargetInRange = false;
         let targetDistance = Infinity;
 
@@ -4817,11 +4829,46 @@
           companion.attackFacing = pursuitFacing;
         }
 
+        if (player) {
+          const toTargetX = targetX - player.x;
+          const toTargetY = targetY - player.y;
+          const playerTargetDistance = Math.hypot(toTargetX, toTargetY);
+          if (playerTargetDistance < COMPANION_PLAYER_PERSONAL_SPACE) {
+            const safeDistance = COMPANION_PLAYER_PERSONAL_SPACE + (index * 4);
+            const fallbackX = -player.facing || -1;
+            const fallbackY = formationYOffset === 0 ? 0 : Math.sign(formationYOffset);
+            const normX = playerTargetDistance > 0.001 ? toTargetX / playerTargetDistance : fallbackX;
+            const normY = playerTargetDistance > 0.001 ? toTargetY / playerTargetDistance : fallbackY;
+            targetX = player.x + (normX * safeDistance);
+            targetY = player.y + (normY * Math.max(20, safeDistance * 0.45));
+          }
+        }
+
+        const separationAdjustment = state.companions.reduce((acc, otherCompanion, otherIndex) => {
+          if (otherIndex === index || !otherCompanion || otherCompanion.hp <= 0) return acc;
+          const diffX = companion.x - otherCompanion.x;
+          const diffY = companion.y - otherCompanion.y;
+          const distance = Math.hypot(diffX, diffY);
+          if (distance >= COMPANION_COMPANION_PERSONAL_SPACE) return acc;
+          const overlap = COMPANION_COMPANION_PERSONAL_SPACE - distance;
+          const pushScale = distance > 0.001 ? (overlap / COMPANION_COMPANION_PERSONAL_SPACE) : 1;
+          const awayX = distance > 0.001 ? diffX / distance : (index >= otherIndex ? 1 : -1);
+          const awayY = distance > 0.001 ? diffY / distance : 0;
+          acc.x += awayX * overlap * 0.8 * pushScale;
+          acc.y += awayY * overlap * 0.55 * pushScale;
+          return acc;
+        }, { x: 0, y: 0 });
+        targetX += separationAdjustment.x;
+        targetY += separationAdjustment.y;
+
         const followX = targetX - companion.x;
         const followY = targetY - companion.y;
         const followDistance = Math.hypot(followX, followY);
         if (followDistance > 2) {
-          const aggressionSpeedBoost = attackTargetInRange ? 1.05 : 1.18;
+          const spacingPressure = player ? Math.hypot(companion.x - player.x, companion.y - player.y) < COMPANION_PLAYER_PERSONAL_SPACE : false;
+          const aggressionSpeedBoost = attackTargetInRange
+            ? 1.05
+            : (spacingPressure ? COMPANION_REPOSITION_SPEED_BOOST : 1.18);
           companion.x += (followX / followDistance) * companion.speed * aggressionSpeedBoost;
           companion.y += (followY / followDistance) * companion.speed * 0.72;
           if (Math.abs(followX) > 1.5) companion.facing = followX > 0 ? 1 : -1;

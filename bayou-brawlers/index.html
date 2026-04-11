@@ -3633,7 +3633,7 @@
 
     function triggerChainReactionSpores(defeatedEnemy) {
       if (!defeatedEnemy) return;
-      const cloudRadius = 170;
+      const cloudRadius = 340;
       state.enemies.forEach(otherEnemy => {
         if (!otherEnemy || otherEnemy === defeatedEnemy || otherEnemy.hp <= 0) return;
         if (!canPlayerAffectEnemy(otherEnemy)) return;
@@ -3653,7 +3653,7 @@
           y: defeatedEnemy.y - 24 + Math.sin(angle) * rand(4, 24),
           vx: Math.cos(angle) * speed,
           vy: Math.sin(angle) * speed * 0.68,
-          size: rand(26, 62),
+          size: rand(52, 124),
           growth: rand(0.22, 0.75),
           driftX: rand(-0.025, 0.025),
           driftY: rand(-0.06, -0.02),

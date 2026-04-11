@@ -1509,6 +1509,7 @@
     const ENEMY_SPEED_MULTIPLIER = 0.82;
     const REGULAR_WAVE_COUNT = 8;
     const TOTAL_WAVE_COUNT = 9;
+    const CAMPAIGN_STAGE_LIMIT = Math.min(10, levels.length);
     const WAVE_TRIGGER_PCTS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
     const IDLE_ARROW_DELAY_FRAMES = 300;
     const WAVE_BARRIER_PLAYER_MARGIN = 12;
@@ -5981,7 +5982,7 @@
       if (!state.bossActive && !state.waveActive && state.enemies.length === 0) {
         state.bossActive = false;
         state.lockX = null;
-        if (state.levelIndex < levels.length - 1) {
+        if (state.levelIndex < CAMPAIGN_STAGE_LIMIT - 1) {
           if (state.player) addXp(state.player, 90 + (state.levelIndex * 18));
           state.levelIndex += 1;
           state.waveIndex = 0;
@@ -6079,7 +6080,7 @@
       if (!state.running || state.gameOver || state.victory) return;
       state.cheats.arrowClickStreak = 0;
       state.cheats.arrowLastClickAt = 0;
-      if (state.levelIndex >= levels.length - 1) {
+      if (state.levelIndex >= CAMPAIGN_STAGE_LIMIT - 1) {
         endGame(true);
         return;
       }
@@ -6116,7 +6117,7 @@
       soundtrackState.audio.pause();
       const title = victory ? 'Legend of the Bayou!' : 'Brawler Down';
       const body = victory
-        ? `You cleared all 14 stages with a final score of ${state.score}. The bayou remembers your name.`
+        ? `You cleared all ${CAMPAIGN_STAGE_LIMIT} stages with a final score of ${state.score}. The bayou remembers your name.`
         : `The swamp swallows even legends. Final score: ${state.score}.`;
       showMessage(title, body, 'Submit Score');
     }

@@ -8032,7 +8032,7 @@
         assets.environmentAnimations[levelId] = frames;
         frameSources.forEach((src, index) => {
           promises.push(loadImage(src).then((img) => {
-            frames[index] = img;
+            frames[index] = normalizeBackgroundImage(img);
           }));
         });
       });

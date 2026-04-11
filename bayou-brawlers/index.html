@@ -2421,17 +2421,41 @@
       };
     }
 
-    function createCompanion(charData, slotIndex = 0) {
+    function getCompanionRecruitLevel(stageIndex) {
+      return stageIndex >= 6 ? 15 : 7;
+    }
+
+    function applyRandomCompanionUpgrades(companion, targetLevel) {
+      if (!companion || !companion.charData || targetLevel <= 1) return;
+      companion.level = 1;
+      companion.xp = 0;
+      for (let level = 2; level <= targetLevel; level += 1) {
+        companion.level = level;
+        applyAutoLevelGains(companion, level);
+        const picks = pickUpgradeChoices(companion, 3);
+        if (!picks.length) continue;
+        const randomUpgrade = picks[Math.floor(Math.random() * picks.length)];
+        companion.selectedUpgrades.add(randomUpgrade.id);
+        companion.upgradeRanks[randomUpgrade.id] = getUpgradeRank(companion, randomUpgrade.id) + 1;
+      }
+      companion.level = targetLevel;
+      companion.xp = 0;
+      companion.power = clamp(companion.power, 0, companion.maxPower || BASE_MAX_POWER);
+    }
+
+    function createCompanion(charData, slotIndex = 0, stageIndex = 0) {
       const companion = createPlayer(charData);
+      const recruitLevel = getCompanionRecruitLevel(stageIndex);
       companion.isCompanion = true;
       companion.slotIndex = slotIndex;
-      companion.level = 1;
+      companion.level = recruitLevel;
       companion.xp = 0;
       companion.power = 0;
       companion.maxHp = Math.round(companion.maxHp * 0.75);
       companion.hp = companion.maxHp;
       companion.attackPower *= 0.85;
       companion.speed *= 0.92;
+      applyRandomCompanionUpgrades(companion, recruitLevel);
       return companion;
     }
 
@@ -5986,7 +6010,7 @@
         button.className = 'thumb-card';
         button.innerHTML = `<img src="${character.portrait}" alt="${character.name}" width="256" height="256">`;
         button.addEventListener('click', () => {
-          const companion = createCompanion(character, state.companions.length);
+          const companion = createCompanion(character, state.companions.length, state.levelIndex);
           const baseX = (state.player?.x || 80) - (36 + (state.companions.length * 28));
           companion.x = clamp(baseX, 20, state.levelWidth - 20);
           companion.y = state.player?.y || BRAWL_LANE_MAX_Y;
@@ -5994,7 +6018,7 @@
           state.pendingCompanionRecruitStage = null;
           overlay.classList.remove('show');
           state.paused = false;
-          showNotification(`${character.name} joined your crew!`);
+          showNotification(`${character.name} joined your crew at Lv.${companion.level}!`);
           startGame();
         });
         grid.appendChild(button);

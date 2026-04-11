@@ -1067,13 +1067,14 @@
     };
     const SFX_POOL_SIZE = 3;
     const SFX_ALLOW_RUNTIME_POOL_GROWTH = false;
-    const SFX_MIN_INTERVAL_MS = 70;
-    const SFX_GLOBAL_INTERVAL_MS = 25;
-    const SFX_WINDOW_MS = 50;
-    const SFX_MAX_PLAYS_PER_WINDOW = 8;
-    const SFX_MAX_ACTIVE_INSTANCES = 12;
-    const ENEMY_WALKING_SFX_MAX_PER_FRAME = 1;
+    const SFX_MIN_INTERVAL_MS = 45;
+    const SFX_GLOBAL_INTERVAL_MS = 12;
+    const SFX_WINDOW_MS = 80;
+    const SFX_MAX_PLAYS_PER_WINDOW = 14;
+    const SFX_MAX_ACTIVE_INSTANCES = 16;
+    const ENEMY_WALKING_SFX_MAX_PER_FRAME = 2;
     const ENEMY_WALKING_SFX_NEARBY_DISTANCE = 260;
+    const ENEMY_SFX_HEARING_DISTANCE = 420;
     const sfxState = {
       pools: new Map(),
       primed: false,
@@ -1260,6 +1261,11 @@
     }
 
     function playEnemySfx(enemy, action) {
+      const player = state.player;
+      if (player) {
+        const distanceFromPlayer = Math.hypot(enemy.x - player.x, enemy.y - player.y);
+        if (distanceFromPlayer > ENEMY_SFX_HEARING_DISTANCE) return;
+      }
       const enemySfx = ENEMY_CHARACTER_SFX[enemy?.type];
       playSfx(enemySfx ? enemySfx[action] : null);
     }
@@ -5317,7 +5323,7 @@
             enemyWalkingSfxPlayedThisFrame += 1;
           }
           const crowdingScale = Math.max(0, state.enemies.length - 10);
-          const baseWalkCooldown = enemy.isBoss ? 22 : 28;
+          const baseWalkCooldown = enemy.isBoss ? 16 : 20;
           enemy.walkSfxCooldown = baseWalkCooldown + Math.min(24, crowdingScale);
         }
 

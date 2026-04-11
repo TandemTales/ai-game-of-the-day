@@ -1074,6 +1074,16 @@
     const SFX_MAX_ACTIVE_INSTANCES = 12;
     const ENEMY_WALKING_SFX_MAX_PER_FRAME = 1;
     const ENEMY_WALKING_SFX_NEARBY_DISTANCE = 260;
+    const ENVIRONMENT_ANIMATION_FPS = 8;
+    const ENVIRONMENT_ANIMATION_KEYS_BY_LEVEL_ID = {
+      swamp: [
+        'assets/BB_bg_swamp001_animation01.png',
+        'assets/BB_bg_swamp001_animation02.png',
+        'assets/BB_bg_swamp001_animation03.png',
+        'assets/BB_bg_swamp001_animation04.png',
+        'assets/BB_bg_swamp001_animation05.png'
+      ]
+    };
     const sfxState = {
       pools: new Map(),
       primed: false,
@@ -1104,6 +1114,7 @@
 
     const assets = {
       backgrounds: {},
+      environmentAnimations: {},
       foregrounds: {},
       barriers: {},
       barrierMasks: {},
@@ -2202,6 +2213,21 @@
       if (!bgMetrics) return null;
       return {
         foreground,
+        drawX: bgMetrics.drawX,
+        drawY: bgMetrics.drawY,
+        drawWidth: bgMetrics.drawWidth,
+        drawHeight: bgMetrics.drawHeight
+      };
+    }
+
+    function getEnvironmentAnimationDrawMetrics(level = levels[state.levelIndex]) {
+      const levelId = level ? level.id : '';
+      const frames = assets.environmentAnimations[levelId];
+      if (!frames || !frames.length) return null;
+      const bgMetrics = getBackgroundDrawMetrics(level);
+      if (!bgMetrics) return null;
+      return {
+        frames,
         drawX: bgMetrics.drawX,
         drawY: bgMetrics.drawY,
         drawWidth: bgMetrics.drawWidth,
@@ -6061,6 +6087,18 @@
       );
     }
 
+    function drawEnvironmentAnimations() {
+      const animationMetrics = getEnvironmentAnimationDrawMetrics();
+      if (!animationMetrics) return;
+      const frameCount = animationMetrics.frames.length;
+      if (!frameCount) return;
+      const frameDurationMs = 1000 / ENVIRONMENT_ANIMATION_FPS;
+      const frameIndex = Math.floor((performance.now() / frameDurationMs) % frameCount);
+      const frame = animationMetrics.frames[frameIndex];
+      if (!frame) return;
+      ctx.drawImage(frame, animationMetrics.drawX, animationMetrics.drawY, animationMetrics.drawWidth, animationMetrics.drawHeight);
+    }
+
     const statusTintCanvas = document.createElement('canvas');
     const statusTintCtx = statusTintCanvas.getContext('2d');
     const burnOverlayCanvas = document.createElement('canvas');
@@ -6725,6 +6763,7 @@
       }
 
       drawBackground();
+      drawEnvironmentAnimations();
 
       state.hazards.forEach(hazard => {
         const x = hazard.x - state.cameraX;
@@ -7988,6 +8027,15 @@
         'hell-gate': 'assets/BB_bg_hellGate001_foreground.png',
         docks: 'assets/BB_bg_docks001_foreground.png'
       };
+      Object.entries(ENVIRONMENT_ANIMATION_KEYS_BY_LEVEL_ID).forEach(([levelId, frameSources]) => {
+        const frames = new Array(frameSources.length);
+        assets.environmentAnimations[levelId] = frames;
+        frameSources.forEach((src, index) => {
+          promises.push(loadImage(src).then((img) => {
+            frames[index] = img;
+          }));
+        });
+      });
 
       Object.entries(backgroundKeys).forEach(([key, src]) => {
         promises.push(loadImage(src).then(img => { assets.backgrounds[key] = normalizeBackgroundImage(img); }));

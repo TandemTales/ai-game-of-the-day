@@ -1104,6 +1104,7 @@
 
     const assets = {
       backgrounds: {},
+      backgroundAnimations: {},
       foregrounds: {},
       barriers: {},
       barrierMasks: {},
@@ -2202,6 +2203,22 @@
       if (!bgMetrics) return null;
       return {
         foreground,
+        drawX: bgMetrics.drawX,
+        drawY: bgMetrics.drawY,
+        drawWidth: bgMetrics.drawWidth,
+        drawHeight: bgMetrics.drawHeight
+      };
+    }
+
+    function getBackgroundAnimationDrawMetrics(level = levels[state.levelIndex]) {
+      const levelId = level ? level.id : '';
+      const frames = assets.backgroundAnimations[levelId];
+      if (!frames || !frames.length) return null;
+      const bgMetrics = getBackgroundDrawMetrics(level);
+      if (!bgMetrics) return null;
+      const frameIndex = Math.floor((performance.now() / 160) % frames.length);
+      return {
+        frame: frames[frameIndex],
         drawX: bgMetrics.drawX,
         drawY: bgMetrics.drawY,
         drawWidth: bgMetrics.drawWidth,
@@ -6061,6 +6078,18 @@
       );
     }
 
+    function drawBackgroundAnimations() {
+      const animationMetrics = getBackgroundAnimationDrawMetrics();
+      if (!animationMetrics) return;
+      ctx.drawImage(
+        animationMetrics.frame,
+        animationMetrics.drawX,
+        animationMetrics.drawY,
+        animationMetrics.drawWidth,
+        animationMetrics.drawHeight
+      );
+    }
+
     const statusTintCanvas = document.createElement('canvas');
     const statusTintCtx = statusTintCanvas.getContext('2d');
     const burnOverlayCanvas = document.createElement('canvas');
@@ -6725,6 +6754,7 @@
       }
 
       drawBackground();
+      drawBackgroundAnimations();
 
       state.hazards.forEach(hazard => {
         const x = hazard.x - state.cameraX;
@@ -7988,6 +8018,15 @@
         'hell-gate': 'assets/BB_bg_hellGate001_foreground.png',
         docks: 'assets/BB_bg_docks001_foreground.png'
       };
+      const backgroundAnimationKeysByLevelId = {
+        swamp: [
+          'assets/BB_bg_swamp001_animation01.png',
+          'assets/BB_bg_swamp001_animation02.png',
+          'assets/BB_bg_swamp001_animation03.png',
+          'assets/BB_bg_swamp001_animation04.png',
+          'assets/BB_bg_swamp001_animation05.png'
+        ]
+      };
 
       Object.entries(backgroundKeys).forEach(([key, src]) => {
         promises.push(loadImage(src).then(img => { assets.backgrounds[key] = normalizeBackgroundImage(img); }));
@@ -7999,6 +8038,13 @@
 
       Object.entries(foregroundKeysByLevelId).forEach(([levelId, src]) => {
         promises.push(loadImage(src).then((img) => { assets.foregrounds[levelId] = img; }));
+      });
+
+      Object.entries(backgroundAnimationKeysByLevelId).forEach(([levelId, frameSources]) => {
+        const framePromises = frameSources.map(src => loadImage(src));
+        promises.push(Promise.all(framePromises).then((frames) => {
+          assets.backgroundAnimations[levelId] = frames;
+        }));
       });
 
       const playerSpriteSheets = {

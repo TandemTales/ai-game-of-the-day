@@ -1924,8 +1924,9 @@
       }
 
       if (isHorizontal) {
+        const horizontalFrameHeight = Math.max(1, img.height);
         for (let i = 0; i < frameCount; i += 1) {
-          frameRects.push({ x: i * SPRITE_FRAME_SIZE, y: 0, width: SPRITE_FRAME_SIZE, height: SPRITE_FRAME_SIZE });
+          frameRects.push({ x: i * SPRITE_FRAME_SIZE, y: 0, width: SPRITE_FRAME_SIZE, height: horizontalFrameHeight });
         }
         return frameRects;
       }

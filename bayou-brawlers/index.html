@@ -1054,8 +1054,17 @@
       elite: { attack: 'assets/BB_sfx_automatick_attack.mp3', hit: 'assets/BB_sfx_automatick_hit.mp3', killed: 'assets/BB_sfx_automatick_killed.mp3', walking: 'assets/BB_sfx_automatick_walking.mp3' },
       brute: { attack: 'assets/BB_sfx_hiredGun_attack.mp3', hit: 'assets/BB_sfx_hiredGun_hit.mp3', killed: 'assets/BB_sfx_hiredGun_killed.mp3' },
       mage: { attack: 'assets/BB_sfx_ladyWorthington_attack.mp3', hit: 'assets/BB_sfx_queenOfHearts_hit.mp3', killed: 'assets/BB_sfx_ladyWorthington_dying.mp3' },
-      sweetykins: { attack: 'assets/BB_sfx_sweetykins_attack.mp3', hit: 'assets/BB_sfx_sweetykins_hit.mp3', killed: 'assets/BB_sfx_sweetykins_killed.mp3' },
-      bambo: { attack: 'assets/BB_sfx_bambo_attack.mp3', hit: 'assets/BB_sfx_bambo_hit.mp3', killed: 'assets/BB_sfx_bambo_killed.mp3', walking: 'assets/BB_sfx_bambo_walking.mp3' },
+      sweetykins: {
+        attack: ['assets/BB_sfx_sweetykins_attack.mp3', 'assets/BB_sfx_tickles_attack.mp3'],
+        hit: ['assets/BB_sfx_sweetykins_hit.mp3', 'assets/BB_sfx_tickles_hit.mp3'],
+        killed: ['assets/BB_sfx_sweetykins_killed.mp3', 'assets/BB_sfx_tickles_killed.mp3']
+      },
+      bambo: {
+        attack: ['assets/BB_sfx_bambo_attack.mp3', 'assets/BB_sfx_bambo_attack.wav'],
+        hit: ['assets/BB_sfx_bambo_hit.mp3', 'assets/BB_sfx_bambo_hit.wav'],
+        killed: ['assets/BB_sfx_bambo_killed.mp3', 'assets/BB_sfx_bambo_killed.wav'],
+        walking: ['assets/BB_sfx_bambo_walking.mp3', 'assets/BB_sfx_bambo_walking.wav']
+      },
       tinkeringTom: { attack: 'assets/BB_sfx_tinkeringTom_attack.mp3', hit: 'assets/BB_sfx_tinkeringTom_hit.mp3', killed: 'assets/BB_sfx_tinkeringTom_killed.mp3' },
       boss: { attack: 'assets/BB_sfx_mudMonster_attack.mp3', hit: 'assets/BB_sfx_mudMonster_hit.mp3', killed: 'assets/BB_sfx_mudMonster_killed.mp3' }
     };
@@ -1082,7 +1091,8 @@
       activeInstances: 0,
       playsInWindow: 0,
       windowStartedAt: 0,
-      lastGlobalPlayAt: 0
+      lastGlobalPlayAt: 0,
+      failedSources: new Set()
     };
     soundtrackState.audio.volume = SOUNDTRACK_VOLUME;
     soundtrackState.audio.preload = 'auto';
@@ -1168,7 +1178,13 @@
       const appendSources = (catalog) => {
         Object.values(catalog || {}).forEach((entry) => {
           Object.values(entry || {}).forEach((src) => {
-            if (src) unique.add(src);
+            if (Array.isArray(src)) {
+              src.forEach((candidate) => {
+                if (candidate) unique.add(candidate);
+              });
+            } else if (src) {
+              unique.add(src);
+            }
           });
         });
       };
@@ -1190,6 +1206,9 @@
       };
       audio.addEventListener('ended', markInactive);
       audio.addEventListener('pause', markInactive);
+      audio.addEventListener('error', () => {
+        sfxState.failedSources.add(src);
+      });
       return audio;
     }
 
@@ -1216,8 +1235,24 @@
       });
     }
 
-    function playSfx(src) {
-      if (soundtrackState.muted || !src) return;
+    function resolveSfxSource(srcOptions, attemptedSources) {
+      if (Array.isArray(srcOptions)) {
+        return srcOptions.find((candidate) => (
+          candidate
+          && !sfxState.failedSources.has(candidate)
+          && !(attemptedSources && attemptedSources.has(candidate))
+        )) || null;
+      }
+      if (!srcOptions) return null;
+      if (sfxState.failedSources.has(srcOptions)) return null;
+      if (attemptedSources && attemptedSources.has(srcOptions)) return null;
+      return srcOptions;
+    }
+
+    function playSfx(srcOptions, attemptedSources = new Set()) {
+      if (soundtrackState.muted || !srcOptions) return;
+      const src = resolveSfxSource(srcOptions, attemptedSources);
+      if (!src) return;
       const now = performance.now();
       const lastPlayedAt = sfxState.lastPlayedAt.get(src) || 0;
       if (now - lastPlayedAt < SFX_MIN_INTERVAL_MS) return;
@@ -1250,6 +1285,11 @@
         if (available.__countedActive) {
           available.__countedActive = false;
           sfxState.activeInstances = Math.max(0, sfxState.activeInstances - 1);
+        }
+        if (available.error) {
+          sfxState.failedSources.add(src);
+          attemptedSources.add(src);
+          playSfx(srcOptions, attemptedSources);
         }
         // Audio playback can be blocked by browser autoplay policy.
       });

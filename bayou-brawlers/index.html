@@ -1460,7 +1460,7 @@
         { types: ['swamp', 'ranged'], count: 8 },
         { types: ['automaton', 'swamp'], count: 8 }
       ], boss: { name: 'Drowned Count', type: 'brute' } },
-      { id: 'emberfall', name: 'The Gatorglass Vault: Tom’s Machine', background: 'background-toms-machine', waves: [
+      { id: 'emberfall', name: 'The Gatorglass Vault: Tom’s Machine', background: 'background-toms-machine', worldWidth: 2280, unlockFullMapAtStart: true, waves: [
         { types: ['thug', 'ranged'], count: 8 },
         { types: ['thug', 'automaton'], count: 9 },
         { types: ['elite', 'thug'], count: 9 }
@@ -2160,6 +2160,10 @@
 
     function getLevelWorldWidth(level, fallbackWidth) {
       const bg = level ? assets.backgrounds[level.background] : null;
+      const explicitWorldWidth = Number(level?.worldWidth);
+      if (Number.isFinite(explicitWorldWidth) && explicitWorldWidth > 0) {
+        return Math.max(canvas.width + 640, Math.floor(explicitWorldWidth));
+      }
       if (!bg) {
         return fallbackWidth;
       }
@@ -2960,6 +2964,8 @@
     }
 
     function getWaveBarrierX() {
+      const level = levels[state.levelIndex];
+      if (level && level.unlockFullMapAtStart) return null;
       return state.waveActive && state.lockX !== null ? state.lockX : null;
     }
 
@@ -6064,7 +6070,9 @@
 
     function setupLevel() {
       const level = levels[state.levelIndex];
-      const defaultLevelWidth = 2200 + state.levelIndex * 120;
+      const defaultLevelWidth = Number.isFinite(Number(level?.worldWidth))
+        ? Number(level.worldWidth)
+        : (2200 + state.levelIndex * 120);
       state.levelWidth = getLevelWorldWidth(level, defaultLevelWidth);
       state.bossActive = false;
       state.stageBossPhase = 0;

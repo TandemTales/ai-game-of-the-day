@@ -480,6 +480,11 @@
       gap: 10px;
       align-items: flex-start;
     }
+    .levelup-choice.selected {
+      border-color: rgba(95, 225, 213, 0.95);
+      box-shadow: 0 0 0 1px rgba(95, 225, 213, 0.9), 0 0 16px rgba(95, 225, 213, 0.45);
+      transform: translateY(-1px);
+    }
     .levelup-choice-icon {
       width: 64px;
       height: 64px;
@@ -3395,6 +3400,63 @@
       refreshCharacterSheetIfVisible();
     }
 
+    function updateLevelUpSelectionUI() {
+      const levelUp = state.currentLevelUp;
+      if (!levelUp || !Array.isArray(levelUp.buttons)) return;
+      levelUp.buttons.forEach((button, index) => {
+        button.classList.toggle('selected', index === levelUp.selectedIndex);
+      });
+    }
+
+    function closeLevelUpOverlay() {
+      const overlay = document.getElementById('levelUpOverlay');
+      overlay.classList.remove('show');
+      state.paused = false;
+      state.currentLevelUp = null;
+      processNextPendingLevelUp();
+    }
+
+    function confirmLevelUpSelection() {
+      const levelUp = state.currentLevelUp;
+      if (!levelUp || performance.now() < levelUp.unlockAt) return false;
+      if (!Array.isArray(levelUp.choices) || levelUp.choices.length === 0) {
+        closeLevelUpOverlay();
+        return true;
+      }
+      const selectedUpgrade = levelUp.choices[levelUp.selectedIndex] || levelUp.choices[0];
+      if (!selectedUpgrade) return false;
+      applyChosenUpgrade(levelUp.player, selectedUpgrade);
+      closeLevelUpOverlay();
+      return true;
+    }
+
+    function handleLevelUpNavigationInput(event) {
+      const levelUp = state.currentLevelUp;
+      if (!levelUp) return false;
+      const key = event.key;
+      if (Array.isArray(levelUp.choices) && levelUp.choices.length > 0) {
+        if (key === 'ArrowLeft' || key === 'ArrowUp' || key.toLowerCase() === 'a') {
+          event.preventDefault();
+          const total = levelUp.choices.length;
+          levelUp.selectedIndex = (levelUp.selectedIndex - 1 + total) % total;
+          updateLevelUpSelectionUI();
+          return true;
+        }
+        if (key === 'ArrowRight' || key === 'ArrowDown' || key.toLowerCase() === 'd') {
+          event.preventDefault();
+          const total = levelUp.choices.length;
+          levelUp.selectedIndex = (levelUp.selectedIndex + 1) % total;
+          updateLevelUpSelectionUI();
+          return true;
+        }
+      }
+      if (key === 'Enter' || key === ' ') {
+        event.preventDefault();
+        return confirmLevelUpSelection();
+      }
+      return false;
+    }
+
     function showLevelUpOverlay(player, level) {
       const overlay = document.getElementById('levelUpOverlay');
       document.getElementById('characterSheetOverlay').classList.remove('show');
@@ -3403,7 +3465,14 @@
       const choicesWrap = document.getElementById('levelUpChoices');
       const choiceList = pickUpgradeChoices(player, 3);
       const choicesUnlockAt = performance.now() + 1000;
-      state.currentLevelUp = { level, choices: choiceList };
+      state.currentLevelUp = {
+        level,
+        player,
+        choices: choiceList,
+        buttons: [],
+        selectedIndex: 0,
+        unlockAt: choicesUnlockAt
+      };
       title.textContent = `Level ${level} Reached`;
       auto.innerHTML = `<strong>Auto gains:</strong><br>• ${getAutoLevelGainLines(level, player).join('<br>• ')}<br><br><strong>Choose one:</strong>`;
       choicesWrap.innerHTML = '';
@@ -3411,16 +3480,10 @@
         const button = document.createElement('button');
         button.className = 'btn';
         button.textContent = 'Continue';
-        button.addEventListener('click', () => {
-          if (performance.now() < choicesUnlockAt) return;
-          overlay.classList.remove('show');
-          state.paused = false;
-          state.currentLevelUp = null;
-          processNextPendingLevelUp();
-        });
+        button.addEventListener('click', () => confirmLevelUpSelection());
         choicesWrap.appendChild(button);
       } else {
-        choiceList.forEach((upgrade) => {
+        choiceList.forEach((upgrade, index) => {
           const button = document.createElement('button');
           button.className = 'levelup-choice';
           const imagePath = getUpgradeImagePath(player.charData.id, upgrade.id);
@@ -3432,15 +3495,15 @@
               <p>${upgrade.description}</p>
             </div>`;
           button.addEventListener('click', () => {
-            if (performance.now() < choicesUnlockAt) return;
-            applyChosenUpgrade(player, upgrade);
-            overlay.classList.remove('show');
-            state.paused = false;
-            state.currentLevelUp = null;
-            processNextPendingLevelUp();
+            if (!state.currentLevelUp) return;
+            state.currentLevelUp.selectedIndex = index;
+            updateLevelUpSelectionUI();
+            confirmLevelUpSelection();
           });
+          state.currentLevelUp.buttons.push(button);
           choicesWrap.appendChild(button);
         });
+        updateLevelUpSelectionUI();
       }
       overlay.classList.add('show');
       state.paused = true;
@@ -7586,6 +7649,7 @@
       });
 
       window.addEventListener('keydown', (event) => {
+        if (handleLevelUpNavigationInput(event)) return;
         if (event.repeat) return;
         if (event.key.toLowerCase() === 'c') {
           event.preventDefault();

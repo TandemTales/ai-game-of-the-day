@@ -1460,7 +1460,7 @@
         { types: ['swamp', 'ranged'], count: 8 },
         { types: ['automaton', 'swamp'], count: 8 }
       ], boss: { name: 'Drowned Count', type: 'brute' } },
-      { id: 'emberfall', name: 'The Gatorglass Vault: Tom’s Machine', background: 'background-toms-machine', waves: [
+      { id: 'emberfall', name: 'The Gatorglass Vault: Tom’s Machine', background: 'background-toms-machine', useBackgroundSizedWorld: true, disableWaveBarriers: true, waves: [
         { types: ['thug', 'ranged'], count: 8 },
         { types: ['thug', 'automaton'], count: 9 },
         { types: ['elite', 'thug'], count: 9 }
@@ -2165,6 +2165,9 @@
       }
 
       const bgWorldWidth = Math.floor(bg.width * getBackgroundScale(bg));
+      if (level.useBackgroundSizedWorld) {
+        return Math.max(canvas.width + 640, bgWorldWidth + 420);
+      }
       return Math.max(canvas.width + 640, bgWorldWidth + 420, fallbackWidth);
     }
 
@@ -2960,6 +2963,8 @@
     }
 
     function getWaveBarrierX() {
+      const level = levels[state.levelIndex];
+      if (level?.disableWaveBarriers) return null;
       return state.waveActive && state.lockX !== null ? state.lockX : null;
     }
 

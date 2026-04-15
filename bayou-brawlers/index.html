@@ -1796,10 +1796,13 @@
     };
 
     const ENEMY_SIZE_BOOST_BY_TYPE = {
-      hiredGun: 3,
-      sidewinder: 3,
-      stingy: 3
+      hiredGun: 1.08,
+      sidewinder: 1.05,
+      stingy: 1.1
     };
+    const PLAYER_FINAL_DISPLAY_SIZE = PLAYER_DRAW_SIZE * DEFAULT_PLAYER_RENDER_SCALE;
+    const ENEMY_TO_PLAYER_SIZE_BOUNDS = { min: 0.86, max: 1.18 };
+    const BOSS_TO_PLAYER_SIZE_BOUNDS = { min: 1.04, max: 1.6 };
 
     function toAssetCamelCase(value) {
       if (!value) return '';
@@ -1842,31 +1845,39 @@
       return { hp: base.hp, speed: base.speed, damage: base.damage, range: base.range, score: base.score };
     }
 
+    function clampEnemyRenderScale(scale, isBoss) {
+      const baseDrawSize = isBoss ? BOSS_DRAW_SIZE : ENEMY_DRAW_SIZE;
+      const bounds = isBoss ? BOSS_TO_PLAYER_SIZE_BOUNDS : ENEMY_TO_PLAYER_SIZE_BOUNDS;
+      const minScale = (PLAYER_FINAL_DISPLAY_SIZE * bounds.min) / baseDrawSize;
+      const maxScale = (PLAYER_FINAL_DISPLAY_SIZE * bounds.max) / baseDrawSize;
+      return clamp(scale, minScale, maxScale);
+    }
+
     function getEnemyRenderScale(typeId, stage, isBoss) {
-      const playerSize = PLAYER_DRAW_SIZE * DEFAULT_PLAYER_RENDER_SCALE;
       const enemyBaseSize = isBoss ? BOSS_DRAW_SIZE : ENEMY_DRAW_SIZE;
-      const asPlayerSizeRatio = (ratio) => (playerSize * ratio) / enemyBaseSize;
+      const asPlayerSizeRatio = (ratio) => (PLAYER_FINAL_DISPLAY_SIZE * ratio) / enemyBaseSize;
       const boostedSize = ENEMY_SIZE_BOOST_BY_TYPE[typeId];
       const level = levels[state.levelIndex];
 
-      if (level && level.id === 'emberfall' && !isBoss) return asPlayerSizeRatio(1);
+      let desiredScale = isBoss ? asPlayerSizeRatio(1.24) : asPlayerSizeRatio(0.96);
 
-      if (typeId === 'choking-blossom') return asPlayerSizeRatio(1);
-      if (typeId === 'swamp') return asPlayerSizeRatio(0.5);
-      if (typeId === 'daphodilus') return asPlayerSizeRatio(1);
+      if (level && level.id === 'emberfall' && !isBoss) desiredScale = asPlayerSizeRatio(1);
 
-      if (typeId === 'mud-monster') {
+      if (typeId === 'choking-blossom') desiredScale = asPlayerSizeRatio(1);
+      else if (typeId === 'swamp') desiredScale = asPlayerSizeRatio(0.9);
+      else if (typeId === 'daphodilus') desiredScale = asPlayerSizeRatio(0.94);
+      else if (typeId === 'mud-monster') {
         const mudMonsterScaleByStage = {
-          3: 2.1,
-          2: 1.45,
-          1: 1.05
+          3: 1.38,
+          2: 1.2,
+          1: 1.06
         };
-        return asPlayerSizeRatio(mudMonsterScaleByStage[stage] || mudMonsterScaleByStage[1]);
+        desiredScale = asPlayerSizeRatio(mudMonsterScaleByStage[stage] || mudMonsterScaleByStage[1]);
+      } else if (boostedSize) {
+        desiredScale = boostedSize;
       }
 
-      if (boostedSize) return boostedSize;
-
-      return isBoss ? BOSS_RENDER_SCALE_MULTIPLIER : 1;
+      return clampEnemyRenderScale(desiredScale, isBoss);
     }
 
     function getDaphodilusLevelOneScale(typeId) {
@@ -2556,6 +2567,10 @@
       const stage = STAGED_ENEMY_TYPES.has(typeId) ? (options.stage || 3) : 1;
       const stats = STAGED_ENEMY_TYPES.has(typeId) ? getStagedStats(typeId, stage) : base;
       const animationTracks = assets.enemyAnimations[typeId] || assets.enemyAnimations.swamp || null;
+      const baseRenderScale = getEnemyRenderScale(typeId, stage, isBoss) * getDaphodilusLevelOneScale(typeId);
+      const requestedSizeMultiplier = Number.isFinite(options.sizeMultiplier) ? options.sizeMultiplier : 1;
+      const renderScale = clampEnemyRenderScale(baseRenderScale * requestedSizeMultiplier, isBoss);
+      const sizeAdjustment = baseRenderScale > 0 ? (renderScale / baseRenderScale) : 1;
       const enemy = {
         uid: ++state.enemyUid,
         type: typeId,
@@ -2590,8 +2605,8 @@
         stunRetargetTimer: rand(8, 18),
         ranged: base.ranged || false,
         isBoss,
-        renderScale: getEnemyRenderScale(typeId, stage, isBoss) * getDaphodilusLevelOneScale(typeId),
-        hitboxScale: getDaphodilusLevelOneScale(typeId),
+        renderScale,
+        hitboxScale: getDaphodilusLevelOneScale(typeId) * sizeAdjustment,
         physicsProfileId: `enemy-${typeId}`,
         targetBodyAimBias: rand(35, 85) / 100,
         invulnFrames: options.invulnFrames || 0,

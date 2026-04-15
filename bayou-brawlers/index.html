@@ -1847,9 +1847,9 @@
       const enemyBaseSize = isBoss ? BOSS_DRAW_SIZE : ENEMY_DRAW_SIZE;
       const asPlayerSizeRatio = (ratio) => (playerSize * ratio) / enemyBaseSize;
       const boostedSize = ENEMY_SIZE_BOOST_BY_TYPE[typeId];
-      const level = levels[state.levelIndex];
+      const currentStage = state.levelIndex + 1;
 
-      if (level && level.id === 'emberfall' && !isBoss) return asPlayerSizeRatio(1);
+      if (!isBoss && currentStage >= 3) return asPlayerSizeRatio(1);
 
       if (typeId === 'choking-blossom') return asPlayerSizeRatio(1);
       if (typeId === 'swamp') return asPlayerSizeRatio(0.5);
@@ -2268,7 +2268,6 @@
     }
 
     function isWalkableWorldPosition(worldX, worldY) {
-      const level = levels[state.levelIndex];
       const metrics = getMovementMaskDrawMetrics(level);
       if (!metrics) return true;
       const maskData = ensureMovementMaskData(level);
@@ -2964,7 +2963,6 @@
     }
 
     function getWaveBarrierX() {
-      const level = levels[state.levelIndex];
       if (level && level.unlockFullMapAtStart) return null;
       return state.waveActive && state.lockX !== null ? state.lockX : null;
     }
@@ -5973,7 +5971,6 @@
     }
 
     function updateStageProgress() {
-      const level = levels[state.levelIndex];
 
       if (state.spawnQueue.length > 0) {
         state.spawnQueue.forEach(entry => { entry.frames -= 1; });
@@ -6069,7 +6066,6 @@
     }
 
     function setupLevel() {
-      const level = levels[state.levelIndex];
       const defaultLevelWidth = Number.isFinite(Number(level?.worldWidth))
         ? Number(level.worldWidth)
         : (2200 + state.levelIndex * 120);

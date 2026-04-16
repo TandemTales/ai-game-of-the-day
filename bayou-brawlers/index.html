@@ -1416,55 +1416,55 @@
 
     const levels = [
       { id: 'swamp', name: 'The Swamp', background: 'background-swamp', waves: [
-        { types: ['daphodilus', 'choking-blossom'], count: 4 },
-        { types: ['choking-blossom', 'daphodilus'], count: 5 },
-        { types: ['daphodilus', 'choking-blossom'], count: 6 }
+        { types: ['daphodilus', 'choking-blossom', 'bayouBriar'], count: 4 },
+        { types: ['choking-blossom', 'daphodilus', 'bayouBriar'], count: 5 },
+        { types: ['daphodilus', 'choking-blossom', 'bayouBriar'], count: 6 }
       ], boss: { name: 'Mud Monster', type: 'mud-monster' } },
       { id: 'mirewatch', name: 'Mirewatch (Town)', background: 'background-mirewatch', waves: [
-        { types: ['hiredGun', 'choking-blossom'], count: 5 },
-        { types: ['hiredGun', 'stingy'], count: 6 },
-        { types: ['hiredGun', 'sidewinder', 'stingy'], count: 6 }
+        { types: ['hiredGun', 'choking-blossom', 'quakes'], count: 5 },
+        { types: ['hiredGun', 'quakes'], count: 6 },
+        { types: ['hiredGun', 'sidewinder', 'quakes'], count: 6 }
       ], boss: { name: 'Sweetykins', type: 'sweetykins' } },
       { id: 'mirewatch-docks', name: 'Mirewatch Docks', background: 'background-mirewatch-docks', waves: [
-        { types: ['fey', 'ranged'], count: 5 },
-        { types: ['fey'], count: 6 },
-        { types: ['fey', 'automaton'], count: 6 }
-      ], boss: { name: 'Riftcaller Nyx', type: 'mage' } },
+        { types: ['riverDweller', 'sidewinder'], count: 5 },
+        { types: ['stingy', 'automatick'], count: 6 },
+        { types: ['riverDweller', 'sidewinder', 'stingy', 'automatick'], count: 6 }
+      ], boss: { name: 'The Slais', type: 'theSlais' } },
       { id: 'haunted-bayou', name: 'Haunted Bayou', background: 'background-haunted-bayou', waves: [
-        { types: ['fey'], count: 6 },
-        { types: ['fey', 'swamp'], count: 7 },
-        { types: ['fey', 'ranged'], count: 7 }
-      ], boss: { name: 'Spriggan Trickster', type: 'elite' } },
+        { types: ['stingy', 'tickles'], count: 6 },
+        { types: ['vengefulGhost', 'chainedSpirit'], count: 7 },
+        { types: ['curiousSpirit', 'tickles', 'chainedSpirit'], count: 7 }
+      ], boss: { name: 'Lady Evangeline Worthington', type: 'ladyWorthington' } },
       { id: 'haunted-house', name: 'Haunted House', background: 'background-haunted-house', waves: [
-        { types: ['automaton', 'thug'], count: 6 },
-        { types: ['automaton'], count: 7 },
-        { types: ['automaton', 'fey'], count: 7 }
-      ], boss: { name: 'Rootcrusher', type: 'brute' } },
+        { types: ['lurkerInTheHalls', 'silentOne'], count: 6 },
+        { types: ['tickles', 'bulwarkBernie'], count: 7 },
+        { types: ['lurkerInTheHalls', 'silentOne', 'telematron'], count: 7 }
+      ], boss: { name: 'Mr. Nibbles', type: 'mrNibbles' } },
       { id: 'mirror-realm', name: 'The Mirror Realm', background: 'background-mirror-realm', waves: [
-        { types: ['automaton'], count: 7 },
-        { types: ['automaton', 'ranged'], count: 7 },
-        { types: ['automaton', 'elite'], count: 6 }
-      ], boss: { name: 'Tockman Prime', type: 'elite' } },
+        { types: ['malice', 'revulsion'], count: 7 },
+        { types: ['disgust', 'arrogance'], count: 7 },
+        { types: ['malice', 'revulsion', 'disgust', 'arrogance'], count: 6 }
+      ], boss: { name: 'Mirror Master', type: 'mirrorMaster' } },
       { id: 'airship', name: 'The Airship', background: 'background-airship', waves: [
-        { types: ['fey', 'elite'], count: 7 },
-        { types: ['fey', 'ranged'], count: 8 },
-        { types: ['fey', 'elite'], count: 8 }
-      ], boss: { name: 'Unseelie Captain', type: 'elite' } },
+        { types: ['shapeshifter', 'tattooRat'], count: 7 },
+        { types: ['tattooSnake', 'tattooTiger'], count: 8 },
+        { types: ['sentroid', 'shapeshifter'], count: 8 }
+      ], boss: { name: 'kingOfThieves', type: 'kingOfThieves' } },
       { id: 'hell-gate', name: 'Hell Gate', background: 'background-hell-gate', waves: [
-        { types: ['goblin', 'thug'], count: 7 },
-        { types: ['goblin', 'ranged'], count: 8 },
-        { types: ['goblin', 'elite'], count: 8 }
-      ], boss: { name: 'Lash LeGrim', type: 'boss' } },
+        { types: ['lesserDemon', 'skulkingDemon'], count: 7 },
+        { types: ['succubus', 'zombie'], count: 8 },
+        { types: ['lesserDemon', 'succubus', 'zombie'], count: 8 }
+      ], boss: { name: 'Lodicrust', type: 'lodicrust' } },
       { id: 'mansion', name: 'The Approach to the Gatorglass Vault', background: 'background-approach-to-gatorglass-vault', waves: [
-        { types: ['swamp', 'fey'], count: 8 },
-        { types: ['swamp', 'ranged'], count: 8 },
-        { types: ['automaton', 'swamp'], count: 8 }
-      ], boss: { name: 'Drowned Count', type: 'brute' } },
+        { types: ['origamiCrane', 'origamiToad'], count: 8 },
+        { types: ['origamiDragon', 'origamiCrane'], count: 8 },
+        { types: ['origamiDragon', 'origamiToad'], count: 8 }
+      ], boss: { name: 'Origami Master', type: 'origamiMaster' } },
       { id: 'emberfall', name: 'The Gatorglass Vault: Tom’s Machine', background: 'background-toms-machine', worldWidth: 1800, unlockFullMapAtStart: true, waves: [
-        { types: ['thug', 'ranged'], count: 8 },
-        { types: ['thug', 'automaton'], count: 9 },
-        { types: ['elite', 'thug'], count: 9 }
-      ], boss: { name: 'Bambo', type: 'bambo' }, secondBoss: { name: 'Tinkering Tom', type: 'tinkeringTom' } },
+        { types: ['bambo'], count: 8 },
+        { types: ['bambo'], count: 9 },
+        { types: ['bambo'], count: 9 }
+      ], boss: { name: 'Tinkering Tom', type: 'tinkeringTom' } },
       { id: 'docks', name: 'The Docks', background: 'background-docks', waves: [
         { types: ['thug', 'goblin'], count: 9 },
         { types: ['ranged', 'goblin'], count: 9 },
@@ -1499,12 +1499,47 @@
       hiredGun: { hp: 34, speed: 1.45, damage: 8, range: 155, score: 100, sprite: 'hiredGun', ranged: true, tier: 'medium' },
       stingy: { hp: 28, speed: 2.15, damage: 7, range: 20, score: 105, sprite: 'stingy', tier: 'medium' },
       sidewinder: { hp: 32, speed: 2.35, damage: 2, range: 72, score: 115, sprite: 'sidewinder', tier: 'medium' },
+      bayouBriar: { hp: 34, speed: 1.75, damage: 9, range: 22, score: 108, sprite: 'bayouBriar', tier: 'medium' },
+      quakes: { hp: 44, speed: 1.2, damage: 12, range: 26, score: 122, sprite: 'quakes', tier: 'medium' },
+      riverDweller: { hp: 38, speed: 1.55, damage: 10, range: 26, score: 116, sprite: 'riverDweller', tier: 'medium' },
+      automatick: { hp: 56, speed: 1.2, damage: 12, range: 20, score: 96, sprite: 'automatick', tier: 'medium' },
+      tickles: { hp: 35, speed: 1.9, damage: 10, range: 18, score: 104, sprite: 'tickles', tier: 'medium' },
+      vengefulGhost: { hp: 34, speed: 2, damage: 10, range: 18, score: 104, sprite: 'vengefulGhost', tier: 'medium' },
+      chainedSpirit: { hp: 42, speed: 1.4, damage: 12, range: 24, score: 118, sprite: 'chainedSpirit', tier: 'medium' },
+      curiousSpirit: { hp: 33, speed: 1.8, damage: 8, range: 120, score: 110, sprite: 'curiousSpirit', ranged: true, tier: 'medium' },
+      lurkerInTheHalls: { hp: 46, speed: 1.35, damage: 12, range: 24, score: 124, sprite: 'lurkerInTheHalls', tier: 'medium' },
+      silentOne: { hp: 36, speed: 1.7, damage: 11, range: 20, score: 118, sprite: 'silentOne', tier: 'medium' },
+      bulwarkBernie: { hp: 64, speed: 1.2, damage: 14, range: 24, score: 140, sprite: 'bulwarkBernie', tier: 'elite' },
+      telematron: { hp: 96, speed: 1.4, damage: 16, range: 24, score: 210, sprite: 'telematron', tier: 'elite' },
+      malice: { hp: 41, speed: 1.65, damage: 12, range: 22, score: 122, sprite: 'malice', tier: 'medium' },
+      revulsion: { hp: 43, speed: 1.6, damage: 12, range: 22, score: 124, sprite: 'revulsion', tier: 'medium' },
+      disgust: { hp: 45, speed: 1.55, damage: 13, range: 22, score: 126, sprite: 'disgust', tier: 'medium' },
+      arrogance: { hp: 47, speed: 1.5, damage: 14, range: 22, score: 128, sprite: 'arrogance', tier: 'medium' },
+      shapeshifter: { hp: 55, speed: 1.8, damage: 12, range: 22, score: 138, sprite: 'shapeshifter', tier: 'elite' },
+      tattooRat: { hp: 32, speed: 2.25, damage: 9, range: 20, score: 108, sprite: 'tattooRat', tier: 'medium' },
+      tattooSnake: { hp: 34, speed: 2.3, damage: 9, range: 68, score: 112, sprite: 'tattooSnake', tier: 'medium' },
+      tattooTiger: { hp: 48, speed: 1.95, damage: 13, range: 22, score: 132, sprite: 'tattooTiger', tier: 'elite' },
+      sentroid: { hp: 58, speed: 1.45, damage: 14, range: 24, score: 144, sprite: 'sentroid', tier: 'elite' },
+      lesserDemon: { hp: 40, speed: 1.8, damage: 11, range: 22, score: 120, sprite: 'lesserDemon', tier: 'medium' },
+      skulkingDemon: { hp: 45, speed: 1.7, damage: 12, range: 22, score: 126, sprite: 'skulkingDemon', tier: 'medium' },
+      succubus: { hp: 39, speed: 1.95, damage: 10, range: 120, score: 124, sprite: 'succubus', ranged: true, tier: 'medium' },
+      zombie: { hp: 54, speed: 1.25, damage: 13, range: 22, score: 122, sprite: 'zombie', tier: 'medium' },
+      origamiCrane: { hp: 36, speed: 2, damage: 9, range: 20, score: 118, sprite: 'origamiCrane', tier: 'medium' },
+      origamiDragon: { hp: 58, speed: 1.6, damage: 15, range: 24, score: 152, sprite: 'origamiDragon', tier: 'elite' },
+      origamiToad: { hp: 44, speed: 1.45, damage: 12, range: 22, score: 126, sprite: 'origamiToad', tier: 'medium' },
       elite: { hp: 70, speed: 1.5, damage: 14, range: 22, score: 140, sprite: 'automaton', tier: 'elite' },
       brute: { hp: 120, speed: 1.1, damage: 18, range: 24, score: 200, sprite: 'thug', tier: 'elite' },
       mage: { hp: 90, speed: 1.3, damage: 16, range: 120, score: 180, sprite: 'fey', ranged: true, tier: 'elite' },
       sweetykins: { hp: 210, speed: 1.55, damage: 13, range: 32, score: 560, sprite: 'sweetykins', tier: 'boss' },
       bambo: { hp: 250, speed: 1.35, damage: 17, range: 34, score: 620, sprite: 'bambo', tier: 'boss' },
       tinkeringTom: { hp: 290, speed: 1.4, damage: 20, range: 36, score: 700, sprite: 'tinkeringTom', tier: 'boss' },
+      theSlais: { hp: 280, speed: 1.35, damage: 19, range: 34, score: 690, sprite: 'theSlais', tier: 'boss' },
+      ladyWorthington: { hp: 285, speed: 1.45, damage: 18, range: 120, score: 700, sprite: 'ladyWorthington', ranged: true, tier: 'boss' },
+      mrNibbles: { hp: 295, speed: 1.4, damage: 20, range: 34, score: 710, sprite: 'mrNibbles', tier: 'boss' },
+      mirrorMaster: { hp: 300, speed: 1.45, damage: 20, range: 110, score: 720, sprite: 'mirrorMaster', ranged: true, tier: 'boss' },
+      kingOfThieves: { hp: 305, speed: 1.5, damage: 20, range: 34, score: 730, sprite: 'kingOfThieves', tier: 'boss' },
+      lodicrust: { hp: 310, speed: 1.4, damage: 21, range: 34, score: 740, sprite: 'lodicrust', tier: 'boss' },
+      origamiMaster: { hp: 315, speed: 1.45, damage: 20, range: 120, score: 750, sprite: 'origamiMaster', ranged: true, tier: 'boss' },
       'mud-monster': { hp: 160, speed: 1.15, damage: 18, range: 34, score: 520, sprite: 'mud-monster', tier: 'boss' },
       boss: { hp: 200, speed: 1.2, damage: 20, range: 26, score: 350, sprite: 'boss', tier: 'boss' }
     };
@@ -8484,6 +8519,391 @@
             hurt: { left: ['assets/animation_sidewinder_red_damaged_left.png', 5], fps: 12, loop: false },
             attack: { left: ['assets/animation_sidewinder_red_attack_left.png', 7], fps: 14, loop: false },
             death: { left: ['assets/animation_sidewinder_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        bayouBriar: {
+          profileId: 'enemy-bayouBriar',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_bayouBriar_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_bayouBriar_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_bayouBriar_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_bayouBriar_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_bayouBriar_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        quakes: {
+          profileId: 'enemy-quakes',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_quakes_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_quakes_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_quakes_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_quakes_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_quakes_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        riverDweller: {
+          profileId: 'enemy-riverDweller',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_riverDweller_red_controlSquare_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_riverDweller_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_riverDweller_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_riverDweller_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_riverDweller_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        automatick: {
+          profileId: 'enemy-automatick',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_automatick_red_controlSquare_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_automatick_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_automatick_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_automatick_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_automatick_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        tickles: {
+          profileId: 'enemy-tickles',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_tickles_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_tickles_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_tickles_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_tickles_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_tickles_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        vengefulGhost: {
+          profileId: 'enemy-vengefulGhost',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_vengefulGhost_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_vengefulGhost_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_vengefulGhost_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_vengefulGhost_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_vengefulGhost_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        chainedSpirit: {
+          profileId: 'enemy-chainedSpirit',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_chainedSpirit_red_controlSquare_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_chainedSpirit_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_chainedSpirit_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_chainedSpirit_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_chainedSpirit_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        curiousSpirit: {
+          profileId: 'enemy-curiousSpirit',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_curiousSpirit_red_controlSquare_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_curiousSpirit_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_curiousSpirit_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_curiousSpirit_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_curiousSpirit_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        lurkerInTheHalls: {
+          profileId: 'enemy-lurkerInTheHalls',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_lurkerInTheHalls_red_controlSquare_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_lurkerInTheHalls_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_lurkerInTheHalls_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_lurkerInTheHalls_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_lurkerInTheHalls_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        silentOne: {
+          profileId: 'enemy-silentOne',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_silentOne_red_controlSquare_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_silentOne_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_silentOne_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_silentOne_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_silentOne_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        bulwarkBernie: {
+          profileId: 'enemy-bulwarkBernie',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_bulwarkBernie_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_bulwarkBernie_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_bulwarkBernie_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_bulwarkBernie_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_bulwarkBernie_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        telematron: {
+          profileId: 'enemy-telematron',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_telematron_red_teleportIn_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_telematron_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_telematron_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_telematron_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_telematron_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        malice: {
+          profileId: 'enemy-malice',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_malice_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_malice_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_malice_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_malice_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_malice_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        revulsion: {
+          profileId: 'enemy-revulsion',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_revulsion_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_revulsion_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_revulsion_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_revulsion_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_revulsion_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        disgust: {
+          profileId: 'enemy-disgust',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_disgust_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_disgust_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_disgust_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_disgust_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_disgust_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        arrogance: {
+          profileId: 'enemy-arrogance',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_arrogance_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_arrogance_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_arrogance_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_arrogance_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_arrogance_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        shapeshifter: {
+          profileId: 'enemy-shapeshifter',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_shapeshifter_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_shapeshifter_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_shapeshifter_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_shapeshifter_red_walking_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_shapeshifter_red_damaged_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        tattooRat: {
+          profileId: 'enemy-tattooRat',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_kingOfThieves_rat_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_kingOfThieves_rat_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_kingOfThieves_rat_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_kingOfThieves_rat_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_kingOfThieves_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        tattooSnake: {
+          profileId: 'enemy-tattooSnake',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_kingOfThieves_snake_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_kingOfThieves_snake_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_kingOfThieves_snake_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_kingOfThieves_snake_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_kingOfThieves_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        tattooTiger: {
+          profileId: 'enemy-tattooTiger',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_kingOfThieves_tiger_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_kingOfThieves_tiger_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_kingOfThieves_tiger_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_kingOfThieves_tiger_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_kingOfThieves_tiger_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        sentroid: {
+          profileId: 'enemy-sentroid',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_sentroid_red_move_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_sentroid_red_move_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_sentroid_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_sentroid_red_moveDiagonalDown_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_sentroid_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        lesserDemon: {
+          profileId: 'enemy-lesserDemon',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_lesserDemon_red_controlSquare_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_lesserDemon_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_lesserDemon_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_lesserDemon_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_lesserDemon_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        skulkingDemon: {
+          profileId: 'enemy-skulkingDemon',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_skulkingDemon_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_skulkingDemon_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_skulkingDemon_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_skulkingDemon_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_skulkingDemon_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        succubus: {
+          profileId: 'enemy-succubus',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_succubus_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_succubus_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_succubus_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_succubus_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_succubus_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        zombie: {
+          profileId: 'enemy-zombie',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_zombie_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_zombie_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_zombie_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_zombie_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_zombie_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        origamiCrane: {
+          profileId: 'enemy-origamiCrane',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_origami_crane_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_origami_crane_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_origami_crane_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_origami_crane_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_origami_crane_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        origamiDragon: {
+          profileId: 'enemy-origamiDragon',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_origami_dragon_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_origami_dragon_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_origami_dragon_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_origami_dragon_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_origami_dragon_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        origamiToad: {
+          profileId: 'enemy-origamiToad',
+          sizeMultiplier: 1,
+          states: {
+            idle: { left: ['assets/animation_origami_toad_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_origami_toad_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_origami_toad_red_walking_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_origami_toad_red_walking_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_origami_toad_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        theSlais: {
+          profileId: 'enemy-theSlais',
+          sizeMultiplier: BOSS_DRAW_SIZE / ENEMY_DRAW_SIZE,
+          states: {
+            idle: { left: ['assets/animation_theSlais_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_theSlais_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_theSlais_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_theSlais_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_theSlais_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        ladyWorthington: {
+          profileId: 'enemy-ladyWorthington',
+          sizeMultiplier: BOSS_DRAW_SIZE / ENEMY_DRAW_SIZE,
+          states: {
+            idle: { left: ['assets/animation_ladyWorthington_red_controlSquare_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_ladyWorthington_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_ladyWorthington_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_ladyWorthington_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_ladyWorthington_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        mrNibbles: {
+          profileId: 'enemy-mrNibbles',
+          sizeMultiplier: BOSS_DRAW_SIZE / ENEMY_DRAW_SIZE,
+          states: {
+            idle: { left: ['assets/animation_mrNibbles_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_mrNibbles_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_mrNibbles_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_mrNibbles_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_mrNibbles_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        mirrorMaster: {
+          profileId: 'enemy-mirrorMaster',
+          sizeMultiplier: BOSS_DRAW_SIZE / ENEMY_DRAW_SIZE,
+          states: {
+            idle: { left: ['assets/animation_mirrorMaster_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_mirrorMaster_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_mirrorMaster_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_mirrorMaster_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_mirrorMaster_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        kingOfThieves: {
+          profileId: 'enemy-kingOfThieves',
+          sizeMultiplier: BOSS_DRAW_SIZE / ENEMY_DRAW_SIZE,
+          states: {
+            idle: { left: ['assets/animation_kingOfThieves_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_kingOfThieves_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_kingOfThieves_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_kingOfThieves_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_kingOfThieves_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        lodicrust: {
+          profileId: 'enemy-lodicrust',
+          sizeMultiplier: BOSS_DRAW_SIZE / ENEMY_DRAW_SIZE,
+          states: {
+            idle: { left: ['assets/animation_lodicrust_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_lodicrust_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_lodicrust_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_lodicrust_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_lodicrust_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        origamiMaster: {
+          profileId: 'enemy-origamiMaster',
+          sizeMultiplier: BOSS_DRAW_SIZE / ENEMY_DRAW_SIZE,
+          states: {
+            idle: { left: ['assets/animation_origamiMaster_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_origamiMaster_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_origamiMaster_red_walking_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_origamiMaster_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_origamiMaster_red_killed_left.png', 6], fps: 8, loop: false }
           }
         },
         sweetykins: {

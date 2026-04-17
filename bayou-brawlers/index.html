@@ -1416,9 +1416,9 @@
 
     const levels = [
       { id: 'swamp', name: 'The Swamp', background: 'background-swamp', waves: [
-        { types: ['daphodilus', 'choking-blossom', 'bayouBriar'], count: 4 },
-        { types: ['choking-blossom', 'daphodilus', 'bayouBriar'], count: 5 },
-        { types: ['daphodilus', 'choking-blossom', 'bayouBriar'], count: 6 }
+        { types: ['daphodilus', 'choking-blossom', 'bayouBriar', 'bayouBriar'], count: 4 },
+        { types: ['choking-blossom', 'daphodilus', 'bayouBriar', 'bayouBriar'], count: 5 },
+        { types: ['daphodilus', 'choking-blossom', 'bayouBriar', 'bayouBriar'], count: 6 }
       ], boss: { name: 'Mud Monster', type: 'mud-monster' } },
       { id: 'mirewatch', name: 'Mirewatch (Town)', background: 'background-mirewatch', waves: [
         { types: ['hiredGun', 'choking-blossom', 'quakes'], count: 5 },
@@ -1499,7 +1499,7 @@
       hiredGun: { hp: 34, speed: 1.45, damage: 8, range: 155, score: 100, sprite: 'hiredGun', ranged: true, tier: 'medium' },
       stingy: { hp: 28, speed: 2.15, damage: 7, range: 20, score: 105, sprite: 'stingy', tier: 'medium' },
       sidewinder: { hp: 32, speed: 2.35, damage: 2, range: 72, score: 115, sprite: 'sidewinder', tier: 'medium' },
-      bayouBriar: { hp: 34, speed: 1.75, damage: 9, range: 22, score: 108, sprite: 'bayouBriar', tier: 'medium' },
+      bayouBriar: { hp: 34, speed: 1.75, damage: 8, range: 190, score: 108, sprite: 'bayouBriar', ranged: true, tier: 'medium' },
       quakes: { hp: 44, speed: 1.2, damage: 12, range: 26, score: 122, sprite: 'quakes', tier: 'medium' },
       riverDweller: { hp: 38, speed: 1.55, damage: 10, range: 26, score: 116, sprite: 'riverDweller', tier: 'medium' },
       automatick: { hp: 56, speed: 1.2, damage: 12, range: 20, score: 96, sprite: 'automatick', tier: 'medium' },
@@ -2616,7 +2616,9 @@
         hp: stats.hp * (isBoss ? 1.15 : 1),
         maxHp: stats.hp * (isBoss ? 1.15 : 1),
         speed: stats.speed * ENEMY_SPEED_MULTIPLIER,
+        baseSpeed: stats.speed * ENEMY_SPEED_MULTIPLIER,
         damage: stats.damage,
+        baseDamage: stats.damage,
         range: stats.range,
         score: stats.score,
         sprite: base.sprite === 'boss' ? assets.boss : assets.enemies[base.sprite],
@@ -2664,6 +2666,9 @@
         hurtTimer: 0,
         deathHoldFrames: 0,
         mudTrailDropCooldown: options.mudTrailDropCooldown || rand(4, 7),
+        supportSpeedBoostFrames: 0,
+        supportPowerBoostFrames: 0,
+        bayouSupportCooldown: rand(80, 150),
         statuses: {}
       };
       if (state.waveActive && state.lockX !== null) {
@@ -4064,6 +4069,39 @@
       return healed;
     }
 
+    function refreshEnemySupportModifiers(enemy) {
+      if (!enemy) return;
+      const baseSpeed = Number.isFinite(enemy.baseSpeed) ? enemy.baseSpeed : enemy.speed;
+      const baseDamage = Number.isFinite(enemy.baseDamage) ? enemy.baseDamage : enemy.damage;
+      enemy.baseSpeed = baseSpeed;
+      enemy.baseDamage = baseDamage;
+      const speedMultiplier = (enemy.supportSpeedBoostFrames || 0) > 0 ? 1.22 : 1;
+      const powerMultiplier = (enemy.supportPowerBoostFrames || 0) > 0 ? 1.2 : 1;
+      enemy.speed = baseSpeed * speedMultiplier;
+      enemy.damage = baseDamage * powerMultiplier;
+    }
+
+    function applyBayouBriarSupportBuff(target, options = {}) {
+      if (!target || target.hp <= 0) return;
+      const healAmount = Math.max(0, options.heal || 0);
+      if (healAmount > 0) {
+        const beforeHp = target.hp;
+        target.hp = clamp(target.hp + healAmount, 0, target.maxHp);
+        const healed = Math.max(0, target.hp - beforeHp);
+        if (healed > 0) spawnHealPlusCluster(target, healed);
+      }
+      if (options.speedBoost) {
+        target.supportSpeedBoostFrames = Math.max(target.supportSpeedBoostFrames || 0, options.speedBoost);
+      }
+      if (options.powerBoost) {
+        target.supportPowerBoostFrames = Math.max(target.supportPowerBoostFrames || 0, options.powerBoost);
+      }
+      refreshEnemySupportModifiers(target);
+      if (options.speedBoost || options.powerBoost) {
+        spawnPowerPlusCluster(target, Math.max(8, (options.powerBoost || options.speedBoost) / 28));
+      }
+    }
+
     function updateHpBar() {
       const fill = document.getElementById('hpFill');
       if (!state.player) return;
@@ -5060,6 +5098,9 @@
         enemy.noDigUntil = Math.max(0, enemy.noDigUntil - 1);
         enemy.hurtTimer = Math.max(0, enemy.hurtTimer - 1);
         enemy.thornPatchHitCooldown = Math.max(0, (enemy.thornPatchHitCooldown || 0) - 1);
+        enemy.supportSpeedBoostFrames = Math.max(0, (enemy.supportSpeedBoostFrames || 0) - 1);
+        enemy.supportPowerBoostFrames = Math.max(0, (enemy.supportPowerBoostFrames || 0) - 1);
+        refreshEnemySupportModifiers(enemy);
         updateEnemyStatuses(enemy);
         enemy.hitStun = Math.max(0, (enemy.hitStun || 0) - 1);
         if (enemy.hitStun > 0) {
@@ -5312,6 +5353,61 @@
           } else {
             enemy.cooldown = Math.min(enemy.cooldown, barrageTickRate);
           }
+        } else if (enemy.type === 'bayouBriar') {
+          const supportRange = 250;
+          const preferredDistance = 170;
+          enemy.bayouSupportCooldown = Math.max(0, (enemy.bayouSupportCooldown || 0) - 1);
+
+          const nearbyAllies = state.enemies.filter(other =>
+            other !== enemy
+            && other.hp > 0
+            && Math.hypot(other.x - enemy.x, other.y - enemy.y) <= supportRange
+          );
+          const mostWoundedAlly = nearbyAllies
+            .filter(other => other.hp < other.maxHp * 0.95)
+            .sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0] || null;
+
+          if (distance < preferredDistance - 18) {
+            const retreatDx = enemy.x - player.x;
+            const retreatDy = enemy.y - getEnemyAimTargetY(enemy, player);
+            const retreatNorm = Math.hypot(retreatDx, retreatDy) || 1;
+            enemy.x += (retreatDx / retreatNorm) * moveSpeed * 1.08;
+            enemy.y += (retreatDy / retreatNorm) * moveSpeed * 0.65;
+            enemy.isMoving = true;
+          } else if (distance > preferredDistance + 44) {
+            enemy.x += Math.sign(dx) * moveSpeed * 0.62;
+            enemy.y += Math.sign(dy) * moveSpeed * 0.38;
+            enemy.isMoving = true;
+          } else if (nearbyAllies.length > 0) {
+            const anchor = nearbyAllies.reduce((closest, current) => {
+              if (!closest) return current;
+              const closestDist = Math.hypot(closest.x - enemy.x, closest.y - enemy.y);
+              const currentDist = Math.hypot(current.x - enemy.x, current.y - enemy.y);
+              return currentDist < closestDist ? current : closest;
+            }, null);
+            if (anchor) {
+              const anchorDx = anchor.x - enemy.x;
+              const anchorDy = anchor.y - enemy.y;
+              const anchorDist = Math.hypot(anchorDx, anchorDy);
+              if (anchorDist > 90) {
+                enemy.x += (anchorDx / (anchorDist || 1)) * moveSpeed * 0.7;
+                enemy.y += (anchorDy / (anchorDist || 1)) * moveSpeed * 0.4;
+                enemy.isMoving = true;
+              }
+            }
+          }
+
+          if (enemy.windup <= 0 && enemy.bayouSupportCooldown <= 0 && nearbyAllies.length > 0 && (mostWoundedAlly || Math.random() < 0.65)) {
+            enemy.windup = 12;
+            enemy.attackAnimTimer = 16;
+            enemy.bayouSupportCast = { supportTargets: nearbyAllies.map(other => other.uid), woundedTargetUid: mostWoundedAlly?.uid || null };
+            enemy.cooldown = rand(36, 58);
+            enemy.bayouSupportCooldown = rand(125, 195);
+          } else if (enemy.windup <= 0 && enemy.cooldown <= 0 && distance <= supportRange * 1.05) {
+            enemy.windup = 14;
+            enemy.attackAnimTimer = 14;
+            enemy.cooldown = rand(42, 70);
+          }
         } else if (enemy.type === 'sweetykins') {
           enemy.forceIdleAnimation = false;
           if (!enemy.sweetykinsMode) enemy.sweetykinsMode = 'charge';
@@ -5508,21 +5604,49 @@
           enemy.windup -= 1;
           if (enemy.windup === 0) {
             playEnemySfx(enemy, 'attack');
-            const enemyAttackBody = getEnemyHitbox(enemy);
-            const playerAttackBody = getPlayerHitbox(player);
-            if (enemy.ranged) {
-              state.projectiles.push({ x: enemy.x, y: enemyAttackBody.y + (enemyAttackBody.height * 0.4), vx: Math.sign(dx) * 4.5, damage: enemy.damage, friendly: false, life: 140, color: '#ff7b7b' });
+            if (enemy.type === 'bayouBriar' && enemy.bayouSupportCast) {
+              const castData = enemy.bayouSupportCast;
+              const supportTargets = state.enemies.filter(other => castData.supportTargets.includes(other.uid) && other.hp > 0);
+              const woundedTarget = supportTargets.find(other => other.uid === castData.woundedTargetUid) || null;
+              const sortedTargets = supportTargets
+                .slice()
+                .sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))
+                .slice(0, 2);
+              const primaryTarget = woundedTarget || sortedTargets[0] || null;
+              if (primaryTarget) {
+                applyBayouBriarSupportBuff(primaryTarget, {
+                  heal: primaryTarget.maxHp * 0.22,
+                  speedBoost: 220,
+                  powerBoost: Math.random() < 0.5 ? 220 : 0
+                });
+              }
+              const secondaryTarget = sortedTargets.find(other => other !== primaryTarget);
+              if (secondaryTarget) {
+                const empowerBoth = Math.random() < 0.45;
+                applyBayouBriarSupportBuff(secondaryTarget, {
+                  speedBoost: 190,
+                  powerBoost: empowerBoth ? 190 : 0
+                });
+              }
+              enemy.bayouSupportCast = null;
+              enemy.cooldown = Math.max(enemy.cooldown, rand(44, 76));
             } else {
-              const attackReachMultiplier = enemy.isBoss ? 2 : 1;
-              const forwardReach = ((enemy.range + 10) * attackReachMultiplier);
-              const overlapReach = 12;
-              const meleeZone = {
-                x: (enemy.facing >= 0 ? enemyAttackBody.x : enemyAttackBody.x - forwardReach) - overlapReach,
-                y: enemyAttackBody.y,
-                width: enemyAttackBody.width + forwardReach + (overlapReach * 2),
-                height: enemyAttackBody.height
-              };
-              if (rectsOverlap(meleeZone, playerAttackBody) || rectsOverlap(enemyAttackBody, playerAttackBody)) damagePlayer(enemy.damage, enemy);
+              const enemyAttackBody = getEnemyHitbox(enemy);
+              const playerAttackBody = getPlayerHitbox(player);
+              if (enemy.ranged) {
+                state.projectiles.push({ x: enemy.x, y: enemyAttackBody.y + (enemyAttackBody.height * 0.4), vx: Math.sign(dx) * 4.5, damage: enemy.damage, friendly: false, life: 140, color: '#ff7b7b' });
+              } else {
+                const attackReachMultiplier = enemy.isBoss ? 2 : 1;
+                const forwardReach = ((enemy.range + 10) * attackReachMultiplier);
+                const overlapReach = 12;
+                const meleeZone = {
+                  x: (enemy.facing >= 0 ? enemyAttackBody.x : enemyAttackBody.x - forwardReach) - overlapReach,
+                  y: enemyAttackBody.y,
+                  width: enemyAttackBody.width + forwardReach + (overlapReach * 2),
+                  height: enemyAttackBody.height
+                };
+                if (rectsOverlap(meleeZone, playerAttackBody) || rectsOverlap(enemyAttackBody, playerAttackBody)) damagePlayer(enemy.damage, enemy);
+              }
             }
             let attackRecoveryCooldown = rand(40, 80);
             if (enemy.type === 'sweetykins' && enemy.sweetykinsMode === 'assault') {

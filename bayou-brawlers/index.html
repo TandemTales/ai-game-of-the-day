@@ -1838,6 +1838,7 @@
     const PLAYER_FINAL_DISPLAY_SIZE = PLAYER_DRAW_SIZE * DEFAULT_PLAYER_RENDER_SCALE;
     const ENEMY_TO_PLAYER_SIZE_BOUNDS = { min: 0.86, max: 1.18 };
     const BOSS_TO_PLAYER_SIZE_BOUNDS = { min: 1.04, max: 1.6 };
+    const MUD_MONSTER_TO_PLAYER_SIZE_BOUNDS = { min: 2.8, max: 3.2 };
 
     function toAssetCamelCase(value) {
       if (!value) return '';
@@ -1880,9 +1881,11 @@
       return { hp: base.hp, speed: base.speed, damage: base.damage, range: base.range, score: base.score };
     }
 
-    function clampEnemyRenderScale(scale, isBoss) {
+    function clampEnemyRenderScale(scale, isBoss, typeId = null) {
       const baseDrawSize = isBoss ? BOSS_DRAW_SIZE : ENEMY_DRAW_SIZE;
-      const bounds = isBoss ? BOSS_TO_PLAYER_SIZE_BOUNDS : ENEMY_TO_PLAYER_SIZE_BOUNDS;
+      const bounds = (isBoss && typeId === 'mud-monster')
+        ? MUD_MONSTER_TO_PLAYER_SIZE_BOUNDS
+        : (isBoss ? BOSS_TO_PLAYER_SIZE_BOUNDS : ENEMY_TO_PLAYER_SIZE_BOUNDS);
       const minScale = (PLAYER_FINAL_DISPLAY_SIZE * bounds.min) / baseDrawSize;
       const maxScale = (PLAYER_FINAL_DISPLAY_SIZE * bounds.max) / baseDrawSize;
       return clamp(scale, minScale, maxScale);
@@ -1902,17 +1905,13 @@
       else if (typeId === 'swamp') desiredScale = asPlayerSizeRatio(0.9);
       else if (typeId === 'daphodilus') desiredScale = asPlayerSizeRatio(0.94);
       else if (typeId === 'mud-monster') {
-        const mudMonsterScaleByStage = {
-          3: 1.38,
-          2: 1.2,
-          1: 1.06
-        };
-        desiredScale = asPlayerSizeRatio(mudMonsterScaleByStage[stage] || mudMonsterScaleByStage[1]);
+        const mudMonsterSizeRatio = 3;
+        desiredScale = asPlayerSizeRatio(mudMonsterSizeRatio);
       } else if (boostedSize) {
         desiredScale = boostedSize;
       }
 
-      return clampEnemyRenderScale(desiredScale, isBoss);
+      return clampEnemyRenderScale(desiredScale, isBoss, typeId);
     }
 
     function getDaphodilusLevelOneScale(typeId) {
@@ -3106,14 +3105,14 @@
     function spawnWave(level, waveIndex) {
       if (level.id === 'swamp') {
         const script = [
-          [{ type: 'daphodilus', delay: 0 }, { type: 'daphodilus', delay: 120 }],
-          [{ type: 'daphodilus', delay: 0 }, { type: 'choking-blossom', delay: 10 }],
-          [{ type: 'choking-blossom', delay: 0 }, { type: 'daphodilus', delay: 180 }],
-          [{ type: 'choking-blossom', delay: 0 }, { type: 'choking-blossom', delay: 8 }, { type: 'daphodilus', delay: 240 }],
-          [{ type: 'choking-blossom', delay: 0 }, { type: 'daphodilus', delay: 0 }, { type: 'daphodilus', delay: 240 }],
-          [{ type: 'choking-blossom', delay: 0 }, { type: 'choking-blossom', delay: 8 }, { type: 'daphodilus', delay: 180, opts: { burrowCooldown: 120 } }],
-          [{ type: 'choking-blossom', delay: 0 }, { type: 'daphodilus', delay: 180, opts: { burrowCooldown: 120 } }],
-          [{ type: 'choking-blossom', delay: 0 }, { type: 'choking-blossom', delay: 8 }, { type: 'daphodilus', delay: 210, opts: { burrowCooldown: 90 } }]
+          [{ type: 'daphodilus', delay: 0 }, { type: 'bayouBriar', delay: 90 }],
+          [{ type: 'daphodilus', delay: 0 }, { type: 'choking-blossom', delay: 10 }, { type: 'bayouBriar', delay: 180 }],
+          [{ type: 'choking-blossom', delay: 0 }, { type: 'daphodilus', delay: 180 }, { type: 'bayouBriar', delay: 210 }],
+          [{ type: 'choking-blossom', delay: 0 }, { type: 'choking-blossom', delay: 8 }, { type: 'daphodilus', delay: 240 }, { type: 'bayouBriar', delay: 270 }],
+          [{ type: 'choking-blossom', delay: 0 }, { type: 'daphodilus', delay: 0 }, { type: 'daphodilus', delay: 240 }, { type: 'bayouBriar', delay: 160 }],
+          [{ type: 'choking-blossom', delay: 0 }, { type: 'choking-blossom', delay: 8 }, { type: 'daphodilus', delay: 180, opts: { burrowCooldown: 120 } }, { type: 'bayouBriar', delay: 210 }],
+          [{ type: 'choking-blossom', delay: 0 }, { type: 'daphodilus', delay: 180, opts: { burrowCooldown: 120 } }, { type: 'bayouBriar', delay: 90 }],
+          [{ type: 'choking-blossom', delay: 0 }, { type: 'choking-blossom', delay: 8 }, { type: 'daphodilus', delay: 210, opts: { burrowCooldown: 90 } }, { type: 'bayouBriar', delay: 240 }]
         ];
         const entries = script[waveIndex] || [];
         const doubledEntries = Array.from({ length: ENEMY_COUNT_MULTIPLIER }, () => entries).flat();

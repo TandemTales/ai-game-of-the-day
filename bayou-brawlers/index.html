@@ -865,7 +865,7 @@
     <div class="overlay" id="startOverlay">
       <div class="panel start-panel">
         <h2>Pick Your Brawler</h2>
-        <p>Choose a fighter with distinct stats and unique abilities. Tap a thumbnail or swipe left/right on the main portrait to cycle through every brawler. Starting at Stage 3, and again at Stage 7, you can recruit an additional computer-controlled brawler.</p>
+        <p>Choose a fighter with distinct stats and unique abilities. Tap a thumbnail or swipe left/right on the main portrait to cycle through every brawler. At Stage 6, you can recruit one computer-controlled brawler companion.</p>
         <div class="character-grid" id="characterGrid"></div>
         <div class="character-detail" id="characterDetail" aria-live="polite"></div>
         <button class="btn" id="startBtn" disabled>Start the Journey</button>
@@ -963,8 +963,8 @@
       }
     };
 
-    const COMPANION_RECRUIT_STAGE_INDEXES = new Set([2, 6]); // Stage 3 and Stage 7
-    const MAX_COMPANIONS = 2;
+    const COMPANION_RECRUIT_STAGE_INDEXES = new Set([5]); // Stage 6
+    const MAX_COMPANIONS = 1;
 
     const CHEAT_STREAK_RESET_MS = 2000;
     const CHEAT_REQUIRED_CLICKS = 7;
@@ -2483,7 +2483,7 @@
     }
 
     function getCompanionRecruitLevel(stageIndex) {
-      return stageIndex >= 6 ? 15 : 7;
+      return 6;
     }
 
     function applyRandomCompanionUpgrades(companion, targetLevel) {
@@ -6157,7 +6157,7 @@
       if (state.pendingCompanionRecruitStage !== null) return false;
       if (state.companions.length >= MAX_COMPANIONS) return false;
       if (!COMPANION_RECRUIT_STAGE_INDEXES.has(state.levelIndex)) return false;
-      return state.companions.length < (state.levelIndex >= 6 ? 2 : 1);
+      return state.companions.length < 1;
     }
 
     function getRecruitableCompanions() {

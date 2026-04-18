@@ -1546,6 +1546,8 @@
 
     const INITIAL_WAVE_ENEMY_MULTIPLIER = 0.75;
     const ENEMY_COUNT_MULTIPLIER = 2;
+    const NON_STAGE_ONE_WAVE_COUNT_SCALE = 0.5;
+    const NON_STAGE_ONE_WAVE_STAT_SCALE = 2;
     const ENEMY_SPEED_MULTIPLIER = 0.82;
     const REGULAR_WAVE_COUNT = 8;
     const TOTAL_WAVE_COUNT = 9;
@@ -3102,6 +3104,28 @@
       };
     }
 
+    function isStageOneLevel() {
+      return state.levelIndex === 0;
+    }
+
+    function getAdjustedWaveEnemyCount(baseCount) {
+      if (isStageOneLevel()) return baseCount;
+      return Math.max(1, Math.ceil(baseCount * NON_STAGE_ONE_WAVE_COUNT_SCALE));
+    }
+
+    function applyNonStageOneWaveEnemyBuff(enemy) {
+      if (!enemy || isStageOneLevel()) return;
+      enemy.hp *= NON_STAGE_ONE_WAVE_STAT_SCALE;
+      enemy.maxHp *= NON_STAGE_ONE_WAVE_STAT_SCALE;
+      enemy.damage *= NON_STAGE_ONE_WAVE_STAT_SCALE;
+    }
+
+    function getAdjustedWaveEntries(entries) {
+      if (isStageOneLevel()) return entries;
+      const targetCount = getAdjustedWaveEnemyCount(entries.length);
+      return entries.filter((_, idx) => idx % 2 === 0).slice(0, targetCount);
+    }
+
     function spawnWave(level, waveIndex) {
       if (level.id === 'swamp') {
         const script = [
@@ -3116,14 +3140,15 @@
         ];
         const entries = script[waveIndex] || [];
         const doubledEntries = Array.from({ length: ENEMY_COUNT_MULTIPLIER }, () => entries).flat();
+        const adjustedEntries = getAdjustedWaveEntries(doubledEntries);
         const waveLockX = getWaveLockX(waveIndex);
         state.lockX = waveLockX;
         state.enemies = [];
         state.spawnQueue = [];
-        const splitIndex = Math.ceil(doubledEntries.length / 2);
-        doubledEntries.forEach((item, idx) => {
+        const splitIndex = Math.ceil(adjustedEntries.length / 2);
+        adjustedEntries.forEach((item, idx) => {
           const side = idx < splitIndex ? 'left' : 'right';
-          queueSpawn(item.type, item.delay, item.opts || {}, side);
+          queueSpawn(item.type, item.delay, Object.assign({}, item.opts || {}, { waveSpawn: true }), side);
         });
         state.waveIndex = waveIndex;
         state.waveActive = true;
@@ -3134,9 +3159,10 @@
       if (!wave) return;
       const waveLockX = getWaveLockX(waveIndex);
       state.enemies = [];
-      const spawnCount = (waveIndex === 0
+      const baseSpawnCount = (waveIndex === 0
         ? Math.max(2, Math.round(wave.count * INITIAL_WAVE_ENEMY_MULTIPLIER))
         : wave.count) * ENEMY_COUNT_MULTIPLIER;
+      const spawnCount = getAdjustedWaveEnemyCount(baseSpawnCount);
       const leftCount = Math.ceil(spawnCount / 2);
       const rightBaseX = clamp(waveLockX + 180, waveLockX + 80, state.levelWidth - 160);
       const leftBaseX = clamp(waveLockX - 180, 60, state.levelWidth - 160);
@@ -3149,6 +3175,7 @@
           ? (leftBaseX - laneOffset + rand(-35, 35))
           : (rightBaseX + laneOffset + rand(-35, 35));
         const enemy = createEnemy(typeId, spawnX, rand(getBrawlLaneMinY(), BRAWL_LANE_MAX_Y));
+        applyNonStageOneWaveEnemyBuff(enemy);
         state.enemies.push(enemy);
       }
       state.waveIndex = waveIndex;
@@ -6037,6 +6064,9 @@
           const offsetAwayFromPlayer = side === 'left' ? -100 : 100;
           const finalX = isSpawnOverlappingPlayer(spawnX, spawnY) ? (spawnX + offsetAwayFromPlayer) : spawnX;
           const enemy = createEnemy(entry.type, finalX, spawnY, false, Object.assign({ noDigUntil: 48 }, entry.opts || {}));
+          if (entry.opts && entry.opts.waveSpawn) {
+            applyNonStageOneWaveEnemyBuff(enemy);
+          }
           state.enemies.push(enemy);
           debugLog('waves', 'spawn', entry.type, 'wave', state.waveIndex + 1);
         });

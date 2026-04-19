@@ -2769,6 +2769,27 @@
       };
     }
 
+    function getCoordinatedEnemyApproach(enemy, player) {
+      if (!enemy || !player) return { dirX: 0, dirY: 0 };
+      const spawnSide = enemy.waveBarrierSpawnSide || (enemy.x <= player.x ? 'left' : 'right');
+      const sideDir = spawnSide === 'left' ? -1 : 1;
+      const nearbyOnSameSide = state.enemies.filter(other => (
+        other
+        && other !== enemy
+        && other.hp > 0
+        && (other.waveBarrierSpawnSide || (other.x <= player.x ? 'left' : 'right')) === spawnSide
+        && Math.hypot(other.x - enemy.x, other.y - enemy.y) < 260
+      )).length;
+      const flankDistance = clamp(72 + (nearbyOnSameSide * 12), 64, 156);
+      const verticalBias = ((enemy.uid % 4) - 1.5) * 16;
+      const targetX = player.x + (sideDir * flankDistance);
+      const targetY = getEnemyAimTargetY(enemy, player) + verticalBias;
+      return {
+        dirX: Math.sign(targetX - enemy.x) || Math.sign(player.x - enemy.x),
+        dirY: Math.sign(targetY - enemy.y)
+      };
+    }
+
     function getPlayerHitbox(player) {
       return getPhysicsBody(player);
     }
@@ -3140,18 +3161,15 @@
       const isStageOne = state.levelIndex === 0;
       const spawnCount = isStageOne ? baseSpawnCount : Math.max(1, Math.ceil(baseSpawnCount / 2));
       const leftCount = Math.ceil(spawnCount / 2);
-      const rightBaseX = clamp(waveLockX + 180, waveLockX + 80, state.levelWidth - 160);
-      const leftBaseX = clamp(waveLockX - 180, 60, state.levelWidth - 160);
+      state.spawnQueue = [];
       for (let i = 0; i < spawnCount; i += 1) {
         const typeId = wave.types[i % wave.types.length];
         const isLeftGroup = i < leftCount;
         const groupIndex = isLeftGroup ? i : (i - leftCount);
-        const laneOffset = groupIndex * ENEMY_GROUP_SPAWN_SPACING;
-        const spawnX = isLeftGroup
-          ? (leftBaseX - laneOffset + rand(-35, 35))
-          : (rightBaseX + laneOffset + rand(-35, 35));
-        const enemy = createEnemy(typeId, spawnX, rand(getBrawlLaneMinY(), BRAWL_LANE_MAX_Y));
-        state.enemies.push(enemy);
+        const spawnSide = isLeftGroup ? 'left' : 'right';
+        const stagger = groupIndex * Math.max(6, Math.floor(ENEMY_GROUP_SPAWN_SPACING * 0.75));
+        const delay = rand(0, 20) + stagger;
+        queueSpawn(typeId, delay, { noDigUntil: 54 }, spawnSide);
       }
       state.waveIndex = waveIndex;
       state.waveActive = true;
@@ -5285,14 +5303,15 @@
             }
           }
         } else if (enemy.type === 'sidewinder') {
+          const coordinatedApproach = getCoordinatedEnemyApproach(enemy, player);
           const barrageRadius = enemy.range;
           const preferredDistance = Math.max(36, barrageRadius - 18);
           const barrageTickRate = 5;
           const barrageDamage = Math.max(1, Math.round(enemy.damage * 0.6));
 
           if (distance > preferredDistance + 8) {
-            enemy.x += Math.sign(dx) * moveSpeed * 0.92;
-            enemy.y += Math.sign(dy) * moveSpeed * 0.52;
+            enemy.x += coordinatedApproach.dirX * moveSpeed * 0.92;
+            enemy.y += coordinatedApproach.dirY * moveSpeed * 0.52;
             enemy.isMoving = true;
           } else {
             const strafeDirection = enemy.facing >= 0 ? 1 : -1;
@@ -5445,13 +5464,14 @@
             enemy.attackAnimTimer = Math.max(enemy.attackAnimTimer, 14);
           }
         } else {
+          const coordinatedApproach = getCoordinatedEnemyApproach(enemy, player);
           if (enemy.ranged && distance > enemy.range * 0.7) {
-            enemy.x += Math.sign(dx) * moveSpeed * 0.6;
-            enemy.y += Math.sign(dy) * moveSpeed * 0.4;
+            enemy.x += coordinatedApproach.dirX * moveSpeed * 0.6;
+            enemy.y += coordinatedApproach.dirY * moveSpeed * 0.4;
             enemy.isMoving = true;
           } else if (distance > enemy.range && !rectsOverlap(enemyBody, playerBody)) {
-            enemy.x += Math.sign(dx) * moveSpeed;
-            enemy.y += Math.sign(dy) * moveSpeed * 0.6;
+            enemy.x += coordinatedApproach.dirX * moveSpeed;
+            enemy.y += coordinatedApproach.dirY * moveSpeed * 0.6;
             enemy.isMoving = true;
           } else if (enemy.windup <= 0 && enemy.cooldown <= 0) {
             enemy.windup = 18;
@@ -6032,10 +6052,18 @@
         state.spawnQueue = state.spawnQueue.filter(entry => entry.frames > 0);
         ready.forEach(entry => {
           const side = entry.side || (Math.random() < 0.5 ? 'left' : 'right');
+          const edgeAnchorX = side === 'left' ? (state.cameraX + 24) : (state.cameraX + canvas.width - 24);
+          let spawnY = clamp(rand(getBrawlLaneMinY(), BRAWL_LANE_MAX_Y), getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
+          for (let attempt = 0; attempt < 10; attempt += 1) {
+            const probeY = clamp(rand(getBrawlLaneMinY(), BRAWL_LANE_MAX_Y), getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
+            if (isWalkableWorldPosition(edgeAnchorX, probeY)) {
+              spawnY = probeY;
+              break;
+            }
+          }
           const spawnX = (side === 'left')
-            ? (state.cameraX - 140 - rand(0, 60))
-            : clamp(state.cameraX + canvas.width + 140 + rand(0, 60), state.cameraX + canvas.width + 120, state.levelWidth - 60);
-          const spawnY = clamp(rand(getBrawlLaneMinY(), BRAWL_LANE_MAX_Y), getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
+            ? (state.cameraX - rand(38, 92))
+            : clamp(state.cameraX + canvas.width + rand(38, 92), state.cameraX + canvas.width + 30, state.levelWidth - 20);
           const offsetAwayFromPlayer = side === 'left' ? -100 : 100;
           const finalX = isSpawnOverlappingPlayer(spawnX, spawnY) ? (spawnX + offsetAwayFromPlayer) : spawnX;
           const enemy = createEnemy(entry.type, finalX, spawnY, false, Object.assign({ noDigUntil: 48 }, entry.opts || {}));

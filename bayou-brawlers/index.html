@@ -1613,6 +1613,12 @@
     const PLAYER_STUN_TYPES = new Set(['brute', 'boss', 'mud-monster', 'sweetykins']);
     const ENEMY_DEATH_HOLD_FRAMES = 240;
     const ENEMY_DAMAGE_MULTIPLIER = 0.75;
+    const ENEMY_BASE_HEALTH_MULTIPLIER = 1.5;
+    const ENEMY_BASE_DAMAGE_MULTIPLIER = 1.5;
+    const STAGE_DIFFICULTY_HEALTH_MIN = 1;
+    const STAGE_DIFFICULTY_HEALTH_MAX = 2.15;
+    const STAGE_DIFFICULTY_DAMAGE_MIN = 1;
+    const STAGE_DIFFICULTY_DAMAGE_MAX = 1.85;
     const MECHANIZED_MOMENTUM_MAX_STACKS = 12;
     const MECHANIZED_MOMENTUM_STACK_MULTIPLIER = 0.03;
     const MECHANIZED_MOMENTUM_DURATION_FRAMES = 120;
@@ -1879,6 +1885,17 @@
         };
       }
       return { hp: base.hp, speed: base.speed, damage: base.damage, range: base.range, score: base.score };
+    }
+
+    function getStageDifficultyScale(levelIndex = state.levelIndex) {
+      const stageNumber = clamp((levelIndex || 0) + 1, 1, CAMPAIGN_STAGE_LIMIT);
+      const progressToFinal = CAMPAIGN_STAGE_LIMIT <= 1
+        ? 1
+        : (stageNumber - 1) / (CAMPAIGN_STAGE_LIMIT - 1);
+      return {
+        hp: lerp(STAGE_DIFFICULTY_HEALTH_MIN, STAGE_DIFFICULTY_HEALTH_MAX, progressToFinal),
+        damage: lerp(STAGE_DIFFICULTY_DAMAGE_MIN, STAGE_DIFFICULTY_DAMAGE_MAX, progressToFinal)
+      };
     }
 
     function clampEnemyRenderScale(scale, isBoss, typeId = null) {
@@ -2600,6 +2617,9 @@
       const base = enemyTypes[typeId];
       const stage = STAGED_ENEMY_TYPES.has(typeId) ? (options.stage || 3) : 1;
       const stats = STAGED_ENEMY_TYPES.has(typeId) ? getStagedStats(typeId, stage) : base;
+      const stageDifficultyScale = getStageDifficultyScale();
+      const hpMultiplier = ENEMY_BASE_HEALTH_MULTIPLIER * stageDifficultyScale.hp;
+      const damageMultiplier = ENEMY_BASE_DAMAGE_MULTIPLIER * stageDifficultyScale.damage;
       const animationTracks = assets.enemyAnimations[typeId] || assets.enemyAnimations.swamp || null;
       const baseRenderScale = getEnemyRenderScale(typeId, stage, isBoss) * getDaphodilusLevelOneScale(typeId);
       const requestedSizeMultiplier = Number.isFinite(options.sizeMultiplier) ? options.sizeMultiplier : 1;
@@ -2612,10 +2632,10 @@
         y,
         z: 0,
         stage,
-        hp: stats.hp * (isBoss ? 1.15 : 1),
-        maxHp: stats.hp * (isBoss ? 1.15 : 1),
+        hp: stats.hp * hpMultiplier * (isBoss ? 1.15 : 1),
+        maxHp: stats.hp * hpMultiplier * (isBoss ? 1.15 : 1),
         speed: stats.speed * ENEMY_SPEED_MULTIPLIER,
-        damage: stats.damage,
+        damage: stats.damage * damageMultiplier,
         range: stats.range,
         score: stats.score,
         sprite: base.sprite === 'boss' ? assets.boss : assets.enemies[base.sprite],

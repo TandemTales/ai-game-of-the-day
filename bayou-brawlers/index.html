@@ -1631,11 +1631,11 @@
     const AUTO_LEVEL_GAINS = {
       2: ['+8% max health', '+5% basic attack damage'],
       3: ['Unlock special ability use', '+20 max power meter'],
-      4: ['+5% heavy attack damage', '+5% movement speed'],
+      4: ['+5% heavy attack damage', '+5% movement speed', 'Attacks can hit 1 additional enemy'],
       5: ['Unlock super special ability use', '+20 max power meter'],
       6: ['+8% max health', '+5% special ability damage/effect strength'],
       7: ['+5% basic attack damage', '+5% stun or knockback resistance'],
-      8: ['+10 max power meter', '+5% heavy attack damage'],
+      8: ['+10 max power meter', '+5% heavy attack damage', 'Attacks can hit 1 additional enemy'],
       9: ['+8% max health', '+5% special/super effect strength'],
       10: ['+5% all damage', '+10 max power meter', 'Unlock final passive trait']
     };
@@ -4433,17 +4433,26 @@
       return 1;
     }
 
+    function getAttackTargetLimit(player) {
+      let maxTargets = 1;
+      if (hasLevel(player, 4)) maxTargets += 1;
+      if (hasLevel(player, 8)) maxTargets += 1;
+      return maxTargets;
+    }
+
     function doAttack(player, heavy, isAir, tuning) {
       const characterId = player.charData.id;
       const rangedAttackers = new Set(['rustbucket']);
       const aoeAttackers = new Set(['green-fairy', 'scarlett-glumpkin']);
       const brutalDirectionalAttackers = new Set(['old-man-croc', 'possumatli', 'grimma-the-feared']);
+      const maxTargets = getAttackTargetLimit(player);
       const contactDamage = (heavy ? tuning.heavy : tuning.light) * player.attackPower * (heavy ? getHeavyDamageMultiplier(player) : getBasicDamageMultiplier(player));
       const contactStun = heavy ? 26 : 14;
 
       const applyOverlappingContactHits = (damage, stun, knockback = 0) => {
         let hitCount = 0;
         state.enemies.forEach(enemy => {
+          if (hitCount >= maxTargets) return;
           if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
           if (!playerBodyOverlap(player, enemy)) return;
           damageEnemy(enemy, damage, stun);
@@ -4469,6 +4478,7 @@
         const coneOriginY = player.y - 44;
         let hitCount = 0;
         state.enemies.forEach(enemy => {
+          if (hitCount >= maxTargets) return;
           if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
           if (playerBodyOverlap(player, enemy)) {
             damageEnemy(enemy, baseDmg, heavy ? 24 : 16);
@@ -4553,6 +4563,7 @@
         const weakAoeRadius = (heavy ? 90 : 72) * aoeRadiusMultiplier;
         let hitCount = 0;
         state.enemies.forEach(enemy => {
+          if (hitCount >= maxTargets) return;
           if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
           const distance = Math.hypot(enemy.x - player.x, enemy.y - player.y);
           if (distance <= weakAoeRadius) {
@@ -4584,6 +4595,7 @@
         const frontDamage = dmg * (heavy ? 1.7 : 1.5);
         let hitCount = 0;
         state.enemies.forEach(enemy => {
+          if (hitCount >= maxTargets) return;
           if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
           if (rectOverlap(hitbox, enemy) || playerBodyOverlap(player, enemy)) {
             damageEnemy(enemy, frontDamage, stun + 8);
@@ -4605,6 +4617,7 @@
 
       let hitCount = 0;
       state.enemies.forEach(enemy => {
+        if (hitCount >= maxTargets) return;
         if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
         if (rectOverlap(hitbox, enemy) || playerBodyOverlap(player, enemy)) {
           damageEnemy(enemy, dmg, stun);

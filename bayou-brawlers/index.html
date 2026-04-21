@@ -3216,12 +3216,16 @@
       showNotification('Invulnerability activated. Score set to zero.');
     }
 
-    function showNotification(message, holdMs = 2400) {
+    function showNotification(message, holdMs = 2400, options = {}) {
       const stack = document.getElementById('notificationStack');
       if (!stack || !message) return;
       const bubble = document.createElement('div');
       bubble.className = 'notification-bubble';
-      bubble.textContent = message;
+      const text = String(message);
+      const typewriterMsPerChar = Number.isFinite(options.typewriterMsPerChar)
+        ? Math.max(0, Number(options.typewriterMsPerChar))
+        : 0;
+      bubble.textContent = typewriterMsPerChar > 0 ? '' : text;
       bubble.dataset.id = String(notificationId += 1);
       stack.appendChild(bubble);
 
@@ -3229,13 +3233,32 @@
         bubble.classList.add('show');
       });
 
-      window.setTimeout(() => {
-        bubble.classList.add('hide');
-      }, holdMs);
+      const beginHide = () => {
+        window.setTimeout(() => {
+          bubble.classList.add('hide');
+        }, holdMs);
+      };
+
+      if (typewriterMsPerChar > 0) {
+        let index = 0;
+        const typeNextCharacter = () => {
+          if (!bubble.isConnected) return;
+          bubble.textContent = text.slice(0, index + 1);
+          index += 1;
+          if (index >= text.length) {
+            beginHide();
+            return;
+          }
+          window.setTimeout(typeNextCharacter, typewriterMsPerChar);
+        };
+        window.setTimeout(typeNextCharacter, typewriterMsPerChar);
+      } else {
+        beginHide();
+      }
 
       window.setTimeout(() => {
         bubble.remove();
-      }, holdMs + 1800);
+      }, holdMs + 1800 + (typewriterMsPerChar > 0 ? (text.length * typewriterMsPerChar) : 0));
     }
 
     function loadProgress() {
@@ -6155,7 +6178,7 @@
             state.pendingCompanionRecruitStage = state.levelIndex;
             showCompanionRecruitOverlay();
           } else {
-            showMessage('Stage Cleared', `${levels[state.levelIndex].name} awaits.`, 'Advance');
+            showNotification(`${levels[state.levelIndex].name} awaits.`, 3000, { typewriterMsPerChar: 24 });
           }
         } else {
           endGame(true);
@@ -6256,7 +6279,7 @@
         state.pendingCompanionRecruitStage = state.levelIndex;
         showCompanionRecruitOverlay();
       } else {
-        showMessage('Stage Skipped', `${levels[state.levelIndex].name} begins now.`, 'Advance');
+        showNotification(`${levels[state.levelIndex].name} begins now.`, 3000, { typewriterMsPerChar: 24 });
       }
     }
 

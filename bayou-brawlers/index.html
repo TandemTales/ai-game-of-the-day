@@ -4440,19 +4440,52 @@
       const brutalDirectionalAttackers = new Set(['old-man-croc', 'possumatli', 'grimma-the-feared']);
       const contactDamage = (heavy ? tuning.heavy : tuning.light) * player.attackPower * (heavy ? getHeavyDamageMultiplier(player) : getBasicDamageMultiplier(player));
       const contactStun = heavy ? 26 : 14;
-
-      const applyOverlappingContactHits = (damage, stun, knockback = 0) => {
-        let hitCount = 0;
+      const getAttackTargetLimit = () => {
+        const baseLimit = heavy ? 2 : 1;
+        let bonusTargets = 0;
+        if (!heavy && hasUpgrade(player, 'flow-state')) bonusTargets += 1;
+        if (heavy && hasUpgrade(player, 'sweeping-staff')) bonusTargets += 1;
+        if (hasUpgrade(player, 'master-of-the-bayou-path')) bonusTargets += 1;
+        return baseLimit + bonusTargets;
+      };
+      const attackTargetLimit = getAttackTargetLimit();
+      const getFacingWeightedCandidates = (predicate) => {
+        const scored = [];
         state.enemies.forEach(enemy => {
           if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
-          if (!playerBodyOverlap(player, enemy)) return;
+          if (!predicate(enemy)) return;
+          const enemyBody = getEnemyHitbox(enemy);
+          const centerX = enemyBody.x + enemyBody.width * 0.5;
+          const centerY = enemyBody.y + enemyBody.height * 0.5;
+          const forwardness = (centerX - player.x) * (player.facing || 1);
+          scored.push({
+            enemy,
+            behind: forwardness < 0 ? 1 : 0,
+            distance: Math.hypot(centerX - player.x, centerY - player.y)
+          });
+        });
+        scored.sort((a, b) => a.behind - b.behind || a.distance - b.distance);
+        return scored.map(entry => entry.enemy);
+      };
+      const applyLimitedEnemyHits = (candidates, applyHit) => {
+        let hitCount = 0;
+        for (const enemy of candidates) {
+          if (hitCount >= attackTargetLimit) break;
+          applyHit(enemy);
+          hitCount += 1;
+        }
+        return hitCount;
+      };
+
+      const applyOverlappingContactHits = (damage, stun, knockback = 0) => {
+        const overlappingEnemies = getFacingWeightedCandidates(enemy => playerBodyOverlap(player, enemy));
+        const hitCount = applyLimitedEnemyHits(overlappingEnemies, (enemy) => {
           damageEnemy(enemy, damage, stun);
           if (knockback !== 0) {
             const pushDir = Math.sign(enemy.x - player.x || player.facing || 1);
             enemy.x += pushDir * knockback;
           }
           applyCharacterOnHitStatus(player, enemy, heavy);
-          hitCount += 1;
         });
         if (hitCount > 0) {
           player.comboHits += hitCount;
@@ -4467,27 +4500,20 @@
         const baseDmg = (heavy ? tuning.heavy : tuning.light) * player.attackPower * (heavy ? getHeavyDamageMultiplier(player) : getBasicDamageMultiplier(player)) * 0.5;
         const coneOriginX = player.x + player.facing * 16;
         const coneOriginY = player.y - 44;
-        let hitCount = 0;
-        state.enemies.forEach(enemy => {
-          if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
-          if (playerBodyOverlap(player, enemy)) {
-            damageEnemy(enemy, baseDmg, heavy ? 24 : 16);
-            enemy.x += player.facing * (heavy ? 20 : 12);
-            applyCharacterOnHitStatus(player, enemy, heavy);
-            hitCount += 1;
-            return;
-          }
+        const candidates = getFacingWeightedCandidates((enemy) => {
+          if (playerBodyOverlap(player, enemy)) return true;
           const enemyBody = getEnemyHitbox(enemy);
           const targetX = enemyBody.x + enemyBody.width * 0.5;
           const targetY = enemyBody.y + enemyBody.height * 0.45;
           const relX = (targetX - coneOriginX) * player.facing;
-          if (relX < 0 || relX > coneLength) return;
+          if (relX < 0 || relX > coneLength) return false;
           const verticalLimit = 4 + (relX * coneSpread);
-          if (Math.abs(targetY - coneOriginY) > verticalLimit) return;
+          return Math.abs(targetY - coneOriginY) <= verticalLimit;
+        });
+        const hitCount = applyLimitedEnemyHits(candidates, (enemy) => {
           damageEnemy(enemy, baseDmg, heavy ? 24 : 16);
           enemy.x += player.facing * (heavy ? 20 : 12);
           applyCharacterOnHitStatus(player, enemy, heavy);
-          hitCount += 1;
         });
         if (hitCount > 0) {
           player.comboHits += hitCount;
@@ -4551,16 +4577,14 @@
         const weakAoeDamage = dmg * 0.65;
         const aoeRadiusMultiplier = (characterId === 'green-fairy' ? 2 : 1) * getAoeRangeMultiplier(characterId);
         const weakAoeRadius = (heavy ? 90 : 72) * aoeRadiusMultiplier;
-        let hitCount = 0;
-        state.enemies.forEach(enemy => {
-          if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
+        const candidates = getFacingWeightedCandidates((enemy) => {
           const distance = Math.hypot(enemy.x - player.x, enemy.y - player.y);
-          if (distance <= weakAoeRadius) {
-            damageEnemy(enemy, weakAoeDamage, Math.max(8, stun * 0.5));
-            enemy.x += Math.sign(enemy.x - player.x || 1) * (heavy ? 10 : 6);
-            applyCharacterOnHitStatus(player, enemy, heavy);
-            hitCount += 1;
-          }
+          return distance <= weakAoeRadius;
+        });
+        const hitCount = applyLimitedEnemyHits(candidates, (enemy) => {
+          damageEnemy(enemy, weakAoeDamage, Math.max(8, stun * 0.5));
+          enemy.x += Math.sign(enemy.x - player.x || 1) * (heavy ? 10 : 6);
+          applyCharacterOnHitStatus(player, enemy, heavy);
         });
         if (hitCount > 0) {
           player.comboHits += hitCount;
@@ -4582,15 +4606,11 @@
         hitbox.width = heavy ? 46 : 40;
         hitbox.height = heavy ? h + 8 : h;
         const frontDamage = dmg * (heavy ? 1.7 : 1.5);
-        let hitCount = 0;
-        state.enemies.forEach(enemy => {
-          if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
-          if (rectOverlap(hitbox, enemy) || playerBodyOverlap(player, enemy)) {
-            damageEnemy(enemy, frontDamage, stun + 8);
-            enemy.x += player.facing * (knockback + 10);
-            applyCharacterOnHitStatus(player, enemy, heavy);
-            hitCount += 1;
-          }
+        const candidates = getFacingWeightedCandidates(enemy => rectOverlap(hitbox, enemy) || playerBodyOverlap(player, enemy));
+        const hitCount = applyLimitedEnemyHits(candidates, (enemy) => {
+          damageEnemy(enemy, frontDamage, stun + 8);
+          enemy.x += player.facing * (knockback + 10);
+          applyCharacterOnHitStatus(player, enemy, heavy);
         });
         if (hitCount > 0) {
           player.comboHits += hitCount;
@@ -4603,15 +4623,11 @@
         return;
       }
 
-      let hitCount = 0;
-      state.enemies.forEach(enemy => {
-        if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
-        if (rectOverlap(hitbox, enemy) || playerBodyOverlap(player, enemy)) {
-          damageEnemy(enemy, dmg, stun);
-          enemy.x += player.facing * knockback;
-          applyCharacterOnHitStatus(player, enemy, heavy);
-          hitCount += 1;
-        }
+      const candidates = getFacingWeightedCandidates(enemy => rectOverlap(hitbox, enemy) || playerBodyOverlap(player, enemy));
+      const hitCount = applyLimitedEnemyHits(candidates, (enemy) => {
+        damageEnemy(enemy, dmg, stun);
+        enemy.x += player.facing * knockback;
+        applyCharacterOnHitStatus(player, enemy, heavy);
       });
       if (hitCount > 0) {
         player.comboHits += hitCount;

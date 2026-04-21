@@ -971,6 +971,8 @@
 
     let bossPopupTimeout = null;
     let notificationId = 0;
+    let startSelectionController = null;
+    let companionSelectionController = null;
 
     const SOUNDTRACK_VOLUME = 0.45;
     const SFX_VOLUME = 0.6;
@@ -6241,25 +6243,60 @@
       const available = getRecruitableCompanions();
       if (!available.length) return;
       grid.innerHTML = '';
+      const companionButtons = [];
+      let selectedCompanionIndex = 0;
+
+      const updateCompanionSelectionUI = () => {
+        companionButtons.forEach((button, index) => {
+          button.classList.toggle('selected', index === selectedCompanionIndex);
+        });
+      };
+
+      const recruitSelectedCompanion = () => {
+        const selectedCharacter = available[selectedCompanionIndex];
+        if (!selectedCharacter) return false;
+        const companion = createCompanion(selectedCharacter, state.companions.length, state.levelIndex);
+        const baseX = (state.player?.x || 80) - (36 + (state.companions.length * 28));
+        companion.x = clamp(baseX, 20, state.levelWidth - 20);
+        companion.y = state.player?.y || BRAWL_LANE_MAX_Y;
+        state.companions.push(companion);
+        state.pendingCompanionRecruitStage = null;
+        overlay.classList.remove('show');
+        state.paused = false;
+        companionSelectionController = null;
+        showNotification(`${selectedCharacter.name} joined your crew at Lv.${companion.level}!`);
+        startGame();
+        return true;
+      };
+
+      const selectCompanionByIndex = (index) => {
+        if (!available.length) return;
+        selectedCompanionIndex = (index + available.length) % available.length;
+        updateCompanionSelectionUI();
+      };
+
       available.forEach((character) => {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'thumb-card';
         button.innerHTML = `<img src="${character.portrait}" alt="${character.name}" width="256" height="256">`;
         button.addEventListener('click', () => {
-          const companion = createCompanion(character, state.companions.length, state.levelIndex);
-          const baseX = (state.player?.x || 80) - (36 + (state.companions.length * 28));
-          companion.x = clamp(baseX, 20, state.levelWidth - 20);
-          companion.y = state.player?.y || BRAWL_LANE_MAX_Y;
-          state.companions.push(companion);
-          state.pendingCompanionRecruitStage = null;
-          overlay.classList.remove('show');
-          state.paused = false;
-          showNotification(`${character.name} joined your crew at Lv.${companion.level}!`);
-          startGame();
+          const index = available.findIndex(entry => entry.id === character.id);
+          if (index >= 0) selectCompanionByIndex(index);
+          recruitSelectedCompanion();
         });
+        companionButtons.push(button);
         grid.appendChild(button);
       });
+      companionSelectionController = {
+        moveSelection(delta) {
+          selectCompanionByIndex(selectedCompanionIndex + delta);
+        },
+        confirmSelection() {
+          return recruitSelectedCompanion();
+        }
+      };
+      updateCompanionSelectionUI();
       overlay.classList.add('show');
       state.running = false;
       state.paused = true;
@@ -7775,27 +7812,69 @@
       });
 
       window.addEventListener('keydown', (event) => {
+        const key = event.key;
+        const normalizedKey = key.toLowerCase();
+        const isLeft = key === 'ArrowLeft' || key === 'ArrowUp' || normalizedKey === 'a' || normalizedKey === 'w';
+        const isRight = key === 'ArrowRight' || key === 'ArrowDown' || normalizedKey === 'd' || normalizedKey === 's';
+        const isConfirm = key === 'Enter';
+
+        const startOverlayVisible = document.getElementById('startOverlay')?.classList.contains('show');
+        if (startOverlayVisible && startSelectionController) {
+          if (isLeft) {
+            event.preventDefault();
+            startSelectionController.moveSelection(-1);
+            return;
+          }
+          if (isRight) {
+            event.preventDefault();
+            startSelectionController.moveSelection(1);
+            return;
+          }
+          if (isConfirm) {
+            event.preventDefault();
+            if (startSelectionController.confirmSelection()) return;
+          }
+        }
+
+        const companionOverlayVisible = document.getElementById('companionOverlay')?.classList.contains('show');
+        if (companionOverlayVisible && companionSelectionController) {
+          if (isLeft) {
+            event.preventDefault();
+            companionSelectionController.moveSelection(-1);
+            return;
+          }
+          if (isRight) {
+            event.preventDefault();
+            companionSelectionController.moveSelection(1);
+            return;
+          }
+          if (isConfirm) {
+            event.preventDefault();
+            if (companionSelectionController.confirmSelection()) return;
+          }
+        }
+
         if (handleLevelUpNavigationInput(event)) return;
         if (event.repeat) return;
-        if (event.key.toLowerCase() === 'c') {
+        if (normalizedKey === 'c') {
           event.preventDefault();
           toggleCharacterSheet();
           return;
         }
-        if (event.key === 'Escape') {
+        if (key === 'Escape') {
           toggleCharacterSheet(false);
         }
-        if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') input.left = true;
-        if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') input.right = true;
-        if (event.key === 'ArrowUp' || event.key.toLowerCase() === 'w') input.up = true;
-        if (event.key === 'ArrowDown' || event.key.toLowerCase() === 's') input.down = true;
-        if (event.key.toLowerCase() === 'j') input.fast = true;
-        if (event.key.toLowerCase() === 'k') input.power = true;
-        if (event.key.toLowerCase() === 'l') input.special = true;
-        if (event.key === ' ') input.jump = true;
-        if (event.key === 'Shift') input.block = true;
-        if (event.key.toLowerCase() === 'b') showCollisionDebug = !showCollisionDebug;
-        if (event.key.toLowerCase() === 'r') { localStorage.removeItem(SAVE_SLOT_KEY); if (state.player) { state.player.level = 1; state.player.xp = 0; updateProgressHud(state.player); } }
+        if (key === 'ArrowLeft' || normalizedKey === 'a') input.left = true;
+        if (key === 'ArrowRight' || normalizedKey === 'd') input.right = true;
+        if (key === 'ArrowUp' || normalizedKey === 'w') input.up = true;
+        if (key === 'ArrowDown' || normalizedKey === 's') input.down = true;
+        if (normalizedKey === 'j') input.fast = true;
+        if (normalizedKey === 'k') input.power = true;
+        if (normalizedKey === 'l') input.special = true;
+        if (key === ' ') input.jump = true;
+        if (key === 'Shift') input.block = true;
+        if (normalizedKey === 'b') showCollisionDebug = !showCollisionDebug;
+        if (normalizedKey === 'r') { localStorage.removeItem(SAVE_SLOT_KEY); if (state.player) { state.player.level = 1; state.player.xp = 0; updateProgressHud(state.player); } }
       });
       window.addEventListener('keyup', (event) => {
         if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') input.left = false;
@@ -8118,6 +8197,18 @@
         document.getElementById('startBtn').disabled = false;
       };
 
+      startSelectionController = {
+        moveSelection(delta) {
+          selectCharacter(selectedIndex + delta);
+        },
+        confirmSelection() {
+          const startBtn = document.getElementById('startBtn');
+          if (!startBtn || startBtn.disabled) return false;
+          startBtn.click();
+          return true;
+        }
+      };
+
       const bindPortraitSwipe = () => {
         const heroPortrait = detailPanel.querySelector('.character-hero-img');
         if (!heroPortrait) return;
@@ -8163,6 +8254,7 @@
         document.getElementById('levelUpOverlay').classList.remove('show');
         document.getElementById('characterSheetOverlay').classList.remove('show');
         document.getElementById('companionOverlay').classList.remove('show');
+        companionSelectionController = null;
         localStorage.removeItem(SAVE_SLOT_KEY);
         updateHpBar();
         updateProgressHud(state.player);

@@ -1612,6 +1612,9 @@
     const COMPANION_REPOSITION_SPEED_BOOST = 1.28;
     const STUN_CONDITION_THRESHOLD = 28;
     const STUN_DURATION_BONUS_FRAMES = 120;
+    const STUN_BREAK_REQUIRED_PRESSES = 8;
+    const STUN_IMMUNITY_FRAMES = 180;
+    const ENEMY_STUN_BREAK_MASH_PER_FRAME = 0.18;
     const PLAYER_STUN_TYPES = new Set(['brute', 'boss', 'mud-monster', 'sweetykins']);
     const ENEMY_DEATH_HOLD_FRAMES = 240;
     const ENEMY_DAMAGE_MULTIPLIER = 0.75;
@@ -2451,6 +2454,8 @@
         mechanizedMomentumStacks: 0,
         mechanizedMomentumTimer: 0,
         stun: 0,
+        stunBreakProgress: 0,
+        stunImmunityTimer: 0,
         level: 1,
         xp: 0,
         power: 0,
@@ -2636,6 +2641,8 @@
         walkSfxCooldown: 0,
         stun: 0,
         hitStun: 0,
+        stunBreakProgress: 0,
+        stunImmunityTimer: 0,
         stunDirX: rand(-1, 1),
         stunDirY: rand(-1, 1),
         stunRetargetTimer: rand(8, 18),
@@ -3764,7 +3771,7 @@
         const shortHitStun = Math.min(12, Math.round(stun * 0.45));
         enemy.hitStun = Math.max(enemy.hitStun || 0, shortHitStun);
         if (stun >= STUN_CONDITION_THRESHOLD) {
-          enemy.stun = Math.max(enemy.stun, stun + STUN_DURATION_BONUS_FRAMES);
+          applyStun(enemy, stun + STUN_DURATION_BONUS_FRAMES);
         }
       }
       const hurtDurationFrames = enemy.type === 'mud-monster' && enemy.isBoss ? 24 : 12;
@@ -3860,7 +3867,7 @@
         if (isCharmed(otherEnemy)) return;
         const distance = Math.hypot(otherEnemy.x - defeatedEnemy.x, otherEnemy.y - defeatedEnemy.y);
         if (distance > bloomRadius) return;
-        otherEnemy.stun = Math.max(otherEnemy.stun, bloomStunFrames);
+        applyStun(otherEnemy, bloomStunFrames);
       });
 
       const particleCount = 18;
@@ -3908,7 +3915,7 @@
         finalAmount *= 0.9;
       }
       if (sourceEnemy && PLAYER_STUN_TYPES.has(sourceEnemy.type) && rand(0, 1) < (sourceEnemy.isBoss ? 0.4 : 0.18)) {
-        player.stun = Math.max(player.stun, (sourceEnemy.isBoss ? 42 : 24) + STUN_DURATION_BONUS_FRAMES);
+        applyStun(player, (sourceEnemy.isBoss ? 42 : 24) + STUN_DURATION_BONUS_FRAMES);
       }
       player.hp = clamp(player.hp - finalAmount, 0, player.maxHp);
       maybeTriggerEmergencyVenting(player);
@@ -4370,7 +4377,7 @@
       const effectSource = options?.effectSource || existing?.effectSource || null;
       if (effectSource) mergedStatus.effectSource = effectSource;
       enemy.statuses[type] = mergedStatus;
-      if (type === 'ROOT' || type === 'FREEZE') enemy.stun = Math.max(enemy.stun, finalDuration + STUN_DURATION_BONUS_FRAMES);
+      if (type === 'ROOT' || type === 'FREEZE') applyStun(enemy, finalDuration + STUN_DURATION_BONUS_FRAMES);
       if (type === 'FREEZE' && (!existing || existing.duration <= 0)) {
         if (player && player.charData.id === 'billy-boxby' && hasUpgrade(player, 'cold-reservoir')) {
           const bonusPower = hasLevel(player, 10) ? 10 : 6;
@@ -4405,6 +4412,32 @@
       if (!enemy) return false;
       if (!isCharmed(enemy)) return true;
       return !state.enemies.some(otherEnemy => otherEnemy.hp > 0 && !isCharmed(otherEnemy));
+    }
+
+    function breakEntityOutOfStun(entity) {
+      if (!entity) return false;
+      if ((entity.stun || 0) <= 0) return false;
+      entity.stun = 0;
+      entity.stunBreakProgress = 0;
+      entity.stunImmunityTimer = STUN_IMMUNITY_FRAMES;
+      return true;
+    }
+
+    function registerStunBreakInput(entity, amount = 1) {
+      if (!entity || amount <= 0) return false;
+      if ((entity.stun || 0) <= 0) return false;
+      entity.stunBreakProgress = (entity.stunBreakProgress || 0) + amount;
+      if (entity.stunBreakProgress >= STUN_BREAK_REQUIRED_PRESSES) {
+        return breakEntityOutOfStun(entity);
+      }
+      return false;
+    }
+
+    function applyStun(entity, stunFrames) {
+      if (!entity || stunFrames <= 0) return;
+      if ((entity.stunImmunityTimer || 0) > 0) return;
+      entity.stun = Math.max(entity.stun || 0, stunFrames);
+      entity.stunBreakProgress = 0;
     }
 
     function getCharacterTuning(player) {
@@ -4709,7 +4742,7 @@
       }
       if (id === 'green-fairy') {
         if (!heavy && Math.random() < 0.25) applyStatus(enemy, 'SLOW', 150, 0.2);
-        if (heavy && Math.random() < 0.5) enemy.stun = Math.max(enemy.stun || 0, 72 + STUN_DURATION_BONUS_FRAMES);
+        if (heavy && Math.random() < 0.5) applyStun(enemy, 72 + STUN_DURATION_BONUS_FRAMES);
       }
       if (id === 'grimma-the-feared' && heavy && getEnemyTier(enemy) === 'small') enemy.x += (player.x - enemy.x) * 0.2;
       if (id === 'scarlett-glumpkin') applyStatus(enemy, 'POISON', heavy ? 360 : 240, heavy ? 2 : 1);
@@ -4850,8 +4883,11 @@
       if (!player) return;
       const prevX = player.x;
       const prevY = player.y;
+      player.stunImmunityTimer = Math.max(0, (player.stunImmunityTimer || 0) - 1);
+      if (player.stunImmunityTimer > 0) player.stun = 0;
       if (player.stun > 0) {
         player.stun -= 1;
+        if (player.stun <= 0) player.stunBreakProgress = 0;
       }
       player.vx = 0;
       let moveY = 0;
@@ -5143,6 +5179,8 @@
         enemy.noDigUntil = Math.max(0, enemy.noDigUntil - 1);
         enemy.hurtTimer = Math.max(0, enemy.hurtTimer - 1);
         enemy.thornPatchHitCooldown = Math.max(0, (enemy.thornPatchHitCooldown || 0) - 1);
+        enemy.stunImmunityTimer = Math.max(0, (enemy.stunImmunityTimer || 0) - 1);
+        if (enemy.stunImmunityTimer > 0) enemy.stun = 0;
         updateEnemyStatuses(enemy);
         enemy.hitStun = Math.max(0, (enemy.hitStun || 0) - 1);
         if (enemy.hitStun > 0) {
@@ -5152,6 +5190,12 @@
         }
         if (enemy.stun > 0) {
           enemy.stun -= 1;
+          registerStunBreakInput(enemy, ENEMY_STUN_BREAK_MASH_PER_FRAME);
+          if (enemy.stun <= 0) {
+            enemy.stunBreakProgress = 0;
+            updateEnemyAnimation(enemy, dt);
+            return;
+          }
           enemy.stunRetargetTimer = Math.max(0, (enemy.stunRetargetTimer || 0) - 1);
           if (enemy.stunRetargetTimer <= 0) {
             enemy.stunDirX = rand(-1, 1);
@@ -5700,7 +5744,7 @@
             player.briarPatchStunCooldown = Math.max(0, (player.briarPatchStunCooldown || 0) - 1);
             if ((player.briarPatchStunCooldown || 0) <= 0 && Math.random() < (h.stunChance || 0.08)) {
               const stunFrames = Math.round((h.stunFrames || 32) * getEnvironmentalHazardSlowMultiplier(player));
-              if (stunFrames > 0) player.stun = Math.max(player.stun || 0, stunFrames + STUN_DURATION_BONUS_FRAMES);
+              if (stunFrames > 0) applyStun(player, stunFrames + STUN_DURATION_BONUS_FRAMES);
               player.briarPatchStunCooldown = h.stunInterval || 22;
             }
           }
@@ -5992,7 +6036,7 @@
                 const verticalDir = Math.sign(centerY - (owner.y - 44));
                 enemy.x += pushDir * (effect.pushForce || 144);
                 enemy.y += verticalDir * 6;
-                enemy.stun = Math.max(enemy.stun, 20 + STUN_DURATION_BONUS_FRAMES);
+                applyStun(enemy, 20 + STUN_DURATION_BONUS_FRAMES);
               });
             }
           }
@@ -7954,9 +7998,18 @@
         if (key === 'ArrowRight' || normalizedKey === 'd') input.right = true;
         if (key === 'ArrowUp' || normalizedKey === 'w') input.up = true;
         if (key === 'ArrowDown' || normalizedKey === 's') input.down = true;
-        if (normalizedKey === 'j') input.fast = true;
-        if (normalizedKey === 'k') input.power = true;
-        if (normalizedKey === 'l') input.special = true;
+        if (normalizedKey === 'j') {
+          input.fast = true;
+          registerStunBreakInput(state.player);
+        }
+        if (normalizedKey === 'k') {
+          input.power = true;
+          registerStunBreakInput(state.player);
+        }
+        if (normalizedKey === 'l') {
+          input.special = true;
+          registerStunBreakInput(state.player);
+        }
         if (key === ' ') input.jump = true;
         if (key === 'Shift') input.block = true;
         if (normalizedKey === 'b') showCollisionDebug = !showCollisionDebug;
@@ -7978,6 +8031,9 @@
         const key = button.dataset.input;
         button.addEventListener('pointerdown', () => {
           input[key] = true;
+          if (key === 'fast' || key === 'power' || key === 'special') {
+            registerStunBreakInput(state.player);
+          }
         });
         button.addEventListener('pointerup', () => {
           input[key] = false;

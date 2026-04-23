@@ -5359,20 +5359,36 @@
             }
           }
         } else if (enemy.type === 'bayouBriar') {
-          const supportDistance = 145;
+          const supportDistance = 250;
+          const retreatDistance = 205;
           const supportDelta = distance - supportDistance;
-          if (Math.abs(supportDelta) > 18) {
-            enemy.x += Math.sign(dx) * moveSpeed * 0.82;
-            enemy.y += Math.sign(dy) * moveSpeed * 0.42;
+          const nearbyFrontliner = state.enemies.find(other => other !== enemy
+            && other.hp > 0
+            && other.type !== 'bayouBriar'
+            && Math.abs(other.x - player.x) < 180
+            && Math.abs(other.y - player.y) < 120);
+          if (distance < retreatDistance) {
+            enemy.x -= Math.sign(dx) * moveSpeed * 0.96;
+            enemy.y -= Math.sign(dy) * moveSpeed * 0.5;
+            enemy.isMoving = true;
+          } else if (nearbyFrontliner) {
+            const anchorDx = nearbyFrontliner.x - enemy.x;
+            const anchorDy = nearbyFrontliner.y - enemy.y;
+            enemy.x += Math.sign(anchorDx) * moveSpeed * 0.44;
+            enemy.y += Math.sign(anchorDy) * moveSpeed * 0.34;
+            enemy.isMoving = true;
+          } else if (Math.abs(supportDelta) > 20) {
+            enemy.x += Math.sign(dx) * moveSpeed * 0.36;
+            enemy.y += Math.sign(dy) * moveSpeed * 0.22;
             enemy.isMoving = true;
           } else {
             const strafeDirection = enemy.uid % 2 === 0 ? 1 : -1;
-            enemy.x += strafeDirection * moveSpeed * 0.28;
-            enemy.y += Math.sign(dx) * moveSpeed * 0.2;
+            enemy.x += strafeDirection * moveSpeed * 0.24;
+            enemy.y += Math.sign(dx) * moveSpeed * 0.12;
             enemy.isMoving = true;
           }
 
-          if (enemy.cooldown <= 0) {
+          if (enemy.cooldown <= 0 && distance <= 340) {
             enemy.attackAnimTimer = Math.max(enemy.attackAnimTimer, 14);
             const targetX = clamp(player.x + rand(-68, 68), state.cameraX + 40, state.cameraX + canvas.width - 40);
             const targetYBounds = getPlayerVerticalBounds(player);

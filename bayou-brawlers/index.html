@@ -4467,6 +4467,25 @@
       return Math.max(20, Math.ceil((specialTrack.frames.length / specialTrack.fps) * 60));
     }
 
+    function getAttackDelayMultiplier(characterId) {
+      const slowerAttackers = new Set(['billy-boxby', 'shunky-rooster', 'rustbucket', 'green-fairy', 'scarlett-glumpkin']);
+      return slowerAttackers.has(characterId) ? 1.5 : 1;
+    }
+
+    function getBasicAttackCooldownFrames(characterId, companion = false) {
+      const baseCooldown = companion
+        ? (characterId === 'rustbucket' ? 24 : 13)
+        : (characterId === 'rustbucket' ? 36 : (characterId === 'shunky-rooster' ? 180 : 18));
+      return Math.round(baseCooldown * getAttackDelayMultiplier(characterId));
+    }
+
+    function getHeavyAttackCooldownFrames(characterId, isAir = false, companion = false) {
+      const baseCooldown = companion
+        ? (characterId === 'shunky-rooster' ? 160 : 32)
+        : (isAir ? 52 : 45);
+      return Math.round(baseCooldown * getAttackDelayMultiplier(characterId));
+    }
+
     function handleAttacks() {
       const player = state.player;
       if (!player) return;
@@ -4483,7 +4502,7 @@
       if ((input.power || heavyByHold) && player.powerCooldown <= 0) {
         player.attackFacing = attackFacing;
         player.facing = attackFacing;
-        player.powerCooldown = isAir ? 52 : 45;
+        player.powerCooldown = getHeavyAttackCooldownFrames(player.charData.id, isAir);
         player.animationSignals.attack = true;
         playPlayerSfx(player, 'attackHeavy');
         doAttack(player, true, isAir, tuning);
@@ -4495,7 +4514,7 @@
       if (input.fast && player.attackCooldown <= 0) {
         player.attackFacing = attackFacing;
         player.facing = attackFacing;
-        player.attackCooldown = player.charData.id === 'rustbucket' ? 36 : (player.charData.id === 'shunky-rooster' ? 180 : 18);
+        player.attackCooldown = getBasicAttackCooldownFrames(player.charData.id);
         player.animationSignals.attack = true;
         playPlayerSfx(player, 'attackFast');
         doAttack(player, false, isAir, tuning);
@@ -5140,12 +5159,12 @@
             playPlayerSfx(companion, 'attackSpecial');
             castCharacterAbility(companion, castSuper);
           } else if (companion.powerCooldown <= 0 && (targetDistance <= (companion.range + 18) || targetEnemy.isBoss || Math.random() < 0.45)) {
-            companion.powerCooldown = companion.charData.id === 'shunky-rooster' ? 160 : 32;
+            companion.powerCooldown = getHeavyAttackCooldownFrames(companion.charData.id, false, true);
             companion.animationSignals.attack = true;
             playPlayerSfx(companion, 'attackHeavy');
             doAttack(companion, true, false, tuning);
           } else if (companion.attackCooldown <= 0) {
-            companion.attackCooldown = companion.charData.id === 'rustbucket' ? 24 : 13;
+            companion.attackCooldown = getBasicAttackCooldownFrames(companion.charData.id, true);
             companion.animationSignals.attack = true;
             playPlayerSfx(companion, 'attackFast');
             doAttack(companion, false, false, tuning);

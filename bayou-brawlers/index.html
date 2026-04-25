@@ -3231,6 +3231,10 @@
       document.getElementById('wave').textContent = String(clamp(state.waveIndex + 1, 1, TOTAL_WAVE_COUNT));
     }
 
+    function getDisplayedScore() {
+      return Math.max(0, Math.floor(state.score));
+    }
+
     function addScore(amount) {
       if (state.cheats.lockScoreToZero) {
         state.score = 0;
@@ -3238,7 +3242,7 @@
         return;
       }
       state.score += amount;
-      document.getElementById('score').textContent = String(state.score);
+      document.getElementById('score').textContent = String(getDisplayedScore());
     }
 
     function activateLogoCheat() {
@@ -6482,8 +6486,8 @@
       soundtrackState.audio.pause();
       const title = victory ? 'Legend of the Bayou!' : 'Brawler Down';
       const body = victory
-        ? `You cleared all ${CAMPAIGN_STAGE_LIMIT} stages with a final score of ${state.score}. The bayou remembers your name.`
-        : `The swamp swallows even legends. Final score: ${state.score}.`;
+        ? `You cleared all ${CAMPAIGN_STAGE_LIMIT} stages with a final score of ${getDisplayedScore()}. The bayou remembers your name.`
+        : `The swamp swallows even legends. Final score: ${getDisplayedScore()}.`;
       showMessage(title, body, 'Submit Score');
     }
 
@@ -6514,7 +6518,7 @@
     async function submitScore() {
       if (state.submitting) return;
       state.submitting = true;
-      const score = Math.max(0, Math.floor(state.score));
+      const score = getDisplayedScore();
       const leaderboardUrl = `../leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
       try {
         const rankRes = await fetch(`/api/leaderboard/rank?gameId=${encodeURIComponent(GAME_ID)}&score=${encodeURIComponent(score)}`);

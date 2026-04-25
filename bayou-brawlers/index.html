@@ -193,6 +193,26 @@
       width: 100%;
       background: linear-gradient(90deg, #ff7b7b, #ffb347);
     }
+    .level-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .level-progress-bar {
+      width: 72px;
+      height: 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 215, 0, 0.4);
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+    .level-progress-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #ff365c 0%, #a145ff 100%);
+      box-shadow: 0 0 8px rgba(161, 69, 255, 0.45);
+      transition: width 0.18s ease-out;
+    }
     .status-strip {
       position: absolute;
       top: calc(146px + env(safe-area-inset-top));
@@ -805,9 +825,12 @@
 
     <div class="hud" id="hud">
       <div class="chip">Score: <span id="score">0</span></div>
-      <div class="chip">Level: <span id="level">1</span></div>
+      <div class="chip level-chip">Level: <span id="level">1</span>
+        <div class="level-progress-bar" aria-label="Level progress">
+          <div class="level-progress-fill" id="levelProgressFill"></div>
+        </div>
+      </div>
       <div class="chip">Wave: <span id="wave">1</span></div>
-      <div class="chip">XP: <span id="xp">0</span>/<span id="xpNext">60</span></div>
       <div class="chip" style="display:flex; gap:6px; align-items:center;">HP
         <div class="hp-bar"><div class="hp-fill" id="hpFill"></div></div>
       </div>
@@ -3671,8 +3694,14 @@
     function updateProgressHud(player) {
       if (!player) return;
       document.getElementById('level').textContent = String(player.level);
-      document.getElementById('xp').textContent = String(Math.floor(player.xp));
-      document.getElementById('xpNext').textContent = String(xpToNext(player.level));
+      const levelProgressFill = document.getElementById('levelProgressFill');
+      if (levelProgressFill) {
+        const neededXp = xpToNext(player.level);
+        const ratio = player.level >= MAX_LEVEL
+          ? 1
+          : (neededXp > 0 ? clamp(player.xp / neededXp, 0, 1) : 0);
+        levelProgressFill.style.width = `${ratio * 100}%`;
+      }
       refreshCharacterSheetIfVisible();
     }
 

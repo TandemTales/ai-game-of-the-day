@@ -180,6 +180,26 @@
       box-shadow: 0 3px 12px rgba(255,215,0,0.2);
       white-space: nowrap;
     }
+    .level-chip {
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+      --level-progress: 0;
+    }
+    .level-chip::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      width: calc(var(--level-progress) * 100%);
+      background: linear-gradient(90deg, rgba(255, 77, 109, 0.62), rgba(144, 79, 255, 0.74));
+      transition: width 180ms ease-out;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .level-chip-text {
+      position: relative;
+      z-index: 1;
+    }
     .hp-bar {
       width: 120px;
       height: 10px;
@@ -805,9 +825,8 @@
 
     <div class="hud" id="hud">
       <div class="chip">Score: <span id="score">0</span></div>
-      <div class="chip">Level: <span id="level">1</span></div>
+      <div class="chip level-chip" id="levelChip"><span class="level-chip-text">Level: <span id="level">1</span></span></div>
       <div class="chip">Wave: <span id="wave">1</span></div>
-      <div class="chip">XP: <span id="xp">0</span>/<span id="xpNext">60</span></div>
       <div class="chip" style="display:flex; gap:6px; align-items:center;">HP
         <div class="hp-bar"><div class="hp-fill" id="hpFill"></div></div>
       </div>
@@ -3671,8 +3690,10 @@
     function updateProgressHud(player) {
       if (!player) return;
       document.getElementById('level').textContent = String(player.level);
-      document.getElementById('xp').textContent = String(Math.floor(player.xp));
-      document.getElementById('xpNext').textContent = String(xpToNext(player.level));
+      const levelChip = document.getElementById('levelChip');
+      const xpNeeded = xpToNext(player.level);
+      const levelProgress = xpNeeded > 0 ? clamp(player.xp / xpNeeded, 0, 1) : 1;
+      if (levelChip) levelChip.style.setProperty('--level-progress', levelProgress.toFixed(4));
       refreshCharacterSheetIfVisible();
     }
 

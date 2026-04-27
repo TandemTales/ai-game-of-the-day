@@ -826,7 +826,6 @@
     <div class="hud" id="hud">
       <div class="chip">Score: <span id="score">0</span></div>
       <div class="chip level-chip" id="levelChip"><span class="level-chip-text">Level: <span id="level">1</span></span></div>
-      <div class="chip">Wave: <span id="wave">1</span></div>
       <div class="chip" style="display:flex; gap:6px; align-items:center;">HP
         <div class="hp-bar"><div class="hp-fill" id="hpFill"></div></div>
       </div>
@@ -3201,7 +3200,6 @@
         });
         state.waveIndex = waveIndex;
         state.waveActive = true;
-        updateWaveHud();
         return;
       }
       const wave = getRegularWave(level, waveIndex);
@@ -3227,7 +3225,6 @@
       state.waveIndex = waveIndex;
       state.waveActive = true;
       state.lockX = waveLockX;
-      updateWaveHud();
     }
 
     function spawnBoss(level, bossConfig = level.boss) {
@@ -3243,11 +3240,6 @@
       state.bossActive = true;
       state.bossEncounter = { id: encounterId, add10: false, add20: false, stopAdds: false };
       state.lockX = getWaveLockX(REGULAR_WAVE_COUNT);
-      updateWaveHud();
-    }
-
-    function updateWaveHud() {
-      document.getElementById('wave').textContent = String(clamp(state.waveIndex + 1, 1, TOTAL_WAVE_COUNT));
     }
 
     function getDisplayedScore() {
@@ -6383,7 +6375,6 @@
         });
       }
       updateCamera();
-      updateWaveHud();
       restartSoundtrackForLevel();
     }
 

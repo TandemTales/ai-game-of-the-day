@@ -5012,6 +5012,7 @@
       } else if (id === 'grimma-the-feared') {
         state.effects.push({ x: player.x, y: player.y, radius: isSuper ? 170 * radiusBoost : 96, timer: isSuper ? (hasLevel(player, 9) ? 168 : 120) : 40, damage: isSuper ? 2 : 8, knockback: 0, stun: isSuper ? 8 : 42, type: 'root' });
       } else if (id === 'scarlett-glumpkin') {
+        summonScarlettBrambleDrone(player);
         state.effects.push({ x: player.x + player.facing * 80, y: player.y, radius: (isSuper ? 210 * radiusBoost : 120) * aoeRangeMultiplier, timer: isSuper ? 100 : 44, damage: isSuper ? 2 : 7, knockback: 8, stun: 18, type: 'root-poison' });
         if (isSuper && hasUpgrade(player, 'garden-of-thorns')) {
           spawnGardenOfThornsPatches(player);

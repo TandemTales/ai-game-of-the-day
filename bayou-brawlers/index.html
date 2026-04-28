@@ -1624,6 +1624,7 @@
     const BOSS_RENDER_SCALE_MULTIPLIER = 4;
     const BOSS_ANIM_FPS_MULTIPLIER = 1;
     const DEFAULT_PLAYER_RENDER_SCALE = 0.75;
+    const SCARLETT_BRAMBLE_DRONE_SCALE_MULTIPLIER = (PLAYER_DRAW_SIZE * DEFAULT_PLAYER_RENDER_SCALE) / ENEMY_DRAW_SIZE;
     const SWAMP_SCALE_MULTIPLIER = ((PLAYER_DRAW_SIZE * DEFAULT_PLAYER_RENDER_SCALE) * 0.5) / ENEMY_DRAW_SIZE;
     const CHOKING_BLOSSOM_SCALE_MULTIPLIER = SWAMP_SCALE_MULTIPLIER * 2;
     const PHYSICS_HITBOX_PADDING = 3;
@@ -2760,7 +2761,7 @@
         hurtTimer: 0,
         deathHoldFrames: 0,
         isMoving: false,
-        renderScale: 0.82,
+        renderScale: SCARLETT_BRAMBLE_DRONE_SCALE_MULTIPLIER,
         physicsProfileId: 'enemy-scarlettBrambleDrone',
         animation: animationTracks ? {
           state: 'idle',
@@ -9069,7 +9070,7 @@
         },
         scarlettBrambleDrone: {
           profileId: 'enemy-scarlettBrambleDrone',
-          sizeMultiplier: 0.82,
+          sizeMultiplier: SCARLETT_BRAMBLE_DRONE_SCALE_MULTIPLIER,
           states: {
             idle: { left: ['assets/animation_brambleDrone_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_brambleDrone_red_walking_left.png', 8], fps: 10, loop: true },

@@ -983,6 +983,7 @@
       victory: false,
       bossActive: false,
       ally: null,
+      scarlettBrambleDrone: null,
       companions: [],
       pendingCompanionRecruitStage: null,
       shake: 0,
@@ -1014,6 +1015,10 @@
 
     const COMPANION_RECRUIT_STAGE_INDEXES = new Set([5]); // Stage 6
     const MAX_COMPANIONS = 1;
+    const SCARLETT_BRAMBLE_DRONE_MAX_HP = 95;
+    const SCARLETT_BRAMBLE_DRONE_SPEED = 2.8;
+    const SCARLETT_BRAMBLE_DRONE_ATTACK_DAMAGE = 11;
+    const SCARLETT_BRAMBLE_DRONE_ATTACK_COOLDOWN = 30;
 
     const CHEAT_STREAK_RESET_MS = 2000;
     const CHEAT_REQUIRED_CLICKS = 7;
@@ -1444,6 +1449,7 @@
         },
         special: (player) => {
           spawnProjectile(player, 9, 30, true, '#ff8fd6');
+          summonScarlettBrambleDrone(player);
         }
       },
       {
@@ -2730,6 +2736,48 @@
         enemy.waveBarrierSpawnSide = x <= state.lockX ? 'left' : 'right';
       }
       return enemy;
+    }
+
+    function createScarlettBrambleDrone(owner) {
+      const animationTracks = assets.enemyAnimations.scarlettBrambleDrone || null;
+      return {
+        uid: ++state.enemyUid,
+        type: 'scarlettBrambleDrone',
+        ownerId: owner?.charData?.id || null,
+        x: owner ? owner.x + (owner.facing * 14) : 80,
+        y: owner ? owner.y - 4 : BRAWL_LANE_MAX_Y,
+        z: 0,
+        hp: SCARLETT_BRAMBLE_DRONE_MAX_HP,
+        maxHp: SCARLETT_BRAMBLE_DRONE_MAX_HP,
+        speed: SCARLETT_BRAMBLE_DRONE_SPEED,
+        damage: SCARLETT_BRAMBLE_DRONE_ATTACK_DAMAGE,
+        range: 22,
+        facing: owner?.facing || 1,
+        attackCooldown: 0,
+        attackTimer: 0,
+        attackAnimTimer: 0,
+        incomingHitCooldown: 0,
+        hurtTimer: 0,
+        deathHoldFrames: 0,
+        isMoving: false,
+        renderScale: 0.82,
+        physicsProfileId: 'enemy-scarlettBrambleDrone',
+        animation: animationTracks ? {
+          state: 'idle',
+          facing: 'left',
+          frameIndex: 0,
+          elapsedMs: 0,
+          complete: false,
+          tracks: animationTracks
+        } : null
+      };
+    }
+
+    function summonScarlettBrambleDrone(player) {
+      if (!player || player.charData?.id !== 'scarlett-glumpkin') return;
+      const drone = state.scarlettBrambleDrone;
+      if (drone && drone.hp > 0) return;
+      state.scarlettBrambleDrone = createScarlettBrambleDrone(player);
     }
 
     function getEnemyHitbox(enemy) {
@@ -4031,6 +4079,25 @@
         endGame(false);
       } else {
         playPlayerSfx(player, 'hit');
+      }
+    }
+
+    function damageScarlettBrambleDrone(amount, sourceEnemy = null) {
+      const drone = state.scarlettBrambleDrone;
+      if (!drone || drone.hp <= 0) return;
+      drone.hp = clamp(drone.hp - Math.max(1, amount), 0, drone.maxHp);
+      drone.hurtTimer = Math.max(drone.hurtTimer, 10);
+      if (drone.hp <= 0) {
+        drone.attackCooldown = 0;
+        drone.attackTimer = 0;
+        drone.deathHoldFrames = 18;
+        drone.isMoving = false;
+      } else if (sourceEnemy) {
+        const awayX = drone.x - sourceEnemy.x;
+        const awayY = drone.y - sourceEnemy.y;
+        const awayNorm = Math.hypot(awayX, awayY) || 1;
+        drone.x += (awayX / awayNorm) * 7;
+        drone.y += (awayY / awayNorm) * 3.8;
       }
     }
 
@@ -6016,6 +6083,19 @@
             damagePlayer(projectile.damage);
             projectile.life = 0;
           }
+          const drone = state.scarlettBrambleDrone;
+          if (projectile.life > 0 && drone && drone.hp > 0) {
+            const droneBody = getEnemyHitbox(drone);
+            if (
+              projectile.x > droneBody.x &&
+              projectile.x < droneBody.x + droneBody.width &&
+              projectile.y > droneBody.y &&
+              projectile.y < droneBody.y + droneBody.height
+            ) {
+              damageScarlettBrambleDrone(projectile.damage * 0.9);
+              projectile.life = 0;
+            }
+          }
         }
         if (projectile.shrapnel && projectile.life <= 0 && !projectile.impactBurstSpawned) {
           projectile.impactBurstSpawned = true;
@@ -6297,6 +6377,110 @@
       }
     }
 
+    function updateScarlettBrambleDrone(dt) {
+      const drone = state.scarlettBrambleDrone;
+      const player = state.player;
+      if (!drone || !player) return;
+
+      if (drone.hp <= 0) {
+        drone.isMoving = false;
+        if (drone.deathHoldFrames > 0) drone.deathHoldFrames -= 1;
+        updateEnemyAnimation(drone, dt);
+        if (drone.deathHoldFrames <= 0 && drone.animation?.complete) {
+          state.scarlettBrambleDrone = null;
+        }
+        return;
+      }
+      drone.hurtTimer = Math.max(0, drone.hurtTimer - 1);
+      drone.incomingHitCooldown = Math.max(0, drone.incomingHitCooldown - 1);
+
+      const target = state.enemies
+        .filter(enemy => enemy.hp > 0 && canPlayerAffectEnemy(enemy))
+        .sort((a, b) => Math.hypot(a.x - drone.x, a.y - drone.y) - Math.hypot(b.x - drone.x, b.y - drone.y))[0] || null;
+
+      let moveTargetX = player.x - (player.facing * 30);
+      let moveTargetY = player.y + 12;
+      drone.isMoving = false;
+
+      if (target) {
+        const targetDx = target.x - drone.x;
+        const targetDy = target.y - drone.y;
+        const targetDistance = Math.hypot(targetDx, targetDy);
+        const preferredSpacing = 16;
+        const pursuitFacing = targetDx >= 0 ? 1 : -1;
+        drone.facing = pursuitFacing;
+
+        moveTargetX = target.x - (pursuitFacing * preferredSpacing);
+        moveTargetY = target.y + clamp(targetDy * 0.2, -14, 14);
+
+        if (targetDistance <= drone.range + 18 && drone.attackCooldown <= 0 && drone.attackTimer <= 0) {
+          drone.attackTimer = 12;
+          drone.attackAnimTimer = 12;
+          drone.attackCooldown = SCARLETT_BRAMBLE_DRONE_ATTACK_COOLDOWN;
+        }
+      } else {
+        const playerDx = player.x - drone.x;
+        if (Math.abs(playerDx) > 1.5) drone.facing = playerDx >= 0 ? 1 : -1;
+      }
+
+      const toX = moveTargetX - drone.x;
+      const toY = moveTargetY - drone.y;
+      const toDistance = Math.hypot(toX, toY);
+      if (toDistance > 2) {
+        drone.x += (toX / toDistance) * drone.speed;
+        drone.y += (toY / toDistance) * drone.speed * 0.7;
+        drone.isMoving = true;
+      }
+
+      drone.attackCooldown = Math.max(0, drone.attackCooldown - 1);
+      if (drone.attackTimer > 0) {
+        drone.attackTimer -= 1;
+        drone.attackAnimTimer = drone.attackTimer;
+        if (drone.attackTimer === 5) {
+          const droneBody = getEnemyHitbox(drone);
+          const hitbox = {
+            x: drone.facing >= 0 ? droneBody.x : droneBody.x - 24,
+            y: droneBody.y - 4,
+            width: droneBody.width + 24,
+            height: droneBody.height + 8
+          };
+          state.enemies.forEach(enemy => {
+            if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
+            if (rectsOverlap(hitbox, getEnemyHitbox(enemy))) {
+              damageEnemy(enemy, drone.damage, 8);
+              applyStatus(enemy, 'POISON', 110, 1);
+            }
+          });
+        }
+      }
+
+      if (drone.incomingHitCooldown <= 0) {
+        const droneBody = getEnemyHitbox(drone);
+        const threateningEnemy = state.enemies.find(enemy => {
+          if (!enemy || enemy.hp <= 0) return false;
+          if ((enemy.windup || 0) > 2 && (enemy.attackAnimTimer || 0) <= 0) return false;
+          const enemyBody = getEnemyHitbox(enemy);
+          const threatZone = {
+            x: enemyBody.x - 14,
+            y: enemyBody.y - 8,
+            width: enemyBody.width + 28,
+            height: enemyBody.height + 16
+          };
+          return rectsOverlap(droneBody, threatZone);
+        });
+        if (threateningEnemy) {
+          damageScarlettBrambleDrone(Math.max(3, Math.round(threateningEnemy.damage * 0.45)), threateningEnemy);
+          drone.incomingHitCooldown = 22;
+        }
+      }
+
+      const horizontalBounds = getPlayerHorizontalBounds();
+      const yBounds = getPlayerVerticalBounds(drone);
+      drone.x = clamp(drone.x, horizontalBounds.minX, horizontalBounds.maxX);
+      drone.y = clamp(drone.y, yBounds.minY, yBounds.maxY);
+      updateEnemyAnimation(drone, dt);
+    }
+
     function updateStageProgress() {
       const level = levels[state.levelIndex];
 
@@ -6414,6 +6598,7 @@
       state.pickups = [];
       state.effects = [];
       state.hazards = [];
+      state.scarlettBrambleDrone = null;
       state.lockX = null;
       state.waveIndex = 0;
       state.nextWaveToSpawn = 0;
@@ -7415,6 +7600,9 @@
           renderQueue.push({ entity: companion, size: PLAYER_DRAW_SIZE, sortY: companion.y });
         });
       }
+      if (state.scarlettBrambleDrone && (state.scarlettBrambleDrone.hp > 0 || state.scarlettBrambleDrone.deathHoldFrames > 0)) {
+        renderQueue.push({ entity: state.scarlettBrambleDrone, size: ENEMY_DRAW_SIZE, sortY: state.scarlettBrambleDrone.y });
+      }
 
       renderQueue.sort((a, b) => a.sortY - b.sortY);
       const playerBottomWorldY = getEntityBottomOpaqueWorldY(state.player, PLAYER_DRAW_SIZE);
@@ -7466,6 +7654,22 @@
           ctx.fillStyle = '#71f1a4';
           ctx.fillRect(barX, barY, barWidth * hpPct, barHeight);
         });
+
+      if (state.scarlettBrambleDrone && state.scarlettBrambleDrone.hp > 0) {
+        const drone = state.scarlettBrambleDrone;
+        const barWidth = 30;
+        const barHeight = 4;
+        const hpPct = clamp(drone.hp / drone.maxHp, 0, 1);
+        const topOpaqueWorldY = getEntityWalkTopOpaqueWorldY(drone, ENEMY_DRAW_SIZE);
+        const barY = topOpaqueWorldY - state.cameraY - 10;
+        const barX = drone.x - state.cameraX - (barWidth / 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.58)';
+        ctx.fillRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2);
+        ctx.fillStyle = 'rgba(31, 38, 42, 0.95)';
+        ctx.fillRect(barX, barY, barWidth, barHeight);
+        ctx.fillStyle = '#86d26f';
+        ctx.fillRect(barX, barY, barWidth * hpPct, barHeight);
+      }
 
       if (showCollisionDebug) {
         ctx.save();
@@ -7982,6 +8186,7 @@
       while (state.frameAccumulator >= FIXED_TIMESTEP_MS && steps < MAX_CATCH_UP_STEPS) {
         updatePlayer(FIXED_TIMESTEP_MS);
         updateCompanions(FIXED_TIMESTEP_MS);
+        updateScarlettBrambleDrone(FIXED_TIMESTEP_MS);
         handleAttacks();
         updateEnemies(FIXED_TIMESTEP_MS);
         updateProjectiles();
@@ -8495,6 +8700,7 @@
         if (!selected) return;
         state.player = createPlayer(selected);
         state.companions = [];
+        state.scarlettBrambleDrone = null;
         state.pendingCompanionRecruitStage = null;
         state.player.level = 1;
         state.player.xp = 0;
@@ -8858,6 +9064,17 @@
             hurt: { left: ['assets/animation_mudMonster_red_damaged_left.png', 5], fps: 10, loop: false },
             attack: { left: ['assets/animation_mudMonster_red_attack_left.png', 7], fps: 14, loop: false },
             death: { left: ['assets/animation_mudMonster_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        scarlettBrambleDrone: {
+          profileId: 'enemy-scarlettBrambleDrone',
+          sizeMultiplier: 0.82,
+          states: {
+            idle: { left: ['assets/animation_brambleDrone_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_brambleDrone_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_brambleDrone_stage1_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_brambleDrone_stage1_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_brambleDrone_stage1_red_killed_left.png', 6], fps: 8, loop: false }
           }
         },
         goblin: {

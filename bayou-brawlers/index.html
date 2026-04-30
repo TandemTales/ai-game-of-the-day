@@ -984,6 +984,7 @@
       bossActive: false,
       ally: null,
       scarlettBrambleDrone: null,
+      scarlettViciousVercosus: null,
       companions: [],
       pendingCompanionRecruitStage: null,
       shake: 0,
@@ -2780,6 +2781,48 @@
       state.scarlettBrambleDrone = createScarlettBrambleDrone(player);
     }
 
+    function createScarlettViciousVercosus(owner) {
+      const animationTracks = assets.enemyAnimations.scarlettViciousVercosus || null;
+      return {
+        uid: ++state.enemyUid,
+        type: 'scarlettViciousVercosus',
+        ownerId: owner?.charData?.id || null,
+        x: owner ? owner.x + (owner.facing * 14) : 80,
+        y: owner ? owner.y - 4 : BRAWL_LANE_MAX_Y,
+        z: 0,
+        hp: SCARLETT_BRAMBLE_DRONE_MAX_HP,
+        maxHp: SCARLETT_BRAMBLE_DRONE_MAX_HP,
+        speed: SCARLETT_BRAMBLE_DRONE_SPEED,
+        damage: SCARLETT_BRAMBLE_DRONE_ATTACK_DAMAGE,
+        range: 22,
+        facing: owner?.facing || 1,
+        attackCooldown: 0,
+        attackTimer: 0,
+        attackAnimTimer: 0,
+        incomingHitCooldown: 0,
+        hurtTimer: 0,
+        deathHoldFrames: 0,
+        isMoving: false,
+        renderScale: 2.46,
+        physicsProfileId: 'enemy-scarlettBrambleDrone',
+        animation: animationTracks ? {
+          state: 'idle',
+          facing: 'left',
+          frameIndex: 0,
+          elapsedMs: 0,
+          complete: false,
+          tracks: animationTracks
+        } : null
+      };
+    }
+
+    function summonScarlettViciousVercosus(player) {
+      if (!player || player.charData?.id !== 'scarlett-glumpkin') return;
+      const vercosus = state.scarlettViciousVercosus;
+      if (vercosus && vercosus.hp > 0) return;
+      state.scarlettViciousVercosus = createScarlettViciousVercosus(player);
+    }
+
     function getEnemyHitbox(enemy) {
       return getPhysicsBody(enemy);
     }
@@ -4101,6 +4144,25 @@
       }
     }
 
+    function damageScarlettViciousVercosus(amount, sourceEnemy = null) {
+      const vercosus = state.scarlettViciousVercosus;
+      if (!vercosus || vercosus.hp <= 0) return;
+      vercosus.hp = clamp(vercosus.hp - Math.max(1, amount), 0, vercosus.maxHp);
+      vercosus.hurtTimer = Math.max(vercosus.hurtTimer, 10);
+      if (vercosus.hp <= 0) {
+        vercosus.attackCooldown = 0;
+        vercosus.attackTimer = 0;
+        vercosus.deathHoldFrames = 18;
+        vercosus.isMoving = false;
+      } else if (sourceEnemy) {
+        const awayX = vercosus.x - sourceEnemy.x;
+        const awayY = vercosus.y - sourceEnemy.y;
+        const awayNorm = Math.hypot(awayX, awayY) || 1;
+        vercosus.x += (awayX / awayNorm) * 7;
+        vercosus.y += (awayY / awayNorm) * 3.8;
+      }
+    }
+
     function maybeTriggerEmergencyVenting(player) {
       if (!player || player.charData.id !== 'shunky-rooster' || !hasUpgrade(player, 'emergency-venting')) return;
       if (player.hp <= 0) return;
@@ -5013,6 +5075,7 @@
         state.effects.push({ x: player.x, y: player.y, radius: isSuper ? 170 * radiusBoost : 96, timer: isSuper ? (hasLevel(player, 9) ? 168 : 120) : 40, damage: isSuper ? 2 : 8, knockback: 0, stun: isSuper ? 8 : 42, type: 'root' });
       } else if (id === 'scarlett-glumpkin') {
         summonScarlettBrambleDrone(player);
+        if (isSuper) summonScarlettViciousVercosus(player);
         state.effects.push({ x: player.x + player.facing * 80, y: player.y, radius: (isSuper ? 210 * radiusBoost : 120) * aoeRangeMultiplier, timer: isSuper ? 100 : 44, damage: isSuper ? 2 : 7, knockback: 8, stun: 18, type: 'root-poison' });
         if (isSuper && hasUpgrade(player, 'garden-of-thorns')) {
           spawnGardenOfThornsPatches(player);
@@ -6094,6 +6157,7 @@
               projectile.y < droneBody.y + droneBody.height
             ) {
               damageScarlettBrambleDrone(projectile.damage * 0.9);
+              damageScarlettViciousVercosus(projectile.damage * 0.9);
               projectile.life = 0;
             }
           }
@@ -6471,6 +6535,7 @@
         });
         if (threateningEnemy) {
           damageScarlettBrambleDrone(Math.max(3, Math.round(threateningEnemy.damage * 0.45)), threateningEnemy);
+          damageScarlettViciousVercosus(Math.max(3, Math.round(threateningEnemy.damage * 0.45)), threateningEnemy);
           drone.incomingHitCooldown = 22;
         }
       }
@@ -6600,6 +6665,7 @@
       state.effects = [];
       state.hazards = [];
       state.scarlettBrambleDrone = null;
+      state.scarlettViciousVercosus = null;
       state.lockX = null;
       state.waveIndex = 0;
       state.nextWaveToSpawn = 0;
@@ -7603,6 +7669,9 @@
       }
       if (state.scarlettBrambleDrone && (state.scarlettBrambleDrone.hp > 0 || state.scarlettBrambleDrone.deathHoldFrames > 0)) {
         renderQueue.push({ entity: state.scarlettBrambleDrone, size: ENEMY_DRAW_SIZE, sortY: state.scarlettBrambleDrone.y });
+      }
+      if (state.scarlettViciousVercosus && (state.scarlettViciousVercosus.hp > 0 || state.scarlettViciousVercosus.deathHoldFrames > 0)) {
+        renderQueue.push({ entity: state.scarlettViciousVercosus, size: ENEMY_DRAW_SIZE, sortY: state.scarlettViciousVercosus.y });
       }
 
       renderQueue.sort((a, b) => a.sortY - b.sortY);
@@ -8702,6 +8771,7 @@
         state.player = createPlayer(selected);
         state.companions = [];
         state.scarlettBrambleDrone = null;
+        state.scarlettViciousVercosus = null;
         state.pendingCompanionRecruitStage = null;
         state.player.level = 1;
         state.player.xp = 0;
@@ -9076,6 +9146,17 @@
             hurt: { left: ['assets/animation_brambleDrone_red_damaged_left.png', 5], fps: 12, loop: false },
             attack: { left: ['assets/animation_brambleDrone_red_attack_left.png', 7], fps: 14, loop: false },
             death: { left: ['assets/animation_brambleDrone_red_killed_left.png', 6], fps: 8, loop: false }
+          }
+        },
+        scarlettViciousVercosus: {
+          profileId: 'enemy-scarlettBrambleDrone',
+          sizeMultiplier: 1.23,
+          states: {
+            idle: { left: ['assets/animation_viciousVercosus_red_controlSquare_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_viciousVercosus_red_walking_left.png', 8], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_viciousVercosus_red_damaged_left.png', 5], fps: 12, loop: false },
+            attack: { left: ['assets/animation_viciousVercosus_red_attack_left.png', 7], fps: 14, loop: false },
+            death: { left: ['assets/animation_viciousVercosus_red_killed_left.png', 6], fps: 8, loop: false }
           }
         },
         goblin: {

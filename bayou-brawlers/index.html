@@ -1018,6 +1018,8 @@
     const SCARLETT_BRAMBLE_DRONE_MAX_HP = 95;
     const SCARLETT_BRAMBLE_DRONE_SPEED = 2.8;
     const SCARLETT_BRAMBLE_DRONE_ATTACK_DAMAGE = 11;
+    const SCARLETT_BRAMBLE_DRONE_MAX_LEVEL = 5;
+    const SCARLETT_BRAMBLE_DRONE_LEVEL_SCALE_STEP = 0.1;
     const SCARLETT_BRAMBLE_DRONE_ATTACK_COOLDOWN = 30;
 
     const CHEAT_STREAK_RESET_MS = 2000;
@@ -2742,6 +2744,10 @@
       const animationTracks = useViciousVercosus
         ? (assets.enemyAnimations.scarlettViciousVercosus || null)
         : (assets.enemyAnimations.scarlettBrambleDrone || null);
+      const summonLevel = clamp(owner?.level || 1, 1, SCARLETT_BRAMBLE_DRONE_MAX_LEVEL);
+      const levelMultiplier = 1 + ((summonLevel - 1) * SCARLETT_BRAMBLE_DRONE_LEVEL_SCALE_STEP);
+      const maxHp = Math.round(SCARLETT_BRAMBLE_DRONE_MAX_HP * levelMultiplier);
+      const damage = Math.round(SCARLETT_BRAMBLE_DRONE_ATTACK_DAMAGE * levelMultiplier);
       return {
         uid: ++state.enemyUid,
         type: useViciousVercosus ? 'scarlettViciousVercosus' : 'scarlettBrambleDrone',
@@ -2749,10 +2755,10 @@
         x: owner ? owner.x + (owner.facing * 14) : 80,
         y: owner ? owner.y - 4 : BRAWL_LANE_MAX_Y,
         z: 0,
-        hp: SCARLETT_BRAMBLE_DRONE_MAX_HP,
-        maxHp: SCARLETT_BRAMBLE_DRONE_MAX_HP,
+        hp: maxHp,
+        maxHp,
         speed: SCARLETT_BRAMBLE_DRONE_SPEED,
-        damage: SCARLETT_BRAMBLE_DRONE_ATTACK_DAMAGE,
+        damage,
         range: 22,
         facing: owner?.facing || 1,
         attackCooldown: 0,
@@ -2762,7 +2768,7 @@
         hurtTimer: 0,
         deathHoldFrames: 0,
         isMoving: false,
-        renderScale: useViciousVercosus ? 2.46 : 1.64,
+        renderScale: (useViciousVercosus ? 2.46 : 1.64) * levelMultiplier,
         physicsProfileId: 'enemy-scarlettBrambleDrone',
         animation: animationTracks ? {
           state: 'idle',

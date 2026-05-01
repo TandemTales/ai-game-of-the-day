@@ -1019,6 +1019,11 @@
     const SCARLETT_BRAMBLE_DRONE_SPEED = 2.8;
     const SCARLETT_BRAMBLE_DRONE_ATTACK_DAMAGE = 11;
     const SCARLETT_BRAMBLE_DRONE_ATTACK_COOLDOWN = 30;
+    const SCARLETT_DRONE_MAX_STAGE = 5;
+    const SCARLETT_DRONE_STAGE_SIZE_MULTIPLIER = 1.2;
+    const SCARLETT_DRONE_STAGE_HP_MULTIPLIER = 1.2;
+    const SCARLETT_DRONE_STAGE_DAMAGE_MULTIPLIER = 1.2;
+    const SCARLETT_DRONE_XP_PER_STAGE = 100;
 
     const CHEAT_STREAK_RESET_MS = 2000;
     const CHEAT_REQUIRED_CLICKS = 7;
@@ -2742,6 +2747,7 @@
       const animationTracks = useViciousVercosus
         ? (assets.enemyAnimations.scarlettViciousVercosus || null)
         : (assets.enemyAnimations.scarlettBrambleDrone || null);
+      const baseRenderScale = useViciousVercosus ? 2.46 : 1.64;
       return {
         uid: ++state.enemyUid,
         type: useViciousVercosus ? 'scarlettViciousVercosus' : 'scarlettBrambleDrone',
@@ -2753,6 +2759,7 @@
         maxHp: SCARLETT_BRAMBLE_DRONE_MAX_HP,
         speed: SCARLETT_BRAMBLE_DRONE_SPEED,
         damage: SCARLETT_BRAMBLE_DRONE_ATTACK_DAMAGE,
+        baseDamage: SCARLETT_BRAMBLE_DRONE_ATTACK_DAMAGE,
         range: 22,
         facing: owner?.facing || 1,
         attackCooldown: 0,
@@ -2762,7 +2769,10 @@
         hurtTimer: 0,
         deathHoldFrames: 0,
         isMoving: false,
-        renderScale: useViciousVercosus ? 2.46 : 1.64,
+        renderScale: baseRenderScale,
+        baseRenderScale,
+        xp: 0,
+        level: 1,
         physicsProfileId: 'enemy-scarlettBrambleDrone',
         animation: animationTracks ? {
           state: 'idle',
@@ -2775,11 +2785,36 @@
       };
     }
 
+    function scaleScarlettBrambleDroneForLevel(drone, level) {
+      if (!drone) return;
+      const clampedLevel = clamp(Math.floor(level || 1), 1, SCARLETT_DRONE_MAX_STAGE);
+      const stageOffset = clampedLevel - 1;
+      const hpScale = Math.pow(SCARLETT_DRONE_STAGE_HP_MULTIPLIER, stageOffset);
+      const damageScale = Math.pow(SCARLETT_DRONE_STAGE_DAMAGE_MULTIPLIER, stageOffset);
+      const sizeScale = Math.pow(SCARLETT_DRONE_STAGE_SIZE_MULTIPLIER, stageOffset);
+      drone.level = clampedLevel;
+      drone.maxHp = Math.round(SCARLETT_BRAMBLE_DRONE_MAX_HP * hpScale);
+      drone.hp = drone.maxHp;
+      drone.damage = Math.round((drone.baseDamage || SCARLETT_BRAMBLE_DRONE_ATTACK_DAMAGE) * damageScale);
+      drone.renderScale = (drone.baseRenderScale || drone.renderScale || 1) * sizeScale;
+    }
+
+    function addScarlettDroneXp(drone, amount) {
+      if (!drone || drone.hp <= 0 || amount <= 0) return;
+      drone.xp = (drone.xp || 0) + amount;
+      while (drone.level < SCARLETT_DRONE_MAX_STAGE && drone.xp >= SCARLETT_DRONE_XP_PER_STAGE) {
+        drone.xp -= SCARLETT_DRONE_XP_PER_STAGE;
+        scaleScarlettBrambleDroneForLevel(drone, drone.level + 1);
+      }
+      if (drone.level >= SCARLETT_DRONE_MAX_STAGE) drone.xp = SCARLETT_DRONE_XP_PER_STAGE;
+    }
+
     function summonScarlettBrambleDrone(player, useViciousVercosus = false) {
       if (!player || player.charData?.id !== 'scarlett-glumpkin') return;
       const drone = state.scarlettBrambleDrone;
       if (drone && drone.hp > 0) return;
       state.scarlettBrambleDrone = createScarlettBrambleDrone(player, useViciousVercosus);
+      scaleScarlettBrambleDroneForLevel(state.scarlettBrambleDrone, 1);
     }
 
     function getEnemyHitbox(enemy) {
@@ -6450,7 +6485,10 @@
           state.enemies.forEach(enemy => {
             if (enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return;
             if (rectsOverlap(hitbox, getEnemyHitbox(enemy))) {
+              const enemyHpBeforeHit = enemy.hp;
               damageEnemy(enemy, drone.damage, 8);
+              if (enemyHpBeforeHit > 0 && enemy.hp <= 0) addScarlettDroneXp(drone, 45);
+              else if (enemyHpBeforeHit > enemy.hp) addScarlettDroneXp(drone, 12);
               applyStatus(enemy, 'POISON', 110, 1);
             }
           });
@@ -7663,6 +7701,7 @@
         const barWidth = 30;
         const barHeight = 4;
         const hpPct = clamp(drone.hp / drone.maxHp, 0, 1);
+        const xpPct = clamp((drone.xp || 0) / SCARLETT_DRONE_XP_PER_STAGE, 0, 1);
         const topOpaqueWorldY = getEntityWalkTopOpaqueWorldY(drone, ENEMY_DRAW_SIZE);
         const barY = topOpaqueWorldY - state.cameraY - 10;
         const barX = drone.x - state.cameraX - (barWidth / 2);
@@ -7672,6 +7711,13 @@
         ctx.fillRect(barX, barY, barWidth, barHeight);
         ctx.fillStyle = '#86d26f';
         ctx.fillRect(barX, barY, barWidth * hpPct, barHeight);
+        const xpBarY = barY + barHeight + 2;
+        ctx.fillStyle = 'rgba(0,0,0,0.58)';
+        ctx.fillRect(barX - 1, xpBarY - 1, barWidth + 2, barHeight + 2);
+        ctx.fillStyle = 'rgba(54, 22, 45, 0.95)';
+        ctx.fillRect(barX, xpBarY, barWidth, barHeight);
+        ctx.fillStyle = '#ff69c6';
+        ctx.fillRect(barX, xpBarY, barWidth * xpPct, barHeight);
       }
 
       if (showCollisionDebug) {

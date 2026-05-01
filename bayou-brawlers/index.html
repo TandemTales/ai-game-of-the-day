@@ -213,6 +213,12 @@
       width: 100%;
       background: linear-gradient(90deg, #ff7b7b, #ffb347);
     }
+    .xp-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #ff5ccf, #ff93e1);
+      transition: width 180ms ease-out;
+    }
     .status-strip {
       position: absolute;
       top: calc(146px + env(safe-area-inset-top));
@@ -858,7 +864,10 @@
       <div class="chip">Score: <span id="score">0</span></div>
       <div class="chip level-chip" id="levelChip"><span class="level-chip-text">Level: <span id="level">1</span></span></div>
       <div class="chip" style="display:flex; gap:6px; align-items:center;">HP
-        <div class="hp-bar"><div class="hp-fill" id="hpFill"></div></div>
+        <div style="display:flex; flex-direction:column; gap:3px;">
+          <div class="hp-bar"><div class="hp-fill" id="hpFill"></div></div>
+          <div class="hp-bar"><div class="xp-fill" id="xpFill"></div></div>
+        </div>
       </div>
       <div class="chip" style="display:flex; gap:6px; align-items:center;">Power
         <div class="hp-bar"><div class="hp-fill" id="powerFill" style="background:linear-gradient(90deg,#5ef1ff,#7a95ff)"></div></div>
@@ -2742,6 +2751,8 @@
       const animationTracks = useViciousVercosus
         ? (assets.enemyAnimations.scarlettViciousVercosus || null)
         : (assets.enemyAnimations.scarlettBrambleDrone || null);
+      const ownerLevel = clamp(Math.floor(owner?.level || 1), 1, 5);
+      const levelMultiplier = 1 + ((ownerLevel - 1) * 0.2);
       return {
         uid: ++state.enemyUid,
         type: useViciousVercosus ? 'scarlettViciousVercosus' : 'scarlettBrambleDrone',
@@ -2749,10 +2760,10 @@
         x: owner ? owner.x + (owner.facing * 14) : 80,
         y: owner ? owner.y - 4 : BRAWL_LANE_MAX_Y,
         z: 0,
-        hp: SCARLETT_BRAMBLE_DRONE_MAX_HP,
-        maxHp: SCARLETT_BRAMBLE_DRONE_MAX_HP,
+        hp: Math.round(SCARLETT_BRAMBLE_DRONE_MAX_HP * levelMultiplier),
+        maxHp: Math.round(SCARLETT_BRAMBLE_DRONE_MAX_HP * levelMultiplier),
         speed: SCARLETT_BRAMBLE_DRONE_SPEED,
-        damage: SCARLETT_BRAMBLE_DRONE_ATTACK_DAMAGE,
+        damage: Math.round(SCARLETT_BRAMBLE_DRONE_ATTACK_DAMAGE * levelMultiplier),
         range: 22,
         facing: owner?.facing || 1,
         attackCooldown: 0,
@@ -2762,7 +2773,7 @@
         hurtTimer: 0,
         deathHoldFrames: 0,
         isMoving: false,
-        renderScale: useViciousVercosus ? 2.46 : 1.64,
+        renderScale: (useViciousVercosus ? 2.46 : 1.64) * levelMultiplier,
         physicsProfileId: 'enemy-scarlettBrambleDrone',
         animation: animationTracks ? {
           state: 'idle',
@@ -3767,9 +3778,11 @@
       if (!player) return;
       document.getElementById('level').textContent = String(player.level);
       const levelChip = document.getElementById('levelChip');
+      const xpFill = document.getElementById('xpFill');
       const xpNeeded = xpToNext(player.level);
       const levelProgress = xpNeeded > 0 ? clamp(player.xp / xpNeeded, 0, 1) : 1;
       if (levelChip) levelChip.style.setProperty('--level-progress', levelProgress.toFixed(4));
+      if (xpFill) xpFill.style.width = `${(levelProgress * 100).toFixed(2)}%`;
       refreshCharacterSheetIfVisible();
     }
 

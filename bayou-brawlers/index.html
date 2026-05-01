@@ -2771,6 +2771,8 @@
         isMoving: false,
         renderScale: baseRenderScale,
         baseRenderScale,
+        growthFlashTimer: 0,
+        growthFlashDuration: 0,
         xp: 0,
         level: 1,
         physicsProfileId: 'enemy-scarlettBrambleDrone',
@@ -2787,6 +2789,7 @@
 
     function scaleScarlettBrambleDroneForLevel(drone, level) {
       if (!drone) return;
+      const previousScale = drone.renderScale || drone.baseRenderScale || 1;
       const clampedLevel = clamp(Math.floor(level || 1), 1, SCARLETT_DRONE_MAX_STAGE);
       const stageOffset = clampedLevel - 1;
       const hpScale = Math.pow(SCARLETT_DRONE_STAGE_HP_MULTIPLIER, stageOffset);
@@ -2797,6 +2800,10 @@
       drone.hp = drone.maxHp;
       drone.damage = Math.round((drone.baseDamage || SCARLETT_BRAMBLE_DRONE_ATTACK_DAMAGE) * damageScale);
       drone.renderScale = (drone.baseRenderScale || drone.renderScale || 1) * sizeScale;
+      if (drone.renderScale > previousScale + 0.001) {
+        drone.growthFlashDuration = 22;
+        drone.growthFlashTimer = drone.growthFlashDuration;
+      }
     }
 
     function addScarlettDroneXp(drone, amount) {
@@ -6419,6 +6426,7 @@
       const drone = state.scarlettBrambleDrone;
       const player = state.player;
       if (!drone || !player) return;
+      drone.growthFlashTimer = Math.max(0, (drone.growthFlashTimer || 0) - 1);
 
       if (drone.hp <= 0) {
         drone.isMoving = false;
@@ -7172,6 +7180,9 @@
         : getEntityStatusTint(entity);
       const invulnerable = isEntityInvulnerable(entity);
       const blinkPhaseSeed = entity.uid || 0;
+      const growthFlashTimer = entity?.growthFlashTimer || 0;
+      const growthFlashDuration = Math.max(1, entity?.growthFlashDuration || 0);
+      const hasGrowthFlash = growthFlashTimer > 0;
       if (useFade) {
         ctx.save();
         ctx.globalAlpha = fadeAlpha;
@@ -7184,6 +7195,18 @@
           const drawSize = size * (entity.renderScale || 1) * depthScale;
           drawTerritorialBeastGlow(entity, x, y, drawSize);
           drawMaulingFrenzyGlow(entity, x, y, drawSize);
+          if (hasGrowthFlash) {
+            const flashProgress = clamp(growthFlashTimer / growthFlashDuration, 0, 1);
+            const pulse = 0.75 + (0.25 * Math.sin((1 - flashProgress) * Math.PI * 6));
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = flashProgress * pulse * 0.38;
+            ctx.fillStyle = '#f4ff96';
+            ctx.beginPath();
+            ctx.ellipse(x, y - (drawSize * 0.48), drawSize * 0.64, drawSize * 0.86, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
           const offsetX = track.renderOffsetX || 0;
           if (track.flipX) {
             ctx.save();
@@ -7228,6 +7251,18 @@
           const drawSize = size * (entity.renderScale || 1) * depthScale;
           drawTerritorialBeastGlow(entity, x, y, drawSize);
           drawMaulingFrenzyGlow(entity, x, y, drawSize);
+          if (hasGrowthFlash) {
+            const flashProgress = clamp(growthFlashTimer / growthFlashDuration, 0, 1);
+            const pulse = 0.75 + (0.25 * Math.sin((1 - flashProgress) * Math.PI * 6));
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = flashProgress * pulse * 0.38;
+            ctx.fillStyle = '#f4ff96';
+            ctx.beginPath();
+            ctx.ellipse(x, y - (drawSize * 0.48), drawSize * 0.64, drawSize * 0.86, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
           const offsetX = track.renderOffsetX || 0;
           if (track.flipX) {
             ctx.save();

@@ -2818,6 +2818,16 @@
       return state.scarlettBrambleDrone;
     }
 
+
+    function healScarlettActiveDrone(drone, amountRatio = 0.04) {
+      if (!drone || drone.hp <= 0) return false;
+      const maxHp = Math.max(1, drone.maxHp || SCARLETT_BRAMBLE_DRONE_MAX_HP);
+      const healAmount = Math.max(1, Math.ceil(maxHp * amountRatio));
+      const beforeHp = drone.hp;
+      drone.hp = clamp(drone.hp + healAmount, 0, maxHp);
+      return drone.hp > beforeHp;
+    }
+
     function getEnemyHitbox(enemy) {
       return getPhysicsBody(enemy);
     }
@@ -5050,11 +5060,10 @@
       } else if (id === 'grimma-the-feared') {
         state.effects.push({ x: player.x, y: player.y, radius: isSuper ? 170 * radiusBoost : 96, timer: isSuper ? (hasLevel(player, 9) ? 168 : 120) : 40, damage: isSuper ? 2 : 8, knockback: 0, stun: isSuper ? 8 : 42, type: 'root' });
       } else if (id === 'scarlett-glumpkin') {
-        const existingDrone = state.scarlettBrambleDrone;
+        const activeDroneBeforeSpecial = state.scarlettBrambleDrone;
         summonScarlettBrambleDrone(player, isSuper);
-        if (existingDrone && existingDrone.hp > 0) {
-          const healAmount = Math.max(1, Math.round((existingDrone.maxHp || SCARLETT_BRAMBLE_DRONE_MAX_HP) * 0.04));
-          existingDrone.hp = Math.min(existingDrone.maxHp || SCARLETT_BRAMBLE_DRONE_MAX_HP, existingDrone.hp + healAmount);
+        if (activeDroneBeforeSpecial && activeDroneBeforeSpecial.hp > 0) {
+          healScarlettActiveDrone(activeDroneBeforeSpecial, 0.04);
         }
         state.effects.push({ x: player.x + player.facing * 80, y: player.y, radius: (isSuper ? 210 * radiusBoost : 120) * aoeRangeMultiplier, timer: isSuper ? 100 : 44, damage: isSuper ? 2 : 7, knockback: 8, stun: 18, type: 'root-poison' });
         if (isSuper && hasUpgrade(player, 'garden-of-thorns')) {

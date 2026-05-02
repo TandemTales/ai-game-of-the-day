@@ -3168,9 +3168,12 @@
         return;
       }
 
-      const adjustedFps = enemy.isBoss
+      let adjustedFps = enemy.isBoss
         ? track.fps * BOSS_ANIM_FPS_MULTIPLIER
         : track.fps;
+      if (enemy.type === 'sweetykins' && anim.state === 'walk' && enemy.sweetykinsMode === 'charge') {
+        adjustedFps *= 2;
+      }
       const frameTime = 1000 / adjustedFps;
       anim.elapsedMs += dt;
       while (anim.elapsedMs >= frameTime) {
@@ -5685,6 +5688,7 @@
           }
         } else if (enemy.type === 'sweetykins') {
           enemy.forceIdleAnimation = false;
+          enemy.isMoving = false;
           if (!enemy.sweetykinsMode) enemy.sweetykinsMode = 'charge';
           if (!Number.isFinite(enemy.sweetykinsChargesRemaining)) enemy.sweetykinsChargesRemaining = rand(4, 6);
           if (!Number.isFinite(enemy.sweetykinsHitsRemaining)) enemy.sweetykinsHitsRemaining = rand(2, 4);
@@ -5692,7 +5696,8 @@
           enemy.sweetykinsRunHitCooldown = Math.max(0, enemy.sweetykinsRunHitCooldown - 1);
 
           if (enemy.sweetykinsMode === 'charge') {
-            enemy.forceIdleAnimation = true;
+            enemy.forceIdleAnimation = false;
+            enemy.isMoving = true;
             enemy.windup = 0;
             enemy.attackAnimTimer = 0;
             const leftBound = state.cameraX + 42;
@@ -9612,11 +9617,11 @@
           profileId: 'enemy-sweetykins',
           sizeMultiplier: BOSS_DRAW_SIZE / ENEMY_DRAW_SIZE,
           states: {
-            idle: { left: ['assets/animation_sweetykins_red_controlSquare_left.png', 1], fps: 0, loop: false },
-            walk: { left: ['assets/animation_sweetykins_red_walking_left.png', 8], fps: 10, loop: true },
-            hurt: { left: ['assets/animation_sweetykins_red_damaged_left.png', 5], fps: 12, loop: false },
-            attack: { left: ['assets/animation_sweetykins_red_attack_left.png', 7], fps: 14, loop: false },
-            death: { left: ['assets/animation_sweetykins_red_killed_left.png', 6], fps: 8, loop: false }
+            idle: { left: ['assets/animation_sweetykins_red_walking_left.png', 1], fps: 0, loop: false },
+            walk: { left: ['assets/animation_sweetykins_red_walking_left.png', 6], fps: 10, loop: true },
+            hurt: { left: ['assets/animation_sweetykins_red_damaged_left.png', 6], fps: 12, loop: false },
+            attack: { left: ['assets/animation_sweetykins_red_attack_left.png', 9], fps: 14, loop: false },
+            death: { left: ['assets/animation_sweetykins_red_killed_left.png', 7], fps: 8, loop: false }
           }
         },
         bambo: {

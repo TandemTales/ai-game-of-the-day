@@ -4669,6 +4669,16 @@
       return Math.round(baseCooldown * getAttackDelayMultiplier(characterId));
     }
 
+    function setSharedAttackCooldown(player, cooldownFrames) {
+      const frames = Math.max(0, cooldownFrames || 0);
+      player.attackCooldown = frames;
+      player.attackCooldownMax = frames;
+      player.powerCooldown = frames;
+      player.powerCooldownMax = frames;
+      player.specialCooldown = frames;
+      player.specialCooldownMax = frames;
+    }
+
     function handleAttacks() {
       const player = state.player;
       if (!player) return;
@@ -4685,8 +4695,7 @@
       if ((input.power || heavyByHold) && player.powerCooldown <= 0) {
         player.attackFacing = attackFacing;
         player.facing = attackFacing;
-        player.powerCooldown = getHeavyAttackCooldownFrames(player.charData.id, isAir);
-        player.powerCooldownMax = player.powerCooldown;
+        setSharedAttackCooldown(player, getHeavyAttackCooldownFrames(player.charData.id, isAir));
         player.animationSignals.attack = true;
         playPlayerSfx(player, 'attackHeavy');
         doAttack(player, true, isAir, tuning);
@@ -4698,8 +4707,7 @@
       if (input.fast && player.attackCooldown <= 0) {
         player.attackFacing = attackFacing;
         player.facing = attackFacing;
-        player.attackCooldown = getBasicAttackCooldownFrames(player.charData.id);
-        player.attackCooldownMax = player.attackCooldown;
+        setSharedAttackCooldown(player, getBasicAttackCooldownFrames(player.charData.id));
         player.animationSignals.attack = true;
         playPlayerSfx(player, 'attackFast');
         doAttack(player, false, isAir, tuning);
@@ -4709,8 +4717,7 @@
         const castSuper = hasLevel(player, 5) && player.power >= (player.maxPower || BASE_MAX_POWER);
         player.attackFacing = attackFacing;
         player.facing = attackFacing;
-        player.specialCooldown = castSuper ? 360 : 210;
-        player.specialCooldownMax = player.specialCooldown;
+        setSharedAttackCooldown(player, castSuper ? 360 : 210);
         player.actionLock = getSpecialAnimationLockFrames(player, attackFacing);
         player.animationSignals.special = true;
         addPower(player, -(castSuper ? SUPER_COST : SPECIAL_COST));

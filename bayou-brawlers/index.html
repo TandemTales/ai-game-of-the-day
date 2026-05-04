@@ -314,6 +314,37 @@
       padding: 20px;
     }
     .overlay.show { display: flex; }
+    .loading-progress {
+      position: relative;
+      width: min(360px, calc(100vw - 96px));
+      height: 26px;
+      border-radius: 999px;
+      border: 2px solid rgba(255, 215, 0, 0.85);
+      background: rgba(13, 17, 26, 0.9);
+      overflow: hidden;
+      box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.5);
+    }
+    .loading-progress-fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 0%;
+      background: linear-gradient(90deg, #b77d00, #f7d26f 55%, #fff1b2);
+      transition: width 120ms linear;
+    }
+    .loading-progress-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #0a0f14;
+      text-shadow: 0 1px 1px rgba(255, 255, 255, 0.35);
+      font-weight: 700;
+      z-index: 1;
+    }
     .boss-popup {
       position: fixed;
       top: 118px;
@@ -907,7 +938,10 @@
     <div class="overlay show" id="loadingOverlay">
       <div class="panel">
         <h2>Loading Bayou Brawlers</h2>
-        <p id="loadingStatus">Preparing the steampunk swamp...</p>
+        <div class="loading-progress" id="loadingStatus" role="status" aria-live="polite" aria-label="Loading progress">
+          <div class="loading-progress-fill" id="loadingProgressFill"></div>
+          <span class="loading-progress-label">Loading</span>
+        </div>
       </div>
     </div>
 
@@ -8911,6 +8945,7 @@
 
     async function loadAssets() {
       const loading = document.getElementById('loadingStatus');
+      const loadingProgressFill = document.getElementById('loadingProgressFill');
       const promises = [];
 
       const backgroundKeys = {
@@ -9693,7 +9728,9 @@
       promises.forEach(promise => {
         promise.then(() => {
           loaded += 1;
-          loading.textContent = `Loading art ${loaded}/${promises.length}`;
+          const progress = Math.round((loaded / promises.length) * 100);
+          loadingProgressFill.style.width = `${progress}%`;
+          loading.setAttribute('aria-label', `Loading progress ${progress}%`);
         });
       });
 

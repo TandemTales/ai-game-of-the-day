@@ -5632,15 +5632,19 @@
 
           if (enemy.cooldown <= 0 && distance <= 340) {
             enemy.attackAnimTimer = Math.max(enemy.attackAnimTimer, 14);
-            const castRange = 320;
-            const behindDirection = -(player.facing || 1);
-            const targetX = clamp(player.x + (behindDirection * castRange) + rand(-20, 20), state.cameraX + 40, state.cameraX + canvas.width - 40);
+            const leadFrames = 24;
+            const leadX = player.vx * leadFrames;
+            const leadYInput = (input.down ? 1 : 0) - (input.up ? 1 : 0);
+            const leadY = leadYInput * player.speed * 0.6 * leadFrames;
+            const predictedX = player.x + leadX;
+            const predictedY = player.y + leadY;
             const targetYBounds = getPlayerVerticalBounds(player);
-            const targetY = clamp(player.y + rand(-48, 48), targetYBounds.minY + 4, targetYBounds.maxY + 4);
+            const targetX = clamp(predictedX + rand(-38, 38), state.cameraX + 40, state.cameraX + canvas.width - 40);
+            const targetY = clamp(predictedY + rand(-30, 30), targetYBounds.minY + 4, targetYBounds.maxY + 4);
             spawnBriarSupportPatch(targetX, targetY);
             if (Math.random() < 0.45) {
-              const offsetX = rand(54, 96) * behindDirection;
-              spawnBriarSupportPatch(clamp(targetX + offsetX, state.cameraX + 40, state.cameraX + canvas.width - 40), targetY + rand(-20, 20));
+              const offsetX = rand(54, 96) * (Math.sign(leadX) || -(player.facing || 1));
+              spawnBriarSupportPatch(clamp(targetX + offsetX, state.cameraX + 40, state.cameraX + canvas.width - 40), clamp(targetY + rand(-20, 20), targetYBounds.minY + 4, targetYBounds.maxY + 4));
             }
             enemy.cooldown = rand(60, 100);
           }

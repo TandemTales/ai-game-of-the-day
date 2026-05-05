@@ -5051,8 +5051,8 @@
           });
         }
       } else if (id === 'rustbucket') {
-        player.sentryTimer = 150;
-        player.sentrySuperTimer = isSuper ? 150 : 0;
+        player.sentryTimer = isSuper ? 600 : 300;
+        player.sentrySuperTimer = isSuper ? 600 : 0;
         if (isSuper) {
           state.effects.push({
             x: player.x,

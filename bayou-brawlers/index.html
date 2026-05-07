@@ -4418,6 +4418,35 @@
       });
     }
 
+    function spawnProjectileTowardTarget(owner, target, speed, damage, friendly, color = '#f5d07a', options = null) {
+      if (!owner || !target) return;
+      const ownerId = owner?.charData?.id || null;
+      const originX = owner.x + owner.facing * 20;
+      const originY = owner.y - 10;
+      const enemyBody = getEnemyHitbox(target);
+      const targetX = enemyBody.x + enemyBody.width * 0.5;
+      const targetY = enemyBody.y + enemyBody.height * 0.5;
+      const dx = targetX - originX;
+      const dy = targetY - originY;
+      const dist = Math.hypot(dx, dy) || 1;
+      state.projectiles.push({
+        x: originX,
+        y: originY,
+        vx: (dx / dist) * speed,
+        vy: (dy / dist) * speed,
+        damage,
+        friendly,
+        life: 180,
+        color,
+        tracking: false,
+        turnRate: 0,
+        ownerId,
+        trailEvery: 0,
+        ricochetRemaining: ownerId === 'rustbucket' ? 1 : 0,
+        attackKind: options?.attackKind || null
+      });
+    }
+
     const RUSTBUCKET_RICOCHET_CHANCE = 0.25;
     const RUSTBUCKET_RICOCHET_MAX_BOUNCES = 8;
 
@@ -5257,9 +5286,24 @@
         player.perfectGlamourPlusTimer = 0;
       }
       if (player.sentryTimer > 0 && player.sentryTimer % 18 === 0) {
-        spawnProjectile(player, 11, hasLevel(player, 7) ? 9 : 7, true, '#ffe8aa', {
-          attackKind: player.sentrySuperTimer > 0 ? 'super-special' : 'special'
-        });
+        const isSuperSpecial = player.sentrySuperTimer > 0;
+        const projectileDamage = hasLevel(player, 7) ? 9 : 7;
+        if (isSuperSpecial) {
+          const livingTargets = state.enemies.filter(enemy => enemy.hp > 0 && canPlayerAffectEnemy(enemy));
+          livingTargets.forEach((enemy) => {
+            spawnProjectileTowardTarget(player, enemy, 11, projectileDamage, true, '#ffe8aa', {
+              attackKind: 'super-special'
+            });
+          });
+        } else {
+          spawnProjectile(player, 11, projectileDamage, true, '#ffe8aa', {
+            attackKind: 'special'
+          });
+          const reverseOwner = { ...player, facing: player.facing * -1 };
+          spawnProjectile(reverseOwner, 11, projectileDamage, true, '#ffe8aa', {
+            attackKind: 'special'
+          });
+        }
       }
       if (player.tempestTimer > 0) {
         player.tempestTimer -= 1;

@@ -3885,7 +3885,8 @@
       const currentMaxPower = player.maxPower || BASE_MAX_POWER;
       fill.style.width = `${(player.power / currentMaxPower) * 100}%`;
       const ready = document.getElementById('specialReady');
-      const isSuperReady = hasLevel(player, 5) && player.power >= currentMaxPower;
+      const hasSuperPellets = (player.superPellets || 0) >= SUPER_PELLETS_REQUIRED;
+      const isSuperReady = hasLevel(player, 5) && player.power >= currentMaxPower && hasSuperPellets;
       if (isSuperReady && !player.superReadyNotified) {
         showNotification('Super special charged');
         player.superReadyNotified = true;
@@ -3895,6 +3896,7 @@
       setSuperReadyGlow(isSuperReady);
       if (!hasLevel(player, 3)) ready.textContent = 'Locked';
       else if (isSuperReady) ready.textContent = 'Super Ready';
+      else if (hasLevel(player, 5) && player.power >= currentMaxPower && !hasSuperPellets) ready.textContent = 'Need 3 Pellets';
       else if (player.power >= SPECIAL_COST) ready.textContent = hasLevel(player, 5) ? 'Special Ready' : 'Ability Ready';
       else ready.textContent = 'Charging';
       updateSuperOrbHud(player);
@@ -5469,11 +5471,13 @@
             && (nearbyEnemies >= 2 || targetEnemy.isBoss || targetDistance <= (companion.range + 26));
 
           if (shouldSpecial) {
-            const castSuper = companion.power >= (companion.maxPower || BASE_MAX_POWER) * 0.92;
+            const castSuper = companion.power >= (companion.maxPower || BASE_MAX_POWER) * 0.92
+              && (companion.superPellets || 0) >= SUPER_PELLETS_REQUIRED;
             companion.specialCooldown = castSuper ? 300 : 170;
             companion.actionLock = Math.max(14, Math.floor(getSpecialAnimationLockFrames(companion, companion.facing) * 0.8));
             companion.animationSignals.special = true;
             addPower(companion, -(castSuper ? SUPER_COST : SPECIAL_COST));
+            if (castSuper) companion.superPellets = 0;
             playPlayerSfx(companion, 'attackSpecial');
             castCharacterAbility(companion, castSuper);
           } else if (companion.powerCooldown <= 0 && (targetDistance <= (companion.range + 18) || targetEnemy.isBoss || Math.random() < 0.45)) {

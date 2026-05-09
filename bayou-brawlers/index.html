@@ -5513,6 +5513,41 @@
 
     function updateEnemies(dt) {
       const player = state.player;
+      const getEnemyTargets = (enemy) => {
+        const targets = [];
+        if (player && player.hp > 0) targets.push({ kind: 'player', entity: player });
+        state.companions.forEach(companion => {
+          if (companion && companion.hp > 0) targets.push({ kind: 'companion', entity: companion });
+        });
+        if (state.scarlettBrambleDrone && state.scarlettBrambleDrone.hp > 0) {
+          targets.push({ kind: 'drone', entity: state.scarlettBrambleDrone });
+        }
+        state.enemies.forEach(otherEnemy => {
+          if (!otherEnemy || otherEnemy === enemy || otherEnemy.hp <= 0) return;
+          if (!isCharmed(otherEnemy)) return;
+          targets.push({ kind: 'enemy', entity: otherEnemy });
+        });
+        return targets;
+      };
+      const getTargetHitbox = (target) => {
+        if (!target) return null;
+        if (target.kind === 'enemy' || target.kind === 'drone') return getEnemyHitbox(target.entity);
+        return getPlayerHitbox(target.entity);
+      };
+      const damageTarget = (target, amount, sourceEnemy) => {
+        if (!target) return;
+        if (target.kind === 'player') {
+          damagePlayer(amount, sourceEnemy);
+        } else if (target.kind === 'drone') {
+          damageScarlettBrambleDrone(amount, sourceEnemy);
+        } else if (target.kind === 'companion') {
+          // Companions share player-like stats and hit reactions.
+          target.entity.hp = clamp(target.entity.hp - Math.max(1, amount * ENEMY_DAMAGE_MULTIPLIER), 0, target.entity.maxHp);
+          target.entity.animationSignals.hurt = true;
+        } else if (target.kind === 'enemy') {
+          damageEnemy(target.entity, amount, sourceEnemy?.ranged ? 8 : 12);
+        }
+      };
       const hasUndergroundDaph = countUndergroundDaphodilus() > 0;
       state.commandBuffTimer = Math.max(0, state.commandBuffTimer - 1);
       let enemyWalkingSfxPlayedThisFrame = 0;
@@ -5557,14 +5592,19 @@
           return;
         }
 
-        const dx = player.x - enemy.x;
-        const dy = getEnemyAimTargetY(enemy, player) - enemy.y;
+        const preferredTarget = getEnemyTargets(enemy)
+          .sort((a, b) => Math.hypot(a.entity.x - enemy.x, a.entity.y - enemy.y) - Math.hypot(b.entity.x - enemy.x, b.entity.y - enemy.y))[0]
+          || { kind: 'player', entity: player };
+        const targetEntity = preferredTarget.entity;
+        const targetBody = getTargetHitbox(preferredTarget) || getPlayerHitbox(player);
+        const dx = targetEntity.x - enemy.x;
+        const dy = getEnemyAimTargetY(enemy, targetEntity) - enemy.y;
         const distance = Math.hypot(dx, dy);
         const spacing = getEnemySpacingAdjustment(enemy);
         const isSlowed = (enemy.statuses?.SLOW?.duration || 0) > 0;
         const moveSpeed = enemy.speed * spacing.moveScale * (isSlowed ? 0.5 : 1);
-        const playerSpacing = getEnemyPlayerSpacingAdjustment(enemy, player, moveSpeed);
-        const playerBody = getPlayerHitbox(player);
+        const playerSpacing = getEnemyPlayerSpacingAdjustment(enemy, targetEntity, moveSpeed);
+        const playerBody = targetBody;
         const enemyBody = getEnemyHitbox(enemy);
         const hasBewitchingPresence = player.charData.id === 'green-fairy' && hasUpgrade(player, 'bewitching-presence');
         enemy.isMoving = false;
@@ -5753,7 +5793,7 @@
             enemy.attackAnimTimer = 14;
           }
           if (enemy.windup === 1 && rectsOverlap({x: enemyBody.x - 12, y: enemyBody.y, width: enemyBody.width + 24, height: enemyBody.height}, playerBody)) {
-            damagePlayer(enemy.damage, enemy);
+            damageTarget(preferredTarget, enemy.damage, enemy);
             if (distance < 45 && Math.random() < (0.35 + (state.commandBuffTimer > 0 ? 0.1 : 0)) && !state.chokeHoldOwnerId) {
               state.chokeHoldOwnerId = enemy.uid;
               enemy.holdTargetFrames = CHOKING_HOLD_FRAMES;
@@ -5761,7 +5801,7 @@
           }
           if (enemy.holdTargetFrames > 0 && state.chokeHoldOwnerId === enemy.uid) {
             enemy.holdTargetFrames -= 1;
-            if (enemy.holdTargetFrames % 20 === 0) damagePlayer(Math.max(1, enemy.damage * 0.35), enemy);
+            if (enemy.holdTargetFrames % 20 === 0) damageTarget(preferredTarget, Math.max(1, enemy.damage * 0.35), enemy);
             if (enemy.holdTargetFrames <= 0) state.chokeHoldOwnerId = null;
           }
           if (enemy.cooldown <= 0) {
@@ -5773,7 +5813,7 @@
             enemy.x = player.x + enemy.attachOffsetX;
             enemy.y = player.y + enemy.attachOffsetY;
             enemy.isMoving = true;
-            if (enemy.attachTargetFrames % 15 === 0) damagePlayer(Math.max(1, enemy.damage * 0.45), enemy);
+            if (enemy.attachTargetFrames % 15 === 0) damageTarget(preferredTarget, Math.max(1, enemy.damage * 0.45), enemy);
           } else {
             if (distance > 26) {
               enemy.x += Math.sign(dx) * moveSpeed * 1.1;
@@ -5787,7 +5827,7 @@
               enemy.attachTargetFrames = STING_ATTACH_FRAMES;
               enemy.attachOffsetX = clamp(enemy.x - player.x, -14, 14);
               enemy.attachOffsetY = clamp(enemy.y - player.y, -10, 8);
-              damagePlayer(Math.max(1, enemy.damage * 0.3), enemy);
+              damageTarget(preferredTarget, Math.max(1, enemy.damage * 0.3), enemy);
               enemy.cooldown = rand(90, 140);
             }
           }
@@ -5814,7 +5854,7 @@
           if (distance <= barrageRadius) {
             enemy.cooldown = Math.max(0, enemy.cooldown - 1);
             if (enemy.cooldown <= 0) {
-              damagePlayer(barrageDamage, enemy);
+              damageTarget(preferredTarget, barrageDamage, enemy);
               enemy.cooldown = barrageTickRate;
               enemy.attackAnimTimer = Math.max(enemy.attackAnimTimer, 8);
             }
@@ -5853,7 +5893,7 @@
               height: enemyBody.height + 20
             };
             if (enemy.sweetykinsRunHitCooldown <= 0 && rectsOverlap(runHitbox, playerBody)) {
-              damagePlayer(Math.max(1, Math.round(enemy.damage * 0.9)), enemy);
+              damageTarget(preferredTarget, Math.max(1, Math.round(enemy.damage * 0.9)), enemy);
               enemy.sweetykinsRunHitCooldown = 16;
             }
 
@@ -6000,8 +6040,8 @@
             const strafeDir = enemy.uid % 2 === 0 ? 1 : -1;
             const tooCloseToPlayer = inContactWithPlayer || distance < ENEMY_PLAYER_PERSONAL_SPACE;
             if (tooCloseToPlayer) {
-              const awayX = enemy.x - player.x;
-              const awayY = enemy.y - getEnemyAimTargetY(enemy, player);
+              const awayX = enemy.x - targetEntity.x;
+              const awayY = enemy.y - getEnemyAimTargetY(enemy, targetEntity);
               const awayNorm = Math.hypot(awayX, awayY) || 1;
               enemy.x += (awayX / awayNorm) * retreatSpeed;
               enemy.y += (awayY / awayNorm) * retreatSpeed * 0.62;
@@ -6034,7 +6074,7 @@
                 width: enemyAttackBody.width + forwardReach + (overlapReach * 2),
                 height: enemyAttackBody.height
               };
-              if (rectsOverlap(meleeZone, playerAttackBody) || rectsOverlap(enemyAttackBody, playerAttackBody)) damagePlayer(enemy.damage, enemy);
+              if (rectsOverlap(meleeZone, playerAttackBody) || rectsOverlap(enemyAttackBody, playerAttackBody)) damageTarget(preferredTarget, enemy.damage, enemy);
             }
             let attackRecoveryCooldown = rand(40, 80);
             if (enemy.type === 'sweetykins' && enemy.sweetykinsMode === 'assault') {

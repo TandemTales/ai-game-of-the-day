@@ -1394,6 +1394,17 @@
       playSfx(enemySfx ? enemySfx[action] : null);
     }
 
+    const PLAYER_CHARACTER_STRENGTH = {
+      'old-man-croc': 8,
+      possumatli: 7,
+      'shunky-rooster': 6,
+      'grimma-the-feared': 5,
+      rustbucket: 4,
+      'billy-boxby': 3,
+      'scarlett-glumpkin': 2,
+      'green-fairy': 1
+    };
+
     const characters = [
       {
         id: 'billy-boxby',
@@ -1402,6 +1413,7 @@
         sprite: 'billy-boxby',
         renderScale: 0.75,
         physicsProfileId: 'player-billy-boxby',
+        strength: PLAYER_CHARACTER_STRENGTH['billy-boxby'],
         stats: { speed: 3.0, power: 1.05, range: 50, durability: 115 },
         moves: {
           fast: 'Boxing jab',
@@ -1419,6 +1431,7 @@
         sprite: 'green-fairy',
         renderScale: 0.75,
         physicsProfileId: 'player-green-fairy',
+        strength: PLAYER_CHARACTER_STRENGTH['green-fairy'],
         stats: { speed: 3.5, power: 0.9, range: 58, durability: 95 },
         moves: {
           fast: 'Quick wand tap',
@@ -1436,6 +1449,7 @@
         sprite: 'grimma-the-feared',
         renderScale: 0.75,
         physicsProfileId: 'player-grimma-the-feared',
+        strength: PLAYER_CHARACTER_STRENGTH['grimma-the-feared'],
         stats: { speed: 2.9, power: 1.3, range: 42, durability: 135 },
         moves: {
           fast: 'Axe hook',
@@ -1453,6 +1467,7 @@
         sprite: 'old-man-croc',
         renderScale: 0.75,
         physicsProfileId: 'player-old-man-croc',
+        strength: PLAYER_CHARACTER_STRENGTH['old-man-croc'],
         stats: { speed: 2.8, power: 1.35, range: 36, durability: 140 },
         moves: {
           fast: 'Tail swipe',
@@ -1470,6 +1485,7 @@
         sprite: 'possumatli',
         renderScale: 0.75,
         physicsProfileId: 'player-possumatli',
+        strength: PLAYER_CHARACTER_STRENGTH['possumatli'],
         stats: { speed: 3.8, power: 0.9, range: 40, durability: 100 },
         moves: {
           fast: 'Scramble slash',
@@ -1487,6 +1503,7 @@
         sprite: 'rustbucket',
         renderScale: 0.75,
         physicsProfileId: 'player-rustbucket',
+        strength: PLAYER_CHARACTER_STRENGTH['rustbucket'],
         stats: { speed: 3.9, power: 1.1, range: 42, durability: 130 },
         moves: {
           fast: 'Quick cleave combo',
@@ -1504,6 +1521,7 @@
         sprite: 'scarlett-glumpkin',
         renderScale: 0.75,
         physicsProfileId: 'player-scarlett-glumpkin',
+        strength: PLAYER_CHARACTER_STRENGTH['scarlett-glumpkin'],
         stats: { speed: 3.4, power: 0.95, range: 46, durability: 98 },
         moves: {
           fast: 'Needle jab',
@@ -1522,6 +1540,7 @@
         sprite: 'shunky-rooster',
         renderScale: 0.75,
         physicsProfileId: 'player-shunky-rooster',
+        strength: PLAYER_CHARACTER_STRENGTH['shunky-rooster'],
         stats: { speed: 3.1, power: 1.15, range: 52, durability: 122 },
         moves: {
           fast: 'Spur peck',
@@ -1663,6 +1682,32 @@
       'mud-monster': { hp: 160, speed: 1.15, damage: 18, range: 34, score: 520, sprite: 'mud-monster', tier: 'boss' },
       boss: { hp: 200, speed: 1.2, damage: 20, range: 26, score: 350, sprite: 'boss', tier: 'boss' }
     };
+
+    const ENEMY_STRENGTH_BY_TYPE = {};
+
+    function refreshEnemyStrengthRatings() {
+      const enemyStrengthEntries = Object.entries(enemyTypes).map(([typeId, data]) => {
+        const profileId = `enemy-${typeId}`;
+        const profile = physicsProfiles[profileId];
+        return {
+          typeId,
+          opaquePct: profile?.opaquePct || 0,
+          opaquePixels: profile?.opaquePixels || 0
+        };
+      });
+
+      enemyStrengthEntries.sort((a, b) => {
+        if (a.opaquePct !== b.opaquePct) return a.opaquePct - b.opaquePct;
+        if (a.opaquePixels !== b.opaquePixels) return a.opaquePixels - b.opaquePixels;
+        return a.typeId.localeCompare(b.typeId);
+      });
+
+      enemyStrengthEntries.forEach((entry, index) => {
+        const strength = index + 1;
+        ENEMY_STRENGTH_BY_TYPE[entry.typeId] = strength;
+        enemyTypes[entry.typeId].strength = strength;
+      });
+    }
 
     const INITIAL_WAVE_ENEMY_MULTIPLIER = 0.75;
     const ENEMY_COUNT_MULTIPLIER = 2;
@@ -2235,6 +2280,26 @@
     }
 
 
+    function getOpaquePixelStats(img, frame) {
+      const sourceX = Math.floor(frame?.x || 0);
+      const sourceY = Math.floor(frame?.y || 0);
+      const sourceW = Math.max(1, Math.floor(frame?.width || img.width || SPRITE_FRAME_SIZE));
+      const sourceH = Math.max(1, Math.floor(frame?.height || img.height || SPRITE_FRAME_SIZE));
+      const scanCanvas = document.createElement('canvas');
+      scanCanvas.width = sourceW;
+      scanCanvas.height = sourceH;
+      const scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
+      scanCtx.clearRect(0, 0, sourceW, sourceH);
+      scanCtx.drawImage(img, sourceX, sourceY, sourceW, sourceH, 0, 0, sourceW, sourceH);
+      const pixels = scanCtx.getImageData(0, 0, sourceW, sourceH).data;
+      let opaquePixels = 0;
+      for (let i = 3; i < pixels.length; i += 4) {
+        if (pixels[i] > 0) opaquePixels += 1;
+      }
+      const totalPixels = sourceW * sourceH;
+      return { opaquePixels, totalPixels, opaquePct: totalPixels > 0 ? opaquePixels / totalPixels : 0 };
+    }
+
     function getOpaqueBounds(img, frame) {
       const sourceX = Math.floor(frame?.x || 0);
       const sourceY = Math.floor(frame?.y || 0);
@@ -2290,11 +2355,14 @@
       const centerOffsetX = (sourceCenterX - (frame.width / 2)) * scaleX;
       const footOffsetY = (frame.height - sourceBottomY) * scaleY;
 
+      const pixelStats = getOpaquePixelStats(img, frame);
       physicsProfiles[profileId] = {
         width: bounds.width * scaleX,
         height: bounds.height * scaleY,
         centerOffsetX,
-        footOffsetY
+        footOffsetY,
+        opaquePixels: pixelStats.opaquePixels,
+        opaquePct: pixelStats.opaquePct
       };
     }
 
@@ -2774,6 +2842,7 @@
         renderScale,
         hitboxScale: getDaphodilusLevelOneScale(typeId) * sizeAdjustment,
         physicsProfileId: `enemy-${typeId}`,
+        strength: ENEMY_STRENGTH_BY_TYPE[typeId] || base.strength || 1,
         targetBodyAimBias: rand(35, 85) / 100,
         invulnFrames: options.invulnFrames || 0,
         spawnFadeFrames: options.spawnFadeFrames || 0,
@@ -3057,9 +3126,16 @@
 
     function resolvePlayerCharacterCollisions(player) {
       if (!player || player.hp <= 0) return;
+      const playerStrength = player.charData?.strength || 1;
       state.enemies.forEach((enemy) => {
         if (!enemy || enemy.hp <= 0 || enemy.attachTargetFrames > 0) return;
-        resolveCharacterBodyCollision(player, enemy, 1);
+        const enemyStrength = enemy.strength || ENEMY_STRENGTH_BY_TYPE[enemy.type] || 1;
+        const playerWinsPush = playerStrength >= enemyStrength;
+        const stronger = Math.max(playerStrength, enemyStrength);
+        const weaker = Math.max(1, Math.min(playerStrength, enemyStrength));
+        const pushWeight = clamp(stronger / weaker, 1, 2.5);
+        if (playerWinsPush) resolveCharacterBodyCollision(enemy, player, pushWeight);
+        else resolveCharacterBodyCollision(player, enemy, pushWeight);
       });
       state.companions.forEach((companion) => {
         if (!companion || companion.hp <= 0) return;
@@ -9965,6 +10041,7 @@
       });
 
       await Promise.all(promises);
+      refreshEnemyStrengthRatings();
     }
 
     async function init() {

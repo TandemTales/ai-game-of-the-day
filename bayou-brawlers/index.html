@@ -3029,6 +3029,46 @@
         && a.y + a.height > b.y;
     }
 
+
+    function resolveCharacterBodyCollision(mover, blocker, weight = 1) {
+      if (!mover || !blocker || mover === blocker || mover.hp <= 0 || blocker.hp <= 0) return;
+      const moverBody = getPhysicsBody(mover);
+      const blockerBody = getPhysicsBody(blocker);
+      if (!rectsOverlap(moverBody, blockerBody)) return;
+
+      const moverCenterX = moverBody.x + moverBody.width * 0.5;
+      const moverCenterY = moverBody.y + moverBody.height * 0.5;
+      const blockerCenterX = blockerBody.x + blockerBody.width * 0.5;
+      const blockerCenterY = blockerBody.y + blockerBody.height * 0.5;
+      const dx = moverCenterX - blockerCenterX;
+      const dy = moverCenterY - blockerCenterY;
+      const overlapX = (moverBody.width + blockerBody.width) * 0.5 - Math.abs(dx);
+      const overlapY = (moverBody.height + blockerBody.height) * 0.5 - Math.abs(dy);
+      if (overlapX <= 0 || overlapY <= 0) return;
+
+      if (overlapX < overlapY) {
+        const pushDir = Math.sign(dx) || (mover.uid < blocker.uid ? -1 : 1);
+        mover.x += pushDir * overlapX * weight;
+      } else {
+        const pushDir = Math.sign(dy) || (mover.uid < blocker.uid ? -1 : 1);
+        mover.y += pushDir * overlapY * weight;
+      }
+    }
+
+    function resolvePlayerCharacterCollisions(player) {
+      if (!player || player.hp <= 0) return;
+      state.enemies.forEach((enemy) => {
+        if (!enemy || enemy.hp <= 0 || enemy.attachTargetFrames > 0) return;
+        resolveCharacterBodyCollision(player, enemy, 1);
+      });
+      state.companions.forEach((companion) => {
+        if (!companion || companion.hp <= 0) return;
+        resolveCharacterBodyCollision(player, companion, 1);
+      });
+      if (state.scarlettBrambleDrone && state.scarlettBrambleDrone.hp > 0) {
+        resolveCharacterBodyCollision(player, state.scarlettBrambleDrone, 1);
+      }
+    }
     function circleIntersectsRect(circleX, circleY, circleRadius, rect) {
       const clampedX = clamp(circleX, rect.x, rect.x + rect.width);
       const clampedY = clamp(circleY, rect.y, rect.y + rect.height);
@@ -5269,6 +5309,8 @@
       player.x = clamp(player.x, playerHorizontalBounds.minX, playerHorizontalBounds.maxX);
       const playerVerticalBounds = getPlayerVerticalBounds(player);
       player.y = clamp(player.y, playerVerticalBounds.minY, playerVerticalBounds.maxY);
+      applyMovementMaskClamp(player, prevX, prevY);
+      resolvePlayerCharacterCollisions(player);
       applyMovementMaskClamp(player, prevX, prevY);
       player.isMoving = Math.hypot(player.x - prevX, player.y - prevY) > MOVE_EPSILON;
 

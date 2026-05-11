@@ -6834,18 +6834,22 @@
 
     function setupLevel() {
       const level = levels[state.levelIndex];
+      const retainedCharmedEnemies = state.enemies.filter((enemy) => enemy && enemy.hp > 0 && isCharmed(enemy));
+      const retainedBrambleDrone = state.scarlettBrambleDrone && state.scarlettBrambleDrone.hp > 0
+        ? state.scarlettBrambleDrone
+        : null;
       const defaultLevelWidth = Number.isFinite(Number(level?.worldWidth))
         ? Number(level.worldWidth)
         : (2200 + state.levelIndex * 120);
       state.levelWidth = getLevelWorldWidth(level, defaultLevelWidth);
       state.bossActive = false;
       state.stageBossPhase = 0;
-      state.enemies = [];
+      state.enemies = retainedCharmedEnemies;
       state.projectiles = [];
       state.pickups = [];
       state.effects = [];
       state.hazards = [];
-      state.scarlettBrambleDrone = null;
+      state.scarlettBrambleDrone = retainedBrambleDrone;
       state.lockX = null;
       state.waveIndex = 0;
       state.nextWaveToSpawn = 0;
@@ -6861,6 +6865,23 @@
         state.companions.forEach((companion, index) => {
           companion.x = 80 - ((index + 1) * 26);
           companion.y = state.player ? state.player.y : clamp(companion.y, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
+        });
+      }
+      if (state.scarlettBrambleDrone) {
+        state.scarlettBrambleDrone.x = clamp((state.player?.x || 80) + 18, 20, state.levelWidth - 20);
+        state.scarlettBrambleDrone.y = state.player
+          ? clamp(state.player.y - 4, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y)
+          : clamp(state.scarlettBrambleDrone.y, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
+      }
+      if (state.enemies.length > 0) {
+        state.enemies.forEach((enemy, index) => {
+          enemy.x = clamp((state.player?.x || 80) + 120 + (index * 34), 30, state.levelWidth - 30);
+          enemy.y = state.player
+            ? clamp(state.player.y + ((index % 2 === 0 ? -1 : 1) * 20), getBrawlLaneMinY(), BRAWL_LANE_MAX_Y)
+            : clamp(enemy.y, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
+          enemy.waveBarrierSpawnSide = null;
+          enemy.waveBarrierCrossedToPlayerSide = true;
+          enemy.spawnFadeFrames = 0;
         });
       }
       updateCamera();

@@ -1733,6 +1733,76 @@
     const STUN_BREAK_REQUIRED_INPUTS = 6;
     const STUN_BREAK_WINDOW_FRAMES = 120;
     const STUN_BREAK_IMMUNITY_FRAMES = 240;
+
+    const PLAYER_STRENGTH = {
+      'old-man-croc': 100,
+      possumatli: 95,
+      'shunky-rooster': 90,
+      'grimma-the-feared': 85,
+      rustbucket: 80,
+      'billy-boxby': 45,
+      'scarlett-glumpkin': 35,
+      'green-fairy': 25
+    };
+
+    const BOSS_STRENGTH = {
+      lodicrust: 99,
+      sweetykins: 98,
+      mrNibbles: 97,
+      'mud-monster': 96,
+      kingOfThieves: 95,
+      tinkeringTom: 94,
+      mirrorMaster: 93,
+      theSlais: 92,
+      origamiMaster: 91,
+      ladyWorthington: 90
+    };
+
+    const enemyPixelStrengthByType = {};
+
+    function measureOpaquePixelPercent(frameCanvas) {
+      if (!frameCanvas || !frameCanvas.width || !frameCanvas.height) return 0;
+      const ctx = frameCanvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return 0;
+      const { data } = ctx.getImageData(0, 0, frameCanvas.width, frameCanvas.height);
+      let opaque = 0;
+      for (let i = 3; i < data.length; i += 4) {
+        if (data[i] > 12) opaque += 1;
+      }
+      return opaque / (frameCanvas.width * frameCanvas.height);
+    }
+
+    function deriveEnemyPixelStrengths() {
+      const regularEnemyTypes = Object.entries(enemyTypes)
+        .filter(([typeId, info]) => info && info.tier !== 'boss' && assets.enemyAnimations[typeId]);
+      if (!regularEnemyTypes.length) return;
+      const scored = regularEnemyTypes.map(([typeId]) => {
+        const tracks = assets.enemyAnimations[typeId];
+        const idleLeftFrames = tracks?.idle?.left?.frames || tracks?.walk?.left?.frames || [];
+        const firstFrame = idleLeftFrames[0] || null;
+        return { typeId, score: measureOpaquePixelPercent(firstFrame) };
+      });
+      scored.sort((a, b) => a.score - b.score);
+      const minStrength = 30;
+      const maxStrength = 84;
+      const span = Math.max(1, scored.length - 1);
+      scored.forEach((entry, idx) => {
+        enemyPixelStrengthByType[entry.typeId] = Math.round(minStrength + ((maxStrength - minStrength) * (idx / span)));
+      });
+    }
+
+    function getEntityStrength(entity) {
+      if (!entity) return 0;
+      if (entity.charData?.id) {
+        return PLAYER_STRENGTH[entity.charData.id] || 40;
+      }
+      const typeId = entity.type;
+      if (BOSS_STRENGTH[typeId]) return BOSS_STRENGTH[typeId];
+      if (entity.isBoss) return 96;
+      if (enemyPixelStrengthByType[typeId] !== undefined) return enemyPixelStrengthByType[typeId];
+      return 50;
+    }
+
     const PLAYER_STUN_TYPES = new Set(['brute', 'boss', 'mud-monster', 'sweetykins']);
     const ENEMY_DEATH_HOLD_FRAMES = 240;
     const ENEMY_DAMAGE_MULTIPLIER = 0.75;
@@ -3032,6 +3102,10 @@
 
     function resolveCharacterBodyCollision(mover, blocker, weight = 1) {
       if (!mover || !blocker || mover === blocker || mover.hp <= 0 || blocker.hp <= 0) return;
+      const moverStrength = getEntityStrength(mover);
+      const blockerStrength = getEntityStrength(blocker);
+      const totalStrength = Math.max(1, moverStrength + blockerStrength);
+      const moverShare = clamp(blockerStrength / totalStrength, 0, 1);
       const moverBody = getPhysicsBody(mover);
       const blockerBody = getPhysicsBody(blocker);
       if (!rectsOverlap(moverBody, blockerBody)) return;
@@ -3048,10 +3122,10 @@
 
       if (overlapX < overlapY) {
         const pushDir = Math.sign(dx) || (mover.uid < blocker.uid ? -1 : 1);
-        mover.x += pushDir * overlapX * weight;
+        mover.x += pushDir * overlapX * weight * moverShare;
       } else {
         const pushDir = Math.sign(dy) || (mover.uid < blocker.uid ? -1 : 1);
-        mover.y += pushDir * overlapY * weight;
+        mover.y += pushDir * overlapY * weight * moverShare;
       }
     }
 
@@ -3060,6 +3134,7 @@
       state.enemies.forEach((enemy) => {
         if (!enemy || enemy.hp <= 0 || enemy.attachTargetFrames > 0) return;
         resolveCharacterBodyCollision(player, enemy, 1);
+        resolveCharacterBodyCollision(enemy, player, 1);
       });
       state.companions.forEach((companion) => {
         if (!companion || companion.hp <= 0) return;
@@ -9965,6 +10040,7 @@
       });
 
       await Promise.all(promises);
+      deriveEnemyPixelStrengths();
     }
 
     async function init() {

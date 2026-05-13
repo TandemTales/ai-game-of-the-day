@@ -1760,16 +1760,31 @@
 
     const enemyPixelStrengthByType = {};
 
-    function measureOpaquePixelPercent(frameCanvas) {
-      if (!frameCanvas || !frameCanvas.width || !frameCanvas.height) return 0;
-      const ctx = frameCanvas.getContext('2d', { willReadFrequently: true });
-      if (!ctx) return 0;
-      const { data } = ctx.getImageData(0, 0, frameCanvas.width, frameCanvas.height);
+    function measureOpaquePixelPercent(image, frameRect) {
+      if (!image || !frameRect || !frameRect.width || !frameRect.height) return 0;
+      const scanCanvas = document.createElement('canvas');
+      scanCanvas.width = frameRect.width;
+      scanCanvas.height = frameRect.height;
+      const scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
+      if (!scanCtx) return 0;
+      scanCtx.clearRect(0, 0, frameRect.width, frameRect.height);
+      scanCtx.drawImage(
+        image,
+        frameRect.x,
+        frameRect.y,
+        frameRect.width,
+        frameRect.height,
+        0,
+        0,
+        frameRect.width,
+        frameRect.height
+      );
+      const { data } = scanCtx.getImageData(0, 0, frameRect.width, frameRect.height);
       let opaque = 0;
       for (let i = 3; i < data.length; i += 4) {
         if (data[i] > 12) opaque += 1;
       }
-      return opaque / (frameCanvas.width * frameCanvas.height);
+      return opaque / (frameRect.width * frameRect.height);
     }
 
     function deriveEnemyPixelStrengths() {
@@ -1778,9 +1793,10 @@
       if (!regularEnemyTypes.length) return;
       const scored = regularEnemyTypes.map(([typeId]) => {
         const tracks = assets.enemyAnimations[typeId];
-        const idleLeftFrames = tracks?.idle?.left?.frames || tracks?.walk?.left?.frames || [];
-        const firstFrame = idleLeftFrames[0] || null;
-        return { typeId, score: measureOpaquePixelPercent(firstFrame) };
+        const idleLeftTrack = tracks?.idle?.left || tracks?.walk?.left || null;
+        const firstFrame = idleLeftTrack?.frames?.[0] || null;
+        const score = measureOpaquePixelPercent(idleLeftTrack?.img, firstFrame);
+        return { typeId, score };
       });
       scored.sort((a, b) => a.score - b.score);
       const minStrength = 30;

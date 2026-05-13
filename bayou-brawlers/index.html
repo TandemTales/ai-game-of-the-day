@@ -3436,8 +3436,14 @@
       });
 
       state.enemies.forEach(enemy => {
-        if (!enemy || enemy.hp > 0 || enemy.deathHoldFrames <= 0) return;
-        minFromLootOrBodies = Math.min(minFromLootOrBodies, enemy.x - 40);
+        if (!enemy) return;
+        if (enemy.hp > 0) {
+          minFromLootOrBodies = Math.min(minFromLootOrBodies, enemy.x - 40);
+          return;
+        }
+        if (enemy.deathHoldFrames > 0) {
+          minFromLootOrBodies = Math.min(minFromLootOrBodies, enemy.x - 40);
+        }
       });
 
       return clamp(minFromLootOrBodies, 40, state.levelWidth - 40);

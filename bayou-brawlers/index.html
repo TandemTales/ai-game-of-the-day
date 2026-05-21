@@ -1728,6 +1728,7 @@
     const COMPANION_FOLLOW_X_STAGGER = 24;
     const COMPANION_FOLLOW_Y_STAGGER = 22;
     const COMPANION_REPOSITION_SPEED_BOOST = 1.28;
+    const COMPANION_PLAYER_LEASH_RADIUS = 300;
     const STUN_CONDITION_THRESHOLD = 28;
     const STUN_DURATION_BONUS_FRAMES = 120;
     const STUN_BREAK_REQUIRED_INPUTS = 6;
@@ -5503,6 +5504,11 @@
       const livingEnemies = state.enemies.filter(enemy => enemy.hp > 0 && canPlayerAffectEnemy(enemy));
       if (!livingEnemies.length) return null;
       return livingEnemies
+        .filter((enemy) => {
+          if (!player) return true;
+          const enemyDistanceToPlayer = Math.hypot(enemy.x - player.x, enemy.y - player.y);
+          return enemyDistanceToPlayer <= COMPANION_PLAYER_LEASH_RADIUS;
+        })
         .map((enemy) => {
           const distance = Math.hypot(enemy.x - companion.x, enemy.y - companion.y);
           const distanceToPlayer = player ? Math.hypot(enemy.x - player.x, enemy.y - player.y) : distance;
@@ -5512,6 +5518,21 @@
           return { enemy, score };
         })
         .sort((a, b) => a.score - b.score)[0]?.enemy || null;
+    }
+
+    function clampCompanionTargetToPlayerLeash(targetX, targetY, player) {
+      if (!player) return { x: targetX, y: targetY };
+      const deltaX = targetX - player.x;
+      const deltaY = targetY - player.y;
+      const distance = Math.hypot(deltaX, deltaY);
+      if (distance <= COMPANION_PLAYER_LEASH_RADIUS || distance <= 0.001) {
+        return { x: targetX, y: targetY };
+      }
+      const scale = COMPANION_PLAYER_LEASH_RADIUS / distance;
+      return {
+        x: player.x + (deltaX * scale),
+        y: player.y + (deltaY * scale)
+      };
     }
 
     function updateCompanions(dt) {
@@ -5564,6 +5585,8 @@
             targetY = player.y + (normY * Math.max(20, safeDistance * 0.45));
           }
         }
+
+        ({ x: targetX, y: targetY } = clampCompanionTargetToPlayerLeash(targetX, targetY, player));
 
         const separationAdjustment = state.companions.reduce((acc, otherCompanion, otherIndex) => {
           if (otherIndex === index || !otherCompanion || otherCompanion.hp <= 0) return acc;

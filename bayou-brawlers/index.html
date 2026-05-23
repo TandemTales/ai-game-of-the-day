@@ -1728,6 +1728,7 @@
     const COMPANION_FOLLOW_X_STAGGER = 24;
     const COMPANION_FOLLOW_Y_STAGGER = 22;
     const COMPANION_REPOSITION_SPEED_BOOST = 1.28;
+    const COMPANION_MAX_PLAYER_RADIUS = 100;
     const STUN_CONDITION_THRESHOLD = 28;
     const STUN_DURATION_BONUS_FRAMES = 120;
     const STUN_BREAK_REQUIRED_INPUTS = 6;
@@ -5563,6 +5564,15 @@
             targetX = player.x + (normX * safeDistance);
             targetY = player.y + (normY * Math.max(20, safeDistance * 0.45));
           }
+
+          const clampedTargetOffsetX = targetX - player.x;
+          const clampedTargetOffsetY = targetY - player.y;
+          const clampedTargetDistance = Math.hypot(clampedTargetOffsetX, clampedTargetOffsetY);
+          if (clampedTargetDistance > COMPANION_MAX_PLAYER_RADIUS) {
+            const scale = COMPANION_MAX_PLAYER_RADIUS / Math.max(0.001, clampedTargetDistance);
+            targetX = player.x + (clampedTargetOffsetX * scale);
+            targetY = player.y + (clampedTargetOffsetY * scale);
+          }
         }
 
         const separationAdjustment = state.companions.reduce((acc, otherCompanion, otherIndex) => {
@@ -5638,6 +5648,16 @@
         companion.x = clamp(companion.x, companionHorizontalBounds.minX, companionHorizontalBounds.maxX);
         const companionVerticalBounds = getPlayerVerticalBounds(companion);
         companion.y = clamp(companion.y, companionVerticalBounds.minY, companionVerticalBounds.maxY);
+        if (player) {
+          const offsetX = companion.x - player.x;
+          const offsetY = companion.y - player.y;
+          const distanceToPlayer = Math.hypot(offsetX, offsetY);
+          if (distanceToPlayer > COMPANION_MAX_PLAYER_RADIUS) {
+            const scale = COMPANION_MAX_PLAYER_RADIUS / Math.max(0.001, distanceToPlayer);
+            companion.x = player.x + (offsetX * scale);
+            companion.y = player.y + (offsetY * scale);
+          }
+        }
         applyMovementMaskClamp(companion, prevX, prevY);
         companion.isMoving = Math.hypot(companion.x - prevX, companion.y - prevY) > MOVE_EPSILON;
         updatePlayerAnimation(companion, dt);

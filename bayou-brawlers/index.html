@@ -1728,6 +1728,7 @@
     const COMPANION_FOLLOW_X_STAGGER = 24;
     const COMPANION_FOLLOW_Y_STAGGER = 22;
     const COMPANION_REPOSITION_SPEED_BOOST = 1.28;
+    const COMPANION_PLAYER_MAX_DISTANCE = 100;
     const STUN_CONDITION_THRESHOLD = 28;
     const STUN_DURATION_BONUS_FRAMES = 120;
     const STUN_BREAK_REQUIRED_INPUTS = 6;
@@ -5500,7 +5501,11 @@
     }
 
     function selectCompanionTarget(companion, player) {
-      const livingEnemies = state.enemies.filter(enemy => enemy.hp > 0 && canPlayerAffectEnemy(enemy));
+      const livingEnemies = state.enemies.filter(enemy => {
+        if (!enemy || enemy.hp <= 0 || !canPlayerAffectEnemy(enemy)) return false;
+        if (!player) return true;
+        return Math.hypot(enemy.x - player.x, enemy.y - player.y) <= COMPANION_PLAYER_MAX_DISTANCE;
+      });
       if (!livingEnemies.length) return null;
       return livingEnemies
         .map((enemy) => {
@@ -5512,6 +5517,18 @@
           return { enemy, score };
         })
         .sort((a, b) => a.score - b.score)[0]?.enemy || null;
+    }
+
+    function clampCompanionToPlayerLeash(companion, player) {
+      if (!companion || !player) return;
+      const diffX = companion.x - player.x;
+      const diffY = companion.y - player.y;
+      const distance = Math.hypot(diffX, diffY);
+      if (distance <= COMPANION_PLAYER_MAX_DISTANCE) return;
+      const normX = distance > 0.001 ? diffX / distance : -(player.facing || 1);
+      const normY = distance > 0.001 ? diffY / distance : 0;
+      companion.x = player.x + (normX * COMPANION_PLAYER_MAX_DISTANCE);
+      companion.y = player.y + (normY * COMPANION_PLAYER_MAX_DISTANCE);
     }
 
     function updateCompanions(dt) {
@@ -5545,6 +5562,16 @@
 
           targetX = targetEnemy.x - (pursuitFacing * preferredSpacing);
           targetY = targetEnemy.y + clamp(distanceY * 0.28, -24, 24);
+
+          if (player) {
+            const leashX = targetX - player.x;
+            const leashY = targetY - player.y;
+            const leashDistance = Math.hypot(leashX, leashY);
+            if (leashDistance > COMPANION_PLAYER_MAX_DISTANCE) {
+              targetX = player.x + (leashX / leashDistance) * COMPANION_PLAYER_MAX_DISTANCE;
+              targetY = player.y + (leashY / leashDistance) * COMPANION_PLAYER_MAX_DISTANCE;
+            }
+          }
 
           companion.facing = pursuitFacing;
           companion.attackFacing = pursuitFacing;
@@ -5581,6 +5608,15 @@
         }, { x: 0, y: 0 });
         targetX += separationAdjustment.x;
         targetY += separationAdjustment.y;
+        if (player) {
+          const targetLeashX = targetX - player.x;
+          const targetLeashY = targetY - player.y;
+          const targetLeashDistance = Math.hypot(targetLeashX, targetLeashY);
+          if (targetLeashDistance > COMPANION_PLAYER_MAX_DISTANCE) {
+            targetX = player.x + (targetLeashX / targetLeashDistance) * COMPANION_PLAYER_MAX_DISTANCE;
+            targetY = player.y + (targetLeashY / targetLeashDistance) * COMPANION_PLAYER_MAX_DISTANCE;
+          }
+        }
 
         const followX = targetX - companion.x;
         const followY = targetY - companion.y;
@@ -5638,7 +5674,11 @@
         companion.x = clamp(companion.x, companionHorizontalBounds.minX, companionHorizontalBounds.maxX);
         const companionVerticalBounds = getPlayerVerticalBounds(companion);
         companion.y = clamp(companion.y, companionVerticalBounds.minY, companionVerticalBounds.maxY);
+        clampCompanionToPlayerLeash(companion, player);
         applyMovementMaskClamp(companion, prevX, prevY);
+        companion.x = clamp(companion.x, companionHorizontalBounds.minX, companionHorizontalBounds.maxX);
+        companion.y = clamp(companion.y, companionVerticalBounds.minY, companionVerticalBounds.maxY);
+        clampCompanionToPlayerLeash(companion, player);
         companion.isMoving = Math.hypot(companion.x - prevX, companion.y - prevY) > MOVE_EPSILON;
         updatePlayerAnimation(companion, dt);
       });
@@ -5649,17 +5689,6 @@
       const getEnemyTargets = (enemy) => {
         const targets = [];
         if (player && player.hp > 0) targets.push({ kind: 'player', entity: player });
-        state.companions.forEach(companion => {
-          if (companion && companion.hp > 0) targets.push({ kind: 'companion', entity: companion });
-        });
-        if (state.scarlettBrambleDrone && state.scarlettBrambleDrone.hp > 0) {
-          targets.push({ kind: 'drone', entity: state.scarlettBrambleDrone });
-        }
-        state.enemies.forEach(otherEnemy => {
-          if (!otherEnemy || otherEnemy === enemy || otherEnemy.hp <= 0) return;
-          if (!isCharmed(otherEnemy)) return;
-          targets.push({ kind: 'enemy', entity: otherEnemy });
-        });
         return targets;
       };
       const getTargetHitbox = (target) => {

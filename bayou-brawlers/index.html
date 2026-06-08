@@ -1833,14 +1833,15 @@
       branch: 'red',
       geyser: 'yellow'
     };
-    const ALLIGATOR_TRIGGER_RADIUS = 92;
+    const SWAMP_HAZARD_ENEMY_HIT_DAMAGE = 10;
+    const ALLIGATOR_TRIGGER_RADIUS = 112;
     const ALLIGATOR_DAMAGE_RADIUS = 58;
     const MOSQUITO_TRIGGER_RADIUS = 185;
     const MOSQUITO_ATTACH_RADIUS = 34;
     const MOSQUITO_STUN_FRAMES = 360;
     const BRANCH_TRIGGER_X_RADIUS = 42;
     const BRANCH_TRIGGER_Y_RADIUS = 118;
-    const GEYSER_TRIGGER_RADIUS = 104;
+    const GEYSER_TRIGGER_RADIUS = 118;
     const GEYSER_DAMAGE_RADIUS = 72;
     const MECHANIZED_MOMENTUM_MAX_STACKS = 12;
     const MECHANIZED_MOMENTUM_STACK_MULTIPLIER = 0.03;
@@ -3343,7 +3344,7 @@
           fallProgress: 0,
           fallSpeed: 0.045,
           branchAssetKey: `branch${1 + Math.floor(Math.random() * 5)}`,
-          damage: 18,
+          damage: SWAMP_HAZARD_ENEMY_HIT_DAMAGE,
           damagedPlayer: false,
           frames: Number.POSITIVE_INFINITY
         };
@@ -3359,7 +3360,7 @@
           w: ALLIGATOR_DAMAGE_RADIUS * 2,
           h: ALLIGATOR_DAMAGE_RADIUS * 1.5,
           state: 'waiting',
-          cooldown: rand(20, 90),
+          cooldown: 0,
           attackTimer: 0,
           damageFrame: 18,
           damagedPlayer: false,
@@ -3391,7 +3392,7 @@
           w: GEYSER_DAMAGE_RADIUS * 2,
           h: GEYSER_DAMAGE_RADIUS,
           state: 'primed',
-          cooldown: rand(30, 110),
+          cooldown: 0,
           eruptTimer: 0,
           damageFrame: 20,
           damagedPlayer: false,
@@ -6549,7 +6550,7 @@
           } else if (h.state === 'attacking') {
             const elapsed = 48 - h.attackTimer;
             if (!h.damagedPlayer && elapsed >= h.damageFrame && dist <= ALLIGATOR_DAMAGE_RADIUS) {
-              damagePlayer(16, null);
+              damagePlayer(SWAMP_HAZARD_ENEMY_HIT_DAMAGE, null);
               h.damagedPlayer = true;
               state.shake = Math.max(state.shake, 8);
             }
@@ -6628,7 +6629,7 @@
           } else if (h.state === 'erupting') {
             const elapsed = 54 - h.eruptTimer;
             if (!h.damagedPlayer && elapsed >= h.damageFrame && dist <= GEYSER_DAMAGE_RADIUS) {
-              damagePlayer(14, null);
+              damagePlayer(SWAMP_HAZARD_ENEMY_HIT_DAMAGE, null);
               const angle = Math.random() * Math.PI * 2;
               player.x = clamp(player.x + Math.cos(angle) * rand(42, 82), 24, getWaveBarrierPlayerMaxX() - 20);
               player.y = clamp(player.y + Math.sin(angle) * rand(18, 44), getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
@@ -8285,13 +8286,26 @@
         const x = hazard.x - state.cameraX;
         const y = hazard.y - state.cameraY;
         if (hazard.kind === 'swamp-alligator') {
+          const pulse = 0.5 + (Math.sin((hazard.animAge || 0) * 0.2) * 0.5);
           if (hazard.state === 'attacking') {
             const sprite = getHazardAnimationFrame(hazard, 'gatorAttack', 14, false);
-            if (sprite) ctx.drawImage(sprite.img, sprite.frame.x, sprite.frame.y, sprite.frame.width, sprite.frame.height, x - 64, y - 78, 128, 128);
-          } else {
-            ctx.fillStyle = 'rgba(30, 92, 46, 0.24)';
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            const splash = ctx.createRadialGradient(x, y - 8, 4, x, y - 8, 72);
+            splash.addColorStop(0, 'rgba(184, 250, 255, 0.52)');
+            splash.addColorStop(0.45, 'rgba(82, 178, 177, 0.34)');
+            splash.addColorStop(1, 'rgba(82, 178, 177, 0)');
+            ctx.fillStyle = splash;
             ctx.beginPath();
-            ctx.ellipse(x, y, 36, 16, 0, 0, Math.PI * 2);
+            ctx.ellipse(x, y - 8, 76, 38, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+            if (sprite) ctx.drawImage(sprite.img, sprite.frame.x, sprite.frame.y, sprite.frame.width, sprite.frame.height, x - 80, y - 98, 160, 160);
+          } else {
+            const playerNear = state.player && Math.hypot(state.player.x - hazard.x, state.player.y - hazard.y) <= ALLIGATOR_TRIGGER_RADIUS;
+            ctx.fillStyle = playerNear ? `rgba(114, 229, 157, ${0.26 + (pulse * 0.16)})` : 'rgba(30, 92, 46, 0.24)';
+            ctx.beginPath();
+            ctx.ellipse(x, y, 42 + (playerNear ? pulse * 10 : 0), 17 + (playerNear ? pulse * 4 : 0), 0, 0, Math.PI * 2);
             ctx.fill();
           }
           return;
@@ -8316,13 +8330,22 @@
           return;
         }
         if (hazard.kind === 'swamp-geyser') {
+          const pulse = 0.5 + (Math.sin((hazard.animAge || 0) * 0.22) * 0.5);
           if (hazard.state === 'erupting') {
             const sprite = getHazardAnimationFrame(hazard, 'geyser', 14, false);
-            if (sprite) ctx.drawImage(sprite.img, sprite.frame.x, sprite.frame.y, sprite.frame.width, sprite.frame.height, x - 72, y - 116, 144, 144);
-          } else {
-            ctx.fillStyle = 'rgba(232, 187, 66, 0.22)';
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.fillStyle = 'rgba(255, 215, 97, 0.28)';
             ctx.beginPath();
-            ctx.ellipse(x, y, 26, 10, 0, 0, Math.PI * 2);
+            ctx.ellipse(x, y + 4, 64 + pulse * 10, 22 + pulse * 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+            if (sprite) ctx.drawImage(sprite.img, sprite.frame.x, sprite.frame.y, sprite.frame.width, sprite.frame.height, x - 82, y - 132, 164, 164);
+          } else {
+            const playerNear = state.player && Math.hypot(state.player.x - hazard.x, state.player.y - hazard.y) <= GEYSER_TRIGGER_RADIUS;
+            ctx.fillStyle = playerNear ? `rgba(255, 214, 80, ${0.25 + (pulse * 0.22)})` : 'rgba(232, 187, 66, 0.22)';
+            ctx.beginPath();
+            ctx.ellipse(x, y, 28 + (playerNear ? pulse * 8 : 0), 10 + (playerNear ? pulse * 3 : 0), 0, 0, Math.PI * 2);
             ctx.fill();
           }
           return;

@@ -1090,6 +1090,7 @@
     let notificationId = 0;
     let startSelectionController = null;
     let companionSelectionController = null;
+    const environmentHazardSpawnCache = {};
 
     const SOUNDTRACK_VOLUME = 0.45;
     const SFX_VOLUME = 0.6;
@@ -1237,7 +1238,9 @@
       enemies: {},
       enemyAnimations: {},
       boss: null,
-      pickup: null
+      pickup: null,
+      environmentMaps: {},
+      hazards: {}
     };
 
 
@@ -1823,6 +1826,22 @@
     const PLAYER_STUN_TYPES = new Set(['brute', 'boss', 'mud-monster', 'sweetykins']);
     const ENEMY_DEATH_HOLD_FRAMES = 240;
     const ENEMY_DAMAGE_MULTIPLIER = 0.75;
+    const SWAMP_ENVIRONMENT_MAP_LEVEL_ID = 'swamp';
+    const ENVIRONMENT_HAZARD_MAP_COLORS = {
+      alligator: 'green',
+      mosquito: 'blue',
+      branch: 'red',
+      geyser: 'yellow'
+    };
+    const ALLIGATOR_TRIGGER_RADIUS = 92;
+    const ALLIGATOR_DAMAGE_RADIUS = 58;
+    const MOSQUITO_TRIGGER_RADIUS = 185;
+    const MOSQUITO_ATTACH_RADIUS = 34;
+    const MOSQUITO_STUN_FRAMES = 360;
+    const BRANCH_TRIGGER_X_RADIUS = 42;
+    const BRANCH_TRIGGER_Y_RADIUS = 118;
+    const GEYSER_TRIGGER_RADIUS = 104;
+    const GEYSER_DAMAGE_RADIUS = 72;
     const MECHANIZED_MOMENTUM_MAX_STACKS = 12;
     const MECHANIZED_MOMENTUM_STACK_MULTIPLIER = 0.03;
     const MECHANIZED_MOMENTUM_DURATION_FRAMES = 120;
@@ -3191,6 +3210,228 @@
       return clamp(multiplier, 0, 1);
     }
 
+    function classifyEnvironmentHazardPixel(r, g, b, a) {
+      if (a < 80) return null;
+      if (g > 145 && r < 130 && b < 135 && g > r * 1.25 && g > b * 1.2) return ENVIRONMENT_HAZARD_MAP_COLORS.alligator;
+      if (b > 145 && r < 145 && b > g * 1.12 && b > r * 1.2) return ENVIRONMENT_HAZARD_MAP_COLORS.mosquito;
+      if (r > 150 && g < 135 && b < 135 && r > g * 1.25 && r > b * 1.25) return ENVIRONMENT_HAZARD_MAP_COLORS.branch;
+      if (r > 175 && g > 145 && b < 135 && r > b * 1.35 && g > b * 1.2) return ENVIRONMENT_HAZARD_MAP_COLORS.geyser;
+      return null;
+    }
+
+    function getEnvironmentHazardMapSpawns(levelId) {
+      if (environmentHazardSpawnCache[levelId]) return environmentHazardSpawnCache[levelId];
+      const mapImage = assets.environmentMaps[levelId];
+      if (!mapImage) {
+        environmentHazardSpawnCache[levelId] = [];
+        return environmentHazardSpawnCache[levelId];
+      }
+
+      const scanCanvas = document.createElement('canvas');
+      scanCanvas.width = mapImage.width;
+      scanCanvas.height = mapImage.height;
+      const scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
+      scanCtx.drawImage(mapImage, 0, 0);
+      const { data } = scanCtx.getImageData(0, 0, scanCanvas.width, scanCanvas.height);
+      const width = scanCanvas.width;
+      const height = scanCanvas.height;
+      const visited = new Uint8Array(width * height);
+      const spawns = [];
+
+      for (let y = 0; y < height; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+          const startIndex = y * width + x;
+          if (visited[startIndex]) continue;
+          const pixelOffset = startIndex * 4;
+          const color = classifyEnvironmentHazardPixel(data[pixelOffset], data[pixelOffset + 1], data[pixelOffset + 2], data[pixelOffset + 3]);
+          if (!color) {
+            visited[startIndex] = 1;
+            continue;
+          }
+
+          const stack = [startIndex];
+          visited[startIndex] = 1;
+          let count = 0;
+          let minX = x;
+          let maxX = x;
+          let minY = y;
+          let maxY = y;
+          let sumX = 0;
+          let sumY = 0;
+
+          while (stack.length) {
+            const current = stack.pop();
+            const cx = current % width;
+            const cy = Math.floor(current / width);
+            count += 1;
+            sumX += cx;
+            sumY += cy;
+            minX = Math.min(minX, cx);
+            maxX = Math.max(maxX, cx);
+            minY = Math.min(minY, cy);
+            maxY = Math.max(maxY, cy);
+
+            const neighbors = [current - 1, current + 1, current - width, current + width];
+            for (let i = 0; i < neighbors.length; i += 1) {
+              const next = neighbors[i];
+              if (next < 0 || next >= visited.length || visited[next]) continue;
+              const nx = next % width;
+              if ((next === current - 1 && nx !== cx - 1) || (next === current + 1 && nx !== cx + 1)) continue;
+              const no = next * 4;
+              const nextColor = classifyEnvironmentHazardPixel(data[no], data[no + 1], data[no + 2], data[no + 3]);
+              if (nextColor !== color) continue;
+              visited[next] = 1;
+              stack.push(next);
+            }
+          }
+
+          if (count < 45) continue;
+          const componentWidth = maxX - minX + 1;
+          const componentHeight = maxY - minY + 1;
+          const centerX = sumX / count;
+          const centerY = sumY / count;
+          if (color === ENVIRONMENT_HAZARD_MAP_COLORS.branch) {
+            if (componentWidth < 6 || componentHeight < 18) continue;
+            spawns.push({
+              kind: 'swamp-branch',
+              topMapX: (minX + maxX) * 0.5,
+              topMapY: minY,
+              landMapX: (minX + maxX) * 0.5,
+              landMapY: maxY
+            });
+          } else if (componentWidth >= 6 && componentHeight >= 6) {
+            const kind = color === ENVIRONMENT_HAZARD_MAP_COLORS.alligator
+              ? 'swamp-alligator'
+              : (color === ENVIRONMENT_HAZARD_MAP_COLORS.mosquito ? 'swamp-mosquito' : 'swamp-geyser');
+            spawns.push({ kind, mapX: centerX, mapY: centerY });
+          }
+        }
+      }
+
+      environmentHazardSpawnCache[levelId] = spawns;
+      return spawns;
+    }
+
+    function mapEnvironmentPointToWorld(mapX, mapY, levelId = SWAMP_ENVIRONMENT_MAP_LEVEL_ID) {
+      const mapImage = assets.environmentMaps[levelId];
+      const bg = assets.backgrounds['background-swamp'];
+      if (!mapImage || !bg) return { x: mapX, y: mapY };
+      const scale = getBackgroundScale(bg);
+      return {
+        x: clamp(mapX * scale, 20, state.levelWidth - 20),
+        y: clamp(mapY * scale, 20, canvas.height - 8)
+      };
+    }
+
+    function createSwampEnvironmentHazard(spawn, index) {
+      if (!spawn) return null;
+      if (spawn.kind === 'swamp-branch') {
+        const top = mapEnvironmentPointToWorld(spawn.topMapX, spawn.topMapY);
+        const land = mapEnvironmentPointToWorld(spawn.landMapX, spawn.landMapY);
+        return {
+          kind: 'swamp-branch',
+          id: `swamp-branch-${index}`,
+          x: top.x,
+          y: top.y,
+          topX: top.x,
+          topY: top.y,
+          landX: land.x,
+          landY: land.y,
+          w: 72,
+          h: Math.max(72, Math.hypot(land.x - top.x, land.y - top.y)),
+          state: 'armed',
+          fallProgress: 0,
+          fallSpeed: 0.045,
+          branchAssetKey: `branch${1 + Math.floor(Math.random() * 5)}`,
+          damage: 18,
+          damagedPlayer: false,
+          frames: Number.POSITIVE_INFINITY
+        };
+      }
+
+      const point = mapEnvironmentPointToWorld(spawn.mapX, spawn.mapY);
+      if (spawn.kind === 'swamp-alligator') {
+        return {
+          kind: 'swamp-alligator',
+          id: `swamp-alligator-${index}`,
+          x: point.x,
+          y: point.y,
+          w: ALLIGATOR_DAMAGE_RADIUS * 2,
+          h: ALLIGATOR_DAMAGE_RADIUS * 1.5,
+          state: 'waiting',
+          cooldown: rand(20, 90),
+          attackTimer: 0,
+          damageFrame: 18,
+          damagedPlayer: false,
+          frames: Number.POSITIVE_INFINITY
+        };
+      }
+      if (spawn.kind === 'swamp-mosquito') {
+        return {
+          kind: 'swamp-mosquito',
+          id: `swamp-mosquito-${index}`,
+          x: point.x,
+          y: point.y,
+          homeX: point.x,
+          homeY: point.y,
+          w: 62,
+          h: 62,
+          state: 'hover',
+          phase: Math.random() * Math.PI * 2,
+          killedTimer: 0,
+          frames: Number.POSITIVE_INFINITY
+        };
+      }
+      if (spawn.kind === 'swamp-geyser') {
+        return {
+          kind: 'swamp-geyser',
+          id: `swamp-geyser-${index}`,
+          x: point.x,
+          y: point.y,
+          w: GEYSER_DAMAGE_RADIUS * 2,
+          h: GEYSER_DAMAGE_RADIUS,
+          state: 'primed',
+          cooldown: rand(30, 110),
+          eruptTimer: 0,
+          damageFrame: 20,
+          damagedPlayer: false,
+          frames: Number.POSITIVE_INFINITY
+        };
+      }
+      return null;
+    }
+
+    function spawnSwampEnvironmentHazards() {
+      const level = levels[state.levelIndex];
+      if (!level || level.id !== SWAMP_ENVIRONMENT_MAP_LEVEL_ID) return;
+      getEnvironmentHazardMapSpawns(level.id)
+        .map((spawn, index) => createSwampEnvironmentHazard(spawn, index))
+        .filter(Boolean)
+        .forEach(hazard => state.hazards.push(hazard));
+    }
+
+    function getHazardAnimationFrame(hazard, assetKey, fps = 12, loop = true) {
+      const track = assets.hazards[assetKey];
+      if (!track || !track.frames?.length) return null;
+      const frameAge = Math.max(0, hazard.animAge || 0);
+      let frameIndex = Math.floor((frameAge / 60) * fps);
+      if (loop) frameIndex %= track.frames.length;
+      else frameIndex = clamp(frameIndex, 0, track.frames.length - 1);
+      return { img: track.img, frame: track.frames[frameIndex] || track.frames[0] };
+    }
+
+    function dismissAttachedMosquitoHazard(player) {
+      if (!player?.mosquitoHazardId) return;
+      const hazard = state.hazards.find(h => h.id === player.mosquitoHazardId && h.kind === 'swamp-mosquito');
+      if (hazard && hazard.state !== 'killed') {
+        hazard.state = 'killed';
+        hazard.killedTimer = 42;
+        hazard.animAge = 0;
+        hazard.frames = 48;
+      }
+      player.mosquitoHazardId = null;
+    }
+
     function getMudTrailMovementScale(player, targetX, targetY) {
       const slowMultiplier = getEnvironmentalHazardSlowMultiplier(player);
       if (slowMultiplier <= 0) return 1;
@@ -4144,6 +4385,7 @@
       if ((target.stun || 0) <= 0) return false;
       target.stun = 0;
       target.stunImmunityTimer = STUN_BREAK_IMMUNITY_FRAMES;
+      if (target === state.player) dismissAttachedMosquitoHazard(target);
       return true;
     }
 
@@ -6293,6 +6535,116 @@
         const player = state.player;
         if (!player) return;
         const overlap = Math.abs(player.x - h.x) < h.w * 0.5 && Math.abs(player.y - h.y) < h.h * 0.5;
+        if (h.kind && h.kind.startsWith('swamp-')) {
+          h.animAge = (h.animAge || 0) + 1;
+        }
+        if (h.kind === 'swamp-alligator') {
+          h.cooldown = Math.max(0, (h.cooldown || 0) - 1);
+          const dist = Math.hypot(player.x - h.x, player.y - h.y);
+          if (h.state === 'waiting' && h.cooldown <= 0 && dist <= ALLIGATOR_TRIGGER_RADIUS) {
+            h.state = 'attacking';
+            h.attackTimer = 48;
+            h.damagedPlayer = false;
+            h.animAge = 0;
+          } else if (h.state === 'attacking') {
+            const elapsed = 48 - h.attackTimer;
+            if (!h.damagedPlayer && elapsed >= h.damageFrame && dist <= ALLIGATOR_DAMAGE_RADIUS) {
+              damagePlayer(16, null);
+              h.damagedPlayer = true;
+              state.shake = Math.max(state.shake, 8);
+            }
+            h.attackTimer -= 1;
+            if (h.attackTimer <= 0) {
+              h.state = 'waiting';
+              h.cooldown = rand(150, 260);
+            }
+          }
+        }
+
+        if (h.kind === 'swamp-mosquito') {
+          h.phase = (h.phase || 0) + 0.12;
+          if (h.state === 'hover') {
+            h.x = h.homeX + Math.sin(h.phase) * 8;
+            h.y = h.homeY + Math.cos(h.phase * 0.8) * 5;
+            if (Math.hypot(player.x - h.x, player.y - h.y) <= MOSQUITO_TRIGGER_RADIUS) h.state = 'chasing';
+          } else if (h.state === 'chasing') {
+            const dx = player.x - h.x;
+            const dy = (player.y - 24) - h.y;
+            const dist = Math.hypot(dx, dy) || 1;
+            h.x += (dx / dist) * 2.35;
+            h.y += (dy / dist) * 1.65;
+            if (dist <= MOSQUITO_ATTACH_RADIUS) {
+              h.state = 'attached';
+              h.animAge = 0;
+              player.mosquitoHazardId = h.id;
+              applyStun(player, MOSQUITO_STUN_FRAMES);
+            }
+          } else if (h.state === 'attached') {
+            h.x = player.x + Math.sin(h.phase) * 24;
+            h.y = player.y - 28 + Math.cos(h.phase * 1.3) * 12;
+            player.mosquitoHazardId = h.id;
+            if ((player.stun || 0) <= 0) applyStun(player, MOSQUITO_STUN_FRAMES);
+          } else if (h.state === 'killed') {
+            h.killedTimer -= 1;
+            if (h.killedTimer <= 0) h.frames = 0;
+          }
+        }
+
+        if (h.kind === 'swamp-branch') {
+          const nearFallLine = Math.abs(player.x - h.landX) <= BRANCH_TRIGGER_X_RADIUS
+            && Math.abs(player.y - h.landY) <= BRANCH_TRIGGER_Y_RADIUS;
+          if (h.state === 'armed' && nearFallLine) {
+            h.state = 'falling';
+            h.fallProgress = 0;
+            h.animAge = 0;
+            h.damagedPlayer = false;
+          } else if (h.state === 'falling') {
+            h.fallProgress = clamp((h.fallProgress || 0) + (h.fallSpeed || 0.045), 0, 1);
+            h.x = h.topX + ((h.landX - h.topX) * h.fallProgress);
+            h.y = h.topY + ((h.landY - h.topY) * h.fallProgress);
+            const branchDist = Math.hypot(player.x - h.x, player.y - h.y);
+            if (!h.damagedPlayer && branchDist <= 56) {
+              damagePlayer(h.damage || 18, null);
+              applyStun(player, 34);
+              h.damagedPlayer = true;
+              state.shake = Math.max(state.shake, 9);
+            }
+            if (h.fallProgress >= 1) {
+              h.state = 'resting';
+              h.x = h.landX;
+              h.y = h.landY;
+            }
+          }
+        }
+
+        if (h.kind === 'swamp-geyser') {
+          h.cooldown = Math.max(0, (h.cooldown || 0) - 1);
+          const dist = Math.hypot(player.x - h.x, player.y - h.y);
+          if (h.state === 'primed' && h.cooldown <= 0 && dist <= GEYSER_TRIGGER_RADIUS) {
+            h.state = 'erupting';
+            h.eruptTimer = 54;
+            h.damagedPlayer = false;
+            h.animAge = 0;
+          } else if (h.state === 'erupting') {
+            const elapsed = 54 - h.eruptTimer;
+            if (!h.damagedPlayer && elapsed >= h.damageFrame && dist <= GEYSER_DAMAGE_RADIUS) {
+              damagePlayer(14, null);
+              const angle = Math.random() * Math.PI * 2;
+              player.x = clamp(player.x + Math.cos(angle) * rand(42, 82), 24, getWaveBarrierPlayerMaxX() - 20);
+              player.y = clamp(player.y + Math.sin(angle) * rand(18, 44), getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
+              player.z = Math.max(player.z || 0, 14);
+              player.vz = Math.max(player.vz || 0, 4.5);
+              h.damagedPlayer = true;
+              state.shake = Math.max(state.shake, 12);
+            }
+            h.eruptTimer -= 1;
+            if (h.eruptTimer <= 0) {
+              h.state = 'primed';
+              h.cooldown = rand(190, 330);
+            }
+          }
+        }
+
         if (overlap && h.kind === 'root-snare') {
           player.vx *= 0.7;
         }
@@ -7011,6 +7363,7 @@
       state.pickups = [];
       state.effects = [];
       state.hazards = [];
+      spawnSwampEnvironmentHazards();
       state.scarlettBrambleDrone = retainedBrambleDrone;
       state.lockX = null;
       state.waveIndex = 0;
@@ -7931,6 +8284,49 @@
       state.hazards.forEach(hazard => {
         const x = hazard.x - state.cameraX;
         const y = hazard.y - state.cameraY;
+        if (hazard.kind === 'swamp-alligator') {
+          if (hazard.state === 'attacking') {
+            const sprite = getHazardAnimationFrame(hazard, 'gatorAttack', 14, false);
+            if (sprite) ctx.drawImage(sprite.img, sprite.frame.x, sprite.frame.y, sprite.frame.width, sprite.frame.height, x - 64, y - 78, 128, 128);
+          } else {
+            ctx.fillStyle = 'rgba(30, 92, 46, 0.24)';
+            ctx.beginPath();
+            ctx.ellipse(x, y, 36, 16, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          return;
+        }
+        if (hazard.kind === 'swamp-mosquito') {
+          const assetKey = hazard.state === 'attached' ? 'mosquitoAttack' : (hazard.state === 'killed' ? 'mosquitoKilled' : 'mosquitoFlying');
+          const sprite = getHazardAnimationFrame(hazard, assetKey, hazard.state === 'killed' ? 12 : 10, hazard.state !== 'killed');
+          if (sprite) ctx.drawImage(sprite.img, sprite.frame.x, sprite.frame.y, sprite.frame.width, sprite.frame.height, x - 36, y - 46, 72, 72);
+          return;
+        }
+        if (hazard.kind === 'swamp-branch') {
+          const branch = assets.hazards[hazard.branchAssetKey];
+          if (branch?.img) {
+            const angle = Math.atan2(hazard.landY - hazard.topY, hazard.landX - hazard.topX) + Math.PI / 2;
+            ctx.save();
+            ctx.translate(x, y - 20);
+            ctx.rotate(angle);
+            const drawHeight = hazard.state === 'resting' ? 170 : 210;
+            ctx.drawImage(branch.img, -48, -drawHeight * 0.5, 96, drawHeight);
+            ctx.restore();
+          }
+          return;
+        }
+        if (hazard.kind === 'swamp-geyser') {
+          if (hazard.state === 'erupting') {
+            const sprite = getHazardAnimationFrame(hazard, 'geyser', 14, false);
+            if (sprite) ctx.drawImage(sprite.img, sprite.frame.x, sprite.frame.y, sprite.frame.width, sprite.frame.height, x - 72, y - 116, 144, 144);
+          } else {
+            ctx.fillStyle = 'rgba(232, 187, 66, 0.22)';
+            ctx.beginPath();
+            ctx.ellipse(x, y, 26, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          return;
+        }
         if (hazard.kind === 'mud-trail') {
           ctx.fillStyle = 'rgba(109, 74, 51, 0.34)';
           ctx.beginPath();
@@ -9336,6 +9732,21 @@
         'hell-gate': 'assets/BB_bg_hellGate001_foreground.png',
         docks: 'assets/BB_bg_docks001_foreground.png'
       };
+      const environmentMapKeysByLevelId = {
+        swamp: 'assets/BB_bg_swamp001_environment.png'
+      };
+      const hazardSpriteKeys = {
+        gatorAttack: ['assets/BB_hazard_animation_gator_attack.png', 6],
+        mosquitoFlying: ['assets/BB_hazard_animation_mosquitos_flying_left.png', 6],
+        mosquitoAttack: ['assets/BB_hazard_animation_mosquitos_attack.png', 6],
+        mosquitoKilled: ['assets/BB_hazard_animation_mosquitos_killed.png', 6],
+        geyser: ['assets/BB_hazard_animation_geyser.png', 6],
+        branch1: ['assets/BB_hazard_branch001.png', 1],
+        branch2: ['assets/BB_hazard_branch002.png', 1],
+        branch3: ['assets/BB_hazard_branch003.png', 1],
+        branch4: ['assets/BB_hazard_branch004.png', 1],
+        branch5: ['assets/BB_hazard_branch005.png', 1]
+      };
       const backgroundAnimationKeysByLevelId = {
         swamp: [
           'assets/BB_bg_swamp001_animation01.png',
@@ -9362,6 +9773,16 @@
         const framePromises = frameSources.map(src => loadImage(src));
         promises.push(Promise.all(framePromises).then((frames) => {
           assets.backgroundAnimations[levelId] = frames;
+        }));
+      });
+
+      Object.entries(environmentMapKeysByLevelId).forEach(([levelId, src]) => {
+        promises.push(loadImage(src).then((img) => { assets.environmentMaps[levelId] = normalizeBackgroundImage(img); }));
+      });
+
+      Object.entries(hazardSpriteKeys).forEach(([key, [src, frameCount]]) => {
+        promises.push(loadImage(src).then((img) => {
+          assets.hazards[key] = { img, frames: buildFrameRects(img, frameCount) };
         }));
       });
 

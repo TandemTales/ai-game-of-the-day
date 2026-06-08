@@ -3180,7 +3180,9 @@
         resolveCharacterBodyCollision(companion, player, 1);
       });
       if (state.scarlettBrambleDrone && state.scarlettBrambleDrone.hp > 0) {
-        resolveCharacterBodyCollision(player, state.scarlettBrambleDrone, 1);
+        // Scarlett's returning bramble drone is player-aligned too, so it must
+        // yield like a companion instead of nudging an idle player into a chase loop.
+        resolveCharacterBodyCollision(state.scarlettBrambleDrone, player, 1);
       }
     }
     function circleIntersectsRect(circleX, circleY, circleRadius, rect) {

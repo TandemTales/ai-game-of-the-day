@@ -1230,6 +1230,10 @@
     const assets = {
       backgrounds: {},
       backgroundAnimations: {},
+      environmentMaps: {},
+      environmentHazardSpawns: {},
+      hazardAnimations: {},
+      hazardBranches: [],
       foregrounds: {},
       barriers: {},
       barrierMasks: {},
@@ -1700,6 +1704,29 @@
     const MOVEMENT_MASK_ALPHA_MIN = 16;
     const MOVEMENT_MASK_DETOUR_SAMPLE_ANGLES = [0, 0.4, -0.4, 0.75, -0.75, 1.15, -1.15, Math.PI];
     const MOVEMENT_MASK_DETOUR_SAMPLE_RADII = [1, 0.7, 1.35, 1.8];
+    const STAGE_ENVIRONMENT_HAZARD_LEVEL_IDS = new Set(['swamp']);
+    const ENVIRONMENT_HAZARD_FRAME_SIZE = 128;
+    const ENVIRONMENT_HAZARD_ANIM_FPS = 10;
+    const ENVIRONMENT_HAZARD_MAP_PIXEL_MIN = 36;
+    const GATOR_TRIGGER_RADIUS = 92;
+    const GATOR_DAMAGE_RADIUS = 76;
+    const GATOR_DAMAGE = 12;
+    const GATOR_REARM_FRAMES = 420;
+    const MOSQUITO_AGGRO_RADIUS = 280;
+    const MOSQUITO_ATTACH_RADIUS = 32;
+    const MOSQUITO_SPEED = 4.1;
+    const MOSQUITO_STUN_FRAMES = 999;
+    const MOSQUITO_DAMAGE_INTERVAL = 44;
+    const MOSQUITO_DAMAGE = 1.25;
+    const BRANCH_TRIGGER_RADIUS_X = 58;
+    const BRANCH_FALL_SPEED = 9.5;
+    const BRANCH_DAMAGE = 14;
+    const BRANCH_DAMAGE_RADIUS_X = 58;
+    const BRANCH_DAMAGE_RADIUS_Y = 30;
+    const GEYSER_TRIGGER_RADIUS = 98;
+    const GEYSER_DAMAGE_RADIUS = 92;
+    const GEYSER_DAMAGE = 10;
+    const GEYSER_REARM_FRAMES = 360;
 
     const PLAYER_ANIM_FPS = {
       walk: 10,
@@ -6292,6 +6319,7 @@
       state.hazards.forEach(h => {
         const player = state.player;
         if (!player) return;
+        updateStageEnvironmentHazard(h, player);
         const overlap = Math.abs(player.x - h.x) < h.w * 0.5 && Math.abs(player.y - h.y) < h.h * 0.5;
         if (overlap && h.kind === 'root-snare') {
           player.vx *= 0.7;
@@ -6351,6 +6379,305 @@
       });
 
       state.enemies = state.enemies.filter(enemy => enemy.hp > 0 || enemy.deathHoldFrames > 0);
+    }
+
+
+    function classifyEnvironmentHazardPixel(red, green, blue, alpha) {
+      if (alpha < 80) return null;
+      if (red > 165 && green < 120 && blue < 130) return 'branch';
+      if (green > 135 && red < 145 && blue < 155) return 'gator';
+      if (blue > 145 && red < 145 && green < 175) return 'mosquito';
+      if (red > 165 && green > 135 && blue < 135) return 'geyser';
+      return null;
+    }
+
+    function findEnvironmentHazardComponents(image, targetKind) {
+      if (!image) return [];
+      const scanCanvas = document.createElement('canvas');
+      scanCanvas.width = image.width;
+      scanCanvas.height = image.height;
+      const scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
+      scanCtx.clearRect(0, 0, scanCanvas.width, scanCanvas.height);
+      scanCtx.drawImage(image, 0, 0);
+      const imageData = scanCtx.getImageData(0, 0, scanCanvas.width, scanCanvas.height);
+      const { data, width, height } = imageData;
+      const visited = new Uint8Array(width * height);
+      const components = [];
+      const queue = [];
+      for (let y = 0; y < height; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+          const startIndex = y * width + x;
+          if (visited[startIndex]) continue;
+          const dataIndex = startIndex * 4;
+          if (classifyEnvironmentHazardPixel(data[dataIndex], data[dataIndex + 1], data[dataIndex + 2], data[dataIndex + 3]) !== targetKind) {
+            visited[startIndex] = 1;
+            continue;
+          }
+
+          let count = 0;
+          let sumX = 0;
+          let sumY = 0;
+          let minX = x;
+          let maxX = x;
+          let minY = y;
+          let maxY = y;
+          queue.length = 0;
+          queue.push(startIndex);
+          visited[startIndex] = 1;
+          for (let qi = 0; qi < queue.length; qi += 1) {
+            const pixelIndex = queue[qi];
+            const px = pixelIndex % width;
+            const py = Math.floor(pixelIndex / width);
+            count += 1;
+            sumX += px;
+            sumY += py;
+            minX = Math.min(minX, px);
+            maxX = Math.max(maxX, px);
+            minY = Math.min(minY, py);
+            maxY = Math.max(maxY, py);
+            const neighbors = [pixelIndex - 1, pixelIndex + 1, pixelIndex - width, pixelIndex + width];
+            neighbors.forEach((neighborIndex) => {
+              if (neighborIndex < 0 || neighborIndex >= visited.length || visited[neighborIndex]) return;
+              const nx = neighborIndex % width;
+              if ((neighborIndex === pixelIndex - 1 && nx !== px - 1) || (neighborIndex === pixelIndex + 1 && nx !== px + 1)) return;
+              const ni = neighborIndex * 4;
+              if (classifyEnvironmentHazardPixel(data[ni], data[ni + 1], data[ni + 2], data[ni + 3]) !== targetKind) return;
+              visited[neighborIndex] = 1;
+              queue.push(neighborIndex);
+            });
+          }
+          if (count >= ENVIRONMENT_HAZARD_MAP_PIXEL_MIN) {
+            components.push({
+              kind: targetKind,
+              count,
+              x: sumX / count,
+              y: sumY / count,
+              minX,
+              maxX,
+              minY,
+              maxY,
+              width: maxX - minX + 1,
+              height: maxY - minY + 1
+            });
+          }
+        }
+      }
+      return components;
+    }
+
+    function parseEnvironmentHazardMap(image) {
+      if (!image) return [];
+      const circles = ['gator', 'mosquito', 'geyser'].flatMap(kind => (
+        findEnvironmentHazardComponents(image, kind).map(component => ({ kind, imageX: component.x, imageY: component.y }))
+      ));
+      const branchDrops = findEnvironmentHazardComponents(image, 'branch').map(component => ({
+        kind: 'branch',
+        imageX: (component.minX + component.maxX) * 0.5,
+        imageY: component.minY + Math.min(10, component.height * 0.18),
+        restImageX: (component.minX + component.maxX) * 0.5,
+        restImageY: component.maxY - Math.min(10, component.height * 0.18)
+      }));
+      return [...circles, ...branchDrops].sort((a, b) => a.imageX - b.imageX || a.imageY - b.imageY);
+    }
+
+    function mapEnvironmentImagePointToWorld(spawn, image) {
+      const level = levels[state.levelIndex];
+      const bg = level ? assets.backgrounds[level.background] : null;
+      const scale = bg ? getBackgroundScale(bg) : (canvas.width / Math.max(1, image?.width || canvas.width));
+      return {
+        x: spawn.imageX * scale,
+        y: spawn.imageY * scale,
+        restX: (spawn.restImageX ?? spawn.imageX) * scale,
+        restY: (spawn.restImageY ?? spawn.imageY) * scale
+      };
+    }
+
+    function installStageEnvironmentHazards(level) {
+      if (!level || !STAGE_ENVIRONMENT_HAZARD_LEVEL_IDS.has(level.id)) return;
+      const mapImage = assets.environmentMaps[level.id];
+      const spawnDefinitions = assets.environmentHazardSpawns[level.id] || [];
+      spawnDefinitions.forEach((spawn, index) => {
+        const point = mapEnvironmentImagePointToWorld(spawn, mapImage);
+        if (spawn.kind === 'gator') {
+          state.hazards.push({
+            kind: 'stage-gator',
+            x: point.x,
+            y: point.y,
+            w: 126,
+            h: 74,
+            state: 'idle',
+            timer: 0,
+            frames: Infinity,
+            damaged: false,
+            cooldown: index * 9
+          });
+          return;
+        }
+        if (spawn.kind === 'mosquito') {
+          state.hazards.push({
+            kind: 'stage-mosquito',
+            spawnX: point.x,
+            spawnY: point.y,
+            x: point.x,
+            y: point.y,
+            w: 76,
+            h: 58,
+            state: 'hover',
+            timer: 0,
+            frames: Infinity,
+            damageCooldown: 0,
+            orbitSeed: rand(0, Math.PI * 2)
+          });
+          return;
+        }
+        if (spawn.kind === 'branch') {
+          state.hazards.push({
+            kind: 'stage-branch',
+            x: point.x,
+            y: point.y,
+            restX: point.restX,
+            restY: point.restY,
+            w: 112,
+            h: 112,
+            state: 'waiting',
+            timer: 0,
+            frames: Infinity,
+            damaged: false,
+            sprite: assets.hazardBranches[index % Math.max(1, assets.hazardBranches.length)] || null
+          });
+          return;
+        }
+        if (spawn.kind === 'geyser') {
+          state.hazards.push({
+            kind: 'stage-geyser',
+            x: point.x,
+            y: point.y,
+            w: 126,
+            h: 126,
+            state: 'idle',
+            timer: 0,
+            frames: Infinity,
+            damaged: false,
+            cooldown: index * 7
+          });
+        }
+      });
+    }
+
+    function setHazardCooldown(hazard, frames) {
+      hazard.state = 'cooldown';
+      hazard.cooldown = frames;
+      hazard.timer = 0;
+      hazard.damaged = false;
+    }
+
+    function updateStageEnvironmentHazard(hazard, player) {
+      if (!player || !hazard.kind?.startsWith('stage-')) return;
+      hazard.timer = (hazard.timer || 0) + 1;
+      hazard.cooldown = Math.max(0, (hazard.cooldown || 0) - 1);
+
+      if (hazard.kind === 'stage-gator') {
+        if ((hazard.state === 'idle' || hazard.state === 'cooldown') && hazard.cooldown <= 0) {
+          hazard.state = Math.hypot(player.x - hazard.x, player.y - hazard.y) <= GATOR_TRIGGER_RADIUS ? 'attack' : 'idle';
+          if (hazard.state === 'attack') hazard.timer = 0;
+        }
+        if (hazard.state === 'attack') {
+          if (!hazard.damaged && hazard.timer >= 10 && Math.hypot(player.x - hazard.x, player.y - hazard.y) <= GATOR_DAMAGE_RADIUS) {
+            damagePlayer(GATOR_DAMAGE, null);
+            hazard.damaged = true;
+          }
+          if (hazard.timer >= 42) setHazardCooldown(hazard, GATOR_REARM_FRAMES);
+        }
+        return;
+      }
+
+      if (hazard.kind === 'stage-mosquito') {
+        if (hazard.state === 'hover' && Math.hypot(player.x - hazard.x, player.y - hazard.y) <= MOSQUITO_AGGRO_RADIUS) {
+          hazard.state = 'chase';
+          hazard.timer = 0;
+        }
+        if (hazard.state === 'chase') {
+          const dx = player.x - hazard.x;
+          const dy = (player.y - 42) - hazard.y;
+          const distance = Math.hypot(dx, dy) || 1;
+          hazard.x += (dx / distance) * MOSQUITO_SPEED;
+          hazard.y += (dy / distance) * MOSQUITO_SPEED;
+          if (distance <= MOSQUITO_ATTACH_RADIUS) {
+            hazard.state = 'attack';
+            hazard.timer = 0;
+            player.stun = Math.max(player.stun || 0, MOSQUITO_STUN_FRAMES);
+          }
+        } else if (hazard.state === 'attack') {
+          const orbitAngle = (hazard.timer * 0.16) + (hazard.orbitSeed || 0);
+          hazard.x = player.x + Math.cos(orbitAngle) * 28;
+          hazard.y = player.y - 42 + Math.sin(orbitAngle * 1.7) * 14;
+          if ((player.stun || 0) > 0) {
+            player.stun = Math.max(player.stun, 8);
+            hazard.damageCooldown = Math.max(0, (hazard.damageCooldown || 0) - 1);
+            if (hazard.damageCooldown <= 0) {
+              damagePlayer(MOSQUITO_DAMAGE, null);
+              hazard.damageCooldown = MOSQUITO_DAMAGE_INTERVAL;
+            }
+          } else {
+            hazard.state = 'killed';
+            hazard.timer = 0;
+          }
+        } else if (hazard.state === 'killed' && hazard.timer >= 36) {
+          hazard.frames = 0;
+        }
+        return;
+      }
+
+      if (hazard.kind === 'stage-branch') {
+        if (hazard.state === 'waiting') {
+          const playerIsBelow = Math.abs(player.x - hazard.restX) <= BRANCH_TRIGGER_RADIUS_X && player.y >= hazard.restY - 86;
+          if (playerIsBelow) {
+            hazard.state = 'falling';
+            hazard.timer = 0;
+          }
+        } else if (hazard.state === 'falling') {
+          const dx = hazard.restX - hazard.x;
+          const dy = hazard.restY - hazard.y;
+          const distance = Math.hypot(dx, dy) || 1;
+          const step = Math.min(BRANCH_FALL_SPEED, distance);
+          hazard.x += (dx / distance) * step;
+          hazard.y += (dy / distance) * step;
+          if (!hazard.damaged && Math.abs(player.x - hazard.x) <= BRANCH_DAMAGE_RADIUS_X && Math.abs(player.y - hazard.y) <= BRANCH_DAMAGE_RADIUS_Y) {
+            damagePlayer(BRANCH_DAMAGE, null);
+            hazard.damaged = true;
+          }
+          if (distance <= BRANCH_FALL_SPEED + 0.1) {
+            hazard.x = hazard.restX;
+            hazard.y = hazard.restY;
+            hazard.state = 'landed';
+            hazard.timer = 0;
+            hazard.damaged = true;
+          }
+        }
+        return;
+      }
+
+      if (hazard.kind === 'stage-geyser') {
+        if ((hazard.state === 'idle' || hazard.state === 'cooldown') && hazard.cooldown <= 0) {
+          hazard.state = Math.hypot(player.x - hazard.x, player.y - hazard.y) <= GEYSER_TRIGGER_RADIUS ? 'erupt' : 'idle';
+          if (hazard.state === 'erupt') hazard.timer = 0;
+        }
+        if (hazard.state === 'erupt') {
+          if (!hazard.damaged && hazard.timer >= 12 && Math.hypot(player.x - hazard.x, player.y - hazard.y) <= GEYSER_DAMAGE_RADIUS) {
+            damagePlayer(GEYSER_DAMAGE, null);
+            const angle = rand(0, Math.PI * 2);
+            player.x += Math.cos(angle) * rand(52, 94);
+            player.y += Math.sin(angle) * rand(24, 52);
+            const playerHorizontalBounds = getPlayerHorizontalBounds();
+            const playerVerticalBounds = getPlayerVerticalBounds(player);
+            player.x = clamp(player.x, playerHorizontalBounds.minX, playerHorizontalBounds.maxX);
+            player.y = clamp(player.y, playerVerticalBounds.minY, playerVerticalBounds.maxY);
+            player.vz = Math.max(player.vz || 0, 4.8);
+            hazard.damaged = true;
+          }
+          if (hazard.timer >= 48) setHazardCooldown(hazard, GEYSER_REARM_FRAMES);
+        }
+      }
     }
 
     function updateProjectiles() {
@@ -7011,6 +7338,7 @@
       state.pickups = [];
       state.effects = [];
       state.hazards = [];
+      installStageEnvironmentHazards(level);
       state.scarlettBrambleDrone = retainedBrambleDrone;
       state.lockX = null;
       state.waveIndex = 0;
@@ -7917,6 +8245,96 @@
       ctx.restore();
     }
 
+
+    function getHazardAnimationFrame(image, timer, fps = ENVIRONMENT_HAZARD_ANIM_FPS) {
+      if (!image) return null;
+      const frameCount = Math.max(1, Math.floor(image.width / ENVIRONMENT_HAZARD_FRAME_SIZE));
+      const frameIndex = frameCount <= 1 ? 0 : Math.min(frameCount - 1, Math.floor(((timer || 0) / 60) * fps));
+      return {
+        x: frameIndex * ENVIRONMENT_HAZARD_FRAME_SIZE,
+        y: 0,
+        width: ENVIRONMENT_HAZARD_FRAME_SIZE,
+        height: Math.min(ENVIRONMENT_HAZARD_FRAME_SIZE, image.height)
+      };
+    }
+
+    function drawHazardAnimation(image, hazard, width, height, yAnchor = 0.74, fps = ENVIRONMENT_HAZARD_ANIM_FPS) {
+      const frame = getHazardAnimationFrame(image, hazard.timer, fps);
+      if (!image || !frame) return;
+      ctx.drawImage(
+        image,
+        frame.x,
+        frame.y,
+        frame.width,
+        frame.height,
+        hazard.x - state.cameraX - (width * 0.5),
+        hazard.y - state.cameraY - (height * yAnchor),
+        width,
+        height
+      );
+    }
+
+    function drawStageEnvironmentHazard(hazard) {
+      if (!hazard.kind?.startsWith('stage-')) return false;
+      if (hazard.kind === 'stage-gator') {
+        if (hazard.state === 'attack') {
+          drawHazardAnimation(assets.hazardAnimations.gator, hazard, 150, 150, 0.74, 9);
+        } else if (hazard.cooldown <= 45) {
+          const x = hazard.x - state.cameraX;
+          const y = hazard.y - state.cameraY;
+          ctx.fillStyle = 'rgba(61, 91, 54, 0.26)';
+          ctx.beginPath();
+          ctx.ellipse(x, y, 38, 14, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        return true;
+      }
+      if (hazard.kind === 'stage-mosquito') {
+        const image = hazard.state === 'attack'
+          ? assets.hazardAnimations.mosquitoAttack
+          : hazard.state === 'killed'
+            ? assets.hazardAnimations.mosquitoKilled
+            : assets.hazardAnimations.mosquitoFlying;
+        drawHazardAnimation(image, hazard, 82, 82, 0.5, 12);
+        return true;
+      }
+      if (hazard.kind === 'stage-branch') {
+        const image = hazard.sprite;
+        if (image) {
+          const frame = getHazardAnimationFrame(image, hazard.timer, 0);
+          ctx.save();
+          if (hazard.state === 'waiting') ctx.globalAlpha = 0.82;
+          ctx.drawImage(
+            image,
+            frame.x,
+            frame.y,
+            frame.width,
+            frame.height,
+            hazard.x - state.cameraX - (hazard.w * 0.5),
+            hazard.y - state.cameraY - hazard.h,
+            hazard.w,
+            hazard.h
+          );
+          ctx.restore();
+        }
+        return true;
+      }
+      if (hazard.kind === 'stage-geyser') {
+        if (hazard.state === 'erupt') {
+          drawHazardAnimation(assets.hazardAnimations.geyser, hazard, 150, 150, 0.88, 10);
+        } else if (hazard.cooldown <= 36) {
+          const x = hazard.x - state.cameraX;
+          const y = hazard.y - state.cameraY;
+          ctx.fillStyle = 'rgba(222, 173, 75, 0.28)';
+          ctx.beginPath();
+          ctx.ellipse(x, y, 32, 12, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        return true;
+      }
+      return false;
+    }
+
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       if (state.shake > 0) {
@@ -7929,6 +8347,7 @@
       drawBackgroundAnimations();
 
       state.hazards.forEach(hazard => {
+        if (drawStageEnvironmentHazard(hazard)) return;
         const x = hazard.x - state.cameraX;
         const y = hazard.y - state.cameraY;
         if (hazard.kind === 'mud-trail') {
@@ -9362,6 +9781,29 @@
         const framePromises = frameSources.map(src => loadImage(src));
         promises.push(Promise.all(framePromises).then((frames) => {
           assets.backgroundAnimations[levelId] = frames;
+        }));
+      });
+
+      promises.push(loadImage('assets/BB_bg_swamp001_environment.png').then((img) => {
+        assets.environmentMaps.swamp = img;
+        assets.environmentHazardSpawns.swamp = parseEnvironmentHazardMap(img);
+      }));
+
+      const hazardAnimationKeys = {
+        gator: 'assets/BB_hazard_animation_gator_attack.png',
+        mosquitoFlying: 'assets/BB_hazard_animation_mosquitos_flying_left.png',
+        mosquitoAttack: 'assets/BB_hazard_animation_mosquitos_attack.png',
+        mosquitoKilled: 'assets/BB_hazard_animation_mosquitos_killed.png',
+        geyser: 'assets/BB_hazard_animation_geyser.png'
+      };
+      Object.entries(hazardAnimationKeys).forEach(([key, src]) => {
+        promises.push(loadImage(src).then((img) => { assets.hazardAnimations[key] = img; }));
+      });
+
+      [1, 2, 3, 4, 5].forEach((branchIndex) => {
+        const suffix = String(branchIndex).padStart(3, '0');
+        promises.push(loadImage(`assets/BB_hazard_branch${suffix}.png`).then((img) => {
+          assets.hazardBranches[branchIndex - 1] = img;
         }));
       });
 

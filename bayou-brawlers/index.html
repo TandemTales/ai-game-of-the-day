@@ -3137,15 +3137,10 @@
     }
 
 
-    function resolveCharacterBodyCollision(mover, blocker, weight = 1) {
-      if (!mover || !blocker || mover === blocker || mover.hp <= 0 || blocker.hp <= 0) return;
-      const moverStrength = getEntityStrength(mover);
-      const blockerStrength = getEntityStrength(blocker);
-      const totalStrength = Math.max(1, moverStrength + blockerStrength);
-      const moverShare = clamp(blockerStrength / totalStrength, 0, 1);
+    function getBodyOverlapSeparation(mover, blocker) {
       const moverBody = getPhysicsBody(mover);
       const blockerBody = getPhysicsBody(blocker);
-      if (!rectsOverlap(moverBody, blockerBody)) return;
+      if (!rectsOverlap(moverBody, blockerBody)) return null;
 
       const moverCenterX = moverBody.x + moverBody.width * 0.5;
       const moverCenterY = moverBody.y + moverBody.height * 0.5;
@@ -3155,7 +3150,20 @@
       const dy = moverCenterY - blockerCenterY;
       const overlapX = (moverBody.width + blockerBody.width) * 0.5 - Math.abs(dx);
       const overlapY = (moverBody.height + blockerBody.height) * 0.5 - Math.abs(dy);
-      if (overlapX <= 0 || overlapY <= 0) return;
+      if (overlapX <= 0 || overlapY <= 0) return null;
+
+      return { dx, dy, overlapX, overlapY };
+    }
+
+    function resolveCharacterBodyCollision(mover, blocker, weight = 1) {
+      if (!mover || !blocker || mover === blocker || mover.hp <= 0 || blocker.hp <= 0) return;
+      const moverStrength = getEntityStrength(mover);
+      const blockerStrength = getEntityStrength(blocker);
+      const totalStrength = Math.max(1, moverStrength + blockerStrength);
+      const moverShare = clamp(blockerStrength / totalStrength, 0, 1);
+      const separation = getBodyOverlapSeparation(mover, blocker);
+      if (!separation) return;
+      const { dx, dy, overlapX, overlapY } = separation;
 
       if (overlapX < overlapY) {
         const pushDir = Math.sign(dx) || (mover.uid < blocker.uid ? -1 : 1);
@@ -3163,6 +3171,21 @@
       } else {
         const pushDir = Math.sign(dy) || (mover.uid < blocker.uid ? -1 : 1);
         mover.y += pushDir * overlapY * weight * moverShare;
+      }
+    }
+
+    function resolveFollowerAwayFromPlayer(follower, player, weight = 1) {
+      if (!follower || !player || follower === player || follower.hp <= 0 || player.hp <= 0) return;
+      const separation = getBodyOverlapSeparation(follower, player);
+      if (!separation) return;
+      const { dx, dy, overlapX, overlapY } = separation;
+
+      if (overlapX < overlapY) {
+        const pushDir = Math.sign(dx) || (follower.x >= player.x ? 1 : -1);
+        follower.x += pushDir * overlapX * weight;
+      } else {
+        const pushDir = Math.sign(dy) || (follower.y >= player.y ? 1 : -1);
+        follower.y += pushDir * overlapY * weight;
       }
     }
 
@@ -3175,10 +3198,10 @@
       });
       state.companions.forEach((companion) => {
         if (!companion || companion.hp <= 0) return;
-        resolveCharacterBodyCollision(player, companion, 1);
+        resolveFollowerAwayFromPlayer(companion, player, 1);
       });
       if (state.scarlettBrambleDrone && state.scarlettBrambleDrone.hp > 0) {
-        resolveCharacterBodyCollision(player, state.scarlettBrambleDrone, 1);
+        resolveFollowerAwayFromPlayer(state.scarlettBrambleDrone, player, 1);
       }
     }
     function circleIntersectsRect(circleX, circleY, circleRadius, rect) {
@@ -5922,6 +5945,9 @@
         companion.x = clamp(companion.x, companionHorizontalBounds.minX, companionHorizontalBounds.maxX);
         companion.y = clamp(companion.y, companionVerticalBounds.minY, companionVerticalBounds.maxY);
         clampCompanionToPlayerLeash(companion, player);
+        resolveFollowerAwayFromPlayer(companion, player, 1);
+        companion.x = clamp(companion.x, companionHorizontalBounds.minX, companionHorizontalBounds.maxX);
+        companion.y = clamp(companion.y, companionVerticalBounds.minY, companionVerticalBounds.maxY);
         companion.isMoving = Math.hypot(companion.x - prevX, companion.y - prevY) > MOVE_EPSILON;
         updatePlayerAnimation(companion, dt);
       });
@@ -7238,6 +7264,9 @@
 
       const horizontalBounds = getPlayerHorizontalBounds();
       const yBounds = getPlayerVerticalBounds(drone);
+      drone.x = clamp(drone.x, horizontalBounds.minX, horizontalBounds.maxX);
+      drone.y = clamp(drone.y, yBounds.minY, yBounds.maxY);
+      resolveFollowerAwayFromPlayer(drone, player, 1);
       drone.x = clamp(drone.x, horizontalBounds.minX, horizontalBounds.maxX);
       drone.y = clamp(drone.y, yBounds.minY, yBounds.maxY);
       updateEnemyAnimation(drone, dt);

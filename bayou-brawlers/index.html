@@ -3175,7 +3175,9 @@
       });
       state.companions.forEach((companion) => {
         if (!companion || companion.hp <= 0) return;
-        resolveCharacterBodyCollision(player, companion, 1);
+        // Companions should yield to player characters instead of pushing them,
+        // even when the companion's character strength is higher.
+        resolveCharacterBodyCollision(companion, player, 1);
       });
       if (state.scarlettBrambleDrone && state.scarlettBrambleDrone.hp > 0) {
         resolveCharacterBodyCollision(player, state.scarlettBrambleDrone, 1);

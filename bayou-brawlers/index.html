@@ -8468,7 +8468,7 @@
           return;
         }
         if (hazard.kind === 'delving-geyser') {
-          const sprite = getHazardAnimationFrame(hazard, 'delvingGeyser', 14, false);
+          const sprite = getHazardAnimationFrame(hazard, 'geyser', 14, false);
           const agePct = clamp((hazard.animAge || 0) / Math.max(1, hazard.maxFrames || DELVING_GEYSER_DURATION_FRAMES), 0, 1);
           const pulse = 1 - agePct;
           ctx.save();
@@ -9985,7 +9985,6 @@
         mosquitoAttack: ['assets/BB_hazard_animation_mosquitos_attack.png', 6],
         mosquitoKilled: ['assets/BB_hazard_animation_mosquitos_killed.png', 6],
         geyser: ['assets/BB_hazard_animation_geyser.png', 6],
-        delvingGeyser: ['assets/BB_hazard_geyser.png', 6],
         branch1: ['assets/BB_hazard_branch001.png', 1],
         branch2: ['assets/BB_hazard_branch002.png', 1],
         branch3: ['assets/BB_hazard_branch003.png', 1],

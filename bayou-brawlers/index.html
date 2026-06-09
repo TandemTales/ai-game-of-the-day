@@ -1843,9 +1843,12 @@
     const BRANCH_TRIGGER_Y_RADIUS = 118;
     const GEYSER_TRIGGER_RADIUS = 118;
     const GEYSER_DAMAGE_RADIUS = 72;
-    const DELVING_GEYSER_DAMAGE_RADIUS = 66;
+    const GEYSER_DAMAGE_AMOUNT = SWAMP_HAZARD_ENEMY_HIT_DAMAGE;
+    const DELVING_GEYSER_DAMAGE_RADIUS = GEYSER_DAMAGE_RADIUS;
+    const DELVING_GEYSER_DAMAGE_AMOUNT = GEYSER_DAMAGE_AMOUNT;
     const DELVING_GEYSER_DURATION_FRAMES = 48;
     const DELVING_GEYSER_DAMAGE_FRAME = 12;
+    const DELVING_DAPHODILUS_REAPPEAR_WARNING_FRAMES = 60;
     const MECHANIZED_MOMENTUM_MAX_STACKS = 12;
     const MECHANIZED_MOMENTUM_STACK_MULTIPLIER = 0.03;
     const MECHANIZED_MOMENTUM_DURATION_FRAMES = 120;
@@ -3498,6 +3501,7 @@
         frames: DELVING_GEYSER_DURATION_FRAMES,
         maxFrames: DELVING_GEYSER_DURATION_FRAMES,
         damageFrame: DELVING_GEYSER_DAMAGE_FRAME,
+        damage: DELVING_GEYSER_DAMAGE_AMOUNT,
         damagedPlayer: false,
         animAge: 0
       });
@@ -6165,20 +6169,25 @@
             enemy.untargetable = true;
             enemy.aiTimer += 1;
             if (enemy.aiTimer > 15) {
+              spawnDelvingGeyserExplosion(enemy.x, enemy.y);
               setEnemyState(enemy, 'Underground');
+              enemy.aiTimer = 0;
+              enemy.undergroundDuration = rand(96, 132);
+              enemy.reappearGeyserWarned = false;
             }
           } else if (enemy.aiState === 'Underground') {
             enemy.untargetable = true;
             enemy.aiTimer += 1;
-            if (enemy.aiTimer > rand(48, 72)) {
+            const undergroundDuration = enemy.undergroundDuration || 108;
+            if (!enemy.reappearGeyserWarned && enemy.aiTimer >= Math.max(1, undergroundDuration - DELVING_DAPHODILUS_REAPPEAR_WARNING_FRAMES)) {
+              spawnDelvingGeyserExplosion(enemy.targetX || enemy.x, enemy.targetY || enemy.y);
+              enemy.reappearGeyserWarned = true;
+            }
+            if (enemy.aiTimer >= undergroundDuration) {
               enemy.untargetable = false;
               enemy.x = clamp(enemy.targetX || enemy.x, state.cameraX + 40, state.cameraX + canvas.width - 40);
               const verticalBounds = getEnemyVerticalBounds(enemy);
               enemy.y = clamp(enemy.targetY || enemy.y, verticalBounds.minY, verticalBounds.maxY);
-              if (Math.abs(enemy.x - player.x) < 40) {
-                enemy.x += enemy.facing >= 0 ? 40 : -40;
-              }
-              spawnDelvingGeyserExplosion(enemy.x, enemy.y);
               setEnemyState(enemy, 'Emerge');
             }
           } else if (enemy.aiState === 'Emerge') {
@@ -6212,7 +6221,6 @@
               }
               const verticalBounds = getEnemyVerticalBounds(enemy);
               enemy.targetY = clamp(player.y + rand(-18, 18), verticalBounds.minY, verticalBounds.maxY);
-              spawnDelvingGeyserExplosion(enemy.x, enemy.y);
             } else if ((distance <= enemy.range || rectsOverlap(enemyBody, playerBody)) && enemy.cooldown <= 0 && enemy.windup <= 0) {
               enemy.windup = 10;
               enemy.attackAnimTimer = 14;
@@ -6701,7 +6709,7 @@
           } else if (h.state === 'erupting') {
             const elapsed = 54 - h.eruptTimer;
             if (!h.damagedPlayer && elapsed >= h.damageFrame && dist <= GEYSER_DAMAGE_RADIUS) {
-              damagePlayer(SWAMP_HAZARD_ENEMY_HIT_DAMAGE, null);
+              damagePlayer(GEYSER_DAMAGE_AMOUNT, null);
               const angle = Math.random() * Math.PI * 2;
               player.x = clamp(player.x + Math.cos(angle) * rand(42, 82), 24, getWaveBarrierPlayerMaxX() - 20);
               player.y = clamp(player.y + Math.sin(angle) * rand(18, 44), getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
@@ -6722,7 +6730,7 @@
           const elapsed = (h.maxFrames || DELVING_GEYSER_DURATION_FRAMES) - h.frames;
           const dist = Math.hypot(player.x - h.x, player.y - h.y);
           if (!h.damagedPlayer && elapsed >= (h.damageFrame || DELVING_GEYSER_DAMAGE_FRAME) && dist <= DELVING_GEYSER_DAMAGE_RADIUS) {
-            damagePlayer(SWAMP_HAZARD_ENEMY_HIT_DAMAGE, null);
+            damagePlayer(h.damage || DELVING_GEYSER_DAMAGE_AMOUNT, null);
             const angle = Math.atan2(player.y - h.y, player.x - h.x) || (Math.random() * Math.PI * 2);
             player.x = clamp(player.x + Math.cos(angle) * rand(30, 58), 24, getWaveBarrierPlayerMaxX() - 20);
             player.y = clamp(player.y + Math.sin(angle) * rand(14, 32), getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);

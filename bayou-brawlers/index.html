@@ -1849,6 +1849,8 @@
     const DELVING_GEYSER_DURATION_FRAMES = 48;
     const DELVING_GEYSER_DAMAGE_FRAME = 12;
     const DELVING_DAPHODILUS_REAPPEAR_WARNING_FRAMES = 60;
+    const DELVING_DAPHODILUS_NEXT_TO_PLAYER_DISTANCE = 70;
+    const DELVING_DAPHODILUS_NEXT_TO_PLAYER_VERTICAL_GAP = 52;
     const MECHANIZED_MOMENTUM_MAX_STACKS = 12;
     const MECHANIZED_MOMENTUM_STACK_MULTIPLIER = 0.03;
     const MECHANIZED_MOMENTUM_DURATION_FRAMES = 120;
@@ -2160,14 +2162,24 @@
       return state.enemies.filter(e => e.hp > 0 && e.type === 'daphodilus' && e.aiState === 'Underground').length;
     }
 
-    function getUndergroundCap() {
-      let cap = state.bossActive ? 2 : 1;
-      if (state.commandBuffTimer > 0) cap += 1;
-      return clamp(cap, 1, 3);
+    function isDaphodilusNextToPlayer(enemy, player, enemyBody, playerBody) {
+      if (!enemy || !player || !enemyBody || !playerBody) return false;
+      const centerDistance = Math.hypot(player.x - enemy.x, getEnemyAimTargetY(enemy, player) - enemy.y);
+      const verticalGap = Math.abs(player.y - enemy.y);
+      if (rectsOverlap(enemyBody, playerBody)) return true;
+      return centerDistance <= DELVING_DAPHODILUS_NEXT_TO_PLAYER_DISTANCE
+        && verticalGap <= DELVING_DAPHODILUS_NEXT_TO_PLAYER_VERTICAL_GAP;
     }
 
-    function canGoUnderground() {
-      return countUndergroundDaphodilus() < getUndergroundCap();
+    function setDaphodilusBurrowTarget(enemy, player) {
+      const preferBehindX = player.x - (player.facing >= 0 ? 70 : -70);
+      const fallbackX = player.x + (player.facing >= 0 ? 70 : -70);
+      enemy.targetX = clamp(preferBehindX, state.cameraX + 30, state.cameraX + canvas.width - 30);
+      if (Math.abs(enemy.targetX - player.x) < 40) {
+        enemy.targetX = clamp(fallbackX, state.cameraX + 30, state.cameraX + canvas.width - 30);
+      }
+      const verticalBounds = getEnemyVerticalBounds(enemy);
+      enemy.targetY = clamp(player.y + rand(-18, 18), verticalBounds.minY, verticalBounds.maxY);
     }
 
     function setEnemyState(enemy, nextState) {
@@ -6203,27 +6215,24 @@
               setEnemyState(enemy, 'Approach');
             }
           } else {
-            if (distance > enemy.range) {
-              const chaseSpeedScale = distance > 190 ? 0.8 : 0.95;
-              enemy.x += Math.sign(dx) * moveSpeed * chaseSpeedScale;
-              enemy.y += Math.sign(dy) * moveSpeed * 0.45;
-              enemy.isMoving = true;
-            }
-            const verticalGap = Math.abs(player.y - enemy.y);
-            if (distance > 150 && distance < 350 && verticalGap < 110 && enemy.burrowCooldown <= 0 && enemy.noDigUntil <= 0 && canGoUnderground()) {
-              setEnemyState(enemy, 'DigStart');
-              enemy.aiTimer = 0;
-              const preferBehindX = player.x - (player.facing >= 0 ? 70 : -70);
-              const fallbackX = player.x + (player.facing >= 0 ? 70 : -70);
-              enemy.targetX = clamp(preferBehindX, state.cameraX + 30, state.cameraX + canvas.width - 30);
-              if (Math.abs(enemy.targetX - player.x) < 40) {
-                enemy.targetX = clamp(fallbackX, state.cameraX + 30, state.cameraX + canvas.width - 30);
+            const daphodilusNextToPlayer = isDaphodilusNextToPlayer(enemy, player, enemyBody, getPlayerHitbox(player));
+            if (!daphodilusNextToPlayer) {
+              if (enemy.noDigUntil <= 0) {
+                setEnemyState(enemy, 'DigStart');
+                enemy.aiTimer = 0;
+                setDaphodilusBurrowTarget(enemy, player);
               }
-              const verticalBounds = getEnemyVerticalBounds(enemy);
-              enemy.targetY = clamp(player.y + rand(-18, 18), verticalBounds.minY, verticalBounds.maxY);
-            } else if ((distance <= enemy.range || rectsOverlap(enemyBody, playerBody)) && enemy.cooldown <= 0 && enemy.windup <= 0) {
-              enemy.windup = 10;
-              enemy.attackAnimTimer = 14;
+            } else {
+              if (distance > enemy.range) {
+                const chaseSpeedScale = distance > 190 ? 0.8 : 0.95;
+                enemy.x += Math.sign(dx) * moveSpeed * chaseSpeedScale;
+                enemy.y += Math.sign(dy) * moveSpeed * 0.45;
+                enemy.isMoving = true;
+              }
+              if ((distance <= enemy.range || rectsOverlap(enemyBody, playerBody)) && enemy.cooldown <= 0 && enemy.windup <= 0) {
+                enemy.windup = 10;
+                enemy.attackAnimTimer = 14;
+              }
             }
           }
         } else if (enemy.type === 'bayouBriar') {

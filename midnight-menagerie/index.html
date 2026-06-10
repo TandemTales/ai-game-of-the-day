@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17405200669"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'AW-17405200669');
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Midnight Menagerie - Bot Built Arcade</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
+  <style>
+    :root {
+      --gold: #FFD700;
+      --moon: #d9f3ff;
+      --violet: #8b5cf6;
+      --rose: #fb7185;
+      --ink: #f8f1dc;
+      --panel: rgba(7, 10, 28, 0.82);
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      height: 100%;
+      min-height: 100dvh;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: 'Press Start 2P', system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 18% 16%, rgba(217, 243, 255, 0.16), transparent 28%),
+        radial-gradient(circle at 84% 12%, rgba(251, 113, 133, 0.14), transparent 32%),
+        linear-gradient(180deg, #090a1f 0%, #101336 54%, #171024 100%);
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    .wrap {
+      position: relative;
+      width: 100%;
+      min-height: 100dvh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 10px;
+      padding: calc(12px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom));
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      z-index: 2;
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--gold);
+      font-size: clamp(14px, 3vw, 24px);
+      line-height: 1.35;
+      text-shadow: 0 0 14px rgba(255, 215, 0, 0.38);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 9px 12px;
+      border: 2px solid var(--gold);
+      border-radius: 8px;
+      background: linear-gradient(135deg, #2d225f, #42276f);
+      color: #fff;
+      font: inherit;
+      font-size: 10px;
+      text-decoration: none;
+      cursor: pointer;
+      box-shadow: 0 0 16px rgba(139, 92, 246, 0.28);
+    }
+
+    .btn:hover,
+    .btn:focus-visible {
+      transform: translateY(-1px);
+      outline: none;
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.36);
+    }
+
+    .hud {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      border: 2px solid rgba(217, 243, 255, 0.24);
+      border-radius: 8px;
+      background: var(--panel);
+      font-size: 10px;
+      line-height: 1.6;
+      z-index: 2;
+    }
+
+    .hud span {
+      color: var(--moon);
+      white-space: nowrap;
+    }
+
+    .stage {
+      position: relative;
+      min-height: 0;
+      border: 3px solid rgba(255, 215, 0, 0.72);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.38);
+      box-shadow: inset 0 0 48px rgba(217, 243, 255, 0.08), 0 0 28px rgba(139, 92, 246, 0.24);
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(5, 8, 22, 0.72);
+      text-align: center;
+      z-index: 3;
+    }
+
+    .overlay.hidden {
+      display: none;
+    }
+
+    .panel {
+      width: min(560px, 100%);
+      padding: 20px;
+      border: 2px solid rgba(255, 215, 0, 0.78);
+      border-radius: 8px;
+      background: rgba(9, 10, 31, 0.94);
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.35);
+    }
+
+    .panel h2 {
+      margin: 0 0 14px;
+      color: var(--gold);
+      font-size: clamp(14px, 3vw, 20px);
+      line-height: 1.4;
+    }
+
+    .panel p {
+      margin: 0 0 16px;
+      font-size: 10px;
+      line-height: 1.8;
+      color: #efe7ff;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      z-index: 2;
+    }
+
+    .control-pad {
+      display: grid;
+      grid-template-columns: repeat(3, 42px);
+      grid-template-rows: repeat(2, 42px);
+      gap: 6px;
+    }
+
+    .control-pad button {
+      min-width: 42px;
+      min-height: 42px;
+      border: 2px solid rgba(217, 243, 255, 0.55);
+      border-radius: 8px;
+      background: rgba(13, 18, 48, 0.86);
+      color: var(--moon);
+      font: inherit;
+      font-size: 15px;
+      touch-action: none;
+    }
+
+    .control-pad button:active {
+      background: rgba(139, 92, 246, 0.72);
+    }
+
+    .up { grid-column: 2; }
+    .left { grid-column: 1; grid-row: 2; }
+    .down { grid-column: 2; grid-row: 2; }
+    .right { grid-column: 3; grid-row: 2; }
+
+    @media (min-width: 760px) {
+      .wrap {
+        padding-inline: 24px;
+      }
+
+      .controls {
+        justify-content: space-between;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .hud {
+        align-items: stretch;
+        justify-content: space-between;
+        font-size: 9px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Midnight Menagerie</h1>
+      <a class="btn" href="../index.html">Home</a>
+    </header>
+
+    <div class="hud" aria-live="polite">
+      <span>Rescued: <strong id="rescued">0</strong>/6</span>
+      <span>Moonlight: <strong id="timer">90</strong></span>
+      <span>Lives: <strong id="lives">3</strong></span>
+    </div>
+
+    <main class="stage" aria-label="Midnight Menagerie game stage">
+      <canvas id="game" width="960" height="540"></canvas>
+      <div class="overlay" id="overlay">
+        <div class="panel">
+          <h2>Round Up the Runaways</h2>
+          <p>Guide the night keeper through the moonlit zoo, collect escaped critters, and avoid restless shadows until the gates reopen.</p>
+          <button class="btn" id="startBtn" type="button">Start Game</button>
+        </div>
+      </div>
+    </main>
+
+    <div class="controls" aria-label="Game controls">
+      <button class="btn" id="restartBtn" type="button">Restart</button>
+      <div class="control-pad" aria-label="Move">
+        <button class="up" type="button" data-dir="up">^</button>
+        <button class="left" type="button" data-dir="left">&lt;</button>
+        <button class="down" type="button" data-dir="down">v</button>
+        <button class="right" type="button" data-dir="right">&gt;</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const overlay = document.getElementById('overlay');
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const rescuedEl = document.getElementById('rescued');
+    const timerEl = document.getElementById('timer');
+    const livesEl = document.getElementById('lives');
+
+    const keys = new Set();
+    let running = false;
+    let lastTime = 0;
+    let critters = [];
+    let shadows = [];
+    let moonlight = 90;
+    let rescued = 0;
+    let lives = 3;
+    let invulnerable = 0;
+
+    const player = {
+      x: 480,
+      y: 270,
+      radius: 16,
+      speed: 220
+    };
+
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = Math.max(640, Math.floor(rect.width));
+      canvas.height = Math.max(360, Math.floor(rect.height));
+    }
+
+    function randomPoint(margin = 40) {
+      return {
+        x: margin + Math.random() * (canvas.width - margin * 2),
+        y: margin + Math.random() * (canvas.height - margin * 2)
+      };
+    }
+
+    function resetGame() {
+      resizeCanvas();
+      player.x = canvas.width / 2;
+      player.y = canvas.height / 2;
+      moonlight = 90;
+      rescued = 0;
+      lives = 3;
+      invulnerable = 0;
+      critters = Array.from({ length: 6 }, (_, index) => ({
+        ...randomPoint(54),
+        radius: 12,
+        hue: 180 + index * 24
+      }));
+      shadows = Array.from({ length: 4 }, (_, index) => {
+        const point = randomPoint(60);
+        return {
+          ...point,
+          radius: 18,
+          vx: (index % 2 ? -1 : 1) * (70 + Math.random() * 55),
+          vy: (Math.random() > 0.5 ? -1 : 1) * (60 + Math.random() * 45)
+        };
+      });
+      updateHud();
+      draw();
+    }
+
+    function updateHud() {
+      rescuedEl.textContent = rescued;
+      timerEl.textContent = Math.max(0, Math.ceil(moonlight));
+      livesEl.textContent = lives;
+    }
+
+    function startGame() {
+      resetGame();
+      running = true;
+      lastTime = performance.now();
+      overlay.classList.add('hidden');
+      requestAnimationFrame(loop);
+    }
+
+    function endGame(title, message) {
+      running = false;
+      overlay.querySelector('h2').textContent = title;
+      overlay.querySelector('p').textContent = message;
+      startBtn.textContent = 'Play Again';
+      overlay.classList.remove('hidden');
+    }
+
+    function movePlayer(dt) {
+      let dx = 0;
+      let dy = 0;
+      if (keys.has('ArrowLeft') || keys.has('a')) dx -= 1;
+      if (keys.has('ArrowRight') || keys.has('d')) dx += 1;
+      if (keys.has('ArrowUp') || keys.has('w')) dy -= 1;
+      if (keys.has('ArrowDown') || keys.has('s')) dy += 1;
+
+      if (dx || dy) {
+        const length = Math.hypot(dx, dy);
+        player.x += (dx / length) * player.speed * dt;
+        player.y += (dy / length) * player.speed * dt;
+      }
+
+      player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
+      player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
+    }
+
+    function updateShadows(dt) {
+      shadows.forEach(shadow => {
+        shadow.x += shadow.vx * dt;
+        shadow.y += shadow.vy * dt;
+
+        if (shadow.x < shadow.radius || shadow.x > canvas.width - shadow.radius) shadow.vx *= -1;
+        if (shadow.y < shadow.radius || shadow.y > canvas.height - shadow.radius) shadow.vy *= -1;
+      });
+    }
+
+    function handleCollisions() {
+      critters = critters.filter(critter => {
+        if (Math.hypot(player.x - critter.x, player.y - critter.y) < player.radius + critter.radius) {
+          rescued += 1;
+          return false;
+        }
+        return true;
+      });
+
+      if (invulnerable > 0) return;
+
+      shadows.forEach(shadow => {
+        if (Math.hypot(player.x - shadow.x, player.y - shadow.y) < player.radius + shadow.radius) {
+          lives -= 1;
+          invulnerable = 1.4;
+          player.x = canvas.width / 2;
+          player.y = canvas.height / 2;
+        }
+      });
+    }
+
+    function drawStars() {
+      ctx.fillStyle = 'rgba(217, 243, 255, 0.8)';
+      for (let i = 0; i < 80; i += 1) {
+        const x = (i * 127) % canvas.width;
+        const y = (i * 71) % Math.max(1, canvas.height * 0.52);
+        ctx.fillRect(x, y, 2, 2);
+      }
+    }
+
+    function drawFence() {
+      ctx.strokeStyle = 'rgba(255, 215, 0, 0.2)';
+      ctx.lineWidth = 2;
+      for (let x = 24; x < canvas.width; x += 48) {
+        ctx.beginPath();
+        ctx.moveTo(x, canvas.height * 0.58);
+        ctx.lineTo(x, canvas.height - 18);
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.moveTo(0, canvas.height * 0.72);
+      ctx.lineTo(canvas.width, canvas.height * 0.72);
+      ctx.stroke();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      sky.addColorStop(0, '#08091d');
+      sky.addColorStop(0.62, '#151a3f');
+      sky.addColorStop(1, '#211529');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      drawStars();
+
+      ctx.fillStyle = 'rgba(217, 243, 255, 0.88)';
+      ctx.beginPath();
+      ctx.arc(canvas.width - 86, 72, 34, 0, Math.PI * 2);
+      ctx.fill();
+
+      drawFence();
+
+      critters.forEach(critter => {
+        ctx.fillStyle = `hsl(${critter.hue}, 72%, 66%)`;
+        ctx.beginPath();
+        ctx.arc(critter.x, critter.y, critter.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#090a1f';
+        ctx.fillRect(critter.x - 5, critter.y - 4, 3, 3);
+        ctx.fillRect(critter.x + 3, critter.y - 4, 3, 3);
+      });
+
+      shadows.forEach(shadow => {
+        ctx.fillStyle = 'rgba(3, 4, 12, 0.82)';
+        ctx.beginPath();
+        ctx.arc(shadow.x, shadow.y, shadow.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(251, 113, 133, 0.88)';
+        ctx.fillRect(shadow.x - 7, shadow.y - 5, 4, 4);
+        ctx.fillRect(shadow.x + 3, shadow.y - 5, 4, 4);
+      });
+
+      ctx.globalAlpha = invulnerable > 0 ? 0.55 : 1;
+      ctx.fillStyle = varColor('--gold');
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#2d225f';
+      ctx.fillRect(player.x - 5, player.y - 22, 10, 12);
+      ctx.globalAlpha = 1;
+    }
+
+    function varColor(name) {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
+    function loop(now) {
+      if (!running) return;
+
+      const dt = Math.min(0.033, (now - lastTime) / 1000);
+      lastTime = now;
+
+      moonlight -= dt;
+      invulnerable = Math.max(0, invulnerable - dt);
+      movePlayer(dt);
+      updateShadows(dt);
+      handleCollisions();
+      updateHud();
+      draw();
+
+      if (rescued >= 6) {
+        endGame('Menagerie Secured', 'Every runaway is back before sunrise. The keeper earns another quiet midnight.');
+        return;
+      }
+
+      if (lives <= 0 || moonlight <= 0) {
+        endGame('The Gates Go Quiet', 'The shadows took over the paths. Reset the route and try again.');
+        return;
+      }
+
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener('keydown', event => {
+      keys.add(event.key);
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(event.key)) {
+        event.preventDefault();
+      }
+    });
+
+    window.addEventListener('keyup', event => {
+      keys.delete(event.key);
+    });
+
+    document.querySelectorAll('[data-dir]').forEach(button => {
+      const map = {
+        up: 'ArrowUp',
+        down: 'ArrowDown',
+        left: 'ArrowLeft',
+        right: 'ArrowRight'
+      };
+
+      button.addEventListener('pointerdown', () => keys.add(map[button.dataset.dir]));
+      button.addEventListener('pointerup', () => keys.delete(map[button.dataset.dir]));
+      button.addEventListener('pointercancel', () => keys.delete(map[button.dataset.dir]));
+      button.addEventListener('pointerleave', () => keys.delete(map[button.dataset.dir]));
+    });
+
+    startBtn.addEventListener('click', startGame);
+    restartBtn.addEventListener('click', startGame);
+    window.addEventListener('resize', resetGame);
+
+    resetGame();
+  </script>
+</body>
+</html>

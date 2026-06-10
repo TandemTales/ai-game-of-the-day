@@ -1846,6 +1846,7 @@
     const GEYSER_DAMAGE_AMOUNT = SWAMP_HAZARD_ENEMY_HIT_DAMAGE;
     const DELVING_GEYSER_DAMAGE_RADIUS = GEYSER_DAMAGE_RADIUS;
     const DELVING_GEYSER_DAMAGE_AMOUNT = GEYSER_DAMAGE_AMOUNT;
+    const GEYSER_ERUPT_DURATION_FRAMES = 54;
     const DELVING_GEYSER_DURATION_FRAMES = 48;
     const DELVING_GEYSER_DAMAGE_FRAME = 12;
     const DELVING_DAPHODILUS_REAPPEAR_WARNING_FRAMES = 60;
@@ -3440,11 +3441,17 @@
         .forEach(hazard => state.hazards.push(hazard));
     }
 
-    function getHazardAnimationFrame(hazard, assetKey, fps = 12, loop = true) {
+    function getHazardAnimationFrame(hazard, assetKey, fps = 12, loop = true, durationFrames = 0) {
       const track = assets.hazards[assetKey];
       if (!track || !track.frames?.length) return null;
       const frameAge = Math.max(0, hazard.animAge || 0);
-      let frameIndex = Math.floor((frameAge / 60) * fps);
+      let frameIndex;
+      if (!loop && durationFrames > 0) {
+        const framesPerSprite = durationFrames / track.frames.length;
+        frameIndex = Math.floor(frameAge / Math.max(1, framesPerSprite));
+      } else {
+        frameIndex = Math.floor((frameAge / 60) * fps);
+      }
       if (loop) frameIndex %= track.frames.length;
       else frameIndex = clamp(frameIndex, 0, track.frames.length - 1);
       return { img: track.img, frame: track.frames[frameIndex] || track.frames[0] };
@@ -6703,11 +6710,11 @@
           const dist = Math.hypot(player.x - h.x, player.y - h.y);
           if (h.state === 'primed' && h.cooldown <= 0 && dist <= GEYSER_TRIGGER_RADIUS) {
             h.state = 'erupting';
-            h.eruptTimer = 54;
+            h.eruptTimer = GEYSER_ERUPT_DURATION_FRAMES;
             h.damagedPlayer = false;
             h.animAge = 0;
           } else if (h.state === 'erupting') {
-            const elapsed = 54 - h.eruptTimer;
+            const elapsed = GEYSER_ERUPT_DURATION_FRAMES - h.eruptTimer;
             if (!h.damagedPlayer && elapsed >= h.damageFrame && dist <= GEYSER_DAMAGE_RADIUS) {
               damagePlayer(GEYSER_DAMAGE_AMOUNT, null);
               const angle = Math.random() * Math.PI * 2;
@@ -8457,7 +8464,7 @@
         if (hazard.kind === 'swamp-geyser') {
           const pulse = 0.5 + (Math.sin((hazard.animAge || 0) * 0.22) * 0.5);
           if (hazard.state === 'erupting') {
-            const sprite = getHazardAnimationFrame(hazard, 'geyser', 14, false);
+            const sprite = getHazardAnimationFrame(hazard, 'geyser', 14, false, GEYSER_ERUPT_DURATION_FRAMES);
             ctx.save();
             ctx.globalCompositeOperation = 'lighter';
             ctx.fillStyle = 'rgba(255, 215, 97, 0.28)';
@@ -8476,7 +8483,7 @@
           return;
         }
         if (hazard.kind === 'delving-geyser') {
-          const sprite = getHazardAnimationFrame(hazard, 'geyser', 14, false);
+          const sprite = getHazardAnimationFrame(hazard, 'geyser', 14, false, hazard.maxFrames || DELVING_GEYSER_DURATION_FRAMES);
           const agePct = clamp((hazard.animAge || 0) / Math.max(1, hazard.maxFrames || DELVING_GEYSER_DURATION_FRAMES), 0, 1);
           const pulse = 1 - agePct;
           ctx.save();

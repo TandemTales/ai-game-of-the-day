@@ -1095,6 +1095,8 @@
   let uidCounter = 1;
   const uid = () => uidCounter++;
   const wait = ms => new Promise(r => setTimeout(r, ms));
+  /* hover-capable pointer => treat as desktop (single-click to play cards) */
+  const HAS_HOVER = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
   /* ---------------- audio (tiny synth) ---------------- */
   const Sound = {

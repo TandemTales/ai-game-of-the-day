@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17405200669"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'AW-17405200669');
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#05070b" />
+  <meta name="description" content="Paradox Vault — a time-loop heist. Rewind the clock and rob a marble-and-brass vault alongside holograms of your own past selves." />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Paradox Vault - Bot Built Arcade</title>
+  <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png" />
+  <link rel="stylesheet" href="assets/css/game.css" />
+  <!-- Base canvas sizing only. All real styling lives in game.css, which is
+       loaded above and is free to override anything here. -->
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #05070b; overflow: hidden; overscroll-behavior: none; }
+    #pv-canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; background: #05070b; }
+  </style>
+</head>
+<body>
+  <!-- The world renders here. Everything else is DOM, built by ui.js. -->
+  <canvas id="pv-canvas" aria-label="Paradox Vault game view" role="img"></canvas>
+  <div id="pv-ui"></div>
+
+  <noscript>
+    <div style="position:fixed;inset:0;display:grid;place-items:center;background:#05070b;color:#efe6d2;font:16px/1.6 Georgia,serif;padding:24px;text-align:center">
+      Paradox Vault needs JavaScript.<br /><a href="../index.html" style="color:#ffd76e">← Back to Bot Built Arcade</a>
+    </div>
+  </noscript>
+
+  <script src="assets/js/core.js"></script>
+  <script src="assets/js/textures.js"></script>
+  <script src="assets/js/particles.js"></script>
+  <script src="assets/js/audio.js"></script>
+  <script src="assets/js/levels.js"></script>
+  <script src="assets/js/entities.js"></script>
+  <script src="assets/js/render.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/game.js"></script>
+</body>
+</html>

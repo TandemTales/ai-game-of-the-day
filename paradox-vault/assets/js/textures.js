@@ -235,21 +235,48 @@
     return out;
   }
 
-  /* cheap toroidal Worley — module-level outputs to avoid per-pixel GC */
+  /* cheap toroidal Worley — module-level outputs to avoid per-pixel GC.
+     The feature point of every cell is hashed ONCE into a table: the naive
+     form costs 18 h3() calls per sample and five materials sample it per
+     pixel, which made it the second-hottest thing in the whole bake. */
+  var WCELL = {};
+  function wcells(C, seed) {
+    var k = C + ':' + seed;
+    var t = WCELL[k];
+    if (t) return t;
+    var n = C * C, i, j, o;
+    var px = new Float32Array(n), py = new Float32Array(n);
+    for (j = 0; j < C; j++) {
+      for (i = 0; i < C; i++) {
+        o = j * C + i;
+        px[o] = h3(i, j, seed);
+        py[o] = h3(i, j, seed + 9871);
+      }
+    }
+    t = WCELL[k] = { x: px, y: py };
+    return t;
+  }
   var _wf1 = 0, _wf2 = 0;
+  var _wcC = -1, _wcS = 0, _wcX = null, _wcY = null;
   function worley(x, y, C, seed) {
+    if (C !== _wcC || seed !== _wcS) {
+      var t = wcells(C, seed);
+      _wcC = C; _wcS = seed; _wcX = t.x; _wcY = t.y;
+    }
+    var TX = _wcX, TY = _wcY;
     var gx = x * C, gy = y * C;
     var ix = Math.floor(gx), iy = Math.floor(gy);
     var best = 1e9, best2 = 1e9, i, j;
     for (j = -1; j <= 1; j++) {
+      var cy = iy + j;
+      var wy = cy % C; if (wy < 0) wy += C;
+      var row = wy * C, dy = cy - gy;
       for (i = -1; i <= 1; i++) {
-        var cx = ix + i, cy = iy + j;
+        var cx = ix + i;
         var wx = cx % C; if (wx < 0) wx += C;
-        var wy = cy % C; if (wy < 0) wy += C;
-        var px = cx + h3(wx, wy, seed);
-        var py = cy + h3(wx, wy, seed + 9871);
-        var dx = px - gx, dy = py - gy;
-        var d = dx * dx + dy * dy;
+        var o = row + wx;
+        var ddx = cx + TX[o] - gx, ddy = dy + TY[o];
+        var d = ddx * ddx + ddy * ddy;
         if (d < best) { best2 = best; best = d; } else if (d < best2) best2 = d;
       }
     }
@@ -300,10 +327,10 @@
 
   function ones(n) { var a = new Float32Array(n); a.fill(1); return a; }
 
-  function surf(N) {
-    var n2 = N * N;
+  function surfWH(W, H) {
+    var n2 = W * H;
     return {
-      N: N, n2: n2,
+      N: W, W: W, H: H, n2: n2,
       h: new Float32Array(n2),
       alb: new Float32Array(n2 * 3),
       ao: ones(n2),
@@ -311,6 +338,7 @@
       alpha: null
     };
   }
+  function surf(N) { return surfWH(N, N); }
 
   /* pow(x, e) lookup over x in 0..1 — the Blinn-Phong term is the single
      hottest math op in the whole bake, and 12 materials all pay it. */
@@ -328,9 +356,9 @@
 
   function shade(s, o) {
     o = o || {};
-    var N = s.N, M = N - 1, n2 = s.n2;
-    var cv = PV.makeCanvas(N, N);
-    var img = cv.ctx.createImageData(N, N);
+    var N = s.W || s.N, HH = s.H || s.N, M = N - 1, MY = HH - 1, n2 = s.n2;
+    var cv = PV.makeCanvas(N, HH);
+    var img = cv.ctx.createImageData(N, HH);
     var data = img.data;
     var h = s.h, alb = s.alb, ao = s.ao, sp = s.spec, alpha = s.alpha;
     var hS = o.hSpec || h;
@@ -352,8 +380,8 @@
     var t2r = s2t[0] / 255, t2g = s2t[1] / 255, t2b = s2t[2] / 255;
     var LUT = powLut(ex), LUT2 = s2m ? powLut(s2e) : null;
 
-    for (var y = 0; y < N; y++) {
-      var yn = y * N, yu = ((y - 1) & M) * N, yd = ((y + 1) & M) * N;
+    for (var y = 0; y < HH; y++) {
+      var yn = y * N, yu = ((y - 1) & MY) * N, yd = ((y + 1) & MY) * N;
       for (var x = 0; x < N; x++) {
         var i = yn + x, xl = (x - 1) & M, xr = (x + 1) & M;
         /* --- diffuse normal --- */
@@ -2549,6 +2577,8 @@
 
     LAT = {};              /* drop the noise lattices, they are not needed again */
     FIELDS = {};
+    WCELL = {};
+    _wcC = -1; _wcX = null; _wcY = null;
     TEX.bakeMs = PV.now() - t0;
     TEX.ready = true;
     if (global.console) console.log('[PV.Textures] baked ' + TEX.names.length + ' textures in ' + TEX.bakeMs.toFixed(1) + 'ms');

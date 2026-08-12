@@ -2131,83 +2131,369 @@
     return finishIcon(c, S);
   }
 
+  /* ------------------------------------------------------------------
+     SOLID-OF-REVOLUTION PROP BUILDER
+
+     Props like the column are not vector art with gradients painted on
+     them — they are real geometry. Each element is a "drum": a circular
+     cross-section swept between two radii, orthographically projected.
+     For a pixel at horizontal offset dx inside a drum of radius r, the
+     surface angle is th = asin(dx/r) and its depth toward the viewer is
+     z = r*cos(th). We write z straight into the height field IN PIXELS
+     and shade() is asked for bump 0.5, which makes
+        nx/nz = (h[x-1]-h[x+1])*0.5 = dz/dx = tan(th)
+     i.e. the barrel normals come out geometrically EXACT rather than
+     faked with a linear gradient. Flutes, reeds and dentils are then
+     just displacements of that same height field, so their arrises pick
+     up real specular glints and their troughs occlude correctly.
+
+     Drums are painted top-first; a lower drum's top face is masked by
+     `capIn` (the radius of whatever stands on it) so the stack reads as
+     a stack instead of the topmost element being buried.
+     ------------------------------------------------------------------ */
+  var _mr = 0, _mg = 0, _mb = 0, _ms = 1, _mao = 1, _mh = 0;
+
+  function put(s, i, cov, hv) {
+    var a = s.alpha, alb = s.alb, o = i * 3;
+    var oa = a[i];
+    if (cov >= 0.999 || oa <= 0.004) {
+      alb[o] = _mr; alb[o + 1] = _mg; alb[o + 2] = _mb;
+      s.spec[i] = _ms; s.ao[i] = _mao; s.h[i] = hv;
+      a[i] = cov + oa * (1 - cov);
+    } else {
+      var k = cov, ik = 1 - cov;
+      alb[o] = alb[o] * ik + _mr * k;
+      alb[o + 1] = alb[o + 1] * ik + _mg * k;
+      alb[o + 2] = alb[o + 2] * ik + _mb * k;
+      s.spec[i] = s.spec[i] * ik + _ms * k;
+      s.ao[i] = s.ao[i] * ik + _mao * k;
+      s.h[i] = s.h[i] * ik + hv * k;
+      a[i] = k + oa * ik;
+    }
+  }
+
+  function drum(s, o) {
+    var W = s.W, H = s.H;
+    var cx = o.cx, y0 = o.y0, y1 = o.y1;
+    var rT = o.rT, rB = o.rB === undefined ? o.rT : o.rB;
+    var bulge = o.bulge || 0, capRy = o.capRy || 0, botRy = o.botRy || 0;
+    var capIn = o.capIn || 0, mat = o.mat, capMat = o.capMat || mat;
+    var vprof = o.vprof ? 1 : 0;
+    var span = (y1 - y0) || 1;
+    var x, y, i, dx, ad, cov, u, zz, th, hv;
+
+    /* ---- barrel (plus the crescent of it that curls under at the bottom) ---- */
+    var yA = Math.max(0, Math.round(y0)), yB = Math.min(H - 1, Math.ceil(y1 + botRy));
+    for (y = yA; y <= yB; y++) {
+      var t = (y + 0.5 - y0) / span, tc = t < 0 ? 0 : (t > 1 ? 1 : t);
+      var r = rT + (rB - rT) * tc + bulge * Math.sin(Math.PI * tc);
+      var vp = 1, ext = r, covY = 1, under = 0;
+      if (vprof) { var q = 2 * tc - 1; vp = Math.sqrt(1 - q * q * 0.94); }
+      if (y + 0.5 > y1) {
+        if (!botRy) continue;
+        var db = (y + 0.5 - y1) / botRy;
+        if (db >= 1) continue;
+        ext = r * Math.sqrt(1 - db * db);
+        under = db;
+        covY = cl((1 - db) * botRy, 0, 1);
+      }
+      var xA = Math.max(0, Math.floor(cx - ext - 1)), xB = Math.min(W - 1, Math.ceil(cx + ext + 1));
+      for (x = xA; x <= xB; x++) {
+        dx = x + 0.5 - cx;
+        ad = dx < 0 ? -dx : dx;
+        cov = ext - ad + 0.5;
+        if (cov <= 0) continue;
+        if (cov > 1) cov = 1;
+        cov *= covY;
+        u = dx / ext;
+        if (u > 0.99999) u = 0.99999; else if (u < -0.99999) u = -0.99999;
+        zz = Math.sqrt(1 - u * u);
+        th = Math.asin(u);
+        i = y * W + x;
+        _mh = 0;
+        mat(x, y, u, th, zz, tc, 0, under);
+        hv = zz * ext * vp + _mh;
+        put(s, i, cov, hv);
+      }
+    }
+
+    /* ---- top face ---- */
+    if (capRy > 0) {
+      var inRy = capIn ? capRy * capIn / rT : 0;
+      var yC0 = Math.max(0, Math.floor(y0 - capRy - 1));
+      var yC1 = Math.min(H - 1, Math.ceil(y0 + capRy + 1));
+      /* A horizontal disc is NOT flat in this height field: its depth
+         toward the viewer ramps linearly down the screen, h = nv*K with
+         K = sqrt(rT^2 - capRy^2). That ramp is exactly continuous with
+         the barrel at every point of the rim (both equal nv*rT there),
+         which is what stops the cap edge from reading as an inked
+         outline — the old constant-height cap left an 18px cliff. */
+      var K = Math.sqrt(Math.max(0, rT * rT - capRy * capRy));
+      for (y = yC0; y <= yC1; y++) {
+        var dy = y + 0.5 - y0, ky = dy / capRy;
+        if (ky * ky >= 1) continue;
+        var hx = rT * Math.sqrt(1 - ky * ky);
+        var inHx = -1;
+        if (capIn) {
+          var kin = dy / inRy;
+          if (kin * kin < 1) inHx = capIn * Math.sqrt(1 - kin * kin);
+        }
+        var xA2 = Math.max(0, Math.floor(cx - hx - 1)), xB2 = Math.min(W - 1, Math.ceil(cx + hx + 1));
+        for (x = xA2; x <= xB2; x++) {
+          dx = x + 0.5 - cx;
+          ad = dx < 0 ? -dx : dx;
+          cov = hx - ad + 0.5;
+          if (cov <= 0) continue;
+          if (inHx > 0) {
+            var ci = ad - inHx + 0.5;
+            if (ci <= 0) continue;
+            if (ci < cov) cov = ci;
+          }
+          if (cov > 1) cov = 1;
+          var nu = dx / rT, nv = ky;
+          var qq = Math.sqrt(nu * nu + nv * nv);
+          i = y * W + x;
+          _mh = 0;
+          capMat(x, y, nu, nv, qq, 0, 1, 0);
+          hv = nv * K;
+          /* the far rim has nothing behind it, so ease it back to the
+             background level instead of dropping off a cliff */
+          if (nv < 0) hv *= 1 - 0.80 * ss(0.66, 1.0, qq);
+          hv += _mh;
+          put(s, i, cov, hv);
+        }
+      }
+    }
+  }
+
   /* ==================================================================
      PROPS — consistent 3/4 top-down, light upper-left, baked contact AO
      ================================================================== */
+
+  /* Fluted art-deco column: cream marble shaft with 22 real flutes, a
+     stepped ziggurat capital over a dentil course and a reeded echinus,
+     brass astragal + base rings, stone torus and plinth. Everything is
+     one height field shaded once — no gradient fills anywhere. */
   function bakeColumn() {
-    var W = 128, H = 256;
-    var c = scratch2x(W, H), ctx = c.ctx;
-    contactShadow(ctx, 64, 226, 58, 22, 0.6);
+    var W = 128, H = 256, s = surfWH(W, H);
+    s.alpha = new Float32Array(W * H);
 
-    /* shaft */
-    var sg = ctx.createLinearGradient(20, 0, 108, 0);
-    sg.addColorStop(0, '#1b1f27');
-    sg.addColorStop(0.16, '#454d5c');
-    sg.addColorStop(0.34, '#6d7789');
-    sg.addColorStop(0.6, '#3b424f');
-    sg.addColorStop(0.85, '#22262f');
-    sg.addColorStop(1, '#12151b');
-    ctx.fillStyle = sg;
-    ctx.beginPath();
-    ctx.moveTo(28, 66); ctx.lineTo(100, 66); ctx.lineTo(104, 220); ctx.lineTo(24, 220);
-    ctx.closePath(); ctx.fill();
+    var wxF = F('mw.x0', function () { return fieldFbm(128, 3, 3, 3, 0.5, 11); });
+    var wyF = F('mw.y0', function () { return fieldFbm(128, 3, 3, 3, 0.5, 29); });
+    var VEIN = F('col.vein', function () {
+      return warpField(fieldRidged(128, 5, 5, 3, 0.5, 4801), 128, wxF, wyF, 16, 0, 0);
+    });
+    var MOT = F('m.mot0', function () { return fieldFbm(128, 5, 5, 3, 0.55, 41); });
+    var MIC = F('m.micro', function () { return fieldFbm(128, 40, 40, 2, 0.5, 53); });
 
-    /* flutes */
-    for (var i = 0; i < 9; i++) {
-      var t = (i + 0.5) / 9;
-      var fx = 28 + t * 72;
-      var lit = Math.pow(1 - Math.abs(t - 0.28), 2);
-      ctx.strokeStyle = 'rgba(8,10,14,0.55)';
-      ctx.lineWidth = 2.2;
-      ctx.beginPath(); ctx.moveTo(fx, 66); ctx.lineTo(fx + (t - 0.5) * 8, 220); ctx.stroke();
-      ctx.strokeStyle = 'rgba(190,205,228,' + (0.05 + lit * 0.20) + ')';
-      ctx.lineWidth = 1.3;
-      ctx.beginPath(); ctx.moveTo(fx + 2.4, 66); ctx.lineTo(fx + 2.4 + (t - 0.5) * 8, 220); ctx.stroke();
+    var MB_BODY = rgbOf('#9a8968'), MB_LIGHT = rgbOf('#e6d9b8'), MB_DEEP = rgbOf('#463c2b');
+    var MB_VD = rgbOf('#5e5340'), MB_VH = rgbOf('#fbf6e6');
+    var MB_COOL = rgbOf('#5a6a86');
+    var BZ_DEEP = rgbOf('#2a1d05'), BZ_MID = rgbOf('#a8842a'), BZ_HOT = rgbOf('#ffefb8');
+    var _t = [0, 0, 0];
+    var brassMask = new Float32Array(W * H);
+    var alpha = s.alpha;
+
+    /* ---- cream marble; veins wrap the barrel via theta so they compress
+       towards the silhouette exactly like the flutes do. `u` is the signed
+       across-barrel coordinate: the far (right) flank gets pushed toward a
+       cool bounce colour so the prop has a warm key / cool fill split
+       instead of one grey ramp. ---- */
+    function marble(tu, tv, dim, gloss, u) {
+      var v = bilWrap(VEIN, 128, tu, tv);
+      var m = bilWrap(MOT, 128, tu * 0.45 + 31, tv * 0.45);
+      var mi = bilWrap(MIC, 128, tu, tv);
+      var vein = ss(0.55, 0.88, v);
+      var tone = 0.44 + (m - 0.5) * 0.95 + (mi - 0.5) * 0.26;
+      mixRGB(MB_BODY, MB_LIGHT, cl(tone, 0, 1), _t);
+      mixRGB(_t, MB_DEEP, ss(0.36, -0.10, tone) * 0.62, _t);
+      mixRGB(_t, MB_VD, vein * 0.70, _t);
+      mixRGB(_t, MB_VH, vein * vein * vein * 0.62, _t);
+      if (u) mixRGB(_t, MB_COOL, ss(0.05, 0.95, u) * 0.24, _t);
+      _mr = _t[0] * dim; _mg = _t[1] * dim; _mb = _t[2] * dim;
+      _ms = gloss * (0.80 + (mi - 0.5) * 0.55 - vein * 0.20);
+      _mao = 1 - vein * 0.06;
+      _mh = (mi - 0.5) * 0.55 + (m - 0.5) * 0.25 - vein * 0.35;
+      return vein;
     }
 
-    /* capital: three stepped deco tiers seen from slightly above */
-    function tier(cyy, rx, ry, hgt, cols) {
-      ctx.beginPath();
-      ctx.ellipse(64, cyy, rx, ry, 0, 0, Math.PI);
-      ctx.lineTo(64 - rx, cyy);
-      ctx.closePath();
-      var g = ctx.createLinearGradient(64 - rx, 0, 64 + rx, 0);
-      g.addColorStop(0, cols[0]); g.addColorStop(0.3, cols[1]); g.addColorStop(1, cols[2]);
-      ctx.fillStyle = g;
-      ctx.fillRect(64 - rx, cyy, rx * 2, hgt);
-      ctx.beginPath();
-      ctx.ellipse(64, cyy + hgt, rx, ry, 0, 0, Math.PI);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.ellipse(64, cyy, rx, ry, 0, 0, TAU);
-      var tg = ctx.createLinearGradient(64 - rx, cyy - ry, 64 + rx, cyy + ry);
-      tg.addColorStop(0, cols[3]); tg.addColorStop(0.45, cols[1]); tg.addColorStop(1, cols[0]);
-      ctx.fillStyle = tg; ctx.fill();
-      ctx.strokeStyle = 'rgba(8,10,14,0.5)'; ctx.lineWidth = 1;
-      ctx.stroke();
+    /* ---- brass: facing-driven ramp + fine circular brushing ---- */
+    function brass(x, y, u, th, dim) {
+      var br = bilWrap(MIC, 128, th * 46 + 17, y * 0.55);
+      var pat = bilWrap(MOT, 128, th * 12 + 71, y * 0.30);
+      /* 0 at the shaded right/lower flank, 1 where the bevel faces the key light */
+      var f = cl(0.5 - u * 0.66 + (br - 0.5) * 0.30, 0, 1);
+      mixRGB(BZ_DEEP, BZ_MID, ss(0.05, 0.72, f), _t);
+      mixRGB(_t, BZ_HOT, ss(0.66, 1.0, f) * 0.92, _t);
+      mixRGB(_t, BZ_DEEP, ss(0.55, 0.05, pat) * 0.30, _t);
+      _mr = _t[0] * dim; _mg = _t[1] * dim; _mb = _t[2] * dim;
+      _ms = 1.5 + (br - 0.5) * 1.3;
+      _mao = 1;
+      _mh = (br - 0.5) * 0.42;
     }
-    tier(56, 50, 15, 12, ['#1a1e26', '#5b6373', '#262b34', '#8b95a6']);
-    tier(40, 44, 13, 10, ['#1a1e26', '#525a69', '#22262e', '#7d8798']);
-    /* brass collar */
-    ctx.beginPath(); ctx.ellipse(64, 30, 38, 11, 0, 0, TAU);
-    ctx.fillStyle = metalGrad(ctx, 26, 20, 102, 42, BR_DARK, BR_MID, BR_HOT);
-    ctx.fill();
-    ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,236,180,0.45)'; ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(64, 30, 24, 7, 0, 0, TAU);
-    ctx.fillStyle = 'rgba(10,12,16,0.55)'; ctx.fill();
-    /* base */
-    ctx.beginPath(); ctx.ellipse(64, 220, 54, 17, 0, 0, TAU);
-    var bgg = ctx.createLinearGradient(10, 200, 118, 240);
-    bgg.addColorStop(0, '#8b95a6'); bgg.addColorStop(0.4, '#3a414e'); bgg.addColorStop(1, '#14171d');
-    ctx.fillStyle = bgg; ctx.fill();
-    ctx.strokeStyle = 'rgba(8,10,14,0.6)'; ctx.lineWidth = 1.2; ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(64, 216, 44, 13, 0, 0, TAU);
-    ctx.fillStyle = 'rgba(120,132,150,0.20)'; ctx.fill();
 
-    var out = down(c.canvas, W, H);
-    noiseOverlay(out, 0.10, 24, 24, 3, 3311, false);
-    rimLight(out, 1.6, 1.6, 'rgba(200,220,255,1)', 0.16, 'lighter');
-    return out;
+    var cx = 64;
+    var TAU_ = TAU;
+
+    /* ---------------- capital: two stepped deco plates ----------------
+       Each plate's SIDE has to be taller than its cap's minor axis or the
+       ellipse swallows it and the capital reads as a stack of pancakes. */
+    function plateSide(x, y, u, th, zz, tc) {
+      marble(th * 30 + 5, y * 1.15, 1, 1, u);
+      _mao *= 0.78 + 0.22 * (1 - tc);          /* each plate shades the one below */
+      _mh += -1.1 * ss(0.78, 1.0, tc);          /* undercut fillet at the bottom */
+      _mh += 0.9 * (1 - ss(0.0, 0.10, tc));     /* crisp arris at the top */
+    }
+    /* top face — the surface you actually stare at from above: a brass
+       sunburst inlay inside an incised marble border. */
+    /* The disc is only ~19px tall on screen, so anything finer than a bold
+       band turns to mush: one brass border ring, one centre boss, eight
+       stubby rays. Nothing else survives at this foreshortening. */
+    function plateTopA(x, y, nu, nv, qq) {
+      marble(nu * 34, nv * 34 + 60, 1, 1.05, 0);
+      var a = Math.atan2(nv, nu);
+      var ring = ss(0.700, 0.745, qq) * (1 - ss(0.855, 0.900, qq));
+      var boss = 1 - ss(0.185, 0.235, qq);
+      var ray = ss(0.72, 0.90, Math.cos(a * 8)) *
+        ss(0.30, 0.36, qq) * (1 - ss(0.60, 0.66, qq));
+      var bm = cl(ring + boss + ray, 0, 1);
+      var hot = cl(0.55 - (nu + nv * 0.9) * 0.55, 0, 1);
+      mixRGB(_t, BZ_DEEP, bm * 0.92, _t);
+      mixRGB(_t, BZ_MID, bm * ss(0.10, 0.70, hot) * 0.95, _t);
+      mixRGB(_t, BZ_HOT, bm * ss(0.62, 1.0, hot) * 0.85, _t);
+      _mr = _t[0]; _mg = _t[1]; _mb = _t[2];
+      _ms = _ms * (1 - bm) + bm * 2.2;
+      _mh += bm * 1.2 - (1 - ss(0.0, 0.075, Math.abs(qq - 0.945))) * 1.5;
+      _mao *= 1 - (1 - bm) * 0.10;
+      brassMask[y * W + x] = bm;
+    }
+    function plateTop(x, y, nu, nv, qq) {
+      marble(nu * 40, nv * 40 + 90, 1, 1.02, 0);
+      var g1 = 1 - ss(0.0, 0.085, Math.abs(qq - 0.90));
+      _mh += -g1 * 1.3;
+      _mao *= (1 - g1 * 0.18) * (0.60 + 0.40 * ss(0.80, 1.0, qq));
+    }
+
+    drum(s, {
+      cx: cx, y0: 17, y1: 32, rT: 40, rB: 40, capRy: 9.6,
+      mat: plateSide, capMat: plateTopA
+    });
+    drum(s, {
+      cx: cx, y0: 32, y1: 47, rT: 50, rB: 49, capRy: 12, capIn: 40,
+      mat: plateSide, capMat: plateTop
+    });
+
+    /* ---------------- dentil course ---------------- */
+    function dentils(x, y, u, th, zz, tc) {
+      var d = th * 18 / TAU_ + 0.5;
+      var fr = d - Math.floor(d);
+      var blk = ss(0.10, 0.20, fr) * (1 - ss(0.60, 0.70, fr));
+      var vert = ss(0.14, 0.30, tc) * (1 - ss(0.70, 0.90, tc));
+      var b = blk * vert;
+      marble(th * 30 + 200, y * 1.15, 1, 1, u);
+      _mh += b * 2.8 - 0.6;
+      _mao *= 0.54 + 0.46 * b;
+      _mr *= 0.78 + 0.22 * b; _mg *= 0.78 + 0.22 * b; _mb *= 0.78 + 0.22 * b;
+    }
+    drum(s, { cx: cx, y0: 47, y1: 60, rT: 45, rB: 42, mat: dentils });
+
+    /* ---------------- reeded echinus ---------------- */
+    function echinus(x, y, u, th, zz, tc) {
+      var d = th * 26 / TAU_ + 0.25;
+      var fr = d - Math.floor(d);
+      var w = 2 * fr - 1;
+      var reed = Math.sqrt(1 - w * w);
+      marble(th * 30 + 400, y * 1.15, 1, 1.05, u);
+      _mh += reed * 2.0;
+      _mao *= (0.72 + 0.28 * reed) * (0.70 + 0.30 * ss(0.0, 0.12, tc));
+      _ms *= 0.75 + 0.55 * reed;
+    }
+    drum(s, { cx: cx, y0: 60, y1: 77, rT: 41, rB: 36, mat: echinus });
+
+    /* ---------------- brass astragal (torus) ---------------- */
+    function astragal(x, y, u, th, zz, tc) {
+      brass(x, y, u, th, 1);
+      /* beading: little spheres strung round the collar */
+      var d = th * 30 / TAU_;
+      var fr = d - Math.floor(d);
+      var w = 2 * fr - 1;
+      var bead = Math.sqrt(cl(1 - w * w, 0, 1)) * Math.sin(Math.PI * cl(tc, 0, 1));
+      _mh += bead * 1.5;
+      _ms *= 0.8 + 0.5 * bead;
+      brassMask[y * W + x] = 1;
+    }
+    drum(s, { cx: cx, y0: 75, y1: 87, rT: 35, bulge: 3.0, vprof: 1, mat: astragal });
+
+    /* ---------------- fluted shaft ---------------- */
+    function shaft(x, y, u, th, zz, tc) {
+      var d = th * 22 / TAU_ + 0.5;
+      var fr = d - Math.floor(d);
+      var w = 2 * fr - 1;
+      var fl = Math.sqrt(1 - w * w);                 /* 1 in the trough, 0 on the arris */
+      /* flutes die out into a rounded stop at both ends of the shaft */
+      var run = ss(0, 0.050, tc) * (1 - ss(0.94, 1.0, tc));
+      marble(th * 30 + 700, y * 1.0, 1, 1, u);
+      _mh += -fl * 2.9 * run;
+      _mao *= 1 - 0.36 * fl * run;
+      _ms *= 0.60 + 0.66 * (1 - fl);                 /* arrises take the polish */
+      /* the capital overhangs: soft cast shadow down the top of the shaft,
+         plus grime creeping up from the base */
+      _mao *= (0.52 + 0.48 * ss(0.0, 0.090, tc)) * (1 - 0.14 * ss(0.86, 1.0, tc));
+    }
+    drum(s, { cx: cx, y0: 85, y1: 196, rT: 32, rB: 36, bulge: 1.8, mat: shaft });
+
+    /* ---------------- brass base ring ---------------- */
+    function baseRing(x, y, u, th, zz, tc) {
+      brass(x, y, u, th, 0.92);
+      var d = th * 34 / TAU_ + 0.1;
+      var fr = d - Math.floor(d);
+      _mh += (fr < 0.5 ? 0.7 : -0.7);
+      brassMask[y * W + x] = 1;
+    }
+    drum(s, { cx: cx, y0: 191, y1: 204, rT: 38, bulge: 3.2, vprof: 1, mat: baseRing });
+
+    /* ---------------- stone torus + plinth ---------------- */
+    function torus(x, y, u, th, zz, tc) {
+      marble(th * 34 + 950, y * 1.1, 0.90, 0.9, u);
+      _mao *= (0.76 + 0.24 * Math.sin(Math.PI * cl(tc, 0, 1))) *
+        (0.72 + 0.28 * ss(0.0, 0.16, tc));
+    }
+    drum(s, { cx: cx, y0: 202, y1: 220, rT: 44, bulge: 3.6, vprof: 1, mat: torus });
+
+    function plinthSide(x, y, u, th, zz, tc, part, under) {
+      marble(th * 36 + 1300, y * 1.1, 0.82, 0.85, u);
+      _mao *= (0.70 + 0.30 * (1 - tc)) * (1 - under * 0.55);
+      _mh += -1.2 * ss(0.82, 1.0, tc);
+      _mh += 0.8 * (1 - ss(0.0, 0.12, tc));
+    }
+    function plinthTop(x, y, nu, nv, qq) {
+      marble(nu * 48, nv * 48 + 1700, 0.86, 0.9, 0);
+      /* the torus standing on the plinth pools occlusion at its foot */
+      _mao *= 0.48 + 0.52 * ss(0.72, 1.0, qq);
+    }
+    drum(s, {
+      cx: cx, y0: 218, y1: 238, rT: 51, rB: 53, capRy: 13, capIn: 44,
+      botRy: 11, mat: plinthSide, capMat: plinthTop
+    });
+
+    /* fine per-pixel dust settled on every up-facing surface */
+    var i, n2 = W * H;
+    for (i = 0; i < n2; i++) {
+      if (alpha[i] > 0) s.h[i] += (h3(i & 127, i >> 7, 4242) - 0.5) * 0.30;
+    }
+
+    var cnv = shade(s, {
+      bump: 0.5, exp: 26, si: 0.30, tint: [255, 246, 226],
+      amb: 0.40, dif: 0.92, contrast: 0.18, grain: 3.0,
+      spec2: { mask: brassMask, exp: 90, si: 0.95, tint: [255, 226, 150] }
+    });
+
+    /* contact shadow goes *behind* the sprite so it never dulls the marble */
+    var g = cnv.getContext('2d');
+    g.globalCompositeOperation = 'destination-over';
+    contactShadow(g, 64, 245, 62, 20, 0.62);
+    g.globalCompositeOperation = 'source-over';
+    return cnv;
   }
 
   function bakeCrate() {

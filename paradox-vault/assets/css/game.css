@@ -99,6 +99,25 @@ body {
     var(--n) 100%, var(--n) calc(100% - var(--n2)), var(--n2) calc(100% - var(--n2)),
     var(--n2) calc(100% - var(--n)), 0 calc(100% - var(--n))
   );
+  /* the same deco step, but only on the bottom edge: used by the HUD marquee,
+     which is docked flush to the top of the screen and hangs down from it. */
+  --step-clip-hang: polygon(
+    0 0, 100% 0,
+    100% calc(100% - var(--n)),
+    calc(100% - var(--n2)) calc(100% - var(--n)),
+    calc(100% - var(--n2)) calc(100% - var(--n2)),
+    calc(100% - var(--n)) calc(100% - var(--n2)),
+    calc(100% - var(--n)) 100%,
+    var(--n) 100%,
+    var(--n) calc(100% - var(--n2)),
+    var(--n2) calc(100% - var(--n2)),
+    var(--n2) calc(100% - var(--n)),
+    0 calc(100% - var(--n))
+  );
+
+  /* published by ui.js: how much of the viewport the permanent chrome covers */
+  --pv-ins-t: 0px;
+  --pv-ins-b: 0px;
 
   /* -- easing -- */
   --e-out:  cubic-bezier(0.16, 0.84, 0.36, 1);
@@ -137,7 +156,11 @@ body {
   contain: layout style;
 }
 #pv-ui *, #pv-ui *::before, #pv-ui *::after { box-sizing: border-box; }
-#pv-ui button, #pv-ui input, #pv-ui select, #pv-ui a {
+/* :where() keeps this reset at zero specificity so component rules such as
+   .pv-tbtn / .pv-seg__b / .pv-link can still set their own font-size. With a
+   plain `#pv-ui button` selector the id beat every class and every button in
+   the game silently rendered at the root 12px. */
+:where(#pv-ui) :where(button, input, select, a) {
   font: inherit;
   color: inherit;
   touch-action: manipulation;
@@ -390,7 +413,7 @@ body {
   gap: .45em;
   padding: calc(var(--u)*.34) calc(var(--u)*.5);
   font-family: var(--font-display);
-  font-size: var(--fs-xs);
+  font-size: max(10.5px, var(--fs-xs));
   letter-spacing: 0.18em;
   text-transform: uppercase;
   text-decoration: none;
@@ -883,25 +906,59 @@ body {
   display: block;
   padding: 0;
   pointer-events: none !important;
+  /* the hud never scales in/out: ui.js measures its real box every layout and
+     a transform would poison getBoundingClientRect. */
+  transform: none !important;
 }
 .pv-screen--hud::before { display: none; }
 .pv-hud {
   position: absolute;
   inset: 0;
-  padding: calc(var(--safe-t) + var(--u)*.55) calc(var(--safe-r) + var(--u)*.7)
-           calc(var(--safe-b) + var(--u)*.55) calc(var(--safe-l) + var(--u)*.7);
+  /* #pv-ui already applies the safe-area insets, so this is pure gutter. */
+  padding: 0 calc(var(--u)*.5);
   display: flex;
   flex-direction: column;
   align-items: center;
   pointer-events: none;
+  overflow: hidden;
 }
 #pv-ui[data-screen="pause"] .pv-screen--hud,
 #pv-ui[data-screen="hud"]   .pv-screen--hud { opacity: 1; visibility: visible; }
 #pv-ui[data-screen="pause"] .pv-hud { filter: saturate(.5) brightness(.6); }
 
-/* ---- the console ------------------------------------------------- */
+/* ---- the rail the marquee hangs from ------------------------------ *
+   A single engraved brass hairline that runs the width of the screen and
+   dies away at both edges, with a second finer line 3px under it. ui.js
+   parks it exactly on the plate's bottom edge. It reads as one continuous
+   line through the console instead of a box floating in the corner.       */
+.pv-rail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  display: block;
+  pointer-events: none;
+  background: linear-gradient(90deg,
+    rgba(201,162,39,0) 0%, rgba(201,162,39,.10) 12%,
+    rgba(201,162,39,.34) 34%, rgba(233,204,126,.46) 50%,
+    rgba(201,162,39,.34) 66%, rgba(201,162,39,.10) 88%, rgba(201,162,39,0) 100%);
+}
+.pv-rail::after {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 3px;
+  height: 1px;
+  background: linear-gradient(90deg,
+    rgba(0,0,0,0), rgba(0,0,0,.62) 22%, rgba(0,0,0,.62) 78%, rgba(0,0,0,0));
+}
+
+/* ---- the console marquee ------------------------------------------ */
 .pv-console {
-  width: min(100%, calc(var(--u) * 53));
+  position: relative;
+  width: min(100%, calc(var(--u) * 44));
   display: flex;
   flex-direction: column;
   pointer-events: none;
@@ -909,25 +966,31 @@ body {
 .pv-plate {
   --n:  calc(var(--u) * 0.66);
   --n2: calc(var(--u) * 0.32);
-  filter: drop-shadow(0 calc(var(--u)*.5) calc(var(--u)*1.1) rgba(0,0,0,.78));
+  /* docked to the top edge: square shoulders up top, stepped deco skirt below */
+  clip-path: var(--step-clip-hang);
+  padding: 0 1.5px 1.5px;
+  filter: drop-shadow(0 calc(var(--u)*.42) calc(var(--u)*.95) rgba(0,0,0,.8));
   transition: filter .3s var(--e-out);
 }
+.pv-plate > .pv-in { clip-path: var(--step-clip-hang); }
 .pv-plate__in {
   display: grid;
   grid-template-columns: auto auto minmax(0, 1fr) auto auto;
   grid-template-areas: "loop echo mission score pause";
   align-items: stretch;
-  padding: calc(var(--u)*.36) calc(var(--u)*.42);
+  padding: calc(var(--u)*.40) calc(var(--u)*.42) calc(var(--u)*.44);
   -webkit-backdrop-filter: blur(10px) saturate(118%);
   backdrop-filter: blur(10px) saturate(118%);
-  background-color: rgba(8, 11, 17, .74);
+  background-color: rgba(8, 11, 17, .78);
 }
 .pv-plate__in::after {                       /* engraved keyline */
   content: "";
   position: absolute;
   inset: calc(var(--u)*.18);
-  border: 1px solid rgba(201,162,39,.13);
-  clip-path: var(--step-clip);
+  inset-block-start: 0;
+  border: 1px solid rgba(201,162,39,.15);
+  border-top: 0;
+  clip-path: var(--step-clip-hang);
   pointer-events: none;
 }
 
@@ -1122,6 +1185,10 @@ body {
 }
 #pv-ui[data-touch="1"] .pv-kbd { display: none; }
 #pv-ui:not([data-touch="1"]) .pv-echo__glyph { display: none; }
+/* On a touch device the rewind affordance IS the thumb button — repeating it
+   here left a stray cyan chip loose under the pips. */
+#pv-ui[data-touch="1"] .pv-echo__foot { display: none; }
+#pv-ui[data-touch="1"] .pv-cell--echo { justify-content: center; }
 
 /* ---- 3. mission -------------------------------------------------- */
 .pv-cell--mission {
@@ -1141,13 +1208,16 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
-  line-height: 1;
+  /* overflow:hidden + line-height:1 shaved the ascenders off the caps on
+     short viewports; 1.24 gives the glyphs their own box back. */
+  line-height: 1.24;
   text-shadow: 0 1px 0 rgba(0,0,0,.95);
 }
 .pv-objective {
   font-family: var(--font-ui);
   font-size: calc(var(--u)*.76);
   line-height: 1.3;
+  text-wrap: pretty;
   letter-spacing: .012em;
   color: rgba(243,236,220,.94);
   text-shadow: 0 1px 2px rgba(0,0,0,.9);
@@ -1208,6 +1278,10 @@ body {
 }
 .pv-chip .pv-num { font-size: 1.16em; color: var(--gold); letter-spacing: .02em; }
 .pv-chip--relic { box-shadow: inset 0 0 0 1px rgba(255,207,92,.38), inset 0 1px 0 rgba(255,240,200,.12); }
+.pv-chip--relic .pv-chip__gem {
+  background: linear-gradient(135deg, rgba(255,243,196,.95), rgba(201,162,39,.85));
+  box-shadow: 0 0 calc(var(--u)*.28) rgba(255,200,90,.5);
+}
 .pv-chip--combo {
   color: var(--holo);
   box-shadow: inset 0 0 0 1px rgba(95,240,255,.42), 0 0 calc(var(--u)*.45) rgba(95,240,255,.16);
@@ -1277,19 +1351,23 @@ body {
 /* ---- alert hazard bar, tucked under the plate -------------------- */
 .pv-alert {
   --pct: 0;
-  position: relative;
-  width: min(calc(var(--u)*17), 66%);
-  height: calc(var(--u)*.56);
-  margin: calc(var(--u)*-.06) auto 0;
+  /* absolutely placed so an idle alert bar never inflates the measured
+     height of the chrome — the room gets those pixels back. */
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  z-index: 2;
+  width: min(calc(var(--u)*17), 62%);
+  height: calc(var(--u)*.62);
   padding: 1px;
-  background: linear-gradient(180deg, rgba(255,120,80,.7), rgba(90,22,12,.75));
-  clip-path: polygon(calc(var(--u)*.55) 0, calc(100% - var(--u)*.55) 0, 100% 100%, 0 100%);
+  background: linear-gradient(180deg, rgba(255,120,80,.75), rgba(90,22,12,.8));
+  clip-path: polygon(0 0, 100% 0, calc(100% - var(--u)*.5) 100%, calc(var(--u)*.5) 100%);
   opacity: 0;
-  transform: translateY(calc(var(--u)*-.5));
+  transform: translate(-50%, calc(var(--u)*-.45));
   transition: opacity .28s var(--e-out), transform .28s var(--e-out);
   filter: drop-shadow(0 calc(var(--u)*.2) calc(var(--u)*.5) rgba(0,0,0,.7));
 }
-.pv-alert.is-on { opacity: 1; transform: none; }
+.pv-alert.is-on { opacity: 1; transform: translate(-50%, 0); }
 .pv-alert__t { position: relative; height: 100%; background: rgba(3,5,8,.9); overflow: hidden; }
 .pv-alert__f {
   position: absolute; inset: 0;
@@ -1343,10 +1421,10 @@ body {
  * ------------------------------------------------------------------ */
 .pv-touch {
   position: absolute;
-  left: 62%;
+  left: 60%;
   right: 0;
   bottom: 0;
-  height: min(58%, calc(var(--u) * 22));
+  height: min(46%, calc(var(--u) * 12));
   pointer-events: none;
   display: none;
 }
@@ -1364,12 +1442,13 @@ body {
   justify-content: center;
   gap: .1em;
   font-family: var(--font-display);
-  letter-spacing: .14em;
+  letter-spacing: .1em;
   text-transform: uppercase;
   color: var(--paper);
   text-shadow: 0 1px 2px rgba(0,0,0,.9);
   -webkit-user-select: none; user-select: none;
-  touch-action: none;
+  touch-action: manipulation;
+  overflow: hidden;
   transition: transform .09s var(--e-out), filter .12s var(--e-out);
 }
 .pv-tbtn::before {
@@ -1391,23 +1470,40 @@ body {
 .pv-tbtn.is-down { transform: scale(.94); }
 .pv-tbtn.is-down::before { filter: brightness(1.5); box-shadow: inset 0 0 0 2px rgba(255,215,110,.8), inset 0 3px 12px rgba(0,0,0,.8); }
 .pv-tbtn--action {
-  right: calc(var(--safe-r) + var(--u) * 1.0);
-  bottom: calc(var(--safe-b) + var(--u) * 1.6);
-  width: calc(var(--u) * 5.2);
-  height: calc(var(--u) * 5.2);
-  font-size: calc(var(--u) * .66);
+  right: calc(var(--u) * 1.1);
+  bottom: calc(var(--u) * 2.0);
+  width: max(64px, calc(var(--u) * 6.2));
+  height: max(64px, calc(var(--u) * 6.2));
   color: var(--gold);
 }
 .pv-tbtn--rewind {
-  right: calc(var(--safe-r) + var(--u) * 6.6);
-  bottom: calc(var(--safe-b) + var(--u) * 3.0);
-  width: calc(var(--u) * 4.0);
-  height: calc(var(--u) * 4.0);
-  font-size: calc(var(--u) * .56);
+  right: calc(var(--u) * 8.3);
+  bottom: calc(var(--u) * 4.1);
+  width: max(54px, calc(var(--u) * 5.2));
+  height: max(54px, calc(var(--u) * 5.2));
   color: var(--holo);
 }
 .pv-tbtn--rewind::before { box-shadow: inset 0 0 0 2px rgba(95,240,255,.45), inset 0 2px 0 rgba(200,255,255,.18), inset 0 -3px 10px rgba(0,0,0,.7), 0 6px 18px rgba(0,0,0,.55); }
-.pv-tbtn__glyph { font-size: 1.5em; line-height: 1; }
+/* Explicit sizes with a legibility floor. These used to inherit the root
+   12px because the old `#pv-ui button { font: inherit }` reset out-specified
+   every class here, and "REWIND" spilled straight out of its own button. */
+.pv-tbtn__glyph {
+  font-size: max(19px, calc(var(--u) * 1.5));
+  line-height: 1;
+  margin-bottom: .06em;
+}
+.pv-tbtn__lbl {
+  font-size: max(9px, calc(var(--u) * .5));
+  line-height: 1;
+  letter-spacing: .1em;
+  text-indent: .1em;
+  max-width: 92%;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: .88;
+}
+.pv-tbtn--rewind .pv-tbtn__glyph { font-size: max(17px, calc(var(--u) * 1.3)); }
+.pv-tbtn--action .pv-tbtn__lbl { font-size: max(10px, calc(var(--u) * .56)); }
 .pv-tbtn[disabled] { opacity: .38; pointer-events: none; }
 
 /* ------------------------------------------------------------------ *
@@ -1728,7 +1824,9 @@ body {
 .pv-toasts {
   position: absolute;
   left: 50%;
-  bottom: calc(var(--safe-b) + var(--u) * 4.2);
+  /* --pv-ins-b is the measured height of the thumb cluster, published by
+     ui.js. Toasts stack above it instead of underneath it. */
+  bottom: calc(var(--safe-b) + var(--pv-ins-b, 0px) + var(--u) * 1.1);
   transform: translateX(-50%);
   display: flex;
   flex-direction: column-reverse;
@@ -1861,36 +1959,77 @@ body {
 
 /* --- tablet / small laptop: console keeps one row but tightens --- */
 @media (max-width: 1100px) {
-  .pv-console { width: 100%; }
-  .pv-cell { padding-left: calc(var(--u)*.6); padding-right: calc(var(--u)*.6); }
+  .pv-console { width: min(100%, calc(var(--u) * 44)); }
+  .pv-cell { padding-left: calc(var(--u)*.62); padding-right: calc(var(--u)*.62); }
 }
 
-/* --- below ~820px the mission line needs its own row --- */
-@media (max-width: 820px) {
+/* --- below ~700px the console folds into two rows.
+   The loop dial is a single grid item that spans both rows because the area
+   name appears twice in the template — never with `grid-row: span 2`, which
+   is what used to stack the dial straight on top of the echo pips and the
+   REWIND caption at 320 and 390 CSS px.                                    */
+@media (max-width: 700px) {
+  /* edge to edge: a 6px sliver of gameplay either side of the bar reads as a
+     mistake, a full-bleed band reads as chrome. */
+  .pv-hud { padding: 0; }
+  /* the bar already spans the screen; a second rule under it just doubles up */
+  .pv-rail { display: none; }
+  .pv-console { width: 100%; }
+  .pv-plate { padding-left: 0; padding-right: 0; }
   .pv-plate__in {
     grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-areas:
-      "loop  mission mission"
-      "echo  score   pause";
-    row-gap: calc(var(--u)*.22);
+      "loop mission pause"
+      "loop echo    score";
+    column-gap: 0;
+    row-gap: calc(var(--u)*.26);
+    padding: calc(var(--u)*.34) calc(var(--u)*.34) calc(var(--u)*.42);
   }
+  .pv-cell { padding: calc(var(--u)*.14) calc(var(--u)*.5); }
   .pv-cell + .pv-cell { border-left: 0; box-shadow: none; }
+
+  .pv-cell--loop {
+    align-self: center;
+    padding: 0 calc(var(--u)*.62) 0 calc(var(--u)*.26);
+    border-right: 1px solid rgba(0,0,0,.8);
+    box-shadow: inset -1px 0 0 rgba(255,238,190,.09);
+  }
   .pv-cell--mission {
     justify-content: center;
-    border-left: 1px solid rgba(0,0,0,.8) !important;
-    box-shadow: inset 1px 0 0 rgba(255,238,190,.09) !important;
-    padding-right: calc(var(--u)*.5);
+    padding: calc(var(--u)*.1) calc(var(--u)*.5) calc(var(--u)*.22) calc(var(--u)*.66);
   }
   .pv-cell--echo,
   .pv-cell--score {
-    border-top: 1px solid rgba(0,0,0,.8);
-    box-shadow: inset 0 1px 0 rgba(255,238,190,.08);
+    border-top: 1px solid rgba(0,0,0,.78);
+    box-shadow: inset 0 1px 0 rgba(255,238,190,.075);
     padding-top: calc(var(--u)*.3);
   }
-  .pv-cell--score { padding-left: calc(var(--u)*.6); }
-  .pv-cell--loop { grid-row: span 2; align-self: center; }
-  .pv-console__pause { align-self: end; margin-bottom: calc(var(--u)*.15); }
+  .pv-cell--echo { padding-left: calc(var(--u)*.66); justify-content: center; }
   .pv-cell--echo .pv-cell__k { display: none; }
+  .pv-cell--score {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: calc(var(--u)*.42);
+    padding-left: calc(var(--u)*.5);
+  }
+  .pv-cell--score .pv-cell__k { display: none; }
+  .pv-console__pause {
+    align-self: center;
+    justify-self: end;
+    margin: calc(var(--u)*.14) calc(var(--u)*.2) 0 calc(var(--u)*.34);
+  }
+  /* The vault name is the brief's job. In play, the live objective is the
+     only line in this cell that earns the width. */
+  .pv-vault { display: none; }
+  .pv-objective {
+    font-size: max(11px, calc(var(--u)*.9));
+    line-height: 1.26;
+    -webkit-line-clamp: 2; line-clamp: 2;
+  }
+  .pv-score__v { font-size: calc(var(--u)*1.3); }
+  .pv-pips { gap: calc(var(--u)*.32); padding: 0; }
+  .pv-alert { width: min(calc(var(--u)*15), 58%); }
 }
 
 /* --- short viewports (phone landscape, 844x390) --- */
@@ -1906,18 +2045,24 @@ body {
   .pv-screen__body { gap: calc(var(--u)*.35); }
   .pv-card > .pv-in { padding: calc(var(--pad)*.85) calc(var(--pad)*1.0); }
   .pv-help__cols { grid-template-columns: 1fr 1fr; }
-  .pv-toasts { bottom: calc(var(--safe-b) + var(--u)*1.2); }
-  .pv-tbtn--action { width: calc(var(--u)*4.4); height: calc(var(--u)*4.4); bottom: calc(var(--safe-b) + var(--u)*.8); }
-  .pv-tbtn--rewind { width: calc(var(--u)*3.4); height: calc(var(--u)*3.4); right: calc(var(--safe-r) + var(--u)*5.6); bottom: calc(var(--safe-b) + var(--u)*1.9); }
-  /* HUD must stay out of the way when there is no vertical room */
-  .pv-hud { padding-top: calc(var(--safe-t) + var(--u)*.3); }
-  .pv-loop { width: calc(var(--u)*4.1); height: calc(var(--u)*4.1); }
-  .pv-loop__sec b { font-size: calc(var(--u)*1.3); }
-  .pv-loop__sec small { font-size: calc(var(--u)*.62); }
-  .pv-plate__in { padding: calc(var(--u)*.26) calc(var(--u)*.34); }
-  .pv-cell { padding-top: calc(var(--u)*.2); padding-bottom: calc(var(--u)*.2); }
+  /* thumbs sit in the bottom-right corner; keep the cluster short so the
+     bottom inset it costs the camera stays small on a 390px-tall window. */
+  .pv-tbtn--action {
+    width: max(58px, calc(var(--u)*5.0)); height: max(58px, calc(var(--u)*5.0));
+    right: calc(var(--u)*.9); bottom: calc(var(--u)*.9);
+  }
+  .pv-tbtn--rewind {
+    width: max(52px, calc(var(--u)*4.4)); height: max(52px, calc(var(--u)*4.4));
+    right: calc(var(--u)*7.2); bottom: calc(var(--u)*2.3);
+  }
+  .pv-touch { height: min(52%, calc(var(--u)*9)); }
+  .pv-loop { width: calc(var(--u)*4.3); height: calc(var(--u)*4.3); }
+  .pv-loop__sec b { font-size: calc(var(--u)*1.34); }
+  .pv-loop__sec small { font-size: calc(var(--u)*.64); }
+  .pv-plate__in { padding: calc(var(--u)*.3) calc(var(--u)*.34) calc(var(--u)*.34); }
+  .pv-cell { padding-top: calc(var(--u)*.18); padding-bottom: calc(var(--u)*.18); }
   .pv-objective { -webkit-line-clamp: 1; line-clamp: 1; }
-  .pv-alert { height: calc(var(--u)*.46); }
+  .pv-alert { height: calc(var(--u)*.5); }
 }
 
 /* --- landscape phones: title menu becomes 2 columns --- */
@@ -1926,24 +2071,13 @@ body {
   .pv-links { margin-top: calc(var(--u)*.4); }
 }
 
-/* --- phones: two-row console, tighter type --- */
-@media (max-width: 560px) {
-  .pv-plate__in {
-    grid-template-areas:
-      "loop  mission pause"
-      "echo  score   score";
-    column-gap: 0;
-  }
-  .pv-cell--loop { grid-row: 1 / span 2; }
-  .pv-console__pause { align-self: start; margin-top: calc(var(--u)*.1); }
-  .pv-cell--mission { padding-right: calc(var(--u)*.4); }
-  .pv-cell--score { flex-direction: row; align-items: center; justify-content: flex-end; gap: calc(var(--u)*.45); }
-  .pv-cell--score .pv-cell__k { display: none; }
-  .pv-score__v { font-size: calc(var(--u)*1.24); }
-  .pv-vault { font-size: calc(var(--u)*.5); letter-spacing: .22em; text-indent: .22em; }
-  .pv-objective { font-size: calc(var(--u)*.7); }
-  .pv-pips { gap: calc(var(--u)*.3); }
-  .pv-alert { width: 80%; }
+/* --- phones: drop the relic word, the dial shrinks a notch --- */
+@media (max-width: 470px) {
+  .pv-loop { width: calc(var(--u)*4.7); height: calc(var(--u)*4.7); }
+  .pv-loop__sec b { font-size: calc(var(--u)*1.46); }
+  .pv-loop__sec small { font-size: calc(var(--u)*.68); }
+  .pv-chip--relic .pv-chip__k { display: none; }
+  .pv-chip { padding: calc(var(--u)*.12) calc(var(--u)*.36); }
 }
 
 /* --- narrow phones --- */
@@ -1952,10 +2086,13 @@ body {
   .pv-logo__vault { letter-spacing: .44em; text-indent: .44em; }
   .pv-brief__grid { grid-template-columns: 1fr 1fr; }
   .pv-modal__btns .pv-btn { flex: 1 1 100%; }
-  .pv-cell { padding-left: calc(var(--u)*.45); padding-right: calc(var(--u)*.45); }
+  .pv-cell { padding-left: calc(var(--u)*.42); padding-right: calc(var(--u)*.42); }
+  .pv-cell--loop { padding: 0 calc(var(--u)*.5) 0 calc(var(--u)*.16); }
+  .pv-cell--mission { padding-left: calc(var(--u)*.52); padding-right: calc(var(--u)*.34); }
+  .pv-cell--echo { padding-left: calc(var(--u)*.52); }
   .pv-loop { width: calc(var(--u)*4.3); height: calc(var(--u)*4.3); }
-  .pv-loop__sec b { font-size: calc(var(--u)*1.4); }
-  .pv-chip--relic .pv-chip__k { display: none; }
+  .pv-loop__sec b { font-size: calc(var(--u)*1.36); }
+  .pv-objective { font-size: max(10px, calc(var(--u)*.84)); }
   .pv-echo__foot .pv-echo__word { display: none; }
 }
 
@@ -1967,16 +2104,12 @@ body {
 /* --- 4K / very large: scale HUD up and pull it inward so it stays composed --- */
 @media (min-width: 2200px) {
   #pv-ui { --u: clamp(20px, calc(0.30vw + 14px), 30px); }
-  .pv-hud {
-    padding: calc(var(--safe-t) + 2.4vh) calc(var(--safe-r) + 2.6vw)
-             calc(var(--safe-b) + 2.4vh) calc(var(--safe-l) + 2.6vw);
-  }
   .pv-screen__body { max-width: calc(var(--u) * 34); }
-  .pv-console { width: min(100%, calc(var(--u) * 50)); }
+  .pv-console { width: min(100%, calc(var(--u) * 42)); }
+  .pv-plate__in { padding: calc(var(--u)*.46) calc(var(--u)*.5) calc(var(--u)*.5); }
 }
 @media (min-width: 3200px) {
-  #pv-ui { --u: 30px; }
-  .pv-hud { padding: calc(var(--safe-t) + 3vh) calc(var(--safe-r) + 3.4vw) calc(var(--safe-b) + 3vh) calc(var(--safe-l) + 3.4vw); }
+  #pv-ui { --u: 34px; }
   .pv-logo__main { font-size: clamp(96px, 8vw, 200px); }
   .pv-logo__vault { font-size: clamp(34px, 3.1vw, 72px); }
 }

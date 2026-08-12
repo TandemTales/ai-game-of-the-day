@@ -1105,8 +1105,10 @@
   }
 
   UI.setTouchVisible = function (v) {
+    if (touchVisible === !!v && root && root.getAttribute('data-touch')) return;
     touchVisible = !!v;
     if (root) root.setAttribute('data-touch', touchVisible ? '1' : '0');
+    relayout();
   };
 
   /* ---------------- setHUD (allocation-light, DOM-diffed) ---------------- */
@@ -1275,6 +1277,7 @@
       L.vault = vn;
       el.vault.textContent = st.vaultWing ? (vn + ' · ' + st.vaultWing) : vn;
       el.vault.title = vn;
+      relayout();
     }
     var ob = st.objective || '';
     if (ob !== L.objective) {
@@ -1282,6 +1285,7 @@
       el.objective.textContent = ob;
       el.objective.title = ob;
       el.objective.style.display = ob ? '' : 'none';
+      relayout();
     }
 
     /* ---- rewind affordance ---- */

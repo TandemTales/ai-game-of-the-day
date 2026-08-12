@@ -97,25 +97,30 @@
      Camera
      ================================================================== */
   R.frameCamera = function (world, dt, focusX, focusY) {
-    var vw = view.w, vh = view.h;
-    /* Fit the vault with a small margin, then bias towards the larger of the
-       two fits so ultrawide windows are not mostly empty. */
+    var av = R.viewport();
+    var vw = av.w, vh = av.h;
+    /* Fit the vault with a small margin, then zoom in towards the *tight* fit so
+       a window whose aspect differs from the room's is not mostly empty.
+       The zoom target is deliberately the no-margin fit and never anything
+       looser: eating into the margin is fine, cropping the room is not. A
+       portrait phone looking at a landscape room has fitH >> fitW, and biasing
+       toward that looser fit used to push the room's left and right walls off
+       screen entirely. */
     var pad = 0.45;   // tiles of margin
-    var wantW = (world.vault.w + pad * 2) * T;
-    var wantH = (world.vault.h + pad * 2) * T;
-    var fitW = vw / wantW, fitH = vh / wantH;
-    var fit = Math.min(fitW, fitH);
-    /* pull up to 22% of the way toward the looser fit — crops a sliver of the
-       margin on the long axis but makes the vault dominate the frame */
-    fit = PV.lerp(fit, Math.max(fitW, fitH), 0.22);
+    var worldW = world.vault.w * T, worldH = world.vault.h * T;
+    var wantW = worldW + pad * 2 * T;
+    var wantH = worldH + pad * 2 * T;
+    var fitPadded = Math.min(vw / wantW, vh / wantH);  // room + full margin visible
+    var fitTight = Math.min(vw / worldW, vh / worldH); // room exactly fills, no margin
+    var fit = PV.lerp(fitPadded, fitTight, 0.55);
     var minScale = PV.isMobile ? 0.34 : 0.50;
     var maxScale = 2.4;
-    var s = PV.clamp(fit, minScale, maxScale);
+    /* minScale must never win if honouring it would crop the room off-screen. */
+    var s = PV.clamp(fit, Math.min(minScale, fitTight), maxScale);
     cam.tScale = s;
     cam.scale = PV.damp(cam.scale || s, s, 8, dt);
 
     var halfW = vw / (2 * cam.scale), halfH = vh / (2 * cam.scale);
-    var worldW = world.vault.w * T, worldH = world.vault.h * T;
 
     var tx, ty;
     if (worldW + pad * T * 2 <= halfW * 2) tx = worldW / 2;
@@ -137,21 +142,53 @@
   R.camera = cam;
   R.view = view;
 
+  /* ------------------------------------------------------------------
+     Safe insets — CSS px of the viewport that permanent HUD chrome covers.
+     ui.js owns the HUD and is the only thing that knows how tall the top bar
+     or the touch-control cluster actually is, so it declares them here and the
+     camera frames the room into what is left. Defaults to zero, so the render
+     layer is correct on its own if ui.js never calls this.
+     ------------------------------------------------------------------ */
+  var insets = R.insets = { top: 0, right: 0, bottom: 0, left: 0 };
+  R.setInsets = function (top, right, bottom, left) {
+    insets.top = Math.max(0, top || 0);
+    insets.right = Math.max(0, right || 0);
+    insets.bottom = Math.max(0, bottom || 0);
+    insets.left = Math.max(0, left || 0);
+  };
+
+  /* The rectangle the world is framed into, in CSS px. Never collapses below a
+     usable size even if the HUD claims more room than exists. */
+  R.viewport = function () {
+    var w = view.w - insets.left - insets.right;
+    var h = view.h - insets.top - insets.bottom;
+    var minW = view.w * 0.5, minH = view.h * 0.5;
+    if (w < minW) w = minW;
+    if (h < minH) h = minH;
+    return {
+      w: w, h: h,
+      cx: insets.left + (view.w - insets.left - insets.right) / 2,
+      cy: insets.top + (view.h - insets.top - insets.bottom) / 2
+    };
+  };
+
   function applyWorldTransform(ctx, scaleBoost) {
     var dpr = view.dpr;
     var s = cam.scale * (scaleBoost || 1);
+    var av = R.viewport();
     ctx.setTransform(
       s * dpr, 0, 0, s * dpr,
-      (view.w / 2 - (cam.x + cam.shakeX) * s) * dpr,
-      (view.h / 2 - (cam.y + cam.shakeY) * s) * dpr
+      (av.cx - (cam.x + cam.shakeX) * s) * dpr,
+      (av.cy - (cam.y + cam.shakeY) * s) * dpr
     );
   }
   R.applyWorldTransform = applyWorldTransform;
 
   R.screenToWorld = function (sx, sy) {
+    var av = R.viewport();
     return {
-      x: (sx - view.w / 2) / cam.scale + cam.x,
-      y: (sy - view.h / 2) / cam.scale + cam.y
+      x: (sx - av.cx) / cam.scale + cam.x,
+      y: (sy - av.cy) / cam.scale + cam.y
     };
   };
 
@@ -1480,9 +1517,11 @@
     lc.fillRect(0, 0, lw, lh);
 
     var s = cam.scale * view.dpr * 0.5;
+    var lav = R.viewport();   /* must track applyWorldTransform exactly, or the
+                                 light buffer slides off the scene it lights */
     lc.setTransform(s, 0, 0, s,
-      (view.w / 2 - (cam.x + cam.shakeX) * cam.scale) * view.dpr * 0.5,
-      (view.h / 2 - (cam.y + cam.shakeY) * cam.scale) * view.dpr * 0.5);
+      (lav.cx - (cam.x + cam.shakeX) * cam.scale) * view.dpr * 0.5,
+      (lav.cy - (cam.y + cam.shakeY) * cam.scale) * view.dpr * 0.5);
     lc.globalCompositeOperation = 'lighter';
 
     var i;
@@ -1602,6 +1641,7 @@
      Post processing
      ================================================================== */
   var grainTile = null;
+  var grainPat = null, grainPatSrc = null;
   function getGrain() {
     if (grainTile) return grainTile;
     var tex = TX('noise.grain');
@@ -1715,7 +1755,10 @@
       mctx.globalAlpha = 0.16;
       var ox = (Math.floor(time * 24) * 61) % 128;
       var oy = (Math.floor(time * 24) * 97) % 128;
-      var pat = mctx.createPattern(gt, 'repeat');
+      /* the pattern is immutable once the grain tile is baked — building it
+         again every frame just churns garbage */
+      if (grainPat === null || grainPatSrc !== gt) { grainPat = mctx.createPattern(gt, 'repeat'); grainPatSrc = gt; }
+      var pat = grainPat;
       mctx.save();
       mctx.translate(-ox, -oy);
       mctx.fillStyle = pat;

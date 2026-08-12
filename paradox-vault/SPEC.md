@@ -288,16 +288,35 @@ from Google Fonts on its own pages; **this game must not fetch it** — keep off
 
 ## 8. Gameplay contract (lead-owned, listed so other modules can read state)
 
-`PV.Game.state` is the single source of truth:
+State is split in two. **`PV.Game.state` is run/meta state only** — it is not the
+simulation:
 ```js
-{
+PV.Game.state = {
   phase: 'boot'|'title'|'brief'|'playing'|'rewinding'|'paused'|'clear'|'gameover',
-  vaultIndex, vault, loopIndex, tick, ticksLeft,
-  echoes: [Echo], echoesLeft, echoesMax,
-  player: Actor, devices: [Device], sentries: [Sentry], relics: [Relic],
-  score, combo, alert
+  vaultIndex, vault,        // vault = the parsed level from PV.Levels.get()
+  loopIndex,                // 0-based, increments on every rewind
+  echoesLeft, echoesMax,
+  score, runScore
 }
 ```
+
+**`PV.Game.world` is the simulation** — everything that ticks lives here, in
+separate typed arrays rather than one `devices` list:
+```js
+PV.Game.world = {
+  vault, tick, ticksLeft, loopTicks,
+  player: Actor, echoes: [Echo], allActors: [Actor],
+  plates, levers, terminals, receivers, doors, lasers, mirrors, vents,
+  relics, sentries, props, lamps, skylights,       // all arrays
+  exit: Exit, signals, doorAt,                     // doorAt is a w*h tile index
+  alert, alertTarget, rewindFx, phase, desyncs, caught, relicsHeldByAny
+}
+```
+
+Do not read gameplay values off `PV.Game.state` — `tick`, `echoes`, `player`,
+`relics`, `sentries` and `alert` are all on `world`. The HUD gets its own
+flattened view-model (§7), built once per frame in `game.js`; read that rather
+than reaching into `world` from UI code.
 
 ### Rules
 1. Each loop lasts 22 s (2640 ticks). Player inputs are recorded per tick.

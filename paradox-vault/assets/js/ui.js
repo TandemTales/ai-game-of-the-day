@@ -365,6 +365,9 @@
   function buildHud() {
     var s = makeScreen('hud');
     var hud = h('div', 'pv-hud');
+    /* full-width brass rail the console marquee hangs from; JS parks it on the
+       plate's bottom edge so it reads as one continuous engraved line. */
+    var rail = h('i', 'pv-rail');
     var con = h('div', 'pv-console');
     var plate = frame('pv-plate');
     plate.body.classList.add('pv-plate__in');
@@ -396,7 +399,7 @@
     var chips = h('div', 'pv-chipwrap');
     var relicChip = h('div', 'pv-chip pv-chip--relic');
     var relicV = h('span', 'pv-num', '0/0');
-    add(relicChip, h('span', 'pv-chip__k', 'Relics'), relicV);
+    add(relicChip, h('i', 'pv-chip__gem'), h('span', 'pv-chip__k', 'Relics'), relicV);
     var comboChip = h('div', 'pv-chip pv-chip--combo is-hidden');
     var comboV = h('span', 'pv-num', '×1');
     add(comboChip, comboV);
@@ -427,10 +430,10 @@
     live.setAttribute('aria-live', 'polite');
     live.setAttribute('aria-atomic', 'true');
 
-    add(hud, con, live);
+    add(hud, rail, con, live);
     add(s, hud, buildTouch());
 
-    el.hud = hud; el.console = con; el.plate = plate.el;
+    el.hud = hud; el.rail = rail; el.console = con; el.plate = plate.el;
     el.pipWrap = pipWrap; el.pips = [];
     el.echoCell = cEcho; el.echoFoot = echoFoot;
     el.vault = vaultEl; el.objective = objEl;
@@ -469,7 +472,7 @@
     var b = h('button', 'pv-tbtn ' + cls);
     b.type = 'button';
     b.setAttribute('aria-label', label);
-    add(b, h('span', 'pv-tbtn__glyph', glyph), h('span', null, label));
+    add(b, h('span', 'pv-tbtn__glyph', glyph), h('span', 'pv-tbtn__lbl', label));
     bindHold(b, name);
     return b;
   }
@@ -887,6 +890,98 @@
   }
 
   /* ================================================================
+     LAYOUT INSETS
+     The renderer frames the vault into whatever rectangle we leave it.
+     We are the only module that knows how tall the console marquee and
+     the touch cluster actually are, so we measure the real boxes and
+     declare them via PV.Render.setInsets(top,right,bottom,left).
+     Only PERMANENT chrome counts — never modals, toasts or the flash.
+     The same numbers are published as CSS custom properties so the
+     toast stack can sit clear of the thumb buttons.
+     ================================================================ */
+  var ins = { t: -1, b: -1, railY: -1 };
+  var layoutRaf = 0;
+
+  function boxOf(node) {
+    if (!node) return null;
+    var r;
+    try { r = node.getBoundingClientRect(); } catch (e) { return null; }
+    if (!r || (r.width <= 0 && r.height <= 0)) return null;
+    return r;
+  }
+
+  function measureLayout() {
+    layoutRaf = 0;
+    if (!inited || !root) return;
+    var vw = global.innerWidth || (D.documentElement && D.documentElement.clientWidth) || 0;
+    var vh = global.innerHeight || (D.documentElement && D.documentElement.clientHeight) || 0;
+    if (!vw || !vh) return;
+
+    /* --- top: the console marquee (plate + alert rail), always present --- */
+    var top = 0, railY = 0;
+    var con = boxOf(el.console);
+    if (con) top = con.bottom;
+    var plate = boxOf(el.plate);
+    railY = plate ? plate.bottom : top;
+
+    /* --- bottom: the touch cluster, only while it is actually on screen --- */
+    var bottom = 0;
+    var btns = [el.btnAction, el.btnRewind], lo = Infinity;
+    for (var i = 0; i < btns.length; i++) {
+      var b = boxOf(btns[i]);
+      if (b && b.top < lo) lo = b.top;
+    }
+    if (lo < Infinity) bottom = vh - lo;
+
+    /* Be conservative: never let the HUD claim so much that the room is
+       squeezed, and never report a negative or absurd number. */
+    var cap = vh * 0.34;
+    top = Math.round(PV.clamp ? PV.clamp(top, 0, cap) : Math.max(0, Math.min(top, cap)));
+    bottom = Math.round(PV.clamp ? PV.clamp(bottom, 0, cap) : Math.max(0, Math.min(bottom, cap)));
+
+    if (top !== ins.t || bottom !== ins.b) {
+      ins.t = top; ins.b = bottom;
+      root.style.setProperty('--pv-ins-t', top + 'px');
+      root.style.setProperty('--pv-ins-b', bottom + 'px');
+      if (PV.Render && PV.Render.setInsets) {
+        try { PV.Render.setInsets(top, 0, bottom, 0); } catch (e) {}
+      }
+    }
+    railY = Math.round(railY);
+    if (railY !== ins.railY && el.rail) {
+      ins.railY = railY;
+      el.rail.style.top = railY + 'px';
+    }
+  }
+
+  function relayout() {
+    if (!inited) return;
+    if (layoutRaf) return;
+    layoutRaf = raf(measureLayout);
+  }
+  UI.relayout = relayout;
+
+  function watchLayout() {
+    global.addEventListener('resize', relayout, { passive: true });
+    global.addEventListener('orientationchange', relayout, { passive: true });
+    if (global.visualViewport && global.visualViewport.addEventListener) {
+      global.visualViewport.addEventListener('resize', relayout, { passive: true });
+    }
+    if (global.ResizeObserver) {
+      try {
+        var ro = new global.ResizeObserver(relayout);
+        ro.observe(el.console);
+        if (el.touchWrap) ro.observe(el.touchWrap);
+      } catch (e) {}
+    }
+    /* fonts / first paint can settle a frame or two late */
+    relayout();
+    setTimeout(relayout, 60);
+    setTimeout(relayout, 260);
+    setTimeout(relayout, 900);
+  }
+
+  /* ================================================================
      PUBLIC API
      ================================================================ */
 
@@ -955,6 +1050,7 @@
     }, true);
 
     UI.showScreen('boot');
+    watchLayout();
   };
 
   UI.showScreen = function (name) {
@@ -976,6 +1072,7 @@
     }
     if (name === 'clear') revealResults(el.resClear);
     if (name === 'gameover') revealResults(el.resOver);
+    relayout();
   };
 
   UI.screen = function () { return cur; };

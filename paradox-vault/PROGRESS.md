@@ -67,6 +67,19 @@ the arcade's analytics, present on every game page, not a game defect. Note it
 Gameplay driven headlessly: movement, `PV.Game.rewind()`, echo spawn and
 `echoesLeft` decrement all behave. Console clean through a rewind.
 
+**Rewind accounting verified**: exactly one echo spawned and one `echoesLeft`
+consumed per rewind, `loopIndex` +1 each time, capped correctly at `echoesMax`.
+(An earlier reading suggesting +2 per rewind was a sampling artifact — the
+snapshot was taken mid-transition, before the rewind had settled.)
+
+**End-to-end vault clear verified** (this had never been exercised): driving
+vault 1 with a BFS autopilot that respects `PV.solidAt`, the player picks up the
+crown, banks it at the exit, and the vault clears — `phase: 'clear'`,
+`runScore: 2360`, clean console. Banking is automatic on `exit.contains(player)`,
+no action press needed. Note the leaderboard is **not** called on vault clear;
+`submitScore` only fires on run-over, which is correct but means the leaderboard
+path itself is still unexercised end-to-end.
+
 ### PERFORMANCE — the biggest open question, do not skip
 
 Measured at 1440x900, dpr 1: **~11 fps**, `Render.draw` ≈ 66 ms/frame, with the

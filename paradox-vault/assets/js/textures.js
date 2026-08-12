@@ -2352,26 +2352,23 @@
     function plateTopA(x, y, nu, nv, qq) {
       marble(nu * 34, nv * 34 + 60, 1, 1.05, 0);
       var a = Math.atan2(nv, nu);
-      var ring = ss(0.700, 0.745, qq) * (1 - ss(0.855, 0.900, qq));
-      var boss = 1 - ss(0.185, 0.235, qq);
-      var ray = ss(0.72, 0.90, Math.cos(a * 8)) *
-        ss(0.30, 0.36, qq) * (1 - ss(0.60, 0.66, qq));
-      var bm = cl(ring + boss + ray, 0, 1);
+      var ring = ss(0.560, 0.615, qq) * (1 - ss(0.790, 0.845, qq));
+      var boss = 1 - ss(0.230, 0.290, qq);
+      var notch = ss(0.55, 0.80, Math.cos(a * 8));
+      var bm = cl(ring * (1 - notch * 0.85) + boss, 0, 1);
       var hot = cl(0.55 - (nu + nv * 0.9) * 0.55, 0, 1);
       mixRGB(_t, BZ_DEEP, bm * 0.92, _t);
       mixRGB(_t, BZ_MID, bm * ss(0.10, 0.70, hot) * 0.95, _t);
       mixRGB(_t, BZ_HOT, bm * ss(0.62, 1.0, hot) * 0.85, _t);
       _mr = _t[0]; _mg = _t[1]; _mb = _t[2];
       _ms = _ms * (1 - bm) + bm * 2.2;
-      _mh += bm * 1.2 - (1 - ss(0.0, 0.075, Math.abs(qq - 0.945))) * 1.5;
-      _mao *= 1 - (1 - bm) * 0.10;
+      _mh += bm * 1.4;
+      _mao *= 1 - (1 - bm) * 0.08;
       brassMask[y * W + x] = bm;
     }
     function plateTop(x, y, nu, nv, qq) {
       marble(nu * 40, nv * 40 + 90, 1, 1.02, 0);
-      var g1 = 1 - ss(0.0, 0.085, Math.abs(qq - 0.90));
-      _mh += -g1 * 1.3;
-      _mao *= (1 - g1 * 0.18) * (0.60 + 0.40 * ss(0.80, 1.0, qq));
+      _mao *= 0.66 + 0.34 * ss(0.74, 1.0, qq);
     }
 
     drum(s, {

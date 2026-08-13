@@ -11,10 +11,8 @@
   </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#07100e" />
-  <meta name="description" content="Fight through a haunted clockwork bayou in Bayou Brawlers: Gearbound, a cinematic arcade brawler." />
   <title>Bayou Brawlers: Gearbound</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&amp;family=Oxanium:wght@500;600;700&amp;family=Press+Start+2P&amp;family=Rajdhani:wght@500;600;700&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
   <style>
     :root {
@@ -886,7 +884,6 @@
       }
     }
   </style>
-  <link rel="stylesheet" href="premium.css?v=viewport-3">
   <script>
     const GAME_ID = 'bayou-brawlers';
   </script>
@@ -895,7 +892,7 @@
   <div class="wrap">
     <header>
       <div class="title">
-        <img id="arcadeLogo" src="assets/BB_premium_crest.png" alt="Bayou Brawlers crest" width="48" height="48">
+        <img id="arcadeLogo" src="../images/botbuiltarcade-icon-face.png" alt="Arcade" width="36" height="36" style="border-radius:50%; border:2px solid var(--gold)">
         <h1>Bayou Brawlers: Gearbound</h1>
       </div>
       <div class="title-actions">
@@ -903,7 +900,6 @@
           <span aria-hidden="true">&#x27F5;</span> Home
         </a>
         <a class="btn" href="../leaderboard.html?gameId=bayou-brawlers">Leaderboard</a>
-        <button class="btn" id="pauseBtn" type="button" aria-label="Pause game" aria-pressed="false">Pause</button>
         <button class="btn" id="muteBtn" type="button" aria-pressed="false">Mute</button>
       </div>
     </header>
@@ -941,27 +937,6 @@
       <canvas id="game" width="960" height="540"></canvas>
     </div>
 
-    <div class="premium-encounter-hud" id="encounterHud" aria-live="polite">
-      <div class="encounter-copy">
-        <div class="encounter-kicker" id="encounterKicker">Expedition 01 // The Swamp</div>
-        <div class="encounter-objective" id="encounterObjective">Advance into the mire</div>
-      </div>
-      <div class="encounter-progress" id="waveProgress" aria-label="Encounter progress"></div>
-    </div>
-
-    <div class="combo-readout" id="comboReadout" aria-live="polite">
-      <span class="combo-count" id="comboCount">0</span>
-      <span class="combo-label" id="comboLabel">Hit chain</span>
-    </div>
-
-    <div class="boss-rail" id="bossRail" aria-live="polite">
-      <div class="boss-rail-copy">
-        <span id="bossRailName">Boss</span>
-        <span id="bossRailValue">100%</span>
-      </div>
-      <div class="boss-rail-track"><div class="boss-rail-fill" id="bossRailFill"></div></div>
-    </div>
-
     <div class="boss-popup" id="bossPopup" role="status" aria-live="assertive" aria-atomic="true">
       <h2 id="bossPopupTitle">Boss Incoming!</h2>
       <p id="bossPopupBody">Brace for impact.</p>
@@ -977,11 +952,10 @@
         <div class="direction-label">MOVE</div>
       </div>
       <div class="action-pad">
-        <button class="pad-btn primary" data-input="fast" aria-label="Fast attack"><span class="pad-btn-label">FAST</span></button>
-        <button class="pad-btn" data-input="jump" aria-label="Jump"><span class="pad-btn-label">JUMP</span></button>
-        <button class="pad-btn warn" data-input="power" aria-label="Heavy attack"><span class="pad-btn-label">HEAVY</span></button>
-        <button class="pad-btn special" data-input="special" aria-label="Special ability"><span class="pad-btn-label">SPEC</span></button>
-        <button class="pad-btn block" data-input="block" aria-label="Block"><span class="pad-btn-label">BLOCK</span></button>
+        <button class="pad-btn primary" data-input="fast"><span class="pad-btn-label">FAST</span></button>
+        <button class="pad-btn" data-input="jump"><span class="pad-btn-label">JUMP</span></button>
+        <button class="pad-btn warn" data-input="power"><span class="pad-btn-label">HEAVY</span></button>
+        <button class="pad-btn special" data-input="special"><span class="pad-btn-label">SPEC</span></button>
       </div>
     </div>
 
@@ -1013,11 +987,7 @@
       <div class="panel">
         <h2 id="messageTitle">Stage Complete</h2>
         <p id="messageBody"></p>
-        <div class="message-actions">
-          <button class="btn" id="messageBtn">Continue</button>
-          <button class="btn" id="retryDefeatBtn" type="button" hidden>Retry Expedition</button>
-          <button class="btn btn-secondary" id="defeatRosterBtn" type="button" hidden>Choose Another Brawler</button>
-        </div>
+        <button class="btn" id="messageBtn">Continue</button>
       </div>
     </div>
 
@@ -1040,31 +1010,12 @@
     <div class="overlay" id="characterSheetOverlay">
       <div class="panel character-sheet-panel" id="characterSheetPanel" aria-live="polite"></div>
     </div>
-
-    <div class="overlay" id="pauseOverlay" role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
-      <div class="panel pause-panel">
-        <h2 id="pauseTitle">Expedition Paused</h2>
-        <p>The bayou will wait. Recenter, review your controls, then return to the fight.</p>
-        <div class="pause-controls">
-          <strong>Move</strong> &nbsp; WASD / Arrow Keys<br>
-          <strong>Fast / Heavy / Special</strong> &nbsp; J / K / L<br>
-          <strong>Jump / Block</strong> &nbsp; Space / Shift<br>
-          <strong>Character Sheet</strong> &nbsp; C
-        </div>
-        <div class="pause-actions">
-          <button class="btn" id="resumeBtn" type="button">Resume Expedition</button>
-          <button class="btn" id="restartBtn" type="button">Restart Current Expedition</button>
-          <button class="btn" id="rosterBtn" type="button">Return to Brawler Select</button>
-        </div>
-      </div>
-    </div>
   </div>
 
   <script>
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
+    ctx.imageSmoothingEnabled = false;
 
     const state = {
       ready: false,
@@ -1108,7 +1059,6 @@
       commandBuffTimer: 0,
       chokeHoldOwnerId: null,
       paused: false,
-      hitStopFrames: 0,
       pendingLevelUps: [],
       currentLevelUp: null,
       cheats: {
@@ -1229,7 +1179,7 @@
       elite: { attack: 'assets/BB_sfx_automatick_attack.mp3', hit: 'assets/BB_sfx_automatick_hit.mp3', killed: 'assets/BB_sfx_automatick_killed.mp3', walking: 'assets/BB_sfx_automatick_walking.mp3' },
       brute: { attack: 'assets/BB_sfx_hiredGun_attack.mp3', hit: 'assets/BB_sfx_hiredGun_hit.mp3', killed: 'assets/BB_sfx_hiredGun_killed.mp3' },
       mage: { attack: 'assets/BB_sfx_ladyWorthington_attack.mp3', hit: 'assets/BB_sfx_queenOfHearts_hit.mp3', killed: 'assets/BB_sfx_ladyWorthington_dying.mp3' },
-      sweetykins: { attack: 'assets/BB_sfx_sweetykins_attack.mp3', hit: 'assets/BB_sfx_sweetykins_hurt.mp3', killed: 'assets/BB_sfx_sweetykins_killed.mp3', walking: 'assets/BB_sfx_sweetykins_walking.mp3' },
+      sweetykins: { attack: 'assets/BB_sfx_sweetykins_attack.mp3', hit: 'assets/BB_sfx_sweetykins_hit.mp3', killed: 'assets/BB_sfx_sweetykins_killed.mp3', walking: 'assets/BB_sfx_sweetykins_walking.mp3' },
       bambo: { attack: 'assets/BB_sfx_bambo_attack.mp3', hit: 'assets/BB_sfx_bambo_hit.mp3', killed: 'assets/BB_sfx_bambo_killed.mp3', walking: 'assets/BB_sfx_bambo_walking.mp3' },
       tinkeringTom: { attack: 'assets/BB_sfx_tinkeringTom_attack.mp3', hit: 'assets/BB_sfx_tinkeringTom_hit.mp3', killed: 'assets/BB_sfx_tinkeringTom_killed.mp3' },
       boss: { attack: 'assets/BB_sfx_mudMonster_attack.mp3', hit: 'assets/BB_sfx_mudMonster_hit.mp3', killed: 'assets/BB_sfx_mudMonster_killed.mp3' }
@@ -1457,9 +1407,9 @@
         physicsProfileId: 'player-billy-boxby',
         stats: { speed: 3.0, power: 1.05, range: 50, durability: 115 },
         moves: {
-          fast: 'Cryo repeater blast',
-          power: 'Deep-freeze cannon',
-          special: 'Deploy a slowing frost field'
+          fast: 'Boxing jab',
+          power: 'Heavy crate smash',
+          special: 'Summon helper ally'
         },
         special: (player) => {
           state.ally = { x: player.x, y: player.y - 20, timer: 360 };
@@ -1474,9 +1424,9 @@
         physicsProfileId: 'player-green-fairy',
         stats: { speed: 3.5, power: 0.9, range: 58, durability: 95 },
         moves: {
-          fast: 'Pollen bolt',
-          power: 'Blinding fairy burst',
-          special: 'Charm a foe into an ally'
+          fast: 'Quick wand tap',
+          power: 'Fey burst',
+          special: 'Arc shot (ranged)'
         },
         special: (player) => {
           spawnProjectile(player, 9, 34, true, '#7aff9c');
@@ -1491,9 +1441,9 @@
         physicsProfileId: 'player-grimma-the-feared',
         stats: { speed: 2.9, power: 1.3, range: 42, durability: 135 },
         moves: {
-          fast: 'Barbed lash',
-          power: 'Cruel hook crack',
-          special: 'Root enemies in living shadow'
+          fast: 'Axe hook',
+          power: 'Fearsome cleave',
+          special: 'Battle roar (shockwave)'
         },
         special: (player) => {
           spawnShockwave(player.x + (player.facing * 30), player.y, 50, 26, 24, 80);
@@ -1508,9 +1458,9 @@
         physicsProfileId: 'player-old-man-croc',
         stats: { speed: 2.8, power: 1.35, range: 36, durability: 140 },
         moves: {
-          fast: 'Predator bite',
-          power: 'Bone-crushing chomp',
-          special: 'Death roll shock assault'
+          fast: 'Tail swipe',
+          power: 'Gator crush',
+          special: 'Mud wall (shield)'
         },
         special: (player) => {
           player.shieldTimer = 240;
@@ -1525,9 +1475,9 @@
         physicsProfileId: 'player-possumatli',
         stats: { speed: 3.8, power: 0.9, range: 40, durability: 100 },
         moves: {
-          fast: 'Rapid staff strikes',
-          power: 'Sweeping staff finisher',
-          special: 'Invulnerable feint and stun'
+          fast: 'Scramble slash',
+          power: 'Pounce combo',
+          special: 'Dash cut (invuln)'
         },
         special: (player) => {
           player.dashTimer = 30;
@@ -1542,9 +1492,9 @@
         physicsProfileId: 'player-rustbucket',
         stats: { speed: 3.9, power: 1.1, range: 42, durability: 130 },
         moves: {
-          fast: 'Quickdraw rounds',
-          power: 'Concussive heavy shot',
-          special: 'Deploy sentry firing mode'
+          fast: 'Quick cleave combo',
+          power: 'Heavy wrench uppercut',
+          special: 'Steamguard (damage shield)'
         },
         special: (player) => {
           player.shieldTimer = 240;
@@ -1559,9 +1509,9 @@
         physicsProfileId: 'player-scarlett-glumpkin',
         stats: { speed: 3.4, power: 0.95, range: 46, durability: 98 },
         moves: {
-          fast: 'Toxic needle burst',
-          power: 'Volatile seed blast',
-          special: 'Summon drone and poison roots'
+          fast: 'Needle jab',
+          power: 'Clockwork burst',
+          special: 'Toxic flare (ranged)'
         },
         special: (player) => {
           spawnProjectile(player, 9, 30, true, '#ff8fd6');
@@ -1577,9 +1527,9 @@
         physicsProfileId: 'player-shunky-rooster',
         stats: { speed: 3.1, power: 1.15, range: 52, durability: 122 },
         moves: {
-          fast: 'Chest-beam pulse',
-          power: 'Overcharged beam smash',
-          special: 'Sustained core-laser sweep'
+          fast: 'Spur peck',
+          power: 'Wing haymaker',
+          special: 'Thorn snare (root)'
         },
         special: (player) => {
           rootEnemies(player.x, player.y, 90);
@@ -1634,9 +1584,9 @@
         { types: ['origamiDragon', 'origamiToad'], count: 8 }
       ], boss: { name: 'Origami Master', type: 'origamiMaster' } },
       { id: 'emberfall', name: 'The Gatorglass Vault: Tom’s Machine', background: 'background-toms-machine', worldWidth: 1800, unlockFullMapAtStart: true, waves: [
-        { types: ['bambo'], count: 2 },
-        { types: ['bambo'], count: 2 },
-        { types: ['bambo'], count: 3 }
+        { types: ['bambo'], count: 8 },
+        { types: ['bambo'], count: 9 },
+        { types: ['bambo'], count: 9 }
       ], boss: { name: 'Tinkering Tom', type: 'tinkeringTom' } },
       { id: 'docks', name: 'The Docks', background: 'background-docks', waves: [
         { types: ['thug', 'goblin'], count: 9 },
@@ -1722,7 +1672,7 @@
     const ENEMY_SPEED_MULTIPLIER = 1.23;
     const REGULAR_WAVE_COUNT = 8;
     const TOTAL_WAVE_COUNT = 9;
-    const CAMPAIGN_STAGE_LIMIT = levels.length;
+    const CAMPAIGN_STAGE_LIMIT = Math.min(10, levels.length);
     const WAVE_TRIGGER_PCTS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
     const IDLE_ARROW_DELAY_FRAMES = 300;
     const WAVE_BARRIER_PLAYER_MARGIN = 12;
@@ -2105,18 +2055,6 @@
       ]
     };
 
-    // Preserve the full design catalog, but only offer upgrades that currently
-    // have a gameplay hook. This keeps level-up choices mechanically truthful.
-    const IMPLEMENTED_UPGRADE_IDS = new Set([
-      'cold-reservoir', 'permafrost-boots', 'shatter-shock', 'ice-in-the-veins',
-      'dust-collector', 'bewitching-presence', 'float-step', 'sparkle-bloom',
-      'long-glamour', 'perfect-glamour', 'shockwave', 'overheated-core',
-      'scorched-ground', 'emergency-venting', 'mechanized-momentum', 'dancers-step',
-      'flow-state', 'sweeping-staff', 'relentless-advance', 'master-of-the-bayou-path',
-      'piercing-shot', 'shrapnel-protocol', 'ricochet-logic', 'garden-of-thorns',
-      'thornproof-gloves', 'chain-reaction-spores', 'mauling-frenzy', 'territorial-beast'
-    ]);
-
     const UPGRADE_IMAGE_OVERRIDES = {
       character: {
         possumatli: 'possomatli'
@@ -2320,12 +2258,9 @@
         for (const facingName of facings) {
           const facingConfig = config[facingName];
           if (!facingConfig) continue;
-          const [src, configuredFrameCount] = facingConfig;
+          const [src, frameCount] = facingConfig;
           const img = await loadImage(src);
-          const inferredFrameCount = img.height > 0 && img.width % img.height === 0
-            ? Math.max(1, Math.round(img.width / img.height))
-            : configuredFrameCount;
-          const frames = buildFrameRects(img, inferredFrameCount);
+          const frames = buildFrameRects(img, frameCount);
           tracks[stateName][facingName] = {
             img,
             frames,
@@ -4197,13 +4132,8 @@
       if (!player) return;
       const cyclePosition = getLevelCyclePosition(level);
       if ([2, 6, 9].includes(cyclePosition)) {
-        const previousMaxHp = player.maxHp;
         player.maxHp *= 1.08;
-        if (player === state.player) {
-          healPlayer(player.maxHp - previousMaxHp);
-        } else {
-          player.hp = clamp(player.hp + (player.maxHp - previousMaxHp), 0, player.maxHp);
-        }
+        healPlayer(player.maxHp * 0.08);
       }
       if ([3, 5].includes(cyclePosition)) player.maxPower += 20;
       if (cyclePosition === 5 && player.charData.id === 'shunky-rooster') {
@@ -4224,8 +4154,7 @@
     }
 
     function getEligibleUpgradeChoices(player) {
-      const pool = (CHARACTER_UPGRADES[player.charData.id] || [])
-        .filter((entry) => IMPLEMENTED_UPGRADE_IDS.has(entry.id));
+      const pool = CHARACTER_UPGRADES[player.charData.id] || [];
       return pool.filter((entry) => {
         if (!entry.repeatable && player.selectedUpgrades.has(entry.id)) return false;
         if (entry.requiresLevel && player.level < entry.requiresLevel) return false;
@@ -4550,27 +4479,6 @@
       if (!enemy || enemy.hp <= 0 || enemy.invulnFrames > 0 || enemy.untargetable) return;
       enemy.hp -= amount;
       const defeated = enemy.hp <= 0;
-      const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-      if (!reducedMotion && options?.source !== 'poison-tick') {
-        const hitStop = defeated ? 5 : (amount >= 24 ? 4 : (amount >= 12 ? 2 : 1));
-        state.hitStopFrames = Math.max(state.hitStopFrames || 0, hitStop);
-        state.shake = Math.max(state.shake || 0, defeated ? 7 : (amount >= 24 ? 5 : 2));
-      }
-      if (options?.source !== 'poison-tick') {
-        state.effects.push({
-          type: 'floating-text',
-          text: String(Math.max(1, Math.round(amount))),
-          x: enemy.x + rand(-13, 13),
-          y: getEntityWalkTopOpaqueWorldY(enemy, enemy.isBoss ? BOSS_DRAW_SIZE : ENEMY_DRAW_SIZE) - 6,
-          vx: rand(-0.16, 0.16),
-          vy: defeated ? -1.25 : -0.82,
-          drift: rand(-0.025, 0.025),
-          timer: defeated ? 42 : 30,
-          maxTimer: defeated ? 42 : 30,
-          color: defeated ? 'rgba(255, 226, 142, 0.98)' : 'rgba(244, 234, 210, 0.96)',
-          outline: 'rgba(22, 13, 8, 0.98)'
-        });
-      }
       if (defeated) playEnemySfx(enemy, 'killed');
       else playEnemySfx(enemy, 'hit');
       if (stun > 0) {
@@ -5322,7 +5230,7 @@
     function handleAttacks() {
       const player = state.player;
       if (!player) return;
-      if (player.actionLock > 0 || player.stun > 0 || player.block) return;
+      if (player.actionLock > 0 || player.stun > 0) return;
 
       if (input.fast) player.heavyChargeFrames += 1;
       else player.heavyChargeFrames = 0;
@@ -5762,13 +5670,11 @@
       }
       player.vx = 0;
       let moveY = 0;
-      const wantsBlock = player.stun <= 0 && input.block && player.z <= 0;
-      const guardMovementMultiplier = wantsBlock ? 0.34 : 1;
       if (player.stun <= 0) {
-        if (input.left) player.vx -= player.speed * guardMovementMultiplier;
-        if (input.right) player.vx += player.speed * guardMovementMultiplier;
-        if (input.up) moveY -= player.speed * 0.6 * guardMovementMultiplier;
-        if (input.down) moveY += player.speed * 0.6 * guardMovementMultiplier;
+        if (input.left) player.vx -= player.speed;
+        if (input.right) player.vx += player.speed;
+        if (input.up) moveY -= player.speed * 0.6;
+        if (input.down) moveY += player.speed * 0.6;
       }
 
       const intendedX = player.x + player.vx;
@@ -5784,7 +5690,7 @@
         player.facing = player.vx > 0 ? 1 : -1;
         player.attackFacing = player.facing;
       }
-      player.block = wantsBlock;
+      player.block = player.stun <= 0 && input.block;
 
       if (player.stun <= 0 && input.jump && player.jumpCooldown <= 0 && player.z <= 0) {
         player.vz = 6.5;
@@ -6100,12 +6006,6 @@
       const getEnemyTargets = (enemy) => {
         const targets = [];
         if (player && player.hp > 0) targets.push({ kind: 'player', entity: player });
-        state.companions.forEach((companion) => {
-          if (companion && companion.hp > 0) targets.push({ kind: 'companion', entity: companion });
-        });
-        if (state.scarlettBrambleDrone && state.scarlettBrambleDrone.hp > 0) {
-          targets.push({ kind: 'drone', entity: state.scarlettBrambleDrone });
-        }
         return targets;
       };
       const getTargetHitbox = (target) => {
@@ -7500,13 +7400,13 @@
       if (state.waveActive) {
         if (state.bossActive && state.bossEncounter) {
           const aliveBossLineage = state.enemies.filter(e => e.hp > 0 && e.bossEncounterId === state.bossEncounter.id);
-          if (!state.bossEncounter.stopAdds && !state.bossEncounter.add20 && state.player && state.player.attackCooldown >= 0) {
+          if (!state.bossEncounter.add10 && state.player && state.player.attackCooldown >= 0) {
             state.bossEncounter.timer = (state.bossEncounter.timer || 0) + 1;
-            if (!state.bossEncounter.add10 && state.bossEncounter.timer >= 600) {
+            if (state.bossEncounter.timer >= 600) {
               queueSpawn('choking-blossom', 0);
               state.bossEncounter.add10 = true;
             }
-            if (!state.bossEncounter.add20 && state.bossEncounter.timer >= 1200) {
+            if (state.bossEncounter.timer >= 1200) {
               queueSpawn('daphodilus', 0);
               state.bossEncounter.add20 = true;
             }
@@ -7737,9 +7637,9 @@
 
     function isContinueArrowClicked(point) {
       if (!point || state.continueArrowTimer <= 0 || !state.running || state.waveActive || state.nextWaveToSpawn >= TOTAL_WAVE_COUNT) return false;
-      const arrowX = canvas.width - 34;
+      const arrowX = canvas.width - 52;
       const arrowY = canvas.height / 2;
-      return point.x >= arrowX - 28 && point.x <= arrowX + 34 && point.y >= arrowY - 34 && point.y <= arrowY + 34;
+      return point.x >= arrowX - 40 && point.x <= arrowX + 56 && point.y >= arrowY - 48 && point.y <= arrowY + 48;
     }
 
     function endGame(victory) {
@@ -7853,7 +7753,6 @@
     function isPlayerInvulnerable(player) {
       if (!player) return false;
       if (state.cheats.invincible) return true;
-      if (player.z > 24) return true;
       if (
         player.charData?.id === 'green-fairy'
         && hasUpgrade(player, 'long-glamour')
@@ -8146,21 +8045,6 @@
         ctx.globalAlpha = fadeAlpha;
       }
 
-      if (entity.hp > 0 && entity.z <= 20) {
-        const shadowWidth = size * (entity.isBoss ? 0.34 : 0.22) * depthScale * Math.max(0.7, entity.renderScale || 1);
-        const shadowHeight = Math.max(3.5, shadowWidth * 0.16);
-        const shadowGradient = ctx.createRadialGradient(x, y - 1, 0, x, y - 1, shadowWidth);
-        shadowGradient.addColorStop(0, 'rgba(2, 5, 4, 0.5)');
-        shadowGradient.addColorStop(0.56, 'rgba(2, 5, 4, 0.24)');
-        shadowGradient.addColorStop(1, 'rgba(2, 5, 4, 0)');
-        ctx.save();
-        ctx.fillStyle = shadowGradient;
-        ctx.beginPath();
-        ctx.ellipse(x, y - 1, shadowWidth, shadowHeight, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
-
       if (entity.animation && entity.charData) {
         const track = getPlayerAnimTrack(entity, entity.animation.state, entity.animation.facing);
         if (track && track.img) {
@@ -8407,33 +8291,8 @@
       return bottomOpaqueScreenY + state.cameraY;
     }
 
-    function drawGuardArc(entity, size) {
-      if (!entity?.block || entity.hp <= 0) return;
-      const depthScale = getDepthScaleForY(entity.y);
-      const drawSize = size * (entity.renderScale || 1) * depthScale;
-      const x = entity.x - state.cameraX + (entity.facing * drawSize * 0.24);
-      const y = entity.y - state.cameraY - entity.z - (drawSize * 0.48);
-      const facingAngle = entity.facing >= 0 ? 0 : Math.PI;
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.strokeStyle = 'rgba(125, 224, 205, 0.8)';
-      ctx.lineWidth = Math.max(2, drawSize * 0.025);
-      ctx.shadowColor = 'rgba(91, 210, 187, 0.72)';
-      ctx.shadowBlur = 14;
-      ctx.beginPath();
-      ctx.arc(x, y, drawSize * 0.34, facingAngle - 0.9, facingAngle + 0.9);
-      ctx.stroke();
-      ctx.strokeStyle = 'rgba(244, 211, 137, 0.42)';
-      ctx.lineWidth = Math.max(1, drawSize * 0.012);
-      ctx.beginPath();
-      ctx.arc(x, y, drawSize * 0.29, facingAngle - 0.78, facingAngle + 0.78);
-      ctx.stroke();
-      ctx.restore();
-    }
-
     function drawEntityWithStatusEffects(entity, size) {
       drawEntity(entity, size);
-      drawGuardArc(entity, size);
       if ((entity.statuses?.CHARM?.duration || 0) > 0) {
         drawCharmHeart(entity, size);
       }
@@ -8537,46 +8396,9 @@
       ctx.restore();
     }
 
-    function drawCinematicGrade() {
-      ctx.save();
-      ctx.globalCompositeOperation = 'source-over';
-
-      const topShade = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      topShade.addColorStop(0, 'rgba(3, 10, 8, 0.2)');
-      topShade.addColorStop(0.24, 'rgba(7, 20, 16, 0)');
-      topShade.addColorStop(0.72, 'rgba(34, 23, 10, 0.025)');
-      topShade.addColorStop(1, 'rgba(2, 6, 5, 0.28)');
-      ctx.fillStyle = topShade;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      const vignette = ctx.createRadialGradient(
-        canvas.width * 0.5,
-        canvas.height * 0.48,
-        canvas.height * 0.18,
-        canvas.width * 0.5,
-        canvas.height * 0.48,
-        canvas.width * 0.67
-      );
-      vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
-      vignette.addColorStop(0.72, 'rgba(0, 0, 0, 0.03)');
-      vignette.addColorStop(1, 'rgba(0, 0, 0, 0.36)');
-      ctx.fillStyle = vignette;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      const mistPhase = performance.now() * 0.00012;
-      const mistX = canvas.width * (0.48 + Math.sin(mistPhase) * 0.09);
-      const mist = ctx.createRadialGradient(mistX, canvas.height * 0.78, 0, mistX, canvas.height * 0.78, canvas.width * 0.42);
-      mist.addColorStop(0, 'rgba(116, 168, 145, 0.045)');
-      mist.addColorStop(1, 'rgba(116, 168, 145, 0)');
-      ctx.fillStyle = mist;
-      ctx.fillRect(0, canvas.height * 0.44, canvas.width, canvas.height * 0.56);
-      ctx.restore();
-    }
-
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const shaking = state.shake > 0;
-      if (shaking) {
+      if (state.shake > 0) {
         ctx.save();
         ctx.translate(rand(-state.shake, state.shake), rand(-state.shake, state.shake));
         state.shake -= 1;
@@ -9407,10 +9229,9 @@
 
       drawContinueArrow();
 
-      if (shaking) {
+      if (state.shake > 0) {
         ctx.restore();
       }
-      drawCinematicGrade();
     }
 
     function drawContinueArrow() {
@@ -9419,23 +9240,23 @@
       const alpha = shouldFlash
         ? 0.25 + (((Math.sin(performance.now() / 350) + 1) / 2) * 0.75)
         : 1;
-      const arrowX = canvas.width - 34;
+      const arrowX = canvas.width - 52;
       const arrowY = canvas.height / 2;
 
       ctx.save();
       ctx.globalAlpha = alpha;
-      ctx.fillStyle = '#f2bf62';
-      ctx.strokeStyle = 'rgba(15, 19, 25, 0.9)';
-      ctx.lineWidth = 2;
+      ctx.fillStyle = '#ffd65c';
+      ctx.strokeStyle = '#0f1319';
+      ctx.lineWidth = 3;
 
       ctx.beginPath();
-      ctx.moveTo(arrowX - 16, arrowY - 11);
-      ctx.lineTo(arrowX + 7, arrowY - 11);
-      ctx.lineTo(arrowX + 7, arrowY - 21);
-      ctx.lineTo(arrowX + 27, arrowY);
-      ctx.lineTo(arrowX + 7, arrowY + 21);
-      ctx.lineTo(arrowX + 7, arrowY + 11);
-      ctx.lineTo(arrowX - 16, arrowY + 11);
+      ctx.moveTo(arrowX - 30, arrowY - 24);
+      ctx.lineTo(arrowX + 18, arrowY - 24);
+      ctx.lineTo(arrowX + 18, arrowY - 40);
+      ctx.lineTo(arrowX + 52, arrowY);
+      ctx.lineTo(arrowX + 18, arrowY + 40);
+      ctx.lineTo(arrowX + 18, arrowY + 24);
+      ctx.lineTo(arrowX - 30, arrowY + 24);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
@@ -9457,15 +9278,6 @@
       state.lastTime = timestamp;
 
       if (state.paused) {
-        state.frameAccumulator = 0;
-        draw();
-        requestAnimationFrame(gameLoop);
-        return;
-      }
-
-      if ((state.hitStopFrames || 0) > 0) {
-        state.hitStopFrames -= 1;
-        state.frameAccumulator = 0;
         draw();
         requestAnimationFrame(gameLoop);
         return;
@@ -9828,12 +9640,6 @@
       const isOpen = overlay.classList.contains('show');
       const nextOpen = typeof shouldShow === 'boolean' ? shouldShow : !isOpen;
       if (nextOpen === isOpen) return;
-      if (nextOpen && (
-        document.getElementById('levelUpOverlay')?.classList.contains('show')
-        || document.getElementById('companionOverlay')?.classList.contains('show')
-        || document.getElementById('messageOverlay')?.classList.contains('show')
-        || document.getElementById('pauseOverlay')?.classList.contains('show')
-      )) return;
 
       trigger.classList.add('flash');
       trigger.classList.add('pressed');
@@ -9847,17 +9653,7 @@
         playSfx(UI_SFX.characterSheetOpen);
       } else {
         overlay.classList.remove('show');
-        const anotherPauseOverlayOpen = [
-          'levelUpOverlay',
-          'companionOverlay',
-          'messageOverlay',
-          'pauseOverlay'
-        ].some(id => document.getElementById(id)?.classList.contains('show'));
-        state.paused = anotherPauseOverlayOpen;
-        if (!state.paused) {
-          state.lastTime = performance.now();
-          state.frameAccumulator = 0;
-        }
+        state.paused = false;
         playSfx(UI_SFX.characterSheetClose);
       }
     }
@@ -10058,40 +9854,10 @@
       return fallback;
     }
 
-    const PLAYER_SPRITE_ASSET_PATTERN = /BB_(billyBoxby|greenFairy|grimmaTheFeared|oldManCroc|possumatli|rustbucket|scarlettGlumpkin|shunkyRooster)_/i;
-
-    function removeBakedPlayerMarker(img) {
-      const cleaned = document.createElement('canvas');
-      cleaned.width = img.width;
-      cleaned.height = img.height;
-      const cleanedCtx = cleaned.getContext('2d', { willReadFrequently: true });
-      cleanedCtx.drawImage(img, 0, 0);
-      const imageData = cleanedCtx.getImageData(0, 0, cleaned.width, cleaned.height);
-      const pixels = imageData.data;
-
-      for (let y = 84; y < cleaned.height; y += 1) {
-        for (let x = 0; x < cleaned.width; x += 1) {
-          const offset = ((y * cleaned.width) + x) * 4;
-          const red = pixels[offset];
-          const green = pixels[offset + 1];
-          const blue = pixels[offset + 2];
-          const alpha = pixels[offset + 3];
-          if (!alpha) continue;
-          const isBlueMarker = blue > 28 && blue > red * 1.12 && blue > green * 1.22;
-          const isPurpleMarker = red > 20 && blue > 20 && red > green * 1.24 && blue > green * 1.34;
-          if (isBlueMarker || isPurpleMarker) pixels[offset + 3] = 0;
-        }
-      }
-
-      cleanedCtx.clearRect(0, 0, cleaned.width, cleaned.height);
-      cleanedCtx.putImageData(imageData, 0, 0);
-      return cleaned;
-    }
-
     function loadImage(src) {
       return new Promise((resolve) => {
         const img = new Image();
-        img.onload = () => resolve(PLAYER_SPRITE_ASSET_PATTERN.test(src) ? removeBakedPlayerMarker(img) : img);
+        img.onload = () => resolve(img);
         img.onerror = () => {
           console.warn(`Missing asset: ${src}`);
           resolve(createFallbackImage());
@@ -10192,9 +9958,9 @@
         'background-approach-to-gatorglass-vault': 'assets/BB_bg_approachToGatorglassVault001.png',
         'background-toms-machine': 'assets/BB_bg_tomsMachine.png',
         'background-docks': 'assets/BB_bg_docks001.png',
-        'background-world-tree': 'assets/BB_bg_hauntedBayou001.png',
-        'background-goblin-tower': 'assets/BB_bg_mirewatch001.png',
-        'background-final-theatre': 'assets/BB_bg_hauntedHouse001.png'
+        'background-world-tree': 'assets/background-world-tree.svg',
+        'background-goblin-tower': 'assets/background-goblin-tower.svg',
+        'background-final-theatre': 'assets/background-final-theatre.svg'
       };
       const barrierKeysByLevelId = {
         swamp: 'assets/BB_bg_swamp001_barrier.png',
@@ -10210,7 +9976,6 @@
         docks: 'assets/BB_bg_docks001_barrier.png'
       };
       const foregroundKeysByLevelId = {
-        swamp: 'assets/BB_bg_swamp001_foreground.png',
         mirewatch: 'assets/BB_bg_mirewatch001_foreground.png',
         'mirewatch-docks': 'assets/BB_bg_docks001_foreground.png',
         'haunted-bayou': 'assets/BB_bg_hauntedBayou001_foreground.png',
@@ -11020,6 +10785,5 @@
 
     init();
   </script>
-  <script src="premium-ui.js?v=viewport-3"></script>
 </body>
 </html>

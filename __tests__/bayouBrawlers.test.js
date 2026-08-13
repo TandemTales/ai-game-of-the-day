@@ -51,4 +51,18 @@ describe('Bayou Brawlers release safeguards', () => {
     expect(source).toContain('id="retryDefeatBtn"');
     expect(source).toContain('id="defeatRosterBtn"');
   });
+
+  test('mobile character selection tracks the visual viewport and remains scrollable', () => {
+    const premiumCss = fs.readFileSync(path.join(gameRoot, 'premium.css'), 'utf8');
+    const premiumUi = fs.readFileSync(path.join(gameRoot, 'premium-ui.js'), 'utf8');
+
+    expect(premiumCss).toContain('height: var(--app-viewport-height, 100svh);');
+    expect(premiumCss).toContain('overflow-y: auto;');
+    expect(premiumCss).toContain('grid-template-rows: 54px minmax(260px, 1fr) 54px;');
+    expect(premiumCss).toContain('min-height: 382px;');
+    expect(premiumUi).toContain("style.setProperty('--app-viewport-height'");
+    expect(premiumUi).toContain("window.visualViewport?.addEventListener('resize'");
+    expect(source).toContain('premium.css?v=viewport-3');
+    expect(source).toContain('premium-ui.js?v=viewport-3');
+  });
 });

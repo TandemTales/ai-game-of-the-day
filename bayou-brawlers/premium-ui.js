@@ -10,6 +10,13 @@
   let initialized = false;
   let lastWaveSignature = '';
 
+  function syncVisualViewportHeight() {
+    const height = Math.round(window.visualViewport?.height || window.innerHeight || 0);
+    if (height > 0) {
+      document.documentElement.style.setProperty('--app-viewport-height', `${height}px`);
+    }
+  }
+
   function releaseInputs() {
     Object.keys(input).forEach((key) => {
       input[key] = false;
@@ -229,9 +236,13 @@
     byId('defeatRosterBtn')?.addEventListener('click', returnToRoster);
     window.addEventListener('keydown', onGlobalKeydown, true);
     window.addEventListener('blur', releaseInputs);
+    window.addEventListener('resize', syncVisualViewportHeight, { passive: true });
+    window.addEventListener('orientationchange', syncVisualViewportHeight, { passive: true });
+    window.visualViewport?.addEventListener('resize', syncVisualViewportHeight, { passive: true });
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) releaseInputs();
     });
+    syncVisualViewportHeight();
     window.BayouPremiumUI = {
       setPaused,
       togglePause,

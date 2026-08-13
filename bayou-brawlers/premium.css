@@ -1026,19 +1026,43 @@ canvas {
   }
 
   #startOverlay {
-    padding: 10px;
+    inset: 0 0 auto;
+    height: var(--app-viewport-height, 100svh);
+    min-height: 0;
+    align-items: flex-start;
+    padding:
+      max(6px, env(safe-area-inset-top))
+      max(6px, env(safe-area-inset-right))
+      max(6px, env(safe-area-inset-bottom))
+      max(6px, env(safe-area-inset-left));
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .panel.start-panel {
-    width: calc(100vw - 20px);
-    height: calc(100dvh - 20px);
+    width: 100%;
+    height: calc(
+      var(--app-viewport-height, 100svh)
+      - max(6px, env(safe-area-inset-top))
+      - max(6px, env(safe-area-inset-bottom))
+    );
+    max-height: none;
+    min-height: 0;
     padding: 14px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
   }
 
   .character-grid {
     grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-rows: 54px minmax(260px, 1fr) 54px;
     grid-template-areas: "first" "hero" "second";
+    min-height: 382px;
     gap: 7px;
   }
 
@@ -1049,6 +1073,7 @@ canvas {
 
   .character-detail {
     grid-template-columns: minmax(130px, 0.78fr) minmax(0, 1.22fr);
+    min-height: 260px;
     gap: 12px;
     padding: 10px;
   }

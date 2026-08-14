@@ -2596,15 +2596,41 @@
       }
     };
 
+    // Every entry here is a multiple of the player's on-screen size, the same unit
+    // getEnemyRenderScale's asPlayerSizeRatio() takes -- not a raw render scale.
     const ENEMY_SIZE_BOOST_BY_TYPE = {
       hiredGun: 1.08,
       sidewinder: 1.05,
       stingy: 1.1
     };
+
+    // Bosses used to share one hard-coded 1.24 ratio, so all ten read as the same
+    // silhouette. Sizes now escalate roughly with campaign order and character:
+    // Sweetykins and Mr. Nibbles stay small and nasty, Lodicrust and Tinkering Tom
+    // close the game as the big ones.
+    const BOSS_SIZE_RATIO_BY_TYPE = {
+      sweetykins: 1.16,
+      mrNibbles: 1.22,
+      theSlais: 1.3,
+      bambo: 1.3,
+      ladyWorthington: 1.34,
+      mirrorMaster: 1.4,
+      kingOfThieves: 1.46,
+      origamiMaster: 1.54,
+      lodicrust: 1.62,
+      tinkeringTom: 1.72,
+      boss: 1.34
+    };
+    const DEFAULT_BOSS_SIZE_RATIO = 1.34;
+
+    // The mud monster splits as it is damaged, so each stage gets its own size --
+    // a screen-filling stage 3 down to a stage 1 barely above a regular enemy.
+    const MUD_MONSTER_SIZE_RATIO_BY_STAGE = { 3: 2, 2: 1.5, 1: 1.15 };
+
     const PLAYER_FINAL_DISPLAY_SIZE = PLAYER_DRAW_SIZE * DEFAULT_PLAYER_RENDER_SCALE;
     const ENEMY_TO_PLAYER_SIZE_BOUNDS = { min: 0.86, max: 1.18 };
-    const BOSS_TO_PLAYER_SIZE_BOUNDS = { min: 1.04, max: 1.6 };
-    const MUD_MONSTER_TO_PLAYER_SIZE_BOUNDS = { min: 2.8, max: 3.2 };
+    const BOSS_TO_PLAYER_SIZE_BOUNDS = { min: 1.04, max: 1.8 };
+    const MUD_MONSTER_TO_PLAYER_SIZE_BOUNDS = { min: 1.1, max: 2.05 };
 
     function toAssetCamelCase(value) {
       if (!value) return '';
@@ -2663,7 +2689,9 @@
       const boostedSize = ENEMY_SIZE_BOOST_BY_TYPE[typeId];
       const level = levels[state.levelIndex];
 
-      let desiredScale = isBoss ? asPlayerSizeRatio(1.24) : asPlayerSizeRatio(0.96);
+      let desiredScale = isBoss
+        ? asPlayerSizeRatio(BOSS_SIZE_RATIO_BY_TYPE[typeId] || DEFAULT_BOSS_SIZE_RATIO)
+        : asPlayerSizeRatio(0.96);
 
       if (level && level.id === 'emberfall' && !isBoss) desiredScale = asPlayerSizeRatio(1);
 
@@ -2671,10 +2699,12 @@
       else if (typeId === 'swamp') desiredScale = asPlayerSizeRatio(0.9);
       else if (typeId === 'daphodilus') desiredScale = asPlayerSizeRatio(0.94);
       else if (typeId === 'mud-monster') {
-        const mudMonsterSizeRatio = 3;
-        desiredScale = asPlayerSizeRatio(mudMonsterSizeRatio);
+        desiredScale = asPlayerSizeRatio(MUD_MONSTER_SIZE_RATIO_BY_STAGE[stage] || MUD_MONSTER_SIZE_RATIO_BY_STAGE[3]);
       } else if (boostedSize) {
-        desiredScale = boostedSize;
+        // boostedSize is a player-size ratio like every other branch here; assigning
+        // it raw made these three enemies land on the clamp floor (0.86x player),
+        // i.e. the smallest in the game rather than the largest.
+        desiredScale = asPlayerSizeRatio(boostedSize);
       }
 
       return clampEnemyRenderScale(desiredScale, isBoss, typeId);
@@ -3472,7 +3502,10 @@
       const animationTracks = assets.enemyAnimations[typeId] || assets.enemyAnimations.swamp || null;
       const baseRenderScale = getEnemyRenderScale(typeId, stage, isBoss) * getDaphodilusLevelOneScale(typeId);
       const requestedSizeMultiplier = Number.isFinite(options.sizeMultiplier) ? options.sizeMultiplier : 1;
-      const renderScale = clampEnemyRenderScale(baseRenderScale * requestedSizeMultiplier, isBoss);
+      // typeId matters here: without it the mud monster is re-clamped against the
+      // generic boss bounds instead of its own, which both shrank it and left a
+      // bogus sizeAdjustment that halved its hitbox.
+      const renderScale = clampEnemyRenderScale(baseRenderScale * requestedSizeMultiplier, isBoss, typeId);
       const sizeAdjustment = baseRenderScale > 0 ? (renderScale / baseRenderScale) : 1;
       const enemy = {
         uid: ++state.enemyUid,

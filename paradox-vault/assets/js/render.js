@@ -30,10 +30,24 @@
   var main = null, mctx = null;
 
   /* offscreen buffers */
-  var Static = null;      // baked vault
+  var Static = null;      // baked vault (+ surrounding building)
+  var StaticOx = 0, StaticOy = 0;   // world px offset of Static's top-left
   var Light = null;       // light accumulation (half res)
   var Bloom = null, Bloom2 = null;
   var Scene = null;       // full-res composite before post
+  var Sky = null;         // baked screen-space backdrop
+
+  /* Per-actor stamp buffers. Every character is rendered into one of these at
+     ~2x supersample, then composited back with a dilated dark silhouette
+     underneath (separation) and a real edge rim light on top. This is the only
+     way a 30px-tall figure reads as a *character* rather than a smudge, and it
+     costs a few 160px blits per frame — nothing next to a full-screen pass. */
+  var FigA = null, FigM = null, FigR = null, figPx = 0;
+  var FIG_WORLD = 0;      // world px covered by the stamp buffer
+
+  /* World-space direction the key light comes from (normalised, screen coords).
+     Everything — rim lights, cast shadows, bevels — agrees with this. */
+  var KEY_X = -0.62, KEY_Y = -0.78;
 
   var texWarned = false;
   function TX(name) {
@@ -90,43 +104,93 @@
     Bloom = PV.makeCanvas(Math.round(bw / 4), Math.round(bh / 4));
     Bloom2 = PV.makeCanvas(Math.round(bw / 4), Math.round(bh / 4));
     grainTile = null;
+    Sky = null;
     PV.emit('render:resize', { w: cssW, h: cssH, dpr: dpr });
   };
+
+  /* Actor stamp buffers, sized to whatever the current zoom actually needs so
+     a 4K desktop gets a crisp figure and a phone does not pay for one. */
+  function ensureFigBuffers() {
+    FIG_WORLD = T * 1.9;
+    var want = FIG_WORLD * cam.scale * view.dpr * 1.15;
+    want = PV.clamp(Math.round(want / 32) * 32, 96, PV.quality.tier >= 2 ? 384 : 224);
+    if (figPx === want && FigA) return;
+    figPx = want;
+    FigA = PV.makeCanvas(want, want);
+    FigM = PV.makeCanvas(want, want);
+    FigR = PV.makeCanvas(want, want);
+  }
 
   /* ==================================================================
      Camera
      ================================================================== */
+  /* The two rectangles the camera cares about, in world px, cached per vault.
+       play  — bounding box of everything the player can stand on or must see.
+               Cropping any of this is a gameplay bug and never happens.
+       shell — the same box plus the solid wall ring around it. Nice to see, but
+               half a wall tile of it may be sacrificed to fill the screen. */
+  var boundsCache = null, boundsKey = '';
+  function vaultBounds(v) {
+    var key = v.index + ':' + v.id;
+    if (boundsCache && boundsKey === key) return boundsCache;
+    var x0 = v.w, y0 = v.h, x1 = 0, y1 = 0;      // playable
+    var sx0 = v.w, sy0 = v.h, sx1 = 0, sy1 = 0;  // non-void
+    for (var y = 0; y < v.h; y++) {
+      for (var x = 0; x < v.w; x++) {
+        var t = v.grid[y * v.w + x];
+        if (t.isVoid) continue;
+        if (x < sx0) sx0 = x; if (x + 1 > sx1) sx1 = x + 1;
+        if (y < sy0) sy0 = y; if (y + 1 > sy1) sy1 = y + 1;
+        if (t.solid) continue;
+        if (x < x0) x0 = x; if (x + 1 > x1) x1 = x + 1;
+        if (y < y0) y0 = y; if (y + 1 > y1) y1 = y + 1;
+      }
+    }
+    if (x1 <= x0) { x0 = 0; x1 = v.w; y0 = 0; y1 = v.h; }
+    if (sx1 <= sx0) { sx0 = 0; sx1 = v.w; sy0 = 0; sy1 = v.h; }
+    /* a third of a tile of breathing room so an actor hugging a wall is never
+       flush against the screen edge */
+    var m = 0.34;
+    boundsCache = {
+      px: (x0 - m) * T, py: (y0 - m) * T,
+      pw: (x1 - x0 + m * 2) * T, ph: (y1 - y0 + m * 2) * T,
+      sx: (sx0 - 0.4) * T, sy: (sy0 - 0.4) * T,
+      sw: (sx1 - sx0 + 0.8) * T, sh: (sy1 - sy0 + 0.8) * T,
+      cx: (x0 + x1) * 0.5 * T, cy: (y0 + y1) * 0.5 * T
+    };
+    boundsKey = key;
+    return boundsCache;
+  }
+  R.vaultBounds = vaultBounds;
+
   R.frameCamera = function (world, dt, focusX, focusY) {
     var av = R.viewport();
     var vw = av.w, vh = av.h;
-    /* Fit the vault with a small margin, then zoom in towards the *tight* fit so
-       a window whose aspect differs from the room's is not mostly empty.
-       The zoom target is deliberately the no-margin fit and never anything
-       looser: eating into the margin is fine, cropping the room is not. A
-       portrait phone looking at a landscape room has fitH >> fitW, and biasing
-       toward that looser fit used to push the room's left and right walls off
-       screen entirely. */
-    var pad = 0.45;   // tiles of margin
-    var worldW = world.vault.w * T, worldH = world.vault.h * T;
-    var wantW = worldW + pad * 2 * T;
-    var wantH = worldH + pad * 2 * T;
-    var fitPadded = Math.min(vw / wantW, vh / wantH);  // room + full margin visible
-    var fitTight = Math.min(vw / worldW, vh / worldH); // room exactly fills, no margin
-    var fit = PV.lerp(fitPadded, fitTight, 0.55);
+    /* Two fits: `fitShell` shows the room and its wall ring with a margin;
+       `fitPlay` is the tightest zoom that still shows every walkable tile.
+       Anything between the two only ever eats masonry, never gameplay, so we
+       bias hard toward `fitPlay` — that is what stops a portrait phone from
+       spending two thirds of its screen on nothing. */
+    var b = vaultBounds(world.vault);
+    var fitShell = Math.min(vw / b.sw, vh / b.sh);
+    var fitPlay = Math.min(vw / b.pw, vh / b.ph);
+    var fit = PV.lerp(fitShell, fitPlay, 0.82);
     var minScale = PV.isMobile ? 0.34 : 0.50;
     var maxScale = 2.4;
-    /* minScale must never win if honouring it would crop the room off-screen. */
-    var s = PV.clamp(fit, Math.min(minScale, fitTight), maxScale);
+    /* minScale must never win if honouring it would crop playable floor. */
+    var s = PV.clamp(fit, Math.min(minScale, fitPlay), maxScale);
     cam.tScale = s;
     cam.scale = PV.damp(cam.scale || s, s, 8, dt);
 
     var halfW = vw / (2 * cam.scale), halfH = vh / (2 * cam.scale);
 
+    /* Centre on the room whenever it fits; only chase the player if the
+       playable area genuinely does not (very tall/very wide custom vaults). */
     var tx, ty;
-    if (worldW + pad * T * 2 <= halfW * 2) tx = worldW / 2;
-    else tx = PV.clamp(focusX, halfW - pad * T, worldW - halfW + pad * T);
-    if (worldH + pad * T * 2 <= halfH * 2) ty = worldH / 2;
-    else ty = PV.clamp(focusY, halfH - pad * T, worldH - halfH + pad * T);
+    if (b.pw <= halfW * 2) tx = b.px + b.pw / 2;
+    else tx = PV.clamp(focusX, b.px + halfW, b.px + b.pw - halfW);
+    if (b.ph <= halfH * 2) ty = b.py + b.ph / 2;
+    else ty = PV.clamp(focusY, b.py + halfH, b.py + b.ph - halfH);
 
     cam.x = PV.damp(cam.x || tx, tx, 9, dt);
     cam.y = PV.damp(cam.y || ty, ty, 9, dt);
@@ -196,19 +260,33 @@
      Static bake — floors, walls, decals. Once per vault.
      ================================================================== */
   var bakedId = null;
+  var SUR = 5;    // tiles of surrounding building baked around the vault
+  /* Per-prop-kind graded sprite + silhouette, built once and thrown away on
+     R.invalidate() so a vault change cannot serve stale art. Declared here,
+     next to the other bake-scoped caches, because R.invalidate() clears it. */
+  var propCache = Object.create(null);
 
-  R.invalidate = function () { bakedId = null; };
+  R.invalidate = function () { bakedId = null; boundsCache = null; propCache = Object.create(null); };
 
   R.bake = function (world) {
     var v = world.vault;
     var W = v.w * T, H = v.h * T;
-    Static = PV.makeCanvas(W, H, { alpha: false });
+    StaticOx = -SUR * T; StaticOy = -SUR * T;
+    Static = PV.makeCanvas(W + SUR * 2 * T, H + SUR * 2 * T, { alpha: false });
     var g = Static.ctx;
 
-    g.fillStyle = P.void;
-    g.fillRect(0, 0, W, H);
+    g.fillStyle = '#020306';
+    g.fillRect(0, 0, Static.canvas.width, Static.canvas.height);
 
     PV.setSeed(1337 + v.index * 7919);
+
+    /* everything below is authored in vault coordinates */
+    g.translate(-StaticOx, -StaticOy);
+
+    /* The building the vault sits in. Painted across the whole padded canvas,
+       so void tiles *inside* the map read as "the floor continues out there"
+       rather than as black holes punched in the art. */
+    drawSurround(g, v, W, H);
 
     /* ---------- floors ----------
        Filled per MATERIAL, not per tile: each material's tiles are collected
@@ -225,8 +303,20 @@
         if (med) {
           var d = o.r * 2 * T;
           g.save();
-          g.globalAlpha = 0.92;
+          /* Inlay, not a light source. At full strength this sunburst was the
+             brightest thing in the room and it swallowed the relic standing on
+             top of it — the one object the player is told to go and get. It is
+             floor decoration; it reads as floor. */
+          g.globalAlpha = 0.46;
           g.drawImage(med, o.x * T - d / 2, o.y * T - d / 2, d, d);
+          /* darken its centre so whatever stands on the medallion has a value
+             to contrast against */
+          g.globalAlpha = 1;
+          var cg = g.createRadialGradient(o.x * T, o.y * T, 0, o.x * T, o.y * T, d * 0.34);
+          cg.addColorStop(0, 'rgba(0,0,0,0.55)');
+          cg.addColorStop(1, 'rgba(0,0,0,0)');
+          g.fillStyle = cg;
+          g.fillRect(o.x * T - d / 2, o.y * T - d / 2, d, d);
           g.restore();
         } else {
           drawFallbackMedallion(g, o.x * T, o.y * T, o.r * T);
@@ -253,18 +343,24 @@
       g.restore();
     }
 
-    /* ---------- wall drop shadows onto the floor ---------- */
+    /* ---------- wall drop shadows onto the floor ----------
+       Cast along the key-light direction, not straight down, so the whole room
+       agrees about where the light is. */
     g.save();
     g.globalCompositeOperation = 'multiply';
+    var sdx = -KEY_X * T * 0.80, sdy = -KEY_Y * T * 0.95;
     for (var y2 = 0; y2 < v.h; y2++) {
       for (var x2 = 0; x2 < v.w; x2++) {
         var tt2 = v.grid[y2 * v.w + x2];
         if (!tt2.solid || tt2.isVoid) continue;
-        var grd = g.createLinearGradient(x2 * T, y2 * T + T, x2 * T, y2 * T + T + T * 0.85);
-        grd.addColorStop(0, 'rgba(0,0,0,0.62)');
+        var gx0 = x2 * T + T * 0.5, gy0 = y2 * T + T * 0.5;
+        var grd = g.createLinearGradient(gx0, gy0, gx0 + sdx * 1.5, gy0 + sdy * 1.5);
+        grd.addColorStop(0, 'rgba(0,0,0,0.80)');
+        grd.addColorStop(0.45, 'rgba(0,0,0,0.42)');
         grd.addColorStop(1, 'rgba(0,0,0,0)');
         g.fillStyle = grd;
-        g.fillRect(x2 * T - T * 0.12, y2 * T + T, T * 1.24, T * 0.85);
+        g.fillRect(x2 * T - T * 0.2 + Math.min(0, sdx), y2 * T - T * 0.2 + Math.min(0, sdy),
+          T * 1.4 + Math.abs(sdx), T * 1.4 + Math.abs(sdy));
       }
     }
     g.restore();
@@ -313,22 +409,141 @@
     for (var y4 = 0; y4 < v.h; y4++) {
       for (var x4 = 0; x4 < v.w; x4++) {
         var t4 = v.grid[y4 * v.w + x4];
-        if (!t4.solid) continue;
-        if (t4.isVoid) { g.fillStyle = P.void; g.fillRect(x4 * T, y4 * T, T, T); continue; }
+        if (!t4.solid || t4.isVoid) continue;
         if (t4.kind === 'glass') { drawGlassTile(g, v, x4, y4); continue; }
         drawWallTile(g, v, x4, y4);
       }
     }
 
-    /* ---------- global grade: subtle corner darkening ---------- */
-    var vg = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.34, W / 2, H / 2, Math.max(W, H) * 0.78);
+    /* ---------- the room reads as a solid volume: a hard dark skirt on the
+       outside of the shell, so the vault sits *in* the building rather than
+       being printed on it ---------- */
+    var b = vaultBounds(v);
+    g.save();
+    g.globalCompositeOperation = 'multiply';
+    var skirt = T * 2.2;
+    edgeFade(g, b.sx, b.sy, b.sw, b.sh, skirt);
+    g.restore();
+
+    /* ---------- global grade ----------
+       Deliberately gentle: the light buffer does the heavy value shaping now,
+       and stacking a second darkening on top is what flattened this before. */
+    var vg = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.42, W / 2, H / 2, Math.max(W, H) * 0.80);
     vg.addColorStop(0, 'rgba(0,0,0,0)');
-    vg.addColorStop(1, 'rgba(0,0,0,0.26)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.16)');
     g.fillStyle = vg;
     g.fillRect(0, 0, W, H);
 
     bakedId = v.index + ':' + v.id;
   };
+
+  /* Soft dark bands hugging the outside of a rect — the shell's ambient
+     occlusion into the surrounding building. */
+  function edgeFade(g, x, y, w, h, d) {
+    var sides = [
+      [x, y - d, w, d, 0, 1], [x, y + h, w, d, 0, -1],
+      [x - d, y, d, h, 1, 0], [x + w, y, d, h, -1, 0]
+    ];
+    for (var i = 0; i < 4; i++) {
+      var s = sides[i];
+      var gx = s[4] ? (s[4] > 0 ? s[0] : s[0] + s[2]) : s[0];
+      var gy = s[5] ? (s[5] > 0 ? s[1] : s[1] + s[3]) : s[1];
+      var ex = s[4] ? (s[4] > 0 ? s[0] + s[2] : s[0]) : s[0];
+      var ey = s[5] ? (s[5] > 0 ? s[1] + s[3] : s[1]) : s[1];
+      var grd = g.createLinearGradient(gx, gy, ex, ey);
+      grd.addColorStop(0, 'rgba(0,0,0,0.10)');
+      grd.addColorStop(1, 'rgba(0,0,0,0.86)');
+      g.fillStyle = grd;
+      g.fillRect(s[0], s[1], s[2], s[3]);
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     The rest of the building. This is what the screen shows outside the
+     vault — a dark service floor with structural bays. It exists so that a
+     portrait phone, which physically cannot fit a 4:3 room into a 9:19.5
+     window without either cropping it or leaving space, spends that space on
+     believable architecture instead of a grey void.
+     ------------------------------------------------------------------ */
+  function drawSurround(g, v, W, H) {
+    var x0 = StaticOx, y0 = StaticOy;
+    var CW = Static.canvas.width, CH = Static.canvas.height;
+
+    /* base slab */
+    var base = g.createLinearGradient(x0, y0, x0, y0 + CH);
+    base.addColorStop(0, '#080a0f');
+    base.addColorStop(0.5, '#0a0d13');
+    base.addColorStop(1, '#06080c');
+    g.fillStyle = base;
+    g.fillRect(x0, y0, CW, CH);
+
+    var tex = TX('floor.granite');
+    if (tex) {
+      g.save();
+      g.globalAlpha = 0.55;
+      var pat = g.createPattern(tex, 'repeat');
+      g.fillStyle = pat;
+      g.fillRect(x0, y0, CW, CH);
+      g.restore();
+      g.fillStyle = 'rgba(4,6,10,0.62)';
+      g.fillRect(x0, y0, CW, CH);
+    }
+
+    /* structural bay grid — long hairlines on a 4-tile pitch, plus heavier
+       piers, so the eye reads a floor plan rather than noise */
+    var bay = T * 4;
+    g.save();
+    g.lineWidth = 1;
+    g.strokeStyle = 'rgba(140,168,210,0.045)';
+    var gx, gy;
+    for (gx = Math.floor(x0 / bay) * bay; gx < x0 + CW; gx += bay) {
+      g.beginPath(); g.moveTo(gx + 0.5, y0); g.lineTo(gx + 0.5, y0 + CH); g.stroke();
+    }
+    for (gy = Math.floor(y0 / bay) * bay; gy < y0 + CH; gy += bay) {
+      g.beginPath(); g.moveTo(x0, gy + 0.5); g.lineTo(x0 + CW, gy + 0.5); g.stroke();
+    }
+    /* piers at the bay intersections */
+    for (gx = Math.floor(x0 / bay) * bay; gx < x0 + CW; gx += bay) {
+      for (gy = Math.floor(y0 / bay) * bay; gy < y0 + CH; gy += bay) {
+        if (gx > -T && gx < W + T && gy > -T && gy < H + T) continue;  // not under the room
+        var pr = T * 0.30;
+        g.fillStyle = 'rgba(150,175,215,0.030)';
+        g.fillRect(gx - pr, gy - pr, pr * 2, pr * 2);
+        g.strokeStyle = 'rgba(200,225,255,0.045)';
+        g.strokeRect(gx - pr + 0.5, gy - pr + 0.5, pr * 2 - 1, pr * 2 - 1);
+        g.fillStyle = 'rgba(0,0,0,0.55)';
+        g.fillRect(gx - pr + T * 0.10, gy + pr, pr * 2, T * 0.34);
+      }
+    }
+    g.restore();
+
+    /* a couple of faint deco medallions out in the dark, so the surround has
+       a focal rhythm of its own */
+    var med = TX('decal.medallion');
+    if (med) {
+      g.save();
+      g.globalAlpha = 0.055;
+      var spots = [[-SUR * 0.6 * T, H * 0.5], [W + SUR * 0.6 * T, H * 0.5],
+      [W * 0.5, -SUR * 0.62 * T], [W * 0.5, H + SUR * 0.62 * T]];
+      for (var i = 0; i < spots.length; i++) {
+        var d = T * 5.2;
+        g.drawImage(med, spots[i][0] - d / 2, spots[i][1] - d / 2, d, d);
+      }
+      g.restore();
+    }
+
+    /* fall off to black at the very edge of the baked area so it never ends
+       on a visible seam */
+    g.save();
+    g.globalCompositeOperation = 'multiply';
+    edgeFade(g, x0 + T * 1.2, y0 + T * 1.2, CW - T * 2.4, CH - T * 2.4, T * 1.2);
+    var far = g.createRadialGradient(W / 2, H / 2, Math.min(CW, CH) * 0.30, W / 2, H / 2, Math.max(CW, CH) * 0.55);
+    far.addColorStop(0, 'rgba(255,255,255,1)');
+    far.addColorStop(1, 'rgba(56,60,72,1)');
+    g.fillStyle = far;
+    g.fillRect(x0, y0, CW, CH);
+    g.restore();
+  }
 
   /* Screen-space environment behind the vault. Keeps ultrawide windows from
      reading as "the game failed to fill the screen". */
@@ -362,37 +577,52 @@
     return bdCache;
   }
 
-  function drawBackdrop(g, world, time) {
+  /* The screen-space ground behind everything. It used to be three full-screen
+     passes a frame (gradient + a >full-screen pattern fill + a radial haze);
+     the haze in particular is what turned the room milky. It is now baked once
+     per resize and blitted only where the vault art does not already cover the
+     screen. */
+  function bakeSky() {
     var W = Scene.canvas.width, H = Scene.canvas.height;
+    Sky = PV.makeCanvas(W, H, { alpha: false });
+    var g = Sky.ctx;
     var grd = g.createLinearGradient(0, 0, 0, H);
-    grd.addColorStop(0, '#0b0f18');
-    grd.addColorStop(0.45, '#080b12');
-    grd.addColorStop(1, '#04060a');
+    grd.addColorStop(0, '#05070c');
+    grd.addColorStop(0.5, '#04060a');
+    grd.addColorStop(1, '#020306');
     g.fillStyle = grd;
     g.fillRect(0, 0, W, H);
 
-    /* parallaxed deco lattice */
     var tile = backdropTile();
     var pat = g.createPattern(tile, 'repeat');
-    if (pat) {
-      var px = (-cam.x * cam.scale * 0.35) % 256;
-      var py = (-cam.y * cam.scale * 0.35) % 256;
-      g.save();
-      g.translate(px, py);
-      g.fillStyle = pat;
-      g.fillRect(-256, -256, W + 512, H + 512);
-      g.restore();
-    }
+    if (pat) { g.fillStyle = pat; g.fillRect(0, 0, W, H); }
+    return Sky;
+  }
 
-    /* slow atmospheric haze so the void has depth */
-    var hx = W * (0.5 + 0.10 * Math.sin(time * 0.11));
-    var hy = H * (0.42 + 0.08 * Math.cos(time * 0.09));
-    var hz = g.createRadialGradient(hx, hy, 0, hx, hy, Math.max(W, H) * 0.62);
-    hz.addColorStop(0, 'rgba(58,84,128,0.10)');
-    hz.addColorStop(0.6, 'rgba(30,44,70,0.06)');
-    hz.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = hz;
-    g.fillRect(0, 0, W, H);
+  function drawBackdrop(g, world, time) {
+    var W = Scene.canvas.width, H = Scene.canvas.height;
+    if (!Sky || Sky.canvas.width !== W) bakeSky();
+    /* Blit only the bands the baked vault art will not cover. On a desktop
+       that is a thin frame instead of a full-screen fill. */
+    var b = vaultBounds(world.vault);
+    var s = cam.scale * view.dpr;
+    var av = R.viewport();
+    var ox = (av.cx - (cam.x + cam.shakeX) * cam.scale) * view.dpr;
+    var oy = (av.cy - (cam.y + cam.shakeY) * cam.scale) * view.dpr;
+    var l = Math.floor(StaticOx * s + ox), t = Math.floor(StaticOy * s + oy);
+    var r = Math.ceil((StaticOx + Static.canvas.width) * s + ox);
+    var bt = Math.ceil((StaticOy + Static.canvas.height) * s + oy);
+    l = PV.clamp(l, 0, W); r = PV.clamp(r, 0, W);
+    t = PV.clamp(t, 0, H); bt = PV.clamp(bt, 0, H);
+    if (l <= 0 && t <= 0 && r >= W && bt >= H) return;   // fully covered
+    var sky = Sky.canvas;
+    if (t > 0) g.drawImage(sky, 0, 0, W, t, 0, 0, W, t);
+    if (bt < H) g.drawImage(sky, 0, bt, W, H - bt, 0, bt, W, H - bt);
+    var mh = Math.max(0, bt - t);
+    if (mh > 0) {
+      if (l > 0) g.drawImage(sky, 0, t, l, mh, 0, t, l, mh);
+      if (r < W) g.drawImage(sky, r, t, W - r, mh, r, t, W - r, mh);
+    }
   }
 
   /* Slab layouts per material: how big a "stone" is, in tiles. */
@@ -580,33 +810,41 @@
   /* ==================================================================
      Frame
      ================================================================== */
+  /* ------------------------------------------------------------------
+     Frame order. The important change from the first pass is that lighting is
+     a single *multiply* against a buffer whose base level is the ambient term,
+     instead of "multiply by a flat grey, then screen the lights back on".
+     `screen` can only ever lift blacks, so the old chain compressed the whole
+     room into ~25 levels of grey-brown no matter what the art underneath did.
+     Multiplying means unlit floor goes genuinely dark and a lit pool reaches
+     full material brightness — that is where the contrast comes from.
+
+     Because multiply can never exceed the material, everything that is
+     supposed to be a *source* of light (beams, holograms, hot device cores,
+     the relic) is drawn afterwards, in the emissive pass.
+     ------------------------------------------------------------------ */
   R.draw = function (world, dt, hud) {
     if (!main) return;
     var time = PV.now() * 0.001;
     if (bakedId !== (world.vault.index + ':' + world.vault.id)) R.bake(world);
+    ensureFigBuffers();
 
     var sctx = Scene.ctx;
     sctx.setTransform(1, 0, 0, 1, 0, 0);
+    sctx.globalCompositeOperation = 'source-over';
+    sctx.globalAlpha = 1;
     drawBackdrop(sctx, world, time);
 
     applyWorldTransform(sctx);
     sctx.imageSmoothingEnabled = true;
 
-    /* 0 — baked static, seated on a soft outer glow so it reads as a solid
-       structure sitting inside a larger dark building */
-    var VW = world.vault.w * T, VH = world.vault.h * T;
-    sctx.save();
-    sctx.shadowColor = 'rgba(0,0,0,0.85)';
-    sctx.shadowBlur = T * 1.6;
-    sctx.fillStyle = 'rgba(4,6,10,1)';
-    sctx.fillRect(0, 0, VW, VH);
-    sctx.restore();
-    sctx.drawImage(Static.canvas, 0, 0);
+    /* 0 — baked static: the vault and the building around it */
+    sctx.drawImage(Static.canvas, StaticOx, StaticOy);
 
     /* 1 — ground particles */
     if (PV.Particles) PV.Particles.draw(sctx, 'ground');
 
-    /* 2 — flat devices */
+    /* 2 — device bodies (metal, glass, masonry — all of it takes light) */
     drawExit(sctx, world, time);
     drawPlates(sctx, world, time);
     drawTerminals(sctx, world, time);
@@ -616,53 +854,181 @@
 
     /* 3/4 — actors + props, y-sorted */
     drawSortedActors(sctx, world, time);
-
-    /* 5 — beams + emitters */
-    drawLasers(sctx, world, time);
     drawMirrors(sctx, world, time);
 
-    /* 6 — lighting */
+    /* 5 — LIGHT. One multiply. */
     buildLight(world, time, hud);
     sctx.setTransform(1, 0, 0, 1, 0, 0);
     sctx.globalCompositeOperation = 'multiply';
-    sctx.drawImage(darkMask(world), 0, 0, Scene.canvas.width, Scene.canvas.height);
-    sctx.globalCompositeOperation = 'screen';
     sctx.drawImage(Light.canvas, 0, 0, Scene.canvas.width, Scene.canvas.height);
     sctx.globalCompositeOperation = 'source-over';
 
-    /* 7 — sentry vision cones sit above light so they always read */
+    /* 6 — emissive: things that *emit* rather than reflect, so they must sit
+       above the multiply or the room's own darkness would eat them */
     applyWorldTransform(sctx);
+    drawEmissive(sctx, world, time);
+    drawLasers(sctx, world, time);
     drawVisionCones(sctx, world, time);
 
-    /* 8 — air particles */
+    /* 7 — air particles */
     if (PV.Particles) PV.Particles.draw(sctx, 'air');
-    drawRelicsGlow(sctx, world, time);
 
     sctx.setTransform(1, 0, 0, 1, 0, 0);
+    sctx.globalCompositeOperation = 'source-over';
+    sctx.globalAlpha = 1;
 
-    /* 9 — post */
+    /* 8 — post */
     post(world, time, hud);
   };
+
+  /* Everything that glows. Runs after the light multiply, in world space. */
+  function drawEmissive(g, world, time) {
+    var i;
+    g.save();
+
+    /* plate cores */
+    for (i = 0; i < world.plates.length; i++) {
+      var p = world.plates[i];
+      if (!p.on) continue;
+      var pr = p.r * T;
+      g.globalCompositeOperation = 'lighter';
+      radial(g, p.x * T, p.y * T, pr * 2.6, 'rgba(80,255,230,0.40)', 0.42);
+      g.globalCompositeOperation = 'source-over';
+      g.fillStyle = 'rgba(190,255,246,0.55)';
+      roundRect(g, p.x * T - pr * 0.7, p.y * T - pr * 0.7, pr * 1.4, pr * 1.4, pr * 0.2);
+      g.fill();
+    }
+
+    /* terminal screens */
+    for (i = 0; i < world.terminals.length; i++) {
+      var t = world.terminals[i];
+      var tx = t.x * T, ty = t.y * T;
+      var pct = t.progress / t.hold;
+      g.save();
+      g.translate(tx, ty);
+      g.fillStyle = t.on ? 'rgba(70,255,205,0.60)' : 'rgba(70,190,255,0.34)';
+      roundRect(g, -T * 0.24, -T * 0.22, T * 0.48, T * 0.30, 3); g.fill();
+      g.save();
+      g.beginPath(); roundRect(g, -T * 0.24, -T * 0.22, T * 0.48, T * 0.30, 3); g.clip();
+      g.fillStyle = t.on ? 'rgba(200,255,240,0.85)' : 'rgba(190,235,255,0.70)';
+      for (var b = 0; b < 4; b++) {
+        var yy = -T * 0.20 + b * T * 0.07;
+        var wdt = T * 0.40 * (0.35 + 0.65 * ((Math.sin(time * 5 + b * 1.7 + t.x) + 1) / 2));
+        if (t.busy || t.on) g.fillRect(-T * 0.22, yy, wdt, 2);
+      }
+      g.restore();
+      if (pct > 0.001) {
+        g.strokeStyle = t.on ? '#9dffdf' : '#8ff5ff';
+        g.lineWidth = 4; g.lineCap = 'round';
+        g.beginPath();
+        g.arc(0, T * 0.02, T * 0.46, -Math.PI / 2, -Math.PI / 2 + PV.TAU * Math.min(1, pct));
+        g.stroke();
+      }
+      g.globalCompositeOperation = 'lighter';
+      radial(g, 0, 0, T * 1.5, t.on ? 'rgba(125,255,208,0.30)' : 'rgba(80,185,255,0.20)', 0.4);
+      g.restore();
+    }
+
+    /* receiver charge */
+    for (i = 0; i < world.receivers.length; i++) {
+      var rc = world.receivers[i], c = rc.charge;
+      g.fillStyle = 'rgba(' + Math.round(150 + 90 * c) + ',' + Math.round(110 + 130 * c) + ',255,' + (0.5 + 0.5 * c) + ')';
+      g.beginPath(); g.arc(rc.x * T, rc.y * T, T * (0.10 + 0.14 * c), 0, PV.TAU); g.fill();
+      if (c > 0.05) {
+        g.globalCompositeOperation = 'lighter';
+        radial(g, rc.x * T, rc.y * T, T * 1.8 * c, 'rgba(160,120,255,' + (0.55 * c) + ')', 0.4);
+        g.globalCompositeOperation = 'source-over';
+      }
+    }
+
+    /* door status lamps */
+    for (i = 0; i < world.doors.length; i++) {
+      var d = world.doors[i];
+      var col = d.open ? '#7dffd0' : '#ff6a5c';
+      for (var k = 0; k < d.tiles.length; k++) {
+        var dx = (d.tiles[k].x + 0.5) * T, dy = (d.tiles[k].y + 0.5) * T;
+        g.fillStyle = col;
+        g.beginPath(); g.arc(dx, dy, 3.2, 0, PV.TAU); g.fill();
+        g.globalCompositeOperation = 'lighter';
+        radial(g, dx, dy, T * 0.7, PV.rgba(col, 0.40), 0.4);
+        g.globalCompositeOperation = 'source-over';
+      }
+    }
+
+    /* exit pad: chevrons + brackets */
+    drawExitEmissive(g, world, time);
+
+    /* relics — the objective. Drawn last and brightest of the emissives. */
+    drawRelicsEmissive(g, world, time);
+
+    /* echoes are holograms: give them their glow back on top of the light */
+    for (i = 0; i < world.echoes.length; i++) {
+      var e = world.echoes[i];
+      if (!e.active) continue;
+      g.globalCompositeOperation = 'lighter';
+      radial(g, e.x * T, e.y * T - T * 0.10, T * 0.95, 'rgba(95,240,255,0.22)', 0.35);
+      g.globalCompositeOperation = 'source-over';
+    }
+
+    g.restore();
+  }
+
+  function radial(g, x, y, r, color, mid) {
+    var grd = g.createRadialGradient(x, y, 0, x, y, r);
+    grd.addColorStop(0, color);
+    grd.addColorStop(mid === undefined ? 0.4 : mid, fadeColor(color, 0.34));
+    grd.addColorStop(1, fadeColor(color, 0));
+    g.fillStyle = grd;
+    g.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  /* scale the alpha of an 'rgba(r,g,b,a)' string without re-parsing hex */
+  function fadeColor(c, k) {
+    var i = c.lastIndexOf(',');
+    if (c.charAt(0) !== 'r' || i < 0) return c;
+    var a = parseFloat(c.slice(i + 1));
+    return c.slice(0, i + 1) + (a * k).toFixed(3) + ')';
+  }
 
   /* ------------------------------------------------------------------
      Devices
      ------------------------------------------------------------------ */
+  /* The physical pad: brushed metal inlay set into the floor. Takes light. */
   function drawExit(g, world, time) {
     var e = world.exit; if (!e) return;
     var x = e.x * T, y = e.y * T, w = e.w * T, h = e.h * T;
-    var pulse = 0.5 + 0.5 * Math.sin(time * 2.2);
-    var ready = world.relicsHeldByAny === 0 ? 1 : 1;
     g.save();
-    /* pad plate */
-    var grd = g.createLinearGradient(x, y, x, y + h);
-    grd.addColorStop(0, 'rgba(255,215,110,0.10)');
-    grd.addColorStop(1, 'rgba(255,215,110,0.03)');
+    g.fillStyle = 'rgba(0,0,0,0.45)';
+    roundRect(g, x - 3, y - 3, w + 6, h + 6, 8); g.fill();
+    var tex = TX('metal.brass');
+    if (tex) {
+      g.save();
+      g.beginPath(); roundRect(g, x, y, w, h, 6); g.clip();
+      g.globalAlpha = 0.55;
+      g.fillStyle = g.createPattern(tex, 'repeat');
+      g.fillRect(x, y, w, h);
+      g.restore();
+    }
+    var grd = g.createLinearGradient(x, y, x + w * 0.4, y + h);
+    grd.addColorStop(0, 'rgba(122,96,32,0.55)');
+    grd.addColorStop(1, 'rgba(40,31,10,0.55)');
     g.fillStyle = grd;
-    g.fillRect(x, y, w, h);
-    /* chevrons */
-    g.strokeStyle = 'rgba(255,215,110,' + (0.25 + pulse * 0.35) + ')';
-    g.lineWidth = 3;
+    roundRect(g, x, y, w, h, 6); g.fill();
+    g.strokeStyle = 'rgba(230,196,110,0.55)';
+    g.lineWidth = 2;
+    roundRect(g, x + 1, y + 1, w - 2, h - 2, 5); g.stroke();
+    g.restore();
+  }
+
+  /* …and the light coming off it. */
+  function drawExitEmissive(g, world, time) {
+    var e = world.exit; if (!e) return;
+    var x = e.x * T, y = e.y * T, w = e.w * T, h = e.h * T;
+    var pulse = 0.5 + 0.5 * Math.sin(time * 2.2);
+    g.save();
     g.lineCap = 'round';
+    /* chevrons */
+    g.strokeStyle = 'rgba(255,228,150,' + (0.35 + pulse * 0.40) + ')';
+    g.lineWidth = 3;
     for (var i = 0; i < 3; i++) {
       var t = ((time * 0.55 + i / 3) % 1);
       var yy = y + h * (1 - t) * 0.8 + h * 0.1;
@@ -674,8 +1040,7 @@
       g.stroke();
     }
     g.globalAlpha = 1;
-    /* corner brackets */
-    g.strokeStyle = 'rgba(255,225,150,' + (0.5 + pulse * 0.3) + ')';
+    g.strokeStyle = 'rgba(255,238,190,' + (0.6 + pulse * 0.3) + ')';
     g.lineWidth = 3;
     var c = Math.min(w, h) * 0.26;
     bracket(g, x + 4, y + 4, c, 1, 1);
@@ -717,15 +1082,7 @@
       g.moveTo(0, -r * 0.45); g.lineTo(0, r * 0.45);
       g.stroke();
       g.restore();
-      if (p.on) {
-        g.globalCompositeOperation = 'lighter';
-        var pg = g.createRadialGradient(0, 0, 0, 0, 0, r * 2.4);
-        pg.addColorStop(0, 'rgba(80,255,230,0.42)');
-        pg.addColorStop(1, 'rgba(80,255,230,0)');
-        g.fillStyle = pg;
-        g.fillRect(-r * 2.4, -r * 2.4, r * 4.8, r * 4.8);
-      }
-      g.restore();
+      g.restore();   /* the hot core is drawn in the emissive pass */
     }
   }
 
@@ -744,30 +1101,9 @@
       g.fillStyle = grd;
       roundRect(g, -T * 0.32, -T * 0.30, T * 0.64, T * 0.58, 5); g.fill();
       g.strokeStyle = 'rgba(201,162,39,0.55)'; g.lineWidth = 1.5; g.stroke();
-      /* screen */
-      g.fillStyle = t.on ? 'rgba(30,255,190,0.28)' : 'rgba(30,180,255,0.14)';
+      /* dead screen recess — the live screen is emissive */
+      g.fillStyle = 'rgba(4,7,11,0.9)';
       roundRect(g, -T * 0.24, -T * 0.22, T * 0.48, T * 0.30, 3); g.fill();
-      /* scan bars */
-      g.save();
-      g.beginPath(); roundRect(g, -T * 0.24, -T * 0.22, T * 0.48, T * 0.30, 3); g.clip();
-      g.fillStyle = t.on ? 'rgba(120,255,220,0.55)' : 'rgba(120,220,255,0.42)';
-      for (var b = 0; b < 4; b++) {
-        var yy = -T * 0.20 + b * T * 0.07;
-        var wdt = T * 0.40 * (0.35 + 0.65 * ((Math.sin(time * 5 + b * 1.7 + t.x) + 1) / 2));
-        if (t.busy || t.on) g.fillRect(-T * 0.22, yy, wdt, 2);
-      }
-      g.restore();
-      /* progress ring */
-      if (pct > 0.001) {
-        g.strokeStyle = t.on ? '#7dffd0' : '#5ff0ff';
-        g.lineWidth = 4; g.lineCap = 'round';
-        g.beginPath();
-        g.arc(0, T * 0.02, T * 0.46, -Math.PI / 2, -Math.PI / 2 + PV.TAU * Math.min(1, pct));
-        g.stroke();
-        g.globalCompositeOperation = 'lighter';
-        g.strokeStyle = 'rgba(120,255,230,0.35)'; g.lineWidth = 9;
-        g.stroke();
-      }
       g.restore();
     }
   }
@@ -781,17 +1117,7 @@
       g.beginPath(); g.arc(0, 0, T * 0.34, 0, PV.TAU); g.fill();
       g.strokeStyle = 'rgba(155,108,255,0.8)'; g.lineWidth = 3;
       g.beginPath(); g.arc(0, 0, T * 0.34, 0, PV.TAU); g.stroke();
-      var c = r.charge;
-      g.fillStyle = 'rgba(' + Math.round(120 + 110 * c) + ',' + Math.round(90 + 150 * c) + ',255,' + (0.35 + 0.6 * c) + ')';
-      g.beginPath(); g.arc(0, 0, T * (0.10 + 0.14 * c), 0, PV.TAU); g.fill();
-      if (c > 0.05) {
-        g.globalCompositeOperation = 'lighter';
-        var pg = g.createRadialGradient(0, 0, 0, 0, 0, T * 1.6 * c);
-        pg.addColorStop(0, 'rgba(160,120,255,' + (0.5 * c) + ')');
-        pg.addColorStop(1, 'rgba(160,120,255,0)');
-        g.fillStyle = pg; g.fillRect(-T * 2, -T * 2, T * 4, T * 4);
-      }
-      g.restore();
+      g.restore();   /* charge core is emissive */
     }
   }
 
@@ -852,16 +1178,7 @@
           g.stroke();
         }
         g.restore();
-        /* status light */
-        var col = d.open ? '#7dffd0' : '#ff6a5c';
-        g.fillStyle = col;
-        g.beginPath(); g.arc(x + T * 0.5, y + T * 0.5, 3.2, 0, PV.TAU); g.fill();
-        g.globalCompositeOperation = 'lighter';
-        var lg = g.createRadialGradient(x + T * 0.5, y + T * 0.5, 0, x + T * 0.5, y + T * 0.5, T * 0.6);
-        lg.addColorStop(0, PV.rgba(col === '#7dffd0' ? '#7dffd0' : '#ff6a5c', 0.35));
-        lg.addColorStop(1, 'rgba(0,0,0,0)');
-        g.fillStyle = lg; g.fillRect(x - T * 0.2, y - T * 0.2, T * 1.4, T * 1.4);
-        g.restore();
+        g.restore();   /* status lamp is emissive */
       }
     }
   }
@@ -1365,18 +1682,97 @@
   /* ------------------------------------------------------------------
      Relics + props
      ------------------------------------------------------------------ */
+  /* Lit pass: the plinth the relic stands on. A dark, heavy, matte block whose
+     whole job is to be a value the gold can sit against — the objective was
+     previously a small gold sprite on top of a large gold medallion, which is
+     the worst possible readability arrangement. */
   function drawRelic(g, r, time) {
     if (r.held) return;
     var x = r.x * T, y = r.y * T;
-    var bob = Math.sin(time * 1.8 + r.id) * T * 0.07;
-    contactShadow(g, x, y + T * 0.26, T * 0.30, 0.45);
-    /* pedestal */
+    var s = r.heavy ? 1.22 : 1;
+    contactShadow(g, x + T * 0.10, y + T * 0.30, T * 0.42 * s, 0.72);
     g.save();
-    g.fillStyle = 'rgba(12,16,24,0.85)';
-    g.beginPath(); g.ellipse(x, y + T * 0.20, T * 0.30, T * 0.13, 0, 0, PV.TAU); g.fill();
-    g.strokeStyle = 'rgba(201,162,39,0.5)'; g.lineWidth = 2; g.stroke();
+    /* plinth body */
+    var pg = g.createLinearGradient(x - T * 0.3, y - T * 0.1, x + T * 0.3, y + T * 0.3);
+    pg.addColorStop(0, '#1d2331');
+    pg.addColorStop(0.5, '#12161f');
+    pg.addColorStop(1, '#080b11');
+    g.fillStyle = pg;
+    roundRect(g, x - T * 0.30 * s, y - T * 0.06 * s, T * 0.60 * s, T * 0.34 * s, T * 0.06); g.fill();
+    /* top cap, catching the key light */
+    g.fillStyle = '#262e40';
+    g.beginPath(); g.ellipse(x, y - T * 0.06 * s, T * 0.31 * s, T * 0.13 * s, 0, 0, PV.TAU); g.fill();
+    g.fillStyle = 'rgba(150,175,215,0.20)';
+    g.beginPath(); g.ellipse(x - T * 0.05, y - T * 0.09 * s, T * 0.22 * s, T * 0.08 * s, 0, 0, PV.TAU); g.fill();
+    /* brass collar */
+    g.strokeStyle = 'rgba(201,162,39,0.55)'; g.lineWidth = 2;
+    g.beginPath(); g.ellipse(x, y - T * 0.06 * s, T * 0.31 * s, T * 0.13 * s, 0, 0, PV.TAU); g.stroke();
+    g.fillStyle = 'rgba(201,162,39,0.30)';
+    g.fillRect(x - T * 0.30 * s, y + T * 0.20 * s, T * 0.60 * s, 2);
     g.restore();
-    drawRelicSprite(g, x, y - T * 0.16 + bob, r.kind, T * 0.62 * (r.heavy ? 1.25 : 1), time, 1);
+  }
+
+  /* Emissive pass: the treasure itself, plus the shaft of light picking it out
+     of the room. Drawn above the light multiply so nothing can dim it. */
+  function drawRelicsEmissive(g, world, time) {
+    for (var i = 0; i < world.relics.length; i++) {
+      var r = world.relics[i];
+      if (r.banked) continue;
+      var heavy = r.heavy ? 1.30 : 1;
+      var bob = Math.sin(time * 1.8 + (r.id || i)) * T * 0.055;
+      var pulse = 0.55 + 0.45 * Math.sin(time * 2.4 + i);
+
+      if (r.held) {
+        var hx = (r.held.x + Math.cos(r.held.facing) * 0.30) * T;
+        var hy = (r.held.y + Math.sin(r.held.facing) * 0.30 - 0.24) * T;
+        g.save();
+        g.globalCompositeOperation = 'lighter';
+        radial(g, hx, hy, T * 1.5 * heavy, 'rgba(255,206,110,' + (0.30 * pulse) + ')', 0.35);
+        g.restore();
+        drawRelicSprite(g, hx, hy, r.kind, T * 0.50 * heavy, time, 1);
+        continue;
+      }
+
+      var x = r.x * T, y = r.y * T - T * 0.30 * heavy + bob;
+
+      /* the museum spot: a soft cone from above, and a pool on the floor */
+      g.save();
+      g.globalCompositeOperation = 'lighter';
+      var shaft = g.createLinearGradient(x, y - T * 2.6, x, y + T * 0.4);
+      shaft.addColorStop(0, 'rgba(255,224,150,0)');
+      shaft.addColorStop(0.55, 'rgba(255,214,124,' + (0.055 + 0.03 * pulse) + ')');
+      shaft.addColorStop(1, 'rgba(255,206,110,' + (0.13 + 0.05 * pulse) + ')');
+      g.fillStyle = shaft;
+      g.beginPath();
+      g.moveTo(x - T * 0.20, y - T * 2.6);
+      g.lineTo(x + T * 0.20, y - T * 2.6);
+      g.lineTo(x + T * 0.86 * heavy, y + T * 0.40);
+      g.lineTo(x - T * 0.86 * heavy, y + T * 0.40);
+      g.closePath(); g.fill();
+      radial(g, x, y, T * 1.5 * heavy, 'rgba(255,206,110,' + (0.26 * pulse) + ')', 0.34);
+      g.restore();
+
+      drawRelicSprite(g, x, y, r.kind, T * 0.86 * heavy, time, 1);
+
+      /* anisotropic star — two crossed streaks, the long one horizontal, the
+         way a real specular flare off a faceted stone behaves */
+      g.save();
+      g.globalCompositeOperation = 'lighter';
+      var sp = (0.55 + 0.45 * Math.abs(Math.sin(time * 1.1 + i * 2))) * T * (r.heavy ? 1.5 : 1.05);
+      var sg = g.createLinearGradient(x - sp, y, x + sp, y);
+      sg.addColorStop(0, 'rgba(255,240,200,0)');
+      sg.addColorStop(0.5, 'rgba(255,246,214,' + (0.55 * pulse) + ')');
+      sg.addColorStop(1, 'rgba(255,240,200,0)');
+      g.fillStyle = sg;
+      g.fillRect(x - sp, y - 1.1, sp * 2, 2.2);
+      var sg2 = g.createLinearGradient(x, y - sp * 0.6, x, y + sp * 0.6);
+      sg2.addColorStop(0, 'rgba(255,240,200,0)');
+      sg2.addColorStop(0.5, 'rgba(255,246,214,' + (0.42 * pulse) + ')');
+      sg2.addColorStop(1, 'rgba(255,240,200,0)');
+      g.fillStyle = sg2;
+      g.fillRect(x - 1.1, y - sp * 0.6, 2.2, sp * 1.2);
+      g.restore();
+    }
   }
 
   function drawRelicSprite(g, x, y, kind, size, time, alpha) {
@@ -1494,26 +1890,24 @@
   /* ==================================================================
      Lighting
      ================================================================== */
-  var darkCache = null, darkKey = '';
-  function darkMask(world) {
-    var k = world.vault.id + ':' + Scene.canvas.width;
-    if (darkCache && darkKey === k) return darkCache.canvas;
-    var c = PV.makeCanvas(64, 64, { alpha: false });
-    /* Uniform ambient floor — the light buffer adds everything back on top.
-       Keep this bright enough that unlit geometry still reads as material,
-       not as a black hole. */
-    c.ctx.fillStyle = '#666d7e';
-    c.ctx.fillRect(0, 0, 64, 64);
-    darkCache = c; darkKey = k;
-    return c.canvas;
-  }
+  /* Ambient term. This is the darkest any lit surface gets, and it is the
+     single most important number in the renderer: it sets the black point of
+     the whole image. Cool and low — a night-time marble hall lit only by what
+     the level actually puts in it. */
+  var AMBIENT = 'rgb(31,38,55)';
+  var AMBIENT_LIT = 'rgb(46,54,74)';    /* nearer the skylight side */
 
   function buildLight(world, time, hud) {
     var lc = Light.ctx;
     var lw = Light.canvas.width, lh = Light.canvas.height;
     lc.setTransform(1, 0, 0, 1, 0, 0);
     lc.globalCompositeOperation = 'source-over';
-    lc.fillStyle = '#000';
+    /* Base = ambient, with a gentle screen-space ramp so the image has a
+       built-in direction before a single lamp is placed. */
+    var amb = lc.createLinearGradient(0, 0, lw * 0.55, lh);
+    amb.addColorStop(0, AMBIENT_LIT);
+    amb.addColorStop(1, AMBIENT);
+    lc.fillStyle = amb;
     lc.fillRect(0, 0, lw, lh);
 
     var s = cam.scale * view.dpr * 0.5;

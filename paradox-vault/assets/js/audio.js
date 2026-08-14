@@ -1948,17 +1948,26 @@
     return oc.startRendering();
   };
 
-  A._offlineMusic = function (track, seconds, tension) {
+  /* opts: { sweepTo: number }  — when present the tension is automated from
+     `tension` to `sweepTo` across the render, re-armed once per bar exactly
+     as the live 20Hz path would, so the harness measures a real transition. */
+  A._offlineMusic = function (track, seconds, tension, opts) {
     seconds = seconds || 8;
+    opts = opts || {};
     var oc = offlineCtx(seconds);
     if (!oc || !TRACKS[track]) return Promise.reject(new Error('cannot render ' + track));
     var E2 = makeEngine(oc, false);
-    var m = newMusic(E2, track, tension || 0);
-    applyTension(m, tension || 0, 0, 0.001);
+    var t0 = tension || 0;
+    var t1 = typeof opts.sweepTo === 'number' ? opts.sweepTo : t0;
+    var m = newMusic(E2, track, t0);
+    applyTension(m, t0, 0, 0.001);
     musicFadeIn(m, 0.01, 0.12, 1);
     var stepDur = (60 / m.def.bpm) / 4;
     var t = 0.05, bar = 0, step = 0;
     while (t < seconds - 0.02) {
+      if (t1 !== t0 && step % 4 === 0) {
+        applyTension(m, t0 + (t1 - t0) * clamp01(t / (seconds - 0.05)), t, 0.30);
+      }
       scheduleStep(m, bar, step, t);
       step++;
       if (step >= 16) { step = 0; bar++; }

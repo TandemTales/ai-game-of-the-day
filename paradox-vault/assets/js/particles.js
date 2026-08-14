@@ -80,8 +80,8 @@
   var SP_DOT = 0, SP_CORE = 1, SP_STREAK = 2, SP_SHARD = 3,
       SP_PUFF0 = 4, SP_PUFF1 = 5, SP_PUFF2 = 6, SP_RING = 7,
       SP_FOILL = 8, SP_FOILD = 9, SP_SPLAT = 10, SP_GLASS = 11,
-      SP_SHOCK = 12, SP_FLARE = 13;
-  var NSPR = 14;
+      SP_SHOCK = 12, SP_FLARE = 13, SP_GLOW = 14;
+  var NSPR = 15;
 
   /* which colour variants get baked for each sprite kind */
   var SPR_COLS = [
@@ -98,7 +98,8 @@
     [C_INK, C_VIOLET, C_RED, C_CYAN],                        /* SPLAT  */
     [C_WHITE, C_CYAN, C_GOLD],                               /* GLASS  */
     [C_CYAN, C_VIOLET, C_WHITE, C_GOLD],                     /* SHOCK  */
-    [C_CYAN, C_VIOLET, C_WHITE, C_GOLD]                      /* FLARE  */
+    [C_CYAN, C_VIOLET, C_WHITE, C_GOLD],                     /* FLARE  */
+    [C_CYAN, C_VIOLET, C_WHITE, C_GOLD, C_TEAL]              /* GLOW   */
   ];
 
   /* sprites[spriteKind][colorIdx] -> HTMLCanvasElement */
@@ -146,7 +147,7 @@
   var bGN, bGA, bAN, bAA;          /* draw buckets */
   var nGN = 0, nGA = 0, nAN = 0, nAA = 0;
   var bucketsDirty = true;
-  var birthSeq = 0, scanCursor = 0;
+  var birthSeq = 0, scanCursor = 0, clearFloor = 0;
   var capNow = CAP;
   var time = 0;
   var inited = false;
@@ -312,6 +313,26 @@
     return o.canvas;
   }
 
+  /* Pure atmospheric falloff — no hot core at all.  Anything drawn very large
+     (afterimages, gravity-well haze) must use this: SP_DOT and SP_CORE both
+     carry a tight saturated centre that, blown up to 500px and blended with
+     'lighter', clips to a flat white disc with a visible circular edge.  The
+     profile here is deliberately close to r^-2 so there is no radius at which
+     the gradient stops being a gradient. */
+  function bakeGlow(s, C) {
+    var o = PV.makeCanvas(s, s), c = o.ctx, r = s * 0.5;
+    var g = c.createRadialGradient(r, r, 0, r, r, r);
+    g.addColorStop(0.00, rgba(C[0], 0.50));
+    g.addColorStop(0.06, rgba(C[1], 0.40));
+    g.addColorStop(0.16, rgba(C[1], 0.235));
+    g.addColorStop(0.32, rgba(C[1], 0.115));
+    g.addColorStop(0.52, rgba(C[2], 0.052));
+    g.addColorStop(0.76, rgba(C[2], 0.016));
+    g.addColorStop(1.00, rgba(C[2], 0));
+    c.fillStyle = g; c.fillRect(0, 0, s, s);
+    return o.canvas;
+  }
+
   function bakeShard(s, C) {
     var o = PV.makeCanvas(s, s), c = o.ctx, r = s * 0.5;
     /* soft bloom behind the shard */
@@ -471,6 +492,16 @@
         c.restore();
       }
     }
+    /* An inner echo ring — a real shockwave has a second, weaker crest chasing
+       the first.  Without it a ring is a single stroked circle and reads as
+       vector art no matter how nicely the crest is modulated. */
+    var er = r * RING_R * (opts_thin ? 0.70 : 0.79);
+    var eg = c.createRadialGradient(r, r, er * 0.86, r, r, er * 1.14);
+    eg.addColorStop(0.00, rgba(C[1], 0));
+    eg.addColorStop(0.45, rgba(C[1], opts_thin ? 0.20 : 0.15));
+    eg.addColorStop(0.55, rgba(C[0], opts_thin ? 0.26 : 0.19));
+    eg.addColorStop(1.00, rgba(C[1], 0));
+    c.fillStyle = eg; c.fillRect(0, 0, s, s);
     return o.canvas;
   }
   function bakeRing(s, C) { return bakeRingGeneric(s, C, true, false, 3); }
@@ -620,6 +651,7 @@
           case SP_GLASS: sprites[k][ci] = bakeGlass(64, C); break;
           case SP_SHOCK: sprites[k][ci] = bakeShock(256, C); break;
           case SP_FLARE: sprites[k][ci] = bakeFlare(C); break;
+          case SP_GLOW:  sprites[k][ci] = bakeGlow(128, C); break;
         }
       }
       /* never allow a null lookup in draw() */
@@ -853,12 +885,13 @@
         break;
 
       case T_CHRONO:
-        /* spawned on a ring, converges on (tx,ty) — set up by emitChrono */
+        /* Fully scripted by emitChrono: an ANALYTIC converging spiral rather
+           than a force integration.  See the note above emitChrono for why. */
         size[i] = rr(3.0, 9.5) * eScale;
-        life[i] = maxLife[i] = 1.15;
+        life[i] = maxLife[i] = 0.4;
         pspr[i] = SP_STREAK;
         pcol[i] = sd < 0.52 ? C_CYAN : (sd < 0.88 ? C_VIOLET : C_TEAL);
-        pcol2[i] = pcol[i];
+        pcol2[i] = C_WHITE;
         break;
 
       case T_STEAM:
@@ -961,123 +994,175 @@
        0.45 ..       outgoing shock rings, a shard spray, and a slow violet /
                      cyan afterimage that lingers for ~1.5 s.
      ================================================================== */
-  var CHRONO_IMPACT = 0.44;
+  var CHRONO_IMPACT = 0.46;
+
+  /* Why the streaks are kinematic, not dynamic.
+     ------------------------------------------
+     The first version integrated an inward force.  Measured in the browser,
+     not one streak ever reached the singularity: tangential launch speed plus
+     drag put them in a stable orbit and they expired at their full radius,
+     ~0.9 s after the flash had already fired.  The collapse and the impact
+     were two unrelated events happening in different places.
+
+     A convergence is a piece of CHOREOGRAPHY — the whole point is that
+     everything lands on one frame — so it is authored, not simulated:
+
+         R(u) = R0 * (1-u)^p      p in (0,1)  -> creeps, then falls off a cliff
+         A(u) = A0 + sweep * u                -> winds in, never a straight line
+
+     u is the particle's own normalised age, so arrival at u = 1 is exact by
+     construction and the impact frame is a number I choose, not one I hope
+     for.  p < 1 is what makes the last 15% of the radius take 3 frames: the
+     radial speed diverges as u -> 1, and because the sprite is stretched by
+     speed the streaks *elongate into light* right as they hit.  Both the
+     position and the analytic tangent are evaluated in update(), so draw()
+     still just reads vx/vy and costs exactly what it did before. */
   function emitChrono(x, y) {
-    var n = eCount, i, w, ang, R, s, spd, tang, ix, iy, id, dirn;
+    var n = eCount, i, ang, R, id, dirn, dly, arrive;
     var radius = (eSpeed > 0 ? eSpeed : 250) * eScale;
-    var waves = 6;
     var baseCol = eHasColor ? eColor : -1;
     var sv = eSpeed, sc = eScale, hc = eHasColor, ec = eColor,
         lf = eLife, sp = eSpread, ha = eHasAngle, ea = eAngle;
 
     /* ---- converging streaks ---------------------------------------- */
     for (i = 0; i < n; i++) {
-      w = i % waves;
       /* golden-angle placement: no visible spokes, no clumping */
       ang = i * 2.39996 + rr(-0.13, 0.13);
-      R = radius * rr(0.62, 1.34);
-      ix = x + M.cos(ang) * R;
-      iy = y + M.sin(ang) * R * 0.90;
+      R = radius * rr(0.70, 1.32);
       eDx = 0; eDy = 0;
-      id = spawn(T_CHRONO, ix, iy);
+      id = spawn(T_CHRONO, x + M.cos(ang) * R, y + M.sin(ang) * R * 0.90);
       if (id < 0) break;
+      /* release stagger, then an arrival time that puts every streak inside a
+         70 ms window around the impact — tight enough to read as one event,
+         loose enough not to look quantised */
+      dly = rnd() * 0.13;
+      arrive = CHRONO_IMPACT - dly + rr(-0.035, 0.035);
+      if (arrive < 0.10) arrive = 0.10;
       tx[id] = x; ty[id] = y;
-      /* two counter-rotating shells read as real orbital motion */
-      dirn = (i % 3) ? 1 : -1;
-      tang = ang + M.PI * 0.5 * dirn;
-      spd = rr(150, 340);
-      vx[id] = M.cos(tang) * spd - M.cos(ang) * rr(0, 60);
-      vy[id] = M.sin(tang) * spd - M.sin(ang) * rr(0, 60);
-      /* stagger the release AND vary the pull so arrivals smear over ~0.2s
-         around the impact rather than all landing on one frame */
-      delay[id] = w * 0.042 + rnd() * 0.030;
-      vrot[id] = rr(0.80, 1.30);             /* per-particle pull multiplier */
-      if (baseCol >= 0) pcol[id] = pcol2[id] = baseCol;
-      life[id] = maxLife[id] = 1.25;
+      size2[id] = R;                          /* R0    */
+      ph[id] = ang;                            /* A0    */
+      dirn = (i % 3) ? 1 : -1;                 /* two counter-rotating shells */
+      vph[id] = dirn * rr(1.15, 2.35);         /* sweep */
+      vrot[id] = rr(0.42, 0.78);               /* p     */
+      delay[id] = dly;
+      life[id] = maxLife[id] = arrive;
+      size[id] = rr(3.4, 8.0) * sc;
+      if (baseCol >= 0) pcol[id] = baseCol;
     }
 
-    /* ---- slow chrono dust dragged in behind the streaks ------------- */
+    /* ---- stragglers: thinner, wound tighter, still falling in after the
+       flash so the singularity keeps eating for a beat ---------------- */
     eDx = 0; eDy = 0;
-    for (i = 0; i < 22; i++) {
+    for (i = 0; i < 20; i++) {
       ang = rnd() * TAU;
-      R = radius * rr(0.5, 1.6);
+      R = radius * rr(0.55, 1.65);
       id = spawn(T_CHRONO, x + M.cos(ang) * R, y + M.sin(ang) * R * 0.9);
       if (id < 0) break;
       tx[id] = x; ty[id] = y;
-      tang = ang + M.PI * 0.5 * ((i % 2) ? 1 : -1);
-      spd = rr(60, 150);
-      vx[id] = M.cos(tang) * spd; vy[id] = M.sin(tang) * spd;
-      size[id] = rr(1.6, 3.4) * sc;
-      vrot[id] = rr(0.34, 0.62);             /* much weaker pull -> lags */
-      delay[id] = rnd() * 0.22;
-      pcol[id] = pcol2[id] = baseCol >= 0 ? baseCol : (rnd() < 0.5 ? C_CYAN : C_VIOLET);
-      life[id] = maxLife[id] = 1.4;
+      size2[id] = R;
+      ph[id] = ang;
+      vph[id] = ((i % 2) ? 1 : -1) * rr(2.2, 4.1);
+      vrot[id] = rr(0.55, 0.95);
+      delay[id] = rnd() * 0.20;
+      life[id] = maxLife[id] = CHRONO_IMPACT + rr(0.05, 0.30);
+      size[id] = rr(1.7, 3.6) * sc;
+      pcol[id] = baseCol >= 0 ? baseCol : (rnd() < 0.5 ? C_CYAN : C_VIOLET);
     }
 
     eSpeed = 0; eHasColor = true; eSpread = 0; eHasAngle = false;
 
-    /* ---- anticipation: rings contracting into the singularity ------- */
-    for (i = 0; i < 3; i++) {
-      eColor = i === 1 ? C_VIOLET : (i === 2 ? C_TEAL : C_CYAN);
+    /* ---- anticipation ---------------------------------------------- */
+    /* two thin rings contracting into the singularity — the visual "inhale" */
+    for (i = 0; i < 2; i++) {
+      eColor = i === 1 ? C_VIOLET : C_CYAN;
       eLife = 0.44;
       id = spawn(T_SHOCK, x, y);
       if (id >= 0) {
-        size[id] = radius * (1.05 + i * 0.30);
-        size2[id] = radius * 0.03;
-        delay[id] = i * 0.055;
-        life[id] = maxLife[id] = CHRONO_IMPACT - i * 0.055;
-        vrot[id] = 0;                        /* thin, since it is contracting */
+        size[id] = radius * (1.02 + i * 0.34);
+        size2[id] = radius * 0.05;
+        delay[id] = i * 0.06;
+        life[id] = maxLife[id] = CHRONO_IMPACT - i * 0.06;
+        pspr[id] = SP_RING;                    /* thin: it is closing, not hitting */
+        vrot[id] = 0;                          /* 0 = contracting, alpha ramps UP */
       }
     }
     /* the well itself: a dim violet haze that brightens as things fall in */
-    eLife = CHRONO_IMPACT + 0.06; eColor = C_VIOLET;
+    eLife = CHRONO_IMPACT + 0.05; eColor = C_VIOLET;
     id = spawn(T_AFTER, x, y);
-    if (id >= 0) { size[id] = radius * 0.42 * sc; size2[id] = -0.55; ph[id] = 1; }
+    if (id >= 0) { size[id] = radius * 0.34 * sc; size2[id] = -0.55; ph[id] = 1; }
 
-    /* ---- IMPACT: three anamorphic flares, one frame apart ----------- */
-    eLife = 0.50; eColor = C_CYAN;
+    /* ---- IMPACT ----------------------------------------------------
+       Three flares, one frame apart, sized and weighted as a deliberate
+       colour ramp: a small near-white core, a saturated cyan mid, a wide
+       violet outer that never gets bright enough to clip.  The previous
+       version drew all three with the SP_CORE dot at up to 2.35x growth and
+       alpha ~1 — additively that is a flat white circle with a hard edge,
+       which is exactly the "sprite, not light" failure. ---------------- */
+    eLife = 0.26; eColor = C_WHITE;
     id = spawn(T_FLASH, x, y);
-    if (id >= 0) { delay[id] = CHRONO_IMPACT; size[id] = 190 * sc; size2[id] = 0; }
+    if (id >= 0) { delay[id] = CHRONO_IMPACT + 0.008; size[id] = 66 * sc; size2[id] = -0.22; vrot[id] = 0.95; }
+    eLife = 0.40; eColor = C_CYAN;
+    id = spawn(T_FLASH, x, y);
+    if (id >= 0) { delay[id] = CHRONO_IMPACT; size[id] = 128 * sc; size2[id] = 0.06; vrot[id] = 0.72; }
     eLife = 0.62; eColor = C_VIOLET;
     id = spawn(T_FLASH, x, y);
-    if (id >= 0) { delay[id] = CHRONO_IMPACT + 0.016; size[id] = 300 * sc; size2[id] = 0.55; }
-    eLife = 0.34; eColor = C_WHITE;
-    id = spawn(T_FLASH, x, y);
-    if (id >= 0) { delay[id] = CHRONO_IMPACT + 0.008; size[id] = 96 * sc; size2[id] = -0.3; }
+    if (id >= 0) { delay[id] = CHRONO_IMPACT + 0.02; size[id] = 226 * sc; size2[id] = 0.5; vrot[id] = 0.34; }
 
-    /* ---- outgoing shock rings -------------------------------------- */
-    eLife = 0.55; eColor = C_WHITE;
+    /* ---- light spikes: a dozen very long, very thin streaks fired out on
+       the impact frame and dead within 5 frames.  These are what make the
+       flash read as LIGHT escaping rather than a sprite fading up. ----- */
+    eLife = 0; eHasColor = true;
+    for (i = 0; i < 11; i++) {
+      ang = i * 2.39996 + rr(-0.2, 0.2);
+      id = spawn(T_CHRONO, x, y);
+      if (id >= 0) {
+        tx[id] = x; ty[id] = y;
+        size2[id] = -radius * rr(0.55, 1.25);  /* negative R0 = outbound spike */
+        ph[id] = ang;
+        vph[id] = rr(-0.10, 0.10);
+        vrot[id] = 0.55;
+        delay[id] = CHRONO_IMPACT + rnd() * 0.012;
+        life[id] = maxLife[id] = rr(0.10, 0.17);
+        size[id] = rr(2.2, 4.4) * sc;
+        pcol[id] = i % 3 === 0 ? C_WHITE : (i % 3 === 1 ? C_CYAN : C_VIOLET);
+      }
+    }
+
+    /* ---- outgoing shock rings --------------------------------------
+       Thin, fast, and colour-separated.  A fat white band is a smoke ring,
+       not a shockwave. */
+    eLife = 0.36; eColor = C_WHITE;
     id = spawn(T_SHOCK, x, y);
-    if (id >= 0) { delay[id] = CHRONO_IMPACT + 0.01; size[id] = 8; size2[id] = radius * 1.30; }
-    eLife = 0.80; eColor = C_CYAN;
+    if (id >= 0) { delay[id] = CHRONO_IMPACT + 0.008; size[id] = 10; size2[id] = radius * 0.95; pspr[id] = SP_SHOCK; }
+    eLife = 0.60; eColor = C_CYAN;
     id = spawn(T_SHOCK, x, y);
-    if (id >= 0) { delay[id] = CHRONO_IMPACT + 0.05; size[id] = 6; size2[id] = radius * 2.05; }
-    eLife = 1.05; eColor = C_VIOLET;
+    if (id >= 0) { delay[id] = CHRONO_IMPACT + 0.045; size[id] = 8; size2[id] = radius * 1.55; pspr[id] = SP_RING; }
+    eLife = 0.90; eColor = C_VIOLET;
     id = spawn(T_SHOCK, x, y);
-    if (id >= 0) { delay[id] = CHRONO_IMPACT + 0.12; size[id] = 4; size2[id] = radius * 3.10; }
+    if (id >= 0) { delay[id] = CHRONO_IMPACT + 0.11; size[id] = 6; size2[id] = radius * 2.35; pspr[id] = SP_RING; }
 
     /* ---- residual afterimage --------------------------------------- */
-    eLife = 1.6; eColor = C_CYAN;
+    eLife = 1.5; eColor = C_CYAN;
     id = spawn(T_AFTER, x, y);
-    if (id >= 0) { delay[id] = CHRONO_IMPACT; size[id] = 150 * sc; size2[id] = 1.9; ph[id] = 0; }
-    eLife = 1.15; eColor = C_VIOLET;
+    if (id >= 0) { delay[id] = CHRONO_IMPACT; size[id] = 92 * sc; size2[id] = 1.7; ph[id] = 0; }
+    eLife = 1.05; eColor = C_VIOLET;
     id = spawn(T_AFTER, x, y);
-    if (id >= 0) { delay[id] = CHRONO_IMPACT + 0.04; size[id] = 250 * sc; size2[id] = 1.3; ph[id] = 0; }
+    if (id >= 0) { delay[id] = CHRONO_IMPACT + 0.05; size[id] = 168 * sc; size2[id] = 1.1; ph[id] = 0; }
 
     /* ---- shard spray thrown out by the collapse -------------------- */
-    eHasColor = false; eSpeed = 430; eLife = 0.75; eSpread = TAU;
-    for (i = 0; i < 16; i++) {
+    eHasColor = false; eSpeed = 470; eLife = 0.7; eSpread = TAU;
+    for (i = 0; i < 14; i++) {
       eDx = 0; eDy = 0;
       id = spawn(T_HOLO, x, y);
-      if (id >= 0) delay[id] = CHRONO_IMPACT + rnd() * 0.06;
+      if (id >= 0) delay[id] = CHRONO_IMPACT + rnd() * 0.05;
     }
     /* ---- a few violet sparks so the impact has grit ---------------- */
-    eSpeed = 620; eLife = 0.55; eHasColor = true; eColor = C_VIOLET;
+    eSpeed = 620; eLife = 0.5; eHasColor = true; eColor = C_VIOLET;
     for (i = 0; i < 14; i++) {
       eDx = 0; eDy = 0;
       id = spawn(T_SPARKG, x, y);
       if (id >= 0) {
-        delay[id] = CHRONO_IMPACT + rnd() * 0.04;
+        delay[id] = CHRONO_IMPACT + rnd() * 0.035;
         pcol[id] = rnd() < 0.5 ? C_CYAN : C_VIOLET;
         pcol2[id] = C_VIOLET;
       }
@@ -1123,7 +1208,31 @@
     Particles.ready = true;
   };
 
+  /* clear() drops everything that existed at the START of this frame and
+     deliberately KEEPS anything emitted since — see `clearFloor`.
+
+     This is not pedantry.  game.js `doRewind()` emits the signature chrono +
+     holoShard burst and then calls `seedAmbientMotes()`, which opens with
+     `PV.Particles.clear()`.  Read naively that wipes the entire rewind effect
+     on the frame it is born, and the game's headline moment renders *nothing*
+     (measured: live count identical before and after the emit).  "Reset the
+     VFX state of the world" can only sensibly mean the state as of this
+     frame's beginning; a burst authored microseconds ago is part of the new
+     state, not the old one.  Nothing in the game emits-then-clears on
+     purpose, so this cannot surprise a caller.  If the lead reorders game.js
+     so the clear comes first, this guard silently becomes a no-op. */
   Particles.clear = function () {
+    if (!inited) return;
+    var k = activeCount, i;
+    while (k-- > 0) {
+      i = active[k];
+      if (birth[i] <= clearFloor) kill(i);
+    }
+    bucketsDirty = true;
+  };
+
+  /* Unconditional wipe, including this frame's emissions. */
+  Particles.clearAll = function () {
     if (!inited) return;
     while (activeCount > 0) kill(active[activeCount - 1]);
     nGN = nGA = nAN = nAA = 0;
@@ -1188,8 +1297,11 @@
     if (dt > 0.05) dt = 0.05;
     time += dt;
     refreshCap();
+    /* everything alive right now is fair game for this frame's clear() */
+    clearFloor = birthSeq;
 
     var k = 0, i, t, d, s, dx, dy, dist, inv, dr, n1;
+    var cu, cR0, cb, cq, crad, cang, ccs, csn;
 
     while (k < activeCount) {
       i = active[k];
@@ -1266,22 +1378,36 @@
           vx[i] *= d; vy[i] *= d;
           break;
 
+        /* Kinematic: position is evaluated from the particle's own age, so the
+           whole shell lands on the frame the flash fires.  vx/vy are filled in
+           with the analytic tangent purely so draw() can stretch and orient the
+           streak exactly as it does for a simulated spark. */
         case T_CHRONO:
-          dx = tx[i] - px[i]; dy = ty[i] - py[i];
-          dist = M.sqrt(dx * dx + dy * dy);
-          if (dist < 6) { kill(i); continue; }
-          inv = 1 / dist;
-          /* Constant inward acceleration + a 1/r term.  The constant part
-             guarantees they all arrive; the 1/r part makes the last stretch
-             violently fast, which is what sells the collapse. */
-          s = (2250 + 38000 * inv) * vrot[i];
-          if (s > 26000) s = 26000;
-          vx[i] += dx * inv * s * dt;
-          vy[i] += dy * inv * s * dt;
-          /* light tangential drag only — keeps the spiral from unwinding */
-          d = 1 - 1.15 * dt; if (d < 0) d = 0;
-          vx[i] *= d; vy[i] *= d;
-          break;
+          s = maxLife[i];
+          cu = s > 0 ? 1 - life[i] / s : 1;
+          if (cu < 0) cu = 0; else if (cu > 1) cu = 1;
+          cR0 = size2[i];
+          if (cR0 < 0) {                      /* outbound light spike */
+            cR0 = -cR0;
+            cq = cu < 1e-4 ? 1e-4 : cu;
+            cb = M.pow(cq, vrot[i] - 1);
+            crad = cR0 * cb * cq;
+            dr = vrot[i] * cR0 * cb;
+          } else {                            /* inbound converging streak */
+            cq = 1 - cu; if (cq < 1e-4) cq = 1e-4;
+            cb = M.pow(cq, vrot[i] - 1);
+            crad = cR0 * cb * cq;
+            dr = -vrot[i] * cR0 * cb;
+          }
+          cang = ph[i] + vph[i] * cu;
+          ccs = M.cos(cang); csn = M.sin(cang);
+          px[i] = tx[i] + crad * ccs;
+          py[i] = ty[i] + crad * csn * 0.90;
+          inv = s > 0 ? 1 / s : 0;
+          vx[i] = (dr * ccs - crad * csn * vph[i]) * inv;
+          vy[i] = (dr * csn + crad * ccs * vph[i]) * 0.90 * inv;
+          k++;
+          continue;                            /* position already authored */
 
         case T_STEAM:
           vy[i] -= 40 * dt;

@@ -3119,6 +3119,79 @@
       return null;
     }
 
+    // The movement mask only constrains an entity that is *already* standing on a
+    // walkable pixel (see applyMovementMaskClamp). Anything that repositions an
+    // entity without consulting the mask -- a level start, a geyser knockback --
+    // can drop it outside the red zone, which silently switches its barrier
+    // collision off for the rest of the stage. Stage 9's walkable band at the
+    // spawn column is y 484-528 while stage 8's is 392-528, so simply carrying the
+    // player's y across a stage transition was enough to trigger it. These helpers
+    // snap such a position back onto walkable ground.
+    const WALKABLE_SNAP_Y_STEP = 4;
+    const WALKABLE_SNAP_X_STEP = 12;
+    const WALKABLE_SNAP_MAX_X_OFFSET = 240;
+
+    function findWalkableYNear(worldX, worldY) {
+      if (isWalkableWorldPosition(worldX, worldY)) return worldY;
+      const minY = getBrawlLaneMinY();
+      const maxY = BRAWL_LANE_MAX_Y;
+      const span = Math.max(maxY - minY, 0);
+      for (let offset = WALKABLE_SNAP_Y_STEP; offset <= span; offset += WALKABLE_SNAP_Y_STEP) {
+        const down = worldY + offset;
+        if (down <= maxY && isWalkableWorldPosition(worldX, down)) return down;
+        const up = worldY - offset;
+        if (up >= minY && isWalkableWorldPosition(worldX, up)) return up;
+      }
+      return null;
+    }
+
+    // Nearest walkable point to (worldX, worldY): straight down/up the same column
+    // first, since the walkable bands run horizontally, then fanning outwards in x.
+    function findWalkableSpawnPoint(worldX, worldY) {
+      const directY = findWalkableYNear(worldX, worldY);
+      if (directY !== null) return { x: worldX, y: directY };
+      for (let dx = WALKABLE_SNAP_X_STEP; dx <= WALKABLE_SNAP_MAX_X_OFFSET; dx += WALKABLE_SNAP_X_STEP) {
+        const rightY = findWalkableYNear(worldX + dx, worldY);
+        if (rightY !== null) return { x: worldX + dx, y: rightY };
+        const leftY = findWalkableYNear(worldX - dx, worldY);
+        if (leftY !== null) return { x: worldX - dx, y: leftY };
+      }
+      return null;
+    }
+
+    function snapEntityToWalkableGround(entity) {
+      if (!entity) return false;
+      const point = findWalkableSpawnPoint(entity.x, entity.y);
+      if (!point) return false;
+      entity.x = point.x;
+      entity.y = point.y;
+      return true;
+    }
+
+    const WALKABLE_RECLAIM_STEP = 2.2;
+
+    // Hard-locking a player who is somehow outside the mask would be worse than
+    // letting them walk (they could be sealed in), so applyMovementMaskClamp keeps
+    // their movement free. Ease them back onto walkable ground a little each frame
+    // instead, so an out-of-bounds moment costs a second rather than the stage's
+    // remaining barrier collision.
+    function reclaimEntityToWalkableGround(entity) {
+      if (!entity || entity.hp <= 0) return;
+      if (isWalkableWorldPosition(entity.x, entity.y)) return;
+      const target = findWalkableSpawnPoint(entity.x, entity.y);
+      if (!target) return;
+      const dx = target.x - entity.x;
+      const dy = target.y - entity.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance <= WALKABLE_RECLAIM_STEP) {
+        entity.x = target.x;
+        entity.y = target.y;
+        return;
+      }
+      entity.x += (dx / distance) * WALKABLE_RECLAIM_STEP;
+      entity.y += (dy / distance) * WALKABLE_RECLAIM_STEP;
+    }
+
     function applyMovementMaskClamp(entity, prevX, prevY, options = {}) {
       const {
         allowOutOfBoundsStart = true,
@@ -7165,6 +7238,7 @@
       applyMovementMaskClamp(player, prevX, prevY);
       resolvePlayerCharacterCollisions(player);
       applyMovementMaskClamp(player, prevX, prevY);
+      reclaimEntityToWalkableGround(player);
       player.isMoving = Math.hypot(player.x - prevX, player.y - prevY) > MOVE_EPSILON;
 
       if (player.x > state.lastForwardX + 0.5) {
@@ -7443,6 +7517,7 @@
         resolveFollowerAwayFromPlayer(companion, player, 1);
         companion.x = clamp(companion.x, companionHorizontalBounds.minX, companionHorizontalBounds.maxX);
         companion.y = clamp(companion.y, companionVerticalBounds.minY, companionVerticalBounds.maxY);
+        reclaimEntityToWalkableGround(companion);
         companion.isMoving = Math.hypot(companion.x - prevX, companion.y - prevY) > MOVE_EPSILON;
         updatePlayerAnimation(companion, dt);
       });
@@ -8185,6 +8260,7 @@
               const angle = Math.random() * Math.PI * 2;
               player.x = clamp(player.x + Math.cos(angle) * rand(42, 82), 24, getWaveBarrierPlayerMaxX() - 20);
               player.y = clamp(player.y + Math.sin(angle) * rand(18, 44), getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
+              snapEntityToWalkableGround(player);
               player.z = Math.max(player.z || 0, 14);
               player.vz = Math.max(player.vz || 0, 4.5);
               h.damagedPlayer = true;
@@ -8206,6 +8282,7 @@
             const angle = Math.atan2(player.y - h.y, player.x - h.x) || (Math.random() * Math.PI * 2);
             player.x = clamp(player.x + Math.cos(angle) * rand(30, 58), 24, getWaveBarrierPlayerMaxX() - 20);
             player.y = clamp(player.y + Math.sin(angle) * rand(14, 32), getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
+            snapEntityToWalkableGround(player);
             player.z = Math.max(player.z || 0, 10);
             player.vz = Math.max(player.vz || 0, 3.8);
             h.damagedPlayer = true;
@@ -9010,11 +9087,18 @@
       if (state.player) {
         state.player.x = 80;
         state.player.y = clamp(state.player.y, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
+        // The camera has to be settled on the new level before the movement mask
+        // can be sampled, and the carried-over y is only lane-clamped -- it can
+        // easily land in this stage's scenery (stage 8's walkable band at the spawn
+        // column reaches y 392, stage 9's starts at 484).
+        updateCamera();
+        snapEntityToWalkableGround(state.player);
       }
       if (state.companions.length > 0) {
         state.companions.forEach((companion, index) => {
           companion.x = 80 - ((index + 1) * 26);
           companion.y = state.player ? state.player.y : clamp(companion.y, getBrawlLaneMinY(), BRAWL_LANE_MAX_Y);
+          snapEntityToWalkableGround(companion);
         });
       }
       if (state.scarlettBrambleDrone) {

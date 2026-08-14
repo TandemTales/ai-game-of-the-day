@@ -2406,7 +2406,9 @@
         { id: 'float-step', name: 'Float Step', tag: 'Utility', description: 'Reduced hazard damage and slow effects.' },
         { id: 'sparkle-bloom', name: 'Sparkle Bloom', tag: 'Utility', description: 'Some defeated enemies burst in a small dust cloud that stuns nearby non-charmed enemies.' },
         { id: 'long-glamour', name: 'Long Glamour', tag: 'Utility', description: 'Gain 2 seconds of invulnerability whenever an enemy is charmed.' },
-        { id: 'perfect-glamour', name: 'Perfect Glamour', tag: 'Utility', description: 'Slowly gain health and power while enemies are charmed.', requiresLevel: 10 }
+        // Was gated to 10, which meant it almost never appeared in a run. At 7 it is
+        // reachable while the charm build still has levels left to pay it off.
+        { id: 'perfect-glamour', name: 'Perfect Glamour', tag: 'Utility', description: 'Slowly gain health and power while enemies are charmed.', requiresLevel: 7 }
       ],
       'shunky-rooster': [
         { id: 'staggering-blast', name: 'Staggering Blast', tag: 'Attack', description: 'Basic attacks deal more stun.' },
@@ -3199,18 +3201,41 @@
       return 6;
     }
 
-    function applyRandomCompanionUpgrades(companion, targetLevel) {
+    // Companions used to roll random upgrades, so the same ally could arrive useless
+    // or dominant run to run and was impossible to balance against. Each character now
+    // has a fixed build order, index 0 being the level-2 pick.
+    //
+    // Chosen for an AI that cannot time inputs: passive damage, survivability and
+    // always-on effects are favoured over anything needing precise play.
+    const COMPANION_UPGRADE_PLANS = {
+      'billy-boxby': ['cold-barrel', 'permafrost-boots', 'deep-chill-blast', 'lingering-chill', 'ice-in-the-veins', 'snap-frost', 'hard-freeze', 'shatter-shock', 'black-ice'],
+      'green-fairy': ['irritating-pollen', 'float-step', 'fairy-flurry', 'deeper-enchantment', 'bewitching-presence', 'sweet-sting', 'royal-command', 'perfect-glamour', 'helpful-friends'],
+      'shunky-rooster': ['staggering-blast', 'reinforced-plating', 'shockwave', 'focused-chest-ray', 'heavy-frame', 'penetrating-beam', 'armor-overcharge', 'power-dynamo', 'core-boost'],
+      // dancers-step is gated to level 5, so it sits at index 3 (the level-5 pick);
+      // any earlier and the guard below would silently drop that level's upgrade.
+      'grimma-the-feared': ['long-lash', 'sadists-grace', 'cruel-crack', 'dancers-step', 'deeper-shadows', 'barbed-snap', 'black-halo', 'whip-mastery', 'hungry-dark'],
+      'possumatli': ['rapid-strikes', 'possum-nerves', 'sweeping-staff', 'longer-feint', 'spirit-mastery', 'extended-reach', 'tornado-staff', 'master-of-the-bayou-path', 'knockdown'],
+      'rustbucket': ['faster-draw', 'steel-sheriff', 'piercing-shot', 'extended-sentry', 'auto-loader', 'hardened-rounds', 'targeting-upgrade', 'quick-reboot', 'gyro-stabilizers'],
+      'scarlett-glumpkin': ['toxic-blend', 'thornproof-gloves', 'volatile-seeds', 'deep-roots', 'compound-formula', 'wider-scatter', 'carnivorous-bloom', 'wild-growth', 'toxic-bind'],
+      'old-man-croc': ['powerful-bite', 'thick-hide', 'bone-crunch', 'long-roll', 'swamp-hunger', 'lockjaw', 'predator-rush', 'cold-blooded', 'mauling-grip']
+    };
+
+    function applyCompanionUpgradePlan(companion, targetLevel) {
       if (!companion || !companion.charData || targetLevel <= 1) return;
+      const plan = COMPANION_UPGRADE_PLANS[companion.charData.id] || [];
+      const pool = CHARACTER_UPGRADES[companion.charData.id] || [];
       companion.level = 1;
       companion.xp = 0;
       for (let level = 2; level <= targetLevel; level += 1) {
         companion.level = level;
         applyAutoLevelGains(companion, level);
-        const picks = pickUpgradeChoices(companion, 3);
-        if (!picks.length) continue;
-        const randomUpgrade = picks[Math.floor(Math.random() * picks.length)];
-        companion.selectedUpgrades.add(randomUpgrade.id);
-        companion.upgradeRanks[randomUpgrade.id] = getUpgradeRank(companion, randomUpgrade.id) + 1;
+        const upgradeId = plan[level - 2];
+        if (!upgradeId) continue;
+        // Respect the same level gates the player is held to.
+        const entry = pool.find((candidate) => candidate.id === upgradeId);
+        if (!entry || (entry.requiresLevel && level < entry.requiresLevel)) continue;
+        companion.selectedUpgrades.add(entry.id);
+        companion.upgradeRanks[entry.id] = getUpgradeRank(companion, entry.id) + 1;
       }
       companion.level = targetLevel;
       companion.xp = 0;
@@ -3229,7 +3254,7 @@
       companion.hp = companion.maxHp;
       companion.attackPower *= 0.85;
       companion.speed *= 0.92;
-      applyRandomCompanionUpgrades(companion, recruitLevel);
+      applyCompanionUpgradePlan(companion, recruitLevel);
       return companion;
     }
 

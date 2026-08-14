@@ -95,6 +95,29 @@ photographs it. `smoke.js` walks all ten vaults, rewinds early and late, ends th
 run, and exits non-zero on any throw or unexpected console output. Run it before
 any release. (The defect itself is agent-render's file and was reported to it.)
 
+### The GPU framerate question is CLOSED as un-answerable here — stop retrying it
+
+The 2026-08-12 entry made "confirm framerate on real GPU hardware" the next run's
+first job. It cannot be done in this sandbox, and I established that rather than
+assuming it. There is no `/dev/dri`, no `lspci`, no `glxinfo`, and Chromium
+reports the same software rasteriser under **every** launch configuration tried:
+
+| launch args | WebGL renderer |
+|---|---|
+| *(defaults)* | ANGLE (Google, Vulkan 1.3.0 (**SwiftShader** Device (Subzero)), SwiftShader driver) |
+| `--use-gl=angle` | identical |
+| `--enable-gpu-rasterization --ignore-gpu-blocklist` | identical |
+
+So every fps number any run records here — including all of tonight's — is
+software-rasterised and is **only** valid as a relative before/after measure.
+A future nightly run in this same sandbox will get the same answer; do not spend
+budget re-testing it. Closing the 60fps line in SPEC §9 needs a human to open
+the game on real hardware. **Treat it as permanent carried debt, not a to-do.**
+
+What *is* actionable here, and was handed to `agent-render`: cutting the number
+of full-screen composites. That is unambiguously correct work whether or not a
+real GPU would have absorbed the cost.
+
 ### Release prep — the exact root `index.html` edit, scouted so Saturday need not
 
 Featured block lives at `index.html` around line 327. Swap its contents and move

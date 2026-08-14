@@ -29,6 +29,62 @@ Each loops against a separate harsh critic doing a blind side-by-side against a
 named shipped AAA title. Lead keeps `index.html`, `game.js`, `core.js`,
 `levels.js`, `entities.js` and all integration.
 
+### Lead work completed and verified this run
+
+**Leaderboard path exercised end-to-end** — this was flagged unexercised in the
+2026-08-12 entry. Drove a real headless run to `gameover` with `fetch` stubbed to
+record calls, and confirmed the whole chain fires in order:
+
+```
+GET  /api/leaderboard/rank?gameId=paradox-vault&score=12345   -> {rank:3}
+     PV.UI.prompt "Top 20 Score ... You placed #3 with 12,345"
+POST /api/leaderboard/submit  {"gameId":"paradox-vault","name":"...","score":12345}
+     toast "🏆 Submitted — rank #3",  phase 'gameover'
+```
+
+Payloads were then checked against the actual Cloudflare Functions
+(`functions/api/leaderboard/{rank,submit}.ts`) and match their contracts exactly:
+`rank` wants `gameId` + `score` on the query string, `submit` wants
+`{gameId,name,score}` as JSON. Console clean apart from the known gtag block.
+**The arcade integration is no longer an unknown.**
+
+**Vault design verified** — PROGRESS 2026-08-12 item 5 said the solvability test
+"proves a path exists, not that a vault is interesting". New suite
+`__tests__/paradox-vault.design.test.js`, **47 tests**, closes that gap. The old
+check flood-fills terrain and treats door tiles as walkable, so it only ever
+proved *"solvable if every door happens to be open"*. The new suite models the
+devices properly — plates/terminals pin an actor down (N simultaneous holds cost
+N echoes), levers/receivers latch and cost nothing — and derives each vault's
+true echo cost by searching every latch configuration.
+
+Findings, all now asserted and green:
+
+| # | vault | relics | echoes | loop | echo cost | gated by |
+|---|---|---|---|---|---|---|
+| 1 | The Grand Foyer | 1 | 3 | 22s | 0 | nothing — tutorial, by design |
+| 2 | Weighing Room | 1 | 3 | 20s | 1 | plate |
+| 3 | Twin Locks | 1 | 4 | 20s | 2 | two plates at once |
+| 4 | The Long Gallery | 1 | 4 | 22s | 0 | laser timing |
+| 5 | Records Uplink | 1 | 4 | 22s | 2 | two terminals |
+| 6 | Night Watch | 2 | 4 | 24s | 0 | sentry vision |
+| 7 | Hall of Refraction | 1 | 5 | 24s | 0 | mirror → receiver latch |
+| 8 | Portrait Gallery | 3 | 5 | 24s | 2 | plates + hazards |
+| 9 | Deep Storage | 2 | 5 | 24s | 2 | plates + hazards |
+| 10 | The Paradox Vault | 3 | 6 | 26s | 3 | three holds + hazards |
+
+Every vault clears inside its own echo budget with slack 2–5. Every signal a
+door references is produced by some device, and no door sits on wall terrain
+(the bug class that sealed vault 5's mask relic in an earlier build) — both are
+now permanent assertions. The back half of the campaign is more demanding than
+the front, and the endless "Lockdown" remix stays clearable for 12 cycles.
+
+A caveat worth carrying: vaults 4, 6 and 7 have echo cost **0** — they are gated
+by hazards or by a latching receiver, not by holding a signal. That is
+legitimate design variety, but it means only 5 of 10 vaults genuinely require
+the signature mechanic. The suite asserts that ratio does not get worse.
+
+Full suite is now **5 suites / 128 tests green**.
+
 ---
 
 ## 2026-08-12 — polish night (STEP 3)

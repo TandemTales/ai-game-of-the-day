@@ -1210,7 +1210,7 @@
       // NOTE: Silent One only ships a walking cue; Lurker set covers the rest for now.
       silentOne: { attack: 'assets/BB_sfx_lurkerInTheHalls_attack.mp3', hit: 'assets/BB_sfx_lurkerInTheHalls_hit.mp3', killed: 'assets/BB_sfx_lurkerInTheHalls_killed.mp3', walking: 'assets/BB_sfx_silentOne_walking.mp3' },
       bulwarkBernie: { attack: 'assets/BB_sfx_bulwarkBernie_attack.mp3', hit: 'assets/BB_sfx_bulwarkBernie_hit.mp3', killed: 'assets/BB_sfx_bulwarkBernie_killed.mp3' },
-      telematron: { attack: 'assets/BB_sfx_telematron_attack.mp3', hit: 'assets/BB_sfx_telematron_hit.mp3', killed: 'assets/BB_sfx_telematron_killed.mp3' },
+      telematron: { attack: 'assets/BB_sfx_telematron_attack.mp3', hit: 'assets/BB_sfx_telematron_hit.mp3', killed: 'assets/BB_sfx_telematron_killed.mp3', teleport: 'assets/BB_sfx_telematron_teleport.mp3' },
       mrNibbles: { attack: 'assets/BB_sfx_mrNibbles_attack.mp3', hit: 'assets/BB_sfx_mrNibbles_hit.mp3', killed: 'assets/BB_sfx_mrNibbles_killed.mp3' },
 
       // --- Stage 6: Mirror Realm ---
@@ -1219,7 +1219,7 @@
       disgust: { attack: 'assets/BB_sfx_disgust_attack.mp3', hit: 'assets/BB_sfx_disgust_hit.mp3', killed: 'assets/BB_sfx_disgust_killed.mp3' },
       arrogance: { attack: 'assets/BB_sfx_arrogance_attack.mp3', hit: 'assets/BB_sfx_arrogance_hit.mp3', killed: 'assets/BB_sfx_arrogance_killed.mp3' },
       // NOTE: Mirror Master ships hit/killed/teleport but no attack cue; Malice stands in.
-      mirrorMaster: { attack: 'assets/BB_sfx_malice_attack.mp3', hit: 'assets/BB_sfx_mirrorMaster_hit.mp3', killed: 'assets/BB_sfx_mirrorMaster_killed.mp3' },
+      mirrorMaster: { attack: 'assets/BB_sfx_malice_attack.mp3', hit: 'assets/BB_sfx_mirrorMaster_hit.mp3', killed: 'assets/BB_sfx_mirrorMaster_killed.mp3', teleport: 'assets/BB_sfx_mirrorMaster_teleport.mp3' },
 
       // --- Stage 7: Casino Airship ---
       // NOTE: no BB_sfx_shapeshifter_* assets yet; Tattoo Tiger set stands in.
@@ -1726,6 +1726,407 @@
       origamiMaster: { hp: 315, speed: 1.45, damage: 20, range: 120, score: 750, sprite: 'origamiMaster', ranged: true, tier: 'boss' },
       'mud-monster': { hp: 160, speed: 1.15, damage: 18, range: 34, score: 520, sprite: 'mud-monster', tier: 'boss' },
       boss: { hp: 200, speed: 1.2, damage: 20, range: 26, score: 350, sprite: 'boss', tier: 'boss' }
+    };
+
+    // --- Enemy special abilities -----------------------------------------------
+    // Every enemy type gets one signature move on its own cooldown, running
+    // alongside (not instead of) the basic attack in the AI chain. Keeping them in
+    // a registry rather than as more `else if (enemy.type === ...)` branches means
+    // adding an ability is a data edit, and the hand-tuned AI for daphodilus /
+    // bayouBriar / stingy / sidewinder / sweetykins stays untouched.
+    //
+    // Each entry:
+    //   range      max distance to the player for the special to start
+    //   cooldown   [min, max] frames between attempts
+    //   telegraph  wind-up frames before fire() runs -- the player's reaction window
+    //   color      tint for the shared telegraph + payoff VFX
+    //   fire(ctx)  the effect. ctx = { enemy, player, dx, dy, distance, body }
+    //
+    // Telegraph lengths are the difficulty dial: early stages get long, obvious
+    // wind-ups; later stages get shorter ones and stack more punishing effects.
+    const ENEMY_SPECIALS = {
+      // ---- Stage 1: The Swamp (existing bespoke AI already carries these) ----
+      // daphodilus, bayouBriar, choking-blossom and swamp are driven by their own
+      // branches in the AI chain; no registry entry so they don't double up.
+
+      // ---- Stage 2: Mirewatch ----
+      hiredGun: {
+        range: 520, cooldown: [220, 300], telegraph: 34, color: '#ffd27a',
+        // Suppressing Volley: three tracer rounds on a flat line. Punishes standing
+        // in his lane; walking out of the lane beats it.
+        fire: ({ enemy, player, body }) => {
+          const dir = Math.sign(player.x - enemy.x) || enemy.facing || 1;
+          for (let i = 0; i < 3; i += 1) {
+            state.projectiles.push({
+              x: enemy.x + (dir * 18), y: body.y + (body.height * 0.4) + (i - 1) * 6,
+              vx: dir * (5.4 + (i * 0.35)), vy: 0,
+              damage: Math.max(2, enemy.damage * 0.55), friendly: false, life: 150,
+              color: '#ffd27a', trailEvery: 4
+            });
+          }
+          state.effects.push({ type: 'projectile-muzzle', x: enemy.x + (dir * 22), y: body.y + (body.height * 0.4), timer: 14, color: '#fff2a8' });
+        }
+      },
+      quakes: {
+        range: 190, cooldown: [200, 280], telegraph: 44, color: '#c9a227',
+        // Ground Slam: expanding ring that only hits grounded players -- jump to beat it.
+        fire: ({ enemy, player }) => {
+          state.effects.push({ type: 'enemy-shock-ring', x: enemy.x, y: enemy.y, timer: 30, maxTimer: 30, radius: 150, color: '#c9a227' });
+          state.shake = Math.max(state.shake, 9);
+          if (Math.hypot(player.x - enemy.x, player.y - enemy.y) <= 150 && player.z <= 2) {
+            damagePlayer(enemy.damage * 0.9, enemy);
+            applyStun(player, 26 + STUN_DURATION_BONUS_FRAMES);
+          }
+        }
+      },
+
+      // ---- Stage 3: Mirewatch Docks ----
+      riverDweller: {
+        range: 260, cooldown: [230, 310], telegraph: 32, color: '#4fd6c0',
+        // Undertow: drags the player into melee range, then bites.
+        fire: ({ enemy, player }) => {
+          const dir = Math.sign(enemy.x - player.x) || 1;
+          applyPlayerPush(player, dir * 3.6, 0, 26);
+          applyPlayerDebuff(player, 'slow', 60, 0.4);
+          state.effects.push({ type: 'enemy-shock-ring', x: enemy.x, y: enemy.y, timer: 26, maxTimer: 26, radius: 120, color: '#4fd6c0' });
+        }
+      },
+      automatick: {
+        range: 300, cooldown: [250, 330], telegraph: 40, color: '#9fe8ff',
+        // Overclock Barrage: fan of three shots, so strafing alone won't clear it.
+        fire: ({ enemy, player, body }) => {
+          const dir = Math.sign(player.x - enemy.x) || enemy.facing || 1;
+          [-1.5, 0, 1.5].forEach((spread) => {
+            state.projectiles.push({
+              x: enemy.x + (dir * 16), y: body.y + (body.height * 0.45),
+              vx: dir * 4.6, vy: spread,
+              damage: Math.max(2, enemy.damage * 0.5), friendly: false, life: 130,
+              color: '#9fe8ff', trailEvery: 5
+            });
+          });
+        }
+      },
+
+      // ---- Stage 4: Haunted Bayou ----
+      tickles: {
+        range: 120, cooldown: [190, 250], telegraph: 24, color: '#ff9ad5',
+        // Swarm Frenzy: a burst of fast chip hits that rewards blocking.
+        fire: ({ enemy }) => {
+          enemy.frenzyHitsRemaining = 5;
+          enemy.frenzyTickCooldown = 0;
+          state.effects.push({ type: 'enemy-special-burst', x: enemy.x, y: enemy.y - 30, timer: 22, maxTimer: 22, color: '#ff9ad5' });
+        }
+      },
+      vengefulGhost: {
+        range: 340, cooldown: [260, 340], telegraph: 30, color: '#b7a5ff',
+        // Phase Rush: becomes untouchable and passes through the player.
+        fire: ({ enemy, player }) => {
+          enemy.phaseRushFrames = 40;
+          enemy.phaseRushDir = Math.sign(player.x - enemy.x) || 1;
+          state.effects.push({ type: 'enemy-special-burst', x: enemy.x, y: enemy.y - 30, timer: 24, maxTimer: 24, color: '#b7a5ff' });
+        }
+      },
+      chainedSpirit: {
+        range: 320, cooldown: [270, 350], telegraph: 38, color: '#d8d8e8',
+        // Chain Yank: roots the player in place -- the stage's "stop moving" threat.
+        fire: ({ enemy, player }) => {
+          applyPlayerDebuff(player, 'slow', 90, 0.8);
+          damagePlayer(enemy.damage * 0.5, enemy);
+          state.effects.push({ type: 'enemy-beam-line', x: enemy.x, y: enemy.y - 40, targetX: player.x, targetY: player.y - 40, timer: 22, maxTimer: 22, color: '#d8d8e8' });
+        }
+      },
+      curiousSpirit: {
+        range: 380, cooldown: [300, 380], telegraph: 36, color: '#8ef0ff',
+        // Prying Gaze: drains the power meter instead of health -- taxes your specials.
+        fire: ({ enemy, player }) => {
+          addPower(player, -12);
+          damagePlayer(enemy.damage * 0.35, enemy);
+          state.effects.push({ type: 'enemy-beam-line', x: enemy.x, y: enemy.y - 40, targetX: player.x, targetY: player.y - 40, timer: 26, maxTimer: 26, color: '#8ef0ff' });
+        }
+      },
+
+      // ---- Stage 5: Haunted House ----
+      lurkerInTheHalls: {
+        range: 420, cooldown: [280, 360], telegraph: 34, color: '#7a6fae',
+        // Shadow Ambush: blinks behind the player, so backpedalling is punished.
+        fire: ({ enemy, player }) => {
+          state.effects.push({ type: 'enemy-special-burst', x: enemy.x, y: enemy.y - 30, timer: 20, maxTimer: 20, color: '#7a6fae' });
+          const behind = -(player.facing || 1);
+          enemy.x = player.x + (behind * 60);
+          enemy.y = player.y;
+          enemy.facing = -behind;
+          enemy.cooldown = 12;
+          state.effects.push({ type: 'enemy-special-burst', x: enemy.x, y: enemy.y - 30, timer: 20, maxTimer: 20, color: '#7a6fae' });
+        }
+      },
+      silentOne: {
+        range: 260, cooldown: [300, 380], telegraph: 30, color: '#2f2f3a',
+        // Muffling Veil: darkens the screen briefly -- makes other telegraphs harder to read.
+        fire: ({ player }) => {
+          applyPlayerDebuff(player, 'blind', 110, 0.62);
+        }
+      },
+      bulwarkBernie: {
+        range: 240, cooldown: [320, 400], telegraph: 26, color: '#e0b34a',
+        // Bulwark Stance: hard damage cut for a window. Wait it out or spend a super.
+        fire: ({ enemy }) => {
+          enemy.bulwarkFrames = 200;
+          state.effects.push({ type: 'enemy-special-burst', x: enemy.x, y: enemy.y - 34, timer: 26, maxTimer: 26, color: '#e0b34a' });
+        }
+      },
+      telematron: {
+        range: 460, cooldown: [260, 340], telegraph: 32, color: '#66f0d0',
+        // Teleport Strike: closes distance instantly and lands a hit.
+        fire: ({ enemy, player }) => {
+          playEnemySfx(enemy, 'teleport');
+          state.effects.push({ type: 'enemy-special-burst', x: enemy.x, y: enemy.y - 34, timer: 20, maxTimer: 20, color: '#66f0d0' });
+          enemy.x = player.x + ((player.facing || 1) * 54);
+          enemy.y = player.y;
+          state.effects.push({ type: 'enemy-special-burst', x: enemy.x, y: enemy.y - 34, timer: 20, maxTimer: 20, color: '#66f0d0' });
+          damagePlayer(enemy.damage * 0.7, enemy);
+        }
+      },
+
+      // ---- Stage 6: The Mirror Realm (the four spirits Mirror Master empowers) ----
+      malice: {
+        range: 200, cooldown: [240, 320], telegraph: 28, color: '#ff5c6e',
+        // Spite Lash: hits harder the more wounded it is.
+        fire: ({ enemy, player, distance }) => {
+          const missingHpRatio = 1 - clamp(enemy.hp / (enemy.maxHp || enemy.hp || 1), 0, 1);
+          const bonus = 1 + (missingHpRatio * 1.2);
+          state.effects.push({ type: 'enemy-special-burst', x: enemy.x, y: enemy.y - 30, timer: 22, maxTimer: 22, color: '#ff5c6e' });
+          if (distance <= 130) damagePlayer(enemy.damage * 0.8 * bonus, enemy);
+        }
+      },
+      revulsion: {
+        range: 200, cooldown: [260, 340], telegraph: 32, color: '#7ee081',
+        // Repulsion Pulse: shoves the player out of their own attack range.
+        fire: ({ enemy, player, distance }) => {
+          state.effects.push({ type: 'enemy-shock-ring', x: enemy.x, y: enemy.y, timer: 28, maxTimer: 28, radius: 170, color: '#7ee081' });
+          if (distance <= 170) {
+            const dir = Math.sign(player.x - enemy.x) || 1;
+            applyPlayerPush(player, dir * 5.2, 0, 24);
+            damagePlayer(enemy.damage * 0.45, enemy);
+          }
+        }
+      },
+      disgust: {
+        range: 300, cooldown: [250, 330], telegraph: 34, color: '#9bd44a',
+        // Slime Spit: leaves a lingering pool that slows and chips.
+        fire: ({ enemy, player }) => {
+          spawnEnemyGroundPool(player.x, player.y, {
+            radius: 78, duration: 320, color: '#9bd44a',
+            damagePerTick: Math.max(1, enemy.damage * 0.18), slowMagnitude: 0.45
+          });
+        }
+      },
+      arrogance: {
+        range: 260, cooldown: [320, 400], telegraph: 28, color: '#ffe08a',
+        // Mirror Shield: absorbs a fixed pool of damage rather than timing out.
+        fire: ({ enemy }) => {
+          enemy.mirrorShieldHp = Math.round((enemy.maxHp || enemy.hp) * 0.35);
+          state.effects.push({ type: 'enemy-special-burst', x: enemy.x, y: enemy.y - 34, timer: 26, maxTimer: 26, color: '#ffe08a' });
+        }
+      },
+
+      // ---- Stage 7: The Casino Airship ----
+      shapeshifter: {
+        range: 320, cooldown: [300, 380], telegraph: 30, color: '#c08cff',
+        // Mimic: briefly copies the toughest enemy on screen, inheriting its damage.
+        fire: ({ enemy }) => {
+          const model = state.enemies
+            .filter(other => other !== enemy && other.hp > 0 && !other.isBoss)
+            .sort((a, b) => (b.damage || 0) - (a.damage || 0))[0];
+          if (!model) return;
+          enemy.mimicFrames = 300;
+          enemy.mimicDamageBonus = Math.max(0, (model.damage || 0) - (enemy.damage || 0));
+          state.effects.push({ type: 'enemy-special-burst', x: enemy.x, y: enemy.y - 34, timer: 26, maxTimer: 26, color: '#c08cff' });
+        }
+      },
+      tattooRat: {
+        range: 240, cooldown: [220, 300], telegraph: 22, color: '#d9a066',
+        // Scurry: short speed burst to swarm the player.
+        fire: ({ enemy }) => {
+          enemy.scurryFrames = 150;
+          state.effects.push({ type: 'enemy-special-burst', x: enemy.x, y: enemy.y - 24, timer: 18, maxTimer: 18, color: '#d9a066' });
+        }
+      },
+      tattooSnake: {
+        range: 330, cooldown: [240, 320], telegraph: 30, color: '#8ad46a',
+        // Venom Spit: poison pool on impact.
+        fire: ({ enemy, player, body }) => {
+          const dir = Math.sign(player.x - enemy.x) || enemy.facing || 1;
+          state.projectiles.push({
+            x: enemy.x + (dir * 16), y: body.y + (body.height * 0.5),
+            vx: dir * 5, vy: 0, damage: Math.max(2, enemy.damage * 0.5),
+            friendly: false, life: 120, color: '#8ad46a', trailEvery: 4,
+            enemyPoolOnExpire: { radius: 64, duration: 240, color: '#8ad46a', damagePerTick: 2, slowMagnitude: 0.3 }
+          });
+        }
+      },
+      tattooTiger: {
+        range: 380, cooldown: [250, 330], telegraph: 34, color: '#ff9d3c',
+        // Pounce: a committed leap. Big damage, but it overshoots if you move.
+        fire: ({ enemy, player }) => {
+          enemy.pounceFrames = 26;
+          enemy.pounceVx = Math.sign(player.x - enemy.x) * 11;
+          enemy.pounceVy = Math.sign(player.y - enemy.y) * 2.2;
+          state.effects.push({ type: 'enemy-special-burst', x: enemy.x, y: enemy.y - 34, timer: 20, maxTimer: 20, color: '#ff9d3c' });
+        }
+      },
+      sentroid: {
+        range: 460, cooldown: [280, 360], telegraph: 46, color: '#ff5a5a',
+        // Sentry Lock: long, obvious lock-on then a hitscan lane. Break line of sight.
+        fire: ({ enemy, player }) => {
+          state.effects.push({ type: 'enemy-beam-line', x: enemy.x, y: enemy.y - 42, targetX: player.x, targetY: player.y - 40, timer: 30, maxTimer: 30, color: '#ff5a5a', thick: true });
+          if (Math.abs(player.y - enemy.y) < 46) {
+            damagePlayer(enemy.damage * 1.1, enemy);
+            applyStun(player, 18 + STUN_DURATION_BONUS_FRAMES);
+          }
+        }
+      },
+
+      // ---- Stage 8: Hell Gate ----
+      lesserDemon: {
+        range: 220, cooldown: [240, 320], telegraph: 28, color: '#ff7a3c',
+        // Immolate: burning aura that punishes staying in melee.
+        fire: ({ enemy }) => {
+          enemy.immolateFrames = 240;
+          state.effects.push({ type: 'enemy-special-burst', x: enemy.x, y: enemy.y - 30, timer: 24, maxTimer: 24, color: '#ff7a3c' });
+        }
+      },
+      skulkingDemon: {
+        range: 400, cooldown: [270, 350], telegraph: 30, color: '#a3559b',
+        // Shadow Step: flanks to the player's back and opens with a hit.
+        fire: ({ enemy, player }) => {
+          state.effects.push({ type: 'enemy-special-burst', x: enemy.x, y: enemy.y - 30, timer: 20, maxTimer: 20, color: '#a3559b' });
+          const behind = -(player.facing || 1);
+          enemy.x = player.x + (behind * 66);
+          enemy.y = player.y;
+          damagePlayer(enemy.damage * 0.6, enemy);
+          state.effects.push({ type: 'enemy-special-burst', x: enemy.x, y: enemy.y - 30, timer: 20, maxTimer: 20, color: '#a3559b' });
+        }
+      },
+      succubus: {
+        range: 340, cooldown: [260, 340], telegraph: 36, color: '#ff6fae',
+        // Draining Kiss: heals off the damage it deals -- kill it before it stabilises.
+        fire: ({ enemy, player }) => {
+          const drain = enemy.damage * 0.7;
+          damagePlayer(drain, enemy);
+          enemy.hp = clamp(enemy.hp + (drain * 0.8), 0, enemy.maxHp || enemy.hp);
+          state.effects.push({ type: 'enemy-beam-line', x: enemy.x, y: enemy.y - 40, targetX: player.x, targetY: player.y - 40, timer: 26, maxTimer: 26, color: '#ff6fae' });
+        }
+      },
+      // Rise Again: one free resurrection at 35% HP. Triggered by damageEnemy() on
+      // the killing blow rather than by a cooldown, so range 0 keeps the dispatcher
+      // from ever arming it. Listed here so the roster stays readable.
+      zombie: {
+        range: 0, cooldown: [600, 600], telegraph: 0, color: '#7fae5a',
+        fire: () => {}
+      },
+
+      // ---- Stage 9: Approach to the Gatorglass Vault ----
+      origamiCrane: {
+        range: 300, cooldown: [230, 310], telegraph: 26, color: '#f2e9d8',
+        // Paper Storm: a spray of shallow cuts that stacks a bleed-style slow.
+        fire: ({ enemy, player, body }) => {
+          const dir = Math.sign(player.x - enemy.x) || enemy.facing || 1;
+          [-2.2, -0.7, 0.7, 2.2].forEach((spread) => {
+            state.projectiles.push({
+              x: enemy.x + (dir * 14), y: body.y + (body.height * 0.4),
+              vx: dir * 5.2, vy: spread,
+              damage: Math.max(1, enemy.damage * 0.3), friendly: false, life: 110,
+              color: '#f2e9d8'
+            });
+          });
+        }
+      },
+      origamiDragon: {
+        range: 260, cooldown: [270, 350], telegraph: 42, color: '#ff8a5c',
+        // Flame Fold: a cone of fire that leaves burning ground.
+        fire: ({ enemy, player, distance }) => {
+          const dir = Math.sign(player.x - enemy.x) || enemy.facing || 1;
+          state.effects.push({ type: 'flash-cone', x: enemy.x, y: enemy.y - 40, facing: dir, length: 200, spread: 0.5, timer: 20, maxTimer: 20 });
+          if (distance <= 200 && Math.sign(player.x - enemy.x) === dir) {
+            damagePlayer(enemy.damage * 0.95, enemy);
+          }
+          spawnEnemyGroundPool(enemy.x + (dir * 120), enemy.y, {
+            radius: 82, duration: 260, color: '#ff8a5c',
+            damagePerTick: Math.max(1, enemy.damage * 0.2), slowMagnitude: 0.2
+          });
+        }
+      },
+      origamiToad: {
+        range: 340, cooldown: [250, 330], telegraph: 36, color: '#a8c96a',
+        // Fold Bounce: arcing slam with a shock ring on landing.
+        fire: ({ enemy, player }) => {
+          enemy.pounceFrames = 30;
+          enemy.pounceVx = Math.sign(player.x - enemy.x) * 8.5;
+          enemy.pounceVy = Math.sign(player.y - enemy.y) * 2;
+          enemy.pounceSlamRadius = 130;
+          enemy.pounceSlamColor = '#a8c96a';
+        }
+      },
+
+      // ---- Legacy roster (levels 11-14, past CAMPAIGN_STAGE_LIMIT) ----
+      // Kept short so these types aren't inert if the later stages are re-enabled.
+      goblin: {
+        range: 200, cooldown: [260, 340], telegraph: 26, color: '#8fd46a',
+        fire: ({ enemy }) => { enemy.scurryFrames = 120; }
+      },
+      thug: {
+        range: 150, cooldown: [280, 360], telegraph: 30, color: '#d98a5c',
+        fire: ({ enemy, player, distance }) => {
+          if (distance <= 150) {
+            damagePlayer(enemy.damage * 0.8, enemy);
+            applyPlayerPush(player, (Math.sign(player.x - enemy.x) || 1) * 4.4, 0, 20);
+          }
+        }
+      },
+      automaton: {
+        range: 300, cooldown: [280, 360], telegraph: 38, color: '#9fe8ff',
+        fire: ({ enemy, player, body }) => {
+          const dir = Math.sign(player.x - enemy.x) || enemy.facing || 1;
+          state.projectiles.push({ x: enemy.x + (dir * 16), y: body.y + (body.height * 0.45), vx: dir * 5, vy: 0, damage: Math.max(2, enemy.damage * 0.6), friendly: false, life: 130, color: '#9fe8ff' });
+        }
+      },
+      fey: {
+        range: 260, cooldown: [250, 330], telegraph: 28, color: '#b7ffd8',
+        fire: ({ enemy }) => { enemy.scurryFrames = 140; }
+      },
+      ranged: {
+        range: 400, cooldown: [260, 340], telegraph: 34, color: '#ffd27a',
+        fire: ({ enemy, player, body }) => {
+          const dir = Math.sign(player.x - enemy.x) || enemy.facing || 1;
+          [-1.4, 1.4].forEach((spread) => {
+            state.projectiles.push({ x: enemy.x + (dir * 14), y: body.y + (body.height * 0.42), vx: dir * 5, vy: spread, damage: Math.max(2, enemy.damage * 0.5), friendly: false, life: 130, color: '#ffd27a' });
+          });
+        }
+      },
+      elite: {
+        range: 240, cooldown: [280, 360], telegraph: 30, color: '#ffe08a',
+        fire: ({ enemy }) => { enemy.bulwarkFrames = 160; }
+      },
+      brute: {
+        range: 190, cooldown: [300, 380], telegraph: 42, color: '#c9a227',
+        fire: ({ enemy, player }) => {
+          state.effects.push({ type: 'enemy-shock-ring', x: enemy.x, y: enemy.y, timer: 30, maxTimer: 30, radius: 160, color: '#c9a227' });
+          state.shake = Math.max(state.shake, 8);
+          if (Math.hypot(player.x - enemy.x, player.y - enemy.y) <= 160 && player.z <= 2) {
+            damagePlayer(enemy.damage * 0.85, enemy);
+            applyStun(player, 22 + STUN_DURATION_BONUS_FRAMES);
+          }
+        }
+      },
+      mage: {
+        range: 420, cooldown: [270, 350], telegraph: 40, color: '#c08cff',
+        fire: ({ enemy, player }) => {
+          spawnEnemyGroundPool(player.x, player.y, {
+            radius: 74, duration: 260, color: '#c08cff',
+            damagePerTick: Math.max(1, enemy.damage * 0.2), slowMagnitude: 0.35
+          });
+        }
+      }
     };
 
     const INITIAL_WAVE_ENEMY_MULTIPLIER = 0.75;
@@ -4542,7 +4943,22 @@
 
     function damageEnemy(enemy, amount, stun = 0, options = null) {
       if (!enemy || enemy.hp <= 0 || enemy.invulnFrames > 0 || enemy.untargetable) return;
+      // Phase Rush makes the ghost intangible for the length of its dash.
+      if (isEnemyPhasing(enemy)) return;
+      // Bulwark Stance / Mirror Shield eat part of the hit before HP moves.
+      amount = applyEnemySpecialDefenses(enemy, amount);
+      if (amount <= 0) return;
       enemy.hp -= amount;
+      // Rise Again: one free resurrection at a sliver of health.
+      if (enemy.hp <= 0 && enemy.type === 'zombie' && !enemy.riseAgainUsed) {
+        enemy.riseAgainUsed = true;
+        enemy.hp = Math.max(1, Math.round((enemy.maxHp || 54) * 0.35));
+        enemy.invulnFrames = 30;
+        enemy.stun = 0;
+        state.effects.push({ type: 'enemy-special-burst', x: enemy.x, y: enemy.y - 30, timer: 30, maxTimer: 30, color: '#7fae5a' });
+        playEnemySfx(enemy, 'hit');
+        return;
+      }
       const defeated = enemy.hp <= 0;
       if (defeated) playEnemySfx(enemy, 'killed');
       else playEnemySfx(enemy, 'hit');
@@ -4672,6 +5088,68 @@
       }
     }
 
+    // --- Player debuffs -------------------------------------------------------
+    // applyStatus() only understands enemies. Enemy specials and environmental
+    // hazards both need to slow, confuse, blind or shove the player, so those
+    // states live here as plain timers on the player object.
+    //
+    // Existing hazard-resistance upgrades (permafrost-boots, float-step,
+    // thornproof-gloves, master-of-the-bayou-path) scale every debuff below, so
+    // those upgrades stay meaningful as new hazards land.
+    const PLAYER_DEBUFF_MIN_MOVE_SCALE = 0.25; // a slow should never fully lock movement
+
+    function applyPlayerDebuff(player, kind, frames, magnitude = 0) {
+      if (!player || player.hp <= 0 || frames <= 0) return;
+      const resist = getEnvironmentalHazardSlowMultiplier(player);
+      const scaledFrames = Math.round(frames * resist);
+      if (scaledFrames <= 0) return;
+      switch (kind) {
+        case 'slow':
+          player.slowTimer = Math.max(player.slowTimer || 0, scaledFrames);
+          player.slowMagnitude = Math.max(player.slowMagnitude || 0, magnitude * resist);
+          break;
+        case 'confuse':
+          player.confusionTimer = Math.max(player.confusionTimer || 0, scaledFrames);
+          break;
+        case 'blind':
+          player.blindTimer = Math.max(player.blindTimer || 0, scaledFrames);
+          player.blindMagnitude = Math.max(player.blindMagnitude || 0, magnitude || 0.6);
+          break;
+        default:
+          break;
+      }
+    }
+
+    // Directed shove: steam vents, tidal slaps, repulsion pulses, portal suction.
+    // dirX/dirY are per-frame pixel deltas applied on top of player intent.
+    function applyPlayerPush(player, dirX, dirY, frames) {
+      if (!player || player.hp <= 0 || frames <= 0) return;
+      const resist = getEnvironmentalHazardSlowMultiplier(player);
+      if (resist <= 0) return;
+      player.pushTimer = Math.max(player.pushTimer || 0, Math.round(frames * resist));
+      player.pushX = dirX * resist;
+      player.pushY = dirY * resist;
+    }
+
+    function getPlayerDebuffMoveScale(player) {
+      if (!player || (player.slowTimer || 0) <= 0) return 1;
+      return clamp(1 - (player.slowMagnitude || 0), PLAYER_DEBUFF_MIN_MOVE_SCALE, 1);
+    }
+
+    function updatePlayerDebuffs(player) {
+      if (!player) return;
+      player.slowTimer = Math.max(0, (player.slowTimer || 0) - 1);
+      if (player.slowTimer <= 0) player.slowMagnitude = 0;
+      player.confusionTimer = Math.max(0, (player.confusionTimer || 0) - 1);
+      player.blindTimer = Math.max(0, (player.blindTimer || 0) - 1);
+      if (player.blindTimer <= 0) player.blindMagnitude = 0;
+      player.pushTimer = Math.max(0, (player.pushTimer || 0) - 1);
+      if (player.pushTimer <= 0) {
+        player.pushX = 0;
+        player.pushY = 0;
+      }
+    }
+
     function damagePlayer(amount, sourceEnemy = null) {
       const player = state.player;
       if (!player || player.hp <= 0) return;
@@ -4685,7 +5163,8 @@
         spawnDodgedText(player);
         return;
       }
-      let finalAmount = amount * ENEMY_DAMAGE_MULTIPLIER;
+      // A mimicking shapeshifter borrows the copied enemy's damage.
+      let finalAmount = (amount + getEnemySpecialDamageBonus(sourceEnemy)) * ENEMY_DAMAGE_MULTIPLIER;
       if (sourceEnemy?.statuses?.WEAKEN) finalAmount *= (1 - sourceEnemy.statuses.WEAKEN.magnitude);
       if (player.block || player.shieldTimer > 0) {
         finalAmount *= 0.45;
@@ -5231,6 +5710,184 @@
       });
     }
 
+    // Lingering ground effect: slime, oil, fire, poison. Shared by enemy specials
+    // and (later) stage hazards, so there is one implementation of "standing here hurts".
+    function spawnEnemyGroundPool(x, y, options = {}) {
+      state.effects.push({
+        type: 'enemy-ground-pool',
+        x,
+        y: clamp(y, BRAWL_LANE_MIN_Y, BRAWL_LANE_MAX_Y),
+        radius: options.radius || 70,
+        timer: options.duration || 240,
+        maxTimer: options.duration || 240,
+        color: options.color || '#9bd44a',
+        damagePerTick: options.damagePerTick || 2,
+        slowMagnitude: options.slowMagnitude || 0.35,
+        tickCooldown: 0
+      });
+    }
+
+    // Difficulty ramps by stage: later stages fire specials more often. Stage 1-2
+    // enemies get the printed cooldown, stage 10 gets ~30% off.
+    function getEnemySpecialCooldownScale() {
+      const stageIndex = clamp(state.levelIndex || 0, 0, 9);
+      return 1 - (stageIndex * 0.034);
+    }
+
+    function updateEnemySpecial(enemy, player) {
+      if (!enemy || enemy.hp <= 0 || !player || player.hp <= 0) return;
+      if (isCharmed(enemy)) return;
+      if ((enemy.stun || 0) > 0) return;
+      const spec = ENEMY_SPECIALS[enemy.type];
+      if (!spec) return;
+
+      // Wind-up in progress: hold, then fire on the last frame.
+      if ((enemy.specialTelegraphFrames || 0) > 0) {
+        enemy.specialTelegraphFrames -= 1;
+        if (enemy.specialTelegraphFrames === 0) {
+          const dx = player.x - enemy.x;
+          const dy = player.y - enemy.y;
+          spec.fire({
+            enemy,
+            player,
+            dx,
+            dy,
+            distance: Math.hypot(dx, dy),
+            body: getEnemyHitbox(enemy)
+          });
+          playEnemySfx(enemy, 'attack');
+        }
+        return;
+      }
+
+      enemy.specialCooldown = Math.max(0, (enemy.specialCooldown || 0) - 1);
+      if (enemy.specialCooldown > 0) return;
+
+      const distance = Math.hypot(player.x - enemy.x, player.y - enemy.y);
+      if (distance > (spec.range || 200)) return;
+
+      const [minCd, maxCd] = spec.cooldown || [240, 320];
+      enemy.specialCooldown = Math.round(rand(minCd, maxCd) * getEnemySpecialCooldownScale());
+      enemy.specialTelegraphFrames = spec.telegraph || 0;
+      if (enemy.specialTelegraphFrames > 0) {
+        // Shrinking ring = "something is coming". One shared read across the roster.
+        state.effects.push({
+          type: 'enemy-telegraph-ring',
+          x: enemy.x,
+          y: enemy.y,
+          timer: enemy.specialTelegraphFrames,
+          maxTimer: enemy.specialTelegraphFrames,
+          radius: 96,
+          color: spec.color || '#ffd27a'
+        });
+      } else {
+        const dx = player.x - enemy.x;
+        const dy = player.y - enemy.y;
+        spec.fire({ enemy, player, dx, dy, distance, body: getEnemyHitbox(enemy) });
+      }
+    }
+
+    // Per-frame upkeep for the states the specials above switch on.
+    function updateEnemySpecialState(enemy, player) {
+      if (!enemy || enemy.hp <= 0) return;
+
+      if ((enemy.bulwarkFrames || 0) > 0) enemy.bulwarkFrames -= 1;
+      if ((enemy.mimicFrames || 0) > 0) enemy.mimicFrames -= 1;
+      if ((enemy.scurryFrames || 0) > 0) enemy.scurryFrames -= 1;
+
+      // Frenzy: a short run of fast chip hits.
+      if ((enemy.frenzyHitsRemaining || 0) > 0 && player && player.hp > 0) {
+        enemy.frenzyTickCooldown = Math.max(0, (enemy.frenzyTickCooldown || 0) - 1);
+        if (enemy.frenzyTickCooldown <= 0) {
+          if (Math.hypot(player.x - enemy.x, player.y - enemy.y) <= 96) {
+            damagePlayer(enemy.damage * 0.35, enemy);
+          }
+          enemy.frenzyHitsRemaining -= 1;
+          enemy.frenzyTickCooldown = 10;
+          enemy.attackAnimTimer = Math.max(enemy.attackAnimTimer || 0, 8);
+        }
+      }
+
+      // Phase rush: intangible dash straight through the player.
+      if ((enemy.phaseRushFrames || 0) > 0 && player) {
+        enemy.phaseRushFrames -= 1;
+        enemy.x += (enemy.phaseRushDir || 1) * 7.5;
+        enemy.isMoving = true;
+        if (Math.hypot(player.x - enemy.x, player.y - enemy.y) <= 46 && !enemy.phaseRushHit) {
+          damagePlayer(enemy.damage * 0.8, enemy);
+          enemy.phaseRushHit = true;
+        }
+        if (enemy.phaseRushFrames <= 0) enemy.phaseRushHit = false;
+      }
+
+      // Pounce / fold bounce: committed leap, optional slam ring on landing.
+      if ((enemy.pounceFrames || 0) > 0) {
+        enemy.pounceFrames -= 1;
+        enemy.x += enemy.pounceVx || 0;
+        enemy.y += enemy.pounceVy || 0;
+        enemy.isMoving = true;
+        if (player && Math.hypot(player.x - enemy.x, player.y - enemy.y) <= 52 && !enemy.pounceHit) {
+          damagePlayer(enemy.damage * 1.05, enemy);
+          enemy.pounceHit = true;
+        }
+        if (enemy.pounceFrames <= 0) {
+          enemy.pounceHit = false;
+          if (enemy.pounceSlamRadius) {
+            state.effects.push({
+              type: 'enemy-shock-ring', x: enemy.x, y: enemy.y,
+              timer: 26, maxTimer: 26, radius: enemy.pounceSlamRadius,
+              color: enemy.pounceSlamColor || '#a8c96a'
+            });
+            state.shake = Math.max(state.shake, 7);
+            if (player && Math.hypot(player.x - enemy.x, player.y - enemy.y) <= enemy.pounceSlamRadius && player.z <= 2) {
+              damagePlayer(enemy.damage * 0.6, enemy);
+            }
+            enemy.pounceSlamRadius = 0;
+          }
+        }
+      }
+
+      // Immolate: burning aura ticking on anyone in melee.
+      if ((enemy.immolateFrames || 0) > 0) {
+        enemy.immolateFrames -= 1;
+        if (enemy.immolateFrames % 24 === 0 && player && player.hp > 0
+          && Math.hypot(player.x - enemy.x, player.y - enemy.y) <= 92) {
+          damagePlayer(enemy.damage * 0.25, enemy);
+        }
+        if (enemy.immolateFrames % 8 === 0) {
+          state.effects.push({ type: 'enemy-special-burst', x: enemy.x + rand(-14, 14), y: enemy.y - 30, timer: 16, maxTimer: 16, color: '#ff7a3c' });
+        }
+      }
+    }
+
+    // Damage taken multiplier from defensive specials. Mirror Shield is a pool that
+    // absorbs and breaks; Bulwark Stance is a timed reduction.
+    function applyEnemySpecialDefenses(enemy, amount) {
+      let remaining = amount;
+      if ((enemy.bulwarkFrames || 0) > 0) remaining *= 0.35;
+      if ((enemy.mirrorShieldHp || 0) > 0) {
+        const absorbed = Math.min(enemy.mirrorShieldHp, remaining);
+        enemy.mirrorShieldHp -= absorbed;
+        remaining -= absorbed;
+        if (enemy.mirrorShieldHp <= 0) {
+          state.effects.push({ type: 'enemy-special-burst', x: enemy.x, y: enemy.y - 34, timer: 24, maxTimer: 24, color: '#ffe08a' });
+        }
+      }
+      return remaining;
+    }
+
+    function getEnemySpecialDamageBonus(enemy) {
+      return (enemy?.mimicFrames || 0) > 0 ? (enemy.mimicDamageBonus || 0) : 0;
+    }
+
+    function getEnemySpecialSpeedScale(enemy) {
+      return (enemy?.scurryFrames || 0) > 0 ? 1.7 : 1;
+    }
+
+    function isEnemyPhasing(enemy) {
+      return (enemy?.phaseRushFrames || 0) > 0;
+    }
+
     function isCharmed(entity) {
       return (entity?.statuses?.CHARM?.duration || 0) > 0;
     }
@@ -5733,13 +6390,27 @@
         player.stunBreakInputCount = 0;
         player.stunBreakWindowTimer = 0;
       }
+      updatePlayerDebuffs(player);
       player.vx = 0;
       let moveY = 0;
       if (player.stun <= 0) {
-        if (input.left) player.vx -= player.speed;
-        if (input.right) player.vx += player.speed;
-        if (input.up) moveY -= player.speed * 0.6;
-        if (input.down) moveY += player.speed * 0.6;
+        // Confusion (spore clouds, wisp possession, fear blasts) inverts steering.
+        const controlSign = (player.confusionTimer || 0) > 0 ? -1 : 1;
+        if (input.left) player.vx -= player.speed * controlSign;
+        if (input.right) player.vx += player.speed * controlSign;
+        if (input.up) moveY -= player.speed * 0.6 * controlSign;
+        if (input.down) moveY += player.speed * 0.6 * controlSign;
+      }
+
+      const debuffMoveScale = getPlayerDebuffMoveScale(player);
+      if (debuffMoveScale < 1) {
+        player.vx *= debuffMoveScale;
+        moveY *= debuffMoveScale;
+      }
+      // Pushes land regardless of input, so a stunned player still gets shoved.
+      if ((player.pushTimer || 0) > 0) {
+        player.vx += player.pushX || 0;
+        moveY += player.pushY || 0;
       }
 
       const intendedX = player.x + player.vx;
@@ -6111,6 +6782,17 @@
         enemy.hurtTimer = Math.max(0, enemy.hurtTimer - 1);
         enemy.thornPatchHitCooldown = Math.max(0, (enemy.thornPatchHitCooldown || 0) - 1);
         updateEnemyStatuses(enemy);
+        // Special abilities run on their own clock, ahead of the movement AI below.
+        updateEnemySpecialState(enemy, player);
+        updateEnemySpecial(enemy, player);
+        // Committed moves steer the enemy themselves; skip the normal AI while they run.
+        if (isEnemyPhasing(enemy) || (enemy.pounceFrames || 0) > 0) {
+          const committedBounds = getEnemyVerticalBounds(enemy);
+          enemy.y = clamp(enemy.y, committedBounds.minY, committedBounds.maxY);
+          applyMovementMaskClamp(enemy, prevX, prevY, { allowOutOfBoundsStart: false, detourStepSize: 6 });
+          updateEnemyAnimation(enemy, dt);
+          return;
+        }
         enemy.hitStun = Math.max(0, (enemy.hitStun || 0) - 1);
         if (enemy.hitStun > 0) {
           enemy.isMoving = false;
@@ -6146,7 +6828,7 @@
         const distance = Math.hypot(dx, dy);
         const spacing = getEnemySpacingAdjustment(enemy);
         const isSlowed = (enemy.statuses?.SLOW?.duration || 0) > 0;
-        const moveSpeed = enemy.speed * spacing.moveScale * (isSlowed ? 0.5 : 1);
+        const moveSpeed = enemy.speed * spacing.moveScale * (isSlowed ? 0.5 : 1) * getEnemySpecialSpeedScale(enemy);
         const playerSpacing = getEnemyPlayerSpacingAdjustment(enemy, targetEntity, moveSpeed);
         const playerBody = targetBody;
         const enemyBody = getEnemyHitbox(enemy);
@@ -7017,6 +7699,13 @@
           });
         }
       });
+      // Venom-style rounds leave a pool where they land.
+      state.projectiles.forEach(projectile => {
+        if (projectile.life <= 0 && projectile.enemyPoolOnExpire) {
+          spawnEnemyGroundPool(projectile.x, projectile.y, projectile.enemyPoolOnExpire);
+          projectile.enemyPoolOnExpire = null;
+        }
+      });
       state.projectiles = state.projectiles.filter(projectile => projectile.life > 0);
     }
 
@@ -7296,6 +7985,18 @@
           if (hitCount > 0 && effect.owner) {
             effect.owner.comboHits += hitCount;
             effect.owner.comboTimer = 120;
+          }
+        }
+        if (effect.type === 'enemy-ground-pool') {
+          const poolPlayer = state.player;
+          effect.tickCooldown = Math.max(0, (effect.tickCooldown || 0) - 1);
+          if (poolPlayer && poolPlayer.hp > 0
+            && Math.hypot(poolPlayer.x - effect.x, poolPlayer.y - effect.y) <= effect.radius) {
+            applyPlayerDebuff(poolPlayer, 'slow', 12, effect.slowMagnitude || 0.35);
+            if (effect.tickCooldown <= 0) {
+              damagePlayer(effect.damagePerTick || 2, null);
+              effect.tickCooldown = 30;
+            }
           }
         }
         if (effect.type === 'scorched-ground-fire') {
@@ -8948,6 +9649,79 @@
           });
           ctx.restore();
         }
+        // --- Enemy special VFX ---------------------------------------------
+        // One shared visual language: a ring that closes in = wind-up, a ring that
+        // expands = the hit, a burst = a state change, a line = a targeted effect.
+        if (effect.type === 'enemy-telegraph-ring') {
+          const progress = clamp(effect.timer / (effect.maxTimer || 1), 0, 1);
+          const x = effect.x - state.cameraX;
+          const y = effect.y - state.cameraY - 24;
+          ctx.save();
+          ctx.globalAlpha = 0.85 * (1 - Math.abs(progress - 0.5));
+          ctx.strokeStyle = effect.color || '#ffd27a';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.ellipse(x, y, effect.radius * progress, effect.radius * progress * 0.42, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+        if (effect.type === 'enemy-shock-ring') {
+          const progress = 1 - clamp(effect.timer / (effect.maxTimer || 1), 0, 1);
+          const x = effect.x - state.cameraX;
+          const y = effect.y - state.cameraY - 12;
+          ctx.save();
+          ctx.globalAlpha = 0.8 * (1 - progress);
+          ctx.strokeStyle = effect.color || '#c9a227';
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.ellipse(x, y, effect.radius * progress, effect.radius * progress * 0.38, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+        if (effect.type === 'enemy-special-burst') {
+          const progress = clamp(effect.timer / (effect.maxTimer || 1), 0, 1);
+          const x = effect.x - state.cameraX;
+          const y = effect.y - state.cameraY;
+          ctx.save();
+          ctx.globalAlpha = 0.85 * progress;
+          ctx.fillStyle = effect.color || '#ffd27a';
+          for (let i = 0; i < 8; i += 1) {
+            const angle = (Math.PI * 2 * i) / 8;
+            const dist = 34 * (1 - progress) + 8;
+            ctx.beginPath();
+            ctx.arc(x + Math.cos(angle) * dist, y + Math.sin(angle) * dist * 0.55, 4 * progress + 1, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+        if (effect.type === 'enemy-beam-line') {
+          const progress = clamp(effect.timer / (effect.maxTimer || 1), 0, 1);
+          ctx.save();
+          ctx.globalAlpha = 0.8 * progress;
+          ctx.strokeStyle = effect.color || '#8ef0ff';
+          ctx.lineWidth = effect.thick ? 7 : 3;
+          ctx.beginPath();
+          ctx.moveTo(effect.x - state.cameraX, effect.y - state.cameraY);
+          ctx.lineTo(effect.targetX - state.cameraX, effect.targetY - state.cameraY);
+          ctx.stroke();
+          ctx.restore();
+        }
+        if (effect.type === 'enemy-ground-pool') {
+          const progress = clamp(effect.timer / (effect.maxTimer || 1), 0, 1);
+          const x = effect.x - state.cameraX;
+          const y = effect.y - state.cameraY;
+          ctx.save();
+          ctx.globalAlpha = 0.42 * Math.min(1, progress * 3);
+          ctx.fillStyle = effect.color || '#9bd44a';
+          ctx.beginPath();
+          ctx.ellipse(x, y, effect.radius, effect.radius * 0.38, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 0.75 * Math.min(1, progress * 3);
+          ctx.strokeStyle = effect.color || '#9bd44a';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.restore();
+        }
         if (effect.type === 'shock') {
           ctx.strokeStyle = 'rgba(125, 241, 210, 0.7)';
           ctx.beginPath();
@@ -9341,6 +10115,28 @@
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
+      ctx.restore();
+
+      drawBlindOverlay();
+    }
+
+    // Silent One's Muffling Veil (and later the ash storm / steam fog hazards) darken
+    // the screen from the edges in, leaving a readable window around the player.
+    function drawBlindOverlay() {
+      const player = state.player;
+      if (!player || (player.blindTimer || 0) <= 0) return;
+      const strength = clamp(player.blindMagnitude || 0.6, 0, 0.9);
+      // Fade in and out so it never snaps on.
+      const fade = clamp(Math.min(player.blindTimer, 20) / 20, 0, 1);
+      const px = player.x - state.cameraX;
+      const py = player.y - state.cameraY - 40;
+      const gradient = ctx.createRadialGradient(px, py, 40, px, py, Math.max(canvas.width, canvas.height) * 0.55);
+      gradient.addColorStop(0, 'rgba(6, 6, 14, 0)');
+      gradient.addColorStop(0.45, `rgba(6, 6, 14, ${strength * 0.55 * fade})`);
+      gradient.addColorStop(1, `rgba(6, 6, 14, ${strength * fade})`);
+      ctx.save();
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.restore();
     }
 

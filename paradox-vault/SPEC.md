@@ -15,7 +15,7 @@ paradox-vault/
   assets/js/audio.js    Web Audio procedural music + SFX                      [OWNER: agent-audio]
   assets/js/levels.js   room templates + vault generator                      [OWNER: lead]
   assets/js/entities.js actors & devices                                      [OWNER: lead]
-  assets/js/render.js   world renderer, lighting, post FX                     [OWNER: lead]
+  assets/js/render.js   world renderer, lighting, post FX                     [OWNER: agent-render]
   assets/js/ui.js       HUD/menus/modals/tutorial glue                        [OWNER: agent-ui]
   assets/js/game.js     state machine, rules, scoring, leaderboard            [OWNER: lead]
 ```

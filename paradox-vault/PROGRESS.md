@@ -85,6 +85,40 @@ the signature mechanic. The suite asserts that ratio does not get worse.
 
 Full suite is now **5 suites / 128 tests green**.
 
+**New guard: `paradox-vault/tools/smoke.js`.** While testing progression I hit a
+`ReferenceError: propCache is not defined` in `R.invalidate()` (render.js), which
+`startVault()` calls on **every vault transition** — so the game would have
+crashed the instant a player finished vault 1. Both the jest suite and the
+screenshot sweep were green through it, and structurally always would be: jest
+loads only core/levels/entities, and the screenshot tool boots one vault and
+photographs it. `smoke.js` walks all ten vaults, rewinds early and late, ends the
+run, and exits non-zero on any throw or unexpected console output. Run it before
+any release. (The defect itself is agent-render's file and was reported to it.)
+
+### Release prep — the exact root `index.html` edit, scouted so Saturday need not
+
+Featured block lives at `index.html` around line 327. Swap its contents and move
+the outgoing featured game (**Bayou Brawlers: Gearbound**, `bayou-brawlers`) into
+the top of the `More Games` `<ul id="games">` list at ~line 357. Note the two
+markup shapes differ:
+
+* **Featured**: `<div class="featured">` with `<h2>Featured Game: NAME</h2>`, a
+  `<p>` blurb, `.play-btn`, a `.leaderboard-btn` to
+  `leaderboard.html?gameId=<slug>`, then `<div class="rate" data-id="<slug>">`
+  holding five `<span data-star="N">★</span>`, then `<span class="score"></span>`.
+  The `data-id` sits on the `.rate` div here.
+* **More Games `<li>`**: `data-id` sits on the **`<li>`** instead, the `.rate` div
+  is bare, and the play/leaderboard links live in a `<div class="actions">` after
+  a `<p class="game-description">`.
+
+There is a comment in the file at line 324 stating the rule: the `.rate` div needs
+a unique `data-id` with a `<span class="score"></span> `immediately after it, or
+the rating system breaks when rotating featured games.
+
+Also note lines 120–126: a `/* Hide removed games */` CSS rule hides
+`li[data-id]` for `midnight-menagerie`, `crimson-descent`, `ocean-explorer` and
+`memory-match`. Do not add `paradox-vault` to that list.
+
 ---
 
 ## 2026-08-12 — polish night (STEP 3)

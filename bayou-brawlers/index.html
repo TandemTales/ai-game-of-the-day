@@ -2210,11 +2210,8 @@
     const PLAYER_DRAW_SIZE = (56 * PLAYER_SCALE_MULTIPLIER) * ENTITY_DISPLAY_SCALE_BOOST;
     const ENEMY_DRAW_SIZE = 48 * ENTITY_DISPLAY_SCALE_BOOST;
     const BOSS_DRAW_SIZE = 80 * ENTITY_DISPLAY_SCALE_BOOST;
-    const BOSS_RENDER_SCALE_MULTIPLIER = 4;
     const BOSS_ANIM_FPS_MULTIPLIER = 1;
     const DEFAULT_PLAYER_RENDER_SCALE = 0.75;
-    const SWAMP_SCALE_MULTIPLIER = ((PLAYER_DRAW_SIZE * DEFAULT_PLAYER_RENDER_SCALE) * 0.5) / ENEMY_DRAW_SIZE;
-    const CHOKING_BLOSSOM_SCALE_MULTIPLIER = SWAMP_SCALE_MULTIPLIER * 2;
     const PHYSICS_HITBOX_PADDING = 3;
     const ENEMY_FACING_DEADZONE_X = 6;
     const BRAWL_LANE_MIN_Y = Math.floor(canvas.height * 0.5);
@@ -2951,37 +2948,54 @@
       };
     }
 
-    function createPhysicsProfile(profileId, img, frameRect, drawSize) {
+    // Profiles are stored as fractions of the sprite frame rather than as pixel
+    // sizes baked in at load time. A baked profile silently stops matching its
+    // sprite the moment the entity is drawn at a different scale, which is exactly
+    // what happened to enemies: they were measured at ENEMY_DRAW_SIZE but drawn at
+    // ENEMY_DRAW_SIZE * renderScale, leaving every enemy hitbox ~3.4x too small
+    // (a goblin drawn 193px tall answered to a 20px box). Deriving the body from
+    // the entity's own display size keeps the two in step for any scale.
+    function createPhysicsProfile(profileId, img, frameRect) {
       const frame = frameRect || { x: 0, y: 0, width: img.width || SPRITE_FRAME_SIZE, height: img.height || SPRITE_FRAME_SIZE };
       const bounds = getOpaqueBounds(img, frame);
-      const scaleX = drawSize / frame.width;
-      const scaleY = drawSize / frame.height;
 
       const sourceCenterX = bounds.x + (bounds.width / 2);
       const sourceBottomY = bounds.y + bounds.height;
-      const centerOffsetX = (sourceCenterX - (frame.width / 2)) * scaleX;
-      const footOffsetY = (frame.height - sourceBottomY) * scaleY;
 
       physicsProfiles[profileId] = {
-        width: bounds.width * scaleX,
-        height: bounds.height * scaleY,
-        centerOffsetX,
-        footOffsetY
+        widthRatio: bounds.width / frame.width,
+        heightRatio: bounds.height / frame.height,
+        centerOffsetXRatio: (sourceCenterX - (frame.width / 2)) / frame.width,
+        footOffsetYRatio: (frame.height - sourceBottomY) / frame.height
       };
     }
 
     function getPhysicsProfile(profileId) {
-      return physicsProfiles[profileId] || { width: 32, height: 40, centerOffsetX: 0, footOffsetY: 0 };
+      return physicsProfiles[profileId]
+        || { widthRatio: 0.25, heightRatio: 0.3, centerOffsetXRatio: 0, footOffsetYRatio: 0 };
+    }
+
+    function getEntityBaseDrawSize(entity) {
+      if (entity && entity.charData) return PLAYER_DRAW_SIZE;
+      return entity && entity.isBoss ? BOSS_DRAW_SIZE : ENEMY_DRAW_SIZE;
+    }
+
+    // Mirrors the render queue's sizing (see drawEntityWithStatusEffects callers).
+    // Deliberately excludes the depth scale the sprite applies, matching the
+    // long-standing player convention of a depth-independent hitbox.
+    function getEntityDisplaySize(entity) {
+      return getEntityBaseDrawSize(entity) * ((entity && entity.renderScale) || 1);
     }
 
     function getPhysicsBody(entity) {
       const profile = getPhysicsProfile(entity.physicsProfileId);
       const hitboxScale = entity.hitboxScale || 1;
-      const width = profile.width * hitboxScale;
-      const height = profile.height * hitboxScale;
+      const displaySize = getEntityDisplaySize(entity);
+      const width = profile.widthRatio * displaySize * hitboxScale;
+      const height = profile.heightRatio * displaySize * hitboxScale;
       return {
-        x: entity.x + profile.centerOffsetX - (width / 2),
-        y: entity.y - profile.footOffsetY - height,
+        x: entity.x + (profile.centerOffsetXRatio * displaySize) - (width / 2),
+        y: entity.y - (profile.footOffsetYRatio * displaySize) - height,
         width,
         height
       };
@@ -11769,7 +11783,6 @@
       const playerSpriteSheets = {
         'billy-boxby': {
           profileId: 'player-billy-boxby',
-          sizeMultiplier: 0.75,
           states: {
             idle: { right: ['assets/BB_billyBoxby_right.png', 1], fps: 0, loop: false },
             walk: { right: ['assets/BB_billyBoxby_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
@@ -11781,7 +11794,6 @@
         },
         'green-fairy': {
           profileId: 'player-green-fairy',
-          sizeMultiplier: 0.75,
           states: {
             idle: { right: ['assets/BB_greenFairy_right.png', 1], fps: 0, loop: false },
             walk: { right: ['assets/BB_greenFairy_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
@@ -11793,7 +11805,6 @@
         },
         'grimma-the-feared': {
           profileId: 'player-grimma-the-feared',
-          sizeMultiplier: 0.75,
           states: {
             idle: { right: ['assets/BB_grimmaTheFeared_right.png', 1], fps: 0, loop: false },
             walk: { right: ['assets/BB_grimmaTheFeared_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
@@ -11805,7 +11816,6 @@
         },
         'old-man-croc': {
           profileId: 'player-old-man-croc',
-          sizeMultiplier: 0.75,
           states: {
             idle: { right: ['assets/BB_oldManCroc_right.png', 1], fps: 0, loop: false },
             walk: { right: ['assets/BB_oldManCroc_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
@@ -11817,7 +11827,6 @@
         },
         possumatli: {
           profileId: 'player-possumatli',
-          sizeMultiplier: 0.75,
           states: {
             idle: { right: ['assets/BB_possumatli_controlSquare_right.png', 1], fps: 0, loop: false },
             walk: { right: ['assets/BB_possumatli_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
@@ -11829,7 +11838,6 @@
         },
         rustbucket: {
           profileId: 'player-rustbucket',
-          sizeMultiplier: 0.75,
           states: {
             idle: { right: ['assets/BB_Rustbucket_right.png', 1], fps: 0, loop: false },
             walk: { right: ['assets/BB_rustbucket_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
@@ -11841,7 +11849,6 @@
         },
         'scarlett-glumpkin': {
           profileId: 'player-scarlett-glumpkin',
-          sizeMultiplier: 0.75,
           states: {
             idle: { right: ['assets/BB_scarlettGlumpkin_right.png', 1], fps: 0, loop: false },
             walk: { right: ['assets/BB_scarlettGlumpkin_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
@@ -11853,7 +11860,6 @@
         },
         'shunky-rooster': {
           profileId: 'player-shunky-rooster',
-          sizeMultiplier: 0.75,
           states: {
             idle: { right: ['assets/BB_shunkyRooster_controlSquare_right.png', 1], fps: 0, loop: false },
             walk: { right: ['assets/BB_shunkyRooster_walking_right.png', 4], fps: PLAYER_ANIM_FPS.walk, loop: true },
@@ -11868,7 +11874,7 @@
       Object.entries(playerSpriteSheets).forEach(([characterKey, config]) => {
         promises.push(createDirectionalAnimationTracks(config.states, ({ stateName, facingName, img, frames }) => {
           if (stateName === 'idle' && facingName === 'right') {
-            createPhysicsProfile(config.profileId, img, frames[0], PLAYER_DRAW_SIZE * config.sizeMultiplier);
+            createPhysicsProfile(config.profileId, img, frames[0]);
           }
         }).then((tracks) => {
           assets.characters[characterKey] = { tracks };
@@ -11878,7 +11884,6 @@
       const enemySpriteSheets = {
         swamp: {
           profileId: 'enemy-swamp',
-          sizeMultiplier: SWAMP_SCALE_MULTIPLIER,
           states: {
             idle: { left: ['assets/animation_chokingBlossom_red_controlSquare_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_chokingBlossom_red_walking_left.png', 8], fps: 10, loop: true },
@@ -11889,7 +11894,6 @@
         },
         'choking-blossom': {
           profileId: 'enemy-choking-blossom',
-          sizeMultiplier: CHOKING_BLOSSOM_SCALE_MULTIPLIER,
           states: {
             idle: { left: ['assets/animation_chokingBlossom_red_controlSquare_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_chokingBlossom_red_walking_left.png', 8], fps: 10, loop: true },
@@ -11900,7 +11904,6 @@
         },
         daphodilus: {
           profileId: 'enemy-daphodilus',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_delvingDaphodilus_red_controlSquare_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_delvingDaphodilus_red_walking_left.png', 8], fps: 10, loop: true },
@@ -11913,7 +11916,6 @@
         },
         'mud-monster': {
           profileId: 'enemy-mud-monster',
-          sizeMultiplier: BOSS_DRAW_SIZE / ENEMY_DRAW_SIZE,
           states: {
             idle: { left: ['assets/animation_mudMonster_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_mudMonster_red_walking_left.png', 8], fps: 10, loop: true },
@@ -11924,7 +11926,6 @@
         },
         scarlettBrambleDrone: {
           profileId: 'enemy-scarlettBrambleDrone',
-          sizeMultiplier: 0.82,
           states: {
             idle: { left: ['assets/animation_brambleDrone_red_controlSquare_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_brambleDrone_red_walking_left.png', 8], fps: 10, loop: true },
@@ -11935,7 +11936,6 @@
         },
         scarlettViciousVercosus: {
           profileId: 'enemy-scarlettBrambleDrone',
-          sizeMultiplier: 1.23,
           states: {
             idle: { left: ['assets/animation_viciousVercosus_red_controlSquare_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_viciousVercosus_red_walking_left.png', 8], fps: 10, loop: true },
@@ -11946,7 +11946,6 @@
         },
         goblin: {
           profileId: 'enemy-goblin',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_kingOfThieves_rat_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_kingOfThieves_rat_red_walking_left.png', 8], fps: 10, loop: true },
@@ -11957,7 +11956,6 @@
         },
         thug: {
           profileId: 'enemy-thug',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_hiredGun_red_controlSquare_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_hiredGun_red_walking_left.png', 8], fps: 10, loop: true },
@@ -11968,7 +11966,6 @@
         },
         automaton: {
           profileId: 'enemy-automaton',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_automatick_red_controlSquare_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_automatick_red_walking_left.png', 8], fps: 10, loop: true },
@@ -11979,7 +11976,6 @@
         },
         fey: {
           profileId: 'enemy-fey',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_queenOfHearts_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_queenOfHearts_red_walking_left.png', 8], fps: 10, loop: true },
@@ -11990,7 +11986,6 @@
         },
         hiredGun: {
           profileId: 'enemy-hiredGun',
-          sizeMultiplier: ENEMY_SIZE_BOOST_BY_TYPE.hiredGun || 1,
           states: {
             idle: { left: ['assets/animation_hiredGun_red_controlSquare_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_hiredGun_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12001,7 +11996,6 @@
         },
         stingy: {
           profileId: 'enemy-stingy',
-          sizeMultiplier: ENEMY_SIZE_BOOST_BY_TYPE.stingy || 1,
           states: {
             idle: { left: ['assets/animation_stingy_red_controlSquare_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_stingy_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12012,7 +12006,6 @@
         },
         sidewinder: {
           profileId: 'enemy-sidewinder',
-          sizeMultiplier: ENEMY_SIZE_BOOST_BY_TYPE.sidewinder || 1,
           states: {
             idle: { left: ['assets/animation_sidewinder_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_sidewinder_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12023,7 +12016,6 @@
         },
         bayouBriar: {
           profileId: 'enemy-bayouBriar',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_bayouBriar_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_bayouBriar_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12034,7 +12026,6 @@
         },
         quakes: {
           profileId: 'enemy-quakes',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_quakes_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_quakes_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12045,7 +12036,6 @@
         },
         riverDweller: {
           profileId: 'enemy-riverDweller',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_riverDweller_red_controlSquare_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_riverDweller_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12056,7 +12046,6 @@
         },
         automatick: {
           profileId: 'enemy-automatick',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_automatick_red_controlSquare_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_automatick_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12067,7 +12056,6 @@
         },
         tickles: {
           profileId: 'enemy-tickles',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_tickles_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_tickles_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12078,7 +12066,6 @@
         },
         vengefulGhost: {
           profileId: 'enemy-vengefulGhost',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_vengefulGhost_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_vengefulGhost_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12089,7 +12076,6 @@
         },
         chainedSpirit: {
           profileId: 'enemy-chainedSpirit',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_chainedSpirit_red_controlSquare_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_chainedSpirit_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12100,7 +12086,6 @@
         },
         curiousSpirit: {
           profileId: 'enemy-curiousSpirit',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_curiousSpirit_red_controlSquare_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_curiousSpirit_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12111,7 +12096,6 @@
         },
         lurkerInTheHalls: {
           profileId: 'enemy-lurkerInTheHalls',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_lurkerInTheHalls_red_controlSquare_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_lurkerInTheHalls_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12122,7 +12106,6 @@
         },
         silentOne: {
           profileId: 'enemy-silentOne',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_silentOne_red_controlSquare_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_silentOne_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12133,7 +12116,6 @@
         },
         bulwarkBernie: {
           profileId: 'enemy-bulwarkBernie',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_bulwarkBernie_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_bulwarkBernie_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12144,7 +12126,6 @@
         },
         telematron: {
           profileId: 'enemy-telematron',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_telematron_red_teleportIn_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_telematron_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12155,7 +12136,6 @@
         },
         malice: {
           profileId: 'enemy-malice',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_malice_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_malice_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12166,7 +12146,6 @@
         },
         revulsion: {
           profileId: 'enemy-revulsion',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_revulsion_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_revulsion_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12177,7 +12156,6 @@
         },
         disgust: {
           profileId: 'enemy-disgust',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_disgust_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_disgust_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12188,7 +12166,6 @@
         },
         arrogance: {
           profileId: 'enemy-arrogance',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_arrogance_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_arrogance_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12199,7 +12176,6 @@
         },
         shapeshifter: {
           profileId: 'enemy-shapeshifter',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_shapeshifter_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_shapeshifter_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12210,7 +12186,6 @@
         },
         tattooRat: {
           profileId: 'enemy-tattooRat',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_kingOfThieves_rat_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_kingOfThieves_rat_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12221,7 +12196,6 @@
         },
         tattooSnake: {
           profileId: 'enemy-tattooSnake',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_kingOfThieves_snake_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_kingOfThieves_snake_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12232,7 +12206,6 @@
         },
         tattooTiger: {
           profileId: 'enemy-tattooTiger',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_kingOfThieves_tiger_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_kingOfThieves_tiger_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12243,7 +12216,6 @@
         },
         sentroid: {
           profileId: 'enemy-sentroid',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_sentroid_red_move_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_sentroid_red_move_left.png', 8], fps: 10, loop: true },
@@ -12254,7 +12226,6 @@
         },
         lesserDemon: {
           profileId: 'enemy-lesserDemon',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_lesserDemon_red_controlSquare_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_lesserDemon_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12265,7 +12236,6 @@
         },
         skulkingDemon: {
           profileId: 'enemy-skulkingDemon',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_skulkingDemon_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_skulkingDemon_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12276,7 +12246,6 @@
         },
         succubus: {
           profileId: 'enemy-succubus',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_succubus_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_succubus_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12287,7 +12256,6 @@
         },
         zombie: {
           profileId: 'enemy-zombie',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_zombie_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_zombie_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12298,7 +12266,6 @@
         },
         origamiCrane: {
           profileId: 'enemy-origamiCrane',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_origami_crane_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_origami_crane_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12309,7 +12276,6 @@
         },
         origamiDragon: {
           profileId: 'enemy-origamiDragon',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_origami_dragon_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_origami_dragon_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12320,7 +12286,6 @@
         },
         origamiToad: {
           profileId: 'enemy-origamiToad',
-          sizeMultiplier: 1,
           states: {
             idle: { left: ['assets/animation_origami_toad_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_origami_toad_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12331,7 +12296,6 @@
         },
         theSlais: {
           profileId: 'enemy-theSlais',
-          sizeMultiplier: BOSS_DRAW_SIZE / ENEMY_DRAW_SIZE,
           states: {
             idle: { left: ['assets/animation_theSlais_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_theSlais_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12342,7 +12306,6 @@
         },
         ladyWorthington: {
           profileId: 'enemy-ladyWorthington',
-          sizeMultiplier: BOSS_DRAW_SIZE / ENEMY_DRAW_SIZE,
           states: {
             idle: { left: ['assets/animation_ladyWorthington_red_controlSquare_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_ladyWorthington_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12353,7 +12316,6 @@
         },
         mrNibbles: {
           profileId: 'enemy-mrNibbles',
-          sizeMultiplier: BOSS_DRAW_SIZE / ENEMY_DRAW_SIZE,
           states: {
             idle: { left: ['assets/animation_mrNibbles_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_mrNibbles_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12364,7 +12326,6 @@
         },
         mirrorMaster: {
           profileId: 'enemy-mirrorMaster',
-          sizeMultiplier: BOSS_DRAW_SIZE / ENEMY_DRAW_SIZE,
           states: {
             idle: { left: ['assets/animation_mirrorMaster_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_mirrorMaster_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12375,7 +12336,6 @@
         },
         kingOfThieves: {
           profileId: 'enemy-kingOfThieves',
-          sizeMultiplier: BOSS_DRAW_SIZE / ENEMY_DRAW_SIZE,
           states: {
             idle: { left: ['assets/animation_kingOfThieves_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_kingOfThieves_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12386,7 +12346,6 @@
         },
         lodicrust: {
           profileId: 'enemy-lodicrust',
-          sizeMultiplier: BOSS_DRAW_SIZE / ENEMY_DRAW_SIZE,
           states: {
             idle: { left: ['assets/animation_lodicrust_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_lodicrust_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12397,7 +12356,6 @@
         },
         origamiMaster: {
           profileId: 'enemy-origamiMaster',
-          sizeMultiplier: BOSS_DRAW_SIZE / ENEMY_DRAW_SIZE,
           states: {
             idle: { left: ['assets/animation_origamiMaster_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_origamiMaster_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12408,7 +12366,6 @@
         },
         sweetykins: {
           profileId: 'enemy-sweetykins',
-          sizeMultiplier: BOSS_DRAW_SIZE / ENEMY_DRAW_SIZE,
           states: {
             idle: { left: ['assets/animation_sweetykins_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_sweetykins_red_walking_left.png', 6], fps: 10, loop: true },
@@ -12419,7 +12376,6 @@
         },
         bambo: {
           profileId: 'enemy-bambo',
-          sizeMultiplier: BOSS_DRAW_SIZE / ENEMY_DRAW_SIZE,
           states: {
             idle: { left: ['assets/animation_bambo_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_bambo_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12430,7 +12386,6 @@
         },
         tinkeringTom: {
           profileId: 'enemy-tinkeringTom',
-          sizeMultiplier: BOSS_DRAW_SIZE / ENEMY_DRAW_SIZE,
           states: {
             idle: { left: ['assets/animation_tinkeringTom_red_controlSquare_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_tinkeringTom_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12441,7 +12396,6 @@
         },
         boss: {
           profileId: 'enemy-boss',
-          sizeMultiplier: BOSS_DRAW_SIZE / ENEMY_DRAW_SIZE,
           states: {
             idle: { left: ['assets/animation_mudMonster_red_walking_left.png', 1], fps: 0, loop: false },
             walk: { left: ['assets/animation_mudMonster_red_walking_left.png', 8], fps: 10, loop: true },
@@ -12455,17 +12409,11 @@
       Object.entries(enemySpriteSheets).forEach(([enemyKey, config]) => {
         const loader = config.staged
           ? createStageDirectionalAnimationTracks(toStageAwareStates(config.states, enemyKey), ({ img, frames }) => {
-            createPhysicsProfile(config.profileId, img, frames[0], ENEMY_DRAW_SIZE * config.sizeMultiplier);
-            if (config.bossProfileId) {
-              createPhysicsProfile(config.bossProfileId, img, frames[0], BOSS_DRAW_SIZE * BOSS_RENDER_SCALE_MULTIPLIER);
-            }
+            createPhysicsProfile(config.profileId, img, frames[0]);
           })
           : createDirectionalAnimationTracks(config.states, ({ stateName, facingName, img, frames }) => {
             if (stateName === 'idle' && facingName === 'left') {
-              createPhysicsProfile(config.profileId, img, frames[0], ENEMY_DRAW_SIZE * config.sizeMultiplier);
-              if (config.bossProfileId) {
-                createPhysicsProfile(config.bossProfileId, img, frames[0], BOSS_DRAW_SIZE * BOSS_RENDER_SCALE_MULTIPLIER);
-              }
+              createPhysicsProfile(config.profileId, img, frames[0]);
             }
           });
         promises.push(loader.then((tracks) => {

@@ -3992,6 +3992,379 @@
         .forEach(hazard => state.hazards.push(hazard));
     }
 
+    // --- Stage hazards (stages 2-10) -------------------------------------------
+    // Stage 1 places hazards by sampling a colour-coded environment PNG. No other
+    // stage ships one, and there is no hazard art beyond the swamp set, so these are
+    // placed procedurally and drawn with canvas primitives. When per-stage hazard art
+    // arrives, only drawStageHazard() needs to change.
+    //
+    // Nearly the whole design brief collapses into eight reusable behaviours, so a
+    // stage's hazard set is data rather than code:
+    //
+    //   zone-pool    standing here hurts / slows      (oil, fish spill, glass, coins)
+    //   pulse-trap   telegraph -> strike, on a cycle  (steam valve, press, tesla, bite)
+    //   faller       drops from above at a point      (crates, chandeliers, bells)
+    //   roller       traverses the lane horizontally  (barrels, wagons, kegs)
+    //   pusher       continuous directional shove     (conveyor, steam line, tide)
+    //   grabber      immobilises on contact           (ghost hands, nets, rug pull)
+    //   field        applies a debuff in an area      (wisps, cold spots, ash, fog)
+    //   emitter      fires a projectile on a cycle    (reflections, mirror beams)
+    //
+    // Positions are fractions of level width so they scale with the stage.
+    const STAGE_HAZARD_PLANS = {
+      mirewatch: [
+        { sub: 'pulse-trap', at: 0.22, label: 'Steam valve', period: 190, telegraph: 46, radius: 74, damage: 9, stun: 18, color: '#cfe8ff' },
+        { sub: 'zone-pool', at: 0.38, radius: 86, damage: 0, slow: 0.5, color: '#3b3550', label: 'Oil slick' },
+        { sub: 'faller', at: 0.55, period: 240, telegraph: 52, radius: 66, damage: 12, color: '#b08a55', label: 'Falling crate' },
+        { sub: 'faller', at: 0.71, period: 280, telegraph: 56, radius: 60, damage: 8, color: '#ffb347', label: 'Lantern drop', leavesPool: { radius: 70, duration: 260, color: '#ff7a3c', damagePerTick: 3, slowMagnitude: 0.15 } },
+        { sub: 'roller', at: 0.85, period: 320, speed: 5.2, dir: -1, radius: 54, damage: 13, color: '#8a6a45', label: 'Runaway wagon' }
+      ],
+      'mirewatch-docks': [
+        { sub: 'roller', at: 0.18, period: 260, speed: 5.8, dir: -1, radius: 48, damage: 12, color: '#a3703c', label: 'Rolling barrel' },
+        { sub: 'pulse-trap', at: 0.34, period: 200, telegraph: 44, radius: 82, damage: 11, stun: 20, color: '#9fb8c9', label: 'Crane hook' },
+        { sub: 'zone-pool', at: 0.48, radius: 80, damage: 0, slow: 0.55, color: '#7fb0a8', label: 'Fish spill' },
+        { sub: 'pulse-trap', at: 0.63, period: 230, telegraph: 50, radius: 70, damage: 10, stun: 26, color: '#6b5638', label: 'Plank collapse' },
+        { sub: 'grabber', at: 0.77, period: 300, radius: 62, holdFrames: 70, damage: 6, color: '#d8cba8', label: 'Net snare' },
+        { sub: 'pusher', at: 0.9, w: 260, h: 150, pushX: -2.4, pushY: 0, color: '#6fd0e0', label: 'Tidal slap' }
+      ],
+      'haunted-bayou': [
+        { sub: 'grabber', at: 0.2, period: 240, radius: 66, holdFrames: 64, damage: 7, color: '#5a4a6a', label: 'Ghost hands' },
+        { sub: 'roller', at: 0.36, period: 300, speed: 6.4, dir: -1, radius: 58, damage: 13, color: '#7fae9a', label: 'Phantom crocodile', ghostly: true },
+        { sub: 'pulse-trap', at: 0.52, period: 210, telegraph: 42, radius: 76, damage: 12, stun: 16, color: '#6b5a3c', label: 'Tree face bite' },
+        { sub: 'field', at: 0.68, radius: 96, debuff: 'confuse', duration: 90, color: '#9ad8ff', label: 'Wisp possession' },
+        { sub: 'pulse-trap', at: 0.84, period: 250, telegraph: 54, radius: 110, damage: 6, push: 4.6, color: '#e8e0c8', label: 'Shrieking skull totem' }
+      ],
+      'haunted-house': [
+        { sub: 'faller', at: 0.24, period: 260, telegraph: 58, radius: 88, damage: 15, color: '#e8d9a0', label: 'Chandelier', leavesPool: { radius: 74, duration: 240, color: '#ff8a5c', damagePerTick: 3, slowMagnitude: 0.15 } },
+        { sub: 'field', at: 0.4, radius: 90, debuff: 'slow', magnitude: 0.45, duration: 40, color: '#a8d8ff', label: 'Cold spot' },
+        { sub: 'zone-pool', at: 0.54, radius: 74, damage: 2, slow: 0.25, color: '#cfd8e8', label: 'Mirror shards' },
+        { sub: 'grabber', at: 0.68, period: 280, radius: 70, holdFrames: 56, damage: 5, color: '#8a4a4a', label: 'Possessed rug' },
+        { sub: 'pulse-trap', at: 0.82, period: 220, telegraph: 46, radius: 84, damage: 13, stun: 14, color: '#ff7a3c', label: 'Fireplace blast' }
+      ],
+      'mirror-realm': [
+        { sub: 'emitter', at: 0.22, period: 170, telegraph: 38, damage: 9, color: '#bfe8ff', label: 'Reflection volley' },
+        { sub: 'zone-pool', at: 0.4, radius: 96, damage: 0, slow: 0.5, color: '#dff2ff', label: 'Glass slick' },
+        { sub: 'pulse-trap', at: 0.58, period: 200, telegraph: 52, radius: 90, damage: 12, stun: 18, color: '#ffffff', label: 'Mirror beam' },
+        { sub: 'pulse-trap', at: 0.76, period: 240, telegraph: 44, radius: 104, damage: 11, push: 4.2, color: '#cfd8ff', label: 'Mirror shatter' }
+      ],
+      airship: [
+        { sub: 'zone-pool', at: 0.2, radius: 82, damage: 0, slow: 0.5, color: '#ffd76a', label: 'Coin spray' },
+        { sub: 'pulse-trap', at: 0.36, period: 180, telegraph: 40, radius: 68, damage: 10, stun: 22, color: '#ffe08a', label: 'Slot machine sparks' },
+        { sub: 'pusher', at: 0.52, w: 280, h: 160, pushX: 2.2, pushY: 0.5, color: '#bfe0ff', label: 'Air turbulence' },
+        { sub: 'roller', at: 0.68, period: 280, speed: 5.4, dir: -1, radius: 50, damage: 12, color: '#9a7a4a', label: 'Rolling keg' },
+        { sub: 'pulse-trap', at: 0.84, period: 210, telegraph: 42, radius: 72, damage: 13, stun: 16, color: '#c98a5c', label: "Dealer's trap table" }
+      ],
+      'hell-gate': [
+        { sub: 'pulse-trap', at: 0.2, period: 170, telegraph: 40, radius: 76, damage: 12, color: '#ff5a3c', label: 'Hell fissure', leavesPool: { radius: 66, duration: 200, color: '#ff5a3c', damagePerTick: 3, slowMagnitude: 0.1 } },
+        { sub: 'faller', at: 0.38, period: 270, telegraph: 54, radius: 78, damage: 15, color: '#c9a227', label: 'Falling church bell' },
+        { sub: 'pulse-trap', at: 0.56, period: 190, telegraph: 44, radius: 96, damage: 11, color: '#ff8a3c', label: 'Fire tongue' },
+        { sub: 'field', at: 0.76, radius: 120, debuff: 'blind', magnitude: 0.55, duration: 70, color: '#8a8070', label: 'Ash storm' }
+      ],
+      mansion: [
+        { sub: 'pulse-trap', at: 0.24, period: 200, telegraph: 46, radius: 78, damage: 11, stun: 16, color: '#f2e9d8', label: 'Fold trap' },
+        { sub: 'emitter', at: 0.42, period: 190, telegraph: 36, damage: 8, color: '#f2e9d8', label: 'Paper storm' },
+        { sub: 'zone-pool', at: 0.6, radius: 78, damage: 2, slow: 0.3, color: '#d8c9a8', label: 'Creased ground' },
+        { sub: 'grabber', at: 0.78, period: 290, radius: 64, holdFrames: 58, damage: 6, color: '#c9b48a', label: 'Paper bindings' }
+      ],
+      emberfall: [
+        { sub: 'pusher', at: 0.16, w: 300, h: 150, pushX: 2.6, pushY: 0, color: '#8a8a9a', label: 'Conveyor belt' },
+        { sub: 'pulse-trap', at: 0.32, period: 170, telegraph: 48, radius: 84, damage: 16, stun: 24, color: '#c9c9d8', label: 'Hydraulic press' },
+        { sub: 'pulse-trap', at: 0.46, period: 150, telegraph: 34, radius: 70, damage: 10, stun: 26, color: '#8ef0ff', label: 'Tesla coil' },
+        { sub: 'zone-pool', at: 0.6, radius: 74, damage: 3, slow: 0.2, color: '#9a8a6a', label: 'Gear grind track' },
+        { sub: 'pulse-trap', at: 0.74, period: 180, telegraph: 40, radius: 78, damage: 12, color: '#dff2ff', label: 'Steam jet' },
+        { sub: 'zone-pool', at: 0.88, radius: 82, damage: 4, slow: 0.35, color: '#6fd0e0', label: 'Electrified puddle', electric: true }
+      ]
+    };
+
+    function spawnStageHazards() {
+      const level = levels[state.levelIndex];
+      const plan = level ? STAGE_HAZARD_PLANS[level.id] : null;
+      if (!plan) return;
+      const laneMid = (BRAWL_LANE_MIN_Y + BRAWL_LANE_MAX_Y) * 0.5;
+      const laneSpan = (BRAWL_LANE_MAX_Y - BRAWL_LANE_MIN_Y) * 0.5;
+      plan.forEach((spec, index) => {
+        const x = clamp(state.levelWidth * spec.at, 120, Math.max(140, state.levelWidth - 120));
+        // Spread hazards through the lane instead of stacking them on one line.
+        const y = clamp(laneMid + (((index % 3) - 1) * laneSpan * 0.5), BRAWL_LANE_MIN_Y, BRAWL_LANE_MAX_Y);
+        state.hazards.push({
+          ...spec,
+          stageHazard: true,
+          kind: `stage-${spec.sub}`,
+          id: `stage-${level.id}-${index}`,
+          x,
+          y,
+          homeX: x,
+          w: spec.w || (spec.radius || 70) * 2,
+          h: spec.h || (spec.radius || 70) * 1.1,
+          frames: Infinity,
+          timer: Math.round(rand(0, spec.period || 200)),
+          phase: 'idle',
+          animAge: 0
+        });
+      });
+    }
+
+    // Returns true while the hazard is in its damaging window (used by the renderer).
+    function updateStageHazard(h, player) {
+      h.animAge = (h.animAge || 0) + 1;
+      const dist = () => Math.hypot(player.x - h.x, player.y - h.y);
+
+      switch (h.sub) {
+        case 'zone-pool': {
+          if (dist() <= (h.radius || 70)) {
+            if (h.slow) applyPlayerDebuff(player, 'slow', 12, h.slow);
+            h.tickCooldown = Math.max(0, (h.tickCooldown || 0) - 1);
+            if (h.damage > 0 && h.tickCooldown <= 0) {
+              damagePlayer(h.damage, null);
+              // Electrified water also stuns briefly -- that is its whole identity.
+              if (h.electric) applyStun(player, 16 + STUN_DURATION_BONUS_FRAMES);
+              h.tickCooldown = 34;
+            }
+          }
+          break;
+        }
+
+        case 'pulse-trap': {
+          h.timer -= 1;
+          if (h.phase === 'idle' && h.timer <= 0) {
+            h.phase = 'telegraph';
+            h.timer = h.telegraph || 40;
+            state.effects.push({ type: 'enemy-telegraph-ring', x: h.x, y: h.y, timer: h.timer, maxTimer: h.timer, radius: h.radius || 70, color: h.color });
+          } else if (h.phase === 'telegraph' && h.timer <= 0) {
+            h.phase = 'strike';
+            h.timer = 16;
+            state.effects.push({ type: 'enemy-shock-ring', x: h.x, y: h.y, timer: 24, maxTimer: 24, radius: h.radius || 70, color: h.color });
+            state.shake = Math.max(state.shake, 7);
+            if (dist() <= (h.radius || 70)) {
+              damagePlayer(h.damage || 10, null);
+              if (h.stun) applyStun(player, h.stun + STUN_DURATION_BONUS_FRAMES);
+              if (h.push) applyPlayerPush(player, (Math.sign(player.x - h.x) || 1) * h.push, 0, 22);
+            }
+            if (h.leavesPool) spawnEnemyGroundPool(h.x, h.y, h.leavesPool);
+          } else if (h.phase === 'strike' && h.timer <= 0) {
+            h.phase = 'idle';
+            h.timer = h.period || 200;
+          }
+          break;
+        }
+
+        case 'faller': {
+          h.timer -= 1;
+          if (h.phase === 'idle' && h.timer <= 0) {
+            h.phase = 'telegraph';
+            h.timer = h.telegraph || 50;
+          } else if (h.phase === 'telegraph' && h.timer <= 0) {
+            h.phase = 'strike';
+            h.timer = 18;
+            state.effects.push({ type: 'enemy-shock-ring', x: h.x, y: h.y, timer: 26, maxTimer: 26, radius: h.radius || 66, color: h.color });
+            state.shake = Math.max(state.shake, 8);
+            if (dist() <= (h.radius || 66)) {
+              damagePlayer(h.damage || 12, null);
+              applyStun(player, 18 + STUN_DURATION_BONUS_FRAMES);
+            }
+            if (h.leavesPool) spawnEnemyGroundPool(h.x, h.y, h.leavesPool);
+          } else if (h.phase === 'strike' && h.timer <= 0) {
+            h.phase = 'idle';
+            h.timer = h.period || 240;
+          }
+          break;
+        }
+
+        case 'roller': {
+          h.timer -= 1;
+          if (h.phase === 'idle') {
+            if (h.timer <= 0) {
+              h.phase = 'rolling';
+              // Enter from the edge the roller travels away from.
+              h.x = h.dir < 0 ? Math.min(state.levelWidth - 40, h.homeX + canvas.width * 0.6) : Math.max(40, h.homeX - canvas.width * 0.6);
+              h.hitPlayer = false;
+            }
+          } else {
+            h.x += (h.speed || 5) * (h.dir || -1);
+            h.rollAngle = (h.rollAngle || 0) + 0.18 * (h.dir || -1);
+            if (!h.hitPlayer && dist() <= (h.radius || 50)) {
+              damagePlayer(h.damage || 12, null);
+              applyPlayerPush(player, (h.dir || -1) * 4.5, 0, 20);
+              h.hitPlayer = true;
+            }
+            const offMap = h.dir < 0 ? h.x < 20 : h.x > state.levelWidth - 20;
+            if (offMap) {
+              h.phase = 'idle';
+              h.timer = h.period || 280;
+              h.x = h.homeX;
+            }
+          }
+          break;
+        }
+
+        case 'pusher': {
+          const inZone = Math.abs(player.x - h.x) < h.w * 0.5 && Math.abs(player.y - h.y) < h.h * 0.5;
+          if (inZone) applyPlayerPush(player, h.pushX || 0, h.pushY || 0, 6);
+          break;
+        }
+
+        case 'grabber': {
+          h.timer -= 1;
+          if (h.phase === 'idle' && h.timer <= 0 && dist() <= (h.radius || 64)) {
+            h.phase = 'holding';
+            h.timer = h.holdFrames || 60;
+            // A grab is an immobilise, not a slow -- mash out via the existing stun break.
+            applyStun(player, (h.holdFrames || 60) + STUN_DURATION_BONUS_FRAMES);
+            if (h.damage) damagePlayer(h.damage, null);
+            state.effects.push({ type: 'enemy-special-burst', x: h.x, y: h.y - 20, timer: 26, maxTimer: 26, color: h.color });
+          } else if (h.phase === 'holding' && h.timer <= 0) {
+            h.phase = 'idle';
+            h.timer = h.period || 280;
+          }
+          break;
+        }
+
+        case 'field': {
+          if (dist() <= (h.radius || 90)) {
+            applyPlayerDebuff(player, h.debuff || 'slow', h.duration || 60, h.magnitude || 0.4);
+          }
+          break;
+        }
+
+        case 'emitter': {
+          h.timer -= 1;
+          if (h.phase === 'idle' && h.timer <= 0) {
+            h.phase = 'telegraph';
+            h.timer = h.telegraph || 36;
+            state.effects.push({ type: 'enemy-telegraph-ring', x: h.x, y: h.y, timer: h.timer, maxTimer: h.timer, radius: 60, color: h.color });
+          } else if (h.phase === 'telegraph' && h.timer <= 0) {
+            h.phase = 'idle';
+            h.timer = h.period || 180;
+            const dir = Math.sign(player.x - h.x) || -1;
+            state.projectiles.push({
+              x: h.x, y: h.y - 40, vx: dir * 5, vy: 0,
+              damage: h.damage || 8, friendly: false, life: 150,
+              color: h.color, trailEvery: 5
+            });
+          }
+          break;
+        }
+
+        default:
+          break;
+      }
+    }
+
+    function drawStageHazard(h, x, y) {
+      const color = h.color || '#ffd27a';
+      ctx.save();
+      switch (h.sub) {
+        case 'zone-pool':
+        case 'field': {
+          const pulse = 0.5 + (Math.sin((h.animAge || 0) * 0.05) * 0.5);
+          ctx.globalAlpha = h.sub === 'field' ? 0.16 + (pulse * 0.12) : 0.3;
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.ellipse(x, y, h.radius, h.radius * 0.36, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 0.6;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          break;
+        }
+        case 'pusher': {
+          // Arrows drifting the way the zone shoves you.
+          ctx.globalAlpha = 0.28;
+          ctx.fillStyle = color;
+          ctx.fillRect(x - h.w / 2, y - h.h / 2, h.w, h.h);
+          ctx.globalAlpha = 0.75;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2.5;
+          const dir = Math.sign(h.pushX || 1) || 1;
+          for (let i = 0; i < 4; i += 1) {
+            const drift = ((h.animAge * 1.6) + (i * (h.w / 4))) % h.w;
+            const ax = x - h.w / 2 + drift;
+            ctx.beginPath();
+            ctx.moveTo(ax - (8 * dir), y - 8);
+            ctx.lineTo(ax + (8 * dir), y);
+            ctx.lineTo(ax - (8 * dir), y + 8);
+            ctx.stroke();
+          }
+          break;
+        }
+        case 'pulse-trap':
+        case 'faller': {
+          const arming = h.phase === 'telegraph';
+          const firing = h.phase === 'strike';
+          ctx.globalAlpha = firing ? 0.85 : (arming ? 0.5 : 0.22);
+          ctx.strokeStyle = color;
+          ctx.lineWidth = firing ? 5 : 2.5;
+          ctx.beginPath();
+          ctx.ellipse(x, y, h.radius, h.radius * 0.34, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          if (h.sub === 'faller' && arming) {
+            // Shadow growing under the falling object.
+            const progress = 1 - (h.timer / (h.telegraph || 50));
+            ctx.globalAlpha = 0.35 + (progress * 0.4);
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.beginPath();
+            ctx.ellipse(x, y, h.radius * (0.35 + progress * 0.5), h.radius * 0.2 * (0.35 + progress * 0.5), 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 0.9;
+            ctx.fillStyle = color;
+            const dropY = y - 240 + (progress * 240);
+            ctx.beginPath();
+            ctx.arc(x, dropY, h.radius * 0.32, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          break;
+        }
+        case 'roller': {
+          if (h.phase !== 'rolling') break;
+          ctx.globalAlpha = h.ghostly ? 0.5 : 0.95;
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(x, y - h.radius * 0.4, h.radius * 0.62, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 0.9;
+          ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(x - Math.cos(h.rollAngle || 0) * h.radius * 0.5, (y - h.radius * 0.4) - Math.sin(h.rollAngle || 0) * h.radius * 0.5);
+          ctx.lineTo(x + Math.cos(h.rollAngle || 0) * h.radius * 0.5, (y - h.radius * 0.4) + Math.sin(h.rollAngle || 0) * h.radius * 0.5);
+          ctx.stroke();
+          break;
+        }
+        case 'grabber': {
+          const holding = h.phase === 'holding';
+          ctx.globalAlpha = holding ? 0.85 : 0.3;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = holding ? 4 : 2;
+          ctx.beginPath();
+          ctx.ellipse(x, y, h.radius, h.radius * 0.34, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          if (holding) {
+            for (let i = 0; i < 5; i += 1) {
+              const angle = (Math.PI * 2 * i) / 5;
+              ctx.beginPath();
+              ctx.moveTo(x + Math.cos(angle) * h.radius * 0.5, y + Math.sin(angle) * h.radius * 0.18);
+              ctx.lineTo(x + Math.cos(angle) * h.radius * 0.2, y - 26);
+              ctx.stroke();
+            }
+          }
+          break;
+        }
+        case 'emitter': {
+          ctx.globalAlpha = h.phase === 'telegraph' ? 0.9 : 0.4;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(x, y - 40, 16, 0, Math.PI * 2);
+          ctx.stroke();
+          break;
+        }
+        default:
+          break;
+      }
+      ctx.restore();
+    }
+
     function getHazardAnimationFrame(hazard, assetKey, fps = 12, loop = true) {
       const track = assets.hazards[assetKey];
       if (!track || !track.frames?.length) return null;
@@ -7710,6 +8083,10 @@
       state.hazards.forEach(h => {
         const player = state.player;
         if (!player) return;
+        if (h.stageHazard) {
+          updateStageHazard(h, player);
+          return;
+        }
         const overlap = Math.abs(player.x - h.x) < h.w * 0.5 && Math.abs(player.y - h.y) < h.h * 0.5;
         if (h.kind && (h.kind.startsWith('swamp-') || h.kind === 'delving-geyser')) {
           h.animAge = (h.animAge || 0) + 1;
@@ -8621,6 +8998,7 @@
       state.effects = [];
       state.hazards = [];
       spawnSwampEnvironmentHazards();
+      spawnStageHazards();
       state.scarlettBrambleDrone = retainedBrambleDrone;
       state.lockX = null;
       state.waveIndex = 0;
@@ -9544,6 +9922,10 @@
       state.hazards.forEach(hazard => {
         const x = hazard.x - state.cameraX;
         const y = hazard.y - state.cameraY;
+        if (hazard.stageHazard) {
+          drawStageHazard(hazard, x, y);
+          return;
+        }
         if (hazard.kind === 'swamp-alligator') {
           const pulse = 0.5 + (Math.sin((hazard.animAge || 0) * 0.2) * 0.5);
           if (hazard.state === 'attacking') {

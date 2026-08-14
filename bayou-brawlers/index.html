@@ -1725,7 +1725,10 @@
       lodicrust: { hp: 310, speed: 1.4, damage: 21, range: 34, score: 740, sprite: 'lodicrust', tier: 'boss' },
       origamiMaster: { hp: 315, speed: 1.45, damage: 20, range: 120, score: 750, sprite: 'origamiMaster', ranged: true, tier: 'boss' },
       'mud-monster': { hp: 160, speed: 1.15, damage: 18, range: 34, score: 520, sprite: 'mud-monster', tier: 'boss' },
-      boss: { hp: 200, speed: 1.2, damage: 20, range: 26, score: 350, sprite: 'boss', tier: 'boss' }
+      boss: { hp: 200, speed: 1.2, damage: 20, range: 26, score: 350, sprite: 'boss', tier: 'boss' },
+      // Mirror Master's summons. Rendered as a darkened copy of whichever hero it is
+      // fighting, so its sprite is swapped in at spawn time rather than declared here.
+      shadowClone: { hp: 46, speed: 1.9, damage: 11, range: 24, score: 0, sprite: 'malice', tier: 'medium' }
     };
 
     // --- Enemy special abilities -----------------------------------------------
@@ -4948,6 +4951,9 @@
       // Bulwark Stance / Mirror Shield eat part of the hit before HP moves.
       amount = applyEnemySpecialDefenses(enemy, amount);
       if (amount <= 0) return;
+      // Boss punish windows (Mirror Master mid-emerge, Slais after an overcommitted
+      // lunge) are where the damage is meant to happen.
+      if (enemy.bossVulnerable) amount *= 2;
       enemy.hp -= amount;
       // Rise Again: one free resurrection at a sliver of health.
       if (enemy.hp <= 0 && enemy.type === 'zombie' && !enemy.riseAgainUsed) {
@@ -5888,6 +5894,255 @@
       return (enemy?.phaseRushFrames || 0) > 0;
     }
 
+    // --- Boss arena gimmicks ---------------------------------------------------
+    // Bosses keep their normal AI for moving and swinging; these add the arena
+    // mechanic on top. Each is a small state machine on the boss entity itself.
+
+    // A darkened copy of the hero Mirror Master is fighting. Reuses the player's own
+    // sprite bundle (getPlayerAnimTrack keys off charData.sprite) and is tinted at
+    // draw time, so it reads unmistakably as "you, but wrong".
+    function createShadowClone(player, x, y) {
+      const clone = createEnemy('shadowClone', x, y, false, {});
+      clone.charData = player.charData;
+      clone.shadowClone = true;
+      clone.renderScale = (player.renderScale || DEFAULT_PLAYER_RENDER_SCALE) * 0.92;
+      clone.physicsProfileId = player.physicsProfileId;
+      clone.animation = {
+        state: 'idle',
+        facing: 'right',
+        frameIndex: 0,
+        elapsedMs: 0,
+        complete: false,
+        tracks: assets.characters[player.charData.sprite]?.tracks || null
+      };
+      return clone;
+    }
+
+    const MIRROR_MASTER_MAX_CLONES = 5;
+    // Which spirit Mirror Master borrows from, in rotation. Mirrors the stage-6 roster.
+    const MIRROR_MASTER_EMPOWERMENTS = ['hatred', 'disgust', 'arrogance'];
+
+    const BOSS_GIMMICKS = {
+      // Jumps out of the mirror, hangs vulnerable for a beat, then summons shadow
+      // copies of the player -- one the first time, two the second, up to five.
+      mirrorMaster: (enemy, player) => {
+        if (!enemy.mirrorPhase) {
+          enemy.mirrorPhase = 'stalking';
+          enemy.mirrorPhaseTimer = rand(200, 300);
+          enemy.mirrorSummonCount = 0;
+          enemy.mirrorEmpowerIndex = -1;
+        }
+        enemy.mirrorPhaseTimer = Math.max(0, enemy.mirrorPhaseTimer - 1);
+
+        if (enemy.mirrorPhase === 'stalking' && enemy.mirrorPhaseTimer <= 0) {
+          // Emerge: the punish window. He is stationary and takes double damage.
+          enemy.mirrorPhase = 'emerging';
+          enemy.mirrorPhaseTimer = 110;
+          enemy.bossVulnerable = true;
+          playEnemySfx(enemy, 'teleport');
+          state.effects.push({ type: 'enemy-special-burst', x: enemy.x, y: enemy.y - 50, timer: 30, maxTimer: 30, color: '#cfd8ff' });
+          state.effects.push({ type: 'enemy-telegraph-ring', x: enemy.x, y: enemy.y, timer: 110, maxTimer: 110, radius: 150, color: '#cfd8ff' });
+          // Rotate which spirit empowers him for the coming phase.
+          enemy.mirrorEmpowerIndex = (enemy.mirrorEmpowerIndex + 1) % MIRROR_MASTER_EMPOWERMENTS.length;
+          return true;
+        }
+
+        if (enemy.mirrorPhase === 'emerging') {
+          enemy.isMoving = false;
+          if (enemy.mirrorPhaseTimer > 0) return true; // hold still, stay punishable
+          enemy.bossVulnerable = false;
+          enemy.mirrorPhase = 'summoning';
+          enemy.mirrorSummonCount = Math.min(MIRROR_MASTER_MAX_CLONES, enemy.mirrorSummonCount + 1);
+
+          // Escalate the summon size, but never let more than MAX exist at once --
+          // leaving old clones alive would stack to 15 bodies by the fifth summon.
+          const aliveClones = state.enemies.filter(e => e.shadowClone && e.hp > 0).length;
+          const toSpawn = Math.max(0, Math.min(enemy.mirrorSummonCount, MIRROR_MASTER_MAX_CLONES - aliveClones));
+          for (let i = 0; i < toSpawn; i += 1) {
+            const spreadX = ((i - ((toSpawn - 1) / 2)) * 110);
+            const clone = createShadowClone(player, enemy.x + spreadX, enemy.y + rand(-20, 20));
+            state.enemies.push(clone);
+            state.effects.push({ type: 'enemy-special-burst', x: clone.x, y: clone.y - 40, timer: 26, maxTimer: 26, color: '#2a2a45' });
+          }
+
+          // Apply this phase's empowerment.
+          const empower = MIRROR_MASTER_EMPOWERMENTS[enemy.mirrorEmpowerIndex];
+          if (empower === 'hatred') {
+            enemy.mimicFrames = 600;
+            enemy.mimicDamageBonus = 8;
+          } else if (empower === 'arrogance') {
+            enemy.mirrorShieldHp = Math.round((enemy.maxHp || 300) * 0.2);
+          }
+          enemy.mirrorEmpowerment = empower;
+          enemy.mirrorPhase = 'stalking';
+          enemy.mirrorPhaseTimer = rand(420, 560);
+          return true;
+        }
+
+        // Disgust empowerment leaves slime behind him as he moves.
+        if (enemy.mirrorEmpowerment === 'disgust') {
+          enemy.mirrorSlimeCooldown = Math.max(0, (enemy.mirrorSlimeCooldown || 0) - 1);
+          if (enemy.isMoving && enemy.mirrorSlimeCooldown <= 0) {
+            spawnEnemyGroundPool(enemy.x, enemy.y, { radius: 70, duration: 260, color: '#9bd44a', damagePerTick: 3, slowMagnitude: 0.4 });
+            enemy.mirrorSlimeCooldown = 90;
+          }
+        }
+        return false;
+      },
+
+      // Quick dash strikes that punish a sloppy approach, with a hard recovery
+      // window after each lunge -- the only safe time to commit.
+      theSlais: (enemy, player) => {
+        enemy.slaisCooldown = Math.max(0, (enemy.slaisCooldown || rand(120, 180)) - 1);
+
+        if ((enemy.slaisRecoveryFrames || 0) > 0) {
+          enemy.slaisRecoveryFrames -= 1;
+          enemy.isMoving = false;
+          enemy.bossVulnerable = true;
+          if (enemy.slaisRecoveryFrames <= 0) enemy.bossVulnerable = false;
+          return true;
+        }
+
+        if ((enemy.slaisLungeFrames || 0) > 0) {
+          enemy.slaisLungeFrames -= 1;
+          enemy.x += enemy.slaisLungeVx || 0;
+          enemy.isMoving = true;
+          if (Math.hypot(player.x - enemy.x, player.y - enemy.y) <= 54 && !enemy.slaisLungeHit) {
+            damagePlayer(enemy.damage * 1.15, enemy);
+            enemy.slaisLungeHit = true;
+          }
+          if (enemy.slaisLungeFrames <= 0) {
+            // Overcommitted: she is wide open for a moment.
+            enemy.slaisRecoveryFrames = 80;
+            enemy.slaisLungeHit = false;
+            state.effects.push({ type: 'enemy-special-burst', x: enemy.x, y: enemy.y - 44, timer: 26, maxTimer: 26, color: '#ff8ab0' });
+          }
+          return true;
+        }
+
+        const distance = Math.hypot(player.x - enemy.x, player.y - enemy.y);
+        if (enemy.slaisCooldown <= 0 && distance < 420) {
+          enemy.slaisLungeFrames = 22;
+          enemy.slaisLungeVx = Math.sign(player.x - enemy.x) * 15;
+          enemy.slaisCooldown = rand(150, 220);
+          state.effects.push({ type: 'enemy-telegraph-ring', x: enemy.x, y: enemy.y, timer: 18, maxTimer: 18, radius: 120, color: '#ff8ab0' });
+          return true;
+        }
+        return false;
+      },
+
+      // King Inkbeard fights alongside his tattoo beasts. Each live beast lends him a
+      // power; as they fall he weakens, and each successive beast is stronger than the
+      // last (rat < snake < tiger).
+      kingOfThieves: (enemy, player) => {
+        if (!enemy.inkbeardBeasts) {
+          enemy.inkbeardBeasts = ['tattooRat', 'tattooSnake', 'tattooTiger'];
+          enemy.inkbeardBeastIndex = -1;
+          enemy.inkbeardActiveBeastUid = null;
+          enemy.inkbeardBeastsDefeated = 0;
+          enemy.inkbeardBaseDamage = enemy.damage;
+        }
+
+        const activeBeast = enemy.inkbeardActiveBeastUid
+          ? state.enemies.find(e => e.uid === enemy.inkbeardActiveBeastUid && e.hp > 0)
+          : null;
+
+        if (!activeBeast) {
+          if (enemy.inkbeardActiveBeastUid) {
+            // A beast just fell: he loses its power.
+            enemy.inkbeardActiveBeastUid = null;
+            enemy.inkbeardBeastsDefeated += 1;
+            enemy.mirrorShieldHp = 0;
+            state.effects.push({ type: 'enemy-special-burst', x: enemy.x, y: enemy.y - 50, timer: 30, maxTimer: 30, color: '#ffd27a' });
+          }
+          enemy.inkbeardSummonCooldown = Math.max(0, (enemy.inkbeardSummonCooldown || 0) - 1);
+          if (enemy.inkbeardBeastIndex < enemy.inkbeardBeasts.length - 1 && enemy.inkbeardSummonCooldown <= 0) {
+            enemy.inkbeardBeastIndex += 1;
+            const beastType = enemy.inkbeardBeasts[enemy.inkbeardBeastIndex];
+            const beast = createEnemy(beastType, enemy.x + rand(-90, 90), enemy.y + rand(-16, 16), false, {});
+            // Later beasts are meaningfully tougher than the ones before them.
+            const beastScale = 1 + (enemy.inkbeardBeastIndex * 0.6);
+            beast.hp *= beastScale;
+            beast.maxHp *= beastScale;
+            beast.damage = Math.round(beast.damage * beastScale);
+            state.enemies.push(beast);
+            enemy.inkbeardActiveBeastUid = beast.uid;
+            enemy.inkbeardSummonCooldown = 180;
+            state.effects.push({ type: 'enemy-special-burst', x: beast.x, y: beast.y - 40, timer: 28, maxTimer: 28, color: '#ff9d3c' });
+
+            // Each beast lends a different power while it lives.
+            if (beastType === 'tattooRat') enemy.scurryFrames = 100000;
+            if (beastType === 'tattooSnake') enemy.damage = Math.round(enemy.inkbeardBaseDamage * 1.35);
+            if (beastType === 'tattooTiger') enemy.mirrorShieldHp = Math.round((enemy.maxHp || 305) * 0.3);
+          }
+        }
+
+        // He weakens with every beast lost.
+        if (!activeBeast) {
+          enemy.scurryFrames = 0;
+          enemy.damage = Math.round(enemy.inkbeardBaseDamage * Math.max(0.5, 1 - (enemy.inkbeardBeastsDefeated * 0.18)));
+        }
+        return false;
+      },
+
+      // Big sweeps plus lesser-demon adds. At HP thresholds he tears open a portal
+      // that drags the player toward it -- you have to walk against the pull.
+      lodicrust: (enemy, player) => {
+        if (!enemy.lodicrustThresholds) {
+          enemy.lodicrustThresholds = [0.75, 0.5, 0.25];
+          enemy.lodicrustThresholdIndex = 0;
+        }
+
+        const hpRatio = enemy.hp / (enemy.maxHp || enemy.hp || 1);
+        const nextThreshold = enemy.lodicrustThresholds[enemy.lodicrustThresholdIndex];
+        if (nextThreshold !== undefined && hpRatio <= nextThreshold) {
+          enemy.lodicrustThresholdIndex += 1;
+          enemy.lodicrustPortalFrames = 240;
+          enemy.lodicrustPortalX = enemy.x;
+          enemy.lodicrustPortalY = enemy.y;
+          state.effects.push({ type: 'enemy-telegraph-ring', x: enemy.x, y: enemy.y, timer: 240, maxTimer: 240, radius: 220, color: '#ff5a3c' });
+          for (let i = 0; i < 2; i += 1) {
+            const add = createEnemy('lesserDemon', enemy.x + rand(-140, 140), enemy.y + rand(-20, 20), false, {});
+            state.enemies.push(add);
+          }
+        }
+
+        if ((enemy.lodicrustPortalFrames || 0) > 0) {
+          enemy.lodicrustPortalFrames -= 1;
+          const pullDir = Math.sign(enemy.lodicrustPortalX - player.x) || 1;
+          applyPlayerPush(player, pullDir * 1.5, 0, 4);
+          if (enemy.lodicrustPortalFrames % 6 === 0) {
+            state.effects.push({
+              type: 'enemy-special-burst',
+              x: enemy.lodicrustPortalX + rand(-70, 70),
+              y: enemy.lodicrustPortalY - 30,
+              timer: 20, maxTimer: 20, color: '#ff5a3c'
+            });
+          }
+        }
+        return false;
+      }
+    };
+
+    // Returns true when the gimmick has taken control of the boss this frame.
+    function updateBossGimmick(enemy, player) {
+      if (!enemy?.isBoss || enemy.hp <= 0 || !player || player.hp <= 0) return false;
+      const gimmick = BOSS_GIMMICKS[enemy.type];
+      if (!gimmick) return false;
+      return gimmick(enemy, player) === true;
+    }
+
+    // When the boss falls, its summoned shadows go with it.
+    function clearShadowClones() {
+      state.enemies.forEach(e => {
+        if (e.shadowClone && e.hp > 0) {
+          e.hp = 0;
+          e.deathHoldFrames = 12;
+          state.effects.push({ type: 'enemy-special-burst', x: e.x, y: e.y - 40, timer: 24, maxTimer: 24, color: '#2a2a45' });
+        }
+      });
+    }
+
     function isCharmed(entity) {
       return (entity?.statuses?.CHARM?.duration || 0) > 0;
     }
@@ -6785,6 +7040,16 @@
         // Special abilities run on their own clock, ahead of the movement AI below.
         updateEnemySpecialState(enemy, player);
         updateEnemySpecial(enemy, player);
+        // Boss arena mechanics can take over the frame entirely (emerge windows,
+        // lunges, recovery). When they do, the normal AI below is skipped.
+        if (updateBossGimmick(enemy, player)) {
+          const gimmickBounds = getEnemyVerticalBounds(enemy);
+          enemy.y = clamp(enemy.y, gimmickBounds.minY, gimmickBounds.maxY);
+          applyMovementMaskClamp(enemy, prevX, prevY, { allowOutOfBoundsStart: false, detourStepSize: 6 });
+          if (enemy.attackAnimTimer > 0) enemy.attackAnimTimer -= 1;
+          updateEnemyAnimation(enemy, dt);
+          return;
+        }
         // Committed moves steer the enemy themselves; skip the normal AI while they run.
         if (isEnemyPhasing(enemy) || (enemy.pounceFrames || 0) > 0) {
           const committedBounds = getEnemyVerticalBounds(enemy);
@@ -8203,6 +8468,7 @@
               showBossPopup(`${level.secondBoss.name}`, `${level.boss.name} is down. ${level.secondBoss.name} enters the fight!`);
               return;
             }
+            clearShadowClones();
             state.waveActive = false;
             state.bossActive = false;
             state.bossEncounter = null;
@@ -8605,6 +8871,9 @@
     }
 
     function getEntityStatusTint(entity) {
+      // Shadow clones wear the player's own sprite; the tint is what separates them.
+      if (entity?.shadowClone) return 'rgba(18, 14, 38, 0.82)';
+
       const hasPoisonTint = !!(entity?.statuses?.POISON?.duration > 0);
       if (hasPoisonTint) return 'rgba(70, 255, 95, 0.72)';
 

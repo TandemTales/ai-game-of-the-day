@@ -1,13 +1,28 @@
 # Testing Paradox Vault (read before you touch anything)
 
-Two independent layers, and you are expected to use both:
+Four independent layers, and you are expected to use all of them:
 
 1. **`__tests__/paradox-vault.test.js`** — headless simulation. Fast, no browser,
    asserts on mechanics. This is what catches "the game silently became
    unwinnable".
-2. **`paradox-vault/tools/screenshot.js`** — real headless Chromium. This is the
+2. **`__tests__/paradox-vault.design.test.js`** — design invariants: that every
+   door can actually be opened, that each vault clears inside its own echo
+   budget, and that the time-loop mechanic is load-bearing rather than
+   decorative. See §1b.
+3. **`paradox-vault/tools/screenshot.js`** — real headless Chromium. This is the
    only way to make a claim about how the game *looks* or whether the console
    is clean.
+4. **`paradox-vault/tools/smoke.js`** — real browser, whole campaign. Covers the
+   code paths the other three structurally cannot see. See §3.
+
+**Know what each layer cannot see.** The jest harness loads only `core.js`,
+`levels.js` and `entities.js`; `render/ui/particles/audio/game` need a real
+canvas and DOM, so a crash in any of them keeps `npm test` green. The screenshot
+sweep boots one vault and photographs it, so it never runs a vault transition, a
+rewind, or a run ending. A `ReferenceError` in `R.invalidate()` — called on every
+vault change — once sat in the tree with both of those green; it would have
+shipped a game that crashed the moment a player finished vault 1. That is what
+`smoke.js` is for.
 
 ---
 
@@ -43,6 +58,50 @@ door on a wall tile can never open. If you author a door, put it on floor.
 Note `Recording` quantises inputs to 1/127. Tapes built from cardinal
 directions (0, ±1) sit on that grid and replay exactly; arbitrary analog values
 will not round-trip bit-for-bit, and the desync system exists to absorb that.
+
+## 1b. Design invariants
+
+```
+npx jest paradox-vault.design
+```
+
+The solvability test in §1 flood-fills *terrain*, and door tiles sit on floor
+terrain, so it proves "solvable if every door happens to be open" — not that the
+doors can be opened at all. This suite closes that gap by modelling the devices
+the way SPEC §8 rule 4 defines them:
+
+* `plate` and `terminal` hold a signal only while an actor is standing there, so
+  they **pin an actor down**. Needing N of them at once costs N echoes — the
+  player is one actor, each echo is another, and somebody must stay free to
+  carry the relic.
+* `lever` and `receiver` **latch**. Once set they stay set and cost nothing.
+
+A vault's echo cost is therefore the minimum number of simultaneously *held*
+signals, searched over every configuration of the latching ones. That number is
+asserted to fit the vault's own `echoes` budget.
+
+Run it and it prints the campaign profile. Current state — every vault clears
+with 2–5 echoes of slack:
+
+| # | vault | echo cost | gated by |
+|---|---|---|---|
+| 1 | The Grand Foyer | 0 | nothing — tutorial, by design |
+| 2 | Weighing Room | 1 | plate |
+| 3 | Twin Locks | 2 | two plates at once |
+| 4 | The Long Gallery | 0 | laser timing |
+| 5 | Records Uplink | 2 | two terminals |
+| 6 | Night Watch | 0 | sentry vision |
+| 7 | Hall of Refraction | 0 | mirror → receiver latch |
+| 8 | Portrait Gallery | 2 | plates + hazards |
+| 9 | Deep Storage | 2 | plates + hazards |
+| 10 | The Paradox Vault | 3 | three holds + hazards |
+
+Note vaults 4, 6 and 7 cost **0 echoes** — they are gated by hazards or by a
+latching receiver, not by holding a signal. That is deliberate variety, but it
+means only 5 of 10 vaults truly require the signature mechanic, and the suite
+asserts that ratio does not get worse. Topological reachability cannot see a
+laser's timing or a sentry's cone, so "is this vault gated" is asked as
+*held signals OR hazards*, never doors alone.
 
 ## 2. Screenshots / browser checks
 
@@ -113,6 +172,26 @@ rasterisation and the reported fps is far below real hardware — measured ~11fp
 at 1440x900 where a plain-canvas control workload in the *same* browser managed
 58fps. Use the number to compare before/after, never to claim the game does or
 does not hit 60fps. A real GPU check is still outstanding; see `PROGRESS.md`.
+
+## 3. Integration smoke test — run this before any release
+
+```
+npx --yes http-server -p 8900 -c-1 --silent .
+PV_PLAYWRIGHT=/opt/node22/lib/node_modules/playwright \
+PV_CHROME=/opt/pw-browsers/chromium-1194/chrome-linux/chrome \
+node paradox-vault/tools/smoke.js
+```
+
+Boots the game, checks it reaches `playing`, rewinds and asserts the accounting
+(exactly one echo spawned, exactly one spent, `loopIndex` +1), walks all ten
+vaults via `PV.Game.nextVault()`, rewinds again inside a late vault where
+sentries and lasers exist, then ends the run and checks it reaches `gameover`.
+
+**Exits non-zero** on any throw or unexpected console output, so it can gate a
+release. The one tolerated console error is the arcade's `googletagmanager` tag
+being blocked by the sandbox proxy — present on every game page, not a defect.
+
+`--vaults N` shortens the walk; `--url` points it elsewhere.
 
 ## Non-negotiables
 

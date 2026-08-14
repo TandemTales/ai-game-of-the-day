@@ -4,6 +4,33 @@ Newest entry at the top. This file is the handoff between nightly runs.
 
 ---
 
+## 2026-08-13 — polish night (STEP 3), in progress
+
+Pacific date Thursday 2026-08-13. Not release night. Release is forced Saturday
+2026-08-15, so **this run and one more (Friday) are all that is left**.
+
+**Starting state confirmed on arrival:** `dev` at `d90dc60`, full suite green
+(4 suites / 81 tests). Last run's `wip(paradox-vault)` texture + HUD work is in
+the tree but neither `agent-textures` nor `agent-ui` ever recorded a critic
+verdict — they were cut off mid-loop.
+
+**Tonight's plan**, aimed squarely at the three disciplines that have had *no*
+critic pass at all (PROGRESS 2026-08-12, item 4):
+
+1. `agent-particles` — `particles.js`. VFX has never been looked at.
+2. `agent-render` — `render.js`. The player figure reads as an indistinct blob,
+   props/actors are unarticulated, and this is also where the fill-rate problem
+   lives (68.5% of samples in `drawImage`). Art **and** raster cost together.
+3. `agent-audio` — `audio.js`. Never heard. Critic loop adapted for sound:
+   offline-render the score to a buffer, compare spectrum/structure against a
+   named shipped AAA stealth soundtrack rather than screenshots.
+
+Each loops against a separate harsh critic doing a blind side-by-side against a
+named shipped AAA title. Lead keeps `index.html`, `game.js`, `core.js`,
+`levels.js`, `entities.js` and all integration.
+
+---
+
 ## 2026-08-12 — polish night (STEP 3)
 
 **Starting state.** No `PROGRESS.md` and no `.arcade-agent/` existed; the

@@ -2,6 +2,9 @@
 
 **`paradox-vault/`** — art-deco time-loop heist.
 
+`started: 2026-08-11` (first commit that added `paradox-vault/`). Forced release
+night is Saturday 2026-08-15 Pacific per the routine's STEP 1b.
+
 Status: **in polish (STEP 3)**. Not complete — no `.aaa-complete` marker.
 
 Discovered by scan on 2026-08-12: it is the only top-level directory containing

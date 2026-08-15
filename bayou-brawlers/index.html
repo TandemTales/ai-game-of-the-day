@@ -2258,9 +2258,22 @@
     const COMPANION_PLAYER_MAX_DISTANCE = 100;
     const STUN_CONDITION_THRESHOLD = 28;
     const STUN_DURATION_BONUS_FRAMES = 120;
-    const STUN_BREAK_REQUIRED_INPUTS = 6;
+    const STUN_BREAK_REQUIRED_INPUTS = 4;
     const STUN_BREAK_WINDOW_FRAMES = 120;
     const STUN_BREAK_IMMUNITY_FRAMES = 240;
+
+    // Player-side stuns are scaled and capped centrally rather than at each of the
+    // dozen applyStun() call sites. That keeps the relative severity those sites
+    // encode (a grabber's hold should outlast an electric zap) while pulling the
+    // absolute length down to about a second. Every call site adds
+    // STUN_DURATION_BONUS_FRAMES -- two whole seconds -- on top of its own 16-72
+    // frames, which put player stuns at 2.3-3.0s, and the mosquito's flat 360 at
+    // a six-second lockout.
+    const PLAYER_STUN_SCALE = 0.45;
+    const PLAYER_STUN_MAX_FRAMES = 90;
+    // Each mash press burns this much of the remaining stun, so mashing pays off
+    // from the first tap instead of only on the press that crosses the threshold.
+    const PLAYER_STUN_MASH_RELIEF_FRAMES = 10;
 
     const PLAYER_STRENGTH = {
       'old-man-croc': 100,
@@ -2361,6 +2374,37 @@
     const STAGE_HP_SCALE_PER_STAGE = 0.085;
     const STAGE_DAMAGE_SCALE_PER_STAGE = 0.05;
     const NO_STAGE_DIFFICULTY_SCALE = { hp: 1, damage: 1 };
+
+    // Every enemy of a given type used to walk at exactly one speed, so a wave --
+    // and especially a single-type wave -- crossed the screen as one clump and hit
+    // the player as a wall. Two things pull them apart: the authored speeds are
+    // spread further from the pivot so types differ more, and each individual
+    // spawn gets its own stable random factor so same-type enemies string out into
+    // separate arrivals. Clamped at both ends: the floor keeps the heavies from
+    // becoming free kites, and the ceiling keeps the fast types from outrunning
+    // the slowest hero (Old Man Croc at 2.8).
+    const ENEMY_SPEED_PIVOT = 1.6;
+    const ENEMY_SPEED_SPREAD = 1.2;
+    // Tuned by measuring how long a wave of eight identical enemies takes to all
+    // reach the player: 234 frames uniform, 313 at 0.18, 357 at 0.25, 394 at 0.32
+    // (14 trials each). 0.32 keeps climbing but makes the slowest and fastest of a
+    // type differ by nearly 2x, which reads as two different enemies rather than
+    // one with variation.
+    const ENEMY_SPEED_VARIANCE = 0.25;
+    const ENEMY_SPEED_MIN = 1.05;
+    const ENEMY_SPEED_MAX = 3.05;
+
+    function getEnemySpawnSpeed(baseSpeed) {
+      // The spread only pushes downwards. Widening both directions sounded fairer
+      // but drove the fast types into the ceiling and put their average above the
+      // slowest hero, so the gap between heavy and quick enemies is opened by
+      // slowing the heavies rather than by speeding anything up.
+      const spread = baseSpeed < ENEMY_SPEED_PIVOT
+        ? ENEMY_SPEED_PIVOT + ((baseSpeed - ENEMY_SPEED_PIVOT) * ENEMY_SPEED_SPREAD)
+        : baseSpeed;
+      const varied = spread * (1 + rand(-ENEMY_SPEED_VARIANCE, ENEMY_SPEED_VARIANCE));
+      return clamp(varied * ENEMY_SPEED_MULTIPLIER, ENEMY_SPEED_MIN, ENEMY_SPEED_MAX);
+    }
 
     function getStageDifficultyScale(levelIndex) {
       const step = clamp(Number.isFinite(levelIndex) ? levelIndex : 0, 0, CAMPAIGN_STAGE_LIMIT - 1);
@@ -3554,7 +3598,7 @@
         stage,
         hp: scaledHp,
         maxHp: scaledHp,
-        speed: stats.speed * ENEMY_SPEED_MULTIPLIER,
+        speed: getEnemySpawnSpeed(stats.speed),
         damage: stats.damage * stageScale.damage,
         range: stats.range,
         score: stats.score,
@@ -5517,7 +5561,18 @@
     function applyStun(target, stunFrames) {
       if (!target || target.hp <= 0 || stunFrames <= 0) return false;
       if ((target.stunImmunityTimer || 0) > 0) return false;
-      target.stun = Math.max(target.stun || 0, stunFrames);
+      let frames = stunFrames;
+      // charData marks the player and companions; enemies keep their long stuns,
+      // which are the player's reward for landing a heavy or a freeze.
+      if (target.charData) {
+        // stunResistanceMultiplier is handed out at level 7 of each cycle and was
+        // written but never read, so the stat did nothing until now.
+        frames = frames * PLAYER_STUN_SCALE * (target.stunResistanceMultiplier || 1);
+        frames = Math.min(frames, PLAYER_STUN_MAX_FRAMES);
+      }
+      frames = Math.round(frames);
+      if (frames <= 0) return false;
+      target.stun = Math.max(target.stun || 0, frames);
       return true;
     }
 
@@ -5537,11 +5592,16 @@
       }
       player.stunBreakInputCount = (player.stunBreakInputCount || 0) + 1;
       player.stunBreakWindowTimer = STUN_BREAK_WINDOW_FRAMES;
-      if (player.stunBreakInputCount >= STUN_BREAK_REQUIRED_INPUTS) {
+      // Decide before writing player.stun back: breakStun() bails on an already
+      // cleared stun, so it has to run while the stun is still live.
+      const remaining = Math.max(0, (player.stun || 0) - PLAYER_STUN_MASH_RELIEF_FRAMES);
+      if (remaining <= 0 || player.stunBreakInputCount >= STUN_BREAK_REQUIRED_INPUTS) {
         breakStun(player);
         player.stunBreakInputCount = 0;
         player.stunBreakWindowTimer = 0;
+        return;
       }
+      player.stun = remaining;
     }
 
     function damageEnemy(enemy, amount, stun = 0, options = null) {

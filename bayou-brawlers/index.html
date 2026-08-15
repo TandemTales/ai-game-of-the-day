@@ -1738,10 +1738,12 @@
       automaton: { hp: 55, speed: 1.2, damage: 12, range: 20, score: 90, sprite: 'automaton', tier: 'medium' },
       fey: { hp: 38, speed: 1.9, damage: 9, range: 18, score: 85, sprite: 'fey', tier: 'small' },
       ranged: { hp: 30, speed: 1.4, damage: 7, range: 140, score: 95, sprite: 'fey', ranged: true, tier: 'medium' },
-      hiredGun: { hp: 34, speed: 1.45, damage: 8, range: 465, score: 100, sprite: 'hiredGun', ranged: true, tier: 'medium' },
+      // 465 range was almost half the 960px screen: it opened fire before it was
+      // even visible, which reads as unfair rather than dangerous.
+      hiredGun: { hp: 30, speed: 1.45, damage: 8, range: 300, score: 100, sprite: 'hiredGun', ranged: true, tier: 'medium' },
       stingy: { hp: 28, speed: 2.15, damage: 7, range: 20, score: 105, sprite: 'stingy', tier: 'medium' },
       sidewinder: { hp: 32, speed: 2.35, damage: 2, range: 72, score: 115, sprite: 'sidewinder', tier: 'medium' },
-      bayouBriar: { hp: 34, speed: 1.75, damage: 9, range: 34, score: 108, sprite: 'bayouBriar', tier: 'medium' },
+      bayouBriar: { hp: 27, speed: 1.75, damage: 9, range: 34, score: 108, sprite: 'bayouBriar', tier: 'medium' },
       quakes: { hp: 44, speed: 1.2, damage: 12, range: 26, score: 122, sprite: 'quakes', tier: 'medium' },
       riverDweller: { hp: 38, speed: 1.55, damage: 10, range: 26, score: 116, sprite: 'riverDweller', tier: 'medium' },
       automatick: { hp: 56, speed: 1.2, damage: 12, range: 20, score: 96, sprite: 'automatick', tier: 'medium' },
@@ -2274,6 +2276,12 @@
     // Each mash press burns this much of the remaining stun, so mashing pays off
     // from the first tap instead of only on the press that crosses the threshold.
     const PLAYER_STUN_MASH_RELIEF_FRAMES = 10;
+    // Breathing room after a stun ends on its own. Immunity was only granted when
+    // you mashed free, so anything that re-applies on a timer -- briar patches tick
+    // a stun roll every 22 frames -- could chain stuns back to back. Measured: a
+    // player standing in briar ground was stunned for 29.8 of 40 seconds. Capping
+    // a single stun does nothing about being re-stunned the instant it lapses.
+    const PLAYER_STUN_RECOVERY_IMMUNITY_FRAMES = 90;
 
     const PLAYER_STRENGTH = {
       'old-man-croc': 100,
@@ -2374,6 +2382,13 @@
     const STAGE_HP_SCALE_PER_STAGE = 0.085;
     const STAGE_DAMAGE_SCALE_PER_STAGE = 0.05;
     const NO_STAGE_DIFFICULTY_SCALE = { hp: 1, damage: 1 };
+
+    // Enemies that attack from range pay nothing to do it: they chip away while
+    // the player is busy with whatever is in melee, and there is no approach to
+    // punish. Their damage is scaled down across the board so they read as
+    // harassment rather than as a second melee enemy firing from safety. Ranged
+    // bosses are exempt -- those fights are hand-tuned.
+    const RANGED_ENEMY_DAMAGE_SCALE = 0.72;
 
     // Every enemy of a given type used to walk at exactly one speed, so a wave --
     // and especially a single-type wave -- crossed the screen as one clump and hit
@@ -3599,7 +3614,7 @@
         hp: scaledHp,
         maxHp: scaledHp,
         speed: getEnemySpawnSpeed(stats.speed),
-        damage: stats.damage * stageScale.damage,
+        damage: stats.damage * stageScale.damage * ((base.ranged && !isBoss) ? RANGED_ENEMY_DAMAGE_SCALE : 1),
         range: stats.range,
         score: stats.score,
         sprite: base.sprite === 'boss' ? assets.boss : assets.enemies[base.sprite],
@@ -4635,8 +4650,11 @@
         y,
         w: width,
         h: height,
-        frames: rand(10 * 60, 14 * 60),
-        stunChance: 0.08,
+        // Patches used to live 10-14s while briars lob one roughly every 1.3s, so
+        // they accumulated far faster than they expired and the arena silted up
+        // with no-go zones. A ~6s life lets the ground clear between volleys.
+        frames: rand(5 * 60, 7 * 60),
+        stunChance: 0.05,
         stunFrames: 32,
         stunInterval: 22,
         damage: 1,
@@ -5565,6 +5583,12 @@
       // charData marks the player and companions; enemies keep their long stuns,
       // which are the player's reward for landing a heavy or a freeze.
       if (target.charData) {
+        // A stun already running is never refreshed. applyStun takes the max of
+        // old and new, so any source that re-rolls on a timer (briar patches roll
+        // every 22 frames) topped the timer back up before it could expire and the
+        // stun never ended -- measured at 5.8s unbroken, with the recovery
+        // immunity below unreachable because stun never actually hit zero.
+        if ((target.stun || 0) > 0) return false;
         // stunResistanceMultiplier is handed out at level 7 of each cycle and was
         // written but never read, so the stat did nothing until now.
         frames = frames * PLAYER_STUN_SCALE * (target.stunResistanceMultiplier || 1);
@@ -7301,6 +7325,9 @@
       }
       if (player.stun > 0) {
         player.stun -= 1;
+        if (player.stun <= 0) {
+          player.stunImmunityTimer = Math.max(player.stunImmunityTimer || 0, PLAYER_STUN_RECOVERY_IMMUNITY_FRAMES);
+        }
       } else {
         player.stunBreakInputCount = 0;
         player.stunBreakWindowTimer = 0;
@@ -7839,6 +7866,12 @@
 
         if (enemy.type === 'daphodilus') {
           enemy.burrowCooldown = Math.max(0, enemy.burrowCooldown - 1);
+          // Owned by a countdown rather than by the state machine: gating it on
+          // reaching PopAttack left it stuck on permanently whenever the pop never
+          // resolved (player out of range), so it was double-damage ~98% of the
+          // time instead of only while surfacing.
+          enemy.surfacedVulnerableFrames = Math.max(0, (enemy.surfacedVulnerableFrames || 0) - 1);
+          enemy.bossVulnerable = enemy.surfacedVulnerableFrames > 0;
           if (enemy.aiState === 'DigStart') {
             enemy.untargetable = true;
             enemy.aiTimer += 1;
@@ -7846,7 +7879,10 @@
               spawnDelvingGeyserExplosion(enemy.x, enemy.y);
               setEnemyState(enemy, 'Underground');
               enemy.aiTimer = 0;
-              enemy.undergroundDuration = rand(96, 132);
+              // Dig (15f) plus underground used to leave it untargetable for
+              // ~2-2.5s per cycle, which is what actually made it hard to kill --
+              // its 21 HP was never the obstacle. Roughly halved.
+              enemy.undergroundDuration = rand(50, 72);
               enemy.reappearGeyserWarned = false;
             }
           } else if (enemy.aiState === 'Underground') {
@@ -7862,11 +7898,15 @@
               enemy.x = clamp(enemy.targetX || enemy.x, state.cameraX + 40, state.cameraX + canvas.width - 40);
               const verticalBounds = getEnemyVerticalBounds(enemy);
               enemy.y = clamp(enemy.targetY || enemy.y, verticalBounds.minY, verticalBounds.maxY);
+              // Surfacing is the punish window: 40 frames of double damage, the
+              // same deal the Mirror Master gets mid-emerge. It pops up behind the
+              // player, so this needs to outlast the emerge animation itself.
+              enemy.surfacedVulnerableFrames = 40;
               setEnemyState(enemy, 'Emerge');
             }
           } else if (enemy.aiState === 'Emerge') {
             enemy.aiTimer += 1;
-            if (enemy.aiTimer > 15) {
+            if (enemy.aiTimer > 22) {
               setEnemyState(enemy, 'PopAttack');
               enemy.windup = 8;
               enemy.attackAnimTimer = 14;
@@ -7901,8 +7941,11 @@
             }
           }
         } else if (enemy.type === 'bayouBriar') {
-          const preferredSupportDistance = 255;
-          const retreatDistance = 210;
+          // It used to hold station at 255 and back off below 210 while shooting
+          // out to 340, so it could keep its distance indefinitely and the player
+          // had no way to close. Standing its ground nearer makes it reachable.
+          const preferredSupportDistance = 205;
+          const retreatDistance = 165;
           const supportDelta = distance - preferredSupportDistance;
           if (distance < retreatDistance) {
             enemy.x -= Math.sign(dx) * moveSpeed * 1.08;
@@ -7919,7 +7962,7 @@
             enemy.isMoving = true;
           }
 
-          if (enemy.cooldown <= 0 && distance <= 340) {
+          if (enemy.cooldown <= 0 && distance <= 285) {
             enemy.attackAnimTimer = Math.max(enemy.attackAnimTimer, 14);
             const leadFrames = 24;
             const leadX = player.vx * leadFrames;
@@ -7931,11 +7974,13 @@
             const targetX = clamp(predictedX + rand(-38, 38), state.cameraX + 40, state.cameraX + canvas.width - 40);
             const targetY = clamp(predictedY + rand(-30, 30), targetYBounds.minY + 4, targetYBounds.maxY + 4);
             throwBriarSeedBomb(enemy, targetX, targetY);
-            if (Math.random() < 0.45) {
+            // Second bomb was a coin flip on every volley, which with the old
+            // cooldown meant ~1.5 patches every 1.3s from each briar.
+            if (Math.random() < 0.2) {
               const offsetX = rand(54, 96) * (Math.sign(leadX) || -(player.facing || 1));
               throwBriarSeedBomb(enemy, clamp(targetX + offsetX, state.cameraX + 40, state.cameraX + canvas.width - 40), clamp(targetY + rand(-20, 20), targetYBounds.minY + 4, targetYBounds.maxY + 4));
             }
-            enemy.cooldown = rand(60, 100);
+            enemy.cooldown = rand(110, 155);
           }
         } else if (enemy.type === 'swamp' || enemy.type === 'choking-blossom') {
           const speedBoost = hasUndergroundDaph ? 1.15 : 1;
@@ -8249,7 +8294,9 @@
             enemy.cooldown = attackRecoveryCooldown;
             if (enemy.type === 'daphodilus' && enemy.aiState === 'PopAttack') {
               setEnemyState(enemy, 'Approach');
-              enemy.burrowCooldown = 300;
+              // Longer gap between burrows. The surfaced punish window is on its
+              // own countdown, so it needs no clearing here.
+              enemy.burrowCooldown = 420;
             }
           }
         } else {

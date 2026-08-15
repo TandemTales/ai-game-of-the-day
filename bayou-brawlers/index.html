@@ -2448,11 +2448,23 @@
     const GEYSER_TRIGGER_RADIUS = 118;
     const GEYSER_DAMAGE_RADIUS = 72;
     const GEYSER_DAMAGE_AMOUNT = SWAMP_HAZARD_ENEMY_HIT_DAMAGE;
-    const DELVING_GEYSER_DAMAGE_RADIUS = GEYSER_DAMAGE_RADIUS;
+    // The resurface geyser erupts where the daphodilus is about to pop up, which is
+    // deliberately right beside the player -- so it only works as a threat if there
+    // is time to walk out of it. Two things have to hold: the eruption must be
+    // visible well before it hurts (DAMAGE_FRAME), and the whole warning has to fit
+    // inside the burrow (WARNING_FRAMES < undergroundDuration) or it fires on top of
+    // the emergence instead of ahead of it.
+    // At 12 frames the player had 0.2s to clear a 72px radius they were already
+    // standing on the edge of, which is not a dodge.
+    // The radius stays at 72 on purpose: the eruption is sited ~70px from the
+    // player, so shrinking it to 64 put a standing player permanently outside and
+    // the hazard stopped connecting at all. Timing is the fix, not size.
+    const DELVING_GEYSER_DAMAGE_RADIUS = 72;
     const DELVING_GEYSER_DAMAGE_AMOUNT = GEYSER_DAMAGE_AMOUNT;
     const DELVING_GEYSER_DURATION_FRAMES = 48;
-    const DELVING_GEYSER_DAMAGE_FRAME = 12;
-    const DELVING_DAPHODILUS_REAPPEAR_WARNING_FRAMES = 60;
+    const DELVING_GEYSER_DAMAGE_FRAME = 26;
+    const DELVING_DAPHODILUS_REAPPEAR_WARNING_FRAMES = 40;
+    const DAPHODILUS_BURROW_COOLDOWN_FRAMES = 420;
     const MECHANIZED_MOMENTUM_MAX_STACKS = 12;
     const MECHANIZED_MOMENTUM_STACK_MULTIPLIER = 0.03;
     const MECHANIZED_MOMENTUM_DURATION_FRAMES = 120;
@@ -7882,7 +7894,14 @@
               // Dig (15f) plus underground used to leave it untargetable for
               // ~2-2.5s per cycle, which is what actually made it hard to kill --
               // its 21 HP was never the obstacle. Roughly halved.
-              enemy.undergroundDuration = rand(50, 72);
+              // The floor is load-bearing: the resurface geyser is scheduled at
+              // undergroundDuration - REAPPEAR_WARNING_FRAMES, so a burrow shorter
+              // than the warning collapses the telegraph and the eruption lands
+              // with no notice.
+              enemy.undergroundDuration = Math.max(
+                DELVING_DAPHODILUS_REAPPEAR_WARNING_FRAMES + 12,
+                rand(50, 72)
+              );
               enemy.reappearGeyserWarned = false;
             }
           } else if (enemy.aiState === 'Underground') {
@@ -7902,6 +7921,12 @@
               // same deal the Mirror Master gets mid-emerge. It pops up behind the
               // player, so this needs to outlast the emerge animation itself.
               enemy.surfacedVulnerableFrames = 40;
+              // Charge the cooldown on surfacing, not on landing the pop attack.
+              // The attack only resolves in melee range, so a daphodilus that came
+              // up short of the player never paid a cooldown and dug straight back
+              // in on the next frame -- an endless burrow loop that carpeted the
+              // ground with eruptions the player could not get clear of.
+              enemy.burrowCooldown = DAPHODILUS_BURROW_COOLDOWN_FRAMES;
               setEnemyState(enemy, 'Emerge');
             }
           } else if (enemy.aiState === 'Emerge') {
@@ -8294,9 +8319,11 @@
             enemy.cooldown = attackRecoveryCooldown;
             if (enemy.type === 'daphodilus' && enemy.aiState === 'PopAttack') {
               setEnemyState(enemy, 'Approach');
-              // Longer gap between burrows. The surfaced punish window is on its
-              // own countdown, so it needs no clearing here.
-              enemy.burrowCooldown = 420;
+              // Refresh the gap after a landed pop attack too. The authoritative
+              // charge happens on surfacing, since this path only runs in melee
+              // range. The surfaced punish window is on its own countdown, so it
+              // needs no clearing here.
+              enemy.burrowCooldown = DAPHODILUS_BURROW_COOLDOWN_FRAMES;
             }
           }
         } else {

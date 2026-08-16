@@ -1,0 +1,6 @@
+{
+  "0": { "name": "Empty" },
+  "1": { "name": "Wall", "image": "wall.png" },
+  "2": { "name": "Spawn", "image": "spawn.png" },
+  "3": { "name": "Landing Pad", "image": "landing.png" }
+}

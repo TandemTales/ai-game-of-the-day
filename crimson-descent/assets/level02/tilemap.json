@@ -1,0 +1,10 @@
+{
+  "0": { "name": "Empty" },
+  "1": { "name": "Wall", "image": "wall.png" },
+  "2": { "name": "Spawn", "image": "spawn.png" },
+  "3": { "name": "Landing Pad", "image": "landing.png" },
+  "4": { "name": "Gun", "image": "gun.png" },
+  "5": { "name": "Enemy01", "image": "enemy01.png" },
+  "6": { "name": "Exit", "image": "exit.png" },
+  "7": { "name": "Hostage", "image": "hostage.png" }
+}

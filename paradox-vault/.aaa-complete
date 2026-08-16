@@ -1,0 +1,96 @@
+# Paradox Vault — released 2026-08-15 (Pacific)
+
+Shipped as a **forced Saturday release** under STEP 1b/STEP 4 of the nightly
+routine: the game started 2026-08-11, so the one-week clock ran out tonight and
+release is mandatory regardless of polish level. This is **not** a quality-based
+release, and the distinction matters for anyone reading this file later.
+
+## Critic verdicts — read this honestly
+
+**No discipline ever recorded a passing blind side-by-side critic verdict.**
+Not one. The routine's quality-based release path requires every discipline's
+critic to pass a side-by-side against a named shipped AAA title; that bar was
+never reached, and this release does not claim it was.
+
+| discipline | file | critic verdict |
+|---|---|---|
+| textures | `textures.js` | **none recorded** — loop cut off mid-flight (2026-08-12) |
+| UI / HUD | `ui.js`, `game.css` | **none recorded** — loop cut off mid-flight (2026-08-12) |
+| render | `render.js` | **none recorded** — loop cut off mid-flight (2026-08-14) |
+| particles | `particles.js` | **none recorded** — loop cut off mid-flight (2026-08-14) |
+| audio | `audio.js` | **none recorded** — loop cut off mid-flight (2026-08-14) |
+
+Each of the three nightly runs was killed before its discipline agents reported
+back, so their work landed in the tree as `wip(...)` commits with the critic
+loops still open. No independent shipping judge was run either — that is also a
+quality-release requirement, not a forced-release one.
+
+## What *was* verified before shipping, in a real browser
+
+* `npx jest` — **5 suites / 128 tests green** (mechanics, echo-replay
+  determinism, RNG stability, collision, per-vault solvability, scoring, and the
+  design-invariant suite that derives each vault's true echo cost).
+* `tools/smoke.js` — **13/13 checks, 0 console issues**: boots, rewind
+  accounting (exactly one echo spawned and one spent, `loopIndex` +1), all ten
+  vault transitions build, a late-vault rewind, and the run ends cleanly.
+* Screenshot sweep at **320x568, 390x844, 844x390, 768x1024, 1440x900,
+  3840x2160** — all six reach `playing`, no horizontal scrollbar anywhere, and
+  the only console error is the arcade's `googletagmanager` tag being blocked by
+  the sandbox proxy (present on every game page, not a game defect).
+* **Touch controls driven with real pointer events** at 390x844: the floating
+  virtual stick engages on the left 62% of the screen and moved the player 8.2
+  tiles; the on-screen REWIND button spends an echo (3 → 2, one echo spawned,
+  `loopIndex` +1). Touch targets are 74px (ACT) and 62px (REWIND).
+* **Leaderboard chain** (verified 2026-08-14, unchanged since): `GET
+  /api/leaderboard/rank?gameId=paradox-vault&score=N` then `POST
+  /api/leaderboard/submit {gameId,name,score}`, matching the Cloudflare
+  Functions' contracts exactly.
+* Home-page integration asserted in-browser: featured heading, play href,
+  `leaderboard.html?gameId=paradox-vault`, and the
+  `.rate[data-id]` + `<span class="score">` pairing the rating system needs.
+
+## Fixed tonight
+
+**Lighting ambient floor** (`render.js`). The in-flight render rework replaced
+"multiply by flat grey, then screen the lights back on" with a single multiply
+against a light buffer whose base is the ambient term. The architecture is an
+improvement, but multiply can never brighten, and with `AMBIENT` at
+`rgb(31,38,55)` every surface the level did not directly light crushed to
+near-black — floor texture, the deco border band and the player figure were all
+effectively invisible at 1440x900. A side-by-side against the last
+critic-reviewed build (`bdac1e9`) confirmed this as a legibility regression
+rather than an art choice. Raised to `rgb(60,70,94)` / `rgb(80,90,116)`.
+
+## Carried polish debt — an honest list
+
+1. **No critic ever passed.** Every discipline above is unreviewed against a
+   shipped AAA reference. The art, VFX, HUD and audio have never been judged.
+2. **Audio has never been heard by anything.** No run has listened to it or
+   analysed it offline. It is completely unverified.
+3. **The 60fps target is unverified and cannot be verified in this sandbox.**
+   There is no GPU here — Chromium reports SwiftShader under every launch
+   configuration tried — so every fps number any run has recorded is
+   software-rasterised and valid only as a relative before/after measure. This
+   needs a human to open the game on real hardware. Treat as permanent carried
+   debt, not a to-do.
+4. **`PV.Textures.bakeMs` is 330–500 ms**, over SPEC §4's "< ~400ms on a phone"
+   budget before a phone's slower CPU is accounted for.
+5. **Portrait phones show a lot of dead space.** A 16x12 room in a 9:19.5
+   viewport is inherently small. The room is no longer cropped (fixed
+   2026-08-12), but portrait-aware framing or taller vault layouts would help.
+6. **Only 5 of 10 vaults truly require the signature mechanic.** Vaults 4, 6 and
+   7 have an echo cost of 0 — gated by hazards or a latching receiver rather
+   than by holding a signal. Deliberate variety, but thin for a game whose whole
+   identity is the time loop. The design suite asserts this ratio does not get
+   worse.
+7. **Nothing has been play-tested for difficulty or fun.** The suites prove each
+   vault is solvable inside its echo budget; nobody has judged whether any vault
+   is *interesting*.
+8. The title-screen tagline "Rob the vault. Then help yourself do it." wraps to
+   an orphaned "it." at 1440x900 — a `max-width` nitpick on the first screen a
+   player sees.
+9. The game is not offline-clean per SPEC §0: `index.html` carries the arcade's
+   analytics tag like every other game page here. Deliberate.
+10. `ui.js` contains a stray NUL byte used as an unset sentinel
+    (`carrying: '\x00'`). Harmless and intentional, but surprising — `file(1)`
+    reports the source as binary.

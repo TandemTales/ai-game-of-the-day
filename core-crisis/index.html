@@ -293,6 +293,11 @@
       bossOpen: 'assets/boss_eyeball_open.png',
       bossClose: 'assets/boss_eyeball_close.png',
       bossLaser: 'assets/boss_eyeball_laser.png',
+      bossFinalClosed: 'assets/boss_final_closed.png',
+      bossFinalOpening: 'assets/boss_final_opening.png',
+      bossFinalClosing: 'assets/boss_final_closing.png',
+      bossFinalOpen: 'assets/boss_final_open.png',
+      bossFinalClawing: 'assets/boss_final_clawing.png',
       bossCraneMove: 'assets/boss_crane_moving.png',
       bossCraneAttackHigh: 'assets/boss_crane_attack_high.png',
       bossCraneAttackLow: 'assets/boss_crane_attack_low.png',
@@ -325,8 +330,67 @@
     const BOSS_COOLDOWN_MIN = 2;
     const BOSS_TELEGRAPH_MAX = 1.5;
     const BOSS_TELEGRAPH_MIN = 0.4;
+    const FINAL_MISSILE_COOLDOWN_MAX = 3.5;
+    const FINAL_MISSILE_COOLDOWN_MIN = 1.6;
+    const FINAL_MISSILE_FREQUENCY_MULT = 1.25;
+    const FINAL_MISSILE_SPEED = 360;
+    const FINAL_MISSILE_STEER = 4.5;
+    const FINAL_MISSILE_SIZE = 42;
+    const FINAL_MISSILE_OFFSET_Y = 46;
+    const FINAL_MISSILE_MAX_TIME = 6;
+    const FINAL_MISSILE_STATES = new Set(['idle','telegraph','open','laser','post']);
+    const FINAL_CLAW_TARGET_MARGIN = 30;
+    const FINAL_CLAW_FLOOR_BUFFER = 12;
+    const FINAL_CLAW_SPEED = 700;
+    const FINAL_CLAW_RETURN_SPEED = 560;
+    const FINAL_CLAW_HOLD = 0.45;
+    const FINAL_CLAW_FRAME_DUR = 0.08;
+    const FINAL_CLAW_FRAMES = 5;
+    const FINAL_CLAW_HIT_HEIGHT_RATIO = 0.45;
+    const FINAL_CLAW_HIT_WIDTH_RATIO = 0.65;
+    const FINAL_CLAW_STATES = new Set(['clawDash','clawStrike','clawRetreat']);
     function bossCooldownFor(b){ const pct = b.hp / b.maxHp; return BOSS_COOLDOWN_MIN + (BOSS_COOLDOWN_MAX - BOSS_COOLDOWN_MIN) * pct; }
     function bossTelegraphFor(b){ const pct = b.hp / b.maxHp; return BOSS_TELEGRAPH_MIN + (BOSS_TELEGRAPH_MAX - BOSS_TELEGRAPH_MIN) * pct; }
+    function finalMissileCooldownFor(b){
+      const pct = b.hp / b.maxHp;
+      const base = FINAL_MISSILE_COOLDOWN_MIN + (FINAL_MISSILE_COOLDOWN_MAX - FINAL_MISSILE_COOLDOWN_MIN) * pct;
+      return base / FINAL_MISSILE_FREQUENCY_MULT; // fire 25% more frequently by reducing cooldown
+    }
+    function spawnFinalMissile(b){
+      const originX = b.x;
+      const originY = b.y - b.h / 2 + FINAL_MISSILE_OFFSET_Y;
+      const dx = P.x - originX;
+      const dy = P.y - originY;
+      const len = Math.hypot(dx, dy) || 1;
+      const vx = (dx / len) * FINAL_MISSILE_SPEED;
+      const vy = (dy / len) * FINAL_MISSILE_SPEED;
+      missiles.push({ x: originX, y: originY, w: FINAL_MISSILE_SIZE, h: FINAL_MISSILE_SIZE, vx, vy, t: 0, passed: false, hitX:0.7, hitY:0.7 });
+    }
+    function beginFinalClaw(b){
+      if (!b) return;
+      b.state = 'clawDash';
+      b.vulnerable = false;
+      b.clawFrame = 0;
+      b.clawAnimT = 0;
+      b.clawReturnX = b.x;
+      b.clawReturnY = b.y;
+      b.timer = 0;
+      const leftLimit = FINAL_CLAW_TARGET_MARGIN + b.w / 2;
+      const floorY = GROUND_Y + 34 - b.h / 2;
+      const bottomLimit = H - b.h / 2 - FINAL_CLAW_FLOOR_BUFFER;
+      b.clawTargetX = Math.max(b.w / 2, Math.min(b.x, leftLimit));
+      b.clawTargetY = Math.min(floorY, bottomLimit);
+    }
+    function advanceFinalClawAnim(b, dt){
+      if (!b) return;
+      if (typeof b.clawFrame !== 'number') b.clawFrame = 0;
+      if (typeof b.clawAnimT !== 'number') b.clawAnimT = 0;
+      b.clawAnimT += dt;
+      while (b.clawAnimT >= FINAL_CLAW_FRAME_DUR) {
+        b.clawAnimT -= FINAL_CLAW_FRAME_DUR;
+        b.clawFrame = (b.clawFrame + 1) % FINAL_CLAW_FRAMES;
+      }
+    }
     const CRANE_COOLDOWN_MAX = 3.5;
     const CRANE_COOLDOWN_MIN = 1.2;
     const CRANE_TELEGRAPH_MAX = 0.9;
@@ -426,6 +490,7 @@
     const flyers=[];   // flying enemies that hover and shoot
     const shots=[];    // enemy bullets
     const pshots=[];   // player bullets (from gun)
+    const missiles=[]; // final boss homing missiles
     let boss = null;   // boss entity
 
     // Soundtrack playback
@@ -534,7 +599,7 @@
       heat = 0;
       heatCheat = false; heatTapCount = 0; heatTapLast = 0;
       worldFreeze = 0; hitFlash = 0; shake = 0; hitGrace = 0;
-      spikes.length=0; platforms.length=0; gems.length=0; jetpacks.length=0; gliders.length=0; guns.length=0; coolants.length=0; cogs.length=0; smashers.length=0; flyers.length=0; shots.length=0; pshots.length=0;
+      spikes.length=0; platforms.length=0; gems.length=0; jetpacks.length=0; gliders.length=0; guns.length=0; coolants.length=0; cogs.length=0; smashers.length=0; flyers.length=0; shots.length=0; pshots.length=0; missiles.length=0;
       P.x = 200; P.y = GROUND_Y; P.vx = 0; P.vy = 0; P.onGround = true; P.glide=false; P.isJumping=false; P.jumpT=0; P.jumps=0;
       Object.assign(L, { sky1:0, sky2:W, h1:0, h2:W, f1:0, f2:W });
       // Clear any lingering input so the new run doesn't start with stuck keys
@@ -597,6 +662,25 @@
         return r;
       }
       return null;
+    }
+
+    function spawnGroundPickup(list, x, w, h, img, nowSec, extra = {}) {
+      if (tryReserveRow(0, 0, nowSec) === null) return;
+      const y = GROUND_Y + 34 - h / 2;
+      list.push({
+        x,
+        y,
+        baseY: y,
+        w,
+        h,
+        img,
+        t: 0,
+        bob: 0,
+        hitX: 0.70,
+        hitY: 0.70,
+        grounded: true,
+        ...extra
+      });
     }
 
     // Heat system
@@ -788,8 +872,14 @@
       // Boss spawn and HUD
       if (!boss && time >= bossNextTime) {
         if (difficulty % 2 === 1) {
+          const isFinal = difficulty === 3;
+          const closedImg = isFinal ? IMG.bossFinalClosed : IMG.bossShut;
+          const openingImg = isFinal ? IMG.bossFinalOpening : IMG.bossOpen;
+          const closingImg = isFinal ? IMG.bossFinalClosing : IMG.bossClose;
+          const openImg = isFinal ? IMG.bossFinalOpen : IMG.bossLaser;
           boss = {
             type: 'eyeball',
+            skin: isFinal ? 'final' : 'eyeball',
             x: W + 200,
             y: BOSS_LANES[1],
             lane: 1,
@@ -806,7 +896,18 @@
             spawnedFlyer: false,
             flash: 0,
             hitX: 0.3,
-            hitY: 0.3
+            hitY: 0.3,
+            closedImg,
+            openingImg,
+            closingImg,
+            openImg,
+            missileTimer: isFinal ? rand(1.2, 2.4) / FINAL_MISSILE_FREQUENCY_MULT : 0,
+            clawFrame: 0,
+            clawAnimT: 0,
+            clawTargetX: 0,
+            clawTargetY: 0,
+            clawReturnX: 0,
+            clawReturnY: 0
           };
         } else {
           const moveImg = IMG.bossCraneMove;
@@ -872,8 +973,59 @@
               break;
             case 'post':
               boss.timer -= dt;
-              if (boss.timer <= 0) { boss.state = 'close'; boss.animT = 0; boss.vulnerable = false; }
+              if (boss.timer <= 0) {
+                if (boss.skin === 'final') {
+                  beginFinalClaw(boss);
+                } else {
+                  boss.state = 'close';
+                  boss.animT = 0;
+                  boss.vulnerable = false;
+                }
+              }
               break;
+            case 'clawDash': {
+              advanceFinalClawAnim(boss, dt);
+              boss.vulnerable = false;
+              const dx = boss.clawTargetX - boss.x;
+              const dy = boss.clawTargetY - boss.y;
+              const dist = Math.hypot(dx, dy);
+              const speed = FINAL_CLAW_SPEED;
+              if (dist <= speed * dt || dist === 0) {
+                boss.x = boss.clawTargetX;
+                boss.y = boss.clawTargetY;
+                boss.state = 'clawStrike';
+                boss.timer = FINAL_CLAW_HOLD;
+              } else {
+                boss.x += (dx / dist) * speed * dt;
+                boss.y += (dy / dist) * speed * dt;
+              }
+              break;
+            }
+            case 'clawStrike':
+              advanceFinalClawAnim(boss, dt);
+              boss.vulnerable = false;
+              boss.timer -= dt;
+              if (boss.timer <= 0) boss.state = 'clawRetreat';
+              break;
+            case 'clawRetreat': {
+              advanceFinalClawAnim(boss, dt);
+              boss.vulnerable = false;
+              const dx = boss.clawReturnX - boss.x;
+              const dy = boss.clawReturnY - boss.y;
+              const dist = Math.hypot(dx, dy);
+              const speed = FINAL_CLAW_RETURN_SPEED;
+              if (dist <= speed * dt || dist === 0) {
+                boss.x = boss.clawReturnX;
+                boss.y = boss.clawReturnY;
+                boss.state = 'close';
+                boss.animT = 0;
+                boss.vulnerable = false;
+              } else {
+                boss.x += (dx / dist) * speed * dt;
+                boss.y += (dy / dist) * speed * dt;
+              }
+              break;
+            }
             case 'close':
               boss.animT += dt;
               if (boss.animT >= BOSS_CLOSE_DURATION) {
@@ -899,6 +1051,13 @@
                 boss.y += Math.sign(dest - boss.y) * sp * dt;
               }
               break;
+          }
+          if (boss.skin === 'final') {
+            boss.missileTimer -= dt;
+            if (FINAL_MISSILE_STATES.has(boss.state) && boss.missileTimer <= 0) {
+              spawnFinalMissile(boss);
+              boss.missileTimer = finalMissileCooldownFor(boss);
+            }
           }
         } else if (boss.type === 'crane') {
           boss.y = CRANE_Y; // ensure crane stays grounded
@@ -1179,6 +1338,7 @@
           if (row !== null) {
             const y = yForRow(row);
             jetpacks.push({ x, y, baseY: y, w, h, img: IMG.jetpack, t: 0, hitX: 0.70, hitY: 0.70 });
+            spawnGroundPickup(jetpacks, x, w, h, IMG.jetpack, nowSec);
           }
           // schedule next appearance only if it scrolls off without pickup
           jetpackTimer = rand(8, 16);
@@ -1200,6 +1360,7 @@
           if (row !== null) {
             const y = yForRow(row);
             gliders.push({ x, y, baseY: y, w, h, img: IMG.glider, t: 0, hitX: 0.70, hitY: 0.70 });
+            spawnGroundPickup(gliders, x, w, h, IMG.glider, nowSec);
           }
           gliderTimer = rand(7, 14);
         }
@@ -1222,6 +1383,7 @@
           if (row !== null) {
             const y = yForRow(row);
             guns.push({ x, y, baseY: y, w, h, img: IMG.gun, t: 0, hitX: 0.70, hitY: 0.70 });
+            spawnGroundPickup(guns, x, w, h, IMG.gun, nowSec);
           }
           gunTimer = rand(8, 16);
         }
@@ -1243,6 +1405,7 @@
           if (row !== null) {
             const y = yForRow(row);
             shields.push({ x, y, baseY: y, w, h, img: IMG.shield, t: 0, hitX: 0.70, hitY: 0.70 });
+            spawnGroundPickup(shields, x, w, h, IMG.shield, nowSec);
           }
           shieldTimer = rand(7, 14);
         }
@@ -1322,10 +1485,34 @@
       for (const s of spikes) s.x = move(s.x);
       for (const pl of platforms) pl.x = move(pl.x);
       for (const gobj of gems) { gobj.x = move(gobj.x); gobj.t += dt; gobj.y = (gobj.baseY ?? gobj.y) + Math.sin(gobj.t * 6.1) * 14; }
-      for (const jp of jetpacks) { jp.x = move(jp.x); jp.t += dt; jp.y = (jp.baseY ?? jp.y) + Math.sin(jp.t * 3.7) * 10; }
-      for (const gl of gliders) { gl.x = move(gl.x); gl.t += dt; gl.y = (gl.baseY ?? gl.y) + Math.sin(gl.t * 3.9) * 10; }
-      for (const gu of guns) { gu.x = move(gu.x); gu.t += dt; gu.y = (gu.baseY ?? gu.y) + Math.sin(gu.t * 3.5) * 10; }
-      for (const sh of shields) { sh.x = move(sh.x); sh.t += dt; sh.y = (sh.baseY ?? sh.y) + Math.sin(sh.t * 3.6) * 10; }
+      for (const jp of jetpacks) {
+        jp.x = move(jp.x);
+        jp.t += dt;
+        const amp = jp.bob ?? 10;
+        const freq = jp.freq ?? 3.7;
+        jp.y = (jp.baseY ?? jp.y) + Math.sin(jp.t * freq) * amp;
+      }
+      for (const gl of gliders) {
+        gl.x = move(gl.x);
+        gl.t += dt;
+        const amp = gl.bob ?? 10;
+        const freq = gl.freq ?? 3.9;
+        gl.y = (gl.baseY ?? gl.y) + Math.sin(gl.t * freq) * amp;
+      }
+      for (const gu of guns) {
+        gu.x = move(gu.x);
+        gu.t += dt;
+        const amp = gu.bob ?? 10;
+        const freq = gu.freq ?? 3.5;
+        gu.y = (gu.baseY ?? gu.y) + Math.sin(gu.t * freq) * amp;
+      }
+      for (const sh of shields) {
+        sh.x = move(sh.x);
+        sh.t += dt;
+        const amp = sh.bob ?? 10;
+        const freq = sh.freq ?? 3.6;
+        sh.y = (sh.baseY ?? sh.y) + Math.sin(sh.t * freq) * amp;
+      }
       for (const c of coolants) { c.x = move(c.x); c.t += dt; c.y = (c.baseY ?? c.y) + Math.sin(c.t * 5.0) * 12; }
 
       for (const sm of smashers) {
@@ -1408,6 +1595,34 @@
         if (s.t > 6 || s.x < -100 || s.x > W + 180 || s.y < -120 || s.y > H + 120) shots.splice(i,1);
       }
 
+      for (let i = missiles.length - 1; i >= 0; i--) {
+        const m = missiles[i];
+        m.t += dt;
+        const ahead = m.x > P.x + 24;
+        if (ahead) {
+          const dx = P.x - m.x;
+          const dy = P.y - m.y;
+          const len = Math.hypot(dx, dy) || 1;
+          const desiredVx = (dx / len) * FINAL_MISSILE_SPEED;
+          const desiredVy = (dy / len) * FINAL_MISSILE_SPEED;
+          const steer = Math.min(1, FINAL_MISSILE_STEER * dt);
+          m.vx += (desiredVx - m.vx) * steer;
+          m.vy += (desiredVy - m.vy) * steer;
+          const speed = Math.hypot(m.vx, m.vy) || 1;
+          const scale = FINAL_MISSILE_SPEED / speed;
+          m.vx *= scale;
+          m.vy *= scale;
+          if (m.vx > -80) m.vx = -80;
+        } else {
+          m.passed = true;
+        }
+        if (m.passed && m.vx > -80) m.vx = -80;
+        m.x = move(m.x) + m.vx * dt;
+        m.y += m.vy * dt;
+        m.y = clamp(m.y, m.h / 2, GROUND_Y + 34 - m.h / 2);
+        if (m.t > FINAL_MISSILE_MAX_TIME || m.x < -m.w - 160 || m.y < -160 || m.y > H + 160) missiles.splice(i,1);
+      }
+
       // Player shots (auto) movement
       for (let i = pshots.length - 1; i >= 0; i--) {
         const b = pshots[i];
@@ -1431,16 +1646,24 @@
       // Collisions
       // Axis-aligned bounding box with adjustable per-entity hitbox scale.
       // Using slightly smaller hitboxes reduces premature collision triggers.
+      function hitBox(entity, overrides){
+        const scaleX = overrides?.x ?? (entity.hitX || 1);
+        const scaleY = overrides?.y ?? (entity.hitY || 1);
+        return {
+          x: entity.x + (entity.hitOffsetX || 0),
+          y: entity.y + (entity.hitOffsetY || 0),
+          w: entity.w * scaleX,
+          h: entity.h * scaleY
+        };
+      }
+      function boxesOverlap(a, b){
+        return Math.abs(a.x - b.x) * 2 < (a.w + b.w) && Math.abs(a.y - b.y) * 2 < (a.h + b.h);
+      }
       function hit(a,b){
-        const ax = a.x + (a.hitOffsetX || 0);
-        const ay = a.y + (a.hitOffsetY || 0);
-        const bx = b.x + (b.hitOffsetX || 0);
-        const by = b.y + (b.hitOffsetY || 0);
-        const aw = a.w * (a.hitX || 1);
-        const ah = a.h * (a.hitY || 1);
-        const bw = b.w * (b.hitX || 1);
-        const bh = b.h * (b.hitY || 1);
-        return Math.abs(ax - bx) * 2 < (aw + bw) && Math.abs(ay - by) * 2 < (ah + bh);
+        return boxesOverlap(hitBox(a), hitBox(b));
+      }
+      function hitWithOverrides(a, b, overrideA, overrideB){
+        return boxesOverlap(hitBox(a, overrideA), hitBox(b, overrideB));
       }
       // Hazard collisions: add heat and drop items. If shield is owned, it absorbs the hit, losing one durability and preventing heat gain.
       if (hitGrace <= 0) {
@@ -1480,6 +1703,28 @@
           const beamY = boss.y - (boss.lane === 0 ? BOSS_UPPER_LASER_SHIFT : 0);
           const beam = { x: beamLeft / 2, y: beamY, w: beamLeft, h: P.h * 0.5 };
           if (hit(P, beam)) {
+            if (!consumeShieldOnHit()) {
+              heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
+              loseRandomItem();
+            }
+            P.vy = Math.min(P.vy, -350);
+            P.onGround = false;
+            hitGrace = 2; worldFreeze = Math.max(worldFreeze, 0.4); hitFlash = Math.max(hitFlash, 0.35); shake = Math.max(shake, 14);
+            return;
+          }
+        }
+        if (boss && boss.skin === 'final' && FINAL_CLAW_STATES.has(boss.state)) {
+          const clawHeight = boss.h * FINAL_CLAW_HIT_HEIGHT_RATIO;
+          const clawWidth = boss.w * FINAL_CLAW_HIT_WIDTH_RATIO;
+          const clawHit = {
+            x: boss.x,
+            y: boss.y + boss.h / 2 - clawHeight / 2,
+            w: clawWidth,
+            h: clawHeight,
+            hitX: 1,
+            hitY: 1
+          };
+          if (hit(P, clawHit)) {
             if (!consumeShieldOnHit()) {
               heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
               loseRandomItem();
@@ -1605,6 +1850,21 @@
             return;
           }
         }
+        for (let i=missiles.length-1; i>=0; i--) {
+          const m = missiles[i];
+          if (hit(P, m)) {
+            if (!consumeShieldOnHit()) {
+              heat = clamp(heat + (hasJetpack ? HEAT_HIT_PENALTY : HEAT_HIT_PENALTY_NO_JET), 0, HEAT_MAX);
+              loseRandomItem();
+            }
+            missiles.splice(i,1);
+            P.vy = Math.min(P.vy, -320);
+            P.onGround = false;
+            P.y = Math.max(P.h/2, P.y - 10);
+            hitGrace = 2; worldFreeze = Math.max(worldFreeze, 0.35); hitFlash = Math.max(hitFlash, 0.3); shake = Math.max(shake, 12);
+            return;
+          }
+        }
       }
       // Gem pickups add score with multiplier based on current combo (applies AFTER 5/10 streak)
       for (let i=gems.length-1; i>=0; i--) {
@@ -1688,28 +1948,42 @@
         for (let j = flyers.length - 1; j >= 0; j--) {
           if (hit(b, flyers[j])) { flyers.splice(j,1); hitSomething = true; if (!heatCheat) score += 1; playSfx(SFX.enemyHit); break; }
         }
-        if (!hitSomething && boss && boss.vulnerable && hit(b, boss)) {
-          boss.hp -= GUN_DAMAGE;
-          boss.flash = 0.25;
-          hitSomething = true;
-          playSfx(SFX.enemyHit);
-          if (boss.hp <= 0) {
-            playSfx(SFX.bossKill);
-            if (!heatCheat) score += 10;
-            showBossDefeated();
-            const GEM_W = 34, GEM_H = 34;
-            for (let g = 0; g < 5; g++) {
-              const gx = boss.x + rand(-60,60);
-              const gy = boss.y + rand(-60,60);
-              gems.push({ x: gx, y: gy, baseY: gy, w: GEM_W, h: GEM_H, img: IMG.gem, t: 0, hitX:0.60, hitY:0.60 });
+        if (!hitSomething) {
+          for (let j = missiles.length - 1; j >= 0; j--) {
+            if (hit(b, missiles[j])) { missiles.splice(j,1); hitSomething = true; if (!heatCheat) score += 1; playSfx(SFX.enemyHit); break; }
+          }
+        }
+        if (!hitSomething && boss && boss.vulnerable) {
+          let damage = 0;
+          const weakHit = hit(b, boss);
+          if (weakHit) {
+            damage = GUN_DAMAGE * 2;
+          } else if (hitWithOverrides(b, boss, null, { x: 1, y: 1 })) {
+            damage = GUN_DAMAGE;
+          }
+          if (damage > 0) {
+            boss.hp -= damage;
+            boss.flash = 0.25;
+            hitSomething = true;
+            playSfx(SFX.enemyHit);
+            if (boss.hp <= 0) {
+              playSfx(SFX.bossKill);
+              if (!heatCheat) score += 10;
+              showBossDefeated();
+              const GEM_W = 34, GEM_H = 34;
+              for (let g = 0; g < 5; g++) {
+                const gx = boss.x + rand(-60,60);
+                const gy = boss.y + rand(-60,60);
+                gems.push({ x: gx, y: gy, baseY: gy, w: GEM_W, h: GEM_H, img: IMG.gem, t: 0, hitX:0.60, hitY:0.60 });
+              }
+              boss = null;
+              bossNextTime = time + 30;
+              difficulty++;
+              runSpeed = RUN_SPEED * (1 + 0.1 * (difficulty - 1));
+              if (bossHud) bossHud.classList.add('hidden');
+            } else {
+              playSfx(SFX.bossHit);
             }
-            boss = null;
-            bossNextTime = time + 30;
-            difficulty++;
-            runSpeed = RUN_SPEED * (1 + 0.1 * (difficulty - 1));
-            if (bossHud) bossHud.classList.add('hidden');
-          } else {
-            playSfx(SFX.bossHit);
           }
         }
         if (hitSomething) { pshots.splice(i,1); }
@@ -1803,6 +2077,7 @@
       // Draw flyers and shots
       for (const f of flyers) drawFlyer(f.x, f.y, f.w, f.h, f.state);
       for (const b of shots) drawBullet(b.x, b.y, b.w, b.h);
+      for (const m of missiles) drawMissile(m);
       for (const pb of pshots) drawPlayerBullet(pb.x, pb.y, pb.w, pb.h);
       if (boss && boss.state === 'laser') {
         const beamH = P.h * 0.5;
@@ -1813,10 +2088,11 @@
       }
       if (boss) {
         if (boss.type === 'eyeball') {
-          if (boss.state === 'open') drawBossOpen(boss);
+          if (boss.skin === 'final' && FINAL_CLAW_STATES.has(boss.state)) drawBossClaw(boss);
+          else if (boss.state === 'open') drawBossOpen(boss);
           else if (boss.state === 'close') drawBossClose(boss);
-          else if (boss.state === 'laser' || boss.state === 'post') drawBossImage(IMG.bossLaser, boss);
-          else drawBossImage(IMG.bossShut, boss);
+          else if (boss.state === 'laser' || boss.state === 'post') drawBossImage(boss.openImg || IMG.bossLaser, boss);
+          else drawBossImage(boss.closedImg || IMG.bossShut, boss);
         } else {
           drawCrane(boss);
         }
@@ -1909,6 +2185,27 @@
       ctx.restore();
     }
 
+    function drawMissile(m){
+      ctx.save();
+      ctx.translate(Math.round(m.x), Math.round(m.y));
+      const angle = Math.atan2(m.vy, m.vx);
+      ctx.rotate(angle);
+      const bodyL = m.w * 0.7;
+      const bodyH = m.h * 0.45;
+      ctx.fillStyle = '#f97316';
+      ctx.fillRect(-bodyL * 0.5, -bodyH / 2, bodyL, bodyH);
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.moveTo(bodyL / 2 + m.w * 0.25, 0);
+      ctx.lineTo(bodyL / 2, -bodyH * 0.8);
+      ctx.lineTo(bodyL / 2, bodyH * 0.8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.fillRect(-bodyL * 0.45, -bodyH * 0.35, bodyL * 0.5, bodyH * 0.7);
+      ctx.restore();
+    }
+
     function drawShield(x, y, w, h){
       if (shieldFlash > 0 && Math.floor(time * 10) % 2 === 0) return;
       drawImg(IMG.shieldImg, x, y, w, h);
@@ -1930,7 +2227,7 @@
     }
 
     function drawBossOpen(b){
-      const img = IMG.bossOpen;
+      const img = b?.openingImg || IMG.bossOpen;
       if (!img || !img.width) return;
       const frames = 3;
       const fw = img.width / frames;
@@ -1950,12 +2247,32 @@
     }
 
     function drawBossClose(b){
-      const img = IMG.bossClose;
+      const img = b?.closingImg || IMG.bossClose;
       if (!img || !img.width) return;
       const frames = 3;
       const fw = img.width / frames;
       const fh = img.height;
       const frame = Math.min(frames - 1, Math.floor((b.animT / BOSS_CLOSE_DURATION) * frames));
+      const x = Math.round(b.x - b.w/2);
+      const y = Math.round(b.y - b.h/2);
+      ctx.save();
+      ctx.drawImage(img, frame * fw, 0, fw, fh, x, y, b.w, b.h);
+      if (b.flash > 0) {
+        const alpha = Math.min(1, b.flash * 4);
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(img, frame * fw, 0, fw, fh, x, y, b.w, b.h);
+      }
+      ctx.restore();
+    }
+
+    function drawBossClaw(b){
+      const img = IMG.bossFinalClawing;
+      if (!img || !img.width) return;
+      const frames = FINAL_CLAW_FRAMES;
+      const fw = img.width / frames;
+      const fh = img.height;
+      const frame = ((b?.clawFrame) || 0) % frames;
       const x = Math.round(b.x - b.w/2);
       const y = Math.round(b.y - b.h/2);
       ctx.save();

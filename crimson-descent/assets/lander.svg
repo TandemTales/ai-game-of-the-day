@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+  <defs>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7f7f9"/>
+      <stop offset="0.5" stop-color="#d7d9e4"/>
+      <stop offset="1" stop-color="#a8adc3"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#37c1ff"/>
+      <stop offset="0.5" stop-color="#2b7fd6"/>
+      <stop offset="1" stop-color="#1a3b86"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="leg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c0c4d8"/>
+      <stop offset="1" stop-color="#747b96"/>
+    </linearGradient>
+  </defs>
+  <rect width="240" height="240" fill="none"/>
+  <g transform="translate(10 10)">
+    <ellipse cx="110" cy="188" rx="58" ry="22" fill="url(#glow)" opacity="0.45"/>
+    <g id="lander">
+      <path d="M48 132 L30 166 L44 166 L68 132 Z" fill="url(#leg)" stroke="#4a4f68" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M172 132 L190 166 L176 166 L152 132 Z" fill="url(#leg)" stroke="#4a4f68" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M110 38 C64 38 36 82 36 124 C36 158 58 186 110 186 C162 186 184 158 184 124 C184 82 156 38 110 38 Z" fill="url(#body)" stroke="#5c627d" stroke-width="6"/>
+      <path d="M110 58 C79 58 60 89 60 118 C60 142 76 162 110 162 C144 162 160 142 160 118 C160 89 141 58 110 58 Z" fill="url(#panel)" stroke="#16336b" stroke-width="6"/>
+      <path d="M110 86 C96 86 84 98 84 112 C84 126 96 138 110 138 C124 138 136 126 136 112 C136 98 124 86 110 86 Z" fill="#122753" opacity="0.45"/>
+      <g fill="#c4c8dd" stroke="#4c5472" stroke-width="4">
+        <rect x="86" y="18" width="48" height="26" rx="8"/>
+        <circle cx="110" cy="18" r="12" fill="#2f81da" stroke="#143063"/>
+      </g>
+      <g fill="#959bb7" stroke="#3d435a" stroke-width="4" stroke-linecap="round">
+        <path d="M60 138 L40 188"/>
+        <path d="M160 138 L180 188"/>
+      </g>
+      <g stroke="#636986" stroke-width="6" stroke-linecap="round">
+        <path d="M92 186 L92 204"/>
+        <path d="M128 186 L128 204"/>
+      </g>
+    </g>
+  </g>
+</svg>

@@ -119,6 +119,9 @@
 		}
 
 		/* Hide removed games */
+		li[data-id="bayou-brawlers"],
+		li[data-id="midnight-menagerie"],
+		li[data-id="crimson-descent"],
 		li[data-id="ocean-explorer"],
 		li[data-id="memory-match"] {
 			display: none !important;
@@ -332,11 +335,11 @@
              .rate div has a unique data-id with a <span class="score"></span> right
              after it. This preserves the rating system when rotating featured games. -->
         <div class="featured">
-            <h2>Featured Game: Emberfall Gauntlet</h2>
-            <p>Emberfall Gauntlet is a retro survival game where you play as a fighter, rogue, or wizard. Level up to unlock powers and fight through endless waves of imps, goblins, and orcs, then challenge massive bosses like the Muck Monster and Hill Giant in a battle for survival.</p>
-            <a href="emberfall-gauntlet/index.html" class="play-btn">Play Now!</a>
-            <a href="leaderboard.html?gameId=emberfall-gauntlet" class="leaderboard-btn">View Leaderboard</a>
-            <div class="rate" data-id="emberfall-gauntlet">
+            <h2>Featured Game: Paradox Vault</h2>
+            <p>Rob an art-deco vault that resets every few seconds. Rewind the loop and your last run replays beside you as a ghostly echo &mdash; so you can stand on the pressure plate and steal the relic at the same time. Ten vaults, one thief, and as many of yourself as you can afford.</p>
+            <a href="paradox-vault/index.html" class="play-btn">Play Now!</a>
+            <a href="leaderboard.html?gameId=paradox-vault" class="leaderboard-btn">View Leaderboard</a>
+            <div class="rate" data-id="paradox-vault">
                 <span data-star="1">★</span>
                 <span data-star="2">★</span>
                 <span data-star="3">★</span>
@@ -362,6 +365,51 @@
 
 		        <h2>More Games</h2>
         <ul id="games">
+            <li data-id="bayou-brawlers"><a href="bayou-brawlers/index.html">Bayou Brawlers: Gearbound</a>
+                <div class="rate">
+                    <span data-star="1">&#9733;</span>
+                    <span data-star="2">&#9733;</span>
+                    <span data-star="3">&#9733;</span>
+                    <span data-star="4">&#9733;</span>
+                    <span data-star="5">&#9733;</span>
+                </div>
+                <span class="score"></span>
+                <p class="game-description">Bayou Brawlers: Gearbound throws you into a grimy steampunk swamp where waves of goblins, corrupted fey, and clockwork brutes test your combos across 14 stages of side-scrolling chaos.</p>
+                <div class="actions">
+                        <a href="bayou-brawlers/index.html" class="play-btn">Play Now!</a>
+                        <a href="leaderboard.html?gameId=bayou-brawlers" class="leaderboard-btn">View Leaderboard</a>
+                </div>
+            </li>
+            <li data-id="crimson-descent"><a href="crimson-descent/index.html">Crimson Descent</a>
+                <div class="rate">
+                    <span data-star="1">★</span>
+                    <span data-star="2">★</span>
+                    <span data-star="3">★</span>
+                    <span data-star="4">★</span>
+                    <span data-star="5">★</span>
+                </div>
+                <span class="score"></span>
+                <p class="game-description">Crimson Descent drops you into the thin skies above Mars. Trim your thrusters, balance the lander against crosswinds, and settle onto the Phobos Prospect pad with a perfect touchdown to climb the leaderboard.</p>
+                <div class="actions">
+                        <a href="crimson-descent/index.html" class="play-btn">Play Now!</a>
+                        <a href="leaderboard.html?gameId=crimson-descent" class="leaderboard-btn">View Leaderboard</a>
+                </div>
+            </li>
+            <li data-id="emberfall-gauntlet"><a href="emberfall-gauntlet/index.html">Emberfall Gauntlet</a>
+                <div class="rate">
+                    <span data-star="1">★</span>
+                    <span data-star="2">★</span>
+                    <span data-star="3">★</span>
+                    <span data-star="4">★</span>
+                    <span data-star="5">★</span>
+                </div>
+                <span class="score"></span>
+                <p class="game-description">Charge through molten arenas as you swap combat styles, unleash arcane bursts, and outlast relentless waves of infernal foes.</p>
+                <div class="actions">
+                        <a href="emberfall-gauntlet/index.html" class="play-btn">Play Now!</a>
+                        <a href="leaderboard.html?gameId=emberfall-gauntlet" class="leaderboard-btn">View Leaderboard</a>
+                </div>
+            </li>
             <li data-id="core-crisis"><a href="core-crisis/index.html">Core Crisis</a>
                 <div class="rate">
                     <span data-star="1">★</span>
@@ -469,9 +517,9 @@
 	</div>
 
        <script>
-       // Remove deprecated games from DOM
+       // Remove hidden and deprecated games from DOM
        document.addEventListener('DOMContentLoaded', function () {
-         document.querySelectorAll('[data-id="ocean-explorer"], [data-id="memory-match"]').forEach(function(el){
+         document.querySelectorAll('li[data-id="bayou-brawlers"], li[data-id="midnight-menagerie"], li[data-id="crimson-descent"], li[data-id="ocean-explorer"], li[data-id="memory-match"]').forEach(function(el){
            try { el.remove(); } catch (e) {}
          });
        });

@@ -1,0 +1,3730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17405200669"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'AW-17405200669');
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Midnight Menagerie - Bot Built Arcade</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
+  <style>
+    :root {
+      --gold: #FFD700;
+      --moon: #d9f3ff;
+      --violet: #8b5cf6;
+      --rose: #fb7185;
+      --ink: #f8f1dc;
+      --green: #6ee7a0;
+      --red: #ff6b6b;
+      --blue: #7dd3fc;
+      --orange: #fbbf6b;
+      --panel: rgba(10, 8, 26, 0.92);
+      --panel-edge: rgba(255, 215, 0, 0.55);
+      --card-w: 124px;
+      --card-h: 176px;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    html, body { height: 100%; min-height: 100dvh; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: 'Press Start 2P', system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 20% 12%, rgba(139, 92, 246, 0.14), transparent 30%),
+        radial-gradient(circle at 82% 8%, rgba(217, 243, 255, 0.10), transparent 26%),
+        linear-gradient(180deg, #07061a 0%, #0e0c2c 52%, #150d22 100%);
+      overflow: hidden;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    button { font: inherit; cursor: pointer; }
+
+    #app {
+      position: relative;
+      width: 100%;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ============ TOP BAR ============ */
+    #topbar {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: calc(5px + env(safe-area-inset-top)) 10px 5px;
+      background: linear-gradient(180deg, rgba(6, 5, 18, 0.97), rgba(10, 8, 28, 0.88));
+      border-bottom: 2px solid rgba(255, 215, 0, 0.35);
+      font-size: 10px;
+      z-index: 40;
+      flex-wrap: wrap;
+    }
+    #topbar.visible { display: flex; }
+
+    .tb-stat {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      padding: 4px 6px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.05);
+    }
+    .tb-stat .ico { font-size: 12px; font-family: system-ui, sans-serif; }
+    #tbName { color: var(--gold); }
+    #tbHp b { color: var(--red); }
+    #tbCoins b { color: var(--gold); }
+    #tbFloor b { color: var(--moon); }
+    .tb-spacer { flex: 1; }
+
+    .tb-btn {
+      min-height: 30px;
+      padding: 5px 8px;
+      border: 2px solid rgba(217, 243, 255, 0.4);
+      border-radius: 6px;
+      background: rgba(20, 16, 50, 0.9);
+      color: var(--moon);
+      font-size: 9px;
+    }
+    .tb-btn:active { background: rgba(139, 92, 246, 0.6); }
+
+    #petBar {
+      display: none;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      background: rgba(8, 6, 22, 0.9);
+      border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+      overflow-x: auto;
+      scrollbar-width: thin;
+      z-index: 39;
+      min-height: 38px;
+    }
+    #petBar.visible { display: flex; }
+
+    .pet-chip {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border: 2px solid rgba(255, 215, 0, 0.45);
+      border-radius: 8px;
+      background: rgba(30, 22, 64, 0.9);
+      font-size: 17px;
+      font-family: system-ui, sans-serif;
+      cursor: pointer;
+      position: relative;
+    }
+    .pet-chip .ctr {
+      position: absolute;
+      bottom: -3px;
+      right: -3px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      background: #2d225f;
+      border: 1px solid var(--gold);
+      border-radius: 4px;
+      padding: 1px 2px;
+      color: var(--gold);
+    }
+
+    /* treats (potion) slots */
+    .treat-slot {
+      flex: 0 0 auto;
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px dashed rgba(217, 243, 255, 0.3);
+      border-radius: 50%;
+      background: rgba(12, 10, 32, 0.8);
+      font-size: 16px;
+      font-family: system-ui, sans-serif;
+      cursor: pointer;
+    }
+    .treat-slot.filled { border-style: solid; border-color: var(--green); }
+    .treat-divider { flex: 0 0 2px; height: 26px; background: rgba(217,243,255,0.2); margin: 0 4px; }
+
+    /* ============ SCREENS ============ */
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .screen.active { display: flex; }
+    #screens {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .scroll-y { overflow-y: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+
+    h1, h2, h3 { margin: 0; line-height: 1.4; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 10px 16px;
+      border: 2px solid var(--gold);
+      border-radius: 8px;
+      background: linear-gradient(135deg, #2d225f, #42276f);
+      color: #fff;
+      font-size: 11px;
+      text-decoration: none;
+      box-shadow: 0 0 16px rgba(139, 92, 246, 0.28);
+      text-align: center;
+    }
+    .btn:hover, .btn:focus-visible { outline: none; box-shadow: 0 0 20px rgba(255, 215, 0, 0.4); }
+    .btn:active { transform: translateY(1px); }
+    .btn:disabled { opacity: 0.45; cursor: default; box-shadow: none; }
+    .btn.ghost { border-color: rgba(217, 243, 255, 0.45); background: rgba(16, 13, 42, 0.85); color: var(--moon); box-shadow: none; }
+    .btn.danger { border-color: var(--rose); background: linear-gradient(135deg, #4a1530, #6b1f3c); }
+    .btn.small { min-height: 32px; padding: 6px 10px; font-size: 9px; }
+
+    /* ============ TITLE SCREEN ============ */
+    #screen-title {
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+      gap: 0;
+      overflow-y: auto;
+    }
+    .title-moon {
+      font-size: clamp(44px, 11vw, 84px);
+      font-family: system-ui, sans-serif;
+      line-height: 1;
+      filter: drop-shadow(0 0 24px rgba(217, 243, 255, 0.6));
+      margin-bottom: 6px;
+    }
+    #screen-title h1 {
+      color: var(--gold);
+      font-size: clamp(18px, 5vw, 38px);
+      text-shadow: 0 0 18px rgba(255, 215, 0, 0.45), 3px 3px 0 #41245f;
+      margin-bottom: 8px;
+    }
+    .title-sub {
+      color: var(--moon);
+      font-size: clamp(9px, 2.2vw, 12px);
+      line-height: 1.9;
+      max-width: 560px;
+      margin: 0 auto 18px;
+      opacity: 0.92;
+    }
+    .title-actions { display: flex; flex-direction: column; gap: 10px; width: min(320px, 86vw); margin: 0 auto; }
+    .title-foot { margin-top: 18px; font-size: 8px; color: rgba(217, 243, 255, 0.55); line-height: 1.8; }
+    .title-foot a { color: var(--moon); }
+
+    /* ============ MAP SCREEN ============ */
+    #mapHeader {
+      text-align: center;
+      padding: 8px 10px 4px;
+      font-size: clamp(10px, 2.6vw, 14px);
+      color: var(--gold);
+      text-shadow: 0 0 12px rgba(255, 215, 0, 0.35);
+    }
+    #mapSub { text-align: center; font-size: 8px; color: rgba(217,243,255,0.6); padding-bottom: 6px; }
+    #mapScroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      position: relative;
+    }
+    #mapCanvasWrap { position: relative; width: 100%; }
+    #mapSvg { display: block; width: 100%; height: auto; }
+
+    .map-node {
+      position: absolute;
+      width: 46px;
+      height: 46px;
+      margin: -23px 0 0 -23px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      border: 2px solid rgba(217, 243, 255, 0.35);
+      background: radial-gradient(circle at 32% 28%, #2a2152, #150f33);
+      font-size: 20px;
+      font-family: system-ui, sans-serif;
+      color: var(--moon);
+      cursor: default;
+      transition: transform 0.15s, box-shadow 0.15s;
+      z-index: 2;
+    }
+    .map-node.available {
+      border-color: var(--gold);
+      cursor: pointer;
+      box-shadow: 0 0 14px rgba(255, 215, 0, 0.55);
+      animation: nodePulse 1.6s ease-in-out infinite;
+    }
+    .map-node.visited { opacity: 0.45; }
+    .map-node.current { border-color: var(--green); box-shadow: 0 0 16px rgba(110, 231, 160, 0.7); }
+    .map-node.boss { width: 64px; height: 64px; margin: -32px 0 0 -32px; font-size: 30px; border-width: 3px; }
+    .map-node.unreachable { opacity: 0.3; }
+    @keyframes nodePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.12); }
+    }
+
+    /* ============ COMBAT SCREEN ============ */
+    #screen-combat { background: transparent; }
+    #combatArena {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at 50% 110%, rgba(139, 92, 246, 0.16), transparent 52%),
+        linear-gradient(180deg, rgba(8, 6, 24, 0.4), rgba(14, 9, 34, 0.85));
+    }
+    #combatBgDeco {
+      position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+      font-family: system-ui, sans-serif; opacity: 0.16; font-size: 26px;
+    }
+    #combatBgDeco span { position: absolute; }
+
+    #enemyRow {
+      flex: 1.18;
+      min-height: 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-evenly;
+      gap: 4px;
+      padding: 40px 6px 6px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .enemy {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      max-width: 32%;
+      min-width: 0;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.12s;
+      padding: 4px;
+      border-radius: 10px;
+    }
+    .enemy.targetable { animation: targetGlow 1s ease-in-out infinite; border-radius: 12px; }
+    @keyframes targetGlow {
+      0%, 100% { box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.0); }
+      50% { box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.65); }
+    }
+    .enemy.dying { animation: dieFade 0.5s forwards; pointer-events: none; }
+    @keyframes dieFade { to { opacity: 0; transform: translateY(18px) scale(0.8); } }
+
+    .enemy .intent {
+      font-size: 9px;
+      font-family: 'Press Start 2P', monospace;
+      color: var(--moon);
+      background: rgba(8, 6, 24, 0.88);
+      border: 1px solid rgba(217, 243, 255, 0.35);
+      border-radius: 6px;
+      padding: 3px 6px;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      min-height: 22px;
+    }
+    .enemy .intent .iico { font-family: system-ui, sans-serif; font-size: 12px; }
+
+    .enemy .sprite {
+      font-family: system-ui, sans-serif;
+      font-size: clamp(38px, 9.5vw, 72px);
+      line-height: 1.1;
+      filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.6));
+      transition: transform 0.12s;
+    }
+    .enemy.elite .sprite { filter: drop-shadow(0 0 14px rgba(251, 113, 133, 0.8)); }
+    .enemy.boss .sprite { font-size: clamp(54px, 13vw, 100px); filter: drop-shadow(0 0 18px rgba(139, 92, 246, 0.9)); }
+    .enemy .ename { font-size: 8px; color: rgba(248, 241, 220, 0.85); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+    .hp-bar {
+      width: clamp(64px, 16vw, 110px);
+      height: 12px;
+      border: 1px solid rgba(0, 0, 0, 0.7);
+      border-radius: 6px;
+      background: #29132a;
+      position: relative;
+      overflow: hidden;
+    }
+    .hp-bar .fill {
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, #f0566a, #b21d3e);
+      border-radius: 5px;
+      transition: width 0.25s;
+    }
+    .hp-bar .blk {
+      position: absolute; inset: 0;
+      background: rgba(125, 211, 252, 0.35);
+      border-radius: 5px;
+      transition: width 0.25s;
+    }
+    .hp-bar .txt {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 8px; color: #fff; text-shadow: 1px 1px 0 #000;
+      font-family: 'Press Start 2P', monospace;
+    }
+    .block-badge {
+      position: absolute;
+      left: -7px; top: -7px;
+      min-width: 20px; height: 20px;
+      padding: 0 3px;
+      display: flex; align-items: center; justify-content: center;
+      background: radial-gradient(circle at 35% 30%, #9fdcff, #2f7fb8);
+      border: 1px solid #d9f3ff;
+      border-radius: 6px;
+      color: #062033;
+      font-size: 9px;
+      font-family: 'Press Start 2P', monospace;
+      z-index: 3;
+    }
+    .hp-wrap { position: relative; }
+
+    .status-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px;
+      justify-content: center;
+      min-height: 16px;
+      max-width: 130px;
+    }
+    .status-chip {
+      font-size: 8px;
+      font-family: 'Press Start 2P', monospace;
+      background: rgba(20, 14, 44, 0.92);
+      border: 1px solid rgba(217, 243, 255, 0.4);
+      border-radius: 4px;
+      padding: 2px 3px;
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      cursor: pointer;
+    }
+    .status-chip .sico { font-family: system-ui, sans-serif; font-size: 10px; }
+    .status-chip.buff { border-color: rgba(110, 231, 160, 0.65); }
+    .status-chip.debuff { border-color: rgba(251, 113, 133, 0.65); }
+
+    /* player row */
+    #playerRow {
+      flex: 0.9;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: clamp(8px, 3vw, 30px);
+      padding: 4px 8px 8px;
+      position: relative;
+      z-index: 2;
+    }
+    #playerBox {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      position: relative;
+    }
+    #playerSprite {
+      font-family: system-ui, sans-serif;
+      font-size: clamp(44px, 10vw, 76px);
+      line-height: 1.1;
+      filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.6));
+      transition: transform 0.12s;
+    }
+    #combatPets {
+      display: flex;
+      flex-wrap: wrap-reverse;
+      gap: 2px;
+      max-width: clamp(90px, 24vw, 200px);
+      align-items: flex-end;
+      justify-content: center;
+      font-family: system-ui, sans-serif;
+      font-size: clamp(20px, 4.6vw, 34px);
+    }
+    #combatPets .cpet { filter: drop-shadow(0 3px 5px rgba(0,0,0,0.55)); animation: petBob 2.4s ease-in-out infinite; }
+    @keyframes petBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+
+    .bump-attack { animation: bumpA 0.28s; }
+    @keyframes bumpA { 30% { transform: translateX(16px) } }
+    .bump-attack-left { animation: bumpAL 0.28s; }
+    @keyframes bumpAL { 30% { transform: translateX(-16px) } }
+    .bump-hurt { animation: bumpH 0.3s; }
+    @keyframes bumpH { 25% { transform: translateX(-7px); filter: brightness(2) } 60% { transform: translateX(5px) } }
+
+    /* floating combat text */
+    .float-num {
+      position: absolute;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 14px;
+      pointer-events: none;
+      z-index: 30;
+      animation: floatUp 0.85s forwards;
+      text-shadow: 2px 2px 0 #000;
+    }
+    @keyframes floatUp {
+      0% { opacity: 0; transform: translateY(4px) scale(0.7); }
+      18% { opacity: 1; transform: translateY(-4px) scale(1.15); }
+      100% { opacity: 0; transform: translateY(-34px) scale(1); }
+    }
+
+    /* hand + combat controls */
+    #combatBottom {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(180deg, rgba(9, 7, 26, 0.6), rgba(7, 5, 20, 0.95));
+      border-top: 2px solid rgba(139, 92, 246, 0.35);
+      z-index: 5;
+      position: relative;
+    }
+    #combatHud {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px 2px;
+      font-size: 9px;
+    }
+    #energyOrb {
+      width: 46px; height: 46px;
+      flex: 0 0 46px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 34% 28%, #ffe9a3, #d4a017 58%, #7c5a00);
+      border: 2px solid #fff3c2;
+      box-shadow: 0 0 16px rgba(255, 215, 0, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      color: #231a02;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.5);
+    }
+    #drawPileBtn, #discardPileBtn, #exhaustPileBtn {
+      min-height: 34px;
+      padding: 4px 8px;
+      border: 1px solid rgba(217, 243, 255, 0.4);
+      border-radius: 6px;
+      background: rgba(18, 14, 46, 0.9);
+      color: var(--moon);
+      font-size: 9px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    #endTurnBtn {
+      margin-left: auto;
+      min-height: 44px;
+      padding: 8px 14px;
+      border: 2px solid var(--gold);
+      border-radius: 10px;
+      background: linear-gradient(135deg, #5b3b13, #8a5a16);
+      color: #fff;
+      font-size: 10px;
+      box-shadow: 0 0 14px rgba(255, 215, 0, 0.35);
+    }
+    #endTurnBtn:disabled { opacity: 0.5; }
+
+    #handWrap {
+      position: relative;
+      padding: 6px 4px calc(8px + env(safe-area-inset-bottom));
+      min-height: calc(var(--card-h) + 18px);
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+    }
+    #hand {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      width: 100%;
+      max-width: 980px;
+    }
+
+    /* ============ CARDS ============ */
+    .card {
+      width: var(--card-w);
+      height: var(--card-h);
+      flex: 0 1 auto;
+      border-radius: 10px;
+      border: 2px solid #6b5a9e;
+      background: linear-gradient(165deg, #241b4d 0%, #171132 70%, #1d1340 100%);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.55);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.14s, box-shadow 0.14s, margin 0.14s;
+      overflow: hidden;
+      touch-action: none;
+    }
+    .card .c-cost {
+      position: absolute;
+      top: -1px; left: -1px;
+      width: 26px; height: 26px;
+      border-radius: 0 0 10px 0;
+      background: radial-gradient(circle at 35% 30%, #ffe9a3, #c89414);
+      color: #231a02;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+      border: 1px solid #fff3c2;
+      z-index: 2;
+    }
+    .card .c-name {
+      margin: 4px 6px 2px 26px;
+      font-size: 7px;
+      line-height: 1.3;
+      color: var(--gold);
+      text-align: center;
+      min-height: 20px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .card .c-art {
+      font-family: system-ui, sans-serif;
+      font-size: 30px;
+      text-align: center;
+      padding: 1px 0;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+    }
+    .card .c-type {
+      font-size: 6px;
+      text-align: center;
+      color: rgba(217, 243, 255, 0.65);
+      letter-spacing: 1px;
+      padding-bottom: 2px;
+      text-transform: uppercase;
+    }
+    .card .c-text {
+      flex: 1;
+      margin: 0 5px 5px;
+      padding: 4px 3px;
+      background: rgba(8, 6, 22, 0.65);
+      border-radius: 6px;
+      font-family: 'VT323', monospace;
+      font-size: 13px;
+      line-height: 1.18;
+      color: #e9e2ff;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .card .c-text b { color: var(--gold); font-weight: normal; }
+
+    .card.attack { border-color: #a8455a; background: linear-gradient(165deg, #4d1b2b 0%, #2a1020 70%, #401326 100%); }
+    .card.skill { border-color: #4a7ba6; background: linear-gradient(165deg, #1b3a4d 0%, #101f2a 70%, #132c40 100%); }
+    .card.power { border-color: #b08a3e; background: linear-gradient(165deg, #4d3d1b 0%, #2a2010 70%, #403213 100%); }
+    .card.curse, .card.status-card { border-color: #555; background: linear-gradient(165deg, #2a2a2e 0%, #131316 70%, #1f1f24 100%); filter: saturate(0.7); }
+    .card.upgraded .c-name { color: #aef4c2; }
+    .card.unplayable-cost { filter: brightness(0.55) saturate(0.6); }
+
+    #hand .card { margin: 0 calc(min(0.4vw, 4px) - 14px); }
+    #hand .card:first-child { margin-left: 0; }
+    #hand .card:last-child { margin-right: 0; }
+    #hand .card:hover, #hand .card.sel {
+      transform: translateY(-34px) scale(1.18);
+      z-index: 20;
+      box-shadow: 0 0 18px rgba(255, 215, 0, 0.5), 0 10px 22px rgba(0,0,0,0.6);
+      margin: 0 12px;
+    }
+    #hand .card.sel { border-color: var(--gold); }
+
+    /* card rows in overlays/rewards */
+    .card-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      padding: 8px;
+    }
+    .card-row .card:hover { transform: translateY(-6px) scale(1.06); box-shadow: 0 0 16px rgba(255, 215, 0, 0.45); }
+    .card-row .card.sel { border-color: var(--gold); box-shadow: 0 0 18px rgba(255, 215, 0, 0.6); transform: scale(1.06); }
+
+    /* ============ GENERIC PANEL SCREENS (reward/shop/rest/event) ============ */
+    .panel-screen {
+      align-items: center;
+      padding: 14px 12px calc(16px + env(safe-area-inset-bottom));
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .panel-screen h2 {
+      color: var(--gold);
+      font-size: clamp(13px, 3.4vw, 20px);
+      text-align: center;
+      text-shadow: 0 0 12px rgba(255, 215, 0, 0.35);
+      margin: 6px 0 4px;
+    }
+    .panel-screen .sub {
+      font-size: 9px;
+      color: rgba(217, 243, 255, 0.75);
+      text-align: center;
+      line-height: 1.8;
+      max-width: 600px;
+      margin-bottom: 10px;
+    }
+    .panel-box {
+      width: min(680px, 96vw);
+      border: 2px solid var(--panel-edge);
+      border-radius: 12px;
+      background: var(--panel);
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 0 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .reward-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      min-height: 52px;
+      margin-bottom: 8px;
+      padding: 8px 12px;
+      border: 2px solid rgba(217, 243, 255, 0.35);
+      border-radius: 10px;
+      background: rgba(22, 17, 52, 0.9);
+      color: var(--ink);
+      font-size: 10px;
+      text-align: left;
+    }
+    .reward-item:hover { border-color: var(--gold); }
+    .reward-item .ri-ico { font-family: system-ui, sans-serif; font-size: 22px; flex: 0 0 30px; text-align: center; }
+    .reward-item.taken { opacity: 0.4; pointer-events: none; }
+    .reward-item small { display: block; font-family: 'VT323', monospace; font-size: 13px; color: rgba(217,243,255,0.8); margin-top: 3px; line-height: 1.1; }
+
+    /* shop */
+    .shop-grid { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+    .shop-entry { position: relative; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .price-tag {
+      font-size: 9px;
+      color: var(--gold);
+      background: rgba(8, 6, 22, 0.9);
+      border: 1px solid rgba(255, 215, 0, 0.5);
+      border-radius: 6px;
+      padding: 3px 7px;
+    }
+    .price-tag.cant { color: var(--rose); border-color: rgba(251, 113, 133, 0.5); }
+    .shop-entry.sold { opacity: 0.35; pointer-events: none; }
+    .shop-relic {
+      width: 78px; height: 78px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+      font-family: system-ui, sans-serif;
+      border: 2px solid rgba(255, 215, 0, 0.5);
+      border-radius: 12px;
+      background: radial-gradient(circle at 35% 30%, #342659, #181030);
+      cursor: pointer;
+    }
+    .shop-relic:hover { box-shadow: 0 0 14px rgba(255, 215, 0, 0.5); }
+
+    /* event art */
+    .event-art {
+      font-family: system-ui, sans-serif;
+      font-size: clamp(46px, 12vw, 80px);
+      text-align: center;
+      filter: drop-shadow(0 0 18px rgba(139, 92, 246, 0.55));
+      margin: 4px 0 8px;
+    }
+    .event-text {
+      font-family: 'VT323', monospace;
+      font-size: 17px;
+      line-height: 1.35;
+      color: #e9e2ff;
+      margin-bottom: 14px;
+      white-space: pre-line;
+    }
+    .event-choices { display: flex; flex-direction: column; gap: 9px; }
+    .event-choice {
+      padding: 10px 12px;
+      border: 2px solid rgba(217, 243, 255, 0.4);
+      border-radius: 10px;
+      background: rgba(24, 18, 56, 0.92);
+      color: var(--ink);
+      font-size: 10px;
+      line-height: 1.7;
+      text-align: left;
+    }
+    .event-choice:hover:not(:disabled) { border-color: var(--gold); }
+    .event-choice b { color: var(--gold); }
+    .event-choice:disabled { opacity: 0.45; }
+
+    /* ============ MODAL / OVERLAY ============ */
+    #modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(4, 3, 14, 0.78);
+      z-index: 80;
+      padding: 14px;
+    }
+    #modal.visible { display: flex; }
+    #modalBox {
+      width: min(760px, 96vw);
+      max-height: min(86dvh, 720px);
+      display: flex;
+      flex-direction: column;
+      border: 2px solid var(--panel-edge);
+      border-radius: 12px;
+      background: var(--panel);
+      box-shadow: 0 0 36px rgba(0, 0, 0, 0.7);
+      overflow: hidden;
+    }
+    #modalTitle {
+      padding: 12px 14px 8px;
+      color: var(--gold);
+      font-size: 12px;
+      text-align: center;
+      line-height: 1.5;
+    }
+    #modalBody {
+      padding: 4px 10px 12px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      font-size: 10px;
+      line-height: 1.8;
+    }
+    #modalActions {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      padding: 10px;
+      border-top: 1px solid rgba(217, 243, 255, 0.18);
+    }
+
+    .modal-list-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      padding: 7px 6px;
+      border-bottom: 1px solid rgba(217, 243, 255, 0.12);
+      font-size: 9px;
+      line-height: 1.6;
+    }
+    .modal-list-item .mico { font-family: system-ui, sans-serif; font-size: 20px; flex: 0 0 26px; text-align: center; }
+    .modal-list-item b { color: var(--gold); }
+    .modal-list-item small { color: rgba(217, 243, 255, 0.8); font-family: 'VT323', monospace; font-size: 13px; }
+
+    /* toast */
+    #toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(20% + env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      background: rgba(10, 8, 30, 0.95);
+      border: 2px solid var(--gold);
+      color: var(--ink);
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 10px;
+      z-index: 90;
+      display: none;
+      text-align: center;
+      line-height: 1.7;
+      max-width: 90vw;
+    }
+    #toast.visible { display: block; animation: toastIn 0.2s; }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(8px); } }
+
+    /* targeting hint banner */
+    #targetHint {
+      position: absolute;
+      top: 6px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(10, 8, 30, 0.92);
+      border: 1px solid var(--gold);
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 9px;
+      color: var(--gold);
+      z-index: 25;
+      display: none;
+      white-space: nowrap;
+    }
+    #targetHint.visible { display: block; }
+
+    /* turn banner */
+    #turnBanner {
+      position: absolute;
+      top: 38%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: clamp(13px, 4vw, 22px);
+      color: var(--moon);
+      text-shadow: 0 0 16px rgba(217, 243, 255, 0.6), 2px 2px 0 #000;
+      z-index: 26;
+      pointer-events: none;
+      opacity: 0;
+    }
+    #turnBanner.show { animation: bannerFlash 1s; }
+    @keyframes bannerFlash {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+      22% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+      78% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* ============ GAME OVER / VICTORY ============ */
+    #screen-gameover { align-items: center; justify-content: center; text-align: center; padding: 18px; overflow-y: auto; }
+    .go-art { font-size: clamp(50px, 13vw, 90px); font-family: system-ui, sans-serif; margin-bottom: 8px; }
+    #goTitle { color: var(--gold); font-size: clamp(16px, 4.4vw, 28px); margin-bottom: 10px; }
+    #goStats {
+      font-size: 10px;
+      line-height: 2.1;
+      color: var(--moon);
+      margin-bottom: 16px;
+      background: var(--panel);
+      border: 2px solid var(--panel-edge);
+      border-radius: 12px;
+      padding: 12px 22px;
+    }
+    #goStats b { color: var(--gold); }
+
+    @media (max-width: 700px) {
+      :root { --card-w: 96px; --card-h: 142px; }
+      .card .c-art { font-size: 23px; }
+      .card .c-text { font-size: 11px; }
+      .card .c-name { font-size: 6.5px; min-height: 17px; }
+      #hand .card { margin: 0 -17px; }
+      #hand .card:hover { transform: none; margin: 0 -17px; box-shadow: 0 4px 10px rgba(0,0,0,0.55); }
+      #hand .card.sel { transform: translateY(-46px) scale(1.32); margin: 0 16px; z-index: 20; box-shadow: 0 0 18px rgba(255, 215, 0, 0.5); }
+    }
+    @media (max-width: 420px) {
+      :root { --card-w: 86px; --card-h: 130px; }
+      #topbar { font-size: 8px; gap: 4px; }
+      .tb-stat { padding: 3px 4px; }
+    }
+    @media (min-width: 1100px) {
+      :root { --card-w: 138px; --card-h: 196px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="topbar">
+      <span class="tb-stat" id="tbName">🧒 Briar</span>
+      <span class="tb-stat" id="tbHp"><span class="ico">❤️</span><b id="tbHpVal">60/60</b></span>
+      <span class="tb-stat" id="tbCoins"><span class="ico">🪙</span><b id="tbCoinsVal">0</b></span>
+      <span class="tb-stat" id="tbFloor"><span class="ico">🚪</span><b id="tbFloorVal">1</b></span>
+      <span class="tb-spacer"></span>
+      <button class="tb-btn" id="deckBtn" type="button">🎴 Deck</button>
+      <button class="tb-btn" id="menuBtn" type="button">☰</button>
+    </div>
+    <div id="petBar"></div>
+
+    <div id="screens">
+      <!-- TITLE -->
+      <section class="screen active" id="screen-title">
+        <div>
+          <div class="title-moon">🌕</div>
+          <h1>Midnight<br>Menagerie</h1>
+          <p class="title-sub">Young Briar's pets vanished into Hollowmoor Manor. Build a deck of tricks and treats, befriend strange critters in the dark, and battle the manor's ghosts room by room — all the way to the attic.</p>
+          <div class="title-actions">
+            <button class="btn" id="newRunBtn" type="button">🕯️ New Adventure</button>
+            <button class="btn ghost" id="continueBtn" type="button" style="display:none">▶️ Continue Night</button>
+            <button class="btn ghost" id="howBtn" type="button">📖 How To Play</button>
+            <button class="btn ghost" id="compendiumBtn" type="button">🐾 Pet Compendium</button>
+            <a class="btn ghost" href="../index.html">🏠 Bot Built Arcade</a>
+          </div>
+          <p class="title-foot">A deck-building dungeon crawl • Works with mouse or touch<br>Best runs land on the <a href="../leaderboard.html?gameId=midnight-menagerie">leaderboard</a></p>
+        </div>
+      </section>
+
+      <!-- MAP -->
+      <section class="screen" id="screen-map">
+        <div id="mapHeader">Hollowmoor Manor</div>
+        <div id="mapSub">Choose your next room</div>
+        <div id="mapScroll"><div id="mapCanvasWrap"><svg id="mapSvg"></svg></div></div>
+      </section>
+
+      <!-- COMBAT -->
+      <section class="screen" id="screen-combat">
+        <div id="combatArena">
+          <div id="combatBgDeco"></div>
+          <div id="targetHint">Tap an enemy to aim — tap the card again to cancel</div>
+          <div id="turnBanner">Your Turn</div>
+          <div id="enemyRow"></div>
+          <div id="playerRow">
+            <div id="combatPets"></div>
+            <div id="playerBox">
+              <div class="status-row" id="playerStatuses"></div>
+              <div id="playerSprite">🧒</div>
+              <div class="hp-wrap">
+                <div class="hp-bar" style="width: clamp(90px, 22vw, 140px)">
+                  <div class="fill" id="pHpFill"></div>
+                  <div class="blk" id="pBlkFill" style="display:none"></div>
+                  <div class="txt" id="pHpTxt">60/60</div>
+                </div>
+                <div class="block-badge" id="pBlockBadge" style="display:none">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="combatBottom">
+          <div id="combatHud">
+            <div id="energyOrb">3/3</div>
+            <button id="drawPileBtn" type="button">📚 <span id="drawCount">0</span></button>
+            <button id="discardPileBtn" type="button">🗑️ <span id="discardCount">0</span></button>
+            <button id="exhaustPileBtn" type="button">🕳️ <span id="exhaustCount">0</span></button>
+            <button id="endTurnBtn" type="button">End Turn ➤</button>
+          </div>
+          <div id="handWrap"><div id="hand"></div></div>
+        </div>
+      </section>
+
+      <!-- REWARD -->
+      <section class="screen panel-screen" id="screen-reward">
+        <h2 id="rewardTitle">Room Cleared!</h2>
+        <p class="sub" id="rewardSub">Gather your spoils before moving on.</p>
+        <div class="panel-box" id="rewardList"></div>
+        <button class="btn" id="rewardDoneBtn" type="button">Continue ➤</button>
+      </section>
+
+      <!-- CARD PICK (reward card choice / shop browsing) -->
+      <section class="screen panel-screen" id="screen-cardpick">
+        <h2 id="cardpickTitle">Choose a Card</h2>
+        <p class="sub" id="cardpickSub">Tap a card to inspect, tap again to take it.</p>
+        <div class="card-row" id="cardpickRow"></div>
+        <button class="btn ghost" id="cardpickSkipBtn" type="button">Skip</button>
+      </section>
+
+      <!-- SHOP -->
+      <section class="screen panel-screen" id="screen-shop">
+        <h2>🛒 Peddler's Parlor</h2>
+        <p class="sub">A friendly ghost in a moth-eaten coat grins. "Spend your shinies, little keeper."<br><span id="shopCoins"></span></p>
+        <div class="panel-box">
+          <h3 style="font-size:10px;color:var(--moon);text-align:center;margin-bottom:8px">Cards</h3>
+          <div class="shop-grid" id="shopCards"></div>
+        </div>
+        <div class="panel-box">
+          <h3 style="font-size:10px;color:var(--moon);text-align:center;margin-bottom:8px">Pets & Treats</h3>
+          <div class="shop-grid" id="shopRelics"></div>
+        </div>
+        <div class="panel-box" style="text-align:center">
+          <button class="btn danger small" id="shopRemoveBtn" type="button">✂️ Forget a Card</button>
+        </div>
+        <button class="btn" id="shopLeaveBtn" type="button">Leave Shop ➤</button>
+      </section>
+
+      <!-- REST -->
+      <section class="screen panel-screen" id="screen-rest">
+        <h2>🛏️ Cozy Hideout</h2>
+        <p class="sub">A blanket fort glows with candlelight. The pets curl up beside you. Choose one comfort.</p>
+        <div class="panel-box" id="restChoices"></div>
+        <button class="btn" id="restLeaveBtn" type="button" style="display:none">Continue ➤</button>
+      </section>
+
+      <!-- EVENT -->
+      <section class="screen panel-screen" id="screen-event">
+        <div class="panel-box" style="margin-top:8px">
+          <div class="event-art" id="eventArt">❓</div>
+          <h2 id="eventTitle" style="margin-bottom:8px">Strange Room</h2>
+          <div class="event-text" id="eventText"></div>
+          <div class="event-choices" id="eventChoices"></div>
+        </div>
+      </section>
+
+      <!-- GAME OVER / VICTORY -->
+      <section class="screen" id="screen-gameover">
+        <div>
+          <div class="go-art" id="goArt">👻</div>
+          <h2 id="goTitle">The Night Ends</h2>
+          <div id="goStats"></div>
+          <div class="title-actions">
+            <button class="btn" id="goAgainBtn" type="button">🕯️ New Adventure</button>
+            <button class="btn ghost" id="goTitleBtn" type="button">🌕 Title Screen</button>
+            <a class="btn ghost" href="../leaderboard.html?gameId=midnight-menagerie">🏆 Leaderboard</a>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div id="modal">
+    <div id="modalBox">
+      <div id="modalTitle"></div>
+      <div id="modalBody"></div>
+      <div id="modalActions"></div>
+    </div>
+  </div>
+  <div id="toast"></div>
+
+  <script>
+  'use strict';
+  /* =====================================================================
+     MIDNIGHT MENAGERIE — a haunted-house deck-building roguelike
+     ===================================================================== */
+
+  /* ---------------- utils ---------------- */
+  const $ = id => document.getElementById(id);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const rand = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const shuffle = arr => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  let uidCounter = 1;
+  const uid = () => uidCounter++;
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  /* hover-capable pointer => treat as desktop (single-click to play cards) */
+  const HAS_HOVER = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+  /* ---------------- audio (tiny synth) ---------------- */
+  const Sound = {
+    ctx: null, muted: localStorage.getItem('mm2_mute') === '1',
+    ensure() { if (!this.ctx) { try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { this.ctx = null; } } if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
+    tone(freq, dur, type, vol, slide) {
+      if (this.muted) return; this.ensure(); if (!this.ctx) return;
+      const t = this.ctx.currentTime;
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = type || 'square'; o.frequency.setValueAtTime(freq, t);
+      if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, slide), t + dur);
+      g.gain.setValueAtTime((vol || 0.08), t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      o.connect(g); g.connect(this.ctx.destination);
+      o.start(t); o.stop(t + dur + 0.02);
+    },
+    click() { this.tone(660, 0.06, 'square', 0.05); },
+    play() { this.tone(520, 0.09, 'triangle', 0.09, 760); },
+    hit() { this.tone(180, 0.12, 'sawtooth', 0.1, 70); },
+    hurt() { this.tone(120, 0.18, 'sawtooth', 0.12, 50); },
+    block() { this.tone(330, 0.1, 'triangle', 0.08, 420); },
+    coin() { this.tone(880, 0.07, 'square', 0.06, 1320); this.tone(1320, 0.09, 'square', 0.05); },
+    heal() { this.tone(440, 0.12, 'sine', 0.09, 660); },
+    win() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this.tone(f, 0.16, 'triangle', 0.09), i * 110)); },
+    lose() { [330, 262, 220, 165].forEach((f, i) => setTimeout(() => this.tone(f, 0.22, 'sawtooth', 0.09), i * 150)); },
+    pet() { [660, 880].forEach((f, i) => setTimeout(() => this.tone(f, 0.1, 'triangle', 0.08), i * 80)); }
+  };
+
+  /* ---------------- status effects ---------------- */
+  const STATUS = {
+    str:      { name: 'Courage',      icon: '💪', buff: true,  desc: 'Attacks deal +X damage.' },
+    dex:      { name: 'Nimble',       icon: '🐾', buff: true,  desc: 'Cards grant +X Block.' },
+    vuln:     { name: 'Spooked',      icon: '😱', buff: false, turns: true, desc: 'Takes 50% more damage from attacks. Wears off over X turns.' },
+    weak:     { name: 'Dimmed',       icon: '🌫️', buff: false, turns: true, desc: 'Attacks deal 25% less damage. Wears off over X turns.' },
+    frail:    { name: 'Shivers',      icon: '🥶', buff: false, turns: true, desc: 'Gains 25% less Block from cards. Wears off over X turns.' },
+    poison:   { name: 'Venom',        icon: '☠️', buff: false, desc: 'Takes X damage at the start of its turn, then Venom drops by 1.' },
+    regen:    { name: 'Warmth',       icon: '💖', buff: true,  desc: 'Heals X at the end of the turn, then Warmth drops by 1.' },
+    thorns:   { name: 'Bristle',      icon: '🌵', buff: true,  desc: 'Deals X damage back to attackers.' },
+    metal:    { name: 'Tin Armor',    icon: '🛡️', buff: true,  desc: 'Gains X Block at the end of each turn.' },
+    artifact: { name: 'Lucky Charm',  icon: '✨', buff: true,  desc: 'Negates the next X debuffs.' },
+    intang:   { name: 'Ghostly',      icon: '👻', buff: true,  turns: true, desc: 'Reduces ALL damage taken to 1. Lasts X turns.' },
+    buffer:   { name: 'Bubble',       icon: '🫧', buff: true,  desc: 'Prevents the next X times HP would be lost.' },
+    ritual:   { name: 'Dark Ritual',  icon: '🔮', buff: true,  desc: 'Gains X Courage at the end of its turn.' },
+    enrage:   { name: 'Tantrum',      icon: '💢', buff: true,  desc: 'Gains X Courage whenever you play a Skill.' },
+    barricade:{ name: 'Sandbag Walls',icon: '🧱', buff: true,  desc: 'Block is not removed at the start of the turn.' },
+    pwDraw:   { name: 'Night Vision', icon: '🔦', buff: true,  desc: 'Draw +X cards each turn.' },
+    pwEnergy: { name: 'Firefly Crown',icon: '🪔', buff: true,  desc: 'Gain +X Energy each turn.' },
+    pwStr:    { name: 'Pack Tactics', icon: '🐺', buff: true,  desc: 'Gain X Courage at the start of each turn.' },
+    echo:     { name: 'Echo Charm',   icon: '🔁', buff: true,  desc: 'The first card you play each turn is played twice.' },
+    doubleAtk:{ name: 'Double Trouble',icon:'👯', buff: true,  desc: 'Your next X Attacks are played twice.' },
+    energyNext:{ name: 'Deep Breath', icon: '🌬️', buff: true,  desc: 'Gain X extra Energy next turn.' },
+    grow:     { name: 'Looming',      icon: '📈', buff: true,  desc: 'Attack damage grows by X each time it attacks.' }
+  };
+
+  /* ---------------- card database ----------------
+     target: 'enemy' | 'all' | 'self'
+     tokens: {d} damage, {b} block, {m}/{m2} magic, {w} draw, {h} heal, {e} energy, {x} hits */
+  const CARDS = {
+    /* ===== starters ===== */
+    jab:      { name: 'Flashlight Jab', icon: '🔦', type: 'attack', rarity: 'starter', cost: 1, target: 'enemy', d: 6, up: { d: 9 }, text: 'Deal {d} damage.' },
+    hide:     { name: 'Hide!', icon: '🫣', type: 'skill', rarity: 'starter', cost: 1, target: 'self', b: 5, up: { b: 8 }, text: 'Gain {b} Block.' },
+    bonk:     { name: 'Big Bonk', icon: '🥖', type: 'attack', rarity: 'starter', cost: 2, target: 'enemy', d: 8, m: 2, up: { d: 10, m: 3 }, sp: 'bonk', text: 'Deal {d} damage. Apply {m} Spooked.' },
+
+    /* ===== common attacks ===== */
+    pounce:   { name: 'Pounce', icon: '🐈', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', d: 4, hits: 2, up: { d: 6 }, text: 'Deal {d} damage twice.' },
+    loyalfang:{ name: 'Loyal Fang', icon: '🐕', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', d: 7, m: 4, up: { d: 9, m: 6 }, sp: 'vsSpooked', text: 'Deal {d} damage. Spooked targets take {m} more.' },
+    tailwhip: { name: 'Tail Whip', icon: '🦫', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', d: 3, m: 1, up: { d: 5 }, sp: 'applyWeak', text: 'Deal {d} damage. Apply {m} Dimmed.' },
+    acorn:    { name: 'Acorn Toss', icon: '🌰', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', d: 5, w: 1, up: { d: 7 }, text: 'Deal {d} damage. Draw {w} card.' },
+    spark:    { name: 'Firefly Spark', icon: '🌟', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', d: 6, up: { d: 9 }, sp: 'killEnergy', text: 'Deal {d} damage. If this kills, gain 1 Energy.' },
+    peck:     { name: 'Peck Flurry', icon: '🐦‍⬛', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', d: 2, hits: 3, up: { hits: 4 }, text: 'Deal {d} damage {x} times.' },
+    slobber:  { name: 'Slobber', icon: '💦', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', d: 4, m: 2, up: { d: 6, m: 3 }, sp: 'applyWeak', text: 'Deal {d} damage. Apply {m} Dimmed.' },
+    bump:     { name: 'Bump in the Dark', icon: '💥', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', d: 10, up: { d: 13 }, sp: 'addDizzy', text: 'Deal {d} damage. Shuffle a Dizzy into your draw pile.' },
+    staticfur:{ name: 'Static Fur', icon: '⚡', type: 'attack', rarity: 'common', cost: 1, target: 'all', d: 4, up: { d: 6 }, text: 'Deal {d} damage to ALL enemies.' },
+    spidernip:{ name: 'Spider Nip', icon: '🕷️', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', d: 4, m: 2, up: { d: 5, m: 3 }, sp: 'applyPoison', text: 'Deal {d} damage. Apply {m} Venom.' },
+    fetch:    { name: 'Fetch!', icon: '🥏', type: 'attack', rarity: 'common', cost: 2, target: 'enemy', d: 12, w: 1, up: { d: 16 }, text: 'Deal {d} damage. Draw {w} card.' },
+    cannonball:{ name: 'Hamster Cannonball', icon: '🐹', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', d: 5, up: { d: 8 }, exhaust: true, text: 'Deal {d} damage. Exhaust.' },
+    lanternsweep:{ name: 'Lantern Sweep', icon: '🏮', type: 'attack', rarity: 'common', cost: 2, target: 'all', d: 8, up: { d: 11 }, text: 'Deal {d} damage to ALL enemies.' },
+    guarddog: { name: 'Guard Dog', icon: '🦮', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', d: 6, b: 3, up: { d: 8, b: 5 }, text: 'Deal {d} damage. Gain {b} Block.' },
+
+    /* ===== common skills ===== */
+    blanketfort:{ name: 'Blanket Fort', icon: '⛺', type: 'skill', rarity: 'common', cost: 1, target: 'self', b: 8, up: { b: 11 }, text: 'Gain {b} Block.' },
+    hiss:     { name: 'Hiss', icon: '🐍', type: 'skill', rarity: 'common', cost: 0, target: 'enemy', m: 1, up: { m: 2 }, sp: 'applyVuln', text: 'Apply {m} Spooked.' },
+    quickpaws:{ name: 'Quick Paws', icon: '🐾', type: 'skill', rarity: 'common', cost: 0, target: 'self', b: 3, w: 1, up: { b: 5 }, text: 'Gain {b} Block. Draw {w} card.' },
+    sniffout: { name: 'Sniff Out', icon: '👃', type: 'skill', rarity: 'common', cost: 1, target: 'self', w: 3, up: { w: 4 }, sp: 'discard1', text: 'Draw {w} cards. Discard 1 card.' },
+    treattoss:{ name: 'Treat Toss', icon: '🦴', type: 'skill', rarity: 'common', cost: 0, target: 'self', b: 5, up: { b: 8 }, exhaust: true, text: 'Gain {b} Block. Exhaust.' },
+    squeak:   { name: 'Squeak Decoy', icon: '🐭', type: 'skill', rarity: 'common', cost: 1, target: 'all', m: 2, up: { m: 3 }, sp: 'weakAll', text: 'Apply {m} Dimmed to ALL enemies.' },
+    catreflex:{ name: 'Cat Reflexes', icon: '🤸', type: 'skill', rarity: 'common', cost: 1, target: 'self', b: 5, w: 1, up: { b: 8 }, text: 'Gain {b} Block. Draw {w} card.' },
+    pocketsand:{ name: 'Pocket Sand', icon: '🏖️', type: 'skill', rarity: 'common', cost: 0, target: 'enemy', m: 1, up: { m: 2 }, exhaust: true, sp: 'sandBlind', text: 'Apply {m} Dimmed and {m} Spooked. Exhaust.' },
+    burrow:   { name: 'Burrow', icon: '🕳️', type: 'skill', rarity: 'common', cost: 1, target: 'self', b: 6, up: { b: 9 }, sp: 'energyNext1', text: 'Gain {b} Block. Gain 1 extra Energy next turn.' },
+
+    /* ===== uncommon attacks ===== */
+    moonfang: { name: 'Moon Fang', icon: '🌙', type: 'attack', rarity: 'uncommon', cost: 2, target: 'enemy', d: 10, m: 3, up: { d: 14, m: 5 }, sp: 'killHeal', text: 'Deal {d} damage. If this kills, heal {m} HP.' },
+    echobark: { name: 'Echo Bark', icon: '📣', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', d: 5, up: { d: 7 }, sp: 'echoBark', text: 'Deal {d} damage. If you played another Attack this turn, deal {d} again.' },
+    tangleweb:{ name: 'Tangle Web', icon: '🕸️', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', d: 6, m: 2, up: { d: 8, m: 3 }, sp: 'applyPoison', text: 'Deal {d} damage. Apply {m} Venom.' },
+    fireflyburst:{ name: 'Firefly Burst', icon: '✨', type: 'attack', rarity: 'uncommon', cost: 1, target: 'all', d: 7, up: { d: 10 }, exhaust: true, text: 'Deal {d} damage to ALL enemies. Exhaust.' },
+    thunderpaw:{ name: 'Thunder Paw', icon: '🌩️', type: 'attack', rarity: 'uncommon', cost: 2, target: 'enemy', d: 16, m: 1, up: { d: 22 }, sp: 'selfWeak', text: 'Deal {d} damage. You gain {m} Dimmed.' },
+    pileon:   { name: 'Pile On!', icon: '🐶', type: 'attack', rarity: 'uncommon', cost: 2, target: 'enemy', d: 3, up: { d: 4 }, sp: 'perPet', text: 'Deal {d} damage once per pet you have.' },
+    crowswarm:{ name: 'Crow Swarm', icon: '🌑', type: 'attack', rarity: 'uncommon', cost: 2, target: 'enemy', d: 4, hits: 4, up: { hits: 5 }, text: 'Deal {d} damage {x} times.' },
+    snakesqueeze:{ name: 'Snake Squeeze', icon: '🐍', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', m: 3, up: { m: 4 }, sp: 'venomScale', text: 'Deal damage equal to {m}× the Venom on the target.' },
+    lanternflare:{ name: 'Lantern Flare', icon: '🔆', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', d: 8, up: { d: 12 }, pierce: true, text: 'Deal {d} damage. Ignores Block.' },
+    stampede: { name: 'Stampede', icon: '🐾', type: 'attack', rarity: 'uncommon', cost: 3, target: 'all', d: 9, m: 1, up: { d: 12, m: 2 }, sp: 'vulnAll', text: 'Deal {d} damage and apply {m} Spooked to ALL enemies.' },
+
+    /* ===== uncommon skills ===== */
+    grouphug: { name: 'Group Hug', icon: '🤗', type: 'skill', rarity: 'uncommon', cost: 1, target: 'self', b: 3, m: 1, up: { b: 5 }, sp: 'perPetBlock', text: 'Gain {b} Block, plus {m} per pet you have.' },
+    catnip:   { name: 'Catnip', icon: '🌿', type: 'skill', rarity: 'uncommon', cost: 0, target: 'self', e: 2, w: 0, up: { w: 1, text: 'Gain {e} Energy. Draw {w} card. Exhaust.' }, exhaust: true, text: 'Gain {e} Energy. Exhaust.' },
+    playdead: { name: 'Play Dead', icon: '💀', type: 'skill', rarity: 'uncommon', cost: 1, target: 'self', b: 12, up: { b: 16 }, ethereal: true, text: 'Gain {b} Block. Ethereal.' },
+    warmmilk: { name: 'Warm Milk', icon: '🥛', type: 'skill', rarity: 'uncommon', cost: 1, target: 'self', h: 4, up: { h: 6 }, exhaust: true, text: 'Heal {h} HP. Exhaust.' },
+    whistle:  { name: 'Tin Whistle', icon: '🎵', type: 'skill', rarity: 'uncommon', cost: 1, target: 'self', m: 2, up: { m: 3 }, exhaust: true, sp: 'energyNextM', text: 'Gain {m} extra Energy next turn. Exhaust.' },
+    cobwebnet:{ name: 'Cobweb Net', icon: '🕸️', type: 'skill', rarity: 'uncommon', cost: 1, target: 'all', m: 3, up: { m: 4 }, sp: 'poisonAll', text: 'Apply {m} Venom to ALL enemies.' },
+    midnightsnack:{ name: 'Midnight Snack', icon: '🥪', type: 'skill', rarity: 'uncommon', cost: 1, target: 'self', b: 4, w: 2, up: { b: 6 }, text: 'Gain {b} Block. Draw {w} cards.' },
+    purr:     { name: 'Purr Therapy', icon: '😻', type: 'skill', rarity: 'uncommon', cost: 1, target: 'self', m: 3, up: { m: 4 }, exhaust: true, sp: 'regenSelf', text: 'Gain {m} Warmth. Exhaust.' },
+    boo:      { name: 'BOO!', icon: '👻', type: 'skill', rarity: 'uncommon', cost: 1, target: 'all', m: 2, up: { m: 3 }, sp: 'vulnAllOnly', text: 'Apply {m} Spooked to ALL enemies.' },
+    doubletrouble:{ name: 'Double Trouble', icon: '👯', type: 'skill', rarity: 'uncommon', cost: 1, target: 'self', m: 1, up: { m: 2 }, sp: 'doubleNext', text: 'Your next {m} Attack(s) are played twice.' },
+
+    /* ===== uncommon powers ===== */
+    hedgecurl:{ name: 'Hedgehog Curl', icon: '🦔', type: 'power', rarity: 'uncommon', cost: 1, target: 'self', m: 3, up: { m: 4 }, sp: 'powerThorns', text: 'Gain {m} Bristle.' },
+    tinsoldier:{ name: 'Tin Soldier', icon: '🪖', type: 'power', rarity: 'uncommon', cost: 1, target: 'self', m: 3, up: { m: 4 }, sp: 'powerMetal', text: 'Gain {m} Tin Armor.' },
+    softpaws: { name: 'Soft Paws', icon: '🧦', type: 'power', rarity: 'uncommon', cost: 1, target: 'self', m: 2, up: { m: 3 }, sp: 'powerDex', text: 'Gain {m} Nimble.' },
+    warpaint: { name: 'War Paint', icon: '🎨', type: 'power', rarity: 'uncommon', cost: 1, target: 'self', m: 2, up: { m: 3 }, sp: 'powerStr', text: 'Gain {m} Courage.' },
+
+    /* ===== rare attacks ===== */
+    moonsmash:{ name: 'Moonlight Smash', icon: '🌕', type: 'attack', rarity: 'rare', cost: 3, target: 'enemy', d: 24, up: { d: 32 }, text: 'Deal {d} damage.' },
+    pawflurry:{ name: 'Paw Flurry', icon: '🌀', type: 'attack', rarity: 'rare', cost: -1, target: 'enemy', d: 4, up: { d: 5 }, sp: 'xCost', text: 'Spend all Energy. Deal {d} damage that many times.' },
+    ghostchomp:{ name: 'Ghost Chomp', icon: '🦷', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', d: 14, h: 4, up: { d: 18, h: 6 }, exhaust: true, sp: 'lifesteal', text: 'Deal {d} damage. Heal {h} HP. Exhaust.' },
+    finalpounce:{ name: 'Final Pounce', icon: '🐆', type: 'attack', rarity: 'rare', cost: 1, target: 'enemy', d: 10, up: { d: 14 }, sp: 'doubleVsSpooked', text: 'Deal {d} damage. Doubled against Spooked targets.' },
+    meteorhairball:{ name: 'Meteor Hairball', icon: '☄️', type: 'attack', rarity: 'rare', cost: 2, target: 'all', d: 12, up: { d: 16 }, text: 'Deal {d} damage to ALL enemies.' },
+
+    /* ===== rare skills ===== */
+    ninelives:{ name: 'Nine Lives', icon: '🐱', type: 'skill', rarity: 'rare', cost: 1, target: 'self', m: 1, up: { m: 2 }, exhaust: true, sp: 'bufferSelf', text: 'Gain {m} Bubble. Exhaust.' },
+    hideseek: { name: 'Hide & Seek', icon: '🙈', type: 'skill', rarity: 'rare', cost: 1, target: 'self', m: 1, up: { cost: 0 }, ethereal: true, exhaust: true, sp: 'intangSelf', text: 'Gain {m} Ghostly. Ethereal. Exhaust.' },
+    venomfountain:{ name: 'Venom Fountain', icon: '⛲', type: 'skill', rarity: 'rare', cost: 2, target: 'all', m: 2, up: { m: 3 }, exhaust: true, sp: 'venomMult', text: 'Multiply the Venom on ALL enemies by {m}. Exhaust.' },
+    petparade:{ name: 'Pet Parade', icon: '🎪', type: 'skill', rarity: 'rare', cost: 2, target: 'self', b: 5, w: 2, m: 1, up: { b: 7, m: 2 }, exhaust: true, sp: 'parade', text: 'Gain {m} Courage, {m} Nimble, {b} Block. Draw {w} cards. Exhaust.' },
+    cuddlepile:{ name: 'Cuddle Pile', icon: '🛌', type: 'skill', rarity: 'rare', cost: 2, target: 'self', h: 10, up: { h: 14 }, exhaust: true, text: 'Heal {h} HP. Exhaust.' },
+
+    /* ===== rare powers ===== */
+    nightvision:{ name: 'Night Vision', icon: '🔦', type: 'power', rarity: 'rare', cost: 1, target: 'self', m: 1, up: { cost: 0 }, sp: 'powerDraw', text: 'Draw {m} additional card each turn.' },
+    packtactics:{ name: 'Pack Tactics', icon: '🐺', type: 'power', rarity: 'rare', cost: 3, target: 'self', m: 2, up: { m: 3 }, sp: 'powerStrTurn', text: 'Gain {m} Courage at the start of each turn.' },
+    guardianspirit:{ name: 'Guardian Spirit', icon: '🧱', type: 'power', rarity: 'rare', cost: 2, target: 'self', up: { cost: 1 }, sp: 'powerBarricade', text: 'Block is no longer removed at the start of your turn.' },
+    fireflycrown:{ name: 'Firefly Crown', icon: '🪔', type: 'power', rarity: 'rare', cost: 3, target: 'self', m: 1, up: { cost: 2 }, sp: 'powerEnergy', text: 'Gain {m} extra Energy at the start of each turn.' },
+    echocharm:{ name: 'Echo Charm', icon: '🔁', type: 'power', rarity: 'rare', cost: 2, target: 'self', up: { cost: 1 }, sp: 'powerEcho', text: 'The first card you play each turn is played twice.' },
+
+    /* ===== status cards ===== */
+    dizzy:    { name: 'Dizzy', icon: '💫', type: 'status', rarity: 'special', cost: -2, target: 'self', ethereal: true, unplayable: true, text: 'Unplayable. Ethereal.' },
+    fright:   { name: 'Fright', icon: '😨', type: 'status', rarity: 'special', cost: -2, target: 'self', unplayable: true, sp: 'frightEnd', text: 'Unplayable. At the end of your turn, take 2 damage while in hand.' },
+    slimeglob:{ name: 'Slime Glob', icon: '🟢', type: 'status', rarity: 'special', cost: 1, target: 'self', exhaust: true, text: 'Exhaust.' },
+
+    /* ===== curses ===== */
+    nightmare:{ name: 'Nightmare', icon: '🌚', type: 'curse', rarity: 'special', cost: -2, target: 'self', unplayable: true, text: 'Unplayable.' },
+    coldspot: { name: 'Cold Spot', icon: '🧊', type: 'curse', rarity: 'special', cost: -2, target: 'self', unplayable: true, sp: 'coldEnd', text: 'Unplayable. At the end of your turn, lose 1 HP while in hand.' },
+    heavychains:{ name: 'Heavy Chains', icon: '⛓️', type: 'curse', rarity: 'special', cost: -2, target: 'self', unplayable: true, text: 'Unplayable.' }
+  };
+  Object.keys(CARDS).forEach(k => { CARDS[k].id = k; });
+
+  /* ---------------- card helpers ---------------- */
+  function makeCard(id, upgraded) { return { uid: uid(), id, up: !!upgraded }; }
+  function cdef(c) { return CARDS[c.id]; }
+  function cval(c, key) {
+    const d = cdef(c);
+    if (c.up && d.up && d.up[key] != null) return d.up[key];
+    return d[key];
+  }
+  function cardCost(c) {
+    const v = cval(c, 'cost');
+    return v;
+  }
+  function cardName(c) { return cdef(c).name + (c.up ? '+' : ''); }
+  function cardPoolByRarity(rarity) {
+    return Object.values(CARDS).filter(d => d.rarity === rarity);
+  }
+  function rollRewardRarity(eliteOrBoss) {
+    const r = Math.random() * 100;
+    if (eliteOrBoss === 'boss') return 'rare';
+    if (eliteOrBoss === 'elite') { if (r < 10) return 'rare'; if (r < 50) return 'uncommon'; return 'common'; }
+    if (r < 4) return 'rare';
+    if (r < 37) return 'uncommon';
+    return 'common';
+  }
+  function randomCardsForReward(n, eliteOrBoss) {
+    const out = []; const used = new Set();
+    let guard = 0;
+    while (out.length < n && guard++ < 200) {
+      const rarity = rollRewardRarity(eliteOrBoss);
+      const d = pick(cardPoolByRarity(rarity));
+      if (used.has(d.id)) continue;
+      used.add(d.id);
+      out.push(makeCard(d.id));
+    }
+    return out;
+  }
+
+  /* ---------------- pets (relics) ----------------
+     hooks used by engine: combatStart, turnStart, turnEnd, combatEnd,
+     onEnemyDeath, onKillHeal, onPickup, afterAttack, onCardPlay, special flags */
+  const PETS = {
+    scout:    { name: 'Scout the Pup', icon: '🐕', rarity: 'starter', desc: 'Heal 5 HP after each combat.' },
+    inky:     { name: 'Inky the Cat', icon: '🐈‍⬛', rarity: 'common', desc: 'Draw 2 extra cards on your first turn each combat.' },
+    biscuit:  { name: 'Biscuit the Hamster', icon: '🐹', rarity: 'common', desc: 'Start each combat with 5 Block.' },
+    beaky:    { name: 'Captain Beaky', icon: '🦜', rarity: 'common', desc: 'At the start of combat, apply 1 Dimmed to ALL enemies.' },
+    tank:     { name: 'Tank the Tortoise', icon: '🐢', rarity: 'common', desc: 'Start each combat with 2 Tin Armor.' },
+    clover:   { name: 'Clover the Rabbit', icon: '🐇', rarity: 'common', desc: 'On pickup: +7 Max HP.' },
+    pickles:  { name: 'Pickles the Hedgehog', icon: '🦔', rarity: 'common', desc: 'Start each combat with 2 Bristle.' },
+    crumb:    { name: 'Crumb the Mouse', icon: '🐭', rarity: 'common', desc: 'Gain 12 extra coins from each combat victory.' },
+    webster:  { name: 'Webster the Spider', icon: '🕷️', rarity: 'common', desc: 'At the start of combat, apply 1 Venom to ALL enemies.' },
+    toadstool:{ name: 'Toadstool the Toad', icon: '🐸', rarity: 'common', desc: 'The first time you fall below 50% HP each combat, gain 12 Block.' },
+    newt:     { name: 'Sir Newt', icon: '🦎', rarity: 'common', desc: 'Whenever you play a Power, draw a card.' },
+    murk:     { name: 'Murk the Crow', icon: '🐦‍⬛', rarity: 'common', desc: 'Whenever an enemy dies, draw a card.' },
+    buzz:     { name: 'Buzz the Bee', icon: '🐝', rarity: 'common', desc: 'At the start of combat, deal 3 damage to ALL enemies.' },
+    ember:    { name: 'Ember the Fox', icon: '🦊', rarity: 'uncommon', desc: 'Your first Attack each turn deals +4 damage.' },
+    hoot:     { name: 'Professor Hoot', icon: '🦉', rarity: 'uncommon', desc: 'Card rewards offer 4 choices instead of 3.' },
+    slinky:   { name: 'Slinky the Snake', icon: '🐍', rarity: 'uncommon', desc: 'Whenever you apply Venom, apply 1 more.' },
+    bandit:   { name: 'Bandit the Raccoon', icon: '🦝', rarity: 'uncommon', desc: 'On pickup: gain 30 coins. Shop prices 20% lower.' },
+    flutter:  { name: 'Flutter the Bat', icon: '🦇', rarity: 'uncommon', desc: 'Heal 2 HP whenever an enemy dies.' },
+    nutkin:   { name: 'Nutkin the Squirrel', icon: '🐿️', rarity: 'uncommon', desc: 'Gain 1 extra Energy on your first turn each combat.' },
+    jewel:    { name: 'Jewel the Beetle', icon: '🪲', rarity: 'uncommon', desc: 'On pickup: +1 Treat slot.' },
+    duchess:  { name: 'Duchess the Poodle', icon: '🐩', rarity: 'uncommon', desc: 'Whenever a card grants you Block, gain 1 more.' },
+    puddles:  { name: 'Puddles the Duck', icon: '🦆', rarity: 'uncommon', desc: 'Start each combat with 1 Nimble.' },
+    chestnut: { name: 'Chestnut the Pony', icon: '🐴', rarity: 'uncommon', desc: 'Start each combat with 1 Courage.' },
+    smolder:  { name: 'Smolder the Drakeling', icon: '🐉', rarity: 'rare', desc: 'At the start of your turn, deal 2 damage to ALL enemies.' },
+    stuffing: { name: 'Mr. Stuffing', icon: '🧸', rarity: 'rare', desc: 'If you would die, survive at 1 HP instead. Once per night.' },
+    luna:     { name: 'Luna the Wolf Pup', icon: '🐺', rarity: 'rare', desc: 'Whenever you play a 3rd Attack in one turn, gain 1 Courage for that combat.' },
+    plume:    { name: 'Plume the Peacock', icon: '🦚', rarity: 'rare', desc: 'Start each combat with 1 Lucky Charm.' },
+    goosey:   { name: 'Goosey the Goose', icon: '🪿', rarity: 'rare', desc: 'Enemies start each combat with 1 Spooked.' },
+    puff:     { name: 'Puff the Pufferfish', icon: '🐡', rarity: 'rare', desc: 'Keep up to 6 Block at the start of your turn.' },
+    ribbon:   { name: 'Ribbon the Ghost Cat', icon: '🎀', rarity: 'rare', desc: 'At the end of your turn, heal 1 HP.' },
+    /* boss pets */
+    voidkit:  { name: 'Void Kitten', icon: '🌑', rarity: 'boss', desc: '+1 Energy each turn. Start each combat with 1 Spooked.' },
+    bonepup:  { name: 'Bone Pup', icon: '💀', rarity: 'boss', desc: '+1 Energy each turn. You can no longer heal at Cozy Hideouts.' },
+    crownedtoad:{ name: 'Crowned Toad', icon: '👑', rarity: 'boss', desc: '+1 Energy each turn. You can no longer use Treats.' },
+    oracleowl:{ name: 'Oracle Owl', icon: '🔮', rarity: 'boss', desc: 'Draw +1 card each turn.' },
+    velvetcollar:{ name: 'Velvet Collar', icon: '🎗️', rarity: 'boss', desc: 'On pickup: +22 Max HP.' },
+    mirrorlocket:{ name: 'Mirror Locket', icon: '🪞', rarity: 'boss', desc: 'The first Attack you play each combat is played twice.' }
+  };
+  Object.keys(PETS).forEach(k => { PETS[k].id = k; });
+  function petPool(rarity, owned) {
+    return Object.values(PETS).filter(p => p.rarity === rarity && !owned.includes(p.id));
+  }
+  function randomPet(owned, rarities) {
+    const pools = (rarities || ['common', 'uncommon', 'rare']).flatMap(r => petPool(r, owned));
+    if (!pools.length) return null;
+    return pick(pools).id;
+  }
+
+  /* ---------------- treats (potions) ---------------- */
+  const TREATS = {
+    cookie:   { name: 'Moon Cookie', icon: '🍪', desc: 'Heal 10 HP.', combatOnly: false },
+    milk:     { name: 'Warm Milk Jug', icon: '🥛', desc: 'Gain 12 Block.', combatOnly: true },
+    candycorn:{ name: 'Candy Corn', icon: '🍬', desc: 'Gain 2 Energy.', combatOnly: true },
+    honey:    { name: 'Honey Jar', icon: '🍯', desc: 'Gain 2 Courage this combat.', combatOnly: true },
+    spiderjuice:{ name: 'Spider Juice', icon: '🧪', desc: 'Apply 6 Venom to a random enemy.', combatOnly: true },
+    sourgrapes:{ name: 'Sour Grapes', icon: '🍇', desc: 'Apply 2 Dimmed and 2 Spooked to ALL enemies.', combatOnly: true },
+    donut:    { name: 'Dusty Donut', icon: '🍩', desc: 'Draw 3 cards.', combatOnly: true },
+    poprocks: { name: 'Pop Rocks', icon: '🧨', desc: 'Deal 12 damage to a random enemy.', combatOnly: true },
+    bubblegum:{ name: 'Bubble Gum', icon: '🫧', desc: 'Gain 1 Bubble.', combatOnly: true },
+    pepper:   { name: 'Ghost Pepper', icon: '🌶️', desc: 'Deal 6 damage to ALL enemies.', combatOnly: true },
+    cloverleaf:{ name: 'Lucky Clover', icon: '🍀', desc: 'Gain 1 Lucky Charm.', combatOnly: true }
+  };
+  Object.keys(TREATS).forEach(k => { TREATS[k].id = k; });
+  const randomTreat = () => pick(Object.keys(TREATS));
+
+  /* ---------------- enemy database ----------------
+     moves: d/hits = attack, b = block, fx = extra effects
+     ai(self, S) returns a move key; self.mv = move history */
+  const ENEMIES = {
+    /* ===== ACT 1 — the Ground Floor ===== */
+    graverat: {
+      name: 'Grave Rat', icon: '🐀', hp: [13, 17], act: 1,
+      moves: {
+        gnaw:   { name: 'Gnaw', type: 'attack', d: 5 },
+        scurry: { name: 'Scurry', type: 'block', b: 5 },
+        nibble: { name: 'Nibble', type: 'attack', d: 3, fx: { weak: 1 } }
+      },
+      ai(self) {
+        const r = Math.random();
+        if (self.last === 'gnaw') return r < 0.55 ? 'scurry' : 'nibble';
+        return r < 0.62 ? 'gnaw' : (r < 0.84 ? 'nibble' : 'scurry');
+      }
+    },
+    wickwisp: {
+      name: 'Wick Wisp', icon: '🕯️', hp: [16, 20], act: 1,
+      moves: {
+        singe:   { name: 'Singe', type: 'attack', d: 4 },
+        flicker: { name: 'Flicker', type: 'buff', fx: { str: 1 } },
+        flare:   { name: 'Flare', type: 'attack', d: 7 }
+      },
+      ai(self) {
+        if (self.turn % 3 === 1) return 'flicker';
+        return Math.random() < 0.5 ? 'singe' : 'flare';
+      }
+    },
+    sheetsneak: {
+      name: 'Sheet Sneak', icon: '👻', hp: [22, 26], act: 1,
+      moves: {
+        spookySwipe: { name: 'Spooky Swipe', type: 'attack', d: 7 },
+        vanish:      { name: 'Vanish', type: 'block', b: 6 },
+        wail:        { name: 'Wail', type: 'debuff', fx: { vulnP: 2 } }
+      },
+      ai(self) {
+        if (self.turn === 1) return 'wail';
+        if (self.last === 'spookySwipe') return Math.random() < 0.6 ? 'vanish' : 'spookySwipe';
+        return 'spookySwipe';
+      }
+    },
+    madbroom: {
+      name: 'Mad Broom', icon: '🧹', hp: [24, 28], act: 1,
+      moves: {
+        whack: { name: 'Whack', type: 'attack', d: 6 },
+        sweep: { name: 'Big Sweep', type: 'attack', d: 9 },
+        dust:  { name: 'Dust Cloud', type: 'debuff', fx: { weakP: 2 } }
+      },
+      ai(self) {
+        if (self.turn % 3 === 0) return 'sweep';
+        return Math.random() < 0.7 ? 'whack' : 'dust';
+      }
+    },
+    dishgremlin: {
+      name: 'Dish Gremlin', icon: '🍽️', hp: [18, 22], act: 1,
+      moves: {
+        plates:  { name: 'Plate Toss', type: 'attack', d: 3, hits: 2 },
+        clatter: { name: 'Clatter', type: 'buff', fx: { strAll: 1 } },
+        smash:   { name: 'Smash', type: 'attack', d: 7 }
+      },
+      ai(self, S) {
+        const others = S.enemies.filter(e => e.hp > 0).length > 1;
+        if (others && self.turn % 2 === 0) return 'clatter';
+        return Math.random() < 0.6 ? 'plates' : 'smash';
+      }
+    },
+    creakychair: {
+      name: 'Creaky Chair', icon: '🪑', hp: [28, 32], act: 1,
+      moves: {
+        kick:    { name: 'Leg Kick', type: 'attack', d: 5 },
+        brace:   { name: 'Brace', type: 'block', b: 8, fx: { thorns: 1 } },
+        topple:  { name: 'Topple Over', type: 'attack', d: 10 }
+      },
+      ai(self) {
+        if (self.turn === 1) return 'brace';
+        if (self.last === 'topple') return 'brace';
+        return Math.random() < 0.55 ? 'kick' : 'topple';
+      }
+    },
+    /* ===== ACT 1 elites ===== */
+    dustwidow: {
+      name: 'Dust Widow', icon: '🕷️', hp: [44, 50], act: 1, elite: true,
+      moves: {
+        bite:  { name: 'Widow Bite', type: 'attack', d: 9, fx: { poisonP: 3 } },
+        web:   { name: 'Sticky Web', type: 'debuff', fx: { weakP: 2, frailP: 2 } },
+        skitter:{ name: 'Skitter', type: 'block', b: 9 }
+      },
+      ai(self) {
+        if (self.turn === 1) return 'web';
+        if (self.last === 'bite') return Math.random() < 0.5 ? 'skitter' : 'web';
+        return 'bite';
+      }
+    },
+    hauntedarmor: {
+      name: 'Haunted Armor', icon: '🛡️', hp: [48, 54], act: 1, elite: true,
+      moves: {
+        slash:  { name: 'Gauntlet Slash', type: 'attack', d: 10 },
+        bulwark:{ name: 'Bulwark', type: 'block', b: 11, fx: { metal: 2 } },
+        crush:  { name: 'Helm Crush', type: 'attack', d: 14 }
+      },
+      ai(self) {
+        if (self.turn === 1) return 'bulwark';
+        if (self.last === 'crush') return 'bulwark';
+        return Math.random() < 0.6 ? 'slash' : 'crush';
+      }
+    },
+    jackinbox: {
+      name: 'Jack-in-the-Box', icon: '🤡', hp: [42, 46], act: 1, elite: true,
+      moves: {
+        windup: { name: 'Wind Up', type: 'buff', fx: { str: 2 }, b: 6 },
+        pop:    { name: 'POP!', type: 'attack', d: 16 },
+        jangle: { name: 'Jangle', type: 'attack', d: 4, hits: 2 }
+      },
+      ai(self) {
+        if (self.last === 'windup') return 'pop';
+        if (self.last === 'pop') return 'jangle';
+        return Math.random() < 0.5 ? 'windup' : 'jangle';
+      }
+    },
+    /* ===== ACT 1 bosses ===== */
+    belfrybeast: {
+      name: 'The Belfry Beast', icon: '🦇', hp: [88, 88], act: 1, boss: true,
+      moves: {
+        swarm:   { name: 'Bat Swarm', type: 'attack', d: 4, hits: 3 },
+        screech: { name: 'Screech', type: 'debuff', fx: { weakP: 2, frailP: 2 } },
+        drain:   { name: 'Drain', type: 'attack', d: 8, fx: { selfHeal: 8 } },
+        gorge:   { name: 'Gorge', type: 'buff', fx: { str: 2 } }
+      },
+      ai(self) {
+        const cycle = ['screech', 'swarm', 'drain', 'swarm', 'gorge'];
+        return cycle[(self.turn - 1) % cycle.length];
+      }
+    },
+    gluttonoven: {
+      name: 'The Glutton Oven', icon: '🔥', hp: [92, 92], act: 1, boss: true,
+      moves: {
+        belch: { name: 'Belch Flame', type: 'attack', d: 10, fx: { addStatusCard: 'fright' } },
+        stoke: { name: 'Stoke Coals', type: 'buff', fx: { str: 2 }, b: 8 },
+        slam:  { name: 'Iron Door Slam', type: 'attack', d: 15 }
+      },
+      ai(self) {
+        const cycle = ['stoke', 'belch', 'slam'];
+        return cycle[(self.turn - 1) % cycle.length];
+      }
+    },
+
+    /* ===== ACT 2 — the Upper Halls ===== */
+    mirrormimic: {
+      name: 'Mirror Mimic', icon: '🪞', hp: [30, 36], act: 2,
+      moves: {
+        claw:    { name: 'Mimic Claw', type: 'attack', d: 9 },
+        reflect: { name: 'Reflect', type: 'block', b: 8, fx: { thorns: 2 } },
+        shatter: { name: 'Shatter Glare', type: 'debuff', fx: { vulnP: 2 } }
+      },
+      ai(self) {
+        if (self.turn === 1) return 'reflect';
+        if (self.last === 'claw') return Math.random() < 0.5 ? 'shatter' : 'reflect';
+        return 'claw';
+      }
+    },
+    patchbear: {
+      name: 'Patchwork Bear', icon: '🧸', hp: [46, 52], act: 2,
+      moves: {
+        hug:      { name: 'Bear Hug', type: 'attack', d: 12 },
+        restitch: { name: 'Restitch', type: 'buff', b: 7, fx: { selfHeal: 6 } },
+        flail:    { name: 'Button Flail', type: 'attack', d: 5, hits: 2 }
+      },
+      ai(self) {
+        if (self.hp < self.hpMax * 0.5 && self.last !== 'restitch') return 'restitch';
+        return Math.random() < 0.55 ? 'hug' : 'flail';
+      }
+    },
+    tophat: {
+      name: 'Top-Hat Terror', icon: '🎩', hp: [34, 40], act: 2,
+      moves: {
+        cane:  { name: 'Cane Crack', type: 'attack', d: 8, fx: { vulnP: 1 } },
+        doff:  { name: 'Doff the Hat', type: 'buff', fx: { str: 2 } },
+        flourish: { name: 'Flourish', type: 'attack', d: 11 }
+      },
+      ai(self) {
+        if (self.turn % 3 === 1 && self.turn > 1) return 'doff';
+        return Math.random() < 0.6 ? 'cane' : 'flourish';
+      }
+    },
+    chimechild: {
+      name: 'Chime Child', icon: '🕰️', hp: [38, 44], act: 2,
+      moves: {
+        tick: { name: 'Tick', type: 'block', b: 7 },
+        tock: { name: 'Tock', type: 'attack', d: 6 },
+        toll: { name: 'Midnight Toll', type: 'attack', d: 16 }
+      },
+      ai(self) {
+        if (self.turn % 3 === 0) return 'toll';
+        return self.turn % 2 === 1 ? 'tick' : 'tock';
+      }
+    },
+    portraithowler: {
+      name: 'Portrait Howler', icon: '🖼️', hp: [36, 42], act: 2,
+      moves: {
+        howl:  { name: 'Howl', type: 'debuff', fx: { addStatusCard: 'fright' } },
+        lunge: { name: 'Frame Lunge', type: 'attack', d: 8 },
+        glower:{ name: 'Glower', type: 'attack', d: 5, fx: { weak: 1 } }
+      },
+      ai(self) {
+        if (self.turn === 1 || self.turn === 4) return 'howl';
+        return Math.random() < 0.55 ? 'lunge' : 'glower';
+      }
+    },
+    shadecat: {
+      name: 'Shade Cat', icon: '🐈‍⬛', hp: [20, 24], act: 2,
+      moves: {
+        scratch: { name: 'Shadow Scratch', type: 'attack', d: 4, hits: 2 },
+        arch:    { name: 'Arch & Hiss', type: 'buff', fx: { enrage: 1 } },
+        pounce:  { name: 'Night Pounce', type: 'attack', d: 9 }
+      },
+      ai(self) {
+        if (self.turn === 1) return 'arch';
+        return Math.random() < 0.6 ? 'scratch' : 'pounce';
+      }
+    },
+    /* ===== ACT 2 elites ===== */
+    tomegolem: {
+      name: 'Tome Golem', icon: '📚', hp: [64, 70], act: 2, elite: true,
+      moves: {
+        papercut: { name: 'Paper Storm', type: 'attack', d: 4, hits: 3 },
+        heavytome:{ name: 'Heavy Tome', type: 'attack', d: 14 },
+        inkblot:  { name: 'Inkblot', type: 'debuff', fx: { weakP: 2, addStatusCard: 'slimeglob' } }
+      },
+      ai(self) {
+        const cycle = ['inkblot', 'papercut', 'heavytome'];
+        return cycle[(self.turn - 1) % cycle.length];
+      }
+    },
+    chandelierwraith: {
+      name: 'Chandelier Wraith', icon: '💎', hp: [60, 66], act: 2, elite: true,
+      moves: {
+        shardrain:  { name: 'Shard Rain', type: 'attack', d: 6, hits: 2 },
+        candlefall: { name: 'Candle Fall', type: 'attack', d: 15 },
+        glimmer:    { name: 'Glimmer', type: 'block', b: 10, fx: { metal: 2 } }
+      },
+      ai(self) {
+        if (self.turn === 1) return 'glimmer';
+        if (self.last === 'candlefall') return 'glimmer';
+        return Math.random() < 0.55 ? 'shardrain' : 'candlefall';
+      }
+    },
+    seamreaper: {
+      name: 'Seam Reaper', icon: '✂️', hp: [58, 64], act: 2, elite: true,
+      moves: {
+        snip:    { name: 'Snip', type: 'attack', d: 10, fx: { frailP: 2 } },
+        unravel: { name: 'Unravel', type: 'attack', d: 7, fx: { stripBlock: true } },
+        measure: { name: 'Measure Twice', type: 'buff', fx: { str: 2 }, b: 6 }
+      },
+      ai(self) {
+        const cycle = ['snip', 'unravel', 'measure'];
+        return cycle[(self.turn - 1) % cycle.length];
+      }
+    },
+    /* ===== ACT 2 bosses ===== */
+    masquerade: {
+      name: 'The Masquerade', icon: '🎭', hp: [150, 150], act: 2, boss: true,
+      moves: {
+        comedy:  { name: 'Comedy Mask', type: 'buff', fx: { str: 3 }, b: 9 },
+        tragedy: { name: 'Tragedy Mask', type: 'attack', d: 18 },
+        interlude: { name: 'Interlude', type: 'debuff', b: 12, fx: { weakP: 2, frailP: 2 } },
+        encore:  { name: 'Encore', type: 'attack', d: 6, hits: 3 }
+      },
+      ai(self) {
+        const cycle = ['comedy', 'encore', 'tragedy', 'interlude'];
+        return cycle[(self.turn - 1) % cycle.length];
+      }
+    },
+    doorwarden: {
+      name: 'The Door Warden', icon: '🚪', hp: [160, 160], act: 2, boss: true,
+      moves: {
+        bolt:      { name: 'Bolt the Locks', type: 'block', b: 14, fx: { frailP: 2 } },
+        crushdoor: { name: 'Crushing Slam', type: 'attack', d: 17 },
+        reinforce: { name: 'Reinforce', type: 'buff', fx: { metal: 3 } },
+        knock:     { name: 'Knock Thrice', type: 'attack', d: 5, hits: 3 }
+      },
+      ai(self) {
+        const cycle = ['bolt', 'knock', 'crushdoor', 'reinforce', 'crushdoor'];
+        return cycle[(self.turn - 1) % cycle.length];
+      }
+    },
+
+    /* ===== ACT 3 — the Attic ===== */
+    rattlebones: {
+      name: 'Rattle Bones', icon: '💀', hp: [40, 46], act: 3,
+      moves: {
+        bonetoss: { name: 'Bone Toss', type: 'attack', d: 7, hits: 2 },
+        rattle:   { name: 'Rattle', type: 'block', b: 12 },
+        clatter:  { name: 'Marrow Smash', type: 'attack', d: 13 }
+      },
+      ai(self) {
+        const cycle = ['bonetoss', 'rattle', 'clatter'];
+        return cycle[(self.turn - 1) % cycle.length];
+      }
+    },
+    fogphantom: {
+      name: 'Fog Phantom', icon: '🌫️', hp: [38, 44], act: 3,
+      moves: {
+        mistform: { name: 'Mistform', type: 'buff', fx: { intang: 1 } },
+        chill:    { name: 'Chill Touch', type: 'attack', d: 9, fx: { frailP: 1 } },
+        smother:  { name: 'Smother', type: 'attack', d: 12 }
+      },
+      ai(self) {
+        if (self.turn % 4 === 1) return 'mistform';
+        return Math.random() < 0.55 ? 'chill' : 'smother';
+      }
+    },
+    stranglergloves: {
+      name: 'Strangler Gloves', icon: '🧤', hp: [42, 48], act: 3,
+      moves: {
+        slap:  { name: 'Double Slap', type: 'attack', d: 6, hits: 2 },
+        choke: { name: 'Choke', type: 'attack', d: 9, fx: { frailP: 2 } },
+        wring: { name: 'Wring Hands', type: 'buff', fx: { str: 2 } }
+      },
+      ai(self) {
+        if (self.turn % 3 === 0) return 'wring';
+        return Math.random() < 0.55 ? 'slap' : 'choke';
+      }
+    },
+    nestingdoll: {
+      name: 'Nesting Doll', icon: '🪆', hp: [50, 56], act: 3,
+      moves: {
+        shrink: { name: 'Shrink Inward', type: 'block', b: 11 },
+        grow:   { name: 'Grow Bolder', type: 'buff', fx: { grow: 2 } },
+        knockk: { name: 'Wooden Knock', type: 'attack', d: 8 }
+      },
+      ai(self) {
+        if (self.turn === 1) return 'grow';
+        return self.turn % 2 === 0 ? 'knockk' : (Math.random() < 0.5 ? 'shrink' : 'knockk');
+      }
+    },
+    statichaunt: {
+      name: 'Static Haunt', icon: '📺', hp: [44, 50], act: 3,
+      moves: {
+        buzzst: { name: 'White Noise', type: 'debuff', fx: { addStatusCard: 'dizzy', weakP: 1 } },
+        zap:    { name: 'Zap', type: 'attack', d: 11 },
+        surge:  { name: 'Power Surge', type: 'attack', d: 7, hits: 2 }
+      },
+      ai(self) {
+        if (self.turn === 1 || self.turn === 5) return 'buzzst';
+        return Math.random() < 0.5 ? 'zap' : 'surge';
+      }
+    },
+    webmother: {
+      name: 'Web Mother', icon: '🕸️', hp: [46, 52], act: 3,
+      moves: {
+        venomspit: { name: 'Venom Spit', type: 'attack', d: 6, fx: { poisonP: 5 } },
+        cocoon:    { name: 'Cocoon', type: 'block', b: 13 },
+        fangs:     { name: 'Mother\'s Fangs', type: 'attack', d: 12 }
+      },
+      ai(self) {
+        const cycle = ['venomspit', 'fangs', 'cocoon'];
+        return cycle[(self.turn - 1) % cycle.length];
+      }
+    },
+    /* ===== ACT 3 elites ===== */
+    paleknight: {
+      name: 'The Pale Knight', icon: '🗡️', hp: [78, 84], act: 3, elite: true,
+      moves: {
+        runthrough: { name: 'Run Through', type: 'attack', d: 16 },
+        parry:      { name: 'Parry', type: 'block', b: 14, fx: { thorns: 3 } },
+        banner:     { name: 'Raise Banner', type: 'buff', fx: { str: 3 } }
+      },
+      ai(self) {
+        const cycle = ['banner', 'runthrough', 'parry', 'runthrough'];
+        return cycle[(self.turn - 1) % cycle.length];
+      }
+    },
+    peeringdark: {
+      name: 'The Peering Dark', icon: '👁️', hp: [82, 88], act: 3, elite: true,
+      moves: {
+        gaze:    { name: 'Wilting Gaze', type: 'debuff', fx: { vulnP: 3, weakP: 2 } },
+        tendril: { name: 'Tendril Lash', type: 'attack', d: 5, hits: 3 },
+        consume: { name: 'Consume', type: 'attack', d: 19, fx: { selfHeal: 8 } }
+      },
+      ai(self) {
+        const cycle = ['gaze', 'tendril', 'consume'];
+        return cycle[(self.turn - 1) % cycle.length];
+      }
+    },
+    /* ===== ACT 3 final boss ===== */
+    mothermidnight: {
+      name: 'Mother Midnight', icon: '🌑', hp: [240, 240], act: 3, boss: true,
+      moves: {
+        shadowclaw: { name: 'Shadow Claw', type: 'attack', d: 12, hits: 2 },
+        lullaby:    { name: 'Dread Lullaby', type: 'debuff', fx: { weakP: 2, frailP: 2, addStatusCard: 'nightmare' } },
+        gathering:  { name: 'Gathering Dark', type: 'buff', fx: { str: 2 }, b: 16 },
+        moonfall:   { name: 'MOONFALL', type: 'attack', d: 32 },
+        awaken:     { name: 'AWAKEN', type: 'buff', fx: { str: 4, selfHeal: 20 } }
+      },
+      ai(self) {
+        if (!self.awakened && self.hp <= self.hpMax * 0.5) { self.awakened = true; return 'awaken'; }
+        const cycle = ['lullaby', 'shadowclaw', 'gathering', 'shadowclaw', 'moonfall'];
+        return cycle[(self.turn - 1) % cycle.length];
+      }
+    }
+  };
+  Object.keys(ENEMIES).forEach(k => { ENEMIES[k].id = k; });
+
+  /* ---------------- encounter tables ---------------- */
+  const ENCOUNTERS = {
+    1: {
+      easy: [['graverat', 'graverat'], ['wickwisp'], ['graverat', 'wickwisp'], ['sheetsneak']],
+      normal: [
+        ['sheetsneak', 'graverat'], ['madbroom'], ['dishgremlin', 'dishgremlin'],
+        ['creakychair'], ['wickwisp', 'wickwisp', 'graverat'], ['madbroom', 'dishgremlin'],
+        ['creakychair', 'wickwisp'], ['sheetsneak', 'sheetsneak']
+      ],
+      elite: [['dustwidow'], ['hauntedarmor'], ['jackinbox']],
+      boss: [['belfrybeast'], ['gluttonoven']]
+    },
+    2: {
+      easy: [['shadecat', 'shadecat'], ['mirrormimic'], ['tophat']],
+      normal: [
+        ['patchbear'], ['mirrormimic', 'shadecat'], ['tophat', 'shadecat'],
+        ['chimechild'], ['portraithowler', 'mirrormimic'], ['patchbear', 'shadecat'],
+        ['chimechild', 'portraithowler'], ['tophat', 'tophat']
+      ],
+      elite: [['tomegolem'], ['chandelierwraith'], ['seamreaper']],
+      boss: [['masquerade'], ['doorwarden']]
+    },
+    3: {
+      easy: [['rattlebones'], ['fogphantom'], ['stranglergloves']],
+      normal: [
+        ['rattlebones', 'fogphantom'], ['nestingdoll'], ['stranglergloves', 'rattlebones'],
+        ['statichaunt'], ['webmother'], ['nestingdoll', 'statichaunt'],
+        ['webmother', 'fogphantom'], ['stranglergloves', 'stranglergloves']
+      ],
+      elite: [['paleknight'], ['peeringdark']],
+      boss: [['mothermidnight']]
+    }
+  };
+
+  /* ---------------- events ----------------
+     choice.do returns a result string (or null to keep screen). */
+  const EVENTS = [
+    {
+      id: 'saucer', art: '🍶', title: 'A Saucer of Milk',
+      text: 'A chipped saucer of milk sits in a moonbeam. Something small and whiskered watches you from the shadows, tail flicking.',
+      choices: () => [
+        { label: '<b>Sip it yourself.</b> Heal 12 HP.', do() { healPlayer(12); return 'Warm and sweet. You feel braver already.'; } },
+        { label: '<b>Slide it toward the shadows.</b> Befriend a stray (gain a random pet), but it scratches first. Lose 6 HP.',
+          do() { loseHpEvent(6); const p = gainRandomPet(['common']); return p ? `${PETS[p].icon} ${PETS[p].name} slinks out and joins you!` : 'The shadows are empty after all. At least your hand stops stinging.'; } },
+        { label: '<b>Leave quietly.</b>', do() { return 'You tiptoe past. The milk ripples on its own.'; } }
+      ]
+    },
+    {
+      id: 'well', art: '⛲', title: 'The Cellar Well',
+      text: 'A stone well hums in the cellar dark. Coins glitter far below, and the water whispers your name like an old friend.',
+      choices: (run) => [
+        { label: '<b>Toss in 20 coins.</b> Forget a card (remove it from your deck).', disabled: run.coins < 20,
+          do() { G.run.coins -= 20; queueCardRemove(1, 'The well hums approvingly. A memory dissolves into the water.'); return null; } },
+        { label: '<b>Reach for the coins.</b> Lose 7 HP, gain 35 coins.',
+          do() { loseHpEvent(7); gainCoins(35); return 'Cold fingers close around yours for a moment. You yank back a fistful of coins.'; } },
+        { label: '<b>Back away.</b>', do() { return 'The whispering fades to a disappointed gurgle.'; } }
+      ]
+    },
+    {
+      id: 'toychest', art: '📦', title: 'The Toy Chest',
+      text: 'A battered toy chest rocks gently by itself. Scratching sounds come from inside. It could be a friend. It could be teeth.',
+      choices: () => [
+        { label: '<b>Open it.</b> A new pet... or a nasty surprise.',
+          do() {
+            if (Math.random() < 0.6) { const p = gainRandomPet(['common', 'uncommon']); return p ? `${PETS[p].icon} ${PETS[p].name} pops out, dusty but delighted!` : 'Just old socks. Haunted, slightly damp socks.'; }
+            addCardToDeck(makeCard('nightmare')); loseHpEvent(5); return 'SNAP! The lid bites your fingers and a Nightmare slithers into your deck.';
+          } },
+        { label: '<b>Knock politely first.</b> Gain 10 coins if anything answers.', do() { gainCoins(10); return 'A muffled voice says "occupied!" and slides a tip under the lid.'; } },
+        { label: '<b>Leave it be.</b>', do() { return 'The chest sighs and settles down.'; } }
+      ]
+    },
+    {
+      id: 'feast', art: '🍰', title: 'The Midnight Feast',
+      text: 'A banquet table groans under untouched cake, jelly, and sweets. The candles lit themselves when you walked in. How thoughtful.',
+      choices: () => [
+        { label: '<b>Feast!</b> Heal to full HP, but a Cold Spot curse joins your deck.',
+          do() { healPlayer(G.run.hpMax); addCardToDeck(makeCard('coldspot')); return 'Delicious! But the room temperature drops with every bite...'; } },
+        { label: '<b>Just a nibble.</b> Heal 9 HP.', do() { healPlayer(9); return 'You pocket a biscuit for later. The candles seem to approve.'; } },
+        { label: '<b>Refuse politely.</b> Gain 15 coins from under a plate.', do() { gainCoins(15); return 'Your restraint is rewarded. Someone left a tip.'; } }
+      ]
+    },
+    {
+      id: 'portrait', art: '🖼️', title: 'The Talking Portrait',
+      text: 'An oil painting of a stern duchess clears her throat. "You hold your cards all WRONG, child. Shall I teach you properly?"',
+      choices: () => [
+        { label: '<b>Take her lesson.</b> Upgrade a card of your choice.', do() { queueCardUpgrade('The duchess nods once. "Acceptable form. Now begone."'); return null; } },
+        { label: '<b>Ask about treasure.</b> Gain 30 coins, but gain a Nightmare curse.',
+          do() { gainCoins(30); addCardToDeck(makeCard('nightmare')); return '"Behind the loose brick," she sniffs. The brick also contained something... clingy.'; } },
+        { label: '<b>Compliment her frame and leave.</b>', do() { return 'She blushes in oils. You hurry on.'; } }
+      ]
+    },
+    {
+      id: 'casket', art: '⚰️', title: 'A Velvet-Lined Casket',
+      text: 'A small casket rests on trestles, lid ajar. Inside: folded silk, dried roses, and the unmistakable glitter of something rare.',
+      choices: () => [
+        { label: '<b>Take the treasure.</b> Choose 1 of 3 rare cards, but gain a Cold Spot curse.',
+          do() { addCardToDeck(makeCard('coldspot')); queueCardPick(randomRareChoices(3), 'A Rare Find', 'Choose a card to keep. The chill follows you out.'); return null; } },
+        { label: '<b>Close the lid respectfully.</b> Heal 8 HP.', do() { healPlayer(8); return 'A grateful warmth settles over your shoulders like a blanket.'; } }
+      ]
+    },
+    {
+      id: 'crawlspace', art: '🕳️', title: 'The Crawlspace',
+      text: 'A gap in the wainscoting breathes slow, dusty air. Things lost in this house end up in there. Things can be swapped, too.',
+      choices: () => [
+        { label: '<b>Trade a memory.</b> Transform a card (remove it; gain a random card of the same rarity).', do() { queueCardTransform('The crawlspace accepts your trade with a satisfied puff of dust.'); return null; } },
+        { label: '<b>Feel around inside.</b> 50/50: a treat, or spiders. Lose 4 HP on spiders.',
+          do() { if (Math.random() < 0.5) { gainTreat(randomTreat()); return 'Your fingers close on something wrapped in wax paper. Score!'; } loseHpEvent(4); return 'Spiders. Of course it was spiders.'; } },
+        { label: '<b>Keep your hands to yourself.</b>', do() { return 'The crawlspace exhales, disappointed.'; } }
+      ]
+    },
+    {
+      id: 'laundry', art: '🧺', title: 'The Washing Ghost',
+      text: 'A translucent washerwoman scrubs sheets that bleed shadow. "Stains," she mutters, "I can take out ANY stain, dearie."',
+      choices: (run) => [
+        { label: '<b>Hand over a stain.</b> Lose 6 HP: remove a card from your deck.',
+          do() { loseHpEvent(6); queueCardRemove(1, '"There. Good as new," she says, wringing out something that screams faintly.'); return null; } },
+        { label: '<b>Donate 10 coins to the basket.</b> Heal 10 HP.', disabled: run.coins < 10,
+          do() { G.run.coins -= 10; healPlayer(10); return 'She tucks a warm, lavender-scented blanket around you for a moment.'; } },
+        { label: '<b>Wave and move on.</b>', do() { return 'She waves a soapy hand. Bubbles follow you down the hall.'; } }
+      ]
+    },
+    {
+      id: 'violinist', art: '🎻', title: 'The Phantom Violinist',
+      text: 'A spectral musician plays a waltz with no audience. The notes hang in the air like fireflies, almost solid enough to touch.',
+      choices: () => [
+        { label: '<b>Listen a while.</b> Heal 10 HP.', do() { healPlayer(10); return 'The music untangles every knot in your shoulders.'; } },
+        { label: '<b>Request a jig.</b> Gain 2 random treats.', do() { gainTreat(randomTreat()); gainTreat(randomTreat()); return 'He plays so fast that snacks rattle loose from the rafters!'; } },
+        { label: '<b>Hum along badly.</b> Gain 12 coins as he pays you to stop.', do() { gainCoins(12); return 'He flings a coin purse at you mid-sour-note. Worth it.'; } }
+      ]
+    },
+    {
+      id: 'alchemy', art: '⚗️', title: 'The Alchemy Shelf',
+      text: 'Dusty bottles line a laboratory shelf: MOONLIGHT (DILUTED), ESSENCE OF YOWL, DO NOT DRINK (PROBABLY). The labels are honest, at least.',
+      choices: () => [
+        { label: '<b>Mix carefully.</b> Lose 4 HP, gain 2 random treats.', do() { loseHpEvent(4); gainTreat(randomTreat()); gainTreat(randomTreat()); return 'A small explosion later, you bottle two genuinely useful concoctions.'; } },
+        { label: '<b>Chug the mystery vial.</b> 50/50: +6 Max HP, or lose 8 HP.',
+          do() { if (Math.random() < 0.5) { gainMaxHp(6); return 'It tastes like starlight and bravery. You feel sturdier!'; } loseHpEvent(8); return 'It tastes like socks. Haunted socks. You feel awful.'; } },
+        { label: '<b>Touch nothing.</b>', do() { return 'Wise. One of the bottles was licking its own cork.'; } }
+      ]
+    },
+    {
+      id: 'boot', art: '👞', title: 'A Boot Full of Coins',
+      text: 'A single enormous boot sits in the hallway, brimming with coins. There is no matching boot. There is no matching owner. Probably.',
+      choices: () => [
+        { label: '<b>Take it all.</b> Gain 45 coins, gain a Heavy Chains curse.',
+          do() { gainCoins(45); addCardToDeck(makeCard('heavychains')); return 'The boot was bait. Something heavy and invisible shackles itself to your deck.'; } },
+        { label: '<b>Shake out a polite handful.</b> Gain 20 coins.', do() { gainCoins(20); return 'The boot wiggles its toe approvingly.'; } },
+        { label: '<b>Step away from the boot.</b>', do() { return 'The boot hops off, jingling, to bait someone else.'; } }
+      ]
+    },
+    {
+      id: 'imp', art: '🔥', title: 'The Fireplace Imp',
+      text: 'A tiny imp tends a green fire. "Feed me something," it squeaks, "and I\'ll make it WORTH YOUR WHILE. Promise. Imp\'s honor."',
+      choices: (run) => [
+        { label: '<b>Feed it a card.</b> Remove a card from your deck.', do() { queueCardRemove(1, 'The imp munches happily. "Crunchy! Full of regret!"'); return null; } },
+        { label: '<b>Feed it a treat.</b> Gain 25 coins.', disabled: !run.treats.length,
+          do() { G.run.treats.shift(); gainCoins(25); renderTopbar(); return 'The imp pays in coins it definitely did not steal from the sofa cushions.'; } },
+        { label: '<b>Warm your hands.</b> Heal 8 HP.', do() { healPlayer(8); return 'The green flames are surprisingly cozy.'; } }
+      ]
+    },
+    {
+      id: 'window', art: '🪟', title: 'The Moonlit Window',
+      text: 'A tall window frames the full moon perfectly. The light pooling on the floorboards feels thick enough to stand in. So you do.',
+      choices: () => [
+        { label: '<b>Bask in the moonlight.</b> +5 Max HP.', do() { gainMaxHp(5); return 'The moon approves of you. Your shadow stands a little taller.'; } },
+        { label: '<b>Stargaze.</b> Upgrade 2 random cards.', do() { upgradeRandomCards(2); return 'Constellations rearrange themselves into helpful diagrams.'; } },
+        { label: '<b>Draw the curtains.</b> Gain 1 random treat for tidiness.', do() { gainTreat(randomTreat()); return 'A grateful house leaves a snack on the sill.'; } }
+      ]
+    },
+    {
+      id: 'mousehole', art: '🐁', title: 'The Mouse Market',
+      text: 'Behind a skirting board, a tiny market bustles: mice selling buttons, crumbs, and bottle-cap shields. A mouse in a waistcoat eyes your pockets.',
+      choices: (run) => [
+        { label: '<b>Trade 15 coins.</b> Gain a random treat and heal 5 HP.', disabled: run.coins < 15,
+          do() { G.run.coins -= 15; gainTreat(randomTreat()); healPlayer(5); return 'Fair prices and free cheese samples. Five stars.'; } },
+        { label: '<b>Perform tricks for the crowd.</b> Gain 18 coins.', do() { gainCoins(18); return 'The mice shower you in coins, buttons, and one (1) engagement ring.'; } },
+        { label: '<b>Tip your hat and leave.</b>', do() { return 'The waistcoat mouse tips his hat back. A gentleman.'; } }
+      ]
+    }
+  ];
+
+  /* =====================================================================
+     GAME STATE
+     ===================================================================== */
+  const GAME_ID = 'midnight-menagerie';
+  const SAVE_KEY = 'mm2_save';
+  const ACT_NAMES = { 1: 'The Ground Floor', 2: 'The Upper Halls', 3: 'The Attic' };
+  const FLOORS_PER_ACT = 15;
+
+  const G = {
+    run: null,   // persistent run state
+    cb: null,    // combat state (transient)
+    screen: 'title',
+    pendingRewards: null,
+    eventCombatReward: false
+  };
+
+  function newRun() {
+    G.run = {
+      hpMax: 60, hp: 60, coins: 40,
+      act: 1, floor: 0, pos: -1,
+      deck: [],
+      pets: ['scout'],
+      treats: [], treatSlots: 3,
+      map: null,
+      stats: { kills: 0, elites: 0, bosses: 0, dmgDealt: 0, dmgTaken: 0, cardsPlayed: 0, startedAt: Date.now() },
+      stuffingUsed: false,
+      combatsThisAct: 0,
+      seenEvents: [],
+      victory: false
+    };
+    for (let i = 0; i < 5; i++) G.run.deck.push(makeCard('jab'));
+    for (let i = 0; i < 4; i++) G.run.deck.push(makeCard('hide'));
+    G.run.deck.push(makeCard('bonk'));
+    G.run.map = generateMap();
+  }
+
+  /* ---------------- save / load ---------------- */
+  function saveRun() {
+    if (!G.run) return;
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify({ v: 2, run: G.run, uidCounter })); } catch (e) {}
+  }
+  function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
+  function loadRun() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+      if (!data || data.v !== 2 || !data.run || !data.run.map) return false;
+      G.run = data.run;
+      uidCounter = Math.max(uidCounter, data.uidCounter || 1);
+      return true;
+    } catch (e) { return false; }
+  }
+  function hasSave() {
+    try { const raw = localStorage.getItem(SAVE_KEY); if (!raw) return false; const d = JSON.parse(raw); return d && d.v === 2 && d.run; } catch (e) { return false; }
+  }
+
+  /* ---------------- shared run helpers (used by events/rewards) ---------------- */
+  function healPlayer(n) {
+    if (n <= 0) return;
+    const before = G.run.hp;
+    G.run.hp = clamp(G.run.hp + n, 0, G.run.hpMax);
+    if (G.run.hp > before) Sound.heal();
+    renderTopbar();
+  }
+  function loseHpEvent(n) {
+    G.run.hp = Math.max(1, G.run.hp - n); // events never kill outright
+    Sound.hurt();
+    renderTopbar();
+  }
+  function gainMaxHp(n) { G.run.hpMax += n; G.run.hp = clamp(G.run.hp + n, 0, G.run.hpMax); renderTopbar(); }
+  function gainCoins(n) { G.run.coins += n; Sound.coin(); renderTopbar(); }
+  function gainTreat(id) {
+    if (G.run.treats.length >= G.run.treatSlots) { toast('Treat pockets are full!'); return false; }
+    G.run.treats.push(id); renderTopbar(); return true;
+  }
+  function addCardToDeck(card) { G.run.deck.push(card); toast(`${cdef(card).icon} ${cardName(card)} added to your deck`); }
+  function gainPet(id) {
+    if (!id || G.run.pets.includes(id)) return null;
+    G.run.pets.push(id);
+    const p = PETS[id];
+    if (id === 'clover') gainMaxHp(7);
+    if (id === 'velvetcollar') gainMaxHp(22);
+    if (id === 'bandit') gainCoins(30);
+    if (id === 'jewel') { G.run.treatSlots += 1; }
+    Sound.pet();
+    renderTopbar();
+    return id;
+  }
+  function gainRandomPet(rarities) {
+    const id = randomPet(G.run.pets, rarities);
+    if (!id) return null;
+    gainPet(id);
+    return id;
+  }
+  function upgradeRandomCards(n) {
+    const candidates = G.run.deck.filter(c => !c.up && cdef(c).type !== 'curse' && cdef(c).type !== 'status');
+    shuffle(candidates).slice(0, n).forEach(c => { c.up = true; });
+  }
+  function randomRareChoices(n) {
+    const pool = shuffle(cardPoolByRarity('rare')).slice(0, n);
+    return pool.map(d => makeCard(d.id));
+  }
+  function deckAverageValue() {
+    return G.run.deck.length;
+  }
+
+  /* =====================================================================
+     MAP GENERATION  (Slay-the-Spire-like: 7 columns x 15 rows per act)
+     ===================================================================== */
+  const MAP_COLS = 7;
+  function generateMap() {
+    const rows = FLOORS_PER_ACT; // final row (index rows-1) = boss
+    const nodes = {};            // key r-c
+    const addNode = (r, c) => {
+      const key = `${r}-${c}`;
+      if (!nodes[key]) nodes[key] = { r, c, type: null, next: [], prev: [] };
+      return nodes[key];
+    };
+    // carve 6 paths bottom (row 0) to top (row rows-2)
+    const pathStarts = [];
+    for (let p = 0; p < 6; p++) {
+      let c = rand(0, MAP_COLS - 1);
+      if (p === 1) { let guard = 0; while (c === pathStarts[0] && guard++ < 20) c = rand(0, MAP_COLS - 1); }
+      pathStarts.push(c);
+      let cur = addNode(0, c);
+      for (let r = 1; r < rows - 1; r++) {
+        const drift = rand(-1, 1);
+        const nc = clamp(cur.c + drift, 0, MAP_COLS - 1);
+        const nxt = addNode(r, nc);
+        if (!cur.next.includes(`${r}-${nc}`)) cur.next.push(`${r}-${nc}`);
+        if (!nxt.prev.includes(`${cur.r}-${cur.c}`)) nxt.prev.push(`${cur.r}-${cur.c}`);
+        cur = nxt;
+      }
+      // connect to boss
+      const bossNode = addNode(rows - 1, 3);
+      if (!cur.next.includes(`${rows - 1}-3`)) cur.next.push(`${rows - 1}-3`);
+      if (!bossNode.prev.includes(`${cur.r}-${cur.c}`)) bossNode.prev.push(`${cur.r}-${cur.c}`);
+    }
+    // assign types
+    const list = Object.values(nodes);
+    list.forEach(n => {
+      if (n.r === rows - 1) { n.type = 'boss'; return; }
+      if (n.r === 0) { n.type = 'fight'; return; }
+      if (n.r === 8) { n.type = 'chest'; return; }
+      if (n.r === rows - 2) { n.type = 'rest'; return; }
+      n.type = rollNodeType(n.r);
+    });
+    // guarantee at least one shop and one rest in rows 3..12
+    ensureType(list, 'shop'); ensureType(list, 'rest');
+    return { rows, nodes };
+  }
+  function rollNodeType(r) {
+    const roll = Math.random() * 100;
+    if (r >= 4) {
+      if (roll < 16) return 'elite';
+      if (roll < 21) return 'shop';
+      if (roll < 33) return 'rest';
+      if (roll < 55) return 'event';
+      return 'fight';
+    }
+    if (roll < 6) return 'shop';
+    if (roll < 30) return 'event';
+    return 'fight';
+  }
+  function ensureType(list, type) {
+    if (list.some(n => n.type === type)) return;
+    const candidates = list.filter(n => n.r >= 3 && n.r <= 12 && (n.type === 'fight' || n.type === 'event'));
+    if (candidates.length) pick(candidates).type = type;
+  }
+  const NODE_ICONS = { fight: '👻', elite: '😈', event: '❓', rest: '🛏️', shop: '🛒', chest: '🎁', boss: '💀' };
+  const NODE_LABELS = { fight: 'Haunt', elite: 'Dread Haunt', event: 'Strange Room', rest: 'Cozy Hideout', shop: 'Peddler', chest: 'Treasure', boss: 'BOSS' };
+
+  /* =====================================================================
+     UI HELPERS
+     ===================================================================== */
+  function showScreen(name) {
+    G.screen = name;
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    $('screen-' + name).classList.add('active');
+    const inRun = !!G.run && name !== 'title' && name !== 'gameover';
+    $('topbar').classList.toggle('visible', inRun);
+    $('petBar').classList.toggle('visible', inRun);
+    if (inRun) { renderTopbar(); }
+    window.scrollTo(0, 0);
+  }
+
+  let toastTimer = null;
+  function toast(msg, ms) {
+    const t = $('toast');
+    t.innerHTML = msg;
+    t.classList.add('visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('visible'), ms || 1800);
+  }
+
+  /* modal */
+  function openModal(title, bodyHtml, actions) {
+    $('modalTitle').innerHTML = title;
+    $('modalBody').innerHTML = bodyHtml;
+    const act = $('modalActions');
+    act.innerHTML = '';
+    (actions || [{ label: 'Close' }]).forEach(a => {
+      const b = document.createElement('button');
+      b.className = 'btn ' + (a.cls || 'ghost');
+      b.innerHTML = a.label;
+      b.addEventListener('click', () => { Sound.click(); if (a.onClick) a.onClick(); else closeModal(); });
+      act.appendChild(b);
+    });
+    $('modal').classList.add('visible');
+  }
+  function closeModal() { $('modal').classList.remove('visible'); }
+  $('modal').addEventListener('click', e => { if (e.target === $('modal')) closeModal(); });
+
+  /* topbar + pet bar */
+  function renderTopbar() {
+    if (!G.run) return;
+    $('tbHpVal').textContent = `${G.run.hp}/${G.run.hpMax}`;
+    $('tbCoinsVal').textContent = G.run.coins;
+    const absFloor = (G.run.act - 1) * FLOORS_PER_ACT + G.run.floor;
+    $('tbFloorVal').textContent = absFloor;
+    renderPetBar();
+  }
+  function renderPetBar() {
+    const bar = $('petBar');
+    bar.innerHTML = '';
+    G.run.pets.forEach(id => {
+      const p = PETS[id];
+      const chip = document.createElement('button');
+      chip.className = 'pet-chip';
+      chip.type = 'button';
+      chip.textContent = p.icon;
+      chip.title = p.name;
+      chip.addEventListener('click', () => { Sound.click(); openModal(`${p.icon} ${esc(p.name)}`, `<div style="text-align:center;font-size:10px;line-height:1.9">${esc(p.desc)}</div>`); });
+      bar.appendChild(chip);
+    });
+    const div = document.createElement('div'); div.className = 'treat-divider'; bar.appendChild(div);
+    for (let i = 0; i < G.run.treatSlots; i++) {
+      const t = G.run.treats[i];
+      const slot = document.createElement('button');
+      slot.className = 'treat-slot' + (t ? ' filled' : '');
+      slot.type = 'button';
+      slot.textContent = t ? TREATS[t].icon : '';
+      if (t) slot.addEventListener('click', () => { Sound.click(); showTreatModal(i); });
+      bar.appendChild(slot);
+    }
+  }
+  function showTreatModal(idx) {
+    const id = G.run.treats[idx];
+    if (!id) return;
+    const t = TREATS[id];
+    const inCombat = G.screen === 'combat' && G.cb && !G.cb.over;
+    const canUse = inCombat || !t.combatOnly;
+    const blocked = G.run.pets.includes('crownedtoad');
+    const actions = [];
+    if (blocked) {
+      actions.push({ label: 'Crowned Toad forbids it', cls: 'ghost' });
+    } else if (canUse) {
+      actions.push({ label: 'Use ' + t.icon, cls: '', onClick: () => { closeModal(); useTreat(idx); } });
+    } else {
+      actions.push({ label: 'Usable in combat only', cls: 'ghost' });
+    }
+    actions.push({ label: 'Toss it', cls: 'danger', onClick: () => { G.run.treats.splice(idx, 1); renderTopbar(); closeModal(); saveRun(); } });
+    actions.push({ label: 'Keep it', cls: 'ghost' });
+    openModal(`${t.icon} ${esc(t.name)}`, `<div style="text-align:center;font-size:10px;line-height:1.9">${esc(t.desc)}</div>`, actions);
+  }
+
+  /* card DOM builder */
+  function cardEl(card, opts) {
+    opts = opts || {};
+    const d = cdef(card);
+    const el = document.createElement('div');
+    el.className = `card ${d.type === 'status' ? 'status-card' : d.type}${card.up ? ' upgraded' : ''}`;
+    el.dataset.uid = card.uid;
+    const cost = cardCost(card);
+    const costTxt = cost === -1 ? 'X' : (cost === -2 ? '–' : cost);
+    el.innerHTML = `
+      <div class="c-cost">${costTxt}</div>
+      <div class="c-name">${esc(cardName(card))}</div>
+      <div class="c-art">${d.icon}</div>
+      <div class="c-type">${d.type}</div>
+      <div class="c-text"><span>${cardText(card, opts.combat)}</span></div>`;
+    return el;
+  }
+  function cardText(card, inCombat) {
+    const d = cdef(card);
+    let t = d.text || '';
+    if (card.up && d.up && d.up.text) t = d.up.text;
+    const hits = cval(card, 'hits') || 1;
+    let dmgShown = cval(card, 'd');
+    if (inCombat && G.cb && dmgShown != null) dmgShown = previewDamage(card);
+    let blockShown = cval(card, 'b');
+    if (inCombat && G.cb && blockShown != null) blockShown = previewBlock(card);
+    t = t.replace(/\{d\}/g, `<b>${dmgShown != null ? dmgShown : '?'}</b>`)
+         .replace(/\{b\}/g, `<b>${blockShown != null ? blockShown : '?'}</b>`)
+         .replace(/\{m\}/g, `<b>${cval(card, 'm') != null ? cval(card, 'm') : '?'}</b>`)
+         .replace(/\{w\}/g, `<b>${cval(card, 'w') != null ? cval(card, 'w') : '?'}</b>`)
+         .replace(/\{h\}/g, `<b>${cval(card, 'h') != null ? cval(card, 'h') : '?'}</b>`)
+         .replace(/\{e\}/g, `<b>${cval(card, 'e') != null ? cval(card, 'e') : '?'}</b>`)
+         .replace(/\{x\}/g, `<b>${hits}</b>`);
+    return t;
+  }
+
+  /* deck list modal */
+  function showCardListModal(title, cards, opts) {
+    opts = opts || {};
+    const body = document.createElement('div');
+    body.className = 'card-row';
+    if (!cards.length) body.innerHTML = '<p style="font-size:10px;color:var(--moon);text-align:center;width:100%">Empty.</p>';
+    cards.forEach(c => {
+      const el = cardEl(c, { combat: opts.combat });
+      if (opts.onPick) {
+        el.addEventListener('click', () => { Sound.click(); opts.onPick(c); });
+      }
+      body.appendChild(el);
+    });
+    $('modalTitle').innerHTML = title;
+    $('modalBody').innerHTML = '';
+    $('modalBody').appendChild(body);
+    const act = $('modalActions');
+    act.innerHTML = '';
+    (opts.actions || [{ label: 'Close' }]).forEach(a => {
+      const b = document.createElement('button');
+      b.className = 'btn ' + (a.cls || 'ghost');
+      b.innerHTML = a.label;
+      b.addEventListener('click', () => { Sound.click(); if (a.onClick) a.onClick(); else closeModal(); });
+      act.appendChild(b);
+    });
+    $('modal').classList.add('visible');
+  }
+
+  /* =====================================================================
+     MAP SCREEN
+     ===================================================================== */
+  function availableNodeKeys() {
+    const m = G.run.map;
+    if (G.run.pos === -1 || G.run.pos == null) {
+      return Object.values(m.nodes).filter(n => n.r === 0).map(n => `${n.r}-${n.c}`);
+    }
+    const cur = m.nodes[G.run.pos];
+    return cur ? cur.next.slice() : [];
+  }
+
+  function showMap() {
+    showScreen('map');
+    $('mapHeader').textContent = `Hollowmoor Manor — ${ACT_NAMES[G.run.act]}`;
+    $('mapSub').textContent = `Act ${G.run.act} of 3 · Choose your next room`;
+    renderMap();
+    saveRun();
+  }
+
+  function renderMap() {
+    const m = G.run.map;
+    const wrap = $('mapCanvasWrap');
+    wrap.querySelectorAll('.map-node').forEach(n => n.remove());
+    const svg = $('mapSvg');
+    const W = Math.max(320, wrap.clientWidth || $('mapScroll').clientWidth || 360);
+    const rowH = 86;
+    const H = (m.rows + 1) * rowH;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('width', W);
+    svg.setAttribute('height', H);
+    svg.style.height = H + 'px';
+    wrap.style.height = H + 'px';
+    const colX = c => W * (0.12 + 0.76 * (c / (MAP_COLS - 1)));
+    const rowY = r => H - (r + 1) * rowH + rowH * 0.4;
+    const posOf = n => n.type === 'boss' ? { x: W / 2, y: rowY(n.r) } : { x: colX(n.c), y: rowY(n.r) };
+    // edges
+    let edges = '';
+    Object.values(m.nodes).forEach(n => {
+      const a = posOf(n);
+      n.next.forEach(k => {
+        const t = m.nodes[k];
+        if (!t) return;
+        const b = posOf(t);
+        const onPath = G.run.pos === `${n.r}-${n.c}`;
+        edges += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${onPath ? 'rgba(255,215,0,0.55)' : 'rgba(217,243,255,0.18)'}" stroke-width="2.5" stroke-dasharray="5 6"/>`;
+      });
+    });
+    svg.innerHTML = edges;
+    // nodes
+    const avail = availableNodeKeys();
+    Object.values(m.nodes).forEach(n => {
+      const key = `${n.r}-${n.c}`;
+      const p = posOf(n);
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'map-node' + (n.type === 'boss' ? ' boss' : '');
+      el.style.left = p.x + 'px';
+      el.style.top = p.y + 'px';
+      el.textContent = NODE_ICONS[n.type];
+      el.title = NODE_LABELS[n.type];
+      if (key === G.run.pos) el.classList.add('current');
+      else if (n.visited) el.classList.add('visited');
+      else if (avail.includes(key)) {
+        el.classList.add('available');
+        el.addEventListener('click', () => { Sound.click(); enterNode(key); });
+      } else el.classList.add('unreachable');
+      wrap.appendChild(el);
+    });
+    // scroll: keep current/start area in view
+    requestAnimationFrame(() => {
+      const sc = $('mapScroll');
+      const curNode = G.run.pos ? m.nodes[G.run.pos] : null;
+      const y = curNode ? posOf(curNode).y : H;
+      sc.scrollTop = clamp(y - sc.clientHeight * 0.6, 0, H);
+    });
+  }
+
+  function enterNode(key) {
+    const n = G.run.map.nodes[key];
+    if (!n) return;
+    G.run.pos = key;
+    n.visited = true;
+    G.run.floor += 1;
+    renderTopbar();
+    saveRun();
+    switch (n.type) {
+      case 'fight': startCombat('fight'); break;
+      case 'elite': startCombat('elite'); break;
+      case 'boss': startCombat('boss'); break;
+      case 'rest': showRest(); break;
+      case 'shop': showShop(); break;
+      case 'chest': showChest(); break;
+      case 'event': showEvent(); break;
+    }
+  }
+
+  /* called after a room resolves */
+  function roomDone() {
+    const n = G.run.map.nodes[G.run.pos];
+    if (n && n.type === 'boss') {
+      if (G.run.act >= 3) { runVictory(); return; }
+      G.run.act += 1;
+      G.run.floor = 0;
+      G.run.pos = -1;
+      G.run.combatsThisAct = 0;
+      G.run.map = generateMap();
+      healPlayer(Math.floor(G.run.hpMax * 0.25));
+      toast(`🌙 You climb the stairs to ${ACT_NAMES[G.run.act]}... (healed 25%)`, 2600);
+    }
+    showMap();
+  }
+
+  /* =====================================================================
+     COMBAT ENGINE
+     ===================================================================== */
+  function pickEncounter(kind) {
+    const table = ENCOUNTERS[G.run.act];
+    if (kind === 'boss') return pick(table.boss);
+    if (kind === 'elite') return pick(table.elite);
+    G.run.combatsThisAct += 1;
+    if (G.run.combatsThisAct <= 3) return pick(table.easy);
+    return pick(table.normal);
+  }
+
+  function startCombat(kind, customEncounter) {
+    const ids = customEncounter || pickEncounter(kind);
+    const enemies = ids.map((id, i) => {
+      const d = ENEMIES[id];
+      const hp = rand(d.hp[0], d.hp[1]);
+      return {
+        eid: uid(), id, name: d.name, icon: d.icon,
+        hp, hpMax: hp, block: 0,
+        statuses: {}, turn: 0, last: null, move: null,
+        elite: !!d.elite, boss: !!d.boss
+      };
+    });
+    G.cb = {
+      kind,
+      enemies,
+      draw: shuffle(G.run.deck.map(c => ({ uid: uid(), id: c.id, up: c.up }))),
+      hand: [], discard: [], exhaust: [],
+      energyMax: 3, energy: 3,
+      block: 0, statuses: {},
+      turn: 0, over: false, busy: false,
+      attacksThisTurn: 0, cardsThisTurn: 0,
+      firstAttackDone: false, firstCardDone: false,
+      toadTriggered: false,
+      selected: null
+    };
+    // innate pet effects
+    const pets = G.run.pets;
+    if (pets.includes('biscuit')) G.cb.block = 5;
+    if (pets.includes('tank')) addStatus('player', 'metal', 2, true);
+    if (pets.includes('pickles')) addStatus('player', 'thorns', 2, true);
+    if (pets.includes('puddles')) addStatus('player', 'dex', 1, true);
+    if (pets.includes('chestnut')) addStatus('player', 'str', 1, true);
+    if (pets.includes('plume')) addStatus('player', 'artifact', 1, true);
+    if (pets.includes('voidkit')) addStatus('player', 'vuln', 1, true);
+    enemies.forEach(e => {
+      if (pets.includes('beaky')) addStatus(e, 'weak', 1, true);
+      if (pets.includes('webster')) addStatus(e, 'poison', 1, true);
+      if (pets.includes('goosey')) addStatus(e, 'vuln', 1, true);
+    });
+    showScreen('combat');
+    $('enemyRow').innerHTML = '';
+    $('combatPets').innerHTML = '';
+    renderCombatBg();
+    if (pets.includes('buzz')) enemies.forEach(e => { e.hp = Math.max(1, e.hp - 3); });
+    enemies.forEach(e => nextEnemyMove(e));
+    renderCombat();
+    startPlayerTurn();
+  }
+
+  /* ---------------- statuses ---------------- */
+  function getStat(t, key) {
+    const s = (t === 'player') ? G.cb.statuses : t.statuses;
+    return s[key] || 0;
+  }
+  function addStatus(t, key, n, silent) {
+    if (!n) return;
+    const isPlayer = t === 'player';
+    const s = isPlayer ? G.cb.statuses : t.statuses;
+    const def = STATUS[key];
+    if (def && !def.buff && (s.artifact || 0) > 0 && n > 0) {
+      s.artifact -= 1;
+      if (s.artifact <= 0) delete s.artifact;
+      if (!silent) floatText(isPlayer ? playerAnchor() : enemyAnchor(t), '✨ Charmed!', '#6ee7a0');
+      return;
+    }
+    s[key] = (s[key] || 0) + n;
+    if (s[key] <= 0) delete s[key];
+    if (!silent && def) floatText(isPlayer ? playerAnchor() : enemyAnchor(t), `${def.icon}${n > 0 ? '+' : ''}${n}`, def.buff ? '#6ee7a0' : '#fb7185');
+  }
+  function tickTurnStatuses(t) {
+    const s = (t === 'player') ? G.cb.statuses : t.statuses;
+    ['vuln', 'weak', 'frail'].forEach(k => {
+      if (s[k]) { s[k] -= 1; if (s[k] <= 0) delete s[k]; }
+    });
+    if (s.intang) { s.intang -= 1; if (s.intang <= 0) delete s.intang; }
+  }
+
+  /* ---------------- damage math ---------------- */
+  function attackDamage(base, attacker, defender) {
+    let dmg = base;
+    dmg += (attacker === 'player') ? getStat('player', 'str') : getStat(attacker, 'str');
+    if ((attacker === 'player' ? getStat('player', 'weak') : getStat(attacker, 'weak')) > 0) dmg = Math.floor(dmg * 0.75);
+    if ((defender === 'player' ? getStat('player', 'vuln') : getStat(defender, 'vuln')) > 0) dmg = Math.floor(dmg * 1.5);
+    return Math.max(0, dmg);
+  }
+  function previewDamage(card) {
+    const base = cval(card, 'd');
+    if (base == null) return null;
+    let bonus = 0;
+    if (G.run.pets.includes('ember') && !G.cb.firstAttackDone && cdef(card).type === 'attack') bonus = 4;
+    // preview vs single target uses generic enemy (no vuln); show str+weak applied
+    let dmg = base + getStat('player', 'str') + bonus;
+    if (getStat('player', 'weak') > 0) dmg = Math.floor(dmg * 0.75);
+    return Math.max(0, dmg);
+  }
+  function previewBlock(card) {
+    const base = cval(card, 'b');
+    if (base == null) return null;
+    let b = base + getStat('player', 'dex');
+    if (getStat('player', 'frail') > 0) b = Math.floor(b * 0.75);
+    if (G.run.pets.includes('duchess')) b += 1;
+    return Math.max(0, b);
+  }
+  function gainPlayerBlock(base, fromCard) {
+    let b = base + (fromCard ? getStat('player', 'dex') : 0);
+    if (fromCard && getStat('player', 'frail') > 0) b = Math.floor(b * 0.75);
+    if (fromCard && G.run.pets.includes('duchess')) b += 1;
+    b = Math.max(0, b);
+    G.cb.block += b;
+    if (b > 0) { Sound.block(); floatText(playerAnchor(), `🛡️+${b}`, '#7dd3fc'); }
+    return b;
+  }
+
+  /* player takes damage (from attacks or effects). source: enemy or null */
+  function damagePlayer(amount, opts) {
+    opts = opts || {};
+    let dmg = amount;
+    if (getStat('player', 'intang') > 0 && dmg > 1) dmg = 1;
+    if (!opts.ignoreBlock && G.cb && G.cb.block > 0) {
+      const absorbed = Math.min(G.cb.block, dmg);
+      G.cb.block -= absorbed;
+      dmg -= absorbed;
+    }
+    if (dmg > 0) {
+      if (getStat('player', 'buffer') > 0) {
+        addStatus('player', 'buffer', -1, true);
+        floatText(playerAnchor(), '🫧 Popped!', '#7dd3fc');
+        dmg = 0;
+      }
+    }
+    if (dmg > 0) {
+      G.run.hp -= dmg;
+      G.run.stats.dmgTaken += dmg;
+      Sound.hurt();
+      $('playerSprite').classList.remove('bump-hurt'); void $('playerSprite').offsetWidth;
+      $('playerSprite').classList.add('bump-hurt');
+      floatText(playerAnchor(), `-${dmg}`, '#ff6b6b');
+      // toadstool rescue
+      if (G.run.pets.includes('toadstool') && !G.cb.toadTriggered && G.run.hp > 0 && G.run.hp < G.run.hpMax * 0.5) {
+        G.cb.toadTriggered = true;
+        gainPlayerBlock(12, false);
+        toast('🐸 Toadstool puffs up! +12 Block');
+      }
+      if (G.run.hp <= 0) {
+        if (G.run.pets.includes('stuffing') && !G.run.stuffingUsed) {
+          G.run.stuffingUsed = true;
+          G.run.hp = 1;
+          toast('🧸 Mr. Stuffing takes the hit! You survive at 1 HP.', 2600);
+        } else {
+          G.run.hp = 0;
+          renderCombat();
+          runDefeat();
+          return dmg;
+        }
+      }
+    } else if (amount > 0) {
+      Sound.block();
+    }
+    renderCombat();
+    return dmg;
+  }
+
+  /* damage an enemy. Returns actual HP lost. */
+  function damageEnemy(e, amount, opts) {
+    opts = opts || {};
+    if (e.hp <= 0) return 0;
+    let dmg = amount;
+    if (getStat(e, 'intang') > 0 && dmg > 1) dmg = 1;
+    if (!opts.pierce && e.block > 0) {
+      const absorbed = Math.min(e.block, dmg);
+      e.block -= absorbed;
+      dmg -= absorbed;
+    }
+    if (dmg > 0) {
+      e.hp -= dmg;
+      G.run.stats.dmgDealt += dmg;
+      Sound.hit();
+      const el = enemyEl(e);
+      if (el) {
+        const sp = el.querySelector('.sprite');
+        sp.classList.remove('bump-hurt'); void sp.offsetWidth; sp.classList.add('bump-hurt');
+      }
+      floatText(enemyAnchor(e), `-${dmg}`, '#ffd700');
+    } else if (amount > 0) Sound.block();
+    if (e.hp <= 0) { e.hp = 0; onEnemyDeath(e); }
+    renderCombat();
+    return Math.max(0, dmg);
+  }
+
+  function onEnemyDeath(e) {
+    G.run.stats.kills += 1;
+    const el = enemyEl(e);
+    if (el) el.classList.add('dying');
+    if (G.run.pets.includes('murk')) drawCards(1);
+    if (G.run.pets.includes('flutter')) { G.run.hp = clamp(G.run.hp + 2, 0, G.run.hpMax); floatText(playerAnchor(), '+2', '#6ee7a0'); }
+    if (livingEnemies().length === 0 && !G.cb.over) {
+      G.cb.over = true;
+      setTimeout(() => combatVictory(), 600);
+    }
+  }
+  const livingEnemies = () => G.cb.enemies.filter(e => e.hp > 0);
+
+  /* ---------------- draw / discard ---------------- */
+  function drawCards(n) {
+    for (let i = 0; i < n; i++) {
+      if (G.cb.hand.length >= 10) { toast('Hand is full!'); break; }
+      if (!G.cb.draw.length) {
+        if (!G.cb.discard.length) break;
+        G.cb.draw = shuffle(G.cb.discard);
+        G.cb.discard = [];
+      }
+      G.cb.hand.push(G.cb.draw.pop());
+    }
+    renderHand();
+  }
+  function discardCard(card) {
+    const i = G.cb.hand.findIndex(c => c.uid === card.uid);
+    if (i >= 0) { G.cb.hand.splice(i, 1); G.cb.discard.push(card); }
+    renderHand();
+  }
+  function exhaustCard(card) {
+    const i = G.cb.hand.findIndex(c => c.uid === card.uid);
+    if (i >= 0) G.cb.hand.splice(i, 1);
+    G.cb.exhaust.push(card);
+    renderHand();
+  }
+  function addCardToCombat(id, pile) {
+    const c = { uid: uid(), id, up: false };
+    if (pile === 'draw') { G.cb.draw.splice(rand(0, G.cb.draw.length), 0, c); }
+    else if (pile === 'hand' && G.cb.hand.length < 10) G.cb.hand.push(c);
+    else G.cb.discard.push(c);
+    renderCombat();
+  }
+
+  /* ---------------- turn flow ---------------- */
+  function startPlayerTurn() {
+    const cb = G.cb;
+    if (cb.over) return;
+    cb.turn += 1;
+    cb.attacksThisTurn = 0;
+    cb.cardsThisTurn = 0;
+    cb.firstAttackDone = false;
+    cb.firstCardDone = false;
+    // block expiry
+    if (!getStat('player', 'barricade')) {
+      if (G.run.pets.includes('puff')) cb.block = Math.min(cb.block, 6);
+      else cb.block = 0;
+    }
+    // energy
+    let energy = cb.energyMax;
+    energy += getStat('player', 'pwEnergy');
+    ['voidkit', 'bonepup', 'crownedtoad'].forEach(p => { if (G.run.pets.includes(p)) energy += 1; });
+    if (cb.turn === 1 && G.run.pets.includes('nutkin')) energy += 1;
+    energy += getStat('player', 'energyNext');
+    if (cb.statuses.energyNext) delete cb.statuses.energyNext;
+    cb.energy = energy;
+    // pack tactics
+    const pwStr = getStat('player', 'pwStr');
+    if (pwStr) addStatus('player', 'str', pwStr, true);
+    // smolder
+    if (G.run.pets.includes('smolder')) livingEnemies().forEach(e => damageEnemy(e, 2, {}));
+    // poison on player
+    const pois = getStat('player', 'poison');
+    if (pois) { damagePlayer(pois, { ignoreBlock: true }); addStatus('player', 'poison', -1, true); }
+    // draw
+    let n = 5 + getStat('player', 'pwDraw');
+    if (G.run.pets.includes('oracleowl')) n += 1;
+    if (cb.turn === 1 && G.run.pets.includes('inky')) n += 2;
+    drawCards(n);
+    banner('Your Turn');
+    renderCombat();
+  }
+
+  async function endTurn() {
+    const cb = G.cb;
+    if (cb.over || cb.busy) return;
+    cb.busy = true;
+    cb.selected = null;
+    // end-of-turn hand effects
+    for (const c of cb.hand.slice()) {
+      const d = cdef(c);
+      if (d.sp === 'frightEnd') damagePlayer(2, { ignoreBlock: true });
+      if (d.sp === 'coldEnd') damagePlayer(1, { ignoreBlock: true });
+    }
+    if (cb.over) { cb.busy = false; return; }
+    // regen & metallicize
+    const regen = getStat('player', 'regen');
+    if (regen) { G.run.hp = clamp(G.run.hp + regen, 0, G.run.hpMax); addStatus('player', 'regen', -1, true); floatText(playerAnchor(), `+${regen}`, '#6ee7a0'); }
+    if (G.run.pets.includes('ribbon')) G.run.hp = clamp(G.run.hp + 1, 0, G.run.hpMax);
+    const metal = getStat('player', 'metal');
+    if (metal) gainPlayerBlock(metal, false);
+    // discard hand (keep unplayed: StS discards all; ethereal exhausts)
+    for (const c of cb.hand.slice()) {
+      if (cval(c, 'ethereal')) { exhaustCard(c); } else discardCard(c);
+    }
+    tickTurnStatuses('player');
+    renderCombat();
+    await wait(280);
+    await enemyTurn();
+    if (!cb.over) startPlayerTurn();
+    cb.busy = false;
+    renderCombat();
+  }
+
+  async function enemyTurn() {
+    const cb = G.cb;
+    banner('Ghosts\' Turn');
+    await wait(420);
+    for (const e of cb.enemies) {
+      if (e.hp <= 0 || cb.over) continue;
+      // enemy block expiry
+      e.block = 0;
+      // poison
+      const pois = getStat(e, 'poison');
+      if (pois) {
+        damageEnemy(e, pois, { pierce: true });
+        addStatus(e, 'poison', -1, true);
+        if (e.hp <= 0 || cb.over) continue;
+      }
+      await executeEnemyMove(e);
+      if (cb.over) return;
+      // ritual / end-of-turn buffs
+      const rit = getStat(e, 'ritual');
+      if (rit) addStatus(e, 'str', rit, true);
+      const met = getStat(e, 'metal');
+      if (met) e.block += met;
+      tickTurnStatuses(e);
+      nextEnemyMove(e);
+      renderCombat();
+      await wait(260);
+    }
+  }
+
+  /* plan next move (sets intent) */
+  function nextEnemyMove(e) {
+    e.turn += 1;
+    const d = ENEMIES[e.id];
+    e.move = d.ai(e, G.cb);
+  }
+
+  async function executeEnemyMove(e) {
+    const d = ENEMIES[e.id];
+    const mv = d.moves[e.move];
+    if (!mv) return;
+    const el = enemyEl(e);
+    if (el) {
+      const sp = el.querySelector('.sprite');
+      sp.classList.remove('bump-attack-left'); void sp.offsetWidth;
+      if (mv.type === 'attack') sp.classList.add('bump-attack-left');
+    }
+    await wait(200);
+    // attack component
+    if (mv.d != null) {
+      const hits = mv.hits || 1;
+      const grow = getStat(e, 'grow');
+      const growBonus = grow ? grow * Math.max(0, e.attackCount || 0) : 0;
+      for (let i = 0; i < hits; i++) {
+        if (G.cb.over) return;
+        const dmg = attackDamage(mv.d + growBonus, e, 'player');
+        damagePlayer(dmg, {});
+        // thorns reflect
+        const th = getStat('player', 'thorns');
+        if (th && e.hp > 0) damageEnemy(e, th, {});
+        await wait(hits > 1 ? 190 : 60);
+      }
+      e.attackCount = (e.attackCount || 0) + 1;
+    }
+    // block component
+    if (mv.b != null) { e.block += mv.b; Sound.block(); }
+    // effects
+    const fx = mv.fx || {};
+    if (fx.str) addStatus(e, 'str', fx.str);
+    if (fx.strAll) livingEnemies().forEach(o => addStatus(o, 'str', fx.strAll));
+    if (fx.thorns) addStatus(e, 'thorns', fx.thorns);
+    if (fx.metal) addStatus(e, 'metal', fx.metal);
+    if (fx.intang) addStatus(e, 'intang', fx.intang);
+    if (fx.ritual) addStatus(e, 'ritual', fx.ritual);
+    if (fx.enrage) addStatus(e, 'enrage', fx.enrage);
+    if (fx.grow) addStatus(e, 'grow', fx.grow);
+    if (fx.selfHeal) { e.hp = clamp(e.hp + fx.selfHeal, 0, e.hpMax); floatText(enemyAnchor(e), `+${fx.selfHeal}`, '#6ee7a0'); }
+    if (fx.weak) addStatus('player', 'weak', fx.weak);
+    if (fx.weakP) addStatus('player', 'weak', fx.weakP);
+    if (fx.vulnP) addStatus('player', 'vuln', fx.vulnP);
+    if (fx.frailP) addStatus('player', 'frail', fx.frailP);
+    if (fx.poisonP) addStatus('player', 'poison', fx.poisonP);
+    if (fx.stripBlock) { G.cb.block = 0; }
+    if (fx.addStatusCard) addCardToCombat(fx.addStatusCard, 'discard');
+    e.last = e.move;
+    renderCombat();
+  }
+
+  /* ---------------- treats in combat ---------------- */
+  function useTreat(idx) {
+    const id = G.run.treats[idx];
+    if (!id) return;
+    const t = TREATS[id];
+    const inCombat = G.screen === 'combat' && G.cb && !G.cb.over;
+    if (t.combatOnly && !inCombat) { toast('Only useful in combat.'); return; }
+    G.run.treats.splice(idx, 1);
+    Sound.play();
+    switch (id) {
+      case 'cookie': healPlayer(10); break;
+      case 'milk': gainPlayerBlock(12, false); break;
+      case 'candycorn': G.cb.energy += 2; break;
+      case 'honey': addStatus('player', 'str', 2); break;
+      case 'spiderjuice': { const e = pick(livingEnemies()); if (e) applyPoison(e, 6); break; }
+      case 'sourgrapes': livingEnemies().forEach(e => { addStatus(e, 'weak', 2); addStatus(e, 'vuln', 2); }); break;
+      case 'donut': drawCards(3); break;
+      case 'poprocks': { const e = pick(livingEnemies()); if (e) damageEnemy(e, 12, {}); break; }
+      case 'bubblegum': addStatus('player', 'buffer', 1); break;
+      case 'pepper': livingEnemies().slice().forEach(e => damageEnemy(e, 6, {})); break;
+      case 'cloverleaf': addStatus('player', 'artifact', 1); break;
+    }
+    renderTopbar();
+    if (inCombat) renderCombat();
+    saveRun();
+  }
+  function applyPoison(e, n) {
+    let amt = n;
+    if (G.run.pets.includes('slinky')) amt += 1;
+    addStatus(e, 'poison', amt);
+  }
+
+  /* ---------------- playing cards ---------------- */
+  function canPlayCard(card) {
+    const d = cdef(card);
+    if (d.unplayable) return false;
+    const cost = cardCost(card);
+    if (cost === -1) return true; // X cost
+    return G.cb.energy >= cost;
+  }
+
+  async function playCard(card, target) {
+    const cb = G.cb;
+    if (cb.over || cb.busy) return;
+    if (!canPlayCard(card)) { toast('Not enough energy!'); return; }
+    const d = cdef(card);
+    cb.busy = true;
+    cb.selected = null;
+    let cost = cardCost(card);
+    let xValue = 0;
+    if (cost === -1) { xValue = cb.energy; cb.energy = 0; }
+    else cb.energy -= cost;
+    // remove from hand now
+    const hi = cb.hand.findIndex(c => c.uid === card.uid);
+    if (hi >= 0) cb.hand.splice(hi, 1);
+    renderCombat();
+    Sound.play();
+    G.run.stats.cardsPlayed += 1;
+
+    // echo effects: first card each turn (echo power), mirror locket (first attack each combat), double trouble
+    let repeats = 1;
+    if (getStat('player', 'echo') && !cb.firstCardDone) repeats += 1;
+    if (d.type === 'attack') {
+      if (G.run.pets.includes('mirrorlocket') && !cb.mirrorUsed) { repeats += 1; cb.mirrorUsed = true; }
+      if (getStat('player', 'doubleAtk') > 0) { repeats += 1; addStatus('player', 'doubleAtk', -1, true); }
+    }
+    cb.firstCardDone = true;
+
+    for (let rep = 0; rep < repeats; rep++) {
+      if (cb.over) break;
+      await resolveCardEffects(card, target, xValue);
+    }
+
+    if (!cb.over) {
+      // enemy enrage reaction
+      if (d.type === 'skill') livingEnemies().forEach(e => { const en = getStat(e, 'enrage'); if (en) addStatus(e, 'str', en, true); });
+      // luna: 3rd attack in a turn
+      if (d.type === 'attack') {
+        cb.attacksThisTurn += 1;
+        cb.firstAttackDone = true;
+        if (G.run.pets.includes('luna') && cb.attacksThisTurn === 3) { addStatus('player', 'str', 1); toast('🐺 Luna howls! +1 Courage'); }
+      }
+      if (d.type === 'power' && G.run.pets.includes('newt')) drawCards(1);
+      cb.cardsThisTurn += 1;
+    }
+    // move card to pile (powers vanish)
+    if (d.type !== 'power') {
+      if (cval(card, 'exhaust')) cb.exhaust.push(card);
+      else cb.discard.push(card);
+    }
+    cb.busy = false;
+    renderCombat();
+  }
+
+  async function resolveCardEffects(card, target, xValue) {
+    const cb = G.cb;
+    const d = cdef(card);
+    const sp = d.sp;
+    if (target && target.hp <= 0) target = livingEnemies()[0];
+
+    // player attack animation
+    if (d.type === 'attack') {
+      const ps = $('playerSprite');
+      ps.classList.remove('bump-attack'); void ps.offsetWidth; ps.classList.add('bump-attack');
+    }
+
+    /* ---- damage ---- */
+    if (cval(card, 'd') != null && d.type === 'attack') {
+      let base = cval(card, 'd');
+      let hits = cval(card, 'hits') || 1;
+      if (sp === 'xCost') hits = xValue;
+      if (sp === 'perPet') hits = G.run.pets.length;
+      if (sp === 'echoBark' && cb.attacksThisTurn > 0) hits = 2;
+      // ember first attack bonus
+      let bonus = 0;
+      if (G.run.pets.includes('ember') && !cb.firstAttackDone) bonus += 4;
+      if (sp === 'vsSpooked' && target && getStat(target, 'vuln') > 0) bonus += cval(card, 'm');
+      const targets = d.target === 'all' ? livingEnemies().slice() : (target ? [target] : livingEnemies().slice(0, 1));
+      for (let i = 0; i < hits; i++) {
+        for (const t of targets) {
+          if (t.hp <= 0) continue;
+          let dmg = attackDamage(base + bonus, 'player', t);
+          if (sp === 'doubleVsSpooked' && getStat(t, 'vuln') > 0) dmg *= 2;
+          const before = t.hp;
+          damageEnemy(t, dmg, { pierce: !!d.pierce });
+          // thorns from enemy
+          const th = getStat(t, 'thorns');
+          if (th && t.hp > 0) damagePlayer(th, {});
+          if (cb.over) return;
+          // on-kill effects
+          if (before > 0 && t.hp <= 0) {
+            if (sp === 'killEnergy') { cb.energy += 1; floatText(playerAnchor(), '⚡+1', '#ffd700'); }
+            if (sp === 'killHeal') healPlayer(cval(card, 'm'));
+          }
+        }
+        if (hits > 1) await wait(150);
+      }
+      if (sp === 'lifesteal') healPlayer(cval(card, 'h'));
+    }
+
+    /* ---- venom scaling attack ---- */
+    if (sp === 'venomScale' && target) {
+      const dmg = (getStat(target, 'poison') || 0) * cval(card, 'm');
+      if (dmg > 0) damageEnemy(target, attackDamage(dmg, 'player', target), {});
+      else floatText(enemyAnchor(target), 'No Venom!', '#d9f3ff');
+    }
+
+    /* ---- block / heal / draw / energy ---- */
+    if (cval(card, 'b') != null && sp !== 'perPetBlock') gainPlayerBlock(cval(card, 'b'), true);
+    if (sp === 'perPetBlock') gainPlayerBlock(cval(card, 'b') + cval(card, 'm') * G.run.pets.length, true);
+    if (cval(card, 'h') != null && sp !== 'lifesteal' && d.type !== 'attack') healPlayer(cval(card, 'h'));
+    if (cval(card, 'e')) { cb.energy += cval(card, 'e'); }
+    if (cval(card, 'w')) drawCards(cval(card, 'w'));
+
+    /* ---- specials ---- */
+    switch (sp) {
+      case 'bonk': case 'applyVuln': if (target) addStatus(target, 'vuln', cval(card, 'm')); break;
+      case 'applyWeak': if (target) addStatus(target, 'weak', cval(card, 'm')); break;
+      case 'applyPoison': if (target) applyPoison(target, cval(card, 'm')); break;
+      case 'sandBlind': if (target) { addStatus(target, 'weak', cval(card, 'm')); addStatus(target, 'vuln', cval(card, 'm')); } break;
+      case 'weakAll': livingEnemies().forEach(e => addStatus(e, 'weak', cval(card, 'm'))); break;
+      case 'vulnAll': case 'vulnAllOnly': livingEnemies().forEach(e => addStatus(e, 'vuln', cval(card, 'm'))); break;
+      case 'poisonAll': livingEnemies().forEach(e => applyPoison(e, cval(card, 'm'))); break;
+      case 'venomMult': livingEnemies().forEach(e => { const p = getStat(e, 'poison'); if (p) addStatus(e, 'poison', p * (cval(card, 'm') - 1)); }); break;
+      case 'addDizzy': addCardToCombat('dizzy', 'draw'); break;
+      case 'discard1': await promptDiscard(1); break;
+      case 'energyNext1': addStatus('player', 'energyNext', 1, true); break;
+      case 'energyNextM': addStatus('player', 'energyNext', cval(card, 'm'), true); break;
+      case 'selfWeak': addStatus('player', 'weak', cval(card, 'm'), true); break;
+      case 'regenSelf': addStatus('player', 'regen', cval(card, 'm')); break;
+      case 'bufferSelf': addStatus('player', 'buffer', cval(card, 'm')); break;
+      case 'intangSelf': addStatus('player', 'intang', cval(card, 'm')); break;
+      case 'doubleNext': addStatus('player', 'doubleAtk', cval(card, 'm')); break;
+      case 'parade': addStatus('player', 'str', cval(card, 'm')); addStatus('player', 'dex', cval(card, 'm')); break;
+      case 'powerThorns': addStatus('player', 'thorns', cval(card, 'm')); break;
+      case 'powerMetal': addStatus('player', 'metal', cval(card, 'm')); break;
+      case 'powerDex': addStatus('player', 'dex', cval(card, 'm')); break;
+      case 'powerStr': addStatus('player', 'str', cval(card, 'm')); break;
+      case 'powerDraw': addStatus('player', 'pwDraw', cval(card, 'm')); break;
+      case 'powerStrTurn': addStatus('player', 'pwStr', cval(card, 'm')); break;
+      case 'powerBarricade': addStatus('player', 'barricade', 1); break;
+      case 'powerEnergy': addStatus('player', 'pwEnergy', cval(card, 'm')); break;
+      case 'powerEcho': addStatus('player', 'echo', 1); break;
+    }
+    renderCombat();
+  }
+
+  /* discard prompt (for Sniff Out) */
+  function promptDiscard(n) {
+    return new Promise(resolve => {
+      if (!G.cb.hand.length) { resolve(); return; }
+      showCardListModal(`Discard ${n} card`, G.cb.hand, {
+        combat: true,
+        onPick: (c) => { discardCard(c); closeModal(); resolve(); },
+        actions: []
+      });
+    });
+  }
+
+  /* =====================================================================
+     COMBAT RENDERING
+     ===================================================================== */
+  const BG_DECOS = { 1: ['🕯️', '🪑', '🖼️', '🕸️', '🚪', '🧹'], 2: ['🪞', '🕰️', '🖼️', '🕯️', '📚', '🗝️'], 3: ['📦', '🕸️', '🪆', '🦴', '🕯️', '🌫️'] };
+  function renderCombatBg() {
+    const deco = $('combatBgDeco');
+    deco.innerHTML = '';
+    const set = BG_DECOS[G.run.act] || BG_DECOS[1];
+    for (let i = 0; i < 9; i++) {
+      const s = document.createElement('span');
+      s.textContent = pick(set);
+      s.style.left = (4 + Math.random() * 88) + '%';
+      s.style.top = (4 + Math.random() * 78) + '%';
+      s.style.fontSize = (16 + Math.random() * 22) + 'px';
+      s.style.transform = `rotate(${rand(-18, 18)}deg)`;
+      deco.appendChild(s);
+    }
+  }
+
+  function enemyEl(e) { return document.querySelector(`.enemy[data-eid="${e.eid}"]`); }
+  function playerAnchor() { return $('playerBox'); }
+  function enemyAnchor(e) { return enemyEl(e) || $('enemyRow'); }
+
+  function floatText(anchor, text, color) {
+    if (!anchor) return;
+    const arena = $('combatArena');
+    const ar = arena.getBoundingClientRect();
+    const r = anchor.getBoundingClientRect();
+    const el = document.createElement('div');
+    el.className = 'float-num';
+    el.textContent = text;
+    el.style.color = color || '#fff';
+    el.style.left = (r.left - ar.left + r.width / 2 - 20 + rand(-12, 12)) + 'px';
+    el.style.top = (r.top - ar.top + r.height * 0.3) + 'px';
+    arena.appendChild(el);
+    setTimeout(() => el.remove(), 900);
+  }
+
+  function banner(text) {
+    const b = $('turnBanner');
+    b.textContent = text;
+    b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
+  }
+
+  function intentHtml(e) {
+    const d = ENEMIES[e.id];
+    const mv = d.moves[e.move];
+    if (!mv) return '<span class="iico">❔</span>';
+    if (mv.type === 'attack') {
+      const hits = mv.hits || 1;
+      const grow = getStat(e, 'grow') ? getStat(e, 'grow') * Math.max(0, e.attackCount || 0) : 0;
+      const dmg = attackDamage((mv.d || 0) + grow, e, 'player');
+      return `<span class="iico">⚔️</span>${dmg}${hits > 1 ? '×' + hits : ''}`;
+    }
+    if (mv.type === 'block') return '<span class="iico">🛡️</span>';
+    if (mv.type === 'buff') return '<span class="iico">💪</span>';
+    if (mv.type === 'debuff') return '<span class="iico">🌀</span>';
+    return '<span class="iico">❔</span>';
+  }
+
+  function statusRowHtml(s) {
+    return Object.entries(s).map(([k, v]) => {
+      const def = STATUS[k];
+      if (!def) return '';
+      return `<span class="status-chip ${def.buff ? 'buff' : 'debuff'}" data-status="${k}"><span class="sico">${def.icon}</span>${v}</span>`;
+    }).join('');
+  }
+
+  function renderCombat() {
+    if (!G.cb || G.screen !== 'combat') return;
+    const cb = G.cb;
+    // enemies
+    const row = $('enemyRow');
+    cb.enemies.forEach(e => {
+      let el = enemyEl(e);
+      if (!el) {
+        el = document.createElement('div');
+        el.className = 'enemy' + (e.elite ? ' elite' : '') + (e.boss ? ' boss' : '');
+        el.dataset.eid = e.eid;
+        el.innerHTML = `
+          <div class="intent"></div>
+          <div class="status-row"></div>
+          <div class="sprite">${e.icon}</div>
+          <div class="ename">${esc(e.name)}</div>
+          <div class="hp-wrap">
+            <div class="hp-bar"><div class="fill"></div><div class="txt"></div></div>
+            <div class="block-badge" style="display:none"></div>
+          </div>`;
+        el.addEventListener('click', () => onEnemyTap(e));
+        row.appendChild(el);
+      }
+      if (e.hp <= 0) { el.classList.add('dying'); el.querySelector('.intent').style.visibility = 'hidden'; }
+      el.querySelector('.intent').innerHTML = intentHtml(e);
+      el.querySelector('.status-row').innerHTML = statusRowHtml(e.statuses);
+      el.querySelector('.fill').style.width = (e.hp / e.hpMax * 100) + '%';
+      el.querySelector('.txt').textContent = `${e.hp}/${e.hpMax}`;
+      const bb = el.querySelector('.block-badge');
+      bb.style.display = e.block > 0 ? 'flex' : 'none';
+      bb.textContent = e.block;
+      el.classList.toggle('targetable', !!(cb.selected && needsTarget(cb.selected) && e.hp > 0));
+    });
+    // player
+    $('pHpFill').style.width = (G.run.hp / G.run.hpMax * 100) + '%';
+    $('pHpTxt').textContent = `${G.run.hp}/${G.run.hpMax}`;
+    $('pBlockBadge').style.display = cb.block > 0 ? 'flex' : 'none';
+    $('pBlockBadge').textContent = cb.block;
+    $('playerStatuses').innerHTML = statusRowHtml(cb.statuses);
+    // pets in arena
+    const petBox = $('combatPets');
+    if (petBox.childElementCount !== G.run.pets.length) {
+      petBox.innerHTML = G.run.pets.map((p, i) => `<span class="cpet" style="animation-delay:${(i % 5) * 0.3}s">${PETS[p].icon}</span>`).join('');
+    }
+    // hud
+    $('energyOrb').textContent = `${cb.energy}/${cb.energyMax}`;
+    $('drawCount').textContent = cb.draw.length;
+    $('discardCount').textContent = cb.discard.length;
+    $('exhaustCount').textContent = cb.exhaust.length;
+    $('endTurnBtn').disabled = cb.busy || cb.over;
+    $('targetHint').classList.toggle('visible', !!(cb.selected && needsTarget(cb.selected)));
+    renderTopbar();
+    renderHand();
+    // status chip tooltips
+    document.querySelectorAll('#screen-combat .status-chip').forEach(chip => {
+      chip.onclick = (ev) => {
+        ev.stopPropagation();
+        const def = STATUS[chip.dataset.status];
+        if (def) openModal(`${def.icon} ${def.name}`, `<div style="text-align:center">${esc(def.desc)}</div>`);
+      };
+    });
+  }
+
+  function needsTarget(card) {
+    return cdef(card).target === 'enemy' && livingEnemies().length > 1;
+  }
+
+  function renderHand() {
+    if (!G.cb || G.screen !== 'combat') return;
+    const cb = G.cb;
+    const hand = $('hand');
+    hand.innerHTML = '';
+    cb.hand.forEach(c => {
+      const el = cardEl(c, { combat: true });
+      if (!canPlayCard(c)) el.classList.add('unplayable-cost');
+      if (cb.selected && cb.selected.uid === c.uid) el.classList.add('sel');
+      el.addEventListener('click', (ev) => { ev.stopPropagation(); onCardTap(c); });
+      hand.appendChild(el);
+    });
+  }
+
+  /* ---------------- combat input (tap-to-play, works for mouse + touch) ---------------- */
+  function onCardTap(card) {
+    const cb = G.cb;
+    if (cb.over || cb.busy) return;
+    const d = cdef(card);
+    if (d.unplayable) { toast(cardText(card, false).replace(/<[^>]+>/g, ''), 1400); return; }
+    if (cb.selected && cb.selected.uid === card.uid) {
+      // second tap: play if not targeting-required
+      if (needsTarget(card)) { cb.selected = null; renderCombat(); return; }
+      playCard(card, d.target === 'enemy' ? livingEnemies()[0] : null);
+      return;
+    }
+    if (!canPlayCard(card)) { toast('Not enough energy!'); return; }
+    if (d.target === 'enemy') {
+      if (livingEnemies().length === 1 && HAS_HOVER) { playCard(card, livingEnemies()[0]); return; }
+      if (livingEnemies().length === 1) { cb.selected = card; renderCombat(); return; }
+      cb.selected = card;
+      renderCombat();
+      return;
+    }
+    // non-targeted cards: desktop (hover preview exists) plays instantly,
+    // touch devices select first so the card can be read, second tap plays
+    if (HAS_HOVER) { playCard(card, null); return; }
+    cb.selected = card;
+    renderCombat();
+  }
+  function onEnemyTap(e) {
+    const cb = G.cb;
+    if (cb.over || cb.busy) return;
+    if (cb.selected && needsTarget(cb.selected) && e.hp > 0) {
+      const card = cb.selected;
+      cb.selected = null;
+      playCard(card, e);
+    } else {
+      // inspect enemy
+      const d = ENEMIES[e.id];
+      const mv = d.moves[e.move];
+      openModal(`${e.icon} ${esc(e.name)}`,
+        `<div style="text-align:center;line-height:2">HP: <b>${e.hp}/${e.hpMax}</b>${e.block ? ` · Block: <b>${e.block}</b>` : ''}<br>Next: <b>${mv ? esc(mv.name) : '?'}</b> ${intentHtml(e)}</div>`);
+    }
+  }
+
+  /* =====================================================================
+     COMBAT END + REWARDS
+     ===================================================================== */
+  function combatVictory() {
+    const cb = G.cb;
+    const kind = cb.kind;
+    Sound.win();
+    if (kind === 'elite') G.run.stats.elites += 1;
+    if (kind === 'boss') G.run.stats.bosses += 1;
+    // scout heal
+    if (G.run.pets.includes('scout')) healPlayer(5);
+    // build rewards
+    const rewards = [];
+    let coins = kind === 'boss' ? rand(68, 82) : kind === 'elite' ? rand(28, 38) : rand(12, 20);
+    if (G.run.pets.includes('crumb')) coins += 12;
+    rewards.push({ type: 'coins', amount: coins, icon: '🪙', label: `${coins} coins` });
+    const nChoices = G.run.pets.includes('hoot') ? 4 : 3;
+    rewards.push({ type: 'card', icon: '🎴', label: 'Add a card to your deck', cards: randomCardsForReward(nChoices, kind) });
+    if (kind === 'elite') {
+      const pid = randomPet(G.run.pets, ['common', 'uncommon', 'rare']);
+      if (pid) rewards.push({ type: 'pet', id: pid, icon: PETS[pid].icon, label: `A new friend: ${PETS[pid].name}`, sub: PETS[pid].desc });
+    }
+    if (kind === 'boss') {
+      rewards.push({ type: 'bosspet', icon: '🎁', label: 'Choose a legendary companion', sub: 'Pick 1 of 3 boss pets' });
+    }
+    if (kind !== 'boss' && Math.random() < 0.35) {
+      const t = randomTreat();
+      rewards.push({ type: 'treat', id: t, icon: TREATS[t].icon, label: `Treat: ${TREATS[t].name}`, sub: TREATS[t].desc });
+    }
+    G.pendingRewards = rewards;
+    showRewards(kind === 'boss' ? 'Boss Defeated!' : kind === 'elite' ? 'Dread Haunt Banished!' : 'Room Cleared!');
+  }
+
+  function showRewards(title) {
+    showScreen('reward');
+    $('rewardTitle').textContent = title || 'Room Cleared!';
+    $('rewardSub').textContent = 'Gather your spoils before moving on.';
+    renderRewards();
+    saveRun();
+  }
+  function renderRewards() {
+    const list = $('rewardList');
+    list.innerHTML = '';
+    G.pendingRewards.forEach((r, i) => {
+      const b = document.createElement('button');
+      b.className = 'reward-item' + (r.taken ? ' taken' : '');
+      b.type = 'button';
+      b.innerHTML = `<span class="ri-ico">${r.icon}</span><span>${esc(r.label)}${r.sub ? `<small>${esc(r.sub)}</small>` : ''}</span>`;
+      b.addEventListener('click', () => takeReward(r, b));
+      list.appendChild(b);
+    });
+  }
+  function takeReward(r) {
+    if (r.taken) return;
+    switch (r.type) {
+      case 'coins': r.taken = true; gainCoins(r.amount); break;
+      case 'treat': if (gainTreat(r.id)) { r.taken = true; } break;
+      case 'pet': r.taken = true; gainPet(r.id); toast(`${PETS[r.id].icon} ${PETS[r.id].name} joins your menagerie!`, 2200); break;
+      case 'card':
+        openCardPick(r.cards, 'Choose a Card', 'Add one card to your deck — or skip.', (picked) => {
+          if (picked) { addCardToDeck(picked); r.taken = true; }
+          showRewards($('rewardTitle').textContent);
+        });
+        return;
+      case 'bosspet': {
+        const choices = shuffle(petPool('boss', G.run.pets)).slice(0, 3);
+        if (!choices.length) { r.taken = true; gainCoins(50); break; }
+        showBossPetChoice(choices, r);
+        return;
+      }
+    }
+    renderRewards();
+    saveRun();
+  }
+  function showBossPetChoice(choices, reward) {
+    const body = choices.map(p => `
+      <button class="reward-item" data-pet="${p.id}" type="button">
+        <span class="ri-ico">${p.icon}</span>
+        <span>${esc(p.name)}<small>${esc(p.desc)}</small></span>
+      </button>`).join('');
+    openModal('🎁 Choose a Legendary Companion', body, [{ label: 'Decide later', cls: 'ghost' }]);
+    $('modalBody').querySelectorAll('[data-pet]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.pet;
+        gainPet(id);
+        reward.taken = true;
+        toast(`${PETS[id].icon} ${PETS[id].name} joins your menagerie!`, 2200);
+        closeModal();
+        renderRewards();
+        saveRun();
+      });
+    });
+  }
+
+  /* ---------------- card pick screen ---------------- */
+  let cardPickCb = null;
+  function openCardPick(cards, title, sub, cb, noSkip) {
+    cardPickCb = cb;
+    showScreen('cardpick');
+    $('cardpickTitle').textContent = title;
+    $('cardpickSub').textContent = sub;
+    $('cardpickSkipBtn').style.display = noSkip ? 'none' : '';
+    const row = $('cardpickRow');
+    row.innerHTML = '';
+    let selected = null;
+    cards.forEach(c => {
+      const el = cardEl(c);
+      el.addEventListener('click', () => {
+        Sound.click();
+        if (selected === c.uid) { const f = cardPickCb; cardPickCb = null; f(c); return; }
+        selected = c.uid;
+        row.querySelectorAll('.card').forEach(x => x.classList.toggle('sel', x.dataset.uid == c.uid));
+      });
+      row.appendChild(el);
+    });
+  }
+  $('cardpickSkipBtn').addEventListener('click', () => {
+    Sound.click();
+    if (cardPickCb) { const f = cardPickCb; cardPickCb = null; f(null); }
+  });
+
+  /* defeat */
+  function runDefeat() {
+    if (G.cb) G.cb.over = true;
+    Sound.lose();
+    setTimeout(() => endRun(false), 700);
+  }
+  function runVictory() {
+    G.run.victory = true;
+    setTimeout(() => endRun(true), 400);
+  }
+
+  /* =====================================================================
+     REST / SHOP / CHEST / EVENT
+     ===================================================================== */
+  function showRest() {
+    showScreen('rest');
+    $('restLeaveBtn').style.display = 'none';
+    const box = $('restChoices');
+    box.innerHTML = '';
+    const canHeal = !G.run.pets.includes('bonepup');
+    const healAmt = Math.floor(G.run.hpMax * 0.3);
+    const opts = [
+      { icon: '😴', label: `Nap — heal ${healAmt} HP (30%)`, disabled: !canHeal, sub: canHeal ? '' : 'Bone Pup keeps you wide awake!', act() { healPlayer(healAmt); } },
+      { icon: '🎓', label: 'Train — upgrade a card', act() { queueCardUpgrade(null, () => restDone('You practice a trick until it\'s perfect.')); return 'wait'; } },
+      { icon: '🍖', label: 'Snack time — gain a random treat', act() { gainTreat(randomTreat()); } }
+    ];
+    opts.forEach(o => {
+      const b = document.createElement('button');
+      b.className = 'reward-item';
+      b.type = 'button';
+      b.disabled = !!o.disabled;
+      if (o.disabled) b.style.opacity = 0.45;
+      b.innerHTML = `<span class="ri-ico">${o.icon}</span><span>${esc(o.label)}${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</span>`;
+      b.addEventListener('click', () => {
+        if (o.disabled) return;
+        Sound.click();
+        const r = o.act();
+        if (r !== 'wait') restDone('The candle gutters low. Time to move on.');
+      });
+      box.appendChild(b);
+    });
+  }
+  function restDone(msg) {
+    showScreen('rest');
+    $('restChoices').innerHTML = `<p style="font-size:10px;line-height:2;text-align:center;color:var(--moon)">${esc(msg)}</p>`;
+    $('restLeaveBtn').style.display = '';
+    saveRun();
+  }
+  $('restLeaveBtn').addEventListener('click', () => { Sound.click(); roomDone(); });
+
+  /* ---------------- shop ---------------- */
+  let shopState = null;
+  function shopPrice(n) { return G.run.pets.includes('bandit') ? Math.floor(n * 0.8) : n; }
+  function showShop() {
+    const cards = randomCardsForReward(5, null);
+    const petId = randomPet(G.run.pets, ['common', 'uncommon', 'rare']);
+    shopState = {
+      cards: cards.map(c => ({ card: c, price: shopPrice(cdef(c).rarity === 'rare' ? rand(95, 115) : cdef(c).rarity === 'uncommon' ? rand(62, 78) : rand(38, 52)), sold: false })),
+      pet: petId ? { id: petId, price: shopPrice(PETS[petId].rarity === 'rare' ? rand(180, 210) : PETS[petId].rarity === 'uncommon' ? rand(130, 160) : rand(90, 120)), sold: false } : null,
+      treats: [randomTreat(), randomTreat()].map(t => ({ id: t, price: shopPrice(rand(40, 55)), sold: false })),
+      removeUsed: false, removePrice: shopPrice(70)
+    };
+    renderShop();
+    showScreen('shop');
+    saveRun();
+  }
+  function renderShop() {
+    $('shopCoins').innerHTML = `You have <b style="color:var(--gold)">🪙 ${G.run.coins}</b>`;
+    const cardsEl = $('shopCards');
+    cardsEl.innerHTML = '';
+    shopState.cards.forEach(entry => {
+      const wrap = document.createElement('div');
+      wrap.className = 'shop-entry' + (entry.sold ? ' sold' : '');
+      const el = cardEl(entry.card);
+      el.addEventListener('click', () => buyCard(entry));
+      const tag = document.createElement('div');
+      tag.className = 'price-tag' + (G.run.coins < entry.price ? ' cant' : '');
+      tag.textContent = `🪙 ${entry.price}`;
+      wrap.appendChild(el); wrap.appendChild(tag);
+      cardsEl.appendChild(wrap);
+    });
+    const relEl = $('shopRelics');
+    relEl.innerHTML = '';
+    if (shopState.pet) {
+      const p = PETS[shopState.pet.id];
+      const wrap = document.createElement('div');
+      wrap.className = 'shop-entry' + (shopState.pet.sold ? ' sold' : '');
+      wrap.innerHTML = `<div class="shop-relic">${p.icon}</div><div style="font-size:8px;max-width:110px;text-align:center;line-height:1.6">${esc(p.name)}</div><div class="price-tag${G.run.coins < shopState.pet.price ? ' cant' : ''}">🪙 ${shopState.pet.price}</div>`;
+      wrap.querySelector('.shop-relic').addEventListener('click', () => buyPet());
+      relEl.appendChild(wrap);
+    }
+    shopState.treats.forEach(entry => {
+      const t = TREATS[entry.id];
+      const wrap = document.createElement('div');
+      wrap.className = 'shop-entry' + (entry.sold ? ' sold' : '');
+      wrap.innerHTML = `<div class="shop-relic">${t.icon}</div><div style="font-size:8px;max-width:110px;text-align:center;line-height:1.6">${esc(t.name)}</div><div class="price-tag${G.run.coins < entry.price ? ' cant' : ''}">🪙 ${entry.price}</div>`;
+      wrap.querySelector('.shop-relic').addEventListener('click', () => buyTreat(entry));
+      relEl.appendChild(wrap);
+    });
+    const rm = $('shopRemoveBtn');
+    rm.textContent = shopState.removeUsed ? '✂️ Already forgotten this visit' : `✂️ Forget a Card — 🪙 ${shopState.removePrice}`;
+    rm.disabled = shopState.removeUsed || G.run.coins < shopState.removePrice;
+  }
+  function buyCard(entry) {
+    if (entry.sold) return;
+    if (G.run.coins < entry.price) { toast('Not enough coins!'); return; }
+    G.run.coins -= entry.price; entry.sold = true;
+    addCardToDeck(entry.card);
+    Sound.coin(); renderShop(); renderTopbar(); saveRun();
+  }
+  function buyPet() {
+    const p = shopState.pet;
+    if (!p || p.sold) return;
+    if (G.run.coins < p.price) { toast('Not enough coins!'); return; }
+    G.run.coins -= p.price; p.sold = true;
+    gainPet(p.id);
+    toast(`${PETS[p.id].icon} ${PETS[p.id].name} joins your menagerie!`, 2200);
+    renderShop(); renderTopbar(); saveRun();
+  }
+  function buyTreat(entry) {
+    if (entry.sold) return;
+    if (G.run.coins < entry.price) { toast('Not enough coins!'); return; }
+    if (G.run.treats.length >= G.run.treatSlots) { toast('Treat pockets are full!'); return; }
+    G.run.coins -= entry.price; entry.sold = true;
+    gainTreat(entry.id);
+    Sound.coin(); renderShop(); renderTopbar(); saveRun();
+  }
+  $('shopRemoveBtn').addEventListener('click', () => {
+    if (shopState.removeUsed || G.run.coins < shopState.removePrice) return;
+    Sound.click();
+    queueCardRemove(1, null, () => {
+      G.run.coins -= shopState.removePrice;
+      shopState.removeUsed = true;
+      renderShop(); renderTopbar();
+      showScreen('shop');
+      saveRun();
+    });
+  });
+  $('shopLeaveBtn').addEventListener('click', () => { Sound.click(); roomDone(); });
+
+  /* ---------------- chest ---------------- */
+  function showChest() {
+    const roll = Math.random();
+    const rewards = [];
+    if (roll < 0.72) {
+      const pid = randomPet(G.run.pets, ['common', 'uncommon', 'rare']);
+      if (pid) rewards.push({ type: 'pet', id: pid, icon: PETS[pid].icon, label: `A new friend: ${PETS[pid].name}`, sub: PETS[pid].desc });
+    } else {
+      const t = randomTreat();
+      rewards.push({ type: 'treat', id: t, icon: TREATS[t].icon, label: `Treat: ${TREATS[t].name}`, sub: TREATS[t].desc });
+    }
+    const coins = rand(20, 45);
+    rewards.push({ type: 'coins', amount: coins, icon: '🪙', label: `${coins} coins` });
+    G.pendingRewards = rewards;
+    showRewards('🎁 A Dusty Treasure Chest');
+    $('rewardSub').textContent = 'Something has been waiting in here a long, long time.';
+  }
+
+  /* ---------------- events ---------------- */
+  let pendingAfterPick = null;
+  function showEvent() {
+    const unseen = EVENTS.filter(e => !G.run.seenEvents.includes(e.id));
+    const ev = pick(unseen.length ? unseen : EVENTS);
+    G.run.seenEvents.push(ev.id);
+    if (G.run.seenEvents.length > EVENTS.length - 3) G.run.seenEvents = [];
+    showScreen('event');
+    $('eventArt').textContent = ev.art;
+    $('eventTitle').textContent = ev.title;
+    $('eventText').textContent = ev.text;
+    const box = $('eventChoices');
+    box.innerHTML = '';
+    ev.choices(G.run).forEach(ch => {
+      const b = document.createElement('button');
+      b.className = 'event-choice';
+      b.type = 'button';
+      b.innerHTML = ch.label;
+      b.disabled = !!ch.disabled;
+      b.addEventListener('click', () => {
+        Sound.click();
+        const result = ch.do();
+        if (result != null) eventResult(result);
+        saveRun();
+      });
+      box.appendChild(b);
+    });
+  }
+  function eventResult(text) {
+    $('eventText').textContent = text;
+    const box = $('eventChoices');
+    box.innerHTML = '';
+    const b = document.createElement('button');
+    b.className = 'btn';
+    b.type = 'button';
+    b.textContent = 'Continue ➤';
+    b.addEventListener('click', () => { Sound.click(); roomDone(); });
+    box.appendChild(b);
+    renderTopbar();
+  }
+
+  /* ---------------- deck operations with picker ---------------- */
+  function queueCardRemove(n, doneMsg, onDone) {
+    const removable = G.run.deck.slice();
+    if (!removable.length) { if (doneMsg) eventResult('Your deck is empty.'); return; }
+    showCardListModal('✂️ Choose a card to forget', removable, {
+      onPick: (c) => {
+        const i = G.run.deck.findIndex(x => x.uid === c.uid);
+        if (i >= 0) G.run.deck.splice(i, 1);
+        closeModal();
+        toast(`${cdef(c).icon} ${cardName(c)} forgotten`);
+        if (onDone) onDone();
+        else if (doneMsg != null && G.screen === 'event') eventResult(doneMsg);
+        saveRun();
+      },
+      actions: [{ label: 'Cancel', onClick: () => { closeModal(); if (G.screen === 'event') eventResult('You decide to keep your memories.'); } }]
+    });
+  }
+  function queueCardUpgrade(doneMsg, onDone) {
+    const upgradable = G.run.deck.filter(c => !c.up && cdef(c).type !== 'curse' && cdef(c).type !== 'status');
+    if (!upgradable.length) {
+      if (onDone) onDone();
+      else if (doneMsg != null) eventResult('Nothing left to teach — every trick is already perfect.');
+      else restDone('Nothing left to teach — every trick is already perfect.');
+      return;
+    }
+    showCardListModal('🎓 Choose a card to upgrade', upgradable, {
+      onPick: (c) => {
+        c.up = true;
+        closeModal();
+        toast(`${cdef(c).icon} ${cardName(c)} upgraded!`);
+        if (onDone) onDone();
+        else if (doneMsg != null && G.screen === 'event') eventResult(doneMsg);
+        saveRun();
+      },
+      actions: [{ label: 'Cancel', onClick: () => { closeModal(); if (G.screen === 'rest') showRest(); else if (G.screen === 'event') eventResult('Maybe another time.'); } }]
+    });
+  }
+  function queueCardTransform(doneMsg) {
+    showCardListModal('🔄 Choose a card to transform', G.run.deck.slice(), {
+      onPick: (c) => {
+        const i = G.run.deck.findIndex(x => x.uid === c.uid);
+        if (i >= 0) G.run.deck.splice(i, 1);
+        const rarity = ['starter', 'special'].includes(cdef(c).rarity) ? 'common' : cdef(c).rarity;
+        const pool = cardPoolByRarity(rarity).filter(d => d.id !== c.id);
+        const nc = makeCard(pick(pool.length ? pool : cardPoolByRarity('common')).id);
+        G.run.deck.push(nc);
+        closeModal();
+        toast(`${cdef(c).icon} became ${cdef(nc).icon} ${cardName(nc)}!`, 2200);
+        if (G.screen === 'event') eventResult(doneMsg || 'The trade is done.');
+        saveRun();
+      },
+      actions: [{ label: 'Cancel', onClick: () => { closeModal(); if (G.screen === 'event') eventResult('You keep what\'s yours.'); } }]
+    });
+  }
+  function queueCardPick(cards, title, sub) {
+    openCardPick(cards, title, sub, (picked) => {
+      if (picked) addCardToDeck(picked);
+      showScreen('event');
+      eventResult(picked ? `${cdef(picked).icon} ${cardName(picked)} tucked safely into your deck.` : 'You leave the treasure be.');
+      saveRun();
+    });
+  }
+
+  /* =====================================================================
+     END OF RUN + LEADERBOARD
+     ===================================================================== */
+  function computeScore() {
+    const s = G.run.stats;
+    const absFloor = (G.run.act - 1) * FLOORS_PER_ACT + G.run.floor;
+    let score = absFloor * 5 + s.kills * 2 + s.elites * 15 + s.bosses * 50 + Math.floor(G.run.coins / 5) + G.run.hp;
+    if (G.run.victory) score += 150;
+    return score;
+  }
+
+  function endRun(won) {
+    const score = computeScore();
+    const s = G.run.stats;
+    const absFloor = (G.run.act - 1) * FLOORS_PER_ACT + G.run.floor;
+    $('goArt').textContent = won ? '🌅' : '👻';
+    $('goTitle').textContent = won ? 'Dawn Breaks Over Hollowmoor!' : 'The Manor Keeps You';
+    $('goStats').innerHTML =
+      (won ? 'Mother Midnight dissolves into moonlight.<br>Every lost pet is found. You walk out into the sunrise.<br><br>'
+           : 'Your candle goes out somewhere on floor ' + absFloor + '.<br>The pets carry you home through the walls...<br><br>') +
+      `Score: <b>${score}</b><br>` +
+      `Rooms explored: <b>${absFloor}</b> · Ghosts banished: <b>${s.kills}</b><br>` +
+      `Dread haunts: <b>${s.elites}</b> · Bosses: <b>${s.bosses}</b><br>` +
+      `Pets befriended: <b>${G.run.pets.length}</b> · Cards played: <b>${s.cardsPlayed}</b>`;
+    showScreen('gameover');
+    clearSave();
+    if (won) Sound.win();
+    maybeSubmitLeaderboard(score, won).catch(() => {});
+  }
+
+  async function maybeSubmitLeaderboard(score, won) {
+    try {
+      const res = await fetch(`/api/leaderboard/rank?gameId=${encodeURIComponent(GAME_ID)}&score=${encodeURIComponent(score)}`, { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) return;
+      const data = await res.json();
+      const rank = Number(data && data.rank);
+      if (!Number.isFinite(rank) || rank <= 0 || rank > 20) return;
+      let name = prompt(`${won ? 'You won! ' : ''}New high score! You placed #${rank}. Enter your name (max 20 chars):`, '');
+      if (name == null) return;
+      name = name.trim().replace(/[^\w \-'.!]/g, '').slice(0, 20);
+      if (!name) return;
+      await fetch('/api/leaderboard/submit', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gameId: GAME_ID, name, score })
+      });
+      toast(`🏆 Score ${score} submitted — rank #${rank}!`, 2600);
+    } catch (e) { /* offline/local play: ignore */ }
+  }
+
+  /* =====================================================================
+     TITLE / MENU / HELP
+     ===================================================================== */
+  function showHowTo() {
+    openModal('📖 How To Play', `
+      <div style="line-height:2">
+      <b>🗺️ The Manor:</b> climb 3 floors of rooms. Tap a glowing room to enter it. Each act ends in a boss.<br><br>
+      <b>⚔️ Combat:</b> play cards from your hand using Energy (the gold orb). Tap a card — if it needs a target, tap an enemy next. Tap <i>End Turn</i> when done. Enemy intentions are shown above their heads.<br><br>
+      <b>🛡️ Block</b> soaks damage but fades at the start of your turn.<br><br>
+      <b>🐾 Pets</b> are permanent companions with passive powers — collect them from chests, elites, shops and events. Tap their icons any time to re-read what they do.<br><br>
+      <b>🍪 Treats</b> are one-use items. Tap one in the top bar to use it (most work only in combat).<br><br>
+      <b>🎴 Your deck</b> grows after every fight. Fewer, stronger cards usually beat a bloated deck — remove cards at shops and events when you can.<br><br>
+      <b>😱 Spooked</b> = takes +50% damage · <b>🌫️ Dimmed</b> = deals -25% · <b>🥶 Shivers</b> = -25% Block · <b>☠️ Venom</b> = damage over time.
+      </div>`);
+  }
+  function showCompendium() {
+    const groups = ['starter', 'common', 'uncommon', 'rare', 'boss'];
+    const names = { starter: 'Your First Friend', common: 'Common Pets', uncommon: 'Uncommon Pets', rare: 'Rare Pets', boss: 'Legendary Pets' };
+    let html = '';
+    groups.forEach(g => {
+      const pets = Object.values(PETS).filter(p => p.rarity === g);
+      if (!pets.length) return;
+      html += `<div style="color:var(--gold);margin:8px 0 4px;font-size:10px">${names[g]}</div>`;
+      pets.forEach(p => {
+        html += `<div class="modal-list-item"><span class="mico">${p.icon}</span><span><b>${esc(p.name)}</b><br><small>${esc(p.desc)}</small></span></div>`;
+      });
+    });
+    openModal('🐾 Pet Compendium', html);
+  }
+  function showMenu() {
+    openModal('☰ Menu', `<div style="text-align:center;line-height:2">Floor ${(G.run.act - 1) * FLOORS_PER_ACT + G.run.floor} · ${ACT_NAMES[G.run.act]}<br>Score so far: <b>${computeScore()}</b></div>`, [
+      { label: Sound.muted ? '🔇 Sound: Off' : '🔊 Sound: On', onClick: () => { Sound.muted = !Sound.muted; localStorage.setItem('mm2_mute', Sound.muted ? '1' : '0'); closeModal(); showMenu(); } },
+      { label: '📖 How To Play', onClick: () => { closeModal(); showHowTo(); } },
+      { label: '🏳️ Abandon Run', cls: 'danger', onClick: () => {
+          closeModal();
+          openModal('Abandon this night?', '<div style="text-align:center">Your progress will be lost to the manor.</div>', [
+            { label: 'Yes, give up', cls: 'danger', onClick: () => { closeModal(); clearSave(); G.run = null; G.cb = null; showTitle(); } },
+            { label: 'Keep exploring', cls: 'ghost' }
+          ]);
+        } },
+      { label: 'Close', cls: 'ghost' }
+    ]);
+  }
+  function showTitle() {
+    showScreen('title');
+    $('continueBtn').style.display = hasSave() ? '' : 'none';
+  }
+
+  /* =====================================================================
+     WIRING + INIT
+     ===================================================================== */
+  $('newRunBtn').addEventListener('click', () => {
+    Sound.ensure(); Sound.click();
+    if (hasSave()) {
+      openModal('Start a new night?', '<div style="text-align:center">A saved adventure exists. Starting fresh will erase it.</div>', [
+        { label: 'New Adventure', onClick: () => { closeModal(); clearSave(); newRun(); showMap(); } },
+        { label: 'Cancel', cls: 'ghost' }
+      ]);
+      return;
+    }
+    newRun();
+    showMap();
+  });
+  $('continueBtn').addEventListener('click', () => {
+    Sound.ensure(); Sound.click();
+    if (loadRun()) showMap();
+    else { toast('Could not load the save.'); showTitle(); }
+  });
+  $('howBtn').addEventListener('click', () => { Sound.click(); showHowTo(); });
+  $('compendiumBtn').addEventListener('click', () => { Sound.click(); showCompendium(); });
+  $('menuBtn').addEventListener('click', () => { Sound.click(); showMenu(); });
+  $('deckBtn').addEventListener('click', () => {
+    Sound.click();
+    showCardListModal(`🎴 Your Deck (${G.run.deck.length} cards)`, G.run.deck);
+  });
+  $('endTurnBtn').addEventListener('click', () => { Sound.click(); endTurn(); });
+  $('drawPileBtn').addEventListener('click', () => { Sound.click(); showCardListModal(`📚 Draw Pile (${G.cb.draw.length}) — order hidden`, shuffle(G.cb.draw), { combat: true }); });
+  $('discardPileBtn').addEventListener('click', () => { Sound.click(); showCardListModal(`🗑️ Discard Pile (${G.cb.discard.length})`, G.cb.discard, { combat: true }); });
+  $('exhaustPileBtn').addEventListener('click', () => { Sound.click(); showCardListModal(`🕳️ Exhausted (${G.cb.exhaust.length})`, G.cb.exhaust, { combat: true }); });
+  $('rewardDoneBtn').addEventListener('click', () => { Sound.click(); roomDone(); });
+  $('goAgainBtn').addEventListener('click', () => { Sound.click(); clearSave(); newRun(); showMap(); });
+  $('goTitleBtn').addEventListener('click', () => { Sound.click(); G.run = null; G.cb = null; showTitle(); });
+
+  /* deselect card when tapping empty arena */
+  $('combatArena').addEventListener('click', (e) => {
+    if (G.cb && G.cb.selected && !e.target.closest('.enemy')) {
+      G.cb.selected = null;
+      renderCombat();
+    }
+  });
+
+  /* keyboard (desktop): 1-9 play card, E/Enter end turn, D deck */
+  window.addEventListener('keydown', (e) => {
+    if ($('modal').classList.contains('visible')) { if (e.key === 'Escape') closeModal(); return; }
+    if (G.screen !== 'combat' || !G.cb || G.cb.over || G.cb.busy) return;
+    if (e.key >= '1' && e.key <= '9') {
+      const idx = +e.key - 1;
+      const c = G.cb.hand[idx];
+      if (c) onCardTap(c);
+    } else if (e.key === 'e' || e.key === 'E' || e.key === 'Enter') {
+      endTurn();
+    } else if (e.key === 'Escape' && G.cb.selected) {
+      G.cb.selected = null;
+      renderCombat();
+    }
+  });
+
+  window.addEventListener('resize', () => { if (G.screen === 'map') renderMap(); });
+
+  /* autosave when leaving the page mid-run */
+  window.addEventListener('beforeunload', () => { if (G.run && G.screen !== 'combat' && G.screen !== 'gameover') saveRun(); });
+
+  /* boot */
+  showTitle();
+  </script>
+</body>
+</html>

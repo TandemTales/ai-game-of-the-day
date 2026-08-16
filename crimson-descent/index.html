@@ -1,0 +1,1908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-17405200669"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'AW-17405200669');
+</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Crimson Descent</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
+  <style>
+    :root {
+      --gold: #FFD700;
+      --teal: #5F9EA0;
+      --crimson: #a5332b;
+      --ink: #F5F5DC;
+      --topbar-h: 56px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: radial-gradient(circle at 60% 10%, #ffe1a6 0%, #ff8351 22%, #7a1535 62%, #25072b 100%);
+      font-family: 'Press Start 2P', cursive;
+      color: var(--ink);
+      overflow: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image: url('../images/botbuiltarcade-icon-face.png');
+      background-size: 220px 220px;
+      background-repeat: no-repeat;
+      background-position: top right;
+      opacity: 0.08;
+      z-index: -1;
+    }
+    .topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      background: rgba(15, 7, 24, 0.72);
+      border-bottom: 2px solid var(--gold);
+      backdrop-filter: blur(10px);
+      z-index: 30;
+    }
+    .title {
+      flex: 1;
+      text-align: center;
+      font-size: 14px;
+      letter-spacing: 1px;
+      background: linear-gradient(45deg, var(--gold), #FFA500);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .top-actions {
+      display: flex;
+      gap: 10px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 12px;
+      font-size: 11px;
+      border-radius: 10px;
+      text-decoration: none;
+      color: #fff;
+      border: 2px solid var(--gold);
+      background: linear-gradient(45deg, var(--teal), #4682B4);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+      cursor: pointer;
+      transition: transform 0.2s ease, filter 0.2s ease;
+    }
+    .btn:hover { transform: translateY(-2px); filter: brightness(1.05); }
+    .btn:active { transform: translateY(1px); }
+    .hud {
+      position: fixed;
+      top: calc(var(--topbar-h) + 12px);
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 14px;
+      padding: 8px 14px;
+      border-radius: 12px;
+      background: rgba(12, 6, 22, 0.72);
+      border: 2px solid rgba(255, 215, 0, 0.35);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      font-size: 11px;
+      z-index: 25;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .hud span { display: inline-flex; align-items: center; gap: 6px; }
+    .hud .hud-audio { pointer-events: auto; }
+    .hud .mute-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 215, 0, 0.6);
+      background: rgba(15, 7, 24, 0.65);
+      color: var(--gold);
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.45);
+      pointer-events: auto;
+      transition: transform 0.2s ease, filter 0.2s ease;
+    }
+    .hud .mute-btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+    .hud .mute-btn:active { transform: translateY(1px); }
+    .hud label { opacity: 0.8; font-size: 10px; }
+    .hud strong { color: var(--gold); font-weight: 400; }
+    .game-wrap {
+      position: fixed;
+      top: calc(var(--topbar-h) + 0px);
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(720px, 100vw);
+      height: calc(min(720px, 100vw) * 4 / 3);
+      max-height: calc(100vh - var(--topbar-h));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-top: 12px;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      max-height: calc(100vh - var(--topbar-h) - 80px);
+      image-rendering: pixelated;
+      border-radius: 16px;
+      border: 3px solid rgba(242, 149, 90, 0.4);
+      background: #1a1126;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      text-align: center;
+      padding: 24px;
+      background: radial-gradient(680px 540px at 50% 40%, rgba(12, 4, 16, 0.8), rgba(8, 3, 14, 0.92));
+      color: var(--ink);
+      z-index: 40;
+    }
+    .overlay.show { display: flex; }
+    .overlay h2 { margin: 0 0 16px; font-size: 20px; color: var(--gold); }
+    .overlay p { margin: 8px 0; font-size: 12px; line-height: 1.5; }
+    .overlay small { margin-top: 16px; font-size: 10px; color: var(--teal); }
+    .overlay .stats { margin-top: 18px; font-size: 11px; line-height: 1.4; color: #ffe4b5; }
+    .overlay .actions {
+      margin-top: 20px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .overlay .actions .btn {
+      min-width: 140px;
+    }
+    .panel {
+      max-width: 560px;
+      background: rgba(22, 11, 32, 0.92);
+      border: 2px solid rgba(255, 215, 0, 0.45);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 14px 36px rgba(0,0,0,0.55);
+      text-align: left;
+    }
+    .panel h3 { margin: 4px 0 12px; font-size: 14px; color: var(--gold); }
+    .panel ul { margin: 0; padding-left: 18px; font-size: 11px; line-height: 1.6; }
+    .panel li { margin-bottom: 6px; }
+    .touch-controls {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      width: min(420px, 90vw);
+      z-index: 35;
+    }
+    .touch-btn {
+      padding: 16px 10px;
+      font-size: 12px;
+      border-radius: 12px;
+      border: 2px solid rgba(255, 215, 0, 0.35);
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.18), rgba(95, 158, 160, 0.15));
+      color: var(--gold);
+      text-shadow: 0 2px 6px rgba(0,0,0,0.6);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+      user-select: none;
+      touch-action: none;
+    }
+    .touch-btn:active { filter: brightness(1.15); }
+    @media (min-width: 900px) {
+      .touch-controls { display: none; }
+    }
+    @media (max-width: 480px) {
+      .topbar { padding: 10px; }
+      .btn { font-size: 10px; padding: 8px 10px; }
+      .title { font-size: 12px; }
+      .hud { gap: 10px; font-size: 10px; }
+      .hud label { font-size: 9px; }
+      .overlay h2 { font-size: 18px; }
+      .overlay p { font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar" id="topbar">
+    <a class="btn" href="../index.html">⟵ Back to Home</a>
+    <div class="title">Crimson Descent</div>
+    <div class="top-actions">
+      <a class="btn" href="../leaderboard.html?gameId=crimson-descent">Leaderboard</a>
+      <button class="btn" id="howToBtn">How to Play</button>
+    </div>
+  </div>
+
+  <div class="hud" id="hud">
+    <span><label>Fuel</label><strong id="fuel">100</strong>%</span>
+    <span><label>Ammo</label><strong id="ammo">0/50</strong></span>
+    <span><label>Vertical</label><strong id="vertical">0</strong></span>
+    <span><label>Horizontal</label><strong id="horizontal">0</strong></span>
+    <span><label>Altitude</label><strong id="altitude">0</strong></span>
+    <span><label>Elapsed</label><strong id="time">0.0</strong>s</span>
+    <span><label>Score</label><strong id="score">--</strong></span>
+    <span class="hud-audio">
+      <button class="mute-btn" id="muteBtn" type="button" aria-pressed="false" aria-label="Toggle soundtrack">🔊</button>
+    </span>
+  </div>
+
+  <div class="game-wrap">
+    <canvas id="game" aria-label="Crimson Descent"></canvas>
+    <div class="overlay show" id="startScreen">
+      <h2>Crimson Descent</h2>
+      <p>Feather your thrusters and guide the expedition lander onto the Phobos Prospect landing pad. High atmosphere winds will punish rough touchdowns, so keep your velocity and tilt in check.</p>
+      <p>Ready? Tap, click, or press Space to ignite and begin descent.</p>
+      <small>Controls · Arrow/WASD to rotate · Space/Up to fire main thruster · On-screen buttons available on touch devices.</small>
+    </div>
+    <div class="overlay" id="resultScreen">
+      <h2 id="resultTitle">Mission Status</h2>
+      <p id="resultMessage"></p>
+      <div class="stats" id="resultStats"></div>
+      <div class="actions">
+        <button class="btn" id="playAgainBtn" type="button">Play Again</button>
+        <button class="btn" id="viewLeaderboardBtn" type="button">View Leaderboard</button>
+      </div>
+      <small>Use the buttons above to retry or review the mission rankings.</small>
+    </div>
+    <div class="overlay" id="howTo">
+      <div class="panel">
+        <h3>Mission Briefing</h3>
+        <ul>
+          <li>Maintain vertical speed under 35 and horizontal drift under 20 when touching down.</li>
+          <li>Keep your tilt within 20° as you settle onto the pad.</li>
+          <li>Saving fuel earns big bonuses. Fire thrusters only when you must.</li>
+          <li>Score is based on touchdown precision, remaining fuel, and time spent in descent.</li>
+          <li>Cratering ends the run, but you can still submit your score.</li>
+        </ul>
+        <h3>Controls</h3>
+        <ul>
+          <li><strong>Rotate</strong>: Arrow Left/Right or A/D</li>
+          <li><strong>Main Thruster</strong>: Arrow Up, W, or Spacebar</li>
+          <li><strong>Touch</strong>: Use the on-screen buttons for rotate and thrust</li>
+        </ul>
+      </div>
+      <small>Tap anywhere to close.</small>
+    </div>
+  </div>
+
+  <div class="touch-controls" id="touchControls">
+    <button class="touch-btn" data-control="left">⟲ Rotate</button>
+    <button class="touch-btn" data-control="thrust">▲ Thrust</button>
+    <button class="touch-btn" data-control="right">Rotate ⟳</button>
+    <button class="touch-btn" data-control="fire">✷ Fire</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const startScreen = document.getElementById('startScreen');
+    const resultScreen = document.getElementById('resultScreen');
+    const howTo = document.getElementById('howTo');
+    const howToBtn = document.getElementById('howToBtn');
+    const topbar = document.getElementById('topbar');
+    const hudEl = document.getElementById('hud');
+    const touchControls = document.getElementById('touchControls');
+    const muteBtn = document.getElementById('muteBtn');
+
+    const hudFuel = document.getElementById('fuel');
+    const hudAmmo = document.getElementById('ammo');
+    const hudVertical = document.getElementById('vertical');
+    const hudHorizontal = document.getElementById('horizontal');
+    const hudAltitude = document.getElementById('altitude');
+    const hudTime = document.getElementById('time');
+    const hudScore = document.getElementById('score');
+
+    const resultTitle = document.getElementById('resultTitle');
+    const resultMessage = document.getElementById('resultMessage');
+    const resultStats = document.getElementById('resultStats');
+    const playAgainBtn = document.getElementById('playAgainBtn');
+    const viewLeaderboardBtn = document.getElementById('viewLeaderboardBtn');
+
+    const soundtrackFiles = [
+      'assets/CD_soundtrack01.mp3',
+      'assets/CD_soundtrack02.mp3',
+      'assets/CD_soundtrack03.mp3',
+      'assets/CD_soundtrack04.mp3'
+    ].filter(src => src.toLowerCase().includes('soundtrack'));
+
+    let soundtrackQueue = [];
+    let soundtrackAudio = null;
+    let soundtrackEnabled = false;
+
+    const WIDTH = 720;
+    const HEIGHT = 960;
+    const pixelRatio = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+    canvas.width = WIDTH * pixelRatio;
+    canvas.height = HEIGHT * pixelRatio;
+    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    
+    console.log('Crimson Descent - Level Progression v2.2 loaded - Added loading phase and debug logs');
+
+    function resize() {
+      const rect = topbar.getBoundingClientRect();
+      document.documentElement.style.setProperty('--topbar-h', rect.height + 'px');
+    }
+    resize();
+    if (typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(resize).observe(topbar);
+    }
+    window.addEventListener('resize', resize);
+
+    let LANDER_WIDTH = 28;
+    let LANDER_HEIGHT = 32;
+    const TARGET_LANDER_HEIGHT = LANDER_HEIGHT;
+    const LANDER_FRAME_STEP = Math.PI / 180; // 1° increments
+    const TWO_PI = Math.PI * 2;
+    const LANDER_FRAME_COUNT = Math.round(TWO_PI / LANDER_FRAME_STEP);
+    let landerFrames = [];
+    let landerFrameSize = 0;
+
+    const assets = {
+      background: 'assets/mars_background.svg',
+      lander: 'assets/CD_rocket_001_small.png',
+      pad: 'assets/landing_pad.svg'
+    };
+    const Images = {};
+    let LEVEL_FOLDER = 'assets/level01/';
+    let LEVEL_FILE = LEVEL_FOLDER + 'map.lvl';
+    let TILEMAP_FILE = LEVEL_FOLDER + 'tilemap.json';
+    const AVAILABLE_LEVELS = [1, 2]; // Add more level numbers as they're created
+    const GRID_SIZE = 128;
+    const TILE_SIZE = 32;
+    const WORLD_WIDTH = GRID_SIZE * TILE_SIZE;
+    const WORLD_HEIGHT = GRID_SIZE * TILE_SIZE;
+    const ENEMY_SHOT_RANGE = TILE_SIZE * 12;
+    const TILES = { EMPTY: 0, WALL: 1, SPAWN: 2, PAD: 3, GUN: 4, ENEMY: 5, EXIT: 6, HOSTAGE: 7 };
+    const tileDefinitions = new Map();
+    const tileImages = new Map();
+    tileDefinitions.set(0, { id: 0, name: 'Empty', imageFile: null });
+    const level = new Uint8Array(GRID_SIZE * GRID_SIZE);
+    let baseLevel = null;
+    let spawnPoint = { x: WIDTH / 2, y: 200 };
+    const camera = { x: 0, y: 0, width: WIDTH, height: HEIGHT };
+    let levelReady = false;
+    let baseAssetsReady = false;
+    let tileAssetsReady = false;
+    let assetsReady = false;
+    let ready = false;
+    let announcedReady = false;
+    let isLevelTransition = false;
+
+    function levelAssetPath(file) {
+      if (!file) return null;
+      let normalized = file.replace(/\\/g, '/').replace(/^\.\//, '').trim();
+      if (!normalized) return null;
+      if (normalized.startsWith(LEVEL_FOLDER) || normalized.startsWith('assets/')) {
+        return normalized;
+      }
+      if (normalized.startsWith('./')) {
+        normalized = normalized.slice(2);
+      }
+      if (normalized.startsWith('../')) {
+        return normalized;
+      }
+      return LEVEL_FOLDER + normalized;
+    }
+
+    function normalizeFileKey(value) {
+      if (!value) return null;
+      const parts = value.split(/\\|\//);
+      return parts[parts.length - 1].trim().toLowerCase();
+    }
+
+    function normalizeMappingEntries(data) {
+      if (!data) return [];
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data.tiles)) return data.tiles;
+      return Object.entries(data).map(([id, value]) => {
+        if (value && typeof value === 'object') {
+          return { id, ...value };
+        }
+        return { id, image: value };
+      });
+    }
+
+    function applyTileMapping(data) {
+      const entries = normalizeMappingEntries(data);
+      tileDefinitions.clear();
+      tileDefinitions.set(0, { id: 0, name: 'Empty', imageFile: null, imageKey: null });
+
+      entries.forEach((entry) => {
+        const id = Number(entry.id);
+        if (!Number.isFinite(id) || id < 0 || id > 255) {
+          return;
+        }
+        const imageFile = entry.image || entry.file || entry.filename || entry.src || null;
+        const imageKey = imageFile ? normalizeFileKey(imageFile) : null;
+        tileDefinitions.set(id, {
+          id,
+          name: entry.name || entry.label || `Tile ${id}`,
+          imageFile: imageFile || null,
+          imageKey
+        });
+      });
+
+      [TILES.WALL, TILES.SPAWN, TILES.PAD, TILES.GUN, TILES.ENEMY, TILES.EXIT, TILES.HOSTAGE].forEach((id) => {
+        if (!tileDefinitions.has(id)) {
+          tileDefinitions.set(id, { id, name: `Tile ${id}`, imageFile: null, imageKey: null });
+        }
+      });
+    }
+
+    function loadTileMap() {
+      return fetch(TILEMAP_FILE)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error('Failed to load tile map JSON');
+          }
+          return res.json();
+        })
+        .then((json) => {
+          applyTileMapping(json);
+        });
+    }
+
+    function loadTileImages() {
+      tileImages.clear();
+      const seen = new Set();
+      const loads = [];
+      tileDefinitions.forEach((definition) => {
+        if (!definition || !definition.imageFile || !definition.imageKey) {
+          return;
+        }
+        if (seen.has(definition.imageKey)) {
+          return;
+        }
+        seen.add(definition.imageKey);
+        const src = levelAssetPath(definition.imageFile);
+        if (!src) {
+          return;
+        }
+        loads.push(
+          loadImage(src).then((img) => {
+            tileImages.set(definition.imageKey, { image: img, src });
+          })
+        );
+      });
+      return Promise.all(loads);
+    }
+
+    function updateReadiness() {
+      assetsReady = baseAssetsReady && tileAssetsReady;
+      ready = assetsReady && levelReady;
+      if (ready && !announcedReady) {
+        announcedReady = true;
+        startScreen.querySelector('p').textContent = 'Ready? Tap, click, or press Space to ignite and begin descent.';
+        console.log('updateReadiness calling resetLander, isLevelTransition:', isLevelTransition);
+        resetLander(isLevelTransition);
+        updateCamera(true);
+      }
+    }
+
+    function handleLoadError(err) {
+      console.error(err);
+      startScreen.querySelector('p').textContent = 'Asset load failed. Refresh to retry.';
+    }
+
+    function normalizeAngle(angle) {
+      return (angle % TWO_PI + TWO_PI) % TWO_PI;
+    }
+
+    function updateLanderDimensions() {
+      if (!Images.lander) return;
+      const aspect = Images.lander.width && Images.lander.height ? Images.lander.width / Images.lander.height : 1;
+      LANDER_HEIGHT = TARGET_LANDER_HEIGHT;
+      LANDER_WIDTH = TARGET_LANDER_HEIGHT * aspect;
+    }
+
+    function prepareLanderFrames() {
+      if (!Images.lander) return;
+      updateLanderDimensions();
+      const diag = Math.ceil(Math.sqrt(LANDER_WIDTH * LANDER_WIDTH + LANDER_HEIGHT * LANDER_HEIGHT));
+      landerFrameSize = diag + 8;
+      landerFrames = new Array(LANDER_FRAME_COUNT);
+      for (let i = 0; i < LANDER_FRAME_COUNT; i++) {
+        const angle = i * LANDER_FRAME_STEP;
+        const frame = document.createElement('canvas');
+        frame.width = frame.height = landerFrameSize;
+        const fCtx = frame.getContext('2d');
+        if (!fCtx) {
+          landerFrames[i] = null;
+          continue;
+        }
+        fCtx.imageSmoothingEnabled = false;
+        fCtx.translate(landerFrameSize / 2, landerFrameSize / 2);
+        fCtx.rotate(angle);
+        fCtx.drawImage(Images.lander, -LANDER_WIDTH / 2, -LANDER_HEIGHT / 2, LANDER_WIDTH, LANDER_HEIGHT);
+        landerFrames[i] = frame;
+      }
+    }
+
+    function getLanderFrame(angle) {
+      if (!landerFrames.length) return null;
+      const norm = normalizeAngle(angle);
+      const index = Math.round(norm / LANDER_FRAME_STEP) % landerFrames.length;
+      return landerFrames[index] || null;
+    }
+
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('Failed to load ' + src));
+        img.src = src;
+      });
+    }
+
+    function loadLevelFile() {
+      return fetch(LEVEL_FILE)
+        .then(res => {
+          if (!res.ok) throw new Error('Failed to load level data');
+          return res.arrayBuffer();
+        })
+        .then(buffer => {
+          if (buffer.byteLength < level.length) throw new Error('Unexpected level size');
+          const bytes = new Uint8Array(buffer, 0, level.length);
+          if (!baseLevel) {
+            baseLevel = new Uint8Array(level.length);
+          }
+          baseLevel.set(bytes);
+          level.set(bytes);
+          parseLevel();
+          levelReady = true;
+          updateReadiness();
+        });
+    }
+
+    function parseLevel() {
+      let spawnFound = false;
+      enemies.length = 0;
+      enemyProjectiles.length = 0;
+      hostages.length = 0;
+      for (let y = 0; y < GRID_SIZE; y++) {
+        for (let x = 0; x < GRID_SIZE; x++) {
+          const tile = level[worldIndex(x, y)];
+          if (!spawnFound && tile === TILES.SPAWN) {
+            spawnPoint = {
+              x: (x + 0.5) * TILE_SIZE,
+              y: y * TILE_SIZE - LANDER_HEIGHT * 0.46 - 16
+            };
+            spawnFound = true;
+          }
+          if (tile === TILES.ENEMY) {
+            const centerX = (x + 0.5) * TILE_SIZE;
+            const centerY = (y + 0.5) * TILE_SIZE;
+            enemies.push({
+              x: centerX,
+              y: centerY,
+              originY: centerY,
+              dir: 1,
+              range: TILE_SIZE * 1.5,
+              speed: 36,
+              width: TILE_SIZE * 0.9,
+              height: TILE_SIZE * 0.9,
+              fireCooldown: 2.2,
+              fireTimer: 0.6 + Math.random() * 1.2
+            });
+          }
+          if (tile === TILES.HOSTAGE) {
+            const centerX = (x + 0.5) * TILE_SIZE;
+            const centerY = (y + 0.5) * TILE_SIZE;
+            hostages.push({
+              x: centerX,
+              y: centerY,
+              rescued: false,
+              width: TILE_SIZE * 0.8,
+              height: TILE_SIZE * 0.8
+            });
+          }
+        }
+      }
+      if (!spawnFound) {
+        spawnPoint = {
+          x: WORLD_WIDTH / 2,
+          y: TILE_SIZE * 4 - LANDER_HEIGHT * 0.46
+        };
+      }
+      spawnPoint.x = clamp(spawnPoint.x, TILE_SIZE, WORLD_WIDTH - TILE_SIZE);
+      spawnPoint.y = clamp(spawnPoint.y, TILE_SIZE, WORLD_HEIGHT - TILE_SIZE * 2);
+      if (state.phase !== 'playing') {
+        updateCamera(true);
+      }
+    }
+
+    const imagePromises = Object.entries(assets).map(([key, src]) => loadImage(src).then(img => { Images[key] = img; }));
+    Promise.all(imagePromises)
+      .then(() => {
+        baseAssetsReady = true;
+        prepareLanderFrames();
+        updateReadiness();
+      })
+      .catch(handleLoadError);
+
+    Promise.resolve()
+      .then(loadTileMap)
+      .then(loadTileImages)
+      .then(() => {
+        tileAssetsReady = true;
+        updateReadiness();
+      })
+      .catch(handleLoadError);
+
+    const levelPromise = loadLevelFile();
+
+    function shuffleTracks(list) {
+      const copy = list.slice();
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function refillSoundtrackQueue() {
+      if (!soundtrackQueue.length && soundtrackFiles.length) {
+        soundtrackQueue = shuffleTracks(soundtrackFiles);
+      }
+    }
+
+    function ensureSoundtrackAudio() {
+      if (!soundtrackFiles.length) return null;
+      if (!soundtrackAudio) {
+        soundtrackAudio = new Audio();
+        soundtrackAudio.preload = 'auto';
+        soundtrackAudio.volume = 0.6;
+        soundtrackAudio.addEventListener('ended', () => {
+          startNextSoundtrack();
+        });
+      }
+      soundtrackAudio.muted = !soundtrackEnabled;
+      return soundtrackAudio;
+    }
+
+    function startNextSoundtrack() {
+      const audioEl = ensureSoundtrackAudio();
+      if (!audioEl) return;
+      refillSoundtrackQueue();
+      if (!soundtrackQueue.length) return;
+      const nextSrc = soundtrackQueue.shift();
+      audioEl.src = nextSrc;
+      audioEl.currentTime = 0;
+      audioEl.muted = !soundtrackEnabled;
+      if (soundtrackEnabled) {
+        audioEl.play().catch(() => {});
+      }
+    }
+
+    function resumeSoundtrack() {
+      const audioEl = ensureSoundtrackAudio();
+      if (!audioEl) return;
+      if (!audioEl.src) {
+        startNextSoundtrack();
+        return;
+      }
+      audioEl.muted = !soundtrackEnabled;
+      if (soundtrackEnabled) {
+        audioEl.play().catch(() => {});
+      }
+    }
+
+    function updateMuteButton() {
+      if (!muteBtn) return;
+      muteBtn.textContent = soundtrackEnabled ? '🔊' : '🔇';
+      muteBtn.setAttribute('aria-pressed', (!soundtrackEnabled).toString());
+      muteBtn.setAttribute('aria-label', soundtrackEnabled ? 'Mute soundtrack' : 'Unmute soundtrack');
+    }
+
+    if (muteBtn) {
+      updateMuteButton();
+      const suppressMuteHotkeys = (e) => {
+        if (e.code === 'Space' || e.code === 'Enter') {
+          e.preventDefault();
+        }
+      };
+      muteBtn.addEventListener('keydown', suppressMuteHotkeys);
+      muteBtn.addEventListener('keyup', suppressMuteHotkeys);
+      muteBtn.addEventListener('click', () => {
+        soundtrackEnabled = !soundtrackEnabled;
+        const audioEl = ensureSoundtrackAudio();
+        if (audioEl) {
+          audioEl.muted = !soundtrackEnabled;
+          if (soundtrackEnabled && audioEl.paused) {
+            audioEl.play().catch(() => {});
+          } else if (!soundtrackEnabled) {
+            audioEl.pause();
+          }
+        }
+        updateMuteButton();
+      });
+    }
+
+    const pad = {
+      x: WIDTH / 2 - 110,
+      y: HEIGHT - 150,
+      width: 220,
+      height: 120
+    };
+
+    const GRAVITY = 22;
+    const MAIN_THRUST = 72;
+    const TAKEOFF_BOOST = 48; // Extra thrust when taking off from landing pad
+    const FUEL_BURN_RATE = 2.2; // units per second
+    const ROT_SPEED = 1.8; // radians per second
+    const MAX_VERTICAL_FOR_LAND = 35;
+    const MAX_HORIZONTAL_FOR_LAND = 20;
+    const MAX_ANGLE_FOR_LAND = 0.35; // radians (~20°)
+
+    const GAME_ID = 'crimson-descent';
+
+    const state = {
+      phase: 'intro',
+      time: 0,
+      finalScore: 0,
+      submitted: false,
+      landingStats: null,
+      currentScore: null,
+      leaderboardUrl: null,
+      currentLevel: 1,
+      totalScore: 0,
+      levelStartTime: 0
+    };
+
+    const lander = {
+      x: WIDTH / 2,
+      y: 200,
+      vx: 0,
+      vy: 0,
+      rotation: 0,
+      fuel: 100,
+      thrusting: false,
+      flameTimer: 0
+    };
+
+    const weapon = {
+      hasGun: false,
+      cooldown: 0.25,
+      nextFireTime: 0,
+      ammo: 0,
+      maxAmmo: 50
+    };
+
+    const RECOIL_FORCE = 5;
+
+    const projectiles = [];
+    const enemies = [];
+    const enemyProjectiles = [];
+    const hostages = [];
+
+    let lastCrashDetail = null;
+
+    const keys = { left: false, right: false, thrust: false, fireLeft: false, fireRight: false, fireForward: false };
+
+    function resetLander(preserveWeapon = false) {
+      console.log('resetLander called, preserveWeapon:', preserveWeapon, 'weapon.hasGun before:', weapon.hasGun, 'weapon.ammo before:', weapon.ammo);
+      if (baseLevel) {
+        level.set(baseLevel);
+      }
+      parseLevel();
+      lander.x = spawnPoint.x;
+      lander.y = spawnPoint.y;
+      lander.vx = 0;
+      lander.vy = 12;
+      lander.rotation = 0;
+      lander.fuel = 100;
+      lander.thrusting = false;
+      lander.flameTimer = 0;
+      if (!preserveWeapon) {
+        weapon.hasGun = false;
+        weapon.nextFireTime = 0;
+        weapon.ammo = 0;
+      } else {
+        // When preserving weapon, reset nextFireTime so player can fire immediately in new level
+        weapon.nextFireTime = 0;
+      }
+      projectiles.length = 0;
+      enemyProjectiles.length = 0;
+      state.time = 0;
+      state.finalScore = 0;
+      state.submitted = false;
+      state.landingStats = null;
+      state.currentScore = null;
+      state.leaderboardUrl = null;
+      updateLeaderboardButton();
+      updateCamera(true);
+      lastCrashDetail = null;
+      console.log('resetLander done, weapon.hasGun after:', weapon.hasGun, 'weapon.ammo after:', weapon.ammo);
+    }
+
+    function loadLevel(levelNumber) {
+      // Update level paths
+      const levelStr = String(levelNumber).padStart(2, '0');
+      LEVEL_FOLDER = `assets/level${levelStr}/`;
+      LEVEL_FILE = LEVEL_FOLDER + 'map.lvl';
+      TILEMAP_FILE = LEVEL_FOLDER + 'tilemap.json';
+      
+      // Reset readiness flags
+      levelReady = false;
+      tileAssetsReady = false;
+      ready = false;
+      announcedReady = false;
+      
+      // Load the new level
+      return Promise.resolve()
+        .then(loadTileMap)
+        .then(loadTileImages)
+        .then(() => {
+          tileAssetsReady = true;
+          return loadLevelFile();
+        })
+        .then(() => {
+          updateReadiness();
+        })
+        .catch(handleLoadError);
+    }
+
+    function showStart() {
+      startScreen.classList.add('show');
+      resultScreen.classList.remove('show');
+      state.phase = 'intro';
+      updateHUD();
+      updateLeaderboardButton();
+    }
+
+    // Debug helper: skip to next level with 'L'
+    function debugSkipLevel() {
+      const nextIndex = Math.min(AVAILABLE_LEVELS.length, state.currentLevel + 1);
+      if (nextIndex === state.currentLevel) return; // Already at last level
+      state.phase = 'loading';
+      state.currentLevel = nextIndex;
+      isLevelTransition = true;
+      console.warn('Debug skip to level', state.currentLevel);
+      loadLevel(AVAILABLE_LEVELS[state.currentLevel - 1]).then(() => {
+        resetLander(true);
+        isLevelTransition = false;
+        startGame();
+      });
+    }
+
+    // Debug helper: grant gun with 'G'
+    function debugGiveGun() {
+      weapon.hasGun = true;
+      weapon.ammo = weapon.maxAmmo;
+      weapon.nextFireTime = state.time;
+      console.warn('Debug: granted gun attachment');
+      updateHUD();
+    }
+
+    function baseLeaderboardUrl() {
+      return `../leaderboard.html?gameId=${encodeURIComponent(GAME_ID)}`;
+    }
+
+    function updateLeaderboardButton() {
+      if (!viewLeaderboardBtn) return;
+      const url = state.leaderboardUrl || baseLeaderboardUrl();
+      viewLeaderboardBtn.dataset.url = url;
+    }
+
+    function startGame() {
+      if (!ready) return;
+      state.phase = 'playing';
+      state.time = 0;
+      state.levelStartTime = 0;
+      state.finalScore = 0;
+      state.currentScore = null;
+      startScreen.classList.remove('show');
+      resultScreen.classList.remove('show');
+      resumeSoundtrack();
+    }
+
+    function endRound(success) {
+      const vx = lander.vx;
+      const vy = lander.vy;
+      const angle = lander.rotation;
+      const fuelRemaining = Math.max(0, lander.fuel);
+      const elapsed = state.time;
+      const angleDeg = Math.abs(angle) * 180 / Math.PI;
+      const precisionBonus = Math.max(0, 220 - Math.abs(vy) * 140);
+      const driftBonus = Math.max(0, 160 - Math.abs(vx) * 160);
+      const angleBonus = Math.max(0, 180 - angleDeg * 4);
+      const fuelBonus = fuelRemaining * 12;
+      const timePenalty = Math.floor(elapsed * 35);
+      const base = success ? 1500 : 400;
+      const score = Math.max(0, Math.round(base + precisionBonus + driftBonus + angleBonus + fuelBonus - timePenalty));
+      state.finalScore = score;
+      state.currentScore = score;
+      state.totalScore += score;
+      state.landingStats = { vx, vy, angleDeg, fuelRemaining, elapsed };
+
+      const isLastLevel = state.currentLevel >= AVAILABLE_LEVELS.length;
+      const hasNextLevel = !isLastLevel && success;
+
+      console.log('endRound:', { success, currentLevel: state.currentLevel, isLastLevel, hasNextLevel });
+
+      // If advancing to next level, do it seamlessly without showing result screen
+      if (hasNextLevel) {
+        console.log('Advancing to next level seamlessly... weapon.hasGun:', weapon.hasGun, 'weapon.ammo:', weapon.ammo);
+        state.phase = 'loading'; // Prevent any game updates during transition
+        state.currentLevel++;
+        isLevelTransition = true; // Mark that we're transitioning between levels
+        console.log('Set isLevelTransition = true, loading level', AVAILABLE_LEVELS[state.currentLevel - 1]);
+        loadLevel(AVAILABLE_LEVELS[state.currentLevel - 1]).then(() => {
+          console.log('Level loaded promise resolved, weapon.hasGun:', weapon.hasGun, 'weapon.ammo:', weapon.ammo);
+          console.log('About to call resetLander(true)...');
+          resetLander(true); // Preserve weapon
+          isLevelTransition = false; // Clear transition flag
+          console.log('Starting game...');
+          startGame();
+          console.log('Game started, phase:', state.phase);
+        });
+        return;
+      }
+
+      // Show result screen only for final level or crash
+      state.phase = success ? 'landed' : 'crashed';
+      
+      if (success) {
+        resultTitle.textContent = 'Mission Complete!';
+        resultMessage.textContent = `All levels conquered! Final Score: ${state.totalScore}`;
+      } else {
+        resultTitle.textContent = 'Mission Failed';
+        resultMessage.textContent = 'The lander broke apart on the regolith. Review your approach and try again.';
+      }
+      
+      resultStats.innerHTML = `Level: ${state.currentLevel} &nbsp;|&nbsp; Velocity V: ${vy.toFixed(1)} &nbsp;|&nbsp; Velocity H: ${vx.toFixed(1)}<br>` +
+        `Tilt: ${angleDeg.toFixed(1)}° &nbsp;|&nbsp; Fuel Remaining: ${fuelRemaining.toFixed(1)}<br>` +
+        `Elapsed Time: ${elapsed.toFixed(1)}s &nbsp;|&nbsp; Level Score: ${score}<br>` +
+        `Total Score: ${state.totalScore}`;
+      
+      resultScreen.classList.add('show');
+      state.leaderboardUrl = baseLeaderboardUrl();
+      updateLeaderboardButton();
+      
+      if (!success) {
+        if (lastCrashDetail) {
+          console.warn('Crimson Descent crash detail:', lastCrashDetail);
+        } else {
+          console.warn('Crimson Descent crash: no detail recorded');
+        }
+      }
+      lastCrashDetail = null;
+      
+      // Submit to leaderboard only on final level completion or failure
+      if (!state.submitted && (isLastLevel || !success)) {
+        state.submitted = true;
+        maybeSubmitLeaderboard(success && isLastLevel).catch(console.error);
+      }
+    }
+
+    function updateHUD() {
+      hudFuel.textContent = Math.max(0, lander.fuel).toFixed(0);
+      hudAmmo.textContent = weapon.hasGun ? `${weapon.ammo}/${weapon.maxAmmo}` : '0/50';
+      hudVertical.textContent = lander.vy.toFixed(1);
+      hudHorizontal.textContent = lander.vx.toFixed(1);
+      const altitude = computeAltitude();
+      hudAltitude.textContent = altitude.toFixed(0);
+      hudTime.textContent = state.time.toFixed(1);
+      const scoreText = state.currentScore == null ? state.totalScore : state.totalScore;
+      hudScore.textContent = `L${state.currentLevel}: ${scoreText}`;
+    }
+
+    function update(dt) {
+      if (state.phase === 'playing') {
+        updateEnemies(dt);
+      }
+      updateProjectiles(dt);
+      updateEnemyProjectiles(dt);
+      if (state.phase !== 'playing') {
+        lander.thrusting = false;
+        return;
+      }
+      state.time += dt;
+      state.levelStartTime += dt;
+      const rot = ROT_SPEED * dt;
+      if (keys.left) lander.rotation -= rot;
+      if (keys.right) lander.rotation += rot;
+      lander.rotation = ((lander.rotation + Math.PI) % (Math.PI * 2)) - Math.PI;
+
+      const canThrust = keys.thrust && lander.fuel > 0;
+      if (canThrust) {
+        lander.fuel = Math.max(0, lander.fuel - FUEL_BURN_RATE * dt);
+        let thrust = MAIN_THRUST * dt;
+        
+        // Apply takeoff boost when on landing pad with low upward velocity
+        if (isOnLandingPad() && lander.vy > -10) {
+          thrust += TAKEOFF_BOOST * dt;
+        }
+        
+        const s = Math.sin(lander.rotation);
+        const c = Math.cos(lander.rotation);
+        lander.vx += s * thrust;
+        lander.vy -= c * thrust;
+        lander.thrusting = true;
+        lander.flameTimer += dt * 9;
+      } else {
+        lander.thrusting = false;
+        lander.flameTimer = 0;
+      }
+
+      // Auto-fire while a fire control is held
+      handleAutoFire();
+
+      lander.vy += GRAVITY * dt;
+      lander.x += lander.vx * dt;
+      lander.y += lander.vy * dt;
+      clampToWorld();
+      updateCamera();
+      handleGunPickup();
+      handleHostageRescue();
+      if (attemptExit()) return;
+      if (attemptLanding()) return;
+      if (checkWallCollision()) {
+        endRound(false);
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, WIDTH, HEIGHT);
+      if (assetsReady && Images.background) {
+        ctx.drawImage(Images.background, 0, 0, WIDTH, HEIGHT);
+      } else {
+        ctx.fillStyle = '#201030';
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      }
+      ctx.save();
+      ctx.translate(-camera.x, -camera.y);
+      drawTerrain();
+      drawHostages();
+      drawEnemies();
+      drawEnemyProjectiles();
+      drawProjectiles();
+      ctx.save();
+      ctx.translate(lander.x, lander.y);
+      ctx.rotate(lander.rotation);
+      if (lander.thrusting) {
+        const flicker = 4 + Math.sin(lander.flameTimer) * 2.5;
+        const gradient = ctx.createLinearGradient(0, LANDER_HEIGHT * 0.3, 0, LANDER_HEIGHT * 0.6 + flicker);
+        gradient.addColorStop(0, 'rgba(255, 240, 200, 0.9)');
+        gradient.addColorStop(0.4, 'rgba(255, 160, 60, 0.85)');
+        gradient.addColorStop(1, 'rgba(255, 60, 40, 0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.moveTo(-8, LANDER_HEIGHT * 0.3);
+        ctx.lineTo(0, LANDER_HEIGHT * 0.6 + flicker);
+        ctx.lineTo(8, LANDER_HEIGHT * 0.3);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+
+      if (assetsReady) {
+        const frame = getLanderFrame(lander.rotation);
+        if (frame) {
+          const offset = landerFrameSize / 2;
+          ctx.drawImage(frame, lander.x - offset, lander.y - offset);
+        } else if (Images.lander) {
+          ctx.save();
+          ctx.translate(lander.x, lander.y);
+          ctx.rotate(lander.rotation);
+          ctx.drawImage(Images.lander, -LANDER_WIDTH / 2, -LANDER_HEIGHT / 2, LANDER_WIDTH, LANDER_HEIGHT);
+          ctx.restore();
+        }
+      } else {
+        ctx.save();
+        ctx.translate(lander.x, lander.y);
+        ctx.rotate(lander.rotation);
+        ctx.fillStyle = '#ccc';
+        ctx.fillRect(-LANDER_WIDTH / 2, -LANDER_HEIGHT / 2, LANDER_WIDTH, LANDER_HEIGHT);
+        ctx.restore();
+      }
+
+      // HUD helper markers
+      ctx.save();
+      ctx.translate(lander.x, lander.y + LANDER_HEIGHT * 0.45);
+      ctx.strokeStyle = 'rgba(255, 220, 180, 0.25)';
+      ctx.beginPath();
+      ctx.moveTo(-LANDER_WIDTH * 0.7, 6);
+      ctx.lineTo(LANDER_WIDTH * 0.7, 6);
+      ctx.stroke();
+      ctx.restore();
+      ctx.restore();
+    }
+
+    function worldIndex(x, y) {
+      return y * GRID_SIZE + x;
+    }
+
+    function sampleTile(tx, ty) {
+      if (tx < 0 || ty < 0 || tx >= GRID_SIZE || ty >= GRID_SIZE) return TILES.WALL;
+      return level[worldIndex(tx, ty)];
+    }
+
+    function tileAtPixel(px, py) {
+      if (px < 0 || px >= WORLD_WIDTH) return TILES.WALL;
+      if (py < 0) return TILES.EMPTY;
+      if (py >= WORLD_HEIGHT) return TILES.WALL;
+      return sampleTile(Math.floor(px / TILE_SIZE), Math.floor(py / TILE_SIZE));
+    }
+
+    function clampToWorld() {
+      const halfW = LANDER_WIDTH * 0.42;
+      const halfH = LANDER_HEIGHT * 0.45;
+      lander.x = clamp(lander.x, halfW, WORLD_WIDTH - halfW);
+      lander.y = clamp(lander.y, -TILE_SIZE * 6, WORLD_HEIGHT - halfH);
+    }
+
+    function updateCamera(force = false) {
+      if (!ready && !force) return;
+      camera.x = clamp(lander.x - camera.width / 2, 0, Math.max(0, WORLD_WIDTH - camera.width));
+      camera.y = clamp(lander.y - camera.height / 2, 0, Math.max(0, WORLD_HEIGHT - camera.height));
+    }
+
+    function drawTerrain() {
+      const startX = Math.max(0, Math.floor(camera.x / TILE_SIZE));
+      const endX = Math.min(GRID_SIZE - 1, Math.ceil((camera.x + camera.width) / TILE_SIZE));
+      const startY = Math.max(0, Math.floor(camera.y / TILE_SIZE));
+      const endY = Math.min(GRID_SIZE - 1, Math.ceil((camera.y + camera.height) / TILE_SIZE));
+
+      for (let ty = startY; ty <= endY; ty++) {
+        for (let tx = startX; tx <= endX; tx++) {
+          const tile = sampleTile(tx, ty);
+          if (tile === TILES.EMPTY) continue;
+          if (tile === TILES.SPAWN || tile === TILES.ENEMY || tile === TILES.HOSTAGE) continue;
+          // Skip exit tiles if hostages aren't all rescued
+          if (tile === TILES.EXIT && !areAllHostagesRescued()) continue;
+          const px = tx * TILE_SIZE;
+          const py = ty * TILE_SIZE;
+          const definition = tileDefinitions.get(tile);
+          const imageKey = definition ? definition.imageKey : null;
+          const imageRecord = imageKey ? tileImages.get(imageKey) : null;
+          if (imageRecord && imageRecord.image) {
+            ctx.drawImage(imageRecord.image, px, py, TILE_SIZE, TILE_SIZE);
+          } else {
+            switch (tile) {
+              case TILES.WALL:
+                ctx.fillStyle = '#3f1423';
+                ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                ctx.fillStyle = 'rgba(255, 120, 90, 0.08)';
+                ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE * 0.35);
+                break;
+              case TILES.SPAWN:
+                ctx.fillStyle = 'rgba(80, 200, 255, 0.25)';
+                ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                break;
+              case TILES.PAD:
+                ctx.fillStyle = 'rgba(255, 230, 120, 0.18)';
+                ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                if (Images.pad && shouldDrawPadArt(tx, ty)) {
+                  const drawX = px - TILE_SIZE * 0.6;
+                  const drawY = py - TILE_SIZE * 0.4;
+                  const drawW = TILE_SIZE * 2.2;
+                  const drawH = TILE_SIZE * 1.5;
+                  ctx.drawImage(Images.pad, drawX, drawY, drawW, drawH);
+                }
+                break;
+              case TILES.EXIT:
+                // Only draw exit if all hostages are rescued
+                if (areAllHostagesRescued()) {
+                  ctx.fillStyle = 'rgba(0, 255, 136, 0.15)';
+                  ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                }
+                break;
+              default:
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+                ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                break;
+            }
+          }
+        }
+      }
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.lineWidth = 1;
+      for (let tx = startX; tx <= endX; tx++) {
+        const gx = tx * TILE_SIZE;
+        ctx.beginPath();
+        ctx.moveTo(gx, startY * TILE_SIZE);
+        ctx.lineTo(gx, (endY + 1) * TILE_SIZE);
+        ctx.stroke();
+      }
+      for (let ty = startY; ty <= endY; ty++) {
+        const gy = ty * TILE_SIZE;
+        ctx.beginPath();
+        ctx.moveTo(startX * TILE_SIZE, gy);
+        ctx.lineTo((endX + 1) * TILE_SIZE, gy);
+        ctx.stroke();
+      }
+    }
+
+    function shouldDrawPadArt(tx, ty) {
+      if (sampleTile(tx, ty) !== TILES.PAD) return false;
+      return sampleTile(tx - 1, ty) !== TILES.PAD;
+    }
+
+    function isOnLandingPad() {
+      const bottom = lander.y + LANDER_HEIGHT * 0.46;
+      const left = lander.x - LANDER_WIDTH * 0.28;
+      const right = lander.x + LANDER_WIDTH * 0.28;
+      const tileRow = Math.floor((bottom + 2) / TILE_SIZE);
+      if (tileRow < 0 || tileRow >= GRID_SIZE) return false;
+      const startCol = Math.floor(left / TILE_SIZE);
+      const endCol = Math.floor(right / TILE_SIZE);
+      for (let tx = startCol; tx <= endCol; tx++) {
+        if (sampleTile(tx, tileRow) === TILES.PAD) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function attemptLanding() {
+      const bottom = lander.y + LANDER_HEIGHT * 0.46;
+      const left = lander.x - LANDER_WIDTH * 0.28;
+      const right = lander.x + LANDER_WIDTH * 0.28;
+      
+      // Only attempt landing when descending, not when taking off
+      if (lander.vy < 0) return false;
+      
+      const tileRow = Math.floor((bottom + 2) / TILE_SIZE);
+      if (tileRow < 0 || tileRow >= GRID_SIZE) return false;
+      const startCol = Math.floor(left / TILE_SIZE);
+      const endCol = Math.floor(right / TILE_SIZE);
+      let padDetected = false;
+      for (let tx = startCol; tx <= endCol; tx++) {
+        if (sampleTile(tx, tileRow) === TILES.PAD) {
+          padDetected = true;
+          break;
+        }
+      }
+      if (!padDetected) return false;
+      const padTop = tileRow * TILE_SIZE;
+      const penetration = bottom - padTop;
+      if (penetration < -4) return false;
+      const impactVX = lander.vx;
+      const impactVY = lander.vy;
+      const impactAngle = lander.rotation;
+      lander.y = padTop - LANDER_HEIGHT * 0.46;
+      lander.vx *= 0.65;
+      lander.vy = 0;
+      const softLanding = Math.abs(impactVX) <= MAX_HORIZONTAL_FOR_LAND && Math.abs(impactVY) <= MAX_VERTICAL_FOR_LAND && Math.abs(impactAngle) <= MAX_ANGLE_FOR_LAND;
+      if (softLanding) {
+        // Recharge fuel to 100% on successful landing
+        lander.fuel = 100;
+        // Refill ammo if player has gun
+        if (weapon.hasGun) {
+          weapon.ammo = weapon.maxAmmo;
+        }
+      } else {
+        lastCrashDetail = {
+          type: 'hard-landing',
+          padRow: tileRow,
+          impact: {
+            vx: Number(impactVX.toFixed(2)),
+            vy: Number(impactVY.toFixed(2)),
+            angle: Number(impactAngle.toFixed(2))
+          },
+          time: Number(state.time.toFixed(2))
+        };
+        console.debug('Hard landing detected', lastCrashDetail);
+        endRound(false);
+      }
+      return true;
+    }
+
+    function handleAutoFire() {
+      if (keys.fireLeft) tryFireGun('left');
+      if (keys.fireRight) tryFireGun('right');
+      if (keys.fireForward) tryFireGun('forward');
+    }
+
+    function attemptExit() {
+      // Check if the center of the lander is in an exit tile
+      // Only allow exit if all hostages are rescued
+      // Add grace period to prevent immediate exit on level start
+      if (state.levelStartTime < 0.5) return false;
+      if (!areAllHostagesRescued()) return false;
+      const tile = tileAtPixel(lander.x, lander.y);
+      if (tile === TILES.EXIT) {
+        console.log('EXIT tile detected, calling endRound(true), levelStartTime:', state.levelStartTime);
+        endRound(true);
+        return true;
+      }
+      return false;
+    }
+
+    function areAllHostagesRescued() {
+      return hostages.every(h => h.rescued);
+    }
+
+    function handleHostageRescue() {
+      const halfW = LANDER_WIDTH * 0.42;
+      const halfH = LANDER_HEIGHT * 0.45;
+      for (let i = 0; i < hostages.length; i++) {
+        const hostage = hostages[i];
+        if (hostage.rescued) continue;
+        const dx = Math.abs(lander.x - hostage.x);
+        const dy = Math.abs(lander.y - hostage.y);
+        if (dx <= (halfW + hostage.width * 0.5) && dy <= (halfH + hostage.height * 0.5)) {
+          hostage.rescued = true;
+        }
+      }
+    }
+
+    function drawHostages() {
+      if (!hostages.length) return;
+      const definition = tileDefinitions.get(TILES.HOSTAGE);
+      const imageKey = definition ? definition.imageKey : null;
+      const imageRecord = imageKey ? tileImages.get(imageKey) : null;
+      ctx.save();
+      hostages.forEach((hostage) => {
+        if (hostage.rescued) return;
+        if (imageRecord && imageRecord.image) {
+          ctx.drawImage(imageRecord.image, hostage.x - hostage.width / 2, hostage.y - hostage.height / 2, hostage.width, hostage.height);
+        } else {
+          // Fallback: draw a person-like shape
+          ctx.fillStyle = '#FFD700';
+          ctx.strokeStyle = '#FFA500';
+          ctx.lineWidth = 2;
+          // Head
+          ctx.beginPath();
+          ctx.arc(hostage.x, hostage.y - hostage.height * 0.25, hostage.width * 0.2, 0, TWO_PI);
+          ctx.fill();
+          ctx.stroke();
+          // Body
+          ctx.beginPath();
+          ctx.moveTo(hostage.x, hostage.y - hostage.height * 0.1);
+          ctx.lineTo(hostage.x, hostage.y + hostage.height * 0.25);
+          ctx.stroke();
+          // Arms
+          ctx.beginPath();
+          ctx.moveTo(hostage.x - hostage.width * 0.25, hostage.y);
+          ctx.lineTo(hostage.x + hostage.width * 0.25, hostage.y);
+          ctx.stroke();
+          // Legs
+          ctx.beginPath();
+          ctx.moveTo(hostage.x, hostage.y + hostage.height * 0.25);
+          ctx.lineTo(hostage.x - hostage.width * 0.15, hostage.y + hostage.height * 0.45);
+          ctx.moveTo(hostage.x, hostage.y + hostage.height * 0.25);
+          ctx.lineTo(hostage.x + hostage.width * 0.15, hostage.y + hostage.height * 0.45);
+          ctx.stroke();
+        }
+      });
+      ctx.restore();
+    }
+
+    function checkWallCollision() {
+      const points = [
+        { x: lander.x, y: lander.y - LANDER_HEIGHT * 0.45 },
+        { x: lander.x, y: lander.y + LANDER_HEIGHT * 0.46 },
+        { x: lander.x - LANDER_WIDTH * 0.45, y: lander.y },
+        { x: lander.x + LANDER_WIDTH * 0.45, y: lander.y },
+        { x: lander.x - LANDER_WIDTH * 0.35, y: lander.y + LANDER_HEIGHT * 0.35 },
+        { x: lander.x + LANDER_WIDTH * 0.35, y: lander.y + LANDER_HEIGHT * 0.35 }
+      ];
+      for (const p of points) {
+        const tile = tileAtPixel(p.x, p.y);
+        if (tile === TILES.WALL) {
+          const tileX = Math.floor(p.x / TILE_SIZE);
+          const tileY = Math.floor(p.y / TILE_SIZE);
+          lastCrashDetail = {
+            type: 'wall',
+            point: { x: Number(p.x.toFixed(2)), y: Number(p.y.toFixed(2)) },
+            tile: { x: tileX, y: tileY },
+            velocity: { vx: Number(lander.vx.toFixed(2)), vy: Number(lander.vy.toFixed(2)) },
+            time: Number(state.time.toFixed(2))
+          };
+          console.debug('Collision sample hit wall', lastCrashDetail);
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function handleGunPickup() {
+      if (weapon.hasGun) return;
+      const minX = Math.floor((lander.x - LANDER_WIDTH * 0.3) / TILE_SIZE);
+      const maxX = Math.floor((lander.x + LANDER_WIDTH * 0.3) / TILE_SIZE);
+      const minY = Math.floor((lander.y - LANDER_HEIGHT * 0.4) / TILE_SIZE);
+      const maxY = Math.floor((lander.y + LANDER_HEIGHT * 0.4) / TILE_SIZE);
+      for (let ty = minY; ty <= maxY; ty++) {
+        if (ty < 0 || ty >= GRID_SIZE) continue;
+        for (let tx = minX; tx <= maxX; tx++) {
+          if (tx < 0 || tx >= GRID_SIZE) continue;
+          const idx = worldIndex(tx, ty);
+          if (level[idx] === TILES.GUN) {
+            level[idx] = TILES.EMPTY;
+            weapon.hasGun = true;
+            weapon.nextFireTime = state.time;
+            weapon.ammo = weapon.maxAmmo;
+            return;
+          }
+        }
+      }
+    }
+
+    function tryFireGun(side = 'forward') {
+      if (!weapon.hasGun) return false;
+      if (state.phase !== 'playing') return false;
+      if (state.time < weapon.nextFireTime) return false;
+      if (weapon.ammo <= 0) return false;
+      spawnProjectile(side);
+      weapon.ammo--;
+      weapon.nextFireTime = state.time + weapon.cooldown;
+      return true;
+    }
+
+    function spawnProjectile(side = 'forward') {
+      const speed = 320;
+      const sin = Math.sin(lander.rotation);
+      const cos = Math.cos(lander.rotation);
+      const forward = { x: sin, y: -cos };
+      const right = { x: cos, y: sin };
+
+      let fireDir = forward;
+      let sideSign = 0;
+      if (side === 'right') {
+        fireDir = right;
+        sideSign = 1;
+      } else if (side === 'left') {
+        fireDir = { x: -right.x, y: -right.y };
+        sideSign = -1;
+      } else {
+        fireDir = forward;
+        sideSign = 0;
+      }
+
+      const startX = lander.x + right.x * LANDER_WIDTH * 0.55 * sideSign + forward.x * LANDER_HEIGHT * 0.1;
+      const startY = lander.y + right.y * LANDER_WIDTH * 0.55 * sideSign + forward.y * LANDER_HEIGHT * 0.1;
+      projectiles.push({
+        x: startX,
+        y: startY,
+        vx: fireDir.x * speed + lander.vx,
+        vy: fireDir.y * speed + lander.vy,
+        life: 2
+      });
+
+      // Apply recoil opposite to the firing direction
+      lander.vx -= fireDir.x * RECOIL_FORCE;
+      lander.vy -= fireDir.y * RECOIL_FORCE;
+    }
+
+    function updateProjectiles(dt) {
+      if (!projectiles.length) return;
+      if (state.phase !== 'playing') {
+        projectiles.length = 0;
+        return;
+      }
+      for (let i = projectiles.length - 1; i >= 0; i--) {
+        const shot = projectiles[i];
+        shot.life -= dt;
+        shot.x += shot.vx * dt;
+        shot.y += shot.vy * dt;
+        if (shot.life <= 0 || shot.x < 0 || shot.x > WORLD_WIDTH || shot.y < -TILE_SIZE * 8 || shot.y > WORLD_HEIGHT) {
+          projectiles.splice(i, 1);
+          continue;
+        }
+        const tile = tileAtPixel(shot.x, shot.y);
+        if (tile === TILES.WALL) {
+          const tx = Math.floor(shot.x / TILE_SIZE);
+          const ty = Math.floor(shot.y / TILE_SIZE);
+          if (tx >= 0 && ty >= 0 && tx < GRID_SIZE && ty < GRID_SIZE) {
+            level[worldIndex(tx, ty)] = TILES.EMPTY;
+          }
+          projectiles.splice(i, 1);
+        } else if (tile === TILES.GUN) {
+          projectiles.splice(i, 1);
+        } else {
+          let hitEnemy = false;
+          for (let j = enemies.length - 1; j >= 0; j--) {
+            const enemy = enemies[j];
+            const halfW = enemy.width * 0.5;
+            const halfH = enemy.height * 0.5;
+            if (Math.abs(shot.x - enemy.x) <= halfW && Math.abs(shot.y - enemy.y) <= halfH) {
+              enemies.splice(j, 1);
+              hitEnemy = true;
+              break;
+            }
+          }
+          if (hitEnemy) {
+            projectiles.splice(i, 1);
+          }
+        }
+      }
+    }
+
+    function drawProjectiles() {
+      if (!projectiles.length) return;
+      ctx.save();
+      ctx.fillStyle = '#ffd65b';
+      projectiles.forEach((shot) => {
+        ctx.beginPath();
+        ctx.arc(shot.x, shot.y, 4, 0, TWO_PI);
+        ctx.fill();
+      });
+      ctx.restore();
+    }
+
+    function updateEnemies(dt) {
+      if (!enemies.length || state.phase !== 'playing') return;
+      enemies.forEach((enemy) => {
+        const minY = Math.max(enemy.height * 0.5, enemy.originY - enemy.range);
+        const maxY = Math.min(WORLD_HEIGHT - enemy.height * 0.5, enemy.originY + enemy.range);
+        enemy.y += enemy.speed * enemy.dir * dt;
+        if (enemy.y <= minY) {
+          enemy.y = minY;
+          enemy.dir = 1;
+        } else if (enemy.y >= maxY) {
+          enemy.y = maxY;
+          enemy.dir = -1;
+        }
+        enemy.fireTimer -= dt;
+        if (enemy.fireTimer <= 0) {
+          spawnEnemyProjectile(enemy);
+          enemy.fireTimer = enemy.fireCooldown;
+        }
+      });
+    }
+
+    function spawnEnemyProjectile(enemy) {
+      const startX = enemy.x - enemy.width * 0.55;
+      const startY = enemy.y;
+      enemyProjectiles.push({
+        x: startX,
+        y: startY,
+        vx: -220,
+        vy: 0,
+        life: 4,
+        traveled: 0,
+        range: ENEMY_SHOT_RANGE
+      });
+    }
+
+    function updateEnemyProjectiles(dt) {
+      if (!enemyProjectiles.length) return;
+      if (state.phase !== 'playing') {
+        enemyProjectiles.length = 0;
+        return;
+      }
+      const halfW = LANDER_WIDTH * 0.42;
+      const halfH = LANDER_HEIGHT * 0.45;
+      for (let i = enemyProjectiles.length - 1; i >= 0; i--) {
+        const shot = enemyProjectiles[i];
+        shot.life -= dt;
+        const dx = shot.vx * dt;
+        const dy = shot.vy * dt;
+        shot.x += dx;
+        shot.y += dy;
+        shot.traveled += Math.hypot(dx, dy);
+        if (shot.life <= 0 || shot.traveled >= shot.range || shot.x < -TILE_SIZE * 4 || shot.x > WORLD_WIDTH + TILE_SIZE * 2 || shot.y < -TILE_SIZE * 8 || shot.y > WORLD_HEIGHT + TILE_SIZE * 2) {
+          enemyProjectiles.splice(i, 1);
+          continue;
+        }
+        const tile = tileAtPixel(shot.x, shot.y);
+        if (tile === TILES.WALL) {
+          enemyProjectiles.splice(i, 1);
+          continue;
+        }
+        if (Math.abs(shot.x - lander.x) <= halfW && Math.abs(shot.y - lander.y) <= halfH) {
+          enemyProjectiles.splice(i, 1);
+          crashFromEnemy('enemy-bullet', { x: Number(shot.x.toFixed(2)), y: Number(shot.y.toFixed(2)) });
+        }
+      }
+    }
+
+    function drawEnemies() {
+      if (!enemies.length) return;
+      const definition = tileDefinitions.get(TILES.ENEMY);
+      const imageKey = definition ? definition.imageKey : null;
+      const imageRecord = imageKey ? tileImages.get(imageKey) : null;
+      ctx.save();
+      enemies.forEach((enemy) => {
+        if (imageRecord && imageRecord.image) {
+          ctx.drawImage(imageRecord.image, enemy.x - enemy.width / 2, enemy.y - enemy.height / 2, enemy.width, enemy.height);
+        } else {
+          ctx.fillStyle = '#ff6c8b';
+          ctx.beginPath();
+          ctx.ellipse(enemy.x, enemy.y, enemy.width * 0.5, enemy.height * 0.45, 0, 0, TWO_PI);
+          ctx.fill();
+        }
+      });
+      ctx.restore();
+    }
+
+    function drawEnemyProjectiles() {
+      if (!enemyProjectiles.length) return;
+      ctx.save();
+      ctx.fillStyle = '#ff4d4d';
+      enemyProjectiles.forEach((shot) => {
+        ctx.beginPath();
+        ctx.arc(shot.x, shot.y, 4, 0, TWO_PI);
+        ctx.fill();
+      });
+      ctx.restore();
+    }
+
+    function crashFromEnemy(type, data) {
+      if (state.phase !== 'playing') return;
+      lastCrashDetail = {
+        type,
+        point: data,
+        time: Number(state.time.toFixed(2))
+      };
+      endRound(false);
+    }
+
+    function computeAltitude() {
+      const bottom = lander.y + LANDER_HEIGHT * 0.46;
+      const cols = [
+        Math.floor((lander.x - LANDER_WIDTH * 0.25) / TILE_SIZE),
+        Math.floor(lander.x / TILE_SIZE),
+        Math.floor((lander.x + LANDER_WIDTH * 0.25) / TILE_SIZE)
+      ];
+      const startRow = Math.max(0, Math.floor(bottom / TILE_SIZE));
+      let minDist = WORLD_HEIGHT - bottom;
+      for (const col of cols) {
+        if (col < 0 || col >= GRID_SIZE) continue;
+        for (let row = startRow; row < GRID_SIZE; row++) {
+          const tile = sampleTile(col, row);
+          if (tile === TILES.WALL || tile === TILES.PAD || tile === TILES.EXIT) {
+            const top = row * TILE_SIZE;
+            const dist = top - bottom;
+            if (dist >= 0 && dist < minDist) {
+              minDist = dist;
+            }
+            break;
+          }
+        }
+      }
+      return Math.max(0, minDist);
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    let last = performance.now();
+    function loop(now) {
+      const dt = Math.min(0.05, (now - last) / 1000 || 0.016);
+      last = now;
+      update(dt);
+      draw();
+      updateHUD();
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    function handleStart() {
+      if (state.phase === 'intro' || state.phase === 'landed' || state.phase === 'crashed') {
+        // Reset to level 1 if starting from intro or after crash
+        if (state.phase === 'intro' || state.phase === 'crashed') {
+          state.currentLevel = 1;
+          state.totalScore = 0;
+          if (state.phase === 'intro') {
+            // Load level 1 if needed
+            const levelStr = String(AVAILABLE_LEVELS[0]).padStart(2, '0');
+            if (LEVEL_FOLDER !== `assets/level${levelStr}/`) {
+              loadLevel(AVAILABLE_LEVELS[0]).then(() => {
+                resetLander();
+                startGame();
+              });
+              return;
+            }
+          }
+        }
+        resetLander();
+        startGame();
+      }
+    }
+
+    function handleSpaceStart(e) {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (state.phase === 'intro') {
+          handleStart();
+        } else if (state.phase === 'landed' || state.phase === 'crashed') {
+          showStart();
+          handleStart();
+        } else {
+          keys.thrust = true;
+        }
+      }
+    }
+
+    startScreen.addEventListener('click', () => { handleStart(); });
+    startScreen.addEventListener('touchstart', (e) => { e.preventDefault(); handleStart(); }, { passive: false });
+    resultScreen.addEventListener('click', (e) => {
+      if (e.target === resultScreen) {
+        showStart();
+      }
+    });
+    resultScreen.addEventListener('touchstart', (e) => {
+      if (e.target === resultScreen) {
+        e.preventDefault();
+        showStart();
+      }
+    }, { passive: false });
+
+    if (playAgainBtn) {
+      playAgainBtn.addEventListener('click', () => {
+        showStart();
+        handleStart();
+      });
+    }
+
+    if (viewLeaderboardBtn) {
+      viewLeaderboardBtn.addEventListener('click', () => {
+        const url = viewLeaderboardBtn.dataset.url || baseLeaderboardUrl();
+        window.location.href = url;
+      });
+    }
+
+    howToBtn.addEventListener('click', () => {
+      howTo.classList.add('show');
+    });
+    howTo.addEventListener('click', () => {
+      howTo.classList.remove('show');
+    });
+    howTo.addEventListener('touchstart', (e) => { e.preventDefault(); howTo.classList.remove('show'); }, { passive: false });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.repeat) return;
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
+      if (e.code === 'ArrowUp' || e.code === 'KeyW') keys.thrust = true;
+      if (e.code === 'KeyQ') keys.fireLeft = true;
+      if (e.code === 'KeyE') keys.fireRight = true;
+      if (e.code === 'Space') {
+        keys.fireForward = true;
+        handleSpaceStart(e);
+      }
+      if (e.code === 'KeyL') debugSkipLevel();
+      if (e.code === 'KeyG') debugGiveGun();
+    });
+    document.addEventListener('keyup', (e) => {
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
+      if (e.code === 'ArrowUp' || e.code === 'KeyW') keys.thrust = false;
+      if (e.code === 'Space') keys.thrust = false;
+      if (e.code === 'KeyQ') keys.fireLeft = false;
+      if (e.code === 'KeyE') keys.fireRight = false;
+      if (e.code === 'Space') keys.fireForward = false;
+    });
+
+    window.addEventListener('blur', () => {
+      keys.left = false;
+      keys.right = false;
+      keys.thrust = false;
+      keys.fireLeft = false;
+      keys.fireRight = false;
+      keys.fireForward = false;
+    });
+
+    // Touch controls
+    const activeTouches = new Map();
+    function setControl(control, active) {
+      if (control === 'left') keys.left = active;
+      if (control === 'right') keys.right = active;
+      if (control === 'thrust') keys.thrust = active;
+      if (control === 'fire') keys.fireForward = active;
+      if (control === 'fireLeft') keys.fireLeft = active;
+      if (control === 'fireRight') keys.fireRight = active;
+    }
+    touchControls.addEventListener('pointerdown', (e) => {
+      const btn = e.target.closest('[data-control]');
+      if (!btn) return;
+      e.preventDefault();
+      const control = btn.dataset.control;
+      activeTouches.set(e.pointerId, control);
+      setControl(control, true);
+    });
+    touchControls.addEventListener('pointerup', (e) => {
+      const control = activeTouches.get(e.pointerId);
+      if (!control) return;
+      setControl(control, false);
+      activeTouches.delete(e.pointerId);
+    });
+    touchControls.addEventListener('pointercancel', (e) => {
+      const control = activeTouches.get(e.pointerId);
+      if (!control) return;
+      setControl(control, false);
+      activeTouches.delete(e.pointerId);
+    });
+    touchControls.addEventListener('pointerleave', (e) => {
+      const control = activeTouches.get(e.pointerId);
+      if (control) {
+        setControl(control, false);
+        activeTouches.delete(e.pointerId);
+      }
+    });
+
+    function computeScore() {
+      return state.totalScore || 0;
+    }
+
+    async function maybeSubmitLeaderboard(success) {
+      const score = computeScore();
+      const outcomeText = success ? 'Touchdown!' : 'Impact detected.';
+      let dest = baseLeaderboardUrl();
+      state.leaderboardUrl = dest;
+      updateLeaderboardButton();
+      try {
+        const rankRes = await fetch(`/api/leaderboard/rank?gameId=${encodeURIComponent(GAME_ID)}&score=${encodeURIComponent(score)}`, {
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!rankRes.ok) {
+          return;
+        }
+        const data = await rankRes.json();
+        const rank = Number(data?.rank);
+        const qualifies = Number.isFinite(rank) && rank > 0 && rank <= 20;
+
+        if (qualifies) {
+          let name = '';
+          const promptMsg = `${outcomeText} Enter your name (3-12 characters) for the leaderboard:`;
+          while (true) {
+            name = window.prompt(promptMsg, 'Pilot');
+            if (name === null) break;
+            name = name.trim().slice(0, 12);
+            if (name.length >= 3) break;
+          }
+          if (name) {
+            const submitRes = await fetch('/api/leaderboard/submit', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ gameId: GAME_ID, score, name })
+            });
+            if (submitRes.ok) {
+              const payload = await submitRes.json().catch(() => ({}));
+              const placed = Number(payload?.rank);
+              if (Number.isFinite(placed) && placed > 0) {
+                dest += `&highlightRank=${placed}`;
+              } else {
+                dest += `&highlightRank=${rank}`;
+              }
+            }
+          } else {
+            dest += `&highlightRank=${rank}`;
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+      state.leaderboardUrl = dest;
+      updateLeaderboardButton();
+    }
+
+    // Initialize landing state
+    resetLander();
+    updateHUD();
+  </script>
+</body>
+</html>

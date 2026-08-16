@@ -36,6 +36,8 @@
       background: rgba(0,0,0,0.45); border-bottom: 2px solid var(--gold);
       z-index: 20; backdrop-filter: blur(6px);
     }
+    .topbar-actions { display: flex; align-items: center; gap: 10px; }
+    .topbar-actions .back-btn { flex-shrink: 0; }
     .back-btn {
       color: white; text-decoration: none;
       background: linear-gradient(45deg, var(--teal), #4682B4);
@@ -135,7 +137,10 @@
     <div class="title">
       Bastion Builder
     </div>
-    <button class="back-btn" id="howToBtn">Instructions</button>
+    <div class="topbar-actions">
+      <button class="back-btn" id="howToBtn" type="button">Instructions</button>
+      <button class="back-btn" id="muteBtn" type="button" aria-pressed="false">🔇 Mute</button>
+    </div>
   </div>
 
   <div class="hud" id="hud">
@@ -192,10 +197,93 @@
     const currentPreviewCtx = currentPreviewCanvas.getContext('2d');
     const undoBtn = document.getElementById('undoBtn');
     const finishTurnBtn = document.getElementById('finishTurnBtn');
+    const muteBtn = document.getElementById('muteBtn');
 
     // Leaderboard integration
     const GAME_ID = 'bastion-builder';
     let gameOverHandled = false;
+
+    const SOUNDTRACK_FILES = [
+      'assets/BB_soundtrack01.mp3',
+      'assets/BB_soundtrack02.mp3',
+      'assets/BB_soundtrack03.mp3'
+    ].filter(src => src.toLowerCase().includes('soundtrack') && src.toLowerCase().endsWith('.mp3'));
+
+    let soundtrackQueue = [];
+    let soundtrackAudio = null;
+    let soundtrackInitialized = false;
+    let soundtrackMuted = false;
+
+    function shuffleSoundtrackQueue(){
+      for(let i = soundtrackQueue.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [soundtrackQueue[i], soundtrackQueue[j]] = [soundtrackQueue[j], soundtrackQueue[i]];
+      }
+    }
+
+    function refillSoundtrackQueue(){
+      soundtrackQueue = SOUNDTRACK_FILES.slice();
+      shuffleSoundtrackQueue();
+    }
+
+    function playNextSoundtrack(){
+      if(!soundtrackAudio || SOUNDTRACK_FILES.length === 0) return;
+      if(soundtrackQueue.length === 0){
+        refillSoundtrackQueue();
+      }
+      const nextTrack = soundtrackQueue.shift();
+      if(!nextTrack) return;
+      soundtrackAudio.src = nextTrack;
+      soundtrackAudio.currentTime = 0;
+      const playPromise = soundtrackAudio.play();
+      if(playPromise && typeof playPromise.catch === 'function'){
+        playPromise.catch(()=>{});
+      }
+    }
+
+    function ensureSoundtrack(){
+      if(soundtrackInitialized || SOUNDTRACK_FILES.length === 0) return;
+      soundtrackInitialized = true;
+      soundtrackAudio = new Audio();
+      soundtrackAudio.loop = false;
+      soundtrackAudio.muted = soundtrackMuted;
+      soundtrackAudio.addEventListener('ended', playNextSoundtrack);
+      soundtrackAudio.addEventListener('error', playNextSoundtrack);
+      refillSoundtrackQueue();
+      playNextSoundtrack();
+    }
+
+    function updateMuteButton(){
+      if(!muteBtn) return;
+      muteBtn.textContent = soundtrackMuted ? '🔈 Unmute' : '🔇 Mute';
+      muteBtn.setAttribute('aria-pressed', soundtrackMuted ? 'true' : 'false');
+    }
+
+    function setSoundtrackMuted(muted){
+      soundtrackMuted = muted;
+      if(soundtrackAudio){
+        soundtrackAudio.muted = soundtrackMuted;
+        if(soundtrackMuted){
+          soundtrackAudio.pause();
+        }
+      }
+      updateMuteButton();
+    }
+
+    if(muteBtn){
+      muteBtn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const nextState = !soundtrackMuted;
+        setSoundtrackMuted(nextState);
+        if(!nextState && soundtrackAudio){
+          const playPromise = soundtrackAudio.play();
+          if(playPromise && typeof playPromise.catch === 'function'){
+            playPromise.catch(()=>{});
+          }
+        }
+      });
+    }
+    updateMuteButton();
 
     function setTopbarHeight(){ const h = Math.ceil(topbarEl.getBoundingClientRect().height); root.style.setProperty('--topbar-h', h + 'px'); }
     function setHudHeight(){ const h = Math.ceil(hudEl.getBoundingClientRect().height); root.style.setProperty('--hud-h', h + 'px'); }
@@ -336,7 +424,7 @@
 
     const BASE_BUILD_TIME = 18; // seconds per build phase (waves 2+)
     const BASE_FIRST_BUILD_TIME = 110; // target 120s on desktop (adds extra PC time)
-    const MAX_WAVES = 6;
+    const MAX_WAVES = 8;
     // Mobile time scaling: triple phase durations on mobile only
     const IS_MOBILE = (
       typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod|Windows Phone|webOS|BlackBerry|Opera Mini|IEMobile/i.test(navigator.userAgent)
@@ -387,6 +475,25 @@
         fireballRateMultiplier: 1.5
       }
     };
+
+    const STAGE_DEFINITIONS = [
+      // Stage 1
+      { waves: [ { basic: 4 }, { basic: 4 } ] },
+      // Stage 2
+      { waves: [ { basic: 3, airship: 2 }, { basic: 4, airship: 3 } ] },
+      // Stage 3
+      { waves: [ { basic: 4, airship: 2, dreadnought: 2 }, { basic: 5, airship: 3, dreadnought: 3 } ] },
+      // Stage 4 - boss returns after the second wave
+      { waves: [ { basic: 4, airship: 4, dreadnought: 4 }, { basic: 4, airship: 4, dreadnought: 4 } ], boss: true },
+      // Stage 5
+      { waves: [ { basic: 5, airship: 3, dreadnought: 3 }, { basic: 5, airship: 4, dreadnought: 4 } ] },
+      // Stage 6
+      { waves: [ { basic: 6, airship: 5, dreadnought: 5 }, { basic: 7, airship: 5, dreadnought: 5 } ] },
+      // Stage 7
+      { waves: [ { basic: 7, airship: 6, dreadnought: 6 }, { basic: 8, airship: 6, dreadnought: 6 } ] },
+      // Stage 8 - final boss arrives with the fleet
+      { waves: [ { basic: 8, airship: 7, dreadnought: 7 }, { basic: 9, airship: 8, dreadnought: 8 } ], boss: true }
+    ];
 
     const KEEP_SIZE = 3; // 3x3 center keep
     let keepRect = { x: Math.floor(COLS/2) - 1, y: Math.floor(ROWS/2) - 1, w: KEEP_SIZE, h: KEEP_SIZE };
@@ -484,7 +591,7 @@
           <li><strong>Defend:</strong> Ships sail in and fire at your defenses. Cannons auto-fire at ships.</li>
         </ul>
         <p>Score points by destroying ships and surviving waves. The game ends when the keep is destroyed, or you clear all ${MAX_WAVES} waves.</p>
-        <p><strong>Wave 5:</strong> A boss man-o-war arrives after the fleet. Its blazing volleys leave permanent fire and melt cannons, so protect your core defenses. Each time it returns, it brings 50% more hull plating.</p>
+        <p><strong>Stages 4 &amp; 8:</strong> A boss man-o-war arrives after the fleet. Its blazing volleys leave permanent fire and melt cannons, so protect your core defenses. Each time it returns, it brings 50% more hull plating.</p>
         <p>Tips: Place cannons behind walls. Repair damage during the next build phase. On desktop, click to place pieces and press <kbd>R</kbd> to rotate them. On mobile, long press to place and tap to rotate. The current piece is shown in the HUD.</p>
       `;
     }
@@ -1267,11 +1374,29 @@
     function distance(a,b){ const dx=a.x-b.x, dy=a.y-b.y; return Math.hypot(dx,dy); }
 
     function spawnWave(){
-      const count = 4 + Math.floor(state.wave*1.8);
-      let spawned = 0;
-      const delay = Math.max(400, 1100 - state.wave*120);
-      const isBossWave = state.wave >= 5;
-      let bossPending = isBossWave;
+      const stageIndex = Math.min(Math.max(0, state.wave - 1), STAGE_DEFINITIONS.length - 1);
+      const stagePlan = STAGE_DEFINITIONS[stageIndex] || STAGE_DEFINITIONS[STAGE_DEFINITIONS.length - 1];
+      const delay = Math.max(400, 1100 - state.wave * 120);
+      const interWaveDelay = Math.max(1200, delay * 2);
+
+      const spawnQueue = [];
+      stagePlan.waves.forEach((wave, waveIdx) => {
+        for (const [typeKey, count] of Object.entries(wave)) {
+          const shipType = ENEMY_SHIP_TYPES[typeKey];
+          if (!shipType || count <= 0) continue;
+          for (let i = 0; i < count; i++) {
+            spawnQueue.push({ type: typeKey });
+          }
+        }
+        if (waveIdx < stagePlan.waves.length - 1) {
+          spawnQueue.push({ pause: true, duration: interWaveDelay });
+        }
+      });
+      if (stagePlan.boss) {
+        spawnQueue.push({ type: 'boss' });
+      }
+
+      let queueIndex = 0;
 
       function spawnShipOfType(type, spawn){
         const baseSpd = 28 + state.wave*6;
@@ -1329,43 +1454,28 @@
         return { x, y, vx: dx/d, vy: dy/d };
       }
 
-      function spawnOne(){
-        if(!spawning){ if(spawnIv){ clearInterval(spawnIv); spawnIv=null; } return; }
-        if(spawned < count){
-          const heavyChance = state.wave <= 1 ? 0 : Math.min(0.2 + state.wave * 0.12, 0.7);
-          const airshipChance = Math.min(0.25 + state.wave * 0.08, 0.65);
-          const adjustedHeavyChance = Math.min(heavyChance, Math.max(0, 1 - airshipChance));
-          const roll = Math.random();
-          let type;
-          if(roll < airshipChance){
-            type = ENEMY_SHIP_TYPES.airship;
-          } else if(roll < airshipChance + adjustedHeavyChance){
-            type = ENEMY_SHIP_TYPES.dreadnought;
-          } else {
-            type = ENEMY_SHIP_TYPES.basic;
-          }
-          spawnShipOfType(type, computeSpawn());
-          spawned++;
+      function spawnNext(){
+        if(!spawning){
+          if(spawnTimer){ clearTimeout(spawnTimer); spawnTimer=null; }
           return;
         }
-        if(bossPending){
-          spawnShipOfType(ENEMY_SHIP_TYPES.boss, computeSpawn());
-          bossPending = false;
-          if(spawnIv){ clearInterval(spawnIv); spawnIv=null; }
+        if(queueIndex >= spawnQueue.length){
+          if(spawnTimer){ clearTimeout(spawnTimer); spawnTimer=null; }
           spawning=false;
           return;
         }
-        if(spawnIv){ clearInterval(spawnIv); spawnIv=null; }
-        spawning=false;
+        const entry = spawnQueue[queueIndex++];
+        if(entry.pause){
+          spawnTimer = setTimeout(spawnNext, entry.duration);
+          return;
+        }
+        const type = ENEMY_SHIP_TYPES[entry.type] || ENEMY_SHIP_TYPES.basic;
+        spawnShipOfType(type, computeSpawn());
+        spawnTimer = setTimeout(spawnNext, delay);
       }
 
       // Spawn first immediately so the battle phase starts as soon as enemies appear
-      spawnOne();
-      if(spawned < count || bossPending){
-        spawnIv = setInterval(spawnOne, delay);
-      } else {
-        spawning=false;
-      }
+      spawnNext();
     }
 
     function aimCannons(dt){
@@ -1555,11 +1665,11 @@
     }
 
     // Phase control
-    let buildTimer = BUILD_TIME; let spawning = false; let waveDoneCheck=0; let spawnIv = null;
+    let buildTimer = BUILD_TIME; let spawning = false; let waveDoneCheck=0; let spawnTimer = null;
 
     function startBuild(){
       // Ensure any pending spawns are cancelled before starting build
-      if (spawnIv) { clearInterval(spawnIv); spawnIv = null; }
+      if (spawnTimer) { clearTimeout(spawnTimer); spawnTimer = null; }
       spawning=false;
       state.phase = 'build';
       buildTimer = ((state.wave === 1) ? FIRST_BUILD_TIME : BUILD_TIME) * TIME_FACTOR;
@@ -1576,7 +1686,7 @@
     }
     function startBattle(){
       // Begin spawning; phase flips to 'battle' (Attack) on first enemy spawn
-      if (spawnIv) { clearInterval(spawnIv); spawnIv = null; }
+      if (spawnTimer) { clearTimeout(spawnTimer); spawnTimer = null; }
       // Compute which cells (and cannons) are enclosed before battle
       computeEnclosedMask();
       // If the keep is not enclosed at the end of the build phase, end the game
@@ -1642,9 +1752,10 @@
       state.time += dt; aimCannons(dt); shipsAct(dt); moveBullets(dt); handleCollisions(); updatePhase(dt); updateHUD(); draw(); requestAnimationFrame(loop); }
 
     async function start(){ overlay.classList.remove('show'); setOverlayMode(false);
+      ensureSoundtrack();
       if(!Images.grass){ const entries = Object.entries(assets); for(const [k,src] of entries){ Images[k] = await loadImg(src); } }
       // Reset state for a new run
-      if(spawnIv){ clearInterval(spawnIv); spawnIv=null; }
+      if(spawnTimer){ clearTimeout(spawnTimer); spawnTimer=null; }
       state.bricks = 60; state.keepHP = KEEP_MAX_HP; state.wave = 1; state.kills = 0; state.placedWalls=0; walls.length=0; cannons.length=0; ships.length=0; bullets.length=0; placementHistory.length=0; gameOverHandled=false; buildTimer = BUILD_TIME * TIME_FACTOR; spawning=false; waveDoneCheck=0; selectedTool='wall';
       clearBurnedCells();
       resetOccupancy();

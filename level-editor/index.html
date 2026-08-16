@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generic 2D Level Editor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="app-header">
+        <h1>Generic 2D Level Editor</h1>
+    </header>
+    <main class="layout">
+        <section class="sidebar" aria-label="Editor controls">
+            <div class="control-group">
+                <label for="loadButton">Level folder</label>
+                <input type="file" id="levelFolderInput" webkitdirectory directory hidden>
+                <button type="button" id="loadButton">Choose Level Folder</button>
+                <p class="hint">Select the folder that holds the tilemap JSON, tile images, and optional level file.</p>
+            </div>
+            <div class="control-group compact">
+                <button type="button" id="clearButton">Clear Level</button>
+                <button type="button" id="downloadButton">Download Level (.lvl)</button>
+            </div>
+            <div class="control-group">
+                <span class="control-label">Selected tile</span>
+                <div class="selected-tile" id="selectedTilePreview">
+                    <span>No tile selected</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <span class="control-label">Palette</span>
+                <div class="palette" id="palette" role="listbox" aria-label="Tile palette"></div>
+            </div>
+            <div class="control-group help">
+                <p>Left-click to paint. Drag while holding left-click for continuous painting.</p>
+                <p>Right-click and drag to pan across the grid. Use the mouse wheel to zoom.</p>
+            </div>
+        </section>
+        <section class="canvas-container" aria-label="Level canvas">
+            <canvas id="levelCanvas" width="800" height="800" aria-label="Level grid"></canvas>
+        </section>
+    </main>
+    <script src="main.js"></script>
+</body>
+</html>

@@ -101,6 +101,40 @@ anything**, the 60fps target is unverifiable in this GPU-less sandbox, `bakeMs`
 is over the phone budget, and only 5 of 10 vaults truly require the time-loop
 mechanic.
 
+**Promotion to `main` — bigger than one game, so read this.**
+
+`main` had diverged: four commits touching only `index.html` (ad z-index and
+conversion tracking) that `dev` did not have, so `--ff-only` was correctly
+rejected and the promotion went in as `--no-ff` (`75d3c72`). It merged with no
+conflicts, but "no conflicts" is not "no risk", so I checked the result rather
+than trusting it. **Both of the human's ad fixes survived**: the
+`z-index: 2147483648 !important` on `#container`, and the
+`ins.adsbygoogle[data-side-rail-status] { pointer-events: none }` rules that
+stop side-rail ads eating clicks on the buttons.
+
+This was the first `dev` → `main` promotion in a long while, so `main` did not
+just gain Paradox Vault — it gained everything `dev` had accumulated:
+
+* **added**: `paradox-vault`, `bayou-brawlers`, `crimson-descent`,
+  `midnight-menagerie`, `level-editor`, `__tests__`, `.arcade-agent`,
+  `_redirects`, `start-local-server.bat`
+* **modified**: `index.html`, `leaderboard.html`, `bastion-builder/index.html`,
+  `core-crisis/index.html`, `package.json`, `.gitignore`
+* **deleted**: `memory-match/` and `ocean-explorer/`
+
+**That deletion is the one to be aware of.** Both games were already hidden from
+the arcade UI on `main` *and* `dev` (they are in the "Hide removed games" list
+and the DOMContentLoaded removal), and `dev` had deleted their directories to
+match, so nothing on the site links to them. But it does mean any old bookmark
+straight to `/ocean-explorer/` or `/memory-match/` now 404s on production. I let
+the deliberate `dev` decision stand rather than override it from a release
+night, and it is trivially reversible from git history if that was not intended.
+
+Before pushing `main` I re-ran everything against the *merged* tree, not just
+against `dev`: jest 128 green, `smoke.js` 13/13 console-clean, and the home page
+re-asserted in a browser (featured block, hrefs, rate/score pairing, Emberfall
+visible in More Games, no page errors, no h-scroll).
+
 **Next run: STEP 2, pick a new game.** `.arcade-agent/current-game.md` has been
 updated to say no game is active.
 

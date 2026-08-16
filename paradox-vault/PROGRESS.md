@@ -28,6 +28,82 @@ Tonight's checklist, in order: full jest suite → `tools/smoke.js` → screensh
 sweep at all six viewports → fix only glaring defects → featured-game swap →
 `.aaa-complete` with honest debt → push `dev` → fast-forward `main`.
 
+### RELEASED. Everything below is what actually happened.
+
+**Verification, all run against this build:**
+
+| check | result |
+|---|---|
+| `npx jest` | 5 suites / **128 tests green** |
+| `tools/smoke.js` | **13/13**, 0 console issues — boots, rewind accounting, all 10 vault transitions, late-vault rewind, run ends |
+| screenshot sweep | all six viewports reach `playing`, **no h-scroll anywhere**, no console error but the known blocked gtag |
+| touch controls | driven with **real pointer events** at 390x844 — see below |
+| home page | asserted in-browser after the featured swap |
+
+**Touch was the one release-blocker I had never seen exercised**, so I drove it
+rather than reading the code and hoping. At 390x844 with `hasTouch`, a drag on
+the left 62% of the screen engages the floating virtual stick (`active:true`,
+full deflection `dx:62`) and moved the player **8.2 tiles**; tapping the
+on-screen REWIND button spent an echo (3 → 2, one echo spawned, `loopIndex` +1).
+Touch targets measure 74px (ACT) and 62px (REWIND). The stick renders clearly as
+a large gold ring with a deflected knob. **Touch controls are fine.**
+
+**One glaring defect found and fixed: the room was crushed to black.**
+
+The screenshot sweep came back with the vault floor, the deco border band and
+the player figure all effectively invisible at 1440x900. Rather than assume that
+was the intended noir look, I stood the last critic-reviewed build (`bdac1e9`)
+up in a second worktree on port 8901 and shot the same viewport side by side.
+The old build was plainly more legible — so this was a **regression** introduced
+by the uncritiqued render WIP, not an art choice.
+
+Cause: agent-render's rework replaced "multiply by a flat grey, then screen the
+lights back on" with a single multiply against a light buffer whose base level
+is the ambient term. That architecture is *better*, but multiply can never
+brighten, so `AMBIENT` alone now sets the black point of the whole image — and
+it was left at `rgb(31,38,55)`. Anything the level does not directly light died.
+The file's own comment calls that constant "the single most important number in
+the renderer", which is exactly right.
+
+Fixed by raising the pair to `rgb(60,70,94)` / `rgb(80,90,116)`. The room now
+reads: marble floor texture, tile seams, the deco patterning on the red border
+band, column depth, and the player. It keeps the new model's directional
+shaping, so this is better than *both* the dark WIP and the pre-WIP build.
+Re-ran jest (128 green) and smoke (13/13) after the change. Commit `881f710`.
+
+**Featured-game swap** (`8b56a98`). Paradox Vault is now the featured game.
+Note the 2026-08-13 scouting above was stale: the outgoing featured game was
+**Emberfall Gauntlet**, not Bayou Brawlers — a human featured Emberfall on
+2026-08-14. Rotating it out meant dropping `li[data-id="emberfall-gauntlet"]`
+from *two* places, both of which hide the featured game's duplicate `<li>`: the
+`/* Hide removed games */` CSS rule and the `DOMContentLoaded` `querySelectorAll`
+removal. Asserted in-browser afterwards: featured heading, play href,
+`leaderboard.html?gameId=paradox-vault`, `.rate[data-id="paradox-vault"]` with
+five stars and a `<span class="score">` immediately after it, Emberfall visible
+in More Games, no page errors, no h-scroll. Per the earlier scout note,
+paradox-vault was **not** added to the hide list and has no `<li>` of its own
+yet — whoever rotates it out next should add one.
+
+**Observation, deliberately not acted on:** `bayou-brawlers` is still in both
+hide lists from when *it* was rotated out of the featured slot, so it is
+currently invisible on the site rather than sitting in More Games. That may be
+intentional (the CSS rule is titled "Hide removed games"), so I left it alone —
+but if it was an oversight during the last rotation, that is where to look.
+
+**Critic verdicts: there are none, and the release does not pretend otherwise.**
+All five disciplines — textures, UI, render, particles, audio — had their critic
+loops cut off mid-flight across three consecutive killed runs. No blind
+side-by-side was ever completed, and no shipping judge was run. That is allowed
+for a forced Saturday release and forbidden for a quality-based one; this was
+the former. `.aaa-complete` records it in exactly those terms, along with ten
+items of carried debt — the big ones being that **audio has never been heard by
+anything**, the 60fps target is unverifiable in this GPU-less sandbox, `bakeMs`
+is over the phone budget, and only 5 of 10 vaults truly require the time-loop
+mechanic.
+
+**Next run: STEP 2, pick a new game.** `.arcade-agent/current-game.md` has been
+updated to say no game is active.
+
 ---
 
 ## 2026-08-13 — polish night (STEP 3), in progress

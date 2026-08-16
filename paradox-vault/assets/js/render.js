@@ -1894,8 +1894,8 @@
      single most important number in the renderer: it sets the black point of
      the whole image. Cool and low — a night-time marble hall lit only by what
      the level actually puts in it. */
-  var AMBIENT = 'rgb(31,38,55)';
-  var AMBIENT_LIT = 'rgb(46,54,74)';    /* nearer the skylight side */
+  var AMBIENT = 'rgb(60,70,94)';
+  var AMBIENT_LIT = 'rgb(80,90,116)';   /* nearer the skylight side */
 
   function buildLight(world, time, hud) {
     var lc = Light.ctx;

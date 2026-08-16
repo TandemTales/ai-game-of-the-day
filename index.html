@@ -60,6 +60,7 @@
 			max-width: 900px;
 			margin: 20px;
 			position: relative;
+			z-index: 2147483648 !important;
 		}
 
 		.header-logo {
@@ -218,6 +219,14 @@
                         max-width: 100vw !important;
                         position: relative;
                         z-index: 0;
+                }
+                
+                /* Prevent side rail ads from blocking clicks on content */
+                ins.adsbygoogle[data-side-rail-status] {
+                        pointer-events: none !important;
+                }
+                ins.adsbygoogle[data-side-rail-status] > * {
+                        pointer-events: auto !important;
                 }
 		.feedback {
 			margin: 40px 0;

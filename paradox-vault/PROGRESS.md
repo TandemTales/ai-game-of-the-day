@@ -4,6 +4,32 @@ Newest entry at the top. This file is the handoff between nightly runs.
 
 ---
 
+## 2026-08-15 — FORCED SATURDAY RELEASE (STEP 4)
+
+Pacific date **Saturday 2026-08-15**. `paradox-vault` started 2026-08-11, so the
+routine's STEP 1b forces a release tonight regardless of polish level. **No new
+polish work is started this run.** Wrap-up only: tests, screenshot sweep, glaring
+issues only, root `index.html` featured-game swap, `.aaa-complete`, promote to
+`main`.
+
+**Starting state on arrival.** `dev` at `86c977c`. No Friday agent run happened —
+the last agent commit is `e7d1820 wip(paradox-vault): in-flight render/particles/
+audio work from the discipline agents`, on top of which a human (jaroxby) pushed
+ten Emberfall Gauntlet commits and then featured Emberfall Gauntlet on the home
+page. That means:
+
+* the render/particles/audio discipline work is in the tree **without recorded
+  critic verdicts** — those three loops were cut off mid-flight, same as
+  textures/UI were the run before;
+* the outgoing featured game is **Emberfall Gauntlet**, not Bayou Brawlers as the
+  2026-08-13 entry scouted. Tonight's index.html edit is adjusted accordingly.
+
+Tonight's checklist, in order: full jest suite → `tools/smoke.js` → screenshot
+sweep at all six viewports → fix only glaring defects → featured-game swap →
+`.aaa-complete` with honest debt → push `dev` → fast-forward `main`.
+
+---
+
 ## 2026-08-13 — polish night (STEP 3), in progress
 
 Pacific date Thursday 2026-08-13. Not release night. Release is forced Saturday

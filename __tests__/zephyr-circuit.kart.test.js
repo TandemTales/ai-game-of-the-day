@@ -26,7 +26,7 @@ function makeDriver(ZC, track, opts) {
   return function (kart) {
     ZC.Track.frameAt(track, kart.s + look + kart.speed * 0.55, frame);
     const want = Math.atan2(frame.x - kart.x, frame.z - kart.z);
-    const steer = ZC.clamp(ZC.angleDelta(kart.travelYaw, want) * gain, -1, 1);
+    const steer = ZC.clamp(ZC.steerToward(kart.travelYaw, want) * gain, -1, 1);
     return {
       throttle: 1, brake: 0, steer,
       drift: !!opts.drift && Math.abs(steer) > 0.55 && kart.speed > 16
@@ -110,6 +110,44 @@ describe('driving feel', () => {
     /* 0 to near top in about four seconds */
     expect(at4).toBeGreaterThan(ZC.Kart.TUNE.maxSpeed * 0.9);
     expect(kart.speed).toBeLessThanOrEqual(ZC.Kart.TUNE.maxSpeed + 0.01);
+  });
+
+  test('positive steer turns RIGHT and negative turns LEFT', () => {
+    /* This shipped inverted. Nothing caught it, because every other test
+       drives through a closed control loop that simply converges on
+       whichever sign it is handed — only a human holding the key noticed.
+       Assert the mapping directly, against the road's own right vector. */
+    const { ZC, track } = fresh();
+    for (const [steer, wantRight] of [[1, true], [-1, false]]) {
+      const kart = ZC.Kart.create({ id: 'p' });
+      ZC.Kart.placeOnGrid(kart, track, 0, 8);
+      for (let i = 0; i < 120 * 2; i++) {
+        ZC.Kart.step(kart, { throttle: 1, brake: 0, steer: 0, drift: false }, track, ZC.STEP_DT);
+      }
+      const before = kart.t;                       // +t is right of the centreline
+      for (let i = 0; i < 120 * 1.2; i++) {
+        ZC.Kart.step(kart, { throttle: 1, brake: 0, steer, drift: false }, track, ZC.STEP_DT);
+      }
+      if (wantRight) expect(kart.t).toBeGreaterThan(before + 0.2);
+      else expect(kart.t).toBeLessThan(before - 0.05);
+    }
+  });
+
+  test('steerToward returns the input that actually points a kart at a target', () => {
+    const { ZC, track } = fresh();
+    const kart = ZC.Kart.create({ id: 'p' });
+    ZC.Kart.placeOnGrid(kart, track, 0, 8);
+    for (let i = 0; i < 120 * 2; i++) {
+      ZC.Kart.step(kart, { throttle: 1, brake: 0, steer: 0, drift: false }, track, ZC.STEP_DT);
+    }
+    /* aim 0.6 rad to the kart's right and check we converge, not diverge */
+    const target = kart.travelYaw - 0.6;
+    const err0 = Math.abs(ZC.angleDelta(kart.travelYaw, target));
+    for (let i = 0; i < 120 * 0.8; i++) {
+      const steer = ZC.clamp(ZC.steerToward(kart.travelYaw, target) * 3, -1, 1);
+      ZC.Kart.step(kart, { throttle: 1, brake: 0, steer, drift: false }, track, ZC.STEP_DT);
+    }
+    expect(Math.abs(ZC.angleDelta(kart.travelYaw, target))).toBeLessThan(err0 * 0.4);
   });
 
   test('a stationary kart cannot pirouette', () => {

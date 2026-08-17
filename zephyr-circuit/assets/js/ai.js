@@ -105,7 +105,7 @@
     var tx = fr.x + fr.rx * wantT * fr.halfWidth;
     var tz = fr.z + fr.rz * wantT * fr.halfWidth;
     var want = Math.atan2(tx - kart.x, tz - kart.z);
-    out.steer = ZC.clamp(ZC.angleDelta(kart.travelYaw, want) * brain.gain, -1, 1);
+    out.steer = ZC.clamp(ZC.steerToward(kart.travelYaw, want) * brain.gain, -1, 1);
     out.item = false;
 
     /* ---- braking ----

@@ -220,10 +220,15 @@
     } else {
       yawRate = TUNE.steerMax * authority * steer;
     }
-    if (kart.grounded) kart.travelYaw += yawRate * dt;
+    /* Subtracted, not added: increasing yaw turns LEFT (see
+       ZC.steerToward), and positive steer is right. */
+    if (kart.grounded) kart.travelYaw -= yawRate * dt;
 
     /* body slip: the shell yaws past the direction of travel */
-    var slipTarget = d.active ? d.dir * TUNE.driftSlip : 0;
+    /* Same sign flip: in a right-hand drift (dir = +1) the shell points
+       further right than the direction of travel, and further right is a
+       lower yaw. */
+    var slipTarget = d.active ? -d.dir * TUNE.driftSlip : 0;
     kart.slip = ZC.damp(kart.slip, slipTarget, TUNE.driftSlipRate, dt);
     kart.bodyYaw = kart.travelYaw + kart.slip;
 

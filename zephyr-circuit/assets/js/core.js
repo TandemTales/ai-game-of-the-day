@@ -46,6 +46,18 @@
     return d;
   };
   ZC.angleLerp = function (a, b, t) { return a + ZC.angleDelta(a, b) * t; };
+
+  /* The steering input that points `fromYaw` at `toYaw`.
+
+     Yaw is the heading of a forward vector (sin yaw, 0, cos yaw), and a
+     kart's right is cross(forward, up), so INCREASING yaw swings the nose
+     to the LEFT. Positive steer means right (SPEC §4), and the two are
+     therefore opposite signs. Anything that wants to aim a kart goes
+     through here instead of re-deriving that, because getting it backwards
+     is invisible in any closed control loop — an AI simply converges on
+     whichever sign it is handed, which is exactly how the first version
+     shipped with the player's controls mirrored. */
+  ZC.steerToward = function (fromYaw, toYaw) { return -ZC.angleDelta(fromYaw, toYaw); };
   ZC.moveToward = function (a, b, maxDelta) {
     var d = b - a;
     if (Math.abs(d) <= maxDelta) return b;

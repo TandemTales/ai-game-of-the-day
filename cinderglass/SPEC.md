@@ -50,21 +50,22 @@ Script load order in `index.html`:
 ## 1. The world model
 
 The world is a **grid of cells**, not a tilemap of objects. Grid size is chosen
-per chamber, typically `192 × 128` (24,576 cells). Cells are stored in parallel
+per chamber, `CG.Levels.W × CG.Levels.H`, currently `128 × 88` (11,264 cells). Cells are stored in parallel
 typed arrays inside `CG.Sim`, never as JS objects:
 
 ```
 mat   Uint8Array   material id (index into CG.Materials.BY_ID)
 temp  Float32Array degrees "cg" — an arbitrary scale, water freezes at 0,
                    boils at 100, sand fuses near 700, stone melts near 1200
-aux   Uint8Array   per-material scratch (settle counter, purity, lifetime)
+aux   Uint16Array  per-material scratch (gas lifetime counter)
+dir   Int8Array    persistent lateral flow direction for fluids (-1, 0, +1)
 ```
 
 Index of `(x, y)` is `y * W + x`. **`y` grows downward**; gravity is `+y`.
 
 ### 1.1 Simulation order — this is a correctness requirement, not a style note
 
-`Sim.step()` runs one tick as three passes, in this exact order:
+`Sim.step()` runs one tick as four passes, in this exact order:
 
 1. **Heat pass.** Explicit-Euler conduction across the 4-neighbourhood, plus
    emission/radiation for hot cells and per-material ambient bleed. Reads `temp`,
@@ -77,7 +78,15 @@ Index of `(x, y)` is `y * W + x`. **`y` grows downward**; gravity is `+y`.
    queue. Direct neighbour writes are forbidden.
 3. **Movement pass.** Falling-sand displacement. Iterated **bottom row upward**,
    with the x-scan direction alternating per tick (`tick & 1`) so that piles do
-   not lean permanently to one side.
+   not lean permanently to one side. Fluids carry a persistent lateral
+   direction in `sim.dir` and only reverse when blocked; picking a fresh
+   direction each tick leaves a pool oscillating in a stable checkerboard
+   instead of levelling.
+4. **Delivery pass.** The crucible ingests anything that ends the tick
+   *touching* it, not just matter that moved into it. Absorbing only on
+   movement looks equivalent and is not: a pour that sets before it lands
+   becomes a static solid sitting in the basin, which can never move again
+   and so silently clogs the crucible forever.
 
 `step()` must be a pure function of (grid state, `tick`) — **no `Math.random()`**.
 All randomness comes from `CG.rng` seeded per chamber, so a replay of the same
@@ -92,11 +101,15 @@ Each material declares a `move` behaviour:
 
 | behaviour  | rule |
 |------------|------|
-| `static`   | never moves (stone, glass, obsidian, wall, crucible, vent) |
+| `static`   | never moves (stone, glass, obsidian, ice, iron, wall, crucible) |
 | `powder`   | falls down; else down-left/down-right; piles at its angle of repose |
 | `liquid`   | falls down; else diagonals; else spreads sideways up to `flow` cells |
 | `gas`      | rises; else diagonals up; else spreads; despawns at `lifetime` |
-| `rigid`    | falls as a connected body (ice sheets, glass panes) if unsupported |
+
+There is no `rigid` behaviour. Ice and glass are `static`: they hold their
+shape where they set and never fall as a body. That is a design choice, not
+an omission — an ice sheet is *structure*, and structure that collapses when
+you thaw the cell under it would make freezing useless as a way to build.
 
 Density decides displacement: a denser mobile cell swaps with a lighter mobile
 cell below it (sand sinks through water, oil floats on water, steam rises through
@@ -119,19 +132,40 @@ Every material declares at minimum:
 
 Launch material set (a chamber may use a subset):
 
-`VOID, WALL, STONE, LAVA, SAND, GLASS, WATER, ICE, STEAM, OIL, EMBER, OBSIDIAN,
-IRON, MOLTEN_IRON, STEEL, ASH, CRUCIBLE, VENT, SOURCE`
+`VOID (air), WALL, CRUCIBLE, STONE, LAVA, OBSIDIAN, SAND, MOLTEN_GLASS, GLASS,
+ICE, WATER, STEAM, OIL, BLAZE, EMBER, ASH, IRON, MOLTEN_IRON, STEEL`
+
+Three of those exist for reasons worth stating, because they look redundant:
+
+* **VOID has a density (0.20), not zero.** Gas buoyancy is measured against
+  air, so with air at zero nothing can rise.
+* **MOLTEN_GLASS** is separate from GLASS because molten glass has to *flow*
+  to fill a mould and glass has to be static to hold a shape.
+* **BLAZE** is burning fuel — a liquid that stays with the oil it came from.
+  Fire modelled purely as a rising gas (EMBER) leaves its fuel the tick it
+  forms, so a pool lit at one end never catches along its length. EMBER is
+  the flame BLAZE throws off, not the thing that spreads.
 
 Reactions that carry the puzzle vocabulary:
 
-* `SAND` above `meltAt 700` → `GLASS` (cools into a solid pane — the sealing tool)
+* `SAND` above `700` → `MOLTEN_GLASS`, which flows and sets to `GLASS` below `560`
 * `LAVA` touching `WATER` → `OBSIDIAN` + `STEAM`, strongly exothermic
 * `WATER` above `100` → `STEAM`; `STEAM` below `60` → `WATER` (condensation, so
   steam that hits a cold ceiling rains back down)
-* `WATER` below `0` → `ICE`; `ICE` above `2` → `WATER`
-* `STONE` above `1200` → `LAVA`; `LAVA` below `800` → `STONE`
-* `IRON` above `1500` → `MOLTEN_IRON`; `MOLTEN_IRON` + `EMBER`/carbon → `STEEL`
-* `OIL` above `250` → `EMBER` (burns, heats neighbours, leaves `ASH`)
+* `WATER` below `0` → `ICE`; `ICE` above `4` → `WATER`
+* `STONE` above `1200` → `LAVA`; `LAVA` below `820` → `STONE`
+* `IRON` above `1500` → `MOLTEN_IRON`, which stays liquid down to `1250`.
+  That window is wide on purpose: molten iron sheds heat faster than
+  anything else in the table, and with a freezing point just below its
+  melting point a pour re-solidifies in mid-air and can never land.
+* `MOLTEN_IRON` + `ASH` (carbon) above `1400` → `STEEL`
+* `OIL` above `250` → `BLAZE` (burns in place, radiates into its
+  neighbours, lights adjacent `OIL`, and decays to `ASH`)
+
+Note what lava *cannot* do: it forms at a little over `1200` and cools from
+there, so it can never melt iron. Any contract built on "pour lava on the
+ingot" is unsolvable, and the reference solves in §4 exist to catch exactly
+that class of mistake.
 
 **`WALL` and `CRUCIBLE` are indestructible at every temperature.** They are the
 chamber's guaranteed structure; no solution may rely on melting them.
@@ -146,9 +180,11 @@ The player has exactly **two tools** and no others:
   with distance from the brush centre.
 * **Quench** — removes heat over the same brush shape.
 
-Held input applies continuously. Brush radius is adjustable (3 sizes). Fuel is a
-finite per-chamber resource that only the Torch consumes; Quench is free but has a
-cooldown. Nothing else is ever placed, dug, dragged, or spawned by the player.
+Held input applies continuously. Brush radius is adjustable (3 sizes). Fuel is a finite per-chamber resource that only the Torch consumes. It is
+charged **per tick, in units of one second of the medium brush**
+(`radius² / 6²`), not per cell touched: charging per cell makes the HUD
+number meaningless to the player and swings it twentyfold between brush
+sizes. Quench is free. Nothing else is ever placed, dug, dragged, or spawned by the player.
 **If a design idea requires the player to place matter directly, it is out of
 scope — it breaks the core premise.**
 
@@ -167,14 +203,28 @@ Input parity is a hard requirement:
 `CG.Levels.LIST` is an ordered array. Each entry:
 
 ```js
-{ id, name, blurb, W, H, seed,
-  build(sim),          // paints the starting chamber into the grid
-  goal: { material, amount },   // deliver N cells of material into the crucible
-  fuel, parTicks,
-  hint }
+{ id, name, blurb, hint, teaches,
+  build(sim),                     // paints the starting chamber into the grid
+  goal: { kind, material, amount },
+  fuel, parTicks, hardTicks,
+  solution }                      // reference solve, replayed by the tests
 ```
 
-Win: the crucible has absorbed `goal.amount` cells of `goal.material`.
+`goal.kind` is one of two, because a foundry does two different things:
+
+* **`deliver`** — N cells of the material must reach the crucible. Only
+  mobile matter can do this, so the target is always a liquid or a powder.
+* **`create`** — N cells must exist in the world at once. This is how solid
+  products are scored: glass, steel and obsidian are static the instant they
+  set and can never be poured into anything. You are casting them.
+
+`solution` is a list of `[fromTick, toTick, x, y, radius, sign]` brush
+strokes. `cinderglass.levels.test.js` replays it and asserts the quota is
+met inside the shift and the fuel. They are deliberately crude — one brush
+parked in one place — so a chamber that only passes under expert play does
+not pass here.
+
+Win: the goal is met.
 Lose: fuel exhausted **and** no path to the quota remains — in practice the run
 ends on the shift bell (`hardTicks`) or player restart. A chamber must never be
 able to reach an unwinnable-but-not-detected state; `levels.test.js` asserts every

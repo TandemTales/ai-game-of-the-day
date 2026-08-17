@@ -394,15 +394,40 @@ html, body {
 }
 .cg-input:focus { outline: none; border-color: var(--brass); }
 
-/* ------------------------------------------------------------ compact */
-@media (max-height: 460px), (max-width: 380px) {
-  :root { --dock-h: 86px; }
-  .cg-tool { min-width: 66px; padding: 6px 9px; }
+/* ------------------------------------------------------------ compact
+
+   The dock has to hold two tools, three brush sizes and three utility
+   buttons on a 320px screen without ever wrapping or running off the
+   edge, so every control shrinks together and nothing is allowed to
+   claim a fixed width it cannot give back. */
+.cg-dock > * { min-width: 0; }
+.cg-tool { flex: 0 1 auto; }
+
+@media (max-width: 470px), (max-height: 460px) {
+  :root { --dock-h: 88px; }
+  .cg-dock { padding-left: 6px; padding-right: 6px; gap: 5px; }
+  .cg-tools { gap: 5px; }
+  .cg-tool { min-width: 0; padding: 7px 9px; border-radius: 10px; }
   .cg-tname { font-size: 12px; }
-  .cg-size { width: 36px; height: 36px; }
-  .cg-util { width: 34px; height: 34px; font-size: 13px; }
+  .cg-tsub { font-size: 8px; letter-spacing: 0.1em; }
+  .cg-sizes { gap: 4px; }
+  .cg-size { width: 34px; height: 34px; border-radius: 9px; }
+  .cg-dot0 { width: 5px; height: 5px; }
+  .cg-dot1 { width: 10px; height: 10px; }
+  .cg-dot2 { width: 17px; height: 17px; }
+  .cg-utils { gap: 4px; }
+  .cg-util { width: 32px; height: 32px; font-size: 12px; border-radius: 8px; }
   .cg-panel { padding: 16px; }
   .cg-keys { display: none; }
+}
+
+/* Below ~360px even that is tight: the tool captions go, leaving the
+   names, which are the only part a player actually reads mid-pour. */
+@media (max-width: 360px) {
+  .cg-tsub { display: none; }
+  .cg-tool { padding: 9px 8px; }
+  .cg-size { width: 31px; height: 31px; }
+  .cg-util { width: 29px; height: 29px; }
 }
 
 /* A landscape phone has almost no vertical room; the dock goes to one

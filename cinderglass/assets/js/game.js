@@ -238,11 +238,26 @@
     if (st.ticks >= spec.hardTicks) { failContract(); return; }
   }
 
+  /* Measure the HUD strips rather than guessing them. The dock shrinks
+     through three breakpoints, so a hardcoded height either overlaps the
+     controls on a small screen or strands the chamber high on a tall one.
+     Cached per resize: offsetHeight forces layout, and this runs every
+     frame. */
+  var padTop = 64, padBottom = 108, padsDirty = true;
+  function measurePads() {
+    if (!padsDirty) return;
+    padsDirty = false;
+    var top = document.querySelector('.cg-top');
+    var dock = document.querySelector('.cg-dock');
+    if (top && top.offsetHeight) padTop = top.offsetHeight + 6;
+    if (dock && dock.offsetHeight) padBottom = dock.offsetHeight + 6;
+  }
+  G.invalidatePads = function () { padsDirty = true; };
+
   function render(dt) {
     var st = G.state;
-    var padTop = Math.round(64 * CG.dpr());
-    var padBottom = Math.round((CG.isTouch ? 132 : 76) * CG.dpr());
-    CG.Render.layout(padTop, padBottom);
+    measurePads();
+    CG.Render.layout(Math.round(padTop * CG.dpr()), Math.round(padBottom * CG.dpr()));
     CG.Render.draw(CG.now() / 1000, CG.Loop.frame);
     if (CG.UI && CG.UI.frame) CG.UI.frame(st);
     adaptQuality();
@@ -381,15 +396,16 @@
     if (CG.Audio && CG.Audio.init) CG.Audio.init();
     if (CG.Particles && CG.Particles.init) CG.Particles.init();
     if (CG.UI && CG.UI.init) CG.UI.init(document.getElementById('cg-ui'));
+    G.invalidatePads();
 
     /* start the brush in the middle so a keyboard player has something
        to steer before they touch the mouse */
     CG.Input.brush.x = canvas.width / 2;
     CG.Input.brush.y = canvas.height / 2;
 
-    global.addEventListener('resize', resize);
+    global.addEventListener('resize', function () { resize(); G.invalidatePads(); });
     global.addEventListener('orientationchange', function () {
-      setTimeout(resize, 120);
+      setTimeout(function () { resize(); G.invalidatePads(); }, 120);
     });
     document.addEventListener('visibilitychange', function () {
       if (document.hidden && G.state.screen === SCREEN.PLAYING) G.togglePause();

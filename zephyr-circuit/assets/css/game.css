@@ -351,11 +351,40 @@ html, body {
 .zc-input:focus { outline: none; border-color: var(--amber); }
 
 /* --------------------------------------------------------- small screens */
+/* On touch the bottom-right corner belongs to the action buttons, so the
+   speed readout moves to the middle of the dock where nothing else sits.
+   Left where it was on desktop, which has no buttons to collide with. */
+#zc-ui.is-touch .zc-speed {
+  right: auto;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(10px + var(--safe-b));
+}
+#zc-ui.is-touch .zc-speed b { font-size: clamp(24px, 6vw, 40px); }
+
+/* Portrait puts the steering pads across the bottom-left and the actions
+   bottom-right, so the middle of the dock is not free after all — the
+   speed readout and the drift meter have to sit above both. */
+@media (orientation: portrait) {
+  #zc-ui.is-touch .zc-speed { bottom: calc(142px + var(--safe-b)); }
+  #zc-ui.is-touch .zc-charge { bottom: calc(186px + var(--safe-b)); width: min(280px, 62vw); }
+}
+
 @media (max-height: 460px) and (orientation: landscape) {
-  .zc-timing { top: calc(48px + var(--safe-t)); }
-  .zc-acts { bottom: calc(14px + var(--safe-b)); flex-direction: row; }
+  /* The lap block is large and the clock sits directly under it; at this
+     height the two overlapped. Put them side by side instead. */
+  .zc-lap { top: calc(8px + var(--safe-t)); right: calc(16px + var(--safe-r)); }
+  .zc-lap b { font-size: 22px; }
+  .zc-timing { top: calc(8px + var(--safe-t)); right: calc(96px + var(--safe-r)); }
+  .zc-timing b { font-size: 13px; }
+  .zc-place b { font-size: 40px; }
+
+  .zc-acts { bottom: calc(12px + var(--safe-b)); flex-direction: row; }
   .zc-left, .zc-right { width: min(84px, 15vw); height: min(84px, 15vw); }
   .zc-right { left: calc(14px + var(--safe-l) + min(92px, 17vw)); }
+  #zc-ui.is-touch .zc-speed { bottom: calc(8px + var(--safe-b)); }
+  #zc-ui.is-touch .zc-speed b { font-size: 30px; }
+  .zc-charge { bottom: calc(74px + var(--safe-b)); width: min(240px, 30vw); }
   .zc-panel { padding: 16px 20px; }
   .zc-keys { display: none; }
 }

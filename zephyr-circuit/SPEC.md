@@ -12,7 +12,8 @@ zephyr-circuit/
   SPEC.md / TESTING.md / PROGRESS.md
 
   assets/fonts/                  vendored OFL fonts (Outfit, Bungee)
-  assets/js/vendor/              three.js r185 + postprocessing — NEVER EDIT
+  assets/js/vendor/              three.js r185 (module + core chunk) and its
+                                 postprocessing passes — NEVER EDIT
   assets/css/game.css            DOM shell / HUD / menus              [agent-ui]
 
   ---- classic scripts: pure logic on window.ZC, unit tested ----

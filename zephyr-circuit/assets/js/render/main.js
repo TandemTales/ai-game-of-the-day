@@ -51,9 +51,18 @@ function updateCamera(kart, dt) {
   const yaw = kart.travelYaw;
   const fx = Math.sin(yaw), fz = Math.cos(yaw);
 
+  /* three.js FOV is vertical, so a tall portrait phone gets the same
+     vertical angle as a desktop and spends the extra pixels on sky. Tilt
+     the view down as the aspect narrows: sit higher, aim lower, and pull
+     the look-ahead in. */
+  const portrait = ZC.clamp01((1.2 - stage.camera.aspect) / 0.7);
+  const height = CAM.height + portrait * 2.4;
+  const lookHeight = CAM.lookHeight - portrait * 2.9;
+  const lookAhead = CAM.lookAhead - portrait * 3.5;
+
   _camWant.set(
     kart.x - fx * CAM.distance,
-    kart.y + CAM.height,
+    kart.y + height,
     kart.z - fz * CAM.distance);
 
   /* never let the camera sink through the road on a crest */
@@ -64,9 +73,9 @@ function updateCamera(kart, dt) {
   }
 
   _aimWant.set(
-    kart.x + fx * CAM.lookAhead,
-    kart.y + CAM.lookHeight,
-    kart.z + fz * CAM.lookAhead);
+    kart.x + fx * lookAhead,
+    kart.y + lookHeight,
+    kart.z + fz * lookAhead);
 
   if (!_aimInit) {
     stage.camera.position.copy(_camWant);

@@ -173,6 +173,10 @@ function tick(now) {
   const focus = (st.phase === ZC.Race.PHASE.ATTRACT)
     ? (ZC.Race.order()[0] || st.player)
     : st.player;
+  /* `window.__lockCam` lets a screenshot drive script park the camera
+     somewhere useful — an overview of the whole island, say — without the
+     chase camera yanking it back every frame. Debug affordance only;
+     nothing in the game sets it. */
   if (focus && !window.__lockCam) {
     updateCamera(focus, dt);
     stage.focusShadow(focus.x, focus.z);

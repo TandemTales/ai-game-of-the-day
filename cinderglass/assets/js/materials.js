@@ -64,16 +64,20 @@
       name: 'WALL', label: 'Foundry Wall',
       move: STATIC, density: 99,
       heatCapacity: 6.0, conductivity: 0.06, radiate: 0.004,
-      emissive: 0, colorLo: '#191722', colorHi: '#4a3128',
-      rampLo: 0, rampHi: 1400, grain: 0.16,
+      /* Bright enough to read against the void. The shell is the only
+         thing telling the player where the chamber *is*, and at the first
+         pass it was so close to the background that the room looked like
+         an empty screen with some sand floating in it. */
+      emissive: 0, colorLo: '#3a3440', colorHi: '#6b4534',
+      rampLo: 0, rampHi: 1400, grain: 0.26,
       indestructible: true
     },
     {
       name: 'CRUCIBLE', label: 'Crucible',
       move: STATIC, density: 99,
       heatCapacity: 8.0, conductivity: 0.10, radiate: 0.004,
-      emissive: 0.20, glowFrom: 300, colorLo: '#3b2a16', colorHi: '#ffb347',
-      rampLo: 0, rampHi: 1600, grain: 0.10,
+      emissive: 0.20, glowFrom: 300, colorLo: '#6d5320', colorHi: '#ffb347',
+      rampLo: 0, rampHi: 1600, grain: 0.14,
       indestructible: true, absorbs: true
     },
 

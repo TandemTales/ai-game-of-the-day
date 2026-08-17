@@ -67,6 +67,22 @@
     sim.fillRect(x0, top, w, h, mat);
   }
 
+  /* Buttresses down the dead space either side of a tall shaft. Without
+     them a narrow chamber reads as a few pixels of sand floating in an
+     empty black screen rather than as a room in a foundry. They are WALL,
+     so no solution can ever be routed through them by accident. */
+  function buttresses(sim, spans) {
+    for (var i = 0; i < spans.length; i++) {
+      var x0 = spans[i][0], w = spans[i][1];
+      sim.fillRect(x0, 2, w, sim.H - 4, ID.WALL);
+      /* arched reliefs, so a buttress is not a flat slab of grey */
+      for (var y = 8; y < sim.H - 10; y += 14) {
+        sim.fillRect(x0 + 2, y, Math.max(1, w - 4), 8, ID.VOID);
+        sim.fillRect(x0 + 2, y + 8, Math.max(1, w - 4), 1, ID.WALL);
+      }
+    }
+  }
+
   /* A sloped ledge, one cell per step, for routing matter sideways. */
   function ramp(sim, x0, y0, len, dx, dy, thick, mat) {
     var x = x0, y = y0;
@@ -97,8 +113,9 @@
       fuel: 900, parTicks: 240, hardTicks: 3600,
       build: function (sim) {
         shell(sim);
-        crucible(sim, 64, 22, 8);
-        hopper(sim, 64, 12, 18, 26, ID.SAND, ID.ICE, 4);
+        buttresses(sim, [[6, 14], [26, 10], [92, 10], [108, 14]]);
+        crucible(sim, 64, 44, 9);
+        hopper(sim, 64, 10, 38, 28, ID.SAND, ID.ICE, 4);
       }
     },
 
@@ -202,7 +219,8 @@
       fuel: 5500, parTicks: 2400, hardTicks: 9000,
       build: function (sim) {
         shell(sim);
-        crucible(sim, 64, 20, 9);
+        buttresses(sim, [[6, 12], [24, 8], [96, 8], [110, 12]]);
+        crucible(sim, 64, 34, 9);
         /* The ingot, bridging a gap directly over the crucible. It is
            deliberately small: iron has the highest heat capacity and the
            highest conductivity in the table, so a big block is more

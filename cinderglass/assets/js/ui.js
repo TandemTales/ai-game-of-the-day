@@ -55,14 +55,14 @@
     var top = els.top = h('div', 'cg-top');
     els.contract = h('div', 'cg-contract',
       '<span class="cg-ctitle">—</span><span class="cg-cidx"></span>');
-    els.score = h('div', 'cg-score', '<span class="cg-slabel">Shift</span><span class="cg-sval">0</span>');
+    els.score = h('div', 'cg-score', '<span class="cg-slabel">Score</span><span class="cg-sval">0</span>');
     top.appendChild(els.contract);
     top.appendChild(els.score);
 
     var gauges = els.gauges = h('div', 'cg-gauges');
     els.quota = gauge('quota', 'Quota');
     els.fuel = gauge('fuel', 'Fuel');
-    els.shift = gauge('shift', 'Shift');
+    els.shift = gauge('shift', 'Bell');
     gauges.appendChild(els.quota.el);
     gauges.appendChild(els.fuel.el);
     gauges.appendChild(els.shift.el);

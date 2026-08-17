@@ -43,7 +43,7 @@
       var a = CG.rand() * CG.TAU, d = Math.sqrt(CG.rand()) * r;
       spawn(cx + Math.cos(a) * d, cy + Math.sin(a) * d,
         (CG.rand() - 0.5) * 3, torch ? -4 - CG.rand() * 4 : 2 + CG.rand() * 2,
-        0.35 + CG.rand() * 0.35, 0.5 + CG.rand() * 0.7,
+        0.35 + CG.rand() * 0.35, 0.16 + CG.rand() * 0.22,
         torch ? KIND_SPARK : KIND_STEAM);
     }
   };
@@ -109,7 +109,7 @@
         ctx.globalAlpha = f * 0.85;
         ctx.fillStyle = f > 0.6 ? '#ffe9b0' : '#ff7a2f';
       } else {
-        ctx.globalAlpha = f * 0.7;
+        ctx.globalAlpha = f * 0.45;
         ctx.fillStyle = '#ffd39b';
       }
       ctx.beginPath();

@@ -32,33 +32,58 @@ the instruction to push for it and redo the scaffolding from scratch.
 No racing game exists on the site, and no 3D game of any kind. Full
 game-by-game justification lives in `zephyr-circuit/SPEC.md`.
 
-## The three.js constraint, and how it is satisfied
+## Dependencies, and the rules as they now stand
 
-three.js is **vendored into the repo** as a UMD build at
-`zephyr-circuit/assets/js/vendor/three.min.js`, loaded with a plain `<script>`
-tag and used through the `THREE` global. No CDN, no ES modules, no import
-maps, no third-party runtime fetch. All geometry, colour and sky are generated
-procedurally at boot — there are no model or texture files.
+Two arcade rules were changed by the human on 2026-08-17, in this session:
 
-Vendoring rather than a CDN is deliberate and should stay: the site is static
-on Cloudflare Pages with no backend but the leaderboard function, so a CDN
-would add an availability dependency and a third-party request on every play
-in exchange for nothing.
+* **The `file://` requirement is removed.** It was the only thing forcing
+  classic non-module scripts. Games must now work when served over HTTP from
+  the repo root; that is how the site is actually played.
+* **Vendoring an OFL-licensed UI font is allowed.**
 
-**Version is pinned to r160** because that is the last three.js release
-shipping a UMD build — verified: r159 and r160 ship `build/three.min.js`, and
-by r166 the builds are ESM-only. This only matters while the arcade requires
-`file://` support, which is what forces classic scripts. r160 is comfortably
-sufficient here: everything a low-poly kart racer needs (BufferGeometry,
-flat-shaded materials, shadow maps, fog, instancing) has been stable since
-~r140, and what r185 adds over it is WebGPU and node materials, neither of
-which this game would use.
+What did **not** change, and should not: **no third-party runtime fetches.**
+The site is static on Cloudflare Pages with no backend but the leaderboard
+function, so a CDN would add an availability dependency and a third-party
+request on every play in exchange for nothing. Everything is vendored into the
+repo, served from our own origin. Same-origin fetches of files we authored are
+fine — the leaderboard already does two.
 
-**Open question put to the human on 2026-08-17, not yet answered:** whether
-`file://` support stays a hard rule or is demoted to a nice-to-have (demoting
-it would unlock current three.js via vendored ESM), and whether vendoring an
-OFL-licensed UI font is allowed. Neither blocks this game — the r160 plan
-works under either answer. If the answer arrives, record it here.
+### What is vendored
+
+```
+assets/js/vendor/three.module.min.js     three.js r185, ESM build
+assets/js/vendor/addons/postprocessing/  EffectComposer, RenderPass, ShaderPass,
+                                         OutputPass, UnrealBloomPass, FXAAPass,
+                                         MaskPass, Pass
+assets/js/vendor/addons/shaders/         Copy, Output, LuminosityHighPass, FXAA
+assets/fonts/outfit-{500,700,900}.woff2  UI + HUD (SIL OFL)
+assets/fonts/bungee-400.woff2            wordmark only (SIL OFL)
+```
+
+Both font licences are checked in beside the files, as is three's.
+
+**Why r185 ESM and not the r160 UMD build.** With `file://` gone there was a
+real choice. The last UMD build is r160, it prints a deprecation warning on
+load (which would breach "console clean" unless the vendored file were
+hand-edited), and it is the end of that line. The ESM build is current and its
+`examples/jsm` post-processing passes are directly usable — which matters,
+because bloom is a large part of making flat-shaded low-poly read as shipped
+rather than as programmer art.
+
+### Module layout — deliberate hybrid, do not "tidy" it
+
+* **Pure game logic is classic scripts on `window.ZC`**: track geometry, kart
+  physics, race rules, AI. These import nothing, know nothing about three.js,
+  and are loaded with plain `<script>` tags. That is what keeps them testable
+  in the `vm`-based Jest harness the rest of the arcade already uses, with no
+  changes to the repo's Jest config.
+* **Only the render layer is ESM**, loaded with `<script type="module">` and
+  an import map for the bare `three` specifier. Module scripts are deferred,
+  so every classic script has already run and `window.ZC` is fully populated
+  before the renderer boots.
+
+Rendering needs a real GPU and is verified by the screenshot sweep, not by
+unit tests. Logic is verified by unit tests. The split follows that line.
 
 ## Quality references for critics
 

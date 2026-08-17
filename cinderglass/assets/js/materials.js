@@ -212,10 +212,14 @@
     {
       name: 'MOLTEN_IRON', label: 'Molten Iron',
       move: LIQUID, density: 6.9, flow: 3,
-      heatCapacity: 2.8, conductivity: 0.40, radiate: 0.060,
+      heatCapacity: 2.8, conductivity: 0.40, radiate: 0.040,
       emissive: 1.0, glowFrom: 600, colorLo: '#c8500c', colorHi: '#fffbe6',
       rampLo: 900, rampHi: 2100, grain: 0.07,
-      freezeAt: 1420, freezeTo: 'IRON', latent: 110
+      /* A wide liquid window on purpose. Iron melts at 1500 and molten
+         iron is the fastest-cooling thing in the table; with a freezing
+         point just below its melting point a pour re-solidifies in mid-air
+         after a handful of cells and can never reach a crucible. */
+      freezeAt: 1250, freezeTo: 'IRON', latent: 110
     },
     {
       name: 'STEEL', label: 'Steel',

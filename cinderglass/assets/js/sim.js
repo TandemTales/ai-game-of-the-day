@@ -25,6 +25,7 @@
   var QUENCH_POWER  = 13.0;
   var BURN_SPREAD   = 2.2;    // share of a flame's heat pushed into neighbours
   var LATENT_SHARE  = 0.25;   // latent heat handed to each of 4 neighbours
+  var FUEL_REF_RADIUS = 6;    // the brush size that costs exactly 1 fuel/tick
 
   var VOID = 0;
 
@@ -117,6 +118,16 @@
      ------------------------------------------------------------------ */
   Sim.prototype.paintHeat = function (cx, cy, radius, sign, scale) {
     var power = (sign > 0 ? TORCH_POWER : -QUENCH_POWER) * (scale === undefined ? 1 : scale);
+
+    /* Fuel is charged per tick in units of "one second of the medium
+       brush" = 60. Charging per cell touched instead would make the
+       number meaningless to the player and would swing by 20x between
+       brush sizes; this way the HUD reading is a time the player can
+       plan around, and a bigger brush honestly costs more per second. */
+    if (sign > 0) {
+      this.fuelUsed += (radius * radius) / (FUEL_REF_RADIUS * FUEL_REF_RADIUS);
+    }
+
     var r = radius, r2 = r * r;
     var x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(this.W - 1, Math.ceil(cx + r));
     var y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(this.H - 1, Math.ceil(cy + r));
@@ -138,7 +149,6 @@
         spent += falloff;
       }
     }
-    if (sign > 0) this.fuelUsed += spent;
     return spent;
   };
 
@@ -443,12 +453,58 @@
   };
 
   /* ------------------------------------------------------------------
+     PASS 4 — delivery.
+
+     The crucible ingests anything that ends the tick touching it, not
+     just matter that moved into it. Absorbing only on movement looks
+     equivalent and is not: a pour that sets before it lands — molten iron
+     cools fastest of anything here — becomes a static solid sitting in
+     the basin, which can never move again and so silently clogs the
+     crucible forever. Taking whatever is in contact makes delivery
+     reliable regardless of what the matter did on the way down.
+
+     Indestructible materials are exempt, so a crucible never eats the
+     chamber shell or another crucible.
+     ------------------------------------------------------------------ */
+  Sim.prototype.absorbPass = function () {
+    var W = this.W, H = this.H;
+    var mat = this.mat, temp = this.temp;
+    var absorber = MAT.isAbsorber, indestructible = MAT.isIndestructible;
+
+    for (var y = 0; y < H; y++) {
+      for (var x = 0; x < W; x++) {
+        var i = y * W + x;
+        var id = mat[i];
+        if (id === VOID || indestructible[id]) continue;
+
+        var touching =
+          (x > 0 && absorber[mat[i - 1]]) ||
+          (x < W - 1 && absorber[mat[i + 1]]) ||
+          (y > 0 && absorber[mat[i - W]]) ||
+          (y < H - 1 && absorber[mat[i + W]]);
+        if (!touching) continue;
+
+        this.absorbed[id]++;
+        this.absorbedTotal++;
+        this.absorbEvents.push(id);
+        if (this.absorbEvents.length > 64) this.absorbEvents.shift();
+
+        mat[i] = VOID;
+        temp[i] = CG.AMBIENT;
+        this.aux[i] = 0;
+        this.dir[i] = 0;
+      }
+    }
+  };
+
+  /* ------------------------------------------------------------------
      One simulation tick.
      ------------------------------------------------------------------ */
   Sim.prototype.step = function () {
     this.heatPass();
     this.reactPass();
     this.movePass();
+    this.absorbPass();
     this.tick++;
   };
 

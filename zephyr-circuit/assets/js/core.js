@@ -73,6 +73,15 @@
   ZC.randRange = function (a, b) { return a + ZC.rand() * (b - a); };
   ZC.randInt = function (a, b) { return Math.floor(a + ZC.rand() * (b - a + 1)); };
   ZC.pick = function (arr) { return arr[Math.floor(ZC.rand() * arr.length) % arr.length]; };
+  /* Stable per-position hash. The terrain and the road wear are shaded
+     from this rather than from ZC.rand(), so they do not depend on how
+     many times the RNG has been drawn — the island looks the same on
+     every load regardless of what else happened first. */
+  ZC.hash2 = function (x, y) {
+    var h = Math.imul(x | 0, 374761393) ^ Math.imul(y | 0, 668265263);
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+  };
   ZC.hashStr = function (s) {
     var h = 0;
     for (var i = 0; i < s.length; i++) h = (Math.imul(h, 31) + s.charCodeAt(i)) | 0;

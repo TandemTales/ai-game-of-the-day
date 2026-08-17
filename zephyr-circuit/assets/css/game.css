@@ -1,0 +1,370 @@
+/* =====================================================================
+   ZEPHYR CIRCUIT — game.css
+   The DOM shell over the WebGL canvas: HUD, touch pads, screens.
+   Owner: agent-ui (this first pass written by the lead).
+
+   The canvas is full-bleed and everything here floats over it. Nothing
+   may scroll, and no control may sit where a thumb naturally covers the
+   road.
+   ===================================================================== */
+
+/* Vendored, SIL OFL, served from our own origin. See assets/fonts/. */
+@font-face {
+  font-family: 'Outfit';
+  src: url('../fonts/outfit-500.woff2') format('woff2');
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Outfit';
+  src: url('../fonts/outfit-700.woff2') format('woff2');
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Outfit';
+  src: url('../fonts/outfit-900.woff2') format('woff2');
+  font-weight: 900; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Bungee';
+  src: url('../fonts/bungee-400.woff2') format('woff2');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+
+:root {
+  --ink: #12101a;
+  --panel: rgba(20, 17, 30, 0.93);
+  --edge: rgba(255, 201, 74, 0.30);
+  --paper: #f6f1e8;
+  --dim: #a79e93;
+  --amber: #ffc94a;
+  --ember: #ff7a2f;
+  --sky: #6fd8ff;
+  --pink: #ff5aa0;
+  --good: #7ee08a;
+
+  --ui: 'Outfit', 'Avenir Next', 'Segoe UI', Roboto, system-ui, sans-serif;
+  --display: 'Bungee', 'Outfit', Impact, sans-serif;
+
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0; height: 100%;
+  background: var(--ink);
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  font-family: var(--ui);
+}
+
+#zc-ui {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  color: var(--paper);
+  z-index: 2;
+  -webkit-user-select: none; user-select: none;
+}
+#zc-ui button, #zc-ui a, #zc-ui input, #zc-ui .zc-pad { pointer-events: auto; }
+
+/* ------------------------------------------------------------------ HUD */
+.zc-hud {
+  position: absolute; inset: 0;
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+#zc-ui.is-racing .zc-hud { opacity: 1; }
+
+/* A racing HUD lives in the corners: the middle of the screen is the
+   road, and anything placed there is in the way at exactly the moment it
+   matters most. */
+.zc-place {
+  position: absolute;
+  top: calc(12px + var(--safe-t)); left: calc(16px + var(--safe-l));
+  display: flex; align-items: baseline; gap: 2px;
+  text-shadow: 0 2px 14px rgba(0,0,0,0.75);
+}
+.zc-place b {
+  font-family: var(--display);
+  font-size: clamp(38px, 9vw, 68px);
+  line-height: 0.9;
+  color: var(--paper);
+}
+.zc-place span {
+  font-size: clamp(13px, 2.6vw, 20px); font-weight: 700;
+  color: var(--amber);
+}
+
+.zc-lap {
+  position: absolute;
+  top: calc(14px + var(--safe-t)); right: calc(16px + var(--safe-r));
+  text-align: right;
+  text-shadow: 0 2px 14px rgba(0,0,0,0.75);
+}
+.zc-lap .zc-lbl {
+  display: block;
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--dim);
+}
+.zc-lap b {
+  font-family: var(--display);
+  font-size: clamp(20px, 4.6vw, 34px);
+  letter-spacing: 0.02em;
+}
+
+.zc-timing {
+  position: absolute;
+  top: calc(64px + var(--safe-t)); right: calc(16px + var(--safe-r));
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.7);
+}
+.zc-timing > div { margin-bottom: 3px; }
+.zc-timing span {
+  font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--dim); margin-right: 7px;
+}
+.zc-timing b { font-size: clamp(13px, 2.8vw, 18px); font-weight: 700; }
+.zc-best b { color: var(--amber); }
+
+.zc-speed {
+  position: absolute;
+  bottom: calc(14px + var(--safe-b)); right: calc(18px + var(--safe-r));
+  display: flex; align-items: baseline; gap: 5px;
+  text-shadow: 0 2px 16px rgba(0,0,0,0.8);
+}
+.zc-speed b {
+  font-family: var(--display);
+  font-size: clamp(30px, 7.5vw, 56px);
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+.zc-speed span {
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--dim);
+}
+
+/* Drift charge. Colour matches the sparks on the kart, so the meter and
+   the world are saying the same thing. */
+.zc-charge {
+  position: absolute;
+  left: 50%; bottom: calc(20px + var(--safe-b));
+  transform: translateX(-50%);
+  width: min(320px, 46vw); height: 7px;
+  background: rgba(0,0,0,0.5);
+  border-radius: 4px;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+.zc-charge i {
+  display: block; height: 100%;
+  transform-origin: left center; transform: scaleX(0);
+  background: var(--sky);
+  transition: transform 60ms linear, background 180ms ease;
+}
+.zc-charge[data-tier="2"] i { background: var(--amber); }
+.zc-charge[data-tier="3"] i { background: var(--pink); box-shadow: 0 0 16px var(--pink); }
+
+.zc-countdown {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  font-family: var(--display);
+  font-size: clamp(80px, 22vw, 200px);
+  color: var(--paper);
+  text-shadow: 0 6px 40px rgba(0,0,0,0.8);
+  opacity: 0; pointer-events: none;
+  transform: scale(1.4);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+.zc-countdown.is-on { opacity: 1; transform: scale(1); }
+.zc-countdown.is-go { color: var(--good); }
+
+/* ---------------------------------------------------------- touch pads */
+.zc-pads { position: absolute; inset: 0; opacity: 0; transition: opacity 240ms ease; }
+#zc-ui.is-racing.is-touch .zc-pads { opacity: 1; }
+#zc-ui:not(.is-touch) .zc-pads { display: none; }
+
+.zc-pad {
+  position: absolute;
+  display: grid; place-items: center;
+  border-radius: 18px;
+  background: rgba(18, 16, 26, 0.42);
+  border: 1px solid rgba(255,255,255,0.14);
+  color: var(--paper);
+  backdrop-filter: blur(3px);
+  transition: background 90ms ease, transform 90ms ease;
+}
+.zc-pad.is-down { background: rgba(255, 201, 74, 0.30); transform: scale(0.97); }
+.zc-pad svg { width: 44%; height: 44%; fill: currentColor; opacity: 0.85; }
+
+/* Steering sits in the bottom corners where thumbs already are. */
+.zc-left, .zc-right {
+  bottom: calc(16px + var(--safe-b));
+  width: min(108px, 26vw); height: min(108px, 26vw);
+}
+.zc-left { left: calc(14px + var(--safe-l)); }
+.zc-right { left: calc(14px + var(--safe-l) + min(116px, 28vw)); }
+
+.zc-acts {
+  position: absolute;
+  right: calc(14px + var(--safe-r));
+  bottom: calc(84px + var(--safe-b));
+  display: flex; flex-direction: column; gap: 10px;
+}
+.zc-acts .zc-pad {
+  position: static;
+  width: min(96px, 23vw); height: min(52px, 13vw);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.14em;
+}
+.zc-drift { border-color: rgba(111, 216, 255, 0.5); color: var(--sky); }
+
+/* -------------------------------------------------------------- screens */
+.zc-overlay {
+  position: absolute; inset: 0;
+  display: none;
+  align-items: center; justify-content: center;
+  padding: calc(18px + var(--safe-t)) 18px calc(18px + var(--safe-b));
+  background: linear-gradient(180deg, rgba(10,8,16,0.55), rgba(10,8,16,0.86));
+  pointer-events: auto;
+  overflow-y: auto;
+}
+.zc-overlay.is-open { display: flex; }
+
+.zc-panel {
+  width: min(520px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 18px;
+  padding: clamp(20px, 4.5vw, 34px);
+  text-align: center;
+  box-shadow: 0 28px 80px rgba(0,0,0,0.72), inset 0 1px 0 rgba(255,255,255,0.06);
+  animation: zc-rise 280ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+@keyframes zc-rise { from { opacity: 0; transform: translateY(16px); } }
+
+.zc-logo {
+  font-family: var(--display);
+  font-size: clamp(30px, 8vw, 52px);
+  line-height: 0.94;
+  margin: 0 0 10px;
+  color: var(--amber);
+  text-shadow: 0 0 40px rgba(255,201,74,0.35);
+}
+.zc-logo span { display: block; color: var(--ember); }
+
+.zc-panel h2 { font-family: var(--display); font-weight: 400; margin: 0 0 10px; font-size: clamp(20px, 5vw, 30px); }
+.zc-finish { color: var(--amber); font-size: clamp(34px, 9vw, 54px) !important; }
+.zc-kicker { font-size: 10px; letter-spacing: 0.26em; text-transform: uppercase; color: var(--dim); margin-bottom: 8px; }
+.zc-tag { font-size: clamp(13px, 3vw, 16px); line-height: 1.6; color: #d8d0c6; margin: 0 0 20px; }
+
+.zc-btn {
+  appearance: none; display: block; width: 100%;
+  margin: 0 0 10px; padding: 14px 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.05);
+  color: var(--paper);
+  font-family: var(--ui); font-size: 15px; font-weight: 700;
+  letter-spacing: 0.04em; cursor: pointer;
+  transition: background 140ms, border-color 140ms, transform 90ms;
+}
+.zc-btn:hover { background: rgba(255,255,255,0.11); border-color: rgba(255,255,255,0.32); }
+.zc-btn:active { transform: translateY(1px); }
+.zc-primary {
+  background: linear-gradient(180deg, #ffb43a, #e0761a);
+  border-color: rgba(255,220,150,0.6);
+  color: #2a1704;
+  box-shadow: 0 10px 30px rgba(224,118,26,0.32);
+}
+.zc-primary:hover { background: linear-gradient(180deg, #ffc352, #f0821f); }
+.zc-ghost { background: none; color: var(--dim); }
+
+.zc-table { margin: 4px 0 18px; text-align: left; }
+.zc-row {
+  display: grid; grid-template-columns: 28px 1fr auto;
+  gap: 10px; align-items: baseline;
+  padding: 6px 8px; border-radius: 7px;
+  font-size: 13px;
+}
+.zc-row.is-you { background: rgba(255,201,74,0.14); color: var(--amber); font-weight: 700; }
+.zc-pos { font-family: var(--display); font-size: 13px; color: var(--dim); }
+.zc-row.is-you .zc-pos { color: var(--amber); }
+.zc-t { font-variant-numeric: tabular-nums; }
+
+.zc-break { text-align: left; margin-bottom: 16px; }
+.zc-brow {
+  display: flex; justify-content: space-between;
+  padding: 7px 2px; font-size: 13px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.zc-brow b { font-variant-numeric: tabular-nums; }
+.zc-brow.zc-total { border-bottom: none; font-size: 15px; margin-top: 4px; }
+.zc-brow.zc-total b { color: var(--amber); font-size: 20px; font-family: var(--display); }
+
+.zc-best-line { font-size: 12px; color: var(--dim); margin: 10px 0 0; }
+.zc-best-line b { color: var(--amber); }
+.zc-keys {
+  font-size: 11px; line-height: 2; color: var(--dim);
+  margin-top: 18px; padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.zc-keys b { color: var(--paper); }
+.zc-link {
+  display: inline-block; margin-top: 14px;
+  color: var(--amber); text-decoration: none; font-size: 13px;
+  border-bottom: 1px solid transparent;
+}
+.zc-link:hover { border-bottom-color: var(--amber); }
+
+.zc-toast {
+  position: absolute; left: 50%; top: calc(84px + var(--safe-t));
+  transform: translate(-50%, -8px);
+  padding: 10px 18px;
+  background: rgba(14,12,20,0.94);
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  font-size: 13px; font-weight: 700;
+  opacity: 0; pointer-events: none;
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+.zc-toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+
+.zc-modal {
+  position: absolute; inset: 0; z-index: 3;
+  display: flex; align-items: center; justify-content: center;
+  padding: 18px; background: rgba(8,6,12,0.88); pointer-events: auto;
+}
+.zc-input {
+  width: 100%; padding: 12px 14px; margin-bottom: 14px;
+  border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.42); color: var(--paper);
+  font-family: var(--ui); font-size: 16px;   /* 16px: smaller zooms iOS */
+  text-align: center;
+}
+.zc-input:focus { outline: none; border-color: var(--amber); }
+
+/* --------------------------------------------------------- small screens */
+@media (max-height: 460px) and (orientation: landscape) {
+  .zc-timing { top: calc(48px + var(--safe-t)); }
+  .zc-acts { bottom: calc(14px + var(--safe-b)); flex-direction: row; }
+  .zc-left, .zc-right { width: min(84px, 15vw); height: min(84px, 15vw); }
+  .zc-right { left: calc(14px + var(--safe-l) + min(92px, 17vw)); }
+  .zc-panel { padding: 16px 20px; }
+  .zc-keys { display: none; }
+}
+
+@media (max-width: 380px) {
+  .zc-panel { padding: 18px 16px; }
+  .zc-keys { font-size: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

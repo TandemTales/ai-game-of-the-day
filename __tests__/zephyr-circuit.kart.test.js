@@ -23,14 +23,41 @@ function makeDriver(ZC, track, opts) {
   const look = opts.look === undefined ? 20 : opts.look;
   const gain = opts.gain === undefined ? 2.6 : opts.gain;
   const frame = {};
+  /* Drift LATCHES, the way a player's thumb does: you commit to a slide
+     on the way into a corner and hold it until the corner opens up. The
+     first version of this driver re-decided every step from the current
+     steering angle, so it stuttered the button on and off and never held
+     a slide longer than a fraction of a second — which made the drift
+     tests measure a way of driving nobody actually uses. */
+  let drifting = false;
   return function (kart) {
     ZC.Track.frameAt(track, kart.s + look + kart.speed * 0.55, frame);
     const want = Math.atan2(frame.x - kart.x, frame.z - kart.z);
     const steer = ZC.clamp(ZC.steerToward(kart.travelYaw, want) * gain, -1, 1);
-    return {
-      throttle: 1, brake: 0, steer,
-      drift: !!opts.drift && Math.abs(steer) > 0.55 && kart.speed > 16
-    };
+    if (opts.drift) {
+      /* Keyed on the CORNER, not on the current steering angle — the same
+         thing the AI brain does, and for the same reason. A drift adds a
+         lot of yaw, so the instant one starts, a driver chasing the
+         centreline stops asking for lock and lets go: measured, drift
+         engaged 15 times a lap and the longest slide was 0.09 seconds,
+         which is shorter than the slip angle takes to build, so no charge
+         ever accrued at all. Curvature does not twitch. */
+      const seg = ZC.Track.segAt(track, kart.s + 12 + kart.speed * 0.4);
+      const k = Math.abs(track.curvature[seg]);
+      if (!drifting) {
+        drifting = k > 0.015 && kart.speed > 16;
+      } else {
+        /* Committed: once the slide is on, hold it past the exit to bank
+           the charge, and only give up if it is costing too much speed.
+           These circuits hold |curvature| > 0.009 for about 0.87s at
+           racing pace, so a driver who releases the instant the corner
+           opens can never bank more than tier 1 — the big boosts are for
+           whoever is willing to stay sideways onto the straight and pay
+           the grip for it. That trade is the mechanic. */
+        drifting = kart.drift.tier < 3 && kart.speed > 16;
+      }
+    }
+    return { throttle: 1, brake: 0, steer, drift: !!opts.drift && drifting };
   };
 }
 
@@ -246,14 +273,13 @@ describe('drift and boost', () => {
     const { ZC, track } = fresh();
     const kart = ZC.Kart.create({ id: 'p' });
     ZC.Kart.placeOnGrid(kart, track, 0, 8);
-    const steerDriver = makeDriver(ZC, track);
+    const steerDriver = makeDriver(ZC, track, { drift: true });
 
     const seen = new Set();
     let maxSlip = 0;
     const dt = ZC.STEP_DT;
     for (let i = 0; i < 120 * 90; i++) {
       const inp = steerDriver(kart);
-      inp.drift = kart.speed > 16 && Math.abs(inp.steer) > 0.35;
       ZC.Kart.step(kart, inp, track, dt);
       seen.add(kart.drift.tier);
       maxSlip = Math.max(maxSlip, Math.abs(kart.slip));
@@ -266,13 +292,12 @@ describe('drift and boost', () => {
     const { ZC, track } = fresh();
     const kart = ZC.Kart.create({ id: 'p' });
     ZC.Kart.placeOnGrid(kart, track, 0, 8);
-    const steerDriver = makeDriver(ZC, track);
+    const steerDriver = makeDriver(ZC, track, { drift: true });
     const dt = ZC.STEP_DT;
 
     let peak = 0, bestBoost = 0, bestTier = 0;
     for (let i = 0; i < 120 * 90; i++) {
       const inp = steerDriver(kart);
-      inp.drift = kart.speed > 16 && Math.abs(inp.steer) > 0.35;
       ZC.Kart.step(kart, inp, track, dt);
       bestTier = Math.max(bestTier, kart.drift.tier);
       bestBoost = Math.max(bestBoost, kart.boost);

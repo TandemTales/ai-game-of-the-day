@@ -59,8 +59,20 @@
 
     /* Charge thresholds in seconds of genuine slide, and the boost each
        tier pays out. Charge only accrues while actually sliding, so
-       holding drift down a straight earns nothing. */
-    driftTiers:    [0.80, 1.70, 2.70],
+       holding drift down a straight earns nothing.
+
+       These were measured against the corners the game actually has, not
+       guessed. At the first cut — 0.80/1.70/2.70 — the strongest AI
+       driver never once got past tier 1 on any of the three circuits: its
+       longest genuine slide was 1.29 seconds, because a kart carrying
+       speed through a 100m-radius corner is only in it for about a
+       second. Two thirds of the drift mechanic was unreachable content.
+       They now sit inside the range the circuits produce: tier 1 arrives
+       quickly enough to feel like a reward for trying, tier 2 is a
+       well-taken corner, and tier 3 needs a slide held longer than the
+       AI manages — a genuine ceiling rather than a locked door. Re-measure
+       these if the circuits ever change shape. */
+    driftTiers:    [0.42, 0.95, 1.65],
     driftBoosts:   [0.55, 0.95, 1.50],
 
     gravity:       26,
@@ -334,22 +346,43 @@
 
     var hasGround = Math.abs(pr.t) <= TUNE.vergeLimit;
 
-    /* ---- vertical ---- */
+    /* ---- vertical ----
+
+       The kart STICKS to the road within a tolerance rather than only
+       landing on it. That tolerance is the whole reason this game can
+       have hills.
+
+       The obvious version — snap only when the next step would put you
+       through the surface — quietly breaks on any descent. Going downhill
+       the road drops away underneath a kart that is exactly on it, so it
+       is above the surface every single step, never satisfies the snap,
+       and free-falls the whole hill. Which would be survivable, except
+       that being airborne also removes steering: `grounded` gates the yaw
+       integration, so the kart flies down the slope with the controls
+       disconnected. On the first circuit with real elevation the AI was
+       airborne for 48% of the lap and ran off the road on every descent,
+       and it looked exactly like a bad racing line rather than like
+       physics.
+
+       The tolerance scales with speed, because the faster you go the
+       further the road falls away between two steps. Convex crests still
+       launch a kart — that needs a rising vy, which no tolerance affects. */
     if (hasGround) {
-      if (kart.y <= pr.surfaceY + 0.05 || kart.vy <= 0) {
-        if (kart.y + kart.vy * dt <= pr.surfaceY) {
+      var snapTol = 0.3 + kart.speed * dt * 2;
+      if (kart.vy <= 0 && kart.y - pr.surfaceY <= snapTol) {
+        kart.y = pr.surfaceY;
+        kart.vy = 0;
+        kart.grounded = true;
+      } else {
+        kart.vy -= TUNE.gravity * dt;
+        kart.y += kart.vy * dt;
+        if (kart.y <= pr.surfaceY) {
           kart.y = pr.surfaceY;
           kart.vy = 0;
           kart.grounded = true;
         } else {
-          kart.vy -= TUNE.gravity * dt;
-          kart.y += kart.vy * dt;
           kart.grounded = false;
         }
-      } else {
-        kart.vy -= TUNE.gravity * dt;
-        kart.y += kart.vy * dt;
-        kart.grounded = false;
       }
     } else {
       /* over the void — nothing to stand on */

@@ -51,7 +51,14 @@
     name: 'Gullwing Bay',
     theme: 'dawn',
     laps: 3,
-    parTime: 115,
+    /* Par is what the time bonus is scaled against, so it has to be a
+       time a good run actually beats by a margin. A strong AI lap of this
+       circuit is 107s; par at 115 made the 500-point bonus cap
+       mathematically unreachable (it would need 75s) and paid barely a
+       fifth of it for an excellent run. Set roughly 16% above a strong
+       run so the bonus is a real part of the score. Re-measure with
+       tools: a solo hot lap at skill 0.95 is the reference. */
+    parTime: 125,
     voidY: -60,
     /* camber is derived from curvature at bake time — see track.js §4 */
     autoBank: true,
@@ -87,7 +94,137 @@
     ]
   };
 
-  TR.LIST = [GULLWING_BAY];
+  /* -----------------------------------------------------------------
+     Polar authoring.
+
+     Gullwing Bay was authored in cartesian and it took two attempts,
+     because "keep the loop star-shaped about the origin" is a rule you
+     have to hold in your head the whole time and it is invisible in a
+     column of x/z numbers. Authored in polar it is not a rule at all: a
+     bearing that only ever decreases CANNOT produce a loop that crosses
+     itself, so the guarantee is structural rather than remembered.
+
+     A circuit is then a list of [bearing°, radius m, height m, halfWidth],
+     read anticlockwise. Character comes from the radius column — a
+     collapse from 180m to 110m over two entries is a corner that
+     tightens, which is the only interesting kind — and from the height
+     column, which is cheaper than extra corners and does more.
+
+     Bearing is measured the same way yaw is, atan2(x, z), so a bearing of
+     0 is +z and it agrees with everything else in the game.
+     ----------------------------------------------------------------- */
+  var RAD = Math.PI / 180;
+  function ring(rows) {
+    var pts = [];
+    for (var i = 0; i < rows.length; i++) {
+      var a = rows[i][0] * RAD, r = rows[i][1];
+      pts.push({ x: r * Math.sin(a), y: rows[i][2], z: r * Math.cos(a), w: rows[i][3] });
+    }
+    return pts;
+  }
+
+  /* -----------------------------------------------------------------
+     2. THERMAL SPIRE — the climb.
+
+     40 metres of elevation on a circuit under a kilometre long, which
+     makes it the one where the road disappears over a crest and you have
+     to remember what is on the other side. The spiral tightens as it
+     climbs (180m radius down to 105m) so the corners get harder exactly
+     as the kart gets slower, then everything is given back on the plunge
+     — a fast, opening, downhill run where a drift boost carries further
+     than it has any right to.
+     ----------------------------------------------------------------- */
+  var THERMAL_SPIRE = {
+    id: 'thermal-spire',
+    name: 'Thermal Spire',
+    theme: 'dusk',
+    laps: 3,
+    parTime: 128,   // strong AI run 110s
+    voidY: -60,
+    autoBank: true,
+    maxBank: 0.19,
+    /* Bearings are evenly spaced and the gap that closes the loop is the
+       same size as all the others. That is not tidiness: the first draft
+       ran 0 to -352 in 24° steps, which left only 8° to get back to the
+       start, and a Catmull-Rom fed one span a third the length of its
+       neighbours overshoots hard. It put an 8-metre-radius kink across
+       the start line — tighter than the road is wide, which folds the
+       surface onto itself and breaks projection. Keep the spacing even. */
+    points: ring([
+      /* bearing, radius, height, halfWidth */
+      [   0, 176,  0, 12.5 ],   // start / finish, on the wide lower shelf
+      [ -24, 180,  1, 12   ],
+      [ -48, 172,  5, 11.5 ],
+
+      /* the spiral: radius collapses as the road climbs */
+      [ -72, 150, 11, 11.5 ],
+      [ -96, 128, 19, 11   ],
+      [-120, 118, 26, 11   ],   // tightest point, and the steepest
+      [-144, 128, 32, 11   ],
+
+      /* the summit shelf — opens out, crests, and goes blind */
+      [-168, 158, 36, 11.5 ],
+      [-192, 180, 38, 12   ],
+      [-216, 172, 35, 11.5 ],
+
+      /* the plunge: tightening again, downhill, with room to get it wrong */
+      [-240, 142, 26, 11.5 ],
+      [-264, 122, 16, 11   ],   // the hairpin at the bottom of the drop
+      [-288, 134,  8, 11   ],
+
+      /* and the run home, opening all the way */
+      [-312, 160,  3, 11   ],
+      [-336, 186,  0, 12.5 ]
+    ])
+  };
+
+  /* -----------------------------------------------------------------
+     3. CIRRUS RUN — the fast one.
+
+     The finale, and deliberately the least technical: two long fast arcs
+     joined by a pair of hard direction changes. Its whole idea is that
+     top speed matters here in a way it does not on the other two, so a
+     saved Updraft is worth more and a Thunderhead in the wrong place is
+     worth much more. Wide road throughout — 26m at the widest — because
+     the passing has to happen somewhere.
+     ----------------------------------------------------------------- */
+  var CIRRUS_RUN = {
+    id: 'cirrus-run',
+    name: 'Cirrus Run',
+    theme: 'noon',
+    laps: 3,
+    parTime: 143,   // strong AI run 123s — the longest lap of the three
+    voidY: -60,
+    autoBank: true,
+    maxBank: 0.18,
+    points: ring([
+      [   0, 205,  6, 13   ],   // start / finish, flat out
+      [ -26, 208,  8, 13   ],
+      [ -52, 200, 10, 12.5 ],
+      [ -78, 183, 12, 12   ],   // the long right-hander, barely a lift
+
+      /* first direction change: the radius halves in 50 metres */
+      [-102, 132, 12, 11   ],
+      [-124, 108,  9, 10   ],
+      [-146, 128,  5, 10.5 ],
+
+      /* the back straight, downhill and dead fast */
+      [-172, 186,  2, 12.5 ],
+      [-198, 210,  0, 13   ],
+      [-224, 206,  0, 13   ],
+
+      /* second direction change, tighter than the first and uphill */
+      [-248, 150,  3, 11   ],
+      [-270, 112,  8, 10   ],
+      [-292, 122, 11, 10   ],
+
+      /* out of the last corner onto the run to the line */
+      [-316, 168, 10, 12   ],
+      [-340, 200,  8, 13   ]
+    ])
+  };
+
+  TR.LIST = [GULLWING_BAY, THERMAL_SPIRE, CIRRUS_RUN];
 
   TR.byId = function (id) {
     for (var i = 0; i < TR.LIST.length; i++) if (TR.LIST[i].id === id) return TR.LIST[i];

@@ -31,6 +31,7 @@ zephyr-circuit/
   assets/js/render/scene.js      renderer, camera, lights, sky, post  [agent-render]
   assets/js/render/trackmesh.js  road / verge / island geometry       [agent-render]
   assets/js/render/karts.js      kart models and their animation      [agent-models]
+  assets/js/render/items.js      boxes, projectiles, hazards, shields [agent-models]
   assets/js/render/fx.js         drift sparks, speed lines, dust      [agent-particles]
   assets/js/render/main.js       ESM entry — owns the RAF loop        [lead]
 

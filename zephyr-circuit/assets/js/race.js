@@ -21,8 +21,20 @@
     COUNTDOWN: 'countdown',
     RACING: 'racing',
     FINISHED: 'finished',
-    RESULTS: 'results'
+    RESULTS: 'results',
+    /* the standings after the last round — the run's actual ending, and
+       the only place a score is submitted */
+    CUP: 'cup'
   };
+
+  /* The cup is the run. A single race is not a score worth putting on a
+     leaderboard: one bad Squall in the last corner would decide it, and
+     the whole point of the item game is that one bad Squall CAN. Three
+     circuits, championship points carried between them, is what makes the
+     rubber band fair — it gives a good driver enough rounds for skill to
+     out-vote luck, which is exactly why every kart racer is scored this
+     way and none of them are scored on a single race. */
+  R.CUP = ['gullwing-bay', 'thermal-spire', 'cirrus-run'];
 
   R.FIELD = 8;
   R.POINTS = [15, 12, 10, 8, 6, 4, 2, 1];
@@ -51,7 +63,12 @@
     countdown: 0,
     accumulator: 0,
     cupScore: 0,
-    results: null
+    results: null,
+
+    /* cup progress */
+    round: 0,            // 0-based index into R.CUP
+    standings: null,     // [{ id, name, colour, points, best }] , sorted
+    roundResults: []     // one scoreRace() per completed round
   };
 
   var COUNTDOWN_SECONDS = 3.2;
@@ -100,9 +117,16 @@
     st.items = ZC.Items ? ZC.Items.createState(st.track) : null;
     if (st.items) st.items.enabled = opts.items !== false;
 
-    /* Attract mode drives every kart, the player's included: it is the
-       menu background, and it is how a headless test races a full field. */
-    st.attractMode = !!opts.attract;
+    /* Two separate things that used to be one flag.
+
+       `attract` is the menu background: the AI drives everybody AND the
+       race never resolves, because a menu that stops after three laps is
+       not a background. `autoDrive` is the AI driving everybody through a
+       REAL race that starts, finishes and scores — which is what a
+       headless test of the cup needs, and what the screenshot harness
+       wants. Conflating them meant a cup could never reach its own
+       standings screen without a human holding the throttle. */
+    st.attractMode = !!opts.attract || !!opts.autoDrive;
     st.phase = opts.attract ? PHASE.ATTRACT : PHASE.GRID;
     st.countdown = COUNTDOWN_SECONDS;
     ZC.emit('race:load', st);
@@ -116,6 +140,66 @@
   };
 
   R.restart = function () { R.load(R.state.trackIndex); R.beginCountdown(); };
+
+  /* ------------------------------------------------------------------
+     The cup
+     ------------------------------------------------------------------ */
+
+  /* Start a fresh cup at round 1. Championship points start empty, and
+     every racer in the roster gets a row whether or not they score. */
+  R.startCup = function (opts) {
+    var st = R.state;
+    st.round = 0;
+    st.cupScore = 0;
+    st.roundResults = [];
+    st.standings = ROSTER.slice(0, R.FIELD).map(function (spec) {
+      return { id: spec.id, name: spec.name, colour: spec.colour, points: 0, best: 0 };
+    });
+    st.cupOpts = opts || {};
+    R.load(R.CUP[0], st.cupOpts);
+    ZC.emit('cup:start', st);
+    return st;
+  };
+
+  R.roundCount = function () { return R.CUP.length; };
+  R.isLastRound = function () { return R.state.round >= R.CUP.length - 1; };
+
+  /* Move to the next circuit, keeping the standings. Returns false when
+     the cup is over — the caller shows the standings instead. */
+  R.nextRound = function (opts) {
+    var st = R.state;
+    if (R.isLastRound()) return false;
+    st.round++;
+    /* the same options all the way through: a cup started under AI
+       control must stay under AI control on round two */
+    R.load(R.CUP[st.round], opts || st.cupOpts || {});
+    ZC.emit('cup:round', st);
+    return true;
+  };
+
+  function standingFor(st, id) {
+    if (!st.standings) return null;
+    for (var i = 0; i < st.standings.length; i++) {
+      if (st.standings[i].id === id) return st.standings[i];
+    }
+    return null;
+  }
+  R.standingFor = standingFor;
+
+  /* Award championship points for the round just finished and re-sort. */
+  function awardPoints(st) {
+    if (!st.standings) return;
+    var order = _order;
+    for (var i = 0; i < order.length; i++) {
+      var row = standingFor(st, order[i].id);
+      if (!row) continue;
+      row.points += R.POINTS[ZC.clamp(i, 0, R.POINTS.length - 1)];
+      if (order[i].bestLap > 0 && (!row.best || order[i].bestLap < row.best)) {
+        row.best = order[i].bestLap;
+      }
+    }
+    st.standings.sort(function (a, b) { return b.points - a.points; });
+  }
 
   /* ------------------------------------------------------------------
      Placement — laps first, then distance round. Recomputed once a tick,
@@ -263,9 +347,41 @@
   function finish(st) {
     st.results = R.scoreRace(st);
     st.cupScore += st.results.total;
+    st.roundResults.push(st.results);
+    awardPoints(st);
     st.phase = PHASE.RESULTS;
     ZC.emit('race:results', st);
   }
+
+  /* Called by the UI from the round-results screen. Either sets up the
+     next circuit or ends the cup. */
+  R.advance = function () {
+    var st = R.state;
+    if (R.nextRound()) {
+      st.phase = PHASE.GRID;
+      return true;
+    }
+    /* The championship itself is worth something, or the cup would just
+       be three scores added up and the standings table would be
+       decoration. */
+    st.cupBonus = R.CUP_BONUS[ZC.clamp(R.cupPlace() - 1, 0, R.CUP_BONUS.length - 1)];
+    st.cupScore += st.cupBonus;
+    st.phase = PHASE.CUP;
+    ZC.emit('cup:end', st);
+    return false;
+  };
+
+  R.CUP_BONUS = [1200, 800, 600, 400, 250, 150, 80, 40];
+
+  /* Where the player finished the championship, 1-based. */
+  R.cupPlace = function () {
+    var st = R.state;
+    if (!st.standings || !st.player) return 0;
+    for (var i = 0; i < st.standings.length; i++) {
+      if (st.standings[i].id === st.player.id) return i + 1;
+    }
+    return 0;
+  };
   R.forceFinish = function () { finish(R.state); };
 
   /* ------------------------------------------------------------------

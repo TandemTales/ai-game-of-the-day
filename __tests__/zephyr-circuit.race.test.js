@@ -205,3 +205,105 @@ describe('the race loop', () => {
     expect(ZC.Race.scoreRace(st).total).toBeLessThan(s.total);
   });
 });
+
+/* =====================================================================
+   The cup.
+
+   A single race is not a score worth putting on a leaderboard: the item
+   game exists precisely so that one Squall in the last corner can decide
+   a race, and a leaderboard built on that measures luck. Three circuits
+   with championship points carried between them gives skill enough rounds
+   to out-vote the rubber band.
+   ===================================================================== */
+describe('the cup', () => {
+  function playRound(ZC, seconds) {
+    ZC.Race.beginCountdown();
+    for (let t = 0; t < (seconds || 400); t += 1 / 60) {
+      ZC.Race.update(1 / 60);
+      if (ZC.Race.state.phase === ZC.Race.PHASE.RESULTS) return true;
+    }
+    return false;
+  }
+
+  test('runs every circuit in order and ends on the standings', () => {
+    const { ZC } = fresh();
+    ZC.Race.startCup({ autoDrive: true });
+    expect(ZC.Race.state.round).toBe(0);
+    expect(ZC.Race.roundCount()).toBe(ZC.Race.CUP.length);
+    expect(ZC.Race.CUP.length).toBeGreaterThanOrEqual(3);
+
+    const seen = [];
+    for (let r = 0; r < ZC.Race.CUP.length; r++) {
+      seen.push(ZC.Race.state.track.id);
+      expect(playRound(ZC)).toBe(true);
+      const more = ZC.Race.advance();
+      expect(more).toBe(r < ZC.Race.CUP.length - 1);
+    }
+    expect(seen).toEqual(ZC.Race.CUP);
+    expect(ZC.Race.state.phase).toBe(ZC.Race.PHASE.CUP);
+  });
+
+  test('championship points accumulate and every racer has a row', () => {
+    const { ZC } = fresh();
+    ZC.Race.startCup({ autoDrive: true });
+    expect(ZC.Race.state.standings.length).toBe(ZC.Race.FIELD);
+    expect(ZC.Race.state.standings.every((s) => s.points === 0)).toBe(true);
+
+    playRound(ZC);
+    const afterOne = ZC.Race.state.standings.map((s) => s.points);
+    /* one race, so the top row must hold exactly the win's points */
+    expect(afterOne[0]).toBe(ZC.Race.POINTS[0]);
+    const totalOne = afterOne.reduce((a, b) => a + b, 0);
+    expect(totalOne).toBe(ZC.Race.POINTS.reduce((a, b) => a + b, 0));
+
+    ZC.Race.advance();
+    playRound(ZC);
+    const totalTwo = ZC.Race.state.standings.reduce((a, s) => a + s.points, 0);
+    expect(totalTwo).toBe(totalOne * 2);
+
+    /* and the table stays sorted */
+    const pts = ZC.Race.state.standings.map((s) => s.points);
+    for (let i = 1; i < pts.length; i++) expect(pts[i - 1]).toBeGreaterThanOrEqual(pts[i]);
+  });
+
+  test('the score grows every round and the championship itself pays', () => {
+    const { ZC } = fresh();
+    ZC.Race.startCup({ autoDrive: true });
+    let last = 0;
+    for (let r = 0; r < ZC.Race.CUP.length; r++) {
+      playRound(ZC);
+      const st = ZC.Race.state;
+      expect(st.cupScore).toBeGreaterThan(last);
+      expect(st.roundResults.length).toBe(r + 1);
+      last = st.cupScore;
+      ZC.Race.advance();
+    }
+    const st = ZC.Race.state;
+    expect(st.cupBonus).toBeGreaterThan(0);
+    expect(st.cupScore).toBe(last + st.cupBonus);
+    /* winning the cup must be worth more than losing it */
+    expect(ZC.Race.CUP_BONUS[0]).toBeGreaterThan(
+      ZC.Race.CUP_BONUS[ZC.Race.CUP_BONUS.length - 1]);
+  });
+
+  test('a fresh cup forgets the previous one', () => {
+    const { ZC } = fresh();
+    ZC.Race.startCup({ autoDrive: true });
+    playRound(ZC);
+    expect(ZC.Race.state.cupScore).toBeGreaterThan(0);
+    ZC.Race.startCup({ autoDrive: true });
+    expect(ZC.Race.state.cupScore).toBe(0);
+    expect(ZC.Race.state.round).toBe(0);
+    expect(ZC.Race.state.roundResults.length).toBe(0);
+    expect(ZC.Race.state.standings.every((s) => s.points === 0)).toBe(true);
+  });
+
+  test('every circuit in the cup is a real, baked track', () => {
+    const { ZC } = fresh();
+    for (const id of ZC.Race.CUP) {
+      const track = ZC.Tracks.get(id);
+      expect(track).toBeTruthy();
+      expect(track.count).toBeGreaterThan(100);
+    }
+  });
+});

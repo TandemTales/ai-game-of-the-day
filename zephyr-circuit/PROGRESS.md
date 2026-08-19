@@ -120,6 +120,35 @@ Plan, in the order the previous run recommended:
 Forced release is Saturday 2026-08-22, so there are three more nights after
 this one. Entry rewritten at the end of the run with what actually landed.
 
+## 2026-08-19 — polish night 2 (in progress)
+
+The 2026-08-18 run was killed mid-flight by the usage limit. What it
+landed before dying, per the log: `items.js` (six items, rubber-banded
+roulette, 28 tests), two more circuits so the cup is three tracks with
+championship points, and `render/items.js` so boxes, shells, hazards and
+shields are actually drawn. Baseline on entering tonight: **237 tests
+green across the arcade.**
+
+That closes the top two "do this first" items from the previous handoff.
+Everything still outstanding is **visual**, which is exactly what the
+critic loop exists for. Tonight is a render night — three disciplines,
+each with its own blind side-by-side critic:
+
+1. **agent-render** — `render/scene.js` + `render/trackmesh.js`. The road
+   surface is flat dark grey with no racing line, no wear, no texture;
+   the island is bare; and the waterfalls that were in the original pitch
+   were never built.
+2. **agent-models** — `render/karts.js`. Eight racers that are the same
+   primitive shell in eight paint colours. They need to read as eight
+   characters.
+3. **agent-particles** — `render/fx.js`, which does not exist yet. No
+   drift sparks, no boost trail, no speed lines, no dust, no impact.
+
+Lead keeps `main.js`, `index.html` and the SPEC. Entry rewritten at the
+end of the run with what actually landed and each critic's verdict.
+
+Forced release Saturday is **2026-08-22** — two more nights after this one.
+
 ## Where it is below the AAA bar
 
 **No critic loop has been run.** No discipline has a blind side-by-side

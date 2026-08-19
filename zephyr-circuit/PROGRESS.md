@@ -105,6 +105,21 @@ spending half the frame on sky.
 **FPS here is not a real number** — the sandbox has no GPU, so Chromium
 falls back to swiftshader. Treat it as relative only.
 
+## 2026-08-18 — polish night 1 (in progress)
+
+Plan, in the order the previous run recommended:
+
+1. **`items.js`** — the item game. Pure logic, unit tested. Biggest missing
+   piece of the genre.
+2. **Two more circuits** in `tracks.js`, so the cup is a cup.
+3. Fan out the render disciplines against blind side-by-side critics:
+   road surface + island dressing + waterfalls (`render/scene.js`,
+   `render/trackmesh.js`), eight distinct kart models (`render/karts.js`),
+   and particles (`render/fx.js`, which does not exist yet).
+
+Forced release is Saturday 2026-08-22, so there are three more nights after
+this one. Entry rewritten at the end of the run with what actually landed.
+
 ## Where it is below the AAA bar
 
 **No critic loop has been run.** No discipline has a blind side-by-side

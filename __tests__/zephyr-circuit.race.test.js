@@ -11,7 +11,7 @@
 
 const { loadZC } = require('./zephyr-circuit.harness');
 
-const LOGIC = ['core.js', 'track.js', 'tracks.js', 'kart.js', 'ai.js', 'race.js'];
+const LOGIC = ['core.js', 'track.js', 'tracks.js', 'kart.js', 'items.js', 'ai.js', 'race.js'];
 
 function fresh() {
   const ZC = loadZC(LOGIC);
@@ -35,8 +35,8 @@ function solo(ZC, track, skill, maxSeconds) {
   return kart;
 }
 
-function runField(ZC, seconds) {
-  ZC.Race.load(0, { attract: true });
+function runField(ZC, seconds, opts) {
+  ZC.Race.load(0, Object.assign({ attract: true }, opts || {}));
   const st = ZC.Race.state;
   const dt = 1 / 60;
   for (let t = 0; t < seconds; t += dt) ZC.Race.update(dt);
@@ -138,9 +138,17 @@ describe('the race loop', () => {
     st.karts.forEach((k, i) => expect(k.s).toBeCloseTo(before[i], 5));
   });
 
+  /* Items OFF for this one, and that is the point of the option existing.
+     The item game is a rubber band whose entire job is to stop the fastest
+     driver simply winning — a Squall from the back of the grid SHOULD cost
+     the leader the race. Asserting skill order in a race with items would
+     therefore be asserting that items do not work. What must stay true is
+     that skill predicts the result of a CLEAN race; that is the invariant
+     the AI brain is held to, and it is checked here. The item game gets
+     its own suite. */
   test('a whole field races, finishes, and finishes in skill order', () => {
     const { ZC } = fresh();
-    const st = runField(ZC, 400);
+    const st = runField(ZC, 400, { items: false });
     const order = ZC.Race.order();
     for (const k of st.karts) {
       expect(k.finished).toBe(true);

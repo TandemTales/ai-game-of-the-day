@@ -92,6 +92,14 @@
       if (kart.isPlayer) st.player = kart;
     }
 
+    /* Item boxes are laid out from the baked centreline, so they land on
+       the tarmac on any circuit without being authored per track.
+       `opts.items === false` races a clean field — the AI-skill-order
+       test needs that, because items are a rubber band and their whole
+       job is to stop the fastest driver simply winning. */
+    st.items = ZC.Items ? ZC.Items.createState(st.track) : null;
+    if (st.items) st.items.enabled = opts.items !== false;
+
     /* Attract mode drives every kart, the player's included: it is the
        menu background, and it is how a headless test races a full field. */
     st.attractMode = !!opts.attract;
@@ -160,6 +168,23 @@
     }
 
     updatePlaces(st);
+
+    /* Items run after placement, because the roulette is weighted by
+       position and a kart that has just taken the lead should be drawing
+       a leader's odds. */
+    if (racing && st.items && ZC.Items) {
+      ZC.Items.step(st.items, st.karts, st.track, dt, st.time);
+      ZC.Items.aiStep(st.items, st.karts, st.track, st.time, isAIDriven);
+      if (st.player && !st.attractMode) {
+        ZC.Items.playerStep(st.items, st.player, st.karts, st.track,
+          ZC.Input.state.item);
+      }
+    }
+  }
+
+  /* Who the computer is driving. In attract mode that is everybody. */
+  function isAIDriven(kart) {
+    return !kart.isPlayer || R.state.attractMode;
   }
 
   R.update = function (dt) {

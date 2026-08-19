@@ -44,6 +44,12 @@
     steerFadeTo:   30,
     steerFadeAmt:  0.36,
 
+    /* Item hits. A spin has to be long enough to cost a place and short
+       enough that it never feels like the game took the controller away:
+       a shade over a second is where every kart racer lands. */
+    spinRate:      13.0,    // rad/s the shell whips round while spun out
+    spinSteerBack: 5.5,     // how fast control returns as it ends
+
     driftMinSpeed: 12,
     driftSlip:     0.44,    // radians the body yaws past its travel
     driftSlipRate: 4.2,
@@ -87,6 +93,18 @@
       drift: { active: false, dir: 0, charge: 0, tier: 0 },
       boost: 0,              // seconds of boost remaining
 
+      /* item state. items.js owns the rules; the fields live here so the
+         kart stays the one struct that describes a racer, and so a hit
+         can be applied without items.js being loaded at all. */
+      item: null,            // id of the held item, or null
+      itemRoll: 0,           // seconds left on the roulette before it settles
+      spin: 0,               // seconds of lost control after a hit
+      spinAngle: 0,          // extra body yaw while spun out, for the renderer
+      shield: 0,             // seconds of Aegis remaining
+      hits: 0,
+      _itemHeld: false,      // player's item button, for edge detection
+      _aiItemAt: 0,
+
       seg: 0, s: 0, t: 0,
       onRoad: true, grounded: true,
       surfaceY: 0,
@@ -120,6 +138,9 @@
     kart.falling = false; kart.respawnTimer = 0; kart.falls = 0;
     kart.raceTime = 0; kart.lapStart = 0; kart.lapTimes = []; kart.bestLap = 0;
     kart.finished = false; kart.finishTime = 0;
+    kart.item = null; kart.itemRoll = 0; kart.hits = 0;
+    kart.spin = 0; kart.spinAngle = 0; kart.shield = 0;
+    kart._itemHeld = false; kart._aiItemAt = 0;
     /* full scan once, here — every later projection rides the hint */
     var pr = T.project(track, kart.x, kart.y, kart.z, -1, kart._proj);
     kart.seg = pr.seg; kart.s = pr.s; kart.t = pr.t;
@@ -139,6 +160,11 @@
     kart.speed = 0; kart.vy = 0; kart.slip = 0;
     kart.drift.active = false; kart.drift.charge = 0; kart.drift.tier = 0;
     kart.boost = 0;
+    /* A kart fished out of the void comes back under control: it keeps
+       whatever item it was holding, but not a spin it was in when it went
+       over the edge. Being punished twice for the same mistake is the
+       oldest bad feeling in the genre. */
+    kart.spin = 0; kart.spinAngle = 0;
     kart.falling = false; kart.respawnTimer = 0;
     var pr = T.project(track, kart.x, kart.y, kart.z, -1, kart._proj);
     kart.seg = pr.seg; kart.s = pr.s; kart.t = pr.t;
@@ -184,13 +210,33 @@
       return kart;
     }
 
-    var steer = input.steer || 0;
-    var throttle = kart.finished ? 0 : (input.throttle || 0);
-    var brake = kart.finished ? 0 : (input.brake || 0);
+    /* ---- spun out by an item ----
+       Control is taken away, but momentum is not: a spun kart keeps
+       travelling the way it was pointed, which is what makes a hit on the
+       approach to a corner genuinely dangerous and a hit on a straight
+       merely expensive. The shell whips round; the direction of TRAVEL is
+       left alone, so the chase camera does not spin with it. */
+    var spinning = kart.spin > 0;
+    if (spinning) {
+      kart.spin -= dt;
+      kart.spinAngle += TUNE.spinRate * dt;
+      if (kart.spin <= 0) {
+        kart.spin = 0;
+        ZC.emit('kart:spinEnd', kart);
+      }
+    } else if (kart.spinAngle !== 0) {
+      /* unwind to zero rather than snapping, so the shell settles */
+      kart.spinAngle = ZC.moveToward(kart.spinAngle, 0, TUNE.spinSteerBack * dt);
+      if (Math.abs(kart.spinAngle) < 0.02) kart.spinAngle = 0;
+    }
+
+    var steer = spinning ? 0 : (input.steer || 0);
+    var throttle = (kart.finished || spinning) ? 0 : (input.throttle || 0);
+    var brake = (kart.finished || spinning) ? 0 : (input.brake || 0);
 
     /* ---- drift state ---- */
     var d = kart.drift;
-    var wantDrift = !!input.drift && kart.speed > TUNE.driftMinSpeed && kart.grounded;
+    var wantDrift = !spinning && !!input.drift && kart.speed > TUNE.driftMinSpeed && kart.grounded;
 
     if (wantDrift && !d.active && Math.abs(steer) > 0.25) {
       d.active = true;
@@ -198,7 +244,7 @@
       d.charge = 0;
       d.tier = 0;
       ZC.emit('kart:driftStart', kart);
-    } else if (d.active && (!input.drift || kart.speed < TUNE.driftMinSpeed * 0.6)) {
+    } else if (d.active && (spinning || !input.drift || kart.speed < TUNE.driftMinSpeed * 0.6)) {
       /* release: pay out the boost the slide earned */
       if (d.tier > 0) {
         kart.boost = Math.max(kart.boost, TUNE.driftBoosts[d.tier - 1]);
@@ -230,7 +276,7 @@
        lower yaw. */
     var slipTarget = d.active ? -d.dir * TUNE.driftSlip : 0;
     kart.slip = ZC.damp(kart.slip, slipTarget, TUNE.driftSlipRate, dt);
-    kart.bodyYaw = kart.travelYaw + kart.slip;
+    kart.bodyYaw = kart.travelYaw + kart.slip + kart.spinAngle;
 
     /* charge only while genuinely sliding */
     if (d.active && Math.abs(kart.slip) > TUNE.driftSlip * 0.5 && kart.speed > TUNE.driftMinSpeed) {
@@ -344,6 +390,44 @@
 
     kart.progress = T.progress(track, kart.lap, kart.s);
     return kart;
+  };
+
+  /* ------------------------------------------------------------------
+     Item effects on a kart.
+
+     These live here, not in items.js, because they are the only two ways
+     anything outside this file may reach into a kart's physics — keeping
+     them together is what stops item code growing its own private notion
+     of what a boost is.
+     ------------------------------------------------------------------ */
+
+  /* Take a hit. Returns TRUE if the kart was actually spun, FALSE if an
+     Aegis ate it — the caller wants to know, because a blocked hit still
+     consumes the projectile and still deserves a bang. */
+  K.hit = function (kart, seconds, speedKeep, source) {
+    if (!kart || kart.finished || kart.falling) return false;
+    if (kart.shield > 0) {
+      kart.shield = 0;
+      ZC.emit('kart:shieldBreak', { kart: kart, source: source });
+      return false;
+    }
+    /* already spinning: top the timer up rather than stacking, so being
+       caught in a Squall on top of a Dart is not a five-second sentence */
+    kart.spin = Math.max(kart.spin, seconds === undefined ? 1.15 : seconds);
+    kart.speed *= (speedKeep === undefined ? 0.34 : speedKeep);
+    kart.drift.active = false; kart.drift.charge = 0; kart.drift.tier = 0;
+    kart.boost = 0;
+    kart.hits = (kart.hits || 0) + 1;
+    ZC.emit('kart:hit', { kart: kart, source: source });
+    return true;
+  };
+
+  /* Grant a boost. Never shortens one already running — collecting a
+     small boost mid-drift-boost must not be a downgrade. */
+  K.giveBoost = function (kart, seconds) {
+    if (!kart || kart.finished) return;
+    kart.boost = Math.max(kart.boost, seconds);
+    ZC.emit('kart:boost', { kart: kart, tier: 0, source: 'item' });
   };
 
   /* Push two overlapping karts apart. Deliberately not a physical

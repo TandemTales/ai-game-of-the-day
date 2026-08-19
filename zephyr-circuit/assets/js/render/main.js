@@ -12,6 +12,7 @@ import { Stage } from './scene.js';
 import { buildTrack } from './trackmesh.js';
 import { buildKart, syncKart } from './karts.js';
 import { buildItems, syncItems, disposeItems } from './items.js';
+import { createFX } from './fx.js';
 
 const ZC = window.ZC;
 
@@ -19,6 +20,7 @@ let stage = null;
 let trackGroup = null;
 let kartMeshes = [];
 let itemGroup = null;
+let fx = null;
 let running = false;
 let lastTime = 0;
 let frame = 0;
@@ -51,7 +53,7 @@ let _aimInit = false;
 
 function updateCamera(kart, dt) {
   const yaw = kart.travelYaw;
-  const fx = Math.sin(yaw), fz = Math.cos(yaw);
+  const fwdX = Math.sin(yaw), fwdZ = Math.cos(yaw);
 
   /* three.js FOV is vertical, so a tall portrait phone gets the same
      vertical angle as a desktop and spends the extra pixels on sky. Tilt
@@ -63,9 +65,9 @@ function updateCamera(kart, dt) {
   const lookAhead = CAM.lookAhead - portrait * 3.5;
 
   _camWant.set(
-    kart.x - fx * CAM.distance,
+    kart.x - fwdX * CAM.distance,
     kart.y + height,
-    kart.z - fz * CAM.distance);
+    kart.z - fwdZ * CAM.distance);
 
   /* never let the camera sink through the road on a crest */
   const proj = kart._proj;
@@ -75,9 +77,9 @@ function updateCamera(kart, dt) {
   }
 
   _aimWant.set(
-    kart.x + fx * lookAhead,
+    kart.x + fwdX * lookAhead,
     kart.y + lookHeight,
-    kart.z + fz * lookAhead);
+    kart.z + fwdZ * lookAhead);
 
   if (!_aimInit) {
     stage.camera.position.copy(_camWant);
@@ -133,6 +135,12 @@ function buildScene() {
     stage.scene.add(itemGroup);
   }
 
+  /* Particles are rebuilt with the scene so their pools sit in the live
+     scene graph and nothing survives a track change. */
+  if (fx) { fx.dispose(); fx = null; }
+  fx = createFX(stage.scene, st.track);
+  fx.setQuality(ZC.quality.tier);
+
   resetCamera();
 }
 
@@ -151,10 +159,12 @@ function adaptQuality() {
   if (msAvg > 27 && ZC.quality.tier > 0) {
     ZC.quality.tier--;
     stage.setQuality(ZC.quality.tier);
+    if (fx) fx.setQuality(ZC.quality.tier);
     qualityCooldown = 240;
   } else if (msAvg < 15 && ZC.quality.tier < 2) {
     ZC.quality.tier++;
     stage.setQuality(ZC.quality.tier);
+    if (fx) fx.setQuality(ZC.quality.tier);
     qualityCooldown = 600;
   }
 }
@@ -162,6 +172,9 @@ function adaptQuality() {
 /* ------------------------------------------------------------------
    Frame
    ------------------------------------------------------------------ */
+/* reused every frame so the loop allocates nothing */
+const _fxCtx = { karts: null, player: null, camera: null, dt: 0, time: 0, phase: '' };
+
 function tick(now) {
   if (!running) return;
   requestAnimationFrame(tick);
@@ -196,6 +209,13 @@ function tick(now) {
   if (focus && !window.__lockCam) {
     updateCamera(focus, dt);
     stage.focusShadow(focus.x, focus.z);
+  }
+
+  /* after the camera, so billboards and speed lines use this frame's view */
+  if (fx) {
+    _fxCtx.karts = st.karts; _fxCtx.player = focus; _fxCtx.camera = stage.camera;
+    _fxCtx.dt = dt; _fxCtx.time = time; _fxCtx.phase = st.phase;
+    fx.update(_fxCtx);
   }
 
   if (ZC.UI && ZC.UI.frame) ZC.UI.frame(st);
@@ -238,6 +258,7 @@ export function boot() {
     get frame() { return frame; },
     rebuild: buildScene,
     resetCamera,
+    get fx() { return fx; },
   };
   ZC.emit('render:ready');
 }

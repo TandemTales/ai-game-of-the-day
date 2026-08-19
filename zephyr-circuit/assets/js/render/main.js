@@ -11,12 +11,14 @@ import * as THREE from 'three';
 import { Stage } from './scene.js';
 import { buildTrack } from './trackmesh.js';
 import { buildKart, syncKart } from './karts.js';
+import { buildItems, syncItems, disposeItems } from './items.js';
 
 const ZC = window.ZC;
 
 let stage = null;
 let trackGroup = null;
 let kartMeshes = [];
+let itemGroup = null;
 let running = false;
 let lastTime = 0;
 let frame = 0;
@@ -112,11 +114,24 @@ function buildScene() {
   stage.scene.add(trackGroup);
 
   for (const m of kartMeshes) { stage.scene.remove(m); disposeTree(m); }
+  /* the racer id goes through as well as the colour: eight karts that
+     differ only in paint read as one kart in eight liveries, and the
+     roster is where their identity actually lives */
   kartMeshes = st.karts.map((k) => {
-    const mesh = buildKart(k.colour);
+    const mesh = buildKart(k.colour, k.id);
     stage.scene.add(mesh);
     return mesh;
   });
+
+  if (itemGroup) {
+    stage.scene.remove(itemGroup);
+    disposeItems(itemGroup);
+    itemGroup = null;
+  }
+  if (st.items) {
+    itemGroup = buildItems(st.track, st.items);
+    stage.scene.add(itemGroup);
+  }
 
   resetCamera();
 }
@@ -167,6 +182,7 @@ function tick(now) {
   for (let i = 0; i < kartMeshes.length; i++) {
     syncKart(kartMeshes[i], st.karts[i], st.track, dt, time);
   }
+  if (itemGroup) syncItems(itemGroup, st.items, st.karts, time, dt);
 
   /* In attract mode the camera rides the leader, which is what makes the
      menu background look like a race rather than like a screensaver. */

@@ -49,7 +49,10 @@ export class Stage {
     });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, ZC.isMobile ? 2 : 2));
     this.renderer.shadowMap.enabled = ZC.quality.shadows;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    /* PCFSoftShadowMap is deprecated in r185 and prints a warning on every
+       boot, which breaks "console clean". PCFShadowMap is what it silently
+       falls back to anyway. */
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
 

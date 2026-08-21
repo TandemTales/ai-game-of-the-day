@@ -29,7 +29,7 @@ zephyr-circuit/
 
   ---- ESM: the three.js render layer ----
   assets/js/render/scene.js      renderer, camera, lights, sky, post  [agent-render]
-  assets/js/render/trackmesh.js  road / verge / island geometry       [agent-render]
+  assets/js/render/trackmesh.js  road / verge / island / waterfalls   [agent-track]
   assets/js/render/karts.js      kart models and their animation      [agent-models]
   assets/js/render/items.js      boxes, projectiles, hazards, shields [agent-models]
   assets/js/render/fx.js         drift sparks, speed lines, dust      [agent-particles]
@@ -40,6 +40,15 @@ zephyr-circuit/
 
 **Never edit a file you do not own.** If you need a change in someone else's
 file, report it in your final message and the lead will make it.
+
+**One agent, one file.** `scene.js` and `trackmesh.js` were originally both
+`agent-render`'s. They are split because sub-agents run concurrently in one
+shared working tree and two agents sharing a file overwrite each other.
+Anything that owns two files gets split the same way.
+
+**Sub-agents never run git.** They share the lead's working tree, so a
+`git add`/`commit`/`checkout` from inside one races every other agent. They
+edit their one file and report; the lead commits.
 
 **Why the split.** Everything that can be tested without a GPU is a classic
 script that knows nothing about three.js, so it loads into the `vm`-based Jest

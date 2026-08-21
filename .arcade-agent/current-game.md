@@ -3,7 +3,12 @@
 **Slug:** `zephyr-circuit/`
 **Title:** Zephyr Circuit
 **started: 2026-08-17** (Pacific)
-**Forced release Saturday: 2026-08-22** (Pacific)
+**Forced release Saturday: 2026-08-29** (Pacific)
+
+> Corrected on 2026-08-20. This file previously said 2026-08-22, which is
+> wrong: forced release needs Saturday **and** an age of 9+ days, and on
+> 2026-08-22 the game is only 5 days old. It skips that Saturday and ships
+> on the next one, at 12 days — that is the two-week cadence working.
 
 ## Pitch
 

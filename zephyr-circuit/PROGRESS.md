@@ -117,8 +117,8 @@ Plan, in the order the previous run recommended:
    `render/trackmesh.js`), eight distinct kart models (`render/karts.js`),
    and particles (`render/fx.js`, which does not exist yet).
 
-Forced release is Saturday 2026-08-22, so there are three more nights after
-this one. Entry rewritten at the end of the run with what actually landed.
+Forced release was believed to be Saturday 2026-08-22 at the time; see the
+2026-08-20 entry — it is actually 2026-08-29. Entry rewritten at the end of the run with what actually landed.
 
 ## 2026-08-19 — polish night 2 (in progress)
 
@@ -147,7 +147,35 @@ each with its own blind side-by-side critic:
 Lead keeps `main.js`, `index.html` and the SPEC. Entry rewritten at the
 end of the run with what actually landed and each critic's verdict.
 
-Forced release Saturday is **2026-08-22** — two more nights after this one.
+Forced release Saturday was believed to be **2026-08-22** at the time; see
+the 2026-08-20 entry — it is actually **2026-08-29**.
+
+## 2026-08-20 — polish night 3 (in progress)
+
+**The forced release Saturday was recorded wrong, and is corrected tonight.**
+Every prior entry says 2026-08-22. The rule is: forced release requires the
+Pacific weekday to be Saturday **and** the game to be **9 or more days old**.
+Zephyr Circuit started 2026-08-17, so on 2026-08-22 it is **5 days old** — it
+skips that Saturday, which is exactly what the two-week cadence is for. The
+real forced release is **Saturday 2026-08-29**, when it is 12 days old. That
+is nine more nights after tonight, not two. Do not shorten it back.
+
+Baseline entering tonight: **237 tests green** across the arcade. The
+2026-08-19 run was killed by the usage limit after landing only the `fx.js`
+stub and its frame-loop wiring, so all three render disciplines it planned
+are still outstanding. Tonight runs them, each against a blind
+side-by-side critic:
+
+1. **agent-particles** — `render/fx.js`. Still the placeholder that returns
+   empty callbacks. Drift sparks, boost trail, speed lines, dust, impacts.
+2. **agent-track** — `render/trackmesh.js`. Road surface is flat dark grey;
+   the island is bare; the waterfalls from the pitch were never built.
+3. **agent-models** — `render/karts.js`. Eight racers that are one primitive
+   shell in eight paint colours.
+
+Lead keeps `main.js`, `scene.js`, `index.html`, the SPEC and all git.
+Entry rewritten at the end of the run with what actually landed and each
+critic's verdict.
 
 ## Where it is below the AAA bar
 
@@ -185,4 +213,4 @@ scaffolding.
    agent-particles (drift smoke, speed lines, boost trails), agent-audio,
    agent-ui — each against a harsh blind-comparison critic.
 
-Forced release Saturday is **2026-08-22**.
+Forced release Saturday is **2026-08-29** (corrected 2026-08-20).

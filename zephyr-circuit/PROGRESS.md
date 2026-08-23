@@ -371,3 +371,25 @@ unchanged. Node syntax, the Zephyr suite (109/109), and a 1440x900 browser
 reload passed. The focused worker sweep reported a SwiftShader context-loss
 risk and did not prove a clean mandatory waterfall vista, so the independent
 track critic verdict is still pending.
+
+### Critic loop 1 — all three disciplines failed
+
+The independent blind comparisons were not lenient. Track/environment failed
+against Nintendo's official Shy Guy Falls frame and an official Art of Rally
+frame: asphalt and edge layers remained flat, props repeated, and the new
+waterfall was not readable in the chase-camera proof. FX failed against Mario
+Kart 8 Deluxe references because the stills did not prove tire-attached drift
+sparks, a player-focused boost flame, readable slipstream, or collision grammar.
+Karts failed against Mario Kart 8 Deluxe and Art of Rally because the silhouettes
+still collapsed to box chassis plus cylinders, with weak mechanical assembly,
+flat materials and primitive driver posture.
+
+### FX critic-loop revision landed
+
+`render/fx.js` now gives the focus kart larger tier-colored rear-contact sparks
+with charge swell and inside-wheel bias, brighter authored boost cores and
+directional flame trails, stronger relative-velocity wake, and larger
+kart-rooted collision flashes/shards. The API, pools, quality tiers and
+allocation-free update path remain intact. Node syntax and the Zephyr suite
+(109/109) passed. A forced active-state screenshot was not completed, so the
+new visual bar remains unjudged.

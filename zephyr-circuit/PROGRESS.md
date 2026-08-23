@@ -360,3 +360,14 @@ offset. Pools, quality tiers, public API and the allocation-free update path
 remain intact. Node syntax, static contract checks and the Zephyr suite passed
 (109/109). The moving-race screenshot re-critic is still pending; no visual
 pass is inferred from code review alone.
+
+### Track/environment unit landed
+
+`render/trackmesh.js` now adds procedural asphalt breakup, explicit
+curb-to-shoulder-to-groundcover layers, clustered low cover and rocks, plus a
+hero waterfall channel with wet contact, whitewater, basin and plunge-rock
+staging. The existing `buildTrack(track)` API and frame-loop contract remain
+unchanged. Node syntax, the Zephyr suite (109/109), and a 1440x900 browser
+reload passed. The focused worker sweep reported a SwiftShader context-loss
+risk and did not prove a clean mandatory waterfall vista, so the independent
+track critic verdict is still pending.

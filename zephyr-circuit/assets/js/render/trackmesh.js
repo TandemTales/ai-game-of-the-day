@@ -86,8 +86,8 @@ function buildRoad(track) {
   /* A neutral graphite reads as asphalt after the warm sky grade. The old
      PALETTE.road value was dark enough that the racing line and kerbs did all
      the material work by themselves. */
-  const road = colr(0x4d4a54);
-  const roadDark = colr(0x302f38);
+  const road = colr(0x5a5763);
+  const roadDark = colr(0x36343e);
   const c = new THREE.Color();
 
   for (let i = 0; i < n; i++) {
@@ -144,9 +144,9 @@ function buildRoad(track) {
    ------------------------------------------------------------------ */
 function buildAsphaltBreakup(track) {
   const verts = [], cols = [], idx = [];
-  const base = colr(0x4d4a54);
-  const dark = colr(0x25242d);
-  const light = colr(0x68636d);
+  const base = colr(0x5a5763);
+  const dark = colr(0x2f2d37);
+  const light = colr(0x77727d);
   const c = new THREE.Color();
   let v = 0;
 
@@ -173,10 +173,10 @@ function buildAsphaltBreakup(track) {
     const d0 = Math.max(-hw0 + 0.7, Math.min(hw0 - 0.7, centre * hw0));
     const d1 = Math.max(-hw1 + 0.7, Math.min(hw1 - 0.7, centre * hw1));
     const palette = seeded(i, 205);
-    c.copy(base).lerp(palette < 0.42 ? dark : light, 0.15 + seeded(i, 206) * 0.2);
+    c.copy(base).lerp(palette < 0.42 ? dark : light, 0.22 + seeded(i, 206) * 0.28);
     const a = push(i, d0 - half, 0.065, c);
     const b = push(i, d0 + half, 0.065, c);
-    const c0 = c.clone().lerp(base, 0.16 + seeded(i, 207) * 0.12);
+    const c0 = c.clone().lerp(base, 0.12 + seeded(i, 207) * 0.14);
     const d = push(j, d1 - half * (0.82 + seeded(i, 208) * 0.25), 0.065, c0);
     const e = push(j, d1 + half * (0.82 + seeded(i, 209) * 0.25), 0.065, c0);
     idx.push(a, b, d, b, e, d);
@@ -580,14 +580,24 @@ function buildWaterfalls(track, info) {
   const group = new THREE.Group();
   const fractions = track.id === 'thermal-spire' ? [0.10, 0.38, 0.64, 0.84]
     : (track.id === 'cirrus-run' ? [0.16, 0.44, 0.69, 0.90] : [0.12, 0.34, 0.61, 0.82]);
-  const heroFraction = track.id === 'thermal-spire' ? 0.27
-    : (track.id === 'cirrus-run' ? 0.25 : 0.28);
+  /* The grid sits just before s=0, so the opening chase camera is looking at
+     the final few percent of the lap. Put the hero on that approach, beside
+     the gate rather than beyond it, where every race sees it immediately. */
+  const heroFraction = track.id === 'thermal-spire' ? 0.982
+    : (track.id === 'cirrus-run' ? 0.986 : 0.984);
+  const heroIndex = Math.floor(track.count * heroFraction) % track.count;
+  const heroLipDistance = info.outerSign * (track.halfWidth[heroIndex] + 8.6);
   group.add(makeFalls(track, info, fractions, 1, info.theme.water, 0.66));
   group.add(makeFalls(track, info, fractions, 0.42, 0xe3ffff, 0.76));
-  group.add(makeFalls(track, info, [heroFraction], 1.55, info.theme.water, 0.78, 'heroWaterfallSheet'));
-  group.add(makeFalls(track, info, [heroFraction], 0.62, 0xf0ffff, 0.88, 'heroWaterfallCore'));
-  group.add(makeFalls(track, info, [heroFraction], 0.16, 0xffffff, 0.94, 'heroWhitewater'));
-  group.add(buildWaterfallFeatures(track, info, heroFraction));
+  group.add(makeFalls(track, info, [heroFraction], 1.35, info.theme.water, 0.84,
+    'heroWaterfallSheet', heroLipDistance, true));
+  group.add(makeFalls(track, info, [heroFraction], 0.52, 0xf0ffff, 0.92,
+    'heroWaterfallCore', heroLipDistance, true));
+  group.add(makeFalls(track, info, [heroFraction], 0.18, 0xffffff, 0.97,
+    'heroWhitewater', heroLipDistance, true));
+  group.add(buildWaterfallFeatures(track, info, heroFraction, heroLipDistance));
+  group.add(makeHeroCurtain(track, info, heroIndex, heroLipDistance));
+  group.add(makeHeroSplash(track, info, heroIndex, heroLipDistance));
 
   const mistFractions = fractions.concat([heroFraction]);
   const mist = new THREE.InstancedMesh(
@@ -600,9 +610,10 @@ function buildWaterfalls(track, info) {
     const i = Math.floor(track.count * mistFractions[f]) % track.count;
     const hero = f === mistFractions.length - 1;
     const mistPerFall = hero ? 9 : 5;
-    const rim = track.halfWidth[i] * VERGE + APRON;
+    const rim = hero ? heroLipDistance
+      : info.outerSign * (track.halfWidth[i] * VERGE + APRON);
     for (let j = 0; j < mistPerFall; j++) {
-      const d = info.outerSign * (rim + 3 + seeded(j, i) * (hero ? 7 : 5));
+      const d = rim + info.outerSign * (3 + seeded(j, i) * (hero ? 7 : 5));
       const along = (j - 2) * 2.2;
       const p = new THREE.Vector3(
         track.px[i] + track.rx[i] * d + track.tx[i] * along,
@@ -620,13 +631,15 @@ function buildWaterfalls(track, info) {
   return group;
 }
 
-function makeFalls(track, info, fractions, widthScale, color, opacity, explicitName) {
+function makeFalls(track, info, fractions, widthScale, color, opacity, explicitName, lipDistance, frontFacing) {
   const verts = [], cols = [], idx = [];
   const top = colr(0xf4ffff), bottom = colr(color), c = new THREE.Color();
   let v = 0;
   for (let f = 0; f < fractions.length; f++) {
     const i = Math.floor(track.count * fractions[f]) % track.count;
-    const d = info.outerSign * (track.halfWidth[i] * VERGE + APRON - 1);
+    const d = lipDistance === undefined
+      ? info.outerSign * (track.halfWidth[i] * VERGE + APRON - 1)
+      : lipDistance;
     const x = track.px[i] + track.rx[i] * d;
     const y = track.py[i] + track.ry[i] * d - RIM_DROP + 1;
     const z = track.pz[i] + track.rz[i] * d;
@@ -636,10 +649,15 @@ function makeFalls(track, info, fractions, widthScale, color, opacity, explicitN
       const t = row / 7, bow = Math.sin(t * Math.PI) * 5 * info.outerSign;
       const taper = 1 - t * 0.28;
       c.copy(top).lerp(bottom, 0.25 + t * 0.75);
+      const acrossX = frontFacing ? track.rx[i] : track.tx[i];
+      const acrossZ = frontFacing ? track.rz[i] : track.tz[i];
+      const bowX = frontFacing ? track.tx[i] : track.rx[i];
+      const bowZ = frontFacing ? track.tz[i] : track.rz[i];
+      const bowAmount = frontFacing ? Math.sin(t * Math.PI) * 2.2 : bow;
       for (let side = -1; side <= 1; side += 2) {
-        verts.push(x + track.tx[i] * side * width * taper + track.rx[i] * bow,
+        verts.push(x + acrossX * side * width * taper + bowX * bowAmount,
           y - fall * t,
-          z + track.tz[i] * side * width * taper + track.rz[i] * bow);
+          z + acrossZ * side * width * taper + bowZ * bowAmount);
         cols.push(c.r, c.g, c.b);
       }
       if (row < 7) { idx.push(v, v + 1, v + 2, v + 1, v + 3, v + 2); v += 2; }
@@ -658,12 +676,12 @@ function makeFalls(track, info, fractions, widthScale, color, opacity, explicitN
   return mesh;
 }
 
-function buildWaterfallFeatures(track, info, fraction) {
+function buildWaterfallFeatures(track, info, fraction, heroLipDistance) {
   const group = new THREE.Group();
   const i = Math.floor(track.count * fraction) % track.count;
   const hw = track.halfWidth[i];
-  const startD = info.outerSign * (hw + 4.45);
-  const lipD = info.outerSign * (hw * VERGE + APRON - 1);
+  const startD = info.outerSign * (hw + 1.55);
+  const lipD = heroLipDistance;
   const topY = track.py[i] + track.ry[i] * lipD - RIM_DROP + 1;
   const fall = 68 + seeded(i, 32) * 22;
   const yaw = Math.atan2(track.tx[i], track.tz[i]);
@@ -672,7 +690,7 @@ function buildWaterfallFeatures(track, info, fraction) {
   group.add(makeWetChannel(track, info, i, startD, lipD));
 
   const rockMat = new THREE.MeshStandardMaterial({
-    color: 0x4b4140, roughness: 0.96, flatShading: true,
+    color: 0x725b4c, roughness: 0.9, flatShading: true,
   });
   const wetMat = new THREE.MeshStandardMaterial({
     color: info.theme.water, emissive: info.theme.water, emissiveIntensity: 0.12,
@@ -833,6 +851,116 @@ function makeWhitewaterCrown(track, info, i, lipD, topY, material) {
   const mesh = new THREE.Mesh(geo, material);
   mesh.renderOrder = 3; mesh.name = 'waterfallFoamLip';
   return mesh;
+}
+
+/* A short foreground curtain is intentionally separate from the long fall:
+   the opening chase frame needs a readable water surface before fog and the
+   dark basin can swallow the distant plunge. It is camera-facing, sits just
+   inside the basin toward the shoulder, and uses depth priority only for this
+   hero accent so the bright water cannot disappear behind its own rocks. */
+function makeHeroCurtain(track, info, i, lipD) {
+  const verts = [], cols = [], idx = [];
+  const water = colr(info.theme.water), white = colr(0xdfffff), deep = colr(0x2aaac3);
+  const d = lipD - info.outerSign * 2.6;
+  const roadY = track.py[i] + track.ry[i] * d;
+  const strips = [-2.3, 0, 2.3];
+  let v = 0;
+  for (let s = 0; s < strips.length; s++) {
+    const along = strips[s];
+    const width = 2.4 + seeded(i + s, 431) * 0.7;
+    const lean = (seeded(i + s, 432) - 0.5) * 1.5;
+    const rows = [
+      { y: roadY + 5.5 + lean, w: width * 0.72, c: white },
+      { y: roadY - 0.5, w: width, c: water },
+      { y: roadY - 11.5 - seeded(i + s, 433) * 2, w: width * 0.86, c: deep },
+      { y: roadY - 19 - seeded(i + s, 434) * 2, w: width * 0.7, c: white },
+    ];
+    for (let r = 0; r < rows.length; r++) {
+      const row = rows[r];
+      const bend = info.outerSign * Math.sin((r / (rows.length - 1)) * Math.PI) * 0.9;
+      for (let side = -1; side <= 1; side += 2) {
+        const lateral = d + bend + side * row.w;
+        verts.push(
+          track.px[i] + track.rx[i] * lateral + track.tx[i] * along,
+          row.y,
+          track.pz[i] + track.rz[i] * lateral + track.tz[i] * along);
+        cols.push(row.c.r, row.c.g, row.c.b);
+      }
+      if (r < rows.length - 1) {
+        idx.push(v, v + 1, v + 2, v + 1, v + 3, v + 2); v += 2;
+      }
+    }
+    v += 2;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+  geo.setIndex(idx);
+  const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+    vertexColors: true, transparent: true, opacity: 0.86,
+    depthWrite: false, depthTest: false, side: THREE.DoubleSide,
+  }));
+  mesh.renderOrder = 8; mesh.name = 'heroWaterCurtain';
+  return mesh;
+}
+
+function makeHeroSplash(track, info, i, lipD) {
+  const group = new THREE.Group();
+  const d = lipD - info.outerSign * 4.2;
+  const baseY = track.py[i] + track.ry[i] * d + 3.2;
+  const verts = [], cols = [], idx = [];
+  const foam = colr(0xffffff), cyan = colr(0x7debf2);
+  let v = 0;
+  for (let j = 0; j < 9; j++) {
+    const salt = i + j * 29;
+    const along = (seeded(salt, 441) - 0.5) * 8.2;
+    const half = 0.35 + seeded(salt, 442) * 0.62;
+    const height = 2.8 + seeded(salt, 443) * 5.2;
+    const c = j & 1 ? cyan : foam;
+    const tipD = d + info.outerSign * (0.9 + seeded(salt, 444) * 2.2);
+    verts.push(
+      track.px[i] + track.rx[i] * d + track.tx[i] * (along - half), baseY,
+      track.pz[i] + track.rz[i] * d + track.tz[i] * (along - half),
+      track.px[i] + track.rx[i] * d + track.tx[i] * (along + half), baseY,
+      track.pz[i] + track.rz[i] * d + track.tz[i] * (along + half),
+      track.px[i] + track.rx[i] * tipD + track.tx[i] * along, baseY + height,
+      track.pz[i] + track.rz[i] * tipD + track.tz[i] * along);
+    cols.push(c.r, c.g, c.b, c.r, c.g, c.b, c.r, c.g, c.b);
+    idx.push(v, v + 1, v + 2); v += 3;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+  geo.setIndex(idx);
+  const fan = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+    vertexColors: true, transparent: true, opacity: 0.98,
+    depthWrite: false, depthTest: false, side: THREE.DoubleSide,
+  }));
+  fan.renderOrder = 9; fan.name = 'heroFoamSplash'; group.add(fan);
+
+  const bubbles = new THREE.InstancedMesh(
+    new THREE.SphereGeometry(1, 6, 4),
+    new THREE.MeshBasicMaterial({ color: 0xf4ffff, transparent: true, opacity: 0.9, depthWrite: false, depthTest: false }),
+    10);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion();
+  const sc = new THREE.Vector3(), p = new THREE.Vector3();
+  const up = new THREE.Vector3(0, 1, 0);
+  for (let j = 0; j < 10; j++) {
+    const salt = i + j * 31;
+    const along = (seeded(salt, 445) - 0.5) * 8.5;
+    const bubbleD = d + info.outerSign * (0.4 + seeded(salt, 446) * 2.6);
+    const size = 0.45 + seeded(salt, 447) * 0.9;
+    q.setFromAxisAngle(up, seeded(salt, 448) * Math.PI * 2);
+    sc.set(size * (0.8 + seeded(salt, 449) * 0.5), size, size * (0.8 + seeded(salt, 450) * 0.5));
+    p.set(
+      track.px[i] + track.rx[i] * bubbleD + track.tx[i] * along,
+      baseY + 0.2 + seeded(salt, 451) * 3.1,
+      track.pz[i] + track.rz[i] * bubbleD + track.tz[i] * along);
+    m.compose(p, q, sc); bubbles.setMatrixAt(j, m);
+  }
+  bubbles.instanceMatrix.needsUpdate = true; bubbles.name = 'heroFoamBubbles'; group.add(bubbles);
+  group.name = 'heroFoamSplashGroup';
+  return group;
 }
 
 /* ------------------------------------------------------------------

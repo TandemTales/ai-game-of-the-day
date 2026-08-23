@@ -394,6 +394,17 @@ allocation-free update path remain intact. Node syntax and the Zephyr suite
 (109/109) passed. A forced active-state screenshot was not completed, so the
 new visual bar remains unjudged.
 
+### Track critic-loop revision landed
+
+The first environment critic specifically found that the waterfall existed in
+code but vanished from the chase proof. `render/trackmesh.js` now puts the
+hero beside the opening racing line, brightens the asphalt breakup, uses a
+camera-facing curtain for the short readable drop, and adds a depth-prioritized
+foam splash/bubbles in front of the rock basin. The long fall, wet channel and
+basin remain for depth. Node syntax and the Zephyr suite (109/109) passed, and
+a fresh moving 1440x900 frame was inspected with the shoulder water curtain and
+foam visible. The independent second critic verdict is still pending.
+
 ### Karts critic-loop revision landed
 
 `render/karts.js` now adds cached hub caps, toroidal wheel collars, visible

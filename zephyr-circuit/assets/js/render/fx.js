@@ -75,6 +75,30 @@ import * as THREE from 'three';
 
 const ZC = window.ZC;
 
+/* Visual randomness is local to this effect instance. A fixed input/update
+   sequence therefore produces the same particles without perturbing the
+   gameplay RNG (and without making screenshot diffs depend on ambient state). */
+function makePRNG(seed) {
+  let s = seed >>> 0;
+  return function random() {
+    s = (s + 0x6D2B79F5) | 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function trackSeed(track) {
+  const id = String((track && (track.id || track.name)) || 'zephyr-circuit');
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++) {
+    h ^= id.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
 /* ------------------------------------------------------------------
    Procedural textures. Everything in this game is generated at boot —
    there are no asset files — so the soft falloff a spark needs comes out
@@ -155,7 +179,7 @@ function makeShardTexture() {
 
 /* Smoke wants structure, not a gaussian — a gaussian blob scaled up is
    just fog. Stack a dozen offset lobes and mask the result to a circle. */
-function makeSmokeTexture() {
+function makeSmokeTexture(random) {
   const size = 128;
   const c = document.createElement('canvas');
   c.width = c.height = size;
@@ -164,11 +188,11 @@ function makeSmokeTexture() {
   ctx.globalCompositeOperation = 'lighter';
   const half = size / 2;
   for (let i = 0; i < 9; i++) {
-    const ang = (i / 9) * Math.PI * 2 + Math.random() * 1.1;
-    const rad = (i === 0) ? 0 : (0.06 + Math.random() * 0.18) * size;
+    const ang = (i / 9) * Math.PI * 2 + random() * 1.1;
+    const rad = (i === 0) ? 0 : (0.06 + random() * 0.18) * size;
     const px = half + Math.cos(ang) * rad;
     const py = half + Math.sin(ang) * rad;
-    const rr = (0.24 + Math.random() * 0.16) * size;
+    const rr = (0.24 + random() * 0.16) * size;
     const g = ctx.createRadialGradient(px, py, 0, px, py, rr);
     g.addColorStop(0, 'rgba(255,255,255,0.20)');
     g.addColorStop(0.45, 'rgba(255,255,255,0.10)');
@@ -257,6 +281,7 @@ const PARTICLE_FRAG = /* glsl */`
 
 /* ------------------------------------------------------------------ */
 export function createFX(scene, track) {
+  const random = makePRNG(trackSeed(track));
   /* ---------------- quality budgets ---------------- */
   const TIERS = [
     { rate: 0.34, live: 0.30, cull: 55,  motes: 0,   streaks: 18, size: 1.30, smoke: 0.45 },
@@ -278,7 +303,7 @@ export function createFX(scene, track) {
     glow: makeGlowTexture(),
     streak: makeStreakTexture(),
     shard: makeShardTexture(),
-    smoke: makeSmokeTexture(),
+    smoke: makeSmokeTexture(random),
   };
   for (const k in TEX) textures.push(TEX[k]);
 
@@ -563,10 +588,12 @@ export function createFX(scene, track) {
     const ph = new Float32Array(SPEED_CAP);
     const spd = new Float32Array(SPEED_CAP);
     for (let i = 0; i < SPEED_CAP; i++) {
-      ang[i] = Math.random() * Math.PI * 2;
-      rad[i] = 0.26 + Math.random() * 0.95;
-      ph[i] = Math.random();
-      spd[i] = 0.9 + Math.random() * 1.5;
+      ang[i] = random() * Math.PI * 2;
+      /* Keep the focal third clean. Peripheral streaks convey speed
+         without competing with the braking point or the kart. */
+      rad[i] = 0.56 + random() * 0.72;
+      ph[i] = random();
+      spd[i] = 0.9 + random() * 1.5;
     }
     return { geo, pos, col, siz, alp, rot, ang, rad, ph, spd };
   })();
@@ -584,14 +611,14 @@ export function createFX(scene, track) {
     const rot = new Float32Array(MOTE_CAP);
     for (let i = 0; i < MOTE_CAP; i++) {
       const i3 = i * 3;
-      pos[i3] = (Math.random() - 0.5) * MOTE_BOX * 2;
-      pos[i3 + 1] = (Math.random() - 0.5) * MOTE_BOX;
-      pos[i3 + 2] = (Math.random() - 0.5) * MOTE_BOX * 2;
-      const w = 0.75 + Math.random() * 0.25;
+      pos[i3] = (random() - 0.5) * MOTE_BOX * 2;
+      pos[i3 + 1] = (random() - 0.5) * MOTE_BOX;
+      pos[i3 + 2] = (random() - 0.5) * MOTE_BOX * 2;
+      const w = 0.75 + random() * 0.25;
       col[i3] = 1.15 * w; col[i3 + 1] = 0.86 * w; col[i3 + 2] = 0.52 * w;
-      siz[i] = 0.10 + Math.random() * 0.22;
+      siz[i] = 0.10 + random() * 0.22;
       alp[i] = 0;
-      rot[i] = Math.random() * 6.28;
+      rot[i] = random() * 6.28;
     }
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     geo.setAttribute('aColor', new THREE.BufferAttribute(col, 3));
@@ -609,7 +636,7 @@ export function createFX(scene, track) {
     scene.add(pts);
     objects.push(pts);
     const seed = new Float32Array(MOTE_CAP);
-    for (let i = 0; i < MOTE_CAP; i++) seed[i] = Math.random() * 100;
+    for (let i = 0; i < MOTE_CAP; i++) seed[i] = random() * 100;
     return { geo, pos, col, siz, alp, rot, seed, live: MOTE_CAP };
   })();
 
@@ -653,7 +680,7 @@ export function createFX(scene, track) {
   const kBoostPop = new Float32Array(MAXK);
   const kDriftPop = new Float32Array(MAXK);
   const kStarPhase = new Float32Array(MAXK);
-  for (let i = 0; i < MAXK; i++) { kPrevGround[i] = 1; kStarPhase[i] = Math.random() * 6.28; }
+  for (let i = 0; i < MAXK; i++) { kPrevGround[i] = 1; kStarPhase[i] = random() * 6.28; }
 
   /* camera basis, refreshed once per frame */
   let cRX = 1, cRY = 0, cRZ = 0;
@@ -661,7 +688,7 @@ export function createFX(scene, track) {
   let cFX = 0, cFY = 0, cFZ = -1;
   let cPX = 0, cPY = 0, cPZ = 0;
 
-  function rnd(a, b) { return a + Math.random() * (b - a); }
+  function rnd(a, b) { return a + random() * (b - a); }
 
   /* A point sprite is screen-aligned, so a streak that should follow a
      world-space direction has to be rotated by that direction PROJECTED
@@ -694,7 +721,7 @@ export function createFX(scene, track) {
   /* A flat ring of light on the ground — the shape every kart racer uses
      to say "something just happened here". */
   function ring(x, y, z, n, r0, r1, spdOut, life, col, size, up) {
-    const a0 = Math.random() * 6.28;
+    const a0 = random() * 6.28;
     for (let i = 0; i < n; i++) {
       const a = a0 + (i / n) * 6.28;
       const ca = Math.cos(a), sa = Math.sin(a);
@@ -721,8 +748,8 @@ export function createFX(scene, track) {
 
   function sparkBurst(x, y, z, n, spd, col, size, life, grav) {
     for (let i = 0; i < n; i++) {
-      const th = Math.random() * 6.28;
-      const cp = Math.random() * 1.6 - 0.25;      // biased upward
+      const th = random() * 6.28;
+      const cp = random() * 1.6 - 0.25;      // biased upward
       const cc = Math.cos(cp), ss = Math.sin(cp);
       const v = spd * rnd(0.35, 1.0);
       resetP();
@@ -735,7 +762,7 @@ export function createFX(scene, track) {
       P.r0 = col[0]; P.g0 = col[1]; P.b0 = col[2];
       P.r1 = col[3]; P.g1 = col[4]; P.b1 = col[5];
       P.a0 = 1; P.aPow = 1.3; P.aIn = 0;
-      P.rot = Math.random() * 6.28; P.rotV = rnd(-9, 9);
+      P.rot = random() * 6.28; P.rotV = rnd(-9, 9);
       P.grav = grav === undefined ? -20 : grav;
       P.drag = 1.4;
       emit(sparks);
@@ -746,7 +773,7 @@ export function createFX(scene, track) {
     const cap = Q.smoke;
     const m = Math.max(1, Math.round(n * cap));
     for (let i = 0; i < m; i++) {
-      const th = Math.random() * 6.28;
+      const th = random() * 6.28;
       const v = spd * rnd(0.2, 1);
       resetP();
       P.x = x + rnd(-0.3, 0.3); P.y = y + rnd(0, 0.4); P.z = z + rnd(-0.3, 0.3);
@@ -757,7 +784,7 @@ export function createFX(scene, track) {
       P.r0 = r; P.g0 = g; P.b0 = b;
       P.r1 = r * 0.55; P.g1 = g * 0.55; P.b1 = b * 0.6;
       P.a0 = alpha; P.aIn = 0.18; P.aPow = 1.7;
-      P.rot = Math.random() * 6.28; P.rotV = rnd(-1.4, 1.4);
+      P.rot = random() * 6.28; P.rotV = rnd(-1.4, 1.4);
       P.grav = 0.4; P.drag = 1.6;
       emit(smoke);
     }
@@ -765,7 +792,7 @@ export function createFX(scene, track) {
 
   function debris(x, y, z, n, spd, r, g, b, size) {
     for (let i = 0; i < n; i++) {
-      const th = Math.random() * 6.28;
+      const th = random() * 6.28;
       const v = spd * rnd(0.3, 1);
       resetP();
       P.x = x; P.y = y + 0.2; P.z = z;
@@ -775,7 +802,7 @@ export function createFX(scene, track) {
       P.r0 = r; P.g0 = g; P.b0 = b;
       P.r1 = r * 0.7; P.g1 = g * 0.7; P.b1 = b * 0.7;
       P.a0 = 0.95; P.aPow = 2.2; P.aIn = 0;
-      P.rot = Math.random() * 6.28; P.rotV = rnd(-16, 16);
+      P.rot = random() * 6.28; P.rotV = rnd(-16, 16);
       P.grav = -22; P.drag = 0.5;
       emit(bits);
     }
@@ -886,8 +913,8 @@ export function createFX(scene, track) {
     const CY = COL_CYAN;
     /* a shell, not a puff: the shards go out along a sphere */
     for (let i = 0; i < 30; i++) {
-      const th = Math.random() * 6.28;
-      const cp = Math.random() * 2 - 1;
+      const th = random() * 6.28;
+      const cp = random() * 2 - 1;
       const sc = Math.sqrt(Math.max(0, 1 - cp * cp));
       const v = rnd(6, 13);
       resetP();
@@ -900,7 +927,7 @@ export function createFX(scene, track) {
       P.r0 = CY[0]; P.g0 = CY[1]; P.b0 = CY[2];
       P.r1 = CY[3]; P.g1 = CY[4]; P.b1 = CY[5];
       P.a0 = 1; P.aPow = 1.4; P.aIn = 0;
-      P.rot = Math.random() * 6.28; P.rotV = rnd(-12, 12);
+      P.rot = random() * 6.28; P.rotV = rnd(-12, 12);
       P.grav = -9; P.drag = 1.6;
       emit(sparks);
     }
@@ -980,9 +1007,9 @@ export function createFX(scene, track) {
 
   function confettiAt(x, y, z, n) {
     for (let i = 0; i < n; i++) {
-      const th = Math.random() * 6.28;
+      const th = random() * 6.28;
       const v = rnd(2, 9);
-      const h = Math.random();
+      const h = random();
       resetP();
       P.x = x + rnd(-1.5, 1.5); P.y = y + rnd(-0.5, 1.5); P.z = z + rnd(-1.5, 1.5);
       P.vx = Math.cos(th) * v; P.vy = rnd(4, 12); P.vz = Math.sin(th) * v;
@@ -995,7 +1022,7 @@ export function createFX(scene, track) {
       else { P.r0 = 1.4; P.g0 = 0.5; P.b0 = 1.5; }
       P.r1 = P.r0 * 0.8; P.g1 = P.g0 * 0.8; P.b1 = P.b0 * 0.8;
       P.a0 = 1; P.aPow = 1.1; P.aIn = 0;
-      P.rot = Math.random() * 6.28; P.rotV = rnd(-14, 14);
+      P.rot = random() * 6.28; P.rotV = rnd(-14, 14);
       P.grav = -13; P.drag = 0.9;
       emit(bits);
     }
@@ -1053,12 +1080,12 @@ export function createFX(scene, track) {
       for (let q = 0; q < n; q++) {
         /* both rear wheels spark; the inside one throws roughly twice as
            much, which is what makes the direction of the slide readable */
-        const inside = (Math.random() < 0.68) ? d.dir : -d.dir;
+        const inside = (random() < 0.68) ? d.dir : -d.dir;
         const sx = inside * WH_X;
         toWorld(k, sx + rnd(-0.18, 0.18), WH_Y + rnd(0, 0.10), WH_Z + rnd(-0.26, 0.26));
         /* a third of them are the long stragglers that give the plume
            depth; the rest stay in the dense head at the tyre */
-        const far = Math.random() < 0.30;
+        const far = random() < 0.30;
         const v = far ? rnd(7, 15) : rnd(2, 7);
         const out = inside * (far ? rnd(3, 9) : rnd(0.5, 3.5));
         resetP();
@@ -1072,7 +1099,7 @@ export function createFX(scene, track) {
         P.r0 = c[0]; P.g0 = c[1]; P.b0 = c[2];
         P.r1 = c[3]; P.g1 = c[4]; P.b1 = c[5];
         P.a0 = 1; P.aPow = 1.2; P.aIn = 0;
-        P.rot = Math.random() * 6.28; P.rotV = rnd(-14, 14);
+        P.rot = random() * 6.28; P.rotV = rnd(-14, 14);
         P.grav = -19; P.drag = 2.4;
         emit(sparks);
 
@@ -1080,14 +1107,14 @@ export function createFX(scene, track) {
            difference between "some orange dots" and a cone with a bright
            middle and a coloured falloff, which is what MK8 actually
            draws. */
-        if (Math.random() < 0.34) {
+        if (random() < 0.24) {
           resetP();
           P.x = _w.x; P.y = _w.y + 0.04; P.z = _w.z;
           P.vx = kvx * 0.72 - fxT * v * 0.5 + rxB * out * 0.5;
           P.vz = kvz * 0.72 - fzT * v * 0.5 + rzB * out * 0.5;
           P.vy = rnd(0.5, 3.0);
           P.life = rnd(0.10, 0.24);
-          P.s0 = (0.26 + tier * 0.09) * rnd(0.7, 1.4) * Q.size; P.s1 = P.s0 * 2.2;
+          P.s0 = (0.20 + tier * 0.065) * rnd(0.72, 1.28) * Q.size; P.s1 = P.s0 * 1.55;
           P.r0 = c[0] * 0.45; P.g0 = c[1] * 0.45; P.b0 = c[2] * 0.45;
           P.r1 = c[3] * 0.35; P.g1 = c[4] * 0.35; P.b1 = c[5] * 0.35;
           P.a0 = 0.8; P.aPow = 1.7; P.aIn = 0.12;
@@ -1098,14 +1125,14 @@ export function createFX(scene, track) {
       /* tyre smoke — a drifting kart lays rubber whether or not it has
          banked a tier yet, and the smoke is what makes the slide read
          from three karts back */
-      kSmokeAcc[i] += 62 * Q.rate * near * dt * (0.5 + 0.5 * spdF);
+      kSmokeAcc[i] += 44 * Q.rate * near * dt * (0.5 + 0.5 * spdF);
       let ns = kSmokeAcc[i] | 0;
       if (ns > 6) ns = 6;
       kSmokeAcc[i] -= ns;
       for (let q = 0; q < ns; q++) {
-        const sx = (Math.random() < 0.5 ? -1 : 1) * WH_X;
+        const sx = (random() < 0.5 ? -1 : 1) * WH_X;
         toWorld(k, sx, WH_Y, WH_Z);
-        smokePuff(_w.x, _w.y, _w.z, 1, 1.4, 0.86, 0.82, 0.80, 0.85, 1.25, 0.20);
+        smokePuff(_w.x, _w.y, _w.z, 1, 1.35, 0.88, 0.85, 0.83, 0.62, 0.95, 0.17);
       }
     } else {
       kSparkAcc[i] = 0;
@@ -1118,10 +1145,10 @@ export function createFX(scene, track) {
       if (n > 5) n = 5;
       kDustAcc[i] -= n;
       for (let q = 0; q < n; q++) {
-        const sx = (Math.random() < 0.5 ? -1 : 1) * WH_X;
+        const sx = (random() < 0.5 ? -1 : 1) * WH_X;
         toWorld(k, sx, WH_Y, WH_Z);
         smokePuff(_w.x, _w.y, _w.z, 1, 1.8, 0.62, 0.50, 0.34, 0.75, 1.15, 0.40);
-        if (Math.random() < 0.45) debris(_w.x, _w.y, _w.z, 1, 3.5, 0.30, 0.24, 0.16, 0.14);
+        if (random() < 0.45) debris(_w.x, _w.y, _w.z, 1, 3.5, 0.30, 0.24, 0.16, 0.14);
       }
     } else {
       kDustAcc[i] *= 0.5;
@@ -1135,7 +1162,7 @@ export function createFX(scene, track) {
       kGritAcc[i] -= n;
       const fxT = Math.sin(k.travelYaw), fzT = Math.cos(k.travelYaw);
       for (let q = 0; q < n; q++) {
-        const sx = (Math.random() < 0.5 ? -1 : 1) * WH_X;
+        const sx = (random() < 0.5 ? -1 : 1) * WH_X;
         toWorld(k, sx, WH_Y, WH_Z);
         resetP();
         P.x = _w.x; P.y = _w.y; P.z = _w.z;
@@ -1147,7 +1174,7 @@ export function createFX(scene, track) {
         P.r0 = 0.72; P.g0 = 0.66; P.b0 = 0.62;
         P.r1 = 0.40; P.g1 = 0.36; P.b1 = 0.35;
         P.a0 = 0.16; P.aIn = 0.2; P.aPow = 1.6;
-        P.rot = Math.random() * 6.28; P.rotV = rnd(-1, 1);
+        P.rot = random() * 6.28; P.rotV = rnd(-1, 1);
         P.grav = 0.3; P.drag = 1.8;
         emit(smoke);
       }
@@ -1162,7 +1189,7 @@ export function createFX(scene, track) {
       if (n > 16) n = 16;
       kTrailAcc[i] -= n;
       for (let q = 0; q < n; q++) {
-        const sx = (Math.random() < 0.5 ? -EX_X : EX_X);
+        const sx = (random() < 0.5 ? -EX_X : EX_X);
         toWorld(k, sx, EX_Y + rnd(-0.08, 0.08), EX_Z);
         /* the flame is attached to the kart, so it keeps most of the
            kart's velocity and only slides backwards out of the pipe */
@@ -1180,7 +1207,7 @@ export function createFX(scene, track) {
         P.rot = screenAngle(P.vx - kvx, P.vy, P.vz - kvz) + rnd(-0.10, 0.10);
         P.drag = 2.2;
         emit(flame);
-        if (Math.random() < 0.22) {
+        if (random() < 0.22) {
           smokePuff(_w.x, _w.y - 0.1, _w.z, 1, 1.3, 0.70, 0.62, 0.58, 0.7, 0.9, 0.15);
         }
       }
@@ -1202,7 +1229,7 @@ export function createFX(scene, track) {
       ring(k.x, k.y, k.z, 20, 0.4, 3.6, 10, 0.5, CY, 0.55, 0.4);
       smokePuff(k.x, k.y, k.z, 12, 2.6, 0.85, 0.86, 0.9, 0.8, 1.0, 0.42);
       for (let q = 0; q < 20; q++) {
-        const th = Math.random() * 6.28;
+        const th = random() * 6.28;
         const r = rnd(0.2, 1.5);
         resetP();
         P.x = k.x + Math.cos(th) * r; P.y = k.y - 0.5; P.z = k.z + Math.sin(th) * r;
@@ -1212,7 +1239,7 @@ export function createFX(scene, track) {
         P.r0 = CY[0]; P.g0 = CY[1]; P.b0 = CY[2];
         P.r1 = CY[3]; P.g1 = CY[4]; P.b1 = CY[5];
         P.a0 = 1; P.aPow = 1.4; P.aIn = 0;
-        P.rot = Math.random() * 6.28; P.rotV = rnd(-8, 8);
+        P.rot = random() * 6.28; P.rotV = rnd(-8, 8);
         P.drag = 1.2;
         emit(sparks);
       }
@@ -1352,8 +1379,8 @@ export function createFX(scene, track) {
       col[i3] = 1.9; col[i3 + 1] = 1.35 + 0.55 * hot; col[i3 + 2] = 0.65 + 1.15 * hot;
       /* fade in from the middle, out at the rim */
       const env = Math.sin(Math.min(1, u) * Math.PI);
-      siz[i] = (0.10 + u * 0.28) * ZC.clamp01(speedAmt) * dPlane * 0.42;
-      alp[i] = 0.60 * env * ZC.clamp01(speedAmt);
+      siz[i] = (0.08 + u * 0.22) * ZC.clamp01(speedAmt) * dPlane * 0.42;
+      alp[i] = 0.46 * env * ZC.clamp01(speedAmt);
       rot[i] = -a;
     }
     const at = speed.geo.attributes;
@@ -1418,9 +1445,9 @@ export function createFX(scene, track) {
       for (let i = 0; i < materials.length; i++) materials[i].uniforms.uScale.value = uScale;
     }
 
-    if (karts && karts.length) {
-      liveKarts = karts;
-      const n = Math.min(karts.length, MAXK);
+    const n = (karts && karts.length) ? Math.min(karts.length, MAXK) : 0;
+    liveKarts = n ? karts : null;
+    if (n) {
       for (let i = 0; i < n; i++) {
         const k = karts[i];
         const dx = k.x - cPX, dy = k.y - cPY, dz = k.z - cPZ;
@@ -1432,9 +1459,11 @@ export function createFX(scene, track) {
           kPrevVy[i] = k.vy;
         }
       }
-      writeFlares(karts, n, time, dt);
-      writeStars(karts, n, time, dt);
     }
+    /* Write even for an empty field so a transient race rebuild cannot
+       leave boost anchors or spin stars frozen in the old scene state. */
+    writeFlares(karts, n, time, dt);
+    writeStars(karts, n, time, dt);
 
     for (let i = 0; i < pools.length; i++) {
       stepLayer(pools[i], dt);

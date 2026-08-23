@@ -64,11 +64,20 @@
       '<div class="zc-best"><span>Best</span><b>--:--.--</b></div>');
     els.speed = h('div', 'zc-speed', '<b>0</b><span>km/h</span>');
     els.charge = h('div', 'zc-charge', '<i></i>');
+    els.item = holdPad('zc-item is-empty',
+      '<span class="zc-item-label">Item</span>' +
+      '<span class="zc-item-icon" aria-hidden="true">—</span>' +
+      '<span class="zc-item-copy"><b>Empty</b><small>Hit a box</small></span>',
+      'item', 'No item held');
+    els.itemGlyph = els.item.querySelector('.zc-item-icon');
+    els.itemName = els.item.querySelector('.zc-item-copy b');
+    els.itemHint = els.item.querySelector('.zc-item-copy small');
     hud.appendChild(els.place);
     hud.appendChild(els.lap);
     hud.appendChild(els.timing);
     hud.appendChild(els.speed);
     hud.appendChild(els.charge);
+    hud.appendChild(els.item);
     root.appendChild(hud);
 
     els.countdown = h('div', 'zc-countdown');
@@ -130,6 +139,47 @@
     setText(els.timing.querySelector('.zc-time b'), 'time', ZC.fmtLap(p.raceTime - p.lapStart));
     setText(els.timing.querySelector('.zc-best b'), 'best', ZC.fmtLap(p.bestLap));
     setText(els.speed.querySelector('b'), 'spd', String(Math.round(ZC.Kart.speedKmh(p))));
+
+    /* Held item. This is both the at-a-glance slot and the touch use
+       control: keeping those as one object makes the answer to "what do I
+       have, and where do I press it?" immediate. During the roulette the
+       real item glyphs cycle instead of showing a meaningless question
+       mark, then the settled item locks in with its authored colour. */
+    var rolling = p.itemRoll > 0;
+    var def = !rolling && p.item && ZC.Items && ZC.Items.DEFS[p.item];
+    var itemKey = 'empty';
+    var itemGlyph = '—';
+    var itemName = 'Empty';
+    var itemHint = 'Hit a box';
+    var itemColour = '#a79e93';
+    if (rolling && ZC.Items) {
+      var order = ZC.Items.ORDER;
+      var rollIndex = Math.floor(st.time * 14) % order.length;
+      var rollDef = ZC.Items.DEFS[order[rollIndex]];
+      itemKey = 'roll-' + rollIndex;
+      itemGlyph = rollDef.glyph;
+      itemName = 'Roulette';
+      itemHint = 'Choosing…';
+      itemColour = '#' + ('000000' + rollDef.colour.toString(16)).slice(-6);
+    } else if (def) {
+      itemKey = def.id;
+      itemGlyph = def.glyph;
+      itemName = def.name;
+      itemHint = ZC.isTouch ? 'Tap to use' : 'E / Ctrl to use';
+      itemColour = '#' + ('000000' + def.colour.toString(16)).slice(-6);
+    }
+    if (last.itemKey !== itemKey) {
+      last.itemKey = itemKey;
+      els.itemGlyph.textContent = itemGlyph;
+      els.itemName.textContent = itemName;
+      els.itemHint.textContent = itemHint;
+      els.item.style.setProperty('--item-colour', itemColour);
+      els.item.setAttribute('aria-label', def ? 'Use ' + def.name :
+        (rolling ? 'Item roulette spinning' : 'No item held'));
+    }
+    els.item.classList.toggle('has-item', !!def);
+    els.item.classList.toggle('is-rolling', rolling);
+    els.item.classList.toggle('is-empty', !def && !rolling);
 
     /* drift charge meter — the payout building, without looking away */
     var tier = p.drift.tier;

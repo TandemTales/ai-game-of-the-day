@@ -69,7 +69,7 @@ html, body {
   z-index: 2;
   -webkit-user-select: none; user-select: none;
 }
-#zc-ui button, #zc-ui a, #zc-ui input, #zc-ui .zc-pad { pointer-events: auto; }
+#zc-ui button, #zc-ui a, #zc-ui input, #zc-ui .zc-pad, #zc-ui .zc-item { pointer-events: auto; }
 
 /* ------------------------------------------------------------------ HUD */
 .zc-hud {
@@ -147,6 +147,79 @@ html, body {
   font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
   color: var(--dim);
 }
+
+/* Held item. The icon, name and use hint stay together, so players never
+   have to decode an unlabeled symbol. On touch this same panel is the item
+   button; desktop keeps the keyboard hint visible. */
+.zc-item {
+  --item-colour: var(--dim);
+  appearance: none;
+  position: absolute;
+  top: calc(88px + var(--safe-t)); left: calc(16px + var(--safe-l));
+  width: min(184px, calc(100vw - 32px)); min-height: 58px;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  grid-template-rows: 17px 1fr;
+  align-items: center;
+  padding: 6px 10px 7px 7px;
+  border: 1px solid color-mix(in srgb, var(--item-colour) 58%, transparent);
+  border-radius: 14px;
+  background:
+    linear-gradient(105deg, color-mix(in srgb, var(--item-colour) 22%, rgba(12,10,18,0.86)), rgba(12,10,18,0.74));
+  color: var(--paper);
+  font-family: var(--ui);
+  text-align: left;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.08);
+  opacity: 0.72;
+  overflow: hidden;
+  transition: opacity 140ms ease, transform 90ms ease, border-color 140ms ease;
+}
+.zc-item::after {
+  content: '';
+  position: absolute; inset: auto 0 0;
+  height: 3px;
+  background: var(--item-colour);
+  opacity: 0.9;
+  box-shadow: 0 0 14px var(--item-colour);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 180ms ease;
+}
+.zc-item.has-item { opacity: 1; }
+.zc-item.has-item::after { transform: scaleX(1); }
+.zc-item.is-down { transform: scale(0.97); }
+.zc-item-label {
+  grid-column: 2; grid-row: 1;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--item-colour);
+}
+.zc-item-icon {
+  grid-column: 1; grid-row: 1 / 3;
+  display: grid; place-items: center;
+  width: 40px; height: 40px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--item-colour) 20%, rgba(0,0,0,0.42));
+  border: 1px solid color-mix(in srgb, var(--item-colour) 62%, transparent);
+  color: var(--item-colour);
+  font-family: 'Segoe UI Symbol', 'Arial Unicode MS', var(--ui);
+  font-size: 25px; font-weight: 900; line-height: 1;
+  text-align: center;
+  text-shadow: 0 0 12px var(--item-colour);
+}
+.zc-item-copy {
+  grid-column: 2; grid-row: 2;
+  min-width: 0; align-self: start;
+}
+.zc-item-copy b, .zc-item-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zc-item-copy b { font-size: 14px; line-height: 1.15; }
+.zc-item-copy small { margin-top: 2px; font-size: 9px; line-height: 1; letter-spacing: 0.06em; color: var(--dim); }
+.zc-item.is-rolling {
+  opacity: 1;
+  animation: zc-item-roll 240ms steps(2, end) infinite;
+}
+.zc-item.is-rolling::after { transform: scaleX(1); animation: zc-item-scan 650ms ease-in-out infinite; }
+@keyframes zc-item-roll { 50% { filter: brightness(1.26); } }
+@keyframes zc-item-scan { 50% { transform: scaleX(0.36); transform-origin: right; } }
 
 /* Drift charge. Colour matches the sparks on the kart, so the meter and
    the world are saying the same thing. */
@@ -361,6 +434,15 @@ html, body {
   bottom: calc(10px + var(--safe-b));
 }
 #zc-ui.is-touch .zc-speed b { font-size: clamp(24px, 6vw, 40px); }
+#zc-ui.is-touch .zc-item {
+  top: auto; left: auto;
+  right: calc(14px + var(--safe-r));
+  bottom: calc(214px + var(--safe-b));
+  width: min(156px, 42vw);
+  min-height: 54px;
+  grid-template-columns: 44px minmax(0, 1fr);
+}
+#zc-ui.is-touch .zc-item-icon { width: 38px; height: 38px; font-size: 23px; }
 
 /* Portrait puts the steering pads across the bottom-left and the actions
    bottom-right, so the middle of the dock is not free after all — the
@@ -385,6 +467,13 @@ html, body {
   #zc-ui.is-touch .zc-speed { bottom: calc(8px + var(--safe-b)); }
   #zc-ui.is-touch .zc-speed b { font-size: 30px; }
   .zc-charge { bottom: calc(74px + var(--safe-b)); width: min(240px, 30vw); }
+  #zc-ui.is-touch .zc-item {
+    right: calc(14px + var(--safe-r));
+    bottom: calc(74px + var(--safe-b));
+    width: min(150px, 25vw);
+    min-height: 50px;
+  }
+  #zc-ui:not(.is-touch) .zc-item { top: calc(56px + var(--safe-t)); }
   .zc-panel { padding: 16px 20px; }
   .zc-keys { display: none; }
 }
@@ -392,6 +481,7 @@ html, body {
 @media (max-width: 380px) {
   .zc-panel { padding: 18px 16px; }
   .zc-keys { font-size: 10px; }
+  #zc-ui.is-touch .zc-item { width: min(184px, 58vw); }
 }
 
 @media (prefers-reduced-motion: reduce) {

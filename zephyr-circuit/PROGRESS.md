@@ -312,3 +312,21 @@ converted into a pass.
 
 Forced release remains **Saturday 2026-08-29**. Until then, keep polishing; do
 not ship early without every critic passing and the independent shipping judge.
+
+## 2026-08-23 — held-item HUD follow-up
+
+Players can now see the item they are carrying. The race HUD shows the item's
+authored glyph, color and full name, distinguishes roulette and empty states,
+and keeps the desktop `E / Ctrl` use hint visible. On touch screens the same
+panel is also a large item-use button, so no extra control is required. This
+uses the six procedural glyph/color definitions already owned by `items.js`;
+new raster art was unnecessary and would have conflicted with the game's
+code-native visual system.
+
+Verification: the full arcade suite remains **9/9 suites, 237/237 tests
+passed**; `node --check` and `git diff --check` passed. The held-item state was
+visually inspected at **320x568, 390x844, 844x390, 768x1024, 1440x900 and
+3840x2160** with no horizontal scroll or app console/page errors. The 320px
+layout received a dedicated width correction so `Zephyr Dart` is not
+truncated. A real pointer down/up on the touch panel consumed exactly one item,
+changed the HUD to Empty, and left virtual input released.

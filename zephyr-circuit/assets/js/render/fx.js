@@ -686,26 +686,26 @@ export function createFX(scene, track) {
      Drift palette. The whole skill loop is legible because these change,
      hard, at each threshold — a player should never have to look at a HUD
      to know whether releasing now pays 0.55s or 1.50s.
-       tier 0  white scrub    (charging, nothing banked yet)
-       tier 1  cyan
-       tier 2  gold
-       tier 3  magenta
+       tier 0  pale blue scrub (charging, nothing banked yet)
+       tier 1  blue
+       tier 2  orange
+       tier 3  pink
      Core values run well over 1.0 so the bloom pass blows the middle of
      each spark to white and leaves the hue in the falloff.
      ------------------------------------------------------------------ */
   const TIER_COL = [
-    [2.30, 2.35, 2.45, 0.50, 0.56, 0.66],
-    [2.00, 3.10, 3.60, 0.04, 0.42, 1.70],
-    [3.70, 2.70, 1.15, 1.70, 0.24, 0.01],
-    [3.60, 1.55, 3.10, 1.00, 0.03, 1.55],
+    [0.70, 0.95, 1.35, 0.12, 0.24, 0.42],
+    [0.12, 1.65, 3.90, 0.02, 0.25, 1.80],
+    [4.20, 1.55, 0.06, 1.65, 0.15, 0.01],
+    [4.30, 0.18, 3.40, 1.10, 0.02, 1.60],
   ];
   /* the tail colour on its own, for rings and flashes that never show a
      white core */
   const TIER_TAIL = [
-    [1.40, 1.45, 1.55, 0.40, 0.44, 0.52],
-    [0.55, 1.90, 3.20, 0.04, 0.30, 1.30],
-    [3.10, 1.35, 0.20, 1.20, 0.16, 0.01],
-    [3.00, 0.55, 2.60, 0.75, 0.03, 1.25],
+    [0.35, 0.55, 0.85, 0.08, 0.16, 0.30],
+    [0.03, 0.65, 1.70, 0.02, 0.12, 0.80],
+    [1.80, 0.55, 0.03, 0.70, 0.05, 0.01],
+    [1.80, 0.04, 1.20, 0.45, 0.02, 0.80],
   ];
 
   /* ------------------------------------------------------------------
@@ -746,6 +746,7 @@ export function createFX(scene, track) {
   /* Palettes shared by the event bursts, hoisted so a listener allocates
      nothing even though it is not on the frame path. */
   const COL_HOT = [3.4, 2.9, 1.1, 1.6, 0.35, 0.02];
+  const COL_IMPACT = [4.2, 2.1, 0.18, 1.0, 0.03, 0.01];
   const COL_CYAN = [0.8, 2.9, 3.4, 0.05, 0.5, 1.4];
   const COL_ARRIVE = [1.4, 2.9, 3.4, 0.2, 0.6, 1.4];
   const COL_GOLD = [3.2, 2.6, 0.9, 1.4, 0.7, 0.1];
@@ -917,11 +918,11 @@ export function createFX(scene, track) {
     const cp = contactOf(k);
     for (const side of [-1, 1]) {
       toWorld(k, side * cp[0], WH_Y + 0.08, cp[1]);
-      sparkBurst(_w.x, _w.y, _w.z, 18 + tier * 7, 9 + tier * 2.5, c, 0.30, 0.34, -16);
+      sparkBurst(_w.x, _w.y, _w.z, 8 + tier * 4, 7 + tier * 1.5, c, 0.20, 0.26, -14);
       const tail = TIER_TAIL[Math.min(3, tier)];
       resetP();
       P.x = _w.x; P.y = _w.y; P.z = _w.z;
-      P.life = 0.26; P.s0 = 0.9 + tier * 0.28; P.s1 = 0.15;
+      P.life = 0.18; P.s0 = 0.56 + tier * 0.18; P.s1 = 0.10;
       P.r0 = tail[0]; P.g0 = tail[1]; P.b0 = tail[2];
       P.r1 = tail[3]; P.g1 = tail[4]; P.b1 = tail[5];
       P.a0 = 1; P.aPow = 1.2; P.aIn = 0;
@@ -941,19 +942,19 @@ export function createFX(scene, track) {
       /* the flame cone itself — velocity is mostly the kart's own, so the
          burst stays a cone bolted to the exhaust rather than a fireball
          the kart drives out of */
-      for (let i = 0; i < 10; i++) {
-        const t = i / 7;
+      for (let i = 0; i < 6; i++) {
+        const t = i / 6;
         resetP();
         P.x = ex + rnd(-0.08, 0.08); P.y = ey + rnd(-0.07, 0.07); P.z = ez + rnd(-0.08, 0.08);
-        const v = rnd(8, 24);
+        const v = rnd(7, 18);
         P.vx = kvx * 0.7 - fx * v + rnd(-2.5, 2.5);
         P.vz = kvz * 0.7 - fz * v + rnd(-2.5, 2.5);
         P.vy = rnd(-0.5, 2.2);
-        P.life = rnd(0.20, 0.48);
-        P.s0 = rnd(0.28, 0.52); P.s1 = P.s0 * 2.5;
+        P.life = rnd(0.14, 0.32);
+        P.s0 = rnd(0.16, 0.30); P.s1 = P.s0 * 2.0;
         P.r0 = 1.9; P.g0 = 2.15 - t * 0.25; P.b0 = 2.45 - t * 0.65;
         P.r1 = 1.45; P.g1 = 0.38; P.b1 = 0.03;
-        P.a0 = 0.78; P.aPow = 1.55; P.aIn = 0;
+        P.a0 = 0.66; P.aPow = 1.65; P.aIn = 0;
         P.rot = screenAngle(-fx * v, P.vy, -fz * v) + rnd(-0.12, 0.12);
         P.drag = 2.0;
         emit(flame);
@@ -970,22 +971,22 @@ export function createFX(scene, track) {
     const hitX = _w.x, hitY = _w.y, hitZ = _w.z;
     resetP();
     P.x = hitX; P.y = hitY; P.z = hitZ;
-    P.life = 0.18; P.s0 = 2.25; P.s1 = 0.24;
-    P.r0 = 3.0; P.g0 = 2.65; P.b0 = 1.55;
-    P.r1 = 1.5; P.g1 = 0.25; P.b1 = 0.02;
+    P.life = 0.13; P.s0 = 1.55; P.s1 = 0.12;
+    P.r0 = COL_IMPACT[0]; P.g0 = COL_IMPACT[1]; P.b0 = COL_IMPACT[2];
+    P.r1 = COL_IMPACT[3]; P.g1 = COL_IMPACT[4]; P.b1 = COL_IMPACT[5];
     P.a0 = 0.92; P.aIn = 0; P.aPow = 1.1;
     emit(glow);
-    sparkBurst(hitX, hitY, hitZ, 30, 15, COL_HOT, 0.40, 0.44, -21);
+    sparkBurst(hitX, hitY, hitZ, 14, 10, COL_IMPACT, 0.24, 0.28, -18);
     const fx = Math.sin(k.travelYaw), fz = Math.cos(k.travelYaw);
     const rx = Math.cos(k.travelYaw), rz = -Math.sin(k.travelYaw);
-    for (let q = 0; q < 18; q++) {
-      const back = rnd(7, 16), side = rnd(-8, 8);
+    for (let q = 0; q < 10; q++) {
+      const back = rnd(5, 11), side = rnd(-4, 4);
       resetP();
       P.x = hitX + rnd(-0.10, 0.10); P.y = hitY + rnd(-0.12, 0.18); P.z = hitZ + rnd(-0.10, 0.10);
       P.vx = -fx * back + rx * side; P.vz = -fz * back + rz * side; P.vy = rnd(2, 8);
-      P.life = rnd(0.28, 0.56); P.s0 = rnd(0.26, 0.46); P.s1 = P.s0 * 0.18;
-      P.r0 = 1.35; P.g0 = 0.58; P.b0 = 0.10;
-      P.r1 = 0.24; P.g1 = 0.07; P.b1 = 0.02;
+      P.life = rnd(0.20, 0.40); P.s0 = rnd(0.16, 0.30); P.s1 = P.s0 * 0.16;
+      P.r0 = 0.70; P.g0 = 0.30; P.b0 = 0.06;
+      P.r1 = 0.12; P.g1 = 0.03; P.b1 = 0.01;
       P.a0 = 1; P.aIn = 0; P.aPow = 1.5;
       P.rot = random() * 6.28; P.rotV = rnd(-18, 18); P.grav = -22; P.drag = 0.6;
       emit(bits);
@@ -1151,7 +1152,7 @@ export function createFX(scene, track) {
       else if (tier === 3) { lo = tiers[2]; hi = tiers[2] + 1.2; }
       const swell = ZC.clamp01((d.charge - lo) / Math.max(0.001, hi - lo));
 
-      const baseRate = (tier === 0 ? 90 : 190 + tier * 85) * (0.7 + 0.3 * spdF);
+      const baseRate = (tier === 0 ? 42 : 115 + tier * 45) * (0.75 + 0.25 * spdF);
       kSparkAcc[i] += baseRate * Q.rate * near * hero * dt * (0.8 + 0.45 * swell);
 
       const fxT = Math.sin(k.travelYaw), fzT = Math.cos(k.travelYaw);
@@ -1170,19 +1171,19 @@ export function createFX(scene, track) {
            much, which is what makes the direction of the slide readable */
         const inside = (random() < 0.68) ? d.dir : -d.dir;
         const sx = inside * cp[0];
-        toWorld(k, sx + rnd(-0.04, 0.04), WH_Y + rnd(0, 0.06), cp[1] + rnd(-0.06, 0.06));
+        toWorld(k, sx + rnd(-0.02, 0.02), WH_Y + rnd(0, 0.03), cp[1] + rnd(-0.03, 0.03));
         /* a third of them are the long stragglers that give the plume
            depth; the rest stay in the dense head at the tyre */
-        const far = random() < 0.30;
-        const v = far ? rnd(7, 15) : rnd(2, 7);
-        const out = inside * (far ? rnd(3, 9) : rnd(0.5, 3.5));
+        const far = random() < 0.16;
+        const v = far ? rnd(5, 10) : rnd(1.5, 4.5);
+        const out = inside * (far ? rnd(2.5, 6) : rnd(0.35, 2));
         resetP();
         P.x = _w.x; P.y = _w.y; P.z = _w.z;
         P.vx = kvx * 0.62 - fxT * v + rxB * out + rnd(-1.4, 1.4);
         P.vz = kvz * 0.62 - fzT * v + rzB * out + rnd(-1.4, 1.4);
-        P.vy = rnd(1.6, 5.6) + swell * 1.8 + (far ? 2.5 : 0);
-        P.life = (far ? rnd(0.22, 0.42) : rnd(0.10, 0.24));
-        const s = (0.22 + tier * 0.065 + swell * 0.08) * rnd(0.65, 1.55) * Q.size * (focusKart ? 1.35 : 0.90);
+        P.vy = rnd(0.8, 3.6) + swell * 1.2 + (far ? 1.5 : 0);
+        P.life = (far ? rnd(0.16, 0.30) : rnd(0.08, 0.16));
+        const s = (0.14 + tier * 0.045 + swell * 0.055) * rnd(0.75, 1.35) * Q.size * (focusKart ? 1.15 : 0.82);
         P.s0 = s; P.s1 = s * 0.14;
         P.r0 = c[0]; P.g0 = c[1]; P.b0 = c[2];
         P.r1 = c[3]; P.g1 = c[4]; P.b1 = c[5];
@@ -1192,23 +1193,23 @@ export function createFX(scene, track) {
         P.grav = -19; P.drag = 2.4;
         /* Most of the plume is tapered along its actual trajectory; a few
            glints retain the crackling, high-energy silhouette. */
-        emit(random() < (focusKart ? 0.58 : 0.72) ? flame : sparks);
+        emit(random() < (focusKart ? 0.35 : 0.55) ? flame : sparks);
 
         /* Every third spark gets a soft lit body behind it. This is the
            difference between "some orange dots" and a cone with a bright
            middle and a coloured falloff, which is what MK8 actually
            draws. */
-        if (random() < 0.08) {
+        if (random() < 0.04) {
           resetP();
           P.x = _w.x; P.y = _w.y + 0.04; P.z = _w.z;
           P.vx = kvx * 0.72 - fxT * v * 0.5 + rxB * out * 0.5;
           P.vz = kvz * 0.72 - fzT * v * 0.5 + rzB * out * 0.5;
           P.vy = rnd(0.5, 3.0);
           P.life = rnd(0.10, 0.24);
-          P.s0 = (0.20 + tier * 0.065) * rnd(0.72, 1.28) * Q.size; P.s1 = P.s0 * 1.55;
+          P.s0 = (0.14 + tier * 0.045) * rnd(0.75, 1.20) * Q.size; P.s1 = P.s0 * 1.35;
           P.r0 = c[0] * 0.45; P.g0 = c[1] * 0.45; P.b0 = c[2] * 0.45;
           P.r1 = c[3] * 0.35; P.g1 = c[4] * 0.35; P.b1 = c[5] * 0.35;
-          P.a0 = 0.8; P.aPow = 1.7; P.aIn = 0.12;
+          P.a0 = 0.55; P.aPow = 1.7; P.aIn = 0.12;
           emit(glow);
         }
       }
@@ -1216,9 +1217,9 @@ export function createFX(scene, track) {
       /* tyre smoke — a drifting kart lays rubber whether or not it has
          banked a tier yet, and the smoke is what makes the slide read
          from three karts back */
-      kSmokeAcc[i] += 66 * Q.rate * near * (focusKart ? 1 : 0.14) * dt * (0.5 + 0.5 * spdF);
+      kSmokeAcc[i] += 34 * Q.rate * near * (focusKart ? 1 : 0.14) * dt * (0.5 + 0.5 * spdF);
       let ns = kSmokeAcc[i] | 0;
-      if (ns > 6) ns = 6;
+      if (ns > 4) ns = 4;
       kSmokeAcc[i] -= ns;
       for (let q = 0; q < ns; q++) {
         const sx = (random() < 0.5 ? -1 : 1) * cp[0];
@@ -1231,11 +1232,11 @@ export function createFX(scene, track) {
         P.vx = kvx * 0.76 + rxB * outside;
         P.vz = kvz * 0.76 + rzB * outside;
         P.vy = rnd(0.18, 0.75);
-        P.life = rnd(0.46, 0.76);
-        P.s0 = rnd(0.54, 0.78) * Q.size * (focusKart ? 1.18 : 0.88); P.s1 = P.s0 * 2.8;
+        P.life = rnd(0.38, 0.62);
+        P.s0 = rnd(0.36, 0.56) * Q.size * (focusKart ? 1.05 : 0.82); P.s1 = P.s0 * 2.4;
         P.r0 = 0.92; P.g0 = 0.88; P.b0 = 0.84;
         P.r1 = 0.48; P.g1 = 0.45; P.b1 = 0.44;
-        P.a0 = focusKart ? 0.28 : 0.16; P.aIn = 0.08; P.aPow = 1.7;
+        P.a0 = focusKart ? 0.16 : 0.10; P.aIn = 0.08; P.aPow = 1.7;
         P.rot = screenAngle(P.vx - kvx, P.vy, P.vz - kvz) + rnd(-0.10, 0.10);
         P.rotV = rnd(-0.3, 0.3); P.grav = 0.24; P.drag = 1.1;
         emit(slipSmoke);
@@ -1290,9 +1291,9 @@ export function createFX(scene, track) {
     if (k.boost > 0) {
       const fxT = Math.sin(k.travelYaw), fzT = Math.cos(k.travelYaw);
       const kvx = fxT * spd, kvz = fzT * spd;
-      kTrailAcc[i] += (focusKart ? 176 : 138) * Q.rate * near * (focusKart ? 1 : 0.16) * dt;
+      kTrailAcc[i] += (focusKart ? 124 : 100) * Q.rate * near * (focusKart ? 1 : 0.16) * dt;
       let n = kTrailAcc[i] | 0;
-      if (n > 16) n = 16;
+      if (n > 12) n = 12;
       kTrailAcc[i] -= n;
       for (let q = 0; q < n; q++) {
         const sx = (random() < 0.5 ? -EX_X : EX_X);
@@ -1305,12 +1306,12 @@ export function createFX(scene, track) {
         P.vx = kvx * 0.80 - fxT * v + rnd(-1.2, 1.2);
         P.vz = kvz * 0.80 - fzT * v + rnd(-1.2, 1.2);
         P.vy = rnd(-0.2, 1.4);
-        P.life = rnd(0.16, 0.38);
-        const flameScale = focusKart ? 1.80 : 0.86;
-        P.s0 = rnd(0.16, 0.34) * Q.size * flameScale; P.s1 = P.s0 * 2.5;
+        P.life = rnd(0.12, 0.26);
+        const flameScale = focusKart ? 1.15 : 0.70;
+        P.s0 = rnd(0.12, 0.24) * Q.size * flameScale; P.s1 = P.s0 * 2.0;
         P.r0 = 1.90; P.g0 = 2.15; P.b0 = 2.45;
         P.r1 = 1.45; P.g1 = 0.38; P.b1 = 0.03;
-        P.a0 = focusKart ? 0.82 : 0.50; P.aPow = 1.55; P.aIn = 0;
+        P.a0 = focusKart ? 0.66 : 0.42; P.aPow = 1.55; P.aIn = 0;
         P.rot = screenAngle(P.vx - kvx, P.vy, P.vz - kvz) + rnd(-0.10, 0.10);
         P.drag = 2.2;
         emit(flame);
@@ -1396,16 +1397,16 @@ export function createFX(scene, track) {
         const flick = 0.78 + 0.22 * Math.sin(time * 47 + i * 2.1 + s * 3.1);
         const ct = TIER_COL[tier];
         col[i3] = ct[0] * 0.72; col[i3 + 1] = ct[1] * 0.72; col[i3 + 2] = ct[2] * 0.72;
-        const focusScale = k === focus ? 1.25 : 0.22;
-        siz[idx] = (0.62 + tier * 0.18 + swell * 0.20 + kDriftPop[i] * 0.42) * bias * flick * focusScale * Q.size;
-        alp[idx] = (tier === 0 ? 0.58 : 1.08) * bias * flick * focusScale;
+        const focusScale = k === focus ? 1.05 : 0.18;
+        siz[idx] = (0.24 + tier * 0.08 + swell * 0.10 + kDriftPop[i] * 0.18) * bias * flick * focusScale * Q.size;
+        alp[idx] = (tier === 0 ? 0.38 : 0.82) * bias * flick * focusScale;
         rot[idx] = 0;
       }
 
       /* 2,3 — a fixed hot source at the authored rear flame. The streak
          layer carries the direction; this point-sprite core makes the
          direction's origin survive a chase-camera read. */
-      const boosting = k.boost > 0 && !k.falling;
+      const boosting = (k.boost > 0 || kBoostPop[i] > 0.01) && !k.falling;
       for (let s = 0; s < 2; s++) {
         const idx = base + 2 + s;
         const i3 = idx * 3;
@@ -1413,10 +1414,10 @@ export function createFX(scene, track) {
         toWorld(k, s === 0 ? -EX_X : EX_X, EX_Y, cp[1] + EX_Z);
         pos[i3] = _w.x; pos[i3 + 1] = _w.y; pos[i3 + 2] = _w.z;
         const flick = 0.86 + 0.14 * Math.sin(time * 51 + i * 2.3 + s * 2.1);
-        const focusScale = k === focus ? 1.28 : 0.22;
-        col[i3] = 3.4; col[i3 + 1] = 2.65; col[i3 + 2] = 1.45;
-        siz[idx] = (0.82 + kBoostPop[i] * 0.55) * flick * focusScale * Q.size;
-        alp[idx] = 0.92 * flick * focusScale;
+        const focusScale = k === focus ? 0.92 : 0.16;
+        col[i3] = 3.2; col[i3 + 1] = 1.55; col[i3 + 2] = 0.16;
+        siz[idx] = (0.34 + kBoostPop[i] * 0.22) * flick * focusScale * Q.size;
+        alp[idx] = 0.72 * flick * focusScale;
         rot[idx] = 0;
       }
     }
@@ -1439,10 +1440,10 @@ export function createFX(scene, track) {
         toWorld(k, side, EX_Y, cp[1] + EX_Z);
         pos[i3] = _w.x; pos[i3 + 1] = _w.y; pos[i3 + 2] = _w.z;
         const flick = 0.84 + 0.16 * Math.sin(time * 57 + i * 1.9 + s * 2.7);
-        const focusScale = k === focus ? 1.35 : 0.22;
+        const focusScale = k === focus ? 1.0 : 0.16;
         col[i3] = 1.75; col[i3 + 1] = 2.05; col[i3 + 2] = 2.40;
-        siz[idx] = (3.25 + kBoostPop[i] * 1.15) * flick * focusScale * Q.size;
-        alp[idx] = 0.92 * flick * focusScale;
+        siz[idx] = (1.55 + kBoostPop[i] * 0.55) * flick * focusScale * Q.size;
+        alp[idx] = 0.76 * flick * focusScale;
         const fx = Math.sin(k.travelYaw), fz = Math.cos(k.travelYaw);
         rot[idx] = screenAngle(-fx, 0.04, -fz);
       }
@@ -1490,8 +1491,8 @@ export function createFX(scene, track) {
     let want = 0;
     const boosted = !!(player && player.boost > 0);
     if (player) {
-      want = ZC.clamp01((player.speed - 23) / 6) * 0.34;
-      if (boosted) want = Math.min(1.0, want + 0.78);
+      want = ZC.clamp01((player.speed - 24) / 7) * 0.22;
+      if (boosted) want = Math.min(0.72, want + 0.48);
       if (player.falling || player.spin > 0) want *= 0.25;
     }
     speedAmt = ZC.damp(speedAmt, want, want > speedAmt ? 13 : 5, dt);
@@ -1534,12 +1535,14 @@ export function createFX(scene, track) {
       pos[i3 + 2] = cPZ + cFZ * dPlane + cRZ * px + cUZ * py;
       /* warm at cruising speed, whiter under boost */
       const hot = ZC.clamp01((speedAmt - 0.45) / 0.5);
-      col[i3] = 1.9; col[i3 + 1] = 1.35 + 0.55 * hot; col[i3 + 2] = 0.65 + 1.15 * hot;
+      col[i3] = boosted ? 2.10 : 1.25;
+      col[i3 + 1] = boosted ? 0.98 + 0.22 * hot : 0.72 + 0.16 * hot;
+      col[i3 + 2] = boosted ? 0.12 + 0.20 * hot : 0.18 + 0.12 * hot;
       /* fade in from the middle, out at the rim */
       const env = Math.sin(Math.min(1, u) * Math.PI);
-      const lineScale = boosted ? 1.35 : 1;
-      siz[i] = (0.12 + u * 0.32) * ZC.clamp01(speedAmt) * dPlane * 0.52 * lineScale;
-      alp[i] = (boosted ? 0.68 : 0.50) * env * ZC.clamp01(speedAmt);
+      const lineScale = boosted ? 1.05 : 0.82;
+      siz[i] = (0.07 + u * 0.18) * ZC.clamp01(speedAmt) * dPlane * 0.34 * lineScale;
+      alp[i] = (boosted ? 0.38 : 0.26) * env * ZC.clamp01(speedAmt);
       rot[i] = -a;
     }
     const at = speed.geo.attributes;

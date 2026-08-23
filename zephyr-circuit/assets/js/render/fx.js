@@ -168,6 +168,16 @@ function makeStreakTexture() {
   });
 }
 
+/* A broader directional ribbon for tyre haze. Unlike the round smoke map,
+   this stays attached to the slip direction before it blooms away. */
+function makeSlipTexture() {
+  return pixelTexture(64, (nx, ny) => {
+    const along = Math.max(0, 1 - Math.abs(nx));
+    const edge = Math.exp(-(ny * ny) / 0.035);
+    return Math.pow(along, 1.8) * edge * 0.72;
+  });
+}
+
 /* An angular chip for debris: a soft-edged diamond, so a shard reads as a
    shard and not as another round puff. */
 function makeShardTexture() {
@@ -302,6 +312,7 @@ export function createFX(scene, track) {
     spark: makeSparkTexture(),
     glow: makeGlowTexture(),
     streak: makeStreakTexture(),
+    slip: makeSlipTexture(),
     shard: makeShardTexture(),
     smoke: makeSmokeTexture(random),
   };
@@ -489,8 +500,9 @@ export function createFX(scene, track) {
   const glow = makeLayer(1200, TEX.glow, true, 0, 8, 640);
   const flame = makeLayer(700, TEX.streak, true, 0, 9, 520);
   const smoke = makeLayer(900, TEX.smoke, false, 1, 4, 512);
+  const slipSmoke = makeLayer(620, TEX.slip, false, 1, 5, 460);
   const bits = makeLayer(420, TEX.shard, false, 1, 6, 200);
-  const pools = [sparks, glow, flame, smoke, bits];
+  const pools = [sparks, glow, flame, smoke, slipSmoke, bits];
 
   /* ---------------- fixed-slot layers ---------------- */
   const MAXK = 16;
@@ -516,6 +528,36 @@ export function createFX(scene, track) {
     geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e6);
     geometries.push(geo);
     const mat = makeMaterial(TEX.glow, true, 0, 640);
+    const pts = new THREE.Points(geo, mat);
+    pts.frustumCulled = false;
+    pts.renderOrder = 10;
+    pts.matrixAutoUpdate = false;
+    scene.add(pts);
+    objects.push(pts);
+    return { geo, pos, col, siz, alp, rot, cap };
+  })();
+
+  /* Twin exhaust jets use a streak texture, not the wheel-core glow map.
+     Keeping these in their own fixed slots prevents boost from becoming a
+     circular bloom that erases the kart silhouette. */
+  const JET_PER_KART = 2;
+  const jets = (() => {
+    const cap = MAXK * JET_PER_KART;
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(cap * 3);
+    const col = new Float32Array(cap * 3);
+    const siz = new Float32Array(cap);
+    const alp = new Float32Array(cap);
+    const rot = new Float32Array(cap);
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('aColor', new THREE.BufferAttribute(col, 3));
+    geo.setAttribute('aSize', new THREE.BufferAttribute(siz, 1));
+    geo.setAttribute('aAlpha', new THREE.BufferAttribute(alp, 1));
+    geo.setAttribute('aRot', new THREE.BufferAttribute(rot, 1));
+    geo.setDrawRange(0, cap);
+    geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e6);
+    geometries.push(geo);
+    const mat = makeMaterial(TEX.streak, true, 0, 720);
     const pts = new THREE.Points(geo, mat);
     pts.frustumCulled = false;
     pts.renderOrder = 10;
@@ -865,20 +907,17 @@ export function createFX(scene, track) {
 
   on('kart:boost', (p) => {
     const k = kartOf(p); if (!k) return;
-    const tier = (p && p.tier) ? p.tier : 0;
-    const c = TIER_COL[Math.min(3, tier)];
     kBoostPop[idxOf(k)] = 1;
     const fx = Math.sin(k.travelYaw), fz = Math.cos(k.travelYaw);
     const kvx = fx * k.speed, kvz = fz * k.speed;
-    const tail = TIER_TAIL[Math.min(3, tier)];
     for (const sx of [-EX_X, EX_X]) {
       toWorld(k, sx, EX_Y, EX_Z);
       const ex = _w.x, ey = _w.y, ez = _w.z;
       /* the flame cone itself — velocity is mostly the kart's own, so the
          burst stays a cone bolted to the exhaust rather than a fireball
          the kart drives out of */
-      for (let i = 0; i < 20; i++) {
-        const t = i / 20;
+      for (let i = 0; i < 7; i++) {
+        const t = i / 7;
         resetP();
         P.x = ex + rnd(-0.12, 0.12); P.y = ey + rnd(-0.1, 0.1); P.z = ez + rnd(-0.12, 0.12);
         const v = rnd(6, 20);
@@ -886,26 +925,44 @@ export function createFX(scene, track) {
         P.vz = kvz * 0.7 - fz * v + rnd(-2.5, 2.5);
         P.vy = rnd(-0.5, 2.2);
         P.life = rnd(0.18, 0.44);
-        P.s0 = rnd(0.22, 0.55); P.s1 = P.s0 * 3.0;
-        P.r0 = 2.9; P.g0 = 2.5 - t * 0.6; P.b0 = 2.2 - t * 1.0;
-        P.r1 = tail[0] * 0.6; P.g1 = tail[1] * 0.6; P.b1 = tail[2] * 0.6;
-        P.a0 = 0.9; P.aPow = 1.5; P.aIn = 0;
+        P.s0 = rnd(0.13, 0.28); P.s1 = P.s0 * 2.2;
+        P.r0 = 1.9; P.g0 = 2.15 - t * 0.25; P.b0 = 2.45 - t * 0.65;
+        P.r1 = 1.45; P.g1 = 0.38; P.b1 = 0.03;
+        P.a0 = 0.62; P.aPow = 1.7; P.aIn = 0;
         P.rot = screenAngle(-fx * v, P.vy, -fz * v) + rnd(-0.12, 0.12);
         P.drag = 2.0;
         emit(flame);
       }
-      sparkBurst(ex, ey, ez, 14, 12, c, 0.26, 0.42, -14);
-      smokePuff(ex, ey - 0.2, ez, 4, 2.0, 0.78, 0.74, 0.72, 0.8, 0.95, 0.20);
     }
-    ring(k.x, k.y, k.z, 20, 1.2, 3.4, 10, 0.45, tail, 0.40, 0.5);
   });
 
   on('kart:hit', (p) => {
     const k = kartOf(p); if (!k) return;
-    sparkBurst(k.x, k.y + 0.7, k.z, 36, 14, COL_HOT, 0.40, 0.55, -20);
-    debris(k.x, k.y, k.z, 14, 6, 0.16, 0.15, 0.18, 0.22);
-    smokePuff(k.x, k.y + 0.5, k.z, 9, 3.2, 0.72, 0.66, 0.62, 0.75, 0.85, 0.42);
-    ring(k.x, k.y, k.z, 14, 0.8, 3.0, 11, 0.34, COL_HOT, 0.5, 0.9);
+    /* One-frame contact flash, then a radial spark crown and a separate
+       rearward cone of physical debris. No lingering cloud: an impact
+       must not be mistaken for boost exhaust. */
+    resetP();
+    P.x = k.x; P.y = k.y + 0.72; P.z = k.z;
+    P.life = 0.15; P.s0 = 1.65; P.s1 = 0.20;
+    P.r0 = 3.0; P.g0 = 2.65; P.b0 = 1.55;
+    P.r1 = 1.5; P.g1 = 0.25; P.b1 = 0.02;
+    P.a0 = 0.92; P.aIn = 0; P.aPow = 1.1;
+    emit(glow);
+    sparkBurst(k.x, k.y + 0.72, k.z, 22, 13, COL_HOT, 0.28, 0.38, -21);
+    const fx = Math.sin(k.travelYaw), fz = Math.cos(k.travelYaw);
+    const rx = Math.cos(k.travelYaw), rz = -Math.sin(k.travelYaw);
+    for (let q = 0; q < 18; q++) {
+      const back = rnd(3.5, 10), side = rnd(-6, 6);
+      resetP();
+      P.x = k.x; P.y = k.y + rnd(0.25, 0.9); P.z = k.z;
+      P.vx = -fx * back + rx * side; P.vz = -fz * back + rz * side; P.vy = rnd(2, 8);
+      P.life = rnd(0.35, 0.72); P.s0 = rnd(0.13, 0.25); P.s1 = P.s0 * 0.55;
+      P.r0 = 0.42; P.g0 = 0.32; P.b0 = 0.20;
+      P.r1 = 0.12; P.g1 = 0.10; P.b1 = 0.09;
+      P.a0 = 0.95; P.aIn = 0; P.aPow = 1.7;
+      P.rot = random() * 6.28; P.rotV = rnd(-18, 18); P.grav = -22; P.drag = 0.6;
+      emit(bits);
+    }
   });
 
   on('kart:shieldBreak', (p) => {
@@ -1039,10 +1096,11 @@ export function createFX(scene, track) {
   /* ------------------------------------------------------------------
      Continuous emission, per kart, per frame.
      ------------------------------------------------------------------ */
-  function driveKart(k, i, dt, dist, time) {
+  function driveKart(k, i, dt, dist, time, focus) {
     /* Full rate on anything close enough to look at, tapering only for
        karts far down the road. */
     const near = dist < 26 ? 1 : 26 / dist;
+    const hero = k === focus ? 1 : 0.30;
     const grounded = k.grounded && !k.falling;
     const spd = k.speed;
     const spdF = ZC.clamp01(spd / 27);
@@ -1064,7 +1122,7 @@ export function createFX(scene, track) {
       const swell = ZC.clamp01((d.charge - lo) / Math.max(0.001, hi - lo));
 
       const baseRate = (tier === 0 ? 90 : 190 + tier * 85) * (0.7 + 0.3 * spdF);
-      kSparkAcc[i] += baseRate * Q.rate * near * dt * (0.8 + 0.45 * swell);
+      kSparkAcc[i] += baseRate * Q.rate * near * hero * dt * (0.8 + 0.45 * swell);
 
       const fxT = Math.sin(k.travelYaw), fzT = Math.cos(k.travelYaw);
       const rxB = Math.cos(k.bodyYaw), rzB = -Math.sin(k.bodyYaw);
@@ -1099,15 +1157,18 @@ export function createFX(scene, track) {
         P.r0 = c[0]; P.g0 = c[1]; P.b0 = c[2];
         P.r1 = c[3]; P.g1 = c[4]; P.b1 = c[5];
         P.a0 = 1; P.aPow = 1.2; P.aIn = 0;
-        P.rot = random() * 6.28; P.rotV = rnd(-14, 14);
+        P.rot = screenAngle(P.vx - kvx, P.vy, P.vz - kvz) + rnd(-0.16, 0.16);
+        P.rotV = rnd(-3, 3);
         P.grav = -19; P.drag = 2.4;
-        emit(sparks);
+        /* Most of the plume is tapered along its actual trajectory; a few
+           glints retain the crackling, high-energy silhouette. */
+        emit(random() < 0.72 ? flame : sparks);
 
         /* Every third spark gets a soft lit body behind it. This is the
            difference between "some orange dots" and a cone with a bright
            middle and a coloured falloff, which is what MK8 actually
            draws. */
-        if (random() < 0.24) {
+        if (random() < 0.08) {
           resetP();
           P.x = _w.x; P.y = _w.y + 0.04; P.z = _w.z;
           P.vx = kvx * 0.72 - fxT * v * 0.5 + rxB * out * 0.5;
@@ -1125,14 +1186,29 @@ export function createFX(scene, track) {
       /* tyre smoke — a drifting kart lays rubber whether or not it has
          banked a tier yet, and the smoke is what makes the slide read
          from three karts back */
-      kSmokeAcc[i] += 44 * Q.rate * near * dt * (0.5 + 0.5 * spdF);
+      kSmokeAcc[i] += 34 * Q.rate * near * (k === focus ? 1 : 0.42) * dt * (0.5 + 0.5 * spdF);
       let ns = kSmokeAcc[i] | 0;
       if (ns > 6) ns = 6;
       kSmokeAcc[i] -= ns;
       for (let q = 0; q < ns; q++) {
         const sx = (random() < 0.5 ? -1 : 1) * WH_X;
         toWorld(k, sx, WH_Y, WH_Z);
-        smokePuff(_w.x, _w.y, _w.z, 1, 1.35, 0.88, 0.85, 0.83, 0.62, 0.95, 0.17);
+        resetP();
+        P.x = _w.x; P.y = _w.y + 0.03; P.z = _w.z;
+        /* Inherit road speed, then peel toward the outside of the slide.
+           The relative motion is what leaves a surface-linked ribbon. */
+        const outside = -d.dir * rnd(1.2, 3.0);
+        P.vx = kvx * 0.76 + rxB * outside;
+        P.vz = kvz * 0.76 + rzB * outside;
+        P.vy = rnd(0.18, 0.75);
+        P.life = rnd(0.52, 0.82);
+        P.s0 = rnd(0.42, 0.62) * Q.size; P.s1 = P.s0 * 3.0;
+        P.r0 = 0.92; P.g0 = 0.88; P.b0 = 0.84;
+        P.r1 = 0.48; P.g1 = 0.45; P.b1 = 0.44;
+        P.a0 = 0.18; P.aIn = 0.10; P.aPow = 1.8;
+        P.rot = screenAngle(-fxT, 0.18, -fzT) + rnd(-0.12, 0.12);
+        P.rotV = rnd(-0.3, 0.3); P.grav = 0.24; P.drag = 1.1;
+        emit(slipSmoke);
       }
     } else {
       kSparkAcc[i] = 0;
@@ -1184,7 +1260,7 @@ export function createFX(scene, track) {
     if (k.boost > 0) {
       const fxT = Math.sin(k.travelYaw), fzT = Math.cos(k.travelYaw);
       const kvx = fxT * spd, kvz = fzT * spd;
-      kTrailAcc[i] += 210 * Q.rate * near * dt;
+      kTrailAcc[i] += 112 * Q.rate * near * (k === focus ? 1 : 0.42) * dt;
       let n = kTrailAcc[i] | 0;
       if (n > 16) n = 16;
       kTrailAcc[i] -= n;
@@ -1200,16 +1276,13 @@ export function createFX(scene, track) {
         P.vz = kvz * 0.80 - fzT * v + rnd(-1.2, 1.2);
         P.vy = rnd(-0.2, 1.4);
         P.life = rnd(0.16, 0.38);
-        P.s0 = rnd(0.16, 0.40) * Q.size; P.s1 = P.s0 * 2.6;
-        P.r0 = 2.9; P.g0 = 2.3; P.b0 = 1.7;
-        P.r1 = 1.3; P.g1 = 0.35; P.b1 = 0.04;
-        P.a0 = 0.8; P.aPow = 1.5; P.aIn = 0;
+        P.s0 = rnd(0.12, 0.28) * Q.size; P.s1 = P.s0 * 2.2;
+        P.r0 = 1.90; P.g0 = 2.15; P.b0 = 2.45;
+        P.r1 = 1.45; P.g1 = 0.38; P.b1 = 0.03;
+        P.a0 = 0.58; P.aPow = 1.7; P.aIn = 0;
         P.rot = screenAngle(P.vx - kvx, P.vy, P.vz - kvz) + rnd(-0.10, 0.10);
         P.drag = 2.2;
         emit(flame);
-        if (random() < 0.22) {
-          smokePuff(_w.x, _w.y - 0.1, _w.z, 1, 1.3, 0.70, 0.62, 0.58, 0.7, 0.9, 0.15);
-        }
       }
     } else {
       kTrailAcc[i] = 0;
@@ -1253,7 +1326,7 @@ export function createFX(scene, track) {
   /* ------------------------------------------------------------------
      Fixed-slot writers
      ------------------------------------------------------------------ */
-  function writeFlares(karts, n, time, dt) {
+  function writeFlares(karts, n, time, dt, focus) {
     const pos = flares.pos, col = flares.col, siz = flares.siz, alp = flares.alp, rot = flares.rot;
     for (let i = 0; i < MAXK; i++) {
       const base = i * FLARE_PER_KART;
@@ -1281,30 +1354,45 @@ export function createFX(scene, track) {
         const flick = 0.78 + 0.22 * Math.sin(time * 47 + i * 2.1 + s * 3.1);
         const ct = TIER_TAIL[tier];
         col[i3] = ct[0] * 0.55; col[i3 + 1] = ct[1] * 0.55; col[i3 + 2] = ct[2] * 0.55;
-        siz[idx] = (0.34 + tier * 0.13 + kDriftPop[i] * 0.45) * bias * flick;
-        alp[idx] = (tier === 0 ? 0.35 : 0.9) * bias * flick;
+        const focusScale = k === focus ? 1 : 0.34;
+        siz[idx] = (0.26 + tier * 0.10 + kDriftPop[i] * 0.24) * bias * flick * focusScale;
+        alp[idx] = (tier === 0 ? 0.28 : 0.88) * bias * flick * focusScale;
         rot[idx] = 0;
       }
 
       /* 2,3 — exhaust flames while boosting */
-      const boosting = k.boost > 0;
       for (let s = 0; s < 2; s++) {
         const idx = base + 2 + s;
-        const i3 = idx * 3;
-        const pop = kBoostPop[i];
-        if (!boosting && pop <= 0.01) { alp[idx] = 0; siz[idx] = 0; continue; }
-        const side = s === 0 ? -EX_X : EX_X;
-        toWorld(k, side, EX_Y, EX_Z - 0.25);
-        pos[i3] = _w.x; pos[i3 + 1] = _w.y; pos[i3 + 2] = _w.z;
-        const flick = 0.72 + 0.28 * Math.sin(time * 61 + i * 1.7 + s * 2.4);
-        const amp = (boosting ? 1 : 0) + pop * 1.1;
-        col[i3] = 2.2; col[i3 + 1] = 1.5 * flick + 0.35; col[i3 + 2] = 0.85 * flick;
-        siz[idx] = (0.40 + pop * 0.55) * flick;
-        alp[idx] = Math.min(1.0, 0.8 * amp * flick);
-        rot[idx] = 0;
+        alp[idx] = 0; siz[idx] = 0;
       }
     }
     const at = flares.geo.attributes;
+    at.position.needsUpdate = true; at.aColor.needsUpdate = true;
+    at.aSize.needsUpdate = true; at.aAlpha.needsUpdate = true; at.aRot.needsUpdate = true;
+  }
+
+  function writeJets(karts, n, focus, time) {
+    const pos = jets.pos, col = jets.col, siz = jets.siz, alp = jets.alp, rot = jets.rot;
+    for (let i = 0; i < MAXK; i++) {
+      const base = i * JET_PER_KART;
+      const k = (i < n) ? karts[i] : null;
+      const on = k && (k.boost > 0 || kBoostPop[i] > 0.01) && !k.falling;
+      for (let s = 0; s < JET_PER_KART; s++) {
+        const idx = base + s, i3 = idx * 3;
+        if (!on) { alp[idx] = 0; siz[idx] = 0; continue; }
+        const side = s === 0 ? -EX_X : EX_X;
+        toWorld(k, side, EX_Y, EX_Z - 0.42);
+        pos[i3] = _w.x; pos[i3 + 1] = _w.y; pos[i3 + 2] = _w.z;
+        const flick = 0.84 + 0.16 * Math.sin(time * 57 + i * 1.9 + s * 2.7);
+        const focusScale = k === focus ? 1 : 0.38;
+        col[i3] = 1.75; col[i3 + 1] = 2.05; col[i3 + 2] = 2.40;
+        siz[idx] = (1.25 + kBoostPop[i] * 0.45) * flick * focusScale;
+        alp[idx] = 0.72 * flick * focusScale;
+        const fx = Math.sin(k.travelYaw), fz = Math.cos(k.travelYaw);
+        rot[idx] = screenAngle(-fx, 0.04, -fz);
+      }
+    }
+    const at = jets.geo.attributes;
     at.position.needsUpdate = true; at.aColor.needsUpdate = true;
     at.aSize.needsUpdate = true; at.aAlpha.needsUpdate = true; at.aRot.needsUpdate = true;
   }
@@ -1362,18 +1450,32 @@ export function createFX(scene, track) {
     const halfH = Math.tan((camera.fov * Math.PI / 180) * 0.5) * dPlane;
     const halfW = halfH * camera.aspect;
     const reach = Math.sqrt(halfH * halfH + halfW * halfW);
+    /* The road's vanishing point is the travel vector projected onto this
+       camera plane. On banked corners it is not the screen centre. */
+    let vanishX = 0, vanishY = 0;
+    if (player) {
+      const fx = Math.sin(player.travelYaw), fz = Math.cos(player.travelYaw);
+      const vx = fx * cRX + fz * cRZ;
+      const vy = fx * cUX + fz * cUZ;
+      const vz = fx * cFX + fz * cFZ;
+      if (vz > 0.12) {
+        vanishX = ZC.clamp(vx / vz * dPlane, -halfW * 0.42, halfW * 0.42);
+        vanishY = ZC.clamp(vy / vz * dPlane, -halfH * 0.36, halfH * 0.36);
+      }
+    }
 
     for (let i = 0; i < live; i++) {
       const i3 = i * 3;
       /* each streak sweeps outward on its own loop */
       let u = (speed.ph[i] + time * speed.spd[i] * (0.5 + speedAmt * 1.4)) % 1;
       const a = speed.ang[i] + Math.sin(time * 0.6 + i) * 0.05;
-      const rr = (0.22 + u * 1.05) * reach * speed.rad[i];
+      const rr = (0.34 + u * u * 1.08) * reach * speed.rad[i];
       const sx = Math.cos(a) * rr;
       const sy = Math.sin(a) * rr;
-      pos[i3] = cPX + cFX * dPlane + cRX * sx + cUX * sy;
-      pos[i3 + 1] = cPY + cFY * dPlane + cRY * sx + cUY * sy;
-      pos[i3 + 2] = cPZ + cFZ * dPlane + cRZ * sx + cUZ * sy;
+      const px = vanishX + sx, py = vanishY + sy;
+      pos[i3] = cPX + cFX * dPlane + cRX * px + cUX * py;
+      pos[i3 + 1] = cPY + cFY * dPlane + cRY * px + cUY * py;
+      pos[i3 + 2] = cPZ + cFZ * dPlane + cRZ * px + cUZ * py;
       /* warm at cruising speed, whiter under boost */
       const hot = ZC.clamp01((speedAmt - 0.45) / 0.5);
       col[i3] = 1.9; col[i3 + 1] = 1.35 + 0.55 * hot; col[i3 + 2] = 0.65 + 1.15 * hot;
@@ -1452,7 +1554,7 @@ export function createFX(scene, track) {
         const k = karts[i];
         const dx = k.x - cPX, dy = k.y - cPY, dz = k.z - cPZ;
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (dist < Q.cull) driveKart(k, i, dt, dist, time);
+        if (dist < Q.cull) driveKart(k, i, dt, dist, time, ctx.player);
         else {
           kPrevGround[i] = (k.grounded && !k.falling) ? 1 : 0;
           kPrevFall[i] = k.falling ? 1 : 0;
@@ -1462,7 +1564,8 @@ export function createFX(scene, track) {
     }
     /* Write even for an empty field so a transient race rebuild cannot
        leave boost anchors or spin stars frozen in the old scene state. */
-    writeFlares(karts, n, time, dt);
+    writeFlares(karts, n, time, dt, ctx.player);
+    writeJets(karts, n, ctx.player, time);
     writeStars(karts, n, time, dt);
 
     for (let i = 0; i < pools.length; i++) {

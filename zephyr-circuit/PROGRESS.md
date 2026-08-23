@@ -452,3 +452,37 @@ smaller shards. Public API, pooling, quality tiers and the allocation-free
 update path remain intact. Node syntax, static checks, the Zephyr suite
 (109/109), and forced active 1440x900/390x844 frames passed. A fresh critic
 verdict is still required.
+
+## 2026-08-23 — polish night 5 handoff
+
+This bounded Sunday pass is complete on `dev`; no release was attempted. The
+forced release remains Saturday 2026-08-29. Track water was materially toned
+down after the second critic called it an overexposed cyan slab, and the FX
+pass now has tighter rear-axle emission, explicit tier palettes, compact
+travel-aligned boost exhaust, darker speed lines and a separate collision
+flash. Karts retain the stronger wheel assemblies, suspension and driver
+postures from this run.
+
+### Final verification
+
+* Full arcade Jest suite: **9/9 suites, 237/237 tests passed**.
+* `node --check` passed for `trackmesh.js`, `fx.js` and `karts.js`; `git diff --check` passed.
+* The final moving-race sweep covered **320x568, 390x844, 844x390, 768x1024,
+  1440x900 and 3840x2160**. All six reached `phase=racing`, had no horizontal
+  scroll, and had no app page errors. SwiftShader `GPU stall due to
+  ReadPixels` warnings and the existing Google tag requests are the only
+  observed non-app noise.
+* The revised FX active frame was independently reviewed against Nintendo's
+  official Mario Kart 8 Deluxe presentation. **FAIL:** tire contact and
+  effect ownership still read weakly; boost/collision direction is ambiguous;
+  tier/state readability and material hierarchy remain below AAA.
+
+### Current status and next run
+
+Logic/gameplay and browser boot/responsiveness pass. The track/environment,
+FX and kart visual disciplines still fail the independent AAA comparison;
+audio, UI/camera drama and real-GPU shadow validation remain debt. The next
+run should start by fixing tire/contact and effect ownership, then rerun the
+track and kart critics before taking on audio, countdown/results drama and
+camera presentation. No `.aaa-complete` was written, `.arcade-agent/current-game.md`
+remains active for Zephyr Circuit, and `main` was not touched.

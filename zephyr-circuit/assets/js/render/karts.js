@@ -33,11 +33,19 @@ function initShared() {
   shared('spark', new THREE.TetrahedronGeometry(0.24));
   shared('flame', new THREE.ConeGeometry(0.34, 1.5, 7));
 
-  MAT.tyre = new THREE.MeshLambertMaterial({ color: 0x111219, flatShading: true });
-  MAT.trim = new THREE.MeshLambertMaterial({ color: 0x272a34, flatShading: true });
-  MAT.chrome = new THREE.MeshLambertMaterial({ color: 0xb7c1d2, flatShading: true });
+  /* Tyres cannot be near-black in a sunset scene: the whole lower half of
+     the lineup used to collapse into one silhouette. Bright sidewalls and
+     metal hubs keep wheelbase and steering readable at race distance. */
+  MAT.tyre = new THREE.MeshStandardMaterial({ color: 0x303442, roughness: 0.88, metalness: 0.02, flatShading: true });
+  MAT.trim = new THREE.MeshStandardMaterial({ color: 0x202532, roughness: 0.58, metalness: 0.42, flatShading: true });
+  MAT.chrome = new THREE.MeshStandardMaterial({ color: 0xc9d6e8, roughness: 0.20, metalness: 0.92, flatShading: true });
   MAT.visor = new THREE.MeshLambertMaterial({ color: 0x13283b, emissive: 0x07131d, flatShading: true });
   MAT.light = new THREE.MeshLambertMaterial({ color: 0xf4f0df, flatShading: true });
+  MAT.canopy = new THREE.MeshPhysicalMaterial({
+    color: 0x8fe4ff, emissive: 0x173a55, emissiveIntensity: 0.24,
+    roughness: 0.12, metalness: 0.08, transparent: true, opacity: 0.58,
+    depthWrite: false, side: THREE.DoubleSide,
+  });
   for (const k in MAT) MAT[k].__shared = true;
   MAT.sparkTier = [
     new THREE.MeshBasicMaterial({ color: 0x6fd8ff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }),
@@ -63,10 +71,10 @@ function materialsFor(id, colourHex) {
   if (m) return m;
   const base = new THREE.Color(colourHex);
   m = {
-    shell: new THREE.MeshLambertMaterial({ color: base, flatShading: true }),
-    dark: new THREE.MeshLambertMaterial({ color: base.clone().multiplyScalar(0.42), flatShading: true }),
-    pale: new THREE.MeshLambertMaterial({ color: base.clone().lerp(new THREE.Color(0xffffff), 0.52), flatShading: true }),
-    accent: new THREE.MeshLambertMaterial({ color: ACCENT[id], emissive: ACCENT[id], emissiveIntensity: 0.12, flatShading: true }),
+    shell: new THREE.MeshStandardMaterial({ color: base, roughness: 0.27, metalness: 0.18, flatShading: true }),
+    dark: new THREE.MeshStandardMaterial({ color: base.clone().multiplyScalar(0.42), roughness: 0.42, metalness: 0.34, flatShading: true }),
+    pale: new THREE.MeshStandardMaterial({ color: base.clone().lerp(new THREE.Color(0xffffff), 0.52), roughness: 0.24, metalness: 0.12, flatShading: true }),
+    accent: new THREE.MeshStandardMaterial({ color: ACCENT[id], emissive: ACCENT[id], emissiveIntensity: 0.28, roughness: 0.22, metalness: 0.30, flatShading: true }),
     skin: new THREE.MeshLambertMaterial({ color: SKIN[id], flatShading: true }),
   };
   for (const k in m) m[k].__shared = true;
@@ -99,18 +107,33 @@ function addWheels(root, p) {
   for (let i = 0; i < 4; i++) {
     const rear = i >= 2, side = (i & 1) ? 1 : -1;
     const r = rear ? p.rearR : p.frontR;
-    wheels.push(part(root, rear ? GEO.wheelRear : GEO.wheel, MAT.tyre,
-      side * p.wheelX, r, rear ? p.rearZ : p.frontZ, r * 2, 1, r * 2, 0, 0, Math.PI / 2));
+    const wheel = part(root, rear ? GEO.wheelRear : GEO.wheel, MAT.tyre,
+      side * p.wheelX, r, rear ? p.rearZ : p.frontZ, r * 2, 1, r * 2, 0, 0, Math.PI / 2);
+    /* Hub and bright spoke rotate with the tyre, making spin legible where
+       an unmarked ten-sided cylinder looked stationary. */
+    part(wheel, GEO.cyl8, MAT.chrome, 0, side * 0.29, 0, r * 1.26, 0.10, r * 1.26);
+    bar(wheel, MAT.light, 0, side * 0.35, 0, r * 0.16, 0.08, r * 1.35, Math.PI / 4);
+    wheels.push(wheel);
   }
   return wheels;
 }
 
 function addDriver(root, m, id, y, z) {
   const rig = new THREE.Group(); rig.position.set(0, y, z); root.add(rig);
-  part(rig, GEO.torso, m.dark, 0, 0.22, 0, 0.48, 0.58, 0.44);
-  const head = part(rig, GEO.head, m.skin, 0, 0.84, 0.02, 0.58, 0.58, 0.58);
-  part(rig, GEO.sphere, m.shell, 0, 0.92, -0.02, 0.66, 0.54, 0.64);
-  const visor = bar(rig, MAT.visor, 0, 0.90, 0.31, 0.48, 0.14, 0.10);
+  part(rig, GEO.torso, m.dark, 0, 0.24, 0, 0.64, 0.72, 0.56);
+  /* Shoulders and arms make these drivers people rather than helmet posts.
+     Hands reach a luminous steering hoop so the pose reads from either side. */
+  bar(rig, m.pale, 0, 0.53, 0.02, 1.12, 0.24, 0.38);
+  for (const side of [-1, 1]) {
+    part(rig, GEO.torso, m.dark, side * 0.43, 0.37, 0.22, 0.20, 0.46, 0.19, 0, 0, side * -0.62);
+    part(rig, GEO.sphere, m.skin, side * 0.27, 0.27, 0.47, 0.20, 0.20, 0.20);
+  }
+  part(rig, GEO.ring, m.accent, 0, 0.31, 0.48, 0.62, 0.62, 0.62, -0.18);
+  const head = part(rig, GEO.head, m.skin, 0, 0.94, 0.03, 0.74, 0.74, 0.74);
+  part(rig, GEO.sphere, m.shell, 0, 1.04, -0.03, 0.86, 0.76, 0.82);
+  const visor = bar(rig, MAT.visor, 0, 1.00, 0.39, 0.66, 0.20, 0.12);
+  bar(rig, MAT.light, -0.18, 1.04, 0.46, 0.15, 0.055, 0.025);
+  bar(rig, MAT.light, 0.18, 1.04, 0.46, 0.15, 0.055, 0.025);
   let animated;
   if (id === 'kestrel') {
     animated = part(rig, GEO.cone, m.accent, 0, 1.30, -0.10, 0.27, 0.70, 0.25, 0, 0, -0.18);
@@ -198,6 +221,21 @@ export function buildKart(colourHex, racerId = 'kestrel') {
   const root = new THREE.Group(); root.name = 'kart-' + id;
   const shell = new THREE.Group(); root.add(shell);
   const animatedParts = []; buildShell(id, shell, m, animatedParts);
+  /* A dark undertray visually separates paint from road, while the engine
+     mass and exhausts give the rear view—the player's normal view—real
+     machinery to read instead of a flat coloured box. */
+  bar(shell, MAT.trim, 0, 0.27, -0.06, p.wheelX * 1.58, 0.18, p.frontZ - p.rearZ + 0.58);
+  const engine = new THREE.Group(); engine.position.set(0, 0.61, p.rearZ - 0.43); shell.add(engine);
+  bar(engine, MAT.chrome, 0, 0, 0, id === 'pewter' ? 1.34 : 0.92, 0.36, 0.48);
+  const pipes = (id === 'pewter' || id === 'ember') ? 2 : 1;
+  for (const side of [-1, 1]) for (let j = 0; j < pipes; j++) {
+    part(engine, GEO.cyl8, MAT.chrome, side * (0.40 + j * 0.24), 0.03 + j * 0.15, -0.36,
+      0.18, 0.54, 0.18, Math.PI / 2);
+  }
+  if (id === 'cobalt' || id === 'saffron' || id === 'pewter') {
+    part(shell, GEO.sphere, MAT.canopy, 0, 0.96, 0.14,
+      id === 'pewter' ? 1.08 : 0.88, 0.55, 0.76);
+  }
   const wheels = addWheels(root, p), driver = addDriver(root, m, id, p.driverY, p.driverZ);
   const sparks = [];
   for (const side of [-1, 1]) for (let i = 0; i < SPARKS_PER_SIDE; i++) {
@@ -205,7 +243,7 @@ export function buildKart(colourHex, racerId = 'kestrel') {
     sp.visible = false; sp.userData.side = side; sp.userData.phase = i / SPARKS_PER_SIDE; sparks.push(sp);
   }
   const flame = part(root, GEO.flame, MAT.flame, 0, .50, p.rearZ - 1.12, 1, 1, 1, Math.PI / 2); flame.visible = false;
-  root.userData = { id, wheels, sparks, flame, shell, driver: driver.rig, head: driver.head, animated: driver.animated, animatedParts, spin: 0, wheelX: p.wheelX, rearZ: p.rearZ, driverBaseY: p.driverY };
+  root.userData = { id, wheels, sparks, flame, shell, engine, driver: driver.rig, head: driver.head, animated: driver.animated, animatedParts, spin: 0, wheelX: p.wheelX, rearZ: p.rearZ, driverBaseY: p.driverY };
   return root;
 }
 
@@ -226,8 +264,11 @@ export function syncKart(mesh, kart, track, dt, time) {
     if (i < 2) w.rotation.y = ZC.clamp(kart.slip * .6, -.5, .5);
   }
   const pulse = Math.sin(time * (10 + speedFrac * 13) + ud.wheelX) * speedFrac;
-  ud.shell.position.y = pulse * .025; ud.driver.position.y = ud.driverBaseY + pulse * .045;
-  ud.driver.rotation.z = ZC.clamp(-kart.slip * .22, -.20, .20);
+  ud.shell.position.y = pulse * .035;
+  ud.shell.rotation.z = ZC.clamp(-kart.slip * .12, -.10, .10);
+  ud.engine.position.y = .02 + Math.sin(time * 29 + ud.wheelX) * speedFrac * .018;
+  ud.driver.position.y = ud.driverBaseY + pulse * .055;
+  ud.driver.rotation.z = ZC.clamp(-kart.slip * .30, -.27, .27);
   ud.head.rotation.y = Math.sin(time * 2.8 + ud.rearZ) * .055 + ZC.clamp(kart.slip * .16, -.12, .12);
   if (ud.animated) {
     if (ud.id === 'mantis') ud.animated.rotation.z = Math.sin(time * 8) * .09;

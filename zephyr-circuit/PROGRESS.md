@@ -215,26 +215,100 @@ scaffolding.
 
 Forced release Saturday is **2026-08-29** (corrected 2026-08-20).
 
-## 2026-08-23 — polish night 4 (in progress)
+## 2026-08-23 — polish night 4
 
-Pacific date is Sunday 2026-08-23, six days after the 2026-08-17 start, so
-this is a polish night rather than a release night. The tree enters tonight
-clean at `b2f7fc7`; the last pushed state contains a large particle-system
-implementation but still labels it in progress, while the track dressing and
-kart character models remain at their scaffold-night baseline.
+**Outcome: three major render disciplines landed and the game remains fully
+working, but none earned an AAA critic pass. This is not release-ready.**
+Pacific date was Sunday 2026-08-23, six days after the 2026-08-17 start, so no
+release was attempted. Every implementation unit and critic-loop revision was
+pushed independently; final implementation tip is `1d94401` before this
+handoff-only commit.
 
-Tonight is deliberately bounded to three render disciplines, each confined to
-its SPEC-owned file and each requiring a separate harsh side-by-side critic:
+### What landed
 
-1. Finish and visually verify `render/fx.js` against Mario Kart 8 Deluxe's
-   drift, boost, impact, dust and speed feedback.
-2. Bring `render/trackmesh.js` to a staged floating-island standard with road
-   detail, environmental dressing and the promised waterfalls, judged against
-   Mario Kart 8 Deluxe and Art of Rally.
-3. Give `render/karts.js` eight genuinely distinct, readable racer silhouettes
-   and animation character, judged against Mario Kart 8 Deluxe's field.
+**Race effects (`render/fx.js`):** the existing pooled system is now
+deterministic per track and has compact tier-colored rear-contact drift cores,
+directional sparks and slip smoke, attached twin boost jets and wake, quieter
+rival effects, collision-specific flash/debris, and much sparser
+travel-projected speed lines. The last pass mirrors each kart's authored rear
+axle instead of using one generic effect origin. API, pooling, quality tiers and
+the allocation-free update path remain intact.
 
-Lead retains integration, screenshots, tests, `PROGRESS.md` and all git. This
-entry will be rewritten at the end with exactly what landed, each critic's
-verdict, current discipline status, remaining AAA debt and the next run's first
-priority.
+**Track world (`render/trackmesh.js`):** all three circuits now have a rubbered
+groove, broken accent racing line, repair patches, explicit verges, four layered
+waterfalls with mist, themed central landmarks, instanced vegetation,
+satellite islands and a lit start gate. Gullwing Bay gets a lighthouse, Thermal
+Spire crystals and Cirrus Run a turbine. Everything is generated once at build
+time and the existing `buildTrack(track)` API is unchanged.
+
+**Racer models (`render/karts.js`):** the field is no longer one shell in eight
+colors. The eight IDs have distinct bird, mantis, turbine, hot-rod, sun,
+thorn, armored and forest silhouettes; larger driver signatures; visible
+arms/controls; connected axles, rails, cockpit backs and fenders; separated
+paint, metal, rubber, canopy and emissive materials; and stronger steering,
+wheel, suspension and driver motion. Geometry/material caches and the
+allocation-free sync path remain.
+
+### Harsh critic verdicts
+
+Every first comparison was a **FAIL / ours loses** against real Mario Kart 8
+Deluxe frames; the track critic also used Art of Rally. No lenient verdict was
+converted into a pass.
+
+* **FX — FAIL after two reviewed iterations.** The first frame lost because
+  sparks, smoke and boost bloom were decorative and detached. The second
+  preserved silhouettes but still lost on contact ownership and causal
+  drift-charge-to-boost grammar. A final exact-axle/focus-kart pass landed
+  afterward, but did not receive another independent verdict tonight; do not
+  infer a pass.
+* **Karts — FAIL after two reviewed iterations.** Color separation and
+  archetype variety improved, but the critic still found character silhouettes,
+  believable mechanical assembly, material separation and demonstrated motion
+  below Mario Kart 8 Deluxe. A final silhouette/assembly/value pass landed
+  afterward, but did not receive another independent verdict; do not infer a
+  pass.
+* **Track/environment — FAIL.** The S-curve, glowing gate and kerbs read, but
+  the critic found the asphalt too black/flat, verges and vegetation too
+  uniform, lighting interaction weak, and no waterfall visible as a normal
+  racing hero vista. The implementation is a large step above the scaffold,
+  not an AAA pass.
+
+### Verification
+
+* Full arcade Jest suite: **9/9 suites, 237/237 tests passed** after the final
+  code changes.
+* `node --check` and `git diff --check`: passed for every landed render file.
+* Final moving-race screenshot sweep completed at **320x568, 390x844,
+  844x390, 768x1024, 1440x900 and 3840x2160**. Lead read all six PNGs.
+* Every viewport booted the renderer, ran an eight-kart race, and reported
+  **no horizontal scroll**. There were no app page errors or console errors.
+  The only console messages were the documented SwiftShader ReadPixels
+  performance warnings; the Google tag remained the only non-local request.
+* Touch controls and HUD remained visible at all four mobile/tablet sizes.
+  The software-rendered FPS numbers are not hardware performance evidence.
+
+### Current discipline status
+
+* Logic/gameplay: **PASS** (237 tests; three tracks, items and cup intact).
+* Browser boot/responsiveness/console: **PASS** at all required viewports.
+* FX visual bar: **FAIL / final pass unjudged**.
+* Kart visual bar: **FAIL / final pass unjudged**.
+* Track/environment visual bar: **FAIL**.
+* Audio, UI drama and real-hardware shadows: not advanced tonight and still
+  below the stated AAA bar.
+
+### Remaining AAA debt and next run first
+
+1. **Track first.** Make the waterfall a mandatory chase-camera hero vista
+   with a rock channel/basin, whitewater and wet contact; build a real
+   curb-to-shoulder-to-groundcover hierarchy; vary and cluster props; lighten
+   and materially break up the asphalt; then rerun the Art of Rally/Mario Kart
+   critic. Scene lighting/exposure belongs to `scene.js`, not `trackmesh.js`.
+2. Re-critic the final exact-axle FX and final kart silhouettes with moving,
+   player-focused proof before changing them again. Their last revisions are
+   **not passes merely because the run ended**.
+3. Then take audio/music and countdown/results/camera drama as the next bounded
+   disciplines. Check shadows on real GPU hardware rather than SwiftShader.
+
+Forced release remains **Saturday 2026-08-29**. Until then, keep polishing; do
+not ship early without every critic passing and the independent shipping judge.

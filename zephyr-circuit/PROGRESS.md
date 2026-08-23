@@ -351,3 +351,12 @@ working machine during a moving race. API, racer IDs, geometry/material caches
 and the allocation-free sync path remain intact. Node syntax, browser reload,
 and the Zephyr suite passed (109/109). The blind Mario Kart 8 Deluxe / Art of
 Rally critic verdict is still pending; this is not an AAA pass yet.
+
+### FX unit landed
+
+`render/fx.js` now transforms effect anchors through kart pitch and roll plus
+banked-road contact, and its boost/smoke anchors match the authored rear flame
+offset. Pools, quality tiers, public API and the allocation-free update path
+remain intact. Node syntax, static contract checks and the Zephyr suite passed
+(109/109). The moving-race screenshot re-critic is still pending; no visual
+pass is inferred from code review alone.

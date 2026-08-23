@@ -859,9 +859,10 @@ export function createFX(scene, track) {
 
   function kartOf(p) { return (p && p.kart) ? p.kart : p; }
 
-  /* Where the exhausts are, in kart-local metres. Matches the shell in
-     render/karts.js: the tail sits at z = -1.5 behind the wing posts. */
-  const EX_X = 0.34, EX_Y = 0.50;
+  /* Where the authored boost flame is, in kart-local metres. Keep y/z in
+     lockstep with render/karts.js' centered flame part (y=.50,
+     z=rearZ-1.12); the two pooled cores stay inside its .34m footprint. */
+  const EX_X = 0.10, EX_Y = 0.50, EX_Z = -1.12;
   const WH_Y = 0.06;
   /* Mirrors render/karts.js' authored rear axle instead of pretending all
      eight silhouettes share the scaffold kart's wheelbase. */
@@ -873,15 +874,27 @@ export function createFX(scene, track) {
   const DEFAULT_CONTACT = CONTACT.kestrel;
   function contactOf(k) { return CONTACT[k.id] || DEFAULT_CONTACT; }
 
-  /* local -> world, using the body yaw. No allocation: writes to _w. */
+  /* local -> world, matching render/karts.js' YXZ root pose. The old FX
+     anchor only used body yaw, which made rear contacts lift off the tyres
+     on banked corners and during a slide lean. No allocation: writes to _w. */
   const _w = { x: 0, y: 0, z: 0 };
   function toWorld(k, lx, ly, lz, yaw) {
     const y = (yaw === undefined) ? k.bodyYaw : yaw;
-    const fx = Math.sin(y), fz = Math.cos(y);
-    const rx = Math.cos(y), rz = -Math.sin(y);
-    _w.x = k.x + rx * lx + fx * lz;
-    _w.y = k.y + ly;
-    _w.z = k.z + rz * lx + fz * lz;
+    const proj = k._proj;
+    const pitch = (proj && proj.ty !== undefined) ? Math.asin(ZC.clamp(proj.ty, -1, 1)) : 0;
+    const roadRoll = (proj && proj.ry !== undefined) ? -Math.asin(ZC.clamp(proj.ry, -1, 1)) : 0;
+    const roll = -(k.slip || 0) * 0.45 + roadRoll;
+    const sy = Math.sin(y), cy = Math.cos(y);
+    const sp = Math.sin(pitch), cp = Math.cos(pitch);
+    const sr = Math.sin(roll), cr = Math.cos(roll);
+    /* Euler YXZ: roll local space, then pitch, then body yaw. */
+    const xr = cr * lx - sr * ly;
+    const yr = sr * lx + cr * ly;
+    const yp = cp * yr - sp * lz;
+    const zp = sp * yr + cp * lz;
+    _w.x = k.x + cy * xr + sy * zp;
+    _w.y = k.y + yp;
+    _w.z = k.z - sy * xr + cy * zp;
   }
 
   on('kart:driftStart', (p) => {
@@ -923,7 +936,7 @@ export function createFX(scene, track) {
     const kvx = fx * k.speed, kvz = fz * k.speed;
     const cp = contactOf(k);
     for (const sx of [-EX_X, EX_X]) {
-      toWorld(k, sx, EX_Y, cp[1] - 1.02);
+      toWorld(k, sx, EX_Y, cp[1] + EX_Z);
       const ex = _w.x, ey = _w.y, ez = _w.z;
       /* the flame cone itself — velocity is mostly the kart's own, so the
          burst stays a cone bolted to the exhaust rather than a fireball
@@ -1046,7 +1059,7 @@ export function createFX(scene, track) {
     for (const k of st.karts) {
       const cp = contactOf(k);
       for (const sx of [-EX_X, EX_X]) {
-        toWorld(k, sx, EX_Y, cp[1] - 1.02);
+        toWorld(k, sx, EX_Y, cp[1] + EX_Z);
         smokePuff(_w.x, _w.y, _w.z, 6, 2.6, 0.8, 0.78, 0.78, 0.7, 0.9, 0.35);
       }
       for (const side of [-1, 1]) {
@@ -1280,7 +1293,7 @@ export function createFX(scene, track) {
       kTrailAcc[i] -= n;
       for (let q = 0; q < n; q++) {
         const sx = (random() < 0.5 ? -EX_X : EX_X);
-        toWorld(k, sx, EX_Y + rnd(-0.05, 0.05), cp[1] - 1.02);
+        toWorld(k, sx, EX_Y + rnd(-0.05, 0.05), cp[1] + EX_Z);
         /* the flame is attached to the kart, so it keeps most of the
            kart's velocity and only slides backwards out of the pipe */
         const v = rnd(3, 13);
@@ -1397,7 +1410,7 @@ export function createFX(scene, track) {
         const idx = base + s, i3 = idx * 3;
         if (!on) { alp[idx] = 0; siz[idx] = 0; continue; }
         const side = s === 0 ? -EX_X : EX_X;
-        toWorld(k, side, EX_Y, cp[1] - 1.20);
+        toWorld(k, side, EX_Y, cp[1] + EX_Z);
         pos[i3] = _w.x; pos[i3 + 1] = _w.y; pos[i3 + 2] = _w.z;
         const flick = 0.84 + 0.16 * Math.sin(time * 57 + i * 1.9 + s * 2.7);
         const focusScale = k === focus ? 1 : 0.16;

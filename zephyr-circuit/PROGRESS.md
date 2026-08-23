@@ -330,3 +330,15 @@ visually inspected at **320x568, 390x844, 844x390, 768x1024, 1440x900 and
 layout received a dedicated width correction so `Zephyr Dart` is not
 truncated. A real pointer down/up on the touch panel consumed exactly one item,
 changed the HUD to Empty, and left virtual input released.
+
+## 2026-08-23 — polish night 5 intent
+
+Tonight is a bounded visual pass, not release night: Pacific Sunday, six days
+after the 2026-08-17 start. The forced release remains Saturday 2026-08-29.
+The first priority is `render/trackmesh.js`: make the waterfall a mandatory
+chase-camera hero vista, establish a clear curb-to-shoulder-to-groundcover
+hierarchy, vary and cluster the props, and break up the asphalt enough to
+survive a blind Mario Kart 8 Deluxe / Art of Rally comparison. In parallel,
+the final `render/fx.js` and `render/karts.js` revisions will receive fresh
+moving-race side-by-side critic verdicts; they are not passes merely because
+the previous run ended. The lead will keep all integration files and git.

@@ -214,3 +214,27 @@ scaffolding.
    agent-ui — each against a harsh blind-comparison critic.
 
 Forced release Saturday is **2026-08-29** (corrected 2026-08-20).
+
+## 2026-08-23 — polish night 4 (in progress)
+
+Pacific date is Sunday 2026-08-23, six days after the 2026-08-17 start, so
+this is a polish night rather than a release night. The tree enters tonight
+clean at `b2f7fc7`; the last pushed state contains a large particle-system
+implementation but still labels it in progress, while the track dressing and
+kart character models remain at their scaffold-night baseline.
+
+Tonight is deliberately bounded to three render disciplines, each confined to
+its SPEC-owned file and each requiring a separate harsh side-by-side critic:
+
+1. Finish and visually verify `render/fx.js` against Mario Kart 8 Deluxe's
+   drift, boost, impact, dust and speed feedback.
+2. Bring `render/trackmesh.js` to a staged floating-island standard with road
+   detail, environmental dressing and the promised waterfalls, judged against
+   Mario Kart 8 Deluxe and Art of Rally.
+3. Give `render/karts.js` eight genuinely distinct, readable racer silhouettes
+   and animation character, judged against Mario Kart 8 Deluxe's field.
+
+Lead retains integration, screenshots, tests, `PROGRESS.md` and all git. This
+entry will be rewritten at the end with exactly what landed, each critic's
+verdict, current discipline status, remaining AAA debt and the next run's first
+priority.

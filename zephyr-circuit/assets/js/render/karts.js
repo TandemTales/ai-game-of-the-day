@@ -36,8 +36,8 @@ function initShared() {
   /* Tyres cannot be near-black in a sunset scene: the whole lower half of
      the lineup used to collapse into one silhouette. Bright sidewalls and
      metal hubs keep wheelbase and steering readable at race distance. */
-  MAT.tyre = new THREE.MeshStandardMaterial({ color: 0x303442, roughness: 0.88, metalness: 0.02, flatShading: true });
-  MAT.trim = new THREE.MeshStandardMaterial({ color: 0x202532, roughness: 0.58, metalness: 0.42, flatShading: true });
+  MAT.tyre = new THREE.MeshStandardMaterial({ color: 0x4a5060, roughness: 0.82, metalness: 0.04, flatShading: true });
+  MAT.trim = new THREE.MeshStandardMaterial({ color: 0x343b4b, roughness: 0.52, metalness: 0.46, flatShading: true });
   MAT.chrome = new THREE.MeshStandardMaterial({ color: 0xc9d6e8, roughness: 0.20, metalness: 0.92, flatShading: true });
   MAT.visor = new THREE.MeshLambertMaterial({ color: 0x13283b, emissive: 0x07131d, flatShading: true });
   MAT.light = new THREE.MeshLambertMaterial({ color: 0xf4f0df, flatShading: true });
@@ -71,8 +71,8 @@ function materialsFor(id, colourHex) {
   if (m) return m;
   const base = new THREE.Color(colourHex);
   m = {
-    shell: new THREE.MeshStandardMaterial({ color: base, roughness: 0.27, metalness: 0.18, flatShading: true }),
-    dark: new THREE.MeshStandardMaterial({ color: base.clone().multiplyScalar(0.42), roughness: 0.42, metalness: 0.34, flatShading: true }),
+    shell: new THREE.MeshStandardMaterial({ color: base, emissive: base, emissiveIntensity: 0.055, roughness: 0.27, metalness: 0.18, flatShading: true }),
+    dark: new THREE.MeshStandardMaterial({ color: base.clone().multiplyScalar(0.52), emissive: base, emissiveIntensity: 0.025, roughness: 0.42, metalness: 0.34, flatShading: true }),
     pale: new THREE.MeshStandardMaterial({ color: base.clone().lerp(new THREE.Color(0xffffff), 0.52), roughness: 0.24, metalness: 0.12, flatShading: true }),
     accent: new THREE.MeshStandardMaterial({ color: ACCENT[id], emissive: ACCENT[id], emissiveIntensity: 0.28, roughness: 0.22, metalness: 0.30, flatShading: true }),
     skin: new THREE.MeshLambertMaterial({ color: SKIN[id], flatShading: true }),
@@ -136,37 +136,44 @@ function addDriver(root, m, id, y, z) {
   bar(rig, MAT.light, 0.18, 1.04, 0.46, 0.15, 0.055, 0.025);
   let animated;
   if (id === 'kestrel') {
-    animated = part(rig, GEO.cone, m.accent, 0, 1.30, -0.10, 0.27, 0.70, 0.25, 0, 0, -0.18);
-    part(rig, GEO.wedge, m.shell, -0.47, 0.94, -0.03, 0.35, 0.54, 0.16, 0, 0, -0.70);
-    part(rig, GEO.wedge, m.shell, 0.47, 0.94, -0.03, 0.35, 0.54, 0.16, 0, 0, 0.70);
+    animated = part(rig, GEO.cone, m.accent, 0, 1.48, -0.10, 0.32, 0.92, 0.30, 0, 0, -0.18);
+    part(rig, GEO.wedge, m.shell, -0.56, 1.08, -0.03, 0.45, 0.74, 0.20, 0, 0, -0.76);
+    part(rig, GEO.wedge, m.shell, 0.56, 1.08, -0.03, 0.45, 0.74, 0.20, 0, 0, 0.76);
   } else if (id === 'mantis') {
-    animated = new THREE.Group(); animated.position.set(0, 1.16, -0.03); rig.add(animated);
+    animated = new THREE.Group(); animated.position.set(0, 1.34, -0.03); rig.add(animated);
     bar(animated, m.accent, -0.24, 0.24, 0, 0.07, 0.62, 0.07, -0.32);
     bar(animated, m.accent, 0.24, 0.24, 0, 0.07, 0.62, 0.07, 0.32);
     part(animated, GEO.sphere, m.accent, -0.34, 0.55, 0, 0.16, 0.16, 0.16);
     part(animated, GEO.sphere, m.accent, 0.34, 0.55, 0, 0.16, 0.16, 0.16);
   } else if (id === 'cobalt') {
-    animated = bar(rig, m.accent, 0, 1.23, -0.04, 0.62, 0.13, 0.46);
-    bar(rig, MAT.chrome, -0.46, 0.93, -0.02, 0.10, 0.62, 0.10);
-    bar(rig, MAT.chrome, 0.46, 0.93, -0.02, 0.10, 0.62, 0.10);
+    animated = bar(rig, m.accent, 0, 1.45, -0.04, 0.78, 0.16, 0.52);
+    bar(rig, MAT.chrome, -0.55, 1.05, -0.02, 0.13, 0.76, 0.13);
+    bar(rig, MAT.chrome, 0.55, 1.05, -0.02, 0.13, 0.76, 0.13);
+    part(rig, GEO.cyl8, m.accent, -0.63, 1.08, -0.03, 0.34, 0.20, 0.34, 0, 0, Math.PI / 2);
+    part(rig, GEO.cyl8, m.accent, 0.63, 1.08, -0.03, 0.34, 0.20, 0.34, 0, 0, Math.PI / 2);
   } else if (id === 'ember') {
-    animated = new THREE.Group(); animated.position.set(0, 1.13, -0.12); rig.add(animated);
-    for (let i = 0; i < 3; i++) part(animated, GEO.cone, m.accent, 0, i * 0.25, -i * 0.08, 0.28 - i * 0.04, 0.48, 0.20);
+    animated = new THREE.Group(); animated.position.set(0, 1.34, -0.12); rig.add(animated);
+    for (let i = 0; i < 3; i++) part(animated, GEO.cone, m.accent, 0, i * 0.30, -i * 0.08, 0.35 - i * 0.05, 0.62, 0.25);
   } else if (id === 'saffron') {
-    animated = part(rig, GEO.ring, m.accent, 0, 0.93, -0.38, 1.08, 1.08, 1.08);
+    animated = new THREE.Group(); animated.position.set(0, 1.04, -0.38); rig.add(animated);
+    part(animated, GEO.ring, m.accent, 0, 0, 0, 1.32, 1.32, 1.32);
+    bar(animated, m.accent, 0, 0, 0, 1.62, 0.12, 0.10);
+    bar(animated, m.accent, 0, 0, 0, 0.12, 1.62, 0.10);
   } else if (id === 'thistle') {
-    animated = part(rig, GEO.cone, m.accent, 0, 1.40, -0.08, 0.62, 1.18, 0.58, 0, 0, -0.12);
-    part(rig, GEO.cone, m.shell, -0.52, 1.03, -0.02, 0.22, 0.72, 0.20, 0, 0, -0.72);
-    part(rig, GEO.cone, m.shell, 0.52, 1.03, -0.02, 0.22, 0.72, 0.20, 0, 0, 0.72);
+    animated = part(rig, GEO.cone, m.accent, 0, 1.62, -0.08, 0.76, 1.52, 0.70, 0, 0, -0.12);
+    part(rig, GEO.cone, m.shell, -0.60, 1.12, -0.02, 0.29, 0.92, 0.25, 0, 0, -0.78);
+    part(rig, GEO.cone, m.shell, 0.60, 1.12, -0.02, 0.29, 0.92, 0.25, 0, 0, 0.78);
   } else if (id === 'pewter') {
-    animated = bar(rig, m.accent, 0, 1.28, -0.02, 0.40, 0.16, 0.40);
-    part(rig, GEO.box, MAT.chrome, 0, 0.93, -0.03, 0.92, 0.72, 0.76);
+    animated = bar(rig, m.accent, 0, 1.48, -0.02, 0.52, 0.20, 0.52);
+    part(rig, GEO.box, MAT.chrome, 0, 1.02, -0.03, 1.08, 0.88, 0.88);
+    bar(rig, m.accent, -0.66, 1.08, -0.04, 0.24, 0.44, 0.36);
+    bar(rig, m.accent, 0.66, 1.08, -0.04, 0.24, 0.44, 0.36);
     visor.position.z = 0.40;
   } else {
-    animated = new THREE.Group(); animated.position.set(0, 1.22, -0.05); rig.add(animated);
-    part(animated, GEO.octa, m.accent, -0.34, 0.10, 0, 0.55, 0.24, 0.30, 0, 0, -0.35);
-    part(animated, GEO.octa, m.accent, 0.34, 0.10, 0, 0.55, 0.24, 0.30, 0, 0, 0.35);
-    part(animated, GEO.octa, m.pale, 0, 0.27, 0, 0.50, 0.26, 0.30);
+    animated = new THREE.Group(); animated.position.set(0, 1.40, -0.05); rig.add(animated);
+    part(animated, GEO.octa, m.accent, -0.46, 0.10, 0, 0.72, 0.32, 0.38, 0, 0, -0.42);
+    part(animated, GEO.octa, m.accent, 0.46, 0.10, 0, 0.72, 0.32, 0.38, 0, 0, 0.42);
+    part(animated, GEO.octa, m.pale, 0, 0.34, 0, 0.64, 0.34, 0.38);
   }
   return { rig, head, animated };
 }
@@ -225,6 +232,25 @@ export function buildKart(colourHex, racerId = 'kestrel') {
      mass and exhausts give the rear view—the player's normal view—real
      machinery to read instead of a flat coloured box. */
   bar(shell, MAT.trim, 0, 0.27, -0.06, p.wheelX * 1.58, 0.18, p.frontZ - p.rearZ + 0.58);
+  /* Continuous axles and side rails close the negative-space gaps that made
+     the old wheels look like four unrelated props floating beside a box. */
+  bar(shell, MAT.chrome, 0, p.frontR * 0.82, p.frontZ, p.wheelX * 2.12, 0.13, 0.13);
+  bar(shell, MAT.chrome, 0, p.rearR * 0.82, p.rearZ, p.wheelX * 2.12, 0.16, 0.16);
+  for (const side of [-1, 1]) {
+    bar(shell, m.pale, side * (p.wheelX - 0.28), 0.39, 0,
+      0.16, 0.18, p.frontZ - p.rearZ + 0.18);
+  }
+  /* A high-backed cockpit connects driver to machine in the rear view. */
+  bar(shell, m.dark, 0, 0.96, p.driverZ - 0.44, 1.18, 0.84, 0.34);
+  bar(shell, m.accent, 0, 1.29, p.driverZ - 0.63, 0.72, 0.15, 0.12);
+  if (id === 'pewter' || id === 'cobalt' || id === 'saffron' || id === 'moss') {
+    for (const side of [-1, 1]) {
+      part(shell, GEO.sphere, m.dark, side * (p.wheelX - 0.08), p.frontR + 0.10, p.frontZ,
+        p.frontR * 1.42, 0.27, p.frontR * 1.68);
+      part(shell, GEO.sphere, m.dark, side * (p.wheelX - 0.08), p.rearR + 0.12, p.rearZ,
+        p.rearR * 1.48, 0.29, p.rearR * 1.70);
+    }
+  }
   const engine = new THREE.Group(); engine.position.set(0, 0.61, p.rearZ - 0.43); shell.add(engine);
   bar(engine, MAT.chrome, 0, 0, 0, id === 'pewter' ? 1.34 : 0.92, 0.36, 0.48);
   const pipes = (id === 'pewter' || id === 'ember') ? 2 : 1;

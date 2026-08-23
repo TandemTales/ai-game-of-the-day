@@ -424,3 +424,31 @@ and posture variation. Eight IDs, exports, caches, dynamic steering/suspension
 and allocation-free `syncKart` remain intact. Node syntax, the Zephyr suite
 (109/109), and a moving 1440x900 browser frame passed. This revision still
 needs an independent AAA critic verdict; SwiftShader is not real-GPU evidence.
+
+### Critic loop 2 — all three disciplines still failed
+
+The second blind environment comparison now acknowledged visible water but
+still called it an overexposed cyan/white VFX slab rather than physical water,
+with sparse dressing and weak material integration. The second FX comparison
+found improved energy but ambiguous tire attachment, tier colors, boost
+direction and collision semantics. The second kart comparison found better
+color/accessory identity but still rejected the repeated chassis grammar,
+primitive driver/control relationship and weak mechanical assembly.
+
+### Track water-material revision landed
+
+`render/trackmesh.js` replaces the bright hero curtain and splash materials with
+subdued depth-tested Standard water, lower emissive intensity and opacity, and
+narrow muted foam ribbons. The basin, wet channel, rocks, opening placement and
+APIs remain. Node syntax, the Zephyr suite (109/109), and a fresh 1440x900
+moving frame passed; the water was reported translucent teal behind the basin.
+
+### FX grammar revision landed
+
+`render/fx.js` now uses tighter rear-axle drift emission with explicit pale-blue,
+blue, orange and pink tier palettes, a compact travel-aligned exhaust, darker
+sparser generic streaks, and a separate short yellow collision flash with
+smaller shards. Public API, pooling, quality tiers and the allocation-free
+update path remain intact. Node syntax, static checks, the Zephyr suite
+(109/109), and forced active 1440x900/390x844 frames passed. A fresh critic
+verdict is still required.

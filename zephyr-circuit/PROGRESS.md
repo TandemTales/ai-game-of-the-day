@@ -342,3 +342,12 @@ survive a blind Mario Kart 8 Deluxe / Art of Rally comparison. In parallel,
 the final `render/fx.js` and `render/karts.js` revisions will receive fresh
 moving-race side-by-side critic verdicts; they are not passes merely because
 the previous run ended. The lead will keep all integration files and git.
+
+### Karts unit landed
+
+`render/karts.js` now exposes cached wheel struts and subtle suspension travel
+driven by speed, slip and vertical motion, so each wheel reads as part of a
+working machine during a moving race. API, racer IDs, geometry/material caches
+and the allocation-free sync path remain intact. Node syntax, browser reload,
+and the Zephyr suite passed (109/109). The blind Mario Kart 8 Deluxe / Art of
+Rally critic verdict is still pending; this is not an AAA pass yet.

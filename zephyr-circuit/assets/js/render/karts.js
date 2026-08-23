@@ -104,18 +104,27 @@ const PROFILES = {
 
 function addWheels(root, p) {
   const wheels = [];
+  const suspension = [];
   for (let i = 0; i < 4; i++) {
     const rear = i >= 2, side = (i & 1) ? 1 : -1;
     const r = rear ? p.rearR : p.frontR;
+    const z = rear ? p.rearZ : p.frontZ;
     const wheel = part(root, rear ? GEO.wheelRear : GEO.wheel, MAT.tyre,
-      side * p.wheelX, r, rear ? p.rearZ : p.frontZ, r * 2, 1, r * 2, 0, 0, Math.PI / 2);
+      side * p.wheelX, r, z, r * 2, 1, r * 2, 0, 0, Math.PI / 2);
     /* Hub and bright spoke rotate with the tyre, making spin legible where
        an unmarked ten-sided cylinder looked stationary. */
     part(wheel, GEO.cyl8, MAT.chrome, 0, side * 0.29, 0, r * 1.26, 0.10, r * 1.26);
     bar(wheel, MAT.light, 0, side * 0.35, 0, r * 0.16, 0.08, r * 1.35, Math.PI / 4);
+    /* The support is deliberately exposed: a bright strut from the chassis
+       into each wheel makes the wheelbase read as one machine, and gives the
+       later spring travel a visible reference instead of floating tyres. */
+    const mountY = rear ? 0.80 : 0.84;
+    const strut = bar(root, MAT.chrome, side * p.wheelX, (mountY + r) * 0.5, z,
+      0.09, mountY - r, 0.09);
     wheels.push(wheel);
+    suspension.push({ mesh: strut, baseY: r, mountY, side, phase: i * 1.57 });
   }
-  return wheels;
+  return { wheels, suspension };
 }
 
 function addDriver(root, m, id, y, z) {
@@ -262,14 +271,15 @@ export function buildKart(colourHex, racerId = 'kestrel') {
     part(shell, GEO.sphere, MAT.canopy, 0, 0.96, 0.14,
       id === 'pewter' ? 1.08 : 0.88, 0.55, 0.76);
   }
-  const wheels = addWheels(root, p), driver = addDriver(root, m, id, p.driverY, p.driverZ);
+  const wheelSet = addWheels(root, p), wheels = wheelSet.wheels;
+  const driver = addDriver(root, m, id, p.driverY, p.driverZ);
   const sparks = [];
   for (const side of [-1, 1]) for (let i = 0; i < SPARKS_PER_SIDE; i++) {
     const sp = part(root, GEO.spark, MAT.sparkTier[0], side * p.wheelX, .22, p.rearZ, 1, 1, 1);
     sp.visible = false; sp.userData.side = side; sp.userData.phase = i / SPARKS_PER_SIDE; sparks.push(sp);
   }
   const flame = part(root, GEO.flame, MAT.flame, 0, .50, p.rearZ - 1.12, 1, 1, 1, Math.PI / 2); flame.visible = false;
-  root.userData = { id, wheels, sparks, flame, shell, engine, driver: driver.rig, head: driver.head, animated: driver.animated, animatedParts, spin: 0, wheelX: p.wheelX, rearZ: p.rearZ, driverBaseY: p.driverY };
+  root.userData = { id, wheels, suspension: wheelSet.suspension, sparks, flame, shell, engine, driver: driver.rig, head: driver.head, animated: driver.animated, animatedParts, spin: 0, wheelX: p.wheelX, rearZ: p.rearZ, driverBaseY: p.driverY };
   return root;
 }
 
@@ -285,8 +295,16 @@ export function syncKart(mesh, kart, track, dt, time) {
 
   const ud = mesh.userData, speedFrac = ZC.clamp01(Math.abs(kart.speed) / 38);
   ud.spin += kart.speed * dt * 2.2;
+  const cornerLoad = ZC.clamp(Math.abs(kart.slip) * speedFrac * .028 + Math.abs(kart.vy) * .004, 0, .07);
   for (let i = 0; i < ud.wheels.length; i++) {
     const w = ud.wheels[i]; w.rotation.x = ud.spin;
+    const sus = ud.suspension[i];
+    const spring = Math.sin(time * (12 + speedFrac * 8) + sus.phase) * (.004 + speedFrac * .016);
+    const sideLoad = ZC.clamp(kart.slip * speedFrac * sus.side * .020, -.022, .022);
+    const wheelY = sus.baseY + spring - cornerLoad + sideLoad;
+    w.position.y = wheelY;
+    sus.mesh.position.y = (sus.mountY + wheelY) * .5;
+    sus.mesh.scale.y = Math.max(.08, sus.mountY - wheelY);
     if (i < 2) w.rotation.y = ZC.clamp(kart.slip * .6, -.5, .5);
   }
   const pulse = Math.sin(time * (10 + speedFrac * 13) + ud.wheelX) * speedFrac;

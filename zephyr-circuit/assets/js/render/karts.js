@@ -29,7 +29,9 @@ function initShared() {
   shared('octa', new THREE.OctahedronGeometry(0.5, 0));
   shared('wheel', new THREE.CylinderGeometry(0.5, 0.5, 0.42, 10));
   shared('wheelRear', new THREE.CylinderGeometry(0.5, 0.5, 0.54, 10));
+  shared('hub', new THREE.CylinderGeometry(0.5, 0.5, 0.18, 12));
   shared('ring', new THREE.TorusGeometry(0.5, 0.095, 5, 12));
+  shared('well', new THREE.TorusGeometry(0.5, 0.07, 5, 10));
   shared('spark', new THREE.TetrahedronGeometry(0.24));
   shared('flame', new THREE.ConeGeometry(0.34, 1.5, 7));
 
@@ -71,10 +73,11 @@ function materialsFor(id, colourHex) {
   if (m) return m;
   const base = new THREE.Color(colourHex);
   m = {
-    shell: new THREE.MeshStandardMaterial({ color: base, emissive: base, emissiveIntensity: 0.055, roughness: 0.27, metalness: 0.18, flatShading: true }),
-    dark: new THREE.MeshStandardMaterial({ color: base.clone().multiplyScalar(0.52), emissive: base, emissiveIntensity: 0.025, roughness: 0.42, metalness: 0.34, flatShading: true }),
-    pale: new THREE.MeshStandardMaterial({ color: base.clone().lerp(new THREE.Color(0xffffff), 0.52), roughness: 0.24, metalness: 0.12, flatShading: true }),
-    accent: new THREE.MeshStandardMaterial({ color: ACCENT[id], emissive: ACCENT[id], emissiveIntensity: 0.28, roughness: 0.22, metalness: 0.30, flatShading: true }),
+    shell: new THREE.MeshStandardMaterial({ color: base, emissive: base, emissiveIntensity: 0.035, roughness: 0.34, metalness: 0.24, flatShading: true }),
+    dark: new THREE.MeshStandardMaterial({ color: base.clone().multiplyScalar(0.34), emissive: 0x05070a, emissiveIntensity: 0.02, roughness: 0.58, metalness: 0.12, flatShading: true }),
+    pale: new THREE.MeshStandardMaterial({ color: base.clone().lerp(new THREE.Color(0xffffff), 0.60), roughness: 0.36, metalness: 0.18, flatShading: true }),
+    accent: new THREE.MeshStandardMaterial({ color: ACCENT[id], emissive: ACCENT[id], emissiveIntensity: 0.16, roughness: 0.30, metalness: 0.42, flatShading: true }),
+    well: new THREE.MeshStandardMaterial({ color: base.clone().multiplyScalar(0.22), emissive: 0x070a10, emissiveIntensity: 0.025, roughness: 0.72, metalness: 0.10, flatShading: true }),
     skin: new THREE.MeshLambertMaterial({ color: SKIN[id], flatShading: true }),
   };
   for (const k in m) m[k].__shared = true;
@@ -102,7 +105,18 @@ const PROFILES = {
   moss:    { wheelX: 1.08, frontZ: 0.98, rearZ: -1.02, frontR: 0.46, rearR: 0.52, driverY: 0.76, driverZ: -0.32 },
 };
 
-function addWheels(root, p) {
+const DRIVER_POSE = {
+  kestrel: { lift: 0.00, depth: -0.02, lean: -0.16, sx: 0.94, sy: 1.04, sz: 1.00, shoulder: 1.02, armX: 0.43, armY: 0.36, armZ: 0.25, armTilt: 0.78, handX: 0.29, handY: 0.23, handZ: 0.50, controlY: 0.31, controlZ: 0.51, controlScale: 0.66 },
+  mantis:  { lift: -0.04, depth: -0.01, lean: 0.12, sx: 0.92, sy: 0.91, sz: 1.04, shoulder: 1.18, armX: 0.48, armY: 0.34, armZ: 0.24, armTilt: 0.56, handX: 0.34, handY: 0.21, handZ: 0.48, controlY: 0.28, controlZ: 0.50, controlScale: 0.74 },
+  cobalt:  { lift: 0.08, depth: -0.03, lean: -0.04, sx: 0.90, sy: 1.12, sz: 0.98, shoulder: 0.92, armX: 0.40, armY: 0.40, armZ: 0.23, armTilt: 0.90, handX: 0.25, handY: 0.27, handZ: 0.49, controlY: 0.35, controlZ: 0.51, controlScale: 0.56 },
+  ember:   { lift: -0.03, depth: -0.06, lean: 0.18, sx: 1.06, sy: 0.94, sz: 1.02, shoulder: 1.12, armX: 0.47, armY: 0.31, armZ: 0.28, armTilt: 0.44, handX: 0.35, handY: 0.18, handZ: 0.53, controlY: 0.25, controlZ: 0.54, controlScale: 0.76 },
+  saffron: { lift: 0.03, depth: -0.10, lean: 0.00, sx: 0.98, sy: 1.02, sz: 0.98, shoulder: 1.00, armX: 0.42, armY: 0.37, armZ: 0.20, armTilt: 0.72, handX: 0.28, handY: 0.24, handZ: 0.46, controlY: 0.32, controlZ: 0.47, controlScale: 0.84 },
+  thistle: { lift: -0.06, depth: 0.00, lean: -0.22, sx: 0.88, sy: 1.02, sz: 1.08, shoulder: 0.88, armX: 0.38, armY: 0.34, armZ: 0.22, armTilt: 1.04, handX: 0.24, handY: 0.22, handZ: 0.47, controlY: 0.28, controlZ: 0.49, controlScale: 0.60 },
+  pewter:  { lift: 0.08, depth: -0.04, lean: -0.06, sx: 1.16, sy: 1.08, sz: 1.00, shoulder: 1.30, armX: 0.53, armY: 0.40, armZ: 0.20, armTilt: 0.62, handX: 0.36, handY: 0.27, handZ: 0.47, controlY: 0.34, controlZ: 0.49, controlScale: 0.78 },
+  moss:    { lift: 0.00, depth: -0.02, lean: 0.10, sx: 1.00, sy: 0.96, sz: 1.06, shoulder: 1.10, armX: 0.46, armY: 0.35, armZ: 0.24, armTilt: 0.68, handX: 0.31, handY: 0.22, handZ: 0.49, controlY: 0.29, controlZ: 0.51, controlScale: 0.70 },
+};
+
+function addWheels(root, p, m) {
   const wheels = [];
   const suspension = [];
   for (let i = 0; i < 4; i++) {
@@ -114,13 +128,22 @@ function addWheels(root, p) {
     /* Hub and bright spoke rotate with the tyre, making spin legible where
        an unmarked ten-sided cylinder looked stationary. */
     part(wheel, GEO.cyl8, MAT.chrome, 0, side * 0.29, 0, r * 1.26, 0.10, r * 1.26);
+    part(wheel, GEO.hub, m.accent, 0, side * 0.37, 0, r * 0.44, 0.12, r * 0.44);
+    part(wheel, GEO.hub, MAT.light, 0, side * 0.45, 0, r * 0.12, 0.10, r * 0.12);
     bar(wheel, MAT.light, 0, side * 0.35, 0, r * 0.16, 0.08, r * 1.35, Math.PI / 4);
+    /* A collar on every wheel creates a readable well opening and ties the
+       tyre into the chassis instead of leaving it as a detached cylinder. */
+    part(root, GEO.well, m.well, side * (p.wheelX + 0.23), r, z,
+      r * 1.95, r * 1.95, 0.65, 0, Math.PI / 2);
     /* The support is deliberately exposed: a bright strut from the chassis
        into each wheel makes the wheelbase read as one machine, and gives the
        later spring travel a visible reference instead of floating tyres. */
     const mountY = rear ? 0.80 : 0.84;
     const strut = bar(root, MAT.chrome, side * p.wheelX, (mountY + r) * 0.5, z,
       0.09, mountY - r, 0.09);
+    const linkX = side * (p.wheelX - 0.17);
+    bar(root, m.well, linkX, r + 0.10, z, 0.34, 0.085, 0.12, side * 0.24);
+    bar(root, MAT.chrome, linkX, r + 0.27, z, 0.30, 0.065, 0.09, side * -0.18);
     wheels.push(wheel);
     suspension.push({ mesh: strut, baseY: r, mountY, side, phase: i * 1.57 });
   }
@@ -128,18 +151,24 @@ function addWheels(root, p) {
 }
 
 function addDriver(root, m, id, y, z) {
-  const rig = new THREE.Group(); rig.position.set(0, y, z); root.add(rig);
+  const pose = DRIVER_POSE[id] || DRIVER_POSE.kestrel;
+  const rig = new THREE.Group();
+  rig.position.set(0, y + pose.lift, z + pose.depth);
+  rig.rotation.z = pose.lean;
+  rig.scale.set(pose.sx, pose.sy, pose.sz);
+  root.add(rig);
   part(rig, GEO.torso, m.dark, 0, 0.24, 0, 0.64, 0.72, 0.56);
   /* Shoulders and arms make these drivers people rather than helmet posts.
      Hands reach a luminous steering hoop so the pose reads from either side. */
-  bar(rig, m.pale, 0, 0.53, 0.02, 1.12, 0.24, 0.38);
+  bar(rig, m.pale, 0, 0.53, 0.02, pose.shoulder, 0.24, 0.38);
   for (const side of [-1, 1]) {
-    part(rig, GEO.torso, m.dark, side * 0.43, 0.37, 0.22, 0.20, 0.46, 0.19, 0, 0, side * -0.62);
-    part(rig, GEO.sphere, m.skin, side * 0.27, 0.27, 0.47, 0.20, 0.20, 0.20);
+    part(rig, GEO.torso, m.pale, side * pose.armX, pose.armY, pose.armZ, 0.22, 0.48, 0.20, 0, 0, side * -pose.armTilt);
+    part(rig, GEO.sphere, m.skin, side * pose.handX, pose.handY, pose.handZ, 0.24, 0.24, 0.24);
   }
-  part(rig, GEO.ring, m.accent, 0, 0.31, 0.48, 0.62, 0.62, 0.62, -0.18);
-  const head = part(rig, GEO.head, m.skin, 0, 0.94, 0.03, 0.74, 0.74, 0.74);
-  part(rig, GEO.sphere, m.shell, 0, 1.04, -0.03, 0.86, 0.76, 0.82);
+  part(rig, GEO.ring, m.accent, 0, pose.controlY, pose.controlZ, pose.controlScale, pose.controlScale, pose.controlScale, -0.18);
+  bar(rig, m.accent, 0, pose.controlY - 0.11, pose.controlZ - 0.08, 0.10, 0.28, 0.10, pose.lean * 0.45);
+  const head = part(rig, GEO.head, m.skin, 0, 0.94, 0.03, 0.74 * pose.sy, 0.74 * pose.sy, 0.74 * pose.sz);
+  part(rig, GEO.sphere, m.shell, 0, 1.04, -0.03, 0.86 * pose.sx, 0.76 * pose.sy, 0.82 * pose.sz);
   const visor = bar(rig, MAT.visor, 0, 1.00, 0.39, 0.66, 0.20, 0.12);
   bar(rig, MAT.light, -0.18, 1.04, 0.46, 0.15, 0.055, 0.025);
   bar(rig, MAT.light, 0.18, 1.04, 0.46, 0.15, 0.055, 0.025);
@@ -184,7 +213,7 @@ function addDriver(root, m, id, y, z) {
     part(animated, GEO.octa, m.accent, 0.46, 0.10, 0, 0.72, 0.32, 0.38, 0, 0, 0.42);
     part(animated, GEO.octa, m.pale, 0, 0.34, 0, 0.64, 0.34, 0.38);
   }
-  return { rig, head, animated };
+  return { rig, head, animated, baseY: rig.position.y, baseRoll: rig.rotation.z };
 }
 
 function buildShell(id, s, m, animatedParts) {
@@ -271,7 +300,7 @@ export function buildKart(colourHex, racerId = 'kestrel') {
     part(shell, GEO.sphere, MAT.canopy, 0, 0.96, 0.14,
       id === 'pewter' ? 1.08 : 0.88, 0.55, 0.76);
   }
-  const wheelSet = addWheels(root, p), wheels = wheelSet.wheels;
+  const wheelSet = addWheels(root, p, m), wheels = wheelSet.wheels;
   const driver = addDriver(root, m, id, p.driverY, p.driverZ);
   const sparks = [];
   for (const side of [-1, 1]) for (let i = 0; i < SPARKS_PER_SIDE; i++) {
@@ -279,7 +308,7 @@ export function buildKart(colourHex, racerId = 'kestrel') {
     sp.visible = false; sp.userData.side = side; sp.userData.phase = i / SPARKS_PER_SIDE; sparks.push(sp);
   }
   const flame = part(root, GEO.flame, MAT.flame, 0, .50, p.rearZ - 1.12, 1, 1, 1, Math.PI / 2); flame.visible = false;
-  root.userData = { id, wheels, suspension: wheelSet.suspension, sparks, flame, shell, engine, driver: driver.rig, head: driver.head, animated: driver.animated, animatedParts, spin: 0, wheelX: p.wheelX, rearZ: p.rearZ, driverBaseY: p.driverY };
+  root.userData = { id, wheels, suspension: wheelSet.suspension, sparks, flame, shell, engine, driver: driver.rig, head: driver.head, animated: driver.animated, animatedParts, spin: 0, wheelX: p.wheelX, rearZ: p.rearZ, driverBaseY: driver.baseY, driverBaseRoll: driver.baseRoll };
   return root;
 }
 
@@ -312,7 +341,7 @@ export function syncKart(mesh, kart, track, dt, time) {
   ud.shell.rotation.z = ZC.clamp(-kart.slip * .12, -.10, .10);
   ud.engine.position.y = .02 + Math.sin(time * 29 + ud.wheelX) * speedFrac * .018;
   ud.driver.position.y = ud.driverBaseY + pulse * .055;
-  ud.driver.rotation.z = ZC.clamp(-kart.slip * .30, -.27, .27);
+  ud.driver.rotation.z = ud.driverBaseRoll + ZC.clamp(-kart.slip * .30, -.27, .27);
   ud.head.rotation.y = Math.sin(time * 2.8 + ud.rearZ) * .055 + ZC.clamp(kart.slip * .16, -.12, .12);
   if (ud.animated) {
     if (ud.id === 'mantis') ud.animated.rotation.z = Math.sin(time * 8) * .09;

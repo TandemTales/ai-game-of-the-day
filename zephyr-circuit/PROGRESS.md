@@ -393,3 +393,13 @@ kart-rooted collision flashes/shards. The API, pools, quality tiers and
 allocation-free update path remain intact. Node syntax and the Zephyr suite
 (109/109) passed. A forced active-state screenshot was not completed, so the
 new visual bar remains unjudged.
+
+### Karts critic-loop revision landed
+
+`render/karts.js` now adds cached hub caps, toroidal wheel collars, visible
+wheel wells, paired suspension/control arms, stronger structural value
+separation, and per-profile driver lean, scale, shoulder, hand, steering-control
+and posture variation. Eight IDs, exports, caches, dynamic steering/suspension
+and allocation-free `syncKart` remain intact. Node syntax, the Zephyr suite
+(109/109), and a moving 1440x900 browser frame passed. This revision still
+needs an independent AAA critic verdict; SwiftShader is not real-GPU evidence.

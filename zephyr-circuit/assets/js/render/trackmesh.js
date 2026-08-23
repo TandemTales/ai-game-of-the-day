@@ -855,25 +855,25 @@ function makeWhitewaterCrown(track, info, i, lipD, topY, material) {
 
 /* A short foreground curtain is intentionally separate from the long fall:
    the opening chase frame needs a readable water surface before fog and the
-   dark basin can swallow the distant plunge. It is camera-facing, sits just
-   inside the basin toward the shoulder, and uses depth priority only for this
-   hero accent so the bright water cannot disappear behind its own rocks. */
+   dark basin can swallow the distant plunge. It is camera-facing, sits behind
+   the basin toward the island edge, and remains a normal depth-tested surface
+   so it cannot paint over the road or HUD-adjacent sightline. */
 function makeHeroCurtain(track, info, i, lipD) {
   const verts = [], cols = [], idx = [];
-  const water = colr(info.theme.water), white = colr(0xdfffff), deep = colr(0x2aaac3);
-  const d = lipD - info.outerSign * 2.6;
+  const water = colr(info.theme.water), white = colr(0xbfeff1), deep = colr(0x2aaac3);
+  const d = lipD + info.outerSign * 3.4;
   const roadY = track.py[i] + track.ry[i] * d;
-  const strips = [-2.3, 0, 2.3];
+  const strips = [-1.1, 0, 1.1];
   let v = 0;
   for (let s = 0; s < strips.length; s++) {
     const along = strips[s];
-    const width = 2.4 + seeded(i + s, 431) * 0.7;
-    const lean = (seeded(i + s, 432) - 0.5) * 1.5;
+    const width = 1.25 + seeded(i + s, 431) * 0.45;
+    const lean = (seeded(i + s, 432) - 0.5) * 0.8;
     const rows = [
-      { y: roadY + 5.5 + lean, w: width * 0.72, c: white },
-      { y: roadY - 0.5, w: width, c: water },
-      { y: roadY - 11.5 - seeded(i + s, 433) * 2, w: width * 0.86, c: deep },
-      { y: roadY - 19 - seeded(i + s, 434) * 2, w: width * 0.7, c: white },
+      { y: roadY + 3.2 + lean, w: width * 0.72, c: white },
+      { y: roadY + 0.3, w: width, c: water },
+      { y: roadY - 6.5 - seeded(i + s, 433) * 1.2, w: width * 0.86, c: deep },
+      { y: roadY - 11.5 - seeded(i + s, 434) * 1.2, w: width * 0.7, c: white },
     ];
     for (let r = 0; r < rows.length; r++) {
       const row = rows[r];
@@ -897,25 +897,25 @@ function makeHeroCurtain(track, info, i, lipD) {
   geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
   geo.setIndex(idx);
   const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
-    vertexColors: true, transparent: true, opacity: 0.86,
-    depthWrite: false, depthTest: false, side: THREE.DoubleSide,
+    vertexColors: true, transparent: true, opacity: 0.48,
+    depthWrite: false, depthTest: true, side: THREE.DoubleSide,
   }));
-  mesh.renderOrder = 8; mesh.name = 'heroWaterCurtain';
+  mesh.renderOrder = 3; mesh.name = 'heroWaterCurtain';
   return mesh;
 }
 
 function makeHeroSplash(track, info, i, lipD) {
   const group = new THREE.Group();
-  const d = lipD - info.outerSign * 4.2;
-  const baseY = track.py[i] + track.ry[i] * d + 3.2;
+  const d = lipD + info.outerSign * 0.8;
+  const baseY = track.py[i] + track.ry[i] * d + 1.1;
   const verts = [], cols = [], idx = [];
   const foam = colr(0xffffff), cyan = colr(0x7debf2);
   let v = 0;
   for (let j = 0; j < 9; j++) {
     const salt = i + j * 29;
     const along = (seeded(salt, 441) - 0.5) * 8.2;
-    const half = 0.35 + seeded(salt, 442) * 0.62;
-    const height = 2.8 + seeded(salt, 443) * 5.2;
+    const half = 0.25 + seeded(salt, 442) * 0.4;
+    const height = 1.5 + seeded(salt, 443) * 3.1;
     const c = j & 1 ? cyan : foam;
     const tipD = d + info.outerSign * (0.9 + seeded(salt, 444) * 2.2);
     verts.push(
@@ -933,19 +933,19 @@ function makeHeroSplash(track, info, i, lipD) {
   geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
   geo.setIndex(idx);
   const fan = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
-    vertexColors: true, transparent: true, opacity: 0.98,
-    depthWrite: false, depthTest: false, side: THREE.DoubleSide,
+    vertexColors: true, transparent: true, opacity: 0.7,
+    depthWrite: false, depthTest: true, side: THREE.DoubleSide,
   }));
-  fan.renderOrder = 9; fan.name = 'heroFoamSplash'; group.add(fan);
+  fan.renderOrder = 4; fan.name = 'heroFoamSplash'; group.add(fan);
 
   const bubbles = new THREE.InstancedMesh(
     new THREE.SphereGeometry(1, 6, 4),
-    new THREE.MeshBasicMaterial({ color: 0xf4ffff, transparent: true, opacity: 0.9, depthWrite: false, depthTest: false }),
-    10);
+    new THREE.MeshBasicMaterial({ color: 0xe6ffff, transparent: true, opacity: 0.58, depthWrite: false, depthTest: true }),
+    8);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion();
   const sc = new THREE.Vector3(), p = new THREE.Vector3();
   const up = new THREE.Vector3(0, 1, 0);
-  for (let j = 0; j < 10; j++) {
+  for (let j = 0; j < 8; j++) {
     const salt = i + j * 31;
     const along = (seeded(salt, 445) - 0.5) * 8.5;
     const bubbleD = d + info.outerSign * (0.4 + seeded(salt, 446) * 2.6);

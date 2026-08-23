@@ -405,6 +405,16 @@ basin remain for depth. Node syntax and the Zephyr suite (109/109) passed, and
 a fresh moving 1440x900 frame was inspected with the shoulder water curtain and
 foam visible. The independent second critic verdict is still pending.
 
+### Track presentation refinement
+
+The opening curtain was too large and opaque in the six-viewport sweep, so the
+track worker pulled it behind the basin, reduced its width/height/opacity,
+restored normal depth testing and lowered the foam/bubble priority. The refined
+390x844 and 1440x900 frames keep the water outside the mobile racing view and
+show a smaller far-right basin accent on desktop. The full sweep covered
+320x568, 390x844, 844x390, 768x1024, 1440x900 and 3840x2160 with no app errors
+or horizontal scroll. The fresh critic verdict is pending.
+
 ### Karts critic-loop revision landed
 
 `render/karts.js` now adds cached hub caps, toroidal wheel collars, visible

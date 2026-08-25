@@ -486,3 +486,14 @@ run should start by fixing tire/contact and effect ownership, then rerun the
 track and kart critics before taking on audio, countdown/results drama and
 camera presentation. No `.aaa-complete` was written, `.arcade-agent/current-game.md`
 remains active for Zephyr Circuit, and `main` was not touched.
+
+## 2026-08-24 — polish night 6 intent
+
+Pacific Monday, seven days after the 2026-08-17 start: this is not release
+night. Tonight is a bounded critic-led pass on the two most actionable visual
+failures from the prior handoff: make drift/boost/collision effects visibly
+belong to the focus kart's tires and travel direction in `render/fx.js`, and
+make the track's curb-to-shoulder-to-groundcover and waterfall hero read as a
+coherent racing environment in `render/trackmesh.js`. Each worker owns only
+its SPEC-assigned file; the lead owns integration, tests, screenshots and git.
+No release or `main` update is planned tonight.

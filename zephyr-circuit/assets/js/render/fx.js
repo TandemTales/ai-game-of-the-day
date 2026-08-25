@@ -715,9 +715,11 @@ export function createFX(scene, track) {
   const kPrevFall = new Uint8Array(MAXK);
   const kPrevVy = new Float32Array(MAXK);
   const kSparkAcc = new Float32Array(MAXK);
+  const kContactAcc = new Float32Array(MAXK);
   const kSmokeAcc = new Float32Array(MAXK);
   const kDustAcc = new Float32Array(MAXK);
   const kTrailAcc = new Float32Array(MAXK);
+  const kWakeAcc = new Float32Array(MAXK);
   const kGritAcc = new Float32Array(MAXK);
   const kBoostPop = new Float32Array(MAXK);
   const kDriftPop = new Float32Array(MAXK);
@@ -901,9 +903,14 @@ export function createFX(scene, track) {
   on('kart:driftStart', (p) => {
     const k = kartOf(p); if (!k) return;
     const cp = contactOf(k);
-    for (const side of [-1, 1]) {
-      toWorld(k, side * cp[0], WH_Y, cp[1]);
-      smokePuff(_w.x, _w.y, _w.z, 5, 1.6, 0.82, 0.80, 0.80, 0.55, 0.75, 0.30);
+    const dir = k.drift.dir || 1;
+    for (let s = 0; s < 2; s++) {
+      /* Put the first visible puff on the inside rear tyre. The second is a
+         quieter mirror, so the slide has a source rather than two floating
+         clouds with no relationship to the kart. */
+      const side = s === 0 ? dir : -dir;
+      toWorld(k, side * cp[0], WH_Y + 0.015, cp[1]);
+      smokePuff(_w.x, _w.y, _w.z, s === 0 ? 6 : 3, 1.6, 0.82, 0.80, 0.80, 0.48, 0.62, s === 0 ? 0.34 : 0.20);
     }
   });
 
@@ -916,8 +923,10 @@ export function createFX(scene, track) {
     /* A hard, unmissable pop at the exact frame the colour changes. This
        is the feedback the whole mechanic hangs on. */
     const cp = contactOf(k);
-    for (const side of [-1, 1]) {
-      toWorld(k, side * cp[0], WH_Y + 0.08, cp[1]);
+    const dir = k.drift.dir || 1;
+    for (let s = 0; s < 2; s++) {
+      const side = s === 0 ? dir : -dir;
+      toWorld(k, side * cp[0], WH_Y + 0.035, cp[1]);
       sparkBurst(_w.x, _w.y, _w.z, 8 + tier * 4, 7 + tier * 1.5, c, 0.20, 0.26, -14);
       const tail = TIER_TAIL[Math.min(3, tier)];
       resetP();
@@ -936,7 +945,8 @@ export function createFX(scene, track) {
     const fx = Math.sin(k.travelYaw), fz = Math.cos(k.travelYaw);
     const kvx = fx * k.speed, kvz = fz * k.speed;
     const cp = contactOf(k);
-    for (const sx of [-EX_X, EX_X]) {
+    for (let exhaust = 0; exhaust < 2; exhaust++) {
+      const sx = exhaust === 0 ? -EX_X : EX_X;
       toWorld(k, sx, EX_Y, cp[1] + EX_Z);
       const ex = _w.x, ey = _w.y, ez = _w.z;
       /* the flame cone itself — velocity is mostly the kart's own, so the
@@ -946,19 +956,28 @@ export function createFX(scene, track) {
         const t = i / 6;
         resetP();
         P.x = ex + rnd(-0.08, 0.08); P.y = ey + rnd(-0.07, 0.07); P.z = ez + rnd(-0.08, 0.08);
-        const v = rnd(7, 18);
-        P.vx = kvx * 0.7 - fx * v + rnd(-2.5, 2.5);
-        P.vz = kvz * 0.7 - fz * v + rnd(-2.5, 2.5);
+        const v = rnd(15, 25);
+        P.vx = kvx * 0.42 - fx * v + rnd(-1.6, 1.6);
+        P.vz = kvz * 0.42 - fz * v + rnd(-1.6, 1.6);
         P.vy = rnd(-0.5, 2.2);
         P.life = rnd(0.14, 0.32);
         P.s0 = rnd(0.16, 0.30); P.s1 = P.s0 * 2.0;
         P.r0 = 1.9; P.g0 = 2.15 - t * 0.25; P.b0 = 2.45 - t * 0.65;
         P.r1 = 1.45; P.g1 = 0.38; P.b1 = 0.03;
         P.a0 = 0.66; P.aPow = 1.65; P.aIn = 0;
-        P.rot = screenAngle(-fx * v, P.vy, -fz * v) + rnd(-0.12, 0.12);
+        P.rot = screenAngle(-fx, P.vy * 0.02, -fz) + rnd(-0.08, 0.08);
         P.drag = 2.0;
         emit(flame);
       }
+      /* A compact hot source makes the authored exhaust origin survive the
+         first few frames before the directional trail separates from it. */
+      resetP();
+      P.x = ex; P.y = ey; P.z = ez;
+      P.life = 0.16; P.s0 = 0.54; P.s1 = 0.10;
+      P.r0 = 3.4; P.g0 = 3.2; P.b0 = 2.5;
+      P.r1 = 1.8; P.g1 = 0.55; P.b1 = 0.04;
+      P.a0 = 0.9; P.aPow = 1.1; P.aIn = 0;
+      emit(glow);
     }
   });
 
@@ -967,26 +986,32 @@ export function createFX(scene, track) {
     /* One-frame contact flash, then a radial spark crown and a separate
        rearward cone of physical debris. No lingering cloud: an impact
        must not be mistaken for boost exhaust. */
+    /* The flash is on the kart root, while the shock ring is on the road
+       under that root. Together they establish a collision event instead
+       of another free-floating orange burst. */
+    toWorld(k, 0, WH_Y + 0.02, 0.02);
+    const groundX = _w.x, groundY = _w.y, groundZ = _w.z;
+    ring(groundX, groundY, groundZ, 14, 0.28, 1.9, 10, 0.25, COL_IMPACT, 0.38, 0.75);
     toWorld(k, 0, 0.82, 0);
     const hitX = _w.x, hitY = _w.y, hitZ = _w.z;
     resetP();
     P.x = hitX; P.y = hitY; P.z = hitZ;
-    P.life = 0.13; P.s0 = 1.55; P.s1 = 0.12;
-    P.r0 = COL_IMPACT[0]; P.g0 = COL_IMPACT[1]; P.b0 = COL_IMPACT[2];
+    P.life = 0.15; P.s0 = 2.05; P.s1 = 0.12;
+    P.r0 = 4.8; P.g0 = 3.8; P.b0 = 1.25;
     P.r1 = COL_IMPACT[3]; P.g1 = COL_IMPACT[4]; P.b1 = COL_IMPACT[5];
     P.a0 = 0.92; P.aIn = 0; P.aPow = 1.1;
     emit(glow);
     sparkBurst(hitX, hitY, hitZ, 14, 10, COL_IMPACT, 0.24, 0.28, -18);
     const fx = Math.sin(k.travelYaw), fz = Math.cos(k.travelYaw);
     const rx = Math.cos(k.travelYaw), rz = -Math.sin(k.travelYaw);
-    for (let q = 0; q < 10; q++) {
-      const back = rnd(5, 11), side = rnd(-4, 4);
+    for (let q = 0; q < 12; q++) {
+      const back = rnd(8, 16), side = rnd(-5, 5);
       resetP();
       P.x = hitX + rnd(-0.10, 0.10); P.y = hitY + rnd(-0.12, 0.18); P.z = hitZ + rnd(-0.10, 0.10);
       P.vx = -fx * back + rx * side; P.vz = -fz * back + rz * side; P.vy = rnd(2, 8);
-      P.life = rnd(0.20, 0.40); P.s0 = rnd(0.16, 0.30); P.s1 = P.s0 * 0.16;
-      P.r0 = 0.70; P.g0 = 0.30; P.b0 = 0.06;
-      P.r1 = 0.12; P.g1 = 0.03; P.b1 = 0.01;
+      P.life = rnd(0.28, 0.50); P.s0 = rnd(0.18, 0.34); P.s1 = P.s0 * 0.14;
+      P.r0 = 0.95; P.g0 = 0.52; P.b0 = 0.10;
+      P.r1 = 0.16; P.g1 = 0.05; P.b1 = 0.01;
       P.a0 = 1; P.aIn = 0; P.aPow = 1.5;
       P.rot = random() * 6.28; P.rotV = rnd(-18, 18); P.grav = -22; P.drag = 0.6;
       emit(bits);
@@ -1169,9 +1194,9 @@ export function createFX(scene, track) {
       for (let q = 0; q < n; q++) {
         /* both rear wheels spark; the inside one throws roughly twice as
            much, which is what makes the direction of the slide readable */
-        const inside = (random() < 0.68) ? d.dir : -d.dir;
+        const inside = (q === 0 || random() < 0.72) ? d.dir : -d.dir;
         const sx = inside * cp[0];
-        toWorld(k, sx + rnd(-0.02, 0.02), WH_Y + rnd(0, 0.03), cp[1] + rnd(-0.03, 0.03));
+        toWorld(k, sx + rnd(-0.015, 0.015), WH_Y + rnd(0, 0.018), cp[1] + rnd(-0.022, 0.022));
         /* a third of them are the long stragglers that give the plume
            depth; the rest stay in the dense head at the tyre */
         const far = random() < 0.16;
@@ -1179,11 +1204,11 @@ export function createFX(scene, track) {
         const out = inside * (far ? rnd(2.5, 6) : rnd(0.35, 2));
         resetP();
         P.x = _w.x; P.y = _w.y; P.z = _w.z;
-        P.vx = kvx * 0.62 - fxT * v + rxB * out + rnd(-1.4, 1.4);
-        P.vz = kvz * 0.62 - fzT * v + rzB * out + rnd(-1.4, 1.4);
+        P.vx = kvx * 0.52 - fxT * v + rxB * out + rnd(-1.0, 1.0);
+        P.vz = kvz * 0.52 - fzT * v + rzB * out + rnd(-1.0, 1.0);
         P.vy = rnd(0.8, 3.6) + swell * 1.2 + (far ? 1.5 : 0);
         P.life = (far ? rnd(0.16, 0.30) : rnd(0.08, 0.16));
-        const s = (0.14 + tier * 0.045 + swell * 0.055) * rnd(0.75, 1.35) * Q.size * (focusKart ? 1.15 : 0.82);
+        const s = (0.14 + tier * 0.045 + swell * 0.055) * rnd(0.75, 1.35) * Q.size * (focusKart ? 1.32 : 0.82);
         P.s0 = s; P.s1 = s * 0.14;
         P.r0 = c[0]; P.g0 = c[1]; P.b0 = c[2];
         P.r1 = c[3]; P.g1 = c[4]; P.b1 = c[5];
@@ -1214,6 +1239,30 @@ export function createFX(scene, track) {
         }
       }
 
+      /* A short-lived hot contact core is deliberately emitted at the inside
+         rear tyre every frame. The moving sparks sell energy; this anchored
+         core sells ownership. Without it, the first visible spark can be
+         several pixels behind the kart and the effect reads as a detached
+         orange trail in a chase frame. */
+      kContactAcc[i] += 18 * Q.rate * near * hero * dt * (0.75 + 0.25 * swell);
+      let nc = kContactAcc[i] | 0;
+      if (nc > 2) nc = 2;
+      kContactAcc[i] -= nc;
+      for (let q = 0; q < nc; q++) {
+        const side = d.dir * (q === 0 ? cp[0] : -cp[0]);
+        toWorld(k, side, WH_Y + 0.026, cp[1]);
+        resetP();
+        P.x = _w.x; P.y = _w.y; P.z = _w.z;
+        P.vx = kvx * 0.18; P.vz = kvz * 0.18; P.vy = 0.12;
+        P.life = 0.075; P.s0 = (0.22 + tier * 0.035) * Q.size;
+        P.s1 = P.s0 * 0.28;
+        P.r0 = c[0] * 1.18; P.g0 = c[1] * 1.18; P.b0 = c[2] * 1.18;
+        P.r1 = c[3]; P.g1 = c[4]; P.b1 = c[5];
+        P.a0 = focusKart ? 0.92 : 0.22; P.aIn = 0; P.aPow = 1.1;
+        P.rot = 0; P.rotV = 0; P.grav = 0; P.drag = 0;
+        emit(glow);
+      }
+
       /* tyre smoke — a drifting kart lays rubber whether or not it has
          banked a tier yet, and the smoke is what makes the slide read
          from three karts back */
@@ -1222,27 +1271,88 @@ export function createFX(scene, track) {
       if (ns > 4) ns = 4;
       kSmokeAcc[i] -= ns;
       for (let q = 0; q < ns; q++) {
-        const sx = (random() < 0.5 ? -1 : 1) * cp[0];
-        toWorld(k, sx, WH_Y, cp[1]);
+        /* q=0 is always the inside rear contact. It is the visual proof of
+           ownership; the quieter second puff can mirror to the other tyre. */
+        const side = q === 0 ? d.dir : (random() < 0.5 ? -1 : 1);
+        const sx = side * cp[0];
+        toWorld(k, sx, WH_Y + 0.018, cp[1]);
         resetP();
         P.x = _w.x; P.y = _w.y + 0.03; P.z = _w.z;
         /* Inherit road speed, then peel toward the outside of the slide.
            The relative motion is what leaves a surface-linked ribbon. */
-        const outside = -d.dir * rnd(1.2, 3.0);
-        P.vx = kvx * 0.76 + rxB * outside;
-        P.vz = kvz * 0.76 + rzB * outside;
+        const outside = -d.dir * rnd(0.7, 2.0);
+        P.vx = kvx * 0.46 - fxT * rnd(0.2, 1.4) + rxB * outside;
+        P.vz = kvz * 0.46 - fzT * rnd(0.2, 1.4) + rzB * outside;
         P.vy = rnd(0.18, 0.75);
         P.life = rnd(0.38, 0.62);
-        P.s0 = rnd(0.36, 0.56) * Q.size * (focusKart ? 1.05 : 0.82); P.s1 = P.s0 * 2.4;
-        P.r0 = 0.92; P.g0 = 0.88; P.b0 = 0.84;
-        P.r1 = 0.48; P.g1 = 0.45; P.b1 = 0.44;
-        P.a0 = focusKart ? 0.16 : 0.10; P.aIn = 0.08; P.aPow = 1.7;
+        P.s0 = rnd(0.28, 0.40) * Q.size * (focusKart ? 1.10 : 0.82); P.s1 = P.s0 * 3.0;
+        P.r0 = 0.84 + tier * 0.025; P.g0 = 0.86; P.b0 = 0.88 + tier * 0.045;
+        P.r1 = 0.42; P.g1 = 0.44; P.b1 = 0.48;
+        P.a0 = focusKart ? 0.24 : 0.10; P.aIn = 0.10; P.aPow = 1.7;
         P.rot = screenAngle(P.vx - kvx, P.vy, P.vz - kvz) + rnd(-0.10, 0.10);
         P.rotV = rnd(-0.3, 0.3); P.grav = 0.24; P.drag = 1.1;
         emit(slipSmoke);
       }
+      /* One cool, centreline wake belongs only to the focus kart. It starts
+         at the rear axle, stays low, and trails opposite travel, so a viewer
+         can answer "whose wake is that?" from the frame alone. */
+      if (focusKart && spd > 18) {
+        kWakeAcc[i] += 26 * Q.rate * near * dt * (0.45 + 0.55 * spdF);
+        let nw = kWakeAcc[i] | 0;
+        if (nw > 3) nw = 3;
+        kWakeAcc[i] -= nw;
+        for (let q = 0; q < nw; q++) {
+          toWorld(k, 0, WH_Y + 0.028, cp[1] - 0.04);
+          resetP();
+          P.x = _w.x; P.y = _w.y; P.z = _w.z;
+          const back = rnd(3.5, 7.5);
+          P.vx = kvx * 0.36 - fxT * back;
+          P.vz = kvz * 0.36 - fzT * back;
+          P.vy = rnd(0.08, 0.34);
+          P.life = rnd(0.30, 0.46);
+          P.s0 = rnd(0.16, 0.24) * Q.size; P.s1 = P.s0 * rnd(2.4, 3.4);
+          P.r0 = 0.28; P.g0 = 0.54; P.b0 = 0.78;
+          P.r1 = 0.08; P.g1 = 0.17; P.b1 = 0.28;
+          P.a0 = 0.24; P.aIn = 0.08; P.aPow = 1.45;
+          P.rot = screenAngle(-fxT, P.vy * 0.03, -fzT) + rnd(-0.08, 0.08);
+          P.rotV = rnd(-0.2, 0.2); P.grav = 0.08; P.drag = 1.0;
+          emit(slipSmoke);
+        }
+      } else {
+        kWakeAcc[i] *= 0.5;
+      }
     } else {
       kSparkAcc[i] = 0;
+      kContactAcc[i] = 0;
+      kWakeAcc[i] *= 0.5;
+    }
+
+    /* Boost ends the drift state immediately, but its authored exhaust still
+       needs a readable owner. Keep the same low rear-axle wake alive for the
+       focus kart during the boost itself rather than leaving a generic blue
+       streak in screen space. */
+    if (focusKart && grounded && !d.active && k.boost > 0 && spd > 18) {
+      const fxT = Math.sin(k.travelYaw), fzT = Math.cos(k.travelYaw);
+      const kvx = fxT * spd, kvz = fzT * spd;
+      kWakeAcc[i] += 24 * Q.rate * near * dt;
+      let nw = kWakeAcc[i] | 0;
+      if (nw > 2) nw = 2;
+      kWakeAcc[i] -= nw;
+      for (let q = 0; q < nw; q++) {
+        toWorld(k, 0, WH_Y + 0.028, cp[1] - 0.04);
+        resetP();
+        P.x = _w.x; P.y = _w.y; P.z = _w.z;
+        const back = rnd(4.5, 8.5);
+        P.vx = kvx * 0.32 - fxT * back; P.vz = kvz * 0.32 - fzT * back;
+        P.vy = rnd(0.08, 0.30); P.life = rnd(0.28, 0.40);
+        P.s0 = rnd(0.17, 0.25) * Q.size; P.s1 = P.s0 * rnd(2.5, 3.4);
+        P.r0 = 0.25; P.g0 = 0.50; P.b0 = 0.78;
+        P.r1 = 0.06; P.g1 = 0.15; P.b1 = 0.28;
+        P.a0 = 0.22; P.aIn = 0.08; P.aPow = 1.45;
+        P.rot = screenAngle(-fxT, P.vy * 0.03, -fzT) + rnd(-0.08, 0.08);
+        P.rotV = rnd(-0.2, 0.2); P.grav = 0.08; P.drag = 1.0;
+        emit(slipSmoke);
+      }
     }
 
     /* ---- off-road dirt ---- */
@@ -1300,19 +1410,19 @@ export function createFX(scene, track) {
         toWorld(k, sx, EX_Y + rnd(-0.05, 0.05), cp[1] + EX_Z);
         /* the flame is attached to the kart, so it keeps most of the
            kart's velocity and only slides backwards out of the pipe */
-        const v = rnd(3, 13);
+        const v = rnd(16, 27);
         resetP();
         P.x = _w.x; P.y = _w.y; P.z = _w.z;
-        P.vx = kvx * 0.80 - fxT * v + rnd(-1.2, 1.2);
-        P.vz = kvz * 0.80 - fzT * v + rnd(-1.2, 1.2);
+        P.vx = kvx * 0.40 - fxT * v + rnd(-1.0, 1.0);
+        P.vz = kvz * 0.40 - fzT * v + rnd(-1.0, 1.0);
         P.vy = rnd(-0.2, 1.4);
         P.life = rnd(0.12, 0.26);
         const flameScale = focusKart ? 1.15 : 0.70;
-        P.s0 = rnd(0.12, 0.24) * Q.size * flameScale; P.s1 = P.s0 * 2.0;
+        P.s0 = rnd(0.14, 0.28) * Q.size * flameScale; P.s1 = P.s0 * 2.7;
         P.r0 = 1.90; P.g0 = 2.15; P.b0 = 2.45;
         P.r1 = 1.45; P.g1 = 0.38; P.b1 = 0.03;
         P.a0 = focusKart ? 0.66 : 0.42; P.aPow = 1.55; P.aIn = 0;
-        P.rot = screenAngle(P.vx - kvx, P.vy, P.vz - kvz) + rnd(-0.10, 0.10);
+        P.rot = screenAngle(-fxT, P.vy * 0.02, -fzT) + rnd(-0.08, 0.08);
         P.drag = 2.2;
         emit(flame);
       }
@@ -1391,15 +1501,15 @@ export function createFX(scene, track) {
         const i3 = idx * 3;
         if (!sparking) { alp[idx] = 0; siz[idx] = 0; continue; }
         const side = s === 0 ? -cp[0] : cp[0];
-        const bias = (Math.sign(side) === d.dir) ? 1 : 0.55;
-        toWorld(k, side, WH_Y + 0.035, cp[1]);
+        const bias = (Math.sign(side) === d.dir) ? 1 : 0.30;
+        toWorld(k, side, WH_Y + 0.025, cp[1]);
         pos[i3] = _w.x; pos[i3 + 1] = _w.y; pos[i3 + 2] = _w.z;
         const flick = 0.78 + 0.22 * Math.sin(time * 47 + i * 2.1 + s * 3.1);
         const ct = TIER_COL[tier];
         col[i3] = ct[0] * 0.72; col[i3 + 1] = ct[1] * 0.72; col[i3 + 2] = ct[2] * 0.72;
-        const focusScale = k === focus ? 1.05 : 0.18;
-        siz[idx] = (0.24 + tier * 0.08 + swell * 0.10 + kDriftPop[i] * 0.18) * bias * flick * focusScale * Q.size;
-        alp[idx] = (tier === 0 ? 0.38 : 0.82) * bias * flick * focusScale;
+        const focusScale = k === focus ? 2.02 : 0.14;
+        siz[idx] = (0.32 + tier * 0.10 + swell * 0.13 + kDriftPop[i] * 0.22) * bias * flick * focusScale * Q.size;
+        alp[idx] = (tier === 0 ? 0.48 : 0.94) * bias * flick * focusScale;
         rot[idx] = 0;
       }
 
@@ -1414,10 +1524,10 @@ export function createFX(scene, track) {
         toWorld(k, s === 0 ? -EX_X : EX_X, EX_Y, cp[1] + EX_Z);
         pos[i3] = _w.x; pos[i3 + 1] = _w.y; pos[i3 + 2] = _w.z;
         const flick = 0.86 + 0.14 * Math.sin(time * 51 + i * 2.3 + s * 2.1);
-        const focusScale = k === focus ? 0.92 : 0.16;
+        const focusScale = k === focus ? 1.20 : 0.16;
         col[i3] = 3.2; col[i3 + 1] = 1.55; col[i3 + 2] = 0.16;
-        siz[idx] = (0.34 + kBoostPop[i] * 0.22) * flick * focusScale * Q.size;
-        alp[idx] = 0.72 * flick * focusScale;
+        siz[idx] = (0.42 + kBoostPop[i] * 0.28) * flick * focusScale * Q.size;
+        alp[idx] = 0.82 * flick * focusScale;
         rot[idx] = 0;
       }
     }
@@ -1440,10 +1550,10 @@ export function createFX(scene, track) {
         toWorld(k, side, EX_Y, cp[1] + EX_Z);
         pos[i3] = _w.x; pos[i3 + 1] = _w.y; pos[i3 + 2] = _w.z;
         const flick = 0.84 + 0.16 * Math.sin(time * 57 + i * 1.9 + s * 2.7);
-        const focusScale = k === focus ? 1.0 : 0.16;
+        const focusScale = k === focus ? 1.18 : 0.16;
         col[i3] = 1.75; col[i3 + 1] = 2.05; col[i3 + 2] = 2.40;
-        siz[idx] = (1.55 + kBoostPop[i] * 0.55) * flick * focusScale * Q.size;
-        alp[idx] = 0.76 * flick * focusScale;
+        siz[idx] = (1.85 + kBoostPop[i] * 0.65) * flick * focusScale * Q.size;
+        alp[idx] = 0.86 * flick * focusScale;
         const fx = Math.sin(k.travelYaw), fz = Math.cos(k.travelYaw);
         rot[idx] = screenAngle(-fx, 0.04, -fz);
       }

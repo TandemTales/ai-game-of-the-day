@@ -43,6 +43,10 @@ function seeded(i, salt) {
   return ZC.hash2((i * 37 + salt * 101) | 0, (i * 91 - salt * 53) | 0);
 }
 
+function waterTone(info, neutralMix = 0.46) {
+  return colr(info.theme.water).lerp(colr(0x476d70), neutralMix);
+}
+
 function trackInfo(track) {
   let cx = 0, cy = 0, cz = 0, vote = 0;
   for (let i = 0; i < track.count; i++) {
@@ -86,8 +90,8 @@ function buildRoad(track) {
   /* A neutral graphite reads as asphalt after the warm sky grade. The old
      PALETTE.road value was dark enough that the racing line and kerbs did all
      the material work by themselves. */
-  const road = colr(0x5a5763);
-  const roadDark = colr(0x36343e);
+  const road = colr(0x817d85);
+  const roadDark = colr(0x57545d);
   const c = new THREE.Color();
 
   for (let i = 0; i < n; i++) {
@@ -103,7 +107,7 @@ function buildRoad(track) {
          below carries the readable slabs, while this keeps the base from
          becoming one flat value between them. */
       const edge = side === 0 ? 0.045 : 0.075;
-      c.copy(roadDark).lerp(road, 0.68 + edge + noise2(verts[o], verts[o + 2]) * 0.16);
+      c.copy(roadDark).lerp(road, 0.64 + edge + noise2(verts[o], verts[o + 2]) * 0.2);
       cols[o] = c.r; cols[o + 1] = c.g; cols[o + 2] = c.b;
     }
   }
@@ -129,7 +133,7 @@ function buildRoad(track) {
   /* Double-sided as insurance: a kart that falls off the island looks
      back up at the underside of the road on the way down. */
   const mat = new THREE.MeshStandardMaterial({
-    vertexColors: true, side: THREE.DoubleSide, roughness: 0.94, metalness: 0.015,
+    vertexColors: true, side: THREE.DoubleSide, roughness: 0.88, metalness: 0.015,
   });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.receiveShadow = true;
@@ -144,9 +148,9 @@ function buildRoad(track) {
    ------------------------------------------------------------------ */
 function buildAsphaltBreakup(track) {
   const verts = [], cols = [], idx = [];
-  const base = colr(0x5a5763);
-  const dark = colr(0x2f2d37);
-  const light = colr(0x77727d);
+  const base = colr(0x7a767e);
+  const dark = colr(0x4a4750);
+  const light = colr(0x989198);
   const c = new THREE.Color();
   let v = 0;
 
@@ -162,7 +166,7 @@ function buildAsphaltBreakup(track) {
 
   /* Place a patch roughly every 10m, with deliberately uneven spacing and
      length. A patch can cross a corner, but never crosses the road edge. */
-  const stride = 7;
+  const stride = 5;
   for (let i = 0; i < track.count; i += stride) {
     if (seeded(i, 201) < 0.23) continue;
     const j = (i + 2 + Math.floor(seeded(i, 202) * 5)) % track.count;
@@ -173,7 +177,7 @@ function buildAsphaltBreakup(track) {
     const d0 = Math.max(-hw0 + 0.7, Math.min(hw0 - 0.7, centre * hw0));
     const d1 = Math.max(-hw1 + 0.7, Math.min(hw1 - 0.7, centre * hw1));
     const palette = seeded(i, 205);
-    c.copy(base).lerp(palette < 0.42 ? dark : light, 0.22 + seeded(i, 206) * 0.28);
+    c.copy(base).lerp(palette < 0.42 ? dark : light, 0.27 + seeded(i, 206) * 0.34);
     const a = push(i, d0 - half, 0.065, c);
     const b = push(i, d0 + half, 0.065, c);
     const c0 = c.clone().lerp(base, 0.12 + seeded(i, 207) * 0.14);
@@ -191,6 +195,7 @@ function buildAsphaltBreakup(track) {
     vertexColors: true, roughness: 0.98, metalness: 0, side: THREE.DoubleSide,
   }));
   mesh.receiveShadow = true;
+  mesh.renderOrder = 1;
   mesh.name = 'asphaltBreakup';
   return mesh;
 }
@@ -209,7 +214,7 @@ function buildSurfaceDetail(track, info) {
     const curve = track.curvature[i] * 0.55 + track.curvature[after] * 0.3 + track.curvature[before] * 0.15;
     offsets[i] = Math.max(-0.58, Math.min(0.58, curve * 78));
   }
-  group.add(makeRoadRibbon(track, offsets, 3.4, 0.036, 0x17151d, 0.28, null, 'rubbered-line'));
+  group.add(makeRoadRibbon(track, offsets, 3.4, 0.036, 0x292731, 0.24, null, 'rubbered-line'));
   group.add(makeRoadRibbon(track, offsets, 0.34, 0.058, info.theme.accent, 0.84,
     (s) => s % 15 < 8.2, 'racing-line'));
 
@@ -217,8 +222,10 @@ function buildSurfaceDetail(track, info) {
      spending a texture sample or another object per patch */
   const patches = new Float32Array(track.count);
   for (let i = 0; i < track.count; i++) patches[i] = Math.sin(track.s[i] * 0.031) * 0.3;
-  group.add(makeRoadRibbon(track, patches, 1.7, 0.031, 0x25232b, 0.22,
+  group.add(makeRoadRibbon(track, patches, 1.7, 0.031, 0x4d4852, 0.3,
     (s) => s % 73 > 58, 'road-patches'));
+  group.add(makeRoadRibbon(track, patches, 0.34, 0.07, 0xb0aaa2, 0.2,
+    (s) => s % 73 > 58, 'aggregate-scrub'));
   group.name = 'surfaceDetail';
   return group;
 }
@@ -264,9 +271,50 @@ function buildVerge(track, info) {
     shoulder, shoulderDark, 0.02, 0.07));
   group.add(makeVergeStrip(track, info, 'groundcover', 4.45, VERGE,
     PALETTE.grass, PALETTE.grassDark, -0.01, 0.22));
+  group.add(buildShoulderDetail(track, info));
   group.add(buildGroundcover(track, info));
   group.name = 'verges';
   return group;
+}
+
+function buildShoulderDetail(track, info) {
+  const verts = [], cols = [], idx = [];
+  const shoulder = track.theme === 'dusk' ? colr(0x75616b)
+    : (track.theme === 'noon' ? colr(0xa39573) : colr(0xa1846c));
+  const gravel = track.theme === 'dusk' ? colr(0x504452)
+    : (track.theme === 'noon' ? colr(0x70684f) : colr(0x68564b));
+  const c = new THREE.Color();
+  let v = 0;
+  for (let side = 0; side < 2; side++) {
+    const sign = side ? 1 : -1;
+    for (let i = 0; i < track.count; i += 3) {
+      const j = (i + 2) % track.count;
+      const inner0 = track.halfWidth[i] + 1.5;
+      const inner1 = track.halfWidth[j] + 1.5;
+      const outer0 = track.halfWidth[i] + 4.35;
+      const outer1 = track.halfWidth[j] + 4.35;
+      const shade = seeded(i + side * 17, 231);
+      c.copy(shade < 0.42 ? gravel : shoulder).lerp(shoulder, 0.18 + seeded(i, 232) * 0.2);
+      const push = (k, d, along) => {
+        const x = track.px[k] + track.rx[k] * sign * d + track.tx[k] * along;
+        const z = track.pz[k] + track.rz[k] * sign * d + track.tz[k] * along;
+        verts.push(x, track.py[k] + track.ry[k] * sign * d + 0.045, z);
+        cols.push(c.r, c.g, c.b);
+      };
+      push(i, inner0, -0.8); push(i, outer0, 0.8);
+      push(j, inner1, -0.8); push(j, outer1, 0.8);
+      idx.push(v, v + 1, v + 2, v + 1, v + 3, v + 2); v += 4;
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+  geo.setIndex(idx); geo.computeVertexNormals();
+  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+    vertexColors: true, roughness: 1, metalness: 0, side: THREE.DoubleSide,
+  }));
+  mesh.receiveShadow = true; mesh.name = 'shoulderBreakup';
+  return mesh;
 }
 
 function makeVergeStrip(track, info, name, innerExtra, outerDistance,
@@ -587,13 +635,13 @@ function buildWaterfalls(track, info) {
     : (track.id === 'cirrus-run' ? 0.986 : 0.984);
   const heroIndex = Math.floor(track.count * heroFraction) % track.count;
   const heroLipDistance = info.outerSign * (track.halfWidth[heroIndex] + 8.6);
-  group.add(makeFalls(track, info, fractions, 1, info.theme.water, 0.66));
-  group.add(makeFalls(track, info, fractions, 0.42, 0xe3ffff, 0.76));
-  group.add(makeFalls(track, info, [heroFraction], 1.35, info.theme.water, 0.84,
+  group.add(makeFalls(track, info, fractions, 0.58, info.theme.water, 0.34));
+  group.add(makeFalls(track, info, fractions, 0.22, 0xd8eeee, 0.42));
+  group.add(makeFalls(track, info, [heroFraction], 0.72, info.theme.water, 0.46,
     'heroWaterfallSheet', heroLipDistance, true));
-  group.add(makeFalls(track, info, [heroFraction], 0.52, 0xf0ffff, 0.92,
+  group.add(makeFalls(track, info, [heroFraction], 0.22, 0xd9eeee, 0.62,
     'heroWaterfallCore', heroLipDistance, true));
-  group.add(makeFalls(track, info, [heroFraction], 0.18, 0xffffff, 0.97,
+  group.add(makeFalls(track, info, [heroFraction], 0.075, 0xffffff, 0.78,
     'heroWhitewater', heroLipDistance, true));
   group.add(buildWaterfallFeatures(track, info, heroFraction, heroLipDistance));
   group.add(makeHeroCurtain(track, info, heroIndex, heroLipDistance));
@@ -669,10 +717,10 @@ function makeFalls(track, info, fractions, widthScale, color, opacity, explicitN
   geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
   geo.setIndex(idx);
   const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
-    vertexColors: true, transparent: true, opacity, depthWrite: false, side: THREE.DoubleSide,
+    vertexColors: true, transparent: true, opacity, depthWrite: !!frontFacing, side: THREE.DoubleSide,
   }));
   mesh.name = explicitName || (widthScale < 0.5 ? 'waterfallCore' : 'waterfallSheet');
-  mesh.renderOrder = 1;
+  mesh.renderOrder = frontFacing ? 0 : 1;
   return mesh;
 }
 
@@ -688,17 +736,18 @@ function buildWaterfallFeatures(track, info, fraction, heroLipDistance) {
 
   group.add(makeRockChannel(track, info, i, startD, lipD));
   group.add(makeWetChannel(track, info, i, startD, lipD));
+  group.add(buildWaterfallStreams(track, info, i, lipD, topY, fall));
 
   const rockMat = new THREE.MeshStandardMaterial({
     color: 0x725b4c, roughness: 0.9, flatShading: true,
   });
   const wetMat = new THREE.MeshStandardMaterial({
-    color: info.theme.water, emissive: info.theme.water, emissiveIntensity: 0.12,
-    roughness: 0.2, metalness: 0.05, transparent: true, opacity: 0.88,
-    depthWrite: false, side: THREE.DoubleSide,
+    color: info.theme.water, emissive: info.theme.water, emissiveIntensity: 0.08,
+    roughness: 0.28, metalness: 0.04, transparent: true, opacity: 0.66,
+    depthWrite: true, side: THREE.DoubleSide,
   });
   const foamMat = new THREE.MeshBasicMaterial({
-    color: 0xf4ffff, transparent: true, opacity: 0.88, depthWrite: false,
+    color: 0xe2eeeb, transparent: true, opacity: 0.72, depthWrite: true,
     side: THREE.DoubleSide,
   });
 
@@ -757,6 +806,51 @@ function buildWaterfallFeatures(track, info, fraction, heroLipDistance) {
   boulders.instanceMatrix.needsUpdate = true; boulders.castShadow = true;
   boulders.name = 'waterfallChannelBoulders'; group.add(boulders);
   group.name = 'waterfallHeroVista';
+  return group;
+}
+
+/* The broad sheets establish the distant silhouette, but a racing view needs
+   readable water bodies with a near edge and a far edge. These staggered
+   low-poly columns break the sheet into streams that catch the warm light and
+   terminate at the authored plunge pool instead of reading as one cyan flag. */
+function buildWaterfallStreams(track, info, i, lipD, topY, fall) {
+  const group = new THREE.Group();
+  const water = waterTone(info, 0.28);
+  const foam = water.clone().lerp(colr(0xd8e7e3), 0.48);
+  const waterMat = new THREE.MeshStandardMaterial({
+    color: water, emissive: water.clone().multiplyScalar(0.12), emissiveIntensity: 0.08,
+    roughness: 0.24, metalness: 0.02, transparent: true, opacity: 0.52,
+    depthWrite: true, side: THREE.DoubleSide,
+  });
+  const foamMat = new THREE.MeshStandardMaterial({
+    color: foam, emissive: foam.clone().multiplyScalar(0.08), emissiveIntensity: 0.05,
+    roughness: 0.62, transparent: true, opacity: 0.5, depthWrite: true,
+    side: THREE.DoubleSide,
+  });
+  const up = new THREE.Vector3(0, 1, 0);
+  for (let j = 0; j < 7; j++) {
+    const salt = i + j * 23;
+    const along = (seeded(salt, 461) - 0.5) * 7.6;
+    const d = lipD + info.outerSign * (0.35 + seeded(salt, 462) * 1.8);
+    const height = fall * (0.72 + seeded(salt, 463) * 0.22);
+    const width = 0.25 + seeded(salt, 464) * 0.3;
+    const stream = new THREE.Mesh(new THREE.CylinderGeometry(width * 0.62, width, height, 6, 2, true), waterMat);
+    stream.position.set(
+      track.px[i] + track.rx[i] * d + track.tx[i] * along,
+      topY - height * 0.52 - seeded(salt, 465) * 3.4,
+      track.pz[i] + track.rz[i] * d + track.tz[i] * along);
+    stream.rotation.y = seeded(salt, 466) * Math.PI * 2;
+    stream.scale.x = 0.76 + seeded(salt, 467) * 0.4;
+    stream.castShadow = true;
+    stream.name = 'waterfallStream';
+    group.add(stream);
+
+    const bead = new THREE.Mesh(new THREE.SphereGeometry(width * 1.4, 6, 4), foamMat);
+    bead.position.set(stream.position.x, topY - height - 0.3, stream.position.z);
+    bead.scale.y = 0.46;
+    group.add(bead);
+  }
+  group.name = 'waterfallStreams';
   return group;
 }
 
@@ -918,7 +1012,7 @@ function makeHeroSplash(track, info, i, lipD) {
     const salt = i + j * 29;
     const along = (seeded(salt, 441) - 0.5) * 8.2;
     const half = 0.25 + seeded(salt, 442) * 0.4;
-    const height = 1.5 + seeded(salt, 443) * 3.1;
+    const height = 0.72 + seeded(salt, 443) * 1.55;
     const c = j & 1 ? cyan : foam;
     const tipD = d + info.outerSign * (0.9 + seeded(salt, 444) * 2.2);
     verts.push(
@@ -937,8 +1031,8 @@ function makeHeroSplash(track, info, i, lipD) {
   geo.setIndex(idx);
   const fan = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
     vertexColors: true, emissive: colr(0x294546), emissiveIntensity: 0.025,
-    roughness: 0.48, metalness: 0.02, transparent: true, opacity: 0.48,
-    depthWrite: false, depthTest: true, side: THREE.DoubleSide,
+    roughness: 0.52, metalness: 0.02, transparent: true, opacity: 0.24,
+    depthWrite: true, depthTest: true, side: THREE.DoubleSide,
   }));
   fan.renderOrder = 4; fan.name = 'heroFoamSplash'; group.add(fan);
 
@@ -1033,12 +1127,26 @@ function buildGrowth(track, info) {
   const clusterCount = 12, perCluster = 4, count = clusterCount * perCluster;
   const trunk = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.65, 0.95, 4.5, 6),
     new THREE.MeshStandardMaterial({ color: 0x614535, roughness: 1 }), count);
-  const crownGeo = track.theme === 'dusk' ? new THREE.ConeGeometry(3.2, 9, 6)
-    : (track.theme === 'noon' ? new THREE.DodecahedronGeometry(3.6, 0) : new THREE.ConeGeometry(4.2, 8, 7));
-  const crown = new THREE.InstancedMesh(crownGeo,
-    new THREE.MeshStandardMaterial({ color: info.theme.foliage, roughness: 0.95, flatShading: true }), count);
+  const foliage = colr(info.theme.foliage);
+  const crownMaterials = [
+    new THREE.MeshStandardMaterial({ color: foliage, roughness: 0.95, flatShading: true }),
+    new THREE.MeshStandardMaterial({
+      color: foliage.clone().lerp(colr(0x21382f), 0.28), roughness: 0.98, flatShading: true,
+    }),
+    new THREE.MeshStandardMaterial({
+      color: foliage.clone().lerp(colr(0xc19a68), 0.18), roughness: 0.96, flatShading: true,
+    }),
+  ];
+  const crownGeos = track.theme === 'dusk'
+    ? [new THREE.ConeGeometry(3.2, 9, 6), new THREE.DodecahedronGeometry(3.6, 0), new THREE.ConeGeometry(2.7, 7.5, 5)]
+    : (track.theme === 'noon'
+      ? [new THREE.DodecahedronGeometry(3.6, 0), new THREE.IcosahedronGeometry(3.1, 0), new THREE.ConeGeometry(3.4, 7, 6)]
+      : [new THREE.ConeGeometry(4.2, 8, 7), new THREE.DodecahedronGeometry(3.4, 0), new THREE.ConeGeometry(3.1, 7.3, 5)]);
+  const crowns = crownGeos.map((geo, type) => new THREE.InstancedMesh(geo, crownMaterials[type], count));
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3();
   const up = new THREE.Vector3(0, 1, 0);
+  const hidden = new THREE.Matrix4().makeTranslation(0, -500, 0);
+  for (const mesh of crowns) for (let j = 0; j < count; j++) mesh.setMatrixAt(j, hidden);
   for (let j = 0; j < count; j++) {
     const cluster = Math.floor(j / perCluster);
     const member = j % perCluster;
@@ -1055,11 +1163,12 @@ function buildGrowth(track, info) {
     sc.set(size, size, size); p.set(x, y + 2.25 * size, z); m.compose(p, q, sc); trunk.setMatrixAt(j, m);
     p.y = y + (track.theme === 'dusk' ? 7 : 6.2) * size;
     sc.set(size * (0.85 + seeded(j, 47) * 0.35), size, size * (0.85 + seeded(j, 48) * 0.35));
-    m.compose(p, q, sc); crown.setMatrixAt(j, m);
+    m.compose(p, q, sc); crowns[j % crowns.length].setMatrixAt(j, m);
   }
-  trunk.instanceMatrix.needsUpdate = true; crown.instanceMatrix.needsUpdate = true;
-  trunk.castShadow = true; crown.castShadow = true;
-  group.add(trunk, crown); group.name = 'tracksideGrowth';
+  trunk.instanceMatrix.needsUpdate = true;
+  for (const mesh of crowns) { mesh.instanceMatrix.needsUpdate = true; mesh.castShadow = true; }
+  trunk.castShadow = true;
+  group.add(trunk, ...crowns); group.name = 'tracksideGrowth';
   return group;
 }
 
@@ -1069,15 +1178,26 @@ function buildGrowth(track, info) {
 function buildRoadsideProps(track, info) {
   const group = new THREE.Group();
   const rockCount = 24, shrubCount = 30, postCount = 16;
-  const rock = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1.3, 0),
-    new THREE.MeshStandardMaterial({ color: 0x665448, roughness: 1, flatShading: true }), rockCount);
-  const shrub = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1.25, 0),
-    new THREE.MeshStandardMaterial({ color: info.theme.foliage, roughness: 0.96, flatShading: true }), shrubCount);
+  const rockMats = [0x665448, 0x4c4b51, 0x806951].map((color) => new THREE.MeshStandardMaterial({
+    color, roughness: 1, flatShading: true,
+  }));
+  const rockGeos = [new THREE.DodecahedronGeometry(1.3, 0), new THREE.IcosahedronGeometry(1.22, 0), new THREE.TetrahedronGeometry(1.45, 0)];
+  const rockMeshes = rockGeos.map((geo, type) => new THREE.InstancedMesh(geo, rockMats[type], rockCount));
+  const shrubMats = [
+    new THREE.MeshStandardMaterial({ color: info.theme.foliage, roughness: 0.96, flatShading: true }),
+    new THREE.MeshStandardMaterial({ color: colr(info.theme.foliage).lerp(colr(0x243d35), 0.32), roughness: 0.98, flatShading: true }),
+    new THREE.MeshStandardMaterial({ color: colr(info.theme.foliage).lerp(colr(0xc19a68), 0.2), roughness: 0.98, flatShading: true }),
+  ];
+  const shrubGeos = [new THREE.IcosahedronGeometry(1.25, 0), new THREE.DodecahedronGeometry(1.12, 0), new THREE.ConeGeometry(1.15, 1.7, 5)];
+  const shrubMeshes = shrubGeos.map((geo, type) => new THREE.InstancedMesh(geo, shrubMats[type], shrubCount));
   const post = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.22, 0.32, 2.7, 5),
     new THREE.MeshStandardMaterial({ color: info.theme.trim, roughness: 0.48, metalness: 0.18, flatShading: true }), postCount);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion();
   const sc = new THREE.Vector3(), p = new THREE.Vector3();
   const up = new THREE.Vector3(0, 1, 0);
+  const hidden = new THREE.Matrix4().makeTranslation(0, -500, 0);
+  for (const mesh of rockMeshes) for (let j = 0; j < rockCount; j++) mesh.setMatrixAt(j, hidden);
+  for (const mesh of shrubMeshes) for (let j = 0; j < shrubCount; j++) mesh.setMatrixAt(j, hidden);
 
   const place = (j, count, salt, minExtra, span, alongSpan) => {
     const clusterCount = Math.ceil(count / 3);
@@ -1099,14 +1219,14 @@ function buildRoadsideProps(track, info) {
     const size = 0.6 + seeded(j, 502) * 1.25;
     q.setFromAxisAngle(up, seeded(j, 503) * Math.PI * 2);
     sc.set(size * (1.1 + seeded(j, 504) * 0.55), size * (0.65 + seeded(j, 505) * 0.5), size);
-    p.set(a.x, a.y + sc.y * 0.55, a.z); m.compose(p, q, sc); rock.setMatrixAt(j, m);
+    p.set(a.x, a.y + sc.y * 0.55, a.z); m.compose(p, q, sc); rockMeshes[j % rockMeshes.length].setMatrixAt(j, m);
   }
   for (let j = 0; j < shrubCount; j++) {
     const a = place(j, shrubCount, 511, 5.7, 11, 16);
     const size = 0.55 + seeded(j, 512) * 1.05;
     q.setFromAxisAngle(up, seeded(j, 513) * Math.PI * 2);
     sc.set(size * (0.72 + seeded(j, 514) * 0.55), size * (0.72 + seeded(j, 515) * 0.45), size);
-    p.set(a.x, a.y + sc.y * 0.52, a.z); m.compose(p, q, sc); shrub.setMatrixAt(j, m);
+    p.set(a.x, a.y + sc.y * 0.52, a.z); m.compose(p, q, sc); shrubMeshes[j % shrubMeshes.length].setMatrixAt(j, m);
   }
   for (let j = 0; j < postCount; j++) {
     const a = place(j, postCount, 521, 4.9, 8, 9);
@@ -1115,9 +1235,10 @@ function buildRoadsideProps(track, info) {
     sc.set(size, size, size); p.set(a.x, a.y + 1.35 * size, a.z);
     m.compose(p, q, sc); post.setMatrixAt(j, m);
   }
-  rock.instanceMatrix.needsUpdate = true; shrub.instanceMatrix.needsUpdate = true; post.instanceMatrix.needsUpdate = true;
-  rock.castShadow = true; shrub.castShadow = true; post.castShadow = true;
-  group.add(rock, shrub, post); group.name = 'clusteredRoadsideProps';
+  for (const mesh of rockMeshes) { mesh.instanceMatrix.needsUpdate = true; mesh.castShadow = true; }
+  for (const mesh of shrubMeshes) { mesh.instanceMatrix.needsUpdate = true; mesh.castShadow = true; }
+  post.instanceMatrix.needsUpdate = true; post.castShadow = true;
+  group.add(...rockMeshes, ...shrubMeshes, post); group.name = 'clusteredRoadsideProps';
   return group;
 }
 
@@ -1175,8 +1296,14 @@ function buildStartLine(track, info) {
   for (let side = -1; side <= 1; side += 2) {
     const pillar = new THREE.Mesh(new THREE.BoxGeometry(1.05, 8, 1.05), dark);
     pillar.position.set(side * (hw + 1.7), 4, 0); pillar.castShadow = true; gate.add(pillar);
-    const wing = new THREE.Mesh(new THREE.ConeGeometry(2.5, 7.5, 3), glow);
-    wing.position.set(side * (hw + 1.7), 9, 0); wing.rotation.z = side * 0.52; gate.add(wing);
+    /* The old triangular wings read as detached cyan flags in the chase
+       camera. Slim illuminated blades keep the gate silhouette, leave the
+       road and scenery legible, and make the start structure feel engineered
+       rather than like a floating VFX prop. */
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(0.56, 5.6, 0.72), glow);
+    wing.position.set(side * (hw + 1.7), 8.4, 0); wing.rotation.z = side * 0.18; gate.add(wing);
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.82, 8, 5), glow);
+    cap.position.set(side * (hw + 1.7), 11.15, 0); gate.add(cap);
   }
   const beam = new THREE.Mesh(new THREE.BoxGeometry(hw * 2 + 5.4, 0.8, 0.9), dark);
   beam.position.y = 8.1; gate.add(beam);

@@ -497,3 +497,40 @@ make the track's curb-to-shoulder-to-groundcover and waterfall hero read as a
 coherent racing environment in `render/trackmesh.js`. Each worker owns only
 its SPEC-assigned file; the lead owns integration, tests, screenshots and git.
 No release or `main` update is planned tonight.
+
+## 2026-08-24 — polish night 6 handoff
+
+Two file-isolated render passes landed and were pushed to `dev` as
+`03e7534` and `2425cd1`. `render/trackmesh.js` now has a lighter, more
+materially varied asphalt and shoulder ladder, clustered/value-varied growth,
+subdued depth-tested waterfall sheets plus staggered low-poly stream columns,
+and a slimmer start gate whose old emissive cone wings had read as floating
+flags. `render/fx.js` now emits a short-lived bright core at the inside rear
+tyre and strengthens the focus-kart contact flare while preserving the pooled,
+allocation-free update path.
+
+### Verification
+
+* Full arcade Jest suite: **9/9 suites, 237/237 tests passed**.
+* `node --check` passed for both changed render modules; the Zephyr logic suite
+  remained **109/109**.
+* Fresh in-app browser sweep covered **320x568, 390x844, 844x390, 768x1024,
+  1440x900 and 3840x2160**. All six had exact viewport dimensions, no
+  horizontal overflow, and no app errors or warnings. Desktop and mobile
+  post-countdown PNGs were read from
+  `C:\Users\jshun\AppData\Local\Temp\zephyr-night6-20260824`.
+
+### Honest quality status
+
+The visual health checks pass and the road/gate presentation is materially
+better, but this is **not an AAA critic pass**. The waterfall is still not a
+hero vista in the inspected chase frame, the stylized island dressing remains
+below Mario Kart 8 Deluxe / Art of Rally material richness, and the FX change
+was not independently judged in a forced drift/boost/collision comparison
+because the worker critic loops stalled and were closed. No `.aaa-complete`
+was written, no shipping judge was run, and `main` was not touched.
+
+Next run: obtain fresh independent track and FX side-by-side verdicts with
+forced active states, then address the worst remaining visual loss before the
+forced release Saturday 2026-08-29. Audio, UI/camera drama and real-GPU
+shadow validation remain debt.

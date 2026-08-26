@@ -642,3 +642,54 @@ forced active frame. Tonight is a bounded pass on three disjoint files/areas:
 The lead owns integration, tests, screenshots, PROGRESS, and every git
 command. Each worker must edit only its SPEC-assigned file set and report a
 harsh reference comparison; no release or `main` update is planned tonight.
+
+## 2026-08-26 — polish night 8 handoff
+
+Two bounded presentation units landed on `dev` and were pushed independently:
+`cfbf09c` rebuilds `assets/js/audio.js` as a layered procedural race mix with
+load-sensitive engine harmonics, gear shifts, tyre scrub, drift-tier tones,
+boost/item/impact/countdown/lap/fall/finish stingers, and a loopable music
+bed. `7494f4e` refreshes `assets/js/ui.js` and `assets/css/game.css` with
+named HUD panels, a speed bar, clearer item affordance, staged countdown
+card, richer results/score screen, and responsive touch labels/targets.
+
+### Verification
+
+* Full repository suite: **9/9 suites, 237/237 tests passed** after each
+  landed unit. `node --check` passed for `audio.js`, `ui.js`, and the existing
+  `render/fx.js`; `git diff --check` passed for the scoped changes.
+* The in-app browser loaded the updated build on a fresh local port with no
+  console errors. Exact viewport probes covered **320x568, 390x844,
+  844x390, 768x1024, 1440x900, and 3840x2160**; every report matched its
+  requested dimensions and had document/body widths equal to the viewport.
+  I inspected the countdown frames, plus a transient forced-finish results
+  frame at 1440x900. Touch emulation confirmed visible controls and safe
+  target rectangles at 320x568 and 390x844. Evidence was saved to
+  `C:\Users\jshun\AppData\Local\Temp\zephyr-night8-1440-countdown.png`
+  and `C:\Users\jshun\AppData\Local\Temp\zephyr-night8-390-touch.png`.
+* The audio worker's full/degraded WebAudio shim checks passed, but the
+  audioscope could not run because this checkout has no `playwright` package;
+  no spectrogram or real listening verdict is claimed.
+
+### Honest critic status
+
+* **Audio — FAIL / not AAA-cleared.** The worker compared against Mario Kart 8
+  Deluxe and explicitly did not claim a pass; offline visual evidence was
+  blocked by the missing Playwright dependency.
+* **UI/presentation — UNJUDGED.** The worker inspected a Mario Kart 8 Deluxe
+  reference and improved the hierarchy, but the fresh final blind comparison
+  was interrupted. The lead's desktop countdown and results frames are clean,
+  and the responsive/touch geometry passes, but this is not a critic pass.
+* **FX — unchanged, FAIL retained.** The worker landed no safe patch. The
+  previous forced-state evidence still shows detached drift streaks and no
+  visible boost exhaust, so this remains the first priority.
+* Track/environment and kart models remain below their prior AAA reference
+  verdicts. No `.aaa-complete` was written and `main` was not touched.
+
+### Next run
+
+Start with `render/fx.js`: reproduce the missing boost exhaust, fix event/state
+ownership and tyre attachment, and obtain a real independent side-by-side
+verdict. Then rerun UI/audio critic evidence if time allows. Forced release is
+Saturday **2026-08-29**; release night must only fix glaring blockers and must
+not be delayed for cosmetic debt.

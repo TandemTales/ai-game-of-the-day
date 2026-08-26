@@ -620,3 +620,25 @@ contact point. The tier-2 boost produced **no visible flame or exhaust**:
 with `kart:boost` fired every 120ms, the only on-screen difference between
 "boosting at tier 2" and "cruising" was the camera FOV, which is lead code.
 That is worth checking as a plain trigger bug before any redesign.
+
+## 2026-08-26 — polish night 8 intent
+
+Pacific Wednesday, nine days after the 2026-08-17 start. This is not release
+night; the forced release remains Saturday 2026-08-29. The previous run
+identified two concrete blockers rather than cosmetic debt: the audio plan
+was not landed, and the FX trigger path showed no visible boost exhaust in a
+forced active frame. Tonight is a bounded pass on three disjoint files/areas:
+
+1. **agent-audio** owns `assets/js/audio.js`: turn the stub into a layered
+   racing mix with load-dependent engine, tyre scrub, drift tiers, boost/item/
+   impact/countdown/lap stingers, and a procedural music bed. Use the existing
+   audioscope path for offline evidence; do not add runtime fetches.
+2. **agent-ui** owns `assets/js/ui.js` and `assets/css/game.css`: improve
+   countdown/results drama, HUD hierarchy/readability, and touch affordances.
+3. **agent-particles** owns `assets/js/render/fx.js`: fix the observed boost
+   trigger/ownership issue first, then make drift, boost, and collision effects
+   visibly attach to the focus kart's tyres and travel direction.
+
+The lead owns integration, tests, screenshots, PROGRESS, and every git
+command. Each worker must edit only its SPEC-assigned file set and report a
+harsh reference comparison; no release or `main` update is planned tonight.

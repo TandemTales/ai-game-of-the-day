@@ -568,3 +568,55 @@ Tonight is therefore a bounded three-area pass:
 Each worker owns only its SPEC-assigned files and loops against a separate
 harsh critic. The lead owns integration, the test suite, the screenshot sweep
 and every git command. No release and no `main` update is planned tonight.
+
+### Lead work landed early (camera, tooling, harness)
+
+Three lead-owned pieces are pushed ahead of the workers, so a dead run
+still leaves them:
+
+* **`tools/audioscope.js`** (new). The audio discipline has never had a
+  verification path — audio cannot be seen in a screenshot and cannot be
+  heard in this sandbox. The tool loads the game in headless Chromium,
+  renders the audio graph offline through a `ZC.Audio.__renderOffline`
+  hook, and writes per scenario a log-frequency STFT spectrogram, a
+  peak/RMS waveform, a listenable WAV, and numeric stats (peak/RMS/crest,
+  clipped samples, DC offset, silent fraction, spectral centroid track).
+  The STFT and PNG encoding are pure Node: the ffmpeg in the Playwright
+  bundle is a minimal 24-filter build with no `showspectrumpic`. Verified
+  against a synthetic signal — a rising eight-harmonic saw plus a 4 kHz
+  burst at t=2s — and both resolve correctly, with the centroid track
+  rising monotonically 244→1763 Hz and spiking to 2974 Hz in exactly the
+  burst window.
+* **`render/main.js` camera drama.** The chase camera was correct but
+  inert: a boost, a shell hit and a quiet straight looked identical, and a
+  standing start opened already framed as if the race were underway. Added
+  an FOV punch, impact shake (summed sines, not `Math.random`, so it is
+  frame-rate independent and never a single-frame teleport), a small roll
+  into a slide scaled off `Kart.TUNE.driftSlip`, and an establishing shot
+  that starts low off the kart's shoulder during GRID/COUNTDOWN and pushes
+  in to the chase position. The intro blend is driven off `st.countdown`
+  rather than its own timer, so a skipped or restarted countdown cannot
+  strand it. All of it moves the camera only, never the simulation, so
+  none of it can touch a lap time. Only the kart the camera is watching
+  may raise an impulse — in attract mode that is the leader.
+  **Verified in-browser at 1440x900**: the forced countdown frame shows
+  the low shoulder angle with the full field spread across frame, and the
+  forced tier-2 drift frame shows the horizon rolled and the FOV widened.
+* **`__tests__/zephyr-circuit.harness.js`**: `loadSandbox(files, opts)`
+  now returns the sandbox alongside `ZC` and merges `opts.globals` before
+  the modules run, so a test can supply a recording Web Audio shim.
+  `loadZC` keeps its old signature; no existing test changed.
+
+Suite stayed 109/109 across all three.
+
+### Evidence captured for the FX brief
+
+The forced tier-2 drift frame is direct corroboration of the three prior
+critic FAILs on `render/fx.js`. In that frame the drift effect is two thin
+pale-cyan streaks lying flat on the road several metres *behind* the kart,
+one detached to the left entirely — they read as light trails, not as
+tyres throwing sparks, and there is nothing at all at the wheel/road
+contact point. The tier-2 boost produced **no visible flame or exhaust**:
+with `kart:boost` fired every 120ms, the only on-screen difference between
+"boosting at tier 2" and "cruising" was the camera FOV, which is lead code.
+That is worth checking as a plain trigger bug before any redesign.

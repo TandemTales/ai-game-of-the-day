@@ -13,7 +13,7 @@
   var U = ZC.UI = {};
   var R = null;
 
-  var root = null, els = {}, toastTimer = 0;
+  var root = null, els = {}, toastTimer = 0, countdownTimer = 0;
 
   function h(tag, cls, html) {
     var e = document.createElement(tag);
@@ -57,12 +57,17 @@
 
     /* ---- HUD ---- */
     var hud = els.hud = h('div', 'zc-hud');
-    els.place = h('div', 'zc-place', '<b>1</b><span>st</span>');
-    els.lap = h('div', 'zc-lap', '<span class="zc-lbl">Lap</span><b>1/3</b>');
+    els.place = h('div', 'zc-place',
+      '<i>Position</i><b>1</b><span>st</span><small>/ 8</small>');
+    els.lap = h('div', 'zc-lap',
+      '<span class="zc-lbl">Lap</span><small class="zc-lap-track">Gullwing Bay</small><b>1/3</b>');
     els.timing = h('div', 'zc-timing',
       '<div class="zc-time"><span>Time</span><b>0:00.00</b></div>' +
       '<div class="zc-best"><span>Best</span><b>--:--.--</b></div>');
-    els.speed = h('div', 'zc-speed', '<b>0</b><span>km/h</span>');
+    els.speed = h('div', 'zc-speed',
+      '<span class="zc-speed-kicker">Speed</span>' +
+      '<div class="zc-speed-readout"><b>0</b><span>KM/H</span></div>' +
+      '<i class="zc-speed-fill"></i>');
     els.charge = h('div', 'zc-charge', '<i></i>');
     els.item = holdPad('zc-item is-empty',
       '<span class="zc-item-label">Item</span>' +
@@ -72,6 +77,10 @@
     els.itemGlyph = els.item.querySelector('.zc-item-icon');
     els.itemName = els.item.querySelector('.zc-item-copy b');
     els.itemHint = els.item.querySelector('.zc-item-copy small');
+    els.placeTotal = els.place.querySelector('small');
+    els.lapTrack = els.lap.querySelector('.zc-lap-track');
+    els.speedBar = els.speed.querySelector('.zc-speed-fill');
+    els.chargeFill = els.charge.querySelector('i');
     hud.appendChild(els.place);
     hud.appendChild(els.lap);
     hud.appendChild(els.timing);
@@ -80,7 +89,19 @@
     hud.appendChild(els.item);
     root.appendChild(hud);
 
-    els.countdown = h('div', 'zc-countdown');
+    els.countdown = h('div', 'zc-countdown',
+      '<div class="zc-countdown-content">' +
+        '<span class="zc-countdown-kicker">Get ready</span>' +
+        '<b class="zc-countdown-value">3</b>' +
+        '<span class="zc-countdown-sub">Hold drift to charge</span>' +
+        '<small class="zc-countdown-track">Round 1 · Gullwing Bay</small>' +
+      '</div>');
+    els.countdown.setAttribute('role', 'status');
+    els.countdown.setAttribute('aria-live', 'assertive');
+    els.countdownValue = els.countdown.querySelector('.zc-countdown-value');
+    els.countdownKicker = els.countdown.querySelector('.zc-countdown-kicker');
+    els.countdownSub = els.countdown.querySelector('.zc-countdown-sub');
+    els.countdownTrack = els.countdown.querySelector('.zc-countdown-track');
     root.appendChild(els.countdown);
 
     /* ---- touch controls ----
@@ -110,6 +131,7 @@
       }
     });
 
+    last = {};
     render(R.state.phase);
   };
 
@@ -130,15 +152,22 @@
     var p = st.player;
     var racing = st.phase === R.PHASE.RACING || st.phase === R.PHASE.FINISHED;
     root.classList.toggle('is-racing', racing || st.phase === R.PHASE.COUNTDOWN);
+    root.classList.toggle('is-countdown', st.phase === R.PHASE.COUNTDOWN);
+    root.classList.toggle('is-results', st.phase === R.PHASE.RESULTS);
     root.classList.toggle('is-touch', ZC.isTouch);
+    root.setAttribute('data-phase', st.phase);
 
     setText(els.place.querySelector('b'), 'place', String(p.place));
     setText(els.place.querySelector('span'), 'placeSuf', ZC.ordinal(p.place).replace(/^\d+/, ''));
+    setText(els.placeTotal, 'placeTotal', '/ ' + st.karts.length);
+    setText(els.lapTrack, 'lapTrack', st.track.name);
     setText(els.lap.querySelector('b'), 'lap',
       Math.min(p.lap + 1, st.track.laps) + '/' + st.track.laps);
     setText(els.timing.querySelector('.zc-time b'), 'time', ZC.fmtLap(p.raceTime - p.lapStart));
     setText(els.timing.querySelector('.zc-best b'), 'best', ZC.fmtLap(p.bestLap));
-    setText(els.speed.querySelector('b'), 'spd', String(Math.round(ZC.Kart.speedKmh(p))));
+    var speedKmh = ZC.Kart.speedKmh(p);
+    setText(els.speed.querySelector('b'), 'spd', String(Math.round(speedKmh)));
+    els.speedBar.style.transform = 'scaleX(' + ZC.clamp01(speedKmh / 150).toFixed(3) + ')';
 
     /* Held item. This is both the at-a-glance slot and the touch use
        control: keeping those as one object makes the answer to "what do I
@@ -189,17 +218,27 @@
       frac = ZC.clamp01(p.drift.charge / tiers[tiers.length - 1]);
     }
     els.charge.style.opacity = p.drift.active ? '1' : '0';
-    els.charge.firstChild.style.transform = 'scaleX(' + frac.toFixed(3) + ')';
+    els.chargeFill.style.transform = 'scaleX(' + frac.toFixed(3) + ')';
     els.charge.setAttribute('data-tier', String(tier));
 
     if (st.phase === R.PHASE.COUNTDOWN) {
       var n = Math.ceil(st.countdown - 0.2);
-      setText(els.countdown, 'cd', n > 0 ? String(n) : 'GO');
-      els.countdown.className = 'zc-countdown is-on' + (n <= 0 ? ' is-go' : '');
-    } else if (els.countdown.className !== 'zc-countdown') {
-      if (st.phase !== R.PHASE.COUNTDOWN) {
-        setTimeout(function () { els.countdown.className = 'zc-countdown'; }, 500);
+      var cdText = n > 0 ? String(n) : 'GO';
+      var cdClass = n <= 0 ? 'is-go' : 'is-' + ZC.clamp(n, 1, 3);
+      setText(els.countdownValue, 'cd', cdText);
+      setText(els.countdownKicker, 'cdKicker', n > 0 ? 'Get ready' : 'Launch');
+      setText(els.countdownSub, 'cdSub', n > 0 ? 'Hold drift to charge' : 'Full throttle');
+      setText(els.countdownTrack, 'cdTrack',
+        'Round ' + (st.round + 1) + ' · ' + st.track.name);
+      if (last.cdClass !== cdClass) {
+        last.cdClass = cdClass;
+        els.countdown.className = 'zc-countdown is-on ' + cdClass;
       }
+    } else if (els.countdown.className !== 'zc-countdown' && !countdownTimer) {
+      countdownTimer = global.setTimeout(function () {
+        els.countdown.className = 'zc-countdown';
+        countdownTimer = 0;
+      }, 420);
     }
 
     if (ZC.Audio && ZC.Audio.update) ZC.Audio.update(p, 0.016);
@@ -254,9 +293,15 @@
 
   function screenGrid() {
     var p = panel('zc-grid');
-    p.appendChild(h('div', 'zc-kicker', 'Round 1'));
+    p.appendChild(h('div', 'zc-grid-flag', 'Next circuit'));
+    p.appendChild(h('div', 'zc-kicker',
+      'Round ' + (R.state.round + 1) + ' / ' + R.CUP.length));
     p.appendChild(h('h2', null, R.state.track.name));
-    p.appendChild(h('p', 'zc-tag', R.state.track.laps + ' laps'));
+    p.appendChild(h('p', 'zc-tag', 'Three laps. One clean line.'));
+    p.appendChild(h('div', 'zc-grid-meta',
+      '<span><b>' + R.state.track.laps + '</b><small>LAPS</small></span>' +
+      '<span><b>8</b><small>RACERS</small></span>' +
+      '<span><b>' + Math.round(R.state.track.parTime) + 's</b><small>PAR</small></span>'));
     p.appendChild(button('zc-btn zc-primary', 'To the grid', function () {
       R.beginCountdown();
       render(R.PHASE.COUNTDOWN);
@@ -266,9 +311,18 @@
   function screenResults() {
     var st = R.state;
     var res = st.results;
-    var p = panel('zc-results');
-    p.appendChild(h('div', 'zc-kicker', 'Chequered flag'));
-    p.appendChild(h('h2', 'zc-finish', ZC.ordinal(res.place)));
+    var resultClass = res.place === 1 ? 'is-win' : (res.place <= 3 ? 'is-podium' : 'is-finish');
+    var p = panel('zc-results ' + resultClass);
+    p.appendChild(h('div', 'zc-result-overline',
+      'Round ' + (st.round + 1) + ' · Chequered flag'));
+    var hero = h('div', 'zc-result-hero');
+    hero.appendChild(h('span', 'zc-finish-label', 'Finish'));
+    hero.appendChild(h('h2', 'zc-finish', ZC.ordinal(res.place)));
+    hero.appendChild(h('div', 'zc-result-meta',
+      '<span><small>TIME</small><b>' + ZC.fmtLap(res.finishTime) + '</b></span>' +
+      '<span><small>BEST LAP</small><b>' + ZC.fmtLap(res.bestLap) + '</b></span>'));
+    p.appendChild(hero);
+    p.appendChild(h('div', 'zc-section-head', '<span>Field standings</span><small>8 RACERS</small>'));
 
     var table = h('div', 'zc-table');
     var order = R.order();
@@ -283,6 +337,8 @@
     }
     p.appendChild(table);
 
+    p.appendChild(h('div', 'zc-score-head',
+      '<span>Round score</span><b>+' + ZC.fmtNum(res.total) + '</b>'));
     var br = h('div', 'zc-break');
     br.innerHTML =
       '<div class="zc-brow"><span>Finish</span><b>' + res.points * 40 + '</b></div>' +

@@ -534,3 +534,37 @@ Next run: obtain fresh independent track and FX side-by-side verdicts with
 forced active states, then address the worst remaining visual loss before the
 forced release Saturday 2026-08-29. Audio, UI/camera drama and real-GPU
 shadow validation remain debt.
+
+## 2026-08-25 — polish night 7 intent
+
+Pacific Tuesday, eight days after the 2026-08-17 start. Not release night; the
+forced release is Saturday 2026-08-29, so this is one of the last four polish
+nights.
+
+Three nights of critic loops on the three *visual* disciplines (track, FX,
+karts) have each ended in a FAIL verdict, while two whole disciplines named as
+debt in every handoff have never been worked on at all: **audio** is a 110-line
+stub with one sawtooth oscillator, one noise band, five sine blips and **no
+music of any kind**, and **UI/presentation drama** (countdown, results, HUD
+hierarchy, touch affordances) has not been revisited since the scaffold. With
+four nights left, the marginal value of a fourth grind on the same three render
+files is far below taking those two zero-state disciplines to a real bar.
+
+Tonight is therefore a bounded three-area pass:
+
+1. **agent-audio** owns `assets/js/audio.js` — rebuild it as a real racing
+   soundtrack and mix: layered load-dependent engine, gear shifts, tyre scrub
+   tied to slip, a drift-charge riser with per-tier tone, boost, item, impact,
+   countdown and lap stingers, and a procedural music bed. Verified by
+   `OfflineAudioContext` renders inspected as spectrogram PNGs, not by
+   assertion alone.
+2. **agent-ui** owns `assets/js/ui.js` and `assets/css/game.css` (a single
+   owner in SPEC.md's table, so no shared-file race) — countdown and results
+   drama, HUD hierarchy and readability, touch affordances.
+3. **agent-particles** owns `assets/js/render/fx.js` — the previous handoff's
+   explicit next step: make drift, boost and collision effects visibly belong
+   to the focus kart's tyres and travel direction.
+
+Each worker owns only its SPEC-assigned files and loops against a separate
+harsh critic. The lead owns integration, the test suite, the screenshot sweep
+and every git command. No release and no `main` update is planned tonight.

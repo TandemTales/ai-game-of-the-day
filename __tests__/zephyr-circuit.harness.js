@@ -21,8 +21,13 @@ const JS_DIR = path.join(__dirname, '..', 'zephyr-circuit', 'assets', 'js');
 const DEFAULT_MODULES = ['core.js', 'track.js', 'tracks.js', 'kart.js'];
 
 /* A fresh sandbox per call, so one test cannot leak simulation state —
-   or a seeded RNG position — into another. */
-function loadZC(files) {
+   or a seeded RNG position — into another.
+
+   `opts.globals` is merged into the sandbox before the modules run, which
+   is how a test supplies an API the default shim deliberately does not
+   have — a recording Web Audio implementation, say. Merged last, so a
+   test can also override a default stub. */
+function loadSandbox(files, opts) {
   const s = {};
 
   s.window = s;
@@ -81,6 +86,10 @@ function loadZC(files) {
   };
   s.fetch = () => Promise.reject(new Error('offline in tests'));
 
+  if (opts && opts.globals) {
+    for (const k of Object.keys(opts.globals)) s[k] = opts.globals[k];
+  }
+
   vm.createContext(s);
 
   for (const f of (files || DEFAULT_MODULES)) {
@@ -88,7 +97,9 @@ function loadZC(files) {
     vm.runInContext(fs.readFileSync(file, 'utf8'), s, { filename: file });
   }
 
-  return s.ZC;
+  return { ZC: s.ZC, sandbox: s };
 }
 
-module.exports = { loadZC, JS_DIR, DEFAULT_MODULES };
+function loadZC(files, opts) { return loadSandbox(files, opts).ZC; }
+
+module.exports = { loadZC, loadSandbox, JS_DIR, DEFAULT_MODULES };

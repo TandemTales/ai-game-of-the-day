@@ -163,8 +163,9 @@ function makeGlowTexture() {
 function makeStreakTexture() {
   return pixelTexture(64, (nx, ny) => {
     const along = Math.max(0, 1 - Math.abs(nx));
-    const a = Math.pow(along, 1.5) * Math.exp(-(ny * ny) / 0.0014);
-    return a * 1.15;
+    const core = Math.exp(-(ny * ny) / 0.0042);
+    const feather = Math.exp(-(ny * ny) / 0.028) * 0.32;
+    return Math.pow(along, 1.45) * (core + feather) * 1.08;
   });
 }
 
@@ -1442,11 +1443,11 @@ export function createFX(scene, track) {
         P.vz = kvz * 0.40 - fzT * v + rnd(-1.0, 1.0);
         P.vy = rnd(-0.2, 1.4);
         P.life = rnd(0.12, 0.26);
-        const flameScale = focusKart ? 1.15 : 0.70;
-        P.s0 = rnd(0.14, 0.28) * Q.size * flameScale; P.s1 = P.s0 * 2.7;
+        const flameScale = focusKart ? 1.28 : 0.70;
+        P.s0 = rnd(0.18, 0.34) * Q.size * flameScale; P.s1 = P.s0 * 3.0;
         P.r0 = 1.90; P.g0 = 2.15; P.b0 = 2.45;
         P.r1 = 1.45; P.g1 = 0.38; P.b1 = 0.03;
-        P.a0 = focusKart ? 0.66 : 0.42; P.aPow = 1.55; P.aIn = 0;
+        P.a0 = focusKart ? 0.78 : 0.42; P.aPow = 1.55; P.aIn = 0;
         P.rot = screenAngle(-fxT, P.vy * 0.02, -fzT) + rnd(-0.08, 0.08);
         P.drag = 2.2;
         emit(flame);
@@ -1532,7 +1533,7 @@ export function createFX(scene, track) {
         const flick = 0.78 + 0.22 * Math.sin(time * 47 + i * 2.1 + s * 3.1);
         const ct = TIER_COL[tier];
         col[i3] = ct[0] * 0.72; col[i3 + 1] = ct[1] * 0.72; col[i3 + 2] = ct[2] * 0.72;
-        const focusScale = k === focus ? 2.02 : 0.14;
+        const focusScale = k === focus ? 1.68 : 0.14;
         siz[idx] = (0.32 + tier * 0.10 + swell * 0.13 + kDriftPop[i] * 0.22) * bias * flick * focusScale * Q.size;
         alp[idx] = (tier === 0 ? 0.48 : 0.94) * bias * flick * focusScale;
         rot[idx] = 0;
@@ -1550,10 +1551,12 @@ export function createFX(scene, track) {
         toWorld(k, s === 0 ? -ex[0] : ex[0], ex[1], cp[1] + ex[2]);
         pos[i3] = _w.x; pos[i3 + 1] = _w.y; pos[i3 + 2] = _w.z;
         const flick = 0.86 + 0.14 * Math.sin(time * 51 + i * 2.3 + s * 2.1);
-        const focusScale = k === focus ? 1.20 : 0.16;
-        col[i3] = 3.2; col[i3 + 1] = 1.55; col[i3 + 2] = 0.16;
-        siz[idx] = (0.42 + kBoostPop[i] * 0.28) * flick * focusScale * Q.size;
-        alp[idx] = 0.82 * flick * focusScale;
+        const focusScale = k === focus ? 1.38 : 0.16;
+        col[i3] = s === 0 ? 3.1 : 0.62;
+        col[i3 + 1] = s === 0 ? 1.28 : 2.35;
+        col[i3 + 2] = s === 0 ? 0.06 : 3.05;
+        siz[idx] = (2.15 + kBoostPop[i] * 0.72) * flick * focusScale * Q.size;
+        alp[idx] = 0.88 * flick * focusScale;
         rot[idx] = 0;
       }
     }

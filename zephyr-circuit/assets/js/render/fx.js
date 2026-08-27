@@ -862,10 +862,18 @@ export function createFX(scene, track) {
 
   function kartOf(p) { return (p && p.kart) ? p.kart : p; }
 
-  /* Where the authored boost flame is, in kart-local metres. Keep y/z in
-     lockstep with render/karts.js' centered flame part (y=.50,
-     z=rearZ-1.12); the two pooled cores stay inside its .34m footprint. */
-  const EX_X = 0.10, EX_Y = 0.50, EX_Z = -1.12;
+  /* Exhaust particles belong at the actual pipe outlets, not at the centre
+     of the decorative flame cone. render/karts.js places the normal pipes at
+     x=.40, y=.64, z=rearZ-.79 (the two wide silhouettes use .64 in x). Keep
+     the map static so the frame path still does not allocate. */
+  const EXHAUST = {
+    kestrel: [0.40, 0.64, -0.79], mantis: [0.40, 0.64, -0.79],
+    cobalt: [0.40, 0.64, -0.79], ember: [0.64, 0.64, -0.79],
+    saffron: [0.40, 0.64, -0.79], thistle: [0.40, 0.64, -0.79],
+    pewter: [0.64, 0.64, -0.79], moss: [0.40, 0.64, -0.79],
+  };
+  const DEFAULT_EXHAUST = EXHAUST.kestrel;
+  function exhaustOf(k) { return EXHAUST[k.id] || DEFAULT_EXHAUST; }
   const WH_Y = 0.06;
   /* Mirrors render/karts.js' authored rear axle instead of pretending all
      eight silhouettes share the scaffold kart's wheelbase. */
@@ -908,7 +916,7 @@ export function createFX(scene, track) {
       /* Put the first visible puff on the inside rear tyre. The second is a
          quieter mirror, so the slide has a source rather than two floating
          clouds with no relationship to the kart. */
-      const side = s === 0 ? dir : -dir;
+      const side = s === 0 ? -dir : dir;
       toWorld(k, side * cp[0], WH_Y + 0.015, cp[1]);
       smokePuff(_w.x, _w.y, _w.z, s === 0 ? 6 : 3, 1.6, 0.82, 0.80, 0.80, 0.48, 0.62, s === 0 ? 0.34 : 0.20);
     }
@@ -919,13 +927,14 @@ export function createFX(scene, track) {
     const tier = (p && p.tier !== undefined) ? p.tier : k.drift.tier;
     if (tier <= 0) return;
     const c = TIER_COL[Math.min(3, tier)];
-    kDriftPop[idxOf(k)] = 1;
+    const ki = idxOf(k);
+    if (ki >= 0) kDriftPop[ki] = 1;
     /* A hard, unmissable pop at the exact frame the colour changes. This
        is the feedback the whole mechanic hangs on. */
     const cp = contactOf(k);
     const dir = k.drift.dir || 1;
     for (let s = 0; s < 2; s++) {
-      const side = s === 0 ? dir : -dir;
+      const side = s === 0 ? -dir : dir;
       toWorld(k, side * cp[0], WH_Y + 0.035, cp[1]);
       sparkBurst(_w.x, _w.y, _w.z, 8 + tier * 4, 7 + tier * 1.5, c, 0.20, 0.26, -14);
       const tail = TIER_TAIL[Math.min(3, tier)];
@@ -941,21 +950,23 @@ export function createFX(scene, track) {
 
   on('kart:boost', (p) => {
     const k = kartOf(p); if (!k) return;
-    kBoostPop[idxOf(k)] = 1;
+    const ki = idxOf(k);
+    if (ki >= 0) kBoostPop[ki] = 1;
     const fx = Math.sin(k.travelYaw), fz = Math.cos(k.travelYaw);
     const kvx = fx * k.speed, kvz = fz * k.speed;
     const cp = contactOf(k);
+    const ex = exhaustOf(k);
     for (let exhaust = 0; exhaust < 2; exhaust++) {
-      const sx = exhaust === 0 ? -EX_X : EX_X;
-      toWorld(k, sx, EX_Y, cp[1] + EX_Z);
-      const ex = _w.x, ey = _w.y, ez = _w.z;
+      const sx = exhaust === 0 ? -ex[0] : ex[0];
+      toWorld(k, sx, ex[1], cp[1] + ex[2]);
+      const wx = _w.x, ey = _w.y, ez = _w.z;
       /* the flame cone itself — velocity is mostly the kart's own, so the
          burst stays a cone bolted to the exhaust rather than a fireball
          the kart drives out of */
       for (let i = 0; i < 6; i++) {
         const t = i / 6;
         resetP();
-        P.x = ex + rnd(-0.08, 0.08); P.y = ey + rnd(-0.07, 0.07); P.z = ez + rnd(-0.08, 0.08);
+        P.x = wx + rnd(-0.08, 0.08); P.y = ey + rnd(-0.07, 0.07); P.z = ez + rnd(-0.08, 0.08);
         const v = rnd(15, 25);
         P.vx = kvx * 0.42 - fx * v + rnd(-1.6, 1.6);
         P.vz = kvz * 0.42 - fz * v + rnd(-1.6, 1.6);
@@ -972,7 +983,7 @@ export function createFX(scene, track) {
       /* A compact hot source makes the authored exhaust origin survive the
          first few frames before the directional trail separates from it. */
       resetP();
-      P.x = ex; P.y = ey; P.z = ez;
+      P.x = wx; P.y = ey; P.z = ez;
       P.life = 0.16; P.s0 = 0.54; P.s1 = 0.10;
       P.r0 = 3.4; P.g0 = 3.2; P.b0 = 2.5;
       P.r1 = 1.8; P.g1 = 0.55; P.b1 = 0.04;
@@ -1086,8 +1097,9 @@ export function createFX(scene, track) {
     if (!st || !st.karts) return;
     for (const k of st.karts) {
       const cp = contactOf(k);
-      for (const sx of [-EX_X, EX_X]) {
-        toWorld(k, sx, EX_Y, cp[1] + EX_Z);
+      const ex = exhaustOf(k);
+      for (const sx of [-ex[0], ex[0]]) {
+        toWorld(k, sx, ex[1], cp[1] + ex[2]);
         smokePuff(_w.x, _w.y, _w.z, 6, 2.6, 0.8, 0.78, 0.78, 0.7, 0.9, 0.35);
       }
       for (const side of [-1, 1]) {
@@ -1142,9 +1154,21 @@ export function createFX(scene, track) {
   /* index of a kart within the live field, for the per-kart scratch */
   let liveKarts = null;
   function idxOf(k) {
-    if (!liveKarts) return 0;
-    const i = liveKarts.indexOf(k);
-    return (i >= 0 && i < MAXK) ? i : 0;
+    if (!k) return -1;
+    if (liveKarts) {
+      const i = liveKarts.indexOf(k);
+      if (i >= 0 && i < MAXK) return i;
+    }
+    /* Race.update emits before fx.update publishes this frame's roster. In
+       that window, resolve the event against the current state rather than
+       silently assigning its pulse to slot zero. */
+    const roster = ZC.Race && ZC.Race.state && ZC.Race.state.karts;
+    if (roster) {
+      for (let i = 0; i < roster.length && i < MAXK; i++) {
+        if (roster[i] === k) return i;
+      }
+    }
+    return -1;
   }
 
   /* ------------------------------------------------------------------
@@ -1194,7 +1218,7 @@ export function createFX(scene, track) {
       for (let q = 0; q < n; q++) {
         /* both rear wheels spark; the inside one throws roughly twice as
            much, which is what makes the direction of the slide readable */
-        const inside = (q === 0 || random() < 0.72) ? d.dir : -d.dir;
+        const inside = (q === 0 || random() < 0.72) ? -d.dir : d.dir;
         const sx = inside * cp[0];
         toWorld(k, sx + rnd(-0.015, 0.015), WH_Y + rnd(0, 0.018), cp[1] + rnd(-0.022, 0.022));
         /* a third of them are the long stragglers that give the plume
@@ -1249,7 +1273,7 @@ export function createFX(scene, track) {
       if (nc > 2) nc = 2;
       kContactAcc[i] -= nc;
       for (let q = 0; q < nc; q++) {
-        const side = d.dir * (q === 0 ? cp[0] : -cp[0]);
+         const side = -d.dir * (q === 0 ? cp[0] : -cp[0]);
         toWorld(k, side, WH_Y + 0.026, cp[1]);
         resetP();
         P.x = _w.x; P.y = _w.y; P.z = _w.z;
@@ -1273,7 +1297,7 @@ export function createFX(scene, track) {
       for (let q = 0; q < ns; q++) {
         /* q=0 is always the inside rear contact. It is the visual proof of
            ownership; the quieter second puff can mirror to the other tyre. */
-        const side = q === 0 ? d.dir : (random() < 0.5 ? -1 : 1);
+         const side = q === 0 ? -d.dir : (random() < 0.5 ? -1 : 1);
         const sx = side * cp[0];
         toWorld(k, sx, WH_Y + 0.018, cp[1]);
         resetP();
@@ -1406,8 +1430,9 @@ export function createFX(scene, track) {
       if (n > 12) n = 12;
       kTrailAcc[i] -= n;
       for (let q = 0; q < n; q++) {
-        const sx = (random() < 0.5 ? -EX_X : EX_X);
-        toWorld(k, sx, EX_Y + rnd(-0.05, 0.05), cp[1] + EX_Z);
+        const ex = exhaustOf(k);
+        const sx = (random() < 0.5 ? -ex[0] : ex[0]);
+        toWorld(k, sx, ex[1] + rnd(-0.05, 0.05), cp[1] + ex[2]);
         /* the flame is attached to the kart, so it keeps most of the
            kart's velocity and only slides backwards out of the pipe */
         const v = rnd(16, 27);
@@ -1501,7 +1526,7 @@ export function createFX(scene, track) {
         const i3 = idx * 3;
         if (!sparking) { alp[idx] = 0; siz[idx] = 0; continue; }
         const side = s === 0 ? -cp[0] : cp[0];
-        const bias = (Math.sign(side) === d.dir) ? 1 : 0.30;
+        const bias = (Math.sign(side) === -d.dir) ? 1 : 0.30;
         toWorld(k, side, WH_Y + 0.025, cp[1]);
         pos[i3] = _w.x; pos[i3 + 1] = _w.y; pos[i3 + 2] = _w.z;
         const flick = 0.78 + 0.22 * Math.sin(time * 47 + i * 2.1 + s * 3.1);
@@ -1521,7 +1546,8 @@ export function createFX(scene, track) {
         const idx = base + 2 + s;
         const i3 = idx * 3;
         if (!boosting) { alp[idx] = 0; siz[idx] = 0; continue; }
-        toWorld(k, s === 0 ? -EX_X : EX_X, EX_Y, cp[1] + EX_Z);
+        const ex = exhaustOf(k);
+        toWorld(k, s === 0 ? -ex[0] : ex[0], ex[1], cp[1] + ex[2]);
         pos[i3] = _w.x; pos[i3 + 1] = _w.y; pos[i3 + 2] = _w.z;
         const flick = 0.86 + 0.14 * Math.sin(time * 51 + i * 2.3 + s * 2.1);
         const focusScale = k === focus ? 1.20 : 0.16;
@@ -1546,8 +1572,9 @@ export function createFX(scene, track) {
       for (let s = 0; s < JET_PER_KART; s++) {
         const idx = base + s, i3 = idx * 3;
         if (!on) { alp[idx] = 0; siz[idx] = 0; continue; }
-        const side = s === 0 ? -EX_X : EX_X;
-        toWorld(k, side, EX_Y, cp[1] + EX_Z);
+        const ex = exhaustOf(k);
+        const side = s === 0 ? -ex[0] : ex[0];
+        toWorld(k, side, ex[1], cp[1] + ex[2]);
         pos[i3] = _w.x; pos[i3 + 1] = _w.y; pos[i3 + 2] = _w.z;
         const flick = 0.84 + 0.16 * Math.sin(time * 57 + i * 1.9 + s * 2.7);
         const focusScale = k === focus ? 1.18 : 0.16;

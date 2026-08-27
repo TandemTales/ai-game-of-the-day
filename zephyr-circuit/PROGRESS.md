@@ -693,3 +693,21 @@ ownership and tyre attachment, and obtain a real independent side-by-side
 verdict. Then rerun UI/audio critic evidence if time allows. Forced release is
 Saturday **2026-08-29**; release night must only fix glaring blockers and must
 not be delayed for cosmetic debt.
+
+## 2026-08-27 — polish night 9 intent
+
+Pacific Thursday, ten days after the 2026-08-17 start. This is not release
+night; the forced release remains Saturday 2026-08-29. Tonight is bounded to
+the highest-risk unresolved presentation issue first:
+
+1. **agent-particles** owns `assets/js/render/fx.js`: reproduce the missing
+   boost exhaust in a forced active frame, correct event/state ownership and
+   tyre attachment, then obtain a fresh harsh side-by-side verdict against a
+   shipped kart racer.
+2. If the FX unit lands cleanly and time remains, rerun independent UI/audio
+   critic evidence without changing their files unless a glaring defect is
+   found.
+
+The lead owns integration, tests, screenshots, this handoff, and every git
+command. Preserve the unrelated `bayou-brawlers` edits. No release or `main`
+update is planned tonight.

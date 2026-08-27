@@ -711,3 +711,56 @@ the highest-risk unresolved presentation issue first:
 The lead owns integration, tests, screenshots, this handoff, and every git
 command. Preserve the unrelated `bayou-brawlers` edits. No release or `main`
 update is planned tonight.
+
+## 2026-08-27 — polish night 9 handoff
+
+The FX trigger path was repaired and the tested work is pushed to `dev` in
+`f77062d` (intent `ccae1f2`; first FX implementation `1a9c187`).
+`render/fx.js` now resolves emitted kart events back to the correct roster
+slot, transforms drift contact through the kart's authored rear geometry,
+keeps twin boost outlets separate, broadens the streak texture so it reads as
+an exhaust plume rather than a needle, and uses distinct warm/cyan outlet
+colors with a restrained contact-core scale. The public FX API, pools,
+quality tiers and allocation-free update path remain intact.
+
+### Verification
+
+* Full repository Jest suite: **9/9 suites, 237/237 tests passed** after the
+  final FX changes. `node --check` and the scoped `git diff --check` passed.
+* The forced active-state screenshot harness generated all required viewports:
+  **320x568, 390x844, 844x390, 768x1024, 1440x900 and 3840x2160**. Every
+  report reached `phase=racing`, had no horizontal scroll, and retained the
+  touch controls where applicable. I inspected the desktop, portrait,
+  landscape-phone and ultrawide PNGs. The 320px frame is usable but crowded;
+  that is cosmetic debt, not a broken control layout.
+* The cached Playwright + Edge fallback emitted SwiftShader/WebGL context and
+  ReadPixels warnings plus the blocked Google tag request. Those are test
+  infrastructure noise; this fallback cannot support a clean-console claim
+  for the renderer.
+
+### FX critic verdicts
+
+Three independent blind comparisons this run remained **FAIL / ours loses**
+against Nintendo's official Mario Kart 8 Deluxe presentation and drift
+references. The first patch improved anchoring but still left detached-looking
+drift and weak exhaust. The second comparison found the focus flare blown out
+and the two outlets unreadable. The final comparison found the scene calmer,
+but still rejected the oversized/overexposed contact flash, insufficiently
+wheel-attached tiered sparks, and boost exhaust that does not read clearly from
+the player kart. The exact remaining FX debt is: localize and reduce the
+contact flash, preserve kart silhouettes, author distinct wheel-attached
+drift-spark tiers, and add a clearly directional saturated rear exhaust plume.
+
+### Current status and next run
+
+Logic/gameplay and the responsive browser health probe remain passing. FX is
+**FAIL** on the visual AAA bar. Track/environment and kart models retain their
+prior **FAIL** verdicts; audio remains **FAIL/not AAA-cleared** and UI remains
+**UNJUDGED**. No `.aaa-complete` was written, no shipping judge was run, and
+`main` was not touched.
+
+The next run is forced release Saturday **2026-08-29**. Do not start new
+polish. Run the suite and screenshot sweep, then fix only glaring blockers
+(crash, app console error, unreadable HUD, broken touch controls, or an
+unclear/unfinishable race). Carry the cosmetic FX, track, model, audio, UI
+drama and real-GPU shadow debt honestly into the release record.

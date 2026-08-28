@@ -479,3 +479,104 @@ describe('scoring inputs and fail states (SPEC §8)', () => {
     expect(w.p.y).toBe(at.y);
   });
 });
+
+describe('the winch (rope length management)', () => {
+  test('a latch above a chasm still clears the deck beside it', () => {
+    /* The bug this pins down: a single downward ray from an anchor over a
+       chasm finds no floor, hands back a full-length rope, and the player
+       drags along the deck *next to* the chasm at the bottom of the arc.
+       The arc is what has to fit, so the arc is what gets measured. */
+    const { SH } = loadSH();
+    const w = SH.Physics.makeWorld(0);
+    /* Level 0's first chasm is tiles x=15..21; aim at the ceiling above it. */
+    w.aim.x = 18 * SH.TILE; w.aim.y = 0;
+    w.p.x = 14 * SH.TILE; w.p.y = 10 * SH.TILE;
+    expect(SH.Physics.fireHook(w)).toBe(true);
+    const anchor = w.hook.pivots[0];
+    const deckY = 12 * SH.TILE;                    // top of the floor slabs
+    expect(anchor.y + w.hook.target).toBeLessThan(deckY);
+  });
+
+  test('a pylon beside the anchor does NOT shorten the rope', () => {
+    /* The over-correction: treating a vertical pylon as a floor crushed
+       the rope to a third of its length and killed the swing. Swinging
+       into a pylon is the wrap mechanic, not a crash. */
+    const { SH } = loadSH();
+    const w = SH.Physics.makeWorld(0);
+    /* Tiles x=26..27 are a pylon hanging from the ceiling. */
+    w.p.x = 29 * SH.TILE; w.p.y = 9 * SH.TILE;
+    w.aim.x = w.p.x; w.aim.y = 0;
+    expect(SH.Physics.fireHook(w)).toBe(true);
+    /* Plenty of room down to the deck, so the rope should be long. */
+    expect(w.hook.target).toBeGreaterThan(300);
+  });
+
+  test('the rope length never teleports — it travels at winchSpeed', () => {
+    const { SH } = loadSH();
+    const w = SH.Physics.makeWorld(0);
+    w.storm.speed = 0;
+    w.p.x = 32 * SH.TILE; w.p.y = 10 * SH.TILE;
+    w.aim.x = w.p.x; w.aim.y = 0;
+    SH.Physics.fireHook(w);
+    let prev = w.hook.len;
+    const cap = SH.TUNE.winchSpeed * FIXED_DT + SH.TUNE.reelSpeed * FIXED_DT + 1e-6;
+    for (let i = 0; i < 400; i++) {
+      SH.Physics.step(w, input({ hook: true, reel: i % 3 === 0 ? -1 : 1 }), FIXED_DT);
+      expect(Math.abs(w.hook.len - prev)).toBeLessThanOrEqual(cap);
+      prev = w.hook.len;
+    }
+  });
+
+  test('the winch settles the rope at its target and stays there', () => {
+    const { SH } = loadSH();
+    const w = SH.Physics.makeWorld(0);
+    w.storm.speed = 0;
+    w.p.x = 32 * SH.TILE; w.p.y = 10 * SH.TILE;
+    w.aim.x = w.p.x; w.aim.y = 0;
+    SH.Physics.fireHook(w);
+    const target = w.hook.target;
+    expect(w.hook.len).not.toBeCloseTo(target, 0);   // starts away from it
+    run(SH, w, 300, () => input({ hook: true }));
+    expect(w.hook.len).toBeCloseTo(target, 1);
+  });
+});
+
+describe('hook input is held, not edge-triggered', () => {
+  test('holding through the post-release cooldown re-latches without a new press', () => {
+    /* Edge-triggering looks equivalent and is not: a press landing inside
+       the cooldown is swallowed and the player is left holding a button
+       that does nothing. */
+    const { SH } = loadSH();
+    const w = SH.Physics.makeWorld(0);
+    w.storm.speed = 0;
+    w.p.x = 32 * SH.TILE; w.p.y = 9 * SH.TILE;
+    w.aim.x = w.p.x; w.aim.y = 0;
+    SH.Physics.step(w, input({ hook: true }), FIXED_DT);
+    expect(w.hook.attached).toBe(true);
+
+    SH.Physics.step(w, input({ hook: false }), FIXED_DT);   // let go
+    expect(w.hook.attached).toBe(false);
+    expect(w.hook.cool).toBeGreaterThan(0);
+
+    /* Hold it down again immediately — inside the cooldown — and never
+       send another press edge. It must still latch. */
+    run(SH, w, 30, () => input({ hook: true }));
+    expect(w.hook.attached).toBe(true);
+  });
+
+  test('holding after a miss keeps trying until something is in range', () => {
+    const { SH } = loadSH();
+    const w = SH.Physics.makeWorld(0);
+    w.storm.speed = 0;
+    w.p.x = 32 * SH.TILE; w.p.y = 8 * SH.TILE;
+    w.aim.x = w.p.x; w.aim.y = 0;
+    SH.TUNE.maxRange = 20;                                  // nothing reachable
+    run(SH, w, 60, () => input({ hook: true }));
+    expect(w.hook.attached).toBe(false);
+    expect(w.pending.filter((e) => e.type === 'hookMiss').length).toBeGreaterThan(1);
+
+    SH.TUNE.maxRange = 620;                                 // now it can reach
+    run(SH, w, 40, () => input({ hook: true }));
+    expect(w.hook.attached).toBe(true);
+  });
+});

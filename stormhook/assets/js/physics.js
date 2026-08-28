@@ -125,7 +125,7 @@
       h: lv.h,
       p: { x: 0, y: 0, vx: 0, vy: 0, r: 15, onGround: false, dashCd: 0, alive: true,
            facing: 1, lastGroundT: 0 },
-      hook: { attached: false, pivots: [], len: 0, aimX: 0, aimY: 0, t: 0, cool: 0 },
+      hook: { attached: false, pivots: [], len: 0, target: 0, aimX: 0, aimY: 0, t: 0, cool: 0 },
       cores: [],
       hazards: [],
       beacon: { x: 0, y: 0, hit: false },
@@ -362,8 +362,34 @@
     hk.attached = true;
     hk.pivots = [{ x: ax, y: ay, s: 0 }];
     hk.len = SH.clamp(SH.dist(p.x, p.y, ax, ay), SH.TUNE.minLen, SH.TUNE.maxLen);
+    hk.target = hk.len;
     hk.t = 0;
     hk.aimX = ax; hk.aimY = ay;
+
+    /* The winch. Latching onto a distant anchor hands you a rope longer
+       than the room underneath it, so the bottom of your arc lands in the
+       deck plating and you scrape to a halt — the single worst thing that
+       can happen in a swing game. So measure the room the swing actually
+       needs and wind the line in until the arc clears it.
+
+       Sampling the whole arc, not just straight down, is the point: a
+       single downward ray finds nothing when the anchor happens to sit
+       over a chasm, hands back a full-length rope, and the player then
+       drags along the deck *next to* the chasm. The arc is what has to
+       fit, so the arc is what gets measured. */
+    var clear = SH.TUNE.maxLen;
+    for (var k = -5; k <= 5; k++) {
+      var th = (k / 5) * 0.96;                    // ±55° either side of straight down
+      var below = P.rayCast(w, ax, ay, Math.sin(th), Math.cos(th), SH.TUNE.maxLen + 200);
+      /* Only deck-like surfaces count — a hit whose normal points up.
+         A pylon standing next to the anchor is a wall hit, and shortening
+         the rope for it would be exactly wrong: swinging into a pylon is
+         not a crash, it is the wrap mechanic doing its job. Winch for the
+         floor; let the rope handle everything vertical. */
+      if (below && below.ny < 0) clear = Math.min(clear, below.dist);
+    }
+    hk.target = SH.clamp(Math.min(hk.target, clear - p.r * 2.4),
+                         SH.TUNE.minLen, SH.TUNE.maxLen);
     w.pending.push({ type: 'hookHit', x: ax, y: ay });
     return true;
   };
@@ -374,6 +400,7 @@
     hk.attached = false;
     hk.pivots = [];
     hk.t = 0;
+    hk.target = 0;
     hk.cool = 0.05;
     w.pending.push({ type: 'hookRelease', x: w.p.x, y: w.p.y });
   };
@@ -437,15 +464,27 @@
     hk.t = Math.min(1, hk.t + dt * 14);
     p.dashCd = Math.max(0, p.dashCd - dt);
 
-    /* --- hook input --- */
-    if (input.hookPressed && !hk.attached) P.fireHook(w);
-    if (input.hookReleased && hk.attached) P.releaseHook(w);
+    /* --- hook input ---
+       Firing is driven by the button being HELD, not by its press edge.
+       Edge-triggering looks equivalent and is not: a press that lands
+       inside the post-release or post-miss cooldown gets swallowed, and
+       the player is left holding a button that does nothing until they
+       let go and press again. Holding also means a throw that missed
+       keeps trying, so you can point at a hull you are still flying
+       toward and latch the instant it comes into range. */
+    if (input.hook && !hk.attached && hk.cool <= 0) P.fireHook(w);
+    if (!input.hook && hk.attached) P.releaseHook(w);
 
-    /* --- reel --- */
-    if (hk.attached && input.reel) {
+    /* --- reel + winch ---
+       The player steers `target`; `len` always chases it. Every length
+       change in the game goes through this one path, so the rope can
+       never teleport. */
+    if (hk.attached) {
       var used = segSum(hk.pivots);
-      hk.len = SH.clamp(hk.len + input.reel * T.reelSpeed * dt,
-                        used + T.minLen, T.maxLen);
+      var lo = used + T.minLen, hi = T.maxLen;
+      if (input.reel) hk.target += input.reel * T.reelSpeed * dt;
+      hk.target = SH.clamp(hk.target, lo, hi);
+      hk.len = SH.clamp(SH.approach(hk.len, hk.target, T.winchSpeed * dt), lo, hi);
     }
 
     /* --- dash --- */

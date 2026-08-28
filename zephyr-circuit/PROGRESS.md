@@ -804,3 +804,100 @@ defects block — the priorities are:
    specific piece of the recorded debt rather than another broad pass.
 
 Entries below are appended as work lands.
+
+## 2026-08-27 (Thursday evening, Pacific) — polish night 10 handoff
+
+Pushed to `dev`: `aaa2c6e` (intent), `e746e2f` (sticky panel action),
+`17ca22d` (cup wiring).
+
+### The find of the night: the cup was never wired up
+
+`race.js` implemented the entire championship — `CUP = ['gullwing-bay',
+'thermal-spire', 'cirrus-run']`, per-round points, standings, `nextRound()`,
+`advance()`, `PHASE.CUP`, a placement bonus — and `race.test.js` covered all of
+it, including that all three circuits get raced and the phase ends at `CUP`.
+**`ui.js` never called any of it.** `startRace()` was `R.load(0, {})`, which
+loads Gullwing Bay directly and bypasses the cup, and the results screen's only
+button restarted that same race.
+
+The shipped game was therefore **one track, replayed forever**. `thermal-spire`
+and `cirrus-run` were unreachable, the standings and cup bonus were dead code,
+and the grid screen advertised "Round 1 / 3" for a round that could never
+advance. Nine polish nights and a green 237-test suite did not catch it, because
+every test drove `race.js` directly and every screenshot was taken mid-race on
+round 1.
+
+Now wired: `startRace()` starts a cup; the results button reads **Next circuit**
+and advances, or **Final standings** on the last round; and there is a
+championship screen with placement, cup score, standings by points and the
+bonus. `recordBest`/`submitScore` moved to the end of the cup — they had been
+running on *every* round's results, posting a partial cup score up to three
+times a run. (No leaderboard discontinuity: the game has not shipped, so there
+are no existing scores.)
+
+Verified by **clicking the real buttons** through a whole cup at 390x844:
+gullwing-bay → thermal-spire → cirrus-run → championship, score accumulating
+693 → 1590 → 2276 → 3476 with the bonus, no console errors.
+
+### Also fixed
+
+**A panel's primary action can no longer sit below the fold.** On a 568- or
+390-tall viewport the results table pushed "Race again" out of view. It *was*
+reachable — the panel scrolls (807px of content in a 530px box) and both a wheel
+and a touch drag bring it back, so this was never a dead end and not the blocker
+it first looked like — but the last visible row read as the end of the card and
+nothing signalled a button underneath. The trailing action is now sticky to the
+bottom of its own scroll box with the content fading out above it, and inert on
+tall viewports. Also clears an in-flight lap-split toast when a screen takes
+over; one was landing across the finish position.
+
+### Verification
+
+* Full repository Jest suite: **9/9 suites, 237/237** after every change.
+  `node --check` and `git diff --check` clean.
+* Six-viewport racing sweep re-run after both changes: all reach `phase=racing`,
+  no horizontal scroll, only the known googletagmanager and SwiftShader noise.
+* Results and championship screens checked at 320x568, 844x390, 390x844,
+  768x1024 and 1440x900: primary action in view and hit-testable at every one.
+  **These screens had never been screenshotted before tonight** — the sweep
+  boots straight into a race, so it only ever photographed `racing`.
+* The pale quads on the road are not a bug: they are the `road-patches` and
+  `aggregate-scrub` decals at 0.2–0.3 opacity. The large pale wedge that shows
+  in a finish-line frame is the celebration ring VFX, not a broken mesh — a
+  full geometry audit for NaN and runaway vertices came back empty.
+
+### A caveat about critic verdicts, recorded honestly
+
+**I could not run a blind side-by-side comparison tonight.** The sandbox egress
+proxy blocks the image hosts (`mario.wiki.gallery`, `nintendolife.com`,
+`gameuidatabase.com`, `upload.wikimedia.org` all refused), so no reference
+screenshot could be fetched and placed beside ours. I have therefore recorded
+**no critic verdict** rather than a verdict I could not support. UI remains
+**UNJUDGED**; FX, track/environment, models and audio keep their prior **FAIL**.
+
+Whoever runs the release should note this when writing `.aaa-complete`: if
+reference imagery cannot be fetched from this sandbox, then a recorded "blind
+side-by-side" verdict needs to say what was actually compared.
+
+### Deliberately not done
+
+FX took three critic rounds on night 9 and failed all three, each with a
+reshaped rather than converging verdict. A fourth broad pass was the lowest-value
+move available with two nights left, so I left `render/fx.js` alone. The
+recorded FX debt is unchanged: localize and reduce the contact flash, preserve
+kart silhouettes, author wheel-attached drift-spark tiers, and add a directional
+saturated rear exhaust plume.
+
+### Next run — Friday 2026-08-28, the last polish night
+
+The release is **Saturday 2026-08-29**.
+
+1. **Re-verify the cup end to end**, ideally with a human actually driving
+   rather than attract mode. It is a new code path in the most important flow
+   in the game, one night before release. That is the first thing to do.
+2. A full cup is now three races, ~6 minutes. Check that the between-round grid
+   screen names the right circuit and that `thermal-spire` and `cirrus-run` —
+   which no player has ever reached — actually look and race well. **Screenshot
+   rounds 2 and 3.** Everything anyone has ever looked at is round 1.
+3. Only then, if time remains, one narrow FX unit from the debt list above.
+4. The release blurb and `.aaa-complete` should say three circuits, not one.

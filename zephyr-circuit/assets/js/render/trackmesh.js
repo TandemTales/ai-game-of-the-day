@@ -1101,13 +1101,53 @@ function buildLandmark(track, info) {
     const roof = new THREE.Mesh(new THREE.ConeGeometry(8, 6, 12), stone);
     roof.position.y = 48.5; group.add(roof);
   } else if (track.id === 'thermal-spire') {
-    const shards = [[-6, 7, 48], [7, 5, 35], [1, 4, 29], [-10, 3.5, 24]];
-    for (let i = 0; i < shards.length; i++) {
-      const s = shards[i];
-      const crystal = new THREE.Mesh(new THREE.ConeGeometry(s[1], s[2], 5), i ? trim : accent);
-      crystal.position.set(s[0], 6 + s[2] * 0.5, (i - 1.5) * 4);
-      crystal.rotation.z = (i - 1.5) * 0.07; crystal.castShadow = true; group.add(crystal);
-    }
+    /* Thermal Spire needs one readable silhouette, not a scatter of crystals.
+       A dark caldera and stepped basalt mass give the landmark weight against
+       the sunset; the restrained lava seams provide a warm focal hierarchy
+       without turning the whole centre of the circuit into a light source. */
+    const basalt = new THREE.MeshStandardMaterial({
+      color: 0x302b32, roughness: 0.96, flatShading: true,
+    });
+    const basaltWarm = new THREE.MeshStandardMaterial({
+      color: 0x594047, roughness: 0.92, flatShading: true,
+    });
+    const lava = new THREE.MeshStandardMaterial({
+      color: 0xff6339, emissive: 0xff321c, emissiveIntensity: 0.8,
+      roughness: 0.42, metalness: 0.04,
+    });
+    const ember = new THREE.MeshStandardMaterial({
+      color: 0xffc15b, emissive: 0xff6b2c, emissiveIntensity: 1.15,
+      roughness: 0.32, metalness: 0.08,
+    });
+
+    const caldera = new THREE.Mesh(new THREE.CylinderGeometry(18, 24, 5.5, 9), basalt);
+    caldera.position.y = 3.75; caldera.castShadow = true; group.add(caldera);
+    const shelf = new THREE.Mesh(new THREE.CylinderGeometry(13.5, 18, 2.6, 8), basaltWarm);
+    shelf.position.y = 7.8; shelf.rotation.y = 0.18; shelf.castShadow = true; group.add(shelf);
+
+    /* The offset crown makes the landmark asymmetrical in profile, like a
+       broken volcanic needle, while the lower buttresses keep it grounded. */
+    const crown = new THREE.Mesh(new THREE.ConeGeometry(9.6, 57, 7), basalt);
+    crown.position.set(0, 36.5, -0.8); crown.rotation.y = 0.22;
+    crown.castShadow = true; group.add(crown);
+    const shoulderA = new THREE.Mesh(new THREE.ConeGeometry(5.4, 35, 6), basaltWarm);
+    shoulderA.position.set(-7.1, 23, 1.7); shoulderA.rotation.z = -0.13;
+    shoulderA.rotation.y = -0.18; shoulderA.castShadow = true; group.add(shoulderA);
+    const shoulderB = new THREE.Mesh(new THREE.ConeGeometry(4.4, 29, 6), basaltWarm);
+    shoulderB.position.set(7.6, 20, 2.4); shoulderB.rotation.z = 0.16;
+    shoulderB.rotation.y = 0.24; shoulderB.castShadow = true; group.add(shoulderB);
+
+    /* Two lava bands establish scale, while the slim flank seam and cap are
+       visible as colour accents even when the chase camera is low. */
+    const lowerBand = new THREE.Mesh(new THREE.TorusGeometry(11.3, 0.7, 5, 9), lava);
+    lowerBand.position.y = 12.3; lowerBand.rotation.x = Math.PI * 0.5; group.add(lowerBand);
+    const upperBand = new THREE.Mesh(new THREE.TorusGeometry(7.1, 0.48, 5, 8), lava);
+    upperBand.position.set(0, 31.2, -0.8); upperBand.rotation.x = Math.PI * 0.5; group.add(upperBand);
+    const seam = new THREE.Mesh(new THREE.ConeGeometry(1.25, 27, 5), ember);
+    seam.position.set(3.9, 25.5, 5.4); seam.rotation.z = 0.12;
+    seam.rotation.y = 0.35; group.add(seam);
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(3.7, 7, 6), ember);
+    cap.position.set(0, 67.8, -0.8); cap.rotation.y = 0.22; group.add(cap);
   } else {
     const mast = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 5.5, 43, 9), stone);
     mast.position.y = 27.5; mast.castShadow = true; group.add(mast);

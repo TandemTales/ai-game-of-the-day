@@ -939,3 +939,19 @@ is still materially affecting the timing HUD. Preserve unrelated local work;
 do not start broad FX rework on the eve of forced release. If the browser
 harness can run, inspect fresh screenshots at the required viewports and
 record exactly what was verified. The next run is release wrap-up only.
+
+### Unit 1 — Thermal Spire landmark pass
+
+`assets/js/render/trackmesh.js` now gives Thermal Spire a caldera, stepped
+basalt crown, buttresses, lava bands, a flank seam and a glowing cap. The
+change is isolated to the Thermal Spire landmark branch and adds no frame-loop
+allocations. Syntax is clean. A forced chase-camera frame at 1440x900 shows
+the new silhouette and a healthy race at 90 km/h with no console errors.
+
+The worker's independent comparison against Art of Rally is **FAIL**: the
+landmark gap is substantially addressed, but supporting volcanic terrain and
+hero composition still trail the shipped reference. This is recorded as
+cosmetic debt for the forced release rather than widened into a risky final
+night environment rewrite.
+
+Full Jest is green after the unit: **9 suites, 237 tests**.

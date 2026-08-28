@@ -928,3 +928,14 @@ The release is **Saturday 2026-08-29**.
 4. Only then, if time remains, one narrow FX unit from the debt list above.
 5. The release blurb and `.aaa-complete` should say three circuits, not one, and
    should carry the uneven-track-polish debt honestly.
+
+## Run 2026-08-28 — final polish-night intent
+
+Pacific Friday, one night before the forced release. First verify the newly
+reachable three-round cup end to end and confirm there is no release-blocking
+state or console error. Then take one bounded visual pass on Thermal Spire,
+the weakest reachable circuit, and correct the Cirrus Run sun wash only if it
+is still materially affecting the timing HUD. Preserve unrelated local work;
+do not start broad FX rework on the eve of forced release. If the browser
+harness can run, inspect fresh screenshots at the required viewports and
+record exactly what was verified. The next run is release wrap-up only.

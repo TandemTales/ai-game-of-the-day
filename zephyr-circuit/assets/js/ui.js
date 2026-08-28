@@ -131,6 +131,7 @@
       U.clearToast();
       render(R.PHASE.RESULTS);
     });
+    ZC.on('cup:end', function () { U.clearToast(); render(R.PHASE.CUP); });
     ZC.on('kart:lap', function (e) {
       if (e.kart && e.kart.isPlayer && e.lap < R.state.track.laps) {
         U.toast('Lap ' + (e.lap + 1) + ' · ' + ZC.fmtLap(e.time), 1600);
@@ -256,13 +257,14 @@
   function render(phase) {
     if (!els.overlay) return;
     var open = (phase === R.PHASE.ATTRACT || phase === R.PHASE.GRID ||
-                phase === R.PHASE.RESULTS);
+                phase === R.PHASE.RESULTS || phase === R.PHASE.CUP);
     els.overlay.innerHTML = '';
     els.overlay.classList.toggle('is-open', open);
     if (!open) return;
     if (phase === R.PHASE.ATTRACT) return screenMenu();
     if (phase === R.PHASE.GRID) return screenGrid();
     if (phase === R.PHASE.RESULTS) return screenResults();
+    if (phase === R.PHASE.CUP) return screenCup();
   }
 
   function panel(cls) {
@@ -271,9 +273,15 @@
     return p;
   }
 
+  /* Start the championship. This used to be `R.load(0, {})`, which loaded
+     Gullwing Bay directly and bypassed the cup entirely: the round never
+     advanced, `thermal-spire` and `cirrus-run` were unreachable, and the
+     standings, points and cup bonus in race.js were dead code that the
+     grid screen nonetheless advertised as "Round 1 / 3". race.js had the
+     whole cup implemented and unit-tested; only this call was missing. */
   function startRace() {
     if (ZC.Audio && ZC.Audio.resume) ZC.Audio.resume();
-    R.load(0, {});
+    R.startCup({});
     R.beginCountdown();
     render(R.PHASE.COUNTDOWN);
   }
@@ -353,6 +361,60 @@
       '<div class="zc-brow"><span>Fastest lap</span><b>' + res.bestLapBonus + '</b></div>' +
       '<div class="zc-brow zc-total"><span>Total</span><b>' + ZC.fmtNum(res.total) + '</b></div>';
     p.appendChild(br);
+
+    /* The cup runs on from here. Submitting used to happen on every
+       round's results, which posted a partial cup score to the
+       leaderboard up to three times a run; it belongs at the end. */
+    var lastRound = R.isLastRound();
+    p.appendChild(button('zc-btn zc-primary',
+      lastRound ? 'Final standings' : 'Next circuit',
+      function () {
+        if (R.advance()) render(R.PHASE.GRID);
+        else render(R.PHASE.CUP);
+      }));
+  }
+
+  /* The end of the championship: where the cup score is banked, and the
+     only place a score is sent to the leaderboard. */
+  function screenCup() {
+    var st = R.state;
+    var place = R.cupPlace();
+    var p = panel('zc-results ' + (place === 1 ? 'is-win' : (place <= 3 ? 'is-podium' : 'is-finish')));
+    p.appendChild(h('div', 'zc-result-overline', 'Zephyr Cup · Final'));
+
+    var hero = h('div', 'zc-result-hero');
+    hero.appendChild(h('span', 'zc-finish-label', 'Championship'));
+    hero.appendChild(h('h2', 'zc-finish', ZC.ordinal(place)));
+    hero.appendChild(h('div', 'zc-result-meta',
+      '<span><small>CUP SCORE</small><b>' + ZC.fmtNum(st.cupScore) + '</b></span>' +
+      '<span><small>ROUNDS</small><b>' + R.CUP.length + '</b></span>'));
+    p.appendChild(hero);
+
+    p.appendChild(h('div', 'zc-section-head',
+      '<span>Championship standings</span><small>' + R.FIELD + ' RACERS</small>'));
+    var table = h('div', 'zc-table');
+    var order = st.standings || [];
+    for (var i = 0; i < order.length; i++) {
+      var s = order[i];
+      var isYou = st.player && s.id === st.player.id;
+      var row = h('div', 'zc-row' + (isYou ? ' is-you' : ''));
+      row.innerHTML =
+        '<span class="zc-pos">' + (i + 1) + '</span>' +
+        '<span class="zc-name">' + s.name + '</span>' +
+        '<span class="zc-t">' + s.points + ' pts</span>';
+      table.appendChild(row);
+    }
+    p.appendChild(table);
+
+    p.appendChild(h('div', 'zc-score-head',
+      '<span>Cup total</span><b>' + ZC.fmtNum(st.cupScore) + '</b>'));
+    if (st.cupBonus) {
+      var br = h('div', 'zc-break');
+      br.innerHTML =
+        '<div class="zc-brow"><span>Championship bonus</span><b>+' +
+        ZC.fmtNum(st.cupBonus) + '</b></div>';
+      p.appendChild(br);
+    }
 
     p.appendChild(button('zc-btn zc-primary', 'Race again', startRace));
     R.recordBest(st.cupScore);

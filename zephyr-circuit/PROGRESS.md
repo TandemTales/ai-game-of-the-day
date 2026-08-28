@@ -764,3 +764,43 @@ polish. Run the suite and screenshot sweep, then fix only glaring blockers
 (crash, app console error, unreadable HUD, broken touch controls, or an
 unclear/unfinishable race). Carry the cosmetic FX, track, model, audio, UI
 drama and real-GPU shadow debt honestly into the release record.
+
+## 2026-08-27 (Thursday evening, Pacific) — polish night 10 intent
+
+**Correction first: this session started on the wrong branch.** It was cloned
+from `main` (`93d0e5e`, 2026-08-23), which is only updated at release, so its
+`.arcade-agent/current-game.md` still held the post-Paradox-Vault "no game is
+active" state. Acting on that, the run scaffolded a whole new game
+(`stormhook`, a grapple-swing platformer) on a side branch before the human
+pointed out that `dev` exists. `dev` was never touched by it and neither was
+`main`; the work is parked on `claude/dazzling-franklin-64a1bw` and is a
+candidate for the next scaffolding night *after* Zephyr Circuit ships. The
+process lesson: `git branch -a` only lists refs that were fetched. Check
+`git ls-remote` before concluding a branch does not exist.
+
+Tonight is therefore **polish night 10**, two nights before the forced release
+Saturday **2026-08-29**.
+
+Starting state, inherited from night 9: 237 tests green across 9 suites; FX
+**FAIL** after three blind comparisons in one run; track/environment and kart
+models **FAIL**; audio **FAIL**; UI **UNJUDGED**.
+
+### Plan, and why this shape
+
+FX took three critic rounds today and still failed, with each round producing a
+reshaped verdict rather than a converging one. Hammering it a fourth time is
+the lowest-expected-value move available. With two nights left and a *forced*
+release — where cosmetic shortfalls are acceptable debt and only glaring
+defects block — the priorities are:
+
+1. **Judge the UNJUDGED.** UI has never had a blind side-by-side. An unjudged
+   discipline going into a release is a hole in the record, and it is cheap to
+   close. If it fails on something glaring (unreadable HUD, broken touch), that
+   is a release blocker and has to be found tonight, not Saturday.
+2. **Verify the release-blocking list directly** — crash, console errors,
+   unreadable HUD, broken touch controls, an unfinishable race — across all six
+   viewports, and fix anything glaring.
+3. **Then, and only with time left, one focused FX unit** on the single most
+   specific piece of the recorded debt rather than another broad pass.
+
+Entries below are appended as work lands.

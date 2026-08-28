@@ -23,7 +23,7 @@
 
   /* Framing rules: never show fewer than this many tiles across or down,
      never more than MAX_TILES_X. Derived in resize(). */
-  var MIN_TILES_X = 14, MIN_TILES_Y = 14, MAX_TILES_X = 30, MAX_SCALE = 3;
+  var MIN_TILES_X = 14, MIN_TILES_Y = 14, MAX_TILES_X = 32, MAX_SCALE = 3;
 
   R.init = function (canvas) {
     cv = canvas;

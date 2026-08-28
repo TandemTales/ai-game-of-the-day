@@ -124,7 +124,13 @@
     ZC.on('screen', render);
     ZC.on('race:load', function () { render(R.state.phase); });
     ZC.on('race:go', function () { render(R.PHASE.RACING); });
-    ZC.on('race:results', function () { render(R.PHASE.RESULTS); });
+    ZC.on('race:results', function () {
+      /* A lap-split toast fired seconds before the flag was still on
+         screen and landed across the finish position. A screen change
+         supersedes any in-flight toast. */
+      U.clearToast();
+      render(R.PHASE.RESULTS);
+    });
     ZC.on('kart:lap', function (e) {
       if (e.kart && e.kart.isPlayer && e.lap < R.state.track.laps) {
         U.toast('Lap ' + (e.lap + 1) + ' · ' + ZC.fmtLap(e.time), 1600);
@@ -352,6 +358,11 @@
     R.recordBest(st.cupScore);
     R.submitScore(st.cupScore);
   }
+
+  U.clearToast = function () {
+    global.clearTimeout(toastTimer);
+    if (els.toast) els.toast.classList.remove('is-on');
+  };
 
   U.toast = function (msg, ms) {
     if (!els.toast) return;

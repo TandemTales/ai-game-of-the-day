@@ -888,6 +888,33 @@ recorded FX debt is unchanged: localize and reduce the contact flash, preserve
 kart silhouettes, author wheel-attached drift-spark tiers, and add a directional
 saturated rear exhaust plume.
 
+### Rounds 2 and 3, looked at for the first time
+
+Wiring the cup makes two circuits reachable that no player — and, as far as this
+log shows, no previous run — has ever seen. So I raced and photographed both at
+1440x900 before ending the night. Both are **sound**: they load, all eight karts
+race, nobody goes off-road or falls, speeds sit at a normal ~97 km/h, no console
+errors. Neither is a release blocker. But they are visibly behind Gullwing Bay,
+which is the one everything has been polished against for nine nights:
+
+* **Thermal Spire** is the weak one. Sparse scenery — largely empty fields with a
+  handful of near-black, apparently unlit props on the horizon that read wrong
+  against a bright sunset. No landmark and no spire, despite the name. Next to
+  Gullwing Bay's waterfalls, rocks and gate it looks unfinished.
+* **Cirrus Run** is in decent shape: trees, kerbs and sky all read well. One real
+  defect — the sun and its bloom sit directly behind the RACE CLOCK panel in the
+  top right and wash the `BEST` row out. `TIME` stays legible and the row is
+  empty on lap 1, so this is not the "unreadable HUD" blocker, but it is close
+  enough to fix. Likely a small opacity bump on `.zc-timing`; verify against all
+  three circuits, because the sun is only behind the HUD on this one.
+
+This is the honest trade the cup wiring makes: three circuits of uneven polish
+instead of one polished circuit repeated forever, with the standings and cup
+bonus finally alive. I think that is clearly the right side of the trade — the
+game already advertised "Round 1 / 3" and a "Best cup" — but it is a judgement
+call made two nights before release, and it is reversible in one line
+(`startRace()` back to `R.load(0, {})`) if the human disagrees.
+
 ### Next run — Friday 2026-08-28, the last polish night
 
 The release is **Saturday 2026-08-29**.
@@ -895,9 +922,9 @@ The release is **Saturday 2026-08-29**.
 1. **Re-verify the cup end to end**, ideally with a human actually driving
    rather than attract mode. It is a new code path in the most important flow
    in the game, one night before release. That is the first thing to do.
-2. A full cup is now three races, ~6 minutes. Check that the between-round grid
-   screen names the right circuit and that `thermal-spire` and `cirrus-run` —
-   which no player has ever reached — actually look and race well. **Screenshot
-   rounds 2 and 3.** Everything anyone has ever looked at is round 1.
-3. Only then, if time remains, one narrow FX unit from the debt list above.
-4. The release blurb and `.aaa-complete` should say three circuits, not one.
+2. **Dress Thermal Spire**, if only one thing gets done. It is the weakest thing
+   a player will now see, and it is round 2 of 3. See the section above.
+3. Fix the sun-behind-the-HUD wash on Cirrus Run.
+4. Only then, if time remains, one narrow FX unit from the debt list above.
+5. The release blurb and `.aaa-complete` should say three circuits, not one, and
+   should carry the uneven-track-polish debt honestly.

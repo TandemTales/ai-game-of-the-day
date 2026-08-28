@@ -136,14 +136,17 @@ describe('the tether', () => {
     expect(w.hook.attached).toBe(false);
     expect(w.hook.pivots.length).toBe(0);
 
-    /* Straight down from a spawn that sits on the floor: the ray starts
-       inside range of the floor, so aim at open sky far to the side
-       instead, where nothing is within maxRange. */
+    /* Every level is built so something is always within maxRange — that
+       is the point of the design — so to test a miss, shorten the reach
+       rather than hunting for a hole in the geometry. */
     const w2 = SH.Physics.makeWorld(0);
-    w2.p.x = 40 * SH.TILE; w2.p.y = 7 * SH.TILE;
-    w2.aim.x = w2.p.x + 4; w2.aim.y = w2.p.y + SH.TUNE.maxRange;
-    const hitDown = SH.Physics.fireHook(w2);
-    if (!hitDown) expect(w2.hook.attached).toBe(false);
+    w2.p.x = 32 * SH.TILE; w2.p.y = 6 * SH.TILE;
+    SH.TUNE.maxRange = 30;
+    w2.aim.x = w2.p.x; w2.aim.y = 0;
+    w2.pending.length = 0;
+    expect(SH.Physics.fireHook(w2)).toBe(false);
+    expect(w2.hook.attached).toBe(false);
+    expect(w2.pending.filter((e) => e.type === 'hookMiss').length).toBe(1);
   });
 
   test('the anchor is seated outside the solid it latched to', () => {
@@ -290,7 +293,7 @@ describe('rope wrapping (SPEC §2b — the signature mechanic)', () => {
 
     /* Put the player back on the anchor's own side of the pylon (which
        occupies tiles x=26..27); the turn unwinds. */
-    w.p.x = 20 * SH.TILE; w.p.y = 8 * SH.TILE;
+    w.p.x = 22 * SH.TILE; w.p.y = 8 * SH.TILE;
     w.p.vx = 0; w.p.vy = 0;
     run(SH, w, 60, () => input({ hook: true }));
     expect(w.hook.pivots.length).toBeLessThan(wrapped);

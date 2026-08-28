@@ -58,90 +58,92 @@
       id: 'shallow-wrecks',
       name: 'Shallow Wrecks',
       hint: 'Point and hold to latch. Let go at the bottom of the swing to go far — at the top to go high.',
-      w: 84, h: 16,
+      w: 84, h: 14,
       stormSpeed: 44, stormLead: 13, parTime: 42,
       solid: [
         [0, 0, 84, 2],                       // continuous ceiling: always something to grab
-        [0, 14, 15, 2],                      // floor, with two gaps
-        [22, 14, 15, 2],
-        [45, 14, 39, 2],
-        [26, 2, 2, 5],                       // hanging pylons — rope wraps on these
-        [55, 2, 2, 6],
-        [70, 2, 2, 4]
+        [0, 12, 15, 2],                      // floor, with two chasms
+        [22, 12, 15, 2],
+        [45, 12, 39, 2],
+        [26, 2, 2, 4],                       // hanging pylons — the rope wraps on these
+        [55, 2, 2, 5],
+        [70, 2, 2, 3]
       ],
-      girders: [[16, 9, 5], [38, 8, 6], [62, 10, 5]],
-      cores: [[10, 10], [18, 7], [24, 6], [31, 9], [40, 6], [49, 8], [59, 5], [66, 9], [75, 7]],
+      girders: [[16, 8, 5], [38, 7, 6], [62, 9, 5]],
+      cores: [[10, 9], [18, 6], [24, 5], [31, 8], [40, 5], [49, 7], [59, 4], [66, 8], [75, 6]],
       hazards: [],
-      spawn: [3, 12],
-      beacon: [80, 12]
+      spawn: [3, 10],
+      beacon: [80, 10]
     },
 
     {
       id: 'chain-yard',
       name: 'The Chain Yard',
-      hint: 'The ceiling is broken here. Look ahead and pick your next anchor before you release the last one.',
-      w: 96, h: 17,
-      stormSpeed: 62, stormLead: 12, parTime: 48,
+      hint: 'The ceiling is broken here. Pick your next anchor before you let go of the last one.',
+      w: 96, h: 14,
+      stormSpeed: 62, stormLead: 13, parTime: 48,
       solid: [
         [0, 0, 20, 2],                       // ceiling in islands — you must plan ahead
         [26, 0, 16, 2],
         [48, 0, 14, 2],
         [68, 0, 28, 2],
-        [0, 15, 12, 2],                      // sparser floor, longer chasms
-        [18, 15, 9, 2],
-        [36, 15, 8, 2],
-        [52, 15, 7, 2],
-        [66, 15, 30, 2],
-        [12, 2, 2, 6],
-        [33, 2, 2, 7],
-        [55, 2, 2, 5],
-        [74, 2, 2, 8],
-        [86, 2, 2, 4]
+        [0, 12, 12, 2],                      // sparser floor, longer chasms
+        [18, 12, 9, 2],
+        [36, 12, 8, 2],
+        [52, 12, 7, 2],
+        [66, 12, 30, 2],
+        [12, 2, 2, 5],
+        [33, 2, 2, 6],
+        [55, 2, 2, 4],
+        [74, 2, 2, 6],
+        [86, 2, 2, 3]
       ],
-      girders: [[21, 8, 4], [43, 6, 5], [44, 11, 4], [62, 9, 5], [80, 7, 5]],
-      cores: [[8, 11], [15, 6], [22, 6], [29, 9], [35, 5], [41, 10],
-              [46, 5], [53, 9], [59, 6], [64, 11], [71, 6], [78, 10], [85, 6], [90, 9]],
-      hazards: [[38, 14], [39, 14], [54, 14], [55, 14]],
-      spawn: [3, 13],
-      beacon: [92, 13]
+      /* One girder sits inside every ceiling gap, so a broken ceiling is a
+         planning problem rather than a dead end. */
+      girders: [[21, 7, 4], [43, 5, 5], [44, 10, 4], [62, 8, 5], [80, 6, 5]],
+      cores: [[8, 10], [15, 5], [22, 5], [29, 8], [35, 4], [41, 9],
+              [46, 4], [53, 8], [59, 5], [64, 10], [71, 5], [78, 9], [85, 5], [90, 8]],
+      hazards: [[38, 11], [39, 11], [54, 11], [55, 11]],
+      spawn: [3, 10],
+      beacon: [92, 10]
     },
 
     {
       id: 'foundry-spine',
       name: 'Foundry Spine',
       hint: 'Reel in at the bottom of an arc to whip yourself out of it. Speed is the only thing that beats the front.',
-      w: 108, h: 19,
-      stormSpeed: 78, stormLead: 11, parTime: 55,
+      w: 108, h: 14,
+      stormSpeed: 78, stormLead: 12, parTime: 55,
       solid: [
         [0, 0, 24, 2],
         [30, 0, 12, 2],
         [50, 0, 10, 2],
         [66, 0, 14, 2],
         [86, 0, 22, 2],
-        [0, 17, 10, 2],
-        [16, 17, 7, 2],
-        [30, 17, 6, 2],
-        [44, 17, 6, 2],
-        [60, 17, 6, 2],
-        [74, 17, 7, 2],
-        [90, 17, 18, 2],
-        [10, 2, 2, 9],                       // deep pylons: heavy wrapping
-        [36, 2, 2, 10],
-        [54, 2, 2, 8],
-        [70, 2, 2, 11],
-        [93, 2, 2, 7],
-        [20, 11, 6, 2],                      // mid-air hulls to swing under and over
-        [46, 9, 7, 2],
-        [78, 12, 7, 2]
+        [0, 12, 10, 2],
+        [16, 12, 7, 2],
+        [30, 12, 6, 2],
+        [44, 12, 6, 2],
+        [60, 12, 6, 2],
+        [74, 12, 7, 2],
+        [90, 12, 18, 2],
+        [10, 2, 2, 6],                       // deep pylons: heavy wrapping
+        [36, 2, 2, 7],
+        [54, 2, 2, 5],
+        [70, 2, 2, 7],
+        [93, 2, 2, 5],
+        [20, 9, 6, 2],                       // mid-air hulls to swing under and over
+        [46, 7, 7, 2],
+        [78, 9, 7, 2]
       ],
-      girders: [[26, 7, 4], [42, 13, 5], [58, 5, 5], [62, 12, 5], [82, 6, 5], [96, 10, 6]],
-      cores: [[6, 13], [13, 6], [19, 8], [24, 5], [28, 12], [34, 6], [40, 9],
-              [45, 5], [51, 13], [57, 9], [63, 6], [68, 13], [73, 7], [79, 8],
-              [84, 13], [89, 6], [95, 13], [101, 8]],
-      hazards: [[12, 16], [13, 16], [37, 16], [38, 16], [52, 16], [53, 16],
-                [66, 16], [67, 16], [85, 16], [86, 16]],
-      spawn: [3, 15],
-      beacon: [104, 15]
+      girders: [[26, 6, 4], [44, 4, 5], [62, 5, 5], [82, 6, 5], [42, 10, 5], [96, 8, 6]],
+      cores: [[6, 9], [13, 6], [19, 7], [24, 6], [28, 10], [34, 5], [40, 8],
+              [45, 5], [51, 10], [57, 6], [63, 9], [68, 10], [73, 7], [79, 7],
+              [85, 10], [89, 5], [95, 10], [101, 7]],
+      hazards: [[17, 11], [18, 11], [32, 11], [33, 11], [46, 11], [47, 11],
+                [62, 11], [63, 11], [76, 11], [77, 11]],
+      spawn: [3, 10],
+      beacon: [104, 10]
     }
   ];
 

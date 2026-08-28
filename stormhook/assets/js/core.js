@@ -232,7 +232,18 @@
     reel: 0,
     lean: 0,
     dashPressed: false,
-    isTouch: false,
+    /* Capability, not history. This was previously only set by the first
+       touchstart, which meant the title screen — the one place the control
+       scheme actually gets explained — had always been built before any
+       touch happened, so phone players were told to use a mouse and the
+       W/S keys. `pointer: coarse` asks the right question: is the primary
+       input a finger? Real touch events still set it, for anything that
+       reports oddly. */
+    isTouch: (function () {
+      try {
+        return !!(global.matchMedia && global.matchMedia('(pointer: coarse)').matches);
+      } catch (e) { return false; }
+    })(),
     _down: {},          // raw map — tools and tests write straight into this
     _prevHook: false,
     _dashLatch: false,

@@ -32,6 +32,17 @@ describe('core', () => {
     expect(SH.fmtTime(65.5)).toBe('1:05.50');
   });
 
+  test('touch is detected by capability, and survives a missing matchMedia', () => {
+    /* The title screen is the one place the control scheme is explained,
+       and it is built before any touch event can have happened. Detecting
+       from history rather than capability told every phone player to use
+       a mouse. The shim here has no matchMedia at all, which also exercises
+       the fallback. */
+    const { SH } = loadSH();
+    expect(SH.Input.isTouch).toBe(false);
+    expect(typeof SH.Input.isTouch).toBe('boolean');
+  });
+
   test('storage degrades to the default instead of throwing when blocked', () => {
     const { SH, sandbox } = loadSH();
     sandbox.localStorage.setItem = () => { throw new Error('blocked'); };

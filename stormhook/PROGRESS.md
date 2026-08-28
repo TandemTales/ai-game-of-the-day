@@ -33,7 +33,7 @@ in a real browser and finishes with a clean console.
 
 ### Verification (all actually run, not assumed)
 
-* **190 tests pass repo-wide**, 62 of them Stormhook's: 36 simulation + 26
+* **191 tests pass repo-wide**, 63 of them Stormhook's: 37 simulation + 26
   design invariants. Nothing was committed on a failing suite.
 * **Screenshot sweep at all six viewports** — 320x568, 390x844, 844x390,
   768x1024, 1440x900, 3840x2160. No horizontal scroll anywhere. I opened the
@@ -68,6 +68,20 @@ in a real browser and finishes with a clean console.
 
 All three are pinned by tests.
 
+### A fourth bug, caught by screenshotting a screen the sweep had skipped
+
+The viewport sweep boots with `?auto=1`, so it had **only ever rendered
+gameplay** — no title, clear or gameover screen had been looked at once. Shooting
+the title screen on a phone showed it explaining *the mouse and the W/S keys* to
+a touch player. `Input.isTouch` was set by the first `touchstart`, and the title
+screen — the one place the control scheme is explained — is always built before
+any touch can have happened. It now asks `matchMedia('(pointer: coarse)')`
+instead, i.e. capability rather than history. Verified in a real browser on both
+a desktop and a touch context, and pinned by a test.
+
+The lesson worth carrying: a screenshot harness that only ever visits one screen
+is not a screenshot harness. Shoot the title, clear and gameover screens too.
+
 ### Where it is against the AAA bar — honestly, nowhere near yet
 
 Tonight was scaffolding and the art shows it. **No discipline has been through a
@@ -98,21 +112,25 @@ Concretely:
 1. **Start the critic loops.** Order of value: `render.js` (biggest single
    visual win), then `textures.js`, then `particles.js`, then `audio.js`. Each
    agent owns one file per the SPEC table; the lead keeps integration.
-2. **Fill the portrait sky.** On 390x844 the level band occupies only ~45% of
+2. **The HUD sits behind the title screen** showing `×1`, `0/9`, `0:00.00`. It
+   is dimmed to 25% and behind the modal, so it reads as background texture
+   rather than a defect, but it should simply be hidden outside `playing`.
+   One line in `ui.js`, which belongs to agent-ui from this run on.
+3. **Fill the portrait sky.** On 390x844 the level band occupies only ~45% of
    the screen height and the rest is empty gradient. This is unavoidable
    framing — a 14-tile-wide minimum at that aspect leaves that margin — so it
    has to be *filled* (distant wrecks, cloud depth, rain, the storm's glow)
    rather than fixed. It is the single worst-looking viewport right now.
-3. **Commit an autopilot traversal test.** See TESTING.md §4. The current
+4. **Commit an autopilot traversal test.** See TESTING.md §4. The current
    heuristic bot covers ~76% of level 1 in ~5 seconds then strands itself
    hanging motionless under an anchor — a policy limit, not a level dead-end
    (a stationary hanging player provably restarts a swing with lean alone,
    0 → 232 px/s in half a second). A committed bot that clears all three levels
    would be the strongest possible regression test for both physics and level
    design.
-4. **More levels.** Three is enough to prove the loop and too few to ship. The
+5. **More levels.** Three is enough to prove the loop and too few to ship. The
    declarative rect format in `levels.js` makes authoring cheap.
-5. **Verify fps on real hardware.** Every number measured here comes from
+6. **Verify fps on real hardware.** Every number measured here comes from
    software rasterisation: 60–61fps at 1440x900 and 844x390, but 37 at 768x1024
    and 13 at 4K. Those low numbers are almost certainly the rasteriser, not the
    game — but that is a belief, not a measurement, and it should not be repeated

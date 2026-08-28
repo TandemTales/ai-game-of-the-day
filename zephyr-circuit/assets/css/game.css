@@ -569,10 +569,12 @@ html, body {
   top: calc(92px + var(--safe-t)); right: calc(16px + var(--safe-r));
   width: min(206px, 30vw); min-width: 152px;
   padding: 8px 12px 9px;
-  border: 1px solid rgba(255,255,255,0.11);
+  border: 1px solid rgba(255,255,255,0.16);
   border-radius: 12px;
-  background: rgba(12,10,18,0.38);
-  box-shadow: 0 10px 26px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.08);
+  background: linear-gradient(135deg, rgba(12,10,18,0.90), rgba(12,10,18,0.82));
+  box-shadow: 0 10px 26px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.10);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
 .zc-timing::before {
   content: 'Race clock'; display: block; margin-bottom: 5px;

@@ -955,3 +955,54 @@ cosmetic debt for the forced release rather than widened into a risky final
 night environment rewrite.
 
 Full Jest is green after the unit: **9 suites, 237 tests**.
+
+### Unit 2 — timing contrast and touch proof
+
+`assets/css/game.css` now gives `.zc-timing` a dark two-tone gradient, stronger
+border and shadow, and an 8px backdrop blur. The patched Cirrus Run frame at
+1440x900 computes the new gradient/contrast styles and keeps TIME and BEST
+legible over the bright sky. Touch emulation at 390x844 exposed all four
+controls — left/right steering, BRAKE and DRIFT — as pointer-active rectangles
+inside the viewport, with no overflow.
+
+The independent HUD/touch critic's Mario Kart 8 Deluxe comparison is **FAIL**:
+the remaining gaps are a muddled timing hierarchy, supporting text that is not
+robust enough over every bright/moving background, and a dense touch stack
+that still reads more like debug UI than a shipped control surface.
+
+### Cup verification and final-night evidence
+
+An AI-driven cup smoke run completed the real UI path end to end: Round 1
+Gullwing Bay results, Next circuit, Round 2 Thermal Spire results, Next circuit,
+Round 3 Cirrus Run results, and the final championship screen. The observed
+final screen showed **3 rounds**, **3,160 cup score**, and a **+1,200
+championship bonus**. All three rounds completed without a visible fall or
+console error. This was an unattended deterministic smoke run, not a claim of
+human-driving quality.
+
+The final six-size sweep covered 320x568, 390x844, 844x390, 768x1024,
+1440x900 and 3840x2160. Every viewport reported exact dimensions, matching
+scroll width/height, and no error or warning logs. A fresh patched Cirrus
+chase frame and a touch-enabled 390x844 racing frame were read visually; the
+representative captures are in the run's temporary QA artifacts. The full
+repository suite is green: **9 suites, 237 tests**, and all render modules
+pass `node --check`.
+
+### Final critic record and release handoff
+
+* **Thermal Spire / environment — FAIL** against Art of Rally. The new spire,
+  caldera, basalt shelves, lava bands and cap improve the single landmark, but
+  the critic still found no reliably readable hero structure in the chase
+  composition, excessive empty asphalt, clipped dark foliage, and sparse,
+  muddy supporting dressing.
+* **HUD / touch — FAIL** against Mario Kart 8 Deluxe. The contrast pass fixes
+  the specific Cirrus wash, but the critic still found hierarchy, all-background
+  robustness and touch-stack density below the AAA bar.
+* **FX, audio and prior environment/model disciplines — prior FAILs remain**;
+  no new broad pass was started on the eve of forced release.
+
+There is no `.aaa-complete` yet and `main` is untouched. The next run is the
+forced Saturday 2026-08-29 release wrap-up: run the green suite and screenshot
+blocker sweep, fix only a crash, console error, unreadable HUD, broken touch
+control or incompletable race, then record the cosmetic debt and promote
+`dev` to `main` if those blockers remain absent.

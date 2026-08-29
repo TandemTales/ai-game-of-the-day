@@ -1006,3 +1006,12 @@ forced Saturday 2026-08-29 release wrap-up: run the green suite and screenshot
 blocker sweep, fix only a crash, console error, unreadable HUD, broken touch
 control or incompletable race, then record the cosmetic debt and promote
 `dev` to `main` if those blockers remain absent.
+
+### Run 2026-08-28 — final pre-release polish intent (Pacific Friday 23:02)
+
+This run is still Pacific Friday, so it is the final bounded polish pass rather
+than the forced release. Re-run the cup smoke path and six-viewport blocker
+sweep first, then address only a glaring release risk discovered there. Do not
+start broad FX, audio, or environment rewrites on the eve of release. If the
+build remains playable, leave the cosmetic critic debt intact for Saturday's
+release wrap-up and record the exact evidence before stopping.

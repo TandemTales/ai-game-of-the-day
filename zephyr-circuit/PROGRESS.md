@@ -1015,3 +1015,39 @@ sweep first, then address only a glaring release risk discovered there. Do not
 start broad FX, audio, or environment rewrites on the eve of release. If the
 build remains playable, leave the cosmetic critic debt intact for Saturday's
 release wrap-up and record the exact evidence before stopping.
+
+### Final-night verification — 2026-08-28 23:14 Pacific
+
+The Pacific date is Friday, so the forced Saturday release gate did not run
+tonight. No source file needed a blocker fix. The direct cup smoke reached
+`gullwing-bay`, `thermal-spire`, and `cirrus-run`, completed all three results
+states, and ended in `phase: cup` with three round results, a 3,434 cup score,
+and a 1,200 championship bonus. The initial wrapper reported a false failure
+because it treated the expected final `advance()` return of `false` as an
+error; the corrected assertion passed with exit code 0.
+
+The full repository suite passed again: **9 suites, 237 tests**. All six render
+modules passed `node --check`, and a local HTTP smoke check returned 200 for
+the game shell, stylesheet, all classic scripts, and all render modules.
+
+The in-app browser blocked loopback navigation and the standalone screenshot
+harness could not load because this checkout has no Playwright package or local
+browser binary. Therefore there is no new six-viewport sweep claim from the
+lead. The HUD lane did obtain fresh 1440x900 and 390x844 captures, which were
+visually inspected: the race state, HUD, and touch controls are visible and
+contained. Touch rectangles toggled virtual input correctly. Captures are in
+`C:\Users\jshun\AppData\Local\Temp\zephyr-final-night-hud\`.
+
+Both independent final-night lanes left their owned files unchanged and gave
+the release-blocker gate a **PASS**. Their AAA blind comparisons remain
+**FAIL**: Thermal Spire/environment trails Art of Rally in hero composition,
+surface detail, and supporting dressing; the HUD/touch presentation trails
+Mario Kart 8 Deluxe in hierarchy and mobile control density. Existing FX,
+audio, kart-model, and real-GPU validation debt also remains. These are
+cosmetic debt, not a demonstrated release blocker.
+
+There is no `.aaa-complete`, and `main` remains untouched. The next run is the
+forced Saturday release wrap-up: rerun tests and the available blocker sweep,
+fix only a glaring crash, console error, unreadable HUD, broken touch control,
+or incompletable race, then record the debt and promote `dev` to `main` if the
+blockers remain absent.

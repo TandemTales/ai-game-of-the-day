@@ -1051,3 +1051,26 @@ forced Saturday release wrap-up: rerun tests and the available blocker sweep,
 fix only a glaring crash, console error, unreadable HUD, broken touch control,
 or incompletable race, then record the debt and promote `dev` to `main` if the
 blockers remain absent.
+
+### Run 2026-08-29 — FORCED SATURDAY RELEASE (Pacific Saturday)
+
+Pacific date is Saturday 2026-08-29; Zephyr Circuit started 2026-08-17, so it
+is 12 days old and past the 9-day gate. **Tonight is the forced release.**
+
+Per STEP 4, no new polish is started. The plan is wrap-up only:
+
+1. Run the full repository test suite; it must be green.
+2. Run the release-blocker sweep across 320x568, 390x844, 844x390, 768x1024,
+   1440x900 and 3840x2160, plus a cup smoke run through all three rounds.
+3. Fix *only* glaring blockers — a crash, console errors, an unreadable HUD,
+   broken touch controls, or a race that cannot be completed.
+4. Feature the game on the root `index.html`, moving Paradox Vault into
+   "More Games".
+5. Write `zephyr-circuit/.aaa-complete` with the honest critic record and the
+   full carried polish debt.
+6. Update `.arcade-agent/current-game.md`, push `dev`, promote to `main`.
+
+The standing critic verdicts (environment FAIL vs Art of Rally, HUD/touch FAIL
+vs Mario Kart 8 Deluxe, plus prior FX/audio/model debt) are carried as debt.
+This is a clock-based release, not a merit-based one, and `.aaa-complete` will
+say so plainly.

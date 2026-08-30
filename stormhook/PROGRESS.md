@@ -1,5 +1,19 @@
 # Stormhook — progress log
 
+## 2026-08-30 (Sunday, Pacific) — polish night intent
+
+Stormhook is the active game; the superseded Lumen Pinnacle scaffold is not
+tonight's target. This is a bounded polish run, not release night. Focus on two
+high-value disciplines: first the world renderer and portrait sky depth, then
+the UI's non-playing HUD leak and presentation hierarchy. Run each changed
+file through the full test suite and a real-browser screenshot check before its
+own commit/push. If the available environment cannot supply independent critic
+workers, record that limitation plainly instead of inventing verdicts.
+
+Tonight's starting bar remains honest: no discipline has a passing blind
+side-by-side verdict, real-hardware performance is unverified, and `main` must
+remain untouched.
+
 ## 2026-08-27 (Thursday, Pacific) — STEP 2 scaffolding night
 
 **Intent for tonight:** pick a new game, record it, and land a *playable

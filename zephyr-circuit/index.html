@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17405200669"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'AW-17405200669');
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#12101a" />
+  <meta name="description" content="Zephyr Circuit — a 3D kart racer across floating sky islands at golden hour. Drift the corners, bank the boost, take the cup." />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Zephyr Circuit - Bot Built Arcade</title>
+  <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png" />
+  <link rel="stylesheet" href="assets/css/game.css" />
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #12101a; overflow: hidden; overscroll-behavior: none; }
+    #zc-canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  </style>
+
+  <!-- three.js is vendored, not fetched from a CDN: the site is static
+       with no backend but the leaderboard function, so a third-party
+       request on every play would cost availability and buy nothing. -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./assets/js/vendor/three.module.min.js",
+      "three/addons/": "./assets/js/vendor/addons/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <canvas id="zc-canvas" aria-label="Zephyr Circuit race view" role="img"></canvas>
+  <div id="zc-ui"></div>
+
+  <noscript>
+    <div style="position:fixed;inset:0;display:grid;place-items:center;background:#12101a;color:#f2e9dd;font:16px/1.6 Georgia,serif;padding:24px;text-align:center">
+      Zephyr Circuit needs JavaScript.<br /><a href="../index.html" style="color:#ffc94a">← Back to Bot Built Arcade</a>
+    </div>
+  </noscript>
+
+  <!-- Pure logic: classic scripts on window.ZC, unit tested headless.
+       These must all run before the module entry, which is deferred. -->
+  <script src="assets/js/core.js"></script>
+  <script src="assets/js/track.js"></script>
+  <script src="assets/js/tracks.js"></script>
+  <script src="assets/js/kart.js"></script>
+  <script src="assets/js/items.js"></script>
+  <script src="assets/js/ai.js"></script>
+  <script src="assets/js/race.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/audio.js"></script>
+
+  <!-- The three.js render layer. -->
+  <script type="module" src="assets/js/render/main.js"></script>
+</body>
+</html>

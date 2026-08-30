@@ -1,0 +1,115 @@
+# Zephyr Circuit — released 2026-08-29 (Pacific)
+
+**This is a clock-based release, not a merit-based one.** The game reached its
+forced release Saturday under the arcade's two-week cadence: started
+2026-08-17, released at 12 days old. STEP 4's quality gate — every discipline's
+critic passing a blind side-by-side comparison, plus an independent shipping
+judge — was **never met**. No shipping judge was run, because a shipping judge
+is only meaningful once the critics pass, and they did not.
+
+What was verified on release night is that the game is *not broken*. What is
+recorded below is everything that is still short of AAA.
+
+## Release-blocker gate — PASS
+
+The forced-release bar is narrow: a crash, console errors, an unreadable HUD,
+broken touch controls, or a race that cannot be completed. All five were
+checked on the released build.
+
+* **Test suite green.** 9 suites, 237 tests, run three times tonight — before
+  the HUD fix, after it, and before the featured-game commit.
+* **All three circuits complete end to end.** A deterministic AI cup smoke ran
+  the real race loop through Gullwing Bay (133s), Thermal Spire (128s) and
+  Cirrus Run (149s). Every round reached the results state with **8/8 karts
+  finishing and zero falls**, the cup ended in `phase: cup` with a 3,434 cup
+  score and a 1,200 championship bonus.
+* **Six-viewport sweep, PNGs actually read.** 320x568, 390x844, 844x390,
+  768x1024, 1440x900 and 3840x2160 all reported the race running with 8 karts,
+  exact viewport dimensions, matching scroll width/height and no horizontal
+  scrollbar. Each PNG was opened and inspected, not just the report.
+* **Console clean.** Only the two documented sandbox artefacts: the blocked
+  Google tag request and a swiftshader `GPU stall due to ReadPixels` warning.
+  Every other game on the site produces the same tag failure.
+* **Touch controls present and correct** at 320x568, 390x844, 844x390 and
+  768x1024: steering pads bottom-left/right, brake and drift under the right
+  thumb, throttle automatic.
+
+### The one blocker found and fixed tonight
+
+At **844x390 (phone landscape)** the race clock overlapped the lap card: the
+landscape rule parked `.zc-timing` at `right: 112px`, but `.zc-lap` is a
+`1fr auto` grid whose real width is about 208px, so "LAP" clipped to "AP" and
+"Gullwing Bay" clipped to "Bay". Fixed by bounding `.zc-lap` to a deterministic
+164px inside that media query and moving the clock clear of it. Only 844x390
+matches `max-height: 460px and (orientation: landscape)`, so no other viewport
+changed. Re-shot and visually confirmed.
+
+## Critic record — the honest version
+
+No discipline ever recorded a passing blind side-by-side verdict. These are the
+final standing verdicts carried into release:
+
+| discipline | reference | verdict |
+|---|---|---|
+| FX (`render/fx.js`) | Mario Kart 8 Deluxe | **FAIL** — three blind rounds, all lost |
+| Track / environment | Art of Rally | **FAIL** |
+| Kart models | Mario Kart 8 Deluxe | **FAIL** |
+| Audio | Mario Kart 8 Deluxe | **FAIL / not AAA-cleared** |
+| HUD / touch | Mario Kart 8 Deluxe | **FAIL** |
+| UI (menus, results, cup) | — | **UNJUDGED** |
+| Shipping judge | — | **NOT RUN** |
+
+A caveat recorded by an earlier run and worth repeating: on at least one night
+reference imagery could not be fetched from the sandbox, so a verdict from that
+night reflects what was actually compared, which was less than a true blind
+side-by-side.
+
+## Carried polish debt
+
+**FX** — the exact list, unchanged across three failed critic rounds: localize
+and reduce the contact flash so it stops blowing out; preserve kart silhouettes
+through the effect; author distinct wheel-attached drift-spark tiers rather
+than detached sparks; add a clearly directional, saturated rear exhaust plume
+that reads from the player kart.
+
+**Track / environment** — no reliably readable hero structure in the chase
+composition; too much empty asphalt; clipped dark foliage; sparse, muddy
+supporting dressing. Thermal Spire's landmark pass (spire, caldera, basalt
+shelves, lava bands, cap) improved the single landmark without fixing the
+composition. Track polish is uneven between the three circuits.
+
+**Kart models** — tire contact and surface detail lose to the reference.
+
+**Audio** — the thinnest discipline in the game, never brought near the bar. It
+was a ~110-line placeholder for most of development and no critic has cleared
+it.
+
+**HUD / UI** — hierarchy and all-background robustness below the bar; the
+mobile touch stack is dense (item, speed, brake and drift compete for the same
+corner in portrait). At 3840x2160 the HUD does not scale with the viewport and
+reads very small — legible, but not composed for 4K. Menu, results and cup
+screens were never judged at all. Camera and UI "drama" — the staging that
+makes a kart racer feel like an event — is absent.
+
+**Validation** — no real-GPU verification exists. This sandbox has no GPU, so
+every frame rate figure came from swiftshader and shadow quality has never been
+seen on real hardware. `renderer.info` draw-call and triangle counts are
+meaningless with the EffectComposer in the pipeline. **Whether this game holds
+60fps on a real device is unknown.**
+
+## What is genuinely good
+
+Recorded so the debt list above is not read as the whole picture. The logic
+half is well tested and the invariants that matter are defended: the circuit
+provably never crosses itself, AI skill ratings predict finishing order,
+drifting is measurably faster than not drifting, physics is a fixed timestep
+with no `Math.random`. The golden-hour low-poly look reads cleanly at desktop
+and tablet sizes, all art is procedural, nothing is fetched from a third party,
+and the whole three.js/font stack is vendored into the repo.
+
+## If someone picks this up again
+
+Start with **audio** and **UI/menus** — they are the two disciplines that were
+never really attempted, so they have the most headroom per hour. Then the FX
+debt list above, which is specific enough to work from directly. Do the first
+real-GPU pass before trusting any performance claim in this file.

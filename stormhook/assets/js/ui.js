@@ -31,6 +31,8 @@
 
     /* --- HUD --- */
     els.hud = el('div', 'sh-hud');
+    els.hud.setAttribute('role', 'group');
+    els.hud.setAttribute('aria-label', 'Run status');
     els.hud.innerHTML =
       '<div class="sh-hud-left">' +
         '<div class="sh-stat"><span class="sh-k">SCORE</span><b id="sh-score">0</b></div>' +
@@ -47,9 +49,14 @@
     root.appendChild(els.hud);
 
     els.warn = el('div', 'sh-warn', 'THE FRONT IS ON YOU');
+    els.warn.setAttribute('role', 'alert');
+    els.warn.setAttribute('aria-live', 'assertive');
+    els.warn.setAttribute('aria-hidden', 'true');
     root.appendChild(els.warn);
 
     els.toast = el('div', 'sh-toast');
+    els.toast.setAttribute('role', 'status');
+    els.toast.setAttribute('aria-live', 'polite');
     root.appendChild(els.toast);
 
     els.pops = el('div', 'sh-pops');
@@ -57,10 +64,13 @@
 
     /* --- screens --- */
     els.screen = el('div', 'sh-screen');
+    els.screen.setAttribute('role', 'dialog');
+    els.screen.setAttribute('aria-modal', 'true');
     root.appendChild(els.screen);
 
     els.back = el('a', 'sh-back', '← Arcade');
     els.back.href = '../index.html';
+    els.back.setAttribute('aria-label', 'Back to Bot Built Arcade');
     root.appendChild(els.back);
 
     els.mute = el('button', 'sh-mute', '♪');
@@ -94,20 +104,57 @@
     return b;
   }
 
+  function setHudVisibility(phase) {
+    if (!els.hud) return;
+    var visible = phase === 'playing' || phase === 'paused';
+    els.hud.hidden = !visible;
+    els.hud.style.display = visible ? '' : 'none';
+    els.hud.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    els.hud.classList.toggle('is-dim', phase === 'paused');
+
+    if (!visible) {
+      if (els.warn) {
+        els.warn.classList.remove('is-on');
+        els.warn.setAttribute('aria-hidden', 'true');
+      }
+      if (root) root.classList.remove('sh-danger');
+    }
+  }
+
+  function kicker(text) {
+    var k = el('p', 'sh-k', text);
+    k.style.margin = '0 0 8px';
+    return k;
+  }
+
   U.setScreen = function (name) {
     if (!els.screen) return;
     var s = els.screen;
+    var labels = {
+      title: 'Stormhook title screen',
+      paused: 'Game paused',
+      clear: 'Wreck extraction results',
+      gameover: 'Run results'
+    };
     s.innerHTML = '';
     s.className = 'sh-screen sh-screen--' + name;
+    s.setAttribute('aria-label', labels[name] || 'Stormhook');
     root.classList.toggle('sh-playing', name === 'playing');
+    setHudVisibility(name);
 
-    if (name === 'playing' || name === 'boot') { s.classList.add('is-hidden'); return; }
+    if (name === 'playing' || name === 'boot') {
+      s.classList.add('is-hidden');
+      s.setAttribute('aria-hidden', 'true');
+      return;
+    }
     s.classList.remove('is-hidden');
+    s.setAttribute('aria-hidden', 'false');
 
-    var card = el('div', 'sh-card');
+    var card = el('div', 'sh-card sh-card--' + name);
     var G = SH.Game, st = G.state;
 
     if (name === 'title') {
+      card.appendChild(kicker('WRECK-FIELD SALVAGE DIVISION'));
       card.appendChild(el('h1', 'sh-title', 'STORMHOOK'));
       card.appendChild(el('p', 'sh-sub',
         'Salvage the wreck-fields ahead of the front. Point, latch, swing — and keep your boots off the deck.'));
@@ -128,14 +175,17 @@
     }
 
     else if (name === 'paused') {
+      card.appendChild(kicker('RUN SUSPENDED'));
       card.appendChild(el('h2', null, 'Paused'));
+      card.appendChild(el('p', 'sh-sub', 'Your momentum is held. Resume when you are ready to outrun the front.'));
       card.appendChild(btn('Resume', function () { SH.Game.togglePause(); }, 'sh-btn--go'));
       card.appendChild(btn('Restart level', function () { SH.Game.restartLevel(); }));
     }
 
     else if (name === 'clear') {
       var c = SH.Game.lastClear || {};
-      card.appendChild(el('h2', null, 'Extracted'));
+      card.appendChild(kicker('BEACON LOCK CONFIRMED'));
+      card.appendChild(el('h2', null, 'Wreck extracted'));
       var t = el('div', 'sh-rows');
       t.innerHTML =
         row('Salvage', (c.cores || 0) + ' / ' + (c.coresMax || 0)) +
@@ -150,6 +200,7 @@
     }
 
     else if (name === 'gameover') {
+      card.appendChild(kicker('EXPEDITION COMPLETE'));
       card.appendChild(el('h2', null, 'Run complete'));
       var g = el('div', 'sh-rows');
       g.innerHTML =
@@ -178,8 +229,8 @@
   var lastScore = -1, lastCombo = -1;
   U.hud = function (world, st) {
     if (!els.hud || !world || !st) return;
-    if (st.phase !== 'playing') { els.hud.classList.add('is-dim'); }
-    else els.hud.classList.remove('is-dim');
+    setHudVisibility(st.phase);
+    if (st.phase !== 'playing' && st.phase !== 'paused') return;
 
     var sc = global.document.getElementById('sh-score');
     if (sc && st.runScore !== lastScore) {
@@ -214,6 +265,7 @@
     var gap = world.p.x - world.storm.x;
     var near = gap < 340 && !world.dead && st.phase === 'playing';
     els.warn.classList.toggle('is-on', near);
+    els.warn.setAttribute('aria-hidden', near ? 'false' : 'true');
     root.classList.toggle('sh-danger', near);
   };
 

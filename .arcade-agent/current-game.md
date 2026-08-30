@@ -1,51 +1,32 @@
 # Active game
 
-**None.** No game is currently in development.
+**Lumen Pinnacle** (`lumen-pinnacle/`)
 
-`zephyr-circuit/` was **released on 2026-08-29 (Pacific)** as a forced Saturday
-release at 12 days old, and is marked complete by `zephyr-circuit/.aaa-complete`.
-It is the featured game on the arcade home page and has been promoted to `main`.
-Paradox Vault moved to the head of "More Games".
+A jewel-box neon pinball table for the Bot Built Arcade. The player controls
+left and right flippers to keep a luminous energy orb alive, banks shots into
+three prism targets, threads multiplier lanes, and starts a short multiball
+when the table is mastered. It is a score-first classic arcade game with
+mouse, touch, and keyboard controls, designed to be clearly distinct from the
+catalog's racing, combat, puzzle-stealth, defense, builder, shooter, and
+descent games.
 
-Read `zephyr-circuit/.aaa-complete` before assuming anything about its quality.
-It shipped on the two-week clock, **not** on merit: no discipline ever recorded
-a passing blind side-by-side critic verdict, and no shipping judge was run. What
-release night verified is that the game is not broken — 237 tests green, all
-three circuits completable with 8/8 karts finishing, six viewports swept with
-the PNGs actually read, console clean, touch controls working. The carried debt
-— FX, environment, kart models, audio, HUD/UI, and the total absence of
-real-GPU validation — is listed in that file.
+`started: 2026-08-29` (Pacific)
 
-## Next run
+This is a new-game scaffolding night. Build a playable vertical slice first;
+the forced release Saturday is 2026-09-12.
 
-Go to **STEP 2** and pick a new game. Choose something clearly different in
-genre *and* core verb from every existing arcade game, scaffold a playable
-vertical slice, and record the new slug and `started:` date here before writing
-any code — that start date is what sets its own forced-release Saturday.
-
-A game scaffolded now is 6 days old on 2026-09-05 (keep polishing) and 13 days
-old on **2026-09-12**, which is its release Saturday.
-
-### Genres already used, so the next pick must avoid them
+## Catalog inventory used for the selection
 
 3D kart racing (zephyr-circuit), time-loop stealth puzzle (paradox-vault),
 side-scrolling beat-em-up (bayou-brawlers), tower defense
 (aurora-tower-defense), brick breaker (neon-brick-breaker), twin-stick/arena
 shooter (nova-striker), base builder (bastion-builder), roguelike descent
-(crimson-descent), arcade action (core-crisis, emberfall-gauntlet,
-midnight-menagerie).
+(crimson-descent), and arcade-action variants (core-crisis,
+emberfall-gauntlet, midnight-menagerie). The root page also has stale links to
+`memory-match` and `ocean-explorer`, but those directories are absent.
 
-### Two rules the human changed on 2026-08-17, still in force
+## Working rules
 
-* **The `file://` requirement is removed.** Games must work when served over
-  HTTP from the repo root; that is how the site is actually played. Classic
-  non-module scripts are no longer mandatory.
-* **Vendoring an OFL-licensed UI font is allowed.**
-
-What did **not** change: **no third-party runtime fetches.** Everything is
-vendored and served from our own origin. Zephyr Circuit's hybrid layout —
-pure logic as classic scripts on one global namespace so the `vm`-based Jest
-harness can test it, renderer as ESM — is a good pattern to reuse if the next
-game needs a heavy render dependency.
-
-Work happens on the `dev` branch. Never `main`, except for the STEP 4 promotion.
+The game must run over HTTP from the repo root with no third-party runtime
+fetches. Vendored assets are allowed. Work happens on `dev`; `main` is touched
+only during STEP 4 promotion.

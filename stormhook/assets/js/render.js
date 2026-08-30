@@ -24,6 +24,9 @@
   var wrecks = [];
   var rain = [];
   var windLines = [];
+  var lastGround = false, lastAttached = false, lastVy = 0;
+  var landingCue = { t: 0, x: 0, y: 0, power: 0 };
+  var hookCue = { t: 0, x: 0, y: 0 };
 
   /* Framing rules: never show fewer than this many tiles across or down,
      never more than MAX_TILES_X. Derived in resize(). */
@@ -50,7 +53,7 @@
         rx: range(rnd, 90, 250) * (1 + layer * 0.24),
         ry: range(rnd, 22, 62) * (1 + layer * 0.16),
         a: range(rnd, 0.20, 0.52), phase: range(rnd, 0, 6.28), layer: layer,
-        depth: [0.035, 0.085, 0.16][layer], drift: range(rnd, 2, 9) * (layer + 1)
+        depth: [0.018, 0.10, 0.24][layer], drift: range(rnd, 1.5, 8) * (layer + 1)
       });
     }
     wrecks = [];
@@ -59,8 +62,8 @@
       wrecks.push({
         x: rnd(), y: range(rnd, near ? 0.38 : 0.18, near ? 0.82 : 0.62),
         scale: range(rnd, near ? 0.62 : 0.34, near ? 1.20 : 0.72),
-        depth: range(rnd, near ? 0.12 : 0.045, near ? 0.22 : 0.11),
-        alpha: range(rnd, near ? 0.32 : 0.16, near ? 0.62 : 0.32),
+        depth: range(rnd, near ? 0.17 : 0.028, near ? 0.32 : 0.085),
+        alpha: range(rnd, near ? 0.40 : 0.12, near ? 0.72 : 0.25),
         flip: rnd() > 0.5 ? -1 : 1, broken: range(rnd, -0.2, 0.25)
       });
     }
@@ -116,6 +119,11 @@
     camera.x = world.p.x;
     camera.y = world.p.y;
     camera.shake = 0;
+    lastGround = !!world.p.onGround;
+    lastAttached = !!world.hook.attached;
+    lastVy = world.p.vy;
+    landingCue.t = 0;
+    hookCue.t = 0;
   };
 
   /* Screen (CSS px, canvas-relative) -> world. This is what makes the
@@ -136,11 +144,27 @@
   R.update = function (dt, world) {
     time += dt;
     camera.shake = Math.max(0, camera.shake - dt * 3.2);
+    landingCue.t = Math.max(0, landingCue.t - dt);
+    hookCue.t = Math.max(0, hookCue.t - dt);
     if (!world) return;
 
     /* Lead the camera in the direction of travel so a fast player can
        see what they are swinging into. */
     var p = world.p;
+    if (p.onGround && !lastGround && lastVy > 260) {
+      landingCue.t = 0.32;
+      landingCue.x = p.x;
+      landingCue.y = p.y + p.r;
+      landingCue.power = SH.clamp((lastVy - 260) / 720, 0.25, 1);
+    }
+    if (world.hook.attached && !lastAttached && world.hook.pivots.length) {
+      hookCue.t = 0.24;
+      hookCue.x = world.hook.pivots[0].x;
+      hookCue.y = world.hook.pivots[0].y;
+    }
+    lastGround = !!p.onGround;
+    lastAttached = !!world.hook.attached;
+    lastVy = p.vy;
     var leadX = SH.clamp(p.vx * 0.30, -260, 260);
     var leadY = SH.clamp(p.vy * 0.14, -150, 150);
     var tx = p.x + leadX, ty = p.y + leadY;
@@ -372,12 +396,88 @@
         var sp = worldToScreen(tx * TILE, ty * TILE);
         if (c === '=') {
           ctx.drawImage(SH.Textures.get('girder'), sp.x, sp.y, size, size);
+          girderDetail(tx, ty, sp.x, sp.y, size, S);
         } else {
           var lit = !SH.Physics.solidAt(world, tx, ty - 1);
           ctx.drawImage(SH.Textures.hullFor(tx, ty, lit), sp.x, sp.y, size, size);
+          hullDetail(world, tx, ty, sp.x, sp.y, size, S, lit);
         }
       }
     }
+  }
+
+  function hullDetail(world, tx, ty, x, y, size, S, topLit) {
+    var key = (Math.imul(tx + 17, 73856093) ^ Math.imul(ty + 29, 19349663)) | 0;
+    var macro = hash01((Math.imul((tx / 3) | 0, 83492791) ^
+                        Math.imul((ty / 2) | 0, 297121507)) | 0);
+    var v = (hash01(key) * 7) | 0;
+
+    /* Broad 3x2-tile stains bind individual stamps into sections of hull. */
+    if (macro < 0.34) {
+      ctx.fillStyle = macro < 0.16 ? 'rgba(83,37,26,0.12)' : 'rgba(7,15,24,0.11)';
+      ctx.fillRect(x, y, size, size);
+    } else if (macro > 0.82) {
+      ctx.fillStyle = 'rgba(104,130,139,0.055)';
+      ctx.fillRect(x, y, size, size);
+    }
+
+    if (topLit) {
+      ctx.fillStyle = 'rgba(149,190,198,0.26)';
+      ctx.fillRect(x, y, size, Math.max(1.5, 2.4 * S));
+      ctx.fillStyle = 'rgba(81,125,139,0.09)';
+      ctx.fillRect(x, y + Math.max(1.5, 2.4 * S), size, Math.max(2, 4 * S));
+    }
+
+    ctx.lineCap = 'butt';
+    if (v === 0) {
+      /* A dark replaced plate interrupts the regular rivet grid. */
+      ctx.fillStyle = 'rgba(8,15,23,0.31)';
+      ctx.fillRect(x + size * 0.16, y + size * 0.19, size * 0.68, size * 0.57);
+      ctx.strokeStyle = 'rgba(104,119,127,0.24)';
+      ctx.lineWidth = Math.max(0.8, S);
+      ctx.strokeRect(x + size * 0.16, y + size * 0.19, size * 0.68, size * 0.57);
+    } else if (v === 1) {
+      /* Long repair scar, deliberately crossing the stamp's visual grain. */
+      ctx.strokeStyle = 'rgba(10,17,25,0.62)';
+      ctx.lineWidth = Math.max(1.5, 2.6 * S);
+      ctx.beginPath(); ctx.moveTo(x + size * 0.08, y + size * 0.83);
+      ctx.lineTo(x + size * 0.91, y + size * 0.19); ctx.stroke();
+      ctx.strokeStyle = 'rgba(142,107,73,0.32)';
+      ctx.lineWidth = Math.max(0.7, S);
+      ctx.beginPath(); ctx.moveTo(x + size * 0.10, y + size * 0.80);
+      ctx.lineTo(x + size * 0.89, y + size * 0.17); ctx.stroke();
+    } else if (v === 2) {
+      /* Oxidation bloom, irregular and quiet enough not to imply danger. */
+      ctx.fillStyle = 'rgba(134,66,39,0.22)';
+      ctx.beginPath();
+      ctx.moveTo(x + size * 0.20, y + size * 0.30);
+      ctx.bezierCurveTo(x + size * 0.46, y + size * 0.12, x + size * 0.76, y + size * 0.29,
+                        x + size * 0.66, y + size * 0.53);
+      ctx.bezierCurveTo(x + size * 0.52, y + size * 0.71, x + size * 0.16, y + size * 0.60,
+                        x + size * 0.20, y + size * 0.30);
+      ctx.fill();
+    } else if (v === 3 && !SH.Physics.solidAt(world, tx - 1, ty)) {
+      ctx.fillStyle = 'rgba(126,160,170,0.20)';
+      ctx.fillRect(x, y, Math.max(2, 4 * S), size);
+      ctx.fillStyle = 'rgba(4,10,17,0.38)';
+      ctx.fillRect(x + Math.max(2, 4 * S), y, Math.max(1, 2 * S), size);
+    } else if (v === 4) {
+      /* A structural rib gives some tiles a larger-than-panel cadence. */
+      ctx.fillStyle = 'rgba(7,14,22,0.30)';
+      ctx.fillRect(x + size * 0.43, y, size * 0.15, size);
+      ctx.fillStyle = 'rgba(112,127,132,0.19)';
+      ctx.fillRect(x + size * 0.43, y, Math.max(1, 2 * S), size);
+    }
+  }
+
+  function girderDetail(tx, ty, x, y, size, S) {
+    if (hash01(Math.imul(tx + 11, 92821) ^ Math.imul(ty + 7, 68917)) < 0.48) return;
+    ctx.strokeStyle = 'rgba(183,128,72,0.28)';
+    ctx.lineWidth = Math.max(0.8, 1.2 * S);
+    ctx.beginPath();
+    ctx.moveTo(x + size * 0.13, y + size * 0.72);
+    ctx.lineTo(x + size * 0.87, y + size * 0.28);
+    ctx.stroke();
   }
 
   function hazards(world) {
@@ -494,50 +594,107 @@
   function player(world) {
     var p = world.p, S = camera.scale;
     var sp = worldToScreen(p.x, p.y);
-    var r = p.r * S;
+    var r = p.r * S * 1.16;
     var speed = SH.len(p.vx, p.vy);
     var ang = Math.atan2(p.vy, p.vx);
+    var ropeData = world.hook.attached ? SH.Physics.ropeInfo(world) : null;
+    var targetX = ropeData ? ropeData.last.x : world.aim.x;
+    var targetY = ropeData ? ropeData.last.y : world.aim.y;
+    var facing = targetX < p.x ? -1 : 1;
+    if (Math.abs(targetX - p.x) < 4 && Math.abs(p.vx) > 20) facing = p.vx < 0 ? -1 : 1;
+    var bodyLean = SH.clamp(p.vx / 1200, -0.25, 0.25);
+    var armAng = Math.atan2(targetY - p.y, targetX - p.x) - bodyLean;
+    var trailAng = speed > 80 ? ang + Math.PI - bodyLean : Math.PI * 0.5;
+
+    motionWake(sp.x, sp.y, r, speed, ang, S);
 
     ctx.save();
     ctx.translate(sp.x, sp.y);
+    ctx.rotate(bodyLean);
 
-    /* Motion streak — cheap, and it sells speed. */
-    if (speed > 260) {
-      ctx.save();
-      ctx.rotate(ang);
-      var g = ctx.createLinearGradient(0, 0, -speed * 0.06 * S, 0);
-      g.addColorStop(0, 'rgba(127,208,255,0.45)');
-      g.addColorStop(1, 'rgba(127,208,255,0)');
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.moveTo(0, -r * 0.7); ctx.lineTo(-speed * 0.06 * S, 0); ctx.lineTo(0, r * 0.7);
-      ctx.closePath(); ctx.fill();
-      ctx.restore();
-    }
+    /* Bent boots and asymmetric arms make the traversal pose readable even
+       when the visual body is only ~20 CSS pixels tall on a phone. */
+    var legAng = p.onGround ? Math.PI * 0.52 : trailAng;
+    drawLimb(-r * 0.23, r * 0.34, legAng - 0.28, r * 0.95, -0.24, r * 0.27, '#071019');
+    drawLimb(r * 0.23, r * 0.34, legAng + 0.31, r * 1.02, 0.26, r * 0.25, '#09131d');
+    var shoulderX = facing * r * 0.27;
+    var shoulderY = -r * 0.22;
+    drawLimb(shoulderX, shoulderY, armAng, r * (ropeData ? 1.22 : 0.92),
+             -facing * 0.20, r * 0.24, '#101b25');
+    drawLimb(-shoulderX, -r * 0.10, trailAng - facing * 0.30, r * 0.82,
+             facing * 0.22, r * 0.22, '#0b151f');
 
-    /* Coat: leans into the direction of travel. */
-    var lean = SH.clamp(p.vx / 700, -0.6, 0.6);
-    ctx.rotate(lean * 0.5);
-
-    ctx.fillStyle = '#1b2836';
+    /* Angular storm coat and split tails, not a collision capsule. */
+    var tailX = Math.cos(trailAng) * r * (0.65 + SH.clamp(speed / 1000, 0, 0.55));
+    var tailY = Math.sin(trailAng) * r * (0.65 + SH.clamp(speed / 1000, 0, 0.55));
+    ctx.fillStyle = '#0b1722';
     ctx.beginPath();
-    ctx.ellipse(0, 0, r * 0.78, r * 1.05, 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.moveTo(-r * 0.45, r * 0.22); ctx.lineTo(r * 0.45, r * 0.22);
+    ctx.lineTo(r * 0.20 + tailX, r * 0.76 + tailY * 0.38);
+    ctx.lineTo(0, r * 0.56);
+    ctx.lineTo(-r * 0.28 + tailX * 0.82, r * 0.70 + tailY * 0.46);
+    ctx.closePath(); ctx.fill();
 
-    ctx.fillStyle = SH.PALETTE.rust;
+    /* Brass winch pack establishes the salvager profession in silhouette. */
+    ctx.fillStyle = '#111c25';
+    ctx.fillRect(-facing * r * 0.72 - r * 0.25, -r * 0.28, r * 0.48, r * 0.75);
+    ctx.fillStyle = '#8f6736';
+    ctx.beginPath(); ctx.arc(-facing * r * 0.69, r * 0.05, r * 0.22, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#d0a85f';
+    ctx.lineWidth = Math.max(0.8, r * 0.07);
+    ctx.beginPath(); ctx.arc(-facing * r * 0.69, r * 0.05, r * 0.12, 0, Math.PI * 2); ctx.stroke();
+
+    /* Tapered torso, harness, and high collar. */
+    var coat = ctx.createLinearGradient(-r * 0.4, -r * 0.5, r * 0.45, r * 0.5);
+    coat.addColorStop(0, '#294052');
+    coat.addColorStop(0.55, '#172a39');
+    coat.addColorStop(1, '#0d1a25');
+    ctx.fillStyle = coat;
+    ctx.strokeStyle = '#050b12';
+    ctx.lineWidth = Math.max(1, r * 0.12);
     ctx.beginPath();
-    ctx.ellipse(0, r * 0.15, r * 0.62, r * 0.80, 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.moveTo(-r * 0.43, -r * 0.36); ctx.lineTo(r * 0.48, -r * 0.31);
+    ctx.lineTo(r * 0.56, r * 0.37); ctx.lineTo(r * 0.20, r * 0.60);
+    ctx.lineTo(-r * 0.35, r * 0.52); ctx.lineTo(-r * 0.56, r * 0.04);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
 
-    /* Visor, facing the aim point. */
-    var av = Math.atan2(world.aim.y - p.y, world.aim.x - p.x);
+    ctx.strokeStyle = '#a95f35';
+    ctx.lineWidth = Math.max(1.2, r * 0.14);
+    ctx.beginPath(); ctx.moveTo(-facing * r * 0.40, -r * 0.27);
+    ctx.lineTo(facing * r * 0.32, r * 0.42); ctx.stroke();
+    ctx.fillStyle = '#d1a251';
+    ctx.fillRect(-r * 0.10, r * 0.03, r * 0.20, r * 0.18);
+
+    /* Hooded pressure helmet with a directional cyan visor. */
+    ctx.fillStyle = '#07121c';
+    ctx.beginPath(); ctx.arc(0, -r * 0.66, r * 0.50, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#263c4b';
+    ctx.beginPath(); ctx.arc(-facing * r * 0.06, -r * 0.70, r * 0.39, 0, Math.PI * 2); ctx.fill();
     ctx.save();
-    ctx.rotate(-lean * 0.5);
-    ctx.fillStyle = SH.PALETTE.sparkA;
+    ctx.shadowColor = 'rgba(113,226,255,0.78)';
+    ctx.shadowBlur = Math.max(2, r * 0.34);
+    var visor = ctx.createLinearGradient(-facing * r * 0.35, 0, facing * r * 0.42, 0);
+    visor.addColorStop(0, '#3e91ad'); visor.addColorStop(1, '#d6fbff');
+    ctx.strokeStyle = visor;
+    ctx.lineWidth = Math.max(1.6, r * 0.18);
+    ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.arc(Math.cos(av) * r * 0.30, Math.sin(av) * r * 0.30 - r * 0.28, r * 0.26, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.moveTo(-facing * r * 0.10, -r * 0.72);
+    ctx.lineTo(facing * r * 0.36, -r * 0.67); ctx.stroke();
     ctx.restore();
+
+    /* Warm spill from a nearby extraction beacon rims the storm-facing side. */
+    var beaconNear = 1 - SH.clamp(SH.dist(p.x, p.y, world.beacon.x, world.beacon.y) / 430, 0, 1);
+    if (beaconNear > 0.01) {
+      var beaconSide = world.beacon.x < p.x ? -1 : 1;
+      ctx.strokeStyle = 'rgba(255,210,110,' + (0.18 + beaconNear * 0.48) + ')';
+      ctx.lineWidth = Math.max(0.8, r * 0.08);
+      ctx.beginPath();
+      ctx.moveTo(beaconSide * r * 0.34, -r * 0.93);
+      ctx.quadraticCurveTo(beaconSide * r * 0.62, -r * 0.10,
+                           beaconSide * r * 0.39, r * 0.42);
+      ctx.stroke();
+    }
 
     ctx.restore();
 
@@ -567,6 +724,48 @@
         ctx.beginPath(); ctx.arc(aim.x, aim.y, 3 * S, 0, Math.PI * 2); ctx.fill();
       }
     }
+  }
+
+  function drawLimb(x, y, angle, len, bend, width, color) {
+    var ex = x + Math.cos(angle) * len;
+    var ey = y + Math.sin(angle) * len;
+    var mx = (x + ex) * 0.5 + Math.cos(angle + Math.PI * 0.5) * len * bend;
+    var my = (y + ey) * 0.5 + Math.sin(angle + Math.PI * 0.5) * len * bend;
+    ctx.strokeStyle = '#040a10';
+    ctx.lineWidth = width * 1.55;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(mx, my); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(mx, my); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.fillStyle = '#9c713d';
+    ctx.beginPath(); ctx.arc(ex, ey, width * 0.58, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function motionWake(x, y, r, speed, angle, S) {
+    if (speed < 330) return;
+    var strength = SH.clamp((speed - 330) / 900, 0, 1);
+    var len = Math.min(135 * S, (28 + speed * 0.075) * S);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.globalCompositeOperation = 'screen';
+    var wake = ctx.createLinearGradient(0, 0, -len, 0);
+    wake.addColorStop(0, 'rgba(143,224,243,' + (0.20 + strength * 0.24) + ')');
+    wake.addColorStop(0.32, 'rgba(105,191,218,' + (0.10 + strength * 0.16) + ')');
+    wake.addColorStop(1, 'rgba(71,151,185,0)');
+    ctx.strokeStyle = wake;
+    ctx.lineCap = 'round';
+    for (var i = -1; i <= 1; i++) {
+      ctx.lineWidth = Math.max(0.8, (1.5 - Math.abs(i) * 0.35) * S);
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.35, i * r * 0.52);
+      ctx.quadraticCurveTo(-len * 0.42, i * r * 0.74 + Math.sin(time * 13 + i) * r * 0.18,
+                           -len, i * r * 0.25);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   function rainPass(world, foreground) {
@@ -611,11 +810,57 @@
     ctx.fillStyle = shade;
     ctx.fillRect(0, 0, W, H);
 
+    surfaceSpill(world);
+
+    /* Airborne bloom stays quiet; the brighter contribution is clipped to
+       nearby hull in surfaceSpill so light feels attached to the wreck. */
     ctx.globalCompositeOperation = 'screen';
     localGlow(p.x, p.y, Math.max(90, 145 * camera.scale),
-              'rgba(87,175,202,0.14)', 'rgba(48,112,145,0)');
+              'rgba(87,175,202,0.065)', 'rgba(48,112,145,0)');
     localGlow(b.x, b.y, Math.max(140, 230 * camera.scale),
-              'rgba(255,202,91,0.13)', 'rgba(255,190,73,0)');
+              'rgba(255,202,91,0.075)', 'rgba(255,190,73,0)');
+    ctx.restore();
+  }
+
+  function surfaceSpill(world) {
+    var TILE = SH.TILE, S = camera.scale;
+    var vp = R.viewport();
+    var tx0 = Math.max(0, Math.floor(vp.x / TILE) - 1);
+    var tx1 = Math.min(world.w - 1, Math.ceil((vp.x + vp.w) / TILE) + 1);
+    var ty0 = Math.max(0, Math.floor(vp.y / TILE) - 1);
+    var ty1 = Math.min(world.h - 1, Math.ceil((vp.y + vp.h) / TILE) + 1);
+    var size = TILE * S + 1;
+    ctx.save();
+    ctx.beginPath();
+    for (var ty = ty0; ty <= ty1; ty++) {
+      for (var tx = tx0; tx <= tx1; tx++) {
+        var cell = world.grid[ty].charAt(tx);
+        if (cell !== '#' && cell !== '=') continue;
+        var sp = worldToScreen(tx * TILE, ty * TILE);
+        ctx.rect(sp.x, sp.y, size, size);
+      }
+    }
+    ctx.clip();
+    ctx.globalCompositeOperation = 'screen';
+
+    var p = worldToScreen(world.p.x, world.p.y);
+    localGlow(p.x, p.y, Math.max(75, 175 * S),
+              'rgba(105,209,232,0.32)', 'rgba(51,117,145,0)');
+    var b = worldToScreen(world.beacon.x, world.beacon.y);
+    localGlow(b.x, b.y, Math.max(120, 280 * S),
+              'rgba(255,207,100,0.42)', 'rgba(255,166,55,0)');
+
+    /* Only nearby visible pickups get a spill, bounding gradient cost. */
+    var drawn = 0;
+    for (var i = 0; i < world.cores.length && drawn < 4; i++) {
+      var core = world.cores[i];
+      if (core.taken) continue;
+      var cp = worldToScreen(core.x, core.y);
+      if (cp.x < -100 || cp.x > W + 100 || cp.y < -100 || cp.y > H + 100) continue;
+      localGlow(cp.x, cp.y, Math.max(62, 105 * S),
+                'rgba(91,238,207,0.23)', 'rgba(38,133,123,0)');
+      drawn++;
+    }
     ctx.restore();
   }
 
@@ -625,6 +870,39 @@
     lg.addColorStop(1, outer);
     ctx.fillStyle = lg;
     ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+  }
+
+  function impactCues() {
+    ctx.save();
+    ctx.lineCap = 'round';
+    if (landingCue.t > 0) {
+      var lp = worldToScreen(landingCue.x, landingCue.y);
+      var lt = 1 - landingCue.t / 0.32;
+      var spread = (18 + 58 * landingCue.power) * camera.scale * (0.35 + lt * 0.65);
+      ctx.strokeStyle = 'rgba(157,211,220,' + ((1 - lt) * 0.48) + ')';
+      ctx.lineWidth = Math.max(0.8, 2.2 * camera.scale * (1 - lt));
+      ctx.beginPath();
+      ctx.ellipse(lp.x, lp.y, spread, Math.max(2, spread * 0.16), 0, Math.PI, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(205,139,78,' + ((1 - lt) * 0.38) + ')';
+      for (var i = -1; i <= 1; i += 2) {
+        ctx.beginPath();
+        ctx.moveTo(lp.x + i * spread * 0.18, lp.y - 1);
+        ctx.lineTo(lp.x + i * spread * 0.72, lp.y - spread * 0.20);
+        ctx.stroke();
+      }
+    }
+    if (hookCue.t > 0) {
+      var hp = worldToScreen(hookCue.x, hookCue.y);
+      var ht = 1 - hookCue.t / 0.24;
+      var hr = (5 + ht * 18) * camera.scale;
+      ctx.strokeStyle = 'rgba(255,219,126,' + ((1 - ht) * 0.70) + ')';
+      ctx.lineWidth = Math.max(0.8, (2.6 - ht * 1.4) * camera.scale);
+      ctx.beginPath(); ctx.arc(hp.x, hp.y, hr, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,236,170,' + ((1 - ht) * 0.35) + ')';
+      ctx.beginPath(); ctx.arc(hp.x, hp.y, Math.max(1.5, 4 * camera.scale * (1 - ht)), 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
   }
 
   function stormFront(world) {
@@ -731,6 +1009,7 @@
       beacon(world);
       cores(world);
       if (SH.Particles && SH.Particles.draw) SH.Particles.draw(ctx, camera, worldToScreen);
+      impactCues();
       rope(world);
       if (!world.dead) player(world);
       stormFront(world);

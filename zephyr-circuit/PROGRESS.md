@@ -1074,3 +1074,42 @@ The standing critic verdicts (environment FAIL vs Art of Rally, HUD/touch FAIL
 vs Mario Kart 8 Deluxe, plus prior FX/audio/model debt) are carried as debt.
 This is a clock-based release, not a merit-based one, and `.aaa-complete` will
 say so plainly.
+
+### Release night — 2026-08-29 Pacific — SHIPPED
+
+Forced Saturday release executed. The game is 12 days old and past the 9-day
+gate, so STEP 4 ran as a wrap-up with no new polish started.
+
+**Verification on the released build:**
+
+* Full suite green three times tonight — 9 suites, 237 tests.
+* Cup smoke through the real race loop: Gullwing Bay 133s, Thermal Spire 128s,
+  Cirrus Run 149s, each reaching results with 8/8 karts finishing and 0 falls;
+  cup ended in `phase: cup`, score 3,434, championship bonus 1,200, place 1.
+* Six-viewport sweep with a real headless Chromium, **every PNG opened and
+  read**: 320x568, 390x844, 844x390, 768x1024, 1440x900, 3840x2160. All
+  reported racing, 8 karts, exact dimensions, no horizontal scrollbar.
+* Console clean apart from the two documented sandbox artefacts (blocked
+  Google tag, swiftshader ReadPixels warning).
+
+**One blocker found and fixed:** at 844x390 the race clock overlapped the lap
+card, clipping "LAP" to "AP" and "Gullwing Bay" to "Bay". The landscape rule
+assumed a lap card narrower than the `1fr auto` grid actually is. Bounded
+`.zc-lap` to 164px in that media query and moved `.zc-timing` clear; re-shot
+and confirmed. No other viewport matches that query.
+
+Playwright is not in this checkout's dependencies — it was installed into a
+scratch directory and the tool pointed at it with `ZC_PLAYWRIGHT`, alongside
+`ZC_CHROME=/opt/pw-browsers/chromium-1194/chrome-linux/chrome`. Worth knowing
+for any future run that needs the sweep.
+
+**Critic record at release: no discipline ever passed.** FX, track/environment,
+kart models, audio and HUD/touch all carry **FAIL** verdicts; UI is
+**UNJUDGED**; no shipping judge was run. This shipped on the clock, not on
+merit, and `zephyr-circuit/.aaa-complete` says so plainly and lists the full
+carried debt — including that **no real-GPU validation has ever been done**, so
+whether the game holds 60fps on real hardware is unknown.
+
+Zephyr Circuit is the featured game on the arcade home page, Paradox Vault
+moved to the head of More Games, and `dev` was promoted to `main`. The next run
+starts a new game at STEP 2 with a 2026-09-12 release Saturday.

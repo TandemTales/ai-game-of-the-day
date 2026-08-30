@@ -113,9 +113,9 @@
   function flipperPose(side, value) {
     var left = side === 'left';
     var pivot = { x: left ? 246 : 474, y: 906 };
-    var rest = left ? -0.35 : Math.PI + 0.35;
-    var down = left ? 0.38 : Math.PI - 0.38;
-    var angle = rest + (down - rest) * clamp(value, 0, 1);
+    var rest = left ? 0.38 : Math.PI - 0.38;
+    var raised = left ? -0.35 : Math.PI + 0.35;
+    var angle = rest + (raised - rest) * clamp(value, 0, 1);
     return { pivot: pivot, tip: { x: pivot.x + Math.cos(angle) * 154, y: pivot.y + Math.sin(angle) * 154 }, angle: angle };
   }
   LP.flipperPose = flipperPose;
@@ -199,7 +199,7 @@
 
   function collideFlipper(state, ball, side, raised) {
     if (!raised || ball.y < 830 || ball.vy < -80) return false;
-    var pose = flipperPose(side, 0);
+    var pose = flipperPose(side, state.flippers[side]);
     var ax = pose.pivot.x;
     var ay = pose.pivot.y;
     var bx = pose.tip.x;

@@ -29,3 +29,9 @@ Verification: the dedicated suite passes 8/8 tests, the full repository suite
 passes 10 suites / 245 tests, and `node --check` passes for `assets/js/game.js`.
 The local browser smoke and screenshot read are still outstanding. No critic
 verdicts or AAA claims are made on scaffolding night.
+
+The browser smoke then caught and fixed a real interaction defect: flipper
+collision now follows the animated/current flipper pose, and the button state
+raises the flipper from its natural resting position instead of moving the
+visual and collision geometry in opposite directions. Targeted tests remain
+green after the fix; the full suite is the final pre-push check for this unit.

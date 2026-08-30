@@ -838,8 +838,18 @@ html, body {
 @media (max-height: 460px) and (orientation: landscape) {
   .zc-place { top: calc(8px + var(--safe-t)); padding: 6px 11px 7px; }
   .zc-place b { font-size: 40px; }
-  .zc-lap { top: calc(8px + var(--safe-t)); padding: 6px 10px 7px; }
-  .zc-timing { top: calc(8px + var(--safe-t)); right: calc(112px + var(--safe-r)); width: 170px; min-width: 0; padding: 6px 9px; }
+  /* The lap card and the race clock share the top-right corner in landscape.
+     The clock's offset has to clear the *measured* lap card, not an assumed
+     one: `.zc-lap` is a `1fr auto` grid, so its width is the track name
+     (up to 116px) plus the lap fraction (up to 34px of display type) plus
+     gap and padding — about 208px, which ran straight under a clock parked
+     at right:112px and clipped "LAP" to "AP" and "Gullwing Bay" to "Bay".
+     Bound the card here so the corner is deterministic, then park the clock
+     just outside it. */
+  .zc-lap { top: calc(8px + var(--safe-t)); padding: 6px 10px 7px; min-width: 0; max-width: 164px; column-gap: 10px; }
+  .zc-lap-track { max-width: 78px; font-size: 9px; }
+  .zc-lap b { font-size: 26px; }
+  .zc-timing { top: calc(8px + var(--safe-t)); right: calc(190px + var(--safe-r)); width: 170px; min-width: 0; padding: 6px 9px; }
   .zc-timing::before { margin-bottom: 2px; }
   .zc-item { top: calc(64px + var(--safe-t)); }
   .zc-acts { right: calc(14px + var(--safe-r)); bottom: calc(14px + var(--safe-b)); flex-direction: row; }

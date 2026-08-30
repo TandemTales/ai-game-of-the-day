@@ -14,6 +14,91 @@ Tonight's starting bar remains honest: no discipline has a passing blind
 side-by-side verdict, real-hardware performance is unverified, and `main` must
 remain untouched.
 
+### What landed and was pushed
+
+* `c2264fc` — the HUD now exists only during play/pause, so score, salvage,
+  level, time and storm warnings no longer leak through title or result screens.
+* `2fa70f2` — renderer-local procedural storm layers, rain, wreck silhouettes,
+  horizon haze and hull variation replaced the flat first-pass sky without
+  consuming the simulation RNG.
+* `47cef5d` — the browser smoke gate now recognizes the two failures that
+  `TESTING.md` already documents as local-only: the sandbox-blocked Google tag
+  and the static server's leaderboard 404. Other failed URLs and console noise
+  still fail the gate.
+* `aa7b33f` — a short first-run hook/reel/dash coach, stronger multiplier
+  contrast, and a scannable three-action title flow improve touch and keyboard
+  onboarding while retaining the non-playing HUD fix.
+* `2de684f` — the orange capsule became a posed storm-salvager with helmet,
+  visor, harness, winch pack and coat tails. Hulls gained repair plates, scars,
+  oxidation and ribs; player/beacon light spill and restrained momentum cues
+  make the traversal state more readable.
+
+Every implementation unit was committed and pushed separately on `dev` after
+its checks. `main`, the root Featured Game, and `.aaa-complete` were not touched.
+
+### Verification actually performed
+
+* **Repo tests:** 12 suites / **308 tests passed** after the final renderer and
+  UI revisions; the three changed JavaScript files also pass `node --check`.
+* **Real-browser campaign smoke:** passes boot, input-driven 485 px/s swing,
+  two-pivot live rope wrap, all three clears (final score 18,738), gameover,
+  storm death/restart, no horizontal scroll, expected local network behavior,
+  and a clean console after the documented exclusions.
+* **Six-view screenshot sweep opened and read:** 320x568, 390x844, 844x390,
+  768x1024, 1440x900 and 3840x2160 all remained in `playing`, matched their
+  viewport widths, and had no horizontal scrollbar. The touch title at 390x844
+  was also captured and read; the gameplay HUD is absent there.
+* **Software-rasterizer FPS snapshot:** 50, 32, 29, 14, 31 and 6 fps in the
+  viewport order above. This regressed from the scaffold's desktop/landscape
+  numbers and makes performance an explicit next-run risk. It is not evidence
+  of real-device GPU performance.
+* The only screenshot console message was the project's blocked external
+  Google tag (`ERR_NETWORK_ACCESS_DENIED`), the documented sandbox condition.
+
+### Independent side-by-side verdicts after the revision loop
+
+Both critics used real shipped-game captures, inspected the revised PNGs rather
+than the code, and still returned **FAIL**.
+
+* **Renderer — FAIL vs Ori and the Blind Forest / Rayman Legends.** The critic
+  confirmed that the salvager silhouette, hull variation and motion cues are
+  materially improved and no longer look like the scaffold. Stormhook still
+  loses on route-focused composition, distinct depth planes, surface-reactive
+  lighting, authored structures and environmental storytelling. Portrait still
+  divides into long atmospheric bands; desktop still has a low-information
+  center. The tutorial panel also competes with the character in portrait.
+* **UI — FAIL vs Umihara Kawase Fresh! / Bionic Commando Rearmed.** The critic
+  confirmed the HUD leak remains fixed, `×1` is now immediately readable, the
+  player/tether relationship is clearer, and contextual touch onboarding is a
+  real improvement. It still loses because the title is an oversized web-style
+  card in an empty scene, the coach is detached from its target, bottom controls
+  form competing zones, and the playfield hierarchy remains weaker than the
+  commercial references.
+
+No discipline has a passing AAA critic verdict, so this game is not eligible
+for a quality-based release.
+
+### Still below the bar / next run starts here
+
+1. **Composition before more particles.** Build recognisable wreck structures
+   and route landmarks around the actual traversal line; reduce the empty
+   central field and break portrait's horizontal bands. This may require a
+   coordinated `levels.js` + renderer night while preserving one-file ownership.
+2. **Make light belong to the world.** Beacon/core light should affect nearby
+   rain, cloud edges and hull planes instead of reading as cyan sprites pasted
+   over them.
+3. **Compose the title as a game scene.** Replace the floating web-card feeling
+   with a visual hook/gesture demonstration and tie the first-action coach to
+   the target or tether. Reconcile the coach with Arcade/audio control zones.
+4. **Profile before adding render cost.** The software sweep fell to 31 fps at
+   1440x900 and 6 fps at 4K. Measure draw hotspots and test a real GPU/device;
+   keep visual reductions adaptive if needed.
+5. The uncommitted autopilot campaign regression and additional levels remain
+   outstanding from scaffolding night.
+
+Forced-release Saturday remains **2026-09-12**. Today is Sunday 2026-08-30
+Pacific, so this was correctly a polish run only.
+
 ## 2026-08-27 (Thursday, Pacific) — STEP 2 scaffolding night
 
 **Intent for tonight:** pick a new game, record it, and land a *playable

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Lumen Pinnacle — a neon pinball table for the Bot Built Arcade.">
+  <title>Lumen Pinnacle — Bot Built Arcade</title>
+  <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
+  <link rel="stylesheet" href="assets/css/game.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="back-link" href="../index.html" aria-label="Back to Bot Built Arcade">← Arcade</a>
+      <div class="brand-lockup">
+        <span class="brand-kicker">BOT BUILT ARCADE / TABLE 08</span>
+        <h1>LUMEN PINNACLE</h1>
+      </div>
+      <div class="topbar-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+    </header>
+
+    <main class="arcade-layout">
+      <section class="table-column" aria-label="Lumen Pinnacle pinball table">
+        <div class="table-shell">
+          <div class="table-status" aria-live="polite">
+            <span><i class="status-dot"></i><span id="statusText">TABLE READY</span></span>
+            <span class="status-rule"></span>
+            <span>LP / 01</span>
+          </div>
+          <div class="table-wrap">
+            <canvas id="gameCanvas" width="720" height="1080" aria-label="Lumen Pinnacle pinball table" role="img"></canvas>
+            <div class="screen-overlay" id="screenOverlay">
+              <div class="overlay-card" id="startCard">
+                <div class="eyebrow">PRISM CORE ONLINE</div>
+                <h2>KEEP THE LIGHT<br><em>ALIVE.</em></h2>
+                <p>Bank the three prisms. Thread both lanes.<br>Build the multiplier before the table goes dark.</p>
+                <button class="primary-btn" id="startButton" type="button"><span>START TABLE</span><b>SPACE</b></button>
+                <div class="overlay-hint">← / A  LEFT FLIPPER&nbsp;&nbsp;&nbsp; RIGHT FLIPPER  D / →</div>
+              </div>
+              <div class="overlay-card game-over-card" id="gameOverCard" hidden>
+                <div class="eyebrow">TABLE DRAINED</div>
+                <h2>LIGHT<br><em>SPENT.</em></h2>
+                <div class="final-score-label">FINAL SCORE</div>
+                <div class="final-score" id="finalScore">0</div>
+                <form class="score-form" id="scoreForm">
+                  <label for="playerName">Enter your initials</label>
+                  <div class="score-input-row">
+                    <input id="playerName" name="playerName" maxlength="20" autocomplete="nickname" value="PLAYER" required>
+                    <button class="submit-btn" type="submit">POST SCORE</button>
+                  </div>
+                  <div class="score-result" id="scoreResult" aria-live="polite"></div>
+                </form>
+                <button class="secondary-btn" id="replayButton" type="button">PLAY AGAIN <span>↵</span></button>
+              </div>
+            </div>
+            <div class="touch-controls" aria-label="Touch flipper controls">
+              <button id="leftFlipper" class="flipper-control left-control" type="button" aria-label="Left flipper"><span>◀</span><small>LEFT</small></button>
+              <button id="rightFlipper" class="flipper-control right-control" type="button" aria-label="Right flipper"><small>RIGHT</small><span>▶</span></button>
+            </div>
+          </div>
+        </div>
+        <div class="under-table-note"><span class="note-line"></span><span>TOUCH THE LIGHT / FIND THE ANGLE</span><span class="note-line"></span></div>
+      </section>
+
+      <aside class="info-rail">
+        <div class="score-panel panel-card">
+          <div class="panel-label">CURRENT RUN</div>
+          <div class="score-value" id="scoreValue">000000</div>
+          <div class="score-meta"><span>SCORE</span><span id="multiplierValue">×1</span></div>
+        </div>
+        <div class="readout-grid">
+          <div class="panel-card compact-card"><div class="panel-label">BALLS</div><strong id="ballsValue">3</strong><span>IN PLAY</span></div>
+          <div class="panel-card compact-card"><div class="panel-label">BANK</div><strong id="bankValue">0/3</strong><span>PRISMS LIT</span></div>
+        </div>
+        <div class="panel-card objective-card">
+          <div class="panel-label">TABLE OBJECTIVE</div>
+          <p>Light all three prisms to open the <strong>PINNACLE MULTIBALL</strong>.</p>
+          <div class="prism-readout" aria-label="Prism target status"><i id="prism0"></i><i id="prism1"></i><i id="prism2"></i></div>
+        </div>
+        <div class="panel-card controls-card">
+          <div class="panel-label">CONTROLS</div>
+          <div class="control-row"><kbd>←</kbd><span>LEFT FLIPPER</span><kbd>A</kbd></div>
+          <div class="control-row"><kbd>→</kbd><span>RIGHT FLIPPER</span><kbd>D</kbd></div>
+          <div class="control-row"><kbd>SPACE</kbd><span>START / RELAUNCH</span></div>
+        </div>
+        <div class="quote-card"><span class="quote-mark">“</span><p>A good shot is a promise. A great shot is a detour.</p><span class="quote-by">— TABLE OPS / 1987</span></div>
+      </aside>
+    </main>
+    <footer class="footer-line"><span>LUMEN PINNACLE / PROCEDURAL TABLE</span><span>NO CREDIT REQUIRED</span></footer>
+  </div>
+  <script src="assets/js/game.js"></script>
+</body>
+</html>

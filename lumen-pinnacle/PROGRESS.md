@@ -15,3 +15,17 @@ the test harness is green.
 No critics have run yet. No AAA verdicts are claimed. The next run should read
 `SPEC.md` and `TESTING.md`, then continue from the playable slice and prioritize
 the highest-impact presentation or feel gap.
+
+## 2026-08-29 Pacific — vertical slice landed
+
+Scaffolded and wired the first playable slice: procedural canvas table, fixed
+step ball physics, side rails, three bumpers, three prism targets, lanes,
+independent left/right flippers, three-ball reserve, target-bank multiplier,
+multiball, particles, synthesized audio cues, responsive HUD/overlay, touch
+and keyboard controls, and rank-first leaderboard submission. Added the
+module contract and browser test instructions in `SPEC.md` and `TESTING.md`.
+
+Verification: the dedicated suite passes 8/8 tests, the full repository suite
+passes 10 suites / 245 tests, and `node --check` passes for `assets/js/game.js`.
+The local browser smoke and screenshot read are still outstanding. No critic
+verdicts or AAA claims are made on scaffolding night.

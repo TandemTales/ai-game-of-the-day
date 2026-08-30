@@ -20,6 +20,10 @@
   var camera = R.camera = { x: 0, y: 0, scale: 1, shake: 0 };
   var time = 0;
   var stars = [];
+  var cloudPuffs = [];
+  var wrecks = [];
+  var rain = [];
+  var windLines = [];
 
   /* Framing rules: never show fewer than this many tiles across or down,
      never more than MAX_TILES_X. Derived in resize(). */
@@ -29,13 +33,70 @@
     cv = canvas;
     ctx = cv.getContext('2d');
     R.resize();
-    SH.setSeed(0xBEEF01);
+    var rnd = localRandom(0xBEEF01);
     stars = [];
     for (var i = 0; i < 90; i++) {
-      stars.push({ x: SH.rand(), y: SH.rand() * 0.7, r: SH.randRange(0.6, 1.9), a: SH.randRange(0.15, 0.6),
-                   p: SH.randRange(0, 6.28) });
+      stars.push({ x: rnd(), y: rnd() * 0.72, r: range(rnd, 0.6, 1.9), a: range(rnd, 0.12, 0.55),
+                   p: range(rnd, 0, 6.28) });
+    }
+
+    /* Scene dressing is generated once, then wrapped across the viewport.
+       Keeping this data local also avoids disturbing the simulation RNG. */
+    cloudPuffs = [];
+    for (i = 0; i < 38; i++) {
+      var layer = i < 13 ? 0 : (i < 28 ? 1 : 2);
+      cloudPuffs.push({
+        x: rnd(), y: range(rnd, layer === 0 ? 0.10 : 0.20, layer === 2 ? 0.92 : 0.78),
+        rx: range(rnd, 90, 250) * (1 + layer * 0.24),
+        ry: range(rnd, 22, 62) * (1 + layer * 0.16),
+        a: range(rnd, 0.20, 0.52), phase: range(rnd, 0, 6.28), layer: layer,
+        depth: [0.035, 0.085, 0.16][layer], drift: range(rnd, 2, 9) * (layer + 1)
+      });
+    }
+    wrecks = [];
+    for (i = 0; i < 11; i++) {
+      var near = i > 6;
+      wrecks.push({
+        x: rnd(), y: range(rnd, near ? 0.38 : 0.18, near ? 0.82 : 0.62),
+        scale: range(rnd, near ? 0.62 : 0.34, near ? 1.20 : 0.72),
+        depth: range(rnd, near ? 0.12 : 0.045, near ? 0.22 : 0.11),
+        alpha: range(rnd, near ? 0.32 : 0.16, near ? 0.62 : 0.32),
+        flip: rnd() > 0.5 ? -1 : 1, broken: range(rnd, -0.2, 0.25)
+      });
+    }
+    rain = [];
+    for (i = 0; i < 130; i++) {
+      rain.push({ x: rnd(), y: rnd(), z: rnd(), p: range(rnd, 0, 1000) });
+    }
+    windLines = [];
+    for (i = 0; i < 12; i++) {
+      windLines.push({ x: rnd(), y: rnd(), len: range(rnd, 0.14, 0.42), p: range(rnd, 0, 6.28) });
     }
   };
+
+  function localRandom(seed) {
+    var state = seed >>> 0;
+    return function () {
+      state = (state + 0x6D2B79F5) >>> 0;
+      var n = state;
+      n = Math.imul(n ^ (n >>> 15), n | 1);
+      n ^= n + Math.imul(n ^ (n >>> 7), n | 61);
+      return ((n ^ (n >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function range(rnd, a, b) { return a + (b - a) * rnd(); }
+
+  function wrap(v, span) {
+    v %= span;
+    return v < 0 ? v + span : v;
+  }
+
+  function hash01(n) {
+    n = (Math.imul(n | 0, 1597334677) ^ 0x68bc21eb) >>> 0;
+    n = Math.imul(n ^ (n >>> 15), n | 1) >>> 0;
+    return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+  }
 
   R.resize = function () {
     if (!cv) return;
@@ -101,9 +162,21 @@
     var P = SH.PALETTE;
     var g = ctx.createLinearGradient(0, 0, 0, H);
     g.addColorStop(0, P.skyTop);
-    g.addColorStop(0.55, P.skyMid);
+    g.addColorStop(0.48, P.skyMid);
     g.addColorStop(1, P.skyLow);
     ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    /* A cold break in the storm gives the scene a focal direction and
+       keeps tall portrait skies from reading as unused gradient. */
+    var lightX = W * (0.68 - Math.sin(time * 0.03) * 0.04);
+    var lightY = H * 0.24;
+    var glow = ctx.createRadialGradient(lightX, lightY, 0, lightX, lightY,
+                                        Math.max(W, H) * 0.62);
+    glow.addColorStop(0, 'rgba(116,190,220,0.22)');
+    glow.addColorStop(0.28, 'rgba(72,128,158,0.10)');
+    glow.addColorStop(1, 'rgba(8,16,27,0)');
+    ctx.fillStyle = glow;
     ctx.fillRect(0, 0, W, H);
 
     /* Stars, fixed to the sky, fading toward the horizon. */
@@ -118,30 +191,164 @@
     }
     ctx.globalAlpha = 1;
 
-    if (!world) return;
-    /* Three parallax cloud bands. */
-    var bands = [
-      { d: 0.12, y: 0.30, h: 0.26, c: 'rgba(30,58,80,0.55)' },
-      { d: 0.26, y: 0.46, h: 0.30, c: 'rgba(22,44,64,0.6)' },
-      { d: 0.48, y: 0.62, h: 0.38, c: 'rgba(14,30,46,0.7)' }
-    ];
-    for (var b = 0; b < bands.length; b++) {
-      var bd = bands[b];
-      var off = -(camera.x * bd.d) % (W * 1.5);
-      ctx.fillStyle = bd.c;
-      for (var k = -1; k <= 2; k++) {
-        var bx = off + k * W * 1.5;
+    stormVeils(world);
+    cloudLayer(0, world);
+    distantWrecks(false, world);
+    cloudLayer(1, world);
+    distantWrecks(true, world);
+    windShear(world);
+    cloudLayer(2, world);
+
+    /* Atmospheric horizon, deliberately broad on portrait screens. */
+    var haze = ctx.createLinearGradient(0, H * 0.42, 0, H);
+    haze.addColorStop(0, 'rgba(54,102,123,0)');
+    haze.addColorStop(0.58, 'rgba(54,102,123,0.09)');
+    haze.addColorStop(1, 'rgba(7,15,24,0.24)');
+    ctx.fillStyle = haze;
+    ctx.fillRect(0, H * 0.42, W, H * 0.58);
+  }
+
+  function stormVeils(world) {
+    var pressure = world ? SH.clamp((worldToScreen(world.storm.x, 0).x + W * 0.15) / W, 0, 1) : 0.2;
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.lineCap = 'round';
+    for (var i = 0; i < 3; i++) {
+      var y = H * (0.12 + i * 0.14) + Math.sin(time * 0.11 + i) * H * 0.018;
+      var vg = ctx.createLinearGradient(0, y, W, y + H * 0.08);
+      vg.addColorStop(0, 'rgba(104,50,122,' + (0.05 + pressure * 0.035) + ')');
+      vg.addColorStop(0.58, 'rgba(73,145,164,0.09)');
+      vg.addColorStop(1, 'rgba(110,190,199,0)');
+      ctx.strokeStyle = vg;
+      ctx.lineWidth = H * (0.035 + i * 0.014);
+      ctx.beginPath();
+      ctx.moveTo(-W * 0.12, y);
+      ctx.bezierCurveTo(W * 0.18, y - H * 0.10, W * 0.46, y + H * 0.13, W * 1.12, y - H * 0.03);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function cloudLayer(layer, world) {
+    var span = Math.max(1300, W * 2.35);
+    var colors = ['rgba(67,102,119,0.42)', 'rgba(35,67,87,0.58)', 'rgba(14,34,51,0.76)'];
+    var under = ['rgba(8,22,34,0.22)', 'rgba(7,18,30,0.34)', 'rgba(4,12,22,0.48)'];
+    var worldY = world ? camera.y - world.h * SH.TILE * 0.5 : 0;
+    ctx.save();
+    for (var i = 0; i < cloudPuffs.length; i++) {
+      var c = cloudPuffs[i];
+      if (c.layer !== layer) continue;
+      var x = wrap(c.x * span - camera.x * c.depth - time * c.drift, span) - span * 0.15;
+      var y = c.y * H - worldY * c.depth * 0.24 + Math.sin(time * 0.08 + c.phase) * 8;
+      var rx = c.rx * Math.max(0.72, Math.min(1.35, W / 900));
+      var ry = c.ry * Math.max(0.85, Math.min(1.5, H / 700));
+      ctx.globalAlpha = c.a;
+      cloudMass(x, y + ry * 0.18, rx, ry, c.phase, under[layer]);
+      ctx.globalAlpha = c.a * 0.82;
+      cloudMass(x, y, rx, ry, c.phase, colors[layer]);
+      if (layer < 2) {
+        ctx.globalAlpha = c.a * 0.18;
+        ctx.fillStyle = '#b5deea';
         ctx.beginPath();
-        ctx.moveTo(bx, H);
-        for (var t = 0; t <= 1.0001; t += 0.05) {
-          var wobble = Math.sin(t * 9 + b * 2.1) * 0.35 + Math.sin(t * 21 + b) * 0.16;
-          ctx.lineTo(bx + t * W * 1.5, H * (bd.y + wobble * bd.h * 0.5));
-        }
-        ctx.lineTo(bx + W * 1.5, H);
-        ctx.closePath();
+        ctx.ellipse(x + rx * 0.12, y - ry * 0.30, rx * 0.62, ry * 0.13, -0.05, 0, Math.PI * 2);
         ctx.fill();
       }
     }
+    ctx.restore();
+  }
+
+  function cloudMass(x, y, rx, ry, phase, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x - rx, y + ry * 0.26);
+    ctx.bezierCurveTo(x - rx * 0.88, y - ry * 0.35,
+                      x - rx * 0.50, y - ry * (0.84 + Math.sin(phase) * 0.10),
+                      x - rx * 0.18, y - ry * 0.50);
+    ctx.bezierCurveTo(x + rx * 0.05, y - ry * 1.04,
+                      x + rx * 0.55, y - ry * 0.72,
+                      x + rx * 0.66, y - ry * 0.25);
+    ctx.bezierCurveTo(x + rx * 1.02, y - ry * 0.04,
+                      x + rx * 0.92, y + ry * 0.54,
+                      x + rx * 0.48, y + ry * 0.55);
+    ctx.bezierCurveTo(x + rx * 0.08, y + ry * 0.70,
+                      x - rx * 0.62, y + ry * 0.62,
+                      x - rx, y + ry * 0.26);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function distantWrecks(near, world) {
+    var span = Math.max(1800, W * 2.8);
+    var worldY = world ? camera.y - world.h * SH.TILE * 0.5 : 0;
+    for (var i = 0; i < wrecks.length; i++) {
+      var wr = wrecks[i];
+      if ((wr.depth >= 0.12) !== near) continue;
+      var x = wrap(wr.x * span - camera.x * wr.depth, span) - span * 0.12;
+      var y = wr.y * H - worldY * wr.depth * 0.18 + Math.sin(time * 0.04 + i) * 4;
+      drawWreck(x, y, wr, near);
+    }
+  }
+
+  function drawWreck(x, y, wr, near) {
+    var s = wr.scale * Math.max(0.72, Math.min(1.25, W / 880));
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(wr.flip * s, s);
+    ctx.globalAlpha = wr.alpha;
+    ctx.fillStyle = near ? '#07131e' : '#102735';
+    ctx.strokeStyle = near ? 'rgba(61,91,105,0.55)' : 'rgba(74,113,128,0.32)';
+    ctx.lineWidth = near ? 2 : 1.4;
+
+    /* Two torn pressure-hull halves with an exposed spine between them. */
+    ctx.beginPath();
+    ctx.moveTo(-116, 0); ctx.quadraticCurveTo(-82, -33, -20, -22);
+    ctx.lineTo(-7, -8); ctx.lineTo(-17, 1); ctx.lineTo(-4, 12);
+    ctx.quadraticCurveTo(-72, 27, -116, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(13, -17); ctx.quadraticCurveTo(70, -28, 112, -2);
+    ctx.quadraticCurveTo(80, 27, 20, 17);
+    ctx.lineTo(8, 5); ctx.lineTo(19, -4); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(26, wr.broken * 18); ctx.stroke();
+    for (var r = -78; r <= 74; r += 38) {
+      if (r > -20 && r < 20) continue;
+      ctx.beginPath(); ctx.ellipse(r, 0, 10, 21 - Math.abs(r) * 0.06, 0, -1.3, 1.3); ctx.stroke();
+    }
+
+    /* Gondola, snapped mast, fins, and hanging rigging sell scale. */
+    ctx.beginPath();
+    ctx.moveTo(-45, 19); ctx.lineTo(50, 17); ctx.lineTo(38, 31); ctx.lineTo(-34, 34); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(33, -17); ctx.lineTo(58, -48); ctx.lineTo(65, -12); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-84, 16); ctx.lineTo(-106, 38); ctx.lineTo(-68, 21); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-18, 30); ctx.quadraticCurveTo(-11, 58, 4, 72);
+    ctx.moveTo(28, 27); ctx.quadraticCurveTo(50, 52, 38, 78);
+    ctx.moveTo(-62, 21); ctx.quadraticCurveTo(-76, 47, -62, 62);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function windShear(world) {
+    var speed = world && world.level ? world.level.stormSpeed : 42;
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 1;
+    for (var i = 0; i < windLines.length; i++) {
+      var wv = windLines[i];
+      var x = wrap(wv.x * (W + 300) - time * (18 + speed * 0.25) + wv.p * 33, W + 300) - 150;
+      var y = wv.y * H + Math.sin(time * 0.5 + wv.p) * 12;
+      var len = W * wv.len;
+      var wg = ctx.createLinearGradient(x, y, x + len, y);
+      wg.addColorStop(0, 'rgba(178,220,229,0)');
+      wg.addColorStop(0.58, 'rgba(178,220,229,0.13)');
+      wg.addColorStop(1, 'rgba(178,220,229,0)');
+      ctx.strokeStyle = wg;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.bezierCurveTo(x + len * 0.35, y - 11, x + len * 0.72, y + 9, x + len, y - 3);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   function worldToScreen(x, y) {
@@ -362,35 +569,135 @@
     }
   }
 
+  function rainPass(world, foreground) {
+    if (!world) return;
+    var wind = -145 - (world.level ? world.level.stormSpeed * 0.65 : 30);
+    wind -= SH.clamp(world.p.vx * 0.035, -45, 45);
+    var fall = foreground ? 920 : 560;
+    var margin = 180;
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = foreground ? 'rgba(190,226,235,0.22)' : 'rgba(143,188,202,0.13)';
+    ctx.lineWidth = foreground ? 1.15 : 0.75;
+    ctx.beginPath();
+    for (var i = 0; i < rain.length; i++) {
+      var d = rain[i];
+      if ((d.z > 0.68) !== foreground) continue;
+      var speedScale = 0.72 + d.z * 0.55;
+      var x = wrap(d.x * (W + margin * 2) + time * wind * speedScale + d.p,
+                   W + margin * 2) - margin;
+      var y = wrap(d.y * (H + margin * 2) + time * fall * speedScale + d.p * 0.37,
+                   H + margin * 2) - margin;
+      var len = (foreground ? 34 : 18) * (0.72 + d.z * 0.72);
+      var slant = wind / fall * len;
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + slant, y + len);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function worldLighting(world) {
+    var p = worldToScreen(world.p.x, world.p.y);
+    var b = worldToScreen(world.beacon.x, world.beacon.y);
+    ctx.save();
+
+    /* Cool overhead occlusion grounds the playfield in the weather while
+       a subtle floor fog separates silhouettes from the deepest hull. */
+    var shade = ctx.createLinearGradient(0, 0, 0, H);
+    shade.addColorStop(0, 'rgba(2,8,16,0.10)');
+    shade.addColorStop(0.42, 'rgba(2,8,16,0)');
+    shade.addColorStop(1, 'rgba(2,7,13,0.24)');
+    ctx.fillStyle = shade;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.globalCompositeOperation = 'screen';
+    localGlow(p.x, p.y, Math.max(90, 145 * camera.scale),
+              'rgba(87,175,202,0.14)', 'rgba(48,112,145,0)');
+    localGlow(b.x, b.y, Math.max(140, 230 * camera.scale),
+              'rgba(255,202,91,0.13)', 'rgba(255,190,73,0)');
+    ctx.restore();
+  }
+
+  function localGlow(x, y, radius, inner, outer) {
+    var lg = ctx.createRadialGradient(x, y, 0, x, y, radius);
+    lg.addColorStop(0, inner);
+    lg.addColorStop(1, outer);
+    ctx.fillStyle = lg;
+    ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+  }
+
   function stormFront(world) {
     var sx = worldToScreen(world.storm.x, 0).x;
     if (sx < -40) return;
-    var w = Math.max(0, sx);
+    var w = Math.max(0, Math.min(W, sx));
 
     var g = ctx.createLinearGradient(0, 0, w, 0);
-    g.addColorStop(0, 'rgba(43,18,48,0.98)');
-    g.addColorStop(0.72, 'rgba(90,31,74,0.85)');
-    g.addColorStop(1, 'rgba(150,60,120,0.05)');
+    g.addColorStop(0, 'rgba(30,10,39,0.98)');
+    g.addColorStop(0.54, 'rgba(66,20,62,0.92)');
+    g.addColorStop(0.82, 'rgba(117,42,93,0.56)');
+    g.addColorStop(1, 'rgba(180,83,147,0.03)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, H);
 
+    /* Rolling anvils on the advancing wall replace the old ruler-straight
+       edge. Their scale increases toward the camera for tangible depth. */
+    ctx.save();
+    for (var c = 0; c < 13; c++) {
+      var cy = (c + 0.35) / 13 * H + Math.sin(c * 2.17 + time * 0.24) * 22;
+      var cr = (46 + hash01(c * 17 + 9) * 74) * Math.max(0.72, Math.min(1.25, H / 760));
+      var cx = sx - cr * (0.18 + hash01(c * 31 + 4) * 0.46);
+      var cg = ctx.createRadialGradient(cx, cy, cr * 0.05, cx, cy, cr);
+      cg.addColorStop(0, 'rgba(122,46,103,0.55)');
+      cg.addColorStop(0.58, 'rgba(74,22,70,0.48)');
+      cg.addColorStop(1, 'rgba(38,10,47,0)');
+      ctx.fillStyle = cg;
+      ctx.fillRect(cx - cr, cy - cr, cr * 2, cr * 2);
+    }
+    ctx.restore();
+
     /* Lightning veins along the leading edge. */
-    SH.setSeed(Math.floor(time * 7) * 977 + 13);
-    ctx.strokeStyle = 'rgba(230,190,255,0.75)';
-    ctx.lineWidth = 2;
+    var frameSeed = Math.floor(time * 7) * 977 + 13;
+    var flash = hash01(frameSeed) > 0.79 ? 1 : 0.54;
+    ctx.save();
+    ctx.shadowColor = 'rgba(228,177,255,0.75)';
+    ctx.shadowBlur = flash > 0.8 ? 13 : 5;
+    ctx.strokeStyle = 'rgba(237,201,255,' + (0.64 * flash) + ')';
+    ctx.lineWidth = flash > 0.8 ? 2.6 : 1.5;
     for (var i = 0; i < 3; i++) {
       ctx.beginPath();
-      var y = SH.rand() * H, x = sx - SH.rand() * 30;
+      var y = hash01(frameSeed + i * 101) * H;
+      var x = sx - hash01(frameSeed + i * 101 + 1) * 30;
       ctx.moveTo(x, y);
       for (var k = 0; k < 7; k++) {
-        x -= SH.randRange(6, 26);
-        y += SH.randRange(-34, 34);
+        x -= 6 + hash01(frameSeed + i * 101 + k * 5 + 2) * 20;
+        y += -34 + hash01(frameSeed + i * 101 + k * 5 + 3) * 68;
         ctx.lineTo(x, y);
       }
       ctx.stroke();
     }
-    ctx.fillStyle = 'rgba(255,220,255,0.5)';
-    ctx.fillRect(sx - 2, 0, 3, H);
+    ctx.restore();
+
+    var edge = ctx.createLinearGradient(sx - 36, 0, sx + 16, 0);
+    edge.addColorStop(0, 'rgba(171,74,143,0)');
+    edge.addColorStop(0.72, 'rgba(242,190,235,' + (0.18 + flash * 0.19) + ')');
+    edge.addColorStop(1, 'rgba(255,224,245,0)');
+    ctx.fillStyle = edge;
+    ctx.fillRect(sx - 36, 0, 52, H);
+  }
+
+  function foregroundScud(world) {
+    var drift = time * (world && world.level ? world.level.stormSpeed * 0.17 : 8);
+    ctx.save();
+    ctx.globalAlpha = 0.26;
+    for (var i = 0; i < 5; i++) {
+      var x = wrap(i * W * 0.31 - drift, W * 1.55) - W * 0.28;
+      var y = H * (0.03 + (i % 2) * 0.82);
+      var rx = Math.max(110, W * (0.19 + i * 0.018));
+      var ry = Math.max(30, H * 0.07);
+      cloudMass(x, y, rx, ry, i * 1.7, i % 2 ? 'rgba(4,11,20,0.44)' : 'rgba(8,22,34,0.48)');
+    }
+    ctx.restore();
   }
 
   function vignette() {
@@ -409,14 +716,17 @@
     ctx.clearRect(0, 0, W, H);
 
     if (camera.shake > 0.001) {
-      SH.setSeed(Math.floor(time * 120));
+      var shakeFrame = Math.floor(time * 120);
       var k = camera.shake * 10;
-      ctx.translate(SH.randRange(-k, k), SH.randRange(-k, k));
+      ctx.translate((-k + hash01(shakeFrame * 2 + 1) * k * 2),
+                    (-k + hash01(shakeFrame * 2 + 2) * k * 2));
     }
 
     sky(world);
     if (world) {
+      rainPass(world, false);
       tiles(world);
+      worldLighting(world);
       hazards(world);
       beacon(world);
       cores(world);
@@ -424,6 +734,8 @@
       rope(world);
       if (!world.dead) player(world);
       stormFront(world);
+      rainPass(world, true);
+      foregroundScud(world);
     }
     vignette();
   };

@@ -63,6 +63,7 @@
     countdown: 0,
     accumulator: 0,
     cupScore: 0,
+    leaderboardFlowStarted: false,
     results: null,
 
     /* cup progress */
@@ -151,6 +152,7 @@
     var st = R.state;
     st.round = 0;
     st.cupScore = 0;
+    st.leaderboardFlowStarted = false;
     st.roundResults = [];
     st.standings = ROSTER.slice(0, R.FIELD).map(function (spec) {
       return { id: spec.id, name: spec.name, colour: spec.colour, points: 0, best: 0 };
@@ -388,7 +390,11 @@
      Leaderboard
      ------------------------------------------------------------------ */
   R.submitScore = async function (score) {
-    if (!score || score <= 0) return;
+    if (!score || score <= 0 || R.state.leaderboardFlowStarted) return;
+    /* The final screen may be requested by more than one UI path. Claim
+       the flow before its first await so only one rank check can ever open
+       the name prompt or submit this cup. */
+    R.state.leaderboardFlowStarted = true;
     try {
       var res = await fetch('/api/leaderboard/rank?gameId=' + encodeURIComponent(GAME_ID) +
         '&score=' + encodeURIComponent(score), { headers: { 'Accept': 'application/json' } });

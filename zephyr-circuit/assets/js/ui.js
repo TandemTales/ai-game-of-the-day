@@ -370,7 +370,10 @@
       lastRound ? 'Final standings' : 'Next circuit',
       function () {
         if (R.advance()) render(R.PHASE.GRID);
-        else render(R.PHASE.CUP);
+        /* R.advance emits cup:end when the championship is over. Its
+           handler renders the final screen, so rendering here as well
+           would build the cup screen twice and start two leaderboard
+           prompts. */
       }));
   }
 
@@ -417,6 +420,15 @@
     }
 
     p.appendChild(button('zc-btn zc-primary', 'Race again', startRace));
+
+    var leaderboard = h('a', 'zc-btn zc-ghost', 'View leaderboard');
+    leaderboard.href = '../leaderboard.html?gameId=zephyr-circuit';
+    leaderboard.setAttribute('aria-label', 'View Zephyr Circuit leaderboard');
+    p.appendChild(leaderboard);
+
+    var home = h('a', 'zc-btn zc-ghost', 'Back to Arcade');
+    home.href = '../index.html';
+    p.appendChild(home);
     R.recordBest(st.cupScore);
     R.submitScore(st.cupScore);
   }

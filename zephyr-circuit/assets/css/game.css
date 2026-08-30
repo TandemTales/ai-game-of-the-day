@@ -345,7 +345,8 @@ html, body {
   background: rgba(255,255,255,0.05);
   color: var(--paper);
   font-family: var(--ui); font-size: 15px; font-weight: 700;
-  letter-spacing: 0.04em; cursor: pointer;
+  letter-spacing: 0.04em; cursor: pointer; text-align: center;
+  text-decoration: none; box-sizing: border-box;
   transition: background 140ms, border-color 140ms, transform 90ms;
 }
 .zc-btn:hover { background: rgba(255,255,255,0.11); border-color: rgba(255,255,255,0.32); }

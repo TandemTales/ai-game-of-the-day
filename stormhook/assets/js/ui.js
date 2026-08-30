@@ -16,6 +16,8 @@
   var root = null, els = {};
   var toastT = 0;
   var pops = [];
+  var coachT = 0, coachVisible = false, coachKey = '';
+  var learned = { hook: false, reel: false, dash: false };
 
   function el(tag, cls, html) {
     var d = global.document.createElement(tag);
@@ -61,6 +63,29 @@
 
     els.pops = el('div', 'sh-pops');
     root.appendChild(els.pops);
+
+    /* Compact first-action coach. Inline layout keeps this revision owned by
+       ui.js; pointer-events stay off so aiming works through the affordance. */
+    els.coach = el('div', 'sh-coach');
+    els.coach.setAttribute('role', 'status');
+    els.coach.setAttribute('aria-live', 'polite');
+    els.coach.setAttribute('aria-hidden', 'true');
+    els.coach.style.cssText =
+      'position:absolute;left:50%;bottom:calc(64px + var(--safe-b));' +
+      'transform:translate(-50%,8px);max-width:min(320px,calc(100vw - 112px));' +
+      'padding:8px 12px;border:1px solid rgba(233,241,247,.18);border-radius:9px;' +
+      'background:rgba(7,14,23,.78);box-shadow:0 8px 26px rgba(0,0,0,.35);' +
+      'backdrop-filter:blur(5px);text-align:center;pointer-events:none;opacity:0;' +
+      'transition:opacity .18s ease,transform .18s ease;z-index:6;';
+    els.coachAction = el('b', 'sh-k');
+    els.coachAction.style.cssText =
+      'display:block;color:var(--gold);font-size:11px;line-height:1.2;margin-bottom:3px;';
+    els.coachDetail = el('span', null);
+    els.coachDetail.style.cssText =
+      'display:block;color:rgba(233,241,247,.82);font:600 11px/1.35 var(--disp);';
+    els.coach.appendChild(els.coachAction);
+    els.coach.appendChild(els.coachDetail);
+    root.appendChild(els.coach);
 
     /* --- screens --- */
     els.screen = el('div', 'sh-screen');
@@ -119,6 +144,53 @@
       }
       if (root) root.classList.remove('sh-danger');
     }
+    if (phase !== 'playing') hideCoach();
+  }
+
+  function hideCoach() {
+    if (!els.coach) return;
+    els.coach.style.opacity = '0';
+    els.coach.style.transform = 'translate(-50%,8px)';
+    els.coach.setAttribute('aria-hidden', 'true');
+    coachVisible = false;
+    coachKey = '';
+  }
+
+  function showCoach(key, action, detail) {
+    if (!els.coach || coachT >= 11000) { hideCoach(); return; }
+    if (coachKey !== key) {
+      els.coachAction.textContent = action;
+      els.coachDetail.textContent = detail;
+      coachKey = key;
+    }
+    els.coach.style.opacity = '1';
+    els.coach.style.transform = 'translate(-50%,0)';
+    els.coach.setAttribute('aria-hidden', 'false');
+    coachVisible = true;
+  }
+
+  function syncCoach(world, st) {
+    if (!world || !st || st.phase !== 'playing' || coachT >= 11000) {
+      hideCoach();
+      return;
+    }
+
+    learned.hook = learned.hook || !!(world.hook && world.hook.attached);
+    learned.reel = learned.reel || Math.abs(SH.Input.reel || 0) > 0;
+    learned.dash = learned.dash || !!(world.p && world.p.dashCd > 0);
+
+    if (!learned.hook) {
+      showCoach('hook', SH.Input.isTouch ? 'HOLD TO HOOK' : 'HOLD MOUSE TO HOOK',
+        'Aim at bright hull or girder surfaces');
+    } else if (!learned.reel) {
+      showCoach('reel', SH.Input.isTouch ? 'DRAG UP / DOWN TO REEL' : 'W / S TO REEL',
+        SH.Input.isTouch ? 'Second finger dashes toward your aim' : 'A / D leans · Space dashes');
+    } else if (!learned.dash) {
+      showCoach('dash', SH.Input.isTouch ? 'SECOND FINGER TO DASH' : 'SPACE TO DASH',
+        'Release the hook to carry your momentum');
+    } else {
+      hideCoach();
+    }
   }
 
   function kicker(text) {
@@ -158,17 +230,18 @@
       card.appendChild(el('h1', 'sh-title', 'STORMHOOK'));
       card.appendChild(el('p', 'sh-sub',
         'Salvage the wreck-fields ahead of the front. Point, latch, swing — and keep your boots off the deck.'));
-      var how = el('div', 'sh-how');
+      var how = el('div', 'sh-rows');
+      how.setAttribute('aria-label', 'Controls');
       how.innerHTML = SH.Input.isTouch
-        ? '<b>Touch and hold</b> anywhere to fire the tether at that point.<br>' +
-          '<b>Drag up / down</b> while held to reel in or pay out.<br>' +
-          '<b>Second finger</b> to dash toward your aim.'
-        : '<b>Hold the left mouse button</b> to fire the tether where you point.<br>' +
-          '<b>W / S</b> (or the wheel) reel in and pay out. <b>A / D</b> lean.<br>' +
-          '<b>Space</b> dashes toward the cursor. <b>R</b> restarts, <b>P</b> pauses.';
+        ? row('1 · LATCH', 'Hold at target') +
+          row('2 · SHAPE ARC', 'Drag ↑↓ to reel') +
+          row('3 · RELEASE', 'Lift · second finger dashes')
+        : row('1 · LATCH', 'Hold mouse at target') +
+          row('2 · SHAPE ARC', 'W/S reel · A/D lean') +
+          row('3 · RELEASE', 'Lift mouse · Space dashes');
       card.appendChild(how);
       card.appendChild(el('p', 'sh-note',
-        'Your score multiplier climbs the longer you stay airborne. Landing costs you all of it.'));
+        'Stay airborne to raise the multiplier. Landing resets it. R restarts · P pauses.'));
       var best = SH.store.get('best', 0);
       if (best > 0) card.appendChild(el('p', 'sh-best', 'Best run: ' + SH.fmtNum(best)));
       card.appendChild(btn('Begin the run', function () { SH.Game.startRun(0); }, 'sh-btn--go'));
@@ -249,11 +322,14 @@
     if (cb) {
       if (world.combo !== lastCombo) {
         cb.textContent = '×' + world.combo;
+        cb.setAttribute('aria-label', 'Score multiplier ' + world.combo);
         cb.classList.toggle('is-hot', world.combo >= 5);
         cb.classList.remove('is-bump'); void cb.offsetWidth; cb.classList.add('is-bump');
         lastCombo = world.combo;
       }
-      cb.style.opacity = world.combo > 1 ? 1 : 0.35;
+      cb.style.opacity = world.combo > 1 ? 1 : 0.82;
+      cb.style.textShadow = world.combo > 1 ? '' :
+        '0 2px 8px rgba(0,0,0,.9), 0 0 10px rgba(91,224,213,.34)';
     }
     var air = global.document.getElementById('sh-air');
     if (air && air.firstChild) {
@@ -267,6 +343,7 @@
     els.warn.classList.toggle('is-on', near);
     els.warn.setAttribute('aria-hidden', near ? 'false' : 'true');
     root.classList.toggle('sh-danger', near);
+    syncCoach(world, st);
   };
 
   function setText(id, v) {
@@ -296,6 +373,8 @@
       toastT -= dt * 1000;
       if (toastT <= 0 && els.toast) els.toast.classList.remove('is-on');
     }
+    if (coachVisible) coachT += dt * 1000;
+    if (coachT >= 11000) hideCoach();
   };
 
   U.toast = function (msg, ms) {

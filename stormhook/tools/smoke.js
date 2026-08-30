@@ -40,7 +40,7 @@ function check(cond, msg) { if (!cond) problems.push('FAIL: ' + msg); else conso
     const txt = m.text();
     // The arcade's analytics tag is blocked by the sandbox proxy on every
     // game page in this project. Not a defect of this game.
-    if (/googletagmanager|ERR_TUNNEL_CONNECTION_FAILED|ERR_BLOCKED/.test(txt)) return;
+    if (/googletagmanager|ERR_TUNNEL_CONNECTION_FAILED|ERR_NETWORK_ACCESS_DENIED|ERR_BLOCKED/.test(txt)) return;
     console_.push(t.toUpperCase() + ': ' + txt);
   });
   page.on('pageerror', (e) => console_.push('PAGEERROR: ' + (e && e.message)));
@@ -163,7 +163,7 @@ function check(cond, msg) { if (!cond) problems.push('FAIL: ' + msg); else conso
   /* Console 404s are only forgiven when every failed request was the
      leaderboard. If something else broke, the noise is real. */
   const noise = unexpected.length ? console_
-    : console_.filter((m) => !/404 \(Not Found\)/.test(m));
+    : console_.filter((m) => !/404 \((?:Not Found|File not found)\)/i.test(m));
   check(noise.length === 0, 'console clean' + (noise.length ? ': ' + noise.join(' | ') : ''));
 
   await browser.close();

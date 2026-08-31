@@ -1,5 +1,55 @@
 # Stormhook — progress log
 
+## 2026-08-30T23:18:40-07:00 (Sunday, Pacific) — polish handoff
+
+### What landed and was pushed
+
+* `8a34380` — the renderer now derives sparse salvage rigs from real
+  latchable surfaces. Each rig has suspension cables, a broken pressure-hull
+  silhouette, a lit porthole, structural ribs, and a dangling line, so the
+  route has recognizable world-space landmarks instead of isolated tile
+  stamps. The beacon also throws a restrained world-anchored shaft through
+  the weather and behind geometry.
+* `4e9834a` — the title screen now presents the wreck field behind a split
+  salvage briefing. The hook-line motif and `POINT · LATCH · RELEASE` cue are
+  responsive at desktop and phone widths; controls and copy are unchanged.
+
+### Verification actually performed
+
+* Full repository Jest suite: **12 suites / 308 tests passed**. The changed
+  renderer passed `node --check`, and `git diff --check` passed after restoring
+  the original LF convention for the stylesheet.
+* In-app browser visual sweep at **320x568, 390x844, 844x390, 768x1024,
+  1440x900, and 3840x2160**: every capture remained in `playing`, matched its
+  viewport width and height, had no horizontal overflow, and had no browser
+  error/warning logs. I opened and read all six captures.
+* Title captures at the default desktop size and 390x844 were read; the
+  `Begin the run` button transitioned to `playing` with a live world and an
+  alive player. The 390x844 gameplay capture also rendered the new route
+  dressing without overflow.
+* Standalone `stormhook/tools/screenshot.js` was not runnable because this
+  checkout has no Playwright package and the global npm shim targets a missing
+  module. The in-app browser supplied the visual evidence instead.
+
+### Honest quality status
+
+The route rigs and title scene are materially stronger in self-review, but no
+independent critic worker was available in this run, so there is **no passing
+blind side-by-side AAA verdict** to claim. The real-GPU performance gate also
+remains unverified. Against the existing Ori/Rayman reference bar, the scene
+still carries procedural stylization and the route needs more authored
+landmark variety; the title is now a composed briefing but still needs an
+independent comparison. No `.aaa-complete`, root Featured Game edit, release,
+or `main` update was made.
+
+### Next run
+
+Start with an independent renderer/UI critic if the environment exposes one,
+then inspect the worst remaining route-composition loss. Preserve the current
+world-derived dressing, profile on real hardware before adding more draw cost,
+and keep the forced-release target at **2026-09-12**. The outstanding autopilot
+campaign regression remains separate from tonight's visual work.
+
 ## 2026-08-30 (Sunday, Pacific) — nightly intent
 
 The active handoff is Stormhook, and tonight remains a bounded polish run;

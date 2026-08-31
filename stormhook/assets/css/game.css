@@ -166,6 +166,40 @@ html, body {
 }
 .sh-screen.is-hidden { display: none; pointer-events: none; }
 
+/* The title is a briefing over the wreck field, not a detached dialog. Keep
+   the left side of the procedural sky visible and use the card edge as the
+   point where the player's hook line enters the scene. */
+.sh-screen--title {
+  place-items: center end;
+  padding-right: clamp(22px, 12vw, 180px);
+  background:
+    linear-gradient(90deg, rgba(3, 8, 14, .20), rgba(3, 8, 14, .45) 42%, rgba(3, 8, 14, .88) 78%),
+    linear-gradient(180deg, rgba(3, 8, 14, .10), rgba(3, 8, 14, .60));
+  backdrop-filter: none;
+}
+.sh-screen--title::before {
+  content: '';
+  position: absolute;
+  left: 8vw; top: 25%;
+  width: min(40vw, 560px); aspect-ratio: 1.65;
+  border: 1px solid rgba(111, 240, 214, .18);
+  border-radius: 50%;
+  transform: rotate(-18deg);
+  box-shadow: 0 0 0 12px rgba(111, 240, 214, .025),
+              0 0 80px rgba(111, 240, 214, .10);
+  pointer-events: none;
+}
+.sh-screen--title::after {
+  content: 'POINT  ·  LATCH  ·  RELEASE';
+  position: absolute;
+  left: clamp(22px, 8vw, 120px); bottom: calc(28% + var(--safe-b));
+  color: rgba(233, 241, 247, .48);
+  font: 700 10px/1 var(--mono);
+  letter-spacing: .24em;
+  text-shadow: 0 0 14px rgba(111, 240, 214, .35);
+  pointer-events: none;
+}
+
 .sh-card {
   width: min(440px, 100%);
   background: linear-gradient(180deg, rgba(19, 32, 46, .95), rgba(9, 16, 26, .96));
@@ -174,6 +208,40 @@ html, body {
   padding: 22px 20px;
   text-align: center;
   box-shadow: 0 24px 70px rgba(0, 0, 0, .6), inset 0 1px 0 rgba(255, 255, 255, .06);
+}
+.sh-card--title {
+  position: relative;
+  border-color: rgba(255, 215, 110, .26);
+  border-left: 3px solid rgba(255, 215, 110, .72);
+  background: linear-gradient(180deg, rgba(18, 31, 44, .90), rgba(7, 14, 23, .94));
+  box-shadow: -22px 24px 80px rgba(0, 0, 0, .46),
+              inset 0 1px 0 rgba(255, 255, 255, .07),
+              0 0 34px rgba(111, 240, 214, .06);
+}
+.sh-card--title::before {
+  content: '';
+  position: absolute;
+  left: -190px; top: 46%; width: 174px;
+  border-top: 1px dashed rgba(111, 240, 214, .60);
+  transform: rotate(-22deg);
+  transform-origin: right center;
+  filter: drop-shadow(0 0 5px rgba(111, 240, 214, .45));
+  pointer-events: none;
+}
+.sh-card--title::after {
+  content: '';
+  position: absolute;
+  left: -201px; top: calc(46% - 8px);
+  width: 14px; height: 14px;
+  border: 2px solid var(--gold);
+  border-radius: 50%;
+  box-shadow: 0 0 0 5px rgba(255, 215, 110, .07),
+              0 0 18px rgba(255, 215, 110, .48);
+  animation: shHookPulse 1.7s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes shHookPulse {
+  50% { transform: scale(1.16); opacity: .72; }
 }
 
 .sh-title {
@@ -301,6 +369,31 @@ html, body {
   .sh-stat b { font-size: 16px; }
   .sh-combo { font-size: 20px; }
   .sh-warn { top: calc(62px + var(--safe-t)); }
+}
+
+@media (max-width: 680px) {
+  .sh-screen--title {
+    place-items: center;
+    padding-right: 16px;
+  }
+  .sh-screen--title::before {
+    left: -18vw; top: 14%; width: 84vw;
+  }
+  .sh-screen--title::after {
+    left: 50%; bottom: calc(13% + var(--safe-b));
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: 8px;
+    letter-spacing: .16em;
+  }
+  .sh-card--title::before {
+    left: 50%; top: -38px; width: 92px;
+    transform: rotate(-66deg);
+    transform-origin: left center;
+  }
+  .sh-card--title::after {
+    left: calc(50% - 8px); top: -49px;
+  }
 }
 
 @media (max-width: 380px) {

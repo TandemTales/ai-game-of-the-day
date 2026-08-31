@@ -316,3 +316,42 @@ tonight went to that branch. `main` is untouched.
 - First inspect the current renderer/UI output and existing tests, then make
   only bounded changes that preserve the playable slice. No release or
   `main` promotion is planned tonight.
+
+### Renderer route-depth pass
+
+- `assets/js/render.js` now fills the tall-screen atmospheric margins with
+  slow wreck-fleet silhouettes, overhead and lower industrial gantries, dead
+  navigation lamps, and larger route salvage rigs. These are visual-only;
+  collision geometry, rope physics, scoring, input, and UI were untouched.
+- On a fresh local preview origin, the required 320x568, 390x844, 844x390,
+  768x1024, 1440x900, and 3840x2160 captures all had exact dimensions, no
+  horizontal overflow, and no browser error/warning logs. The portrait views
+  now have readable wreck-field structure above and below the playable band.
+- Connected-browser telemetry reported 60 FPS at every target size, with
+  1.44–1.77 ms average loop time. This is useful comparative evidence, not a
+  real-device GPU qualification.
+
+### Live verification
+
+- The connected-browser campaign smoke passed: booted 3 levels with a 13 ms
+  texture bake; an input-driven swing latched, held one pivot, carried 544
+  px/s, and survived; levels cleared at cumulative scores 5,508, 11,796, and
+  18,784; the run ended in `gameover`; and forcing the storm produced one
+  death followed by a clean `playing` restart.
+- `node stormhook/tools/smoke.js --levels 3` remains unavailable because this
+  checkout has no `playwright` package. The connected browser supplied the
+  live smoke and visual evidence instead.
+- Full Jest passed after the renderer change: 12 suites, 308 tests. `node
+  --check stormhook/assets/js/render.js` and `git diff --check` also passed.
+
+### Quality gate and next handoff
+
+- No independent critic worker or shipping judge was available in this run,
+  so there is no AAA side-by-side pass and no release eligibility claim. The
+  new route depth is a bounded improvement, but the game remains below the
+  shipped Ori/Rayman/Umihara/Bionic Commando reference bar; material richness,
+  authored route composition, audio/VFX finish, and real-GPU proof remain
+  open. No `.aaa-complete`, Featured Game change, or `main` promotion.
+- Next run should begin with fresh independent renderer/UI comparisons if
+  critic capacity is available, then address the worst remaining loss rather
+  than widening scope. Forced release remains 2026-09-12.

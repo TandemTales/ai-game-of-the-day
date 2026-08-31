@@ -55,6 +55,4 @@ independent shipping judge).
 
 ## Working branch
 
-There is no `dev` branch in this repository — only `main` and the agent's
-designated development branch. Work happens on the development branch;
-`main` is touched only by the STEP 4 promotion.
+Work happens on `dev`; `main` is touched only by the STEP 4 promotion.

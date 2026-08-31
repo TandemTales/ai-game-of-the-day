@@ -1,5 +1,16 @@
 # Stormhook — progress log
 
+## 2026-08-30 (Sunday, Pacific) — nightly intent
+
+The active handoff is Stormhook, and tonight remains a bounded polish run;
+forced release is Saturday 2026-09-12. I will focus on the largest verified
+losses from the previous critic pass: route-readable wreck composition and
+world-attached storm/light depth, with profiling before adding expensive draw
+work. I will run the repository tests and the available real-browser checks
+after each implementation unit, inspect representative captures, and record
+any missing independent-critic or real-GPU evidence honestly. `main`, the root
+Featured Game, and unrelated work remain out of scope.
+
 ## 2026-08-30 (Sunday, Pacific) — polish night intent
 
 Stormhook is the active game; the superseded Lumen Pinnacle scaffold is not

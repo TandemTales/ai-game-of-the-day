@@ -406,6 +406,126 @@
     }
   }
 
+  /* Route dressing is deliberately derived from the collision grid. These
+     rigs are visual-only, but every one hangs from a real latchable surface,
+     so the eye gets a readable chain of salvage landmarks along the same
+     route the player is planning. A sparse cadence keeps this cheap on the
+     software rasteriser and leaves the actual rope line uncluttered. */
+  function routeDressing(world) {
+    var TILE = SH.TILE;
+    var vp = R.viewport();
+    var tx0 = Math.max(2, Math.floor(vp.x / TILE) - 2);
+    var tx1 = Math.min(world.w - 3, Math.ceil((vp.x + vp.w) / TILE) + 2);
+    var levelSalt = world.level ? world.level.index * 17 : 0;
+    var drawn = 0;
+
+    for (var tx = tx0; tx <= tx1; tx++) {
+      if ((tx + levelSalt) % 9 !== 5) continue;
+      var surfaceY = -1;
+      for (var ty = 0; ty < 9; ty++) {
+        if (SH.Physics.solidAt(world, tx, ty) && !SH.Physics.solidAt(world, tx, ty + 1)) {
+          surfaceY = ty + 1;
+          break;
+        }
+      }
+      if (surfaceY < 2 || surfaceY > 8) continue;
+
+      var seed = (Math.imul(tx + 41, 2654435761) ^ Math.imul(surfaceY + 7, 2246822519)) | 0;
+      var variant = hash01(seed);
+      var anchorX = (tx + 0.5) * TILE;
+      var anchorY = surfaceY * TILE;
+      var drop = TILE * (2.1 + variant * 1.4);
+      var bodyX = anchorX + (hash01(seed + 1) - 0.5) * TILE * 1.4;
+      var bodyY = anchorY + drop;
+      var bodyW = TILE * (1.75 + hash01(seed + 2) * 0.9);
+      var bodyH = TILE * (0.52 + hash01(seed + 3) * 0.22);
+      drawSalvageRig(world, bodyX, bodyY, bodyW, bodyH, anchorX, anchorY, variant, seed);
+      drawn++;
+      if (drawn >= 5) break;
+    }
+  }
+
+  function drawSalvageRig(world, x, y, w, h, anchorX, anchorY, variant, seed) {
+    var S = camera.scale;
+    var sp = worldToScreen(x, y);
+    var a = worldToScreen(anchorX, anchorY);
+    if (sp.x < -w || sp.x > W + w || sp.y < -h * 2 || sp.y > H + h * 2) return;
+
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.globalAlpha = 0.72;
+
+    /* Taut suspension lines make the object belong to the ceiling, not float
+       like another background sticker. */
+    ctx.strokeStyle = 'rgba(108,153,161,0.35)';
+    ctx.lineWidth = Math.max(1, 1.15 * S);
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(sp.x - w * 0.26 * S, sp.y - h * 0.40 * S);
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(sp.x + w * 0.24 * S, sp.y - h * 0.38 * S);
+    ctx.stroke();
+
+    /* Broken keel: two unequal pressure-hull sections and an exposed rib. */
+    var g = ctx.createLinearGradient(sp.x, sp.y - h * S, sp.x, sp.y + h * S);
+    g.addColorStop(0, 'rgba(35,64,76,0.78)');
+    g.addColorStop(0.48, 'rgba(8,23,34,0.92)');
+    g.addColorStop(1, 'rgba(4,12,21,0.84)');
+    ctx.fillStyle = g;
+    ctx.strokeStyle = 'rgba(104,145,151,0.42)';
+    ctx.lineWidth = Math.max(1, 1.25 * S);
+    ctx.beginPath();
+    ctx.moveTo(sp.x - w * 0.52 * S, sp.y - h * 0.08 * S);
+    ctx.quadraticCurveTo(sp.x - w * 0.34 * S, sp.y - h * 0.62 * S,
+                         sp.x - w * 0.06 * S, sp.y - h * 0.38 * S);
+    ctx.lineTo(sp.x + w * 0.02 * S, sp.y - h * 0.12 * S);
+    ctx.lineTo(sp.x - w * 0.04 * S, sp.y + h * 0.26 * S);
+    ctx.quadraticCurveTo(sp.x - w * 0.30 * S, sp.y + h * 0.58 * S,
+                         sp.x - w * 0.52 * S, sp.y - h * 0.08 * S);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(sp.x + w * 0.05 * S, sp.y - h * 0.20 * S);
+    ctx.quadraticCurveTo(sp.x + w * 0.34 * S, sp.y - h * 0.62 * S,
+                         sp.x + w * 0.54 * S, sp.y - h * 0.03 * S);
+    ctx.quadraticCurveTo(sp.x + w * 0.34 * S, sp.y + h * 0.54 * S,
+                         sp.x + w * 0.06 * S, sp.y + h * 0.25 * S);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(185,126,69,0.38)';
+    ctx.lineWidth = Math.max(0.8, 1.1 * S);
+    ctx.beginPath();
+    ctx.moveTo(sp.x - w * 0.34 * S, sp.y - h * 0.33 * S);
+    ctx.lineTo(sp.x - w * 0.17 * S, sp.y + h * 0.33 * S);
+    ctx.moveTo(sp.x + w * 0.23 * S, sp.y - h * 0.36 * S);
+    ctx.lineTo(sp.x + w * 0.40 * S, sp.y + h * 0.27 * S);
+    ctx.stroke();
+
+    /* A small lamp and broken mast give each landmark a point of interest. */
+    var lampX = sp.x + (variant > 0.5 ? -1 : 1) * w * 0.22 * S;
+    var lampY = sp.y - h * 0.04 * S;
+    ctx.globalCompositeOperation = 'screen';
+    var glow = ctx.createRadialGradient(lampX, lampY, 0, lampX, lampY, 18 * S);
+    glow.addColorStop(0, 'rgba(255,211,111,0.62)');
+    glow.addColorStop(1, 'rgba(255,171,69,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(lampX - 18 * S, lampY - 18 * S, 36 * S, 36 * S);
+    ctx.fillStyle = '#ffd77a';
+    ctx.beginPath(); ctx.arc(lampX, lampY, Math.max(1.6, 2.4 * S), 0, Math.PI * 2); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+
+    ctx.strokeStyle = 'rgba(119,167,171,0.34)';
+    ctx.lineWidth = Math.max(0.8, 1 * S);
+    ctx.beginPath();
+    ctx.moveTo(sp.x + w * 0.32 * S, sp.y - h * 0.30 * S);
+    ctx.lineTo(sp.x + w * (0.40 + hash01(seed + 4) * 0.12) * S, sp.y - h * (1.0 + hash01(seed + 5) * 0.35) * S);
+    ctx.moveTo(sp.x - w * 0.08 * S, sp.y + h * 0.40 * S);
+    ctx.quadraticCurveTo(sp.x - w * 0.02 * S, sp.y + h * 0.95 * S,
+                         sp.x + w * 0.16 * S, sp.y + h * 1.12 * S);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   function hullDetail(world, tx, ty, x, y, size, S, topLit) {
     var key = (Math.imul(tx + 17, 73856093) ^ Math.imul(ty + 29, 19349663)) | 0;
     var macro = hash01((Math.imul((tx / 3) | 0, 83492791) ^
@@ -797,6 +917,7 @@
   }
 
   function worldLighting(world) {
+    var S = camera.scale;
     var p = worldToScreen(world.p.x, world.p.y);
     var b = worldToScreen(world.beacon.x, world.beacon.y);
     ctx.save();
@@ -809,6 +930,26 @@
     shade.addColorStop(1, 'rgba(2,7,13,0.24)');
     ctx.fillStyle = shade;
     ctx.fillRect(0, 0, W, H);
+
+    /* The extraction beacon throws a narrow shaft through the weather. It is
+       placed before the surface clip and the beacon sprite, so hulls and
+       foreground objects interrupt it like real silhouettes instead of
+       receiving a detached UI glow. */
+    if (b.x > -240 && b.x < W + 240) {
+      ctx.globalCompositeOperation = 'screen';
+      var shaft = ctx.createLinearGradient(b.x, b.y, b.x - W * 0.22, 0);
+      shaft.addColorStop(0, 'rgba(255,204,104,0.16)');
+      shaft.addColorStop(0.44, 'rgba(255,214,126,0.055)');
+      shaft.addColorStop(1, 'rgba(255,214,126,0)');
+      ctx.fillStyle = shaft;
+      ctx.beginPath();
+      ctx.moveTo(b.x - 30 * S, b.y);
+      ctx.lineTo(b.x - W * 0.32, 0);
+      ctx.lineTo(b.x - W * 0.03, 0);
+      ctx.lineTo(b.x + 30 * S, b.y);
+      ctx.closePath();
+      ctx.fill();
+    }
 
     surfaceSpill(world);
 
@@ -1004,6 +1145,7 @@
     if (world) {
       rainPass(world, false);
       tiles(world);
+      routeDressing(world);
       worldLighting(world);
       hazards(world);
       beacon(world);

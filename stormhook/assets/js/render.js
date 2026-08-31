@@ -220,6 +220,8 @@
     distantWrecks(false, world);
     cloudLayer(1, world);
     distantWrecks(true, world);
+    deepFleet(world);
+    depthGantries(world);
     windShear(world);
     cloudLayer(2, world);
 
@@ -313,6 +315,77 @@
     }
   }
 
+  /* Tall screens expose a lot more sky than the 14-tile playfield needs.
+     These two slow, half-lost hulks turn that extra space into the same
+     wreck-field rather than an empty gradient. They are deliberately placed
+     at the upper and lower atmospheric edges, leaving the route readable. */
+  function deepFleet(world) {
+    var span = Math.max(1900, W * 3.1);
+    var drift = time * (world && world.level ? world.level.stormSpeed * 0.08 : 4);
+    var fleet = [
+      { u: 0.14, y: 0.10, scale: 1.18, alpha: 0.23, depth: 0.012, flip: 1, broken: -0.08, near: false },
+      { u: 0.70, y: 0.16, scale: 0.82, alpha: 0.18, depth: 0.018, flip: -1, broken: 0.18, near: false },
+      { u: 0.34, y: 0.84, scale: 1.34, alpha: 0.38, depth: 0.12, flip: -1, broken: 0.04, near: true },
+      { u: 0.92, y: 0.91, scale: 0.94, alpha: 0.30, depth: 0.16, flip: 1, broken: 0.22, near: true }
+    ];
+    for (var i = 0; i < fleet.length; i++) {
+      var wr = fleet[i];
+      var x = wrap(wr.u * span - camera.x * wr.depth - drift, span) - span * 0.16;
+      var y = wr.y * H + Math.sin(time * 0.035 + i * 2.1) * (nearFloat(wr.near, 7, 13));
+      drawWreck(x, y, wr, wr.near);
+    }
+  }
+
+  function nearFloat(near, a, b) { return near ? b : a; }
+
+  /* Industrial gantries give the open portrait margins a strong silhouette
+     and a readable sense of scale. They drift at the same slow depth as the
+     fleet, so they belong to the wreck-field without becoming collision
+     geometry or competing with latchable surfaces. */
+  function depthGantries(world) {
+    var span = Math.max(W * 1.38, 520);
+    var bands = [
+      { y: H * 0.13, h: Math.max(22, H * 0.045), alpha: 0.38, phase: 0.6 },
+      { y: H * 0.87, h: Math.max(26, H * 0.052), alpha: 0.52, phase: 2.4 }
+    ];
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (var i = 0; i < bands.length; i++) {
+      var band = bands[i];
+      var x = -W * 0.19 + Math.sin(time * 0.035 + band.phase) * W * 0.035;
+      var y = band.y + Math.sin(time * 0.04 + band.phase) * 6;
+      ctx.globalAlpha = band.alpha;
+      ctx.fillStyle = '#183545';
+      ctx.strokeStyle = 'rgba(126,190,196,0.72)';
+      ctx.lineWidth = Math.max(1, H * 0.0012);
+      ctx.fillRect(x, y, span * 0.72, band.h);
+      ctx.strokeRect(x, y, span * 0.72, band.h);
+
+      var sections = 7;
+      for (var s = 0; s < sections; s++) {
+        var sx = x + (s + 0.5) * span * 0.72 / sections;
+        ctx.beginPath();
+        ctx.moveTo(sx - span * 0.045, y + band.h);
+        ctx.lineTo(sx + span * 0.045, y);
+        ctx.stroke();
+      }
+
+      ctx.globalCompositeOperation = 'screen';
+      for (var l = 0; l < 3; l++) {
+        var lx = x + span * (0.12 + l * 0.29);
+        var ly = y + band.h * 0.52;
+        ctx.fillStyle = 'rgba(255,211,115,0.44)';
+        ctx.beginPath(); ctx.arc(lx, ly, Math.max(1.5, H * 0.0022), 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,201,98,0.22)';
+        ctx.lineWidth = Math.max(1, H * 0.004);
+        ctx.beginPath(); ctx.moveTo(lx, ly + band.h * 0.5); ctx.lineTo(lx, ly + band.h * 2.0); ctx.stroke();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    ctx.restore();
+  }
+
   function drawWreck(x, y, wr, near) {
     var s = wr.scale * Math.max(0.72, Math.min(1.25, W / 880));
     ctx.save();
@@ -349,6 +422,19 @@
     ctx.moveTo(28, 27); ctx.quadraticCurveTo(50, 52, 38, 78);
     ctx.moveTo(-62, 21); ctx.quadraticCurveTo(-76, 47, -62, 62);
     ctx.stroke();
+
+    /* A few dead navigation lamps make the silhouette readable as a fleet,
+       not just another cloud contour. */
+    if (near) {
+      ctx.globalCompositeOperation = 'screen';
+      for (var l = -1; l <= 1; l++) {
+        var lx = l * 34 + (wr.broken || 0) * 18;
+        var ly = 22 + Math.abs(l) * 4;
+        ctx.fillStyle = 'rgba(255,210,112,' + (0.22 - Math.abs(l) * 0.05) + ')';
+        ctx.beginPath(); ctx.arc(lx, ly, 2.8, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+    }
     ctx.restore();
   }
 
@@ -434,11 +520,11 @@
       var variant = hash01(seed);
       var anchorX = (tx + 0.5) * TILE;
       var anchorY = surfaceY * TILE;
-      var drop = TILE * (2.1 + variant * 1.4);
+      var drop = TILE * (1.75 + variant * 1.35);
       var bodyX = anchorX + (hash01(seed + 1) - 0.5) * TILE * 1.4;
       var bodyY = anchorY + drop;
-      var bodyW = TILE * (1.75 + hash01(seed + 2) * 0.9);
-      var bodyH = TILE * (0.52 + hash01(seed + 3) * 0.22);
+      var bodyW = TILE * (2.25 + hash01(seed + 2) * 1.25);
+      var bodyH = TILE * (0.66 + hash01(seed + 3) * 0.26);
       drawSalvageRig(world, bodyX, bodyY, bodyW, bodyH, anchorX, anchorY, variant, seed);
       drawn++;
       if (drawn >= 5) break;

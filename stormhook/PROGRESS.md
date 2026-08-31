@@ -306,3 +306,13 @@ Started **2026-08-27** (Pacific). First Saturday (2026-08-29) is 2 days out —
 There is no `dev` branch in this repository — only `main` and the agent's
 designated development branch, which already carries the dev history. All work
 tonight went to that branch. `main` is untouched.
+
+## Run 2026-08-31
+
+- Monday Pacific polish run on `dev`; forced release remains Saturday
+  2026-09-12. This run will focus on the highest-value remaining route
+  composition and performance risks, with fresh browser evidence where the
+  available harness permits.
+- First inspect the current renderer/UI output and existing tests, then make
+  only bounded changes that preserve the playable slice. No release or
+  `main` promotion is planned tonight.

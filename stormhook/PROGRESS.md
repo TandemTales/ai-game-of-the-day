@@ -366,3 +366,60 @@ performance before adding render cost. I will run the full Jest suite,
 syntax/diff checks, and available real-browser captures after the change. No
 `.aaa-complete`, root Featured Game rotation, or `main` promotion is authorized
 without passing independent critic evidence.
+
+## 2026-09-01T07:47:00-07:00 (Tuesday, Pacific) — polish handoff
+
+### What landed and was pushed
+
+* `08364a4` — renderer route dressing now uses three larger grid-anchored
+  wreck landmarks with rib/gantry silhouettes and restrained warm/cool rims
+  tied to the live player and beacon. The change reduces draw cost in the
+  route dressing path by replacing five smaller rigs and their per-landmark
+  gradient with three larger solid-filled landmarks.
+* `f26de98` — title screen gained a pointer-transparent, `aria-hidden` SVG
+  first-swing vignette showing a salvager, tether, latch target, release arc,
+  and touch/desktop action cue.
+* `089bfad` — the target, arc, cue, and release marker moved into the visible
+  left scene and the salvager/target were enlarged.
+* `90ee8bf` — the desktop title card became narrower/lighter; on screens up to
+  680px the vignette is kept above a lowered card so the target remains visible.
+
+### Verification actually performed
+
+* Full repository Jest suite passed after every implementation unit: **12
+  suites / 308 tests**. `node --check` passed for both changed JavaScript
+  files, and `git diff --check` passed.
+* The standalone Stormhook screenshot and campaign smoke harnesses were
+  attempted after the changes and remain blocked because this checkout has no
+  `playwright` package. The connected in-app browser supplied independent
+  renderer captures at 1440x900 and 390x844 for `08364a4`, and fresh title
+  captures at both sizes for `90ee8bf`; I opened and read those PNGs. The
+  latest title capture also confirmed coarse-pointer touch onboarding.
+
+### Independent critic verdicts
+
+* Renderer baseline comparison: **FAIL** versus Ori and Rayman. The route was
+  too sparse and light read as detached.
+* Renderer comparison after `08364a4`: **FAIL**, but the critic explicitly
+  kept `08364a4` as the improved baseline. The larger landmarks reduce empty
+  portrait space, yet the route remains a low-information horizontal strip;
+  depth occlusion, material specificity, environmental storytelling, and
+  visible surface-reactive lighting still trail the references.
+* UI comparison after `f26de98`: **FAIL**. The vignette improved action
+  communication, but remained a screen-space diagram under a dominant card.
+* Final UI review after `90ee8bf`: **UNJUDGED** because a renderable Bionic
+  Commando reference image could not be obtained. The fresh title PNGs show
+  the target/arc are now visible and the card is less dominant, but the
+  salvager is still too subtle for an AAA-quality first-action scene. No AAA
+  pass is claimed.
+
+### Quality status and next handoff
+
+This was a bounded renderer/UI polish run, not release night. The tree is
+green and clean on `dev`, but no discipline has a passing blind side-by-side
+AAA verdict, no independent shipping judge was run, and real-GPU performance
+remains unverified. No `.aaa-complete`, root Featured Game rotation, or
+`main` promotion was made. Next run should obtain complete fresh UI reference
+evidence, then focus on an actually visible salvager/target title composition
+and stronger route landmarks/light interaction. Forced release remains
+2026-09-12.

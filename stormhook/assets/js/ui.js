@@ -271,17 +271,17 @@
       vignette.style.pointerEvents = 'none';
       vignette.innerHTML =
         '<svg viewBox="0 0 1000 620" preserveAspectRatio="none" aria-hidden="true" focusable="false">' +
-          '<path class="sh-vig-tether" d="M210 430 C350 300 490 245 690 185" />' +
-          '<path class="sh-vig-arc" d="M250 455 C410 535 650 505 800 370" />' +
-          '<circle class="sh-vig-ring" cx="690" cy="185" r="27" />' +
-          '<circle cx="690" cy="185" r="5" fill="var(--gold,#f4c95d)" opacity=".9" />' +
-          '<g transform="translate(190 405)" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">' +
+          '<path class="sh-vig-tether" d="M205 430 C270 315 345 245 435 175" />' +
+          '<path class="sh-vig-arc" d="M245 455 C315 555 445 535 565 365" />' +
+          '<circle class="sh-vig-ring" cx="435" cy="175" r="42" />' +
+          '<circle cx="435" cy="175" r="7" fill="var(--gold,#f4c95d)" opacity=".9" />' +
+          '<g transform="translate(190 405) scale(1.35)" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">' +
             '<circle cx="0" cy="-34" r="10" fill="currentColor" stroke="none" />' +
             '<path d="M0 -22 L-8 10 L-25 42 M-7 10 L20 30 L36 15 M-8 42 L-20 65 M-8 42 L12 65" />' +
             '<path d="M20 30 L42 17" stroke="var(--gold,#f4c95d)" />' +
           '</g>' +
-          '<path d="M780 370 l18 -8 l-8 18" fill="none" stroke="var(--gold,#f4c95d)" stroke-width="2" />' +
-          '<text class="sh-vig-cue" x="690" y="235">HOLD · SWING · RELEASE</text>' +
+          '<path d="M565 365 l18 -8 l-8 18" fill="none" stroke="var(--gold,#f4c95d)" stroke-width="2" />' +
+          '<text class="sh-vig-cue" x="435" y="245">HOLD · SWING · RELEASE</text>' +
         '</svg>';
       s.appendChild(vignette);
     }

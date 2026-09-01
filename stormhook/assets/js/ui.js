@@ -29,6 +29,27 @@
   U.init = function () {
     root = global.document.getElementById('sh-ui');
     if (!root) return;
+    if (!global.document.getElementById('sh-title-vignette-style')) {
+      var titleStyle = global.document.createElement('style');
+      titleStyle.id = 'sh-title-vignette-style';
+      titleStyle.textContent =
+        '.sh-screen--title{position:relative;overflow:hidden;}' +
+        '.sh-screen--title>.sh-card{position:relative;z-index:1;}' +
+        '.sh-title-vignette{position:absolute;inset:0;z-index:0;pointer-events:none;' +
+          'color:rgba(91,224,213,.72);opacity:.72;}' +
+        '.sh-title-vignette svg{display:block;width:100%;height:100%;}' +
+        '.sh-title-vignette .sh-vig-ring{fill:none;stroke:var(--gold,#f4c95d);' +
+          'stroke-width:2;filter:drop-shadow(0 0 7px rgba(244,201,93,.75));}' +
+        '.sh-title-vignette .sh-vig-tether{fill:none;stroke:currentColor;stroke-width:2;' +
+          'stroke-dasharray:6 7;stroke-linecap:round;}' +
+        '.sh-title-vignette .sh-vig-arc{fill:none;stroke:var(--gold,#f4c95d);stroke-width:2;' +
+          'stroke-dasharray:4 6;stroke-linecap:round;opacity:.85;}' +
+        '.sh-title-vignette .sh-vig-cue{fill:rgba(233,241,247,.68);font:600 10px/1 var(--disp, sans-serif);' +
+          'letter-spacing:.14em;text-anchor:middle;}' +
+        '@media (max-width:620px){.sh-title-vignette{opacity:.55;}' +
+          '.sh-title-vignette .sh-vig-cue{font-size:9px;}}';
+      (global.document.head || global.document.documentElement).appendChild(titleStyle);
+    }
     root.innerHTML = '';
 
     /* --- HUD --- */
@@ -245,6 +266,24 @@
       var best = SH.store.get('best', 0);
       if (best > 0) card.appendChild(el('p', 'sh-best', 'Best run: ' + SH.fmtNum(best)));
       card.appendChild(btn('Begin the run', function () { SH.Game.startRun(0); }, 'sh-btn--go'));
+      var vignette = el('div', 'sh-title-vignette');
+      vignette.setAttribute('aria-hidden', 'true');
+      vignette.style.pointerEvents = 'none';
+      vignette.innerHTML =
+        '<svg viewBox="0 0 1000 620" preserveAspectRatio="none" aria-hidden="true" focusable="false">' +
+          '<path class="sh-vig-tether" d="M210 430 C350 300 490 245 690 185" />' +
+          '<path class="sh-vig-arc" d="M250 455 C410 535 650 505 800 370" />' +
+          '<circle class="sh-vig-ring" cx="690" cy="185" r="27" />' +
+          '<circle cx="690" cy="185" r="5" fill="var(--gold,#f4c95d)" opacity=".9" />' +
+          '<g transform="translate(190 405)" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">' +
+            '<circle cx="0" cy="-34" r="10" fill="currentColor" stroke="none" />' +
+            '<path d="M0 -22 L-8 10 L-25 42 M-7 10 L20 30 L36 15 M-8 42 L-20 65 M-8 42 L12 65" />' +
+            '<path d="M20 30 L42 17" stroke="var(--gold,#f4c95d)" />' +
+          '</g>' +
+          '<path d="M780 370 l18 -8 l-8 18" fill="none" stroke="var(--gold,#f4c95d)" stroke-width="2" />' +
+          '<text class="sh-vig-cue" x="690" y="235">HOLD · SWING · RELEASE</text>' +
+        '</svg>';
+      s.appendChild(vignette);
     }
 
     else if (name === 'paused') {

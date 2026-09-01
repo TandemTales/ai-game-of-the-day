@@ -355,3 +355,14 @@ tonight went to that branch. `main` is untouched.
 - Next run should begin with fresh independent renderer/UI comparisons if
   critic capacity is available, then address the worst remaining loss rather
   than widening scope. Forced release remains 2026-09-12.
+
+## 2026-09-01 (Tuesday, Pacific) — nightly intent
+
+Stormhook remains the active game on `dev`; this is a bounded polish night and
+the forced release remains 2026-09-12. I will begin with fresh independent
+renderer and UI side-by-side comparisons against the shipped AAA references,
+then address the most specific remaining loss in one owned file while checking
+performance before adding render cost. I will run the full Jest suite,
+syntax/diff checks, and available real-browser captures after the change. No
+`.aaa-complete`, root Featured Game rotation, or `main` promotion is authorized
+without passing independent critic evidence.

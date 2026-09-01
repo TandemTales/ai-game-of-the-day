@@ -506,7 +506,7 @@
     var drawn = 0;
 
     for (var tx = tx0; tx <= tx1; tx++) {
-      if ((tx + levelSalt) % 9 !== 5) continue;
+      if ((tx + levelSalt) % 8 !== 3) continue;
       var surfaceY = -1;
       for (var ty = 0; ty < 9; ty++) {
         if (SH.Physics.solidAt(world, tx, ty) && !SH.Physics.solidAt(world, tx, ty + 1)) {
@@ -520,14 +520,14 @@
       var variant = hash01(seed);
       var anchorX = (tx + 0.5) * TILE;
       var anchorY = surfaceY * TILE;
-      var drop = TILE * (1.75 + variant * 1.35);
+      var drop = TILE * (1.55 + variant * 1.10);
       var bodyX = anchorX + (hash01(seed + 1) - 0.5) * TILE * 1.4;
       var bodyY = anchorY + drop;
-      var bodyW = TILE * (2.25 + hash01(seed + 2) * 1.25);
-      var bodyH = TILE * (0.66 + hash01(seed + 3) * 0.26);
+      var bodyW = TILE * (3.15 + hash01(seed + 2) * 1.45);
+      var bodyH = TILE * (0.88 + hash01(seed + 3) * 0.34);
       drawSalvageRig(world, bodyX, bodyY, bodyW, bodyH, anchorX, anchorY, variant, seed);
       drawn++;
-      if (drawn >= 5) break;
+      if (drawn >= 3) break;
     }
   }
 
@@ -554,11 +554,7 @@
     ctx.stroke();
 
     /* Broken keel: two unequal pressure-hull sections and an exposed rib. */
-    var g = ctx.createLinearGradient(sp.x, sp.y - h * S, sp.x, sp.y + h * S);
-    g.addColorStop(0, 'rgba(35,64,76,0.78)');
-    g.addColorStop(0.48, 'rgba(8,23,34,0.92)');
-    g.addColorStop(1, 'rgba(4,12,21,0.84)');
-    ctx.fillStyle = g;
+    ctx.fillStyle = 'rgba(8,23,34,0.90)';
     ctx.strokeStyle = 'rgba(104,145,151,0.42)';
     ctx.lineWidth = Math.max(1, 1.25 * S);
     ctx.beginPath();
@@ -586,6 +582,48 @@
     ctx.moveTo(sp.x + w * 0.23 * S, sp.y - h * 0.36 * S);
     ctx.lineTo(sp.x + w * 0.40 * S, sp.y + h * 0.27 * S);
     ctx.stroke();
+
+    /* Authored-looking gantry spine: a few broad ribs keep the wreck legible
+       at distance without turning this visual dressing into new geometry. */
+    ctx.strokeStyle = 'rgba(126,164,169,0.42)';
+    ctx.lineWidth = Math.max(1, 1.8 * S);
+    ctx.beginPath();
+    ctx.moveTo(sp.x - w * 0.42 * S, sp.y - h * 0.46 * S);
+    ctx.lineTo(sp.x + w * 0.40 * S, sp.y - h * 0.46 * S);
+    ctx.moveTo(sp.x - w * 0.34 * S, sp.y - h * 0.46 * S);
+    ctx.lineTo(sp.x - w * 0.28 * S, sp.y + h * 0.38 * S);
+    ctx.moveTo(sp.x + w * 0.18 * S, sp.y - h * 0.46 * S);
+    ctx.lineTo(sp.x + w * 0.25 * S, sp.y + h * 0.36 * S);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(67,111,123,0.30)';
+    ctx.lineWidth = Math.max(0.8, 1.1 * S);
+    ctx.beginPath();
+    ctx.moveTo(sp.x - w * 0.34 * S, sp.y - h * 0.20 * S);
+    ctx.lineTo(sp.x - w * 0.02 * S, sp.y - h * 0.46 * S);
+    ctx.moveTo(sp.x + w * 0.18 * S, sp.y - h * 0.46 * S);
+    ctx.lineTo(sp.x + w * 0.40 * S, sp.y - h * 0.12 * S);
+    ctx.stroke();
+
+    /* A restrained rim ties the landmark to the two live light sources. */
+    var p = world.p;
+    var beacon = world.beacon;
+    var cool = 1 - SH.clamp(SH.dist(x, y, p.x, p.y) / (TILE * 7), 0, 1);
+    var warm = 1 - SH.clamp(SH.dist(x, y, beacon.x, beacon.y) / (TILE * 9), 0, 1);
+    if (cool > 0.01 || warm > 0.01) {
+      ctx.globalCompositeOperation = 'screen';
+      ctx.lineWidth = Math.max(0.8, 1.4 * S);
+      ctx.strokeStyle = 'rgba(104,211,231,' + (0.10 + cool * 0.24) + ')';
+      ctx.beginPath();
+      ctx.moveTo(sp.x - w * 0.48 * S, sp.y - h * 0.10 * S);
+      ctx.lineTo(sp.x - w * 0.30 * S, sp.y - h * 0.45 * S);
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,203,105,' + (0.08 + warm * 0.22) + ')';
+      ctx.beginPath();
+      ctx.moveTo(sp.x + w * 0.48 * S, sp.y - h * 0.04 * S);
+      ctx.lineTo(sp.x + w * 0.31 * S, sp.y - h * 0.40 * S);
+      ctx.stroke();
+      ctx.globalCompositeOperation = 'source-over';
+    }
 
     /* A small lamp and broken mast give each landmark a point of interest. */
     var lampX = sp.x + (variant > 0.5 ? -1 : 1) * w * 0.22 * S;

@@ -35,6 +35,10 @@
       titleStyle.textContent =
         '.sh-screen--title{position:relative;overflow:hidden;}' +
         '.sh-screen--title>.sh-card{position:relative;z-index:1;}' +
+        '.sh-screen--title>.sh-card--title{width:min(400px,100%);' +
+          'background:linear-gradient(180deg,rgba(18,31,44,.82),rgba(7,14,23,.88));' +
+          'box-shadow:-14px 18px 58px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.06),' +
+          '0 0 24px rgba(111,240,214,.045);}' +
         '.sh-title-vignette{position:absolute;inset:0;z-index:0;pointer-events:none;' +
           'color:rgba(91,224,213,.72);opacity:.72;}' +
         '.sh-title-vignette svg{display:block;width:100%;height:100%;}' +
@@ -46,7 +50,10 @@
           'stroke-dasharray:4 6;stroke-linecap:round;opacity:.85;}' +
         '.sh-title-vignette .sh-vig-cue{fill:rgba(233,241,247,.68);font:600 10px/1 var(--disp, sans-serif);' +
           'letter-spacing:.14em;text-anchor:middle;}' +
-        '@media (max-width:620px){.sh-title-vignette{opacity:.55;}' +
+        '@media (max-width:680px){.sh-title-vignette{inset:0 0 auto;height:46%;opacity:.55;}' +
+          '.sh-screen--title>.sh-card--title{align-self:end;margin-bottom:4px;}' +
+          '.sh-title-vignette .sh-vig-cue{font-size:9px;}}' +
+        '@media (max-width:620px){' +
           '.sh-title-vignette .sh-vig-cue{font-size:9px;}}';
       (global.document.head || global.document.documentElement).appendChild(titleStyle);
     }

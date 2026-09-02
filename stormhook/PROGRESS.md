@@ -1,5 +1,16 @@
 # Stormhook — progress log
 
+## 2026-09-02T05:44:40-07:00 (Wednesday, Pacific) — nightly intent
+
+Stormhook remains in bounded polish before its forced 2026-09-12 release. I
+will first validate the newly landed five-level/autopilot/audio state in a real
+browser, then target the highest-value visual losses: route composition and
+title/playfield hierarchy. Renderer and UI critics will compare fresh captures
+against shipped AAA references where evidence is available. Every changed unit
+will pass the full Jest suite, syntax/diff checks, and the available browser
+gates; no `.aaa-complete`, root Featured Game change, or `main` promotion is
+planned tonight.
+
 ## 2026-08-30T23:18:40-07:00 (Sunday, Pacific) — polish handoff
 
 ### What landed and was pushed

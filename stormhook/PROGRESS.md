@@ -451,3 +451,84 @@ Tonight's plan, in order:
 
 No `.aaa-complete`, no root Featured Game rotation, and no `main` promotion is
 authorized tonight without passing independent critic evidence.
+
+### Lead work landed and pushed (before the critic rounds reported back)
+
+**The headless browser blocker was never real, and it was hiding a fatal bug.**
+Runs since 2026-08-30 reported `tools/screenshot.js` and `tools/smoke.js` as
+unavailable "because this checkout has no playwright package" and fell back to
+code review. The sandbox ships Chromium at `/opt/pw-browsers`; only the npm
+driver was missing. Installing it into scratch space and setting `SH_CHROME`
+took about two minutes. `TESTING.md` now carries the exact recipe, including
+why `SH_CHROME` is mandatory (the driver pins a browser build that does not
+match the one on disk) and why `npx playwright install` is the wrong fix.
+
+The very first smoke run against the game reported **ten failures**:
+
+* `ef4cbf8` — **`render.js` threw `ReferenceError: TILE is not defined` on
+  every frame.** `drawSalvageRig()` read `TILE`, which is a local of
+  `routeDressing()` and was never declared in its own scope. `R.draw()` aborted
+  each frame, so the title screen came up and the game never advanced: no level
+  could be cleared, no score accumulated, and the console filled with errors.
+  This landed with `08364a4` the previous night and sat on `dev` for a day.
+  Jest stayed green at 308 tests throughout, because the vm harness loads only
+  `core`/`levels`/`physics` and never executes a draw path. One line fixed it;
+  the smoke now passes end to end.
+
+  The lesson worth keeping: **a green Jest suite is not evidence the game runs.**
+  Any night that touches `render.js`, `ui.js`, `particles.js` or `textures.js`
+  must run `tools/smoke.js` before pushing.
+
+* `22912df` — **campaign extended from three levels to five.** *Tidewall
+  Gantries* (92 px/s front, six ceiling spans with one gantry inside every gap)
+  and *The Drowned Foundry* (108 px/s, 22 cores, the deepest wrap pylons in the
+  game). Both authored in the declarative rect format and validated by the
+  existing `test.each` design invariants. Those invariants earned their keep:
+  they rejected The Drowned Foundry's first par time of 64s, because the storm
+  front reached the beacon before the clock did. It ships at 55s.
+
+* `c36bf36` — **the autopilot is committed at last** (`tools/autopilot.js`),
+  closing item 4 of the previous handoff, though not as strongly as hoped. It
+  is not shipped; `index.html` never loads it. Three things it taught us, now
+  recorded in comments so they are not rediscovered: re-latching while still
+  climbing throws away the speed the swing just built (the rope constraint
+  deletes radial velocity); an anchor 43px overhead is a handhold, not an
+  anchor, and wraps onto its own corner; and once wedged, reeling *in* pulls
+  the player harder into the geometry — the only escape is to let go.
+
+  **What it gates is deliberately narrower than "the bot clears the campaign",
+  because it does not.** Measured:
+
+  | # | level | outcome | progress |
+  |---|---|---|---|
+  | 1 | Shallow Wrecks | crosses the whole level, then dies to the storm at 101s (par 42) | 104% |
+  | 2 | The Chain Yard | deck hazard | 41% |
+  | 3 | Foundry Spine | deck hazard | 31% |
+  | 4 | Tidewall Gantries | deck hazard | 16% |
+  | 5 | The Drowned Foundry | fall | 11% |
+
+  So the committed assertions are the two that are honest today: **no level may
+  wedge a player for more than two seconds** (a real regression test for the
+  30-second strand, run on all five levels) and **level 1 is crossable end to
+  end by play**. Levels 2–5 print in a `console.table` and are not gated. The
+  test header says plainly: do not weaken a level to turn this green — improve
+  the bot and raise the bar.
+
+Suite: **13 suites, 329 tests green** (was 12/308).
+
+#### Correction to a claim in earlier entries
+
+Previous handoffs quoted fps figures (60–61 at 1440x900, 37 at 768x1024, 13 at
+4K) as though they were a stable baseline. On the same build tonight the same
+viewports measured 23, 19, 10 and 5. Nothing regressed — the host was simply
+slower. These numbers are software rasterisation and are **not comparable
+across sessions**; only compare before/after figures measured in the same
+session. `TESTING.md` now says so. Real-GPU performance remains unverified.
+
+#### Not a defect: the `googletagmanager` request
+
+The screenshot sweep flags an external request to `googletagmanager.com`,
+blocked by the sandbox proxy. It is the arcade's site-wide analytics tag and is
+present in all twelve game pages plus the root `index.html`. It is deliberate
+and human-added, and must not be "fixed" as a SPEC violation. The SPEC's
+no-external-fetch rule is about game assets.

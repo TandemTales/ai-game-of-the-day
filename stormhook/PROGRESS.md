@@ -423,3 +423,31 @@ remains unverified. No `.aaa-complete`, root Featured Game rotation, or
 evidence, then focus on an actually visible salvager/target title composition
 and stronger route landmarks/light interaction. Forced release remains
 2026-09-12.
+
+## 2026-09-01T19:06:00-07:00 (Tuesday, Pacific) — nightly intent
+
+Second run of the Pacific Tuesday. Stormhook is the active game on `dev`;
+forced release remains Saturday **2026-09-12**. This is a bounded polish night,
+not a release.
+
+Tonight's plan, in order:
+
+1. **Unblock real headless verification.** Every previous run reported the
+   Stormhook screenshot/smoke harnesses as unavailable because the checkout has
+   no `playwright` package. This sandbox has Chromium pre-installed at
+   `/opt/pw-browsers`, so the first task is to install `playwright` outside the
+   repo and drive `tools/screenshot.js` / `tools/smoke.js` against it. That
+   turns "I could not verify visually" into actual read PNGs and a real
+   campaign smoke.
+2. **Attack the standing renderer FAIL.** The last critic kept `08364a4` as the
+   baseline but held the route to be "a low-information horizontal strip"
+   lacking depth occlusion, material specificity, environmental storytelling
+   and surface-reactive lighting. That is the single biggest visual loss and it
+   belongs to `render.js`.
+3. **Attack the standing UI FAIL** — the title salvager is still too subtle for
+   an AAA first-action scene, and the HUD renders behind the title modal
+   instead of being hidden outside `playing`. Both are `ui.js`/`game.css`.
+4. Full Jest before every commit; nothing lands on a red suite.
+
+No `.aaa-complete`, no root Featured Game rotation, and no `main` promotion is
+authorized tonight without passing independent critic evidence.

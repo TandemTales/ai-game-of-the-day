@@ -127,6 +127,49 @@ node stormhook/tools/screenshot.js out
 
 **Actually open the PNGs.** A screenshot you did not look at verifies nothing.
 
+### If the harness says `Cannot find module 'playwright'` — READ THIS FIRST
+
+Several nightly runs in a row reported the screenshot and smoke harnesses as
+"unavailable because this checkout has no playwright package" and fell back to
+code review. **That fallback was never necessary, and it cost real bugs** — the
+run of 2026-09-01 found a fatal `ReferenceError` in `render.js` that had been
+sitting on `dev` for a day, breaking the game in every browser, while the Jest
+suite stayed green at 308 tests because it never executes the draw path.
+
+The agent sandbox ships Chromium at `/opt/pw-browsers` but **not** the
+`playwright` npm package. Install the package (not the browsers) outside the
+repo, then point the harness at both:
+
+```bash
+# 1. Install the driver into scratch space, NOT into the repo.
+#    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD stops the postinstall re-fetching Chromium.
+mkdir -p /tmp/pw && cd /tmp/pw && npm init -y >/dev/null
+PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm i playwright@1.55.0 --no-audit --no-fund
+
+# 2. Point at the driver and at the pre-installed browser.
+export SH_PLAYWRIGHT=/tmp/pw/node_modules/playwright
+export SH_CHROME=/opt/pw-browsers/chromium-1194/chrome-linux/chrome
+```
+
+Two things that will otherwise waste your time:
+
+* **`SH_CHROME` is not optional here.** The installed driver pins a browser
+  build (e.g. `chromium_headless_shell-1187`) that does not match what is on
+  disk (`-1194`), so an unqualified `chromium.launch()` dies with *"Executable
+  doesn't exist … run npx playwright install"*. Do **not** run
+  `npx playwright install` — it is a large download and the browser is already
+  there. Just set `SH_CHROME` to the full `chrome` binary above.
+* Install into scratch space, never `npm i` playwright into this repo. It is a
+  verification tool, not a dependency of the site, and it must not appear in
+  `package.json`.
+
+Verify the whole path works before you trust a "cannot verify" conclusion:
+
+```bash
+cd <repo root> && (npx --yes http-server -p 8900 -c-1 --silent . &) ; sleep 5
+node stormhook/tools/smoke.js --levels 5      # expect: SMOKE OK
+```
+
 ### Driving gameplay from a script
 
 Aim is a **screen** point, because that is what a cursor or a finger is;
@@ -159,11 +202,17 @@ SH.Render.camera         // {x,y,scale}
 ### Reading the fps number honestly
 
 On a machine with no GPU (CI, this sandbox) Chromium falls back to software
-rasterisation and the reported fps is far below real hardware — this build
-measures 60–61fps at 1440x900 and 844x390, but 37 at 768x1024 and 13 at 4K,
-which is a rasteriser limit, not a game limit. Use the number to compare
-before/after, never to claim the game does or does not hit 60fps. **A real GPU
-check is still outstanding.**
+rasterisation and the reported fps is far below real hardware — the absolute figure is a
+rasteriser limit, not a game limit.
+
+The number also varies a lot between sandboxes, so do not treat a previous
+run's figures as a baseline for yours. One run measured 60–61fps at 1440x900
+and 844x390, 37 at 768x1024 and 13 at 4K; the 2026-09-01 run measured 23, 19,
+10 and 5 on the same build and the same viewports. Nothing regressed between
+them — the host was simply slower. **Only compare before/after numbers you
+measured yourself, in the same session, on the same machine**, and never claim
+the game does or does not hit 60fps from any of them. **A real GPU check is
+still outstanding.**
 
 ## 3. Integration smoke test — run this before any release
 
@@ -178,6 +227,19 @@ Boots the game, drives a real swing **through the input layer**, forces a rope
 wrap in a live frame, walks every level to its beacon, checks the clear and
 gameover screens and the accumulated score, kills the player with the storm and
 checks the level restarts, then checks layout and console.
+
+**Be precise about what the level walk proves.** The swing and the wrap are
+genuine — real input, real frames. The per-level clear is *not*: `smoke.js`
+sets `world.p.x/y` directly onto the beacon to trigger the transition. That is
+a real test of the clear/transition/scoring plumbing and of every level's
+metadata, and it is **not** evidence that a level is traversable by playing it.
+Level traversability currently rests on the anchor-continuity invariants in
+§1b, which are a good proxy and not a proof. The committed autopilot in §4 is
+the thing that would close this gap, and it is still outstanding.
+
+Since 2026-09-01 the campaign is **five** levels, so the full walk is
+`--levels 5`. The run is derived from `SH.Levels.count()` everywhere; adding a
+level needs no change in `game.js`, `ui.js` or this harness.
 
 **Exits non-zero** on any throw or unexpected console output, so it can gate a
 release. `--levels N` shortens the walk; `--url` points it elsewhere.

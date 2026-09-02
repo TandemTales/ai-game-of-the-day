@@ -533,6 +533,7 @@
 
   function drawSalvageRig(world, x, y, w, h, anchorX, anchorY, variant, seed) {
     var S = camera.scale;
+    var TILE = SH.TILE;
     var sp = worldToScreen(x, y);
     var a = worldToScreen(anchorX, anchorY);
     if (sp.x < -w || sp.x > W + w || sp.y < -h * 2 || sp.y > H + h * 2) return;

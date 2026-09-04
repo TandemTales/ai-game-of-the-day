@@ -543,3 +543,45 @@ blocked by the sandbox proxy. It is the arcade's site-wide analytics tag and is
 present in all twelve game pages plus the root `index.html`. It is deliberate
 and human-added, and must not be "fixed" as a SPEC violation. The SPEC's
 no-external-fetch rule is about game assets.
+
+## 2026-09-03T19:10:00-07:00 (Thursday, Pacific) — nightly intent
+
+Polish night. Stormhook is the active game on `dev` (started 2026-08-27);
+forced release Saturday remains **2026-09-12**, nine days out. Not a release
+night, and nothing tonight authorises `.aaa-complete`, a root Featured Game
+rotation, or a `main` promotion.
+
+Note for the next run: `.arcade-agent/current-game.md` **on `main`** is stale —
+it still says no game is active, because it predates the Stormhook scaffold and
+`main` has not been promoted since Zephyr Circuit. The copy on `dev` is the
+truth. Always `git checkout dev` before reading it.
+
+The previous run (2026-09-01 evening) ended mid-flight: `c203ee9` snapshotted a
+large `audio.js` rewrite as a checkpoint because agent-audio had not reported
+its critic verdicts, and no run appears to have landed anything on 2026-09-02.
+So tonight starts by re-establishing what is actually true about the build.
+
+Tonight's plan, in order:
+
+1. **Re-verify the baseline for real** — playwright driver into scratch space,
+   `SH_CHROME` at the pre-installed Chromium, full Jest, `tools/smoke.js
+   --levels 5`, and a screenshot sweep whose PNGs I actually open. The audio
+   rewrite landed unverified by any critic; the first job is confirming the
+   tree it left behind still runs clean.
+2. **The standing renderer FAIL** (`render.js`, agent-render). The last blind
+   comparison against Ori and Rayman held the route to be "a low-information
+   horizontal strip" lacking depth occlusion, material specificity,
+   environmental storytelling and surface-reactive lighting. That is the
+   largest single visual loss in the game.
+3. **The standing UI FAIL** (`ui.js` + `game.css`, agent-ui). The title
+   salvager is still too subtle to read as an AAA first-action scene, and the
+   HUD draws behind the title modal instead of being hidden outside `playing`.
+4. **Close out audio** (`audio.js`, agent-audio) — the rewrite has never faced
+   a critic. Either it gets a blind side-by-side verdict tonight or it is
+   recorded as unjudged debt, not quietly assumed good.
+
+Each sub-agent owns exactly one file per the SPEC ownership table and loops
+against a separate harsh critic that fetches real shipped-AAA references. Only
+the lead runs git. Full Jest **and** `tools/smoke.js` before every commit —
+the 2026-09-01 `ReferenceError` proved a green Jest suite is not evidence the
+game runs.

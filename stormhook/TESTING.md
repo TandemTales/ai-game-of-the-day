@@ -162,6 +162,18 @@ Two things that will otherwise waste your time:
 * Install into scratch space, never `npm i` playwright into this repo. It is a
   verification tool, not a dependency of the site, and it must not appear in
   `package.json`.
+* **Do not install an older playwright than 1.55.0.** The version above is not
+  arbitrary. A 1.4x driver launches Chromium with `--headless=old`, which the
+  browser build on disk has removed, and the failure it produces names neither
+  the flag nor the version:
+
+  ```
+  HARNESS ERROR browserType.launch: Target page, context or browser has been closed
+  [pid=…][err] Old Headless mode has been removed from the Chrome binary.
+  ```
+
+  If you see that, you installed the wrong version — reinstall 1.55.0. Nothing
+  is wrong with the harness or the browser.
 
 Verify the whole path works before you trust a "cannot verify" conclusion:
 

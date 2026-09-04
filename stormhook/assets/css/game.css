@@ -121,6 +121,26 @@ html, body {
 
 /* ------------------------------------------------------------ score pops */
 .sh-pops { position: absolute; inset: 0; overflow: hidden; }
+.sh-coach::before {
+  content: '';
+  position: absolute;
+  left: var(--coach-anchor, 50%);
+  top: -6px;
+  width: 10px;
+  height: 10px;
+  border-left: 1px solid rgba(255, 215, 110, .62);
+  border-top: 1px solid rgba(255, 215, 110, .62);
+  background: rgba(7, 14, 23, .92);
+  transform: translateX(-50%) rotate(45deg);
+}
+.sh-coach[data-side="above"]::before {
+  top: auto;
+  bottom: -6px;
+  border-left: 0;
+  border-top: 0;
+  border-right: 1px solid rgba(255, 215, 110, .62);
+  border-bottom: 1px solid rgba(255, 215, 110, .62);
+}
 .sh-pop {
   position: absolute;
   transform: translate(-50%, -50%);

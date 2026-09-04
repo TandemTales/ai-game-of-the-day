@@ -508,30 +508,33 @@
     for (var tx = tx0; tx <= tx1; tx++) {
       if ((tx + levelSalt) % 8 !== 3) continue;
       var surfaceY = -1;
-      for (var ty = 0; ty < 9; ty++) {
+      for (var ty = 0; ty < 11; ty++) {
         if (SH.Physics.solidAt(world, tx, ty) && !SH.Physics.solidAt(world, tx, ty + 1)) {
           surfaceY = ty + 1;
           break;
         }
       }
-      if (surfaceY < 2 || surfaceY > 8) continue;
+      if (surfaceY < 1 || surfaceY > 11) continue;
 
       var seed = (Math.imul(tx + 41, 2654435761) ^ Math.imul(surfaceY + 7, 2246822519)) | 0;
       var variant = hash01(seed);
       var anchorX = (tx + 0.5) * TILE;
       var anchorY = surfaceY * TILE;
-      var drop = TILE * (1.55 + variant * 1.10);
+      var drop = TILE * (surfaceY <= 2 ? (1.12 + variant * 0.72) :
+                         (surfaceY >= 8 ? (1.05 + variant * 0.58) :
+                          (1.55 + variant * 1.10)));
       var bodyX = anchorX + (hash01(seed + 1) - 0.5) * TILE * 1.4;
       var bodyY = anchorY + drop;
       var bodyW = TILE * (3.15 + hash01(seed + 2) * 1.45);
       var bodyH = TILE * (0.88 + hash01(seed + 3) * 0.34);
-      drawSalvageRig(world, bodyX, bodyY, bodyW, bodyH, anchorX, anchorY, variant, seed);
+      drawSalvageRig(world, bodyX, bodyY, bodyW, bodyH, anchorX, anchorY, variant, seed,
+                     surfaceY >= 8);
       drawn++;
       if (drawn >= 3) break;
     }
   }
 
-  function drawSalvageRig(world, x, y, w, h, anchorX, anchorY, variant, seed) {
+  function drawSalvageRig(world, x, y, w, h, anchorX, anchorY, variant, seed, nearRoute) {
     var S = camera.scale;
     var TILE = SH.TILE;
     var sp = worldToScreen(x, y);
@@ -541,7 +544,7 @@
     ctx.save();
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.globalAlpha = 0.72;
+    ctx.globalAlpha = nearRoute ? 0.86 : 0.72;
 
     /* Taut suspension lines make the object belong to the ceiling, not float
        like another background sticker. */
@@ -574,6 +577,21 @@
     ctx.quadraticCurveTo(sp.x + w * 0.34 * S, sp.y + h * 0.54 * S,
                          sp.x + w * 0.06 * S, sp.y + h * 0.25 * S);
     ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    /* A weighted underside gives route-level wrecks a foreground face. The
+       darker plane is visual-only, but makes the landmark occlude the weather
+       and feel like a real volume hanging in the traversal lane. */
+    if (nearRoute) {
+      ctx.fillStyle = 'rgba(3,11,18,0.78)';
+      ctx.strokeStyle = 'rgba(119,157,159,0.34)';
+      ctx.beginPath();
+      ctx.moveTo(sp.x - w * 0.45 * S, sp.y + h * 0.15 * S);
+      ctx.quadraticCurveTo(sp.x - w * 0.23 * S, sp.y + h * 0.70 * S,
+                           sp.x + w * 0.02 * S, sp.y + h * 0.80 * S);
+      ctx.quadraticCurveTo(sp.x + w * 0.30 * S, sp.y + h * 0.68 * S,
+                           sp.x + w * 0.47 * S, sp.y + h * 0.12 * S);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
 
     ctx.strokeStyle = 'rgba(185,126,69,0.38)';
     ctx.lineWidth = Math.max(0.8, 1.1 * S);

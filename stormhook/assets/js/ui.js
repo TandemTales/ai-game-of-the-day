@@ -191,10 +191,42 @@
       els.coachDetail.textContent = detail;
       coachKey = key;
     }
+    if (key !== 'hook') dockCoach();
     els.coach.style.opacity = '1';
     els.coach.style.transform = 'translate(-50%,0)';
     els.coach.setAttribute('aria-hidden', 'false');
     coachVisible = true;
+  }
+
+  function dockCoach() {
+    if (!els.coach) return;
+    els.coach.style.left = '50%';
+    els.coach.style.top = 'auto';
+    els.coach.style.bottom = 'calc(64px + var(--safe-b))';
+    els.coach.style.removeProperty('--coach-anchor');
+    els.coach.removeAttribute('data-side');
+  }
+
+  /* Keep the first instruction beside the live reticle. The rope already
+     provides the long visual connection; this puts the readable instruction
+     at the actionable end without covering the target itself. */
+  function positionHookCoach(world) {
+    if (!els.coach || !world || !world.aim || !SH.Render || !SH.Render.worldToScreen) return;
+    var target = SH.Render.worldToScreen(world.aim.x, world.aim.y);
+    var vw = global.innerWidth || 320, vh = global.innerHeight || 568;
+    var width = els.coach.offsetWidth || 220;
+    var height = els.coach.offsetHeight || 56;
+    var edge = 14;
+    var x = SH.clamp(target.x, edge + width / 2, vw - edge - width / 2);
+    var below = target.y < vh * 0.54;
+    var y = below ? Math.min(target.y + 28, vh - height - 66) : Math.max(target.y - 26, height + 18);
+    var anchor = SH.clamp(target.x - (x - width / 2), 14, width - 14);
+    els.coach.style.left = x + 'px';
+    els.coach.style.top = y + 'px';
+    els.coach.style.bottom = 'auto';
+    els.coach.style.setProperty('--coach-anchor', anchor + 'px');
+    els.coach.setAttribute('data-side', below ? 'below' : 'above');
+    els.coach.style.transform = below ? 'translate(-50%,0)' : 'translate(-50%,-100%)';
   }
 
   function syncCoach(world, st) {
@@ -210,6 +242,7 @@
     if (!learned.hook) {
       showCoach('hook', SH.Input.isTouch ? 'HOLD TO HOOK' : 'HOLD MOUSE TO HOOK',
         'Aim at bright hull or girder surfaces');
+      positionHookCoach(world);
     } else if (!learned.reel) {
       showCoach('reel', SH.Input.isTouch ? 'DRAG UP / DOWN TO REEL' : 'W / S TO REEL',
         SH.Input.isTouch ? 'Second finger dashes toward your aim' : 'A / D leans · Space dashes');

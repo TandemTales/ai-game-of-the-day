@@ -520,7 +520,12 @@
       var variant = hash01(seed);
       var anchorX = (tx + 0.5) * TILE;
       var anchorY = surfaceY * TILE;
-      var drop = TILE * (surfaceY <= 2 ? (1.12 + variant * 0.72) :
+      /* Ceiling rigs used to sit almost flush with the roof. At the
+         player's starting elevation that put their silhouettes above the
+         camera, leaving the first route band visually empty. Lower the
+         existing suspended landmarks into the swing lane while keeping
+         their real latch surface and suspension lines unchanged. */
+      var drop = TILE * (surfaceY <= 2 ? (5.00 + variant * 1.20) :
                          (surfaceY >= 8 ? (1.05 + variant * 0.58) :
                           (1.55 + variant * 1.10)));
       var bodyX = anchorX + (hash01(seed + 1) - 0.5) * TILE * 1.4;

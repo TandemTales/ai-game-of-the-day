@@ -219,7 +219,17 @@
     var edge = 14;
     var x = SH.clamp(target.x, edge + width / 2, vw - edge - width / 2);
     var below = target.y < vh * 0.54;
-    var y = below ? Math.min(target.y + 28, vh - height - 66) : Math.max(target.y - 26, height + 18);
+    /* The default aim can begin at the top edge before the first pointer
+       move. Keep the coach out of the HUD on short portrait screens while
+       retaining its target-relative placement everywhere else. */
+    var hudClear = vh < 600 ? 92 : 84;
+    var bottomClear = 66;
+    var y;
+    if (below) {
+      y = SH.clamp(target.y + 28, hudClear, Math.max(hudClear, vh - height - bottomClear));
+    } else {
+      y = SH.clamp(target.y - 26, height + hudClear, Math.max(height + hudClear, vh - bottomClear));
+    }
     var anchor = SH.clamp(target.x - (x - width / 2), 14, width - 14);
     els.coach.style.left = x + 'px';
     els.coach.style.top = y + 'px';

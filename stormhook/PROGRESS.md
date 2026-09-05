@@ -1,5 +1,16 @@
 # Stormhook — progress log
 
+## 2026-09-04T23:02:24-07:00 (Friday, Pacific) — nightly intent
+
+Stormhook remains in bounded polish before its forced 2026-09-12 release. I
+will first inspect the current render/UI state and run the browser harness if
+the documented scratch Playwright setup is available. I will target one
+high-value visual loss with a narrow change, then run the full Jest suite,
+syntax/diff checks, and representative browser screenshots. Independent AAA
+critic evidence is required before any quality-based release; no
+`.aaa-complete`, root Featured Game edit, or `main` promotion is planned
+tonight.
+
 ## 2026-09-02T05:44:40-07:00 (Wednesday, Pacific) — nightly intent
 
 Stormhook remains in bounded polish before its forced 2026-09-12 release. I

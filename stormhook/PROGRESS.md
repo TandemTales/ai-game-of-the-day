@@ -11,6 +11,56 @@ critic evidence is required before any quality-based release; no
 `.aaa-complete`, root Featured Game edit, or `main` promotion is planned
 tonight.
 
+## 2026-09-04T23:16:44-07:00 (Friday, Pacific) — polish handoff
+
+### What landed and was pushed
+
+* `acc3d5c` — existing ceiling-hung route wrecks now drop into the active
+  swing band instead of sitting above the starting camera. They remain
+  anchored to the same real latch surfaces; this is visual-only and adds no
+  collision or particle cost.
+* `9eb0603` — the first-action hook coach now keeps a safe clearance from the
+  HUD on short screens while remaining target-relative. The 320px portrait
+  view no longer hides SCORE or SALVAGE behind the instruction panel.
+
+### Verification actually performed
+
+* Full repository Jest suite: **13 suites / 329 tests passed** after both
+  units. `render.js` and `ui.js` passed `node --check`; `git diff --check`
+  passed.
+* The full five-level real-browser smoke passed boot, a live 558px/s swing,
+  live rope wrapping, all five level clears, clear/gameover, storm
+  death/restart, no horizontal scroll, expected static-server leaderboard
+  404 handling, and a clean console.
+* The exact screenshot sweep passed at **320x568, 390x844, 844x390,
+  768x1024, 1440x900, and 3840x2160**. Every report stayed in `playing`,
+  matched its requested dimensions, reported `hScroll:false`, and had an
+  empty app console. The PNGs were opened and read; representative mobile,
+  landscape, desktop, and a downscaled inspection preview of the 4K capture
+  show the route rigs in-frame and the coach below the HUD. The only external
+  requests were the existing Google analytics tag, which is harness noise.
+* Playwright 1.55.0 was installed only in temporary scratch space with
+  browser download disabled; the repository manifest was not changed.
+
+### Honest quality status
+
+The route composition and short-screen HUD overlap are materially improved,
+but this is still **not an AAA-cleared release**. No independent blind
+renderer/UI critic worker or shipping judge was available in this run, so no
+passing side-by-side verdict is claimed. Real-GPU performance remains
+unverified; the software-rasterizer sweep measured roughly 51/31/26/14/30/6
+fps in the six viewport order above, with 4K still a profiling risk. The
+scene remains procedurally stylized against the Ori/Rayman reference bar.
+There is no `.aaa-complete`, no root Featured Game edit, and no `main`
+promotion.
+
+### Next run
+
+Start with independent renderer/UI side-by-side comparisons if worker
+capacity is available, then profile the 4K/desktop render path on real GPU
+hardware before adding more draw cost. Continue route landmark variety and
+world-attached light work; keep the forced-release target at **2026-09-12**.
+
 ## 2026-09-02T05:44:40-07:00 (Wednesday, Pacific) — nightly intent
 
 Stormhook remains in bounded polish before its forced 2026-09-12 release. I

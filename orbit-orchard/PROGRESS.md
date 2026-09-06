@@ -42,3 +42,11 @@ Read this file, `SPEC.md`, and `TESTING.md`. Run the dedicated and full Jest
 suites plus a real-browser smoke and six-viewport screenshot sweep. Then take
 two bounded polish areas—likely the greenhouse composition and the seed/relic
 material language—through independent shipped-AAA side-by-side criticism.
+
+## 2026-09-06 (Sunday, Pacific) — polish run intent
+
+Focus this bounded run on greenhouse/seed/relic rendering and responsive UI.
+Run the baseline tests, assign each implementation agent its single owned file,
+and seek independent shipped-AAA screenshot comparisons. Verify the real browser
+at all six required viewports before recording results. This is not release
+night (started 2026-09-05); main stays at the existing release.

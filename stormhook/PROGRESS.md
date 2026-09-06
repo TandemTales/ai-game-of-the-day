@@ -1,5 +1,34 @@
 # Stormhook — progress log
 
+## 2026-09-05 (Saturday, Pacific) — RELEASE NIGHT (forced)
+
+**Tonight is Stormhook's forced Saturday release, and every earlier entry in
+this log that says 2026-09-12 was wrong.** The standing routine's rule is
+literal: *if the Pacific weekday is Saturday and the active game started 9 or
+more days ago, tonight is a forced release.* `.arcade-agent/current-game.md`
+records `started: 2026-08-27`; today is Saturday 2026-09-05, which is **9 days**.
+The rule's stated intent agrees — a game "skips its first Saturday and ships on
+its second", and Stormhook was scaffolded on the Thursday two days before
+2026-08-29, so that Saturday (age 2) was its first and tonight (age 9) is its
+second. 2026-09-12 would have been a *third* Saturday and a three-week cycle.
+The 9-day threshold exists only to tell those two Saturdays apart; it is not a
+quality signal, and the game does not have to be finished to ship tonight.
+
+So: **no new polish.** Wrap-up only, in the routine's order — full test suite,
+screenshot sweep across the six viewports, root `index.html` Featured Game
+rotation, `.aaa-complete` with honest debt, `current-game.md` reset, push `dev`,
+promote to `main`. Only *glaring* problems block the release: a crash, console
+errors, an unreadable HUD, broken touch controls, or an uncompletable level.
+Cosmetic shortfalls — and Stormhook has real ones, chiefly the standing
+renderer and UI critic FAILs and the total absence of real-GPU validation — get
+recorded as debt in `.aaa-complete`, not fixed tonight.
+
+The verification bar for a forced release is *not broken*, and it is still a
+bar I have to actually clear rather than assume: Jest, `tools/smoke.js` over all
+five levels in a real browser, and a six-viewport sweep whose PNGs I open and
+read. The 2026-09-01 `ReferenceError` that shipped past a green 308-test suite
+is the reason the smoke run is non-negotiable before anything is promoted.
+
 ## 2026-09-04T23:02:24-07:00 (Friday, Pacific) — nightly intent
 
 Stormhook remains in bounded polish before its forced 2026-09-12 release. I

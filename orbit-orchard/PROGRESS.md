@@ -82,3 +82,50 @@ Pikmin 4 gameplay screenshot. Second pass improves foliage, silhouette and hazar
 separation, but the central scene still reads as a flat tray with sparse lighting
 and isolated tokens rather than an authored greenhouse. No AAA claim; keep this
 as progress and carry scene depth/material/story variety into the next run.
+
+### Final responsive revision and handoff
+
+The second CSS pass reduces active-phone chrome, uses the full phone width,
+fits the complete live arena plus essential HUD inside 844x390, and expands the
+4K layout. A browser regression now asserts native 8:5 canvas proportions and
+physical landscape arena/readout containment. That regression passes.
+
+All 18 final ready/playing/over PNGs across 320x568, 390x844, 844x390,
+768x1024, 1440x900 and 3840x2160 were opened and visually inspected by the lead.
+The independent critic also opened actual publisher reference screenshots and
+paired them beside ours, then inspected both iterations. These were independent
+identified comparisons, not identity-blind judgments; there is no blind-pass claim.
+Local evidence is in node_modules/.cache/orbit-orchard/final/ and critic/;
+these ignored artifacts can be regenerated using tools/smoke.js.
+
+| Discipline | Final verdict | Remaining work |
+| --- | --- | --- |
+| Greenhouse / materials | FAIL vs Pikmin 4 | Authored scene depth, varied light/material response, stronger player focus and collectible scale/story |
+| UI | FAIL vs Katamari Damacy REROLL | Portrait arena/player too small; first-screen Replant at 320px; further 4K hierarchy/scale tuning |
+| Gameplay / audio / VFX | Not judged this run | Full-run routing/balance, actual audio implementation/review, dedicated VFX criticism |
+
+References used by the independent critic:
+- Nintendo Pikmin 4 official page: https://www.nintendo.com/en-gb/Games/Nintendo-Switch-games/Pikmin-4-2267217.html
+- Actual treasure-hunt screenshot: https://www.nintendo.com/eu/media/images/08_content_images/games_6/nintendo_switch_7/nswitch_pikmin4/CI_NSwitch_Pikmin4_hunt_scr01.jpg
+- Katamari Damacy REROLL publisher screenshots: https://store.steampowered.com/app/848350/Katamari_Damacy_REROLL/
+- Actual rolling gameplay screenshot: https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/848350/ss_6f8332bf0c21f7d5072e56655c3f77147c4832e7.1920x1080.jpg
+
+No essential HUD clipping remains in inspected live states. At 320px the results
+card is fully accessible by scrolling, but Replant is below the first viewport;
+landscape results also extend vertically while Replant remains visible. Native
+Chromium touch and mocked score submission passed; physical-device performance,
+production leaderboard availability and a natural full-run playthrough were not
+verified this run. Fixed 960x600 backing resolution remains a 4K sharpness debt.
+
+Next run: begin with the browser harness, then prioritize a portrait camera/world
+framing decision that enlarges the seed and pickups without distorting controls.
+Develop one authored greenhouse composition with a strong light/focal hierarchy.
+Continue independent criticism; do not treat this checkpoint as AAA completion.
+
+Stopped after two bounded polish areas and a second critic iteration. No shipping
+judge was run because both disciplines still fail. No .aaa-complete marker was
+written, no release occurred, and main was not changed. Started 2026-09-05;
+2026-09-12 is age 7 (polish), 2026-09-19 is age 14 (forced release).
+
+Final verification: full repository Jest passed 14 suites / 340 tests; syntax
+and git diff --check passed. All required work checkpoints were pushed to dev.

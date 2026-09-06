@@ -206,3 +206,56 @@ kbd { display: grid; place-items: center; min-height: 24px; padding: 0 4px; bord
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; }
 }
+
+/* Keep the live phone view focused on its field; supporting instructions stay
+   available on the ready and results screens. */
+@media (max-width: 560px) and (orientation: portrait) {
+  body:has(#screenOverlay[hidden]) .page-shell { padding-top: 4px; }
+  body:has(#screenOverlay[hidden]) .topbar { min-height: 36px; margin-bottom: 6px; }
+  body:has(#screenOverlay[hidden]) .back-link { min-height: 36px; }
+  body:has(#screenOverlay[hidden]) .brand-kicker { display: none; }
+  body:has(#screenOverlay[hidden]) h1 { margin-top: 0; }
+  body:has(#screenOverlay[hidden]) .arcade-layout { gap: 8px; }
+  body:has(#screenOverlay[hidden]) .score-panel { display: grid; grid-template-columns: 1fr auto; align-content: center; column-gap: 3px; padding: 8px; }
+  body:has(#screenOverlay[hidden]) .score-panel .panel-label { grid-column: 1 / -1; }
+  body:has(#screenOverlay[hidden]) .score-value { margin: 6px 0 0; font-size: clamp(21px, 5.8vw, 25px); letter-spacing: .015em; }
+  body:has(#screenOverlay[hidden]) .score-meta { align-self: end; }
+  body:has(#screenOverlay[hidden]) .score-meta span:first-child { display: none; }
+  body:has(#screenOverlay[hidden]) .compact-card { padding: 8px; }
+  body:has(#screenOverlay[hidden]) .compact-card strong { margin: 7px 0 0; font-size: 23px; }
+  body:has(#screenOverlay[hidden]) .compact-card > span { display: none; }
+  body:has(#screenOverlay[hidden]) .play-column { margin-inline: -10px; }
+  body:has(#screenOverlay[hidden]) .game-shell { padding: 2px; border-radius: 0; border-inline: 0; }
+  body:has(#screenOverlay[hidden]) .canvas-wrap { border-radius: 0; }
+  body:has(#screenOverlay[hidden]) .game-status { height: 24px; padding-inline: 10px; }
+  body:has(#screenOverlay[hidden]) .under-game-note,
+  body:has(#screenOverlay[hidden]) .controls-card,
+  body:has(#screenOverlay[hidden]) .footer-line,
+  body:has(#screenOverlay[hidden]) .objective-card .panel-label { display: none; }
+  body:has(#screenOverlay[hidden]) .objective-card { padding: 10px 4px; border: 0; background: transparent; box-shadow: none; }
+  body:has(#screenOverlay[hidden]) .objective-card p { margin: 0; font-size: 11px; line-height: 1.5; }
+  body:has(#screenOverlay[hidden]) .legend-row { display: inline-flex; margin: 10px 10px 0 0; font-size: 8px; gap: 6px; }
+}
+@media (max-height: 620px) and (orientation: landscape) {
+  /* The shell, header, and page padding take 90px; the rest is a full 8:5
+     playfield. Cards may still expand the row when the results need space. */
+  .page-shell { max-width: min(1050px, calc((100svh - 90px) * 1.6 + 221px)); }
+  .objective-card p { font-size: 10px; }
+}
+@media (min-width: 1800px) and (min-height: 900px) {
+  .page-shell { width: min(2640px, 94%); padding-top: clamp(36px, 4vh, 86px); }
+  .arcade-layout { grid-template-columns: minmax(0, 1fr) 340px; }
+  .topbar { margin-bottom: 36px; }
+  h1 { font-size: 44px; }
+  .brand-kicker { font-size: 12px; }
+  .info-rail { gap: 16px; }
+  .panel-card { padding: 22px; }
+  .panel-label { font-size: 11px; }
+  .score-value { font-size: 52px; }
+  .compact-card strong { font-size: 34px; }
+  .compact-card > span, .legend-row { font-size: 10px; }
+  .objective-card p { font-size: 14px; }
+  .control-row { font-size: 11px; }
+  .quote-card p { font-size: 20px; }
+  .game-status { font-size: 11px; height: 36px; }
+}

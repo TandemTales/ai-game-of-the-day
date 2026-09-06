@@ -98,6 +98,15 @@ async function main() {
       });
       await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => { OO.runtime.stop(); resolve(); }))));
       await page.evaluate(() => window.scrollTo(0,0));
+      const arena = await page.locator('canvas').boundingBox();
+      assert(Math.abs(arena.width / arena.height - 1.6) < .01, 'canvas keeps native aspect ratio');
+      if (height < 620 && width > height) {
+        assert(arena.y >= 0 && arena.y + arena.height <= height, 'entire landscape arena fits physical viewport');
+        for (const selector of ['#scoreValue','#massValue','#timeValue']) {
+          const readout = await page.locator(selector).boundingBox();
+          assert(readout.y >= 0 && readout.y + readout.height <= height, `${selector} fits landscape viewport`);
+        }
+      }
       await page.screenshot({ path:path.join(output, `${width}x${height}-playing.png`), fullPage:true });
       // Reload resumes RAF for real HUD/overlay synchronization and score-form checks.
       await page.reload(); await page.locator('#startButton').click();

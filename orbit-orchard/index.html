@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Orbit Orchard — grow a solar seed through a derelict orbital greenhouse.">
+  <title>Orbit Orchard — Bot Built Arcade</title>
+  <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
+  <link rel="stylesheet" href="assets/css/game.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="back-link" href="../index.html" aria-label="Back to Bot Built Arcade">← Arcade</a>
+      <div class="brand-lockup">
+        <span class="brand-kicker">BOT BUILT ARCADE / ORBITAL HARVEST 01</span>
+        <h1>ORBIT ORCHARD</h1>
+      </div>
+      <div class="topbar-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+    </header>
+
+    <main class="arcade-layout">
+      <section class="play-column" aria-label="Orbit Orchard playfield">
+        <div class="game-shell">
+          <div class="game-status" aria-live="polite">
+            <span><i class="status-dot"></i><span id="statusText">SEED DORMANT</span></span>
+            <span class="status-rule"></span>
+            <span>OO / 01</span>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="gameCanvas" width="960" height="600" aria-label="Orbit Orchard solar seed playfield" role="img" tabindex="0"></canvas>
+            <div class="screen-overlay" id="screenOverlay">
+              <div class="overlay-card" id="startCard">
+                <div class="eyebrow">GREENHOUSE / ORBIT 07</div>
+                <h2>GROW A<br><em>NEW SUN.</em></h2>
+                <p>Roll the solar seed through the abandoned orchard.<br>Absorb relics, bend gravity, and keep your constellation alive.</p>
+                <button class="primary-btn" id="startButton" type="button"><span>ENTER ORBIT</span><b>SPACE</b></button>
+                <div class="overlay-hint">WASD / ARROWS TO STEER · DRAG ON THE FIELD TO PILOT</div>
+              </div>
+              <div class="overlay-card game-over-card" id="gameOverCard" hidden>
+                <div class="eyebrow">ORBIT DECAYED</div>
+                <h2>HARVEST<br><em>COMPLETE.</em></h2>
+                <div class="final-score-label">FINAL SCORE</div>
+                <div class="final-score" id="finalScore">000000</div>
+                <form class="score-form" id="scoreForm">
+                  <label for="playerName">Enter your callsign</label>
+                  <div class="score-input-row">
+                    <input id="playerName" name="playerName" maxlength="20" autocomplete="nickname" value="ORCHARDER" required>
+                    <button class="submit-btn" type="submit">POST SCORE</button>
+                  </div>
+                  <div class="score-result" id="scoreResult" aria-live="polite"></div>
+                </form>
+                <button class="secondary-btn" id="replayButton" type="button">REPLANT <span>↵</span></button>
+              </div>
+            </div>
+            <div class="touch-hint" id="touchHint"><span class="touch-ring">↗</span> DRAG TO PILOT THE SEED</div>
+          </div>
+        </div>
+        <div class="under-game-note"><span class="note-line"></span><span>MASS BENDS THE ROUTE / HARVEST THE RISK</span><span class="note-line"></span></div>
+      </section>
+
+      <aside class="info-rail">
+        <div class="score-panel panel-card">
+          <div class="panel-label">CURRENT HARVEST</div>
+          <div class="score-value" id="scoreValue">000000</div>
+          <div class="score-meta"><span>SCORE</span><span id="comboValue">×1</span></div>
+        </div>
+        <div class="readout-grid">
+          <div class="panel-card compact-card"><div class="panel-label">MASS</div><strong id="massValue">256</strong><span>GRAVITY UNITS</span></div>
+          <div class="panel-card compact-card"><div class="panel-label">ORBIT</div><strong id="timeValue">01:05</strong><span>TIME REMAINING</span></div>
+        </div>
+        <div class="panel-card objective-card">
+          <div class="panel-label">FIELD NOTE</div>
+          <p>Relics smaller than your seed will <strong>join the constellation</strong>. Same-color harvests link for a higher multiplier.</p>
+          <div class="legend-row"><i class="legend-seed"></i><span>YOU / THE SOLAR SEED</span></div>
+          <div class="legend-row"><i class="legend-well"></i><span>GRAVITY WELL / −4 SEC</span></div>
+        </div>
+        <div class="panel-card controls-card">
+          <div class="panel-label">CONTROLS</div>
+          <div class="control-row"><kbd>WASD</kbd><span>STEER</span><kbd>↕</kbd></div>
+          <div class="control-row"><kbd>DRAG</kbd><span>TO PILOT</span><kbd>✦</kbd></div>
+          <div class="control-row"><kbd>SPACE</kbd><span>START / REPLANT</span><kbd>↵</kbd></div>
+        </div>
+        <div class="quote-card"><span class="quote-mark">“</span><p>Every orbit remembers what it touches.</p><span class="quote-by">— GREENHOUSE LOG / 07</span></div>
+      </aside>
+    </main>
+    <footer class="footer-line"><span>ORBIT ORCHARD / PROCEDURAL GREENHOUSE</span><span>NO EXTERNAL ASSETS</span></footer>
+  </div>
+  <script src="assets/js/game.js"></script>
+</body>
+</html>

@@ -266,8 +266,12 @@ html, body {
 
 .sh-title {
   margin: 0 0 6px;
-  font: 800 clamp(30px, 8vw, 46px)/1 var(--disp);
-  letter-spacing: .10em;
+  /* The wordmark must fit the card's 356px content box. At 46px/.10em it
+     measured 379px and the final K hung over the card's right border on
+     every >=768px viewport; 44px/.06em measures ~346px and still reads as
+     the largest thing on the screen. */
+  font: 800 clamp(30px, 8vw, 44px)/1 var(--disp);
+  letter-spacing: .06em;
   background: linear-gradient(180deg, #fff6dd, var(--brass));
   -webkit-background-clip: text; background-clip: text;
   color: transparent;
@@ -296,7 +300,10 @@ html, body {
   border-bottom: 1px solid rgba(233, 241, 247, .08);
   font-size: 14px;
 }
-.sh-row b { font-family: var(--mono); }
+/* Keep the step label on one line so the longer touch control strings wrap
+   inside the value column instead of splitting "3 · RELEASE" across rows. */
+.sh-row > span { white-space: nowrap; }
+.sh-row b { font-family: var(--mono); text-align: right; }
 .sh-row.is-strong { border-bottom: none; margin-top: 4px; font-size: 17px; }
 .sh-row.is-strong b { color: var(--gold); }
 .sh-dim { color: rgba(233, 241, 247, .45); font-size: 12px; }

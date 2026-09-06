@@ -1,6 +1,25 @@
 # Active game
 
-**None.** No game is currently in development.
+**orbit-orchard** — A solar seed rolls through a derelict orbital greenhouse,
+absorbing smaller relics to grow, bending nearby gravity as its mass increases,
+and chaining constellation harvests before the station's orbit decays. The
+core verb is steer-and-absorb, with keyboard, mouse, and touch drag controls;
+score comes from mass gained, risk routes, and timed constellation chains.
+
+`started: 2026-09-05` (Pacific). This is 7 days old on 2026-09-12, so it keeps
+polishing on its first Saturday; it is 14 days old on 2026-09-19, its forced
+release Saturday under the literal Pacific Saturday + 9-days rule.
+
+The implementation is intentionally distinct from every current arcade game:
+it is a top-down absorb-and-grow score attack, not a grapple platformer,
+racer, stealth loop, beat-em-up, defense/building game, brick breaker, shooter,
+descent, pinball scaffold, exploration game, or memory puzzle.
+
+---
+
+## Previous release
+
+**Active:** `orbit-orchard` is currently in development.
 
 `stormhook/` was **released on 2026-09-05 (Pacific)** as a forced Saturday
 release at 9 days old, and is marked complete by `stormhook/.aaa-complete`. It
@@ -17,7 +36,7 @@ viewports swept with the PNGs actually read, console clean, no horizontal
 scroll. One glaring defect was found and fixed on the night: the STORMHOOK
 wordmark overflowed its card and clipped the final K on every viewport >= 768px.
 
-## Next run
+## Previous next-run note
 
 Go to **STEP 2** and pick a new game. Choose something clearly different in
 genre *and* core verb from every existing arcade game, scaffold a playable

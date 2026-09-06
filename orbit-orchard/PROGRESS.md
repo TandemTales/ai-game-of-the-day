@@ -18,7 +18,18 @@ mass, links same-color harvests, and avoids timed gravity wells.
 
 ### Verified
 
-- Not run yet; this is the initial scaffold handoff.
+- Dedicated Jest: 11 tests passed. Full repository Jest: 14 suites / 340 tests
+  passed. `node --check orbit-orchard/assets/js/game.js` and `git diff --check`
+  passed.
+- Real-browser HTTP smoke in the Codex in-app browser: start overlay cleared,
+  the seed moved from a drag, score/mass/time updated, the run reached natural
+  `ORBIT DECAYED` with the final-score overlay, and `REPLANT` returned to a
+  fresh `01:05` run. The initial and live canvas screenshots were opened and
+  read; no horizontal overflow and no browser warning/error logs were found.
+- Catalog wiring is present: Orbit Orchard is Featured Game with its own rate
+  id and leaderboard link, and Stormhook is the first More Games entry.
+- Intent was pushed as `e44020c`; the playable scaffold and catalog update were
+  pushed as `bfc77fd` on `dev`.
 
 ### AAA / release gate
 

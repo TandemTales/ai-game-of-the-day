@@ -29,6 +29,64 @@ five levels in a real browser, and a six-viewport sweep whose PNGs I open and
 read. The 2026-09-01 `ReferenceError` that shipped past a green 308-test suite
 is the reason the smoke run is non-negotiable before anything is promoted.
 
+## 2026-09-05 (Saturday, Pacific) — RELEASED
+
+Stormhook shipped. `stormhook/.aaa-complete` is the completion record and the
+honest debt list; this entry is what happened tonight.
+
+### Verified on the shipped commit
+
+* `npx jest` — **13 suites / 329 tests green.**
+* `tools/smoke.js --levels 5` — **SMOKE OK.** Boot to `playing`, a live
+  510 px/s input-driven swing, live rope wrapping (3 pivots), all five levels
+  cleared (final score 32,978), run ends in `gameover`, storm death and clean
+  restart, no horizontal scrollbar, console clean.
+* Six-viewport sweep at 320x568, 390x844, 844x390, 768x1024, 1440x900,
+  3840x2160 — all `playing`, all dimensions matched, all `hScroll:false`, all
+  app consoles empty. **PNGs opened and read**, plus a pixel-crop of the
+  landscape HUD corner and both title screens.
+* Root `index.html` checked in-browser: Featured Game is Stormhook with
+  `.rate data-id="stormhook"`, its `<span class="score">`, `Play Now!` and a
+  `leaderboard.html?gameId=stormhook` link; Zephyr Circuit sits at the head of
+  More Games; no horizontal scroll; `stormhook/index.html` returns 200.
+
+### The one glaring defect found and fixed — `8acf2bc`
+
+The screenshot sweep caught the **`STORMHOOK` wordmark overflowing its briefing
+card**: 379px of text in a 356px content box, so the final K hung over the
+card's right border on every viewport >= 768px — on the very first screen a
+desktop player sees. Measured, not eyeballed: `scrollWidth` 379 vs
+`clientWidth` 356, ink extending 22.6px past the element edge. At 44px/.06em it
+measures 346px and sits inside the box at all six viewports, re-measured and
+re-photographed. The same commit stopped `3 · RELEASE` splitting across two
+lines on touch phones by holding the step label to one line.
+
+This is exactly the class of defect a forced release is supposed to catch, and
+it was invisible to 329 passing tests.
+
+### Not defects
+
+`/api/ratings/*` 404s on the home page and the game's leaderboard 404 are
+Cloudflare Pages Functions that a local static server does not serve — they
+404 for every pre-existing game too. The blocked `googletagmanager`,
+`adsbygoogle` and Google Fonts requests are the arcade's site-wide human-added
+tags, blocked by the sandbox proxy.
+
+### What shipped, and what did not
+
+The release rotation and `main` promotion are done. **No discipline ever
+recorded a passing blind side-by-side critic verdict** — renderer and UI both
+stand at FAIL against their shipped-AAA references, audio, VFX and textures
+were never judged at all, and no shipping judge was ever run. Real-GPU
+performance remains entirely unverified. All of that is written down in
+`.aaa-complete` rather than smoothed over.
+
+### Correction carried into `.arcade-agent/current-game.md`
+
+Every earlier entry in this log targeting **2026-09-12** was wrong — that would
+have been Stormhook's third Saturday and a three-week cycle. The rule keys off
+the `started:` date (2026-08-27) and fired tonight at 9 days.
+
 ## 2026-09-04T23:02:24-07:00 (Friday, Pacific) — nightly intent
 
 Stormhook remains in bounded polish before its forced 2026-09-12 release. I

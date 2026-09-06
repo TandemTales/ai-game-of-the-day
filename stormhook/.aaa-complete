@@ -1,0 +1,121 @@
+# Stormhook — released 2026-09-05 (Saturday, Pacific)
+
+**This was a forced two-week-clock release, not a quality-based one.** The
+routine's rule fired: Pacific Saturday, and the game started 2026-08-27, which
+is 9 days. Under a forced release the bar is *not broken*, not *finished* —
+cosmetic shortfalls ship as debt and are listed below. Read this whole file
+before assuming anything about Stormhook's quality.
+
+Released as the featured game of the Bot Built Arcade and promoted to `main`.
+
+---
+
+## What release night actually verified
+
+Every one of these was run tonight against the shipped commit, not quoted from
+an earlier log:
+
+* **Tests: 13 suites / 329 tests green** (`npx jest`). Includes 37 rope/physics
+  simulation tests, 26 design invariants, and the autopilot wedge regression.
+* **Real-browser campaign smoke** (`tools/smoke.js --levels 5`, headless
+  Chromium): boots to `playing`, a live 510 px/s input-driven swing, live rope
+  wrapping onto a pylon (3 pivots), **all five levels clear** (final score
+  32,978), the run ends in `gameover`, the storm kills and the level restarts
+  cleanly, no horizontal scrollbar, console clean.
+* **Six-viewport screenshot sweep** at 320x568, 390x844, 844x390, 768x1024,
+  1440x900 and 3840x2160. Every capture stayed in `playing`, matched its
+  requested dimensions, reported `hScroll:false`, and had an empty app console.
+  **The PNGs were opened and read**, plus a pixel-crop of the landscape HUD
+  corner and both title screens.
+* **One glaring defect was found by that sweep and fixed** (`8acf2bc`): the
+  `STORMHOOK` wordmark measured 379px inside a 356px content box, so the final
+  K hung over the briefing card's right border on every viewport >= 768px —
+  on the first screen a desktop player sees. Now 346px, measured inside the box
+  at all six viewports. The same commit stopped `3 · RELEASE` splitting across
+  two lines on touch phones.
+* The only console error in any run is a proxy-blocked request to
+  `googletagmanager.com`. That is the arcade's site-wide analytics tag, present
+  on all twelve game pages and the root `index.html`. It is human-added and
+  deliberate; it is **not** a SPEC violation and must not be "fixed".
+
+No crash, no console errors, no unreadable HUD, no broken touch control, no
+uncompletable level. That is the forced-release bar, and it is met.
+
+---
+
+## Final critic verdicts — honest, and two of them are FAILs
+
+**No discipline ever recorded a passing blind side-by-side verdict, and no
+independent shipping judge was ever run.** Stormhook would not have been
+eligible for a quality-based release. It shipped on the calendar.
+
+| Discipline | File | Final verdict |
+|---|---|---|
+| Renderer | `render.js` | **FAIL** vs *Ori and the Blind Forest* / *Rayman Legends* |
+| UI | `ui.js`, `game.css` | **FAIL** vs *Umihara Kawase Fresh!* / *Bionic Commando Rearmed* |
+| Audio | `audio.js` | **UNJUDGED** — rewritten, never faced a critic |
+| VFX | `particles.js` | **UNJUDGED** — no critic loop was ever run |
+| Textures | `textures.js` | **UNJUDGED** — no critic loop was ever run |
+
+* **Renderer — FAIL.** The critic granted that the salvager silhouette, hull
+  variation and motion cues are materially improved and no longer read as
+  scaffold. It still held that Stormhook loses on route-focused composition,
+  distinct depth planes, surface-reactive lighting, authored structures and
+  environmental storytelling; that portrait divides into long atmospheric
+  bands; and that desktop has a low-information centre. Later nights added
+  derived salvage rigs, a world-anchored beacon shaft and route wrecks dropped
+  into the swing lane — real improvements, but they were never re-judged, so
+  the standing verdict remains FAIL.
+* **UI — FAIL.** The critic granted that the HUD leak is fixed, `×1` is
+  immediately readable, the player/tether relationship is clearer and the
+  contextual touch onboarding is a real improvement. It still held that the
+  title is an oversized web-style card in an empty scene, the coach is detached
+  from its target, the bottom controls form competing zones, and the playfield
+  hierarchy is weaker than the commercial references. The final review after
+  `90ee8bf` came back **UNJUDGED** because no renderable *Bionic Commando*
+  reference could be fetched, and noted the title salvager is still too subtle
+  for an AAA first-action scene.
+
+---
+
+## Polish debt carried into release
+
+1. **Renderer composition — the largest single loss.** No depth occlusion, no
+   material specificity, thin environmental storytelling, no surface-reactive
+   lighting. The route still reads as a horizontal strip rather than an
+   authored place. This is where the next attempt at this game should start.
+2. **Title screen presentation.** Still a large card over a quiet scene rather
+   than a composed first-action shot; the hook-line motif reads as a diagram.
+   The wordmark now fits, but "fits" is not "designed".
+3. **Audio is entirely unjudged.** A substantial `audio.js` rewrite landed on
+   2026-09-01 as a checkpoint commit and no critic has ever heard it. It is not
+   known to be bad; it is known to be unverified.
+4. **VFX and textures never had a critic loop at all.** They are lead-authored
+   first-pass scaffolds that were never handed to their owning agents.
+5. **Real-GPU performance is completely unverified.** Every fps figure in this
+   game's history comes from software rasterisation in a GPU-less sandbox and
+   is not comparable across sessions — tonight's sweep read 38/22/22/11/23/5
+   across the six viewports in order. 4K in particular is an unquantified
+   profiling risk. Nothing has ever run on real hardware.
+6. **The autopilot clears only level 1.** `tools/autopilot.js` crosses *Shallow
+   Wrecks* end to end but dies to a deck hazard at 41%/31%/16% on levels 2-4
+   and falls at 11% on level 5. Levels 2-5 are therefore machine-playable only
+   in the weaker sense that the design invariants prove anchor coverage and the
+   smoke test clears them by teleport-assisted progression. **Do not weaken a
+   level to raise those numbers — improve the bot.**
+7. **HUD scale at 4K.** The HUD is laid out in CSS pixels and is proportionally
+   very small on a 3840x2160 display. Legible, but not designed for that size.
+
+## Landmines for whoever touches this game next
+
+* **A green Jest suite is not evidence the game runs.** The vm harness loads
+  only `core.js`, `levels.js` and `physics.js`. On 2026-09-01 a
+  `ReferenceError: TILE is not defined` in `render.js` broke the game in every
+  browser for a full day while 308 tests stayed green. Any change to
+  `render.js`, `ui.js`, `particles.js` or `textures.js` must run
+  `tools/smoke.js` before it is pushed.
+* **The browser harness works in this sandbox.** Several runs wrongly reported
+  it unavailable and fell back to code review, which is how the above bug
+  survived. `TESTING.md` carries the exact recipe; the short version is that
+  Chromium is at `/opt/pw-browsers` and only the npm driver is missing, and
+  `SH_CHROME` is mandatory because the driver pins a different browser build.

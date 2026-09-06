@@ -1,0 +1,434 @@
+/* =====================================================================
+   STORMHOOK — game.css   [OWNER: agent-ui]
+
+   All DOM styling: HUD, screens, modals. No external fonts — the stacks
+   below are system fonts only, so the game works offline and from
+   file://.
+
+   FIRST PASS (lead-authored scaffold, 2026-08-27).
+   ===================================================================== */
+
+:root {
+  --ink: #05080d;
+  --paper: #e9f1f7;
+  --brass: #c79a4b;
+  --gold: #ffd76e;
+  --teal: #6ff0d6;
+  --danger: #ff5a53;
+  --sky: #0a1420;
+  --panel: rgba(8, 16, 26, 0.72);
+  --stroke: rgba(233, 241, 247, 0.16);
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --disp: "Trebuchet MS", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0; height: 100%;
+  background: var(--sky);
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  color: var(--paper);
+  font-family: var(--disp);
+}
+
+#sh-ui {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  user-select: none; -webkit-user-select: none;
+}
+#sh-ui button, #sh-ui a, #sh-ui input { pointer-events: auto; }
+
+/* ---------------------------------------------------------------- HUD */
+.sh-hud {
+  position: absolute;
+  top: calc(10px + var(--safe-t));
+  left: calc(12px + var(--safe-l));
+  right: calc(12px + var(--safe-r));
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  transition: opacity .25s ease;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, .8);
+}
+.sh-hud.is-dim { opacity: .25; }
+
+.sh-hud-left, .sh-hud-right { display: flex; flex-direction: column; gap: 4px; }
+.sh-hud-right { align-items: flex-end; text-align: right; }
+.sh-hud-mid { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 92px; }
+
+.sh-stat { display: flex; flex-direction: column; line-height: 1.05; }
+.sh-k {
+  font: 600 9px/1 var(--mono);
+  letter-spacing: .18em;
+  color: rgba(233, 241, 247, .55);
+}
+.sh-stat b { font: 700 20px/1.15 var(--mono); color: var(--paper); }
+#sh-score { color: var(--gold); }
+
+.is-bump { animation: shBump .22s ease-out; }
+@keyframes shBump { 0% { transform: scale(1.28); } 100% { transform: scale(1); } }
+.sh-stat b, .sh-combo { display: inline-block; transform-origin: left center; }
+.sh-hud-right .sh-stat b { transform-origin: right center; }
+
+.sh-combo {
+  font: 800 26px/1 var(--mono);
+  color: var(--teal);
+  transform-origin: center;
+  transition: opacity .2s ease;
+}
+.sh-combo.is-hot { color: var(--gold); text-shadow: 0 0 14px rgba(255, 215, 110, .8); }
+
+.sh-air {
+  width: 88px; height: 4px;
+  background: rgba(233, 241, 247, .16);
+  border-radius: 3px; overflow: hidden;
+}
+.sh-air > i {
+  display: block; height: 100%; width: 0;
+  background: linear-gradient(90deg, var(--teal), var(--gold));
+}
+
+/* ------------------------------------------------------------- warning */
+.sh-warn {
+  position: absolute;
+  left: 50%; top: calc(84px + var(--safe-t));
+  transform: translateX(-50%);
+  font: 700 12px/1 var(--mono);
+  letter-spacing: .22em;
+  color: var(--danger);
+  opacity: 0;
+  transition: opacity .18s ease;
+  text-shadow: 0 0 12px rgba(255, 90, 83, .9);
+}
+.sh-warn.is-on { opacity: 1; animation: shPulse .7s infinite; }
+@keyframes shPulse { 50% { opacity: .35; } }
+
+.sh-danger::after {
+  content: ''; position: absolute; inset: 0;
+  box-shadow: inset 0 0 120px rgba(255, 60, 90, .35);
+  pointer-events: none;
+  animation: shPulse 1.1s infinite;
+}
+
+/* ------------------------------------------------------------ score pops */
+.sh-pops { position: absolute; inset: 0; overflow: hidden; }
+.sh-coach::before {
+  content: '';
+  position: absolute;
+  left: var(--coach-anchor, 50%);
+  top: -6px;
+  width: 10px;
+  height: 10px;
+  border-left: 1px solid rgba(255, 215, 110, .62);
+  border-top: 1px solid rgba(255, 215, 110, .62);
+  background: rgba(7, 14, 23, .92);
+  transform: translateX(-50%) rotate(45deg);
+}
+.sh-coach[data-side="above"]::before {
+  top: auto;
+  bottom: -6px;
+  border-left: 0;
+  border-top: 0;
+  border-right: 1px solid rgba(255, 215, 110, .62);
+  border-bottom: 1px solid rgba(255, 215, 110, .62);
+}
+.sh-pop {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font: 700 15px/1 var(--mono);
+  color: var(--teal);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .9);
+  animation: shPop .95s ease-out forwards;
+  white-space: nowrap;
+}
+.sh-pop.is-hot { color: var(--gold); font-size: 19px; }
+@keyframes shPop {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(.7); }
+  18%  { opacity: 1; transform: translate(-50%, -70%) scale(1.1); }
+  100% { opacity: 0; transform: translate(-50%, -190%) scale(1); }
+}
+
+/* ---------------------------------------------------------------- toast */
+.sh-toast {
+  position: absolute;
+  left: 50%; bottom: calc(74px + var(--safe-b));
+  transform: translateX(-50%) translateY(8px);
+  padding: 8px 16px;
+  background: var(--panel);
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  font: 600 13px/1.2 var(--disp);
+  opacity: 0;
+  transition: opacity .2s ease, transform .2s ease;
+  backdrop-filter: blur(6px);
+  max-width: 84vw; text-align: center;
+}
+.sh-toast.is-on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* --------------------------------------------------------------- screens */
+.sh-screen {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  padding: calc(16px + var(--safe-t)) 16px calc(16px + var(--safe-b));
+  background: radial-gradient(ellipse at center, rgba(5, 10, 18, .78), rgba(3, 6, 11, .94));
+  backdrop-filter: blur(3px);
+  pointer-events: auto;
+  overflow-y: auto;
+}
+.sh-screen.is-hidden { display: none; pointer-events: none; }
+
+/* The title is a briefing over the wreck field, not a detached dialog. Keep
+   the left side of the procedural sky visible and use the card edge as the
+   point where the player's hook line enters the scene. */
+.sh-screen--title {
+  place-items: center end;
+  padding-right: clamp(22px, 12vw, 180px);
+  background:
+    linear-gradient(90deg, rgba(3, 8, 14, .20), rgba(3, 8, 14, .45) 42%, rgba(3, 8, 14, .88) 78%),
+    linear-gradient(180deg, rgba(3, 8, 14, .10), rgba(3, 8, 14, .60));
+  backdrop-filter: none;
+}
+.sh-screen--title::before {
+  content: '';
+  position: absolute;
+  left: 8vw; top: 25%;
+  width: min(40vw, 560px); aspect-ratio: 1.65;
+  border: 1px solid rgba(111, 240, 214, .18);
+  border-radius: 50%;
+  transform: rotate(-18deg);
+  box-shadow: 0 0 0 12px rgba(111, 240, 214, .025),
+              0 0 80px rgba(111, 240, 214, .10);
+  pointer-events: none;
+}
+.sh-screen--title::after {
+  content: 'POINT  ·  LATCH  ·  RELEASE';
+  position: absolute;
+  left: clamp(22px, 8vw, 120px); bottom: calc(28% + var(--safe-b));
+  color: rgba(233, 241, 247, .48);
+  font: 700 10px/1 var(--mono);
+  letter-spacing: .24em;
+  text-shadow: 0 0 14px rgba(111, 240, 214, .35);
+  pointer-events: none;
+}
+
+.sh-card {
+  width: min(440px, 100%);
+  background: linear-gradient(180deg, rgba(19, 32, 46, .95), rgba(9, 16, 26, .96));
+  border: 1px solid var(--stroke);
+  border-radius: 14px;
+  padding: 22px 20px;
+  text-align: center;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .6), inset 0 1px 0 rgba(255, 255, 255, .06);
+}
+.sh-card--title {
+  position: relative;
+  border-color: rgba(255, 215, 110, .26);
+  border-left: 3px solid rgba(255, 215, 110, .72);
+  background: linear-gradient(180deg, rgba(18, 31, 44, .90), rgba(7, 14, 23, .94));
+  box-shadow: -22px 24px 80px rgba(0, 0, 0, .46),
+              inset 0 1px 0 rgba(255, 255, 255, .07),
+              0 0 34px rgba(111, 240, 214, .06);
+}
+.sh-card--title::before {
+  content: '';
+  position: absolute;
+  left: -190px; top: 46%; width: 174px;
+  border-top: 1px dashed rgba(111, 240, 214, .60);
+  transform: rotate(-22deg);
+  transform-origin: right center;
+  filter: drop-shadow(0 0 5px rgba(111, 240, 214, .45));
+  pointer-events: none;
+}
+.sh-card--title::after {
+  content: '';
+  position: absolute;
+  left: -201px; top: calc(46% - 8px);
+  width: 14px; height: 14px;
+  border: 2px solid var(--gold);
+  border-radius: 50%;
+  box-shadow: 0 0 0 5px rgba(255, 215, 110, .07),
+              0 0 18px rgba(255, 215, 110, .48);
+  animation: shHookPulse 1.7s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes shHookPulse {
+  50% { transform: scale(1.16); opacity: .72; }
+}
+
+.sh-title {
+  margin: 0 0 6px;
+  /* The wordmark must fit the card's 356px content box. At 46px/.10em it
+     measured 379px and the final K hung over the card's right border on
+     every >=768px viewport; 44px/.06em measures ~346px and still reads as
+     the largest thing on the screen. */
+  font: 800 clamp(30px, 8vw, 44px)/1 var(--disp);
+  letter-spacing: .06em;
+  background: linear-gradient(180deg, #fff6dd, var(--brass));
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+}
+.sh-card h2 { margin: 0 0 10px; font-size: 23px; letter-spacing: .04em; }
+.sh-sub { margin: 0 0 14px; font-size: 14px; line-height: 1.55; color: rgba(233, 241, 247, .82); }
+.sh-note { margin: 12px 0 0; font-size: 12.5px; color: rgba(255, 215, 110, .85); }
+.sh-best { margin: 10px 0 0; font: 600 13px/1 var(--mono); color: rgba(233, 241, 247, .6); }
+
+.sh-how {
+  margin: 12px 0;
+  padding: 12px;
+  background: rgba(0, 0, 0, .3);
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  font-size: 13px; line-height: 1.85;
+  text-align: left;
+  color: rgba(233, 241, 247, .88);
+}
+.sh-how b { color: var(--gold); }
+
+.sh-rows { margin: 4px 0 16px; text-align: left; }
+.sh-row {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 7px 2px;
+  border-bottom: 1px solid rgba(233, 241, 247, .08);
+  font-size: 14px;
+}
+/* Keep the step label on one line so the longer touch control strings wrap
+   inside the value column instead of splitting "3 · RELEASE" across rows. */
+.sh-row > span { white-space: nowrap; }
+.sh-row b { font-family: var(--mono); text-align: right; }
+.sh-row.is-strong { border-bottom: none; margin-top: 4px; font-size: 17px; }
+.sh-row.is-strong b { color: var(--gold); }
+.sh-dim { color: rgba(233, 241, 247, .45); font-size: 12px; }
+
+/* --------------------------------------------------------------- buttons */
+.sh-btn {
+  display: block;
+  width: 100%;
+  margin: 8px 0 0;
+  padding: 13px 18px;
+  min-height: 46px;
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  background: rgba(233, 241, 247, .06);
+  color: var(--paper);
+  font: 700 15px/1 var(--disp);
+  letter-spacing: .04em;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform .12s ease, background .18s ease, border-color .18s ease;
+}
+.sh-btn:hover { background: rgba(233, 241, 247, .12); border-color: rgba(233, 241, 247, .3); }
+.sh-btn:active { transform: translateY(1px); }
+.sh-btn--go {
+  background: linear-gradient(180deg, var(--gold), var(--brass));
+  border-color: rgba(255, 236, 190, .5);
+  color: #20160a;
+}
+.sh-btn--go:hover { filter: brightness(1.08); background: linear-gradient(180deg, var(--gold), var(--brass)); }
+.sh-btn--ghost { background: transparent; }
+
+/* ------------------------------------------------------------ chrome bits */
+.sh-back, .sh-mute {
+  position: absolute;
+  bottom: calc(12px + var(--safe-b));
+  padding: 9px 14px;
+  min-height: 40px;
+  display: inline-flex; align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  color: rgba(233, 241, 247, .8);
+  font: 600 12px/1 var(--disp);
+  text-decoration: none;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+.sh-back { left: calc(12px + var(--safe-l)); }
+.sh-mute { right: calc(12px + var(--safe-r)); font-size: 16px; min-width: 44px; justify-content: center; }
+.sh-back:hover, .sh-mute:hover { color: var(--paper); border-color: rgba(233, 241, 247, .34); }
+.sh-mute.is-muted { color: rgba(233, 241, 247, .4); }
+
+/* ---------------------------------------------------------------- modal */
+.sh-modal {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  padding: 16px;
+  background: rgba(3, 6, 11, .84);
+  backdrop-filter: blur(4px);
+  pointer-events: auto;
+  z-index: 20;
+}
+.sh-card--modal { width: min(400px, 100%); }
+.sh-input {
+  width: 100%;
+  margin: 6px 0 4px;
+  padding: 12px 14px;
+  min-height: 46px;
+  background: rgba(0, 0, 0, .45);
+  border: 1px solid var(--stroke);
+  border-radius: 9px;
+  color: var(--paper);
+  font: 600 16px/1 var(--mono);   /* 16px: stops iOS zooming the page on focus */
+  text-align: center;
+}
+.sh-input:focus { outline: none; border-color: var(--gold); }
+.sh-modal-actions { display: flex; gap: 8px; }
+.sh-modal-actions .sh-btn { flex: 1; }
+
+/* ---------------------------------------------------------- adaptations */
+/* Short landscape (phones held sideways): tighten everything vertically. */
+@media (max-height: 460px) {
+  .sh-card { padding: 14px 16px; }
+  .sh-title { font-size: 26px; }
+  .sh-card h2 { font-size: 19px; margin-bottom: 6px; }
+  .sh-sub { font-size: 12.5px; margin-bottom: 9px; }
+  .sh-how { font-size: 11.5px; line-height: 1.6; padding: 9px; margin: 8px 0; }
+  .sh-row { padding: 4px 2px; font-size: 12.5px; }
+  .sh-btn { padding: 10px 14px; min-height: 40px; font-size: 13.5px; }
+  .sh-stat b { font-size: 16px; }
+  .sh-combo { font-size: 20px; }
+  .sh-warn { top: calc(62px + var(--safe-t)); }
+}
+
+@media (max-width: 680px) {
+  .sh-screen--title {
+    place-items: center;
+    padding-right: 16px;
+  }
+  .sh-screen--title::before {
+    left: -18vw; top: 14%; width: 84vw;
+  }
+  .sh-screen--title::after {
+    left: 50%; bottom: calc(13% + var(--safe-b));
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: 8px;
+    letter-spacing: .16em;
+  }
+  .sh-card--title::before {
+    left: 50%; top: -38px; width: 92px;
+    transform: rotate(-66deg);
+    transform-origin: left center;
+  }
+  .sh-card--title::after {
+    left: calc(50% - 8px); top: -49px;
+  }
+}
+
+@media (max-width: 380px) {
+  .sh-stat b { font-size: 17px; }
+  .sh-air { width: 68px; }
+  .sh-hud-mid { min-width: 74px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-bump, .sh-pop, .sh-warn.is-on, .sh-danger::after { animation: none; }
+}

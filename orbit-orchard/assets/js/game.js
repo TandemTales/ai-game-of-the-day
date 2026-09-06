@@ -324,117 +324,271 @@
     ctx.closePath();
   }
 
+  function disc(ctx, x, y, radius, fill) {
+    ctx.fillStyle = fill;
+    ctx.beginPath(); ctx.arc(x, y, radius, 0, TAU); ctx.fill();
+  }
+
+  function polygon(ctx, radius, sides, rotation) {
+    ctx.beginPath();
+    for (var i = 0; i < sides; i += 1) {
+      var angle = i * TAU / sides + (rotation || 0);
+      if (i === 0) ctx.moveTo(Math.cos(angle) * radius, Math.sin(angle) * radius);
+      else ctx.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius);
+    }
+    ctx.closePath();
+  }
+
+  function drawPlanter(ctx, x, y, flip, variety) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(1, flip);
+    var width = variety === 1 ? 152 : 104;
+    ctx.fillStyle = '#152e31'; roundRect(ctx, -width / 2, -9, width, 22, 5); ctx.fill();
+    ctx.strokeStyle = '#53645a'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = '#091918'; roundRect(ctx, -width / 2 + 5, -5, width - 10, 13, 3); ctx.fill();
+    ctx.save(); ctx.shadowColor = 'rgba(0,8,10,.75)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = -3;
+    var source = { seed: 4561 + Math.floor(x) * 31 + variety * 257 };
+    for (var i = 0; i < 9; i += 1) {
+      var stem = randomBetween(source, -width / 2 + 9, width / 2 - 9);
+      var height = randomBetween(source, 17, variety === 1 ? 46 : 36);
+      var lean = randomBetween(source, -20, 20);
+      ctx.strokeStyle = '#6a8660'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(stem, 6); ctx.quadraticCurveTo(stem + lean, -height * .4, stem + lean, -height); ctx.stroke();
+      for (var j = 0; j < 5; j += 1) {
+        var fraction = (j + 1) / 6;
+        var lx = stem + lean * fraction;
+        var ly = -height * fraction;
+        ctx.save(); ctx.translate(lx, ly); ctx.rotate(j % 2 ? -.9 : .9);
+        var length = (1 - fraction * .4) * (variety === 1 ? 16 : 12);
+        var leaf = ctx.createLinearGradient(0, 0, 0, -length);
+        leaf.addColorStop(0, '#214a40'); leaf.addColorStop(1, i % 3 ? '#578563' : '#7f9870'); ctx.fillStyle = leaf;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.bezierCurveTo(-6, -length * .4, -3, -length, 0, -length);
+        ctx.bezierCurveTo(7, -length * .8, 6, -length * .2, 0, 0); ctx.fill();
+        ctx.strokeStyle = 'rgba(169,188,125,.25)'; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -length * .8); ctx.stroke(); ctx.restore();
+      }
+      if (i % 4 === 0) {
+        disc(ctx, stem + lean, -height, 3.6, '#bd9264');
+        disc(ctx, stem + lean - 1, -height - 1, 1.6, '#e2d296');
+      }
+    }
+    ctx.restore();
+    ctx.fillStyle = '#9b9a75'; ctx.fillRect(-width / 2 + 11, 9, 15, 2);
+    ctx.restore();
+  }
+
   function drawBackground(ctx, state) {
     var bg = ctx.createLinearGradient(0, 0, WIDTH, HEIGHT);
-    bg.addColorStop(0, '#061c2a');
-    bg.addColorStop(0.48, '#081a24');
-    bg.addColorStop(1, '#170f27');
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    bg.addColorStop(0, '#102e38'); bg.addColorStop(.48, '#091b27'); bg.addColorStop(1, '#172833');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, WIDTH, HEIGHT);
     ctx.save();
-    ctx.globalAlpha = 0.8;
+    // Beyond the greenhouse glass: a quiet planetary limb and distant stars.
+    var planet = ctx.createRadialGradient(826, -145, 100, 826, -145, 435);
+    planet.addColorStop(0, '#497e7c'); planet.addColorStop(.8, '#294c59'); planet.addColorStop(.98, '#4c8990'); planet.addColorStop(1, 'rgba(91,163,169,0)');
+    disc(ctx, 826, -145, 435, planet);
     state.stars.forEach(function (star) {
-      var alpha = star.a * (0.72 + Math.sin(state.time * 1.5 + star.phase) * 0.28);
-      ctx.fillStyle = 'rgba(177,236,255,' + alpha.toFixed(3) + ')';
-      ctx.beginPath(); ctx.arc(star.x, star.y, star.r, 0, TAU); ctx.fill();
+      disc(ctx, star.x, star.y, star.r * .6, 'rgba(187,229,224,' + (star.a * .5).toFixed(3) + ')');
     });
-    ctx.restore();
-    ctx.save();
-    ctx.strokeStyle = 'rgba(115, 240, 213, 0.09)';
-    ctx.lineWidth = 1;
-    for (var x = 64; x < WIDTH; x += 96) {
-      ctx.beginPath(); ctx.moveTo(x, EDGE); ctx.lineTo(x - 120, HEIGHT - EDGE); ctx.stroke();
+    // Recessed glass deck: large panes leave an uncluttered harvesting surface.
+    var deck = ctx.createLinearGradient(0, EDGE, 0, HEIGHT - EDGE);
+    deck.addColorStop(0, 'rgba(14,36,39,.72)'); deck.addColorStop(.55, 'rgba(9,26,33,.92)'); deck.addColorStop(1, 'rgba(19,40,41,.96)');
+    ctx.shadowColor = '#010c15'; ctx.shadowBlur = 24;
+    ctx.fillStyle = deck; roundRect(ctx, EDGE, EDGE, WIDTH - EDGE * 2, HEIGHT - EDGE * 2, 26); ctx.fill();
+    ctx.shadowBlur = 0; ctx.save(); ctx.clip();
+    for (var x = 48; x < WIDTH; x += 144) {
+      ctx.strokeStyle = 'rgba(135,175,158,.085)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x, EDGE); ctx.lineTo(x, HEIGHT - EDGE); ctx.stroke();
+      ctx.strokeStyle = 'rgba(0,4,12,.35)'; ctx.beginPath(); ctx.moveTo(x + 2, EDGE); ctx.lineTo(x + 2, HEIGHT - EDGE); ctx.stroke();
     }
-    for (var y = 76; y < HEIGHT - 20; y += 88) {
-      ctx.beginPath(); ctx.moveTo(EDGE, y); ctx.lineTo(WIDTH - EDGE, y + 18); ctx.stroke();
+    for (var y = 90; y < HEIGHT; y += 140) {
+      ctx.strokeStyle = 'rgba(135,175,158,.08)'; ctx.beginPath(); ctx.moveTo(EDGE, y); ctx.lineTo(WIDTH - EDGE, y); ctx.stroke();
     }
-    ctx.strokeStyle = 'rgba(255, 198, 109, 0.12)';
-    ctx.setLineDash([5, 12]);
-    ctx.beginPath(); ctx.arc(WIDTH / 2, HEIGHT / 2, 205 + Math.sin(state.time * 0.45) * 4, 0, TAU); ctx.stroke();
-    ctx.beginPath(); ctx.arc(WIDTH / 2, HEIGHT / 2, 330 + Math.sin(state.time * 0.3 + 1) * 6, 0, TAU); ctx.stroke();
+    // A restrained shaft of sunlight suggests overhead greenhouse ribs.
+    ctx.fillStyle = 'rgba(211,234,188,.024)';
+    for (var light = 0; light < 4; light += 1) {
+      ctx.beginPath(); ctx.moveTo(400 + light * 148, 34); ctx.lineTo(450 + light * 148, 34);
+      ctx.lineTo(110 + light * 148, 566); ctx.lineTo(65 + light * 148, 566); ctx.fill();
+    }
+    var pool = ctx.createRadialGradient(480, 275, 30, 480, 300, 420);
+    pool.addColorStop(0, 'rgba(91,149,111,.095)'); pool.addColorStop(1, 'rgba(8,17,29,0)');
+    ctx.fillStyle = pool; ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.strokeStyle = 'rgba(183,199,154,.075)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(480, 300, 340, 214, 0, 0, TAU); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(480, 300, 347, 221, 0, 0, TAU); ctx.stroke();
+    // Weathering is concentrated at panel edges, leaving the harvest path quiet.
+    var patina = { seed: 93557 };
+    for (var wear = 0; wear < 110; wear += 1) {
+      var wx = randomBetween(patina, 44, WIDTH - 44);
+      var wy = randomBetween(patina, 42, HEIGHT - 42);
+      var edgeFade = Math.max(Math.abs(wx - 480) / 480, Math.abs(wy - 300) / 300);
+      ctx.strokeStyle = 'rgba(165,194,173,' + (.012 + edgeFade * .027).toFixed(3) + ')';
+      ctx.beginPath(); ctx.moveTo(wx, wy); ctx.lineTo(wx + randomBetween(patina, 2, 16), wy - 2); ctx.stroke();
+    }
+    var frost = ctx.createLinearGradient(0, 34, 0, 115);
+    frost.addColorStop(0, 'rgba(150,182,134,.12)'); frost.addColorStop(1, 'rgba(150,182,134,0)');
+    ctx.fillStyle = frost; ctx.fillRect(34, 34, WIDTH - 68, 81);
     ctx.restore();
-    ctx.save();
-    ctx.strokeStyle = 'rgba(118, 245, 209, 0.23)';
-    ctx.lineWidth = 2;
-    roundRect(ctx, EDGE, EDGE, WIDTH - EDGE * 2, HEIGHT - EDGE * 2, 26);
-    ctx.stroke();
+    // Structural rim, glass seal, brass fasteners and recessed grow lights.
+    ctx.strokeStyle = '#314c4e'; ctx.lineWidth = 7;
+    roundRect(ctx, 29, 29, WIDTH - 58, HEIGHT - 58, 29); ctx.stroke();
+    ctx.strokeStyle = '#758a77'; ctx.lineWidth = 1;
+    roundRect(ctx, 27, 27, WIDTH - 54, HEIGHT - 54, 29); ctx.stroke();
+    ctx.strokeStyle = 'rgba(161,211,170,.35)';
+    roundRect(ctx, EDGE, EDGE, WIDTH - EDGE * 2, HEIGHT - EDGE * 2, 26); ctx.stroke();
+    for (var k = 0; k < 7; k += 1) {
+      var bx = 82 + k * 133;
+      disc(ctx, bx, 29, 2.6, '#b8ad80'); disc(ctx, bx, HEIGHT - 29, 2.6, '#b8ad80');
+      ctx.fillStyle = '#071a20'; ctx.fillRect(bx - 1, 28, 2, 1); ctx.fillRect(bx - 1, HEIGHT - 30, 2, 1);
+    }
+    for (var side = 0; side < 2; side += 1) {
+      var sx = side ? WIDTH - 22 : 17;
+      for (var v = 0; v < 6; v += 1) {
+        ctx.fillStyle = '#526f67'; ctx.fillRect(sx, 106 + v * 66, 5, 34);
+        ctx.fillStyle = '#b8d9ac'; ctx.fillRect(sx + 1, 108 + v * 66, 2, 28);
+      }
+    }
+    drawPlanter(ctx, 141, 11, -1, 1); drawPlanter(ctx, 837, 12, -1, 0);
+    drawPlanter(ctx, 104, 590, 1, 0); drawPlanter(ctx, 763, 591, 1, 1);
+    ctx.fillStyle = '#81978b'; ctx.font = '600 8px monospace'; ctx.textAlign = 'center';
+    ctx.fillText('ORBITAL CONSERVATORY  /  SECTOR 07', WIDTH / 2, 16);
+    ctx.fillStyle = '#648079'; ctx.fillText('GLASS DECK  ·  ZERO-G CULTIVATION', WIDTH / 2, HEIGHT - 11);
     ctx.restore();
   }
 
   function drawHazard(ctx, hazard, time) {
     var x = hazard.x + Math.cos(hazard.phase) * 5;
     var y = hazard.y + Math.sin(hazard.phase * 1.4) * 5;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(time * hazard.speed);
-    ctx.strokeStyle = 'rgba(255,124,174,.32)';
-    ctx.lineWidth = 2;
-    for (var i = 0; i < 3; i += 1) {
-      ctx.rotate(Math.PI / 3);
-      ctx.beginPath(); ctx.ellipse(0, 0, hazard.radius + 9 + i * 5, hazard.radius - 5 + i * 3, 0, 0, TAU); ctx.stroke();
+    var r = hazard.radius;
+    ctx.save(); ctx.translate(x, y);
+    var glow = ctx.createRadialGradient(0, 0, r * .75, 0, 0, r + 23);
+    glow.addColorStop(0, 'rgba(245,74,92,.24)'); glow.addColorStop(1, 'rgba(245,74,92,0)');
+    disc(ctx, 0, 0, r + 23, glow);
+    ctx.rotate(time * hazard.speed * .6);
+    ctx.strokeStyle = '#c56572'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, 0, r + 7, .15, Math.PI - .15); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, r + 7, Math.PI + .15, TAU - .15); ctx.stroke();
+    for (var i = 0; i < 8; i += 1) {
+      ctx.save(); ctx.rotate(i * TAU / 8);
+      ctx.fillStyle = i % 2 ? '#bb5267' : '#f3b5af'; ctx.fillRect(r + 5, -2, 6, 4); ctx.restore();
     }
-    var glow = ctx.createRadialGradient(0, 0, 2, 0, 0, hazard.radius + 13);
-    glow.addColorStop(0, '#080713'); glow.addColorStop(.5, 'rgba(15,7,29,.95)'); glow.addColorStop(1, 'rgba(255,72,130,0)');
-    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0, 0, hazard.radius + 16, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#020207'; ctx.beginPath(); ctx.arc(0, 0, hazard.radius, 0, TAU); ctx.fill();
-    ctx.strokeStyle = 'rgba(255,124,174,.75)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, 0, hazard.radius, 0, TAU); ctx.stroke();
+    disc(ctx, 0, 0, r, '#040b13');
+    ctx.strokeStyle = '#fa97a5'; ctx.lineWidth = 1; ctx.stroke();
+    for (var ring = 0; ring < 3; ring += 1) {
+      ctx.strokeStyle = 'rgba(206,71,102,' + (.4 - ring * .09) + ')';
+      ctx.beginPath(); ctx.ellipse(0, 0, r * (.8 - ring * .17), r * (.4 - ring * .06), time * .4 + ring, .5, 5.2); ctx.stroke();
+    }
     ctx.restore();
+    ctx.save(); ctx.fillStyle = '#f1b8bc'; ctx.font = '700 8px monospace'; ctx.textAlign = 'center';
+    ctx.fillText('−4s', x, y + r + 23); ctx.restore();
   }
 
-  function drawRelic(ctx, relic, time) {
+  function drawRelic(ctx, relic, time, playerRadius) {
     var color = PALETTE[relic.color];
-    var bob = Math.sin(time * 2.2 + relic.phase) * 2.2;
-    ctx.save();
-    ctx.translate(relic.x, relic.y + bob);
-    ctx.rotate(relic.phase + time * 0.35);
-    ctx.globalAlpha = relic.active ? 1 : 0;
-    ctx.shadowColor = color; ctx.shadowBlur = relic.kind === 3 ? 22 : 13;
-    ctx.fillStyle = color;
-    ctx.beginPath();
+    var r = relic.radius;
+    var bob = Math.sin(time * 2.2 + relic.phase) * 1.5;
+    var eligible = OO.canAbsorb(playerRadius, r);
+    ctx.save(); ctx.translate(relic.x, relic.y + bob);
+    ctx.fillStyle = 'rgba(1,8,14,.4)'; ctx.beginPath(); ctx.ellipse(2, r * .55 + 3, r * .95, r * .42, 0, 0, TAU); ctx.fill();
+    ctx.rotate(relic.phase + time * .16);
     if (relic.kind === 0) {
-      ctx.arc(0, 0, relic.radius, 0, TAU);
+      // Glazed pollen pod: rounded ceramic shell and a luminous seed seam.
+      var glaze = ctx.createRadialGradient(-r * .4, -r * .4, .1, r * .12, r * .15, r * 1.2);
+      glaze.addColorStop(0, '#fff1ce'); glaze.addColorStop(.35, color); glaze.addColorStop(1, '#244653');
+      disc(ctx, 0, 0, r, glaze);
+      ctx.strokeStyle = 'rgba(9,37,45,.65)'; ctx.lineWidth = Math.max(1, r * .13);
+      ctx.beginPath(); ctx.ellipse(0, 0, r * .37, r * .9, -.5, 0, TAU); ctx.stroke();
+      disc(ctx, -r * .33, -r * .4, r * .16, '#fff9db');
     } else if (relic.kind === 1) {
-      ctx.moveTo(0, -relic.radius * 1.2); ctx.lineTo(relic.radius, 0); ctx.lineTo(0, relic.radius * 1.2); ctx.lineTo(-relic.radius, 0); ctx.closePath();
+      // Cut mineral: three separate illuminated facets, no shared blob silhouette.
+      ctx.beginPath(); ctx.moveTo(0, -r * 1.14); ctx.lineTo(r * .82, 0); ctx.lineTo(0, r * 1.14); ctx.lineTo(-r * .82, 0); ctx.closePath();
+      ctx.fillStyle = color; ctx.fill(); ctx.strokeStyle = '#dbf7ed'; ctx.lineWidth = .8; ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,228,.6)'; ctx.beginPath(); ctx.moveTo(0, -r * 1.14); ctx.lineTo(0, r * .25); ctx.lineTo(-r * .82, 0); ctx.fill();
+      ctx.fillStyle = 'rgba(8,37,61,.55)'; ctx.beginPath(); ctx.moveTo(0, r * 1.14); ctx.lineTo(0, -r * .25); ctx.lineTo(r * .82, 0); ctx.fill();
+    } else if (relic.kind === 2) {
+      // Preserved bloom: overlapping fleshy petals around a golden pollen crown.
+      for (var petal = 0; petal < 5; petal += 1) {
+        ctx.save(); ctx.rotate(petal * TAU / 5);
+        var leaf = ctx.createLinearGradient(0, -r, 0, 1);
+        leaf.addColorStop(0, color); leaf.addColorStop(1, '#23464c'); ctx.fillStyle = leaf;
+        ctx.beginPath(); ctx.ellipse(0, -r * .42, r * .4, r * .65, 0, 0, TAU); ctx.fill();
+        ctx.strokeStyle = 'rgba(233,247,211,.35)'; ctx.lineWidth = .7; ctx.stroke(); ctx.restore();
+      }
+      disc(ctx, 0, 0, r * .3, '#e8d69b'); disc(ctx, -r * .06, -r * .07, r * .12, '#fff9d2');
     } else {
-      for (var i = 0; i < 6; i += 1) { var angle = i * TAU / 6; var px = Math.cos(angle) * relic.radius; var py = Math.sin(angle) * relic.radius; if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py); }
-      ctx.closePath();
+      // Brass-framed specimen capsule; large harvests look heavier and protected.
+      ctx.shadowColor = '#000b11'; ctx.shadowBlur = 7;
+      polygon(ctx, r, 6, Math.PI / 6); ctx.fillStyle = '#29464c'; ctx.fill(); ctx.shadowBlur = 0;
+      ctx.strokeStyle = eligible ? '#c2c59c' : '#758785'; ctx.lineWidth = 2; ctx.stroke();
+      polygon(ctx, r * .81, 6, Math.PI / 6);
+      var glass = ctx.createLinearGradient(-r, -r, r, r);
+      glass.addColorStop(0, '#79948b'); glass.addColorStop(.38, '#1d3b45'); glass.addColorStop(1, '#102a35');
+      ctx.fillStyle = glass; ctx.fill(); ctx.strokeStyle = '#172c33'; ctx.lineWidth = 1; ctx.stroke();
+      for (var leafIndex = 0; leafIndex < 3; leafIndex += 1) {
+        ctx.save(); ctx.rotate(leafIndex * TAU / 3);
+        ctx.fillStyle = color; ctx.beginPath(); ctx.ellipse(0, -r * .22, r * .17, r * .36, .5, 0, TAU); ctx.fill();
+        ctx.strokeStyle = 'rgba(245,255,229,.4)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(r * .1, -r * .4); ctx.stroke(); ctx.restore();
+      }
+      disc(ctx, 0, 0, r * .15, '#ead59c');
+      ctx.strokeStyle = 'rgba(226,253,226,.5)'; ctx.beginPath(); ctx.moveTo(-r * .56, -r * .38); ctx.lineTo(-r * .15, -r * .62); ctx.stroke();
+      for (var bolt = 0; bolt < 6; bolt += 1) disc(ctx, Math.cos(bolt * TAU / 6 + Math.PI / 6) * r * .94, Math.sin(bolt * TAU / 6 + Math.PI / 6) * r * .94, 1.5, '#d3be86');
     }
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = 'rgba(255,255,255,.68)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.arc(-relic.radius * .25, -relic.radius * .28, Math.max(1.2, relic.radius * .18), 0, TAU); ctx.stroke();
     ctx.restore();
+    // A small external harvest marker is shared by every collectable material.
+    if (eligible) {
+      ctx.save(); ctx.strokeStyle = '#d9edbd'; ctx.globalAlpha = .75; ctx.lineWidth = 1.3;
+      ctx.beginPath(); ctx.arc(relic.x, relic.y + bob, r + 4, -1.85, -1.3); ctx.stroke(); ctx.restore();
+    }
   }
 
   function drawPlayer(ctx, state) {
     var p = state.player;
-    state.trail.forEach(function (dot) {
-      ctx.globalAlpha = dot.life * 0.18;
-      ctx.fillStyle = '#78f5d1'; ctx.beginPath(); ctx.arc(dot.x, dot.y, dot.r * (0.45 + dot.life * 0.25), 0, TAU); ctx.fill();
+    var r = p.radius;
+    ctx.save();
+    state.trail.forEach(function (dot, index) {
+      ctx.globalAlpha = dot.life * .085;
+      disc(ctx, dot.x, dot.y, dot.r * (.55 + index / 60), '#a6e7c1');
     });
     ctx.globalAlpha = 1;
-    ctx.save();
     ctx.translate(p.x, p.y);
-    ctx.rotate(p.spin * 0.45);
-    var radius = p.radius;
-    var glow = ctx.createRadialGradient(0, 0, radius * .2, 0, 0, radius * 2.6);
-    glow.addColorStop(0, 'rgba(120,245,209,.42)'); glow.addColorStop(1, 'rgba(120,245,209,0)');
-    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0, 0, radius * 2.6, 0, TAU); ctx.fill();
-    if (state.gravityBloom > 0.01 || radius > 23) {
-      ctx.globalAlpha = 0.3 + Math.min(.45, radius / 120);
-      ctx.strokeStyle = '#78f5d1'; ctx.lineWidth = 1.4;
-      ctx.beginPath(); ctx.arc(0, 0, radius + 10 + Math.sin(state.time * 5) * 2, 0, TAU); ctx.stroke();
-      ctx.globalAlpha = 1;
+    var glow = ctx.createRadialGradient(0, 0, r * .6, 0, 0, r * 2.8);
+    glow.addColorStop(0, 'rgba(230,199,111,.22)'); glow.addColorStop(.48, 'rgba(135,217,163,.09)'); glow.addColorStop(1, 'rgba(135,217,163,0)');
+    disc(ctx, 0, 0, r * 2.8, glow);
+    // Broken orbital arcs keep the controllable seed recognizable at every size.
+    ctx.save(); ctx.rotate(state.time * .4);
+    ctx.strokeStyle = 'rgba(185,245,207,.6)'; ctx.lineWidth = 1.2;
+    for (var arc = 0; arc < 3; arc += 1) {
+      ctx.beginPath(); ctx.arc(0, 0, r + 7 + state.gravityBloom * 7, arc * TAU / 3, arc * TAU / 3 + 1.25); ctx.stroke();
     }
-    ctx.shadowColor = '#78f5d1'; ctx.shadowBlur = 18;
-    var body = ctx.createRadialGradient(-radius * .3, -radius * .35, 1, 0, 0, radius * 1.3);
-    body.addColorStop(0, '#f1fff9'); body.addColorStop(.23, '#78f5d1'); body.addColorStop(1, '#247f82');
-    ctx.fillStyle = body; ctx.beginPath(); ctx.arc(0, 0, radius, 0, TAU); ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = '#d7fff1'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, radius, 0, TAU); ctx.stroke();
-    ctx.strokeStyle = 'rgba(9,67,74,.8)'; ctx.lineWidth = Math.max(1, radius * .08);
-    ctx.beginPath(); ctx.moveTo(-radius * .6, radius * .38); ctx.quadraticCurveTo(0, radius * .66, radius * .58, radius * .25); ctx.stroke();
-    ctx.fillStyle = '#ffc66d'; ctx.beginPath(); ctx.ellipse(radius * .45, -radius * .42, radius * .22, radius * .1, -.45, 0, TAU); ctx.fill();
+    ctx.restore();
+    // Two orbiting cotyledons give the solar seed a botanical silhouette.
+    ctx.save(); ctx.rotate(-.65 + Math.sin(state.time * .8) * .12);
+    for (var cotyledon = 0; cotyledon < 2; cotyledon += 1) {
+      ctx.save(); ctx.rotate(cotyledon * Math.PI);
+      var shoot = ctx.createLinearGradient(r * .7, 0, r * 1.5, 0);
+      shoot.addColorStop(0, '#67b395'); shoot.addColorStop(1, '#ecf7bf'); ctx.fillStyle = shoot;
+      ctx.beginPath(); ctx.moveTo(r * .72, 0); ctx.bezierCurveTo(r, -r * .56, r * 1.47, -r * .35, r * 1.45, -r * .2);
+      ctx.bezierCurveTo(r * 1.36, r * .07, r, r * .18, r * .72, 0); ctx.fill();
+      ctx.strokeStyle = '#cceabe'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(r * .8, 0); ctx.lineTo(r * 1.33, -r * .2); ctx.stroke(); ctx.restore();
+    }
+    ctx.restore();
+    ctx.fillStyle = 'rgba(0,7,10,.55)'; ctx.beginPath(); ctx.ellipse(3, r * .65, r, r * .55, 0, 0, TAU); ctx.fill();
+    var body = ctx.createRadialGradient(-r * .33, -r * .4, 1, r * .15, r * .2, r * 1.3);
+    body.addColorStop(0, '#ffffe5'); body.addColorStop(.33, '#d0f1c3'); body.addColorStop(.65, '#6ab79a'); body.addColorStop(1, '#234c50');
+    disc(ctx, 0, 0, r, body); ctx.strokeStyle = '#effcce'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.save(); ctx.rotate(p.spin * .28);
+    for (var seam = 0; seam < 3; seam += 1) {
+      ctx.save(); ctx.rotate(seam * TAU / 3);
+      ctx.strokeStyle = 'rgba(22,87,72,.65)'; ctx.lineWidth = Math.max(1, r * .055);
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.bezierCurveTo(-r * .6, -r * .1, -r * .52, -r * .62, 0, -r * .93); ctx.stroke(); ctx.restore();
+    }
+    var core = ctx.createRadialGradient(-r * .1, -r * .1, 0, 0, 0, r * .43);
+    core.addColorStop(0, '#fffde5'); core.addColorStop(.43, '#ffe5a0'); core.addColorStop(1, '#bf843f');
+    disc(ctx, 0, 0, r * .43, core); ctx.strokeStyle = '#fff1ba'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(255,255,226,.85)'; ctx.lineWidth = Math.max(1.5, r * .07);
+    ctx.beginPath(); ctx.arc(-r * .06, -r * .07, r * .75, 3.55, 4.5); ctx.stroke();
+    // Heading notch differentiates the player from round pollen pods.
+    var heading = Math.hypot(p.vx, p.vy) > 6 ? Math.atan2(p.vy, p.vx) : -Math.PI / 2;
+    ctx.rotate(heading); ctx.fillStyle = '#fff4bb';
+    ctx.beginPath(); ctx.moveTo(r + 12, 0); ctx.lineTo(r + 7, -3); ctx.lineTo(r + 7, 3); ctx.fill();
     ctx.restore();
   }
 
@@ -444,7 +598,7 @@
     if (state.shake > 0) ctx.translate(Math.sin(state.time * 70) * state.shake * 3, Math.cos(state.time * 61) * state.shake * 2);
     drawBackground(ctx, state);
     state.hazards.forEach(function (hazard) { drawHazard(ctx, hazard, state.time); });
-    state.relics.forEach(function (relic) { if (relic.active) drawRelic(ctx, relic, state.time); });
+    state.relics.forEach(function (relic) { if (relic.active) drawRelic(ctx, relic, state.time, state.player.radius); });
     drawPlayer(ctx, state);
     state.particles.forEach(function (particle) {
       ctx.globalAlpha = clamp(particle.life / particle.max, 0, 1);
@@ -544,13 +698,25 @@
     canvas.addEventListener('pointermove', function (event) { if (state.input.pointerActive) pointerPosition(event); });
     canvas.addEventListener('pointerup', function () { state.input.pointerActive = false; });
     canvas.addEventListener('pointercancel', function () { state.input.pointerActive = false; });
+    function editingText(target) {
+      return !!(target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName || '')));
+    }
+    function clearControls() {
+      state.input.up = false; state.input.down = false;
+      state.input.left = false; state.input.right = false;
+      state.input.pointerActive = false;
+    }
+    root.addEventListener('blur', clearControls);
+    root.document.addEventListener('focusin', function (event) { if (editingText(event.target)) clearControls(); });
     root.document.addEventListener('keydown', function (event) {
+      if (editingText(event.target)) return;
       var key = event.key.toLowerCase();
       var map = { arrowup: 'up', w: 'up', arrowdown: 'down', s: 'down', arrowleft: 'left', a: 'left', arrowright: 'right', d: 'right' };
       if (map[key]) { state.input[map[key]] = true; event.preventDefault(); }
       if ((key === ' ' || key === 'enter') && state.status !== 'playing') { begin(); event.preventDefault(); }
     });
     root.document.addEventListener('keyup', function (event) {
+      if (editingText(event.target)) return;
       var key = event.key.toLowerCase();
       var map = { arrowup: 'up', w: 'up', arrowdown: 'down', s: 'down', arrowleft: 'left', a: 'left', arrowright: 'right', d: 'right' };
       if (map[key]) state.input[map[key]] = false;

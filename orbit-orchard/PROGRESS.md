@@ -61,3 +61,24 @@ playing and over PNGs were opened and read. Full baseline Jest was 340/340.
 Independent UI critic remains FAIL against official Katamari/Pikmin references:
 phone arena is small and landscape needs a tighter height budget. Iterating on
 that feedback next. Callsign shortcut repair is pending in the separate JS unit.
+
+### Renderer and browser-regression checkpoint
+
+Added layered greenhouse glazing, weathered deck seams, varied perimeter plants,
+ceramic pods, faceted crystals, botanical rosettes, framed specimens, a solar
+nucleus/leaf player silhouette and distinct pink warning wells. Mechanics remain
+unchanged. Fixed document shortcuts stealing callsign typing/Enter and clear held
+controls on blur or entry into an editable field.
+
+Added tools/smoke.js and documented local Windows Chromium invocation. Dedicated
+Jest passes 11/11 (full repository last checked 340/340). Six-viewport Chromium
+checks pass, including native touch, callsign, mock rank/submit, restart, card
+containment, no horizontal overflow and no console warnings/errors. Renderer
+revision desktop PNG was opened and read. This smoke uses seeded visual fixtures
+and shortened timer; it does not prove full-run balance or production leaderboard.
+
+Independent renderer critic: FAIL on both comparisons against Nintendo's actual
+Pikmin 4 gameplay screenshot. Second pass improves foliage, silhouette and hazard
+separation, but the central scene still reads as a flat tray with sparse lighting
+and isolated tokens rather than an authored greenhouse. No AAA claim; keep this
+as progress and carry scene depth/material/story variety into the next run.

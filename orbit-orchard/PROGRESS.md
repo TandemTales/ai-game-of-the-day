@@ -50,3 +50,14 @@ Run the baseline tests, assign each implementation agent its single owned file,
 and seek independent shipped-AAA screenshot comparisons. Verify the real browser
 at all six required viewports before recording results. This is not release
 night (started 2026-09-05); main stays at the existing release.
+
+### UI checkpoint
+
+Responsive cards now grow to fit instead of clipping the heading/score, mobile
+readouts sit above the field, and callsign controls have usable touch targets.
+The footer now describes the run rather than implementation details. Six-size
+Chromium smoke with the pending renderer/input integration passed; 320px ready,
+playing and over PNGs were opened and read. Full baseline Jest was 340/340.
+Independent UI critic remains FAIL against official Katamari/Pikmin references:
+phone arena is small and landscape needs a tighter height budget. Iterating on
+that feedback next. Callsign shortcut repair is pending in the separate JS unit.

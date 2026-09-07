@@ -129,3 +129,11 @@ written, no release occurred, and main was not changed. Started 2026-09-05;
 
 Final verification: full repository Jest passed 14 suites / 340 tests; syntax
 and git diff --check passed. All required work checkpoints were pushed to dev.
+
+## 2026-09-07 (Monday, Pacific) — polish run intent
+
+Focus on portrait playfield framing/control mapping and a compact results card
+with Replant visible at 320x568. Give JS and CSS builders one file each; seek
+independent shipped-AAA side-by-side criticism. Run mechanics and six-viewport
+Chromium checks before pushing each working unit. Age two days: no forced release.
+

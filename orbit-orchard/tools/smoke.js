@@ -63,11 +63,11 @@ async function main() {
       await page.evaluate(() => window.scrollTo(0,0));
       await page.screenshot({ path:path.join(output, `${width}x${height}-ready.png`), fullPage:true });
       await page.locator('#startButton').click();
-      const before = await page.evaluate(() => OO.runtime.state.player.x);
+      const before = await page.evaluate(() => OO.worldToView(OO.runtime.state.player, OO.runtime.view).x);
       await page.keyboard.down('d');
       await page.waitForTimeout(180);
       await page.keyboard.up('d');
-      assert(await page.evaluate(x => OO.runtime.state.player.x > x, before), 'keyboard movement');
+      assert(await page.evaluate(x => OO.worldToView(OO.runtime.state.player, OO.runtime.view).x > x, before), 'keyboard moves right on screen in either orientation');
       await page.keyboard.down('w');
       await page.evaluate(() => window.dispatchEvent(new Event('blur')));
       assert(await page.evaluate(() => !OO.runtime.state.input.up && !OO.runtime.state.input.pointerActive), 'blur clears held input');
@@ -77,6 +77,11 @@ async function main() {
       await page.mouse.down();
       await page.waitForTimeout(200);
       assert(await page.evaluate(() => OO.runtime.state.input.pointerActive), 'pointer drag active');
+      assert(await page.evaluate(() => {
+        const {state,view} = OO.runtime;
+        const point = OO.worldToView({x:state.input.pointerX,y:state.input.pointerY},view);
+        return Math.abs(point.x/view.width-.7)<.01 && Math.abs(point.y/view.height-.65)<.01;
+      }), 'pointer target agrees with rendered world');
       await page.mouse.up();
       assert(await page.evaluate(() => !OO.runtime.state.input.pointerActive), 'pointer released');
       if (width < 1000) {
@@ -94,14 +99,15 @@ async function main() {
         const s = OO.runtime.state;
         Object.assign(s, OO.createState(42)); OO.start(s);
         for (let i=0;i<90;i++) OO.step(s, { right:true }, 1/60);
-        OO.draw(OO.runtime.canvas.getContext('2d'), s);
+        OO.runtime.render();
       });
       await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => { OO.runtime.stop(); resolve(); }))));
       await page.evaluate(() => window.scrollTo(0,0));
       const arena = await page.locator('canvas').boundingBox();
-      assert(Math.abs(arena.width / arena.height - 1.6) < .01, 'canvas keeps native aspect ratio');
-      if (height < 620 && width > height) {
-        assert(arena.y >= 0 && arena.y + arena.height <= height, 'entire landscape arena fits physical viewport');
+      const portrait = width <= 560 && height > width;
+      assert(Math.abs(arena.width / arena.height - (portrait ? .625 : 1.6)) < .01, 'canvas preserves world proportions in either orientation');
+      if ((height < 620 && width > height) || portrait) {
+        assert(arena.y >= 0 && arena.y + arena.height <= height, 'entire phone arena fits physical viewport');
         for (const selector of ['#scoreValue','#massValue','#timeValue']) {
           const readout = await page.locator(selector).boundingBox();
           assert(readout.y >= 0 && readout.y + readout.height <= height, `${selector} fits landscape viewport`);
@@ -112,7 +118,15 @@ async function main() {
       await page.reload(); await page.locator('#startButton').click();
       await page.evaluate(() => { OO.runtime.state.timeLeft = .01; });
       await page.waitForFunction(() => OO.runtime.state.status === 'over');
+      await page.screenshot({ path:path.join(output, `${width}x${height}-over.png`), fullPage:true });
       await cardFits(page, '#gameOverCard');
+      if (portrait) {
+        await page.evaluate(() => window.scrollTo(0,0));
+        for (const selector of ['#playerName','.submit-btn','#replayButton']) {
+          const control = await page.locator(selector).boundingBox();
+          assert(control.height >= 44 && control.y >= 0 && control.y + control.height <= height, `${selector} usable on first portrait results screen`);
+        }
+      }
       await visibleControls(page, ['#playerName', '.submit-btn', '#replayButton']);
       await page.evaluate(() => window.scrollTo(0,0));
       await page.screenshot({ path:path.join(output, `${width}x${height}-over.png`), fullPage:true });
@@ -132,11 +146,22 @@ async function main() {
       assert.equal(await page.evaluate(() => OO.runtime.state.status), 'over', 'Enter in form must not restart');
       await page.locator('#replayButton').click();
       assert.equal(await page.evaluate(() => OO.runtime.state.status), 'playing');
+      if (width === 390) {
+        await page.evaluate(() => OO.runtime.stop());
+        const stateBefore = await page.evaluate(() => JSON.stringify(OO.runtime.state));
+        await page.setViewportSize({width:844,height:390});
+        await page.evaluate(() => OO.runtime.render());
+        assert.equal(await page.evaluate(() => JSON.stringify(OO.runtime.state)), stateBefore, 'orientation change preserves simulation');
+        assert(await page.evaluate(() => OO.runtime.view.width > OO.runtime.view.height), 'view follows landscape resize');
+        await page.setViewportSize({width,height});
+        await page.evaluate(() => OO.runtime.render());
+        assert(await page.evaluate(() => OO.runtime.view.width < OO.runtime.view.height), 'view follows portrait resize');
+      }
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
       assert.equal(overflow, false, 'horizontal overflow');
       assert.deepEqual(errors, [], 'browser console');
       assert.deepEqual(external, [], 'external runtime requests');
-      report.push({width,height, keyboard:true, pointer:true, form:true, restart:true, overflow, errors});
+      report.push({width,height, arena, keyboard:true, pointer:true, form:true, restart:true, overflow, errors});
       await page.close();
     }
   } finally { await browser.close(); }

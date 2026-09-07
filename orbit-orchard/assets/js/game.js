@@ -15,6 +15,30 @@
   OO.GAME_ID = 'orbit-orchard';
   OO.PALETTE = PALETTE.slice();
 
+  // The simulation always stays 960x600. Portrait turns the complete deck a
+  // quarter-turn so small screens can show larger specimens without cropping.
+  function createView(width, height) {
+    var rotated = height > width;
+    return { rotated: rotated, width: rotated ? HEIGHT : WIDTH, height: rotated ? WIDTH : HEIGHT };
+  }
+  function worldToView(point, view) {
+    return view.rotated ? { x: HEIGHT - point.y, y: point.x } : { x: point.x, y: point.y };
+  }
+  function viewToWorld(point, view) {
+    return view.rotated ? { x: point.y, y: HEIGHT - point.x } : { x: point.x, y: point.y };
+  }
+  function screenInput(input, view) {
+    if (!view.rotated) return input;
+    return {
+      up: input.right, down: input.left, left: input.up, right: input.down,
+      pointerActive: input.pointerActive, pointerX: input.pointerX, pointerY: input.pointerY
+    };
+  }
+  OO.createView = createView;
+  OO.worldToView = worldToView;
+  OO.viewToWorld = viewToWorld;
+  OO.screenInput = screenInput;
+
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
   function lerp(a, b, t) { return a + (b - a) * t; }
   function distance(ax, ay, bx, by) { return Math.hypot(ax - bx, ay - by); }
@@ -447,9 +471,6 @@
     }
     drawPlanter(ctx, 141, 11, -1, 1); drawPlanter(ctx, 837, 12, -1, 0);
     drawPlanter(ctx, 104, 590, 1, 0); drawPlanter(ctx, 763, 591, 1, 1);
-    ctx.fillStyle = '#81978b'; ctx.font = '600 8px monospace'; ctx.textAlign = 'center';
-    ctx.fillText('ORBITAL CONSERVATORY  /  SECTOR 07', WIDTH / 2, 16);
-    ctx.fillStyle = '#648079'; ctx.fillText('GLASS DECK  ·  ZERO-G CULTIVATION', WIDTH / 2, HEIGHT - 11);
     ctx.restore();
   }
 
@@ -476,8 +497,6 @@
       ctx.beginPath(); ctx.ellipse(0, 0, r * (.8 - ring * .17), r * (.4 - ring * .06), time * .4 + ring, .5, 5.2); ctx.stroke();
     }
     ctx.restore();
-    ctx.save(); ctx.fillStyle = '#f1b8bc'; ctx.font = '700 8px monospace'; ctx.textAlign = 'center';
-    ctx.fillText('−4s', x, y + r + 23); ctx.restore();
   }
 
   function drawRelic(ctx, relic, time, playerRadius) {
@@ -592,10 +611,15 @@
     ctx.restore();
   }
 
-  function draw(ctx, state) {
+  function draw(ctx, state, view) {
     if (!ctx || !state) return;
+    view = view || createView(WIDTH, HEIGHT);
+    ctx.save();
+    ctx.setTransform(ctx.canvas.width / view.width, 0, 0, ctx.canvas.height / view.height, 0, 0);
+    ctx.clearRect(0, 0, view.width, view.height);
     ctx.save();
     if (state.shake > 0) ctx.translate(Math.sin(state.time * 70) * state.shake * 3, Math.cos(state.time * 61) * state.shake * 2);
+    if (view.rotated) { ctx.translate(HEIGHT, 0); ctx.rotate(Math.PI / 2); }
     drawBackground(ctx, state);
     state.hazards.forEach(function (hazard) { drawHazard(ctx, hazard, state.time); });
     state.relics.forEach(function (relic) { if (relic.active) drawRelic(ctx, relic, state.time, state.player.radius); });
@@ -604,17 +628,29 @@
       ctx.globalAlpha = clamp(particle.life / particle.max, 0, 1);
       ctx.fillStyle = particle.color; ctx.beginPath(); ctx.arc(particle.x, particle.y, particle.size, 0, TAU); ctx.fill();
     });
+    ctx.restore();
     ctx.globalAlpha = 1;
+    // Labels live in screen space so the rotated deck never turns reading or
+    // danger cues sideways. Their sizes still match the world drawing scale.
+    ctx.fillStyle = '#81978b'; ctx.font = '600 8px monospace'; ctx.textAlign = 'center';
+    ctx.fillText('ORBITAL CONSERVATORY  /  SECTOR 07', view.width / 2, 16);
+    ctx.fillStyle = '#648079';
+    ctx.fillText('GLASS DECK  ·  ZERO-G CULTIVATION', view.width / 2, view.height - 11);
+    state.hazards.forEach(function (hazard) {
+      var point = worldToView({ x: hazard.x + Math.cos(hazard.phase) * 5, y: hazard.y + Math.sin(hazard.phase * 1.4) * 5 }, view);
+      ctx.fillStyle = '#f1b8bc'; ctx.font = '700 8px monospace';
+      ctx.fillText('−4s', point.x, point.y + hazard.radius + 23);
+    });
     if (state.event.ttl > 0) {
       var alpha = clamp(state.event.ttl * 1.5, 0, 1);
       ctx.globalAlpha = alpha;
-      ctx.fillStyle = 'rgba(4,11,20,.76)'; roundRect(ctx, WIDTH / 2 - 142, 18, 284, 32, 16); ctx.fill();
+      ctx.fillStyle = 'rgba(4,11,20,.76)'; roundRect(ctx, view.width / 2 - 142, 18, 284, 32, 16); ctx.fill();
       ctx.strokeStyle = state.event.color; ctx.lineWidth = 1; ctx.stroke();
       ctx.fillStyle = state.event.color; ctx.font = '700 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(state.event.text, WIDTH / 2, 34);
+      ctx.fillText(state.event.text, view.width / 2, 34);
     }
     if (state.flash > 0) {
-      ctx.globalAlpha = state.flash * .09; ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.globalAlpha = state.flash * .09; ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, view.width, view.height);
     }
     ctx.restore();
   }
@@ -667,6 +703,24 @@
     var hintNode = root.document.getElementById('touchHint');
     var last = 0;
     var animation = null;
+    var view = createView(WIDTH, HEIGHT);
+
+    function syncView() {
+      var rect = canvas.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      var nextView = createView(rect.width, rect.height);
+      if (nextView.rotated !== view.rotated) clearControls();
+      view = nextView;
+      // Bound GPU memory on oversized displays, while preserving Retina detail.
+      var resolution = Math.min(root.devicePixelRatio || 1, 2, 4096 / Math.max(rect.width, rect.height));
+      var pixelWidth = Math.max(1, Math.round(rect.width * resolution));
+      var pixelHeight = Math.max(1, Math.round(rect.height * resolution));
+      if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+        canvas.width = pixelWidth; canvas.height = pixelHeight;
+      }
+      if (OO.runtime) OO.runtime.view = view;
+    }
+    function render() { syncView(); draw(ctx, state, view); }
 
     function setStatus(text) { if (statusNode) statusNode.textContent = text; }
     function syncOverlay() {
@@ -685,15 +739,18 @@
       setStatus(state.status === 'playing' ? 'ORBIT STABLE' : state.status === 'over' ? 'ORBIT DECAYED' : 'SEED DORMANT');
     }
     function pointerPosition(event) {
+      syncView();
       var rect = canvas.getBoundingClientRect();
-      state.input.pointerX = clamp((event.clientX - rect.left) / rect.width * WIDTH, EDGE, WIDTH - EDGE);
-      state.input.pointerY = clamp((event.clientY - rect.top) / rect.height * HEIGHT, EDGE, HEIGHT - EDGE);
+      var point = viewToWorld({ x: (event.clientX - rect.left) / rect.width * view.width, y: (event.clientY - rect.top) / rect.height * view.height }, view);
+      state.input.pointerX = clamp(point.x, EDGE, WIDTH - EDGE);
+      state.input.pointerY = clamp(point.y, EDGE, HEIGHT - EDGE);
     }
-    function begin() { if (start(state)) { syncOverlay(); syncHud(); if (canvas.focus) canvas.focus(); } }
+    function begin() { if (start(state)) { syncOverlay(); syncHud(); syncView(); if (canvas.focus) canvas.focus(); } }
     startButton.addEventListener('click', begin);
     replayButton.addEventListener('click', begin);
     canvas.addEventListener('pointerdown', function (event) {
-      pointerPosition(event); state.input.pointerActive = true; canvas.setPointerCapture(event.pointerId); if (state.status === 'ready') begin();
+      if (state.status === 'ready') begin();
+      pointerPosition(event); state.input.pointerActive = true; canvas.setPointerCapture(event.pointerId);
     });
     canvas.addEventListener('pointermove', function (event) { if (state.input.pointerActive) pointerPosition(event); });
     canvas.addEventListener('pointerup', function () { state.input.pointerActive = false; });
@@ -730,14 +787,15 @@
       if (!last) last = now;
       var elapsed = Math.min(0.05, (now - last) / 1000);
       last = now;
-      if (state.status === 'playing') step(state, state.input, elapsed);
-      draw(ctx, state);
+      syncView();
+      if (state.status === 'playing') step(state, screenInput(state.input, view), elapsed);
+      draw(ctx, state, view);
       syncOverlay(); syncHud();
       animation = root.requestAnimationFrame(frame);
     }
     syncOverlay(); syncHud();
     animation = root.requestAnimationFrame(frame);
-    OO.runtime = { state: state, canvas: canvas, stop: function () { if (animation) root.cancelAnimationFrame(animation); } };
+    OO.runtime = { state: state, canvas: canvas, view: view, render: render, stop: function () { if (animation) root.cancelAnimationFrame(animation); } };
   }
 
   OO.init = init;

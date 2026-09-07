@@ -137,3 +137,22 @@ with Replant visible at 320x568. Give JS and CSS builders one file each; seek
 independent shipped-AAA side-by-side criticism. Run mechanics and six-viewport
 Chromium checks before pushing each working unit. Age two days: no forced release.
 
+### Portrait framing and results checkpoint
+
+The complete 960x600 world rotates clockwise for live portrait phones; mechanics
+stay in world coordinates, keyboard controls follow screen directions, and
+pointer input maps through the inverse view. Canvas backing follows display
+size/DPR (DPR capped at two, maximum dimension 4096). Canvas labels stay upright.
+At320x568 the field is257.5x412, about30% larger linearly than the prior fit;
+at390x844 it is386x618, about60% larger. Both whole arenas and HUDs fit physically.
+Results remove duplicate HUD and keep callsign/POST/Replant visible with44px+
+targets. Browser checks caught and fixed first-input timing and intrinsic grid
+clipping before this checkpoint.
+
+Dedicated mechanics/view suite17/17 and full repository14 suites/346 tests pass.
+Six-size Chromium smoke passes keyboard, inverse pointer targets, native touch,
+orientation preservation, first-screen phone replay, mocked API form/replay,
+console and overflow. Lead inspected both phone live states and320 results;
+all six-size evidence saved in node_modules/.cache/orbit-orchard/sep07-pass2.
+Independent critic's baseline UI and framing verdicts remain FAIL vs Katamari
+Damacy REROLL/Pikmin4. Revised comparison pending; no AAA or release claim.

@@ -52,6 +52,32 @@ describe('Orbit Orchard deterministic vertical slice', () => {
     expect(OO.canAbsorb(20, 22)).toBe(false);
   });
 
+  test.each([[960,600],[600,960]])('view %ix%i keeps every world corner reachable without distortion', (width,height) => {
+    const view = OO.createView(width,height);
+    for (const point of [{x:0,y:0},{x:960,y:0},{x:0,y:600},{x:960,y:600},{x:277,y:419}]) {
+      const screen = OO.worldToView(point,view);
+      expect(screen.x).toBeGreaterThanOrEqual(0);
+      expect(screen.x).toBeLessThanOrEqual(view.width);
+      expect(screen.y).toBeGreaterThanOrEqual(0);
+      expect(screen.y).toBeLessThanOrEqual(view.height);
+      expect(OO.viewToWorld(screen,view)).toEqual(point);
+    }
+    const a = OO.worldToView({x:130,y:180},view);
+    const b = OO.worldToView({x:170,y:210},view);
+    expect(Math.hypot(a.x-b.x,a.y-b.y)).toBe(50);
+  });
+
+  test.each(['up','down','left','right'])('portrait %s steering follows the screen direction', direction => {
+    const state = OO.createState(42);
+    OO.start(state);
+    const view = OO.createView(600,960);
+    const before = OO.worldToView(state.player,view);
+    OO.step(state, OO.screenInput({[direction]:true},view),1/60);
+    const after = OO.worldToView(state.player,view);
+    const axis = ['left','right'].includes(direction) ? 'x' : 'y';
+    expect((after[axis]-before[axis]) * (['up','left'].includes(direction) ? -1 : 1)).toBeGreaterThan(0);
+  });
+
   test('absorbing a relic grows the seed, awards score, and starts a combo', () => {
     const state = OO.createState(11);
     OO.start(state);

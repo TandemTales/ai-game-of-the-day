@@ -55,10 +55,10 @@ h1 { margin: 8px 0 0; color: #f4fff9; font-size: clamp(23px, 3.4vw, 38px); lette
 .status-rule { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(148,237,215,.32), transparent); }
 /* Shared grid cells let cards determine their required height without stretching
    the 8:5 canvas or clipping controls inside a short phone-sized playfield. */
-.canvas-wrap { position: relative; display: grid; width: 100%; overflow: hidden; border-radius: 15px; background: var(--deep); isolation: isolate; }
+.canvas-wrap { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); width: 100%; overflow: hidden; border-radius: 15px; background: var(--deep); isolation: isolate; }
 canvas { grid-area: 1 / 1; align-self: center; display: block; width: 100%; height: auto; aspect-ratio: 8 / 5; outline: none; touch-action: none; }
 canvas:focus-visible { outline: 3px solid var(--mint); outline-offset: -4px; }
-.screen-overlay { position: relative; z-index: 2; grid-area: 1 / 1; display: grid; place-items: center; padding: clamp(18px, 3vw, 40px); background: radial-gradient(circle at 50% 42%, rgba(7,36,39,.16), rgba(3,10,16,.78)); }
+.screen-overlay { position: relative; z-index: 2; grid-area: 1 / 1; display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; place-items: center; padding: clamp(18px, 3vw, 40px); background: radial-gradient(circle at 50% 42%, rgba(7,36,39,.16), rgba(3,10,16,.78)); }
 .overlay-card { width: min(100%, 470px); padding: 30px 32px; border: 1px solid rgba(142,241,211,.4); border-radius: 16px; background: linear-gradient(145deg, rgba(14,45,49,.96), rgba(5,18,26,.97)); box-shadow: 0 22px 65px rgba(0,0,0,.5), 0 0 50px rgba(120,245,209,.08), inset 0 1px 0 rgba(255,255,255,.12); text-align: center; }
 .eyebrow { color: var(--mint); font-weight: 750; font-size: 10px; }
 .overlay-card h2 { margin: 20px 0 18px; color: #f3fff9; font-size: clamp(32px, 4vw, 54px); letter-spacing: .06em; line-height: .98; font-weight: 850; }
@@ -210,6 +210,10 @@ kbd { display: grid; place-items: center; min-height: 24px; padding: 0 4px; bord
 /* Keep the live phone view focused on its field; supporting instructions stay
    available on the ready and results screens. */
 @media (max-width: 560px) and (orientation: portrait) {
+  /* Rotate the complete orchard in the renderer, then fit its matching 5:8
+     display into the space below the live header and readouts. */
+  body:has(#screenOverlay[hidden]) .canvas-wrap { width: min(100%, calc((100svh - 156px) * .625)); margin-inline: auto; }
+  body:has(#screenOverlay[hidden]) canvas { aspect-ratio: 5 / 8; }
   body:has(#screenOverlay[hidden]) .page-shell { padding-top: 4px; }
   body:has(#screenOverlay[hidden]) .topbar { min-height: 36px; margin-bottom: 6px; }
   body:has(#screenOverlay[hidden]) .back-link { min-height: 36px; }
@@ -235,6 +239,23 @@ kbd { display: grid; place-items: center; min-height: 24px; padding: 0 4px; bord
   body:has(#screenOverlay[hidden]) .objective-card { padding: 10px 4px; border: 0; background: transparent; box-shadow: none; }
   body:has(#screenOverlay[hidden]) .objective-card p { margin: 0; font-size: 11px; line-height: 1.5; }
   body:has(#screenOverlay[hidden]) .legend-row { display: inline-flex; margin: 10px 10px 0 0; font-size: 8px; gap: 6px; }
+
+  /* The harvest card contains the final score. Remove the duplicate live HUD
+     and spend that space on readable results and two full touch-sized actions. */
+  body:has(#gameOverCard:not([hidden])) .score-panel,
+  body:has(#gameOverCard:not([hidden])) .readout-grid { display: none; }
+  body:has(#gameOverCard:not([hidden])) .screen-overlay { padding: 12px 8px; }
+  .game-over-card { min-width: 0; padding: 20px 14px 14px; }
+  .game-over-card h2 { margin: 12px 0 16px; font-size: clamp(28px, 8vw, 34px); line-height: 1.05; }
+  .game-over-card .final-score-label { font-size: 10px; }
+  .game-over-card .final-score { margin: 5px 0 18px; font-size: 42px; line-height: 1; }
+  .game-over-card .score-form label { margin-bottom: 7px; font-size: 12px; }
+  .game-over-card .score-input-row { flex-wrap: nowrap; gap: 7px; }
+  .game-over-card .score-input-row input { flex-basis: 0; padding-inline: 8px; }
+  .game-over-card .submit-btn { width: auto; min-width: 86px; padding-inline: 8px; letter-spacing: .04em; font-size: 10px; }
+  .game-over-card .score-result { min-height: 29px; padding-top: 7px; font-size: 11px; }
+  .game-over-card .secondary-btn { width: 100%; margin-top: 7px; min-height: 46px; color: #08251f; border-color: var(--mint); background: linear-gradient(100deg, var(--mint), #d0ffeb); font-size: 12px; }
+  .game-over-card .secondary-btn span { color: #24645f; }
 }
 @media (max-height: 620px) and (orientation: landscape) {
   /* The shell, header, and page padding take 90px; the rest is a full 8:5

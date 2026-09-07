@@ -226,3 +226,8 @@ do not confuse those future checks with currently passing tests.
 This update changes planning documents only; no new mechanics are implemented
 and the user's complaint is not resolved by this plan alone. Start/release dates
 remain September 5/September 19. No .aaa-complete or main promotion.
+
+## 2026-09-07 (13:02 Pacific) — contract milestone intent
+
+Implement the first playable choose/collect/deliver contract in response to human gameplay feedback. Preserve portrait controls and results. Single-file physics/UI builders, independent criticism, mechanic tests and real-input full-run checks precede any completion claim. Moving-hazard escalation and dash remain later milestones. No release this Monday.
+

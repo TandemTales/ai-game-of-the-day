@@ -325,7 +325,7 @@ and provenance-and-verdict.txt. No outstanding functional blocker was reported.
 Address the carried gameplay failure first: slow runaway growth and make delivery rewards meaningful while retaining ordinary harvests and recoverable cargo. Use a single-file physics builder and separate independent critic; lead owns tests, browser evidence and integration. Compare refreshed normal-input greedy trips against the previous 12-run baseline. No moving-hazard/dash or AAA completion claim in this bounded tuning checkpoint; gameplay remains FAIL until independently demonstrated otherwise.
 
 
-### Growth and incentive checkpoint — September 7, 13:44 Pacific
+### Growth and incentive checkpoint — September 7 (Pacific)
 
 Tuned runaway absorption: growth area coefficient .82 to .24, maximum radius
 66 to 42, ordinary pull range340 to180 and strength capped64. All generated

@@ -319,3 +319,8 @@ not human fun testing. Final tests remain357/357; final six-size smoke includes
 the sustained portrait held-input regression and passes. Final critic CSS
 comparison and provenance are in contracts-critic/comparison-contract-final-css.png
 and provenance-and-verdict.txt. No outstanding functional blocker was reported.
+
+## 2026-09-07 13:29 Pacific — incentive and growth tuning intent
+
+Address the carried gameplay failure first: slow runaway growth and make delivery rewards meaningful while retaining ordinary harvests and recoverable cargo. Use a single-file physics builder and separate independent critic; lead owns tests, browser evidence and integration. Compare refreshed normal-input greedy trips against the previous 12-run baseline. No moving-hazard/dash or AAA completion claim in this bounded tuning checkpoint; gameplay remains FAIL until independently demonstrated otherwise.
+

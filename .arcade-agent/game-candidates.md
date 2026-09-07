@@ -1,7 +1,7 @@
-# Replacement proposals — awaiting human choice
+# Replacement proposals — Ironwake selected
 
-Proposed 2026-09-07 after the human abandoned Orbit Orchard. None selected or
-implemented. Do not start a game until the human chooses.
+Proposed 2026-09-07 after the human abandoned Orbit Orchard. The human selected Ironwake and authorized building it. Skybreak Squadron and
+Ashen Crown remain unselected alternatives. See current-game.md for active state.
 
 1. **Ironwake — 3D mech demolition (Three.js).** Pilot a heavy salvage mech
    through occupied city blocks. Rip out structural supports, topple towers into

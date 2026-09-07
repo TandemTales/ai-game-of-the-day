@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Ironwake — Bot Built Arcade</title>
+  <meta name="description" content="Pilot a heavy mech. Break the convoy. Bring the city down.">
+  <link rel="icon" href="../images/botbuiltarcade-icon-face.png">
+  <link rel="stylesheet" href="assets/css/game.css">
+</head>
+<body>
+<main id="game">
+  <canvas id="scene" aria-label="Ironwake combat district" tabindex="0"></canvas>
+  <header><a href="../index.html">← ARCADE</a><strong>IRON<span>WAKE</span></strong><button id="mute" aria-label="Mute sound" aria-pressed="false">SOUND ON</button></header>
+  <section id="hud" aria-label="Mech status">
+    <div><label>ARMOR</label><b id="armor">160</b><meter id="armorMeter" min="0" max="160" value="160"></meter></div>
+    <div><label>REACTOR</label><b id="heat">0%</b><meter id="heatMeter" min="0" max="100" value="0"></meter></div>
+    <div><label>CONVOY</label><b id="objective">0 / 3</b><small id="timer">02:00</small></div>
+    <div class="score-cell"><label>SCORE</label><b id="score">000000</b><small id="weapon">STANDARD CANNON</small></div>
+  </section>
+  <div id="orders"><span>OPERATION / BREAKWATER</span><p id="message">Destroy the armored convoy.</p></div>
+  <div id="crosshair" aria-hidden="true"></div>
+  <section id="controls" aria-label="Combat controls">
+    <div id="stick" aria-label="Drag to move"><i id="stickKnob"></i><span>MOVE</span></div>
+    <div class="keyboard-hint">WASD / MOVE<br>MOUSE / AIM</div>
+    <div class="actions">
+      <button data-action="fire"><b>FIRE</b><small>CLICK</small></button>
+      <button data-action="punch"><b>PUNCH</b><small>E / RIGHT CLICK</small></button>
+      <button data-action="rip"><b>RIP GUN</b><small>Q / CLOSE RANGE</small></button>
+      <button data-action="vent"><b>VENT</b><small>SPACE / HOLD</small></button>
+    </div>
+  </section>
+  <div id="overlay">
+    <section class="briefing" id="briefing">
+      <div class="eyebrow">COMBAT TRIAL 01 / DOCKLANDS</div>
+      <h1>THE CITY<br>IS YOUR <em>WEAPON.</em></h1>
+      <p>Break the convoy before it escapes. Punch a tower toward the road. Crush the armor beneath it.</p>
+      <ol><li>Aim at a target. Fire or close in to punch.</li><li>Disable an escort, then get close and rip its gun.</li><li>Hold VENT to cool down. You cannot move or attack.</li></ol>
+      <button class="primary" id="start">DEPLOY MECH <span>→</span></button>
+      <small>WASD + mouse · Touch: drag MOVE, tap a target, use action buttons</small>
+    </section>
+    <section class="briefing results" id="results" hidden>
+      <div class="eyebrow">OPERATION / DEBRIEF</div><h1 id="resultTitle">CONVOY<br>STOPPED.</h1>
+      <div class="result-score" id="finalScore">000000</div><p id="resultStats"></p>
+      <form id="scoreForm"><label for="callsign">CALLSIGN</label><div class="form-row"><input id="callsign" value="IRONHAND" maxlength="20" required><button type="submit">POST SCORE</button></div><p id="scoreStatus" aria-live="polite"></p></form>
+      <button class="primary" id="retry">REDEPLOY <span>↻</span></button>
+    </section>
+  </div>
+  <div id="error" role="alert" hidden></div>
+</main>
+<script src="assets/js/logic.js"></script><script type="module" src="assets/js/main.js"></script>
+</body></html>

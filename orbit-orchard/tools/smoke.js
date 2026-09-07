@@ -63,6 +63,19 @@ async function main() {
       await page.evaluate(() => window.scrollTo(0,0));
       await page.screenshot({ path:path.join(output, `${width}x${height}-ready.png`), fullPage:true });
       await page.locator('#startButton').click();
+      await page.waitForFunction(() => !document.querySelector('#contractBar').hidden);
+      for (const selector of ['#safeContractButton', '#riskyContractButton']) {
+        const control = await page.locator(selector).boundingBox();
+        assert(control && control.height >= 44, `${selector} has a full touch target`);
+      }
+      if (width <= 390 || (height < 620 && width > height)) {
+        const nurseryArena = await page.locator('canvas').boundingBox();
+        assert(nurseryArena.y + nurseryArena.height <= height, 'arena fits while choosing a contract');
+      }
+      await page.locator('#riskyContractButton').click();
+      assert.equal(await page.evaluate(() => OO.runtime.state.contract.choice), 'risky');
+      await page.keyboard.press('1');
+      assert.equal(await page.evaluate(() => OO.runtime.state.contract.choice), 'safe');
       if (width <= 390) {
         assert(await page.evaluate(() => OO.runtime.view.showSteeringHint), 'new run exposes steering cue');
         await page.screenshot({ path:path.join(output, `${width}x${height}-onboarding.png`), fullPage:true });
@@ -109,6 +122,7 @@ async function main() {
       await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => { OO.runtime.stop(); resolve(); }))));
       await page.evaluate(() => window.scrollTo(0,0));
       const arena = await page.locator('canvas').boundingBox();
+      assert(await page.locator('#contractObjective').isVisible(), 'objective remains visible while steering');
       assert(await page.evaluate(() => {
         const c = OO.runtime.canvas;
         const r = c.getBoundingClientRect();

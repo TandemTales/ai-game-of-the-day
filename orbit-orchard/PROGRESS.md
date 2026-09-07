@@ -231,3 +231,14 @@ remain September 5/September 19. No .aaa-complete or main promotion.
 
 Implement the first playable choose/collect/deliver contract in response to human gameplay feedback. Preserve portrait controls and results. Single-file physics/UI builders, independent criticism, mechanic tests and real-input full-run checks precede any completion claim. Moving-hazard escalation and dash remain later milestones. No release this Monday.
 
+
+### First delivery working checkpoint
+
+Implemented one-trip prototype: safe Mint pods +600 or risky Gold diamonds +1400, three matching shape/color cargo, five seeded small targets per route, visible central nursery deposit, exactly-once reward/time cap and objective-based results. Ordinary growth persists. Existing wells now drop recoverable cargo with shared hit grace; recovered cargo cannot duplicate growth/points. Three-contract escalation and dash remain future work.
+
+Fixed two exposed causes: portrait runtime was reusing already-rotated held input, and minimum gravity distance also prevented starting-mass contact with target relics. Added regression coverage and preserved screen-relative inputs.
+
+Full repository passes 14 suites / 357 tests (28 Orbit Orchard); six-size Chromium smoke passes nursery choice targets, arena fit, input, results/replay, mocked leaderboard, clean console and no overflow. Independent critic completed normal-timer keyboard and native320px touch safe deliveries without simulation mutations. Initial automated 12-run greedy baseline also completed all routes, but it predates the final contact fix and will be rerun for final evidence.
+
+Critic's preliminary verdict remains gameplay FAIL: safe route is one outbound/return decision, growth maxes too early, ordinary points overwhelm the delivery bonus. Actual side-by-side UI FAIL vs Katamari Damacy REROLL and scene/targets FAIL vs Pikmin4; official pages freshly verified, Sept6 cached reference screenshots disclosed. Collect-versus-return wording revised from critique. No AAA completion, shipping judge or release; main unchanged.
+

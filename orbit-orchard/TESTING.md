@@ -2,9 +2,11 @@
 
 ## Planned gameplay gate (September 7 feedback)
 
-The contract/delivery, moving-hazard and dash redesign in SPEC.md is not yet
-implemented. Existing tests certify the current mechanics only. As each milestone
-lands, replace obsolete field-clear/finish expectations and add checks for:
+The first collect-and-deliver contract is implemented. The three-contract
+escalation and dash remain planned. Current tests cover seeded target supply,
+choice locking, cargo/growth, first-target contact from starting mass, nursery
+deposit exactly once, time cap, expiry/replay, idle baseline, repeated cargo
+recovery without score farming and shared hit grace. Future milestones require:
 
 - Correct-family cargo versus ordinary growth, explicit choice, full-capacity
   behavior, nursery overlap/entry, exactly-once deposits and replay reset.
@@ -53,7 +55,7 @@ Confirm:
 3. Small relics disappear into the seed, increase MASS, increase SCORE, and show a burst/event label.
 4. Same-color pickups show `CONSTELLATION LINK` and raise the multiplier.
 5. Gravity wells visibly pulse; touching one costs four seconds and pushes the seed away.
-6. Let the timer expire or harvest the field; the final-score card appears and the offline leaderboard message is friendly.
+6. Deliver three matching targets at the nursery or let time expire; results distinguish delivery from failure. Clearing the field never wins.
 7. The back link returns to `../index.html`.
 
 The game has no external art, font, audio, or runtime data fetch. A local
@@ -106,3 +108,18 @@ landscape and back, verifying the view updates without altering simulation.
 Pure view tests cover world-corner reachability, distance preservation and all
 four portrait steering directions. Screenshot fixtures use `OO.runtime.render()`
 to follow the same backing-resolution and view path as live play.
+
+## First delivery real-input baseline
+
+Run `node orbit-orchard/tools/contracts-playtest.js` with the same OO_PLAYWRIGHT
+and OO_CHROME environment variables as smoke.js. It runs seeds 7, 42 and 2026
+through safe/risky contracts on desktop keyboard and native Chromium portrait
+touch. Only the seed is assigned before start. Actual key/touch events steer to
+the nearest eligible target, then return home; no player positions, cargo,
+timers or simulation steps are injected. Reports and cargo/results PNGs go to
+ignored node_modules/.cache/orbit-orchard/contracts-playtest (OO_SHOTS override).
+
+This is a greedy reachability baseline, NOT human play or proof of fun. Record
+wall and game time separately: browser load can slow the capped frame clock.
+The full repeated-seed early/practiced matrix and independent gameplay acceptance
+gate remain outstanding. Smoke's viewport/expiry fixtures are separate evidence.

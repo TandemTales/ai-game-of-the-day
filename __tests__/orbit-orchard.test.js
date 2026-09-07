@@ -17,7 +17,7 @@ describe('Orbit Orchard deterministic vertical slice', () => {
     const first = OO.createState(42);
     const second = OO.createState(42);
     expect(first.status).toBe('ready');
-    expect(first.relics).toHaveLength(56);
+    expect(first.relics.length).toBeGreaterThanOrEqual(56);
     expect(first.stars).toHaveLength(80);
     expect(first.hazards).toHaveLength(4);
     expect(first.relics[0]).toEqual(second.relics[0]);
@@ -133,7 +133,7 @@ describe('Orbit Orchard deterministic vertical slice', () => {
     state.timeLeft = 0.01;
     OO.step(state, { pointerActive: false }, 1 / 30);
     expect(state.status).toBe('over');
-    expect(state.event.text).toBe('ORBIT DECAYED');
+    expect(state.event.text).toBe('CONTRACT EXPIRED');
   });
 
   test('score and time formatting stay leaderboard-friendly', () => {
@@ -148,5 +148,163 @@ describe('Orbit Orchard deterministic vertical slice', () => {
     const source = fs.readFileSync(path.join(__dirname, '..', 'orbit-orchard', 'assets', 'js', 'game.js'), 'utf8');
     expect(source).toContain("'/api/leaderboard/rank?gameId='");
     expect(source).toContain("fetch('/api/leaderboard/submit'");
+  });
+});
+
+describe('Orbit Orchard first delivery contract', () => {
+  const OO = loadOO();
+  function playing(seed = 42, choice = 'safe') {
+    const state = OO.createState(seed);
+    OO.start(state);
+    OO.chooseContract(state, choice);
+    return state;
+  }
+  function fill(state) {
+    state.contract.committed = true;
+    for (const relic of state.relics.filter(relic => OO.matchesContract(state, relic)).slice(0, 3)) OO.absorb(state, relic);
+  }
+
+  test.each(['safe', 'risky'])('%s has spare seeded eligible targets outside the nursery', choice => {
+    for (const seed of [7, 42, 2026]) {
+      const state = playing(seed, choice);
+      const targets = state.relics.filter(relic => OO.matchesContract(state, relic));
+      expect(targets.length).toBeGreaterThanOrEqual(5);
+      for (const relic of targets) {
+        expect(OO.canAbsorb(state.player.radius, relic.radius)).toBe(true);
+        expect(Math.hypot(relic.x - OO.NURSERY.x, relic.y - OO.NURSERY.y)).toBeGreaterThan(OO.NURSERY.radius + 100);
+      }
+      expect(state.relics).toEqual(playing(seed, choice).relics);
+    }
+  });
+
+  test('choice defaults safe and is locked after leaving the nursery', () => {
+    const state = playing();
+    expect(state.contract.choice).toBe('safe');
+    expect(OO.chooseContract(state, 'risky')).toBe(true);
+    state.player.x = 360;
+    OO.step(state, {}, 1 / 60);
+    expect(state.contract.committed).toBe(true);
+    expect(OO.chooseContract(state, 'safe')).toBe(false);
+    expect(state.contract.choice).toBe('risky');
+  });
+
+  test('wrong family grants growth without cargo; target cargo caps at three', () => {
+    const state = playing();
+    state.contract.committed = true;
+    const other = state.relics.find(relic => !OO.matchesContract(state, relic));
+    const radius = state.player.radius;
+    OO.absorb(state, other);
+    expect(state.player.radius).toBeGreaterThan(radius);
+    expect(state.contract.cargo).toBe(0);
+    const targets = state.relics.filter(relic => OO.matchesContract(state, relic));
+    for (const relic of targets) OO.absorb(state, relic);
+    expect(state.contract.cargo).toBe(3);
+  });
+
+  test('starting seed can collect its first target through physical contact', () => {
+    const state = playing();
+    const target = state.relics.find(relic => OO.matchesContract(state, relic));
+    state.relics = [target];
+    state.hazards = [];
+    state.player.x = target.x;
+    state.player.y = target.y;
+    OO.step(state, {}, 1 / 60);
+    expect(state.contract.cargo).toBe(1);
+    expect(target.active).toBe(false);
+  });
+
+  test.each(['safe', 'risky'])('%s deposit requires cargo and nursery; rewards exactly once', choice => {
+    const state = playing(42, choice);
+    expect(OO.deposit(state)).toBe(false);
+    fill(state);
+    state.player.x = 280;
+    expect(OO.deposit(state)).toBe(false);
+    state.player.x = OO.NURSERY.x;
+    state.player.y = OO.NURSERY.y;
+    state.timeLeft = 60;
+    const score = state.score;
+    expect(OO.deposit(state)).toBe(true);
+    expect(state.score).toBe(score + OO.CONTRACTS[choice].bonus);
+    expect(state.timeLeft).toBe(65);
+    expect(state.contractsCompleted).toBe(1);
+    expect(state.outcome).toBe('delivered');
+    expect(state.status).toBe('over');
+    expect(OO.deposit(state)).toBe(false);
+    expect(state.score).toBe(score + OO.CONTRACTS[choice].bonus);
+  });
+
+  test('empty field is not victory; expiry keeps points and replay resets the same seed', () => {
+    const state = playing();
+    state.relics.forEach(relic => { relic.active = false; });
+    OO.step(state, {}, 1 / 60);
+    expect(state.status).toBe('playing');
+    state.score = 1234;
+    state.timeLeft = .001;
+    OO.step(state, {}, 1 / 60);
+    expect(state.status).toBe('over');
+    expect(state.outcome).toBe('expired');
+    expect(state.score).toBe(1234);
+    OO.start(state);
+    expect(state.seed).toBe(42);
+    expect(state.contract.cargo).toBe(0);
+    expect(state.contractsCompleted).toBe(0);
+    expect(state.hits).toBe(0);
+  });
+
+  test('an idle full-length run cannot harvest by camping at the nursery', () => {
+    const state = playing();
+    for (let tick = 0; tick < 65 * 60 + 2; tick++) OO.step(state, {}, 1 / 60);
+    expect(state.status).toBe('over');
+    expect(state.contractsCompleted).toBe(0);
+    expect(state.contract.cargo).toBe(0);
+  });
+
+  test('repeated damage keeps cargo recoverable without duplicate points or growth', () => {
+    const state = playing();
+    fill(state);
+    const well = state.hazards[0];
+    for (let hit = 0; hit < 4; hit++) {
+      state.player.x = well.x;
+      state.player.y = well.y;
+      state.player.vx = 0;
+      state.player.vy = 0;
+      state.damageGrace = 0;
+      state.hazards.forEach(hazard => { hazard.cooldown = 0; });
+      const score = state.score, radius = state.player.radius;
+      OO.step(state, {}, 1 / 60);
+      expect(state.contract.cargo).toBe(2);
+      expect(state.hits).toBe(hit + 1);
+      const dropped = state.relics.filter(relic => relic.active && relic.recovered).at(-1);
+      expect(dropped).toBeDefined();
+      for (const hazard of state.hazards) {
+        expect(Math.hypot(dropped.x-hazard.x,dropped.y-hazard.y)).toBeGreaterThan(hazard.radius+90);
+      }
+      expect(OO.absorb(state,dropped)).toBe(false);
+      dropped.cooldown = 0;
+      expect(OO.absorb(state,dropped)).toBe(true);
+      expect(state.contract.cargo).toBe(3);
+      expect(state.score).toBe(score);
+      expect(state.player.radius).toBe(radius);
+    }
+  });
+
+  test('overlapping wells share one hit grace; empty cargo still costs four seconds', () => {
+    const state = playing();
+    state.relics = [];
+    const first = state.hazards[0];
+    state.hazards[1].x = first.x;
+    state.hazards[1].y = first.y;
+    state.player.x = first.x;
+    state.player.y = first.y;
+    OO.step(state, {}, 1 / 60);
+    expect(state.hits).toBe(1);
+    expect(state.timeLeft).toBeCloseTo(65 - 4 - 1 / 60);
+    expect(state.contract.cargo).toBe(0);
+    for (let tick = 0; tick < 30; tick++) {
+      state.player.x = first.x;
+      state.player.y = first.y;
+      OO.step(state, {}, 1 / 60);
+    }
+    expect(state.hits).toBe(1);
   });
 });

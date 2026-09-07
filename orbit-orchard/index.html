@@ -22,6 +22,13 @@
     <main class="arcade-layout">
       <section class="play-column" aria-label="Orbit Orchard playfield">
         <div class="game-shell">
+          <div class="contract-bar" id="contractBar" hidden>
+            <div class="contract-objective" id="contractObjective" aria-live="polite">Collect 3 MINT pods, then return to NURSERY</div>
+            <div class="contract-choices" aria-label="Choose harvest route">
+              <button id="safeContractButton" type="button" aria-pressed="true">1 · ● MINT ×3 · +600</button>
+              <button id="riskyContractButton" type="button" aria-pressed="false">2 · ◆ GOLD ×3 · +1400</button>
+            </div>
+          </div>
           <div class="game-status" aria-live="polite">
             <span><i class="status-dot"></i><span id="statusText">SEED DORMANT</span></span>
             <span class="status-rule"></span>
@@ -33,15 +40,16 @@
               <div class="overlay-card" id="startCard">
                 <div class="eyebrow">GREENHOUSE / ORBIT 07</div>
                 <h2>GROW A<br><em>NEW SUN.</em></h2>
-                <p>Roll the solar seed through the abandoned orchard.<br>Absorb relics, bend gravity, and keep your constellation alive.</p>
+                <p>Choose a harvest, collect three matching relics,<br>and bring them home to the central nursery.</p>
                 <button class="primary-btn" id="startButton" type="button"><span>ENTER ORBIT</span><b>SPACE</b></button>
-                <div class="overlay-hint">WASD / ARROWS TO STEER · DRAG ON THE FIELD TO PILOT</div>
+                <div class="overlay-hint">WASD / ARROWS OR DRAG TO STEER · 1 / 2 TO CHOOSE ROUTE</div>
               </div>
               <div class="overlay-card game-over-card" id="gameOverCard" hidden>
-                <div class="eyebrow">ORBIT DECAYED</div>
-                <h2>HARVEST<br><em>COMPLETE.</em></h2>
+                <div class="eyebrow" id="resultEyebrow">ORBIT DECAYED</div>
+                <h2 id="resultTitle">DELIVERY<br><em>MISSED.</em></h2>
                 <div class="final-score-label">FINAL SCORE</div>
                 <div class="final-score" id="finalScore">000000</div>
+                <p id="resultStats" class="result-stats"></p>
                 <form class="score-form" id="scoreForm">
                   <label for="playerName">Enter your callsign</label>
                   <div class="score-input-row">
@@ -70,8 +78,8 @@
           <div class="panel-card compact-card"><div class="panel-label">ORBIT</div><strong id="timeValue">01:05</strong><span>TIME REMAINING</span></div>
         </div>
         <div class="panel-card objective-card">
-          <div class="panel-label">FIELD NOTE</div>
-          <p>Relics smaller than your seed will <strong>join the constellation</strong>. Same-color harvests link for a higher multiplier.</p>
+          <div class="panel-label">FIRST DELIVERY</div>
+          <p>Choose <strong>MINT pods</strong> for a short trip or <strong>GOLD diamonds</strong> beyond the wells for a bigger bonus. Carry three home to the central <strong>NURSERY</strong>. Other relics still grow your seed.</p>
           <div class="legend-row"><i class="legend-seed"></i><span>YOU / THE SOLAR SEED</span></div>
           <div class="legend-row"><i class="legend-well"></i><span>GRAVITY WELL / −4 SEC</span></div>
         </div>
@@ -84,7 +92,7 @@
         <div class="quote-card"><span class="quote-mark">“</span><p>Every orbit remembers what it touches.</p><span class="quote-by">— GREENHOUSE LOG / 07</span></div>
       </aside>
     </main>
-    <footer class="footer-line"><span>ORBIT ORCHARD / PROCEDURAL GREENHOUSE</span><span>65 SECONDS / ONE CONSTELLATION</span></footer>
+    <footer class="footer-line"><span>ORBIT ORCHARD / PROCEDURAL GREENHOUSE</span><span>65 SECONDS / FIRST DELIVERY</span></footer>
   </div>
   <script src="assets/js/game.js"></script>
 </body>

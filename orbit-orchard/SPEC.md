@@ -4,8 +4,8 @@ Orbit Orchard is a one-screen top-down score attack about steering a solar seed
 through a derelict orbital greenhouse. Smaller relics are absorbed into the
 seed, increasing its radius and the strength of its local gravity lens. Same-
 color relics chain into constellation links; gravity wells are the risk route
-that costs time and score. The run ends when the 65-second orbit decays or the
-field is harvested.
+that costs time and score. The current first-delivery prototype ends when one three-relic contract is
+delivered to the central nursery or the 65-second orbit decays.
 
 The game runs over HTTP from the repository root with no third-party runtime
 fetches. All art is procedural canvas drawing and all sound hooks are local
@@ -29,9 +29,15 @@ gravity-lens twist, constellation chaining, and score-attack structure are new:
 ## Gameplay redesign — priority over standalone visual polish
 
 Human feedback on September 7: the game is boring and not challenging. Treat
-gameplay as failing, not merely unjudged. This section is the next implementation
-plan; the opening description documents the currently implemented game. Do not
-claim these mechanics are available until they are built and playtested.
+gameplay as failing, not merely unjudged. Milestone one is implemented: choose
+safe Mint pods (+600) or risky Gold diamonds (+1400), collect three matching
+shape/color relics, then deliver to the nursery. Five seeded small targets per
+route provide spares; unrelated pickups still grant growth. Cargo loss is
+recoverable without duplicate score/growth, and wells share 0.9-second grace.
+The first delivery ends this prototype, adds eight seconds capped at 65, and
+records 1/1 delivered. This is NOT the planned three-contract game below.
+Moving hazard schedules, dash and score/replay tuning remain unimplemented.
+The human gameplay failure remains unresolved until the acceptance gate passes.
 
 ### Problem and intended experience
 

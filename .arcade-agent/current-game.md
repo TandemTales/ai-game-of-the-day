@@ -13,9 +13,11 @@ is now the first priority. Follow the planned challenge loop in
 `orbit-orchard/SPEC.md` before further standalone art polish: collect requested
 relics, carry them through moving hazards to a nursery, complete three escalating
 contracts before the orbit expires, and use a limited dash to take risky routes.
-These mechanics are planned, not implemented. Preserve the existing portrait
-controls and results fixes. The next run starts with the first playable contract
-and a real full-run playtest; screenshots alone cannot establish that it is fun.
+The first one-delivery prototype is now implemented on dev with target choice,
+cargo, nursery deposit and recoverable losses. Three escalating contracts and
+dash remain planned. Preserve portrait controls/results. Current automated and
+independent real-input runs establish playability, while the challenge gate
+remains FAIL; screenshots cannot establish that it is fun.
 This supersedes the previous next-run recommendation to prioritize lighting.
 
 `started: 2026-09-05` (Pacific). This is 7 days old on 2026-09-12, so it keeps

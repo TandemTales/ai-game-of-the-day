@@ -9,6 +9,39 @@
   var FIXED_DT = 1 / 60;
   var PALETTE = ['#78f5d1', '#ffc66d', '#ff7cae', '#8ca4ff'];
   var NAMES = ['MINT', 'SOL', 'ROSE', 'AZURE'];
+  var NURSERY = { x: 480, y: 300, radius: 54 };
+  var CONTRACTS = {
+    safe: { kind: 0, color: 0, symbol: '●', name: 'Mint pods', bonus: 600, cluster: { x: 278, y: 300 } },
+    risky: { kind: 1, color: 1, symbol: '◆', name: 'Gold diamonds', bonus: 1400, cluster: { x: 859, y: 150 } }
+  };
+  OO.NURSERY = NURSERY;
+  OO.CONTRACTS = CONTRACTS;
+  function atNursery(state) { return distance(state.player.x, state.player.y, NURSERY.x, NURSERY.y) <= NURSERY.radius; }
+  function matchesContract(state, relic) {
+    var choice = CONTRACTS[state.contract.choice];
+    return relic.kind === choice.kind && relic.color === choice.color;
+  }
+  function chooseContract(state, id) {
+    if (!CONTRACTS[id] || state.status !== 'playing' || state.contract.committed || !atNursery(state)) return false;
+    state.contract.choice = id;
+    return true;
+  }
+  function deposit(state) {
+    var contract = state.contract;
+    if (state.status !== 'playing' || state.timeLeft <= 0 || !atNursery(state) || !contract.committed || contract.delivered || contract.cargo < contract.capacity) return false;
+    contract.delivered = true;
+    contract.cargo = 0;
+    state.contractsCompleted += 1;
+    state.score += CONTRACTS[contract.choice].bonus;
+    state.timeLeft = Math.min(65, state.timeLeft + 8);
+    state.outcome = 'delivered';
+    finish(state, 'FIRST CONTRACT DELIVERED');
+    return true;
+  }
+  OO.atNursery = atNursery;
+  OO.matchesContract = matchesContract;
+  OO.chooseContract = chooseContract;
+  OO.deposit = deposit;
 
   OO.WIDTH = WIDTH;
   OO.HEIGHT = HEIGHT;
@@ -92,6 +125,19 @@
         nextRandom(source) * TAU
       ));
     }
+    // Shape AND color identify a contract; reserve both target families for
+    // authored clusters beyond the nursery's harvest reach.
+    relics.forEach(function (relic) {
+      if ((relic.kind === 0 && relic.color === 0) || (relic.kind === 1 && relic.color === 1)) relic.color = 2;
+    });
+    Object.keys(CONTRACTS).forEach(function (id) {
+      var choice = CONTRACTS[id];
+      [[-18,-26],[17,-24],[0,5],[-20,31],[18,32]].forEach(function (offset) {
+        var relic = makeRelic(choice.cluster.x + offset[0] + randomBetween(source, -4, 4), choice.cluster.y + offset[1] + randomBetween(source, -4, 4), 11, choice.color, choice.kind, nextRandom(source) * TAU);
+        relic.target = id;
+        relics.push(relic);
+      });
+    });
     for (i = 0; i < 80; i += 1) {
       stars.push({
         x: randomBetween(source, EDGE, WIDTH - EDGE),
@@ -103,6 +149,8 @@
     }
     return { relics: relics, stars: stars };
   }
+
+  OO.buildField = buildField;
 
   function makeHazards() {
     return [
@@ -126,6 +174,12 @@
       comboTimer: 0,
       lastColor: -1,
       absorbed: 0,
+      contract: { choice: 'safe', committed: false, capacity: 3, cargo: 0, delivered: false },
+      contractsCompleted: 0,
+      bestChain: 0,
+      hits: 0,
+      damageGrace: 0,
+      outcome: null,
       mass: 256,
       event: { text: 'ORCHARD DORMANT', ttl: 0, color: '#78f5d1' },
       player: { x: WIDTH / 2, y: HEIGHT / 2, vx: 0, vy: 0, radius: 16, spin: 0 },
@@ -167,10 +221,20 @@
   function absorb(state, relic) {
     if (!relic || !relic.active) return false;
     var player = state.player;
+    // Dropped cargo already awarded growth and score on its original pickup.
+    if (relic.recovered) {
+      if (!matchesContract(state, relic) || state.contract.cargo >= state.contract.capacity || relic.cooldown > 0) return false;
+      relic.active = false;
+      state.contract.cargo += 1;
+      emit(state, 'CARGO RECOVERED  ' + state.contract.cargo + '/3', PALETTE[relic.color]);
+      return true;
+    }
     relic.active = false;
+    if (state.contract.committed && matchesContract(state, relic) && state.contract.cargo < state.contract.capacity) state.contract.cargo += 1;
     state.absorbed += 1;
     var sameColor = state.lastColor === relic.color;
     state.combo = sameColor ? state.combo + 1 : 1;
+    state.bestChain = Math.max(state.bestChain, state.combo);
     state.comboTimer = 2.5;
     state.multiplier = clamp(1 + Math.floor(state.combo / 4), 1, 6);
     var base = 30 + Math.round(relic.radius * 9);
@@ -185,7 +249,7 @@
     state.flash = Math.min(1, state.flash + 0.32);
     state.shake = Math.min(1, state.shake + 0.12);
     var label = sameColor ? 'CONSTELLATION LINK' : NAMES[relic.color] + ' RELIC';
-    emit(state, label + '  +' + total, PALETTE[relic.color]);
+    emit(state, state.contract.cargo === state.contract.capacity ? 'CARGO FULL · RETURN TO NURSERY' : label + '  +' + total, PALETTE[relic.color]);
     burst(state, relic.x, relic.y, PALETTE[relic.color], sameColor ? 18 : 10, sameColor ? 170 : 125);
     cue(state, sameColor ? 'link' : 'absorb');
     return true;
@@ -205,7 +269,7 @@
     resetInto(state, fresh);
     state.status = 'playing';
     state.timeLeft = 65;
-    state.event = { text: 'ROLL THE ORCHARD', ttl: 1.5, color: '#78f5d1' };
+    state.event = { text: 'PICK 3 · RETURN TO NURSERY', ttl: 1.5, color: '#78f5d1' };
     cue(state, 'start');
     return true;
   }
@@ -214,6 +278,7 @@
   function finish(state, message) {
     if (state.status !== 'playing') return;
     state.status = 'over';
+    if (!state.outcome) state.outcome = 'expired';
     emit(state, message || 'ORBIT DECAYED', '#ff7cae');
     cue(state, 'over');
     burst(state, state.player.x, state.player.y, '#ff7cae', 28, 190);
@@ -257,15 +322,14 @@
   function updateRelics(state, dt) {
     var player = state.player;
     var gravity = 12 + player.radius * 1.65;
-    var activeCount = 0;
     state.relics.forEach(function (relic) {
       if (!relic.active) return;
-      activeCount += 1;
       relic.cooldown = Math.max(0, relic.cooldown - dt);
       var dx = player.x - relic.x;
       var dy = player.y - relic.y;
-      var d = Math.max(28, Math.hypot(dx, dy));
-      var influence = clamp(1 - d / 340, 0, 1);
+      var contactDistance = Math.hypot(dx, dy);
+      var d = Math.max(28, contactDistance);
+      var influence = relic.target || relic.recovered ? (atNursery(state) ? 0 : clamp(1 - d / 90, 0, 1)) : clamp(1 - d / 340, 0, 1);
       relic.vx += dx / d * gravity * influence * dt;
       relic.vy += dy / d * gravity * influence * dt;
       relic.vx *= Math.pow(0.06, dt);
@@ -276,9 +340,9 @@
       if (relic.x > WIDTH - EDGE - relic.radius) { relic.x = WIDTH - EDGE - relic.radius; relic.vx = -Math.abs(relic.vx) * 0.45; }
       if (relic.y < EDGE + relic.radius) { relic.y = EDGE + relic.radius; relic.vy = Math.abs(relic.vy) * 0.45; }
       if (relic.y > HEIGHT - EDGE - relic.radius) { relic.y = HEIGHT - EDGE - relic.radius; relic.vy = -Math.abs(relic.vy) * 0.45; }
-      if (d < player.radius + relic.radius && OO.canAbsorb(player.radius, relic.radius)) absorb(state, relic);
+      if (relic.cooldown <= 0 && contactDistance < player.radius + relic.radius && OO.canAbsorb(player.radius, relic.radius)) absorb(state, relic);
     });
-    if (activeCount === 0) finish(state, 'ORCHARD HARVESTED');
+    // A cleared field is never a delivery.
   }
 
   function updateHazards(state, dt) {
@@ -288,14 +352,30 @@
       hazard.cooldown = Math.max(0, hazard.cooldown - dt);
       var hx = hazard.x + Math.cos(hazard.phase) * 5;
       var hy = hazard.y + Math.sin(hazard.phase * 1.4) * 5;
-      if (distance(player.x, player.y, hx, hy) < player.radius + hazard.radius && hazard.cooldown <= 0) {
+      if (distance(player.x, player.y, hx, hy) < player.radius + hazard.radius && hazard.cooldown <= 0 && state.damageGrace <= 0 && !atNursery(state)) {
         hazard.cooldown = 1.0;
         state.timeLeft = Math.max(0, state.timeLeft - 4);
-        state.score = Math.max(0, state.score - 90);
+        state.damageGrace = 0.9;
+        state.hits += 1;
+        state.combo = 0; state.multiplier = 1; state.comboTimer = 0; state.lastColor = -1;
+        if (state.contract.cargo > 0) {
+          state.contract.cargo -= 1;
+          var choice = CONTRACTS[state.contract.choice];
+          var lostX = player.x, lostY = player.y;
+          // Nudge toward the protected center until safely clear of all wells.
+          for (var attempt = 0; attempt < 20; attempt += 1) {
+            if (state.hazards.every(function (well) { return distance(lostX, lostY, well.x, well.y) > well.radius + 90; })) break;
+            lostX = lerp(lostX, NURSERY.x, .2); lostY = lerp(lostY, NURSERY.y, .2);
+          }
+          var lost = makeRelic(lostX, lostY, 11, choice.color, choice.kind, 0);
+          lost.recovered = true; lost.target = state.contract.choice; lost.cooldown = .9;
+          state.relics.push(lost);
+        }
         state.flash = Math.min(1, state.flash + 0.5);
         state.shake = Math.min(1, state.shake + 0.35);
         var nx = player.x - hx;
         var ny = player.y - hy;
+        if (nx === 0 && ny === 0) { nx = NURSERY.x - hx; ny = NURSERY.y - hy; }
         var nd = Math.hypot(nx, ny) || 1;
         player.vx += nx / nd * 280;
         player.vy += ny / nd * 280;
@@ -332,12 +412,16 @@
     state.gravityBloom = Math.max(0, state.gravityBloom - safeDt * 0.8);
     state.comboTimer = Math.max(0, state.comboTimer - safeDt);
     if (state.comboTimer === 0) { state.combo = 0; state.multiplier = 1; state.lastColor = -1; }
+    state.damageGrace = Math.max(0, state.damageGrace - safeDt);
+    if (state.timeLeft <= 0) { finish(state, 'CONTRACT EXPIRED'); return state; }
     state.input = input || state.input;
     updatePlayer(state, state.input, safeDt);
+    if (!state.contract.committed && !atNursery(state)) state.contract.committed = true;
     updateRelics(state, safeDt);
     updateHazards(state, safeDt);
     updateParticles(state, safeDt);
-    if (state.timeLeft <= 0) finish(state, 'ORBIT DECAYED');
+    if (state.timeLeft <= 0) finish(state, 'CONTRACT EXPIRED');
+    else deposit(state);
     return state;
   }
   OO.step = step;
@@ -626,6 +710,16 @@
     if (state.shake > 0) ctx.translate(Math.sin(state.time * 70) * state.shake * 3, Math.cos(state.time * 61) * state.shake * 2);
     if (view.rotated) { ctx.translate(HEIGHT, 0); ctx.rotate(Math.PI / 2); }
     drawBackground(ctx, state);
+    // A quiet landing ring remains visible while the player is away harvesting.
+    var fullCargo = state.contract.cargo === state.contract.capacity;
+    disc(ctx, NURSERY.x, NURSERY.y, NURSERY.radius, 'rgba(120,245,209,.08)');
+    ctx.strokeStyle = fullCargo ? '#eaffbf' : '#79b8a1'; ctx.lineWidth = fullCargo ? 4 : 2;
+    ctx.beginPath(); ctx.arc(NURSERY.x, NURSERY.y, NURSERY.radius, 0, TAU); ctx.stroke();
+    state.relics.forEach(function (relic) {
+      if (!relic.active || !matchesContract(state, relic)) return;
+      ctx.strokeStyle = PALETTE[relic.color]; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(relic.x, relic.y, relic.radius + 8, 0, TAU); ctx.stroke();
+    });
     state.hazards.forEach(function (hazard) { drawHazard(ctx, hazard, state.time); });
     state.relics.forEach(function (relic) { if (relic.active) drawRelic(ctx, relic, state.time, state.player.radius); });
     drawPlayer(ctx, state);
@@ -642,6 +736,19 @@
     ctx.fillStyle = '#648079';
     ctx.fillText('GLASS DECK  ·  ZERO-G CULTIVATION', view.width / 2, view.height - 11);
     var displayScale = view.scale || 1;
+    var nurseryPoint = worldToView(NURSERY, view);
+    ctx.fillStyle = fullCargo ? '#edffd6' : '#b4d5c2';
+    ctx.font = '800 ' + Math.max(12, 10 / displayScale) + 'px system-ui, sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(fullCargo ? 'DELIVER HERE' : 'NURSERY', nurseryPoint.x, nurseryPoint.y + NURSERY.radius + 13 / displayScale);
+    if (state.status === 'playing' && state.contract.cargo < state.contract.capacity) {
+      var choice = CONTRACTS[state.contract.choice];
+      var clusterPoint = worldToView(choice.cluster, view);
+      var tag = choice.symbol + ' ' + (state.contract.choice === 'safe' ? 'MINT' : 'GOLD');
+      ctx.fillStyle = PALETTE[choice.color];
+      ctx.font = '800 ' + Math.max(12, 10 / displayScale) + 'px system-ui, sans-serif';
+      ctx.fillText(tag, clamp(clusterPoint.x, 35 / displayScale, view.width - 35 / displayScale), Math.max(54 / displayScale, clusterPoint.y - 58));
+    }
     state.hazards.forEach(function (hazard) {
       var point = worldToView({ x: hazard.x + Math.cos(hazard.phase) * 5, y: hazard.y + Math.sin(hazard.phase * 1.4) * 5 }, view);
       ctx.fillStyle = '#f1b8bc'; ctx.font = '700 ' + Math.max(8, 9 / displayScale) + 'px monospace';
@@ -727,6 +834,13 @@
     var finalScoreNode = root.document.getElementById('finalScore');
     var resultNode = root.document.getElementById('scoreResult');
     var hintNode = root.document.getElementById('touchHint');
+    var contractBar = root.document.getElementById('contractBar');
+    var contractObjective = root.document.getElementById('contractObjective');
+    var safeContractButton = root.document.getElementById('safeContractButton');
+    var riskyContractButton = root.document.getElementById('riskyContractButton');
+    var resultEyebrow = root.document.getElementById('resultEyebrow');
+    var resultTitle = root.document.getElementById('resultTitle');
+    var resultStats = root.document.getElementById('resultStats');
     var last = 0;
     var animation = null;
     var view = createView(WIDTH, HEIGHT);
@@ -758,13 +872,26 @@
       gameOverCard.hidden = playing || state.status !== 'over';
       if (state.status === 'over' && finalScoreNode) finalScoreNode.textContent = formatScore(state.score);
       if (hintNode) hintNode.hidden = playing;
+      if (contractBar) contractBar.hidden = !playing;
+      if (state.status === 'over') {
+        if (resultEyebrow) resultEyebrow.textContent = state.outcome === 'delivered' ? 'FIRST DELIVERY' : 'CONTRACT EXPIRED';
+        if (resultTitle) resultTitle.textContent = state.outcome === 'delivered' ? 'Delivery complete' : 'Cargo left adrift';
+        if (resultStats) resultStats.textContent = state.contractsCompleted + '/1 delivered · Best chain ' + state.bestChain + ' · Hits ' + state.hits + ' · ' + formatTime(state.timeLeft) + ' left';
+      }
     }
     function syncHud() {
       if (scoreNode) scoreNode.textContent = formatScore(state.score);
       if (massNode) massNode.textContent = Math.round(state.player.radius * state.player.radius);
       if (comboNode) comboNode.textContent = '×' + state.multiplier + (state.combo > 1 ? ' / ' + state.combo : '');
       if (timeNode) timeNode.textContent = formatTime(state.timeLeft);
-      setStatus(state.status === 'playing' ? 'ORBIT STABLE' : state.status === 'over' ? 'ORBIT DECAYED' : 'SEED DORMANT');
+      var choice = CONTRACTS[state.contract.choice];
+      if (contractObjective) contractObjective.textContent = choice.symbol + ' ' + choice.name + ' · ' + state.contract.cargo + '/3 · ' + (state.contract.cargo === 3 ? 'Return to nursery' : 'Collect 3');
+      [[safeContractButton, 'safe'], [riskyContractButton, 'risky']].forEach(function (entry) {
+        if (!entry[0]) return;
+        entry[0].hidden = state.contract.committed;
+        entry[0].setAttribute('aria-pressed', String(state.contract.choice === entry[1]));
+      });
+      setStatus(state.status === 'playing' ? (state.contract.cargo === 3 ? 'RETURN TO NURSERY' : 'FIRST CONTRACT') : state.status === 'over' ? (state.outcome === 'delivered' ? 'DELIVERY COMPLETE' : 'CONTRACT EXPIRED') : 'SEED DORMANT');
     }
     function pointerPosition(event) {
       syncView();
@@ -774,6 +901,9 @@
       state.input.pointerY = clamp(point.y, EDGE, HEIGHT - EDGE);
     }
     function begin() { if (start(state)) { hasSteered = false; syncOverlay(); syncHud(); syncView(); if (canvas.focus) canvas.focus(); } }
+    function selectContract(id) { if (chooseContract(state, id)) { syncHud(); render(); } }
+    if (safeContractButton) safeContractButton.addEventListener('click', function () { selectContract('safe'); });
+    if (riskyContractButton) riskyContractButton.addEventListener('click', function () { selectContract('risky'); });
     startButton.addEventListener('click', begin);
     replayButton.addEventListener('click', begin);
     canvas.addEventListener('pointerdown', function (event) {
@@ -798,6 +928,7 @@
       var key = event.key.toLowerCase();
       var map = { arrowup: 'up', w: 'up', arrowdown: 'down', s: 'down', arrowleft: 'left', a: 'left', arrowright: 'right', d: 'right' };
       if (map[key]) { state.input[map[key]] = true; hasSteered = true; event.preventDefault(); }
+      if ((key === '1' || key === '2') && state.status === 'playing') { selectContract(key === '1' ? 'safe' : 'risky'); event.preventDefault(); }
       if ((key === ' ' || key === 'enter') && state.status !== 'playing') { begin(); event.preventDefault(); }
     });
     root.document.addEventListener('keyup', function (event) {
@@ -816,7 +947,13 @@
       var elapsed = Math.min(0.05, (now - last) / 1000);
       last = now;
       syncView();
-      if (state.status === 'playing') step(state, screenInput(state.input, view), elapsed);
+      if (state.status === 'playing') {
+        // Keep held controls in screen coordinates; do not rotate the prior
+        // frame's already transformed input again on portrait displays.
+        var heldInput = state.input;
+        step(state, screenInput(heldInput, view), elapsed);
+        state.input = heldInput;
+      }
       draw(ctx, state, view);
       syncOverlay(); syncHud();
       animation = root.requestAnimationFrame(frame);

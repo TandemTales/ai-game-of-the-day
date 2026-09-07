@@ -12,6 +12,13 @@ fetches. All art is procedural canvas drawing and all sound hooks are local
 event cues, so the deterministic logic can be tested without a browser. The
 global namespace is `window.OO`.
 
+The simulation stays 960x600 in every orientation. Live portrait phones display
+the entire world rotated clockwise in a 600x960 view; keys refer to screen
+directions and pointer coordinates use the inverse rotation. Ready/results and
+larger screens retain landscape framing. Display scaling preserves proportions
+and uses a DPR-aware canvas backing capped at DPR2 and4096 pixels per dimension.
+View changes must preserve world state and release held controls.
+
 The roll-and-grow premise is informed by the official description of *Katamari
 Damacy REROLL* (ball-rolling and object-collecting) while the greenhouse,
 gravity-lens twist, constellation chaining, and score-attack structure are new:

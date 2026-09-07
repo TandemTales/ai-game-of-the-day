@@ -63,10 +63,15 @@ async function main() {
       await page.evaluate(() => window.scrollTo(0,0));
       await page.screenshot({ path:path.join(output, `${width}x${height}-ready.png`), fullPage:true });
       await page.locator('#startButton').click();
+      if (width <= 390) {
+        assert(await page.evaluate(() => OO.runtime.view.showSteeringHint), 'new run exposes steering cue');
+        await page.screenshot({ path:path.join(output, `${width}x${height}-onboarding.png`), fullPage:true });
+      }
       const before = await page.evaluate(() => OO.worldToView(OO.runtime.state.player, OO.runtime.view).x);
       await page.keyboard.down('d');
       await page.waitForTimeout(180);
       await page.keyboard.up('d');
+      assert(await page.evaluate(() => !OO.runtime.view.showSteeringHint), 'first steering input dismisses cue');
       assert(await page.evaluate(x => OO.worldToView(OO.runtime.state.player, OO.runtime.view).x > x, before), 'keyboard moves right on screen in either orientation');
       await page.keyboard.down('w');
       await page.evaluate(() => window.dispatchEvent(new Event('blur')));
@@ -104,6 +109,12 @@ async function main() {
       await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => { OO.runtime.stop(); resolve(); }))));
       await page.evaluate(() => window.scrollTo(0,0));
       const arena = await page.locator('canvas').boundingBox();
+      assert(await page.evaluate(() => {
+        const c = OO.runtime.canvas;
+        const r = c.getBoundingClientRect();
+        const scale = Math.min(devicePixelRatio,2,4096/Math.max(r.width,r.height));
+        return c.width === Math.round(r.width*scale) && c.height === Math.round(r.height*scale);
+      }), 'canvas backing follows display size and bounded pixel ratio');
       const portrait = width <= 560 && height > width;
       assert(Math.abs(arena.width / arena.height - (portrait ? .625 : 1.6)) < .01, 'canvas preserves world proportions in either orientation');
       if ((height < 620 && width > height) || portrait) {
@@ -114,6 +125,13 @@ async function main() {
         }
       }
       await page.screenshot({ path:path.join(output, `${width}x${height}-playing.png`), fullPage:true });
+      if (width <= 390) {
+        await page.evaluate(() => {
+          OO.runtime.state.event = {text:'CONSTELLATION LINK  +1234',ttl:1,color:'#ffc66d'};
+          OO.runtime.render();
+        });
+        await page.screenshot({ path:path.join(output, `${width}x${height}-event.png`), fullPage:true });
+      }
       // Reload resumes RAF for real HUD/overlay synchronization and score-form checks.
       await page.reload(); await page.locator('#startButton').click();
       await page.evaluate(() => { OO.runtime.state.timeLeft = .01; });

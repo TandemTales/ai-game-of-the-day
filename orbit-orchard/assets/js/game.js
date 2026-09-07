@@ -19,7 +19,12 @@
   // quarter-turn so small screens can show larger specimens without cropping.
   function createView(width, height) {
     var rotated = height > width;
-    return { rotated: rotated, width: rotated ? HEIGHT : WIDTH, height: rotated ? WIDTH : HEIGHT };
+    var viewWidth = rotated ? HEIGHT : WIDTH;
+    var viewHeight = rotated ? WIDTH : HEIGHT;
+    return {
+      rotated: rotated, width: viewWidth, height: viewHeight,
+      scale: Math.max(.01, Math.min(width / viewWidth, height / viewHeight))
+    };
   }
   function worldToView(point, view) {
     return view.rotated ? { x: HEIGHT - point.y, y: point.x } : { x: point.x, y: point.y };
@@ -636,18 +641,39 @@
     ctx.fillText('ORBITAL CONSERVATORY  /  SECTOR 07', view.width / 2, 16);
     ctx.fillStyle = '#648079';
     ctx.fillText('GLASS DECK  ·  ZERO-G CULTIVATION', view.width / 2, view.height - 11);
+    var displayScale = view.scale || 1;
     state.hazards.forEach(function (hazard) {
       var point = worldToView({ x: hazard.x + Math.cos(hazard.phase) * 5, y: hazard.y + Math.sin(hazard.phase * 1.4) * 5 }, view);
-      ctx.fillStyle = '#f1b8bc'; ctx.font = '700 8px monospace';
+      ctx.fillStyle = '#f1b8bc'; ctx.font = '700 ' + Math.max(8, 9 / displayScale) + 'px monospace';
       ctx.fillText('−4s', point.x, point.y + hazard.radius + 23);
     });
+    if (state.status === 'playing' && state.player.radius < 32) {
+      var seedPoint = worldToView(state.player, view);
+      var labelY = Math.min(view.height - 17 / displayScale, seedPoint.y + state.player.radius + 13 / displayScale);
+      ctx.globalAlpha = clamp((32 - state.player.radius) / 8, 0, 1);
+      ctx.fillStyle = 'rgba(3,19,22,.9)';
+      roundRect(ctx, seedPoint.x - 17 / displayScale, labelY - 7 / displayScale, 34 / displayScale, 14 / displayScale, 5 / displayScale); ctx.fill();
+      ctx.fillStyle = '#e6ffcc'; ctx.font = '800 ' + 9 / displayScale + 'px system-ui, sans-serif';
+      ctx.textBaseline = 'middle'; ctx.fillText('YOU', seedPoint.x, labelY);
+      ctx.globalAlpha = 1;
+    }
+    if (state.status === 'playing' && view.showSteeringHint) {
+      var hintY = view.height - 20 / displayScale;
+      ctx.fillStyle = 'rgba(3,19,22,.93)';
+      roundRect(ctx, view.width / 2 - 65 / displayScale, hintY - 11 / displayScale, 130 / displayScale, 22 / displayScale, 7 / displayScale); ctx.fill();
+      ctx.fillStyle = '#e0f6d9'; ctx.font = '700 ' + 10 / displayScale + 'px system-ui, sans-serif';
+      ctx.textBaseline = 'middle'; ctx.fillText('DRAG TO STEER', view.width / 2, hintY);
+    }
     if (state.event.ttl > 0) {
       var alpha = clamp(state.event.ttl * 1.5, 0, 1);
       ctx.globalAlpha = alpha;
-      ctx.fillStyle = 'rgba(4,11,20,.76)'; roundRect(ctx, view.width / 2 - 142, 18, 284, 32, 16); ctx.fill();
+      ctx.font = '700 ' + Math.max(11, 11 / displayScale) + 'px system-ui, sans-serif';
+      var eventWidth = Math.min(view.width - 24, Math.max(284, ctx.measureText(state.event.text).width + 28 / displayScale));
+      var eventHeight = Math.max(32, 26 / displayScale);
+      ctx.fillStyle = 'rgba(4,11,20,.92)'; roundRect(ctx, view.width / 2 - eventWidth / 2, 18, eventWidth, eventHeight, eventHeight / 2); ctx.fill();
       ctx.strokeStyle = state.event.color; ctx.lineWidth = 1; ctx.stroke();
-      ctx.fillStyle = state.event.color; ctx.font = '700 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(state.event.text, view.width / 2, 34);
+      ctx.fillStyle = state.event.color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(state.event.text, view.width / 2, 18 + eventHeight / 2, eventWidth - 20 / displayScale);
     }
     if (state.flash > 0) {
       ctx.globalAlpha = state.flash * .09; ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, view.width, view.height);
@@ -704,6 +730,7 @@
     var last = 0;
     var animation = null;
     var view = createView(WIDTH, HEIGHT);
+    var hasSteered = false;
 
     function syncView() {
       var rect = canvas.getBoundingClientRect();
@@ -711,6 +738,7 @@
       var nextView = createView(rect.width, rect.height);
       if (nextView.rotated !== view.rotated) clearControls();
       view = nextView;
+      view.showSteeringHint = !hasSteered;
       // Bound GPU memory on oversized displays, while preserving Retina detail.
       var resolution = Math.min(root.devicePixelRatio || 1, 2, 4096 / Math.max(rect.width, rect.height));
       var pixelWidth = Math.max(1, Math.round(rect.width * resolution));
@@ -745,12 +773,12 @@
       state.input.pointerX = clamp(point.x, EDGE, WIDTH - EDGE);
       state.input.pointerY = clamp(point.y, EDGE, HEIGHT - EDGE);
     }
-    function begin() { if (start(state)) { syncOverlay(); syncHud(); syncView(); if (canvas.focus) canvas.focus(); } }
+    function begin() { if (start(state)) { hasSteered = false; syncOverlay(); syncHud(); syncView(); if (canvas.focus) canvas.focus(); } }
     startButton.addEventListener('click', begin);
     replayButton.addEventListener('click', begin);
     canvas.addEventListener('pointerdown', function (event) {
       if (state.status === 'ready') begin();
-      pointerPosition(event); state.input.pointerActive = true; canvas.setPointerCapture(event.pointerId);
+      pointerPosition(event); state.input.pointerActive = true; hasSteered = true; canvas.setPointerCapture(event.pointerId);
     });
     canvas.addEventListener('pointermove', function (event) { if (state.input.pointerActive) pointerPosition(event); });
     canvas.addEventListener('pointerup', function () { state.input.pointerActive = false; });
@@ -769,7 +797,7 @@
       if (editingText(event.target)) return;
       var key = event.key.toLowerCase();
       var map = { arrowup: 'up', w: 'up', arrowdown: 'down', s: 'down', arrowleft: 'left', a: 'left', arrowright: 'right', d: 'right' };
-      if (map[key]) { state.input[map[key]] = true; event.preventDefault(); }
+      if (map[key]) { state.input[map[key]] = true; hasSteered = true; event.preventDefault(); }
       if ((key === ' ' || key === 'enter') && state.status !== 'playing') { begin(); event.preventDefault(); }
     });
     root.document.addEventListener('keyup', function (event) {

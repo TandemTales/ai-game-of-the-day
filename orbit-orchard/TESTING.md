@@ -73,3 +73,12 @@ checks shorten the timer. This does not prove natural full-run balance, live
 leaderboard service availability, actual device performance, or AAA visual quality.
 Read the generated PNGs, including the physical landscape viewport boundary;
 full-page screenshots alone can conceal a playfield extending below the fold.
+
+The portrait regression checks the full rotated 5:8 arena and live HUD inside
+320x568 and390x844. Keyboard right must move right on screen; pointer targets
+must agree with the rendered transform. Results callsign, POST and Replant must
+be visible without scrolling with44px minimum targets. The390px run resizes to
+landscape and back, verifying the view updates without altering simulation.
+Pure view tests cover world-corner reachability, distance preservation and all
+four portrait steering directions. Screenshot fixtures use `OO.runtime.render()`
+to follow the same backing-resolution and view path as live play.

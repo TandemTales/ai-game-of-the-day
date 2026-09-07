@@ -156,3 +156,48 @@ console and overflow. Lead inspected both phone live states and320 results;
 all six-size evidence saved in node_modules/.cache/orbit-orchard/sep07-pass2.
 Independent critic's baseline UI and framing verdicts remain FAIL vs Katamari
 Damacy REROLL/Pikmin4. Revised comparison pending; no AAA or release claim.
+
+### Final cue revision and handoff
+
+Pushed framing/results as e22a0e3 after intent 936996d. The second JS unit adds
+upright event banners at minimum 11 CSS pixels, hazard penalties at minimum 9,
+a small YOU marker that fades as the seed grows, and an in-field DRAG TO STEER
+hint dismissed by the first steering input. The hint resets on replay and stays
+outside deterministic simulation state. Documentation records the view contract.
+
+Final dedicated suite: 17 passed; full repository at preceding checkpoint:
+14 suites / 346 passed. Final syntax, diff whitespace and six-viewport Chromium
+smoke pass. Checks now also cover display-sized backing resolution, first-input
+hint dismissal and explicit portrait event fixtures. Lead actually opened all
+22 final PNGs: ready/playing/over at six sizes plus phone onboarding/event states.
+4K screenshots were displayed downsampled by the image viewer; this is layout
+inspection, not a pixel-by-pixel 4K sharpness judgment. Evidence lives in ignored
+node_modules/.cache/orbit-orchard/sep07-final/ and sep07-critic/.
+
+Independent critic inspected baseline, pass2 and final real side-by-side sheets.
+Functional phone framing/results/cues pass: no clipped controls or arena, upright
+event numerals, clear YOU marker and steering hint inside the 320px viewport.
+These are identified comparisons, not blind passes.
+
+| Discipline | Final verdict | Remaining debt |
+| --- | --- | --- |
+| UI | FAIL vs Katamari Damacy REROLL | Dashboard-like hierarchy, decorative microtype, weak integrated identity; 4K card scale |
+| Framing / readability | FAIL vs Pikmin 4 | Player silhouette still token-like, uniform prop distribution and weak scene depth; small hazard penalties |
+| Gameplay / audio / VFX | Not judged | Natural full-run balance, audio implementation/review and dedicated effects critique |
+
+Critic freshly verified Nintendo/Bandai Namco/Steam source pages, then used cached
+official screenshot downloads from September 6 because direct image refetch hit
+proxy/TLS failures. No fresh-download claim. References:
+- https://www.nintendo.com/en-gb/Games/Nintendo-Switch-games/Pikmin-4-2267217.html
+- https://www.bandainamcoent.com/games/katamari-damacy-reroll
+- https://store.steampowered.com/app/848350/Katamari_Damacy_REROLL/
+Exact image URLs and provenance are also recorded in the September 6 entry and
+ignored sep07-critic/provenance.txt. No reference imagery ships with the game.
+
+Stopped after the bounded portrait/UI pass and one critic-driven cue revision.
+Physical-device performance, natural full-run balance, real leaderboard service
+and audio quality remain unverified. Next run should prioritize an authored
+greenhouse lighting/depth composition and distinctive player silhouette; keep
+this portrait/input regression suite. Do not repeat the resolved replay clipping.
+No shipping judge, .aaa-complete or release: both AAA critics still fail. Main
+was not changed. Active start remains September 5; forced release September 19.

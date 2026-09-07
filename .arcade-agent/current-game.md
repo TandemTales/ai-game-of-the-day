@@ -6,6 +6,18 @@ and chaining constellation harvests before the station's orbit decays. The
 core verb is steer-and-absorb, with keyboard, mouse, and touch drag controls;
 score comes from mass gained, risk routes, and timed constellation chains.
 
+## Current priority — gameplay redesign (human direction, September 7)
+
+The human reports that the current game is boring and not challenging. Gameplay
+is now the first priority. Follow the planned challenge loop in
+`orbit-orchard/SPEC.md` before further standalone art polish: collect requested
+relics, carry them through moving hazards to a nursery, complete three escalating
+contracts before the orbit expires, and use a limited dash to take risky routes.
+These mechanics are planned, not implemented. Preserve the existing portrait
+controls and results fixes. The next run starts with the first playable contract
+and a real full-run playtest; screenshots alone cannot establish that it is fun.
+This supersedes the previous next-run recommendation to prioritize lighting.
+
 `started: 2026-09-05` (Pacific). This is 7 days old on 2026-09-12, so it keeps
 polishing on its first Saturday; it is 14 days old on 2026-09-19, its forced
 release Saturday under the literal Pacific Saturday + 9-days rule.

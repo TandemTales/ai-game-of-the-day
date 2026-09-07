@@ -26,6 +26,128 @@ gravity-lens twist, constellation chaining, and score-attack structure are new:
 - [Bandai Namco — Katamari Damacy REROLL](https://www.bandainamcoent.com/games/katamari-damacy-reroll)
 - [Bandai Namco — Katamari Damacy Rolling LIVE](https://katamaridamacy-rolling-live.bn-ent.net/en/)
 
+## Gameplay redesign — priority over standalone visual polish
+
+Human feedback on September 7: the game is boring and not challenging. Treat
+gameplay as failing, not merely unjudged. This section is the next implementation
+plan; the opening description documents the currently implemented game. Do not
+claim these mechanics are available until they are built and playtested.
+
+### Problem and intended experience
+
+Currently, growth increases collection reach and the speed cap, every relic
+drifts toward the player, and hazards move only five units around fixed centers.
+The only finish conditions are time expiry and clearing the field. There is
+little reason to change plans, resist easy pickups, or time an action.
+
+Keep the satisfying roll-and-grow core, but make a run about choosing a route,
+committing to a harvest, then getting it home under pressure. A player should
+have an objective in the first five seconds, face a route decision within ten,
+and recognize why a skilled attempt outperforms simply sweeping the arena.
+Difficulty must come from readable decisions and execution, not tiny pickups,
+unannounced damage, arbitrary speed increases, or extra decorative meters.
+
+### Planned loop and rules
+
+Complete three nursery contracts before the orbit expires. Each contract is a
+collect-and-deliver trip within the same visible arena. All numeric values below
+are initial tuning hypotheses, not evidence of balanced or enjoyable gameplay.
+
+| System | Planned behavior | Decision it creates |
+| --- | --- | --- |
+| Harvest contracts | At the nursery, choose one of two visible target families; collect 3, then 4, then 5 matching relics for successive contracts, and return to deposit. Identify families by shape and color. | Choose a safe nearby route or a richer route through danger. |
+| Carry and deposit | Matching pickups fill cargo while still growing the seed. Other pickups grant ordinary growth/base score but do not reset cargo or complete the contract. A full cargo requires returning to the nursery. | Keep growing or commit to the delivery while time and exposed cargo are at risk. |
+| Escalating routes | Contract one teaches delivery with a slow sweeping hazard; contract two introduces a second crossing route; contract three alternates clearly marked dangerous lanes. | Read safe windows, anticipate intersections, and reroute instead of tracing the same collection circle. |
+| Limited dash | A short directional burst with a brief protected interval; start with one charge, earn one per deposit, cap at two. No passive refill. | Spend a charge on a risky pickup route or save it to protect the return trip. |
+
+Contract choices must show target symbol/count and bonus before commitment. The
+safer option is selected by default; choosing it must be quick with keyboard or
+touch, without a modal interrupting steering. The riskier option uses a marked
+cluster beyond a hazard route and awards a larger delivery bonus. Use authored
+route templates with seeded variation so risk is designed rather than inferred
+from randomly scattered objects. Do not label a route risky unless it is.
+
+Keep the initial 65-second timer. Deposits one and two initially grant eight
+seconds, capped at 65 remaining, to reward efficient play without enabling an
+endless loop. Deposit three wins the run. Expiry fails the objective but retains
+earned score. Clearing loose relics no longer ends the run; replenish the next
+contract's designed clusters deterministically. Existing growth persists between
+contracts, but higher mass must not trivialize the final route.
+
+A hazard collision initially costs four seconds, one carried target (if any),
+and the active score combo, with clear knockback and a shared 0.9-second damage
+grace period. Deposited contracts and growth are retained. Replace the existing
+flat score deduction with this rule; avoid piling unrelated penalties together.
+Lost cargo returns as a recoverable eligible relic at a nearby safe position;
+never delete the last available target needed to finish. Provide spare eligible
+targets in each route template and test recovery after repeated hits.
+An empty-cargo collision still costs time. Hazard warnings last at least one
+second; neither spawn nor activate a hazard on the player, inside the nursery,
+or across every viable exit. Late-game pressure must leave a navigable opening
+at the maximum player radius. Keep a safe deposit area but prevent completing
+objectives by camping in it: required harvest clusters are outside its pull range.
+
+Dash uses the current steering direction, falling back to the last nonzero
+direction when stationary. Start tuning at 0.3 seconds of burst with protection
+only for its first 0.15 seconds; show the protected interval distinctly. Space
+dashes during play and retains start/replay behavior outside play. A dedicated
+44px-or-larger touch button triggers dash while another finger continues to
+steer. Pointer/keyboard parity, simultaneous touch, released keys, and rotated
+portrait mapping are required. Display charges and recharge-on-delivery clearly.
+Do not add weapons, separate attack controls, or an upgrade tree in this pass.
+
+Scoring keeps ordinary harvest points and existing same-family chains, then adds
+an explicitly shown delivery bonus (larger for the risky route). Award a remaining
+time bonus only on the third delivery. Score each deposit exactly once. Results
+show contracts completed, best chain, hits, and time alongside score so players
+can identify a specific improvement for their next attempt. Replay retains the
+seed for route learning; an optional New Orchard action selects a new seed.
+The numeric leaderboard and rank-before-submit API remain unchanged.
+
+### Implementation order and stop points
+
+1. **Make one contract enjoyable.** Implement visible target choice, cargo,
+   nursery deposit, timer reward and objective-based results. Keep current
+   controls, with enough accessible small targets to finish from starting mass.
+   Run complete keyboard and touch attempts. If delivery feels like chores or
+   repeated empty travel, shorten routes and improve choice before adding systems.
+2. **Add pressure and an answer to it.** Implement the three-stage hazard schedule,
+   warnings, shared hit grace and limited dash. Add one mechanic at a time, then
+   play a natural full run. Tune hazard route geometry and dash value together.
+   Keep the arena readable at 320x568; solve presentation issues that affect play.
+3. **Establish replay value.** Tune safe versus risky choices, score bonuses and
+   seeded cluster layouts using repeated full runs. Provide useful result feedback.
+   Keep only mechanics that players actually use to make different decisions.
+4. **Return to visual/audio polish** once the gameplay acceptance gate below
+   passes. Existing AAA visual debts remain; they cannot substitute for this gate.
+
+The lead owns integration and tests; keep single-file ownership below until a
+deliberate module split is recorded. Implement in working, tested checkpoints on
+dev. This redesign does not restart the game's date or change the release clock.
+
+### Gameplay acceptance gate
+
+Use real playthroughs, not shortened timers, injected cargo, or screenshots as
+proof of this gate. Scripted checks support fairness and reproducibility but do
+not prove fun. Record seed, device/input, choices, deliveries, hits and outcome.
+
+- A first-time player can explain the target, deposit destination and dash use
+  after a short attempt. Required information stays visible on both phone sizes.
+- A practiced player can win on keyboard and touch without exploiting hazard
+  grace or camping. Each contract has a demonstrably reachable supply of eligible
+  targets and a safe timing window for a grown seed.
+- Idle and simple circular-sweep baselines cannot complete contracts. A greedy
+  nearest-target-and-return baseline should consistently lose to planned routes on
+  the same seed; if it wins just as easily, redesign the objective/pressure.
+- Play at least three fixed seeds twice on each input method. Compare early and
+  practiced attempts; record whether routing and dash timing improve completion
+  or score. Treat this as formative tuning, not a statistical difficulty claim.
+- An independent gameplay critic plays full runs and tries to reject the claim
+  that the game is engaging: are there distinct viable routes, recoverable
+  mistakes, useful dash timing, and a reason to replay? Record concrete examples.
+  A screenshot comparison cannot pass this criterion. Human feedback that it is
+  still boring remains an unresolved gameplay failure regardless of test results.
+
 ## Module ownership
 
 This scaffold is intentionally small so the playable contract is testable

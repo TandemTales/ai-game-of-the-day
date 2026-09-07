@@ -1,5 +1,29 @@
 # Orbit Orchard — Testing
 
+## Planned gameplay gate (September 7 feedback)
+
+The contract/delivery, moving-hazard and dash redesign in SPEC.md is not yet
+implemented. Existing tests certify the current mechanics only. As each milestone
+lands, replace obsolete field-clear/finish expectations and add checks for:
+
+- Correct-family cargo versus ordinary growth, explicit choice, full-capacity
+  behavior, nursery overlap/entry, exactly-once deposits and replay reset.
+- Three-contract victory, failure at zero time, capped time rewards, deterministic
+  replenishment and enough eligible targets/routes for each starting mass.
+- Hazard telegraph duration, shared collision grace, recoverable cargo loss, empty-cargo hits,
+  safe nursery/exits, and passable routes at maximum player radius.
+- Dash direction in both orientations, charge cap/refill, protected interval,
+  simultaneous touch steering/dash, cancellation and editing-field shortcuts.
+- Seeded complete routes plus idle, circular and greedy target-and-return baselines.
+  A successful scripted route proves reachability, not enjoyable difficulty.
+- Real browser complete runs with normal timers and actual input on keyboard and
+  touch. Record the SPEC gameplay-gate playtest matrix and independent critic
+  findings. Keep fixture-based smoke checks separate from this evidence.
+
+Retain all six viewport regressions. New objectives, cargo, hazard warnings and
+dash controls must fit without shrinking the established portrait arena into
+an unreadable view. Any balance change requires fresh complete-run evidence.
+
 ## Headless logic suite
 
 From the repository root:

@@ -201,3 +201,28 @@ greenhouse lighting/depth composition and distinctive player silhouette; keep
 this portrait/input regression suite. Do not repeat the resolved replay clipping.
 No shipping judge, .aaa-complete or release: both AAA critics still fail. Main
 was not changed. Active start remains September 5; forced release September 19.
+
+## 2026-09-07 — human feedback: gameplay fails; revise next milestone
+
+The human played the game and reports it is very boring and not challenging.
+That overrides the prior recommendation to focus next on lighting and silhouette.
+Gameplay is now FAIL from direct feedback, not merely unjudged. The earlier
+passing tests and responsive screenshots do not establish fun or difficulty.
+
+Updated SPEC.md with a concrete, staged redesign: choose a harvest contract,
+collect requested relics and deliver cargo to a nursery; complete three escalating
+contracts before time expires; navigate telegraphed moving hazard routes using
+a limited directional dash. Safe/risky route choices, recoverable cargo loss,
+delivery time rewards and repeatable seeds should make routing and timing matter.
+Values in the plan are starting hypotheses to tune through real play.
+
+Next run starts with ONE complete collect-and-deliver contract and a natural
+full-run keyboard/touch playtest. Only then add escalating hazards and dash,
+followed by replay/score tuning. Preserve the resolved portrait/input/results
+work. Defer standalone visual polish until the SPEC gameplay gate passes.
+TESTING.md now lists planned mechanics and real-play evidence requirements;
+do not confuse those future checks with currently passing tests.
+
+This update changes planning documents only; no new mechanics are implemented
+and the user's complaint is not resolved by this plan alone. Start/release dates
+remain September 5/September 19. No .aaa-complete or main promotion.

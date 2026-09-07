@@ -83,6 +83,10 @@ async function main() {
       const before = await page.evaluate(() => OO.worldToView(OO.runtime.state.player, OO.runtime.view).x);
       await page.keyboard.down('d');
       await page.waitForTimeout(180);
+      assert(await page.evaluate(() => {
+        const input = OO.runtime.state.input;
+        return input.right && !input.left && !input.up && !input.down;
+      }), 'held screen direction is not rotated again across animation frames');
       await page.keyboard.up('d');
       assert(await page.evaluate(() => !OO.runtime.view.showSteeringHint), 'first steering input dismisses cue');
       assert(await page.evaluate(x => OO.worldToView(OO.runtime.state.player, OO.runtime.view).x > x, before), 'keyboard moves right on screen in either orientation');

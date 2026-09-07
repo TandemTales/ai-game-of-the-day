@@ -242,3 +242,80 @@ Full repository passes 14 suites / 357 tests (28 Orbit Orchard); six-size Chromi
 
 Critic's preliminary verdict remains gameplay FAIL: safe route is one outbound/return decision, growth maxes too early, ordinary points overwhelm the delivery bonus. Actual side-by-side UI FAIL vs Katamari Damacy REROLL and scene/targets FAIL vs Pikmin4; official pages freshly verified, Sept6 cached reference screenshots disclosed. Collect-versus-return wording revised from critique. No AAA completion, shipping judge or release; main unchanged.
 
+### Final review and next run
+
+The compact phone HUD removes its redundant status row while playing, reclaiming
+24px of portrait arena height. At 320x568 the committed field is 253x405 and the
+nursery-choice field is 223x357; both fit vertically. At 390x844 the committed
+field remains 386x618. Buttons remain at least 44px and objectives at least 11px.
+Six-size supplemental nursery/committed/results checks passed. Lead opened PNGs
+at all six sizes plus the critic's actual side-by-side; UI builder opened all
+six nursery and results sets. The 4K image viewer downsampled to 2048px: this is
+layout evidence, not a pixel-level sharpness judgment. Final smoke also asserts
+held screen direction survives successive frames without being rotated twice.
+
+Independent critic used actual normal-timer keyboard and native touch controls,
+without simulation injection. Safe keyboard seed2105201829: one delivery,
+zero hits, score9391, 17.19s left. Safe320px touch seed2105318966: one delivery,
+zero hits, score11530, 39.9s left. A390px risky attempt seed2105432060 expired
+with four hits, score9976, and visibly recoverable cargo. Screenshot and decision
+pauses consumed substantial time in these attempts, so neither timings nor the
+risky failure establish balance. The critic confirms the loop is usable and
+continues to reject overall gameplay quality.
+
+| Discipline | Final standing | Evidence / debt |
+| --- | --- | --- |
+| Gameplay | FAIL | Safe out-and-back has little decision pressure; maximum growth before deposit; pickup score overshadows objective; greedy baseline wins |
+| Contract UI | Functional pass; AAA FAIL vs Katamari Damacy REROLL | Readable choices/cargo/results, but dashboard identity and scale remain below reference |
+| Scene / targets | AAA FAIL vs Pikmin 4 | Target rings help identification; token-like props, weak depth and hero silhouette remain |
+| Audio / dedicated VFX | Unjudged | No independent acceptance evidence |
+
+Comparisons were identified, not blind passes. Official pages were freshly
+verified by the critic; comparison imagery used disclosed September6 cached
+publisher screenshots. Sources:
+- https://www.nintendo.com/en-gb/Games/Nintendo-Switch-games/Pikmin-4-2267217.html
+- https://www.bandainamcoent.com/games/katamari-damacy-reroll
+- https://store.steampowered.com/app/848350/Katamari_Damacy_REROLL/
+
+Next run first: tune the existing trip's growth and objective incentives against
+the recorded greedy baseline. A600/1400 deposit is too small alongside thousands
+of incidental pickup points, and reaching radius66 before delivery removes
+collection choices. Then introduce the planned telegraphed moving pressure and
+limited dash in separately playable checkpoints; preserve recovery, safe exits
+and portrait controls. Do not treat this first1/1 prototype as the planned
+three-contract victory. Human boredom feedback remains unresolved. Defer art
+polish until the gameplay gate passes; full repeated early/practiced seed matrix,
+physical-device performance and live production leaderboard remain unverified.
+
+Stopped after one complete contract milestone and its responsive integration.
+No shipping judge, .aaa-complete, or main promotion. Work remains on dev; forced
+release date remains September19. Ignored evidence: contracts-verified (smoke),
+contract-css (supplemental layouts), contracts-critic (plays/comparison), and
+contracts-playtest-final (normal-input greedy runs), under
+node_modules/.cache/orbit-orchard/.
+
+Final refreshed real-input baseline (same final JS, normal clock; 12/12 delivered):
+
+| Seed | Input | Route | Hits | Score | Game seconds |
+| --- | --- | --- | --- | --- | --- |
+| 7 | keyboard | safe | 0 | 4810 | 6.83 |
+| 7 | touch | safe | 0 | 4426 | 5.82 |
+| 7 | keyboard | risky | 8 | 7977 | 17.92 |
+| 7 | touch | risky | 4 | 6571 | 13.55 |
+| 42 | keyboard | safe | 0 | 2666 | 7.40 |
+| 42 | touch | safe | 0 | 2168 | 6.65 |
+| 42 | keyboard | risky | 6 | 8098 | 17.42 |
+| 42 | touch | risky | 6 | 7039 | 13.60 |
+| 2026 | keyboard | safe | 0 | 3366 | 7.22 |
+| 2026 | touch | safe | 0 | 2922 | 5.90 |
+| 2026 | keyboard | risky | 7 | 7980 | 17.24 |
+| 2026 | touch | risky | 5 | 6751 | 13.10 |
+
+All six safe runs had zero hits; risky runs survived four to eight hits.
+This greedy nearest-target-then-return baseline wins every attempt, so the
+challenge acceptance gate remains FAIL. Wall/game time differ under concurrent
+Chromium load; full report records both. This is automated reachability evidence,
+not human fun testing. Final tests remain357/357; final six-size smoke includes
+the sustained portrait held-input regression and passes. Final critic CSS
+comparison and provenance are in contracts-critic/comparison-contract-final-css.png
+and provenance-and-verdict.txt. No outstanding functional blocker was reported.

@@ -19,6 +19,11 @@ dash remain planned. Preserve portrait controls/results. Current automated and
 independent real-input runs establish playability, while the challenge gate
 remains FAIL; screenshots cannot establish that it is fun.
 This supersedes the previous next-run recommendation to prioritize lighting.
+September 7 tuning slowed growth and made delivery the primary short-trip reward;
+all 12 refreshed greedy runs still win. Next add the planned telegraphed moving
+pressure and limited dash in separately playable increments, then three-contract
+escalation. Do not spend another run only adjusting score coefficients or art.
+Clean deliberate routing still lacks a consistent advantage; gameplay stays FAIL.
 
 `started: 2026-09-05` (Pacific). This is 7 days old on 2026-09-12, so it keeps
 polishing on its first Saturday; it is 14 days old on 2026-09-19, its forced

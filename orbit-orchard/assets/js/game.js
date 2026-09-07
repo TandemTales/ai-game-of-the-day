@@ -11,8 +11,8 @@
   var NAMES = ['MINT', 'SOL', 'ROSE', 'AZURE'];
   var NURSERY = { x: 480, y: 300, radius: 54 };
   var CONTRACTS = {
-    safe: { kind: 0, color: 0, symbol: '●', name: 'Mint pods', bonus: 600, cluster: { x: 278, y: 300 } },
-    risky: { kind: 1, color: 1, symbol: '◆', name: 'Gold diamonds', bonus: 1400, cluster: { x: 859, y: 150 } }
+    safe: { kind: 0, color: 0, symbol: '●', name: 'Mint pods', bonus: 1000, cluster: { x: 278, y: 300 } },
+    risky: { kind: 1, color: 1, symbol: '◆', name: 'Gold diamonds', bonus: 2400, cluster: { x: 859, y: 150 } }
   };
   OO.NURSERY = NURSERY;
   OO.CONTRACTS = CONTRACTS;
@@ -32,6 +32,7 @@
     contract.delivered = true;
     contract.cargo = 0;
     state.contractsCompleted += 1;
+    state.deliveryScore += CONTRACTS[contract.choice].bonus;
     state.score += CONTRACTS[contract.choice].bonus;
     state.timeLeft = Math.min(65, state.timeLeft + 8);
     state.outcome = 'delivered';
@@ -169,6 +170,8 @@
       time: 0,
       timeLeft: 65,
       score: 0,
+      harvestScore: 0,
+      deliveryScore: 0,
       multiplier: 1,
       combo: 0,
       comboTimer: 0,
@@ -237,12 +240,15 @@
     state.bestChain = Math.max(state.bestChain, state.combo);
     state.comboTimer = 2.5;
     state.multiplier = clamp(1 + Math.floor(state.combo / 4), 1, 6);
-    var base = 30 + Math.round(relic.radius * 9);
+    // Harvest rewards size and chains; delivery remains the trip's main prize.
+    var base = 8 + Math.round(relic.radius * 2);
     var total = scoreFor(base, state.multiplier);
-    if (sameColor) total += scoreFor(80, state.multiplier);
+    if (sameColor) total += scoreFor(12, state.multiplier);
+    state.harvestScore += total;
     state.score += total;
     state.mass = Math.round(player.radius * player.radius);
-    player.radius = Math.min(66, Math.sqrt(player.radius * player.radius + relic.radius * relic.radius * 0.82));
+    // Keep a legal climb to radius-32 relics, without maxing out on the first trip.
+    player.radius = Math.min(42, Math.sqrt(player.radius * player.radius + relic.radius * relic.radius * 0.24));
     state.mass = Math.round(player.radius * player.radius);
     state.lastColor = relic.color;
     state.gravityBloom = 1;
@@ -321,7 +327,8 @@
 
   function updateRelics(state, dt) {
     var player = state.player;
-    var gravity = 12 + player.radius * 1.65;
+    // Growth strengthens the lens locally instead of pulling half the deck.
+    var gravity = Math.min(64, 12 + player.radius * 1.65);
     state.relics.forEach(function (relic) {
       if (!relic.active) return;
       relic.cooldown = Math.max(0, relic.cooldown - dt);
@@ -329,7 +336,7 @@
       var dy = player.y - relic.y;
       var contactDistance = Math.hypot(dx, dy);
       var d = Math.max(28, contactDistance);
-      var influence = relic.target || relic.recovered ? (atNursery(state) ? 0 : clamp(1 - d / 90, 0, 1)) : clamp(1 - d / 340, 0, 1);
+      var influence = relic.target || relic.recovered ? (atNursery(state) ? 0 : clamp(1 - d / 90, 0, 1)) : clamp(1 - d / 180, 0, 1);
       relic.vx += dx / d * gravity * influence * dt;
       relic.vy += dy / d * gravity * influence * dt;
       relic.vx *= Math.pow(0.06, dt);
@@ -876,7 +883,7 @@
       if (state.status === 'over') {
         if (resultEyebrow) resultEyebrow.textContent = state.outcome === 'delivered' ? 'FIRST DELIVERY' : 'CONTRACT EXPIRED';
         if (resultTitle) resultTitle.textContent = state.outcome === 'delivered' ? 'Delivery complete' : 'Cargo left adrift';
-        if (resultStats) resultStats.textContent = state.contractsCompleted + '/1 delivered · Best chain ' + state.bestChain + ' · Hits ' + state.hits + ' · ' + formatTime(state.timeLeft) + ' left';
+        if (resultStats) resultStats.textContent = state.contractsCompleted + '/1 delivered · Best chain ' + state.bestChain + ' · Hits ' + state.hits + ' · ' + formatTime(state.timeLeft) + ' left · Harvest ' + state.harvestScore + ' · Delivery ' + state.deliveryScore;
       }
     }
     function syncHud() {
@@ -888,6 +895,8 @@
       if (contractObjective) contractObjective.textContent = choice.symbol + ' ' + choice.name + ' · ' + state.contract.cargo + '/3 · ' + (state.contract.cargo === 3 ? 'Return to nursery' : 'Collect 3');
       [[safeContractButton, 'safe'], [riskyContractButton, 'risky']].forEach(function (entry) {
         if (!entry[0]) return;
+        var option = CONTRACTS[entry[1]];
+        entry[0].textContent = (entry[1] === 'safe' ? '1 · ' : '2 · ') + option.symbol + ' ' + (entry[1] === 'safe' ? 'MINT' : 'GOLD') + ' ×3 · +' + option.bonus;
         entry[0].hidden = state.contract.committed;
         entry[0].setAttribute('aria-pressed', String(state.contract.choice === entry[1]));
       });

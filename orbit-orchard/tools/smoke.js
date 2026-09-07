@@ -154,13 +154,20 @@ async function main() {
       await page.reload(); await page.locator('#startButton').click();
       await page.evaluate(() => { OO.runtime.state.timeLeft = .01; });
       await page.waitForFunction(() => OO.runtime.state.status === 'over');
+      // Populated results exercise wrapping that a zero-score expiry misses.
+      // This is a layout fixture, not evidence of a completed natural run.
+      await page.evaluate(() => {
+        const s = OO.runtime.state;
+        Object.assign(s, {outcome:'delivered',contractsCompleted:1,score:3376,harvestScore:976,deliveryScore:2400,hits:12,bestChain:12,timeLeft:32});
+      });
+      await page.waitForFunction(() => document.querySelector('#resultStats').textContent.includes('Delivery 2400'));
       await page.screenshot({ path:path.join(output, `${width}x${height}-over.png`), fullPage:true });
       await cardFits(page, '#gameOverCard');
-      if (portrait) {
+      if (portrait || (height < 620 && width > height)) {
         await page.evaluate(() => window.scrollTo(0,0));
         for (const selector of ['#playerName','.submit-btn','#replayButton']) {
           const control = await page.locator(selector).boundingBox();
-          assert(control.height >= 44 && control.y >= 0 && control.y + control.height <= height, `${selector} usable on first portrait results screen`);
+          assert(control.height >= 44 && control.y >= 0 && control.y + control.height <= height, `${selector} usable on first phone results screen`);
         }
       }
       await visibleControls(page, ['#playerName', '.submit-btn', '#replayButton']);

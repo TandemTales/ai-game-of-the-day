@@ -307,4 +307,59 @@ describe('Orbit Orchard first delivery contract', () => {
     }
     expect(state.hits).toBe(1);
   });
+
+  test('three targets grow the seed without exhausting the size progression', () => {
+    const state = playing();
+    fill(state);
+    expect(state.player.radius).toBeGreaterThan(16);
+    expect(state.player.radius).toBeLessThan(24);
+    expect(state.relics.some(relic => relic.active && !OO.canAbsorb(state.player.radius, relic.radius))).toBe(true);
+  });
+
+  test('seeded fields retain a legal growth bridge from starter relics to the largest props', () => {
+    // Eligibility proof only: sorting does not establish a timed navigable route.
+    for (let seed = 1; seed <= 100; seed++) {
+      const state = playing(seed);
+      const relics = [...state.relics].sort((a, b) => a.radius - b.radius);
+      for (const relic of relics) {
+        expect(OO.canAbsorb(state.player.radius, relic.radius)).toBe(true);
+        OO.absorb(state, relic);
+      }
+      expect(state.player.radius).toBeGreaterThan(32 / .96);
+      expect(state.player.radius).toBeLessThan(45);
+    }
+  });
+
+  test.each(['safe', 'risky'])('%s delivery outweighs an ordinary short-trip harvest and records the score split', choice => {
+    const state = playing(42, choice);
+    state.contract.committed = true;
+    const ordinary = state.relics.filter(relic => !relic.target && relic.radius < 15).slice(0, 6);
+    for (const relic of ordinary) OO.absorb(state, relic);
+    fill(state);
+    expect(state.harvestScore).toBe(state.score);
+    expect(state.deliveryScore).toBe(0);
+    expect(OO.deposit(state)).toBe(true);
+    expect(state.deliveryScore).toBeGreaterThan(state.harvestScore);
+    expect(state.score).toBe(state.harvestScore + state.deliveryScore);
+    const deliveryScore = state.deliveryScore;
+    expect(OO.deposit(state)).toBe(false);
+    expect(state.deliveryScore).toBe(deliveryScore);
+    OO.start(state);
+    expect(state.harvestScore).toBe(0);
+    expect(state.deliveryScore).toBe(0);
+  });
+
+  test('recovered cargo cannot inflate either score category', () => {
+    const state = playing();
+    fill(state);
+    state.contract.cargo = 2;
+    const target = state.relics.find(relic => OO.matchesContract(state, relic));
+    target.active = true;
+    target.recovered = true;
+    const harvest = state.harvestScore;
+    expect(OO.absorb(state, target)).toBe(true);
+    expect(state.harvestScore).toBe(harvest);
+    expect(state.deliveryScore).toBe(0);
+    expect(state.score).toBe(harvest);
+  });
 });

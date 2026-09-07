@@ -121,5 +121,15 @@ ignored node_modules/.cache/orbit-orchard/contracts-playtest (OO_SHOTS override)
 
 This is a greedy reachability baseline, NOT human play or proof of fun. Record
 wall and game time separately: browser load can slow the capped frame clock.
+The report now records harvest/delivery score separately, final radius and pickup
+count. Runs execute sequentially to reduce concurrent-render timing distortion;
+wall and game time still differ. Compare score shares and radius as well as wins.
 The full repeated-seed early/practiced matrix and independent gameplay acceptance
 gate remain outstanding. Smoke's viewport/expiry fixtures are separate evidence.
+
+September 7 tuning regressions also cover non-maximal three-target growth, a
+legal ascending-size absorption bridge across 100 seeds (eligibility only, not
+timed navigation), dominant short-trip delivery rewards, exact score accounting,
+replay reset and recovery without duplicate points. Browser results use a
+populated delivery fixture to expose long-stat wrapping and require callsign,
+POST and Replant to fit the first portrait and landscape phone results screen.

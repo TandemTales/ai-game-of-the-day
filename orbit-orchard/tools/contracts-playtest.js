@@ -67,7 +67,7 @@ async function attempt(browser, seed, choice, input) {
   await page.waitForTimeout(80);
   const result = await page.evaluate(() => {
     const s=OO.runtime.state;
-    return {seed:s.seed,choice:s.contract.choice,outcome:s.outcome,deliveries:s.contractsCompleted,hits:s.hits,score:s.score,time:s.time,timeLeft:s.timeLeft,bestChain:s.bestChain,status:s.status};
+    return {seed:s.seed,choice:s.contract.choice,outcome:s.outcome,deliveries:s.contractsCompleted,hits:s.hits,score:s.score,harvestScore:s.harvestScore,deliveryScore:s.deliveryScore,radius:s.player.radius,absorbed:s.absorbed,time:s.time,timeLeft:s.timeLeft,bestChain:s.bestChain,status:s.status};
   });
   await page.screenshot({path:path.join(output,`${seed}-${choice}-${input}-result.png`)});
   assert.deepEqual(errors, [], 'clean browser console');
@@ -82,7 +82,9 @@ async function main() {
   const results=[];
   try {
     for (const seed of [7,42,2026]) for (const choice of ['safe','risky']) {
-      const pair=await Promise.all(['keyboard','touch'].map(input=>attempt(browser,seed,choice,input)));
+      // Run one page at a time so simultaneous rendering does not skew the clock.
+      const pair=[];
+      for (const input of ['keyboard','touch']) pair.push(await attempt(browser,seed,choice,input));
       results.push(...pair);
       fs.writeFileSync(path.join(output,'report.json'),JSON.stringify(results,null,2));
       console.log(JSON.stringify(pair));

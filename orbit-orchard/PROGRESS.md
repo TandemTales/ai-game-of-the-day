@@ -324,3 +324,89 @@ and provenance-and-verdict.txt. No outstanding functional blocker was reported.
 
 Address the carried gameplay failure first: slow runaway growth and make delivery rewards meaningful while retaining ordinary harvests and recoverable cargo. Use a single-file physics builder and separate independent critic; lead owns tests, browser evidence and integration. Compare refreshed normal-input greedy trips against the previous 12-run baseline. No moving-hazard/dash or AAA completion claim in this bounded tuning checkpoint; gameplay remains FAIL until independently demonstrated otherwise.
 
+
+### Growth and incentive checkpoint — September 7, 13:44 Pacific
+
+Tuned runaway absorption: growth area coefficient .82 to .24, maximum radius
+66 to 42, ordinary pull range340 to180 and strength capped64. All generated
+large props remain legally absorbable. Harvest now pays8+round(2r), links add12
+before the existing multiplier; deliveries pay1000 safe/2400 risky. Results
+show harvest and delivery separately and choice labels follow actual rewards.
+
+Added five regression cases (33 Orbit tests); the full repository passes
+14 suites/362 tests. Legal ascending-size growth reaches all props across100
+tracked test seeds (builder additionally checked1000); this is eligibility
+proof, not timed navigation. Recovered cargo does not duplicate either score
+category. Existing portrait control, contact and grace regressions remain green.
+
+Final Chromium sweep passes all six sizes, clean console, no horizontal overflow,
+keyboard/pointer/native touch, resize and mocked rank-before-submit. Lead viewed
+ready/live/results at all sizes and the reference side-by-side; 4K was viewer-
+downsampled to2048, so no full-resolution sharpness claim. Expanded results
+exposed landscape Replant below the viewport; reduced card whitespace preserves
+44px controls and now passes first-screen results assertions on portrait AND
+landscape phones. Populated smoke results are an injected layout fixture; its
+background expiry event is not evidence of a live delivered outcome. Natural
+results were independently verified in the playtests below.
+
+Normal-clock greedy baseline, seeds7/42/2026, actual keyboard/native touch:
+12/12 delivered. Seed only assigned before start, no positions/cargo/timers/steps
+injected. Playtest pages run sequentially now and report wall/game time separately.
+Delivery supplies66.7-87.2% of score; final radius19.77-41.94, with none reaching
+cap42. Reduced collision footprint also makes risky routes easier; this is
+progression/incentive improvement, NOT increased challenge or a fun claim.
+
+| Seed | Input | Route | Hits | Score | Harvest | Delivery share | Radius | Game seconds |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 7 | keyboard | safe | 0 | 1450 | 450 | 69% | 27.21 | 7.72 |
+| 7 | touch | safe | 0 | 1331 | 331 | 75.1% | 23.28 | 6.49 |
+| 7 | keyboard | risky | 2 | 2979 | 579 | 80.6% | 31.38 | 15.91 |
+| 7 | touch | risky | 3 | 2900 | 500 | 82.8% | 27.58 | 13.44 |
+| 42 | keyboard | safe | 0 | 1255 | 255 | 79.7% | 21.07 | 7.86 |
+| 42 | touch | safe | 0 | 1237 | 237 | 80.8% | 20.37 | 6.35 |
+| 42 | keyboard | risky | 2 | 3598 | 1198 | 66.7% | 41.94 | 15.96 |
+| 42 | touch | risky | 0 | 2752 | 352 | 87.2% | 23.8 | 11.61 |
+| 2026 | keyboard | safe | 0 | 1150 | 150 | 87% | 19.77 | 6.99 |
+| 2026 | touch | safe | 0 | 1295 | 295 | 77.2% | 22.07 | 6.1 |
+| 2026 | keyboard | risky | 5 | 3234 | 834 | 74.2% | 33.67 | 17.83 |
+| 2026 | touch | risky | 0 | 2948 | 548 | 81.4% | 28.52 | 11.49 |
+
+Independent critic completed six additional seed42 risky attempts using authored
+browser-input routes (greedy, outbound detour, planned outward-and-return) on
+keyboard and native touch, all with normal timers. All six delivered. Planned
+keyboard:0hits3052score18.91game seconds/radius28.09; greedy:2hits3376score15.86s/
+radius39.69. Planned touch:0hits3005score14.94s/radius27.30; greedy:0hits2752score
+11.71s/radius23.80. Cleaner keyboard routing loses324points; native touch greedy
+already wins cleanly and faster. These are scripted input comparisons, not
+physical human play or the full early/practiced three-seed matrix.
+
+| Discipline | Final verdict | Outstanding evidence/debt |
+| --- | --- | --- |
+| Growth and objective incentives | Checkpoint PASS | Slower growth, dominant delivery reward and preserved eligibility verified |
+| Overall gameplay | FAIL | All greedy trips win; no reliable advantage for deliberate routes; human boredom unresolved |
+| Scene/readability | AAA FAIL vs Pikmin4 | Token field, weak hero/object size contrast and material depth |
+| UI/identity | AAA FAIL vs Katamari Damacy REROLL | Generic dashboard and microtype; first-screen phone results functional |
+| Audio / dedicated VFX | Unjudged | No independent full acceptance |
+
+Critic and lead actually opened the identified side-by-side; no blind pass.
+Official publisher/Steam pages freshly browsed by critic; image fetch restrictions
+required disclosed September6 cached publisher screenshots for the composition.
+https://www.nintendo.com/en-gb/Games/Nintendo-Switch-games/Pikmin-4-2267217.html
+https://www.bandainamcoent.com/games/katamari-damacy-reroll
+https://store.steampowered.com/app/848350/Katamari_Damacy_REROLL/
+
+Next FIRST: implement one telegraphed moving route hazard and the limited dash
+answer, preserving at-least-one-second warnings, safe nursery/exits, recoverable
+cargo and simultaneous touch/portrait input. Play it naturally before expanding
+to three contracts. Do not just raise points again. Deferred remaining-time
+reward belongs to the planned third deposit; do not introduce arbitrary hit
+score penalties to disguise missing pressure. Preserve these score breakdowns
+for matched-seed comparisons. Human gameplay feedback remains unresolved.
+
+Stopped after the bounded growth/reward checkpoint plus its landscape results
+integration. No shipping judge, completion marker, production promotion or main
+change; forced release remains September19. Physical-device performance, full
+repeated early/practiced seed matrix and production leaderboard are unverified.
+Evidence: node_modules/.cache/orbit-orchard/tuning-playtest/report.json,
+tuning-smoke-final/report.json and PNGs, tuning-critic/provenance-and-verdict.txt,
+report.json, planned-report.json and comparison-tuning.png (all ignored).

@@ -30,7 +30,7 @@ gravity-lens twist, constellation chaining, and score-attack structure are new:
 
 Human feedback on September 7: the game is boring and not challenging. Treat
 gameplay as failing, not merely unjudged. Milestone one is implemented: choose
-safe Mint pods (+600) or risky Gold diamonds (+1400), collect three matching
+safe Mint pods (+1000) or risky Gold diamonds (+2400), collect three matching
 shape/color relics, then deliver to the nursery. Five seeded small targets per
 route provide spares; unrelated pickups still grant growth. Cargo loss is
 recoverable without duplicate score/growth, and wells share 0.9-second grace.
@@ -39,12 +39,24 @@ records 1/1 delivered. This is NOT the planned three-contract game below.
 Moving hazard schedules, dash and score/replay tuning remain unimplemented.
 The human gameplay failure remains unresolved until the acceptance gate passes.
 
+September 7 incentive checkpoint: each absorption adds 24% of relic area to
+growth (formerly 82%), with radius capped at 42 (formerly 66). All generated
+props remain eventually absorbable. Ordinary gravity reaches 180 world units
+(formerly 340), strength caps at 64; authored targets retain their 90-unit lens
+and nursery exclusion. Harvest pays 8 + round(2 * relic radius), with a 12-point
+same-color link before the existing multiplier. Results separate harvest and
+delivery points. These are tested tuning hypotheses, not a gameplay pass:
+greedy routes still complete easily, and efficient clean routes do not reliably
+outscore detours with incidental harvest. Add planned pressure and limited dash
+next; do not mistake further numerical adjustment for the missing route decisions.
+
 ### Problem and intended experience
 
-Currently, growth increases collection reach and the speed cap, every relic
-drifts toward the player, and hazards move only five units around fixed centers.
-The only finish conditions are time expiry and clearing the field. There is
-little reason to change plans, resist easy pickups, or time an action.
+The original slice increased collection reach and speed with rapid growth,
+pulled relics from a broad area, and finished only on expiry or field clearance.
+The first contract and slower growth now bound that snowball, but hazards still
+move only five units around fixed centers. There is still little reason to
+change plans, resist easy pickups, or time an action.
 
 Keep the satisfying roll-and-grow core, but make a run about choosing a route,
 committing to a harvest, then getting it home under pressure. A player should

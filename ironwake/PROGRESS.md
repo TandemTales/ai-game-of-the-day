@@ -9,6 +9,28 @@ combat and six-viewport gates. Preserve the playable combat verbs and leave
 release/main untouched; any remaining visual debt will stay explicit in this
 handoff.
 
+## 2026-09-07 (Pacific) — tactical readability pass
+
+Renderer-only polish adds a persistent world-space tower beacon and billboard:
+PUNCH TOWER while a standing building is aligned, then FALL LINE through the
+two-second collapse. The existing directional preview and footprint remain
+unchanged; no logic, controls, timing, scoring, or mission scope changed.
+
+Validation after the change: full repository Jest 14 suites / 340 tests passed;
+render syntax and CRLF-aware diff checks passed. Real Chromium smoke passed all
+six required viewports, normal-input tower crush, keyboard movement,
+simultaneous native touch steering/fire and release, all 44px action controls,
+retry reset, rank-before-submit, clean console, no external runtime requests,
+and no horizontal overflow. I opened the 390x844, 1440x900, and downsampled
+3840x2160 collapse captures; the FALL LINE cue is legible without covering the
+combat lane.
+
+No independent AAA critic or shipping judge was available this run. The visual
+identity remains a low-poly scaffold below the MechWarrior 5 reference bar;
+authored terrain/material depth, dedicated VFX/audio review, human first-play
+feedback, and real-device GPU performance remain unproven. No .aaa-complete,
+release, or main promotion.
+
 ## 2026-09-07 (Pacific) — selected / first playable intent
 
 Human selected Ironwake and confirmed combat is central. Build the city-block

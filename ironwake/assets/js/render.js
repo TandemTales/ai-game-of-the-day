@@ -78,6 +78,8 @@ export function createRenderer(canvas) {
   const buildings=new Map(),enemies=new Map(),shots=new Map(),effects=new Map();
   const hostileLabel=label('CONVOY','#ffc195'),escortLabel=label('ESCORT','#ffa191'),ripLabel=label('RIP GUN','#ffe392');
   for(const m of [hostileLabel,escortLabel,ripLabel])m.depthTest=false;
+  const towerGuideLabel=label('PUNCH TOWER','#fff0bd','#6b361e'),fallGuideLabel=label('FALL LINE','#fff0bd','#6b361e');
+  for(const m of [towerGuideLabel,fallGuideLabel])m.depthTest=false;
   const markerRed=new THREE.MeshBasicMaterial({color:0xff795e,depthTest:false,depthWrite:false}),markerBg=new THREE.MeshBasicMaterial({color:0x18232a,depthTest:false,depthWrite:false});materials.push(markerRed,markerBg);
   function addMarker(v,e){v.marker=group();v.marker.renderOrder=10;v.markerLabel=mesh(planeGeo,e.type==='tank'?hostileLabel:escortLabel,0,0,0,2.7,.65,1,v.marker);v.markerLabel.renderOrder=11;v.markerLabel.castShadow=false;const bg=mesh(planeGeo,markerBg,0,-.4,0,1.9,.12,1,v.marker);bg.renderOrder=11;bg.castShadow=false;v.hpBar=mesh(planeGeo,markerRed,0,-.4,.01,1.9,.075,1,v.marker);v.hpBar.renderOrder=12;v.hpBar.castShadow=false;}
   function makeMech(enemy=false){
@@ -168,6 +170,13 @@ export function createRenderer(canvas) {
   const aim=mesh(aimRingGeo,M.cyan,0,.06,0);aim.rotation.x=-Math.PI/2;aim.castShadow=false;
   const preview=new THREE.ArrowHelper(new THREE.Vector3(0,0,-1),new THREE.Vector3(),8,0xffc65c,1.8,.9);scene.add(preview);preview.visible=false;
   const fallFootprint=box(M.warning,0,.035,0,1,.035,1);fallFootprint.castShadow=false;fallFootprint.visible=false;
+  const towerGuide=group();
+  const towerGuideRing=mesh(aimRingGeo,M.warning,0,.08,0,1.55,1.55,1,towerGuide);towerGuideRing.rotation.x=-Math.PI/2;towerGuideRing.castShadow=false;
+  const towerGuideBeam=mesh(cylGeo,M.warning,0,1,0,.12,1,.12,towerGuide);towerGuideBeam.castShadow=false;
+  const towerGuideText=group(towerGuide);
+  const towerGuideBillboard=mesh(planeGeo,towerGuideLabel,0,1,0,3.7,.58,1,towerGuideText);towerGuideBillboard.renderOrder=14;towerGuideBillboard.castShadow=false;
+  const fallGuideBillboard=mesh(planeGeo,fallGuideLabel,0,1,0,3.2,.58,1,towerGuideText);fallGuideBillboard.renderOrder=14;fallGuideBillboard.castShadow=false;fallGuideBillboard.visible=false;
+  towerGuide.visible=false;
   const ray=new THREE.Raycaster(),pointer=new THREE.Vector2(),ground=new THREE.Plane(new THREE.Vector3(0,1,0),0),pickPoint=new THREE.Vector3();
   let width=0,height=0,lastX=0,lastZ=0,initialized=false;
   function resize(){const r=canvas.getBoundingClientRect();width=Math.max(1,r.width);height=Math.max(1,r.height);renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();}
@@ -194,7 +203,7 @@ export function createRenderer(canvas) {
     if(!initialized)camera.position.copy(targetPos);else camera.position.lerp(targetPos,1-Math.exp(-dt*5));
     camera.lookAt(cx,0,cz-5.5);
     lastX=p.x;lastZ=p.z;initialized=true;
-    let nearest=null,nearDist=Infinity;
+    let nearest=null,nearDist=Infinity,falling=null;
     for(const b of state.buildings){
       let v=buildings.get(b.id);if(!v){v=makeBuilding(b);buildings.set(b.id,v);}
       v.pivot.visible=b.status!=='rubble';v.rubble.visible=b.status==='rubble';v.rubble.rotation.y=Math.atan2(b.fallX||0,b.fallZ||-1);
@@ -208,14 +217,19 @@ export function createRenderer(canvas) {
         const d=Math.hypot(b.x-p.x,b.z-p.z);const aimdx=Math.sin(p.angle||0),aimdz=Math.cos(p.angle||0);
         const alignment=((b.x-p.x)*aimdx+(b.z-p.z)*aimdz)/Math.max(.01,d);
         if(d<23&&alignment>.93&&d<nearDist){nearest=b;nearDist=d;}
-      }
+      }else if(b.status==='falling'&&!falling) falling=b;
     }
-    preview.visible=!!nearest;fallFootprint.visible=!!nearest;
-    if(nearest){
-      const dx=nearest.x-p.x,dz=nearest.z-p.z,len=Math.hypot(dx,dz)||1;const dir=new THREE.Vector3(dx/len,0,dz/len);
-      preview.position.set(nearest.x,.22,nearest.z);preview.setDirection(dir);preview.setLength(nearest.h,1.7,1);
-      fallFootprint.position.set(nearest.x+dir.x*nearest.h*.5,.045,nearest.z+dir.z*nearest.h*.5);
-      fallFootprint.scale.set(Math.min(nearest.w,nearest.d)*.7,.035,nearest.h);fallFootprint.rotation.y=Math.atan2(dir.x,dir.z);
+    const guide=nearest||falling;
+    preview.visible=!!nearest;fallFootprint.visible=!!guide;towerGuide.visible=!!guide;
+    if(guide){
+      const dx=nearest?nearest.x-p.x:guide.fallX,dz=nearest?nearest.z-p.z:guide.fallZ,len=Math.hypot(dx,dz)||1;const dir=new THREE.Vector3(dx/len,0,dz/len);
+      if(nearest){preview.position.set(nearest.x,.22,nearest.z);preview.setDirection(dir);preview.setLength(nearest.h,1.7,1);}
+      fallFootprint.position.set(guide.x+dir.x*guide.h*.5,.045,guide.z+dir.z*guide.h*.5);
+      fallFootprint.scale.set(Math.min(guide.w,guide.d)*.7,.035,guide.h);fallFootprint.rotation.y=Math.atan2(dir.x,dir.z);
+      towerGuide.position.set(guide.x,0,guide.z);towerGuideRing.scale.setScalar(guide.status==='falling'?1.8:1.2);
+      towerGuideBeam.position.y=Math.max(2.5,guide.h*.24);towerGuideBeam.scale.y=Math.max(5,guide.h*.48);
+      towerGuideText.position.y=Math.min(Math.max(guide.h*.52,3.5),6.5);towerGuideText.quaternion.copy(camera.quaternion);
+      towerGuideBillboard.visible=guide.status==='standing';fallGuideBillboard.visible=guide.status==='falling';
     }
     aim.position.set(p.x+Math.sin(p.angle||0)*8,.06,p.z+Math.cos(p.angle||0)*8);
     for(const e of state.enemies){

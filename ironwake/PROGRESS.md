@@ -1,5 +1,14 @@
 # Ironwake — Progress
 
+## 2026-09-07 (Pacific) — nightly intent
+
+Tonight's bounded polish pass targets tactical readability rather than adding
+new mission scope: make the active tower target, convoy lane, and rubble/flank
+relationship clearer in the 3D scene, then re-run the existing normal-input
+combat and six-viewport gates. Preserve the playable combat verbs and leave
+release/main untouched; any remaining visual debt will stay explicit in this
+handoff.
+
 ## 2026-09-07 (Pacific) — selected / first playable intent
 
 Human selected Ironwake and confirmed combat is central. Build the city-block

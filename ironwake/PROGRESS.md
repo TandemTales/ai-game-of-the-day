@@ -1,5 +1,15 @@
 # Ironwake — Progress
 
+## 2026-09-08 (Pacific) — nightly intent
+
+Tonight’s bounded polish pass targets the two largest verified gaps from the
+first playable: make demolition, flanking, heat and stolen-weapon choices
+matter beyond easy direct fire, and deepen the authored city-block read with
+stronger industrial landmarks/material layering. Logic and renderer workers
+must stay in their single-file ownership lanes and obtain harsh independent
+comparisons; the lead will integrate, verify all existing gates, and leave
+release/main untouched. No new district or fortress scope is planned.
+
 ## 2026-09-07 (Pacific) — nightly intent
 
 Tonight's bounded polish pass targets tactical readability rather than adding

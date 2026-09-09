@@ -4,23 +4,36 @@
   var BOUNDS = { minX: -36, maxX: 36, minZ: -24, maxZ: 24 };
   function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
   function distance(a, b) { return Math.hypot(a.x - b.x, a.z - b.z); }
+  function lineBlocked(s, from, to, height) {
+    var length = distance(from, to), steps = Math.max(1, Math.ceil(length / .45));
+    for (var i = 1; i < steps; i += 1) {
+      var progress = i / steps;
+      if (obstructed(s, { x: from.x + (to.x - from.x) * progress, z: from.z + (to.z - from.z) * progress }, .08, height)) return true;
+    }
+    return false;
+  }
+  function tankScreened(s, target) {
+    return target.type === 'tank' && s.enemies.some(function (escort) {
+      return escort.alive && escort.type === 'escort' && distance(escort, target) <= 16;
+    });
+  }
   function effect(s, type, x, z, life, extras) {
     var e = { id: ++s.nextId, type: type, x: x, z: z, life: life, maxLife: life };
     Object.keys(extras || {}).forEach(function (key) { e[key] = extras[key]; });
     s.effects.push(e);
   }
   function building(id, x, z, w, d, h, hp) {
-    return { id: id, x: x, z: z, w: w, d: d, h: h, hp: hp, maxHp: hp, status: 'standing', fallX: 0, fallZ: -1, fallProgress: 0, hitIds: [] };
+    return { id: id, x: x, z: z, w: w, d: d, h: h, hp: hp, maxHp: hp, status: 'standing', fallX: 0, fallZ: -1, fallProgress: 0, hitIds: [], flanked: false };
   }
   function enemy(id, type, x, z) {
     var hp = type === 'tank' ? 240 : 90;
-    return { id: id, type: type, x: x, z: z, hp: hp, maxHp: hp, angle: Math.PI / 2, alive: true, disabled: false, weaponTaken: false, escaped: false, cooldown: type === 'tank' ? 3.5 : 2.5, radius: type === 'tank' ? 1.6 : 1.2 };
+    return { id: id, type: type, x: x, z: z, hp: hp, maxHp: hp, angle: Math.PI / 2, alive: true, disabled: false, weaponTaken: false, escaped: false, cooldown: type === 'tank' ? 3.5 : 2.5, radius: type === 'tank' ? 1.6 : 1.2, screened: false, screenWarned: false, flankBonusAwarded: false };
   }
   function createState(seed) {
     return {
       seed: seed == null ? 7 : seed >>> 0, status: 'ready', time: 0, timeLeft: 100,
-      score: 0, kills: 0, collapseKills: 0, message: 'BREAK THE TOWER INTO THE CONVOY', nextId: 100,
-      player: { x: -10, z: 10, angle: Math.PI, hp: 160, heat: 0, overheated: false, weapon: 'cannon', fireCooldown: 0, punchCooldown: 0, venting: false, radius: 1.1 },
+      score: 0, kills: 0, collapseKills: 0, flankCount: 0, coverVents: 0, message: 'BREAK THE TOWER INTO THE CONVOY', nextId: 100,
+      player: { x: -10, z: 10, angle: Math.PI, hp: 160, heat: 0, overheated: false, weapon: 'cannon', fireCooldown: 0, punchCooldown: 0, venting: false, ventingInCover: false, ventCycleSafe: false, ventRewarded: false, radius: 1.1 },
       buildings: [building('tower-a', -10, 2, 4, 4, 15, 80), building('tower-b', 4, 2, 4, 4, 15, 80), building('tower-c', 18, 2, 4, 4, 15, 80), building('cover-a', -25, 3, 5, 5, 6, 130), building('cover-b', 25, -15, 6, 5, 8, 130), building('cover-c', -3, -17, 6, 5, 7, 130)],
       enemies: [enemy('tank-a', 'tank', -12, -6), enemy('tank-b', 'tank', -26, -6), enemy('tank-c', 'tank', -40, -6), enemy('escort-a', 'escort', -5, 8), enemy('escort-b', 'escort', 12, -1), enemy('escort-c', 'escort', -20, -11)],
       projectiles: [], effects: [], convoyTotal: 3, convoyDestroyed: 0, escaped: 0
@@ -100,6 +113,15 @@
   }
   function damageEnemy(s, e, amount, byCollapse) {
     if (!e.alive) return;
+    var screened = !byCollapse && s.player.weapon !== 'heavy' && s.flankCount === 0 && tankScreened(s, e);
+    if (screened) {
+      amount *= .75;
+      if (!e.screenWarned) {
+        e.screenWarned = true;
+        s.message = 'ESCORT SCREEN — FLANK OR RIP A HEAVY GUN';
+        effect(s, 'screen', e.x, e.z, .45, { radius: e.radius + 1 });
+      }
+    }
     e.hp = Math.max(0, e.hp - amount);
     effect(s, 'impact', e.x, e.z, .22);
     if (e.hp > 0) return;
@@ -109,7 +131,11 @@
     if (e.type === 'tank') { s.convoyDestroyed += 1; s.score += 1000; }
     else s.score += 150;
     if (byCollapse) { s.collapseKills += 1; s.score += 750; }
-    s.message = e.disabled ? 'ESCORT DISABLED — GET CLOSE AND RIP ITS GUN' : byCollapse ? 'COLLAPSE KILL +750' : 'CONVOY ARMOR DESTROYED';
+    if (e.type === 'tank' && s.flankCount > 0 && !e.flankBonusAwarded) {
+      e.flankBonusAwarded = true; s.score += 325;
+      s.message = 'FLANKING KILL +325';
+    }
+    else s.message = e.disabled ? 'ESCORT DISABLED — GET CLOSE AND RIP ITS GUN' : byCollapse ? 'COLLAPSE KILL +750' : 'CONVOY ARMOR DESTROYED';
     effect(s, 'explosion', e.x, e.z, .9, { radius: e.type === 'tank' ? 3 : 2 });
   }
   function damagePlayer(s, amount) {
@@ -139,6 +165,28 @@
     if (hit.building) damageBuilding(s, hit.target, 90, dir.x, dir.z);
     else damageEnemy(s, hit.target, 90, false);
   }
+  function updateFlanking(s) {
+    var p = s.player, newlyFlanked = 0;
+    s.buildings.forEach(function (b) {
+      if (b.status !== 'rubble' || b.flanked) return;
+      var f = buildingFootprint(b, 0), dx = p.x - b.x, dz = p.z - b.z;
+      var along = dx * f.dirX + dz * f.dirZ, across = dx * f.dirZ - dz * f.dirX;
+      if (along > b.d / 2 + p.radius + 2 && Math.abs(across) > b.w / 2 + p.radius + .75) {
+        b.flanked = true; newlyFlanked += 1;
+      }
+    });
+    if (newlyFlanked) {
+      s.flankCount += newlyFlanked; s.score += newlyFlanked * 250;
+      s.message = 'FLANKING ANGLE — SCREEN BROKEN +'+(newlyFlanked * 250);
+      effect(s, 'flank', p.x, p.z, .7, { radius: 3.5 });
+    }
+  }
+  function inCover(s) {
+    var p = s.player;
+    return s.enemies.some(function (e) {
+      return e.alive && distance(e, p) < (e.type === 'tank' ? 28 : 22) && lineBlocked(s, e, p, 1.8);
+    });
+  }
   function rip(s) {
     var p = s.player;
     var target = s.enemies.filter(function (e) { return e.disabled && !e.weaponTaken && distance(p, e) <= 4.5; }).sort(function (a, b) { return distance(p, a) - distance(p, b); })[0];
@@ -153,20 +201,33 @@
     p.fireCooldown = Math.max(0, p.fireCooldown - dt);
     p.punchCooldown = Math.max(0, p.punchCooldown - dt);
     p.venting = !!input.vent;
+    if (!p.venting) {
+      p.ventingInCover = false; p.ventCycleSafe = false; p.ventRewarded = false;
+    }
+    else {
+      p.ventingInCover = inCover(s);
+      if (p.heat >= 50 && p.ventingInCover) p.ventCycleSafe = true;
+    }
     p.heat = Math.max(0, p.heat - (p.venting ? 42 : 5) * dt);
     if (p.overheated && p.heat <= 35) p.overheated = false;
+    if (p.venting && p.ventCycleSafe && p.heat <= 35 && !p.ventRewarded) {
+      p.ventRewarded = true; s.coverVents += 1; s.score += 150;
+      s.message = 'COVER VENT — REACTOR STABLE +150';
+      effect(s, 'vent', p.x, p.z, .65, { radius: 2.5 });
+    }
     if (input.rip) rip(s);
     if (p.venting) return;
     var mx = clamp(Number(input.moveX) || 0, -1, 1), mz = clamp(Number(input.moveZ) || 0, -1, 1);
     var length = Math.max(1, Math.hypot(mx, mz));
     movePlayer(s, mx / length * 7.2 * dt, mz / length * 7.2 * dt);
+    updateFlanking(s);
     if (p.overheated) return;
     if (input.punch && p.punchCooldown <= 0) punch(s, dir);
     if (input.fire && p.fireCooldown <= 0 && !p.overheated) {
       var heavy = p.weapon === 'heavy';
       p.fireCooldown = heavy ? .16 : .28;
       shoot(s, 'player', p.x, p.z, dir.x, dir.z, heavy ? 38 : 24, 58, heavy);
-      addHeat(s, heavy ? 10 : 14);
+      addHeat(s, heavy ? 12 : 14);
     }
   }
   function updateBuildings(s, dt) {
@@ -186,6 +247,7 @@
   }
   function updateEnemies(s, dt) {
     s.enemies.forEach(function (e) {
+      if (e.type === 'tank') e.screened = tankScreened(s, e);
       if (!e.alive) return;
       if (e.type === 'tank') {
         var next = { x: e.x + dt, z: e.z };

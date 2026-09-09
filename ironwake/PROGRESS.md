@@ -10,6 +10,20 @@ must stay in their single-file ownership lanes and obtain harsh independent
 comparisons; the lead will integrate, verify all existing gates, and leave
 release/main untouched. No new district or fortress scope is planned.
 
+## 2026-09-08 (Pacific) — tactical logic unit
+
+The deterministic simulation now gives the convoy formation and route choices
+more weight without removing the direct-fire path: live escorts screen the
+standard cannon from tanks, a completed rubble flank breaks the screen and
+awards a one-time angle bonus plus per-tank flank kills, safe venting behind
+cover awards a one-time reactor-cycle bonus, and the stolen heavy gun carries
+slightly higher heat pressure. Public IW APIs and mission scope remain intact.
+
+Lead regression coverage now proves screening, flank scoring/bypass, and safe
+cover venting. Focused Ironwake tests pass 14/14; the full repository suite
+passes 14 suites / 343 tests. The required independent gameplay critic was
+not available before closeout, so this is not a fun or AAA verdict.
+
 ## 2026-09-07 (Pacific) — nightly intent
 
 Tonight's bounded polish pass targets tactical readability rather than adding

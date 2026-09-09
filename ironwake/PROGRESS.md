@@ -24,6 +24,27 @@ cover venting. Focused Ironwake tests pass 14/14; the full repository suite
 passes 14 suites / 343 tests. The required independent gameplay critic was
 not available before closeout, so this is not a fun or AAA verdict.
 
+## 2026-09-08 (Pacific) — authored scene unit and handoff
+
+The renderer now frames the block with procedural refinery yards, transit
+gantries, road-edge markings and convoy-route staging. Building facades gain
+service spines, rooftop machinery, beacons, varied facade accents and more
+deliberate rubble; collapse effects now use typed debris/dust/explosion parts
+and the fall lane is more explicit. Renderer API, picking, gameplay semantics,
+framing, no-fetch policy and the existing performance safeguards are preserved.
+
+Final validation after both units: `node --check` passes for logic and render;
+the full repository suite passes 14 suites / 343 tests; elevated real Chromium
+smoke passes 320x568, 390x844, 844x390, 768x1024, 1440x900 and 3840x2160 with
+collapse, keyboard movement, simultaneous native touch, action-control bounds,
+results/retry, rank-before-submit, clean console, no external requests and no
+horizontal overflow. Representative mobile, desktop and downsampled 4K PNGs
+were opened and read. No independent renderer critic or shipping judge
+completed, so the prior MechWarrior 5 comparison remains FAIL/UNJUDGED and no
+AAA or release claim is made. Remaining debt is authored material/VFX/audio
+depth, physical-device GPU evidence, human first-play feedback and independent
+AAA comparison.
+
 ## 2026-09-07 (Pacific) — nightly intent
 
 Tonight's bounded polish pass targets tactical readability rather than adding

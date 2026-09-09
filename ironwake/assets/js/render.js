@@ -24,21 +24,26 @@ export function createRenderer(canvas) {
     const m = new THREE.MeshStandardMaterial({color,roughness,metalness,emissive,...extra}); materials.push(m); return m;
   };
   const M = {
-    ground:mat('#253437'),road:mat('#151f23'),curb:mat('#70817e'),concrete:mat('#647574'), dark:mat('#101b22'),
-    steel:mat('#647477',.4,.75),black:mat('#18232a',.5,.7),orange:mat('#d2702b',.5,.65),orangeLight:mat('#ffc46d',.4,.5),
-    cyan:mat('#5af5eb',.3,.4,'#20a9ac'),red:mat('#ff6550',.5,.3,'#e5260a'),yellow:mat('#f2c667'),
+    ground:mat('#202d30'),groundPanel:mat('#2c3b3c'),road:mat('#121c20'),roadEdge:mat('#9aa8a0'),curb:mat('#70817e'),concrete:mat('#647574'),concreteDark:mat('#435353'),dark:mat('#101b22'),
+    steel:mat('#647477',.4,.75),steelLight:mat('#a5b3aa',.36,.7),black:mat('#18232a',.5,.7),orange:mat('#d2702b',.5,.65),orangeLight:mat('#ffc46d',.4,.5),rust:mat('#7a3e2c',.65,.45),
+    cyan:mat('#5af5eb',.3,.4,'#20a9ac'),red:mat('#ff6550',.5,.3,'#e5260a'),yellow:mat('#f2c667'),roadMark:mat('#e7c566'),
     glass:mat('#163b49',.22,.78,'#08202b'),window:mat('#efca80',.4,.5,'#ba742a'),enemy:mat('#925447',.55,.6),
-    white:mat('#d2dcd5'),rubble:mat('#46534f'),smoke:mat('#465452',1,0,0,{transparent:true,opacity:.56,depthWrite:false}),
-    flash:mat('#fff0b2',.3,.1,'#ffae20'),warning:mat('#ffbf52',.4,.1,'#d98015',{transparent:true,opacity:.65,depthWrite:false}),
+    white:mat('#d2dcd5'),rubble:mat('#46534f'),rubbleDark:mat('#303d3d'),smoke:mat('#465452',1,0,0,{transparent:true,opacity:.56,depthWrite:false}),
+    flash:mat('#fff0b2',.3,.1,'#ffae20'),warning:mat('#ffbf52',.4,.1,'#d98015',{transparent:true,opacity:.65,depthWrite:false}),warningDark:mat('#553b2c',.7,.2,'#2d1810'),
   };
   const boxGeo = new THREE.BoxGeometry(1,1,1); geometries.push(boxGeo);
   const sphereGeo = new THREE.IcosahedronGeometry(1,0); geometries.push(sphereGeo);
   const cylGeo = new THREE.CylinderGeometry(1,1,1,8); geometries.push(cylGeo);
+  const siloGeo = new THREE.CylinderGeometry(1,1,1,12); geometries.push(siloGeo);
+  const capGeo = new THREE.CylinderGeometry(.15,.9,1,8); geometries.push(capGeo);
+  const torusGeo = new THREE.TorusGeometry(1,.1,6,16); geometries.push(torusGeo);
   const mesh = (geo,m,x=0,y=0,z=0,sx=1,sy=1,sz=1,parent=scene) => {
     const q=new THREE.Mesh(geo,m); q.position.set(x,y,z); q.scale.set(sx,sy,sz); q.castShadow=true;q.receiveShadow=true;parent.add(q);return q;
   };
   const box=(m,x,y,z,sx,sy,sz,parent)=>mesh(boxGeo,m,x,y,z,sx,sy,sz,parent);
   const group=(parent=scene)=>{const g=new THREE.Group();parent.add(g);return g;};
+  const pipe=(m,x,y,z,r,length,axis='y',parent=scene)=>{const q=mesh(cylGeo,m,x,y,z,r,length,r,parent);if(axis==='x')q.rotation.z=Math.PI/2;else if(axis==='z')q.rotation.x=Math.PI/2;return q;};
+  const beam=(m,x,y,z,sx,sy,sz,rotation=0,parent=scene)=>{const q=box(m,x,y,z,sx,sy,sz,parent);q.rotation.y=rotation;return q;};
   function label(text,color='#e7d8b5',background=null) {
     const c=document.createElement('canvas'); c.width=512;c.height=128;const ctx=c.getContext('2d');
     if(background){ctx.fillStyle=background;ctx.fillRect(0,0,512,128);}ctx.fillStyle=color;ctx.font='bold 70px monospace';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,256,68);
@@ -48,19 +53,25 @@ export function createRenderer(canvas) {
   const planeGeo = new THREE.PlaneGeometry(1,1); geometries.push(planeGeo);
   function flatText(text,x,z,w=10){const q=mesh(planeGeo,label(text,'#88938b'),x,.025,z,w,w/4,1);q.rotation.x=-Math.PI/2;q.castShadow=false;return q;}
   box(M.ground,0,-.45,0,150,.8,130);
+  for(const x of [-37.5,-22.5,-7.5,7.5,22.5,37.5])for(const z of [-20,0,20])box(M.groundPanel,x,-.025,z,13.5,.035,6.4);
   box(M.road,0,-.015,-6,110,.12,8.8);
   box(M.road,0,-.008,15,110,.1,7);
   for(const x of [-30,-15,0,15,30])box(M.road,x,-.01,1,6,.11,58);
-  for(let x=-51;x<54;x+=5){box(M.yellow,x,.055,-6,2.3,.035,.11);box(M.curb,x,.09,-10.7,4.8,.2,.18);box(M.curb,x,.09,-1.3,4.8,.2,.18);}
+  for(let x=-51;x<54;x+=5){box(M.roadMark,x,.055,-6,2.3,.035,.11);box(M.curb,x,.09,-10.7,4.8,.2,.18);box(M.curb,x,.09,-1.3,4.8,.2,.18);}
+  for(const x of [-45,-30,-15,0,15,30,45]){beam(M.roadEdge,x,.065,-10.35,3.8,.045,.14);beam(M.roadEdge,x,.065,-1.65,3.8,.045,.14);}
+  for(const x of [-22,-7,8,23])for(const z of [-19,-13,5,11])beam(M.roadMark,x,.045,z,.18,.025,2.4);
   for(const x of [-30,-15,0,15,30])for(let z=9;z<13;z+=.65)box(M.curb,x,.06,z,4,.03,.25);
-  flatText('SECTOR 07',1,22,14);flatText('TRANSIT',-19,-6,8);flatText('KEEP CLEAR',19,15,11);
+  flatText('SECTOR 07',1,22,14);flatText('TRANSIT',-19,-6,8);flatText('KEEP CLEAR',19,15,11);flatText('CONVOY ROUTE',-33,-6,11);
   // Remote industrial scenery frames the arena without hiding combat lanes.
   for(let i=0;i<25;i++){
-    const x=-63+i*5.2,h=7+((i*31)%17),z=-38-(i%3)*6;
-    box(i%2?M.dark:M.concrete,x,h/2,z,3.8,h,5.8);
+    const x=-63+i*5.2,h=7+((i*31)%17),z=-38-(i%3)*6,accent=i%3===0?M.orange:i%3===1?M.cyan:M.steel;
+    box(i%2?M.dark:M.concreteDark,x,h/2,z,3.8,h,5.8);
     box(M.steel,x,h+.2,z,4.1,.3,6.1);
-    for(let j=2;j<h;j+=3)box(M.glass,x,j,z+2.93,3,.45,.07);
-    if(i%4===0)mesh(cylGeo,M.steel,x,h+2,z,.4,4,.4);
+    box(M.black,x,h*.54,z-3.02,3.2,.18,.12);
+    for(let j=2;j<h;j+=3){box(i%4===0?M.glass:M.dark,x,j,z+2.93,3,.45,.07);box(accent,x-1.4,j+.2,z-2.94,.18,.2,.08);}
+    for(const side of [-1,1])box(M.steel,x+side*1.65,h*.52,z-2.98,.12,h*.9,.12);
+    if(i%4===0){pipe(M.steel,x,h+2,z,.4,4);pipe(accent,x+.55,h+1.3,z,.11,3.4,'z');}
+    if(i%5===2){box(M.orange,x,h*.72,z+3.05,1.7,.12,.09);box(M.yellow,x,h*.72+.18,z+3.05,.5,.05,.1);}
   }
   for(const x of [-44,44]){
     box(M.concrete,x,1.1,4,1.1,2.2,68);
@@ -73,8 +84,39 @@ export function createRenderer(canvas) {
     const x=-37+(i%6)*14,z=i<6?30:-28;
     box(i%2?M.orange:M.steel,x,.7,z,2.8,1.4,1.4);
     for(let j=0;j<4;j++)box(M.black,x-1+j*.65,.7,z+.73,.08,1.2,.03);
-    box(M.black,x+3,3,z,.12,6,.12);box(M.window,x+3,6,z-.4,1,.16,.8);
+    box(M.black,x+3,3,z,.12,6,.12);box(M.window,x+3,6,z-.4,1,.16,.8);box(M.cyan,x+3,6.6,z-.4,.3,.08,.3);
   }
+  function makeRefineryYard(x,z,scale=1){
+    const g=group();g.position.set(x,0,z);
+    box(M.concreteDark,0,.18,0,13*scale,.36,6.4*scale,g);
+    box(M.steel,0,.4,-3.05*scale,13.3*scale,.1,.18,g);
+    for(const [dx,h]of[[-4.5,4.6],[-1.5,6.2],[1.7,5.3],[4.4,3.8]]){
+      mesh(siloGeo,dx%2?M.steelLight:M.concrete,dx*scale,h*scale*.5,0,.85*scale,h*scale,.85*scale,g);
+      mesh(capGeo,M.dark,dx*scale,(h+.65)*scale,0,.9*scale,.75*scale,.9*scale,g);
+      mesh(torusGeo,M.orange,dx*scale,h*scale*.55,0,.88*scale,.88*scale,.88*scale,g);
+      pipe(M.cyan,dx*scale,.8*scale,0,.08*scale,(h-1)*scale,'y',g);
+    }
+    pipe(M.orange,0,2.2*scale,-1.1*scale,.13*scale,9*scale,'x',g);
+    pipe(M.steel,0,3.35*scale,1.25*scale,.1*scale,9*scale,'x',g);
+    for(const dx of [-5.5,5.5]){pipe(M.steel,dx*scale,2.3*scale,-1.1*scale,.08*scale,3*scale,'y',g);box(M.yellow,dx*scale,3.85*scale,-1.1*scale,.8*scale,.08,.18*scale,g);}
+    for(const dx of [-5.6,5.6]){box(M.steel,dx*scale,3.1*scale,0, .18*scale,6.2*scale,.18*scale,g);beam(M.orange,0,5.9*scale,0,11.5*scale,.18*scale,.18*scale,0,g);}
+    for(let dx=-4.8;dx<=4.8;dx+=1.6)box(M.black,dx*scale,5.7*scale,0,.07*scale,.8*scale,.07*scale,g);
+    const sign=mesh(planeGeo,label('NORTH YARD','#ffe2a5','#26373a'),0,4.4*scale,-3.18*scale,7*scale,.72*scale,1,g);sign.castShadow=false;
+    return g;
+  }
+  function makeTransitGantry(x,z,span=10){
+    const g=group();g.position.set(x,0,z);
+    for(const side of [-1,1]){box(M.steel,side*span*.5,3.2,0,.5,6.4,.5,g);box(M.orange,side*span*.5,6.25,0,.8,.18,1.1,g);}
+    beam(M.steel,0,6.2,0,span,.45,.45,0,g);beam(M.orange,0,5.85,0,span*.82,.16,.18,0,g);
+    for(let i=-4;i<=4;i+=2)box(i%4?M.black:M.yellow,i,5.98,0,.2,.28,.62,g);
+    for(const side of [-1,1]){beam(M.steel,side*span*.25,4.5,0,span*.5,.16,.16,side<0?-.45:.45,g);}
+    const sign=mesh(planeGeo,label('TRANSIT / 07','#ffe2a5','#24383b'),0,4.8,-.56,5.8,.6,1,g);sign.castShadow=false;
+    return g;
+  }
+  makeRefineryYard(-27,23,.9);
+  makeRefineryYard(29,25,.72);
+  makeTransitGantry(-29,15,9);
+  makeTransitGantry(28,15,9);
   const buildings=new Map(),enemies=new Map(),shots=new Map(),effects=new Map();
   const hostileLabel=label('CONVOY','#ffc195'),escortLabel=label('ESCORT','#ffa191'),ripLabel=label('RIP GUN','#ffe392');
   for(const m of [hostileLabel,escortLabel,ripLabel])m.depthTest=false;
@@ -121,27 +163,48 @@ export function createRenderer(canvas) {
     for(const side of [-1,1]){
       box(M.black,0,.44,side*.85,2.8,.7,.5,g);
       for(let j=-1;j<=1;j+=.4)box(M.steel,j,.48,side*1.11,.14,.47,.05,g);
+      box(M.orangeLight,side*1.04,.78,0,.12,.12,.9,g);
     }
-    box(M.enemy,0,.82,0,2.5,.65,1.72,g);box(M.steel,0,1.06,0,2.28,.13,1.51,g);
+    box(M.enemy,0,.82,0,2.5,.65,1.72,g);box(M.steel,0,1.06,0,2.28,.13,1.51,g);box(M.rust,0,.72,-.9,1.15,.16,.08,g);
     const turret=group(g);box(M.enemy,0,1.37,0,1.2,.58,1.25,turret);
     box(M.black,0,1.43,1.2,.25,.24,1.8,turret);box(M.steel,0,1.43,2.05,.38,.32,.27,turret);
-    box(M.red,0,1.27,.64,.55,.12,.05,turret);
+    box(M.red,0,1.27,.64,.55,.12,.05,turret);box(M.yellow,0,1.69,-.54,.7,.08,.08,turret);
     box(M.black,-.36,1.93,-.28,.035,1.1,.035,turret);
     return{g,turret};
   }
   function makeBuilding(b){
     const root=group(),pivot=group(root);root.position.set(b.x,0,b.z);
     const h=b.h,w=b.w,d=b.d;
-    const bodyMat=mat(b.color||'#697c7c',.72,.37);
+    const isTower=String(b.id).startsWith('tower');
+    const bodyMat=mat(b.color||(isTower?'#536b6b':'#697c7c'),.68,.42);
     box(bodyMat,0,h*.5,0,w,h,d,pivot);
-    box(M.black,0,.44,0,w+.08,.88,d+.08,pivot);
+    box(M.concreteDark,0,.44,0,w+.08,.88,d+.08,pivot);
+    box(M.steelLight,0,.94,0,w+.16,.12,d+.16,pivot);
     box(M.steel,0,h+.12,0,w+.5,.26,d+.5,pivot);
     box(M.black,0,h+.65,0,w*.64,1.08,d*.64,pivot);
+    box(isTower?M.orange:M.cyan,0,h*.37,d*.5+.035,w*.68,.1,.07,pivot);
+    box(M.black,0,h*.39,d*.5+.045,w*.72,.035,.05,pivot);
+    box(isTower?M.cyan:M.orange,0,h*.68,d*.5+.035,w*.42,.08,.07,pivot);
+    box(M.steel,-w*.42,h*.5,-d*.5-.035,.16,h*.78,.08,pivot);
+    for(let y=1.45;y<h-.5;y+=2.35)box(isTower?M.orange:M.steel,-w*.42,y,-d*.5-.055,.23,.11,.1,pivot);
     for(const sx of [-1,1])for(const sz of [-1,1]){
       box(M.steel,sx*w*.46,h*.5,sz*d*.46,.3,h,.3,pivot);
       box(M.yellow,sx*w*.461,1.25,sz*d*.47,.4,1.6,.4,pivot);
       for(let k=0;k<4;k++)box(M.dark,sx*w*.462,.63+k*.4,sz*d*.475,.42,.13,.42,pivot);
     }
+    const roofUnit=group(pivot);
+    box(M.dark,-w*.2,h+1.18,-d*.08,.88,.55,.78,roofUnit);
+    box(M.steelLight,-w*.2,h+1.48,-d*.08,1.05,.08,.94,roofUnit);
+    for(const sx of [-1,1])box(M.orange,sx*w*.28,h+1.05,d*.08,.16,.75,.16,roofUnit);
+    pipe(M.black,w*.27,h+1.25,-d*.12,.11,1.4,'y',roofUnit);
+    pipe(M.cyan,w*.27,h+1.95,-d*.12,.17,.24,'y',roofUnit);
+    if(isTower){
+      beam(M.steel,-w*.25,h+1.78,0,1.8,.09,.09,0,roofUnit);
+      beam(M.steel,w*.25,h+2.1,0,1.15,.08,.08,0,roofUnit);
+      pipe(M.orange,0,h+2.1,0,.06,1.25,'y',roofUnit);
+    }
+    const beaconPole=pipe(M.dark,0,h+1.63,d*.18,.055,.8,'y',pivot);
+    const beacon=mesh(sphereGeo,isTower?M.orangeLight:M.yellow,0,h+2.08,d*.18,.18,.18,.18,pivot);beacon.castShadow=false;
     // Instanced windows: hundreds of facade panes without hundreds of draw calls.
     const panes=[];const lit=[];
     for(let y=2.2;y<h-.5;y+=1.6){
@@ -158,18 +221,25 @@ export function createRenderer(canvas) {
       const inst=new THREE.InstancedMesh(boxGeo,m,arr.length);
       arr.forEach((v,i)=>{dummy.position.set(v.x,v.y,v.z);dummy.scale.set(v.sx,v.sy,v.sz);dummy.rotation.set(0,0,0);dummy.updateMatrix();inst.setMatrixAt(i,dummy.matrix);});pivot.add(inst);
     }
-    const sign=mesh(planeGeo,label((String(b.id).startsWith('tower')?'T-':'D-')+String(b.id).slice(-1).toUpperCase(),'#f4dfae','#283a40'),0,h*.7,d*.5+.08,Math.min(w*.75,3.8),1,1,pivot);sign.castShadow=false;
+    const sign=mesh(planeGeo,label((isTower?'T-':'D-')+String(b.id).slice(-1).toUpperCase(),'#f4dfae','#283a40'),0,h*.7,d*.5+.08,Math.min(w*.75,3.8),1,1,pivot);sign.castShadow=false;
     const damage=box(M.warning,0,.18,0,w+.35,.2,d+.35,pivot);damage.visible=false;
     const rubble=group(root);rubble.visible=false;
     for(let i=0;i<12;i++){
-      const a=i*2.399,s=1+(i%3)*.55;const q=mesh(boxGeo,i%3?M.rubble:M.steel,Math.cos(a)*w*.3,.4+(i%3)*.2,(i/11)*h-1,s,.7+(i%4)*.4,s,rubble);q.rotation.set(i*.2,a,i*.11);
+      const a=i*2.399,s=.72+(i%3)*.42,rx=((i%4)-1.5)*w*.34,rz=(((i*5)%11)/10-.5)*Math.max(w,d)*.9;
+      const q=mesh(boxGeo,i%3?M.rubble:(i%2?M.steel:M.rubbleDark),rx,.34+(i%4)*.22,rz,s,.6+(i%3)*.26,s,rubble);q.rotation.set(i*.2,a,i*.11);
     }
-    return{root,pivot,rubble,damage,w,d,h};
+    return{root,pivot,rubble,damage,beacon,beaconPole,w,d,h};
   }
   const aimRingGeo=new THREE.RingGeometry(.68,.78,40);geometries.push(aimRingGeo);
   const aim=mesh(aimRingGeo,M.cyan,0,.06,0);aim.rotation.x=-Math.PI/2;aim.castShadow=false;
   const preview=new THREE.ArrowHelper(new THREE.Vector3(0,0,-1),new THREE.Vector3(),8,0xffc65c,1.8,.9);scene.add(preview);preview.visible=false;
   const fallFootprint=box(M.warning,0,.035,0,1,.035,1);fallFootprint.castShadow=false;fallFootprint.visible=false;
+  const fallLane=group();fallLane.visible=false;
+  for(let i=0;i<9;i++){
+    const strip=box(i%2?M.warning:M.warningDark,0,.06,(i+.5)/9,1,.045,.085,fallLane);strip.castShadow=false;
+  }
+  const fallLaneEdgeA=box(M.warning, -.5,.055,.5,.035,.04,1,fallLane);fallLaneEdgeA.castShadow=false;
+  const fallLaneEdgeB=box(M.warning, .5,.055,.5,.035,.04,1,fallLane);fallLaneEdgeB.castShadow=false;
   const towerGuide=group();
   const towerGuideRing=mesh(aimRingGeo,M.warning,0,.08,0,1.55,1.55,1,towerGuide);towerGuideRing.rotation.x=-Math.PI/2;towerGuideRing.castShadow=false;
   const towerGuideBeam=mesh(cylGeo,M.warning,0,1,0,.12,1,.12,towerGuide);towerGuideBeam.castShadow=false;
@@ -177,6 +247,19 @@ export function createRenderer(canvas) {
   const towerGuideBillboard=mesh(planeGeo,towerGuideLabel,0,1,0,3.7,.58,1,towerGuideText);towerGuideBillboard.renderOrder=14;towerGuideBillboard.castShadow=false;
   const fallGuideBillboard=mesh(planeGeo,fallGuideLabel,0,1,0,3.2,.58,1,towerGuideText);fallGuideBillboard.renderOrder=14;fallGuideBillboard.castShadow=false;fallGuideBillboard.visible=false;
   towerGuide.visible=false;
+  function makeEffect(type){
+    const kind=type||'impact',g=group();g.userData.effectType=kind;
+    if(kind==='collapse'||kind==='dust'){
+      for(let i=0;i<9;i++)mesh(sphereGeo,i%3===0?M.concreteDark:i%3===1?M.rubble:M.smoke,0,0,0,1,1,1,g);
+      const ring=mesh(aimRingGeo,M.warning,0,.08,0,1,1,1,g);ring.rotation.x=-Math.PI/2;ring.userData.effectPart='ring';ring.castShadow=false;
+    }else if(kind==='explosion'||kind==='impact'||kind==='punch'||kind==='hit'||kind==='rip'){
+      for(let i=0;i<7;i++)mesh(sphereGeo,i<2?M.flash:i<4?M.orange:i===4?M.warning:M.smoke,0,0,0,1,1,1,g);
+      const ring=mesh(aimRingGeo,kind==='punch'?M.cyan:M.warning,0,.08,0,1,1,1,g);ring.rotation.x=-Math.PI/2;ring.userData.effectPart='ring';ring.castShadow=false;
+    }else{
+      for(let i=0;i<4;i++)mesh(sphereGeo,i<2?M.flash:M.orange,0,0,0,1,1,1,g);
+    }
+    return g;
+  }
   const ray=new THREE.Raycaster(),pointer=new THREE.Vector2(),ground=new THREE.Plane(new THREE.Vector3(0,1,0),0),pickPoint=new THREE.Vector3();
   let width=0,height=0,lastX=0,lastZ=0,initialized=false;
   function resize(){const r=canvas.getBoundingClientRect();width=Math.max(1,r.width);height=Math.max(1,r.height);renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();}
@@ -208,6 +291,7 @@ export function createRenderer(canvas) {
       let v=buildings.get(b.id);if(!v){v=makeBuilding(b);buildings.set(b.id,v);}
       v.pivot.visible=b.status!=='rubble';v.rubble.visible=b.status==='rubble';v.rubble.rotation.y=Math.atan2(b.fallX||0,b.fallZ||-1);
       v.damage.visible=b.hp<b.maxHp&&b.status==='standing';v.damage.scale.y=.2+(1-b.hp/b.maxHp)*.7;
+      v.beacon.visible=b.status!=='rubble'&&(String(b.id).startsWith('tower')||b.hp<b.maxHp);v.beacon.scale.setScalar(.75+.25*(.5+.5*Math.sin(t*7)));
       if(b.status==='falling'){
         const dir=new THREE.Vector3(b.fallX||0,0,b.fallZ||-1).normalize();
         const a=new THREE.Vector3(dir.z,0,-dir.x);v.pivot.quaternion.setFromAxisAngle(a,Math.min(1,b.fallProgress||0)*Math.PI*.5);
@@ -220,12 +304,13 @@ export function createRenderer(canvas) {
       }else if(b.status==='falling'&&!falling) falling=b;
     }
     const guide=nearest||falling;
-    preview.visible=!!nearest;fallFootprint.visible=!!guide;towerGuide.visible=!!guide;
+    preview.visible=!!nearest;fallFootprint.visible=!!guide;fallLane.visible=!!guide;towerGuide.visible=!!guide;
     if(guide){
       const dx=nearest?nearest.x-p.x:guide.fallX,dz=nearest?nearest.z-p.z:guide.fallZ,len=Math.hypot(dx,dz)||1;const dir=new THREE.Vector3(dx/len,0,dz/len);
       if(nearest){preview.position.set(nearest.x,.22,nearest.z);preview.setDirection(dir);preview.setLength(nearest.h,1.7,1);}
       fallFootprint.position.set(guide.x+dir.x*guide.h*.5,.045,guide.z+dir.z*guide.h*.5);
       fallFootprint.scale.set(Math.min(guide.w,guide.d)*.7,.035,guide.h);fallFootprint.rotation.y=Math.atan2(dir.x,dir.z);
+      fallLane.position.set(guide.x,.02,guide.z);fallLane.rotation.y=Math.atan2(dir.x,dir.z);fallLane.scale.set(Math.min(guide.w,guide.d)*.78,1,guide.h);
       towerGuide.position.set(guide.x,0,guide.z);towerGuideRing.scale.setScalar(guide.status==='falling'?1.8:1.2);
       towerGuideBeam.position.y=Math.max(2.5,guide.h*.24);towerGuideBeam.scale.y=Math.max(5,guide.h*.48);
       towerGuideText.position.y=Math.min(Math.max(guide.h*.52,3.5),6.5);towerGuideText.quaternion.copy(camera.quaternion);
@@ -246,7 +331,18 @@ export function createRenderer(canvas) {
     }
     const currentShots=new Set();for(const s of state.projectiles){currentShots.add(s.id);let v=shots.get(s.id);if(!v){v=mesh(sphereGeo,s.owner==='player'?M.flash:M.red,0,0,0,.14,.14,.7);shots.set(s.id,v);}v.position.set(s.x,s.y||1.3,s.z);v.rotation.y=Math.atan2(s.vx||0,s.vz||1);}
     for(const[id,v]of shots)if(!currentShots.has(id)){scene.remove(v);shots.delete(id);}
-    const currentEffects=new Set();for(const e of state.effects){currentEffects.add(e.id);let v=effects.get(e.id);if(!v){const g=group();for(let i=0;i<7;i++)mesh(sphereGeo,i<2?M.flash:i<4?M.orange:M.smoke,0,0,0,1,1,1,g);v=g;effects.set(e.id,v);}const a=1-e.life/(e.maxLife||1);v.position.set(e.x,0,e.z);v.children.forEach((q,i)=>{const angle=i*2.4;q.position.set(Math.sin(angle)*a*(i+1)*.5,.4+a*(i<4?2:4),Math.cos(angle)*a*(i+1)*.5);q.scale.setScalar(Math.max(.03,(i<2?1.5:1)*Math.sin(Math.min(1,a)*Math.PI)));q.rotation.y=a*3;});}
+    const currentEffects=new Set();for(const e of state.effects){
+      currentEffects.add(e.id);let v=effects.get(e.id);if(!v){v=makeEffect(e.type);effects.set(e.id,v);}
+      const a=1-e.life/(e.maxLife||1),pulse=Math.sin(Math.min(1,a)*Math.PI),kind=v.userData.effectType;
+      v.position.set(e.x,0,e.z);v.rotation.y=e.angle||0;
+      v.children.forEach((q,i)=>{
+        if(q.userData.effectPart==='ring'){q.position.set(0,.08,0);q.scale.setScalar((kind==='collapse'||kind==='dust'?1.4:1.2)*(.35+a));q.rotation.z=a*2.5;return;}
+        const angle=i*2.399+(kind==='collapse'?a*.8:0),spread=kind==='collapse'||kind==='dust'?a*(i%3+1)*.72:a*(i%3+1)*.5;
+        q.position.set(Math.sin(angle)*spread,.32+a*(kind==='dust'||kind==='collapse'?2.6:2),Math.cos(angle)*spread);
+        q.scale.setScalar(Math.max(.035,(i<2?1.5:1)*pulse*(kind==='collapse'||kind==='dust'?1.1:.9)));
+        q.rotation.y=a*3+i*.4;
+      });
+    }
     for(const[id,v]of effects)if(!currentEffects.has(id)){scene.remove(v);effects.delete(id);}
     renderer.render(scene,camera);
   }

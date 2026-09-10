@@ -81,11 +81,12 @@
   }
   function movePlayer(s, dx, dz) {
     var p = s.player;
-    var x = clamp(p.x + dx, BOUNDS.minX + p.radius, BOUNDS.maxX - p.radius);
+    var bounds = s.bounds || BOUNDS;
+    var x = clamp(p.x + dx, bounds.minX + p.radius, bounds.maxX - p.radius);
     // A new collapse can engulf the mech. Permit escape from that overlap,
     // while preventing a player outside cover from walking into it.
     if (overlapDepth(s, { x: x, z: p.z }, p.radius) <= overlapDepth(s, p, p.radius)) p.x = x;
-    var z = clamp(p.z + dz, BOUNDS.minZ + p.radius, BOUNDS.maxZ - p.radius);
+    var z = clamp(p.z + dz, bounds.minZ + p.radius, bounds.maxZ - p.radius);
     if (overlapDepth(s, { x: p.x, z: z }, p.radius) <= overlapDepth(s, p, p.radius)) p.z = z;
   }
   function aimDirection(s, input) {
@@ -113,6 +114,11 @@
   }
   function damageEnemy(s, e, amount, byCollapse) {
     if (!e.alive) return;
+    if (s.campaign) {
+      if (e.type === 'boss' && s.stage < 2) return;
+      amount *= 1 + s.upgrades.damage * .2;
+      if (e.type === 'boss') amount *= e.exposed ? 1.6 : .3;
+    }
     var screened = !byCollapse && s.player.weapon !== 'heavy' && s.flankCount === 0 && tankScreened(s, e);
     if (screened) {
       amount *= .75;
@@ -126,7 +132,7 @@
     effect(s, 'impact', e.x, e.z, .22);
     if (e.hp > 0) return;
     e.alive = false;
-    e.disabled = e.type === 'escort' && !byCollapse;
+    e.disabled = (e.type === 'escort' || e.type === 'artillery') && !byCollapse;
     s.kills += 1;
     if (e.type === 'tank') { s.convoyDestroyed += 1; s.score += 1000; }
     else s.score += 150;
@@ -139,8 +145,9 @@
     effect(s, 'explosion', e.x, e.z, .9, { radius: e.type === 'tank' ? 3 : 2 });
   }
   function damagePlayer(s, amount) {
+    if (s.campaign && s.player.invulnerable > 0) return;
     s.player.hp = Math.max(0, s.player.hp - amount);
-    effect(s, 'hit', s.player.x, s.player.z, .35);
+    if (amount >= 1) effect(s, 'hit', s.player.x, s.player.z, .35);
   }
   function shoot(s, owner, x, z, dx, dz, damage, speed, heavy) {
     var length = Math.hypot(dx, dz) || 1;
@@ -189,10 +196,10 @@
   }
   function rip(s) {
     var p = s.player;
-    var target = s.enemies.filter(function (e) { return e.disabled && !e.weaponTaken && distance(p, e) <= 4.5; }).sort(function (a, b) { return distance(p, a) - distance(p, b); })[0];
+    var target = s.enemies.filter(function (e) { return e.disabled && !e.weaponTaken && distance(p, e) <= (s.campaign ? 7 : 4.5); }).sort(function (a, b) { return distance(p, a) - distance(p, b); })[0];
     if (!target) return false;
-    target.weaponTaken = true; p.weapon = 'heavy'; s.score += 200;
-    s.message = 'HEAVY GUN RIPPED — HIGH DAMAGE, WATCH THE HEAT';
+    target.weaponTaken = true; p.weapon = target.type === 'artillery' ? 'rail' : 'heavy'; s.score += 200;
+    s.message = p.weapon === 'rail' ? 'RAILGUN RIPPED — SLOW, DEVASTATING SHOTS' : 'HEAVY GUN RIPPED — HIGH DAMAGE, WATCH THE HEAT';
     effect(s, 'rip', target.x, target.z, .8);
     return true;
   }
@@ -200,6 +207,15 @@
     var p = s.player, dir = aimDirection(s, input);
     p.fireCooldown = Math.max(0, p.fireCooldown - dt);
     p.punchCooldown = Math.max(0, p.punchCooldown - dt);
+    if (s.campaign) {
+      p.dashCooldown = Math.max(0,p.dashCooldown-dt);p.dashing=Math.max(0,p.dashing-dt);p.invulnerable=Math.max(0,p.invulnerable-dt);
+      if (input.dash && p.dashCooldown === 0 && !input.vent) {
+        p.dashCooldown=4;p.dashing=.32;p.invulnerable=.32;
+        var moveLength=Math.hypot(input.moveX||0,input.moveZ||0);
+        p.dashX=moveLength ? input.moveX/moveLength : dir.x;p.dashZ=moveLength ? input.moveZ/moveLength : dir.z;
+        effect(s,'flank',p.x,p.z,.4,{radius:3});
+      }
+    }
     p.venting = !!input.vent;
     if (!p.venting) {
       p.ventingInCover = false; p.ventCycleSafe = false; p.ventRewarded = false;
@@ -208,7 +224,7 @@
       p.ventingInCover = inCover(s);
       if (p.heat >= 50 && p.ventingInCover) p.ventCycleSafe = true;
     }
-    p.heat = Math.max(0, p.heat - (p.venting ? 42 : 5) * dt);
+    p.heat = Math.max(0, p.heat - (p.venting ? 42 : 5) * (s.campaign ? 1+s.upgrades.reactor*.25 : 1) * dt);
     if (p.overheated && p.heat <= 35) p.overheated = false;
     if (p.venting && p.ventCycleSafe && p.heat <= 35 && !p.ventRewarded) {
       p.ventRewarded = true; s.coverVents += 1; s.score += 150;
@@ -219,15 +235,18 @@
     if (p.venting) return;
     var mx = clamp(Number(input.moveX) || 0, -1, 1), mz = clamp(Number(input.moveZ) || 0, -1, 1);
     var length = Math.max(1, Math.hypot(mx, mz));
-    movePlayer(s, mx / length * 7.2 * dt, mz / length * 7.2 * dt);
+    var speed=s.campaign?11:7.2;
+    if(s.campaign && s.hazards.some(function(h){return h.type==='water'&&distance(h,p)<h.radius;}))speed*=.65;
+    if(s.campaign && p.dashing>0)movePlayer(s,p.dashX*32*dt,p.dashZ*32*dt);
+    else movePlayer(s, mx / length * speed * dt, mz / length * speed * dt);
     updateFlanking(s);
     if (p.overheated) return;
     if (input.punch && p.punchCooldown <= 0) punch(s, dir);
     if (input.fire && p.fireCooldown <= 0 && !p.overheated) {
-      var heavy = p.weapon === 'heavy';
-      p.fireCooldown = heavy ? .16 : .28;
-      shoot(s, 'player', p.x, p.z, dir.x, dir.z, heavy ? 38 : 24, 58, heavy);
-      addHeat(s, heavy ? 12 : 14);
+      var heavy = p.weapon === 'heavy', rail=p.weapon==='rail';
+      p.fireCooldown = rail ? .85 : heavy ? .16 : .28;
+      shoot(s, 'player', p.x, p.z, dir.x, dir.z, rail ? 150 : heavy ? 38 : 24, rail ? 90 : 58, heavy || rail);
+      addHeat(s, rail ? 25 : heavy ? 12 : 14);
     }
   }
   function updateBuildings(s, dt) {
@@ -246,6 +265,7 @@
     });
   }
   function updateEnemies(s, dt) {
+    if(s.campaign){IW.updateCampaignEnemies(s,dt);return;}
     s.enemies.forEach(function (e) {
       if (e.type === 'tank') e.screened = tankScreened(s, e);
       if (!e.alive) return;
@@ -299,7 +319,7 @@
     dt = clamp(Number.isFinite(dt) ? dt : 1 / 60, 0, .05);
     if (!dt) return s;
     input = input || {};
-    s.time += dt; s.timeLeft = Math.max(0, s.timeLeft - dt);
+    s.time += dt; if(!s.campaign)s.timeLeft = Math.max(0, s.timeLeft - dt);
     s.effects.forEach(function (e) { e.life -= dt; });
     s.effects = s.effects.filter(function (e) { return e.life > 0; });
     updatePlayer(s, input, dt);
@@ -307,6 +327,7 @@
     updateEnemies(s, dt);
     updateProjectiles(s, dt);
     if (s.player.hp <= 0) finish(s, 'lost', 'MECH DISABLED');
+    else if(s.campaign) IW.updateCampaign(s,input,dt);
     else if (s.escaped > 0) finish(s, 'lost', 'CONVOY ESCAPED THE BLOCK');
     else if (s.convoyDestroyed === s.convoyTotal) finish(s, 'won', 'CONVOY BROKEN — BLOCK SECURED');
     else if (s.timeLeft <= 0) finish(s, 'lost', 'INTERCEPTION WINDOW CLOSED');
@@ -318,4 +339,6 @@
   IW.step = step;
   IW.buildingFootprint = buildingFootprint;
   IW.inFootprint = inFootprint;
+  IW.shoot = shoot;
+  IW.damagePlayer = damagePlayer;
 }(typeof globalThis !== 'undefined' ? globalThis : window));

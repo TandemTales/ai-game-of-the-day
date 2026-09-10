@@ -1,6 +1,9 @@
 import { createRenderer } from './render.js';
 const $ = id => document.getElementById(id);
-const state = IW.createState(7);
+let saved;try{saved=JSON.parse(localStorage.getItem('ironwake-campaign-v1'));}catch{}
+const state = IW.restoreCampaign(saved);
+let paused=false,lastBrief=-1,saveAvailable=true;
+function save(){try{localStorage.setItem('ironwake-campaign-v1',JSON.stringify(IW.campaignSave(state)));}catch{saveAvailable=false;}}
 const input = {moveX:0,moveZ:0,aimX:-10,aimZ:-8,fire:false,punch:false,vent:false,rip:false};
 const keys = new Set(), pointers = new Map(), queued = new Set();
 let renderer, previous=0, running=true, lastStatus='', stickPointer=null, stickX=0,stickZ=0;
@@ -14,15 +17,21 @@ function audio(freq,duration,volume,type='square') {
   osc.onended=()=>{osc.disconnect();gain.disconnect();};
 }
 function enableAudio(){try{audioContext ||= new (window.AudioContext||window.webkitAudioContext)();audioContext.resume();}catch{}}
-function clearInput(){keys.clear();pointers.clear();queued.clear();stickPointer=null;stickX=stickZ=0;for(const k of ['fire','punch','vent','rip']) input[k]=false;input.moveX=input.moveZ=0;$('stickKnob').style.transform='';document.querySelectorAll('.active').forEach(e=>e.classList.remove('active'));}
-function start(){clearInput();IW.start(state);input.aimX=state.player.x;input.aimZ=state.player.z-20;$('scoreStatus').textContent='';lastEffect=0;enableAudio();audio(110,.3,.07,'sawtooth');sync();$('scene').focus({preventScroll:true});}
+const actions=['fire','punch','vent','rip','dash','interact'];
+function clearInput(){keys.clear();pointers.clear();queued.clear();stickPointer=null;stickX=stickZ=0;for(const k of actions) input[k]=false;input.moveX=input.moveZ=0;$('stickKnob').style.transform='';document.querySelectorAll('.active').forEach(e=>e.classList.remove('active'));}
+function start(){clearInput();paused=false;$('mapPanel').hidden=true;IW.start(state);save();input.aimX=state.player.x;input.aimZ=state.player.z-20;$('scoreStatus').textContent='';lastEffect=0;enableAudio();audio(110,.3,.07,'sawtooth');sync();$('scene').focus({preventScroll:true});}
 $('start').onclick=start;$('retry').onclick=start;
 $('mute').onclick=()=>{muted=!muted;$('mute').textContent=muted?'SOUND OFF':'SOUND ON';$('mute').setAttribute('aria-pressed',String(muted));};
-window.addEventListener('keydown',e=>{if(e.target.closest('input,button'))return;if([' ','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','e','q'].includes(e.key.toLowerCase())||e.key.startsWith('Arrow'))e.preventDefault();if((e.key==='Enter')&&state.status!=='playing'){start();return;}keys.add(e.key.toLowerCase());if(e.key.toLowerCase()==='e')queued.add('punch');if(e.key.toLowerCase()==='q')queued.add('rip');});
-window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',clearInput);document.addEventListener('visibilitychange',()=>{clearInput();previous=0;});
+function toggleMap(force){if(state.status!=='playing')return;paused=typeof force==='boolean'?force:!paused;clearInput();$('mapPanel').hidden=!paused;if(paused){drawMap($('fullMap'));const c=IW.CAMPAIGN[state.chapter];$('mapTitle').textContent=c.title;$('mapObjectives').replaceChildren(...state.objectives.map((o,i)=>{const li=document.createElement('li');li.textContent=(o.done?'✓ ':i===state.stage?'→ ':'')+o.title;li.className=i===state.stage?'current':'';return li;}));$('mapRadio').textContent=state.radio;$('upgradeSummary').textContent=`Hull ${state.upgrades.armor} · Cooling ${state.upgrades.reactor} · Damage ${state.upgrades.damage} · Archives ${state.totals.intel.length}/5`;$('mapPanel').scrollTop=0;$('resume').focus({preventScroll:true});}else $('scene').focus();}
+$('mapButton').onclick=()=>toggleMap();$('radar').onclick=()=>toggleMap();$('resume').onclick=()=>toggleMap(false);
+$('newCampaign').onclick=()=>{Object.keys(state).forEach(k=>delete state[k]);Object.assign(state,IW.createCampaignState(0));lastBrief=-1;lastStatus='';save();sync();};
+$('restartCampaign').onclick=$('newCampaign').onclick;
+document.querySelectorAll('[data-upgrade]').forEach(b=>b.onclick=()=>{if(IW.advance(state,b.dataset.upgrade)){save();lastBrief=-1;lastStatus='';sync();$('overlay').scrollTop=0;$('start').focus();}});
+window.addEventListener('keydown',e=>{if(e.target.closest('input'))return;if((e.key==='Tab'&&!e.shiftKey&&e.target===canvas)||e.key==='Escape'){e.preventDefault();if(!e.repeat)toggleMap();return;}if(e.target.closest('button')||paused)return;const k=e.key.toLowerCase();if([' ','w','a','s','d','e','q','f','shift'].includes(k)||e.key.startsWith('Arrow'))e.preventDefault();if(e.key==='Enter'&&state.status==='ready'){start();return;}keys.add(k);const action={e:'punch',q:'rip',f:'interact',shift:'dash'}[k];if(action)queued.add(action);});
+window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{clearInput();if(state.status==='playing')toggleMap(true);});document.addEventListener('visibilitychange',()=>{clearInput();previous=0;if(document.hidden&&state.status==='playing')toggleMap(true);});
 const canvas=$('scene');canvas.addEventListener('contextmenu',e=>e.preventDefault());
 function aim(e){if(!renderer)return;const point=renderer.pick(e.clientX,e.clientY);if(point){input.aimX=point.x;input.aimZ=point.z;$('crosshair').style.left=e.clientX+'px';$('crosshair').style.top=e.clientY+'px';$('crosshair').style.display=state.status==='playing'?'block':'none';}}
-canvas.addEventListener('pointerdown',e=>{if(state.status!=='playing')return;canvas.setPointerCapture(e.pointerId);aim(e);if(e.pointerType==='mouse'){const action=e.button===2?'punch':'fire';pointers.set(e.pointerId,action);queued.add(action);}});
+canvas.addEventListener('pointerdown',e=>{if(state.status!=='playing'||paused)return;canvas.focus({preventScroll:true});canvas.setPointerCapture(e.pointerId);aim(e);if(e.pointerType==='mouse'){const action=e.button===2?'punch':'fire';pointers.set(e.pointerId,action);queued.add(action);}});
 canvas.addEventListener('pointermove',aim);
 function release(e){pointers.delete(e.pointerId);}
 for(const event of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(event,release);
@@ -35,23 +44,36 @@ function moveStick(e){const r=$('stick').getBoundingClientRect(),dx=e.clientX-r.
 $('stick').addEventListener('pointerdown',e=>{e.preventDefault();if(stickPointer!==null)return;stickPointer=e.pointerId;$('stick').setPointerCapture(e.pointerId);moveStick(e);});
 $('stick').addEventListener('pointermove',e=>{if(e.pointerId===stickPointer)moveStick(e);});
 for(const event of ['pointerup','pointercancel','lostpointercapture'])$('stick').addEventListener(event,e=>{if(e.pointerId===stickPointer){stickPointer=null;stickX=stickZ=0;$('stickKnob').style.transform='';}});
+function drawMap(canvas){const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height,b=state.bounds,scale=(w-24)/(b.maxX-b.minX);const xy=p=>[12+(p.x-b.minX)*scale,12+(p.z-b.minZ)*scale];ctx.fillStyle='#09151f';ctx.fillRect(0,0,w,h);ctx.strokeStyle='#26404a';ctx.lineWidth=1;for(let n=12;n<w;n+=32*scale){ctx.beginPath();ctx.moveTo(n,12);ctx.lineTo(n,h-12);ctx.moveTo(12,n);ctx.lineTo(w-12,n);ctx.stroke();}
+ for(const z of state.hazards){ctx.fillStyle=z.type==='water'?'#154954':'#6a351f';ctx.beginPath();ctx.arc(...xy(z),z.radius*scale,0,Math.PI*2);ctx.fill();}
+ for(const z of state.buildings){const [x,y]=xy(z);ctx.fillStyle=z.status==='standing'?'#688082':'#45494a';ctx.fillRect(x-z.w*scale/2,y-z.d*scale/2,z.w*scale,z.d*scale);}
+ for(const z of state.pickups){if(z.taken)continue;const [x,y]=xy(z);ctx.fillStyle=z.type==='repair'?'#65e3d9':z.type==='intel'?'#fff':'#e5cf76';ctx.fillRect(x-3,y-3,6,6);}
+ for(const e of state.enemies){if(!e.alive||Math.hypot(e.x-state.player.x,e.z-state.player.z)>48)continue;ctx.fillStyle='#ff6a52';ctx.beginPath();ctx.arc(...xy(e),e.type==='boss'?7:3,0,Math.PI*2);ctx.fill();}
+ state.objectives.forEach((o,i)=>{const [x,y]=xy(o);ctx.strokeStyle=o.done?'#6c9284':i===state.stage?'#ffcb77':'#627080';ctx.lineWidth=i===state.stage?3:1;ctx.beginPath();ctx.arc(x,y,7,0,Math.PI*2);ctx.stroke();ctx.font=`bold ${w>300?16:10}px Arial`;ctx.fillStyle=ctx.strokeStyle;ctx.fillText(o.done?'✓':String(i+1),x+9,y+4);});
+ const [x,y]=xy(state.player);ctx.save();ctx.translate(x,y);ctx.rotate(-state.player.angle);ctx.fillStyle='#66fff0';ctx.beginPath();ctx.moveTo(0,6);ctx.lineTo(-5,-5);ctx.lineTo(5,-5);ctx.closePath();ctx.fill();ctx.restore();
+}
 function sync(){
- $('armor').textContent=Math.ceil(state.player.hp);$('armorMeter').value=state.player.hp;$('heat').textContent=state.player.overheated?'HOT':Math.ceil(state.player.heat)+'%';$('heatMeter').value=state.player.heat;
- const tanks=state.enemies.filter(e=>e.type==='tank');$('objective').textContent=tanks.filter(e=>!e.alive&&!e.escaped).length+' / '+tanks.length;
- $('timer').textContent=Math.ceil(Math.max(0,state.timeLeft))+' SEC';$('score').textContent=String(state.score).padStart(6,'0');$('weapon').textContent=state.player.weapon==='heavy'?'STOLEN HEAVY GUN':'STANDARD CANNON';$('message').textContent=state.message||'Break the convoy. Use the towers.';
- if(lastStatus===state.status)return;lastStatus=state.status;
- $('overlay').hidden=state.status==='playing';$('briefing').hidden=state.status!=='ready';$('results').hidden=!['won','lost'].includes(state.status);$('crosshair').style.display='none';
- if(['won','lost'].includes(state.status)){clearInput();$('resultTitle').textContent=state.status==='won'?'CONVOY STOPPED.':state.player.hp<=0?'MECH DOWN.':state.escaped?'CONVOY ESCAPED.':'WINDOW CLOSED.';$('finalScore').textContent=String(state.score).padStart(6,'0');$('resultStats').textContent=`${state.kills} kills · ${state.collapseKills} crushed · ${Math.ceil(state.player.hp)} armor · ${Math.ceil(state.time)} seconds`;audio(state.status==='won'?260:65,.5,.08,'sawtooth');}
+ const c=IW.CAMPAIGN[state.chapter],o=state.objectives[state.stage];
+ $('armor').textContent=Math.ceil(state.player.hp);$('armorMeter').max=state.player.maxHp;$('armorMeter').value=state.player.hp;$('heat').textContent=state.player.overheated?'HOT':Math.ceil(state.player.heat)+'%';$('heatMeter').value=state.player.heat;
+ $('objective').textContent=state.stage+' / '+state.objectives.length;
+ $('timer').textContent=String(Math.floor(state.time/60)).padStart(2,'0')+':'+String(Math.floor(state.time%60)).padStart(2,'0');$('score').textContent=String(state.score).padStart(6,'0');$('weapon').textContent={heavy:'STOLEN HEAVY GUN',rail:'STOLEN RAILGUN',cannon:'STANDARD CANNON'}[state.player.weapon];$('message').textContent=state.message;
+ $('chapterName').textContent=c.place+' / '+c.title;$('objectiveTitle').textContent=o?.title||'Chapter complete';$('objectiveDetail').textContent=state.objectiveDetail||'Follow the gold beacon';$('context').textContent=state.context||'';$('dashLabel').textContent=state.player.dashCooldown>0?'BOOST '+Math.ceil(state.player.dashCooldown):'BOOST';
+ $('radio').textContent=state.radioTime>0&&state.status==='playing'?state.radio:'';$('radio').hidden=!$('radio').textContent||paused;
+ drawMap($('minimap'));
+ if(state.status==='ready'&&lastBrief!==state.chapter){lastBrief=state.chapter;$('briefPlace').textContent=c.place;$('briefTitle').textContent=c.title;$('briefStory').textContent=c.briefing;$('chapterTrack').replaceChildren(...IW.CAMPAIGN.map((ch,i)=>{const el=document.createElement('span');el.textContent=String(i+1).padStart(2,'0')+' '+ch.title;el.className=i===state.chapter?'current':i<state.chapter?'complete':'';return el;}));$('newCampaign').hidden=state.chapter===0;$('saveNote').textContent=saveAvailable?'Progress saves between chapters. Explore at your own pace; there is no mission timer.':'Browser storage unavailable. Keep this tab open to preserve campaign progress.';}
+ if(lastStatus===state.status)return;if(state.status==='won')save();lastStatus=state.status;
+ $('overlay').hidden=state.status==='playing';$('briefing').hidden=state.status!=='ready';$('results').hidden=!['won','lost'].includes(state.status);$('crosshair').style.display='none';$('restartCampaign').hidden=!(state.status==='won'&&state.chapter===4);
+ if(['won','lost'].includes(state.status)){const finale=state.status==='won'&&state.chapter===4,totalTime=state.time+(finale?(state.totals.time||0):0),totalKills=state.kills+(finale?state.totals.kills:0),totalCrushed=state.collapseKills+(finale?(state.totals.collapseKills||0):0);clearInput();$('resultTitle').textContent=state.status==='won'?(state.chapter===4?'THE TIDE IS OURS.':'CHAPTER SECURED.'):'MECH DOWN.';$('finalScore').textContent=String(state.score).padStart(6,'0');$('resultStats').textContent=`${totalKills} kills · ${totalCrushed} crushed · ${Math.ceil(state.player.hp)} armor · ${Math.floor(totalTime/60)}m ${Math.floor(totalTime%60)}s`;$('debriefStory').textContent=state.status==='won'?c.outro:'Your chapter checkpoint is safe. Try a different approach, look for repair caches, and boost out of marked artillery strikes.';$('upgradePanel').hidden=state.status!=='won'||state.chapter===4;$('scoreForm').hidden=state.status==='won'&&state.chapter<4;audio(state.status==='won'?260:65,.5,.08,'sawtooth');$('overlay').scrollTop=0;}
 }
 $('scoreForm').addEventListener('submit',async e=>{e.preventDefault();if(!['won','lost'].includes(state.status))return;const button=e.target.querySelector('button');button.disabled=true;const score=Math.max(0,Math.floor(state.score));try{const rank=await fetch('/api/leaderboard/rank?gameId=ironwake&score='+score);if(!rank.ok)throw Error('rank');await rank.json();const posted=await fetch('/api/leaderboard/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({gameId:'ironwake',score,name:$('callsign').value.trim().slice(0,20)||'IRONHAND'})});if(!posted.ok)throw Error('submit');const data=await posted.json();$('scoreStatus').textContent=data.rank?'POSTED · RANK #'+data.rank:'SCORE POSTED';}catch{$('scoreStatus').textContent='Leaderboard unavailable. Your score is still here.';}finally{button.disabled=false;}});
 try{
  renderer=createRenderer(canvas);
  window.addEventListener('resize',()=>{clearInput();renderer.resize();});
- IW.runtime={state,input,renderer,start,stop(){running=false;},resume(){if(!running){running=true;previous=0;requestAnimationFrame(frame);}}};
+ IW.runtime={state,input,renderer,start,get paused(){return paused;},stop(){running=false;},resume(){if(!running){running=true;previous=0;requestAnimationFrame(frame);}}};
  function frame(now){if(!running)return;const dt=previous?Math.min(.05,(now-previous)/1000):0;previous=now;
   input.moveX=stickX+(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0);input.moveZ=stickZ+(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0);
-  for(const action of ['fire','punch','vent','rip'])input[action]=[...pointers.values()].includes(action)||queued.has(action);input.punch ||=keys.has('e');input.rip ||=keys.has('q');input.vent ||=keys.has(' ');
-  if(!document.hidden){IW.step(state,input,dt);if(dt>0)queued.clear();}renderer.render(state,dt);sync();
+  for(const action of actions)input[action]=[...pointers.values()].includes(action)||queued.has(action);input.punch ||=keys.has('e');input.rip ||=keys.has('q');input.vent ||=keys.has(' ');input.dash ||=keys.has('shift');input.interact ||=keys.has('f');
+  if(!document.hidden&&!paused){IW.step(state,input,dt);if(dt>0)queued.clear();}renderer.render(state,paused?0:dt);sync();
   const effects=state.effects||[];for(const effect of effects){if(effect.id>lastEffect){if(/collapse|crush|explos|kill/.test(effect.type))audio(60,.3,.06,'sawtooth');else if(/punch|shot|muzzle/.test(effect.type))audio(120,.08,.025);lastEffect=Math.max(lastEffect,effect.id);}}
   requestAnimationFrame(frame);
  }

@@ -52,6 +52,7 @@ export function createRenderer(canvas) {
   }
   const planeGeo = new THREE.PlaneGeometry(1,1); geometries.push(planeGeo);
   function flatText(text,x,z,w=10){const q=mesh(planeGeo,label(text,'#88938b'),x,.025,z,w,w/4,1);q.rotation.x=-Math.PI/2;q.castShadow=false;return q;}
+  const legacyStart=scene.children.length;
   box(M.ground,0,-.45,0,150,.8,130);
   for(const x of [-37.5,-22.5,-7.5,7.5,22.5,37.5])for(const z of [-20,0,20])box(M.groundPanel,x,-.025,z,13.5,.035,6.4);
   box(M.road,0,-.015,-6,110,.12,8.8);
@@ -117,6 +118,9 @@ export function createRenderer(canvas) {
   makeRefineryYard(29,25,.72);
   makeTransitGantry(-29,15,9);
   makeTransitGantry(28,15,9);
+  const legacyWorld=new THREE.Group();
+  for(const child of scene.children.slice(legacyStart))legacyWorld.add(child);
+  scene.add(legacyWorld);
   const buildings=new Map(),enemies=new Map(),shots=new Map(),effects=new Map();
   const hostileLabel=label('CONVOY','#ffc195'),escortLabel=label('ESCORT','#ffa191'),ripLabel=label('RIP GUN','#ffe392');
   for(const m of [hostileLabel,escortLabel,ripLabel])m.depthTest=false;
@@ -156,6 +160,8 @@ export function createRenderer(canvas) {
     return {g,torso,legs,cannon,muzzle,core,ring,fist};
   }
   const player=makeMech();
+  const silhouetteMaterial=new THREE.MeshBasicMaterial({color:'#65ffe7',transparent:true,opacity:.38,depthTest:false,depthWrite:false});materials.push(silhouetteMaterial);
+  const silhouette=player.g.clone(true),playerParts=[],ghostParts=[];player.g.traverse(v=>playerParts.push(v));silhouette.traverse(v=>{ghostParts.push(v);if(v.isMesh){v.material=silhouetteMaterial;v.renderOrder=25;v.castShadow=false;v.receiveShadow=false;}});scene.add(silhouette);
   const steam=group(player.g);
   for(let i=0;i<5;i++)mesh(sphereGeo,M.smoke,0,0,0,.4,.4,.4,steam);
   function makeTank(){
@@ -171,6 +177,21 @@ export function createRenderer(canvas) {
     box(M.red,0,1.27,.64,.55,.12,.05,turret);box(M.yellow,0,1.69,-.54,.7,.08,.08,turret);
     box(M.black,-.36,1.93,-.28,.035,1.1,.035,turret);
     return{g,turret};
+  }
+  function makeFortress(){
+    const g=group(),turret=group(g),legs=[];
+    for(const side of [-1,1])for(const z of [-5,5]){
+      const leg=group(g);leg.position.set(side*7,0,z);legs.push(leg);
+      box(M.black,0,.7,0,4,1.4,5,leg);box(M.steel,0,3,0,2,5,2,leg);
+      box(M.enemy,side*-.5,5.5,0,3,3,3,leg);pipe(M.orange,0,3.5,1.2,.25,4,'y',leg);
+    }
+    box(M.dark,0,6,0,13,4,17,g);box(M.enemy,0,8,0,12,3,15,g);
+    box(M.steel,0,10,0,8,2,11,g);box(M.dark,0,12,-2,6,4,6,g);
+    box(M.red,0,13,1.1,5,.4,.1,g);pipe(M.black,0,15,-2,.15,6,'y',g);
+    const core=mesh(sphereGeo,M.cyan,0,6,8.8,2.2,2.2,1,g);
+    for(const side of [-1,1]){box(M.enemy,side*7,10,0,4,3,7,turret);for(const dx of [-.7,.7])pipe(M.black,side*7+dx,10,5,.45,9,'z',turret);}
+    for(let i=-4;i<=4;i+=2){box(M.orange,i,8.7,7.8,.7,.2,.15,g);box(M.steel,i,4.8,8,.5,2,.4,g);}
+    return {g,turret,legs,core};
   }
   function makeBuilding(b){
     const root=group(),pivot=group(root);root.position.set(b.x,0,b.z);
@@ -203,6 +224,21 @@ export function createRenderer(canvas) {
       beam(M.steel,w*.25,h+2.1,0,1.15,.08,.08,0,roofUnit);
       pipe(M.orange,0,h+2.1,0,.06,1.25,'y',roofUnit);
     }
+    if(b.kind==='reactor'){
+      for(const x of [-w*.25,w*.25]){pipe(M.steel,x,h+2,0,1.1,4,'y',roofUnit);mesh(torusGeo,M.orange,x,h+3,0,1.2,1.2,1.2,roofUnit).rotation.x=Math.PI/2;pipe(M.cyan,x,h+2.1,1.15,.09,3,'y',roofUnit);}
+      for(const x of [-w*.42,w*.42])pipe(M.orange,x,h*.55,d*.5+.3,.25,h*.85,'y',pivot);
+    }else if(b.kind==='desert'){
+      const roof=box(M.rust,0,h+.7,0,w+1,.3,d+1,roofUnit);roof.rotation.z=.12;
+      for(let x=-w/2+.5;x<w/2;x+=.8)box(M.steel,x,h*.5,d*.5+.1,.08,h*.85,.15,pivot);
+      box(M.orange,0,1.5,d*.5+.2,w*.65,2.4,.3,pivot);
+    }else if(b.kind==='flood'){
+      for(const side of [-1,1]){box(M.steel,side*w*.55,h*.7,0,1.1,.2,d+1,pivot);box(M.cyan,side*w*.58,h*.7+.5,0,.1,1,d+1,pivot);}
+      pipe(M.rust,-w*.4,h*.5,d*.55,.15,h,'y',pivot);
+      box(M.cyan,0,.4,d*.52,w,.08,.06,pivot);
+    }else if(b.kind==='fortress'){
+      for(let z=-2;z<=2;z+=2)box(M.steel,0,h+.5,z,w+1,1,.6,pivot);
+      for(const side of [-1,1]){const armor=box(M.enemy,side*w*.45,h*.5,0,1,h,d+1,pivot);armor.rotation.z=side*.12;}
+    }
     const beaconPole=pipe(M.dark,0,h+1.63,d*.18,.055,.8,'y',pivot);
     const beacon=mesh(sphereGeo,isTower?M.orangeLight:M.yellow,0,h+2.08,d*.18,.18,.18,.18,pivot);beacon.castShadow=false;
     // Instanced windows: hundreds of facade panes without hundreds of draw calls.
@@ -224,9 +260,10 @@ export function createRenderer(canvas) {
     const sign=mesh(planeGeo,label((isTower?'T-':'D-')+String(b.id).slice(-1).toUpperCase(),'#f4dfae','#283a40'),0,h*.7,d*.5+.08,Math.min(w*.75,3.8),1,1,pivot);sign.castShadow=false;
     const damage=box(M.warning,0,.18,0,w+.35,.2,d+.35,pivot);damage.visible=false;
     const rubble=group(root);rubble.visible=false;
+    box(M.rubbleDark,0,d*.23,h*.5,w,d*.46,h,rubble);
     for(let i=0;i<12;i++){
-      const a=i*2.399,s=.72+(i%3)*.42,rx=((i%4)-1.5)*w*.34,rz=(((i*5)%11)/10-.5)*Math.max(w,d)*.9;
-      const q=mesh(boxGeo,i%3?M.rubble:(i%2?M.steel:M.rubbleDark),rx,.34+(i%4)*.22,rz,s,.6+(i%3)*.26,s,rubble);q.rotation.set(i*.2,a,i*.11);
+      const a=i*2.399,s=.72+(i%3)*.42,rx=((i%3)-1)*w*.3,rz=(Math.floor(i/3)+.5)*h/4;
+      const q=mesh(boxGeo,i%3?M.rubble:(i%2?M.steel:M.rubbleDark),rx,d*.45+(i%4)*.22,rz,s,1+(i%3)*.26,h/5,rubble);q.rotation.set(i*.05,a*.04,i*.08);
     }
     return{root,pivot,rubble,damage,beacon,beaconPole,w,d,h};
   }
@@ -260,6 +297,56 @@ export function createRenderer(canvas) {
     }
     return g;
   }
+  const world=group(),landmarks=new Map(),strikeMeshes=new Map();
+  const objectiveMaterial=new THREE.MeshBasicMaterial({color:0xffcc70,transparent:true,opacity:.6,depthWrite:false});materials.push(objectiveMaterial);
+  const dangerMaterial=new THREE.MeshBasicMaterial({color:0xff4232,transparent:true,opacity:.35,depthWrite:false});materials.push(dangerMaterial);
+  const waterMaterial=mat('#18717d',.16,.65,0,{transparent:true,opacity:.75});
+  const fireMaterial=mat('#e05b16',.8,.1,'#a52d05',{transparent:true,opacity:.8});
+  const discGeo=new THREE.CircleGeometry(1,48);geometries.push(discGeo);
+  const labels={boss:label('SOVEREIGN','#ffb598'),artillery:label('ARTILLERY','#ffae80'),hunter:label('HUNTER','#ff8271')};
+  Object.values(labels).forEach(m=>m.depthTest=false);
+  const assetBase={materials:materials.length,textures:textures.length,geometries:geometries.length};
+  let worldState=null;
+  function resetWorld(state){
+    for(const map of [buildings,enemies,shots,effects,landmarks,strikeMeshes]){for(const v of map.values()){scene.remove(v.root||v.g||v);if(v.marker)scene.remove(v.marker);}map.clear();}
+    world.clear();
+    for(const m of materials.splice(assetBase.materials))m.dispose();for(const t of textures.splice(assetBase.textures))t.dispose();for(const g of geometries.splice(assetBase.geometries))g.dispose();
+    legacyWorld.visible=!state.campaign;if(!state.campaign)return;
+    const biome=state.biome,size=state.bounds.maxX;
+    const palette={harbor:['#243d46','#24383e','#759dae'],flood:['#243d53','#263e48','#8dbae0'],desert:['#a67c60','#766250','#ffdc9d'],reactor:['#281c29','#39323b','#ffa366'],fortress:['#292739','#303441','#baa8df']}[biome];
+    scene.background.set(palette[0]);scene.fog.color.set(palette[0]);scene.fog.density=.004;M.ground.color.set(palette[1]);sun.color.set(palette[2]);
+    box(M.ground,0,-.45,0,size*2+70,.8,size*2+70,world);
+    const roadSpacing=biome==='flood'?42:32;
+    if(biome!=='desert'&&biome!=='fortress')for(let x=-size;x<=size;x+=roadSpacing){box(M.road,x,-.008,0,9,.1,size*2,world);box(M.road,0,-.012,x,size*2,.1,9,world);
+      for(let z=-size;z<size;z+=12){box(M.roadMark,x,.052,z,.16,.03,3,world);box(M.roadMark,z,.054,x,3,.03,.16,world);}}
+    else for(const x of [-64,64]){box(M.road,x,-.01,0,12,.1,size*2,world);for(let z=-size;z<size;z+=10)box(M.roadMark,x,.052,z,.15,.03,3,world);}
+    for(const [i,o]of state.objectives.entries()){
+      box(M.concreteDark,o.x,-.03,o.z,26,.1,24,world);
+      for(let x=-12;x<=12;x+=3)box(M.yellow,o.x+x,.05,o.z+12,1.5,.04,.2,world);
+      const q=mesh(planeGeo,label(['WEST APPROACH','CONTROL SECTOR','ENGINE BASIN','NORTH EXIT'][i],'#b8b9a2'),o.x,.07,o.z+10,17,4,1,world);q.rotation.x=-Math.PI/2;q.castShadow=false;
+      if(biome==='reactor'){for(const side of [-1,1]){pipe(M.steel,o.x+side*14,6,o.z,.3,25,'z',world);pipe(M.orange,o.x+side*14,7,o.z,.2,25,'z',world);}}
+    }
+    if(biome==='desert')for(let i=0;i<55;i++){const x=-size+(i*41)%(size*2),z=-size+(i*59)%(size*2);const q=box(M.roadEdge,x,.04,z,4+(i%5),.03,.09,world);q.rotation.y=i*.7;}
+    // Huge silhouettes live outside the traversable district, leaving fair collision lanes.
+    for(let i=0;i<40;i++){
+      const a=i/40*Math.PI*2,x=Math.cos(a)*(size+22),z=Math.sin(a)*(size+22),h=12+(i*17)%31;
+      if(biome==='desert') {const q=mesh(sphereGeo,i%2?M.concreteDark:M.rust,x,h*.35,z,10,h,9,world);q.rotation.y=i;}
+      else {box(i%3?M.dark:M.concreteDark,x,h/2,z,9,h,10,world);box(biome==='reactor'?M.orange:M.cyan,x,h*.7,z+5.1,7,.7,.15,world);
+        if(i%3===0){pipe(M.steel,x,h+5,z,.65,10,'y',world);mesh(sphereGeo,M.smoke,x,h+14,z,4,6,4,world);}}
+    }
+    if(biome==='harbor'||biome==='flood'){
+      box(waterMaterial,-size-18,-.1,0,24,.2,size*2+20,world);
+      for(const z of [-70,0,70]){box(M.steel,-size-10,13,z,.8,26,.8,world);box(M.orange,-size-5,26,z,32,1,1,world);box(M.black,-size+8,20,z,.15,12,.15,world);}
+    }
+    if(biome==='desert')for(let x=-size;x<size;x+=6){box(M.black,x,.02,55,.8,.08,12,world);for(const z of [51,59])box(M.steel,x,.12,z,6,.16,.2,world);}
+    if(biome==='reactor')for(const x of [-size-9,size+9]){pipe(M.steel,x,14,0,10,28,'y',world);pipe(M.orange,x,29,0,11,2,'y',world);mesh(sphereGeo,M.smoke,x,39,0,7,10,7,world);}
+    for(const h of state.hazards){const q=mesh(discGeo,h.type==='water'?waterMaterial:fireMaterial,h.x,.07,h.z,h.radius,h.radius,1,world);q.rotation.x=-Math.PI/2;q.castShadow=false;
+      const ring=mesh(torusGeo,h.type==='water'?M.cyan:M.orange,h.x,.1,h.z,h.radius,h.radius,h.radius,world);ring.rotation.x=-Math.PI/2;ring.castShadow=false;}
+    for(const o of state.objectives){const g=group();g.position.set(o.x,0,o.z);const ring=mesh(torusGeo,M.yellow,0,.15,0,6,6,.4,g);ring.rotation.x=-Math.PI/2;ring.castShadow=false;
+      const beam=mesh(cylGeo,objectiveMaterial,0,9,0,.3,18,.3,g);beam.castShadow=false;landmarks.set(o.id,g);}
+    for(const c of state.pickups){const g=group();g.position.set(c.x,0,c.z);box(M.dark,0,.75,0,2.6,1.5,2,g);box(c.type==='repair'?M.cyan:c.type==='intel'?M.white:M.yellow,0,1.6,0,2.1,.2,1.7,g);
+      const symbol=mesh(planeGeo,label(c.type==='repair'?'+ REPAIR':c.type==='intel'?'ARCHIVE':'CAPACITOR'),0,3,0,5,1.25,1,g);symbol.castShadow=false;g.userData.symbol=symbol;landmarks.set(c.id,g);}
+  }
   const ray=new THREE.Raycaster(),pointer=new THREE.Vector2(),ground=new THREE.Plane(new THREE.Vector3(0,1,0),0),pickPoint=new THREE.Vector3();
   let width=0,height=0,lastX=0,lastZ=0,initialized=false;
   function resize(){const r=canvas.getBoundingClientRect();width=Math.max(1,r.width);height=Math.max(1,r.height);renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();}
@@ -267,6 +354,7 @@ export function createRenderer(canvas) {
   function project(x,z){if(typeof x==='object'){z=x.z;x=x.x;}const v=new THREE.Vector3(x,0,z).project(camera);const r=canvas.getBoundingClientRect();return{x:r.left+(v.x+1)*r.width/2,y:r.top+(1-v.y)*r.height/2};}
   function render(state,dt=.016){
     if(!width||canvas.clientWidth!==width||canvas.clientHeight!==height)resize();
+    if(worldState!==state.buildings){worldState=state.buildings;resetWorld(state);initialized=false;}
     const p=state.player,t=state.time||0;
     player.g.position.set(p.x,0,p.z);player.torso.rotation.y=p.angle||0;
     const speed=initialized?Math.min(1,Math.hypot(p.x-lastX,p.z-lastZ)/Math.max(.001,dt)/4):0;
@@ -280,15 +368,20 @@ export function createRenderer(canvas) {
     player.ring.visible=state.status!=='ready';
     steam.visible=!!p.venting||p.overheated;steam.children.forEach((v,i)=>{const phase=(t*1.2+i*.2)%1;v.position.set(Math.sin(i*2.4)*phase*.7,2.5+phase*2,-.4);v.scale.setScalar(.12+phase*.65);});
     // Fixed world north makes WASD and the touch stick predictable.
-    const camDistance=camera.aspect<.75?32:34;
-    const cx=p.x*.78,cz=p.z*.68;
+    const camDistance=state.campaign?(camera.aspect<.75?54:44):(camera.aspect<.75?32:34);
+    const cx=state.campaign?p.x+Math.sin(p.angle)*4:p.x*.78,cz=state.campaign?p.z+Math.cos(p.angle)*4:p.z*.68;
     const targetPos=new THREE.Vector3(cx,camDistance*.78,cz+camDistance*.87);
     if(!initialized)camera.position.copy(targetPos);else camera.position.lerp(targetPos,1-Math.exp(-dt*5));
     camera.lookAt(cx,0,cz-5.5);
+    if(state.campaign){sun.position.set(cx-28,43,cz+18);sun.target.position.set(cx,0,cz);}
+    const dx=p.x-camera.position.x,dz=p.z-camera.position.z,rayLength=dx*dx+dz*dz;
+    silhouette.visible=state.buildings.some(b=>{const u=((b.x-camera.position.x)*dx+(b.z-camera.position.z)*dz)/rayLength;if(u<=0||u>=1)return false;return IW.inFootprint({x:camera.position.x+dx*u,z:camera.position.z+dz*u},b,.8,camera.position.y+(2-camera.position.y)*u);});
+    for(let i=0;i<playerParts.length;i++){ghostParts[i].position.copy(playerParts[i].position);ghostParts[i].quaternion.copy(playerParts[i].quaternion);ghostParts[i].scale.copy(playerParts[i].scale);if(i)ghostParts[i].visible=playerParts[i].visible;}
     lastX=p.x;lastZ=p.z;initialized=true;
     let nearest=null,nearDist=Infinity,falling=null;
     for(const b of state.buildings){
       let v=buildings.get(b.id);if(!v){v=makeBuilding(b);buildings.set(b.id,v);}
+      v.root.visible=Math.hypot(b.x-p.x,b.z-p.z)<90;
       v.pivot.visible=b.status!=='rubble';v.rubble.visible=b.status==='rubble';v.rubble.rotation.y=Math.atan2(b.fallX||0,b.fallZ||-1);
       v.damage.visible=b.hp<b.maxHp&&b.status==='standing';v.damage.scale.y=.2+(1-b.hp/b.maxHp)*.7;
       v.beacon.visible=b.status!=='rubble'&&(String(b.id).startsWith('tower')||b.hp<b.maxHp);v.beacon.scale.setScalar(.75+.25*(.5+.5*Math.sin(t*7)));
@@ -318,14 +411,17 @@ export function createRenderer(canvas) {
     }
     aim.position.set(p.x+Math.sin(p.angle||0)*8,.06,p.z+Math.cos(p.angle||0)*8);
     for(const e of state.enemies){
-      let v=enemies.get(e.id);if(!v){v=e.type==='escort'?makeMech(true):makeTank();addMarker(v,e);enemies.set(e.id,v);}
-      v.g.position.set(e.x,0,e.z);v.g.visible=!e.escaped;
-      v.marker.position.set(e.x,e.type==='tank'?2.9:4.1,e.z);v.marker.quaternion.copy(camera.quaternion);v.marker.visible=!e.escaped&&(e.alive||(e.disabled&&!e.weaponTaken));v.markerLabel.material=e.disabled?ripLabel:e.type==='tank'?hostileLabel:escortLabel;v.hpBar.scale.x=1.9*Math.max(0,e.hp/e.maxHp);v.hpBar.position.x=-(1-e.hp/e.maxHp)*.95;
-      if(e.type==='escort'){
+      const isMech=e.type==='escort'||e.type==='hunter';
+      let v=enemies.get(e.id);if(!v){v=e.type==='boss'?makeFortress():isMech?makeMech(true):makeTank();if(e.type==='artillery')v.turret.scale.set(1.4,1.5,2);addMarker(v,e);enemies.set(e.id,v);}
+      v.g.position.set(e.x,0,e.z);v.g.visible=!e.escaped&&Math.hypot(e.x-p.x,e.z-p.z)<95;
+      v.marker.position.set(e.x,e.type==='boss'?17:e.type==='tank'?2.9:4.1,e.z);v.marker.quaternion.copy(camera.quaternion);v.marker.visible=v.g.visible&&(e.alive||(e.disabled&&!e.weaponTaken));v.markerLabel.material=e.disabled?ripLabel:labels[e.type]||(e.type==='tank'?hostileLabel:escortLabel);v.hpBar.scale.x=1.9*Math.max(0,e.hp/e.maxHp);v.hpBar.position.x=-(1-e.hp/e.maxHp)*.95;
+      if(isMech){
         v.torso.rotation.y=e.angle||0;v.g.rotation.z=e.disabled?.25:0;
         v.torso.position.y=e.disabled?1.7:2.1;v.cannon.visible=!e.weaponTaken;
         v.ring.visible=e.disabled&&!e.weaponTaken;v.ring.material=M.yellow;
-      }else{v.g.rotation.y=Math.PI*.5;v.turret.rotation.y=(e.angle||0)-Math.PI*.5;}
+        if(e.type==='hunter'&&e.alive)v.legs.forEach((leg,i)=>leg.rotation.x=Math.sin(t*10+i*Math.PI)*.4);
+      }else if(e.type==='boss'){v.core.material=e.exposed?M.cyan:M.red;v.turret.rotation.y=Math.sin(t*.3)*.15;v.legs.forEach((leg,i)=>leg.position.y=e.alive?Math.max(0,Math.sin(t*1.5+i*Math.PI))*.6:0);}
+      else{v.g.rotation.y=Math.PI*.5;v.turret.rotation.y=(e.angle||0)-Math.PI*.5;}
       if(!e.alive&&!e.disabled){v.g.scale.y=.3;v.g.rotation.z=.16;}
       else v.g.scale.y=1;
     }
@@ -344,6 +440,12 @@ export function createRenderer(canvas) {
       });
     }
     for(const[id,v]of effects)if(!currentEffects.has(id)){scene.remove(v);effects.delete(id);}
+    if(state.campaign){
+      for(const o of state.objectives){const v=landmarks.get(o.id);v.visible=!o.done&&state.objectives[state.stage]===o;v.children[0].rotation.z=t*.2;}
+      for(const c of state.pickups){const v=landmarks.get(c.id);v.visible=!c.taken&&Math.hypot(c.x-p.x,c.z-p.z)<65;v.userData.symbol.quaternion.copy(camera.quaternion);}
+      const active=new Set();for(const strike of state.strikes){active.add(strike.id);let v=strikeMeshes.get(strike.id);if(!v){v=group();const d=mesh(discGeo,dangerMaterial,0,.12,0,1,1,1,v);d.rotation.x=-Math.PI/2;d.castShadow=false;const r=mesh(torusGeo,M.red,0,.15,0);r.rotation.x=-Math.PI/2;r.castShadow=false;v.add(r);strikeMeshes.set(strike.id,v);}v.position.set(strike.x,0,strike.z);v.scale.setScalar(strike.radius);v.children[1].scale.setScalar(.25+.75*(1-strike.life/strike.maxLife));}
+      for(const[id,v]of strikeMeshes)if(!active.has(id)){scene.remove(v);strikeMeshes.delete(id);}
+    }
     renderer.render(scene,camera);
   }
   function dispose(){renderer.dispose();for(const x of geometries)x.dispose();for(const x of materials)x.dispose();for(const x of textures)x.dispose();buildings.clear();enemies.clear();shots.clear();effects.clear();}

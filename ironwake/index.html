@@ -3,21 +3,23 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Ironwake — Bot Built Arcade</title>
-  <meta name="description" content="Pilot a heavy mech. Break the convoy. Bring the city down.">
+  <meta name="description" content="A five-chapter mech campaign across an occupied coast. Break the blockade, free a city, and bring down a walking fortress.">
   <link rel="icon" href="../images/botbuiltarcade-icon-face.png">
   <link rel="stylesheet" href="assets/css/game.css">
 </head>
 <body>
 <main id="game">
   <canvas id="scene" aria-label="Ironwake combat district" tabindex="0"></canvas>
-  <header><a href="../index.html">← ARCADE</a><strong>IRON<span>WAKE</span></strong><button id="mute" aria-label="Mute sound" aria-pressed="false">SOUND ON</button></header>
+  <header><a href="../index.html">← ARCADE</a><strong>IRON<span>WAKE</span></strong><div><button id="mapButton">MAP / PAUSE</button> <button id="mute" aria-label="Mute sound" aria-pressed="false">SOUND ON</button></div></header>
   <section id="hud" aria-label="Mech status">
     <div><label>ARMOR</label><b id="armor">160</b><meter id="armorMeter" min="0" max="160" value="160"></meter></div>
     <div><label>REACTOR</label><b id="heat">0%</b><meter id="heatMeter" min="0" max="100" value="0"></meter></div>
-    <div><label>CONVOY</label><b id="objective">0 / 3</b><small id="timer">02:00</small></div>
+    <div><label>OBJECTIVES</label><b id="objective">0 / 4</b><small id="timer">00:00</small></div>
     <div class="score-cell"><label>SCORE</label><b id="score">000000</b><small id="weapon">STANDARD CANNON</small></div>
   </section>
-  <div id="orders"><span>OPERATION / BREAKWATER</span><p id="message">Destroy the armored convoy.</p></div>
+  <div id="orders"><span id="chapterName">OPERATION / BREAKWATER</span><h2 id="objectiveTitle"></h2><div id="objectiveDetail"></div><p id="message"></p><div id="context"></div></div>
+  <button id="radar" aria-label="Open mission map"><canvas id="minimap" width="240" height="240"></canvas><small>MAP / TAB</small></button>
+  <div id="radio" aria-live="polite"></div>
   <div id="crosshair" aria-hidden="true"></div>
   <section id="controls" aria-label="Combat controls">
     <div id="stick" aria-label="Drag to move"><i id="stickKnob"></i><span>MOVE</span></div>
@@ -27,25 +29,38 @@
       <button data-action="punch"><b>PUNCH</b><small>E / RIGHT CLICK</small></button>
       <button data-action="rip"><b>RIP GUN</b><small>Q / CLOSE RANGE</small></button>
       <button data-action="vent"><b>VENT</b><small>SPACE / HOLD</small></button>
+      <button data-action="dash"><b id="dashLabel">BOOST</b><small>SHIFT / DODGE</small></button>
+      <button data-action="interact"><b>INTERACT</b><small>F / HOLD</small></button>
     </div>
   </section>
   <div id="overlay">
     <section class="briefing" id="briefing">
-      <div class="eyebrow">COMBAT TRIAL 01 / DOCKLANDS</div>
-      <h1>THE CITY<br>IS YOUR <em>WEAPON.</em></h1>
-      <p>Break the convoy before it escapes. Punch a tower toward the road. Crush the armor beneath it.</p>
-      <ol><li>Aim at a target. Fire or close in to punch.</li><li>Disable an escort, then get close and rip its gun.</li><li>Hold VENT to cool down. You cannot move or attack.</li></ol>
-      <button class="primary" id="start">DEPLOY MECH <span>→</span></button>
-      <small>WASD + mouse · Touch: drag MOVE, tap a target, use action buttons</small>
+      <div class="eyebrow" id="briefPlace"></div>
+      <h1 id="briefTitle"></h1>
+      <nav id="chapterTrack" aria-label="Campaign progress"></nav>
+      <p id="briefStory"></p>
+      <div class="mission-facts"><span>5 CHAPTERS</span><span>20 OBJECTIVES</span><span>CHAPTER SAVES</span></div>
+      <details><summary>Mech field manual</summary><p>WASD / arrows move · mouse aims · click fires · E / right click punches · Q rips a disabled gun · Space vents · Shift boosts · F interacts. TAB or Escape pauses and opens the map.</p><p>Touch: drag MOVE, tap the battlefield to aim, then use the action buttons. Gold rings mark objectives. Cyan caches repair armor. White archives tell the story. Red circles warn of incoming shells. Boost through danger; vent behind cover.</p></details>
+      <button class="primary" id="start">DEPLOY CHAPTER <span>→</span></button>
+      <button class="secondary" id="newCampaign">START NEW CAMPAIGN</button>
+      <small id="saveNote">Progress saves between chapters. Explore at your own pace; there is no mission timer.</small>
     </section>
     <section class="briefing results" id="results" hidden>
       <div class="eyebrow">OPERATION / DEBRIEF</div><h1 id="resultTitle">CONVOY<br>STOPPED.</h1>
       <div class="result-score" id="finalScore">000000</div><p id="resultStats"></p>
+      <p id="debriefStory"></p>
+      <div id="upgradePanel" hidden><div class="eyebrow">INSTALL ONE UPGRADE • NEXT CHAPTER</div><div id="upgrades">
+        <button data-upgrade="armor"><b>REINFORCED HULL</b><span>+50 maximum armor</span></button>
+        <button data-upgrade="reactor"><b>COOLING MANIFOLD</b><span>+25% base cooling rate</span></button>
+        <button data-upgrade="damage"><b>BREACH AMPLIFIER</b><span>+20% base enemy damage</span></button>
+      </div></div>
       <form id="scoreForm"><label for="callsign">CALLSIGN</label><div class="form-row"><input id="callsign" value="IRONHAND" maxlength="20" required><button type="submit">POST SCORE</button></div><p id="scoreStatus" aria-live="polite"></p></form>
-      <button class="primary" id="retry">REDEPLOY <span>↻</span></button>
+      <button class="primary" id="retry">RETRY CHAPTER <span>↻</span></button>
+      <button class="secondary" id="restartCampaign" hidden>START A NEW CAMPAIGN</button>
     </section>
   </div>
+  <section id="mapPanel" hidden aria-label="Paused mission map"><div class="map-shell"><div class="eyebrow">TACTICAL MAP / PAUSED</div><h2 id="mapTitle"></h2><div class="map-columns"><canvas id="fullMap" width="640" height="640"></canvas><div><ol id="mapObjectives"></ol><p class="legend">▲ You · gold: current objective · gray: later objective<br>Red: nearby enemy · cyan: repair · white: archive · yellow: capacitor<br>Blue areas: cooling water · orange areas: furnace vents</p><p id="mapRadio"></p><p id="upgradeSummary"></p><button class="primary" id="resume">RETURN TO COMBAT →</button></div></div></div></section>
   <div id="error" role="alert" hidden></div>
 </main>
-<script src="assets/js/logic.js"></script><script type="module" src="assets/js/main.js"></script>
+<script src="assets/js/logic.js"></script><script src="assets/js/campaign.js"></script><script type="module" src="assets/js/main.js"></script>
 </body></html>

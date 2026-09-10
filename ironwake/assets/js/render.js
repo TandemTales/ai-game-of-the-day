@@ -189,9 +189,10 @@ export function createRenderer(canvas) {
     box(M.steel,0,10,0,8,2,11,g);box(M.dark,0,12,-2,6,4,6,g);
     box(M.red,0,13,1.1,5,.4,.1,g);pipe(M.black,0,15,-2,.15,6,'y',g);
     const core=mesh(sphereGeo,M.cyan,0,6,8.8,2.2,2.2,1,g);
+    const halo=mesh(torusGeo,M.red,0,6,8.8,3.15,3.15,1,g);halo.rotation.x=Math.PI/2;halo.castShadow=false;halo.renderOrder=4;
     for(const side of [-1,1]){box(M.enemy,side*7,10,0,4,3,7,turret);for(const dx of [-.7,.7])pipe(M.black,side*7+dx,10,5,.45,9,'z',turret);}
     for(let i=-4;i<=4;i+=2){box(M.orange,i,8.7,7.8,.7,.2,.15,g);box(M.steel,i,4.8,8,.5,2,.4,g);}
-    return {g,turret,legs,core};
+    return {g,turret,legs,core,halo};
   }
   function makeBuilding(b){
     const root=group(),pivot=group(root);root.position.set(b.x,0,b.z);
@@ -428,7 +429,11 @@ export function createRenderer(canvas) {
         v.torso.position.y=e.disabled?1.7:2.1;v.cannon.visible=!e.weaponTaken;
         v.ring.visible=e.disabled&&!e.weaponTaken;v.ring.material=M.yellow;
         if(e.type==='hunter'&&e.alive)v.legs.forEach((leg,i)=>leg.rotation.x=Math.sin(t*10+i*Math.PI)*.4);
-      }else if(e.type==='boss'){v.core.material=e.exposed?M.cyan:M.red;v.turret.rotation.y=Math.sin(t*.3)*.15;v.legs.forEach((leg,i)=>leg.position.y=e.alive?Math.max(0,Math.sin(t*1.5+i*Math.PI))*.6:0);}
+      }else if(e.type==='boss'){
+        v.core.material=e.exposed?M.cyan:M.red;v.halo.material=e.exposed?M.cyan:M.red;v.halo.visible=e.alive;
+        v.halo.scale.setScalar((e.exposed?1.08:1)+Math.sin(t*(e.exposed?5:2.5))*.08);
+        v.turret.rotation.y=Math.sin(t*.3)*.15;v.legs.forEach((leg,i)=>leg.position.y=e.alive?Math.max(0,Math.sin(t*1.5+i*Math.PI))*.6:0);
+      }
       else{v.g.rotation.y=Math.PI*.5;v.turret.rotation.y=(e.angle||0)-Math.PI*.5;}
       if(!e.alive&&!e.disabled){v.g.scale.y=.3;v.g.rotation.z=.16;}
       else v.g.scale.y=1;

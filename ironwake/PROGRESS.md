@@ -1,5 +1,16 @@
 # Ironwake — Progress
 
+## 2026-09-09 (Pacific) — nightly intent
+
+Tonight’s bounded polish pass follows the completed campaign expansion. I will
+re-run the full mechanic and browser gates, inspect the opening, a mid-campaign
+biome, the Sovereign finale, and the mobile upgrade/map flows, then address the
+largest still-visible campaign readability or presentation loss without adding
+another district or inflating the twenty-objective scope. Any remaining AAA
+debt—materials, authored VFX/audio, physical-device performance, human pacing
+feedback and independent comparison—will remain explicit. No release or
+`main` change is planned.
+
 ## 2026-09-08 (Pacific) — nightly intent
 
 Tonight’s bounded polish pass targets the two largest verified gaps from the

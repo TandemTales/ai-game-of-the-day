@@ -11,6 +11,35 @@ debt—materials, authored VFX/audio, physical-device performance, human pacing
 feedback and independent comparison—will remain explicit. No release or
 `main` change is planned.
 
+## 2026-09-09 (Pacific) — Sovereign presentation pass and handoff
+
+The bounded renderer pass gives the Sovereign a forward-readable animated
+shield ring: red while armored, cyan and larger during the exposed damage
+window. It is a presentation-only cue; simulation, damage, timing, controls,
+campaign scope and no-fetch behavior are unchanged. The exact exposed fixture
+was captured at 1440x900 and visually inspected with the HUD reading `CORE
+EXPOSED — FIRE`; the renderer error surface stayed hidden.
+
+Verification on the pushed `dev` state: full Jest passes 15 suites / 359 tests;
+`node --check ironwake/assets/js/render.js` and `git diff --check` pass;
+`campaign-playthrough.cjs` completes all five chapters with legal deterministic
+inputs; `native-campaign.cjs` completes all five chapters through real browser
+keyboard/mouse input in 50.2 / 71.1 / 70.0 / 110.9 / 95.7 wall seconds; and the
+full Chromium smoke passes 320x568, 390x844, 844x390, 768x1024, 1440x900 and
+3840x2160 with collapse, movement, simultaneous touch, results/retry,
+rank-before-submit, map pause, upgrade/save reload, clean console, no external
+requests and no horizontal overflow. I opened the final 390x844, 1440x900,
+downsampled 4K, and exposed-Sovereign PNGs.
+
+No independent AAA critic or shipping judge was available, so no blind
+comparison pass or release eligibility is claimed. The presentation is still
+below the MechWarrior 5 bar in authored materials, VFX/audio depth and scene
+complexity; physical-device performance, human campaign pacing, accessibility
+and production leaderboard connectivity remain unproven. No `.aaa-complete`,
+Featured Game edit, release, or `main` promotion was made. Next run should use
+human campaign feedback to tune exploration incentives, enemy variety and
+combat balance before adding more content.
+
 ## 2026-09-08 (Pacific) — nightly intent
 
 Tonight’s bounded polish pass targets the two largest verified gaps from the

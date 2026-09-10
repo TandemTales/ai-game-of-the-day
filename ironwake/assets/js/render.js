@@ -196,6 +196,13 @@ export function createRenderer(canvas) {
   function makeBuilding(b){
     const root=group(),pivot=group(root);root.position.set(b.x,0,b.z);
     const h=b.h,w=b.w,d=b.d;
+    if(b.kind==='train'){
+      box(M.black,0,.65,0,w,1.3,d,pivot);box(M.rust,0,2.5,0,w-1,3,d-.4,pivot);box(M.steel,0,4.1,0,w,.3,d+.2,pivot);
+      for(const side of [-1,1])for(const x of [-4,-2,2,4]){const wheel=mesh(cylGeo,M.black,x,.8,side*2.5,.8,.3,.8,pivot);wheel.rotation.x=Math.PI/2;box(M.cyan,x,2.8,side*2.32,1.1,.6,.1,pivot);box(M.steel,x,2.8,side*2.4,.1,.8,.1,pivot);}
+      box(M.yellow,0,1.3,2.4,w-1,.2,.15,pivot);box(M.steel,0,1,-2.8,w,1,.2,pivot);
+      const beacon=mesh(sphereGeo,M.cyan,-4,4.5,0,.2,.2,.2,pivot),damage=group(pivot),rubble=group(root);damage.visible=false;rubble.visible=false;
+      return{root,pivot,rubble,damage,beacon,w,d,h};
+    }
     const isTower=String(b.id).startsWith('tower');
     const bodyMat=mat(b.color||(isTower?'#536b6b':'#697c7c'),.68,.42);
     box(bodyMat,0,h*.5,0,w,h,d,pivot);
@@ -303,6 +310,7 @@ export function createRenderer(canvas) {
   const waterMaterial=mat('#18717d',.16,.65,0,{transparent:true,opacity:.75});
   const fireMaterial=mat('#e05b16',.8,.1,'#a52d05',{transparent:true,opacity:.8});
   const discGeo=new THREE.CircleGeometry(1,48);geometries.push(discGeo);
+  const zoneRingGeo=new THREE.RingGeometry(.98,1,64);geometries.push(zoneRingGeo);
   const labels={boss:label('SOVEREIGN','#ffb598'),artillery:label('ARTILLERY','#ffae80'),hunter:label('HUNTER','#ff8271')};
   Object.values(labels).forEach(m=>m.depthTest=false);
   const assetBase={materials:materials.length,textures:textures.length,geometries:geometries.length};
@@ -341,8 +349,8 @@ export function createRenderer(canvas) {
     if(biome==='desert')for(let x=-size;x<size;x+=6){box(M.black,x,.02,55,.8,.08,12,world);for(const z of [51,59])box(M.steel,x,.12,z,6,.16,.2,world);}
     if(biome==='reactor')for(const x of [-size-9,size+9]){pipe(M.steel,x,14,0,10,28,'y',world);pipe(M.orange,x,29,0,11,2,'y',world);mesh(sphereGeo,M.smoke,x,39,0,7,10,7,world);}
     for(const h of state.hazards){const q=mesh(discGeo,h.type==='water'?waterMaterial:fireMaterial,h.x,.07,h.z,h.radius,h.radius,1,world);q.rotation.x=-Math.PI/2;q.castShadow=false;
-      const ring=mesh(torusGeo,h.type==='water'?M.cyan:M.orange,h.x,.1,h.z,h.radius,h.radius,h.radius,world);ring.rotation.x=-Math.PI/2;ring.castShadow=false;}
-    for(const o of state.objectives){const g=group();g.position.set(o.x,0,o.z);const ring=mesh(torusGeo,M.yellow,0,.15,0,6,6,.4,g);ring.rotation.x=-Math.PI/2;ring.castShadow=false;
+      const ring=mesh(zoneRingGeo,h.type==='water'?M.cyan:M.orange,h.x,.1,h.z,h.radius,h.radius,1,world);ring.rotation.x=-Math.PI/2;ring.castShadow=false;}
+    for(const o of state.objectives){const g=group();g.position.set(o.x,0,o.z);const ring=mesh(zoneRingGeo,M.yellow,0,.15,0,6,6,1,g);ring.rotation.x=-Math.PI/2;ring.castShadow=false;
       const beam=mesh(cylGeo,objectiveMaterial,0,9,0,.3,18,.3,g);beam.castShadow=false;landmarks.set(o.id,g);}
     for(const c of state.pickups){const g=group();g.position.set(c.x,0,c.z);box(M.dark,0,.75,0,2.6,1.5,2,g);box(c.type==='repair'?M.cyan:c.type==='intel'?M.white:M.yellow,0,1.6,0,2.1,.2,1.7,g);
       const symbol=mesh(planeGeo,label(c.type==='repair'?'+ REPAIR':c.type==='intel'?'ARCHIVE':'CAPACITOR'),0,3,0,5,1.25,1,g);symbol.castShadow=false;g.userData.symbol=symbol;landmarks.set(c.id,g);}
@@ -390,7 +398,7 @@ export function createRenderer(canvas) {
         const a=new THREE.Vector3(dir.z,0,-dir.x);v.pivot.quaternion.setFromAxisAngle(a,Math.min(1,b.fallProgress||0)*Math.PI*.5);
         v.pivot.position.y=.08;
       }else v.pivot.quaternion.identity();
-      if(b.status==='standing'){
+      if(b.status==='standing'&&!b.indestructible){
         const d=Math.hypot(b.x-p.x,b.z-p.z);const aimdx=Math.sin(p.angle||0),aimdz=Math.cos(p.angle||0);
         const alignment=((b.x-p.x)*aimdx+(b.z-p.z)*aimdz)/Math.max(.01,d);
         if(d<23&&alignment>.93&&d<nearDist){nearest=b;nearDist=d;}

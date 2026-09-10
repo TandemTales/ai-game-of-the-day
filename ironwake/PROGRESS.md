@@ -154,3 +154,45 @@ shots. Tune authored encounters so maneuver, demolition timing and weapon theft
 matter beyond easy direct fire. Then expand districts/boss without replacing
 the core with farming. Keep all controls, recovery, collision and viewport gates.
 No AAA completion marker or shipping judge; main untouched. Forced dateSep19.
+
+## September 9 — The Coast Campaign
+
+Human feedback: the combat is good for a demo, but one small level lasting about
+a minute is inadequate. The first-playable-only plan above is superseded.
+
+Implemented five chapters and twenty objectives: Breakwater, The Drowned Ward,
+Glassline, Cinder Works, Sovereign. Maps span 200–270 units versus the demo's 72.
+Mara, Orla and Ivo's evacuation/rescue story runs through briefings, objective
+radio, optional archives, debriefs and a final ending. Explore without a mission
+deadline. Added booster dodge, hold-to-interact captures, uplink defense with
+three counterattacks, hunters, artillery telegraphs, ripped railgun, cooling water,
+furnace vents, repair/capacitor caches, between-chapter module choices, local
+checkpoints, persistent completed debriefs, tactical map/pause and campaign totals.
+The walking Sovereign has three damage phases and vulnerable cooling windows.
+
+Presentation: distinct ground/architecture/landmarks, desert armored train,
+full-length collapsed rubble, world-following shadows/camera, optional cache
+markers, flat hazard boundaries and a cyan silhouette behind occluding buildings.
+The campaign camera is wider than the demo and leads toward the mech's aim.
+
+Implementation checkpoint `3954fb6` pushed to dev. No main release.
+
+Verification: 359 tests / 15 suites pass; six responsive viewport checks pass.
+All five chapters complete in both deterministic input simulation and an actual
+keyboard/mouse browser run. Browser chapter times: 51.8 / 70.1 / 70.8 / 111.7 /
+86.6 seconds, with 191 / 281 / 199 / 236 / 235 armor remaining. The pilot reads
+state for planning, so this is completion evidence, not a human playtime claim.
+Fresh scene and ending fixtures separately validate train collision/presentation,
+upgrade saves, completed-debrief reload and full campaign totals. See TESTING.md
+for exact commands, screenshots, earlier failures and evidence boundaries.
+
+Notable fixes during play: extended weapon-rip reach around rubble; fixed static
+defender membership so luring a hunter away cannot clear an elimination mission;
+made the boss cooling window attack-free; widened the camera after two native
+harbor attempts suffered from poor visibility; prevented lethal environmental
+damage from being undone by same-frame repair/extraction.
+
+Next: human campaign feedback on pacing, exploration incentives, enemy variety
+and combat balance. The world and story now have a complete campaign arc. Further
+expansion should add authored encounters and decisions, rather than inflate timers.
+No AAA claim; physical-device performance and production leaderboard remain untested.

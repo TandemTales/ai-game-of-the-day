@@ -108,6 +108,7 @@
   }
   function damageBuilding(s, b, amount, dx, dz) {
     if (b.status !== 'standing') return;
+    if(b.indestructible){s.message='ARMORED TRAIN — USE THE LOCK CONTROLS';return;}
     b.hp = Math.max(0, b.hp - amount);
     effect(s, 'impact', b.x, b.z, .24);
     if (b.hp === 0) collapse(s, b, dx, dz);

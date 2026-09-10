@@ -67,6 +67,7 @@
     if(index===4)s.enemies.push(foe('sovereign','boss',0,-65));
     for(const o of s.objectives)o.targets=s.enemies.filter(e=>e.type!=='boss'&&dist(e,o)<29).map(e=>e.id);
     s.buildings=c.towers.map((a,i)=>({id:'tower-'+index+'-'+i,...point(a),w:4,d:4,h:a[2],hp:80,maxHp:80,status:'standing',fallX:0,fallZ:-1,fallProgress:0,hitIds:[]}));
+    if(index===2)for(let i=0;i<3;i++)s.buildings.push({id:'railcar-'+i,x:26+i*15,z:55,w:12,d:5,h:4,hp:1,maxHp:1,indestructible:true,kind:'train',status:'standing',fallX:0,fallZ:-1,fallProgress:0,hitIds:[]});
     // Cover clusters sit off the authored route; all visible buildings share collision.
     for(let i=0;i<22;i++){const x=-c.size+15+((i*43)%(c.size*2-30)),z=-c.size+12+((i*67)%(c.size*2-24));const p={x,z};
       if(dist(p,s.player)<12||s.objectives.some(o=>dist(p,o)<17)||s.enemies.some(e=>dist(e,p)<8)||s.buildings.some(b=>dist(b,p)<9)||c.caches.some(a=>dist(p,point(a))<9))continue;

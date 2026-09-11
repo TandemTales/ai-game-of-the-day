@@ -1,5 +1,16 @@
 # Ironwake — Progress
 
+## 2026-09-10 (Pacific) — nightly intent
+
+Tonight’s bounded polish pass will use the completed campaign as the baseline and
+target two player-facing gaps from the last handoff: make optional exploration
+pay off more clearly in the moment, and make enemy pressure vary by chapter
+without inflating the twenty-objective scope. I will preserve the campaign
+save/upgrade contract, rerun the deterministic and real-input gates, and inspect
+the affected mobile/desktop scenes. Independent AAA comparison and physical
+device/accessibility proof remain unavailable; no release or `main` change is
+planned.
+
 ## 2026-09-09 (Pacific) — nightly intent
 
 Tonight’s bounded polish pass follows the completed campaign expansion. I will

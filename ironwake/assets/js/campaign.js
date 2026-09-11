@@ -2,7 +2,7 @@
   'use strict';
   // Authored routes, encounters and radio scenes. Coordinates are world X/Z.
   const chapters = [
-    { title:'BREAKWATER', place:'01 / Occupied docklands', biome:'harbor', size:100, start:[-65,65],
+    { title:'BREAKWATER', place:'01 / Occupied docklands', biome:'harbor', size:100, start:[-65,65], pressure:{label:'BLOCKADE PRESSURE',hunterSpeed:4.8,artilleryRadius:6,artilleryFuse:1.6,artilleryDamage:24},
       briefing:'For twelve years, the Directorate has stripped our coast to feed a walking warship: the Sovereign. Tonight it wakes. You are Mara Venn, a dockworker in a stolen demolition mech. Your brother Ivo is still inside the machine. First, open a route for the evacuation ships.',
       outro:'The harbor guns fall silent. Hundreds escape aboard the night ferries. A transmission cuts through: Ivo is alive, and the Sovereign is moving inland. His signal leads through the drowned city.',
       stages:[
@@ -15,7 +15,7 @@
       towers:[[-65,57,20],[-51,52,16],[0,19,18],[55,-22,20],[70,-22,18]],
       caches:[[-85,5,'intel','A ferry manifest: 640 civilians. The Directorate marked every one as expendable.'],[-5,60,'repair'],[82,-5,'core'],[26,-70,'repair']],
       hazards:[] },
-    { title:'THE DROWNED WARD',place:'02 / Flooded residential district',biome:'flood',size:115,start:[-85,80],
+    { title:'THE DROWNED WARD',place:'02 / Flooded residential district',biome:'flood',size:115,start:[-85,80], pressure:{label:'HUNTER TIDE',hunterSpeed:6.1,artilleryRadius:5.6,artilleryFuse:1.45,artilleryDamage:22},
       briefing:'Flood sirens have been sounding for nine years. Below the broken towers, survivors still keep lights in their windows. Ivo has left a signal in three old pump stations. Restore the network and escort its data across the ward. Water cools your reactor, but slows the mech.',
       outro:'The pumps reveal a freight schedule: prisoners and reactor cores, bound for the Glassline. Ivo stayed aboard to sabotage the Sovereign. Orla finds a train crossing the salt desert before dawn.',
       stages:[['hold','Restore the western pump',-65,35,'ORLA / Stand inside the ring and hold INTERACT. The pumps cannot restart while hostiles are close.',8],['hold','Recover Ivo’s signal',30,10,'IVO / They are using the tide engines as weapons. Three power couplings feed the command deck. Break them, and the Sovereign can bleed.',9],['eliminate','Defeat the floodgate hunters',65,-55,'ORLA / Hunters incoming. They will rush you. BOOST out of their charge, then hit them while they recover.'],['reach','Reach the rail embankment',-25,-90,'MARA / We have his message. I am taking the high road out.']],
@@ -23,7 +23,7 @@
       towers:[[-72,54,19],[-43,29,14],[23,28,20],[57,-35,20],[78,-42,14]],
       caches:[[-95,-20,'intel','School shelter log: the children named their rescue boat Ironwake. Orla kept the name.'],[5,72,'core'],[90,30,'repair'],[-60,-55,'repair']],
       hazards:[[-25,0,28,'water'],[50,50,30,'water'],[25,-70,24,'water']] },
-    { title:'GLASSLINE',place:'03 / Salt desert rail works',biome:'desert',size:125,start:[-95,75],
+    { title:'GLASSLINE',place:'03 / Salt desert rail works',biome:'desert',size:125,start:[-95,75], pressure:{label:'LONG-GUN PRESSURE',hunterSpeed:5,artilleryRadius:7,artilleryFuse:1.75,artilleryDamage:27},
       briefing:'The Glassline runs across a sea of fused sand. Directorate artillery guards the switches. Seize the rail yard, free the prisoners, and steal the capacitor train. Red targeting circles warn of incoming shells. Keep moving; a booster burst can get you out of a blast.',
       outro:'The train carries the Sovereign’s last capacitor. You turn it toward the occupied reactor city instead. The prisoners call it a rescue. The Directorate calls it an invasion. For the first time, the army retreats.',
       stages:[['eliminate','Take the artillery ridge',-65,30,'ORLA / Artillery paints the ground before firing. Get out of the red circles. Its disabled chassis carries a railgun.'],['hold','Release the prisoner train',5,55,'MARA / Nobody stays in those cages. I am overriding the lock.',10],['eliminate','Capture the capacitor engine',65,-10,'ORLA / Armored column at the eastern siding. Drop the gantries onto them.'],['hold','Reverse the rail junction',20,-80,'IVO / Bring the capacitor to Cinder Works. We can overload the command shields from there.',10]],
@@ -31,7 +31,7 @@
       towers:[[-72,49,19],[-51,46,22],[55,12,24],[75,9,22],[13,-59,24]],
       caches:[[-90,-50,'intel','A prisoner recognizes Mara: “Your brother kept the furnace cold for three days. He said you would come.”'],[-12,90,'repair'],[92,55,'core'],[85,-80,'repair']],
       hazards:[[-10,-15,18,'fire'],[85,-40,15,'fire']] },
-    { title:'CINDER WORKS',place:'04 / Geothermal reactor city',biome:'reactor',size:125,start:[-90,85],
+    { title:'CINDER WORKS',place:'04 / Geothermal reactor city',biome:'reactor',size:125,start:[-90,85], pressure:{label:'REACTOR SURGE',hunterSpeed:5.5,artilleryRadius:6.5,artilleryFuse:1.45,artilleryDamage:26},
       briefing:'Three couplings tether the Sovereign’s shields to the city. Orla brings the stolen capacitor through the tunnels while you fight across the furnace district. Shut down the outer relays, survive the counterattack, and cut the final feed. Cooling pools offer relief from the heat; glowing vents will burn through armor.',
       outro:'The shield falls. The Sovereign tears its anchors from the city and begins walking toward the evacuation fleet. Ivo opens a maintenance channel directly to its engine. This is the last road.',
       stages:[['hold','Disconnect the west coupling',-65,30,'ORLA / Coolant pools help the reactor. Orange fissures do not. Watch your footing.',8],['hold','Disconnect the east coupling',65,20,'IVO / I can hear your guns. The command deck knows you are coming.',8],['defend','Hold the capacitor uplink',5,-25,'ORLA / The overload needs forty seconds. Stay within the uplink perimeter; I will call out the counterattacks.',40],['eliminate','Break the final power guard',55,-85,'MARA / No more shields. No more hiding.']],
@@ -39,7 +39,7 @@
       towers:[[-71,49,21],[55,38,21],[-10,-5,24],[45,-65,24],[75,-67,22]],
       caches:[[-95,-20,'intel','Directorate orders: abandon the workforce, preserve the weapon. Ivo has copied the order onto every public channel.'],[-5,70,'repair'],[95,65,'core'],[-55,-70,'repair']],
       hazards:[[-30,50,13,'fire'],[30,35,12,'fire'],[-25,-60,14,'fire'],[80,-35,16,'water']] },
-    { title:'SOVEREIGN',place:'05 / The walking fortress',biome:'fortress',size:135,start:[-90,90],
+    { title:'SOVEREIGN',place:'05 / The walking fortress',biome:'fortress',size:135,start:[-90,90], pressure:{label:'FORTRESS SCREEN',hunterSpeed:5.7,artilleryRadius:7,artilleryFuse:1.5,artilleryDamage:28},
       briefing:'The Sovereign is a city built to kill cities. Its escort walkers guard two shield pylons. Break the pylons, reach the engine basin, and bring the fortress down. Ivo is opening the blast doors from inside. Orla is keeping the rescue channel clear. This time, the city fights back.',
       outro:'The Sovereign kneels. Its furnace goes dark above the water. Ivo steps from a maintenance hatch onto your mech’s hand, laughing through the static. At dawn, the harbor lights come back on. Not for the Directorate. For everyone who came home.',
       stages:[['eliminate','Destroy the western shield guard',-65,40,'ORLA / Two batteries guard the approach. Take them one at a time. There is a repair cache between the lines.'],['eliminate','Destroy the eastern shield guard',65,25,'IVO / Both pylons are down. I am opening the engine doors. Come get me.'],['boss','Bring down the Sovereign',0,-65,'ORLA / Siege shells, then a cooling window. When its armor glows cyan, put everything into the core.'],['reach','Recover Ivo at the escape hatch',0,-108,'IVO / I see you. Hold out your hand, Mara.']],
@@ -53,18 +53,18 @@
   const copy=x=>JSON.parse(JSON.stringify(x));
   const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
   const point=a=>({x:a[0],z:a[1]});
-  function foe(id,type,x,z){const hp={tank:320,escort:125,hunter:180,artillery:150,boss:3000}[type];return{id,type,x,z,hp,maxHp:hp,alive:true,disabled:false,weaponTaken:false,escaped:false,cooldown:2.5,radius:type==='boss'?6:type==='tank'?1.8:1.3,angle:Math.PI,phase:0};}
+  function foe(id,type,x,z,pressure){const hp={tank:320,escort:125,hunter:180,artillery:150,boss:3000}[type],p=pressure||{};return{id,type,x,z,hp,maxHp:hp,alive:true,disabled:false,weaponTaken:false,escaped:false,cooldown:2.5,radius:type==='boss'?6:type==='tank'?1.8:1.3,angle:Math.PI,phase:0,hunterSpeed:p.hunterSpeed||4.8,artilleryRadius:p.artilleryRadius||6,artilleryFuse:p.artilleryFuse||1.6,artilleryDamage:p.artilleryDamage||24};}
   function stageFoes(s,stage){const o=s.objectives[stage];return s.enemies.filter(e=>e.alive&&o.targets.includes(e.id));}
   function makeChapter(index,upgrades,totals){
     index=Math.max(0,Math.min(chapters.length-1,index||0));const c=chapters[index],s=baseCreate(7);
-    s.campaign=true;s.chapter=index;s.biome=c.biome;s.bounds={minX:-c.size,maxX:c.size,minZ:-c.size,maxZ:c.size};
+    s.campaign=true;s.chapter=index;s.biome=c.biome;s.pressure=copy(c.pressure);s.bounds={minX:-c.size,maxX:c.size,minZ:-c.size,maxZ:c.size};
     s.upgrades=copy(upgrades||{armor:0,reactor:0,damage:0});s.totals=copy(totals||{score:0,kills:0,time:0,collapseKills:0,intel:[]});
     s.score=s.totals.score;s.timeLeft=0;s.stage=0;s.wave=0;s.hazards=c.hazards.map(a=>({...point(a),radius:a[2],type:a[3]}));s.strikes=[];
     Object.assign(s.player,point(c.start),{maxHp:240+s.upgrades.armor*50,hp:240+s.upgrades.armor*50,dashCooldown:0,dashing:0,invulnerable:0});
     s.objectives=c.stages.map((a,i)=>({type:a[0],title:a[1],x:a[2],z:a[3],radio:a[4],duration:a[5]||0,progress:0,done:false,id:'objective-'+i}));
     s.radio=s.objectives[0].radio;s.radioTime=14;s.message='FOLLOW THE GOLD BEACON • TAB / MISSION MAP';
-    s.enemies=[];c.squads.forEach((a,i)=>{for(let n=0;n<a[3];n++)s.enemies.push(foe('c'+index+'-s'+i+'-'+n,a[2],a[0]+(n%2)*7,a[1]-Math.floor(n/2)*7));});
-    if(index===4)s.enemies.push(foe('sovereign','boss',0,-65));
+    s.enemies=[];c.squads.forEach((a,i)=>{for(let n=0;n<a[3];n++)s.enemies.push(foe('c'+index+'-s'+i+'-'+n,a[2],a[0]+(n%2)*7,a[1]-Math.floor(n/2)*7,c.pressure));});
+    if(index===4)s.enemies.push(foe('sovereign','boss',0,-65,c.pressure));
     for(const o of s.objectives)o.targets=s.enemies.filter(e=>e.type!=='boss'&&dist(e,o)<29).map(e=>e.id);
     s.buildings=c.towers.map((a,i)=>({id:'tower-'+index+'-'+i,...point(a),w:4,d:4,h:a[2],hp:80,maxHp:80,status:'standing',fallX:0,fallZ:-1,fallProgress:0,hitIds:[]}));
     if(index===2)for(let i=0;i<3;i++)s.buildings.push({id:'railcar-'+i,x:26+i*15,z:55,w:12,d:5,h:4,hp:1,maxHp:1,indestructible:true,kind:'train',status:'standing',fallX:0,fallZ:-1,fallProgress:0,hitIds:[]});
@@ -98,9 +98,9 @@
         continue;
       }
       if(d>46)continue;
-      if(e.type==='hunter'&&d>5){const nx=e.x+Math.sin(e.angle)*dt*4.8,nz=e.z+Math.cos(e.angle)*dt*4.8;if(!s.buildings.some(b=>IW.inFootprint({x:nx,z:nz},b,e.radius,0))){e.x=nx;e.z=nz;}else{const side={x:e.x+Math.cos(e.angle)*dt*5,z:e.z-Math.sin(e.angle)*dt*5};if(!s.buildings.some(b=>IW.inFootprint(side,b,e.radius,0)))Object.assign(e,side);}}
+      if(e.type==='hunter'&&d>5){const speed=e.hunterSpeed||4.8,nx=e.x+Math.sin(e.angle)*dt*speed,nz=e.z+Math.cos(e.angle)*dt*speed;if(!s.buildings.some(b=>IW.inFootprint({x:nx,z:nz},b,e.radius,0))){e.x=nx;e.z=nz;}else{const side={x:e.x+Math.cos(e.angle)*dt*speed*1.04,z:e.z-Math.sin(e.angle)*dt*speed*1.04};if(!s.buildings.some(b=>IW.inFootprint(side,b,e.radius,0)))Object.assign(e,side);}}
       if(e.cooldown>0)continue;
-      if(e.type==='artillery'){blast(s,p.x,p.z,6,1.6,24);e.cooldown=4;}
+      if(e.type==='artillery'){blast(s,p.x,p.z,e.artilleryRadius||6,e.artilleryFuse||1.6,e.artilleryDamage||24);e.cooldown=4;}
       else if(e.type==='hunter'&&d<7){blast(s,p.x,p.z,3.8,.8,18);e.cooldown=2.5;}
       else if(e.type!=='hunter'&&d<34){IW.shoot(s,e.id,e.x,e.z,p.x-e.x,p.z-e.z,e.type==='tank'?14:9,e.type==='tank'?24:29,false);e.cooldown=e.type==='tank'?2.7:1.9;}
     }
@@ -128,9 +128,10 @@
     }else if(o.type==='defend'){
       s.objectiveDetail=Math.floor(o.progress)+' / '+o.duration+' sec • stay within 18 m';s.context=nearby<18?'UPLINK CONNECTED':'RETURN TO UPLINK';
       if(nearby<18)o.progress+=dt;
-      const wave=Math.min(3,1+Math.floor(o.progress/12));if(wave>s.wave){s.wave=wave;for(let i=0;i<3;i++)s.enemies.push(foe('wave-'+wave+'-'+i,i===0?'artillery':'hunter',o.x+(wave%2?1:-1)*(24+i*3),o.z-20+i*12));s.radio='ORLA / Counterattack '+wave+'. Keep the uplink in range.';s.radioTime=6;}
+      const wave=Math.min(3,1+Math.floor(o.progress/12));if(wave>s.wave){s.wave=wave;for(let i=0;i<3;i++)s.enemies.push(foe('wave-'+wave+'-'+i,i===0?'artillery':'hunter',o.x+(wave%2?1:-1)*(24+i*3),o.z-20+i*12,s.pressure));s.radio='ORLA / Counterattack '+wave+'. Keep the uplink in range.';s.radioTime=6;}
       o.done=o.progress>=o.duration;
     }
+    if(!s.context){const cache=s.pickups.filter(c=>!c.taken).sort((a,b)=>dist(a,p)-dist(b,p))[0];if(cache){const d=Math.hypot(cache.x-p.x,cache.z-p.z);if(d<16){const kind=cache.type==='intel'?'ARCHIVE SIGNAL':cache.type==='repair'?'REPAIR CACHE':'CAPACITOR CACHE';s.context=kind+' • '+Math.max(1,Math.ceil(d))+' m';}}}
     if(o.done){s.score+=1200;s.stage++;if(s.stage<s.objectives.length){s.radio=s.objectives[s.stage].radio;s.radioTime=14;s.message='OBJECTIVE COMPLETE • +1200';p.hp=Math.min(p.maxHp,p.hp+35);}
       else{s.status='won';s.score+=Math.round(p.hp*5)+1500;s.message='CHAPTER SECURED';p.venting=false;}}
   };

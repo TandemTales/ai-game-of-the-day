@@ -1,5 +1,35 @@
 # Ironwake — Progress
 
+## 2026-09-10 (Pacific) — exploration and pressure pass / handoff
+
+The campaign now carries five explicit pressure profiles: the Drowned Ward
+accelerates hunters, Glassline expands artillery danger, and the reactor and
+fortress chapters use their own tuned hunter/artillery signatures. Counterattack
+waves inherit the chapter profile. Nearby optional repair, capacitor and archive
+caches now announce their type and distance in the command deck before their
+automatic pickup, and chapter/final debriefs show the persistent archive count
+and remaining story signals. The campaign scope, saves, upgrades, controls and
+leaderboard flow are unchanged.
+
+Verification on pushed `dev` commit `9b8878e`: focused Ironwake campaign tests
+pass 17/17; full Jest passes 15 suites / 360 tests; changed JS passes
+`node --check`; `git diff --check` passes; deterministic legal simulation
+completes all five chapters; and elevated Chromium real-input campaign play
+completes all five chapters with no page errors. The six-size smoke passes at
+320x568, 390x844, 844x390, 768x1024, 1440x900 and 3840x2160 with collapse,
+keyboard/touch input, results/retry, rank-before-submit, map pause,
+upgrade/save reload, clean console, no external requests and no horizontal
+overflow. I opened representative mobile, landscape, desktop, map, ending and
+downsampled 4K PNGs. The first browser launch hit sandbox `spawn EPERM`; the
+approved elevated retry passed.
+
+No independent AAA critic or shipping judge was available, so the visual bar
+remains unclaimed and no `.aaa-complete`, Featured Game edit, release, or
+`main` promotion was made. Remaining debt is still authored material/VFX/audio
+depth, physical-device performance, accessibility, human pacing feedback and
+production leaderboard connectivity. Next run should use the new chapter
+pressure in human play feedback before considering further balance changes.
+
 ## 2026-09-10 (Pacific) — nightly intent
 
 Tonight’s bounded polish pass will use the completed campaign as the baseline and

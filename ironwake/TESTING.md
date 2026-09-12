@@ -1,5 +1,45 @@
 # Ironwake — testing
 
+## September 11 enemy identity and full campaign controls
+
+Final Jest: 363 tests / 15 suites PASS. `node ironwake/tools/enemy-identity.cjs`
+passes all six standard viewports. It freezes presentation fixtures and inspects
+actual scene geometry, source-specific strike poses, HP/salvage identity, stolen
+weapons, removed actors/rings, reused IDs, revival, rebuild, retry and disposal.
+It asserts simulation nonmutation and clean console/network behavior. This is
+presentation/lifecycle evidence, not natural gameplay. Latest report passed at
+2026-09-12T05:36:07.100Z in ignored node_modules/.cache/ironwake/enemy-identity.
+Use the same IW_VIEWPORTS/IW_SHOTS and browser-path overrides as smoke.
+
+After final renderer cleanup, all six smoke sizes and the complete visibility
+harness (54 fixtures plus42camera-plane steps) passed. Lead viewed all six smoke
+gameplay PNGs, phone artillery-action/320ripped fixtures and native fortress/ending
+captures. 4K was downsampled by the viewer. Evidence: sep11-identity-final-smoke
+and sep11-identity-final-visibility under the same ignored cache directory.
+
+Independent native two-thumb touch completed all five chapters: 65.79,80.36,
+83.05,125.50,71.81 seconds; 7m6s total,76kills/6crushes,340final armor,0/5archives.
+At most two contacts and no page errors. Actual keyboard/mouse also completed
+all five:52.48,68.54,69.27,116.63,97.90 seconds; no page errors. Both pilots read
+state to plan but use ordinary input and real clock, with no gameplay-state writes
+or time skipping. Pages loaded before final renderer fixes. A separate updated
+renderer touch opening won63.57s/180armor before the last cleanup/ring corrections;
+latest presentation fixtures cover those corrections. Results do not predict human
+playtime, exploration, unaided learning or enjoyment. No physical-device claim.
+
+Baseline deliberate opening: keyboard won51.69s/214armor; touch won65.60s/226armor.
+Naive stationary forward fire lost49.39s at objective0. This contrasts strategies,
+not an isolated balance experiment. Full campaign evidence: sep11-identity-keyboard
+and sep11-identity-critic/touch-campaign. Critic accepted the functional scope.
+
+AAA visual FAIL / OURS LOSES against official MechWarrior5 Kestrel Lancers.
+Fresh reference: https://mw5mercs.com/dlc/legend-of-the-kestrel-lancers and its
+megacity-biome-01.jpg image. Actual comparison PNGs and provenance are in
+sep11-identity-critic. A/B is identified, not blind; updated fixture versus promo
+is limited, supplemented by baseline actual gameplay. World detail, architecture,
+materials, destruction and atmosphere remain substantially below that reference.
+Audio/VFX quality and production leaderboard remain unjudged. Main unchanged.
+
 ## September 11 tactical visibility follow-up
 
 Run `node ironwake/tools/visibility.cjs` for focused browser presentation fixtures.

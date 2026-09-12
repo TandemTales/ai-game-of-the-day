@@ -446,3 +446,27 @@ nonmutation. Final six-size smoke and54visibility fixtures/42camera-plane steps
 also PASS after cleanup. Lead inspected all six final gameplay images (4K
 downsampled), phone artillery action/320ripped and the identified updated comparison.
 Functional presentation scope accepted independently; AAA visuals FAIL/OURS LOSES.
+
+Renderer checkpoint ace7772 pushed. Independent native two-thumb full campaign
+completed all five:65.79/80.36/83.05/125.50/71.81s;7m6s total,76kills/6crushes,
+340armor,0/5archives,maximum2contacts,no page errors. Root native keyboard/mouse
+also completed all five:52.48/68.54/69.27/116.63/97.90s,no errors. Both pages loaded
+before final presentation fixes. Separate updated-render touch opening won63.57s
+with180armor before final ring/removal fixes; final fixtures cover later changes.
+Lead inspected native fortress fights and the touch ending. These informed routes
+establish functional progression, not human duration, enjoyment or exploration.
+
+Baseline deliberate keyboard won51.69s/214armor; touch won65.60s/226armor. Naive
+stationary fire lost49.39s at objective0. No balance tuning from that comparison.
+Independent critic accepts functional scope and rejects AAA. Fresh official MW5
+megacity reference and actual side-by-side viewed; identified, not blind. Updated
+isolated fixture comparison is limited and supplemented by baseline campaign view.
+
+Next FIRST: human phone feedback on unaided threat recognition and choosing routes.
+The informed seven-minute campaign does not settle the original scale complaint;
+do not claim the human is satisfied. Richer authored exploration/encounters,
+architecture, materials, destruction and atmosphere remain debt. Improve concrete
+play decisions and world variety, not timers or repeated objectives. Audio/VFX and
+physical devices remain unjudged. No completion marker or shipping judge invoked.
+This bounded pass ends on dev; main unchanged. Friday age4, forced release remains
+September19. Automation prompt/schedule hash unchanged. Exact checks: TESTING.md.

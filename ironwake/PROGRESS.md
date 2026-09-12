@@ -360,3 +360,10 @@ escorts identify their heavy gun. Combat behavior is unchanged. Baseline full
 all five chapters (53.2/69.2/68.2/105.0/72.5 game seconds). This establishes
 solvability for that informed route, not human pacing or enjoyment.
 
+Visibility checkpoint: fixed-pixel nearby threat names/health and disabled weapon
+identity remain readable through buildings. Gold active-objective guidance
+includes distance and offscreen direction. Marker placement avoids the cockpit,
+HUD and controls; priority preserves active threats among disabled wrecks.
+Field manual explains the signals. Initial six-size smoke and 36 visibility
+fixtures pass; full Jest remains 360/15. Final crowding/transition regression
+and independent criticism are still in progress. No AAA or human fun claim.

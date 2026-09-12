@@ -46,6 +46,11 @@ for elimination objectives is fixed at deployment; luring an enemy away cannot
 complete an objective. Campaign update runs through the same combat simulation.
 
 `render.js` is a Three.js projection of simulation state; it never mutates gameplay.
+Screen-space tactical tags identify nearby threats (48 m) and disabled weapons
+(28 m); an active objective has distance and offscreen direction. One weapon
+in rip range and current mission defenders receive display priority. OBSCURED
+means the camera view is blocked, not that a shot is blocked. Tags avoid the HUD,
+controls and mech, and pass input through to the battlefield.
 World geometry rebuilds when the buildings array changes and releases prior mission
 resources. Rendering follows the player across large maps. Camera and shadow targets
 follow together. Terrain, landmarks, architecture, hazards and fortress vary by chapter.

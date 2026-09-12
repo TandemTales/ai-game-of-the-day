@@ -362,6 +362,127 @@ export function createRenderer(canvas) {
   function resize(){const r=canvas.getBoundingClientRect();width=Math.max(1,r.width);height=Math.max(1,r.height);renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();}
   function pick(clientX,clientY){const r=canvas.getBoundingClientRect();pointer.set((clientX-r.left)/r.width*2-1,-((clientY-r.top)/r.height)*2+1);ray.setFromCamera(pointer,camera);return ray.ray.intersectPlane(ground,pickPoint)?{x:pickPoint.x,z:pickPoint.z}:null;}
   function project(x,z){if(typeof x==='object'){z=x.z;x=x.x;}const v=new THREE.Vector3(x,0,z).project(camera);const r=canvas.getBoundingClientRect();return{x:r.left+(v.x+1)*r.width/2,y:r.top+(1-v.y)*r.height/2};}
+  // Tactical information lives in CSS pixels, so a tower cannot hide a threat's
+  // identity and portrait cameras do not reduce weapon names to unreadable specks.
+  // Insert before the command deck: panels/controls keep their existing stacking.
+  const tactical=document.createElement('div');tactical.dataset.iwTacticalLayer='';
+  tactical.setAttribute('aria-hidden','true');
+  tactical.style.cssText='position:absolute;inset:0;overflow:hidden;pointer-events:none;';
+  canvas.after(tactical);
+  const markerNodes=new Map(),hudNodes=['header','#hud','#orders','#radar','#radio','#controls'].map(s=>canvas.parentElement.querySelector(s)).filter(Boolean);
+  const mapPanel=canvas.parentElement.querySelector('#mapPanel');
+  let hudRects=[],hudReadAt=-Infinity;
+  const markerPoint=new THREE.Vector3(),sight=new THREE.Ray(),sightBox=new THREE.Box3(),sightHit=new THREE.Vector3();
+  const overlap=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
+  function tacticalProjection(x,y,z){
+    markerPoint.set(x,y,z).applyMatrix4(camera.matrixWorldInverse);
+    // Camera-space depth distinguishes behind-camera targets from distant
+    // targets beyond the far clip plane. Clamp the divisor at the camera plane
+    // so a waypoint can never acquire NaN/Infinity CSS coordinates.
+    const behind=markerPoint.z>=0,depth=Math.max(.001,Math.abs(markerPoint.z));
+    return{x:(markerPoint.x*camera.projectionMatrix.elements[0]/depth+1)*width/2,y:(1-markerPoint.y*camera.projectionMatrix.elements[5]/depth)*height/2,behind};
+  }
+  function hiddenByTower(state,x,y,z){
+    markerPoint.set(x,y,z);const distance=camera.position.distanceTo(markerPoint);
+    sight.set(camera.position,markerPoint.sub(camera.position).normalize());
+    return state.buildings.some(b=>{
+      if(b.status!=='standing')return false;
+      sightBox.min.set(b.x-b.w/2,0,b.z-b.d/2);sightBox.max.set(b.x+b.w/2,b.h,b.z+b.d/2);
+      return sight.intersectBox(sightBox,sightHit)&&camera.position.distanceTo(sightHit)<distance-.5;
+    });
+  }
+  function drawTactical(state){
+    tactical.hidden=state.status!=='playing'||!!(mapPanel&&!mapPanel.hidden);
+    if(tactical.hidden)return;
+    const now=performance.now(),canvasRect=canvas.getBoundingClientRect();
+    // One batched layout read; never one HUD query per target.
+    if(now-hudReadAt>150){
+      hudReadAt=now;hudRects=[];
+      for(const el of hudNodes){
+        if(el.hidden||(!el.textContent.trim()&&el.id==='radio'))continue;
+        const r=el.getBoundingClientRect();if(r.width&&r.height)hudRects.push({x:r.left-canvasRect.left-5,y:r.top-canvasRect.top-5,w:r.width+10,h:r.height+10});
+      }
+    }
+    const p=state.player,mech=tacticalProjection(p.x,2,p.z),narrow=width<600||height<500,labelW=narrow?110:132,labelH=39;
+    const reserved=[...hudRects,{x:mech.x-24,y:mech.y-38,w:48,h:70}],used=new Set();
+    const active=state.campaign&&state.objectives[state.stage];
+    const candidates=[];
+    if(active&&!active.done)candidates.push({entity:active,kind:'objective',distance:Math.hypot(active.x-p.x,active.z-p.z)});
+    const nearby=state.enemies.filter(e=>!e.escaped&&(e.alive||(e.disabled&&!e.weaponTaken))).map(e=>({entity:e,kind:e.disabled?'salvage':'threat',distance:Math.hypot(e.x-p.x,e.z-p.z)})).filter(c=>c.distance<=(c.kind==='salvage'?28:48));
+    nearby.sort((a,b)=>a.distance-b.distance);
+    const salvage=nearby.filter(c=>c.kind==='salvage'),threats=nearby.filter(c=>c.kind==='threat');
+    threats.sort((a,b)=>Number(!!active?.targets?.includes(b.entity.id))-Number(!!active?.targets?.includes(a.entity.id))||a.distance-b.distance);
+    const readySalvage=salvage.find(c=>c.distance<=(state.campaign?7:4.5));
+    // One immediately usable weapon may lead; old wrecks can never consume all
+    // the threat slots. Mission defenders take priority over unrelated patrols.
+    const prioritized=[...(readySalvage?[readySalvage]:[]),...threats,...salvage.filter(c=>c!==readySalvage)];
+    candidates.push(...prioritized.slice(0,narrow?4:6));
+    for(const c of candidates){
+      const e=c.entity,isObjective=c.kind==='objective',key=(isObjective?'objective:':'enemy:')+e.id;
+      const anchor=tacticalProjection(e.x,isObjective?.4:e.type==='boss'?12:2,e.z);
+      const offscreen=anchor.behind||anchor.x<12||anchor.x>width-12||anchor.y<12||anchor.y>height-12;
+      const occluded=hiddenByTower(state,e.x,isObjective?.4:2,e.z);
+      // Objective gets first choice of free space; other labels are sorted by
+      // proximity. Tethers preserve exact location when labels must move aside.
+      const clampX=x=>Math.max(8,Math.min(width-labelW-8,x)),clampY=y=>Math.max(48,Math.min(height-labelH-12,y));
+      const start={x:clampX(anchor.x-labelW/2),y:clampY(anchor.y-labelH-12)};
+      const placements=[start];
+      for(const dy of [0,-46,46,-92,92,-138,138])for(const dx of [-labelW-8,labelW+8,0])placements.push({x:clampX(start.x+dx),y:clampY(start.y+dy)});
+      let place=placements.find(q=>!reserved.some(r=>overlap({...q,w:labelW,h:labelH},r)));
+      if(!place&&(isObjective||c.kind==='threat')){
+        let best=Infinity;
+        // Search panel/label boundaries instead of every screen pixel. This
+        // also finds space above bottom controls for threats behind the camera.
+        const xs=new Set([8,width-labelW-8,start.x]),ys=new Set([48,height-labelH-12,start.y]);
+        for(const r of reserved){xs.add(clampX(r.x-labelW-6));xs.add(clampX(r.x+r.w+6));ys.add(clampY(r.y-labelH-6));ys.add(clampY(r.y+r.h+6));}
+        for(const y of ys)for(const x of xs){
+          const d=(x-start.x)**2+(y-start.y)**2;
+          if(d<best&&!reserved.some(r=>overlap({x,y,w:labelW,h:labelH},r))){place={x,y};best=d;}
+        }
+      }
+      if(!place)continue;
+      const markerBox={...place,w:labelW+4,h:labelH+4};
+      used.add(key);reserved.push(markerBox);
+      let node=markerNodes.get(key);
+      if(!node){
+        const el=document.createElement('div'),name=document.createElement('b'),detail=document.createElement('div'),bar=document.createElement('div'),link=document.createElement('div');
+        el.dataset.iwMarker=isObjective?'objective':'enemy';el.dataset.id=e.id;
+        el.style.cssText='position:absolute;padding:4px 6px;background:#06121eef;border-left:2px solid;box-shadow:0 1px 5px #0008;font:700 11px/14px Arial,sans-serif;white-space:nowrap;';
+        name.style.cssText='display:block;overflow:hidden;text-overflow:ellipsis;font-size:11px;';
+        detail.style.cssText='font-size:10px;font-weight:400;line-height:13px;';
+        bar.style.cssText='position:absolute;bottom:0;left:0;height:2px;background:currentColor;';
+        link.style.cssText='position:absolute;height:1px;transform-origin:0 50%;opacity:.8;';
+        el.append(name,detail,bar);tactical.append(link,el);node={el,name,detail,bar,link};markerNodes.set(key,node);
+      }
+      const color=isObjective?'#ffd58a':c.kind==='salvage'?'#7df1df':'#ffab98';
+      const distance=Math.ceil(c.distance),ripReach=state.campaign?7:4.5;
+      const name=isObjective?'OBJECTIVE '+(state.stage+1):c.kind==='salvage'?(e.type==='artillery'?'RAILGUN':'HEAVY GUN'):({tank:'TANK',escort:'ESCORT',hunter:'HUNTER',artillery:'ARTILLERY',boss:'SOVEREIGN'}[e.type]||'HOSTILE');
+      let detail=isObjective?distance+' m':c.kind==='salvage'?(c.distance<=ripReach?'RIP':'SALVAGE')+' · '+distance+' m':(occluded?'OBSCURED · ':'')+distance+' m';
+      if(offscreen){const angle=Math.atan2(anchor.y-height/2,anchor.x-width/2),arrows=['→','↘','↓','↙','←','↖','↑','↗'];detail=arrows[(Math.round(angle/(Math.PI/4))+8)%8]+' '+detail;}
+      if(node.name.textContent!==name)node.name.textContent=name;if(node.detail.textContent!==detail)node.detail.textContent=detail;
+      node.el.hidden=false;Object.assign(node.el.dataset,{kind:c.kind,occluded:String(!!occluded),offscreen:String(offscreen),distance:String(distance)});
+      node.el.title=isObjective?e.title:name;node.el.style.color=color;node.el.style.width=labelW+'px';node.el.style.height=labelH+'px';node.el.style.transform=`translate(${Math.round(place.x)}px,${Math.round(place.y)}px)`;
+      node.bar.hidden=c.kind!=='threat';node.bar.style.width=(Math.max(0,Math.min(1,e.hp/e.maxHp))*100)+'%';
+      // Do not draw a line through the cockpit or a panel; edge arrows still
+      // communicate direction when the true anchor is outside the battlefield.
+      const from={x:place.x+labelW/2,y:place.y+labelH},lineX=anchor.x-from.x,lineY=anchor.y-from.y;
+      const crossesRect=r=>{
+        let low=0,high=1;
+        for(const [origin,delta,min,max]of [[from.x,lineX,r.x-2,r.x+r.w+2],[from.y,lineY,r.y-2,r.y+r.h+2]]){
+          if(Math.abs(delta)<.001){if(origin<min||origin>max)return false;continue;}
+          const a=(min-origin)/delta,b=(max-origin)/delta;low=Math.max(low,Math.min(a,b));high=Math.min(high,Math.max(a,b));if(low>high)return false;
+        }
+        return high>=0&&low<=1;
+      };
+      node.link.hidden=offscreen||reserved.slice(0,hudRects.length+1).some(crossesRect);
+      node.box=markerBox;node.crossesRect=crossesRect;
+      node.link.style.background=color;node.link.style.width=Math.hypot(lineX,lineY)+'px';node.link.style.transform=`translate(${from.x}px,${from.y}px) rotate(${Math.atan2(lineY,lineX)}rad)`;
+    }
+    for(const [key,node]of markerNodes){
+      if(!used.has(key)){node.el.remove();node.link.remove();markerNodes.delete(key);}
+      else if(reserved.some(r=>r!==node.box&&node.crossesRect(r)))node.link.hidden=true;
+    }
+  }
   function render(state,dt=.016){
     if(!width||canvas.clientWidth!==width||canvas.clientHeight!==height)resize();
     if(worldState!==state.buildings){worldState=state.buildings;resetWorld(state);initialized=false;}
@@ -424,7 +545,7 @@ export function createRenderer(canvas) {
       const isMech=e.type==='escort'||e.type==='hunter';
       let v=enemies.get(e.id);if(!v){v=e.type==='boss'?makeFortress():isMech?makeMech(true):makeTank();if(e.type==='artillery')v.turret.scale.set(1.4,1.5,2);addMarker(v,e);enemies.set(e.id,v);}
       v.g.position.set(e.x,0,e.z);v.g.visible=!e.escaped&&Math.hypot(e.x-p.x,e.z-p.z)<95;
-      v.marker.position.set(e.x,e.type==='boss'?17:e.type==='tank'?2.9:4.1,e.z);v.marker.quaternion.copy(camera.quaternion);v.marker.visible=v.g.visible&&(e.alive||(e.disabled&&!e.weaponTaken));v.markerLabel.material=e.disabled?ripLabel:labels[e.type]||(e.type==='tank'?hostileLabel:escortLabel);v.hpBar.scale.x=1.9*Math.max(0,e.hp/e.maxHp);v.hpBar.position.x=-(1-e.hp/e.maxHp)*.95;
+      v.marker.position.set(e.x,e.type==='boss'?17:e.type==='tank'?2.9:4.1,e.z);v.marker.quaternion.copy(camera.quaternion);v.marker.visible=false;v.markerLabel.material=e.disabled?ripLabel:labels[e.type]||(e.type==='tank'?hostileLabel:escortLabel);v.hpBar.scale.x=1.9*Math.max(0,e.hp/e.maxHp);v.hpBar.position.x=-(1-e.hp/e.maxHp)*.95;
       if(isMech){
         v.torso.rotation.y=e.angle||0;v.g.rotation.z=e.disabled?.25:0;
         v.torso.position.y=e.disabled?1.7:2.1;v.cannon.visible=!e.weaponTaken;
@@ -461,8 +582,10 @@ export function createRenderer(canvas) {
       for(const[id,v]of strikeMeshes)if(!active.has(id)){scene.remove(v);strikeMeshes.delete(id);}
     }
     renderer.render(scene,camera);
+    // render() has updated matrixWorld, including the current camera pose.
+    drawTactical(state);
   }
-  function dispose(){renderer.dispose();for(const x of geometries)x.dispose();for(const x of materials)x.dispose();for(const x of textures)x.dispose();buildings.clear();enemies.clear();shots.clear();effects.clear();}
+  function dispose(){tactical.remove();markerNodes.clear();renderer.dispose();for(const x of geometries)x.dispose();for(const x of materials)x.dispose();for(const x of textures)x.dispose();buildings.clear();enemies.clear();shots.clear();effects.clear();}
   resize();
   return{render,resize,pick,project,dispose};
 }

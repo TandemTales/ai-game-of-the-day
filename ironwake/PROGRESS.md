@@ -411,3 +411,14 @@ node_modules/.cache/ironwake/sep11-visibility/report.json. Earlier incomplete
 runs are superseded. Lead inspected final crowded320, offscreen320, occluded390
 and salvage844 images in addition to all-six smoke images and critic evidence.
 Commands and exact evidence limits are in TESTING.md. No further work started.
+
+## September 11 — bounded enemy-readability pass (22:24 Pacific)
+
+Manual rerun; schedule unchanged. STOP absent. Friday September11, age4:
+no forced release and no main changes. Baseline dev clean and current.
+Intended focus: distinguish hunters/artillery/tanks by chassis and communicate
+attack roles without adding more tactical-card clutter. Before standalone art,
+independent normal-input gameplay criticism checks deliberate versus naive play
+and native touch campaign coverage. Builders own one file each; only lead runs Git.
+Focused render regressions and six viewport smoke will gate working checkpoints.
+AAA comparison remains mandatory and failure will be recorded without release.

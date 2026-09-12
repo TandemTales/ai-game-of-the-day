@@ -85,8 +85,8 @@ Only the lead runs Git. Work stays on dev; no main release or AAA completion cla
 
 | Role | Single owned file |
 | --- | --- |
-| Tactical visibility builder | assets/js/render.js |
-| Visibility regression builder | tools/visibility.cjs |
+| Enemy identity builder | assets/js/render.js |
+| Enemy identity regression builder | tools/enemy-identity.cjs |
 | Independent gameplay/visibility critic | Read-only; no game files |
 | Lead integration | All other files, documentation and Git |
 

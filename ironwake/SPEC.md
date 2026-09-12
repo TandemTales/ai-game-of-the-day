@@ -55,6 +55,14 @@ World geometry rebuilds when the buildings array changes and releases prior miss
 resources. Rendering follows the player across large maps. Camera and shadow targets
 follow together. Terrain, landmarks, architecture, hazards and fortress vary by chapter.
 
+Hunters use a low reverse-joint chassis with paired ground hammers; artillery uses
+a braced base and elevated split rails; tanks retain tracks. Pending strikes carry
+their actual sourceId. Hunter hammer motion and artillery recoil follow that
+strike while its attacker lives; an already fired strike remains dangerous after
+the attacker dies. Weapon theft removes the escort cannon or artillery rails.
+Actor removal, reused IDs, world replacement and revival reset presentation;
+ground rings follow their actor and are removed with it.
+
 `main.js`, index.html and game.css own controls, HUD, briefings, map, saves, upgrade
 selection, audio and explicit leaderboard submission. Touch has simultaneous MOVE,
 FIRE, PUNCH, RIP, VENT, BOOST and INTERACT. Keyboard uses WASD/arrows, mouse,

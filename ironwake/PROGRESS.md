@@ -431,3 +431,18 @@ baseline360tests passed before delegation. Artillery weapon theft also identifie
 a renderer defect: barrel remains attached; renderer builder correcting it.
 
 Source/weapon-removal checkpoint: full363tests/15suites passed; no balance changes.
+
+Enemy presentation checkpoint: hunters have a low reverse-joint stance and paired
+ground hammers; artillery has a braced base and elevated split rails; tanks keep
+tracks. Hammer motion and rail recoil follow an actual source-tagged pending
+strike. Disabled artillery loses its weapon after theft. Tags clear taller models.
+Regression review found stale chassis after entity removal and orphan ground rings;
+both now clean up with their owners, and rings follow actor positions. Reused IDs
+and revived wreck poses reset correctly. No combat balance changes.
+
+Final full363tests/15suites PASS. New enemy-identity harness passes all six sizes,
+including source-specific cues, theft, cleanup, replacement, disposal and simulation
+nonmutation. Final six-size smoke and54visibility fixtures/42camera-plane steps
+also PASS after cleanup. Lead inspected all six final gameplay images (4K
+downsampled), phone artillery action/320ripped and the identified updated comparison.
+Functional presentation scope accepted independently; AAA visuals FAIL/OURS LOSES.

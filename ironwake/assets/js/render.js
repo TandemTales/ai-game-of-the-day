@@ -160,15 +160,17 @@ export function createRenderer(canvas) {
     return {g,torso,legs,cannon,muzzle,core,ring,fist};
   }
   const player=makeMech();
+  player.ring.name='player-ring';
   const silhouetteMaterial=new THREE.MeshBasicMaterial({color:'#65ffe7',transparent:true,opacity:.38,depthTest:false,depthWrite:false});materials.push(silhouetteMaterial);
   const silhouette=player.g.clone(true),playerParts=[],ghostParts=[];player.g.traverse(v=>playerParts.push(v));silhouette.traverse(v=>{ghostParts.push(v);if(v.isMesh){v.material=silhouetteMaterial;v.renderOrder=25;v.castShadow=false;v.receiveShadow=false;}});scene.add(silhouette);
   const steam=group(player.g);
   for(let i=0;i<5;i++)mesh(sphereGeo,M.smoke,0,0,0,.4,.4,.4,steam);
   function makeTank(){
     const g=group();
+    const tracks=group(g);tracks.name='tank-tracks';
     for(const side of [-1,1]){
-      box(M.black,0,.44,side*.85,2.8,.7,.5,g);
-      for(let j=-1;j<=1;j+=.4)box(M.steel,j,.48,side*1.11,.14,.47,.05,g);
+      box(M.black,0,.44,side*.85,2.8,.7,.5,tracks);
+      for(let j=-1;j<=1;j+=.4)box(M.steel,j,.48,side*1.11,.14,.47,.05,tracks);
       box(M.orangeLight,side*1.04,.78,0,.12,.12,.9,g);
     }
     box(M.enemy,0,.82,0,2.5,.65,1.72,g);box(M.steel,0,1.06,0,2.28,.13,1.51,g);box(M.rust,0,.72,-.9,1.15,.16,.08,g);
@@ -177,6 +179,62 @@ export function createRenderer(canvas) {
     box(M.red,0,1.27,.64,.55,.12,.05,turret);box(M.yellow,0,1.69,-.54,.7,.08,.08,turret);
     box(M.black,-.36,1.93,-.28,.035,1.1,.035,turret);
     return{g,turret};
+  }
+  function makeHunter(){
+    const g=group(),legs=[],legFrame=group(g);legFrame.name='hunter-legs';
+    // A low, forward stalk and two ground hammers distinguish the close-range unit.
+    for(const side of [-1,1]){
+      const leg=group(legFrame);leg.position.x=side*.61;legs.push(leg);
+      box(M.black,0,.18,.08,.48,.34,1.12,leg);
+      const shin=box(M.steel,0,.6,-.16,.22,.9,.24,leg);shin.rotation.x=-.5;
+      pipe(M.black,0,1.02,-.4,.23,.56,'x',leg);
+      const thigh=box(M.enemy,0,1.28,-.2,.42,.68,.43,leg);thigh.rotation.x=.6;
+      box(M.orangeLight,side*.23,.52,.16,.06,.56,.14,leg);
+    }
+    const torso=group(g);torso.position.y=1.7;
+    const armor=box(M.enemy,0,.08,0,.98,.67,.76,torso);armor.rotation.x=.24;
+    box(M.black,0,.22,.39,.8,.3,.24,torso);box(M.red,0,.24,.53,.6,.09,.04,torso);
+    for(const side of [-1,1]){
+      const fin=box(M.steel,side*.42,.51,-.3,.15,.8,.48,torso);fin.rotation.x=-.35;
+      pipe(M.black,side*.35,.12,-.46,.14,.64,'y',torso);
+    }
+    const arms=group(torso);arms.name='hunter-arms';
+    for(const side of [-1,1]){
+      pipe(M.black,side*.64,.06,.02,.2,.32,'x',arms);
+      const arm=box(M.enemy,side*.92,-.20,.13,.34,.78,.45,arms);arm.rotation.x=-.22;
+      pipe(M.steel,side*.92,-.50,.25,.11,.65,'y',arms);
+      box(M.steelLight,side*.92,-.85,.25,.43,.33,.50,arms);
+      box(M.orangeLight,side*.92,-.97,.25,.43,.09,.50,arms);
+    }
+    return{g,torso,legs,arms};
+  }
+  function makeArtillery(){
+    const g=group(),braces=group(g);braces.name='artillery-braces';
+    box(M.black,0,.31,0,1.6,.48,1.65,g);box(M.steel,0,.59,0,1.25,.26,1.35,g);
+    for(const side of [-1,1])for(const front of [-1,1]){
+      const brace=box(M.enemy,side*.58,.31,front*.49,.22,.28,.78,braces);brace.rotation.y=side*front*.63;
+      box(M.black,side*.84,.13,front*.60,.32,.22,.42,braces);
+      pipe(M.steel,side*.59,.43,front*.43,.08,.42,'y',braces);
+    }
+    pipe(M.black,0,.91,0,.61,.65,'y',g);pipe(M.steel,0,1.15,0,.57,.16,'y',g);
+    const turret=group(g),weapon=group(turret);weapon.name='weapon';
+    box(M.enemy,0,1.45,-.06,1.03,.56,.9,turret);
+    for(const side of [-1,1]){
+      box(M.dark,side*.58,1.52,-.25,.32,.74,.7,turret);
+      for(let i=0;i<3;i++)box(M.yellow,side*.755,1.32+i*.2,-.24,.025,.09,.5,turret);
+    }
+    // The steep split barrel reads as indirect fire and stays within the base footprint.
+    weapon.position.set(0,1.65,.03);weapon.rotation.x=-1.03;
+    const rails=group(weapon);rails.name='artillery-rails';
+    for(const side of [-1,1]){
+      box(M.steel,side*.28,0,.7,.19,.3,2.32,rails);
+      box(M.dark,side*.28,.02,.67,.11,.12,2.4,rails);
+      box(M.orangeLight,side*.28,.18,.65,.09,.05,1.95,rails);
+    }
+    box(M.black,0,-.04,-.36,.85,.53,.62,weapon);
+    box(M.steel,0,-.14,1.7,.78,.13,.19,rails);
+    box(M.red,0,.19,-.1,.22,.05,.25,weapon);
+    return{g,turret,weapon,rails,braces};
   }
   function makeFortress(){
     const g=group(),turret=group(g),legs=[];
@@ -318,7 +376,7 @@ export function createRenderer(canvas) {
   const assetBase={materials:materials.length,textures:textures.length,geometries:geometries.length};
   let worldState=null;
   function resetWorld(state){
-    for(const map of [buildings,enemies,shots,effects,landmarks,strikeMeshes]){for(const v of map.values()){scene.remove(v.root||v.g||v);if(v.marker)scene.remove(v.marker);}map.clear();}
+    for(const map of [buildings,enemies,shots,effects,landmarks,strikeMeshes]){for(const v of map.values()){scene.remove(v.root||v.g||v);if(v.marker)scene.remove(v.marker);if(v.ring)scene.remove(v.ring);}map.clear();}
     world.clear();
     for(const m of materials.splice(assetBase.materials))m.dispose();for(const t of textures.splice(assetBase.textures))t.dispose();for(const g of geometries.splice(assetBase.geometries))g.dispose();
     legacyWorld.visible=!state.campaign;if(!state.campaign)return;
@@ -419,7 +477,8 @@ export function createRenderer(canvas) {
     candidates.push(...prioritized.slice(0,narrow?4:6));
     for(const c of candidates){
       const e=c.entity,isObjective=c.kind==='objective',key=(isObjective?'objective:':'enemy:')+e.id;
-      const anchor=tacticalProjection(e.x,isObjective?.4:e.type==='boss'?12:2,e.z);
+      // Keep the tag above the role's silhouette, especially the elevated long gun.
+      const anchor=tacticalProjection(e.x,isObjective?.4:({boss:12,artillery:3.8,escort:3.6,hunter:2.9,tank:2.5}[e.type]||2),e.z);
       const offscreen=anchor.behind||anchor.x<12||anchor.x>width-12||anchor.y<12||anchor.y>height-12;
       const occluded=hiddenByTower(state,e.x,isObjective?.4:2,e.z);
       // Objective gets first choice of free space; other labels are sorted by
@@ -497,6 +556,7 @@ export function createRenderer(canvas) {
     player.muzzle.visible=(p.fireCooldown||0)>(p.weapon==='heavy'?.1:.22);player.muzzle.scale.setScalar(.2+((t*197)%1)*.3);
     player.core.material=p.overheated?M.red:M.cyan;
     player.ring.visible=state.status!=='ready';
+    player.ring.position.set(p.x,.05,p.z);
     steam.visible=!!p.venting||p.overheated;steam.children.forEach((v,i)=>{const phase=(t*1.2+i*.2)%1;v.position.set(Math.sin(i*2.4)*phase*.7,2.5+phase*2,-.4);v.scale.setScalar(.12+phase*.65);});
     // Fixed world north makes WASD and the touch stick predictable.
     const camDistance=state.campaign?(camera.aspect<.75?54:44):(camera.aspect<.75?32:34);
@@ -541,24 +601,45 @@ export function createRenderer(canvas) {
       towerGuideBillboard.visible=guide.status==='standing';fallGuideBillboard.visible=guide.status==='falling';
     }
     aim.position.set(p.x+Math.sin(p.angle||0)*8,.06,p.z+Math.cos(p.angle||0)*8);
+    const enemyIds=new Set(state.enemies.map(e=>e.id));
+    for(const[id,v]of enemies)if(!enemyIds.has(id)){scene.remove(v.g,v.marker);if(v.ring)scene.remove(v.ring);enemies.delete(id);}
     for(const e of state.enemies){
-      const isMech=e.type==='escort'||e.type==='hunter';
-      let v=enemies.get(e.id);if(!v){v=e.type==='boss'?makeFortress():isMech?makeMech(true):makeTank();if(e.type==='artillery')v.turret.scale.set(1.4,1.5,2);addMarker(v,e);enemies.set(e.id,v);}
+      let v=enemies.get(e.id);
+      if(v&&v.g.userData.enemyType!==e.type){scene.remove(v.g,v.marker);if(v.ring)scene.remove(v.ring);enemies.delete(e.id);v=null;}
+      if(!v){
+        v=e.type==='boss'?makeFortress():e.type==='hunter'?makeHunter():e.type==='escort'?makeMech(true):e.type==='artillery'?makeArtillery():makeTank();
+        v.g.name='enemy:'+e.id;v.g.userData.enemyType=e.type;if(v.cannon)v.cannon.name='weapon';if(v.ring)v.ring.name='enemy-ring:'+e.id;addMarker(v,e);enemies.set(e.id,v);
+      }
       v.g.position.set(e.x,0,e.z);v.g.visible=!e.escaped&&Math.hypot(e.x-p.x,e.z-p.z)<95;
+      v.g.rotation.set(0,0,0);
       v.marker.position.set(e.x,e.type==='boss'?17:e.type==='tank'?2.9:4.1,e.z);v.marker.quaternion.copy(camera.quaternion);v.marker.visible=false;v.markerLabel.material=e.disabled?ripLabel:labels[e.type]||(e.type==='tank'?hostileLabel:escortLabel);v.hpBar.scale.x=1.9*Math.max(0,e.hp/e.maxHp);v.hpBar.position.x=-(1-e.hp/e.maxHp)*.95;
-      if(isMech){
+      // Animate an attack only while its actual source-tagged strike exists. An idle
+      // cooldown is not a windup, and shells remain dangerous after the gun is destroyed.
+      const strike=e.alive&&(state.strikes||[]).find(s=>s.sourceId===e.id&&s.life>0&&s.maxLife>0);
+      const attack=strike?Math.sin(Math.PI*Math.max(0,Math.min(1,(1-strike.life/strike.maxLife)/.65))):0;
+      if(e.type==='escort'){
         v.torso.rotation.y=e.angle||0;v.g.rotation.z=e.disabled?.25:0;
         v.torso.position.y=e.disabled?1.7:2.1;v.cannon.visible=!e.weaponTaken;
         v.ring.visible=e.disabled&&!e.weaponTaken;v.ring.material=M.yellow;
-        if(e.type==='hunter'&&e.alive)v.legs.forEach((leg,i)=>leg.rotation.x=Math.sin(t*10+i*Math.PI)*.4);
+        v.ring.position.set(e.x,.05,e.z);
+      }else if(e.type==='hunter'){
+        v.g.rotation.y=e.angle||0;
+        const moving=e.alive&&v.lastX!==undefined&&Math.hypot(e.x-v.lastX,e.z-v.lastZ)>.0001;
+        v.legs.forEach((leg,i)=>{leg.rotation.x=moving?Math.sin(t*12+i*Math.PI)*.32:0;});
+        v.torso.position.y=1.7-attack*.16;v.torso.rotation.x=attack*.1;
+        v.arms.position.y=-attack*.22;v.arms.rotation.x=-attack*.14;
+      }else if(e.type==='artillery'){
+        v.turret.rotation.y=e.angle||0;v.weapon.visible=!e.weaponTaken;
+        v.rails.position.z=-attack*.42;
       }else if(e.type==='boss'){
         v.core.material=e.exposed?M.cyan:M.red;v.halo.material.color.set(e.exposed?0x5af5eb:0xff6550);v.halo.visible=e.alive;
         v.halo.scale.setScalar((e.exposed?1.45:1.18)+Math.sin(t*(e.exposed?5:2.5))*.08);
         v.turret.rotation.y=Math.sin(t*.3)*.15;v.legs.forEach((leg,i)=>leg.position.y=e.alive?Math.max(0,Math.sin(t*1.5+i*Math.PI))*.6:0);
       }
-      else{v.g.rotation.y=Math.PI*.5;v.turret.rotation.y=(e.angle||0)-Math.PI*.5;if(e.type==='artillery')v.turret.visible=!e.weaponTaken;}
+      else{v.g.rotation.y=Math.PI*.5;v.turret.rotation.y=(e.angle||0)-Math.PI*.5;}
       if(!e.alive&&!e.disabled){v.g.scale.y=.3;v.g.rotation.z=.16;}
       else v.g.scale.y=1;
+      v.lastX=e.x;v.lastZ=e.z;
     }
     const currentShots=new Set();for(const s of state.projectiles){currentShots.add(s.id);let v=shots.get(s.id);if(!v){v=mesh(sphereGeo,s.owner==='player'?M.flash:M.red,0,0,0,.14,.14,.7);shots.set(s.id,v);}v.position.set(s.x,s.y||1.3,s.z);v.rotation.y=Math.atan2(s.vx||0,s.vz||1);}
     for(const[id,v]of shots)if(!currentShots.has(id)){scene.remove(v);shots.delete(id);}

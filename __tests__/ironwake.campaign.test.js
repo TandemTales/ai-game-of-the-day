@@ -26,6 +26,33 @@ describe('Ironwake coast campaign',()=>{
  test('upgrades require victory; checkpoint reload and retry preserve chapter and installed modules',()=>{const s=game();expect(IW.advance(s,'armor')).toBe(false);s.status='won';s.score=4500;expect(IW.advance(s,'armor')).toBe(true);expect(s.chapter).toBe(1);expect(s.player.maxHp).toBe(290);const restored=IW.restoreCampaign(JSON.parse(JSON.stringify(IW.campaignSave(s))));expect(restored.chapter).toBe(1);expect(restored.score).toBe(4500);IW.start(restored);restored.score=9000;restored.status='lost';IW.start(restored);expect(restored.score).toBe(4500);expect(restored.player.hp).toBe(290);});
  test('completed debrief survives reload without losing upgrade choice or duplicating rewards',()=>{const s=game();s.status='won';s.score=6000;s.kills=10;const restored=IW.restoreCampaign(JSON.parse(JSON.stringify(IW.campaignSave(s))));expect(restored.status).toBe('won');expect(restored.score).toBe(6000);IW.advance(restored,'reactor');expect(restored.chapter).toBe(1);expect(restored.score).toBe(6000);expect(restored.upgrades.reactor).toBe(1);});
  test('invalid saves safely reset and final chapter cannot overflow campaign',()=>{expect(IW.restoreCampaign({version:1,chapter:99}).chapter).toBe(0);const s=game(4);s.status='won';expect(IW.advance(s,'damage')).toBe(false);});
+ test('unbanked archive and its score roll back together on death retry or mid-chapter reload',()=>{
+  const s=game(),cache=s.pickups.find(c=>c.type==='intel');s.enemies=[];Object.assign(s.player,{x:cache.x,z:cache.z});run(s,{},.05);
+  expect(s.totals.intel).toContain(cache.id);expect(IW.archiveEntries(s)[0].secured).toBe(false);
+  const saved=IW.campaignSave(s),restored=IW.restoreCampaign(JSON.parse(JSON.stringify(saved)));
+  expect(restored.totals.intel).toHaveLength(0);expect(restored.score).toBe(0);
+  s.status='lost';IW.start(s);expect(s.totals.intel).toHaveLength(0);expect(s.score).toBe(0);
+ });
+ test('won reload retains story, retry rolls it back, and advance banks it exactly once',()=>{
+  const s=game(),cache=s.pickups.find(c=>c.type==='intel');s.enemies=[];Object.assign(s.player,{x:cache.x,z:cache.z});run(s,{},.05);s.status='won';
+  const saved=JSON.parse(JSON.stringify(IW.campaignSave(s))),restored=IW.restoreCampaign(saved);
+  expect(restored.totals.intel).toEqual([cache.id]);expect(IW.archiveEntries(restored)[0].secured).toBe(true);
+  expect(IW.archiveEntries(restored)[0].text).toBe(cache.text);const score=restored.score;
+  IW.start(restored);expect(restored.totals.intel).toHaveLength(0);expect(restored.score).toBe(0);
+  const next=IW.restoreCampaign(saved);expect(IW.advance(next,'armor')).toBe(true);expect(next.score).toBe(score);
+  IW.start(next);next.status='lost';IW.start(next);expect(next.totals.intel).toEqual([cache.id]);expect(next.score).toBe(score);
+ });
+ test('archive save snapshots do not alias ongoing progress and returned journal entries cannot modify authored stories',()=>{
+  const s=game(),saved=IW.campaignSave(s),cache=s.pickups.find(c=>c.type==='intel');s.enemies=[];Object.assign(s.player,{x:cache.x,z:cache.z});run(s,{},.05);
+  expect(saved.totals.intel).toHaveLength(0);s.upgrades.armor=2;expect(saved.upgrades.armor).toBe(0);
+  const entry=IW.archiveEntries(s)[0];entry.text='changed';expect(IW.archiveEntries(s)[0].text).toBe(cache.text);
+ });
+ test('legacy archive IDs are validated, deduplicated and limited to completed or current won chapters',()=>{
+  const base={version:1,chapter:2,upgrades:{},totals:{intel:['cache-0-0','cache-0-0','cache-1-0','cache-2-0','cache-4-0','cache-0-1','unknown']}};
+  const restored=IW.restoreCampaign(base);expect(restored.totals.intel).toEqual(['cache-0-0','cache-1-0']);
+  const won=IW.restoreCampaign({...base,pending:{score:100,kills:0,collapseKills:0,hp:100,time:1}});
+  expect(won.totals.intel).toEqual(['cache-0-0','cache-1-0','cache-2-0']);expect(IW.archiveEntries(won)).toHaveLength(3);
+ });
  test('luring an assigned defender out of its sector does not complete elimination',()=>{const s=game(),ids=s.objectives[0].targets;s.enemies.filter(e=>ids.includes(e.id)).forEach(e=>{e.x=90;e.z=90;});run(s,{},.1);expect(s.stage).toBe(0);});
  test('lethal furnace damage cannot be undone by a pickup or extraction in the same frame',()=>{const s=game();s.stage=3;const o=s.objectives[3];Object.assign(s.player,{x:o.x,z:o.z,hp:.01});s.hazards=[{x:o.x,z:o.z,type:'fire',radius:10}];s.pickups=[{id:'repair',x:o.x,z:o.z,type:'repair',taken:false}];IW.step(s,{},.05);expect(s.status).toBe('lost');expect(s.player.hp).toBe(0);});
 });

@@ -51,6 +51,9 @@
   IW.CAMPAIGN = chapters;
   const baseCreate=IW.createState,baseStart=IW.start;
   const copy=x=>JSON.parse(JSON.stringify(x));
+  const archives=chapters.flatMap((c,chapter)=>c.caches.flatMap((cache,i)=>cache[2]==='intel'?[{id:'cache-'+chapter+'-'+i,chapter,title:c.title,text:cache[3]}]:[]));
+  function recoveredIntel(ids,maxChapter){const collected=new Set(Array.isArray(ids)?ids:[]);return archives.filter(a=>a.chapter<=maxChapter&&collected.has(a.id)).map(a=>a.id);}
+  IW.archiveEntries=function(s){const recovered=new Set(recoveredIntel(s.totals?.intel,s.chapter));return archives.filter(a=>recovered.has(a.id)).map(a=>({...a,secured:a.chapter<s.chapter||s.status==='won'}));};
   const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
   const point=a=>({x:a[0],z:a[1]});
   function foe(id,type,x,z,pressure){const hp={tank:320,escort:125,hunter:180,artillery:150,boss:3000}[type],p=pressure||{};return{id,type,x,z,hp,maxHp:hp,alive:true,disabled:false,weaponTaken:false,escaped:false,cooldown:2.5,radius:type==='boss'?6:type==='tank'?1.8:1.3,angle:Math.PI,phase:0,hunterSpeed:p.hunterSpeed||4.8,artilleryRadius:p.artilleryRadius||6,artilleryFuse:p.artilleryFuse||1.6,artilleryDamage:p.artilleryDamage||24};}
@@ -59,6 +62,9 @@
     index=Math.max(0,Math.min(chapters.length-1,index||0));const c=chapters[index],s=baseCreate(7);
     s.campaign=true;s.chapter=index;s.biome=c.biome;s.pressure=copy(c.pressure);s.bounds={minX:-c.size,maxX:c.size,minZ:-c.size,maxZ:c.size};
     s.upgrades=copy(upgrades||{armor:0,reactor:0,damage:0});s.totals=copy(totals||{score:0,kills:0,time:0,collapseKills:0,intel:[]});
+    // Scores restart at the incoming chapter checkpoint; archives must do the same.
+    // Authored chapter IDs also recover that checkpoint from legacy version-1 saves.
+    s.totals.intel=recoveredIntel(s.totals.intel,index-1);
     s.score=s.totals.score;s.timeLeft=0;s.stage=0;s.wave=0;s.hazards=c.hazards.map(a=>({...point(a),radius:a[2],type:a[3]}));s.strikes=[];
     Object.assign(s.player,point(c.start),{maxHp:240+s.upgrades.armor*50,hp:240+s.upgrades.armor*50,dashCooldown:0,dashing:0,invulnerable:0});
     s.objectives=c.stages.map((a,i)=>({type:a[0],title:a[1],x:a[2],z:a[3],radio:a[4],duration:a[5]||0,progress:0,done:false,id:'objective-'+i}));
@@ -81,11 +87,11 @@
   IW.start=function(s){if(!s.campaign)return baseStart(s);if(s.status==='playing')return false;replace(s,makeChapter(s.chapter,s.upgrades,s.totals));s.status='playing';return true;};
   IW.advance=function(s,upgrade){if(!s.campaign||s.status!=='won'||s.chapter>=4||!['armor','reactor','damage'].includes(upgrade))return false;
     const u=copy(s.upgrades);u[upgrade]++;replace(s,makeChapter(s.chapter+1,u,{score:s.score,kills:s.totals.kills+s.kills,time:(s.totals.time||0)+s.time,collapseKills:(s.totals.collapseKills||0)+s.collapseKills,intel:s.totals.intel}));return true;};
-  IW.campaignSave=s=>({version:1,chapter:s.chapter,upgrades:s.upgrades,totals:s.totals,pending:s.status==='won'?{score:s.score,kills:s.kills,collapseKills:s.collapseKills,hp:s.player.hp,time:s.time}:null});
+  IW.campaignSave=s=>copy({version:1,chapter:s.chapter,upgrades:s.upgrades,totals:s.totals,pending:s.status==='won'?{score:s.score,kills:s.kills,collapseKills:s.collapseKills,hp:s.player.hp,time:s.time}:null});
   IW.restoreCampaign=function(save){if(!save||save.version!==1||!Number.isInteger(save.chapter)||save.chapter<0||save.chapter>4)return makeChapter(0);
     const u={};for(const k of ['armor','reactor','damage'])u[k]=Math.min(4,Math.max(0,Math.floor(Number(save.upgrades?.[k])||0)));
-    const t={score:Math.max(0,Math.min(1e8,Math.floor(Number(save.totals?.score)||0))),kills:Math.max(0,Number(save.totals?.kills)||0),time:Math.max(0,Number(save.totals?.time)||0),collapseKills:Math.max(0,Number(save.totals?.collapseKills)||0),intel:Array.isArray(save.totals?.intel)?save.totals.intel.filter(x=>typeof x==='string').slice(0,5):[]};const s=makeChapter(save.chapter,u,t);
-    if(save.pending&&['score','kills','collapseKills','hp','time'].every(k=>Number.isFinite(save.pending[k])&&save.pending[k]>=0)){Object.assign(s,{status:'won',stage:s.objectives.length,score:save.pending.score,kills:save.pending.kills,collapseKills:save.pending.collapseKills,time:save.pending.time});s.player.hp=Math.min(s.player.maxHp,save.pending.hp);s.objectives.forEach(o=>o.done=true);}
+    const t={score:Math.max(0,Math.min(1e8,Math.floor(Number(save.totals?.score)||0))),kills:Math.max(0,Number(save.totals?.kills)||0),time:Math.max(0,Number(save.totals?.time)||0),collapseKills:Math.max(0,Number(save.totals?.collapseKills)||0),intel:recoveredIntel(save.totals?.intel,save.chapter)};const s=makeChapter(save.chapter,u,t);
+    if(save.pending&&['score','kills','collapseKills','hp','time'].every(k=>Number.isFinite(save.pending[k])&&save.pending[k]>=0)){Object.assign(s,{status:'won',stage:s.objectives.length,score:save.pending.score,kills:save.pending.kills,collapseKills:save.pending.collapseKills,time:save.pending.time});s.totals.intel=t.intel;s.pickups.forEach(c=>{if(c.type==='intel')c.taken=s.totals.intel.includes(c.id);});s.player.hp=Math.min(s.player.maxHp,save.pending.hp);s.objectives.forEach(o=>o.done=true);}
     return s;};
   function blast(s,x,z,radius,delay,damage,sourceId){s.strikes.push({id:++s.nextId,x,z,radius,life:delay,maxLife:delay,damage,sourceId});}
   IW.updateCampaignEnemies=function(s,dt){

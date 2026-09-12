@@ -481,3 +481,12 @@ Intended bounded work: preserve collected stories in a mission journal, expose
 useful map cache information, and fix archive retry/reload inconsistencies if
 reproduced. Independent gameplay criticism and normal-input archive routes gate
 claims. Tests precede every commit; only lead runs Git. AAA remains unpassed.
+
+Checkpoint integrity unit: reproduced current-chapter archive surviving retry
+while its score reset. Authored archive IDs now define the incoming chapter
+checkpoint. Retry/unfinished reload discard current-chapter archives; completed
+reload retains them; advancing banks them. Version1 saves remain compatible,
+invalid/duplicate/future IDs are filtered and save snapshots no longer alias state.
+Added IW.archiveEntries for recovered authored text and secured status. Four
+persistent regression cases pass; full367tests/15suites PASS. UI and independent
+archive-route/browser criticism are still in progress. No combat balance change.

@@ -470,3 +470,14 @@ play decisions and world variety, not timers or repeated objectives. Audio/VFX a
 physical devices remain unjudged. No completion marker or shipping judge invoked.
 This bounded pass ends on dev; main unchanged. Friday age4, forced release remains
 September19. Automation prompt/schedule hash unchanged. Exact checks: TESTING.md.
+
+## September 11 — archive exploration and checkpoint integrity (22:44 Pacific)
+
+STOP absent; dev pulled clean. Friday age4, no release; September19 remains the
+forced Saturday. Tonight checks optional archive discovery, readable recovered
+story entries and chapter checkpoint consistency. Prior full campaigns collected
+0/5 archives; that is a coverage gap, not proof people dislike exploration.
+Intended bounded work: preserve collected stories in a mission journal, expose
+useful map cache information, and fix archive retry/reload inconsistencies if
+reproduced. Independent gameplay criticism and normal-input archive routes gate
+claims. Tests precede every commit; only lead runs Git. AAA remains unpassed.

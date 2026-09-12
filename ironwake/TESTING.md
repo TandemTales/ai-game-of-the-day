@@ -1,5 +1,40 @@
 # Ironwake — testing
 
+## September 11 tactical visibility follow-up
+
+Run `node ironwake/tools/visibility.cjs` for focused browser presentation fixtures.
+It uses the same installed Playwright/Chromium paths and IW_VIEWPORTS/IW_SHOTS
+options as smoke. Fixtures freeze/replace state, then check rendered text,
+marker bounds, input pass-through, camera occlusion, disabled weapon identity,
+offscreen guidance and lifecycle cleanup. They do not establish enjoyment.
+Final run passed all six sizes: 54 screenshot fixtures plus 42 camera-plane
+steps, geometry/stage/chapter refresh, text bounds, crowd priority, input
+pass-through, lifecycle cleanup and rendering without gameplay-state mutation.
+No console warnings/errors or external requests. Report status passed at
+2026-09-12T04:36:59.740Z; earlier partial runs superseded.
+Evidence: ignored node_modules/.cache/ironwake/sep11-visibility.
+
+Full Jest remains 360 tests / 15 suites passing. Six-size smoke passed at all
+standard sizes after compact landscape cards and the field manual update;
+later offscreen fallback/projection changes are covered by focused visibility
+regressions. Smoke evidence: sep11-visibility-final. Mock leaderboard submission
+checks request ordering only. Chromium needed approved escalation after EPERM.
+
+Independent normal-clock actual-input opening chapter: keyboard WON in 52.025
+seconds with 200 armor; native two-contact touch WON in 62.617 with 212 armor.
+Both recorded 12 kills, 1 collapse kill, railgun and no page errors. Pilots use
+read-only state for planning, not injected health, positions, timers or skipped
+objectives. These runs used the first visibility revision; later presentation
+fixes are covered by fixtures. No human enjoyment, physical-device or full-campaign
+touch claim. The current deterministic pilot also completed all five chapters.
+
+Independent side-by-side comparison: functional visibility PASS for tested scope;
+AAA visual FAIL / OURS LOSES versus official MechWarrior 5 Kestrel Lancers.
+Comparison is identified, not blind. Official page freshly verified; exact image
+cached earlier September 11 reused after fresh image retrieval failed, with
+provenance. Lead inspected the composite and actual native-touch combat image.
+Reference, verdict and real-input reports: sep11-visibility-critic.
+
 ## September 11 touch combat verification
 
 Full Jest: 360 tests / 15 suites passed. Six-size `tools/smoke.cjs` passed

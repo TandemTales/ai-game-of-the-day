@@ -367,3 +367,47 @@ HUD and controls; priority preserves active threats among disabled wrecks.
 Field manual explains the signals. Initial six-size smoke and 36 visibility
 fixtures pass; full Jest remains 360/15. Final crowding/transition regression
 and independent criticism are still in progress. No AAA or human fun claim.
+
+Visibility implementation pushed as 494d0df after message fix ffd0609 and intent
+a9490ba. Review fixed three concrete issues: salvage crowded live threats out;
+nearby offscreen threats had no reachable label slot at320; far-front objectives
+were classified as behind the camera. Labels now use camera depth, finite
+projection and free space along panel boundaries. Compact landscape cards and
+OBSCURED wording avoid clutter and confusing camera obstruction with shot cover.
+
+Independent actual-input opening chapter: keyboard WON52.025s/200armor, two-contact
+touch WON62.617s/212armor; each12kills/1collapse kill/railgun/no page errors.
+The pilots read state for planning. They establish reachability, not human fun or
+causal balance improvement. Small final presentation fixes followed these runs.
+Final independent16fixtures across320/390/844/1440 retain objectives, including
+the coastal-battery transition with disabled lock defenders. An older actual-play
+comparison screenshot lacks its gold marker; historical cause is unproven.
+Latest targeted fixtures supersede it for objective visibility only.
+
+Discipline verdicts: functional tactical visibility PASS for tested scope;
+AAA visuals FAIL/OURS LOSES versus official MechWarrior5 Kestrel Lancers. Actual
+side-by-side is identified, not blind. Fresh official page; reference screenshot
+cached earlier September11 with provenance after fresh image retrieval failed.
+Lead inspected the composite, native touch combat, and gameplay at all six smoke
+sizes (4K downsampled by viewer). No uninspected PNG is claimed as visual proof.
+Audio/VFX remain unjudged; human enjoyment/learning, all-five-chapter touch,
+physical-device performance and production leaderboard remain unverified.
+
+Next FIRST: human phone play focusing on locating lock defenders and choosing
+flank/vent routes without internal state. Dense labels still consume battlefield
+space and lower-priority labels can be omitted. Improve chassis silhouettes and
+threat presentation in response to play evidence; do not merely inflate timers
+or count technical passes as fun. Art/material/environment/destruction depth
+remains far below AAA. No completion marker, shipping judge, or main release.
+Friday September11 age4; scheduled forced release remains September19.
+
+Final expanded visibility harness PASS: 54 screenshot fixtures across all six
+standard viewports, plus42 camera-plane steps. Verified text bounds (including
+offscreen OBSCURED labels), crowd priority, far-front vs behind directions,
+geometry changes, stage/chapter reused IDs, resize, pause/resume, real retry,
+ready/lost/won cleanup and dispose. Renderer preserves JSON gameplay state;
+no console warnings/errors/external requests. Final report04:36:59.740Z in
+node_modules/.cache/ironwake/sep11-visibility/report.json. Earlier incomplete
+runs are superseded. Lead inspected final crowded320, offscreen320, occluded390
+and salvage844 images in addition to all-six smoke images and critic evidence.
+Commands and exact evidence limits are in TESTING.md. No further work started.

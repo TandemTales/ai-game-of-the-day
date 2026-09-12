@@ -13,6 +13,44 @@ mobile and desktop captures, and leave AAA visual/audio/VFX, physical-device,
 human pacing and production leaderboard debt explicit. No release or `main`
 change is planned tonight.
 
+## 2026-09-12 (Pacific) — tactical readability pass and handoff
+
+The lead integration pass keeps the campaign and controls unchanged while
+making disabled salvage labels identify the chassis first (`ESCORT OFF` and
+`ARTILLERY OFF`) with compact HEAVY/RAIL action text. Disabled artillery now
+leans like the existing disabled escort cue. Offscreen threats receive a
+larger type line, heavier edge rule and opaque urgency card while preserving
+the existing collision-free placement, tether and input pass-through logic.
+Landscape briefings use a compact, bounded card so the 844x390 save note is no
+longer cut off. The field manual now explains the OFF/RIP presentation.
+
+The archive checkpoint and archive regression workers inspected their single
+owned files and made no changes: campaign state already exposes the required
+target/type/disabled/weapon fields, and archives.cjs already has the relevant
+browser coverage. No cross-file worker request remains.
+
+Verification on pushed `dev` commit `4b905e2`: full Jest passes **367 tests in
+15 suites**; changed JS passes `node --check`; `git diff --check` passes;
+visibility fixtures pass at 320x568, 390x844, 844x390 and 1440x900; enemy
+identity/lifecycle fixtures pass at those four sizes; the archive sweep passes
+all six required viewports; six-size smoke passes collapse, keyboard/native
+touch input, buttons, results/retry, rank-before-submit, clean console, no
+external requests and no horizontal overflow; and native touch controls pass
+all ten groups at 320x568, 390x844 and 844x390. I opened the refreshed disabled,
+offscreen-threat, landscape-briefing, portrait, desktop and downsampled 4K
+captures. These are fixture/browser and software-render evidence, not a
+physical-device or human-enjoyment study.
+
+Independent critic verdict remains **AAA FAIL / OURS LOSES** against freshly
+verified official MechWarrior 5 Kestrel Lancers imagery. The final pass fixes
+the specific disabled/offscreen/landscape readability debt but does not clear
+the larger reference gap in authored materials, destruction/VFX/audio depth,
+route composition and first-play onboarding. Human pacing, physical-device
+performance, accessibility, production leaderboard connectivity and a fresh
+post-patch independent A/B re-verdict remain open. No `.aaa-complete`, release,
+Featured Game edit or `main` promotion is justified; forced release remains
+Saturday September 19.
+
 ## September 11 — independent gameplay verdict and next priority
 
 Final checkpoint: full Jest 360/360 in 15 suites; six-size browser smoke passed;

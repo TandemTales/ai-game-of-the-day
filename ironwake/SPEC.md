@@ -69,3 +69,14 @@ Only the lead runs Git. Work stays on dev; no main release or AAA completion cla
 - `tools/smoke.cjs`: six viewports, opening keyboard crush, simultaneous native touch,
   buttons, HUD, results, mock leaderboard, pause, upgrade and save reload fixtures.
 - Inspect actual gameplay, chapter transition and environment screenshots.
+
+## Nightly file ownership
+
+| Role | Single owned file |
+| --- | --- |
+| Controls builder | assets/js/main.js |
+| Controls regression builder | tools/touch-controls.cjs |
+| Independent gameplay/control critic | Read-only; no game files |
+| Lead integration | All other files, documentation and Git |
+
+Builders must report cross-file needs to the lead. Critic remains independent.

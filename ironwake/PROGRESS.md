@@ -277,3 +277,10 @@ Next: human campaign feedback on pacing, exploration incentives, enemy variety
 and combat balance. The world and story now have a complete campaign arc. Further
 expansion should add authored encounters and decisions, rather than inflate timers.
 No AAA claim; physical-device performance and production leaderboard remain untested.
+
+## September 11 — touch combat and campaign usability audit
+
+Tonight: verify the current campaign, independently critique normal-input play,
+then fix concrete touch combat/control problems and regression-check the six
+viewports. Gameplay remains unproven; no standalone art polish or release planned.
+Pacific Friday, age4; forced release September19. Only the lead runs Git.

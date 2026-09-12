@@ -55,6 +55,12 @@ selection, audio and explicit leaderboard submission. Touch has simultaneous MOV
 FIRE, PUNCH, RIP, VENT, BOOST and INTERACT. Keyboard uses WASD/arrows, mouse,
 E/right-click, Q, Space, Shift, F, and Tab/Escape for map/pause.
 
+Touch FIRE doubles as a directional aim control: hold and drag from the press
+point while moving with the other thumb. A 12px deadzone preserves the previous
+aim on a simple press. Dragged aim follows the mech while moving and remains
+until a new aim gesture; battlefield taps still provide precise aiming for
+shots and punches. Cancel, pause, blur, resize and retry reset held input.
+
 Three.js and its MIT license remain vendored. No external runtime asset requests.
 Only the lead runs Git. Work stays on dev; no main release or AAA completion claim.
 

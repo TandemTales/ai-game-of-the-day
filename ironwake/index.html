@@ -25,7 +25,7 @@
     <div id="stick" aria-label="Drag to move"><i id="stickKnob"></i><span>MOVE</span></div>
     <div class="keyboard-hint">WASD / MOVE<br>MOUSE / AIM</div>
     <div class="actions">
-      <button data-action="fire"><b>FIRE</b><small>CLICK</small></button>
+      <button data-action="fire" aria-label="Fire; on touch, hold and drag to aim"><b>FIRE</b><small>CLICK</small><span class="touch-fire-hint">DRAG AIM</span></button>
       <button data-action="punch"><b>PUNCH</b><small>E / RIGHT CLICK</small></button>
       <button data-action="rip"><b>RIP GUN</b><small>Q / CLOSE RANGE</small></button>
       <button data-action="vent"><b>VENT</b><small>SPACE / HOLD</small></button>
@@ -40,7 +40,7 @@
       <nav id="chapterTrack" aria-label="Campaign progress"></nav>
       <p id="briefStory"></p>
       <div class="mission-facts"><span>5 CHAPTERS</span><span>20 OBJECTIVES</span><span>CHAPTER SAVES</span></div>
-      <details><summary>Mech field manual</summary><p>WASD / arrows move · mouse aims · click fires · E / right click punches · Q rips a disabled gun · Space vents · Shift boosts · F interacts. TAB or Escape pauses and opens the map.</p><p>Touch: drag MOVE, tap the battlefield to aim, then use the action buttons. Gold rings mark objectives. Cyan caches repair armor. White archives tell the story. Red circles warn of incoming shells. Boost through danger; vent behind cover. Nearby optional caches call out their type before auto-recovery.</p></details>
+      <details><summary>Mech field manual</summary><p>WASD / arrows move · mouse aims · click fires · E / right click punches · Q rips a disabled gun · Space vents · Shift boosts · F interacts. TAB or Escape pauses and opens the map.</p><p>Touch: drag MOVE with one thumb. Hold FIRE with the other and drag in the direction you want to shoot; keep holding to strafe and fire. You can also tap the battlefield to aim a precise shot or punch. Gold rings mark objectives. Cyan caches repair armor. White archives tell the story. Red circles warn of incoming shells. Boost through danger; vent behind cover. Nearby optional caches call out their type before auto-recovery.</p></details>
       <button class="primary" id="start">DEPLOY CHAPTER <span>→</span></button>
       <button class="secondary" id="newCampaign">START NEW CAMPAIGN</button>
       <small id="saveNote">Progress saves between chapters. Explore at your own pace; there is no mission timer.</small>

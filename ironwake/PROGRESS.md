@@ -1,5 +1,22 @@
 # Ironwake — Progress
 
+## September 11 — touch aiming implementation checkpoint
+
+Independent control review found that moving, firing and retargeting required
+three fingers: FIRE captured its pointer but never used its drag to aim. Added
+directional touch/pen FIRE dragging, a deadzone, player-relative aim while moving,
+exclusive pointer ownership and current-camera crosshair updates. Field taps
+still aim precisely; desktop aiming is retained. Cancel/pause/blur/resize/retry
+clear controls. FIRE now says DRAG AIM on touch layouts; the manual explains it.
+
+Full Jest: 360 tests / 15 suites pass. Final six-size smoke passes native touch,
+keyboard, collapse, HOT, retry, mocked leaderboard, map pause and upgrade/save
+reload with clean console, no external requests or horizontal overflow. Lead
+opened all six final gameplay PNGs; 4K was downsampled by the viewer. Evidence:
+node_modules/.cache/ironwake/sep11-final. Dedicated drag regressions and the
+independent two-finger full chapter playtest are still in progress at this
+checkpoint. No fun or AAA claim; main unchanged. Forced release September19.
+
 ## 2026-09-10 (Pacific) — exploration and pressure pass / handoff
 
 The campaign now carries five explicit pressure profiles: the Drowned Ward

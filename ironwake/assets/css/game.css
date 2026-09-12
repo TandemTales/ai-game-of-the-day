@@ -1,4 +1,6 @@
 @charset "UTF-8";
+.touch-fire-hint{display:none}
+@media(pointer:coarse),(max-width:900px){.touch-fire-hint{display:block;font-size:7px;letter-spacing:.4px;line-height:1;color:#ffd69c}}
 :root{color-scheme:dark;--orange:#ffad4f;--white:#e9eeeb;--muted:#97aaa7;--line:#7b96964a;font-family:Arial,Helvetica,sans-serif;background:#0b1319;color:var(--white)}
 *{box-sizing:border-box}body{margin:0;overflow:hidden}button,input{font:inherit}button,a{touch-action:manipulation}button{cursor:pointer}button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:3px}[hidden]{display:none!important}
 #game{position:relative;width:100%;height:100svh;overflow:hidden}#scene{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}

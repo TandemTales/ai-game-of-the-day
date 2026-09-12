@@ -23,8 +23,31 @@ function clearInput(){keys.clear();pointers.clear();queued.clear();touchFirePoin
 function start(){clearInput();paused=false;$('mapPanel').hidden=true;IW.start(state);save();input.aimX=state.player.x;input.aimZ=state.player.z-20;$('scoreStatus').textContent='';lastEffect=0;enableAudio();audio(110,.3,.07,'sawtooth');sync();$('scene').focus({preventScroll:true});}
 $('start').onclick=start;$('retry').onclick=start;
 $('mute').onclick=()=>{muted=!muted;$('mute').textContent=muted?'SOUND OFF':'SOUND ON';$('mute').setAttribute('aria-pressed',String(muted));};
-function toggleMap(force){if(state.status!=='playing')return;paused=typeof force==='boolean'?force:!paused;clearInput();$('mapPanel').hidden=!paused;if(paused){drawMap($('fullMap'));const c=IW.CAMPAIGN[state.chapter];$('mapTitle').textContent=c.title;$('mapObjectives').replaceChildren(...state.objectives.map((o,i)=>{const li=document.createElement('li');li.textContent=(o.done?'✓ ':i===state.stage?'→ ':'')+o.title;li.className=i===state.stage?'current':'';return li;}));$('mapRadio').textContent=state.radio;$('upgradeSummary').textContent=`Hull ${state.upgrades.armor} · Cooling ${state.upgrades.reactor} · Damage ${state.upgrades.damage} · Archives ${state.totals.intel.length}/5`;$('mapPanel').scrollTop=0;$('resume').focus({preventScroll:true});}else $('scene').focus();}
+function drawJournal(listId){
+ const entries=IW.archiveEntries(state),list=$(listId);
+ list.replaceChildren(...entries.map(entry=>{
+  const li=document.createElement('li'),title=document.createElement('h3'),text=document.createElement('p'),status=document.createElement('small');
+  li.dataset.archiveId=entry.id;title.textContent=String(entry.chapter+1).padStart(2,'0')+' / '+entry.title;text.textContent=entry.text;
+  status.textContent=entry.secured?'SAVED AT CHAPTER CHECKPOINT':state.status==='lost'?'LOST WITH MECH • RECOVER AGAIN ON RETRY':'RECOVERED THIS ATTEMPT • COMPLETE CHAPTER TO SAVE';
+  li.append(title,text,status);return li;
+ }));
+ if(!entries.length){const li=document.createElement('li');li.textContent='No archives recovered. White signals on the mission map mark optional stories from the coast.';list.append(li);}
+ return entries.length;
+}
+function drawCacheList(){
+ const p=state.player,labels={intel:'Archive',repair:'Repair',core:'Capacitor'},directions=['N','NE','E','SE','S','SW','W','NW'];
+ const caches=state.pickups.filter(c=>!c.taken).sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z));
+ $('cacheList').replaceChildren(...caches.map(c=>{
+  const li=document.createElement('li'),name=document.createElement('strong'),distance=document.createElement('span');
+  li.dataset.cacheId=c.id;li.dataset.kind=c.type;name.textContent=labels[c.type];
+  const bearing=(Math.round(Math.atan2(c.x-p.x,p.z-c.z)/(Math.PI/4))+8)%8;
+  distance.textContent=Math.ceil(Math.hypot(c.x-p.x,c.z-p.z))+' m '+directions[bearing];li.append(name,distance);return li;
+ }));
+ $('cacheEmpty').hidden=!!caches.length;
+}
+function toggleMap(force){if(state.status!=='playing')return;paused=typeof force==='boolean'?force:!paused;clearInput();$('mapPanel').hidden=!paused;if(paused){drawMap($('fullMap'));drawCacheList();$('archiveCount').textContent=drawJournal('archiveEntries')+' / 5';const c=IW.CAMPAIGN[state.chapter];$('mapTitle').textContent=c.title;$('mapObjectives').replaceChildren(...state.objectives.map((o,i)=>{const li=document.createElement('li');li.textContent=(o.done?'✓ ':i===state.stage?'→ ':'')+o.title;li.className=i===state.stage?'current':'';return li;}));$('mapRadio').textContent=state.radio;$('upgradeSummary').textContent=`Hull ${state.upgrades.armor} · Cooling ${state.upgrades.reactor} · Damage ${state.upgrades.damage}`;$('mapPanel').scrollTop=0;$('resume').focus({preventScroll:true});}else $('scene').focus();}
 $('mapButton').onclick=()=>toggleMap();$('radar').onclick=()=>toggleMap();$('resume').onclick=()=>toggleMap(false);
+$('signalsButton').onclick=()=>{$('archiveJournal').open=true;$('cachePanel').scrollIntoView({block:'start'});$('archiveJournal').querySelector('summary').focus({preventScroll:true});};
 $('newCampaign').onclick=()=>{Object.keys(state).forEach(k=>delete state[k]);Object.assign(state,IW.createCampaignState(0));lastBrief=-1;lastStatus='';save();sync();};
 $('restartCampaign').onclick=$('newCampaign').onclick;
 document.querySelectorAll('[data-upgrade]').forEach(b=>b.onclick=()=>{if(IW.advance(state,b.dataset.upgrade)){save();lastBrief=-1;lastStatus='';sync();$('overlay').scrollTop=0;$('start').focus();}});
@@ -90,6 +113,7 @@ function sync(){
  drawMap($('minimap'));
  if(state.status==='ready'&&lastBrief!==state.chapter){lastBrief=state.chapter;$('briefPlace').textContent=c.place;$('briefTitle').textContent=c.title;$('briefStory').textContent=c.briefing;$('chapterTrack').replaceChildren(...IW.CAMPAIGN.map((ch,i)=>{const el=document.createElement('span');el.textContent=String(i+1).padStart(2,'0')+' '+ch.title;el.className=i===state.chapter?'current':i<state.chapter?'complete':'';return el;}));$('newCampaign').hidden=state.chapter===0;$('saveNote').textContent=saveAvailable?'Progress saves between chapters. Explore at your own pace; there is no mission timer.':'Browser storage unavailable. Keep this tab open to preserve campaign progress.';}
  if(lastStatus===state.status)return;if(state.status==='won')save();lastStatus=state.status;
+ if(['won','lost'].includes(state.status)){$('debriefArchiveCount').textContent=drawJournal('debriefArchiveEntries')+' / 5';$('debriefJournal').open=false;}
  $('overlay').hidden=state.status==='playing';$('briefing').hidden=state.status!=='ready';$('results').hidden=!['won','lost'].includes(state.status);$('crosshair').style.display='none';$('restartCampaign').hidden=!(state.status==='won'&&state.chapter===4);
   if(['won','lost'].includes(state.status)){const finale=state.status==='won'&&state.chapter===4,totalTime=state.time+(finale?(state.totals.time||0):0),totalKills=state.kills+(finale?state.totals.kills:0),totalCrushed=state.collapseKills+(finale?(state.totals.collapseKills||0):0),archives=state.totals.intel?.length||0;clearInput();$('resultTitle').textContent=state.status==='won'?(state.chapter===4?'THE TIDE IS OURS.':'CHAPTER SECURED.'):'MECH DOWN.';$('finalScore').textContent=String(state.score).padStart(6,'0');$('resultStats').textContent=`${totalKills} kills · ${totalCrushed} crushed · ${Math.ceil(state.player.hp)} armor · ${archives}/5 archives · ${Math.floor(totalTime/60)}m ${Math.floor(totalTime%60)}s`;$('debriefStory').textContent=state.status==='won'?c.outro+' '+(archives===5?'All five archives are in Orla’s hands.':'The side channels still hold '+(5-archives)+' archive signal'+(5-archives===1?'':'s')+'.'):'Your chapter checkpoint is safe. Try a different approach, look for repair caches, and boost out of marked artillery strikes.';$('upgradePanel').hidden=state.status!=='won'||state.chapter===4;$('scoreForm').hidden=state.status==='won'&&state.chapter<4;audio(state.status==='won'?260:65,.5,.08,'sawtooth');$('overlay').scrollTop=0;}
 }

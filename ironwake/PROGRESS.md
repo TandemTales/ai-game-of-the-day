@@ -490,3 +490,19 @@ invalid/duplicate/future IDs are filtered and save snapshots no longer alias sta
 Added IW.archiveEntries for recovered authored text and secured status. Four
 persistent regression cases pass; full367tests/15suites PASS. UI and independent
 archive-route/browser criticism are still in progress. No combat balance change.
+
+Journal/map checkpoint: recovered authored stories can be reread after radio
+expiry in the paused map and debrief. Unfound stories stay hidden. Optional cache
+list shows type, direct distance and north-up compass direction. A top Supplies &
+Archives shortcut addresses phone discoverability without extra combat HUD.
+Current, secured and lost archive labels explain the checkpoint behavior.
+Full367tests passed, focused38pass; six-size smoke passed with no errors and lead
+viewed all6gameplay PNGs (4K downsampled). Initial expanded archive harness passes
+48grouped checks and36fixtures; final shortcut/lost-label verification in progress.
+Independent fresh normal-clock keyboard archive detour won57.129s218armor;
+corrected two-contact touch won70.023s149armor. Both12kills/1crush/1archive;
+naive stationary firing lost49.390s atobjective0. State-informed actual inputs,
+not human enjoyment or physical-device proof. One earlier touch pilot stalled
+4.21m from a repair cache with4m pickup radius; corrected final approach succeeded.
+AAA map/journal OURS LOSES versus fresh official MW5 manual starmap screenshot.
+Comparison identified and cross-map-type, not blind; no release support.

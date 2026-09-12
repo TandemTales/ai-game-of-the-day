@@ -31,6 +31,14 @@ carry the story through an ending. No arbitrary mission time limit.
   pending upgrade selection. Death retries the current chapter with its installed
   upgrades and incoming campaign score. No mid-combat save.
 - Tactical map pauses combat. Blur/hidden tab also pauses; returning requires Resume.
+- Supplies & Archives jumps to optional map signals with type, direct distance and
+  compass bearing (north up). Recovered stories can be reread in the paused map
+  and debrief; unfound stories remain hidden. These are existing optional caches,
+  not new encounters or rewards.
+- Archives follow score checkpoints: retry/unfinished reload discard current
+  attempt discoveries; a completed chapter saves them and advance banks them.
+  Journal distinguishes current-attempt versus secured entries. Legacy version1
+  saves are supported and archive IDs are validated against authored chapters.
 
 ## Files and shared API
 

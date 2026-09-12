@@ -80,9 +80,9 @@ Only the lead runs Git. Work stays on dev; no main release or AAA completion cla
 
 | Role | Single owned file |
 | --- | --- |
-| Controls builder | assets/js/main.js |
-| Controls regression builder | tools/touch-controls.cjs |
-| Independent gameplay/control critic | Read-only; no game files |
+| Tactical visibility builder | assets/js/render.js |
+| Visibility regression builder | tools/visibility.cjs |
+| Independent gameplay/visibility critic | Read-only; no game files |
 | Lead integration | All other files, documentation and Git |
 
 Builders must report cross-file needs to the lead. Critic remains independent.

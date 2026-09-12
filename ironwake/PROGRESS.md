@@ -344,3 +344,12 @@ Tonight: verify the current campaign, independently critique normal-input play,
 then fix concrete touch combat/control problems and regression-check the six
 viewports. Gameplay remains unproven; no standalone art polish or release planned.
 Pacific Friday, age4; forced release September19. Only the lead runs Git.
+
+## September 11 — tactical visibility follow-up (21:25 Pacific)
+
+Tonight: improve readable nearby threat and disabled-weapon identity through
+tower occlusion, and active-objective guidance outside the camera. Preserve
+combat balance and two-thumb controls. Independent normal-input gameplay and
+reference criticism, focused visibility fixtures and six-size smoke follow.
+Friday age4; no release. Human fun and AAA visual gates remain unresolved.
+

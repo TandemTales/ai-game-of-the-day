@@ -108,7 +108,7 @@ async function main(){
    await page.evaluate(()=>{IW.runtime.state.enemies[0].hp=90;});await renderFrozen(page);assert.equal((await markers(page))[0].hpWidth,'75%','Existing HP bar updates');
    if(['escort','artillery'].includes(type)){
     await page.evaluate(()=>{Object.assign(IW.runtime.state.enemies[0],{alive:false,disabled:true,hp:0});});await renderFrozen(page);
-    const salvage=(await markers(page))[0];assert.equal(salvage.name,type==='artillery'?'RAILGUN':'HEAVY GUN','Correct actual dropped weapon');assert.equal(salvage.detail,'RIP · 5 m','In-range salvage action and distance');assert.equal(salvage.hpHidden,true,'Disabled weapon has no live HP');
+    const salvage=(await markers(page))[0];assert.equal(salvage.name,type.toUpperCase()+' OFF','Disabled chassis identity remains visible');assert.equal(salvage.detail,'RIP '+(type==='artillery'?'RAIL':'HEAVY')+' 5m','In-range salvage action and distance');assert.equal(salvage.hpHidden,true,'Disabled weapon has no live HP');
     await page.evaluate(()=>{IW.runtime.state.enemies[0].weaponTaken=true;});await renderFrozen(page);assert.equal((await markers(page)).length,0,'Ripped salvage is removed');
    }else{
     await page.evaluate(()=>{Object.assign(IW.runtime.state.enemies[0],{alive:false,disabled:false,hp:0});});await renderFrozen(page);

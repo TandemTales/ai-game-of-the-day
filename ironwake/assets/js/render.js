@@ -515,12 +515,15 @@ export function createRenderer(canvas) {
       }
       const color=isObjective?'#ffd58a':c.kind==='salvage'?'#7df1df':'#ffab98';
       const distance=Math.ceil(c.distance),ripReach=state.campaign?7:4.5;
-      const name=isObjective?'OBJECTIVE '+(state.stage+1):c.kind==='salvage'?(e.type==='artillery'?'RAILGUN':'HEAVY GUN'):({tank:'TANK',escort:'ESCORT',hunter:'HUNTER',artillery:'ARTILLERY',boss:'SOVEREIGN'}[e.type]||'HOSTILE');
-      let detail=isObjective?distance+' m':c.kind==='salvage'?(c.distance<=ripReach?'RIP':'SALVAGE')+' · '+distance+' m':(occluded?'OBSCURED · ':'')+distance+' m';
-      if(offscreen){const angle=Math.atan2(anchor.y-height/2,anchor.x-width/2),arrows=['→','↘','↓','↙','←','↖','↑','↗'];detail=arrows[(Math.round(angle/(Math.PI/4))+8)%8]+' '+detail;}
-      if(node.name.textContent!==name)node.name.textContent=name;if(node.detail.textContent!==detail)node.detail.textContent=detail;
+      const role=({tank:'TANK',escort:'ESCORT',hunter:'HUNTER',artillery:'ARTILLERY',boss:'SOVEREIGN'}[e.type]||'HOSTILE');
+      const weapon=e.type==='artillery'?'RAIL':'HEAVY';
+      const name=isObjective?'OBJECTIVE '+(state.stage+1):c.kind==='salvage'?role+' OFF':role;
+      let detail=isObjective?distance+' m':c.kind==='salvage'?(c.distance<=ripReach?'RIP ':'')+weapon+' '+distance+'m':(occluded?'OBSCURED · ':'')+distance+' m',direction='';
+      if(offscreen){const angle=Math.atan2(anchor.y-height/2,anchor.x-width/2),arrows=['→','↘','↓','↙','←','↖','↑','↗'];direction=arrows[(Math.round(angle/(Math.PI/4))+8)%8];detail=direction+' '+detail;}
+      const urgent=offscreen&&c.kind==='threat',edgeCue=offscreen&&(isObjective||c.kind==='threat'),displayName=urgent?direction+' '+name:name;
+      if(node.name.textContent!==displayName)node.name.textContent=displayName;if(node.detail.textContent!==detail)node.detail.textContent=detail;
       node.el.hidden=false;Object.assign(node.el.dataset,{kind:c.kind,occluded:String(!!occluded),offscreen:String(offscreen),distance:String(distance)});
-      node.el.title=isObjective?e.title:name;node.el.style.color=color;node.el.style.width=labelW+'px';node.el.style.height=labelH+'px';node.el.style.transform=`translate(${Math.round(place.x)}px,${Math.round(place.y)}px)`;
+      node.el.title=isObjective?e.title:c.kind==='salvage'?name+' DISABLED • '+(e.type==='artillery'?'RAILGUN':'HEAVY GUN'):name;node.el.dataset.disabled=String(c.kind==='salvage');node.el.style.color=color;node.el.style.borderLeftWidth=edgeCue?'4px':'2px';node.el.style.background=edgeCue?'#0d1c29f5':'#06121eef';node.name.style.fontSize=urgent?'13px':'11px';node.el.style.width=labelW+'px';node.el.style.height=labelH+'px';node.el.style.transform=`translate(${Math.round(place.x)}px,${Math.round(place.y)}px)`;
       node.bar.hidden=c.kind!=='threat';node.bar.style.width=(Math.max(0,Math.min(1,e.hp/e.maxHp))*100)+'%';
       // Do not draw a line through the cockpit or a panel; edge arrows still
       // communicate direction when the true anchor is outside the battlefield.
@@ -629,7 +632,7 @@ export function createRenderer(canvas) {
         v.torso.position.y=1.7-attack*.16;v.torso.rotation.x=attack*.1;
         v.arms.position.y=-attack*.22;v.arms.rotation.x=-attack*.14;
       }else if(e.type==='artillery'){
-        v.turret.rotation.y=e.angle||0;v.weapon.visible=!e.weaponTaken;
+        v.g.rotation.z=e.disabled?.18:0;v.turret.rotation.y=e.angle||0;v.weapon.visible=!e.weaponTaken;
         v.rails.position.z=-attack*.42;
       }else if(e.type==='boss'){
         v.core.material=e.exposed?M.cyan:M.red;v.halo.material.color.set(e.exposed?0x5af5eb:0xff6550);v.halo.visible=e.alive;

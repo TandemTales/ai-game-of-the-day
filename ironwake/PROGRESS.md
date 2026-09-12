@@ -1,5 +1,18 @@
 # Ironwake — Progress
 
+## 2026-09-12 (Pacific) — nightly intent
+
+Tonight is the first Saturday for this game (age five), so the forced release
+threshold is not met. This bounded polish pass follows yesterday's independent
+functional review: improve portrait threat/objective readability around tall
+towers and make disabled enemies legible without relying on tiny weapon labels.
+Preserve the five-chapter, twenty-objective campaign, touch/keyboard controls,
+save/upgrade contract and existing regression gates. Re-run focused and full
+tests plus the six-size browser/visibility/control smoke, inspect representative
+mobile and desktop captures, and leave AAA visual/audio/VFX, physical-device,
+human pacing and production leaderboard debt explicit. No release or `main`
+change is planned tonight.
+
 ## September 11 — independent gameplay verdict and next priority
 
 Final checkpoint: full Jest 360/360 in 15 suites; six-size browser smoke passed;

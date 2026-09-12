@@ -3,6 +3,14 @@ const ctx={console};vm.createContext(ctx);for(const f of ['logic','campaign'])vm
 function game(chapter=0){const s=IW.createCampaignState(chapter);IW.start(s);return s;}
 function run(s,input,seconds){for(let i=0;i<seconds*60;i++)IW.step(s,input,1/60);}
 describe('Ironwake coast campaign',()=>{
+ test.each([[2,'artillery',1.6],[1,'hunter',.8],[4,'boss',1.8]])('chapter %i %s warning identifies the actual attacker without changing its fuse', (chapter,type,fuse)=>{
+  const s=game(chapter),e=s.enemies.find(e=>e.type===type);s.enemies=[e];s.buildings=[];if(type==='artillery')fuse=e.artilleryFuse||fuse;if(type==='boss')s.stage=2;
+  s.player.x=e.x;s.player.z=e.z+(type==='hunter'?4:15);e.cooldown=0;
+  IW.step(s,{},.05);expect(s.strikes.length).toBeGreaterThan(0);
+  for(const strike of s.strikes){expect(strike.sourceId).toBe(e.id);expect(strike.maxLife).toBe(fuse);expect(strike.life).toBeCloseTo(fuse-.05);}
+  const strike=s.strikes[0],target={x:strike.x,z:strike.z};e.alive=false;IW.step(s,{},.05);
+  expect(strike.sourceId).toBe(e.id);expect({x:strike.x,z:strike.z}).toEqual(target);expect(strike.life).toBeCloseTo(fuse-.1);
+ });
   test('five distinct large environments contain twenty ordered objectives, pressure profiles and optional discoveries',()=>{expect(new Set(IW.CAMPAIGN.map(c=>c.biome)).size).toBe(5);expect(new Set(IW.CAMPAIGN.map(c=>c.pressure.label)).size).toBe(5);expect(IW.CAMPAIGN.reduce((n,c)=>n+c.stages.length,0)).toBe(20);for(let i=0;i<5;i++){const s=game(i);expect(s.bounds.maxX-s.bounds.minX).toBeGreaterThanOrEqual(200);expect(s.enemies.length).toBeGreaterThan(10);expect(s.pickups.some(c=>c.type==='intel')).toBe(true);expect(s.buildings.some(b=>IW.inFootprint(s.player,b,1.1,0))).toBe(false);for(const o of s.objectives)expect(s.buildings.some(b=>IW.inFootprint(o,b,1.1,0))).toBe(false);}});
  test('campaign simulation is deterministic and has no arbitrary expiry',()=>{const a=game(),b=game();run(a,{moveX:-1},3);run(b,{moveX:-1},3);expect(a).toEqual(b);expect(a.status).toBe('playing');expect(a.timeLeft).toBe(0);});
  test('opening tower crush works through campaign simulation',()=>{const s=game();IW.step(s,{punch:true,aimX:-65,aimZ:40},1/60);run(s,{},2.1);expect(s.collapseKills).toBeGreaterThanOrEqual(1);expect(s.stage).toBe(0);});

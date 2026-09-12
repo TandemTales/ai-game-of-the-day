@@ -556,7 +556,7 @@ export function createRenderer(canvas) {
         v.halo.scale.setScalar((e.exposed?1.45:1.18)+Math.sin(t*(e.exposed?5:2.5))*.08);
         v.turret.rotation.y=Math.sin(t*.3)*.15;v.legs.forEach((leg,i)=>leg.position.y=e.alive?Math.max(0,Math.sin(t*1.5+i*Math.PI))*.6:0);
       }
-      else{v.g.rotation.y=Math.PI*.5;v.turret.rotation.y=(e.angle||0)-Math.PI*.5;}
+      else{v.g.rotation.y=Math.PI*.5;v.turret.rotation.y=(e.angle||0)-Math.PI*.5;if(e.type==='artillery')v.turret.visible=!e.weaponTaken;}
       if(!e.alive&&!e.disabled){v.g.scale.y=.3;v.g.rotation.z=.16;}
       else v.g.scale.y=1;
     }

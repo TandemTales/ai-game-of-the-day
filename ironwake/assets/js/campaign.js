@@ -87,21 +87,21 @@
     const t={score:Math.max(0,Math.min(1e8,Math.floor(Number(save.totals?.score)||0))),kills:Math.max(0,Number(save.totals?.kills)||0),time:Math.max(0,Number(save.totals?.time)||0),collapseKills:Math.max(0,Number(save.totals?.collapseKills)||0),intel:Array.isArray(save.totals?.intel)?save.totals.intel.filter(x=>typeof x==='string').slice(0,5):[]};const s=makeChapter(save.chapter,u,t);
     if(save.pending&&['score','kills','collapseKills','hp','time'].every(k=>Number.isFinite(save.pending[k])&&save.pending[k]>=0)){Object.assign(s,{status:'won',stage:s.objectives.length,score:save.pending.score,kills:save.pending.kills,collapseKills:save.pending.collapseKills,time:save.pending.time});s.player.hp=Math.min(s.player.maxHp,save.pending.hp);s.objectives.forEach(o=>o.done=true);}
     return s;};
-  function blast(s,x,z,radius,delay,damage){s.strikes.push({id:++s.nextId,x,z,radius,life:delay,maxLife:delay,damage});}
+  function blast(s,x,z,radius,delay,damage,sourceId){s.strikes.push({id:++s.nextId,x,z,radius,life:delay,maxLife:delay,damage,sourceId});}
   IW.updateCampaignEnemies=function(s,dt){
     const p=s.player;
     for(const e of s.enemies){if(!e.alive)continue;const d=dist(e,p);e.angle=Math.atan2(p.x-e.x,p.z-e.z);e.cooldown=Math.max(0,e.cooldown-dt);
       if(e.type==='boss'){
         if(s.stage<2)continue;e.phase=e.hp<e.maxHp*.33?2:e.hp<e.maxHp*.66?1:0;e.exposed=(s.time%12)>8;e.active=true;
         e.x=Math.sin(s.time*.06)*16;e.z=-65+Math.cos(s.time*.06)*8;
-        if(!e.exposed&&d<80&&e.cooldown===0){for(let i=0;i<3+e.phase;i++)blast(s,p.x+(i-1)*7,p.z+(i%2)*6,5+e.phase,1.8,26);e.cooldown=3.6-e.phase*.35;}
+        if(!e.exposed&&d<80&&e.cooldown===0){for(let i=0;i<3+e.phase;i++)blast(s,p.x+(i-1)*7,p.z+(i%2)*6,5+e.phase,1.8,26,e.id);e.cooldown=3.6-e.phase*.35;}
         continue;
       }
       if(d>46)continue;
       if(e.type==='hunter'&&d>5){const speed=e.hunterSpeed||4.8,nx=e.x+Math.sin(e.angle)*dt*speed,nz=e.z+Math.cos(e.angle)*dt*speed;if(!s.buildings.some(b=>IW.inFootprint({x:nx,z:nz},b,e.radius,0))){e.x=nx;e.z=nz;}else{const side={x:e.x+Math.cos(e.angle)*dt*speed*1.04,z:e.z-Math.sin(e.angle)*dt*speed*1.04};if(!s.buildings.some(b=>IW.inFootprint(side,b,e.radius,0)))Object.assign(e,side);}}
       if(e.cooldown>0)continue;
-      if(e.type==='artillery'){blast(s,p.x,p.z,e.artilleryRadius||6,e.artilleryFuse||1.6,e.artilleryDamage||24);e.cooldown=4;}
-      else if(e.type==='hunter'&&d<7){blast(s,p.x,p.z,3.8,.8,18);e.cooldown=2.5;}
+      if(e.type==='artillery'){blast(s,p.x,p.z,e.artilleryRadius||6,e.artilleryFuse||1.6,e.artilleryDamage||24,e.id);e.cooldown=4;}
+      else if(e.type==='hunter'&&d<7){blast(s,p.x,p.z,3.8,.8,18,e.id);e.cooldown=2.5;}
       else if(e.type!=='hunter'&&d<34){IW.shoot(s,e.id,e.x,e.z,p.x-e.x,p.z-e.z,e.type==='tank'?14:9,e.type==='tank'?24:29,false);e.cooldown=e.type==='tank'?2.7:1.9;}
     }
     for(const b of s.strikes){b.life-=dt;if(b.life<=0){if(dist(b,p)<b.radius&&p.invulnerable<=0)IW.damagePlayer(s,b.damage);s.effects.push({id:++s.nextId,type:'explosion',x:b.x,z:b.z,life:.6,maxLife:.6});}}

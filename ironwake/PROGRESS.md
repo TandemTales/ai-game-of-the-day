@@ -422,3 +422,12 @@ independent normal-input gameplay criticism checks deliberate versus naive play
 and native touch campaign coverage. Builders own one file each; only lead runs Git.
 Focused render regressions and six viewport smoke will gate working checkpoints.
 AAA comparison remains mandatory and failure will be recorded without release.
+
+Attack-source checkpoint: pending hunter/artillery/boss strikes now retain their
+actual source enemy ID so presentation can follow a real warning, not guess from
+a cooldown. No targeting, fuse, damage or movement changes. Focused34tests pass,
+including source/fuse/target persistence after an attacker is disabled. Full
+baseline360tests passed before delegation. Artillery weapon theft also identified
+a renderer defect: barrel remains attached; renderer builder correcting it.
+
+Source/weapon-removal checkpoint: full363tests/15suites passed; no balance changes.

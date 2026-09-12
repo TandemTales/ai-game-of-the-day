@@ -142,7 +142,7 @@
       e.flankBonusAwarded = true; s.score += 325;
       s.message = 'FLANKING KILL +325';
     }
-    else s.message = e.disabled ? 'ESCORT DISABLED — GET CLOSE AND RIP ITS GUN' : byCollapse ? 'COLLAPSE KILL +750' : 'CONVOY ARMOR DESTROYED';
+    else s.message = e.disabled ? (e.type === 'artillery' ? 'ARTILLERY DISABLED — GET CLOSE AND RIP THE RAILGUN' : 'ESCORT DISABLED — GET CLOSE AND RIP THE HEAVY GUN') : byCollapse ? 'COLLAPSE KILL +750' : 'CONVOY ARMOR DESTROYED';
     effect(s, 'explosion', e.x, e.z, .9, { radius: e.type === 'tank' ? 3 : 2 });
   }
   function damagePlayer(s, amount) {

@@ -353,3 +353,10 @@ combat balance and two-thumb controls. Independent normal-input gameplay and
 reference criticism, focused visibility fixtures and six-size smoke follow.
 Friday age4; no release. Human fun and AAA visual gates remain unresolved.
 
+
+Message correction: disabled artillery now identifies its railgun; disabled
+escorts identify their heavy gun. Combat behavior is unchanged. Baseline full
+360-test suite passed, and the current deterministic legal-input pilot completed
+all five chapters (53.2/69.2/68.2/105.0/72.5 game seconds). This establishes
+solvability for that informed route, not human pacing or enjoyment.
+

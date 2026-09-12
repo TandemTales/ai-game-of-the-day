@@ -1,5 +1,53 @@
 # Ironwake — testing
 
+## September 11 touch combat verification
+
+Full Jest: 360 tests / 15 suites passed. Six-size `tools/smoke.cjs` passed
+at all default viewports with the changed controls and FIRE hint. Lead opened
+all six final gameplay screenshots plus phone briefing/results/map and landscape
+upgrade screens. 4K was viewed downsampled; no physical-device claim.
+
+Run `node ironwake/tools/touch-controls.cjs` for native CDP touch regressions
+at 320x568, 390x844 and 844x390. It uses the same IW_PLAYWRIGHT/IW_CHROME paths
+as the smoke tool; IW_VIEWPORTS and IW_SHOTS optionally override sizes/output.
+All three sizes passed ten grouped checks: tap aim, deadzone, simultaneous
+movement/fire, four drag directions with actual projectile headings, capture
+outside the button, unrelated pointer isolation, releases, pause/blur/resize/
+retry, cancellation and desktop mouse/right-click/keyboard compatibility.
+Browser console and page errors are checked.
+
+The final report is dated 2026-09-12T03:51:31.199Z. A native pointer-event
+observer verifies exactly which contact releases, because installed Chromium
+1155's partial touchEnd behavior differs from current CDP documentation.
+Interrupted-input fixtures explicitly resume the simulation before asserting
+that no queued shots, punches, boosts or movement occur. Earlier exploratory
+harness reports are superseded by this complete three-viewport run.
+
+These are deliberately isolated controls fixtures: an empty arena and stopped
+frames verify that lifecycle boundaries discard queued actions as well as held
+ones. Blur is dispatched as an event; resize uses the browser viewport API.
+They are not natural campaign play, physical touch-device or enjoyment evidence.
+The separate independent critic uses native inputs with normal simulation time
+and read-only state-informed planning for full opening-chapter play.
+
+Independent fresh Breakwater results: keyboard deliberate route won in 52.53
+game seconds with 191 armor; 390x844 touch with at most two simultaneous contacts
+won in 59.43 seconds with 154 armor, 12 kills, one collapse kill and railgun.
+The native touch route performed demolition, theft, venting, capture and escape.
+Both had no page errors. A naive fire-only keyboard variant lost at 67.50 seconds
+before objective one. This is strategy contrast, not an isolated balance test.
+Two touch driver attempts were discarded for action-release/range mistakes;
+only the corrected fresh run counts. The critic and lead inspected actual touch
+combat/results and the identified official MW5 side-by-side (AAA visual FAIL).
+Detailed provenance, per-step touch log and verdict: sep11-critic under the same
+ignored evidence directory. Full-campaign touch and human enjoyment are unproven.
+
+Ignored evidence: node_modules/.cache/ironwake/sep11-controls/report.json and
+PNGs; sep11-final holds the six-size smoke. A sandbox Chromium launch failed
+with spawn EPERM; the authorized elevated launch passed. Both browser harnesses
+use local HTTP servers. Smoke mocks leaderboard calls; control fixtures never
+submit scores.
+
 ## September 9 campaign verification (supersedes demo scope below)
 
 Full suite: **359 tests in 15 suites passed**. Focused Ironwake: 30 tests.

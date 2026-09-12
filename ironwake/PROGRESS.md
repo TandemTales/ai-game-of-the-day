@@ -1,5 +1,48 @@
 # Ironwake — Progress
 
+## September 11 — independent gameplay verdict and next priority
+
+Final checkpoint: full Jest 360/360 in 15 suites; six-size browser smoke passed;
+dedicated native control harness passed ten grouped checks at each of 320x568,
+390x844 and 844x390. It checks actual projectile headings, exact native pointer
+release, unrelated FIRE contacts, active simulation after interruption and
+desktop compatibility. Lead inspected the six-size images, three final control
+fixtures, critic touch combat/results and AAA comparison. No source changes
+after tested implementation ae99d95; final commit adds regression/handoff only.
+
+The independent critic completed Breakwater with actual keyboard/mouse and with
+at most TWO native touch contacts using the new FIRE dragging. Keyboard won in
+52.53 game seconds with 191 armor. Touch won in 59.43 seconds with 154 armor,
+12 kills, one collapse kill and a stolen railgun; no page errors. Touch used
+demolition, gun theft, venting, capture and escape. Read-only state-informed
+planning makes these reachability/control results, not human fun or playtime
+estimates. All-five-chapter touch completion and physical devices remain untested.
+
+A naive keyboard variant using the same navigation but no demolition, punch,
+theft, vent or boost lost at 67.50 seconds before clearing the first objective.
+This supports a tactical distinction but does not isolate any single mechanic
+or prove human skill improvement. Two earlier touch attempts had driver errors
+(interrupted actions and selecting RIP beyond its real range); excluded from
+product conclusions. Corrected fresh two-contact run completed.
+
+Functional controls: independent opening-chapter PASS. AAA visuals: FAIL / OURS
+LOSES to freshly downloaded official MechWarrior 5 Kestrel Lancers megacity art.
+Critic and lead actually viewed the side-by-side; it was identified, NOT blind.
+Reference wins material, environment and destruction detail. Audio/VFX have no
+independent AAA pass. No shipping judge or completion marker; main untouched.
+
+Next FIRST: make portrait threats and objectives readable around tall towers
+and beyond the camera edge, then play again with ordinary users. Distinguish
+disabled enemies without depending on tiny RIP GUN labels. Keep the new control
+regressions and five-chapter scope. Human pacing/replay enjoyment, physical-device
+performance and production leaderboard connectivity remain open. Release date
+remains September19; tonight is Pacific Friday September11, age4.
+
+Evidence: node_modules/.cache/ironwake/sep11-critic/gameplay-verdict.txt,
+touch-after.json, keyboard/report.json, naive/report.json and comparison-sep11.png.
+Official reference provenance is stored beside the comparison; no reference
+assets were incorporated into the game.
+
 ## September 11 — touch aiming implementation checkpoint
 
 Independent control review found that moving, firing and retargeting required

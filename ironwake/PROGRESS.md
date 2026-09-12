@@ -503,6 +503,23 @@ Independent fresh normal-clock keyboard archive detour won57.129s218armor;
 corrected two-contact touch won70.023s149armor. Both12kills/1crush/1archive;
 naive stationary firing lost49.390s atobjective0. State-informed actual inputs,
 not human enjoyment or physical-device proof. One earlier touch pilot stalled
-4.21m from a repair cache with4m pickup radius; corrected final approach succeeded.
+4.21m from a repair cache with4m pickup radius. A corrected pilot rerun won but
+did not reach that same stall, so the correction is not causally verified.
 AAA map/journal OURS LOSES versus fresh official MW5 manual starmap screenshot.
 Comparison identified and cross-map-type, not blind; no release support.
+
+Final handoff: checkpoint fix cf5ea6a and journal8751460 pushed after intentd8f440b.
+Final dedicated archives harness PASS all6sizes,8groups each,42PNGs, report
+2026-09-12T05:50:54.827Z. Final lost-copy follow-up fresh320 PASS05:52:14.685Z:
+prior archive SAVED, current archive LOST WITH MECH. Lead viewed final320shortcut,
+390full journal,844full ending, lost/banked320, native touch combat/debrief and
+actual official comparison, in addition to six-size smoke gameplay. Console and
+external-runtime checks clean. API smoke is mocked, not production verification.
+
+Next FIRST: authored optional encounters/revelations that change a later tactical
+choice, plus unaided human phone feedback. A600-point lore detour and readable
+journal do not resolve the scale/boredom complaint. Do not inflate timers or mark
+AAA complete from green tests. Art/materials/world density/destruction/audio/VFX,
+physical devices and production leaderboard remain unjudged/below bar. No shipping
+judge or .aaa-complete; main unchanged. Friday age4; forced release September19.
+This bounded pass closes on dev. Exact commands/evidence limits in TESTING.md.

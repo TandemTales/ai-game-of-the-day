@@ -1,4 +1,49 @@
 # Ironwake — testing
+## September 11 archive checkpoints and exploration journal
+
+Full Jest: 367 tests / 15 suites PASS. Focused Ironwake: 38 tests / 2 suites.
+New persistent cases cover current archive/score rollback on retry and unfinished
+reload, won reload/retry/advance, legacy-ID validation/deduplication, and immutable
+save snapshots/journal entries. No combat balance changes.
+
+Run `node ironwake/tools/archives.cjs` with the same IW_PLAYWRIGHT, IW_CHROME,
+IW_VIEWPORTS and IW_SHOTS options as smoke. It uses explicit pickup/completion
+fixtures, then actual keyboard/mouse or native touchscreen UI to verify map
+pause/resume, the supplies shortcut, disclosure controls, cache rows, hidden
+unrecovered stories, expired-radio journal, retry/reload/advance and the full
+five-entry ending/new campaign. It does not prove natural play or enjoyment.
+
+Final archive sweep PASS all6sizes / 8 groups each / 42 screenshot fixtures at
+2026-09-12T05:50:54.827Z. Narrow final lost-status follow-up at320 passed
+05:52:14.685Z in archives-lost-copy: prior chapter SAVED, current chapter LOST.
+Lead inspected representative final shortcut/full-journal/ending/lost-label PNGs.
+
+Six-size smoke passed; lead inspected all6gameplay images (4K downsampled).
+This smoke predates the top supplies shortcut; the dedicated final archive sweep
+and independent native shortcut checks cover that final navigation change.
+Evidence is ignored node_modules/.cache/ironwake/sep11-archives-smoke and archives.
+Browser launch required authorized escalation after sandbox spawn EPERM.
+
+Independent normal-clock state-informed actual-input Breakwater archive detours:
+keyboard WON57.129s,218armor; native two-contact touch WON70.023s,149armor.
+Both12kills/1crush/railgun/1archive/no page errors. Touch maximum2contacts.
+Keyboard archive pickup19.282s; touch20.166s. Fresh stationary forward fire LOST
+49.390s atobjective0, a weak baseline showing idle failure, not gameplay depth.
+Initial touch pilot stopped4.21m from a4m repair pickup; a final-approach correction
+was included in the winning rerun, which did not reach that same stall, so its
+causal effect is unproven. Gameplay state/time/HP were not injected in play runs.
+Keyboard page predates journal integration; winning touch includes journal but
+predates shortcut. Later dedicated fixtures cover the final presentation.
+
+Critic accepts functional scope, rejects AAA. Fresh official MW5 manual page20:
+https://static.mw5mercs.com/docs/MW5Mercs_Game%20Manual.pdf
+Actual side-by-side viewed by critic and lead; identified, not blind, and strategic
+starmap versus mission map limits equivalence. Comparison predates shortcut;
+separate independent native checks at320/390/844/1440 accept shortcut behavior.
+Full verdict, actual play reports and comparison: ignored sep11-archive-critic.
+Stories remain small optional detours for points/lore, not richer encounters.
+Human enjoyment/scale feedback, unaided exploration, physical devices and AAA
+art/audio/VFX remain unresolved. Main unchanged; no completion marker.
 
 ## September 11 enemy identity and full campaign controls
 

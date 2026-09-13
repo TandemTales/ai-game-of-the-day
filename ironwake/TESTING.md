@@ -296,3 +296,14 @@ sep12-sabotage-final, sep12-sabotage-outcome, sep12-sabotage-smoke,
 sep12-sabotage-archives and sep12-sabotage-critic. Native gameplay and comparison
 verdicts are recorded in the corresponding PROGRESS entry; functionality does not
 establish human enjoyment or an AAA pass.
+
+Independent actual-input outcomes: ordinary keyboard51.924s214armor and native
+touch61.432s126armor won; optional keyboard84.316s226armor and final native touch
+105.029s240armor won with archive and sabotage. Touch max2contacts, both guns
+actually disabled64.533s147armor before the final assault; no page errors.
+Ignored critic directory contains keyboard-route/report.json, touch-final/
+touch-after.json (report plus per-input log), actual PNGs, verdict.txt, provenance.txt
+and comparison-baseline-ab.png. Earlier touch evasion strategy repeatedly reset
+its hold, and another route hit the pilot repair terminal-cell mismatch outside
+pickup radius. The corrected final run supersedes incomplete touch-route coverage.
+The normal pilot remains state-informed; no human-fun or physical-device claim.

@@ -611,3 +611,43 @@ functional UI acceptance, AAA visuals OURS LOSES (identified, not blind).
 Native keyboard detour won84.316s226armor, archive+relay used. Native touch relay
 completed44.836s126armor, but later pilot repair-range deadzone prevented that
 attempt finishing; one corrected full rerun is pending. No human-fun claim.
+
+Final September12 handoff: corrected native two-contact touch detour WON105.029s,
+240armor,10kills,1crush,heavy gun,1archive,relay complete, no page errors.
+Both actual authored artillery disabled at64.533s147armor, before final assault.
+The final pilot includes the known direct final-approach repair correction; prior
+incomplete attempts are retained as harness/strategy limits, not game failures.
+The final win did not reproduce the exact4.86m repair stall, so the direct-approach
+pilot change is not causally verified as its fix.
+Keyboard detour WON84.316s226armor11kills1crushheavy; native release after2.035s
+progress then successful new hold. Ordinary keyboard51.924s214armor and native
+touch61.432s126armor also WON. Naive stationary fire LOST49.390s objective0;
+that deliberately weak baseline does not establish depth or isolate balance.
+All use read-only state-informed planning and ordinary real browser inputs/time;
+no injected game-state/time/health in these gameplay runs. Touch maximum2contacts.
+Holding allows movement within6m: stationary pilot damage is not unavoidable-damage
+proof; skillful within-ring evasion remains untested. These are control/reachability
+results, not unaided human learning, physical-device performance or enjoyment.
+
+Final local mechanic/UI scope independently accepted. AAA visuals OURS LOSES to
+fresh official MechWarrior5 Kestrel Lancers megacity image (identified A/B, not blind;
+promotional camera differs). Lead viewed actual comparison and final native touch
+combat/result plus320 saved-outcome fixture. Reference provenance:
+https://www.mw5mercs.com/dlc/legend-of-the-kestrel-lancers
+https://static.mw5mercs.com/img/dlc2/biomes/megacity-biome-01.jpg
+
+Pushed intent433a6ab, gameplay279cd68 and verificationb03d2a7; final docs follow.
+Full379tests/16suites PASS, final focused50/3PASS; all6smoke, all6archive and
+all6relay outcome checks PASS. Final320 outcome capture verifies saved sabotage
+copy after scrolling. Tiny final radio/tooltip copy has focused tests and320
+browser pass; mechanics were unchanged after native route runs began.
+
+Next FIRST: unaided human phone play of the optional route; assess whether players
+choose to detour and can reposition while hacking. Preserve normal combat route.
+Use the corrected repair final-approach pilot for future exploration checks to
+avoid repeating its known4m pickup/terminal-cell mismatch. Further authored
+encounters with tactical consequences can expand the campaign, but this single
+local payoff does not resolve the human scale/boredom complaint. AAA world/materials,
+destruction/atmosphere/audio/VFX and human replay/pacing remain below bar/unjudged;
+production leaderboard and physical devices unverified. No shipping judge, no
+.aaa-complete, no release, main unchanged. Forced release remains September19.

@@ -22,16 +22,20 @@ async function main(){
   await page.waitForFunction(()=>!IW.runtime.state.pickups.find(c=>c.type==='relay').locked);await activate('#mapButton');await activate('#signalsButton');
   const row=page.locator('[data-cache-id="battery-relay-0"]');await row.scrollIntoViewIfNeeded();assert.match(await row.textContent(),/5 uninterrupted seconds/);assert(await row.evaluate(e=>e.scrollWidth<=e.clientWidth+1),'relay instructions fit');await shot('relay-map');await activate('#resume');
   await page.evaluate(()=>{const s=IW.runtime.state,c=s.pickups.find(c=>c.type==='relay');Object.assign(s.player,{x:c.x,z:c.z});s.radioTime=0;});
-  await page.waitForFunction(()=>document.querySelector('#context').textContent.includes('RELAY'));await shot('relay-world');
+  await page.waitForFunction(()=>document.querySelector('#context').textContent.includes('RELAY'));await page.locator('[data-iw-marker="relay"]').waitFor({state:'visible'});await shot('relay-world');
   const cdp=touch?await page.context().newCDPSession(page):null;
   const hold=async()=>{if(touch){const b=await page.locator('[data-action=interact]').boundingBox();await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:1,x:b.x+b.width/2,y:b.y+b.height/2}]});}else await page.keyboard.down('f');};
   const release=async()=>{if(touch)await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});else await page.keyboard.up('f');};
   await hold();await page.waitForFunction(()=>IW.runtime.state.pickups.find(c=>c.type==='relay').progress>.5);await release();await page.waitForFunction(()=>IW.runtime.state.pickups.find(c=>c.type==='relay').progress===0);
   await hold();await page.waitForFunction(()=>IW.runtime.state.pickups.find(c=>c.type==='relay').progress>1);await shot('relay-hold');await page.waitForFunction(()=>IW.runtime.state.pickups.find(c=>c.type==='relay').taken,{},{timeout:20000});await release();await shot('relay-complete');
-  await activate('#mapButton');await activate('#signalsButton');assert.equal(await row.count(),0,'completed relay leaves signal list');await activate('#resume');
-  await page.evaluate(()=>IW.runtime.state.player.hp=0);await page.waitForFunction(()=>IW.runtime.state.status==='lost');await activate('#retry');
+  assert.equal(await page.locator('[data-iw-marker="relay"]:visible').count(),0,'completed world marker clears');
+  await activate('#mapButton');await activate('#signalsButton');assert.equal(await row.count(),0,'completed relay leaves signal list');assert.match(await page.locator('#archiveEntries').textContent(),/BATTERY SABOTAGED/);await activate('#resume');
+  // A completed-objective fixture tests persistent outcome copy, not level play.
+  await page.evaluate(()=>{const s=IW.runtime.state;s.stage=3;Object.assign(s.player,{x:s.objectives[3].x,z:s.objectives[3].z});});await page.waitForFunction(()=>IW.runtime.state.status==='won');
+  await activate('#debriefJournal summary');assert.match(await page.locator('#debriefArchiveEntries').textContent(),/BATTERY SABOTAGED/);await page.locator('#debriefArchiveEntries li p').last().scrollIntoViewIfNeeded();await shot('relay-debrief');
+  await page.reload();await page.waitForFunction(()=>IW.runtime?.state.status==='won');await activate('#debriefJournal summary');assert.match(await page.locator('#debriefArchiveEntries').textContent(),/BATTERY SABOTAGED/,'won reload preserves outcome');await activate('#retry');
   assert(await page.evaluate(()=>{const c=IW.runtime.state.pickups.find(c=>c.type==='relay');return c.locked&&!c.taken&&c.progress===0;}),'retry clears codes and sabotage');
-  assert.deepEqual(errors,[]);report.viewports.push({width,height,status:'passed',input:touch?'native touch hold':'keyboard hold',checks:['locked route concealed','archive unlock map copy','world relay','release resets progress','continuous hold completes','completed relay absent','retry resets','console/overflow clean']});await page.close();console.log(`${width}x${height}: relay fixtures passed`);
+  assert.deepEqual(errors,[]);report.viewports.push({width,height,status:'passed',input:touch?'native touch hold':'keyboard hold',checks:['locked route concealed','archive unlock map copy','world relay marker','release resets progress','continuous hold completes','completed relay absent','debrief and reload retain outcome','retry resets','console/overflow clean']});await page.close();console.log(`${width}x${height}: relay fixtures passed`);
  }}finally{report.completed=new Date().toISOString();fs.writeFileSync(path.join(output,'report.json'),JSON.stringify(report,null,2));await browser.close();}
 }
 main().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>server.close());

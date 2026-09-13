@@ -265,3 +265,34 @@ Independent critic should contrast naive direct fire with deliberate demolition
 and flanking. A win proves reachability, not fun; await human response to the
 first playable before declaring the core engaging. Art is a 3D low-poly scaffold,
 not AAA. Full districts/fortress boss and physical-device performance unverified.
+
+## September 12 — archive-driven optional battery sabotage
+
+Full Jest: 379 tests in 16 suites pass. Focused Ironwake: 50 tests across three
+suites, including 12 new sabotage cases. The added suite verifies archive gating,
+uninterrupted hold and reset, exact kill/score effects, no resurrection, live-shell
+persistence/damage, deterministic replay, retry/reload and chapter isolation.
+
+`node ironwake/tools/sabotage.cjs` checks all six standard sizes. It uses deliberately
+injected positions and enemy removal to isolate native touch/keyboard held input,
+locked-map concealment, clear instructions, visible relay marker/progress, completion
+cleanup, journal/debrief outcome, won reload and retry. These are fixtures, not
+complete gameplay. Final outcome sweep: 9 check groups per viewport, 36 PNGs.
+`node ironwake/tools/archives.cjs` passes 8 groups per viewport with the optional
+relay present; its compass assertion now reads the distance span so added explanatory
+text cannot concatenate into the bearing. Six-size `tools/smoke.cjs` also passes.
+All browser checks report clean console, no external runtime requests and no
+horizontal overflow. Leaderboard smoke remains mocked. Chromium EPERM required
+approved elevated local execution. No physical-device or production API claim.
+
+Lead inspected all six smoke gameplay captures, all six relay layouts across
+initial/final sweeps, final phone marker/hold, map copy, and actual native touch
+sabotage. The 4K images were downsampled by the viewer. The initial world relay
+was obscured by foreground buildings; the integrated tactical marker addresses
+label visibility while preserving the existing cover/occlusion geometry.
+
+Ignored evidence lives under node_modules/.cache/ironwake/sep12-sabotage,
+sep12-sabotage-final, sep12-sabotage-outcome, sep12-sabotage-smoke,
+sep12-sabotage-archives and sep12-sabotage-critic. Native gameplay and comparison
+verdicts are recorded in the corresponding PROGRESS entry; functionality does not
+establish human enjoyment or an AAA pass.

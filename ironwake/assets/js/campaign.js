@@ -134,7 +134,7 @@
           s.effects.push({id:++s.nextId,type:'explosion',x:e.x,z:e.z,life:.6,maxLife:.6});
         }
         s.message='BATTERY RELAY OVERRIDDEN • COASTAL GUNS DISABLED';
-        s.radio='ORLA / Command codes accepted. The coastal guns are offline. Any shells already in the air are still live. Finish the blockade and get those ferries out.';s.radioTime=14;
+        s.radio='ORLA / Command codes accepted. The coastal artillery is offline. Any shells already in the air are still live. Finish the remaining objectives and get those ferries out.';s.radioTime=14;
       }
     }
     if(!o)return;

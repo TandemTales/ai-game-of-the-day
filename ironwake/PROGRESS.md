@@ -598,3 +598,16 @@ relay browser sweep passes all6sizes; lead viewed phone/landscape fixtures and
 found the world relay hidden by foreground architecture, then added the tactical
 marker. Final sweep underway; independent real-input baseline keyboard/touch
 both won. Optional-route play and harsh reference verdict still pending.
+
+Verification checkpoint: final relay outcome sweep passes9groups x6viewports,
+including actual native hold, readable marker, debrief/won reload, and retry.
+Archive sweep passes8groups x6; six-size smoke passes. Lead inspected all6smoke
+and relay layouts, final phone marker/hold and map, native touch sabotage and the
+actual official-reference side-by-side.4K downsampled. The archive harness needed
+a distance-span assertion because explanatory text joins DOM textContent after the
+compass letter; presentation itself had correct spacing. Fixed that harness.
+No console/external runtime/overflow failures; leaderboard mocked. Independent
+functional UI acceptance, AAA visuals OURS LOSES (identified, not blind).
+Native keyboard detour won84.316s226armor, archive+relay used. Native touch relay
+completed44.836s126armor, but later pilot repair-range deadzone prevented that
+attempt finishing; one corrected full rerun is pending. No human-fun claim.

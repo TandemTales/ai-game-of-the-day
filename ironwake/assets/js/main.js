@@ -29,19 +29,24 @@ function drawJournal(listId){
   const li=document.createElement('li'),title=document.createElement('h3'),text=document.createElement('p'),status=document.createElement('small');
   li.dataset.archiveId=entry.id;title.textContent=String(entry.chapter+1).padStart(2,'0')+' / '+entry.title;text.textContent=entry.text;
   status.textContent=entry.secured?'SAVED AT CHAPTER CHECKPOINT':state.status==='lost'?'LOST WITH MECH • RECOVER AGAIN ON RETRY':'RECOVERED THIS ATTEMPT • COMPLETE CHAPTER TO SAVE';
-  li.append(title,text,status);return li;
+  li.append(title,text,status);
+  if(entry.id==='cache-0-0'&&state.chapter===0){const outcome=document.createElement('p'),relay=state.pickups.find(c=>c.type==='relay');outcome.textContent=state.status==='lost'?'Battery codes and sabotage reset on retry.':relay?.taken?'BATTERY SABOTAGED • Coastal artillery disabled.':state.status==='won'?'Chapter completed without using the optional battery relay.':'OPTIONAL ROUTE UNLOCKED • Find Battery relay in Supplies & Archives. Hold INTERACT for 5 uninterrupted seconds; stay alert for shells.';li.append(outcome);}
+  return li;
  }));
  if(!entries.length){const li=document.createElement('li');li.textContent='No archives recovered. White signals on the mission map mark optional stories from the coast.';list.append(li);}
  return entries.length;
 }
 function drawCacheList(){
- const p=state.player,labels={intel:'Archive',repair:'Repair',core:'Capacitor'},directions=['N','NE','E','SE','S','SW','W','NW'];
- const caches=state.pickups.filter(c=>!c.taken).sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z));
+ const p=state.player,labels={intel:'Archive',repair:'Repair',core:'Capacitor',relay:'Battery relay'},directions=['N','NE','E','SE','S','SW','W','NW'];
+ const caches=state.pickups.filter(c=>!c.taken&&!c.locked).sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z));
  $('cacheList').replaceChildren(...caches.map(c=>{
   const li=document.createElement('li'),name=document.createElement('strong'),distance=document.createElement('span');
   li.dataset.cacheId=c.id;li.dataset.kind=c.type;name.textContent=labels[c.type];
   const bearing=(Math.round(Math.atan2(c.x-p.x,p.z-c.z)/(Math.PI/4))+8)%8;
-  distance.textContent=Math.ceil(Math.hypot(c.x-p.x,c.z-p.z))+' m '+directions[bearing];li.append(name,distance);return li;
+  distance.textContent=Math.ceil(Math.hypot(c.x-p.x,c.z-p.z))+' m '+directions[bearing];li.append(name,distance);
+  if(c.type==='relay'){const hint=document.createElement('small');hint.textContent='OPTIONAL • Hold INTERACT nearby for 5 uninterrupted seconds to disable coastal artillery. Leaving or releasing resets the hack; incoming shells remain dangerous.';li.append(hint);}
+  if(c.id==='cache-0-0'){const hint=document.createElement('small');hint.textContent='OPTIONAL • Ferry command codes reveal a route to disable the coastal artillery.';li.append(hint);}
+  return li;
  }));
  $('cacheEmpty').hidden=!!caches.length;
 }
@@ -98,7 +103,7 @@ for(const event of ['pointerup','pointercancel','lostpointercapture'])$('stick')
 function drawMap(canvas){const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height,b=state.bounds,scale=(w-24)/(b.maxX-b.minX);const xy=p=>[12+(p.x-b.minX)*scale,12+(p.z-b.minZ)*scale];ctx.fillStyle='#09151f';ctx.fillRect(0,0,w,h);ctx.strokeStyle='#26404a';ctx.lineWidth=1;for(let n=12;n<w;n+=32*scale){ctx.beginPath();ctx.moveTo(n,12);ctx.lineTo(n,h-12);ctx.moveTo(12,n);ctx.lineTo(w-12,n);ctx.stroke();}
  for(const z of state.hazards){ctx.fillStyle=z.type==='water'?'#154954':'#6a351f';ctx.beginPath();ctx.arc(...xy(z),z.radius*scale,0,Math.PI*2);ctx.fill();}
  for(const z of state.buildings){const [x,y]=xy(z);ctx.fillStyle=z.status==='standing'?'#688082':'#45494a';ctx.fillRect(x-z.w*scale/2,y-z.d*scale/2,z.w*scale,z.d*scale);}
- for(const z of state.pickups){if(z.taken)continue;const [x,y]=xy(z);ctx.fillStyle=z.type==='repair'?'#65e3d9':z.type==='intel'?'#fff':'#e5cf76';ctx.fillRect(x-3,y-3,6,6);}
+ for(const z of state.pickups){if(z.taken||z.locked)continue;const [x,y]=xy(z);ctx.fillStyle=z.type==='repair'?'#65e3d9':z.type==='intel'?'#fff':'#e5cf76';ctx.fillRect(x-3,y-3,6,6);if(z.type==='relay'&&w>300){ctx.font='bold 12px Arial';ctx.fillText('RELAY',x+7,y+4);}}
  for(const e of state.enemies){if(!e.alive||Math.hypot(e.x-state.player.x,e.z-state.player.z)>48)continue;ctx.fillStyle='#ff6a52';ctx.beginPath();ctx.arc(...xy(e),e.type==='boss'?7:3,0,Math.PI*2);ctx.fill();}
  state.objectives.forEach((o,i)=>{const [x,y]=xy(o);ctx.strokeStyle=o.done?'#6c9284':i===state.stage?'#ffcb77':'#627080';ctx.lineWidth=i===state.stage?3:1;ctx.beginPath();ctx.arc(x,y,7,0,Math.PI*2);ctx.stroke();ctx.font=`bold ${w>300?16:10}px Arial`;ctx.fillStyle=ctx.strokeStyle;ctx.fillText(o.done?'✓':String(i+1),x+9,y+4);});
  const [x,y]=xy(state.player);ctx.save();ctx.translate(x,y);ctx.rotate(-state.player.angle);ctx.fillStyle='#66fff0';ctx.beginPath();ctx.moveTo(0,6);ctx.lineTo(-5,-5);ctx.lineTo(5,-5);ctx.closePath();ctx.fill();ctx.restore();

@@ -30,9 +30,9 @@ async function main(){
    const map=async()=>{await activate('#mapButton');await page.waitForFunction(()=>IW.runtime.paused);await fit('#mapPanel');};
    const resume=async()=>{await activate('#resume');await page.waitForFunction(()=>!IW.runtime.paused);};
    const cacheRows=async()=>{
-    const expected=await page.evaluate(()=>IW.runtime.state.pickups.filter(c=>!c.taken).map(c=>({id:c.id,type:c.type,distance:Math.ceil(Math.hypot(c.x-IW.runtime.state.player.x,c.z-IW.runtime.state.player.z)),dx:c.x-IW.runtime.state.player.x,dz:c.z-IW.runtime.state.player.z})));
+    const expected=await page.evaluate(()=>IW.runtime.state.pickups.filter(c=>!c.taken&&!c.locked).map(c=>({id:c.id,type:c.type,distance:Math.ceil(Math.hypot(c.x-IW.runtime.state.player.x,c.z-IW.runtime.state.player.z)),dx:c.x-IW.runtime.state.player.x,dz:c.z-IW.runtime.state.player.z})));
     assert.equal(await page.locator('#cacheList li').count(),expected.length,'only available caches listed');
-    for(const c of expected){const el=page.locator(`[data-cache-id="${c.id}"]`),text=await el.textContent();assert.match(text,c.type==='intel'?/ARCHIVE/i:c.type==='repair'?/REPAIR/i:/CAPACITOR/i);assert.match(text,new RegExp('(?:^|\\D)'+c.distance+'\\s*m\\b','i'),'cache distance matches paused position');assert.match(text,/\b(?:N|NE|E|SE|S|SW|W|NW)\b/,'cache includes compass direction');await fit(`[data-cache-id="${c.id}"]`);}
+    for(const c of expected){const el=page.locator(`[data-cache-id="${c.id}"]`),text=await el.textContent();assert.match(text,c.type==='intel'?/ARCHIVE/i:c.type==='repair'?/REPAIR/i:c.type==='relay'?/RELAY/i:/CAPACITOR/i);assert.match(text,new RegExp('(?:^|\\D)'+c.distance+'\\s*m\\b','i'),'cache distance matches paused position');assert.match(text,/\b(?:N|NE|E|SE|S|SW|W|NW)\b/,'cache includes compass direction');await fit(`[data-cache-id="${c.id}"]`);}
     return expected;
    };
    const collect=async chapter=>{

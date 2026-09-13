@@ -39,6 +39,14 @@ carry the story through an ending. No arbitrary mission time limit.
   attempt discoveries; a completed chapter saves them and advance banks them.
   Journal distinguishes current-attempt versus secured entries. Legacy version1
   saves are supported and archive IDs are validated against authored chapters.
+- Breakwater's ferry archive also reveals a battery command relay northwest of
+  the artillery (12,-45). Hold INTERACT within 6m for five uninterrupted seconds
+  to disable the two surviving authored coastal artillery chassis. Release or
+  leave to reset. Shells already fired remain dangerous; disabled railguns can be
+  salvaged normally. It gives the ordinary kill credit, no extra sabotage bonus.
+  The detour is optional; the original combat route and twenty objectives remain.
+  Retry and unfinished reload reset codes and sabotage; completed debriefs retain
+  the outcome. This is one local tactical payoff, not a new campaign branch.
 
 ## Files and shared API
 
@@ -101,9 +109,9 @@ Only the lead runs Git. Work stays on dev; no main release or AAA completion cla
 
 | Role | Single owned file |
 | --- | --- |
-| Archive checkpoint builder | assets/js/campaign.js |
-| Archive regression builder | tools/archives.cjs |
-| Independent gameplay/archive critic | Read-only; no game files |
+| Optional sabotage builder | assets/js/campaign.js |
+| Sabotage regression builder | ../__tests__/ironwake.sabotage.test.js (repository __tests__) |
+| Independent gameplay/sabotage critic | Read-only; no game files |
 | Lead integration | All other files, documentation and Git |
 
 Builders must report cross-file needs to the lead. Critic remains independent.

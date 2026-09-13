@@ -34,7 +34,8 @@ header>div{pointer-events:auto;display:flex;gap:5px}#objectiveTitle{font-size:18
 .cache-panel h3{font-size:12px;letter-spacing:1px;color:#ffcf92;margin:0 0 8px}
 .cache-panel p{font-size:12px;line-height:1.6;color:#a9bdb5}
 #cacheList,.archive-journal ul{list-style:none;padding:0;margin:12px 0}
-#cacheList li{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #78948b33;font-size:13px;color:#e5cf76}
+#cacheList li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 12px;padding:9px 0;border-bottom:1px solid #78948b33;font-size:13px;color:#e5cf76}
+#cacheList li small{flex-basis:100%;font-size:12px;line-height:1.5;color:#c1d0cb}
 #cacheList li[data-kind=repair]{color:#65e3d9}#cacheList li[data-kind=intel]{color:#fff}
 #cacheList span{white-space:nowrap;font-variant-numeric:tabular-nums}
 .archive-journal{margin-top:20px;border-top:1px solid var(--line);color:#c6d4ce}

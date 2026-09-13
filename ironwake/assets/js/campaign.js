@@ -13,7 +13,7 @@
       ],
       squads:[[-65,40,'tank',2],[-35,25,'escort',2],[5,5,'escort',3],[40,-25,'artillery',2],[60,-40,'tank',3]],
       towers:[[-65,57,20],[-51,52,16],[0,19,18],[55,-22,20],[70,-22,18]],
-      caches:[[-85,5,'intel','A ferry manifest: 640 civilians. The Directorate marked every one as expendable.'],[-5,60,'repair'],[82,-5,'core'],[26,-70,'repair']],
+      caches:[[-85,5,'intel','A ferry manifest: 640 civilians. The Directorate marked every one as expendable. Battery command codes are attached. Optional: reach the ferry battery relay northwest of the guns and hold F / INTERACT for five uninterrupted seconds to shut them down.'],[-5,60,'repair'],[82,-5,'core'],[26,-70,'repair']],
       hazards:[] },
     { title:'THE DROWNED WARD',place:'02 / Flooded residential district',biome:'flood',size:115,start:[-85,80], pressure:{label:'HUNTER TIDE',hunterSpeed:6.1,artilleryRadius:5.6,artilleryFuse:1.45,artilleryDamage:22},
       briefing:'Flood sirens have been sounding for nine years. Below the broken towers, survivors still keep lights in their windows. Ivo has left a signal in three old pump stations. Restore the network and escort its data across the ward. Water cools your reactor, but slows the mech.',
@@ -76,10 +76,11 @@
     if(index===2)for(let i=0;i<3;i++)s.buildings.push({id:'railcar-'+i,x:26+i*15,z:55,w:12,d:5,h:4,hp:1,maxHp:1,indestructible:true,kind:'train',status:'standing',fallX:0,fallZ:-1,fallProgress:0,hitIds:[]});
     // Cover clusters sit off the authored route; all visible buildings share collision.
     for(let i=0;i<22;i++){const x=-c.size+15+((i*43)%(c.size*2-30)),z=-c.size+12+((i*67)%(c.size*2-24));const p={x,z};
-      if(dist(p,s.player)<12||s.objectives.some(o=>dist(p,o)<17)||s.enemies.some(e=>dist(e,p)<8)||s.buildings.some(b=>dist(b,p)<9)||c.caches.some(a=>dist(p,point(a))<9))continue;
+      if(dist(p,s.player)<12||s.objectives.some(o=>dist(p,o)<17)||s.enemies.some(e=>dist(e,p)<8)||s.buildings.some(b=>dist(b,p)<9)||c.caches.some(a=>dist(p,point(a))<9)||(index===0&&dist(p,{x:12,z:-45})<12))continue;
       s.buildings.push({id:'block-'+index+'-'+i,x,z,w:6+(i%3)*2,d:6,h:5+i%5*2,hp:160,maxHp:160,status:'standing',fallX:0,fallZ:-1,fallProgress:0,hitIds:[],kind:c.biome,color:c.biome==='desert'?'#88705c':c.biome==='reactor'?'#574d5d':'#4a686e'});
     }
     s.pickups=c.caches.map((a,i)=>({id:'cache-'+index+'-'+i,...point(a),type:a[2],text:a[3]||'',taken:false}));
+    if(index===0)s.pickups.push({id:'battery-relay-0',type:'relay',name:'Ferry battery relay',text:'Optional battery sabotage. Recover the ferry manifest command codes, then hold F / INTERACT here for five uninterrupted seconds.',x:12,z:-45,locked:true,taken:false,progress:0,duration:5});
     s.convoyTotal=s.enemies.filter(e=>e.type==='tank').length;s.convoyDestroyed=0;return s;
   }
   IW.createCampaignState=makeChapter;
@@ -87,11 +88,11 @@
   IW.start=function(s){if(!s.campaign)return baseStart(s);if(s.status==='playing')return false;replace(s,makeChapter(s.chapter,s.upgrades,s.totals));s.status='playing';return true;};
   IW.advance=function(s,upgrade){if(!s.campaign||s.status!=='won'||s.chapter>=4||!['armor','reactor','damage'].includes(upgrade))return false;
     const u=copy(s.upgrades);u[upgrade]++;replace(s,makeChapter(s.chapter+1,u,{score:s.score,kills:s.totals.kills+s.kills,time:(s.totals.time||0)+s.time,collapseKills:(s.totals.collapseKills||0)+s.collapseKills,intel:s.totals.intel}));return true;};
-  IW.campaignSave=s=>copy({version:1,chapter:s.chapter,upgrades:s.upgrades,totals:s.totals,pending:s.status==='won'?{score:s.score,kills:s.kills,collapseKills:s.collapseKills,hp:s.player.hp,time:s.time}:null});
+  IW.campaignSave=s=>copy({version:1,chapter:s.chapter,upgrades:s.upgrades,totals:s.totals,pending:s.status==='won'?{score:s.score,kills:s.kills,collapseKills:s.collapseKills,hp:s.player.hp,time:s.time,batteryRelayDisabled:s.chapter===0&&s.pickups.some(c=>c.id==='battery-relay-0'&&c.taken)}:null});
   IW.restoreCampaign=function(save){if(!save||save.version!==1||!Number.isInteger(save.chapter)||save.chapter<0||save.chapter>4)return makeChapter(0);
     const u={};for(const k of ['armor','reactor','damage'])u[k]=Math.min(4,Math.max(0,Math.floor(Number(save.upgrades?.[k])||0)));
     const t={score:Math.max(0,Math.min(1e8,Math.floor(Number(save.totals?.score)||0))),kills:Math.max(0,Number(save.totals?.kills)||0),time:Math.max(0,Number(save.totals?.time)||0),collapseKills:Math.max(0,Number(save.totals?.collapseKills)||0),intel:recoveredIntel(save.totals?.intel,save.chapter)};const s=makeChapter(save.chapter,u,t);
-    if(save.pending&&['score','kills','collapseKills','hp','time'].every(k=>Number.isFinite(save.pending[k])&&save.pending[k]>=0)){Object.assign(s,{status:'won',stage:s.objectives.length,score:save.pending.score,kills:save.pending.kills,collapseKills:save.pending.collapseKills,time:save.pending.time});s.totals.intel=t.intel;s.pickups.forEach(c=>{if(c.type==='intel')c.taken=s.totals.intel.includes(c.id);});s.player.hp=Math.min(s.player.maxHp,save.pending.hp);s.objectives.forEach(o=>o.done=true);}
+    if(save.pending&&['score','kills','collapseKills','hp','time'].every(k=>Number.isFinite(save.pending[k])&&save.pending[k]>=0)){Object.assign(s,{status:'won',stage:s.objectives.length,score:save.pending.score,kills:save.pending.kills,collapseKills:save.pending.collapseKills,time:save.pending.time});s.totals.intel=t.intel;s.pickups.forEach(c=>{if(c.type==='intel')c.taken=s.totals.intel.includes(c.id);if(s.chapter===0&&c.id==='battery-relay-0'){c.locked=!s.totals.intel.includes('cache-0-0');c.taken=!c.locked&&save.pending.batteryRelayDisabled===true;c.progress=c.taken?c.duration:0;}});s.player.hp=Math.min(s.player.maxHp,save.pending.hp);s.objectives.forEach(o=>o.done=true);}
     return s;};
   function blast(s,x,z,radius,delay,damage,sourceId){s.strikes.push({id:++s.nextId,x,z,radius,life:delay,maxLife:delay,damage,sourceId});}
   IW.updateCampaignEnemies=function(s,dt){
@@ -117,10 +118,24 @@
     const p=s.player,o=s.objectives[s.stage];s.radioTime=Math.max(0,s.radioTime-dt);s.context='';
     for(const h of s.hazards)if(dist(h,p)<h.radius){if(h.type==='water')p.heat=Math.max(0,p.heat-14*dt);else IW.damagePlayer(s,6*dt);}
     if(p.hp<=0){s.status='lost';s.message='MECH DISABLED';p.venting=false;return;}
-    for(const c of s.pickups)if(!c.taken&&dist(c,p)<4){c.taken=true;s.score+=c.type==='intel'?600:300;
+    for(const c of s.pickups)if(c.type!=='relay'&&!c.taken&&dist(c,p)<4){c.taken=true;s.score+=c.type==='intel'?600:300;
       if(c.type==='repair'){p.hp=Math.min(p.maxHp,p.hp+100);s.message='FIELD REPAIR • +100 ARMOR';}
       if(c.type==='core'){p.heat=0;p.overheated=false;p.dashCooldown=0;p.hp=Math.min(p.maxHp,p.hp+40);s.message='CAPACITOR CACHE • ARMOR + COOLANT + BOOST';}
       if(c.type==='intel'){if(!s.totals.intel.includes(c.id))s.totals.intel.push(c.id);s.radio='ARCHIVE / '+c.text;s.radioTime=16;s.message='ARCHIVE RECOVERED • +600';}
+    }
+    const relay=s.chapter===0?s.pickups.find(c=>c.id==='battery-relay-0'&&c.type==='relay'):null;
+    if(relay&&!relay.taken){
+      relay.locked=!s.totals.intel.includes('cache-0-0');
+      relay.progress=!relay.locked&&dist(relay,p)<=6&&input.interact?Math.min(relay.duration,relay.progress+dt):0;
+      if(relay.progress>=relay.duration-1e-9){
+        relay.progress=relay.duration;relay.taken=true;
+        for(const e of s.enemies)if(e.alive&&e.type==='artillery'&&/^c0-s3-\d+$/.test(e.id)){
+          e.alive=false;e.hp=0;e.disabled=true;s.kills++;s.score+=150;
+          s.effects.push({id:++s.nextId,type:'explosion',x:e.x,z:e.z,life:.6,maxLife:.6});
+        }
+        s.message='BATTERY RELAY OVERRIDDEN • COASTAL GUNS DISABLED';
+        s.radio='ORLA / Command codes accepted. The coastal guns are offline. Any shells already in the air are still live. Finish the blockade and get those ferries out.';s.radioTime=14;
+      }
     }
     if(!o)return;
     const nearby=dist(o,p),threats=s.enemies.filter(e=>e.alive&&dist(e,o)<20);
@@ -137,7 +152,8 @@
       const wave=Math.min(3,1+Math.floor(o.progress/12));if(wave>s.wave){s.wave=wave;for(let i=0;i<3;i++)s.enemies.push(foe('wave-'+wave+'-'+i,i===0?'artillery':'hunter',o.x+(wave%2?1:-1)*(24+i*3),o.z-20+i*12,s.pressure));s.radio='ORLA / Counterattack '+wave+'. Keep the uplink in range.';s.radioTime=6;}
       o.done=o.progress>=o.duration;
     }
-    if(!s.context){const cache=s.pickups.filter(c=>!c.taken).sort((a,b)=>dist(a,p)-dist(b,p))[0];if(cache){const d=Math.hypot(cache.x-p.x,cache.z-p.z);if(d<16){const kind=cache.type==='intel'?'ARCHIVE SIGNAL':cache.type==='repair'?'REPAIR CACHE':'CAPACITOR CACHE';s.context=kind+' • '+Math.max(1,Math.ceil(d))+' m';}}}
+    if(relay&&!relay.taken&&dist(relay,p)<16)s.context=relay.locked?'RELAY LOCKED • FIND FERRY ARCHIVE CODES':dist(relay,p)<=6?'HOLD F / INTERACT • BATTERY RELAY '+relay.progress.toFixed(1)+' / 5 SEC':'OPTIONAL BATTERY RELAY • '+Math.ceil(dist(relay,p))+' m';
+    if(!s.context){const cache=s.pickups.filter(c=>!c.taken&&c.type!=='relay').sort((a,b)=>dist(a,p)-dist(b,p))[0];if(cache){const d=Math.hypot(cache.x-p.x,cache.z-p.z);if(d<16){const kind=cache.type==='intel'?'ARCHIVE SIGNAL':cache.type==='repair'?'REPAIR CACHE':'CAPACITOR CACHE';s.context=kind+' • '+Math.max(1,Math.ceil(d))+' m';}}}
     if(o.done){s.score+=1200;s.stage++;if(s.stage<s.objectives.length){s.radio=s.objectives[s.stage].radio;s.radioTime=14;s.message='OBJECTIVE COMPLETE • +1200';p.hp=Math.min(p.maxHp,p.hp+35);}
       else{s.status='won';s.score+=Math.round(p.hp*5)+1500;s.message='CHAPTER SECURED';p.venting=false;}}
   };

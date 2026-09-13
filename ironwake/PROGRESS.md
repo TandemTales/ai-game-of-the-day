@@ -586,3 +586,15 @@ exactly-once consequences and retry/reload behavior; explain the route in map/jo
 Single-file campaign and regression builders plus an independent gameplay critic;
 lead owns UI/docs/Git. Test each pushed checkpoint. Human fun/scale feedback remains
 unresolved, and AAA comparison failure remains release-blocking outside forced night.
+
+Sabotage implementation checkpoint: ferry archive unlocks the optional relay;
+uninterrupted five-second native INTERACT hold disables only surviving coastal
+artillery for ordinary kill credit. Existing live shells persist; destroyed units
+are not resurrected or rewarded again. Retry/unfinished reload reset the route,
+won saves retain its outcome. Map signals explain the detour and hold/reset rules;
+journal records outcome; nearby relay gets a HUD-safe marker and progress bar.
+Full379tests/16suites PASS, including12new sabotage regression cases. Initial
+relay browser sweep passes all6sizes; lead viewed phone/landscape fixtures and
+found the world relay hidden by foreground architecture, then added the tactical
+marker. Final sweep underway; independent real-input baseline keyboard/touch
+both won. Optional-route play and harsh reference verdict still pending.

@@ -413,7 +413,8 @@ export function createRenderer(canvas) {
     for(const o of state.objectives){const g=group();g.position.set(o.x,0,o.z);const ring=mesh(zoneRingGeo,M.yellow,0,.15,0,6,6,1,g);ring.rotation.x=-Math.PI/2;ring.castShadow=false;
       const beam=mesh(cylGeo,objectiveMaterial,0,9,0,.3,18,.3,g);beam.castShadow=false;landmarks.set(o.id,g);}
     for(const c of state.pickups){const g=group();g.position.set(c.x,0,c.z);box(M.dark,0,.75,0,2.6,1.5,2,g);box(c.type==='repair'?M.cyan:c.type==='intel'?M.white:M.yellow,0,1.6,0,2.1,.2,1.7,g);
-      const symbol=mesh(planeGeo,label(c.type==='repair'?'+ REPAIR':c.type==='intel'?'ARCHIVE':'CAPACITOR'),0,3,0,5,1.25,1,g);symbol.castShadow=false;g.userData.symbol=symbol;landmarks.set(c.id,g);}
+      if(c.type==='relay'){box(M.steel,0,2.6,0,.3,3.5,.3,g);box(M.yellow,0,4.2,0,2.8,.25,.25,g);const ring=mesh(zoneRingGeo,M.yellow,0,.15,0,6,6,1,g);ring.rotation.x=-Math.PI/2;ring.castShadow=false;}
+      const symbol=mesh(planeGeo,label(c.type==='repair'?'+ REPAIR':c.type==='intel'?'ARCHIVE':c.type==='relay'?'RELAY / HOLD F':'CAPACITOR'),0,c.type==='relay'?5:3,0,c.type==='relay'?8:5,1.25,1,g);symbol.castShadow=false;g.userData.symbol=symbol;landmarks.set(c.id,g);}
   }
   const ray=new THREE.Raycaster(),pointer=new THREE.Vector2(),ground=new THREE.Plane(new THREE.Vector3(0,1,0),0),pickPoint=new THREE.Vector3();
   let width=0,height=0,lastX=0,lastZ=0,initialized=false;
@@ -466,6 +467,8 @@ export function createRenderer(canvas) {
     const active=state.campaign&&state.objectives[state.stage];
     const candidates=[];
     if(active&&!active.done)candidates.push({entity:active,kind:'objective',distance:Math.hypot(active.x-p.x,active.z-p.z)});
+    const relay=state.campaign&&state.pickups.find(c=>c.type==='relay'&&!c.locked&&!c.taken&&Math.hypot(c.x-p.x,c.z-p.z)<24);
+    if(relay)candidates.push({entity:relay,kind:'relay',distance:Math.hypot(relay.x-p.x,relay.z-p.z)});
     const nearby=state.enemies.filter(e=>!e.escaped&&(e.alive||(e.disabled&&!e.weaponTaken))).map(e=>({entity:e,kind:e.disabled?'salvage':'threat',distance:Math.hypot(e.x-p.x,e.z-p.z)})).filter(c=>c.distance<=(c.kind==='salvage'?28:48));
     nearby.sort((a,b)=>a.distance-b.distance);
     const salvage=nearby.filter(c=>c.kind==='salvage'),threats=nearby.filter(c=>c.kind==='threat');
@@ -476,7 +479,7 @@ export function createRenderer(canvas) {
     const prioritized=[...(readySalvage?[readySalvage]:[]),...threats,...salvage.filter(c=>c!==readySalvage)];
     candidates.push(...prioritized.slice(0,narrow?4:6));
     for(const c of candidates){
-      const e=c.entity,isObjective=c.kind==='objective',key=(isObjective?'objective:':'enemy:')+e.id;
+      const e=c.entity,isRelay=c.kind==='relay',isObjective=c.kind==='objective'||isRelay,key=(isRelay?'relay:':isObjective?'objective:':'enemy:')+e.id;
       // Keep the tag above the role's silhouette, especially the elevated long gun.
       const anchor=tacticalProjection(e.x,isObjective?.4:({boss:12,artillery:3.8,escort:3.6,hunter:2.9,tank:2.5}[e.type]||2),e.z);
       const offscreen=anchor.behind||anchor.x<12||anchor.x>width-12||anchor.y<12||anchor.y>height-12;
@@ -505,7 +508,7 @@ export function createRenderer(canvas) {
       let node=markerNodes.get(key);
       if(!node){
         const el=document.createElement('div'),name=document.createElement('b'),detail=document.createElement('div'),bar=document.createElement('div'),link=document.createElement('div');
-        el.dataset.iwMarker=isObjective?'objective':'enemy';el.dataset.id=e.id;
+        el.dataset.iwMarker=isRelay?'relay':isObjective?'objective':'enemy';el.dataset.id=e.id;
         el.style.cssText='position:absolute;padding:4px 6px;background:#06121eef;border-left:2px solid;box-shadow:0 1px 5px #0008;font:700 11px/14px Arial,sans-serif;white-space:nowrap;';
         name.style.cssText='display:block;overflow:hidden;text-overflow:ellipsis;font-size:11px;';
         detail.style.cssText='font-size:10px;font-weight:400;line-height:13px;';
@@ -517,14 +520,14 @@ export function createRenderer(canvas) {
       const distance=Math.ceil(c.distance),ripReach=state.campaign?7:4.5;
       const role=({tank:'TANK',escort:'ESCORT',hunter:'HUNTER',artillery:'ARTILLERY',boss:'SOVEREIGN'}[e.type]||'HOSTILE');
       const weapon=e.type==='artillery'?'RAIL':'HEAVY';
-      const name=isObjective?'OBJECTIVE '+(state.stage+1):c.kind==='salvage'?role+' OFF':role;
-      let detail=isObjective?distance+' m':c.kind==='salvage'?(c.distance<=ripReach?'RIP ':'')+weapon+' '+distance+'m':(occluded?'OBSCURED · ':'')+distance+' m',direction='';
+      const name=isRelay?'BATTERY RELAY':isObjective?'OBJECTIVE '+(state.stage+1):c.kind==='salvage'?role+' OFF':role;
+      let detail=isRelay?(c.distance<=6?'HOLD · '+e.progress.toFixed(1)+'/5s':distance+' m · OPTIONAL'):isObjective?distance+' m':c.kind==='salvage'?(c.distance<=ripReach?'RIP ':'')+weapon+' '+distance+'m':(occluded?'OBSCURED · ':'')+distance+' m',direction='';
       if(offscreen){const angle=Math.atan2(anchor.y-height/2,anchor.x-width/2),arrows=['→','↘','↓','↙','←','↖','↑','↗'];direction=arrows[(Math.round(angle/(Math.PI/4))+8)%8];detail=direction+' '+detail;}
       const urgent=offscreen&&c.kind==='threat',edgeCue=offscreen&&(isObjective||c.kind==='threat'),displayName=urgent?direction+' '+name:name;
       if(node.name.textContent!==displayName)node.name.textContent=displayName;if(node.detail.textContent!==detail)node.detail.textContent=detail;
       node.el.hidden=false;Object.assign(node.el.dataset,{kind:c.kind,occluded:String(!!occluded),offscreen:String(offscreen),distance:String(distance)});
       node.el.title=isObjective?e.title:c.kind==='salvage'?name+' DISABLED • '+(e.type==='artillery'?'RAILGUN':'HEAVY GUN'):name;node.el.dataset.disabled=String(c.kind==='salvage');node.el.style.color=color;node.el.style.borderLeftWidth=edgeCue?'4px':'2px';node.el.style.background=edgeCue?'#0d1c29f5':'#06121eef';node.name.style.fontSize=urgent?'13px':'11px';node.el.style.width=labelW+'px';node.el.style.height=labelH+'px';node.el.style.transform=`translate(${Math.round(place.x)}px,${Math.round(place.y)}px)`;
-      node.bar.hidden=c.kind!=='threat';node.bar.style.width=(Math.max(0,Math.min(1,e.hp/e.maxHp))*100)+'%';
+      node.bar.hidden=c.kind!=='threat'&&!isRelay;node.bar.style.width=(Math.max(0,Math.min(1,isRelay?e.progress/e.duration:e.hp/e.maxHp))*100)+'%';
       // Do not draw a line through the cockpit or a panel; edge arrows still
       // communicate direction when the true anchor is outside the battlefield.
       const from={x:place.x+labelW/2,y:place.y+labelH},lineX=anchor.x-from.x,lineY=anchor.y-from.y;
@@ -661,7 +664,7 @@ export function createRenderer(canvas) {
     for(const[id,v]of effects)if(!currentEffects.has(id)){scene.remove(v);effects.delete(id);}
     if(state.campaign){
       for(const o of state.objectives){const v=landmarks.get(o.id);v.visible=!o.done&&state.objectives[state.stage]===o;v.children[0].rotation.z=t*.2;}
-      for(const c of state.pickups){const v=landmarks.get(c.id);v.visible=!c.taken&&Math.hypot(c.x-p.x,c.z-p.z)<65;v.userData.symbol.quaternion.copy(camera.quaternion);}
+      for(const c of state.pickups){const v=landmarks.get(c.id);v.visible=!c.taken&&!c.locked&&Math.hypot(c.x-p.x,c.z-p.z)<65;v.userData.symbol.quaternion.copy(camera.quaternion);}
       const active=new Set();for(const strike of state.strikes){active.add(strike.id);let v=strikeMeshes.get(strike.id);if(!v){v=group();const d=mesh(discGeo,dangerMaterial,0,.12,0,1,1,1,v);d.rotation.x=-Math.PI/2;d.castShadow=false;const r=mesh(torusGeo,M.red,0,.15,0);r.rotation.x=-Math.PI/2;r.castShadow=false;v.add(r);strikeMeshes.set(strike.id,v);}v.position.set(strike.x,0,strike.z);v.scale.setScalar(strike.radius);v.children[1].scale.setScalar(.25+.75*(1-strike.life/strike.maxLife));}
       for(const[id,v]of strikeMeshes)if(!active.has(id)){scene.remove(v);strikeMeshes.delete(id);}
     }

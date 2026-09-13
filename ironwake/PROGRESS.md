@@ -651,3 +651,17 @@ local payoff does not resolve the human scale/boredom complaint. AAA world/mater
 destruction/atmosphere/audio/VFX and human replay/pacing remain below bar/unjudged;
 production leaderboard and physical devices unverified. No shipping judge, no
 .aaa-complete, no release, main unchanged. Forced release remains September19.
+
+## September 13 — committed hunter charges (09:04 Pacific)
+
+STOP absent; dev synchronized clean. Sunday age6; forced release September19.
+Scope audit: all five authored chapters, twenty objectives, upgrades, archives,
+checkpoint progression and fortress ending exist. Breadth counts are implemented,
+but meaningful variety/enjoyment and AAA quality remain unaccepted. The hunter's
+promised dodge-and-counter charge is currently pursuit plus a delayed ground blast;
+this run implements that missing combat distinction across its campaign encounters.
+Intent: telegraphed committed rush, collision-aware movement and a punishable recovery;
+readable presentation; focused regression plus full campaign/input verification.
+Campaign builder owns campaign.js; test builder owns a new hunter test file;
+independent critic owns no product files. Lead owns rendering, tools, docs and Git.
+No standalone cosmetic pass, release, or lowering of the complete-game contract.

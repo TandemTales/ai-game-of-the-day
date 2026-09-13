@@ -574,3 +574,15 @@ AAA complete from green tests. Art/materials/world density/destruction/audio/VFX
 physical devices and production leaderboard remain unjudged/below bar. No shipping
 judge or .aaa-complete; main unchanged. Friday age4; forced release September19.
 This bounded pass closes on dev. Exact commands/evidence limits in TESTING.md.
+
+## September 12 — optional battery sabotage (19:37 Pacific)
+
+STOP absent; dev pulled clean. Saturday age5, no release; forced release September19.
+Bounded intent: turn the Breakwater archive detour into an optional tactical route.
+Recovered ferry command codes reveal a remote battery relay; reaching it and holding
+INTERACT can disable the two artillery units before the final battery assault.
+The ordinary combat route stays available. Record acquisition, interruptible hack,
+exactly-once consequences and retry/reload behavior; explain the route in map/journal.
+Single-file campaign and regression builders plus an independent gameplay critic;
+lead owns UI/docs/Git. Test each pushed checkpoint. Human fun/scale feedback remains
+unresolved, and AAA comparison failure remains release-blocking outside forced night.

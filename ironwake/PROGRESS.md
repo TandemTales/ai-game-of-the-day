@@ -689,3 +689,47 @@ pass with clean page console, no horizontal overflow or external runtime assets.
 All three hunter phase fixtures passed at each size including3840x2160; lead
 viewed actual official MW5 side-by-side as well. Both full native campaign pilots
 are still progressing; final outcomes will follow, not inferred from simulation.
+
+Final September13 handoff: hunter gameplay2b83638 and viewport evidenceb41632e
+pushed after intent656f7d3. Final combined394tests/17suites PASS. Six-size smoke
+and identity/charge phase harness PASS; lead inspected all6smoke and charge phase
+captures, actual native phone windup/recovery and both completed endings.4K
+viewed downsampled. No console/runtime asset/overflow issues in harness checks;
+leaderboard mocked, physical devices and production API unverified.
+
+Independent full normal-clock keyboard/mouse campaign WON all5chapters:
+52.048/68.005/70.706/112.045/95.465 game seconds;398.270total,76kills/5crushes,
+245.4final armor. Native two-contact touch WON all5:63.260/98.719/89.774/
+131.941/109.253seconds;492.946total,76kills/3crushes,274final armor. Both0/5
+archives and no page errors. Pilots read state for navigation, use ordinary
+browser inputs and real clock, no gameplay-state/health/time injection. Native
+runs loaded final14m mechanics and renderer before deployment; no runtime code
+changed during them. They prove reachability/controls, not human duration or fun.
+Optional archive/sabotage route was not repeated this run; its previous evidence
+and persistent regressions remain. The legacy pilot can vent in a hunter lane:
+that causes avoidable damage; both full routes nevertheless recovered and won.
+
+Independent isolated fixtures: stationary at10m or14m takes18damage; sidestep,
+late lateral boost and cover-bait take0; firing during recovery deals96damage
+before the recovery ends,120after projectiles arrive. Deliberate empty-arena
+fixtures, separate from native campaign play. Independent gameplay mechanic and
+functional inventory accepted; meaningful complete-game depth/fun NOT accepted.
+Repeated eliminate/hold/reach structure, partly cosmetic biome distinctions,
+mostly numeric upgrades, one consequential optional detour and weak fortress
+camera staging remain substantive quality debt. Human boredom/scale feedback
+is unresolved. No extra objective or chapter was claimed for this mechanic.
+
+AAA OURS LOSES versus freshly downloaded official MechWarrior5 Kestrel Lancers
+megacity screenshot. Identified A/B with different promotional camera, not blind.
+Lead viewed actual comparison. Missing world density, materials, atmosphere and
+destruction are substantial; audio/VFX AAA unjudged. No shipping judge/pass.
+Evidence/scripts/provenance: ignored node_modules/.cache/ironwake/sep13-hunter-critic;
+final identity evidence in sep13-hunter-identity-final and smoke in sep13-hunter-smoke.
+
+Next scheduled run September19 is age12 forced release: do release checks and
+fix glaring blockers only, explicitly carry qualitative scope/AAA debt. No
+intervening scheduled polish run exists under the saved weekend09:00 schedule.
+If another build is manually requested first, prioritize an authored encounter
+whose environmental/progression choice changes its outcome and stronger fortress
+staging, informed by unaided keyboard/touch feedback. Do not treat count20 or
+scripted completion as acceptance. No .aaa-complete, no release; main unchanged.

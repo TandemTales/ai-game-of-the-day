@@ -79,13 +79,13 @@ follow together. Terrain, landmarks, architecture, hazards and fortress vary by 
 
 Hunters use a low reverse-joint chassis with paired ground hammers; artillery uses
 a braced base and elevated split rails; tanks retain tracks. Pending strikes carry
-their actual sourceId. Hunter hammer motion and artillery recoil follow that
-strike while its attacker lives; an already fired strike remains dangerous after
-the attacker dies. Weapon theft removes the escort cannon or artillery rails.
+their actual sourceId. Artillery recoil follows its own live strike while the
+attacker lives; an already fired artillery strike remains dangerous after death.
+Weapon theft removes the escort cannon or artillery rails.
 Hunter charge poses and lane follow its explicit attack phase and locked direction;
 legacy source-tagged strike fixtures remain supported. Actor removal, reused IDs,
-world replacement and revival reset presentation;
-ground rings follow their actor and are removed with it.
+world replacement and revival reset presentation; ground rings follow their actor
+and are removed with it.
 
 `main.js`, index.html and game.css own controls, HUD, briefings, map, saves, upgrade
 selection, audio and explicit leaderboard submission. Touch has simultaneous MOVE,

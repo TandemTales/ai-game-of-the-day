@@ -324,3 +324,18 @@ PASS in ignored node_modules/.cache/ironwake/sep13-hunter-identity-final. Lead
 viewed actual phase images at all6sizes;4K downsampled. Initial sweep browser
 closed during4K screenshot, final complete sweep passed. Browser launch required
 approved execution after sandbox EPERM. Full native campaign checks pending.
+
+Final September13 verification:394tests/17suites PASS; six-size smoke and full
+identity/charge harness PASS. See PROGRESS for exact native chapter results.
+Independent actual keyboard/mouse and max-two-contact native touch completed all
+five chapters with no page errors, using read-only state planning and normal
+input/clock. Final code was loaded before both runs. These cover ordinary routes;
+0/5archives collected, so no new optional-route claim. Lead inspected real phone
+windup/recovery, both endings, all six smoke sizes and the official A/B comparison.
+Fresh empty-arena stationary/sidestep/boost/cover/recovery-fire experiments are
+explicit fixtures. Reproduce tracked simulation with tools/campaign-playthrough.cjs,
+keyboard browser route with IW_NATIVE_CHAPTERS=5 and tools/native-campaign.cjs;
+critic-specific two-contact pilot/scripts and full per-input logs are preserved
+in ignored node_modules/.cache/ironwake/sep13-hunter-critic. Same installed browser
+paths as above. Human enjoyment, qualitative scope, physical devices, production
+leaderboard and AAA remain unaccepted. Main unchanged.

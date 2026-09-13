@@ -681,3 +681,11 @@ PNGs at all6sizes across initial/final sweeps,4K downsampled. First sweep browse
 closed during4K capture; final fresh full sweep passed. No mutation/console/runtime
 fetch failures. Full native campaigns and general six-size smoke are underway.
 AAA independent comparison OURS LOSES to fresh official MW5 megacity; no release.
+
+Verification checkpoint: final full suite394tests/17suites PASS. Full six-size
+smoke PASS; lead opened all six gameplay PNGs. Native opening movement/demolition,
+touch contacts, pause, retry, checkpoint/upgrade and mocked leaderboard ordering
+pass with clean page console, no horizontal overflow or external runtime assets.
+All three hunter phase fixtures passed at each size including3840x2160; lead
+viewed actual official MW5 side-by-side as well. Both full native campaign pilots
+are still progressing; final outcomes will follow, not inferred from simulation.

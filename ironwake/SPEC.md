@@ -24,6 +24,12 @@ carry the story through an ending. No arbitrary mission time limit.
 - Boost: 0.32-second burst, 4-second cooldown, brief damage immunity, solid collision.
 - Hold F / INTERACT near an uncontested objective; defend the uplink inside its radius.
 - Tanks, escort mechs, rushing hunters, telegraphed artillery, moving fortress.
+- Hunters commit within 14m: one-second stationary windup locks a straight lane,
+  then an 18m/s rush for up to .65s. Contact deals 18 damage at most once; boost
+  immunity consumes the contact. Buildings, rubble and world bounds stop the rush.
+  A 1.2-second stationary recovery opens a counterattack, followed by 1.5s cooldown.
+  Amber lane and DODGE SIDEWAYS/CHARGING tags show intent; cyan RECOVERING invites
+  punishment. No hunter shell remains after death; artillery shells still persist.
 - Water slows movement and cools the reactor; furnace vents damage armor.
 - Optional repair, capacitor, and story-archive caches.
 - Choose hull, cooling, or damage upgrade after each of the first four chapters.
@@ -76,7 +82,9 @@ a braced base and elevated split rails; tanks retain tracks. Pending strikes car
 their actual sourceId. Hunter hammer motion and artillery recoil follow that
 strike while its attacker lives; an already fired strike remains dangerous after
 the attacker dies. Weapon theft removes the escort cannon or artillery rails.
-Actor removal, reused IDs, world replacement and revival reset presentation;
+Hunter charge poses and lane follow its explicit attack phase and locked direction;
+legacy source-tagged strike fixtures remain supported. Actor removal, reused IDs,
+world replacement and revival reset presentation;
 ground rings follow their actor and are removed with it.
 
 `main.js`, index.html and game.css own controls, HUD, briefings, map, saves, upgrade
@@ -105,13 +113,31 @@ Only the lead runs Git. Work stays on dev; no main release or AAA completion cla
   buttons, HUD, results, mock leaderboard, pause, upgrade and save reload fixtures.
 - Inspect actual gameplay, chapter transition and environment screenshots.
 
+## Scope acceptance and remaining scheduled run
+
+The original one-block first playable was only a core demolition/combat checkpoint.
+Complete-game acceptance is the five chapters and twenty objectives listed above,
+with their distinct terrain/encounters, four consequential upgrade choices, optional
+discoveries including the battery detour, three-phase fortress and rescue ending.
+All are implemented and have automated beginning-to-ending reachability evidence.
+That does not accept authored depth, human pacing, replay value or AAA quality.
+The hunter charge increment closes a promised combat distinction, adding no chapter
+or objective to the inventory. The old scale/boredom feedback remains unresolved.
+
+Schedule checked September13: weekend runs Saturday/Sunday at09:00. Following this
+Sunday build, the next scheduled run is September19, age12 and forced release.
+There is no intervening scheduled build/polish run. That release must run tests and
+the viewport sweep, fix only glaring blockers, and explicitly carry remaining
+quality debt. Extra human-triggered runs can address observed gameplay feedback;
+their existence must not be assumed as remaining production time.
+
 ## Nightly file ownership
 
 | Role | Single owned file |
 | --- | --- |
-| Optional sabotage builder | assets/js/campaign.js |
-| Sabotage regression builder | ../__tests__/ironwake.sabotage.test.js (repository __tests__) |
-| Independent gameplay/sabotage critic | Read-only; no game files |
+| Hunter combat builder | assets/js/campaign.js |
+| Hunter regression builder | ../__tests__/ironwake.hunter.test.js (repository __tests__) |
+| Independent gameplay/hunter critic | Read-only; no game files |
 | Lead integration | All other files, documentation and Git |
 
 Builders must report cross-file needs to the lead. Critic remains independent.

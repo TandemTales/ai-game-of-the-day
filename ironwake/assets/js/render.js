@@ -206,7 +206,11 @@ export function createRenderer(canvas) {
       box(M.steelLight,side*.92,-.85,.25,.43,.33,.50,arms);
       box(M.orangeLight,side*.92,-.97,.25,.43,.09,.50,arms);
     }
-    return{g,torso,legs,arms};
+    const chargeLane=group(g);chargeLane.name='hunter-charge-lane';chargeLane.visible=false;
+    const lane=box(M.warning,0,.10,5.85,4.8,.04,16.5,chargeLane);lane.castShadow=false;
+    for(const side of [-1,1]){const edge=box(M.orangeLight,side*2.4,.13,5.85,.12,.04,16.5,chargeLane);edge.castShadow=false;}
+    const tip=box(M.orangeLight,0,.13,14.1,4.8,.04,.18,chargeLane);tip.castShadow=false;
+    return{g,torso,legs,arms,chargeLane};
   }
   function makeArtillery(){
     const g=group(),braces=group(g);braces.name='artillery-braces';
@@ -516,12 +520,14 @@ export function createRenderer(canvas) {
         link.style.cssText='position:absolute;height:1px;transform-origin:0 50%;opacity:.8;';
         el.append(name,detail,bar);tactical.append(link,el);node={el,name,detail,bar,link};markerNodes.set(key,node);
       }
-      const color=isObjective?'#ffd58a':c.kind==='salvage'?'#7df1df':'#ffab98';
+      const hunterPhase=e.alive&&e.type==='hunter'?e.hunterAttack?.phase:null;
+      const color=isObjective?'#ffd58a':c.kind==='salvage'||hunterPhase==='recover'?'#7df1df':hunterPhase?'#ffd078':'#ffab98';
       const distance=Math.ceil(c.distance),ripReach=state.campaign?7:4.5;
       const role=({tank:'TANK',escort:'ESCORT',hunter:'HUNTER',artillery:'ARTILLERY',boss:'SOVEREIGN'}[e.type]||'HOSTILE');
       const weapon=e.type==='artillery'?'RAIL':'HEAVY';
       const name=isRelay?'BATTERY RELAY':isObjective?'OBJECTIVE '+(state.stage+1):c.kind==='salvage'?role+' OFF':role;
       let detail=isRelay?(c.distance<=6?'HOLD · '+e.progress.toFixed(1)+'/5s':distance+' m · OPTIONAL'):isObjective?distance+' m':c.kind==='salvage'?(c.distance<=ripReach?'RIP ':'')+weapon+' '+distance+'m':(occluded?'OBSCURED · ':'')+distance+' m',direction='';
+      if(hunterPhase)detail=({windup:'DODGE SIDEWAYS',rush:'CHARGING',recover:'RECOVERING · HIT'}[hunterPhase]||detail);
       if(offscreen){const angle=Math.atan2(anchor.y-height/2,anchor.x-width/2),arrows=['→','↘','↓','↙','←','↖','↑','↗'];direction=arrows[(Math.round(angle/(Math.PI/4))+8)%8];detail=direction+' '+detail;}
       const urgent=offscreen&&c.kind==='threat',edgeCue=offscreen&&(isObjective||c.kind==='threat'),displayName=urgent?direction+' '+name:name;
       if(node.name.textContent!==displayName)node.name.textContent=displayName;if(node.detail.textContent!==detail)node.detail.textContent=detail;
@@ -630,10 +636,18 @@ export function createRenderer(canvas) {
         v.ring.position.set(e.x,.05,e.z);
       }else if(e.type==='hunter'){
         v.g.rotation.y=e.angle||0;
+        const charge=e.alive&&e.hunterAttack,phase=charge?.phase;
+        v.chargeLane.visible=phase==='windup'||phase==='rush';
+        if(charge){
+          v.chargeLane.rotation.y=Math.atan2(charge.dx,charge.dz)-v.g.rotation.y;
+          const travel=18*(phase==='rush'?Math.max(0,charge.remaining):.65),radius=e.radius+p.radius;
+          v.chargeLane.children.forEach((part,i)=>{part.position.z=i===3?travel+radius:travel/2;part.scale.z=i===3?.18:travel+radius*2;if(i===1||i===2)part.position.x=(i===1?-1:1)*radius;else part.scale.x=radius*2;});
+        }
         const moving=e.alive&&v.lastX!==undefined&&Math.hypot(e.x-v.lastX,e.z-v.lastZ)>.0001;
         v.legs.forEach((leg,i)=>{leg.rotation.x=moving?Math.sin(t*12+i*Math.PI)*.32:0;});
-        v.torso.position.y=1.7-attack*.16;v.torso.rotation.x=attack*.1;
-        v.arms.position.y=-attack*.22;v.arms.rotation.x=-attack*.14;
+        const brace=phase==='windup'?.8:phase==='rush'?1:phase==='recover'?.5:attack;
+        v.torso.position.y=1.7-brace*.28;v.torso.rotation.x=brace*.24;
+        v.arms.position.y=-brace*.22;v.arms.rotation.x=-brace*.3;
       }else if(e.type==='artillery'){
         v.g.rotation.z=e.disabled?.18:0;v.turret.rotation.y=e.angle||0;v.weapon.visible=!e.weaponTaken;
         v.rails.position.z=-attack*.42;

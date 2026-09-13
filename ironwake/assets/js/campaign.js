@@ -16,9 +16,9 @@
       caches:[[-85,5,'intel','A ferry manifest: 640 civilians. The Directorate marked every one as expendable. Battery command codes are attached. Optional: reach the ferry battery relay northwest of the guns and hold F / INTERACT for five uninterrupted seconds to shut them down.'],[-5,60,'repair'],[82,-5,'core'],[26,-70,'repair']],
       hazards:[] },
     { title:'THE DROWNED WARD',place:'02 / Flooded residential district',biome:'flood',size:115,start:[-85,80], pressure:{label:'HUNTER TIDE',hunterSpeed:6.1,artilleryRadius:5.6,artilleryFuse:1.45,artilleryDamage:22},
-      briefing:'Flood sirens have been sounding for nine years. Below the broken towers, survivors still keep lights in their windows. Ivo has left a signal in three old pump stations. Restore the network and escort its data across the ward. Water cools your reactor, but slows the mech.',
+      briefing:'Flood sirens have been sounding for nine years. Below the broken towers, survivors still keep lights in their windows. Ivo has left a signal in three old pump stations. Restore the network and escort its data across the ward. Water cools your reactor, but slows the mech. Hunters plant their feet before rushing a fixed line: dodge sideways or put cover in their path, then counterattack while they recover.',
       outro:'The pumps reveal a freight schedule: prisoners and reactor cores, bound for the Glassline. Ivo stayed aboard to sabotage the Sovereign. Orla finds a train crossing the salt desert before dawn.',
-      stages:[['hold','Restore the western pump',-65,35,'ORLA / Stand inside the ring and hold INTERACT. The pumps cannot restart while hostiles are close.',8],['hold','Recover Ivo’s signal',30,10,'IVO / They are using the tide engines as weapons. Three power couplings feed the command deck. Break them, and the Sovereign can bleed.',9],['eliminate','Defeat the floodgate hunters',65,-55,'ORLA / Hunters incoming. They will rush you. BOOST out of their charge, then hit them while they recover.'],['reach','Reach the rail embankment',-25,-90,'MARA / We have his message. I am taking the high road out.']],
+      stages:[['hold','Restore the western pump',-65,35,'ORLA / Stand inside the ring and hold INTERACT. The pumps cannot restart while hostiles are close.',8],['hold','Recover Ivo’s signal',30,10,'IVO / They are using the tide engines as weapons. Three power couplings feed the command deck. Break them, and the Sovereign can bleed.',9],['eliminate','Defeat the floodgate hunters',65,-55,'ORLA / Hunters lock a straight charge when they brace. BOOST sideways or draw them into cover. Hit them while they stop to recover.'],['reach','Reach the rail embankment',-25,-90,'MARA / We have his message. I am taking the high road out.']],
       squads:[[-65,35,'escort',3],[-15,30,'hunter',2],[30,10,'artillery',2],[65,-55,'hunter',4],[15,-65,'escort',2]],
       towers:[[-72,54,19],[-43,29,14],[23,28,20],[57,-35,20],[78,-42,14]],
       caches:[[-95,-20,'intel','School shelter log: the children named their rescue boat Ironwake. Orla kept the name.'],[5,72,'core'],[90,30,'repair'],[-60,-55,'repair']],
@@ -95,9 +95,60 @@
     if(save.pending&&['score','kills','collapseKills','hp','time'].every(k=>Number.isFinite(save.pending[k])&&save.pending[k]>=0)){Object.assign(s,{status:'won',stage:s.objectives.length,score:save.pending.score,kills:save.pending.kills,collapseKills:save.pending.collapseKills,time:save.pending.time});s.totals.intel=t.intel;s.pickups.forEach(c=>{if(c.type==='intel')c.taken=s.totals.intel.includes(c.id);if(s.chapter===0&&c.id==='battery-relay-0'){c.locked=!s.totals.intel.includes('cache-0-0');c.taken=!c.locked&&save.pending.batteryRelayDisabled===true;c.progress=c.taken?c.duration:0;}});s.player.hp=Math.min(s.player.maxHp,save.pending.hp);s.objectives.forEach(o=>o.done=true);}
     return s;};
   function blast(s,x,z,radius,delay,damage,sourceId){s.strikes.push({id:++s.nextId,x,z,radius,life:delay,maxLife:delay,damage,sourceId});}
+  // Hunter intent is public presentation state: its direction never tracks the
+  // player after the brace, and each phase gets its full authored time budget.
+  const hunterTiming={windup:1,rush:.65,recover:1.2};
+  function hunterPhase(a,phase){a.phase=phase;a.remaining=hunterTiming[phase];a.duration=a.remaining;}
+  function hunterContact(s,e,a){
+    if(!a.hit&&dist(e,s.player)<=e.radius+s.player.radius){
+      // A boosted contact spends the attack too; it cannot hit on a later frame
+      // merely because the player's invulnerability expired while overlapping.
+      a.hit=true;if(s.player.invulnerable<=0)IW.damagePlayer(s,18);
+    }
+  }
+  function moveHunter(s,e,dx,dz,distance,attack){
+    const steps=Math.max(1,Math.ceil(distance/.35)),stride=distance/steps,bounds=s.bounds;
+    if(attack)hunterContact(s,e,attack);
+    for(let i=0;i<steps;i++){
+      const next={x:e.x+dx*stride,z:e.z+dz*stride};
+      if((bounds&&(next.x<bounds.minX+e.radius||next.x>bounds.maxX-e.radius||next.z<bounds.minZ+e.radius||next.z>bounds.maxZ-e.radius))||s.buildings.some(b=>IW.inFootprint(next,b,e.radius,0)))return false;
+      Object.assign(e,next);if(attack)hunterContact(s,e,attack);
+    }
+    return true;
+  }
+  function updateHunter(s,e,dt,d){
+    const a=e.hunterAttack;
+    if(a){
+      e.angle=Math.atan2(a.dx,a.dz);
+      let budget=dt;
+      while(budget>1e-9&&e.hunterAttack){
+        const elapsed=Math.min(budget,a.remaining);budget-=elapsed;
+        if(a.phase==='rush'&&!moveHunter(s,e,a.dx,a.dz,18*elapsed,a)){
+          hunterPhase(a,'recover');break;
+        }
+        a.remaining=Math.max(0,a.remaining-elapsed);
+        if(a.remaining<=1e-9){
+          if(a.phase==='windup')hunterPhase(a,'rush');
+          else if(a.phase==='rush')hunterPhase(a,'recover');
+          else{e.hunterAttack=null;e.cooldown=1.5;}
+        }
+      }
+      return;
+    }
+    if(d>46)return;
+    if(e.cooldown===0&&d<=14){
+      e.hunterAttack={dx:Math.sin(e.angle),dz:Math.cos(e.angle),hit:false};
+      hunterPhase(e.hunterAttack,'windup');return;
+    }
+    if(d>5){
+      const speed=e.hunterSpeed||4.8;
+      if(!moveHunter(s,e,Math.sin(e.angle),Math.cos(e.angle),dt*speed))moveHunter(s,e,Math.cos(e.angle),-Math.sin(e.angle),dt*speed*1.04);
+    }
+  }
   IW.updateCampaignEnemies=function(s,dt){
     const p=s.player;
-    for(const e of s.enemies){if(!e.alive)continue;const d=dist(e,p);e.angle=Math.atan2(p.x-e.x,p.z-e.z);e.cooldown=Math.max(0,e.cooldown-dt);
+    for(const e of s.enemies){if(!e.alive){if(e.hunterAttack)e.hunterAttack=null;continue;}const d=dist(e,p);e.angle=Math.atan2(p.x-e.x,p.z-e.z);e.cooldown=Math.max(0,e.cooldown-dt);
+      if(e.type==='hunter'){updateHunter(s,e,dt,d);continue;}
       if(e.type==='boss'){
         if(s.stage<2)continue;e.phase=e.hp<e.maxHp*.33?2:e.hp<e.maxHp*.66?1:0;e.exposed=(s.time%12)>8;e.active=true;
         e.x=Math.sin(s.time*.06)*16;e.z=-65+Math.cos(s.time*.06)*8;
@@ -105,11 +156,9 @@
         continue;
       }
       if(d>46)continue;
-      if(e.type==='hunter'&&d>5){const speed=e.hunterSpeed||4.8,nx=e.x+Math.sin(e.angle)*dt*speed,nz=e.z+Math.cos(e.angle)*dt*speed;if(!s.buildings.some(b=>IW.inFootprint({x:nx,z:nz},b,e.radius,0))){e.x=nx;e.z=nz;}else{const side={x:e.x+Math.cos(e.angle)*dt*speed*1.04,z:e.z-Math.sin(e.angle)*dt*speed*1.04};if(!s.buildings.some(b=>IW.inFootprint(side,b,e.radius,0)))Object.assign(e,side);}}
       if(e.cooldown>0)continue;
       if(e.type==='artillery'){blast(s,p.x,p.z,e.artilleryRadius||6,e.artilleryFuse||1.6,e.artilleryDamage||24,e.id);e.cooldown=4;}
-      else if(e.type==='hunter'&&d<7){blast(s,p.x,p.z,3.8,.8,18,e.id);e.cooldown=2.5;}
-      else if(e.type!=='hunter'&&d<34){IW.shoot(s,e.id,e.x,e.z,p.x-e.x,p.z-e.z,e.type==='tank'?14:9,e.type==='tank'?24:29,false);e.cooldown=e.type==='tank'?2.7:1.9;}
+      else if(d<34){IW.shoot(s,e.id,e.x,e.z,p.x-e.x,p.z-e.z,e.type==='tank'?14:9,e.type==='tank'?24:29,false);e.cooldown=e.type==='tank'?2.7:1.9;}
     }
     for(const b of s.strikes){b.life-=dt;if(b.life<=0){if(dist(b,p)<b.radius&&p.invulnerable<=0)IW.damagePlayer(s,b.damage);s.effects.push({id:++s.nextId,type:'explosion',x:b.x,z:b.z,life:.6,maxLife:.6});}}
     s.strikes=s.strikes.filter(b=>b.life>0);

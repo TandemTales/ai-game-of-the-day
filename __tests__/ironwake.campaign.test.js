@@ -3,9 +3,9 @@ const ctx={console};vm.createContext(ctx);for(const f of ['logic','campaign'])vm
 function game(chapter=0){const s=IW.createCampaignState(chapter);IW.start(s);return s;}
 function run(s,input,seconds){for(let i=0;i<seconds*60;i++)IW.step(s,input,1/60);}
 describe('Ironwake coast campaign',()=>{
- test.each([[2,'artillery',1.6],[1,'hunter',.8],[4,'boss',1.8]])('chapter %i %s warning identifies the actual attacker without changing its fuse', (chapter,type,fuse)=>{
+ test.each([[2,'artillery',1.6],[4,'boss',1.8]])('chapter %i %s warning identifies the actual attacker without changing its fuse', (chapter,type,fuse)=>{
   const s=game(chapter),e=s.enemies.find(e=>e.type===type);s.enemies=[e];s.buildings=[];if(type==='artillery')fuse=e.artilleryFuse||fuse;if(type==='boss')s.stage=2;
-  s.player.x=e.x;s.player.z=e.z+(type==='hunter'?4:15);e.cooldown=0;
+  s.player.x=e.x;s.player.z=e.z+15;e.cooldown=0;
   IW.step(s,{},.05);expect(s.strikes.length).toBeGreaterThan(0);
   for(const strike of s.strikes){expect(strike.sourceId).toBe(e.id);expect(strike.maxLife).toBe(fuse);expect(strike.life).toBeCloseTo(fuse-.05);}
   const strike=s.strikes[0],target={x:strike.x,z:strike.z};e.alive=false;IW.step(s,{},.05);

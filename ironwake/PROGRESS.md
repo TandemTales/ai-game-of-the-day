@@ -665,3 +665,19 @@ readable presentation; focused regression plus full campaign/input verification.
 Campaign builder owns campaign.js; test builder owns a new hunter test file;
 independent critic owns no product files. Lead owns rendering, tools, docs and Git.
 No standalone cosmetic pass, release, or lowering of the complete-game contract.
+
+Hunter implementation checkpoint: within14m, one-second locked windup,18m/s rush
+up to.65s,18damage at most once (boost contact consumed), collision stops into
+1.2s stationary recovery. Then1.5s cooldown. Existing hunter pressure profiles
+still vary chase speed. Ground lane includes player/enemy contact radii and
+shrinks only its remaining travel. Amber action/cyan recovery tags and field
+manual teach sideways evasion, cover and counterattack. Artillery unchanged.
+Independent fixture critic accepts this mechanic distinction: stationary18damage,
+sidestep/late boost0,96damage during recovery. Not human fun or full-game depth.
+Existing full378tests plus new16hunter regressions PASS; obsolete hunter-shell
+expectation replaced by dedicated charge coverage. Five-chapter simulation WON.
+Final identity/charge presentation harness PASS all6sizes; lead inspected phase
+PNGs at all6sizes across initial/final sweeps,4K downsampled. First sweep browser
+closed during4K capture; final fresh full sweep passed. No mutation/console/runtime
+fetch failures. Full native campaigns and general six-size smoke are underway.
+AAA independent comparison OURS LOSES to fresh official MW5 megacity; no release.

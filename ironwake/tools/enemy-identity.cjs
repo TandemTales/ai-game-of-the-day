@@ -115,6 +115,18 @@ async function main(){
     assert.equal((await markers(page)).length,0,'Destroyed '+type+' cannot offer a weapon');
    }labelChecks.push(type);
   }
+  // Declared phase fixtures verify warning direction, state labels and cancellation.
+  await fixture(page);await page.evaluate(()=>{const s=IW.runtime.state,e=s.enemies.find(e=>e.type==='hunter');s.enemies=[e];Object.assign(e,{x:0,z:-7,angle:0});});
+  const hunterPhases=[];
+  for(const [phase,remaining,caption]of [['windup',1,'DODGE SIDEWAYS'],['rush',.325,'CHARGING'],['recover',1.2,'RECOVERING · HIT']]){
+   await page.evaluate(({phase,remaining})=>{IW.runtime.state.enemies[0].hunterAttack={phase,remaining,dx:0,dz:1,hit:false};},{phase,remaining});await renderFrozen(page);
+   const cue=await page.evaluate(()=>{const root=__identityScene.getObjectByName('enemy:identity-hunter'),lane=root.getObjectByName('hunter-charge-lane');return{visible:lane.visible,scale:lane.scale.z,rotation:lane.rotation.y+root.rotation.y};});
+   assert.equal(cue.visible,phase!=='recover','Only active charges show danger lanes');assert.equal(cue.rotation,0,'Lane follows locked direction');assert.equal((await markers(page))[0].detail,caption,'Readable phase instruction');
+   assert(await page.locator('[data-iw-marker=enemy]:visible').evaluateAll(nodes=>nodes.every(n=>{const r=n.getBoundingClientRect();return r.x>=0&&r.right<=innerWidth&&r.y>=0&&r.bottom<=innerHeight&&n.scrollWidth<=n.clientWidth;})),'Phase tags fit viewport');
+   await page.screenshot({path:path.join(output,`${width}x${height}-hunter-${phase}.png`)});hunterPhases.push({phase,...cue});
+  }
+  await page.evaluate(()=>{const e=IW.runtime.state.enemies[0];e.hunterAttack.phase='windup';e.alive=false;});await renderFrozen(page);
+  assert.equal(await page.evaluate(()=>__identityScene.getObjectByName('enemy:identity-hunter').getObjectByName('hunter-charge-lane').visible),false,'Dead hunter cannot leave a danger lane');
   await fixture(page);await page.setViewportSize({width:height,height:width});await renderFrozen(page);assert(await page.evaluate(()=>document.documentElement.scrollWidth===innerWidth),'Resize no horizontal overflow');await page.setViewportSize({width,height});await renderFrozen(page);
   // Actual UI retry must remove fixture roots and its tactical labels.
   await page.evaluate(()=>{IW.runtime.state.status='lost';IW.runtime.resume();});await page.locator('#retry').waitFor({state:'visible'});await page.locator('#retry').click();await page.evaluate(()=>IW.runtime.stop());await page.waitForTimeout(100);await renderFrozen(page);
@@ -126,7 +138,7 @@ async function main(){
    IW.runtime.renderer.dispose();return counts;
   });assert(disposal.geometries>0&&disposal.materials>0,'Dispose releases real scene geometry/material resources');assert.equal(await page.locator('[data-iw-tactical-layer]').count(),0,'Dispose removes overlay');
   assert.deepEqual(errors,[],'No console warnings/errors');assert.deepEqual(external,[],'No external runtime requests');
-  report.viewports.push({width,height,lineup,action,disabled,labelChecks,nonMutating:true,rebuild:true,resize:true,retry:true,disposal,errors,external});save('running');console.log(`${width}x${height}: identity, source HP/salvage, gun removal, scene rebuild, retry and disposal passed`);await page.close();
+  report.viewports.push({width,height,lineup,action,disabled,labelChecks,hunterPhases,nonMutating:true,rebuild:true,resize:true,retry:true,disposal,errors,external});save('running');console.log(`${width}x${height}: identity, hunter phases, source HP/salvage, gun removal, scene rebuild, retry and disposal passed`);await page.close();
  }
  save('passed');}finally{if(browser)await browser.close();}
 }

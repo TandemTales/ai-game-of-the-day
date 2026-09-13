@@ -307,3 +307,20 @@ and comparison-baseline-ab.png. Earlier touch evasion strategy repeatedly reset
 its hold, and another route hit the pilot repair terminal-cell mismatch outside
 pickup radius. The corrected final run supersedes incomplete touch-route coverage.
 The normal pilot remains state-informed; no human-fun or physical-device claim.
+
+## September 13 — committed hunter charge checkpoint
+
+Run the new __tests__/ironwake.hunter.test.js with Jest:16 mechanics cases pass.
+Existing suite378 passes; removed only the superseded hunter ground-shell row,
+retaining artillery/boss fuse and source persistence coverage. Hunter cases cover
+reachable14m trigger, warning, locked nonhoming path, recovery, single damage,
+ordinary dodge/boost immunity, death, standing/rubble collision, bounds,
+determinism and retry/reload. Declared VM fixtures are not natural play evidence.
+
+Extended tools/enemy-identity.cjs now freezes all three hunter phases, checks
+lane orientation and lifetime, phase labels fitting each viewport, death cleanup,
+renderer nonmutation and existing scene lifecycle regressions. Final all6sizes
+PASS in ignored node_modules/.cache/ironwake/sep13-hunter-identity-final. Lead
+viewed actual phase images at all6sizes;4K downsampled. Initial sweep browser
+closed during4K screenshot, final complete sweep passed. Browser launch required
+approved execution after sandbox EPERM. Full native campaign checks pending.

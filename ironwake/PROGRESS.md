@@ -733,3 +733,13 @@ If another build is manually requested first, prioritize an authored encounter
 whose environmental/progression choice changes its outcome and stronger fortress
 staging, informed by unaided keyboard/touch feedback. Do not treat count20 or
 scripted completion as acceptance. No .aaa-complete, no release; main unchanged.
+
+## 2026-09-14 Monday polish intent
+
+STOP absent; `dev` pulled cleanly. Ironwake remains active (started September 7),
+and this is not release night. Tonight: inspect the complete handoff/spec/testing,
+then take one bounded campaign-quality improvement grounded in the unresolved
+encounter/outcome and fortress-staging debt; rerun focused and full tests plus
+the strongest available browser verification. Preserve the explicit AAA losses
+and unresolved human feedback. No `.aaa-complete`, catalog change, or `main`
+promotion is in scope.

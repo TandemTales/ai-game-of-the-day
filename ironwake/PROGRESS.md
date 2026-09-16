@@ -743,3 +743,14 @@ encounter/outcome and fortress-staging debt; rerun focused and full tests plus
 the strongest available browser verification. Preserve the explicit AAA losses
 and unresolved human feedback. No `.aaa-complete`, catalog change, or `main`
 promotion is in scope.
+
+## 2026-09-15 Tuesday polish intent
+
+Tonight continues the bounded Ironwake polish pass on `dev`. The working tree
+already contains a renderer-only Sovereign approach bulkhead and matching
+sealed/breach viewport fixtures; verify that unit against the full deterministic
+and browser gates, then obtain fresh independent visual and gameplay judgments
+where available. Preserve the five-chapter scope and all existing controls and
+save contracts. This is not release night: do not create `.aaa-complete`, edit
+the catalog, or promote `main`; carry any remaining AAA, human-pacing,
+physical-device, accessibility and production-leaderboard debt explicitly.

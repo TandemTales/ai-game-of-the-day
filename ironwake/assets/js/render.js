@@ -378,10 +378,10 @@ export function createRenderer(canvas) {
   const labels={boss:label('SOVEREIGN','#ffb598'),artillery:label('ARTILLERY','#ffae80'),hunter:label('HUNTER','#ff8271')};
   Object.values(labels).forEach(m=>m.depthTest=false);
   const assetBase={materials:materials.length,textures:textures.length,geometries:geometries.length};
-  let worldState=null;
+  let worldState=null,finaleGate=null,finaleGateOpen=0;
   function resetWorld(state){
     for(const map of [buildings,enemies,shots,effects,landmarks,strikeMeshes]){for(const v of map.values()){scene.remove(v.root||v.g||v);if(v.marker)scene.remove(v.marker);if(v.ring)scene.remove(v.ring);}map.clear();}
-    world.clear();
+    world.clear();finaleGate=null;finaleGateOpen=0;
     for(const m of materials.splice(assetBase.materials))m.dispose();for(const t of textures.splice(assetBase.textures))t.dispose();for(const g of geometries.splice(assetBase.geometries))g.dispose();
     legacyWorld.visible=!state.campaign;if(!state.campaign)return;
     const biome=state.biome,size=state.bounds.maxX;
@@ -405,6 +405,40 @@ export function createRenderer(canvas) {
       if(biome==='desert') {const q=mesh(sphereGeo,i%2?M.concreteDark:M.rust,x,h*.35,z,10,h,9,world);q.rotation.y=i;}
       else {box(i%3?M.dark:M.concreteDark,x,h/2,z,9,h,10,world);box(biome==='reactor'?M.orange:M.cyan,x,h*.7,z+5.1,7,.7,.15,world);
         if(i%3===0){pipe(M.steel,x,h+5,z,.65,10,'y',world);mesh(sphereGeo,M.smoke,x,h+14,z,4,6,4,world);}}
+    }
+    if(biome==='fortress'){
+      // A final defense line gives the long approach a readable destination.
+      // It is presentation-only: the campaign collision map remains authoritative.
+      box(M.concreteDark,0,-.12,-39,36,.18,88,world);
+      for(const side of [-1,1]){
+        box(M.roadEdge,side*15,.015,-39,.24,.04,86,world);
+        for(let z=-78;z<=0;z+=8)box(M.orangeLight,side*15,.055,z,.34,.05,1.8,world);
+        box(M.dark,side*23,17,-51,6,34,8,world);
+        box(M.steel,side*23,34.5,-51,9,1.2,11,world);
+        pipe(M.orange,side*23,19,-46.7,.32,22,'y',world);
+        for(const y of [8,18,28])box(M.yellow,side*23,y,-46.55,6.5,.16,.18,world);
+      }
+      box(M.steel,0,36,-51,48,3,8,world);
+      box(M.black,0,38,-51,39,.35,7.4,world);
+      box(M.orangeLight,0,38.25,-46.95,24,.24,.2,world);
+      const doors=[];
+      for(const side of [-1,1]){
+        const door=group(world);door.position.set(side*7,0,-50.4);
+        box(M.enemy,0,11,0,8,22,2.2,door);
+        box(M.dark,0,11,1.16,6.9,20,.3,door);
+        for(let y=2;y<=20;y+=3)box(M.steel,y%2?-.9:.9,y,1.34,5.4,.14,.08,door);
+        box(M.warning,0,11,1.42,.32,15,.08,door);
+        doors.push({group:door,side});
+      }
+      const seal=box(M.warning,0,11,-49.12,13.4,20,.24,world);
+      const breach=box(M.cyan,0,35.1,-46.7,13,.28,.2,world);breach.visible=false;
+      // A broad engine apron and paired service ribs anchor the Sovereign in the basin.
+      box(M.road,0,-.08,-66,64,.12,42,world);
+      for(const side of [-1,1]){
+        pipe(M.steel,side*27,2,-66,1.2,54,'z',world);
+        for(const z of [-80,-68,-56])box(M.orange,side*27,.65,z,2.2,1.2,2.4,world);
+      }
+      finaleGate={doors,seal,breach};
     }
     if(biome==='harbor'||biome==='flood'){
       box(waterMaterial,-size-18,-.1,0,24,.2,size*2+20,world);
@@ -576,6 +610,13 @@ export function createRenderer(canvas) {
     const targetPos=new THREE.Vector3(cx,camDistance*.78,cz+camDistance*.87);
     if(!initialized)camera.position.copy(targetPos);else camera.position.lerp(targetPos,1-Math.exp(-dt*5));
     camera.lookAt(cx,0,cz-5.5);
+    if(finaleGate){
+      const target=state.biome==='fortress'&&state.stage>=2?1:0;
+      finaleGateOpen+=(target-finaleGateOpen)*(1-Math.exp(-dt*4));
+      for(const door of finaleGate.doors)door.group.position.x=door.side*(7+12*finaleGateOpen);
+      finaleGate.seal.visible=finaleGateOpen<.92;
+      finaleGate.breach.visible=finaleGateOpen>=.92;
+    }
     if(state.campaign){sun.position.set(cx-28,43,cz+18);sun.target.position.set(cx,0,cz);}
     const dx=p.x-camera.position.x,dz=p.z-camera.position.z,rayLength=dx*dx+dz*dz;
     silhouette.visible=state.buildings.some(b=>{const u=((b.x-camera.position.x)*dx+(b.z-camera.position.z)*dz)/rayLength;if(u<=0||u>=1)return false;return IW.inFootprint({x:camera.position.x+dx*u,z:camera.position.z+dz*u},b,.8,camera.position.y+(2-camera.position.y)*u);});

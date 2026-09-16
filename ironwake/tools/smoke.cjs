@@ -24,8 +24,14 @@ async function main(){fs.mkdirSync(output,{recursive:true});await new Promise(r=
   for(let chapter=1;chapter<5;chapter++){
    await page.evaluate(chapter=>{const s=IW.runtime.state;Object.keys(s).forEach(k=>delete s[k]);Object.assign(s,IW.createCampaignState(chapter));IW.start(s);s.stage=chapter===4?2:1;const o=s.objectives[s.stage];s.player.x=o.x;s.player.z=o.z+20;IW.runtime.input.aimX=o.x;IW.runtime.input.aimZ=o.z;},chapter);await page.waitForTimeout(300);await page.screenshot({path:path.join(output,'environment-'+(chapter+1)+'.png')});
   }
-  await page.evaluate(()=>{const s=IW.runtime.state;s.status='won';s.stage=4;s.totals.time=300;s.time=90;s.totals.kills=60;s.kills=11;});await page.waitForFunction(()=>document.querySelector('#resultStats').textContent.includes('71 kills'));await page.screenshot({path:path.join(output,'campaign-ending.png')});await page.reload();await page.waitForFunction(()=>IW.runtime?.state.status==='won');assert(await page.locator('#resultStats').textContent().then(t=>t.includes('6m 30s')),'ending preserves campaign totals');await page.locator('#restartCampaign').click();assert(await page.evaluate(()=>IW.runtime.state.chapter===0&&IW.runtime.state.status==='ready'),'ending can start a new campaign');
+ await page.evaluate(()=>{const s=IW.runtime.state;s.status='won';s.stage=4;s.totals.time=300;s.time=90;s.totals.kills=60;s.kills=11;});await page.waitForFunction(()=>document.querySelector('#resultStats').textContent.includes('71 kills'));await page.screenshot({path:path.join(output,'campaign-ending.png')});await page.reload();await page.waitForFunction(()=>IW.runtime?.state.status==='won');assert(await page.locator('#resultStats').textContent().then(t=>t.includes('6m 30s')),'ending preserves campaign totals');await page.locator('#restartCampaign').click();assert(await page.evaluate(()=>IW.runtime.state.chapter===0&&IW.runtime.state.status==='ready'),'ending can start a new campaign');
  }
+
+ // The Sovereign's approach bulkhead stays sealed until both shield guards fall.
+ await page.evaluate(()=>{const s=IW.runtime.state;Object.keys(s).forEach(k=>delete s[k]);Object.assign(s,IW.createCampaignState(4));IW.start(s);s.stage=1;s.objectives[0].done=true;s.player.x=0;s.player.z=-18;s.player.angle=0;});
+ await page.waitForTimeout(250);await page.screenshot({path:path.join(output,`${width}x${height}-fortress-sealed.png`)});
+ await page.evaluate(()=>{IW.runtime.state.stage=2;});await page.waitForTimeout(1300);await page.screenshot({path:path.join(output,`${width}x${height}-fortress-breach.png`)});
+ assert(await page.evaluate(()=>document.documentElement.scrollWidth===innerWidth),'fortress staging has no horizontal overflow');
 
  assert.deepEqual(errors,[]);assert.deepEqual(external,[]);report.push({width,height,collapse:true,input:true,results:true,leaderboard:true,errors});await page.close();
  }

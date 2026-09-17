@@ -242,19 +242,81 @@ export function createRenderer(canvas) {
   }
   function makeFortress(){
     const g=group(),turret=group(g),legs=[];
-    for(const side of [-1,1])for(const z of [-5,5]){
-      const leg=group(g);leg.position.set(side*7,0,z);legs.push(leg);
-      box(M.black,0,.7,0,4,1.4,5,leg);box(M.steel,0,3,0,2,5,2,leg);
-      box(M.enemy,side*-.5,5.5,0,3,3,3,leg);pipe(M.orange,0,3.5,1.2,.25,4,'y',leg);
+    // Long, exposed legs and a split upper silhouette make this read as a
+    // walking citadel at approach distance, rather than a wide armored gate.
+    for(const [side,z,scale] of [[-1,-7,1.12],[1,-7,.92],[-1,7,.94],[1,7,1.2]]){
+      const leg=group(g);leg.position.set(side*8.5,0,z);leg.scale.setScalar(scale);legs.push(leg);
+      box(M.black,0,.72,.85,4.7,1.35,6.4,leg);
+      box(M.steel,0,1.45,1.72,4.1,.16,2.5,leg);
+      for(const toe of [-1,1])box(M.orangeLight,toe*1.52,1.5,2.55,.18,.12,.92,leg);
+      box(M.steel,0,5.6,-.35,2.55,8.2,2.7,leg);
+      box(M.black,0,5.5,.9,2.92,6.4,.42,leg);
+      pipe(M.orange,0,5.3,1.18,.3,5.8,'y',leg);
+      pipe(M.steel,side*.65,5.8,-1.62,.18,5.4,'y',leg);
+      box(M.enemy,side*-.45,10.15,-.35,4.6,3.9,4.4,leg);
+      const shin=box(M.dark,0,5.5,-.95,.55,7.5,.62,leg);shin.rotation.z=side*.1;
+      beam(M.steel,side*1.75,7.25,0,.22,5.3,.22,side*.24,leg);
     }
-    box(M.dark,0,6,0,13,4,17,g);box(M.enemy,0,8,0,12,3,15,g);
-    box(M.steel,0,10,0,8,2,11,g);box(M.dark,0,12,-2,6,4,6,g);
-    box(M.red,0,13,1.1,5,.4,.1,g);pipe(M.black,0,15,-2,.15,6,'y',g);
-    const core=mesh(sphereGeo,M.cyan,0,6,8.8,2.2,2.2,1,g);
+    // A layered, forward-thrusting hull: dark undercarriage, rust armor and
+    // pale service plates provide scale breaks and distinct material reads.
+    box(M.black,0,11.5,0,21,4.2,23,g);
+    box(M.dark,0,13.15,0,23,.75,20,g);
+    box(M.enemy,0,15.6,-.4,20,5.2,17,g);
+    box(M.steel,0,18.25,-1,17,.78,15,g);
+    const prow=box(M.enemy,0,13.7,8.5,17,4.3,9,g);prow.rotation.x=-.1;
+    box(M.black,0,11.15,10.7,14,1.4,7,g);
+    box(M.steelLight,0,10.42,12.7,13,.18,2.2,g);
+    for(const side of [-1,1]){
+      const cheek=box(M.steel,side*9.4,15.4,5.1,3.2,5.9,9,g);cheek.rotation.z=side*-.18;
+      box(M.orange,side*9.15,15.3,9.67,2.65,.22,1.4,g);
+      for(let y=12;y<=18;y+=2)box(M.yellow,side*10.6,y,5.5,.14,.32,4.7,g);
+    }
+    // The command tower rises off-centre; the lower starboard gun shelf and
+    // port exhaust stack deliberately keep the profile unequal.
+    box(M.dark,-2.8,21.7,-2.3,12,5.2,10,g);
+    box(M.enemy,-3.8,25.3,-2.4,10,4.2,8.6,g);
+    box(M.steel,-3.8,27.55,-2.4,8.5,.45,7.1,g);
+    box(M.black,-3.8,29.8,-2.6,7.2,4.1,6.4,g);
+    box(M.glass,-3.8,29.8,.68,5.5,2.15,.16,g);
+    box(M.red,-3.8,31.15,.81,4.6,.2,.12,g);
+    box(M.orange,-9.5,21.4,-.4,3.4,8.2,5.6,g);
+    for(const z of [-2,1.1])pipe(M.black,-9.4,27.7,z,.72,11,'y',g);
+    for(const z of [-2,1.1])pipe(M.orange,-9.4,30,z,.18,7.2,'y',g);
+    const mast=pipe(M.black,-3.8,35.3,-3.4,.42,8.4,'y',g);
+    pipe(M.orangeLight,-3.8,39.3,-3.4,.2,.5,'y',g);
+    const mastArm=box(M.steel,-1.2,37.8,-3.4,5.8,.34,.38,g);mastArm.rotation.z=-.17;
+    box(M.yellow,-.5,37.8,-3.18,1.2,.2,.12,g);
+    // An offset battery sits low on the right shoulder, aimed past the prow.
+    box(M.enemy,9.2,19.7,-1.2,7.8,5.8,10,g);
+    box(M.steel,9.2,22.55,-1.2,8.1,.35,9.1,g);
+    for(const dx of [-1.55,0,1.55]){
+      pipe(M.black,9.2+dx,20.7,7.15,.52,10.4,'z',turret);
+      pipe(M.steel,9.2+dx,20.7,12.1,.63,1.3,'z',turret);
+      pipe(M.orange,9.2+dx,20.7,4.7,.11,.5,'z',turret);
+    }
+    for(const side of [-1,1]){
+      box(M.steel,side*8.2,21.3,-8.5,2.6,5.6,4.5,g);
+      for(let i=0;i<4;i++)box(M.orangeLight,side*8.2,20.1+i*.75,-6.16,1.15,.12,.12,g);
+      pipe(M.black,side*11.5,19.6,-6.2,.62,8,'y',g);
+    }
+    // Front-facing heat exchanger and shield core give the approach a clear
+    // target; the existing phase animation still owns its color and pulse.
+    box(M.black,0,14.6,13.1,9.2,7.6,1.5,g);
+    box(M.red,0,14.6,13.92,7.4,5.9,.22,g);
+    for(let i=-3;i<=3;i++)box(M.steel,i*1.05,14.55,14.12,.18,5.3,.16,g);
+    for(const side of [-1,1]){
+      const guard=box(M.enemy,side*5.4,14.6,13.35,2.8,7.8,2.2,g);guard.rotation.z=side*.13;
+      box(M.orangeLight,side*5.35,14.6,14.52,.34,5.8,.12,g);
+    }
+    const core=mesh(sphereGeo,M.cyan,0,14.6,14.7,2.4,2.4,1,g);
     const haloMaterial=new THREE.MeshBasicMaterial({color:0xff6550,transparent:true,opacity:.9,depthTest:false,depthWrite:false});materials.push(haloMaterial);
-    const halo=mesh(torusGeo,haloMaterial,0,6,9.55,3.15,3.15,1,g);halo.rotation.x=Math.PI/2;halo.castShadow=false;halo.renderOrder=16;
-    for(const side of [-1,1]){box(M.enemy,side*7,10,0,4,3,7,turret);for(const dx of [-.7,.7])pipe(M.black,side*7+dx,10,5,.45,9,'z',turret);}
-    for(let i=-4;i<=4;i+=2){box(M.orange,i,8.7,7.8,.7,.2,.15,g);box(M.steel,i,4.8,8,.5,2,.4,g);}
+    const halo=mesh(torusGeo,haloMaterial,0,14.6,15.95,3.55,3.55,1,g);halo.castShadow=false;halo.renderOrder=16;
+    // Hazard bands, cooling vents and underslung pipes break up the armor slabs.
+    for(let i=-8;i<=8;i+=2){box(i%4?M.steel:M.orange,i,18.2,8.35,.9,.16,.18,g);box(M.black,i,12.9,-10.2,.75,.24,3.1,g);}
+    for(const side of [-1,1])for(const z of [-7,7]){
+      pipe(M.black,side*10.5,11.1,z,.3,6.8,'x',g);
+      pipe(M.orange,side*10.5,11.1,z,.13,6.5,'x',g);
+    }
     return {g,turret,legs,core,halo};
   }
   function makeBuilding(b){
@@ -438,6 +500,31 @@ export function createRenderer(canvas) {
         pipe(M.steel,side*27,2,-66,1.2,54,'z',world);
         for(const z of [-80,-68,-56])box(M.orange,side*27,.65,z,2.2,1.2,2.4,world);
       }
+      // Alternating siege-foot scars lead the eye up the runway to the gate.
+      // These are presentation-only stamps outside the collision map.
+      for(const [x,z,angle] of [[-18,8,-.08],[18,-17,.11],[-19,-38,-.16]]){
+        const print=mesh(discGeo,M.rubbleDark,x,.025,z,5.8,8.6,1,world);print.rotation.x=-Math.PI/2;print.rotation.z=angle;
+        const rim=mesh(zoneRingGeo,M.steel,x,.07,z,6.1,8.9,1,world);rim.rotation.x=-Math.PI/2;rim.rotation.z=angle;
+        for(let toe=0;toe<3;toe++){
+          const mark=box(toe===1?M.dark:M.rubble,x+(toe-1)*2.05,.09,z+7.1,1.35,.12,2.25,world);mark.rotation.y=angle;
+        }
+        const heel=box(M.black,x,.08,z-6.1,5.2,.1,1.15,world);heel.rotation.y=angle;
+      }
+      // A broken service tower and its severed high crossarm frame the final
+      // run without closing the broad central lane or changing collision.
+      const fallenTower=group(world);fallenTower.position.set(-29,0,-25);fallenTower.rotation.z=-.12;
+      box(M.concreteDark,0,13,0,6.2,26,8,fallenTower);
+      box(M.dark,0,13,4.1,4.8,22,.35,fallenTower);
+      for(let y=3;y<24;y+=4){box(M.steel,-3.15,y,0,.34,.4,8.6,fallenTower);box(M.orange,3.16,y,0,.22,.5,8.6,fallenTower);}
+      beam(M.steel,-6.8,25,-.2,18,1.1,1.3,-.08,fallenTower);
+      beam(M.black,-10.2,27,0,12,.5,.5,.16,fallenTower);
+      // The opposing mast is lower and torn open, keeping the approach unequal.
+      const tornMast=group(world);tornMast.position.set(29,0,-14);tornMast.rotation.z=.09;
+      box(M.dark,0,9.5,0,4.2,19,5.4,tornMast);
+      box(M.steel,0,19.2,0,7.2,1.1,7,tornMast);
+      box(M.concreteDark,-2.2,22,0,2.2,7,4.4,tornMast).rotation.z=-.3;
+      pipe(M.orange,1.65,11.5,2.8,.24,15,'y',tornMast);
+      beam(M.steel,-3.8,20.5,0,9,.8,.8,.22,tornMast);
       finaleGate={doors,seal,breach};
     }
     if(biome==='harbor'||biome==='flood'){

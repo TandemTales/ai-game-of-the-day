@@ -31,6 +31,10 @@ async function main(){fs.mkdirSync(output,{recursive:true});await new Promise(r=
  await page.evaluate(()=>{const s=IW.runtime.state;Object.keys(s).forEach(k=>delete s[k]);Object.assign(s,IW.createCampaignState(4));IW.start(s);s.stage=1;s.objectives[0].done=true;s.player.x=0;s.player.z=-18;s.player.angle=0;});
  await page.waitForTimeout(250);await page.screenshot({path:path.join(output,`${width}x${height}-fortress-sealed.png`)});
  await page.evaluate(()=>{IW.runtime.state.stage=2;});await page.waitForTimeout(1300);await page.screenshot({path:path.join(output,`${width}x${height}-fortress-breach.png`)});
+ // Move through the open gate into the authored arena. Keep the boss on its
+ // real campaign path so its full silhouette and core read in a valid sightline.
+ assert(await page.evaluate(()=>{const s=IW.runtime.state,b=s.enemies.find(e=>e.type==='boss');if(!b)return false;s.stage=2;s.player.x=0;s.player.z=-40;s.player.angle=0;b.exposed=true;return true;}),'Sovereign presentation fixture exists');
+ await page.waitForTimeout(1100);await page.screenshot({path:path.join(output,`${width}x${height}-sovereign-close.png`)});
  assert(await page.evaluate(()=>document.documentElement.scrollWidth===innerWidth),'fortress staging has no horizontal overflow');
 
  assert.deepEqual(errors,[]);assert.deepEqual(external,[]);report.push({width,height,collapse:true,input:true,results:true,leaderboard:true,errors});await page.close();

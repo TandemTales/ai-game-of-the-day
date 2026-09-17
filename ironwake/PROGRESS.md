@@ -795,3 +795,26 @@ side-by-side verdict against a shipped mech-action reference. This is a bounded
 polish night, not release night: no `.aaa-complete`, catalog change or `main`
 promotion; September 19 remains the forced-release date and all unproven quality
 debt must stay explicit.
+
+## 2026-09-16 Wednesday renderer handoff
+
+`render.js` now gives the Sovereign a taller asymmetric command citadel,
+layered armor, an offset triple-gun battery and a forward shield core. The
+fortress approach adds three titan-foot scars and two broken service towers to
+frame the runway; all additions are presentation-only, outside gameplay
+collision. `tools/smoke.cjs` now moves the presentation fixture into the open
+arena while leaving the boss on its authored path, so captures include the
+actual encounter silhouette.
+
+Verification: full Jest passes **394 tests in 17 suites**; both changed JS files
+pass `node --check`; `git diff --check` passes; and the elevated Chromium smoke
+passes all six target viewports with actual opening keyboard/touch input,
+leaderboard ordering, clean console, no external requests and no horizontal
+overflow. I opened the six final close-range boss captures; the 3840x2160 frame
+was downsampled for inspection. These screenshots are at
+`node_modules/.cache/ironwake/sep16-sovereign-final`. The fresh independent
+MechWarrior 5 comparison is pending; this is not an AAA pass. No gameplay state,
+collision, controls, saves, catalog, release marker or `main` changed. Forced
+release remains September 19. Carry human feedback, physical-device behavior,
+accessibility, production leaderboard, and unjudged audio/VFX quality; if the
+critic finds a remaining visual loss, address it before the forced release.

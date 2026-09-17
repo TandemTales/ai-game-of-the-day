@@ -829,3 +829,28 @@ No gameplay state, collision, controls, saves, catalog, release marker or `main`
 changed. Forced release remains September 19. Human feedback, physical-device
 behavior, accessibility, production leaderboard, audio/VFX and AAA presentation
 remain unproven; this run does not claim completion.
+
+## 2026-09-17 Thursday Sovereign art handoff
+
+Passes 2–5 added articulated block-model legs, a stage-2 encounter camera, cleaner
+HUD composition, and tower clearance. Each received a fresh independent **AAA
+FAIL / OURS LOSES** verdict; the walker still read as a gate/citadel.
+
+Pass 6 adds the 1254×1254 RGBA game asset `assets/images/sovereign-walker.png`
+and displays it as a depth-tested, camera-facing cutout with a phase core cue and
+ground ellipse. The old procedural body is hidden. The fresh critic now reads
+the four legs and planted feet, but still returns **AAA FAIL / OURS LOSES**:
+the landscape boss is small against the empty frame, and the detailed cutout
+contrasts with the sparse flat city. Next: increase landscape subject scale and
+improve the city/character visual cohesion before another independent review.
+
+Verification on pass 6: **17 Jest suites / 394 tests pass**; `node --check`
+and `git diff --check` pass; elevated Chromium smoke passes all six viewports
+(320×568, 390×844, 844×390, 768×1024, 1440×900, 3840×2160), with controls,
+results, leaderboard flow, no page/console errors and no horizontal overflow.
+Final captures: `node_modules/.cache/ironwake/sep17-sovereign-pass6-full`.
+
+No campaign logic, collision, saves, catalog, release marker or `main` changed.
+No release is scheduled tonight; forced release remains September 19. Human
+feedback, physical-device behavior, accessibility, production leaderboard,
+audio/VFX and AAA presentation remain unproven.

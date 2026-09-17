@@ -51,6 +51,9 @@ export function createRenderer(canvas) {
     const m=new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,side:THREE.DoubleSide});materials.push(m);return m;
   }
   const planeGeo = new THREE.PlaneGeometry(1,1); geometries.push(planeGeo);
+  const sovereignTexture=new THREE.TextureLoader().load(new URL('../images/sovereign-walker.png',import.meta.url).href);
+  sovereignTexture.colorSpace=THREE.SRGBColorSpace;sovereignTexture.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());textures.push(sovereignTexture);
+  const sovereignMaterial=new THREE.MeshBasicMaterial({map:sovereignTexture,transparent:true,alphaTest:.035,depthTest:true,depthWrite:false,side:THREE.DoubleSide,toneMapped:false});materials.push(sovereignMaterial);
   function flatText(text,x,z,w=10){const q=mesh(planeGeo,label(text,'#88938b'),x,.025,z,w,w/4,1);q.rotation.x=-Math.PI/2;q.castShadow=false;return q;}
   const legacyStart=scene.children.length;
   box(M.ground,0,-.45,0,150,.8,130);
@@ -242,30 +245,52 @@ export function createRenderer(canvas) {
   }
   function makeFortress(){
     const g=group(),turret=group(g),legs=[];
-    // Long, exposed legs and a split upper silhouette make this read as a
-    // walking citadel at approach distance, rather than a wide armored gate.
-    for(const [side,z,scale] of [[-1,-7,1.12],[1,-7,.92],[-1,7,.94],[1,7,1.2]]){
-      const leg=group(g);leg.position.set(side*8.5,0,z);leg.scale.setScalar(scale);legs.push(leg);
-      box(M.black,0,.72,.85,4.7,1.35,6.4,leg);
-      box(M.steel,0,1.45,1.72,4.1,.16,2.5,leg);
-      for(const toe of [-1,1])box(M.orangeLight,toe*1.52,1.5,2.55,.18,.12,.92,leg);
-      box(M.steel,0,5.6,-.35,2.55,8.2,2.7,leg);
-      box(M.black,0,5.5,.9,2.92,6.4,.42,leg);
-      pipe(M.orange,0,5.3,1.18,.3,5.8,'y',leg);
-      pipe(M.steel,side*.65,5.8,-1.62,.18,5.4,'y',leg);
-      box(M.enemy,side*-.45,10.15,-.35,4.6,3.9,4.4,leg);
-      const shin=box(M.dark,0,5.5,-.95,.55,7.5,.62,leg);shin.rotation.z=side*.1;
-      beam(M.steel,side*1.75,7.25,0,.22,5.3,.22,side*.24,leg);
+    // Diagonal front/rear stances make all four articulated load paths visible
+    // from the encounter camera instead of stacking them into a gate-like pair.
+    for(const [side,x,z] of [[-1,21,15],[1,21,15],[-1,17,-17],[1,17,-17]]){
+      const leg=group(g),index=legs.length;leg.position.set(side*x,0,z);
+      const shoulder=box(M.enemy,side*15.8,10.7,z*.72,9.2,4.7,6.6,g);shoulder.rotation.z=-side*.12;
+      box(M.steelLight,side*16.3,11.6,z*.82,5.1,.38,5.7,g);
+      const mount=box(M.steel,side*(x-2.1),8.65,z,6.3,1.65,4.4,g);mount.rotation.z=-side*.08;
+      box(M.black,side*(x-1.8),8.55,z,4.4,1.95,3.4,g);
+      const hip=group(leg);hip.position.y=12.8;
+      box(M.black,0,0,0,5.1,1.45,5.1,hip);
+      box(M.enemy,0,-1.95,0,4.15,3.65,4.05,hip);
+      box(M.steelLight,0,-3.35,.22,3.05,.9,3.05,hip);
+      for(const out of [-1,1])pipe(M.orange,out*1.42,-2.15,.15,.2,2.35,'y',hip);
+      box(M.black,0,-4.7,-.22,2.55,3.35,2.6,hip);
+      box(M.steelLight,side*.95,-4.65,.04,.42,2.6,2.72,hip);
+      const knee=group(leg);knee.position.set(side*.34,6.2,0);
+      pipe(M.black,0,0,0,.98,4.5,'x',knee);
+      mesh(sphereGeo,M.steelLight,0,0,.05,1.88,1.68,1.82,knee);
+      mesh(sphereGeo,M.orangeLight,0,0,1.03,.82,.8,.58,knee);
+      box(M.black,0,.05,1.48,1.9,.28,.24,knee);
+      const shin=group(knee);shin.position.set(side*.45,-.58,0);
+      mesh(capGeo,M.steelLight,0,-1.48,.12,1.85,4.05,1.82,shin);
+      box(M.black,0,-1.9,.74,1.48,3.05,.72,shin);
+      for(const out of [-1,1]){
+        pipe(M.orange,out*1.02,-1.6,1.01,.2,2.9,'y',shin);
+        beam(M.dark,out*1.18,-1.45,-.25,.38,3.05,.36,out*-.12,shin);
+      }
+      const ankle=group(leg);ankle.position.set(side*.72,1.45,0);
+      mesh(sphereGeo,M.black,0,0,.1,1.86,1.08,1.82,ankle);
+      mesh(sphereGeo,M.orangeLight,0,0,1.03,.82,.72,.78,ankle);
+      const foot=group(leg);foot.position.set(side*.95,.82,0);foot.rotation.y=(z<0?Math.PI:0)+side*.16;
+      box(M.black,0,0,.5,7.2,1.55,8.2,foot);
+      box(M.steelLight,0,.8,1.02,6.25,.18,6.1,foot);
+      box(M.orange,0,.86,3.55,5.2,.22,1.35,foot);
+      for(const out of [-1,1])box(M.orangeLight,out*2.5,.92,3.55,.34,.24,1.55,foot);
+      leg.userData={hip,knee,shin,ankle,foot,index};legs.push(leg);
     }
     // A layered, forward-thrusting hull: dark undercarriage, rust armor and
     // pale service plates provide scale breaks and distinct material reads.
-    box(M.black,0,11.5,0,21,4.2,23,g);
-    box(M.dark,0,13.15,0,23,.75,20,g);
-    box(M.enemy,0,15.6,-.4,20,5.2,17,g);
-    box(M.steel,0,18.25,-1,17,.78,15,g);
-    const prow=box(M.enemy,0,13.7,8.5,17,4.3,9,g);prow.rotation.x=-.1;
-    box(M.black,0,11.15,10.7,14,1.4,7,g);
-    box(M.steelLight,0,10.42,12.7,13,.18,2.2,g);
+    box(M.black,0,10.9,0,20,3.5,21,g);
+    box(M.dark,0,12.55,0,22,.72,18,g);
+    box(M.enemy,0,14.8,-.4,19,4.5,16,g);
+    box(M.steel,0,17.12,-1,16,.72,14,g);
+    const prow=box(M.enemy,0,13.3,7.5,16,3.6,8,g);prow.rotation.x=-.1;
+    box(M.black,0,10.9,9.7,13,1.1,6,g);
+    box(M.steelLight,0,10.15,11.5,12,.18,2,g);
     for(const side of [-1,1]){
       const cheek=box(M.steel,side*9.4,15.4,5.1,3.2,5.9,9,g);cheek.rotation.z=side*-.18;
       box(M.orange,side*9.15,15.3,9.67,2.65,.22,1.4,g);
@@ -273,19 +298,15 @@ export function createRenderer(canvas) {
     }
     // The command tower rises off-centre; the lower starboard gun shelf and
     // port exhaust stack deliberately keep the profile unequal.
-    box(M.dark,-2.8,21.7,-2.3,12,5.2,10,g);
-    box(M.enemy,-3.8,25.3,-2.4,10,4.2,8.6,g);
-    box(M.steel,-3.8,27.55,-2.4,8.5,.45,7.1,g);
-    box(M.black,-3.8,29.8,-2.6,7.2,4.1,6.4,g);
-    box(M.glass,-3.8,29.8,.68,5.5,2.15,.16,g);
-    box(M.red,-3.8,31.15,.81,4.6,.2,.12,g);
-    box(M.orange,-9.5,21.4,-.4,3.4,8.2,5.6,g);
-    for(const z of [-2,1.1])pipe(M.black,-9.4,27.7,z,.72,11,'y',g);
-    for(const z of [-2,1.1])pipe(M.orange,-9.4,30,z,.18,7.2,'y',g);
-    const mast=pipe(M.black,-3.8,35.3,-3.4,.42,8.4,'y',g);
-    pipe(M.orangeLight,-3.8,39.3,-3.4,.2,.5,'y',g);
-    const mastArm=box(M.steel,-1.2,37.8,-3.4,5.8,.34,.38,g);mastArm.rotation.z=-.17;
-    box(M.yellow,-.5,37.8,-3.18,1.2,.2,.12,g);
+    box(M.dark,-2.8,19.8,-2.3,11,3.8,9,g);
+    box(M.enemy,-4.2,22.65,-2.4,9,3.1,7.8,g);
+    box(M.steel,-4.2,24.35,-2.4,7.8,.4,6.5,g);
+    box(M.black,-4.2,26.1,-2.6,6.2,3,5.4,g);
+    box(M.glass,-4.2,26.1,.28,4.5,1.25,.16,g);
+    box(M.red,-4.2,27.1,.4,3.8,.16,.12,g);
+    box(M.orange,-9.5,20, -.4,3.4,5.8,5.6,g);
+    for(const z of [-2,1.1])pipe(M.black,-9.4,24.1,z,.72,5.2,'y',g);
+    for(const z of [-2,1.1])pipe(M.orange,-9.4,25.3,z,.18,2.5,'y',g);
     // An offset battery sits low on the right shoulder, aimed past the prow.
     box(M.enemy,9.2,19.7,-1.2,7.8,5.8,10,g);
     box(M.steel,9.2,22.55,-1.2,8.1,.35,9.1,g);
@@ -301,23 +322,32 @@ export function createRenderer(canvas) {
     }
     // Front-facing heat exchanger and shield core give the approach a clear
     // target; the existing phase animation still owns its color and pulse.
-    box(M.black,0,14.6,13.1,9.2,7.6,1.5,g);
-    box(M.red,0,14.6,13.92,7.4,5.9,.22,g);
-    for(let i=-3;i<=3;i++)box(M.steel,i*1.05,14.55,14.12,.18,5.3,.16,g);
+    box(M.black,0,14.6,13.1,5.8,5.8,1.5,g);
+    box(M.red,0,14.6,13.92,4.2,4.25,.22,g);
+    for(let i=-2;i<=2;i++)box(M.steel,i*.78,14.55,14.12,.14,3.75,.16,g);
     for(const side of [-1,1]){
-      const guard=box(M.enemy,side*5.4,14.6,13.35,2.8,7.8,2.2,g);guard.rotation.z=side*.13;
-      box(M.orangeLight,side*5.35,14.6,14.52,.34,5.8,.12,g);
+      const guard=box(M.enemy,side*3.6,14.6,13.35,2.25,6.1,2.2,g);guard.rotation.z=side*.13;
+      box(M.orange,side*3.55,14.6,14.52,.25,4.3,.12,g);
     }
-    const core=mesh(sphereGeo,M.cyan,0,14.6,14.7,2.4,2.4,1,g);
-    const haloMaterial=new THREE.MeshBasicMaterial({color:0xff6550,transparent:true,opacity:.9,depthTest:false,depthWrite:false});materials.push(haloMaterial);
-    const halo=mesh(torusGeo,haloMaterial,0,14.6,15.95,3.55,3.55,1,g);halo.castShadow=false;halo.renderOrder=16;
+    const core=mesh(sphereGeo,M.cyan,0,14.6,14.7,1.3,1.3,.72,g);
+    const haloMaterial=new THREE.MeshBasicMaterial({color:0xff6550,transparent:true,opacity:.38,depthTest:false,depthWrite:false});materials.push(haloMaterial);
+    const halo=mesh(torusGeo,haloMaterial,0,14.6,15.95,1.85,1.85,1,g);halo.castShadow=false;halo.renderOrder=16;
     // Hazard bands, cooling vents and underslung pipes break up the armor slabs.
     for(let i=-8;i<=8;i+=2){box(i%4?M.steel:M.orange,i,18.2,8.35,.9,.16,.18,g);box(M.black,i,12.9,-10.2,.75,.24,3.1,g);}
     for(const side of [-1,1])for(const z of [-7,7]){
       pipe(M.black,side*10.5,11.1,z,.3,6.8,'x',g);
       pipe(M.orange,side*10.5,11.1,z,.13,6.5,'x',g);
     }
-    return {g,turret,legs,core,halo};
+    // Keep the old blocks out of the cutout view. The enemy entity, marker and
+    // fight phase remain driven by the same campaign state.
+    for(const part of g.children)part.visible=false;
+    g.scale.set(1,1,1);
+    const spriteRig=group(g);spriteRig.position.y=38;
+    const portrait=mesh(planeGeo,sovereignMaterial,0,0,0,76,76,1,spriteRig);portrait.castShadow=false;portrait.receiveShadow=false;
+    const spriteCore=mesh(sphereGeo,M.red,7,11.8,.55,1.12,1.12,.52,spriteRig);spriteCore.castShadow=false;spriteCore.receiveShadow=false;
+    const spriteHalo=mesh(torusGeo,sovereignPhaseHaloMaterial,7,11.8,.8,1.65,1.65,1,spriteRig);spriteHalo.castShadow=false;spriteHalo.receiveShadow=false;
+    const groundShadow=mesh(discGeo,sovereignShadowMaterial,0,.035,0,31,15,1,g);groundShadow.rotation.x=-Math.PI/2;groundShadow.castShadow=false;groundShadow.receiveShadow=false;
+    return {g,turret,legs:[],core:spriteCore,halo:spriteHalo,spriteRig,portrait,spriteHeight:76,groundShadow};
   }
   function makeBuilding(b){
     const root=group(),pivot=group(root);root.position.set(b.x,0,b.z);
@@ -436,6 +466,8 @@ export function createRenderer(canvas) {
   const waterMaterial=mat('#18717d',.16,.65,0,{transparent:true,opacity:.75});
   const fireMaterial=mat('#e05b16',.8,.1,'#a52d05',{transparent:true,opacity:.8});
   const discGeo=new THREE.CircleGeometry(1,48);geometries.push(discGeo);
+  const sovereignShadowMaterial=new THREE.MeshBasicMaterial({color:0x05090c,transparent:true,opacity:.24,depthTest:true,depthWrite:false});materials.push(sovereignShadowMaterial);
+  const sovereignPhaseHaloMaterial=new THREE.MeshBasicMaterial({color:0xff6550,transparent:true,opacity:.25,depthTest:true,depthWrite:false});materials.push(sovereignPhaseHaloMaterial);
   const zoneRingGeo=new THREE.RingGeometry(.98,1,64);geometries.push(zoneRingGeo);
   const labels={boss:label('SOVEREIGN','#ffb598'),artillery:label('ARTILLERY','#ffae80'),hunter:label('HUNTER','#ff8271')};
   Object.values(labels).forEach(m=>m.depthTest=false);
@@ -471,44 +503,35 @@ export function createRenderer(canvas) {
     if(biome==='fortress'){
       // A final defense line gives the long approach a readable destination.
       // It is presentation-only: the campaign collision map remains authoritative.
+      const gateFrame=group(world);
       box(M.concreteDark,0,-.12,-39,36,.18,88,world);
       for(const side of [-1,1]){
         box(M.roadEdge,side*15,.015,-39,.24,.04,86,world);
         for(let z=-78;z<=0;z+=8)box(M.orangeLight,side*15,.055,z,.34,.05,1.8,world);
-        box(M.dark,side*23,17,-51,6,34,8,world);
-        box(M.steel,side*23,34.5,-51,9,1.2,11,world);
-        pipe(M.orange,side*23,19,-46.7,.32,22,'y',world);
-        for(const y of [8,18,28])box(M.yellow,side*23,y,-46.55,6.5,.16,.18,world);
+        box(M.dark,side*23,17,-51,6,34,8,gateFrame);
+        box(M.steel,side*23,34.5,-51,9,1.2,11,gateFrame);
+        pipe(M.orange,side*23,19,-46.7,.32,22,'y',gateFrame);
+        for(const y of [8,18,28])box(M.yellow,side*23,y,-46.55,6.5,.16,.18,gateFrame);
       }
-      box(M.steel,0,36,-51,48,3,8,world);
-      box(M.black,0,38,-51,39,.35,7.4,world);
-      box(M.orangeLight,0,38.25,-46.95,24,.24,.2,world);
+      box(M.steel,0,36,-51,48,3,8,gateFrame);
+      box(M.black,0,38,-51,39,.35,7.4,gateFrame);
+      box(M.orangeLight,0,38.25,-46.95,24,.24,.2,gateFrame);
       const doors=[];
       for(const side of [-1,1]){
-        const door=group(world);door.position.set(side*7,0,-50.4);
+        const door=group(gateFrame);door.position.set(side*7,0,-50.4);
         box(M.enemy,0,11,0,8,22,2.2,door);
         box(M.dark,0,11,1.16,6.9,20,.3,door);
         for(let y=2;y<=20;y+=3)box(M.steel,y%2?-.9:.9,y,1.34,5.4,.14,.08,door);
         box(M.warning,0,11,1.42,.32,15,.08,door);
         doors.push({group:door,side});
       }
-      const seal=box(M.warning,0,11,-49.12,13.4,20,.24,world);
-      const breach=box(M.cyan,0,35.1,-46.7,13,.28,.2,world);breach.visible=false;
+      const seal=box(M.warning,0,11,-49.12,13.4,20,.24,gateFrame);
+      const breach=box(M.cyan,0,35.1,-46.7,13,.28,.2,gateFrame);breach.visible=false;
       // A broad engine apron and paired service ribs anchor the Sovereign in the basin.
       box(M.road,0,-.08,-66,64,.12,42,world);
       for(const side of [-1,1]){
         pipe(M.steel,side*27,2,-66,1.2,54,'z',world);
         for(const z of [-80,-68,-56])box(M.orange,side*27,.65,z,2.2,1.2,2.4,world);
-      }
-      // Alternating siege-foot scars lead the eye up the runway to the gate.
-      // These are presentation-only stamps outside the collision map.
-      for(const [x,z,angle] of [[-18,8,-.08],[18,-17,.11],[-19,-38,-.16]]){
-        const print=mesh(discGeo,M.rubbleDark,x,.025,z,5.8,8.6,1,world);print.rotation.x=-Math.PI/2;print.rotation.z=angle;
-        const rim=mesh(zoneRingGeo,M.steel,x,.07,z,6.1,8.9,1,world);rim.rotation.x=-Math.PI/2;rim.rotation.z=angle;
-        for(let toe=0;toe<3;toe++){
-          const mark=box(toe===1?M.dark:M.rubble,x+(toe-1)*2.05,.09,z+7.1,1.35,.12,2.25,world);mark.rotation.y=angle;
-        }
-        const heel=box(M.black,x,.08,z-6.1,5.2,.1,1.15,world);heel.rotation.y=angle;
       }
       // A broken service tower and its severed high crossarm frame the final
       // run without closing the broad central lane or changing collision.
@@ -525,7 +548,7 @@ export function createRenderer(canvas) {
       box(M.concreteDark,-2.2,22,0,2.2,7,4.4,tornMast).rotation.z=-.3;
       pipe(M.orange,1.65,11.5,2.8,.24,15,'y',tornMast);
       beam(M.steel,-3.8,20.5,0,9,.8,.8,.22,tornMast);
-      finaleGate={doors,seal,breach};
+      finaleGate={doors,seal,breach,frame:gateFrame};
     }
     if(biome==='harbor'||biome==='flood'){
       box(waterMaterial,-size-18,-.1,0,24,.2,size*2+20,world);
@@ -542,7 +565,7 @@ export function createRenderer(canvas) {
       const symbol=mesh(planeGeo,label(c.type==='repair'?'+ REPAIR':c.type==='intel'?'ARCHIVE':c.type==='relay'?'RELAY / HOLD F':'CAPACITOR'),0,c.type==='relay'?5:3,0,c.type==='relay'?8:5,1.25,1,g);symbol.castShadow=false;g.userData.symbol=symbol;landmarks.set(c.id,g);}
   }
   const ray=new THREE.Raycaster(),pointer=new THREE.Vector2(),ground=new THREE.Plane(new THREE.Vector3(0,1,0),0),pickPoint=new THREE.Vector3();
-  let width=0,height=0,lastX=0,lastZ=0,initialized=false;
+  let width=0,height=0,lastX=0,lastZ=0,initialized=false,bossFrameBlend=0;
   function resize(){const r=canvas.getBoundingClientRect();width=Math.max(1,r.width);height=Math.max(1,r.height);renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();}
   function pick(clientX,clientY){const r=canvas.getBoundingClientRect();pointer.set((clientX-r.left)/r.width*2-1,-((clientY-r.top)/r.height)*2+1);ray.setFromCamera(pointer,camera);return ray.ray.intersectPlane(ground,pickPoint)?{x:pickPoint.x,z:pickPoint.z}:null;}
   function project(x,z){if(typeof x==='object'){z=x.z;x=x.x;}const v=new THREE.Vector3(x,0,z).project(camera);const r=canvas.getBoundingClientRect();return{x:r.left+(v.x+1)*r.width/2,y:r.top+(1-v.y)*r.height/2};}
@@ -555,7 +578,17 @@ export function createRenderer(canvas) {
   canvas.after(tactical);
   const markerNodes=new Map(),hudNodes=['header','#hud','#orders','#radar','#radio','#controls'].map(s=>canvas.parentElement.querySelector(s)).filter(Boolean);
   const mapPanel=canvas.parentElement.querySelector('#mapPanel');
-  let hudRects=[],hudReadAt=-Infinity;
+  const bossDeckNodes=['#orders','#radio'].map(s=>canvas.parentElement.querySelector(s)).filter(Boolean);
+  const bossDeckVisibility=bossDeckNodes.map(el=>el.style.visibility);
+  const radar=canvas.parentElement.querySelector('#radar'),radarPresentation=radar?{transform:radar.style.transform,transformOrigin:radar.style.transformOrigin,opacity:radar.style.opacity}:null;
+  let hudRects=[],hudReadAt=-Infinity,bossHudSuppressed=false;
+  function setBossHudSuppressed(suppressed){
+    if(suppressed===bossHudSuppressed)return;
+    bossHudSuppressed=suppressed;
+    bossDeckNodes.forEach((el,i)=>{el.style.visibility=suppressed?'hidden':bossDeckVisibility[i];});
+    if(radar&&radarPresentation){radar.style.transform=suppressed?'scale(.82)':radarPresentation.transform;radar.style.transformOrigin=suppressed?'top right':radarPresentation.transformOrigin;radar.style.opacity=suppressed?'.78':radarPresentation.opacity;}
+    hudReadAt=-Infinity;
+  }
   const markerPoint=new THREE.Vector3(),sight=new THREE.Ray(),sightBox=new THREE.Box3(),sightHit=new THREE.Vector3();
   const overlap=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
   function tacticalProjection(x,y,z){
@@ -603,7 +636,11 @@ export function createRenderer(canvas) {
     // the threat slots. Mission defenders take priority over unrelated patrols.
     const prioritized=[...(readySalvage?[readySalvage]:[]),...threats,...salvage.filter(c=>c!==readySalvage)];
     candidates.push(...prioritized.slice(0,narrow?4:6));
+    const sovereignShot=bossFrameBlend>.55&&state.biome==='fortress'&&state.stage===2;
     for(const c of candidates){
+      // The objective deck and minimap already name this fight. Clear duplicate
+      // floating tags from the walker silhouette during the wide shot.
+      if(sovereignShot&&(c.kind==='objective'||(c.kind==='threat'&&c.entity.type==='boss')))continue;
       const e=c.entity,isRelay=c.kind==='relay',isObjective=c.kind==='objective'||isRelay,key=(isRelay?'relay:':isObjective?'objective:':'enemy:')+e.id;
       // Keep the tag above the role's silhouette, especially the elevated long gun.
       const anchor=tacticalProjection(e.x,isObjective?.4:({boss:12,artillery:3.8,escort:3.6,hunter:2.9,tank:2.5}[e.type]||2),e.z);
@@ -694,13 +731,36 @@ export function createRenderer(canvas) {
     // Fixed world north makes WASD and the touch stick predictable.
     const camDistance=state.campaign?(camera.aspect<.75?54:44):(camera.aspect<.75?32:34);
     const cx=state.campaign?p.x+Math.sin(p.angle)*4:p.x*.78,cz=state.campaign?p.z+Math.cos(p.angle)*4:p.z*.68;
-    const targetPos=new THREE.Vector3(cx,camDistance*.78,cz+camDistance*.87);
-    if(!initialized)camera.position.copy(targetPos);else camera.position.lerp(targetPos,1-Math.exp(-dt*5));
-    camera.lookAt(cx,0,cz-5.5);
+    const normalLook=new THREE.Vector3(cx,0,cz-5.5),normalPos=new THREE.Vector3(cx,camDistance*.78,cz+camDistance*.87);
+    const sovereign=state.campaign&&state.biome==='fortress'&&state.stage===2?state.enemies.find(e=>e.type==='boss'&&e.alive):null;
+    const bossGap=sovereign?Math.hypot(sovereign.x-p.x,sovereign.z-p.z):Infinity;
+    // The boss spawns over 100 m from the second pylon, so frame for the whole
+    // boss objective instead of waiting for a proximity threshold that misses
+    // its authored opening view.
+    const frameEligible=!!sovereign;
+    bossFrameBlend+=(Number(frameEligible)-bossFrameBlend)*(1-Math.exp(-dt*2.5));
+    // Scale only rendered geometry while the encounter camera is active; the
+    // campaign player radius and all simulation measurements remain untouched.
+    player.g.scale.setScalar(1+1.4*bossFrameBlend);
+    const sovereignShot=bossFrameBlend>.55&&state.biome==='fortress'&&state.stage===2;
+    setBossHudSuppressed(sovereignShot);
+    const compactLandscape=height<500&&camera.aspect>1.5;
+    const frameMinimum=compactLandscape?180:camera.aspect<.75?180:175;
+    const frameDistance=Math.max(frameMinimum,154+(sovereign?bossGap:0)*.27);
+    const focusX=sovereign?(p.x+sovereign.x)*.5:cx,focusZ=sovereign?(p.z+sovereign.z)*.5:cz-5.5;
+    const focusY=sovereign?38:compactLandscape?18:camera.aspect<.75&&width<350?19.5:18;
+    const azimuth=.34; // A modest three-quarter view separates front and rear legs.
+    const framedPos=new THREE.Vector3(focusX+Math.sin(azimuth)*frameDistance,focusY+frameDistance*.32,focusZ+Math.cos(azimuth)*frameDistance);
+    const cameraTarget=normalPos.lerp(framedPos,bossFrameBlend),lookTarget=normalLook.clone().lerp(new THREE.Vector3(focusX,focusY,focusZ),bossFrameBlend);
+    const desiredFov=43+(camera.aspect<.75?21:15)*bossFrameBlend;
+    if(Math.abs(camera.fov-desiredFov)>.01){camera.fov=desiredFov;camera.updateProjectionMatrix();}
+    if(!initialized)camera.position.copy(cameraTarget);else camera.position.lerp(cameraTarget,1-Math.exp(-dt*5));
+    camera.lookAt(lookTarget);
     if(finaleGate){
       const target=state.biome==='fortress'&&state.stage>=2?1:0;
       finaleGateOpen+=(target-finaleGateOpen)*(1-Math.exp(-dt*4));
       for(const door of finaleGate.doors)door.group.position.x=door.side*(7+12*finaleGateOpen);
+      finaleGate.frame.position.y=-44*finaleGateOpen;
       finaleGate.seal.visible=finaleGateOpen<.92;
       finaleGate.breach.visible=finaleGateOpen>=.92;
     }
@@ -712,6 +772,11 @@ export function createRenderer(canvas) {
     let nearest=null,nearDist=Infinity,falling=null;
     for(const b of state.buildings){
       let v=buildings.get(b.id);if(!v){v=makeBuilding(b);buildings.set(b.id,v);}
+      // Clear the two basin towers from the Sovereign's near-leg sightline.
+      // Their render roots slide outward during the boss shot; authored
+      // building coordinates and all collision/aim queries remain unchanged.
+      const basinLegBlocker=state.biome==='fortress'&&state.stage===2&&String(b.id).startsWith('tower-4-')&&Math.abs(b.z+43)<1&&Math.abs(Math.abs(b.x)-22)<2;
+      v.root.position.x=b.x+(basinLegBlocker?Math.sign(b.x)*18*bossFrameBlend:0);
       v.root.visible=Math.hypot(b.x-p.x,b.z-p.z)<90;
       v.pivot.visible=b.status!=='rubble';v.rubble.visible=b.status==='rubble';v.rubble.rotation.y=Math.atan2(b.fallX||0,b.fallZ||-1);
       v.damage.visible=b.hp<b.maxHp&&b.status==='standing';v.damage.scale.y=.2+(1-b.hp/b.maxHp)*.7;
@@ -782,11 +847,13 @@ export function createRenderer(canvas) {
       }else if(e.type==='boss'){
         v.core.material=e.exposed?M.cyan:M.red;v.halo.material.color.set(e.exposed?0x5af5eb:0xff6550);v.halo.visible=e.alive;
         v.halo.scale.setScalar((e.exposed?1.45:1.18)+Math.sin(t*(e.exposed?5:2.5))*.08);
-        v.turret.rotation.y=Math.sin(t*.3)*.15;v.legs.forEach((leg,i)=>leg.position.y=e.alive?Math.max(0,Math.sin(t*1.5+i*Math.PI))*.6:0);
+        v.spriteRig.quaternion.copy(camera.quaternion);
+        v.spriteRig.position.y=v.spriteHeight*.5;
       }
       else{v.g.rotation.y=Math.PI*.5;v.turret.rotation.y=(e.angle||0)-Math.PI*.5;}
-      if(!e.alive&&!e.disabled){v.g.scale.y=.3;v.g.rotation.z=.16;}
-      else v.g.scale.y=1;
+      if(!e.alive&&!e.disabled){v.g.scale.set(e.type==='boss'?1:1.14,.32,e.type==='boss'?1:1.14);v.g.rotation.z=.16;}
+      else if(e.type==='boss')v.g.scale.set(1,1,1);
+      else v.g.scale.set(1,1,1);
       v.lastX=e.x;v.lastZ=e.z;
     }
     const currentShots=new Set();for(const s of state.projectiles){currentShots.add(s.id);let v=shots.get(s.id);if(!v){v=mesh(sphereGeo,s.owner==='player'?M.flash:M.red,0,0,0,.14,.14,.7);shots.set(s.id,v);}v.position.set(s.x,s.y||1.3,s.z);v.rotation.y=Math.atan2(s.vx||0,s.vz||1);}

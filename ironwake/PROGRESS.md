@@ -754,3 +754,44 @@ where available. Preserve the five-chapter scope and all existing controls and
 save contracts. This is not release night: do not create `.aaa-complete`, edit
 the catalog, or promote `main`; carry any remaining AAA, human-pacing,
 physical-device, accessibility and production-leaderboard debt explicitly.
+
+## 2026-09-15 Tuesday polish handoff
+
+The pushed renderer unit (`468f432`) adds a presentation-only Sovereign
+approach bulkhead, paired service ribs and a broad engine apron. The two gate
+leaves animate from sealed to open when the existing fortress state reaches
+stage 2; campaign collision and progression remain authoritative in
+`campaign.js`. `tools/smoke.cjs` now captures both sealed and breach states.
+
+Verification: full Jest passes **394 tests in 17 suites**; changed JavaScript
+passes `node --check`; `git diff --check` passes; and elevated Chromium smoke
+passes all six required viewports with collapse, keyboard/native touch input,
+results and rank-before-submit flow, clean console, no external requests and
+no horizontal overflow. I opened the new 1440x900 and 390x844 sealed/breach
+captures plus the downsampled 3840x2160 breach capture. These are software
+browser captures, not physical-device or human-enjoyment evidence.
+
+The fresh independent presentation critic verdict is **AAA FAIL / OURS LOSES**
+to official MechWarrior 5 Kestrel Lancers imagery. The bulkhead makes the
+destination partial-pass readable, but the Sovereign still reads as a generic
+labelled gate: the comparison identifies sparse symmetry, repeated box
+materials, weak scale cues, and insufficient debris, smoke, destruction and
+atmosphere. The separate gameplay critic was unavailable before shutdown, so
+no gameplay-critic pass is claimed. No `.aaa-complete`, catalog edit, release,
+or `main` promotion is justified. Forced release remains September 19; next
+work should prioritize iconic Sovereign silhouette/scale and authored route
+density, while carrying human pacing, accessibility, physical-device,
+production-leaderboard and AAA audio/VFX debt.
+
+## 2026-09-16 Wednesday polish intent
+
+STOP is absent and `dev` is active. The prior run's Tuesday handoff is still
+unstaged, so preserve and verify it before syncing. Tonight targets the largest
+freshly documented AAA loss: give the Sovereign a readable, towering and
+distinctive fortress silhouette with authored material and approach detail in
+the renderer, preserving campaign state, collision, controls and save contracts.
+Capture and inspect the six standard viewports, then obtain a fresh independent
+side-by-side verdict against a shipped mech-action reference. This is a bounded
+polish night, not release night: no `.aaa-complete`, catalog change or `main`
+promotion; September 19 remains the forced-release date and all unproven quality
+debt must stay explicit.

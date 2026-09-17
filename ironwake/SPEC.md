@@ -137,7 +137,9 @@ their existence must not be assumed as remaining production time.
 | --- | --- |
 | Hunter combat builder | assets/js/campaign.js |
 | Hunter regression builder | ../__tests__/ironwake.hunter.test.js (repository __tests__) |
+| Sovereign presentation builder | assets/js/render.js |
 | Independent gameplay/hunter critic | Read-only; no game files |
+| Independent presentation critic | Read-only; no game files |
 | Lead integration | All other files, documentation and Git |
 
 Builders must report cross-file needs to the lead. Critic remains independent.

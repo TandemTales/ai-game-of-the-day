@@ -812,9 +812,20 @@ passes all six target viewports with actual opening keyboard/touch input,
 leaderboard ordering, clean console, no external requests and no horizontal
 overflow. I opened the six final close-range boss captures; the 3840x2160 frame
 was downsampled for inspection. These screenshots are at
-`node_modules/.cache/ironwake/sep16-sovereign-final`. The fresh independent
-MechWarrior 5 comparison is pending; this is not an AAA pass. No gameplay state,
-collision, controls, saves, catalog, release marker or `main` changed. Forced
-release remains September 19. Carry human feedback, physical-device behavior,
-accessibility, production leaderboard, and unjudged audio/VFX quality; if the
-critic finds a remaining visual loss, address it before the forced release.
+`node_modules/.cache/ironwake/sep16-sovereign-final`.
+
+Fresh independent verdict: **AAA FAIL / OURS LOSES** to the official Piranha
+Games *MechWarrior 5: Mercenaries — Legend of the Kestrel Lancers* megacity
+capture (`https://static.mw5mercs.com/img/dlc2/biomes/megacity-biome-01.jpg?id=a4a58eff356d707641d65bfcc20d938f`).
+The runway and palette read clearly, but the Sovereign still reads as a glowing
+gate/core: the legs and joints do not read, the player mech is tiny, and flat
+boxes, warning rings and sparse destruction/atmosphere trail the reference.
+Portrait HUD and target tags crowd the frame. The highest-priority next change
+is a clearly articulated walker with visible leg joints and ground contact,
+framed so the full silhouette reads at mobile and desktop sizes. Composite and
+responsive captures are in ignored `node_modules/.cache/ironwake/sep16-sovereign-critic`.
+
+No gameplay state, collision, controls, saves, catalog, release marker or `main`
+changed. Forced release remains September 19. Human feedback, physical-device
+behavior, accessibility, production leaderboard, audio/VFX and AAA presentation
+remain unproven; this run does not claim completion.

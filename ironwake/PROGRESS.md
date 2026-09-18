@@ -1264,3 +1264,35 @@ then repeat the six-size visual inspection and critic review.
 No gameplay logic, collision, saves, catalog, completion marker, or `main`
 changed. Forced release is Saturday, September 19 Pacific; release night stays
 wrap-up only, with visual debt recorded honestly.
+
+## 2026-09-18 Friday generated facade texture pass 14
+
+Pass 14 adds the locally generated `assets/images/fortress-facade-generated.png`
+and uses it on the fortress citadel and instanced skyline shells. The texture
+adds dense metal panels, recesses, cables, and amber/cyan windows; it loads from
+the game directory with no external request. A portrait spire experiment was
+removed after it intruded into the HUD band; the final state keeps the HUD and
+mech/gate silhouettes clear.
+
+Verification on the final snapshot: **17 Jest suites / 394 tests pass**;
+`node --check` and `git diff --check` pass. Focused Chromium smoke passes at
+390×844 and 1440×900. Full smoke passes at 320×568, 390×844, 844×390,
+768×1024, 1440×900, and 3840×2160; collapse, input, results, and leaderboard
+flows pass with no page errors or horizontal overflow. I opened all six breach
+captures; the 4K capture was downsampled. Evidence:
+`node_modules/.cache/ironwake/sep18-full-pass14-final` and
+`node_modules/.cache/ironwake/sep18-renderer-pass14-handoff-final`.
+
+Pass-14 independent critic verdict: **AAA FAIL / OURS LOSES** to the official
+MW5 Kestrel Lancers Megacity reference. Removing the tall spires restored clear
+phone composition; facade texture and skyline shells read more on desktop, but
+the mobile city remains a few muted silhouettes. The scene still lacks the
+reference's density, layered depth, strong material response, and lighting
+contrast. The critic could not load the official image endpoint (web cache miss)
+or create a literal side-by-side panel, so no side-by-side comparison is
+claimed. Next: add stronger local facade detail and contrast to the perimeter
+buildings that are actually visible on phone, then re-check all viewports.
+
+No gameplay logic, collision, saves, catalog, completion marker, or `main`
+changed. Forced release is Saturday, September 19 Pacific; release night stays
+wrap-up only, with outstanding cosmetic visual debt recorded honestly.

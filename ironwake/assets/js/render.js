@@ -118,8 +118,12 @@ export function createRenderer(canvas) {
     for(const tex of [map,emissiveMap]){tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());textures.push(tex);}
     return{map,emissiveMap};
   }
-  const fortressFacadeSurface=makeFortressSurface('facade'),fortressGroundSurface=makeFortressSurface('ground'),fortressRoadSurface=makeFortressSurface('road');
-  const fortressFacadeMaterial=mat('#fff',.86,.3,'#fff',{map:fortressFacadeSurface.map,emissiveMap:fortressFacadeSurface.emissiveMap,emissiveIntensity:.48});
+  const fortressFacadeTexture=new THREE.TextureLoader().load(new URL('../images/fortress-facade-generated.png',import.meta.url).href,texture=>{
+    texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());texture.needsUpdate=true;
+  });
+  fortressFacadeTexture.colorSpace=THREE.SRGBColorSpace;fortressFacadeTexture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());textures.push(fortressFacadeTexture);
+  const fortressGroundSurface=makeFortressSurface('ground'),fortressRoadSurface=makeFortressSurface('road');
+  const fortressFacadeMaterial=mat('#fff',.78,.22,'#18232b',{map:fortressFacadeTexture,emissiveIntensity:.2});
   const fortressGroundMaterial=mat('#fff',.94,.16,0,{map:fortressGroundSurface.map});
   const fortressRoadMaterial=mat('#fff',.76,.42,'#10191d',{map:fortressRoadSurface.map,emissiveMap:fortressRoadSurface.emissiveMap,emissiveIntensity:.72});
   const boxGeo = new THREE.BoxGeometry(1,1,1); geometries.push(boxGeo);
@@ -699,7 +703,7 @@ export function createRenderer(canvas) {
         }
       }
       instanceBoxes(citadel,M.black,skylineFootings);
-      instanceBoxes(citadel,M.concreteDark,skylineShells);
+      instanceBoxes(citadel,fortressFacadeMaterial,skylineShells);
       instanceBoxes(citadel,M.steel,skylineDecks);
       instanceBoxes(citadel,M.dark,skylineUppers);
       instanceBoxes(citadel,M.black,skylineCrowns);

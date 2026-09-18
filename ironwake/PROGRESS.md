@@ -1296,3 +1296,36 @@ buildings that are actually visible on phone, then re-check all viewports.
 No gameplay logic, collision, saves, catalog, completion marker, or `main`
 changed. Forced release is Saturday, September 19 Pacific; release night stays
 wrap-up only, with outstanding cosmetic visual debt recorded honestly.
+
+## 2026-09-18 Friday campaign skyline readability pass 15
+
+Pass 15 moves the skyline treatment into campaign-visible geometry: the citadel
+side bastions use a brighter local facade material, and the four nearer skyline
+shells preserve the authored panel/window texture through campaign fog. The
+legacy industrial scenery edit was reverted after confirming that scene is
+hidden during campaign play. The far skyline shells remain dark for depth and
+variation. Only `assets/js/render.js` changed; no gameplay or collision data
+changed.
+
+Verification on this snapshot: **17 Jest suites / 394 tests pass**; `node --check`
+and `git diff --check` pass. Full Chromium smoke passes at 320×568,
+390×844, 844×390, 768×1024, 1440×900, and 3840×2160. Collapse, input, results,
+and leaderboard flows pass at all six sizes with no page errors; all six
+gameplay PNGs were opened and reviewed, with the 4K capture downsampled. Focused
+390×844 and 1440×900 fortress captures also pass with no console errors. Full
+smoke evidence: `node_modules/.cache/ironwake/sep18-pass15-full-smoke`; focused
+fortress evidence: `node_modules/.cache/ironwake/sep18-renderer-pass15-final`.
+
+Pass-15 independent critic verdict: **AAA FAIL / OURS LOSES** against the
+official MechWarrior 5: Mercenaries Kestrel Lancers Megacity gallery. A
+side-by-side markdown panel paired our 1440×900 breach capture with the official
+gallery image. The texture reads more clearly on desktop, but stays faint and
+small on phone; the city still reads as sparse broad blocks, and the dark open
+street and low lighting remain well below the reference's layered density,
+varied silhouettes, atmospheric depth, and combat lighting. The mech remains
+the strongest asset. The comparison is not an AAA pass.
+
+No gameplay logic, collision, saves, catalog, completion marker, or `main`
+changed. Forced release is Saturday, September 19 Pacific; release night stays
+wrap-up only. Remaining visual debt includes city density, readable phone-scale
+materials, environmental lighting, and broader authored scene variation.

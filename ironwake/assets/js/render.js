@@ -124,6 +124,11 @@ export function createRenderer(canvas) {
   fortressFacadeTexture.colorSpace=THREE.SRGBColorSpace;fortressFacadeTexture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());textures.push(fortressFacadeTexture);
   const fortressGroundSurface=makeFortressSurface('ground'),fortressRoadSurface=makeFortressSurface('road');
   const fortressFacadeMaterial=mat('#fff',.78,.22,'#18232b',{map:fortressFacadeTexture,emissiveIntensity:.2});
+  // The receding skyline needs to retain its authored window/recess detail
+  // through campaign fog; a restrained texture-matched emissive lift keeps
+  // those surfaces legible without washing out the central gate.
+  const fortressCitadelFacadeMaterial=mat('#d7d6cf',.82,.18,'#806044',{map:fortressFacadeTexture,emissiveMap:fortressFacadeTexture,emissiveIntensity:.2,fog:false});
+  const fortressSkylineFacadeMaterial=new THREE.MeshBasicMaterial({map:fortressFacadeTexture,color:'#fff',toneMapped:true,fog:false});materials.push(fortressSkylineFacadeMaterial);
   const fortressGroundMaterial=mat('#fff',.94,.16,0,{map:fortressGroundSurface.map});
   const fortressRoadMaterial=mat('#fff',.76,.42,'#10191d',{map:fortressRoadSurface.map,emissiveMap:fortressRoadSurface.emissiveMap,emissiveIntensity:.72});
   const boxGeo = new THREE.BoxGeometry(1,1,1); geometries.push(boxGeo);
@@ -657,7 +662,7 @@ export function createRenderer(canvas) {
         for(const side of [-1,1])box(M.orangeLight,side*8.65,y,16.75,.24,2.4,.12,citadel);
       }
       for(const side of [-1,1]){
-        box(fortressFacadeMaterial,side*40,20,-4,25,40,27,citadel);
+        box(fortressCitadelFacadeMaterial,side*40,20,-4,25,40,27,citadel);
         box(M.steel,side*40,41,-4,31,4,32,citadel);
         box(M.dark,side*40,46,-4,18,6,21,citadel);
         for(const fin of [-1,1]){
@@ -676,12 +681,13 @@ export function createRenderer(canvas) {
         {x:-82,z:-91,w:17,d:14,h:94,offset:3.2},
         {x:84,z:-103,w:16,d:13,h:86,offset:-2.8},
       ];
-      const skylineFootings=[],skylineShells=[],skylineDecks=[],skylineUppers=[],skylineCrowns=[],skylineBeacons=[],skylineRails=[];
+      const skylineFootings=[],skylineShells=[],skylineDetailedShells=[],skylineDecks=[],skylineUppers=[],skylineCrowns=[],skylineBeacons=[],skylineRails=[];
       const skylineWindows=[],skylineCyan=[],skylineBands=[];
       for(const [index,tower]of skyline.entries()){
         const{x,z,w,d,h,offset}=tower,front=z+d*.5+.12,upperX=x+offset;
         skylineFootings.push({x,y:1.2,z,sx:w*1.22,sy:2.4,sz:d*1.2});
-        skylineShells.push({x,y:h*.39,z,sx:w,sy:h*.78,sz:d,rz:index%2?.018:-.018});
+        const shell={x,y:h*.39,z,sx:w,sy:h*.78,sz:d,rz:index%2?.018:-.018};
+        if(index<4)skylineDetailedShells.push(shell);else skylineShells.push(shell);
         skylineDecks.push({x,y:h*.79,z,sx:w*1.09,sy:.8,sz:d*1.09});
         skylineUppers.push({x:upperX,y:h*.83,z:z-1,sx:w*.68,sy:h*.36,sz:d*.82});
         skylineCrowns.push({x:upperX,y:h*1.035,z:z-1.3,sx:w*.43,sy:2.2,sz:d*.58});
@@ -703,7 +709,8 @@ export function createRenderer(canvas) {
         }
       }
       instanceBoxes(citadel,M.black,skylineFootings);
-      instanceBoxes(citadel,fortressFacadeMaterial,skylineShells);
+      instanceBoxes(citadel,M.concreteDark,skylineShells);
+      instanceBoxes(citadel,fortressSkylineFacadeMaterial,skylineDetailedShells);
       instanceBoxes(citadel,M.steel,skylineDecks);
       instanceBoxes(citadel,M.dark,skylineUppers);
       instanceBoxes(citadel,M.black,skylineCrowns);

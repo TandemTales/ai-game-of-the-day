@@ -1022,3 +1022,37 @@ fortress slab dominate the breach composition. The phone HUD and touch rails
 remain crowded around the encounter. It inspected the official image and game
 captures separately; browser policy blocked previewing its side-by-side page.
 Next: make one final bounded boss-shot sightline adjustment; no AAA claim.
+
+## 2026-09-18 Friday boss framing pass 6
+
+Pass 6 tightens the encounter camera distance and lowers its focal target so
+the full-color Sovereign occupies more of the phone and landscape frame. This
+remains a presentation-only change. In my visual review the walker is more
+legible at 390×844 and desktop sizes, but the player mech is still small and
+lower-leg separation from the street remains weak. The fortress view still has
+flat city materials and HUD density. A new independent comparison against the
+official MechWarrior 5 Kestrel Lancers Megacity reference is pending; this is
+not an AAA claim.
+
+Verification on this exact snapshot: **17 Jest suites / 394 tests pass**;
+`node --check` and `git diff --check` pass. Elevated Chromium smoke passes all
+six target sizes (320×568, 390×844, 844×390, 768×1024, 1440×900, 3840×2160),
+with controls/results/leaderboard flow, no page or console errors, and no
+horizontal overflow. I opened the Sovereign close captures at all six sizes,
+plus the phone and desktop breach captures and desktop results screen; the
+3840×2160 image was downsampled for inspection. Captures:
+`node_modules/.cache/ironwake/sep18-full-pass6`.
+
+No campaign logic, collision, saves, catalog, completion marker, or `main`
+changed. Forced release is Saturday, September 19 Pacific; release night is
+wrap-up only, with glaring blockers as the gate and all cosmetic shortfalls
+recorded as debt.
+
+Pass-6 independent reviewer: **AAA FAIL / OURS LOSES** to the official MW5
+Kestrel Lancers megacity image. The larger walker is easier to read, but the
+mech silhouette remains a crowded mass; the city is flat and sparse beside the
+reference's layered depth, architecture, and atmosphere. HUD and controls
+compress the phone scene further. The reviewer opened the reference and game
+captures separately, not side by side. One final focused attempt should target
+silhouette separation and fortress composition before tomorrow's forced
+release gate; no AAA claim.

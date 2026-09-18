@@ -815,10 +815,10 @@ export function createRenderer(canvas) {
     const compactLandscape=height<500&&camera.aspect>1.5;
     // The encounter should hold the full route when the walker is distant, but
     // tighten into a readable boss-and-player composition as the fight closes.
-    const frameMinimum=compactLandscape?106:camera.aspect<.75?142:78;
+    const frameMinimum=compactLandscape?100:camera.aspect<.75?106:74;
     const frameDistance=Math.max(frameMinimum,68+(sovereign?bossGap:0)*.3);
     const focusX=sovereign?p.x*.42+sovereign.x*.58:cx,focusZ=sovereign?p.z*.42+sovereign.z*.58:cz-5.5;
-    const focusY=sovereign?31:compactLandscape?18:camera.aspect<.75&&width<350?19.5:18;
+    const focusY=sovereign?28:compactLandscape?18:camera.aspect<.75&&width<350?19.5:18;
     const azimuth=camera.aspect<.75?.38:.68; // Keep the phone shot aligned to the route; open the landscape angle to reveal all four legs.
     const framedPos=new THREE.Vector3(focusX+Math.sin(azimuth)*frameDistance,focusY+frameDistance*.4,focusZ+Math.cos(azimuth)*frameDistance);
     const cameraTarget=normalPos.lerp(framedPos,bossFrameBlend),lookTarget=normalLook.clone().lerp(new THREE.Vector3(focusX,focusY,focusZ),bossFrameBlend);

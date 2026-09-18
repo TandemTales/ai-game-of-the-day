@@ -904,3 +904,24 @@ No campaign logic, collision, saves, catalog, release marker or `main` changed.
 No release is scheduled tonight; forced release remains September 19. Human
 feedback, physical-device behavior, accessibility, production leaderboard,
 audio/VFX and AAA presentation remain unproven.
+
+## 2026-09-17 Thursday fortress presentation pass 2
+
+Pass 2 adjusts the stage-2 camera to tighten as the Sovereign closes, reduces
+its vertical exaggeration, and adds a procedural dusk gradient plus restrained
+fortress lighting and rim light. The walker silhouette aid is now lower-opacity
+and behind scene geometry. This is a renderer-only pass. Fresh critique is
+pending; my own review sees a clearer dusk palette and closer framing, while the
+boss still does not read as a large, articulated subject in the close captures.
+
+Verification: **17 Jest suites / 394 tests pass**; `node --check` and
+`git diff --check` pass. Elevated Chromium smoke passes all six viewports
+(320×568, 390×844, 844×390, 768×1024, 1440×900, 3840×2160) with input,
+results, leaderboard flow, empty browser/console errors, and no horizontal
+overflow. I opened the final close captures across all six sizes and both
+fortress states at phone and desktop sizes. Captures: `node_modules/.cache/ironwake/sep17-full-pass2`.
+
+The fresh blind comparison is still pending, so this pass is not an AAA claim.
+No campaign logic, saves, catalog, release marker, or `main` changed. Forced
+release remains September 19; continue the presentation iteration first, and
+record any cosmetic shortfall honestly at the forced-release gate.

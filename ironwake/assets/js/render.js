@@ -20,6 +20,18 @@ export function createRenderer(canvas) {
   sun.shadow.bias = -.0004; sun.shadow.normalBias = .05; scene.add(sun); scene.add(sun.target);
   const fill = new THREE.DirectionalLight(0x66cbe9, 1.1); fill.position.set(18, 9, -23); scene.add(fill);
   const materials = [], geometries = [], textures = [];
+  // A restrained procedural dusk gradient gives the fortress skyline a
+  // readable horizon and warm atmospheric separation without fetched art.
+  const skyCanvas=document.createElement('canvas');skyCanvas.width=512;skyCanvas.height=256;
+  const skyCtx=skyCanvas.getContext('2d'),skyGradient=skyCtx.createLinearGradient(0,0,0,256);
+  skyGradient.addColorStop(0,'#121b2a');skyGradient.addColorStop(.48,'#273143');skyGradient.addColorStop(.78,'#69514d');skyGradient.addColorStop(1,'#363d47');
+  skyCtx.fillStyle=skyGradient;skyCtx.fillRect(0,0,512,256);
+  const horizonGlow=skyCtx.createRadialGradient(256,196,8,256,196,210);
+  horizonGlow.addColorStop(0,'rgba(255,177,111,.27)');horizonGlow.addColorStop(1,'rgba(255,177,111,0)');
+  skyCtx.fillStyle=horizonGlow;skyCtx.fillRect(0,0,512,256);
+  for(let i=0;i<13;i++){const y=112+i*7;skyCtx.fillStyle=`rgba(177,190,197,${.012+(i%3)*.006})`;skyCtx.fillRect((i*71)%190,y,240+(i%4)*34,1+(i%2));}
+  const fortressSky=new THREE.CanvasTexture(skyCanvas);fortressSky.colorSpace=THREE.SRGBColorSpace;textures.push(fortressSky);
+  const fortressRimLight=new THREE.PointLight(0xffa66d,340,135,2);fortressRimLight.visible=false;scene.add(fortressRimLight);
   const mat = (color, roughness=.8, metalness=.25, emissive=0, extra={}) => {
     const m = new THREE.MeshStandardMaterial({color,roughness,metalness,emissive,...extra}); materials.push(m); return m;
   };
@@ -57,7 +69,7 @@ export function createRenderer(canvas) {
     texture.image=mask;texture.colorSpace=THREE.SRGBColorSpace;texture.needsUpdate=true;
   });
   sovereignMaskTexture.colorSpace=THREE.SRGBColorSpace;sovereignMaskTexture.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());textures.push(sovereignMaskTexture);
-  const sovereignMaskMaterial=new THREE.MeshBasicMaterial({map:sovereignMaskTexture,color:'#e0e5dc',transparent:true,opacity:.46,depthTest:false,depthWrite:false,side:THREE.DoubleSide,toneMapped:false});materials.push(sovereignMaskMaterial);
+  const sovereignMaskMaterial=new THREE.MeshBasicMaterial({map:sovereignMaskTexture,color:'#dce8dd',transparent:true,opacity:.34,depthTest:false,depthWrite:false,side:THREE.DoubleSide,toneMapped:false});materials.push(sovereignMaskMaterial);
   function flatText(text,x,z,w=10){const q=mesh(planeGeo,label(text,'#88938b'),x,.025,z,w,w/4,1);q.rotation.x=-Math.PI/2;q.castShadow=false;return q;}
   const legacyStart=scene.children.length;
   box(M.ground,0,-.45,0,150,.8,130);
@@ -346,7 +358,7 @@ export function createRenderer(canvas) {
     // Keep the fortress in the same faceted material language as its district.
     // The authored mesh also casts grounded shadows, unlike the former flat cutout.
     const spriteRig=group(g);spriteRig.position.set(0,14,-3);
-    const portrait=mesh(planeGeo,sovereignMaskMaterial,0,0,0,55,30,1,spriteRig);portrait.renderOrder=24;portrait.castShadow=false;portrait.receiveShadow=false;
+    const portrait=mesh(planeGeo,sovereignMaskMaterial,0,0,0,50,27,1,spriteRig);portrait.renderOrder=8;portrait.castShadow=false;portrait.receiveShadow=false;
     const groundShadow=mesh(discGeo,sovereignShadowMaterial,0,.035,0,31,15,1,g);groundShadow.rotation.x=-Math.PI/2;groundShadow.castShadow=false;groundShadow.receiveShadow=false;
     return {g,turret,legs,core,halo,dormantCoreMaterial,spriteRig,portrait,spriteHeight:76,groundShadow};
   }
@@ -481,7 +493,10 @@ export function createRenderer(canvas) {
     legacyWorld.visible=!state.campaign;if(!state.campaign)return;
     const biome=state.biome,size=state.bounds.maxX;
     const palette={harbor:['#243d46','#24383e','#759dae'],flood:['#243d53','#263e48','#8dbae0'],desert:['#a67c60','#766250','#ffdc9d'],reactor:['#281c29','#39323b','#ffa366'],fortress:['#292739','#303441','#baa8df']}[biome];
-    scene.background.set(palette[0]);scene.fog.color.set(palette[0]);scene.fog.density=.004;M.ground.color.set(palette[1]);sun.color.set(palette[2]);
+    if(biome==='fortress')scene.background=fortressSky;else scene.background.set(palette[0]);
+    scene.fog.color.set(biome==='fortress'?'#403d4a':palette[0]);scene.fog.density=biome==='fortress'?.005: .004;M.ground.color.set(biome==='fortress'?'#34343d':palette[1]);
+    ambient.intensity=biome==='fortress'?1.7:2.5;sun.intensity=biome==='fortress'?5.1:4.1;fill.intensity=biome==='fortress'?1.35:1.1;
+    sun.color.set(biome==='fortress'?'#ffd0a0':palette[2]);
     box(M.ground,0,-.45,0,size*2+70,.8,size*2+70,world);
     const roadSpacing=biome==='flood'?42:32;
     if(biome!=='desert'&&biome!=='fortress')for(let x=-size;x<=size;x+=roadSpacing){box(M.road,x,-.008,0,9,.1,size*2,world);box(M.road,0,-.012,x,size*2,.1,9,world);
@@ -792,14 +807,16 @@ export function createRenderer(canvas) {
     const sovereignShot=bossFrameBlend>.55&&state.biome==='fortress'&&state.stage===2;
     setBossHudSuppressed(sovereignShot);
     const compactLandscape=height<500&&camera.aspect>1.5;
-    const frameMinimum=compactLandscape?180:camera.aspect<.75?180:175;
-    const frameDistance=Math.max(frameMinimum,154+(sovereign?bossGap:0)*.27);
+    // The encounter should hold the full route when the walker is distant, but
+    // tighten into a readable boss-and-player composition as the fight closes.
+    const frameMinimum=compactLandscape?102:camera.aspect<.75?100:88;
+    const frameDistance=Math.max(frameMinimum,70+(sovereign?bossGap:0)*.29);
     const focusX=sovereign?(p.x+sovereign.x)*.5:cx,focusZ=sovereign?(p.z+sovereign.z)*.5:cz-5.5;
-    const focusY=sovereign?31:compactLandscape?18:camera.aspect<.75&&width<350?19.5:18;
+    const focusY=sovereign?23:compactLandscape?18:camera.aspect<.75&&width<350?19.5:18;
     const azimuth=.34; // A modest three-quarter view separates front and rear legs.
-    const framedPos=new THREE.Vector3(focusX+Math.sin(azimuth)*frameDistance,focusY+frameDistance*.32,focusZ+Math.cos(azimuth)*frameDistance);
+    const framedPos=new THREE.Vector3(focusX+Math.sin(azimuth)*frameDistance,focusY+frameDistance*.27,focusZ+Math.cos(azimuth)*frameDistance);
     const cameraTarget=normalPos.lerp(framedPos,bossFrameBlend),lookTarget=normalLook.clone().lerp(new THREE.Vector3(focusX,focusY,focusZ),bossFrameBlend);
-    const desiredFov=43+(camera.aspect<.75?21:15)*bossFrameBlend;
+    const desiredFov=43+(camera.aspect<.75?16:8)*bossFrameBlend;
     if(Math.abs(camera.fov-desiredFov)>.01){camera.fov=desiredFov;camera.updateProjectionMatrix();}
     if(!initialized)camera.position.copy(cameraTarget);else camera.position.lerp(cameraTarget,1-Math.exp(-dt*5));
     camera.lookAt(lookTarget);
@@ -811,7 +828,12 @@ export function createRenderer(canvas) {
       finaleGate.seal.visible=finaleGateOpen<.92;
       finaleGate.breach.visible=finaleGateOpen>=.92;
     }
-    if(state.campaign){sun.position.set(cx-28,43,cz+18);sun.target.position.set(cx,0,cz);}
+    if(state.campaign){
+      sun.position.set(cx-36,state.biome==='fortress'?27:43,cz+14);sun.target.position.set(cx,0,cz);
+      const liveBoss=state.campaign&&state.biome==='fortress'&&state.stage===2?state.enemies.find(e=>e.type==='boss'&&e.alive):null;
+      fortressRimLight.visible=!!liveBoss;
+      if(liveBoss)fortressRimLight.position.set(liveBoss.x-21,30,liveBoss.z-27);
+    }else fortressRimLight.visible=false;
     const dx=p.x-camera.position.x,dz=p.z-camera.position.z,rayLength=dx*dx+dz*dz;
     silhouette.visible=state.buildings.some(b=>{const u=((b.x-camera.position.x)*dx+(b.z-camera.position.z)*dz)/rayLength;if(u<=0||u>=1)return false;return IW.inFootprint({x:camera.position.x+dx*u,z:camera.position.z+dz*u},b,.8,camera.position.y+(2-camera.position.y)*u);});
     for(let i=0;i<playerParts.length;i++){ghostParts[i].position.copy(playerParts[i].position);ghostParts[i].quaternion.copy(playerParts[i].quaternion);ghostParts[i].scale.copy(playerParts[i].scale);if(i)ghostParts[i].visible=playerParts[i].visible;}
@@ -899,7 +921,7 @@ export function createRenderer(canvas) {
       }
       else{v.g.rotation.y=Math.PI*.5;v.turret.rotation.y=(e.angle||0)-Math.PI*.5;}
       if(!e.alive&&!e.disabled){v.g.scale.set(e.type==='boss'?1:1.14,.32,e.type==='boss'?1:1.14);v.g.rotation.z=.16;}
-      else if(e.type==='boss')v.g.scale.set(1.4,2.4,1.4);
+      else if(e.type==='boss')v.g.scale.set(1.35,1.8,1.35);
       else v.g.scale.set(1,1,1);
       v.lastX=e.x;v.lastZ=e.z;
     }

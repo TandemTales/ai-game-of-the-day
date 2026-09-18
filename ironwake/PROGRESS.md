@@ -1231,3 +1231,36 @@ portrait, then obtain a valid side-by-side review if the tool permits it.
 No gameplay logic, collision, saves, catalog, completion marker, or `main`
 changed. Forced release is Saturday, September 19 Pacific; release night stays
 wrap-up only, with remaining cosmetic shortfalls recorded as debt.
+
+## 2026-09-18 Friday fortress facade pass 13
+
+Pass 13 replaces coarse fortress facade cells with smaller deterministic
+structural bays, recessed paired windows, selective vents, and varied amber and
+cyan window lighting in `assets/js/render.js`. The material keeps the existing
+city palette and remains local; no gameplay or collision data changed.
+
+Verification on this exact snapshot: **17 Jest suites / 394 tests pass**;
+`node --check` and `git diff --check` pass. Focused Chromium smoke passes at
+390×844 and 1440×900. Full smoke passes at 320×568, 390×844, 844×390,
+768×1024, 1440×900, and 3840×2160; collapse, input, results, and leaderboard
+flows pass with no page errors and no horizontal overflow. I opened all six
+breach captures; the 4K capture was downsampled. Evidence:
+`node_modules/.cache/ironwake/sep18-full-pass13` and
+`node_modules/.cache/ironwake/sep18-renderer-pass13-final`.
+
+Pass-13 independent critic verdict: **AAA FAIL / OURS LOSES** against the
+official MechWarrior 5 Kestrel Lancers Megacity reference. The new window grid
+reads at both 390×844 and 1440×900, and stays behind the mech without covering
+the HUD; at phone scale the detail remains subtle, while desktop shows it more
+clearly. The critic still judged the overall scene as low-poly blockout beside
+MW5's denser layered towers, varied materials, rooftop detail, atmospheric
+depth, and brighter combat lighting. It also noted the gate marker is partly
+occluded by the mech. The critic accessed the official DLC page and image but
+could not create a literal side-by-side panel with available tools; the required
+side-by-side comparison was not completed. Next: bring detailed city surfaces
+into the more visible mid-distance towers and improve atmospheric separation,
+then repeat the six-size visual inspection and critic review.
+
+No gameplay logic, collision, saves, catalog, completion marker, or `main`
+changed. Forced release is Saturday, September 19 Pacific; release night stays
+wrap-up only, with visual debt recorded honestly.

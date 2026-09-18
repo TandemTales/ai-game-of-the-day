@@ -52,7 +52,7 @@ export function createRenderer(canvas) {
     const grad=ctx.createLinearGradient(0,0,size,size);grad.addColorStop(0,facade?'#59646a':ground?'#424a4c':'#303a40');grad.addColorStop(.55,base);grad.addColorStop(1,facade?'#343e44':ground?'#30373c':'#1e282e');
     ctx.fillStyle=grad;ctx.fillRect(0,0,size,size);glow.fillStyle='#000';glow.fillRect(0,0,size,size);
     let seed=style==='facade'?941:style==='ground'?1741:2819;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
-    const cell=facade?128:ground?128:128;
+    const cell=facade?64:128;
     for(let y=0;y<size;y+=cell)for(let x=0;x<size;x+=cell){
       const shade=rand()*.08;
       ctx.fillStyle=`rgba(176,194,194,${.025+shade})`;ctx.fillRect(x+3,y+3,cell-6,cell-6);
@@ -63,11 +63,39 @@ export function createRenderer(canvas) {
         ctx.fillStyle='rgba(183,198,194,.22)';ctx.fillRect(x+bx-1,y+by-1,1,1);
       }
       if(facade){
-        const ventX=x+28+rand()*12,ventY=y+70;
-        ctx.fillStyle='rgba(10,18,23,.42)';ctx.fillRect(ventX,ventY,cell-56,22);
-        for(let line=0;line<5;line++){ctx.fillStyle=line%2?'rgba(173,190,192,.25)':'rgba(11,20,26,.5)';ctx.fillRect(ventX+3,ventY+3+line*4,cell-62,2);}
-        if(rand()>.35){glow.fillStyle=rand()>.55?'#62d8d4':'#f09a56';glow.fillRect(x+cell-18,y+20+rand()*24,4,14+rand()*8);}
-        if(rand()>.55){glow.fillStyle='rgba(255,174,94,.7)';glow.fillRect(x+16,y+cell-20,22,3);}
+        const panelTone=rand();
+        ctx.fillStyle=panelTone>.55?'rgba(137,158,163,.12)':'rgba(6,13,18,.2)';ctx.fillRect(x+5,y+5,cell-10,cell-10);
+        ctx.fillStyle='rgba(4,10,15,.62)';ctx.fillRect(x+8,y+8,cell-16,cell-16);
+        ctx.fillStyle='rgba(176,194,194,.32)';ctx.fillRect(x+8,y+8,cell-16,1);ctx.fillRect(x+8,y+8,1,cell-16);
+        ctx.fillStyle='rgba(0,0,0,.58)';ctx.fillRect(x+8,y+9,cell-16,1);ctx.fillRect(x+9,y+8,1,cell-16);
+        // Repeating armored mullions make each 64px unit read as one deep
+        // structural bay at gameplay scale, with an inset paired window bank.
+        ctx.fillStyle='rgba(147,168,170,.24)';ctx.fillRect(x+3,y+2,2,cell-4);ctx.fillRect(x+cell-5,y+2,2,cell-4);
+        ctx.fillStyle='rgba(7,14,19,.5)';ctx.fillRect(x+5,y+3,1,cell-6);ctx.fillRect(x+cell-6,y+3,1,cell-6);
+        if(y%128===0){ctx.fillStyle='rgba(182,195,192,.24)';ctx.fillRect(x+5,y+2,cell-10,2);ctx.fillStyle='rgba(5,11,16,.58)';ctx.fillRect(x+5,y+4,cell-10,2);}
+        for(const wx of [x+13,x+38]){
+          const wy=y+23,ww=13,wh=16,light=rand();
+          ctx.fillStyle='rgba(0,0,0,.78)';ctx.fillRect(wx-2,wy-3,ww+4,wh+6);
+          ctx.fillStyle='rgba(162,180,179,.42)';ctx.fillRect(wx-1,wy-2,ww+2,wh+3);
+          ctx.fillStyle='#14232b';ctx.fillRect(wx,wy,ww,wh);
+          ctx.fillStyle='rgba(155,178,181,.28)';ctx.fillRect(wx+1,wy+1,ww-2,1);
+          if(light<.39){
+            ctx.fillStyle='#e9aa61';ctx.fillRect(wx+2,wy+2,ww-4,wh-4);
+            ctx.fillStyle='rgba(255,222,160,.68)';ctx.fillRect(wx+2,wy+2,ww-4,2);
+            glow.fillStyle='#a75e2b';glow.fillRect(wx+2,wy+2,ww-4,wh-4);
+          }else if(light<.57){
+            ctx.fillStyle='#55c9ca';ctx.fillRect(wx+2,wy+2,ww-4,wh-4);
+            ctx.fillStyle='rgba(188,255,242,.62)';ctx.fillRect(wx+2,wy+2,ww-4,2);
+            glow.fillStyle='#247b82';glow.fillRect(wx+2,wy+2,ww-4,wh-4);
+          }else if(light<.73){
+            ctx.fillStyle='#263b42';ctx.fillRect(wx+2,wy+2,ww-4,wh-4);
+          }
+          ctx.fillStyle='rgba(7,14,19,.72)';ctx.fillRect(wx+Math.floor(ww/2),wy,1,wh);
+        }
+        if(rand()>.78){
+          const ventY=y+45;ctx.fillStyle='rgba(4,10,15,.74)';ctx.fillRect(x+17,ventY,30,7);
+          for(let slat=0;slat<4;slat++){ctx.fillStyle=slat%2?'rgba(139,161,162,.28)':'rgba(6,13,18,.78)';ctx.fillRect(x+19,ventY+1+slat*1.3,26,1);}
+        }
       }else if(!ground){
         const ventY=y+cell-18;ctx.fillStyle='rgba(7,14,19,.42)';ctx.fillRect(x+14,ventY,cell-28,7);
         for(let slat=0;slat<5;slat++){ctx.fillStyle='rgba(172,190,193,.28)';ctx.fillRect(x+17,ventY+slat,cell-34,1);}
@@ -91,7 +119,7 @@ export function createRenderer(canvas) {
     return{map,emissiveMap};
   }
   const fortressFacadeSurface=makeFortressSurface('facade'),fortressGroundSurface=makeFortressSurface('ground'),fortressRoadSurface=makeFortressSurface('road');
-  const fortressFacadeMaterial=mat('#fff',.88,.34,'#171d21',{map:fortressFacadeSurface.map,emissiveMap:fortressFacadeSurface.emissiveMap,emissiveIntensity:.8});
+  const fortressFacadeMaterial=mat('#fff',.86,.3,'#fff',{map:fortressFacadeSurface.map,emissiveMap:fortressFacadeSurface.emissiveMap,emissiveIntensity:.48});
   const fortressGroundMaterial=mat('#fff',.94,.16,0,{map:fortressGroundSurface.map});
   const fortressRoadMaterial=mat('#fff',.76,.42,'#10191d',{map:fortressRoadSurface.map,emissiveMap:fortressRoadSurface.emissiveMap,emissiveIntensity:.72});
   const boxGeo = new THREE.BoxGeometry(1,1,1); geometries.push(boxGeo);

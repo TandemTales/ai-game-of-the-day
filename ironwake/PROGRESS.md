@@ -1014,3 +1014,11 @@ No campaign logic, saves, catalog, completion marker, or `main` changed. Forced
 release is Saturday, September 19 Pacific. Continue a bounded final polish
 pass before then; on release night, only fix a glaring blocker and record any
 cosmetic debt honestly.
+
+Pass-5 critic result: **AAA FAIL / OURS LOSES** to the official Kestrel Lancers
+Megacity still. The critic found the new orange core useful, but the walker's
+footing and anatomy still merge into the city; flat materials and a large
+fortress slab dominate the breach composition. The phone HUD and touch rails
+remain crowded around the encounter. It inspected the official image and game
+captures separately; browser policy blocked previewing its side-by-side page.
+Next: make one final bounded boss-shot sightline adjustment; no AAA claim.

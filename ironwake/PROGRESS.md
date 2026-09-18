@@ -1170,3 +1170,31 @@ review phone and desktop for style cohesion and composition.
 No gameplay logic, collision, saves, catalog, completion marker, or `main`
 changed. Forced release is Saturday, September 19 Pacific; release night is
 wrap-up only and remaining cosmetic gaps must be recorded as debt.
+
+## 2026-09-18 Friday authored skyline layer pass 11
+
+Pass 11 adds the generated transparent skyline asset
+`assets/images/fortress-skyline-generated.png` (1774×887, 1.7 MB) as a local
+depth-tested backdrop behind the 3D fortress and walker. It makes no network
+request. The spires are visible above and around the wall, mostly in landscape;
+the gate and walker obscure most of the lower skyline in portrait.
+
+Verification on this exact snapshot: **17 Jest suites / 394 tests pass**;
+`node --check` and `git diff --check` pass. Elevated full Chromium smoke passes
+all six target sizes (320×568, 390×844, 844×390, 768×1024, 1440×900,
+3840×2160), with controls/results/leaderboard flow, no page or console errors,
+and no horizontal overflow. I opened the Sovereign close captures at all six
+sizes; the 4K image was downsampled. Evidence:
+`node_modules/.cache/ironwake/sep18-full-pass11`.
+
+Pass-11 independent reviewer: **AAA FAIL / OURS LOSES** to the official MW5
+Kestrel Lancers megacity reference. The mech reads clearly and is well framed,
+but the skyline art does not translate into visible environment depth or light;
+the world still reads as dim, flat blocks, and the phone control grid remains
+dense. The reviewer inspected reference and game captures separately. Next:
+bring more of the authored skyline forward and increase its readable scale and
+contrast without covering the walker or controls; verify phone and landscape.
+
+No gameplay logic, collision, saves, catalog, completion marker, or `main`
+changed. Forced release is Saturday, September 19 Pacific; release night stays
+wrap-up only, with cosmetic visual debt recorded honestly.

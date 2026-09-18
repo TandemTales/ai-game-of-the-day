@@ -1143,3 +1143,30 @@ environment, style, and material gaps are substantial; no AAA claim.
 No campaign logic, collision, saves, catalog, completion marker, or `main`
 changed. Forced release is Saturday, September 19 Pacific; release night is
 wrap-up only and cosmetic gaps will be recorded as debt.
+
+## 2026-09-18 Friday layered skyline pass 10
+
+Pass 10 adds six staggered fortress towers, two short side links, and instanced
+warm windows/cyan light bands above and behind the recessed gate. The larger
+skyline silhouettes read in landscape; fine detail remains subdued on phone.
+All six viewport captures show the mech's leg silhouette and controls clear.
+
+Verification on this exact snapshot: **17 Jest suites / 394 tests pass**;
+`node --check` and `git diff --check` pass. Elevated full Chromium smoke passes
+all six target sizes (320×568, 390×844, 844×390, 768×1024, 1440×900,
+3840×2160), including controls/results/leaderboard flow, with no page or console
+errors and no horizontal overflow. I opened the close captures at all six
+sizes; the 4K image was downsampled. Evidence:
+`node_modules/.cache/ironwake/sep18-full-pass10`.
+
+Pass-10 independent critic verdict: **AAA FAIL / OURS LOSES** against the
+official MW5 Kestrel Lancers megacity reference. The critic compared the shots
+side by side and found that skyline additions help slightly, but remain mostly
+flat silhouettes; the empty plaza and blocky city lack the reference's density,
+materials, depth, and lighting. The mech remains a strong focal point. Next:
+test an authored transparent skyline layer behind the 3D city and walker, then
+review phone and desktop for style cohesion and composition.
+
+No gameplay logic, collision, saves, catalog, completion marker, or `main`
+changed. Forced release is Saturday, September 19 Pacific; release night is
+wrap-up only and remaining cosmetic gaps must be recorded as debt.

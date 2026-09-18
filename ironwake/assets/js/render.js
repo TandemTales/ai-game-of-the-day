@@ -105,6 +105,12 @@ export function createRenderer(canvas) {
   };
   const box=(m,x,y,z,sx,sy,sz,parent)=>mesh(boxGeo,m,x,y,z,sx,sy,sz,parent);
   const group=(parent=scene)=>{const g=new THREE.Group();parent.add(g);return g;};
+  const instanceBoxes=(parent,m,specs)=>{
+    if(!specs.length)return null;
+    const instances=new THREE.InstancedMesh(boxGeo,m,specs.length),dummy=new THREE.Object3D();
+    specs.forEach((s,i)=>{dummy.position.set(s.x,s.y,s.z);dummy.rotation.set(0,s.ry||0,s.rz||0);dummy.scale.set(s.sx,s.sy,s.sz);dummy.updateMatrix();instances.setMatrixAt(i,dummy.matrix);});
+    instances.instanceMatrix.needsUpdate=true;instances.castShadow=false;instances.receiveShadow=false;instances.computeBoundingSphere();parent.add(instances);return instances;
+  };
   const pipe=(m,x,y,z,r,length,axis='y',parent=scene)=>{const q=mesh(cylGeo,m,x,y,z,r,length,r,parent);if(axis==='x')q.rotation.z=Math.PI/2;else if(axis==='z')q.rotation.x=Math.PI/2;return q;};
   const beam=(m,x,y,z,sx,sy,sz,rotation=0,parent=scene)=>{const q=box(m,x,y,z,sx,sy,sz,parent);q.rotation.y=rotation;return q;};
   function label(text,color='#e7d8b5',background=null) {
@@ -620,6 +626,65 @@ export function createRenderer(canvas) {
           box(M.orange,side*40+fin*8,25,9.65,.34,42,.12,citadel);
         }
         for(const y of [12,22,32])box(M.cyan,side*40,y,9.62,10,.34,.1,citadel);
+      }
+      // Layered skyline masses sit behind the portal at three clear depths;
+      // the open center keeps the gate and walker leg silhouette unobstructed.
+      const skyline=[
+        {x:-39,z:-28,w:12,d:10,h:68,offset:-2},
+        {x:41,z:-34,w:13,d:11,h:72,offset:2.1},
+        {x:-60,z:-56,w:15,d:12,h:78,offset:-2.7},
+        {x:62,z:-51,w:14,d:12,h:82,offset:2.4},
+        {x:-82,z:-91,w:17,d:14,h:94,offset:3.2},
+        {x:84,z:-103,w:16,d:13,h:86,offset:-2.8},
+      ];
+      const skylineFootings=[],skylineShells=[],skylineDecks=[],skylineUppers=[],skylineCrowns=[],skylineBeacons=[],skylineRails=[];
+      const skylineWindows=[],skylineCyan=[],skylineBands=[];
+      for(const [index,tower]of skyline.entries()){
+        const{x,z,w,d,h,offset}=tower,front=z+d*.5+.12,upperX=x+offset;
+        skylineFootings.push({x,y:1.2,z,sx:w*1.22,sy:2.4,sz:d*1.2});
+        skylineShells.push({x,y:h*.39,z,sx:w,sy:h*.78,sz:d,rz:index%2?.018:-.018});
+        skylineDecks.push({x,y:h*.79,z,sx:w*1.09,sy:.8,sz:d*1.09});
+        skylineUppers.push({x:upperX,y:h*.83,z:z-1,sx:w*.68,sy:h*.36,sz:d*.82});
+        skylineCrowns.push({x:upperX,y:h*1.035,z:z-1.3,sx:w*.43,sy:2.2,sz:d*.58});
+        skylineDecks.push({x:upperX,y:h*1.16,z:z-1.3,sx:w*.5,sy:.72,sz:d*.68});
+        skylineBeacons.push({x:upperX+offset*.22,y:h*1.23,z:z-1.3,sx:1.1,sy:.48,sz:1.1});
+        for(const side of [-1,1]){
+          skylineRails.push({x:x+side*w*.46,y:h*.53,z:front,sx:.32,sy:h*.84,sz:.28});
+          skylineCyan.push({x:x+side*w*.35,y:h*.67,z:front+.2,sx:.34,sy:h*.24,sz:.16});
+        }
+        const rows=Math.max(3,Math.floor(h/11));
+        for(let row=0;row<rows;row++)for(const col of [-1,1]){
+          const wy=5+row*9.1,wx=x+col*w*.22;
+          skylineWindows.push({x:wx,y:wy,z:front+.2,sx:w*.23,sy:1.05,sz:.12});
+          if((row+index)%3===0)skylineCyan.push({x:wx,y:wy+1.28,z:front+.22,sx:w*.16,sy:.2,sz:.14});
+        }
+        for(const bandY of [h*.31,h*.61]){
+          skylineCyan.push({x,y:bandY,z:front+.22,sx:w*.82,sy:.42,sz:.16});
+          skylineBands.push({x,y:bandY+1.1,z:front+.24,sx:w*.72,sy:.32,sz:.14});
+        }
+      }
+      instanceBoxes(citadel,M.black,skylineFootings);
+      instanceBoxes(citadel,M.concreteDark,skylineShells);
+      instanceBoxes(citadel,M.steel,skylineDecks);
+      instanceBoxes(citadel,M.dark,skylineUppers);
+      instanceBoxes(citadel,M.black,skylineCrowns);
+      instanceBoxes(citadel,M.orangeLight,skylineBeacons);
+      instanceBoxes(citadel,M.steel,skylineRails);
+      instanceBoxes(citadel,M.window,skylineWindows);
+      instanceBoxes(citadel,M.cyan,skylineCyan);
+      instanceBoxes(citadel,M.window,skylineBands);
+      // Two short elevated links create a layered industrial skyline while
+      // leaving a visible gap over the monumental central portal.
+      for(const bridge of [{x:-58,z:-42,y:43,w:26},{x:59,z:-57,y:50,w:29}]){
+        const {x,z,y,w}=bridge;
+        box(M.dark,x,y,z,w,3.4,5.2,citadel);
+        box(M.steel,x,y+1.9,z+2.7,w+1,.58,.8,citadel);
+        box(M.glass,x,y,z+2.68,w*.68,1.22,.16,citadel);
+        box(M.black,x,y-2,z,w*.76,.5,6.2,citadel);
+        for(const side of [-1,1]){
+          box(M.steel,x+side*w*.39,y-3.6,z,1.1,7.2,1.3,citadel);
+          box(M.cyan,x+side*w*.39,y,z+3.24,.16,1.8,.12,citadel);
+        }
       }
       // Repeated side bastions create foreground, middle-distance and skyline
       // layers while leaving the full central combat lane unobstructed.

@@ -957,3 +957,12 @@ No campaign logic, saves, catalog, completion marker, or `main` changed. This
 game is due for forced Saturday release tomorrow, September 19 Pacific. Continue
 bounded presentation work before release night; then fix only a glaring
 release blocker and record remaining cosmetic debt honestly.
+
+Pass-3 critic result: **AAA FAIL / OURS LOSES** to the official MechWarrior 5
+Kestrel Lancers Megacity still. The reviewer directly inspected the game
+captures and reference image, then created a side-by-side evidence page; browser
+policy prevented opening that local page for simultaneous preview. The larger
+Sovereign still reads as a pale, irregular mass with weak limb separation; the
+city lacks authored depth and varied materials, and the portrait view remains
+HUD-heavy. Next, make the walker anatomy readable at phone size and increase
+scene depth/material separation before the forced-release gate.

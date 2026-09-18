@@ -11,6 +11,32 @@ open the final captures, and request an independent side-by-side verdict against
 official MechWarrior 5 imagery. The forced Saturday release is September 19;
 there is no AAA completion claim or release action tonight.
 
+## 2026-09-17 (Pacific) — fortress scale pass and handoff
+
+`assets/js/render.js` now stages a layered citadel, repeated side bastions,
+armored approach strips and light rails around the existing combat route. The
+Sovereign's low-poly body is restored and enlarged for the encounter camera;
+the existing walker artwork appears only as a subdued monochrome silhouette
+behind the mesh, with a warm dormant core. Campaign state, collision, input,
+scoring and chapter scope are unchanged.
+
+Verification on this revision: `node --check ironwake/assets/js/render.js` and
+`git diff --check` pass; full Jest passes **394 tests in 17 suites**; the real-
+input smoke passes at 320x568, 390x844, 844x390, 768x1024, 1440x900 and
+3840x2160, including collapse, keyboard/touch input, results and mocked
+leaderboard ordering. Every viewport reports zero console/page errors and the
+smoke's horizontal-overflow assertion passes. I opened the Sovereign close
+captures at all six sizes, including the downsampled 4K image. The subdued
+walker shape is now visible, but it overlaps some city structures and still
+needs the independent AAA comparison before any quality claim.
+
+Fresh presentation critic is pending. No `.aaa-complete`, release, Featured
+Game edit or `main` promotion is justified tonight. Remaining debt includes
+authored material/VFX/audio depth, physical-device performance, accessibility,
+human pacing feedback and production leaderboard connectivity. Next: review the
+independent side-by-side verdict and address any substantive blocker before the
+forced Saturday September 19 release sweep.
+
 ## 2026-09-12 (Pacific) — nightly intent
 
 Tonight is the first Saturday for this game (age five), so the forced release

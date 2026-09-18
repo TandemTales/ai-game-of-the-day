@@ -51,9 +51,13 @@ export function createRenderer(canvas) {
     const m=new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,side:THREE.DoubleSide});materials.push(m);return m;
   }
   const planeGeo = new THREE.PlaneGeometry(1,1); geometries.push(planeGeo);
-  const sovereignTexture=new THREE.TextureLoader().load(new URL('../images/sovereign-walker.png',import.meta.url).href);
-  sovereignTexture.colorSpace=THREE.SRGBColorSpace;sovereignTexture.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());textures.push(sovereignTexture);
-  const sovereignMaterial=new THREE.MeshBasicMaterial({map:sovereignTexture,transparent:true,alphaTest:.035,depthTest:true,depthWrite:false,side:THREE.DoubleSide,toneMapped:false});materials.push(sovereignMaterial);
+  const sovereignMaskTexture=new THREE.TextureLoader().load(new URL('../images/sovereign-walker.png',import.meta.url).href,texture=>{
+    const source=texture.image,mask=document.createElement('canvas');mask.width=source.naturalWidth||source.width;mask.height=source.naturalHeight||source.height;
+    const ctx=mask.getContext('2d');ctx.drawImage(source,0,0,mask.width,mask.height);ctx.globalCompositeOperation='source-in';ctx.fillStyle='#9aafb2';ctx.fillRect(0,0,mask.width,mask.height);
+    texture.image=mask;texture.colorSpace=THREE.SRGBColorSpace;texture.needsUpdate=true;
+  });
+  sovereignMaskTexture.colorSpace=THREE.SRGBColorSpace;sovereignMaskTexture.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());textures.push(sovereignMaskTexture);
+  const sovereignMaskMaterial=new THREE.MeshBasicMaterial({map:sovereignMaskTexture,color:'#e0e5dc',transparent:true,opacity:.46,depthTest:false,depthWrite:false,side:THREE.DoubleSide,toneMapped:false});materials.push(sovereignMaskMaterial);
   function flatText(text,x,z,w=10){const q=mesh(planeGeo,label(text,'#88938b'),x,.025,z,w,w/4,1);q.rotation.x=-Math.PI/2;q.castShadow=false;return q;}
   const legacyStart=scene.children.length;
   box(M.ground,0,-.45,0,150,.8,130);
@@ -245,6 +249,7 @@ export function createRenderer(canvas) {
   }
   function makeFortress(){
     const g=group(),turret=group(g),legs=[];
+    const dormantCoreMaterial=mat('#ff9b48',.3,.24,'#c94e18');
     // Diagonal front/rear stances make all four articulated load paths visible
     // from the encounter camera instead of stacking them into a gate-like pair.
     for(const [side,x,z] of [[-1,21,15],[1,21,15],[-1,17,-17],[1,17,-17]]){
@@ -338,16 +343,12 @@ export function createRenderer(canvas) {
       pipe(M.black,side*10.5,11.1,z,.3,6.8,'x',g);
       pipe(M.orange,side*10.5,11.1,z,.13,6.5,'x',g);
     }
-    // Keep the old blocks out of the cutout view. The enemy entity, marker and
-    // fight phase remain driven by the same campaign state.
-    for(const part of g.children)part.visible=false;
-    g.scale.set(1,1,1);
-    const spriteRig=group(g);spriteRig.position.y=38;
-    const portrait=mesh(planeGeo,sovereignMaterial,0,0,0,76,76,1,spriteRig);portrait.castShadow=false;portrait.receiveShadow=false;
-    const spriteCore=mesh(sphereGeo,M.red,7,11.8,.55,1.12,1.12,.52,spriteRig);spriteCore.castShadow=false;spriteCore.receiveShadow=false;
-    const spriteHalo=mesh(torusGeo,sovereignPhaseHaloMaterial,7,11.8,.8,1.65,1.65,1,spriteRig);spriteHalo.castShadow=false;spriteHalo.receiveShadow=false;
+    // Keep the fortress in the same faceted material language as its district.
+    // The authored mesh also casts grounded shadows, unlike the former flat cutout.
+    const spriteRig=group(g);spriteRig.position.set(0,14,-3);
+    const portrait=mesh(planeGeo,sovereignMaskMaterial,0,0,0,55,30,1,spriteRig);portrait.renderOrder=24;portrait.castShadow=false;portrait.receiveShadow=false;
     const groundShadow=mesh(discGeo,sovereignShadowMaterial,0,.035,0,31,15,1,g);groundShadow.rotation.x=-Math.PI/2;groundShadow.castShadow=false;groundShadow.receiveShadow=false;
-    return {g,turret,legs:[],core:spriteCore,halo:spriteHalo,spriteRig,portrait,spriteHeight:76,groundShadow};
+    return {g,turret,legs,core,halo,dormantCoreMaterial,spriteRig,portrait,spriteHeight:76,groundShadow};
   }
   function makeBuilding(b){
     const root=group(),pivot=group(root);root.position.set(b.x,0,b.z);
@@ -501,6 +502,52 @@ export function createRenderer(canvas) {
         if(i%3===0){pipe(M.steel,x,h+5,z,.65,10,'y',world);mesh(sphereGeo,M.smoke,x,h+14,z,4,6,4,world);}}
     }
     if(biome==='fortress'){
+      // A layered citadel closes the distant horizon so the approach reads as
+      // a route through a defended megastructure, not an empty arena plane.
+      const citadel=group(world);citadel.position.z=-143;
+      box(M.concreteDark,0,18,0,54,36,31,citadel);
+      box(M.steel,0,37,0,68,4,37,citadel);
+      box(M.dark,0,42,0,44,7,29,citadel);
+      box(M.enemy,0,51,-1,28,11,21,citadel);
+      box(M.steel,0,58,-1,19,3,17,citadel);
+      box(M.black,0,66,-2,10,13,10,citadel);
+      box(M.orange,0,74,-2,1.1,4,.8,citadel);
+      for(const side of [-1,1]){
+        box(M.concreteDark,side*40,20,-4,25,40,27,citadel);
+        box(M.steel,side*40,41,-4,31,4,32,citadel);
+        box(M.dark,side*40,46,-4,18,6,21,citadel);
+        for(const fin of [-1,1]){
+          box(M.black,side*40+fin*8,25,-4,2.2,50,3.2,citadel);
+          box(M.orange,side*40+fin*8,25,9.65,.34,42,.12,citadel);
+        }
+        for(const y of [12,22,32])box(M.cyan,side*40,y,9.62,10,.34,.1,citadel);
+      }
+      // Repeated side bastions create foreground, middle-distance and skyline
+      // layers while leaving the full central combat lane unobstructed.
+      for(const side of [-1,1])for(const [i,z]of [-31,-63,-96].entries()){
+        const x=side*(28+i*5),h=28+(i%2)*9;
+        box(M.concreteDark,x,h*.5,z,12,h,11,world);
+        box(M.steel,x,h+.45,z,14,.8,13,world);
+        box(M.enemy,x,h*.63,z+5.56,8,h*.42,.18,world);
+        box(M.black,x,h*.37,z+5.68,9,.34,.16,world);
+        for(let y=4;y<h-2;y+=5){
+          box(y%2?M.orange:M.steel,x-4.5,y,z+5.72,.22,.56,.13,world);
+          box(M.cyan,x+4.4,y+1,z+5.72,.18,.32,.12,world);
+        }
+        for(const fin of [-1,1])box(M.steel, x+fin*5.25,h*.55,z, .34,h*.88,11.35,world);
+        box(M.orangeLight,x,h+1.15,z+5.8,2.2,.14,.16,world);
+      }
+      // Luminous, low service rails and broad armor slabs ground the skyline
+      // in the same approach plane without adding gameplay collision.
+      for(const side of [-1,1]){
+        box(M.black,side*21,.08,-58,9,.24,91,world);
+        box(M.orange,side*21,.22,-58,.18,.12,91,world);
+        for(let z=-96;z<=-20;z+=12){
+          box(M.concreteDark,side*21,.12,z,8,.16,9.5,world);
+          box(M.steel,side*21,.23,z+4.35,7.3,.08,.18,world);
+          for(const dx of [-2.8,2.8])box(M.orangeLight,side*21+dx,.3,z+4.35,.3,.12,.22,world);
+        }
+      }
       // A final defense line gives the long approach a readable destination.
       // It is presentation-only: the campaign collision map remains authoritative.
       const gateFrame=group(world);
@@ -748,7 +795,7 @@ export function createRenderer(canvas) {
     const frameMinimum=compactLandscape?180:camera.aspect<.75?180:175;
     const frameDistance=Math.max(frameMinimum,154+(sovereign?bossGap:0)*.27);
     const focusX=sovereign?(p.x+sovereign.x)*.5:cx,focusZ=sovereign?(p.z+sovereign.z)*.5:cz-5.5;
-    const focusY=sovereign?38:compactLandscape?18:camera.aspect<.75&&width<350?19.5:18;
+    const focusY=sovereign?31:compactLandscape?18:camera.aspect<.75&&width<350?19.5:18;
     const azimuth=.34; // A modest three-quarter view separates front and rear legs.
     const framedPos=new THREE.Vector3(focusX+Math.sin(azimuth)*frameDistance,focusY+frameDistance*.32,focusZ+Math.cos(azimuth)*frameDistance);
     const cameraTarget=normalPos.lerp(framedPos,bossFrameBlend),lookTarget=normalLook.clone().lerp(new THREE.Vector3(focusX,focusY,focusZ),bossFrameBlend);
@@ -845,14 +892,14 @@ export function createRenderer(canvas) {
         v.g.rotation.z=e.disabled?.18:0;v.turret.rotation.y=e.angle||0;v.weapon.visible=!e.weaponTaken;
         v.rails.position.z=-attack*.42;
       }else if(e.type==='boss'){
-        v.core.material=e.exposed?M.cyan:M.red;v.halo.material.color.set(e.exposed?0x5af5eb:0xff6550);v.halo.visible=e.alive;
+        v.core.material=e.exposed?M.cyan:v.dormantCoreMaterial;v.halo.material.color.set(e.exposed?0x5af5eb:0xffaa62);v.halo.visible=e.alive;
         v.halo.scale.setScalar((e.exposed?1.45:1.18)+Math.sin(t*(e.exposed?5:2.5))*.08);
         v.spriteRig.quaternion.copy(camera.quaternion);
-        v.spriteRig.position.y=v.spriteHeight*.5;
+        v.spriteRig.position.y=14;v.spriteRig.position.z=-3;
       }
       else{v.g.rotation.y=Math.PI*.5;v.turret.rotation.y=(e.angle||0)-Math.PI*.5;}
       if(!e.alive&&!e.disabled){v.g.scale.set(e.type==='boss'?1:1.14,.32,e.type==='boss'?1:1.14);v.g.rotation.z=.16;}
-      else if(e.type==='boss')v.g.scale.set(1,1,1);
+      else if(e.type==='boss')v.g.scale.set(1.4,2.4,1.4);
       else v.g.scale.set(1,1,1);
       v.lastX=e.x;v.lastZ=e.z;
     }

@@ -32,6 +32,7 @@ export function createRenderer(canvas) {
   for(let i=0;i<13;i++){const y=112+i*7;skyCtx.fillStyle=`rgba(177,190,197,${.012+(i%3)*.006})`;skyCtx.fillRect((i*71)%190,y,240+(i%4)*34,1+(i%2));}
   const fortressSky=new THREE.CanvasTexture(skyCanvas);fortressSky.colorSpace=THREE.SRGBColorSpace;textures.push(fortressSky);
   const fortressRimLight=new THREE.PointLight(0xffa66d,340,135,2);fortressRimLight.visible=false;scene.add(fortressRimLight);
+  const fortressFogColor=new THREE.Color('#403d4a'),fortressBossFogColor=new THREE.Color('#62565a');
   const mat = (color, roughness=.8, metalness=.25, emissive=0, extra={}) => {
     const m = new THREE.MeshStandardMaterial({color,roughness,metalness,emissive,...extra}); materials.push(m); return m;
   };
@@ -69,7 +70,7 @@ export function createRenderer(canvas) {
     texture.colorSpace=THREE.SRGBColorSpace;texture.needsUpdate=true;
   });
   sovereignSpriteTexture.colorSpace=THREE.SRGBColorSpace;sovereignSpriteTexture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());textures.push(sovereignSpriteTexture);
-  const sovereignSpriteMaterial=new THREE.MeshBasicMaterial({map:sovereignSpriteTexture,transparent:true,opacity:.96,alphaTest:.025,depthTest:true,depthWrite:false,side:THREE.DoubleSide,toneMapped:false});materials.push(sovereignSpriteMaterial);
+  const sovereignSpriteMaterial=new THREE.MeshBasicMaterial({map:sovereignSpriteTexture,transparent:true,opacity:.96,alphaTest:.025,depthTest:true,depthWrite:false,side:THREE.DoubleSide,toneMapped:false,fog:false});materials.push(sovereignSpriteMaterial);
   function flatText(text,x,z,w=10){const q=mesh(planeGeo,label(text,'#88938b'),x,.025,z,w,w/4,1);q.rotation.x=-Math.PI/2;q.castShadow=false;return q;}
   const legacyStart=scene.children.length;
   box(M.ground,0,-.45,0,150,.8,130);
@@ -487,10 +488,10 @@ export function createRenderer(canvas) {
   const labels={boss:label('SOVEREIGN','#ffb598'),artillery:label('ARTILLERY','#ffae80'),hunter:label('HUNTER','#ff8271')};
   Object.values(labels).forEach(m=>m.depthTest=false);
   const assetBase={materials:materials.length,textures:textures.length,geometries:geometries.length};
-  let worldState=null,finaleGate=null,finaleGateOpen=0;
+  let worldState=null,finaleGate=null,finaleGateOpen=0,fortressCitadel=null;
   function resetWorld(state){
     for(const map of [buildings,enemies,shots,effects,landmarks,strikeMeshes]){for(const v of map.values()){scene.remove(v.root||v.g||v);if(v.marker)scene.remove(v.marker);if(v.ring)scene.remove(v.ring);}map.clear();}
-    world.clear();fortressEncounterClutter.length=0;finaleGate=null;finaleGateOpen=0;
+    world.clear();fortressEncounterClutter.length=0;finaleGate=null;finaleGateOpen=0;fortressCitadel=null;
     for(const m of materials.splice(assetBase.materials))m.dispose();for(const t of textures.splice(assetBase.textures))t.dispose();for(const g of geometries.splice(assetBase.geometries))g.dispose();
     legacyWorld.visible=!state.campaign;if(!state.campaign)return;
     const biome=state.biome,size=state.bounds.maxX;
@@ -521,7 +522,7 @@ export function createRenderer(canvas) {
     if(biome==='fortress'){
       // A layered citadel closes the distant horizon so the approach reads as
       // a route through a defended megastructure, not an empty arena plane.
-      const citadel=group(world);citadel.position.z=-143;
+      const citadel=group(world);fortressCitadel=citadel;citadel.position.z=-143;
       box(M.concreteDark,0,18,0,54,36,31,citadel);
       box(M.steel,0,37,0,68,4,37,citadel);
       box(M.dark,0,42,0,44,7,29,citadel);
@@ -804,6 +805,11 @@ export function createRenderer(canvas) {
     // its authored opening view.
     const frameEligible=!!sovereign;
     bossFrameBlend+=(Number(frameEligible)-bossFrameBlend)*(1-Math.exp(-dt*2.5));
+    if(state.biome==='fortress'){
+      scene.fog.color.copy(fortressFogColor).lerp(fortressBossFogColor,bossFrameBlend);
+      scene.fog.density=.005+.002*bossFrameBlend;
+      if(fortressCitadel){const widthDepth=1-.12*bossFrameBlend;fortressCitadel.scale.set(widthDepth,1-.22*bossFrameBlend,widthDepth);}
+    }
     // Open the non-colliding approach setpieces for the boss shot; the distant
     // citadel stays in view while the walker and its lane get a clean silhouette.
     fortressEncounterClutter.forEach(piece=>{piece.visible=!(frameEligible&&bossFrameBlend>.45);});
@@ -930,6 +936,8 @@ export function createRenderer(canvas) {
         v.g.rotation.z=e.disabled?.18:0;v.turret.rotation.y=e.angle||0;v.weapon.visible=!e.weaponTaken;
         v.rails.position.z=-attack*.42;
       }else if(e.type==='boss'){
+        const portraitOnly=state.biome==='fortress'&&state.stage===2&&bossFrameBlend>.55;
+        v.g.children.forEach(child=>{child.visible=!portraitOnly||child===v.spriteRig||child===v.groundShadow;});
         v.core.material=e.exposed?M.cyan:v.dormantCoreMaterial;v.halo.material.color.set(e.exposed?0x5af5eb:0xffaa62);v.halo.visible=e.alive;
         v.halo.scale.setScalar((e.exposed?1.45:1.18)+Math.sin(t*(e.exposed?5:2.5))*.08);
         v.spriteRig.quaternion.copy(camera.quaternion);

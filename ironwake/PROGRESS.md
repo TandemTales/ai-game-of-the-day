@@ -1056,3 +1056,35 @@ compress the phone scene further. The reviewer opened the reference and game
 captures separately, not side by side. One final focused attempt should target
 silhouette separation and fortress composition before tomorrow's forced
 release gate; no AAA claim.
+
+## 2026-09-18 Friday silhouette and atmosphere pass 7
+
+Pass 7 removes the legacy 3D boss body that overlapped the full-color,
+depth-tested walker billboard, preserving its ground shadow. It narrows the
+distant citadel during the boss shot and adds warm dusk fog to soften the far
+wall while keeping the walker crisp. My six-size screenshot review confirms
+that all four legs now separate clearly from the player and street, including
+on phone; the player remains small, and the city, wall, and road still use
+simple flat forms.
+
+Verification on this exact snapshot: **17 Jest suites / 394 tests pass**;
+`node --check` and `git diff --check` pass. Elevated full Chromium smoke passes
+all six target sizes (320×568, 390×844, 844×390, 768×1024, 1440×900,
+3840×2160), including controls/results/leaderboard flow, with no page or console
+errors and no horizontal overflow. I opened the close captures at all six
+sizes, the phone and desktop breach captures, and the builder's four close and
+breach captures; the 4K image was downsampled. Evidence:
+`node_modules/.cache/ironwake/sep18-full-pass7`.
+
+Pass-7 independent reviewer: **AAA FAIL / OURS LOSES** against the official
+MW5 Kestrel Lancers megacity image. The clearer walker and breach scale are
+material improvements over pass 6, but simple city/road forms, weak depth and
+lighting, detached sprite integration, and the large phone touch-control band
+remain below the reference. The reviewer inspected images separately rather
+than simultaneously side by side. One final bounded renderer attempt may target
+environment depth and lighting before the forced-release wrap-up tomorrow;
+this is not an AAA claim.
+
+No campaign logic, collision, saves, catalog, completion marker, or `main`
+changed. Forced release is Saturday, September 19 Pacific. Only glaring release
+blockers will be fixed on release night; record cosmetic shortfalls as debt.

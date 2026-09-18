@@ -30,12 +30,25 @@ captures at all six sizes, including the downsampled 4K image. The subdued
 walker shape is now visible, but it overlaps some city structures and still
 needs the independent AAA comparison before any quality claim.
 
-Fresh presentation critic is pending. No `.aaa-complete`, release, Featured
-Game edit or `main` promotion is justified tonight. Remaining debt includes
-authored material/VFX/audio depth, physical-device performance, accessibility,
-human pacing feedback and production leaderboard connectivity. Next: review the
-independent side-by-side verdict and address any substantive blocker before the
-forced Saturday September 19 release sweep.
+Independent presentation verdict: **AAA FAIL / OURS LOSES** to the official
+MechWarrior 5: Legend of the Kestrel Lancers megacity image. The critic found
+better authored layers, atmosphere, debris, materials and depth cues in the
+shipped game. This pass improves the Sovereign's recognition and adds flank
+structure, but does not materially fix battlefield scale or composition: the
+player/arena remain small, the upper sky stays empty, and low-contrast lighting
+and materials flatten the scene. The comparison page and provenance are at
+`node_modules/.cache/ironwake/critic-sep17/index.html`; the reference itself is
+from Piranha Games' official MW5 media. The critic could not preview the local
+HTML artifact in its browser, so the verdict is based on its separately opened
+game captures and official reference.
+
+No `.aaa-complete`, release, Featured Game edit or `main` promotion is justified
+tonight. Remaining debt includes authored material/VFX/audio depth,
+physical-device performance, accessibility, human pacing feedback and
+production leaderboard connectivity. Next: another renderer iteration should
+focus on foreground scale, stronger value separation and a composed skyline,
+then get a fresh independent verdict before the forced Saturday September 19
+release sweep.
 
 ## 2026-09-12 (Pacific) — nightly intent
 

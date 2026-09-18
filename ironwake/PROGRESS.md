@@ -991,3 +991,26 @@ separation from nearby structures. Forced Saturday release is tomorrow,
 September 19 Pacific; after that, no new polish starts, and remaining visual
 debt is recorded as cosmetic unless a listed blocker appears. `main` remains
 unchanged.
+
+## 2026-09-18 Friday full-color walker pass 5
+
+Generated `assets/images/sovereign-walker-v2.png`, a transparent faceted
+walker with four separated legs, amber reactor, and cool-steel armor. The
+renderer now uses it at its native aspect ratio instead of the flattened pale
+mask, with a depth-tested material; non-colliding approach structures are
+hidden during the boss shot while the distant citadel remains. In the opened
+captures the head, weapons, reactor, and armor now read as a coherent walker.
+Its lower legs still compete with nearby road geometry, and portrait HUD and
+controls remain dense. The independent AAA comparison is pending.
+
+Verification on this exact snapshot: **17 Jest suites / 394 tests pass**;
+`node --check` and `git diff --check` pass. Elevated Chromium smoke passes all
+six sizes (320×568, 390×844, 844×390, 768×1024, 1440×900, 3840×2160), including
+input/results/leaderboard flow, no page or console errors, and no horizontal
+overflow. I opened all six final Sovereign captures; the 3840×2160 image was
+downsampled for inspection. Captures: `node_modules/.cache/ironwake/sep18-full-pass5`.
+
+No campaign logic, saves, catalog, completion marker, or `main` changed. Forced
+release is Saturday, September 19 Pacific. Continue a bounded final polish
+pass before then; on release night, only fix a glaring blocker and record any
+cosmetic debt honestly.

@@ -1329,3 +1329,34 @@ No gameplay logic, collision, saves, catalog, completion marker, or `main`
 changed. Forced release is Saturday, September 19 Pacific; release night stays
 wrap-up only. Remaining visual debt includes city density, readable phone-scale
 materials, environmental lighting, and broader authored scene variation.
+
+## 2026-09-18 Friday near skyline density pass 16
+
+Pass 16 adds four nearer textured instanced towers flanking the campaign
+citadel (local x ±39/51, z +39…+62), beyond the gate frame and outside the
+central combat lane. This gives the portrait view a detailed nearby facade and
+adds a second skyline layer on desktop. Only `assets/js/render.js` changed; no
+gameplay or collision paths changed.
+
+Verification on this snapshot: **17 Jest suites / 394 tests pass**; `node --check`
+and `git diff --check` pass. Full Chromium smoke passes at 320×568,
+390×844, 844×390, 768×1024, 1440×900, and 3840×2160. Collapse, input, results,
+and leaderboard flows pass at all six sizes with no page errors or horizontal
+overflow; all six gameplay PNGs were opened and reviewed, with the 4K capture
+downsampled. Focused 390×844 and 1440×900 fortress smoke passes with no browser
+errors, external requests, or horizontal overflow. Evidence:
+`node_modules/.cache/ironwake/sep18-pass16-full-smoke` and
+`node_modules/.cache/ironwake/sep18-renderer-pass16`.
+
+Pass-16 independent critic verdict: **AAA FAIL / OURS LOSES**. The added flank
+towers improve desktop scale and window detail, while portrait still shows a
+mostly flat skyline and empty dark road. The critic also flagged small mobile
+HUD labels and the mech obscuring the gate/objective. It could not inspect the
+official Kestrel Lancers Megacity image because supported image fetches returned
+cache misses, so no side-by-side comparison is claimed for this pass. The
+remaining city-density, street-level damage, varied materials, motivated
+lighting, phone HUD scale, and gate silhouette issues are unresolved.
+
+No gameplay logic, collision, saves, catalog, completion marker, or `main`
+changed. Forced release is Saturday, September 19 Pacific; release night stays
+wrap-up only and accepts cosmetic debt unless a glaring release blocker appears.

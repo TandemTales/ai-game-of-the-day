@@ -966,3 +966,28 @@ Sovereign still reads as a pale, irregular mass with weak limb separation; the
 city lacks authored depth and varied materials, and the portrait view remains
 HUD-heavy. Next, make the walker anatomy readable at phone size and increase
 scene depth/material separation before the forced-release gate.
+
+## 2026-09-18 Friday Sovereign proportion pass 4
+
+Pass 4 corrects the silhouette plane from a stretched 50×27 shape to an
+undistorted 46×46 square with a crisper alpha edge and inverse scaling. The
+walker silhouette is more proportionate, but still overlays the 3D body and
+citadel as a pale translucent layer; phone-scale anatomy remains unclear.
+
+Verification: **17 Jest suites / 394 tests pass**; `node --check` and
+`git diff --check` pass; elevated Chromium smoke passes all six viewports with
+input/results/leaderboard flow, no console errors, and no horizontal overflow.
+I opened all six final close captures, including the 3840×2160 image, which was
+downsampled for review. Captures: `node_modules/.cache/ironwake/sep18-full-pass4`.
+
+Fresh independent result: **AAA FAIL / OURS LOSES** to the official Kestrel
+Lancers Megacity reference. The critic found flat city blocks, an obscured and
+weakly articulated boss, and a crowded phone view. It inspected the official
+image and game screenshots separately; browser policy blocked previewing its
+side-by-side page. No gameplay or release blocker was found by this sweep.
+
+The next attempt should preserve the walker's authored detail and improve
+separation from nearby structures. Forced Saturday release is tomorrow,
+September 19 Pacific; after that, no new polish starts, and remaining visual
+debt is recorded as cosmetic unless a listed blocker appears. `main` remains
+unchanged.

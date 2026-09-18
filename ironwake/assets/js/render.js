@@ -66,10 +66,13 @@ export function createRenderer(canvas) {
   const sovereignMaskTexture=new THREE.TextureLoader().load(new URL('../images/sovereign-walker.png',import.meta.url).href,texture=>{
     const source=texture.image,mask=document.createElement('canvas');mask.width=source.naturalWidth||source.width;mask.height=source.naturalHeight||source.height;
     const ctx=mask.getContext('2d');ctx.drawImage(source,0,0,mask.width,mask.height);ctx.globalCompositeOperation='source-in';ctx.fillStyle='#bdd6d7';ctx.fillRect(0,0,mask.width,mask.height);
+    const pixels=ctx.getImageData(0,0,mask.width,mask.height),data=pixels.data;
+    for(let i=3;i<data.length;i+=4)data[i]=data[i]<24?0:Math.min(255,Math.round((data[i]-24)*1.1));
+    ctx.putImageData(pixels,0,0);
     texture.image=mask;texture.colorSpace=THREE.SRGBColorSpace;texture.needsUpdate=true;
   });
   sovereignMaskTexture.colorSpace=THREE.SRGBColorSpace;sovereignMaskTexture.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());textures.push(sovereignMaskTexture);
-  const sovereignMaskMaterial=new THREE.MeshBasicMaterial({map:sovereignMaskTexture,color:'#e0ece5',transparent:true,opacity:.58,depthTest:false,depthWrite:false,side:THREE.DoubleSide,toneMapped:false});materials.push(sovereignMaskMaterial);
+  const sovereignMaskMaterial=new THREE.MeshBasicMaterial({map:sovereignMaskTexture,color:'#dce8e5',transparent:true,opacity:.44,depthTest:false,depthWrite:false,side:THREE.DoubleSide,toneMapped:false});materials.push(sovereignMaskMaterial);
   function flatText(text,x,z,w=10){const q=mesh(planeGeo,label(text,'#88938b'),x,.025,z,w,w/4,1);q.rotation.x=-Math.PI/2;q.castShadow=false;return q;}
   const legacyStart=scene.children.length;
   box(M.ground,0,-.45,0,150,.8,130);
@@ -359,7 +362,7 @@ export function createRenderer(canvas) {
     // Keep the fortress in the same faceted material language as its district.
     // The authored mesh also casts grounded shadows, unlike the former flat cutout.
     const spriteRig=group(g);spriteRig.position.set(0,14,-3);
-    const portrait=mesh(planeGeo,sovereignMaskMaterial,0,0,0,50,27,1,spriteRig);portrait.renderOrder=8;portrait.castShadow=false;portrait.receiveShadow=false;
+    const portrait=mesh(planeGeo,sovereignMaskMaterial,0,0,0,46,46,1,spriteRig);portrait.renderOrder=8;portrait.castShadow=false;portrait.receiveShadow=false;
     const groundShadow=mesh(discGeo,sovereignShadowMaterial,0,.035,0,31,15,1,g);groundShadow.rotation.x=-Math.PI/2;groundShadow.castShadow=false;groundShadow.receiveShadow=false;
     return {g,turret,legs,core,halo,dormantCoreMaterial,spriteRig,portrait,spriteHeight:76,groundShadow};
   }
@@ -932,7 +935,10 @@ export function createRenderer(canvas) {
       }
       else{v.g.rotation.y=Math.PI*.5;v.turret.rotation.y=(e.angle||0)-Math.PI*.5;}
       if(!e.alive&&!e.disabled){v.g.scale.set(e.type==='boss'?1:1.14,.32,e.type==='boss'?1:1.14);v.g.rotation.z=.16;}
-      else if(e.type==='boss')v.g.scale.set(camera.aspect<.75?1.12:1.5,camera.aspect<.75?1.9:2.0,camera.aspect<.75?1.12:1.5);
+      else if(e.type==='boss'){
+        const bossScale=camera.aspect<.75?1.2:1.5;v.g.scale.setScalar(bossScale);
+        v.spriteRig.scale.setScalar(1/bossScale);v.spriteRig.position.set(0,23/bossScale,-3/bossScale);
+      }
       else v.g.scale.set(1,1,1);
       v.lastX=e.x;v.lastZ=e.z;
     }

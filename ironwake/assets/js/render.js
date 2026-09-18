@@ -44,6 +44,56 @@ export function createRenderer(canvas) {
     white:mat('#d2dcd5'),rubble:mat('#46534f'),rubbleDark:mat('#303d3d'),smoke:mat('#465452',1,0,0,{transparent:true,opacity:.56,depthWrite:false}),
     flash:mat('#fff0b2',.3,.1,'#ffae20'),warning:mat('#ffbf52',.4,.1,'#d98015',{transparent:true,opacity:.65,depthWrite:false}),warningDark:mat('#553b2c',.7,.2,'#2d1810'),
   };
+  function makeFortressSurface(style){
+    const size=512,colorCanvas=document.createElement('canvas'),glowCanvas=document.createElement('canvas');
+    colorCanvas.width=colorCanvas.height=glowCanvas.width=glowCanvas.height=size;
+    const ctx=colorCanvas.getContext('2d'),glow=glowCanvas.getContext('2d'),facade=style==='facade',ground=style==='ground';
+    const base=facade?'#444d53':ground?'#343b40':'#252e34';
+    const grad=ctx.createLinearGradient(0,0,size,size);grad.addColorStop(0,facade?'#59646a':ground?'#424a4c':'#303a40');grad.addColorStop(.55,base);grad.addColorStop(1,facade?'#343e44':ground?'#30373c':'#1e282e');
+    ctx.fillStyle=grad;ctx.fillRect(0,0,size,size);glow.fillStyle='#000';glow.fillRect(0,0,size,size);
+    let seed=style==='facade'?941:style==='ground'?1741:2819;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
+    const cell=facade?128:ground?128:128;
+    for(let y=0;y<size;y+=cell)for(let x=0;x<size;x+=cell){
+      const shade=rand()*.08;
+      ctx.fillStyle=`rgba(176,194,194,${.025+shade})`;ctx.fillRect(x+3,y+3,cell-6,cell-6);
+      ctx.fillStyle='rgba(5,12,17,.28)';ctx.fillRect(x,y,cell,2);ctx.fillRect(x,y,2,cell);
+      ctx.fillStyle='rgba(176,192,193,.12)';ctx.fillRect(x+3,y+cell-4,cell-6,1);ctx.fillRect(x+cell-4,y+3,1,cell-6);
+      for(const [bx,by]of[[8,8],[cell-9,8],[8,cell-9],[cell-9,cell-9]]){
+        ctx.fillStyle='rgba(10,17,21,.48)';ctx.beginPath();ctx.arc(x+bx,y+by,2.3,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='rgba(183,198,194,.22)';ctx.fillRect(x+bx-1,y+by-1,1,1);
+      }
+      if(facade){
+        const ventX=x+28+rand()*12,ventY=y+70;
+        ctx.fillStyle='rgba(10,18,23,.42)';ctx.fillRect(ventX,ventY,cell-56,22);
+        for(let line=0;line<5;line++){ctx.fillStyle=line%2?'rgba(173,190,192,.25)':'rgba(11,20,26,.5)';ctx.fillRect(ventX+3,ventY+3+line*4,cell-62,2);}
+        if(rand()>.35){glow.fillStyle=rand()>.55?'#62d8d4':'#f09a56';glow.fillRect(x+cell-18,y+20+rand()*24,4,14+rand()*8);}
+        if(rand()>.55){glow.fillStyle='rgba(255,174,94,.7)';glow.fillRect(x+16,y+cell-20,22,3);}
+      }else if(!ground){
+        const ventY=y+cell-18;ctx.fillStyle='rgba(7,14,19,.42)';ctx.fillRect(x+14,ventY,cell-28,7);
+        for(let slat=0;slat<5;slat++){ctx.fillStyle='rgba(172,190,193,.28)';ctx.fillRect(x+17,ventY+slat,cell-34,1);}
+      }
+    }
+    // Sparse weather streaks and concrete flecks add scale without visual noise.
+    for(let i=0;i<950;i++){
+      const x=Math.floor(rand()*size),y=Math.floor(rand()*size),len=1+Math.floor(rand()*(facade?19:9));
+      ctx.fillStyle=rand()>.5?'rgba(196,204,193,.045)':'rgba(8,15,20,.075)';ctx.fillRect(x,y,facade?1:len,facade?len:1);
+    }
+    if(style==='road'){
+      glow.fillStyle='rgba(71,223,219,.72)';glow.fillRect(42,0,3,size);glow.fillRect(size-45,0,3,size);
+      glow.fillStyle='rgba(255,185,91,.9)';for(let y=20;y<size;y+=88)glow.fillRect(size/2-2,y,4,39);
+      for(const x of [78,size-82])for(let y=28;y<size;y+=128){
+        ctx.fillStyle='rgba(12,19,24,.52)';ctx.fillRect(x-10,y,20,44);
+        for(let k=0;k<7;k++){ctx.fillStyle='rgba(152,171,171,.26)';ctx.fillRect(x-7,y+4+k*5,14,1);}
+      }
+    }
+    const map=new THREE.CanvasTexture(colorCanvas),emissiveMap=new THREE.CanvasTexture(glowCanvas);
+    for(const tex of [map,emissiveMap]){tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());textures.push(tex);}
+    return{map,emissiveMap};
+  }
+  const fortressFacadeSurface=makeFortressSurface('facade'),fortressGroundSurface=makeFortressSurface('ground'),fortressRoadSurface=makeFortressSurface('road');
+  const fortressFacadeMaterial=mat('#fff',.88,.34,'#171d21',{map:fortressFacadeSurface.map,emissiveMap:fortressFacadeSurface.emissiveMap,emissiveIntensity:.8});
+  const fortressGroundMaterial=mat('#fff',.94,.16,0,{map:fortressGroundSurface.map});
+  const fortressRoadMaterial=mat('#fff',.76,.42,'#10191d',{map:fortressRoadSurface.map,emissiveMap:fortressRoadSurface.emissiveMap,emissiveIntensity:.72});
   const boxGeo = new THREE.BoxGeometry(1,1,1); geometries.push(boxGeo);
   const sphereGeo = new THREE.IcosahedronGeometry(1,0); geometries.push(sphereGeo);
   const cylGeo = new THREE.CylinderGeometry(1,1,1,8); geometries.push(cylGeo);
@@ -500,7 +550,7 @@ export function createRenderer(canvas) {
     scene.fog.color.set(biome==='fortress'?'#403d4a':palette[0]);scene.fog.density=biome==='fortress'?.005: .004;M.ground.color.set(biome==='fortress'?'#34343d':palette[1]);
     ambient.intensity=biome==='fortress'?1.7:2.5;sun.intensity=biome==='fortress'?5.1:4.1;fill.intensity=biome==='fortress'?1.35:1.1;
     sun.color.set(biome==='fortress'?'#ffd0a0':palette[2]);
-    box(M.ground,0,-.45,0,size*2+70,.8,size*2+70,world);
+    box(biome==='fortress'?fortressGroundMaterial:M.ground,0,-.45,0,size*2+70,.8,size*2+70,world);
     const roadSpacing=biome==='flood'?42:32;
     if(biome!=='desert'&&biome!=='fortress')for(let x=-size;x<=size;x+=roadSpacing){box(M.road,x,-.008,0,9,.1,size*2,world);box(M.road,0,-.012,x,size*2,.1,9,world);
       for(let z=-size;z<size;z+=12){box(M.roadMark,x,.052,z,.16,.03,3,world);box(M.roadMark,z,.054,x,3,.03,.16,world);}}
@@ -523,7 +573,7 @@ export function createRenderer(canvas) {
       // A layered citadel closes the distant horizon so the approach reads as
       // a route through a defended megastructure, not an empty arena plane.
       const citadel=group(world);fortressCitadel=citadel;citadel.position.z=-143;
-      box(M.concreteDark,0,18,0,54,36,31,citadel);
+      box(fortressFacadeMaterial,0,18,0,54,36,31,citadel);
       box(M.steel,0,37,0,68,4,37,citadel);
       box(M.dark,0,42,0,44,7,29,citadel);
       box(M.enemy,0,51,-1,28,11,21,citadel);
@@ -531,7 +581,7 @@ export function createRenderer(canvas) {
       box(M.black,0,66,-2,10,13,10,citadel);
       box(M.orange,0,74,-2,1.1,4,.8,citadel);
       for(const side of [-1,1]){
-        box(M.concreteDark,side*40,20,-4,25,40,27,citadel);
+        box(fortressFacadeMaterial,side*40,20,-4,25,40,27,citadel);
         box(M.steel,side*40,41,-4,31,4,32,citadel);
         box(M.dark,side*40,46,-4,18,6,21,citadel);
         for(const fin of [-1,1]){
@@ -545,7 +595,7 @@ export function createRenderer(canvas) {
       for(const side of [-1,1])for(const [i,z]of [-31,-63,-96].entries()){
         const x=side*(28+i*5),h=28+(i%2)*9;
         const bastion=group(world);fortressEncounterClutter.push(bastion);
-        box(M.concreteDark,x,h*.5,z,12,h,11,bastion);
+        box(fortressFacadeMaterial,x,h*.5,z,12,h,11,bastion);
         box(M.steel,x,h+.45,z,14,.8,13,bastion);
         box(M.enemy,x,h*.63,z+5.56,8,h*.42,.18,bastion);
         box(M.black,x,h*.37,z+5.68,9,.34,.16,bastion);
@@ -570,7 +620,7 @@ export function createRenderer(canvas) {
       // A final defense line gives the long approach a readable destination.
       // It is presentation-only: the campaign collision map remains authoritative.
       const gateFrame=group(world);
-      box(M.concreteDark,0,-.12,-39,36,.18,88,world);
+      box(fortressRoadMaterial,0,-.12,-39,36,.18,88,world);
       for(const side of [-1,1]){
         box(M.roadEdge,side*15,.015,-39,.24,.04,86,world);
         for(let z=-78;z<=0;z+=8)box(M.orangeLight,side*15,.055,z,.34,.05,1.8,world);
@@ -594,7 +644,7 @@ export function createRenderer(canvas) {
       const seal=box(M.warning,0,11,-49.12,13.4,20,.24,gateFrame);
       const breach=box(M.cyan,0,35.1,-46.7,13,.28,.2,gateFrame);breach.visible=false;
       // A broad engine apron and paired service ribs anchor the Sovereign in the basin.
-      box(M.road,0,-.08,-66,64,.12,42,world);
+      box(fortressRoadMaterial,0,-.08,-66,64,.12,42,world);
       for(const side of [-1,1]){
         pipe(M.steel,side*27,2,-66,1.2,54,'z',world);
         for(const z of [-80,-68,-56])box(M.orange,side*27,.65,z,2.2,1.2,2.4,world);

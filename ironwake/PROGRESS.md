@@ -1088,3 +1088,31 @@ this is not an AAA claim.
 No campaign logic, collision, saves, catalog, completion marker, or `main`
 changed. Forced release is Saturday, September 19 Pacific. Only glaring release
 blockers will be fixed on release night; record cosmetic shortfalls as debt.
+
+## 2026-09-18 Friday fortress material pass 8
+
+Pass 8 adds deterministic local canvas textures for fortress facade panels,
+plated ground, and road maintenance inlays. It adds no runtime requests, extra
+geometry, or draw calls. The subtle road and facade seams make the arena more
+constructed, while the pass-7 walker silhouette remains readable; the large
+fortress still reads as broad blocks.
+
+Verification on this exact snapshot: **17 Jest suites / 394 tests pass**;
+`node --check` and `git diff --check` pass. Elevated full Chromium smoke passes
+all six target sizes (320×568, 390×844, 844×390, 768×1024, 1440×900,
+3840×2160), with controls/results/leaderboard flow, no page or console errors,
+and no horizontal overflow. I opened the close captures at all six sizes, plus
+phone and desktop breach shots; the 4K capture was downsampled. Evidence:
+`node_modules/.cache/ironwake/sep18-full-pass8`.
+
+Pass-8 independent reviewer: **AAA FAIL / OURS LOSES** to the official MW5
+Kestrel Lancers megacity reference. Roadway breakup helps the arena, but the
+fortress remains broad and flat, the player mech is small beside the boss, and
+the city's material variation and atmosphere still trail the reference. The
+critic inspected the screenshots and reference separately, not side by side.
+Next: use the distant fortress landmark for depth and scale with a monumental
+recessed breach, layered buttresses, and a bright segmented inner door; keep it
+presentation-only and legible at phone and desktop sizes.
+
+No campaign logic, collision, saves, catalog, completion marker, or `main`
+changed. Forced release remains Saturday, September 19 Pacific.

@@ -925,3 +925,11 @@ The fresh blind comparison is still pending, so this pass is not an AAA claim.
 No campaign logic, saves, catalog, release marker, or `main` changed. Forced
 release remains September 19; continue the presentation iteration first, and
 record any cosmetic shortfall honestly at the forced-release gate.
+
+The fresh pass-2 reviewer also returned **AAA FAIL / OURS LOSES**, citing a
+small, occluded Sovereign, flat dark city blocks, weak material separation,
+and phone HUD crowding. The reviewer created a side-by-side evidence page, but
+browser policy blocked opening it and the reviewer did not inspect the official
+reference image directly; treat this as useful scene feedback, not a verified
+visual side-by-side comparison. Official reference page:
+`https://mw5mercs.com/dlc/legend-of-the-kestrel-lancers`.

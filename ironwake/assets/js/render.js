@@ -580,6 +580,37 @@ export function createRenderer(canvas) {
       box(M.steel,0,58,-1,19,3,17,citadel);
       box(M.black,0,66,-2,10,13,10,citadel);
       box(M.orange,0,74,-2,1.1,4,.8,citadel);
+      // A recessed transit breach breaks the citadel's broad center face into
+      // a deep portal, projecting buttresses, and a segmented powered seal.
+      box(M.black,0,18,15.72,24,34,.32,citadel);
+      box(M.dark,0,18,16.02,21.8,32,.42,citadel);
+      for(const side of [-1,1]){
+        box(M.concreteDark,side*11.6,18,19.35,2.25,33,7.1,citadel);
+        box(M.steel,side*11.6,18,23.05,.56,31,1.1,citadel);
+        box(M.cyan,side*11.6,18,23.68,.18,28,.12,citadel);
+        const buttress=group(citadel);buttress.position.x=side*15.2;
+        box(M.dark,0,21,19.4,5.1,42,9.2,buttress);
+        box(M.steel,0,21,24.15,3.3,39,1.15,buttress);
+        box(M.concreteDark,side*.35,21,24.78,2.1,36,.28,buttress);
+        for(const y of [5,14,23,32,40]){
+          box(M.orangeLight,0,y,24.94,1.7,.2,.12,buttress);
+          box(M.black,side*2.5,y,24.35,.42,.88,.34,buttress);
+        }
+        box(M.steel,side*13.2,37.2,19.6,5.2,2.2,8.7,citadel);
+      }
+      box(M.concreteDark,0,35.2,19.3,25.4,3.1,7.2,citadel);
+      box(M.steel,0,36.9,22.8,23.6,.62,1.2,citadel);
+      box(M.concreteDark,0,1.4,19.3,25.4,2.8,7.2,citadel);
+      // Layered door leaves sit behind the returns; cyan cores and amber
+      // cross-seams mark the seal without flooding the distant focal point.
+      for(let i=0;i<7;i++){
+        const y=4.1+i*4.05,doorMat=i%3===0?M.enemy:i%3===1?M.dark:M.concreteDark;
+        box(doorMat,0,y,16.37,19.3,3.55,.34,citadel);
+        box(M.steel,0,y+1.63,16.58,19.3,.13,.14,citadel);
+        box(M.warning,0,y+1.85,16.69,18.2,.12,.11,citadel);
+        box(M.cyan,0,y,16.76,.22,2.9,.12,citadel);
+        for(const side of [-1,1])box(M.orangeLight,side*8.65,y,16.75,.24,2.4,.12,citadel);
+      }
       for(const side of [-1,1]){
         box(fortressFacadeMaterial,side*40,20,-4,25,40,27,citadel);
         box(M.steel,side*40,41,-4,31,4,32,citadel);

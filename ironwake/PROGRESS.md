@@ -1116,3 +1116,30 @@ presentation-only and legible at phone and desktop sizes.
 
 No campaign logic, collision, saves, catalog, completion marker, or `main`
 changed. Forced release remains Saturday, September 19 Pacific.
+
+## 2026-09-18 Friday recessed fortress pass 9
+
+Pass 9 reshapes the distant landmark into a recessed breach gate with layered
+returns, projecting pylons, and a segmented amber/cyan inner door. It uses
+existing geometry and materials, without gameplay or collision changes. The
+gate reads clearly at desktop size; on phone, the boss occludes part of it, but
+the landmark remains visible behind the walker and does not cover controls.
+
+Verification on this exact snapshot: **17 Jest suites / 394 tests pass**;
+`node --check` and `git diff --check` pass. Elevated full Chromium smoke passes
+all six target sizes (320×568, 390×844, 844×390, 768×1024, 1440×900,
+3840×2160), including controls/results/leaderboard flow, no page or console
+errors, and no horizontal overflow. I opened the close captures at all six
+sizes and downsampled 4K for inspection. Evidence:
+`node_modules/.cache/ironwake/sep18-full-pass9`.
+
+Pass-9 independent reviewer: **AAA FAIL / OURS LOSES** to the official MW5
+Kestrel Lancers megacity reference. The gate adds some layering but remains a
+wide, low-contrast facade; pavement and skyline remain simple, sparse forms.
+The centered walker and controls fit on phone, though HUD text is small. The
+reviewer inspected the reference and game captures separately. Remaining
+environment, style, and material gaps are substantial; no AAA claim.
+
+No campaign logic, collision, saves, catalog, completion marker, or `main`
+changed. Forced release is Saturday, September 19 Pacific; release night is
+wrap-up only and cosmetic gaps will be recorded as debt.

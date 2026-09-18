@@ -1,5 +1,16 @@
 # Ironwake — Progress
 
+## 2026-09-17 (Pacific) — nightly intent
+
+Tonight's bounded renderer pass targets the largest remaining presentation loss:
+make the fortress approach read at imposing landscape scale and bring the
+Sovereign's detailed silhouette into visual cohesion with the surrounding city.
+Keep this to `assets/js/render.js`; preserve campaign logic, inputs, scoring and
+the five-chapter scope. Run the full Jest suite and six-viewport browser sweep,
+open the final captures, and request an independent side-by-side verdict against
+official MechWarrior 5 imagery. The forced Saturday release is September 19;
+there is no AAA completion claim or release action tonight.
+
 ## 2026-09-12 (Pacific) — nightly intent
 
 Tonight is the first Saturday for this game (age five), so the forced release

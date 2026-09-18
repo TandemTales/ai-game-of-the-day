@@ -65,11 +65,11 @@ export function createRenderer(canvas) {
   const planeGeo = new THREE.PlaneGeometry(1,1); geometries.push(planeGeo);
   const sovereignMaskTexture=new THREE.TextureLoader().load(new URL('../images/sovereign-walker.png',import.meta.url).href,texture=>{
     const source=texture.image,mask=document.createElement('canvas');mask.width=source.naturalWidth||source.width;mask.height=source.naturalHeight||source.height;
-    const ctx=mask.getContext('2d');ctx.drawImage(source,0,0,mask.width,mask.height);ctx.globalCompositeOperation='source-in';ctx.fillStyle='#9aafb2';ctx.fillRect(0,0,mask.width,mask.height);
+    const ctx=mask.getContext('2d');ctx.drawImage(source,0,0,mask.width,mask.height);ctx.globalCompositeOperation='source-in';ctx.fillStyle='#bdd6d7';ctx.fillRect(0,0,mask.width,mask.height);
     texture.image=mask;texture.colorSpace=THREE.SRGBColorSpace;texture.needsUpdate=true;
   });
   sovereignMaskTexture.colorSpace=THREE.SRGBColorSpace;sovereignMaskTexture.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());textures.push(sovereignMaskTexture);
-  const sovereignMaskMaterial=new THREE.MeshBasicMaterial({map:sovereignMaskTexture,color:'#dce8dd',transparent:true,opacity:.34,depthTest:false,depthWrite:false,side:THREE.DoubleSide,toneMapped:false});materials.push(sovereignMaskMaterial);
+  const sovereignMaskMaterial=new THREE.MeshBasicMaterial({map:sovereignMaskTexture,color:'#e0ece5',transparent:true,opacity:.58,depthTest:false,depthWrite:false,side:THREE.DoubleSide,toneMapped:false});materials.push(sovereignMaskMaterial);
   function flatText(text,x,z,w=10){const q=mesh(planeGeo,label(text,'#88938b'),x,.025,z,w,w/4,1);q.rotation.x=-Math.PI/2;q.castShadow=false;return q;}
   const legacyStart=scene.children.length;
   box(M.ground,0,-.45,0,150,.8,130);
@@ -261,18 +261,19 @@ export function createRenderer(canvas) {
   }
   function makeFortress(){
     const g=group(),turret=group(g),legs=[];
+    const sovereignArmor=mat('#81999d',.43,.3,'#1b292d');
     const dormantCoreMaterial=mat('#ff9b48',.3,.24,'#c94e18');
     // Diagonal front/rear stances make all four articulated load paths visible
     // from the encounter camera instead of stacking them into a gate-like pair.
     for(const [side,x,z] of [[-1,21,15],[1,21,15],[-1,17,-17],[1,17,-17]]){
       const leg=group(g),index=legs.length;leg.position.set(side*x,0,z);
-      const shoulder=box(M.enemy,side*15.8,10.7,z*.72,9.2,4.7,6.6,g);shoulder.rotation.z=-side*.12;
+      const shoulder=box(sovereignArmor,side*15.8,10.7,z*.72,9.2,4.7,6.6,g);shoulder.rotation.z=-side*.12;
       box(M.steelLight,side*16.3,11.6,z*.82,5.1,.38,5.7,g);
       const mount=box(M.steel,side*(x-2.1),8.65,z,6.3,1.65,4.4,g);mount.rotation.z=-side*.08;
       box(M.black,side*(x-1.8),8.55,z,4.4,1.95,3.4,g);
       const hip=group(leg);hip.position.y=12.8;
       box(M.black,0,0,0,5.1,1.45,5.1,hip);
-      box(M.enemy,0,-1.95,0,4.15,3.65,4.05,hip);
+      box(sovereignArmor,0,-1.95,0,4.15,3.65,4.05,hip);
       box(M.steelLight,0,-3.35,.22,3.05,.9,3.05,hip);
       for(const out of [-1,1])pipe(M.orange,out*1.42,-2.15,.15,.2,2.35,'y',hip);
       box(M.black,0,-4.7,-.22,2.55,3.35,2.6,hip);
@@ -303,9 +304,9 @@ export function createRenderer(canvas) {
     // pale service plates provide scale breaks and distinct material reads.
     box(M.black,0,10.9,0,20,3.5,21,g);
     box(M.dark,0,12.55,0,22,.72,18,g);
-    box(M.enemy,0,14.8,-.4,19,4.5,16,g);
+    box(sovereignArmor,0,14.8,-.4,19,4.5,16,g);
     box(M.steel,0,17.12,-1,16,.72,14,g);
-    const prow=box(M.enemy,0,13.3,7.5,16,3.6,8,g);prow.rotation.x=-.1;
+    const prow=box(sovereignArmor,0,13.3,7.5,16,3.6,8,g);prow.rotation.x=-.1;
     box(M.black,0,10.9,9.7,13,1.1,6,g);
     box(M.steelLight,0,10.15,11.5,12,.18,2,g);
     for(const side of [-1,1]){
@@ -316,7 +317,7 @@ export function createRenderer(canvas) {
     // The command tower rises off-centre; the lower starboard gun shelf and
     // port exhaust stack deliberately keep the profile unequal.
     box(M.dark,-2.8,19.8,-2.3,11,3.8,9,g);
-    box(M.enemy,-4.2,22.65,-2.4,9,3.1,7.8,g);
+    box(sovereignArmor,-4.2,22.65,-2.4,9,3.1,7.8,g);
     box(M.steel,-4.2,24.35,-2.4,7.8,.4,6.5,g);
     box(M.black,-4.2,26.1,-2.6,6.2,3,5.4,g);
     box(M.glass,-4.2,26.1,.28,4.5,1.25,.16,g);
@@ -325,7 +326,7 @@ export function createRenderer(canvas) {
     for(const z of [-2,1.1])pipe(M.black,-9.4,24.1,z,.72,5.2,'y',g);
     for(const z of [-2,1.1])pipe(M.orange,-9.4,25.3,z,.18,2.5,'y',g);
     // An offset battery sits low on the right shoulder, aimed past the prow.
-    box(M.enemy,9.2,19.7,-1.2,7.8,5.8,10,g);
+    box(sovereignArmor,9.2,19.7,-1.2,7.8,5.8,10,g);
     box(M.steel,9.2,22.55,-1.2,8.1,.35,9.1,g);
     for(const dx of [-1.55,0,1.55]){
       pipe(M.black,9.2+dx,20.7,7.15,.52,10.4,'z',turret);
@@ -803,20 +804,20 @@ export function createRenderer(canvas) {
     bossFrameBlend+=(Number(frameEligible)-bossFrameBlend)*(1-Math.exp(-dt*2.5));
     // Scale only rendered geometry while the encounter camera is active; the
     // campaign player radius and all simulation measurements remain untouched.
-    player.g.scale.setScalar(1+1.4*bossFrameBlend);
+    player.g.scale.setScalar(1+(camera.aspect<.75?1.55:1.35)*bossFrameBlend);
     const sovereignShot=bossFrameBlend>.55&&state.biome==='fortress'&&state.stage===2;
     setBossHudSuppressed(sovereignShot);
     const compactLandscape=height<500&&camera.aspect>1.5;
     // The encounter should hold the full route when the walker is distant, but
     // tighten into a readable boss-and-player composition as the fight closes.
-    const frameMinimum=compactLandscape?102:camera.aspect<.75?100:88;
-    const frameDistance=Math.max(frameMinimum,70+(sovereign?bossGap:0)*.29);
-    const focusX=sovereign?(p.x+sovereign.x)*.5:cx,focusZ=sovereign?(p.z+sovereign.z)*.5:cz-5.5;
-    const focusY=sovereign?23:compactLandscape?18:camera.aspect<.75&&width<350?19.5:18;
-    const azimuth=.34; // A modest three-quarter view separates front and rear legs.
-    const framedPos=new THREE.Vector3(focusX+Math.sin(azimuth)*frameDistance,focusY+frameDistance*.27,focusZ+Math.cos(azimuth)*frameDistance);
+    const frameMinimum=compactLandscape?106:camera.aspect<.75?142:78;
+    const frameDistance=Math.max(frameMinimum,68+(sovereign?bossGap:0)*.3);
+    const focusX=sovereign?p.x*.42+sovereign.x*.58:cx,focusZ=sovereign?p.z*.42+sovereign.z*.58:cz-5.5;
+    const focusY=sovereign?31:compactLandscape?18:camera.aspect<.75&&width<350?19.5:18;
+    const azimuth=camera.aspect<.75?.38:.68; // Keep the phone shot aligned to the route; open the landscape angle to reveal all four legs.
+    const framedPos=new THREE.Vector3(focusX+Math.sin(azimuth)*frameDistance,focusY+frameDistance*.4,focusZ+Math.cos(azimuth)*frameDistance);
     const cameraTarget=normalPos.lerp(framedPos,bossFrameBlend),lookTarget=normalLook.clone().lerp(new THREE.Vector3(focusX,focusY,focusZ),bossFrameBlend);
-    const desiredFov=43+(camera.aspect<.75?16:8)*bossFrameBlend;
+    const desiredFov=43+(camera.aspect<.75?16:7)*bossFrameBlend;
     if(Math.abs(camera.fov-desiredFov)>.01){camera.fov=desiredFov;camera.updateProjectionMatrix();}
     if(!initialized)camera.position.copy(cameraTarget);else camera.position.lerp(cameraTarget,1-Math.exp(-dt*5));
     camera.lookAt(lookTarget);
@@ -845,7 +846,17 @@ export function createRenderer(canvas) {
       // Their render roots slide outward during the boss shot; authored
       // building coordinates and all collision/aim queries remain unchanged.
       const basinLegBlocker=state.biome==='fortress'&&state.stage===2&&String(b.id).startsWith('tower-4-')&&Math.abs(b.z+43)<1&&Math.abs(Math.abs(b.x)-22)<2;
-      v.root.position.x=b.x+(basinLegBlocker?Math.sign(b.x)*18*bossFrameBlend:0);
+      let bossCorridor=false,clearSide=1;
+      if(sovereign){
+        const dx=sovereign.x-p.x,dz=sovereign.z-p.z,len2=Math.max(1,dx*dx+dz*dz);
+        const laneT=Math.max(-.15,Math.min(1.15,((b.x-p.x)*dx+(b.z-p.z)*dz)/len2));
+        const laneX=p.x+dx*laneT,laneZ=p.z+dz*laneT;
+        bossCorridor=laneT>-.1&&laneT<1.1&&Math.hypot(b.x-laneX,b.z-laneZ)<27;
+        const hash=[...String(b.id)].reduce((sum,ch)=>sum+ch.charCodeAt(0),0);
+        clearSide=Math.sign(b.x-laneX)||(hash%2?1:-1);
+      }
+      const bossSightBlocker=!!sovereign&&Math.hypot(b.x-sovereign.x,b.z-sovereign.z)<52&&Math.abs(b.x-sovereign.x)<42;
+      v.root.position.x=b.x+clearSide*(basinLegBlocker?18:bossSightBlocker?52:bossCorridor?48:0)*bossFrameBlend;
       v.root.visible=Math.hypot(b.x-p.x,b.z-p.z)<90;
       v.pivot.visible=b.status!=='rubble';v.rubble.visible=b.status==='rubble';v.rubble.rotation.y=Math.atan2(b.fallX||0,b.fallZ||-1);
       v.damage.visible=b.hp<b.maxHp&&b.status==='standing';v.damage.scale.y=.2+(1-b.hp/b.maxHp)*.7;
@@ -921,7 +932,7 @@ export function createRenderer(canvas) {
       }
       else{v.g.rotation.y=Math.PI*.5;v.turret.rotation.y=(e.angle||0)-Math.PI*.5;}
       if(!e.alive&&!e.disabled){v.g.scale.set(e.type==='boss'?1:1.14,.32,e.type==='boss'?1:1.14);v.g.rotation.z=.16;}
-      else if(e.type==='boss')v.g.scale.set(1.35,1.8,1.35);
+      else if(e.type==='boss')v.g.scale.set(camera.aspect<.75?1.12:1.5,camera.aspect<.75?1.9:2.0,camera.aspect<.75?1.12:1.5);
       else v.g.scale.set(1,1,1);
       v.lastX=e.x;v.lastZ=e.z;
     }

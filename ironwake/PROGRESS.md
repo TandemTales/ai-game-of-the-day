@@ -926,10 +926,34 @@ No campaign logic, saves, catalog, release marker, or `main` changed. Forced
 release remains September 19; continue the presentation iteration first, and
 record any cosmetic shortfall honestly at the forced-release gate.
 
-The fresh pass-2 reviewer also returned **AAA FAIL / OURS LOSES**, citing a
-small, occluded Sovereign, flat dark city blocks, weak material separation,
-and phone HUD crowding. The reviewer created a side-by-side evidence page, but
-browser policy blocked opening it and the reviewer did not inspect the official
-reference image directly; treat this as useful scene feedback, not a verified
-visual side-by-side comparison. Official reference page:
-`https://mw5mercs.com/dlc/legend-of-the-kestrel-lancers`.
+The fresh pass-2 reviewer returned **AAA FAIL / OURS LOSES**, citing a small,
+occluded Sovereign, flat dark city blocks, weak material separation, and phone
+HUD crowding. The reviewer opened and inspected the official 1920×1080
+MechWarrior 5 megacity image directly, and viewed it against the Ironwake
+captures in separate views; the comparison HTML itself could not be previewed
+under browser policy, so simultaneous side-by-side inspection is unverified.
+Reference page: `https://mw5mercs.com/dlc/legend-of-the-kestrel-lancers`;
+image: `https://static.mw5mercs.com/img/dlc2/biomes/megacity-biome-02.jpg?id=d76bc2d9a10d6f9b6f5bbd34236884c1`.
+
+## 2026-09-18 Friday Sovereign focal pass 3
+
+Pass 3 adds a closer three-quarter boss camera, aspect-aware scaling, cooler
+armor with warm trim, a temporary render-only clear lane, and a higher-contrast
+walker silhouette. The full six-size captures show a substantially larger
+subject in landscape, but the silhouette still reads as a translucent slab
+interlocking with foreground architecture; on portrait it remains distant
+between the HUD and controls. This is not an AAA claim. A fresh independent
+comparison is pending.
+
+Verification on this exact snapshot: **17 Jest suites / 394 tests pass**;
+`node --check` and `git diff --check` pass; elevated Chromium smoke passes all
+six required sizes (320×568, 390×844, 844×390, 768×1024, 1440×900,
+3840×2160) with input/results/leaderboard flow, no page or console errors, and
+no horizontal overflow. I opened the Sovereign close capture at every size;
+the 3840×2160 image was downsampled for inspection. Captures:
+`node_modules/.cache/ironwake/sep18-full-pass3`.
+
+No campaign logic, saves, catalog, completion marker, or `main` changed. This
+game is due for forced Saturday release tomorrow, September 19 Pacific. Continue
+bounded presentation work before release night; then fix only a glaring
+release blocker and record remaining cosmetic debt honestly.

@@ -130,7 +130,7 @@ export function createRenderer(canvas) {
   const fortressBackdropAspect=1774/887;
   const fortressBackdropTexture=new THREE.TextureLoader().load(new URL('../images/fortress-skyline-generated.png',import.meta.url).href,texture=>{texture.colorSpace=THREE.SRGBColorSpace;texture.needsUpdate=true;});
   fortressBackdropTexture.colorSpace=THREE.SRGBColorSpace;fortressBackdropTexture.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());textures.push(fortressBackdropTexture);
-  const fortressBackdropMaterial=new THREE.MeshBasicMaterial({map:fortressBackdropTexture,color:'#98a5b7',transparent:true,opacity:.58,alphaTest:.02,depthTest:true,depthWrite:false,side:THREE.DoubleSide,toneMapped:true,fog:false});materials.push(fortressBackdropMaterial);
+  const fortressBackdropMaterial=new THREE.MeshBasicMaterial({map:fortressBackdropTexture,color:'#b2bdc9',transparent:true,opacity:.7,alphaTest:.02,depthTest:true,depthWrite:false,side:THREE.DoubleSide,toneMapped:true,fog:false});materials.push(fortressBackdropMaterial);
   function flatText(text,x,z,w=10){const q=mesh(planeGeo,label(text,'#88938b'),x,.025,z,w,w/4,1);q.rotation.x=-Math.PI/2;q.castShadow=false;return q;}
   const legacyStart=scene.children.length;
   box(M.ground,0,-.45,0,150,.8,130);
@@ -580,8 +580,8 @@ export function createRenderer(canvas) {
         if(i%3===0){pipe(M.steel,x,h+5,z,.65,10,'y',world);mesh(sphereGeo,M.smoke,x,h+14,z,4,6,4,world);}}
     }
     if(biome==='fortress'){
-      const backdropWidth=camera.aspect<.75?180:340,backdropHeight=backdropWidth/fortressBackdropAspect;
-      fortressBackdrop=mesh(planeGeo,fortressBackdropMaterial,0,backdropHeight*.5,-330,backdropWidth,backdropHeight,1,world);
+      const portraitBackdrop=camera.aspect<.75,backdropWidth=portraitBackdrop?220:440,backdropHeight=backdropWidth/fortressBackdropAspect;
+      fortressBackdrop=mesh(planeGeo,fortressBackdropMaterial,0,backdropHeight*.5+(portraitBackdrop?14:0),portraitBackdrop?-300:-420,backdropWidth,backdropHeight,1,world);
       fortressBackdrop.castShadow=false;fortressBackdrop.receiveShadow=false;fortressBackdrop.renderOrder=-1;
       // A layered citadel closes the distant horizon so the approach reads as
       // a route through a defended megastructure, not an empty arena plane.
@@ -962,7 +962,7 @@ export function createRenderer(canvas) {
       scene.fog.color.copy(fortressFogColor).lerp(fortressBossFogColor,bossFrameBlend);
       scene.fog.density=.005+.002*bossFrameBlend;
       if(fortressCitadel){const widthDepth=1-.12*bossFrameBlend;fortressCitadel.scale.set(widthDepth,1-.22*bossFrameBlend,widthDepth);}
-      if(fortressBackdrop){const backdropWidth=camera.aspect<.75?180:340,backdropHeight=backdropWidth/fortressBackdropAspect;fortressBackdrop.scale.set(backdropWidth,backdropHeight,1);fortressBackdrop.position.set(0,backdropHeight*.5,-330);fortressBackdrop.rotation.y=camera.aspect<.75?.38:.68;}
+      if(fortressBackdrop){const portraitBackdrop=camera.aspect<.75,backdropWidth=portraitBackdrop?220:440,backdropHeight=backdropWidth/fortressBackdropAspect;fortressBackdrop.scale.set(backdropWidth,backdropHeight,1);fortressBackdrop.position.set(0,backdropHeight*.5+(portraitBackdrop?14:0),portraitBackdrop?-300:-420);fortressBackdrop.rotation.y=portraitBackdrop?.38:.68;}
     }
     // Open the non-colliding approach setpieces for the boss shot; the distant
     // citadel stays in view while the walker and its lane get a clean silhouette.

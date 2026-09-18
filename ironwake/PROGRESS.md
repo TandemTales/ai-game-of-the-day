@@ -1198,3 +1198,36 @@ contrast without covering the walker or controls; verify phone and landscape.
 No gameplay logic, collision, saves, catalog, completion marker, or `main`
 changed. Forced release is Saturday, September 19 Pacific; release night stays
 wrap-up only, with cosmetic visual debt recorded honestly.
+
+## 2026-09-18 Friday skyline readability pass 12
+
+Pass 12 brightens the local transparent skyline tint and increases its scale,
+height, and responsive placement in `assets/js/render.js`. It remains a
+depth-tested backdrop behind the fortress, boss, and player; it makes no network
+request and changes no gameplay or collision data.
+
+Verification on this exact snapshot: **17 Jest suites / 394 tests pass** (the
+focused Ironwake run also passes 4 suites / 65 tests); `node --check` and
+`git diff --check` pass. Full Chromium smoke passes at 320×568, 390×844,
+844×390, 768×1024, 1440×900, and 3840×2160. Collapse, input, results, and
+leaderboard flows pass at every size with no page errors. I opened the breach
+captures at all six sizes; the 4K capture was downsampled. Evidence:
+`node_modules/.cache/ironwake/sep18-full-pass12` and
+`node_modules/.cache/ironwake/sep18-renderer-pass12-final`.
+
+Pass-12 independent critic verdict: **AAA FAIL / OURS LOSES** against the
+official MW5 Kestrel Lancers Megacity reference
+(`https://static.mw5mercs.com/img/dlc2/biomes/megacity-biome-02.jpg?id=d76bc2d9a10d6f9b6f5bbd34236884c1`). The critic reports that desktop gains
+some readable facade detail, while the phone view is still sparse, flat
+silhouettes and featureless wall; MW5 has denser high-rises, windows, rooftop
+detail, atmospheric depth, and stronger lighting/material separation. The
+skyline does not obscure the mech or core. The critic fetched the real image but
+could not complete the requested side-by-side sheet because browser policy
+blocked the operation; it inspected the images sequentially, so this comparison
+does not meet the requested side-by-side method. Next pass should add readable,
+layered facade detail and stronger environmental lighting, especially in
+portrait, then obtain a valid side-by-side review if the tool permits it.
+
+No gameplay logic, collision, saves, catalog, completion marker, or `main`
+changed. Forced release is Saturday, September 19 Pacific; release night stays
+wrap-up only, with remaining cosmetic shortfalls recorded as debt.

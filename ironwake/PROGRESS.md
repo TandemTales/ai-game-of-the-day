@@ -1360,3 +1360,12 @@ lighting, phone HUD scale, and gate silhouette issues are unresolved.
 No gameplay logic, collision, saves, catalog, completion marker, or `main`
 changed. Forced release is Saturday, September 19 Pacific; release night stays
 wrap-up only and accepts cosmetic debt unless a glaring release blocker appears.
+
+## 2026-09-18 Friday final polish intent 17
+
+Tonight is the final pre-release polish window. I will preserve the existing
+portrait HUD readability edit, run the required six-size browser/test gates,
+and make at most one bounded visual pass against the largest remaining
+fortress-composition loss. I will not change gameplay, saves, catalog,
+completion state, or `main`; Saturday's forced release will fix only glaring
+blockers and record the remaining AAA cosmetic debt honestly.

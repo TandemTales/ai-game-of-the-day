@@ -1448,3 +1448,18 @@ The required .aaa-complete records a forced lifecycle completion, not an AAA pas
 current-game.md now has no active game. Dev is ready for the prescribed main
 promotion after this documentation checkpoint. Next run begins STEP 2 with three
 full-inventory pitches and a new scope contract; do not lower the scope floor.
+
+### Promotion verified
+
+Release commit 2d2b9479608afe2c61b5cd8288b692cdcf00d070 was pushed to dev and
+fast-forwarded onto main without conflicts or force-push; checkout returned to dev.
+Cloudflare Pages reports successful production deployment for that exact commit.
+At 2026-09-19T16:09:46Z, https://botbuiltarcade.com featured Ironwake and served
+the matching game HTML, four gameplay/render scripts, CSS and checked generated
+assets. Text comparison normalized CRLF and removed only the verified injected
+Cloudflare analytics script; image bytes matched. Live 390x844 opening keyboard
+collapse and simultaneous native touch movement/fire/release passed with clean
+console and no overflow. Lead viewed the production screenshot. No score posted.
+Local evidence: sep19-release-smoke/production-report.json and production-390x844.png.
+Ironwake shipped under the forced-release policy with the debt above. This final
+documentation-only handoff stays on dev; main retains the tested release commit.

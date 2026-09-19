@@ -1361,6 +1361,37 @@ No gameplay logic, collision, saves, catalog, completion marker, or `main`
 changed. Forced release is Saturday, September 19 Pacific; release night stays
 wrap-up only and accepts cosmetic debt unless a glaring release blocker appears.
 
+## 2026-09-18 Friday final polish handoff 17
+
+The portrait HUD readability edit was checkpointed as `e3ed927`. The bounded
+renderer pass was checkpointed as `994c616`: fortress-only opposed cyan and
+amber beacon pools add motivated color separation to the existing citadel and
+skyline materials. No gameplay, collision, camera, save, catalog, completion
+marker, or `main` changes were made.
+
+Verification on `994c616`: full Jest passes **17 suites / 394 tests**;
+`node --check ironwake/assets/js/render.js` and `git diff --check` pass. The
+elevated Chromium smoke passes 320x568, 390x844, 844x390, 768x1024, 1440x900,
+and 3840x2160 with collapse, input, results, leaderboard, empty page-error
+lists, and no horizontal overflow. I opened the fortress-breach PNG at all six
+sizes, including a downsampled 4K inspection; the walker, lane, HUD, and phone
+controls remain readable. Focused 390x844 and 1440x900 captures were also
+opened after the lighting change.
+
+No independent AAA critic or shipping judge was available this run, and no
+literal side-by-side review is claimed. My visual read is improved lighting
+separation but still **AAA FAIL / OURS LOSES** against the official
+MechWarrior 5: Legend of the Kestrel Lancers megacity bar: Ironwake still has
+less authored density, destruction, material variety, and atmospheric depth.
+The official reference page remains the comparison anchor:
+https://www.mw5mercs.com/dlc/legend-of-the-kestrel-lancers.
+
+Forced release is Saturday, September 19 Pacific. Next run must be release
+wrap-up only: rerun the green tests and six-size blocker sweep, fix only a
+crash, console error, unreadable HUD, broken touch path, or incompletable
+campaign, write `.aaa-complete` with this cosmetic debt, promote `dev` to
+`main`, and return to `dev`.
+
 ## 2026-09-18 Friday final polish intent 17
 
 Tonight is the final pre-release polish window. I will preserve the existing

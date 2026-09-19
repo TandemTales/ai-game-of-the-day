@@ -1,0 +1,45 @@
+date: 2026-09-19
+timezone: America/Los_Angeles
+release: forced second-Saturday release (started 2026-09-07; age 12)
+
+This required lifecycle marker records scheduled completion, NOT AAA acceptance.
+
+Release gates: 17 Jest suites / 394 tests pass; deterministic legal-input pilot
+completes all five chapters; six-size Chromium smoke passes at 320x568, 390x844,
+844x390, 768x1024, 1440x900, and 3840x2160. Opening keyboard demolition, native
+simultaneous touch, restart, map/pause, saves/upgrades, ending and mocked
+leaderboard flow pass. No console errors/warnings, external game-asset requests,
+or horizontal overflow. Lead inspected opening and fortress PNGs at all sizes
+(4K downsampled), plus briefing, defeat, upgrade and ending captures.
+
+Final carried critic verdicts:
+- Gameplay (September 13): functional inventory/hunter behavior accepted;
+  qualitative full-game scope, progression depth, climax and human fun NOT accepted.
+- Independent presentation (September 18 pass 16): AAA FAIL / OURS LOSES versus
+  the recorded MechWarrior 5 Kestrel Lancers reference. That pass did not complete
+  its reference image side-by-side; earlier comparisons also remained failures.
+- Lead final presentation (September 18 pass 17): AAA FAIL / OURS LOSES.
+- September 19 independent read-only release audit: no obvious code completion
+  blocker or missing named major unit; qualitative ambition remains unmet.
+  This audit is not a playtest or fresh visual comparison.
+- Audio/VFX: unaccepted; no independent quality pass.
+- Independent AAA shipping judge: not run; forced release, not quality release.
+
+Scope inventory: five chapters, twenty objectives, four upgrade selections,
+21 optional caches, archive-unlocked battery sabotage, checkpoint saves,
+three-phase walking fortress and rescue ending are implemented. No named major
+unit is missing from the current SPEC. Standing ambition nevertheless FAILS
+qualitatively: recurring objective primitives, partly cosmetic biome variation,
+mostly numeric upgrades, only one consequential optional detour, and limited
+phase differentiation do not establish the required depth or substantial scope.
+
+Remaining polish/quality debt: scene density, architecture and material variety,
+street destruction, atmosphere/lighting, mobile detail and 4K UI scale, broader
+authored encounter variety, progression/replay decisions and finale staging.
+Unresolved human boredom/scale feedback is preserved. Human enjoyment, unaided
+complete keyboard/touch play, physical-device performance, and live leaderboard
+submission are not established by this run. Do not reinterpret these as passes.
+
+Evidence: node_modules/.cache/ironwake/sep19-release-smoke (ignored local PNGs
+and report.json). Prior natural-clock state-informed campaign evidence remains
+documented in TESTING.md. This run made no runtime game changes.

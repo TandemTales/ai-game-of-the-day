@@ -1409,3 +1409,42 @@ This run is STEP 4 wrap-up only: run the full tests and six-viewport blocker
 sweep, audit implemented scope and unresolved critic debt, fix only glaring
 release blockers, record the forced completion, push dev, promote to main,
 and return to dev. No new polish or quality-based AAA claim is intended.
+
+## 2026-09-19 Saturday forced-release gates and scope audit
+
+All 17 Jest suites / 394 tests pass. The legal-input deterministic campaign
+pilot completes all five chapters (53.2, 66.5, 68.2, 105.0, 73.7 simulation
+seconds). This is reachability evidence, not a new human or normal-clock run.
+Chromium smoke passes all six required sizes: 320x568, 390x844, 844x390,
+768x1024, 1440x900 and 3840x2160. It covers actual opening keyboard demolition,
+movement and simultaneous native touch, plus explicit results, upgrades/save,
+map/pause, fortress and ending fixtures. Leaderboard requests are mocked.
+No console warnings/errors, external runtime requests or horizontal overflow.
+Lead opened all six opening and fortress screenshots (4K downsampled), plus
+320 briefing/results, landscape upgrade and desktop ending. No glaring blocker
+was found and no runtime file needed changing. Evidence is ignored local
+node_modules/.cache/ironwake/sep19-release-smoke/report.json and adjacent PNGs.
+Sandbox browser spawn EPERM was resolved with approved local execution.
+
+Independent read-only release auditor confirmed five chapters / twenty objectives,
+76 enemies including reinforcements, 21 caches, battery sabotage, four upgrade
+selections, checkpoints and rescue ending; no missing named major unit or obvious
+code completion blocker. The current SPEC inventory is implemented. The standing
+ambition requirement still FAILS qualitatively: repeated objective structures,
+partly cosmetic biomes, numeric progression, only one consequential optional
+detour and limited fortress-phase differentiation. No depth/fun acceptance is
+inferred from counts or automated completion. Human boredom/scale feedback stays
+unresolved. This audit was code review, not playtesting or a fresh AAA comparison.
+
+Carried final verdicts: September 13 gameplay accepted functional mechanics but
+withheld qualitative scope/progression/climax/fun; September 18 independent
+presentation pass16 AAA FAIL / OURS LOSES (reference comparison incomplete that
+pass); pass17 lead likewise FAIL, with no independent judge. Audio/VFX unaccepted.
+Scene density, materials, destruction, lighting/atmosphere, mobile visual detail,
+4K UI scale, encounter variety, progression/replay and finale staging remain debt.
+No fresh full native campaign, physical-device or production API submission claim.
+
+The required .aaa-complete records a forced lifecycle completion, not an AAA pass.
+current-game.md now has no active game. Dev is ready for the prescribed main
+promotion after this documentation checkpoint. Next run begins STEP 2 with three
+full-inventory pitches and a new scope contract; do not lower the scope floor.

@@ -1,4 +1,17 @@
 # Ironwake — testing
+
+## September 19 forced-release verification
+
+Full Jest: 17 suites / 394 tests pass. tools/campaign-playthrough.cjs completes
+all five chapters using legal simulation inputs. tools/smoke.cjs passes all six
+standard viewports, console/network/overflow checks, keyboard and native touch,
+results/retry, map, upgrades/checkpoint reload, ending and mocked leaderboard.
+Lead inspected all six opening/fortress captures and representative menus/end
+state; 4K images were downsampled. Evidence: ignored
+node_modules/.cache/ironwake/sep19-release-smoke. No runtime changes this run.
+Natural-clock complete campaign evidence below is historical, not rerun today.
+No human enjoyment, physical-device, live submission or AAA acceptance claim.
+
 ## September 11 archive checkpoints and exploration journal
 
 Full Jest: 367 tests / 15 suites PASS. Focused Ironwake: 38 tests / 2 suites.

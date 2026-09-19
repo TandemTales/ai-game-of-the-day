@@ -1,18 +1,19 @@
 # Active game
 
-**ironwake** — The Coast Campaign, combat-first 3D mech demolition.
-Human selected Ironwake September 7 and approved the core, then requested a much
-larger game September 9. The one-block milestone is superseded by five chapters,
-twenty objectives, story, exploration, upgrades and the Sovereign fortress finale.
+No game is active.
 
+Completed: **ironwake** — The Coast Campaign.
 started: 2026-09-07
+completed: 2026-09-19
+release: forced second-Saturday release, age 12 (America/Los_Angeles).
 
-Implemented environments: docklands, flooded ward, desert rail works, reactor city,
-fortress approach. Added boost, interaction, hunters, artillery, environmental
-hazards, caches, chapter checkpoints, map/pause, upgrades, boss phases and ending.
-See ironwake/SPEC.md and TESTING.md for exact scope and evidence boundaries.
+The lifecycle is complete under the release schedule, not the AAA quality bar.
+See ironwake/.aaa-complete and PROGRESS.md for failed critic verdicts and debt.
+Five chapters and twenty objectives are implemented; qualitative scope,
+progression, human enjoyment and AAA presentation remain unaccepted.
 
-Work on dev. No main release today. Orbit Orchard remains abandoned/deleted.
-First Saturday September12 is age5: keep building. Second Saturday September19
-is age12: forced release under the standing literal Saturday+9days rule.
-No AAA completion claim. Future work should respond to actual campaign feedback.
+Next run: STEP 2, inventory/research and three substantial distinct pitches,
+then choose the strongest qualifying game and scaffold its first playable plus
+full scope contract. Each pitch must meet or exceed expanded Ironwake ambition.
+No pending human choice blocks selection. Do not resurrect abandoned Orbit Orchard
+or auto-discover an older catalog project as the active game. Work on dev.

@@ -32,6 +32,10 @@ export function createRenderer(canvas) {
   for(let i=0;i<13;i++){const y=112+i*7;skyCtx.fillStyle=`rgba(177,190,197,${.012+(i%3)*.006})`;skyCtx.fillRect((i*71)%190,y,240+(i%4)*34,1+(i%2));}
   const fortressSky=new THREE.CanvasTexture(skyCanvas);fortressSky.colorSpace=THREE.SRGBColorSpace;textures.push(fortressSky);
   const fortressRimLight=new THREE.PointLight(0xffa66d,340,135,2);fortressRimLight.visible=false;scene.add(fortressRimLight);
+  // Opposed beacon pools give the fortress facade a readable cool/warm light
+  // story instead of leaving the authored skyline in one flat dusk value.
+  const fortressCoolBeacon=new THREE.PointLight(0x39c8e5,92,105,2);fortressCoolBeacon.visible=false;scene.add(fortressCoolBeacon);
+  const fortressWarmBeacon=new THREE.PointLight(0xff8748,118,112,2);fortressWarmBeacon.visible=false;scene.add(fortressWarmBeacon);
   const fortressFogColor=new THREE.Color('#403d4a'),fortressBossFogColor=new THREE.Color('#62565a');
   const mat = (color, roughness=.8, metalness=.25, emissive=0, extra={}) => {
     const m = new THREE.MeshStandardMaterial({color,roughness,metalness,emissive,...extra}); materials.push(m); return m;
@@ -1006,9 +1010,12 @@ export function createRenderer(canvas) {
     if(state.biome==='fortress'){
       scene.fog.color.copy(fortressFogColor).lerp(fortressBossFogColor,bossFrameBlend);
       scene.fog.density=.005+.002*bossFrameBlend;
+      fortressCoolBeacon.visible=fortressWarmBeacon.visible=true;
+      fortressCoolBeacon.position.set(cx-34,18,cz-38);
+      fortressWarmBeacon.position.set(cx+32,22,cz-51);
       if(fortressCitadel){const widthDepth=1-.12*bossFrameBlend;fortressCitadel.scale.set(widthDepth,1-.22*bossFrameBlend,widthDepth);}
       if(fortressBackdrop){const portraitBackdrop=camera.aspect<.75,backdropWidth=portraitBackdrop?220:440,backdropHeight=backdropWidth/fortressBackdropAspect;fortressBackdrop.scale.set(backdropWidth,backdropHeight,1);fortressBackdrop.position.set(0,backdropHeight*.5+(portraitBackdrop?14:0),portraitBackdrop?-300:-420);fortressBackdrop.rotation.y=portraitBackdrop?.38:.68;}
-    }
+    }else fortressCoolBeacon.visible=fortressWarmBeacon.visible=false;
     // Open the non-colliding approach setpieces for the boss shot; the distant
     // citadel stays in view while the walker and its lane get a clean silhouette.
     fortressEncounterClutter.forEach(piece=>{piece.visible=!(frameEligible&&bossFrameBlend>.45);});

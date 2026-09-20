@@ -64,3 +64,9 @@ Lead tracked native reproduction: keyboard won35.40s,6HP,0hits,2100score. Initia
 touch loss is preserved in native/play-report-keyboard,touch.json; pilot had a boundary heuristic that could pick a blocked escape direction. Clearance-aware sidestep plus
 late dash changed only test inputs. Touch rerun won34.77s,5HP,1hit,2050score, no page
 errors. Evidence in node_modules/.cache/prism-warden/native. Runtime unchanged.
+
+Final shared pilot check: keyboard34.52s/4HP and subsequent touch32.78s/4HP both won.
+The latter includes settled result UI capture plus computed visible/in-bounds replay
+and score form checks. Earlier native screenshots were taken during incomplete
+panel painting; the500ms settled capture is the reviewed final result. No runtime
+change. Later success does not by itself prove the earlier pilot-loss cause.

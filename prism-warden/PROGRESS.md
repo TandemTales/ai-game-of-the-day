@@ -77,3 +77,16 @@ actual lunge. Touch rerun won34.77game seconds,5HP/one hit/2050score,3cracks, no
 errors. No gameplay code was softened to make the pilot pass. Independent earlier
 keyboard/touch/recovery evidence remains separate. This demonstrates solvability
 and recoverable errors, not a broad difficulty or fun verdict.
+
+Final shared pilot also passed keyboard34.52game seconds/4HP and another native
+touch32.78s/4HP. The native screenshot initially caught an incompletely painted
+result panel; capture now waits for the panel to settle. Actual DOM controls were
+visible/in bounds and the final screenshot shows Replay/name/Post score/leaderboard.
+No runtime change was required. Earlier pilot loss remains disclosed; a later win
+alone does not establish its cause or a reliable difficulty curve.
+
+Final status: first playable built, tested and dev-featured; complete campaign
+NOT implemented. Required next substantial increment remains connected regions1-3
+on September26, then beginning-to-ending regions4-5 September27 before dedicated
+polish. Forced releaseOctober3; no weekday runs assumed. Existing negative AAA,
+scope and unverified enjoyment findings must survive the next handoff.

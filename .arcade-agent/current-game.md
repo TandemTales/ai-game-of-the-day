@@ -1,19 +1,16 @@
 # Active game
 
-No game is active.
+slug: prism-warden
+started: 2026-09-20
+release: 2026-10-03 (second Saturday, age 13, America/Los_Angeles)
+status: first playable in development; full campaign contract mandatory
 
-Completed: **ironwake** — The Coast Campaign.
-started: 2026-09-07
-completed: 2026-09-19
-release: forced second-Saturday release, age 12 (America/Los_Angeles).
+Prism Warden — The Drowned Beacons is a classic action adventure about a lighthouse
+keeper using the same mirror shield to redirect sunlight, open routes and return
+enemy fire. Five distinct regions, twenty-five authored challenges, consequential
+equipment, optional discoveries and a multi-phase eclipse-keeper finale are the
+complete scope. One abbey encounter is today's checkpoint, never the whole game.
 
-The lifecycle is complete under the release schedule, not the AAA quality bar.
-See ironwake/.aaa-complete and PROGRESS.md for failed critic verdicts and debt.
-Five chapters and twenty objectives are implemented; qualitative scope,
-progression, human enjoyment and AAA presentation remain unaccepted.
-
-Next run: STEP 2, inventory/research and three substantial distinct pitches,
-then choose the strongest qualifying game and scaffold its first playable plus
-full scope contract. Each pitch must meet or exceed expanded Ironwake ambition.
-No pending human choice blocks selection. Do not resurrect abandoned Orbit Orchard
-or auto-discover an older catalog project as the active game. Work on dev.
+Selection and alternatives: .arcade-agent/candidates-2026-09-20.md.
+No human-choice hold. Ironwake remains complete under forced schedule, not AAA.
+Work on dev; main changes only on release. Orbit Orchard remains cancelled.

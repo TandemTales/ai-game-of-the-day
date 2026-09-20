@@ -1,0 +1,136 @@
+# PRISM WARDEN — The Drowned Beacons
+
+## Concept and acceptance boundary
+
+A top-down action adventure with the classic item-and-dungeon foundation, new IP,
+and a mirror shield shared by combat and optical architecture. Keeper Sera carries
+the last sun prism to five drowned beacons. Radio operator Ilex wants to relight
+the crown; former keeper Nacre reveals why the eclipse engine must be redirected,
+not merely destroyed. The ending restores safe channels and releases its keepers.
+Numeric score rewards resolved encounters, returned shots, rescues and discoveries;
+no grinding respawns or passive score. HTTP static site, local assets, no runtime
+third-party dependencies; leaderboard uses the existing arcade endpoints.
+
+## First playable — September 20 checkpoint ONLY
+
+One authored Tidal Abbey courtyard. Catch the horizontal sunbeam with a raised
+shield and aim it at the north receiver to latch open the gate. An optional side
+receiver restores the sanctuary and changes the retreat choice. A sentinel fires
+telegraphed projectiles: reflect them back to break its armor, then close for a
+sword punish or keep returning shots. Dodge avoids a committed attack but has a
+cooldown. Free the keeper beyond the guardian for an explicit first-playable ending.
+It must support independent move/aim on keyboard/mouse and simultaneous touch,
+pause on focus loss, restart, score/results and explicit leaderboard submission.
+Only implemented mechanics may be advertised in player-facing text.
+
+## Complete-game acceptance: all five regions and 25 meaningful challenges
+
+Each numbered item must be an authored encounter with a distinct spatial/mechanical
+problem. A switch, renamed room, repeated wave or larger map is not enough. Major
+regions contain connected traversable rooms, persistent shortcuts and optional
+routes, not a menu selecting 25 copies of the prototype arena.
+
+| Region | Five major challenges | New interaction / guardian / optional content |
+| --- | --- | --- |
+| 1 Tidal Abbey | A1 redirect under guard fire; A2 sluice crossing with rising-water cover; A3 escort Ilex through shutter corridors; A4 split the bell-tower light route; A5 duel the Bell Diver on changing dry ground | Mirror shield; water changes safe routes and beam access. Optional sanctuary shortcut; keeper chart exposes guardian armor route. |
+| 2 Verdant Aqueduct | B1 carry a prism across root bridges; B2 cut growth while sustaining irrigation; B3 flank seed mortars via rotating channels; B4 rescue trapped ferrymen through a water-routing choice; B5 turn the Root Hart's charge into broken dams | Placeable prism retains a beam while you move. Optional ferryman ferry shortcut; seed lens opens a noncombat boss opening. |
+| 3 Glass Kiln | C1 alternating furnace safe lanes; C2 anneal a bridge with controlled heat; C3 escort a cooling cart through crossfire; C4 route competing hot/cold beams through foundry locks; C5 Glass Weaver breaks and rebuilds arena cover | Heat changes glass solidity; lens polarity. Optional quench valve removes one late hazard; artisan yields a distinct weapon attachment. |
+| 4 Night Observatory | D1 navigate by briefly revealed star paths; D2 align moving shutters under sniper pressure; D3 redirect a pursuing shade through split light; D4 defend Ilex while rotating telescope bridges; D5 fight the star twins with mutually shielding beams | Stored light burst and darkness navigation; mobile/linked targets. Optional sky chart gives finale route; liberated shade disables one crown sentry. |
+| 5 Drowned Crown | E1 approach using prior route discoveries; E2 combine prism/polarity/stored light in rotating galleries; E3 rescue Nacre while holding separate circuits; E4 ascend the moving lighthouse lenses; E5 three-phase Eclipse Keeper and evacuation | Phase1 redirect artillery to destroy armor; phase2 changing floor and paired circuits; phase3 mobile prism plus stored-light interrupt and rescue. Optional keeper archive alters ending dialogue; risky beacon route opens safe evacuation. |
+
+Progression: after each of regions1–4 choose one of two mutually exclusive mods
+with behavioral tradeoffs (mobile reflection vs wide guard; recoverable thrown
+blade vs heavy close strike; prism recall vs second placement; burst stun vs burst
+bridge duration). Regions unlock tools in a fixed order so every branch remains
+solvable. Checkpoint save includes secured score, region, inventory, chosen mods,
+rescues and discoveries. Retry rolls back only current region. Ending/new campaign
+is explicit; chapter replay has no duplicate cumulative score exploit.
+
+Exploration/replay: ten optional authored discoveries listed above with concrete
+route/encounter/ending effects, not score-only pickups. Score cannot be farmed from
+idle, repeated switches or unbounded returned shots. Full story: rescue Ilex,
+reveal Nacre's failing containment, choose how to restore light, save both keepers
+and finish an evacuation. Choice consequences must be visible in later encounters.
+
+Ironwake floor: 5 connected regions >=5 chapters;25 challenges >=20 objectives;
+5 guardians plus 3-phase climax;3 evolving traversal tools plus mirror/sword/dodge;
+4 behavioral equipment decisions;10 consequential optional routes;characters,
+checkpointed story and ending. These are promises, not completion credit. AAA
+requires whole-game independent play and blind reference comparisons. Prior human
+Orbit Orchard boredom and Ironwake depth complaints inform a stricter fun gate;
+passing tests and content counts cannot clear it.
+
+## Dependency-ordered schedule (verified saved routine: Sat/Sun 09:00 Pacific)
+
+- Sep20 (today): scaffold core encounter, contracts, controls, tests. Slice only.
+- Sep26 (Saturday, age6): build connected regions1–3, 15 complete challenges,
+  placeable prism/polarity, region saves, first two mod choices, six optional routes.
+  Reachability and normal-clock routes; prioritize content over decoration.
+- Sep27 (Sunday, age7): build regions4–5, remaining10 challenges, stored light,
+  remaining mods/discoveries, full story/finale/ending; then full keyboard/touch
+  play and independent scope/fun rejection. Beginning-to-ending must exist here.
+  Reserve final part of this run for dedicated whole-game polish only after scope
+  and gameplay gates. This is the last scheduled build: do not assume weekdays.
+- Oct3 (Saturday, age13): forced release wrap-up/tests/six sizes only. Record any
+  missing scope as ambition failure; do not start new polish or redefine contract.
+
+Schedule is aggressive with only two expansion runs. Build complete functional
+content first, record unfinished dependencies honestly, and resume automatically.
+If expansion overruns Sep27, dedicated polish is missed debt, not a scope cut.
+
+## File ownership and stable simulation/render API
+
+Only lead runs Git. Builders own exactly one file; ask lead for cross-file changes.
+
+| Role | Single owned file |
+| --- | --- |
+| Simulation builder | assets/js/logic.js |
+| Renderer builder | assets/js/render.js |
+| Future content builder | assets/js/regions.js (not yet present) |
+| Independent gameplay/presentation critic | read-only; evidence under ignored node_modules/.cache/prism-warden |
+| Lead integration | main.js, HTML, CSS, tests, docs, tools and Git |
+
+Classic scripts: logic.js -> render.js -> main.js. Global window.PW.
+Logic exports PW.create(), PW.step(state,input,dt), PW.raySegment(x,y,dx,dy,rects,max).
+step uses dt seconds capped1/30. Main runs fixed1/60; no Math.random in simulation.
+Input {mx,my,ax,ay,reflect,slash,dash}; move and aim unit vectors; slash/dash edge.
+create returns status:'ready'; main sets 'playing' on explicit Begin.
+World 1024x768, player start(190,540), radius14. State fields:
+status, time, score, player:{x,y,hp,maxHp,aimX,aimY,reflecting,slashTime,dashTime,
+dashCooldown,invulnerable}, walls:[{x,y,w,h}], gates:[{x,y,w,h,open}],
+emitter:{x:70,y:340,dx:1,dy:0}, receivers:[{id,x,y,r,charge,active}],
+beams:[{x1,y1,x2,y2,kind:'sun'|'reflected'}],
+enemies:[{id,x,y,hp,maxHp,phase,timer,exposed}],
+shots:[{x,y,vx,vy,friendly}], particles:[{x,y,life,kind}],
+rescue:{x,y,freed}, sanctuary:boolean, hits, returns, message.
+Receiver id 'gate' at(550,115); 'sanctuary' at(280,620).
+Gate across upper-right courtyard {x:700,y:80,w:24,h:260}; guardian(845,245),
+rescue(914,150). Walls form bounds and tactical cover; do not block beam-to-receiver
+path from(550,340) to(550,115). Guardian cannot be killed through closed gate.
+Sun beam stops at player while reflecting within18 units, outputs aim direction;
+receiver latches after1.2 continuous seconds, decays when unlit. Sanctuary once
+heals and grants discovery points. Returning a shot requires shield facing its
+incoming direction; friendly shot exposes guardian; sword damages only exposed.
+Use clear telegraph/attack/recover phases, hit grace, fair retry and win state.
+Renderer PW.draw(ctx,state,width,height,dpr) owns only rendering, never mutates
+simulation. PW.view(state,width,height) -> {x,y,w,h,scale}; PW.screenToWorld(state,
+width,height,x,y) handles camera. Camera follows player with clamped world bounds,
+portrait shows nearby arena plus world-edge arrows to objectives. Screen coords
+are CSS pixels, main handles backing-store DPR, draw handles scaling internally.
+
+## Distinctness against every existing game
+
+Ironwake: deliberate handheld optics/exploration versus mech demolition. Stormhook:
+no grapple/momentum platforming. Zephyr: no racing. Paradox Vault: no recorded
+echoes/time loops; live aimed action and persistent traversal. Lumen Pinnacle:
+no ball/flippers. Bayou Brawlers: exploration and spatial optical combat rather
+than scrolling combos. Crimson Descent: grounded combat rather than landing.
+Midnight Menagerie: active authored adventure rather than creature management.
+Emberfall: persistent authored regions, no arena wave survival. Core Crisis:
+exploration and redirected enemy fire, no stationary core defense. Nova Striker:
+no scrolling bullet-hell flight. Bastion Builder: direct character control, no
+auto-battler. Aurora: no tower/path construction. Neon Brick Breaker: directly
+aimed mirror on mobile character, no bouncing-ball paddle game. Hidden absent
+Ocean Explorer: perilous combat/optical architecture rather than underwater
+collection; Memory Match: real-time spatial action, no card matching. Cancelled
+Orbit Orchard: authored skill gates and enemy patterns, no passive growth loop.

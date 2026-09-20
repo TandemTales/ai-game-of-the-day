@@ -1,4 +1,4 @@
-# Prism Warden — progress
+# Prism Warden â€” progress
 
 ## 2026-09-20 Sunday intent (Pacific)
 
@@ -42,3 +42,38 @@ from combat and does not yet meet it. Other systems/story/finale remain unbuilt.
 Next FIRST: connected Tidal Abbey with pressured optical routing, sluice terrain,
 escort/shutters, split bell-tower path and Bell Diver; then aqueduct/kiln expansion
 per schedule. Do not polish this arena for the remainder of the cycle.
+
+### Verified first-playable handoff
+
+Full six-size browser sweep passes keyboard/native simultaneous touch, pause,
+replay, mocked scores,console,overflow,local-only requests and visible44px touch
+controls. Lead inspected all six initial captures and final combat fixes: HP no
+longer wraps in landscape, keeper name no longer collides with lunge warning,
+edge target labels separate. 4K downsampled by viewer. Results/intro inspected.
+Smoke includes explicit optical/guardian/end fixtures; full legal play is separate.
+
+Independent touch won33.28game seconds with2/6HP; desktop21.70s2HP. Optional recovery
+was actually played: real damage6->5HP, retreat restores6, finish48.07s5HP/2050score.
+The refined perpendicular dodge pilot improves on the first heuristic, not proof
+of human learning. Idle has no progress; mirror-only18scombat cannot damage guardian
+and cannot farm repeated openings. Tracked solvability/native browser tools retain
+reproducible routes. Final new game regression16cases; whole repo410tests/18suites PASS.
+No human enjoyment or physical-device claim. Audio/SFX implemented but unreviewed.
+
+Dev catalog now features Prism Warden with explicit first-playable wording and
+correct rating/leaderboard blocks; Ironwake moves to More Games. All existing
+catalog entries preserved. Main remains Ironwake production. No release/AAA marker.
+
+Critic verdicts remain: first-playable mechanics feasibility ACCEPTED; full scope
+REJECTED; AAA scene OURS LOSES versus actual official Link's Awakening screenshot,
+NON-BLIND (known identities); audio unreviewed; no shipping judge. A1 pressure,
+all five complete regions/25challenges, progression, campaign saves, optional route
+payoffs and finale remain the next work, not requests awaiting permission.
+
+Final lead reproduction: tracked native pilot keyboard won35.40game seconds,
+6HP/no hits/2100score. First touch reproduction LOST (during combat with the earlier evasion heuristic); retained failure in native/play-report-keyboard,touch.json. Updated
+only the pilot to compare perpendicular wall clearances and delay dash until the
+actual lunge. Touch rerun won34.77game seconds,5HP/one hit/2050score,3cracks, no page
+errors. No gameplay code was softened to make the pilot pass. Independent earlier
+keyboard/touch/recovery evidence remains separate. This demonstrates solvability
+and recoverable errors, not a broad difficulty or fun verdict.

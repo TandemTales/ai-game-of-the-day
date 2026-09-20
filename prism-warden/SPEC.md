@@ -17,7 +17,7 @@ One authored Tidal Abbey courtyard. Catch the horizontal sunbeam with a raised
 shield and aim it at the north receiver to latch open the gate. An optional side
 receiver restores the sanctuary and changes the retreat choice. A sentinel fires
 telegraphed projectiles: reflect them back to break its armor, then close for a
-sword punish or keep returning shots. Dodge avoids a committed attack but has a
+sword punish. A locked, unblockable lunge follows each hit or missed opening. Dodge avoids a committed attack but has a
 cooldown. Free the keeper beyond the guardian for an explicit first-playable ending.
 It must support independent move/aim on keyboard/mouse and simultaneous touch,
 pause on focus loss, restart, score/results and explicit leaderboard submission.
@@ -110,7 +110,7 @@ path from(550,340) to(550,115). Guardian cannot be killed through closed gate.
 Sun beam stops at player while reflecting within18 units, outputs aim direction;
 receiver latches after1.2 continuous seconds, decays when unlit. Sanctuary once
 heals and grants discovery points. Returning a shot requires shield facing its
-incoming direction; friendly shot exposes guardian; sword damages only exposed.
+incoming direction; friendly shot exposes guardian for3.4s but does not damage health; sword deals2 of6 HP once per opening. Each strike closes armor and triggers a .9s locked lunge warning, .34s450px/s charge, then1.05s recovery. Unreflected volleys and expired exposure also trigger lunges. Guard cannot block body contact; dodge or sidestep.
 Use clear telegraph/attack/recover phases, hit grace, fair retry and win state.
 Renderer PW.draw(ctx,state,width,height,dpr) owns only rendering, never mutates
 simulation. PW.view(state,width,height) -> {x,y,w,h,scale}; PW.screenToWorld(state,
@@ -125,7 +125,7 @@ no grapple/momentum platforming. Zephyr: no racing. Paradox Vault: no recorded
 echoes/time loops; live aimed action and persistent traversal. Lumen Pinnacle:
 no ball/flippers. Bayou Brawlers: exploration and spatial optical combat rather
 than scrolling combos. Crimson Descent: grounded combat rather than landing.
-Midnight Menagerie: active authored adventure rather than creature management.
+Midnight Menagerie: real-time optical combat rather than turn-based deck-building.
 Emberfall: persistent authored regions, no arena wave survival. Core Crisis:
 exploration and redirected enemy fire, no stationary core defense. Nova Striker:
 no scrolling bullet-hell flight. Bastion Builder: direct character control, no

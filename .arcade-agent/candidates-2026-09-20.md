@@ -6,7 +6,7 @@ Present game directories: Ironwake (3D mech demolition campaign); Stormhook
 (momentum grapple platformer); Zephyr Circuit (kart racing); Paradox Vault
 (time-loop stealth puzzle); Lumen Pinnacle (pinball, on hold); Bayou Brawlers
 (side-scrolling beat-em-up, hidden); Crimson Descent (precision lander, hidden);
-Midnight Menagerie (creature collection/management, hidden); Emberfall Gauntlet
+Midnight Menagerie (turn-based deck-building dungeon crawl, hidden); Emberfall Gauntlet
 (arena action survival); Core Crisis (core-defense shooter); Nova Striker
 (vertical space shooter); Bastion Builder (defense auto-battler); Aurora Tower
 Defense (path tower defense); Neon Brick Breaker (paddle arcade). level-editor is

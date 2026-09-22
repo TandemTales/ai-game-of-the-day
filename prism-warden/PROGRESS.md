@@ -19,6 +19,28 @@ Tidal Abbey route, keep the existing checkpoint playable, and rerun focused plus
 full regressions before handoff. Do not claim campaign completion, human fun,
 physical-device quality, or AAA acceptance.
 
+## 2026-09-22 Tidal Abbey region built (interim)
+
+Region 1 is now a connected, winnable six-room dungeon instead of one courtyard.
+logic.js is a data-driven room engine (persistent room state, tide/water/
+breakwaters, timed shutters, slash-rotated mirrors and splitters, turrets, escort
+Ilex, sentinel/verger, Bell Diver boss with shockwaves, retry-room snapshots,
+one-time keyed rewards). regions.js authors cloister A1, sluice A2, optional
+Chapel of Still Water (heal font, keeper chart, heart), shutters A3, bell tower A4
+(only 1 of 81 mirror settings rings both bells) and beacon A5. New audio.js:
+adaptive procedural score per room plus combat/boss layers and event SFX,
+numerically checked (no clipping, mute works) but NOT listened to by anyone.
+main.js: room HUD, Retry room / Restart abbey, discovery count, audio wiring.
+
+tools/abbey-pilot.cjs: state-informed legal-input pilot wins all five
+challenges with 0 retries (124s with sanctuary, 115s direct); deterministic.
+It proves solvability, not fun or fair difficulty for humans. Focused suite
+23/23, full repo 18 suites/417 tests pass. smoke.cjs updated for every room,
+retry-room and beacon win; passes 1440x900 and 390x844 on the working tree.
+
+Scope now: 1/5 regions, 5/25 challenges built (not AAA-accepted); regions 2-5,
+mod choices, saves across sessions, story beyond Ilex and finale remain.
+
 ## 2026-09-21 bounded route-foundation and shell pass
 
 Added `assets/js/regions.js` as the authored campaign source of truth: five

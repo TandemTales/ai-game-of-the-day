@@ -509,6 +509,53 @@
       // Barnacles on exposed rock.
       for (const f of faces) for (let x = f.x + 5; x < f.x + f.w; x += 6 + rng() * 14) circle(g, x, f.y + FH - 3 - rng() * 5, 1.4 + rng() * 1.4, 'rgba(220,225,215,.45)', 'rgba(0,0,0,.4)', .6);
     }
+    // Set dressing that lives on the masonry itself, so it never reads as a floor obstacle.
+    const onExit = (x, y) => arr(s.exits).some(e => inRect(x, y, e, 36)) || arr(s.gates).some(gt => inRect(x, y, gt, 30));
+    if (th.decor === 'cloister' || th.decor === 'sluice') {
+      for (const f of faces) for (let x = f.x + 20; x < f.x + f.w - 10; x += 40 + rng() * 90) {
+        if (onExit(x, f.y)) continue;
+        if (th.decor === 'cloister' || rng() < .5) { // draped kelp
+          for (let k = 0; k < 3; k++) {
+            const x0 = x + k * 4 - 4, len = 10 + rng() * 16;
+            g.beginPath(); g.moveTo(x0, f.y - 2); g.quadraticCurveTo(x0 + 3 - rng() * 6, f.y + len * .5, x0 + (rng() - .5) * 5, f.y + len);
+            g.strokeStyle = hsl(95 + rng() * 40, 40, 20 + rng() * 12); g.lineWidth = 2.2; g.stroke();
+          }
+        } else { // hanging chain with a ring
+          for (let y = f.y + 1; y < f.y + FH - 4; y += 3.4) ellipse(g, x, y, 1.4, 2, null, '#5a6064', 1);
+          circle(g, x, f.y + FH - 3, 3, null, '#7a8084', 1.4);
+        }
+      }
+    }
+    if (th.decor === 'bell') {
+      for (const f of faces) for (let x = f.x + 60; x < f.x + f.w - 30; x += 180) {
+        if (onExit(x, f.y)) continue;
+        line(g, x, f.y, x, f.y + 6, '#3a2412', 1.4);
+        poly(g, [[x - 3, f.y + 6], [x + 3, f.y + 6], [x + 6, f.y + 16], [x - 6, f.y + 16]], '#b88a40', '#2a1a08', 1.2);
+        ellipse(g, x, f.y + 16, 6, 1.8, '#6a4a1c');
+      }
+    }
+    if (th.decor === 'shutters') {
+      for (const w of walls) {
+        if (w.w < 120 || w.h < 24) continue;
+        const y = w.y + Math.min(10, w.h / 2);
+        line(g, w.x + 6, y, w.x + w.w - 6, y, '#1c1a16', 6); line(g, w.x + 6, y, w.x + w.w - 6, y, '#8a6a36', 4); line(g, w.x + 6, y - 1, w.x + w.w - 6, y - 1, 'rgba(255,220,160,.35)', 1);
+        for (let x = w.x + 40; x < w.x + w.w - 20; x += 96) { rrect(g, x - 4, y - 4, 8, 8, 2); g.fillStyle = '#6a4e24'; g.fill(); g.strokeStyle = '#1c1a16'; g.lineWidth = 1; g.stroke(); }
+      }
+    }
+    if (th.decor === 'sanctuary') {
+      for (const w of walls) {
+        if (Math.max(w.w, w.h) < 100 || Math.min(w.w, w.h) < 22) continue;
+        const horiz = w.w >= w.h, n = Math.floor((horiz ? w.w : w.h) / 150);
+        for (let i = 0; i < n; i++) {
+          const f = (i + .5) / n, x = horiz ? w.x + w.w * f : w.x + w.w / 2, y = horiz ? w.y + w.h / 2 : w.y + w.h * f;
+          if (onExit(x, y)) continue;
+          ellipse(g, x, y + 2, 8, 3.5, 'rgba(240,230,200,.45)');
+          for (let c = 0; c < 3; c++) { const cx = x + (c - 1) * 4.5, hh = 5 + c * 2; g.fillStyle = '#efe4c8'; g.fillRect(cx - 1.6, y - hh, 3.2, hh); }
+          meta.candles.push({ x, y: y + 2 });
+          meta.lights.push({ x, y: y - 4, r: 90, rgb: WARM, a: .45, flicker: 1 });
+        }
+      }
+    }
   }
   function beds(g, s, th, rng, W, H) {
     for (const z of arr(s.water).filter(finiteRect)) {
@@ -1053,7 +1100,8 @@
       ctx.restore();
       const lx = cx - dx * (Math.abs(dx) ? e.w / 2 + 74 : 0), ly = cy - dy * (Math.abs(dy) ? e.h / 2 + 30 : 0);
       const barred = arr(s.gates).some(g => !g.open && finiteRect(g) && rectDist(cx, cy, g) < 40);
-      if (!barred) labels.push({ x: lx, y: ly, text: (dx < 0 ? '‹ ' : '') + roomName(e.to).toUpperCase() + (dx >= 0 ? ' ›' : ''), color: '#cdeee2', size: 10, dim: true });
+      const pl = s.player, near = pl && Math.hypot(pl.x - lx, pl.y - ly) < 90;
+      if (!barred && !near) labels.push({ x: lx, y: ly, text: (dx < 0 ? '‹ ' : '') + roomName(e.to).toUpperCase() + (dx >= 0 ? ' ›' : ''), color: '#cdeee2', size: 10, dim: true });
     }
     const ee = s.escortExit;
     if (ee && finiteRect(ee)) {
@@ -1435,7 +1483,7 @@
       ctx.strokeStyle = '#eafff6'; ctx.lineWidth = 2; ctx.stroke();
     }
     ctx.restore();
-    glowQueue.push([e.x, e.y - 8 + bob, st.exposed ? 80 : 40, portRGB, st.exposed ? .7 : .45]);
+    glowQueue.push([e.x, e.y - 8 + bob, st.exposed ? 58 : 40, portRGB, st.exposed ? .42 : .4]);
     if (st.exposed) labels.push({ x: e.x, y: e.y - 50, text: 'EXPOSED — STRIKE', color: '#8ff2ce', size: 11 });
     // dripping water
     for (let i = 0; i < 5; i++) { const ph = (t * 1.4 + i * .2) % 1; circle(ctx, e.x - 26 + i * 13, e.y + 14 + ph * 14, 1.4, `rgba(200,240,255,${.7 * (1 - ph)})`); }
@@ -1923,7 +1971,8 @@
   }
 
   // ---------------------------------------------------------------- frame
-  function bucket(k) { return clamp(Math.round(k * 4) / 4, .5, 2); }
+  // Static layer density: 2x covers phones and laptops; very large displays get 3x.
+  function bucket(k, devW) { return clamp(Math.round(k * 4) / 4, .5, devW > 2400 ? 3 : 2); }
   PW.draw = function (ctx, state, width, height, dpr) {
     if (!ctx || !width || !height) return;
     const s = state || {}, t = num(s.time, 0), v = view(s, width, height), { W, H } = dims(s);
@@ -1934,7 +1983,7 @@
     ctx.fillStyle = th.void; ctx.fillRect(0, 0, width, height);
     ctx.save(); ctx.scale(v.scale, v.scale); ctx.translate(-v.x, -v.y);
     if (hasDoc) {
-      const st = getStatic(s, th, bucket(v.scale * dpr), W, H);
+      const st = getStatic(s, th, bucket(v.scale * dpr, width * dpr), W, H);
       const k = st.k, sx = clamp(v.x, 0, W), sy = clamp(v.y, 0, H), sw = Math.min(v.w, W - sx), sh = Math.min(v.h, H - sy);
       if (sw > 0 && sh > 0) ctx.drawImage(st.canvas, sx * k, sy * k, sw * k, sh * k, sx, sy, sw, sh);
       // flickering flames of baked light sources
@@ -2006,13 +2055,7 @@
     // screen space
     atmosphere(ctx, s, th, t, v, width, height);
     if (hasDoc) {
-      // Vignette: only the bands where it is not transparent (the centre costs fill-rate for nothing).
-      const vw = Math.round(width), vh = Math.round(height), vg = vignette(vw, vh, th.vignette, '2,8,12');
-      const by = Math.floor(vh * .3), bx = Math.floor(vw * .22);
-      ctx.drawImage(vg, 0, 0, vw, by, 0, 0, vw, by);
-      ctx.drawImage(vg, 0, vh - by, vw, by, 0, vh - by, vw, by);
-      ctx.drawImage(vg, 0, by, bx, vh - 2 * by, 0, by, bx, vh - 2 * by);
-      ctx.drawImage(vg, vw - bx, by, bx, vh - 2 * by, vw - bx, by, bx, vh - 2 * by);
+      ctx.drawImage(vignette(Math.round(width), Math.round(height), th.vignette, '2,8,12'), 0, 0, width, height);
     }
     tideGauge(ctx, s, t, width);
     bossBar(ctx, s, t, width);

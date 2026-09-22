@@ -1,5 +1,14 @@
 # Prism Warden â€” progress
 
+## 2026-09-22 Tuesday intent (Pacific)
+
+STOP absent; dev synchronized. Age 2, not release night (release Oct 3). The
+routine fires nightly, so the Sep26/27 weekend-only schedule is no longer the
+only build window. Tonight: turn the single courtyard into a connected, playable
+Tidal Abbey region (multiple rooms with persistent doors, A1-A5 as distinct
+authored encounters, Bell Diver guardian), keep the courtyard mechanics, extend
+tests, then browser-verify and run an independent critic. Content before decoration.
+
 ## 2026-09-21 Monday intent (Pacific)
 
 STOP absent; dev synchronized and clean. Tonight is a bounded first polish/content

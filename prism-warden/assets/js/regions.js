@@ -8,6 +8,8 @@
     {
       id: 'tidal-abbey', number: 1, name: 'Tidal Abbey', epithet: 'The drowned cloister',
       route: 'sunken cloister -> sluice court -> bell tower -> abbey beacon',
+      rooms: [{ id: 'cloister', name: 'Sunken Cloister' }, { id: 'sluice', name: 'Sluice Court' }, { id: 'shutters', name: 'Shutter Corridors' }, { id: 'bell-tower', name: 'Bell Tower' }, { id: 'beacon', name: 'Abbey Beacon' }, { id: 'sanctuary', name: 'Optional Sanctuary' }],
+      links: [['cloister', 'sluice'], ['sluice', 'shutters'], ['shutters', 'bell-tower'], ['bell-tower', 'beacon'], ['sluice', 'sanctuary'], ['sanctuary', 'bell-tower']],
       challenges: [
         { id: 'A1', title: 'Sun Under Fire', mechanic: 'redirect a beam while a guard commits volleys', optional: 'sanctuary shortcut', guardian: 'Bell Diver' },
         { id: 'A2', title: 'Rising Sluice', mechanic: 'cross changing water cover while keeping a route lit', optional: 'floodgate release', guardian: 'Sluice Warden' },
@@ -19,6 +21,8 @@
     {
       id: 'verdant-aqueduct', number: 2, name: 'Verdant Aqueduct', epithet: 'The rootbound canals',
       route: 'abbey spillway -> root bridges -> ferryman quay -> hart reservoir',
+      rooms: [{ id: 'spillway', name: 'Abbey Spillway' }, { id: 'roots', name: 'Root Bridges' }, { id: 'channels', name: 'Rotating Channels' }, { id: 'quay', name: 'Ferryman Quay' }, { id: 'reservoir', name: 'Hart Reservoir' }, { id: 'ferry', name: 'Optional Ferry' }],
+      links: [['spillway', 'roots'], ['roots', 'channels'], ['channels', 'quay'], ['quay', 'reservoir'], ['quay', 'ferry'], ['ferry', 'reservoir']],
       challenges: [
         { id: 'B1', title: 'Prism on Root Bridges', mechanic: 'carry a placeable prism across bridges that flex underfoot', optional: 'ferryman ferry', guardian: 'Rootbound Bramble' },
         { id: 'B2', title: 'Irrigation Cut', mechanic: 'cut growth while sustaining the water circuit', optional: 'old pump room', guardian: 'Moss Engine' },
@@ -30,6 +34,8 @@
     {
       id: 'glass-kiln', number: 3, name: 'Glass Kiln', epithet: 'The furnace below the tide',
       route: 'reservoir lock -> furnace lanes -> cooling rail -> weaver foundry',
+      rooms: [{ id: 'lock', name: 'Reservoir Lock' }, { id: 'furnace', name: 'Furnace Lanes' }, { id: 'bridge', name: 'Annealed Bridge' }, { id: 'rail', name: 'Cooling Rail' }, { id: 'foundry', name: 'Weaver Foundry' }, { id: 'quench', name: 'Optional Quench Valve' }],
+      links: [['lock', 'furnace'], ['furnace', 'bridge'], ['bridge', 'rail'], ['rail', 'foundry'], ['furnace', 'quench'], ['quench', 'rail']],
       challenges: [
         { id: 'C1', title: 'Alternating Furnace', mechanic: 'read heat pulses and cross the safe lane before it seals', optional: 'quench valve', guardian: 'Kiln Watch' },
         { id: 'C2', title: 'Annealed Bridge', mechanic: 'control heat to harden a temporary glass crossing', optional: 'artisan cache', guardian: 'Heatbound Mason' },
@@ -41,6 +47,8 @@
     {
       id: 'night-observatory', number: 4, name: 'Night Observatory', epithet: 'The starless instrument',
       route: 'kiln lift -> star paths -> telescope bridges -> twin dome',
+      rooms: [{ id: 'lift', name: 'Kiln Lift' }, { id: 'stars', name: 'Revealed Star Paths' }, { id: 'shutters', name: 'Moving Shutters' }, { id: 'bridges', name: 'Telescope Bridges' }, { id: 'dome', name: 'Twin Dome' }, { id: 'chart', name: 'Optional Sky Chart' }],
+      links: [['lift', 'stars'], ['stars', 'shutters'], ['shutters', 'bridges'], ['bridges', 'dome'], ['stars', 'chart'], ['chart', 'bridges']],
       challenges: [
         { id: 'D1', title: 'Revealed Stars', mechanic: 'navigate paths visible only in brief light bursts', optional: 'sky chart', guardian: 'Observatory Shade' },
         { id: 'D2', title: 'Moving Shutters', mechanic: 'align mobile shutters under sniper pressure', optional: 'shutter key', guardian: 'Lens Sniper' },
@@ -52,6 +60,8 @@
     {
       id: 'drowned-crown', number: 5, name: 'Drowned Crown', epithet: 'The eclipse engine',
       route: 'observatory descent -> rotating galleries -> keeper circuit -> crown lens',
+      rooms: [{ id: 'descent', name: 'Observatory Descent' }, { id: 'galleries', name: 'Rotating Galleries' }, { id: 'circuit', name: 'Keeper Circuit' }, { id: 'lighthouse', name: 'Moving Lighthouse' }, { id: 'crown', name: 'Crown Lens' }, { id: 'archive', name: 'Optional Keeper Archive' }],
+      links: [['descent', 'galleries'], ['galleries', 'circuit'], ['circuit', 'lighthouse'], ['lighthouse', 'crown'], ['galleries', 'archive'], ['archive', 'circuit']],
       challenges: [
         { id: 'E1', title: 'Known Routes', mechanic: 'approach using the shortcuts and discoveries carried forward', optional: 'keeper archive', guardian: 'Crown Sentinels' },
         { id: 'E2', title: 'Rotating Galleries', mechanic: 'combine prism, polarity and stored light in moving rooms', optional: 'safe gallery', guardian: 'Gallery Warden' },
@@ -76,6 +86,14 @@
   };
   PW.regionById = id => byId[id] && byId[id].challenges ? byId[id] : null;
   PW.challengeById = id => byId[id] && byId[id].id === id && !byId[id].challenges ? byId[id] : null;
+  PW.routeGraph = id => {
+    const region = PW.regionById(id);
+    if (!region) return null;
+    const graph = Object.create(null);
+    for (const room of region.rooms) graph[room.id] = [];
+    for (const [from, to] of region.links) { graph[from].push(to); graph[to].push(from); }
+    return graph;
+  };
   PW.campaignContract = () => ({
     regions: regions.length,
     challenges: regions.reduce((total, region) => total + region.challenges.length, 0),

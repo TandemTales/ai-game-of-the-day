@@ -74,7 +74,8 @@ change. Later success does not by itself prove the earlier pilot-loss cause.
 ## September21 route-foundation verification
 
 `node node_modules/jest/bin/jest.js prism-warden --runInBand` passes17/17,
-including the five-region/25-challenge manifest contract. The full repository
+including the five-region/25-challenge manifest and connected-room graph
+contract. The full repository
 suite passes18suites/411tests. `node prism-warden/tools/smoke.cjs` first hit the
 known Windows Chromium `spawn EPERM` sandbox restriction; the same command with
 approved outside-sandbox execution passed all six required sizes, clean console,

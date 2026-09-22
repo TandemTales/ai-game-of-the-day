@@ -13,9 +13,9 @@ physical-device quality, or AAA acceptance.
 ## 2026-09-21 bounded route-foundation and shell pass
 
 Added `assets/js/regions.js` as the authored campaign source of truth: five
-connected route descriptions and all25 challenge identities A1-E5, with guardian,
-interaction and optional-route hooks. It deliberately records planned scope and
-does not fake completion. The browser now loads the manifest and renders a small
+connected room graphs with optional-route branches and all25 challenge identities
+A1-E5, with guardian, interaction and optional-route hooks. It deliberately
+records planned scope and does not fake completion. The browser now loads the manifest and renders a small
 route strip from the data on the ready, pause and results panels; the active
 checkpoint remains the single Silent Courtyard encounter and its honest
 FIRST PLAYABLE label.

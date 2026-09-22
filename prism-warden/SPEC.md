@@ -134,3 +134,71 @@ aimed mirror on mobile character, no bouncing-ball paddle game. Hidden absent
 Ocean Explorer: perilous combat/optical architecture rather than underwater
 collection; Memory Match: real-time spatial action, no card matching. Cancelled
 Orbit Orchard: authored skill gates and enemy patterns, no passive growth loop.
+
+## Region 1 room engine contract (Sep22, authoritative for logic/regions/render)
+
+Tidal Abbey becomes five connected rooms plus the optional sanctuary. Every room is
+1024x768 world units (room.w/h carried for later regions). Rooms are authored data
+in regions.js (`PW.ROOMS[id]`, `PW.roomDef(id)`); logic.js deep-copies a def on
+first entry and keeps dynamic state in `s.roomStates[id]` when you leave, so
+opened gates, jammed/destroyed enemies, collected pickups and lit receivers persist
+(persistent shortcuts). Re-entry restores that state; never duplicates score.
+
+Room def fields (all arrays optional, default empty):
+`id, region:'tidal-abbey', challenge:'A1'..'A5'|null, name, w:1024, h:768, intro,
+spawn:{x,y}, walls:[{x,y,w,h}],
+gates:[{id,x,y,w,h,opensWhen:{receivers:[ids]}|{defeated:[enemyIds]}|{flag:name}}],
+emitters:[{id,x,y,dx,dy}], receivers:[{id,x,y,r,kind:'seal'|'sanctuary'|'bell'}],
+mirrors:[{id,x,y,r:16,split:false,dirs:[[dx,dy],..],index:0}]` - a beam touching a
+mirror circle leaves along dirs[index] (split:false) or along EVERY dir (split:true);
+a player slash within 70 units cycles index of a non-split mirror. Max beam depth 8.
+`water:[{id,x,y,w,h,when:'high'|'low'}]` deep water when tide state matches: not
+solid; player/escort wade at 45% speed and take 1 damage per 1.4s; never blocks beams
+or shots. `breakwaters:[{id,x,y,w,h,when}]` stone that rises when tide state matches:
+solid for movement, shots and beams; it will not rise while a body overlaps it.
+`tide:{period,offset}|null` -> runtime `s.tide={level:0..1,high:bool,warning:0..1}`;
+level=.5-.5cos(2pi(t+offset)/period), high when level>.5, warning ramps over the
+1.5s before a change. `shutters:[{id,x,y,w,h,period,openFor,offset}]` solid for
+everything while closed; will not close on a body. Runtime adds `.open` and `.phase`.
+`enemies:[{type:'sentinel'|'turret'|'diver',id,x,y,...}]`:
+- sentinel: the courtyard duel (return shot -> exposed 3.4s, slash 2 dmg, locked
+  lunge), params hp, wakeRadius, wakeWhen gate id (dormant until that gate opens).
+- turret: stationary and invulnerable. Telegraph 1.0s, then a 3-shot volley at its
+  target (`targets:'player'|'escort'|'nearest'`), `interval` seconds between volleys.
+  A returned shot jams it for 5s (score +50 only on its first jam). `until: gateId`
+  silences it permanently once that gate opens.
+- diver (Bell Diver, A5 boss): hp 10. Submerged (invulnerable, moves as a shadow)
+  while tide is high; at low tide surfaces near the player on dry ground with a 0.8s
+  telegraph then an expanding shockwave ring (radius to 150; dash or distance avoids),
+  then bell volleys (5-shot fan; below half hp also an 8-way radial ring). Returned
+  shot exposes 3s (4.5s with the keeper chart flag); slash deals 2. Dives again when
+  the tide rises. Defeat lights the beacon.
+`escort:{x,y,hp:4,path:[[x,y],...]}` Ilex walks waypoints at 120/s only while the
+player is within 220 units and the next segment is not blocked by a closed shutter
+or solid; enemy shots can hit her; hp 0 = loss. `escortExit:{x,y,w,h}`.
+`rescue:{x,y,requires:[enemyIds]}`, `sanctuary:{x,y,r,receiver}` (heal circle while
+its receiver is lit), `pickups:[{id,kind:'chart'|'heart',x,y,text}]` (chart sets
+flags.chart; heart +1 maxHp), `beacon:{x,y,requires:[enemyIds]}` (reaching it after
+the requirement completes the region: status 'won').
+`exits:[{x,y,w,h,to,spawn:{x,y}}]` - touching an exit rect enters room `to` at
+spawn. Exits sit beyond gates so gating is physical.
+
+Runtime state keeps every existing courtyard field and adds: `regionId, roomId,
+room:{id,name,challenge,w,h}, emitters, mirrors, water, breakwaters, shutters,
+tide, escort, pickups, exits, beacon, flags:{}, cleared:{A1..}, visited:[],
+roomStates:{}, objective, transition` (0..1 fade after entering a room, renderer only).
+`s.emitter` aliases emitters[0] (or null); `s.rescue`, `s.sanctuary` stay.
+Exports: `PW.create()` starts in 'cloister'; `PW.step`; `PW.raySegment`;
+`PW.enterRoom(s,id,spawn)`; `PW.retryRoom(s)` restores the snapshot taken on room
+entry (hp refilled to max at entry snapshot, score back to entry value). Loss
+sets status 'lost'; main offers Retry room or Restart region.
+Beams: `s.beams[{x1,y1,x2,y2,kind:'sun'|'reflected'|'split'}]`; any non-sun
+segment lights receivers. Deterministic, no Math.random, dt capped 1/30.
+
+Rooms: A1 cloister (courtyard redirect while a turret fires, then sentinel duel,
+free Ilex) -> A2 sluice (tidal crossing: water lanes vs rising breakwater cover
+under turret fire, light the sluice seal) -> [optional sanctuary: heal circle,
+keeper chart, heart; shortcut to bell tower] -> A3 shutters (escort Ilex through
+timed shutters, turrets target her) -> A4 bell tower (splitter plus slash-rotated
+mirrors must light two bells at once; a sentinel verger patrols) -> A5 beacon
+(Bell Diver on tide-changing dry ground; reach beacon = region complete).

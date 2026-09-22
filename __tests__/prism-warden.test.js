@@ -1,11 +1,12 @@
 'use strict';
 const fs=require('fs'),vm=require('vm'),path=require('path');
-function load(){const context={window:{},Math,Number};vm.createContext(context);vm.runInContext(fs.readFileSync(path.join(__dirname,'../prism-warden/assets/js/logic.js'),'utf8'),context);return context.window.PW;}
+function load(){const context={window:{},Math,Number};vm.createContext(context);vm.runInContext(fs.readFileSync(path.join(__dirname,'../prism-warden/assets/js/regions.js'),'utf8'),context);vm.runInContext(fs.readFileSync(path.join(__dirname,'../prism-warden/assets/js/logic.js'),'utf8'),context);return context.window.PW;}
 let PW,s;beforeEach(()=>{PW=load();s=PW.create();s.status='playing';});
 function steps(input,n=60){for(let i=0;i<n;i++)PW.step(s,input,1/60);}
 function at(x,y){s.player.x=x;s.player.y=y;}
 function open(){s.gates[0].open=true;s.receivers[0].active=true;}
 function shot(x,y,vx,vy){s.shots.push({id:9,x,y,vx,vy,friendly:false,life:4,r:7});}
+test('campaign map has five connected regions and twenty-five authored challenges',()=>{expect(PW.REGIONS).toHaveLength(5);const challenges=PW.REGIONS.flatMap(region=>region.challenges);expect(challenges).toHaveLength(25);expect(new Set(challenges.map(challenge=>challenge.id)).size).toBe(25);expect(challenges.map(challenge=>challenge.id)).toEqual(['A1','A2','A3','A4','A5','B1','B2','B3','B4','B5','C1','C2','C3','C4','C5','D1','D2','D3','D4','D5','E1','E2','E3','E4','E5']);expect(PW.regionById('tidal-abbey').challenges[0].title).toBe('Sun Under Fire');expect(PW.challengeById('E5').guardian).toBe('Eclipse Keeper');expect(PW.FIRST_PLAYABLE.regionId).toBe('tidal-abbey');expect(PW.campaignContract()).toEqual({regions:5,challenges:25,firstPlayable:'courtyard-checkpoint',complete:false});});
 test('fresh state independent and no idle victory or passive points',()=>{const other=PW.create();steps({},3600);expect(s.status).toBe('playing');expect(s.score).toBe(0);expect(other.time).toBe(0);expect(s.rescue.freed).toBe(false);});
 test('slab ray handles parallel, blocked, open and inside origins',()=>{const box={x:100,y:100,w:20,h:50};expect(PW.raySegment(0,120,1,0,[box],500).distance).toBe(100);expect(PW.raySegment(0,90,1,0,[box],500).distance).toBe(500);expect(PW.raySegment(110,120,1,0,[box],500).distance).toBe(0);expect(PW.raySegment(0,120,1,0,[{...box,open:true}],500).distance).toBe(500);});
 test('normalizes diagonal movement and prevents dash tunnelling through locked gate',()=>{at(600,180);steps({mx:1,my:1},10);const dist=Math.hypot(s.player.x-600,s.player.y-180);expect(dist).toBeCloseTo(190/6,5);at(680,180);steps({mx:1,ax:1,dash:true},30);expect(s.player.x).toBeLessThanOrEqual(686.01);expect(s.player.dashCooldown).toBeGreaterThan(0);});

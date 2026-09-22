@@ -100,4 +100,258 @@
     firstPlayable: PW.FIRST_PLAYABLE.id,
     complete: false
   });
+
+  // ---------------------------------------------------------------------------
+  // Region 1 authored rooms (SPEC "Region 1 room engine contract", Sep22).
+  // Every room is 1024x768; perimeter walls are split only where a doorway sits.
+  // Exits live inside the doorway gap, always beyond any gate, and each exit's
+  // spawn lands just inside the matching doorway of the destination room.
+  // ---------------------------------------------------------------------------
+  const W = 1024, H = 768;
+
+  const cloister = {
+    id: 'cloister', region: 'tidal-abbey', challenge: 'A1', name: 'Sunken Cloister', w: W, h: H,
+    intro: 'Catch the sun on your mirror and hold it on the north seal while the wall turret hunts you: turn and return a shot to jam it, then aim.',
+    spawn: { x: 190, y: 540 },
+    // Courtyard geometry is preserved (index order too); only the east wall is split
+    // for the door behind Ilex, and the extra piece is appended.
+    walls: [
+      { x: 24, y: 48, w: 24, h: 672 }, { x: 976, y: 48, w: 24, h: 48 },
+      { x: 48, y: 48, w: 928, h: 32 }, { x: 48, y: 696, w: 928, h: 24 },
+      { x: 700, y: 340, w: 24, h: 356 },
+      { x: 325, y: 450, w: 90, h: 28 }, { x: 478, y: 210, w: 28, h: 66 },
+      { x: 976, y: 176, w: 24, h: 544 }
+    ],
+    gates: [
+      { id: 'cloister-gate', x: 700, y: 80, w: 24, h: 260, opensWhen: { receivers: ['gate'] },
+        text: 'The cloister gate grinds open. The turret falls silent; the sentinel stirs.' },
+      { id: 'cloister-door', x: 960, y: 96, w: 16, h: 80, opensWhen: { flag: 'ilex' },
+        text: 'Ilex slides back the sluice-door bolt.' }
+    ],
+    emitters: [{ id: 'cloister-sun', x: 70, y: 340, dx: 1, dy: 0 }],
+    receivers: [
+      { id: 'gate', x: 550, y: 115, r: 19, kind: 'seal' },
+      { id: 'sanctuary', x: 280, y: 620, r: 22, kind: 'sanctuary' }
+    ],
+    enemies: [
+      { type: 'sentinel', id: 'abbey-sentinel', x: 845, y: 245, r: 27, hp: 6, wakeRadius: 210, wakeWhen: 'cloister-gate' },
+      // Mounted on the west wall below the sun: every beam spot that reaches the seal is
+      // in its sight and behind the raised mirror (verified), so you must jam it or take
+      // the hit; the pillar and low wall shadow real cover just off the beam row.
+      { type: 'turret', id: 'cloister-turret', x: 64, y: 496, r: 16, targets: 'player', interval: 2.6, delay: 4, until: 'cloister-gate' }
+    ],
+    rescue: { x: 914, y: 150, requires: ['abbey-sentinel'] },
+    objectives: { seal: 'Light the north seal under fire', fight: 'Return its shots · strike the exposed sentinel', rescue: 'Free Ilex', exit: 'East door to the Sluice Court' },
+    sanctuary: { x: 280, y: 620, r: 45, receiver: 'sanctuary' },
+    exits: [{ id: 'to-sluice', x: 976, y: 96, w: 24, h: 80, to: 'sluice', spawn: { x: 84, y: 136 } }]
+  };
+
+  const sluice = {
+    id: 'sluice', region: 'tidal-abbey', challenge: 'A2', name: 'Sluice Court', w: W, h: H,
+    intro: 'The tide breathes: wade the lanes while they are shallow, shelter behind the risen stones, and from the island send the sun back to the seal behind you.',
+    spawn: { x: 84, y: 136 },
+    tide: { period: 10, offset: 3 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 48 }, { x: 24, y: 176, w: 24, h: 544 },
+      { x: 976, y: 48, w: 24, h: 512 }, { x: 976, y: 640, w: 24, h: 80 },
+      { x: 48, y: 48, w: 928, h: 32 },
+      { x: 48, y: 696, w: 732, h: 24 }, { x: 860, y: 696, w: 116, h: 24 },
+      // West bank: a buttress to shelter behind and a low wall that narrows the seal's sightline.
+      { x: 180, y: 232, w: 44, h: 56 },
+      { x: 160, y: 470, w: 96, h: 28 },
+      // East bank: masonry around the exit and the chapel stair.
+      { x: 776, y: 420, w: 120, h: 28 }
+    ],
+    gates: [{ id: 'sluice-gate', x: 952, y: 560, w: 24, h: 80, opensWhen: { receivers: ['sluice-seal'] },
+      text: 'The sluice seal drinks the light; the east floodgate lifts and the turret stills.' }],
+    emitters: [{ id: 'sluice-sun', x: 512, y: 92, dx: 0, dy: 1 }],
+    receivers: [{ id: 'sluice-seal', x: 110, y: 628, r: 20, kind: 'seal' }],
+    objectives: { seal: 'From the island, light the seal behind you', exit: 'East floodgate to the Shutter Corridors' },
+    water: [
+      { id: 'lane-west', x: 288, y: 80, w: 112, h: 616, when: 'high' },
+      { id: 'lane-east', x: 624, y: 80, w: 112, h: 616, when: 'high' },
+      { id: 'channel-north', x: 400, y: 80, w: 224, h: 112, when: 'high' },
+      { id: 'channel-south', x: 400, y: 560, w: 224, h: 136, when: 'high' }
+    ],
+    breakwaters: [
+      // Rises across the sunbeam at high tide: the island only receives light at low tide.
+      { id: 'sun-weir', x: 488, y: 132, w: 48, h: 24, when: 'high' },
+      { id: 'island-stone', x: 588, y: 300, w: 28, h: 120, when: 'high' },
+      { id: 'bank-stone', x: 236, y: 380, w: 28, h: 110, when: 'high' }
+    ],
+    enemies: [
+      { type: 'turret', id: 'sluice-turret', x: 952, y: 330, r: 16, targets: 'player', interval: 2.4, delay: 3, until: 'sluice-gate' }
+    ],
+    exits: [
+      { id: 'to-cloister', x: 24, y: 96, w: 24, h: 80, to: 'cloister', spawn: { x: 936, y: 128 } },
+      { id: 'to-shutters', x: 976, y: 560, w: 24, h: 80, to: 'shutters', spawn: { x: 84, y: 600 } },
+      { id: 'to-sanctuary', x: 780, y: 696, w: 80, h: 24, to: 'sanctuary', spawn: { x: 820, y: 116 } }
+    ]
+  };
+
+  const sanctuary = {
+    id: 'sanctuary', region: 'tidal-abbey', challenge: null, name: 'Chapel of Still Water', w: W, h: H,
+    intro: 'A quiet chapel: slash the lectern mirror to turn the light onto the font, then rest in its circle.',
+    spawn: { x: 820, y: 116 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 672 },
+      { x: 976, y: 48, w: 24, h: 332 }, { x: 976, y: 460, w: 24, h: 260 },
+      { x: 48, y: 48, w: 732, h: 32 }, { x: 860, y: 48, w: 116, h: 32 },
+      { x: 48, y: 696, w: 928, h: 24 },
+      // Nave pillars and the reliquary alcove that holds the heart.
+      { x: 300, y: 400, w: 32, h: 32 }, { x: 692, y: 400, w: 32, h: 32 },
+      { x: 780, y: 540, w: 24, h: 76 }, { x: 780, y: 540, w: 196, h: 24 }
+    ],
+    gates: [{ id: 'reliquary', x: 780, y: 616, w: 24, h: 80, optional: true, opensWhen: { receivers: ['chapel'] },
+      text: 'The reliquary grille lifts in the font light.' }],
+    emitters: [{ id: 'chapel-sun', x: 60, y: 300, dx: 1, dy: 0 }],
+    mirrors: [{ id: 'lectern-mirror', x: 512, y: 300, r: 16, split: false, dirs: [[1, 0], [0, 1]], index: 0 }],
+    receivers: [{ id: 'chapel', x: 512, y: 600, r: 22, kind: 'sanctuary' }],
+    sanctuary: { x: 512, y: 600, r: 48, receiver: 'chapel' },
+    objectives: { seal: 'Turn the lectern mirror onto the font', exit: 'East stair to the Bell Tower' },
+    pickups: [
+      { id: 'keeper-chart', kind: 'chart', x: 150, y: 620, text: 'Keeper chart: the Bell Diver\'s armour seams. Returned shots expose it for longer.' },
+      { id: 'abbey-heart', kind: 'heart', x: 900, y: 630, text: 'Tideglass heart: your maximum health rises by one.' }
+    ],
+    exits: [
+      { id: 'to-sluice', x: 780, y: 48, w: 80, h: 32, to: 'sluice', spawn: { x: 820, y: 660 } },
+      { id: 'to-bell-tower', x: 976, y: 380, w: 24, h: 80, to: 'bell-tower', spawn: { x: 948, y: 420 } }
+    ]
+  };
+
+  const shutters = {
+    id: 'shutters', region: 'tidal-abbey', challenge: 'A3', name: 'Shutter Corridors', w: W, h: H,
+    intro: 'Stay close so Ilex keeps walking, read each shutter\'s rhythm, and put your mirror between her and the choir turrets.',
+    spawn: { x: 84, y: 600 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 512 }, { x: 24, y: 640, w: 24, h: 80 },
+      { x: 976, y: 48, w: 24, h: 48 }, { x: 976, y: 176, w: 24, h: 544 },
+      { x: 48, y: 48, w: 928, h: 32 }, { x: 48, y: 696, w: 928, h: 24 },
+      // Serpentine: lower hall runs east, middle hall west, upper hall east.
+      { x: 48, y: 440, w: 760, h: 96 },
+      { x: 216, y: 216, w: 760, h: 64 },
+      // Choir alcove piers in the upper hall.
+      { x: 560, y: 80, w: 40, h: 28 }
+    ],
+    gates: [{ id: 'shutter-gate', x: 952, y: 96, w: 24, h: 80, opensWhen: { flag: 'escorted' },
+      text: 'Ilex throws the stair bolt. The choir falls silent.' }],
+    shutters: [
+      { id: 'shutter-1', x: 470, y: 536, w: 24, h: 160, period: 4, openFor: 2, offset: 0 },
+      { id: 'shutter-2', x: 808, y: 476, w: 168, h: 24, period: 3, openFor: 1.5, offset: 1 },
+      { id: 'shutter-3', x: 640, y: 280, w: 24, h: 160, period: 5, openFor: 2, offset: 0 },
+      { id: 'shutter-4', x: 380, y: 280, w: 24, h: 160, period: 5, openFor: 2, offset: 2.5 },
+      { id: 'shutter-5', x: 48, y: 236, w: 168, h: 24, period: 4.5, openFor: 1.5, offset: 0.3 },
+      { id: 'shutter-6', x: 420, y: 80, w: 24, h: 136, period: 2.4, openFor: 1.2, offset: 0 },
+      { id: 'shutter-7', x: 720, y: 80, w: 24, h: 136, period: 2.4, openFor: 1.2, offset: 1.2 }
+    ],
+    enemies: [
+      // Lower hall teaches the job: a single choir behind Ilex; walk at her back, mirror up.
+      { type: 'turret', id: 'choir-low', x: 64, y: 680, r: 16, targets: 'escort', interval: 2, delay: 4, until: 'shutter-gate' },
+      // Middle hall crossfire: one choir ahead of Ilex, one behind her. Jam one, block the other.
+      { type: 'turret', id: 'choir-west', x: 64, y: 360, r: 16, targets: 'escort', interval: 1.4, until: 'shutter-gate' },
+      { type: 'turret', id: 'choir-rear', x: 952, y: 300, r: 16, targets: 'escort', interval: 1.4, until: 'shutter-gate' },
+      // Upper hall: head-on down the corridor through open shutters, plus a rear choir
+      // that fires through the alternate shutter while Ilex waits in a pocket.
+      { type: 'turret', id: 'choir-east', x: 952, y: 200, r: 16, targets: 'escort', interval: 1.6, until: 'shutter-gate' },
+      { type: 'turret', id: 'choir-high', x: 64, y: 100, r: 16, targets: 'escort', interval: 1.4, until: 'shutter-gate' }
+    ],
+    escort: { x: 150, y: 616, hp: 4, path: [[150, 616], [892, 616], [892, 360], [704, 360], [448, 360], [176, 360], [176, 148], [576, 148], [900, 148]] },
+    escortExit: { x: 860, y: 96, w: 92, h: 110 },
+    objectives: { escort: 'Keep Ilex close · shield her from the choir', exit: 'East stair to the Bell Tower' },
+    exits: [
+      { id: 'to-sluice', x: 24, y: 560, w: 24, h: 80, to: 'sluice', spawn: { x: 928, y: 600 } },
+      { id: 'to-bell-tower', x: 976, y: 96, w: 24, h: 80, to: 'bell-tower', spawn: { x: 84, y: 136 } }
+    ]
+  };
+
+  const bellTower = {
+    id: 'bell-tower', region: 'tidal-abbey', challenge: 'A4', name: 'Bell Tower', w: W, h: H,
+    intro: 'The lantern prism splits the sun in two: slash the tower mirrors until both bells beside the north door ring at once.',
+    spawn: { x: 84, y: 136 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 48 }, { x: 24, y: 176, w: 24, h: 544 },
+      { x: 976, y: 48, w: 24, h: 332 }, { x: 976, y: 460, w: 24, h: 260 },
+      { x: 48, y: 48, w: 424, h: 32 }, { x: 552, y: 48, w: 424, h: 32 },
+      { x: 48, y: 696, w: 928, h: 24 },
+      // Bell niches either side of the north door: each bell hears only light rising straight up.
+      { x: 320, y: 80, w: 24, h: 72 }, { x: 376, y: 80, w: 24, h: 72 },
+      { x: 624, y: 80, w: 24, h: 72 }, { x: 680, y: 80, w: 24, h: 72 },
+      // Lantern: the sun climbs a sealed shaft to the prism; only split light escapes.
+      { x: 440, y: 520, w: 144, h: 52 }, { x: 440, y: 588, w: 64, h: 108 }, { x: 520, y: 588, w: 64, h: 108 },
+      // Bell-rope vestibule behind the east grate (sanctuary shortcut).
+      { x: 900, y: 356, w: 76, h: 24 }, { x: 900, y: 460, w: 76, h: 24 }
+    ],
+    gates: [
+      { id: 'bell-gate', x: 472, y: 80, w: 80, h: 20, opensWhen: { receivers: ['bell-west', 'bell-east'] },
+        text: 'Both bells ring as one. The beacon stair opens.' },
+      { id: 'rope-gate', x: 900, y: 380, w: 20, h: 80, optional: true, opensWhen: { receivers: ['bell-west', 'bell-east'] },
+        text: 'The bell-rope grate swings free: a shortcut down to the chapel.' }
+    ],
+    emitters: [{ id: 'tower-sun', x: 512, y: 684, dx: 0, dy: -1 }],
+    mirrors: [
+      { id: 'lantern-prism', x: 512, y: 580, r: 16, split: true, dirs: [[-1, 0], [1, 0]], index: 0 },
+      { id: 'west-corner', x: 180, y: 580, r: 16, split: false, dirs: [[0, -1]], index: 0 },
+      { id: 'east-corner', x: 844, y: 580, r: 16, split: false, dirs: [[0, -1]], index: 0 },
+      { id: 'west-high', x: 180, y: 220, r: 16, split: false, dirs: [[0, -1], [-1, 0], [1, 0]], index: 0 },
+      { id: 'east-high', x: 844, y: 300, r: 16, split: false, dirs: [[0, -1], [-1, 0], [1, 0]], index: 0 },
+      { id: 'west-bell-mirror', x: 360, y: 300, r: 16, split: false, dirs: [[-1, 0], [0, 1], [0, -1]], index: 0 },
+      { id: 'east-bell-mirror', x: 664, y: 220, r: 16, split: false, dirs: [[1, 0], [0, -1], [0, 1]], index: 0 }
+    ],
+    receivers: [
+      { id: 'bell-west', x: 360, y: 112, r: 18, kind: 'bell' },
+      { id: 'bell-east', x: 664, y: 112, r: 18, kind: 'bell' }
+    ],
+    objectives: { seal: 'Ring both bells at once', exit: 'North stair to the Abbey Beacon' },
+    enemies: [
+      { type: 'sentinel', id: 'verger', x: 512, y: 420, r: 27, hp: 6, wakeRadius: 190,
+        patrol: [[300, 440], [724, 440], [724, 380], [300, 380]] }
+    ],
+    exits: [
+      { id: 'to-shutters', x: 24, y: 96, w: 24, h: 80, to: 'shutters', spawn: { x: 928, y: 136 } },
+      { id: 'to-beacon', x: 472, y: 48, w: 80, h: 32, to: 'beacon', spawn: { x: 512, y: 656 } },
+      { id: 'to-sanctuary', x: 976, y: 380, w: 24, h: 80, to: 'sanctuary', spawn: { x: 920, y: 420 } }
+    ]
+  };
+
+  const beacon = {
+    id: 'beacon', region: 'tidal-abbey', challenge: 'A5', name: 'Abbey Beacon', w: W, h: H,
+    intro: 'The Bell Diver hunts under the flood: keep to dry stone, dash its shockwave, return its bells, and strike when its armour opens.',
+    spawn: { x: 512, y: 656 },
+    tide: { period: 14, offset: 5 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 672 }, { x: 976, y: 48, w: 24, h: 672 },
+      { x: 48, y: 48, w: 928, h: 32 },
+      { x: 48, y: 696, w: 424, h: 24 }, { x: 552, y: 696, w: 424, h: 24 },
+      // Drowned bell-frame piers at the corners of the flood ring.
+      { x: 176, y: 192, w: 32, h: 32 }, { x: 816, y: 192, w: 32, h: 32 },
+      { x: 176, y: 576, w: 32, h: 32 }, { x: 816, y: 576, w: 32, h: 32 }
+    ],
+    water: [
+      { id: 'ring-north', x: 160, y: 176, w: 704, h: 112, when: 'high' },
+      { id: 'ring-south', x: 160, y: 512, w: 704, h: 112, when: 'high' },
+      { id: 'ring-west-upper', x: 160, y: 288, w: 208, h: 84, when: 'high' },
+      { id: 'ring-west-lower', x: 160, y: 428, w: 208, h: 84, when: 'high' },
+      { id: 'ring-east-upper', x: 656, y: 288, w: 208, h: 84, when: 'high' },
+      { id: 'ring-east-lower', x: 656, y: 428, w: 208, h: 84, when: 'high' }
+    ],
+    breakwaters: [
+      // Low-tide stones: cover from the bell volleys exactly when the Diver surfaces.
+      { id: 'altar-stone-west', x: 408, y: 320, w: 36, h: 36, when: 'low' },
+      { id: 'altar-stone-east', x: 580, y: 444, w: 36, h: 36, when: 'low' },
+      { id: 'rim-stone-west', x: 76, y: 470, w: 48, h: 36, when: 'low' },
+      { id: 'rim-stone-east', x: 900, y: 294, w: 48, h: 36, when: 'low' },
+      // High-tide pilings flank the beacon approach.
+      { id: 'piling-west', x: 420, y: 208, w: 28, h: 48, when: 'high' },
+      { id: 'piling-east', x: 576, y: 208, w: 28, h: 48, when: 'high' }
+    ],
+    enemies: [{ type: 'diver', id: 'bell-diver', x: 512, y: 400, r: 30, hp: 10 }],
+    beacon: { x: 512, y: 120, requires: ['bell-diver'] },
+    objectives: { beacon: 'Reach the kindled beacon' },
+    exits: [{ id: 'to-bell-tower', x: 472, y: 696, w: 80, h: 24, to: 'bell-tower', spawn: { x: 512, y: 120 } }]
+  };
+
+  const rooms = { cloister, sluice, sanctuary, shutters, 'bell-tower': bellTower, beacon };
+  PW.ROOMS = rooms;
+  // Always hand out a fresh deep copy so runtime state can never mutate the authored data.
+  PW.roomDef = id => Object.prototype.hasOwnProperty.call(rooms, id) ? JSON.parse(JSON.stringify(rooms[id])) : null;
 })(typeof window !== 'undefined' ? window : globalThis);

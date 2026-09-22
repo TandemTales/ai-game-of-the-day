@@ -87,10 +87,11 @@ Only lead runs Git. Builders own exactly one file; ask lead for cross-file chang
 | Simulation builder | assets/js/logic.js |
 | Renderer builder | assets/js/render.js |
 | Campaign content builder | assets/js/regions.js |
+| Audio builder | assets/js/audio.js (PW.Audio: enable(bool), update(state,dt); reads state only) |
 | Independent gameplay/presentation critic | read-only; evidence under ignored node_modules/.cache/prism-warden |
 | Lead integration | main.js, HTML, CSS, tests, docs, tools and Git |
 
-Classic scripts: logic.js -> render.js -> main.js. Global window.PW.
+Classic scripts: regions.js -> logic.js -> render.js -> audio.js -> main.js. Global window.PW.
 Logic exports PW.create(), PW.step(state,input,dt), PW.raySegment(x,y,dx,dy,rects,max).
 step uses dt seconds capped1/30. Main runs fixed1/60; no Math.random in simulation.
 Input {mx,my,ax,ay,reflect,slash,dash}; move and aim unit vectors; slash/dash edge.

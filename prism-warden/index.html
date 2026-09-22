@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#101f29"><meta name="description" content="Prism Warden: redirect sunlight, return the guardian's fire and rescue the keeper in the first playable Tidal Abbey encounter.">
+<meta name="theme-color" content="#101f29"><meta name="description" content="Prism Warden: a top-down action adventure. Redirect sunlight with your mirror shield, return enemy fire, escort Ilex and duel the Bell Diver through the drowned Tidal Abbey.">
 <title>Prism Warden — The Drowned Beacons</title>
 <link rel="icon" href="../images/botbuiltarcade-icon-face.png"><link rel="stylesheet" href="assets/css/game.css">
 </head>
@@ -10,14 +10,14 @@
 <div id="app">
 <header><a class="back" href="../index.html" aria-label="Back to Arcade">← Arcade</a><div class="brand"><strong>PRISM WARDEN</strong><span>THE DROWNED BEACONS</span></div><button id="pause" aria-label="Pause game">Ⅱ</button><button id="sound" aria-label="Enable sound" aria-pressed="false">Sound off</button></header>
 <section id="hud" aria-label="Adventure status"><div class="vital"><span class="eyebrow">SERA · KEEPER</span><strong id="health">5 / 5</strong><span id="hpbar"><i></i></span></div><div class="mission"><span class="eyebrow" id="chapter">01 / TIDAL ABBEY</span><strong id="objective">Restore the sun gate</strong></div><div class="points"><span class="eyebrow">SCORE</span><strong id="score">00000</strong><small id="dashState">Dodge ready</small></div></section>
-<main id="arena"><canvas id="scene" aria-label="Tidal Abbey adventure. Use WASD to move, aim with mouse, hold Shift to reflect, click to slash, Space to dodge." tabindex="0"></canvas><div id="message" role="status"></div><div id="location">THE SILENT COURTYARD <span>First playable</span></div></main>
+<main id="arena"><canvas id="scene" aria-label="Tidal Abbey adventure. Use WASD to move, aim with mouse, hold Shift to reflect, click to slash or turn mirrors, Space to dodge." tabindex="0"></canvas><div id="message" role="status"></div><div id="location">SUNKEN CLOISTER <span>Challenge A1</span></div></main>
 <div id="touchControls" aria-label="Touch controls"><div id="movePad" class="pad" role="button" tabindex="0" aria-label="Drag to move"><span>MOVE</span><i id="moveKnob"></i></div><div class="touchHint">Catch the sunbeam<br><b>Drag MIRROR to aim</b></div><div id="mirrorPad" class="pad mirror" role="button" tabindex="0" aria-label="Hold and drag to aim mirror"><span>MIRROR</span><i id="aimKnob"></i></div><div class="actions"><button id="slash">SLASH</button><button id="dash">DODGE</button></div></div>
 <footer id="keys"><span><b>WASD</b> Move</span><span><b>MOUSE</b> Aim</span><span><b>SHIFT / RMB</b> Mirror</span><span><b>CLICK / J</b> Slash</span><span><b>SPACE</b> Dodge</span></footer>
 </div>
 <section id="overlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="panelTitle"><div class="panel">
 <div class="seal" aria-hidden="true">◈</div><p class="eyebrow" id="panelKicker">A KEEPER'S FIRST LIGHT</p><h1 id="panelTitle">The sea took the sun.<br>Bring it back.</h1><p id="panelText">Ilex is trapped beyond the abbey gate. Step into the gold beam, raise your mirror and aim north at the sun seal. Return the guardian’s fire to break its armor.</p>
 <div id="briefing"><div><b>01</b><span>Catch light<br><small>Stand in the beam. Hold Mirror.</small></span></div><div><b>02</b><span>Choose its path<br><small>Aim at the gold seal to open the gate.</small></span></div><div><b>03</b><span>Return fire<br><small>Face a shot with Mirror. Slash exposed armor.</small></span></div></div><div id="routeStrip" aria-label="Campaign route"></div>
-<button id="begin" class="primary">Enter the abbey <span>→</span></button><button id="restart" hidden>Restart encounter</button><p class="slice" id="scopeNote">FIRST PLAYABLE · One encounter. The full adventure is in development.</p>
+<button id="begin" class="primary">Enter the abbey <span>→</span></button><button id="restart" hidden>Restart the abbey</button><p class="slice" id="scopeNote">REGION 1 OF 5 · The Tidal Abbey is playable. Regions 2–5 are in development.</p>
 <form id="scoreForm" hidden><label for="callsign">Keeper name</label><div><input id="callsign" maxlength="20" autocomplete="nickname" placeholder="Sera"><button type="submit">Post score</button></div><p id="scoreStatus" role="status"></p></form>
 <a class="resultLink" href="../leaderboard.html?gameId=prism-warden" hidden>View leaderboard</a>
 </div></section>

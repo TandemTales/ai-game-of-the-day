@@ -86,7 +86,7 @@ Only lead runs Git. Builders own exactly one file; ask lead for cross-file chang
 | --- | --- |
 | Simulation builder | assets/js/logic.js |
 | Renderer builder | assets/js/render.js |
-| Future content builder | assets/js/regions.js (not yet present) |
+| Campaign content builder | assets/js/regions.js |
 | Independent gameplay/presentation critic | read-only; evidence under ignored node_modules/.cache/prism-warden |
 | Lead integration | main.js, HTML, CSS, tests, docs, tools and Git |
 

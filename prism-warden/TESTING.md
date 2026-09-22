@@ -70,3 +70,22 @@ The latter includes settled result UI capture plus computed visible/in-bounds re
 and score form checks. Earlier native screenshots were taken during incomplete
 panel painting; the500ms settled capture is the reviewed final result. No runtime
 change. Later success does not by itself prove the earlier pilot-loss cause.
+
+## September21 route-foundation verification
+
+`node node_modules/jest/bin/jest.js prism-warden --runInBand` passes17/17,
+including the five-region/25-challenge manifest contract. The full repository
+suite passes18suites/411tests. `node prism-warden/tools/smoke.cjs` first hit the
+known Windows Chromium `spawn EPERM` sandbox restriction; the same command with
+approved outside-sandbox execution passed all six required sizes, clean console,
+no horizontal overflow, no external requests, keyboard movement, simultaneous
+native touch move/mirror/release,44px controls, pause/replay and mock
+rank-before-submit. The route manifest is loaded through the browser shell.
+
+The current report and PNGs are ignored evidence under
+`node_modules/.cache/prism-warden/sep20-smoke/`; lead inspected all six playing
+captures plus representative ready, guardian and result captures. This proves
+the route foundation and existing checkpoint remain browser-safe, not that the
+five-region campaign is playable, enjoyable or AAA. The prior non-blind Link's
+Awakening comparison still reads OURS LOSES; no independent critic or shipping
+judge was available on this run.

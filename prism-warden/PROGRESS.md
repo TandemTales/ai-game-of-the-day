@@ -10,6 +10,34 @@ Tidal Abbey route, keep the existing checkpoint playable, and rerun focused plus
 full regressions before handoff. Do not claim campaign completion, human fun,
 physical-device quality, or AAA acceptance.
 
+## 2026-09-21 bounded route-foundation and shell pass
+
+Added `assets/js/regions.js` as the authored campaign source of truth: five
+connected route descriptions and all25 challenge identities A1-E5, with guardian,
+interaction and optional-route hooks. It deliberately records planned scope and
+does not fake completion. The browser now loads the manifest and renders a small
+route strip from the data on the ready, pause and results panels; the active
+checkpoint remains the single Silent Courtyard encounter and its honest
+FIRST PLAYABLE label.
+
+Focused Prism Warden tests pass17/17; the full repository passes18suites/411tests.
+The standalone Chromium smoke initially hit Windows `spawn EPERM` in the sandbox;
+the approved outside-sandbox retry passed320x568,390x844,844x390,768x1024,
+1440x900 and3840x2160 with clean console, no external requests, no horizontal
+overflow, keyboard movement, simultaneous native touch move/mirror/release,
+pause/replay, mock leaderboard rank-before-submit and visible44px controls.
+All six playing PNGs plus representative ready, guardian and result PNGs were
+opened and read. Evidence remains ignored under
+`node_modules/.cache/prism-warden/sep20-smoke/`.
+
+No independent AAA critic or shipping judge was available. The prior non-blind
+Link's Awakening comparison remains OURS LOSES; the campaign is still0/5 complete
+regions and0/25 accepted challenges, with A1 pressure routing, authored rooms,
+progression, saves, optional consequences, finale, human enjoyment and audio
+review outstanding. Next: build the first connected Tidal Abbey route and
+pressure loop, then expand regions1-3 per the September26 gate. Main remains the
+Ironwake release; no `.aaa-complete` and no release promotion.
+
 ## 2026-09-20 Sunday intent (Pacific)
 
 STOP absent; dev synchronized and initially clean. Ironwake released September19.

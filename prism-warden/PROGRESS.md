@@ -1,5 +1,13 @@
 # Prism Warden â€” progress
 
+## 2026-09-22 Tuesday evening intent (Pacific, second run)
+
+STOP absent; dev synchronized. Age 2, not release night (forced release Oct 3).
+Scope is the gap: 1/5 regions. Tonight: build Region 2 Verdant Aqueduct as a
+connected room chain after the Tidal Abbey beacon (B1-B5, placeable prism tool,
+Root Hart guardian, optional ferryman route), with logic/regions/render/audio
+support, focused tests and a legal-input pilot. Push after each landed file.
+
 ## 2026-09-22 Tuesday intent (Pacific)
 
 STOP absent; dev synchronized. Age 2, not release night (release Oct 3). The

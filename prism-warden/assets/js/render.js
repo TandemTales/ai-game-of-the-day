@@ -2264,7 +2264,7 @@
   }
 
   function drawDam(ctx, d, s, t) {
-    const maxHp = Math.max(2, num(d.maxHp, 2)), hp = num(d.hp, maxHp), broken = !!d.broken || hp <= 0;
+    const maxHp = Math.max(1, num(d.maxHp, Math.max(2, num(d.hp, 2)))), hp = num(d.hp, maxHp), broken = !!d.broken || hp <= 0;
     const horiz = d.w >= d.h, L = horiz ? d.w : d.h, D = horiz ? d.h : d.w;
     const rng = rngFor(hashStr(String(d.id || '') + d.x + ',' + d.y));
     ctx.save();
@@ -2401,7 +2401,7 @@
       const front = ((pl.x - e.x) * fx + (pl.y - e.y) * fy) / (Math.hypot(pl.x - e.x, pl.y - e.y) || 1) >= .3;
       labels.push({ x: e.x, y: e.y - 44, text: front ? 'BARK PLATE — FLANK IT' : 'STRIKE THE BACK', color: front ? '#e8c8a0' : '#b8ffcc', size: 10 });
     }
-    const maxHp = Math.max(num(e.maxHp, 2), num(e.hp, 2));
+    const maxHp = Math.max(1, num(e.maxHp, num(e.hp, 2)));
     if (num(e.hp, maxHp) < maxHp) hpPips(ctx, e.x, e.y + 22, num(e.hp, 0), maxHp);
   }
   // Lobbed seeds: parabola above a ground shadow, landing reticle closing on the target.
@@ -2849,17 +2849,26 @@
   let glowQueue = [];
   let labels = [];
   function drawLabels(ctx, v) {
-    const placed = [];
+    // World-space labels are kept inside the visible view (portrait phones show a narrow slice of the room).
+    const placed = [], m = 6 / Math.max(.5, Math.min(1.5, v.scale));
     for (const l of labels) {
-      let y = l.y;
-      for (const p of placed) if (Math.abs(p.x - l.x) < 70 && Math.abs(p.y - y) < 13) y = p.y - 14;
-      placed.push({ x: l.x, y });
+      const size = l.size || 10;
+      ctx.font = `700 ${size}px system-ui, -apple-system, "Segoe UI", sans-serif`;
+      const hw = ctx.measureText(l.text).width / 2 + size * .2;
+      let x = l.x, y = l.y;
+      // anchors whose text would be wholly off-screen belong to off-screen objects: skip, don't drag them in
+      if (x + hw < v.x || x - hw > v.x + v.w || y + size < v.y || y - size > v.y + v.h) continue;
+      if (v.w > 2 * (hw + m)) x = clamp(x, v.x + m + hw, v.x + v.w - m - hw);
+      for (const p of placed) if (Math.abs(p.x - x) < 70 && Math.abs(p.y - y) < 13) y = p.y - 14;
+      const top = v.y + m + size * .7, bot = v.y + v.h - m - size * .7;
+      if (y < top) { y = top; for (const p of placed) if (Math.abs(p.x - x) < 70 && Math.abs(p.y - y) < 13) y = p.y + 14; }
+      y = Math.min(y, bot);
+      placed.push({ x, y });
       ctx.globalAlpha = l.dim ? .8 : 1;
-      text(ctx, l.text, l.x, y, l.size || 10, l.color);
+      text(ctx, l.text, x, y, size, l.color);
     }
     ctx.globalAlpha = 1;
     labels = [];
-    void v;
   }
 
   // ---------------------------------------------------------------- atmosphere (screen space)

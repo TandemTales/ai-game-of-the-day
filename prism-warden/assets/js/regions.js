@@ -16,19 +16,30 @@
         { id: 'A3', title: 'Shutter Escort', mechanic: 'escort Ilex through timed shutters and enemy fire', optional: 'keeper chart', guardian: 'Shutter Choir' },
         { id: 'A4', title: 'Split Bell Light', mechanic: 'divide one beam across the bell-tower route', optional: 'bell-rope shortcut', guardian: 'Twin Verger' },
         { id: 'A5', title: 'Bell Diver', mechanic: 'duel on dry ground that changes with the tide', optional: 'flooded archive', guardian: 'Bell Diver' }
+      ],
+      // Optional finds the results panel counts (main.js); the first missing hint is shown.
+      discoveries: [
+        { flag: 'lit:chapel', label: 'Chapel of Still Water', hint: 'the Chapel of Still Water lies south of the sluice' },
+        { flag: 'chart', label: 'Keeper chart', hint: 'the keeper chart waits in the chapel' },
+        { flag: 'pickup:abbey-heart', label: 'Tideglass heart', hint: 'the chapel reliquary opens in the font light' }
       ]
     },
     {
       id: 'verdant-aqueduct', number: 2, name: 'Verdant Aqueduct', epithet: 'The rootbound canals',
-      route: 'abbey spillway -> root bridges -> ferryman quay -> hart reservoir',
-      rooms: [{ id: 'spillway', name: 'Abbey Spillway' }, { id: 'roots', name: 'Root Bridges' }, { id: 'channels', name: 'Rotating Channels' }, { id: 'quay', name: 'Ferryman Quay' }, { id: 'reservoir', name: 'Hart Reservoir' }, { id: 'ferry', name: 'Optional Ferry' }],
+      route: 'abbey spillway -> rootbound pumphouse -> rotating channels -> ferryman quay -> hart reservoir (optional ferry landing shortcut)',
+      rooms: [{ id: 'spillway', name: 'Abbey Spillway' }, { id: 'roots', name: 'Rootbound Pumphouse' }, { id: 'channels', name: 'Rotating Channels' }, { id: 'quay', name: 'Ferryman Quay' }, { id: 'reservoir', name: 'Hart Reservoir' }, { id: 'ferry', name: 'Ferry Landing' }],
       links: [['spillway', 'roots'], ['roots', 'channels'], ['channels', 'quay'], ['quay', 'reservoir'], ['quay', 'ferry'], ['ferry', 'reservoir']],
       challenges: [
-        { id: 'B1', title: 'Prism on Root Bridges', mechanic: 'carry a placeable prism across bridges that flex underfoot', optional: 'ferryman ferry', guardian: 'Rootbound Bramble' },
-        { id: 'B2', title: 'Irrigation Cut', mechanic: 'cut growth while sustaining the water circuit', optional: 'old pump room', guardian: 'Moss Engine' },
-        { id: 'B3', title: 'Rotating Seed Mortars', mechanic: 'flank seed mortars through rotating channels', optional: 'seed lens', guardian: 'Canal Stag' },
-        { id: 'B4', title: 'Ferryman Rescue', mechanic: 'route water toward trapped ferrymen without drowning the shortcut', optional: 'rescue skiff', guardian: 'Drowned Oarsman' },
-        { id: 'B5', title: 'Root Hart', mechanic: 'turn a charging guardian into its own broken dams', optional: 'hart grove', guardian: 'Root Hart' }
+        { id: 'B1', title: 'Prism on Root Bridges', mechanic: 'carry the placeable prism over sinking root bridges under turret fire and set it in the sunbeam so its light holds a gate open while you walk through', optional: 'ferry landing', guardian: 'Spillway Turret' },
+        { id: 'B2', title: 'Irrigation Cut', mechanic: 'prism the sun down a thorn trench into a slow pump, slashing brambles as they regrow while a seed mortar lobs at you', optional: 'flank the pump mortar', guardian: 'Pump Mortar' },
+        { id: 'B3', title: 'Rotating Seed Mortars', mechanic: 'three armoured mortars face the approach; flank them through a ring of channels that flood in rotation', optional: 'seed lens', guardian: 'Rampart Mortars' },
+        { id: 'B4', title: 'Ferryman Rescue', mechanic: 'one-way levers route the water: seal the dam with light before the valve floats the skiff, or the ferry shortcut floods', optional: 'dry ferry shortcut', guardian: 'Quay Mortar' },
+        { id: 'B5', title: 'Root Hart', mechanic: 'bait the hart\'s locked charge into timber dams; each broken dam floods dry ground', optional: 'seed lens', guardian: 'Root Hart' }
+      ],
+      discoveries: [
+        { flag: 'dam-sealed', label: 'Dry ferry shortcut', hint: 'at the quay, light the sluice eye and pull the dam seal before the valve' },
+        { flag: 'lens', label: 'Seed lens', hint: 'at the ferry landing, wedge the prism in the cut thorns' },
+        { flag: 'pickup:ferry-heart', label: 'Ferry heart', hint: 'dash the long root east of the ferry stones' }
       ]
     },
     {
@@ -345,12 +356,308 @@
       { id: 'piling-east', x: 576, y: 208, w: 28, h: 48, when: 'high' }
     ],
     enemies: [{ type: 'diver', id: 'bell-diver', x: 512, y: 400, r: 30, hp: 10 }],
-    beacon: { x: 512, y: 120, requires: ['bell-diver'] },
+    // Lighting the abbey beacon clears Region 1 and hands the warden on to the aqueduct.
+    beacon: { x: 512, y: 120, requires: ['bell-diver'], next: { room: 'spillway', spawn: { x: 110, y: 420 } } },
     objectives: { beacon: 'Reach the kindled beacon' },
     exits: [{ id: 'to-bell-tower', x: 472, y: 696, w: 80, h: 24, to: 'bell-tower', spawn: { x: 512, y: 120 } }]
   };
 
-  const rooms = { cloister, sluice, sanctuary, shutters, 'bell-tower': bellTower, beacon };
+  // ---------------------------------------------------------------------------
+  // Region 2 authored rooms (SPEC "Region 2 engine contract", Sep22 evening).
+  // Entered one-way from the abbey beacon; inside the region every exit has a
+  // matching way back. Water `when` flags come from levers ('valve',
+  // 'dam-sealed'), latched receivers ('lit:<id>') and broken dams ('dam:<id>').
+  // ---------------------------------------------------------------------------
+
+  // B1: the prism is the only thing that can hold the gate. The sun falls on one
+  // small islet strip; the seal it must reach is by the far wall and the hold gate
+  // is 500 units away, so a mirror held by hand drops the gate before you arrive.
+  const spillway = {
+    id: 'spillway', region: 'verdant-aqueduct', challenge: 'B1', name: 'Abbey Spillway', w: W, h: H,
+    intro: 'Cut into the bramble nook for the keeper\'s prism, cross the root bridges without stopping — they sink under a standing weight — and set the prism in the islet sunbeam. Only its light can hold the east gate open while you walk through.',
+    spawn: { x: 110, y: 420 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 672 },
+      { x: 976, y: 48, w: 24, h: 512 }, { x: 976, y: 640, w: 24, h: 80 },
+      { x: 48, y: 48, w: 928, h: 32 }, { x: 48, y: 696, w: 928, h: 24 },
+      // Bramble nook where the prism rests (its mouth is a one-time bramble).
+      { x: 200, y: 80, w: 20, h: 140 }, { x: 48, y: 200, w: 92, h: 20 },
+      // Spill pier: the sunbeam ends on it, so the prism only catches the sun on the
+      // narrow strip north of the pier (its light then always lines up with the seal).
+      { x: 492, y: 376, w: 36, h: 44 },
+      // Gatehouse vestibule in the south-east corner.
+      { x: 880, y: 516, w: 96, h: 24 }
+    ],
+    gates: [{ id: 'spill-gate', x: 880, y: 540, w: 20, h: 156, hold: true, opensWhen: { receivers: ['spill-seal'] },
+      text: 'The spill gate lifts while the prism light holds. Go now!' }],
+    growth: [{ id: 'nook-bramble', x: 140, y: 200, w: 60, h: 20, regrow: 0 }],
+    pickups: [{ id: 'spill-prism', kind: 'prism', x: 120, y: 140,
+      text: 'The keeper\'s prism! PRISM (Q) sets it where you aim; slash it to turn its light; press PRISM beside it to lift it.' }],
+    emitters: [{ id: 'spill-sun', x: 510, y: 92, dx: 0, dy: 1 }],
+    receivers: [{ id: 'spill-seal', x: 950, y: 346, r: 24, kind: 'seal', latch: false }],
+    water: [
+      { id: 'canal-west', x: 300, y: 80, w: 140, h: 616, when: 'always' },
+      { id: 'canal-north', x: 440, y: 80, w: 140, h: 250, when: 'always' },
+      { id: 'canal-south', x: 440, y: 470, w: 140, h: 226, when: 'always' },
+      { id: 'canal-east', x: 580, y: 80, w: 160, h: 616, when: 'always' }
+    ],
+    bridges: [
+      { id: 'root-west', x: 300, y: 420, w: 140, h: 44, hold: 1.0, recover: 2.5 },
+      { id: 'root-east', x: 580, y: 420, w: 160, h: 44, hold: 1.1, recover: 2.5 }
+    ],
+    enemies: [
+      // Covers both bridges and the islet: reflecting slows you to a crawl, and a
+      // crawl sinks the roots, so cross between volleys or return one to jam it.
+      { type: 'turret', id: 'spill-turret', x: 948, y: 150, r: 16, targets: 'player', interval: 2.8, delay: 1.6, until: 'spill-gate' }
+    ],
+    clearWhen: { gate: 'spill-gate' },
+    objectives: { seal: 'Take the prism to the islet sunbeam · turn it onto the east seal', exit: 'Walk through the held gate to the pumphouse' },
+    exits: [{ id: 'to-roots', x: 976, y: 560, w: 24, h: 80, to: 'roots', spawn: { x: 84, y: 600 } }]
+  };
+
+  // B2: the pump fills only while lit and never drains. Three bramble hedges stand
+  // across the prism's light and regrow; they are too far apart for one slash or
+  // one body to hold, so the circuit is kept alive by running the trench.
+  const roots = {
+    id: 'roots', region: 'verdant-aqueduct', challenge: 'B2', name: 'Rootbound Pumphouse', w: W, h: H,
+    intro: 'The pump drinks light slowly. Set the prism in the cistern sunbeam and turn it east down the thorn trench, then slash the brambles as they grow back so the pump keeps filling. Keep moving: the mortar lobs seeds where you stand.',
+    spawn: { x: 84, y: 600 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 512 }, { x: 24, y: 640, w: 24, h: 80 },
+      { x: 976, y: 48, w: 24, h: 512 }, { x: 976, y: 640, w: 24, h: 80 },
+      { x: 48, y: 48, w: 928, h: 32 }, { x: 48, y: 696, w: 928, h: 24 },
+      // Sun step below the cistern: the sunbeam stops here, so the prism sits just above it.
+      { x: 130, y: 340, w: 60, h: 32 },
+      // Pump nook.
+      { x: 900, y: 240, w: 76, h: 24 }, { x: 900, y: 356, w: 76, h: 24 },
+      // Lock wall above the flooded east lock.
+      { x: 800, y: 496, w: 176, h: 24 }
+    ],
+    emitters: [{ id: 'cistern-sun', x: 160, y: 92, dx: 0, dy: 1 }],
+    receivers: [{ id: 'roots-pump', x: 936, y: 308, r: 24, kind: 'pump', fill: 8 }],
+    growth: [
+      { id: 'thorn-west', x: 360, y: 236, w: 32, h: 144, regrow: 4.5 },
+      { id: 'thorn-mid', x: 560, y: 236, w: 32, h: 144, regrow: 4.5 },
+      { id: 'thorn-east', x: 760, y: 236, w: 32, h: 144, regrow: 4.5 }
+    ],
+    water: [
+      { id: 'cistern', x: 100, y: 80, w: 120, h: 210, when: 'always' },
+      { id: 'east-lock', x: 800, y: 520, w: 176, h: 176, when: { notFlag: 'lit:roots-pump' } }
+    ],
+    gates: [{ id: 'lock-gate', x: 952, y: 560, w: 24, h: 80, opensWhen: { receivers: ['roots-pump'] },
+      text: 'The pump is full: water surges up the aqueduct, the east lock drains and its gate swings open.' }],
+    enemies: [
+      // Plate faces the trench; flanking it from the south is optional (+200).
+      { type: 'mortar', id: 'pump-mortar', x: 560, y: 560, r: 20, facing: [0, -1], hp: 2, interval: 3.0, delay: 2.5, range: 560 }
+    ],
+    clearWhen: { receivers: ['roots-pump'] },
+    objectives: { seal: 'Fill the pump · keep the thorn trench cut', exit: 'East lock to the Rotating Channels' },
+    exits: [
+      { id: 'to-spillway', x: 24, y: 560, w: 24, h: 80, to: 'spillway', spawn: { x: 940, y: 600 } },
+      { id: 'to-channels', x: 976, y: 560, w: 24, h: 80, to: 'channels', spawn: { x: 84, y: 384 } }
+    ]
+  };
+
+  // B3: a rampart with three mortars set into it, plates facing the entry field.
+  // Behind it the ring of channels floods one segment after another (north lane,
+  // north bay, mid bay, south bay, south lane), so the dry way round moves.
+  const RING = { period: 10, onFor: 3.5 };
+  const channels = {
+    id: 'channels', region: 'verdant-aqueduct', challenge: 'B3', name: 'Rotating Channels', w: W, h: H,
+    intro: 'Three seed mortars face you, and their bark plates turn any blade. The channels flood one after another around the ring: follow the draining water behind the rampart and strike each mortar from the back.',
+    spawn: { x: 84, y: 384 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 296 }, { x: 24, y: 424, w: 24, h: 296 },
+      { x: 976, y: 48, w: 24, h: 296 }, { x: 976, y: 424, w: 24, h: 296 },
+      { x: 48, y: 48, w: 928, h: 32 }, { x: 48, y: 696, w: 928, h: 24 },
+      // Banks that wall the entry field off from the two lanes.
+      { x: 260, y: 176, w: 420, h: 24 }, { x: 260, y: 568, w: 420, h: 24 },
+      // Rampart: each mortar plugs a gap, plate facing west.
+      { x: 640, y: 200, w: 40, h: 26 }, { x: 640, y: 274, w: 40, h: 86 },
+      { x: 640, y: 408, w: 40, h: 86 }, { x: 640, y: 542, w: 40, h: 26 },
+      // Bay walls behind the rampart; only a narrow towpath links the bays.
+      { x: 720, y: 300, w: 256, h: 20 }, { x: 720, y: 448, w: 256, h: 20 }
+    ],
+    water: [
+      // offset = period - 2k: segment k floods during [2k, 2k+3.5) of every 10s.
+      { id: 'north-lane', x: 300, y: 80, w: 380, h: 96, when: 'cycle', period: RING.period, onFor: RING.onFor, offset: 0 },
+      { id: 'north-bay', x: 680, y: 80, w: 296, h: 220, when: 'cycle', period: RING.period, onFor: RING.onFor, offset: 8 },
+      { id: 'mid-bay', x: 680, y: 300, w: 296, h: 168, when: 'cycle', period: RING.period, onFor: RING.onFor, offset: 6 },
+      { id: 'south-bay', x: 680, y: 468, w: 296, h: 228, when: 'cycle', period: RING.period, onFor: RING.onFor, offset: 4 },
+      { id: 'south-lane', x: 300, y: 592, w: 380, h: 104, when: 'cycle', period: RING.period, onFor: RING.onFor, offset: 2 }
+    ],
+    enemies: [
+      { type: 'mortar', id: 'mortar-north', x: 660, y: 250, r: 20, facing: [-1, 0], hp: 2, interval: 2.8, delay: 1.2, range: 560 },
+      { type: 'mortar', id: 'mortar-mid', x: 660, y: 384, r: 20, facing: [-1, 0], hp: 2, interval: 2.8, delay: 2.1, range: 560 },
+      { type: 'mortar', id: 'mortar-south', x: 660, y: 518, r: 20, facing: [-1, 0], hp: 2, interval: 2.8, delay: 3.0, range: 560 }
+    ],
+    gates: [{ id: 'channel-gate', x: 952, y: 344, w: 24, h: 80, opensWhen: { defeated: ['mortar-north', 'mortar-mid', 'mortar-south'] },
+      text: 'The last mortar splits. The channel gate lifts toward the quay.' }],
+    clearWhen: { defeated: ['mortar-north', 'mortar-mid', 'mortar-south'] },
+    objectives: { fight: 'Flank the mortars · follow the draining channels behind them', gate: 'East gate to the Ferryman Quay', exit: 'East gate to the Ferryman Quay' },
+    exits: [
+      { id: 'to-roots', x: 24, y: 344, w: 24, h: 80, to: 'roots', spawn: { x: 930, y: 600 } },
+      { id: 'to-quay', x: 976, y: 344, w: 24, h: 80, to: 'quay', spawn: { x: 84, y: 384 } }
+    ]
+  };
+
+  // B4: the choice is one of order. The valve must be pulled to float the skiff,
+  // and it floods the low quay (where the only sun spot is) for good. The shortcut
+  // south to the ferry landing stays dry only if the dam seal went down first.
+  const quay = {
+    id: 'quay', region: 'verdant-aqueduct', challenge: 'B4', name: 'Ferryman Quay', w: W, h: H,
+    intro: 'The ferrymen are stranded on the sandbar. The valve lever floats their skiff, but it floods the low quay, and the south shortcut to the ferry landing too unless the dam seal is already down. Light the sluice eye to reach the seal lever, or go straight for the valve.',
+    spawn: { x: 84, y: 384 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 296 }, { x: 24, y: 424, w: 24, h: 296 },
+      { x: 976, y: 48, w: 24, h: 296 }, { x: 976, y: 424, w: 24, h: 296 },
+      { x: 48, y: 48, w: 928, h: 32 },
+      { x: 48, y: 696, w: 424, h: 24 }, { x: 552, y: 696, w: 424, h: 24 },
+      // Seal-lever alcove behind its grille.
+      { x: 48, y: 414, w: 88, h: 16 }, { x: 48, y: 510, w: 88, h: 16 },
+      // Sump stone: the low-quay sunbeam ends here, so only a short dry strip catches it.
+      { x: 200, y: 590, w: 36, h: 40 },
+      // Crate stack (cover from the mortar's line of approach).
+      { x: 320, y: 340, w: 56, h: 40 }
+    ],
+    gates: [
+      { id: 'skiff-boom', x: 572, y: 280, w: 56, h: 16, opensWhen: { flag: 'valve' },
+        text: 'The valve roars open: the canal lifts the skiff free, its boom swings aside, and the low quay floods.' },
+      { id: 'seal-grille', x: 120, y: 430, w: 16, h: 80, optional: true, opensWhen: { receivers: ['sluice-eye'] },
+        text: 'The sluice eye drinks the light and its grille lifts: the dam-seal lever is within reach.' },
+      // Both open the moment the ferrymen are free; the last text is the one that shows.
+      { id: 'landing-gate', x: 472, y: 680, w: 80, h: 16, opensWhen: { flag: 'ferrymen' },
+        text: 'The ferrymen unbar the landing stair.' },
+      { id: 'quay-lock', x: 952, y: 344, w: 24, h: 80, opensWhen: { flag: 'ferrymen' },
+        text: 'The ferrymen are free! They crank the east lock open and unbar the stair south to their landing.' }
+    ],
+    emitters: [{ id: 'quay-sun', x: 60, y: 610, dx: 1, dy: 0 }],
+    receivers: [{ id: 'sluice-eye', x: 168, y: 470, r: 24, kind: 'seal' }],
+    levers: [
+      { id: 'seal-lever', x: 80, y: 470, flag: 'dam-sealed', text: 'The dam seal drops. When the valve opens, the south shortcut will stay dry.' },
+      { id: 'valve-lever', x: 880, y: 320, flag: 'valve', text: 'The valve roars open: the canal lifts the skiff free and the low quay floods.' }
+    ],
+    water: [
+      { id: 'canal-west', x: 48, y: 80, w: 472, h: 200, when: 'always' },
+      { id: 'canal-east', x: 680, y: 80, w: 296, h: 200, when: 'always' },
+      { id: 'canal-north', x: 520, y: 80, w: 160, h: 50, when: 'always' },
+      { id: 'canal-south', x: 520, y: 220, w: 160, h: 60, when: 'always' },
+      { id: 'sump', x: 48, y: 580, w: 102, h: 60, when: 'always' },
+      { id: 'low-quay', x: 48, y: 540, w: 352, h: 156, when: { flag: 'valve' } },
+      { id: 'shortcut-flood', x: 400, y: 470, w: 240, h: 226, when: { flag: 'valve', notFlag: 'dam-sealed' } }
+    ],
+    // The skiff: a mooring plank that sinks if you dawdle on it.
+    bridges: [{ id: 'skiff', x: 580, y: 220, w: 40, h: 60, hold: 1.5, recover: 2 }],
+    enemies: [
+      { type: 'mortar', id: 'quay-mortar', x: 760, y: 520, r: 20, facing: [-1, 0], hp: 2, interval: 3.0, delay: 3, range: 520 }
+    ],
+    rescue: { x: 600, y: 172, requires: [], flag: 'ferrymen', requiresFlag: 'valve' },
+    clearWhen: { rescue: true },
+    objectives: { route: 'Pull the valve lever to float the skiff', rescue: 'Take the skiff to the ferrymen', gate: 'East lock to the Hart Reservoir · south to the ferry landing', exit: 'East lock to the Hart Reservoir · south to the ferry landing' },
+    exits: [
+      { id: 'to-channels', x: 24, y: 344, w: 24, h: 80, to: 'channels', spawn: { x: 930, y: 384 } },
+      { id: 'to-reservoir', x: 976, y: 344, w: 24, h: 80, to: 'reservoir', spawn: { x: 84, y: 384 } },
+      { id: 'to-ferry', x: 472, y: 696, w: 80, h: 24, to: 'ferry', spawn: { x: 512, y: 116 } }
+    ]
+  };
+
+  // Optional: two short puzzles and the discoveries that change B5. The sun chute
+  // is too narrow to hold the prism and the canal takes it below, so the only spot
+  // that catches the light is inside the cut thorns, where it also stops the regrowth.
+  // The lens eye sits on the stone bank west of the thorns; the grille it holds is
+  // across the landing, so the prism (not a hand-held mirror) must keep it lit.
+  const ferry = {
+    id: 'ferry', region: 'verdant-aqueduct', challenge: null, name: 'Ferry Landing', w: W, h: H,
+    intro: 'The ferrymen\'s landing. Ferry stones sink if you stand on them; dash the long root for the heart. Cut the thorns under the sun chute and wedge the prism in the gap, turned to the eye in the west bank: it holds the thorns back, and its light holds the lens grille open.',
+    spawn: { x: 512, y: 116 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 672 },
+      { x: 976, y: 48, w: 24, h: 512 }, { x: 976, y: 640, w: 24, h: 80 },
+      { x: 48, y: 48, w: 424, h: 32 }, { x: 552, y: 48, w: 424, h: 32 },
+      { x: 48, y: 696, w: 928, h: 24 },
+      // Stone west bank (the lens eye is set in its face) and the sun chute.
+      { x: 48, y: 80, w: 102, h: 220 },
+      { x: 150, y: 80, w: 38, h: 160 }, { x: 212, y: 80, w: 28, h: 160 },
+      // Lens vault.
+      { x: 780, y: 80, w: 20, h: 80 }, { x: 780, y: 240, w: 196, h: 20 }
+    ],
+    emitters: [{ id: 'chute-sun', x: 200, y: 92, dx: 0, dy: 1 }],
+    growth: [{ id: 'chute-thorns', x: 150, y: 240, w: 100, h: 60, regrow: 3 }],
+    receivers: [{ id: 'lens-eye', x: 150, y: 270, r: 24, kind: 'seal', latch: false }],
+    gates: [
+      { id: 'lens-grille', x: 780, y: 160, w: 20, h: 80, hold: true, optional: true, opensWhen: { receivers: ['lens-eye'] },
+        text: 'The lens grille rises while the light holds.' }
+    ],
+    pickups: [
+      { id: 'seed-lens', kind: 'lens', x: 900, y: 160, text: 'Seed lens: it shows the Root Hart\'s grain. A hart stunned by timber stays open longer.' },
+      { id: 'ferry-heart', kind: 'heart', x: 866, y: 390, text: 'Ferry heart: your maximum health rises by one.' }
+    ],
+    water: [
+      { id: 'landing-flood', x: 300, y: 80, w: 440, h: 220, when: { flag: 'valve', notFlag: 'dam-sealed' } },
+      { id: 'canal-west', x: 48, y: 300, w: 472, h: 170, when: 'always' },
+      { id: 'canal-north', x: 520, y: 300, w: 140, h: 80, when: 'always' },
+      { id: 'canal-south', x: 520, y: 420, w: 140, h: 50, when: 'always' },
+      { id: 'canal-mid', x: 660, y: 300, w: 160, h: 170, when: 'always' },
+      { id: 'canal-heart-n', x: 820, y: 300, w: 80, h: 60, when: 'always' },
+      { id: 'canal-heart-s', x: 820, y: 420, w: 80, h: 50, when: 'always' },
+      { id: 'canal-east', x: 900, y: 300, w: 76, h: 170, when: 'always' }
+    ],
+    bridges: [
+      { id: 'ferry-stone-north', x: 570, y: 300, w: 40, h: 80, hold: 0.8, recover: 2 },
+      { id: 'ferry-stone-south', x: 570, y: 420, w: 40, h: 50, hold: 0.8, recover: 2 },
+      // Too long to walk before it sinks: dash across.
+      { id: 'heart-root', x: 660, y: 384, w: 160, h: 32, hold: 0.75, recover: 2.5 }
+    ],
+    objectives: { exit: 'East pier to the Hart Reservoir' },
+    exits: [
+      { id: 'to-quay', x: 472, y: 48, w: 80, h: 32, to: 'quay', spawn: { x: 512, y: 656 } },
+      { id: 'to-reservoir', x: 976, y: 560, w: 24, h: 80, to: 'reservoir', spawn: { x: 512, y: 656 } }
+    ]
+  };
+
+  // B5: three timber dams hold back the reservoir. Each one takes two charges;
+  // every broken dam floods the ground in front of it, so the dry arena shrinks
+  // and the remaining dams sit in their own dry pockets. Stone only dazes.
+  const reservoir = {
+    id: 'reservoir', region: 'verdant-aqueduct', challenge: 'B5', name: 'Hart Reservoir', w: W, h: H,
+    intro: 'The Root Hart guards the last beacon. Stand before a timber dam, let the hart lock its charge, then step aside: antlers in timber leave it stunned for your blade. Each broken dam floods the ground around it.',
+    spawn: { x: 84, y: 384 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 296 }, { x: 24, y: 424, w: 24, h: 296 },
+      { x: 976, y: 48, w: 24, h: 672 },
+      { x: 48, y: 48, w: 928, h: 32 },
+      { x: 48, y: 696, w: 424, h: 24 }, { x: 552, y: 696, w: 424, h: 24 },
+      // Beacon alcove.
+      { x: 400, y: 80, w: 24, h: 140 }, { x: 600, y: 80, w: 24, h: 140 },
+      // South-east pool wall.
+      { x: 824, y: 416, w: 152, h: 24 },
+      // Stone pillars: baiting a charge into these only dazes the hart.
+      { x: 250, y: 470, w: 40, h: 40 }, { x: 560, y: 560, w: 40, h: 40 }
+    ],
+    dams: [
+      { id: 'dam-nw', x: 48, y: 196, w: 352, h: 24, hp: 2 },
+      { id: 'dam-ne', x: 624, y: 196, w: 352, h: 24, hp: 2 },
+      { id: 'dam-se', x: 800, y: 440, w: 24, h: 256, hp: 2 }
+    ],
+    water: [
+      { id: 'pool-nw', x: 48, y: 80, w: 352, h: 116, when: 'always' },
+      { id: 'pool-ne', x: 624, y: 80, w: 352, h: 116, when: 'always' },
+      { id: 'pool-se', x: 824, y: 440, w: 152, h: 256, when: 'always' },
+      { id: 'flood-nw', x: 48, y: 220, w: 352, h: 110, when: { flag: 'dam:dam-nw' } },
+      { id: 'flood-ne', x: 624, y: 220, w: 352, h: 110, when: { flag: 'dam:dam-ne' } },
+      { id: 'flood-se', x: 690, y: 440, w: 110, h: 256, when: { flag: 'dam:dam-se' } }
+    ],
+    enemies: [{ type: 'hart', id: 'root-hart', x: 540, y: 260, r: 34, hp: 8, wakeRadius: 380 }],
+    beacon: { x: 512, y: 130, requires: ['root-hart'] },
+    objectives: { approach: 'Approach the Root Hart', beacon: 'Reach the reservoir beacon' },
+    exits: [
+      { id: 'to-quay', x: 24, y: 344, w: 24, h: 80, to: 'quay', spawn: { x: 930, y: 384 } },
+      { id: 'to-ferry', x: 472, y: 696, w: 80, h: 24, to: 'ferry', spawn: { x: 930, y: 600 } }
+    ]
+  };
+
+  const rooms = { cloister, sluice, sanctuary, shutters, 'bell-tower': bellTower, beacon,
+    spillway, roots, channels, quay, ferry, reservoir };
   PW.ROOMS = rooms;
   // Always hand out a fresh deep copy so runtime state can never mutate the authored data.
   PW.roomDef = id => Object.prototype.hasOwnProperty.call(rooms, id) ? JSON.parse(JSON.stringify(rooms[id])) : null;

@@ -203,3 +203,92 @@ keeper chart, heart; shortcut to bell tower] -> A3 shutters (escort Ilex through
 timed shutters, turrets target her) -> A4 bell tower (splitter plus slash-rotated
 mirrors must light two bells at once; a sentinel verger patrols) -> A5 beacon
 (Bell Diver on tide-changing dry ground; reach beacon = region complete).
+
+## Region 2 engine contract (Sep22 evening, authoritative for logic/regions/render/audio)
+
+Region 2 Verdant Aqueduct follows the Abbey beacon. All Region 1 fields and
+behaviour stay unchanged; everything below is additive. Room ids are globally
+unique: spillway (B1), roots (B2), channels (B3), quay (B4), reservoir (B5),
+ferry (optional). regions.js may rename rooms in the manifest to match.
+
+Region flow: a beacon def may carry `next:{room,spawn}`. Reaching such a beacon
+sets `s.status='cleared'` (region complete, not game over) and `s.next`.
+`PW.continueRegion(s)` enters `next.room`, sets status 'playing' and stores a
+region checkpoint (`s._regionEntry`). `PW.restartRegion(s)` restores that
+checkpoint (or `PW.create()` state when none). A beacon without `next` still
+sets 'won' (final region built so far). `s.cleared` has keys for every
+challenge of every region in PW.REGIONS. Region id comes from `room.region`.
+
+Placeable prism (tool): pickup `kind:'prism'` sets `s.player.prism='carried'` and
+`flags.prism`. New input edge `place` (key Q / touch PRISM). Carried -> placed at
+player + aim*34 if that spot is inside the room, clear of solids and not in active
+water or on a bridge (else message "The prism needs dry, open ground").
+The placed prism is a mirror `{id:'prism', portable:true, r:14, split:false,
+dirs: 8 compass unit vectors clockwise from east, index: nearest to aim}`
+appended to `s.mirrors`; slash rotates it 45 degrees like any rotatable mirror.
+Its outgoing beam kind is 'prism' (lights receivers; renderer tints it).
+`place` within 80 of the placed prism picks it back up; farther away shows
+"Walk back to lift the prism". Leaving a room returns a placed prism to the
+satchel (removed from that room's saved state). `player.prism` is null |
+'carried' | 'placed'; `s.prismRoom` names the room holding it.
+
+Hold gates: gate `hold:true` is open exactly while `opensWhen` is met, but never
+closes on a body (stays open, `held:true`, until clear). Text only on first open.
+Non-latching receivers already exist (`latch:false`).
+
+Fill receivers: receiver `fill:<seconds>` (kind 'pump'): charge rises dt/fill
+while lit and never decays; latches active at 1.
+
+Conditional environment: every water/breakwater `when` may also be
+'always' | 'cycle' (rect fields `period,onFor,offset`: active during the first
+onFor seconds of each period; runtime `flipIn` seconds to next change) |
+`{flag:'x'}` | `{notFlag:'y'}` | `{flag:'x',notFlag:'y'}` (flags on s.flags).
+
+Root bridges: `bridges:[{id,x,y,w,h,hold:1.0,recover:2.5}]` walkable decks that
+cancel water beneath them. A body centred on an unsunk bridge is dry. Load builds
+while any body stands on it; at `hold` seconds it sinks (`sunk:true`, water
+beneath now counts) and recovers after `recover` seconds with nobody on it.
+Runtime `load` 0..1, `sunk`, `timer`. Never blocks movement, beams or shots.
+
+Growth: `growth:[{id,x,y,w,h,regrow:5}]` brambles solid to movement, beams and
+shots while `alive`. A slash with the player within 56 units of the rect cuts it
+(`alive:false`, `timer=regrow`); it regrows when timer ends unless a body
+overlaps (`held`). `regrow:0` never regrows. Runtime `alive,timer,held`. No score.
+
+Levers: `levers:[{id,x,y,flag,text}]` one-way: slash within 60 sets
+`flags[flag]=true`, `pulled:true`, announces text, +50 once.
+
+Rescue generalised: rescue def may add `flag:'ferrymen'` (default 'ilex') and
+`requiresFlag:'x'`; `completes` still ends the game when true.
+
+Dams: `dams:[{id,x,y,w,h,hp:2}]` timber dams, solid to everything while hp>0.
+Only a charging Root Hart damages them (1 per charge); at 0 they break,
+`broken:true`, `flags['dam:'+id]=true` (use for water `when:{flag}` floods).
+
+Mortar enemy `{type:'mortar',id,x,y,r:20,facing:[dx,dy],hp:2,interval:2.8,
+delay,range:560}`: armoured bark plate faces `facing`. While player within range:
+idle -> telegraph .5s -> lob a seed at the player's position then:
+`s.lobs:[{x0,y0,tx,ty,t,flight:1.1,r:46,owner}]` lands after flight; a landing
+within r (+player.r) hurts unless dodging. Lobs arc: walls do not stop them.
+Slash from behind/side (dot(unit(player-mortar),facing) < .3) deals 1; a frontal
+slash clangs. Returned shots do nothing. Defeat +200. Counts for `defeated`.
+
+Root Hart `{type:'hart',id,x,y,r:34,hp:8}` (B5 guardian): dormant until the
+player is within 420 -> stalk (walk toward player 60/s, 1.3s; 1.0s below half hp)
+-> aim .9s (tracks, locks for final .35s; runtime aimX/aimY, locked) -> charge
+540/s along aim for up to 1.3s. A charge ends on first contact with a solid: an
+intact dam takes 1 damage and the hart is stunned/exposed 3.2s (4.5s with
+flags.lens); any other solid gives a .9s daze with no exposure unless no intact
+dam remains (then 2.4s exposed, so it can never soft-lock). Contact during
+charge hurts. Exposed slash deals 2 then 'recover' .6s. Below half hp, each
+recover ends with a 5-seed reflectable fan; a returned seed staggers .8s.
+Defeat +900 and lights the beacon.
+
+Renderer needs: region palette for all six Region 2 rooms; portable prism
+(distinct from bronze mirrors, shows aim notch); 'prism' beam colour; pump
+receiver with fill ring; bridges (sag with load, sunk state); growth (alive,
+regrowing warning when timer<1, stump when cut); levers; dams (hp 2 cracked, 1,
+broken rubble); mortar with facing plate + lob arcs and landing reticles;
+Root Hart with aim lane telegraph, charge streak, stunned/exposed state.
+Audio needs: Region 2 room songs and cues for prism place/lift, bramble cut,
+lever, mortar lob/land, hart charge/impact, dam break, region cleared.

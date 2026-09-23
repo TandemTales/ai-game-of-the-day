@@ -8,6 +8,23 @@ connected room chain after the Tidal Abbey beacon (B1-B5, placeable prism tool,
 Root Hart guardian, optional ferryman route), with logic/regions/render/audio
 support, focused tests and a legal-input pilot. Push after each landed file.
 
+## 2026-09-22 evening: Region 2 engine landed (interim)
+
+- SPEC.md gained the "Region 2 engine contract" (prism tool, hold gates, pump
+  receivers, cycle/flag water, root bridges, growth, levers, dams, mortar, Root
+  Hart, region flow cleared -> continueRegion/restartRegion).
+- logic.js implements the whole contract; builder scratch vm checks cover every
+  mechanic plus hart fights with and without dams and determinism. 23/23 focused.
+- audio.js: Verdant Aqueduct songs per room, Root Hart boss layer, all Region 2
+  cues; offline-rendered peaks < 0.9, no exceptions without AudioContext. Not
+  listened to by a human.
+- main.js/index/css: Q + touch PRISM input, prism HUD, region-cleared panel with
+  Continue, Restart region, region-aware chapter/pause/discovery text.
+- Mistake + fix: a WIP commit (546ff56) pushed a mid-edit render.js without
+  PW.draw because a pipe masked the smoke failure; 26bc922 restored the last
+  working renderer on dev. Smoke 390x844/1440x900 PASS after the fix.
+- In flight: renderer (Region 2 art), campaign builder (six rooms + pilot).
+
 ## 2026-09-22 Tuesday intent (Pacific)
 
 STOP absent; dev synchronized. Age 2, not release night (release Oct 3). The

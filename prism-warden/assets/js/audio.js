@@ -19,8 +19,13 @@
     ionian: [0, 2, 4, 5, 7, 9, 11], dorian: [0, 2, 3, 5, 7, 9, 10],
     phrygian: [0, 1, 3, 5, 7, 8, 10], lydian: [0, 2, 4, 6, 7, 9, 11],
     mixolydian: [0, 2, 4, 5, 7, 9, 10], aeolian: [0, 2, 3, 5, 7, 8, 10],
-    harmonic: [0, 2, 3, 5, 7, 8, 11]
+    harmonic: [0, 2, 3, 5, 7, 8, 11],
+    acoustic: [0, 2, 4, 6, 7, 9, 10], phrygdom: [0, 1, 4, 5, 7, 8, 10]
   };
+  // Verdant Aqueduct: woody kalimba/flute/reed leads, flowing kalimba water arpeggios,
+  // low hand-drum/log-drum pulse, plucked wood bass (kit:'wood' swaps the combat kit too).
+  const V = { mel2: 'flute', counter: 'kalimba', pad: 'moss', bassInst: 'woodbass', kit: 'wood', drone: .5 };
+  const verdant = o => Object.assign({}, V, o);
   // motif: [beat, scaleDegree, beats]. prog: chord root degree per bar of an 8-bar period.
   const SONGS = {
     cloister: { root: 50, mode: 'dorian', bpm: 80, meter: 4, prog: [0, 6, 3, 0, 0, 6, 4, 4],
@@ -54,10 +59,41 @@
     victory: { root: 50, mode: 'lydian', bpm: 72, meter: 4, prog: [0, 1, 4, 0, 5, 1, 4, 0],
       motif: [[0, 4, 1], [1, 6, 1], [2, 7, 2]],
       mel: 'bell', mel2: 'celesta', melOct: 1, counter: 'celesta', pulse: 'harp', pad: 'choir',
-      padLevel: .9, verb: .55, echo: .25, drone: .6, seed: 83, peaceful: true }
+      padLevel: .9, verb: .55, echo: .25, drone: .6, seed: 83, peaceful: true },
+    // ---- Region 2: Verdant Aqueduct
+    verdant: verdant({ root: 53, mode: 'acoustic', bpm: 88, meter: 4, prog: [0, 1, 4, 0, 5, 1, 3, 4],
+      motif: [[0, 4, .5], [.5, 5, .5], [1, 7, 1], [2, 6, .5], [2.5, 4, .5], [3, 2, 1]],
+      mel: 'kalimba', melOct: 1, pulse: 'stream', padLevel: .7, verb: .34, echo: .3, seed: 101 }),
+    spillway: verdant({ root: 53, mode: 'acoustic', bpm: 92, meter: 4, prog: [0, 1, 4, 0, 5, 1, 6, 4],
+      motif: [[0, 2, .5], [.5, 4, .5], [1, 7, 1.5], [2.5, 6, .5], [3, 4, 1]],
+      mel: 'kalimba', melOct: 1, pulse: 'stream', padLevel: .7, verb: .32, echo: .3, seed: 103 }),
+    roots: verdant({ root: 50, mode: 'dorian', bpm: 76, meter: 4, prog: [0, 3, 0, 6, 0, 3, 4, 4],
+      motif: [[0, 4, 1.5], [1.5, 3, .5], [2, 2, 1], [3, 0, 1]],
+      mel: 'flute', mel2: 'kalimba', melOct: 1, pulse: 'roots', pad: 'dark', padLevel: .7, verb: .44, echo: .22, drone: .8, seed: 107 }),
+    channels: verdant({ root: 57, mode: 'mixolydian', bpm: 108, meter: 4, prog: [0, 6, 3, 0, 0, 6, 4, 4],
+      motif: [[0, 0, .5], [.5, 2, .5], [1, 4, .5], [1.5, 6, .5], [2, 7, 1], [3, 4, 1]],
+      mel: 'kalimba', mel2: 'reed', melOct: 1, pulse: 'stream', padLevel: .55, verb: .28, echo: .26, seed: 109 }),
+    quay: verdant({ root: 52, mode: 'aeolian', bpm: 98, meter: 4, prog: [0, 5, 6, 0, 0, 5, 3, 4],
+      motif: [[0, 4, .5], [.5, 4, .25], [.75, 3, .25], [1, 2, 1], [2, 4, .5], [2.5, 5, .5], [3, 4, 1]],
+      mel: 'reed', mel2: 'kalimba', melOct: 0, pulse: 'handdrum', padLevel: .6, verb: .3, echo: .2, drone: .7, seed: 113 }),
+    reservoir: verdant({ root: 48, mode: 'phrygian', bpm: 70, meter: 4, prog: [0, 1, 0, 6, 0, 1, 5, 6],
+      motif: [[0, 4, 2], [2, 5, 1], [3, 4, 1]],
+      mel: 'flute', mel2: 'kalimba', melOct: 1, pulse: 'roots', pad: 'dark', padLevel: .6, verb: .5, echo: .28, drone: 1, seed: 127 }),
+    ferry: verdant({ root: 55, mode: 'acoustic', bpm: 84, meter: 3, prog: [0, 4, 1, 0, 5, 1, 4, 0],
+      motif: [[0, 4, 1], [1, 5, .5], [1.5, 4, .5], [2, 2, 1]],
+      mel: 'flute', mel2: 'kalimba', melOct: 1, pulse: 'rowing', padLevel: .8, verb: .4, echo: .3, seed: 131 }),
+    hart: verdant({ root: 45, mode: 'phrygdom', bpm: 138, meter: 4, prog: [0, 0, 1, 0, 0, 0, 6, 1],
+      motif: [[0, 7, .5], [.5, 8, .25], [.75, 7, .25], [1, 9, .5], [1.5, 8, .5], [2, 7, 1], [3, 8, .5], [3.5, 9, .5]],
+      mel: 'reed', mel2: 'kalimba', melOct: 0, counter: 'kalimba', pulse: 'stampede', pad: 'dark',
+      padLevel: .6, verb: .3, echo: .15, drone: 1, seed: 137, boss: true }),
+    glade: verdant({ root: 53, mode: 'lydian', bpm: 72, meter: 4, prog: [0, 1, 4, 0, 5, 1, 4, 0],
+      motif: [[0, 4, 1], [1, 6, 1], [2, 7, 2]],
+      mel: 'kalimba', mel2: 'flute', melOct: 1, pulse: 'slowharp', pad: 'choir', padLevel: .9, verb: .55, echo: .25, seed: 139, peaceful: true })
   };
   const ROOM_SONG = { cloister: 'cloister', courtyard: 'cloister', sluice: 'sluice', sanctuary: 'sanctuary',
-    shutters: 'shutters', 'bell-tower': 'bell-tower', beacon: 'beacon' };
+    shutters: 'shutters', 'bell-tower': 'bell-tower', beacon: 'beacon',
+    spillway: 'spillway', roots: 'roots', channels: 'channels', quay: 'quay', reservoir: 'reservoir', ferry: 'ferry' };
+  const VERDANT = 'verdant-aqueduct';
 
   // Estimated cue lengths (voice accounting) and priorities (2 = never dropped).
   const CUE_LEN = { slash: .2, dash: .3, shot: .15, return: .7, hurt: .45, catch: .6, tick: .1, latch: 2.2,
@@ -65,11 +101,16 @@
     defeated: 2, wake: 1.6, jam: .6, tideRise: 1.9, tideFall: 1.9, tideHigh: 1.8, tideLow: 1.8,
     shutterClose: .7, shutterOpen: .4, shutterWarn: .3, escortHurt: .5, chart: 1, heart: 1.2, heal: .4,
     rescue: 1.6, submerge: 1, surface: 1, shockwave: 1.4, bossDefeated: 3.5, beacon: 3.5, won: 4,
-    lost: 3, begin: 1.4, room: 1.2, ui: .1 };
+    lost: 3, begin: 1.4, room: 1.2, ui: .1,
+    prismGet: 1.4, prismPlace: .9, prismLift: .8, brambleCut: .4, brambleRegrow: .9, lever: 1.1, mortarCreak: .6,
+    lobLaunch: 1, lobLand: .6, hartAim: 1, hartLock: .4, hartCharge: 1.3, hartImpact: .6, hartStun: 1.2,
+    damHit: .8, damBreak: 3, cleared: 4.5 };
   const PRIORITY = { hurt: 2, return: 2, gate: 2, latch: 2, bell: 2, won: 2, lost: 2, beacon: 2,
     bossDefeated: 2, shockwave: 2, escortHurt: 2, defeated: 2, room: 2, begin: 2, windup: 2, heart: 2, chart: 2,
-    shot: 0, tick: 0, mirror: 0, shutterWarn: 0, heal: 0, ui: 0 };
-  const MIN_GAP = { shot: .05, tick: .09, mirror: .06, heal: .3, slash: .05, enemyHit: .06, shutterWarn: .3, shutterClose: .12, shutterOpen: .2 };
+    prismGet: 2, prismPlace: 2, prismLift: 2, lever: 2, hartLock: 2, hartCharge: 2, damHit: 2, damBreak: 2, cleared: 2,
+    shot: 0, tick: 0, mirror: 0, shutterWarn: 0, heal: 0, ui: 0, brambleRegrow: 0 };
+  const MIN_GAP = { shot: .05, tick: .09, mirror: .06, heal: .3, slash: .05, enemyHit: .06, shutterWarn: .3, shutterClose: .12, shutterOpen: .2,
+    brambleCut: .05, brambleRegrow: .35, lobLaunch: .08, lobLand: .08, mortarCreak: .15, hartAim: .3 };
   const SFX_MAX = 14, MUSIC_MAX = 56;
 
   // ---------------------------------------------------------------- engine
@@ -205,11 +246,53 @@
       tom(d, t, f, dur, v) { tone(d, t, 'sine', 240, 110, .002, .22 * v, .22); noise(d, t, 'bandpass', 900, 0, 1, .001, .06 * v, .05); },
       shaker(d, t, f, dur, v) { noise(d, t, 'highpass', 7000, 0, .8, .004, .05 * v, .06); },
       tick(d, t, f, dur, v) { tone(d, t, 'sine', f || 1800, 0, .001, .07 * v, .035); noise(d, t, 'bandpass', 3500, 0, 5, .001, .05 * v, .02); },
-      gong(d, t, f, dur, v) { fm(d, t, f, 1.41, 3, .004, .16 * v, 4); }
+      gong(d, t, f, dur, v) { fm(d, t, f, 1.41, 3, .004, .16 * v, 4); },
+      // ---- Verdant Aqueduct voices
+      kalimba(d, t, f, dur, v) { // sine tine + inharmonic overtone + soft thumb click
+        tone(d, t, 'sine', f, 0, .003, .16 * v, Math.min(1.4, .45 + dur * .5));
+        tone(d, t, 'sine', f * 5.4, 0, .001, .03 * v, .07);
+        noise(d, t, 'bandpass', Math.min(9000, f * 3), 0, 2, .001, .018 * v, .012);
+      },
+      flute(d, t, f, dur, v) {
+        INST.ocarina(d, t, f, dur, .8 * v);
+        noise(d, t, 'bandpass', Math.min(9000, f * 2), 0, 1.6, .06, .014 * v, Math.max(.1, dur * .6));
+      },
+      reed(d, t, f, dur, v) { // nasal double reed
+        const o = ctx.createOscillator(), o2 = ctx.createOscillator(); o.type = 'sawtooth'; o2.type = 'square';
+        o.frequency.value = f; o2.frequency.value = f * 1.004;
+        const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.4; bp.frequency.value = Math.min(6000, f * 3.2);
+        const g = ctx.createGain(), pk = .08 * v, hold = Math.max(t + .05, t + dur - .03);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(pk, t + .035); g.gain.setValueAtTime(pk * .8, hold); g.gain.linearRampToValueAtTime(0, hold + .1);
+        const o2g = ctx.createGain(); o2g.gain.value = .35;
+        o.connect(bp); o2.connect(o2g); o2g.connect(bp); bp.connect(g); conn(g, d);
+        const end = hold + .12; o.start(t); o2.start(t); o.stop(end); o2.stop(end); o.onended = () => g.disconnect();
+      },
+      handdrum(d, t, f, dur, v) {
+        const p = f || 118; tone(d, t, 'sine', p, p * .58, .002, .32 * v, .3);
+        noise(d, t, 'bandpass', 760, 0, 1.2, .001, .09 * v, .04);
+      },
+      logdrum(d, t, f, dur, v) { const p = f || 220; tone(d, t, 'sine', p, p * .93, .001, .2 * v, .18); tone(d, t, 'sine', p * 2.71, 0, .001, .05 * v, .05); },
+      woodbass(d, t, f, dur, v) {
+        const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
+        const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 1.2;
+        lp.frequency.setValueAtTime(900, t); lp.frequency.exponentialRampToValueAtTime(260, t + .2);
+        const g = env(t, .004, .15 * v, Math.min(1.2, .2 + dur * .7)); o.connect(lp); lp.connect(g); conn(g, d);
+        o.start(t); o.stop(t + 1.5); o.onended = () => g.disconnect();
+      },
+      didge(d, t, f, dur, v) { // growling low drone with a wobbling formant
+        const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f;
+        const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 3; bp.frequency.value = 480;
+        const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 2.3; lg.gain.value = 220;
+        lfo.connect(lg); lg.connect(bp.frequency);
+        const g = ctx.createGain(), pk = .09 * v, end = t + Math.max(1, dur);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(pk, t + .25); g.gain.setValueAtTime(pk, end - .4); g.gain.linearRampToValueAtTime(0, end);
+        o.connect(bp); bp.connect(g); conn(g, d);
+        o.start(t); lfo.start(t); o.stop(end + .02); lfo.stop(end + .02); o.onended = () => { g.disconnect(); lg.disconnect(); };
+      }
     };
     function pad(d, t, freqs, dur, v, kind) {
       const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';
-      lp.frequency.value = kind === 'glass' ? 2400 : kind === 'dark' ? 650 : 1100; lp.Q.value = .4;
+      lp.frequency.value = kind === 'glass' ? 2400 : kind === 'dark' ? 650 : kind === 'moss' ? 850 : 1100; lp.Q.value = .4;
       const g = ctx.createGain(), pk = .026 * v, a = Math.min(1.4, dur * .35), end = t + dur + 1.2;
       g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(pk, t + a); g.gain.setValueAtTime(pk, t + dur);
       g.gain.linearRampToValueAtTime(0, end);
@@ -275,7 +358,7 @@
       const push = (at, inst, midi, dur, vel, layer, lead) => ev.push({ at, inst, midi, dur, vel, layer: layer || L, lead });
       // pad + bass
       ev.push({ at: 0, pad: c.pad, midis: [chord, chord + 2, chord + 4].map(d => degMidi(c, d, 0)), dur: M, vel: c.padLevel, layer: L });
-      if (c.pulse !== 'drive' && c.pulse !== 'clock') push(0, 'bass', degMidi(c, chord, -1), M * .9, c.peaceful ? .6 : .8);
+      if (c.pulse !== 'drive' && c.pulse !== 'clock' && c.pulse !== 'stampede') push(0, c.bassInst || 'bass', degMidi(c, chord, -1), M * .9, c.peaceful ? .6 : .8);
       // melody: 8-bar period (statement, answer, breath, half cadence, sequence, answer, breath, cadence)
       const rest = bar < 2 || cycle % 4 === 3;
       if (!rest) {
@@ -313,14 +396,49 @@
         push(0, 'bell', degMidi(c, chord, -1), M, .8);
         for (let e = 0; e < M * 3; e++) push(e / 3, 'pluck', degMidi(c, chord + [0, 2, 4][e % 3] + (e >= 3 ? 7 : 0), 0), .33, .26);
       }
-      // combat layer: frame drums, shaker, ostinato
+      // ---- Verdant pulses
+      if (P === 'stream') { // flowing sixteenth kalimba water arpeggio, swelling across the bar
+        const wave = [0, 4, 7, 9, 11, 9, 7, 4], lift = cycle % 2 ? 2 : 0;
+        for (let e = 0; e < M * 4; e++) {
+          if (e % 4 !== 0 && r() < .18) continue;
+          const sw = .55 + .45 * Math.sin((e / (M * 4)) * Math.PI);
+          push(e / 4, 'kalimba', degMidi(c, chord + wave[e % 8] + (e >= 8 ? lift : 0), 0), .35, (e % 4 === 0 ? .42 : .26) * sw);
+        }
+        push(0, 'handdrum', null, .3, .5); if (M === 4) push(2.5, 'handdrum', null, .3, .32);
+      } else if (P === 'roots') { // slow creaking log drum, low kalimba, sparse hand drum
+        push(0, 'logdrum', 150, .3, .7); push(M / 2 + .5, 'logdrum', 112, .3, .45);
+        push(M - .5, 'handdrum', 96, .3, .45);
+        for (let e = 0; e < M; e += 2) push(e + 1, 'kalimba', degMidi(c, chord + [4, 7][(e / 2) % 2], 0), 1, .32);
+        if (r() < .5) push(M - 1.5, 'woodbass', degMidi(c, chord + 4, -1), 1, .5);
+      } else if (P === 'handdrum') { // quay: hand-drum groove with offbeat log slaps and kalimba chatter
+        const pat = [1, 0, .5, .7, 0, .6, .5, .3];
+        for (let e = 0; e < M * 2; e++) {
+          if (pat[e % 8]) push(e / 2, e % 2 ? 'logdrum' : 'handdrum', e % 2 ? 330 : (e % 4 ? 150 : 110), .3, pat[e % 8] * .75);
+          if (r() < .45) push(e / 2 + .25, 'kalimba', degMidi(c, chord + [0, 2, 4, 7][Math.floor(r() * 4)], 1), .3, .2 + r() * .15);
+        }
+      } else if (P === 'rowing') { // ferry: lilting triplet oar-strokes
+        const pat = [0, 4, 7, 11, 7, 4];
+        for (let e = 0; e < M * 2; e++) push(e / 2, 'kalimba', degMidi(c, chord + pat[e % 6], 0), .5, e % 2 ? .22 : .34);
+        push(0, 'handdrum', 100, .3, .55); push(2, 'logdrum', 180, .3, .3);
+      } else if (P === 'stampede') { // Root Hart: galloping hand drums over a driving wood bass
+        for (let e = 0; e < M * 2; e++) push(e / 2, 'woodbass', degMidi(c, chord + [0, 0, 7, 0, 1, 0, 7, 0][e % 8], -1), .4, e % 2 ? .75 : 1);
+        for (let e = 0; e < M * 4; e++) { const v = [1, 0, .45, .7][e % 4]; if (v) push(e / 4, 'handdrum', e % 8 === 0 ? 92 : 128, .2, v * .7); }
+        push(1, 'logdrum', 260, .2, .7); push(3, 'logdrum', 260, .2, .7);
+      }
+      // combat layer: frame drums (hand drums in the Aqueduct), shaker, ostinato
+      const wood = c.kit === 'wood', DR = wood ? 'handdrum' : 'drum', TOM = wood ? 'logdrum' : 'tom', OST = wood ? 'woodbass' : 'sawbass';
       const drums = M === 3 ? [[0, 1], [1.5, .55], [2, .8]] : [[0, 1], [1.5, .55], [2, .85], [3, .45], [3.5, .7]];
-      for (const [a, v] of drums) push(a, 'drum', null, .3, v, 'combat');
+      for (const [a, v] of drums) push(a, DR, null, .3, v, 'combat');
       for (let e = 0; e < M * 2; e++) push(e / 2, 'shaker', null, .1, e % 2 ? .45 : .8, 'combat');
-      if (P !== 'drive') for (let e = 0; e < M * 2; e++) push(e / 2, 'sawbass', degMidi(c, chord + [0, 0, 4, 0, 0, 4, 7, 2][e % 8], -1), .4, .7, 'combat');
-      push(M - .5, 'tom', null, .2, .6, 'combat');
+      if (P !== 'drive' && P !== 'stampede') for (let e = 0; e < M * 2; e++) push(e / 2, OST, degMidi(c, chord + [0, 0, 4, 0, 0, 4, 7, 2][e % 8], -1), .4, .7, 'combat');
+      push(M - .5, TOM, null, .2, .6, 'combat');
+      // Root Hart second phase: log-drum rolls, growling didgeridoo drone, high kalimba ostinato
+      if (c.boss && wood) {
+        for (let e = 0; e < M * 4; e++) if (e % 4 !== 0 && r() < .55) push(e / 4, 'logdrum', 200 + Math.floor(r() * 3) * 60, .15, .3 + r() * .3, 'intense');
+        if (pos % 2 === 0) push(0, 'didge', degMidi(c, chord, -2), M * 2, .9, 'intense');
+        for (let e = 0; e < M * 2; e++) push(e / 2, 'kalimba', degMidi(c, chord + [7, 8, 9, 8][e % 4], 1), .3, .3, 'intense');
+      } else if (c.boss) {
       // boss second-phase layer: rolling toms, deep gong tolls, high bell ostinato
-      if (c.boss) {
         for (let e = 0; e < M * 4; e++) if (e % 4 !== 0 && r() < .5) push(e / 4, 'tom', null, .15, .35 + r() * .3, 'intense');
         if (pos % 2 === 0) push(0, 'gong', mtof(c.root - 24), 4, .9, 'intense');
         for (let e = 0; e < M * 2; e++) push(e / 2, 'celesta', degMidi(c, chord + [7, 9, 11, 9][e % 4], 1), .4, .35, 'intense');

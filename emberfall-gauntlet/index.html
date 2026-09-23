@@ -5122,6 +5122,16 @@
             if (e.bossType === 'evilFairy') e.waveTimer = (e.waveTimer || 0) + dt;
             if (e.bossType === 'beholder') e.rayT = (e.rayT || 0) + dt;
             if (e.bossType === 'beholder'){
+              if (stage === 4 && e.hp > 0 && e.hp < e.hpMax){
+                e.regenTimer = (e.regenTimer || 0) + dt;
+                if (e.regenTimer >= 3){
+                  e.regenTimer -= 3;
+                  const healAmount = Math.max(1, Math.round(e.hpMax * 0.1));
+                  e.hp = Math.min(e.hp + healAmount, e.hpMax);
+                }
+              } else if (e.regenTimer){
+                e.regenTimer = 0;
+              }
               e.minionTimer = (e.minionTimer || 0) + dt;
               if (e.minionTimer >= 5){
                 e.minionTimer = 0;

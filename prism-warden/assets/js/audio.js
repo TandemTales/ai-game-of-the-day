@@ -112,6 +112,7 @@
   const MIN_GAP = { shot: .05, tick: .09, mirror: .06, heal: .3, slash: .05, enemyHit: .06, shutterWarn: .3, shutterClose: .12, shutterOpen: .2,
     brambleCut: .05, brambleRegrow: .35, lobLaunch: .08, lobLand: .08, mortarCreak: .15, hartAim: .3 };
   const SFX_MAX = 14, MUSIC_MAX = 56;
+  const RAW_HZ = { gong: 1, handdrum: 1, logdrum: 1 }; // event 'midi' slot carries Hz (or null = default)
 
   // ---------------------------------------------------------------- engine
   function makeEngine(ctx, live) {
@@ -435,7 +436,7 @@
       // Root Hart second phase: log-drum rolls, growling didgeridoo drone, high kalimba ostinato
       if (c.boss && wood) {
         for (let e = 0; e < M * 4; e++) if (e % 4 !== 0 && r() < .55) push(e / 4, 'logdrum', 200 + Math.floor(r() * 3) * 60, .15, .3 + r() * .3, 'intense');
-        if (pos % 2 === 0) push(0, 'didge', degMidi(c, chord, -2), M * 2, .9, 'intense');
+        if (pos % 2 === 0) push(0, 'didge', degMidi(c, chord, -1), M * 2, .9, 'intense');
         for (let e = 0; e < M * 2; e++) push(e / 2, 'kalimba', degMidi(c, chord + [7, 8, 9, 8][e % 4], 1), .3, .3, 'intense');
       } else if (c.boss) {
       // boss second-phase layer: rolling toms, deep gong tolls, high bell ostinato
@@ -450,7 +451,7 @@
       const dest = e.layer === 'combat' ? sec.combat : e.layer === 'intense' ? sec.intense : sec.main;
       if (!admit(E.musEnds, t, t + dur + .5, MUSIC_MAX)) return;
       if (e.pad) return pad(dest, t, e.midis.map(mtof), dur, e.vel, e.pad);
-      const f = e.inst === 'gong' ? e.midi : e.midi != null ? mtof(e.midi) : e.freq;
+      const f = RAW_HZ[e.inst] ? e.midi : e.midi != null ? mtof(e.midi) : e.freq;
       const d = e.lead ? [dest, sec.echoIn] : dest;
       INST[e.inst](d, t, f, dur, e.vel);
     }
@@ -635,7 +636,86 @@
         tone(d, t, 'sine', r / 2, r / 2.2, .3, .12, 2.4);
       },
       begin(t, d, o) { arp(d, t, o.root * 2, [0, 7, 12], .12, 'glass', 1); tone(d, t, 'sine', o.root, 0, .2, .06, 1); },
-      room(t, d, o) { noise(d, t, 'bandpass', 300, 1500, 1, .25, .18, .55); fm(d, t + .2, o.root * 2, 4, .8, .002, .16, 1); }
+      room(t, d, o) { noise(d, t, 'bandpass', 300, 1500, 1, .25, .18, .55); fm(d, t + .2, o.root * 2, 4, .8, .002, .16, 1); },
+      // ---- Region 2 cues
+      prismGet(t, d, o) { arp(d, t, o.root * 2, [0, 4, 7, 11, 14, 19], .06, 'glass', .9); noise(d, t, 'highpass', 6000, 10000, .7, .05, .05, .8); tone(d, t, 'sine', o.root, 0, .1, .06, 1); },
+      prismPlace(t, d, o) { // crystal set down on stone: soft thunk, then a ringing open fifth
+        tone(d, t, 'sine', 190, 110, .002, .3, .14); noise(d, t, 'lowpass', 1800, 300, .8, .001, .16, .08);
+        arp(d, t + .04, o.root * 4, [0, 7, 12], .035, 'glass', .75); noise(d, t + .03, 'highpass', 7000, 0, .7, .01, .04, .45);
+      },
+      prismLift(t, d, o) { // shimmer rising back into the satchel
+        noise(d, t, 'highpass', 3500, 9000, .7, .15, .06, .3); tone(d, t, 'sine', 340, 780, .03, .08, .22);
+        arp(d, t + .05, o.root * 4, [12, 7, 0], .05, 'glass', .6); tone(d, t + .22, 'sine', 90, 70, .002, .12, .1);
+      },
+      brambleCut(t, d) { // leafy rip + twig snaps
+        noise(d, t, 'bandpass', 2600, 900, 1.8, .004, .3, .22);
+        for (let i = 0; i < 3; i++) noise(d, t + .02 + i * .045, 'highpass', 3000 + i * 700, 0, 1, .001, .2, .018);
+        tone(d, t, 'sine', 420, 150, .002, .12, .1);
+      },
+      brambleRegrow(t, d) { // soft creeping rustle
+        noise(d, t, 'bandpass', 320, 1100, 3, .35, .07, .45); tone(d, t, 'triangle', 95, 135, .3, .035, .4);
+      },
+      lever(t, d, o) { // ratchet, wooden clack, confirming kalimba fifth
+        for (let i = 0; i < 5; i++) INST.logdrum(d, t + i * .035, 900 + i * 60, .05, .35);
+        tone(d, t + .2, 'sine', 170, 70, .002, .4, .22); noise(d, t + .2, 'lowpass', 1400, 200, .9, .001, .22, .12);
+        INST.kalimba(d, t + .32, o.root * 2, .5, 1); INST.kalimba(d, t + .42, o.root * 3, .6, .9);
+      },
+      mortarCreak(t, d) { // bark mortar draws back: creaking wood
+        const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(70, t); o.frequency.linearRampToValueAtTime(120, t + .45);
+        const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 6; bp.frequency.value = 520;
+        const g = env(t, .25, .32, .22); o.connect(bp); bp.connect(g); conn(g, d); o.start(t); o.stop(t + .5); o.onended = () => g.disconnect();
+        for (let i = 0; i < 4; i++) noise(d, t + .06 + i * .09, 'bandpass', 1100 + i * 180, 0, 3, .001, .09, .03);
+      },
+      lobLaunch(t, d) { // hollow 'thoonk' + faint rising whistle over the arc
+        tone(d, t, 'sine', 300, 85, .002, .38, .18); noise(d, t, 'lowpass', 1000, 200, .9, .002, .22, .14);
+        tone(d, t + .1, 'sine', 700, 1300, .45, .02, .35);
+      },
+      lobLand(t, d) { // seed pod thump + dirt spray
+        tone(d, t, 'sine', 120, 40, .003, .5, .32); noise(d, t, 'lowpass', 1700, 140, .8, .002, .32, .35);
+        noise(d, t + .02, 'highpass', 2600, 1200, .7, .004, .06, .2);
+      },
+      hartAim(t, d) { // rough low growl (AM-roughened detuned saws)
+        const o1 = ctx.createOscillator(), o2 = ctx.createOscillator(); o1.type = o2.type = 'sawtooth';
+        o1.frequency.setValueAtTime(58, t); o2.frequency.setValueAtTime(61.5, t);
+        o1.frequency.linearRampToValueAtTime(74, t + .8); o2.frequency.linearRampToValueAtTime(78, t + .8);
+        const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 3; lp.frequency.setValueAtTime(260, t); lp.frequency.linearRampToValueAtTime(650, t + .8);
+        const am = ctx.createGain(); am.gain.value = .6; const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.type = 'square'; lfo.frequency.value = 23; lg.gain.value = .4;
+        lfo.connect(lg); lg.connect(am.gain);
+        const g = env(t, .3, .16, .6); o1.connect(lp); o2.connect(lp); lp.connect(am); am.connect(g); conn(g, d);
+        const end = t + .95;[o1, o2, lfo].forEach(x => { x.start(t); x.stop(end); }); o1.onended = () => { g.disconnect(); lg.disconnect(); };
+      },
+      hartLock(t, d) { // snort + hoof stamp + two warning ticks: charge incoming
+        noise(d, t, 'bandpass', 1300, 520, 1.1, .01, .22, .16); tone(d, t + .05, 'sine', 140, 55, .002, .38, .16);
+        tone(d, t + .12, 'square', 988, 988, .002, .02, .05); tone(d, t + .22, 'square', 988, 988, .002, .02, .05);
+      },
+      hartCharge(t, d) { // accelerating hoofbeats, rumble and rushing air
+        for (let i = 0; i < 7; i++) INST.handdrum(d, t + i * (.15 - i * .012), 88 + (i % 2) * 20, .1, .75);
+        noise(d, t, 'lowpass', 180, 700, 1, .1, .22, 1); noise(d, t, 'bandpass', 500, 2600, .8, .2, .12, .7);
+      },
+      hartImpact(t, d) { tone(d, t, 'sine', 140, 42, .002, .5, .3); noise(d, t, 'lowpass', 1500, 180, .8, .001, .32, .25); },
+      hartStun(t, d, o) { // dazed: wobbling chirps circle overhead, exposed shimmer
+        [2637, 2349, 2637, 2093, 2349].forEach((f, i) => tone(d, t + .1 + i * .14, 'sine', f, f * .86, .004, .05, .1));
+        fm(d, t + .05, o.root * 4, 4, 1, .002, .1, .6); noise(d, t, 'highpass', 5000, 0, 1, .001, .1, .04);
+      },
+      damHit(t, d) { // heavy timber crunch
+        tone(d, t, 'sine', 95, 38, .003, .6, .45); noise(d, t, 'bandpass', 900, 280, 1.4, .002, .4, .35);
+        for (let i = 0; i < 4; i++) noise(d, t + .03 + i * .05, 'highpass', 2200 + i * 500, 0, 1, .001, .14, .02);
+        fm(d, t, 150, 1.41, 2.5, .002, .07, .5);
+      },
+      damBreak(t, d, o) { // splintering collapse, then the released water rushes through
+        CUES.damHit(t, d, o);
+        for (let i = 0; i < 6; i++) noise(d, t + .12 + i * .07, 'bandpass', 1400 + i * 350, 0, 2, .001, .12, .05);
+        tone(d, t + .15, 'sine', 70, 30, .01, .45, .9);
+        noise(d, t + .2, 'lowpass', 300, 1700, .9, .45, .34, 2.2); noise(d, t + .35, 'highpass', 3000, 1600, .6, .35, .07, 1.9);
+      },
+      cleared(t, d, o) { // Region cleared: kalimba/bell ascent over a hand-drum roll, choir bloom, low gong
+        const r = o.root;
+        for (let i = 0; i < 8; i++) INST.handdrum(d, t + i * .06, 110 + i * 6, .1, .25 + i * .06);
+        [0, 4, 7, 9, 12, 16, 19, 24].forEach((s, i) => INST.kalimba(d, t + .5 + i * .085, r * 2 * semi(s), .6, 1.1));
+        arp(d, t + .5, r * 2, [0, 7, 12, 16, 19, 24], .12, 'bell', .8);
+        pad(d, t + .6, [r, r * semi(4), r * semi(7), r * 2].map(x => x * 2), 2.4, 2.2, 'choir');
+        INST.gong(d, t + .5, r / 2, 4, .6);
+      }
     };
     E.cue = function (name, t, o) {
       const fn = CUES[name]; if (!fn) return false;
@@ -671,6 +751,9 @@
   const idOf = (x, i) => (x && x.id != null ? String(x.id) : '#' + i);
   const list = a => (Array.isArray(a) ? a.filter(x => x && typeof x === 'object') : []);
   const isDiver = e => !!e && (e.type === 'diver' || /diver/i.test(String(e.id || '')));
+  const isHart = e => !!e && (e.type === 'hart' || /hart/i.test(String(e.id || '')));
+  const isBoss = e => isDiver(e) || isHart(e);
+  const lobKey = (l, i) => (l.id != null ? String(l.id) : (l.owner != null ? l.owner : '') + ':' + Math.round(num(l.x0)) + ':' + Math.round(num(l.y0)) + ':' + Math.round(num(l.tx)) + ':' + Math.round(num(l.ty)));
   const SLEEP = /dormant|defeat|destroy|dead|silen|sleep|inactive/i;
   function awake(e) { return e && num(e.hp) > 0 && !SLEEP.test(String(e.phase || '')) && !e.silenced && !e.dormant && !e.destroyed; }
 
@@ -683,12 +766,17 @@
       rings: new Set(), ringCount: list(s.rings).filter(r => r && r.hostile !== false).length,
       tideHigh: tideOn(s) ? !!s.tide.high : null, tideWarn: tideOn(s) ? num(s.tide.warning) : 0,
       escortHp: s.escort ? num(s.escort.hp) : null, freed: !!(s.rescue && s.rescue.freed),
-      beacon: !!(s.beacon && (s.beacon.lit || s.beacon.active))
+      beacon: !!(s.beacon && (s.beacon.lit || s.beacon.active)),
+      prism: p.prism || null, growth: {}, levers: {}, dams: {}, lobs: {}
     };
+    list(s.growth).forEach((g, i) => { P.growth[idOf(g, i)] = g.alive !== false; });
+    list(s.levers).forEach((l, i) => { P.levers[idOf(l, i)] = !!l.pulled; });
+    list(s.dams).forEach((d, i) => { P.dams[idOf(d, i)] = { hp: num(d.hp), broken: !!d.broken }; });
+    list(s.lobs).forEach((l, i) => { P.lobs[lobKey(l, i)] = { x: num(l.tx), y: num(l.ty) }; });
     list(s.receivers).forEach((r, i) => { P.recv[idOf(r, i)] = { charge: num(r.charge), active: !!r.active }; });
     list(s.gates).forEach((g, i) => { P.gates[idOf(g, i)] = !!g.open; });
     list(s.mirrors).forEach((m, i) => { P.mirrors[idOf(m, i)] = m.index; });
-    list(s.enemies).forEach((e, i) => { P.enemies[idOf(e, i)] = { phase: e.phase, hp: num(e.hp), exposed: num(e.exposed), jam: jamOf(e), sub: e.submerged }; });
+    list(s.enemies).forEach((e, i) => { P.enemies[idOf(e, i)] = { phase: e.phase, hp: num(e.hp), exposed: num(e.exposed), jam: jamOf(e), sub: e.submerged, locked: !!e.locked }; });
     list(s.shots).forEach((sh, i) => { if (sh && !sh.friendly) { P.shotCount++; if (sh.id != null) P.shots.add(sh.id); } });
     list(s.shutters).forEach((sh, i) => { P.shutters[idOf(sh, i)] = { open: sh.open !== false, phase: sh.phase, warn: num(sh.warning) }; });
     list(s.pickups).forEach((pk, i) => { P.pickups[idOf(pk, i)] = { got: !!(pk.collected || pk.taken || pk.got), kind: pk.kind }; });
@@ -716,6 +804,7 @@
     const P = prev, p = s.player || {};
     if (s.status !== P.status) {
       if (s.status === 'won') emit(s.beacon || s.regionId ? 'won' : 'rescue');
+      else if (s.status === 'cleared') emit('cleared', { delay: s.beacon && (s.beacon.lit || s.beacon.active) && !P.beacon ? 1.1 : 0 });
       else if (s.status === 'lost') emit('lost');
     }
     if (num(s.hits) > P.hits || (s.hits == null && num(p.hp) < P.hp)) emit('hurt');
@@ -738,12 +827,46 @@
     desired.beam = caught; desired.charge = maxCharge;
     list(s.gates).forEach((g, i) => { const k = idOf(g, i); if (g.open && P.gates[k] === false) emit('gate', panFor(s, g.x + (g.w || 0) / 2, g.y + (g.h || 0) / 2)); });
     list(s.mirrors).forEach((m, i) => { const k = idOf(m, i); if (k in P.mirrors && m.index !== P.mirrors[k]) emit('mirror', panFor(s, m.x, m.y)); });
+    // Region 2 environment: dams (hart impacts), brambles, levers, placeable prism, mortar lobs
+    let damHitNow = false;
+    list(s.dams).forEach((d, i) => {
+      const o = P.dams[idOf(d, i)]; if (!o) return; const pos = panFor(s, num(d.x) + num(d.w) / 2, num(d.y) + num(d.h) / 2);
+      if ((d.broken && !o.broken) || (num(d.hp) <= 0 && o.hp > 0)) { emit('damBreak', pos); damHitNow = true; } else if (num(d.hp) < o.hp) { emit('damHit', pos); damHitNow = true; }
+    });
+    list(s.growth).forEach((g, i) => {
+      const k = idOf(g, i); if (!(k in P.growth)) return; const alive = g.alive !== false;
+      if (alive === P.growth[k]) return; const pos = panFor(s, num(g.x) + num(g.w) / 2, num(g.y) + num(g.h) / 2);
+      if (!alive) emit('brambleCut', pos); else { if (pos.gain != null) pos.gain *= .6; emit('brambleRegrow', pos); }
+    });
+    list(s.levers).forEach((l, i) => { const k = idOf(l, i); if (l.pulled && P.levers[k] === false) emit('lever', panFor(s, l.x, l.y)); });
+    const prism = p.prism || null;
+    if (prism !== P.prism) {
+      if (prism === 'placed') emit('prismPlace');
+      else if (prism === 'carried' && P.prism === 'placed') emit('prismLift');
+      else if (prism === 'carried' && !P.prism) emit('prismGet');
+    }
+    let lobsNew = 0; const lobSeen = {};
+    list(s.lobs).forEach((l, i) => { const k = lobKey(l, i); lobSeen[k] = 1; if (!P.lobs[k] && lobsNew < 2) { lobsNew++; emit('lobLaunch', panFor(s, l.x0, l.y0)); } });
+    let lobsGone = 0;
+    for (const k in P.lobs) if (!lobSeen[k] && lobsGone < 2) { lobsGone++; emit('lobLand', panFor(s, P.lobs[k].x, P.lobs[k].y)); }
     list(s.enemies).forEach((e, i) => {
       const o = P.enemies[idOf(e, i)]; if (!o) return;
-      const pos = panFor(s, e.x, e.y), ph = String(e.phase || ''), was = String(o.phase || ''), boss = isDiver(e);
+      const pos = panFor(s, e.x, e.y), ph = String(e.phase || ''), was = String(o.phase || ''), boss = isBoss(e);
       if (o.hp > 0 && (num(e.hp) <= 0 || (/defeat|destroy|dead/.test(ph) && !/defeat|destroy|dead/.test(was)))) { emit(boss ? 'bossDefeated' : 'defeated', pos); if (boss) bossFrame = t; return; }
       if (num(e.hp) < o.hp) emit('enemyHit', pos);
       let exposedCued = false;
+      if (isHart(e)) { // Root Hart: aim growl, lock snort, charge stampede, impact, stun
+        if (ph !== was) {
+          if (/dormant/.test(was)) emit('wake', pos);
+          if (ph === 'aim') emit('hartAim', pos);
+          else if (ph === 'charge') emit('hartCharge', pos);
+          else if (ph === 'exposed') emit('hartStun', pos);
+          if (was === 'charge' && (ph === 'exposed' || ph === 'daze') && !damHitNow) emit('hartImpact', pos);
+        }
+        if (e.locked && !o.locked && ph === 'aim') emit('hartLock', pos);
+        return;
+      }
+      if (e.type === 'mortar' && ph !== was && /telegraph|draw|wind/.test(ph)) { emit('mortarCreak', pos); return; }
       if (ph !== was) {
         if (/dormant|sleep/.test(was)) emit('wake', pos);
         if (/windup/.test(ph)) emit('windup', pos);
@@ -785,21 +908,24 @@
     const seen = {};
     list(s.pickups).forEach((pk, i) => {
       const k = idOf(pk, i), o = P.pickups[k]; seen[k] = 1;
-      if (o && !o.got && (pk.collected || pk.taken || pk.got)) emit(pk.kind === 'heart' ? 'heart' : 'chart');
+      if (o && !o.got && (pk.collected || pk.taken || pk.got) && pk.kind !== 'prism') emit(pk.kind === 'heart' ? 'heart' : 'chart');
     });
-    for (const k in P.pickups) if (!seen[k] && !P.pickups[k].got) emit(P.pickups[k].kind === 'heart' ? 'heart' : 'chart');
+    for (const k in P.pickups) if (!seen[k] && !P.pickups[k].got && P.pickups[k].kind !== 'prism') emit(P.pickups[k].kind === 'heart' ? 'heart' : 'chart');
     if (s.rescue && s.rescue.freed && !P.freed && s.status !== 'won') emit('rescue');
     if (s.beacon && (s.beacon.lit || s.beacon.active) && !P.beacon) emit('beacon', { delay: bossFrame === t ? 1.4 : 0 });
     prev = snap(s);
   }
   function score(s) {
-    const roomId = roomOf(s), enemies = list(s.enemies), diver = enemies.find(isDiver);
-    let key = ROOM_SONG[roomId] || 'cloister';
+    const roomId = roomOf(s), enemies = list(s.enemies), diver = enemies.find(isDiver), hart = enemies.find(isHart);
+    const region = (s.room && s.room.region) || s.regionId, green = region === VERDANT;
+    let key = ROOM_SONG[roomId] || (green ? 'verdant' : 'cloister');
     if (diver && awake(diver)) key = 'boss';
-    if (s.status === 'won') key = 'victory';
+    if (hart && awake(hart)) key = 'hart';
+    if (s.status === 'won' || s.status === 'cleared') key = green ? 'glade' : 'victory';
     desired.key = key;
     desired.combat = enemies.some(awake);
-    desired.intense = !!(diver && num(diver.hp) > 0 && num(diver.hp) <= num(diver.maxHp || 10) / 2);
+    const boss = key === 'hart' ? hart : diver;
+    desired.intense = !!(boss && num(boss.hp) > 0 && num(boss.hp) <= num(boss.maxHp || (boss === hart ? 8 : 10)) / 2);
     desired.duck = s.status === 'lost';
     desired.water = tideOn(s) || list(s.water).length > 0;
     desired.tide = tideOn(s) ? clamp(num(s.tide.level), 0, 1) : .5;

@@ -137,33 +137,25 @@
     if (!z.when || z.when === 'always') return true;
     return (z.when === 'high') === tideHigh(s);
   }
-  const cycleZone = z => z.when === 'cycle' && Number.isFinite(z.flipIn);
-  const tideZone = z => z.when === 'high' || z.when === 'low';
-  // Will this zone flip at the imminent tide (or its own cycle) change?
+  // Will this zone flip at the imminent tide change?
   function zoneFlipSoon(z, s) {
     if (z.held) return true;
-    if (cycleZone(z)) return z.flipIn < 1.5;
-    if (!tideOn(s) || !tideZone(z) || tideWarn(s) <= 0) return false;
+    if (!tideOn(s) || !z.when || z.when === 'always' || tideWarn(s) <= 0) return false;
     return true;
   }
-  function zoneWarn(z, s) { return cycleZone(z) ? clamp(1 - z.flipIn / 1.5, 0, 1) : tideWarn(s); }
-  function zoneRemain(z, s) { return cycleZone(z) ? Math.max(0, z.flipIn) : Math.max(0, (1 - tideWarn(s)) * 1.5); }
   function tideDepth(z, s) {
-    if (!tideOn(s) || !tideZone(z)) return 1;
+    if (!tideOn(s) || !z.when || z.when === 'always') return 1;
     const lv = clamp(num(s.tide.level, tideHigh(s) ? 1 : 0), 0, 1);
     return z.when === 'high' ? lv : 1 - lv;
   }
   function sanctZone(s) { return s.sanctuaryZone || (s.sanctuary && typeof s.sanctuary === 'object' ? s.sanctuary : null); }
   function enemyType(e) { return e.type || 'sentinel'; }
-  // The placeable prism moves; keep it out of anything baked into the static layer.
-  function staticMirrors(s) { return arr(s.mirrors).filter(m => m && !m.portable); }
   function roomName(id) {
     if (PW.ROOMS && PW.ROOMS[id] && PW.ROOMS[id].name) return PW.ROOMS[id].name;
     for (const region of arr(PW.REGIONS)) for (const r of arr(region.rooms)) if (r.id === id) return r.name;
     return String(id || '').replace(/-/g, ' ');
   }
-  const ROOM_ORDER = ['cloister', 'sluice', 'sanctuary', 'shutters', 'bell-tower', 'beacon', 'spillway', 'roots', 'channels', 'quay', 'ferry', 'reservoir'];
-  const OPTIONAL_ROOMS = ['sanctuary', 'ferry'];
+  const ROOM_ORDER = ['cloister', 'sluice', 'sanctuary', 'shutters', 'bell-tower', 'beacon'];
 
   // ---------------------------------------------------------------- themes
   const THEMES = {
@@ -172,17 +164,9 @@
     sanctuary: { grade: ['#ffd28a', '#2a4a2a'], floor: 'octa', stone: [36, 18, 43], joint: '#211c14', moss: 1.3, puddles: 2, top: [68, 12, 47], face: [58, 14, 26], wall: 'ashlar', ambient: [100, 92, 98], void: '#0a130e', vignette: .7, decor: 'sanctuary', water: [165, 55, 24], title: 'Candles still burn' },
     shutters: { grade: ['#c8c8ff', '#1a1f3a'], floor: 'octa', stone: [222, 11, 31], joint: '#0c0f15', moss: .1, puddles: 4, top: [224, 9, 37], face: [228, 14, 19], wall: 'basalt', ambient: [92, 100, 130], void: '#06080e', vignette: .7, decor: 'shutters', water: [200, 60, 24], title: 'The keepers’ passages' },
     'bell-tower': { grade: ['#ffc890', '#4a2418'], floor: 'planks', stone: [27, 32, 31], joint: '#1a100a', moss: .04, puddles: 0, top: [12, 30, 39], face: [10, 32, 22], wall: 'brick', ambient: [134, 110, 100], void: '#100908', vignette: .62, decor: 'bell', water: [190, 60, 24], title: 'Two bells, one light' },
-    beacon: { grade: ['#f0e6d0', '#34486a'], floor: 'cobble', stone: [30, 6, 36], joint: '#0b1014', moss: .35, puddles: 7, top: [212, 7, 33], face: [214, 12, 16], wall: 'rock', ambient: [150, 158, 182], void: '#040b12', vignette: .72, decor: 'beacon', water: [195, 60, 20], title: 'The abbey’s last light' },
-    // Region 2 — Verdant Aqueduct: warm travertine arcades swallowed by roots, jade canals, canopy light.
-    spillway: { grade: ['#fff2b8', '#1c4a2c'], floor: 'travertine', stone: [42, 26, 50], joint: '#1e2414', moss: 1.1, puddles: 3, top: [40, 20, 52], face: [32, 24, 30], wall: 'aqueduct', ambient: [150, 158, 124], void: '#0a1a10', vignette: .55, decor: 'verdant', sub: 'spillway', water: [166, 62, 30], title: 'Where the abbey drains into the green' },
-    roots: { grade: ['#fbeeb0', '#20432a'], floor: 'travertine', stone: [36, 22, 45], joint: '#1a2012', moss: 1.5, puddles: 1, top: [44, 18, 47], face: [30, 22, 27], wall: 'aqueduct', ambient: [138, 150, 114], void: '#08160d', vignette: .6, decor: 'verdant', sub: 'roots', water: [162, 60, 27], title: 'The bridges grew themselves' },
-    channels: { grade: ['#ffe6b0', '#1a4436'], floor: 'spicatum', stone: [20, 36, 42], joint: '#23160e', moss: .9, puddles: 2, top: [36, 22, 49], face: [26, 26, 28], wall: 'aqueduct', ambient: [150, 152, 124], void: '#0a1810', vignette: .56, decor: 'verdant', sub: 'channels', water: [168, 64, 28], title: 'The canals turn on their stones' },
-    quay: { grade: ['#fff0c0', '#1e4238'], floor: 'planks', stone: [74, 12, 38], joint: '#141a12', moss: .8, puddles: 0, top: [42, 18, 50], face: [34, 22, 28], wall: 'aqueduct', ambient: [148, 156, 130], void: '#08160f', vignette: .58, decor: 'verdant', sub: 'quay', water: [170, 58, 26], title: 'The ferrymen’s landing' },
-    reservoir: { grade: ['#ffeab0', '#1a3a26'], floor: 'travertine', stone: [48, 16, 45], joint: '#1a1c12', moss: 1.3, puddles: 2, top: [46, 14, 46], face: [36, 18, 26], wall: 'aqueduct', ambient: [132, 146, 112], void: '#07130b', vignette: .64, decor: 'verdant', sub: 'reservoir', water: [164, 56, 24], title: 'The hart drinks here' },
-    ferry: { grade: ['#ffd89a', '#23402a'], floor: 'planks', stone: [30, 30, 32], joint: '#1a120a', moss: .9, puddles: 0, top: [38, 20, 46], face: [30, 24, 26], wall: 'aqueduct', ambient: [132, 136, 112], void: '#08130c', vignette: .66, decor: 'verdant', sub: 'ferry', water: [168, 56, 25], title: 'A lantern on the water' }
+    beacon: { grade: ['#f0e6d0', '#34486a'], floor: 'cobble', stone: [30, 6, 36], joint: '#0b1014', moss: .35, puddles: 7, top: [212, 7, 33], face: [214, 12, 16], wall: 'rock', ambient: [150, 158, 182], void: '#040b12', vignette: .72, decor: 'beacon', water: [195, 60, 20], title: 'The abbey’s last light' }
   };
-  function regionOf(s) { return (s.room && s.room.region) || s.regionId || ''; }
-  function themeFor(s) { return THEMES[roomId(s)] || (regionOf(s) === 'verdant-aqueduct' ? THEMES.spillway : THEMES.cloister); }
+  function themeFor(s) { return THEMES[roomId(s)] || THEMES.cloister; }
 
   // ---------------------------------------------------------------- static layer
   function stonePath(g, x, y, w, h, rng, j) {
@@ -300,59 +284,7 @@
       if (rng() < .5) { g.strokeStyle = 'rgba(220,240,255,.16)'; g.lineWidth = 1.2; g.beginPath(); g.arc(ox - r * .15, oy - r * .1, r * .6, 3.6, 4.6); g.stroke(); }
     }
   }
-  // Grass blades sprouting from a joint or crack.
-  function tuft(g, x, y, rng, size, alpha) {
-    const n = 4 + Math.floor(rng() * 4);
-    for (let b = 0; b < n; b++) {
-      const bx = x + (rng() - .5) * size * .8, lean = (rng() - .5) * size * .9, hgt = size * (.5 + rng() * .7);
-      g.beginPath(); g.moveTo(bx, y); g.quadraticCurveTo(bx + lean * .3, y - hgt * .6, bx + lean, y - hgt);
-      g.strokeStyle = hsl(78 + rng() * 38, 40 + rng() * 20, 26 + rng() * 22, alpha); g.lineWidth = .9 + rng() * .8; g.stroke();
-    }
-  }
-  function floorTravertine(g, W, H, rng, th) {
-    // Big Roman travertine slabs: pitted, banded, grass pushing up through the joints.
-    g.fillStyle = hsl(th.stone[0] + 30, 30, Math.max(6, th.stone[2] - 30)); g.fillRect(0, 0, W, H);
-    const slabs = [];
-    for (let y = 0; y < H;) {
-      const rh = 46 + Math.floor(rng() * 24);
-      for (let x = -rng() * 90; x < W;) {
-        const rw = 64 + rng() * 76;
-        stone(g, x + 2.2, y + 2.2, rw - 4.4, rh - 4.4, jit(th.stone, rng, 8, 10, 10), rng, { hi: .13, lo: .26, rim: .12, jit: 3.4, speck: 260, crack: .26, chip: .3 });
-        for (let i = 0, n = rw * rh / 240; i < n; i++) ellipse(g, x + 6 + rng() * (rw - 12), y + 6 + rng() * (rh - 12), .7 + rng() * 2.2, .5 + rng() * .9, 'rgba(46,34,16,.3)');
-        if (rng() < .7) for (let k = 0; k < 3; k++) {
-          const by = y + 8 + rng() * (rh - 16); g.beginPath(); g.moveTo(x + 5, by);
-          for (let q = 1; q <= 5; q++) g.lineTo(x + 5 + (rw - 10) * q / 5, by + Math.sin(q * 1.9 + k) * 1.6);
-          g.strokeStyle = rng() < .5 ? 'rgba(255,244,210,.08)' : 'rgba(70,52,26,.1)'; g.lineWidth = 1.4; g.stroke();
-        }
-        slabs.push([x, y, rw, rh]);
-        x += rw;
-      }
-      y += rh;
-    }
-    for (const [x, y, rw, rh] of slabs) {
-      if (rng() < .5 * th.moss) for (let i = 0; i < 3; i++) tuft(g, x + 8 + rng() * (rw - 16), y + 2.5, rng, 6 + rng() * 5, .85);
-      if (rng() < .35 * th.moss) for (let i = 0; i < 2; i++) tuft(g, x + 2, y + 10 + rng() * (rh - 16), rng, 5 + rng() * 4, .8);
-      if (rng() < .22 * th.moss) mossClump(g, x + (rng() < .5 ? 3 : rw - 3), y + (rng() < .5 ? 3 : rh - 3), 5 + rng() * 5, rng, .7);
-    }
-  }
-  function floorSpicatum(g, W, H, rng, th) {
-    // Opus spicatum / basket-weave brick paving of the canal walks.
-    g.fillStyle = hsl(th.stone[0], th.stone[1] * .6, Math.max(6, th.stone[2] - 26)); g.fillRect(0, 0, W, H);
-    const S = 32;
-    for (let y = 0; y < H; y += S) for (let x = 0; x < W; x += S) {
-      const hz = ((x / S | 0) + (y / S | 0)) % 2 === 0;
-      for (let k = 0; k < 2; k++) {
-        const bx = hz ? x + 1.2 : x + 1.2 + k * 16, by = hz ? y + 1.2 + k * 16 : y + 1.2;
-        stone(g, bx, by, hz ? 29.6 : 13.6, hz ? 13.6 : 29.6, jit(th.stone, rng, 10, 12, 11), rng, { jit: .7, hi: .12, lo: .24, rim: .1, speck: 70, crack: .04, chip: .08 });
-      }
-    }
-    for (let i = 0; i < 40; i++) { // damp algae blooms in low spots
-      const x = rng() * W, y = rng() * H, r = 30 + rng() * 80, gr = g.createRadialGradient(x, y, 0, x, y, r);
-      gr.addColorStop(0, `hsla(${100 + rng() * 40},45%,24%,${.18 + rng() * .14})`); gr.addColorStop(1, 'rgba(0,0,0,0)');
-      g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
-    }
-  }
-  const FLOORS = { flag: floorFlag, slate: floorSlate, octa: floorOcta, planks: floorPlanks, cobble: floorCobble, travertine: floorTravertine, spicatum: floorSpicatum };
+  const FLOORS = { flag: floorFlag, slate: floorSlate, octa: floorOcta, planks: floorPlanks, cobble: floorCobble };
 
   function mossClump(g, x, y, size, rng, alpha) {
     for (let i = 0; i < 7; i++) {
@@ -383,8 +315,8 @@
   function wallDist(x, y, walls) { let d = Infinity; for (const w of walls) d = Math.min(d, rectDist(x, y, w)); return d; }
   function keepClear(s) {
     const out = [];
-    for (const r of arr(s.exits).concat(arr(s.gates), arr(s.water), arr(s.breakwaters), arr(s.shutters), arr(s.bridges), arr(s.growth), arr(s.dams))) if (finiteRect(r)) out.push({ x: r.x - 26, y: r.y - 26, w: r.w + 52, h: r.h + 52 });
-    for (const p of emittersOf(s).concat(arr(s.receivers), staticMirrors(s), arr(s.pickups), arr(s.levers), s.beacon ? [s.beacon] : [], s.rescue ? [s.rescue] : []))
+    for (const r of arr(s.exits).concat(arr(s.gates), arr(s.water), arr(s.breakwaters), arr(s.shutters))) if (finiteRect(r)) out.push({ x: r.x - 26, y: r.y - 26, w: r.w + 52, h: r.h + 52 });
+    for (const p of emittersOf(s).concat(arr(s.receivers), arr(s.mirrors), arr(s.pickups), s.beacon ? [s.beacon] : [], s.rescue ? [s.rescue] : []))
       if (p && Number.isFinite(p.x)) out.push({ x: p.x - 48, y: p.y - 48, w: 96, h: 96 });
     if (s.escortExit && finiteRect(s.escortExit)) out.push(s.escortExit);
     return out;
@@ -459,23 +391,6 @@
         for (let x = f.x; x < f.x + f.w; x += 9 + rng() * 10) {
           ellipse(g, x, f.y + 4 + rng() * 8, 6 + rng() * 6, 4 + rng() * 3, hsl(th.face[0], th.face[1], th.face[2] + (rng() - .3) * 10), 'rgba(0,0,0,.35)', 1);
         }
-      } else if (th.wall === 'aqueduct') {
-        // Roman arcade: coursed ashlar pierced by small dark arches.
-        for (let y = f.y + 7; y < f.y + FH - 1; y += 7) line(g, f.x, y, f.x + f.w, y, 'rgba(30,18,6,.3)', 1);
-        let row = 0;
-        for (let y = f.y; y < f.y + FH - 1; y += 7, row++) for (let x = f.x + (row % 2) * 11; x < f.x + f.w; x += 22) line(g, x, y + .5, x, y + 6.5, 'rgba(30,18,6,.28)', 1);
-        const span = 36;
-        const n = Math.floor((f.w - 8) / span);
-        const x0 = f.x + (f.w - n * span) / 2;
-        for (let i = 0; i < n; i++) {
-          const ax = x0 + i * span + 8, aw = span - 16, ar = aw / 2, top = f.y + 6 + ar;
-          g.beginPath(); g.moveTo(ax, f.y + FH); g.lineTo(ax, top); g.arc(ax + ar, top, ar, Math.PI, 0); g.lineTo(ax + aw, f.y + FH); g.closePath();
-          const ag = g.createLinearGradient(0, f.y + 6, 0, f.y + FH); ag.addColorStop(0, 'rgba(4,10,6,.95)'); ag.addColorStop(1, 'rgba(10,26,16,.85)');
-          g.fillStyle = ag; g.fill();
-          g.beginPath(); g.arc(ax + ar, top, ar + 2.2, Math.PI, 0); g.strokeStyle = hsl(th.face[0], th.face[1], th.face[2] + 22, .7); g.lineWidth = 2.4; g.stroke();
-          for (let v = 0; v < 5; v++) { const va = Math.PI + v * Math.PI / 4; line(g, ax + ar + Math.cos(va) * ar, top + Math.sin(va) * ar, ax + ar + Math.cos(va) * (ar + 3.6), top + Math.sin(va) * (ar + 3.6), 'rgba(30,18,6,.5)', 1); }
-          if (rng() < .7) tuft(g, ax + ar + (rng() - .5) * 6, f.y + FH, rng, 6, .9);
-        }
       } else {
         const course = th.wall === 'brick' ? 5.3 : 8;
         for (let y = f.y + course; y < f.y + FH - 1; y += course) line(g, f.x, y, f.x + f.w, y, 'rgba(0,0,0,.35)', 1);
@@ -508,8 +423,8 @@
         gr.addColorStop(0, 'rgba(210,225,240,.26)'); gr.addColorStop(1, 'rgba(0,0,0,.2)'); g.fillStyle = gr; g.fill();
       }
     } else {
-      const bw = th.wall === 'brick' ? 18 : th.wall === 'slate' ? 36 : th.wall === 'basalt' ? 30 : th.wall === 'aqueduct' ? 42 : 34;
-      const bh = th.wall === 'brick' ? 9 : th.wall === 'slate' ? 18 : th.wall === 'aqueduct' ? 21 : 24;
+      const bw = th.wall === 'brick' ? 18 : th.wall === 'slate' ? 36 : th.wall === 'basalt' ? 30 : 34;
+      const bh = th.wall === 'brick' ? 9 : th.wall === 'slate' ? 18 : 24;
       let row = 0;
       for (let y = 0; y < H; y += bh, row++) for (let x = -(row % 2) * bw / 2; x < W; x += bw) {
         if (!walls.some(w => inRect(x + bw / 2, y + bh / 2, w, bw))) continue;
@@ -596,7 +511,6 @@
     }
     // Set dressing that lives on the masonry itself, so it never reads as a floor obstacle.
     const onExit = (x, y) => arr(s.exits).some(e => inRect(x, y, e, 36)) || arr(s.gates).some(gt => inRect(x, y, gt, 30));
-    if (th.decor === 'verdant') verdantWalls(g, s, th, rng, walls, faces, meta, onExit);
     if (th.decor === 'cloister' || th.decor === 'sluice') {
       for (const f of faces) for (let x = f.x + 20; x < f.x + f.w - 10; x += 40 + rng() * 90) {
         if (onExit(x, f.y)) continue;
@@ -643,210 +557,11 @@
       }
     }
   }
-  // ---------------------------------------------------------------- Verdant Aqueduct static art
-  function leafBlob(g, x, y, r, rng, hue, light, alpha) {
-    // A rounded cluster of leaves lit from the top-left.
-    for (let i = 0; i < 9; i++) {
-      const a = rng() * TAU, d = rng() * r * .6, rr = r * (.35 + rng() * .3);
-      const px = x + Math.cos(a) * d, py = y + Math.sin(a) * d * .8;
-      const lift = (px - x) * -.4 + (py - y) * -.6;
-      ellipse(g, px, py, rr, rr * .82, hsl(hue + (rng() - .5) * 16, 42 + rng() * 14, clamp(light + lift / r * 10 + (rng() - .5) * 6, 6, 70), alpha), null, 0, rng() * 3);
-    }
-    for (let i = 0; i < 4; i++) ellipse(g, x - r * .3 + (rng() - .5) * r * .5, y - r * .35 + (rng() - .5) * r * .3, r * .16, r * .1, hsl(hue - 10, 60, light + 24, alpha * .8), null, 0, -.6);
-  }
-  function bush(g, x, y, r, rng) {
-    ellipse(g, x + r * .25, y + r * .45, r * 1.05, r * .6, 'rgba(0,10,4,.4)');
-    leafBlob(g, x, y + r * .15, r, rng, 105, 17, 1);
-    leafBlob(g, x - r * .1, y - r * .05, r * .8, rng, 98, 27, 1);
-    leafBlob(g, x - r * .25, y - r * .25, r * .45, rng, 88, 38, .95);
-  }
-  function hangingVine(g, x, y, len, rng, root) {
-    let vx = x, vy = y; g.beginPath(); g.moveTo(vx, vy);
-    const pts = [];
-    for (let i = 0; i < 6; i++) { vx += (rng() - .5) * (root ? 3 : 5); vy += len / 6; g.lineTo(vx, vy); pts.push([vx, vy]); }
-    g.strokeStyle = root ? '#3a2616' : '#2c4a1e'; g.lineWidth = root ? 2.6 : 1.4; g.stroke();
-    if (root) { g.strokeStyle = 'rgba(190,150,100,.35)'; g.lineWidth = .8; g.stroke(); }
-    for (const [px, py] of pts) {
-      if (root) { if (rng() < .4) line(g, px, py, px + (rng() - .5) * 8, py + 3 + rng() * 5, '#3a2616', .9); }
-      else ellipse(g, px + (rng() - .5) * 5, py, 2.8, 1.8, hsl(90 + rng() * 30, 48, 28 + rng() * 16), null, 0, rng() * 3);
-    }
-  }
-  function verdantWalls(g, s, th, rng, walls, faces, meta, onExit) {
-    // Moss blanket and scrub on the wall tops, heaviest along edges that face the floor.
-    for (const w of walls) {
-      const n = Math.floor(w.w * w.h / 420 * th.moss);
-      for (let i = 0; i < n; i++) mossClump(g, w.x + rng() * w.w, w.y + rng() * w.h, 4 + rng() * 7, rng, .55 + rng() * .3);
-    }
-    // Specus: the aqueduct's own water channel runs along the crown of thick walls.
-    for (const w of walls) {
-      if (Math.min(w.w, w.h) < 36 || Math.max(w.w, w.h) < 120) continue;
-      const horiz = w.w >= w.h, cw = 12;
-      const r = horiz ? { x: w.x + 10, y: w.y + w.h / 2 - cw / 2, w: w.w - 20, h: cw } : { x: w.x + w.w / 2 - cw / 2, y: w.y + 10, w: cw, h: w.h - 20 };
-      g.fillStyle = 'rgba(20,14,6,.6)'; g.fillRect(r.x - 3, r.y - 3, r.w + 6, r.h + 6);
-      g.fillStyle = hsl(th.top[0], th.top[1], th.top[2] + 12); g.fillRect(r.x - 2, r.y - 2, r.w + 4, 2); g.fillRect(r.x - 2, r.y - 2, 2, r.h + 4);
-      const wg = horiz ? g.createLinearGradient(0, r.y, 0, r.y + r.h) : g.createLinearGradient(r.x, 0, r.x + r.w, 0);
-      wg.addColorStop(0, hsl(th.water[0], th.water[1], th.water[2] - 10)); wg.addColorStop(.5, hsl(th.water[0], th.water[1], th.water[2] + 12)); wg.addColorStop(1, hsl(th.water[0], th.water[1], th.water[2] - 6));
-      g.fillStyle = wg; g.fillRect(r.x, r.y, r.w, r.h);
-      for (let d = 6; d < (horiz ? r.w : r.h) - 6; d += 9 + rng() * 14) {
-        if (horiz) line(g, r.x + d, r.y + 3 + rng() * 6, r.x + d + 6, r.y + 3 + rng() * 6, 'rgba(210,255,235,.45)', 1);
-        else line(g, r.x + 3 + rng() * 6, r.y + d, r.x + 3 + rng() * 6, r.y + d + 6, 'rgba(210,255,235,.45)', 1);
-      }
-      meta.channels.push(r);
-    }
-    // Scrub and saplings rooted in the masonry.
-    for (const w of walls) {
-      const n = Math.floor((w.w + w.h) / 90 * th.moss);
-      for (let i = 0; i < n; i++) {
-        const x = w.x + 6 + rng() * Math.max(1, w.w - 12), y = w.y + 6 + rng() * Math.max(1, w.h - 12);
-        if (onExit(x, y) || meta.channels.some(c => inRect(x, y, c, 6))) continue;
-        bush(g, x, y, Math.min(11, Math.min(w.w, w.h) * .42) * (.7 + rng() * .5), rng);
-      }
-    }
-    // Ivy and roots spilling down the arcade faces.
-    for (const f of faces) for (let x = f.x + 8; x < f.x + f.w - 8; x += 12 + rng() * 26) {
-      if (onExit(x, f.y)) continue;
-      const root = rng() < (th.sub === 'roots' || th.sub === 'reservoir' ? .5 : .28);
-      hangingVine(g, x, f.y - 2, 10 + rng() * (FH + 8), rng, root);
-      if (rng() < .5) mossClump(g, x, f.y - 2, 4 + rng() * 4, rng, .9);
-    }
-    if (th.sub === 'spillway') {
-      for (const f of faces) {
-        if (f.w < 120) continue;
-        for (let x = f.x + 80; x < f.x + f.w - 50; x += 220) {
-          if (onExit(x, f.y)) continue;
-          // stone lion-mouth spout
-          circle(g, x, f.y + 9, 8, hsl(th.face[0], th.face[1], th.face[2] + 18), 'rgba(20,10,4,.7)', 1.4);
-          ellipse(g, x, f.y + 12, 4, 3, '#0a1208');
-          meta.spouts.push({ x, y: f.y + 14, rgb: '170,245,215' });
-        }
-      }
-    }
-    if (th.sub === 'quay' || th.sub === 'ferry') {
-      for (const f of faces) {
-        if (f.w < 110) continue;
-        for (let x = f.x + 60; x < f.x + f.w - 40; x += th.sub === 'ferry' ? 150 : 210) {
-          if (onExit(x, f.y)) continue;
-          line(g, x, f.y + 1, x, f.y + 8, '#2a1a0c', 1.4);
-          rrect(g, x - 5, f.y + 8, 10, 12, 2); g.fillStyle = '#3a2a14'; g.fill(); g.strokeStyle = '#140c04'; g.lineWidth = 1; g.stroke();
-          g.fillStyle = '#ffe2a0'; g.fillRect(x - 3, f.y + 10, 6, 8);
-          meta.lights.push({ x, y: f.y + 22, r: 140, rgb: WARM, a: .45, flicker: 1 });
-          meta.lanterns.push({ x, y: f.y + 14 });
-        }
-      }
-    }
-  }
-  function root(g, x, y, ang, len, width, rng, clear) {
-    // A gnarled surface root crawling out from the masonry.
-    const pts = [[x, y]];
-    let a = ang;
-    for (let i = 1; i <= 8; i++) {
-      a += (rng() - .5) * .5;
-      const px = pts[i - 1][0] + Math.cos(a) * len / 8, py = pts[i - 1][1] + Math.sin(a) * len / 8;
-      if (clear.some(r => inRect(px, py, r))) break;
-      pts.push([px, py]);
-    }
-    if (pts.length < 3) return;
-    for (let pass = 0; pass < 3; pass++) {
-      for (let i = 1; i < pts.length; i++) {
-        const wdt = width * (1 - i / (pts.length + 1));
-        const [ax, ay] = pts[i - 1], [bx, by] = pts[i];
-        if (pass === 0) line(g, ax + 1.5, ay + 2.5, bx + 1.5, by + 2.5, 'rgba(10,8,2,.35)', wdt + 2);
-        else if (pass === 1) { g.lineCap = 'round'; line(g, ax, ay, bx, by, '#3b2717', wdt); g.lineCap = 'butt'; }
-        else line(g, ax - wdt * .18, ay - wdt * .25, bx - wdt * .18, by - wdt * .25, 'rgba(200,160,110,.28)', Math.max(.8, wdt * .28));
-      }
-    }
-    for (let i = 2; i < pts.length - 1; i++) if (rng() < .35) mossClump(g, pts[i][0], pts[i][1] - 1, 3 + rng() * 3, rng, .85);
-    if (pts.length > 4 && rng() < .7) { const [bx, by] = pts[Math.floor(pts.length / 2)]; root(g, bx, by, a + (rng() < .5 ? .9 : -.9), len * .45, width * .5, rng, clear); }
-  }
-  function verdantDecals(g, s, th, rng, W, H, meta) {
-    const walls = arr(s.walls).filter(finiteRect), kc = keepClear(s);
-    const free = (x, y, pad) => !walls.some(w => inRect(x, y, w, pad || 0)) && !arr(s.water).some(z => inRect(x, y, z, 6));
-    // Surface roots crawling out from the walls.
-    const nRoots = th.sub === 'roots' ? 26 : th.sub === 'reservoir' ? 20 : th.sub === 'quay' || th.sub === 'ferry' ? 6 : 12;
-    for (let i = 0, made = 0; i < nRoots * 30 && made < nRoots; i++) {
-      const w = walls[Math.floor(rng() * walls.length)];
-      if (!w) break;
-      const side = Math.floor(rng() * 4);
-      const x = side === 0 ? w.x + rng() * w.w : side === 1 ? w.x + w.w + 1 : side === 2 ? w.x + rng() * w.w : w.x - 1;
-      const y = side === 0 ? w.y + w.h + 1 : side === 1 ? w.y + rng() * w.h : side === 2 ? w.y - 1 : w.y + rng() * w.h;
-      if (!free(x + (side === 1 ? 4 : side === 3 ? -4 : 0), y + (side === 0 ? 4 : side === 2 ? -4 : 0)) || kc.some(r => inRect(x, y, r))) continue;
-      const ang = [Math.PI / 2, 0, -Math.PI / 2, Math.PI][side] + (rng() - .5) * .9;
-      root(g, x, y, ang, 60 + rng() * 110, 5 + rng() * 5, rng, kc.concat(walls.filter(o => o !== w)));
-      made++;
-    }
-    // Grass fringe hugging every wall, sparser in the open.
-    for (let i = 0; i < 520; i++) {
-      const x = rng() * W, y = rng() * H;
-      if (!free(x, y, 2)) continue;
-      const d = wallDist(x, y, walls);
-      if (d > 16 + rng() * rng() * 220) continue;
-      tuft(g, x, y, rng, 6 + rng() * 7, .9);
-    }
-    // Fallen leaves and blossoms.
-    for (let i = 0; i < 170; i++) {
-      const x = rng() * W, y = rng() * H;
-      if (!free(x, y, 2)) continue;
-      const hue = rng() < .7 ? 70 + rng() * 40 : 30 + rng() * 20;
-      ellipse(g, x, y, 2.6 + rng() * 1.8, 1.4 + rng() * .8, hsl(hue, 50, 30 + rng() * 22, .8), 'rgba(20,14,4,.3)', .6, rng() * 3);
-      if (rng() < .08) for (let k = 0; k < 5; k++) circle(g, x + Math.cos(k * 1.26) * 2.4, y + Math.sin(k * 1.26) * 2.4, 1.4, rng() < .5 ? '#f4efd8' : '#f2c8e0');
-    }
-    // Ferns near walls.
-    for (const p of spots(s, rng, 12, 8, 36, 90, W, H)) {
-      for (let k = 0; k < 7; k++) {
-        const a = -Math.PI / 2 + (k - 3) * .42, L = 14 + rng() * 10;
-        const ex = p.x + Math.cos(a) * L, ey = p.y + Math.sin(a) * L * .8;
-        g.beginPath(); g.moveTo(p.x, p.y); g.quadraticCurveTo((p.x + ex) / 2 + Math.cos(a + 1.2) * 4, (p.y + ey) / 2 + Math.sin(a + 1.2) * 4, ex, ey);
-        g.strokeStyle = hsl(96 + rng() * 20, 45, 30 + rng() * 12); g.lineWidth = 1.2; g.stroke();
-        for (let q = .25; q < 1; q += .15) {
-          const qx = p.x + (ex - p.x) * q, qy = p.y + (ey - p.y) * q;
-          ellipse(g, qx, qy, 3.2 * (1.1 - q), 1.3, hsl(100 + rng() * 20, 48, 28 + rng() * 16), null, 0, a + 1.4);
-          ellipse(g, qx, qy, 3.2 * (1.1 - q), 1.3, hsl(100 + rng() * 20, 48, 24 + rng() * 16), null, 0, a - 1.4);
-        }
-      }
-    }
-    if (th.sub === 'ferry' || th.sub === 'quay') { // coiled mooring rope, flat on the boards
-      for (const p of spots(s, rng, th.sub === 'ferry' ? 4 : 3, 14, 40, 160, W, H)) {
-        for (let r = 10; r > 2; r -= 2.4) circle(g, p.x, p.y, r, null, '#b89a62', 2.2);
-        circle(g, p.x, p.y, 11, null, 'rgba(0,0,0,.3)', 1);
-      }
-    }
-    // Canopy gaps: pools of warm light baked into the light map.
-    for (let i = 0; i < 34; i++) {
-      const x = rng() * W, y = rng() * H;
-      meta.lights.push({ x, y, r: 36 + rng() * 80, rgb: '255,238,170', a: .18 + rng() * .2 });
-    }
-    for (let i = 0; i < 3; i++) meta.lights.push({ x: W * (.2 + rng() * .6), y: H * (.2 + rng() * .6), r: 200 + rng() * 80, rgb: '255,230,160', a: .22 });
-  }
-  function verdantExterior(g, th, rng, W, H) {
-    // Beyond the walls: the forest canopy seen from above.
-    g.fillStyle = '#081a0e'; g.fillRect(0, 0, W, H);
-    for (let i = 0; i < 180; i++) {
-      const x = rng() * W, y = rng() * H, r = 16 + rng() * 34;
-      leafBlob(g, x, y, r, rng, 100 + rng() * 30, 10 + rng() * 10, 1);
-      if (rng() < .5) leafBlob(g, x - r * .2, y - r * .25, r * .55, rng, 92 + rng() * 20, 20 + rng() * 10, .95);
-    }
-  }
   function beds(g, s, th, rng, W, H) {
     for (const z of arr(s.water).filter(finiteRect)) {
       const big = z.w * z.h > 150000;
       g.save(); g.beginPath(); g.rect(z.x, z.y, z.w, z.h); g.clip();
-      if (th.decor === 'verdant') {
-        // Canal bed: silted flagstones under weed, fading into jade depth.
-        g.fillStyle = '#12261c'; g.fillRect(z.x, z.y, z.w, z.h);
-        for (let y = z.y; y < z.y + z.h; y += 34) for (let x = z.x + ((y - z.y) / 34 % 2) * 17; x < z.x + z.w; x += 34) {
-          g.fillStyle = hsl(150 + rng() * 20, 18, 16 + rng() * 6); g.fillRect(x + 1.5, y + 1.5, 31, 31);
-        }
-        for (let i = 0; i < z.w * z.h / 700; i++) {
-          const x = z.x + rng() * z.w, y = z.y + rng() * z.h, len = 6 + rng() * 14;
-          g.strokeStyle = hsl(95 + rng() * 40, 45, 22 + rng() * 14, .75); g.lineWidth = 1.4; g.beginPath(); g.moveTo(x, y);
-          g.quadraticCurveTo(x + (rng() - .5) * len, y - len * .5, x + (rng() - .5) * len * .6, y - len); g.stroke();
-        }
-        for (let i = 0; i < z.w * z.h / 1400; i++) circle(g, z.x + rng() * z.w, z.y + rng() * z.h, 1 + rng() * 2.4, hsl(40, 20, 30 + rng() * 20, .6));
-        const gr = g.createLinearGradient(0, z.y, 0, z.y + 30); gr.addColorStop(0, 'rgba(0,8,4,.7)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
-        g.fillStyle = gr; g.fillRect(z.x, z.y, z.w, 30);
-        const gl = g.createLinearGradient(z.x, 0, z.x + 20, 0); gl.addColorStop(0, 'rgba(0,8,4,.5)'); gl.addColorStop(1, 'rgba(0,0,0,0)');
-        g.fillStyle = gl; g.fillRect(z.x, z.y, 20, z.h);
-      } else if (big) {
+      if (big) {
         g.fillStyle = 'rgba(10,30,34,.38)'; g.fillRect(z.x, z.y, z.w, z.h);
         for (let i = 0; i < z.w * z.h / 5000; i++) { // seaweed and tide-flat streaks
           const x = z.x + rng() * z.w, y = z.y + rng() * z.h, len = 8 + rng() * 16;
@@ -881,16 +596,7 @@
         g.fillStyle = gl; g.fillRect(z.x, z.y, 18, z.h);
       }
       g.restore();
-      if (th.decor === 'verdant') {
-        // Dressed coping stones along the canal lip, softened by moss.
-        g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = 1; g.strokeRect(z.x - 5.5, z.y - 5.5, z.w + 11, z.h + 11);
-        g.strokeStyle = hsl(th.top[0], th.top[1], th.top[2] + 14); g.lineWidth = 4; g.strokeRect(z.x - 2.5, z.y - 2.5, z.w + 5, z.h + 5);
-        g.strokeStyle = 'rgba(255,245,215,.25)'; g.lineWidth = 1; g.strokeRect(z.x - 4, z.y - 4, z.w + 8, z.h + 8);
-        for (let d = 0; d < 2 * (z.w + z.h); d += 22 + rng() * 40) {
-          const p = d < z.w ? [z.x + d, z.y - 3] : d < z.w + z.h ? [z.x + z.w + 3, z.y + d - z.w] : d < 2 * z.w + z.h ? [z.x + z.w - (d - z.w - z.h), z.y + z.h + 3] : [z.x - 3, z.y + z.h - (d - 2 * z.w - z.h)];
-          if (rng() < .6) mossClump(g, p[0], p[1], 3 + rng() * 4, rng, .85); else tuft(g, p[0], p[1], rng, 6, .9);
-        }
-      } else if (!big) {
+      if (!big) {
         g.strokeStyle = hsl(th.stone[0], th.stone[1], th.stone[2] + 18, .8); g.lineWidth = 2.2; g.strokeRect(z.x - 1, z.y - 1, z.w + 2, z.h + 2);
         g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = 1; g.strokeRect(z.x - 2.8, z.y - 2.8, z.w + 5.6, z.h + 5.6);
       }
@@ -940,7 +646,7 @@
       circle(g, r.x, r.y + 4, 33, null, 'rgba(0,0,0,.3)', 1);
       for (let i = 0; i < 12; i++) { const a = i * TAU / 12; line(g, r.x + Math.cos(a) * 34, r.y + 4 + Math.sin(a) * 34, r.x + Math.cos(a) * 39, r.y + 4 + Math.sin(a) * 39, 'rgba(215,190,125,.45)', 1.6); }
     }
-    for (const m of staticMirrors(s)) {
+    for (const m of arr(s.mirrors)) {
       if (!Number.isFinite(m.x)) continue;
       circle(g, m.x, m.y + 3, 31, 'rgba(0,0,0,.2)');
       circle(g, m.x, m.y + 3, 29, null, 'rgba(200,190,150,.35)', 1.4);
@@ -970,7 +676,6 @@
     const walls = arr(s.walls).filter(finiteRect);
     const free = (x, y, pad) => !walls.some(w => inRect(x, y, w, pad || 0)) && !arr(s.water).some(z => inRect(x, y, z, 6));
     grime(g, W, H, rng, 70);
-    if (th.decor === 'verdant') verdantDecals(g, s, th, rng, W, H, meta);
     // Moss creeping out of joints near walls.
     const mossN = Math.floor(90 * th.moss);
     for (let i = 0; i < mossN; i++) {
@@ -1066,8 +771,7 @@
     g.save(); g.beginPath(); g.rect(0, 0, W, H); g.rect(x0, y0, x1 - x0, y1 - y0); g.clip('evenodd');
     const sea = th.decor === 'cloister' || th.decor === 'sluice' || th.decor === 'beacon';
     g.fillStyle = sea ? '#0b2e3a' : th.void; g.fillRect(0, 0, W, H);
-    if (th.decor === 'verdant') verdantExterior(g, th, rng, W, H);
-    else if (sea) {
+    if (sea) {
       for (let i = 0; i < 260; i++) {
         const x = rng() * W, y = rng() * H, l = 6 + rng() * 16;
         g.strokeStyle = rng() < .3 ? 'rgba(200,235,240,.35)' : 'rgba(90,150,165,.35)'; g.lineWidth = 1.2;
@@ -1109,7 +813,7 @@
     const key = s.walls;
     if (key && typeof key === 'object' && geoSig.has(key)) return geoSig.get(key);
     const pick = a => arr(a).map(o => [o.x, o.y, o.w, o.h, o.dx, o.dy].map(v => (Number.isFinite(v) ? Math.round(v) : '')).join(',')).join(';');
-    const sig = [roomId(s), pick(s.walls), pick(s.water), pick(s.breakwaters), pick(s.shutters), pick(emittersOf(s)), pick(s.receivers), pick(staticMirrors(s)), pick(s.exits), pick(s.pickups), pick(s.bridges), pick(s.growth), pick(s.dams), pick(s.levers),
+    const sig = [roomId(s), pick(s.walls), pick(s.water), pick(s.breakwaters), pick(s.shutters), pick(emittersOf(s)), pick(s.receivers), pick(s.mirrors), pick(s.exits), pick(s.pickups),
       s.beacon ? pick([s.beacon]) : '', sanctZone(s) ? pick([sanctZone(s)]) : ''].join('|');
     const h = roomId(s) + ':' + hashStr(sig).toString(36);
     if (key && typeof key === 'object') geoSig.set(key, h);
@@ -1120,7 +824,7 @@
     let st = staticCache.get(key);
     if (st) return st;
     const canvas = makeCanvas(W * k, H * k), g = canvas.getContext('2d');
-    const meta = { k, lights: [], candles: [], braziers: [], spouts: [], channels: [], lanterns: [] };
+    const meta = { k, lights: [], candles: [], braziers: [], spouts: [] };
     const rng = rngFor(hashStr(roomId(s)));
     g.scale(k, k);
     g.fillStyle = th.void; g.fillRect(0, 0, W, H);
@@ -1199,7 +903,7 @@
     const tile = caustics();
     floodLabel = null;
     for (const z of arr(s.water).filter(finiteRect)) {
-      const deep = zoneActive(z, s), soon = zoneFlipSoon(z, s), depth = tideDepth(z, s), w = zoneWarn(z, s), verdant = th.decor === 'verdant';
+      const deep = zoneActive(z, s), soon = zoneFlipSoon(z, s), depth = tideDepth(z, s), w = tideWarn(s);
       const big = z.w * z.h > 150000;
       ctx.save(); ctx.beginPath(); ctx.rect(z.x, z.y, z.w, z.h); ctx.clip();
       const a = deep ? .5 + .38 * clamp(depth, .4, 1) : .03 + .14 * depth;
@@ -1219,7 +923,6 @@
         }
         ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
       }
-      if (deep && verdant) verdantSurface(ctx, z, t);
       if (deep) { // surface glints
         for (let i = 0; i < z.w * z.h / 6000; i++) {
           const gx = z.x + ((i * 97.3) % z.w), gy = z.y + ((i * 61.7 + t * 6) % z.h), ph = Math.sin(t * 2 + i * 1.3);
@@ -1239,21 +942,20 @@
         ctx.strokeStyle = 'rgba(220,245,250,.35)'; ctx.lineWidth = 2; ctx.strokeRect(z.x + 2, z.y + 2, z.w - 4, z.h - 4); ctx.restore();
       }
       if (soon) {
-        const remain = zoneRemain(z, s);
+        const remain = Math.max(0, (1 - w) * 1.5);
         ctx.save(); ctx.strokeStyle = deep ? 'rgba(200,235,255,.7)' : `rgba(255,${160 + 60 * Math.sin(t * 14)},90,.9)`; ctx.lineWidth = 3; ctx.setLineDash([12, 8]); ctx.lineDashOffset = t * 30;
         ctx.strokeRect(z.x + 1.5, z.y + 1.5, z.w - 3, z.h - 3); ctx.restore();
         const pl = s.player || { x: 0, y: 0 };
         const lx = clamp(pl.x, z.x + 44, z.x + z.w - 44), ly = clamp(pl.y, z.y + 14, z.y + z.h - 14);
         const d = Math.hypot(lx - pl.x, ly - pl.y);
         if (!deep && (!floodLabel || d < floodLabel.d)) floodLabel = { d, x: lx, y: ly, text: `FLOOD ${remain.toFixed(1)}s`, color: '#ffc27a', size: 11 };
-        else if (deep && cycleZone(z) && (!floodLabel || d < floodLabel.d)) floodLabel = { d, x: lx, y: ly, text: `DRAINS ${remain.toFixed(1)}s`, color: '#bff5e0', size: 11 };
       }
     }
   }
   function drawBreakwaters(ctx, s, t, th) {
     if (floodLabel) { labels.push(floodLabel); floodLabel = null; }
     for (const b of arr(s.breakwaters).filter(finiteRect)) {
-      const up = zoneActive(b, s), soon = zoneFlipSoon(b, s), w = zoneWarn(b, s);
+      const up = zoneActive(b, s), soon = zoneFlipSoon(b, s), w = tideWarn(s);
       if (up) {
         const shake = soon ? Math.sin(t * 60) * w * 1.2 : 0;
         ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(b.x + 3, b.y + 8, b.w, b.h + 10);
@@ -2297,9 +1999,8 @@
       for (const l of st.meta.lights) if (l.rgb !== WARM && l.flicker) bloom(ctx, l.x, l.y - 8, 16, l.rgb, .7);
       ctx.globalCompositeOperation = 'source-over';
       for (const sp of st.meta.spouts) { // water pouring from sluice spouts
-        const rgb = sp.rgb || '190,230,245';
-        for (let i = 0; i < 3; i++) line(ctx, sp.x - 4 + i * 4, sp.y, sp.x - 4 + i * 4 + Math.sin(t * 9 + i) * .6, sp.y + 14, `rgba(${rgb},.55)`, 1.6);
-        ellipse(ctx, sp.x, sp.y + 16, 8 + Math.sin(t * 8) * 1.5, 3, null, sp.rgb ? `rgba(${rgb},.5)` : 'rgba(210,240,250,.5)', 1.2);
+        for (let i = 0; i < 3; i++) line(ctx, sp.x - 4 + i * 4, sp.y, sp.x - 4 + i * 4 + Math.sin(t * 9 + i) * .6, sp.y + 14, 'rgba(190,230,245,.55)', 1.6);
+        ellipse(ctx, sp.x, sp.y + 16, 8 + Math.sin(t * 8) * 1.5, 3, null, 'rgba(210,240,250,.5)', 1.2);
       }
     }
     drawWater(ctx, s, t, th);

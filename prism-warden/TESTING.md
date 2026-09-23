@@ -90,3 +90,13 @@ the route foundation and existing checkpoint remain browser-safe, not that the
 five-region campaign is playable, enjoyable or AAA. The prior non-blind Link's
 Awakening comparison still reads OURS LOSES; no independent critic or shipping
 judge was available on this run.
+
+## September22 evening: Verdant Aqueduct
+
+`node prism-warden/tools/aqueduct-pilot.cjs [noferry] [noseal]` plays the whole
+game (abbey via abbey-pilot, then continueRegion) through B1-B5 with legal
+inputs only. The focused suite runs it (full + no-ferry, determinism). Smoke now
+asserts the abbey beacon gives 'cleared', Continue enters spillway, captures all
+six aqueduct rooms, then a declared fixture wins at the reservoir beacon.
+Linux: PW_CHROME=/opt/pw-browsers/chromium (Playwright from /opt/node22). If a
+six-size run flakes on timing, rerun one size per process (PW_VIEWPORTS).

@@ -8,6 +8,38 @@ connected room chain after the Tidal Abbey beacon (B1-B5, placeable prism tool,
 Root Hart guardian, optional ferryman route), with logic/regions/render/audio
 support, focused tests and a legal-input pilot. Push after each landed file.
 
+## 2026-09-22 evening: Verdant Aqueduct playable (commit 6dbd33f)
+
+Region 2 is built: spillway B1 (fetch prism, sinking root bridges, prism holds a
+hold-gate open you cannot hold yourself), roots B2 (prism feeds an 8s pump
+through regrowing brambles under mortar fire), channels B3 (three mortars,
+armoured fronts, five canal basins flooding round a ring), quay B4 (valve vs
+dam-seal lever order; ferrymen rescue; valve-first floods the shortcut and the
+ferry landing), reservoir B5 (Root Hart, 3 timber dams that flood when broken,
+decoy pillars), optional ferry landing (heart, seed lens -> longer Hart stuns).
+Abbey beacon now clears Region 1 and Continue carries on; final built beacon wins.
+
+Evidence: tools/aqueduct-pilot.cjs (legal inputs only, state-informed) wins the
+whole game A1-A5 + B1-B5: full 218.5s 5/7hp 15500; skip ferry 202.4s; valve-first
+223.6s 2/7hp; deterministic; no retries. Idle cannot clear any aqueduct room.
+Focused 28/28, full repo 18 suites / 422 tests PASS. Smoke (now through region
+clear, six aqueduct rooms and final result) PASS at all six sizes run one size
+per process; one combined six-size run hit the timing-based "actual aim charges
+receiver" fixture once and did not reproduce - treat as harness flake to harden.
+Lead read: cleared panel 390x844, result panel 390x844, channels 844x390, roots
+1440x900, hart-locked 390x844 (label clipping found and fixed).
+
+Known issues (engine/content, from the campaign builder): B2 pump can be filled
+slowly without the prism by reflecting bursts; valve-first seal recoverable by
+wading (costs ~1hp, consequence visible not permanent); message last-wins and
+Hart pillar-wedge being fixed now. Renderer critic (non-blind, image CDNs
+blocked): OURS LOSES to Tunic/Death's Door on lighting/depth/composition; wins
+on telegraph readability. Audio still not heard by a human.
+
+Scope now: 2/5 regions, 10/25 challenges built (none AAA-accepted). Regions 3-5,
+mod choices, persistent cross-session saves, Nacre story and finale remain.
+Next run FIRST: Glass Kiln (C1-C5) per SPEC, reusing the room engine.
+
 ## 2026-09-22 evening: Region 2 engine landed (interim)
 
 - SPEC.md gained the "Region 2 engine contract" (prism tool, hold gates, pump

@@ -153,7 +153,8 @@
       const hp = Math.max(1, num(d.hp, 8));
       return Object.assign(e, { r: num(d.r, 34), hp, maxHp: hp, phase: 'dormant',
         wakeRadius: num(d.wakeRadius, 420), aimDist: 0, lastImpact: null, stunned: false,
-        charges: 0, flash: 0 });
+        charges: 0, flash: 0, side: 1, sideTimer: 0, laneWait: 0, sidestep: false,
+        dazeKey: null, dazeX: 0, dazeY: 0 });
     }
     const hp = Math.max(1, num(d.hp, 6));
     const patrol = arr(d.patrol).map(pt => Array.isArray(pt) ? [num(pt[0], e.x), num(pt[1], e.y)] : [num(pt.x, e.x), num(pt.y, e.y)]);
@@ -265,7 +266,57 @@
   const ARRAY_KEYS = ['bridges', 'growth', 'levers', 'dams'];
 
   // ------------------------------------------------------------- utilities
-  function announce(s, text, duration) { s.message = text || ''; s._messageTime = duration || 4; }
+  // Message priorities: 0 hint, 1 tactical, 2 story/reward/intro, 3 terminal (always shown).
+  // A message never replaces an equal-or-higher one still inside its first MESSAGE_HOLD
+  // seconds; it queues (short, deduped) and shows when the current one expires.
+  const MESSAGE_HOLD = 1.6, QUEUE_MAX = 4, STALE_WAIT = 1.5;
+  function showMessage(s, text, duration, priority) {
+    s.message = text; s._messageTime = duration; s._messagePriority = priority; s._messageAge = 0;
+  }
+  function announce(s, text, duration, priority) {
+    text = text || ''; duration = duration || 4; priority = priority || 0;
+    if (!text) return;
+    if (!Array.isArray(s._messageQueue)) s._messageQueue = [];
+    const q = s._messageQueue;
+    if (priority >= 3) { q.length = 0; showMessage(s, text, duration, priority); return; }
+    if (text === s.message && s._messageTime > 0) {
+      s._messageTime = Math.max(s._messageTime, duration);
+      s._messagePriority = Math.max(s._messagePriority || 0, priority);
+      return;
+    }
+    const current = s.message && s._messageTime > 0;
+    const busy = (current && (s._messageAge || 0) < MESSAGE_HOLD && (s._messagePriority || 0) >= priority) ||
+      (current && q.some(m => m.priority >= priority));
+    if (!busy) { showMessage(s, text, duration, priority); return; }
+    if (q.some(m => m.text === text)) return;
+    q.push({ text, duration, priority, wait: 0 });
+    if (q.length > QUEUE_MAX) {
+      let drop = 0;
+      for (let i = 1; i < q.length; i++) if (q[i].priority < q[drop].priority) drop = i;
+      q.splice(drop, 1);
+    }
+  }
+  function tickMessages(s, dt) {
+    s._messageTime = Math.max(0, s._messageTime - dt);
+    s._messageAge = (s._messageAge || 0) + dt;
+    const q = Array.isArray(s._messageQueue) ? s._messageQueue : (s._messageQueue = []);
+    for (const m of q) m.wait += dt;
+    // Hints and tactical calls go stale quickly; story text waits its turn.
+    for (let i = q.length - 1; i >= 0; i--) if (q[i].priority < 2 && q[i].wait > STALE_WAIT) q.splice(i, 1);
+  }
+  function nextMessage(s) {
+    const q = Array.isArray(s._messageQueue) ? s._messageQueue : [];
+    if (!q.length) return false;
+    let best = 0;
+    for (let i = 1; i < q.length; i++) if (q[i].priority > q[best].priority) best = i;
+    const m = q.splice(best, 1)[0];
+    showMessage(s, m.text, m.duration, m.priority);
+    return true;
+  }
+  function roomMessage(s, text) {
+    s._messageQueue = [];
+    showMessage(s, text, 5, 2);
+  }
   function spark(s, x, y, kind, count) {
     for (let i = 0; i < count; i++) {
       const angle = i * 2.3999632297 + s.time;
@@ -435,7 +486,7 @@
         if (br.load >= 1 - EPS) {
           br.load = 1; br.sunk = true; br.timer = br.recover;
           spark(s, br.x + br.w / 2, br.y + br.h / 2, 'water', 10);
-          announce(s, 'A root bridge sinks! Never linger on the roots.', 2);
+          announce(s, 'A root bridge sinks! Never linger on the roots.', 2, 0);
         }
       } else br.load = clamp(br.load - dt / br.hold, 0, 1);
     }
@@ -513,10 +564,10 @@
     if (r.kind === 'sanctuary') {
       p.hp = p.maxHp;
       award(s, rkey(s, 'rx', r.id), 150);
-      announce(s, r.text || 'Sanctuary restored. Its circle heals you when you retreat.', 6);
+      announce(s, r.text || 'Sanctuary restored. Its circle heals you when you retreat.', 6, 2);
     } else {
       award(s, rkey(s, 'rx', r.id), 250);
-      announce(s, r.text || (r.kind === 'pump' ? 'The pump fills. Water surges down the channel.' : 'The seal drinks the light.'), 3);
+      announce(s, r.text || (r.kind === 'pump' ? 'The pump fills. Water surges down the channel.' : 'The seal drinks the light.'), 3, 2);
     }
   }
 
@@ -531,7 +582,7 @@
           if (g.open) continue;
           g.open = true; s.flags['gate:' + g.id] = true;
           for (let i = 0; i < 3; i++) spark(s, g.x + g.w / 2, g.y + g.h * (i + .5) / 3, 'light', 4);
-          if (!g.opened) { g.opened = true; announce(s, g.text || 'A gate lifts while the light holds.', 4); }
+          if (!g.opened) { g.opened = true; announce(s, g.text || 'A gate lifts while the light holds.', 4, 2); }
         } else if (g.open) {
           bs = bs || occupants(s);
           g.held = bs.some(o => overlapCircle(o.x, o.y, o.r, g));
@@ -542,7 +593,7 @@
       if (g.open || !g.opensWhen || !conditionMet(s, g.opensWhen)) continue;
       g.open = true; g.opened = true; s.flags['gate:' + g.id] = true;
       for (let i = 0; i < 3; i++) spark(s, g.x + g.w / 2, g.y + g.h * (i + .5) / 3, 'light', 6);
-      announce(s, g.text || 'A gate grinds open.', 5);
+      announce(s, g.text || 'A gate grinds open.', 5, 2);
     }
   }
 
@@ -554,7 +605,7 @@
     spark(s, p.x, p.y, 'hurt', 10);
     if (p.hp <= 0) {
       p.hp = 0; s.status = 'lost'; p.reflecting = false;
-      announce(s, 'The prism dims. Retry the room and read the telegraphs.', 8);
+      announce(s, 'The prism dims. Retry the room and read the telegraphs.', 8, 3);
     } else {
       announce(s, cause === 'water' ? 'Deep water drags at you. Find dry stone.' :
         cause === 'ring' ? 'Shockwave! Dash through the ring or keep your distance.' :
@@ -571,8 +622,8 @@
     spark(s, e.x, e.y, 'hurt', 8);
     if (e.hp <= 0) {
       e.hp = 0; s.status = 'lost'; s.player.reflecting = false;
-      announce(s, e.name + ' has fallen. Retry the room and shield ' + (e.name === 'Ilex' ? 'her' : 'them') + ' from the fire.', 8);
-    } else announce(s, e.name + (e.name === 'Ilex' ? ' is hit! Stand between her and the turrets.' : ' is hit! Stand between them and the fire.'), 2.3);
+      announce(s, e.name + ' has fallen. Retry the room and shield ' + (e.name === 'Ilex' ? 'her' : 'them') + ' from the fire.', 8, 3);
+    } else announce(s, e.name + (e.name === 'Ilex' ? ' is hit! Stand between her and the turrets.' : ' is hit! Stand between them and the fire.'), 2.3, 0);
     return true;
   }
   function removeShots(s, owner) { s.shots = s.shots.filter(sh => sh.friendly || sh.owner !== owner); }
@@ -585,20 +636,20 @@
     if (e.type === 'diver') {
       award(s, rkey(s, 'defeat', e.id), 800);
       if (s.beacon) s.beacon.lit = true;
-      announce(s, e.text || 'The Bell Diver sinks for good. The beacon kindles — reach it.', 7);
+      announce(s, e.text || 'The Bell Diver sinks for good. The beacon kindles — reach it.', 7, 2);
     } else if (e.type === 'hart') {
       award(s, rkey(s, 'defeat', e.id), 900);
       e.locked = false; e.stunned = false;
       if (s.beacon) s.beacon.lit = true;
       spark(s, e.x, e.y, 'growth', 20);
-      announce(s, e.text || 'The Root Hart kneels into the moss. The beacon kindles — reach it.', 7);
+      announce(s, e.text || 'The Root Hart kneels into the moss. The beacon kindles — reach it.', 7, 2);
     } else if (e.type === 'mortar') {
       award(s, rkey(s, 'defeat', e.id), 200);
       s.lobs = arr(s.lobs).filter(l => l.owner !== e.id);
-      announce(s, e.text || 'The seed mortar splits and falls silent.', 3);
+      announce(s, e.text || 'The seed mortar splits and falls silent.', 3, 2);
     } else {
       award(s, rkey(s, 'defeat', e.id), 400);
-      announce(s, e.text || 'The sentinel falls.', 5);
+      announce(s, e.text || 'The sentinel falls.', 5, 2);
     }
   }
   function returnedHit(s, e) {
@@ -609,14 +660,14 @@
       if (e.phase === 'dormant' || e.exposed > 0 || e.phase === 'stagger') return false;
       e.phase = 'stagger'; e.timer = .8; e.locked = false; s.returns++;
       spark(s, e.x, e.y, 'light', 12);
-      announce(s, 'The seed cracks against its antlers. The hart staggers.', 2);
+      announce(s, 'The seed cracks against its antlers. The hart staggers.', 2, 0);
       return true;
     }
     if (e.type === 'turret') {
       e.phase = 'jammed'; e.timer = 5; e.shotsLeft = 0; e.locked = false; s.returns++;
       if (!e.jammedOnce) { e.jammedOnce = true; award(s, rkey(s, 'jam', e.id), 50); }
       spark(s, e.x, e.y, 'light', 10);
-      announce(s, 'Turret jammed. Move while it sputters.', 2.5);
+      announce(s, 'Turret jammed. Move while it sputters.', 2.5, 0);
       return true;
     }
     if (e.type === 'diver') {
@@ -625,7 +676,7 @@
       e.exposed = t; e.phase = 'exposed'; e.timer = t; e.shotsLeft = 0; s.returns++;
       if (!e.rewardedCracks.includes(e.hp)) { e.rewardedCracks.push(e.hp); s.score += 100; }
       spark(s, e.x, e.y, 'light', 14);
-      announce(s, 'The bell cracks open! Strike it now.', t);
+      announce(s, 'The bell cracks open! Strike it now.', t, 1);
       return true;
     }
     if (e.phase === 'dormant' || e.phase === 'patrol') return false;
@@ -633,7 +684,7 @@
     e.exposed = 3.4; e.phase = 'exposed'; e.timer = 3.4; e.shotsLeft = 0; s.returns++;
     if (!e.rewardedCracks.includes(e.hp)) { e.rewardedCracks.push(e.hp); s.score += 100; }
     spark(s, e.x, e.y, 'light', 14);
-    announce(s, 'Armor cracked! Close in and strike the exposed core.', 3.4);
+    announce(s, 'Armor cracked! Close in and strike the exposed core.', 3.4, 1);
     return true;
   }
   function slashHit(s, e) {
@@ -650,7 +701,7 @@
     const dx = s.player.x - e.x, dy = s.player.y - e.y;
     const d = Math.max(EPS, length(dx, dy));
     e.aimX = dx / d; e.aimY = dy / d;
-    announce(s, 'Red charge! Step aside or dash across its locked path.', 1.25);
+    announce(s, 'Red charge! Step aside or dash across its locked path.', 1.25, 1);
   }
   function fire(s, e, angle, speed, dist, kind) {
     const ux = Math.cos(angle), uy = Math.sin(angle);
@@ -673,7 +724,7 @@
       const d = length(p.x - e.x, p.y - e.y);
       if ((!e.wakeWhen || gateOpen(s, e.wakeWhen)) && d < e.wakeRadius && losClear(s, e.x, e.y, p.x, p.y)) {
         e.phase = 'recover'; e.timer = .75;
-        announce(s, 'The sentinel wakes. Mirror its bright shots back at it.', 3);
+        announce(s, 'The sentinel wakes. Mirror its bright shots back at it.', 3, 1);
       } else if (e.phase === 'patrol') {
         const [tx, ty] = e.patrol[e.patrolIndex % e.patrol.length];
         const dx = tx - e.x, dy = ty - e.y, dd = length(dx, dy);
@@ -805,7 +856,7 @@
         const spot = surfaceSpot(s, e);
         if (spot) {
           e.x = spot.x; e.y = spot.y; e.phase = 'surfacing'; e.timer = .8;
-          announce(s, 'The water boils — the Bell Diver rises!', 1.6);
+          announce(s, 'The water boils — the Bell Diver rises!', 1.6, 1);
         } else e.timer = .25;
       }
       return;
@@ -895,6 +946,24 @@
     for (const d of s.dams) if (d.hp > 0) for (const it of list) if (it.rect === d) it.dam = d;
     return list;
   }
+  const LANE_CLEAR = 120, SAME_SPOT = 48, LANE_WAIT = 2;
+  const solidKey = r => Math.round(r.x) + ',' + Math.round(r.y) + ',' + Math.round(r.w) + ',' + Math.round(r.h);
+  function laneProbe(s, e, ux, uy, max, solids, ox, oy) {
+    // Sweeps the hart's full body (not a thin ray) so pillar corners count.
+    const x0 = ox === undefined ? e.x : ox, y0 = oy === undefined ? e.y : oy;
+    for (let d = 0; d <= max; d += 6) {
+      const x = x0 + ux * d, y = y0 + uy * d;
+      if (x < e.r || y < e.r || x > s.room.w - e.r || y > s.room.h - e.r) {
+        return { dist: d, dam: null, key: 'bounds:' + (x < e.r ? 'w' : x > s.room.w - e.r ? 'e' : y < e.r ? 'n' : 's'), blocked: true };
+      }
+      const hits = solids.filter(it => overlapCircle(x, y, e.r, it.rect));
+      if (hits.length) {
+        const it = hits.find(h => h.dam) || hits[0];
+        return { dist: d, dam: it.dam, key: solidKey(it.rect), blocked: true };
+      }
+    }
+    return { dist: max, dam: null, key: null, blocked: false };
+  }
   function hartUnstick(s, e) {
     const solids = moveSolids(s, e);
     const ok = (px, py) => px >= e.r && py >= e.r && px <= s.room.w - e.r && py <= s.room.h - e.r &&
@@ -914,6 +983,7 @@
       hostile: false, kind: 'impact' });
     if (hit && hit.dam) {
       const dam = hit.dam;
+      e.dazeKey = null;
       dam.hp = Math.max(0, dam.hp - 1); dam.hit = .5;
       spark(s, e.x + e.aimX * e.r, e.y + e.aimY * e.r, 'wood', 14);
       e.lastImpact = 'dam';
@@ -924,18 +994,20 @@
       const t = s.flags.lens ? 4.5 : 3.2;
       e.phase = 'stunned'; e.stunned = true; e.exposed = t; e.timer = t;
       announce(s, dam.hp === 0 ? 'The dam bursts! The hart reels — strike it now.' :
-        'Antlers bite the timber. The hart is stunned — strike it now.', 3);
+        'Antlers bite the timber. The hart is stunned — strike it now.', 3, 1);
     } else if (!damLeft()) {
       // No dam remains: stone must serve, so the fight can never soft-lock.
       e.lastImpact = 'solid';
       spark(s, e.x + e.aimX * e.r, e.y + e.aimY * e.r, 'spark', 10);
       e.phase = 'stunned'; e.stunned = true; e.exposed = 2.4; e.timer = 2.4;
-      announce(s, 'The hart cracks its antlers on stone. Strike!', 2.4);
+      announce(s, 'The hart cracks its antlers on stone. Strike!', 2.4, 1);
     } else {
       e.lastImpact = 'solid';
       spark(s, e.x + e.aimX * e.r, e.y + e.aimY * e.r, 'spark', 8);
       e.phase = 'dazed'; e.timer = .9; e.exposed = 0;
-      announce(s, 'Stone only dazes it. Bait the charge into a timber dam.', 2.2);
+      e.dazeKey = hit ? solidKey(hit.rect) : 'bounds:' + (e.x + e.aimX * 8 < e.r ? 'w' : e.x + e.aimX * 8 > s.room.w - e.r ? 'e' : e.y + e.aimY * 8 < e.r ? 'n' : 's');
+      e.dazeX = e.x; e.dazeY = e.y;
+      announce(s, 'Stone only dazes it. Bait the charge into a timber dam.', 2.2, 0);
     }
   }
   function hartStep(s, e, dt) {
@@ -946,7 +1018,7 @@
     if (e.phase === 'dormant') {
       if (length(p.x - e.x, p.y - e.y) < e.wakeRadius) {
         e.phase = 'stalk'; e.timer = stalkTime();
-        announce(s, 'The Root Hart lowers its antlers. Bait its charge into the timber dams.', 3.5);
+        announce(s, 'The Root Hart lowers its antlers. Bait its charge into the timber dams.', 3.5, 1);
       }
       return;
     }
@@ -957,17 +1029,59 @@
       return;
     }
     e.timer -= dt;
+    const damLeft = s.dams.some(d => d.hp > 0);
+    // A lane is bad when stone (not a dam) sits close ahead of the player contact point,
+    // or when it is the very stone this hart just dazed itself on from this same spot.
+    const badLane = (lane, reach) => lane.blocked && !lane.dam && (
+      lane.dist < Math.min(e.sidestep ? LANE_CLEAR + 40 : LANE_CLEAR, reach) ||
+      (damLeft && lane.key && lane.key === e.dazeKey && length(e.x - e.dazeX, e.y - e.dazeY) < SAME_SPOT));
     if (e.phase === 'stalk') {
       const [ux, uy] = toPlayer();
       e.aimX = ux; e.aimY = uy;
-      if (length(p.x - e.x, p.y - e.y) > e.r + p.r + 12) moveBody(e, ux * 60, uy * 60, dt, moveSolids(s, e));
-      if (e.timer <= 0) { e.phase = 'aim'; e.timer = .9; e.locked = false; }
+      const pd = length(p.x - e.x, p.y - e.y), reach = Math.max(0, pd - e.r - p.r);
+      const solids = hartSolids(s, e);
+      const lane = laneProbe(s, e, ux, uy, 540 * 1.3, solids);
+      e.aimDist = lane.dist;
+      const blocked = badLane(lane, reach) && e.laneWait < LANE_WAIT;
+      e.sidestep = blocked;
+      if (blocked) {
+        // Step sideways toward whichever flank opens a clean lane to the warden.
+        e.laneWait += dt;
+        const px = -uy, py = ux;
+        if (e.sideTimer <= 0) {
+          const score = side => {
+            const ox = e.x + px * side * SAME_SPOT, oy = e.y + py * side * SAME_SPOT;
+            const [vx, vy] = unit(p.x - ox, p.y - oy, ux, uy);
+            return laneProbe(s, e, vx, vy, LANE_CLEAR + 60, solids, ox, oy).dist;
+          };
+          const a = score(e.side), b = score(-e.side);
+          if (b > a + EPS) e.side = -e.side;
+          e.sideTimer = .5;
+        }
+        e.sideTimer -= dt;
+        const bx = e.x, by = e.y;
+        moveBody(e, px * e.side * 90, py * e.side * 90, dt, moveSolids(s, e));
+        if (length(e.x - bx, e.y - by) < .5) { e.side = -e.side; e.sideTimer = .5; }
+      } else {
+        e.laneWait = badLane(lane, reach) ? e.laneWait : 0;
+        if (pd > e.r + p.r + 12) moveBody(e, ux * 60, uy * 60, dt, moveSolids(s, e));
+      }
+      if (e.timer <= 0 && !blocked) { e.phase = 'aim'; e.timer = .9; e.locked = false; e.laneWait = 0; e.sidestep = false; }
+      else if (e.timer < 0) e.timer = 0;
     } else if (e.phase === 'aim') {
       if (!e.locked) { const [ux, uy] = toPlayer(); e.aimX = ux; e.aimY = uy; }
       if (e.timer <= .35) e.locked = true;
       if (e.timer <= 0) {
-        e.phase = 'charge'; e.timer = 1.3; e.locked = true;
-        announce(s, 'Charge!', .8);
+        const lane = laneProbe(s, e, e.aimX, e.aimY, 540 * 1.3, hartSolids(s, e));
+        // Never charge the same stone twice from the same spot, nor into stone at its nose.
+        if (damLeft && lane.blocked && !lane.dam && (lane.dist < 24 ||
+          (lane.key === e.dazeKey && length(e.x - e.dazeX, e.y - e.dazeY) < SAME_SPOT))) {
+          e.phase = 'stalk'; e.timer = .5; e.locked = false; e.laneWait = 0; e.sideTimer = 0;
+          e.dazeX = e.x; e.dazeY = e.y; e.dazeKey = lane.key;
+        } else {
+          e.phase = 'charge'; e.timer = 1.3; e.locked = true;
+          announce(s, 'Charge!', .8, 0);
+        }
       }
     } else if (e.phase === 'charge') {
       const solids = hartSolids(s, e);
@@ -994,9 +1108,7 @@
         e.phase = 'stalk'; e.timer = stalkTime();
       }
     } else { e.phase = 'stalk'; e.timer = stalkTime(); }
-    if (e.phase === 'aim' || e.phase === 'stalk') {
-      e.aimDist = raySegment(e.x, e.y, e.aimX, e.aimY, moveSolids(s, e), 540 * 1.3).distance;
-    }
+    if (e.phase === 'aim') e.aimDist = laneProbe(s, e, e.aimX, e.aimY, 540 * 1.3, hartSolids(s, e)).dist;
   }
 
   // ------------------------------------------------------------------ escort
@@ -1028,7 +1140,7 @@
     if (e.flag) s.flags[e.flag] = true;
     award(s, rkey(s, 'escort', 'ilex'), 300 + e.hp * 50);
     spark(s, e.x, e.y, 'light', 18);
-    announce(s, e.text || (e.name === 'Ilex' ? 'Ilex is through. "I can hold the stair from here."' : e.name + ' is through.'), 5);
+    announce(s, e.text || (e.name === 'Ilex' ? 'Ilex is through. "I can hold the stair from here."' : e.name + ' is through.'), 5, 2);
   }
 
   // --------------------------------------------------------- room lifecycle
@@ -1108,7 +1220,7 @@
     light(s, 0);
     s.sanctuary = sanctuaryActive(s);
     s.objective = objective(s);
-    announce(s, prismBack ? (s.room.intro || s.room.name) + ' (The prism returns to your satchel.)' : s.room.intro || s.room.name, 5);
+    roomMessage(s, prismBack ? (s.room.intro || s.room.name) + ' (The prism returns to your satchel.)' : s.room.intro || s.room.name);
     snapshot(s);
     return true;
   }
@@ -1121,7 +1233,7 @@
     s.status = 'playing';
     s.emitter = s.emitters[0] || null;
     s.transition = 1;
-    announce(s, s.room.intro || s.room.name, 5);
+    roomMessage(s, s.room.intro || s.room.name);
     return s;
   }
 
@@ -1159,7 +1271,7 @@
     s.player.hp = s.player.maxHp; s.player.invulnerable = 0;
     if (!enterRoom(s, next.room, next.spawn)) {
       s.next = next; s.status = 'cleared';
-      announce(s, 'The way onward is not open yet.', 4);
+      announce(s, 'The way onward is not open yet.', 4, 3);
       return s;
     }
     s._regionEntry = checkpoint(s);
@@ -1178,7 +1290,7 @@
     s.emitter = s.emitters[0] || null;
     s.transition = 1;
     snapshot(s);
-    announce(s, s.room.intro || s.room.name, 5);
+    roomMessage(s, s.room.intro || s.room.name);
     return s;
   }
   function create(opts) {
@@ -1199,7 +1311,7 @@
       objective: '', transition: 1, message: '',
       _slashHeld: false, _dashHeld: false, _slashSerial: 0, _nextShotId: 1,
       _sanctuaryCooldown: 0, _messageTime: 0, _exitArmed: false, _wade: 0, _entry: null,
-      _placeHeld: false, _regionEntry: null
+      _placeHeld: false, _regionEntry: null, _messagePriority: 0, _messageAge: 0, _messageQueue: []
     };
     if (!enterRoom(s, opts.room || 'cloister', opts.spawn)) enterRoom(s, 'cloister');
     return s;
@@ -1278,7 +1390,7 @@
     s.cleared[ch] = true;
     award(s, 'clear:' + ch, 500);
     const info = typeof PW.challengeById === 'function' ? PW.challengeById(ch) : null;
-    if (s.status === 'playing') announce(s, 'Challenge ' + ch + ' complete' + (info ? ': ' + info.title : '') + '.', 4);
+    if (s.status === 'playing') announce(s, 'Challenge ' + ch + ' complete' + (info ? ': ' + info.title : '') + '.', 4, 2);
   }
 
   // -------------------------------------------------------------------- step
@@ -1354,7 +1466,7 @@
     for (const key of ['slashTime', 'slashCooldown', 'dashTime', 'dashCooldown', 'invulnerable']) {
       p[key] = Math.max(0, p[key] - dt);
     }
-    s._messageTime = Math.max(0, s._messageTime - dt);
+    tickMessages(s, dt);
     const ax = Number.isFinite(input.ax) ? input.ax : 0, ay = Number.isFinite(input.ay) ? input.ay : 0;
     const aimLength = length(ax, ay);
     if (aimLength > .01) { p.aimX = ax / aimLength; p.aimY = ay / aimLength; }
@@ -1463,15 +1575,15 @@
         if (!p.prism) p.prism = 'carried';
         s.flags.prism = true;
         award(s, rkey(s, 'pickup', pk.id), 150);
-        announce(s, pk.text || 'A keeper’s prism. Press PRISM (Q) to set it down and bend the light; press again beside it to lift it.', 7);
+        announce(s, pk.text || 'A keeper’s prism. Press PRISM (Q) to set it down and bend the light; press again beside it to lift it.', 7, 2);
       } else if (pk.kind === 'heart') {
         p.maxHp++; p.hp = Math.min(p.maxHp, p.hp + 1);
         award(s, rkey(s, 'pickup', pk.id), 100);
-        announce(s, pk.text || 'A keeper’s heart: +1 maximum health.', 5);
+        announce(s, pk.text || 'A keeper’s heart: +1 maximum health.', 5, 2);
       } else {
         s.flags[pk.kind] = true;
         award(s, rkey(s, 'pickup', pk.id), 150);
-        announce(s, pk.text || (pk.kind === 'chart' ? 'The keeper chart marks the Bell Diver’s seams: it stays exposed longer.' : 'Found something.'), 6);
+        announce(s, pk.text || (pk.kind === 'chart' ? 'The keeper chart marks the Bell Diver’s seams: it stays exposed longer.' : 'Found something.'), 6, 2);
       }
     }
 
@@ -1485,8 +1597,8 @@
       spark(s, rescue.x, rescue.y, 'light', 25);
       if (rescue.completes) {
         s.status = 'won'; p.reflecting = false;
-        announce(s, rescue.text || 'Ilex is free. The first beacon answers. Courtyard complete.', 8);
-      } else announce(s, rescue.text || 'Ilex is free. "The sluice court is next — I’ll follow your light."', 6);
+        announce(s, rescue.text || 'Ilex is free. The first beacon answers. Courtyard complete.', 8, 3);
+      } else announce(s, rescue.text || 'Ilex is free. "The sluice court is next — I’ll follow your light."', 6, 2);
     }
 
     const beacon = s.beacon;
@@ -1503,7 +1615,7 @@
         spark(s, beacon.x, beacon.y, 'light', 30);
         announce(s, beacon.text || (s.regionId === 'tidal-abbey' ?
           'The abbey beacon burns again. The Tidal Abbey is restored.' :
-          'The ' + regionName(s.regionId) + ' beacon burns again. The ' + regionName(s.regionId) + ' is restored.'), 10);
+          'The ' + regionName(s.regionId) + ' beacon burns again. The ' + regionName(s.regionId) + ' is restored.'), 10, 3);
       }
     }
 
@@ -1513,7 +1625,7 @@
       else if (s._exitArmed && touching.to) {
         if (enterRoom(s, touching.to, touching.spawn)) return s;
         s._exitArmed = false;
-        announce(s, 'That way is sealed for now.', 2);
+        announce(s, 'That way is sealed for now.', 2, 0);
       }
     }
     checkClear(s);
@@ -1526,7 +1638,7 @@
       return particle.life > 0;
     });
     s.objective = objective(s);
-    if (s._messageTime === 0 && s.status === 'playing') s.message = '';
+    if (s._messageTime === 0 && s.status === 'playing' && !nextMessage(s)) s.message = '';
     return s;
   }
 
@@ -1541,7 +1653,7 @@
       const bridge = s.bridges.some(b => overlapCircle(x, y, r, b));
       const crowded = bodies(s).some(o => o !== p && length(o.x - x, o.y - y) < o.r + r);
       if (!inside || solid || wet || bridge || crowded) {
-        announce(s, 'The prism needs dry, open ground.', 2);
+        announce(s, 'The prism needs dry, open ground.', 2, 0);
         return;
       }
       let index = Math.round(Math.atan2(p.aimY, p.aimX) / (Math.PI / 4)) % 8;
@@ -1551,17 +1663,17 @@
       p.prism = 'placed'; s.prismRoom = s.roomId;
       spark(s, x, y, 'light', 10);
       s.rings.push({ x, y, r, maxR: r + 30, speed: 120, life: 1, hostile: false, kind: 'prism' });
-      announce(s, 'Prism set. Slash beside it to turn it; press PRISM beside it to lift it.', 3);
+      announce(s, 'Prism set. Slash beside it to turn it; press PRISM beside it to lift it.', 3, 0);
       return;
     }
     if (p.prism === 'placed') {
       const m = placedPrism(s);
       if (!m) { p.prism = 'carried'; s.prismRoom = null; return; }
-      if (length(m.x - p.x, m.y - p.y) > 80) { announce(s, 'Walk back to lift the prism.', 2); return; }
+      if (length(m.x - p.x, m.y - p.y) > 80) { announce(s, 'Walk back to lift the prism.', 2, 0); return; }
       s.mirrors = s.mirrors.filter(q => !q.portable);
       p.prism = 'carried'; s.prismRoom = null;
       spark(s, m.x, m.y, 'light', 8);
-      announce(s, 'Prism lifted.', 1.5);
+      announce(s, 'Prism lifted.', 1.5, 0);
     }
   }
   function slashWorld(s) {
@@ -1570,14 +1682,14 @@
       if (!g.alive || !overlapCircle(p.x, p.y, 56, g)) continue;
       g.alive = false; g.timer = g.regrow; g.held = false;
       spark(s, g.x + g.w / 2, g.y + g.h / 2, 'growth', 12);
-      announce(s, g.regrow > 0 ? 'Bramble cut. It will grow back.' : 'Bramble cut.', 1.6);
+      announce(s, g.regrow > 0 ? 'Bramble cut. It will grow back.' : 'Bramble cut.', 1.6, 0);
     }
     for (const l of s.levers) {
       if (l.pulled || length(l.x - p.x, l.y - p.y) > 60) continue;
       l.pulled = true; s.flags[l.flag] = true; s.flags['lever:' + l.id] = true;
       award(s, rkey(s, 'lever', l.id), 50);
       spark(s, l.x, l.y, 'light', 10);
-      announce(s, l.text || 'The lever drops with a clunk.', 4);
+      announce(s, l.text || 'The lever drops with a clunk.', 4, 2);
     }
   }
   function mortarSlash(s, e) {
@@ -1586,13 +1698,13 @@
       e.hp = Math.max(0, e.hp - 1); e.flash = .35;
       spark(s, e.x, e.y, 'slash', 12);
       if (e.hp === 0) defeat(s, e);
-      else announce(s, 'Through the soft bark! One more strike.', 1.6);
+      else announce(s, 'Through the soft bark! One more strike.', 1.6, 0);
     } else {
       e.clang = .35;
       spark(s, e.x + e.facingX * e.r, e.y + e.facingY * e.r, 'spark', 8);
       s.rings.push({ x: e.x + e.facingX * e.r, y: e.y + e.facingY * e.r, r: 6, maxR: 34, speed: 140,
         life: 1, hostile: false, kind: 'clang' });
-      announce(s, 'Clang! The bark plate faces you. Strike from behind or the side.', 2);
+      announce(s, 'Clang! The bark plate faces you. Strike from behind or the side.', 2, 0);
     }
   }
 

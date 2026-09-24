@@ -100,3 +100,22 @@ asserts the abbey beacon gives 'cleared', Continue enters spillway, captures all
 six aqueduct rooms, then a declared fixture wins at the reservoir beacon.
 Linux: PW_CHROME=/opt/pw-browsers/chromium (Playwright from /opt/node22). If a
 six-size run flakes on timing, rerun one size per process (PW_VIEWPORTS).
+
+## September23 Glass Kiln route checks
+
+`node prism-warden/tools/kiln-pilot.cjs` first plays the legal-input Aqueduct route,
+continues through the reservoir beacon, then exercises C1-C5 through `PW.step`.
+The pilot uses hidden simulation state to select routes and react to encounters;
+it proves a deterministic route is available, not human discovery or enjoyment.
+The optional Quench Gallery is checked for manifest connectivity; this route pilot
+does not claim its pickup has a distinct combat effect.
+
+Focused regression also checks active cold bridge movement/water cancellation,
+thermal determinism, solid collision, hazard grace, idle challenge completion and
+the C1-C5 pilot result. Run `node node_modules/jest/bin/jest.js prism-warden-kiln
+--runInBand` for this set and the full command at the top before every commit.
+`node prism-warden/tools/audio-audit.cjs` uses browser `OfflineAudioContext` to
+render opening and Weaver arrangements plus phase/glass/boss cues; it checks finite,
+non-silent samples and output headroom, but it does not substitute for a human listen.
+The Glass Kiln authoring is a chapter increment: Regions 4-5, full campaign ending,
+dedicated Weaver behavior, and a gameplay effect for Glass Edge are still debt.

@@ -44,15 +44,19 @@
     },
     {
       id: 'glass-kiln', number: 3, name: 'Glass Kiln', epithet: 'The furnace below the tide',
-      route: 'reservoir lock -> furnace lanes -> cooling rail -> weaver foundry',
-      rooms: [{ id: 'lock', name: 'Reservoir Lock' }, { id: 'furnace', name: 'Furnace Lanes' }, { id: 'bridge', name: 'Annealed Bridge' }, { id: 'rail', name: 'Cooling Rail' }, { id: 'foundry', name: 'Weaver Foundry' }, { id: 'quench', name: 'Optional Quench Valve' }],
-      links: [['lock', 'furnace'], ['furnace', 'bridge'], ['bridge', 'rail'], ['rail', 'foundry'], ['furnace', 'quench'], ['quench', 'rail']],
+      route: 'reservoir beacon -> furnace lanes -> annealed bridge -> cooling rail -> foundry locks -> Weaver arena',
+      rooms: [{ id: 'furnace', name: 'Furnace Lanes' }, { id: 'bridge', name: 'Annealed Bridge' }, { id: 'rail', name: 'Cooling Rail' }, { id: 'foundry', name: 'Foundry Locks' }, { id: 'weaver', name: 'Glass Weaver Arena' }, { id: 'quench', name: 'Optional Quench Valve' }],
+      links: [['furnace', 'bridge'], ['bridge', 'rail'], ['rail', 'foundry'], ['foundry', 'weaver'], ['furnace', 'quench'], ['quench', 'bridge']],
       challenges: [
         { id: 'C1', title: 'Alternating Furnace', mechanic: 'read heat pulses and cross the safe lane before it seals', optional: 'quench valve', guardian: 'Kiln Watch' },
         { id: 'C2', title: 'Annealed Bridge', mechanic: 'control heat to harden a temporary glass crossing', optional: 'artisan cache', guardian: 'Heatbound Mason' },
-        { id: 'C3', title: 'Cooling Cart', mechanic: 'escort a cooling cart through crossfire and hot vents', optional: 'vent bypass', guardian: 'Cinder Porter' },
-        { id: 'C4', title: 'Hot / Cold Locks', mechanic: 'route competing beams through foundry locks', optional: 'lens polarity', guardian: 'Thermal Choir' },
-        { id: 'C5', title: 'Glass Weaver', mechanic: 'fight a guardian that breaks and rebuilds cover', optional: 'weapon attachment', guardian: 'Glass Weaver' }
+        { id: 'C3', title: 'Cooling Cart', mechanic: 'escort a cooling cart through crossfire and hot vents', optional: 'quench bypass', guardian: 'Cinder Porter' },
+        { id: 'C4', title: 'Hot / Cold Locks', mechanic: 'route competing beams through foundry locks on opposite heat phases', optional: 'quenched vent route', guardian: 'Thermal Choir' },
+        { id: 'C5', title: 'Glass Weaver', mechanic: 'fight the Weaver among cover that reforms with each kiln pulse', optional: 'Glass Edge attachment', guardian: 'Glass Weaver' }
+      ],
+      discoveries: [
+        { flag: 'quench-valve', label: 'Quench valve spur', hint: 'the optional quench valve opens a dry return spur to the Annealed Bridge’s west bank' },
+        { flag: 'kiln-edge', label: 'Glass Edge attachment', hint: 'a tempered attachment waits in the quench gallery' }
       ]
     },
     {
@@ -648,7 +652,8 @@
       { id: 'flood-se', x: 690, y: 440, w: 110, h: 256, when: { flag: 'dam:dam-se' } }
     ],
     enemies: [{ type: 'hart', id: 'root-hart', x: 540, y: 260, r: 34, hp: 8, wakeRadius: 380 }],
-    beacon: { x: 512, y: 130, requires: ['root-hart'] },
+    beacon: { x: 512, y: 130, requires: ['root-hart'], next: { room: 'furnace', spawn: { x: 84, y: 384 } },
+      text: 'The reservoir beacon steadies. Beyond it, the Glass Kiln breathes beneath the tide.' },
     objectives: { approach: 'Approach the Root Hart', beacon: 'Reach the reservoir beacon' },
     exits: [
       { id: 'to-quay', x: 24, y: 344, w: 24, h: 80, to: 'quay', spawn: { x: 930, y: 384 } },
@@ -656,8 +661,226 @@
     ]
   };
 
+  // ---------------------------------------------------------------------------
+  // Region 3 authored rooms. Heat is one deterministic room clock; each glass
+  // patch says which half of that cycle it occupies. C1's broken divider makes
+  // the intended route alternate upper/lower/upper (or lower/upper/lower).
+  // ---------------------------------------------------------------------------
+  const furnace = {
+    id: 'furnace', region: 'glass-kiln', challenge: 'C1', name: 'Furnace Lanes', w: W, h: H,
+    intro: 'Read the kiln pulse. The safe lane switches sides at the broken divider: in heat, take the lower west lane then the upper east lane; in cooling, reverse them. Return the Kiln Watch’s shots to open the east lock.',
+    spawn: { x: 84, y: 384 },
+    thermal: { period: 8, hotFor: 4, offset: 0 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 296 }, { x: 24, y: 424, w: 24, h: 296 },
+      { x: 976, y: 48, w: 24, h: 296 }, { x: 976, y: 424, w: 24, h: 296 },
+      { x: 48, y: 48, w: 928, h: 32 },
+      { x: 48, y: 696, w: 424, h: 24 }, { x: 552, y: 696, w: 424, h: 24 },
+      // A broken spine: enter either lane, switch through its middle gap, reunite at the east.
+      { x: 160, y: 340, w: 300, h: 88 }, { x: 564, y: 340, w: 340, h: 88 },
+      { x: 300, y: 176, w: 52, h: 52 }, { x: 700, y: 540, w: 52, h: 52 }
+    ],
+    glass: [
+      { id: 'west-upper-hot', x: 168, y: 164, w: 280, h: 168, mode: 'hazard', when: 'hot' },
+      { id: 'west-lower-cold', x: 168, y: 436, w: 280, h: 168, mode: 'hazard', when: 'cold' },
+      { id: 'east-upper-cold', x: 576, y: 164, w: 312, h: 168, mode: 'hazard', when: 'cold' },
+      { id: 'east-lower-hot', x: 576, y: 436, w: 312, h: 168, mode: 'hazard', when: 'hot' }
+    ],
+    gates: [{ id: 'furnace-lock', x: 952, y: 344, w: 24, h: 80, opensWhen: { defeated: ['kiln-watch'] },
+      text: 'The Kiln Watch cracks. The furnace lock lifts.' }],
+    enemies: [{ type: 'sentinel', id: 'kiln-watch', x: 920, y: 300, r: 27, hp: 6, wakeRadius: 430 }],
+    clearWhen: { defeated: ['kiln-watch'] },
+    objectives: { fight: 'Read the alternating lanes · return the Kiln Watch’s shots', exit: 'East lock to the Annealed Bridge' },
+    exits: [
+      { id: 'to-bridge', x: 976, y: 344, w: 24, h: 80, to: 'bridge', spawn: { x: 84, y: 384 } },
+      { id: 'to-quench', x: 472, y: 696, w: 80, h: 24, to: 'quench', spawn: { x: 512, y: 116 } }
+    ]
+  };
+
+  // C2's cold glass anneals into a traversable span over the hot channel. A
+  // Reflected cooling light releases the east pressure lock. The banks confine
+  // the always-wet channel to this broad span; the optional quench return reaches
+  // only a dry pocket on the west bank.
+  const annealedBridge = {
+    id: 'bridge', region: 'glass-kiln', challenge: 'C2', name: 'Annealed Bridge', w: W, h: H,
+    intro: 'Turn the foundry mirror down to the cooling eye, then cross when the glass anneals cold. The span reheats on the next pulse; dash between the warning and the flare.',
+    spawn: { x: 84, y: 384 },
+    thermal: { period: 10, hotFor: 5, offset: 1 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 296 }, { x: 24, y: 424, w: 24, h: 296 },
+      { x: 976, y: 48, w: 24, h: 296 }, { x: 976, y: 424, w: 24, h: 296 },
+      { x: 48, y: 48, w: 928, h: 32 },
+      { x: 48, y: 696, w: 424, h: 24 }, { x: 552, y: 696, w: 424, h: 24 },
+      // Channel walls leave a 68px center lane, comfortably wider than the
+      // player's diameter. The upper west notch reaches the cooling mirror; the
+      // lower west notch reaches the quench pocket. Both end before the channel.
+      { x: 48, y: 280, w: 160, h: 70 }, { x: 272, y: 280, w: 680, h: 70 },
+      { x: 48, y: 418, w: 160, h: 70 }, { x: 272, y: 418, w: 680, h: 70 },
+      // The west-bank notch reaches the cooling mirror but dead-ends at this
+      // upper channel wall, so it cannot become a route around the cold span.
+      { x: 328, y: 80, w: 368, h: 200 },
+      { x: 328, y: 488, w: 368, h: 208 }
+    ],
+    water: [{ id: 'kiln-channel', x: 328, y: 320, w: 368, h: 128, when: 'always' }],
+    glass: [
+      { id: 'annealed-span', x: 328, y: 352, w: 368, h: 64, mode: 'bridge', when: 'cold' },
+      { id: 'reheating-span', x: 328, y: 352, w: 368, h: 64, mode: 'hazard', when: 'hot' }
+    ],
+    emitters: [{ id: 'bridge-sun', x: 92, y: 240, dx: 1, dy: 0 }],
+    mirrors: [{ id: 'cooling-mirror', x: 280, y: 240, r: 17, split: false, dirs: [[0, 1], [1, 0]], index: 1 }],
+    receivers: [{ id: 'cooling-eye', x: 280, y: 270, r: 20, kind: 'seal', text: 'The cooling eye opens the pressure lock.' }],
+    gates: [{ id: 'bridge-lock', x: 952, y: 344, w: 24, h: 80, opensWhen: { receivers: ['cooling-eye'] },
+      text: 'The cooling eye holds. The foundry lock swings east.' }],
+    clearWhen: { receivers: ['cooling-eye'] },
+    objectives: { seal: 'Turn the mirror down to the cooling eye', exit: 'Cross the glass span during its cold window · east lock to the Cooling Rail' },
+    exits: [
+      { id: 'to-furnace', x: 24, y: 344, w: 24, h: 80, to: 'furnace', spawn: { x: 930, y: 384 } },
+      { id: 'to-rail', x: 976, y: 344, w: 24, h: 80, to: 'rail', spawn: { x: 84, y: 384 } },
+      { id: 'to-quench', x: 112, y: 528, w: 64, h: 64, to: 'quench', spawn: { x: 900, y: 600 } }
+    ]
+  };
+
+  // C3 reuses the proven escort controller for a distinct load: the cooling cart
+  // travels the exposed center rail while the player jams two crossfire turrets.
+  const rail = {
+    id: 'rail', region: 'glass-kiln', challenge: 'C3', name: 'Cooling Rail', w: W, h: H,
+    intro: 'Keep within a short run of the cooling cart so it advances. Two turrets sight the rail from opposite banks: return their volleys to jam them, keep the cart moving, and screen its exposed center track.',
+    spawn: { x: 84, y: 384 },
+    thermal: { period: 12, hotFor: 6, offset: 2 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 296 }, { x: 24, y: 424, w: 24, h: 296 },
+      { x: 976, y: 48, w: 24, h: 296 }, { x: 976, y: 424, w: 24, h: 296 },
+      { x: 48, y: 48, w: 928, h: 32 },
+      { x: 48, y: 696, w: 928, h: 24 },
+      // Two loading alcoves protect the player from the rail's alternating vent fields.
+      { x: 272, y: 276, w: 48, h: 48 }, { x: 704, y: 444, w: 48, h: 48 }
+    ],
+    glass: [
+      { id: 'north-vent', x: 196, y: 112, w: 650, h: 128, mode: 'hazard', when: 'hot' },
+      { id: 'south-vent', x: 196, y: 528, w: 650, h: 128, mode: 'hazard', when: 'cold' }
+    ],
+    enemies: [
+      { type: 'turret', id: 'rail-turret-north', x: 420, y: 260, r: 16, targets: 'escort', interval: 2.6, delay: 2.4 },
+      { type: 'turret', id: 'rail-turret-south', x: 700, y: 508, r: 16, targets: 'escort', interval: 2.6, delay: 3.7 }
+    ],
+    escort: { name: 'Cooling Cart', x: 132, y: 384, hp: 5, flag: 'cart-delivered',
+      text: 'The cooling cart reaches the foundry rail. Its chilled reservoir stabilizes the locks.',
+      path: [[260, 384], [410, 384], [560, 384], [710, 384], [900, 384]] },
+    escortExit: { x: 876, y: 344, w: 72, h: 80 },
+    gates: [{ id: 'rail-lock', x: 952, y: 344, w: 24, h: 80, opensWhen: { flag: 'cart-delivered' },
+      text: 'The cart reaches the switch. The foundry lock lifts.' }],
+    clearWhen: { escort: true },
+    objectives: { escort: 'Stay near the cart · return the turrets’ shots · keep it on the rail', exit: 'East lock to the Foundry Locks' },
+    exits: [
+      { id: 'to-bridge', x: 24, y: 344, w: 24, h: 80, to: 'bridge', spawn: { x: 930, y: 384 } },
+      { id: 'to-foundry', x: 976, y: 344, w: 24, h: 80, to: 'foundry', spawn: { x: 84, y: 384 } }
+    ]
+  };
+
+  // C4 makes two independently redirected rays depend on opposite halves of the
+  // thermal clock. Each latched lock survives the phase change while the second
+  // ray is routed, so the puzzle is timed in execution, not in arbitrary luck.
+  const foundry = {
+    id: 'foundry', region: 'glass-kiln', challenge: 'C4', name: 'Foundry Locks', w: W, h: H,
+    intro: 'The hot lock accepts its ray only in heat; the cold lock only while the far screen cools clear. Slash each mirror toward its receiver in the matching phase. The first lock stays latched while you route the second.',
+    spawn: { x: 84, y: 384 },
+    thermal: { period: 12, hotFor: 6, offset: 0 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 296 }, { x: 24, y: 424, w: 24, h: 296 },
+      { x: 976, y: 48, w: 24, h: 296 }, { x: 976, y: 424, w: 24, h: 296 },
+      { x: 48, y: 48, w: 928, h: 32 }, { x: 48, y: 696, w: 928, h: 24 },
+      // Dividing furnace wall leaves one guarded crossing between the two circuits.
+      { x: 500, y: 80, w: 24, h: 264 }, { x: 500, y: 424, w: 24, h: 272 },
+      { x: 276, y: 500, w: 44, h: 44 }, { x: 760, y: 220, w: 44, h: 44 }
+    ],
+    glass: [
+      { id: 'hot-ray-screen', x: 208, y: 204, w: 28, h: 32, mode: 'solid', when: 'cold' },
+      { id: 'cold-ray-screen', x: 816, y: 536, w: 28, h: 32, mode: 'solid', when: 'hot' }
+    ],
+    emitters: [
+      { id: 'west-foundry-sun', x: 88, y: 220, dx: 1, dy: 0 },
+      { id: 'east-foundry-sun', x: 936, y: 552, dx: -1, dy: 0 }
+    ],
+    mirrors: [
+      { id: 'hot-lock-mirror', x: 360, y: 220, r: 17, split: false, dirs: [[0, 1], [1, 0]], index: 1 },
+      { id: 'cold-lock-mirror', x: 664, y: 552, r: 17, split: false, dirs: [[0, -1], [-1, 0]], index: 1 }
+    ],
+    receivers: [
+      { id: 'hot-lock', x: 360, y: 628, r: 24, kind: 'seal', text: 'The hot foundry lock latches.' },
+      { id: 'cold-lock', x: 664, y: 144, r: 24, kind: 'seal', text: 'The cold foundry lock latches.' }
+    ],
+    gates: [{ id: 'weaver-gate', x: 952, y: 344, w: 24, h: 80, opensWhen: { receivers: ['hot-lock', 'cold-lock'] },
+      text: 'Both foundry locks answer. The Weaver’s arena opens.' }],
+    clearWhen: { receivers: ['hot-lock', 'cold-lock'] },
+    objectives: { seal: 'Route the hot ray during heat, then the cold ray during cooling', exit: 'Both locks to the Glass Weaver arena' },
+    exits: [
+      { id: 'to-rail', x: 24, y: 344, w: 24, h: 80, to: 'rail', spawn: { x: 930, y: 384 } },
+      { id: 'to-weaver', x: 976, y: 344, w: 24, h: 80, to: 'weaver', spawn: { x: 84, y: 384 } }
+    ]
+  };
+
+  // The existing sentinel combat controller supplies the return-fire/exposure
+  // loop. Alternating panes give the Weaver's arena rebuilding cover; a dedicated
+  // multi-phase Weaver controller remains an integration debt, not a fake claim.
+  const weaver = {
+    id: 'weaver', region: 'glass-kiln', challenge: 'C5', name: 'Glass Weaver Arena', w: W, h: H,
+    intro: 'The Glass Weaver guards a chamber where the panes shift with each kiln pulse. Return its volleys to expose it, then strike during the opening; hot glass fractures as cold glass reforms, changing which orbit lane offers cover.',
+    spawn: { x: 84, y: 384 },
+    thermal: { period: 14, hotFor: 7, offset: 2 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 296 }, { x: 24, y: 424, w: 24, h: 296 },
+      { x: 976, y: 48, w: 24, h: 672 },
+      { x: 48, y: 48, w: 424, h: 32 }, { x: 552, y: 48, w: 424, h: 32 },
+      { x: 48, y: 696, w: 928, h: 24 },
+      // Foundry crucible columns leave two readable orbit lanes.
+      { x: 472, y: 250, w: 80, h: 44 }, { x: 472, y: 474, w: 80, h: 44 }
+    ],
+    glass: [
+      { id: 'west-growing-pane', x: 300, y: 292, w: 48, h: 176, mode: 'solid', when: 'cold' },
+      { id: 'west-fracture-field', x: 300, y: 292, w: 48, h: 176, mode: 'hazard', when: 'hot' },
+      { id: 'east-growing-pane', x: 676, y: 292, w: 48, h: 176, mode: 'solid', when: 'hot' },
+      { id: 'east-fracture-field', x: 676, y: 292, w: 48, h: 176, mode: 'hazard', when: 'cold' }
+    ],
+    enemies: [{ type: 'sentinel', id: 'glass-weaver', x: 800, y: 384, r: 32, hp: 10, wakeRadius: 440,
+      text: 'The Glass Weaver’s frame buckles. The kiln beacon wakes beyond the crucible.' }],
+    beacon: { x: 512, y: 138, requires: ['glass-weaver'],
+      text: 'The Glass Kiln beacon steadies. The Observatory lift remains sealed beyond this chapter.' },
+    clearWhen: { defeated: ['glass-weaver'] },
+    objectives: { fight: 'Return the Weaver’s shots · strike when its glass frame opens', beacon: 'Reach the kiln beacon', exit: 'Defeat the Glass Weaver · reach the kiln beacon', won: 'Glass Kiln chapter complete · the Observatory passage remains sealed' },
+    exits: [{ id: 'to-foundry', x: 24, y: 344, w: 24, h: 80, to: 'foundry', spawn: { x: 930, y: 384 } }]
+  };
+
+  // The valve room is an optional C1 detour. It awards a distinct pickup flag,
+  // then opens a side entry into C2's dry west-bank pocket, so the player still
+  // crosses the annealed span to leave the room.
+  const quench = {
+    id: 'quench', region: 'glass-kiln', challenge: null, name: 'Quench Gallery', w: W, h: H,
+    intro: 'Pull the quench valve to open a dry return spur into the bridge room’s west bank. An artisan left a tempered attachment in the gallery.',
+    spawn: { x: 512, y: 116 },
+    walls: [
+      { x: 24, y: 48, w: 424, h: 32 }, { x: 552, y: 48, w: 424, h: 32 },
+      { x: 24, y: 80, w: 24, h: 640 },
+      { x: 976, y: 48, w: 24, h: 296 }, { x: 976, y: 424, w: 24, h: 296 },
+      { x: 48, y: 696, w: 928, h: 24 },
+      { x: 250, y: 260, w: 120, h: 28 }, { x: 650, y: 476, w: 120, h: 28 }
+    ],
+    levers: [{ id: 'quench-valve', x: 840, y: 384, flag: 'quench-valve',
+      text: 'The quench valve vents the furnace. A dry return spur opens to the bridge room’s west bank.' }],
+    gates: [{ id: 'quench-side-gate', x: 952, y: 344, w: 24, h: 80, optional: true, opensWhen: { flag: 'quench-valve' },
+      text: 'The dry return spur opens to the Annealed Bridge’s west bank.' }],
+    pickups: [{ id: 'kiln-edge', kind: 'kiln-edge', x: 220, y: 600,
+      text: 'Glass Edge attachment: a tempered tooth from the kiln artisan’s final set.' }],
+    clearWhen: { flag: 'quench-valve' },
+    objectives: { route: 'Pull the quench valve · take the Glass Edge', exit: 'Return spur to the Annealed Bridge’s west bank' },
+    exits: [
+      { id: 'to-furnace', x: 472, y: 48, w: 80, h: 32, to: 'furnace', spawn: { x: 512, y: 640 } },
+      { id: 'to-bridge', x: 976, y: 344, w: 24, h: 80, to: 'bridge', spawn: { x: 240, y: 560 } }
+    ]
+  };
+
   const rooms = { cloister, sluice, sanctuary, shutters, 'bell-tower': bellTower, beacon,
-    spillway, roots, channels, quay, ferry, reservoir };
+    spillway, roots, channels, quay, ferry, reservoir,
+    furnace, bridge: annealedBridge, rail, foundry, weaver, quench };
   PW.ROOMS = rooms;
   // Always hand out a fresh deep copy so runtime state can never mutate the authored data.
   PW.roomDef = id => Object.prototype.hasOwnProperty.call(rooms, id) ? JSON.parse(JSON.stringify(rooms[id])) : null;

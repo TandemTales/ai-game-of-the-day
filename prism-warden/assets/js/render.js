@@ -166,6 +166,8 @@
   const OPTIONAL_ROOMS = ['sanctuary', 'ferry'];
 
   // ---------------------------------------------------------------- themes
+  const KILN_THEME = { grade: ['#ffe5bd', '#291b39'], floor: 'kiln', stone: [220, 13, 30], joint: '#0c1012', moss: 0, puddles: 0, top: [207, 16, 34], face: [215, 22, 22], wall: 'basalt', ambient: [102, 102, 112], void: '#080a10', vignette: .74, decor: 'kiln', water: [196, 72, 24], title: 'The furnace below the tide' };
+  const kilnTheme = title => Object.assign({}, KILN_THEME, { title });
   const THEMES = {
     cloister: { grade: ['#ffe2b0', '#1d5a6a'], floor: 'flag', stone: [96, 9, 41], joint: '#1b2523', moss: .6, puddles: 5, top: [44, 16, 58], face: [38, 16, 33], wall: 'ashlar', ambient: [134, 140, 154], void: '#081b23', vignette: .5, decor: 'cloister', water: [185, 60, 26], title: 'The drowned cloister' },
     sluice: { grade: ['#cfe8f0', '#12384a'], floor: 'slate', stone: [203, 13, 33], joint: '#0e171c', moss: .45, puddles: 11, top: [200, 9, 45], face: [205, 14, 25], wall: 'slate', ambient: [112, 128, 150], void: '#05131b', vignette: .58, decor: 'sluice', water: [188, 64, 24], title: 'Where the sea is let in' },
@@ -179,10 +181,20 @@
     channels: { grade: ['#ffe6b0', '#1a4436'], floor: 'spicatum', stone: [20, 36, 42], joint: '#23160e', moss: .9, puddles: 2, top: [36, 22, 49], face: [26, 26, 28], wall: 'aqueduct', ambient: [170, 170, 140], void: '#0a1810', vignette: .5, decor: 'verdant', sub: 'channels', water: [168, 64, 28], title: 'The canals turn on their stones' },
     quay: { grade: ['#fff0c0', '#1e4238'], floor: 'planks', stone: [34, 24, 44], joint: '#141a12', moss: .8, puddles: 0, top: [42, 18, 50], face: [34, 22, 28], wall: 'aqueduct', ambient: [168, 172, 146], void: '#08160f', vignette: .52, decor: 'verdant', sub: 'quay', water: [170, 58, 26], title: 'The ferrymen’s landing' },
     reservoir: { grade: ['#ffeab0', '#1a3a26'], floor: 'travertine', stone: [46, 22, 52], joint: '#1a1c12', moss: 1.3, puddles: 2, top: [46, 14, 46], face: [36, 18, 26], wall: 'aqueduct', ambient: [164, 170, 132], void: '#07130b', vignette: .56, decor: 'verdant', sub: 'reservoir', water: [164, 56, 24], title: 'The hart drinks here' },
-    ferry: { grade: ['#ffd89a', '#23402a'], floor: 'planks', stone: [30, 30, 32], joint: '#1a120a', moss: .9, puddles: 0, top: [38, 20, 46], face: [30, 24, 26], wall: 'aqueduct', ambient: [132, 136, 112], void: '#08130c', vignette: .66, decor: 'verdant', sub: 'ferry', water: [168, 56, 25], title: 'A lantern on the water' }
+    ferry: { grade: ['#ffd89a', '#23402a'], floor: 'planks', stone: [30, 30, 32], joint: '#1a120a', moss: .9, puddles: 0, top: [38, 20, 46], face: [30, 24, 26], wall: 'aqueduct', ambient: [132, 136, 112], void: '#08130c', vignette: .66, decor: 'verdant', sub: 'ferry', water: [168, 56, 25], title: 'A lantern on the water' },
+    lock: kilnTheme('The reservoir lock'),
+    furnace: kilnTheme('Read the furnace pulse'),
+    anneal: kilnTheme('A bridge made by heat'),
+    bridge: kilnTheme('A bridge made by heat'),
+    cart: kilnTheme('Keep the cooling cart moving'),
+    rail: kilnTheme('Keep the cooling cart moving'),
+    foundry: kilnTheme('Two temperatures, one circuit'),
+    weaver: kilnTheme('The glass remembers the blow'),
+    quench: kilnTheme('The quench valve'),
+    'optional-quench': kilnTheme('The quench valve')
   };
   function regionOf(s) { return (s.room && s.room.region) || s.regionId || ''; }
-  function themeFor(s) { return THEMES[roomId(s)] || (regionOf(s) === 'verdant-aqueduct' ? THEMES.spillway : THEMES.cloister); }
+  function themeFor(s) { return THEMES[roomId(s)] || (regionOf(s) === 'glass-kiln' ? KILN_THEME : regionOf(s) === 'verdant-aqueduct' ? THEMES.spillway : THEMES.cloister); }
 
   // ---------------------------------------------------------------- static layer
   function stonePath(g, x, y, w, h, rng, j) {
@@ -352,7 +364,26 @@
       g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
     }
   }
-  const FLOORS = { flag: floorFlag, slate: floorSlate, octa: floorOcta, planks: floorPlanks, cobble: floorCobble, travertine: floorTravertine, spicatum: floorSpicatum };
+  function floorKiln(g, W, H, rng) {
+    // Refractory ironstone plates with fine brass joints; dynamic glass owns the bright accents.
+    g.fillStyle = '#111518'; g.fillRect(0, 0, W, H);
+    const sw = 48, sh = 32;
+    for (let y = 0, row = 0; y < H; y += sh, row++) for (let x = -(row % 2) * sw / 2; x < W; x += sw) {
+      const bx = x + 1.5, by = y + 1.5, bw = sw - 3, bh = sh - 3;
+      stone(g, bx, by, bw, bh, hsl(24 + rng() * 12, 12 + rng() * 12, 19 + rng() * 9), rng,
+        { jit: .6, hi: .12, lo: .3, rim: .17, speck: 90, crack: .025, chip: .03 });
+      if ((row + Math.round(x / sw)) % 4 === 0) {
+        const vx = bx + bw * .2, vy = by + bh * .52;
+        line(g, vx, vy, vx + bw * .6, vy, 'rgba(5,8,9,.72)', 2.4);
+        line(g, vx + 2, vy - 1, vx + bw * .6 - 2, vy - 1, 'rgba(178,119,67,.28)', .8);
+        for (let n = 0; n < 3; n++) circle(g, vx + 4 + n * 6, vy + 3, .8, 'rgba(225,168,104,.36)');
+      }
+    }
+    const shade = g.createRadialGradient(W * .5, H * .48, 30, W * .5, H * .48, Math.max(W, H) * .72);
+    shade.addColorStop(0, 'rgba(70,100,115,.07)'); shade.addColorStop(1, 'rgba(0,0,0,.27)');
+    g.fillStyle = shade; g.fillRect(0, 0, W, H);
+  }
+  const FLOORS = { flag: floorFlag, slate: floorSlate, octa: floorOcta, planks: floorPlanks, cobble: floorCobble, travertine: floorTravertine, spicatum: floorSpicatum, kiln: floorKiln };
 
   function mossClump(g, x, y, size, rng, alpha) {
     for (let i = 0; i < 7; i++) {
@@ -1056,6 +1087,20 @@
         else circle(g, x, y, 1.6, 'rgba(230,235,230,.45)');
       }
     }
+    if (th.decor === 'kiln') {
+      // Old annealing sockets: dark iron mouths ringed in hand-set copper.
+      for (const p of spots(s, rng, 4, 34, 150, 260, W, H)) {
+        circle(g, p.x, p.y + 2, 19, 'rgba(0,0,0,.38)');
+        circle(g, p.x, p.y, 14, '#1a1a1c', '#8d6746', 2.2);
+        circle(g, p.x, p.y, 9, '#101417', 'rgba(216,157,97,.46)', 1.2);
+        for (let i = 0; i < 8; i++) {
+          const a = i * TAU / 8;
+          line(g, p.x + Math.cos(a) * 5, p.y + Math.sin(a) * 5, p.x + Math.cos(a) * 11, p.y + Math.sin(a) * 11, 'rgba(213,151,90,.48)', 1.2);
+        }
+        circle(g, p.x, p.y, 3.2, '#7c3927', 'rgba(255,147,82,.48)', 1);
+        meta.lights.push({ x: p.x, y: p.y, r: 105, rgb: '255,112,57', a: .24, flicker: 1 });
+      }
+    }
   }
   function exterior(g, s, th, rng, W, H) {
     // Everything outside the wall ring is the world beyond: open sea or deep shadow.
@@ -1201,6 +1246,108 @@
 
   // ---------------------------------------------------------------- dynamic world pieces
   let floodLabel = null;
+  function glassWhenHot(g) { return g.when === 'hot'; }
+  function drawGlass(ctx, s, t) {
+    let nearest = null;
+    const player = s.player;
+    for (const g of arr(s.glass).filter(finiteRect)) {
+      const hotWhen = glassWhenHot(g), active = !!g.active, bridge = g.mode === 'bridge', solid = g.mode === 'solid' || bridge, hot = hotWhen;
+      const warn = clamp(num(g.warning, 0), 0, 1), cx = g.x + g.w / 2, cy = g.y + g.h / 2;
+      const color = hot ? '255,111,48' : '95,197,255';
+      ctx.save();
+      ctx.fillStyle = active ? `rgba(${color},${solid ? .19 : .31})` : `rgba(${color},.035)`;
+      ctx.fillRect(g.x, g.y, g.w, g.h);
+      if (active && solid) {
+        // A cut, annealed slab: a colored body, beveled edges and wide optical facets.
+        const grad = ctx.createLinearGradient(g.x, g.y, g.x + g.w, g.y + g.h);
+        grad.addColorStop(0, 'rgba(121,224,255,.34)'); grad.addColorStop(.34, 'rgba(164,125,255,.22)');
+        grad.addColorStop(.66, 'rgba(255,174,105,.2)'); grad.addColorStop(1, 'rgba(106,229,223,.3)');
+        ctx.fillStyle = grad; ctx.fillRect(g.x + 2, g.y + 2, Math.max(0, g.w - 4), Math.max(0, g.h - 4));
+        ctx.save(); ctx.beginPath(); ctx.rect(g.x + 2, g.y + 2, Math.max(0, g.w - 4), Math.max(0, g.h - 4)); ctx.clip();
+        const step = Math.max(22, Math.min(44, Math.min(g.w, g.h) * .35));
+        for (let x = g.x - g.h; x < g.x + g.w; x += step) {
+          poly(ctx, [[x, g.y], [x + step * .55, g.y], [x + g.h * .42, g.y + g.h], [x + g.h * .05, g.y + g.h]], 'rgba(223,249,255,.075)');
+        }
+        if (g.w > 30 && g.h > 24) {
+          for (let y = g.y + 18; y < g.y + g.h - 8; y += 28) line(ctx, g.x + 5, y, g.x + g.w - 5, y + Math.sin(y * .07) * 2, 'rgba(222,249,255,.17)', 1);
+        }
+        ctx.restore();
+        ctx.strokeStyle = 'rgba(12,27,36,.88)'; ctx.lineWidth = 6; ctx.strokeRect(g.x + 1, g.y + 1, g.w - 2, g.h - 2);
+        ctx.strokeStyle = bridge ? 'rgba(181,241,255,.98)' : 'rgba(199,246,255,.88)'; ctx.lineWidth = bridge ? 2.3 : 1.7; ctx.strokeRect(g.x + 4, g.y + 4, g.w - 8, g.h - 8);
+        line(ctx, g.x + 7, g.y + 6, g.x + g.w - 10, g.y + 6, 'rgba(255,255,255,.7)', 1.1);
+        if (bridge) {
+          // Raised, walkable span: bright twin deck rails and cross joints distinguish it from a cover slab.
+          const horiz = g.w >= g.h, span = horiz ? g.w : g.h, across = horiz ? g.h : g.w;
+          const stride = Math.max(18, span / 22), rail = 'rgba(169,239,255,.96)';
+          for (const edge of [4, Math.max(4, across - 4)]) {
+            if (horiz) line(ctx, g.x + 5, g.y + edge, g.x + g.w - 5, g.y + edge, rail, 2.3);
+            else line(ctx, g.x + edge, g.y + 5, g.x + edge, g.y + g.h - 5, rail, 2.3);
+          }
+          for (let d = stride; d < span - 5; d += stride) {
+            if (horiz) line(ctx, g.x + d, g.y + 5, g.x + d, g.y + g.h - 5, 'rgba(222,250,255,.4)', 1.1);
+            else line(ctx, g.x + 5, g.y + d, g.x + g.w - 5, g.y + d, 'rgba(222,250,255,.4)', 1.1);
+          }
+          // Faceted lead-in catches light and makes the span read as a path underfoot.
+          if (horiz) poly(ctx, [[g.x + 5, g.y + 5], [g.x + 16, g.y + 5], [g.x + 29, cy], [g.x + 16, g.y + g.h - 5], [g.x + 5, g.y + g.h - 5]], 'rgba(224,250,255,.2)');
+          else poly(ctx, [[g.x + 5, g.y + 5], [g.x + g.w - 5, g.y + 5], [cx, g.y + 18], [g.x + 5, g.y + 31]], 'rgba(224,250,255,.2)');
+        }
+        for (const [fx, fy] of [[g.x + 7, g.y + 7], [g.x + g.w - 7, g.y + 7], [g.x + 7, g.y + g.h - 7], [g.x + g.w - 7, g.y + g.h - 7]]) {
+          circle(ctx, fx, fy, 2.1, '#d9fbff', 'rgba(72,143,174,.9)', .8);
+        }
+        glowQueue.push([cx, cy, Math.min(72, Math.max(28, Math.min(g.w, g.h) * .55)), '134,205,255', .27]);
+      } else if (active) {
+        // Active hazard glass is visibly molten (or cryogenic), with moving convection lines.
+        const grad = ctx.createLinearGradient(g.x, g.y, g.x + g.w * .3, g.y + g.h);
+        if (hot) { grad.addColorStop(0, 'rgba(255,221,129,.55)'); grad.addColorStop(.22, 'rgba(255,104,42,.74)'); grad.addColorStop(.7, 'rgba(186,42,26,.73)'); grad.addColorStop(1, 'rgba(80,22,24,.58)'); }
+        else { grad.addColorStop(0, 'rgba(196,250,255,.42)'); grad.addColorStop(.35, 'rgba(76,183,245,.56)'); grad.addColorStop(1, 'rgba(35,70,156,.55)'); }
+        ctx.fillStyle = grad; ctx.fillRect(g.x + 2, g.y + 2, Math.max(0, g.w - 4), Math.max(0, g.h - 4));
+        ctx.save(); ctx.beginPath(); ctx.rect(g.x + 2, g.y + 2, Math.max(0, g.w - 4), Math.max(0, g.h - 4)); ctx.clip();
+        const alongX = g.w >= g.h, span = alongX ? g.w : g.h, across = alongX ? g.h : g.w;
+        const rows = Math.min(11, Math.max(3, Math.ceil(across / 11)));
+        for (let i = 0; i < rows; i++) {
+          const base = (i + .5) * across / rows, amp = Math.min(5, across / 12);
+          ctx.beginPath();
+          for (let u = 0, stride = Math.max(12, span / 48); u <= span; u += stride) {
+            const wave = Math.sin(u * .055 - t * 7 + i * 1.9) * amp;
+            const x = alongX ? g.x + u : g.x + base + wave, y = alongX ? g.y + base + wave : g.y + u;
+            u ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+          }
+          ctx.strokeStyle = hot ? `rgba(255,${i % 2 ? 203 : 143},83,${.18 + .1 * Math.sin(t * 4 + i)})` : `rgba(200,249,255,${.23 + .08 * Math.sin(t * 4 + i)})`;
+          ctx.lineWidth = i % 3 === 0 ? 2 : 1; ctx.stroke();
+        }
+        ctx.restore();
+        const pulse = .7 + .3 * Math.sin(t * (hot ? 10 : 6) + cx * .03);
+        ctx.strokeStyle = warn > 0 ? `rgba(255,244,200,${.48 + .45 * warn})` : hot ? `rgba(255,184,102,${.62 * pulse})` : 'rgba(171,237,255,.67)';
+        ctx.lineWidth = warn > 0 ? 3.4 : 2.2; ctx.strokeRect(g.x + 2, g.y + 2, g.w - 4, g.h - 4);
+        for (let i = 0; hot && i < 4; i++) {
+          const ph = (t * .23 + i * .271 + cx * .001) % 1;
+          const sx = g.x + 7 + ph * Math.max(1, g.w - 14), sy = g.y + 4 + ((i * 37 + ph * 29) % Math.max(8, g.h - 8));
+          const composite = ctx.globalCompositeOperation; ctx.globalCompositeOperation = 'lighter';
+          bloom(ctx, sx, sy, 3.5 + (1 - ph) * 2, '255,194,103', .42 * (1 - ph));
+          ctx.globalCompositeOperation = composite;
+        }
+        glowQueue.push([cx, cy, Math.min(80, Math.max(32, Math.min(g.w, g.h) * .6)), color, hot ? .48 : .28]);
+      } else {
+        // Inactive paths stay legible as etched traces without implying a safe platform.
+        ctx.save(); ctx.setLineDash([8, 6]); ctx.lineDashOffset = -t * 9;
+        ctx.strokeStyle = warn > 0 ? `rgba(255,174,93,${.38 + .42 * warn})` : hot ? 'rgba(212,119,83,.36)' : 'rgba(118,180,211,.35)';
+        ctx.lineWidth = warn > 0 ? 2.5 : 1.5; ctx.strokeRect(g.x + 2, g.y + 2, g.w - 4, g.h - 4); ctx.restore();
+        if (warn > 0) {
+          const pulse = .12 + .18 * (.5 + .5 * Math.sin(t * 18));
+          ctx.fillStyle = `rgba(255,158,76,${pulse})`; ctx.fillRect(g.x + 2, g.y + 2, g.w - 4, g.h - 4);
+        }
+      }
+      if (player && Number.isFinite(player.x) && Number.isFinite(player.y)) {
+        const d = Math.hypot(player.x - cx, player.y - cy);
+        if (d < 148 && (!nearest || d < nearest.d)) {
+          const modeText = active ? (bridge ? 'GLASS BRIDGE' : solid ? 'ANNEALED GLASS' : hot ? 'MOLTEN GLASS' : 'FROST GLASS') : warn > 0 ? (hot ? 'HEATING' : 'FREEZING') : 'GLASS TRACE';
+          nearest = { d, x: cx, y: cy, text: modeText, color: active && solid ? '#cbf5ff' : active ? (hot ? '#ffc07c' : '#aeeaff') : '#c3c4d0' };
+        }
+      }
+      ctx.restore();
+    }
+    if (nearest) labels.push({ x: nearest.x, y: nearest.y, text: nearest.text, color: nearest.color, size: 10 });
+  }
   function drawWater(ctx, s, t, th) {
     const tile = caustics();
     floodLabel = null;
@@ -1711,7 +1858,8 @@
     const maxHp = num(e.maxHp, hp) || 1;
     ctx.fillStyle = 'rgba(6,14,18,.85)'; rrect(ctx, e.x - 30, e.y - 58, 60, 7, 3); ctx.fill();
     ctx.fillStyle = exposed ? '#8ff2ce' : '#eda984'; rrect(ctx, e.x - 29, e.y - 57, 58 * clamp(hp / maxHp, 0, 1), 5, 2.5); ctx.fill();
-    labels.push({ x: e.x, y: e.y - 70, text: exposed ? 'ARMOR OPEN — STRIKE' : lunge ? 'DODGE • UNBLOCKABLE' : warn ? 'RETURN THE SHOT' : /verger/.test(e.id || '') ? 'TOWER VERGER' : 'BELL SENTINEL', color: exposed ? '#8ff2ce' : lunge ? '#ffb79c' : '#e5d7bd', size: 10 });
+    const label = /glass[-_ ]?weaver/i.test(e.id || '') ? 'GLASS WEAVER' : /verger/i.test(e.id || '') ? 'TOWER VERGER' : 'BELL SENTINEL';
+    labels.push({ x: e.x, y: e.y - 70, text: exposed ? 'ARMOR OPEN — STRIKE' : lunge ? 'DODGE • UNBLOCKABLE' : warn ? 'RETURN THE SHOT' : label, color: exposed ? '#8ff2ce' : lunge ? '#ffb79c' : '#e5d7bd', size: 10 });
   }
   function diverState(e) {
     const ph = e.phase || '';
@@ -2783,7 +2931,7 @@
     gr.addColorStop(.5, `rgba(${rgb},.5)`); gr.addColorStop(.6, `rgba(${rgb},.22)`); gr.addColorStop(.8, `rgba(${rgb},.06)`); gr.addColorStop(1, `rgba(${rgb},0)`);
     g.fillStyle = gr; g.fillRect(0, 0, 2, 64); stripCache.set(rgb, c); return c;
   }
-  function beamRGB(kind) { return kind === 'reflected' ? MINT : kind === 'split' ? SPLIT : kind === 'prism' ? PRISM : SUN; }
+  function beamRGB(kind) { return kind === 'reflected' ? MINT : kind === 'split' ? SPLIT : kind === 'prism' ? PRISM : kind === 'hot' ? '255,92,43' : kind === 'cold' ? '104,204,255' : SUN; }
   function drawBeamLight(ctx, s) {
     // Light spilled on the floor around each beam (additive, under actors).
     for (const b of arr(s.beams)) {
@@ -2992,6 +3140,24 @@
     ctx.fillText(w > 0 ? (high ? 'EBBING in ' : 'RISING in ') + Math.max(0, (1 - w) * 1.5).toFixed(1) + 's' : 'steady', x + 28, y + 26);
     ctx.restore();
   }
+  function thermalGauge(ctx, s, t, width) {
+    const th = s.thermal;
+    if (!th || regionOf(s) !== 'glass-kiln') return;
+    const hot = !!th.hot, phase = clamp(num(th.phase, 0), 0, 1), flipIn = Math.max(0, num(th.flipIn, 0));
+    const W = 166, H = 46, x = Math.max(12, width - W - 12), y = 12, rgb = hot ? '255,128,66' : '115,203,255';
+    ctx.save();
+    rrect(ctx, x, y, W, H, 8); ctx.fillStyle = 'rgba(8,12,18,.86)'; ctx.fill();
+    ctx.strokeStyle = hot ? 'rgba(255,145,84,.58)' : 'rgba(134,211,255,.55)'; ctx.lineWidth = 1.4; ctx.stroke();
+    ctx.font = '700 9px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(224,226,234,.75)'; ctx.fillText('KILN CYCLE', x + 10, y + 11);
+    ctx.font = '800 12px system-ui, sans-serif'; ctx.fillStyle = hot ? '#ffca9d' : '#c7efff';
+    ctx.fillText(hot ? 'HOT PHASE' : 'COOL PHASE', x + 10, y + 27);
+    ctx.textAlign = 'right'; ctx.font = '700 10px system-ui, sans-serif'; ctx.fillStyle = 'rgba(240,238,230,.88)';
+    ctx.fillText(`FLIP IN ${flipIn.toFixed(1)}s`, x + W - 10, y + 27);
+    rrect(ctx, x + 10, y + 36, W - 20, 4, 2); ctx.fillStyle = 'rgba(0,0,0,.65)'; ctx.fill();
+    rrect(ctx, x + 10, y + 36, (W - 20) * phase, 4, 2); ctx.fillStyle = `rgba(${rgb},.92)`; ctx.fill();
+    ctx.restore();
+  }
   function bossBar(ctx, s, t, width) {
     const boss = arr(s.enemies).find(e => (enemyType(e) === 'diver' || (enemyType(e) === 'hart' && e.phase !== 'dormant' && e.phase !== 'defeated')) && num(e.hp, 0) > 0);
     if (!boss) return;
@@ -3124,6 +3290,7 @@
       }
     }
     drawWater(ctx, s, t, th);
+    drawGlass(ctx, s, t);
     drawBridges(ctx, s, t, th);
     drawExits(ctx, s, t, W, H);
     // additive floor light: beams, sanctuary, lit receivers
@@ -3187,6 +3354,7 @@
       if (th.decor === 'verdant') ctx.drawImage(canopyFrame(Math.round(width), Math.round(height)), 0, 0, width, height);
     }
     tideGauge(ctx, s, t, width);
+    thermalGauge(ctx, s, t, width);
     bossBar(ctx, s, t, width);
     edgeArrows(ctx, s, v, width, height, t);
     titleCard(ctx, s, t, width, height);

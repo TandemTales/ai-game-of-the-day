@@ -18,14 +18,15 @@ const box = o => ({ x: o.x - o.r, y: o.y - o.r, w: 2 * o.r, h: 2 * o.r });
 // shutters, risen breakwaters, living growth, intact dams, mirrors/prism, turrets, live mortars.
 function solids(s) {
   const l = s.walls.concat(s.gates.filter(g => !g.open), s.shutters.filter(x => !x.open),
-    s.breakwaters.filter(b => b.risen), (s.growth || []).filter(g => g.alive), (s.dams || []).filter(d => d.hp > 0));
+    s.breakwaters.filter(b => b.risen), (s.growth || []).filter(g => g.alive), (s.dams || []).filter(d => d.hp > 0), (s.glass || []).filter(g => g.active && g.mode === 'solid'));
   for (const m of s.mirrors) l.push(box(m));
   for (const e of s.enemies) if (e.type === 'turret' || (e.type === 'mortar' && e.hp > 0)) l.push(box(e));
   return l;
 }
 function wetAt(s, x, y) {
   if (!s.water.some(w => w.active && inR(x, y, w))) return false;
-  return !(s.bridges || []).some(b => !b.sunk && inR(x, y, b));
+  return !(s.bridges || []).some(b => !b.sunk && inR(x, y, b)) &&
+    !(s.glass || []).some(g => g.mode === 'bridge' && g.active && inR(x, y, g));
 }
 const gridCache = { key: null, grid: null };
 function path(s, tx, ty, opts = {}) {
@@ -377,7 +378,7 @@ function hartFight(s, h, input, plan, log) {
 }
 
 let PWref = null;
-module.exports = { play, loadPW, REPO };
+module.exports = { play, loadPW, REPO, steer, solids, wetAt, guard, threat, dodgeLobs };
 if (require.main === module) {
   const arg = process.argv.slice(2);
   const opts = { ferry: !arg.includes('noferry'), seal: !arg.includes('noseal'), abbey: !arg.includes('quick') };

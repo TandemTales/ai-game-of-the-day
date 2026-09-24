@@ -8,6 +8,7 @@
   const MAX_DEPTH = 8, MAX_SEGMENTS = 96;
   const LEASH = 220, WADE = .45, WADE_HURT = 1.4;
   const CHARGE_TIME = 1.2, DECAY_TIME = .65;
+  const GLASS_GRACE = .75, GLASS_CADENCE = 1.6, GLASS_TELEGRAPH = .75;
   const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
   const length = (x, y) => Math.hypot(x, y);
   const arr = v => Array.isArray(v) ? v : [];
@@ -220,6 +221,18 @@
           openFor: clamp(num(sh.openFor, period / 2), 0, period), offset: num(sh.offset, 0),
           open: true, phase: 0, warning: 0, held: false, closesIn: 0, opensIn: 0 });
       }),
+      thermalDef: def.thermal && Number.isFinite(def.thermal.period) && def.thermal.period > 0 ? {
+        period: Math.max(.2, def.thermal.period),
+        hotFor: clamp(num(def.thermal.hotFor, def.thermal.period / 2), 0, Math.max(.2, def.thermal.period)),
+        offset: num(def.thermal.offset, 0)
+      } : null,
+      thermal: { hot: false, phase: 0, flipIn: 0 },
+      glass: arr(def.glass).map((g, i) => Object.assign(rectOf(g), {
+        id: g.id || 'glass-' + i,
+        mode: ['hazard', 'bridge'].includes(g.mode) ? g.mode : 'solid',
+        when: g.when === 'cold' ? 'cold' : 'hot',
+        active: false, held: false, warning: 0
+      })),
       tideDef: def.tide && Number.isFinite(def.tide.period) && def.tide.period > 0 ?
         { period: def.tide.period, offset: num(def.tide.offset, 0) } : null,
       tide: { active: false, level: 0, high: false, warning: 0, next: 0, period: 0 },
@@ -262,8 +275,9 @@
   const ROOM_KEYS = ['room', 'spawn', 'roomTime', 'walls', 'gates', 'emitters', 'receivers',
     'mirrors', 'water', 'breakwaters', 'shutters', 'tideDef', 'tide', 'enemies', 'escort',
     'escortExit', 'pickups', 'exits', 'beacon', 'rescue', 'sanctuaryZone',
-    'bridges', 'growth', 'levers', 'dams'];
-  const ARRAY_KEYS = ['bridges', 'growth', 'levers', 'dams'];
+    'bridges', 'growth', 'levers', 'dams', 'thermalDef', 'thermal', 'glass',
+    '_glassGrace', '_glassCooldown', '_glassContact'];
+  const ARRAY_KEYS = ['bridges', 'growth', 'levers', 'dams', 'glass'];
 
   // ------------------------------------------------------------- utilities
   // Message priorities: 0 hint, 1 tactical, 2 story/reward/intro, 3 terminal (always shown).
@@ -334,7 +348,7 @@
     // Solid to beams, shots and movement.
     return s.walls.concat(s.gates.filter(g => !g.open), s.shutters.filter(sh => !sh.open),
       s.breakwaters.filter(b => b.risen), arr(s.growth).filter(g => g.alive),
-      arr(s.dams).filter(d => d.hp > 0));
+      arr(s.dams).filter(d => d.hp > 0), arr(s.glass).filter(g => g.mode === 'solid' && g.active));
   }
   function moveSolids(s, self) {
     const list = blockers(s);
@@ -412,8 +426,11 @@
   function onDryBridge(s, body) {
     return arr(s.bridges).some(b => !b.sunk && inRect(body.x, body.y, b));
   }
+  function onGlassBridge(s, body) {
+    return arr(s.glass).some(g => g.mode === 'bridge' && g.active && inRect(body.x, body.y, g));
+  }
   function inWater(s, body) {
-    return s.water.some(w => w.active && inRect(body.x, body.y, w)) && !onDryBridge(s, body);
+    return s.water.some(w => w.active && inRect(body.x, body.y, w)) && !onDryBridge(s, body) && !onGlassBridge(s, body);
   }
   function losClear(s, x1, y1, x2, y2) {
     const d = length(x2 - x1, y2 - y1);
@@ -437,6 +454,14 @@
   function environment(s, dt) {
     dt = dt || 0;
     const td = s.tideDef, t = s.roomTime, tide = s.tide;
+    const hd = s.thermalDef;
+    if (hd) {
+      let phaseTime = (t + hd.offset) % hd.period;
+      if (phaseTime < 0) phaseTime += hd.period;
+      const hot = phaseTime < hd.hotFor;
+      s.thermal = { hot, phase: phaseTime / hd.period,
+        flipIn: hd.hotFor <= 0 || hd.hotFor >= hd.period ? 0 : hot ? hd.hotFor - phaseTime : hd.period - phaseTime };
+    } else s.thermal = { hot: false, phase: 0, flipIn: 0 };
     if (td) {
       let ph = ((t + td.offset) / td.period) % 1; if (ph < 0) ph += 1;
       tide.active = true; tide.period = td.period;
@@ -450,6 +475,20 @@
     }
     for (const w of s.water) w.active = tideMatch(s, w.when, w);
     const bs = occupants(s);
+    for (const g of arr(s.glass)) {
+      const wantsActive = g.when === 'cold' ? !s.thermal.hot : s.thermal.hot;
+      if (g.mode === 'solid' && wantsActive && !g.active) {
+        // Glass never forms around a body or prism; it waits for a clear tile.
+        g.held = bs.some(o => overlapCircle(o.x, o.y, o.r, g));
+        g.active = !g.held;
+      } else {
+        g.active = wantsActive;
+        g.held = false;
+      }
+      const nextActivates = g.when === 'hot' ? !s.thermal.hot : s.thermal.hot;
+      const flipSoon = !g.active && nextActivates && s.thermal.flipIn > 0 && s.thermal.flipIn <= GLASS_TELEGRAPH;
+      g.warning = g.mode === 'solid' && g.held ? 1 : flipSoon ? clamp(1 - s.thermal.flipIn / GLASS_TELEGRAPH, 0, 1) : 0;
+    }
     for (const b of s.breakwaters) {
       if (!tideMatch(s, b.when, b)) { b.risen = false; b.held = false; continue; }
       if (b.risen) continue;
@@ -608,6 +647,7 @@
       announce(s, 'The prism dims. Retry the room and read the telegraphs.', 8, 3);
     } else {
       announce(s, cause === 'water' ? 'Deep water drags at you. Find dry stone.' :
+        cause === 'glass' ? 'The kiln glass burns. Leave the tile before it flares again.' :
         cause === 'ring' ? 'Shockwave! Dash through the ring or keep your distance.' :
           cause === 'lob' ? 'A seed bursts at your feet. Leave the landing ring or dash.' :
             cause === 'charge' ? 'The Root Hart tramples you. Sidestep its locked lane.' :
@@ -1215,6 +1255,7 @@
     p.dashTime = 0; p.slashTime = 0; p.reflecting = false;
     s.shots = []; s.rings = []; s.particles = []; s.beams = []; s.lobs = [];
     s.transition = 1; s._exitArmed = false; s._wade = 0; s._sanctuaryCooldown = 0;
+    s._glassGrace = 0; s._glassCooldown = 0; s._glassContact = false;
     if (!s.visited.includes(id)) s.visited.push(id);
     environment(s);
     light(s, 0);
@@ -1303,6 +1344,7 @@
         dashCooldown: 0, invulnerable: 0, dashX: 1, dashY: 0, wading: false, prism: null },
       walls: [], gates: [], emitters: [], emitter: null, receivers: [], mirrors: [],
       water: [], breakwaters: [], shutters: [], tide: null, enemies: [], escort: null,
+      thermalDef: null, thermal: { hot: false, phase: 0, flipIn: 0 }, glass: [],
       bridges: [], growth: [], levers: [], dams: [], lobs: [], next: null, prismRoom: null,
       escortExit: null, pickups: [], exits: [], beacon: null, rescue: null,
       sanctuaryZone: null, sanctuary: false,
@@ -1311,7 +1353,8 @@
       objective: '', transition: 1, message: '',
       _slashHeld: false, _dashHeld: false, _slashSerial: 0, _nextShotId: 1,
       _sanctuaryCooldown: 0, _messageTime: 0, _exitArmed: false, _wade: 0, _entry: null,
-      _placeHeld: false, _regionEntry: null, _messagePriority: 0, _messageAge: 0, _messageQueue: []
+      _placeHeld: false, _regionEntry: null, _messagePriority: 0, _messageAge: 0, _messageQueue: [],
+      _glassGrace: 0, _glassCooldown: 0, _glassContact: false
     };
     if (!enterRoom(s, opts.room || 'cloister', opts.spawn)) enterRoom(s, 'cloister');
     return s;
@@ -1455,6 +1498,30 @@
     return true;
   }
 
+  function glassHazards(s, dt) {
+    s._glassCooldown = Math.max(0, num(s._glassCooldown, 0) - dt);
+    const p = s.player;
+    const touching = arr(s.glass).filter(g => g.mode === 'hazard' && g.active && overlapCircle(p.x, p.y, p.r, g));
+    if (!touching.length) {
+      s._glassContact = false;
+      s._glassGrace = 0;
+    } else {
+      if (!s._glassContact) {
+        s._glassContact = true;
+        s._glassGrace = GLASS_GRACE;
+        announce(s, 'The glass is searing. Move clear before it flares.', 2, 1);
+      } else s._glassGrace = Math.max(0, num(s._glassGrace, 0) - dt);
+      if (s._glassGrace <= 0 && s._glassCooldown <= 0 && p.invulnerable <= 0 && p.dashTime <= 0) {
+        if (hurt(s, 'glass')) s._glassCooldown = GLASS_CADENCE;
+      }
+    }
+    for (const g of arr(s.glass)) {
+      if (g.mode !== 'hazard' || !g.active || !touching.includes(g)) continue;
+      const wait = s._glassGrace > 0 ? s._glassGrace : s._glassCooldown;
+      g.warning = wait > 0 ? clamp(1 - wait / GLASS_TELEGRAPH, 0, 1) : 1;
+    }
+  }
+
   function step(s, input, dt) {
     if (!s || s.status !== 'playing') return s;
     input = input || {};
@@ -1549,6 +1616,9 @@
       const esc = s.escort;
       if (esc && contactable(e) && esc.hp > 0 && !esc.arrived && length(e.x - esc.x, e.y - esc.y) < esc.r + e.r) hurtEscort(s);
     }
+    if (s.status !== 'playing') return finish(s, dt);
+
+    glassHazards(s, dt);
     if (s.status !== 'playing') return finish(s, dt);
 
     // Deep water drags and wounds the wader.

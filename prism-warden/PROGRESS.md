@@ -240,3 +240,36 @@ Preserve the negative Link's Awakening visual verdict and the boundary that
 Regions 3-5 remain incomplete until built. Push this intent before game-code
 work. At end, record tests, browser evidence and remaining debt. No .aaa-complete,
 catalog edit, release or main promotion this run.
+
+## 2026-09-24 Thursday run checkpoint (Pacific)
+
+Active game `prism-warden` started Sep20, age4; this is not release night (forced
+release remains Oct3). Region 3 Glass Kiln now has connected C1-C5 encounters and
+an optional quench room. C2 requires the player to rotate the cooling mirror; its
+west-bank approach was opened without creating a channel bypass. A full state-
+informed `PW.step` route cleared C1-C5 and reached the kiln beacon in 88.4
+simulated seconds, 2/6 HP, zero retries. This proves a legal route exists, not
+discovery, player enjoyment, or a bespoke encounter curve. Regions D/E remain
+unbuilt; no AAA marker or release.
+
+Focused Prism Warden Jest passed: 2 suites, 34 tests. Browser smoke passed all
+six requested sizes (320x568, 390x844, 844x390, 768x1024, 1440x900, 3840x2160):
+keyboard/touch, pause/retry/replay, leaderboard mock, no console errors, no
+external requests, no horizontal overflow. The first smoke attempt exposed a
+test-harness status mismatch after the Aqueduct; the harness now expects that
+region's `cleared` state and its rerun passed. I opened the PNGs, including all
+six C-room captures at 390x844; the room-title transition was still on screen.
+
+Independent gameplay and visual critics both report OURS LOSES against Nintendo's
+official *Link's Awakening* gallery. They cite repeated dark tiles, small actor,
+crowded C-room/thermal labels, and generic Bell Sentinel presentation for C5.
+The gameplay critic also flags reused sentinel/escort systems in C1/C3 and no
+bespoke Weaver behavior. Audio's OfflineAudioContext smoke passed finite,
+non-silent, sub-full-scale bounds (44.1kHz; opening RMS .0568, boss RMS .0936),
+but listening and device playback remain unverified. Critics inspected real
+official and local screenshots separately; browser policy blocked a literal
+side-by-side page. Next: address the C5 identity/mechanics and HUD presentation
+defects, rerun the screenshot sweep after the title overlay fades, and seek fresh
+independent verdicts. Keep the earlier OURS-LOSES judgment and incomplete
+campaign boundary visible. No `.aaa-complete`, production catalog change, release,
+or `main` promotion.

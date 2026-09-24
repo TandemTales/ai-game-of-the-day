@@ -292,3 +292,11 @@ broken rubble); mortar with facing plate + lob arcs and landing reticles;
 Root Hart with aim lane telegraph, charge streak, stunned/exposed state.
 Audio needs: Region 2 room songs and cues for prism place/lift, bramble cut,
 lever, mortar lob/land, hart charge/impact, dam break, region cleared.
+
+## Region 3 engine contract (Sep23, additive to Regions 1-2)
+
+The Glass Kiln is a connected five-room chapter following the Verdant Aqueduct: `furnace` (C1), `bridge` (C2), `rail` (C3), `foundry` (C4), and `weaver` (C5), plus the optional `quench` route. Reservoir continuation enters `furnace`; each challenge exit reaches the next room. C5 clears the built chapter only; until Regions 4-5 exist, the UI and docs must not claim the full campaign or ending is complete. Existing room persistence, retry, scoring and deterministic simulation contracts stay in force.
+
+A room may define `thermal:{period,hotFor,offset}`. Logic derives `s.thermal={hot,phase,flipIn}` deterministically from room time; a retry resets to the room snapshot. Optional `glass:[{id,x,y,w,h,mode,when}]` objects use `mode:'solid'|'hazard'|'bridge'` and `when:'hot'|'cold'`. Logic exposes each object's current `active` state. Active solids block movement and optical/projectile paths; active hazards apply bounded, telegraphed damage; active bridges cancel underlying water for a body on the span and never block movement or rays. Renderer distinguishes molten hazard glass, cover and annealed walkways, and retains a readout of the current phase and next change. All art and audio remain procedural.
+
+C1 alternates timed furnace lanes; C2 makes an annealed bridge crossing; C3 escorts a cooling cart through furnace hazards; C4 routes beams through competing hot/cold foundry locks; C5 currently uses the existing sentinel combat controller in a shifting-glass arena. A dedicated Weaver attack controller is still debt. The optional quench valve opens a route to C2's far bank; its pickup currently sets only a generic discovery flag and does not grant a distinct combat behavior. Player-facing wording must describe only working mechanics. Completing C5 ends this chapter, not the full campaign; Regions 4-5, equipment progression and the ending remain unbuilt.

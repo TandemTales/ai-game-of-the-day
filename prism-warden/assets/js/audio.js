@@ -88,12 +88,42 @@
       padLevel: .6, verb: .3, echo: .15, drone: 1, seed: 137, boss: true }),
     glade: verdant({ root: 53, mode: 'lydian', bpm: 72, meter: 4, prog: [0, 1, 4, 0, 5, 1, 4, 0],
       motif: [[0, 4, 1], [1, 6, 1], [2, 7, 2]],
-      mel: 'kalimba', mel2: 'flute', melOct: 1, pulse: 'slowharp', pad: 'choir', padLevel: .9, verb: .55, echo: .25, seed: 139, peaceful: true })
+      mel: 'kalimba', mel2: 'flute', melOct: 1, pulse: 'slowharp', pad: 'choir', padLevel: .9, verb: .55, echo: .25, seed: 139, peaceful: true }),
+    // ---- Region 3: Glass Kiln. Heated harmonic beds, molten low voices and
+    // annealed crystal tines give the chapter one identity with five room forms.
+    furnace: { root: 44, mode: 'phrygdom', bpm: 104, meter: 4, prog: [0, 1, 6, 0, 4, 1, 5, 6],
+      motif: [[0, 0, .5], [.5, 1, .5], [1, 4, 1], [2, 3, .5], [2.5, 1, .5], [3, 6, .75], [3.75, 4, .25]],
+      mel: 'reed', mel2: 'bell', melOct: 0, counter: 'marimba', pulse: 'kiln', pad: 'dark', bassInst: 'sawbass',
+      padLevel: .55, verb: .28, echo: .19, drone: .85, seed: 151 },
+    anneal: { root: 51, mode: 'lydian', bpm: 76, meter: 4, prog: [0, 4, 1, 0, 5, 3, 1, 0],
+      motif: [[0, 4, 1.5], [1.5, 6, .5], [2, 7, 1], [3, 6, .5], [3.5, 4, .5]],
+      mel: 'celesta', mel2: 'bell', melOct: 0, counter: 'kalimba', pulse: 'anneal', pad: 'glass',
+      padLevel: .75, verb: .52, echo: .3, drone: .55, seed: 157, peaceful: true },
+    cart: { root: 48, mode: 'dorian', bpm: 116, meter: 4, prog: [0, 3, 4, 0, 5, 3, 1, 4],
+      motif: [[0, 0, .5], [.5, 3, .5], [1, 4, .5], [1.5, 6, .5], [2, 4, 1], [3, 3, .5], [3.5, 1, .5]],
+      mel: 'marimba', mel2: 'reed', melOct: 0, counter: 'bell', pulse: 'rolling', pad: 'warm', bassInst: 'bass',
+      padLevel: .5, verb: .25, echo: .16, drone: .35, seed: 163 },
+    foundry: { root: 46, mode: 'harmonic', bpm: 92, meter: 4, prog: [0, 5, 1, 0, 6, 3, 5, 0],
+      motif: [[0, 7, .75], [.75, 8, .25], [1, 11, 1], [2, 9, .5], [2.5, 7, .5], [3, 4, 1]],
+      mel: 'bell', mel2: 'pluck', melOct: 0, counter: 'celesta', pulse: 'locks', pad: 'dark', bassInst: 'sawbass',
+      padLevel: .62, verb: .32, echo: .22, drone: .9, seed: 167 },
+    weaver: { root: 47, mode: 'phrygian', bpm: 100, meter: 4, prog: [0, 1, 4, 0, 6, 1, 5, 4],
+      motif: [[0, 7, .5], [.5, 8, .5], [1, 10, .75], [1.75, 8, .25], [2, 7, .5], [2.5, 5, .5], [3, 4, .5], [3.5, 1, .5]],
+      mel: 'celesta', mel2: 'reed', melOct: 0, counter: 'bell', pulse: 'weave', pad: 'glass', bassInst: 'bass',
+      padLevel: .6, verb: .38, echo: .24, drone: .75, seed: 173 },
+    'weaver-boss': { root: 47, mode: 'phrygian', bpm: 126, meter: 4, prog: [0, 1, 4, 0, 6, 1, 5, 4],
+      motif: [[0, 7, .5], [.5, 8, .25], [.75, 7, .25], [1, 10, .5], [1.5, 8, .5], [2, 7, .5], [2.5, 5, .5], [3, 4, .5], [3.5, 1, .5]],
+      mel: 'reed', mel2: 'bell', melOct: 0, counter: 'celesta', pulse: 'weave', pad: 'dark', bassInst: 'sawbass',
+      padLevel: .56, verb: .3, echo: .15, drone: .95, seed: 179, boss: true }
   };
   const ROOM_SONG = { cloister: 'cloister', courtyard: 'cloister', sluice: 'sluice', sanctuary: 'sanctuary',
     shutters: 'shutters', 'bell-tower': 'bell-tower', beacon: 'beacon',
-    spillway: 'spillway', roots: 'roots', channels: 'channels', quay: 'quay', reservoir: 'reservoir', ferry: 'ferry' };
+    spillway: 'spillway', roots: 'roots', channels: 'channels', quay: 'quay', reservoir: 'reservoir', ferry: 'ferry',
+    furnace: 'furnace', anneal: 'anneal', bridge: 'anneal', cart: 'cart', rail: 'cart', foundry: 'foundry',
+    weaver: 'weaver', quench: 'anneal', 'optional-quench': 'anneal' };
   const VERDANT = 'verdant-aqueduct';
+  const KILN = 'glass-kiln';
+  const KILN_ROOMS = ['furnace', 'anneal', 'bridge', 'cart', 'rail', 'foundry', 'weaver', 'quench', 'optional-quench'];
 
   // Estimated cue lengths (voice accounting) and priorities (2 = never dropped).
   const CUE_LEN = { slash: .2, dash: .3, shot: .15, return: .7, hurt: .45, catch: .6, tick: .1, latch: 2.2,
@@ -104,13 +134,16 @@
     lost: 3, begin: 1.4, room: 1.2, ui: .1,
     prismGet: 1.4, prismPlace: .9, prismLift: .8, brambleCut: .4, brambleRegrow: .9, lever: 1.1, mortarCreak: .6,
     lobLaunch: 1, lobLand: .6, hartAim: 1, hartLock: .4, hartCharge: 1.3, hartImpact: .6, hartStun: 1.2,
-    damHit: .8, damBreak: 3, cleared: 4.5 };
+    damHit: .8, damBreak: 3, cleared: 4.5,
+    thermalHot: .9, thermalCold: 1.1, glassAnneal: 1.2, glassShatter: .9, quench: 2.4,
+    weaverWake: 2.5 };
   const PRIORITY = { hurt: 2, return: 2, gate: 2, latch: 2, bell: 2, won: 2, lost: 2, beacon: 2,
     bossDefeated: 2, shockwave: 2, escortHurt: 2, defeated: 2, room: 2, begin: 2, windup: 2, heart: 2, chart: 2,
     prismGet: 2, prismPlace: 2, prismLift: 2, lever: 2, hartLock: 2, hartCharge: 2, damHit: 2, damBreak: 2, cleared: 2,
     shot: 0, tick: 0, mirror: 0, shutterWarn: 0, heal: 0, ui: 0, brambleRegrow: 0 };
   const MIN_GAP = { shot: .05, tick: .09, mirror: .06, heal: .3, slash: .05, enemyHit: .06, shutterWarn: .3, shutterClose: .12, shutterOpen: .2,
-    brambleCut: .05, brambleRegrow: .35, lobLaunch: .08, lobLand: .08, mortarCreak: .15, hartAim: .3 };
+    brambleCut: .05, brambleRegrow: .35, lobLaunch: .08, lobLand: .08, mortarCreak: .15, hartAim: .3,
+    thermalHot: 1.2, thermalCold: 1.2, glassAnneal: 1.2, glassShatter: .35, quench: 1.8, weaverWake: 2 };
   const SFX_MAX = 14, MUSIC_MAX = 56;
   const RAW_HZ = { gong: 1, handdrum: 1, logdrum: 1 }; // event 'midi' slot carries Hz (or null = default)
 
@@ -421,6 +454,39 @@
         const pat = [0, 4, 7, 11, 7, 4];
         for (let e = 0; e < M * 2; e++) push(e / 2, 'kalimba', degMidi(c, chord + pat[e % 6], 0), .5, e % 2 ? .22 : .34);
         push(0, 'handdrum', 100, .3, .55); push(2, 'logdrum', 180, .3, .3);
+      } else if (P === 'kiln') { // furnace: irregular molten tines over a low, breathing crucible
+        const wave = [0, 1, 4, 7, 11, 7, 5, 1];
+        for (let e = 0; e < M * 4; e++) {
+          if (e % 4 !== 0 && r() < .34) continue;
+          push(e / 4, e % 4 === 0 ? 'kalimba' : 'bell', degMidi(c, chord + wave[e % 8], e >= 8 ? 1 : 0), .28,
+            e % 4 === 0 ? .4 : .24);
+        }
+        push(0, 'logdrum', 116, .35, .7); push(2, 'logdrum', 86, .35, .42);
+      } else if (P === 'anneal') { // bridge: slow crystal droplets settle into open fifths
+        for (let e = 0; e < M; e++) {
+          const deg = chord + [0, 4, 7, 11][(e + pos) % 4];
+          push(e + (e % 2 ? .5 : 0), e % 2 ? 'kalimba' : 'celesta', degMidi(c, deg, 1), e % 2 ? .35 : .8, e % 2 ? .22 : .38);
+        }
+      } else if (P === 'rolling') { // cooling cart: rail-clack ostinato with a steady wheel bass
+        const pat = [1, .35, .7, .2, 1, .35, .7, .2];
+        for (let e = 0; e < M * 2; e++) {
+          push(e / 2, e % 2 ? 'logdrum' : 'handdrum', e % 2 ? 280 : 130, .24, pat[e % 8] * .62);
+          if (e % 2 === 1) push(e / 2 + .25, 'marimba', degMidi(c, chord + [0, 3, 4, 7][e % 4], 1), .22, .24);
+        }
+      } else if (P === 'locks') { // foundry: paired calls sound from opposite sides of each bar
+        const pair = pos % 2 ? [7, 4] : [0, 6];
+        push(0, 'bell', degMidi(c, chord + pair[0], 1), .8, .42);
+        push(1.5, 'marimba', degMidi(c, chord + pair[1], 0), .35, .3);
+        push(2, 'bell', degMidi(c, chord + pair[1], 1), .8, .36);
+        push(3.5, 'marimba', degMidi(c, chord + pair[0], 0), .35, .28);
+      } else if (P === 'weave') { // arena: interlaced crystal threads around an uneven loom pulse
+        const thread = [0, 7, 4, 11, 7, 3, 9, 4];
+        for (let e = 0; e < M * 4; e++) {
+          if (e % 4 !== 0 && r() < .42) continue;
+          push(e / 4, e % 2 ? 'celesta' : 'kalimba', degMidi(c, chord + thread[e % 8], e >= 8 ? 1 : 0), .24,
+            e % 4 === 0 ? .36 : .23);
+        }
+        push(0, 'tom', null, .2, .48); push(1.5, 'logdrum', 210, .2, .32); push(3, 'tom', null, .2, .4);
       } else if (P === 'stampede') { // Root Hart: galloping hand drums over a driving wood bass
         for (let e = 0; e < M * 2; e++) push(e / 2, 'woodbass', degMidi(c, chord + [0, 0, 7, 0, 1, 0, 7, 0][e % 8], -1), .4, e % 2 ? .75 : 1);
         for (let e = 0; e < M * 4; e++) { const v = [1, 0, .45, .7][e % 4]; if (v) push(e / 4, 'handdrum', e % 8 === 0 ? 92 : 128, .2, v * .7); }
@@ -708,6 +774,31 @@
         tone(d, t + .15, 'sine', 70, 30, .01, .45, .9);
         noise(d, t + .2, 'lowpass', 300, 1700, .9, .45, .34, 2.2); noise(d, t + .35, 'highpass', 3000, 1600, .6, .35, .07, 1.9);
       },
+      // ---- Region 3: temperature changes, crystal structure and the Weaver
+      thermalHot(t, d, o) { // a hot pulse blooms as a descending furnace breath
+        tone(d, t, 'sine', 104, 68, .025, .26, .7); noise(d, t, 'lowpass', 240, 1100, .8, .12, .12, .72);
+        tone(d, t + .16, 'triangle', o.root * 1.5, o.root, .035, .045, .42);
+      },
+      thermalCold(t, d, o) { // the crucible cools into a clear open fifth
+        noise(d, t, 'lowpass', 1200, 250, .8, .24, .1, .62); arp(d, t + .08, o.root * 2, [0, 7, 12], .085, 'glass', .48);
+      },
+      glassAnneal(t, d, o) { // a newly formed bridge rings from its center outward
+        tone(d, t, 'sine', 185, 92, .004, .22, .38); arp(d, t + .055, o.root * 3, [0, 7, 12, 19], .075, 'glass', .58);
+        noise(d, t + .02, 'highpass', 6200, 9600, .7, .015, .035, .42);
+      },
+      glassShatter(t, d, o) { // short crystal fracture with a falling resonant tail
+        for (let i = 0; i < 5; i++) noise(d, t + i * .018, 'highpass', 4200 + i * 620, 0, 1.4, .001, .12 - i * .012, .045);
+        fm(d, t + .015, o.root * 4, 3.98, 1.7, .001, .11, .48); tone(d, t, 'sine', 620, 165, .003, .13, .24);
+      },
+      quench(t, d, o) { // water strikes molten glass: steam hiss, low valve thunk, cooling chime
+        noise(d, t, 'lowpass', 7800, 420, .7, .18, .22, 1.35); noise(d, t + .035, 'highpass', 2300, 6800, .8, .13, .055, .58);
+        tone(d, t, 'sine', 165, 58, .003, .34, .55); arp(d, t + .32, o.root * 2, [12, 7, 4, 0], .09, 'glass', .52);
+      },
+      weaverWake(t, d, o) { // the loom wakes: low frame strike crossed by two glass threads
+        INST.gong(d, t, o.root / 2, 2.3, .72); tone(d, t, 'sine', 74, 48, .008, .28, .82);
+        arp(d, t + .18, o.root * 3, [0, 7, 11, 16, 19], .065, 'glass', .63);
+        for (let i = 0; i < 4; i++) INST.tick(d, t + .08 + i * .13, 1500 - i * 170, .04, .35);
+      },
       cleared(t, d, o) { // Region cleared: kalimba/bell ascent over a hand-drum roll, choir bloom, low gong
         const r = o.root;
         for (let i = 0; i < 8; i++) INST.handdrum(d, t + i * .06, 110 + i * 6, .1, .25 + i * .06);
@@ -748,18 +839,26 @@
   let prev = null, chargeClock = 0, desired = { key: 'cloister', combat: false, intense: false, duck: false, water: false, tide: 0 };
   const log = [], counts = {};
   let bossFrame = -1;
+  let thermalPending = null, thermalLastAt = -1e9, thermalRoom = null;
   const idOf = (x, i) => (x && x.id != null ? String(x.id) : '#' + i);
   const list = a => (Array.isArray(a) ? a.filter(x => x && typeof x === 'object') : []);
   const isDiver = e => !!e && (e.type === 'diver' || /diver/i.test(String(e.id || '')));
   const isHart = e => !!e && (e.type === 'hart' || /hart/i.test(String(e.id || '')));
-  const isBoss = e => isDiver(e) || isHart(e);
+  const isWeaver = e => !!e && (e.type === 'weaver' || /glass[-_ ]?weaver/i.test(String(e.id || '')));
+  const isBoss = e => isDiver(e) || isHart(e) || isWeaver(e);
   const lobKey = (l, i) => (l.id != null ? String(l.id) : (l.owner != null ? l.owner : '') + ':' + Math.round(num(l.x0)) + ':' + Math.round(num(l.y0)) + ':' + Math.round(num(l.tx)) + ':' + Math.round(num(l.ty)));
   const SLEEP = /dormant|defeat|destroy|dead|silen|sleep|inactive/i;
   function awake(e) { return e && num(e.hp) > 0 && !SLEEP.test(String(e.phase || '')) && !e.silenced && !e.dormant && !e.destroyed; }
 
+  function quenched(s) {
+    const flags = (s && s.flags) || {};
+    return !!(s && (s.quenched || flags['quench-valve'] || flags.quenched || flags.quench));
+  }
   function snap(s) {
     const p = s.player || {}, P = {
       ref: s, time: num(s.time), roomId: roomOf(s), status: s.status, hits: num(s.hits), returns: num(s.returns),
+      thermalHot: s.thermal && typeof s.thermal.hot === 'boolean' ? s.thermal.hot : null,
+      quench: quenched(s),
       hp: num(p.hp), maxHp: num(p.maxHp), dash: num(p.dashTime), slash: num(p.slashTime),
       caught: list(s.beams).some(b => b && b.kind && b.kind !== 'sun'),
       recv: {}, gates: {}, mirrors: {}, enemies: {}, shots: new Set(), shotCount: 0, shutters: {}, pickups: {},
@@ -767,11 +866,13 @@
       tideHigh: tideOn(s) ? !!s.tide.high : null, tideWarn: tideOn(s) ? num(s.tide.warning) : 0,
       escortHp: s.escort ? num(s.escort.hp) : null, freed: !!(s.rescue && s.rescue.freed),
       beacon: !!(s.beacon && (s.beacon.lit || s.beacon.active)),
-      prism: p.prism || null, growth: {}, levers: {}, dams: {}, lobs: {}
+      prism: p.prism || null, growth: {}, levers: {}, dams: {}, glass: {}, lobs: {}
     };
     list(s.growth).forEach((g, i) => { P.growth[idOf(g, i)] = g.alive !== false; });
     list(s.levers).forEach((l, i) => { P.levers[idOf(l, i)] = !!l.pulled; });
     list(s.dams).forEach((d, i) => { P.dams[idOf(d, i)] = { hp: num(d.hp), broken: !!d.broken }; });
+    list(s.glass).forEach((g, i) => { P.glass[idOf(g, i)] = { active: !!g.active, mode: g.mode, when: g.when,
+      broken: glassBroken(g) }; });
     list(s.lobs).forEach((l, i) => { P.lobs[lobKey(l, i)] = { x: num(l.tx), y: num(l.ty) }; });
     list(s.receivers).forEach((r, i) => { P.recv[idOf(r, i)] = { charge: num(r.charge), active: !!r.active }; });
     list(s.gates).forEach((g, i) => { P.gates[idOf(g, i)] = !!g.open; });
@@ -785,7 +886,9 @@
   }
   function tideOn(s) { return !!(s.tide && s.tide.active !== false && typeof s.tide.level === 'number'); }
   function roomOf(s) { return s.roomId || (s.room && s.room.id) || 'courtyard'; }
+  function inKiln(s, roomId) { return KILN_ROOMS.includes(roomId) || (s.room && s.room.region) === KILN || s.regionId === KILN; }
   function jamOf(e) { const j = e.jam != null ? e.jam : e.jammed != null ? e.jammed : e.jamTime; return typeof j === 'boolean' ? (j ? 1 : 0) : num(j); }
+  function glassBroken(g) { return !!(g && (g.shattered || g.fractured || g.broken || g.destroyed || g.intact === false || (typeof g.hp === 'number' && g.hp <= 0))); }
   function panFor(s, x, y) {
     const p = s.player || {};
     if (typeof x !== 'number' || typeof p.x !== 'number') return {};
@@ -797,16 +900,40 @@
     if (engine && enabled) { try { engine.cue(name, o && o.delay ? engine.now() + o.delay : null, o); } catch (e) { /* never break the game loop */ } }
   }
 
+  function detectThermal(s, P, roomId) {
+    const hot = s.thermal && typeof s.thermal.hot === 'boolean' ? s.thermal.hot : null;
+    if (!inKiln(s, roomId) || hot === null || P.thermalHot === null) { thermalPending = null; return; }
+    const now = num(s.time);
+    if (thermalRoom !== roomId) { thermalRoom = roomId; thermalLastAt = -1e9; thermalPending = null; }
+    if (hot !== P.thermalHot) {
+      if (!thermalPending || thermalPending.hot !== hot || thermalPending.room !== roomId) thermalPending = { hot, room: roomId, at: now };
+    } else if (thermalPending && thermalPending.hot !== hot) thermalPending = null;
+    // Require a stable phase for 120 ms, then hold one shared cooldown across
+    // hot/cold cues so a malformed clock cannot chatter between both sounds.
+    if (thermalPending && thermalPending.hot === hot && now - thermalPending.at >= .12 && now - thermalLastAt >= 1.15) {
+      emit(hot ? 'thermalHot' : 'thermalCold');
+      thermalLastAt = now; thermalPending = null;
+    }
+  }
+
   function detect(s, dt) {
     const roomId = roomOf(s), t = num(s.time);
-    if (!prev || prev.ref !== s || t < prev.time - 1e-6) { prev = snap(s); return; }
-    if (roomId !== prev.roomId) { emit('room'); prev = snap(s); return; }
+    if (!prev || prev.ref !== s || t < prev.time - 1e-6) {
+      prev = snap(s); thermalRoom = roomId; thermalLastAt = -1e9; thermalPending = null; return;
+    }
+    if (roomId !== prev.roomId) {
+      emit('room'); thermalRoom = roomId; thermalLastAt = -1e9; thermalPending = null;
+      const enteringWeaver = list(s.enemies).find(isWeaver);
+      if (enteringWeaver && awake(enteringWeaver)) emit('weaverWake', panFor(s, enteringWeaver.x, enteringWeaver.y));
+      prev = snap(s); return;
+    }
     const P = prev, p = s.player || {};
     if (s.status !== P.status) {
       if (s.status === 'won') emit(s.beacon || s.regionId ? 'won' : 'rescue');
       else if (s.status === 'cleared') emit('cleared', { delay: s.beacon && (s.beacon.lit || s.beacon.active) && !P.beacon ? 1.1 : 0 });
       else if (s.status === 'lost') emit('lost');
     }
+    detectThermal(s, P, roomId);
     if (num(s.hits) > P.hits || (s.hits == null && num(p.hp) < P.hp)) emit('hurt');
     else if (num(p.hp) > P.hp && num(p.maxHp) === P.maxHp) emit('heal');
     if (num(s.returns) > P.returns) emit('return');
@@ -827,18 +954,34 @@
     desired.beam = caught; desired.charge = maxCharge;
     list(s.gates).forEach((g, i) => { const k = idOf(g, i); if (g.open && P.gates[k] === false) emit('gate', panFor(s, g.x + (g.w || 0) / 2, g.y + (g.h || 0) / 2)); });
     list(s.mirrors).forEach((m, i) => { const k = idOf(m, i); if (k in P.mirrors && m.index !== P.mirrors[k]) emit('mirror', panFor(s, m.x, m.y)); });
-    // Region 2 environment: dams (hart impacts), brambles, levers, placeable prism, mortar lobs
+    // Region 2/3 environment: dams, brambles, kiln glass, levers, prism and mortar lobs
     let damHitNow = false;
     list(s.dams).forEach((d, i) => {
       const o = P.dams[idOf(d, i)]; if (!o) return; const pos = panFor(s, num(d.x) + num(d.w) / 2, num(d.y) + num(d.h) / 2);
       if ((d.broken && !o.broken) || (num(d.hp) <= 0 && o.hp > 0)) { emit('damBreak', pos); damHitNow = true; } else if (num(d.hp) < o.hp) { emit('damHit', pos); damHitNow = true; }
     });
+    const glassSeen = {}; let annealed = null, shattered = null;
+    list(s.glass).forEach((g, i) => {
+      const k = idOf(g, i), o = P.glass[k]; glassSeen[k] = true; if (!o) return;
+      const pos = panFor(s, num(g.x) + num(g.w) / 2, num(g.y) + num(g.h) / 2), broken = glassBroken(g);
+      if (!annealed && g.mode === 'solid' && g.when === 'cold' && s.thermal && !s.thermal.hot && !o.active && g.active) annealed = pos;
+      if (!shattered && !o.broken && broken) shattered = pos;
+      if (!shattered && o.mode === 'solid' && o.active && g.mode === 'solid' && !g.active && P.thermalHot !== null &&
+        s.thermal && typeof s.thermal.hot === 'boolean' && s.thermal.hot !== P.thermalHot) shattered = pos;
+    });
+    if (!shattered) for (const k in P.glass) if (!glassSeen[k] && P.glass[k].mode === 'solid' && P.glass[k].active) { shattered = {}; break; }
+    if (annealed) emit('glassAnneal', annealed);
+    if (shattered) emit('glassShatter', shattered);
     list(s.growth).forEach((g, i) => {
       const k = idOf(g, i); if (!(k in P.growth)) return; const alive = g.alive !== false;
       if (alive === P.growth[k]) return; const pos = panFor(s, num(g.x) + num(g.w) / 2, num(g.y) + num(g.h) / 2);
       if (!alive) emit('brambleCut', pos); else { if (pos.gain != null) pos.gain *= .6; emit('brambleRegrow', pos); }
     });
-    list(s.levers).forEach((l, i) => { const k = idOf(l, i); if (l.pulled && P.levers[k] === false) emit('lever', panFor(s, l.x, l.y)); });
+    const valve = list(s.levers).find(l => l.id === 'quench-valve' || l.flag === 'quench-valve');
+    if (!P.quench && quenched(s)) emit('quench', valve ? panFor(s, valve.x, valve.y) : {});
+    list(s.levers).forEach((l, i) => {
+      const k = idOf(l, i); if (l.pulled && P.levers[k] === false && l.id !== 'quench-valve' && l.flag !== 'quench-valve') emit('lever', panFor(s, l.x, l.y));
+    });
     const prism = p.prism || null;
     if (prism !== P.prism) {
       if (prism === 'placed') emit('prismPlace');
@@ -868,7 +1011,7 @@
       }
       if (e.type === 'mortar' && ph !== was && /telegraph|draw|wind/.test(ph)) { emit('mortarCreak', pos); return; }
       if (ph !== was) {
-        if (/dormant|sleep/.test(was)) emit('wake', pos);
+        if (/dormant|sleep/.test(was)) emit(isWeaver(e) ? 'weaverWake' : 'wake', pos);
         if (/windup/.test(ph)) emit('windup', pos);
         else if (ph === 'lunge' || ph === 'charge') emit('lunge', pos);
         else if (/telegraph/.test(ph)) emit('telegraph', pos);
@@ -916,16 +1059,17 @@
     prev = snap(s);
   }
   function score(s) {
-    const roomId = roomOf(s), enemies = list(s.enemies), diver = enemies.find(isDiver), hart = enemies.find(isHart);
+    const roomId = roomOf(s), enemies = list(s.enemies), diver = enemies.find(isDiver), hart = enemies.find(isHart), weaver = enemies.find(isWeaver);
     const region = (s.room && s.room.region) || s.regionId, green = region === VERDANT;
-    let key = ROOM_SONG[roomId] || (green ? 'verdant' : 'cloister');
+    let key = ROOM_SONG[roomId] || (green ? 'verdant' : region === KILN ? 'furnace' : 'cloister');
     if (diver && awake(diver)) key = 'boss';
     if (hart && awake(hart)) key = 'hart';
+    if (weaver && awake(weaver)) key = 'weaver-boss';
     if (s.status === 'won' || s.status === 'cleared') key = green ? 'glade' : 'victory';
     desired.key = key;
     desired.combat = enemies.some(awake);
-    const boss = key === 'hart' ? hart : diver;
-    desired.intense = !!(boss && num(boss.hp) > 0 && num(boss.hp) <= num(boss.maxHp || (boss === hart ? 8 : 10)) / 2);
+    const boss = key === 'hart' ? hart : key === 'weaver-boss' ? weaver : diver;
+    desired.intense = !!(boss && num(boss.hp) > 0 && num(boss.hp) <= num(boss.maxHp || (boss === hart ? 8 : boss === weaver ? 10 : 10)) / 2);
     desired.duck = s.status === 'lost';
     desired.water = tideOn(s) || list(s.water).length > 0;
     desired.tide = tideOn(s) ? clamp(num(s.tide.level), 0, 1) : .5;

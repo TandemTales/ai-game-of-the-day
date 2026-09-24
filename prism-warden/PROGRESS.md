@@ -216,3 +216,27 @@ NOT implemented. Required next substantial increment remains connected regions1-
 on September26, then beginning-to-ending regions4-5 September27 before dedicated
 polish. Forced releaseOctober3; no weekday runs assumed. Existing negative AAA,
 scope and unverified enjoyment findings must survive the next handoff.
+
+## 2026-09-22 late Tuesday run intent (Pacific, third pass)
+
+STOP absent; `dev` synchronized to `cccd015`. Age 2, not release night; forced
+release remains October 3. Scope: start Region 3 Glass Kiln and make C1-C5 a
+connected, legally playable region using the established room engine. Add the
+smallest needed hot/cold glass rules, author distinct furnace/annealing/cart/
+foundry/Glass Weaver encounters, carry any renderer/audio support, and build a
+reproducible legal-input pilot plus focused tests. Preserve the earlier
+OUR-LOSES scene verdict and no-AAA-accepted boundary. First verify the current
+full suite, then push the handoff before game-code work. Browser captures and
+honest remaining scope/debt belong in the final entry. No `.aaa-complete`,
+release, catalog change or `main` promotion this run.
+
+## 2026-09-23 Wednesday run intent (Pacific)
+
+STOP absent. Active game prism-warden, age 3; forced release remains October 3.
+Continue the Glass Kiln expansion: author C1-C5 as a connected region with the
+smallest deterministic hot/cold glass rules needed for legal routes, then add
+the room rendering/audio support, a legal-input pilot and focused regressions.
+Preserve the negative Link's Awakening visual verdict and the boundary that
+Regions 3-5 remain incomplete until built. Push this intent before game-code
+work. At end, record tests, browser evidence and remaining debt. No .aaa-complete,
+catalog edit, release or main promotion this run.

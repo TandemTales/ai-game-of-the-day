@@ -15,5 +15,6 @@ Selection and alternatives: .arcade-agent/candidates-2026-09-20.md.
 No human-choice hold. Ironwake remains complete under forced schedule, not AAA.
 Work on dev; main changes only on release. Orbit Orchard remains cancelled.
 
-Next: build Regions 4-5 and the ending, then return to the remaining AAA polish debt.
-Read prism-warden/PROGRESS.md first; 15/25 challenges built, none AAA-accepted.
+Next: complete the targeted kiln readability pass, then build Regions 4-5 and the
+ending before returning to the remaining AAA polish debt. Read prism-warden/PROGRESS.md
+first; 15/25 challenges built, none AAA-accepted.

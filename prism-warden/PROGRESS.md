@@ -323,3 +323,23 @@ This Thursday is age 4, not release night; forced release is October 3. No
 campaign scope and break the remaining regular kiln floor grid, then obtain a fresh
 visual verdict. Never represent pilot/screenshot evidence as human-play or AAA
 acceptance.
+
+## 2026-09-24 broken-course floor iteration
+
+The next render.js-only pass varies kiln course offsets and slab proportions, adds
+irregular face fractures and sparse repair marks, and removes fixed-interval brass
+seams. Focused Jest passes 2 suites / 35 tests. Current-code Chromium smoke passes
+390x844 and 1440x900 with no console errors, external requests or horizontal overflow;
+keyboard/touch checks passed where applicable. These two sizes are the focused visual
+check for this floor-only iteration; the six-size sweep above is from its parent
+revision. Screenshot evidence is in `node_modules/.cache/prism-warden/kiln-fractured-floor/`.
+
+The fresh visual critic still reports OURS LOSES against Nintendo's official
+*Link's Awakening* gallery. It credits less regular slab sizes and occasional fissures,
+but says the floor still reads as dark rectangular rows; C5 remains too dark on mobile,
+the center shard is small and close to the player, and the beacon edge label appears
+clipped. No side-by-side composite was made because the browser policy blocked it.
+Next render pass: break the rectangular pattern more strongly, lift mobile C5 floor
+readability and clamp the beacon label. Keep the shard aligned with its real hitbox.
+Gameplay critic remains OURS LOSES; human play, campaign completion and audio listening
+remain outstanding. No release or `main` promotion.

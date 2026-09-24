@@ -369,25 +369,56 @@
     }
   }
   function floorKiln(g, W, H, rng, th, s) {
-    // Refractory ironstone plates with fine brass joints; dynamic glass owns the bright accents.
+    // Refractory ironstone laid in broken courses, with dynamic glass owning the bright accents.
     g.fillStyle = '#111518'; g.fillRect(0, 0, W, H);
-    // Hand-fit slabs vary by row and column so the base does not read as a stamped grid.
     const plates = [];
-    for (let y = 0, row = 0; y < H; row++) {
-      const sh = 27 + rng() * 12;
-      for (let x = -(row % 2) * 24, column = 0; x < W; column++) {
-        const sw = 38 + rng() * 24;
+    for (let y = -8, course = 0; y < H + 8; course++) {
+      const sh = 24 + rng() * 27;
+      // Each course gets an independent, broad offset; mixed short and long slabs
+      // create occasional groupings without repeating a half-brick pattern.
+      let x = -rng() * (32 + rng() * 74), column = 0;
+      while (x < W + 12) {
+        const form = rng();
+        const sw = form < .2 ? 25 + rng() * 20 : form < .52 ? 62 + rng() * 34 : 34 + rng() * 38;
         const bx = x + 1.5, by = y + 1.5, bw = sw - 3, bh = sh - 3;
         plates.push({ x: bx, y: by, w: bw, h: bh });
         stone(g, bx, by, bw, bh, hsl(24 + rng() * 12, 12 + rng() * 12, 19 + rng() * 9), rng,
-          { jit: .6, hi: .12, lo: .3, rim: .17, speck: 90, crack: .025, chip: .03 });
-        if ((row + column) % 5 === 0) {
-          const vx = bx + bw * .2, vy = by + bh * .52;
-          line(g, vx, vy, vx + bw * .6, vy, 'rgba(5,8,9,.72)', 2.4);
-          line(g, vx + 2, vy - 1, vx + bw * .6 - 2, vy - 1, 'rgba(178,119,67,.28)', .8);
-          for (let n = 0; n < 3; n++) circle(g, vx + 4 + n * 6, vy + 3, .8, 'rgba(225,168,104,.36)');
+          { jit: 2.3, hi: .12, lo: .32, rim: .14, speck: 150, crack: .11, chip: .11 });
+        // Hairline fractures follow irregular paths through the face of selected slabs.
+        if (rng() < .2 && bw > 28 && bh > 18) {
+          const edge = Math.floor(rng() * 4), points = [];
+          let px = edge === 0 ? bx + bw * (.16 + rng() * .5) : edge === 1 ? bx + bw - 2 : bx + 2;
+          let py = edge === 0 ? by + 2 : edge === 1 ? by + bh * (.16 + rng() * .54) : edge === 2 ? by + bh - 2 : by + bh * (.16 + rng() * .54);
+          points.push([px, py]);
+          const steps = 3 + Math.floor(rng() * 3);
+          for (let k = 1; k <= steps; k++) {
+            const f = k / steps;
+            const tx = edge === 1 ? bx + bw * (.12 + f * .42) : edge === 2 ? bx + bw * (.18 + f * .58) : px + (rng() - .5) * bw * .24;
+            const ty = edge === 0 ? by + bh * (.12 + f * .58) : edge === 2 ? py - bh * f * .55 : py + (rng() - .5) * bh * .34;
+            px = Math.max(bx + 3, Math.min(bx + bw - 3, tx));
+            py = Math.max(by + 3, Math.min(by + bh - 3, ty));
+            points.push([px, py]);
+          }
+          g.beginPath(); points.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]));
+          g.strokeStyle = 'rgba(4,8,10,.78)'; g.lineWidth = 1.5; g.stroke();
+          g.beginPath(); points.forEach((p, i) => i ? g.lineTo(p[0] + .4, p[1] - .6) : g.moveTo(p[0] + .4, p[1] - .6));
+          g.strokeStyle = 'rgba(175,124,78,.2)'; g.lineWidth = .6; g.stroke();
+          if (rng() < .36) {
+            const p = points[1 + Math.floor(rng() * (points.length - 1))];
+            g.beginPath(); g.moveTo(p[0], p[1]); g.lineTo(p[0] + (rng() - .5) * bw * .18, p[1] + (rng() - .5) * bh * .3);
+            g.strokeStyle = 'rgba(4,8,10,.68)'; g.lineWidth = 1; g.stroke();
+          }
+        }
+        // Sparse, offset repair pins and brass remnants keep the joints authored,
+        // rather than repeating at a fixed column interval.
+        if (rng() < .1) {
+          const vx = bx + bw * (.18 + rng() * .55), vy = by + bh * (.35 + rng() * .4), seam = bw * (.18 + rng() * .28);
+          line(g, vx, vy, vx + seam, vy + (rng() - .5) * 1.8, 'rgba(5,8,9,.72)', 2);
+          line(g, vx + 2, vy - 1, vx + seam - 2, vy - 1, 'rgba(178,119,67,.22)', .7);
+          if (rng() < .45) circle(g, vx + seam * .72, vy + 2, .75, 'rgba(225,168,104,.3)');
         }
         x += sw;
+        column++;
       }
       y += sh;
     }

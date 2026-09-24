@@ -8,7 +8,8 @@ const server = http.createServer((req, res) => {
   const file = path.resolve(root, '.' + new URL(req.url, 'http://localhost').pathname);
   if (!file.startsWith(root + path.sep)) { res.writeHead(403).end(); return; }
   fs.readFile(file, (err, data) => { if (err) { res.writeHead(404).end(); return; }
-    res.setHeader('Content-Type', file.endsWith('.js') ? 'text/javascript' : 'text/html'); res.end(data); });
+    const type = file.endsWith('.js') ? 'text/javascript' : file.endsWith('.png') ? 'image/png' : file.endsWith('.webp') ? 'image/webp' : 'text/html';
+    res.setHeader('Content-Type', type); res.end(data); });
 });
 async function main() {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));

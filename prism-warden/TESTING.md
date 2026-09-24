@@ -118,4 +118,40 @@ the C1-C5 pilot result. Run `node node_modules/jest/bin/jest.js prism-warden-kil
 render opening and Weaver arrangements plus phase/glass/boss cues; it checks finite,
 non-silent samples and output headroom, but it does not substitute for a human listen.
 The Glass Kiln authoring is a chapter increment: Regions 4-5, full campaign ending,
-dedicated Weaver behavior, and a gameplay effect for Glass Edge are still debt.
+and a gameplay effect for Glass Edge are still debt. The C5-only Weaver pattern and
+the bundled local basalt/glass floor layer must stay deterministic and retain the
+procedural floor fallback when `Image` is unavailable or the asset fails to load.
+
+## September24 Glass Kiln combat and visual follow-up
+
+Focused Prism Warden suite passes2 suites / 35 tests, including a Weaver pattern
+regression (telegraph, five shard launches, unchanged ordinary sentinel behavior)
+and a legal route. The full state-informed route from the Abbey through the
+Aqueduct and Kiln reaches the kiln beacon at307.9 simulated seconds,3/7 HP, with
+A1-C5 cleared and no retries. This does not establish human discovery or enjoyment.
+
+The updated browser smoke passes 320x568,390x844,844x390,768x1024,1440x900 and
+3840x2160. Each run checks keyboard/touch, pause/retry/replay, mock rank/submit,
+console, external requests and horizontal overflow. Lead opened all six Region3
+room screenshots at390x844, all six framed Weaver-thread screenshots across the
+required sizes, plus the 1440x900 furnace and C5 captures and the downsampled4K
+C5 capture. The room title is allowed to fade before those fixtures are captured.
+The local generated WebP is requested same-origin only. Renderer VM checks pass for
+both missing `Image` fallback and async asset load/static-cache rebuild.
+
+The OfflineAudioContext audit again produced finite five-second renders at44.1kHz
+with opening RMS .0568/peak .4216 and boss RMS .0936/peak .5594. Listening and
+physical-device playback remain unverified. Latest gameplay and visual critic
+verdicts are both OURS LOSES; see the latest dated PROGRESS entry for remaining debt.
+
+## September24 final renderer verification
+
+`node node_modules/jest/bin/jest.js prism-warden --runInBand`: 2 suites / 35 tests
+pass. The final six-size `tools/smoke.cjs` pass loads
+`assets/img/kiln-basalt-glass.webp` same-origin in every viewport and checks clean
+console, no external requests or horizontal overflow, touch/keyboard, pause, retry,
+replay and mock leaderboard. Current inspected captures and `report.json` are under
+`node_modules/.cache/prism-warden/final-post-render/`. VM fallback checks cover both
+missing `Image` and failed image loading. These checks do not establish human play.
+The latest independent gameplay and visual critics still report OURS LOSES; see
+PROGRESS for their reasoning, audio-listening limits and unfinished campaign scope.

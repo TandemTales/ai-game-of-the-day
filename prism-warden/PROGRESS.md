@@ -289,3 +289,37 @@ The prior blind gameplay and visual critics still report OURS LOSES; fresh revie
 of this encounter and the integrated kiln texture is pending. The full six-size
 browser sweep is running before visual inspection. Regions 4-5, Glass Edge's
 distinct behavior, human enjoyment and audio listening remain unverified.
+
+## 2026-09-24 verified visual and combat checkpoint
+
+The Glass Weaver now alternates its ordinary three-shot volley with five telegraphed
+threads. The centered shard is reflectable; the renderer separates its crystal and
+reduces active warnings to broken traces. Kiln material is sampled deterministically
+onto selected stone slabs; the bundled WebP is local-only, with a procedural fallback.
+
+Final focused Prism Warden Jest passes 2 suites / 35 tests. Final Chromium smoke passes
+320x568, 390x844, 844x390, 768x1024, 1440x900 and 3840x2160. Each viewport has no console
+errors, no external requests or horizontal overflow; the local kiln WebP was requested
+in all six. The harness also passed keyboard/touch, pause, retry/replay, mocked
+leaderboard and layout checks. Lead inspected the current 390x844 C5 and thread PNGs,
+1440x900 threads, and downsampled 4K C5/thread images. Renderer syntax and missing/
+failed-image VM fallbacks pass. Evidence: `node_modules/.cache/prism-warden/final-post-render/`.
+
+The state-informed route pilot clears A1-C5 to the kiln beacon in 307.9 simulated
+seconds, 3/7 HP, no retries. The gameplay critic independently reports OURS LOSES;
+its pilots also used hidden state and prove route reachability only, not human
+discovery, fairness or enjoyment. The fresh visual critic says OURS LOSES against
+Nintendo's official *Link's Awakening* gallery, while confirming the broken tracers,
+center shard and per-slab inlays materially improve the scene. Remaining visual debt:
+the repeated floor grid and substantially lower environmental depth and finish; the
+center shard is intentionally close to the player in the active-thread fixture. No
+literal side-by-side was made due browser policy. Human play and audio listening are
+unverified; OfflineAudioContext bounds still pass (opening RMS .0568, boss .0936).
+
+Current-game state: Regions 1-3 playable, 15/25 challenges built; Regions 4-5, ending,
+campaign save/progression, Glass Edge's distinct gameplay payoff and human QA remain.
+This Thursday is age 4, not release night; forced release is October 3. No
+`.aaa-complete`, catalog change, release or `main` promotion. Next: continue authored
+campaign scope and break the remaining regular kiln floor grid, then obtain a fresh
+visual verdict. Never represent pilot/screenshot evidence as human-play or AAA
+acceptance.

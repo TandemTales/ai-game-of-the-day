@@ -824,7 +824,7 @@
   // multi-phase Weaver controller remains an integration debt, not a fake claim.
   const weaver = {
     id: 'weaver', region: 'glass-kiln', challenge: 'C5', name: 'Glass Weaver Arena', w: W, h: H,
-    intro: 'The Glass Weaver guards a chamber where the panes shift with each kiln pulse. Return its volleys to expose it, then strike during the opening; hot glass fractures as cold glass reforms, changing which orbit lane offers cover.',
+    intro: 'The Weaver alternates a three-shot volley with five glass threads. Reflect the centered shard or slip through the gaps, then strike its open core.',
     spawn: { x: 84, y: 384 },
     thermal: { period: 14, hotFor: 7, offset: 2 },
     walls: [

@@ -155,6 +155,10 @@
   }
   function sanctZone(s) { return s.sanctuaryZone || (s.sanctuary && typeof s.sanctuary === 'object' ? s.sanctuary : null); }
   function enemyType(e) { return e.type || 'sentinel'; }
+  function sentinelName(e) {
+    const id = String(e && e.id || '');
+    return /glass[-_ ]?weaver/i.test(id) ? 'GLASS WEAVER' : /verger/i.test(id) ? 'TOWER VERGER' : 'BELL SENTINEL';
+  }
   // The placeable prism moves; keep it out of anything baked into the static layer.
   function staticMirrors(s) { return arr(s.mirrors).filter(m => m && !m.portable); }
   function roomName(id) {
@@ -166,7 +170,7 @@
   const OPTIONAL_ROOMS = ['sanctuary', 'ferry'];
 
   // ---------------------------------------------------------------- themes
-  const KILN_THEME = { grade: ['#ffe5bd', '#291b39'], floor: 'kiln', stone: [220, 13, 30], joint: '#0c1012', moss: 0, puddles: 0, top: [207, 16, 34], face: [215, 22, 22], wall: 'basalt', ambient: [102, 102, 112], void: '#080a10', vignette: .74, decor: 'kiln', water: [196, 72, 24], title: 'The furnace below the tide' };
+  const KILN_THEME = { grade: ['#ffe5bd', '#291b39'], floor: 'kiln', stone: [220, 13, 30], joint: '#0c1012', moss: 0, puddles: 0, top: [207, 16, 34], face: [215, 22, 22], wall: 'basalt', ambient: [150, 164, 180], void: '#080a10', vignette: .42, decor: 'kiln', water: [196, 72, 24], title: 'The furnace below the tide' };
   const kilnTheme = title => Object.assign({}, KILN_THEME, { title });
   const THEMES = {
     cloister: { grade: ['#ffe2b0', '#1d5a6a'], floor: 'flag', stone: [96, 9, 41], joint: '#1b2523', moss: .6, puddles: 5, top: [44, 16, 58], face: [38, 16, 33], wall: 'ashlar', ambient: [134, 140, 154], void: '#081b23', vignette: .5, decor: 'cloister', water: [185, 60, 26], title: 'The drowned cloister' },
@@ -189,7 +193,7 @@
     cart: kilnTheme('Keep the cooling cart moving'),
     rail: kilnTheme('Keep the cooling cart moving'),
     foundry: kilnTheme('Two temperatures, one circuit'),
-    weaver: kilnTheme('The glass remembers the blow'),
+    weaver: Object.assign(kilnTheme('The glass remembers the blow'), { ambient: [194, 210, 228], vignette: .3 }),
     quench: kilnTheme('The quench valve'),
     'optional-quench': kilnTheme('The quench valve')
   };
@@ -364,24 +368,33 @@
       g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
     }
   }
-  function floorKiln(g, W, H, rng) {
+  function floorKiln(g, W, H, rng, th, s) {
     // Refractory ironstone plates with fine brass joints; dynamic glass owns the bright accents.
     g.fillStyle = '#111518'; g.fillRect(0, 0, W, H);
-    const sw = 48, sh = 32;
-    for (let y = 0, row = 0; y < H; y += sh, row++) for (let x = -(row % 2) * sw / 2; x < W; x += sw) {
-      const bx = x + 1.5, by = y + 1.5, bw = sw - 3, bh = sh - 3;
-      stone(g, bx, by, bw, bh, hsl(24 + rng() * 12, 12 + rng() * 12, 19 + rng() * 9), rng,
-        { jit: .6, hi: .12, lo: .3, rim: .17, speck: 90, crack: .025, chip: .03 });
-      if ((row + Math.round(x / sw)) % 4 === 0) {
-        const vx = bx + bw * .2, vy = by + bh * .52;
-        line(g, vx, vy, vx + bw * .6, vy, 'rgba(5,8,9,.72)', 2.4);
-        line(g, vx + 2, vy - 1, vx + bw * .6 - 2, vy - 1, 'rgba(178,119,67,.28)', .8);
-        for (let n = 0; n < 3; n++) circle(g, vx + 4 + n * 6, vy + 3, .8, 'rgba(225,168,104,.36)');
+    // Hand-fit slabs vary by row and column so the base does not read as a stamped grid.
+    const plates = [];
+    for (let y = 0, row = 0; y < H; row++) {
+      const sh = 27 + rng() * 12;
+      for (let x = -(row % 2) * 24, column = 0; x < W; column++) {
+        const sw = 38 + rng() * 24;
+        const bx = x + 1.5, by = y + 1.5, bw = sw - 3, bh = sh - 3;
+        plates.push({ x: bx, y: by, w: bw, h: bh });
+        stone(g, bx, by, bw, bh, hsl(24 + rng() * 12, 12 + rng() * 12, 19 + rng() * 9), rng,
+          { jit: .6, hi: .12, lo: .3, rim: .17, speck: 90, crack: .025, chip: .03 });
+        if ((row + column) % 5 === 0) {
+          const vx = bx + bw * .2, vy = by + bh * .52;
+          line(g, vx, vy, vx + bw * .6, vy, 'rgba(5,8,9,.72)', 2.4);
+          line(g, vx + 2, vy - 1, vx + bw * .6 - 2, vy - 1, 'rgba(178,119,67,.28)', .8);
+          for (let n = 0; n < 3; n++) circle(g, vx + 4 + n * 6, vy + 3, .8, 'rgba(225,168,104,.36)');
+        }
+        x += sw;
       }
+      y += sh;
     }
     const shade = g.createRadialGradient(W * .5, H * .48, 30, W * .5, H * .48, Math.max(W, H) * .72);
     shade.addColorStop(0, 'rgba(70,100,115,.07)'); shade.addColorStop(1, 'rgba(0,0,0,.27)');
     g.fillStyle = shade; g.fillRect(0, 0, W, H);
+    paintKilnMaterial(g, s, W, H, plates);
   }
   const FLOORS = { flag: floorFlag, slate: floorSlate, octa: floorOcta, planks: floorPlanks, cobble: floorCobble, travertine: floorTravertine, spicatum: floorSpicatum, kiln: floorKiln };
 
@@ -1155,6 +1168,45 @@
     g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'multiply'; g.drawImage(L, 0, 0); g.restore();
   }
   const staticCache = new Map();
+  let kilnMaterial = null, kilnMaterialState = 'idle';
+  function loadKilnMaterial() {
+    if (!hasDoc || typeof Image === 'undefined' || kilnMaterialState !== 'idle') return;
+    kilnMaterialState = 'loading';
+    const img = new Image();
+    img.onload = () => {
+      if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+        kilnMaterial = img; kilnMaterialState = 'ready';
+        // The first static canvas may have baked the procedural fallback while this loaded.
+        staticCache.clear();
+      } else kilnMaterialState = 'failed';
+    };
+    img.onerror = () => { kilnMaterialState = 'failed'; };
+    img.decoding = 'async';
+    img.src = 'assets/img/kiln-basalt-glass.webp';
+  }
+  function paintKilnMaterial(g, s, W, H, plates) {
+    if (!kilnMaterial) { loadKilnMaterial(); return; }
+    const iw = kilnMaterial.naturalWidth || kilnMaterial.width, ih = kilnMaterial.naturalHeight || kilnMaterial.height;
+    if (!(iw > 0 && ih > 0 && W > 0 && H > 0 && Array.isArray(plates))) return;
+    // Vary individual slabs instead of overlaying a second full-room pattern.
+    const materialRng = rngFor(hashStr('kiln-tile-inlays:' + roomId(s)));
+    for (const plate of plates) {
+      if (materialRng() > .19) continue;
+      const inset = 1.1, x = plate.x + inset, y = plate.y + inset;
+      const w = plate.w - inset * 2, h = plate.h - inset * 2, cut = Math.min(w, h) * .18;
+      if (w < 8 || h < 8) continue;
+      const cropW = Math.min(iw, w * (1.8 + materialRng() * .9));
+      const cropH = Math.min(ih, h * (1.8 + materialRng() * .9));
+      const sx = materialRng() * Math.max(0, iw - cropW), sy = materialRng() * Math.max(0, ih - cropH);
+      g.save(); g.beginPath();
+      g.moveTo(x + cut, y); g.lineTo(x + w - cut, y); g.lineTo(x + w, y + cut);
+      g.lineTo(x + w, y + h - cut); g.lineTo(x + w - cut, y + h); g.lineTo(x + cut, y + h);
+      g.lineTo(x, y + h - cut); g.lineTo(x, y + cut); g.closePath(); g.clip();
+      g.globalCompositeOperation = 'source-over'; g.globalAlpha = .52;
+      g.drawImage(kilnMaterial, sx, sy, cropW, cropH, x, y, w, h);
+      g.restore();
+    }
+  }
   const geoSig = new WeakMap();
   function signature(s) {
     const key = s.walls;
@@ -1175,7 +1227,7 @@
     const rng = rngFor(hashStr(roomId(s)));
     g.scale(k, k);
     g.fillStyle = th.void; g.fillRect(0, 0, W, H);
-    (FLOORS[th.floor] || floorFlag)(g, W, H, rng, th);
+    (FLOORS[th.floor] || floorFlag)(g, W, H, rng, th, s);
     decals(g, s, th, rng, W, H, meta);
     beds(g, s, th, rng, W, H);
     inlays(g, s, th);
@@ -1341,7 +1393,7 @@
         const d = Math.hypot(player.x - cx, player.y - cy);
         if (d < 148 && (!nearest || d < nearest.d)) {
           const modeText = active ? (bridge ? 'GLASS BRIDGE' : solid ? 'ANNEALED GLASS' : hot ? 'MOLTEN GLASS' : 'FROST GLASS') : warn > 0 ? (hot ? 'HEATING' : 'FREEZING') : 'GLASS TRACE';
-          nearest = { d, x: cx, y: cy, text: modeText, color: active && solid ? '#cbf5ff' : active ? (hot ? '#ffc07c' : '#aeeaff') : '#c3c4d0' };
+          nearest = { d, x: cx, y: g.y - 18, text: modeText, color: active && solid ? '#cbf5ff' : active ? (hot ? '#ffc07c' : '#aeeaff') : '#c3c4d0' };
         }
       }
       ctx.restore();
@@ -1804,6 +1856,56 @@
       ctx.setLineDash([8, 8]); ctx.lineDashOffset = -t * 40; line(ctx, 18, 0, 265, 0, 'rgba(255,190,150,.75)', 2); ctx.restore();
     }
   }
+  function drawWeaverWarning(ctx, e, t) {
+    const phase = e.phase || '';
+    if (phase !== 'weave-telegraph' && phase !== 'weave-attack') return;
+    const d = Math.hypot(num(e.aimX, 0), num(e.aimY, 0)) || 1;
+    const dx = num(e.aimX, -1) / d, dy = num(e.aimY, 0) / d;
+    const px = -dy, py = dx, telegraph = phase === 'weave-telegraph';
+    const pulse = .72 + .18 * Math.sin(t * 11);
+    ctx.save(); ctx.lineCap = 'round'; ctx.setLineDash(telegraph ? [9, 8] : []); ctx.lineDashOffset = -t * 34;
+    for (let i = -2; i <= 2; i++) {
+      const lateral = i * 64, x1 = e.x + dx * 38 + px * lateral, y1 = e.y + dy * 38 + py * lateral;
+      const x2 = x1 + dx * 286, y2 = y1 + dy * 286;
+      if (telegraph) {
+        line(ctx, x1, y1, x2, y2, `rgba(126,218,255,.68)`, 2.7);
+      } else {
+        // During the volley these are broken motion traces; the actual shards carry the danger.
+        const center = i === 0, segments = center ? [[46, 72], [122, 146], [218, 244]] : [[52, 74], [216, 238]];
+        for (const [from, to] of segments) {
+          const ax = x1 + dx * from, ay = y1 + dy * from, bx = x1 + dx * to, by = y1 + dy * to;
+          line(ctx, ax, ay, bx, by, `rgba(42,150,255,${(center ? .18 : .1) * pulse})`, center ? 7 : 5);
+          line(ctx, ax, ay, bx, by, `rgba(126,218,255,${(center ? .48 : .3) * pulse})`, center ? 2.6 : 2);
+        }
+      }
+      if (telegraph) {
+        const gx = x1 + dx * 120, gy = y1 + dy * 120;
+        if (i === 0) {
+          glowQueue.push([gx, gy, 20, '132,225,255', .62]);
+          circle(ctx, gx, gy, 12, 'rgba(45,142,191,.68)', '#f5ffff', 2);
+          poly(ctx, [[gx - 13, gy], [gx - 4, gy - 10], [gx + 15, gy], [gx - 4, gy + 10]],
+            '#c7f5ff', '#ffffff', 2);
+          line(ctx, gx - 5, gy, gx + 8, gy, 'rgba(255,255,255,.95)', 1.6);
+        } else {
+          poly(ctx, [[gx + px * 4, gy + py * 4], [gx + dx * 6, gy + dy * 6], [gx - px * 4, gy - py * 4], [gx - dx * 4, gy - dy * 4]],
+            'rgba(208,245,255,.16)', 'rgba(180,229,245,.38)', .8);
+        }
+      }
+    }
+    ctx.restore();
+  }
+  function drawWeaverCrown(ctx, e, t, exposed) {
+    const palette = exposed ? ['#d4fff5', '#64eed3'] : ['#e6fcff', '#67bde0'];
+    for (let i = 0; i < 5; i++) {
+      const a = t * .42 + i * Math.PI * 2 / 5, x = e.x + Math.cos(a) * 39, y = e.y - 7 + Math.sin(a) * 31;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(a + Math.PI / 2);
+      const shard = ctx.createLinearGradient(0, -12, 0, 11); shard.addColorStop(0, palette[0]); shard.addColorStop(.45, palette[1]); shard.addColorStop(1, 'rgba(28,72,105,.9)');
+      poly(ctx, [[0, -12], [5, -3], [4, 6], [0, 11], [-4, 6], [-5, -3]], shard, 'rgba(223,250,255,.9)', 1.15);
+      line(ctx, 0, -8, 0, 7, 'rgba(248,255,255,.58)', .8);
+      ctx.restore();
+      glowQueue.push([x, y, 10, exposed ? '110,255,220' : '116,208,255', .48]);
+    }
+  }
   function drawSentinel(ctx, e, s, t) {
     const hp = num(e.hp, 0);
     if (hp <= 0) { // toppled bell husk
@@ -1818,6 +1920,8 @@
     const warn = !lunge && /telegraph|charge|windup|aim/.test(e.phase || '');
     const exposed = num(e.exposed, 0) > 0 || e.phase === 'exposed';
     const dormant = e.phase === 'dormant';
+    const glassWeaver = /glass[-_ ]?weaver/i.test(String(e.id || ''));
+    if (glassWeaver) { drawWeaverWarning(ctx, e, t); drawWeaverCrown(ctx, e, t, exposed); }
     const bob = dormant ? 0 : Math.sin(t * 3) * 1.5;
     ellipse(ctx, e.x + 4, e.y + 18, 32, 13, 'rgba(0,0,0,.55)');
     ctx.save(); ctx.translate(e.x, e.y + bob); ctx.scale(SCALE_SENTINEL, SCALE_SENTINEL);
@@ -1858,8 +1962,7 @@
     const maxHp = num(e.maxHp, hp) || 1;
     ctx.fillStyle = 'rgba(6,14,18,.85)'; rrect(ctx, e.x - 30, e.y - 58, 60, 7, 3); ctx.fill();
     ctx.fillStyle = exposed ? '#8ff2ce' : '#eda984'; rrect(ctx, e.x - 29, e.y - 57, 58 * clamp(hp / maxHp, 0, 1), 5, 2.5); ctx.fill();
-    const label = /glass[-_ ]?weaver/i.test(e.id || '') ? 'GLASS WEAVER' : /verger/i.test(e.id || '') ? 'TOWER VERGER' : 'BELL SENTINEL';
-    labels.push({ x: e.x, y: e.y - 70, text: exposed ? 'ARMOR OPEN — STRIKE' : lunge ? 'DODGE • UNBLOCKABLE' : warn ? 'RETURN THE SHOT' : label, color: exposed ? '#8ff2ce' : lunge ? '#ffb79c' : '#e5d7bd', size: 10 });
+    labels.push({ x: e.x, y: e.y - 70, text: exposed ? 'ARMOR OPEN — STRIKE' : lunge ? 'DODGE • UNBLOCKABLE' : glassWeaver && e.phase === 'weave-telegraph' ? 'GLASS THREADS' : warn ? 'RETURN THE SHOT' : sentinelName(e), color: exposed ? '#8ff2ce' : lunge ? '#ffb79c' : glassWeaver && e.phase === 'weave-telegraph' ? '#c8f0ff' : '#e5d7bd', size: 10 });
   }
   function diverState(e) {
     const ph = e.phase || '';
@@ -2969,17 +3072,42 @@
     for (const b of arr(s.shots)) {
       if (!Number.isFinite(b.x)) continue;
       const sp = Math.hypot(num(b.vx, 0), num(b.vy, 0)) || 1, ux = num(b.vx, 0) / sp, uy = num(b.vy, 0) / sp;
-      const rgb = b.friendly ? MINT : '255,130,80';
+      const thread = b.kind === 'glass-thread';
+      const owner = thread && arr(s.enemies).find(e => e.id === b.owner);
+      let centerThread = false;
+      if (thread && owner && Number.isFinite(owner.aimX) && Number.isFinite(owner.aimY)) {
+        const aimLen = Math.hypot(owner.aimX, owner.aimY) || 1;
+        const lateral = (b.x - owner.x) * (-owner.aimY / aimLen) + (b.y - owner.y) * (owner.aimX / aimLen);
+        centerThread = Math.abs(lateral) < 22 || !!b.friendly;
+      }
+      const rgb = b.friendly ? MINT : thread ? (centerThread ? '184,247,255' : '126,193,230') : '255,130,80';
       ctx.lineCap = 'round';
       ctx.globalCompositeOperation = 'lighter';
-      line(ctx, b.x - ux * 26, b.y - uy * 26 - 6, b.x, b.y - 6, `rgba(${rgb},.35)`, 8);
-      bloom(ctx, b.x, b.y - 6, 26, rgb, .8);
-      bloom(ctx, b.x, b.y + 6, 22, rgb, .25);
+      const trail = thread ? (centerThread ? 34 : 24) : 26;
+      line(ctx, b.x - ux * trail, b.y - uy * trail - 6, b.x, b.y - 6,
+        `rgba(${rgb},${thread ? centerThread ? .82 : .42 : .35})`, thread ? (centerThread ? 9 : 5.5) : 8);
+      bloom(ctx, b.x, b.y - 6, thread ? (centerThread ? 38 : 22) : 26, rgb, centerThread ? .96 : thread ? .48 : .82);
+      bloom(ctx, b.x, b.y + 6, thread ? (centerThread ? 24 : 15) : 22, rgb, centerThread ? .36 : thread ? .16 : .25);
       ctx.globalCompositeOperation = 'source-over';
       ctx.lineCap = 'butt';
       ellipse(ctx, b.x, b.y + 6, 5, 2.5, 'rgba(0,0,0,.35)');
-      circle(ctx, b.x, b.y - 6, 5.5, b.friendly ? '#b8ffe6' : '#ffb07a', '#fff4d8', 1.6);
-      circle(ctx, b.x - 1.5, b.y - 7.5, 1.8, '#ffffff');
+      if (thread) {
+        ctx.save(); ctx.translate(b.x, b.y - 6); ctx.rotate(Math.atan2(uy, ux));
+        if (centerThread) {
+          circle(ctx, 0, 0, 17, 'rgba(48,145,194,.48)', 'rgba(244,254,255,.95)', 2);
+          poly(ctx, [[-24, 0], [-7, -12], [21, 0], [-7, 12]], b.friendly ? '#b8ffe6' : '#d9faff', '#ffffff', 2.3);
+          poly(ctx, [[-7, -12], [1, 0], [-7, 12], [-1, 0]], b.friendly ? '#69e9c3' : '#70dfff', 'rgba(244,255,255,.85)', 1);
+          line(ctx, -4, 0, 13, 0, 'rgba(255,255,255,.98)', 1.8);
+          line(ctx, 4, -4, 9, 0, 'rgba(255,255,255,.88)', 1);
+        } else {
+          poly(ctx, [[-13, 0], [-4, -6], [13, 0], [-4, 6]], b.friendly ? '#b8ffe6' : '#a9e5ff', '#f1fdff', 1.5);
+          line(ctx, -3, 0, 6, 0, 'rgba(255,255,255,.75)', 1);
+        }
+        ctx.restore();
+      } else {
+        circle(ctx, b.x, b.y - 6, 5.5, b.friendly ? '#b8ffe6' : '#ffb07a', '#fff4d8', 1.6);
+        circle(ctx, b.x - 1.5, b.y - 7.5, 1.8, '#ffffff');
+      }
     }
   }
   function drawParticles(ctx, s) {
@@ -3192,7 +3320,7 @@
       return out;
     }
     const awake = enemies.find(e => enemyType(e) === 'sentinel' && e.phase !== 'dormant');
-    if (awake) { out.push({ x: awake.x, y: awake.y, label: 'SENTINEL', color: '#efb38e' }); return out; }
+    if (awake) { out.push({ x: awake.x, y: awake.y, label: sentinelName(awake), color: '#efb38e' }); return out; }
     const guard = enemies.find(e => enemyType(e) === 'sentinel');
     if (s.escort && num(s.escort.hp, 1) > 0 && !s.escort.done && !s.escort.arrived) {
       const p = s.player || s.escort;

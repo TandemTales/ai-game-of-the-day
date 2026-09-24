@@ -743,9 +743,9 @@
     e.aimX = dx / d; e.aimY = dy / d;
     announce(s, 'Red charge! Step aside or dash across its locked path.', 1.25, 1);
   }
-  function fire(s, e, angle, speed, dist, kind) {
-    const ux = Math.cos(angle), uy = Math.sin(angle);
-    const shot = { id: s._nextShotId++, x: e.x + ux * dist, y: e.y + uy * dist,
+  function fire(s, e, angle, speed, dist, kind, lateralOffset) {
+    const ux = Math.cos(angle), uy = Math.sin(angle), lateral = Number.isFinite(lateralOffset) ? lateralOffset : 0;
+    const shot = { id: s._nextShotId++, x: e.x - uy * lateral + ux * dist, y: e.y + ux * lateral + uy * dist,
       vx: ux * speed, vy: uy * speed, friendly: false, life: 5, r: 7, owner: e.id };
     if (kind) shot.kind = kind;
     s.shots.push(shot);
@@ -754,6 +754,7 @@
   // ----------------------------------------------------------------- enemies
   function sentinelStep(s, e, dt) {
     const p = s.player;
+    const weaver = s.room && s.room.challenge === 'C5' && e.id === 'glass-weaver';
     if (e.exposed > 0) {
       e.exposed = Math.max(0, e.exposed - dt);
       e.timer = e.exposed;
@@ -764,7 +765,8 @@
       const d = length(p.x - e.x, p.y - e.y);
       if ((!e.wakeWhen || gateOpen(s, e.wakeWhen)) && d < e.wakeRadius && losClear(s, e.x, e.y, p.x, p.y)) {
         e.phase = 'recover'; e.timer = .75;
-        announce(s, 'The sentinel wakes. Mirror its bright shots back at it.', 3, 1);
+        announce(s, weaver ? 'The Glass Weaver wakes. Return its shards; find a gap in the glass-thread sweep.' :
+          'The sentinel wakes. Mirror its bright shots back at it.', 3, 1);
       } else if (e.phase === 'patrol') {
         const [tx, ty] = e.patrol[e.patrolIndex % e.patrol.length];
         const dx = tx - e.x, dy = ty - e.y, dd = length(dx, dy);
@@ -788,12 +790,21 @@
       return;
     }
     if (e.phase === 'recover' && e.timer <= 0) {
-      e.phase = 'telegraph'; e.timer = 1.05;
+      const weave = weaver && e.volley % 2 === 1;
+      e.phase = weave ? 'weave-telegraph' : 'telegraph'; e.timer = weave ? 1.25 : 1.05;
       const d = Math.max(EPS, length(p.x - e.x, p.y - e.y));
       e.aimX = (p.x - e.x) / d; e.aimY = (p.y - e.y) / d;
+      if (weave) announce(s, 'The Weaver draws five parallel threads. Reflect the center shard or move through a gap.', 2.5, 1);
     } else if (e.phase === 'telegraph' && e.timer <= 0) {
       e.phase = 'attack'; e.timer = 1.45;
       e.shotsLeft = 3; e.shotTimer = 0; e.volley++;
+    } else if (e.phase === 'weave-telegraph' && e.timer <= 0) {
+      e.phase = 'weave-attack'; e.timer = 1.45;
+      e.shotsLeft = 5; e.shotTimer = 0; e.volley++;
+    } else if (e.phase === 'weave-recover' && e.timer <= 0) {
+      e.phase = 'telegraph'; e.timer = 1.05;
+      const d = Math.max(EPS, length(p.x - e.x, p.y - e.y));
+      e.aimX = (p.x - e.x) / d; e.aimY = (p.y - e.y) / d;
     }
     if (e.phase === 'attack') {
       e.shotTimer -= dt;
@@ -804,6 +815,16 @@
         e.shotsLeft--; e.shotTimer += .18;
       }
       if (e.timer <= 0) beginLunge(s, e);
+    } else if (e.phase === 'weave-attack') {
+      e.shotTimer -= dt;
+      if (e.shotsLeft > 0 && e.shotTimer <= 0) {
+        // Five parallel shards make a traversable curtain; the center shard
+        // follows the locked aim so a well-timed mirror can still expose the core.
+        const index = 5 - e.shotsLeft, lateral = (index - 2) * 64;
+        fire(s, e, Math.atan2(e.aimY, e.aimX), 285, 38, 'glass-thread', lateral);
+        e.shotsLeft--; e.shotTimer += .17;
+        if (e.shotsLeft === 0) { e.phase = 'weave-recover'; e.timer = .9; }
+      }
     }
   }
 

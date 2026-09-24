@@ -89,6 +89,27 @@ test('idle play cannot clear any Glass Kiln encounter', () => {
   }
 });
 
+test('only the Glass Weaver alternates a telegraphed five-thread curtain', () => {
+  const PW = loadPW(), state = start(PW, 'weaver');
+  const weaver = state.enemies.find(e => e.id === 'glass-weaver');
+  state.player.x = 900; state.player.y = 384;
+  weaver.x = 600; weaver.y = 384; weaver.phase = 'recover'; weaver.timer = .01; weaver.volley = 1;
+  tick(PW, state, 2);
+  expect(weaver.phase).toBe('weave-telegraph');
+  const firstShotId = state._nextShotId;
+  tick(PW, state, 120);
+  expect(weaver.volley).toBe(2);
+  expect(state._nextShotId - firstShotId).toBe(5);
+  expect(state.shots.some(shot => shot.kind === 'glass-thread')).toBe(true);
+
+  const ordinary = start(PW, 'furnace');
+  const sentinel = ordinary.enemies.find(e => e.id === 'kiln-watch');
+  sentinel.phase = 'recover'; sentinel.timer = .01; sentinel.volley = 1;
+  tick(PW, ordinary, 2);
+  expect(sentinel.phase).toBe('telegraph');
+  expect(ordinary.shots.some(shot => shot.kind === 'glass-thread')).toBe(false);
+});
+
 test('connected Glass Kiln is solvable through C1-C5 with legal simulation inputs', () => {
   const { play } = require('../prism-warden/tools/kiln-pilot.cjs');
   const result = play(loadPW());

@@ -273,3 +273,19 @@ defects, rerun the screenshot sweep after the title overlay fades, and seek fres
 independent verdicts. Keep the earlier OURS-LOSES judgment and incomplete
 campaign boundary visible. No `.aaa-complete`, production catalog change, release,
 or `main` promotion.
+
+## 2026-09-24 late follow-up: Glass Weaver combat
+
+C5 now has a Glass Weaver-only alternating attack: its regular three-shot volley
+alternates with a telegraphed five-thread curtain. The centered shard can be
+reflected, and the pattern ends in a short return-fire/strike opening. Ordinary
+sentinels retain their original volley. A focused regression checks the warning,
+five launches, and that non-C5 sentinels do not receive the pattern.
+
+`node node_modules/jest/bin/jest.js prism-warden --runInBand` passes 2 suites / 35
+tests. The legal route from the Abbey through the Aqueduct and Kiln reaches the
+kiln beacon at 307.9 simulated seconds, 3/7 HP, with A1-C5 cleared and no retries.
+The prior blind gameplay and visual critics still report OURS LOSES; fresh review
+of this encounter and the integrated kiln texture is pending. The full six-size
+browser sweep is running before visual inspection. Regions 4-5, Glass Edge's
+distinct behavior, human enjoyment and audio listening remain unverified.

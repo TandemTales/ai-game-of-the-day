@@ -397,5 +397,25 @@ The corrected `node prism-warden/tools/smoke.cjs` run passes all six required si
 again with clean console, no external requests or horizontal overflow. Fresh captures
 are under ignored `node_modules/.cache/prism-warden/sep25-fade-corrected/`. Lead
 opened the fade-complete 1440x900 volley PNG: the player, five shards and dashed
-paths are visible. A new independent comparison against an official shipped-game
-screenshot is still required before recording a presentation verdict.
+paths are visible. The fresh independent comparison is recorded below.
+
+## 2026-09-25 independent visual re-review
+
+The fade-complete side-by-side was opened and inspected at localhost against
+Nintendo's official *Link's Awakening* Switch screenshot02
+(`https://assets.nintendo.com/image/upload/ar_16%3A9%2Cb_auto%3Aborder%2Cc_lpad/b_white/f_auto/q_auto/dpr_1.5/ncom/en_US/games/switch/t/the-legend-of-zelda-links-awakening-switch/screenshot-gallery/screenshot02`).
+Verdict: AAA FAIL / OURS LOSES. The corrected Weaver and thread lanes are readable;
+the remaining loss is the flat repeated floor plane, shallow wall blocks, compact
+geometric characters and sparse composition versus the reference's layered
+materials, soft shadows and recognizable environmental forms. The mobile HUD fits
+but leaves about 508px of arena in the 844px capture and has small peripheral text.
+Verified comparison artifact: `node_modules/.cache/prism-warden/sep25-recheck/visual-comparison.html`.
+
+An original basalt/glass texture has been generated at
+`assets/img/kiln-basalt-fractured.png` for a renderer integration pass. Next: use it
+selectively with procedural fallback to deepen Kiln materials, and compact the
+portrait HUD in `assets/css/game.css` while keeping touch targets at least 44px.
+Then run all tests, the six-viewport smoke and separate renderer/UI comparisons.
+Campaign remains 15/25 challenges in regions 1-3; regions 4-5 and the ending are
+unbuilt. No AAA acceptance, completion marker, release, catalog edit or `main`
+promotion.

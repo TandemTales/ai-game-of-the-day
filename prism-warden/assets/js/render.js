@@ -547,24 +547,38 @@
       const iw = kilnApronMaterial.naturalWidth || kilnApronMaterial.width;
       const ih = kilnApronMaterial.naturalHeight || kilnApronMaterial.height;
       if (iw > 0 && ih > 0) {
-        // This authored sheet's paired west feeds converge on the existing
-        // hearth at 800,384. Paint only that west half; the room's own opaque
-        // hearth pass covers its central ring, avoiding a doubled focal motif
-        // and hiding the unused east-facing branches.
-        const scale = .4, sourceW = iw * .5;
-        const dx = 800 - sourceW * scale, dy = 384 - ih * .5 * scale;
-        g.save();
-        // Keep the generated circular coping out of the seam; the modeled
-        // hearth replaces it, while the amber channels meet its outer edge.
-        g.beginPath(); g.rect(0, 0, 1200, 800); g.ellipse(800, 384, 116, 120, 0, 0, TAU); g.clip('evenodd');
-        g.globalAlpha = .46; g.globalCompositeOperation = 'source-over';
-        g.drawImage(kilnApronMaterial, 0, 0, sourceW, ih, dx, dy, sourceW * scale, ih * scale);
+        // Register the full sheet on the modeled hearth; its edge branches
+        // continue under the irregular apron rim, while the opaque hearth pass
+        // above replaces the asset's center ring without a half-image seam.
+        const scale = .5, dw = iw * scale, dh = ih * scale;
+        const dx = 800 - dw * .5, dy = 384 - dh * .5;
+        g.save(); g.globalAlpha = .2; g.globalCompositeOperation = 'soft-light';
+        g.drawImage(kilnApronMaterial, 0, 0, iw, ih, dx, dy, dw, dh);
+        // Screen blend carries the authored amber flecks across the charcoal
+        // stone without letting the dark half of the source crush the floor.
+        g.globalAlpha = .11; g.globalCompositeOperation = 'screen';
+        g.drawImage(kilnApronMaterial, 0, 0, iw, ih, dx, dy, dw, dh);
         g.restore();
       }
     }
     const bloom = g.createRadialGradient(682, 347, 26, 690, 376, 294);
     bloom.addColorStop(0, 'rgba(207,156,102,.19)'); bloom.addColorStop(.48, 'rgba(130,112,91,.075)'); bloom.addColorStop(1, 'rgba(5,11,16,.025)');
     g.fillStyle = bloom; g.fillRect(416, 224, 542, 332);
+    // Broad, feathered hearth bounce reaches the darker east basin with a
+    // graded falloff; paired smaller pools keep it from reading as a wash.
+    const eastBounce = g.createRadialGradient(802, 360, 8, 852, 388, 226);
+    eastBounce.addColorStop(0, 'rgba(255,185,119,.19)');
+    eastBounce.addColorStop(.38, 'rgba(243,145,88,.14)');
+    eastBounce.addColorStop(.72, 'rgba(207,112,70,.065)');
+    eastBounce.addColorStop(1, 'rgba(207,112,70,0)');
+    ellipse(g, 852, 388, 222, 151, eastBounce);
+    for (const [x, y, rx, ry, strength] of [[832, 282, 142, 62, .085], [826, 493, 160, 76, .095]]) {
+      const pool = g.createRadialGradient(x - rx * .22, y - ry * .28, 1, x, y, rx);
+      pool.addColorStop(0, `rgba(255,182,113,${strength})`);
+      pool.addColorStop(.55, `rgba(223,128,76,${strength * .44})`);
+      pool.addColorStop(1, 'rgba(223,128,76,0)');
+      ellipse(g, x, y, rx, ry, pool);
+    }
     // Local heat pools tint the feed paths and the floor at their hearthward ends.
     for (const [x, y, rx, ry, strength] of [[558, 270, 92, 64, .32], [558, 494, 90, 63, .28], [684, 350, 98, 73, .27]]) {
       const spill = g.createRadialGradient(x - rx * .2, y - ry * .25, 2, x, y, rx);

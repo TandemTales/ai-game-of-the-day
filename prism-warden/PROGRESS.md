@@ -817,3 +817,33 @@ Campaign remains 15/25 challenges in regions 1-3; regions 4-5 and the ending
 are unbuilt, and no AAA acceptance is claimed. No .aaa-complete, catalog edit,
 release, active-game change or main promotion. Next: inspect the new comparisons,
 fix any seam/readability issue, and prioritize the remaining campaign content.
+
+## September25 eastern apron bounce-light iteration
+
+The full kiln-apron material now blends at lower soft-light strength with a
+restrained screen pass, plus a broad east-basin bounce and two weaker upper/lower
+light pools. The right-side crop edge is no longer obvious; this adds material
+and warmth across the basin without changing combat, collision or simulation.
+
+Full Jest passes 19 suites / 429 tests. The six-size Chromium smoke passes at
+320x568, 390x844, 844x390, 768x1024, 1440x900 and 3840x2160; all captures have a
+clean console, no external requests or horizontal overflow, all four local art
+assets return HTTP 200, and touch checks pass at the four smaller sizes. Lead
+opened all six current Weaver-thread captures, reviewing 4K at 1920x1080.
+`node --check` and `git diff --check` pass.
+
+Independent mobile review: scoped PASS at 320x568, 390x844, 844x390 and
+768x1024; HUD, thermal card, room/beacon cues, Weaver health, threads and touch
+controls remain legible. The fresh harsh renderer comparison remains AAA FAIL /
+OURS LOSES against Nintendo's official Link's Awakening screenshot. The prior
+hard crop seam is no longer distracting, but the right basin still falls off
+darker and the broad wash does not read as feed-driven light. Sparse staging,
+weak environmental depth, few contact-shadow cues, crowded 320 HUD and compressed
+844 landscape remain below reference. Six-pair comparison and captures are in
+ignored `node_modules/.cache/prism-warden/smoke/`.
+
+Campaign remains 15/25 challenges across regions 1-3. Regions 4-5, the ending
+and AAA acceptance remain incomplete. This is a dev checkpoint only: no
+`.aaa-complete`, catalog edit, release or `main` promotion. Next: connect the
+warm bounce more clearly to feed stones, add environmental/contact depth, and
+continue campaign content.

@@ -440,10 +440,59 @@ Lead inspected the 320x568 play view, 390x844 play and Weaver-volley views,
 view. The fractured material reads more clearly than the prior uniform floor;
 the portrait HUD and controls fit with more arena space, though character and
 environment forms still fall short of shipped AAA presentation. Independent
-renderer/material and mobile UI side-by-side critiques are in progress; no pass
-is claimed until their comparisons are inspected.
+renderer/material and mobile UI comparisons were still in progress at this
+checkpoint; no pass was claimed.
 
-Next: record both critics' verdicts and address any bounded high-value visual
+Next: record the critics' verdicts and address any bounded high-value visual
 issue. Campaign remains 15/25 challenges across regions 1-3; regions 4-5 and the
 ending remain unbuilt. No AAA acceptance, completion marker, release, catalog edit
 or `main` promotion.
+
+## September 25 critic loop — second pass
+
+Both independent disciplines returned AAA FAIL / OURS LOSES. The renderer
+critic inspected the integrated 390x844 and 1440x900 Weaver views, Foundry and
+downsampled 4K captures against Nintendo's official *Link's Awakening*
+screenshot; it found more material variation, but the playfield still reads as a
+dark polygon grid with shallow walls and small angular actors. The mobile UI
+critic inspected 320x568, 390x844 and landscape captures against the official
+*Dead Cells* mobile listing; touch controls are legible, but the opening room
+title/tutorial and C5 status stack compete with the arena at phone scale. Both
+reviews assess presentation only, not gameplay or campaign completeness.
+
+Renderer follow-up added fractured basalt sampling, slab bevels and wall inlays,
+and shortened the mobile title card. Lead tightened the A1/C5 hints and moved the
+phone HUD into translucent overlays to reclaim arena height.
+
+## September 25 compact HUD and final review
+
+Full repository tests pass (19 suites / 429 tests). The six-viewport Chromium
+smoke passes at 320x568, 390x844, 844x390, 768x1024, 1440x900 and 3840x2160,
+including keyboard/touch actions, receiver aim, pause/retry, room and C5 thread
+fixtures, results and mocked leaderboard flow. All sizes have clean console and
+external-request logs, load the local fractured-basalt PNG and show no horizontal
+overflow. Final captures are under
+`node_modules/.cache/prism-warden/sep25-hud-overlay-final-r1/`; the PNGs were
+opened and inspected, with a 1920x1080 preview for the 4K C5 image.
+
+The first overlay smoke exposed a real 844x390 mouse-aim regression: the empty
+overlaid header intercepted pointer movement to the high sun receiver. Header
+chrome now passes pointer input through while its buttons remain interactive;
+the targeted landscape rerun and the full sweep pass. A visual review then found
+the short-landscape hint at the top under the header; it has been moved above the
+touch controls, and fresh screenshots were captured.
+
+The fresh renderer critic again returns AAA FAIL / OURS LOSES against Nintendo's
+official *Link's Awakening* screenshot: basalt detail improved, but the dark tile
+grid, flat architecture and weak actor grounding remain. The mobile critic also
+returns AAA FAIL / OURS LOSES against the official *Dead Cells* mobile image:
+arena space and controls improved, but the landscape hint crosses active C5
+threads and the cycle panel crowds the Weaver. Both verdicts are presentation
+only; the newest captures and comparison artifacts are in the folder above.
+Next: move the landscape hint into the header's open center and move the C5 cycle
+panel away from the Weaver, then add stronger height and contact-shadow cues.
+
+Campaign remains 15/25 challenges across regions 1-3; regions 4-5 and the ending
+remain unbuilt. No AAA acceptance, completion marker, release, catalog edit or
+`main` promotion. No portion of this work claims human playtest, physical-device
+comfort or GPU performance evidence.

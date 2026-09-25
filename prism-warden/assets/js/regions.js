@@ -126,7 +126,7 @@
 
   const cloister = {
     id: 'cloister', region: 'tidal-abbey', challenge: 'A1', name: 'Sunken Cloister', w: W, h: H,
-    intro: 'Catch the sun on your mirror and hold it on the north seal while the wall turret hunts you: turn and return a shot to jam it, then aim.',
+    intro: 'Hold the beam on the north seal. Reflect a turret shot to jam it.',
     spawn: { x: 190, y: 540 },
     // Courtyard geometry is preserved (index order too); only the east wall is split
     // for the door behind Ilex, and the extra piece is appended.
@@ -824,7 +824,7 @@
   // multi-phase Weaver controller remains an integration debt, not a fake claim.
   const weaver = {
     id: 'weaver', region: 'glass-kiln', challenge: 'C5', name: 'Glass Weaver Arena', w: W, h: H,
-    intro: 'The Weaver alternates a three-shot volley with five glass threads. Reflect the centered shard or slip through the gaps, then strike its open core.',
+    intro: 'Reflect the center shard or slip through thread gaps. Strike the Weaver’s open core.',
     spawn: { x: 84, y: 384 },
     thermal: { period: 14, hotFor: 7, offset: 2 },
     walls: [

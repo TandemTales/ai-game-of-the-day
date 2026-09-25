@@ -557,6 +557,7 @@
     for (const w of walls) g.fillRect(w.x, w.y, w.w, w.h + FH);
     g.restore();
     const faces = wallFaces(walls);
+    const wallMaterialRng = rngFor(hashStr('kiln-wall-inlays:' + roomId(s)));
     // South faces.
     g.save(); g.beginPath(); for (const f of faces) g.rect(f.x, f.y - .5, f.w, FH + .5); g.clip();
     const fg = g.createLinearGradient(0, 0, 0, 1);
@@ -564,6 +565,15 @@
       const gr = g.createLinearGradient(0, f.y, 0, f.y + FH);
       gr.addColorStop(0, hsl(th.face[0], th.face[1], th.face[2] + 8)); gr.addColorStop(1, hsl(th.face[0], th.face[1], th.face[2] - 9));
       g.fillStyle = gr; g.fillRect(f.x, f.y, f.w, FH);
+      if (th.floor === 'kiln' && th.wall === 'basalt' && kilnMaterial) {
+        for (let y = f.y + 4; y < f.y + FH - 3; y += 11) {
+          for (let x = f.x + 3; x < f.x + f.w - 4;) {
+            const pw = Math.min(f.x + f.w - 3 - x, 18 + wallMaterialRng() * 22);
+            if (wallMaterialRng() < .32) paintKilnRectMaterial(g, x, y, pw, Math.min(7, f.y + FH - 2 - y), wallMaterialRng, .28);
+            x += pw + 3 + wallMaterialRng() * 5;
+          }
+        }
+      }
       if (th.wall === 'rock') {
         for (let x = f.x; x < f.x + f.w; x += 9 + rng() * 10) {
           ellipse(g, x, f.y + 4 + rng() * 8, 6 + rng() * 6, 4 + rng() * 3, hsl(th.face[0], th.face[1], th.face[2] + (rng() - .3) * 10), 'rgba(0,0,0,.35)', 1);
@@ -623,6 +633,8 @@
       for (let y = 0; y < H; y += bh, row++) for (let x = -(row % 2) * bw / 2; x < W; x += bw) {
         if (!walls.some(w => inRect(x + bw / 2, y + bh / 2, w, bw))) continue;
         stone(g, x + 1, y + 1, bw - 2, bh - 2, jit(th.top, rng, 7, 8, 9), rng, { jit: th.wall === 'basalt' ? .8 : 1.5, speck: 70, crack: .08, hi: .16, lo: .3 });
+        if (th.floor === 'kiln' && th.wall === 'basalt' && kilnMaterial && wallMaterialRng() < .22)
+          paintKilnRectMaterial(g, x + 2, y + 2, bw - 4, bh - 4, wallMaterialRng, .2);
       }
     }
     // Inner edge shading: the parts of wide walls far from the floor are in shade.
@@ -1249,19 +1261,34 @@
     img.decoding = 'async';
     img.src = 'assets/img/kiln-basalt-fractured.png';
   }
+  function paintKilnRectMaterial(g, x, y, w, h, rng, alpha) {
+    if (!kilnMaterial || w < 3 || h < 3) return;
+    const iw = kilnMaterial.naturalWidth || kilnMaterial.width, ih = kilnMaterial.naturalHeight || kilnMaterial.height;
+    if (!(iw > 0 && ih > 0)) return;
+    const cropW = Math.min(iw, w * (2.2 + rng() * .8));
+    const cropH = Math.min(ih, h * (2.2 + rng() * .8));
+    const sx = rng() * Math.max(0, iw - cropW), sy = rng() * Math.max(0, ih - cropH);
+    g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip();
+    g.globalCompositeOperation = 'source-over'; g.globalAlpha = alpha;
+    g.drawImage(kilnMaterial, sx, sy, cropW, cropH, x, y, w, h);
+    // A restrained directional glaze reinforces the material's shallow relief.
+    const relief = g.createLinearGradient(x, y, x + w * .45, y + h);
+    relief.addColorStop(0, 'rgba(245,247,238,.13)');
+    relief.addColorStop(.48, 'rgba(255,255,255,0)');
+    relief.addColorStop(1, 'rgba(0,3,8,.23)');
+    g.globalAlpha = 1; g.fillStyle = relief; g.fillRect(x, y, w, h);
+    g.restore();
+  }
   function paintKilnMaterial(g, s, W, H, plates) {
     if (!kilnMaterial) { loadKilnMaterial(); return; }
     const iw = kilnMaterial.naturalWidth || kilnMaterial.width, ih = kilnMaterial.naturalHeight || kilnMaterial.height;
     if (!(iw > 0 && ih > 0 && W > 0 && H > 0 && Array.isArray(plates))) return;
-    // Vary individual slabs instead of overlaying a second full-room pattern.
+    // Independently sampled slabs keep the generated material from reading as a tile.
     const materialRng = rngFor(hashStr('kiln-tile-inlays:' + roomId(s)));
     for (const plate of plates) {
-      if (materialRng() > .19) continue;
+      if (materialRng() > .34) continue;
       const x = plate.x, y = plate.y, w = plate.w, h = plate.h;
       if (w < 8 || h < 8) continue;
-      const cropW = Math.min(iw, w * (1.8 + materialRng() * .9));
-      const cropH = Math.min(ih, h * (1.8 + materialRng() * .9));
-      const sx = materialRng() * Math.max(0, iw - cropW), sy = materialRng() * Math.max(0, ih - cropH);
       g.save(); g.beginPath();
       if (Array.isArray(plate.points) && plate.points.length > 2) {
         plate.points.forEach((point, i) => i ? g.lineTo(point[0], point[1]) : g.moveTo(point[0], point[1]));
@@ -1272,8 +1299,22 @@
         g.lineTo(x, y + h - cut); g.lineTo(x, y + cut);
       }
       g.closePath(); g.clip();
-      g.globalCompositeOperation = 'source-over'; g.globalAlpha = .52;
-      g.drawImage(kilnMaterial, sx, sy, cropW, cropH, x, y, w, h);
+      paintKilnRectMaterial(g, x, y, w, h, materialRng, .62);
+      // Selected slabs catch a cool upper-left rim and hold a deeper lower edge.
+      let area = 0;
+      for (let i = 0; i < plate.points.length; i++) {
+        const a = plate.points[i], b = plate.points[(i + 1) % plate.points.length];
+        area += a[0] * b[1] - b[0] * a[1];
+      }
+      const orientation = area >= 0 ? 1 : -1;
+      for (let i = 0; i < plate.points.length; i++) {
+        const a = plate.points[i], b = plate.points[(i + 1) % plate.points.length];
+        const dx = b[0] - a[0], dy = b[1] - a[1], length = Math.hypot(dx, dy) || 1;
+        const nx = orientation * dy / length, ny = -orientation * dx / length;
+        const light = nx * -.55 + ny * -.83;
+        if (light > .16) line(g, a[0], a[1], b[0], b[1], `rgba(224,239,239,${.12 + light * .13})`, 1.8);
+        else if (light < -.2) line(g, a[0], a[1], b[0], b[1], 'rgba(0,3,8,.3)', 2.4);
+      }
       g.restore();
     }
   }
@@ -3323,10 +3364,13 @@
       ctx.restore();
     }
   }
-  function tideGauge(ctx, s, t, width) {
+  function compactCanvasHud(width, height) {
+    return width <= 600 || (width <= 1000 && height <= 480);
+  }
+  function tideGauge(ctx, s, t, width, height) {
     if (!tideOn(s)) return;
     const lv = clamp(num(s.tide.level, 0), 0, 1), w = tideWarn(s), high = tideHigh(s);
-    const x = width - 150, y = width < 640 && arr(s.enemies).some(e => (enemyType(e) === 'diver' || enemyType(e) === 'hart') && num(e.hp, 0) > 0) ? 50 : 12, W = 138, H = 36;
+    const x = width - 150, y = compactCanvasHud(width, height) ? 100 : width < 640 && arr(s.enemies).some(e => (enemyType(e) === 'diver' || enemyType(e) === 'hart') && num(e.hp, 0) > 0) ? 50 : 12, W = 138, H = 36;
     ctx.save();
     rrect(ctx, x, y, W, H, 8); ctx.fillStyle = 'rgba(6,18,24,.78)'; ctx.fill(); ctx.strokeStyle = w > 0 ? `rgba(255,190,110,${.5 + .5 * Math.sin(t * 12)})` : 'rgba(160,210,220,.35)'; ctx.lineWidth = 1.5; ctx.stroke();
     // wave level column
@@ -3338,11 +3382,11 @@
     ctx.fillText(w > 0 ? (high ? 'EBBING in ' : 'RISING in ') + Math.max(0, (1 - w) * 1.5).toFixed(1) + 's' : 'steady', x + 28, y + 26);
     ctx.restore();
   }
-  function thermalGauge(ctx, s, t, width) {
+  function thermalGauge(ctx, s, t, width, height) {
     const th = s.thermal;
     if (!th || regionOf(s) !== 'glass-kiln') return;
     const hot = !!th.hot, phase = clamp(num(th.phase, 0), 0, 1), flipIn = Math.max(0, num(th.flipIn, 0));
-    const W = 166, H = 46, x = Math.max(12, width - W - 12), y = 12, rgb = hot ? '255,128,66' : '115,203,255';
+    const compact = compactCanvasHud(width, height), W = 166, H = 46, x = Math.max(12, width - W - 12), y = compact ? (tideOn(s) ? 145 : 100) : 12, rgb = hot ? '255,128,66' : '115,203,255';
     ctx.save();
     rrect(ctx, x, y, W, H, 8); ctx.fillStyle = 'rgba(8,12,18,.86)'; ctx.fill();
     ctx.strokeStyle = hot ? 'rgba(255,145,84,.58)' : 'rgba(134,211,255,.55)'; ctx.lineWidth = 1.4; ctx.stroke();
@@ -3356,12 +3400,14 @@
     rrect(ctx, x + 10, y + 36, (W - 20) * phase, 4, 2); ctx.fillStyle = `rgba(${rgb},.92)`; ctx.fill();
     ctx.restore();
   }
-  function bossBar(ctx, s, t, width) {
+  function bossBar(ctx, s, t, width, height) {
     const boss = arr(s.enemies).find(e => (enemyType(e) === 'diver' || (enemyType(e) === 'hart' && e.phase !== 'dormant' && e.phase !== 'defeated')) && num(e.hp, 0) > 0);
     if (!boss) return;
     const hart = enemyType(boss) === 'hart';
     const max = num(boss.maxHp, hart ? 8 : 10) || 10, hp = num(boss.hp, 0);
-    const W = Math.min(360, width - 180), x = (width - W) / 2, y = 16;
+    const compact = compactCanvasHud(width, height), hasThermal = !!s.thermal && regionOf(s) === 'glass-kiln';
+    const panelOffset = compact ? (tideOn(s) ? 45 : 0) + (hasThermal ? 55 : 0) : 0;
+    const W = Math.min(360, width - 180), x = (width - W) / 2, y = compact ? 100 + panelOffset : 16;
     ctx.save();
     text(ctx, hart ? 'THE ROOT HART' : 'THE BELL DIVER', width / 2, y, 11, hart ? '#d8f0b8' : '#f0d8a8');
     rrect(ctx, x, y + 9, W, 11, 5); ctx.fillStyle = 'rgba(8,16,20,.85)'; ctx.fill(); ctx.strokeStyle = hart ? '#8ab860' : '#c8a060'; ctx.lineWidth = 1.3; ctx.stroke();
@@ -3431,8 +3477,11 @@
     const id = roomId(s);
     if (roomMemo.id !== id || t < roomMemo.since) { roomMemo.id = id; roomMemo.since = t; }
     const age = Number.isFinite(s.roomTime) ? s.roomTime : t - roomMemo.since;
-    if (age > 2.8 || !s.room || s.status === 'ready') return;
-    const a = clamp(Math.min(age / .5, (2.8 - age) / .7), 0, 1);
+    const compactMobile = width < 600 || (width < 1000 && height < 500);
+    const lifetime = compactMobile ? 1.2 : 2.8;
+    const fadeIn = compactMobile ? .22 : .5, fadeOut = compactMobile ? .28 : .7;
+    if (age > lifetime || !s.room || s.status === 'ready') return;
+    const a = clamp(Math.min(age / fadeIn, (lifetime - age) / fadeOut), 0, 1);
     const th = themeFor(s);
     ctx.save(); ctx.globalAlpha = a;
     const cy = Math.max(70, height * .2);
@@ -3552,9 +3601,9 @@
       ctx.drawImage(vignette(Math.round(width), Math.round(height), th.vignette, th.decor === 'verdant' ? '2,10,4' : '2,8,12'), 0, 0, width, height);
       if (th.decor === 'verdant') ctx.drawImage(canopyFrame(Math.round(width), Math.round(height)), 0, 0, width, height);
     }
-    tideGauge(ctx, s, t, width);
-    thermalGauge(ctx, s, t, width);
-    bossBar(ctx, s, t, width);
+    tideGauge(ctx, s, t, width, height);
+    thermalGauge(ctx, s, t, width, height);
+    bossBar(ctx, s, t, width, height);
     edgeArrows(ctx, s, v, width, height, t);
     titleCard(ctx, s, t, width, height);
     const tr = clamp(num(s.transition, 0), 0, 1);

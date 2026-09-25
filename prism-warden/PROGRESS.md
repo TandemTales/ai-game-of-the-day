@@ -600,3 +600,24 @@ Campaign remains 15/25 challenges across regions 1–3; regions 4–5 and the en
 remain unbuilt. Next: increase floor value/material variation and deepen scene
 layering; enlarge and round the main actors, then request another renderer
 comparison. No completion marker, release, catalog edit or `main` promotion.
+
+## September 25 basalt contrast and actor-scale pass
+
+The renderer now gives kiln slabs broader warm midtones, lighter/thinner seams,
+deterministic mineral facets and greater fractured-material coverage. Wall/floor
+contact separation is clearer, and the player, sentinel and diver art is modestly
+larger without changing simulation or warning geometry. The full suite passes
+19 suites / 429 tests. Six-size Chromium smoke passes at 320x568, 390x844,
+844x390, 768x1024, 1440x900 and 3840x2160 with clean console/external-request
+logs, no horizontal overflow and passing keyboard/touch, pause/retry, result and
+mock leaderboard checks. I opened all six C5 thread captures and a 1920x1080 4K
+preview in `node_modules/.cache/prism-warden/sep25-basalt-volume-final/`.
+
+The mobile HUD retains its scoped AAA PASS / WOWED verdict: objective, dedicated
+portrait hint strip and Weaver threads stay clear. The fresh renderer comparison
+against Nintendo's official *Link's Awakening* image is pending. This pass has
+no gameplay, campaign, performance or overall AAA acceptance.
+
+Campaign remains 15/25 challenges across regions 1–3; regions 4–5 and the ending
+remain unbuilt. Next: record the renderer verdict and any remaining concrete art
+debt. No completion marker, release, catalog edit or `main` promotion.

@@ -11,7 +11,7 @@
   const hasDoc = typeof document !== 'undefined' && !!document.createElement;
   const SUN = '255,205,120', MINT = '150,255,214', SPLIT = '205,180,255', RED = '255,96,72', WARM = '255,168,82', COOL = '150,200,255';
   const INK = '#0b1a20';
-  const SCALE_HERO = 1.3, SCALE_ILEX = 1.2, SCALE_SENTINEL = 1.15;
+  const SCALE_HERO = 1.4, SCALE_ILEX = 1.2, SCALE_DIVER = 1.08, SCALE_SENTINEL = 1.24;
 
   // ---------------------------------------------------------------- camera
   function dims(s) {
@@ -419,15 +419,24 @@
       if (w < 8 || h < 8) continue;
       const plate = { x: x0, y: y0, w, h, points };
       plates.push(plate);
-      cellPath(points); g.fillStyle = hsl(24 + rng() * 15, 12 + rng() * 14, 28 + rng() * 14); g.fill();
+      cellPath(points); g.fillStyle = hsl(24 + rng() * 18, 15 + rng() * 20, 34 + rng() * 16); g.fill();
       g.save(); cellPath(points); g.clip();
       const shade = g.createLinearGradient(x0, y0, x0 + w * .45, y1);
-      shade.addColorStop(0, 'rgba(255,247,226,.17)'); shade.addColorStop(.44, 'rgba(255,255,255,0)'); shade.addColorStop(1, 'rgba(0,0,0,.34)');
+      shade.addColorStop(0, 'rgba(255,247,226,.18)'); shade.addColorStop(.44, 'rgba(255,255,255,0)'); shade.addColorStop(1, 'rgba(0,0,0,.25)');
       g.fillStyle = shade; g.fillRect(x0, y0, w, h);
+      // Low-frequency mineral patches widen each slab's value range beyond the seams.
+      if (rng() < .82) {
+        const fx = x0 + w * (.16 + rng() * .48), fy = y0 + h * (.18 + rng() * .44);
+        const fw = Math.min(w * .48, 14 + rng() * 22), fh = Math.min(h * .38, 7 + rng() * 11);
+        const cut = Math.min(fw, fh) * (.12 + rng() * .18);
+        g.beginPath(); g.moveTo(fx, fy + cut); g.lineTo(fx + fw * .25, fy); g.lineTo(fx + fw - cut, fy + fh * .12);
+        g.lineTo(fx + fw, fy + fh * .62); g.lineTo(fx + fw * .67, fy + fh); g.lineTo(fx + cut * .5, fy + fh * .8); g.closePath();
+        g.fillStyle = rng() < .56 ? `rgba(218,205,178,${.1 + rng() * .09})` : `rgba(13,21,27,${.08 + rng() * .08})`; g.fill();
+      }
       const grain = Math.min(60, Math.floor(w * h / 190));
       for (let n = 0; n < grain; n++) {
         const bright = rng() < .46, sz = .7 + rng() * 1.7;
-        g.fillStyle = bright ? 'rgba(235,242,238,.1)' : 'rgba(2,7,10,.22)';
+        g.fillStyle = bright ? 'rgba(235,242,238,.12)' : 'rgba(2,7,10,.14)';
         g.fillRect(x0 + rng() * w, y0 + rng() * h, sz, sz);
       }
       if (rng() < .4) {
@@ -448,24 +457,34 @@
           fracture.push([fx, fy]);
         }
         g.beginPath(); fracture.forEach((pt, k) => k ? g.lineTo(pt[0], pt[1]) : g.moveTo(pt[0], pt[1]));
-        g.strokeStyle = 'rgba(3,7,10,.76)'; g.lineWidth = 1.55; g.stroke();
+        g.strokeStyle = 'rgba(3,7,10,.58)'; g.lineWidth = 1.15; g.stroke();
         g.beginPath(); fracture.forEach((pt, k) => k ? g.lineTo(pt[0] + .5, pt[1] - .65) : g.moveTo(pt[0] + .5, pt[1] - .65));
-        g.strokeStyle = 'rgba(193,139,88,.25)'; g.lineWidth = .65; g.stroke();
+        g.strokeStyle = 'rgba(211,166,112,.34)'; g.lineWidth = .75; g.stroke();
         if (rng() < .5) {
           const pt = fracture[1 + Math.floor(rng() * (fracture.length - 1))];
-          line(g, pt[0], pt[1], pt[0] + (rng() - .5) * w * .28, pt[1] + (rng() - .5) * h * .32, 'rgba(3,7,10,.72)', 1.05);
+          line(g, pt[0], pt[1], pt[0] + (rng() - .5) * w * .28, pt[1] + (rng() - .5) * h * .32, 'rgba(3,7,10,.54)', .9);
         }
       }
       if (rng() < .055) {
         const mx = x0 + w * (.2 + rng() * .6), my = y0 + h * (.2 + rng() * .6), length = Math.min(w, h) * (.15 + rng() * .2);
-        line(g, mx - length * .5, my, mx + length * .5, my + (rng() - .5) * 2, 'rgba(5,8,9,.75)', 2);
-        line(g, mx - length * .5 + 1, my - 1, mx + length * .5 - 1, my - 1, 'rgba(190,133,79,.26)', .7);
+        line(g, mx - length * .5, my, mx + length * .5, my + (rng() - .5) * 2, 'rgba(5,8,9,.58)', 1.35);
+        line(g, mx - length * .5 + 1, my - 1, mx + length * .5 - 1, my - 1, 'rgba(202,159,108,.34)', .8);
       }
       g.restore();
-      cellPath(points); g.strokeStyle = 'rgba(1,5,8,.72)'; g.lineWidth = 1.35; g.stroke();
+      cellPath(points); g.strokeStyle = 'rgba(1,5,8,.48)'; g.lineWidth = .95; g.stroke();
+      let area = 0;
+      for (let edge = 0; edge < points.length; edge++) {
+        const a = points[edge], b = points[(edge + 1) % points.length]; area += a[0] * b[1] - b[0] * a[1];
+      }
+      const orientation = area >= 0 ? 1 : -1;
+      for (let edge = 0; edge < points.length; edge++) {
+        const a = points[edge], b = points[(edge + 1) % points.length], dx = b[0] - a[0], dy = b[1] - a[1], length = Math.hypot(dx, dy) || 1;
+        const light = orientation * dy / length * -.55 + -orientation * dx / length * -.83;
+        if (light > .18) line(g, a[0], a[1], b[0], b[1], `rgba(214,228,229,${.08 + light * .1})`, .8);
+      }
     }
     const shade = g.createRadialGradient(W * .5, H * .48, 30, W * .5, H * .48, Math.max(W, H) * .72);
-    shade.addColorStop(0, 'rgba(70,100,115,.025)'); shade.addColorStop(1, 'rgba(0,0,0,.14)');
+    shade.addColorStop(0, 'rgba(70,100,115,.025)'); shade.addColorStop(1, 'rgba(0,0,0,.1)');
     g.fillStyle = shade; g.fillRect(0, 0, W, H);
     paintKilnMaterial(g, s, W, H, plates);
     // Broad upper-left key light separates the floor plane from down-right shadows.
@@ -576,7 +595,7 @@
     g.save(); g.beginPath(); for (const f of faces) g.rect(f.x, f.y - .5, f.w, faceDepth + .5); g.clip();
     const fg = g.createLinearGradient(0, 0, 0, 1);
     for (const f of faces) {
-      const faceLift = kilnLight ? 13 : 8, faceShade = kilnLight ? -4 : -9;
+      const faceLift = kilnLight ? 18 : 8, faceShade = kilnLight ? 1 : -9;
       const gr = g.createLinearGradient(0, f.y, 0, f.y + faceDepth);
       gr.addColorStop(0, hsl(th.face[0], th.face[1], th.face[2] + faceLift)); gr.addColorStop(1, hsl(th.face[0], th.face[1], th.face[2] + faceShade));
       g.fillStyle = gr; g.fillRect(f.x, f.y, f.w, faceDepth);
@@ -676,6 +695,7 @@
       const groundY = f.y + faceDepth - 1, contact = g.createLinearGradient(0, groundY, 0, groundY + 16);
       contact.addColorStop(0, 'rgba(0,3,7,.36)'); contact.addColorStop(.35, 'rgba(0,3,7,.18)'); contact.addColorStop(1, 'rgba(0,3,7,0)');
       g.fillStyle = contact; g.fillRect(f.x, groundY, f.w, 16);
+      if (kilnLight) line(g, f.x, groundY + 1.4, f.x + f.w, groundY + 1.4, 'rgba(206,166,119,.18)', 1);
     }
     // Rim lights and outlines, only on edges exposed to floor.
     for (const w of walls) {
@@ -1338,7 +1358,7 @@
     // Independently sampled slabs keep the generated material from reading as a tile.
     const materialRng = rngFor(hashStr('kiln-tile-inlays:' + roomId(s)));
     for (const plate of plates) {
-      if (materialRng() > .46) continue;
+      if (materialRng() > .58) continue;
       const x = plate.x, y = plate.y, w = plate.w, h = plate.h;
       if (w < 8 || h < 8) continue;
       g.save(); g.beginPath();
@@ -1351,7 +1371,7 @@
         g.lineTo(x, y + h - cut); g.lineTo(x, y + cut);
       }
       g.closePath(); g.clip();
-      paintKilnRectMaterial(g, x, y, w, h, materialRng, .67);
+      paintKilnRectMaterial(g, x, y, w, h, materialRng, .72);
       // Selected slabs catch a cool upper-left rim and hold a deeper lower edge.
       let area = 0;
       for (let i = 0; i < plate.points.length; i++) {
@@ -2181,7 +2201,7 @@
     const bob = Math.sin(t * 2.2) * 2;
     ctx.save(); ctx.globalAlpha = .35 + .65 * rise;
     contactShadow(ctx, e.x + 5, e.y + 22, 46, 16, .9 * rise);
-    ctx.translate(e.x, e.y + bob + (1 - rise) * 16);
+    ctx.translate(e.x, e.y + bob + (1 - rise) * 16); ctx.scale(SCALE_DIVER, SCALE_DIVER);
     // trailing anemone tentacles
     for (let i = 0; i < 6; i++) {
       const a0 = Math.PI * .15 + i * Math.PI * .14, sway = Math.sin(t * 3 + i) * .25;

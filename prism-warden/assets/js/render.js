@@ -534,7 +534,7 @@
     if (roomId(s) !== 'weaver') return;
     // A flush, irregular refractory apron ties the two crucible blocks to the
     // Weaver's hearth. Its floor-level joints stay legible as walkable paving.
-    const apron = [[416, 263], [438, 235], [588, 224], [629, 239], [934, 239], [958, 262], [958, 512], [937, 538], [632, 538], [588, 556], [440, 548], [416, 522]];
+    const apron = [[416, 263], [438, 235], [510, 229], [534, 242], [561, 224], [588, 224], [629, 239], [654, 230], [684, 244], [724, 236], [752, 245], [790, 234], [821, 243], [865, 233], [934, 239], [958, 262], [949, 290], [960, 314], [949, 342], [959, 367], [946, 388], [957, 416], [949, 447], [961, 476], [946, 490], [958, 512], [937, 538], [916, 529], [891, 546], [863, 534], [838, 550], [810, 536], [779, 549], [744, 535], [716, 544], [700, 538], [684, 531], [671, 515], [651, 505], [633, 513], [617, 534], [600, 543], [588, 556], [555, 540], [520, 554], [485, 541], [440, 548], [416, 522], [426, 492], [414, 466], [424, 438], [416, 426], [424, 398], [414, 368], [425, 338]];
     const shadow = apron.map(p => [p[0] + 8, p[1] + 11]);
     poly(g, shadow, 'rgba(0,3,7,.38)');
     const bed = g.createLinearGradient(420, 230, 944, 548);
@@ -543,8 +543,28 @@
     g.save(); g.beginPath(); apron.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath(); g.clip();
     if (kilnMaterial) paintKilnRectMaterial(g, 416, 224, 542, 332, rngFor(hashStr('weaver-connected-forecourt')), .25);
     const bloom = g.createRadialGradient(682, 347, 26, 690, 376, 294);
-    bloom.addColorStop(0, 'rgba(207,156,102,.16)'); bloom.addColorStop(.48, 'rgba(130,112,91,.075)'); bloom.addColorStop(1, 'rgba(5,11,16,.025)');
+    bloom.addColorStop(0, 'rgba(207,156,102,.19)'); bloom.addColorStop(.48, 'rgba(130,112,91,.075)'); bloom.addColorStop(1, 'rgba(5,11,16,.025)');
     g.fillStyle = bloom; g.fillRect(416, 224, 542, 332);
+    // Local heat pools tint the feed paths and the floor at their hearthward ends.
+    for (const [x, y, rx, ry, strength] of [[558, 270, 92, 64, .32], [558, 494, 90, 63, .28], [684, 350, 98, 73, .27]]) {
+      const spill = g.createRadialGradient(x - rx * .2, y - ry * .25, 2, x, y, rx);
+      spill.addColorStop(0, `rgba(255,187,119,${strength})`);
+      spill.addColorStop(.38, `rgba(247,143,83,${strength * .56})`);
+      spill.addColorStop(1, 'rgba(218,104,63,0)');
+      ellipse(g, x, y, rx, ry, spill);
+    }
+    // Heat rides the existing paired feed channels toward the hearth, fading
+    // in overlapping pools rather than washing the whole walking surface.
+    for (const [x, y, rx, ry, strength] of [
+      [606, 282, 66, 38, .22], [660, 308, 73, 46, .18], [718, 339, 88, 56, .16],
+      [606, 482, 66, 38, .2], [660, 456, 73, 46, .17], [718, 428, 88, 56, .15]
+    ]) {
+      const bounce = g.createRadialGradient(x - rx * .24, y - ry * .3, 1, x, y, rx);
+      bounce.addColorStop(0, `rgba(255,192,129,${strength})`);
+      bounce.addColorStop(.42, `rgba(239,140,84,${strength * .54})`);
+      bounce.addColorStop(1, 'rgba(218,104,63,0)');
+      ellipse(g, x, y, rx, ry, bounce);
+    }
     // Two broad, recessed heat-feed seams join the existing columns to the hearth.
     g.lineCap = 'round';
     line(g, 535, 271, 614, 284, 'rgba(4,10,13,.3)', 23);
@@ -561,14 +581,81 @@
       line(g, x1 + 1, y1 - 1, x2 - 1, y2 - 1, 'rgba(233,214,181,.13)', .9);
     }
     // Upper-left ash wash and down-right soot occlusion seat the two blocks.
-    for (const [x, y, rx, ry] of [[510, 270, 77, 51], [510, 494, 77, 51], [790, 383, 166, 112]]) {
+    for (const [x, y, rx, ry] of [[510, 270, 83, 57], [510, 494, 83, 57], [790, 383, 176, 124]]) {
       const shade = g.createRadialGradient(x - rx * .28, y - ry * .36, 2, x, y, Math.max(rx, ry));
-      shade.addColorStop(0, 'rgba(224,189,144,.055)'); shade.addColorStop(.62, 'rgba(3,8,12,.025)'); shade.addColorStop(1, 'rgba(0,3,6,.14)');
+      shade.addColorStop(0, 'rgba(224,189,144,.065)'); shade.addColorStop(.56, 'rgba(3,8,12,.018)'); shade.addColorStop(1, 'rgba(0,3,6,.09)');
       ellipse(g, x + 5, y + 7, rx, ry, shade);
     }
     g.restore();
     // A soft northwest rim light marks the laid stone field but leaves it flush.
-    poly(g, [[416, 263], [438, 235], [588, 224], [629, 239], [745, 239]], null, 'rgba(255,229,188,.2)', 2);
+    poly(g, [[416, 263], [438, 235], [510, 229], [534, 242], [561, 224], [588, 224], [629, 239], [654, 230], [684, 244], [724, 236], [752, 245]], null, 'rgba(255,229,188,.2)', 2);
+
+    // Fitted, uneven basalt buttresses replace a continuous retaining-wall
+    // frame. The west and south breaks preserve broad walk-in lanes.
+    const bankRuns = [
+      [[438, 235], [588, 224]],
+      [[661, 239], [755, 239]],
+      [[865, 239], [934, 239], [958, 262]],
+      [[958, 262], [958, 326]],
+      [[958, 389], [958, 431]],
+      [[958, 478], [958, 512], [937, 538], [904, 538]],
+      [[818, 538], [700, 538]],
+      [[588, 556], [520, 552]],
+      [[466, 550], [440, 548], [416, 522]],
+      [[416, 338], [416, 294], [416, 263], [438, 235]],
+      [[416, 426], [416, 474], [416, 522]]
+    ];
+    const moved = (points, dx, dy) => points.map(p => [p[0] + dx, p[1] + dy]);
+    let bankId = 0;
+    for (const run of bankRuns) for (let edge = 0; edge < run.length - 1; edge++) {
+      const a = run[edge], b = run[edge + 1], dx = b[0] - a[0], dy = b[1] - a[1], length = Math.hypot(dx, dy) || 1;
+      const tx = dx / length, ty = dy / length, nx = -ty, ny = tx;
+      let along = 1;
+      while (along < length - 5) {
+        const seed = hashStr('forecourt-buttress:' + bankId++), blockLength = 29 + seed % 1900 / 100;
+        const u0 = along + 1.5 + (seed % 3), u1 = Math.min(length - 1.5, u0 + blockLength);
+        const span = u1 - u0;
+        if (span < 12) break;
+        const half = 6.5 + (seed >>> 5) % 500 / 100, bevel = Math.min(5.5, span * .18);
+        const irregular = ((seed >>> 12) % 100) / 100 * 2.2 - 1.1;
+        const normalShift = ((seed >>> 6) % 100) / 100 * 7 - 3.5;
+        const point = (u, n) => [a[0] + tx * u + nx * (n + normalShift), a[1] + ty * u + ny * (n + normalShift)];
+        const top = [
+          point(u0 + bevel, -half + irregular * .35), point(u0 + span * .34, -half - irregular * .25),
+          point(u1 - bevel, -half + irregular * .2), point(u1, -half * .18), point(u1 - bevel * .6, half - irregular * .4),
+          point(u0 + span * .62, half + irregular * .3), point(u0 + bevel, half - irregular * .15), point(u0, half * .18)
+        ];
+        const cx = (a[0] + tx * (u0 + u1) * .5), cy = (a[1] + ty * (u0 + u1) * .5);
+        poly(g, moved(top, 9, 14), 'rgba(0,2,6,.58)');
+        // Only southeast-facing sides receive a visible drop face.
+        let area = 0;
+        for (let i = 0; i < top.length; i++) { const p = top[i], q = top[(i + 1) % top.length]; area += p[0] * q[1] - q[0] * p[1]; }
+        const orient = area >= 0 ? 1 : -1;
+        for (let i = 0; i < top.length; i++) {
+          const p = top[i], q = top[(i + 1) % top.length], ex = q[0] - p[0], ey = q[1] - p[1], el = Math.hypot(ex, ey) || 1;
+          const outX = orient * ey / el, outY = -orient * ex / el;
+          if (outX * .55 + outY * .83 > .18) {
+            const face = g.createLinearGradient(p[0], p[1], p[0] + 8, p[1] + 12);
+            face.addColorStop(0, 'rgba(113,99,76,.96)'); face.addColorStop(.55, 'rgba(58,63,60,.98)'); face.addColorStop(1, 'rgba(20,29,32,.98)');
+            poly(g, [p, q, [q[0] + 7, q[1] + 11], [p[0] + 7, p[1] + 11]], face, 'rgba(4,9,12,.74)', .9);
+          }
+        }
+        const base = 39 + (seed >>> 18) % 9, tone = 38 + (seed >>> 23) % 8;
+        const cap = g.createLinearGradient(cx - 6, cy - 9, cx + 7, cy + 12);
+        cap.addColorStop(0, hsl(35 + seed % 11, 18, Math.min(60, tone + 11)));
+        cap.addColorStop(.46, hsl(32 + seed % 13, 15, base));
+        cap.addColorStop(1, hsl(195, 12, Math.max(20, base - 15)));
+        poly(g, top, cap, 'rgba(3,8,11,.82)', 1.15);
+        for (let i = 0; i < top.length; i++) {
+          const p = top[i], q = top[(i + 1) % top.length], ex = q[0] - p[0], ey = q[1] - p[1], el = Math.hypot(ex, ey) || 1;
+          const outX = orient * ey / el, outY = -orient * ex / el, keyLight = outX * -.55 + outY * -.83;
+          if (keyLight > .24) line(g, p[0], p[1], q[0], q[1], 'rgba(255,232,194,.38)', 1.1);
+          else if (keyLight < -.2) line(g, p[0] + 1.2, p[1] + 1.8, q[0] + 1.2, q[1] + 1.8, 'rgba(0,3,8,.62)', 1.4);
+        }
+        if ((seed & 3) === 0) line(g, cx - tx * span * .13, cy - ty * span * .13, cx + tx * span * .08, cy + ty * span * .08, 'rgba(226,180,128,.3)', 1.2);
+        along = u1 + 3 + ((seed >>> 9) % 5);
+      }
+    }
   }
   const FLOORS = { flag: floorFlag, slate: floorSlate, octa: floorOcta, planks: floorPlanks, cobble: floorCobble, travertine: floorTravertine, spicatum: floorSpicatum, kiln: floorKiln };
 
@@ -1549,6 +1636,10 @@
       cap.addColorStop(0, 'rgba(190,164,126,.32)'); cap.addColorStop(.3, 'rgba(72,78,77,.14)'); cap.addColorStop(1, 'rgba(3,9,13,.46)');
       rrect(g, x + 2, y + 2, w.w - 4, w.h - 4, 4); g.fillStyle = cap; g.fill();
       g.strokeStyle = 'rgba(4,9,12,.8)'; g.lineWidth = 2; g.stroke();
+      g.save(); rrect(g, x + 2, y + 2, w.w - 4, w.h - 4, 4); g.clip();
+      const capBounce = g.createRadialGradient(x + w.w - 10, y + w.h - 9, 1, x + w.w - 12, y + w.h - 12, 42);
+      capBounce.addColorStop(0, 'rgba(255,190,126,.31)'); capBounce.addColorStop(.5, 'rgba(224,125,73,.14)'); capBounce.addColorStop(1, 'rgba(224,125,73,0)');
+      g.fillStyle = capBounce; g.fillRect(x + 40, y + 10, 38, 31); g.restore();
       rrect(g, x + 8, y + 7, w.w - 16, w.h - 14, 3);
       const inset = g.createLinearGradient(x + 8, y + 7, x + w.w - 8, y + w.h - 7);
       inset.addColorStop(0, 'rgba(11,20,23,.82)'); inset.addColorStop(.5, 'rgba(28,37,39,.62)'); inset.addColorStop(1, 'rgba(4,10,14,.88)');
@@ -1562,8 +1653,12 @@
       }
 
       const face = g.createLinearGradient(x + 1, faceY, x + w.w - 1, faceY + faceH);
-      face.addColorStop(0, 'rgba(132,117,94,.2)'); face.addColorStop(.38, 'rgba(36,42,43,.22)'); face.addColorStop(1, 'rgba(2,7,10,.48)');
+      face.addColorStop(0, 'rgba(145,122,91,.23)'); face.addColorStop(.38, 'rgba(43,43,40,.2)'); face.addColorStop(1, 'rgba(2,7,10,.4)');
       g.fillStyle = face; g.fillRect(x + 3, faceY + 2, w.w - 6, faceH - 4);
+      g.save(); g.beginPath(); g.rect(x + 3, faceY + 2, w.w - 6, faceH - 4); g.clip();
+      const reflectedFeed = g.createRadialGradient(x + w.w - 4, faceY + 16, 1, x + w.w - 8, faceY + 22, 66);
+      reflectedFeed.addColorStop(0, 'rgba(255,186,116,.34)'); reflectedFeed.addColorStop(.45, 'rgba(232,133,74,.17)'); reflectedFeed.addColorStop(1, 'rgba(232,133,74,0)');
+      g.fillStyle = reflectedFeed; g.fillRect(x + 24, faceY + 2, w.w - 27, faceH - 4); g.restore();
       rrect(g, x + 9, faceY + 8, w.w - 18, 37, 3);
       g.fillStyle = 'rgba(5,12,16,.3)'; g.fill(); g.strokeStyle = 'rgba(185,150,102,.32)'; g.lineWidth = 1; g.stroke();
       line(g, x + 10, faceY + 9, x + w.w - 10, faceY + 9, 'rgba(255,224,177,.34)', 1.2);
@@ -1572,6 +1667,10 @@
       line(g, x + 4, faceY + faceH - 2, x + w.w - 4, faceY + faceH - 2, 'rgba(0,2,5,.62)', 2);
       line(g, x + 4, faceY + 3, x + 4, faceY + faceH - 3, 'rgba(255,231,192,.2)', 1.5);
       line(g, x + w.w - 4, faceY + 3, x + w.w - 4, faceY + faceH - 3, 'rgba(0,2,5,.42)', 1.5);
+      // A tight down-right heel shadow anchors the existing raised face.
+      const heel = g.createRadialGradient(x + w.w * .64, faceY + faceH, 1, x + w.w * .64, faceY + faceH + 4, 48);
+      heel.addColorStop(0, 'rgba(0,3,7,.28)'); heel.addColorStop(.46, 'rgba(0,3,7,.12)'); heel.addColorStop(1, 'rgba(0,3,7,0)');
+      ellipse(g, x + w.w * .62 + 5, faceY + faceH + 3, 52, 12, heel);
     }
   }
   function getStatic(s, th, k, W, H) {
@@ -1850,12 +1949,32 @@
     poly(ctx, [[730, 382], [739, 354], [757, 335], [781, 326], [817, 326], [841, 335], [859, 354]], null, 'rgba(255,221,174,.43)', 2.4);
     poly(ctx, [[859, 354], [868, 382], [859, 409], [841, 428], [817, 437], [781, 437]], null, 'rgba(0,3,8,.66)', 2.5);
     // Soot-dark basin and an uneven annealed-glass seam sit beneath the boss.
-    const basin = ctx.createRadialGradient(785, 364, 5, 800, 386, 58);
-    basin.addColorStop(0, 'rgba(43,67,67,.55)'); basin.addColorStop(.7, 'rgba(7,17,21,.52)'); basin.addColorStop(1, 'rgba(2,8,12,.12)');
-    ellipse(ctx, 800, 384, 48, 34, basin);
-    line(ctx, 767, 389, 782, 398, 'rgba(178,214,202,.26)', 1.4);
-    line(ctx, 782, 398, 794, 394, 'rgba(178,214,202,.18)', 1.2);
-    line(ctx, 818, 367, 832, 373, 'rgba(241,187,125,.24)', 1.2);
+    const basin = ctx.createRadialGradient(785, 364, 5, 800, 386, 68);
+    basin.addColorStop(0, 'rgba(101,88,68,.68)'); basin.addColorStop(.58, 'rgba(46,42,36,.62)'); basin.addColorStop(1, 'rgba(2,8,12,.08)');
+    ellipse(ctx, 800, 384, 62, 42, basin);
+    // Directional annealed-glass reflections bridge the feed mouths and the
+    // hearth rim; each soft pool remains asymmetric and leaves the walk lanes legible.
+    for (const [x, y, rx, ry, strength] of [[773, 369, 78, 50, .24], [823, 400, 68, 45, .17]]) {
+      const bounce = ctx.createRadialGradient(x - rx * .28, y - ry * .34, 1, x, y, rx);
+      bounce.addColorStop(0, `rgba(255,204,145,${strength})`);
+      bounce.addColorStop(.34, `rgba(255,166,95,${strength * .7})`);
+      bounce.addColorStop(.78, `rgba(211,104,62,${strength * .22})`);
+      bounce.addColorStop(1, 'rgba(211,104,62,0)');
+      ellipse(ctx, x, y, rx, ry, bounce);
+    }
+    // Kiln heat reflects in broken glass patches, strongest to the lit northwest
+    // and trailing into a softer copper sheen toward the southeast.
+    const heatNW = ctx.createRadialGradient(779, 371, 1, 789, 382, 62);
+    heatNW.addColorStop(0, 'rgba(255,221,165,.7)'); heatNW.addColorStop(.28, 'rgba(255,177,103,.48)');
+    heatNW.addColorStop(.68, 'rgba(224,111,65,.2)'); heatNW.addColorStop(1, 'rgba(224,111,65,0)');
+    ellipse(ctx, 790, 382, 60, 39, heatNW);
+    const heatSE = ctx.createRadialGradient(818, 398, 1, 813, 390, 52);
+    heatSE.addColorStop(0, 'rgba(246,147,83,.46)'); heatSE.addColorStop(.56, 'rgba(208,104,61,.23)'); heatSE.addColorStop(1, 'rgba(208,104,61,0)');
+    ellipse(ctx, 810, 391, 51, 33, heatSE);
+    line(ctx, 756, 385, 769, 392, 'rgba(255,220,168,.55)', 1.5);
+    line(ctx, 769, 392, 780, 386, 'rgba(192,225,205,.38)', 1.2);
+    line(ctx, 821, 390, 835, 397, 'rgba(255,191,127,.45)', 1.4);
+    line(ctx, 835, 397, 846, 391, 'rgba(176,217,203,.32)', 1.1);
     ctx.restore();
   }
   function drawBreakwaters(ctx, s, t, th) {

@@ -756,3 +756,36 @@ Campaign remains 15/25 challenges across regions 1-3. Regions 4-5, the ending an
 AAA acceptance remain incomplete. This is a development checkpoint only: no
 `.aaa-complete`, catalog edit, release or `main` promotion. Next: one bounded
 raised-edge lighting pass, then prioritize connected campaign content.
+## September25 notched kiln rim and basin bounce-light pass
+
+The Glass Weaver forecourt now has separated, irregular basalt buttresses, an
+asymmetric/notched apron outline with west and south walk-in gaps, warmer light
+along both heat feeds toward the hearth, softened soot/contact transitions, and
+reflected amber on the existing crucible faces and basin. No collision, combat,
+or simulation changes.
+
+Full Jest passes 19 suites / 429 tests. The six-size Chromium smoke passes at
+320x568, 390x844, 844x390, 768x1024, 1440x900 and 3840x2160. All viewports have
+clean console, no external requests or horizontal overflow; all three local art
+assets return HTTP 200, and touch checks pass at the four smaller sizes. Lead
+opened all six fresh Weaver-thread captures; the 4K image was reviewed as a
+1920x1080 copy. node --check, procedural no-Image VM checks and
+git diff --check pass.
+
+Independent mobile review: scoped PASS; the thermal card, room/exit/beacon cues,
+Weaver name and health, thread lanes and touch controls remain clear. Fresh
+six-size side-by-side review against Nintendo's official Link's Awakening
+screenshot remains AAA FAIL / OURS LOSES. The notches make the rim meaningfully
+less boxy and heat now reaches nearby floor and props, but most of the basin
+remains dark and the light still reads as local pools rather than a connected
+arena lighting story. Terrain depth, softer transitions and material variety
+remain below the reference. Reviewer comparison artifact and captures are under
+ignored node_modules/.cache/prism-warden/sep25-weaver-heatspill-final/.
+
+A dedicated, locally generated kiln-apron-lit-v1.png texture has been prepared
+as the next renderer experiment; it is not yet wired into the game. Keep the
+current procedural fallback. Campaign remains 15/25 challenges across regions
+1-3; regions 4-5, the ending and full AAA acceptance remain incomplete. This
+is a development checkpoint only: no .aaa-complete, catalog edit, release or
+main promotion. Next: test the generated texture as a clipped, blended local
+basin layer, then prioritize the remaining connected campaign content.

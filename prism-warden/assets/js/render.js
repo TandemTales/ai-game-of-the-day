@@ -381,11 +381,23 @@
     // seams meet cleanly without falling into repeated horizontal courses.
     g.fillStyle = '#1b2227'; g.fillRect(0, 0, W, H);
     const plates = [];
-    const sites = [], sx = 72, sy = 58;
+    const sites = [], sx = 72, sy = 58, neighborReach = 400;
     for (let row = -2; row <= Math.ceil(H / sy) + 1; row++) {
       for (let col = -2; col <= Math.ceil(W / sx) + 1; col++) {
         const stagger = (row & 1) ? sx * (.28 + rng() * .32) : 0;
-        sites.push({ x: col * sx + stagger + (rng() - .5) * 34, y: row * sy + (rng() - .5) * 30 });
+        const siteX = col * sx + stagger + (rng() - .5) * 34, siteY = row * sy + (rng() - .5) * 30;
+        const gridRow = row + 2, gridCol = col + 2;
+        const blockRow = Math.floor(gridRow / 4), blockCol = Math.floor(gridCol / 4);
+        const cluster = hashStr('kiln-large:' + blockRow + ':' + blockCol) % 100;
+        const largePlatePocket = ((blockRow + blockCol) & 1) === 0 && cluster < 30 && gridRow % 4 > 0 && gridRow % 4 < 3 && gridCol % 4 > 0 && gridCol % 4 < 3;
+        if (!largePlatePocket) {
+          sites.push({ x: siteX, y: siteY });
+          const smallHash = hashStr('kiln-small:' + row + ':' + col);
+          if (smallHash % 100 >= 78 && smallHash % 100 < 94) {
+            const signX = (smallHash & 1) ? 1 : -1, signY = (smallHash & 2) ? 1 : -1;
+            sites.push({ x: siteX + signX * sx * .27 + (rng() - .5) * 6, y: siteY + signY * sy * .24 + (rng() - .5) * 6 });
+          }
+        }
       }
     }
     function clipCell(points, nx, ny, limit) {
@@ -409,7 +421,7 @@
       for (let j = 0; j < sites.length && points.length; j++) {
         if (i === j) continue;
         const q = sites[j], nx = q.x - p.x, ny = q.y - p.y;
-        if (nx * nx + ny * ny > 190 * 190) continue;
+        if (nx * nx + ny * ny > neighborReach * neighborReach) continue;
         points = clipCell(points, nx, ny, (q.x * q.x + q.y * q.y - p.x * p.x - p.y * p.y) * .5);
       }
       if (points.length < 3) continue;
@@ -477,10 +489,18 @@
         const a = points[edge], b = points[(edge + 1) % points.length]; area += a[0] * b[1] - b[0] * a[1];
       }
       const orientation = area >= 0 ? 1 : -1;
+      const largePlate = Math.abs(area) * .5 > 5200;
       for (let edge = 0; edge < points.length; edge++) {
         const a = points[edge], b = points[(edge + 1) % points.length], dx = b[0] - a[0], dy = b[1] - a[1], length = Math.hypot(dx, dy) || 1;
-        const light = orientation * dy / length * -.55 + -orientation * dx / length * -.83;
-        if (light > .18) line(g, a[0], a[1], b[0], b[1], `rgba(214,228,229,${.08 + light * .1})`, .8);
+        const nx = orientation * dy / length, ny = -orientation * dx / length;
+        const light = nx * -.55 + ny * -.83;
+        if (light > .18) {
+          line(g, a[0], a[1], b[0], b[1], `rgba(214,228,229,${.08 + light * .1})`, .8);
+          if (largePlate) line(g, a[0] - nx * 1.6, a[1] - ny * 1.6, b[0] - nx * 1.6, b[1] - ny * 1.6, 'rgba(246,231,198,.23)', .85);
+        } else if (largePlate && light < -.18) {
+          // A close down-right seam shadow lets the broad slab lift off its neighbors.
+          line(g, a[0] + 1.7, a[1] + 1.7, b[0] + 1.7, b[1] + 1.7, 'rgba(0,4,9,.26)', 1.6);
+        }
       }
     }
     const shade = g.createRadialGradient(W * .5, H * .48, 30, W * .5, H * .48, Math.max(W, H) * .72);
@@ -1331,7 +1351,38 @@
     };
     img.onerror = () => { kilnMaterialState = 'failed'; };
     img.decoding = 'async';
-    img.src = 'assets/img/kiln-basalt-fractured.png';
+    img.src = 'assets/img/kiln-basalt-mosaic-v1.png';
+  }
+  let seraSprite = null, seraLitSprite = null, seraSpriteState = 'idle';
+  function keySeraSprite(img) {
+    const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+    if (!hasDoc || !(iw > 0 && ih > 0)) return null;
+    const canvas = makeCanvas(iw, ih), g = canvas.getContext('2d');
+    if (!g) return null;
+    g.drawImage(img, 0, 0, iw, ih);
+    // Bake the kiln's upper-left key into the alpha mask once, keeping transparent margins clear.
+    g.globalCompositeOperation = 'source-atop';
+    const key = g.createLinearGradient(0, 0, iw, ih);
+    key.addColorStop(0, 'rgba(255,239,207,.34)');
+    key.addColorStop(.4, 'rgba(255,249,228,.08)');
+    key.addColorStop(.68, 'rgba(13,22,30,.08)');
+    key.addColorStop(1, 'rgba(2,8,15,.38)');
+    g.fillStyle = key; g.fillRect(0, 0, iw, ih);
+    g.globalCompositeOperation = 'source-over';
+    return canvas;
+  }
+  function loadSeraSprite() {
+    if (!hasDoc || typeof Image === 'undefined' || seraSpriteState !== 'idle') return;
+    seraSpriteState = 'loading';
+    const img = new Image();
+    img.onload = () => {
+      if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+        seraSprite = img; seraLitSprite = keySeraSprite(img); seraSpriteState = 'ready';
+      } else seraSpriteState = 'failed';
+    };
+    img.onerror = () => { seraSpriteState = 'failed'; };
+    img.decoding = 'async';
+    img.src = 'assets/img/sera-keeper-topdown-v3.png';
   }
   function paintKilnRectMaterial(g, x, y, w, h, rng, alpha) {
     if (!kilnMaterial || w < 3 || h < 3) return;
@@ -1371,7 +1422,7 @@
         g.lineTo(x, y + h - cut); g.lineTo(x, y + cut);
       }
       g.closePath(); g.clip();
-      paintKilnRectMaterial(g, x, y, w, h, materialRng, .72);
+      paintKilnRectMaterial(g, x, y, w, h, materialRng, .64);
       // Selected slabs catch a cool upper-left rim and hold a deeper lower edge.
       let area = 0;
       for (let i = 0; i < plate.points.length; i++) {
@@ -2128,6 +2179,18 @@
     ctx.fillStyle = bellVolume; ctx.fillRect(-25, -32, 52, 52); ctx.restore();
     line(ctx, -13, -26, -18, -12, 'rgba(229,255,236,.5)', 1.7);
     line(ctx, 20, -12, 24, 12, 'rgba(0,5,4,.7)', 2.2);
+    if (glassWeaver) {
+      // Flared bell shoulders break the emblem silhouette into a lit shell and recessed sides.
+      const armor = ctx.createLinearGradient(-22, -29, 22, -10);
+      armor.addColorStop(0, 'rgba(255,239,201,.42)'); armor.addColorStop(.38, 'rgba(145,211,184,.3)'); armor.addColorStop(1, 'rgba(4,20,25,.46)');
+      poly(ctx, [[-17, -24], [-10, -29], [-5, -21], [-8, -12], [-18, -10], [-21, -16]], armor, 'rgba(11,31,30,.95)', 1.8);
+      poly(ctx, [[17, -24], [10, -29], [5, -21], [8, -12], [18, -10], [21, -16]], armor, 'rgba(8,24,29,.95)', 1.8);
+      line(ctx, -17, -23, -10, -27, 'rgba(255,248,224,.82)', 1.35);
+      line(ctx, -10, -27, -5.8, -21, 'rgba(224,255,239,.54)', 1);
+      line(ctx, -20, -15, -17, -10.8, 'rgba(0,8,13,.72)', 1.8);
+      line(ctx, 17, -23, 10, -27, 'rgba(215,243,226,.48)', 1.2);
+      line(ctx, 20, -15, 17, -10.8, 'rgba(0,8,13,.78)', 1.8);
+    }
     ellipse(ctx, 0, 16, 24, 6, '#1c2a26', '#0e1614', 1.6);
     line(ctx, -19, 2, 19, 2, 'rgba(10,20,18,.55)', 2); line(ctx, -17, -2, 17, -2, 'rgba(200,240,220,.25)', 1);
     for (let i = 0; i < 5; i++) circle(ctx, -14 + i * 7, 9, 1.6, '#c8a860');
@@ -2384,7 +2447,7 @@
     ctx.save();
     if (num(p.invulnerable, 0) > 0 && num(p.dashTime, 0) <= 0 && Math.floor(t * 14) % 2) ctx.globalAlpha = .55;
     ctx.translate(p.x, p.y); ctx.scale(SCALE_HERO, SCALE_HERO);
-    contactShadow(ctx, 1, 12, 13, 5.5, .9);
+    contactShadow(ctx, 1, 12, 11, 4.5, 1);
     const slashing = num(p.slashTime, 0) > 0;
     const px = -ay, py = ax; // sword-hand side
     const drawShield = () => {
@@ -2413,6 +2476,21 @@
       ctx.restore();
       circle(ctx, px * 9, py * 6 - 5, 2.4, '#f0c9a0', INK, 1);
     };
+    if (facingUp) loadSeraSprite();
+    if (facingUp && seraSprite) {
+      // The authored north-facing sprite shares the vector pose's foot anchor and modest silhouette.
+      if (!slashing) drawSword();
+      const paintedSprite = seraLitSprite || seraSprite;
+      const iw = paintedSprite.naturalWidth || paintedSprite.width, ih = paintedSprite.naturalHeight || paintedSprite.height;
+      if (iw > 0 && ih > 0) ctx.drawImage(paintedSprite, 0, 0, iw, ih, -24.15, -41.1, 48.3, 58);
+      if (p.reflecting) {
+        // The painted bronze mirror remains visible; this inlay carries its live reflection state.
+        ellipse(ctx, -10.8, -11, 2.3, 6.1, 'rgba(116,255,231,.45)', 'rgba(236,255,249,.95)', 1.2);
+        line(ctx, -11.6, -13.5, -10.2, -16, 'rgba(255,255,255,.95)', 1.1);
+        poly(ctx, [[-10.8, -12.5], [-9.9, -11], [-10.8, -9.5], [-11.7, -11]], '#fff8d9');
+      }
+      if (slashing) drawSword();
+    } else {
     const shieldBehind = facingUp;
     if (shieldBehind) drawShield();
     if (facingUp && !slashing) drawSword();
@@ -2477,6 +2555,7 @@
     ctx.restore();
     if (!shieldBehind) drawShield();
     if (!facingUp || slashing) drawSword();
+    }
     ctx.restore();
     const H = SCALE_HERO;
     if (p.prism === 'carried') { // the sun prism rides at Sera's shoulder
@@ -3589,6 +3668,22 @@
   // ---------------------------------------------------------------- frame
   // Static layer density: 2x covers phones and laptops; very large displays get 3x.
   function bucket(k, devW) { return clamp(Math.round(k * 4) / 4, .5, devW > 2400 ? 3 : 2); }
+  function kilnWorldWash(ctx, W, H) {
+    // Fixed in world coordinates so basalt, cast shadows, props and actors share one key.
+    const key = ctx.createLinearGradient(0, 0, W, H);
+    key.addColorStop(0, 'rgba(255,226,184,.11)');
+    key.addColorStop(.38, 'rgba(255,241,218,.025)');
+    key.addColorStop(.62, 'rgba(18,23,34,.025)');
+    key.addColorStop(1, 'rgba(4,9,18,.13)');
+    ctx.fillStyle = key; ctx.fillRect(0, 0, W, H);
+    // A quiet north-to-south veil sets the outer masonry back from the playable floor.
+    const depth = ctx.createLinearGradient(0, 0, 0, H);
+    depth.addColorStop(0, 'rgba(9,18,30,.055)');
+    depth.addColorStop(.38, 'rgba(9,18,30,.018)');
+    depth.addColorStop(.66, 'rgba(9,18,30,0)');
+    depth.addColorStop(1, 'rgba(229,182,120,.025)');
+    ctx.fillStyle = depth; ctx.fillRect(0, 0, W, H);
+  }
   PW.draw = function (ctx, state, width, height, dpr) {
     if (!ctx || !width || !height) return;
     const s = state || {}, t = num(s.time, 0), v = view(s, width, height), { W, H } = dims(s);
@@ -3681,6 +3776,7 @@
     drawParticles(ctx, s);
     ctx.globalCompositeOperation = 'source-over';
     drawShots(ctx, s, t);
+    if (th.floor === 'kiln') kilnWorldWash(ctx, W, H);
     drawLabels(ctx, v);
     ctx.restore();
     // screen space

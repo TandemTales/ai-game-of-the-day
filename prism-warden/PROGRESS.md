@@ -627,3 +627,70 @@ remain unbuilt. Next: address the repeated terrain material and actor silhouette
 with distinct local artwork, preserving the procedural fallback, then request a
 fresh renderer comparison. No completion marker, release, catalog edit or `main`
 promotion.
+
+## September 25 generated material and top-down keeper pass
+
+Added two generated local assets: a varied basalt mosaic texture and a clean
+overhead Sera keeper sprite. The kiln renderer samples the mosaic with stable
+per-plate crops, and north-facing Sera uses the sprite with a live mirror
+highlight; procedural floor and vector-keeper fallbacks remain in place. The
+keeper is 15% larger with a tight, stronger contact shadow. Simulation and
+hitboxes are unchanged. The browser smoke now checks both image requests are
+same-origin and return HTTP 200.
+
+Full Jest passes 19 suites / 429 tests. The final six-viewport Chromium smoke
+passes 320x568, 390x844, 844x390, 768x1024, 1440x900 and 3840x2160: clean
+console, no external requests, no horizontal overflow, and passing keyboard /
+simultaneous native touch, pause/retry, results and mocked leaderboard checks.
+Both generated assets returned 200 in every viewport. I opened all six final
+Glass Weaver thread captures under
+`node_modules/.cache/prism-warden/sep25-renderer-scale-final/`; the 4K image
+was also reviewed at 1920x1080.
+
+The fresh mobile HUD comparison against the official *Dead Cells* mobile
+listing returns AAA PASS / WOWED for readability and obstruction at 320x568
+and 390x844: the objective, thermal panel and hint occupy distinct rows, and
+thread lanes remain visible around the larger keeper. This is a scoped static
+HUD verdict, not touch or gameplay evidence. The new renderer side-by-side
+against Nintendo's official *Link's Awakening* screenshot still returns AAA
+FAIL / OURS LOSES. The keeper now has a clear overhead silhouette and reads
+better at phone size; its contact shadow grounds it. The presentation still
+lacks the reference's character volume, directional lighting and authored
+environment composition, and the basalt plates remain similar in scale.
+Comparison artifacts are beside their screenshots in the ignored
+`node_modules/.cache/prism-warden/sep25-topdown-v3-scale-targeted/` directory.
+
+Campaign remains 15/25 challenges across regions 1–3; regions 4–5 and the
+ending are unbuilt. No `.aaa-complete`, release, catalog edit or `main`
+promotion. Next: build the remaining connected regions and ending per the
+campaign schedule before returning to the renderer's remaining volume and
+environment-layering debt.
+
+## September 25 basalt bevel and Weaver shoulder pass
+
+The kiln renderer now adds a restrained upper-left bevel and lower-right seam
+shadow to larger slabs, plus shaded flared shoulder planes on the Glass Weaver.
+Generated local basalt and keeper art remain loaded with procedural/vector
+fallbacks. No gameplay, telegraph, hitbox, HUD, or simulation rules changed.
+
+Full Jest passes 19 suites / 429 tests. The six-size Chromium smoke passes at
+320x568, 390x844, 844x390, 768x1024, 1440x900 and 3840x2160: keyboard and
+simultaneous touch, pause/retry, results and mocked leaderboard all pass, with
+clean console, zero external requests, no horizontal overflow, and both local
+art assets returning HTTP 200. All six final Weaver-thread captures were opened;
+the 4K capture was also reviewed at 1920x1080. `git diff --check` and both
+JavaScript syntax checks pass.
+
+The fresh side-by-side comparison against Nintendo's official *Link's Awakening*
+image remains AAA FAIL / OURS LOSES. The bevels and shoulder planes add local
+volume but do not close the gap in sculpted character art, layered staging,
+soft occlusion and authored environment composition. The renderer critic also
+flags crowded HUD/text at 844x390; a separate mobile audit is checking that
+layout. The existing portrait HUD comparison remains AAA PASS / WOWED at
+320x568 and 390x844. Comparison artifact and captures are in the ignored
+`node_modules/.cache/prism-warden/sep25-bevel-shoulders-final/` directory.
+
+Campaign remains 15/25 challenges across regions 1–3; regions 4–5 and the
+ending are unbuilt. No `.aaa-complete`, release, catalog edit or `main`
+promotion. Next: review the landscape HUD audit, then continue the remaining
+campaign content and the renderer's environment and character-volume debt.

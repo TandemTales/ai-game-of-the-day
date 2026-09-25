@@ -343,3 +343,17 @@ Next render pass: break the rectangular pattern more strongly, lift mobile C5 fl
 readability and clamp the beacon label. Keep the shard aligned with its real hitbox.
 Gameplay critic remains OURS LOSES; human play, campaign completion and audio listening
 remain outstanding. No release or `main` promotion.
+
+## 2026-09-25 Thursday run intent (Pacific)
+
+STOP absent. Active game `prism-warden`, age 5; forced release remains October 3.
+`dev` already matches `origin/dev` at `6aa9d2f`; checkout succeeded, while pull
+refused the pre-existing, renderer-only worktree edit. Preserve that work and finish
+the bounded Glass Kiln readability pass in `assets/js/render.js`: replace the
+remaining course-like slab rhythm with fractured irregular cells, lift C5 material
+readability, strengthen the Glass Weaver thread cue, and fit edge objective labels.
+Then run the viewport smoke and request a fresh independent presentation verdict.
+The focused 35-test Prism Warden suite passed against this renderer work before
+this checkpoint. Campaign remains 15/25 challenges across regions 1-3; regions 4-5
+and the ending remain unbuilt. No AAA acceptance, completion marker, release,
+catalog edit or `main` promotion.

@@ -193,7 +193,7 @@
     cart: kilnTheme('Keep the cooling cart moving'),
     rail: kilnTheme('Keep the cooling cart moving'),
     foundry: kilnTheme('Two temperatures, one circuit'),
-    weaver: Object.assign(kilnTheme('The glass remembers the blow'), { ambient: [194, 210, 228], vignette: .3 }),
+    weaver: Object.assign(kilnTheme('The glass remembers the blow'), { ambient: [222, 232, 240], vignette: .14 }),
     quench: kilnTheme('The quench valve'),
     'optional-quench': kilnTheme('The quench valve')
   };
@@ -369,61 +369,95 @@
     }
   }
   function floorKiln(g, W, H, rng, th, s) {
-    // Refractory ironstone laid in broken courses, with dynamic glass owning the bright accents.
-    g.fillStyle = '#111518'; g.fillRect(0, 0, W, H);
+    // Fractured refractory basalt: shared, jittered sites make irregular slabs whose
+    // seams meet cleanly without falling into repeated horizontal courses.
+    g.fillStyle = '#171c20'; g.fillRect(0, 0, W, H);
     const plates = [];
-    for (let y = -8, course = 0; y < H + 8; course++) {
-      const sh = 24 + rng() * 27;
-      // Each course gets an independent, broad offset; mixed short and long slabs
-      // create occasional groupings without repeating a half-brick pattern.
-      let x = -rng() * (32 + rng() * 74), column = 0;
-      while (x < W + 12) {
-        const form = rng();
-        const sw = form < .2 ? 25 + rng() * 20 : form < .52 ? 62 + rng() * 34 : 34 + rng() * 38;
-        const bx = x + 1.5, by = y + 1.5, bw = sw - 3, bh = sh - 3;
-        plates.push({ x: bx, y: by, w: bw, h: bh });
-        stone(g, bx, by, bw, bh, hsl(24 + rng() * 12, 12 + rng() * 12, 19 + rng() * 9), rng,
-          { jit: 2.3, hi: .12, lo: .32, rim: .14, speck: 150, crack: .11, chip: .11 });
-        // Hairline fractures follow irregular paths through the face of selected slabs.
-        if (rng() < .2 && bw > 28 && bh > 18) {
-          const edge = Math.floor(rng() * 4), points = [];
-          let px = edge === 0 ? bx + bw * (.16 + rng() * .5) : edge === 1 ? bx + bw - 2 : bx + 2;
-          let py = edge === 0 ? by + 2 : edge === 1 ? by + bh * (.16 + rng() * .54) : edge === 2 ? by + bh - 2 : by + bh * (.16 + rng() * .54);
-          points.push([px, py]);
-          const steps = 3 + Math.floor(rng() * 3);
-          for (let k = 1; k <= steps; k++) {
-            const f = k / steps;
-            const tx = edge === 1 ? bx + bw * (.12 + f * .42) : edge === 2 ? bx + bw * (.18 + f * .58) : px + (rng() - .5) * bw * .24;
-            const ty = edge === 0 ? by + bh * (.12 + f * .58) : edge === 2 ? py - bh * f * .55 : py + (rng() - .5) * bh * .34;
-            px = Math.max(bx + 3, Math.min(bx + bw - 3, tx));
-            py = Math.max(by + 3, Math.min(by + bh - 3, ty));
-            points.push([px, py]);
-          }
-          g.beginPath(); points.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]));
-          g.strokeStyle = 'rgba(4,8,10,.78)'; g.lineWidth = 1.5; g.stroke();
-          g.beginPath(); points.forEach((p, i) => i ? g.lineTo(p[0] + .4, p[1] - .6) : g.moveTo(p[0] + .4, p[1] - .6));
-          g.strokeStyle = 'rgba(175,124,78,.2)'; g.lineWidth = .6; g.stroke();
-          if (rng() < .36) {
-            const p = points[1 + Math.floor(rng() * (points.length - 1))];
-            g.beginPath(); g.moveTo(p[0], p[1]); g.lineTo(p[0] + (rng() - .5) * bw * .18, p[1] + (rng() - .5) * bh * .3);
-            g.strokeStyle = 'rgba(4,8,10,.68)'; g.lineWidth = 1; g.stroke();
-          }
-        }
-        // Sparse, offset repair pins and brass remnants keep the joints authored,
-        // rather than repeating at a fixed column interval.
-        if (rng() < .1) {
-          const vx = bx + bw * (.18 + rng() * .55), vy = by + bh * (.35 + rng() * .4), seam = bw * (.18 + rng() * .28);
-          line(g, vx, vy, vx + seam, vy + (rng() - .5) * 1.8, 'rgba(5,8,9,.72)', 2);
-          line(g, vx + 2, vy - 1, vx + seam - 2, vy - 1, 'rgba(178,119,67,.22)', .7);
-          if (rng() < .45) circle(g, vx + seam * .72, vy + 2, .75, 'rgba(225,168,104,.3)');
-        }
-        x += sw;
-        column++;
+    const sites = [], sx = 72, sy = 58;
+    for (let row = -2; row <= Math.ceil(H / sy) + 1; row++) {
+      for (let col = -2; col <= Math.ceil(W / sx) + 1; col++) {
+        const stagger = (row & 1) ? sx * (.28 + rng() * .32) : 0;
+        sites.push({ x: col * sx + stagger + (rng() - .5) * 34, y: row * sy + (rng() - .5) * 30 });
       }
-      y += sh;
+    }
+    function clipCell(points, nx, ny, limit) {
+      const out = [];
+      for (let i = 0; i < points.length; i++) {
+        const a = points[i], b = points[(i + 1) % points.length];
+        const da = nx * a[0] + ny * a[1] - limit, db = nx * b[0] + ny * b[1] - limit;
+        const insideA = da <= 0, insideB = db <= 0;
+        if (insideA !== insideB) {
+          const t = da / (da - db); out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
+        }
+        if (insideB) out.push(b);
+      }
+      return out;
+    }
+    function cellPath(points) {
+      g.beginPath(); points.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath();
+    }
+    for (let i = 0; i < sites.length; i++) {
+      const p = sites[i]; let points = [[0, 0], [W, 0], [W, H], [0, H]];
+      for (let j = 0; j < sites.length && points.length; j++) {
+        if (i === j) continue;
+        const q = sites[j], nx = q.x - p.x, ny = q.y - p.y;
+        if (nx * nx + ny * ny > 190 * 190) continue;
+        points = clipCell(points, nx, ny, (q.x * q.x + q.y * q.y - p.x * p.x - p.y * p.y) * .5);
+      }
+      if (points.length < 3) continue;
+      let x0 = W, y0 = H, x1 = 0, y1 = 0;
+      for (const pt of points) { x0 = Math.min(x0, pt[0]); y0 = Math.min(y0, pt[1]); x1 = Math.max(x1, pt[0]); y1 = Math.max(y1, pt[1]); }
+      const w = x1 - x0, h = y1 - y0;
+      if (w < 8 || h < 8) continue;
+      const plate = { x: x0, y: y0, w, h, points };
+      plates.push(plate);
+      cellPath(points); g.fillStyle = hsl(24 + rng() * 15, 11 + rng() * 13, 24 + rng() * 12); g.fill();
+      g.save(); cellPath(points); g.clip();
+      const shade = g.createLinearGradient(x0, y0, x0 + w * .45, y1);
+      shade.addColorStop(0, 'rgba(255,247,226,.17)'); shade.addColorStop(.44, 'rgba(255,255,255,0)'); shade.addColorStop(1, 'rgba(0,0,0,.34)');
+      g.fillStyle = shade; g.fillRect(x0, y0, w, h);
+      const grain = Math.min(60, Math.floor(w * h / 190));
+      for (let n = 0; n < grain; n++) {
+        const bright = rng() < .46, sz = .7 + rng() * 1.7;
+        g.fillStyle = bright ? 'rgba(235,242,238,.1)' : 'rgba(2,7,10,.22)';
+        g.fillRect(x0 + rng() * w, y0 + rng() * h, sz, sz);
+      }
+      if (rng() < .4) {
+        const edge = Math.floor(rng() * points.length), a = points[edge], b = points[(edge + 1) % points.length];
+        const start = .12 + rng() * .22, end = .58 + rng() * .28;
+        line(g, a[0] + (b[0] - a[0]) * start, a[1] + (b[1] - a[1]) * start,
+          a[0] + (b[0] - a[0]) * end, a[1] + (b[1] - a[1]) * end, 'rgba(235,233,221,.13)', .9);
+      }
+      // Broken, branching mineral fractures stay clipped inside their own slab.
+      if (rng() < .36 && w > 22 && h > 18) {
+        let fx = x0 + w * (.2 + rng() * .6), fy = y0 + h * (.2 + rng() * .6);
+        const fracture = [[fx, fy]], targetX = x0 + w * (.2 + rng() * .6), targetY = y0 + h * (.2 + rng() * .6);
+        const steps = 3 + Math.floor(rng() * 3);
+        for (let k = 1; k <= steps; k++) {
+          const t = k / steps;
+          fx = targetX * t + (x0 + w * (.2 + rng() * .6)) * (1 - t);
+          fy = targetY * t + (y0 + h * (.2 + rng() * .6)) * (1 - t);
+          fracture.push([fx, fy]);
+        }
+        g.beginPath(); fracture.forEach((pt, k) => k ? g.lineTo(pt[0], pt[1]) : g.moveTo(pt[0], pt[1]));
+        g.strokeStyle = 'rgba(3,7,10,.76)'; g.lineWidth = 1.55; g.stroke();
+        g.beginPath(); fracture.forEach((pt, k) => k ? g.lineTo(pt[0] + .5, pt[1] - .65) : g.moveTo(pt[0] + .5, pt[1] - .65));
+        g.strokeStyle = 'rgba(193,139,88,.25)'; g.lineWidth = .65; g.stroke();
+        if (rng() < .5) {
+          const pt = fracture[1 + Math.floor(rng() * (fracture.length - 1))];
+          line(g, pt[0], pt[1], pt[0] + (rng() - .5) * w * .28, pt[1] + (rng() - .5) * h * .32, 'rgba(3,7,10,.72)', 1.05);
+        }
+      }
+      if (rng() < .055) {
+        const mx = x0 + w * (.2 + rng() * .6), my = y0 + h * (.2 + rng() * .6), length = Math.min(w, h) * (.15 + rng() * .2);
+        line(g, mx - length * .5, my, mx + length * .5, my + (rng() - .5) * 2, 'rgba(5,8,9,.75)', 2);
+        line(g, mx - length * .5 + 1, my - 1, mx + length * .5 - 1, my - 1, 'rgba(190,133,79,.26)', .7);
+      }
+      g.restore();
+      cellPath(points); g.strokeStyle = 'rgba(1,5,8,.72)'; g.lineWidth = 1.35; g.stroke();
     }
     const shade = g.createRadialGradient(W * .5, H * .48, 30, W * .5, H * .48, Math.max(W, H) * .72);
-    shade.addColorStop(0, 'rgba(70,100,115,.07)'); shade.addColorStop(1, 'rgba(0,0,0,.27)');
+    shade.addColorStop(0, 'rgba(70,100,115,.04)'); shade.addColorStop(1, 'rgba(0,0,0,.2)');
     g.fillStyle = shade; g.fillRect(0, 0, W, H);
     paintKilnMaterial(g, s, W, H, plates);
   }
@@ -1223,16 +1257,21 @@
     const materialRng = rngFor(hashStr('kiln-tile-inlays:' + roomId(s)));
     for (const plate of plates) {
       if (materialRng() > .19) continue;
-      const inset = 1.1, x = plate.x + inset, y = plate.y + inset;
-      const w = plate.w - inset * 2, h = plate.h - inset * 2, cut = Math.min(w, h) * .18;
+      const x = plate.x, y = plate.y, w = plate.w, h = plate.h;
       if (w < 8 || h < 8) continue;
       const cropW = Math.min(iw, w * (1.8 + materialRng() * .9));
       const cropH = Math.min(ih, h * (1.8 + materialRng() * .9));
       const sx = materialRng() * Math.max(0, iw - cropW), sy = materialRng() * Math.max(0, ih - cropH);
       g.save(); g.beginPath();
-      g.moveTo(x + cut, y); g.lineTo(x + w - cut, y); g.lineTo(x + w, y + cut);
-      g.lineTo(x + w, y + h - cut); g.lineTo(x + w - cut, y + h); g.lineTo(x + cut, y + h);
-      g.lineTo(x, y + h - cut); g.lineTo(x, y + cut); g.closePath(); g.clip();
+      if (Array.isArray(plate.points) && plate.points.length > 2) {
+        plate.points.forEach((point, i) => i ? g.lineTo(point[0], point[1]) : g.moveTo(point[0], point[1]));
+      } else {
+        const cut = Math.min(w, h) * .18;
+        g.moveTo(x + cut, y); g.lineTo(x + w - cut, y); g.lineTo(x + w, y + cut);
+        g.lineTo(x + w, y + h - cut); g.lineTo(x + w - cut, y + h); g.lineTo(x + cut, y + h);
+        g.lineTo(x, y + h - cut); g.lineTo(x, y + cut);
+      }
+      g.closePath(); g.clip();
       g.globalCompositeOperation = 'source-over'; g.globalAlpha = .52;
       g.drawImage(kilnMaterial, sx, sy, cropW, cropH, x, y, w, h);
       g.restore();
@@ -1905,8 +1944,8 @@
         const center = i === 0, segments = center ? [[46, 72], [122, 146], [218, 244]] : [[52, 74], [216, 238]];
         for (const [from, to] of segments) {
           const ax = x1 + dx * from, ay = y1 + dy * from, bx = x1 + dx * to, by = y1 + dy * to;
-          line(ctx, ax, ay, bx, by, `rgba(42,150,255,${(center ? .18 : .1) * pulse})`, center ? 7 : 5);
-          line(ctx, ax, ay, bx, by, `rgba(126,218,255,${(center ? .48 : .3) * pulse})`, center ? 2.6 : 2);
+          line(ctx, ax, ay, bx, by, `rgba(42,150,255,${(center ? .22 : .14) * pulse})`, center ? 7 : 5);
+          line(ctx, ax, ay, bx, by, `rgba(126,218,255,${(center ? .58 : .4) * pulse})`, center ? 2.8 : 2.2);
         }
       }
       if (telegraph) {
@@ -1934,7 +1973,7 @@
       poly(ctx, [[0, -12], [5, -3], [4, 6], [0, 11], [-4, 6], [-5, -3]], shard, 'rgba(223,250,255,.9)', 1.15);
       line(ctx, 0, -8, 0, 7, 'rgba(248,255,255,.58)', .8);
       ctx.restore();
-      glowQueue.push([x, y, 10, exposed ? '110,255,220' : '116,208,255', .48]);
+      glowQueue.push([x, y, 13, exposed ? '145,255,226' : '142,220,255', .68]);
     }
   }
   function drawSentinel(ctx, e, s, t) {
@@ -3114,22 +3153,22 @@
       const rgb = b.friendly ? MINT : thread ? (centerThread ? '184,247,255' : '126,193,230') : '255,130,80';
       ctx.lineCap = 'round';
       ctx.globalCompositeOperation = 'lighter';
-      const trail = thread ? (centerThread ? 34 : 24) : 26;
+      const trail = thread ? (centerThread ? 42 : 24) : 26;
       line(ctx, b.x - ux * trail, b.y - uy * trail - 6, b.x, b.y - 6,
-        `rgba(${rgb},${thread ? centerThread ? .82 : .42 : .35})`, thread ? (centerThread ? 9 : 5.5) : 8);
-      bloom(ctx, b.x, b.y - 6, thread ? (centerThread ? 38 : 22) : 26, rgb, centerThread ? .96 : thread ? .48 : .82);
-      bloom(ctx, b.x, b.y + 6, thread ? (centerThread ? 24 : 15) : 22, rgb, centerThread ? .36 : thread ? .16 : .25);
+        `rgba(${rgb},${thread ? centerThread ? .9 : .42 : .35})`, thread ? (centerThread ? 11 : 5.5) : 8);
+      bloom(ctx, b.x, b.y - 6, thread ? (centerThread ? 47 : 22) : 26, rgb, centerThread ? 1 : thread ? .48 : .82);
+      bloom(ctx, b.x, b.y + 6, thread ? (centerThread ? 30 : 15) : 22, rgb, centerThread ? .46 : thread ? .16 : .25);
       ctx.globalCompositeOperation = 'source-over';
       ctx.lineCap = 'butt';
       ellipse(ctx, b.x, b.y + 6, 5, 2.5, 'rgba(0,0,0,.35)');
       if (thread) {
         ctx.save(); ctx.translate(b.x, b.y - 6); ctx.rotate(Math.atan2(uy, ux));
         if (centerThread) {
-          circle(ctx, 0, 0, 17, 'rgba(48,145,194,.48)', 'rgba(244,254,255,.95)', 2);
-          poly(ctx, [[-24, 0], [-7, -12], [21, 0], [-7, 12]], b.friendly ? '#b8ffe6' : '#d9faff', '#ffffff', 2.3);
-          poly(ctx, [[-7, -12], [1, 0], [-7, 12], [-1, 0]], b.friendly ? '#69e9c3' : '#70dfff', 'rgba(244,255,255,.85)', 1);
-          line(ctx, -4, 0, 13, 0, 'rgba(255,255,255,.98)', 1.8);
-          line(ctx, 4, -4, 9, 0, 'rgba(255,255,255,.88)', 1);
+          circle(ctx, 0, 0, 21, 'rgba(48,145,194,.52)', 'rgba(244,254,255,.98)', 2.3);
+          poly(ctx, [[-31, 0], [-9, -16], [29, 0], [-9, 16]], b.friendly ? '#b8ffe6' : '#e6fcff', '#ffffff', 2.8);
+          poly(ctx, [[-9, -16], [3, 0], [-9, 16], [-2, 0]], b.friendly ? '#69e9c3' : '#70dfff', 'rgba(244,255,255,.95)', 1.2);
+          line(ctx, -4, 0, 20, 0, 'rgba(255,255,255,1)', 2.1);
+          line(ctx, 9, -5, 15, 0, 'rgba(255,255,255,.95)', 1.2);
         } else {
           poly(ctx, [[-13, 0], [-4, -6], [13, 0], [-4, 6]], b.friendly ? '#b8ffe6' : '#a9e5ff', '#f1fdff', 1.5);
           line(ctx, -3, 0, 6, 0, 'rgba(255,255,255,.75)', 1);
@@ -3373,7 +3412,10 @@
     for (const o of objectiveTargets(s, W, H)) {
       const x = (o.x - v.x) * v.scale, y = (o.y - v.y) * v.scale;
       if (x > 20 && x < width - 20 && y > 20 && y < height - 20) continue;
-      const cx = clamp(x, 58, Math.max(58, width - 58));
+      ctx.font = '700 10px system-ui, sans-serif';
+      const tw = Math.min(ctx.measureText(o.label).width + 14, Math.max(40, width - 12));
+      const margin = Math.min(tw / 2 + 6, Math.max(0, width / 2 - 4));
+      const cx = clamp(x, margin, width - margin);
       let cy = clamp(y, 64, Math.max(64, height - 80));
       for (const prev of indicators) if (Math.abs(cx - prev.x) < 96 && Math.abs(cy - prev.y) < 44) cy = prev.y + 44 <= height - 38 ? prev.y + 44 : prev.y - 44;
       indicators.push({ x: cx, y: cy });
@@ -3381,8 +3423,6 @@
       ctx.save(); ctx.translate(cx, cy); ctx.rotate(a); ctx.scale(pulse, pulse);
       poly(ctx, [[15, 0], [-2, -8], [2, 0], [-2, 8]], o.color, '#081820', 2);
       ctx.restore();
-      ctx.font = '700 10px system-ui, sans-serif';
-      const tw = ctx.measureText(o.label).width + 14;
       rrect(ctx, cx - tw / 2, cy + 12, tw, 18, 9); ctx.fillStyle = 'rgba(8,24,32,.85)'; ctx.fill(); ctx.strokeStyle = o.color; ctx.lineWidth = 1; ctx.stroke();
       text(ctx, o.label, cx, cy + 21.5, 10, o.color);
     }

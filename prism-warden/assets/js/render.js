@@ -562,32 +562,41 @@
     if (!walls.length) return;
     const k = meta.k;
     const kilnLight = th.floor === 'kiln';
+    const faceDepth = kilnLight ? 56 : FH;
     // Ambient occlusion: soft drop shadow and tight contact shadow on the floor.
     g.save();
     g.shadowColor = 'rgba(2,8,12,.7)'; g.shadowBlur = 26 * k; g.shadowOffsetX = (kilnLight ? 11 : 0) * k; g.shadowOffsetY = 14 * k; g.fillStyle = '#05090b';
-    for (const w of walls) g.fillRect(w.x, w.y, w.w, w.h + FH);
+    for (const w of walls) g.fillRect(w.x, w.y, w.w, w.h + faceDepth);
     g.shadowBlur = 7 * k; g.shadowOffsetX = (kilnLight ? 3 : 0) * k; g.shadowOffsetY = 4 * k; g.shadowColor = 'rgba(0,4,6,.8)';
-    for (const w of walls) g.fillRect(w.x, w.y, w.w, w.h + FH);
+    for (const w of walls) g.fillRect(w.x, w.y, w.w, w.h + faceDepth);
     g.restore();
     const faces = wallFaces(walls);
     const wallMaterialRng = rngFor(hashStr('kiln-wall-inlays:' + roomId(s)));
     // South faces.
-    g.save(); g.beginPath(); for (const f of faces) g.rect(f.x, f.y - .5, f.w, FH + .5); g.clip();
+    g.save(); g.beginPath(); for (const f of faces) g.rect(f.x, f.y - .5, f.w, faceDepth + .5); g.clip();
     const fg = g.createLinearGradient(0, 0, 0, 1);
     for (const f of faces) {
-      const gr = g.createLinearGradient(0, f.y, 0, f.y + FH);
-      gr.addColorStop(0, hsl(th.face[0], th.face[1], th.face[2] + 8)); gr.addColorStop(1, hsl(th.face[0], th.face[1], th.face[2] - 9));
-      g.fillStyle = gr; g.fillRect(f.x, f.y, f.w, FH);
+      const faceLift = kilnLight ? 13 : 8, faceShade = kilnLight ? -4 : -9;
+      const gr = g.createLinearGradient(0, f.y, 0, f.y + faceDepth);
+      gr.addColorStop(0, hsl(th.face[0], th.face[1], th.face[2] + faceLift)); gr.addColorStop(1, hsl(th.face[0], th.face[1], th.face[2] + faceShade));
+      g.fillStyle = gr; g.fillRect(f.x, f.y, f.w, faceDepth);
       if (th.floor === 'kiln') {
-        const faceKey = g.createLinearGradient(0, f.y - 2, W, f.y + FH);
-        faceKey.addColorStop(0, 'rgba(255,242,214,.16)'); faceKey.addColorStop(.42, 'rgba(255,240,215,.025)'); faceKey.addColorStop(1, 'rgba(0,2,7,.28)');
-        g.fillStyle = faceKey; g.fillRect(f.x, f.y, f.w, FH);
+        const faceKey = g.createLinearGradient(0, f.y - 2, W, f.y + faceDepth);
+        faceKey.addColorStop(0, 'rgba(255,242,214,.22)'); faceKey.addColorStop(.42, 'rgba(255,240,215,.025)'); faceKey.addColorStop(1, 'rgba(0,2,7,.34)');
+        g.fillStyle = faceKey; g.fillRect(f.x, f.y, f.w, faceDepth);
+        // A narrow lit bevel and a deep far edge make the skirt read as raised stone.
+        const bevel = g.createLinearGradient(f.x, 0, f.x + 10, 0);
+        bevel.addColorStop(0, 'rgba(255,241,210,.32)'); bevel.addColorStop(1, 'rgba(255,241,210,0)');
+        g.fillStyle = bevel; g.fillRect(f.x, f.y + 1, 10, faceDepth - 2);
+        const farEdge = g.createLinearGradient(f.x + f.w - 8, 0, f.x + f.w, 0);
+        farEdge.addColorStop(0, 'rgba(0,2,8,0)'); farEdge.addColorStop(1, 'rgba(0,2,8,.46)');
+        g.fillStyle = farEdge; g.fillRect(f.x + f.w - 8, f.y, 8, faceDepth);
       }
       if (th.floor === 'kiln' && th.wall === 'basalt' && kilnMaterial) {
-        for (let y = f.y + 4; y < f.y + FH - 3; y += 11) {
+        for (let y = f.y + 4; y < f.y + faceDepth - 3; y += 11) {
           for (let x = f.x + 3; x < f.x + f.w - 4;) {
             const pw = Math.min(f.x + f.w - 3 - x, 18 + wallMaterialRng() * 22);
-            if (wallMaterialRng() < .32) paintKilnRectMaterial(g, x, y, pw, Math.min(7, f.y + FH - 2 - y), wallMaterialRng, .28);
+            if (wallMaterialRng() < .32) paintKilnRectMaterial(g, x, y, pw, Math.min(7, f.y + faceDepth - 2 - y), wallMaterialRng, .28);
             x += pw + 3 + wallMaterialRng() * 5;
           }
         }
@@ -598,26 +607,26 @@
         }
       } else if (th.wall === 'aqueduct') {
         // Roman arcade: coursed ashlar pierced by small dark arches.
-        for (let y = f.y + 7; y < f.y + FH - 1; y += 7) line(g, f.x, y, f.x + f.w, y, 'rgba(30,18,6,.3)', 1);
+        for (let y = f.y + 7; y < f.y + faceDepth - 1; y += 7) line(g, f.x, y, f.x + f.w, y, 'rgba(30,18,6,.3)', 1);
         let row = 0;
-        for (let y = f.y; y < f.y + FH - 1; y += 7, row++) for (let x = f.x + (row % 2) * 11; x < f.x + f.w; x += 22) line(g, x, y + .5, x, y + 6.5, 'rgba(30,18,6,.28)', 1);
+        for (let y = f.y; y < f.y + faceDepth - 1; y += 7, row++) for (let x = f.x + (row % 2) * 11; x < f.x + f.w; x += 22) line(g, x, y + .5, x, y + 6.5, 'rgba(30,18,6,.28)', 1);
         const span = 36;
         const n = Math.floor((f.w - 8) / span);
         const x0 = f.x + (f.w - n * span) / 2;
         for (let i = 0; i < n; i++) {
           const ax = x0 + i * span + 8, aw = span - 16, ar = aw / 2, top = f.y + 6 + ar;
-          g.beginPath(); g.moveTo(ax, f.y + FH); g.lineTo(ax, top); g.arc(ax + ar, top, ar, Math.PI, 0); g.lineTo(ax + aw, f.y + FH); g.closePath();
-          const ag = g.createLinearGradient(0, f.y + 6, 0, f.y + FH); ag.addColorStop(0, 'rgba(4,10,6,.95)'); ag.addColorStop(1, 'rgba(10,26,16,.85)');
+          g.beginPath(); g.moveTo(ax, f.y + faceDepth); g.lineTo(ax, top); g.arc(ax + ar, top, ar, Math.PI, 0); g.lineTo(ax + aw, f.y + faceDepth); g.closePath();
+          const ag = g.createLinearGradient(0, f.y + 6, 0, f.y + faceDepth); ag.addColorStop(0, 'rgba(4,10,6,.95)'); ag.addColorStop(1, 'rgba(10,26,16,.85)');
           g.fillStyle = ag; g.fill();
           g.beginPath(); g.arc(ax + ar, top, ar + 2.2, Math.PI, 0); g.strokeStyle = hsl(th.face[0], th.face[1], th.face[2] + 22, .7); g.lineWidth = 2.4; g.stroke();
           for (let v = 0; v < 5; v++) { const va = Math.PI + v * Math.PI / 4; line(g, ax + ar + Math.cos(va) * ar, top + Math.sin(va) * ar, ax + ar + Math.cos(va) * (ar + 3.6), top + Math.sin(va) * (ar + 3.6), 'rgba(30,18,6,.5)', 1); }
-          if (rng() < .7) tuft(g, ax + ar + (rng() - .5) * 6, f.y + FH, rng, 6, .9);
+          if (rng() < .7) tuft(g, ax + ar + (rng() - .5) * 6, f.y + faceDepth, rng, 6, .9);
         }
       } else {
-        const course = th.wall === 'brick' ? 5.3 : 8;
-        for (let y = f.y + course; y < f.y + FH - 1; y += course) line(g, f.x, y, f.x + f.w, y, 'rgba(0,0,0,.35)', 1);
+        const course = th.wall === 'brick' ? 5.3 : kilnLight ? 11 : 8;
+        for (let y = f.y + course; y < f.y + faceDepth - 1; y += course) line(g, f.x, y, f.x + f.w, y, 'rgba(0,0,0,.35)', 1);
         let row = 0;
-        for (let y = f.y; y < f.y + FH - 1; y += course, row++) {
+        for (let y = f.y; y < f.y + faceDepth - 1; y += course, row++) {
           const bw = th.wall === 'brick' ? 12 : th.wall === 'slate' ? 26 : 20;
           for (let x = f.x + (row % 2) * bw / 2; x < f.x + f.w; x += bw + (th.wall === 'brick' ? 0 : rng() * 8)) {
             line(g, x, y + .5, x, y + course - .5, 'rgba(0,0,0,.32)', 1);
@@ -625,10 +634,10 @@
           }
         }
       }
-      if (th.decor === 'sluice') for (let x = f.x + 8; x < f.x + f.w; x += 14 + rng() * 22) { g.fillStyle = 'rgba(10,20,26,.28)'; g.fillRect(x, f.y + 2, 3 + rng() * 5, FH - 2); }
+      if (th.decor === 'sluice') for (let x = f.x + 8; x < f.x + f.w; x += 14 + rng() * 22) { g.fillStyle = 'rgba(10,20,26,.28)'; g.fillRect(x, f.y + 2, 3 + rng() * 5, faceDepth - 2); }
       if (th.decor === 'shutters') { line(g, f.x, f.y + 6, f.x + f.w, f.y + 6, '#7a5a2e', 2); line(g, f.x, f.y + 5, f.x + f.w, f.y + 5, 'rgba(255,210,140,.35)', .7); }
-      if (th.decor === 'sluice' || th.decor === 'beacon') { g.fillStyle = 'rgba(52,96,70,.55)'; g.fillRect(f.x, f.y + FH - 4, f.w, 4); }
-      line(g, f.x, f.y + FH - .5, f.x + f.w, f.y + FH - .5, 'rgba(0,0,0,.55)', 1.5);
+      if (th.decor === 'sluice' || th.decor === 'beacon') { g.fillStyle = 'rgba(52,96,70,.55)'; g.fillRect(f.x, f.y + faceDepth - 4, f.w, 4); }
+      line(g, f.x, f.y + faceDepth - .5, f.x + f.w, f.y + faceDepth - .5, 'rgba(0,0,0,.55)', 1.5);
     }
     void fg;
     g.restore();
@@ -664,9 +673,9 @@
     g.restore();
     // A narrow static contact band anchors each exposed wall skirt to the floor.
     for (const f of faces) {
-      const groundY = f.y + FH - 1, contact = g.createLinearGradient(0, groundY, 0, groundY + 13);
-      contact.addColorStop(0, 'rgba(0,3,7,.3)'); contact.addColorStop(.35, 'rgba(0,3,7,.16)'); contact.addColorStop(1, 'rgba(0,3,7,0)');
-      g.fillStyle = contact; g.fillRect(f.x, groundY, f.w, 13);
+      const groundY = f.y + faceDepth - 1, contact = g.createLinearGradient(0, groundY, 0, groundY + 16);
+      contact.addColorStop(0, 'rgba(0,3,7,.36)'); contact.addColorStop(.35, 'rgba(0,3,7,.18)'); contact.addColorStop(1, 'rgba(0,3,7,0)');
+      g.fillStyle = contact; g.fillRect(f.x, groundY, f.w, 16);
     }
     // Rim lights and outlines, only on edges exposed to floor.
     for (const w of walls) {
@@ -679,8 +688,15 @@
         if (th.floor === 'kiln') line(g, w.x + a, w.y + w.h - .8, w.x + b, w.y + w.h - .8, 'rgba(0,3,8,.52)', 1.8);
         else line(g, w.x + a, w.y + w.h - .8, w.x + b, w.y + w.h - .8, hsl(th.top[0], th.top[1], th.top[2] + 26, .9), 1.8);
       }
-      for (const [a, b] of edgeSegs(walls, w, 'left')) { line(g, w.x + .8, w.y + a, w.x + .8, w.y + b, hsl(th.top[0], th.top[1], th.top[2] + 14, .6), 1.3); line(g, w.x - .5, w.y + a, w.x - .5, w.y + b + FH, 'rgba(0,0,0,.5)', 1); }
-      for (const [a, b] of edgeSegs(walls, w, 'right')) { line(g, w.x + w.w - .8, w.y + a, w.x + w.w - .8, w.y + b, 'rgba(0,0,0,.35)', 1.6); line(g, w.x + w.w + .5, w.y + a, w.x + w.w + .5, w.y + b + FH, 'rgba(0,0,0,.5)', 1); }
+      for (const [a, b] of edgeSegs(walls, w, 'left')) {
+        line(g, w.x + .8, w.y + a, w.x + .8, w.y + b, hsl(th.top[0], th.top[1], th.top[2] + 14, .6), 1.3);
+        line(g, w.x - .5, w.y + a, w.x - .5, w.y + b + faceDepth, 'rgba(0,0,0,.5)', 1);
+        if (kilnLight) line(g, w.x + 1.8, w.y + a, w.x + 1.8, w.y + b + faceDepth, 'rgba(255,239,207,.2)', 1.1);
+      }
+      for (const [a, b] of edgeSegs(walls, w, 'right')) {
+        line(g, w.x + w.w - .8, w.y + a, w.x + w.w - .8, w.y + b, 'rgba(0,0,0,.35)', 1.6);
+        line(g, w.x + w.w + .5, w.y + a, w.x + w.w + .5, w.y + b + faceDepth, 'rgba(0,0,0,.5)', 1);
+      }
     }
     wallDecor(g, s, th, rng, walls, faces, W, H, meta);
   }
@@ -2084,7 +2100,14 @@
     // bell body with verdigris
     const bg = ctx.createRadialGradient(-8, -18, 2, 0, 0, 34);
     bg.addColorStop(0, '#b8e0c8'); bg.addColorStop(.35, '#6f9c86'); bg.addColorStop(.75, '#34564a'); bg.addColorStop(1, '#1a2c26');
-    poly(ctx, [[-11, -30], [11, -30], [16, -16], [20, 4], [24, 16], [-24, 16], [-20, 4], [-16, -16]], bg, '#0e1614', 2);
+    const bellPts = [[-11, -30], [11, -30], [16, -16], [20, 4], [24, 16], [-24, 16], [-20, 4], [-16, -16]];
+    poly(ctx, bellPts, bg, '#0e1614', 2);
+    ctx.save(); ctx.beginPath(); bellPts.forEach((pt, i) => i ? ctx.lineTo(pt[0], pt[1]) : ctx.moveTo(pt[0], pt[1])); ctx.closePath(); ctx.clip();
+    const bellVolume = ctx.createLinearGradient(-20, -28, 22, 16);
+    bellVolume.addColorStop(0, 'rgba(244,255,235,.2)'); bellVolume.addColorStop(.46, 'rgba(209,255,226,.015)'); bellVolume.addColorStop(1, 'rgba(0,7,5,.38)');
+    ctx.fillStyle = bellVolume; ctx.fillRect(-25, -32, 52, 52); ctx.restore();
+    line(ctx, -13, -26, -18, -12, 'rgba(229,255,236,.5)', 1.7);
+    line(ctx, 20, -12, 24, 12, 'rgba(0,5,4,.7)', 2.2);
     ellipse(ctx, 0, 16, 24, 6, '#1c2a26', '#0e1614', 1.6);
     line(ctx, -19, 2, 19, 2, 'rgba(10,20,18,.55)', 2); line(ctx, -17, -2, 17, -2, 'rgba(200,240,220,.25)', 1);
     for (let i = 0; i < 5; i++) circle(ctx, -14 + i * 7, 9, 1.6, '#c8a860');
@@ -2386,7 +2409,15 @@
     // tunic
     const tg = ctx.createLinearGradient(-9, -10, 9, 8);
     tg.addColorStop(0, '#3cb4aa'); tg.addColorStop(.55, '#1f7c7e'); tg.addColorStop(1, '#155056');
-    poly(ctx, [[-7.5, -10], [7.5, -10], [9, 6], [0, 8], [-9, 6]], tg, INK, 1.7);
+    const tunicPts = [[-7.5, -10], [7.5, -10], [9, 6], [0, 8], [-9, 6]];
+    poly(ctx, tunicPts, tg, INK, 1.7);
+    // Broad, clipped upper-left key and quiet far-side falloff give the small coat a rounder read.
+    ctx.save(); ctx.beginPath(); tunicPts.forEach((pt, i) => i ? ctx.lineTo(pt[0], pt[1]) : ctx.moveTo(pt[0], pt[1])); ctx.closePath(); ctx.clip();
+    const tunicVolume = ctx.createLinearGradient(-9, -10, 9, 8);
+    tunicVolume.addColorStop(0, 'rgba(227,255,239,.34)'); tunicVolume.addColorStop(.38, 'rgba(203,255,243,.06)'); tunicVolume.addColorStop(1, 'rgba(0,13,22,.34)');
+    ctx.fillStyle = tunicVolume; ctx.fillRect(-10, -11, 20, 20); ctx.restore();
+    line(ctx, -7.1, -8.6, -8, 4.8, 'rgba(221,255,239,.42)', 1.2);
+    line(ctx, 8, -6, 8.5, 5.3, 'rgba(0,13,18,.52)', 1.4);
     line(ctx, -8.6, 1.5, 8.6, 1.5, '#5a3a1e', 2.4); circle(ctx, 0, 1.5, 1.7, '#f0d080');
     line(ctx, -2.5, -9, 0, -4, '#e8dcc0', 1.2); line(ctx, 2.5, -9, 0, -4, '#e8dcc0', 1.2);
     if (facingUp) {

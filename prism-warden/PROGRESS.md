@@ -574,3 +574,26 @@ Campaign remains 15/25 challenges across regions 1–3; regions 4–5 and the en
 are unbuilt. Next: carry stronger height and volume through raised architecture
 and actors, then request a fresh renderer comparison. No overall AAA acceptance,
 completion marker, release, catalog edit or `main` promotion.
+
+## September 25 deeper Kiln architecture pass
+
+The renderer now projects Glass Kiln wall faces 56 units, carries upper-left
+bevel lighting and floor-contact shading down the deeper faces, and adds clipped
+directional highlights/shading to the keeper tunic and sentinel bell. The full
+suite passes 19 suites / 429 tests. The six-size Chromium smoke passes at
+320x568, 390x844, 844x390, 768x1024, 1440x900 and 3840x2160 with clean console
+and external-request logs, no horizontal overflow, and passing input, pause,
+retry, result and mock leaderboard checks. All six Weaver-thread captures and a
+1920x1080 preview of 4K were opened under
+`node_modules/.cache/prism-warden/sep25-raised-faces-final/`.
+
+The mobile HUD remains AAA PASS / WOWED for its scoped Dead Cells comparison;
+the portrait objective and separate hint strip remain readable. Renderer review
+of the latest screenshots against Nintendo's official *Link's Awakening* image
+is pending. This work is not a campaign, gameplay, performance or overall AAA
+acceptance.
+
+Campaign remains 15/25 challenges across regions 1–3; regions 4–5 and the ending
+remain unbuilt. Next: record the fresh renderer critic's verdict and address any
+remaining specific height/volume issue. No completion marker, release, catalog
+edit or `main` promotion.

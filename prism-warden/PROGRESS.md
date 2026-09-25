@@ -357,3 +357,45 @@ The focused 35-test Prism Warden suite passed against this renderer work before
 this checkpoint. Campaign remains 15/25 challenges across regions 1-3; regions 4-5
 and the ending remain unbuilt. No AAA acceptance, completion marker, release,
 catalog edit or `main` promotion.
+
+## 2026-09-25 renderer verification checkpoint
+
+Commit `05c5924` completes the irregular fractured-cell kiln floor, raises the
+Glass Weaver floor value and thread/shard cue, and fits edge objective labels.
+Focused Prism Warden Jest passes 2 suites / 35 tests; full repository Jest passes
+19 suites / 429 tests. `node --check` and `git diff --check` pass. The Chromium
+smoke passes 320x568, 390x844, 844x390, 768x1024, 1440x900 and 3840x2160 with
+zero page errors/warnings, no external requests, no horizontal overflow, and
+keyboard/touch, pause, retry, room fixture, results, and mocked leaderboard
+checks. Evidence and PNGs: `node_modules/.cache/prism-warden/sep25-fractured-floor/`.
+Lead opened the Weaver scene at 390x844 and 844x390, the 1440x900 thread cue,
+and a downsampled 3840x2160 kiln view. The irregular seams now break the course
+rhythm, though the C5 telegraph still looks dark in the desktop capture. A fresh
+independent presentation critic selected *Hades* (Supergiant Games; official
+Steam screenshot: `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1145360/ss_c0fed447426b69981cf1721756acf75369801b31.1920x1080.jpg?t=1715722799`)
+and returned AAA FAIL / OURS LOSES. Its main finding is that global darkening
+during the Glass Weaver volley nearly erases the player, shards, and attack paths;
+the arena also lacks the reference's layered materials and lighting. The critic
+created a local HTML comparison under ignored `node_modules/.cache/prism-warden/sep25-critic/`,
+but browser URL policy blocked opening the local file, so a composed side-by-side
+was not visually verified. Its volley-readability observation is not accepted as a
+live-state finding until the transition-fade fixture is normalized. The environment
+depth comparison still needs fresh review. No pass is claimed.
+
+## September 25 fixture correction
+
+Review of `smoke.cjs` showed the criticized thread screenshot called `PW.enterRoom`
+and captured 80ms later with `state.transition === 1`; the dark overlay is the
+intentional 0.6-second room-entry fade, not a normal active volley. The temporary
+renderer exception for that forced state was not retained. The lead-owned smoke
+harness now waits for the room fade to finish before capturing the volley. The
+Hades AAA FAIL remains the current verdict until a fresh comparison judges the
+corrected capture; the reference's material depth and the kiln's overall visual
+gap remain to be assessed. No pass is claimed.
+
+The corrected `node prism-warden/tools/smoke.cjs` run passes all six required sizes
+again with clean console, no external requests or horizontal overflow. Fresh captures
+are under ignored `node_modules/.cache/prism-warden/sep25-fade-corrected/`. Lead
+opened the fade-complete 1440x900 volley PNG: the player, five shards and dashed
+paths are visible. A new independent comparison against an official shipped-game
+screenshot is still required before recording a presentation verdict.

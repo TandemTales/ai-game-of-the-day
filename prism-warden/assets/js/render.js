@@ -1247,7 +1247,7 @@
     };
     img.onerror = () => { kilnMaterialState = 'failed'; };
     img.decoding = 'async';
-    img.src = 'assets/img/kiln-basalt-glass.webp';
+    img.src = 'assets/img/kiln-basalt-fractured.png';
   }
   function paintKilnMaterial(g, s, W, H, plates) {
     if (!kilnMaterial) { loadKilnMaterial(); return; }

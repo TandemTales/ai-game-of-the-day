@@ -419,3 +419,31 @@ Then run all tests, the six-viewport smoke and separate renderer/UI comparisons.
 Campaign remains 15/25 challenges in regions 1-3; regions 4-5 and the ending are
 unbuilt. No AAA acceptance, completion marker, release, catalog edit or `main`
 promotion.
+
+## September 25 integrated kiln and portrait pass
+
+The renderer now loads the generated fractured basalt material while retaining
+its procedural fallback and dynamic hazard/actor layers. Portrait CSS reduces
+header and HUD height and rearranges touch actions into one row; the 72px movement
+pads and 44px action targets remain visible. The smoke harness now checks the new
+local PNG path rather than the retired WebP filename.
+
+Focused Prism Warden tests pass (2 suites / 35 tests); the full repository passes
+(19 suites / 429 tests). The corrected six-viewport Chromium smoke passes at
+320x568, 390x844, 844x390, 768x1024, 1440x900 and 3840x2160. Every size loads the
+local PNG and reports zero console errors/warnings, zero external requests, no
+horizontal overflow, and working keyboard/touch, pause, retry, room fixtures,
+results and mocked leaderboard flow. Captures: `node_modules/.cache/prism-warden/sep25-final/`.
+
+Lead inspected the 320x568 play view, 390x844 play and Weaver-volley views,
+1440x900 Weaver-volley and Foundry views, and a downsampled 3840x2160 Foundry
+view. The fractured material reads more clearly than the prior uniform floor;
+the portrait HUD and controls fit with more arena space, though character and
+environment forms still fall short of shipped AAA presentation. Independent
+renderer/material and mobile UI side-by-side critiques are in progress; no pass
+is claimed until their comparisons are inspected.
+
+Next: record both critics' verdicts and address any bounded high-value visual
+issue. Campaign remains 15/25 challenges across regions 1-3; regions 4-5 and the
+ending remain unbuilt. No AAA acceptance, completion marker, release, catalog edit
+or `main` promotion.

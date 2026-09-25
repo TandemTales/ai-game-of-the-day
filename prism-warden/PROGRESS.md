@@ -789,3 +789,31 @@ current procedural fallback. Campaign remains 15/25 challenges across regions
 is a development checkpoint only: no .aaa-complete, catalog edit, release or
 main promotion. Next: test the generated texture as a clipped, blended local
 basin layer, then prioritize the remaining connected campaign content.
+## September25 generated kiln apron material integration
+
+A new local 1536x1024 basalt-and-amber material, kiln-apron-lit-v1.png, now
+renders only in the Glass Weaver forecourt. The renderer loads it same-origin,
+clips it to the irregular apron, registers its western heat-vein branches to the
+existing hearth, and masks the generated focal ring beneath the game's hearth
+art. Missing Image support or a failed asset request retains the previous
+procedural/material floor. No collision, combat or simulation behavior changed.
+
+Full Jest passes 19 suites / 429 tests. The six-size Chromium smoke passes at
+320x568, 390x844, 844x390, 768x1024, 1440x900 and 3840x2160. All four local art
+assets return HTTP 200 in every viewport; console and external requests are
+clean, there is no horizontal overflow, and touch checks pass at the four
+smaller sizes. Lead opened all six Weaver-thread captures, including the 4K image
+as a 1920x1080 review copy. No-Image, failed-load and successful-image VM checks
+pass. node --check and git diff --check pass.
+
+The first visual inspection sees a connected warm feed-to-hearth path and more
+floor detail; the cropped material boundary still needs review. Fresh harsh
+side-by-side and mobile verdicts for this exact integration are pending. The
+last reviewer verdict for the prior procedural pass was AAA FAIL / OURS LOSES;
+that pass improved the perimeter but left most of the basin dark. The latest
+comparison artifact and captures will be recorded after this review.
+
+Campaign remains 15/25 challenges in regions 1-3; regions 4-5 and the ending
+are unbuilt, and no AAA acceptance is claimed. No .aaa-complete, catalog edit,
+release, active-game change or main promotion. Next: inspect the new comparisons,
+fix any seam/readability issue, and prioritize the remaining campaign content.

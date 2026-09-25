@@ -542,6 +542,26 @@
     poly(g, apron, bed, 'rgba(6,12,15,.62)', 1.6);
     g.save(); g.beginPath(); apron.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath(); g.clip();
     if (kilnMaterial) paintKilnRectMaterial(g, 416, 224, 542, 332, rngFor(hashStr('weaver-connected-forecourt')), .25);
+    if (!kilnApronMaterial) loadKilnApronMaterial();
+    if (kilnApronMaterial) {
+      const iw = kilnApronMaterial.naturalWidth || kilnApronMaterial.width;
+      const ih = kilnApronMaterial.naturalHeight || kilnApronMaterial.height;
+      if (iw > 0 && ih > 0) {
+        // This authored sheet's paired west feeds converge on the existing
+        // hearth at 800,384. Paint only that west half; the room's own opaque
+        // hearth pass covers its central ring, avoiding a doubled focal motif
+        // and hiding the unused east-facing branches.
+        const scale = .4, sourceW = iw * .5;
+        const dx = 800 - sourceW * scale, dy = 384 - ih * .5 * scale;
+        g.save();
+        // Keep the generated circular coping out of the seam; the modeled
+        // hearth replaces it, while the amber channels meet its outer edge.
+        g.beginPath(); g.rect(0, 0, 1200, 800); g.ellipse(800, 384, 116, 120, 0, 0, TAU); g.clip('evenodd');
+        g.globalAlpha = .46; g.globalCompositeOperation = 'source-over';
+        g.drawImage(kilnApronMaterial, 0, 0, sourceW, ih, dx, dy, sourceW * scale, ih * scale);
+        g.restore();
+      }
+    }
     const bloom = g.createRadialGradient(682, 347, 26, 690, 376, 294);
     bloom.addColorStop(0, 'rgba(207,156,102,.19)'); bloom.addColorStop(.48, 'rgba(130,112,91,.075)'); bloom.addColorStop(1, 'rgba(5,11,16,.025)');
     g.fillStyle = bloom; g.fillRect(416, 224, 542, 332);
@@ -1483,6 +1503,22 @@
   }
   const staticCache = new Map();
   let kilnMaterial = null, kilnMaterialState = 'idle';
+  let kilnApronMaterial = null, kilnApronMaterialState = 'idle';
+  function loadKilnApronMaterial() {
+    if (!hasDoc || typeof Image === 'undefined' || kilnApronMaterialState !== 'idle') return;
+    kilnApronMaterialState = 'loading';
+    const img = new Image();
+    img.onload = () => {
+      if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+        kilnApronMaterial = img; kilnApronMaterialState = 'ready';
+        // Rebuild the cached Weaver apron after the local art becomes available.
+        staticCache.clear();
+      } else kilnApronMaterialState = 'failed';
+    };
+    img.onerror = () => { kilnApronMaterialState = 'failed'; };
+    img.decoding = 'async';
+    img.src = 'assets/img/kiln-apron-lit-v1.png';
+  }
   function loadKilnMaterial() {
     if (!hasDoc || typeof Image === 'undefined' || kilnMaterialState !== 'idle') return;
     kilnMaterialState = 'loading';

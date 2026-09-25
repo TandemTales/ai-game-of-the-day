@@ -694,3 +694,34 @@ Campaign remains 15/25 challenges across regions 1–3; regions 4–5 and the
 ending are unbuilt. No `.aaa-complete`, release, catalog edit or `main`
 promotion. Next: review the landscape HUD audit, then continue the remaining
 campaign content and the renderer's environment and character-volume debt.
+
+## September25 Weaver framing and staging follow-up
+
+The final camera pass now frames the Glass Weaver and Sera together across phone,
+landscape, tablet, desktop and 4K views. In compact landscape, the Weaver nameplate
+and health bar sit below its body, clear of the HUD. The Weaver arena gains a flat,
+8-facet warm/cool glass loom inlay beneath actors and telegraphs; it changes no
+collision or combat rules. The compact-landscape thermal panel stays clear, though
+the mobile reviewer notes it partly covers the small room annotation.
+
+The full Jest suite passes 19 suites / 429 tests. The full Chromium smoke passes
+320x568, 390x844, 844x390, 768x1024, 1440x900 and 3840x2160. All three local art
+assets returned HTTP 200; each viewport reports no console errors, external
+requests or overflow, and native touch checks pass at the four smaller sizes.
+Lead opened all six final Weaver-thread captures, including a 1920x1080 review
+copy of the 4K capture. JavaScript syntax checks and `git diff --check` pass.
+
+Independent mobile HUD review: scoped PASS for the full boss/name/health visibility
+at all four compact and tablet sizes; thermal card still partly masks the upper-left
+room annotation at 844x390. Fresh side-by-side renderer review against Nintendo's
+official *Link's Awakening* screenshot: AAA FAIL / OURS LOSES. The inlay improves
+focal organization but reads as a flat target diagram; broad basalt floor, sparse
+blocks and thin perimeter walls still lack physical architectural depth and
+layered staging. The latest side-by-side artifact and captures are under ignored
+`node_modules/.cache/prism-warden/sep25-weaver-loom-final/`.
+
+Campaign remains 15/25 challenges in regions 1-3; regions 4-5, the ending and
+full AAA acceptance remain incomplete. This is a development checkpoint only:
+no `.aaa-complete`, catalog change, release or `main` promotion. Next run: build
+the next connected campaign content while retaining the environmental-depth and
+mobile room-annotation issues for another focused renderer pass.

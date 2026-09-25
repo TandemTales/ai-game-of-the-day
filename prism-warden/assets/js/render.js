@@ -25,9 +25,27 @@
     const scale = Math.max(width / W, height / H, closeScale);
     const w = width / scale, h = height / scale;
     const p = s && s.player || { x: 190, y: 540 };
+    let targetX = num(p.x, W / 2), targetY = num(p.y, H / 2);
+    const weaver = s && roomId(s) === 'weaver' && arr(s.enemies).find(e =>
+      /glass[-_ ]?weaver/i.test(String(e && e.id || '')) && num(e && e.hp, 0) > 0);
+    if (weaver && Number.isFinite(p.x) && Number.isFinite(p.y) && Number.isFinite(weaver.x) && Number.isFinite(weaver.y)) {
+      const px = p.x, py = p.y, bx = weaver.x, by = weaver.y;
+      // Keep the player and Weaver's silhouette in frame while centering their encounter.
+      const playerMarginX = 34, bossMarginX = 42, playerMarginY = 18, bossBottomMargin = 40;
+      const hudTop = compactCanvasHud(width, height) ? 132 / scale : 0;
+      const bossTopMargin = Math.max(54, hudTop + 78);
+      const spanX = Math.max(px + playerMarginX, bx + bossMarginX) - Math.min(px - playerMarginX, bx - bossMarginX);
+      const spanY = Math.max(py + playerMarginY, by + bossBottomMargin) - Math.min(py - playerMarginY, by - bossTopMargin);
+      const focusX = clamp((w - spanX) / Math.min(96, w * .28), 0, 1);
+      const focusY = clamp((h - spanY) / Math.min(90, h * .18), 0, 1);
+      // Start exactly at player-follow on the fit boundary; extra safe margin eases toward the encounter midpoint.
+      targetX = px + ((px + bx) / 2 - px) * focusX;
+      const encounterY = (py + by) / 2 - Math.min(36, h * .06);
+      targetY = py + (encounterY - py) * focusY;
+    }
     return {
-      x: W > w ? clamp(num(p.x, W / 2) - w / 2, 0, W - w) : (W - w) / 2,
-      y: H > h ? clamp(num(p.y, H / 2) - h / 2, 0, H - h) : (H - h) / 2, w, h, scale
+      x: W > w ? clamp(targetX - w / 2, 0, W - w) : (W - w) / 2,
+      y: H > h ? clamp(targetY - h / 2, 0, H - h) : (H - h) / 2, w, h, scale
     };
   }
   PW.view = view;
@@ -1384,6 +1402,35 @@
     img.decoding = 'async';
     img.src = 'assets/img/sera-keeper-topdown-v3.png';
   }
+  let weaverSprite = null, weaverLitSprite = null, weaverSpriteState = 'idle';
+  function keyWeaverSprite(img) {
+    const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+    if (!hasDoc || !(iw > 0 && ih > 0)) return null;
+    const canvas = makeCanvas(iw, ih), g = canvas.getContext('2d');
+    if (!g) return null;
+    g.drawImage(img, 0, 0, iw, ih);
+    g.globalCompositeOperation = 'source-atop';
+    const key = g.createLinearGradient(0, 0, iw, ih);
+    key.addColorStop(0, 'rgba(255,239,207,.16)');
+    key.addColorStop(.48, 'rgba(255,249,228,.025)');
+    key.addColorStop(1, 'rgba(2,8,15,.24)');
+    g.fillStyle = key; g.fillRect(0, 0, iw, ih);
+    g.globalCompositeOperation = 'source-over';
+    return canvas;
+  }
+  function loadWeaverSprite() {
+    if (!hasDoc || typeof Image === 'undefined' || weaverSpriteState !== 'idle') return;
+    weaverSpriteState = 'loading';
+    const img = new Image();
+    img.onload = () => {
+      if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+        weaverSprite = img; weaverLitSprite = keyWeaverSprite(img); weaverSpriteState = 'ready';
+      } else weaverSpriteState = 'failed';
+    };
+    img.onerror = () => { weaverSpriteState = 'failed'; };
+    img.decoding = 'async';
+    img.src = 'assets/img/glass-weaver-boss-v1.png';
+  }
   function paintKilnRectMaterial(g, x, y, w, h, rng, alpha) {
     if (!kilnMaterial || w < 3 || h < 3) return;
     const iw = kilnMaterial.naturalWidth || kilnMaterial.width, ih = kilnMaterial.naturalHeight || kilnMaterial.height;
@@ -1688,6 +1735,37 @@
         else if (deep && cycleZone(z) && (!floodLabel || d < floodLabel.d)) floodLabel = { d, x: lx, y: ly, text: `DRAINS ${remain.toFixed(1)}s`, color: '#bff5e0', size: 11 };
       }
     }
+  }
+  function drawWeaverLoomFloor(ctx, s) {
+    if (roomId(s) !== 'weaver') return;
+    // A flat kiln inlay stages the arena without suggesting a raised or blocked surface.
+    const cx = 800, cy = 384;
+    ctx.save();
+    const wash = ctx.createRadialGradient(cx - 12, cy - 10, 8, cx, cy, 108);
+    wash.addColorStop(0, 'rgba(76,113,112,.18)');
+    wash.addColorStop(.58, 'rgba(62,83,84,.12)');
+    wash.addColorStop(1, 'rgba(39,53,59,0)');
+    ellipse(ctx, cx, cy, 108, 80, wash);
+    for (let i = 0; i < 8; i++) {
+      const a = i * TAU / 8, d = .19;
+      const point = (rx, ry, angle) => [cx + Math.cos(angle) * rx, cy + Math.sin(angle) * ry];
+      const pane = [point(34, 25, a - d), point(86, 63, a - d * .62), point(86, 63, a + d * .62), point(34, 25, a + d)];
+      const cool = i % 2 === 0;
+      poly(ctx, pane, cool ? 'rgba(111,210,218,.085)' : 'rgba(227,172,111,.075)',
+        cool ? 'rgba(160,235,232,.32)' : 'rgba(248,206,151,.28)', .9);
+      const inner = point(42, 31, a), outer = point(72, 53, a);
+      line(ctx, inner[0], inner[1], outer[0], outer[1], cool ? 'rgba(184,239,233,.3)' : 'rgba(255,222,174,.26)', 1);
+      const node = point(98, 72, a), tang = a + Math.PI / 2;
+      poly(ctx, [[node[0] + Math.cos(a) * 4.2, node[1] + Math.sin(a) * 4.2], [node[0] + Math.cos(tang) * 4.2, node[1] + Math.sin(tang) * 4.2],
+        [node[0] - Math.cos(a) * 4.2, node[1] - Math.sin(a) * 4.2], [node[0] - Math.cos(tang) * 4.2, node[1] - Math.sin(tang) * 4.2]],
+        cool ? 'rgba(177,245,239,.66)' : 'rgba(255,214,159,.58)');
+    }
+    ctx.save(); ctx.setLineDash([18, 10]); ctx.lineDashOffset = 0;
+    ellipse(ctx, cx, cy, 104, 77, null, 'rgba(241,197,142,.45)', 1.8); ctx.restore();
+    ctx.save(); ctx.setLineDash([10, 13]);
+    ellipse(ctx, cx, cy, 74, 54, null, 'rgba(142,221,222,.42)', 1.35); ctx.restore();
+    ellipse(ctx, cx, cy, 31, 23, null, 'rgba(255,216,165,.42)', 1.5);
+    ctx.restore();
   }
   function drawBreakwaters(ctx, s, t, th) {
     if (floodLabel) { labels.push(floodLabel); floodLabel = null; }
@@ -2140,7 +2218,7 @@
       glowQueue.push([x, y, 13, exposed ? '145,255,226' : '142,220,255', .68]);
     }
   }
-  function drawSentinel(ctx, e, s, t) {
+  function drawSentinel(ctx, e, s, t, width, height) {
     const hp = num(e.hp, 0);
     if (hp <= 0) { // toppled bell husk
       contactShadow(ctx, e.x + 3, e.y + 8, 30, 12, .85);
@@ -2155,11 +2233,28 @@
     const exposed = num(e.exposed, 0) > 0 || e.phase === 'exposed';
     const dormant = e.phase === 'dormant';
     const glassWeaver = /glass[-_ ]?weaver/i.test(String(e.id || ''));
-    if (glassWeaver) { drawWeaverWarning(ctx, e, t); drawWeaverCrown(ctx, e, t, exposed); }
+    if (glassWeaver) loadWeaverSprite();
+    const paintedWeaver = glassWeaver ? (weaverLitSprite || weaverSprite) : null;
+    const weaverW = paintedWeaver && (paintedWeaver.naturalWidth || paintedWeaver.width);
+    const weaverH = paintedWeaver && (paintedWeaver.naturalHeight || paintedWeaver.height);
+    const useWeaverSprite = !!(weaverW > 0 && weaverH > 0);
     const bob = dormant ? 0 : Math.sin(t * 3) * 1.5;
+    const eye = lunge ? RED : warn ? '255,180,120' : dormant ? '120,140,150' : '160,230,230';
     contactShadow(ctx, e.x + 4, e.y + 18, 32, 13, 1);
     ctx.save(); ctx.translate(e.x, e.y + bob); ctx.scale(SCALE_SENTINEL, SCALE_SENTINEL);
     if (lunge) circle(ctx, 0, -8, 36, null, '#ff977e', 3);
+    if (useWeaverSprite) {
+      const artH = 64, artW = artH * weaverW / weaverH;
+      // The artwork's feet meet the existing ground anchor; the compact frame leaves room for the crown and threads.
+      ctx.drawImage(paintedWeaver, 0, 0, weaverW, weaverH, -artW / 2, -40, artW, artH);
+      if (exposed) {
+        // Keep the exposed core readable over the sprite's amber chest crystal.
+        circle(ctx, 0, -10, 9, 'rgba(4,25,24,.84)', 'rgba(201,255,238,.92)', 1.3);
+        const core = ctx.createRadialGradient(0, -13, 1, 0, -10, 8);
+        core.addColorStop(0, '#ffffff'); core.addColorStop(.55, '#b2ffdb'); core.addColorStop(1, '#3ad29a');
+        poly(ctx, [[0, -18], [5, -10], [0, -2], [-5, -10]], core, 'rgba(229,255,245,.92)', .8);
+      }
+    } else {
     // hammer fists
     for (const sd of [-1, 1]) {
       ctx.save(); ctx.translate(sd * 26, -4 + (warn ? Math.sin(t * 14) * 2 : 0));
@@ -2197,7 +2292,6 @@
     // stone mask with glowing eye slit
     poly(ctx, [[-10, -30], [10, -30], [12, -22], [8, -14], [-8, -14], [-12, -22]], '#a8a894', '#1a1e1a', 1.6);
     line(ctx, -7, -22, 7, -22, '#10161a', 4.5);
-    const eye = lunge ? RED : warn ? '255,180,120' : dormant ? '120,140,150' : '160,230,230';
     line(ctx, -5, -22, 5, -22, `rgb(${eye})`, 2.2);
     if (exposed) {
       // bell split open: glowing core
@@ -2208,14 +2302,18 @@
     } else {
       poly(ctx, [[0, -9], [7, 1], [0, 10], [-7, 1]], '#c89a58', '#241a0c', 1.6);
     }
+    }
     ctx.restore();
+    if (glassWeaver) { drawWeaverWarning(ctx, e, t); drawWeaverCrown(ctx, e, t, exposed); }
     if (!dormant) glowQueue.push([e.x, e.y + (bob - 22) * SCALE_SENTINEL, 22, eye, .7]);
     if (exposed) glowQueue.push([e.x, e.y + bob, 64, MINT, .6]);
     // health bar
+    const landscapeWeaver = glassWeaver && width <= 1000 && height <= 480;
+    const cardY = landscapeWeaver ? e.y + 42 : e.y - 58;
     const maxHp = num(e.maxHp, hp) || 1;
-    ctx.fillStyle = 'rgba(6,14,18,.85)'; rrect(ctx, e.x - 30, e.y - 58, 60, 7, 3); ctx.fill();
-    ctx.fillStyle = exposed ? '#8ff2ce' : '#eda984'; rrect(ctx, e.x - 29, e.y - 57, 58 * clamp(hp / maxHp, 0, 1), 5, 2.5); ctx.fill();
-    labels.push({ x: e.x, y: e.y - 70, text: exposed ? 'ARMOR OPEN — STRIKE' : lunge ? 'DODGE • UNBLOCKABLE' : glassWeaver && e.phase === 'weave-telegraph' ? 'GLASS THREADS' : warn ? 'RETURN THE SHOT' : sentinelName(e), color: exposed ? '#8ff2ce' : lunge ? '#ffb79c' : glassWeaver && e.phase === 'weave-telegraph' ? '#c8f0ff' : '#e5d7bd', size: 10 });
+    ctx.fillStyle = 'rgba(6,14,18,.85)'; rrect(ctx, e.x - 30, cardY, 60, 7, 3); ctx.fill();
+    ctx.fillStyle = exposed ? '#8ff2ce' : '#eda984'; rrect(ctx, e.x - 29, cardY + 1, 58 * clamp(hp / maxHp, 0, 1), 5, 2.5); ctx.fill();
+    labels.push({ x: e.x, y: landscapeWeaver ? e.y + 59 : e.y - 70, text: exposed ? 'ARMOR OPEN — STRIKE' : lunge ? 'DODGE • UNBLOCKABLE' : glassWeaver && e.phase === 'weave-telegraph' ? 'GLASS THREADS' : warn ? 'RETURN THE SHOT' : sentinelName(e), color: exposed ? '#8ff2ce' : lunge ? '#ffb79c' : glassWeaver && e.phase === 'weave-telegraph' ? '#c8f0ff' : '#e5d7bd', size: 10 });
   }
   function diverState(e) {
     const ph = e.phase || '';
@@ -3553,7 +3651,7 @@
     if (!th || regionOf(s) !== 'glass-kiln') return;
     const hot = !!th.hot, phase = clamp(num(th.phase, 0), 0, 1), flipIn = Math.max(0, num(th.flipIn, 0));
     const compact = compactCanvasHud(width, height), compactLandscape = width <= 1000 && height <= 480;
-    const W = 166, H = 46, x = compactLandscape ? 12 : Math.max(12, width - W - 12), y = compact ? (tideOn(s) ? 145 : 100) : 12, rgb = hot ? '255,128,66' : '115,203,255';
+    const W = 166, H = 46, x = compactLandscape ? 12 : Math.max(12, width - W - 12), y = compact ? (compactLandscape ? 114 : (tideOn(s) ? 145 : 100)) : 12, rgb = hot ? '255,128,66' : '115,203,255';
     ctx.save();
     rrect(ctx, x, y, W, H, 8); ctx.fillStyle = 'rgba(8,12,18,.86)'; ctx.fill();
     ctx.strokeStyle = hot ? 'rgba(255,145,84,.58)' : 'rgba(134,211,255,.55)'; ctx.lineWidth = 1.4; ctx.stroke();
@@ -3721,6 +3819,7 @@
       }
     }
     drawWater(ctx, s, t, th);
+    drawWeaverLoomFloor(ctx, s);
     drawGlass(ctx, s, t);
     drawBridges(ctx, s, t, th);
     drawExits(ctx, s, t, W, H);
@@ -3752,7 +3851,7 @@
     for (const e of arr(s.enemies)) {
       if (!Number.isFinite(e.x)) continue;
       const ty = enemyType(e);
-      items.push([e.y, ty === 'turret' ? () => drawTurret(ctx, e, s, t) : ty === 'diver' ? () => drawDiver(ctx, e, s, t) : ty === 'mortar' ? () => drawMortar(ctx, e, s, t) : ty === 'hart' ? () => drawHart(ctx, e, s, t) : () => drawSentinel(ctx, e, s, t)]);
+      items.push([e.y, ty === 'turret' ? () => drawTurret(ctx, e, s, t) : ty === 'diver' ? () => drawDiver(ctx, e, s, t) : ty === 'mortar' ? () => drawMortar(ctx, e, s, t) : ty === 'hart' ? () => drawHart(ctx, e, s, t) : () => drawSentinel(ctx, e, s, t, width, height)]);
     }
     for (const gr of arr(s.growth)) if (finiteRect(gr)) items.push([gr.alive === false ? gr.y : gr.y + gr.h - 10, () => drawGrowth(ctx, gr, s, t)]);
     for (const d of arr(s.dams)) if (finiteRect(d)) items.push([d.broken || num(d.hp, 2) <= 0 ? d.y : d.y + d.h, () => drawDam(ctx, d, s, t)]);

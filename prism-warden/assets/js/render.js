@@ -78,6 +78,13 @@
     if (fill) { ctx.fillStyle = fill; ctx.fill(); }
     if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1; ctx.stroke(); }
   }
+  // Three small solid ellipses give actors a grounded contact core without per-frame blur.
+  function contactShadow(ctx, x, y, rx, ry, strength) {
+    const a = clamp(strength, 0, 1);
+    ellipse(ctx, x + 3, y + 3, rx * 1.12, ry * 1.08, `rgba(2,7,10,${.24 * a})`);
+    ellipse(ctx, x, y, rx * .76, ry * .68, `rgba(0,3,6,${.48 * a})`);
+    ellipse(ctx, x - 1, y - 1, rx * .42, ry * .4, `rgba(0,1,3,${.68 * a})`);
+  }
   function rrect(ctx, x, y, w, h, r) {
     r = Math.min(r, w / 2, h / 2); ctx.beginPath();
     ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
@@ -639,9 +646,19 @@
     }
     // Inner edge shading: the parts of wide walls far from the floor are in shade.
     g.restore();
+    // A narrow static contact band anchors each exposed wall skirt to the floor.
+    for (const f of faces) {
+      const groundY = f.y + FH - 1, contact = g.createLinearGradient(0, groundY, 0, groundY + 13);
+      contact.addColorStop(0, 'rgba(0,3,7,.3)'); contact.addColorStop(.35, 'rgba(0,3,7,.16)'); contact.addColorStop(1, 'rgba(0,3,7,0)');
+      g.fillStyle = contact; g.fillRect(f.x, groundY, f.w, 13);
+    }
     // Rim lights and outlines, only on edges exposed to floor.
     for (const w of walls) {
-      for (const [a, b] of edgeSegs(walls, w, 'top')) { line(g, w.x + a, w.y + .8, w.x + b, w.y + .8, hsl(th.top[0], th.top[1], th.top[2] + 20, .75), 1.6); line(g, w.x + a, w.y - .4, w.x + b, w.y - .4, 'rgba(0,0,0,.55)', 1); }
+      for (const [a, b] of edgeSegs(walls, w, 'top')) {
+        line(g, w.x + a, w.y + .8, w.x + b, w.y + .8, hsl(th.top[0], th.top[1], th.top[2] + 20, .75), 1.6);
+        line(g, w.x + a + 2, w.y + 2.5, w.x + b - 2, w.y + 2.5, hsl(th.top[0], th.top[1], th.top[2] + 11, .3), 1.1);
+        line(g, w.x + a, w.y - .4, w.x + b, w.y - .4, 'rgba(0,0,0,.55)', 1);
+      }
       for (const [a, b] of edgeSegs(walls, w, 'bottom')) line(g, w.x + a, w.y + w.h - .8, w.x + b, w.y + w.h - .8, hsl(th.top[0], th.top[1], th.top[2] + 26, .9), 1.8);
       for (const [a, b] of edgeSegs(walls, w, 'left')) { line(g, w.x + .8, w.y + a, w.x + .8, w.y + b, hsl(th.top[0], th.top[1], th.top[2] + 14, .6), 1.3); line(g, w.x - .5, w.y + a, w.x - .5, w.y + b + FH, 'rgba(0,0,0,.5)', 1); }
       for (const [a, b] of edgeSegs(walls, w, 'right')) { line(g, w.x + w.w - .8, w.y + a, w.x + w.w - .8, w.y + b, 'rgba(0,0,0,.35)', 1.6); line(g, w.x + w.w + .5, w.y + a, w.x + w.w + .5, w.y + b + FH, 'rgba(0,0,0,.5)', 1); }
@@ -1895,7 +1912,7 @@
     }
     const al = Math.hypot(ax, ay) || 1; ax /= al; ay /= al;
     const a = Math.atan2(ay, ax) + (jammed ? Math.sin(t * 30) * .08 + .35 : 0);
-    ellipse(ctx, e.x + 3, e.y + 10, 26, 13, 'rgba(0,0,0,.5)');
+    contactShadow(ctx, e.x + 3, e.y + 10, 26, 13, .9);
     const oct = (R, dy) => { const p = []; for (let i = 0; i < 8; i++) { const q = i * TAU / 8 + TAU / 16; p.push([e.x + Math.cos(q) * R, e.y + dy + Math.sin(q) * R * .85]); } return p; };
     poly(ctx, oct(23, 7), '#2a2622', '#0a0806', 1.5);
     poly(ctx, oct(23, 0), silenced ? '#3e403c' : '#5a5448', '#14100c', 1.5);
@@ -2020,7 +2037,7 @@
   function drawSentinel(ctx, e, s, t) {
     const hp = num(e.hp, 0);
     if (hp <= 0) { // toppled bell husk
-      ellipse(ctx, e.x + 3, e.y + 8, 30, 12, 'rgba(0,0,0,.45)');
+      contactShadow(ctx, e.x + 3, e.y + 8, 30, 12, .85);
       ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(1.2);
       poly(ctx, [[-10, -18], [10, -18], [18, 10], [-18, 10]], '#4c5a52', '#1a2220', 2);
       ellipse(ctx, 0, 10, 18, 6, '#26302c'); ctx.restore();
@@ -2034,7 +2051,7 @@
     const glassWeaver = /glass[-_ ]?weaver/i.test(String(e.id || ''));
     if (glassWeaver) { drawWeaverWarning(ctx, e, t); drawWeaverCrown(ctx, e, t, exposed); }
     const bob = dormant ? 0 : Math.sin(t * 3) * 1.5;
-    ellipse(ctx, e.x + 4, e.y + 18, 32, 13, 'rgba(0,0,0,.55)');
+    contactShadow(ctx, e.x + 4, e.y + 18, 32, 13, 1);
     ctx.save(); ctx.translate(e.x, e.y + bob); ctx.scale(SCALE_SENTINEL, SCALE_SENTINEL);
     if (lunge) circle(ctx, 0, -8, 36, null, '#ff977e', 3);
     // hammer fists
@@ -2113,7 +2130,7 @@
   function drawDiver(ctx, e, s, t) {
     const hp = num(e.hp, 0), st = diverState(e);
     if (hp <= 0) {
-      ellipse(ctx, e.x + 4, e.y + 12, 40, 16, 'rgba(0,0,0,.45)');
+      contactShadow(ctx, e.x + 4, e.y + 12, 40, 16, .85);
       ellipse(ctx, e.x, e.y, 30, 24, '#5a4a30', '#1a1206', 2); circle(ctx, e.x - 8, e.y - 4, 7, '#1a2226', '#c8a060', 2);
       return;
     }
@@ -2121,7 +2138,7 @@
     const rise = st.surfacing ? clamp(1 - num(e.timer, .4) / .8, 0, 1) : st.diving ? clamp(num(e.timer, .3) / .6, 0, 1) : 1;
     const bob = Math.sin(t * 2.2) * 2;
     ctx.save(); ctx.globalAlpha = .35 + .65 * rise;
-    ellipse(ctx, e.x + 5, e.y + 22, 46, 16, 'rgba(0,0,0,.55)');
+    contactShadow(ctx, e.x + 5, e.y + 22, 46, 16, .9 * rise);
     ctx.translate(e.x, e.y + bob + (1 - rise) * 16);
     // trailing anemone tentacles
     for (let i = 0; i < 6; i++) {
@@ -2188,7 +2205,7 @@
     const moving = m.speed > 10;
     const step = moving ? Math.sin(m.phase) * 2 : 0;
     ctx.save(); ctx.translate(o.x, o.y); ctx.scale(SCALE_ILEX, SCALE_ILEX);
-    ellipse(ctx, 1, 11, 11, 4.5, 'rgba(0,0,0,.45)');
+    contactShadow(ctx, 1, 11, 11, 4.5, .85);
     circle(ctx, -4, 9 + step, 3, '#2a1c14'); circle(ctx, 4, 9 - step, 3, '#2a1c14');
     // radio pack with antenna
     rrect(ctx, -8, -12, 16, 12, 2.5); ctx.fillStyle = '#5a4630'; ctx.fill(); ctx.strokeStyle = INK; ctx.lineWidth = 1.4; ctx.stroke();
@@ -2305,7 +2322,7 @@
     ctx.save();
     if (num(p.invulnerable, 0) > 0 && num(p.dashTime, 0) <= 0 && Math.floor(t * 14) % 2) ctx.globalAlpha = .55;
     ctx.translate(p.x, p.y); ctx.scale(SCALE_HERO, SCALE_HERO);
-    ellipse(ctx, 1, 12, 13, 5.5, 'rgba(0,0,0,.5)');
+    contactShadow(ctx, 1, 12, 13, 5.5, .9);
     const slashing = num(p.slashTime, 0) > 0;
     const px = -ay, py = ax; // sword-hand side
     const drawShield = () => {
@@ -2720,7 +2737,7 @@
   function drawMortar(ctx, e, s, t) {
     const [fx, fy] = mortarFacing(e), fa = Math.atan2(fy, fx);
     const rng = rngFor(hashStr(String(e.id || 'm')));
-    ellipse(ctx, e.x + 3, e.y + 12, 28, 12, 'rgba(0,0,0,.5)');
+    contactShadow(ctx, e.x + 3, e.y + 12, 28, 12, .9);
     for (let i = 0; i < 6; i++) { // root foot
       const a = i * TAU / 6 + rng(), L = 22 + rng() * 10;
       ctx.beginPath(); ctx.moveTo(e.x, e.y + 4); ctx.quadraticCurveTo(e.x + Math.cos(a) * L * .6, e.y + 4 + Math.sin(a) * L * .4 - 4, e.x + Math.cos(a) * L, e.y + 6 + Math.sin(a) * L * .55);
@@ -2931,7 +2948,7 @@
     const eyeRGB = st.dead || st.dormant ? null : st.exposed ? '150,255,215' : st.daze ? '255,230,150' : (st.aim || st.charge) ? '255,60,40' : '255,196,110';
     const ram = st.aim || st.charge ? 1 : 0, low = st.dormant ? 1 : 0;
     const bob = moving ? Math.abs(Math.sin(gait)) * 2 : Math.sin(t * 1.6) * .8;
-    ellipse(ctx, e.x, e.y + 12 * k, 56 * k, 16 * k, 'rgba(0,0,0,.45)');
+    contactShadow(ctx, e.x, e.y + 12 * k, 56 * k, 16 * k, .85);
     const fore = st.dead || st.dormant ? 1 : .62 + .38 * Math.abs(dx); // foreshorten when heading up/down the screen
     ctx.save(); ctx.translate(e.x, e.y + 10 * k); ctx.scale(flip * k * fore, k);
     if (st.charge) ctx.translate(Math.sin(t * 40) * 1.2, 0);
@@ -3386,7 +3403,8 @@
     const th = s.thermal;
     if (!th || regionOf(s) !== 'glass-kiln') return;
     const hot = !!th.hot, phase = clamp(num(th.phase, 0), 0, 1), flipIn = Math.max(0, num(th.flipIn, 0));
-    const compact = compactCanvasHud(width, height), W = 166, H = 46, x = Math.max(12, width - W - 12), y = compact ? (tideOn(s) ? 145 : 100) : 12, rgb = hot ? '255,128,66' : '115,203,255';
+    const compact = compactCanvasHud(width, height), compactLandscape = width <= 1000 && height <= 480;
+    const W = 166, H = 46, x = compactLandscape ? 12 : Math.max(12, width - W - 12), y = compact ? (tideOn(s) ? 145 : 100) : 12, rgb = hot ? '255,128,66' : '115,203,255';
     ctx.save();
     rrect(ctx, x, y, W, H, 8); ctx.fillStyle = 'rgba(8,12,18,.86)'; ctx.fill();
     ctx.strokeStyle = hot ? 'rgba(255,145,84,.58)' : 'rgba(134,211,255,.55)'; ctx.lineWidth = 1.4; ctx.stroke();

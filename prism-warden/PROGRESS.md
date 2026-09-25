@@ -496,3 +496,28 @@ Campaign remains 15/25 challenges across regions 1-3; regions 4-5 and the ending
 remain unbuilt. No AAA acceptance, completion marker, release, catalog edit or
 `main` promotion. No portion of this work claims human playtest, physical-device
 comfort or GPU performance evidence.
+
+## September 25 header hint and grounding pass
+
+The full suite passes again (19 suites / 429 tests). The six-size Chromium smoke
+also passes on the header hint, upper-left compact-landscape kiln gauge and new
+wall/actor shadows. Captures are under
+`node_modules/.cache/prism-warden/sep25-mobile-render-pass/`; all six required
+sizes and the C5 threads were opened and inspected, with a 1920x1080 preview of
+the 4K capture. The landscape hint no longer covers the thread lanes or Pause/
+Sound buttons, and the cycle panel clears the Weaver. Console, external requests,
+horizontal overflow, input, retry, results and leaderboard checks pass.
+
+The new renderer comparison remains AAA FAIL / OURS LOSES against the official
+*Link's Awakening* image. Wall contact bands and layered actor shadows ground
+objects locally, but do not yet create enough directional depth or lift the dark
+polygon-cell floor. The fresh mobile comparison also remains AAA FAIL / OURS LOSES
+against *Dead Cells*: landscape is improved, while portrait C5 guidance still
+crosses lower thread paths; some secondary labels remain small at 320px. Reviews
+are presentation-only and do not judge campaign completeness or human gameplay.
+
+Next: place portrait guidance in the HUD mission slot while it is active, and
+continue with stronger directional lighting and cast shadows. The campaign is
+still 15/25 challenges across regions 1-3; regions 4-5 and the ending remain
+unbuilt. No AAA acceptance, completion marker, release, catalog edit or `main`
+promotion.

@@ -31,5 +31,6 @@
   header .back,header button{pointer-events:auto}
   #hud{position:absolute;z-index:5;top:46px;left:0;right:0;min-height:46px;padding:3px 12px;background:rgba(14,36,46,.86);border-bottom:1px solid rgba(83,112,113,.72);box-shadow:0 4px 14px rgba(0,0,0,.22);pointer-events:none}
   #location{top:100px;left:9px}
-  body.touch #message{top:auto;bottom:calc(94px + env(safe-area-inset-bottom));max-width:min(56%,460px)}
+  body.has-message header .brand{visibility:hidden}
+  body.touch #message{top:3px;right:180px;bottom:auto;left:84px;width:auto;max-width:none;transform:none;z-index:7;font-size:9px;line-height:1.05;padding:3px 6px}
 }

@@ -548,3 +548,29 @@ are unbuilt. Next: retain the portrait objective while moving its hint to a
 dedicated compact row, then continue the renderer's raised architecture and
 actor-volume work. No AAA acceptance, completion marker, release, catalog edit or
 `main` promotion.
+
+## September 25 dedicated portrait hint strip
+
+The mobile hint no longer replaces the objective. The 320x568 and 390x844 HUDs
+retain the mission text, put guidance in a separate narrow band below location
+and thermal status, and keep all C5 Weaver thread lanes visible. The full suite
+passes 19 suites / 429 tests. The six-size Chromium sweep passes at 320x568,
+390x844, 844x390, 768x1024, 1440x900 and 3840x2160 with clean console/external
+request logs, no horizontal overflow, and passing input, pause/retry, result and
+mock leaderboard checks. I opened the new phone, landscape, tablet, desktop and
+downsampled 4K captures in
+`node_modules/.cache/prism-warden/sep25-portrait-hint-final/`.
+
+The fresh mobile side-by-side review against the official *Dead Cells* mobile
+listing returns AAA PASS / WOWED for HUD placement and readability: objective
+stays visible, portrait guidance is in its own strip, and the landscape header
+remains clear. This is a scoped mobile UI verdict, not an overall game-quality
+or gameplay pass. The renderer review from this run still returns AAA FAIL /
+OURS LOSES against Nintendo's official *Link's Awakening* image: new lighting
+and shadows improve grounding, but the floor, walls and actors still need
+stronger depth. The comparison artifacts sit beside their captures.
+
+Campaign remains 15/25 challenges across regions 1–3; regions 4–5 and the ending
+are unbuilt. Next: carry stronger height and volume through raised architecture
+and actors, then request a fresh renderer comparison. No overall AAA acceptance,
+completion marker, release, catalog edit or `main` promotion.

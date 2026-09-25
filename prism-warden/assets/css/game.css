@@ -8,7 +8,7 @@
   header{position:absolute;inset:0 0 auto;z-index:5;height:50px;min-height:50px;padding:3px 10px;background:rgba(13,32,43,.94);pointer-events:none}
   header .back,header button{pointer-events:auto}
   .brand span{display:none}
-  #hud{position:absolute;z-index:5;top:50px;left:0;right:0;grid-template-columns:76px minmax(0,1fr) 54px;min-height:50px;gap:4px;padding:4px 8px;background:rgba(14,36,46,.86);border-bottom:1px solid rgba(83,112,113,.72);box-shadow:0 4px 14px rgba(0,0,0,.22);pointer-events:none}
+  #hud{position:absolute;z-index:5;top:50px;left:0;right:0;grid-template-columns:60px minmax(0,1fr) 42px;min-height:50px;gap:4px;padding:4px 8px;background:rgba(14,36,46,.86);border-bottom:1px solid rgba(83,112,113,.72);box-shadow:0 4px 14px rgba(0,0,0,.22);pointer-events:none}
   .vital{display:flex;align-items:center;gap:4px;max-width:none}
   .vital .eyebrow,.points .eyebrow,.points small{display:none}
   .vital strong{font-size:11px}
@@ -18,8 +18,7 @@
   .mission .rname{display:none}
   .mission strong{font-size:clamp(11px,3.25vw,12px);line-height:1.12;max-width:100%}
   .points strong{font-size:13px;letter-spacing:.025em}
-  body.touch.has-message #hud .mission{visibility:hidden}
-  body.touch #message{top:52px;right:58px;bottom:auto;left:84px;width:auto;max-width:none;transform:none;z-index:7;font-size:9px;line-height:1.05;padding:3px 6px}
+  body.touch #message{top:152px;right:8px;bottom:auto;left:8px;width:auto;max-width:none;transform:none;z-index:7;font-size:9px;line-height:1.05;padding:3px 6px}
   #location{top:102px;left:8px;font-size:8px}
   #touchControls{position:absolute;z-index:6;left:0;right:0;bottom:0;gap:8px;padding:7px 9px max(7px,env(safe-area-inset-bottom));background:linear-gradient(0deg,rgba(14,35,45,.98) 70%,rgba(14,35,45,.78));border-top:1px solid rgba(52,81,90,.72)}
   .pad{width:72px;height:72px}

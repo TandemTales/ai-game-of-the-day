@@ -564,21 +564,14 @@
     const bloom = g.createRadialGradient(682, 347, 26, 690, 376, 294);
     bloom.addColorStop(0, 'rgba(207,156,102,.19)'); bloom.addColorStop(.48, 'rgba(130,112,91,.075)'); bloom.addColorStop(1, 'rgba(5,11,16,.025)');
     g.fillStyle = bloom; g.fillRect(416, 224, 542, 332);
-    // Broad, feathered hearth bounce reaches the darker east basin with a
-    // graded falloff; paired smaller pools keep it from reading as a wash.
-    const eastBounce = g.createRadialGradient(802, 360, 8, 852, 388, 226);
-    eastBounce.addColorStop(0, 'rgba(255,185,119,.19)');
-    eastBounce.addColorStop(.38, 'rgba(243,145,88,.14)');
-    eastBounce.addColorStop(.72, 'rgba(207,112,70,.065)');
-    eastBounce.addColorStop(1, 'rgba(207,112,70,0)');
-    ellipse(g, 852, 388, 222, 151, eastBounce);
-    for (const [x, y, rx, ry, strength] of [[832, 282, 142, 62, .085], [826, 493, 160, 76, .095]]) {
-      const pool = g.createRadialGradient(x - rx * .22, y - ry * .28, 1, x, y, rx);
-      pool.addColorStop(0, `rgba(255,182,113,${strength})`);
-      pool.addColorStop(.55, `rgba(223,128,76,${strength * .44})`);
-      pool.addColorStop(1, 'rgba(223,128,76,0)');
-      ellipse(g, x, y, rx, ry, pool);
-    }
+    // Light pools from the two crucibles meet in the hearth; this source-led
+    // falloff warms the east basin while leaving its outer stones in shadow.
+    const hearthReturn = g.createRadialGradient(774, 370, 8, 800, 384, 205);
+    hearthReturn.addColorStop(0, 'rgba(255,195,129,.21)');
+    hearthReturn.addColorStop(.38, 'rgba(248,159,94,.16)');
+    hearthReturn.addColorStop(.72, 'rgba(210,119,73,.085)');
+    hearthReturn.addColorStop(1, 'rgba(207,112,70,0)');
+    ellipse(g, 800, 384, 207, 138, hearthReturn);
     // Local heat pools tint the feed paths and the floor at their hearthward ends.
     for (const [x, y, rx, ry, strength] of [[558, 270, 92, 64, .32], [558, 494, 90, 63, .28], [684, 350, 98, 73, .27]]) {
       const spill = g.createRadialGradient(x - rx * .2, y - ry * .25, 2, x, y, rx);
@@ -590,8 +583,8 @@
     // Heat rides the existing paired feed channels toward the hearth, fading
     // in overlapping pools rather than washing the whole walking surface.
     for (const [x, y, rx, ry, strength] of [
-      [606, 282, 66, 38, .22], [660, 308, 73, 46, .18], [718, 339, 88, 56, .16],
-      [606, 482, 66, 38, .2], [660, 456, 73, 46, .17], [718, 428, 88, 56, .15]
+      [590, 279, 61, 36, .24], [638, 299, 67, 40, .21], [681, 327, 70, 45, .18],
+      [590, 485, 61, 36, .22], [638, 465, 67, 40, .2], [681, 438, 70, 45, .17]
     ]) {
       const bounce = g.createRadialGradient(x - rx * .24, y - ry * .3, 1, x, y, rx);
       bounce.addColorStop(0, `rgba(255,192,129,${strength})`);
@@ -603,12 +596,40 @@
     g.lineCap = 'round';
     line(g, 535, 271, 614, 284, 'rgba(4,10,13,.3)', 23);
     line(g, 614, 284, 666, 317, 'rgba(4,10,13,.3)', 23);
+    line(g, 666, 317, 696, 344, 'rgba(4,10,13,.3)', 23);
     line(g, 535, 493, 614, 479, 'rgba(4,10,13,.3)', 23);
     line(g, 614, 479, 666, 447, 'rgba(4,10,13,.3)', 23);
+    line(g, 666, 447, 696, 424, 'rgba(4,10,13,.3)', 23);
     line(g, 535, 268, 614, 281, 'rgba(214,168,116,.22)', 2.1);
     line(g, 614, 281, 666, 314, 'rgba(214,168,116,.22)', 2.1);
+    line(g, 666, 314, 696, 341, 'rgba(214,168,116,.22)', 2.1);
     line(g, 535, 490, 614, 476, 'rgba(214,168,116,.18)', 2.1);
     line(g, 614, 476, 666, 444, 'rgba(214,168,116,.18)', 2.1);
+    line(g, 666, 444, 696, 421, 'rgba(214,168,116,.18)', 2.1);
+    // Narrow emissive cores sit inside the recessed channels, ramping brighter
+    // as each feed reaches the hearth; all marks remain floor-level and cached.
+    for (const points of [
+      [[535, 268], [614, 281], [666, 314], [696, 341]],
+      [[535, 490], [614, 476], [666, 444], [696, 421]]
+    ]) {
+      const first = points[0], last = points[points.length - 1];
+      const channel = g.createLinearGradient(first[0], first[1], last[0], last[1]);
+      channel.addColorStop(0, 'rgba(223,139,83,.38)');
+      channel.addColorStop(.4, 'rgba(255,159,89,.56)');
+      channel.addColorStop(.82, 'rgba(255,201,133,.72)');
+      channel.addColorStop(1, 'rgba(255,231,177,.6)');
+      g.beginPath(); points.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]));
+      g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = channel; g.lineWidth = 6; g.stroke();
+      const core = g.createLinearGradient(first[0], first[1], last[0], last[1]);
+      core.addColorStop(0, 'rgba(255,206,148,.1)'); core.addColorStop(.62, 'rgba(255,214,157,.42)'); core.addColorStop(1, 'rgba(255,239,203,.72)');
+      g.strokeStyle = core; g.lineWidth = 1.8; g.stroke();
+    }
+    // Tight contact pools anchor the lower-right faces of the two existing crucibles.
+    for (const [x, y] of [[533, 354], [533, 578]]) {
+      const contact = g.createRadialGradient(x - 7, y - 3, 1, x + 3, y + 4, 58);
+      contact.addColorStop(0, 'rgba(0,3,8,.32)'); contact.addColorStop(.46, 'rgba(0,3,8,.15)'); contact.addColorStop(1, 'rgba(0,3,8,0)');
+      ellipse(g, x + 4, y + 4, 61, 17, contact);
+    }
     // Broken paving joints and mineral bands vary the apron without a tile grid.
     for (const [x1, y1, x2, y2] of [[432, 246, 582, 246], [590, 232, 620, 244], [432, 535, 580, 542], [592, 548, 625, 534], [942, 276, 942, 334], [942, 454, 942, 502]]) {
       line(g, x1, y1, x2, y2, 'rgba(2,8,12,.42)', 2.2);
@@ -683,8 +704,8 @@
         for (let i = 0; i < top.length; i++) {
           const p = top[i], q = top[(i + 1) % top.length], ex = q[0] - p[0], ey = q[1] - p[1], el = Math.hypot(ex, ey) || 1;
           const outX = orient * ey / el, outY = -orient * ex / el, keyLight = outX * -.55 + outY * -.83;
-          if (keyLight > .24) line(g, p[0], p[1], q[0], q[1], 'rgba(255,232,194,.38)', 1.1);
-          else if (keyLight < -.2) line(g, p[0] + 1.2, p[1] + 1.8, q[0] + 1.2, q[1] + 1.8, 'rgba(0,3,8,.62)', 1.4);
+          if (keyLight > .24) line(g, p[0], p[1], q[0], q[1], 'rgba(255,232,194,.46)', 1.25);
+          else if (keyLight < -.2) line(g, p[0] + 1.2, p[1] + 1.8, q[0] + 1.2, q[1] + 1.8, 'rgba(0,3,8,.72)', 1.5);
         }
         if ((seed & 3) === 0) line(g, cx - tx * span * .13, cy - ty * span * .13, cx + tx * span * .08, cy + ty * span * .08, 'rgba(226,180,128,.3)', 1.2);
         along = u1 + 3 + ((seed >>> 9) % 5);
@@ -1688,14 +1709,14 @@
       g.strokeStyle = 'rgba(4,9,12,.8)'; g.lineWidth = 2; g.stroke();
       g.save(); rrect(g, x + 2, y + 2, w.w - 4, w.h - 4, 4); g.clip();
       const capBounce = g.createRadialGradient(x + w.w - 10, y + w.h - 9, 1, x + w.w - 12, y + w.h - 12, 42);
-      capBounce.addColorStop(0, 'rgba(255,190,126,.31)'); capBounce.addColorStop(.5, 'rgba(224,125,73,.14)'); capBounce.addColorStop(1, 'rgba(224,125,73,0)');
+      capBounce.addColorStop(0, 'rgba(255,190,126,.36)'); capBounce.addColorStop(.5, 'rgba(224,125,73,.17)'); capBounce.addColorStop(1, 'rgba(224,125,73,0)');
       g.fillStyle = capBounce; g.fillRect(x + 40, y + 10, 38, 31); g.restore();
       rrect(g, x + 8, y + 7, w.w - 16, w.h - 14, 3);
       const inset = g.createLinearGradient(x + 8, y + 7, x + w.w - 8, y + w.h - 7);
       inset.addColorStop(0, 'rgba(11,20,23,.82)'); inset.addColorStop(.5, 'rgba(28,37,39,.62)'); inset.addColorStop(1, 'rgba(4,10,14,.88)');
       g.fillStyle = inset; g.fill(); g.strokeStyle = 'rgba(190,151,101,.46)'; g.lineWidth = 1; g.stroke();
-      line(g, x + 11, y + 9, x + w.w - 13, y + 9, 'rgba(255,228,184,.46)', 1.4);
-      line(g, x + 10, y + 10, x + 10, y + w.h - 11, 'rgba(255,231,190,.24)', 1.2);
+      line(g, x + 11, y + 9, x + w.w - 13, y + 9, 'rgba(255,228,184,.56)', 1.5);
+      line(g, x + 10, y + 10, x + 10, y + w.h - 11, 'rgba(255,231,190,.32)', 1.35);
       line(g, x + 13, y + w.h - 9, x + w.w - 10, y + w.h - 9, 'rgba(0,2,5,.56)', 1.5);
       for (const px of [x + 13, x + w.w - 13]) {
         circle(g, px, y + 13, 1.8, '#c99d61', 'rgba(18,15,10,.8)', .8);
@@ -1711,7 +1732,7 @@
       g.fillStyle = reflectedFeed; g.fillRect(x + 24, faceY + 2, w.w - 27, faceH - 4); g.restore();
       rrect(g, x + 9, faceY + 8, w.w - 18, 37, 3);
       g.fillStyle = 'rgba(5,12,16,.3)'; g.fill(); g.strokeStyle = 'rgba(185,150,102,.32)'; g.lineWidth = 1; g.stroke();
-      line(g, x + 10, faceY + 9, x + w.w - 10, faceY + 9, 'rgba(255,224,177,.34)', 1.2);
+      line(g, x + 10, faceY + 9, x + w.w - 10, faceY + 9, 'rgba(255,224,177,.42)', 1.35);
       line(g, x + 8, faceY + 19, x + w.w - 8, faceY + 19, 'rgba(2,5,8,.46)', 1);
       line(g, x + 8, faceY + 39, x + w.w - 8, faceY + 39, 'rgba(2,5,8,.38)', 1);
       line(g, x + 4, faceY + faceH - 2, x + w.w - 4, faceY + faceH - 2, 'rgba(0,2,5,.62)', 2);

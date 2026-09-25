@@ -847,3 +847,34 @@ and AAA acceptance remain incomplete. This is a dev checkpoint only: no
 `.aaa-complete`, catalog edit, release or `main` promotion. Next: connect the
 warm bounce more clearly to feed stones, add environmental/contact depth, and
 continue campaign content.
+
+## September25 feed-driven kiln light and contact pass
+
+The generic east-side glow has been replaced with localized return light from
+the hearth and paired warm channels running from the existing crucibles to the
+hearth rim. Contact pools and stronger key/shadow edges ground the two crucibles
+and existing perimeter stones. No new geometry, collision or simulation was
+added.
+
+Full Jest passes 19 suites / 429 tests. The six-size Chromium smoke passes at
+320x568, 390x844, 844x390, 768x1024, 1440x900 and 3840x2160; console and external
+requests are clean, no horizontal overflow occurs, all four local art assets
+return HTTP 200, and touch checks pass at the four smaller sizes. Lead opened all
+six fresh Weaver-thread captures, including a 1920x1080 review copy of the 4K
+image. `node --check` and `git diff --check` pass.
+
+Independent mobile review: scoped PASS at all four touch-oriented sizes; stronger
+channel light leaves the HUD, thermal card, objective, room/beacon cues, Weaver
+health, threads and controls legible. Fresh harsh renderer review remains AAA
+FAIL / OURS LOSES. The channels now visibly tie the light source to the hearth,
+and the contact shadows ground the props; however, bright cores still read like
+overlaid lines and do not spread enough onto the adjacent stone. Large dark floor
+patches and sparse environmental staging remain below Nintendo's Link's Awakening
+reference. The reviewer also notes the 320 HUD crowds play space and 844x390
+staging feels vertically compressed. Six-pair comparison and captures are in
+ignored `node_modules/.cache/prism-warden/smoke/`.
+
+Campaign remains 15/25 across regions 1-3. Regions 4-5, the ending and AAA
+acceptance remain incomplete. This is a dev checkpoint only: no `.aaa-complete`,
+catalog edit, release or `main` promotion. Next: spread gradual light from the
+channel grooves across adjacent stone and add more environmental depth.

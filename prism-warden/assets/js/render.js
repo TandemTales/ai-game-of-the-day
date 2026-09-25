@@ -580,17 +580,28 @@
       spill.addColorStop(1, 'rgba(218,104,63,0)');
       ellipse(g, x, y, rx, ry, spill);
     }
-    // Heat rides the existing paired feed channels toward the hearth, fading
-    // in overlapping pools rather than washing the whole walking surface.
-    for (const [x, y, rx, ry, strength] of [
-      [590, 279, 61, 36, .24], [638, 299, 67, 40, .21], [681, 327, 70, 45, .18],
-      [590, 485, 61, 36, .22], [638, 465, 67, 40, .2], [681, 438, 70, 45, .17]
+    // Asymmetric raking spill reaches both shoulders of the existing grooves;
+    // the long soft fields taper before the unlit arena edge.
+    for (const [x, y, rx, ry, strength, angle] of [
+      [604, 286, 104, 60, .14, .36], [672, 326, 91, 65, .12, .42],
+      [604, 476, 104, 60, .13, -.36], [672, 436, 91, 65, .115, -.42]
     ]) {
-      const bounce = g.createRadialGradient(x - rx * .24, y - ry * .3, 1, x, y, rx);
-      bounce.addColorStop(0, `rgba(255,192,129,${strength})`);
-      bounce.addColorStop(.42, `rgba(239,140,84,${strength * .54})`);
+      const bounce = g.createRadialGradient(x - 18, y - 19, 1, x, y, rx);
+      bounce.addColorStop(0, `rgba(255,197,133,${strength})`);
+      bounce.addColorStop(.46, `rgba(239,145,88,${strength * .58})`);
       bounce.addColorStop(1, 'rgba(218,104,63,0)');
-      ellipse(g, x, y, rx, ry, bounce);
+      ellipse(g, x, y, rx, ry, bounce, null, 0, angle);
+    }
+    // Small, fixed mineral blooms break the smooth pools into lit basalt faces.
+    for (const [x, y, rx, ry, angle, strength] of [
+      [570, 253, 31, 14, .1, .09], [609, 315, 36, 18, .22, .1], [651, 291, 28, 13, .16, .075], [681, 349, 32, 17, .18, .09],
+      [570, 501, 29, 13, -.1, .085], [612, 453, 36, 17, -.2, .095], [651, 483, 28, 14, -.15, .075], [679, 420, 32, 17, -.16, .085]
+    ]) {
+      const mote = g.createRadialGradient(x - rx * .28, y - ry * .3, 1, x, y, rx);
+      mote.addColorStop(0, `rgba(244,182,117,${strength})`);
+      mote.addColorStop(.5, `rgba(201,128,77,${strength * .48})`);
+      mote.addColorStop(1, 'rgba(201,128,77,0)');
+      ellipse(g, x, y, rx, ry, mote, null, 0, angle);
     }
     // Two broad, recessed heat-feed seams join the existing columns to the hearth.
     g.lineCap = 'round';

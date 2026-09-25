@@ -878,3 +878,32 @@ Campaign remains 15/25 across regions 1-3. Regions 4-5, the ending and AAA
 acceptance remain incomplete. This is a dev checkpoint only: no `.aaa-complete`,
 catalog edit, release or `main` promotion. Next: spread gradual light from the
 channel grooves across adjacent stone and add more environmental depth.
+
+## September25 groove-side bounce and mineral highlight pass
+
+Four broader, rotated amber spill pools now sit alongside the existing feed
+grooves, with eight deterministic, subtle mineral-light mottles on nearby paving.
+The bright channel cores remain distinct; the lighting stays on the existing
+floor and adds no collision or simulation geometry.
+
+Full Jest passes 19 suites / 429 tests. The six-size Chromium smoke passes at
+320x568, 390x844, 844x390, 768x1024, 1440x900 and 3840x2160. There are no console
+errors, external requests or horizontal overflow; all four local art assets
+return HTTP 200 and touch checks pass at the four smaller sizes. Lead opened all
+six current Weaver-thread captures, including the 4K image downsampled to
+1920x1080. `node --check` and `git diff --check` pass.
+
+Independent mobile review: scoped PASS at 320x568, 390x844, 844x390 and
+768x1024; HUD, thermal card, Weaver health, room/beacon cues, thread lanes and
+touch controls stay clear. Fresh harsh renderer review remains AAA FAIL / OURS
+LOSES. Adjacent paving now catches some amber spill beside the grooves, most
+clearly on desktop and 4K, but the lower/right basin still reads dark and flat;
+the small mottles are too subtle at phone size. Layered terrain, height variation
+and more environmental depth remain far below Nintendo's Link's Awakening
+reference. Six-pair artifact and screenshots remain under ignored
+`node_modules/.cache/prism-warden/smoke/`.
+
+Campaign remains 15/25 across regions 1-3. Regions 4-5, the ending and AAA
+acceptance remain incomplete. This is a dev checkpoint only: no `.aaa-complete`,
+catalog edit, release or `main` promotion. Next: broaden soft spill across the
+basin without flattening the material and add visible stone-height variation.

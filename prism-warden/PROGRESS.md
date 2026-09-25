@@ -615,9 +615,15 @@ preview in `node_modules/.cache/prism-warden/sep25-basalt-volume-final/`.
 
 The mobile HUD retains its scoped AAA PASS / WOWED verdict: objective, dedicated
 portrait hint strip and Weaver threads stay clear. The fresh renderer comparison
-against Nintendo's official *Link's Awakening* image is pending. This pass has
-no gameplay, campaign, performance or overall AAA acceptance.
+against Nintendo's official *Link's Awakening* image returns AAA FAIL / OURS
+LOSES. Floor value range, wall/floor separation and actor scale improve, but the
+room still uses one repeated slab material and the actors remain angular and
+flat beside Zelda's layered terrain and rounded figures. The side-by-side
+artifact is alongside the captures. This pass has no gameplay, campaign,
+performance or overall AAA acceptance.
 
 Campaign remains 15/25 challenges across regions 1–3; regions 4–5 and the ending
-remain unbuilt. Next: record the renderer verdict and any remaining concrete art
-debt. No completion marker, release, catalog edit or `main` promotion.
+remain unbuilt. Next: address the repeated terrain material and actor silhouettes
+with distinct local artwork, preserving the procedural fallback, then request a
+fresh renderer comparison. No completion marker, release, catalog edit or `main`
+promotion.

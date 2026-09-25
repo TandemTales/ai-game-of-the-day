@@ -588,12 +588,15 @@ retry, result and mock leaderboard checks. All six Weaver-thread captures and a
 `node_modules/.cache/prism-warden/sep25-raised-faces-final/`.
 
 The mobile HUD remains AAA PASS / WOWED for its scoped Dead Cells comparison;
-the portrait objective and separate hint strip remain readable. Renderer review
-of the latest screenshots against Nintendo's official *Link's Awakening* image
-is pending. This work is not a campaign, gameplay, performance or overall AAA
-acceptance.
+the portrait objective and separate hint strip remain readable. The fresh
+renderer review against Nintendo's official *Link's Awakening* image returns
+AAA FAIL / OURS LOSES. The larger wall projection and actor shading add visible
+height, but dark polygon seams still dominate, the actors remain small/flat, and
+the room has little foreground/background layering. The side-by-side artifact is
+alongside the captures. This is a presentation verdict, not a campaign, gameplay,
+performance or overall AAA acceptance.
 
 Campaign remains 15/25 challenges across regions 1–3; regions 4–5 and the ending
-remain unbuilt. Next: record the fresh renderer critic's verdict and address any
-remaining specific height/volume issue. No completion marker, release, catalog
-edit or `main` promotion.
+remain unbuilt. Next: increase floor value/material variation and deepen scene
+layering; enlarge and round the main actors, then request another renderer
+comparison. No completion marker, release, catalog edit or `main` promotion.

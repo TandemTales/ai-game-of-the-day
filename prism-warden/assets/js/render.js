@@ -530,6 +530,46 @@
     key.addColorStop(0, 'rgba(220,230,236,.13)'); key.addColorStop(.42, 'rgba(160,182,195,.035)'); key.addColorStop(1, 'rgba(0,3,9,.17)');
     g.fillStyle = key; g.fillRect(0, 0, W, H);
   }
+  function drawWeaverForecourt(g, s) {
+    if (roomId(s) !== 'weaver') return;
+    // A flush, irregular refractory apron ties the two crucible blocks to the
+    // Weaver's hearth. Its floor-level joints stay legible as walkable paving.
+    const apron = [[416, 263], [438, 235], [588, 224], [629, 239], [934, 239], [958, 262], [958, 512], [937, 538], [632, 538], [588, 556], [440, 548], [416, 522]];
+    const shadow = apron.map(p => [p[0] + 8, p[1] + 11]);
+    poly(g, shadow, 'rgba(0,3,7,.38)');
+    const bed = g.createLinearGradient(420, 230, 944, 548);
+    bed.addColorStop(0, '#3c4442'); bed.addColorStop(.3, '#343d3e'); bed.addColorStop(.68, '#303a3c'); bed.addColorStop(1, '#283235');
+    poly(g, apron, bed, 'rgba(6,12,15,.62)', 1.6);
+    g.save(); g.beginPath(); apron.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath(); g.clip();
+    if (kilnMaterial) paintKilnRectMaterial(g, 416, 224, 542, 332, rngFor(hashStr('weaver-connected-forecourt')), .25);
+    const bloom = g.createRadialGradient(682, 347, 26, 690, 376, 294);
+    bloom.addColorStop(0, 'rgba(207,156,102,.16)'); bloom.addColorStop(.48, 'rgba(130,112,91,.075)'); bloom.addColorStop(1, 'rgba(5,11,16,.025)');
+    g.fillStyle = bloom; g.fillRect(416, 224, 542, 332);
+    // Two broad, recessed heat-feed seams join the existing columns to the hearth.
+    g.lineCap = 'round';
+    line(g, 535, 271, 614, 284, 'rgba(4,10,13,.3)', 23);
+    line(g, 614, 284, 666, 317, 'rgba(4,10,13,.3)', 23);
+    line(g, 535, 493, 614, 479, 'rgba(4,10,13,.3)', 23);
+    line(g, 614, 479, 666, 447, 'rgba(4,10,13,.3)', 23);
+    line(g, 535, 268, 614, 281, 'rgba(214,168,116,.22)', 2.1);
+    line(g, 614, 281, 666, 314, 'rgba(214,168,116,.22)', 2.1);
+    line(g, 535, 490, 614, 476, 'rgba(214,168,116,.18)', 2.1);
+    line(g, 614, 476, 666, 444, 'rgba(214,168,116,.18)', 2.1);
+    // Broken paving joints and mineral bands vary the apron without a tile grid.
+    for (const [x1, y1, x2, y2] of [[432, 246, 582, 246], [590, 232, 620, 244], [432, 535, 580, 542], [592, 548, 625, 534], [942, 276, 942, 334], [942, 454, 942, 502]]) {
+      line(g, x1, y1, x2, y2, 'rgba(2,8,12,.42)', 2.2);
+      line(g, x1 + 1, y1 - 1, x2 - 1, y2 - 1, 'rgba(233,214,181,.13)', .9);
+    }
+    // Upper-left ash wash and down-right soot occlusion seat the two blocks.
+    for (const [x, y, rx, ry] of [[510, 270, 77, 51], [510, 494, 77, 51], [790, 383, 166, 112]]) {
+      const shade = g.createRadialGradient(x - rx * .28, y - ry * .36, 2, x, y, Math.max(rx, ry));
+      shade.addColorStop(0, 'rgba(224,189,144,.055)'); shade.addColorStop(.62, 'rgba(3,8,12,.025)'); shade.addColorStop(1, 'rgba(0,3,6,.14)');
+      ellipse(g, x + 5, y + 7, rx, ry, shade);
+    }
+    g.restore();
+    // A soft northwest rim light marks the laid stone field but leaves it flush.
+    poly(g, [[416, 263], [438, 235], [588, 224], [629, 239], [745, 239]], null, 'rgba(255,229,188,.2)', 2);
+  }
   const FLOORS = { flag: floorFlag, slate: floorSlate, octa: floorOcta, planks: floorPlanks, cobble: floorCobble, travertine: floorTravertine, spicatum: floorSpicatum, kiln: floorKiln };
 
   function mossClump(g, x, y, size, rng, alpha) {
@@ -1499,6 +1539,41 @@
     if (key && typeof key === 'object') geoSig.set(key, h);
     return h;
   }
+  function drawWeaverColumnDetails(g, s) {
+    if (roomId(s) !== 'weaver') return;
+    const columns = arr(s.walls).filter(w => finiteRect(w) && w.x === 472 && w.w === 80 && w.h === 44 && (w.y === 250 || w.y === 474));
+    for (const w of columns) {
+      const x = w.x, y = w.y, faceY = y + w.h, faceH = 56;
+      // These inset courses sit wholly on the two existing crucible blocks.
+      const cap = g.createLinearGradient(x + 4, y + 2, x + w.w - 4, y + w.h - 2);
+      cap.addColorStop(0, 'rgba(190,164,126,.32)'); cap.addColorStop(.3, 'rgba(72,78,77,.14)'); cap.addColorStop(1, 'rgba(3,9,13,.46)');
+      rrect(g, x + 2, y + 2, w.w - 4, w.h - 4, 4); g.fillStyle = cap; g.fill();
+      g.strokeStyle = 'rgba(4,9,12,.8)'; g.lineWidth = 2; g.stroke();
+      rrect(g, x + 8, y + 7, w.w - 16, w.h - 14, 3);
+      const inset = g.createLinearGradient(x + 8, y + 7, x + w.w - 8, y + w.h - 7);
+      inset.addColorStop(0, 'rgba(11,20,23,.82)'); inset.addColorStop(.5, 'rgba(28,37,39,.62)'); inset.addColorStop(1, 'rgba(4,10,14,.88)');
+      g.fillStyle = inset; g.fill(); g.strokeStyle = 'rgba(190,151,101,.46)'; g.lineWidth = 1; g.stroke();
+      line(g, x + 11, y + 9, x + w.w - 13, y + 9, 'rgba(255,228,184,.46)', 1.4);
+      line(g, x + 10, y + 10, x + 10, y + w.h - 11, 'rgba(255,231,190,.24)', 1.2);
+      line(g, x + 13, y + w.h - 9, x + w.w - 10, y + w.h - 9, 'rgba(0,2,5,.56)', 1.5);
+      for (const px of [x + 13, x + w.w - 13]) {
+        circle(g, px, y + 13, 1.8, '#c99d61', 'rgba(18,15,10,.8)', .8);
+        circle(g, px, y + w.h - 13, 1.8, '#887151', 'rgba(12,14,14,.8)', .8);
+      }
+
+      const face = g.createLinearGradient(x + 1, faceY, x + w.w - 1, faceY + faceH);
+      face.addColorStop(0, 'rgba(132,117,94,.2)'); face.addColorStop(.38, 'rgba(36,42,43,.22)'); face.addColorStop(1, 'rgba(2,7,10,.48)');
+      g.fillStyle = face; g.fillRect(x + 3, faceY + 2, w.w - 6, faceH - 4);
+      rrect(g, x + 9, faceY + 8, w.w - 18, 37, 3);
+      g.fillStyle = 'rgba(5,12,16,.3)'; g.fill(); g.strokeStyle = 'rgba(185,150,102,.32)'; g.lineWidth = 1; g.stroke();
+      line(g, x + 10, faceY + 9, x + w.w - 10, faceY + 9, 'rgba(255,224,177,.34)', 1.2);
+      line(g, x + 8, faceY + 19, x + w.w - 8, faceY + 19, 'rgba(2,5,8,.46)', 1);
+      line(g, x + 8, faceY + 39, x + w.w - 8, faceY + 39, 'rgba(2,5,8,.38)', 1);
+      line(g, x + 4, faceY + faceH - 2, x + w.w - 4, faceY + faceH - 2, 'rgba(0,2,5,.62)', 2);
+      line(g, x + 4, faceY + 3, x + 4, faceY + faceH - 3, 'rgba(255,231,192,.2)', 1.5);
+      line(g, x + w.w - 4, faceY + 3, x + w.w - 4, faceY + faceH - 3, 'rgba(0,2,5,.42)', 1.5);
+    }
+  }
   function getStatic(s, th, k, W, H) {
     const key = signature(s) + '@' + k;
     let st = staticCache.get(key);
@@ -1509,11 +1584,13 @@
     g.scale(k, k);
     g.fillStyle = th.void; g.fillRect(0, 0, W, H);
     (FLOORS[th.floor] || floorFlag)(g, W, H, rng, th, s);
+    drawWeaverForecourt(g, s);
     decals(g, s, th, rng, W, H, meta);
     beds(g, s, th, rng, W, H);
     inlays(g, s, th);
     exterior(g, s, th, rng, W, H);
     drawWalls(g, s, th, rng, W, H, meta);
+    drawWeaverColumnDetails(g, s);
     bakeLight(g, s, th, W, H, meta, k);
     if (th.grade) { // colour grade baked into the static layer: free at runtime
       g.save(); g.globalCompositeOperation = 'soft-light'; g.globalAlpha = .5;
@@ -1738,33 +1815,47 @@
   }
   function drawWeaverLoomFloor(ctx, s) {
     if (roomId(s) !== 'weaver') return;
-    // A flat kiln inlay stages the arena without suggesting a raised or blocked surface.
-    const cx = 800, cy = 384;
+    // The Weaver stands in a recessed forge well, surrounded by a low, walkable
+    // basalt rim. The extrusion, asymmetric bevel and masonry joints give it
+    // weight without adding gameplay blockers or target-like spokes.
+    const outer = [[692, 382], [704, 345], [728, 318], [768, 306], [830, 306], [870, 318], [895, 343], [908, 379], [897, 417], [874, 443], [833, 458], [770, 458], [730, 444], [704, 418]];
+    const shifted = (points, dx, dy) => points.map(p => [p[0] + dx, p[1] + dy]);
+    const inner = [[730, 382], [739, 354], [757, 335], [781, 326], [817, 326], [841, 335], [859, 354], [868, 382], [859, 409], [841, 428], [817, 437], [781, 437], [757, 428], [739, 409]];
     ctx.save();
-    const wash = ctx.createRadialGradient(cx - 12, cy - 10, 8, cx, cy, 108);
-    wash.addColorStop(0, 'rgba(76,113,112,.18)');
-    wash.addColorStop(.58, 'rgba(62,83,84,.12)');
-    wash.addColorStop(1, 'rgba(39,53,59,0)');
-    ellipse(ctx, cx, cy, 108, 80, wash);
-    for (let i = 0; i < 8; i++) {
-      const a = i * TAU / 8, d = .19;
-      const point = (rx, ry, angle) => [cx + Math.cos(angle) * rx, cy + Math.sin(angle) * ry];
-      const pane = [point(34, 25, a - d), point(86, 63, a - d * .62), point(86, 63, a + d * .62), point(34, 25, a + d)];
-      const cool = i % 2 === 0;
-      poly(ctx, pane, cool ? 'rgba(111,210,218,.085)' : 'rgba(227,172,111,.075)',
-        cool ? 'rgba(160,235,232,.32)' : 'rgba(248,206,151,.28)', .9);
-      const inner = point(42, 31, a), outer = point(72, 53, a);
-      line(ctx, inner[0], inner[1], outer[0], outer[1], cool ? 'rgba(184,239,233,.3)' : 'rgba(255,222,174,.26)', 1);
-      const node = point(98, 72, a), tang = a + Math.PI / 2;
-      poly(ctx, [[node[0] + Math.cos(a) * 4.2, node[1] + Math.sin(a) * 4.2], [node[0] + Math.cos(tang) * 4.2, node[1] + Math.sin(tang) * 4.2],
-        [node[0] - Math.cos(a) * 4.2, node[1] - Math.sin(a) * 4.2], [node[0] - Math.cos(tang) * 4.2, node[1] - Math.sin(tang) * 4.2]],
-        cool ? 'rgba(177,245,239,.66)' : 'rgba(255,214,159,.58)');
-    }
-    ctx.save(); ctx.setLineDash([18, 10]); ctx.lineDashOffset = 0;
-    ellipse(ctx, cx, cy, 104, 77, null, 'rgba(241,197,142,.45)', 1.8); ctx.restore();
-    ctx.save(); ctx.setLineDash([10, 13]);
-    ellipse(ctx, cx, cy, 74, 54, null, 'rgba(142,221,222,.42)', 1.35); ctx.restore();
-    ellipse(ctx, cx, cy, 31, 23, null, 'rgba(255,216,165,.42)', 1.5);
+    poly(ctx, shifted(outer, 10, 18), 'rgba(0,3,6,.54)');
+    poly(ctx, shifted(outer, 3, 9), '#242b2d', 'rgba(0,3,7,.74)', 2.5);
+    const top = ctx.createLinearGradient(700, 310, 900, 454);
+    top.addColorStop(0, '#59605b'); top.addColorStop(.32, '#394347'); top.addColorStop(.72, '#293438'); top.addColorStop(1, '#171f23');
+    poly(ctx, outer, top, 'rgba(4,9,12,.9)', 2.2);
+    // One stable, broad crop of the local basalt mosaic gives the rim authored material.
+    ctx.save(); ctx.beginPath(); outer.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.clip();
+    if (kilnMaterial) paintKilnRectMaterial(ctx, 692, 306, 216, 152, rngFor(hashStr('weaver-hearth-mosaic')), .27);
+    const key = ctx.createLinearGradient(700, 310, 900, 450);
+    key.addColorStop(0, 'rgba(255,228,184,.22)'); key.addColorStop(.38, 'rgba(250,230,194,.025)'); key.addColorStop(1, 'rgba(0,4,9,.34)');
+    ctx.fillStyle = key; ctx.fillRect(692, 306, 216, 152); ctx.restore();
+    // North/west cap bevel catches the kiln key; the far edge falls into cool shade.
+    poly(ctx, [[692, 382], [704, 345], [728, 318], [768, 306], [830, 306], [870, 318]], null, 'rgba(255,231,191,.5)', 3.2);
+    poly(ctx, [[870, 318], [895, 343], [908, 379], [897, 417], [874, 443], [833, 458], [770, 458]], null, 'rgba(0,3,8,.7)', 3.2);
+    // Course joints on the broad apron make it masonry rather than a floor decal.
+    line(ctx, 736, 324, 774, 312, 'rgba(3,8,11,.6)', 2);
+    line(ctx, 774, 312, 774, 316, 'rgba(226,205,169,.24)', .9);
+    line(ctx, 832, 312, 868, 324, 'rgba(3,8,11,.55)', 2);
+    line(ctx, 736, 438, 774, 451, 'rgba(0,3,7,.58)', 2);
+    line(ctx, 832, 451, 868, 438, 'rgba(0,3,7,.56)', 2);
+
+    // Recessed inner hearth: a deep, faceted well with a lit upper-left coping.
+    const well = ctx.createLinearGradient(740, 330, 858, 434);
+    well.addColorStop(0, '#273334'); well.addColorStop(.42, '#172225'); well.addColorStop(1, '#0b1217');
+    poly(ctx, inner, well, 'rgba(5,10,13,.9)', 2);
+    poly(ctx, [[730, 382], [739, 354], [757, 335], [781, 326], [817, 326], [841, 335], [859, 354]], null, 'rgba(255,221,174,.43)', 2.4);
+    poly(ctx, [[859, 354], [868, 382], [859, 409], [841, 428], [817, 437], [781, 437]], null, 'rgba(0,3,8,.66)', 2.5);
+    // Soot-dark basin and an uneven annealed-glass seam sit beneath the boss.
+    const basin = ctx.createRadialGradient(785, 364, 5, 800, 386, 58);
+    basin.addColorStop(0, 'rgba(43,67,67,.55)'); basin.addColorStop(.7, 'rgba(7,17,21,.52)'); basin.addColorStop(1, 'rgba(2,8,12,.12)');
+    ellipse(ctx, 800, 384, 48, 34, basin);
+    line(ctx, 767, 389, 782, 398, 'rgba(178,214,202,.26)', 1.4);
+    line(ctx, 782, 398, 794, 394, 'rgba(178,214,202,.18)', 1.2);
+    line(ctx, 818, 367, 832, 373, 'rgba(241,187,125,.24)', 1.2);
     ctx.restore();
   }
   function drawBreakwaters(ctx, s, t, th) {
@@ -1916,7 +2007,7 @@
       const lx = cx - dx * (Math.abs(dx) ? e.w / 2 + 74 : 0), ly = cy - dy * (Math.abs(dy) ? e.h / 2 + 30 : 0);
       const barred = arr(s.gates).some(g => !g.open && finiteRect(g) && rectDist(cx, cy, g) < 40);
       const pl = s.player, near = pl && Math.hypot(pl.x - lx, pl.y - ly) < 90;
-      if (!barred && !near) labels.push({ x: lx, y: ly, text: (dx < 0 ? '‹ ' : '') + roomName(e.to).toUpperCase() + (dx >= 0 ? ' ›' : ''), color: '#cdeee2', size: 10, dim: true });
+      if (!barred && !near) labels.push({ x: lx, y: ly, text: (dx < 0 ? '‹ ' : '') + roomName(e.to).toUpperCase() + (dx >= 0 ? ' ›' : ''), color: '#cdeee2', size: 10, dim: true, avoidThermal: true });
     }
     const ee = s.escortExit;
     if (ee && finiteRect(ee)) {
@@ -3501,6 +3592,8 @@
   let labels = [];
   function drawLabels(ctx, v) {
     // World-space labels are kept inside the visible view (portrait phones show a narrow slice of the room).
+    const screenW = v.w * v.scale, screenH = v.h * v.scale;
+    const compactLandscape = screenW <= 1000 && screenH <= 480;
     const placed = [], m = 6 / Math.max(.5, Math.min(1.5, v.scale));
     for (const l of labels) {
       const size = l.size || 10;
@@ -3511,6 +3604,10 @@
       if (x + hw < v.x || x - hw > v.x + v.w || y + size < v.y || y - size > v.y + v.h) continue;
       if (v.w > 2 * (hw + m)) x = clamp(x, v.x + m + hw, v.x + v.w - m - hw);
       for (const p of placed) if (Math.abs(p.x - x) < 70 && Math.abs(p.y - y) < 13) y = p.y - 14;
+      if (l.avoidThermal && compactLandscape) {
+        const sx = (x - v.x) * v.scale, sy = (y - v.y) * v.scale, shw = hw * v.scale, shh = size * v.scale * .7;
+        if (sx + shw > 12 && sx - shw < 178 && sy + shh > 114 && sy - shh < 160) y = v.y + 174 / v.scale;
+      }
       const top = v.y + m + size * .7, bot = v.y + v.h - m - size * .7;
       if (y < top) { y = top; for (const p of placed) if (Math.abs(p.x - x) < 70 && Math.abs(p.y - y) < 13) y = p.y + 14; }
       y = Math.min(y, bot);
@@ -3729,6 +3826,9 @@
       const cx = clamp(x, margin, width - margin);
       let cy = clamp(y, 64, Math.max(64, height - 80));
       for (const prev of indicators) if (Math.abs(cx - prev.x) < 96 && Math.abs(cy - prev.y) < 44) cy = prev.y + 44 <= height - 38 ? prev.y + 44 : prev.y - 44;
+      const compactLandscape = width <= 1000 && height <= 480;
+      const labelCrossesThermal = cx + tw / 2 > 12 && cx - tw / 2 < 178 && cy + 30 > 114 && cy + 12 < 160;
+      if (compactLandscape && labelCrossesThermal) cy = Math.max(cy, 174);
       indicators.push({ x: cx, y: cy });
       const a = Math.atan2(y - cy, x - cx), pulse = 1 + .08 * Math.sin(t * 5);
       ctx.save(); ctx.translate(cx, cy); ctx.rotate(a); ctx.scale(pulse, pulse);

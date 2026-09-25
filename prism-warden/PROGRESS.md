@@ -725,3 +725,34 @@ full AAA acceptance remain incomplete. This is a development checkpoint only:
 no `.aaa-complete`, catalog change, release or `main` promotion. Next run: build
 the next connected campaign content while retaining the environmental-depth and
 mobile room-annotation issues for another focused renderer pass.
+
+## September25 connected kiln forecourt and HUD clearance
+
+The Weaver arena now has a cached basalt forecourt connecting the two existing
+crucible columns to the beveled hearth, with local mosaic material, low heat-feed
+seams and directional soot shading. No wall or collision geometry changed. In
+compact landscape, the thermal card stays at upper-left, the canvas exit arrow is
+clamped below it, and the DOM room tag moves to a separate line.
+
+Full Jest passes 19 suites / 429 tests. The full six-size Chromium smoke passes
+320x568, 390x844, 844x390, 768x1024, 1440x900 and 3840x2160, with clean console,
+no external requests or overflow, all three local art assets at HTTP 200, and
+touch checks passing at the four smaller sizes. Lead opened all six final
+Weaver-thread captures, including a 1920x1080 review copy of the 4K image.
+`node --check` and `git diff --check` pass.
+
+Independent mobile review: scoped PASS; `FOUNDRY LOCKS` clears the thermal card,
+and the boss, health, mirror and thread cues remain distinguishable. The fresh
+side-by-side renderer verdict remains AAA FAIL / OURS LOSES: the connected stage
+is more coherent, but the large forecourt remains too dark and low-relief against
+Nintendo's official *Link's Awakening* reference. The reviewer requested a
+raised basalt edge with a brighter rim, cast shadow and warm reflected light.
+The side-by-side artifact and captures are in ignored
+`node_modules/.cache/prism-warden/sep25-weaver-forecourt-final/`; the HTML could
+not be rendered in-browser under current browser policy, so only its linked
+captures and source contents were verified.
+
+Campaign remains 15/25 challenges across regions 1-3. Regions 4-5, the ending and
+AAA acceptance remain incomplete. This is a development checkpoint only: no
+`.aaa-complete`, catalog edit, release or `main` promotion. Next: one bounded
+raised-edge lighting pass, then prioritize connected campaign content.

@@ -518,6 +518,33 @@ are presentation-only and do not judge campaign completeness or human gameplay.
 
 Next: place portrait guidance in the HUD mission slot while it is active, and
 continue with stronger directional lighting and cast shadows. The campaign is
-still 15/25 challenges across regions 1-3; regions 4-5 and the ending remain
+still 15/25 challenges across regions 1–3; regions 4–5 and the ending remain
 unbuilt. No AAA acceptance, completion marker, release, catalog edit or `main`
 promotion.
+
+## September 25 portrait hint and directional kiln lighting
+
+The active portrait hint now clears the C5 thread lanes and the short-landscape
+hint stays in the header. The kiln renderer adds an upper-left key light, brighter
+fractured basalt, shaded wall faces and down-right contact shadows. Full Jest
+passes 19 suites / 429 tests. Chromium smoke passes all six required viewports
+(320x568, 390x844, 844x390, 768x1024, 1440x900 and 3840x2160), with clean console
+and external-request logs, no horizontal overflow, and passing keyboard/touch,
+pause/retry, results and mocked leaderboard checks. The local basalt image loads
+at each size. I opened all six C5 thread captures and a 1920x1080 preview of 4K.
+Evidence is in `node_modules/.cache/prism-warden/sep25-directional-final/`.
+
+Both fresh critics return AAA FAIL / OURS LOSES. The mobile review against the
+official *Dead Cells* mobile listing confirms landscape guidance and Weaver
+threads are clear, but the portrait hint occupies the objective row, hiding the
+current mission. Give it a compact row outside the objective column. The renderer
+review against Nintendo's official *Link's Awakening* image finds the new light
+and shadows improve local grounding, while the overall floor, walls and actors
+still lack comparable spatial depth. Both side-by-side artifacts are alongside
+the screenshots and both reviews assess presentation only.
+
+Campaign remains 15/25 challenges across regions 1–3; regions 4–5 and the ending
+are unbuilt. Next: retain the portrait objective while moving its hint to a
+dedicated compact row, then continue the renderer's raised architecture and
+actor-volume work. No AAA acceptance, completion marker, release, catalog edit or
+`main` promotion.

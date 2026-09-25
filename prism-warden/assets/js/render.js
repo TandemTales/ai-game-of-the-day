@@ -81,9 +81,10 @@
   // Three small solid ellipses give actors a grounded contact core without per-frame blur.
   function contactShadow(ctx, x, y, rx, ry, strength) {
     const a = clamp(strength, 0, 1);
-    ellipse(ctx, x + 3, y + 3, rx * 1.12, ry * 1.08, `rgba(2,7,10,${.24 * a})`);
-    ellipse(ctx, x, y, rx * .76, ry * .68, `rgba(0,3,6,${.48 * a})`);
-    ellipse(ctx, x - 1, y - 1, rx * .42, ry * .4, `rgba(0,1,3,${.68 * a})`);
+    // Upper-left key: the diffuse skirt and tighter core fall down-right.
+    ellipse(ctx, x + 9, y + 8, rx * 1.16, ry * 1.08, `rgba(2,7,10,${.25 * a})`);
+    ellipse(ctx, x + 5, y + 5, rx * .76, ry * .68, `rgba(0,3,6,${.48 * a})`);
+    ellipse(ctx, x + 2, y + 2, rx * .42, ry * .4, `rgba(0,1,3,${.68 * a})`);
   }
   function rrect(ctx, x, y, w, h, r) {
     r = Math.min(r, w / 2, h / 2); ctx.beginPath();
@@ -378,7 +379,7 @@
   function floorKiln(g, W, H, rng, th, s) {
     // Fractured refractory basalt: shared, jittered sites make irregular slabs whose
     // seams meet cleanly without falling into repeated horizontal courses.
-    g.fillStyle = '#171c20'; g.fillRect(0, 0, W, H);
+    g.fillStyle = '#1b2227'; g.fillRect(0, 0, W, H);
     const plates = [];
     const sites = [], sx = 72, sy = 58;
     for (let row = -2; row <= Math.ceil(H / sy) + 1; row++) {
@@ -418,7 +419,7 @@
       if (w < 8 || h < 8) continue;
       const plate = { x: x0, y: y0, w, h, points };
       plates.push(plate);
-      cellPath(points); g.fillStyle = hsl(24 + rng() * 15, 11 + rng() * 13, 24 + rng() * 12); g.fill();
+      cellPath(points); g.fillStyle = hsl(24 + rng() * 15, 12 + rng() * 14, 28 + rng() * 14); g.fill();
       g.save(); cellPath(points); g.clip();
       const shade = g.createLinearGradient(x0, y0, x0 + w * .45, y1);
       shade.addColorStop(0, 'rgba(255,247,226,.17)'); shade.addColorStop(.44, 'rgba(255,255,255,0)'); shade.addColorStop(1, 'rgba(0,0,0,.34)');
@@ -464,9 +465,13 @@
       cellPath(points); g.strokeStyle = 'rgba(1,5,8,.72)'; g.lineWidth = 1.35; g.stroke();
     }
     const shade = g.createRadialGradient(W * .5, H * .48, 30, W * .5, H * .48, Math.max(W, H) * .72);
-    shade.addColorStop(0, 'rgba(70,100,115,.04)'); shade.addColorStop(1, 'rgba(0,0,0,.2)');
+    shade.addColorStop(0, 'rgba(70,100,115,.025)'); shade.addColorStop(1, 'rgba(0,0,0,.14)');
     g.fillStyle = shade; g.fillRect(0, 0, W, H);
     paintKilnMaterial(g, s, W, H, plates);
+    // Broad upper-left key light separates the floor plane from down-right shadows.
+    const key = g.createLinearGradient(0, 0, W, H);
+    key.addColorStop(0, 'rgba(220,230,236,.13)'); key.addColorStop(.42, 'rgba(160,182,195,.035)'); key.addColorStop(1, 'rgba(0,3,9,.17)');
+    g.fillStyle = key; g.fillRect(0, 0, W, H);
   }
   const FLOORS = { flag: floorFlag, slate: floorSlate, octa: floorOcta, planks: floorPlanks, cobble: floorCobble, travertine: floorTravertine, spicatum: floorSpicatum, kiln: floorKiln };
 
@@ -556,11 +561,12 @@
     const walls = arr(s.walls).filter(finiteRect);
     if (!walls.length) return;
     const k = meta.k;
+    const kilnLight = th.floor === 'kiln';
     // Ambient occlusion: soft drop shadow and tight contact shadow on the floor.
     g.save();
-    g.shadowColor = 'rgba(2,8,12,.7)'; g.shadowBlur = 26 * k; g.shadowOffsetY = 14 * k; g.fillStyle = '#05090b';
+    g.shadowColor = 'rgba(2,8,12,.7)'; g.shadowBlur = 26 * k; g.shadowOffsetX = (kilnLight ? 11 : 0) * k; g.shadowOffsetY = 14 * k; g.fillStyle = '#05090b';
     for (const w of walls) g.fillRect(w.x, w.y, w.w, w.h + FH);
-    g.shadowBlur = 7 * k; g.shadowOffsetY = 4 * k; g.shadowColor = 'rgba(0,4,6,.8)';
+    g.shadowBlur = 7 * k; g.shadowOffsetX = (kilnLight ? 3 : 0) * k; g.shadowOffsetY = 4 * k; g.shadowColor = 'rgba(0,4,6,.8)';
     for (const w of walls) g.fillRect(w.x, w.y, w.w, w.h + FH);
     g.restore();
     const faces = wallFaces(walls);
@@ -572,6 +578,11 @@
       const gr = g.createLinearGradient(0, f.y, 0, f.y + FH);
       gr.addColorStop(0, hsl(th.face[0], th.face[1], th.face[2] + 8)); gr.addColorStop(1, hsl(th.face[0], th.face[1], th.face[2] - 9));
       g.fillStyle = gr; g.fillRect(f.x, f.y, f.w, FH);
+      if (th.floor === 'kiln') {
+        const faceKey = g.createLinearGradient(0, f.y - 2, W, f.y + FH);
+        faceKey.addColorStop(0, 'rgba(255,242,214,.16)'); faceKey.addColorStop(.42, 'rgba(255,240,215,.025)'); faceKey.addColorStop(1, 'rgba(0,2,7,.28)');
+        g.fillStyle = faceKey; g.fillRect(f.x, f.y, f.w, FH);
+      }
       if (th.floor === 'kiln' && th.wall === 'basalt' && kilnMaterial) {
         for (let y = f.y + 4; y < f.y + FH - 3; y += 11) {
           for (let x = f.x + 3; x < f.x + f.w - 4;) {
@@ -644,6 +655,11 @@
           paintKilnRectMaterial(g, x + 2, y + 2, bw - 4, bh - 4, wallMaterialRng, .2);
       }
     }
+    if (th.floor === 'kiln') {
+      const topKey = g.createLinearGradient(0, 0, W, H);
+      topKey.addColorStop(0, 'rgba(255,244,220,.13)'); topKey.addColorStop(.46, 'rgba(255,245,225,.015)'); topKey.addColorStop(1, 'rgba(0,3,9,.23)');
+      g.fillStyle = topKey; g.fillRect(0, 0, W, H);
+    }
     // Inner edge shading: the parts of wide walls far from the floor are in shade.
     g.restore();
     // A narrow static contact band anchors each exposed wall skirt to the floor.
@@ -656,10 +672,13 @@
     for (const w of walls) {
       for (const [a, b] of edgeSegs(walls, w, 'top')) {
         line(g, w.x + a, w.y + .8, w.x + b, w.y + .8, hsl(th.top[0], th.top[1], th.top[2] + 20, .75), 1.6);
-        line(g, w.x + a + 2, w.y + 2.5, w.x + b - 2, w.y + 2.5, hsl(th.top[0], th.top[1], th.top[2] + 11, .3), 1.1);
+        if (b - a > 6) line(g, w.x + a + 2, w.y + 2.5, w.x + b - 2, w.y + 2.5, hsl(th.top[0], th.top[1], th.top[2] + 11, .3), 1.1);
         line(g, w.x + a, w.y - .4, w.x + b, w.y - .4, 'rgba(0,0,0,.55)', 1);
       }
-      for (const [a, b] of edgeSegs(walls, w, 'bottom')) line(g, w.x + a, w.y + w.h - .8, w.x + b, w.y + w.h - .8, hsl(th.top[0], th.top[1], th.top[2] + 26, .9), 1.8);
+      for (const [a, b] of edgeSegs(walls, w, 'bottom')) {
+        if (th.floor === 'kiln') line(g, w.x + a, w.y + w.h - .8, w.x + b, w.y + w.h - .8, 'rgba(0,3,8,.52)', 1.8);
+        else line(g, w.x + a, w.y + w.h - .8, w.x + b, w.y + w.h - .8, hsl(th.top[0], th.top[1], th.top[2] + 26, .9), 1.8);
+      }
       for (const [a, b] of edgeSegs(walls, w, 'left')) { line(g, w.x + .8, w.y + a, w.x + .8, w.y + b, hsl(th.top[0], th.top[1], th.top[2] + 14, .6), 1.3); line(g, w.x - .5, w.y + a, w.x - .5, w.y + b + FH, 'rgba(0,0,0,.5)', 1); }
       for (const [a, b] of edgeSegs(walls, w, 'right')) { line(g, w.x + w.w - .8, w.y + a, w.x + w.w - .8, w.y + b, 'rgba(0,0,0,.35)', 1.6); line(g, w.x + w.w + .5, w.y + a, w.x + w.w + .5, w.y + b + FH, 'rgba(0,0,0,.5)', 1); }
     }
@@ -1303,7 +1322,7 @@
     // Independently sampled slabs keep the generated material from reading as a tile.
     const materialRng = rngFor(hashStr('kiln-tile-inlays:' + roomId(s)));
     for (const plate of plates) {
-      if (materialRng() > .34) continue;
+      if (materialRng() > .46) continue;
       const x = plate.x, y = plate.y, w = plate.w, h = plate.h;
       if (w < 8 || h < 8) continue;
       g.save(); g.beginPath();
@@ -1316,7 +1335,7 @@
         g.lineTo(x, y + h - cut); g.lineTo(x, y + cut);
       }
       g.closePath(); g.clip();
-      paintKilnRectMaterial(g, x, y, w, h, materialRng, .62);
+      paintKilnRectMaterial(g, x, y, w, h, materialRng, .67);
       // Selected slabs catch a cool upper-left rim and hold a deeper lower edge.
       let area = 0;
       for (let i = 0; i < plate.points.length; i++) {
@@ -1700,7 +1719,7 @@
         poly(ctx, [[cx, cy - 7], [cx + 6, cy], [cx, cy + 7], [cx - 6, cy]], `rgba(255,214,130,${.6 + .3 * Math.sin(t * 3)})`);
       }
       for (const [px, py] of posts) {
-        ellipse(ctx, px + 2, py + 6, 13, 7, 'rgba(0,0,0,.4)');
+        contactShadow(ctx, px + 2, py + 6, 13, 7, .8);
         circle(ctx, px, py, 11, '#4b5a58', '#bca86f', 2); circle(ctx, px - 3, py - 3, 4, 'rgba(255,245,215,.25)');
         circle(ctx, px, py, 4, g.open ? '#aaf5d6' : '#d6b36a');
       }
@@ -1762,7 +1781,7 @@
   // ---------------------------------------------------------------- props & actors
   function drawEmitter(ctx, e, t) {
     const dx = num(e.dx, 1), dy = num(e.dy, 0), a = Math.atan2(dy, dx);
-    ellipse(ctx, e.x + 3, e.y + 8, 28, 15, 'rgba(0,0,0,.45)');
+    contactShadow(ctx, e.x + 3, e.y + 8, 28, 15, .85);
     ctx.save(); ctx.translate(e.x, e.y);
     circle(ctx, 0, 0, 25, '#3c3a30', '#16120a', 2);
     for (let i = 0; i < 12; i++) { const r = i * TAU / 12 + t * .25; poly(ctx, [[Math.cos(r) * 20, Math.sin(r) * 20], [Math.cos(r + .12) * 26, Math.sin(r + .12) * 26], [Math.cos(r + .24) * 20, Math.sin(r + .24) * 20]], '#c69a4c', '#3a2a10', .8); }
@@ -1778,7 +1797,7 @@
   function drawReceiver(ctx, r, t, s) {
     const lit = !!r.active, charge = clamp(num(r.charge, 0), 0, 1), kind = receiverKind(r);
     if (kind === 'pump') { drawPump(ctx, r, t, s); return; }
-    ellipse(ctx, r.x + 3, r.y + 10, 27, 13, 'rgba(0,0,0,.5)');
+    contactShadow(ctx, r.x + 3, r.y + 10, 27, 13, .9);
     // octagonal pedestal
     const oct = (R, dy) => { const p = []; for (let i = 0; i < 8; i++) { const a = i * TAU / 8 + TAU / 16; p.push([r.x + Math.cos(a) * R, r.y + dy + Math.sin(a) * R * .9]); } return p; };
     poly(ctx, oct(24, 6), '#2a3334', '#0c1214', 1.5);
@@ -1843,7 +1862,7 @@
     const out = dirs[idx] || [1, 0];
     const inc = incomingDir(m, s);
     const lit = typeof m.lit === 'boolean' ? m.lit : !!inc;
-    ellipse(ctx, m.x + 3, m.y + 10, 22, 11, 'rgba(0,0,0,.5)');
+    contactShadow(ctx, m.x + 3, m.y + 10, 22, 11, .9);
     // stone drum
     ellipse(ctx, m.x, m.y + 6, 19, 12, '#2a3232', '#0c1212', 1.4);
     ctx.fillStyle = '#2a3232'; ctx.fillRect(m.x - 19, m.y, 38, 6);
@@ -2244,7 +2263,7 @@
   function drawPickup(ctx, p, s, t) {
     if (p.taken || p.collected || p.picked || p.got) return;
     const bob = Math.sin(t * 2.4 + p.x) * 3;
-    ellipse(ctx, p.x, p.y + 10, 10 - bob * .5, 4, 'rgba(0,0,0,.4)');
+    contactShadow(ctx, p.x, p.y + 10, 10 - bob * .5, 4, .75);
     ctx.save(); ctx.translate(p.x, p.y - 8 + bob);
     if (p.kind === 'heart') {
       const hg = ctx.createLinearGradient(-10, -10, 10, 10); hg.addColorStop(0, '#ffb0b8'); hg.addColorStop(.5, '#e83a5a'); hg.addColorStop(1, '#7a1028');
@@ -2279,7 +2298,7 @@
   function drawBeacon(ctx, s, t) {
     const b = s.beacon, lit = beaconLit(s), ready = beaconReady(s);
     ctx.save(); ctx.translate(b.x, b.y);
-    ellipse(ctx, 3, 12, 34, 14, 'rgba(0,0,0,.5)');
+    contactShadow(ctx, 3, 12, 34, 14, .9);
     // iron cage brazier with great lens
     for (let i = 0; i < 6; i++) { const a = i * TAU / 6 + .3; line(ctx, Math.cos(a) * 26, Math.sin(a) * 14 + 6, Math.cos(a) * 18, Math.sin(a) * 10 - 40, '#1e2226', 4); }
     ellipse(ctx, 0, 6, 28, 13, '#3a3e42', '#0c0e10', 2);
@@ -3053,7 +3072,7 @@
   function drawPump(ctx, r, t, s) {
     const charge = clamp(num(r.charge, 0), 0, 1), full = !!r.active || charge >= 1;
     const lit = typeof r.lit === 'boolean' ? r.lit : beamEndsAt(s, r.x, r.y, num(r.r, 20) + 10);
-    ellipse(ctx, r.x + 4, r.y + 12, 34, 15, 'rgba(0,0,0,.5)');
+    contactShadow(ctx, r.x + 4, r.y + 12, 34, 15, .9);
     // cistern
     ellipse(ctx, r.x, r.y + 6, 27, 17, '#3a3426', '#0c0a06', 1.6);
     ctx.fillStyle = '#3a3426'; ctx.fillRect(r.x - 27, r.y, 54, 6);
@@ -3098,7 +3117,7 @@
     ctx.save(); ctx.translate(m.x + Math.cos(oa) * 44, m.y + 4 + Math.sin(oa) * 44 * .8); ctx.rotate(oa);
     poly(ctx, [[8, 0], [-4, -6], [-1, 0], [-4, 6]], `rgb(${PRISM})`, '#2a0a20', 1.2); ctx.restore();
     glowQueue.push([m.x + Math.cos(oa) * 40, m.y + 4 + Math.sin(oa) * 32, 14, PRISM, .8]);
-    ellipse(ctx, m.x + 3, m.y + 8, 17, 7, 'rgba(0,0,0,.5)');
+    contactShadow(ctx, m.x + 3, m.y + 8, 17, 7, .9);
     // tripod
     const apex = [m.x, m.y - 16];
     for (const [fx, fy] of [[-13, 7], [13, 7], [0, -3]]) { line(ctx, apex[0], apex[1], m.x + fx, m.y + fy, '#140a04', 3.6); line(ctx, apex[0], apex[1], m.x + fx, m.y + fy, '#8a6a3a', 2); circle(ctx, m.x + fx, m.y + fy, 1.8, '#3a2a14'); }
@@ -3135,7 +3154,7 @@
     const people = [[-14, 2, '#3a6a8a'], [12, -2, '#8a4a3a']];
     for (const [ox, oy, coat] of people) {
       const x = r.x + ox, y = r.y + oy, bob = r.freed ? Math.abs(Math.sin(t * 4 + ox)) * 2 : 0;
-      ellipse(ctx, x + 1, y + 12, 10, 4, 'rgba(0,0,0,.45)');
+      contactShadow(ctx, x + 1, y + 12, 10, 4, .85);
       ctx.save(); ctx.translate(x, y - bob);
       poly(ctx, [[-7, -7], [7, -7], [9, 9], [-9, 9]], rg(ctx, -4, -5, 16, coat, '#1a2430'), INK, 1.5);
       circle(ctx, 0, -12, 6, rg(ctx, -2, -14, 8, '#ffdcb8', '#c8946a'), INK, 1.3);

@@ -18,7 +18,9 @@
   .mission .rname{display:none}
   .mission strong{font-size:clamp(11px,3.25vw,12px);line-height:1.12;max-width:100%}
   .points strong{font-size:13px;letter-spacing:.025em}
-  #location{top:102px;left:8px;font-size:7px}
+  body.touch.has-message #hud .mission{visibility:hidden}
+  body.touch #message{top:52px;right:58px;bottom:auto;left:84px;width:auto;max-width:none;transform:none;z-index:7;font-size:9px;line-height:1.05;padding:3px 6px}
+  #location{top:102px;left:8px;font-size:8px}
   #touchControls{position:absolute;z-index:6;left:0;right:0;bottom:0;gap:8px;padding:7px 9px max(7px,env(safe-area-inset-bottom));background:linear-gradient(0deg,rgba(14,35,45,.98) 70%,rgba(14,35,45,.78));border-top:1px solid rgba(52,81,90,.72)}
   .pad{width:72px;height:72px}
   .pad:before{inset:11px}

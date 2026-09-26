@@ -907,3 +907,13 @@ Campaign remains 15/25 across regions 1-3. Regions 4-5, the ending and AAA
 acceptance remain incomplete. This is a dev checkpoint only: no `.aaa-complete`,
 catalog edit, release or `main` promotion. Next: broaden soft spill across the
 basin without flattening the material and add visible stone-height variation.
+
+## September25 weekend runner: Night Observatory expansion intent
+
+Pacific Friday September25; age5, no forced release. Dev pulled clean. Scope audit:
+regions1-3 and15/25 challenges playable; regions4-5, stored light, later equipment
+choices, consequential discoveries and ending remain incomplete. Prior AAA visual
+and gameplay rejection remain open. This run prioritizes Region4 connected authored
+content, stored-light mechanics and reachable progression with keyboard/touch UI.
+Region5/full ending remain the next required expansion, not a reduced contract.
+Tests precede each commit; no main promotion or completion marker.

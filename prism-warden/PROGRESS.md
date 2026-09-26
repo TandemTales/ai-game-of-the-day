@@ -1169,3 +1169,23 @@ in-scene captures were visually inspected. Evidence and the contact sheet are in
 `node_modules/.cache/prism-warden/character-art/`. Syntax and diff checks pass.
 Full repository validation: **23 suites / 458 tests PASS** (253.186s).
 This art update targets dev; it is not a campaign acceptance or release checkpoint.
+
+## 2026-09-26: Walking in all eight directions
+
+Added six-frame painted walk cycles for all eight views, using the approved idle
+art as the identity reference. Idle assets remain unchanged. Playback advances
+with actual traveled distance (96 world units per cycle), reverses for backward
+movement, and follows the existing aim direction while strafing. Stopping or
+walking into a wall returns to idle; paused draws hold the pose. Dashes, long
+clock gaps and room jumps reset the gait. Missing walk atlases use the idle art.
+Animation state and per-frame lighting caches belong only to the renderer.
+
+Five focused animation tests PASS. The walking browser check exercises all 48
+frame cells with legal movement, guard and slash inputs, stop-to-idle, renderer
+state purity and missing-atlas fallback. The existing character-art browser check
+also passes at desktop and portrait sizes. Syntax and diff checks pass. Generated
+contact sheets and sampled animation frames were visually inspected; the preview
+shows the actual actor renderer walking then stopping, not a human gameplay run.
+Evidence: `node_modules/.cache/prism-warden/walking-art/`, including an animated
+GIF/MP4 preview. Asset and generation notes: `assets/img/WALK_ART.md`.
+This walking-animation update targets dev.

@@ -1696,7 +1696,9 @@
     img.src = 'assets/img/kiln-basalt-mosaic-v1.png';
   }
   const seraSprites = Object.create(null);
+  const seraWalkSprites = Object.create(null);
   const seraDirections = ['e', 'se', 's', 'sw', 'w', 'nw', 'n', 'ne'];
+  const SERA_WALK_FRAMES = 6, SERA_STRIDE = 96;
   let seraSpritesRequested = false;
   function keySeraSprite(img) {
     const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
@@ -1729,6 +1731,21 @@
       };
       img.decoding = 'async';
       img.src = direction === 'n' ? 'assets/img/sera-keeper-topdown-v3.png' : `assets/img/sera-keeper-${direction}-v1.png`;
+      const walk = new Image();
+      walk.onload = () => {
+        if (walk.naturalWidth !== 256 * SERA_WALK_FRAMES || walk.naturalHeight !== 320) return;
+        const frames = [];
+        for (let frame = 0; frame < SERA_WALK_FRAMES; frame++) {
+          const canvas = makeCanvas(256, 320), g = canvas.getContext('2d');
+          if (!g) return;
+          g.drawImage(walk, frame * 256, 0, 256, 320, 0, 0, 256, 320);
+          // Light each cell independently, so the key does not drift across the cycle.
+          frames.push(keySeraSprite(canvas) || canvas);
+        }
+        seraWalkSprites[direction] = frames;
+      };
+      walk.decoding = 'async';
+      walk.src = `assets/img/sera-walk-${direction}-v1.png`;
     }
   }
   let weaverSprite = null, weaverLitSprite = null, weaverSpriteState = 'idle';
@@ -2034,6 +2051,29 @@
 
   // ---------------------------------------------------------------- private animation memory
   const motion = new WeakMap();
+  const seraWalkMotion = new WeakMap();
+  function seraWalkFrame(p, t) {
+    let m = seraWalkMotion.get(p);
+    if (!m) {
+      m = { x: p.x, y: p.y, t, distance: 0, frame: -1 };
+      seraWalkMotion.set(p, m);
+      return -1;
+    }
+    const dt = t - m.t;
+    if (dt === 0) return m.frame; // Pauses and duplicate draws preserve the pose.
+    const dx = p.x - m.x, dy = p.y - m.y, distance = Math.hypot(dx, dy);
+    m.x = p.x; m.y = p.y; m.t = t;
+    if (dt < 0 || dt > .25 || distance > 64 || num(p.dashTime, 0) > 0) {
+      m.distance = 0; m.frame = -1; // Resumes, room jumps and dashes are not strides.
+    } else if (distance <= .01) {
+      m.frame = -1; // No walking in place against a wall or after releasing movement.
+    } else {
+      const backwards = dx * num(p.aimX, 1) + dy * num(p.aimY, 0) < -distance * .25;
+      m.distance = (m.distance + distance * (backwards ? -1 : 1) + SERA_STRIDE) % SERA_STRIDE;
+      m.frame = Math.floor(m.distance / SERA_STRIDE * SERA_WALK_FRAMES);
+    }
+    return m.frame;
+  }
   function track(o, t) {
     let m = motion.get(o);
     if (!m) { m = { x: o.x, y: o.y, t, phase: 0, speed: 0, still: 0 }; motion.set(o, m); return m; }
@@ -3400,12 +3440,14 @@
     };
     loadSeraSprite();
     const direction = seraDirections[(Math.round(a / (TAU / 8)) + 8) % 8];
-    const paintedSprite = seraSprites[direction];
+    const walkFrame = seraWalkFrame(p, t);
+    const walkingSprite = walkFrame >= 0 && seraWalkSprites[direction] && seraWalkSprites[direction][walkFrame];
+    const paintedSprite = walkingSprite || seraSprites[direction];
     if (paintedSprite) {
       // All painted views share the original back view's scale and foot anchor.
       if (!slashing) drawSword();
       const iw = paintedSprite.naturalWidth || paintedSprite.width, ih = paintedSprite.naturalHeight || paintedSprite.height;
-      const artW = direction === 'n' ? 48.3 : 46.4;
+      const artW = direction === 'n' && !walkingSprite ? 48.3 : 46.4;
       if (iw > 0 && ih > 0) ctx.drawImage(paintedSprite, 0, 0, iw, ih, -artW / 2, -41.1, artW, 58);
       if (p.reflecting && direction === 'n') {
         // The painted bronze mirror remains visible; this inlay carries its live reflection state.

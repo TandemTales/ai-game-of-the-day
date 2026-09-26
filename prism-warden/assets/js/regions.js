@@ -1346,7 +1346,7 @@
   const crownLens = {
     id: 'crown', region: 'drowned-crown', challenge: 'E5', name: 'Crown Lens', w: W, h: H,
     darkness: true,
-    intro: 'Return the Crown artillery shot and strike the exposed Eclipse Keeper. When the floor shifts, hold both live circuits to expose its second phase. In the final telegraph, burst within reach and strike again. Free Nacre, guide Ilex east to the evacuation landing, then reach the beacon beyond the gate.',
+    intro: 'Return artillery fire; strike when exposed. Light both circuits as the floor shifts. Burst the final pulse; free Nacre and guide Ilex east.',
     spawn: { x: 84, y: 384 },
     thermal: { period: 10, hotFor: 5, offset: 1 },
     walls: [

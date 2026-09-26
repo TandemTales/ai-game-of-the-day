@@ -217,5 +217,10 @@ north stair; the chained Aqueduct and Kiln pilots also reach their beacons.
 `node prism-warden/tools/crown-visual.cjs` passes all six listed viewport sizes,
 with no console errors, external requests or horizontal overflow. It asserts
 44px mobile action targets, the portrait message/touch-dock gap, landscape
-message suppression and final-result text. Visual phase/result states are
-fixtures and do not prove a full-play Crown victory.
+message suppression and the result overlay, title, story and cleared combat
+message. The browser harness transitions from `playing` to `won`, but seeds the
+win flags. Visual phase/result states are fixtures and do not prove a full-play
+Crown victory. The final captures were inspected at 320x568, 844x390, 1440x900
+and 3840x2160; the short-portrait card's discoveries, restart action, score-name
+field, submit action and leaderboard link fit above the touch dock, and the
+compact-landscape boss label/bar clear the HUD.

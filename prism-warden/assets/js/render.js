@@ -4636,6 +4636,8 @@
     if (roomMemo.id !== id || t < roomMemo.since) { roomMemo.id = id; roomMemo.since = t; }
     const age = Number.isFinite(s.roomTime) ? s.roomTime : t - roomMemo.since;
     const compactMobile = width < 600 || (width < 1000 && height < 500);
+    const compactCrownFight = width < 1000 && height < 500 && arr(s.enemies).some(e => enemyType(e) === 'crown' && num(e.hp, 0) > 0);
+    if (compactCrownFight) return;
     const lifetime = compactMobile ? 1.2 : 2.8;
     const fadeIn = compactMobile ? .22 : .5, fadeOut = compactMobile ? .28 : .7;
     if (age > lifetime || !s.room || s.status === 'ready') return;

@@ -45,8 +45,17 @@ body.has-prism .actions button,body.has-light .actions button{min-width:44px;pad
 /* Keep instructional status out of the narrow boss-title / boss-health band. */
 @media(max-width:600px) and (min-height:481px){
   body.touch #location{display:none}
-  body.touch #message{top:auto;bottom:calc(120px + env(safe-area-inset-bottom));left:8px;right:8px;width:auto;max-width:none;max-height:2.45em;overflow:hidden;transform:none}
+  body.touch #message{top:auto;bottom:calc(120px + env(safe-area-inset-bottom));left:8px;right:8px;width:auto;max-width:none;max-height:3.9em;overflow:hidden;transform:none;font-size:10px;line-height:1.1}
 }
 @media(max-width:1000px) and (max-height:480px){
   body.touch #message{display:none}
+}
+@media(max-width:600px) and (max-height:650px){
+  .overlay{z-index:8;align-items:flex-start;padding:8px}
+  .panel{max-height:calc(100dvh - 16px);padding:12px 16px}
+  .seal{font-size:24px;margin-bottom:4px}
+  h1{font-size:26px;margin:5px 0 8px}
+  .panel>p:not(.eyebrow){font-size:11px;line-height:1.45}
+  #routeStrip{margin:8px 0;padding:6px 8px}
+  #scoreForm{margin-top:10px;padding-top:10px}
 }

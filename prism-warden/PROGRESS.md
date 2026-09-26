@@ -1067,7 +1067,35 @@ Artifacts remain ignored under `node_modules/.cache/prism-warden/crown-visual/`.
 
 Three first-round critics rejected the Crown comparison as AAA, citing repeated
 floor grammar, sparse material depth, short-screen copy, and the absence of a
-normal-play E1–E5 route. Their fresh post-fix reviews are pending against the
-captured changes. Keep those debts visible; no `.aaa-complete`, catalog edit,
-release, or `main` promotion. This is still development on the first Saturday,
-not the forced October3 release checkpoint.
+normal-play E1–E5 route. The later visual review confirms targeted title/result
+layout fixes but still rejects the AAA comparison for shallow materials, light,
+environment detail and character polish. Keep those debts visible; no
+`.aaa-complete`, catalog edit, release, or `main` promotion. This is still
+development on the first Saturday, not the forced October3 release checkpoint.
+
+## September26 fourth-round UI corrections
+
+The fresh critics confirmed the compact-landscape health bar clears combatants,
+but the room card/title still stacked closely with it; they also found the phone
+intro too small and the result panel clipped/covered at 320x568. The final layout
+now suppresses the Crown room title card during compact-landscape boss combat and
+places the boss label/bar below the fixed HUD. The concise E5 instruction includes
+all phase cues and fits in three 10px lines above the portrait dock. The short-
+portrait result card is top-anchored, compact and above the touch controls; I
+inspected the capture with the title, story, discoveries, restart button, score
+entry and leaderboard link all visible.
+
+The screenshot harness now drives the browser `playing` to `won` transition and
+asserts the result overlay, title, story and cleared combat message. The captured
+phone screenshot was inspected for the discoveries, restart control, score entry
+and leaderboard link. It still seeds the win flags and does not prove a boss
+victory. All six browser sizes pass with clean console/network and no horizontal
+overflow. The final full Jest run passes all 21 suites / 443 tests.
+
+The final visual verdict is **AAA FAIL / OURS LOSES** versus Nintendo's shipped
+dungeon scene; materials, light depth, environment detail and character polish
+remain below its bar. Campaign and gameplay reviewers pass the corrected phone
+UI, but reject campaign acceptance: there is no fair normal-play E5 victory or
+legal E1–E5 route. The shoal traversal uses invulnerability and leaves its gate
+closed. Keep the game active on `dev`; no completion marker, shipping-judge
+review, release, or `main` promotion.

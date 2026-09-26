@@ -43,7 +43,15 @@ async function captureBoss(page, state, file) {
       e.hp = 0; e.phase = 'defeated'; s.flags['pickup:keeper-archive'] = true;
       s.flags['nacre-freed'] = true; s.flags['ilex-evacuated'] = true;
       s.rescue.freed = true; s.escort.arrived = true; s.beacon.lit = true; s.beacon.reached = true;
-      s.cleared.E5 = true; s.status = 'won';
+      s.cleared.E5 = true;
+      // Let the real browser loop observe playing -> won so its result panel
+      // transition runs; setting status before a frame skips that UI path.
+      const step = PW.step;
+      PW.step = function (state, input, dt) {
+        PW.step = step;
+        state.status = 'won';
+        return state;
+      };
     }
   }, state);
   await page.waitForTimeout(120);
@@ -79,16 +87,22 @@ async function main() {
           assert(box && box.width >= 44 && box.height >= 44 && box.x >= 0 && box.y >= 0 && box.x + box.width <= width + 1 && box.y + box.height <= height + 1, `${size}: visible 44px ${id}`);
         }
       }
-      for (const state of ['stage1-telegraph', 'stage1-open', 'stage2-guarded', 'stage2-open', 'stage3-windup', 'stage3-pulse', 'stage3-open', 'final-result']) {
-        await captureBoss(page, state, `${size}-${state}.png`);
-        if (state === 'final-result') assert.equal((await page.locator('#objective').textContent()).trim(), 'The channels are safe', `${size}: result replaces active objective`);
-        assert(await page.evaluate(() => document.documentElement.scrollWidth === innerWidth), `${size} ${state}: no horizontal overflow`);
-      }
       if (touch && height > width) {
         const message = await page.locator('#message').boundingBox(), controls = await page.locator('#touchControls').boundingBox();
         assert(message && controls && message.y + message.height <= controls.y - 8, `${size}: quest copy clears the touch dock`);
       }
       if (touch && height <= 480) assert.equal(await page.locator('#message').isVisible(), false, `${size}: no redundant landscape copy over the scene`);
+      for (const state of ['stage1-telegraph', 'stage1-open', 'stage2-guarded', 'stage2-open', 'stage3-windup', 'stage3-pulse', 'stage3-open', 'final-result']) {
+        await captureBoss(page, state, `${size}-${state}.png`);
+        if (state === 'final-result') {
+          assert.equal((await page.locator('#objective').textContent()).trim(), 'The channels are safe', `${size}: result replaces active objective`);
+          assert.equal(await page.locator('#overlay').isVisible(), true, `${size}: victory opens the result panel`);
+          assert.equal((await page.locator('#panelTitle').textContent()).trim(), 'A keeper’s dawn.', `${size}: victory panel title renders`);
+          assert.match(await page.locator('#panelText').textContent(), /Ilex and Nacre escape the eclipse engine/, `${size}: victory panel narrative renders`);
+          assert.equal(await page.locator('#message').isVisible(), false, `${size}: combat hint clears on victory`);
+        }
+        assert(await page.evaluate(() => document.documentElement.scrollWidth === innerWidth), `${size} ${state}: no horizontal overflow`);
+      }
       assert.deepEqual(errors, [], `${size}: browser console`);
       assert.deepEqual(external, [], `${size}: no external requests`);
       report.push({ size, touch, errors, external, status: 'PASS' });

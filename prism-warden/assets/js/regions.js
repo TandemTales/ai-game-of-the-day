@@ -78,15 +78,20 @@
     },
     {
       id: 'drowned-crown', number: 5, name: 'Drowned Crown', epithet: 'The eclipse engine',
-      route: 'observatory descent -> rotating galleries -> keeper circuit -> crown lens',
-      rooms: [{ id: 'descent', name: 'Observatory Descent' }, { id: 'galleries', name: 'Rotating Galleries' }, { id: 'circuit', name: 'Keeper Circuit' }, { id: 'lighthouse', name: 'Moving Lighthouse' }, { id: 'crown', name: 'Crown Lens' }, { id: 'archive', name: 'Optional Keeper Archive' }],
+      route: 'twin beacon descent -> star-path gulf -> rotating galleries -> switchback shoal -> moving lighthouse -> crown lens',
+      rooms: [{ id: 'descent', name: 'Observatory Descent' }, { id: 'galleries', name: 'Rotating Galleries' }, { id: 'circuit', name: 'Switchback Shoal' }, { id: 'lighthouse', name: 'Moving Lighthouse' }, { id: 'crown', name: 'Crown Lens' }, { id: 'archive', name: 'Optional Keeper Archive' }],
       links: [['descent', 'galleries'], ['galleries', 'circuit'], ['circuit', 'lighthouse'], ['lighthouse', 'crown'], ['galleries', 'archive'], ['archive', 'circuit']],
       challenges: [
-        { id: 'E1', title: 'Known Routes', mechanic: 'approach using the shortcuts and discoveries carried forward', optional: 'keeper archive', guardian: 'Crown Sentinels' },
-        { id: 'E2', title: 'Rotating Galleries', mechanic: 'combine prism, polarity and stored light in moving rooms', optional: 'safe gallery', guardian: 'Gallery Warden' },
-        { id: 'E3', title: 'Two Keeper Circuit', mechanic: 'rescue Nacre while holding separate circuits', optional: 'containment notes', guardian: 'Failing Containment' },
-        { id: 'E4', title: 'Moving Lighthouse', mechanic: 'ascend lenses that change the safe route beneath you', optional: 'beacon route', guardian: 'Crown Ascendant' },
-        { id: 'E5', title: 'Eclipse Keeper', mechanic: 'survive three phases and evacuate both keepers', optional: 'safe evacuation', guardian: 'Eclipse Keeper' }
+        { id: 'E1', title: 'Known Routes', mechanic: 'reveal a stored-light crossing and turn the descent seal while Crown sentries cover the chamber', optional: 'the Observatory chart and freed shade open a bypass and refuge', guardian: 'Crown Sentinels' },
+        { id: 'E2', title: 'Rotating Galleries', mechanic: 'turn paired beams through timed shutters while heat changes the glass lanes', optional: 'Keeper Archive', guardian: 'Gallery Warden' },
+        { id: 'E3', title: 'The Switchback Shoal', mechanic: 'thread a turning causeway through alternating high- and low-tide channels, then return the Crown sentinel’s volley to open the lighthouse stair', optional: 'the Keeper Archive opens a sheltered recharge alcove', guardian: 'Crown Sentinel' },
+        { id: 'E4', title: 'Moving Lighthouse', mechanic: 'rotate the lighthouse beam to reveal one star span at a time across two voids', optional: 'three light wells mark the landings', guardian: 'Lighthouse Sniper' },
+        { id: 'E5', title: 'Eclipse Keeper', mechanic: 'return named artillery fire, latch both keeper circuits at a shifting floor transition, then burst-interrupt and strike the Keeper before evacuating Nacre and Ilex', optional: 'the charted archive recharge alcove', guardian: 'Eclipse Keeper' }
+      ],
+      discoveries: [
+        { flag: 'pickup:keeper-archive', label: 'Keeper Archive record', hint: 'the optional gallery archive contains a record that opens a protected well in the Switchback Shoal' },
+        { flag: 'nacre-freed', label: 'Nacre rescued', hint: 'Nacre remains captive until the Eclipse Keeper falls in the Crown Lens' },
+        { flag: 'ilex-evacuated', label: 'Ilex evacuated', hint: 'guide Ilex to the east evacuation landing in the Crown Lens' }
       ]
     }
   ];
@@ -290,6 +295,9 @@
     walls: [
       { x: 24, y: 48, w: 24, h: 48 }, { x: 24, y: 176, w: 24, h: 544 },
       { x: 976, y: 48, w: 24, h: 332 }, { x: 976, y: 460, w: 24, h: 260 },
+      // Leave the north stair physically open; the bell gate seals this gap
+      // until both receivers are lit. A continuous wall here made the open
+      // gate and beacon exit unreachable even after the puzzle was solved.
       { x: 48, y: 48, w: 424, h: 32 }, { x: 552, y: 48, w: 424, h: 32 },
       { x: 48, y: 696, w: 928, h: 24 },
       // Bell niches either side of the north door: each bell hears only light rising straight up.
@@ -301,7 +309,7 @@
       { x: 900, y: 356, w: 76, h: 24 }, { x: 900, y: 460, w: 76, h: 24 }
     ],
     gates: [
-      { id: 'bell-gate', x: 472, y: 80, w: 80, h: 20, opensWhen: { receivers: ['bell-west', 'bell-east'] },
+      { id: 'bell-gate', x: 472, y: 48, w: 80, h: 32, opensWhen: { receivers: ['bell-west', 'bell-east'] },
         text: 'Both bells ring as one. The beacon stair opens.' },
       { id: 'rope-gate', x: 900, y: 380, w: 20, h: 80, optional: true, opensWhen: { receivers: ['bell-west', 'bell-east'] },
         text: 'The bell-rope grate swings free: a shortcut down to the chapel.' }
@@ -1066,9 +1074,10 @@
       { id: 'chart-refuge', x: 724, y: 552, w: 64, h: 24, optional: true, opensWhen: { flag: 'sky-chart' }, text: 'The sky chart reveals the east light refuge.' }
     ],
     beacon: { x: 512, y: 138, requires: ['star-twin-dawn', 'star-twin-dusk'],
-      text: 'The fourth beacon rises. Ilex holds its signal; Nacre answers from the Drowned Crown. The Crown descent is not yet open.' },
+      next: { room: 'descent', spawn: { x: 84, y: 384 } },
+      text: 'The fourth beacon rises. Its light reveals the Drowned Crown descent. Nacre is still held within the eclipse engine.' },
     clearWhen: { defeated: ['star-twin-dawn', 'star-twin-dusk'] },
-    objectives: { fight: 'Burst through the twins’ shield link · strike an exposed twin · refill safely', beacon: 'Reach the Observatory beacon', won: 'Night Observatory complete · the Drowned Crown descent remains sealed' },
+    objectives: { fight: 'Burst through the twins’ shield link · strike an exposed twin · refill safely', beacon: 'Reach the Observatory beacon · continue into the Drowned Crown', cleared: 'Night Observatory restored · continue to the Drowned Crown' },
     exits: [{ id: 'twins-to-telescope', x: 24, y: 344, w: 24, h: 80, to: 'telescope', spawn: { x: 920, y: 384 } }]
   };
 
@@ -1128,11 +1137,282 @@
     exits: [{ id: 'vault-to-shade', x: 472, y: 48, w: 80, h: 32, to: 'shade', spawn: { x: 512, y: 640 } }]
   };
 
+  // E1: a straight, time-limited star span is the shortest crossing. The
+  // Observatory discoveries open a higher, safe bypass through the same gulf.
+  const crownDescent = {
+    id: 'descent', region: 'drowned-crown', challenge: 'E1', name: 'Observatory Descent', w: W, h: H,
+    darkness: true,
+    intro: 'The Drowned Crown begins beyond a starless gulf. Collect the stored light, burst across the revealed span, then turn the descent mirror east to open the gallery lock. The chart and freed shade open a safer upper bypass.',
+    spawn: { x: 84, y: 384 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 296 }, { x: 24, y: 424, w: 24, h: 296 },
+      { x: 976, y: 48, w: 24, h: 296 }, { x: 976, y: 424, w: 24, h: 296 },
+      { x: 48, y: 48, w: 928, h: 32 }, { x: 48, y: 696, w: 928, h: 24 },
+      // The central walking lane has no route around the starless gulf.
+      { x: 48, y: 296, w: 424, h: 24 }, { x: 552, y: 296, w: 280, h: 24 }, { x: 912, y: 296, w: 64, h: 24 },
+      { x: 48, y: 464, w: 928, h: 24 }
+    ],
+    voids: [{ id: 'crown-descent-gulf', x: 368, y: 320, w: 304, h: 128 }],
+    starPaths: [{ id: 'crown-descent-span', x: 368, y: 352, w: 304, h: 64 }],
+    emitters: [{ id: 'crown-descent-sun', x: 88, y: 384, dx: 1, dy: 0 }],
+    mirrors: [{ id: 'crown-descent-turn', x: 256, y: 384, r: 18, dirs: [[0, 1], [1, 0]], index: 0 }],
+    receivers: [{ id: 'crown-descent-seal', x: 900, y: 384, r: 22, kind: 'seal', text: 'The descent seal catches the beam. The gallery lock lifts.' }],
+    enemies: [
+      { type: 'sentinel', id: 'crown-descent-sentinel', x: 796, y: 384, r: 27, hp: 6, wakeRadius: 660 },
+      { type: 'turret', id: 'crown-descent-turret', x: 892, y: 544, r: 16, targets: 'player', interval: 3.0, delay: 2.2, until: 'crown-descent-lock' }
+    ],
+    pickups: [{ id: 'descent-charge', kind: 'stored-light', x: 156, y: 384,
+      text: 'A stored-light charge remains in the observatory stone.' }],
+    rechargePads: [{ id: 'descent-west-well', x: 188, y: 384, r: 36 }, { id: 'descent-east-well', x: 832, y: 384, r: 36 }],
+    gates: [
+      { id: 'descent-chart-bypass', x: 472, y: 296, w: 80, h: 24, optional: true, opensWhen: { flag: 'sky-chart' }, text: 'The sky chart reveals the west upper stair.' },
+      { id: 'descent-shade-bypass', x: 832, y: 296, w: 80, h: 24, optional: true, opensWhen: { flag: 'shade-freed' }, text: 'The freed shade holds the east stair open.' },
+      { id: 'crown-descent-lock', x: 952, y: 344, w: 24, h: 80, main: true, opensWhen: { receivers: ['crown-descent-seal'] }, text: 'The descent seal opens the Rotating Galleries.' }
+    ],
+    clearWhen: { receivers: ['crown-descent-seal'] },
+    objectives: { route: 'Burst across the revealed span · the chart and freed shade open the upper bypass', seal: 'Turn the descent mirror east to the seal', exit: 'East through the gallery lock' },
+    exits: [{ id: 'descent-to-galleries', x: 976, y: 344, w: 24, h: 80, to: 'galleries', spawn: { x: 84, y: 384 } }]
+  };
+
+  // E2: independently latched circuits have opposing shutter windows; the
+  // player can work each one in turn while the thermal side lanes pulse.
+  const crownGalleries = {
+    id: 'galleries', region: 'drowned-crown', challenge: 'E2', name: 'Rotating Galleries', w: W, h: H,
+    intro: 'The paired gallery lenses answer through shutters that open on opposite beats. Turn each mirror to its far receiver and wait for its own clear window. The upper and lower glass lanes change with the heat.',
+    spawn: { x: 84, y: 384 },
+    thermal: { period: 12, hotFor: 5.5, offset: 1 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 296 }, { x: 24, y: 424, w: 24, h: 296 },
+      { x: 976, y: 48, w: 24, h: 296 }, { x: 976, y: 424, w: 24, h: 296 },
+      { x: 48, y: 48, w: 424, h: 32 }, { x: 552, y: 48, w: 424, h: 32 },
+      { x: 48, y: 696, w: 424, h: 24 }, { x: 552, y: 696, w: 424, h: 24 },
+      { x: 228, y: 328, w: 64, h: 64 }, { x: 732, y: 408, w: 64, h: 64 }
+    ],
+    glass: [
+      { id: 'gallery-north-flare', x: 176, y: 128, w: 664, h: 112, mode: 'hazard', when: 'hot' },
+      { id: 'gallery-south-flare', x: 176, y: 528, w: 664, h: 112, mode: 'hazard', when: 'cold' }
+    ],
+    shutters: [
+      { id: 'gallery-east-shutter', x: 640, y: 164, w: 24, h: 96, period: 8, openFor: 4, offset: 0 },
+      { id: 'gallery-west-shutter', x: 384, y: 508, w: 24, h: 96, period: 8, openFor: 4, offset: 4 }
+    ],
+    emitters: [
+      { id: 'gallery-west-lens', x: 88, y: 212, dx: 1, dy: 0 },
+      { id: 'gallery-east-lens', x: 936, y: 548, dx: -1, dy: 0 }
+    ],
+    mirrors: [
+      { id: 'gallery-north-mirror', x: 304, y: 212, r: 18, dirs: [[0, 1], [1, 0]], index: 0 },
+      { id: 'gallery-south-mirror', x: 720, y: 548, r: 18, dirs: [[0, -1], [-1, 0]], index: 0 }
+    ],
+    receivers: [
+      { id: 'gallery-east-eye', x: 888, y: 212, r: 22, kind: 'seal' },
+      { id: 'gallery-west-eye', x: 136, y: 548, r: 22, kind: 'seal' }
+    ],
+    enemies: [
+      { type: 'turret', id: 'gallery-north-turret', x: 868, y: 128, r: 16, targets: 'player', interval: 3.1, delay: 2.4 },
+      { type: 'turret', id: 'gallery-south-turret', x: 156, y: 632, r: 16, targets: 'player', interval: 3.1, delay: 3.8 }
+    ],
+    gates: [{ id: 'gallery-east-lock', x: 952, y: 344, w: 24, h: 80, main: true, opensWhen: { receivers: ['gallery-east-eye', 'gallery-west-eye'] },
+      text: 'Both gallery lenses latch. The Switchback Shoal opens to the east.' }],
+    clearWhen: { receivers: ['gallery-east-eye', 'gallery-west-eye'] },
+    objectives: { seal: 'Turn both mirrors to their far eyes · read each shutter’s open window', exit: 'East to the Switchback Shoal · south to the optional archive' },
+    exits: [
+      { id: 'galleries-to-descent', x: 24, y: 344, w: 24, h: 80, to: 'descent', spawn: { x: 920, y: 384 } },
+      { id: 'galleries-to-circuit', x: 976, y: 344, w: 24, h: 80, to: 'circuit', spawn: { x: 84, y: 384 } },
+      { id: 'galleries-to-archive', x: 472, y: 696, w: 80, h: 24, to: 'archive', spawn: { x: 512, y: 116 } }
+    ]
+  };
+
+  // E3 trades the repeated mirror grammar for a four-turn shoal causeway. Each
+  // narrow crossing is briefly flooded on alternating tide phases; the final
+  // sentinel's sealed stair keeps Nacre captive until the Crown Lens.
+  const crownCircuit = {
+    id: 'circuit', region: 'drowned-crown', challenge: 'E3', name: 'Switchback Shoal', w: W, h: H,
+    darkness: true,
+    intro: 'Nacre remains captive beyond the sealed Crown Lens. Follow the switchback causeway: the narrow shoals flood in alternating high and low tides, while the rising stones shift cover around the Crown sentinel. Return its volley to open the lighthouse stair. The Keeper Archive opens a sheltered recharge alcove.',
+    spawn: { x: 84, y: 384 },
+    tide: { period: 12, offset: 2 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 296 }, { x: 24, y: 424, w: 24, h: 296 },
+      { x: 976, y: 48, w: 24, h: 296 }, { x: 976, y: 424, w: 24, h: 296 },
+      { x: 48, y: 48, w: 928, h: 32 },
+      { x: 48, y: 696, w: 424, h: 24 }, { x: 552, y: 696, w: 424, h: 24 },
+      // Alternating gaps make a broad, readable four-turn route across the shoals.
+      { x: 232, y: 80, w: 24, h: 248 }, { x: 232, y: 480, w: 24, h: 216 },
+      { x: 424, y: 80, w: 24, h: 160 }, { x: 424, y: 400, w: 24, h: 296 },
+      { x: 616, y: 80, w: 24, h: 336 }, { x: 616, y: 576, w: 24, h: 120 },
+      { x: 808, y: 80, w: 24, h: 248 }, { x: 808, y: 480, w: 24, h: 216 },
+      // Optional west-shoal well; its north door avoids narrowing the causeway.
+      { x: 104, y: 536, w: 24, h: 128 }, { x: 128, y: 640, w: 56, h: 24 },
+      { x: 184, y: 536, w: 24, h: 128 }
+    ],
+    water: [
+      { id: 'shoal-west-channel', x: 208, y: 328, w: 72, h: 152, when: 'high' },
+      { id: 'shoal-north-channel', x: 400, y: 240, w: 72, h: 160, when: 'low' },
+      { id: 'shoal-south-channel', x: 592, y: 416, w: 72, h: 160, when: 'high' },
+      { id: 'shoal-east-channel', x: 784, y: 328, w: 72, h: 152, when: 'low' }
+    ],
+    breakwaters: [
+      { id: 'shoal-north-shelter', x: 852, y: 248, w: 88, h: 28, when: 'high' },
+      { id: 'shoal-south-shelter', x: 852, y: 520, w: 88, h: 28, when: 'low' }
+    ],
+    enemies: [{ type: 'sentinel', id: 'circuit-sentinel', x: 892, y: 384, r: 27, hp: 6, wakeRadius: 430 }],
+    gates: [
+      { id: 'archive-well-gate', x: 128, y: 536, w: 56, h: 24, optional: true, opensWhen: { flag: 'pickup:keeper-archive' }, text: 'The archive record opens the west light well.' },
+      { id: 'circuit-lighthouse-lock', x: 952, y: 344, w: 24, h: 80, main: true, opensWhen: { defeated: ['circuit-sentinel'] }, text: 'The Crown sentinel falls. The Moving Lighthouse opens; Nacre remains bound in the Crown Lens.' }
+    ],
+    rechargePads: [{ id: 'shoal-west-well', x: 160, y: 452, r: 34 }, { id: 'shoal-mid-well', x: 520, y: 360, r: 34 }, { id: 'shoal-east-well', x: 872, y: 452, r: 34 }, { id: 'archive-record-well', x: 164, y: 588, r: 34 }],
+    clearWhen: { defeated: ['circuit-sentinel'] },
+    objectives: { route: 'Follow the switchback causeway · its narrow shoals alternate with high and low tide', fight: 'Use the raised stones as cover · return the Crown sentinel’s volleys', exit: 'East to the Moving Lighthouse · south to the optional Keeper Archive' },
+    exits: [
+      { id: 'circuit-to-galleries', x: 24, y: 344, w: 24, h: 80, to: 'galleries', spawn: { x: 920, y: 384 } },
+      { id: 'circuit-to-lighthouse', x: 976, y: 344, w: 24, h: 80, to: 'lighthouse', spawn: { x: 84, y: 384 } },
+      { id: 'circuit-to-archive', x: 472, y: 696, w: 80, h: 24, to: 'archive', spawn: { x: 512, y: 640 } }
+    ]
+  };
+
+  const keeperArchive = {
+    id: 'archive', region: 'drowned-crown', challenge: null, name: 'Optional Keeper Archive', w: W, h: H,
+    darkness: true,
+    intro: 'The keepers left one record behind. Take it back to the Switchback Shoal: its mark opens a sheltered recharge alcove along the causeway.',
+    spawn: { x: 512, y: 116 },
+    walls: [
+      { x: 24, y: 48, w: 448, h: 32 }, { x: 552, y: 48, w: 424, h: 32 },
+      { x: 24, y: 80, w: 24, h: 640 },
+      { x: 976, y: 80, w: 24, h: 264 }, { x: 976, y: 424, w: 24, h: 296 },
+      { x: 48, y: 696, w: 928, h: 24 }
+    ],
+    voids: [{ id: 'archive-record-gulf', x: 48, y: 312, w: 928, h: 144 }],
+    starPaths: [{ id: 'archive-record-span', x: 48, y: 352, w: 928, h: 64 }],
+    rechargePads: [{ id: 'archive-north-well', x: 512, y: 192, r: 36 }, { id: 'archive-south-well', x: 512, y: 528, r: 36 }],
+    pickups: [{ id: 'keeper-archive', kind: 'chart', x: 512, y: 600,
+      text: 'Keeper Archive record secured. A protected recharge alcove opens along the Switchback Shoal.' }],
+    objectives: { route: 'Burst across the record gulf · retrieve the archive · return north or east' },
+    exits: [
+      { id: 'archive-to-galleries', x: 472, y: 48, w: 80, h: 32, to: 'galleries', spawn: { x: 512, y: 640 } },
+      { id: 'archive-to-circuit', x: 976, y: 344, w: 24, h: 80, to: 'circuit', spawn: { x: 84, y: 384 } }
+    ]
+  };
+
+  // E4: the single lighthouse mirror switches between aligned spans. The west
+  // path is live on entry; turning the lens for the east receiver reveals the
+  // second crossing and opens the Crown Lens door.
+  const movingLighthouse = {
+    id: 'lighthouse', region: 'drowned-crown', challenge: 'E4', name: 'Moving Lighthouse', w: W, h: H,
+    darkness: true,
+    intro: 'The lens is the only bridge between two starless shafts. Cross the west span on its current alignment, stand on the central island, then turn the lighthouse east. The second span appears with the far receiver.',
+    spawn: { x: 84, y: 384 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 296 }, { x: 24, y: 424, w: 24, h: 296 },
+      { x: 976, y: 48, w: 24, h: 296 }, { x: 976, y: 424, w: 24, h: 296 },
+      { x: 48, y: 48, w: 928, h: 32 }, { x: 48, y: 696, w: 928, h: 24 },
+      { x: 164, y: 244, w: 48, h: 48 }, { x: 812, y: 476, w: 48, h: 48 }
+    ],
+    voids: [
+      { id: 'lighthouse-west-shaft', x: 300, y: 80, w: 130, h: 616 },
+      { id: 'lighthouse-east-shaft', x: 594, y: 80, w: 130, h: 616 }
+    ],
+    starPaths: [
+      { id: 'lighthouse-west-span', x: 300, y: 352, w: 130, h: 64, alignTo: { mirror: 'lighthouse-axis', index: 0 } },
+      { id: 'lighthouse-east-span', x: 594, y: 352, w: 130, h: 64, alignTo: { mirror: 'lighthouse-axis', index: 1 } }
+    ],
+    emitters: [{ id: 'lighthouse-sun', x: 512, y: 92, dx: 0, dy: 1 }],
+    mirrors: [{ id: 'lighthouse-axis', x: 512, y: 384, r: 22, dirs: [[-1, 0], [1, 0]], index: 0 }],
+    receivers: [
+      { id: 'lighthouse-west-eye', x: 144, y: 384, r: 22, kind: 'seal' },
+      { id: 'lighthouse-east-eye', x: 880, y: 384, r: 22, kind: 'seal' }
+    ],
+    enemies: [{ type: 'turret', id: 'lighthouse-sniper', x: 880, y: 132, r: 16, targets: 'player', interval: 3.0, delay: 2.4 }],
+    pickups: [{ id: 'lighthouse-charge', kind: 'stored-light', x: 180, y: 600,
+      text: 'The lighthouse stair holds a fresh stored-light charge.' }],
+    rechargePads: [
+      { id: 'lighthouse-west-well', x: 180, y: 568, r: 36 },
+      { id: 'lighthouse-island-well', x: 512, y: 512, r: 36 },
+      { id: 'lighthouse-east-well', x: 844, y: 568, r: 36 }
+    ],
+    gates: [{ id: 'lighthouse-crown-lock', x: 952, y: 344, w: 24, h: 80, main: true, opensWhen: { receivers: ['lighthouse-east-eye'] },
+      text: 'The far lens catches the beam. The Crown Lens opens.' }],
+    clearWhen: { receivers: ['lighthouse-east-eye'] },
+    objectives: { route: 'Cross the aligned west span · turn the lighthouse east on the central island · cross again', exit: 'East to the Crown Lens' },
+    exits: [
+      { id: 'lighthouse-to-circuit', x: 24, y: 344, w: 24, h: 80, to: 'circuit', spawn: { x: 920, y: 384 } },
+      { id: 'lighthouse-to-crown', x: 976, y: 344, w: 24, h: 80, to: 'crown', spawn: { x: 84, y: 384 } }
+    ]
+  };
+
+  // E5: the boss consumes only the current crown interface. Phase data stays
+  // on the enemy; this room supplies named artillery, live circuit receivers,
+  // cycle floors, a stored-light charge, and both explicit evacuation flags.
+  const crownLens = {
+    id: 'crown', region: 'drowned-crown', challenge: 'E5', name: 'Crown Lens', w: W, h: H,
+    darkness: true,
+    intro: 'Return the Crown artillery shot and strike the exposed Eclipse Keeper. When the floor shifts, hold both live circuits to expose its second phase. In the final telegraph, burst within reach and strike again. Free Nacre, guide Ilex east to the evacuation landing, then reach the beacon beyond the gate.',
+    spawn: { x: 84, y: 384 },
+    thermal: { period: 10, hotFor: 5, offset: 1 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 296 }, { x: 24, y: 424, w: 24, h: 296 },
+      { x: 976, y: 48, w: 24, h: 672 },
+      { x: 48, y: 48, w: 928, h: 32 }, { x: 48, y: 696, w: 928, h: 24 },
+      // Nacre's post-guardian cage opens only after the Eclipse Keeper falls.
+      { x: 736, y: 112, w: 24, h: 120 }, { x: 856, y: 112, w: 24, h: 120 },
+      { x: 760, y: 112, w: 96, h: 24 }, { x: 736, y: 208, w: 24, h: 24 }, { x: 856, y: 208, w: 24, h: 24 },
+      // The final evacuation passage is a full-height partition with one gated door.
+      { x: 864, y: 80, w: 24, h: 264 }, { x: 864, y: 424, w: 24, h: 272 }
+    ],
+    breakwaters: [
+      { id: 'crown-low-floor', x: 344, y: 320, w: 336, h: 28, when: 'cycle', period: 8, onFor: 4, offset: 0 },
+      { id: 'crown-high-floor', x: 344, y: 420, w: 336, h: 28, when: 'cycle', period: 8, onFor: 4, offset: 4 }
+    ],
+    emitters: [
+      { id: 'crown-west-sun', x: 88, y: 160, dx: 1, dy: 0 },
+      { id: 'crown-east-sun', x: 936, y: 608, dx: -1, dy: 0 }
+    ],
+    mirrors: [
+      { id: 'crown-west-mirror', x: 320, y: 160, r: 18, dirs: [[1, 0], [0, 1]], index: 0 },
+      { id: 'crown-east-mirror', x: 704, y: 608, r: 18, dirs: [[-1, 0], [0, -1]], index: 0 }
+    ],
+    receivers: [
+      { id: 'crown-west-circuit', x: 320, y: 608, r: 24, kind: 'seal', latch: false },
+      { id: 'crown-east-circuit', x: 704, y: 160, r: 24, kind: 'seal', latch: false }
+    ],
+    enemies: [
+      { type: 'turret', id: 'crown-artillery', x: 128, y: 384, r: 18, targets: 'player', interval: 2.7, delay: 1.8 },
+      { type: 'crown', id: 'eclipse-keeper', x: 512, y: 384, hp: 6, r: 34,
+        artilleryIds: ['crown-artillery'], circuitIds: ['crown-west-circuit', 'crown-east-circuit'],
+        floorIds: ['crown-low-floor', 'crown-high-floor'], burstRadius: 260 }
+    ],
+    gates: [
+      { id: 'nacre-cage-gate', x: 760, y: 208, w: 96, h: 24, opensWhen: { defeated: ['eclipse-keeper'] }, text: 'The Eclipse Keeper falls. Nacre’s cage opens.' },
+      { id: 'final-evacuation-gate', x: 864, y: 344, w: 24, h: 80, main: true, opensWhen: { flags: ['nacre-freed', 'ilex-evacuated'] },
+        text: 'Nacre and Ilex are both clear. The final beacon is within reach.' }
+    ],
+    rescue: { name: 'Nacre', x: 808, y: 168, requires: ['eclipse-keeper'], flag: 'nacre-freed', completes: false,
+      text: 'Nacre reaches the east evacuation landing. The Keeper’s eclipse begins to fail.' },
+    escort: { name: 'Ilex', x: 132, y: 624, hp: 5, flag: 'ilex-evacuated',
+      // Route below the east live mirror rather than asking Ilex to collide with it.
+      path: [[248, 624], [376, 624], [520, 624], [664, 656], [744, 656], [808, 624]],
+      text: 'Ilex reaches the east evacuation landing and signals Nacre to follow.' },
+    escortExit: { x: 760, y: 576, w: 88, h: 96 },
+    pickups: [{ id: 'keeper-heart', kind: 'stored-light', x: 176, y: 560,
+      text: 'The Crown stair holds one stored-light charge for the Keeper’s last telegraph.' }],
+    rechargePads: [
+      { id: 'crown-west-well', x: 208, y: 256, r: 36 },
+      { id: 'crown-east-well', x: 792, y: 504, r: 36 }
+    ],
+    beacon: { x: 928, y: 384, requires: ['eclipse-keeper'],
+      text: 'The fifth beacon burns. Nacre and Ilex carry the keepers out of the eclipse.' },
+    clearWhen: { beacon: true },
+    objectives: { fight: 'Reflect the Crown artillery shot · hold both live circuits at a cycle floor transition · burst-interrupt the final telegraph and slash', rescue: 'Free Nacre after the Keeper falls · guide Ilex east to the evacuation landing', beacon: 'Reach the final beacon beyond the evacuation gate' },
+    exits: [{ id: 'crown-to-lighthouse', x: 24, y: 344, w: 24, h: 80, to: 'lighthouse', spawn: { x: 920, y: 384 } }]
+  };
+
   const rooms = { cloister, sluice, sanctuary, shutters, 'bell-tower': bellTower, beacon,
     spillway, roots, channels, quay, ferry, reservoir,
     furnace, bridge: annealedBridge, rail, foundry, weaver, quench,
     stars, 'obs-shutters': observatoryShutters, shade: shadeHall, telescope, twins,
-    'obs-chart': skyChart, 'shade-vault': shadeVault };
+    'obs-chart': skyChart, 'shade-vault': shadeVault,
+    descent: crownDescent, galleries: crownGalleries, circuit: crownCircuit,
+    archive: keeperArchive, lighthouse: movingLighthouse, crown: crownLens };
   PW.ROOMS = rooms;
   // Always hand out a fresh deep copy so runtime state can never mutate the authored data.
   PW.roomDef = id => Object.prototype.hasOwnProperty.call(rooms, id) ? JSON.parse(JSON.stringify(rooms[id])) : null;

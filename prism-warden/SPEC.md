@@ -36,7 +36,7 @@ routes, not a menu selecting 25 copies of the prototype arena.
 | 2 Verdant Aqueduct | B1 carry a prism across root bridges; B2 cut growth while sustaining irrigation; B3 flank seed mortars via rotating channels; B4 rescue trapped ferrymen through a water-routing choice; B5 turn the Root Hart's charge into broken dams | Placeable prism retains a beam while you move. Optional ferryman ferry shortcut; seed lens opens a noncombat boss opening. |
 | 3 Glass Kiln | C1 alternating furnace safe lanes; C2 anneal a bridge with controlled heat; C3 escort a cooling cart through crossfire; C4 route competing hot/cold beams through foundry locks; C5 Glass Weaver breaks and rebuilds arena cover | Heat changes glass solidity; lens polarity. Optional quench valve removes one late hazard; artisan yields a distinct weapon attachment. |
 | 4 Night Observatory | D1 navigate by briefly revealed star paths; D2 align moving shutters under sniper pressure; D3 redirect a pursuing shade through split light; D4 defend Ilex while rotating telescope bridges; D5 fight the star twins with mutually shielding beams | Stored light burst and darkness navigation; mobile/linked targets. Optional sky chart gives finale route; liberated shade disables one crown sentry. |
-| 5 Drowned Crown | E1 approach using prior route discoveries; E2 combine prism/polarity/stored light in rotating galleries; E3 rescue Nacre while holding separate circuits; E4 ascend the moving lighthouse lenses; E5 three-phase Eclipse Keeper and evacuation | Phase1 redirect artillery to destroy armor; phase2 changing floor and paired circuits; phase3 mobile prism plus stored-light interrupt and rescue. Optional keeper archive alters ending dialogue; risky beacon route opens safe evacuation. |
+| 5 Drowned Crown | E1 reveal the gulf crossing and open the descent seal; E2 redirect paired beams through opposed timed shutters and changing heat lanes; E3 traverse the switchback shoals through alternating high/low tides, use rising stones for cover, and return the Crown sentinel's volley; E4 turn the lighthouse to reveal two star spans; E5 return Crown artillery, expose the Keeper at a changing floor transition, interrupt its final pulse with stored light, then free Nacre and evacuate Ilex | Nacre remains captive until E5; the optional Keeper Archive opens a protected E3 recharge alcove and changes the final dialogue. E5's last beacon is gated on both rescue/evacuation flags. |
 
 Progression: after each of regions1–4 choose one of two mutually exclusive mods
 with behavioral tradeoffs (mobile reflection vs wide guard; recoverable thrown
@@ -63,14 +63,14 @@ passing tests and content counts cannot clear it.
 ## Dependency-ordered schedule (verified saved routine: Sat/Sun 09:00 Pacific)
 
 - Sep20 (today): scaffold core encounter, contracts, controls, tests. Slice only.
-- Sep26 (Saturday, age6): build connected regions1–3, 15 complete challenges,
-  placeable prism/polarity, region saves, first two mod choices, six optional routes.
-  Reachability and normal-clock routes; prioritize content over decoration.
-- Sep27 (Sunday, age7): build regions4–5, remaining10 challenges, stored light,
-  remaining mods/discoveries, full story/finale/ending; then full keyboard/touch
-  play and independent scope/fun rejection. Beginning-to-ending must exist here.
-  Reserve final part of this run for dedicated whole-game polish only after scope
-  and gameplay gates. This is the last scheduled build: do not assume weekdays.
+- Sep22–25 (completed first pass): authored connected regions1–4 and Region5's
+  six rooms, stored light and Crown boss/rescue logic. Region5 has focused logic,
+  route and rendering checks, but no full legal-input route yet.
+- Sep26–27 (next expansion): prove and repair legal routes through E1–E5; build the
+  four behavioral equipment choices, persistent campaign saves, consequential
+  discoveries and full story/finale/ending; then play keyboard/touch and run the
+  independent scope/fun rejection. Beginning-to-ending must exist before whole-game
+  polish. This is the last scheduled build: do not assume weekdays.
 - Oct3 (Saturday, age13): forced release wrap-up/tests/six sizes only. Record any
   missing scope as ambition failure; do not start new polish or redefine contract.
 
@@ -305,8 +305,8 @@ C1 alternates timed furnace lanes; C2 makes an annealed bridge crossing; C3 esco
 
 Night Observatory follows the Weaver beacon: stars (D1), obs-shutters (D2),
 shade (D3), telescope (D4), twins (D5). obs-chart and shade-vault are optional
-reciprocal detours. The twin beacon ends only the currently built adventure;
-Drowned Crown and the actual campaign ending remain unbuilt.
+reciprocal detours. The twin beacon continues into the Drowned Crown; it does not
+end the campaign.
 
 Stored-light pickup sets flags['stored-light'] and player.lightCharge=1. R / BURST
 spends a full charge, exposes nearby shades or a linked twin pair, and reveals
@@ -322,14 +322,39 @@ shade has a locked dash and can be exposed by split light or a burst; exposure
 must be followed by a sword strike. D5 twins orbit and shield one another; burst
 interrupts the body/link, while a surviving orphan can also be opened by returned
 fire. Burst alone deals no damage or score. Optional chart and keeper rescue each
-open a different protected recharge refuge in D5. Their future Crown consequences
-remain planned. D4 snipers forecast Ilex's movement at aim lock; the east-bank shot
+open a different protected recharge refuge in D5. Beyond the current archive/well
+and refuge effects, their promised consequences remain incomplete. D4 snipers
+forecast Ilex's movement at aim lock; the east-bank shot
 lane makes shielding consequential, but a naive full-health route still survives
 with damage, so the independent defense-depth objection remains unresolved.
 
-The first three regions' implementation does not imply all original systems pass:
-four mutually exclusive equipment decisions, persistent campaign saves, the
-promised polarity/loadout behaviors, full optional-discovery consequences, Region5
-and the ending remain acceptance gaps. The original complete-game contract above
-is unchanged. Build those gaps before standalone art polish. September26/27 remain
-available scheduled expansion runs; October3 is wrap-up and forced release.
+The Drowned Crown now has a first authored pass, but its E1–E5 rooms have no full
+legal-input route evidence yet. Four mutually exclusive equipment decisions,
+persistent campaign saves, the promised polarity/loadout behaviors, the full
+optional-discovery consequences, and the actual ending remain acceptance gaps. The
+original complete-game contract above is unchanged. Prove the campaign and build
+those gaps before standalone art polish. September26/27 remain available scheduled
+expansion runs; October3 is wrap-up and forced release.
+
+## Region 5 first authored contract — September26
+
+The Night Observatory's D5 beacon enters Drowned Crown E1 (`descent`), followed by
+E2 `galleries`, E3 `circuit` (displayed as Switchback Shoal), E4 `lighthouse`, and
+E5 `crown`; the optional `archive` loops from E2 back to E3. E1 reveals a stored-
+light star span to the descent seal. E2 latches two separate beam receivers across
+opposed shutters. E3 instead crosses four alternating high/low tide shoals, uses
+cycle-raised breakwaters as cover, and opens its lighthouse stair by defeating the
+Crown sentinel. It no longer releases Nacre; the Keeper holds her until E5. The
+optional Archive opens an E3 recharge alcove and sets its finale dialogue flag.
+E4 reveals one aligned star span at a time and requires both sides of the lighthouse
+axis. In E5, only a returned shot from the named Crown artillery opens phase one;
+phase two needs both live circuits at a cycle-floor change; phase three needs a
+close stored-light interrupt. Defeating the Keeper opens Nacre's cage. The final
+beacon requires both Nacre's rescue and Ilex's evacuation flag.
+
+The four-turn Shoal has a direct PW simulation traversal and the Crown fixture
+tests cover graph links, boss phase conditions and final-gate state. These checks
+are not a normal-clock, legal-input E1–E5 campaign run, nor evidence of player
+discovery, pacing, completion, or AAA acceptance. Revalidate the shoal route under
+ordinary tide timing and demonstrate the full chapter before treating authored
+data as playable.

@@ -16,7 +16,7 @@ test('Observatory authored exits and five challenges agree with its connected ma
       expect(graph[id]).toContain(exit.to);
     }
   }
-  expect(PW.roomDef('twins').beacon.next).toBeFalsy();
+  expect(PW.roomDef('twins').beacon.next.room).toBe('descent');
 });
 
 test('burst requires acquisition and full charge, consumes once on press, and expires', () => {
@@ -104,11 +104,12 @@ test('paired twins need a light interrupt; burst opens armor without dealing pas
   expect(a.shielded).toBe(true); expect(b.shielded).toBe(true);
 });
 
-test('five Observatory encounters have a deterministic legal-input route without optional refuges', () => {
+test('five Observatory encounters continue deterministically into the Drowned Crown without optional refuges', () => {
   const { play } = require('../prism-warden/tools/observatory-pilot.cjs');
   const a = play(loadPW()), b = play(loadPW());
-  expect(a.status).toBe('won');
+  expect(a.status).toBe('cleared');
   expect(a.roomId).toBe('twins');
+  expect(a.next.room).toBe('descent');
   expect(a.cleared).toMatchObject({ D1: true, D2: true, D3: true, D4: true, D5: true });
   expect(a.player.hp).toBeGreaterThan(0);
   expect(a.flags['sky-chart']).toBeUndefined(); expect(a.flags['shade-freed']).toBeUndefined();

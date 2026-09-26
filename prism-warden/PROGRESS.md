@@ -983,3 +983,91 @@ still missing. This run will advance the final-region/ending path in bounded,
 reviewable units, preserve the existing complete-game contract, and keep the prior
 independent OURS LOSES / fun-rejection findings visible. Tests precede each commit;
 no completion marker, catalog edit, release or main promotion is authorized tonight.
+
+## September25 weekday runner: Drowned Crown first pass
+
+Authored connected E1–E5 rooms plus the optional Keeper Archive, wired the
+Observatory beacon into E1 and added the three-phase Eclipse Keeper. Phase1 needs a
+returned named-artillery shot; phase2 needs both active circuits across a changing
+breakwater; phase3 needs a close stored-light interrupt. Boss defeat frees Nacre
+without ending the game; Nacre and Ilex flags gate the final beacon. The final panel
+now reflects the five-region story and the scope note says regions are authored,
+not campaign-validated.
+
+Focused Prism Warden suite passes4 suites/47 tests. Browser capture harness passes
+320x568,390x844,844x390,768x1024,1440x900 and3840x2160, with clean console, no
+external requests, no horizontal overflow and visible44px mobile action buttons.
+Inspected the generated Crown room/boss sheets and source PNGs; 4K was reviewed after
+viewer downscaling. These fixtures are rendering evidence, not legal gameplay.
+
+A first run caught the returning Observatory beacon's stale `won` assertions, which
+are now `cleared` and continue to Drowned Crown. Targeted integration also exposed
+Ilex's route colliding with the east circuit mirror; the escort now walks below it,
+and the evacuation fixture reaches the beacon through the actual open gate.
+Independent gameplay, campaign and renderer critics are reviewing separately; their
+AAA verdicts are still pending at this checkpoint.
+
+Scope remains open. No full legal-input E1–E5 route or normal-clock whole campaign
+has been demonstrated. The four behavioral equipment choices, persistent campaign
+saves, full polarity/loadout behaviors, all promised discovery consequences and
+actual story ending remain incomplete. Previous critics still reject the work as
+AAA and the game's fun as established. Keep this as a dev checkpoint; no completion
+marker, root catalog edit, release or main promotion.
+
+Next run: collect and act on each new critic verdict; then prove the Region5 rooms
+are completable with legal actions and continue the save/equipment/discovery/ending
+contract. Full all-repository Jest and the two-way review artifacts still remain.
+
+## September26 first independent Crown comparisons
+
+Three independent reviews all returned **AAA FAIL / OURS LOSES**. The visual and
+gameplay critics compared our phone frame with shipped *Link's Awakening*; the
+campaign critic compared room layouts with its dungeon screenshot. They found
+crowded mobile status/title/objective copy, flat repeated block-floor scenes,
+weaker material depth and lighting, and no demonstrated player-discoverable
+Region5 route. The boss sequence has an interesting core, but its fixtures inject
+the returned shot, live circuits, stored-light charge and escorted positions.
+Review evidence remains under ignored `node_modules/.cache/prism-warden/crown-critics/`.
+References: Nintendo's [Link's Awakening dungeon screenshot](https://assets.nintendo.eu/image/upload/NAL/Migration/TheLegendofZeldaLinksAwakening/NSwitch_TheLegendofZeldaLinksAwakening_Dungeons_02.png)
+and [official gameplay trailer](https://www.youtube.com/watch?v=09QaF345qZk).
+
+Root moved mobile instruction copy clear of the boss/status band and hid redundant
+portrait location text; the renderer is rebuilding the Crown floor, dais, boss
+silhouettes and compact title/boss HUD. Gameplay review also caught eastbound Ilex
+described as going west; the intro, rescue, escort and objective now all say east,
+with a regression assertion. Those changes have not yet had their second browser
+capture or full-suite verification. Ask the visual critic to re-review the actual
+post-fix screenshots and keep iterating if they still lose.
+
+Campaign remains open: no legal normal-clock route from Drowned Crown entry through
+E1–E5, no full-campaign completion, and no player discovery/comprehension test has
+been shown. The campaign critic specifically reports repeated crossing/mirror and
+beam-circuit patterns across the six rooms. The ending, persistent saves, four
+behavioral equipment decisions and promised optional consequences also remain
+unfinished. Do not mark `.aaa-complete` or promote to `main`. Before the next
+checkpoint, rerun the browser capture and all repo tests, record each post-fix
+critic verdict, and leave the specific route and presentation debt in this handoff.
+
+## September26 post-fix verification
+
+Fixed the Bell Tower north stair: its open bell gate now occupies the wall gap,
+instead of opening against a continuous wall. The Abbey legal-input pilot now
+clears the beacon and the Aqueduct/Kiln route pilots continue through all three
+regions. The full repository suite passes **21 suites / 443 tests**. Prism Crown's
+focused route check crosses the four shoals under the ordinary tide clock, but
+uses invulnerability and does not simulate a Sentinel victory; it is traversal
+evidence only, not a fair-combat or full E1–E5 route.
+
+The final browser sweep passes 320x568, 390x844, 844x390, 768x1024, 1440x900,
+and 3840x2160: no app-console errors, external requests or horizontal overflow;
+all four mobile actions remain visible at 44px or larger. It also checks the
+post-Keeper result objective and message clearance above the portrait touch dock.
+I inspected the 320x568, 844x390, 1440x900 and downscaled 3840x2160 captures.
+Artifacts remain ignored under `node_modules/.cache/prism-warden/crown-visual/`.
+
+Three first-round critics rejected the Crown comparison as AAA, citing repeated
+floor grammar, sparse material depth, short-screen copy, and the absence of a
+normal-play E1–E5 route. Their fresh post-fix reviews are pending against the
+captured changes. Keep those debts visible; no `.aaa-complete`, catalog edit,
+release, or `main` promotion. This is still development on the first Saturday,
+not the forced October3 release checkpoint.

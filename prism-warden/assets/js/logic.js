@@ -164,6 +164,18 @@
         charges: 0, flash: 0, side: 1, sideTimer: 0, laneWait: 0, sidestep: false,
         dazeKey: null, dazeX: 0, dazeY: 0 });
     }
+    if (type === 'crown') {
+      // The Keeper has three equal health thirds so every authored phase needs
+      // one or more deliberate close strikes; all thresholds remain even.
+      const hp = Math.max(6, Math.ceil(num(d.hp, 6) / 6) * 6);
+      const ids = value => Array.from(new Set(arr(value).filter(v => typeof v === 'string' && v)));
+      return Object.assign(e, { r: Math.max(24, num(d.r, 34)), hp, maxHp: hp,
+        phase: 'guarded', stage: 1, exposed: 0, wakeRadius: Math.max(100, num(d.wakeRadius, 560)),
+        artilleryIds: ids(d.artilleryIds), circuitIds: ids(d.circuitIds), floorIds: ids(d.floorIds),
+        burstRadius: clamp(num(d.burstRadius, 260), 100, 420),
+        rewardedCracks: [], flash: 0, attackPhase: 'idle', attackTimer: Math.max(0, num(d.delay, 1.4)),
+        attackLocked: false, floorSignature: null, lastSlash: -1 });
+    }
     const hp = Math.max(1, num(d.hp, 6));
     const patrol = arr(d.patrol).map(pt => Array.isArray(pt) ? [num(pt[0], e.x), num(pt[1], e.y)] : [num(pt.x, e.x), num(pt.y, e.y)]);
     return Object.assign(e, { type: 'sentinel', r: num(d.r, 27), hp, maxHp: hp,
@@ -713,6 +725,10 @@
       if (s.beacon) s.beacon.lit = true;
       spark(s, e.x, e.y, 'growth', 20);
       announce(s, e.text || 'The Root Hart kneels into the moss. The beacon kindles — reach it.', 7, 2);
+    } else if (e.type === 'crown') {
+      award(s, rkey(s, 'defeat', e.id), 1400);
+      if (s.beacon) s.beacon.lit = true;
+      announce(s, e.text || 'The Eclipse Keeper falls. Free Nacre, bring Ilex to safety, then reach the final beacon.', 8, 2);
     } else if (e.type === 'mortar') {
       award(s, rkey(s, 'defeat', e.id), 200);
       s.lobs = arr(s.lobs).filter(l => l.owner !== e.id);
@@ -727,7 +743,15 @@
       announce(s, e.text || 'The sentinel falls.', 5, 2);
     }
   }
-  function returnedHit(s, e) {
+  function exposeCrown(s, e, duration, opening) {
+    e.exposed = duration; e.phase = 'exposed'; e.timer = duration; e.flash = .35;
+    e.attackPhase = 'idle'; e.attackTimer = 1.25; e.attackLocked = false;
+    spark(s, e.x, e.y, 'light', 18);
+    announce(s, opening === 'circuits' ?
+      'Both keeper circuits catch the changing floor. Strike the exposed core!' :
+      'Returned artillery breaks the eclipse shell. Close in and strike!', duration, 1);
+  }
+  function returnedHit(s, e, sourceOwner) {
     // A friendly (returned) shot touched enemy e. Returns true when it had an effect.
     if (isDefeated(e)) return false;
     if (e.type === 'shade') return false;
@@ -744,6 +768,16 @@
       e.phase = 'stagger'; e.timer = .8; e.locked = false; s.returns++;
       spark(s, e.x, e.y, 'light', 12);
       announce(s, 'The seed cracks against its antlers. The hart staggers.', 2, 0);
+      return true;
+    }
+    if (e.type === 'crown') {
+      if (e.stage !== 1 || e.exposed > 0) return false;
+      const artillery = e.artilleryIds.length ? e.artilleryIds :
+        s.enemies.filter(other => other.type === 'turret').map(other => other.id);
+      if (!artillery.includes(sourceOwner)) return false;
+      s.returns++;
+      if (!e.rewardedCracks.includes(e.hp)) { e.rewardedCracks.push(e.hp); s.score += 100; }
+      exposeCrown(s, e, 3.4, 'artillery');
       return true;
     }
     if (e.type === 'turret') {
@@ -775,6 +809,21 @@
     e.exposed = 0;
     spark(s, e.x, e.y, 'slash', 14);
     if (e.hp === 0) { defeat(s, e); return; }
+    if (e.type === 'crown') {
+      e.flash = .35; e.attackPhase = 'idle'; e.attackLocked = false;
+      if (e.stage === 1 && e.hp <= e.maxHp * 2 / 3) {
+        e.stage = 2; e.phase = 'sealed'; e.attackTimer = 1.1;
+        e.floorSignature = crownFloorSignature(s, e);
+        announce(s, 'The shell seals. Light both separate circuits as the floor changes.', 5, 1);
+      } else if (e.stage === 2 && e.hp <= e.maxHp / 3) {
+        e.stage = 3; e.phase = 'eclipse-windup'; e.timer = 1.35;
+        announce(s, 'The Eclipse Keeper gathers a pulse. Interrupt its telegraph with stored light, then strike close.', 5, 1);
+      } else if (e.stage === 3) {
+        e.phase = 'eclipse-windup'; e.timer = 1.35;
+        announce(s, 'The Keeper reforms its eclipse pulse. Burst through the telegraph for another opening.', 3, 0);
+      } else e.phase = 'guarded';
+      return;
+    }
     if (e.type === 'diver') { e.phase = 'recoil'; e.timer = .7; return; }
     if (e.type === 'hart') { e.phase = 'recover'; e.timer = .6; e.stunned = false; e.locked = false; return; }
     if (e.type === 'shade' || e.type === 'twin') {
@@ -813,8 +862,17 @@
     p.lightCharge = 0; s.burstTime = 6; s.burstOrigin = { x: p.x, y: p.y };
     s.rings.push({ x: p.x, y: p.y, r: 0, maxR: 150, speed: 400, life: 1, hostile: false, kind: 'burst' });
     const affected = new Set();
+    let keeperInterrupted = false;
     for (const e of s.enemies) {
-      if (isDefeated(e) || !['shade', 'twin'].includes(e.type)) continue;
+      if (isDefeated(e)) continue;
+      if (e.type === 'crown' && e.stage === 3 && e.phase === 'eclipse-windup' &&
+        length(e.x - p.x, e.y - p.y) <= e.burstRadius && losClear(s, p.x, p.y, e.x, e.y)) {
+        e.phase = 'exposed'; e.exposed = 3.4; e.timer = 3.4; e.flash = .4;
+        spark(s, e.x, e.y, 'light', 20);
+        keeperInterrupted = true;
+        continue;
+      }
+      if (!['shade', 'twin'].includes(e.type)) continue;
       const partner = e.type === 'twin' && s.enemies.find(other => other.id === e.linked && !isDefeated(other));
       const nearBody = length(e.x - p.x, e.y - p.y) <= 150 && losClear(s, p.x, p.y, e.x, e.y);
       // The connecting shield is itself a tactical target. Interrupt its middle
@@ -828,7 +886,8 @@
       }
     }
     for (const e of affected) exposeNight(s, e, 4);
-    announce(s, affected.size ? 'Stored light breaks the shadow armor — close in and strike!' :
+    announce(s, keeperInterrupted ? 'Stored light interrupts the eclipse pulse. Close in and strike!' :
+      affected.size ? 'Stored light breaks the shadow armor — close in and strike!' :
       'Star paths revealed for six seconds. Reach the next landing.', 3, 1);
   }
   function storedLight(s, dt) {
@@ -1336,6 +1395,81 @@
     if (e.phase === 'aim') e.aimDist = laneProbe(s, e, e.aimX, e.aimY, 540 * 1.3, hartSolids(s, e)).dist;
   }
 
+  function crownFloorSignature(s, e) {
+    const floors = e.floorIds.length ? s.breakwaters.filter(b => e.floorIds.includes(b.id)) :
+      s.breakwaters.filter(b => b.when === 'cycle');
+    return floors.map(b => b.id + ':' + (b.risen ? '1' : '0')).join('|');
+  }
+  function crownCircuitsReady(s, e) {
+    return e.circuitIds.length >= 2 && e.circuitIds.every(id => {
+      const receiver = s.receivers.find(r => r.id === id);
+      return !!receiver && receiver.active;
+    });
+  }
+  function crownStep(s, e, dt) {
+    const p = s.player;
+    e.flash = Math.max(0, e.flash - dt);
+
+    if (e.stage === 2) {
+      const signature = crownFloorSignature(s, e);
+      if (e.floorSignature !== null && signature !== e.floorSignature && crownCircuitsReady(s, e) && e.exposed <= 0) {
+        exposeCrown(s, e, 3.4, 'circuits');
+      }
+      e.floorSignature = signature;
+    }
+
+    if (e.exposed > 0) {
+      e.exposed = Math.max(0, e.exposed - dt); e.timer = e.exposed;
+      if (e.exposed <= 0) {
+        if (e.stage === 1) e.phase = 'guarded';
+        else if (e.stage === 2) e.phase = 'sealed';
+        else { e.phase = 'eclipse-windup'; e.timer = 1.35; }
+      }
+      return;
+    }
+
+    if (e.stage === 3) {
+      e.timer -= dt;
+      if (e.phase === 'eclipse-windup' && e.timer <= 0) {
+        s.rings.push({ x: e.x, y: e.y, r: e.r + 2, maxR: 324, speed: 210, life: 1,
+          hostile: true, owner: e.id, hitPlayer: false, hitEscort: false, kind: 'eclipse' });
+        e.phase = 'eclipse-recover'; e.timer = 1.25;
+        spark(s, e.x, e.y, 'hurt', 16);
+        announce(s, 'Eclipse pulse! Dash through the expanding wave or outrun its edge.', 1.8, 1);
+      } else if (e.phase === 'eclipse-recover' && e.timer <= 0) {
+        e.phase = 'eclipse-windup'; e.timer = 1.35;
+      }
+      return;
+    }
+
+    if (length(p.x - e.x, p.y - e.y) > e.wakeRadius) return;
+    e.attackTimer -= dt;
+    if (e.attackPhase === 'idle') {
+      if (e.attackTimer <= 0) {
+        const [ux, uy] = unit(p.x - e.x, p.y - e.y, e.aimX, e.aimY);
+        e.aimX = ux; e.aimY = uy; e.attackPhase = 'telegraph'; e.attackTimer = 1.05; e.attackLocked = false;
+        announce(s, 'The Eclipse Keeper sights a three-shot fan. Face the fire or leave its lane.', 2.3, 1);
+      }
+      return;
+    }
+    if (e.attackPhase === 'telegraph') {
+      if (!e.attackLocked) {
+        const [ux, uy] = unit(p.x - e.x, p.y - e.y, e.aimX, e.aimY);
+        e.aimX = ux; e.aimY = uy;
+        if (e.attackTimer <= .38) e.attackLocked = true;
+      }
+      if (e.attackTimer <= 0) {
+        const base = Math.atan2(e.aimY, e.aimX);
+        for (let i = -1; i <= 1; i++) fire(s, e, base + i * .2, 245, e.r + 9, 'eclipse-shot');
+        e.attackPhase = 'recovery'; e.attackTimer = 1.55; e.attackLocked = false;
+      }
+      return;
+    }
+    if (e.attackPhase === 'recovery' && e.attackTimer <= 0) {
+      e.attackPhase = 'idle'; e.attackTimer = 1.2;
+    }
+  }
+
   // ------------------------------------------------------------------ escort
   function escortStep(s, dt) {
     const e = s.escort;
@@ -1392,6 +1526,11 @@
         if (e.phase !== 'dormant') {
           e.phase = 'stalk'; e.timer = 1.3; e.exposed = 0; e.stunned = false; e.locked = false;
         }
+      } else if (e.type === 'crown') {
+        e.exposed = 0; e.attackPhase = 'idle'; e.attackTimer = 1.5; e.attackLocked = false;
+        e.phase = e.stage === 3 ? 'eclipse-windup' : e.stage === 2 ? 'sealed' : 'guarded';
+        if (e.stage === 3) e.timer = 1.35;
+        e.floorSignature = null;
       } else if (e.type === 'shade' || e.type === 'twin') {
         e.phase = 'recover'; e.timer = 1.2; e.exposed = 0; e.shieldBreak = 0; e.lightCooldown = 0;
       } else if (e.phase !== 'dormant' && e.phase !== 'patrol') {
@@ -1569,6 +1708,18 @@
     if (s.status === 'won') return O.won || (s.regionId === 'tidal-abbey' ? 'The abbey beacon burns again' :
       'The ' + regionName(s.regionId) + ' beacon burns again');
     if (s.status === 'cleared') return O.cleared || regionName(s.regionId) + ' restored · continue onward';
+    const crown = s.enemies.find(e => e.type === 'crown');
+    if (crown && !isDefeated(crown)) {
+      if (crown.exposed > 0) return O.strike || 'Close in and strike the exposed Keeper';
+      if (crown.stage === 1) return O.boss || 'Return artillery fire to break the eclipse shell';
+      if (crown.stage === 2) return O.boss || 'Light both circuits as the floor changes';
+      return O.boss || 'Burst during the eclipse telegraph, then strike close';
+    }
+    if (s.room.challenge === 'E5' && crown) {
+      if (s.rescue && !s.rescue.freed) return O.rescue || 'Free Nacre';
+      if (s.escort && !s.escort.arrived) return O.escort || 'Bring Ilex to safety';
+      if (s.beacon && !s.beacon.reached) return O.beacon || 'Reach the final beacon';
+    }
     const diver = s.enemies.find(e => e.type === 'diver' && !isDefeated(e));
     if (diver) return O.boss || (diver.submerged || diver.phase === 'diving' ?
       'Hold dry ground · watch the tide' : 'Return fire · expose armor');
@@ -1605,6 +1756,7 @@
   }
   function fightHint(s, ids) {
     const alive = s.enemies.filter(e => ids.includes(e.id) && !isDefeated(e));
+    if (alive.some(e => e.type === 'crown')) return 'Return artillery fire · expose and strike the Keeper';
     if (alive.some(e => e.type === 'shade')) return 'Lure the shade into split light · strike while exposed';
     if (alive.some(e => e.type === 'twin')) return alive.some(e => e.exposed > 0) ? 'Strike an exposed star twin' :
       alive.some(e => e.linked && !defeatedId(s, e.linked)) ? 'Burst beside the shield link · strike a twin' : 'Return the lone twin’s fire · strike its core';
@@ -1612,10 +1764,11 @@
     return 'Return fire · expose armor';
   }
   function clearMet(s) {
+    if (s.room.challenge === 'E5') return !!(s.beacon && s.beacon.reached);
     const c = s.room.clearWhen;
     if (c) return conditionMet(s, c);
     if (s.beacon) return s.beacon.lit || s.beacon.reached;
-    const boss = s.enemies.find(e => e.type === 'diver' || e.type === 'hart');
+    const boss = s.enemies.find(e => e.type === 'diver' || e.type === 'hart' || e.type === 'crown');
     if (boss) return isDefeated(boss);
     if (s.escort) return s.escort.arrived;
     if (s.rescue) return s.rescue.freed;
@@ -1646,7 +1799,7 @@
         for (const e of s.enemies) {
           if (isDefeated(e) || (e.type === 'diver' && (e.submerged || e.phase === 'surfacing'))) continue;
           if (segmentDistance(e.x, e.y, shot.x, shot.y, nx, ny) <= e.r + shot.r) {
-            returnedHit(s, e); consumed = true; break;
+            returnedHit(s, e, shot.owner); consumed = true; break;
           }
         }
       } else if (segmentDistance(p.x, p.y, shot.x, shot.y, nx, ny) <= p.r + shot.r + (p.reflecting ? 9 : 0)) {
@@ -1805,6 +1958,7 @@
       else if (e.type === 'diver') diverStep(s, e, dt);
       else if (e.type === 'mortar') mortarStep(s, e, dt);
       else if (e.type === 'hart') hartStep(s, e, dt);
+      else if (e.type === 'crown') crownStep(s, e, dt);
       else if (e.type === 'shade' || e.type === 'twin') nightStep(s, e, dt);
       else sentinelStep(s, e, dt);
     }

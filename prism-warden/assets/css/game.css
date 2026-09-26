@@ -42,3 +42,11 @@ body.has-prism .actions,body.has-light .actions{display:grid;grid-template-colum
 body.has-prism .actions button,body.has-light .actions button{min-width:44px;padding:6px 4px;font-size:9px}
 @media(max-width:600px) and (min-height:481px){body.has-light .actions,body.has-prism .actions{width:116px}body.has-light #touchControls,body.has-prism #touchControls{gap:6px}.pad{flex-shrink:0}}
 @media(max-width:1000px) and (max-height:480px){#prismState,#lightState{display:none}}
+/* Keep instructional status out of the narrow boss-title / boss-health band. */
+@media(max-width:600px) and (min-height:481px){
+  body.touch #location{display:none}
+  body.touch #message{top:auto;bottom:calc(120px + env(safe-area-inset-bottom));left:8px;right:8px;width:auto;max-width:none;max-height:2.45em;overflow:hidden;transform:none}
+}
+@media(max-width:1000px) and (max-height:480px){
+  body.touch #message{display:none}
+}

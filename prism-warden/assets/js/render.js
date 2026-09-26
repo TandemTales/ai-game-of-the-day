@@ -183,6 +183,7 @@
   function enemyType(e) { return e.type || 'sentinel'; }
   function sentinelName(e) {
     const id = String(e && e.id || '');
+    if (id === 'circuit-sentinel') return 'CROWN SENTINEL';
     return /glass[-_ ]?weaver/i.test(id) ? 'GLASS WEAVER' : /verger/i.test(id) ? 'TOWER VERGER' : 'BELL SENTINEL';
   }
   // The placeable prism moves; keep it out of anything baked into the static layer.
@@ -200,6 +201,8 @@
   const kilnTheme = title => Object.assign({}, KILN_THEME, { title });
   const NIGHT_THEME = { grade: ['#d4dcff', '#433769'], floor: 'octa', stone: [230, 20, 39], joint: '#171b32', moss: 0, puddles: 0, top: [228, 18, 49], face: [238, 22, 26], wall: 'basalt', ambient: [183, 192, 220], void: '#080b1a', vignette: .22, decor: 'observatory', water: [230, 30, 22], title: 'Carry a little daylight into the night' };
   const nightTheme = title => Object.assign({}, NIGHT_THEME, { title });
+  const CROWN_THEME = { grade: ['#f4d9a0', '#142444'], floor: 'crown', stone: [205, 25, 32], joint: '#101829', moss: 0, puddles: 0, top: [214, 20, 38], face: [226, 22, 24], wall: 'basalt', ambient: [132, 154, 198], void: '#050a17', vignette: .34, decor: 'crown', water: [204, 82, 28], title: 'The eclipse engine above the sea' };
+  const crownTheme = title => Object.assign({}, CROWN_THEME, { title });
   const THEMES = {
     cloister: { grade: ['#ffe2b0', '#1d5a6a'], floor: 'flag', stone: [96, 9, 41], joint: '#1b2523', moss: .6, puddles: 5, top: [44, 16, 58], face: [38, 16, 33], wall: 'ashlar', ambient: [134, 140, 154], void: '#081b23', vignette: .5, decor: 'cloister', water: [185, 60, 26], title: 'The drowned cloister' },
     sluice: { grade: ['#cfe8f0', '#12384a'], floor: 'slate', stone: [203, 13, 33], joint: '#0e171c', moss: .45, puddles: 11, top: [200, 9, 45], face: [205, 14, 25], wall: 'slate', ambient: [112, 128, 150], void: '#05131b', vignette: .58, decor: 'sluice', water: [188, 64, 24], title: 'Where the sea is let in' },
@@ -230,10 +233,26 @@
     telescope: nightTheme('Turn the lens; guide the keeper'),
     twins: nightTheme('Two shields, one luminous thread'),
     'obs-chart': nightTheme('The chart the keepers left behind'),
-    'shade-vault': nightTheme('A reward beyond the shadow')
+    'shade-vault': nightTheme('A reward beyond the shadow'),
+    descent: crownTheme('Descend through the drowned crown'),
+    galleries: crownTheme('The galleries turn by starlight'),
+    circuit: crownTheme('Read the tide; cross the shoals'),
+    archive: Object.assign(crownTheme('The keepers’ sealed archive'), { grade: ['#f1d3a1', '#18223b'], ambient: [150, 151, 190] }),
+    lighthouse: crownTheme('A lighthouse over the void'),
+    crown: Object.assign(crownTheme('The eclipse engine at the crown'), { grade: ['#ffe3a6', '#1c2b4b'], ambient: [152, 164, 201], vignette: .28 })
   };
   function regionOf(s) { return (s.room && s.room.region) || s.regionId || ''; }
-  function themeFor(s) { return THEMES[roomId(s)] || (regionOf(s) === 'night-observatory' ? NIGHT_THEME : regionOf(s) === 'glass-kiln' ? KILN_THEME : regionOf(s) === 'verdant-aqueduct' ? THEMES.spillway : THEMES.cloister); }
+  function beaconName(s) {
+    const names = {
+      'tidal-abbey': 'ABBEY BEACON',
+      'verdant-aqueduct': 'AQUEDUCT BEACON',
+      'glass-kiln': 'KILN BEACON',
+      'night-observatory': 'OBSERVATORY BEACON',
+      'drowned-crown': 'CROWN BEACON'
+    };
+    return names[regionOf(s)] || 'BEACON';
+  }
+  function themeFor(s) { return THEMES[roomId(s)] || (regionOf(s) === 'drowned-crown' ? CROWN_THEME : regionOf(s) === 'night-observatory' ? NIGHT_THEME : regionOf(s) === 'glass-kiln' ? KILN_THEME : regionOf(s) === 'verdant-aqueduct' ? THEMES.spillway : THEMES.cloister); }
 
   // ---------------------------------------------------------------- static layer
   function stonePath(g, x, y, w, h, rng, j) {
@@ -312,6 +331,58 @@
       poly(g, [[dx, dy - d], [dx + d, dy], [dx, dy + d], [dx - d, dy]], dc, 'rgba(0,0,0,.4)', 1);
       line(g, dx - d + 2, dy - 1, dx - 1, dy - d + 2, 'rgba(255,240,210,.14)', 1);
     }
+  }
+  function floorCrown(g, W, H, rng, th) {
+    // The drowned observatory uses broad, jointed basalt fields rather than
+    // small repeating pavers. Their offset bevel and directional sheen expose
+    // the height of each slab while leaving generous quiet ground for combat.
+    g.fillStyle = '#0a1222'; g.fillRect(0, 0, W, H);
+    const field = g.createLinearGradient(0, 0, W, H);
+    field.addColorStop(0, '#28334b'); field.addColorStop(.34, '#202b42');
+    field.addColorStop(.68, '#17223a'); field.addColorStop(1, '#111a30');
+    g.fillStyle = field; g.fillRect(0, 0, W, H);
+    const bw = 156, bh = 120;
+    for (let row = -1, y = -bh; y < H + bh; row++, y += bh) {
+      const stagger = (row & 1) ? bw * .5 : 0;
+      for (let col = -1, x = -bw + stagger; x < W + bw; col++, x += bw) {
+        const jx = (rng() - .5) * 8, jy = (rng() - .5) * 7;
+        const px = x + jx, py = y + jy, w = bw - 4 - rng() * 9, h = bh - 5 - rng() * 8;
+        const cutX = 16 + rng() * 8, cutY = 13 + rng() * 8;
+        const top = [[px + cutX, py], [px + w - cutX * .72, py + 1], [px + w, py + cutY],
+          [px + w - 1, py + h - cutY * .8], [px + w - cutX, py + h], [px + cutX * .65, py + h - 1],
+          [px, py + h - cutY], [px + 1, py + cutY]];
+        const lift = 5 + rng() * 3;
+        const underside = top.map(p => [p[0] + 1.8, p[1] + lift]);
+        poly(g, underside, 'rgba(1,5,13,.4)');
+        for (let i = 0; i < top.length; i++) {
+          const next = (i + 1) % top.length;
+          const pts = [top[i], top[next], underside[next], underside[i]];
+          const lower = i >= 2 && i <= 5;
+          poly(g, pts, lower ? 'rgba(5,9,20,.76)' : 'rgba(10,16,30,.66)', 'rgba(2,6,14,.62)', .65);
+        }
+        const hue = 214 + rng() * 20, sat = 17 + rng() * 11, lum = 24 + rng() * 8;
+        const cap = g.createLinearGradient(px, py, px + w * .82, py + h);
+        cap.addColorStop(0, hsl(hue - 4, sat, lum + 13)); cap.addColorStop(.34, hsl(hue, sat, lum + 4));
+        cap.addColorStop(.76, hsl(hue + 2, sat + 2, lum - 2)); cap.addColorStop(1, hsl(hue + 2, sat + 4, lum - 9));
+        poly(g, top, cap, 'rgba(4,8,17,.88)', 1.2);
+        // Directional polish and long mineral striae break the large material into depth planes.
+        line(g, top[0][0] + 4, top[0][1] + 4, top[1][0] - 5, top[1][1] + 4, 'rgba(242,220,178,.27)', 1.25);
+        line(g, top[1][0] - 3, top[1][1] + 4, top[2][0] - 3, top[2][1] + 13, 'rgba(211,224,255,.12)', 1);
+        const veinX = px + 24 + rng() * (w - 48), veinY = py + 26 + rng() * (h - 52);
+        line(g, veinX, veinY, veinX + 18 + rng() * 24, veinY + (rng() - .5) * 4, 'rgba(126,171,215,.16)', .85);
+        if (rng() < .38) {
+          const cx = px + 34 + rng() * (w - 68), cy = py + 24 + rng() * (h - 48);
+          ellipse(g, cx, cy, 17 + rng() * 15, 3 + rng() * 2, null, 'rgba(177,203,230,.13)', .8, -.08);
+        }
+      }
+    }
+    // A quiet cross-grain adds a crafted direction to the otherwise open slabs.
+    const sheen = g.createLinearGradient(0, 0, W * .86, H * .42);
+    sheen.addColorStop(0, 'rgba(218,221,255,.11)'); sheen.addColorStop(.42, 'rgba(190,211,245,.035)'); sheen.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = sheen; g.fillRect(0, 0, W, H);
+    const shade = g.createLinearGradient(0, H * .25, 0, H);
+    shade.addColorStop(0, 'rgba(2,7,18,0)'); shade.addColorStop(1, 'rgba(2,7,18,.22)');
+    g.fillStyle = shade; g.fillRect(0, 0, W, H);
   }
   function floorPlanks(g, W, H, rng, th) {
     g.fillStyle = hsl(th.stone[0], th.stone[1], Math.max(6, th.stone[2] - 16)); g.fillRect(0, 0, W, H);
@@ -732,7 +803,7 @@
       }
     }
   }
-  const FLOORS = { flag: floorFlag, slate: floorSlate, octa: floorOcta, planks: floorPlanks, cobble: floorCobble, travertine: floorTravertine, spicatum: floorSpicatum, kiln: floorKiln };
+  const FLOORS = { flag: floorFlag, slate: floorSlate, octa: floorOcta, planks: floorPlanks, cobble: floorCobble, travertine: floorTravertine, spicatum: floorSpicatum, kiln: floorKiln, crown: floorCrown };
 
   function mossClump(g, x, y, size, rng, alpha) {
     for (let i = 0; i < 7; i++) {
@@ -821,7 +892,8 @@
     if (!walls.length) return;
     const k = meta.k;
     const kilnLight = th.floor === 'kiln';
-    const faceDepth = kilnLight ? 56 : FH;
+    const crownLight = th.decor === 'crown';
+    const faceDepth = kilnLight ? 56 : crownLight ? 40 : FH;
     // Ambient occlusion: soft drop shadow and tight contact shadow on the floor.
     g.save();
     g.shadowColor = 'rgba(2,8,12,.7)'; g.shadowBlur = 26 * k; g.shadowOffsetX = (kilnLight ? 11 : 0) * k; g.shadowOffsetY = 14 * k; g.fillStyle = '#05090b';
@@ -835,7 +907,7 @@
     g.save(); g.beginPath(); for (const f of faces) g.rect(f.x, f.y - .5, f.w, faceDepth + .5); g.clip();
     const fg = g.createLinearGradient(0, 0, 0, 1);
     for (const f of faces) {
-      const faceLift = kilnLight ? 18 : 8, faceShade = kilnLight ? 1 : -9;
+      const faceLift = kilnLight ? 18 : crownLight ? 14 : 8, faceShade = kilnLight ? 1 : crownLight ? -17 : -9;
       const gr = g.createLinearGradient(0, f.y, 0, f.y + faceDepth);
       gr.addColorStop(0, hsl(th.face[0], th.face[1], th.face[2] + faceLift)); gr.addColorStop(1, hsl(th.face[0], th.face[1], th.face[2] + faceShade));
       g.fillStyle = gr; g.fillRect(f.x, f.y, f.w, faceDepth);
@@ -850,6 +922,17 @@
         const farEdge = g.createLinearGradient(f.x + f.w - 8, 0, f.x + f.w, 0);
         farEdge.addColorStop(0, 'rgba(0,2,8,0)'); farEdge.addColorStop(1, 'rgba(0,2,8,.46)');
         g.fillStyle = farEdge; g.fillRect(f.x + f.w - 8, f.y, 8, faceDepth);
+      }
+      if (crownLight) {
+        const faceKey = g.createLinearGradient(f.x, f.y, f.x + f.w * .65, f.y + faceDepth);
+        faceKey.addColorStop(0, 'rgba(213,224,255,.16)'); faceKey.addColorStop(.4, 'rgba(106,151,207,.045)'); faceKey.addColorStop(1, 'rgba(2,6,16,.42)');
+        g.fillStyle = faceKey; g.fillRect(f.x, f.y, f.w, faceDepth);
+        const bevel = g.createLinearGradient(f.x, 0, f.x + 13, 0);
+        bevel.addColorStop(0, 'rgba(213,225,255,.3)'); bevel.addColorStop(1, 'rgba(213,225,255,0)');
+        g.fillStyle = bevel; g.fillRect(f.x + 1, f.y + 1, 13, faceDepth - 2);
+        const bronze = g.createLinearGradient(0, f.y + 3, 0, f.y + 9);
+        bronze.addColorStop(0, 'rgba(255,216,157,.28)'); bronze.addColorStop(1, 'rgba(255,216,157,0)');
+        g.fillStyle = bronze; g.fillRect(f.x + 2, f.y + 2, f.w - 4, 8);
       }
       if (th.floor === 'kiln' && th.wall === 'basalt' && kilnMaterial) {
         for (let y = f.y + 4; y < f.y + faceDepth - 3; y += 11) {
@@ -881,6 +964,16 @@
           for (let v = 0; v < 5; v++) { const va = Math.PI + v * Math.PI / 4; line(g, ax + ar + Math.cos(va) * ar, top + Math.sin(va) * ar, ax + ar + Math.cos(va) * (ar + 3.6), top + Math.sin(va) * (ar + 3.6), 'rgba(30,18,6,.5)', 1); }
           if (rng() < .7) tuft(g, ax + ar + (rng() - .5) * 6, f.y + faceDepth, rng, 6, .9);
         }
+      } else if (th.wall === 'crown') {
+        // Tall basalt faces carry a few recessed eclipse seals instead of the
+        // abbey's close brick courses; each niche catches the same cool key.
+        for (let y = f.y + 15; y < f.y + faceDepth - 2; y += 16) line(g, f.x + 2, y, f.x + f.w - 2, y, 'rgba(2,6,16,.32)', 1);
+        for (let x = f.x + 34; x < f.x + f.w - 22; x += 82) {
+          rrect(g, x - 11, f.y + 8, 22, Math.min(23, faceDepth - 11), 3);
+          g.fillStyle = 'rgba(4,10,23,.62)'; g.fill(); g.strokeStyle = 'rgba(153,188,231,.25)'; g.lineWidth = 1; g.stroke();
+          circle(g, x, f.y + 18, 4.5, '#182841', 'rgba(238,203,145,.58)', 1);
+          poly(g, [[x, f.y + 13], [x + 3, f.y + 18], [x, f.y + 22], [x - 3, f.y + 18]], '#9acbe6', 'rgba(237,247,255,.75)', .8);
+        }
       } else {
         const course = th.wall === 'brick' ? 5.3 : kilnLight ? 11 : 8;
         for (let y = f.y + course; y < f.y + faceDepth - 1; y += course) line(g, f.x, y, f.x + f.w, y, 'rgba(0,0,0,.35)', 1);
@@ -911,6 +1004,19 @@
         ellipse(g, ox, oy, r, r * .8, jit(th.top, rng, 8, 6, 12), 'rgba(0,0,0,.45)', 1.2);
         const gr = g.createRadialGradient(ox - r * .4, oy - r * .5, 1, ox, oy, r);
         gr.addColorStop(0, 'rgba(210,225,240,.26)'); gr.addColorStop(1, 'rgba(0,0,0,.2)'); g.fillStyle = gr; g.fill();
+      }
+    } else if (th.wall === 'crown') {
+      let row = 0;
+      for (let y = -30; y < H + 30; y += 36, row++) for (let x = -48 + (row % 2) * 24; x < W + 48; x += 48) {
+        if (!walls.some(w => inRect(x + 24, y + 18, w, 30))) continue;
+        const bw = 46, bh = 34;
+        stone(g, x + 2, y + 2, bw - 4, bh - 4, jit(th.top, rng, 5, 6, 10), rng,
+          { jit: .7, speck: 145, crack: .025, hi: .24, lo: .34, rim: .2 });
+        line(g, x + 6, y + 4, x + bw - 7, y + 4, 'rgba(232,239,255,.26)', 1.1);
+        if ((row + Math.round(x / 48)) % 4 === 0) {
+          circle(g, x + bw / 2, y + bh / 2, 4.2, '#121b2a', 'rgba(232,193,133,.55)', 1);
+          circle(g, x + bw / 2, y + bh / 2, 1.4, '#a2d5ef');
+        }
       }
     } else {
       const bw = th.wall === 'brick' ? 18 : th.wall === 'slate' ? 36 : th.wall === 'basalt' ? 30 : th.wall === 'aqueduct' ? 42 : 34;
@@ -1764,6 +1870,87 @@
       ellipse(g, x + w.w * .62 + 5, faceY + faceH + 3, 52, 12, heel);
     }
   }
+  function crownArenaArchitecture(g, s, W, H, meta) {
+    const cx = W / 2, cy = H / 2;
+    meta.lights.push({ x: cx, y: cy, r: 330, rgb: '112,160,236', a: .25 });
+    meta.lights.push({ x: cx, y: cy, r: 150, rgb: '255,190,118', a: .1 });
+    if (roomId(s) !== 'crown') {
+      // Shared wayfinding grooves make the final region feel like one place;
+      // keep them faint so moving beams and authored room mechanisms stay clear.
+      g.save(); g.globalAlpha = .34;
+      for (const r of [112, 184, 272]) {
+        ellipse(g, cx, cy, r * 1.14, r * .78, null, 'rgba(166,193,235,.14)', 1.25);
+      }
+      for (let i = 0; i < 12; i++) {
+        const a = i * TAU / 12, x1 = cx + Math.cos(a) * 275, y1 = cy + Math.sin(a) * 188;
+        const x2 = cx + Math.cos(a) * 294, y2 = cy + Math.sin(a) * 201;
+        line(g, x1, y1, x2, y2, 'rgba(225,196,146,.24)', 2);
+      }
+      g.restore();
+      return;
+    }
+
+    // The Crown Lens is built around a broad raised astrolabe dais. Its bevels,
+    // dark cast skirt, inlaid circuits and central well give the Keeper a clear
+    // focal ground plane without placing collision geometry into the room.
+    const points = n => Array.from({ length: n }, (_, i) => {
+      const a = -Math.PI / 2 + i * TAU / n;
+      return [cx + Math.cos(a) * 190, cy + Math.sin(a) * 166];
+    });
+    const outer = points(16), skirt = outer.map(p => [p[0] + 5, p[1] + 17]);
+    poly(g, outer.map(p => [p[0] + 9, p[1] + 21]), 'rgba(0,3,10,.62)');
+    poly(g, skirt, '#10182a', '#060b15', 2.4);
+    for (let i = 0; i < outer.length; i++) {
+      const j = (i + 1) % outer.length, face = [outer[i], outer[j], skirt[j], skirt[i]];
+      const light = i >= 5 && i <= 11;
+      poly(g, face, light ? '#27334a' : '#172238', 'rgba(3,8,17,.76)', 1);
+      if (light) line(g, outer[i][0], outer[i][1], outer[j][0], outer[j][1], 'rgba(230,215,181,.44)', 1.35);
+    }
+    const top = g.createRadialGradient(cx - 42, cy - 65, 18, cx + 10, cy + 9, 220);
+    top.addColorStop(0, '#596680'); top.addColorStop(.26, '#414f69'); top.addColorStop(.68, '#303e58'); top.addColorStop(1, '#202d47');
+    poly(g, outer, top, 'rgba(6,10,19,.96)', 2.3);
+    ellipse(g, cx, cy, 185, 160, null, 'rgba(219,196,153,.62)', 2.1);
+    ellipse(g, cx, cy, 173, 148, null, 'rgba(143,185,229,.38)', 1.2);
+    ellipse(g, cx, cy, 145, 125, 'rgba(17,27,46,.38)', 'rgba(9,15,29,.72)', 1.3);
+    ellipse(g, cx, cy, 135, 116, null, 'rgba(220,191,141,.34)', 1.1);
+    ellipse(g, cx, cy, 93, 80, 'rgba(16,24,42,.32)', 'rgba(149,180,218,.36)', 1.2);
+
+    // Alternating meridian marks and lens-shaped inlays read as craft at full size,
+    // while their low contrast keeps them quiet under the player and Keeper.
+    for (let i = 0; i < 32; i++) {
+      const a = i * TAU / 32, cs = Math.cos(a), sn = Math.sin(a);
+      const r1 = i % 4 === 0 ? 151 : 158, r2 = 168;
+      line(g, cx + cs * r1, cy + sn * r1 * .86, cx + cs * r2, cy + sn * r2 * .86,
+        i % 4 === 0 ? 'rgba(241,213,164,.72)' : 'rgba(166,197,234,.34)', i % 4 === 0 ? 2 : 1);
+    }
+    for (let i = 0; i < 8; i++) {
+      const a = -Math.PI / 2 + i * TAU / 8, cs = Math.cos(a), sn = Math.sin(a);
+      const x = cx + cs * 151, y = cy + sn * 129;
+      const rx = -sn, ry = cs;
+      poly(g, [[x + cs * 9, y + sn * 8], [x + rx * 5, y + ry * 5], [x - cs * 9, y - sn * 8], [x - rx * 5, y - ry * 5]],
+        'rgba(15,24,41,.72)', 'rgba(223,194,145,.62)', 1.1);
+      circle(g, cx + cs * 181, cy + sn * 158, 3, '#c9a66d', 'rgba(246,225,183,.7)', .8);
+    }
+    ellipse(g, cx, cy, 70, 59, 'rgba(7,12,25,.44)', 'rgba(177,202,237,.42)', 1.4);
+    ellipse(g, cx, cy, 56, 46, null, 'rgba(244,192,126,.52)', 1.2);
+    for (let i = 0; i < 4; i++) {
+      const a = i * TAU / 4 + Math.PI / 4, cs = Math.cos(a), sn = Math.sin(a);
+      const x = cx + cs * 112, y = cy + sn * 95;
+      line(g, cx + cs * 74, cy + sn * 63, x, y, 'rgba(181,207,235,.28)', 1.4);
+      circle(g, x, y, 4, '#263b58', 'rgba(226,196,147,.7)', 1.1);
+      circle(g, x, y, 1.3, '#acdff5');
+    }
+    // Two separate keeper seals are tied visually into the dais's radial system.
+    for (const [x, y] of [[320, 608], [704, 160]]) {
+      ellipse(g, x, y, 40, 32, 'rgba(5,10,21,.26)', 'rgba(146,181,224,.35)', 1.2);
+      ellipse(g, x, y, 32, 25, null, 'rgba(232,197,144,.5)', 1.2);
+      for (let i = 0; i < 4; i++) {
+        const a = i * TAU / 4 + Math.PI / 4;
+        const px = x + Math.cos(a) * 34, py = y + Math.sin(a) * 26;
+        circle(g, px, py, 1.7, '#a8d7ef');
+      }
+    }
+  }
   function getStatic(s, th, k, W, H) {
     const key = signature(s) + '@' + k;
     let st = staticCache.get(key);
@@ -1789,6 +1976,7 @@
     decals(g, s, th, rng, W, H, meta);
     beds(g, s, th, rng, W, H);
     inlays(g, s, th);
+    if (th.decor === 'crown') crownArenaArchitecture(g, s, W, H, meta);
     exterior(g, s, th, rng, W, H);
     drawWalls(g, s, th, rng, W, H, meta);
     drawWeaverColumnDetails(g, s);
@@ -2595,6 +2783,87 @@
       ctx.setLineDash([8, 8]); ctx.lineDashOffset = -t * 40; line(ctx, 18, 0, 265, 0, 'rgba(255,190,150,.75)', 2); ctx.restore();
     }
   }
+  function crownStage(e) {
+    const stage = num(e && e.stage, 0);
+    return stage === 1 || stage === 2 || stage === 3 ? stage : 0;
+  }
+  function crownExposed(e) { return num(e && e.exposed, 0) > 0 || !!(e && e.phase === 'exposed'); }
+  function drawCrownFloor(ctx, e, s, t) {
+    if (num(e.hp, 1) <= 0) return;
+    const stage = crownStage(e) || 1;
+    const phase = String(e.phase || '').toLowerCase();
+    const attack = String(e.attackPhase || '').toLowerCase();
+    const open = crownExposed(e);
+    const pulse = .78 + .18 * Math.sin(t * 11);
+
+    // Stage three is an outward eclipse pulse. The dashed rings stay floor-level
+    // and decorative: they explain its timing without becoming collision geometry.
+    if (stage === 3 && !open && (phase === 'eclipse-windup' || phase === 'eclipse-recover')) {
+      const winding = phase === 'eclipse-windup';
+      const timer = Math.max(0, num(e.timer, 0));
+      const progress = winding ? clamp(1 - timer / 1.35, 0, 1) : 1;
+      const r = Math.max(58, num(e.r, 34) + 34 + progress * 104);
+      const alpha = winding ? .42 + .16 * pulse : .14;
+      const rgb = '255,174,104';
+      ctx.save();
+      ctx.lineWidth = winding ? 2.4 : 1.5;
+      ctx.setLineDash(winding ? [10, 8] : [4, 10]);
+      ctx.lineDashOffset = -t * (winding ? 38 : 14);
+      circle(ctx, e.x, e.y, r, null, `rgba(${rgb},${alpha})`, winding ? 2.4 : 1.5);
+      ctx.setLineDash([]);
+      circle(ctx, e.x, e.y, Math.max(34, r - 27), null, `rgba(255,225,184,${alpha * .55})`, 1.2);
+      for (let i = 0; i < 8; i++) {
+        const a = t * .16 + i * TAU / 8, cs = Math.cos(a), sn = Math.sin(a);
+        line(ctx, e.x + cs * (r - 7), e.y + sn * (r - 7), e.x + cs * (r + 6), e.y + sn * (r + 6), `rgba(255,226,187,${alpha * .9})`, 1.6);
+      }
+      ctx.restore();
+      if (winding) {
+        glowQueue.push([e.x, e.y, 36 + progress * 18, '255,173,99', .2 + progress * .1]);
+        circle(ctx, e.x, e.y, Math.max(16, num(e.r, 34) * .68), 'rgba(17,14,28,.19)', 'rgba(255,221,171,.24)', 1);
+      }
+      return;
+    }
+
+    // In the shell and circuit stages the Keeper sends a three-shot volley.
+    // Aim is supplied by the simulation only while telegraphing; the player-facing
+    // fallback helps older or incomplete state snapshots without changing rules.
+    if (open || attack !== 'telegraph' || (stage !== 1 && stage !== 2)) return;
+    const player = s.player || {};
+    let ax = num(e.aimX, num(player.x, e.x + 1) - e.x), ay = num(e.aimY, num(player.y, e.y) - e.y);
+    const al = Math.hypot(ax, ay) || 1; ax /= al; ay /= al;
+    const spread = stage === 1 ? .075 : .18;
+    const distance = stage === 1 ? 250 : 230;
+    const start = Math.max(20, num(e.r, 34) + 8);
+    const rgb = stage === 1 ? '255,177,105' : '150,222,255';
+    const locked = !!e.attackLocked;
+    const strength = locked ? .86 : .58 + .08 * pulse;
+    ctx.save(); ctx.lineCap = 'round';
+    for (let i = -1; i <= 1; i++) {
+      const a = Math.atan2(ay, ax) + i * spread;
+      const ux = Math.cos(a), uy = Math.sin(a), x1 = e.x + ux * start, y1 = e.y + uy * start;
+      const x2 = e.x + ux * distance, y2 = e.y + uy * distance;
+      ctx.setLineDash(locked ? [12, 7] : [7, 9]); ctx.lineDashOffset = -t * (locked ? 52 : 34);
+      line(ctx, x1, y1, x2, y2, `rgba(${rgb},${strength * .28})`, i === 0 ? 8 : 5);
+      line(ctx, x1, y1, x2, y2, `rgba(${rgb},${strength})`, i === 0 ? 2.5 : 1.65);
+      if (stage === 1) {
+        // Three close brass sight-lines read as a deliberate, returnable volley.
+        const side = -uy * 4, sx = ux * 4;
+        circle(ctx, x2, y2, i === 0 ? 5 : 3.5, null, `rgba(255,230,190,${strength})`, 1.35);
+        if (i === 0) line(ctx, x2 - side, y2 + sx, x2 + side, y2 - sx, `rgba(255,239,211,${strength})`, 1.5);
+      } else {
+        // Wider cold fan marks the later circuit-stage volley and its endpoints.
+        const px = -uy, py = ux;
+        poly(ctx, [[x2 + ux * 7, y2 + uy * 7], [x2 + px * 5, y2 + py * 5],
+          [x2 - ux * 7, y2 - uy * 7], [x2 - px * 5, y2 - py * 5]],
+        `rgba(185,237,255,${strength * .2})`, `rgba(215,248,255,${strength})`, 1.2);
+      }
+    }
+    if (locked) {
+      const lx = e.x + ax * distance, ly = e.y + ay * distance;
+      circle(ctx, lx, ly, 10 + Math.sin(t * 18) * 1.4, null, `rgba(${rgb},.9)`, 1.5);
+    }
+    ctx.restore();
+  }
   function drawWeaverWarning(ctx, e, t) {
     const phase = e.phase || '';
     if (phase !== 'weave-telegraph' && phase !== 'weave-attack') return;
@@ -2741,6 +3010,124 @@
     ctx.fillStyle = 'rgba(6,14,18,.85)'; rrect(ctx, e.x - 30, cardY, 60, 7, 3); ctx.fill();
     ctx.fillStyle = exposed ? '#8ff2ce' : '#eda984'; rrect(ctx, e.x - 29, cardY + 1, 58 * clamp(hp / maxHp, 0, 1), 5, 2.5); ctx.fill();
     labels.push({ x: e.x, y: landscapeWeaver ? e.y + 59 : e.y - 70, text: exposed ? 'ARMOR OPEN — STRIKE' : lunge ? 'DODGE • UNBLOCKABLE' : glassWeaver && e.phase === 'weave-telegraph' ? 'GLASS THREADS' : warn ? 'RETURN THE SHOT' : sentinelName(e), color: exposed ? '#8ff2ce' : lunge ? '#ffb79c' : glassWeaver && e.phase === 'weave-telegraph' ? '#c8f0ff' : '#e5d7bd', size: 10 });
+  }
+  function crownPrism(ctx, x, y, a, fill, edge, size) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(a);
+    const h = size || 1;
+    poly(ctx, [[0, -12 * h], [7 * h, -3 * h], [5 * h, 7 * h], [0, 12 * h], [-5 * h, 7 * h], [-7 * h, -3 * h]], fill, edge, 1.35);
+    line(ctx, 0, -8 * h, 0, 7 * h, 'rgba(255,255,255,.58)', 1);
+    line(ctx, -4 * h, -2 * h, 0, -8 * h, 'rgba(255,255,255,.44)', .8);
+    ctx.restore();
+  }
+  function drawCrown(ctx, e, s, t, width, height) {
+    const hp = num(e.hp, 0), stage = crownStage(e), form = stage || 1;
+    const open = crownExposed(e), phase = String(e.phase || '').toLowerCase();
+    const attack = String(e.attackPhase || '').toLowerCase();
+    const dead = hp <= 0 || phase === 'defeated';
+    const size = clamp(num(e.r, 34) / 34, .9, 1.28);
+    const telegraph = !open && ((stage < 3 && attack === 'telegraph') || phase === 'eclipse-windup');
+    const hot = form === 1 ? '#e9bd68' : form === 2 ? '#83d4e9' : '#ffc17b';
+    const edge = form === 1 ? '#fff0bc' : form === 2 ? '#dcf7ff' : '#ffe5bc';
+    const core = open ? '#b9ffe4' : (form === 1 ? '#f08a59' : form === 2 ? '#bba6ff' : '#ff9d66');
+    const dark = '#101a27';
+    const bob = dead ? 0 : (telegraph ? Math.sin(t * 13) * 1.2 : Math.sin(t * 2.2) * .7);
+
+    contactShadow(ctx, e.x + 3, e.y + 13, 38 * size, 15 * size, .94);
+    if (dead) {
+      ctx.save(); ctx.translate(e.x, e.y + 4); ctx.rotate(.48);
+      circle(ctx, 0, 0, 25 * size, '#1a2430', '#080d14', 2);
+      poly(ctx, [[-5, -24], [5, -21], [17, -9], [12, 4], [0, 14], [-15, 7], [-19, -5]], '#3a4650', '#111a21', 1.5);
+      line(ctx, -13, -12, 12, 10, '#b68e64', 2); line(ctx, 10, -15, -10, 12, '#586674', 1.4);
+      ctx.restore();
+      return;
+    }
+
+    ctx.save(); ctx.translate(e.x, e.y + bob); ctx.scale(size, size);
+    const aura = ctx.createRadialGradient(0, -4, 2, 0, -4, 60);
+    aura.addColorStop(0, open ? 'rgba(137,255,213,.3)' : form === 2 ? 'rgba(120,195,255,.22)' : form === 3 ? 'rgba(255,166,99,.2)' : 'rgba(255,192,111,.22)');
+    aura.addColorStop(.5, open ? 'rgba(104,238,193,.12)' : 'rgba(126,170,224,.08)');
+    aura.addColorStop(1, 'rgba(100,150,220,0)');
+    ellipse(ctx, 0, -4, 60, 47, aura);
+    // A low dark disk grounds all three forms while keeping the player silhouette clear.
+    circle(ctx, 0, 1, form === 3 ? 27 : 31, 'rgba(7,13,22,.88)', 'rgba(5,10,18,.95)', 2.2);
+    ellipse(ctx, 0, 6, 24, 13, 'rgba(0,4,10,.42)');
+
+    if (form === 1) {
+      // Stage one reads as a sealed, heavy brass shell: broad shoulders and a
+      // crenellated crown make the armored silhouette distinct at gameplay scale.
+      const shell = ctx.createLinearGradient(-28, -32, 26, 28);
+      shell.addColorStop(0, '#fff0b2'); shell.addColorStop(.22, '#c69a54'); shell.addColorStop(.55, '#755534'); shell.addColorStop(1, '#2a2630');
+      poly(ctx, [[0, -39], [12, -31], [28, -30], [24, -18], [35, -7], [27, 2], [31, 16], [13, 21], [0, 29], [-13, 21], [-31, 16], [-27, 2], [-35, -7], [-24, -18], [-28, -30], [-12, -31]], shell, '#1a1b22', 2.2);
+      poly(ctx, [[0, -33], [8, -25], [22, -23], [18, -11], [25, -3], [18, 8], [10, 15], [0, 20], [-10, 15], [-18, 8], [-25, -3], [-18, -11], [-22, -23], [-8, -25]], 'rgba(29,34,39,.92)', 'rgba(255,229,170,.72)', 1.2);
+      poly(ctx, [[-22, -20], [-8, -27], [-4, -15], [-11, -6], [-24, -5], [-28, -11]], '#8b693f', '#f0d594', 1.15);
+      poly(ctx, [[22, -20], [8, -27], [4, -15], [11, -6], [24, -5], [28, -11]], '#604f3d', '#e1c17f', 1.15);
+      line(ctx, -23, -18, -11, -24, 'rgba(255,245,208,.8)', 1.5);
+      line(ctx, 23, -18, 11, -24, 'rgba(255,245,208,.5)', 1.1);
+      // Returned artillery exposes the seam, so keep a readable vertical armor split.
+      line(ctx, 0, -24, 0, 15, open ? 'rgba(190,255,228,.92)' : 'rgba(10,15,20,.84)', open ? 2.4 : 2);
+      poly(ctx, [[0, -13], [10, -1], [0, 12], [-10, -1]], open ? '#8bf0ca' : '#bd7648', edge, 1.35);
+      line(ctx, -5, -2, 0, -9, 'rgba(255,248,222,.7)', 1);
+    } else if (form === 2) {
+      // Stage two sheds the shell into four separated circuit keys around a
+      // recessed center; the open gaps keep this ring unlike stage one's armor.
+      ctx.save(); ctx.rotate(-.18);
+      ctx.setLineDash([4, 7]); ctx.lineDashOffset = -t * 10;
+      circle(ctx, 0, -2, 32, null, 'rgba(131,220,245,.44)', 1.5);
+      ctx.setLineDash([]); ctx.restore();
+      const orbit = .10 * Math.sin(t * 1.2);
+      const keys = [[0, -32], [32, -1], [0, 29], [-32, -1]];
+      for (let i = 0; i < keys.length; i++) {
+        const [kx, ky] = keys[i];
+        const pulse = .84 + .16 * Math.sin(t * 4 + i * 1.5);
+        ctx.save(); ctx.translate(kx, ky); ctx.rotate((i % 2 ? .28 : -.28) + orbit * (i % 2 ? 1 : -1));
+        rrect(ctx, -8, -10, 16, 20, 3); ctx.fillStyle = i % 2 ? '#1d3445' : '#233b4c'; ctx.fill();
+        ctx.strokeStyle = `rgba(183,238,255,${pulse})`; ctx.lineWidth = 1.5; ctx.stroke();
+        line(ctx, -3, -5, 3, 5, '#b7f2ff', 1.4); line(ctx, 3, -5, -3, 5, 'rgba(228,250,255,.56)', 1);
+        ctx.restore();
+      }
+      poly(ctx, [[0, -22], [17, -3], [10, 16], [0, 23], [-10, 16], [-17, -3]], '#1b283a', '#607f9c', 1.8);
+      poly(ctx, [[0, -15], [8, -2], [0, 12], [-8, -2]], open ? '#94f4d6' : '#806bbb', edge, 1.3);
+      line(ctx, -13, -2, -7, -2, 'rgba(174,230,255,.76)', 1.25);
+      line(ctx, 7, -2, 13, -2, 'rgba(174,230,255,.76)', 1.25);
+    } else {
+      // Stage three is lighter and asymmetric: three orbiting prisms frame an
+      // exposed eclipse core instead of another closed armored body.
+      const orbitAngle = t * .58;
+      ctx.save(); ctx.rotate(orbitAngle * .35);
+      ctx.setLineDash([3, 8]); ctx.lineDashOffset = -t * 15;
+      circle(ctx, 0, -2, 36, null, 'rgba(255,201,141,.5)', 1.4);
+      ctx.setLineDash([]); ctx.restore();
+      const shards = 3;
+      for (let i = 0; i < shards; i++) {
+        const a = orbitAngle + i * TAU / shards - Math.PI / 2;
+        const radius = 33 + Math.sin(t * 3 + i * 2) * 2;
+        const sx = Math.cos(a) * radius, sy = Math.sin(a) * radius - 2;
+        crownPrism(ctx, sx, sy, a + Math.PI / 2, i === 1 ? '#c18452' : '#594760', edge, 1.05);
+        glowQueue.push([e.x + sx * size, e.y + sy * size + bob, 9, open ? '150,255,220' : '255,184,120', .32]);
+      }
+      circle(ctx, 0, -2, 22, '#131624', '#574b5c', 1.8);
+      circle(ctx, 0, -3, 16, open ? 'rgba(129,242,201,.24)' : 'rgba(233,126,80,.16)', open ? '#a7ffdf' : '#ffca8b', 1.5);
+      poly(ctx, [[0, -17], [8, -4], [0, 10], [-8, -4]], open ? '#a0f7d6' : '#dc8658', edge, 1.4);
+      line(ctx, 0, -12, 0, 7, 'rgba(255,255,255,.65)', 1);
+    }
+
+    // Thin reflected rims keep each silhouette legible against the dark floor.
+    if (open) {
+      circle(ctx, 0, -3, form === 3 ? 21 : 15, null, 'rgba(175,255,225,.76)', 1.45);
+    } else if (telegraph) {
+      circle(ctx, 0, -3, 37, null, `rgba(${form === 2 ? '151,222,255' : '255,182,111'},${.48 + .15 * Math.sin(t * 15)})`, 1.6);
+    }
+    ctx.restore();
+
+    glowQueue.push([e.x, e.y - 8, form === 3 ? 26 : 22, open ? '139,255,213' : form === 2 ? '119,203,245' : '255,189,111', open ? .68 : .42]);
+    if (open) glowQueue.push([e.x, e.y - 3, 52, '145,255,220', .44]);
+
+    const status = open ? 'CORE OPEN · STRIKE' :
+      stage === 1 ? (attack === 'telegraph' ? 'THREE SHOTS · DODGE' : 'RETURN ARTILLERY · STRIKE') :
+      stage === 2 ? (attack === 'telegraph' ? 'THREE SHOTS · DODGE' : 'LIGHT BOTH CIRCUITS') :
+      phase === 'eclipse-windup' ? 'BURST THROUGH THE RING' : 'ECLIPSE KEEPER';
+    const statusColor = open ? '#9ff5d2' : telegraph ? '#ffd4a6' : form === 2 ? '#c3f1ff' : '#f1d7ad';
+    labels.push({ x: e.x, y: e.y - 57, text: status, color: statusColor, size: 10 });
   }
   function diverState(e) {
     const ph = e.phase || '';
@@ -2959,7 +3346,7 @@
     } else if (ready) {
       glowQueue.push([b.x, b.y - 20, 60 + 10 * Math.sin(t * 3), SUN, .5]);
       labels.push({ x: b.x, y: b.y + 34, text: 'LIGHT THE BEACON', color: '#ffe0a0', size: 11 });
-    } else labels.push({ x: b.x, y: b.y + 34, text: regionOf(s) === 'night-observatory' ? 'OBSERVATORY BEACON' : 'ABBEY BEACON', color: '#c8d0d8', size: 10, dim: true });
+    } else labels.push({ x: b.x, y: b.y + 34, text: beaconName(s), color: '#c8d0d8', size: 10, dim: true });
   }
   function drawPlayer(ctx, p, s, t) {
     const m = track(p, t);
@@ -3964,7 +4351,32 @@
   function atmosphere(ctx, s, th, t, v, width, height) {
     const sx = x => (x - v.x) * v.scale, sy = y => (y - v.y) * v.scale;
     ctx.save();
-    if (th.decor === 'beacon') {
+    if (th.decor === 'crown') {
+      // The observatory's key light moves slowly across the view like light
+      // leaking through a rotating lens, with sparse blue motes for scale.
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 3; i++) {
+        const base = width * (.13 + i * .38), sway = Math.sin(t * .22 + i * 2.1) * width * .055;
+        const x0 = base + sway, x1 = x0 - width * (.17 + i * .025);
+        const gr = ctx.createLinearGradient(x0, 0, x1, height);
+        gr.addColorStop(0, i === 1 ? 'rgba(255,211,156,.075)' : 'rgba(140,187,255,.055)');
+        gr.addColorStop(.46, i === 1 ? 'rgba(255,210,164,.026)' : 'rgba(139,180,255,.022)');
+        gr.addColorStop(1, 'rgba(105,147,220,0)');
+        poly(ctx, [[x0 - 9, 0], [x0 + 34, 0], [x1 + width * .1, height], [x1 - width * .04, height]], gr);
+      }
+      const keeper = arr(s.enemies).find(e => enemyType(e) === 'crown' && num(e.hp, 0) > 0);
+      if (keeper) {
+        const x = sx(keeper.x), y = sy(keeper.y - 4);
+        if (x > -100 && x < width + 100 && y > -100 && y < height + 100)
+          bloom(ctx, x, y, 82 * v.scale, crownExposed(keeper) ? '135,255,218' : '138,174,255', .24);
+      }
+      for (let i = 0; i < 22; i++) {
+        const x = ((i * 137.7 + t * (2.2 + (i % 4) * .5)) % (width + 40)) - 20;
+        const y = ((i * 83.1 + Math.sin(t * .35 + i) * 11 + t * 1.7) % (height + 24)) - 12;
+        const a = .11 + .09 * Math.sin(t * .7 + i * 1.3);
+        circle(ctx, x, y, i % 5 === 0 ? 1.5 : .8, `rgba(201,224,255,${a})`);
+      }
+    } else if (th.decor === 'beacon') {
       ctx.fillStyle = 'rgba(20,30,60,.08)'; ctx.fillRect(0, 0, width, height);
       ctx.strokeStyle = 'rgba(190,210,235,.28)'; ctx.lineWidth = 1; ctx.beginPath();
       for (let i = 0; i < 90; i++) {
@@ -4072,7 +4484,12 @@
   function tideGauge(ctx, s, t, width, height) {
     if (!tideOn(s)) return;
     const lv = clamp(num(s.tide.level, 0), 0, 1), w = tideWarn(s), high = tideHigh(s);
-    const x = width - 150, y = compactCanvasHud(width, height) ? 100 : width < 640 && arr(s.enemies).some(e => (enemyType(e) === 'diver' || enemyType(e) === 'hart') && num(e.hp, 0) > 0) ? 50 : 12, W = 138, H = 36;
+    const compact = compactCanvasHud(width, height), portrait = height > width;
+    const storedCard = !!(s.darkness && s.player && s.flags && s.flags['stored-light']);
+    const W = portrait && width < 360 ? 116 : 138, H = 36;
+    const compactLandscape = width <= 1000 && height <= 480;
+    const x = portrait && storedCard ? 12 : storedCard && !compactLandscape ? width - 168 - 12 - 8 - W : width - W - 12;
+    const y = compact ? 100 : width < 640 && arr(s.enemies).some(e => (enemyType(e) === 'diver' || enemyType(e) === 'hart') && num(e.hp, 0) > 0) ? 50 : 12;
     ctx.save();
     rrect(ctx, x, y, W, H, 8); ctx.fillStyle = 'rgba(6,18,24,.78)'; ctx.fill(); ctx.strokeStyle = w > 0 ? `rgba(255,190,110,${.5 + .5 * Math.sin(t * 12)})` : 'rgba(160,210,220,.35)'; ctx.lineWidth = 1.5; ctx.stroke();
     // wave level column
@@ -4104,19 +4521,25 @@
     ctx.restore();
   }
   function bossBar(ctx, s, t, width, height) {
-    const boss = arr(s.enemies).find(e => (enemyType(e) === 'diver' || (enemyType(e) === 'hart' && e.phase !== 'dormant' && e.phase !== 'defeated')) && num(e.hp, 0) > 0);
+    const boss = arr(s.enemies).find(e => (enemyType(e) === 'diver' || ((enemyType(e) === 'hart' || enemyType(e) === 'crown') && e.phase !== 'dormant' && e.phase !== 'defeated')) && num(e.hp, 0) > 0);
     if (!boss) return;
-    const hart = enemyType(boss) === 'hart';
-    const max = num(boss.maxHp, hart ? 8 : 10) || 10, hp = num(boss.hp, 0);
-    const compact = compactCanvasHud(width, height), hasThermal = !!s.thermal && regionOf(s) === 'glass-kiln';
+    const type = enemyType(boss), hart = type === 'hart', crown = type === 'crown';
+    const stage = crownStage(boss), opened = crown ? crownExposed(boss) : hart ? hartState(boss).exposed : diverState(boss).exposed;
+    const max = num(boss.maxHp, hart ? 8 : crown ? 6 : 10) || 10, hp = num(boss.hp, 0);
+    const compact = compactCanvasHud(width, height), compactLandscape = width <= 1000 && height <= 480;
+    const compactPortrait = width <= 820 && height > width, hasThermal = !!s.thermal && regionOf(s) === 'glass-kiln';
     const panelOffset = compact ? (tideOn(s) ? 45 : 0) + (hasThermal ? 55 : 0) : 0;
-    const W = Math.min(360, width - 180), x = (width - W) / 2, y = compact ? 100 + panelOffset : 16;
+    const W = Math.min(360, width - 180), x = (width - W) / 2;
+    const y = compactPortrait ? 188 + panelOffset : compactLandscape ? 124 : compact ? 112 + panelOffset : 16;
+    const name = hart ? 'THE ROOT HART' : crown ? 'THE ECLIPSE KEEPER' : 'THE BELL DIVER';
+    const trim = hart ? '#8ab860' : crown ? (stage === 2 ? '#8bcde4' : stage === 3 ? '#e4a569' : '#c8a060') : '#c8a060';
+    const fill = opened ? '#8ff2ce' : crown ? (stage === 2 ? '#74cbe2' : stage === 3 ? '#e9a66e' : '#e8785a') : '#e8785a';
     ctx.save();
-    text(ctx, hart ? 'THE ROOT HART' : 'THE BELL DIVER', width / 2, y, 11, hart ? '#d8f0b8' : '#f0d8a8');
-    rrect(ctx, x, y + 9, W, 11, 5); ctx.fillStyle = 'rgba(8,16,20,.85)'; ctx.fill(); ctx.strokeStyle = hart ? '#8ab860' : '#c8a060'; ctx.lineWidth = 1.3; ctx.stroke();
+    text(ctx, name, width / 2, y, 11, hart ? '#d8f0b8' : crown && stage === 2 ? '#c8f3ff' : '#f0d8a8');
+    rrect(ctx, x, y + 9, W, 11, 5); ctx.fillStyle = 'rgba(8,16,20,.85)'; ctx.fill(); ctx.strokeStyle = trim; ctx.lineWidth = 1.3; ctx.stroke();
     const seg = W / max;
     for (let i = 0; i < max; i++) {
-      if (i < hp) { ctx.fillStyle = (hart ? hartState(boss).exposed : diverState(boss).exposed) ? '#8ff2ce' : '#e8785a'; ctx.fillRect(x + 2 + i * seg, y + 11, seg - 2, 7); }
+      if (i < hp) { ctx.fillStyle = fill; ctx.fillRect(x + 2 + i * seg, y + 11, seg - 2, 7); }
     }
     ctx.restore();
   }
@@ -4150,8 +4573,12 @@
       const twin = enemies.find(e => enemyType(e) === 'twin');
       if (twin) return [{ x: twin.x, y: twin.y, label: twin.shielded ? 'TWIN SHIELD' : 'TWIN EXPOSED', color: '#e1c7ff' }];
     }
-    const boss = enemies.find(e => enemyType(e) === 'diver' || enemyType(e) === 'hart');
-    if (boss) { out.push({ x: boss.x, y: boss.y, label: enemyType(boss) === 'hart' ? 'ROOT HART' : 'BELL DIVER', color: '#efb38e' }); return out; }
+    const boss = enemies.find(e => enemyType(e) === 'diver' || enemyType(e) === 'hart' || enemyType(e) === 'crown');
+    if (boss) {
+      const ty = enemyType(boss), stage = crownStage(boss);
+      const label = ty === 'hart' ? 'ROOT HART' : ty === 'crown' ? (stage === 2 ? 'KEEPER CIRCUITS' : stage === 3 ? 'ECLIPSE KEEPER' : 'RETURN ARTILLERY') : 'BELL DIVER';
+      out.push({ x: boss.x, y: boss.y, label, color: ty === 'crown' ? (stage === 2 ? '#bceeff' : '#ffcf91') : '#efb38e' }); return out;
+    }
     const seals = arr(s.receivers).filter(r => !r.active && receiverKind(r) !== 'sanctuary');
     if (seals.length) {
       for (const r of seals.slice(0, 2)) out.push({ x: r.x, y: r.y, label: receiverKind(r) === 'bell' ? 'BELL' : receiverKind(r) === 'pump' ? 'PUMP' : 'SUN SEAL', color: receiverKind(r) === 'pump' ? '#9ff5d2' : '#f3ca78' });
@@ -4215,7 +4642,7 @@
     const a = clamp(Math.min(age / fadeIn, (lifetime - age) / fadeOut), 0, 1);
     const th = themeFor(s);
     ctx.save(); ctx.globalAlpha = a;
-    const cy = Math.max(70, height * .2);
+    const cy = compactMobile ? (height < 500 ? 128 : width < 420 ? 128 : clamp(height * .18, 142, 166)) : Math.max(70, height * .2);
     const gr = ctx.createLinearGradient(0, cy - 40, 0, cy + 40);
     gr.addColorStop(0, 'rgba(4,12,16,0)'); gr.addColorStop(.5, 'rgba(4,12,16,.55)'); gr.addColorStop(1, 'rgba(4,12,16,0)');
     ctx.fillStyle = gr; ctx.fillRect(0, cy - 44, width, 88);
@@ -4225,7 +4652,7 @@
     text(ctx, ch, width / 2, cy - 18, 10, '#c8b890');
     ctx.font = `600 ${Math.min(30, width / 14)}px Georgia, "Times New Roman", serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = '#f4ecd6'; ctx.fillText(s.room.name || roomName(id), width / 2, cy + 6);
-    ctx.font = 'italic 13px Georgia, "Times New Roman", serif'; ctx.fillStyle = 'rgba(220,230,220,.8)'; ctx.fillText(th.title, width / 2, cy + 28);
+    if (!compactMobile) { ctx.font = 'italic 13px Georgia, "Times New Roman", serif'; ctx.fillStyle = 'rgba(220,230,220,.8)'; ctx.fillText(th.title, width / 2, cy + 28); }
     ctx.restore();
   }
 
@@ -4306,6 +4733,7 @@
       else if (ty === 'diver') drawDiverFloor(ctx, e, s, t);
       else if (ty === 'mortar') drawMortarFloor(ctx, e, s, t);
       else if (ty === 'hart') drawHartFloor(ctx, e, s, t);
+      else if (ty === 'crown') drawCrownFloor(ctx, e, s, t);
       else if (ty === 'shade' || ty === 'twin') drawNightEnemyFloor(ctx, e, s, t);
       else drawSentinelFloor(ctx, e, s, t);
     }
@@ -4319,7 +4747,7 @@
     for (const e of arr(s.enemies)) {
       if (!Number.isFinite(e.x)) continue;
       const ty = enemyType(e);
-      items.push([e.y, ty === 'shade' || ty === 'twin' ? () => drawNightEnemy(ctx, e, s, t) : ty === 'turret' ? () => drawTurret(ctx, e, s, t) : ty === 'diver' ? () => drawDiver(ctx, e, s, t) : ty === 'mortar' ? () => drawMortar(ctx, e, s, t) : ty === 'hart' ? () => drawHart(ctx, e, s, t) : () => drawSentinel(ctx, e, s, t, width, height)]);
+      items.push([e.y, ty === 'shade' || ty === 'twin' ? () => drawNightEnemy(ctx, e, s, t) : ty === 'turret' ? () => drawTurret(ctx, e, s, t) : ty === 'diver' ? () => drawDiver(ctx, e, s, t) : ty === 'mortar' ? () => drawMortar(ctx, e, s, t) : ty === 'hart' ? () => drawHart(ctx, e, s, t) : ty === 'crown' ? () => drawCrown(ctx, e, s, t, width, height) : () => drawSentinel(ctx, e, s, t, width, height)]);
     }
     for (const gr of arr(s.growth)) if (finiteRect(gr)) items.push([gr.alive === false ? gr.y : gr.y + gr.h - 10, () => drawGrowth(ctx, gr, s, t)]);
     for (const d of arr(s.dams)) if (finiteRect(d)) items.push([d.broken || num(d.hp, 2) <= 0 ? d.y : d.y + d.h, () => drawDam(ctx, d, s, t)]);
@@ -4352,12 +4780,12 @@
       ctx.drawImage(vignette(Math.round(width), Math.round(height), th.vignette, th.decor === 'verdant' ? '2,10,4' : '2,8,12'), 0, 0, width, height);
       if (th.decor === 'verdant') ctx.drawImage(canopyFrame(Math.round(width), Math.round(height)), 0, 0, width, height);
     }
+    titleCard(ctx, s, t, width, height);
     tideGauge(ctx, s, t, width, height);
     thermalGauge(ctx, s, t, width, height);
-    lightGauge(ctx, s, width, height);
+    if (!(width <= 1000 && height <= 480)) lightGauge(ctx, s, width, height);
     bossBar(ctx, s, t, width, height);
     edgeArrows(ctx, s, v, width, height, t);
-    titleCard(ctx, s, t, width, height);
     const tr = clamp(num(s.transition, 0), 0, 1);
     if (tr > 0) { ctx.fillStyle = `rgba(2,8,12,${tr})`; ctx.fillRect(0, 0, width, height); }
     ctx.restore();

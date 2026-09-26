@@ -187,3 +187,35 @@ whole-adventure normal-clock or physical-device play. Critic comparison is nonbl
 AAA FAIL / OURS LOSES, complete scope FAIL, fun not accepted. Final hidden-path and
 beacon-label corrections received a scoped PASS. Audio listening, full human input
 playthroughs, persistent saves and live leaderboard submission remain unverified.
+
+## September25 Drowned Crown first pass
+
+`node node_modules/jest/bin/jest.js prism-warden --runInBand` passes4 suites / 47
+tests. `prism-warden-crown.test.js` checks the five-region reciprocal graph,
+Observatory continuation into E1, the three phase gates and post-boss evacuation.
+The phase test uses a returned-shot fixture, latches both circuits to isolate the
+floor-transition condition, and advances the real cycle; the evacuation test uses
+declared boss-defeat state, guides Ilex through the actual follow path, and reaches
+the beacon through the opened gate. These fixtures do not establish a legal full
+E1–E5 route.
+
+`node prism-warden/tools/crown-visual.cjs` captures each authored Region5 room and
+the boss forms/result panel at all six required sizes. Current run passes all six
+with zero console errors, external requests or horizontal overflow; mobile
+slash/dodge/prism/burst targets are each at least44px and onscreen. PNGs and
+`report.json` are ignored under `node_modules/.cache/prism-warden/crown-visual/`.
+Lead reviewed the room and boss sheets plus the phone, landscape, desktop and 4K
+captures; declared boss/result states prove layout/rendering, not legal play. Full
+Region5 route, normal-clock campaign, human play, physical touch, audio listening,
+complete ending/save/equipment scope and AAA acceptance remain open.
+
+## September26 full repository verification
+
+`node node_modules/jest/bin/jest.js --runInBand` passes **21 suites / 443 tests**.
+The Tidal Abbey legal-input pilot now reaches its beacon through the repaired
+north stair; the chained Aqueduct and Kiln pilots also reach their beacons.
+`node prism-warden/tools/crown-visual.cjs` passes all six listed viewport sizes,
+with no console errors, external requests or horizontal overflow. It asserts
+44px mobile action targets, the portrait message/touch-dock gap, landscape
+message suppression and final-result text. Visual phase/result states are
+fixtures and do not prove a full-play Crown victory.

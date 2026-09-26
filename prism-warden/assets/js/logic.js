@@ -133,9 +133,16 @@
         phase: 'idle', timer: Math.max(.5, num(d.delay, 1.6)),
         interval: Math.max(.6, num(d.interval, 2.4)),
         targets: ['player', 'escort', 'nearest'].includes(d.targets) ? d.targets : 'player',
-        until: d.until || null, jammedOnce: false });
+        until: d.until || null, jammedOnce: false, sniper: !!d.sniper });
     }
     if (d.text) e.text = String(d.text);
+    if (type === 'shade' || type === 'twin') {
+      const hp = Math.max(1, num(d.hp, 6));
+      return Object.assign(e, { r: num(d.r, type === 'shade' ? 25 : 28), hp, maxHp: hp,
+        phase: type === 'shade' ? 'pursuit' : 'orbit', timer: Math.max(.8, num(d.delay, 1.6)),
+        linked: d.linked || null, shielded: type === 'twin', shieldBreak: 0,
+        lightCooldown: 0, homeX: e.x, homeY: e.y, orbit: num(d.orbit, i % 2 ? Math.PI : 0) });
+    }
     if (type === 'diver') {
       const hp = Math.max(1, num(d.hp, 10));
       return Object.assign(e, { r: num(d.r, 30), hp, maxHp: hp, phase: 'submerged',
@@ -174,6 +181,13 @@
         clearWhen: copy(def.clearWhen || def.clearsWhen || null) },
       spawn: def.spawn ? { x: num(def.spawn.x, w / 2), y: num(def.spawn.y, h / 2) } : { x: w / 2, y: h / 2 },
       roomTime: 0,
+      darkness: !!def.darkness,
+      voids: arr(def.voids).map((v, i) => Object.assign(rectOf(v), { id: v.id || 'void-' + i })),
+      starPaths: arr(def.starPaths).map((v, i) => withCycle(Object.assign(rectOf(v), {
+        id: v.id || 'star-' + i, when: copy(v.when) || 'always', alignTo: copy(v.alignTo || null),
+        active: false, held: false }), v)),
+      rechargePads: arr(def.rechargePads).map((v, i) => ({ id: v.id || 'recharge-' + i,
+        x: num(v.x, 0), y: num(v.y, 0), r: Math.max(18, num(v.r, 40)) })),
       walls: arr(def.walls).map(rectOf),
       gates: arr(def.gates).map((g, i) => Object.assign(rectOf(g), { id: g.id || 'gate-' + i,
         open: !!g.open, opensWhen: copy(g.opensWhen || null), optional: !!g.optional,
@@ -276,8 +290,9 @@
     'mirrors', 'water', 'breakwaters', 'shutters', 'tideDef', 'tide', 'enemies', 'escort',
     'escortExit', 'pickups', 'exits', 'beacon', 'rescue', 'sanctuaryZone',
     'bridges', 'growth', 'levers', 'dams', 'thermalDef', 'thermal', 'glass',
+    'darkness', 'voids', 'starPaths', 'rechargePads',
     '_glassGrace', '_glassCooldown', '_glassContact'];
-  const ARRAY_KEYS = ['bridges', 'growth', 'levers', 'dams', 'glass'];
+  const ARRAY_KEYS = ['bridges', 'growth', 'levers', 'dams', 'glass', 'voids', 'starPaths', 'rechargePads'];
 
   // ------------------------------------------------------------- utilities
   // Message priorities: 0 hint, 1 tactical, 2 story/reward/intro, 3 terminal (always shown).
@@ -430,7 +445,13 @@
     return arr(s.glass).some(g => g.mode === 'bridge' && g.active && inRect(body.x, body.y, g));
   }
   function inWater(s, body) {
-    return s.water.some(w => w.active && inRect(body.x, body.y, w)) && !onDryBridge(s, body) && !onGlassBridge(s, body);
+    return s.water.some(w => w.active && inRect(body.x, body.y, w)) && !onDryBridge(s, body) && !onGlassBridge(s, body) && !onStarPath(s, body);
+  }
+  function onStarPath(s, body) {
+    return arr(s.starPaths).some(v => v.active && inRect(body.x, body.y, v));
+  }
+  function unsupportedVoid(s, body) {
+    return arr(s.voids).some(v => inRect(body.x, body.y, v)) && !onStarPath(s, body);
   }
   function losClear(s, x1, y1, x2, y2) {
     const d = length(x2 - x1, y2 - y1);
@@ -475,6 +496,14 @@
     }
     for (const w of s.water) w.active = tideMatch(s, w.when, w);
     const bs = occupants(s);
+    for (const path of arr(s.starPaths)) {
+      const mirror = path.alignTo && s.mirrors.find(m => m.id === path.alignTo.mirror);
+      const wanted = (path.alignTo ? !!mirror && mirror.index === path.alignTo.index : s.burstTime > 0) && tideMatch(s, path.when, path);
+      // A rotating telescope cannot retract a bridge under its passengers. Stored
+      // light paths do expire: dry landing islands and safe rewind make this fair.
+      path.held = !wanted && !!path.alignTo && path.active && bs.some(o => inRect(o.x, o.y, path));
+      path.active = wanted || path.held;
+    }
     for (const g of arr(s.glass)) {
       const wantsActive = g.when === 'cold' ? !s.thermal.hot : s.thermal.hot;
       if (g.mode === 'solid' && wantsActive && !g.active) {
@@ -647,6 +676,7 @@
       announce(s, 'The prism dims. Retry the room and read the telegraphs.', 8, 3);
     } else {
       announce(s, cause === 'water' ? 'Deep water drags at you. Find dry stone.' :
+        cause === 'void' ? 'The dark gap returns you to the last safe landing.' :
         cause === 'glass' ? 'The kiln glass burns. Leave the tile before it flares again.' :
         cause === 'ring' ? 'Shockwave! Dash through the ring or keep your distance.' :
           cause === 'lob' ? 'A seed bursts at your feet. Leave the landing ring or dash.' :
@@ -687,6 +717,11 @@
       award(s, rkey(s, 'defeat', e.id), 200);
       s.lobs = arr(s.lobs).filter(l => l.owner !== e.id);
       announce(s, e.text || 'The seed mortar splits and falls silent.', 3, 2);
+    } else if (e.type === 'shade' || e.type === 'twin') {
+      e.shielded = false;
+      award(s, rkey(s, 'defeat', e.id), e.type === 'shade' ? 500 : 600);
+      announce(s, e.text || (e.type === 'shade' ? 'The pursuing shade dissolves. Its keeper can be freed.' :
+        'A star twin falls. Its partner can no longer sustain the shield link.'), 5, 2);
     } else {
       award(s, rkey(s, 'defeat', e.id), 400);
       announce(s, e.text || 'The sentinel falls.', 5, 2);
@@ -695,6 +730,14 @@
   function returnedHit(s, e) {
     // A friendly (returned) shot touched enemy e. Returns true when it had an effect.
     if (isDefeated(e)) return false;
+    if (e.type === 'shade') return false;
+    if (e.type === 'twin') {
+      const partner = s.enemies.find(other => other.id === e.linked && !isDefeated(other));
+      if (partner || e.exposed > 0) return false;
+      exposeNight(s, e, 3.4); s.returns++;
+      award(s, rkey(s, 'crack', e.id + ':' + e.hp), 100);
+      return true;
+    }
     if (e.type === 'mortar') return false; // the bark plate simply eats returned shots
     if (e.type === 'hart') {
       if (e.phase === 'dormant' || e.exposed > 0 || e.phase === 'stagger') return false;
@@ -734,6 +777,9 @@
     if (e.hp === 0) { defeat(s, e); return; }
     if (e.type === 'diver') { e.phase = 'recoil'; e.timer = .7; return; }
     if (e.type === 'hart') { e.phase = 'recover'; e.timer = .6; e.stunned = false; e.locked = false; return; }
+    if (e.type === 'shade' || e.type === 'twin') {
+      e.phase = 'recover'; e.timer = 1.1; e.lightCooldown = 1.5; return;
+    }
     beginLunge(s, e);
   }
   function beginLunge(s, e) {
@@ -752,6 +798,96 @@
   }
 
   // ----------------------------------------------------------------- enemies
+  function exposeNight(s, e, duration) {
+    if (isDefeated(e)) return;
+    e.exposed = Math.max(e.exposed, duration); e.phase = 'exposed'; e.timer = e.exposed;
+    e.shieldBreak = Math.max(e.shieldBreak || 0, duration); e.shielded = false;
+    spark(s, e.x, e.y, 'light', 10);
+  }
+  function burstInput(s) {
+    const p = s.player;
+    if (!s.flags['stored-light']) return;
+    if (num(p.lightCharge, 0) < 1 - EPS) {
+      announce(s, 'Recharge on a sun pad or catch a beam with your raised mirror.', 3, 0); return;
+    }
+    p.lightCharge = 0; s.burstTime = 6; s.burstOrigin = { x: p.x, y: p.y };
+    s.rings.push({ x: p.x, y: p.y, r: 0, maxR: 150, speed: 400, life: 1, hostile: false, kind: 'burst' });
+    const affected = new Set();
+    for (const e of s.enemies) {
+      if (isDefeated(e) || !['shade', 'twin'].includes(e.type)) continue;
+      const partner = e.type === 'twin' && s.enemies.find(other => other.id === e.linked && !isDefeated(other));
+      const nearBody = length(e.x - p.x, e.y - p.y) <= 150 && losClear(s, p.x, p.y, e.x, e.y);
+      // The connecting shield is itself a tactical target. Interrupt its middle
+      // to open both twins instead of chasing one invulnerable orbiting body.
+      const nearLink = partner && segmentDistance(p.x, p.y, e.x, e.y, partner.x, partner.y) <= 150 &&
+        losClear(s, e.x, e.y, partner.x, partner.y) &&
+        losClear(s, p.x, p.y, (e.x + partner.x) / 2, (e.y + partner.y) / 2);
+      if (nearBody || nearLink) {
+        affected.add(e);
+        if (partner) affected.add(partner);
+      }
+    }
+    for (const e of affected) exposeNight(s, e, 4);
+    announce(s, affected.size ? 'Stored light breaks the shadow armor — close in and strike!' :
+      'Star paths revealed for six seconds. Reach the next landing.', 3, 1);
+  }
+  function storedLight(s, dt) {
+    const p = s.player;
+    if (!s.flags['stored-light']) return;
+    const pad = arr(s.rechargePads).some(v => length(p.x - v.x, p.y - v.y) <= v.r);
+    const catching = p.reflecting && s.beams.some(b =>
+      length(b.x2 - p.x, b.y2 - p.y) < 2 && length(b.x1 - p.x, b.y1 - p.y) > 2);
+    p.lightCharging = !!(pad || catching);
+    p.lightCharge = clamp(num(p.lightCharge, 0) + (p.lightCharging ? dt / 2 : 0), 0, 1);
+    if (p.lightCharge >= 1 - EPS) p.lightCharge = 1;
+  }
+  function nightStep(s, e, dt) {
+    const p = s.player;
+    e.lightCooldown = Math.max(0, e.lightCooldown - dt);
+    e.shieldBreak = Math.max(0, e.shieldBreak - dt);
+    const partner = e.type === 'twin' && s.enemies.find(other => other.id === e.linked && !isDefeated(other));
+    e.shielded = !!partner && e.shieldBreak <= 0;
+    if (e.type === 'shade' && e.lightCooldown <= 0 && e.exposed <= 0 && s.beams.some(b => b.kind === 'split' &&
+      segmentDistance(e.x, e.y, b.x1, b.y1, b.x2, b.y2) < e.r + 5)) exposeNight(s, e, 3);
+    if (e.exposed > 0) {
+      e.exposed = Math.max(0, e.exposed - dt); e.timer = e.exposed;
+      if (!e.exposed) { e.phase = 'recover'; e.timer = .8; e.lightCooldown = 1.2; }
+      return;
+    }
+    e.timer -= dt;
+    if (e.phase === 'recover') {
+      if (e.timer <= 0) { e.phase = e.type === 'shade' ? 'pursuit' : 'orbit'; e.timer = 1.8; }
+      return;
+    }
+    if (e.type === 'shade') {
+      const d = length(p.x - e.x, p.y - e.y), [ux, uy] = unit(p.x - e.x, p.y - e.y);
+      if (e.phase === 'pursuit') {
+        moveBody(e, ux * 104, uy * 104, dt, moveSolids(s, e));
+        if (d < 185 && losClear(s, e.x, e.y, p.x, p.y)) {
+          e.phase = 'windup'; e.timer = .85; e.aimX = ux; e.aimY = uy;
+        }
+      } else if (e.phase === 'windup' && e.timer <= 0) { e.phase = 'dash'; e.timer = .4; }
+      else if (e.phase === 'dash') {
+        moveBody(e, e.aimX * 390, e.aimY * 390, dt, moveSolids(s, e));
+        if (e.timer <= 0) { e.phase = 'recover'; e.timer = 1; }
+      }
+      return;
+    }
+    if (e.phase === 'orbit') {
+      e.orbit += dt * .65;
+      const tx = e.homeX + Math.cos(e.orbit) * 54, ty = e.homeY + Math.sin(e.orbit) * 86;
+      const [ux, uy] = unit(tx - e.x, ty - e.y);
+      moveBody(e, ux * 64, uy * 64, dt, moveSolids(s, e));
+      if (e.timer <= 0 && losClear(s, e.x, e.y, p.x, p.y)) {
+        [e.aimX, e.aimY] = unit(p.x - e.x, p.y - e.y); e.phase = 'telegraph'; e.timer = .95;
+      }
+    } else if (e.phase === 'telegraph' && e.timer <= 0) {
+      const angle = Math.atan2(e.aimY, e.aimX);
+      for (const offset of partner ? [-.13, .13] : [-.2, 0, .2]) fire(s, e, angle + offset, 245, e.r + 10, 'star');
+      e.phase = 'recover'; e.timer = .8;
+    }
+  }
+
   function sentinelStep(s, e, dt) {
     const p = s.player;
     const weaver = s.room && s.room.challenge === 'C5' && e.id === 'glass-weaver';
@@ -836,6 +972,27 @@
     }
     return s.player;
   }
+  function escortIntercept(s, e, delay) {
+    const escort = s.escort;
+    let target = { x: escort.x, y: escort.y };
+    // Follow the committed route rather than firing behind a walking escort.
+    // Forecast only currently supported ground: rotating a bridge or breaking
+    // the leash after aim locks is a deliberate way to upset the prediction.
+    for (let pass = 0; pass < 2; pass++) {
+      let travel = 120 * (delay + Math.max(0, length(target.x - e.x, target.y - e.y) - e.r - 10) / 410);
+      target = { x: escort.x, y: escort.y };
+      let index = escort.index;
+      while (travel > EPS && index < escort.path.length) {
+        const [tx, ty] = escort.path[index], dx = tx - target.x, dy = ty - target.y, d = length(dx, dy);
+        if (d < EPS) { index++; continue; }
+        const advance = Math.min(travel, d, 4), next = { x: target.x + dx / d * advance, y: target.y + dy / d * advance };
+        if (unsupportedVoid(s, next) || raySegment(target.x, target.y, dx, dy, blockers(s), advance).rect) break;
+        target = next; travel -= advance;
+        if (advance >= d - EPS) index++;
+      }
+    }
+    return target;
+  }
   function turretStep(s, e, dt) {
     if (e.phase === 'silent') return;
     if (e.until && gateOpen(s, e.until)) {
@@ -857,7 +1014,7 @@
       if (e.timer <= 0) {
         e.timer = 0;
         if (losClear(s, e.x, e.y, tgt.x, tgt.y)) {
-          e.phase = 'telegraph'; e.timer = 1.0; e.locked = false; aim();
+          e.phase = 'telegraph'; e.timer = e.sniper ? 1.25 : 1.0; e.locked = false; aim();
         }
       }
       return;
@@ -865,14 +1022,21 @@
     if (e.phase === 'telegraph') {
       // Tracks for 0.6s, then locks for a readable final 0.4s.
       if (!e.locked) aim();
-      if (e.timer <= .4) e.locked = true;
-      if (e.timer <= 0) { e.phase = 'volley'; e.shotsLeft = 3; e.shotTimer = 0; e.volley++; e.timer = .6; }
+      const intercepting = e.sniper && tgt === s.escort;
+      if (!e.locked && e.timer <= (intercepting ? .95 : .4)) {
+        if (intercepting) {
+          const intercept = escortIntercept(s, e, Math.max(0, e.timer));
+          [e.aimX, e.aimY] = unit(intercept.x - e.x, intercept.y - e.y, e.aimX, e.aimY);
+        }
+        e.locked = true;
+      }
+      if (e.timer <= 0) { e.phase = 'volley'; e.shotsLeft = e.sniper ? 1 : 3; e.shotTimer = 0; e.volley++; e.timer = .6; }
       return;
     }
     if (e.phase === 'volley') {
       e.shotTimer -= dt;
       if (e.shotsLeft > 0 && e.shotTimer <= 0) {
-        fire(s, e, Math.atan2(e.aimY, e.aimX), 230, e.r + 10);
+        fire(s, e, Math.atan2(e.aimY, e.aimX), e.sniper ? 410 : 230, e.r + 10);
         e.shotsLeft--; e.shotTimer += .2;
       }
       if (e.shotsLeft === 0 && e.timer <= 0) { e.phase = 'idle'; e.timer = e.interval; e.locked = false; }
@@ -1185,6 +1349,8 @@
     if (d < 3) { e.index++; return; }
     if (length(s.player.x - e.x, s.player.y - e.y) > LEASH) { e.waiting = 'leash'; return; }
     if (raySegment(e.x, e.y, dx, dy, blockers(s), d).rect) { e.waiting = 'blocked'; return; }
+    const next = { x: e.x + dx / d * Math.min(d, 120 * dt + e.r), y: e.y + dy / d * Math.min(d, 120 * dt + e.r) };
+    if (unsupportedVoid(s, next)) { e.waiting = 'bridge'; return; }
     e.waiting = null;
     const wading = inWater(s, e);
     const sp = Math.min(120 * (wading ? WADE : 1), d / dt);
@@ -1226,6 +1392,8 @@
         if (e.phase !== 'dormant') {
           e.phase = 'stalk'; e.timer = 1.3; e.exposed = 0; e.stunned = false; e.locked = false;
         }
+      } else if (e.type === 'shade' || e.type === 'twin') {
+        e.phase = 'recover'; e.timer = 1.2; e.exposed = 0; e.shieldBreak = 0; e.lightCooldown = 0;
       } else if (e.phase !== 'dormant' && e.phase !== 'patrol') {
         e.phase = 'recover'; e.timer = 1.2; e.exposed = 0; e.shotsLeft = 0;
       }
@@ -1273,6 +1441,7 @@
     const want = spawn && Number.isFinite(spawn.x) && Number.isFinite(spawn.y) ? spawn : s.spawn;
     const spot = freeSpot(s, want.x, want.y, p.r);
     p.x = spot.x; p.y = spot.y;
+    s.burstTime = 0; s.burstOrigin = null; s._lastSafe = { x: p.x, y: p.y }; p.lightCharging = false;
     p.dashTime = 0; p.slashTime = 0; p.reflecting = false;
     s.shots = []; s.rings = []; s.particles = []; s.beams = []; s.lobs = [];
     s.transition = 1; s._exitArmed = false; s._wade = 0; s._sanctuaryCooldown = 0;
@@ -1362,7 +1531,9 @@
       regionId: 'tidal-abbey', roomId: null, room: null,
       player: { x: 190, y: 540, r: 14, hp: 6, maxHp: 6, aimX: 1, aimY: 0,
         reflecting: false, slashTime: 0, slashCooldown: 0, dashTime: 0,
-        dashCooldown: 0, invulnerable: 0, dashX: 1, dashY: 0, wading: false, prism: null },
+        dashCooldown: 0, invulnerable: 0, dashX: 1, dashY: 0, wading: false, prism: null,
+        lightCharge: 0, lightCharging: false },
+      burstTime: 0, burstOrigin: null, _burstHeld: false, _lastSafe: null,
       walls: [], gates: [], emitters: [], emitter: null, receivers: [], mirrors: [],
       water: [], breakwaters: [], shutters: [], tide: null, enemies: [], escort: null,
       thermalDef: null, thermal: { hot: false, phase: 0, flipIn: 0 }, glass: [],
@@ -1409,6 +1580,7 @@
     }
     if (s.beacon && !s.beacon.reached) {
       if (s.beacon.lit || s.beacon.requires.every(id => defeatedId(s, id))) return O.beacon || 'Reach the beacon';
+      if (s.enemies.some(e => e.type === 'twin' && !isDefeated(e))) return O.fight || fightHint(s, s.beacon.requires);
     }
     if (s.escort && !s.escort.arrived && s.escort.hp > 0) return O.escort || 'Escort Ilex to safety';
     const gate = s.gates.find(g => !g.open && g.opensWhen && !g.optional);
@@ -1433,6 +1605,9 @@
   }
   function fightHint(s, ids) {
     const alive = s.enemies.filter(e => ids.includes(e.id) && !isDefeated(e));
+    if (alive.some(e => e.type === 'shade')) return 'Lure the shade into split light · strike while exposed';
+    if (alive.some(e => e.type === 'twin')) return alive.some(e => e.exposed > 0) ? 'Strike an exposed star twin' :
+      alive.some(e => e.linked && !defeatedId(s, e.linked)) ? 'Burst beside the shield link · strike a twin' : 'Return the lone twin’s fire · strike its core';
     if (alive.length && alive.every(e => e.type === 'mortar')) return 'Flank the mortars · strike behind the bark';
     return 'Return fire · expose armor';
   }
@@ -1516,6 +1691,8 @@
     if (e.type === 'diver') return ['volley-telegraph', 'volley-recover', 'recoil'].includes(e.phase);
     if (e.type === 'mortar') return false;
     if (e.type === 'hart') return e.phase === 'charge';
+    if (e.type === 'shade') return e.phase === 'dash';
+    if (e.type === 'twin') return e.phase === 'orbit';
     return true;
   }
 
@@ -1549,6 +1726,7 @@
     dt = Number.isFinite(dt) ? clamp(dt, 0, 1 / 30) : 0;
     if (!dt) return s;
     s.time += dt; s.roomTime += dt;
+    s.burstTime = Math.max(0, num(s.burstTime, 0) - dt);
     s.transition = Math.max(0, s.transition - dt / .6);
     const p = s.player;
     for (const key of ['slashTime', 'slashCooldown', 'dashTime', 'dashCooldown', 'invulnerable']) {
@@ -1574,6 +1752,8 @@
       p.slashTime = .22; p.slashCooldown = .43; p.reflecting = false; s._slashSerial++; slashed = true;
     }
     const placing = !!input.place && !s._placeHeld;
+    if (input.burst && !s._burstHeld) burstInput(s);
+    s._burstHeld = !!input.burst;
     s._slashHeld = !!input.slash; s._dashHeld = !!input.dash; s._placeHeld = !!input.place;
     if (placing) placeInput(s);
     if (slashed) {
@@ -1595,12 +1775,28 @@
     p.wading = inWater(s, p);
     const speed = (p.reflecting ? 108 : 190) * (p.wading ? WADE : 1);
     const dashSpeed = 520 * (p.wading ? .7 : 1);
+    const oldX = p.x, oldY = p.y;
     moveBody(p, p.dashTime > 0 ? p.dashX * dashSpeed : mx * speed,
       p.dashTime > 0 ? p.dashY * dashSpeed : my * speed, dt, moveSolids(s));
     p.x = clamp(p.x, p.r, s.room.w - p.r); p.y = clamp(p.y, p.r, s.room.h - p.r);
+    // Sampling the walk substeps prevents dashes jumping over an unlit gap.
+    // A fall returns to permanent land, never to a vanished temporary path.
+    const travel = length(p.x - oldX, p.y - oldY), samples = Math.max(1, Math.ceil(travel / 4));
+    let fell = false;
+    for (let sample = 0; sample <= samples && !fell; sample++) fell = unsupportedVoid(s, {
+      x: oldX + (p.x - oldX) * sample / samples, y: oldY + (p.y - oldY) * sample / samples });
+    if (fell) {
+      const safe = s._lastSafe || s.spawn;
+      p.x = safe.x; p.y = safe.y; p.dashTime = 0;
+      hurt(s, 'void');
+      announce(s, 'The star path fades. Burst before crossing and reach solid ground.', 3, 1);
+    } else if (!arr(s.voids).some(v => overlapCircle(p.x, p.y, p.r + 2, v)) && !inWater(s, p)) {
+      s._lastSafe = { x: p.x, y: p.y };
+    }
 
     escortStep(s, dt);
     light(s, dt);
+    storedLight(s, dt);
     updateGates(s);
     for (const e of s.enemies) {
       if (s.status !== 'playing') break;
@@ -1609,6 +1805,7 @@
       else if (e.type === 'diver') diverStep(s, e, dt);
       else if (e.type === 'mortar') mortarStep(s, e, dt);
       else if (e.type === 'hart') hartStep(s, e, dt);
+      else if (e.type === 'shade' || e.type === 'twin') nightStep(s, e, dt);
       else sentinelStep(s, e, dt);
     }
     projectiles(s, dt, blockers(s));
@@ -1667,6 +1864,10 @@
         s.flags.prism = true;
         award(s, rkey(s, 'pickup', pk.id), 150);
         announce(s, pk.text || 'A keeper’s prism. Press PRISM (Q) to set it down and bend the light; press again beside it to lift it.', 7, 2);
+      } else if (pk.kind === 'stored-light') {
+        s.flags['stored-light'] = true; p.lightCharge = 1;
+        award(s, rkey(s, 'pickup', pk.id), 150);
+        announce(s, pk.text || 'Stored light acquired. BURST (R) reveals star paths for six seconds. Recharge on sun pads or catch a beam.', 7, 2);
       } else if (pk.kind === 'heart') {
         p.maxHp++; p.hp = Math.min(p.maxHp, p.hp + 1);
         award(s, rkey(s, 'pickup', pk.id), 100);
@@ -1741,7 +1942,8 @@
       const inside = x >= r && y >= r && x <= s.room.w - r && y <= s.room.h - r;
       const solid = moveSolids(s).some(w => overlapCircle(x, y, r, w));
       const wet = s.water.some(w => w.active && inRect(x, y, w));
-      const bridge = s.bridges.some(b => overlapCircle(x, y, r, b));
+      const bridge = s.bridges.some(b => overlapCircle(x, y, r, b)) ||
+        arr(s.voids).some(b => overlapCircle(x, y, r, b)) || arr(s.starPaths).some(b => overlapCircle(x, y, r, b));
       const crowded = bodies(s).some(o => o !== p && length(o.x - x, o.y - y) < o.r + r);
       if (!inside || solid || wet || bridge || crowded) {
         announce(s, 'The prism needs dry, open ground.', 2, 0);

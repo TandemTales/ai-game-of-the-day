@@ -300,3 +300,36 @@ The Glass Kiln is a connected five-room chapter following the Verdant Aqueduct: 
 A room may define `thermal:{period,hotFor,offset}`. Logic derives `s.thermal={hot,phase,flipIn}` deterministically from room time; a retry resets to the room snapshot. Optional `glass:[{id,x,y,w,h,mode,when}]` objects use `mode:'solid'|'hazard'|'bridge'` and `when:'hot'|'cold'`. Logic exposes each object's current `active` state. Active solids block movement and optical/projectile paths; active hazards apply bounded, telegraphed damage; active bridges cancel underlying water for a body on the span and never block movement or rays. Renderer distinguishes molten hazard glass, cover and annealed walkways, and retains a readout of the current phase and next change. Kiln floors use the bundled `assets/img/kiln-basalt-glass.webp` over deterministic procedural platework; it is a local-only visual treatment with a procedural fallback when image loading is unavailable or fails. Other game art and all audio remain procedural; no runtime third-party asset or font requests are allowed.
 
 C1 alternates timed furnace lanes; C2 makes an annealed bridge crossing; C3 escorts a cooling cart through furnace hazards; C4 routes beams through competing hot/cold foundry locks; C5 uses the Glass Weaver's telegraphed alternating three-shot volley and five parallel glass-thread curtain, with the center thread reflectable and a recovery window for returned-shot exposure and close strikes. The dedicated pattern is C5-only; ordinary sentinels retain their existing combat controller. The optional quench valve opens a route to C2's far bank; its pickup currently sets only a generic discovery flag and does not grant a distinct combat behavior. Player-facing wording must describe only working mechanics. Completing C5 ends this chapter, not the full campaign; Regions 4-5, equipment progression and the ending remain unbuilt.
+
+## Region 4 implemented contract — September25 expansion
+
+Night Observatory follows the Weaver beacon: stars (D1), obs-shutters (D2),
+shade (D3), telescope (D4), twins (D5). obs-chart and shade-vault are optional
+reciprocal detours. The twin beacon ends only the currently built adventure;
+Drowned Crown and the actual campaign ending remain unbuilt.
+
+Stored-light pickup sets flags['stored-light'] and player.lightCharge=1. R / BURST
+spends a full charge, exposes nearby shades or a linked twin pair, and reveals
+starPaths for six seconds. Wells and catching beams recharge in two seconds.
+Inactive paths hide their internal route; bank edges remain visible. Unsupported
+void crossings return to the last permanent landing with bounded damage. Telescope
+paths use alignTo:{mirror,index}; slash rotates the instrument, occupied spans hold
+until their passengers leave, and Ilex waits before unsupported gaps. Room state
+and retry snapshots include these mechanics; snapshots remain in memory only.
+
+D2 shutters alternate optical windows under committed sniper fire. D3's pursuing
+shade has a locked dash and can be exposed by split light or a burst; exposure
+must be followed by a sword strike. D5 twins orbit and shield one another; burst
+interrupts the body/link, while a surviving orphan can also be opened by returned
+fire. Burst alone deals no damage or score. Optional chart and keeper rescue each
+open a different protected recharge refuge in D5. Their future Crown consequences
+remain planned. D4 snipers forecast Ilex's movement at aim lock; the east-bank shot
+lane makes shielding consequential, but a naive full-health route still survives
+with damage, so the independent defense-depth objection remains unresolved.
+
+The first three regions' implementation does not imply all original systems pass:
+four mutually exclusive equipment decisions, persistent campaign saves, the
+promised polarity/loadout behaviors, full optional-discovery consequences, Region5
+and the ending remain acceptance gaps. The original complete-game contract above
+is unchanged. Build those gaps before standalone art polish. September26/27 remain
+available scheduled expansion runs; October3 is wrap-up and forced release.

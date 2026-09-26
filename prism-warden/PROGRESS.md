@@ -917,3 +917,59 @@ and gameplay rejection remain open. This run prioritizes Region4 connected autho
 content, stored-light mechanics and reachable progression with keyboard/touch UI.
 Region5/full ending remain the next required expansion, not a reduced contract.
 Tests precede each commit; no main promotion or completion marker.
+
+## September25 weekend runner: Observatory integrated checkpoint
+
+Implemented connected Region4: two bent star-path crossings and recharge islands;
+shutter-window optics under snipers; pursuing shade exposed by split light/burst;
+Ilex escort with a player-rotated telescope crossing; linked Star Twins and a fourth
+beacon. Two optional authored detours obtain a sky chart and free a keeper, each
+opening a different protected recharge refuge in D5. R/BURST supports keyboard and
+touch. Held keyboard movement now survives the HUD resize on ability acquisition.
+
+Independent rejection produced corrections: D4 originally allowed a walk-and-turn
+clear with no damage; snipers now use a committed forecast and a head-on east lane.
+The first east placement blocked the exit; moving it back restores a legal path.
+The naive route still survives with damage (Sera4/6, Ilex4/5), so meaningful defense
+pressure is improved, not independently accepted as sufficient depth. D1 initially
+revealed the whole path even while unlit; inactive internal geometry is now hidden
+with readable bank edges and a single reveal hint. Prior negative feedback persists.
+
+Legal-input simulation reaches all A1-D5 from a new Abbey run:365.20 simulated
+seconds,4/7HP,28900score, no retry. Region4-only route:57.33 simulated seconds,
+3/6HP,6700score; no optional refuges needed. Hidden-state planning establishes
+reachability, not human duration, discovery or fun. Independent normal-clock actual
+keyboard D1:10.13s; native touch D1:14.38s, both6HP and clean console, starting from
+a declared Region4 entry fixture. Complete normal-clock keyboard/touch adventure
+runs have NOT been demonstrated. Additional integrated validation follows below.
+
+Scope audit: 4/5 regions and20/25 challenge implementations, none AAA-accepted.
+Remaining: Drowned Crown's five encounters, three-phase climax/rescue/evacuation,
+four behavioral equipment tradeoffs, persistent campaign saves (current retry and
+region snapshots are memory-only), full polarity/attachment behaviors and the
+complete ten-discovery consequences. Existing thermal cycles are not proof of the
+promised player-controlled polarity system. Full story payoff remains unbuilt.
+
+Independent actual official Nintendo Link's Awakening side-by-side is NON-BLIND,
+AAA FAIL / OURS LOSES: repeated flat tiles and rectangular voids, diagrammatic
+staging, weak height/material/contact depth, too much text. Mobile controls/light
+meter are readable but intro text crowds phones and landscape remains compressed.
+Evidence: ignored node_modules/.cache/prism-warden/observatory-critic/comparison.png
+and native-d1-report.json. No shipping judge, no completion marker, no main change.
+Next substantial work: Region5 plus equipment/save dependencies and ending; retain
+D4 depth criticism and validate entire normal-clock adventure before final polish.
+
+Integrated validation:20 suites/438 tests PASS. Nine new Observatory regressions
+include deterministic legal D1-D5 completion. Both six-size browser sweeps pass,
+with console/overflow/native controls mocked APIs/local assets clean; final sweep
+also verifies all four44px touch actions and no-Image fallback. Lead inspected all
+six sizes and actual Nintendo comparison,4K downsampled. Independent final scoped
+review accepts hidden path/reveal, corrected Observatory beacon label and distinct
+PRISM/BURST controls; AAA and scope still FAIL. A redundant landscape HUD status
+stack was removed after capture review to leave the light meter unobscured.
+
+Additional explicit debt: Glass Edge is still a generic flag, quench does not yet
+remove the promised late hazard, and the temporary room title overlaps the phone
+light card during entry. No new audio arrangement/listening acceptance or whole
+normal-clock campaign acceptance. All evidence remains reproducible via tracked
+tools; ignored screenshot evidence is not a shipped asset.

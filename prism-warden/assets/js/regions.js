@@ -61,15 +61,19 @@
     },
     {
       id: 'night-observatory', number: 4, name: 'Night Observatory', epithet: 'The starless instrument',
-      route: 'kiln lift -> star paths -> telescope bridges -> twin dome',
-      rooms: [{ id: 'lift', name: 'Kiln Lift' }, { id: 'stars', name: 'Revealed Star Paths' }, { id: 'shutters', name: 'Moving Shutters' }, { id: 'bridges', name: 'Telescope Bridges' }, { id: 'dome', name: 'Twin Dome' }, { id: 'chart', name: 'Optional Sky Chart' }],
-      links: [['lift', 'stars'], ['stars', 'shutters'], ['shutters', 'bridges'], ['bridges', 'dome'], ['stars', 'chart'], ['chart', 'bridges']],
+      route: 'kiln beacon -> revealed star paths -> moving shutters -> split shade -> telescope bridges -> twin dome',
+      rooms: [{ id: 'stars', name: 'Revealed Star Paths' }, { id: 'obs-shutters', name: 'Moving Shutters' }, { id: 'shade', name: 'Split-Light Hall' }, { id: 'telescope', name: 'Telescope Bridges' }, { id: 'twins', name: 'Twin Dome' }, { id: 'obs-chart', name: 'Sky Chart Archive' }, { id: 'shade-vault', name: 'Bound Keeper Vault' }],
+      links: [['stars', 'obs-shutters'], ['obs-shutters', 'shade'], ['shade', 'telescope'], ['telescope', 'twins'], ['obs-shutters', 'obs-chart'], ['shade', 'shade-vault']],
       challenges: [
-        { id: 'D1', title: 'Revealed Stars', mechanic: 'navigate paths visible only in brief light bursts', optional: 'sky chart', guardian: 'Observatory Shade' },
-        { id: 'D2', title: 'Moving Shutters', mechanic: 'align mobile shutters under sniper pressure', optional: 'shutter key', guardian: 'Lens Sniper' },
+        { id: 'D1', title: 'Revealed Stars', mechanic: 'store light on safe islands and trace two bent star paths before the light fades', optional: 'sky chart', guardian: 'The starless gulf' },
+        { id: 'D2', title: 'Moving Shutters', mechanic: 'rotate two optical circuits through alternating shutter windows while returning lens sniper fire', optional: 'sky chart archive', guardian: 'Lens Snipers' },
         { id: 'D3', title: 'Split Shade', mechanic: 'redirect a pursuing shade through separated light', optional: 'liberated shade', guardian: 'Mirror Shade' },
-        { id: 'D4', title: 'Rotating Telescope', mechanic: 'defend Ilex while telescope bridges rotate', optional: 'star map room', guardian: 'Telescope Choir' },
-        { id: 'D5', title: 'Star Twins', mechanic: 'break two mutually shielding targets with linked beams', optional: 'dark lens cache', guardian: 'Star Twins' }
+        { id: 'D4', title: 'Rotating Telescope', mechanic: 'escort Ilex onto the central island, rotate its telescope to the next crossing, and screen sniper fire', optional: 'chart-marked refuge ahead', guardian: 'Telescope Choir' },
+        { id: 'D5', title: 'Star Twins', mechanic: 'cross a moving shield link with a stored-light burst to expose both guardians, then choose which twin to pursue', optional: 'two protected recharge refuges', guardian: 'Star Twins' }
+      ],
+      discoveries: [
+        { flag: 'sky-chart', label: 'Sky chart', hint: 'a star path south of the shutter hall reaches the chart; its mark opens the east recharge refuge in Twin Dome' },
+        { flag: 'shade-freed', label: 'Liberated keeper shade', hint: 'split the vault light into both seals south of the shade hall; the freed keeper opens the west recharge refuge in Twin Dome' }
       ]
     },
     {
@@ -843,10 +847,10 @@
     ],
     enemies: [{ type: 'sentinel', id: 'glass-weaver', x: 800, y: 384, r: 32, hp: 10, wakeRadius: 440,
       text: 'The Glass Weaver’s frame buckles. The kiln beacon wakes beyond the crucible.' }],
-    beacon: { x: 512, y: 138, requires: ['glass-weaver'],
-      text: 'The Glass Kiln beacon steadies. The Observatory lift remains sealed beyond this chapter.' },
+    beacon: { x: 512, y: 138, requires: ['glass-weaver'], next: { room: 'stars', spawn: { x: 84, y: 384 } },
+      text: 'The Glass Kiln beacon steadies. Ilex rides the lift ahead to the Night Observatory.' },
     clearWhen: { defeated: ['glass-weaver'] },
-    objectives: { fight: 'Return the Weaver’s shots · strike when its glass frame opens', beacon: 'Reach the kiln beacon', exit: 'Defeat the Glass Weaver · reach the kiln beacon', won: 'Glass Kiln chapter complete · the Observatory passage remains sealed' },
+    objectives: { fight: 'Return the Weaver’s shots · strike when its glass frame opens', beacon: 'Reach the kiln beacon', exit: 'Defeat the Glass Weaver · reach the kiln beacon' },
     exits: [{ id: 'to-foundry', x: 24, y: 344, w: 24, h: 80, to: 'foundry', spawn: { x: 930, y: 384 } }]
   };
 
@@ -878,9 +882,257 @@
     ]
   };
 
+  // ---------------------------------------------------------------------------
+  // Region 4: light first becomes a traversable resource, then a combat opening.
+  // These rooms have their own globally unique ids; the Abbey owns "shutters".
+  // Void strips span bank to bank: a blind dash cannot skip a revealed path.
+  // ---------------------------------------------------------------------------
+  const stars = {
+    id: 'stars', region: 'night-observatory', challenge: 'D1', name: 'Revealed Star Paths', w: W, h: H,
+    darkness: true,
+    intro: 'Take the light vessel. Stand in a light well to refill it, then release a burst to reveal the star paths for six seconds. The first crossing bends north to a safe island; refill there before the long southern turn. A fall returns you to the last bank.',
+    spawn: { x: 84, y: 384 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 672 },
+      { x: 976, y: 48, w: 24, h: 296 }, { x: 976, y: 424, w: 24, h: 296 },
+      { x: 48, y: 48, w: 928, h: 32 }, { x: 48, y: 696, w: 928, h: 24 }
+    ],
+    voids: [
+      { id: 'west-star-gulf', x: 300, y: 80, w: 164, h: 616 },
+      { id: 'east-star-gulf', x: 560, y: 80, w: 220, h: 616 }
+    ],
+    starPaths: [
+      { id: 'west-entry', x: 300, y: 352, w: 128, h: 64 },
+      { id: 'west-turn', x: 364, y: 220, w: 64, h: 196 },
+      { id: 'west-landing', x: 364, y: 220, w: 100, h: 64 },
+      { id: 'east-entry', x: 560, y: 220, w: 128, h: 64 },
+      { id: 'east-turn', x: 624, y: 220, w: 64, h: 328 },
+      { id: 'east-landing', x: 624, y: 484, w: 156, h: 64 }
+    ],
+    rechargePads: [
+      { id: 'vessel-well', x: 230, y: 384, r: 42 },
+      { id: 'island-well', x: 512, y: 252, r: 38 },
+      { id: 'east-well', x: 840, y: 516, r: 38 }
+    ],
+    pickups: [{ id: 'light-vessel', kind: 'stored-light', x: 176, y: 384,
+      text: 'Stored light: release a burst to reveal star paths and break nearby shadow shields. Light wells refill the vessel.' }],
+    levers: [{ id: 'star-landing-bell', x: 874, y: 516, flag: 'stars-crossed',
+      text: 'The landing bell answers. The shutter hall opens beyond the east bank.' }],
+    gates: [{ id: 'star-lock', x: 952, y: 344, w: 24, h: 80, opensWhen: { flag: 'stars-crossed' },
+      text: 'The first star route is secure.' }],
+    clearWhen: { flag: 'stars-crossed' },
+    objectives: { route: 'Store light · burst across two bent paths · ring the east landing bell', exit: 'East lock to the Moving Shutters' },
+    exits: [{ id: 'stars-to-shutters', x: 976, y: 344, w: 24, h: 80, to: 'obs-shutters', spawn: { x: 84, y: 384 } }]
+  };
+
+  // D2: the upper ray crosses east, the lower ray crosses west. Both receiving
+  // eyes are across a moving screen from their mirror, so moving to the second
+  // instrument changes which sniper and shutter window the player must read.
+  const observatoryShutters = {
+    id: 'obs-shutters', region: 'night-observatory', challenge: 'D2', name: 'Moving Shutters', w: W, h: H,
+    darkness: true,
+    intro: 'Slash the north-west mirror east through its shutter, then cross to the south-east mirror and turn it west. Each eye latches during its own open window. Face the lens snipers to return their narrow shots; the chart archive lies south.',
+    spawn: { x: 84, y: 384 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 296 }, { x: 24, y: 424, w: 24, h: 296 },
+      { x: 976, y: 48, w: 24, h: 296 }, { x: 976, y: 424, w: 24, h: 296 },
+      { x: 48, y: 48, w: 928, h: 32 },
+      { x: 48, y: 696, w: 656, h: 24 }, { x: 784, y: 696, w: 192, h: 24 },
+      { x: 500, y: 80, w: 24, h: 84 }, { x: 500, y: 276, w: 24, h: 216 }, { x: 500, y: 604, w: 24, h: 92 },
+      { x: 344, y: 340, w: 48, h: 88 }, { x: 632, y: 340, w: 48, h: 88 }
+    ],
+    shutters: [
+      { id: 'north-optic-screen', x: 500, y: 164, w: 24, h: 112, period: 8, openFor: 3.5, offset: 0 },
+      { id: 'south-optic-screen', x: 500, y: 492, w: 24, h: 112, period: 8, openFor: 3.5, offset: 4 }
+    ],
+    emitters: [{ id: 'north-optic', x: 88, y: 220, dx: 1, dy: 0 }, { id: 'south-optic', x: 936, y: 548, dx: -1, dy: 0 }],
+    mirrors: [
+      { id: 'north-optic-mirror', x: 260, y: 220, r: 17, dirs: [[1, 0], [0, 1]], index: 1 },
+      { id: 'south-optic-mirror', x: 764, y: 548, r: 17, dirs: [[-1, 0], [0, -1]], index: 1 }
+    ],
+    receivers: [{ id: 'obs-east-eye', x: 864, y: 220, r: 24, kind: 'seal' }, { id: 'obs-west-eye', x: 144, y: 548, r: 24, kind: 'seal' }],
+    enemies: [
+      { type: 'turret', sniper: true, id: 'upper-lens-sniper', x: 842, y: 132, r: 17, targets: 'player', interval: 3.2, delay: 2, until: 'obs-lock' },
+      { type: 'turret', sniper: true, id: 'lower-lens-sniper', x: 184, y: 632, r: 17, targets: 'player', interval: 3.2, delay: 3.6, until: 'obs-lock' }
+    ],
+    rechargePads: [{ id: 'shutter-well', x: 860, y: 620, r: 36 }],
+    gates: [{ id: 'obs-lock', x: 952, y: 344, w: 24, h: 80, opensWhen: { receivers: ['obs-east-eye', 'obs-west-eye'] },
+      text: 'Both shutter eyes latch. The lenses fall silent and the shade hall opens.' }],
+    clearWhen: { receivers: ['obs-east-eye', 'obs-west-eye'] },
+    objectives: { seal: 'Turn the north mirror east and the south mirror west · read the shutter windows', exit: 'East to Split-Light Hall · south to the optional Sky Chart Archive' },
+    exits: [
+      { id: 'obs-shutters-to-stars', x: 24, y: 344, w: 24, h: 80, to: 'stars', spawn: { x: 920, y: 384 } },
+      { id: 'obs-shutters-to-shade', x: 976, y: 344, w: 24, h: 80, to: 'shade', spawn: { x: 84, y: 384 } },
+      { id: 'obs-shutters-to-chart', x: 704, y: 696, w: 80, h: 24, to: 'obs-chart', spawn: { x: 512, y: 116 } }
+    ]
+  };
+
+  const shadeHall = {
+    id: 'shade', region: 'night-observatory', challenge: 'D3', name: 'Split-Light Hall', w: W, h: H,
+    darkness: true,
+    intro: 'The mirror shade follows your last position. Lead it across the vertical split light, then turn and strike its revealed body. A stored burst buys another opening. The bound keeper beneath this hall can still be freed.',
+    spawn: { x: 84, y: 384 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 296 }, { x: 24, y: 424, w: 24, h: 296 },
+      { x: 976, y: 48, w: 24, h: 296 }, { x: 976, y: 424, w: 24, h: 296 },
+      { x: 48, y: 48, w: 928, h: 32 },
+      { x: 48, y: 696, w: 424, h: 24 }, { x: 552, y: 696, w: 424, h: 24 },
+      // Pillars create two pursuit lanes without blocking the north/south split.
+      { x: 300, y: 236, w: 72, h: 72 }, { x: 652, y: 460, w: 72, h: 72 }
+    ],
+    emitters: [{ id: 'shade-sun', x: 88, y: 384, dx: 1, dy: 0 }],
+    mirrors: [{ id: 'shade-splitter', x: 512, y: 384, r: 20, split: true, dirs: [[0, -1], [0, 1]], index: 0 }],
+    rechargePads: [{ id: 'shade-west-well', x: 220, y: 568, r: 38 }, { id: 'shade-east-well', x: 816, y: 208, r: 38 }],
+    enemies: [{ type: 'shade', id: 'mirror-shade', x: 816, y: 384, r: 26, hp: 6, wakeRadius: 640 }],
+    gates: [{ id: 'shade-lock', x: 952, y: 344, w: 24, h: 80, opensWhen: { defeated: ['mirror-shade'] },
+      text: 'The hunting shade dissolves. Ilex calls from the telescope bridges.' }],
+    clearWhen: { defeated: ['mirror-shade'] },
+    objectives: { fight: 'Draw the shade through split light · slash its revealed body', exit: 'East to the Telescope Bridges · south to the Bound Keeper Vault' },
+    exits: [
+      { id: 'shade-to-shutters', x: 24, y: 344, w: 24, h: 80, to: 'obs-shutters', spawn: { x: 920, y: 384 } },
+      { id: 'shade-to-telescope', x: 976, y: 344, w: 24, h: 80, to: 'telescope', spawn: { x: 84, y: 384 } },
+      { id: 'shade-to-vault', x: 472, y: 696, w: 80, h: 24, to: 'shade-vault', spawn: { x: 512, y: 116 } }
+    ]
+  };
+
+  // D4 is a player-controlled telescope, not another timed crossing. The west
+  // span is aligned initially. Ilex waits on the island until its lens is turned
+  // east; the bridge she is occupying remains held until she reaches a bank.
+  const telescope = {
+    id: 'telescope', region: 'night-observatory', challenge: 'D4', name: 'Telescope Bridges', w: W, h: H,
+    darkness: true,
+    intro: 'Ilex needs both telescope crossings. Escort her over the aligned west span, then slash the central telescope to swing its light east. She waits at a missing bridge. Keep close and return the snipers’ shots while she crosses.',
+    spawn: { x: 84, y: 384 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 296 }, { x: 24, y: 424, w: 24, h: 296 },
+      { x: 976, y: 48, w: 24, h: 296 }, { x: 976, y: 424, w: 24, h: 296 },
+      { x: 48, y: 48, w: 928, h: 32 }, { x: 48, y: 696, w: 928, h: 24 },
+      { x: 164, y: 244, w: 48, h: 48 }, { x: 812, y: 476, w: 48, h: 48 }
+    ],
+    voids: [{ id: 'west-telescope-gulf', x: 300, y: 80, w: 130, h: 616 }, { id: 'east-telescope-gulf', x: 594, y: 80, w: 130, h: 616 }],
+    starPaths: [
+      { id: 'west-telescope-span', x: 300, y: 352, w: 130, h: 64, alignTo: { mirror: 'telescope-axis', index: 0 } },
+      { id: 'east-telescope-span', x: 594, y: 352, w: 130, h: 64, alignTo: { mirror: 'telescope-axis', index: 1 } }
+    ],
+    mirrors: [{ id: 'telescope-axis', x: 512, y: 440, r: 24, dirs: [[-1, 0], [1, 0]], index: 0 }],
+    rechargePads: [{ id: 'telescope-well', x: 512, y: 308, r: 32 }],
+    enemies: [
+      { type: 'turret', sniper: true, id: 'telescope-north-sniper', x: 512, y: 180, r: 17, targets: 'escort', interval: 3.6, delay: 3.8, until: 'telescope-lock' },
+      // Fire down the crossing itself: diagonal shots only trailed a moving
+      // escort and allowed a zero-defense clear. Sera can screen or return this.
+      { type: 'turret', sniper: true, id: 'telescope-east-sniper', x: 916, y: 384, r: 17, targets: 'escort', interval: 1.6, delay: 0.8, until: 'telescope-lock' }
+    ],
+    escort: { name: 'Ilex', x: 132, y: 384, hp: 5, flag: 'ilex-observatory',
+      path: [[270, 384], [472, 384], [552, 384], [760, 384], [900, 384]],
+      text: 'Ilex reaches the dome controls. “The twins power each other. Break the line between them with stored light.”' },
+    escortExit: { x: 876, y: 344, w: 72, h: 80 },
+    gates: [{ id: 'telescope-lock', x: 952, y: 344, w: 24, h: 80, opensWhen: { flag: 'ilex-observatory' },
+      text: 'Ilex silences the telescope lenses. The Twin Dome opens.' }],
+    clearWhen: { escort: true },
+    objectives: { escort: 'Escort Ilex west span → central lens → east span · slash the telescope to rotate', exit: 'East to the Twin Dome' },
+    exits: [
+      { id: 'telescope-to-shade', x: 24, y: 344, w: 24, h: 80, to: 'shade', spawn: { x: 920, y: 384 } },
+      { id: 'telescope-to-twins', x: 976, y: 344, w: 24, h: 80, to: 'twins', spawn: { x: 84, y: 384 } }
+    ]
+  };
+
+  const twins = {
+    id: 'twins', region: 'night-observatory', challenge: 'D5', name: 'Twin Dome', w: W, h: H,
+    darkness: true,
+    intro: 'The Star Twins shield one another through the moving line between them. Release stored light beside a twin or across their link, then close for a sword strike. Refill at a light well while reading both attacks. The chart and freed keeper open sheltered wells below.',
+    spawn: { x: 84, y: 384 },
+    walls: [
+      { x: 24, y: 48, w: 24, h: 296 }, { x: 24, y: 424, w: 24, h: 296 },
+      { x: 976, y: 48, w: 24, h: 672 },
+      { x: 48, y: 48, w: 928, h: 32 }, { x: 48, y: 696, w: 928, h: 24 },
+      // Two small shelters have narrow, optional doors. Neither hides a boss
+      // requirement or the beacon, and both are reachable from the main arena.
+      { x: 172, y: 552, w: 64, h: 24 }, { x: 300, y: 552, w: 64, h: 24 },
+      { x: 172, y: 576, w: 24, h: 120 }, { x: 340, y: 576, w: 24, h: 120 },
+      { x: 660, y: 552, w: 64, h: 24 }, { x: 788, y: 552, w: 64, h: 24 },
+      { x: 660, y: 576, w: 24, h: 120 }, { x: 828, y: 576, w: 24, h: 120 },
+      { x: 474, y: 246, w: 76, h: 40 }
+    ],
+    enemies: [
+      { type: 'twin', id: 'star-twin-dawn', linked: 'star-twin-dusk', x: 648, y: 280, r: 27, hp: 6, wakeRadius: 620 },
+      { type: 'twin', id: 'star-twin-dusk', linked: 'star-twin-dawn', x: 776, y: 458, r: 27, hp: 6, wakeRadius: 620 }
+    ],
+    rechargePads: [
+      { id: 'dome-west-well', x: 152, y: 228, r: 42 }, { id: 'dome-east-well', x: 880, y: 228, r: 42 },
+      { id: 'shade-refuge-well', x: 268, y: 640, r: 36 }, { id: 'chart-refuge-well', x: 756, y: 640, r: 36 }
+    ],
+    gates: [
+      { id: 'shade-refuge', x: 236, y: 552, w: 64, h: 24, optional: true, opensWhen: { flag: 'shade-freed' }, text: 'The liberated keeper opens the west light refuge.' },
+      { id: 'chart-refuge', x: 724, y: 552, w: 64, h: 24, optional: true, opensWhen: { flag: 'sky-chart' }, text: 'The sky chart reveals the east light refuge.' }
+    ],
+    beacon: { x: 512, y: 138, requires: ['star-twin-dawn', 'star-twin-dusk'],
+      text: 'The fourth beacon rises. Ilex holds its signal; Nacre answers from the Drowned Crown. The Crown descent is not yet open.' },
+    clearWhen: { defeated: ['star-twin-dawn', 'star-twin-dusk'] },
+    objectives: { fight: 'Burst through the twins’ shield link · strike an exposed twin · refill safely', beacon: 'Reach the Observatory beacon', won: 'Night Observatory complete · the Drowned Crown descent remains sealed' },
+    exits: [{ id: 'twins-to-telescope', x: 24, y: 344, w: 24, h: 80, to: 'telescope', spawn: { x: 920, y: 384 } }]
+  };
+
+  // The chart route asks for a longer winding burst crossing. Its dry island
+  // is a real recovery choice, and the acquired chart opens a boss recharge nook.
+  const skyChart = {
+    id: 'obs-chart', region: 'night-observatory', challenge: null, name: 'Sky Chart Archive', w: W, h: H,
+    darkness: true,
+    intro: 'The chart archive survives beyond the southern star gulf. Refill at each light well and follow the hooked path. The chart marks a sheltered light well in the Twin Dome.',
+    spawn: { x: 512, y: 116 },
+    walls: [
+      { x: 24, y: 48, w: 448, h: 32 }, { x: 552, y: 48, w: 448, h: 32 },
+      { x: 24, y: 80, w: 24, h: 640 }, { x: 976, y: 80, w: 24, h: 640 }, { x: 48, y: 696, w: 928, h: 24 }
+    ],
+    voids: [{ id: 'chart-upper-gulf', x: 48, y: 264, w: 928, h: 128 }, { id: 'chart-lower-gulf', x: 48, y: 476, w: 928, h: 108 }],
+    starPaths: [
+      { id: 'chart-upper-entry', x: 480, y: 264, w: 64, h: 64 },
+      { id: 'chart-upper-hook', x: 336, y: 296, w: 208, h: 64 },
+      { id: 'chart-upper-landing', x: 336, y: 296, w: 64, h: 96 },
+      { id: 'chart-lower-entry', x: 688, y: 476, w: 64, h: 76 },
+      { id: 'chart-lower-hook', x: 688, y: 520, w: 176, h: 64 }
+    ],
+    rechargePads: [{ id: 'chart-north-well', x: 512, y: 208, r: 38 }, { id: 'chart-island-well', x: 720, y: 434, r: 32 }, { id: 'chart-south-well', x: 832, y: 632, r: 38 }],
+    pickups: [{ id: 'sky-chart', kind: 'sky-chart', x: 832, y: 632,
+      text: 'Sky chart secured. Its mark opens the east light refuge in the Twin Dome.' }],
+    objectives: { route: 'Burst along the hooked crossings · take the sky chart · return north' },
+    exits: [{ id: 'chart-to-shutters', x: 472, y: 48, w: 80, h: 32, to: 'obs-shutters', spawn: { x: 744, y: 640 } }]
+  };
+
+  // Two independently turned branches free a non-hostile shade; this is an
+  // optical rescue, not another copy of D3's pursuit duel.
+  const shadeVault = {
+    id: 'shade-vault', region: 'night-observatory', challenge: null, name: 'Bound Keeper Vault', w: W, h: H,
+    darkness: true,
+    intro: 'A keeper shade is trapped between two seals. Turn each branch mirror toward its seal; both must hold light together. Free the keeper below them to open the west light refuge in the Twin Dome.',
+    spawn: { x: 512, y: 116 },
+    walls: [
+      { x: 24, y: 48, w: 448, h: 32 }, { x: 552, y: 48, w: 448, h: 32 },
+      { x: 24, y: 80, w: 24, h: 640 }, { x: 976, y: 80, w: 24, h: 640 }, { x: 48, y: 696, w: 928, h: 24 },
+      // Caged alcove: the central doorway is its only entrance.
+      { x: 380, y: 476, w: 88, h: 24 }, { x: 556, y: 476, w: 88, h: 24 },
+      { x: 380, y: 500, w: 24, h: 196 }, { x: 620, y: 500, w: 24, h: 196 }
+    ],
+    emitters: [{ id: 'vault-sun', x: 512, y: 92, dx: 0, dy: 1 }],
+    mirrors: [
+      { id: 'vault-splitter', x: 512, y: 240, r: 20, split: true, dirs: [[-1, 0], [1, 0]], index: 0 },
+      { id: 'vault-west-branch', x: 260, y: 240, r: 17, dirs: [[0, 1], [-1, 0]], index: 1 },
+      { id: 'vault-east-branch', x: 764, y: 240, r: 17, dirs: [[0, 1], [1, 0]], index: 1 }
+    ],
+    receivers: [{ id: 'shade-west-seal', x: 260, y: 584, r: 24, kind: 'seal', latch: false }, { id: 'shade-east-seal', x: 764, y: 584, r: 24, kind: 'seal', latch: false }],
+    gates: [{ id: 'shade-vault-lock', x: 468, y: 476, w: 88, h: 24, hold: true, optional: true, opensWhen: { receivers: ['shade-west-seal', 'shade-east-seal'] },
+      text: 'The split seals lift the keeper’s cage.' }],
+    rescue: { name: 'Bound keeper', x: 512, y: 596, flag: 'shade-freed', requiresFlag: 'gate:shade-vault-lock',
+      text: 'The keeper shade is free. Its sigil opens the west light refuge in the Twin Dome.' },
+    rechargePads: [{ id: 'vault-well', x: 512, y: 400, r: 36 }],
+    objectives: { seal: 'Turn both branch mirrors down into their seals', rescue: 'Enter the open cage and free the keeper shade', exit: 'Return north to Split-Light Hall' },
+    exits: [{ id: 'vault-to-shade', x: 472, y: 48, w: 80, h: 32, to: 'shade', spawn: { x: 512, y: 640 } }]
+  };
+
   const rooms = { cloister, sluice, sanctuary, shutters, 'bell-tower': bellTower, beacon,
     spillway, roots, channels, quay, ferry, reservoir,
-    furnace, bridge: annealedBridge, rail, foundry, weaver, quench };
+    furnace, bridge: annealedBridge, rail, foundry, weaver, quench,
+    stars, 'obs-shutters': observatoryShutters, shade: shadeHall, telescope, twins,
+    'obs-chart': skyChart, 'shade-vault': shadeVault };
   PW.ROOMS = rooms;
   // Always hand out a fresh deep copy so runtime state can never mutate the authored data.
   PW.roomDef = id => Object.prototype.hasOwnProperty.call(rooms, id) ? JSON.parse(JSON.stringify(rooms[id])) : null;

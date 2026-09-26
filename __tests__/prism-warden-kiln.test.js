@@ -113,7 +113,8 @@ test('only the Glass Weaver alternates a telegraphed five-thread curtain', () =>
 test('connected Glass Kiln is solvable through C1-C5 with legal simulation inputs', () => {
   const { play } = require('../prism-warden/tools/kiln-pilot.cjs');
   const result = play(loadPW());
-  expect(result.status).toBe('won');
+  expect(result.status).toBe('cleared');
+  expect(result.next.room).toBe('stars');
   expect(result.cleared).toMatchObject({ A1: true, A2: true, A3: true, A4: true, A5: true,
     B1: true, B2: true, B3: true, B4: true, B5: true,
     C1: true, C2: true, C3: true, C4: true, C5: true });
@@ -121,5 +122,5 @@ test('connected Glass Kiln is solvable through C1-C5 with legal simulation input
   expect(result.beacon.reached).toBe(true);
   expect(result.player.hp).toBeGreaterThan(0);
   expect(result.retries).toBeUndefined();
-  expect((result.kilnLog || []).join('\n')).toContain('END status=won');
+  expect((result.kilnLog || []).join('\n')).toContain('END status=cleared');
 }, 600000);

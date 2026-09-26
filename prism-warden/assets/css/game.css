@@ -35,3 +35,10 @@
   body.has-message header .brand{visibility:hidden}
   body.touch #message{top:3px;right:180px;bottom:auto;left:84px;width:auto;max-width:none;transform:none;z-index:7;font-size:9px;line-height:1.05;padding:3px 6px}
 }
+
+#burst,.lightKey,#lightState:empty{display:none}body.has-light #burst{display:block;border-color:#a79fe8;color:#e0ddff}body.has-light .lightKey{display:inline}#lightState{color:#cec7ff}
+/* Four acquired actions keep 44px targets without consuming both thumb pads. */
+body.has-prism .actions,body.has-light .actions{display:grid;grid-template-columns:repeat(2,minmax(44px,1fr));gap:4px}
+body.has-prism .actions button,body.has-light .actions button{min-width:44px;padding:6px 4px;font-size:9px}
+@media(max-width:600px) and (min-height:481px){body.has-light .actions,body.has-prism .actions{width:116px}body.has-light #touchControls,body.has-prism #touchControls{gap:6px}.pad{flex-shrink:0}}
+@media(max-width:1000px) and (max-height:480px){#prismState,#lightState{display:none}}

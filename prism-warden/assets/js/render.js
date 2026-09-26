@@ -198,6 +198,8 @@
   // ---------------------------------------------------------------- themes
   const KILN_THEME = { grade: ['#ffe5bd', '#291b39'], floor: 'kiln', stone: [220, 13, 30], joint: '#0c1012', moss: 0, puddles: 0, top: [207, 16, 34], face: [215, 22, 22], wall: 'basalt', ambient: [150, 164, 180], void: '#080a10', vignette: .42, decor: 'kiln', water: [196, 72, 24], title: 'The furnace below the tide' };
   const kilnTheme = title => Object.assign({}, KILN_THEME, { title });
+  const NIGHT_THEME = { grade: ['#d4dcff', '#433769'], floor: 'octa', stone: [230, 20, 39], joint: '#171b32', moss: 0, puddles: 0, top: [228, 18, 49], face: [238, 22, 26], wall: 'basalt', ambient: [183, 192, 220], void: '#080b1a', vignette: .22, decor: 'observatory', water: [230, 30, 22], title: 'Carry a little daylight into the night' };
+  const nightTheme = title => Object.assign({}, NIGHT_THEME, { title });
   const THEMES = {
     cloister: { grade: ['#ffe2b0', '#1d5a6a'], floor: 'flag', stone: [96, 9, 41], joint: '#1b2523', moss: .6, puddles: 5, top: [44, 16, 58], face: [38, 16, 33], wall: 'ashlar', ambient: [134, 140, 154], void: '#081b23', vignette: .5, decor: 'cloister', water: [185, 60, 26], title: 'The drowned cloister' },
     sluice: { grade: ['#cfe8f0', '#12384a'], floor: 'slate', stone: [203, 13, 33], joint: '#0e171c', moss: .45, puddles: 11, top: [200, 9, 45], face: [205, 14, 25], wall: 'slate', ambient: [112, 128, 150], void: '#05131b', vignette: .58, decor: 'sluice', water: [188, 64, 24], title: 'Where the sea is let in' },
@@ -221,10 +223,17 @@
     foundry: kilnTheme('Two temperatures, one circuit'),
     weaver: Object.assign(kilnTheme('The glass remembers the blow'), { ambient: [222, 232, 240], vignette: .14 }),
     quench: kilnTheme('The quench valve'),
-    'optional-quench': kilnTheme('The quench valve')
+    'optional-quench': kilnTheme('The quench valve'),
+    stars: nightTheme('The road appears in borrowed light'),
+    'obs-shutters': nightTheme('The shutters keep their own time'),
+    shade: nightTheme('Split the light; break the ambush'),
+    telescope: nightTheme('Turn the lens; guide the keeper'),
+    twins: nightTheme('Two shields, one luminous thread'),
+    'obs-chart': nightTheme('The chart the keepers left behind'),
+    'shade-vault': nightTheme('A reward beyond the shadow')
   };
   function regionOf(s) { return (s.room && s.room.region) || s.regionId || ''; }
-  function themeFor(s) { return THEMES[roomId(s)] || (regionOf(s) === 'glass-kiln' ? KILN_THEME : regionOf(s) === 'verdant-aqueduct' ? THEMES.spillway : THEMES.cloister); }
+  function themeFor(s) { return THEMES[roomId(s)] || (regionOf(s) === 'night-observatory' ? NIGHT_THEME : regionOf(s) === 'glass-kiln' ? KILN_THEME : regionOf(s) === 'verdant-aqueduct' ? THEMES.spillway : THEMES.cloister); }
 
   // ---------------------------------------------------------------- static layer
   function stonePath(g, x, y, w, h, rng, j) {
@@ -1765,6 +1774,17 @@
     g.scale(k, k);
     g.fillStyle = th.void; g.fillRect(0, 0, W, H);
     (FLOORS[th.floor] || floorFlag)(g, W, H, rng, th, s);
+    if (th.decor === 'observatory') {
+      // Fine brass survey rings distinguish the region without darkening its playable ground.
+      const cx = W / 2, cy = H / 2;
+      for (const r of [130, 248, 365]) {
+        circle(g, cx, cy, r, null, 'rgba(234,212,162,.22)', 2);
+        for (let i = 0; i < 36; i++) {
+          const a = i * TAU / 36, len = i % 3 ? 5 : 13;
+          line(g, cx + Math.cos(a) * r, cy + Math.sin(a) * r, cx + Math.cos(a) * (r - len), cy + Math.sin(a) * (r - len), 'rgba(232,219,183,.28)', 1.2);
+        }
+      }
+    }
     drawWeaverForecourt(g, s);
     decals(g, s, th, rng, W, H, meta);
     beds(g, s, th, rng, W, H);
@@ -1836,6 +1856,121 @@
   const roomMemo = { id: null, since: 0 };
 
   // ---------------------------------------------------------------- dynamic world pieces
+  function drawNightPaths(ctx, s, t) {
+    if (!s.darkness) return;
+    // Keep the banks readable, but reveal the route through the gulf only with stored light.
+    for (const z of arr(s.voids).filter(finiteRect)) {
+      ctx.fillStyle = '#070a18'; ctx.fillRect(z.x, z.y, z.w, z.h);
+      ctx.strokeStyle = '#b78cb1'; ctx.lineWidth = 3; ctx.strokeRect(z.x, z.y, z.w, z.h);
+      for (let x = z.x + 12; x < z.x + z.w - 6; x += 29) {
+        line(ctx, x - 4, z.y + 5, x + 2, z.y + 11, '#bf9da8', 2);
+        line(ctx, x - 4, z.y + z.h - 11, x + 2, z.y + z.h - 5, '#bf9da8', 2);
+      }
+    }
+    const paths = arr(s.starPaths).filter(finiteRect);
+    // The HUD owns the shared timer; label only the nearest lit segment in the world.
+    const nearestLitPath = paths.filter(p => !p.alignTo && p.active).slice().sort((a, b) => {
+      const player = s.player || { x: 0, y: 0 };
+      return rectDist(player.x, player.y, a) - rectDist(player.x, player.y, b);
+    })[0];
+    if (paths.some(p => !p.alignTo && !p.active) && s.player) {
+      const landing = arr(s.rechargePads).filter(p => Number.isFinite(p.x) && Number.isFinite(p.y))
+        .slice().sort((a, b) => Math.hypot(a.x - s.player.x, a.y - s.player.y) - Math.hypot(b.x - s.player.x, b.y - s.player.y))[0];
+      if (landing) labels.push({ x: landing.x, y: landing.y - num(landing.r, 32) - 18, text: 'BURST TO REVEAL PATH', color: '#c2f0ff', size: 11 });
+    }
+    for (const p of paths) {
+      const active = !!p.active, held = !!p.held, time = Math.max(0, num(s.burstTime, 0));
+      // Telescope bridges remain mechanically legible; inactive burst routes disclose no interior geometry.
+      if (!p.alignTo && !active) continue;
+      const warning = active && !p.alignTo && time > 0 && time < 1.5;
+      const color = held || warning ? '#ffd29a' : active ? '#b4f5ff' : '#ce9eab';
+      ctx.save();
+      if (warning) ctx.globalAlpha = .65 + .35 * time / 1.5;
+      ctx.fillStyle = active ? '#455a85' : '#111528'; ctx.fillRect(p.x, p.y, p.w, p.h);
+      ctx.strokeStyle = color; ctx.lineWidth = active ? 3 : 2; ctx.strokeRect(p.x + 2, p.y + 2, p.w - 4, p.h - 4);
+      const horiz = p.w >= p.h, length = horiz ? p.w : p.h;
+      for (let d = 15; d < length; d += 28) {
+        const x = horiz ? p.x + d : p.x + p.w / 2, y = horiz ? p.y + p.h / 2 : p.y + d;
+        if (active) {
+          circle(ctx, x, y, 3.4, '#edfcff');
+          line(ctx, x - 6, y, x + 6, y, '#bdefff', 1);
+          line(ctx, x, y - 6, x, y + 6, '#bdefff', 1);
+          if (d + 28 < length) line(ctx, x + (horiz ? 7 : 0), y + (horiz ? 0 : 7), x + (horiz ? 21 : 0), y + (horiz ? 0 : 21), '#9dcfef', 1.4);
+        } else {
+          line(ctx, x - 4, y - 4, x + 4, y + 4, '#ad849b', 1.5);
+          line(ctx, x + 4, y - 4, x - 4, y + 4, '#ad849b', 1.5);
+        }
+      }
+      ctx.restore();
+      const label = held ? 'HELD · REACH THE EDGE' : p.alignTo ? (active ? 'LENS ALIGNED · CROSS' : 'TURN THE LENS') : `STAR PATH · ${time.toFixed(1)}s`;
+      if (p.alignTo || held || p === nearestLitPath) labels.push({ x: p.x + p.w / 2, y: p.y - 12, text: label, color, size: 11 });
+    }
+    for (const p of arr(s.rechargePads)) {
+      if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+      const r = num(p.r, 32);
+      circle(ctx, p.x, p.y, r, '#243d58', '#a8edff', 2.5);
+      circle(ctx, p.x, p.y, r - 7, null, '#708eab', 1.5);
+      for (let i = 0; i < 8; i++) {
+        const a = i * TAU / 8;
+        line(ctx, p.x + Math.cos(a) * (r - 3), p.y + Math.sin(a) * (r - 3), p.x + Math.cos(a) * (r + 4), p.y + Math.sin(a) * (r + 4), '#e0eeff', 2);
+      }
+      poly(ctx, [[p.x, p.y - 14], [p.x + 8, p.y], [p.x, p.y + 14], [p.x - 8, p.y]], '#d7f7ff', '#92c5ed', 2);
+      glowQueue.push([p.x, p.y, r * 1.6, COOL, .28 + .06 * Math.sin(t * 3)]);
+      labels.push({ x: p.x, y: p.y + r + 13, text: 'RECHARGE LIGHT', color: '#c2f0ff', size: 10 });
+    }
+    for (const m of arr(s.mirrors)) {
+      const paths = arr(s.starPaths).filter(p => p.alignTo && p.alignTo.mirror === m.id);
+      if (!paths.length) continue;
+      circle(ctx, m.x, m.y, 40, null, '#bba983', 2);
+      for (let i = 0; i < 8; i++) {
+        const a = i * TAU / 8;
+        circle(ctx, m.x + Math.cos(a) * 40, m.y + Math.sin(a) * 40, 3, paths.some(p => p.alignTo.index === i && p.active) ? '#befff2' : '#807796');
+      }
+      labels.push({ x: m.x, y: m.y + 53, text: 'TELESCOPE · TURN TO ALIGN', color: '#e5d9b5', size: 10 });
+    }
+    if (num(s.burstTime, 0) > 0 && s.burstOrigin) {
+      const p = s.burstOrigin, f = clamp(num(s.burstTime, 0) / 6, 0, 1);
+      circle(ctx, p.x, p.y, 38 + (1 - f) * 70, null, `rgba(180,229,255,${f * .45})`, 2);
+    }
+  }
+  function drawNightEnemyFloor(ctx, e, s, t) {
+    if (num(e.hp, 0) <= 0) return;
+    if (enemyType(e) === 'twin' && e.shielded) {
+      const other = arr(s.enemies).find(n => n.id === e.linked && num(n.hp, 0) > 0);
+      if (other && String(e.id) < String(other.id)) {
+        line(ctx, e.x, e.y - 12, other.x, other.y - 12, '#17203e', 8);
+        ctx.save(); ctx.setLineDash([9, 7]); ctx.lineDashOffset = -t * 18;
+        line(ctx, e.x, e.y - 12, other.x, other.y - 12, '#d3baff', 3); ctx.restore();
+        labels.push({ x: (e.x + other.x) / 2, y: (e.y + other.y) / 2 - 26, text: 'LINKED SHIELDS · BURST THE THREAD', color: '#e4ceff', size: 10 });
+      }
+    }
+    if (/windup|telegraph|dash/.test(e.phase || '')) {
+      const a = Math.atan2(num(e.aimY, 0), num(e.aimX, 1));
+      ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(a);
+      poly(ctx, [[0, -20], [180, -27], [200, 0], [180, 27], [0, 20]], 'rgba(255,105,129,.24)', '#ffbbbc', 2);
+      for (let x = 40; x < 180; x += 40) { line(ctx, x - 8, -9, x + 5, 0, '#ffe4d5', 2); line(ctx, x + 5, 0, x - 8, 9, '#ffe4d5', 2); }
+      ctx.restore();
+    }
+  }
+  function drawNightEnemy(ctx, e, s, t) {
+    const twin = enemyType(e) === 'twin', alive = num(e.hp, 0) > 0;
+    if (!alive) { ellipse(ctx, e.x, e.y, twin ? 26 : 18, 9, '#302c4e', '#8d85af', 1.5); return; }
+    const exposed = num(e.exposed, 0) > 0 || e.phase === 'exposed', shielded = !!e.shielded && !exposed;
+    const warning = /windup|telegraph|dash/.test(e.phase || '');
+    const pale = exposed ? '#baffdf' : warning ? '#ffc3b6' : '#ddd5ff';
+    contactShadow(ctx, e.x, e.y + 9, twin ? 28 : 21, 10, .85);
+    ctx.save(); ctx.translate(e.x, e.y + Math.sin(t * 3 + e.x) * 2);
+    if (twin) ctx.scale(1.25, 1.25);
+    poly(ctx, [[0, -38], [15, -23], [12, -8], [24, 18], [9, 12], [0, 21], [-11, 12], [-23, 18], [-13, -10], [-15, -23]], exposed ? '#446b73' : '#393754', '#b0a5dc', 2);
+    poly(ctx, [[0, -32], [10, -21], [0, -5], [-10, -21]], '#101a31', pale, 1.5);
+    line(ctx, -6, -20, -2, -19, pale, 3); line(ctx, 2, -19, 6, -20, pale, 3);
+    poly(ctx, [[0, -5], [6, 2], [0, 10], [-6, 2]], pale, '#101b31', 1.5);
+    if (twin) { line(ctx, -15, -30, 15, -30, '#e4c6ff', 2); for (const x of [-13, 0, 13]) line(ctx, x, -30, x, -40 + (x ? 4 : 0), '#e4c6ff', 2); }
+    if (shielded) { ellipse(ctx, 0, -8, 31, 41, 'rgba(159,139,228,.1)', '#cfbaff', 2.5); circle(ctx, 0, -8, 35, null, '#9a85c6', 1); }
+    ctx.restore();
+    hpPips(ctx, e.x, e.y + (twin ? 35 : 29), num(e.hp, 0), num(e.maxHp, twin ? 5 : 3));
+    labels.push({ x: e.x, y: e.y - (twin ? 67 : 51), text: exposed ? 'EXPOSED · STRIKE' : twin ? (shielded ? 'TWIN · SHIELDED' : 'TWIN · STRIKE') : 'SHADE · REVEAL WITH LIGHT', color: pale, size: 10 });
+  }
   let floodLabel = null;
   function glassWhenHot(g) { return g.when === 'hot'; }
   function drawGlass(ctx, s, t) {
@@ -2761,7 +2896,12 @@
     const bob = Math.sin(t * 2.4 + p.x) * 3;
     contactShadow(ctx, p.x, p.y + 10, 10 - bob * .5, 4, .75);
     ctx.save(); ctx.translate(p.x, p.y - 8 + bob);
-    if (p.kind === 'heart') {
+    if (p.kind === 'stored-light') {
+      circle(ctx, 0, 0, 18, '#2b355c', '#ccbfe7', 2);
+      poly(ctx, [[0, -15], [9, 0], [0, 15], [-9, 0]], '#e1f9ff', '#9ce2ff', 2);
+      line(ctx, -21, 0, -15, 0, '#dff7ff', 2); line(ctx, 15, 0, 21, 0, '#dff7ff', 2);
+      ctx.restore(); glowQueue.push([p.x, p.y - 8 + bob, 55, COOL, .65]);
+    } else if (p.kind === 'heart') {
       const hg = ctx.createLinearGradient(-10, -10, 10, 10); hg.addColorStop(0, '#ffb0b8'); hg.addColorStop(.5, '#e83a5a'); hg.addColorStop(1, '#7a1028');
       ctx.beginPath(); ctx.moveTo(0, 9); ctx.bezierCurveTo(-14, -1, -9, -13, 0, -5); ctx.bezierCurveTo(9, -13, 14, -1, 0, 9); ctx.closePath();
       ctx.fillStyle = hg; ctx.fill(); ctx.strokeStyle = '#2a0610'; ctx.lineWidth = 1.8; ctx.stroke();
@@ -2784,7 +2924,7 @@
       ctx.restore(); glowQueue.push([p.x, p.y - 8 + bob, 30, SUN, .45]);
     }
     const pl = s.player;
-    if (pl && Math.hypot(pl.x - p.x, pl.y - p.y) < 150) labels.push({ x: p.x, y: p.y + 22, text: (p.kind === 'prism' ? 'Sun prism' : p.text || (p.kind === 'heart' ? 'Heart vessel' : 'Keeper chart')).toUpperCase(), color: p.kind === 'prism' ? '#ffd2f0' : '#f6e6bc', size: 9 });
+    if (pl && Math.hypot(pl.x - p.x, pl.y - p.y) < 150) labels.push({ x: p.x, y: p.y + 22, text: (p.kind === 'stored-light' ? 'Stored light' : p.kind === 'prism' ? 'Sun prism' : p.text || (p.kind === 'heart' ? 'Heart vessel' : 'Keeper chart')).toUpperCase(), color: p.kind === 'prism' ? '#ffd2f0' : '#f6e6bc', size: 9 });
   }
   function beaconLit(s) { return !!(s.beacon && (s.beacon.lit || s.status === 'won')); }
   function beaconReady(s) {
@@ -2819,7 +2959,7 @@
     } else if (ready) {
       glowQueue.push([b.x, b.y - 20, 60 + 10 * Math.sin(t * 3), SUN, .5]);
       labels.push({ x: b.x, y: b.y + 34, text: 'LIGHT THE BEACON', color: '#ffe0a0', size: 11 });
-    } else labels.push({ x: b.x, y: b.y + 34, text: 'ABBEY BEACON', color: '#c8d0d8', size: 10, dim: true });
+    } else labels.push({ x: b.x, y: b.y + 34, text: regionOf(s) === 'night-observatory' ? 'OBSERVATORY BEACON' : 'ABBEY BEACON', color: '#c8d0d8', size: 10, dim: true });
   }
   function drawPlayer(ctx, p, s, t) {
     const m = track(p, t);
@@ -3980,11 +4120,36 @@
     }
     ctx.restore();
   }
+  function lightGauge(ctx, s, width, height) {
+    if (!s.darkness || !s.player || !(s.flags && s.flags['stored-light'])) return;
+    const p = s.player, charge = clamp(num(p.lightCharge, 0), 0, 1), burst = Math.max(0, num(s.burstTime, 0));
+    const compact = compactCanvasHud(width, height), landscape = width <= 1000 && height <= 480;
+    const W = 168, H = 48, x = landscape ? 12 : Math.max(12, width - W - 12), y = compact ? (landscape ? 114 : 100) : 12;
+    ctx.save(); rrect(ctx, x, y, W, H, 8); ctx.fillStyle = 'rgba(11,18,39,.94)'; ctx.fill(); ctx.strokeStyle = '#a6bee4'; ctx.lineWidth = 1.4; ctx.stroke();
+    ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#d6eaff'; ctx.fillText(burst > 0 ? `PATHS REVEALED · ${burst.toFixed(1)}s` : 'STORED LIGHT', x + 9, y + 12);
+    ctx.fillStyle = charge >= 1 ? '#c7ffe2' : '#d1d7eb';
+    ctx.fillText(charge >= 1 ? 'READY · USE BURST' : p.lightCharging ? 'RECHARGING' : 'FIND A SUN PAD', x + 9, y + 27);
+    ctx.fillStyle = '#283452'; ctx.fillRect(x + 9, y + 38, W - 18, 4);
+    ctx.fillStyle = charge >= 1 ? '#b9ffde' : '#acdfff'; ctx.fillRect(x + 9, y + 38, (W - 18) * charge, 4);
+    ctx.restore();
+  }
   function objectiveTargets(s, W, H) {
     const out = [];
     const o = s.objective;
     if (o && typeof o === 'object' && Number.isFinite(o.x) && Number.isFinite(o.y)) { out.push({ x: o.x, y: o.y, label: String(o.label || o.text || 'OBJECTIVE').toUpperCase().slice(0, 18), color: '#f3ca78' }); return out; }
     const enemies = arr(s.enemies).filter(e => num(e.hp, 0) > 0);
+    if (s.darkness) {
+      const p = s.player || {};
+      const pickup = arr(s.pickups).find(k => k.kind === 'stored-light' && !k.taken);
+      if (pickup) return [{ x: pickup.x, y: pickup.y, label: 'STORED LIGHT', color: '#c5edff' }];
+      if (num(p.lightCharge, 0) < 1 && num(s.burstTime, 0) <= 0 && arr(s.rechargePads).length) {
+        const pad = arr(s.rechargePads).slice().sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y))[0];
+        return [{ x: pad.x, y: pad.y, label: 'RECHARGE', color: '#c5edff' }];
+      }
+      const twin = enemies.find(e => enemyType(e) === 'twin');
+      if (twin) return [{ x: twin.x, y: twin.y, label: twin.shielded ? 'TWIN SHIELD' : 'TWIN EXPOSED', color: '#e1c7ff' }];
+    }
     const boss = enemies.find(e => enemyType(e) === 'diver' || enemyType(e) === 'hart');
     if (boss) { out.push({ x: boss.x, y: boss.y, label: enemyType(boss) === 'hart' ? 'ROOT HART' : 'BELL DIVER', color: '#efb38e' }); return out; }
     const seals = arr(s.receivers).filter(r => !r.active && receiverKind(r) !== 'sanctuary');
@@ -4120,6 +4285,7 @@
       }
     }
     drawWater(ctx, s, t, th);
+    drawNightPaths(ctx, s, t);
     drawWeaverLoomFloor(ctx, s);
     drawGlass(ctx, s, t);
     drawBridges(ctx, s, t, th);
@@ -4140,6 +4306,7 @@
       else if (ty === 'diver') drawDiverFloor(ctx, e, s, t);
       else if (ty === 'mortar') drawMortarFloor(ctx, e, s, t);
       else if (ty === 'hart') drawHartFloor(ctx, e, s, t);
+      else if (ty === 'shade' || ty === 'twin') drawNightEnemyFloor(ctx, e, s, t);
       else drawSentinelFloor(ctx, e, s, t);
     }
     drawLobsFloor(ctx, s, t);
@@ -4152,7 +4319,7 @@
     for (const e of arr(s.enemies)) {
       if (!Number.isFinite(e.x)) continue;
       const ty = enemyType(e);
-      items.push([e.y, ty === 'turret' ? () => drawTurret(ctx, e, s, t) : ty === 'diver' ? () => drawDiver(ctx, e, s, t) : ty === 'mortar' ? () => drawMortar(ctx, e, s, t) : ty === 'hart' ? () => drawHart(ctx, e, s, t) : () => drawSentinel(ctx, e, s, t, width, height)]);
+      items.push([e.y, ty === 'shade' || ty === 'twin' ? () => drawNightEnemy(ctx, e, s, t) : ty === 'turret' ? () => drawTurret(ctx, e, s, t) : ty === 'diver' ? () => drawDiver(ctx, e, s, t) : ty === 'mortar' ? () => drawMortar(ctx, e, s, t) : ty === 'hart' ? () => drawHart(ctx, e, s, t) : () => drawSentinel(ctx, e, s, t, width, height)]);
     }
     for (const gr of arr(s.growth)) if (finiteRect(gr)) items.push([gr.alive === false ? gr.y : gr.y + gr.h - 10, () => drawGrowth(ctx, gr, s, t)]);
     for (const d of arr(s.dams)) if (finiteRect(d)) items.push([d.broken || num(d.hp, 2) <= 0 ? d.y : d.y + d.h, () => drawDam(ctx, d, s, t)]);
@@ -4187,6 +4354,7 @@
     }
     tideGauge(ctx, s, t, width, height);
     thermalGauge(ctx, s, t, width, height);
+    lightGauge(ctx, s, width, height);
     bossBar(ctx, s, t, width, height);
     edgeArrows(ctx, s, v, width, height, t);
     titleCard(ctx, s, t, width, height);

@@ -155,3 +155,35 @@ replay and mock leaderboard. Current inspected captures and `report.json` are un
 missing `Image` and failed image loading. These checks do not establish human play.
 The latest independent gameplay and visual critics still report OURS LOSES; see
 PROGRESS for their reasoning, audio-listening limits and unfinished campaign scope.
+
+## September25 Night Observatory
+
+Full integrated repository suite:20 suites/438 tests PASS. Observatory adds9 tests
+covering authored connectivity, charge/acquisition/held burst, finite reveal/fall
+recovery, safe refill without farming, retry rollback, idle failure, linked twin
+vulnerability, deterministic D1-D5 legal route and optional refuge consequences.
+The old18-room assertion now checks25 authored rooms against the first4 manifest
+regions; the Kiln route now expects cleared/next stars rather than final victory.
+
+Run `node prism-warden/tools/observatory-pilot.cjs` for D1-D5 or add `--whole`
+for the actual Abbey->Aqueduct->Kiln->Observatory chain. Latest outcomes: local D1-D5
+57.33 simulated seconds,3/6HP; whole A1-D5 365.20 simulated seconds,4/7HP. Inputs
+only through PW.step, no health/position/score injection, no retries; hidden state
+steers the agent, so neither outcome establishes human duration or enjoyment.
+
+The extended `tools/smoke.cjs` passes all6 required sizes, console/external-request/
+overflow checks, keyboard and simultaneous native touch, retry/continue/replay,
+mocked leaderboard and local-asset HTTP200 checks. Evidence is ignored under
+node_modules/.cache/prism-warden/observatory-smoke. Lead viewed all6 sizes plus the
+independent real reference comparison. For final path-hiding/label/four-action UI
+changes run `node prism-warden/tools/observatory-visual.cjs`; output is under
+observatory-final. All6 sizes and no-Image fallback pass; actual R/native touch
+spends charge, all4 mobile actions have visible44px targets. Lead inspected final
+captures;4K viewed downsampled2048x1152. Fixtures test layout, not lawful completion.
+
+Independent normal-clock actual keyboard/touch D1 routes passed from a declared
+stars-room entry (10.13/14.38 seconds,6HP, clean console). This does NOT constitute
+whole-adventure normal-clock or physical-device play. Critic comparison is nonblind:
+AAA FAIL / OURS LOSES, complete scope FAIL, fun not accepted. Final hidden-path and
+beacon-label corrections received a scoped PASS. Audio listening, full human input
+playthroughs, persistent saves and live leaderboard submission remain unverified.

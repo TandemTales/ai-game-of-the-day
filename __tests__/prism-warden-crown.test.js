@@ -3,6 +3,22 @@ const { loadPW } = require('../prism-warden/tools/aqueduct-pilot.cjs');
 const tick = (PW, s, n, input = {}) => { for (let i = 0; i < n; i++) PW.step(s, input, 1 / 60); };
 const start = PW => { const s = PW.create({ room: 'crown' }); s.status = 'playing'; s.player.invulnerable = 99; return s; };
 
+test('legal E1-E5 actions reach both rescues and the final beacon without injected health or circuits', () => {
+  const PW=loadPW(),s=require('../prism-warden/tools/crown-pilot.cjs').play(PW);
+  expect(s.status).toBe('won'); expect(s.player.hp).toBeGreaterThan(0);
+  for(const id of ['E1','E2','E3','E4','E5'])expect(s.cleared[id]).toBe(true);
+  expect(s.flags['nacre-freed']).toBe(true);expect(s.flags['ilex-evacuated']).toBe(true);
+  expect(s.receivers.filter(r=>r.id.startsWith('crown-')).every(r=>r.active)).toBe(true);
+});
+
+test('Archive burst crossing connects the north bank to the record without falling', () => {
+  const PW=loadPW(),s=PW.create({room:'archive'});s.status='playing';
+  // Tool ownership and north-bank position are explicit fixtures; movement uses step.
+  s.flags['stored-light']=true;s.player.lightCharge=1;s.player.x=512;s.player.y=292;
+  tick(PW,s,1,{burst:true,my:1});tick(PW,s,62,{my:1});
+  expect(s.player.y).toBeGreaterThan(456);expect(s.hits).toBe(0);expect(s.player.hp).toBe(6);
+});
+
 test('Drowned Crown graph, physical exits, discoveries and Observatory continuation are authored', () => {
   const PW = loadPW(), region = PW.regionById('drowned-crown');
   expect(region.rooms.map(room => room.id)).toEqual(['descent', 'galleries', 'circuit', 'lighthouse', 'crown', 'archive']);

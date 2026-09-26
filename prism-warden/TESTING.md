@@ -224,3 +224,46 @@ Crown victory. The final captures were inspected at 320x568, 844x390, 1440x900
 and 3840x2160; the short-portrait card's discoveries, restart action, score-name
 field, submit action and leaderboard link fit above the touch dock, and the
 compact-landscape boss label/bar clear the HUD.
+
+
+## September26 weekend progression and whole-route verification
+
+`node prism-warden/tools/crown-pilot.cjs --whole` reaches the ending through legal
+PW.step inputs and public continuation APIs: all25 challenges, 437.52 simulated
+seconds,2/7HP,37600score,zero retries. Independent critic reproduced the baseline.
+`--whole --archive` also obtains the Keeper Archive and its alcove consequence:
+447.32 seconds,1/7HP,37650score,zero retries. These times are simulated, not human
+playtimes. No invulnerability, health, position, enemy or circuit injection occurs
+in these routes. The always-east/slash `--naive` loss is only a no-autowin baseline.
+
+Three public-beacon-selected runs cover every equipment choice:
+`--whole --loadout=anchor` (444.07s,3/7HP),
+`--whole --loadout=throwing` (437.52s,2/7HP), and
+`--whole --loadout=alternate` (420.10s,1/7HP). Prior pilots release Mirror before
+ordinary melee/optical rotation with Returning Blade. Thus these prove branch
+completion, not active mastery of throwing or dual optical placement. Focused
+`prism-warden-equipment.test.js` separately verifies behavior and tradeoffs,
+projectile obstruction, phase clamps and independent prism placement.
+
+`prism-warden-save.test.js` verifies pending/selected debrief saves, region rollback,
+secured score/discoveries/equipment, won state, malformed active/stored rooms and
+nonfatal denied/full storage. `tools/progression-smoke.cjs` uses declared completed-
+beacon fixtures and actual browser choice/touch/keyboard interactions to verify all
+four decisions, repeated reloads before/after selection, checkpoint rollback, blade
+and two prisms, four acquired touch actions, and pause help at all six sizes.
+Evidence: node_modules/.cache/prism-warden/sep26-progression/.
+
+`tools/smoke.cjs` now selects equipment before continuation and expects the
+Observatory to continue into the Crown, correcting its stale final-win assertion.
+It checks keyboard/native touch, pause/retry/replay, mock leaderboard, local assets,
+console/network and horizontal overflow. Evidence: sep26-weekend-smoke/.
+Local Chromium needs approved execution after sandbox spawn EPERM.
+
+Critic evidence: sep26-weekend-critic/review.md and current-side-by-side.png.
+Comparison is NON-BLIND, uses a fresh official Nintendo page but a cached official
+Link's Awakening image after fresh raw-image retrieval failed. Equipment/save
+increment scoped PASS; AAA FAIL / OURS LOSES; complete scope FAIL; fun unproven.
+No physical-device, full normal-clock campaign, audio-listening or live leaderboard
+acceptance is claimed.
+
+Final weekend full Jest result: **23 suites / 458 tests PASS**. Added legal E1–E5 route and Archive burst-crossing regression; final combined acquired-action six-size browser sweep PASS.

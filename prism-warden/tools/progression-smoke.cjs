@@ -33,12 +33,12 @@ async function main(){
   await page.screenshot({path:path.join(out,`${size}-resume.png`)});await page.locator('#begin').click();
   assert.deepEqual(await page.evaluate(()=>({room:PW.game.roomId,score:PW.game.score,equipment:PW.game.equipment})),secured);assert(await page.evaluate(()=>!PW.game.flags.unsecured));
   // Returning blade is driven by the actual keyboard chord from a declared safe room.
-  await page.evaluate(()=>{const s=PW.game;PW.enterRoom(s,'crown');s.player.x=400;s.player.y=500;s.player.invulnerable=99;s.player.prism='carried';s.flags.prism=true;});
+  await page.evaluate(()=>{const s=PW.game;PW.enterRoom(s,'crown');s.player.x=400;s.player.y=500;s.player.invulnerable=99;s.player.prism='carried';s.flags.prism=true;s.flags['stored-light']=true;s.player.lightCharge=1;});
   await page.keyboard.down('Shift');await page.keyboard.press('j');await page.waitForFunction(()=>PW.game.blade);await page.screenshot({path:path.join(out,`${size}-blade.png`)});await page.keyboard.up('Shift');
   await page.waitForFunction(()=>!PW.game.blade);
   await page.keyboard.press('q');await page.waitForFunction(()=>PW.game.mirrors.filter(m=>m.portable).length===1);
   await page.keyboard.down('a');await page.waitForTimeout(700);await page.keyboard.up('a');await page.keyboard.press('q');await page.waitForFunction(()=>PW.game.mirrors.filter(m=>m.portable).length===2);
-  await page.screenshot({path:path.join(out,`${size}-two-prisms.png`)});assert.match(await page.locator('#prism').innerText(),/2\/2/);
+  if(width<1000){for(const id of ['slash','dash','prism','burst']){const b=await page.locator('#'+id).boundingBox();assert(b&&b.width>=44&&b.height>=44&&b.x>=0&&b.y>=0&&b.x+b.width<=width+1&&b.y+b.height<=height+1,'four acquired actions visible');}}await page.screenshot({path:path.join(out,`${size}-two-prisms.png`)});assert.match(await page.locator('#prism').innerText(),/2\/2/);
   await page.locator('#pause').click();assert.match(await page.locator('#panelText').innerText(),/Release Mirror/);await page.screenshot({path:path.join(out,`${size}-loadout-help.png`)});
   assert(await page.evaluate(()=>document.documentElement.scrollWidth===innerWidth));assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
   report.push({size,status:'PASS',errors,external,checks:'four choices, pending/selected reload, checkpoint rollback, actual blade/prism inputs, help'});await page.close();

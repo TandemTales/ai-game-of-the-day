@@ -66,11 +66,15 @@ passing tests and content counts cannot clear it.
 - Sep22–25 (completed first pass): authored connected regions1–4 and Region5's
   six rooms, stored light and Crown boss/rescue logic. Region5 has focused logic,
   route and rendering checks, but no full legal-input route yet.
-- Sep26–27 (next expansion): prove and repair legal routes through E1–E5; build the
-  four behavioral equipment choices, persistent campaign saves, consequential
-  discoveries and full story/finale/ending; then play keyboard/touch and run the
-  independent scope/fun rejection. Beginning-to-ending must exist before whole-game
-  polish. This is the last scheduled build: do not assume weekdays.
+- Sep26 (implemented checkpoint): repaired Crown sunlight and Archive crossing;
+  demonstrated legal-input beginning-to-ending routes, including all eight selected
+  equipment branches and optional Archive. Added four behavioral equipment decisions
+  and durable region-boundary/completed-beacon/ending saves. These are simulation
+  reachability and integration results, not normal-clock human play or scope acceptance.
+- Sep27 (last scheduled expansion): complete player polarity, Glass Edge, quench and
+  seed-lens consequences and remaining discovery inventory; implement the promised
+  restoration-story choice; address D4 defense depth. Then play full keyboard/touch
+  runs and obtain independent scope/fun rejection. Do not assume weekday runs.
 - Oct3 (Saturday, age13): forced release wrap-up/tests/six sizes only. Record any
   missing scope as ambition failure; do not start new polish or redefine contract.
 
@@ -89,9 +93,9 @@ Only lead runs Git. Builders own exactly one file; ask lead for cross-file chang
 | Campaign content builder | assets/js/regions.js |
 | Audio builder | assets/js/audio.js (PW.Audio: enable(bool), update(state,dt); reads state only) |
 | Independent gameplay/presentation critic | read-only; evidence under ignored node_modules/.cache/prism-warden |
-| Lead integration | main.js, HTML, CSS, tests, docs, tools and Git |
+| Lead integration | main.js, save.js, HTML, CSS, tests, docs, tools and Git |
 
-Classic scripts: regions.js -> logic.js -> render.js -> audio.js -> main.js. Global window.PW.
+Classic scripts: regions.js -> logic.js -> save.js -> render.js -> audio.js -> main.js. Global window.PW.
 Logic exports PW.create(), PW.step(state,input,dt), PW.raySegment(x,y,dx,dy,rects,max).
 step uses dt seconds capped1/30. Main runs fixed1/60; no Math.random in simulation.
 Input {mx,my,ax,ay,reflect,slash,dash}; move and aim unit vectors; slash/dash edge.
@@ -358,3 +362,37 @@ are not a normal-clock, legal-input E1–E5 campaign run, nor evidence of player
 discovery, pacing, completion, or AAA acceptance. Revalidate the shoal route under
 ordinary tide timing and demonstrate the full chapter before treating authored
 data as playable.
+
+
+## September26 implemented equipment and persistence contract
+
+At each of the first four restored beacons, the browser requires one exclusive
+choice before Continue. The choices and their instructions can be reread in pause.
+PW.equipmentChoices(state), PW.chooseEquipment(state,id), and
+PW.equipmentCatalog() expose copied data and validated selection. Simulation
+continueRegion remains compatible with baseline unmodified-loadout route tests.
+
+| Beacon | Choice A | Choice B |
+| --- | --- | --- |
+| Abbey | Drift Mirror: full movement speed with narrow reflection arc | Shell Guard: wider front arc with slower raised movement |
+| Aqueduct | Returning Blade: hold Mirror + Slash to throw; catch return before throwing again; release Mirror for melee and turning optics | Anchor Edge: heavier close damage, shorter reach, slower recovery |
+| Kiln | Recall Tether: retrieve one prism from anywhere in the room | Twin Satchel: deploy two independent prisms; walk back to retrieve |
+| Observatory | Thunder Lens: burst pauses nearby visible active enemies for two seconds | Dawn Lens: star-path burst lasts ten seconds instead of six |
+
+The returning blade has a visible outbound shard and harmless returning tether.
+Both prisms return on room exit. Heavy damage cannot skip the Keeper's three
+phase requirements. Existing fired projectiles continue during Thunder Lens stun.
+Selected-loadout full routes establish solvability, not balance or ability mastery.
+
+PW.Save v1 uses localStorage key prism-warden.campaign.v1. It secures region-entry
+state and completed beacon state (including a pending or selected equipment choice),
+and retains the won ending. Mid-region reload rolls back unbanked score, discoveries,
+room progress and health. Local room retry still returns full health, as existing
+logic did; region restart rolls back the region. Unknown/malformed saves fail closed;
+storage failure displays a nonfatal notice. Starting a new voyage replaces this
+local checkpoint. There is no cloud save or cross-device sync.
+
+Scope debt is unchanged by these additions: optional effects listed earlier remain
+requirements even where current data implements a weaker effect. In particular,
+Glass Edge, player polarity, quench late-hazard removal, Seed Lens noncombat opening,
+the full discovery contract and the visible restoration choice are still required.

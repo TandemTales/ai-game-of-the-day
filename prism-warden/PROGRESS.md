@@ -1113,3 +1113,41 @@ Baseline whole-campaign legal-input pilot now wins at437.52 simulated seconds,2/
 
 Full repository22suites/449tests passed;7 additional equipment regressions pass with focused save/Crown tests. Browser six-size checks and fresh critic review are underway. Previous AAA FAIL / OURS LOSES remains. Still missing: player polarity, Glass Edge and quench late consequences, full ten-discovery payoff contract, substantive ending choice, full playtesting and art/audio/gameplay acceptance. No completion marker or main promotion. Next substantial run must close those systems, not spend the cycle on surface polish.
 
+
+
+## September26 final browser and independent review
+
+Both six-size browser sweeps PASS: 320x568,390x844,844x390,768x1024,1440x900,
+3840x2160. The broad smoke checks keyboard/native touch, pause/retry/replay,
+mock rank-before-submit, local assets, console and horizontal overflow. The new
+progression sweep checks four required equipment decisions, pending and selected
+beacon reload, region-entry rollback, visible returning blade, two prisms, pause
+instructions and all four acquired44px touch actions. These browser fixture checks
+are separate from the legal-input campaign routes. Lead inspected captures at all
+six sizes and the actual reference side-by-side;4K was downscaled by the viewer.
+
+Independent critic: equipment/save increment scoped PASS, including fresh combined
+four-action phone/landscape controls. It identified and verified the malformed
+stored-room save crash fix; requested accurate retry wording, rereadable equipment
+instructions and the release-Mirror chord explanation, all addressed. Panel scroll
+resets to its heading on open; long landscape dialogs remain scrollable. AAA
+comparison remains FAIL / OURS LOSES against Link's Awakening: flat repeated floor
+surfaces, weak material/elevation/character distinction and label-dependent
+navigation. Official page verified fresh; official image reused from prior cached
+evidence after direct fetch failed. This is nonblind, not a blind acceptance pass.
+Gameplay fun and full scope remain rejected/unproven; no shipping judge was sought.
+
+Legal routes: baseline437.52simsec/2HP/37600score; optional Archive447.32/1HP/37650,
+both all25clear and zero public room retries. Archive enters and leaves with5HP.
+Three whole selected-loadout runs cover all eight equipment choices: anchor444.07s,
+3HP; throwing437.52s,2HP; alternate420.10s,1HP. The always-east/slash baseline dies
+in E1; it is no-autowin evidence, not a meaningful human strategy/fun comparison.
+
+Next FIRST: implement the remaining consequential discovery/polarity/story scope,
+especially Glass Edge, late quench effect, Seed Lens noncombat opening and visible
+restoration decision. Revisit D4 escort defense, where naive survival still weakens
+the depth claim. Then complete normal-clock whole keyboard/touch gameplay and
+independent fun/scope rejection. Sep27 is the remaining scheduled build; Oct3 is
+forced wrap-up. Do not assume extra weekdays or lower the original scope contract.
+
+Final verification: full repository **23 suites / 458 tests PASS** (272.22s), syntax checks and git diff --check pass. Both browser sweeps and final critic follow-up pass their scoped checks. Work is pushed on dev; main unchanged, no .aaa-complete and no release.

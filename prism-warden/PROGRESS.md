@@ -973,3 +973,13 @@ remove the promised late hazard, and the temporary room title overlaps the phone
 light card during entry. No new audio arrangement/listening acceptance or whole
 normal-clock campaign acceptance. All evidence remains reproducible via tracked
 tools; ignored screenshot evidence is not a shipped asset.
+
+## September25 weekday runner: Drowned Crown intent
+
+Pacific Friday September25, age5; this is not release night. Dev is synced and the
+stop switch is absent. The latest checkpoint has 4/5 regions and 20/25 challenges;
+the Drowned Crown, full ending, and several promised progression consequences are
+still missing. This run will advance the final-region/ending path in bounded,
+reviewable units, preserve the existing complete-game contract, and keep the prior
+independent OURS LOSES / fun-rejection findings visible. Tests precede each commit;
+no completion marker, catalog edit, release or main promotion is authorized tonight.

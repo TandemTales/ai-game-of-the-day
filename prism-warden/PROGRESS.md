@@ -1099,3 +1099,8 @@ UI, but reject campaign acceptance: there is no fair normal-play E5 victory or
 legal E1–E5 route. The shoal traversal uses invulnerability and leaves its gate
 closed. Keep the game active on `dev`; no completion marker, shipping-judge
 review, release, or `main` promotion.
+
+## September26 weekend run intent — 08:45 Pacific
+
+STOP absent; dev synced, initial tree clean. First Saturday, age6; forced release remains October3. Scope audit: all25 encounters have authored data, but E1-E5 legal completion, four behavioral equipment choices, durable saves and full discovery consequences are still gaps. Tonight prioritizes equipment progression and durable region checkpoints, alongside a legal Crown route investigation. Independent criticism will assess actual changes; previous AAA FAIL and unproven fun remain. No main promotion. Run the full suite before this intent checkpoint and every working push.
+

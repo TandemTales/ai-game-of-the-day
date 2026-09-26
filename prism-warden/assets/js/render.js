@@ -1695,7 +1695,9 @@
     img.decoding = 'async';
     img.src = 'assets/img/kiln-basalt-mosaic-v1.png';
   }
-  let seraSprite = null, seraLitSprite = null, seraSpriteState = 'idle';
+  const seraSprites = Object.create(null);
+  const seraDirections = ['e', 'se', 's', 'sw', 'w', 'nw', 'n', 'ne'];
+  let seraSpritesRequested = false;
   function keySeraSprite(img) {
     const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
     if (!hasDoc || !(iw > 0 && ih > 0)) return null;
@@ -1714,17 +1716,20 @@
     return canvas;
   }
   function loadSeraSprite() {
-    if (!hasDoc || typeof Image === 'undefined' || seraSpriteState !== 'idle') return;
-    seraSpriteState = 'loading';
-    const img = new Image();
-    img.onload = () => {
-      if (img.naturalWidth > 0 && img.naturalHeight > 0) {
-        seraSprite = img; seraLitSprite = keySeraSprite(img); seraSpriteState = 'ready';
-      } else seraSpriteState = 'failed';
-    };
-    img.onerror = () => { seraSpriteState = 'failed'; };
-    img.decoding = 'async';
-    img.src = 'assets/img/sera-keeper-topdown-v3.png';
+    if (!hasDoc || typeof Image === 'undefined' || seraSpritesRequested) return;
+    seraSpritesRequested = true;
+    // Warm every direction together so turning does not initiate another download.
+    // A missing image keeps the procedural fallback for that direction only.
+    for (const direction of seraDirections) {
+      const img = new Image();
+      img.onload = () => {
+        if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+          seraSprites[direction] = keySeraSprite(img) || img;
+        }
+      };
+      img.decoding = 'async';
+      img.src = direction === 'n' ? 'assets/img/sera-keeper-topdown-v3.png' : `assets/img/sera-keeper-${direction}-v1.png`;
+    }
   }
   let weaverSprite = null, weaverLitSprite = null, weaverSpriteState = 'idle';
   function keyWeaverSprite(img) {
@@ -3393,14 +3398,16 @@
       ctx.restore();
       circle(ctx, px * 9, py * 6 - 5, 2.4, '#f0c9a0', INK, 1);
     };
-    if (facingUp) loadSeraSprite();
-    if (facingUp && seraSprite) {
-      // The authored north-facing sprite shares the vector pose's foot anchor and modest silhouette.
+    loadSeraSprite();
+    const direction = seraDirections[(Math.round(a / (TAU / 8)) + 8) % 8];
+    const paintedSprite = seraSprites[direction];
+    if (paintedSprite) {
+      // All painted views share the original back view's scale and foot anchor.
       if (!slashing) drawSword();
-      const paintedSprite = seraLitSprite || seraSprite;
       const iw = paintedSprite.naturalWidth || paintedSprite.width, ih = paintedSprite.naturalHeight || paintedSprite.height;
-      if (iw > 0 && ih > 0) ctx.drawImage(paintedSprite, 0, 0, iw, ih, -24.15, -41.1, 48.3, 58);
-      if (p.reflecting) {
+      const artW = direction === 'n' ? 48.3 : 46.4;
+      if (iw > 0 && ih > 0) ctx.drawImage(paintedSprite, 0, 0, iw, ih, -artW / 2, -41.1, artW, 58);
+      if (p.reflecting && direction === 'n') {
         // The painted bronze mirror remains visible; this inlay carries its live reflection state.
         ellipse(ctx, -10.8, -11, 2.3, 6.1, 'rgba(116,255,231,.45)', 'rgba(236,255,249,.95)', 1.2);
         line(ctx, -11.6, -13.5, -10.2, -16, 'rgba(255,255,255,.95)', 1.1);

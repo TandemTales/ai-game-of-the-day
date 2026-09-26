@@ -1151,3 +1151,21 @@ independent fun/scope rejection. Sep27 is the remaining scheduled build; Oct3 is
 forced wrap-up. Do not assume extra weekdays or lower the original scope contract.
 
 Final verification: full repository **23 suites / 458 tests PASS** (272.22s), syntax checks and git diff --check pass. Both browser sweeps and final critic follow-up pass their scoped checks. Work is pushed on dev; main unchanged, no .aaa-complete and no release.
+
+## 2026-09-26: Sera art consistency at every viewing angle
+
+User-requested character art update: kept the approved painted north/back sprite
+and added seven matching transparent directional sprites. The renderer now selects
+one of eight views from aim direction, preloads them together, applies the existing
+cached key lighting, and preserves the back view's size and foot anchor. Exact aim,
+combat effects and simulation remain independent of the visual direction sectors.
+The procedural body remains the fallback for an unavailable directional image.
+Generation prompt and asset details: `assets/img/CHARACTER_ART.md`.
+
+Browser art checks pass for eight distinct painted directions in idle/mirror/slash,
+simulation state purity, and failed-asset fallback. Desktop 1440x900 and portrait
+390x844 captures were generated for all eight views; the turnaround and sampled
+in-scene captures were visually inspected. Evidence and the contact sheet are in
+`node_modules/.cache/prism-warden/character-art/`. Syntax and diff checks pass.
+Full repository validation: **23 suites / 458 tests PASS** (253.186s).
+This art update targets dev; it is not a campaign acceptance or release checkpoint.

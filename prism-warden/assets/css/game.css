@@ -59,3 +59,13 @@ body.has-prism .actions button,body.has-light .actions button{min-width:44px;pad
   #routeStrip{margin:8px 0;padding:6px 8px}
   #scoreForm{margin-top:10px;padding-top:10px}
 }
+
+/* Beacon decisions remain in the scrollable dialog, with full-size touch targets. */
+#equipmentChoices{border:1px solid #678b88;border-radius:5px;padding:10px;margin:12px 0;text-align:left}
+#equipmentChoices legend{font:600 12px system-ui;color:var(--gold);padding:0 6px}
+#equipmentOptions{display:grid;gap:8px}#equipmentOptions button{text-align:left;letter-spacing:0;min-height:56px;padding:9px 11px}
+#equipmentOptions strong{display:block;color:#f3dfab;font-size:13px}#equipmentOptions span{display:block;font:12px/1.4 system-ui;margin-top:4px;color:#c4d8d3}
+#equipmentOptions button[aria-pressed=true]{border-color:#8be0d1;background:#244c4b;opacity:1}#equipmentOptions button:disabled:not([aria-pressed=true]){opacity:.5}
+#newVoyage{width:100%;margin-top:8px}.panel #saveStatus{font:11px/1.4 system-ui;color:#9bc5bc;margin:10px 0}
+.overlay{z-index:10}.panel:has(#equipmentChoices:not([hidden])) #routeStrip{display:none}
+@media(max-width:600px){#equipmentOptions span{font-size:11px}#equipmentChoices{padding:8px}#equipmentOptions button{padding:8px}.panel:has(#equipmentChoices:not([hidden])) h1{font-size:25px}}

@@ -4773,6 +4773,20 @@
     drawParticles(ctx, s);
     ctx.globalCompositeOperation = 'source-over';
     drawShots(ctx, s, t);
+    if (s.blade && Number.isFinite(s.blade.x) && Number.isFinite(s.blade.y)) {
+      const blade = s.blade;
+      ctx.save();
+      if (blade.phase === 'returning') {
+        ctx.strokeStyle = 'rgba(139,224,209,.35)'; ctx.lineWidth = 2;
+        ctx.setLineDash([5, 7]); ctx.beginPath(); ctx.moveTo(s.player.x, s.player.y);
+        ctx.lineTo(blade.x, blade.y); ctx.stroke(); ctx.setLineDash([]);
+      }
+      ctx.translate(blade.x, blade.y); ctx.rotate(t * 18);
+      ctx.shadowBlur = 12; ctx.shadowColor = '#b7ffff';
+      ctx.fillStyle = '#e1ffff'; ctx.strokeStyle = '#75cbbf'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(0, -5); ctx.lineTo(15, 0);
+      ctx.lineTo(0, 5); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+    }
     if (th.floor === 'kiln') kilnWorldWash(ctx, W, H);
     drawLabels(ctx, v);
     ctx.restore();

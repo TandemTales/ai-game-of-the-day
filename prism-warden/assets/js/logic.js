@@ -16,6 +16,36 @@
   const PRISM_DIRS = [[1, 0], [Math.SQRT1_2, Math.SQRT1_2], [0, 1], [-Math.SQRT1_2, Math.SQRT1_2],
     [-1, 0], [-Math.SQRT1_2, -Math.SQRT1_2], [0, -1], [Math.SQRT1_2, -Math.SQRT1_2]];
   const copy = v => v === undefined ? undefined : JSON.parse(JSON.stringify(v));
+  const EQUIPMENT = {
+    'tidal-abbey': [
+      { id: 'mobile-reflection', name: 'Drift Mirror', description: 'Move at full speed while reflecting; keep the narrow guard arc.' },
+      { id: 'wide-guard', name: 'Shell Guard', description: 'Catch shots across a wider front arc; raised movement stays slow.' }
+    ],
+    'verdant-aqueduct': [
+      { id: 'returning-blade', name: 'Returning Blade', description: 'Hold MIRROR and press SLASH to throw through exposed armor. Catch its return before throwing again. Release Mirror for ordinary slashes and turning mirrors.' },
+      { id: 'heavy-strike', name: 'Anchor Edge', description: 'Deal heavier damage at closer range, with slower recovery. Cannot throw.' }
+    ],
+    'glass-kiln': [
+      { id: 'prism-recall', name: 'Recall Tether', description: 'Press PRISM to recall your placed prism from anywhere in the room. Carry one prism.' },
+      { id: 'second-prism', name: 'Twin Satchel', description: 'Place two independent prisms. Press PRISM nearby to lift one; walk back to retrieve them.' }
+    ],
+    'night-observatory': [
+      { id: 'burst-stun', name: 'Thunder Lens', description: 'BURST freezes nearby active enemies for two seconds. Star paths last six seconds.' },
+      { id: 'lasting-bridge', name: 'Dawn Lens', description: 'BURST keeps star paths open for ten seconds, without the additional enemy stun.' }
+    ]
+  };
+  function equipped(s, region, id) { return !!s.equipment && s.equipment[region] === id; }
+  function equipmentChoices(s) {
+    if (!s || s.status !== 'cleared' || !s.flags || !s.flags['beacon:' + s.regionId]) return [];
+    return arr(EQUIPMENT[s.regionId]).map(choice => Object.assign({}, choice));
+  }
+  function chooseEquipment(s, id) {
+    if (!equipmentChoices(s).some(choice => choice.id === id)) return false;
+    if (!s.equipment || typeof s.equipment !== 'object' || Array.isArray(s.equipment)) s.equipment = {};
+    if (s.equipment[s.regionId]) return s.equipment[s.regionId] === id;
+    s.equipment[s.regionId] = id;
+    return true;
+  }
 
   // Slab intersection handles parallel rays, origins inside a wall, and corners.
   function raySegment(x, y, dx, dy, rects, max) {
@@ -804,8 +834,11 @@
     announce(s, 'Armor cracked! Close in and strike the exposed core.', 3.4, 1);
     return true;
   }
-  function slashHit(s, e) {
-    e.hp = Math.max(0, e.hp - 2);
+  function slashHit(s, e, damage) {
+    damage = damage || (equipped(s, 'verdant-aqueduct', 'heavy-strike') ? 3 : 2);
+    // Heavy weapons never skip one of the Keeper's three authored phases.
+    const floor = e.type === 'crown' && e.stage < 3 ? Math.ceil(e.maxHp * (3 - e.stage) / 3) : 0;
+    e.hp = Math.max(floor, e.hp - damage);
     e.exposed = 0;
     spark(s, e.x, e.y, 'slash', 14);
     if (e.hp === 0) { defeat(s, e); return; }
@@ -859,12 +892,19 @@
     if (num(p.lightCharge, 0) < 1 - EPS) {
       announce(s, 'Recharge on a sun pad or catch a beam with your raised mirror.', 3, 0); return;
     }
-    p.lightCharge = 0; s.burstTime = 6; s.burstOrigin = { x: p.x, y: p.y };
+    p.lightCharge = 0; s.burstTime = equipped(s, 'night-observatory', 'lasting-bridge') ? 10 : 6;
+    s.burstOrigin = { x: p.x, y: p.y };
     s.rings.push({ x: p.x, y: p.y, r: 0, maxR: 150, speed: 400, life: 1, hostile: false, kind: 'burst' });
     const affected = new Set();
     let keeperInterrupted = false;
     for (const e of s.enemies) {
       if (isDefeated(e)) continue;
+      if (equipped(s, 'night-observatory', 'burst-stun') &&
+        !['dormant', 'patrol'].includes(e.phase) && !e.submerged &&
+        length(e.x - p.x, e.y - p.y) <= 150 && losClear(s, p.x, p.y, e.x, e.y)) {
+        e.burstStun = Math.max(num(e.burstStun, 0), 2);
+        spark(s, e.x, e.y, 'light', 8);
+      }
       if (e.type === 'crown' && e.stage === 3 && e.phase === 'eclipse-windup' &&
         length(e.x - p.x, e.y - p.y) <= e.burstRadius && losClear(s, p.x, p.y, e.x, e.y)) {
         e.phase = 'exposed'; e.exposed = 3.4; e.timer = 3.4; e.flash = .4;
@@ -888,7 +928,7 @@
     for (const e of affected) exposeNight(s, e, 4);
     announce(s, keeperInterrupted ? 'Stored light interrupts the eclipse pulse. Close in and strike!' :
       affected.size ? 'Stored light breaks the shadow armor — close in and strike!' :
-      'Star paths revealed for six seconds. Reach the next landing.', 3, 1);
+      'Star paths revealed for ' + (s.burstTime === 10 ? 'ten' : 'six') + ' seconds. Reach the next landing.', 3, 1);
   }
   function storedLight(s, dt) {
     const p = s.player;
@@ -1580,6 +1620,7 @@
     const want = spawn && Number.isFinite(spawn.x) && Number.isFinite(spawn.y) ? spawn : s.spawn;
     const spot = freeSpot(s, want.x, want.y, p.r);
     p.x = spot.x; p.y = spot.y;
+    s.blade = null;
     s.burstTime = 0; s.burstOrigin = null; s._lastSafe = { x: p.x, y: p.y }; p.lightCharging = false;
     p.dashTime = 0; p.slashTime = 0; p.reflecting = false;
     s.shots = []; s.rings = []; s.particles = []; s.beams = []; s.lobs = [];
@@ -1597,8 +1638,10 @@
   function retryRoom(s) {
     if (!s || !s._entry) return s;
     const json = s._entry, data = JSON.parse(json), region = s._regionEntry || null;
+    const equipment = copy(s.equipment || {});
     for (const k of Object.keys(s)) delete s[k];
     Object.assign(s, data);
+    s.equipment = Object.assign({}, s.equipment || {}, equipment);
     s._entry = json; s._regionEntry = region;
     s.status = 'playing';
     s.emitter = s.emitters[0] || null;
@@ -1649,12 +1692,14 @@
   }
   function restartRegion(s) {
     if (!s) return s;
+    const equipment = copy(s.equipment || {});
     const region = s._regionEntry || null;
     let data;
     if (region) { data = JSON.parse(region); }
     else { data = create(); }
     for (const k of Object.keys(s)) delete s[k];
     Object.assign(s, data);
+    s.equipment = Object.assign({}, s.equipment || {}, equipment);
     s._regionEntry = region;
     s.status = 'playing';
     s.emitter = s.emitters[0] || null;
@@ -1680,7 +1725,7 @@
       escortExit: null, pickups: [], exits: [], beacon: null, rescue: null,
       sanctuaryZone: null, sanctuary: false,
       beams: [], shots: [], particles: [], rings: [],
-      flags: {}, cleared: initialCleared(), visited: [], roomStates: {}, rewards: {},
+      flags: {}, cleared: initialCleared(), visited: [], roomStates: {}, rewards: {}, equipment: {}, blade: null,
       objective: '', transition: 1, message: '',
       _slashHeld: false, _dashHeld: false, _slashSerial: 0, _nextShotId: 1,
       _sanctuaryCooldown: 0, _messageTime: 0, _exitArmed: false, _wade: 0, _entry: null,
@@ -1805,7 +1850,7 @@
       } else if (segmentDistance(p.x, p.y, shot.x, shot.y, nx, ny) <= p.r + shot.r + (p.reflecting ? 9 : 0)) {
         const speed = Math.max(EPS, length(shot.vx, shot.vy));
         const facing = p.aimX * (-shot.vx / speed) + p.aimY * (-shot.vy / speed);
-        if (p.reflecting && facing >= .35) {
+        if (p.reflecting && facing >= (equipped(s, 'tidal-abbey', 'wide-guard') ? -.25 : .35)) {
           shot.friendly = true; shot.vx = p.aimX * 390; shot.vy = p.aimY * 390;
           shot.x = p.x + p.aimX * 32; shot.y = p.y + p.aimY * 32;
           shot.life = 3;
@@ -1840,7 +1885,7 @@
     s.rings = keep;
   }
   function contactable(e) {
-    if (isDefeated(e) || e.exposed > 0 || e.type === 'turret') return false;
+    if (isDefeated(e) || e.exposed > 0 || e.burstStun > 0 || e.type === 'turret') return false;
     if (e.type === 'diver') return ['volley-telegraph', 'volley-recover', 'recoil'].includes(e.phase);
     if (e.type === 'mortar') return false;
     if (e.type === 'hart') return e.phase === 'charge';
@@ -1902,7 +1947,17 @@
     p.reflecting = !!input.reflect && p.dashTime <= 0 && p.slashTime <= 0;
     let slashed = false;
     if (input.slash && !s._slashHeld && p.slashCooldown <= 0 && p.dashTime <= 0) {
-      p.slashTime = .22; p.slashCooldown = .43; p.reflecting = false; s._slashSerial++; slashed = true;
+      if (input.reflect && equipped(s, 'verdant-aqueduct', 'returning-blade')) {
+        if (!s.blade) {
+          s.blade = { x: p.x, y: p.y, vx: p.aimX * 430, vy: p.aimY * 430, phase: 'outbound', travel: 0, r: 9 };
+          p.slashCooldown = .43;
+          spark(s, p.x, p.y, 'slash', 6);
+        }
+      } else {
+        const heavy = equipped(s, 'verdant-aqueduct', 'heavy-strike');
+        p.slashTime = heavy ? .34 : .22; p.slashCooldown = heavy ? .72 : .43;
+        p.reflecting = false; s._slashSerial++; slashed = true;
+      }
     }
     const placing = !!input.place && !s._placeHeld;
     if (input.burst && !s._burstHeld) burstInput(s);
@@ -1926,7 +1981,7 @@
 
     environment(s, dt);
     p.wading = inWater(s, p);
-    const speed = (p.reflecting ? 108 : 190) * (p.wading ? WADE : 1);
+    const speed = (p.reflecting && !equipped(s, 'tidal-abbey', 'mobile-reflection') ? 108 : 190) * (p.wading ? WADE : 1);
     const dashSpeed = 520 * (p.wading ? .7 : 1);
     const oldX = p.x, oldY = p.y;
     moveBody(p, p.dashTime > 0 ? p.dashX * dashSpeed : mx * speed,
@@ -1954,6 +2009,7 @@
     for (const e of s.enemies) {
       if (s.status !== 'playing') break;
       if (isDefeated(e) && e.type !== 'turret') continue;
+      if (e.burstStun > 0) { e.burstStun = Math.max(0, e.burstStun - dt); continue; }
       if (e.type === 'turret') turretStep(s, e, dt);
       else if (e.type === 'diver') diverStep(s, e, dt);
       else if (e.type === 'mortar') mortarStep(s, e, dt);
@@ -1963,6 +2019,7 @@
       else sentinelStep(s, e, dt);
     }
     projectiles(s, dt, blockers(s));
+    bladeStep(s, dt);
     rings(s, dt);
     if (s.status === 'playing') lobs(s, dt);
 
@@ -1972,14 +2029,14 @@
       if (isDefeated(e) || e.type === 'turret') continue;
       const dx = e.x - p.x, dy = e.y - p.y, dist = length(dx, dy);
       if (e.type === 'mortar') {
-        if (p.slashTime > 0 && e.lastSlash !== s._slashSerial && dist < e.r + 54 &&
+        if (p.slashTime > 0 && e.lastSlash !== s._slashSerial && dist < e.r + (equipped(s, 'verdant-aqueduct', 'heavy-strike') ? 40 : 54) &&
           (dx * p.aimX + dy * p.aimY) / Math.max(EPS, dist) > .1 &&
           !raySegment(p.x, p.y, dx, dy, walls, dist).rect) {
           e.lastSlash = s._slashSerial; mortarSlash(s, e);
         }
         continue;
       }
-      if (e.exposed > 0 && p.slashTime > 0 && e.lastSlash !== s._slashSerial && dist < e.r + 54 &&
+      if (e.exposed > 0 && p.slashTime > 0 && e.lastSlash !== s._slashSerial && dist < e.r + (equipped(s, 'verdant-aqueduct', 'heavy-strike') ? 40 : 54) &&
         (dx * p.aimX + dy * p.aimY) / Math.max(EPS, dist) > .1 &&
         !raySegment(p.x, p.y, dx, dy, walls, dist).rect) {
         e.lastSlash = s._slashSerial; slashHit(s, e);
@@ -2089,9 +2146,49 @@
   }
 
   // ------------------------------------------------------------ tools & slash
+  function bladeStep(s, dt) {
+    const blade = s.blade, p = s.player;
+    if (!blade || s.status !== 'playing') return;
+    if (blade.phase === 'returning') {
+      // The unarmed returning blade follows its light tether through scenery.
+      const d = length(p.x - blade.x, p.y - blade.y);
+      if (d <= 22 + 500 * dt) { s.blade = null; spark(s, p.x, p.y, 'light', 4); return; }
+      blade.x += (p.x - blade.x) / d * 500 * dt;
+      blade.y += (p.y - blade.y) / d * 500 * dt;
+      return;
+    }
+    const distance = Math.min(430 * dt, 320 - blade.travel);
+    const end = raySegment(blade.x, blade.y, blade.vx, blade.vy, blockers(s), distance);
+    const targets = s.enemies.filter(e => !isDefeated(e) && !(e.type === 'diver' && e.submerged) &&
+      segmentDistance(e.x, e.y, blade.x, blade.y, end.x, end.y) <= e.r + blade.r)
+      .sort((a, b) => length(a.x - blade.x, a.y - blade.y) - length(b.x - blade.x, b.y - blade.y));
+    if (targets.length) {
+      const e = targets[0];
+      if (e.type === 'mortar') mortarSlash(s, e, blade, 1);
+      else if (e.exposed > 0) slashHit(s, e, 2);
+      else spark(s, e.x, e.y, 'spark', 6);
+      blade.phase = 'returning';
+    }
+    blade.travel += length(end.x - blade.x, end.y - blade.y);
+    blade.x = end.x; blade.y = end.y;
+    if (end.rect || blade.travel >= 320 - EPS) blade.phase = 'returning';
+  }
   function placeInput(s) {
     const p = s.player;
-    if (p.prism === 'carried') {
+    if (!p.prism) return;
+    const placed = s.mirrors.filter(m => m.portable);
+    const near = placed.slice().sort((a, b) => length(a.x - p.x, a.y - p.y) - length(b.x - p.x, b.y - p.y))[0];
+    const recall = equipped(s, 'glass-kiln', 'prism-recall');
+    const capacity = equipped(s, 'glass-kiln', 'second-prism') ? 2 : 1;
+    if (near && (recall || length(near.x - p.x, near.y - p.y) <= 80)) {
+      s.mirrors = s.mirrors.filter(m => m !== near);
+      p.prism = placed.length > 1 ? 'placed' : 'carried';
+      s.prismRoom = placed.length > 1 ? s.roomId : null;
+      spark(s, near.x, near.y, 'light', 8);
+      announce(s, recall ? 'Prism recalled to your satchel.' : 'Prism lifted.', 1.5, 0);
+      return;
+    }
+    if (placed.length < capacity) {
       const x = p.x + p.aimX * 34, y = p.y + p.aimY * 34, r = 14;
       const inside = x >= r && y >= r && x <= s.room.w - r && y <= s.room.h - r;
       const solid = moveSolids(s).some(w => overlapCircle(x, y, r, w));
@@ -2105,23 +2202,18 @@
       }
       let index = Math.round(Math.atan2(p.aimY, p.aimX) / (Math.PI / 4)) % 8;
       if (index < 0) index += 8;
-      s.mirrors.push({ id: 'prism', portable: true, x, y, r, split: false,
+      const id = placed.some(m => m.id === 'prism') ? 'prism-second' : 'prism';
+      s.mirrors.push({ id, portable: true, x, y, r, split: false,
         dirs: PRISM_DIRS.map(d => d.slice()), index, lit: false });
       p.prism = 'placed'; s.prismRoom = s.roomId;
       spark(s, x, y, 'light', 10);
       s.rings.push({ x, y, r, maxR: r + 30, speed: 120, life: 1, hostile: false, kind: 'prism' });
-      announce(s, 'Prism set. Slash beside it to turn it; press PRISM beside it to lift it.', 3, 0);
+      announce(s, capacity === 2 && placed.length === 0 ?
+        'First prism set. Walk away and press PRISM to place the second; press nearby to lift one.' :
+        'Prism set. Slash beside it to turn it; press PRISM beside it to lift it.', 3, 0);
       return;
     }
-    if (p.prism === 'placed') {
-      const m = placedPrism(s);
-      if (!m) { p.prism = 'carried'; s.prismRoom = null; return; }
-      if (length(m.x - p.x, m.y - p.y) > 80) { announce(s, 'Walk back to lift the prism.', 2, 0); return; }
-      s.mirrors = s.mirrors.filter(q => !q.portable);
-      p.prism = 'carried'; s.prismRoom = null;
-      spark(s, m.x, m.y, 'light', 8);
-      announce(s, 'Prism lifted.', 1.5, 0);
-    }
+    announce(s, capacity === 2 ? 'Both prisms are set. Walk back to lift one.' : 'Walk back to lift the prism.', 2, 0);
   }
   function slashWorld(s) {
     const p = s.player;
@@ -2139,10 +2231,11 @@
       announce(s, l.text || 'The lever drops with a clunk.', 4, 2);
     }
   }
-  function mortarSlash(s, e) {
-    const [ux, uy] = unit(s.player.x - e.x, s.player.y - e.y, -e.facingX, -e.facingY);
+  function mortarSlash(s, e, source, damage) {
+    source = source || s.player;
+    const [ux, uy] = unit(source.x - e.x, source.y - e.y, -e.facingX, -e.facingY);
     if (ux * e.facingX + uy * e.facingY < .3) {
-      e.hp = Math.max(0, e.hp - 1); e.flash = .35;
+      e.hp = Math.max(0, e.hp - (damage || (equipped(s, 'verdant-aqueduct', 'heavy-strike') ? 2 : 1))); e.flash = .35;
       spark(s, e.x, e.y, 'slash', 12);
       if (e.hp === 0) defeat(s, e);
       else announce(s, 'Through the soft bark! One more strike.', 1.6, 0);
@@ -2162,6 +2255,9 @@
   PW.retryRoom = retryRoom;
   PW.continueRegion = continueRegion;
   PW.restartRegion = restartRegion;
+  PW.equipmentChoices = equipmentChoices;
+  PW.chooseEquipment = chooseEquipment;
+  PW.equipmentCatalog = () => copy(EQUIPMENT);
   PW.announce = announce;
   PW.FALLBACK_CLOISTER = FALLBACK_CLOISTER;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1104,3 +1104,12 @@ review, release, or `main` promotion.
 
 STOP absent; dev synced, initial tree clean. First Saturday, age6; forced release remains October3. Scope audit: all25 encounters have authored data, but E1-E5 legal completion, four behavioral equipment choices, durable saves and full discovery consequences are still gaps. Tonight prioritizes equipment progression and durable region checkpoints, alongside a legal Crown route investigation. Independent criticism will assess actual changes; previous AAA FAIL and unproven fun remain. No main promotion. Run the full suite before this intent checkpoint and every working push.
 
+
+## September26 equipment/save and campaign-route checkpoint
+
+Implemented four exclusive beacon equipment decisions (eight behavioral branches), reloadable region-entry and completed-beacon saves, saved ending/resume/new-voyage flows, and blade/twin-prism feedback. Save errors are nonfatal and malformed stored rooms are rejected. Room retry retains the existing full-health behavior; copy now says so. Fixed Crown east sunlight blocked by the evacuation partition and added the missing north-south Archive star crossing after a legal pilot repeatedly fell through it.
+
+Baseline whole-campaign legal-input pilot now wins at437.52 simulated seconds,2/7HP,37600score, all25 challenge flags and both rescues. An independent critic reproduced it. Three selected loadouts also complete via public beacon choices; that establishes reachability with all eight selections, not active mastery of every tool. These are hidden-state simulation inputs, not human discovery, real playtime or enjoyment. Normal-clock keyboard/touch whole-campaign proof remains outstanding.
+
+Full repository22suites/449tests passed;7 additional equipment regressions pass with focused save/Crown tests. Browser six-size checks and fresh critic review are underway. Previous AAA FAIL / OURS LOSES remains. Still missing: player polarity, Glass Edge and quench late consequences, full ten-discovery payoff contract, substantive ending choice, full playtesting and art/audio/gameplay acceptance. No completion marker or main promotion. Next substantial run must close those systems, not spend the cycle on surface polish.
+

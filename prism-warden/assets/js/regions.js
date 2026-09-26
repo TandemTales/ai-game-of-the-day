@@ -1283,7 +1283,10 @@
       { x: 48, y: 696, w: 928, h: 24 }
     ],
     voids: [{ id: 'archive-record-gulf', x: 48, y: 312, w: 928, h: 144 }],
-    starPaths: [{ id: 'archive-record-span', x: 48, y: 352, w: 928, h: 64 }],
+    starPaths: [
+      { id: 'archive-record-span', x: 48, y: 352, w: 928, h: 64 },
+      { id: 'archive-record-crossing', x: 480, y: 312, w: 64, h: 144 }
+    ],
     rechargePads: [{ id: 'archive-north-well', x: 512, y: 192, r: 36 }, { id: 'archive-south-well', x: 512, y: 528, r: 36 }],
     pickups: [{ id: 'keeper-archive', kind: 'chart', x: 512, y: 600,
       text: 'Keeper Archive record secured. A protected recharge alcove opens along the Switchback Shoal.' }],
@@ -1365,7 +1368,7 @@
     ],
     emitters: [
       { id: 'crown-west-sun', x: 88, y: 160, dx: 1, dy: 0 },
-      { id: 'crown-east-sun', x: 936, y: 608, dx: -1, dy: 0 }
+      { id: 'crown-east-sun', x: 840, y: 608, dx: -1, dy: 0 }
     ],
     mirrors: [
       { id: 'crown-west-mirror', x: 320, y: 160, r: 18, dirs: [[1, 0], [0, 1]], index: 0 },

@@ -16,6 +16,7 @@ async function main(){
    await page.waitForFunction(()=>!document.getElementById('polarity').hidden);await page.keyboard.press('f');
    await page.waitForFunction(()=>PW.game.flags.polarity==='cold');const button=page.locator('#polarity'),box=await button.boundingBox();
    assert(box.width>=44&&box.height>=44&&box.x>=0&&box.y>=0&&box.x+box.width<=width&&box.y+box.height<=height);
+   const hud=await page.locator('#hud').boundingBox();assert(box.y>=hud.y+hud.height,'polarity must clear HUD');assert.equal(await button.evaluate(e=>document.elementFromPoint(e.getBoundingClientRect().x+e.clientWidth/2,e.getBoundingClientRect().y+e.clientHeight/2)===e),true);
    if(width<1000)await button.tap();else await button.click();await page.waitForFunction(()=>PW.game.flags.polarity==='hot');
    for(const id of ['slash','dash','prism','burst'])if(width<1000){const b=await page.locator('#'+id).boundingBox();assert(b.width>=44&&b.height>=44&&b.x>=0&&b.y>=0&&b.x+b.width<=width+1&&b.y+b.height<=height+1,id);}
    await page.waitForTimeout(250);await page.screenshot({path:path.join(out,size+'-polarity.png')});

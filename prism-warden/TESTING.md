@@ -267,3 +267,43 @@ No physical-device, full normal-clock campaign, audio-listening or live leaderbo
 acceptance is claimed.
 
 Final weekend full Jest result: **23 suites / 458 tests PASS**. Added legal E1–E5 route and Archive burst-crossing regression; final combined acquired-action six-size browser sweep PASS.
+
+
+## September27 discovery and restoration verification
+
+Final full suite:25 suites /472 tests PASS. New discoveries suite covers actual
+polarity matching, Glass Edge aim/LOS/no-score behavior, moving-Hart optical
+opening, quench/shade late effects, ten-effect inventory, exclusive restoration,
+Crown-only recharge difference and D4 live-jam defense. Save regression verifies
+selected restoration survives debrief reload and subsequent Crown rollback.
+
+Run `node prism-warden/tools/discovery-smoke.cjs` for all six viewport fixtures:
+F and native-touch polarity switch, all five acquired44px controls, HUD separation,
+readable foundry/Seed Lens frames, two required debrief choices, save/reload,
+permanent channel spans, ending narrative, console/network/overflow checks.
+Evidence: `node_modules/.cache/prism-warden/sep27-discoveries/`. Lens/ending and
+region entry are declared fixtures, not legal combat wins. Lead viewed all six
+sizes, including 4K downsampled to2048; critic reviewed phone/landscape cues.
+
+`node prism-warden/tools/crown-pilot.cjs --whole --loadout=alternate --restoration=channels`
+wins423.60simsec/1HP/all25 with one upstream room retry. `--loadout=anchor
+--restoration=beacons` wins447.57simsec/3HP/all25 with zero retries. These use public
+choice/step/continue APIs and cover all eight equipment selections across two
+runs. Independent no-choice baseline wins441.02simsec/2HP/zero retries. These are
+state-informed simulations, not human duration, discovery or enjoyment evidence.
+
+`node prism-warden/tools/campaign-native.cjs keyboard` or `touch` runs native
+browser input under the normal clock. PW_SHOTS selects a unique evidence folder.
+It reads state to plan but never injects game progress; up to two ordinary room
+retries per room/six total are recorded. Initial sep27-native failures are retained.
+The keyboard pilot dropped small steering components at a wall corner; diagonal
+pulse modulation fixes that harness error. CDP touchEnd needs contacts to END,
+not contacts to keep; the initial harness ended Move while retaining Mirror.
+Corrected contact releases and28px pad travel were verified independently from
+explicit room-entry fixtures. Final full-run outcomes belong in PROGRESS.md.
+
+Fresh official Nintendo Link's Awakening screenshot downloaded and inspected in
+`sep27-critic/side-by-side.png`; provenance and independent probes are in review.md.
+Comparison is NON-BLIND: scoped mechanics/readability PASS, AAA FAIL / OURS LOSES.
+Full optional-route, native-touch, physical-device, audio and fun acceptance remain
+open unless a subsequent PROGRESS entry supplies that specific evidence.

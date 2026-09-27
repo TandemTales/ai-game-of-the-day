@@ -41,3 +41,35 @@ test('ten core discoveries have distinct flags and authored locations, excluding
  expect(new Set(PW.DISCOVERY_CONTRACT.map(x=>x.flag)).size).toBe(10);
  for(const d of PW.DISCOVERY_CONTRACT){expect(PW.ROOMS[d.room]).toBeTruthy();expect(d.effect.length).toBeGreaterThan(15);expect(['nacre-freed','ilex-evacuated']).not.toContain(d.flag);}
 });
+
+test('earned Seed Lens light opens a moving Hart without damage or broken dams, and fails without the lens',()=>{
+ const PW=loadPW();
+ for(const lens of [true,false]){
+  // Declared arena entry isolates the optical opening; the Hart's AI remains live.
+  const s=PW.create({room:'reservoir'});s.status='playing';s.flags.lens=lens;s.player.x=300;s.player.y=384;
+  const h=s.enemies.find(e=>e.type==='hart'),dams=s.dams.map(d=>d.hp),hp=h.hp;
+  for(let k=0;k<80;k++)tick(PW,s,{reflect:true,ax:h.x-s.player.x,ay:h.y-s.player.y});
+  expect(h.lensCooldown>0).toBe(lens);expect(h.hp).toBe(hp);expect(s.dams.map(d=>d.hp)).toEqual(dams);
+  if(lens)expect(h.exposed).toBeGreaterThan(4);
+ }
+});
+
+test('beacon restoration accelerates Crown recharge but leaves earlier regions unchanged',()=>{
+ const PW=loadPW();
+ for(const [room,choice,expected]of [['descent','beacons',1],['descent','channels',.5],['stars','beacons',.5]]){
+  const s=PW.create({room});s.status='playing';s.flags['stored-light']=true;s.flags['restoration-choice']=choice;
+  s.pickups.forEach(p=>p.taken=true);const pad=s.rechargePads[0];s.player.x=pad.x;s.player.y=pad.y;s.player.lightCharge=0;s.player.invulnerable=99;
+  tick(PW,s,{},60);expect(s.player.lightCharge).toBeCloseTo(expected,5);
+ }
+});
+
+test('D4 requires a live returned-shot window at each bank; intentional defense clears',()=>{
+ const PW=loadPW(),s=PW.create({room:'telescope'});s.status='playing';
+ const pilot=require('../prism-warden/tools/observatory-pilot.cjs').createPilot();
+ for(let k=0;k<1800&&s.roomId==='telescope'&&s.status==='playing';k++)tick(PW,s,pilot(s));
+ expect(s.roomId).toBe('twins');expect(s.cleared.D4).toBe(true);expect(s.player.hp).toBe(6);
+ const waiting=PW.create({room:'telescope'});waiting.status='playing';waiting.player.x=300;waiting.player.y=384;
+ waiting.escort.x=270;waiting.escort.y=384;waiting.escort.index=1;
+ waiting.enemies.find(e=>e.id===waiting.escort.crossingChecks[0].enemy).jammedOnce=true;
+ tick(PW,waiting,{},20);expect(waiting.escort.crossingChecks[0].passed).toBe(false);expect(waiting.escort.x).toBe(270);
+});

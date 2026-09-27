@@ -396,3 +396,39 @@ Scope debt is unchanged by these additions: optional effects listed earlier rema
 requirements even where current data implements a weaker effect. In particular,
 Glass Edge, player polarity, quench late-hazard removal, Seed Lens noncombat opening,
 the full discovery contract and the visible restoration choice are still required.
+
+
+## September27 implemented discovery and restoration contract
+
+The named September26 system gaps are now implemented. This supersedes the earlier
+implementation-debt list, not the complete-game acceptance requirements.
+
+- F / HOT-COLD control unlocks on entering the Kiln. Reflected shield light takes
+  the selected polarity; foundry locks accept matching light only. The authored
+  hot/cold source-and-mirror route remains an alternate solution. Beams, receiver
+  glyphs and offscreen target labels distinguish hot/cold with text and shape.
+- Glass Edge cuts hostile shots in the aimed, unobstructed 70-unit slash arc.
+  Friendly shots and shots behind cover remain; cutting yields no score.
+- Seed Lens requires 1.2 seconds of sustained redirected light on the moving Hart
+  for a 4.5-second opening, followed by a seven-second cooldown. It opens armor
+  without breaking dams; it does not defeat or skip the guardian.
+- Quench removes the Crown gallery south flare. The freed keeper silences the
+  descent sentry as well as opening its existing refuge/stair.
+- D4 banks wait for the named sniper's live returned-shot jam before Ilex commits
+  to that crossing. Old jam history does not unlock the next bank. The player
+  must still accompany Ilex and turn the central telescope.
+- The Observatory debrief requires an exclusive restoration decision. Channels
+  keep burst-revealed Crown star spans open; telescope-aligned spans still rotate.
+  Beacons double Crown stored-light recharge and extend Keeper openings by1.5s.
+  The decision saves immediately, survives Crown rollback, and changes ending copy.
+
+PW.DISCOVERY_CONTRACT is the explicit ten-effect inventory: chapel shortcut/heal,
+Keeper chart exposure, Abbey reliquary heart, dry ferry route, Seed Lens, quench,
+Glass Edge, sky chart, freed keeper, Keeper Archive. Ferry heart is an extra;
+Nacre/Ilex rescues are required story progress, not optional discovery credit.
+
+Five regions and25 challenges are legally reachable, including both restoration
+branches with selected equipment. All optional authored routes have not been
+played as a complete normal-clock campaign. Full gameplay depth, human enjoyment,
+physical touch, audio listening and AAA acceptance remain unproven. Oct3 remains
+forced wrap-up; do not treat this implementation inventory as shipping acceptance.

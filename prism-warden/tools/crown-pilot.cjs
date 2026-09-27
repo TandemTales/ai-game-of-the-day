@@ -86,12 +86,12 @@ function play(PW,options={}){
   PW=Object.assign({},PW,{retryRoom(state){upstreamRetries++;return retryEngine.retryRoom(state);}});
   // Exercise real between-region choices through their public API. The facade
   // lets existing upstream pilots select at their normal Continue checkpoints.
-  if(options.loadout){
+  if(options.loadout||options.restoration){
     const engine=PW,heavy=options.loadout==='anchor';
     const alternate=options.loadout==='alternate';
     const picks={'tidal-abbey':alternate?'mobile-reflection':'wide-guard','verdant-aqueduct':heavy?'heavy-strike':'returning-blade','glass-kiln':alternate?'second-prism':'prism-recall','night-observatory':heavy?'lasting-bridge':'burst-stun'};
     PW=Object.assign({},engine,{
-      continueRegion(state){const pick=picks[state.regionId];if(pick&&!engine.chooseEquipment(state,pick))throw new Error('Equipment choice rejected: '+pick);return engine.continueRegion(state);},
+      continueRegion(state){if(state.regionId==='night-observatory'&&options.restoration&&!engine.chooseRestoration(state,options.restoration))throw new Error('Restoration choice rejected');const pick=picks[state.regionId];if(pick&&!engine.chooseEquipment(state,pick))throw new Error('Equipment choice rejected: '+pick);return engine.continueRegion(state);},
       // Older pilots use slash to rotate mirrors and make close melee strikes.
       // Explicitly release MIRROR on those frames, as the real controls require.
       // This route proves the selected loadout is completable, not thrown-blade mastery.
@@ -110,5 +110,5 @@ function play(PW,options={}){
   log.push('END '+s.status+' t='+s.time.toFixed(2)+' hp='+s.player.hp+' score='+s.score+' hits='+s.hits+' equipment='+JSON.stringify(s.equipment)+' flags='+JSON.stringify(s.flags)+' cleared='+JSON.stringify(s.cleared));s.crownLog=log;return s;
 }
 module.exports={createPilot,play};
-if(require.main===module){const room=process.argv.find(x=>x.startsWith('--room=')),loadout=process.argv.find(x=>x.startsWith('--loadout='));const s=play(aq.loadPW(),{whole:process.argv.includes('--whole'),room:room&&room.slice(7),loadout:loadout&&loadout.slice(10),archive:process.argv.includes('--archive'),trace:process.argv.includes('--trace'),naive:process.argv.includes('--naive')});console.log((s.crownLog||s.observatoryLog||s.kilnLog||[]).join('\n'));if(s.status!=='won')process.exitCode=1;}
+if(require.main===module){const restoration=process.argv.find(x=>x.startsWith('--restoration=')),room=process.argv.find(x=>x.startsWith('--room=')),loadout=process.argv.find(x=>x.startsWith('--loadout='));const s=play(aq.loadPW(),{whole:process.argv.includes('--whole'),room:room&&room.slice(7),loadout:loadout&&loadout.slice(10),restoration:restoration&&restoration.slice(14),archive:process.argv.includes('--archive'),trace:process.argv.includes('--trace'),naive:process.argv.includes('--naive')});console.log((s.crownLog||s.observatoryLog||s.kilnLog||[]).join('\n'));if(s.status!=='won')process.exitCode=1;}
 

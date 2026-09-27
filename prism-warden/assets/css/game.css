@@ -79,5 +79,5 @@ body.has-prism .actions button,body.has-light .actions button{min-width:44px;pad
 #restorationOptions{display:grid;gap:8px}#restorationOptions button{text-align:left;letter-spacing:0;min-height:56px;padding:9px 11px}
 #restorationOptions strong{display:block;color:#f3dfab;font-size:13px}#restorationOptions span{display:block;font:12px/1.4 system-ui;margin-top:4px;color:#c4d8d3}
 #restorationOptions button[aria-pressed=true]{border-color:#8be0d1;background:#244c4b;opacity:1}#restorationOptions button:disabled:not([aria-pressed=true]){opacity:.5}
-@media(max-width:1000px) and (max-height:480px){#polarity{top:96px}}
-@media(max-width:600px) and (min-height:481px){body.touch #polarity{top:104px}}
+@media(max-width:1000px) and (max-height:480px){#polarity{top:118px;left:auto;right:8px}}
+@media(max-width:600px) and (min-height:481px){body.touch #polarity{top:104px;left:8px;right:auto}}

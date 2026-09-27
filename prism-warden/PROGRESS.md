@@ -1204,3 +1204,27 @@ The Observatory beacon now requires a visible, saved restoration decision alongs
 Full repository tests passed24suites/463tests, followed by26 focused passing checks covering final D4 hints, renderer animation, new mechanics and restoration-save rollback. Independent updated legal baseline wins all25 at441.02 simulated seconds/2HP/zero retries. Independent earned Seed Lens opening and sword punish preserve every dam, with one recoverable player hit. Those are hidden-state simulation results. Browser six-size discovery/control/save/ending fixtures passed; latest control-position/ring captures are being refreshed.
 
 Normal-clock actual-input attempts remain incomplete: keyboard legally cleared A1-B5 and C1, then its planner stalled in the Annealed Bridge; touch lost in the opening guardian encounter after73.70game seconds. Both retained clean console, no injected gameplay state and no retries. These failures are not discarded and do not yet distinguish planner limitations from player-path problems. Full keyboard/touch completion and fun remain unaccepted. Fresh official Nintendo side-by-side remains NON-BLIND AAA FAIL / OURS LOSES. Main unchanged; no completion marker or shipping claim. Implementation pushed as dba0658; this handoff follows separately after a local documentation encoding error.
+
+
+## September27 verification and harness corrections
+
+Final full Jest passes25 suites/472 tests. Added regressions for moving-Hart lens
+opening without dam damage, Crown-only beacon recharge, and D4 live-jam defense.
+Both fully selected equipment/restoration simulation routes win all25: channels
+with alternate equipment423.60simsec/1HP/one upstream room retry; beacons with
+anchor equipment447.57simsec/3HP/zero retries. Preserve that retry distinction.
+
+All six final discovery sweeps pass F/native touch, acquired44px actions, required
+story/equipment choices, save/reload, channel consequence, ending, clean console,
+no external requests or horizontal overflow. Lead inspected every viewport;4K was
+downscaled to2048. Fixed new polarity control covering Sound/thermal readouts;
+its top now follows the actual HUD height and side changes with the layout.
+
+Independent native diagnosis confirmed two harness errors, without changing game
+controls: digital keyboard threshold dropped the small east correction required
+to clear a wall corner, and CDP touchEnd ended Move instead of Mirror because it
+was passed remaining contacts instead of contacts to release. Diagonal duty
+pulses and correct contact lists/28px joystick travel fix those. Initial failures
+remain under sep27-native; corrected no-retry touch cleared A1 but lost in A2 at
+68.25game seconds. A final recorded-retry touch attempt and corrected keyboard
+whole campaign are running; no whole-native acceptance is claimed here.

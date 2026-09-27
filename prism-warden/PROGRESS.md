@@ -1189,3 +1189,8 @@ shows the actual actor renderer walking then stopping, not a human gameplay run.
 Evidence: `node_modules/.cache/prism-warden/walking-art/`, including an animated
 GIF/MP4 preview. Asset and generation notes: `assets/img/WALK_ART.md`.
 This walking-animation update targets dev.
+
+## September27 weekend intent — 09:05 Pacific
+
+STOP absent; clean dev synchronized. Sunday age7, forced release October3. Scope audit confirms five authored regions /25 legally reachable challenges, equipment and saves; player polarity, Glass Edge, Seed Lens/quench and remaining consequential discoveries, restoration decision, and meaningful D4 defense remain gaps. This run prioritizes those connected gameplay systems and their visible controls/consequences, then independent scope/fun criticism and normal-clock route verification. Preserve painted Sera animation and all unresolved AAA FAIL / OURS LOSES verdicts. No release or main promotion. Tests precede each pushed checkpoint.
+

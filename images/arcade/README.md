@@ -1,6 +1,12 @@
 # Arcade artwork
 
-Generated with the built-in image generation tool for the September 2026 front-end redesign. These are editorial illustrations, not gameplay screenshots. The site labels game illustrations as cover art. WebP files preserve the full 1536 × 1024 composition and use quality 85 encoding for delivery (all five images together are under 900 KB). The SVG brand mark and abstract collection emblems are native vector interface artwork.
+Generated with the built-in image generation tool for the September 2026 front-end redesign. These are editorial illustrations, not gameplay screenshots. The site labels game illustrations as cover art. WebP files preserve the full 1536 × 1024 composition and use quality 85 encoding for delivery. The SVG brand mark and abstract collection emblems are native vector interface artwork.
+
+## arcade-room-neon.webp
+
+Current hero artwork, edited from the original arcade-room.webp with the built-in image generation tool. The original remains as a source asset.
+
+Use case: lighting-weather. Edit this existing arcade hero illustration to have a vibrant classic neon arcade aesthetic. Keep the same three cabinets, their shapes, composition, camera angle, circular platform and empty left side. Replace beige and olive lighting with vivid electric cyan, hot magenta, violet and small bright blue highlights. Cabinets should be black and purple with bright neon trim and cyan/magenta glowing pixel screens, luminous colored marquees with NO TEXT. Add dramatic cyan and magenta rim lighting and beautiful colored reflections on the floor. Background stays near-black midnight purple. Fun, luminous and saturated, still crisp premium 3D rather than hazy overexposed bloom. No text, no extra cabinets or objects, no logos, no UI. Preserve landscape dimensions.
 
 ## arcade-room.webp
 

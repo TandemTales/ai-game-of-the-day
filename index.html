@@ -1,681 +1,1044 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=AW-17405200669"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>
+   Bot Built Arcade — Pick a game. Press play.
+  </title>
+  <meta content="A growing collection of original AI-built browser games. Explore new adventures, chase high scores, and find your next just-one-more-round obsession. No downloads. Just play." name="description"/>
+  <link href="images/arcade/mark.svg" rel="icon" type="image/svg+xml"/>
+  <link href="src/arcade.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link as="image" href="images/arcade/arcade-room.webp" rel="preload"/>
+  <!-- Google tag (gtag.js) -->
+  <script async="" src="https://www.googletagmanager.com/gtag/js?id=AW-17405200669">
+  </script>
+  <script>
+   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
   gtag('config', 'AW-17405200669');
   gtag('event', 'conversion', {'send_to': 'AW-17405200669/wbvBCNrW0rMbEJ2SuetA'});
-</script>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Bot Built Arcade</title>
-	<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5140771119439935" crossorigin="anonymous"></script>
-	<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-	<link rel="icon" type="image/png" href="images/botbuiltarcade-icon-face.png">
-	<style>
-		*, *::before, *::after { box-sizing: border-box; }
-		html, body { width: 100%; max-width: 100%; overflow-x: hidden; }
-		img, video, canvas, svg { max-width: 100%; height: auto; }
-		body {
-			margin: 0;
-			padding: 0;
-			background: linear-gradient(135deg, #D2691E 0%, #FF6347 50%, #FF4500 100%);
-			font-family: 'Press Start 2P', cursive;
-                        display: flex;
-                        justify-content: center;
-                        align-items: flex-start;
-                        min-height: 100vh;
-                        overflow-y: auto;
-			color: #F5F5DC;
-			position: relative;
-		}
-
-		body::before {
-			content: '';
-			position: fixed;
-			top: 0;
-			left: 0;
-			width: 100%;
-			height: 100%;
-			background-image: url('images/botbuiltarcade-icon-face.png');
-			background-size: 200px 200px;
-			background-repeat: no-repeat;
-			background-position: top right;
-			opacity: 0.1;
-			z-index: -1;
-			pointer-events: none;
-		}
-
-		#container {
-			text-align: center;
-			background: rgba(0, 0, 0, 0.85);
-			padding: 30px;
-			border-radius: 20px;
-			border: 4px solid #FFD700;
-			box-shadow: 0 0 40px rgba(255, 215, 0, 0.6);
-			max-width: 900px;
-			margin: 20px;
-			position: relative;
-			z-index: 2147483648 !important;
-		}
-
-		.header-logo {
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			margin-bottom: 30px;
-			gap: 20px;
-		}
-
-		.header-logo img {
-			width: 60px;
-			height: 60px;
-			border-radius: 50%;
-			border: 3px solid #FFD700;
-			box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-		}
-
-		h1 {
-			font-size: 32px;
-			margin: 0;
-			text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
-			background: linear-gradient(45deg, #FFD700, #FFA500);
-			-webkit-background-clip: text;
-			-webkit-text-fill-color: transparent;
-			background-clip: text;
-		}
-
-		h2 {
-			font-size: 24px;
-			margin: 30px 0 20px 0;
-			color: #5F9EA0;
-			text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
-		}
-
-		.featured {
-			background: linear-gradient(135deg, rgba(95, 158, 160, 0.2), rgba(255, 215, 0, 0.1));
-			padding: 25px;
-			border-radius: 15px;
-			border: 2px solid #5F9EA0;
-			margin: 30px 0;
-			box-shadow: 0 0 25px rgba(95, 158, 160, 0.3);
-		}
-
-		.featured h2 {
-			color: #FFD700;
-			font-size: 28px;
-			margin-bottom: 15px;
-		}
-
-		.featured p {
-			font-size: 14px;
-			line-height: 1.6;
-			margin: 20px 0;
-			color: #F5F5DC;
-		}
-
-		/* Hide removed games */
-		li[data-id="bayou-brawlers"],
-		li[data-id="midnight-menagerie"],
-		li[data-id="crimson-descent"],
-		li[data-id="ocean-explorer"],
-		li[data-id="memory-match"] {
-			display: none !important;
-		}
-
-                .play-btn {
-                        display: inline-block;
-                        background: linear-gradient(45deg, #5F9EA0, #4682B4);
-                        color: white;
-                        padding: 15px 30px;
-                        text-decoration: none;
-                        border-radius: 10px;
-                        font-size: 16px;
-                        margin: 20px 0;
-                        transition: all 0.3s ease;
-                        border: 2px solid #FFD700;
-                        box-shadow: 0 4px 15px rgba(95, 158, 160, 0.4);
-                        position: relative;
-                        z-index: 2147483648;
-                }
-
-                .play-btn:hover {
-                        background: linear-gradient(45deg, #4682B4, #5F9EA0);
-                        transform: translateY(-3px);
-                        box-shadow: 0 6px 20px rgba(95, 158, 160, 0.6);
-                }
-
-                .leaderboard-btn {
-                        display: inline-block;
-                        background: linear-gradient(45deg, #FFD700, #FFA500);
-                        color: #000;
-                        padding: 10px 20px;
-                        text-decoration: none;
-                        border-radius: 10px;
-                        font-size: 14px;
-                        margin: 10px 0;
-                        transition: all 0.3s ease;
-                        border: 2px solid #FFD700;
-                        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
-                        position: relative;
-                        z-index: 2147483648;
-                }
-
-                .leaderboard-btn:hover {
-                        background: linear-gradient(45deg, #FFA500, #FFD700);
-                        transform: translateY(-3px);
-                        box-shadow: 0 6px 20px rgba(255, 215, 0, 0.6);
-                }
-
-		.rate {
-			margin: 15px 0;
-			font-size: 24px;
-		}
-
-		.rate span {
-			color: #666;
-			cursor: pointer;
-			transition: color 0.2s ease;
-		}
-
-               .rate span:hover,
-               .rate span.selected {
-                       color: #FFD700;
-                       text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
-               }
-
-		.score {
-			display: block;
-			margin-top: 10px;
-			font-size: 12px;
-			color: #5F9EA0;
-		}
-
-                .ad-container {
-                        margin: 30px 0;
-                        padding: 20px;
-                        background: rgba(255, 255, 255, 0.05);
-                        border-radius: 10px;
-                        border: 1px solid rgba(255, 215, 0, 0.2);
-                        max-width: 100%;
-                        overflow: hidden;
-                        position: relative;
-                        z-index: 0;
-                }
-
-                /* Keep AdSense iframes from expanding layout on mobile */
-                ins.adsbygoogle {
-                        display: block;
-                        width: 100% !important;
-                        height: auto;
-                        position: relative;
-                        z-index: 0;
-                }
-                .adsbygoogle iframe {
-                        max-width: 100vw !important;
-                        position: relative;
-                        z-index: 0;
-                }
-                
-                /* Prevent side rail ads from blocking clicks on content */
-                ins.adsbygoogle[data-side-rail-status] {
-                        pointer-events: none !important;
-                }
-                ins.adsbygoogle[data-side-rail-status] > * {
-                        pointer-events: auto !important;
-                }
-		.feedback {
-			margin: 40px 0;
-			color: #5F9EA0;
-			font-size: 14px;
-			line-height: 1.6;
-		}
-		.feedback a {
-			color: #FFD700;
-			text-decoration: none;
-		}
-		.feedback a:hover {
-			color: #FFA500;
-		}
-
-		ul {
-			list-style: none;
-			padding: 0;
-		}
-
-                li {
-                        margin: 15px 0;
-                        background: rgba(255, 215, 0, 0.05);
-                        padding: 15px;
-                        border-radius: 10px;
-                        border: 1px solid rgba(255, 215, 0, 0.2);
-                        transition: all 0.3s ease;
-                        overflow: visible;
-                        position: relative;
-                        z-index: 2147483648;
-                }
-
-                li:hover,
-                li:focus-within,
-                li.hovering {
-                        background: rgba(255, 215, 0, 0.1);
-                        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
-                        border-color: rgba(255, 215, 0, 0.4);
-                        z-index: 2147483648;
-                }
-
-		li a {
-			font-size: 18px;
-			color: #5F9EA0;
-			text-decoration: none;
-			transition: color 0.3s ease;
-		}
-
-                li a:hover {
-                        color: #FFD700;
-                        text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
-                }
-
-        .game-description {
-            margin: 12px auto 0;
-            max-width: 560px;
-            font-size: 12px;
-            line-height: 1.6;
-            color: #F5F5DC;
-            opacity: 1;
-            max-height: none;
-        }
-
-        /* Small tagline for company and AI note */
-        .tagline {
-            margin-top: -10px;
-            color: #5F9EA0;
-            font-size: 12px;
-        }
-
-        /* Row for action buttons under each game */
-        .actions {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            align-items: center;
-            flex-wrap: wrap;
-            margin: 10px 0;
-            position: relative;
-            z-index: 2147483648;
-        }
-        .actions .play-btn,
-        .actions .leaderboard-btn {
-            margin: 6px 0; /* override bigger default margins so row looks tight */
-        }
-	</style>
-</head>
-<body>
-	<div id="container">
-		<div class="header-logo">
-			<img src="images/botbuiltarcade-icon-face.png" alt="Bot Built Arcade Robot">
-			<h1>Bot Built Arcade</h1>
-		</div>
-
-        <div class="tagline">By Tandem Tales LLC</div>
-
-		<div class="nav-links">
-			<a href="about.html" class="leaderboard-btn">About Us</a>
-			<a href="contact.html" class="leaderboard-btn">Contact Us</a>
-			<a href="privacy.html" class="leaderboard-btn">Privacy</a>
-		</div>
-
-		<p class="feedback">Have a bug or suggestion? Post your bugs, feedback, and suggestions for improvement on the <a href="https://www.reddit.com/r/BotBuiltArcade/" target="_blank">r/BotBuiltArcade</a> subreddit.</p>
-
-        <!-- When adding a new featured game, update the content below and ensure the
-             .rate div has a unique data-id with a <span class="score"></span> right
-             after it. This preserves the rating system when rotating featured games. -->
-        <div class="featured">
-            <h2>Featured Game: Prism Warden</h2>
-            <p>Enter a drowned abbey with a mirror shield. Redirect sunlight, return the guardian’s fire, dodge its charge and rescue the keeper. First playable encounter; the full adventure is in development.</p>
-            <a href="prism-warden/index.html" class="play-btn">Play Now!</a>
-            <a href="leaderboard.html?gameId=prism-warden" class="leaderboard-btn">View Leaderboard</a>
-            <div class="rate" data-id="prism-warden">
-                <span data-star="1">★</span>
-                <span data-star="2">★</span>
-                <span data-star="3">★</span>
-                <span data-star="4">★</span>
-                <span data-star="5">★</span>
-            </div>
-            <span class="score"></span>
+  </script>
+  <script async="" crossorigin="anonymous" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5140771119439935">
+  </script>
+  <script defer="" src="src/arcade.js">
+  </script>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">
+   Skip to content
+  </a>
+  <header class="site-header">
+   <div class="shell header-inner">
+    <a aria-label="Bot Built Arcade home" class="site-brand" href="index.html">
+     <svg aria-hidden="true" class="brand-mark" fill="none" viewBox="0 0 40 40">
+      <path d="M8 10h24v4h4v18H4V14h4z" stroke="currentColor" stroke-width="2.5">
+      </path>
+      <path d="M20 4v6M17 4h6M11 32v4m18-4v4" stroke="currentColor" stroke-width="2.5">
+      </path>
+      <path d="M11 18h5v5h-5zm13 0h5v5h-5z" fill="currentColor">
+      </path>
+      <path d="M15 27h10" stroke="currentColor" stroke-width="2">
+      </path>
+     </svg>
+     <span class="brand-wordmark">
+      <span>
+       bot built
+      </span>
+      <span>
+       arcade
+      </span>
+     </span>
+    </a>
+    <nav aria-label="Main navigation" class="site-nav">
+     <a aria-current="page" href="index.html#library">
+      Games
+     </a>
+     <a href="about.html">
+      About
+     </a>
+     <a class="community-nav" href="https://www.reddit.com/r/BotBuiltArcade/" rel="noopener noreferrer" target="_blank">
+      Community ↗
+     </a>
+    </nav>
+    <div class="header-note">
+     <span class="status-dot">
+     </span>
+     NO COINS NEEDED
+    </div>
+   </div>
+  </header>
+  <main class="shell" id="main">
+   <section aria-labelledby="hero-title" class="hero">
+    <img alt="Three retro arcade cabinets with softly glowing screens" class="hero-art" fetchpriority="high" height="1024" src="images/arcade/arcade-room.webp" width="1536"/>
+    <div class="hero-copy">
+     <p class="eyebrow">
+      <span class="status-dot">
+      </span>
+      New worlds. One more round.
+     </p>
+     <h1 id="hero-title">
+      Built by bots.
+      <br/>
+      <span>
+       Played by you.
+      </span>
+     </h1>
+     <p>
+      A curious collection of AI-built games.
+      <br/>
+      New worlds, old-school thrills. All in your browser.
+     </p>
+     <div class="hero-actions">
+      <a class="button" href="#library">
+       Explore the games
+       <span aria-hidden="true">
+        ↗
+       </span>
+      </a>
+      <button class="button secondary" id="surprise-me" type="button">
+       Surprise me
+       <span aria-hidden="true">
+        ⤨
+       </span>
+      </button>
+     </div>
+    </div>
+    <span class="hero-caption">
+     INSERT CURIOSITY. PRESS PLAY.
+    </span>
+   </section>
+   <div class="perks">
+    <span>
+     <span class="perk-icon">
+      ↗
+     </span>
+     Instant browser play
+    </span>
+    <span>
+     <span class="perk-icon">
+      ✳
+     </span>
+     Original AI-built games
+    </span>
+    <span>
+     <span class="perk-icon">
+      ◎
+     </span>
+     Free to explore
+    </span>
+    <span>
+     YOUR NEXT HIGH SCORE IS WAITING
+    </span>
+   </div>
+   <section aria-labelledby="featured-heading">
+    <div class="section-heading">
+     <h2 id="featured-heading">
+      <span class="section-index">
+       01 /
+      </span>
+      In the spotlight
+     </h2>
+     <p class="eyebrow">
+      Something new to get lost in
+     </p>
+    </div>
+    <!-- Keep the featured game links, artwork, copy, and rating data-id together when rotating the spotlight. -->
+    <article class="feature featured">
+     <a aria-label="Play Prism Warden" class="feature-visual" href="prism-warden/index.html">
+      <img alt="A mirror-shield keeper reflecting sunlight in a flooded abbey" height="1024" src="images/arcade/prism-warden.webp" width="1536"/>
+      <span class="art-label">
+       Prism Warden · Cover art
+      </span>
+     </a>
+     <div class="feature-copy">
+      <span class="tag">
+       <span class="status-dot">
+       </span>
+       Featured game · Adventure
+      </span>
+      <h3>
+       Prism Warden
+      </h3>
+      <p>
+       A drowned abbey. A mirror shield. A light worth fighting for. Redirect sunlight, turn the guardian’s fire against it, and rescue the keeper.
+      </p>
+      <p class="development-note">
+       Playable now · Full adventure in development
+      </p>
+      <div class="feature-actions">
+       <a class="button play-btn" href="prism-warden/index.html">
+        Enter the abbey
+        <span aria-hidden="true">
+         ↗
+        </span>
+       </a>
+       <a class="text-link" href="leaderboard.html?gameId=prism-warden">
+        Leaderboard ↗
+       </a>
+      </div>
+      <div class="rating-row">
+       <div aria-label="Rate Prism Warden" class="rate" data-id="prism-warden" role="group" title="Rate this game">
+        <button aria-label="Rate 1 out of 5 stars" aria-pressed="false" data-star="1" type="button">
+         ★
+        </button>
+        <button aria-label="Rate 2 out of 5 stars" aria-pressed="false" data-star="2" type="button">
+         ★
+        </button>
+        <button aria-label="Rate 3 out of 5 stars" aria-pressed="false" data-star="3" type="button">
+         ★
+        </button>
+        <button aria-label="Rate 4 out of 5 stars" aria-pressed="false" data-star="4" type="button">
+         ★
+        </button>
+        <button aria-label="Rate 5 out of 5 stars" aria-pressed="false" data-star="5" type="button">
+         ★
+        </button>
+       </div>
+       <span aria-live="polite" class="score">
+        Loading ratings…
+       </span>
+      </div>
+     </div>
+    </article>
+   </section>
+   <div aria-label="Advertisement" class="ad-container">
+    <ins class="adsbygoogle" data-ad-client="ca-pub-5140771119439935" data-ad-format="auto" data-ad-slot="4290935810" data-full-width-responsive="true" style="display:block">
+    </ins>
+    <script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+   </div>
+   <section aria-labelledby="library-heading" class="catalog" id="library">
+    <div class="section-heading">
+     <h2 id="library-heading">
+      <span class="section-index">
+       02 /
+      </span>
+      Find your next favorite
+     </h2>
+     <span class="catalog-summary" id="game-count" role="status">
+      11 games
+     </span>
+    </div>
+    <div class="catalog-tools">
+     <div aria-label="Filter games by genre" class="filters" role="group">
+      <button aria-pressed="true" class="filter" data-filter="all" type="button">
+       All games
+      </button>
+      <button aria-pressed="false" class="filter" data-filter="action" type="button">
+       Action
+      </button>
+      <button aria-pressed="false" class="filter" data-filter="adventure" type="button">
+       Adventure
+      </button>
+      <button aria-pressed="false" class="filter" data-filter="puzzle" type="button">
+       Puzzle
+      </button>
+      <button aria-pressed="false" class="filter" data-filter="strategy" type="button">
+       Strategy
+      </button>
+      <button aria-pressed="false" class="filter" data-filter="racing" type="button">
+       Racing
+      </button>
+     </div>
+     <label class="search-box">
+      <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+       <circle cx="10.5" cy="10.5" r="6.5">
+       </circle>
+       <path d="m16 16 5 5">
+       </path>
+      </svg>
+      <input aria-label="Search games" autocomplete="off" id="game-search" placeholder="Find a game…" type="search"/>
+     </label>
+    </div>
+    <ul class="game-grid" id="games">
+     <li class="game-card" data-category="action adventure" data-id="ironwake" data-search="ironwake action pilot a heavy mech through an occupied coast. tear out enemy weapons, rescue the fleet, and take on a walking fortress.">
+      <a aria-label="Play Ironwake" class="card-art" href="ironwake/index.html">
+       <img alt="" height="1024" loading="lazy" src="images/arcade/ironwake.webp" width="1536"/>
+       <span class="art-label">
+        Cover art
+       </span>
+      </a>
+      <div class="card-body">
+       <div class="card-meta">
+        <span class="tag">
+         Action
+        </span>
+        <span class="card-number">
+         01
+        </span>
+       </div>
+       <h3>
+        <a href="ironwake/index.html">
+         Ironwake
+        </a>
+       </h3>
+       <p class="game-description">
+        Pilot a heavy mech through an occupied coast. Tear out enemy weapons, rescue the fleet, and take on a walking fortress.
+       </p>
+       <div class="card-bottom">
+        <div class="rating-row">
+         <div aria-label="Rate Ironwake" class="rate" data-id="ironwake" role="group" title="Rate this game">
+          <button aria-label="Rate 1 out of 5 stars" aria-pressed="false" data-star="1" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 2 out of 5 stars" aria-pressed="false" data-star="2" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 3 out of 5 stars" aria-pressed="false" data-star="3" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 4 out of 5 stars" aria-pressed="false" data-star="4" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 5 out of 5 stars" aria-pressed="false" data-star="5" type="button">
+           ★
+          </button>
+         </div>
+         <span aria-live="polite" class="score">
+          Loading ratings…
+         </span>
         </div>
-
-			<!-- Advertisement -->
-			<div class="ad-container" style="margin: 20px 0;">
-				<!-- Under Featured Game -->
-				<ins class="adsbygoogle"
-				     style="display:block"
-				     data-ad-client="ca-pub-5140771119439935"
-				     data-ad-slot="4290935810"
-				     data-ad-format="auto"
-				     data-full-width-responsive="true"></ins>
-				<script>
-				     (adsbygoogle = window.adsbygoogle || []).push({});
-				</script>
-			</div>
-
-        <h2>More Games</h2>
-        <ul id="games">
-            <li data-id="ironwake"><a href="ironwake/index.html">Ironwake — The Coast Campaign</a>
-                <div class="rate">
-                    <span data-star="1">★</span>
-                    <span data-star="2">★</span>
-                    <span data-star="3">★</span>
-                    <span data-star="4">★</span>
-                    <span data-star="5">★</span>
-                </div>
-                <span class="score"></span>
-                <p class="game-description">Pilot a heavy mech through five occupied coastal chapters. Rip out enemy weapons, topple buildings, rescue the evacuation fleet and confront the walking fortress.</p>
-                <div class="actions">
-                        <a href="ironwake/index.html" class="play-btn">Play Now!</a>
-                        <a href="leaderboard.html?gameId=ironwake" class="leaderboard-btn">View Leaderboard</a>
-                </div>
-            </li>
-            <li data-id="stormhook"><a href="stormhook/index.html">Stormhook</a>
-                <div class="rate">
-                    <span data-star="1">★</span>
-                    <span data-star="2">★</span>
-                    <span data-star="3">★</span>
-                    <span data-star="4">★</span>
-                    <span data-star="5">★</span>
-                </div>
-                <span class="score"></span>
-                <p class="game-description">Salvage a drowned foundry world by swinging through wreck-fields above the storm. Point, latch, reel, and release your magnetic tether to keep your momentum and reach the extraction beacon before the front catches you.</p>
-                <div class="actions">
-                        <a href="stormhook/index.html" class="play-btn">Play Now!</a>
-                        <a href="leaderboard.html?gameId=stormhook" class="leaderboard-btn">View Leaderboard</a>
-                </div>
-            </li>
-            <li data-id="zephyr-circuit"><a href="zephyr-circuit/index.html">Zephyr Circuit</a>
-                <div class="rate">
-                    <span data-star="1">★</span>
-                    <span data-star="2">★</span>
-                    <span data-star="3">★</span>
-                    <span data-star="4">★</span>
-                    <span data-star="5">★</span>
-                </div>
-                <span class="score"></span>
-                <p class="game-description">Drift a low-poly kart around floating sky islands at golden hour, with waterfalls pouring off the edges into nothing. Eight racers, three circuits, items to throw and a boost you charge by holding a slide through a corner. Go wide and you are fished out of the sky a few seconds poorer.</p>
-                <div class="actions">
-                        <a href="zephyr-circuit/index.html" class="play-btn">Play Now!</a>
-                        <a href="leaderboard.html?gameId=zephyr-circuit" class="leaderboard-btn">View Leaderboard</a>
-                </div>
-            </li>
-            <li data-id="paradox-vault"><a href="paradox-vault/index.html">Paradox Vault</a>
-                <div class="rate">
-                    <span data-star="1">★</span>
-                    <span data-star="2">★</span>
-                    <span data-star="3">★</span>
-                    <span data-star="4">★</span>
-                    <span data-star="5">★</span>
-                </div>
-                <span class="score"></span>
-                <p class="game-description">Rob an art-deco vault that resets every few seconds. Rewind the loop and your last run replays beside you as a ghostly echo &mdash; so you can stand on the pressure plate and steal the relic at the same time. Ten vaults, one thief, and as many of yourself as you can afford.</p>
-                <div class="actions">
-                        <a href="paradox-vault/index.html" class="play-btn">Play Now!</a>
-                        <a href="leaderboard.html?gameId=paradox-vault" class="leaderboard-btn">View Leaderboard</a>
-                </div>
-            </li>
-            <li data-id="bayou-brawlers"><a href="bayou-brawlers/index.html">Bayou Brawlers: Gearbound</a>
-                <div class="rate">
-                    <span data-star="1">&#9733;</span>
-                    <span data-star="2">&#9733;</span>
-                    <span data-star="3">&#9733;</span>
-                    <span data-star="4">&#9733;</span>
-                    <span data-star="5">&#9733;</span>
-                </div>
-                <span class="score"></span>
-                <p class="game-description">Bayou Brawlers: Gearbound throws you into a grimy steampunk swamp where waves of goblins, corrupted fey, and clockwork brutes test your combos across 14 stages of side-scrolling chaos.</p>
-                <div class="actions">
-                        <a href="bayou-brawlers/index.html" class="play-btn">Play Now!</a>
-                        <a href="leaderboard.html?gameId=bayou-brawlers" class="leaderboard-btn">View Leaderboard</a>
-                </div>
-            </li>
-            <li data-id="crimson-descent"><a href="crimson-descent/index.html">Crimson Descent</a>
-                <div class="rate">
-                    <span data-star="1">★</span>
-                    <span data-star="2">★</span>
-                    <span data-star="3">★</span>
-                    <span data-star="4">★</span>
-                    <span data-star="5">★</span>
-                </div>
-                <span class="score"></span>
-                <p class="game-description">Crimson Descent drops you into the thin skies above Mars. Trim your thrusters, balance the lander against crosswinds, and settle onto the Phobos Prospect pad with a perfect touchdown to climb the leaderboard.</p>
-                <div class="actions">
-                        <a href="crimson-descent/index.html" class="play-btn">Play Now!</a>
-                        <a href="leaderboard.html?gameId=crimson-descent" class="leaderboard-btn">View Leaderboard</a>
-                </div>
-            </li>
-            <li data-id="emberfall-gauntlet"><a href="emberfall-gauntlet/index.html">Emberfall Gauntlet</a>
-                <div class="rate">
-                    <span data-star="1">★</span>
-                    <span data-star="2">★</span>
-                    <span data-star="3">★</span>
-                    <span data-star="4">★</span>
-                    <span data-star="5">★</span>
-                </div>
-                <span class="score"></span>
-                <p class="game-description">Charge through molten arenas as you swap combat styles, unleash arcane bursts, and outlast relentless waves of infernal foes.</p>
-                <div class="actions">
-                        <a href="emberfall-gauntlet/index.html" class="play-btn">Play Now!</a>
-                        <a href="leaderboard.html?gameId=emberfall-gauntlet" class="leaderboard-btn">View Leaderboard</a>
-                </div>
-            </li>
-            <li data-id="core-crisis"><a href="core-crisis/index.html">Core Crisis</a>
-                <div class="rate">
-                    <span data-star="1">★</span>
-                    <span data-star="2">★</span>
-                    <span data-star="3">★</span>
-                    <span data-star="4">★</span>
-                    <span data-star="5">★</span>
-                </div>
-                <span class="score"></span>
-                <p class="game-description">Stabilize a collapsing mining colony by blasting swarms of robots, swapping weapons on the fly, and protecting the fusion core for as long as you can.</p>
-                <div class="actions">
-                        <a href="core-crisis/index.html" class="play-btn">Play Now!</a>
-                        <a href="leaderboard.html?gameId=core-crisis" class="leaderboard-btn">View Leaderboard</a>
-                </div>
-            </li>
-            <li data-id="nova-striker"><a href="nova-striker/index.html">Nova Striker</a>
-                <div class="rate">
-                    <span data-star="1">�~.</span>
-                    <span data-star="2">�~.</span>
-                    <span data-star="3">�~.</span>
-                    <span data-star="4">�~.</span>
-                    <span data-star="5">�~.</span>
-                </div>
-                <span class="score"></span>
-                <p class="game-description">Launch into a neon starfield, chain together charged shots, and weave through bullet-hell patterns to climb the intergalactic high score table.</p>
-                <div class="actions">
-                        <a href="nova-striker/index.html" class="play-btn">Play Now!</a>
-                        <a href="leaderboard.html?gameId=nova-striker" class="leaderboard-btn">View Leaderboard</a>
-                </div>
-            </li>
-            <li data-id="bastion-builder"><a href="bastion-builder/index.html">Bastion Builder</a>
-                <div class="rate">
-                    <span data-star="1">★</span>
-                    <span data-star="2">★</span>
-                    <span data-star="3">★</span>
-                    <span data-star="4">★</span>
-                    <span data-star="5">★</span>
-                </div>
-                <span class="score"></span>
-                <p class="game-description">Draft the perfect mix of defenders, upgrade your siege engines, and hold off endless waves of enemies in this strategic auto-battler.</p>
-                <div class="actions">
-                        <a href="bastion-builder/index.html" class="play-btn">Play Now!</a>
-                        <a href="leaderboard.html?gameId=bastion-builder" class="leaderboard-btn">View Leaderboard</a>
-                </div>
-            </li>
-            <li data-id="aurora-tower-defense"><a href="aurora-tower-defense/index.html">Aurora Tower Defense</a>
-                <div class="rate">
-                    <span data-star="1">★</span>
-                    <span data-star="2">★</span>
-                    <span data-star="3">★</span>
-                    <span data-star="4">★</span>
-                    <span data-star="5">★</span>
-                </div>
-                <span class="score"></span>
-                <p class="game-description">Build a shimmering gauntlet of towers, combine elemental damage types, and adapt your layout to repel crystalline invaders marching on your base.</p>
-                <div class="actions">
-                        <a href="aurora-tower-defense/index.html" class="play-btn">Play Now!</a>
-                        <a href="leaderboard.html?gameId=aurora-tower-defense" class="leaderboard-btn">View Leaderboard</a>
-                </div>
-            </li>
-            <li data-id="neon-brick-breaker"><a href="neon-brick-breaker/index.html">Neon Brick Breaker</a>
-                <div class="rate">
-                    <span data-star="1">★</span>
-                    <span data-star="2">★</span>
-                    <span data-star="3">★</span>
-                    <span data-star="4">★</span>
-                    <span data-star="5">★</span>
-                </div>
-                <span class="score"></span>
-                <p class="game-description">Smash glowing brick formations with multi-ball powerups, warp portals, and screen-filling lasers in this synthwave take on the arcade classic.</p>
-                <div class="actions">
-                        <a href="neon-brick-breaker/index.html" class="play-btn">Play Now!</a>
-                        <a href="leaderboard.html?gameId=neon-brick-breaker" class="leaderboard-btn">View Leaderboard</a>
-                </div>
-            </li>
-			<li data-id="ocean-explorer"><a href="ocean-explorer/index.html">Ocean Explorer</a>
-				<div class="rate">
-					<span data-star="1">★</span>
-					<span data-star="2">★</span>
-					<span data-star="3">★</span>
-					<span data-star="4">★</span>
-					<span data-star="5">★</span>
-				</div>
-				<span class="score"></span>
-				<div class="actions">
-						<a href="ocean-explorer/index.html" class="play-btn">Play Now!</a>
-						<a href="leaderboard.html?gameId=ocean-explorer" class="leaderboard-btn">View Leaderboard</a>
-				</div>
-			</li>
-			<li data-id="memory-match"><a href="memory-match/index.html">Memory Match</a>
-				<div class="rate">
-					<span data-star="1">★</span>
-					<span data-star="2">★</span>
-					<span data-star="3">★</span>
-					<span data-star="4">★</span>
-					<span data-star="5">★</span>
-				</div>
-				<span class="score"></span>
-				<div class="actions">
-						<a href="memory-match/index.html" class="play-btn">Play Now!</a>
-						<a href="leaderboard.html?gameId=memory-match" class="leaderboard-btn">View Leaderboard</a>
-				</div>
-			</li>
-        </ul>
-	</div>
-
-       <script>
-       // Remove hidden and deprecated games from DOM
-       document.addEventListener('DOMContentLoaded', function () {
-         document.querySelectorAll('li[data-id="bayou-brawlers"], li[data-id="midnight-menagerie"], li[data-id="crimson-descent"], li[data-id="ocean-explorer"], li[data-id="memory-match"]').forEach(function(el){
-           try { el.remove(); } catch (e) {}
-         });
-       });
-       </script>
-
-       <script>
-               // Rating system
-               document.addEventListener('DOMContentLoaded', function() {
-                       const ratingContainers = document.querySelectorAll('.rate');
-
-                       ratingContainers.forEach(container => {
-                               // Support data-id on the .rate itself (featured) or on a parent <li> (more games)
-                               const gameId = container.dataset.id || container.closest('[data-id]')?.dataset.id || '';
-                               const stars = container.querySelectorAll('span[data-star]');
-                               const scoreElement = container.nextElementSibling;
-
-                               // Load existing rating
-                               loadRating(gameId, stars, scoreElement);
-
-                               stars.forEach(star => {
-                                       star.addEventListener('click', function() {
-                                               const rating = parseInt(this.getAttribute('data-star'));
-                                               submitRating(gameId, rating, stars, scoreElement);
-                                       });
-                               });
-                       });
-               });
-
-               async function loadRating(gameId, stars, scoreElement) {
-                       try {
-                               if (!gameId) return;
-                               // Fetch aggregate stats
-                               const response = await fetch(`/api/ratings/${encodeURIComponent(gameId)}`);
-                               const data = response.ok ? await response.json() : null;
-
-                               // Read user's own rating from localStorage
-                               const key = `rating:${gameId}`;
-                               const mine = parseInt(localStorage.getItem(key) || '');
-                               const hasMine = Number.isInteger(mine) && mine >= 1 && mine <= 5;
-
-                               // Update score display
-                               if (scoreElement && data) {
-                                       scoreElement.textContent = `${data.average} ★ from ${data.votes} votes` + (hasMine ? ` - You rated ${mine}` : '');
-                               }
-
-                               // Reflect user's rating locally
-                               stars.forEach(span => {
-                                       const val = parseInt(span.getAttribute('data-star'));
-                                       span.classList.toggle('selected', hasMine && val <= mine);
-                               });
-                       } catch (error) {
-                               console.log('Rating system not available');
-                       }
-               }
-
-               async function submitRating(gameId, rating, stars, scoreElement) {
-                       try {
-                               if (!gameId || !rating) return;
-                               const response = await fetch('/api/rate', {
-                                       method: 'POST',
-                                       headers: {
-                                               'Content-Type': 'application/json',
-                                       },
-                                       body: JSON.stringify({
-                                               gameId: gameId,
-                                               stars: rating
-                                       })
-                               });
-
-                               if (response.ok) {
-                                       // Update visual feedback
-                                       stars.forEach(span => {
-                                               const val = parseInt(span.getAttribute('data-star'));
-                                               span.classList.toggle('selected', val <= rating);
-                                       });
-
-                                       // Persist user's rating locally and reload display
-                                       try { localStorage.setItem(`rating:${gameId}`, String(rating)); } catch {}
-                                       loadRating(gameId, stars, scoreElement);
-                               } else {
-                                       const errorText = await response.text().catch(() => '');
-                                       alert(errorText || 'Failed to submit rating');
-                               }
-                       } catch (error) {
-                               console.log('Rating submission failed:', error);
-                       }
-               }
-       </script>
-       <script>
-         // Fix rating stars display for Nova Striker (ensure proper star glyphs)
-         document.addEventListener('DOMContentLoaded', function() {
-           const nsRate = document.querySelector('li[data-id="nova-striker"] .rate');
-           if (nsRate) {
-             nsRate.querySelectorAll('span[data-star]').forEach(function(el){ el.textContent = '★'; });
-           }
-         });
-       </script>
-</body>
+        <div class="card-actions">
+         <a class="card-play" href="ironwake/index.html">
+          Play game
+          <span aria-hidden="true">
+           ↗
+          </span>
+         </a>
+         <a class="text-link" href="leaderboard.html?gameId=ironwake">
+          Leaderboard ↗
+         </a>
+        </div>
+       </div>
+      </div>
+     </li>
+     <li class="game-card" data-category="action adventure" data-id="stormhook" data-search="stormhook platformer latch, reel, release. swing through wrecked foundries above a raging ocean and outrun the approaching storm.">
+      <a aria-label="Play Stormhook" class="card-art" href="stormhook/index.html">
+       <img alt="" height="1024" loading="lazy" src="images/arcade/stormhook.webp" width="1536"/>
+       <span class="art-label">
+        Cover art
+       </span>
+      </a>
+      <div class="card-body">
+       <div class="card-meta">
+        <span class="tag">
+         Platformer
+        </span>
+        <span class="card-number">
+         02
+        </span>
+       </div>
+       <h3>
+        <a href="stormhook/index.html">
+         Stormhook
+        </a>
+       </h3>
+       <p class="game-description">
+        Latch, reel, release. Swing through wrecked foundries above a raging ocean and outrun the approaching storm.
+       </p>
+       <div class="card-bottom">
+        <div class="rating-row">
+         <div aria-label="Rate Stormhook" class="rate" data-id="stormhook" role="group" title="Rate this game">
+          <button aria-label="Rate 1 out of 5 stars" aria-pressed="false" data-star="1" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 2 out of 5 stars" aria-pressed="false" data-star="2" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 3 out of 5 stars" aria-pressed="false" data-star="3" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 4 out of 5 stars" aria-pressed="false" data-star="4" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 5 out of 5 stars" aria-pressed="false" data-star="5" type="button">
+           ★
+          </button>
+         </div>
+         <span aria-live="polite" class="score">
+          Loading ratings…
+         </span>
+        </div>
+        <div class="card-actions">
+         <a class="card-play" href="stormhook/index.html">
+          Play game
+          <span aria-hidden="true">
+           ↗
+          </span>
+         </a>
+         <a class="text-link" href="leaderboard.html?gameId=stormhook">
+          Leaderboard ↗
+         </a>
+        </div>
+       </div>
+      </div>
+     </li>
+     <li class="game-card" data-category="racing" data-id="zephyr-circuit" data-search="zephyr circuit racing find your racing line in the clouds. drift around floating islands, launch items, and boost past the competition.">
+      <a aria-label="Play Zephyr Circuit" class="card-art" href="zephyr-circuit/index.html">
+       <img alt="" height="1024" loading="lazy" src="images/arcade/zephyr-circuit.webp" width="1536"/>
+       <span class="art-label">
+        Cover art
+       </span>
+      </a>
+      <div class="card-body">
+       <div class="card-meta">
+        <span class="tag">
+         Racing
+        </span>
+        <span class="card-number">
+         03
+        </span>
+       </div>
+       <h3>
+        <a href="zephyr-circuit/index.html">
+         Zephyr Circuit
+        </a>
+       </h3>
+       <p class="game-description">
+        Find your racing line in the clouds. Drift around floating islands, launch items, and boost past the competition.
+       </p>
+       <div class="card-bottom">
+        <div class="rating-row">
+         <div aria-label="Rate Zephyr Circuit" class="rate" data-id="zephyr-circuit" role="group" title="Rate this game">
+          <button aria-label="Rate 1 out of 5 stars" aria-pressed="false" data-star="1" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 2 out of 5 stars" aria-pressed="false" data-star="2" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 3 out of 5 stars" aria-pressed="false" data-star="3" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 4 out of 5 stars" aria-pressed="false" data-star="4" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 5 out of 5 stars" aria-pressed="false" data-star="5" type="button">
+           ★
+          </button>
+         </div>
+         <span aria-live="polite" class="score">
+          Loading ratings…
+         </span>
+        </div>
+        <div class="card-actions">
+         <a class="card-play" href="zephyr-circuit/index.html">
+          Play game
+          <span aria-hidden="true">
+           ↗
+          </span>
+         </a>
+         <a class="text-link" href="leaderboard.html?gameId=zephyr-circuit">
+          Leaderboard ↗
+         </a>
+        </div>
+       </div>
+      </div>
+     </li>
+     <li class="game-card" data-category="puzzle" data-id="paradox-vault" data-search="paradox vault puzzle one thief. a vault that resets. team up with echoes of your past runs to pull off an impossible heist.">
+      <a aria-label="Play Paradox Vault" class="card-art graphic-cover" href="paradox-vault/index.html" style="--cover-bg:#303044;--cover-ink:#c7bbed">
+       <span class="edition">
+        THE ARCADE COLLECTION
+       </span>
+       <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 80 80">
+        <path d="M40 9 67 25v30L40 71 13 55V25zM13 25l27 16 27-16M40 41v30">
+        </path>
+        <circle cx="40" cy="26" r="7">
+        </circle>
+       </svg>
+       <span class="art-label">
+        Puzzle / 04
+       </span>
+      </a>
+      <div class="card-body">
+       <div class="card-meta">
+        <span class="tag">
+         Puzzle
+        </span>
+        <span class="card-number">
+         04
+        </span>
+       </div>
+       <h3>
+        <a href="paradox-vault/index.html">
+         Paradox Vault
+        </a>
+       </h3>
+       <p class="game-description">
+        One thief. A vault that resets. Team up with echoes of your past runs to pull off an impossible heist.
+       </p>
+       <div class="card-bottom">
+        <div class="rating-row">
+         <div aria-label="Rate Paradox Vault" class="rate" data-id="paradox-vault" role="group" title="Rate this game">
+          <button aria-label="Rate 1 out of 5 stars" aria-pressed="false" data-star="1" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 2 out of 5 stars" aria-pressed="false" data-star="2" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 3 out of 5 stars" aria-pressed="false" data-star="3" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 4 out of 5 stars" aria-pressed="false" data-star="4" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 5 out of 5 stars" aria-pressed="false" data-star="5" type="button">
+           ★
+          </button>
+         </div>
+         <span aria-live="polite" class="score">
+          Loading ratings…
+         </span>
+        </div>
+        <div class="card-actions">
+         <a class="card-play" href="paradox-vault/index.html">
+          Play game
+          <span aria-hidden="true">
+           ↗
+          </span>
+         </a>
+         <a class="text-link" href="leaderboard.html?gameId=paradox-vault">
+          Leaderboard ↗
+         </a>
+        </div>
+       </div>
+      </div>
+     </li>
+     <li class="game-card" data-category="action" data-id="emberfall-gauntlet" data-search="emberfall gauntlet action swap combat styles, unleash arcane bursts, and outlast relentless waves of foes in molten arenas.">
+      <a aria-label="Play Emberfall Gauntlet" class="card-art graphic-cover" href="emberfall-gauntlet/index.html" style="--cover-bg:#422b2a;--cover-ink:#edb49a">
+       <span class="edition">
+        THE ARCADE COLLECTION
+       </span>
+       <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 80 80">
+        <path d="M43 7c5 22 26 24 23 43-2 16-15 23-27 21S13 58 16 43c1-8 8-16 13-20-1 14 9 16 10 7z">
+        </path>
+        <path d="M40 45c-14 15-5 22 2 20s12-10-2-20z">
+        </path>
+       </svg>
+       <span class="art-label">
+        Action / 05
+       </span>
+      </a>
+      <div class="card-body">
+       <div class="card-meta">
+        <span class="tag">
+         Action
+        </span>
+        <span class="card-number">
+         05
+        </span>
+       </div>
+       <h3>
+        <a href="emberfall-gauntlet/index.html">
+         Emberfall Gauntlet
+        </a>
+       </h3>
+       <p class="game-description">
+        Swap combat styles, unleash arcane bursts, and outlast relentless waves of foes in molten arenas.
+       </p>
+       <div class="card-bottom">
+        <div class="rating-row">
+         <div aria-label="Rate Emberfall Gauntlet" class="rate" data-id="emberfall-gauntlet" role="group" title="Rate this game">
+          <button aria-label="Rate 1 out of 5 stars" aria-pressed="false" data-star="1" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 2 out of 5 stars" aria-pressed="false" data-star="2" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 3 out of 5 stars" aria-pressed="false" data-star="3" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 4 out of 5 stars" aria-pressed="false" data-star="4" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 5 out of 5 stars" aria-pressed="false" data-star="5" type="button">
+           ★
+          </button>
+         </div>
+         <span aria-live="polite" class="score">
+          Loading ratings…
+         </span>
+        </div>
+        <div class="card-actions">
+         <a class="card-play" href="emberfall-gauntlet/index.html">
+          Play game
+          <span aria-hidden="true">
+           ↗
+          </span>
+         </a>
+         <a class="text-link" href="leaderboard.html?gameId=emberfall-gauntlet">
+          Leaderboard ↗
+         </a>
+        </div>
+       </div>
+      </div>
+     </li>
+     <li class="game-card" data-category="action" data-id="core-crisis" data-search="core crisis survival hold the line in a collapsing mining colony. blast swarms of robots and keep the fusion core alive.">
+      <a aria-label="Play Core Crisis" class="card-art graphic-cover" href="core-crisis/index.html" style="--cover-bg:#2a363d;--cover-ink:#afd1d6">
+       <span class="edition">
+        THE ARCADE COLLECTION
+       </span>
+       <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 80 80">
+        <circle cx="40" cy="40" r="13">
+        </circle>
+        <path d="m23 10-13 23 13 7m34-30 13 23-13 7M23 70h34l1-14M32 25l8-15 8 15M24 43l-9 16h18m23-16 9 16H47">
+        </path>
+       </svg>
+       <span class="art-label">
+        Survival / 06
+       </span>
+      </a>
+      <div class="card-body">
+       <div class="card-meta">
+        <span class="tag">
+         Survival
+        </span>
+        <span class="card-number">
+         06
+        </span>
+       </div>
+       <h3>
+        <a href="core-crisis/index.html">
+         Core Crisis
+        </a>
+       </h3>
+       <p class="game-description">
+        Hold the line in a collapsing mining colony. Blast swarms of robots and keep the fusion core alive.
+       </p>
+       <div class="card-bottom">
+        <div class="rating-row">
+         <div aria-label="Rate Core Crisis" class="rate" data-id="core-crisis" role="group" title="Rate this game">
+          <button aria-label="Rate 1 out of 5 stars" aria-pressed="false" data-star="1" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 2 out of 5 stars" aria-pressed="false" data-star="2" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 3 out of 5 stars" aria-pressed="false" data-star="3" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 4 out of 5 stars" aria-pressed="false" data-star="4" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 5 out of 5 stars" aria-pressed="false" data-star="5" type="button">
+           ★
+          </button>
+         </div>
+         <span aria-live="polite" class="score">
+          Loading ratings…
+         </span>
+        </div>
+        <div class="card-actions">
+         <a class="card-play" href="core-crisis/index.html">
+          Play game
+          <span aria-hidden="true">
+           ↗
+          </span>
+         </a>
+         <a class="text-link" href="leaderboard.html?gameId=core-crisis">
+          Leaderboard ↗
+         </a>
+        </div>
+       </div>
+      </div>
+     </li>
+     <li class="game-card" data-category="action" data-id="nova-striker" data-search="nova striker shoot ’em up weave through a neon starfield, chain charged shots, and chase your next intergalactic high score.">
+      <a aria-label="Play Nova Striker" class="card-art graphic-cover" href="nova-striker/index.html" style="--cover-bg:#332c45;--cover-ink:#c7b4ee">
+       <span class="edition">
+        THE ARCADE COLLECTION
+       </span>
+       <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 80 80">
+        <path d="M40 8 65 64 40 54 15 64zM40 8v46M31 64l-4 10m22-10 4 10">
+        </path>
+        <path d="M12 14v10m-5-5h10m46-5v10m-5-5h10">
+        </path>
+       </svg>
+       <span class="art-label">
+        Shoot ’em up / 07
+       </span>
+      </a>
+      <div class="card-body">
+       <div class="card-meta">
+        <span class="tag">
+         Shoot ’em up
+        </span>
+        <span class="card-number">
+         07
+        </span>
+       </div>
+       <h3>
+        <a href="nova-striker/index.html">
+         Nova Striker
+        </a>
+       </h3>
+       <p class="game-description">
+        Weave through a neon starfield, chain charged shots, and chase your next intergalactic high score.
+       </p>
+       <div class="card-bottom">
+        <div class="rating-row">
+         <div aria-label="Rate Nova Striker" class="rate" data-id="nova-striker" role="group" title="Rate this game">
+          <button aria-label="Rate 1 out of 5 stars" aria-pressed="false" data-star="1" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 2 out of 5 stars" aria-pressed="false" data-star="2" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 3 out of 5 stars" aria-pressed="false" data-star="3" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 4 out of 5 stars" aria-pressed="false" data-star="4" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 5 out of 5 stars" aria-pressed="false" data-star="5" type="button">
+           ★
+          </button>
+         </div>
+         <span aria-live="polite" class="score">
+          Loading ratings…
+         </span>
+        </div>
+        <div class="card-actions">
+         <a class="card-play" href="nova-striker/index.html">
+          Play game
+          <span aria-hidden="true">
+           ↗
+          </span>
+         </a>
+         <a class="text-link" href="leaderboard.html?gameId=nova-striker">
+          Leaderboard ↗
+         </a>
+        </div>
+       </div>
+      </div>
+     </li>
+     <li class="game-card" data-category="strategy" data-id="bastion-builder" data-search="bastion builder strategy draft your defenders, upgrade siege engines, and build a formation that can weather the next wave.">
+      <a aria-label="Play Bastion Builder" class="card-art graphic-cover" href="bastion-builder/index.html" style="--cover-bg:#303a2d;--cover-ink:#cbd3a2">
+       <span class="edition">
+        THE ARCADE COLLECTION
+       </span>
+       <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 80 80">
+        <path d="M15 68V29h12V15h9v14h8V15h9v14h12v39zM10 68h60M33 68V51h14v17M25 39h5m20 0h5">
+        </path>
+       </svg>
+       <span class="art-label">
+        Strategy / 08
+       </span>
+      </a>
+      <div class="card-body">
+       <div class="card-meta">
+        <span class="tag">
+         Strategy
+        </span>
+        <span class="card-number">
+         08
+        </span>
+       </div>
+       <h3>
+        <a href="bastion-builder/index.html">
+         Bastion Builder
+        </a>
+       </h3>
+       <p class="game-description">
+        Draft your defenders, upgrade siege engines, and build a formation that can weather the next wave.
+       </p>
+       <div class="card-bottom">
+        <div class="rating-row">
+         <div aria-label="Rate Bastion Builder" class="rate" data-id="bastion-builder" role="group" title="Rate this game">
+          <button aria-label="Rate 1 out of 5 stars" aria-pressed="false" data-star="1" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 2 out of 5 stars" aria-pressed="false" data-star="2" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 3 out of 5 stars" aria-pressed="false" data-star="3" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 4 out of 5 stars" aria-pressed="false" data-star="4" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 5 out of 5 stars" aria-pressed="false" data-star="5" type="button">
+           ★
+          </button>
+         </div>
+         <span aria-live="polite" class="score">
+          Loading ratings…
+         </span>
+        </div>
+        <div class="card-actions">
+         <a class="card-play" href="bastion-builder/index.html">
+          Play game
+          <span aria-hidden="true">
+           ↗
+          </span>
+         </a>
+         <a class="text-link" href="leaderboard.html?gameId=bastion-builder">
+          Leaderboard ↗
+         </a>
+        </div>
+       </div>
+      </div>
+     </li>
+     <li class="game-card" data-category="strategy" data-id="aurora-tower-defense" data-search="aurora tower defense strategy combine elemental towers and adapt your defenses to stop crystalline invaders in their tracks.">
+      <a aria-label="Play Aurora Tower Defense" class="card-art graphic-cover" href="aurora-tower-defense/index.html" style="--cover-bg:#253d39;--cover-ink:#a1daca">
+       <span class="edition">
+        THE ARCADE COLLECTION
+       </span>
+       <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 80 80">
+        <path d="m40 8 17 24-17 26-17-26zM40 8v50M23 32h34M13 47l8 17h38l8-17M21 64v7h38v-7">
+        </path>
+       </svg>
+       <span class="art-label">
+        Strategy / 09
+       </span>
+      </a>
+      <div class="card-body">
+       <div class="card-meta">
+        <span class="tag">
+         Strategy
+        </span>
+        <span class="card-number">
+         09
+        </span>
+       </div>
+       <h3>
+        <a href="aurora-tower-defense/index.html">
+         Aurora Tower Defense
+        </a>
+       </h3>
+       <p class="game-description">
+        Combine elemental towers and adapt your defenses to stop crystalline invaders in their tracks.
+       </p>
+       <div class="card-bottom">
+        <div class="rating-row">
+         <div aria-label="Rate Aurora Tower Defense" class="rate" data-id="aurora-tower-defense" role="group" title="Rate this game">
+          <button aria-label="Rate 1 out of 5 stars" aria-pressed="false" data-star="1" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 2 out of 5 stars" aria-pressed="false" data-star="2" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 3 out of 5 stars" aria-pressed="false" data-star="3" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 4 out of 5 stars" aria-pressed="false" data-star="4" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 5 out of 5 stars" aria-pressed="false" data-star="5" type="button">
+           ★
+          </button>
+         </div>
+         <span aria-live="polite" class="score">
+          Loading ratings…
+         </span>
+        </div>
+        <div class="card-actions">
+         <a class="card-play" href="aurora-tower-defense/index.html">
+          Play game
+          <span aria-hidden="true">
+           ↗
+          </span>
+         </a>
+         <a class="text-link" href="leaderboard.html?gameId=aurora-tower-defense">
+          Leaderboard ↗
+         </a>
+        </div>
+       </div>
+      </div>
+     </li>
+     <li class="game-card" data-category="action" data-id="neon-brick-breaker" data-search="neon brick breaker arcade classic meet your next just-one-more-round game. smash glowing bricks with multiball, portals, and lasers.">
+      <a aria-label="Play Neon Brick Breaker" class="card-art graphic-cover" href="neon-brick-breaker/index.html" style="--cover-bg:#3b3342;--cover-ink:#e0bcda">
+       <span class="edition">
+        THE ARCADE COLLECTION
+       </span>
+       <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 80 80">
+        <path d="M12 14h16v10H12zm20 0h16v10H32zm20 0h16v10H52zM12 29h16v10H12zm20 0h16v10H32zM24 67h32">
+        </path>
+        <circle cx="49" cy="49" r="5">
+        </circle>
+        <path d="m51 42 9-11">
+        </path>
+       </svg>
+       <span class="art-label">
+        Arcade classic / 10
+       </span>
+      </a>
+      <div class="card-body">
+       <div class="card-meta">
+        <span class="tag">
+         Arcade classic
+        </span>
+        <span class="card-number">
+         10
+        </span>
+       </div>
+       <h3>
+        <a href="neon-brick-breaker/index.html">
+         Neon Brick Breaker
+        </a>
+       </h3>
+       <p class="game-description">
+        Meet your next just-one-more-round game. Smash glowing bricks with multiball, portals, and lasers.
+       </p>
+       <div class="card-bottom">
+        <div class="rating-row">
+         <div aria-label="Rate Neon Brick Breaker" class="rate" data-id="neon-brick-breaker" role="group" title="Rate this game">
+          <button aria-label="Rate 1 out of 5 stars" aria-pressed="false" data-star="1" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 2 out of 5 stars" aria-pressed="false" data-star="2" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 3 out of 5 stars" aria-pressed="false" data-star="3" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 4 out of 5 stars" aria-pressed="false" data-star="4" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 5 out of 5 stars" aria-pressed="false" data-star="5" type="button">
+           ★
+          </button>
+         </div>
+         <span aria-live="polite" class="score">
+          Loading ratings…
+         </span>
+        </div>
+        <div class="card-actions">
+         <a class="card-play" href="neon-brick-breaker/index.html">
+          Play game
+          <span aria-hidden="true">
+           ↗
+          </span>
+         </a>
+         <a class="text-link" href="leaderboard.html?gameId=neon-brick-breaker">
+          Leaderboard ↗
+         </a>
+        </div>
+       </div>
+      </div>
+     </li>
+     <li class="game-card" data-category="adventure puzzle" data-id="prism-warden" data-search="prism warden adventure explore a drowned abbey with a mirror shield. redirect sunlight and return the guardian’s fire. adventure in development.">
+      <a aria-label="Play Prism Warden" class="card-art" href="prism-warden/index.html">
+       <img alt="" height="1024" loading="lazy" src="images/arcade/prism-warden.webp" width="1536"/>
+       <span class="art-label">
+        Cover art
+       </span>
+      </a>
+      <div class="card-body">
+       <div class="card-meta">
+        <span class="tag">
+         Adventure
+        </span>
+        <span class="card-number">
+         11
+        </span>
+       </div>
+       <h3>
+        <a href="prism-warden/index.html">
+         Prism Warden
+        </a>
+       </h3>
+       <p class="game-description">
+        Explore a drowned abbey with a mirror shield. Redirect sunlight and return the guardian’s fire. Adventure in development.
+       </p>
+       <div class="card-bottom">
+        <div class="rating-row">
+         <div aria-label="Rate Prism Warden" class="rate" data-id="prism-warden" role="group" title="Rate this game">
+          <button aria-label="Rate 1 out of 5 stars" aria-pressed="false" data-star="1" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 2 out of 5 stars" aria-pressed="false" data-star="2" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 3 out of 5 stars" aria-pressed="false" data-star="3" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 4 out of 5 stars" aria-pressed="false" data-star="4" type="button">
+           ★
+          </button>
+          <button aria-label="Rate 5 out of 5 stars" aria-pressed="false" data-star="5" type="button">
+           ★
+          </button>
+         </div>
+         <span aria-live="polite" class="score">
+          Loading ratings…
+         </span>
+        </div>
+        <div class="card-actions">
+         <a class="card-play" href="prism-warden/index.html">
+          Play game
+          <span aria-hidden="true">
+           ↗
+          </span>
+         </a>
+         <a class="text-link" href="leaderboard.html?gameId=prism-warden">
+          Leaderboard ↗
+         </a>
+        </div>
+       </div>
+      </div>
+     </li>
+    </ul>
+    <div class="empty-state" hidden="" id="empty-state">
+     <h3>
+      No games on this screen.
+     </h3>
+     <p>
+      Try another title or genre. Your next favorite is out there.
+     </p>
+     <button class="button secondary" id="reset-search" type="button">
+      Show all games
+     </button>
+    </div>
+    <noscript>
+     <p class="muted">
+      Browse all games below. Search, filters, and ratings need JavaScript.
+     </p>
+    </noscript>
+   </section>
+   <aside class="community">
+    <span aria-hidden="true" class="community-symbol">
+     ✳
+    </span>
+    <div>
+     <h2>
+      Good games get better together.
+     </h2>
+     <p>
+      Found a bug? Have a wild idea? Help shape what we build next.
+     </p>
+    </div>
+    <a class="button secondary" href="https://www.reddit.com/r/BotBuiltArcade/" rel="noopener noreferrer" target="_blank">
+     Join the community
+     <span aria-hidden="true">
+      ↗
+     </span>
+    </a>
+   </aside>
+  </main>
+  <footer class="site-footer shell">
+   <div>
+    <span class="footer-brand">
+     Bot Built Arcade
+    </span>
+    /   A little offbeat. Always playable.
+    <br/>
+    By Tandem Tales LLC
+   </div>
+   <nav aria-label="Footer navigation" class="footer-links">
+    <a href="about.html">
+     About
+    </a>
+    <a href="contact.html">
+     Contact
+    </a>
+    <a href="privacy.html">
+     Privacy
+    </a>
+   </nav>
+  </footer>
+ </body>
 </html>

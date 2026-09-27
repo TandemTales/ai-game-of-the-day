@@ -151,6 +151,22 @@
   function roomId(s) { return (s.room && s.room.id) || s.roomId || 'cloister'; }
   function emittersOf(s) { return arr(s.emitters).length ? s.emitters : (s.emitter ? [s.emitter] : []); }
   function receiverKind(r) { return r.kind || (r.id === 'sanctuary' ? 'sanctuary' : 'seal'); }
+  function lensPolarity(item) { return item.polarity === 'hot' || item.polarity === 'cold' ? item.polarity : null; }
+  function polarityGlyph(ctx, x, y, polarity, radius) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(radius / 10, radius / 10);
+    const color = polarity === 'hot' ? '#ffd28b' : '#b8efff';
+    circle(ctx, 0, 0, 12, '#101f29', color, 2);
+    if (polarity === 'hot') {
+      poly(ctx, [[0, -9], [2, -2], [5, -5], [7, 2], [4, 7], [-3, 8], [-7, 3], [-5, -3], [-3, 0]], color, '#fff4df', 1);
+    } else {
+      for (let i = 0; i < 3; i++) {
+        const a = i * Math.PI / 3, dx = Math.cos(a), dy = Math.sin(a);
+        line(ctx, -dx * 8, -dy * 8, dx * 8, dy * 8, color, 2);
+      }
+      circle(ctx, 0, 0, 3, '#edfaff');
+    }
+    ctx.restore();
+  }
   function tideOn(s) { return !!(s.tide && s.tide.active !== false && (s.tide.active || Number.isFinite(s.tide.level))); }
   function tideHigh(s) { return !!(tideOn(s) && s.tide.high); }
   function tideWarn(s) { return tideOn(s) ? clamp(num(s.tide.warning, 0), 0, 1) : 0; }
@@ -2621,6 +2637,7 @@
   }
   function drawReceiver(ctx, r, t, s) {
     const lit = !!r.active, charge = clamp(num(r.charge, 0), 0, 1), kind = receiverKind(r);
+    const polarity = lensPolarity(r), polarityColor = polarity === 'hot' ? '#ffd28b' : '#b8efff';
     if (kind === 'pump') { drawPump(ctx, r, t, s); return; }
     contactShadow(ctx, r.x + 3, r.y + 10, 27, 13, .9);
     // octagonal pedestal
@@ -2664,12 +2681,16 @@
     }
     if (charge > 0 && !lit) {
       ctx.beginPath(); ctx.arc(r.x, r.y, 30, -Math.PI / 2, -Math.PI / 2 + charge * TAU); ctx.strokeStyle = '#1a1206'; ctx.lineWidth = 7; ctx.stroke();
-      ctx.beginPath(); ctx.arc(r.x, r.y, 30, -Math.PI / 2, -Math.PI / 2 + charge * TAU); ctx.strokeStyle = '#ffd88a'; ctx.lineWidth = 4; ctx.stroke();
-      glowQueue.push([r.x, r.y, 40 + charge * 30, SUN, .25 + charge * .4]);
+      ctx.beginPath(); ctx.arc(r.x, r.y, 30, -Math.PI / 2, -Math.PI / 2 + charge * TAU); ctx.strokeStyle = polarity ? polarityColor : '#ffd88a'; ctx.lineWidth = 4; ctx.stroke();
+      glowQueue.push([r.x, r.y, 40 + charge * 30, polarity ? beamRGB(polarity) : SUN, .25 + charge * .4]);
     }
-    if (lit) glowQueue.push([r.x, r.y - 6, 70, kind === 'bell' ? SUN : MINT, .6], [r.x, r.y - 6, 26, '255,255,240', .6]);
-    else glowQueue.push([r.x, r.y - 4, 34, kind === 'sanctuary' ? '120,200,170' : SUN, .22 + .1 * Math.sin(t * 2.4)]);
-    if (!lit) labels.push({ x: r.x, y: r.y + 44, text: kind === 'bell' ? 'BELL' : kind === 'sanctuary' ? 'SANCTUARY' : (r.id === 'gate' ? 'GATE SEAL' : 'SUN SEAL'), color: kind === 'sanctuary' ? '#bfe9d6' : '#f2dca8', size: 10 });
+    if (lit) glowQueue.push([r.x, r.y - 6, 70, polarity ? beamRGB(polarity) : kind === 'bell' ? SUN : MINT, .6], [r.x, r.y - 6, 26, '255,255,240', .6]);
+    else glowQueue.push([r.x, r.y - 4, 34, polarity ? beamRGB(polarity) : kind === 'sanctuary' ? '120,200,170' : SUN, .22 + .1 * Math.sin(t * 2.4)]);
+    if (polarity) {
+      circle(ctx, r.x, r.y, 26, null, polarityColor, 2.5);
+      polarityGlyph(ctx, r.x, r.y - 5, polarity, 12);
+      labels.push({ x: r.x, y: r.y + 44, text: `${polarity.toUpperCase()} ${lit ? 'OPEN' : 'LOCK'}`, color: polarityColor, size: 10, minScreen: 10, avoidThermal: true });
+    } else if (!lit) labels.push({ x: r.x, y: r.y + 44, text: kind === 'bell' ? 'BELL' : kind === 'sanctuary' ? 'SANCTUARY' : (r.id === 'gate' ? 'GATE SEAL' : 'SUN SEAL'), color: kind === 'sanctuary' ? '#bfe9d6' : '#f2dca8', size: 10 });
   }
   function incomingDir(m, s) {
     for (const b of arr(s.beams)) {
@@ -4159,7 +4180,15 @@
       for (let i = 0; i < 3; i++) { const ph = (t * .5 + i / 3) % 1; text(ctx, 'z', hwx + flip * (8 + ph * 14), hwy - 18 - ph * 22, 9 + ph * 5, `rgba(220,240,210,${.8 * (1 - ph)})`); }
       labels.push({ x: e.x, y: e.y + R + 14, text: 'THE ROOT HART SLEEPS', color: '#d8e8c8', size: 10, dim: true });
     }
-    if (st.exposed) labels.push({ x: e.x, y: top, text: 'HEARTWOOD OPEN — STRIKE', color: '#9ff5d2', size: 11 });
+    const lensCharge = clamp(num(e.lensCharge, 0), 0, 1);
+    if (!st.dead && !st.exposed && lensCharge > 0) {
+      circle(ctx, cwx, cwy, 25, null, '#10291d', 7);
+      circle(ctx, cwx, cwy, 25, null, '#568b65', 2);
+      ctx.beginPath(); ctx.arc(cwx, cwy, 25, -Math.PI / 2, -Math.PI / 2 + lensCharge * TAU);
+      ctx.strokeStyle = '#bdffd0'; ctx.lineWidth = 5; ctx.stroke();
+      labels.push({ x: e.x, y: e.y + R + 24, text: `SEED LENS ${Math.floor(lensCharge * 100)}%`, color: '#bdffd0', size: 10, minScreen: 10 });
+    }
+    if (st.exposed) labels.push({ x: e.x, y: top, text: e.lensCooldown > 0 ? 'LENS OPEN — STRIKE' : 'HEARTWOOD OPEN — STRIKE', color: '#9ff5d2', size: 11, minScreen: 10 });
     else if (st.daze) labels.push({ x: e.x, y: top, text: 'DAZED — NO OPENING', color: '#ffe0a0', size: 10 });
   }
 
@@ -4277,12 +4306,12 @@
     gr.addColorStop(.5, `rgba(${rgb},.5)`); gr.addColorStop(.6, `rgba(${rgb},.22)`); gr.addColorStop(.8, `rgba(${rgb},.06)`); gr.addColorStop(1, `rgba(${rgb},0)`);
     g.fillStyle = gr; g.fillRect(0, 0, 2, 64); stripCache.set(rgb, c); return c;
   }
-  function beamRGB(kind) { return kind === 'reflected' ? MINT : kind === 'split' ? SPLIT : kind === 'prism' ? PRISM : kind === 'hot' ? '255,92,43' : kind === 'cold' ? '104,204,255' : SUN; }
+  function beamRGB(kind) { return kind === 'reflected' ? MINT : kind === 'split' ? SPLIT : kind === 'prism' ? PRISM : kind === 'hot' ? '255,174,72' : kind === 'cold' ? '104,204,255' : SUN; }
   function drawBeamLight(ctx, s) {
     // Light spilled on the floor around each beam (additive, under actors).
     for (const b of arr(s.beams)) {
       if (![b.x1, b.y1, b.x2, b.y2].every(Number.isFinite)) continue;
-      const rgb = beamRGB(b.kind), L = Math.hypot(b.x2 - b.x1, b.y2 - b.y1);
+      const rgb = beamRGB(lensPolarity(b) || b.kind), L = Math.hypot(b.x2 - b.x1, b.y2 - b.y1);
       if (L < 1 || !hasDoc) continue;
       ctx.save(); ctx.translate(b.x1, b.y1); ctx.rotate(Math.atan2(b.y2 - b.y1, b.x2 - b.x1));
       ctx.drawImage(beamStrip(rgb), 0, 0, 2, 64, 0, -76, L, 152);
@@ -4293,12 +4322,12 @@
   function drawBeamCores(ctx, s, t) {
     for (const b of arr(s.beams)) {
       if (![b.x1, b.y1, b.x2, b.y2].every(Number.isFinite)) continue;
-      const rgb = beamRGB(b.kind), L = Math.hypot(b.x2 - b.x1, b.y2 - b.y1);
+      const polarity = lensPolarity(b), rgb = beamRGB(polarity || b.kind), L = Math.hypot(b.x2 - b.x1, b.y2 - b.y1);
       ctx.lineCap = 'round';
       line(ctx, b.x1, b.y1 - 6, b.x2, b.y2 - 6, `rgba(${rgb},.35)`, 9);
       line(ctx, b.x1, b.y1 - 6, b.x2, b.y2 - 6, `rgba(${rgb},.9)`, 3.6);
       line(ctx, b.x1, b.y1 - 6, b.x2, b.y2 - 6, 'rgba(255,255,245,.95)', 1.3);
-      if (b.kind === 'prism' && L > 1) { // chromatic fringes mark prism light
+      if (b.kind === 'prism' && !polarity && L > 1) { // chromatic fringes mark unpolarized prism light
         const nx = -(b.y2 - b.y1) / L * 3.2, ny = (b.x2 - b.x1) / L * 3.2;
         line(ctx, b.x1 + nx, b.y1 - 6 + ny, b.x2 + nx, b.y2 - 6 + ny, 'rgba(120,200,255,.55)', 1.4);
         line(ctx, b.x1 - nx, b.y1 - 6 - ny, b.x2 - nx, b.y2 - 6 - ny, 'rgba(255,190,90,.55)', 1.4);
@@ -4307,6 +4336,14 @@
       if (L > 1) {
         const ux = (b.x2 - b.x1) / L, uy = (b.y2 - b.y1) / L;
         for (let d = (t * 140) % 46; d < L; d += 46) bloom(ctx, b.x1 + ux * d, b.y1 + uy * d - 6, 7, '255,255,240', .6);
+        if (polarity && L > 90) {
+          // Mark each routed segment near its origin, so a cropped phone view
+          // can read the shield's output without relying on color perception.
+          const x = b.x1 + ux * 54, y = b.y1 + uy * 54 - 6;
+          ctx.save(); ctx.globalCompositeOperation = 'source-over';
+          polarityGlyph(ctx, x, y, polarity, 9); ctx.restore();
+          labels.push({ x, y: y + 25, text: polarity.toUpperCase(), color: polarity === 'hot' ? '#ffd28b' : '#b8efff', size: 10, minScreen: 10, avoidThermal: true });
+        }
       }
       bloom(ctx, b.x2, b.y2 - 6, 18, '255,255,240', .7);
     }
@@ -4373,7 +4410,7 @@
     const compactLandscape = screenW <= 1000 && screenH <= 480;
     const placed = [], m = 6 / Math.max(.5, Math.min(1.5, v.scale));
     for (const l of labels) {
-      const size = l.size || 10;
+      const size = Math.max(l.size || 10, (l.minScreen || 0) / v.scale);
       ctx.font = `700 ${size}px system-ui, -apple-system, "Segoe UI", sans-serif`;
       const hw = ctx.measureText(l.text).width / 2 + size * .2;
       let x = l.x, y = l.y;
@@ -4630,7 +4667,10 @@
     }
     const seals = arr(s.receivers).filter(r => !r.active && receiverKind(r) !== 'sanctuary');
     if (seals.length) {
-      for (const r of seals.slice(0, 2)) out.push({ x: r.x, y: r.y, label: receiverKind(r) === 'bell' ? 'BELL' : receiverKind(r) === 'pump' ? 'PUMP' : 'SUN SEAL', color: receiverKind(r) === 'pump' ? '#9ff5d2' : '#f3ca78' });
+      for (const r of seals.slice(0, 2)) {
+        const polarity = lensPolarity(r);
+        out.push({ x: r.x, y: r.y, label: polarity ? `${polarity.toUpperCase()} LOCK` : receiverKind(r) === 'bell' ? 'BELL' : receiverKind(r) === 'pump' ? 'PUMP' : 'SUN SEAL', color: polarity === 'cold' ? '#b8efff' : polarity === 'hot' ? '#ffd28b' : receiverKind(r) === 'pump' ? '#9ff5d2' : '#f3ca78' });
+      }
       const p = s.player || { x: 0, y: 0 };
       const sun = arr(s.beams).find(b => b.kind === 'sun');
       if (sun && segDist(p.x, p.y, sun.x1, sun.y1, sun.x2, sun.y2) > 80) {

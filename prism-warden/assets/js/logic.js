@@ -46,6 +46,21 @@
     s.equipment[s.regionId] = id;
     return true;
   }
+  const RESTORATION = [
+    { id: 'channels', name: 'Restore the channels', description: 'Keep the Crown\u2019s burst-revealed star spans open permanently. Telescope-aligned bridges still need turning.' },
+    { id: 'beacons', name: 'Strengthen the beacons', description: 'Recharge stored light twice as fast in the Crown and keep the Eclipse Keeper exposed 1.5 seconds longer.' }
+  ];
+  function restorationChoices(s) {
+    return s && s.status === 'cleared' && s.regionId === 'night-observatory' && s.flags &&
+      s.flags['beacon:night-observatory'] ? copy(RESTORATION) : [];
+  }
+  function chooseRestoration(s, id) {
+    if (!restorationChoices(s).some(choice => choice.id === id)) return false;
+    if (s.flags['restoration-choice']) return s.flags['restoration-choice'] === id;
+    s.flags['restoration-choice'] = id;
+    return true;
+  }
+  function restored(s, id) { return s.regionId === 'drowned-crown' && s.flags['restoration-choice'] === id; }
 
   // Slab intersection handles parallel rays, origins inside a wall, and corners.
   function raySegment(x, y, dx, dy, rects, max) {
@@ -157,7 +172,7 @@
     const type = d.type || 'sentinel', id = d.id || type + '-' + i;
     const e = { type, id, x: num(d.x, 512), y: num(d.y, 384), phase: 'dormant', timer: 0,
       exposed: 0, aimX: -1, aimY: 0, volley: 0, shotsLeft: 0, shotTimer: 0, lastSlash: -1,
-      locked: false, submerged: false };
+      locked: false, submerged: false, disabledBy: d.disabledBy || null };
     if (type === 'turret') {
       return Object.assign(e, { r: num(d.r, 20), hp: 1, maxHp: 1, invulnerable: true,
         phase: 'idle', timer: Math.max(.5, num(d.delay, 1.6)),
@@ -236,13 +251,15 @@
         main: !!g.main, text: g.text || null, hold: !!g.hold, held: false, opened: !!g.open })),
       emitters: arr(def.emitters).map((e, i) => {
         const [dx, dy] = unit(num(e.dx, 1), num(e.dy, 0));
-        return { id: e.id || 'emitter-' + i, x: num(e.x, 0), y: num(e.y, 0), dx, dy };
+        return { id: e.id || 'emitter-' + i, x: num(e.x, 0), y: num(e.y, 0), dx, dy,
+          polarity: ['hot', 'cold'].includes(e.polarity) ? e.polarity : null };
       }),
       receivers: arr(def.receivers).map((r, i) => {
         const fill = num(r.fill, 0) > 0 ? r.fill : 0;
         const kind = r.kind || (fill ? 'pump' : 'seal');
         const out = { id: r.id || 'receiver-' + i, x: num(r.x, 0), y: num(r.y, 0), r: num(r.r, 19), kind,
           charge: 0, active: false, lit: false,
+          polarity: ['hot', 'cold'].includes(r.polarity) ? r.polarity : null,
           latch: fill ? true : r.latch !== undefined ? !!r.latch : kind !== 'bell' };
         if (fill) out.fill = fill;
         if (r.text) out.text = String(r.text);
@@ -253,7 +270,8 @@
           .map(d => unit(d[0], d[1]));
         if (!dirs.length) dirs = [[1, 0]];
         return { id: m.id || 'mirror-' + i, x: num(m.x, 0), y: num(m.y, 0), r: num(m.r, 16),
-          split: !!m.split, dirs, index: clamp(Math.floor(num(m.index, 0)), 0, dirs.length - 1), lit: false };
+          split: !!m.split, dirs, index: clamp(Math.floor(num(m.index, 0)), 0, dirs.length - 1), lit: false,
+          polarity: ['hot', 'cold'].includes(m.polarity) ? m.polarity : null };
       }),
       water: arr(def.water).map((wt, i) => withCycle(Object.assign(rectOf(wt), { id: wt.id || 'water-' + i,
         when: copy(wt.when) || 'always', active: false }), wt)),
@@ -287,7 +305,7 @@
         id: g.id || 'glass-' + i,
         mode: ['hazard', 'bridge'].includes(g.mode) ? g.mode : 'solid',
         when: g.when === 'cold' ? 'cold' : 'hot',
-        active: false, held: false, warning: 0
+        active: false, held: false, warning: 0, disabledBy: g.disabledBy || null
       })),
       tideDef: def.tide && Number.isFinite(def.tide.period) && def.tide.period > 0 ?
         { period: def.tide.period, offset: num(def.tide.offset, 0) } : null,
@@ -297,7 +315,8 @@
         hp: num(def.escort.hp, 4), maxHp: num(def.escort.hp, 4),
         path: arr(def.escort.path).map(pt => Array.isArray(pt) ? [num(pt[0], 0), num(pt[1], 0)] : [num(pt.x, 0), num(pt.y, 0)]),
         index: 0, arrived: false, waiting: null, invulnerable: 0, wade: 0, flag: def.escort.flag || null,
-        name: def.escort.name || 'Ilex', text: def.escort.text || null } : null,
+        name: def.escort.name || 'Ilex', text: def.escort.text || null,
+        crossingChecks: arr(def.escort.crossingChecks).map(c => ({ index: c.index, enemy: c.enemy, text: c.text || null, passed: false })) } : null,
       escortExit: def.escortExit ? rectOf(def.escortExit) : null,
       pickups: arr(def.pickups).map((pk, i) => ({ id: pk.id || 'pickup-' + i, kind: pk.kind || 'chart',
         x: num(pk.x, 0), y: num(pk.y, 0), text: pk.text || '', taken: false })),
@@ -540,13 +559,14 @@
     const bs = occupants(s);
     for (const path of arr(s.starPaths)) {
       const mirror = path.alignTo && s.mirrors.find(m => m.id === path.alignTo.mirror);
-      const wanted = (path.alignTo ? !!mirror && mirror.index === path.alignTo.index : s.burstTime > 0) && tideMatch(s, path.when, path);
+      const wanted = (path.alignTo ? !!mirror && mirror.index === path.alignTo.index : s.burstTime > 0 || restored(s, 'channels')) && tideMatch(s, path.when, path);
       // A rotating telescope cannot retract a bridge under its passengers. Stored
       // light paths do expire: dry landing islands and safe rewind make this fair.
       path.held = !wanted && !!path.alignTo && path.active && bs.some(o => inRect(o.x, o.y, path));
       path.active = wanted || path.held;
     }
     for (const g of arr(s.glass)) {
+      if (g.disabledBy && s.flags[g.disabledBy]) { g.active = false; g.held = false; g.warning = 0; continue; }
       const wantsActive = g.when === 'cold' ? !s.thermal.hot : s.thermal.hot;
       if (g.mode === 'solid' && wantsActive && !g.active) {
         // Glass never forms around a body or prism; it waits for a clear tile.
@@ -613,7 +633,7 @@
   }
 
   // ------------------------------------------------------------------ beams
-  function trace(s, x, y, dx, dy, kind, depth, skipMirror, usedPlayer, solids) {
+  function trace(s, x, y, dx, dy, kind, depth, skipMirror, usedPlayer, solids, polarity) {
     if (depth > MAX_DEPTH || s.beams.length >= MAX_SEGMENTS) return;
     const wall = raySegment(x, y, dx, dy, solids, 1600);
     let best = wall.distance, mirror = null, player = false;
@@ -631,18 +651,19 @@
       }
     }
     if (mirror) {
-      s.beams.push({ x1: x, y1: y, x2: mirror.x, y2: mirror.y, kind });
+      s.beams.push({ x1: x, y1: y, x2: mirror.x, y2: mirror.y, kind, polarity });
       mirror.lit = true;
       const dirs = mirror.split ? mirror.dirs : [mirror.dirs[mirror.index]];
       for (const d of dirs) {
         trace(s, mirror.x, mirror.y, d[0], d[1], mirror.portable ? 'prism' : mirror.split ? 'split' : 'reflected',
-          depth + 1, mirror, usedPlayer, solids);
+          depth + 1, mirror, usedPlayer, solids, mirror.polarity || polarity);
       }
     } else if (player) {
-      s.beams.push({ x1: x, y1: y, x2: x + dx * best, y2: y + dy * best, kind });
-      trace(s, p.x, p.y, p.aimX, p.aimY, 'reflected', depth + 1, null, true, solids);
+      s.beams.push({ x1: x, y1: y, x2: x + dx * best, y2: y + dy * best, kind, polarity });
+      trace(s, p.x, p.y, p.aimX, p.aimY, 'reflected', depth + 1, null, true, solids,
+        s.flags['polarity-unlocked'] ? s.flags.polarity : polarity);
     } else {
-      s.beams.push({ x1: x, y1: y, x2: wall.x, y2: wall.y, kind });
+      s.beams.push({ x1: x, y1: y, x2: wall.x, y2: wall.y, kind, polarity });
     }
   }
 
@@ -650,9 +671,10 @@
     const solids = blockers(s), p = s.player;
     s.beams = [];
     for (const m of s.mirrors) m.lit = false;
-    for (const em of s.emitters) trace(s, em.x, em.y, em.dx, em.dy, 'sun', 0, null, false, solids);
+    for (const em of s.emitters) trace(s, em.x, em.y, em.dx, em.dy, 'sun', 0, null, false, solids, em.polarity || null);
     for (const r of s.receivers) {
-      r.lit = s.beams.some(b => b.kind !== 'sun' && segmentDistance(r.x, r.y, b.x1, b.y1, b.x2, b.y2) <= r.r);
+      r.lit = s.beams.some(b => b.kind !== 'sun' && (!r.polarity || r.polarity === b.polarity) &&
+        segmentDistance(r.x, r.y, b.x1, b.y1, b.x2, b.y2) <= r.r);
       if (r.latch && r.active) continue;
       // Pumps fill over `fill` seconds of light and never drain.
       if (r.fill > 0) r.charge = clamp(r.charge + (r.lit ? dt / r.fill : 0), 0, 1);
@@ -774,6 +796,7 @@
     }
   }
   function exposeCrown(s, e, duration, opening) {
+    if (restored(s, 'beacons')) duration += 1.5;
     e.exposed = duration; e.phase = 'exposed'; e.timer = duration; e.flash = .35;
     e.attackPhase = 'idle'; e.attackTimer = 1.25; e.attackLocked = false;
     spark(s, e.x, e.y, 'light', 18);
@@ -907,7 +930,7 @@
       }
       if (e.type === 'crown' && e.stage === 3 && e.phase === 'eclipse-windup' &&
         length(e.x - p.x, e.y - p.y) <= e.burstRadius && losClear(s, p.x, p.y, e.x, e.y)) {
-        e.phase = 'exposed'; e.exposed = 3.4; e.timer = 3.4; e.flash = .4;
+        e.phase = 'exposed'; e.exposed = restored(s, 'beacons') ? 4.9 : 3.4; e.timer = e.exposed; e.flash = .4;
         spark(s, e.x, e.y, 'light', 20);
         keeperInterrupted = true;
         continue;
@@ -937,7 +960,7 @@
     const catching = p.reflecting && s.beams.some(b =>
       length(b.x2 - p.x, b.y2 - p.y) < 2 && length(b.x1 - p.x, b.y1 - p.y) > 2);
     p.lightCharging = !!(pad || catching);
-    p.lightCharge = clamp(num(p.lightCharge, 0) + (p.lightCharging ? dt / 2 : 0), 0, 1);
+    p.lightCharge = clamp(num(p.lightCharge, 0) + (p.lightCharging ? dt / (restored(s, 'beacons') ? 1 : 2) : 0), 0, 1);
     if (p.lightCharge >= 1 - EPS) p.lightCharge = 1;
   }
   function nightStep(s, e, dt) {
@@ -1074,6 +1097,7 @@
   function escortIntercept(s, e, delay) {
     const escort = s.escort;
     let target = { x: escort.x, y: escort.y };
+    if (escort.waiting === 'defense') return target;
     // Follow the committed route rather than firing behind a walking escort.
     // Forecast only currently supported ground: rotating a bridge or breaking
     // the leash after aim locks is a deliberate way to upset the prediction.
@@ -1082,6 +1106,9 @@
       target = { x: escort.x, y: escort.y };
       let index = escort.index;
       while (travel > EPS && index < escort.path.length) {
+        const crossing = arr(escort.crossingChecks).find(c => c.index === index && !c.passed);
+        const sniper = crossing && s.enemies.find(enemy => enemy.id === crossing.enemy);
+        if (sniper && !isDefeated(sniper) && !(sniper.phase === 'jammed' && sniper.timer > 0)) break;
         const [tx, ty] = escort.path[index], dx = tx - target.x, dy = ty - target.y, d = length(dx, dy);
         if (d < EPS) { index++; continue; }
         const advance = Math.min(travel, d, 4), next = { x: target.x + dx / d * advance, y: target.y + dy / d * advance };
@@ -1094,7 +1121,7 @@
   }
   function turretStep(s, e, dt) {
     if (e.phase === 'silent') return;
-    if (e.until && gateOpen(s, e.until)) {
+    if ((e.disabledBy && s.flags[e.disabledBy]) || (e.until && gateOpen(s, e.until))) {
       e.phase = 'silent'; e.timer = 0; e.shotsLeft = 0; e.locked = false;
       removeShots(s, e.id); spark(s, e.x, e.y, 'light', 8);
       return;
@@ -1337,6 +1364,17 @@
   function hartStep(s, e, dt) {
     const p = s.player, half = e.hp <= e.maxHp / 2;
     e.flash = Math.max(0, e.flash - dt);
+    e.lensCooldown = Math.max(0, num(e.lensCooldown, 0) - dt);
+    const lensLit = s.flags.lens && e.lensCooldown <= 0 && e.exposed <= 0 &&
+      s.beams.some(b => b.kind !== 'sun' && segmentDistance(e.x, e.y, b.x1, b.y1, b.x2, b.y2) <= e.r);
+    e.lensCharge = clamp(num(e.lensCharge, 0) + (lensLit ? dt / 1.2 : -dt / .65), 0, 1);
+    if (e.lensCharge >= 1 - EPS) {
+      e.lensCharge = 0; e.lensCooldown = 7; e.phase = 'stunned'; e.stunned = true;
+      e.exposed = 4.5; e.timer = 4.5; e.locked = false;
+      spark(s, e.x, e.y, 'light', 18);
+      announce(s, 'The Seed Lens opens the Hart\u2019s grain without breaking a dam. Close in and strike!', 4, 1);
+      return;
+    }
     const stalkTime = () => half ? 1.0 : 1.3;
     const toPlayer = () => unit(p.x - e.x, p.y - e.y, e.aimX, e.aimY);
     if (e.phase === 'dormant') {
@@ -1525,6 +1563,16 @@
     if (raySegment(e.x, e.y, dx, dy, blockers(s), d).rect) { e.waiting = 'blocked'; return; }
     const next = { x: e.x + dx / d * Math.min(d, 120 * dt + e.r), y: e.y + dy / d * Math.min(d, 120 * dt + e.r) };
     if (unsupportedVoid(s, next)) { e.waiting = 'bridge'; return; }
+    const crossing = arr(e.crossingChecks).find(c => c.index === e.index && !c.passed);
+    if (crossing) {
+      const sniper = s.enemies.find(enemy => enemy.id === crossing.enemy);
+      if (sniper && !isDefeated(sniper) && !(sniper.phase === 'jammed' && sniper.timer > 0)) {
+        if (e.waiting !== 'defense') announce(s, crossing.text || 'Ilex waits on the bank. Return the covering sniper\u2019s shot, then guide her across while it is jammed.', 4, 1);
+        e.waiting = 'defense'; return;
+      }
+      crossing.passed = true;
+      announce(s, 'The sniper is jammed. Ilex commits to the crossing \u2014 stay close and keep the bridge aligned.', 3, 1);
+    }
     e.waiting = null;
     const wading = inWater(s, e);
     const sp = Math.min(120 * (wading ? WADE : 1), d / dt);
@@ -1613,6 +1661,10 @@
     if (s.mirrors.some(m => m.portable) && s.prismRoom !== id) s.mirrors = s.mirrors.filter(m => !m.portable);
     s.roomId = id;
     s.regionId = s.room.region || s.regionId || 'tidal-abbey';
+    if (['glass-kiln', 'night-observatory', 'drowned-crown'].includes(s.regionId)) {
+      s.flags['polarity-unlocked'] = true;
+      if (!['hot', 'cold'].includes(s.flags.polarity)) s.flags.polarity = 'hot';
+    }
     ensureCleared(s, s.regionId);
     if (stored) calm(s);
     s.emitter = s.emitters[0] || null;
@@ -1840,6 +1892,15 @@
       const end = raySegment(shot.x, shot.y, shot.vx, shot.vy, solids, distance);
       const nx = end.x, ny = end.y;
       let consumed = false;
+      // The attachment cuts only the sword's forward arc and cannot reach through
+      // walls. It destroys, never returns, a shot; there is no farming reward.
+      if (!shot.friendly && s.flags['kiln-edge'] && p.slashTime > 0) {
+        const dx = nx - p.x, dy = ny - p.y, d = length(dx, dy);
+        if (d <= 70 + shot.r && (dx * p.aimX + dy * p.aimY) / Math.max(EPS, d) > .1 &&
+          losClear(s, p.x, p.y, nx, ny)) {
+          spark(s, nx, ny, 'slash', 8); continue;
+        }
+      }
       if (shot.friendly) {
         for (const e of s.enemies) {
           if (isDefeated(e) || (e.type === 'diver' && (e.submerged || e.phase === 'surfacing'))) continue;
@@ -1931,6 +1992,12 @@
       p[key] = Math.max(0, p[key] - dt);
     }
     tickMessages(s, dt);
+    if (input.polarity && !s._polarityHeld && s.flags['polarity-unlocked']) {
+      s.flags.polarity = s.flags.polarity === 'cold' ? 'hot' : 'cold';
+      spark(s, p.x, p.y, 'light', 6);
+      announce(s, s.flags.polarity === 'hot' ? 'Hot lens: reflected light opens amber locks.' : 'Cold lens: reflected light opens blue locks.', 2, 0);
+    }
+    s._polarityHeld = !!input.polarity;
     const ax = Number.isFinite(input.ax) ? input.ax : 0, ay = Number.isFinite(input.ay) ? input.ay : 0;
     const aimLength = length(ax, ay);
     if (aimLength > .01) { p.aimX = ax / aimLength; p.aimY = ay / aimLength; }
@@ -2119,6 +2186,11 @@
         announce(s, beacon.text || (s.regionId === 'tidal-abbey' ?
           'The abbey beacon burns again. The Tidal Abbey is restored.' :
           'The ' + regionName(s.regionId) + ' beacon burns again. The ' + regionName(s.regionId) + ' is restored.'), 10, 3);
+        if (s.status === 'won' && s.flags['restoration-choice']) {
+          announce(s, s.flags['restoration-choice'] === 'channels' ?
+            'Nacre and Ilex reach the coast. Sera\u2019s channels hold the star roads open, and the ferrymen return to every drowned shore.' :
+            'Nacre and Ilex reach the coast. Sera\u2019s strengthened beacons stand watch, keeping the eclipse from claiming another keeper.', 12, 3);
+        }
       }
     }
 
@@ -2257,6 +2329,8 @@
   PW.restartRegion = restartRegion;
   PW.equipmentChoices = equipmentChoices;
   PW.chooseEquipment = chooseEquipment;
+  PW.restorationChoices = restorationChoices;
+  PW.chooseRestoration = chooseRestoration;
   PW.equipmentCatalog = () => copy(EQUIPMENT);
   PW.announce = announce;
   PW.FALLBACK_CLOISTER = FALLBACK_CLOISTER;

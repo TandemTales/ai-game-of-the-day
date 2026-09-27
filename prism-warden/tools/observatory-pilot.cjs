@@ -51,6 +51,13 @@ function createPilot(options = {}) {
       }
     } else if (room === 'telescope') {
       const esc=s.escort,m=s.mirrors[0];
+      const crossing=(esc.crossingChecks||[]).find(c=>c.index===esc.index&&!c.passed);
+      if(crossing){
+        const sniper=s.enemies.find(e=>e.id===crossing.enemy),dx=sniper.x-esc.x,dy=sniper.y-esc.y,d=Math.hypot(dx,dy)||1;
+        const tx=esc.x+dx/d*25,ty=esc.y+dy/d*25;
+        if(Math.hypot(p.x-tx,p.y-ty)>3){i.mx=(tx-p.x)/Math.max(1,Math.hypot(tx-p.x,ty-p.y));i.my=(ty-p.y)/Math.max(1,Math.hypot(tx-p.x,ty-p.y));}
+        aim(sniper.x,sniper.y);i.reflect=true;return i;
+      }
       if (esc.arrived) go(988,384,true);
       else if (esc.x < 445) go(Math.min(500,esc.x+85),384);
       else if(m.index===0){if(go(512,390))slash(m.x,m.y);}

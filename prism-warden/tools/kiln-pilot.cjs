@@ -28,12 +28,28 @@ function play(PW, opts = {}) {
     }
   };
   const playFrames = 60 * 60 * 16;
+  const planner = createPilot(PW, opts);
   while (s.status === 'playing' && frames < playFrames && retries < 12) {
     if (s.roomId !== lastRoom) {
       lastRoom = s.roomId; roomFrames = 0;
       log.push('enter ' + s.roomId + ' t=' + s.time.toFixed(1) + ' hp=' + s.player.hp + ' objective=' + s.objective);
     }
     roomFrames++;
+    const input = planner(s);
+    step(input);
+    if (roomFrames > 60 * 180) { log.push('TIMEOUT ' + s.roomId + ' objective=' + s.objective); break; }
+  }
+  log.push('END status=' + s.status + ' t=' + s.time.toFixed(1) + ' hp=' + s.player.hp + '/' + s.player.maxHp +
+    ' retries=' + retries + ' cleared=' + JSON.stringify(s.cleared) + ' flags=' + Object.keys(s.flags).join(','));
+  s.kilnLog = log;
+  return s;
+}
+
+
+// Shared read-only planner for simulation and normal-clock browser inputs.
+function createPilot(PW, opts={}){
+ opts=opts||{};const log=[];let roomFrames=0;
+ return s=>{roomFrames++;
     const input = { mx: 0, my: 0, ax: s.player.aimX, ay: s.player.aimY, reflect: true };
     const p = s.player, id = s.roomId;
     const aim = (x, y) => { const dx = x - p.x, dy = y - p.y, d = Math.hypot(dx, dy) || 1; input.ax = dx / d; input.ay = dy / d; };
@@ -145,16 +161,10 @@ function play(PW, opts = {}) {
       log.push('trace foundry x=' + p.x.toFixed(1) + ' y=' + p.y.toFixed(1) + ' hot=' + s.thermal.hot +
         ' mirrors=' + s.mirrors.map(m => m.id + ':' + m.index).join(',') + ' receivers=' + s.receivers.map(r => r.id + ':' + r.active + ':' + r.charge.toFixed(2)).join(','));
     }
-    step(input);
-    if (roomFrames > 60 * 180) { log.push('TIMEOUT ' + s.roomId + ' objective=' + s.objective); break; }
-  }
-  log.push('END status=' + s.status + ' t=' + s.time.toFixed(1) + ' hp=' + s.player.hp + '/' + s.player.maxHp +
-    ' retries=' + retries + ' cleared=' + JSON.stringify(s.cleared) + ' flags=' + Object.keys(s.flags).join(','));
-  s.kilnLog = log;
-  return s;
+    return input;
+ };
 }
-
-module.exports = { play };
+module.exports = { createPilot, play };
 if (require.main === module) {
   const args = process.argv.slice(2);
   const from = args.find(arg => arg.startsWith('--from-'));

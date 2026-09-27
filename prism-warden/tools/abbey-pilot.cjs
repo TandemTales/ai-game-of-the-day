@@ -93,9 +93,29 @@ function play(PW, opts) {
     PW.step(s, input, 1 / 60); frames++;
     if (s.status === 'lost') { log.push('LOST in ' + s.roomId + ' t=' + s.time.toFixed(1) + ' hp=' + s.player.hp + ' esc=' + (s.escort && s.escort.hp) + ' msg=' + s.message); retries++; PW.retryRoom(s); }
   };
+  const planner = createPilot(PW, opts);
   while (s.status === 'playing' && frames < 60 * 60 * 20 && retries < 25) {
     if (s.roomId !== lastRoom) { log.push('enter ' + s.roomId + ' t=' + s.time.toFixed(1) + ' hp=' + s.player.hp + '/' + s.player.maxHp + ' score=' + s.score + ' obj=' + s.objective); lastRoom = s.roomId; roomFrames = 0; }
     roomFrames++;
+    const input = planner(s);
+    stepOnce(input);
+    if (roomFrames > 60 * 240) { log.push('TIMEOUT in ' + s.roomId + ' obj=' + s.objective); break; }
+  }
+  log.push('END status=' + s.status + ' t=' + s.time.toFixed(1) + ' score=' + s.score + ' hp=' + s.player.hp + ' retries=' + retries + ' cleared=' + JSON.stringify(s.cleared) + ' flags=' + Object.keys(s.flags).join(','));
+  s.pilotLog = log; s.pilotRetries = retries;
+  return s;
+}
+function loadPW() {
+  const fs = require('fs'), vm = require('vm'), path = require('path'), ctx = { window: {}, Math, Number };
+  vm.createContext(ctx);
+  for (const f of ['regions.js', 'logic.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, '../assets/js/', f), 'utf8'), ctx);
+  return ctx.window.PW;
+}
+
+// Shared read-only planner for simulation and normal-clock browser inputs.
+function createPilot(PW, opts={}){
+ opts=opts||{};const log=[];let roomFrames=0;const plan={sanctuaryDone:false,visitSanctuary:opts.sanctuary!==false};
+ return s=>{roomFrames++;
     const input = { mx: 0, my: 0, ax: s.player.aimX, ay: s.player.aimY };
     const p = s.player, id = s.roomId;
     const go = (x, y, o) => Object.assign(input, steer(s, x, y, o));
@@ -178,18 +198,8 @@ function play(PW, opts) {
         else { input.reflect = true; guard(s, input); if (dist < 120) { input.mx = -dx / dist; input.my = -dy / dist; } }
       } else go(s.beacon.x, s.beacon.y);
     }
-    stepOnce(input);
-    if (roomFrames > 60 * 240) { log.push('TIMEOUT in ' + s.roomId + ' obj=' + s.objective); break; }
-  }
-  log.push('END status=' + s.status + ' t=' + s.time.toFixed(1) + ' score=' + s.score + ' hp=' + s.player.hp + ' retries=' + retries + ' cleared=' + JSON.stringify(s.cleared) + ' flags=' + Object.keys(s.flags).join(','));
-  s.pilotLog = log; s.pilotRetries = retries;
-  return s;
+    return input;
+ };
 }
-function loadPW() {
-  const fs = require('fs'), vm = require('vm'), path = require('path'), ctx = { window: {}, Math, Number };
-  vm.createContext(ctx);
-  for (const f of ['regions.js', 'logic.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, '../assets/js/', f), 'utf8'), ctx);
-  return ctx.window.PW;
-}
-module.exports = { play, loadPW };
+module.exports = { createPilot, play, loadPW };
 if (require.main === module) { const s = play(loadPW(), { sanctuary: process.argv[2] !== 'direct' }); console.log(s.pilotLog.join('\n')); }

@@ -162,6 +162,7 @@ function play(PW, opts) {
       retries++; PW.retryRoom(s);
     }
   };
+  const planner = createPilot(PW, opts);
   while (s.status === 'playing' && frames < 60 * 60 * 20 && retries < 25) {
     if (s.roomId !== lastRoom) {
       log.push('enter ' + s.roomId + ' t=' + s.time.toFixed(1) + ' hp=' + s.player.hp + '/' + s.player.maxHp +
@@ -169,6 +170,82 @@ function play(PW, opts) {
       lastRoom = s.roomId; roomFrames = 0;
     }
     roomFrames++;
+    const input = planner(s);
+    stepOnce(input);
+    if (roomFrames > 60 * 240) { log.push('TIMEOUT in ' + s.roomId + ' obj=' + s.objective); break; }
+  }
+  log.push('END status=' + s.status + ' t=' + s.time.toFixed(1) + ' score=' + s.score + ' hp=' + s.player.hp + '/' + s.player.maxHp +
+    ' retries=' + retries + ' cleared=' + JSON.stringify(s.cleared) + ' flags=' + Object.keys(s.flags).join(','));
+  s.pilotLog = log; s.pilotRetries = retries;
+  return s;
+}
+
+// Root Hart: stand between the hart and a timber dam so its lane runs into the timber,
+// sidestep once the aim locks, strike while it is stunned, return seed fans.
+function hartFight(s, h, input, plan, log) {
+  const p = s.player;
+  const dams = s.dams.filter(d => d.hp > 0);
+  const aimAt = (x, y) => { const dx = x - p.x, dy = y - p.y, d = Math.hypot(dx, dy) || 1; input.ax = dx / d; input.ay = dy / d; };
+  const go = (x, y) => { const r = steer(s, x, y, { water: 'block' }); input.mx = r.mx; input.my = r.my; return r; };
+  const dx = h.x - p.x, dy = h.y - p.y, dist = Math.hypot(dx, dy) || 1;
+  aimAt(h.x, h.y);
+  if (h.exposed > 0) {
+    if (dist > h.r + 40) { const r = steer(s, h.x, h.y, { water: 'ok' }); input.mx = r.mx; input.my = r.my; }
+    input.slash = dist < h.r + 52;
+    return;
+  }
+  if (h.phase === 'charge' || (h.phase === 'aim' && h.locked)) {
+    // Leave the locked lane: sidestep perpendicular, toward the side with more room.
+    const px = -h.aimY, py = h.aimX;
+    const rel = (p.x - h.x) * px + (p.y - h.y) * py;
+    const sol = solids(s);
+    const room = sgn => { let d = 0; for (; d < 120; d += 8) if (sol.some(w => ov(p.x + px * sgn * d, p.y + py * sgn * d, p.r + 2, w)) || wetAt(s, p.x + px * sgn * d, p.y + py * sgn * d)) break; return d; };
+    let sgn = rel >= 0 ? 1 : -1;
+    if (room(sgn) < 60 && room(-sgn) > room(sgn)) sgn = -sgn;
+    input.mx = px * sgn; input.my = py * sgn;
+    const lane = Math.abs(rel);
+    if (h.phase === 'charge' && lane < h.r + p.r + 6 && p.dashCooldown <= 0) input.dash = true;
+    return;
+  }
+  if (threat(s)) { guard(s, input); return; }
+  // Choose a bait point: 95 units out from a dam face, on a straight lane from the hart
+  // to that face that no stone (wall, pillar, other dam) interrupts.
+  const others = solids(s);
+  const laneClear = (x0, y0, x1, y1, dam) => {
+    const L = Math.hypot(x1 - x0, y1 - y0), ux = (x1 - x0) / L, uy = (y1 - y0) / L;
+    for (const off of [-26, 0, 26]) {
+      const ox = x0 - uy * off, oy = y0 + ux * off;
+      const hit = PWref.raySegment(ox, oy, ux, uy, others.filter(w => w !== dam), L);
+      if (hit.rect && hit.distance < L - 30) return false;
+    }
+    return true;
+  };
+  let best = null, bs = Infinity;
+  for (const d of dams) {
+    const horiz = d.w > d.h;
+    const n = horiz ? [0, 1] : [-1, 0];
+    const len = horiz ? d.w : d.h;
+    for (let f = 50; f <= len - 50; f += 25) {
+      const fx = horiz ? d.x + f : d.x, fy = horiz ? d.y + d.h : d.y + f;
+      let ux = h.x - fx, uy = h.y - fy; const ul = Math.hypot(ux, uy) || 1; ux /= ul; uy /= ul;
+      if (ux * n[0] + uy * n[1] < .4 || ul > 620 || ul < 150) continue;
+      const bx = fx + ux * 95, by = fy + uy * 95;
+      if (wetAt(s, bx, by) || others.some(w => ov(bx, by, p.r + 4, w))) continue;
+      if (!laneClear(h.x, h.y, fx, fy, d)) continue;
+      const c = Math.hypot(bx - p.x, by - p.y);
+      if (c < bs) { bs = c; best = { bx, by, d }; }
+    }
+  }
+  if (!best) { go(512, 470); return; } // draw it into the open
+  go(best.bx, best.by);
+}
+
+let PWref = null;
+
+// Shared read-only planner for simulation and normal-clock browser inputs.
+function createPilot(PW, opts={}){
+ opts=opts||{};const log=[];let roomFrames=0;PWref=PW;const plan={ferry:opts.ferry!==false,seal:opts.seal!==false,ferryDone:false,prismLift:false};
+ return s=>{roomFrames++;
     const p = s.player, id = s.roomId;
     const input = { mx: 0, my: 0, ax: p.aimX, ay: p.aimY };
     const go = (x, y, o) => { const r = steer(s, x, y, o); input.mx = r.mx; input.my = r.my; return r; };
@@ -308,77 +385,10 @@ function play(PW, opts) {
         ' prism=' + p.prism + (prism ? '@' + prism.x.toFixed(0) + ',' + prism.y.toFixed(0) + (prism.lit ? '*' : '') : '') +
         ' msg=' + (s.message || '').slice(0, 50) + (opts.traceFn ? ' ' + opts.traceFn(s) : ''));
     }
-    stepOnce(input);
-    if (roomFrames > 60 * 240) { log.push('TIMEOUT in ' + s.roomId + ' obj=' + s.objective); break; }
-  }
-  log.push('END status=' + s.status + ' t=' + s.time.toFixed(1) + ' score=' + s.score + ' hp=' + s.player.hp + '/' + s.player.maxHp +
-    ' retries=' + retries + ' cleared=' + JSON.stringify(s.cleared) + ' flags=' + Object.keys(s.flags).join(','));
-  s.pilotLog = log; s.pilotRetries = retries;
-  return s;
+    return input;
+ };
 }
-
-// Root Hart: stand between the hart and a timber dam so its lane runs into the timber,
-// sidestep once the aim locks, strike while it is stunned, return seed fans.
-function hartFight(s, h, input, plan, log) {
-  const p = s.player;
-  const dams = s.dams.filter(d => d.hp > 0);
-  const aimAt = (x, y) => { const dx = x - p.x, dy = y - p.y, d = Math.hypot(dx, dy) || 1; input.ax = dx / d; input.ay = dy / d; };
-  const go = (x, y) => { const r = steer(s, x, y, { water: 'block' }); input.mx = r.mx; input.my = r.my; return r; };
-  const dx = h.x - p.x, dy = h.y - p.y, dist = Math.hypot(dx, dy) || 1;
-  aimAt(h.x, h.y);
-  if (h.exposed > 0) {
-    if (dist > h.r + 40) { const r = steer(s, h.x, h.y, { water: 'ok' }); input.mx = r.mx; input.my = r.my; }
-    input.slash = dist < h.r + 52;
-    return;
-  }
-  if (h.phase === 'charge' || (h.phase === 'aim' && h.locked)) {
-    // Leave the locked lane: sidestep perpendicular, toward the side with more room.
-    const px = -h.aimY, py = h.aimX;
-    const rel = (p.x - h.x) * px + (p.y - h.y) * py;
-    const sol = solids(s);
-    const room = sgn => { let d = 0; for (; d < 120; d += 8) if (sol.some(w => ov(p.x + px * sgn * d, p.y + py * sgn * d, p.r + 2, w)) || wetAt(s, p.x + px * sgn * d, p.y + py * sgn * d)) break; return d; };
-    let sgn = rel >= 0 ? 1 : -1;
-    if (room(sgn) < 60 && room(-sgn) > room(sgn)) sgn = -sgn;
-    input.mx = px * sgn; input.my = py * sgn;
-    const lane = Math.abs(rel);
-    if (h.phase === 'charge' && lane < h.r + p.r + 6 && p.dashCooldown <= 0) input.dash = true;
-    return;
-  }
-  if (threat(s)) { guard(s, input); return; }
-  // Choose a bait point: 95 units out from a dam face, on a straight lane from the hart
-  // to that face that no stone (wall, pillar, other dam) interrupts.
-  const others = solids(s);
-  const laneClear = (x0, y0, x1, y1, dam) => {
-    const L = Math.hypot(x1 - x0, y1 - y0), ux = (x1 - x0) / L, uy = (y1 - y0) / L;
-    for (const off of [-26, 0, 26]) {
-      const ox = x0 - uy * off, oy = y0 + ux * off;
-      const hit = PWref.raySegment(ox, oy, ux, uy, others.filter(w => w !== dam), L);
-      if (hit.rect && hit.distance < L - 30) return false;
-    }
-    return true;
-  };
-  let best = null, bs = Infinity;
-  for (const d of dams) {
-    const horiz = d.w > d.h;
-    const n = horiz ? [0, 1] : [-1, 0];
-    const len = horiz ? d.w : d.h;
-    for (let f = 50; f <= len - 50; f += 25) {
-      const fx = horiz ? d.x + f : d.x, fy = horiz ? d.y + d.h : d.y + f;
-      let ux = h.x - fx, uy = h.y - fy; const ul = Math.hypot(ux, uy) || 1; ux /= ul; uy /= ul;
-      if (ux * n[0] + uy * n[1] < .4 || ul > 620 || ul < 150) continue;
-      const bx = fx + ux * 95, by = fy + uy * 95;
-      if (wetAt(s, bx, by) || others.some(w => ov(bx, by, p.r + 4, w))) continue;
-      if (!laneClear(h.x, h.y, fx, fy, d)) continue;
-      const c = Math.hypot(bx - p.x, by - p.y);
-      if (c < bs) { bs = c; best = { bx, by, d }; }
-    }
-  }
-  if (!best) { go(512, 470); return; } // draw it into the open
-  go(best.bx, best.by);
-}
-
-let PWref = null;
-module.exports = { play, loadPW, REPO, steer, solids, wetAt, guard, threat, dodgeLobs };
+module.exports = { createPilot, play, loadPW, REPO, steer, solids, wetAt, guard, threat, dodgeLobs };
 if (require.main === module) {
   const arg = process.argv.slice(2);
   const opts = { ferry: !arg.includes('noferry'), seal: !arg.includes('noseal'), abbey: !arg.includes('quick') };

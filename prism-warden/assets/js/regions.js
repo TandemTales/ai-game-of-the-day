@@ -38,8 +38,8 @@
       ],
       discoveries: [
         { flag: 'dam-sealed', label: 'Dry ferry shortcut', hint: 'at the quay, light the sluice eye and pull the dam seal before the valve' },
-        { flag: 'lens', label: 'Seed lens', hint: 'at the ferry landing, wedge the prism in the cut thorns' },
-        { flag: 'pickup:ferry-heart', label: 'Ferry heart', hint: 'dash the long root east of the ferry stones' }
+        { flag: 'lens', label: 'Seed lens', hint: 'at the ferry landing, wedge the prism in the cut thorns; the lens lets held reflected light stun the Root Hart for a sword opening' },
+        { flag: 'pickup:ferry-heart', label: 'Ferry heart (bonus)', bonus: true, hint: 'dash the long root east of the ferry stones for another maximum heart' }
       ]
     },
     {
@@ -55,8 +55,8 @@
         { id: 'C5', title: 'Glass Weaver', mechanic: 'fight the Weaver among cover that reforms with each kiln pulse', optional: 'Glass Edge attachment', guardian: 'Glass Weaver' }
       ],
       discoveries: [
-        { flag: 'quench-valve', label: 'Quench valve spur', hint: 'the optional quench valve opens a dry return spur to the Annealed Bridge’s west bank' },
-        { flag: 'kiln-edge', label: 'Glass Edge attachment', hint: 'a tempered attachment waits in the quench gallery' }
+        { flag: 'quench-valve', label: 'Quench valve', hint: 'the optional valve opens the dry bridge spur and extinguishes the Crown gallery’s south flare' },
+        { flag: 'kiln-edge', label: 'Glass Edge attachment', hint: 'the artisan’s tempered attachment waits in the quench gallery' }
       ]
     },
     {
@@ -68,12 +68,12 @@
         { id: 'D1', title: 'Revealed Stars', mechanic: 'store light on safe islands and trace two bent star paths before the light fades', optional: 'sky chart', guardian: 'The starless gulf' },
         { id: 'D2', title: 'Moving Shutters', mechanic: 'rotate two optical circuits through alternating shutter windows while returning lens sniper fire', optional: 'sky chart archive', guardian: 'Lens Snipers' },
         { id: 'D3', title: 'Split Shade', mechanic: 'redirect a pursuing shade through separated light', optional: 'liberated shade', guardian: 'Mirror Shade' },
-        { id: 'D4', title: 'Rotating Telescope', mechanic: 'escort Ilex onto the central island, rotate its telescope to the next crossing, and screen sniper fire', optional: 'chart-marked refuge ahead', guardian: 'Telescope Choir' },
+        { id: 'D4', title: 'Rotating Telescope', mechanic: 'return the covering sniper’s shot to create a crossing window for Ilex, then rotate the island telescope and open a second protected crossing', optional: 'chart-marked refuge ahead', guardian: 'Telescope Choir' },
         { id: 'D5', title: 'Star Twins', mechanic: 'cross a moving shield link with a stored-light burst to expose both guardians, then choose which twin to pursue', optional: 'two protected recharge refuges', guardian: 'Star Twins' }
       ],
       discoveries: [
-        { flag: 'sky-chart', label: 'Sky chart', hint: 'a star path south of the shutter hall reaches the chart; its mark opens the east recharge refuge in Twin Dome' },
-        { flag: 'shade-freed', label: 'Liberated keeper shade', hint: 'split the vault light into both seals south of the shade hall; the freed keeper opens the west recharge refuge in Twin Dome' }
+        { flag: 'sky-chart', label: 'Sky chart', hint: 'south of the shutter hall, the chart reveals the Twin Dome’s east refuge and the Crown descent’s upper stair' },
+        { flag: 'shade-freed', label: 'Liberated keeper shade', hint: 'free the vault keeper to open the Twin Dome’s west refuge and Crown east stair, and silence the descent sentry' }
       ]
     },
     {
@@ -90,8 +90,8 @@
       ],
       discoveries: [
         { flag: 'pickup:keeper-archive', label: 'Keeper Archive record', hint: 'the optional gallery archive contains a record that opens a protected well in the Switchback Shoal' },
-        { flag: 'nacre-freed', label: 'Nacre rescued', hint: 'Nacre remains captive until the Eclipse Keeper falls in the Crown Lens' },
-        { flag: 'ilex-evacuated', label: 'Ilex evacuated', hint: 'guide Ilex to the east evacuation landing in the Crown Lens' }
+        { flag: 'nacre-freed', label: 'Nacre rescued', required: true, hint: 'Nacre remains captive until the Eclipse Keeper falls in the Crown Lens' },
+        { flag: 'ilex-evacuated', label: 'Ilex evacuated', required: true, hint: 'guide Ilex to the east evacuation landing in the Crown Lens' }
       ]
     }
   ];
@@ -103,6 +103,21 @@
   }
 
   PW.REGIONS = regions;
+  // Ten contract discoveries have concrete route, combat or progression effects.
+  // The ferry heart is an additional bonus; mandatory rescues are never counted
+  // as optional discoveries. This is an inventory, not evidence of scope acceptance.
+  PW.DISCOVERY_CONTRACT = [
+    { flag: 'lit:chapel', room: 'sanctuary', label: 'Chapel of Still Water', effect: 'A repeatable healing sanctuary and alternate stair to the Bell Tower.' },
+    { flag: 'chart', room: 'sanctuary', label: 'Keeper chart', effect: 'Returned shots leave the Bell Diver exposed longer.' },
+    { flag: 'pickup:abbey-heart', room: 'sanctuary', label: 'Tideglass heart', effect: 'The optional lit reliquary increases maximum health for the remaining voyage.' },
+    { flag: 'dam-sealed', room: 'quay', label: 'Dry ferry shortcut', effect: 'Seal the dam before the valve to preserve the dry ferry route.' },
+    { flag: 'lens', room: 'ferry', label: 'Seed lens', effect: 'Hold redirected light on the Hart to earn a sword opening without a damaging charge.' },
+    { flag: 'quench-valve', room: 'quench', label: 'Quench valve', effect: 'Opens the dry bridge spur and extinguishes the Crown gallery south flare.' },
+    { flag: 'kiln-edge', room: 'quench', label: 'Glass Edge', effect: 'An aimed sword slash cuts nearby hostile projectiles.' },
+    { flag: 'sky-chart', room: 'obs-chart', label: 'Sky chart', effect: 'Opens the Twin Dome east recharge refuge and the Crown upper west stair.' },
+    { flag: 'shade-freed', room: 'shade-vault', label: 'Liberated keeper', effect: 'Opens the Twin Dome west refuge and Crown east stair; silences the descent sentry.' },
+    { flag: 'pickup:keeper-archive', room: 'archive', label: 'Keeper Archive', effect: 'Opens the protected Switchback Shoal recharge alcove and changes the ending account.' }
+  ];
   PW.FIRST_PLAYABLE = {
     id: 'courtyard-checkpoint', regionId: 'tidal-abbey',
     label: 'Silent Courtyard', status: 'verified checkpoint',
@@ -605,7 +620,7 @@
         text: 'The lens grille rises while the light holds.' }
     ],
     pickups: [
-      { id: 'seed-lens', kind: 'lens', x: 900, y: 160, text: 'Seed lens: it shows the Root Hart\'s grain. A hart stunned by timber stays open longer.' },
+      { id: 'seed-lens', kind: 'lens', x: 900, y: 160, text: 'Seed lens: hold redirected light on the Root Hart to stun it for a sword opening without breaking a dam. The lens needs time to recover; timber stuns also last longer.' },
       { id: 'ferry-heart', kind: 'heart', x: 866, y: 390, text: 'Ferry heart: your maximum health rises by one.' }
     ],
     water: [
@@ -636,7 +651,7 @@
   // and the remaining dams sit in their own dry pockets. Stone only dazes.
   const reservoir = {
     id: 'reservoir', region: 'verdant-aqueduct', challenge: 'B5', name: 'Hart Reservoir', w: W, h: H,
-    intro: 'The Root Hart guards the last beacon. Stand before a timber dam, let the hart lock its charge, then step aside: antlers in timber leave it stunned for your blade. Each broken dam floods the ground around it.',
+    intro: 'Bait the Root Hart’s charge into a timber dam, then step aside and strike its stunned body. Broken dams flood the arena. If you found the Seed Lens, hold the west beam on the Hart with your mirror or prism for a sword opening without breaking a dam.',
     spawn: { x: 84, y: 384 },
     walls: [
       { x: 24, y: 48, w: 24, h: 296 }, { x: 24, y: 424, w: 24, h: 296 },
@@ -663,6 +678,7 @@
       { id: 'flood-ne', x: 624, y: 220, w: 352, h: 110, when: { flag: 'dam:dam-ne' } },
       { id: 'flood-se', x: 690, y: 440, w: 110, h: 256, when: { flag: 'dam:dam-se' } }
     ],
+    emitters: [{ id: 'reservoir-seed-sun', x: 88, y: 384, dx: 1, dy: 0 }],
     enemies: [{ type: 'hart', id: 'root-hart', x: 540, y: 260, r: 34, hp: 8, wakeRadius: 380 }],
     beacon: { x: 512, y: 130, requires: ['root-hart'], next: { room: 'furnace', spawn: { x: 84, y: 384 } },
       text: 'The reservoir beacon steadies. Beyond it, the Glass Kiln breathes beneath the tide.' },
@@ -680,7 +696,7 @@
   // ---------------------------------------------------------------------------
   const furnace = {
     id: 'furnace', region: 'glass-kiln', challenge: 'C1', name: 'Furnace Lanes', w: W, h: H,
-    intro: 'Read the kiln pulse. The safe lane switches sides at the broken divider: in heat, take the lower west lane then the upper east lane; in cooling, reverse them. Return the Kiln Watch’s shots to open the east lock.',
+    intro: 'Read the kiln pulse: safe lanes switch at the broken divider. Return the Kiln Watch’s shots to open the east lock. The kiln unlocks lens polarity: toggle HOT or COLD to set the color of your reflected light for matching foundry locks.',
     spawn: { x: 84, y: 384 },
     thermal: { period: 8, hotFor: 4, offset: 0 },
     walls: [
@@ -794,7 +810,7 @@
   // ray is routed, so the puzzle is timed in execution, not in arbitrary luck.
   const foundry = {
     id: 'foundry', region: 'glass-kiln', challenge: 'C4', name: 'Foundry Locks', w: W, h: H,
-    intro: 'The hot lock accepts its ray only in heat; the cold lock only while the far screen cools clear. Slash each mirror toward its receiver in the matching phase. The first lock stays latched while you route the second.',
+    intro: 'The west source is HOT; the east source is COLD. Turn each mirror toward its matching lock when the heat screen clears. Your raised mirror recolors the ray to your chosen polarity: match HOT to the south lock, COLD to the north. Each lock stays latched.',
     spawn: { x: 84, y: 384 },
     thermal: { period: 12, hotFor: 6, offset: 0 },
     walls: [
@@ -810,21 +826,21 @@
       { id: 'cold-ray-screen', x: 816, y: 536, w: 28, h: 32, mode: 'solid', when: 'hot' }
     ],
     emitters: [
-      { id: 'west-foundry-sun', x: 88, y: 220, dx: 1, dy: 0 },
-      { id: 'east-foundry-sun', x: 936, y: 552, dx: -1, dy: 0 }
+      { id: 'west-foundry-sun', x: 88, y: 220, dx: 1, dy: 0, polarity: 'hot' },
+      { id: 'east-foundry-sun', x: 936, y: 552, dx: -1, dy: 0, polarity: 'cold' }
     ],
     mirrors: [
       { id: 'hot-lock-mirror', x: 360, y: 220, r: 17, split: false, dirs: [[0, 1], [1, 0]], index: 1 },
       { id: 'cold-lock-mirror', x: 664, y: 552, r: 17, split: false, dirs: [[0, -1], [-1, 0]], index: 1 }
     ],
     receivers: [
-      { id: 'hot-lock', x: 360, y: 628, r: 24, kind: 'seal', text: 'The hot foundry lock latches.' },
-      { id: 'cold-lock', x: 664, y: 144, r: 24, kind: 'seal', text: 'The cold foundry lock latches.' }
+      { id: 'hot-lock', x: 360, y: 628, r: 24, kind: 'seal', polarity: 'hot', text: 'The hot foundry lock latches.' },
+      { id: 'cold-lock', x: 664, y: 144, r: 24, kind: 'seal', polarity: 'cold', text: 'The cold foundry lock latches.' }
     ],
     gates: [{ id: 'weaver-gate', x: 952, y: 344, w: 24, h: 80, opensWhen: { receivers: ['hot-lock', 'cold-lock'] },
       text: 'Both foundry locks answer. The Weaver’s arena opens.' }],
     clearWhen: { receivers: ['hot-lock', 'cold-lock'] },
-    objectives: { seal: 'Route the hot ray during heat, then the cold ray during cooling', exit: 'Both locks to the Glass Weaver arena' },
+    objectives: { seal: 'HOT light to the south lock · COLD light to the north · read each heat screen', exit: 'Both locks to the Glass Weaver arena' },
     exits: [
       { id: 'to-rail', x: 24, y: 344, w: 24, h: 80, to: 'rail', spawn: { x: 930, y: 384 } },
       { id: 'to-weaver', x: 976, y: 344, w: 24, h: 80, to: 'weaver', spawn: { x: 84, y: 384 } }
@@ -867,7 +883,7 @@
   // crosses the annealed span to leave the room.
   const quench = {
     id: 'quench', region: 'glass-kiln', challenge: null, name: 'Quench Gallery', w: W, h: H,
-    intro: 'Pull the quench valve to open a dry return spur into the bridge room’s west bank. An artisan left a tempered attachment in the gallery.',
+    intro: 'Pull the quench valve to open a dry return spur into the bridge room’s west bank and drain the south flare in the distant Crown galleries. An artisan left a tempered weapon attachment in the gallery.',
     spawn: { x: 512, y: 116 },
     walls: [
       { x: 24, y: 48, w: 424, h: 32 }, { x: 552, y: 48, w: 424, h: 32 },
@@ -877,11 +893,11 @@
       { x: 250, y: 260, w: 120, h: 28 }, { x: 650, y: 476, w: 120, h: 28 }
     ],
     levers: [{ id: 'quench-valve', x: 840, y: 384, flag: 'quench-valve',
-      text: 'The quench valve vents the furnace. A dry return spur opens to the bridge room’s west bank.' }],
+      text: 'The valve drains the Crown gallery’s south flare and opens a dry spur to the bridge room’s west bank.' }],
     gates: [{ id: 'quench-side-gate', x: 952, y: 344, w: 24, h: 80, optional: true, opensWhen: { flag: 'quench-valve' },
       text: 'The dry return spur opens to the Annealed Bridge’s west bank.' }],
     pickups: [{ id: 'kiln-edge', kind: 'kiln-edge', x: 220, y: 600,
-      text: 'Glass Edge attachment: a tempered tooth from the kiln artisan’s final set.' }],
+      text: 'Glass Edge fitted: an aimed sword slash cuts hostile shots close in front of you. It destroys them; use the mirror when you need a returned shot.' }],
     clearWhen: { flag: 'quench-valve' },
     objectives: { route: 'Pull the quench valve · take the Glass Edge', exit: 'Return spur to the Annealed Bridge’s west bank' },
     exits: [
@@ -1009,7 +1025,7 @@
   const telescope = {
     id: 'telescope', region: 'night-observatory', challenge: 'D4', name: 'Telescope Bridges', w: W, h: H,
     darkness: true,
-    intro: 'Ilex needs both telescope crossings. Escort her over the aligned west span, then slash the central telescope to swing its light east. She waits at a missing bridge. Keep close and return the snipers’ shots while she crosses.',
+    intro: 'Ilex waits at each bank until its covering sniper is jammed. Return the north sniper’s shot to open her west crossing window. On the island, slash the telescope east and return the east sniper’s shot before leading her across. Stay close; a lit bridge alone is not safe passage.',
     spawn: { x: 84, y: 384 },
     walls: [
       { x: 24, y: 48, w: 24, h: 296 }, { x: 24, y: 424, w: 24, h: 296 },
@@ -1032,12 +1048,16 @@
     ],
     escort: { name: 'Ilex', x: 132, y: 384, hp: 5, flag: 'ilex-observatory',
       path: [[270, 384], [472, 384], [552, 384], [760, 384], [900, 384]],
+      crossingChecks: [
+        { index: 1, enemy: 'telescope-north-sniper', text: 'Ilex: “Return the north sniper’s shot, then lead me over the west span while it is jammed.”' },
+        { index: 3, enemy: 'telescope-east-sniper', text: 'Ilex: “Turn the telescope east. Return the east sniper’s shot before we commit to its crossing.”' }
+      ],
       text: 'Ilex reaches the dome controls. “The twins power each other. Break the line between them with stored light.”' },
     escortExit: { x: 876, y: 344, w: 72, h: 80 },
     gates: [{ id: 'telescope-lock', x: 952, y: 344, w: 24, h: 80, opensWhen: { flag: 'ilex-observatory' },
       text: 'Ilex silences the telescope lenses. The Twin Dome opens.' }],
     clearWhen: { escort: true },
-    objectives: { escort: 'Escort Ilex west span → central lens → east span · slash the telescope to rotate', exit: 'East to the Twin Dome' },
+    objectives: { escort: 'Jam the north sniper → lead Ilex west → rotate telescope east → jam east sniper → lead Ilex across', exit: 'East to the Twin Dome' },
     exits: [
       { id: 'telescope-to-shade', x: 24, y: 344, w: 24, h: 80, to: 'shade', spawn: { x: 920, y: 384 } },
       { id: 'telescope-to-twins', x: 976, y: 344, w: 24, h: 80, to: 'twins', spawn: { x: 84, y: 384 } }
@@ -1075,9 +1095,9 @@
     ],
     beacon: { x: 512, y: 138, requires: ['star-twin-dawn', 'star-twin-dusk'],
       next: { room: 'descent', spawn: { x: 84, y: 384 } },
-      text: 'The fourth beacon rises. Its light reveals the Drowned Crown descent. Nacre is still held within the eclipse engine.' },
+      text: 'Nacre’s signal reaches the fourth beacon: “We cannot power every route. Restore the channels for enduring star paths, or the beacons for faster stored light and a longer opening against the Keeper.”' },
     clearWhen: { defeated: ['star-twin-dawn', 'star-twin-dusk'] },
-    objectives: { fight: 'Burst through the twins’ shield link · strike an exposed twin · refill safely', beacon: 'Reach the Observatory beacon · continue into the Drowned Crown', cleared: 'Night Observatory restored · continue to the Drowned Crown' },
+    objectives: { fight: 'Burst through the twins’ shield link · strike an exposed twin · refill safely', beacon: 'Reach the Observatory beacon · choose how to restore the Crown light', cleared: 'Choose channels or beacons · continue to the Drowned Crown' },
     exits: [{ id: 'twins-to-telescope', x: 24, y: 344, w: 24, h: 80, to: 'telescope', spawn: { x: 920, y: 384 } }]
   };
 
@@ -1102,7 +1122,7 @@
     ],
     rechargePads: [{ id: 'chart-north-well', x: 512, y: 208, r: 38 }, { id: 'chart-island-well', x: 720, y: 434, r: 32 }, { id: 'chart-south-well', x: 832, y: 632, r: 38 }],
     pickups: [{ id: 'sky-chart', kind: 'sky-chart', x: 832, y: 632,
-      text: 'Sky chart secured. Its mark opens the east light refuge in the Twin Dome.' }],
+      text: 'Sky chart secured. Its mark opens the east Twin Dome refuge and reveals the upper stair across the Crown descent.' }],
     objectives: { route: 'Burst along the hooked crossings · take the sky chart · return north' },
     exits: [{ id: 'chart-to-shutters', x: 472, y: 48, w: 80, h: 32, to: 'obs-shutters', spawn: { x: 744, y: 640 } }]
   };
@@ -1131,7 +1151,7 @@
     gates: [{ id: 'shade-vault-lock', x: 468, y: 476, w: 88, h: 24, hold: true, optional: true, opensWhen: { receivers: ['shade-west-seal', 'shade-east-seal'] },
       text: 'The split seals lift the keeper’s cage.' }],
     rescue: { name: 'Bound keeper', x: 512, y: 596, flag: 'shade-freed', requiresFlag: 'gate:shade-vault-lock',
-      text: 'The keeper shade is free. Its sigil opens the west light refuge in the Twin Dome.' },
+      text: 'The freed keeper opens the west Twin Dome refuge and the Crown descent’s east stair. Its sigil also silences the descent sentry.' },
     rechargePads: [{ id: 'vault-well', x: 512, y: 400, r: 36 }],
     objectives: { seal: 'Turn both branch mirrors down into their seals', rescue: 'Enter the open cage and free the keeper shade', exit: 'Return north to Split-Light Hall' },
     exits: [{ id: 'vault-to-shade', x: 472, y: 48, w: 80, h: 32, to: 'shade', spawn: { x: 512, y: 640 } }]
@@ -1159,7 +1179,7 @@
     receivers: [{ id: 'crown-descent-seal', x: 900, y: 384, r: 22, kind: 'seal', text: 'The descent seal catches the beam. The gallery lock lifts.' }],
     enemies: [
       { type: 'sentinel', id: 'crown-descent-sentinel', x: 796, y: 384, r: 27, hp: 6, wakeRadius: 660 },
-      { type: 'turret', id: 'crown-descent-turret', x: 892, y: 544, r: 16, targets: 'player', interval: 3.0, delay: 2.2, until: 'crown-descent-lock' }
+      { type: 'turret', id: 'crown-descent-turret', x: 892, y: 544, r: 16, targets: 'player', interval: 3.0, delay: 2.2, until: 'crown-descent-lock', disabledBy: 'shade-freed' }
     ],
     pickups: [{ id: 'descent-charge', kind: 'stored-light', x: 156, y: 384,
       text: 'A stored-light charge remains in the observatory stone.' }],
@@ -1190,7 +1210,7 @@
     ],
     glass: [
       { id: 'gallery-north-flare', x: 176, y: 128, w: 664, h: 112, mode: 'hazard', when: 'hot' },
-      { id: 'gallery-south-flare', x: 176, y: 528, w: 664, h: 112, mode: 'hazard', when: 'cold' }
+      { id: 'gallery-south-flare', x: 176, y: 528, w: 664, h: 112, mode: 'hazard', when: 'cold', disabledBy: 'quench-valve' }
     ],
     shutters: [
       { id: 'gallery-east-shutter', x: 640, y: 164, w: 24, h: 96, period: 8, openFor: 4, offset: 0 },

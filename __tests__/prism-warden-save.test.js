@@ -11,6 +11,15 @@ function completed(PW) {
   s.score = 2345; s.flags.chart = true; s.flags['beacon:tidal-abbey'] = true; s.cleared.A5 = true;
   return s;
 }
+
+test('restoration choice survives beacon reload and Crown rollback with secured discoveries',()=>{
+ const PW=load(),s=PW.create({room:'stars'});s.status='playing';s.next={room:'stars'};PW.continueRegion(s);
+ PW.enterRoom(s,'twins');s.status='cleared';s.next={room:'descent'};s.flags['beacon:night-observatory']=true;s.flags['kiln-edge']=true;
+ expect(PW.chooseRestoration(s,'beacons')).toBe(true);
+ const saved=PW.Save.decode(PW.Save.encode(s));expect(saved.flags['restoration-choice']).toBe('beacons');expect(PW.chooseRestoration(saved,'channels')).toBe(false);
+ PW.continueRegion(saved);saved.score+=123;saved.flags['quench-valve']=true;
+ const resumed=PW.Save.decode(PW.Save.encode(saved));expect(resumed.roomId).toBe('descent');expect(resumed.flags['restoration-choice']).toBe('beacons');expect(resumed.flags['kiln-edge']).toBe(true);expect(resumed.flags['quench-valve']).toBeUndefined();
+});
 test('reload preserves a completed beacon before the equipment decision', () => {
   const PW = load(), s = completed(PW), restored = PW.Save.decode(PW.Save.encode(s));
   expect(restored.status).toBe('cleared'); expect(restored.score).toBe(2345);

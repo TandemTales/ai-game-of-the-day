@@ -1248,3 +1248,31 @@ was skipped. All six browser fixture sweeps pass after that correction. The
 native retry driver now resets its local action timestamps when room retry rewinds
 the game clock. The in-flight touch run predates that harness-only reset, so retain
 its retry/cadence limitation and do not infer intentional-strategy balance from it.
+
+
+## September27 final handoff — 09:33 Pacific
+
+Final touch attempt ended LOST in A3 Shutter Corridors: Ilex fell while Sera still
+had6HP, after two A2 retries and two A3 retries;402.14wall seconds, final restored
+simulation clock234.80s. A1/A2 and the sanctuary were reached, but A3 never cleared.
+Console remained clean. Retained evidence: sep27-native-retries/touch-report.json
+and touch-final.png. This run predates the retry-driver timestamp reset; its
+contact cadence and state-informed strategy remain test limitations. No complete
+touch-play or balance acceptance. Earlier untouched attempts are retained too.
+
+This bounded run closes named discovery/polarity/restoration implementation gaps,
+adds actual D4 defense requirements, and establishes a full desktop native-input
+route. All source and evidence handoffs are pushed on dev. Final full repository
+25suites/472tests PASS; subsequent focused15tests, syntax/diff and final six-size
+browser fixtures PASS. No completion marker, shipping judge or main promotion.
+
+Next FIRST: diagnose/play A3 escort with correct simultaneous native touch after
+the final driver reset, then complete the whole touch campaign and all optional
+acquisition routes. Independently challenge meaningful depth, learning, pacing,
+replay value and player comprehension of polarity/equipment/restoration. Physical
+devices, audio listening and human enjoyment remain open. Final critics: scoped
+mechanics/readability PASS; complete experiential scope/fun NOT ESTABLISHED;
+NON-BLIND AAA FAIL / OURS LOSES. Preserve flat Crown/Observatory floors, diagrammatic
+boundaries, limited enemy silhouettes and label-heavy navigation as visual debt.
+October3 is forced wrap-up only. Audit any unresolved scope honestly; do not call
+inventory, state-informed completion or the desktop route an AAA acceptance.

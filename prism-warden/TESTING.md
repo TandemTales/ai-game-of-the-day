@@ -307,3 +307,12 @@ Fresh official Nintendo Link's Awakening screenshot downloaded and inspected in
 Comparison is NON-BLIND: scoped mechanics/readability PASS, AAA FAIL / OURS LOSES.
 Full optional-route, native-touch, physical-device, audio and fun acceptance remain
 open unless a subsequent PROGRESS entry supplies that specific evidence.
+
+
+Final native outcomes: corrected keyboard WON445.78game/447.72wall seconds,
+all25,2HP,37850score,zero retries and actual four equipment/channel selections.
+Corrected touch with ordinary retries lost A3 after four recorded retries;
+402.14wall seconds, no console errors. That retry process predates the final
+harness timestamp reset. See PROGRESS for retained failures and exact limitations.
+Final optional-discovery UI excludes required rescues; all six ending fixtures
+assert0/1 Crown discoveries when Archive is absent. No human/fun/AAA pass.

@@ -35,7 +35,7 @@ async function main(){
    await page.screenshot({path:path.join(out,size+'-channels.png')});
    // Final rescue flags are declared: this verifies the result flow, not boss victory.
    await page.evaluate(()=>{const s=PW.game;PW.enterRoom(s,'crown');s.player.invulnerable=99;s.enemies.forEach(e=>{e.hp=0;e.phase='defeated';});s.flags['defeated:eclipse-keeper']=true;s.flags['nacre-freed']=true;s.rescue.freed=true;s.flags['ilex-evacuated']=true;s.escort.arrived=true;s.player.x=s.beacon.x;s.player.y=s.beacon.y;});
-   await page.waitForFunction(()=>PW.game.status==='won');await page.waitForTimeout(200);assert.match(await page.locator('#panelText').innerText(),/crossings.*Ferries/);
+   await page.waitForFunction(()=>PW.game.status==='won');await page.waitForTimeout(200);assert.match(await page.locator('#panelText').innerText(),/crossings.*Ferries/);assert.match(await page.locator('#panelText').innerText(),/0 of 1 Drowned Crown discoveries/);
    await page.screenshot({path:path.join(out,size+'-ending.png')});
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
    report.push({size,pass:true,errors,external,polarity:box});await page.close();console.log(size+' PASS');

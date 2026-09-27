@@ -1228,3 +1228,23 @@ pulses and correct contact lists/28px joystick travel fix those. Initial failure
 remain under sep27-native; corrected no-retry touch cleared A1 but lost in A2 at
 68.25game seconds. A final recorded-retry touch attempt and corrected keyboard
 whole campaign are running; no whole-native acceptance is claimed here.
+
+
+## September27 whole native keyboard completion
+
+The corrected normal-clock keyboard/mouse run WON the entire campaign:
+445.78game seconds,447.72wall seconds,2/7HP,37850score,all25 challenges,zero
+retries, selected equipment at all four beacons and selected channels through
+the real browser debrief. No gameplay state, clock, health or room was injected;
+read-only hidden-state planning sent actual browser keys/mouse. Lead inspected
+the resulting ending. Evidence: sep27-native-refined/keyboard-report.json and
+keyboard-final.png. This establishes one full desktop input route, not human
+exploration time, fun, all optional discoveries or physical-device performance.
+
+
+Final UI follow-through: required Nacre/Ilex rescues no longer inflate the optional
+discovery count; the ending now correctly shows0/1 Crown discoveries when Archive
+was skipped. All six browser fixture sweeps pass after that correction. The
+native retry driver now resets its local action timestamps when room retry rewinds
+the game clock. The in-flight touch run predates that harness-only reset, so retain
+its retry/cadence limitation and do not infer intentional-strategy balance from it.

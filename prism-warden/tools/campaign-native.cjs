@@ -40,7 +40,7 @@ async function main(){
     await release();report.retries.push({room:s.roomId,time:s.time,hp:p.hp,wallSeconds:(Date.now()-begin)/1000});
     const moduleName={'tidal-abbey':'abbey','verdant-aqueduct':'aqueduct','glass-kiln':'kiln','night-observatory':'observatory','drowned-crown':'crown'}[s.regionId];
     pilots[s.regionId]=require('./'+moduleName+'-pilot.cjs').createPilot(...(['observatory','crown'].includes(moduleName)?[]:[engine]));
-    await page.locator('#begin').click();await page.waitForFunction(()=>PW.game.status==='playing');roomStart=Date.now();console.log(mode+' retry '+s.roomId);continue;
+    await page.locator('#begin').click();await page.waitForFunction(()=>PW.game.status==='playing');roomStart=Date.now();lastSlash=lastPlace=lastBurst=lastDash=-1;minorDuty=.5;console.log(mode+' retry '+s.roomId);continue;
    }
    if(s.status!=='playing'){report.outcome={status:s.status,time:s.time,hp:p.hp,hits:s.hits,score:s.score,cleared:s.cleared,flags:s.flags,wallSeconds:(Date.now()-begin)/1000};break;}
    if(Date.now()-roomStart>180000){report.failure='Three-minute room timeout at '+s.roomId;break;}

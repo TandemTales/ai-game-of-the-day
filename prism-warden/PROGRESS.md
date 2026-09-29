@@ -1379,3 +1379,15 @@ around the first loss; determine why two retry attempts fail before changing
 game logic or difficulty. Then replay the whole touch route, preserving every
 retry, and verify the B4 tolerance if reached. Keep the visual verdict and
 human/device/audio/fun gates open.
+
+## 2026-09-29 Tuesday weekend-run continuation intent — 10:57 Pacific
+
+STOP absent; clean dev synchronized. Pacific Tuesday, age9; October3 remains
+forced wrap-up. Scope audit: five regions/25 challenges, four equipment decisions,
+ten discovery consequences, restoration branches and climax are implemented;
+full optional-route experience, reliable native touch, human fun, device/audio and
+AAA acceptance are not established. Preserve the latest B3 loss and AAA FAIL /
+OURS LOSES. This run will trace Channels mortar/lob/input/damage events, diagnose
+the first supported cause, then verify a bounded repair and continue the native
+route into Quay if reached. Independent read-only mechanics/gameplay criticism
+will challenge conclusions. No release, .aaa-complete or main promotion.

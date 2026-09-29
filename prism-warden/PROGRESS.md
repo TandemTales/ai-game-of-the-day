@@ -1391,3 +1391,10 @@ OURS LOSES. This run will trace Channels mortar/lob/input/damage events, diagnos
 the first supported cause, then verify a bounded repair and continue the native
 route into Quay if reached. Independent read-only mechanics/gameplay criticism
 will challenge conclusions. No release, .aaa-complete or main promotion.
+
+Diagnostic checkpoint: added read-only Channels trace and a labeled native
+room-entry fixture, including each retry's loss capture. Full baseline suite
+passes25 suites/472 tests; harness syntax and diff checks pass. The full native
+campaign and isolated B3 fixture are running. No runtime rules or difficulty
+changed. First push was delayed by the long baseline suite; intent was pushed
+after the seven equipment tests passed, before either reviewer was spawned.

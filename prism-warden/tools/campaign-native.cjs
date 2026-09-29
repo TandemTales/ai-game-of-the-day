@@ -4,6 +4,8 @@
 const fs=require('fs'),path=require('path'),http=require('http');
 const {chromium}=require(process.env.PW_PLAYWRIGHT||'C:/Users/jshun/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const root=path.resolve(__dirname,'../..'),mode=process.argv[2]||'keyboard',touch=mode==='touch';
+const diagnosticRoom=process.argv.find(a=>a.startsWith('--room='))?.slice(7);
+if(diagnosticRoom&&diagnosticRoom!=='channels')throw new Error('Only --room=channels is supported; this is a declared room-entry fixture.');
 const out=path.resolve(process.env.PW_SHOTS||'node_modules/.cache/prism-warden/sep27-native');fs.mkdirSync(out,{recursive:true});
 const aq=require('./aqueduct-pilot.cjs'),engine=aq.loadPW();
 const pilots={
@@ -16,12 +18,24 @@ const pilots={
 const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+new URL(req.url,'http://localhost').pathname);if(!file.startsWith(root+path.sep))return res.writeHead(403).end();fs.readFile(file,(err,data)=>{if(err)return res.writeHead(404).end();res.setHeader('Content-Type',({'.js':'text/javascript','.css':'text/css','.png':'image/png','.webp':'image/webp'})[path.extname(file)]||'text/html');res.end(data);});});
 async function main(){
  await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser,page;
- const report={mode,evidence:'Native inputs, persistent touch contacts and brief aim-only touch, ordinary game clock, read-only hidden-state planning; no human play claim',rooms:[],retries:[],a1Trace:[],a2Trace:[],b1Trace:[],errors:[],started:new Date().toISOString()};
+ const report={mode,diagnosticRoom:diagnosticRoom||null,evidence:(diagnosticRoom?'Declared fresh Channels entry fixture; NOT a whole-campaign route. ':'')+'Native inputs, persistent touch contacts and brief aim-only touch, ordinary game clock, read-only hidden-state planning; no human play claim',rooms:[],retries:[],a1Trace:[],a2Trace:[],b1Trace:[],b3Trace:[],errors:[],started:new Date().toISOString()};
+ let lastB3Trace=-1,lastB3State='';
+ function traceChannels(s,input,actions,contacts){
+  if(s.roomId!=='channels')return;
+  const p=s.player,attempt=report.retries.filter(r=>r.room==='channels').length+1;
+  const mortars=s.enemies.filter(e=>e.type==='mortar');
+  const target=['mortar-north','mortar-mid','mortar-south'].map(id=>mortars.find(e=>e.id===id)).find(e=>e&&e.hp>0);
+  const state=JSON.stringify([attempt,s.status,p.hp,s.hits,mortars.map(e=>[e.id,e.hp,e.phase,e.clang>0]),s.lobs.map(l=>l.id)]);
+  if(s.roomTime-lastB3Trace<.1&&state===lastB3State)return;
+  report.b3Trace.push({attempt,status:s.status,roomTime:s.roomTime,time:s.time,player:{x:p.x,y:p.y,hp:p.hp,aimX:p.aimX,aimY:p.aimY,reflecting:p.reflecting,slashTime:p.slashTime,slashCooldown:p.slashCooldown,dashTime:p.dashTime,dashCooldown:p.dashCooldown,invulnerable:p.invulnerable,wading:p.wading},hits:s.hits,returns:s.returns,tide:s.tide,water:s.water.filter(w=>w.active),wade:s._wade,mortars:mortars.map(e=>({id:e.id,x:e.x,y:e.y,hp:e.hp,phase:e.phase,timer:e.timer,aimX:e.aimX,aimY:e.aimY,facingX:e.facingX,facingY:e.facingY,clang:e.clang})),lobs:s.lobs.map(l=>({id:l.id,owner:l.owner,tx:l.tx,ty:l.ty,r:l.r,impactIn:l.flight-l.t})),waypoint:target&&{x:target.x+56,y:target.y,distance:Math.hypot(target.x+56-p.x,target.y-p.y)},input,actions:actions.map(a=>a[0]),contacts:contacts.map(t=>({...t})),message:s.message});
+  lastB3Trace=s.roomTime;lastB3State=state;
+ }
  try{
   browser=await chromium.launch({headless:true,executablePath:process.env.PW_CHROME||'C:/Users/jshun/AppData/Local/ms-playwright/chromium-1155/chrome-win/chrome.exe'});
   page=await browser.newPage({viewport:touch?{width:390,height:844}:{width:1440,height:900},hasTouch:touch});
   page.on('pageerror',e=>report.errors.push(e.message));page.on('console',m=>{if(m.type()==='error')report.errors.push(m.text());});
   await page.goto(`http://127.0.0.1:${server.address().port}/prism-warden/index.html`);await page.locator('#begin').click();
+  if(diagnosticRoom)await page.evaluate(room=>PW.enterRoom(PW.game,room),diagnosticRoom);
   const cdp=await page.context().newCDPSession(page);let minorDuty=.5;let keys=new Set(),activeTouch=false,touchContacts=[],lastRoom='',roomStart=0,lastSlash=-1,lastPlace=-1,lastBurst=-1,lastDash=-1,lastA1Trace=-1,lastA1State='',lastA1GateAt=-1,lastA2Trace=-1,lastA2Hp=-1,lastB1Trace=-1,lastB1Hp=-1,lastB1Charge=-1;
   const begin=Date.now(),limit=Number(process.env.PW_MAX_SECONDS||900)*1000;
   const boxes=await page.evaluate(()=>Object.fromEntries(['movePad','mirrorPad','slash','dash','prism','burst','polarity'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return[id,{x:r.x+r.width/2,y:r.y+r.height/2,w:r.width,h:r.height}];})));
@@ -39,13 +53,16 @@ async function main(){
     lastB1Trace=s.roomTime;lastB1Hp=p.hp;lastB1Charge=s.receivers[0].charge;
    }
    if(s.roomId!==lastRoom){lastRoom=s.roomId;roomStart=Date.now();const entry={room:s.roomId,time:s.time,hp:p.hp,wallSeconds:(Date.now()-begin)/1000};report.rooms.push(entry);console.log(mode+' '+JSON.stringify(entry));await page.screenshot({path:path.join(out,`${mode}-${String(report.rooms.length).padStart(2,'0')}-${s.roomId}.png`)});}
+   if(diagnosticRoom&&s.roomId!==diagnosticRoom){report.outcome={status:s.status,diagnosticCleared:!!s.cleared.B3,room:s.roomId,time:s.time,hp:p.hp,hits:s.hits,cleared:s.cleared,wallSeconds:(Date.now()-begin)/1000};break;}
    if(s.status==='cleared'){
     await release();const pick={'tidal-abbey':'mobile-reflection','verdant-aqueduct':'heavy-strike','glass-kiln':'prism-recall','night-observatory':'lasting-bridge'}[s.regionId];
     await page.locator(`[data-equipment="${pick}"]`).click();
     if(s.regionId==='night-observatory')await page.locator('[data-restoration="channels"]').click();
     await page.locator('#begin').click();continue;
    }
+   if(s.status!=='playing')traceChannels(s,null,[],touchContacts);
    if(s.status==='lost'&&report.retries.filter(r=>r.room===s.roomId).length<2&&report.retries.length<6){
+    await page.screenshot({path:path.join(out,`${mode}-${s.roomId}-loss-${report.retries.filter(r=>r.room===s.roomId).length+1}.png`)});
     if(s.roomId==='sluice')await page.screenshot({path:path.join(out,`${mode}-a2-loss-${report.retries.filter(r=>r.room==='sluice').length+1}.png`)});
     if(s.roomId==='spillway')await page.screenshot({path:path.join(out,`${mode}-b1-loss-${report.retries.filter(r=>r.room==='spillway').length+1}.png`)});
     await release();report.retries.push({room:s.roomId,time:s.time,hp:p.hp,wallSeconds:(Date.now()-begin)/1000});
@@ -63,6 +80,7 @@ async function main(){
    if(i.burst&&s.time-lastBurst>.22){actions.push(['burst','r']);lastBurst=s.time;}
    if(i.dash&&s.time-lastDash>.22){actions.push(['dash','Space']);lastDash=s.time;}
    if(i.polarity)actions.push(['polarity','f']);
+   traceChannels(s,i,actions,touchContacts);
    if(s.regionId==='tidal-abbey'&&s.roomId==='cloister'&&s.status==='playing'){
     const sent=s.enemies.find(e=>e.type==='sentinel'),turret=s.enemies.find(e=>e.type==='turret');
     const state=[p.hp,s.gates[0]&&s.gates[0].open,sent&&sent.hp,sent&&sent.phase,sent&&sent.exposed>0].join('|');
@@ -111,7 +129,7 @@ async function main(){
   }
   await release();await page.waitForTimeout(300);await page.screenshot({path:path.join(out,mode+'-final.png')});
   if(!report.outcome)report.outcome=await page.evaluate(()=>({status:PW.game.status,room:PW.game.roomId,time:PW.game.time,hp:PW.game.player.hp,player:PW.game.player,mirrors:PW.game.mirrors,receivers:PW.game.receivers,cleared:PW.game.cleared}));
-  if(report.outcome.status!=='won'||report.errors.length)process.exitCode=1;
+  if((diagnosticRoom?!report.outcome.diagnosticCleared:report.outcome.status!=='won')||report.errors.length)process.exitCode=1;
  }catch(e){report.failure=e.stack;process.exitCode=1;}finally{report.finished=new Date().toISOString();fs.writeFileSync(path.join(out,mode+'-report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report));if(browser)await browser.close();server.close();}
 }
 main().catch(e=>{console.error(e);server.close();process.exitCode=1;});

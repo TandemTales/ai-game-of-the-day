@@ -1,6 +1,17 @@
 # Prism Warden â€” testing
 
 Run all regressions: node node_modules/jest/bin/jest.js --runInBand
+
+Channels diagnostic: `node prism-warden/tools/campaign-native.cjs touch --room=channels`
+starts at a declared fresh B3 room-entry fixture and succeeds only after B3 is
+cleared and the player exits. This is not a whole-campaign completion. Omit the
+room argument for the ordinary full route. Use a unique PW_SHOTS directory.
+Both modes record b3Trace: attempt/time, HP/hits, water/wading, mortar phases,
+lob targets/impact countdowns, requested inputs, preceding native contacts,
+planned waypoint and damage/death snapshots. Every retry gets a loss screenshot.
+Damage causes are inferred from state/message; the diagnostic never instruments
+or mutates gameplay damage handling. Preserve failures alongside passing routes.
+
 Run focused mechanics: node node_modules/jest/bin/jest.js prism-warden --runInBand
 Browser harness will live at prism-warden/tools/smoke.cjs; serves local HTTP and
 uses installed Playwright/Chromium. Evidence ignored under node_modules/.cache.

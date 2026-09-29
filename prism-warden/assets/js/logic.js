@@ -1842,11 +1842,29 @@
     }
     if (s.rescue && !s.rescue.freed) {
       if (!s.rescue.requires.every(id => defeatedId(s, id))) return O.fight || fightHint(s, s.rescue.requires);
-      if (s.rescue.requiresFlag && !s.flags[s.rescue.requiresFlag]) return O.route || 'Open a way to them';
+      if (s.rescue.requiresFlag && !s.flags[s.rescue.requiresFlag]) return O.route || (!s.room.challenge && O.seal) || 'Open a way to them';
       return O.rescue || (s.rescue.flag === 'ilex' ? 'Free Ilex' : 'Free the ' + s.rescue.flag);
     }
     if (gate) return O.gate || 'Find a way through';
     if (s.sanctuaryZone && !s.sanctuaryZone.active) return O.seal || 'Restore the sanctuary light';
+    // Optional-room exits stay usable throughout; their HUD should describe the
+    // remaining discovery before suggesting the return journey.
+    const untaken = id => s.pickups.some(pk => pk.id === id && !pk.taken);
+    if (s.roomId === 'obs-chart') return untaken('sky-chart') ? O.route : 'Return north to Moving Shutters';
+    if (s.roomId === 'archive') return untaken('keeper-archive') ? O.route :
+      'Return north to Rotating Galleries · east to the Switchback Shoal';
+    if (s.roomId === 'quench') {
+      const valve = s.levers.some(l => l.id === 'quench-valve' && !l.pulled), edge = untaken('kiln-edge');
+      if (valve && edge) return O.route;
+      if (valve) return 'Pull the quench valve';
+      if (edge) return 'Take the Glass Edge';
+    }
+    if (s.roomId === 'sanctuary') {
+      const chart = untaken('keeper-chart'), heart = untaken('abbey-heart');
+      if (chart && heart) return 'Take the keeper chart · collect the Tideglass heart from the lit reliquary';
+      if (chart) return 'Take the keeper chart';
+      if (heart) return 'Collect the Tideglass heart from the lit reliquary';
+    }
     if (O.exit) return O.exit;
     const exit = s.exits.find(x => !s.visited.includes(x.to)) || s.exits[0];
     return exit ? 'Continue to ' + exit.toName : '';

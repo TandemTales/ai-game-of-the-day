@@ -1469,7 +1469,7 @@ or treat this control reachability checkpoint as AAA acceptance.
 STOP absent; synchronized clean dev. Tuesday Pacific, age9; October3 forced wrap-up remains unchanged. Current scope inventory has five regions/25 challenges, equipment, ten consequences and ending, but whole optional acquisition journeys and active equipment decisions remain insufficiently exercised. This run will connect optional Abbey/Kiln/Observatory/Archive paths to legal routes, verify native inputs where feasible, and ask independent criticism to reject depth/learning claims. Preserve prior failures and AAA FAIL / OURS LOSES. No release or main promotion. Runtime changes require a reproducible player-facing defect; route evidence alone cannot establish fun.
 
 
-## September29 connected optional-route checkpoint - 12:48 Pacific
+## September29 connected optional-route checkpoint - 12:46 Pacific
 
 Added a shared legal-input discovery planner and three connected route regressions.
 Fresh full simulation wins all25 challenges and earns all10 discovery flags at
@@ -1495,3 +1495,29 @@ and Quench is currently a walk to a valve/pickup. Next substantive gameplay targ
 is an optional Glass Edge teaching encounter with safe pickup, staggered cover,
 recoverable volley pressure and distinct cut-versus-return decisions; preserve
 main C1-C2 route. Do not replace that gap with more completion-count claims.
+
+## September29 native optional routes expose acquisition-cue defect
+
+Independent normal-clock native fixtures: Observatory TOUCH clears D1-D5 and
+both chart/vault discoveries at121.58game/121.65wall seconds,5HP,zero retries;
+Kiln KEYBOARD clears C1-C5 plus valve/Glass Edge at119.77game/146.85wall seconds,
+5HP with one retained Weaver death. Both browser consoles clean. These are
+separate declared regional starts, not stitched into a whole-campaign claim.
+
+Actual native chart-entry screenshot incorrectly says Continue to Moving Shutters
+before acquisition. Fresh Archive and Quench similarly direct immediate departure;
+Vault hides its authored mirror task. Fixed objectives to describe remaining
+acquisitions and partial tasks, then show valid return directions after completion.
+No gameplay rules, rewards, exits, art or difficulty changed. Four new entry tests
+fail old code; all seven earned-route/objective regressions pass after the fix.
+Fresh six-size cue captures and full-suite verification are running. Full optional
+touch campaign predates this text-only fix and is retained separately.
+
+Acquisition-cue checkpoint verified: full repository27 suites/481 tests PASS;
+syntax/diff PASS. All six viewport objective/control/save sweeps PASS with no
+console errors, external requests or horizontal overflow. Lead viewed chart
+objectives at all six sizes plus Quench/Archive/Vault and the real side-by-side;
+4K downsampled. Critic independently reproduced the old defect and earned
+before/after task transitions, accepting scoped guidance/readability only.
+Direct-entry screenshot fixtures omit the earned light vessel and establish
+text/layout only; the connected native routes earned their own tools.

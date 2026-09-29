@@ -341,3 +341,44 @@ Corrected touch with ordinary retries lost A3 after four recorded retries;
 harness timestamp reset. See PROGRESS for retained failures and exact limitations.
 Final optional-discovery UI excludes required rescues; all six ending fixtures
 assert0/1 Crown discoveries when Archive is absent. No human/fun/AAA pass.
+
+## September29 connected optional journeys and acquisition cues
+
+`node prism-warden/tools/optional-pilot.cjs` plays a new campaign with all optional
+acquisitions, actual public equipment/restoration choices and ordinary retries.
+It reports every discovery, room, failure and outcome. Full independent simulation
+wins all25 plus10/10 discoveries at480.2167 retained game seconds,2HP,39500score;
+one Weaver death remains in the report. Executed time including that failed
+attempt is502.5833 simulation seconds. These are hidden-state reachability checks.
+`--room=stars --continue-fixture` explicitly starts a regional fixture and carries
+its earned vessel/discoveries into the Crown; never label that a whole campaign.
+
+`node prism-warden/tools/campaign-native.cjs touch --optional` uses the same
+connected acquisitions under native controls and normal clock, with a separate
+ranged Returning Blade opportunity planner. It records launched blades, correlated
+HP changes, polarity state and prism count; these counters do not prove mastery.
+`keyboard --optional --room=furnace --regional` and
+`touch --optional --room=stars --regional` are labeled fresh regional fixtures.
+Always set PW_SHOTS to a unique evidence directory. Failed attempts stay recorded.
+
+Regional native results before the acquisition-cue fix: Kiln keyboard clears
+C1-C5 plus valve/Glass Edge at119.77game/146.85wall seconds,5HP,6850score with one
+Weaver death; Observatory touch clears D1-D5 plus sky chart/freed keeper at
+121.58game/121.65wall seconds,5HP,7950score,zero retries. Both have zero browser
+errors. They are separate initializations, not a combined full native campaign.
+
+The fresh native chart image exposed a HUD bug: uncollected chart/archive rooms
+immediately instructed departure, Quench advertised its locked return, and the
+Vault hid its authored seal instruction. The objective now describes unfinished
+acquisitions, narrows partial Quench/sanctuary tasks, and shows return directions
+after completion. No exit, difficulty, pickup or progression rule changed.
+Seven optional-route tests cover four old-code failures plus legal before/after
+acquisition paths. `tools/discovery-smoke.cjs` now checks/captures all four optional
+entry objectives at all six sizes, alongside existing controls/saves/results.
+See PROGRESS for final full-suite, screenshot and whole-native outcomes.
+
+Independent verdict: scoped route/cue checks only; whole-experience depth,
+learning/replay/fun not accepted. NON-BLIND AAA FAIL / OURS LOSES against a fresh
+Nintendo Link's Awakening screenshot. Next gameplay work should turn Quench into
+an optional readable cut-versus-return encounter with recoverable mistakes;
+reward totals and selected equipment alone cannot establish depth or mastery.

@@ -12,6 +12,17 @@ async function main(){
    const [width,height]=size.split('x').map(Number),page=await browser.newPage({viewport:{width,height},hasTouch:width<1000}),errors=[],external=[];
    page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('request',r=>{if(!r.url().startsWith('http://127.0.0.1:'))external.push(r.url());});
    await page.goto(`http://127.0.0.1:${server.address().port}/prism-warden/index.html`);await page.locator('#begin').click();
+   // Fresh optional entries are explicit layout fixtures, not acquisitions.
+   const optionalObjectives=[];
+   for(const [room,expected] of [['obs-chart',/sky chart/i],['archive',/record/i],['quench',/quench valve/i],['shade-vault',/branch mirrors/i]]){
+    await page.evaluate(room=>PW.enterRoom(PW.game,room),room);
+    await page.waitForFunction(room=>PW.game.roomId===room&&document.getElementById('objective').textContent===PW.game.objective,room);
+    const objective=await page.locator('#objective').innerText();assert.match(objective,expected);
+    const bounds=await page.locator('#objective').boundingBox();assert(bounds.x>=0&&bounds.y>=0&&bounds.x+bounds.width<=width+1&&bounds.y+bounds.height<=height);
+    optionalObjectives.push({room,objective,bounds});
+    await page.waitForTimeout(150);await page.screenshot({path:path.join(out,size+'-optional-'+room+'.png')});
+   }
+
    await page.evaluate(()=>{const s=PW.game;PW.enterRoom(s,'foundry');s.player.invulnerable=99;s.flags['stored-light']=true;s.player.prism='carried';s.mirrors.forEach(m=>m.index=0);});
    await page.waitForFunction(()=>!document.getElementById('polarity').hidden);await page.keyboard.press('f');
    await page.waitForFunction(()=>PW.game.flags.polarity==='cold');const button=page.locator('#polarity'),box=await button.boundingBox();
@@ -38,7 +49,7 @@ async function main(){
    await page.waitForFunction(()=>PW.game.status==='won');await page.waitForTimeout(200);assert.match(await page.locator('#panelText').innerText(),/crossings.*Ferries/);assert.match(await page.locator('#panelText').innerText(),/0 of 1 Drowned Crown discoveries/);
    await page.screenshot({path:path.join(out,size+'-ending.png')});
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
-   report.push({size,pass:true,errors,external,polarity:box});await page.close();console.log(size+' PASS');
+   report.push({size,pass:true,errors,external,polarity:box,optionalObjectives});await page.close();console.log(size+' PASS');
   }
  }finally{fs.writeFileSync(path.join(out,'report.json'),JSON.stringify(report,null,2));if(browser)await browser.close();server.close();}
 }

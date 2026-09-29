@@ -1276,3 +1276,15 @@ NON-BLIND AAA FAIL / OURS LOSES. Preserve flat Crown/Observatory floors, diagram
 boundaries, limited enemy silhouettes and label-heavy navigation as visual debt.
 October3 is forced wrap-up only. Audit any unresolved scope honestly; do not call
 inventory, state-informed completion or the desktop route an AAA acceptance.
+
+## 2026-09-28 Monday polish intent - 23:00 Pacific
+
+STOP absent; dev synchronized and initially clean. Age8; forced wrap-up remains
+October3. First, rerun the complete normal-clock native touch campaign with the
+corrected retry-clock driver; diagnose the first genuine player-path barrier and
+preserve the prior A3 loss. If the route completes, exercise the Keeper Archive
+and the two restoration outcomes through public choices, then obtain independent
+harsh gameplay/presentation review against a shipped adventure reference. Keep
+the visual AAA FAIL / OURS LOSES and incomplete human/device/audio evidence unless
+fresh evidence changes them. Run the full suite before every pushed checkpoint.
+No release, completion marker or main promotion on this polish run.

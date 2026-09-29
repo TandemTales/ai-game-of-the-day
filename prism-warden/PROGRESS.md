@@ -1398,3 +1398,35 @@ passes25 suites/472 tests; harness syntax and diff checks pass. The full native
 campaign and isolated B3 fixture are running. No runtime rules or difficulty
 changed. First push was delayed by the long baseline suite; intent was pushed
 after the seven equipment tests passed, before either reviewer was spawned.
+
+## 2026-09-29 trace-supported native pilot corrections
+
+The full native attempt in sep29-weekend-channels-native cleared A1, then timed
+out after180 wall seconds in Sluice at217.77 game seconds/4HP, seal inactive,
+zero console errors. It never reached B3. The separate fresh Channels-entry
+fixture cleared B3 at26.55 game seconds/2HP/four hits/no retries. These outcomes
+remain separate; neither replaces the earlier full-campaign B3 loss.
+
+Independent trace review found legal attack opportunities withheld by the pilot:
+at18.967-19.267s it oscillated6.45-10.11 units from its mid-mortar waypoint with
+no lobs nearby, but demanded a5-unit tolerance. Expanded ONLY the pilot's staging
+tolerance to15: the entire disk remains behind the plate and within the ordinary
+74-unit sword reach (56+15=71). Native fixture after correction clears17.77s/3HP,
+three hits/no retries. Damage/evasion and full-campaign reliability are not solved.
+
+The actual Sluice timeout oscillated around the4-unit mirror stance. Independent
+held-input probes failed at8/12-frame observations; a12-unit stance (inside the
+18-unit beam catch) lights the seal in7.33/7.40 simulation seconds at6HP. All72
+tested boundary poses lit the seal. Applied only that pilot tolerance, retaining
+the existing aim. Two regression tests model8/16-frame observations and pass.
+Game rules, player controls, art and difficulty are unchanged. A fresh complete
+native attempt is running; its result must be recorded before claiming progress.
+
+Six viewport discovery/save/control sweeps pass with clean console, no external
+requests or overflow; lead viewed each polarity capture and the real comparison
+(4K downsampled). Refreshed captures copied to sep29-weekend-sweep after discovering
+that discovery-smoke hardcoded sep27-discoveries; it now honors PW_SHOTS so future
+runs preserve distinct evidence. Independent Quench and vault acquisition fixtures
+pass16.52s/8.92s at6HP, not complete optional journeys or human play. Critic remains
+NON-BLIND AAA FAIL / OURS LOSES; numerical scope implemented, experiential breadth,
+depth, fun, physical devices and audio acceptance remain open.

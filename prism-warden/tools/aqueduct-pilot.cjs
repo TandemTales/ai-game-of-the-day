@@ -316,11 +316,14 @@ function createPilot(PW, opts={}){
       const target = order.map(k => s.enemies.find(e => e.id === k)).find(e => e.hp > 0);
       if (target) {
         const bx = target.x + 56, by = target.y;
-        if (!near(bx, by, 5)) {
+        // Native input spans multiple simulation frames. The whole 15-unit
+        // staging disk stays behind the plate and within the 74-unit sword reach.
+        // Do not oscillate around an exact waypoint while a legal strike is open.
+        if (!near(bx, by, 15)) {
           const r = go(bx, by, { water: 'block' });
           if (r.stuck) { input.mx = 0; input.my = 0; }
         } else { aimAt(target.x, target.y); input.slash = true; }
-        if (!near(bx, by, 5) || (s.lobs || []).some(l => Math.hypot(p.x - l.tx, p.y - l.ty) < l.r + p.r + 10 && l.t / l.flight > .55)) {
+        if (!near(bx, by, 15) || (s.lobs || []).some(l => Math.hypot(p.x - l.tx, p.y - l.ty) < l.r + p.r + 10 && l.t / l.flight > .55)) {
           const before = [input.mx, input.my];
           if (dodgeLobs(s, input)) { input.slash = false; }
           else { input.mx = before[0]; input.my = before[1]; }

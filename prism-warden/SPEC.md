@@ -436,7 +436,7 @@ forced wrap-up; do not treat this implementation inventory as shipping acceptanc
 ### September29 optional-route verification ownership
 
 For this bounded verification increment, the optional-route builder owns only
-	ools/optional-pilot.cjs; a regression builder owns only
+`tools/optional-pilot.cjs`; a regression builder owns only
 __tests__/prism-warden-optional-routes.test.js at repository root. The lead owns
 all native-harness integration and documentation; an independent critic remains
 read-only except ignored evidence. These are state-informed verification tools,

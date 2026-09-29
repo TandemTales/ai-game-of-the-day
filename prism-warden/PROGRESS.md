@@ -1468,3 +1468,30 @@ or treat this control reachability checkpoint as AAA acceptance.
 
 STOP absent; synchronized clean dev. Tuesday Pacific, age9; October3 forced wrap-up remains unchanged. Current scope inventory has five regions/25 challenges, equipment, ten consequences and ending, but whole optional acquisition journeys and active equipment decisions remain insufficiently exercised. This run will connect optional Abbey/Kiln/Observatory/Archive paths to legal routes, verify native inputs where feasible, and ask independent criticism to reject depth/learning claims. Preserve prior failures and AAA FAIL / OURS LOSES. No release or main promotion. Runtime changes require a reproducible player-facing defect; route evidence alone cannot establish fun.
 
+
+## September29 connected optional-route checkpoint - 12:48 Pacific
+
+Added a shared legal-input discovery planner and three connected route regressions.
+Fresh full simulation wins all25 challenges and earns all10 discovery flags at
+480.22 game seconds,2HP,39500score; one Weaver death and public room retry are
+retained. Same mobile/returning-blade/twin-satchel/lasting-bridge selections as the
+new optional native route. These selections do not establish active mastery.
+The regression paths earn the Abbey heart behind the live chapel gate, return
+from Quench and clear the main bridge, and carry Observatory chart/freed keeper
+through the actual Crown continuation into Archive and its recharge consequence.
+No health, enemy, item or progress injection. Regional fixture starts are explicit.
+
+Baseline full suite passes26 suites/474 tests; added3 route regressions pass in
+17.18seconds. Six viewport discovery/control/save checks pass, clean browser
+console/external/overflow; lead viewed all six polarity PNGs (4K downsampled).
+Independent fresh official Nintendo side-by-side remains NON-BLIND AAA FAIL /
+OURS LOSES. Main/runtime/difficulty/art unchanged. Full optional native touch
+is running, not yet accepted. Bounded room-entry native fixtures are labeled
+separately. The native harness records discoveries and equipment activity;
+damage during blade flight is correlation, prism count is not routing mastery.
+
+Critic rejects experiential depth/fun acceptance: several rewards share a detour,
+and Quench is currently a walk to a valve/pickup. Next substantive gameplay target
+is an optional Glass Edge teaching encounter with safe pickup, staggered cover,
+recoverable volley pressure and distinct cut-versus-return decisions; preserve
+main C1-C2 route. Do not replace that gap with more completion-count claims.

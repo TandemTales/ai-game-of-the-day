@@ -1330,3 +1330,25 @@ Next FIRST: rerun the full native touch route with the15-unit eye staging
 tolerance, inspect B4 inputs and receiver state, then continue through Quay,
 the ferry and later regions. Preserve every failed room and retry. Keep the
 visual AAA FAIL and do not release before the literal forced wrap-up procedure.
+
+
+## 2026-09-29 Tuesday A1 touch variance — 00:58 Pacific
+
+The first native rerun after widening the Quay eye staging tolerance timed out
+in Cloister after180 seconds at3/6HP, with the gate receiver already active and
+no console errors. Its final screenshot shows the “Return its shots” Sentinel
+objective. The previous two adjacent touch campaigns cleared A1-A5; this run
+never reached the Quay, so it does not verify the new B4 tolerance. Retain all
+three outcomes and do not infer a stable whole-campaign touch route.
+
+The local A1 trace records player position/health/aim, gate state, Sentinel
+phase/exposure, shots, hit/return counts, planner input, mirror contact and
+emitted button actions every second, then every quarter-second for20 seconds
+after the gate opens. A read-only mechanics review notes the pilot deliberately
+waits at 150-260 units until the Sentinel is exposed; this could be a failed
+return/exposure loop, but the retained run lacks enough enemy/projectile state
+to prove that. Syntax, full suite and the next browser route are pending before
+push. Next FIRST: use this trace to distinguish a native attack cadence failure
+from an encounter-planner wait, preserve the A1 timeout if it recurs, then
+rerun the full touch route only after the path is understood. Main remains
+unchanged; no completion marker or release.

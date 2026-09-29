@@ -1430,3 +1430,36 @@ runs preserve distinct evidence. Independent Quench and vault acquisition fixtur
 pass16.52s/8.92s at6HP, not complete optional journeys or human play. Critic remains
 NON-BLIND AAA FAIL / OURS LOSES; numerical scope implemented, experiential breadth,
 depth, fun, physical devices and audio acceptance remain open.
+
+## 2026-09-29 final whole native touch checkpoint — 11:18 Pacific
+
+The fresh complete native-touch campaign WON all25 challenges with4HP/38200score,
+518.57 game seconds and564.69 wall seconds. Ordinary room rollback means the game
+time excludes failed attempts; wall time includes them. Retained two actual deaths
+and retries: Abbey Beacon at178.75 game seconds, Crown at494.88. No browser errors.
+Channels cleared on its first campaign attempt (entry220.67s/6HP, Quay240.10s/5HP).
+Quay's previously unverified15-unit staging route now clears, followed by the ferry,
+Seed Lens/heart, Root Hart, Kiln, Observatory, four equipment choices, channel
+restoration and the Keeper rescue/evacuation ending. Lead viewed the final ending.
+
+Evidence: node_modules/.cache/prism-warden/sep29-weekend-refined-native/ includes
+full report, room-entry images and both loss captures. This is one successful
+normal-clock hidden-state-planned native-control route, not human playtime,
+discovery, stability across devices or enjoyment. It does not erase the earlier
+Sluice timeout or previous B3/A1/A3 losses. The isolated Channels fixture is a
+separate initialization and is never counted as a complete campaign.
+
+Final repository verification:26 suites/474 tests PASS at cc23418; syntax/diff
+checks pass. Independent exact-test comparison confirms both new regressions
+reject the old tolerance and pass the new. Mechanics/pilot increment scoped PASS;
+whole experiential breadth/depth/fun NOT ACCEPTED; NON-BLIND AAA FAIL / OURS LOSES.
+Numerical scope implemented; all optional acquisition journeys, active tool/mastery
+decisions, physical devices and audio listening remain open. No shipping judge,
+.aaa-complete, release or main promotion; forced wrap-up remains October3.
+
+Next FIRST: exercise the remaining optional acquisitions as connected native
+player journeys (Abbey reliquary, Quench/Glass Edge, sky chart/freed keeper, Keeper
+Archive) and meaningful Returning Blade/Twin Satchel/polarity choices. Preserve
+failed routes and ask the independent critic to reject depth/learning/replay
+claims. Do not repeat the now-successful touch route as the sole next increment
+or treat this control reachability checkpoint as AAA acceptance.

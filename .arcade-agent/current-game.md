@@ -3,7 +3,7 @@
 slug: prism-warden
 started: 2026-09-20
 release: 2026-10-03 (second Saturday, age 13, America/Los_Angeles)
-status: All25 challenges, both restoration branches, four behavioral equipment choices, durable saves and ten core discovery effects are implemented and have scoped mechanics evidence. A full normal-clock native keyboard campaign now wins all25 with zero retries. Whole native touch, optional-route depth, human enjoyment and AAA acceptance remain open.
+status: All25 challenges, both restoration branches, four behavioral equipment choices, durable saves and ten core discovery effects are implemented and have scoped mechanics evidence. Full state-informed normal-clock keyboard and native-touch campaigns now win all25; touch required two recorded boss retries. Whole optional-route depth, human enjoyment, physical devices and AAA acceptance remain open.
 
 Prism Warden — The Drowned Beacons is a classic action adventure about a lighthouse
 keeper using the same mirror shield to redirect sunlight, open routes and return
@@ -19,7 +19,11 @@ Work on dev; main changes only on release. Orbit Orchard remains cancelled.
 Next: read prism-warden/PROGRESS.md for final native-input outcomes and retained
 failures. Named polarity, Glass Edge, Seed Lens/quench/freed-shade and restoration
 implementation gaps are closed; D4 now requires live defensive return windows.
-Complete whole-campaign touch and optional-route gameplay criticism before
-standalone art polish. October3 is forced wrap-up, not a new expansion night.
+September29 touch route won with4HP/38200score,518.57 game/564.69 wall seconds,
+two retries (Abbey Beacon and Crown), no browser errors. This establishes one
+state-informed control route, not human discovery/fun or reliable device quality.
+Next: complete optional acquisition journeys and active equipment/polarity use,
+then independent breadth/depth/learning criticism before standalone art polish.
+October3 is forced wrap-up, not a new expansion night.
 All25 challenges have legal route evidence, including the optional Keeper Archive;
 none is AAA-accepted. Legal automated routes are not human play or enjoyment evidence.

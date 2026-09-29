@@ -12,6 +12,20 @@ planned waypoint and damage/death snapshots. Every retry gets a loss screenshot.
 Damage causes are inferred from state/message; the diagnostic never instruments
 or mutates gameplay damage handling. Preserve failures alongside passing routes.
 
+September29 final:26 suites/474 tests pass. The two native-pilot cadence tests
+fail under the old staging tolerances and pass with the corrections. Fresh full
+normal-clock native touch wins all25 challenges,518.57 game/564.69 wall seconds,
+4HP/38200score, with two retained retries (beacon and crown), no browser errors.
+Evidence: node_modules/.cache/prism-warden/sep29-weekend-refined-native.
+Earlier same-run Sluice timeout remains in sep29-weekend-channels-native; isolated
+B3 before/after fixtures remain in sep29-channels-fixture-before/after. The full
+route visits chapel/ferry, chooses four equipment mods and restores channels;
+it does not visit every optional acquisition or demonstrate every tool strategy.
+Six-size discovery/save/control sweep passes in sep29-weekend-sweep; all six
+polarity captures and final touch ending inspected (4K downsampled). PW_SHOTS now
+selects the discovery-smoke output directory as well. Neither route nor fixtures
+establish human fun, physical devices, audio quality or AAA acceptance.
+
 Run focused mechanics: node node_modules/jest/bin/jest.js prism-warden --runInBand
 Browser harness will live at prism-warden/tools/smoke.cjs; serves local HTTP and
 uses installed Playwright/Chromium. Evidence ignored under node_modules/.cache.

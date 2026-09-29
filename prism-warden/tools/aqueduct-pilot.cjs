@@ -331,7 +331,7 @@ function createPilot(PW, opts={}){
       const wantSeal = plan.seal && !s.flags.valve;
       if (wantSeal && !eye.active) {
         if (p.prism === 'carried') {
-          if (!near(168, 644, 3)) go(168, 644, { water: 'block' });
+          if (!near(168, 644, 15)) go(168, 644, { water: 'block' });
           else { aimDir(0, -1); input.place = true; }
         } else { /* charging */ }
         safety();

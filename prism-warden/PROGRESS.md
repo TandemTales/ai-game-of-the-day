@@ -1277,6 +1277,7 @@ boundaries, limited enemy silhouettes and label-heavy navigation as visual debt.
 October3 is forced wrap-up only. Audit any unresolved scope honestly; do not call
 inventory, state-informed completion or the desktop route an AAA acceptance.
 
+
 ## 2026-09-28 Monday polish intent - 23:00 Pacific
 
 STOP absent; dev synchronized and initially clean. Age8; forced wrap-up remains
@@ -1288,3 +1289,44 @@ harsh gameplay/presentation review against a shipped adventure reference. Keep
 the visual AAA FAIL / OURS LOSES and incomplete human/device/audio evidence unless
 fresh evidence changes them. Run the full suite before every pushed checkpoint.
 No release, completion marker or main promotion on this polish run.
+
+## 2026-09-29 Tuesday native touch and Quay checkpoint — 00:52 Pacific
+
+STOP absent; dev remains active and October3 remains the forced wrap-up date.
+No release or main promotion. Full repository Jest passes25 suites/472 tests
+after each of three verified touch-driver/pilot checkpoints in this run.
+
+Persistent native touch contacts plus brief aim-only Mirror-pad taps fixed the
+touch harness's missed prism orientation. In `sep29-native-touch-aimtap`, the
+real-clock browser route cleared A1-A5, visited the Sanctuary, then cleared
+B1-B3; Roots required one recorded retry. A2's seal opened and B1's seal/gate
+charged fully. B4 timed out after its bounded 180-second room window with a
+clean browser console. This is state-informed native touch control evidence,
+not human or physical-device play.
+
+The first Quay failure ended about7 units from the seal lever while the game
+showed “SLASH TO PULL.” Engine inspection confirmed a fresh slash works within
+60 units; the pilot was waiting on an unreachable 5-unit staging check. Updated
+the pilot to approach from the reachable (86,466) point and slash inside50.
+An independent hidden-state route now clears B1-B5 and the Root Hart, including
+the ferry, at5/7HP with no retries; this does not prove touch reachability.
+
+The next native campaign exposed the earlier light setup as a stricter barrier:
+the player finished B4 at (178.6,637.3), prism carried, receiver inactive,
+1/6HP, and no browser errors, about13 units from the planned staging point
+(168,644). The 12.6-unit player offset remains inside the 24-unit receiver radius, so the
+pilot's staging tolerance is now15. The deterministic B1-B5 plus Root Hart
+route still clears at5/7HP with zero retries after this bounded adjustment.
+Both browser runs and their screenshots are retained under
+`node_modules/.cache/prism-warden/sep29-native-touch-*`.
+
+The fresh Nintendo Link's Awakening side-by-side remains AAA FAIL / OURS LOSES
+on material richness, light, environmental depth and composition. No game art
+or difficulty was changed. Remaining authored breadth, campaign routes, touch
+path and device evidence, player comprehension, audio listening, fun, and
+shipping acceptance remain open. No `.aaa-complete`; main unchanged.
+
+Next FIRST: rerun the full native touch route with the15-unit eye staging
+tolerance, inspect B4 inputs and receiver state, then continue through Quay,
+the ferry and later regions. Preserve every failed room and retry. Keep the
+visual AAA FAIL and do not release before the literal forced wrap-up procedure.

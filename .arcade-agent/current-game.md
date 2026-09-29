@@ -1,19 +1,15 @@
 # Active game
 
-No game is active.
+slug: gumdrop-tilt
+started: 2026-09-29
 
-Completed: **ironwake** — The Coast Campaign.
-started: 2026-09-07
-completed: 2026-09-19
-release: forced second-Saturday release, age 12 (America/Los_Angeles).
+Pitch: A Puyo Puyo / Puzzle Fighter-lineage chain-reaction puzzler (classic SNES/PS2-era
+falling-blob puzzle, original IP). Pairs of glossy gumdrops fall into a 6x12 jar; four
+touching of one colour pop, and pops cascade into chains that score exponentially.
+Twist: **the jar tilts**. Every N drops a "tilt warning" fires and gravity rotates 90 degrees,
+so stacks slide sideways and re-settle - the player must build chains that survive
+(or deliberately trigger) a tilt. Tilt-cascades score a big multiplier. Score = numeric,
+leaderboard gameId `gumdrop-tilt`. Touch + keyboard.
 
-The lifecycle is complete under the release schedule, not the AAA quality bar.
-See ironwake/.aaa-complete and PROGRESS.md for failed critic verdicts and debt.
-Five chapters and twenty objectives are implemented; qualitative scope,
-progression, human enjoyment and AAA presentation remain unaccepted.
-
-Next run: STEP 2, inventory/research and three substantial distinct pitches,
-then choose the strongest qualifying game and scaffold its first playable plus
-full scope contract. Each pitch must meet or exceed expanded Ironwake ambition.
-No pending human choice blocks selection. Do not resurrect abandoned Orbit Orchard
-or auto-discover an older catalog project as the active game. Work on dev.
+Previous game: ironwake (complete, 2026-09-19). Work on the designated dev branch
+(`claude/beautiful-turing-wb119s`; no literal `dev` branch existed on 2026-09-29).

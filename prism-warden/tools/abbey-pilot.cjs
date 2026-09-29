@@ -149,7 +149,9 @@ function createPilot(PW, opts={}){
     } else if (id === 'sluice') {
       const seal = s.receivers[0];
       if (!seal.active) {
-        const spot = [496, 300];
+        // Stand on the emitter's x=512 beam center; the native analog pilot can
+        // settle several pixels west of its target, outside the game's 18px catch arc.
+        const spot = [512, 300];
         if (Math.hypot(p.x - spot[0], p.y - spot[1]) > 4) go(spot[0], spot[1]);
         else { input.ax = Math.cos(140 * Math.PI / 180); input.ay = Math.sin(140 * Math.PI / 180); input.reflect = true; }
         guard(s, input);

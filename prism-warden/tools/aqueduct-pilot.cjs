@@ -337,7 +337,7 @@ function createPilot(PW, opts={}){
         safety();
       } else if (wantSeal && !sealLever.pulled) {
         if (p.prism === 'placed' && prism && near(prism.x, prism.y, 70)) { input.place = true; } // lift it again
-        else if (!near(98, 470, 5)) go(98, 470);
+        else if (!near(sealLever.x, sealLever.y, 50)) go(86, 466);
         else { aimAt(sealLever.x, sealLever.y); input.slash = true; }
         if (!near(98, 470, 30)) safety();
       } else if (!valve.pulled) {

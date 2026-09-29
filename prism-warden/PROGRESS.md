@@ -1352,3 +1352,30 @@ push. Next FIRST: use this trace to distinguish a native attack cadence failure
 from an encounter-planner wait, preserve the A1 timeout if it recurs, then
 rerun the full touch route only after the path is understood. Main remains
 unchanged; no completion marker or release.
+
+
+## 2026-09-29 Tuesday traced touch campaign — 01:12 Pacific
+
+The A1 trace was exercised in `sep29-native-touch-a1trace`. It records24
+returned shots, the Sentinel's3.4-second exposed window, and Sentinel HP reaching
+zero; Cloister cleared in this attempt. This resolves the latest A1 timeout as
+variable pilot cadence rather than a confirmed game-logic defect. Across this
+campaign, Sluice and Beacon each needed one recorded retry.
+
+The campaign then lost in B3 Rotating Channels after two room retries: final
+status lost at363.67sim seconds,0HP,14hits, score10450; A1-A5 and B1-B2 are true,
+B3 is false, browser errors0. The final loss panel and entry capture are retained
+in `node_modules/.cache/prism-warden/sep29-native-touch-a1trace/`. This is a
+failed native-control route, not proof that touch players cannot clear the room.
+The 15-unit B4 beam-staging tolerance remains unverified in a native route;
+the offline B1-B5 / Root Hart clear is hidden-state simulation only.
+
+Full repository tests passed25 suites/472 tests before pushing trace commit
+5d70bd4. The independent art comparison remains AAA FAIL / OURS LOSES. Main is
+unchanged; no `.aaa-complete` or release.
+
+Next FIRST: instrument Channels inputs, mortar phases, lobs, hits and returns
+around the first loss; determine why two retry attempts fail before changing
+game logic or difficulty. Then replay the whole touch route, preserving every
+retry, and verify the B4 tolerance if reached. Keep the visual verdict and
+human/device/audio/fun gates open.

@@ -1521,3 +1521,43 @@ objectives at all six sizes plus Quench/Archive/Vault and the real side-by-side;
 before/after task transitions, accepting scoped guidance/readability only.
 Direct-entry screenshot fixtures omit the earned light vessel and establish
 text/layout only; the connected native routes earned their own tools.
+
+## September29 final optional native campaign - 12:56 Pacific
+
+Complete native TOUCH optional campaign WON all25 challenges and all10 discovery
+contract flags:683.38 retained game seconds/717.92wall seconds,2HP,39800score,
+24hits. One retained death/retry in Switchback Shoal at658.23game/663.50wall
+seconds; no browser errors. A1 took176.33game seconds before clearing, near the
+room timeout; this successful route does not establish stable pilot cadence.
+The run made all four actual equipment selections plus channel restoration,
+rescued Nacre and evacuated Ilex. Lead viewed final ending and retained loss.
+Evidence: node_modules/.cache/prism-warden/sep29-optional-touch/.
+
+Native metrics record24 Returning Blade launches across Furnace, Weaver, Shade,
+Twins, Shoal and Crown, with24 HP-decrease observations during blade flights.
+These are activity/correlation evidence, not a causal or novice-mastery test.
+Only one simultaneous prism and initial HOT polarity were observed: Twin Satchel
+circuit decisions and player-polarity solutions remain unverified by this route.
+All optional acquisitions now have one connected normal-clock native route;
+learning, screen-led discovery, balance, replay value and human fun remain open.
+This browser run loaded runtime before the objective-only fix in01c30d1. The
+later fix separately passes earned-route regressions and six-size browser cues;
+do not silently present this as a full native run of the changed text.
+
+Final runtime verification remains27 suites/481tests PASS and six-size cue,
+control, save/result sweep PASS; no runtime change after that suite. Independent
+critic accepts scoped connected reachability and objective guidance/readability.
+Full experiential depth/fun NOT ACCEPTED; NON-BLIND AAA FAIL / OURS LOSES versus
+fresh official Link's Awakening. Physical devices, audio listening and blind
+shipping acceptance remain open. No shipping judge, .aaa-complete or release.
+Main remains2d2b947; forced wrap-up is October3. Dev work pushed in checkpoints.
+
+NEXT FIRST substantive gameplay increment: turn the empty Quench reward walk
+into an optional Glass Edge teaching encounter. Safe entrance pickup, staggered
+cover and one telegraphed volley turret should support mobile shot-cutting versus
+reflected-shot jam crossings; valve permanently silences pressure. Keep the
+ordinary C1-C2 route and northern retreat available. Verify naive/recoverable
+mistake, intentional cut, and return/jam paths with independent critique. Do not
+spend the next run only repeating completed guided routes. Follow with meaningful
+Twin Satchel/polarity use and screen-led learning; acquisition counts do not clear
+the expanded Ironwake depth contract. October3 itself stays wrap-up only.

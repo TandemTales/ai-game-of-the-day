@@ -382,3 +382,14 @@ learning/replay/fun not accepted. NON-BLIND AAA FAIL / OURS LOSES against a fres
 Nintendo Link's Awakening screenshot. Next gameplay work should turn Quench into
 an optional readable cut-versus-return encounter with recoverable mistakes;
 reward totals and selected equipment alone cannot establish depth or mastery.
+
+Final full suite27suites/481tests PASS. Fresh expanded discovery-smoke all6 sizes
+PASS. Lead inspected six chart cues plus other optional cues, ending/loss and
+reference comparison;4K viewed downsampled. Full optional native TOUCH wins
+all25/10discoveries683.38game/717.92wallsec2HP39800score,one Shoal retry/errors0.
+It loaded the pre-cue-fix runtime; cue-only changes have separate legal-route and
+browser regression evidence.24 observed blade launches and24 correlated HP drops
+are not mastery proof; no useful two-prism circuit or polarity switch observed.
+Exact traces/screenshots: sep29-optional-touch; regional native fixtures:
+sep29-optional-stars-touch and sep29-optional-kiln-keyboard; fresh UI fixtures:
+sep29-optional-cues; independent review/comparison: sep29-optional-critic.

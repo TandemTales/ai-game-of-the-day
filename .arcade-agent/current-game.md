@@ -3,27 +3,25 @@
 slug: prism-warden
 started: 2026-09-20
 release: 2026-10-03 (second Saturday, age 13, America/Los_Angeles)
-status: All25 challenges, both restoration branches, four behavioral equipment choices, durable saves and ten core discovery effects are implemented and have scoped mechanics evidence. Full state-informed normal-clock keyboard and native-touch campaigns now win all25; touch required two recorded boss retries. Whole optional-route depth, human enjoyment, physical devices and AAA acceptance remain open.
+status: All25 challenges and all10 optional consequences have one connected full native-touch acquisition/ending route. Optional HUD guidance now tracks unfinished tasks and return routes. Experiential depth, screen-led learning, meaningful equipment choice, human fun, device/audio and AAA acceptance remain open.
 
-Prism Warden — The Drowned Beacons is a classic action adventure about a lighthouse
-keeper using the same mirror shield to redirect sunlight, open routes and return
-enemy fire. Five distinct regions, twenty-five authored challenges, consequential
-equipment, optional discoveries and a multi-phase eclipse-keeper finale are the
-complete scope. The initial abbey encounter was only the first playable checkpoint,
-not the full game.
+Prism Warden — The Drowned Beacons follows keeper Sera through five regions,
+optical combat/traversal, four behavioral equipment choices, discoveries, saved
+progress, restoration branches and a three-phase Keeper rescue/evacuation finale.
+Selection: .arcade-agent/candidates-2026-09-20.md. No human-choice hold.
+Orbit Orchard remains cancelled. Ironwake remains forced-complete, not AAA.
+Work on dev; main changes only on release. No .aaa-complete for Prism Warden.
 
-Selection and alternatives: .arcade-agent/candidates-2026-09-20.md.
-No human-choice hold. Ironwake remains complete under forced schedule, not AAA.
-Work on dev; main changes only on release. Orbit Orchard remains cancelled.
+Read prism-warden/PROGRESS.md first. Latest native optional touch won all25 and
+10/10 discoveries at683.38game/717.92wall seconds,2HP39800score,one Shoal retry,
+errors0.24 blade launches observed; useful Twin Satchel and polarity decisions
+still unverified. This run predates the separately tested objective-text repair;
+full27suites481tests and six-size cue/control/save sweep pass after that repair.
+State-informed native control reachability is not human discovery or enjoyment.
 
-Next: read prism-warden/PROGRESS.md for final native-input outcomes and retained
-failures. Named polarity, Glass Edge, Seed Lens/quench/freed-shade and restoration
-implementation gaps are closed; D4 now requires live defensive return windows.
-September29 touch route won with4HP/38200score,518.57 game/564.69 wall seconds,
-two retries (Abbey Beacon and Crown), no browser errors. This establishes one
-state-informed control route, not human discovery/fun or reliable device quality.
-Next: complete optional acquisition journeys and active equipment/polarity use,
-then independent breadth/depth/learning criticism before standalone art polish.
-October3 is forced wrap-up, not a new expansion night.
-All25 challenges have legal route evidence, including the optional Keeper Archive;
-none is AAA-accepted. Legal automated routes are not human play or enjoyment evidence.
+NEXT FIRST: substantive Quench Glass Edge teaching encounter with safe pickup,
+staggered cover, readable volleys and cut-versus-return/jam decisions. Keep the
+main route/retreat open and mistakes recoverable; compare naive and intentional
+paths with an independent critic. Do not repeat successful guided campaigns as
+the sole increment. Then meaningful two-prism/polarity and screen-led learning.
+NON-BLIND AAA FAIL / OURS LOSES remains. October3 is forced wrap-up only.

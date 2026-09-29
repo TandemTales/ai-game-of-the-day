@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Gumdrop Tilt — Bot Built Arcade</title>
+<meta name="description" content="A chain-reaction gumdrop puzzler where the whole jar tilts. Match four, build chains, and survive the slosh.">
+<link rel="icon" href="../images/botbuiltarcade-icon-face.png">
+<link rel="stylesheet" href="assets/css/game.css">
+</head>
+<body>
+<main id="game">
+  <header><a href="../index.html">&larr; Back to Arcade</a><strong>GUMDROP <span>TILT</span></strong><button id="mute" aria-pressed="false">SOUND ON</button></header>
+  <section id="hud">
+    <div><label>SCORE</label><b id="score">0</b></div>
+    <div><label>BEST CHAIN</label><b id="chain">0</b></div>
+    <div><label>TILT IN</label><b id="tilt">8</b></div>
+    <div id="nextBox"><label>NEXT</label><canvas id="next" width="80" height="120"></canvas></div>
+  </section>
+  <div id="stage"><canvas id="jar" tabindex="0" aria-label="Gumdrop jar"></canvas><div id="banner"></div></div>
+  <section id="pad" aria-label="Touch controls">
+    <button data-a="left" aria-label="Move left">&#9664;</button>
+    <button data-a="rotL" aria-label="Rotate left">&#8634;</button>
+    <button data-a="down" aria-label="Soft drop">&#9660;</button>
+    <button data-a="rotR" aria-label="Rotate right">&#8635;</button>
+    <button data-a="right" aria-label="Move right">&#9654;</button>
+    <button data-a="hard" aria-label="Hard drop" class="wide">DROP</button>
+  </section>
+  <div id="overlay">
+    <section id="panel">
+      <h1 id="title">GUMDROP <span>TILT</span></h1>
+      <p id="blurb">Drop pairs of gumdrops. Touch <b>four</b> of a colour to pop them; pops that drop more matches make <b>chains</b>. Every 8 drops the whole jar <b>tilts</b> and the stack slides sideways &mdash; chains born from a tilt pay <b>double</b>. The arrow shows which way it will lean.</p>
+      <p class="keys">&larr;&rarr; move &middot; Z/X or &uarr; rotate &middot; &darr; soft drop &middot; Space hard drop &middot; P pause. Touch: swipe to move, tap to rotate, swipe down to drop.</p>
+      <form id="scoreForm" hidden><input id="callsign" maxlength="20" placeholder="Callsign" aria-label="Callsign"><button>POST SCORE</button><div id="scoreStatus"></div></form>
+      <button id="startBtn">PLAY</button>
+      <a class="lb" href="../leaderboard.html?gameId=gumdrop-tilt">View Leaderboard</a>
+    </section>
+  </div>
+</main>
+<script src="assets/js/logic.js"></script>
+<script src="assets/js/audio.js"></script>
+<script src="assets/js/render.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>

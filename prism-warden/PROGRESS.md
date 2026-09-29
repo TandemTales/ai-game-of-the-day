@@ -1463,3 +1463,8 @@ Archive) and meaningful Returning Blade/Twin Satchel/polarity choices. Preserve
 failed routes and ask the independent critic to reject depth/learning/replay
 claims. Do not repeat the now-successful touch route as the sole next increment
 or treat this control reachability checkpoint as AAA acceptance.
+
+## 2026-09-29 12:39 -07:00 optional-route continuation intent
+
+STOP absent; synchronized clean dev. Tuesday Pacific, age9; October3 forced wrap-up remains unchanged. Current scope inventory has five regions/25 challenges, equipment, ten consequences and ending, but whole optional acquisition journeys and active equipment decisions remain insufficiently exercised. This run will connect optional Abbey/Kiln/Observatory/Archive paths to legal routes, verify native inputs where feasible, and ask independent criticism to reject depth/learning claims. Preserve prior failures and AAA FAIL / OURS LOSES. No release or main promotion. Runtime changes require a reproducible player-facing defect; route evidence alone cannot establish fun.
+

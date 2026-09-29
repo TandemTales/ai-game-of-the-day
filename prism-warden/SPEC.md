@@ -432,3 +432,13 @@ branches with selected equipment. All optional authored routes have not been
 played as a complete normal-clock campaign. Full gameplay depth, human enjoyment,
 physical touch, audio listening and AAA acceptance remain unproven. Oct3 remains
 forced wrap-up; do not treat this implementation inventory as shipping acceptance.
+
+### September29 optional-route verification ownership
+
+For this bounded verification increment, the optional-route builder owns only
+	ools/optional-pilot.cjs; a regression builder owns only
+__tests__/prism-warden-optional-routes.test.js at repository root. The lead owns
+all native-harness integration and documentation; an independent critic remains
+read-only except ignored evidence. These are state-informed verification tools,
+not runtime progression or completion credit.
+

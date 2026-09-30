@@ -1617,3 +1617,9 @@ listening, fun, novice learning, AAA, or shipping acceptance is claimed. No
 `.aaa-complete`; do not release early. Next work should fix the occluded threat
 read and 320px hierarchy before considering another quality judgment. October3
 remains wrap-up only.
+
+## September30 night intent (Pacific Wed, age 10)
+
+STOP absent. Bounded pass on the Quench debt only: coaching plate must not cover
+hazards, 320px objective hierarchy, and separate floor cracks from combat cues.
+No release; Oct3 remains wrap-up only. Verify with tests plus six-size captures.

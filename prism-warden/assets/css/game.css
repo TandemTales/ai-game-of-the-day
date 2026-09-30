@@ -81,3 +81,5 @@ body.has-prism .actions button,body.has-light .actions button{min-width:44px;pad
 #restorationOptions button[aria-pressed=true]{border-color:#8be0d1;background:#244c4b;opacity:1}#restorationOptions button:disabled:not([aria-pressed=true]){opacity:.5}
 @media(max-width:1000px) and (max-height:480px){#polarity{top:118px;left:auto;right:8px}}
 @media(max-width:600px) and (min-height:481px){body.touch #polarity{top:104px;left:8px;right:auto}}
+
+@keyframes msgfade{0%,72%{opacity:.94}100%{opacity:0;visibility:hidden}}#message.timed{animation:msgfade 6s linear forwards}

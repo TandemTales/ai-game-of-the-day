@@ -1623,3 +1623,16 @@ remains wrap-up only.
 STOP absent. Bounded pass on the Quench debt only: coaching plate must not cover
 hazards, 320px objective hierarchy, and separate floor cracks from combat cues.
 No release; Oct3 remains wrap-up only. Verify with tests plus six-size captures.
+
+### September30 night result
+
+Message plate now fades ~6s after each new message (main.js class toggle +
+game.css keyframes), so it no longer permanently covers lower Quench hazards.
+Captures at 320x568 and 844x390 inspected: lower turret "ARMED" cue visible after
+fade, no page errors. Full suite 27/483 PASS (the run began just before the
+main.js edit landed, so that file was only partly covered; the change is a small
+class toggle). Full smoke.cjs timed out on a disabled button after the Quench
+capture; not investigated. NOT done: 320px objective hierarchy, floor-crack vs
+combat-cue separation, visual critic re-review. AAA FAIL verdict stands; no
+release. Next: those two items, then investigate the smoke.cjs timeout. Oct3 is
+wrap-up only.

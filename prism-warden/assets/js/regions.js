@@ -721,7 +721,7 @@
     objectives: { fight: 'Read the alternating lanes · return the Kiln Watch’s shots', exit: 'East lock to the Annealed Bridge' },
     exits: [
       { id: 'to-bridge', x: 976, y: 344, w: 24, h: 80, to: 'bridge', spawn: { x: 84, y: 384 } },
-      { id: 'to-quench', x: 472, y: 696, w: 80, h: 24, to: 'quench', spawn: { x: 512, y: 116 } }
+      { id: 'to-quench', x: 472, y: 696, w: 80, h: 24, to: 'quench', spawn: { x: 512, y: 280 } }
     ]
   };
 
@@ -883,23 +883,32 @@
   // crosses the annealed span to leave the room.
   const quench = {
     id: 'quench', region: 'glass-kiln', challenge: null, name: 'Quench Gallery', w: W, h: H,
-    intro: 'Pull the quench valve to open a dry return spur into the bridge room’s west bank and drain the south flare in the distant Crown galleries. An artisan left a tempered weapon attachment in the gallery.',
-    spawn: { x: 512, y: 116 },
+    intro: 'Slash incoming rounds with Glass Edge. Return shots with Mirror to jam a turret; cover blocks volleys.',
+    spawn: { x: 512, y: 280 },
     walls: [
       { x: 24, y: 48, w: 424, h: 32 }, { x: 552, y: 48, w: 424, h: 32 },
       { x: 24, y: 80, w: 24, h: 640 },
       { x: 976, y: 48, w: 24, h: 296 }, { x: 976, y: 424, w: 24, h: 296 },
       { x: 48, y: 696, w: 928, h: 24 },
-      { x: 250, y: 260, w: 120, h: 28 }, { x: 650, y: 476, w: 120, h: 28 }
+      // Offset kiln plinths leave a north-to-south slalom. The north and middle
+      // plinths screen both turrets from the landing; the lower pair divide the
+      // firing lanes, with a west-side refuge to break the sniper's line.
+      { x: 540, y: 330, w: 160, h: 32 }, { x: 400, y: 356, w: 160, h: 32 },
+      { x: 430, y: 488, w: 120, h: 32 }, { x: 600, y: 492, w: 140, h: 32 },
+      { x: 450, y: 548, w: 110, h: 32 }
     ],
     levers: [{ id: 'quench-valve', x: 840, y: 384, flag: 'quench-valve',
-      text: 'The valve drains the Crown gallery’s south flare and opens a dry spur to the bridge room’s west bank.' }],
+      text: 'The valve drains the Crown gallery’s south flare, opens a dry spur to the bridge room’s west bank, and stills both gallery turrets.' }],
     gates: [{ id: 'quench-side-gate', x: 952, y: 344, w: 24, h: 80, optional: true, opensWhen: { flag: 'quench-valve' },
       text: 'The dry return spur opens to the Annealed Bridge’s west bank.' }],
-    pickups: [{ id: 'kiln-edge', kind: 'kiln-edge', x: 220, y: 600,
-      text: 'Glass Edge fitted: an aimed sword slash cuts hostile shots close in front of you. It destroys them; use the mirror when you need a returned shot.' }],
+    pickups: [{ id: 'kiln-edge', kind: 'kiln-edge', x: 512, y: 322,
+      text: 'Glass Edge fitted: slash rounds; Mirror returns jam turrets.' }],
+    enemies: [
+      { type: 'turret', id: 'quench-turret', x: 760, y: 384, r: 16, targets: 'player', interval: 3.2, delay: 3, disabledBy: 'quench-valve' },
+      { type: 'turret', id: 'quench-lower-turret', x: 340, y: 620, r: 16, targets: 'player', sniper: true, interval: 8, delay: 7.5, disabledBy: 'quench-valve' }
+    ],
     clearWhen: { flag: 'quench-valve' },
-    objectives: { route: 'Pull the quench valve · take the Glass Edge', exit: 'Return spur to the Annealed Bridge’s west bank' },
+    objectives: { route: 'Take Glass Edge · slash or return shots · pull Quench valve', exit: 'East to the dry return spur on the Annealed Bridge’s west bank · north back to Furnace Lanes' },
     exits: [
       { id: 'to-furnace', x: 472, y: 48, w: 80, h: 32, to: 'furnace', spawn: { x: 512, y: 640 } },
       { id: 'to-bridge', x: 976, y: 344, w: 24, h: 80, to: 'bridge', spawn: { x: 240, y: 560 } }

@@ -29,8 +29,38 @@ function advance(PW, s, pilot, done, seconds, observe = () => {}) {
   }
 }
 
+function step(PW, s, input = {}, frames = 1) {
+  for (let i = 0; i < frames && s.status === 'playing'; i++) PW.step(s, input, 1 / 60);
+}
+
+function walkQuench(PW, s, x, y, input = {}, limit = 900) {
+  const startRoom = s.roomId;
+  for (let i = 0; i < limit && s.status === 'playing' && s.roomId === startRoom; i++) {
+    const dx = x - s.player.x, dy = y - s.player.y, d = Math.hypot(dx, dy);
+    if (d < 6) return true;
+    step(PW, s, Object.assign({ mx: dx / d, my: dy / d, ax: dx / d, ay: dy / d }, input));
+  }
+  return s.roomId !== startRoom || Math.hypot(x - s.player.x, y - s.player.y) < 10;
+}
+
+function quenchTurret(s) { return s.enemies.find(e => e.id === 'quench-turret'); }
+function quenchTurrets(s) { return s.enemies.filter(e => /^quench.*turret/.test(e.id)); }
+function aimAtQuenchTurret(s) {
+  const e = quenchTurret(s), dx = e.x - s.player.x, dy = e.y - s.player.y, d = Math.hypot(dx, dy) || 1;
+  return { ax: dx / d, ay: dy / d };
+}
+
+function enterQuenchFiringPocket(PW, s) {
+  // Route around the upper plinth to the exposed lane, then approach its
+  // turret from the south so the shot-cut and return controls have LOS.
+  expect(walkQuench(PW, s, 512, 312)).toBe(true);
+  expect(walkQuench(PW, s, 720, 312)).toBe(true);
+  expect(walkQuench(PW, s, 720, 404)).toBe(true);
+  expect(walkQuench(PW, s, 580, 404)).toBe(true);
+}
+
 test.each([
-  ['quench', /pull.*quench valve/i],
+  ['quench', /take.*glass edge.*slash.*return.*quench valve/i],
   ['shade-vault', /turn.*branch mirrors/i],
   ['obs-chart', /burst.*chart/i],
   ['archive', /burst.*archive/i]
@@ -90,8 +120,8 @@ test('Furnace entry fixture earns Quench and Glass Edge before completing the ma
     }
   });
   expect(valveOpenedSpur).toBe(true);
-  expect(objectives.valve).toMatch(/pull.*quench valve/i);
-  expect(objectives.edge).toMatch(/glass edge/i);
+  expect(objectives.valve).toMatch(/take.*glass edge.*slash.*return.*quench valve/i);
+  expect(objectives.edge).toMatch(/take.*glass edge/i);
   expect(objectives.edge).not.toMatch(/return spur/i);
   expect(objectives.return).toMatch(/return spur.*west bank/i);
   expect(enteredBridgeFromWestBank).toBe(true);
@@ -101,6 +131,98 @@ test('Furnace entry fixture earns Quench and Glass Edge before completing the ma
   expect(s.cleared.C1).toBe(true);
   expect(s.cleared.C2).toBe(true);
   expect(s.player.hp).toBeGreaterThan(0);
+});
+
+test('Quench gives a covered landing, safe Glass Edge pickup, and a real northern retreat', () => {
+  const PW = loadPW(), s = fixture(PW, 'quench'), room = PW.roomDef('quench');
+  const turrets = room.enemies.filter(e => /^quench.*turret/.test(e.id));
+  const pickup = room.pickups.find(p => p.id === 'kiln-edge');
+  const start = room.spawn, d = Math.hypot(start.x - pickup.x, start.y - pickup.y);
+  expect(d).toBeGreaterThan(s.player.r + 20);
+  expect(d).toBeLessThanOrEqual(45);
+  expect(turrets).toHaveLength(2);
+  expect(turrets.every(e => e.disabledBy === 'quench-valve')).toBe(true);
+  expect(room.exits.map(e => e.to)).toEqual(expect.arrayContaining(['furnace', 'bridge']));
+  for (const turret of turrets) {
+    const dist = Math.hypot(start.x - turret.x, start.y - turret.y);
+    const blockedEntry = PW.raySegment(turret.x, turret.y, (start.x - turret.x) / dist,
+      (start.y - turret.y) / dist, room.walls, dist).rect;
+    expect(blockedEntry).toBeTruthy();
+  }
+
+  step(PW, s, {}, 210);
+  expect(s.flags['kiln-edge']).not.toBe(true);
+  expect(s.score).toBe(0);
+  expect(s.shots.filter(shot => !shot.friendly)).toHaveLength(0);
+  expect(walkQuench(PW, s, pickup.x, pickup.y)).toBe(true);
+  expect(s.flags['kiln-edge']).toBe(true);
+  expect(s.shots.filter(shot => !shot.friendly)).toHaveLength(0);
+  expect(walkQuench(PW, s, 512, 70)).toBe(true);
+  expect(s.roomId).toBe('furnace');
+});
+
+test('Quench supports aimed shot cuts, a recoverable hit, returned-shot jam, and valve shutdown', () => {
+  const PW = loadPW();
+
+  // Isolated fresh room entry, ordinary movement, no injected equipment flag.
+  const cut = fixture(PW, 'quench');
+  step(PW, cut, {}, 210);
+  enterQuenchFiringPocket(PW, cut);
+  let cuts = 0;
+  for (let i = 0; i < 60 * 14 && !cuts && cut.status === 'playing'; i++) {
+    const aim = aimAtQuenchTurret(cut);
+    const shot = cut.shots.find(s => !s.friendly);
+    const near = shot && Math.hypot(shot.x - cut.player.x, shot.y - cut.player.y) <= 76;
+    const before = cut.particles.filter(p => p.kind === 'slash').length;
+    step(PW, cut, Object.assign(aim, {
+      reflect: false,
+      slash: !!near && cut.player.slashCooldown <= 0 && !cut._slashHeld
+    }));
+    if (cut.particles.filter(p => p.kind === 'slash').length > before) cuts++;
+  }
+  expect(cuts).toBeGreaterThan(0);
+  expect(cut.returns).toBe(0);
+  expect(quenchTurret(cut).phase).not.toBe('jammed');
+  expect(cut.player.hp).toBeGreaterThan(0);
+
+  // Walk directly into the first live lane without defense, take a real hit,
+  // retreat behind the entrance plinth, then return and make the intended jam.
+  const recovery = fixture(PW, 'quench');
+  step(PW, recovery, {}, 210);
+  enterQuenchFiringPocket(PW, recovery);
+  const startingHp = recovery.player.hp;
+  for (let i = 0; i < 60 * 12 && recovery.player.hp === startingHp && recovery.status === 'playing'; i++) {
+    step(PW, recovery, { ax: 1, ay: 0, reflect: false, slash: false });
+  }
+  expect(recovery.player.hp).toBeLessThan(startingHp);
+  expect(recovery.player.hp).toBeGreaterThan(0);
+  // Retreat below the middle slab, round its west end, then shelter north of
+  // the center plinth where both firing lanes are screened.
+  expect(walkQuench(PW, recovery, 720, 420)).toBe(true);
+  expect(walkQuench(PW, recovery, 380, 420)).toBe(true);
+  expect(walkQuench(PW, recovery, 380, 312)).toBe(true);
+  expect(walkQuench(PW, recovery, 512, 312)).toBe(true);
+  const retreatHp = recovery.player.hp;
+  step(PW, recovery, {}, 120);
+  expect(recovery.player.hp).toBe(retreatHp);
+  enterQuenchFiringPocket(PW, recovery);
+
+  for (let i = 0; i < 60 * 12 && quenchTurret(recovery).phase !== 'jammed' && recovery.status === 'playing'; i++) {
+    step(PW, recovery, Object.assign({ reflect: true, slash: false }, aimAtQuenchTurret(recovery)));
+  }
+  expect(quenchTurret(recovery).phase).toBe('jammed');
+  expect(recovery.returns).toBeGreaterThan(0);
+
+  expect(walkQuench(PW, recovery, 840, 330, { reflect: false })).toBe(true);
+  expect(walkQuench(PW, recovery, 840, 340, { reflect: false })).toBe(true);
+  step(PW, recovery, { ax: 0, ay: 1, slash: true });
+  expect(recovery.flags['quench-valve']).toBe(true);
+  expect(quenchTurret(recovery).phase).toBe('silent');
+  expect(quenchTurrets(recovery).every(e => e.phase === 'silent')).toBe(true);
+  expect(recovery.gates.find(g => g.id === 'quench-side-gate').open).toBe(true);
+  expect(walkQuench(PW, recovery, 990, 384, { reflect: false })).toBe(true);
+  expect(recovery.roomId).toBe('bridge');
+  expect(recovery.player.hp).toBeGreaterThan(0);
 });
 
 test('Stars entry fixture carries earned chart and keeper through the Observatory into the Crown Archive', () => {

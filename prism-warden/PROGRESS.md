@@ -1574,3 +1574,46 @@ and northern retreat. Compare naive, recovery and intentional routes; retain
 failed evidence and the NON-BLIND AAA FAIL / OURS LOSES verdict. No release or
 `main` promotion. First push this intent, then implement the owned campaign file,
 test and inspect browser evidence, and record what remains unproven.
+
+## September30 Quench encounter and floor-art checkpoint
+
+STOP is absent. Pacific Wednesday; Prism Warden remains active and the October3
+Saturday forced wrap-up stays unchanged. No release or `main` promotion.
+
+Turned the optional Quench Gallery into a two-lane Glass Edge encounter. Arrival
+is screened from the volley turret and outside the pickup radius; the staggered
+plinths create separate firing pockets and a recovery refuge. The upper turret
+fires a three-round volley, the lower turret fires a slower aimed shot, and the
+Glass Edge cuts nearby hostile shots while Mirror returns one to jam a turret.
+Pulling the valve permanently silences both and opens the bridge spur while
+keeping the northern retreat. Updated the room objective, mobile touch hint,
+compact-landscape return cue, and tests. Added a local painted basalt/glass floor
+image, workshop stations and conduits, marked cover, turret cycle cues, and a
+Quench-specific warm/cool light pass with procedural floor fallback.
+
+Verification on the final code: full repository 27 suites / 483 tests PASS;
+focused Quench/optional-route suite 9/9 PASS; syntax and diff checks PASS. The
+browser sweep passes 320x568, 390x844, 844x390, 768x1024, 1440x900, and
+3840x2160 with no browser errors, external requests, or horizontal overflow.
+Lead inspected all six final8 captures (4K downsampled). Evidence:
+`node_modules/.cache/prism-warden/sep30-quench-final8/`.
+
+Gameplay critic: scope mechanics checks PASS, but **AAA FAIL**. Its normal-step
+trace saw one hit in the upper volley, safe retreat behind cover, one hit while
+exposed to the lower sniper, a real shot cut, a returned-shot jam, valve shutdown,
+and both exits. This is reachability evidence only. Independent visual critic
+final8: **AAA art/readability FAIL / OURS LOSES clearly** against Nintendo's
+*Link's Awakening*. The authored floor is a material improvement, but floor
+cracks compete with combat cues, the player/attack hierarchy and depth staging
+remain behind the reference, the 320px objective is tiny, and the persistent
+coaching plate masks lower threats. Its comparison and verdict are in
+`node_modules/.cache/prism-warden/sep30-quench-visual-critic-final8/`.
+
+Remaining debt: redesign the coaching plate so it does not cover hazards; improve
+the 320px objective hierarchy; separate environmental cracks from active combat
+signals; deepen visual staging and the authored encounter beyond two fixed
+turrets, cover, and a valve. No human play, physical-device quality, audio
+listening, fun, novice learning, AAA, or shipping acceptance is claimed. No
+`.aaa-complete`; do not release early. Next work should fix the occluded threat
+read and 320px hierarchy before considering another quality judgment. October3
+remains wrap-up only.

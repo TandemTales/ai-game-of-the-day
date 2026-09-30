@@ -393,3 +393,38 @@ are not mastery proof; no useful two-prism circuit or polarity switch observed.
 Exact traces/screenshots: sep29-optional-touch; regional native fixtures:
 sep29-optional-stars-touch and sep29-optional-kiln-keyboard; fresh UI fixtures:
 sep29-optional-cues; independent review/comparison: sep29-optional-critic.
+
+## September30 Quench encounter, floor art, and responsive review
+
+The complete repository suite passes at the final Quench implementation:
+`node node_modules/jest/bin/jest.js --runInBand` — 27 suites / 483 tests.
+The focused optional-route suite passes 9/9, including covered entry, safe
+Glass Edge pickup, northern retreat, shot cutting, a recoverable hit, a returned
+shot jam, and valve shutdown. JavaScript syntax checks and `git diff --check`
+also pass.
+
+`PW_SHOTS=node_modules/.cache/prism-warden/sep30-quench-final8`
+`node prism-warden/tools/discovery-smoke.cjs` passes at 320x568, 390x844,
+844x390, 768x1024, 1440x900, and 3840x2160. Each report has no browser errors,
+external requests, or horizontal overflow; the Quench touch hint and objective
+are checked at each size. The first Chromium launch returned Windows `spawn
+EPERM`; the scoped elevated retry completed successfully. I opened and inspected
+all six `*-optional-quench.png` captures; the 4K image was viewed downsampled.
+Evidence and report: `node_modules/.cache/prism-warden/sep30-quench-final8/`.
+
+An independently authored native gameplay trace found: spawn and pickup remain
+safe through 3.5 seconds; crossing an exposed upper volley took one hit (6 to 5
+HP); retreat behind cover caused no further damage; an exposed lower-sniper lane
+caused a hit; Glass Edge cut a nearby round; Mirror returned a round and jammed
+the upper turret; the valve silenced both turrets and removed live hostile shots.
+Both exits worked. These mechanics and lane checks are fixture/step evidence,
+not human play, mobile-device usability, or fun evidence.
+
+The final visual side-by-side verdict remains **AAA FAIL / OURS LOSES** against
+Nintendo's official *Link's Awakening* reference. The local floor art adds strong
+amber/cyan material identity, but its cracks compete with combat tells, the
+320px objective is small, player/attack hierarchy and depth staging trail the
+reference, and the coaching plate obscures lower threat geometry. Critic
+evidence: `node_modules/.cache/prism-warden/sep30-quench-visual-critic-final8/`.
+Physical-device checks, audio listening, novice learning, fun, and shipping
+acceptance remain open. No `.aaa-complete` or release claim.

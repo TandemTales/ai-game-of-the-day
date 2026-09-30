@@ -241,7 +241,13 @@
     rail: kilnTheme('Keep the cooling cart moving'),
     foundry: kilnTheme('Two temperatures, one circuit'),
     weaver: Object.assign(kilnTheme('The glass remembers the blow'), { ambient: [222, 232, 240], vignette: .14 }),
-    quench: kilnTheme('The quench valve'),
+    quench: Object.assign(kilnTheme('The quench valve'), {
+      // The gallery is a working craft room, not an unlit combat annex.
+      // Lift the ambient stone and soften the outer falloff so its safe landing
+      // and staggered cover remain legible beneath the mobile status UI.
+      ambient: [218, 207, 190], vignette: .1,
+      grade: ['#fff0d2', '#294348']
+    }),
     'optional-quench': kilnTheme('The quench valve'),
     stars: nightTheme('The road appears in borrowed light'),
     'obs-shutters': nightTheme('The shutters keep their own time'),
@@ -1524,7 +1530,9 @@
   function decals(g, s, th, rng, W, H, meta) {
     const walls = arr(s.walls).filter(finiteRect);
     const free = (x, y, pad) => !walls.some(w => inRect(x, y, w, pad || 0)) && !arr(s.water).some(z => inRect(x, y, z, 6));
-    grime(g, W, H, rng, 70);
+    // The Quench workshop plate already carries hand-painted wear and color;
+    // don't lay the generic charcoal grime over its authored material.
+    if (roomId(s) !== 'quench') grime(g, W, H, rng, 70);
     if (th.decor === 'verdant') verdantDecals(g, s, th, rng, W, H, meta);
     // Moss creeping out of joints near walls.
     const mossN = Math.floor(90 * th.moss);
@@ -1611,7 +1619,7 @@
         else circle(g, x, y, 1.6, 'rgba(230,235,230,.45)');
       }
     }
-    if (th.decor === 'kiln') {
+    if (th.decor === 'kiln' && roomId(s) !== 'quench') {
       // Old annealing sockets: dark iron mouths ringed in hand-set copper.
       for (const p of spots(s, rng, 4, 34, 150, 260, W, H)) {
         circle(g, p.x, p.y + 2, 19, 'rgba(0,0,0,.38)');
@@ -1623,6 +1631,267 @@
         }
         circle(g, p.x, p.y, 3.2, '#7c3927', 'rgba(255,147,82,.48)', 1);
         meta.lights.push({ x: p.x, y: p.y, r: 105, rgb: '255,112,57', a: .24, flicker: 1 });
+      }
+    }
+  }
+  // Quench's low cover is built from ordinary room walls. Keep its presentation
+  // derived from those rectangles so authored geometry can move without a renderer edit.
+  function quenchCoverWalls(s) {
+    const { W, H } = dims(s);
+    return arr(s.walls).filter(w => finiteRect(w) && w.x > 56 && w.y > 84 &&
+      w.x + w.w < W - 56 && w.y + w.h < H - 52 && Math.min(w.w, w.h) >= 12);
+  }
+  function quenchValve(s) {
+    return arr(s.levers).find(l => /valve/i.test(String(l.id || '') + ' ' + String(l.text || '')));
+  }
+  function quenchEdge(s) {
+    return arr(s.pickups).find(p => p && (p.kind === 'kiln-edge' || /glass[-_ ]?edge/i.test(String(p.id || ''))));
+  }
+  function quenchTurrets(s) {
+    return arr(s.enemies).filter(e => enemyType(e) === 'turret' && Number.isFinite(e.x) && Number.isFinite(e.y));
+  }
+  function quenchSafeSide(w, s) {
+    const cx = w.x + w.w / 2, cy = w.y + w.h / 2;
+    const threats = quenchTurrets(s);
+    let threat = threats[0], nearest = Infinity;
+    for (const e of threats) {
+      const d = Math.hypot(e.x - cx, e.y - cy);
+      if (d < nearest) { nearest = d; threat = e; }
+    }
+    if (!threat) threat = quenchValve(s) || (s.room && s.room.spawn) || { x: dims(s).W, y: cy };
+    if (w.w >= w.h) return { x: cx, y: cy + (cy >= threat.y ? 1 : -1) * (w.h / 2 + 22), horizontal: true };
+    return { x: cx + (cx >= threat.x ? 1 : -1) * (w.w / 2 + 22), y: cy, horizontal: false };
+  }
+  function quenchShieldGlyph(g, x, y, r, color) {
+    poly(g, [[x, y - r], [x + r * .76, y - r * .56], [x + r * .62, y + r * .32],
+      [x, y + r], [x - r * .62, y + r * .32], [x - r * .76, y - r * .56]],
+      'rgba(13,31,34,.92)', color, 1.5);
+    line(g, x - r * .35, y, x - r * .08, y + r * .3, color, 1.5);
+    line(g, x - r * .08, y + r * .3, x + r * .42, y - r * .3, color, 1.5);
+  }
+  function quenchArchitecture(g, s) {
+    if (roomId(s) !== 'quench') return;
+    for (const w of quenchCoverWalls(s)) {
+      const horiz = w.w >= w.h;
+      // A paired copper crown and dark seam make each ordinary collision slab
+      // read as deliberate tempered cover rather than stray masonry.
+      if (horiz) {
+        line(g, w.x + 7, w.y + 5, w.x + w.w - 7, w.y + 5, 'rgba(232,184,119,.72)', 1.7);
+        line(g, w.x + 7, w.y + w.h - 5, w.x + w.w - 7, w.y + w.h - 5, 'rgba(20,13,13,.58)', 1.5);
+        // Refractory top plates and short machined seams make each low block
+        // feel cast and maintained, with highlights aligned to the kiln key.
+        const strapW = Math.min(18, Math.max(9, w.w * .16));
+        for (const x of [w.x + 8, w.x + w.w - strapW - 8]) {
+          const strap = g.createLinearGradient(x, w.y + 4, x + strapW, w.y + w.h - 4);
+          strap.addColorStop(0, 'rgba(226,173,111,.48)'); strap.addColorStop(.22, 'rgba(91,76,62,.72)'); strap.addColorStop(1, 'rgba(25,31,34,.58)');
+          rrect(g, x, w.y + 4, strapW, Math.max(6, w.h - 8), 2); g.fillStyle = strap; g.fill();
+          g.strokeStyle = 'rgba(255,223,170,.4)'; g.lineWidth = .8; g.stroke();
+          for (const sy of [w.y + 8, w.y + w.h - 8]) circle(g, x + strapW / 2, sy, 1.45, '#e5bd83', '#31251b', .65);
+        }
+        line(g, w.x + w.w * .34, w.y + w.h * .5, w.x + w.w * .44, w.y + w.h * .5, 'rgba(233,202,158,.46)', .9);
+        line(g, w.x + w.w * .56, w.y + w.h * .5, w.x + w.w * .66, w.y + w.h * .5, 'rgba(233,202,158,.46)', .9);
+      } else {
+        line(g, w.x + 5, w.y + 7, w.x + 5, w.y + w.h - 7, 'rgba(232,184,119,.72)', 1.7);
+        line(g, w.x + w.w - 5, w.y + 7, w.x + w.w - 5, w.y + w.h - 7, 'rgba(20,13,13,.58)', 1.5);
+        const strapH = Math.min(18, Math.max(9, w.h * .16));
+        for (const y of [w.y + 8, w.y + w.h - strapH - 8]) {
+          const strap = g.createLinearGradient(w.x + 4, y, w.x + w.w - 4, y + strapH);
+          strap.addColorStop(0, 'rgba(226,173,111,.48)'); strap.addColorStop(.22, 'rgba(91,76,62,.72)'); strap.addColorStop(1, 'rgba(25,31,34,.58)');
+          rrect(g, w.x + 4, y, Math.max(6, w.w - 8), strapH, 2); g.fillStyle = strap; g.fill();
+          g.strokeStyle = 'rgba(255,223,170,.4)'; g.lineWidth = .8; g.stroke();
+          for (const sx of [w.x + 8, w.x + w.w - 8]) circle(g, sx, y + strapH / 2, 1.45, '#e5bd83', '#31251b', .65);
+        }
+        line(g, w.x + w.w * .5, w.y + w.h * .34, w.x + w.w * .5, w.y + w.h * .44, 'rgba(233,202,158,.46)', .9);
+        line(g, w.x + w.w * .5, w.y + w.h * .56, w.x + w.w * .5, w.y + w.h * .66, 'rgba(233,202,158,.46)', .9);
+      }
+      for (const [x, y] of [[w.x + 8, w.y + 7], [w.x + w.w - 8, w.y + w.h - 7]]) {
+        circle(g, x, y, 2.1, '#c5935c', '#382619', .8);
+        circle(g, x - .5, y - .5, .6, '#ffe1ac');
+      }
+    }
+  }
+  function quenchWorkshopFloor(g, s, W, H, meta) {
+    if (roomId(s) !== 'quench') return;
+    // Amber forge light hands off to a restrained teal reflection across the
+    // crossing. Soft-light keeps basalt joints and shadow shapes intact.
+    const wash = g.createLinearGradient(0, 90, W, H);
+    wash.addColorStop(0, 'rgba(255,205,143,.27)'); wash.addColorStop(.34, 'rgba(255,218,168,.1)');
+    wash.addColorStop(.63, 'rgba(114,190,184,.11)'); wash.addColorStop(1, 'rgba(20,64,69,.07)');
+    g.save(); g.globalCompositeOperation = 'soft-light'; g.fillStyle = wash; g.fillRect(0, 0, W, H); g.restore();
+
+    function reflectedPool(x, y, radius, rgb, alpha) {
+      const pool = g.createRadialGradient(x, y, 1, x, y, radius);
+      pool.addColorStop(0, `rgba(${rgb},${alpha})`); pool.addColorStop(.42, `rgba(${rgb},${alpha * .38})`); pool.addColorStop(1, `rgba(${rgb},0)`);
+      g.save(); g.globalCompositeOperation = 'screen'; g.fillStyle = pool;
+      g.fillRect(x - radius, y - radius, radius * 2, radius * 2); g.restore();
+    }
+
+    function station(x, y, rx, ry, accent, light, kind) {
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+      const pts = Array.from({ length: 10 }, (_, i) => {
+        const a = -Math.PI / 2 + i * TAU / 10, r = i % 2 ? .94 : 1;
+        return [x + Math.cos(a) * rx * r, y + Math.sin(a) * ry * r];
+      });
+      poly(g, pts.map(p => [p[0] + 4, p[1] + 7]), 'rgba(0,3,8,.4)');
+      const plate = g.createLinearGradient(x - rx, y - ry, x + rx, y + ry);
+      plate.addColorStop(0, 'rgba(198,181,153,.31)'); plate.addColorStop(.42, 'rgba(67,73,73,.64)'); plate.addColorStop(1, 'rgba(17,26,31,.76)');
+      poly(g, pts, plate, 'rgba(5,11,15,.88)', 1.5);
+      poly(g, pts.map(p => [x + (p[0] - x) * .76, y + (p[1] - y) * .72]), 'rgba(7,15,19,.2)', `rgba(${accent},.52)`, 1.1);
+      ellipse(g, x, y, rx * .54, ry * .45, 'rgba(4,10,14,.32)', `rgba(${accent},.4)`, 1);
+      for (let i = 0; i < 8; i++) {
+        const a = -Math.PI / 2 + i * TAU / 8, bx = x + Math.cos(a) * rx * .83, by = y + Math.sin(a) * ry * .77;
+        circle(g, bx, by, 1.9, '#32291f', `rgba(${accent},.8)`, .85);
+        line(g, bx - .6, by - .7, bx + .35, by + .2, 'rgba(255,236,199,.62)', .65);
+      }
+      if (kind === 'edge') {
+        // A blade-maker's three-tooth registration mark sits under the relic.
+        line(g, x - rx * .34, y + 2, x + rx * .34, y - 2, `rgba(${accent},.62)`, 1.3);
+        for (const dx of [-.2, 0, .2]) line(g, x + rx * dx, y - 4, x + rx * dx, y + 4, 'rgba(255,225,180,.42)', .7);
+      } else if (kind === 'valve') {
+        rrect(g, x - rx * .28, y - ry * .28, rx * .56, ry * .56, 2);
+        g.fillStyle = 'rgba(6,13,17,.44)'; g.fill(); g.strokeStyle = `rgba(${accent},.65)`; g.lineWidth = 1; g.stroke();
+        line(g, x - rx * .18, y, x + rx * .18, y, `rgba(${accent},.65)`, 1.2);
+        line(g, x, y - ry * .2, x, y + ry * .2, `rgba(${accent},.65)`, 1.2);
+      } else {
+        ellipse(g, x, y, rx * .23, ry * .28, 'rgba(5,11,14,.66)', `rgba(${accent},.72)`, 1);
+        line(g, x - rx * .66, y, x - rx * .34, y, `rgba(${accent},.45)`, .9);
+        line(g, x + rx * .34, y, x + rx * .66, y, `rgba(${accent},.45)`, .9);
+      }
+      meta.lights.push({ x, y, r: light.r, rgb: light.rgb, a: light.a });
+    }
+
+    const edge = quenchEdge(s);
+    if (edge) {
+      station(edge.x, edge.y + 5, 48, 29, '247,199,133', { r: 205, rgb: '255,190,117', a: .4 }, 'edge');
+      reflectedPool(edge.x, edge.y + 10, 215, '255,174,104', .19);
+    }
+    const valve = quenchValve(s);
+    if (valve) {
+      station(valve.x, valve.y + 7, 37, 27, '165,207,184', { r: 176, rgb: '125,204,194', a: .24 }, 'valve');
+      reflectedPool(valve.x, valve.y + 6, 186, '91,184,186', .15);
+    }
+    for (const e of quenchTurrets(s)) {
+      station(e.x, e.y + 8, 32, 23, '224,144,94', { r: 136, rgb: '255,142,81', a: .22 }, 'turret');
+      reflectedPool(e.x, e.y + 9, 124, '255,142,81', .12);
+    }
+    // Cool bounce from the annealed channel ties the separate metal stations
+    // together without turning the arena into a neon path.
+    reflectedPool(W * .49, H * .55, Math.min(W, H) * .39, '84,166,171', .075);
+    meta.lights.push({ x: W * .49, y: H * .55, r: 300, rgb: '105,184,184', a: .11 });
+  }
+  function quenchCoverSignals(ctx, s, t) {
+    if (roomId(s) !== 'quench') return;
+    const goal = quenchValve(s) || (s.room && s.room.spawn) || { x: dims(s).W, y: dims(s).H / 2 };
+    for (const w of quenchCoverWalls(s)) {
+      const safe = quenchSafeSide(w, s), horiz = w.w >= w.h;
+      // The sheltered-side mark alternates naturally with cover placement and
+      // turret positions, teaching a move-hide-move rhythm without a route arrow.
+      const length = horiz ? w.w : w.h, lead = safe.horizontal ? safe.x : safe.y;
+      const half = Math.max(22, length / 2 - 12), sx = safe.horizontal ? lead - half : safe.x;
+      const sy = safe.horizontal ? safe.y : lead - half, ex = safe.horizontal ? lead + half : safe.x;
+      const ey = safe.horizontal ? safe.y : lead + half;
+      line(ctx, sx, sy, ex, ey, 'rgba(9,22,25,.52)', 7);
+      line(ctx, sx, sy, ex, ey, 'rgba(144,220,198,.28)', 1.4);
+      ctx.save(); ctx.setLineDash([3, 9]); ctx.lineDashOffset = -t * 3;
+      line(ctx, sx, sy, ex, ey, 'rgba(222,193,142,.62)', 1.4);
+      ctx.restore();
+      quenchShieldGlyph(ctx, safe.x, safe.y, 9, 'rgba(154,239,211,.82)');
+      const toward = horiz ? (goal.x >= safe.x ? 1 : -1) : (goal.y >= safe.y ? 1 : -1);
+      const count = Math.max(2, Math.min(5, Math.floor(length / 36)));
+      for (let i = 0; i < count; i++) {
+        const f = (i + 1) / (count + 1), x = horiz ? sx + (ex - sx) * f : safe.x, y = horiz ? safe.y : sy + (ey - sy) * f;
+        const a = horiz ? (toward > 0 ? 0 : Math.PI) : (toward > 0 ? Math.PI / 2 : -Math.PI / 2);
+        ctx.save(); ctx.translate(x, y); ctx.rotate(a);
+        poly(ctx, [[5, 0], [-3, -3.5], [-1.4, 0], [-3, 3.5]], 'rgba(241,205,150,.66)', 'rgba(20,30,31,.72)', .7);
+        ctx.restore();
+      }
+    }
+  }
+  function quenchAcquisitionFloor(ctx, s, t) {
+    if (roomId(s) !== 'quench') return;
+    const p = quenchEdge(s);
+    if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return;
+    const taken = !!(p.taken || p.collected || p.picked || p.got), rgb = taken ? '142,239,207' : '255,205,139';
+    const pulse = .78 + .22 * Math.sin(t * 2.1 + p.x * .01);
+    ellipse(ctx, p.x, p.y + 5, 46, 23, `rgba(4,12,15,${taken ? .22 : .34})`);
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    ellipse(ctx, p.x, p.y + 2, 36, 18, `rgba(${rgb},${.035 * pulse})`);
+    ctx.restore();
+    ctx.save(); ctx.setLineDash([7, 8]); ctx.lineDashOffset = -t * 7;
+    ellipse(ctx, p.x, p.y + 2, 34, 17, null, `rgba(${rgb},${taken ? .36 : .62})`, 1.6);
+    ctx.restore();
+    ellipse(ctx, p.x, p.y + 2, 25, 12, null, `rgba(${rgb},${.22 + .08 * pulse})`, 1);
+    // Artisan's tempered-edge stamp: a small blade over a three-ring cradle.
+    line(ctx, p.x - 9, p.y + 3, p.x + 9, p.y - 3, `rgba(${rgb},${.72 * pulse})`, 2);
+    poly(ctx, [[p.x + 11, p.y - 4], [p.x + 16, p.y - 6], [p.x + 13, p.y - 1]], `rgba(${rgb},${.78 * pulse})`);
+    for (const side of [-1, 1]) {
+      line(ctx, p.x + side * 40, p.y - 4, p.x + side * 48, p.y, `rgba(${rgb},.55)`, 1.3);
+      line(ctx, p.x + side * 40, p.y + 4, p.x + side * 48, p.y, `rgba(${rgb},.55)`, 1.3);
+    }
+    glowQueue.push([p.x, p.y + 1, taken ? 28 : 38, rgb, taken ? .2 : .3]);
+  }
+  function quenchPipePath(from, to, covers, H) {
+    const candidates = [84, H - 84, (from.y + to.y) / 2];
+    for (const w of covers) candidates.push(w.y - 34, w.y + w.h + 34);
+    const hit = (a, b, r) => {
+      if (Math.abs(a.x - b.x) < .01) return a.x > r.x - 5 && a.x < r.x + r.w + 5 &&
+        Math.max(Math.min(a.y, b.y), r.y - 5) < Math.min(Math.max(a.y, b.y), r.y + r.h + 5);
+      if (Math.abs(a.y - b.y) < .01) return a.y > r.y - 5 && a.y < r.y + r.h + 5 &&
+        Math.max(Math.min(a.x, b.x), r.x - 5) < Math.min(Math.max(a.x, b.x), r.x + r.w + 5);
+      return false;
+    };
+    let best = null, bestLen = Infinity;
+    for (const y of candidates) {
+      const laneY = clamp(y, 64, H - 64), route = [from, { x: from.x, y: laneY }, { x: to.x, y: laneY }, to];
+      if (route.some((p, i) => i && Math.hypot(p.x - route[i - 1].x, p.y - route[i - 1].y) < 1)) continue;
+      if (covers.some(w => route.some((p, i) => i && hit(route[i - 1], p, w)))) continue;
+      const length = route.reduce((sum, p, i) => sum + (i ? Math.hypot(p.x - route[i - 1].x, p.y - route[i - 1].y) : 0), 0);
+      if (length < bestLen) { best = route; bestLen = length; }
+    }
+    return best || [from, to];
+  }
+  function quenchConduits(ctx, s, t) {
+    if (roomId(s) !== 'quench') return;
+    const valve = quenchValve(s);
+    if (!valve || !Number.isFinite(valve.x) || !Number.isFinite(valve.y)) return;
+    const flag = valve.flag, pulled = !!(valve.pulled || (flag && s.flags && s.flags[flag]));
+    const { H } = dims(s), covers = quenchCoverWalls(s);
+    for (const e of quenchTurrets(s)) {
+      if (!flag || e.disabledBy !== flag) continue;
+      const drained = pulled && (e.phase === 'silent' || e.silenced);
+      const cooling = pulled && !drained;
+      const rgb = pulled ? '136,231,211' : '255,151,81', path = quenchPipePath(valve, e, covers, H);
+      const live = !pulled && e.phase !== 'silent' && !e.silenced;
+      ctx.save(); ctx.lineCap = 'round';
+      for (let i = 1; i < path.length; i++) {
+        const a = path[i - 1], b = path[i];
+        line(ctx, a.x, a.y, b.x, b.y, 'rgba(2,9,13,.68)', 7);
+        line(ctx, a.x, a.y, b.x, b.y, pulled ? 'rgba(112,202,187,.42)' : 'rgba(193,114,64,.56)', 3.4);
+        if (live) {
+          ctx.setLineDash([5, 9]); ctx.lineDashOffset = -t * 18;
+          line(ctx, a.x, a.y, b.x, b.y, `rgba(${rgb},.8)`, 1.5);
+          ctx.setLineDash([]);
+        } else {
+          ctx.setLineDash([2, 8]);
+          line(ctx, a.x, a.y, b.x, b.y, `rgba(${rgb},${cooling ? .24 : .42})`, 1.2);
+          ctx.setLineDash([]);
+        }
+      }
+      ctx.restore();
+      if (live) {
+        const length = path.reduce((sum, p, i) => sum + (i ? Math.hypot(p.x - path[i - 1].x, p.y - path[i - 1].y) : 0), 0);
+        let d = length ? (t * 72 + e.x * .13) % length : 0, bead = path[0];
+        for (let i = 1; i < path.length; i++) {
+          const a = path[i - 1], b = path[i], seg = Math.hypot(b.x - a.x, b.y - a.y);
+          if (d <= seg) { const f = seg ? d / seg : 0; bead = { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f }; break; }
+          d -= seg;
+        }
+        circle(ctx, bead.x, bead.y, 3.4, `rgba(${rgb},.96)`, '#ffe3b8', 1);
+        glowQueue.push([bead.x, bead.y, 15, rgb, .55]);
+      } else if (drained) {
+        // A pale shutoff collar makes the vanished pressure legible at both ends.
+        circle(ctx, valve.x, valve.y, 25, null, 'rgba(136,231,211,.55)', 1.4);
+        circle(ctx, e.x, e.y, 25, null, 'rgba(136,231,211,.4)', 1.2);
       }
     }
   }
@@ -1676,9 +1945,49 @@
       gr.addColorStop(0, `rgba(${p.rgb},${p.a})`); gr.addColorStop(.5, `rgba(${p.rgb},${p.a * .35})`); gr.addColorStop(1, `rgba(${p.rgb},0)`);
       l.fillStyle = gr; l.fillRect(p.x - p.r, p.y - p.r, p.r * 2, p.r * 2);
     }
-    g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'multiply'; g.drawImage(L, 0, 0); g.restore();
+    g.save();
+    if (meta.preserveQuenchFloor) {
+      // The generated floor is already lit and textured. Keep the static
+      // ambient pass on the collision masonry and its modeled front faces.
+      g.beginPath();
+      for (const w of arr(s.walls).filter(finiteRect)) g.rect(w.x, w.y, w.w, w.h + 56);
+      g.clip();
+    }
+    g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'multiply'; g.drawImage(L, 0, 0); g.restore();
   }
   const staticCache = new Map();
+  let quenchFloorImage = null, quenchFloorImageState = 'idle';
+  function loadQuenchFloorImage() {
+    if (!hasDoc || typeof Image === 'undefined' || quenchFloorImageState !== 'idle') return;
+    quenchFloorImageState = 'loading';
+    const img = new Image();
+    img.onload = () => {
+      if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+        quenchFloorImage = img; quenchFloorImageState = 'ready';
+        // Replace the procedural first-frame floor in the static cache.
+        staticCache.clear();
+      } else quenchFloorImageState = 'failed';
+    };
+    img.onerror = () => { quenchFloorImageState = 'failed'; };
+    img.decoding = 'async';
+    img.src = 'assets/img/quench-workshop-floor-v1.png';
+  }
+  function drawQuenchFloorImage(g, W, H) {
+    if (!quenchFloorImage) { loadQuenchFloorImage(); return false; }
+    const iw = quenchFloorImage.naturalWidth || quenchFloorImage.width;
+    const ih = quenchFloorImage.naturalHeight || quenchFloorImage.height;
+    if (!(iw > 0 && ih > 0 && W > 0 && H > 0)) return false;
+    const sourceRatio = iw / ih, roomRatio = W / H;
+    let sx = 0, sy = 0, sw = iw, sh = ih;
+    if (sourceRatio > roomRatio) {
+      sw = ih * roomRatio; sx = (iw - sw) / 2;
+    } else {
+      sh = iw / roomRatio; sy = (ih - sh) / 2;
+    }
+    // Center-crop to the room bounds rather than stretching the painted slabs.
+    g.drawImage(quenchFloorImage, sx, sy, sw, sh, 0, 0, W, H);
+    return true;
+  }
   let kilnMaterial = null, kilnMaterialState = 'idle';
   let kilnApronMaterial = null, kilnApronMaterialState = 'idle';
   function loadKilnApronMaterial() {
@@ -1998,7 +2307,9 @@
     const rng = rngFor(hashStr(roomId(s)));
     g.scale(k, k);
     g.fillStyle = th.void; g.fillRect(0, 0, W, H);
-    (FLOORS[th.floor] || floorFlag)(g, W, H, rng, th, s);
+    meta.preserveQuenchFloor = roomId(s) === 'quench' && drawQuenchFloorImage(g, W, H);
+    if (!meta.preserveQuenchFloor) (FLOORS[th.floor] || floorFlag)(g, W, H, rng, th, s);
+    quenchWorkshopFloor(g, s, W, H, meta);
     if (th.decor === 'observatory') {
       // Fine brass survey rings distinguish the region without darkening its playable ground.
       const cx = W / 2, cy = H / 2;
@@ -2017,10 +2328,17 @@
     if (th.decor === 'crown') crownArenaArchitecture(g, s, W, H, meta);
     exterior(g, s, th, rng, W, H);
     drawWalls(g, s, th, rng, W, H, meta);
+    quenchArchitecture(g, s);
     drawWeaverColumnDetails(g, s);
     bakeLight(g, s, th, W, H, meta, k);
     if (th.grade) { // colour grade baked into the static layer: free at runtime
-      g.save(); g.globalCompositeOperation = 'soft-light'; g.globalAlpha = .5;
+      g.save();
+      if (meta.preserveQuenchFloor) {
+        g.beginPath();
+        for (const w of arr(s.walls).filter(finiteRect)) g.rect(w.x, w.y, w.w, w.h + 56);
+        g.clip();
+      }
+      g.globalCompositeOperation = 'soft-light'; g.globalAlpha = .5;
       const gr = g.createLinearGradient(0, 0, W * .6, H); gr.addColorStop(0, th.grade[0]); gr.addColorStop(1, th.grade[1]);
       g.fillStyle = gr; g.fillRect(0, 0, W, H); g.restore();
     }
@@ -2592,7 +2910,8 @@
       const lx = cx - dx * (Math.abs(dx) ? e.w / 2 + 74 : 0), ly = cy - dy * (Math.abs(dy) ? e.h / 2 + 30 : 0);
       const barred = arr(s.gates).some(g => !g.open && finiteRect(g) && rectDist(cx, cy, g) < 40);
       const pl = s.player, near = pl && Math.hypot(pl.x - lx, pl.y - ly) < 90;
-      if (!barred && !near) labels.push({ x: lx, y: ly, text: (dx < 0 ? '‹ ' : '') + roomName(e.to).toUpperCase() + (dx >= 0 ? ' ›' : ''), color: '#cdeee2', size: 10, dim: true, avoidThermal: true });
+      if (!barred && !near) labels.push({ x: lx, y: ly, text: (dx < 0 ? '‹ ' : '') + roomName(e.to).toUpperCase() + (dx >= 0 ? ' ›' : ''), color: '#cdeee2', size: 10, dim: true, avoidThermal: true,
+        quenchNorthExit: roomId(s) === 'quench' && e.to === 'furnace' && dy === -1 });
     }
     const ee = s.escortExit;
     if (ee && finiteRect(ee)) {
@@ -2803,9 +3122,36 @@
         glowQueue.push([mx + Math.cos(sa) * ph * 14, my + Math.sin(sa) * ph * 14 - ph * 6, 5, '180,220,255', 1 - ph]);
         circle(ctx, e.x + Math.sin(i * 3 + t) * 6, e.y - 18 - ph * 30, 4 + ph * 7, `rgba(120,130,135,${.35 * (1 - ph)})`);
       }
-      labels.push({ x: e.x, y: e.y - 40, text: 'JAMMED', color: '#bfe2ff', size: 9 });
+      if (roomId(s) !== 'quench') labels.push({ x: e.x, y: e.y - 40, text: 'JAMMED', color: '#bfe2ff', size: 9 });
     }
     if (silenced) for (let i = 0; i < 3; i++) mossClump(ctx, e.x - 12 + i * 11, e.y + 4, 4, rngFor(i + 7), .5);
+    if (roomId(s) === 'quench') drawQuenchTurretCue(ctx, e, t);
+  }
+  function drawQuenchTurretCue(ctx, e, t) {
+    let label = 'ARMED', color = '#ffd18b', progress = 1 - clamp(num(e.timer, 0) / Math.max(.6, num(e.interval, 2.4)), 0, 1);
+    if (e.phase === 'silent' || e.silenced) { label = 'SILENCED'; color = '#9af2d8'; progress = 0; }
+    else if (turretSilent(e)) { label = 'OFFLINE'; color = '#8a9997'; progress = 0; }
+    else if (e.phase === 'jammed' || num(e.jammed, 0) > 0) { label = 'JAMMED'; color = '#a8ddff'; progress = 0; }
+    else if (e.phase === 'telegraph' || /aim|charge|windup/.test(e.phase || '')) {
+      label = 'WINDUP'; color = '#ff7660'; progress = 1 - clamp(num(e.timer, .5) / (e.sniper ? 1.25 : 1), 0, 1);
+    } else if (e.phase === 'volley') {
+      label = 'VOLLEY'; color = '#ffd18b'; progress = 1 - clamp(num(e.timer, .6) / .6, 0, 1);
+    } else if ((e.phase === 'idle' || e.phase === 'recover') && num(e.volley, 0) > 0) {
+      // Turrets enter idle after their final shot; that authored idle interval is
+      // the actual post-volley recovery window, not a new simulation phase.
+      label = 'RECOVERY'; color = '#a8ead8'; progress = 1 - clamp(num(e.timer, 0) / Math.max(.6, num(e.interval, 2.4)), 0, 1);
+    }
+    const x = e.x, y = e.y - 6, radius = Math.max(28, num(e.r, 20) + 10);
+    ctx.save(); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(x, y, radius, 0, TAU); ctx.strokeStyle = 'rgba(7,15,19,.7)'; ctx.lineWidth = 3.4; ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, radius, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(progress, 0, 1));
+    ctx.strokeStyle = color; ctx.globalAlpha = label === 'JAMMED' ? .78 + .2 * Math.sin(t * 18) : .76; ctx.lineWidth = 2.2; ctx.stroke();
+    for (let i = 0; i < 4; i++) {
+      const a = i * TAU / 4 - Math.PI / 2, r = radius + 4;
+      circle(ctx, x + Math.cos(a) * r, y + Math.sin(a) * r, 1.7, i < Math.ceil(progress * 4) ? color : 'rgba(179,190,181,.42)');
+    }
+    ctx.restore();
+    labels.push({ x, y: e.y - radius - 19, text: label, color, size: 9, minScreen: 10 });
   }
   function turretSilent(e) { return !!e.silenced || /silen|off|disabled|defeated/.test(e.phase || '') || (e.hp !== undefined && e.hp <= 0 && e.phase !== 'jammed'); }
   function drawTurretAim(ctx, e, s, t) {
@@ -3377,7 +3723,7 @@
       ctx.restore(); glowQueue.push([p.x, p.y - 8 + bob, 30, SUN, .45]);
     }
     const pl = s.player;
-    if (pl && Math.hypot(pl.x - p.x, pl.y - p.y) < 150) labels.push({ x: p.x, y: p.y + 22, text: (p.kind === 'stored-light' ? 'Stored light' : p.kind === 'prism' ? 'Sun prism' : p.text || (p.kind === 'heart' ? 'Heart vessel' : 'Keeper chart')).toUpperCase(), color: p.kind === 'prism' ? '#ffd2f0' : '#f6e6bc', size: 9 });
+    if (pl && Math.hypot(pl.x - p.x, pl.y - p.y) < 150) labels.push({ x: p.x, y: p.y + 22, text: (p.kind === 'kiln-edge' || p.id === 'kiln-edge' ? 'Glass Edge' : p.kind === 'stored-light' ? 'Stored light' : p.kind === 'prism' ? 'Sun prism' : p.text || (p.kind === 'heart' ? 'Heart vessel' : 'Keeper chart')).toUpperCase(), color: p.kind === 'prism' ? '#ffd2f0' : '#f6e6bc', size: 9 });
   }
   function beaconLit(s) { return !!(s.beacon && (s.beacon.lit || s.status === 'won')); }
   function beaconReady(s) {
@@ -3413,6 +3759,19 @@
       glowQueue.push([b.x, b.y - 20, 60 + 10 * Math.sin(t * 3), SUN, .5]);
       labels.push({ x: b.x, y: b.y + 34, text: 'LIGHT THE BEACON', color: '#ffe0a0', size: 11 });
     } else labels.push({ x: b.x, y: b.y + 34, text: beaconName(s), color: '#c8d0d8', size: 10, dim: true });
+  }
+  function drawQuenchPlayerBacklight(ctx, p, t) {
+    const x = p.x, y = p.y - 14, pulse = .9 + .1 * Math.sin(t * 2.4);
+    const halo = ctx.createRadialGradient(x, y, 8, x, y, 48);
+    halo.addColorStop(0, 'rgba(102,190,215,.12)');
+    halo.addColorStop(.62, 'rgba(102,190,215,.1)');
+    halo.addColorStop(1, 'rgba(102,190,215,0)');
+    ctx.save();
+    ctx.fillStyle = halo; ctx.beginPath(); ctx.ellipse(x, y, 38, 47, 0, 0, TAU); ctx.fill();
+    // Cool kiln-glass rim light separates Sera's silhouette from the dark basalt.
+    ctx.beginPath(); ctx.ellipse(x, y, 25, 36, 0, 0, TAU);
+    ctx.strokeStyle = `rgba(164,231,244,${.24 * pulse})`; ctx.lineWidth = 1.4; ctx.stroke();
+    ctx.restore();
   }
   function drawPlayer(ctx, p, s, t) {
     const m = track(p, t);
@@ -4422,6 +4781,11 @@
         const sx = (x - v.x) * v.scale, sy = (y - v.y) * v.scale, shw = hw * v.scale, shh = size * v.scale * .7;
         if (sx + shw > 12 && sx - shw < 178 && sy + shh > 114 && sy - shh < 160) y = v.y + 174 / v.scale;
       }
+      if (l.quenchNorthExit && compactLandscape) {
+        const sy = (y - v.y) * v.scale, sh = size * v.scale * .7;
+        // The return cue remains on canvas, just below the compact top HUD band.
+        if (sy - sh < 106) y = v.y + 118 / v.scale;
+      }
       const top = v.y + m + size * .7, bot = v.y + v.h - m - size * .7;
       if (y < top) { y = top; for (const p of placed) if (Math.abs(p.x - x) < 70 && Math.abs(p.y - y) < 13) y = p.y + 14; }
       y = Math.min(y, bot);
@@ -4589,7 +4953,7 @@
   }
   function thermalGauge(ctx, s, t, width, height) {
     const th = s.thermal;
-    if (!th || regionOf(s) !== 'glass-kiln') return;
+    if (!th || regionOf(s) !== 'glass-kiln' || roomId(s) === 'quench') return;
     const hot = !!th.hot, phase = clamp(num(th.phase, 0), 0, 1), flipIn = Math.max(0, num(th.flipIn, 0));
     const compact = compactCanvasHud(width, height), compactLandscape = width <= 1000 && height <= 480;
     const W = 166, H = 46, x = compactLandscape ? 12 : Math.max(12, width - W - 12), y = compact ? (compactLandscape ? 114 : (tideOn(s) ? 145 : 100)) : 12, rgb = hot ? '255,128,66' : '115,203,255';
@@ -4722,6 +5086,9 @@
   }
   function titleCard(ctx, s, t, width, height) {
     const id = roomId(s);
+    // The room banner and objective already identify this optional gallery;
+    // its transient centered title obscures the north landing and its player.
+    if (id === 'quench') return;
     if (roomMemo.id !== id || t < roomMemo.since) { roomMemo.id = id; roomMemo.since = t; }
     const age = Number.isFinite(s.roomTime) ? s.roomTime : t - roomMemo.since;
     const compactMobile = width < 600 || (width < 1000 && height < 500);
@@ -4750,8 +5117,19 @@
   // ---------------------------------------------------------------- frame
   // Static layer density: 2x covers phones and laptops; very large displays get 3x.
   function bucket(k, devW) { return clamp(Math.round(k * 4) / 4, .5, devW > 2400 ? 3 : 2); }
-  function kilnWorldWash(ctx, W, H) {
+  function kilnWorldWash(ctx, W, H, s) {
     // Fixed in world coordinates so basalt, cast shadows, props and actors share one key.
+    if (roomId(s) === 'quench') {
+      const key = ctx.createLinearGradient(0, 0, W, H);
+      key.addColorStop(0, 'rgba(255,221,169,.1)'); key.addColorStop(.36, 'rgba(255,232,195,.035)');
+      key.addColorStop(.64, 'rgba(102,179,178,.045)'); key.addColorStop(1, 'rgba(36,83,89,.025)');
+      ctx.fillStyle = key; ctx.fillRect(0, 0, W, H);
+      const depth = ctx.createLinearGradient(0, 0, 0, H);
+      depth.addColorStop(0, 'rgba(14,27,37,.025)'); depth.addColorStop(.4, 'rgba(14,27,37,0)');
+      depth.addColorStop(.72, 'rgba(79,144,144,.015)'); depth.addColorStop(1, 'rgba(58,112,115,.025)');
+      ctx.fillStyle = depth; ctx.fillRect(0, 0, W, H);
+      return;
+    }
     const key = ctx.createLinearGradient(0, 0, W, H);
     key.addColorStop(0, 'rgba(255,226,184,.11)');
     key.addColorStop(.38, 'rgba(255,241,218,.025)');
@@ -4803,6 +5181,11 @@
       }
     }
     drawWater(ctx, s, t, th);
+    if (roomId(s) === 'quench') {
+      quenchCoverSignals(ctx, s, t);
+      quenchAcquisitionFloor(ctx, s, t);
+      quenchConduits(ctx, s, t);
+    }
     drawNightPaths(ctx, s, t);
     drawWeaverLoomFloor(ctx, s);
     drawGlass(ctx, s, t);
@@ -4811,7 +5194,10 @@
     // additive floor light: beams, sanctuary, lit receivers
     ctx.globalCompositeOperation = 'lighter';
     drawBeamLight(ctx, s);
-    if (s.player && Number.isFinite(s.player.x)) bloom(ctx, s.player.x, s.player.y - 6, 130, '255,232,196', .14);
+    if (s.player && Number.isFinite(s.player.x)) {
+      bloom(ctx, s.player.x, s.player.y - 6, 130, '255,232,196', .14);
+      if (roomId(s) === 'quench') drawQuenchPlayerBacklight(ctx, s.player, t);
+    }
     ctx.globalCompositeOperation = 'source-over';
     drawSanctuaryCircle(ctx, s, t);
     drawBreakwaters(ctx, s, t, th);
@@ -4876,7 +5262,7 @@
       ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(0, -5); ctx.lineTo(15, 0);
       ctx.lineTo(0, 5); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
     }
-    if (th.floor === 'kiln') kilnWorldWash(ctx, W, H);
+    if (th.floor === 'kiln') kilnWorldWash(ctx, W, H, s);
     drawLabels(ctx, v);
     ctx.restore();
     // screen space

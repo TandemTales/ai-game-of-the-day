@@ -18,8 +18,10 @@ async function main(){
     await page.evaluate(room=>PW.enterRoom(PW.game,room),room);
     await page.waitForFunction(room=>PW.game.roomId===room&&document.getElementById('objective').textContent===PW.game.objective,room);
     const objective=await page.locator('#objective').innerText();assert.match(objective,expected);
+    const touchHint=room==='quench'?await page.locator('#touchHint').innerText():null;
+    if(room==='quench'){assert.match(touchHint,/slash incoming rounds/i);assert.match(touchHint,/mirror to return a shot/i);}
     const bounds=await page.locator('#objective').boundingBox();assert(bounds.x>=0&&bounds.y>=0&&bounds.x+bounds.width<=width+1&&bounds.y+bounds.height<=height);
-    optionalObjectives.push({room,objective,bounds});
+    optionalObjectives.push({room,objective,bounds,touchHint});
     await page.waitForTimeout(150);await page.screenshot({path:path.join(out,size+'-optional-'+room+'.png')});
    }
 

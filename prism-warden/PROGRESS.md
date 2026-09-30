@@ -1561,3 +1561,16 @@ mistake, intentional cut, and return/jam paths with independent critique. Do not
 spend the next run only repeating completed guided routes. Follow with meaningful
 Twin Satchel/polarity use and screen-led learning; acquisition counts do not clear
 the expanded Ironwake depth contract. October3 itself stays wrap-up only.
+
+## September29 evening intent - 23:02 Pacific
+
+STOP absent; synchronized clean `dev`. Tuesday Pacific, Prism Warden age9; the
+October3 forced wrap-up remains unchanged. This bounded gameplay increment makes
+the optional Quench route a Glass Edge teaching encounter: safe entrance pickup,
+staggered cover and a telegraphed volley turret should create distinct mobile
+shot-cutting and reflected-shot jam-crossing choices, recoverable mistakes, and
+a permanent valve that silences the pressure. Preserve the ordinary C1-C2 route
+and northern retreat. Compare naive, recovery and intentional routes; retain
+failed evidence and the NON-BLIND AAA FAIL / OURS LOSES verdict. No release or
+`main` promotion. First push this intent, then implement the owned campaign file,
+test and inspect browser evidence, and record what remains unproven.

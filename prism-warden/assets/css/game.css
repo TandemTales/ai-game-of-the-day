@@ -95,6 +95,6 @@ body.has-prism .actions button,body.has-light .actions button{min-width:44px;pad
 }
 
 /* Opening coaching clears before the player leaves the covered Quench entry. */
-@media(max-width:600px) and (min-height:481px){
-  body.touch #message.timed{animation-duration:3s}
+@media(max-width:1000px) and (min-height:481px){
+  body.touch #message.timed{animation-duration:2.8s}
 }

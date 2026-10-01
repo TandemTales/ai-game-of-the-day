@@ -1781,30 +1781,13 @@
   }
   function quenchCoverSignals(ctx, s, t) {
     if (roomId(s) !== 'quench') return;
-    const goal = quenchValve(s) || (s.room && s.room.spawn) || { x: dims(s).W, y: dims(s).H / 2 };
     for (const w of quenchCoverWalls(s)) {
-      const safe = quenchSafeSide(w, s), horiz = w.w >= w.h;
+      const safe = quenchSafeSide(w, s);
       // The sheltered-side mark alternates naturally with cover placement and
       // turret positions, teaching a move-hide-move rhythm without a route arrow.
-      const length = horiz ? w.w : w.h, lead = safe.horizontal ? safe.x : safe.y;
-      const half = Math.max(22, length / 2 - 12), sx = safe.horizontal ? lead - half : safe.x;
-      const sy = safe.horizontal ? safe.y : lead - half, ex = safe.horizontal ? lead + half : safe.x;
-      const ey = safe.horizontal ? safe.y : lead + half;
-      line(ctx, sx, sy, ex, ey, 'rgba(9,22,25,.52)', 7);
-      line(ctx, sx, sy, ex, ey, 'rgba(144,220,198,.28)', 1.4);
-      ctx.save(); ctx.setLineDash([3, 9]); ctx.lineDashOffset = -t * 3;
-      line(ctx, sx, sy, ex, ey, 'rgba(222,193,142,.62)', 1.4);
-      ctx.restore();
-      quenchShieldGlyph(ctx, safe.x, safe.y, 9, 'rgba(154,239,211,.82)');
-      const toward = horiz ? (goal.x >= safe.x ? 1 : -1) : (goal.y >= safe.y ? 1 : -1);
-      const count = Math.max(2, Math.min(5, Math.floor(length / 36)));
-      for (let i = 0; i < count; i++) {
-        const f = (i + 1) / (count + 1), x = horiz ? sx + (ex - sx) * f : safe.x, y = horiz ? safe.y : sy + (ey - sy) * f;
-        const a = horiz ? (toward > 0 ? 0 : Math.PI) : (toward > 0 ? Math.PI / 2 : -Math.PI / 2);
-        ctx.save(); ctx.translate(x, y); ctx.rotate(a);
-        poly(ctx, [[5, 0], [-3, -3.5], [-1.4, 0], [-3, 3.5]], 'rgba(241,205,150,.66)', 'rgba(20,30,31,.72)', .7);
-        ctx.restore();
-      }
+      // One low-contrast badge marks the sheltered face. Repeated floor arrows
+      // looked like live shot paths even when the player was fully safe.
+      quenchShieldGlyph(ctx, safe.x, safe.y, 7, 'rgba(133,166,163,.56)');
     }
   }
   function quenchAcquisitionFloor(ctx, s, t) {
@@ -1861,19 +1844,22 @@
       const drained = pulled && (e.phase === 'silent' || e.silenced);
       const cooling = pulled && !drained;
       const rgb = pulled ? '136,231,211' : '255,151,81', path = quenchPipePath(valve, e, covers, H);
-      const live = !pulled && e.phase !== 'silent' && !e.silenced;
+      // Idle pipework is scenery; pressure travels visibly only during an
+      // actual charge or volley, leaving motion to live combat information.
+      const powered = !pulled && e.phase !== 'silent' && !e.silenced;
+      const live = powered && /telegraph|aim|charge|windup|volley/.test(e.phase || '');
       ctx.save(); ctx.lineCap = 'round';
       for (let i = 1; i < path.length; i++) {
         const a = path[i - 1], b = path[i];
         line(ctx, a.x, a.y, b.x, b.y, 'rgba(2,9,13,.68)', 7);
-        line(ctx, a.x, a.y, b.x, b.y, pulled ? 'rgba(112,202,187,.42)' : 'rgba(193,114,64,.56)', 3.4);
+        line(ctx, a.x, a.y, b.x, b.y, pulled ? 'rgba(112,202,187,.42)' : 'rgba(151,103,76,.38)', 3.4);
         if (live) {
           ctx.setLineDash([5, 9]); ctx.lineDashOffset = -t * 18;
           line(ctx, a.x, a.y, b.x, b.y, `rgba(${rgb},.8)`, 1.5);
           ctx.setLineDash([]);
         } else {
           ctx.setLineDash([2, 8]);
-          line(ctx, a.x, a.y, b.x, b.y, `rgba(${rgb},${cooling ? .24 : .42})`, 1.2);
+          line(ctx, a.x, a.y, b.x, b.y, `rgba(${rgb},${cooling ? .24 : powered ? .14 : .42})`, 1.2);
           ctx.setLineDash([]);
         }
       }
@@ -1984,8 +1970,13 @@
     } else {
       sh = iw / roomRatio; sy = (ih - sh) / 2;
     }
-    // Center-crop to the room bounds rather than stretching the painted slabs.
+    // Retain the painted slabs and glass seams, but push their high-contrast
+    // fissures behind the moving projectile and telegraph layers. The filter
+    // touches only the static image; walls, props, pickups and combat stay crisp.
+    g.save();
+    g.filter = 'contrast(78%) saturate(52%) brightness(72%)';
     g.drawImage(quenchFloorImage, sx, sy, sw, sh, 0, 0, W, H);
+    g.restore();
     return true;
   }
   let kilnMaterial = null, kilnMaterialState = 'idle';
@@ -3143,15 +3134,15 @@
     }
     const x = e.x, y = e.y - 6, radius = Math.max(28, num(e.r, 20) + 10);
     ctx.save(); ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.arc(x, y, radius, 0, TAU); ctx.strokeStyle = 'rgba(7,15,19,.7)'; ctx.lineWidth = 3.4; ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, radius, 0, TAU); ctx.strokeStyle = 'rgba(4,12,16,.92)'; ctx.lineWidth = 5; ctx.stroke();
     ctx.beginPath(); ctx.arc(x, y, radius, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(progress, 0, 1));
-    ctx.strokeStyle = color; ctx.globalAlpha = label === 'JAMMED' ? .78 + .2 * Math.sin(t * 18) : .76; ctx.lineWidth = 2.2; ctx.stroke();
+    ctx.strokeStyle = color; ctx.globalAlpha = label === 'JAMMED' ? .78 + .2 * Math.sin(t * 18) : .94; ctx.lineWidth = 3.1; ctx.stroke();
     for (let i = 0; i < 4; i++) {
       const a = i * TAU / 4 - Math.PI / 2, r = radius + 4;
       circle(ctx, x + Math.cos(a) * r, y + Math.sin(a) * r, 1.7, i < Math.ceil(progress * 4) ? color : 'rgba(179,190,181,.42)');
     }
     ctx.restore();
-    labels.push({ x, y: e.y - radius - 19, text: label, color, size: 9, minScreen: 10 });
+    labels.push({ x, y: e.y - radius - 19, text: label, color, size: 10, minScreen: 11 });
   }
   function turretSilent(e) { return !!e.silenced || /silen|off|disabled|defeated/.test(e.phase || '') || (e.hp !== undefined && e.hp <= 0 && e.phase !== 'jammed'); }
   function drawTurretAim(ctx, e, s, t) {
@@ -3162,7 +3153,25 @@
     const al = Math.hypot(ax, ay) || 1; ax /= al; ay /= al;
     const walls = arr(s.walls).concat(arr(s.gates).filter(g => !g.open));
     const hit = PW.raySegment ? PW.raySegment(e.x, e.y, ax, ay, walls, 900) : { x: e.x + ax * 600, y: e.y + ay * 600 };
-    const prog = clamp(1 - num(e.timer, .5) / 1.0, 0, 1);
+    const prog = clamp(1 - num(e.timer, .5) / (e.sniper ? 1.25 : 1), 0, 1);
+    if (roomId(s) === 'quench') {
+      // The bright line exists only while the turret is aiming. Its near-white
+      // moving spine is legible even when the turret itself is off a phone edge.
+      const startX = e.x + ax * 26, startY = e.y + ay * 26;
+      ctx.save(); ctx.lineCap = 'round';
+      line(ctx, startX, startY, hit.x, hit.y, 'rgba(6,13,15,.8)', 15);
+      ctx.globalCompositeOperation = 'lighter';
+      line(ctx, startX, startY, hit.x, hit.y, `rgba(255,125,54,${.2 + .2 * prog})`, 12);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.setLineDash([12, 8]); ctx.lineDashOffset = -t * 72;
+      line(ctx, startX, startY, hit.x, hit.y, `rgba(255,221,159,${.72 + .26 * prog})`, 3.3);
+      ctx.setLineDash([]);
+      circle(ctx, hit.x, hit.y, 10 + 3 * prog, 'rgba(9,18,18,.48)', 'rgba(255,211,144,.9)', 2.2);
+      line(ctx, hit.x - 16, hit.y, hit.x - 8, hit.y, 'rgba(255,232,187,.9)', 2);
+      line(ctx, hit.x + 8, hit.y, hit.x + 16, hit.y, 'rgba(255,232,187,.9)', 2);
+      ctx.restore();
+      return;
+    }
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     line(ctx, e.x, e.y, hit.x, hit.y, `rgba(255,70,50,${.08 + .12 * prog})`, 14);

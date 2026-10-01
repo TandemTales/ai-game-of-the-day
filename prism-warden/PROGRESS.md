@@ -1692,3 +1692,11 @@ character/target/hazard separation and desktop encounter composition, then
 observe live shot-to-return cadence with actual controls and independent novice
 play. Do not treat staged captures or the test suite as AAA acceptance. October3
 is wrap-up only; do not start new polish on release Saturday.
+
+## October1 night intent (Pacific Thursday, age 11)
+
+STOP absent. Session is pinned to branch `claude/beautiful-turing-jplt7s`
+(fast-forwarded to origin/dev 570c54d); pushes go there, not to `dev` directly.
+Intent: bounded phone-size character/target/hazard separation pass in render.js
+(NEXT FIRST from the Sep30 entry), full suite, six-size captures, independent
+side-by-side critic. October3 remains forced wrap-up only; no release tonight.

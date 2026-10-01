@@ -1668,9 +1668,10 @@ Glass Edge cut, Mirror return, and turret jam have distinct visual cues.
 The full smoke timeout was a stale test helper: it skipped the required
 Observatory restoration choice. The helper now selects that choice. Full Jest
 after the last renderer edit: **27 suites / 483 tests PASS**. Syntax and focused
-optional-route tests: **9/9 PASS**. A six-size Chromium sweep passed before the
-last shot-VFX edit, with zero page errors, external requests or horizontal
-overflow; the exact-final-code sweep is running at this handoff checkpoint.
+optional-route tests: **9/9 PASS**. The exact-final-code six-size Chromium
+sweep **PASS** at 320x568, 390x844, 844x390, 768x1024, 1440x900 and
+3840x2160, with zero page errors, external requests or horizontal overflow;
+all local art loaded. Evidence: `node_modules/.cache/prism-warden/oct01-v3-final-six/`.
 Inspected Quench captures at all six sizes and controlled 320/1440 shot, cut,
 return and jam frames. The latter used a real simulated turret shot plus a
 paused/repositioned contact fixture; they do not establish natural input timing.

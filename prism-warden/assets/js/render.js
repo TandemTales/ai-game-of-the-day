@@ -3113,6 +3113,21 @@
         glowQueue.push([mx + Math.cos(sa) * ph * 14, my + Math.sin(sa) * ph * 14 - ph * 6, 5, '180,220,255', 1 - ph]);
         circle(ctx, e.x + Math.sin(i * 3 + t) * 6, e.y - 18 - ph * 30, 4 + ph * 7, `rgba(120,130,135,${.35 * (1 - ph)})`);
       }
+      if (roomId(s) === 'quench') {
+        // A returned round sets timer to five seconds. The first fraction of
+        // that existing jam window gets a short cyan impact burst.
+        const impact = clamp((num(e.timer, 0) - 4.55) / .45, 0, 1);
+        if (impact > 0) {
+          const r = 18 + (1 - impact) * 26;
+          circle(ctx, e.x, e.y - 6, r, null, `rgba(139,255,233,${.9 * impact})`, 3);
+          circle(ctx, e.x, e.y - 6, r + 6, null, `rgba(7,24,29,${.7 * impact})`, 3);
+          for (let i = 0; i < 8; i++) {
+            const a = i * TAU / 8, ux = Math.cos(a), uy = Math.sin(a);
+            line(ctx, e.x + ux * (r + 4), e.y - 6 + uy * (r + 4), e.x + ux * (r + 13), e.y - 6 + uy * (r + 13), `rgba(211,255,244,${impact})`, 2);
+          }
+          glowQueue.push([e.x, e.y - 6, 48, '110,255,229', .72 * impact]);
+        }
+      }
       if (roomId(s) !== 'quench') labels.push({ x: e.x, y: e.y - 40, text: 'JAMMED', color: '#bfe2ff', size: 9 });
     }
     if (silenced) for (let i = 0; i < 3; i++) mossClump(ctx, e.x - 12 + i * 11, e.y + 4, 4, rngFor(i + 7), .5);
@@ -4731,9 +4746,17 @@
       const rgb = b.friendly ? MINT : thread ? (centerThread ? '184,247,255' : '126,193,230') : '255,130,80';
       ctx.lineCap = 'round';
       ctx.globalCompositeOperation = 'lighter';
-      const trail = thread ? (centerThread ? 42 : 24) : 26;
+      const quenchRound = roomId(s) === 'quench' && !thread;
+      const trail = thread ? (centerThread ? 42 : 24) : quenchRound ? (b.friendly ? 58 : 44) : 26;
+      if (quenchRound) {
+        ctx.globalCompositeOperation = 'source-over';
+        line(ctx, b.x - ux * trail, b.y - uy * trail - 6, b.x, b.y - 6, 'rgba(5,13,17,.75)', b.friendly ? 11 : 10);
+        ctx.globalCompositeOperation = 'lighter';
+      }
       line(ctx, b.x - ux * trail, b.y - uy * trail - 6, b.x, b.y - 6,
-        `rgba(${rgb},${thread ? centerThread ? .9 : .42 : .35})`, thread ? (centerThread ? 11 : 5.5) : 8);
+        `rgba(${rgb},${thread ? centerThread ? .9 : .42 : quenchRound ? .82 : .35})`, thread ? (centerThread ? 11 : 5.5) : quenchRound ? 6 : 8);
+      if (quenchRound) line(ctx, b.x - ux * trail * .7, b.y - uy * trail * .7 - 6, b.x, b.y - 6,
+        b.friendly ? 'rgba(212,255,246,.96)' : 'rgba(255,231,184,.95)', 2);
       bloom(ctx, b.x, b.y - 6, thread ? (centerThread ? 47 : 22) : 26, rgb, centerThread ? 1 : thread ? .48 : .82);
       bloom(ctx, b.x, b.y + 6, thread ? (centerThread ? 30 : 15) : 22, rgb, centerThread ? .46 : thread ? .16 : .25);
       ctx.globalCompositeOperation = 'source-over';
@@ -4759,11 +4782,32 @@
     }
   }
   function drawParticles(ctx, s) {
-    for (const p of arr(s.particles)) {
+    const particles = arr(s.particles);
+    for (const p of particles) {
       if (!Number.isFinite(p.x)) continue;
       const life = clamp(num(p.life, 0) / num(p.maxLife, .65), 0, 1);
       const rgb = p.kind === 'hit' || p.kind === 'hurt' ? '255,120,90' : p.kind === 'heal' ? '140,255,170' : p.kind === 'dash' ? '200,240,255' : p.kind === 'slash' ? '255,240,200' : p.kind === 'splash' ? '200,240,255' : SUN;
       bloom(ctx, p.x, p.y - 6, 4 + 8 * life, rgb, life);
+    }
+    if (roomId(s) === 'quench') {
+      // Glass Edge cuts emit eight slash sparks together. Give that contact a
+      // single spoke-and-ring burst, rather than eight indistinct white dots.
+      const slash = particles.filter(p => p.kind === 'slash' && p.life > 0).slice(-8);
+      if (slash.length === 8) {
+        const x = slash.reduce((sum, p) => sum + p.x, 0) / 8;
+        const y = slash.reduce((sum, p) => sum + p.y, 0) / 8 - 6;
+        const life = clamp(num(slash[0].life, 0) / num(slash[0].maxLife, .65), 0, 1);
+        const flash = clamp((life - .65) / .35, 0, 1);
+        if (flash > 0) {
+          const r = 15 + (1 - life) * 19;
+          circle(ctx, x, y, r + 3, null, `rgba(7,22,27,${.7 * flash})`, 5);
+          circle(ctx, x, y, r, null, `rgba(255,241,196,${.95 * flash})`, 2.8);
+          for (let i = 0; i < 8; i++) {
+            const a = i * TAU / 8, ux = Math.cos(a), uy = Math.sin(a);
+            line(ctx, x + ux * (r + 2), y + uy * (r + 2), x + ux * (r + 14), y + uy * (r + 14), `rgba(255,250,221,${flash})`, 2.4);
+          }
+        }
+      }
     }
   }
   function flushGlow(ctx) {

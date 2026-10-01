@@ -83,3 +83,18 @@ body.has-prism .actions button,body.has-light .actions button{min-width:44px;pad
 @media(max-width:600px) and (min-height:481px){body.touch #polarity{top:104px;left:8px;right:auto}}
 
 @keyframes msgfade{0%,72%{opacity:.94}100%{opacity:0;visibility:hidden}}#message.timed{animation:msgfade 6s linear forwards}
+
+/* At 320px the current action needs the full HUD width, not the score gap. */
+@media(max-width:360px) and (min-height:481px){
+  #hud{grid-template-columns:1fr auto;grid-template-rows:auto auto;column-gap:6px;row-gap:2px;min-height:60px;padding:3px 8px 4px}
+  .vital{grid-column:1;grid-row:1}
+  .points{grid-column:2;grid-row:1}
+  .mission{grid-column:1/-1;grid-row:2;gap:2px}
+  .mission .eyebrow{display:none}
+  .mission strong{font-size:14px;line-height:1.15;text-wrap:balance}
+}
+
+/* Opening coaching clears before the player leaves the covered Quench entry. */
+@media(max-width:600px) and (min-height:481px){
+  body.touch #message.timed{animation-duration:3s}
+}

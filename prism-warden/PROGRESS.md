@@ -1654,3 +1654,40 @@ selects the first available restoration option, as it already did for equipment.
 A real Chromium 320x568 full smoke passes with empty page errors, no external
 requests, no horizontal overflow, and the local art loaded. This is a harness
 repair; the remaining viewports and new visual critique are still pending.
+
+### September30 late-night Quench readability result
+
+Wednesday Pacific, age10. `dev` only; October3 remains forced wrap-up. No
+`.aaa-complete` or `main` promotion. This bounded pass made the 320px objective
+a readable full-width HUD row, reduced its height, and made the Quench coaching
+plate clear after 2.8s on touch screens through 1000px. The touch polarity
+button now says `HOT/COLD · TAP` rather than naming the keyboard key. Painted
+floor fissures and cover badges are quieter; turret windup, shot direction,
+Glass Edge cut, Mirror return, and turret jam have distinct visual cues.
+
+The full smoke timeout was a stale test helper: it skipped the required
+Observatory restoration choice. The helper now selects that choice. Full Jest
+after the last renderer edit: **27 suites / 483 tests PASS**. Syntax and focused
+optional-route tests: **9/9 PASS**. A six-size Chromium sweep passed before the
+last shot-VFX edit, with zero page errors, external requests or horizontal
+overflow; the exact-final-code sweep is running at this handoff checkpoint.
+Inspected Quench captures at all six sizes and controlled 320/1440 shot, cut,
+return and jam frames. The latter used a real simulated turret shot plus a
+paused/repositioned contact fixture; they do not establish natural input timing.
+
+Independent, non-blind side-by-side UI critic against Nintendo's *Link's
+Awakening*: **OURS LOSES / AAA UI FAIL**. The settled phone no longer has a
+coaching plate over lower threats, but character, route markers and hazards
+still lack glanceable hierarchy. Renderer critic against Nintendo's *Echoes of
+Wisdom*: staged combat-cue sequence **PASS**, but **OURS LOSES / overall AAA art
+FAIL**. Shot, cut, cyan return and jam now read at 320 and 1440; broad room
+composition, character/action scale, material cohesion and full motion timing
+remain below the reference. The final critic artifacts are under
+`node_modules/.cache/prism-warden/sep30-quench-floor-separation/`.
+
+No human first-play, physical-device/controller, audio-listening, performance,
+fun, novice learning or shipping acceptance. NEXT FIRST: improve phone-size
+character/target/hazard separation and desktop encounter composition, then
+observe live shot-to-return cadence with actual controls and independent novice
+play. Do not treat staged captures or the test suite as AAA acceptance. October3
+is wrap-up only; do not start new polish on release Saturday.

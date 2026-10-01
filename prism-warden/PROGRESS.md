@@ -1645,3 +1645,12 @@ combat signals, and investigate the smoke harness timeout before accepting its
 visual sweep. Run the full suite and inspect six viewport captures. Obtain an
 independent side-by-side critic verdict; retain AAA FAIL if ours still loses.
 No early release or `main` promotion; October3 remains forced wrap-up only.
+
+### Smoke harness repair
+
+The full smoke timeout was a stale harness assumption: the Observatory result
+requires a restoration choice before Continue becomes enabled. The helper now
+selects the first available restoration option, as it already did for equipment.
+A real Chromium 320x568 full smoke passes with empty page errors, no external
+requests, no horizontal overflow, and the local art loaded. This is a harness
+repair; the remaining viewports and new visual critique are still pending.

@@ -1636,3 +1636,12 @@ capture; not investigated. NOT done: 320px objective hierarchy, floor-crack vs
 combat-cue separation, visual critic re-review. AAA FAIL verdict stands; no
 release. Next: those two items, then investigate the smoke.cjs timeout. Oct3 is
 wrap-up only.
+
+## September30 late-night intent (Pacific Wednesday, age 10)
+
+STOP absent; synced `dev` at 86d24cb. Continue the bounded Quench readability
+pass: make the 320px objective legible, separate floor decoration from live
+combat signals, and investigate the smoke harness timeout before accepting its
+visual sweep. Run the full suite and inspect six viewport captures. Obtain an
+independent side-by-side critic verdict; retain AAA FAIL if ours still loses.
+No early release or `main` promotion; October3 remains forced wrap-up only.

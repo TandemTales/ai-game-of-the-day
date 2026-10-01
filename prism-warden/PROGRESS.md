@@ -1700,3 +1700,21 @@ STOP absent. Session is pinned to branch `claude/beautiful-turing-jplt7s`
 Intent: bounded phone-size character/target/hazard separation pass in render.js
 (NEXT FIRST from the Sep30 entry), full suite, six-size captures, independent
 side-by-side critic. October3 remains forced wrap-up only; no release tonight.
+
+### October1 result: phone-size separation pass (render.js only)
+
+Added a phone scale factor (1 on desktop, ~1.5-1.8 on phones) for halos/rings;
+Sera gets a ground ring (cyan, mint while reflecting) and a dark/pale contour;
+hostile shots get a dark disc with red rim, friendly shots a mint rim; armed
+turrets get a ring (red windup, blue jammed); deep-water shorelines on every
+zone; larger edge chevrons under 500px; world-label floor 10.5px. Logic untouched.
+Full Jest **27 suites / 483 tests PASS** (lead-run). Lead read 390x844 Quench and
+1440x900 Channels captures (`node_modules/.cache/prism-warden/oct01-r2/`): clean,
+Sera and volleys clearly separated. Sub-agent viewed only a subset of the other
+captures; post-change `smoke.cjs` six-size sweep NOT rerun; label overlap after
+the label-floor bump unchecked; 4K unchecked.
+**No independent critic ran** (sub-agent had no Agent tool), so AAA FAIL / OURS
+LOSES stands. Remaining gaps: Sera ~40px tall at 320x568 (camera scale in
+view()), floor cracks vs cues, coaching plate over lower threats at 390x844,
+844x390 HUD crowding, glass lanes untouched. NEXT: run smoke.cjs six sizes, check
+label overlap, spawn an independent critic from the lead. Oct3 = wrap-up only.

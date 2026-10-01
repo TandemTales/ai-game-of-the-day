@@ -49,6 +49,19 @@
     };
   }
   PW.view = view;
+  // Small-screen compensation: 1 on desktop, up to 1.8 on phones. Used only to thicken halos, rings and
+  // markers so the player, hazards and route cues keep a readable silhouette when the room is scaled down.
+  let phoneK = 1;
+  const outlineCache = new WeakMap();
+  function outlineSprite(img, rgb) {
+    let m = outlineCache.get(img); if (!m) { m = {}; outlineCache.set(img, m); }
+    if (m[rgb] !== undefined) return m[rgb];
+    const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+    const c = hasDoc && iw > 0 && ih > 0 ? makeCanvas(iw, ih) : null, g = c && c.getContext('2d');
+    if (!g) return (m[rgb] = null);
+    g.drawImage(img, 0, 0, iw, ih); g.globalCompositeOperation = 'source-in'; g.fillStyle = rgb; g.fillRect(0, 0, iw, ih);
+    return (m[rgb] = c);
+  }
   PW.screenToWorld = function (s, w, h, x, y) {
     const v = view(s, w, h);
     return { x: v.x + x / v.scale, y: v.y + y / v.scale };
@@ -2671,6 +2684,10 @@
       }
       ctx.restore();
       // edges: foam when deep, warning outline when about to flood
+      if (deep) { // crisp shoreline so water reads as a hazard region on a small screen
+        ctx.save(); ctx.lineWidth = 2.6 + phoneK; ctx.strokeStyle = 'rgba(3,16,22,.55)'; ctx.strokeRect(z.x + 1, z.y + 1, z.w - 2, z.h - 2);
+        ctx.lineWidth = 1 + .5 * phoneK; ctx.strokeStyle = 'rgba(176,236,248,.5)'; ctx.strokeRect(z.x + 1, z.y + 1, z.w - 2, z.h - 2); ctx.restore();
+      }
       if (deep && !big) {
         ctx.save(); ctx.setLineDash([10, 7]); ctx.lineDashOffset = -t * 12;
         ctx.strokeStyle = 'rgba(220,245,250,.35)'; ctx.lineWidth = 2; ctx.strokeRect(z.x + 2, z.y + 2, z.w - 4, z.h - 4); ctx.restore();
@@ -3088,6 +3105,11 @@
     const al = Math.hypot(ax, ay) || 1; ax /= al; ay /= al;
     const a = Math.atan2(ay, ax) + (jammed ? Math.sin(t * 30) * .08 + .35 : 0);
     contactShadow(ctx, e.x + 3, e.y + 10, 26, 13, .9);
+    if (!silenced) { // hostile base ring: warm, dark-backed, brighter while winding up
+      ctx.save(); ctx.beginPath(); ctx.ellipse(e.x, e.y + 8, 33, 17, 0, 0, TAU);
+      ctx.lineWidth = 3 + phoneK; ctx.strokeStyle = 'rgba(8,6,6,.7)'; ctx.stroke();
+      ctx.lineWidth = 1.3 + .5 * phoneK; ctx.strokeStyle = jammed ? 'rgba(150,205,255,.7)' : tele ? 'rgba(255,92,64,.95)' : 'rgba(255,150,92,.62)'; ctx.stroke(); ctx.restore();
+    }
     const oct = (R, dy) => { const p = []; for (let i = 0; i < 8; i++) { const q = i * TAU / 8 + TAU / 16; p.push([e.x + Math.cos(q) * R, e.y + dy + Math.sin(q) * R * .85]); } return p; };
     poly(ctx, oct(23, 7), '#2a2622', '#0a0806', 1.5);
     poly(ctx, oct(23, 0), silenced ? '#3e403c' : '#5a5448', '#14100c', 1.5);
@@ -3192,7 +3214,8 @@
     line(ctx, e.x, e.y, hit.x, hit.y, `rgba(255,70,50,${.08 + .12 * prog})`, 14);
     ctx.globalCompositeOperation = 'source-over';
     ctx.setLineDash([10, 8]); ctx.lineDashOffset = -t * 60;
-    line(ctx, e.x + ax * 30, e.y + ay * 30, hit.x, hit.y, `rgba(255,120,90,${.5 + .4 * prog})`, 2);
+    line(ctx, e.x + ax * 30, e.y + ay * 30, hit.x, hit.y, 'rgba(8,6,6,.55)', 3.5 + phoneK);
+    line(ctx, e.x + ax * 30, e.y + ay * 30, hit.x, hit.y, `rgba(255,120,90,${.55 + .4 * prog})`, 1.6 + .6 * phoneK);
     ctx.restore();
     circle(ctx, hit.x, hit.y, 6 + 4 * Math.sin(t * 14), null, 'rgba(255,120,90,.7)', 1.5);
   }
@@ -3814,6 +3837,13 @@
     if (num(p.invulnerable, 0) > 0 && num(p.dashTime, 0) <= 0 && Math.floor(t * 14) % 2) ctx.globalAlpha = .55;
     ctx.translate(p.x, p.y); ctx.scale(SCALE_HERO, SCALE_HERO);
     contactShadow(ctx, 1, 12, 11, 4.5, 1);
+    { // friendly marker: a cool ring under Sera's feet (hostile cues stay warm), dark-backed for any floor
+      const k = phoneK, rx = 13 + 2.5 * k, ry = 6 + 1.2 * k;
+      ctx.save(); ctx.lineWidth = 2.6 + .9 * k; ctx.strokeStyle = 'rgba(4,14,20,.72)';
+      ctx.beginPath(); ctx.ellipse(1, 11, rx, ry, 0, 0, TAU); ctx.stroke();
+      ctx.lineWidth = 1.2 + .5 * k; ctx.strokeStyle = p.reflecting ? 'rgba(160,255,225,.95)' : 'rgba(176,238,246,.82)';
+      ctx.beginPath(); ctx.ellipse(1, 11, rx, ry, 0, 0, TAU); ctx.stroke(); ctx.restore();
+    }
     const slashing = num(p.slashTime, 0) > 0;
     const px = -ay, py = ax; // sword-hand side
     const drawShield = () => {
@@ -3852,7 +3882,14 @@
       if (!slashing) drawSword();
       const iw = paintedSprite.naturalWidth || paintedSprite.width, ih = paintedSprite.naturalHeight || paintedSprite.height;
       const artW = direction === 'n' && !walkingSprite ? 48.3 : 46.4;
-      if (iw > 0 && ih > 0) ctx.drawImage(paintedSprite, 0, 0, iw, ih, -artW / 2, -41.1, artW, 58);
+      if (iw > 0 && ih > 0) {
+        // Silhouette halo: dark outer + pale inner contour, thicker on phones.
+        const dark = outlineSprite(paintedSprite, 'rgb(5,14,20)'), pale = outlineSprite(paintedSprite, 'rgb(214,246,244)');
+        const k = phoneK, offs = [[1, 0], [-1, 0], [0, 1], [0, -1], [.7, .7], [-.7, -.7], [.7, -.7], [-.7, .7]];
+        if (dark) for (const o of offs) ctx.drawImage(dark, 0, 0, iw, ih, -artW / 2 + o[0] * (1.4 + .5 * k), -41.1 + o[1] * (1.4 + .5 * k), artW, 58);
+        if (pale) { ctx.globalAlpha *= .8; for (const o of offs) ctx.drawImage(pale, 0, 0, iw, ih, -artW / 2 + o[0] * (.55 + .3 * k), -41.1 + o[1] * (.55 + .3 * k), artW, 58); ctx.globalAlpha /= .8; }
+        ctx.drawImage(paintedSprite, 0, 0, iw, ih, -artW / 2, -41.1, artW, 58);
+      }
       if (p.reflecting && direction === 'n') {
         // The painted bronze mirror remains visible; this inlay carries its live reflection state.
         ellipse(ctx, -10.8, -11, 2.3, 6.1, 'rgba(116,255,231,.45)', 'rgba(236,255,249,.95)', 1.2);
@@ -4776,7 +4813,9 @@
         }
         ctx.restore();
       } else {
-        circle(ctx, b.x, b.y - 6, 5.5, b.friendly ? '#b8ffe6' : '#ffb07a', '#fff4d8', 1.6);
+        const rr = 5.5 * (1 + (phoneK - 1) * .45);
+        circle(ctx, b.x, b.y - 6, rr + 3.2, 'rgba(6,10,12,.78)', b.friendly ? 'rgba(150,255,220,.9)' : 'rgba(255,84,52,.95)', 1.5 + .5 * phoneK);
+        circle(ctx, b.x, b.y - 6, rr, b.friendly ? '#b8ffe6' : '#ffb07a', '#fff4d8', 1.6);
         circle(ctx, b.x - 1.5, b.y - 7.5, 1.8, '#ffffff');
       }
     }
@@ -4822,7 +4861,7 @@
     const compactLandscape = screenW <= 1000 && screenH <= 480;
     const placed = [], m = 6 / Math.max(.5, Math.min(1.5, v.scale));
     for (const l of labels) {
-      const size = Math.max(l.size || 10, (l.minScreen || 0) / v.scale);
+      const size = Math.max(l.size || 10, (l.minScreen || (l.dim ? 9 : 10.5)) / v.scale);
       ctx.font = `700 ${size}px system-ui, -apple-system, "Segoe UI", sans-serif`;
       const hw = ctx.measureText(l.text).width / 2 + size * .2;
       let x = l.x, y = l.y;
@@ -5130,7 +5169,7 @@
       if (compactLandscape && labelCrossesThermal) cy = Math.max(cy, 174);
       indicators.push({ x: cx, y: cy });
       const a = Math.atan2(y - cy, x - cx), pulse = 1 + .08 * Math.sin(t * 5);
-      ctx.save(); ctx.translate(cx, cy); ctx.rotate(a); ctx.scale(pulse, pulse);
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(a); ctx.scale(pulse * (width < 500 ? 1.25 : 1), pulse * (width < 500 ? 1.25 : 1));
       poly(ctx, [[15, 0], [-2, -8], [2, 0], [-2, 8]], o.color, '#081820', 2);
       ctx.restore();
       rrect(ctx, cx - tw / 2, cy + 12, tw, 18, 9); ctx.fillStyle = 'rgba(8,24,32,.85)'; ctx.fill(); ctx.strokeStyle = o.color; ctx.lineWidth = 1; ctx.stroke();
@@ -5202,6 +5241,7 @@
     const s = state || {}, t = num(s.time, 0), v = view(s, width, height), { W, H } = dims(s);
     const th = themeFor(s);
     dpr = dpr || 1;
+    phoneK = clamp(1.25 / v.scale, 1, 1.8);
     glowQueue = []; labels = [];
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = th.void; ctx.fillRect(0, 0, width, height);

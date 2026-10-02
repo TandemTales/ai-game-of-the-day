@@ -1740,3 +1740,10 @@ NEXT FIRST: on the next polish run, focus on screen-led novice guidance and a
 larger encounter composition/depth pass; test natural valve/exit completion and
 mobile touch beyond the acquisition. On October 3 release Saturday, do only the
 forced-release wrap-up/glaring-issue checks, and carry unresolved AAA debt honestly.
+
+## October 2 night intent (Pacific Friday, age 12)
+
+STOP absent; synced `dev` at bfcf279. Last polish night before the forced October 3
+release. Bounded target: screen-led novice guidance in the first rooms plus a
+natural-play regression check (suite + six-size sweep). Anything not verified is
+recorded as debt; October 3 is wrap-up only.

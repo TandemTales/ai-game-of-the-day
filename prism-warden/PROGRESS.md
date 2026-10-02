@@ -1747,3 +1747,22 @@ STOP absent; synced `dev` at bfcf279. Last polish night before the forced Octobe
 release. Bounded target: screen-led novice guidance in the first rooms plus a
 natural-play regression check (suite + six-size sweep). Anything not verified is
 recorded as debt; October 3 is wrap-up only.
+
+### October 2 night result
+
+Verification-only night; no game code changed. Fresh `npm ci` then full Jest:
+**27 suites / 483 tests PASS** at bfcf279. Chromium `smoke.cjs` at 390x844 and
+1440x900 **PASS** (zero page/console errors, zero external requests, all local art
+200, no horizontal overflow, touch/keyboard/pause/retry/mock-rank). Inspected the
+390x844 first-room capture: objective bar, SUN SEAL edge marker, coaching plate and
+controls are legible and do not overlap. Evidence: `node_modules/.cache/prism-warden/oct02-sweep/`.
+The other four sizes were not re-run tonight (last full six-size PASS: Oct 1).
+
+Not done: the screen-led guidance / encounter-composition pass from Oct 1 NEXT FIRST,
+natural valve/exit completion, human play, device/audio acceptance. No new critic
+verdict tonight; the Oct 1 **OURS LOSES / AAA FAIL** verdicts stand. Ship-ready as a
+forced release: suite green, no known glaring defect.
+
+NEXT (Oct 3, Saturday, age 13): STEP 4 forced wrap-up only. Run suite, six-size sweep,
+fix only glaring issues, write `.aaa-complete` with the failed critic verdicts and debt,
+update current-game.md, push dev, ff-merge to main.

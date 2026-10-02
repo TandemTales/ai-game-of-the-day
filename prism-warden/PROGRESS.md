@@ -1700,3 +1700,43 @@ character/target/hazard separation and wider desktop encounter composition. Capt
 and inspect all six required sizes, check actual shot-to-return timing where feasible,
 and seek a fresh independent AAA comparison. Preserve any failed verdict and keep
 October 3 as forced wrap-up only. No early release or `main` promotion tonight.
+
+### October 1 night result
+
+Quench renderer now frames both live turret stations and the valve on narrow
+portrait screens, gives Sera a clearer cool silhouette, makes the valve a tall
+readable regulator, and adds targeted Glass Edge/valve direction cues. The first
+portrait pass clipped the valve and duplicated its label; the final pass corrected
+both and gave the spare tall-screen area a workshop frame. Rules and room data did
+not change. The exact final code passed `node --check`, focused optional routes
+9/9, and the full repository Jest suite **27/27 suites, 483/483 tests**. The
+six-size Chromium `smoke.cjs` passed at 320x568, 390x844, 844x390, 768x1024,
+1440x900 and 3840x2160, including native touch, keyboard, pause/retry, mock
+rank-before-submit, zero browser errors, zero external requests, and no horizontal
+overflow. Lead inspected all six Quench PNGs (4K downsampled); evidence is under
+`node_modules/.cache/prism-warden/oct01-final-six/`. Sandbox browser launch
+first hit `spawn EPERM`; the scoped elevated retry passed.
+
+Independent real-clock Chromium critic used one disclosed fresh Quench entry,
+then keyboard/mouse only. It directly observed a returned upper-turret shot
+(`returns` 0 to 1) and a five-second JAMMED state at about 11.62s. A slash and
+tracked shot disappearance at full HP strongly indicate a Glass Edge cut, but
+there is no cut counter. The first navigation attempt stalled against a plinth;
+the corrected attempt took one hit and stayed playable. No valve/exit completion
+was attempted in that live run. Its trace, failed routes and side-by-side are in
+`node_modules/.cache/prism-warden/oct01-live-critic/`.
+
+Independent visual critic re-reviewed settled and active-threat captures against
+Nintendo's *Link's Awakening*: phone valve/turret framing improved, but **OURS
+LOSES / AAA FAIL** overall. Broad desktop stone and repeated cover still dominate
+the small actors/action; 844x390 controls crowd the lane, and labels carry too
+much of the device meaning. Comparison:
+`node_modules/.cache/prism-warden/oct01-quench-critic/`. The gameplay critic also
+returns **AAA FAIL** for encounter depth and scene hierarchy. These are non-blind
+agent reviews. No human novice play, physical-device touch, audio listening,
+performance, fun, or shipping acceptance is claimed.
+
+NEXT FIRST: on the next polish run, focus on screen-led novice guidance and a
+larger encounter composition/depth pass; test natural valve/exit completion and
+mobile touch beyond the acquisition. On October 3 release Saturday, do only the
+forced-release wrap-up/glaring-issue checks, and carry unresolved AAA debt honestly.

@@ -22,10 +22,23 @@
     width = Math.max(1, width); height = Math.max(1, height);
     const { W, H } = dims(s);
     const closeScale = width < 650 ? Math.min(width / 500, height / 440) : 0;
-    const scale = Math.max(width / W, height / H, closeScale);
+    // Quench needs both opposed firing stations in a narrow frame. Its portrait
+    // camera favors the arena width; the world is centered in any spare height.
+    const quenchPhone = s && roomId(s) === 'quench' && width < 650;
+    const scale = quenchPhone ? Math.max(width / W, width / 560) : Math.max(width / W, height / H, closeScale);
     const w = width / scale, h = height / scale;
     const p = s && s.player || { x: 190, y: 540 };
     let targetX = num(p.x, W / 2), targetY = num(p.y, H / 2);
+    if (quenchPhone) {
+      // Let the phone frame look into the nearest firing lane while Sera stays
+      // well inside the playable area. This follows the encounter as she moves.
+      const live = quenchTurrets(s).filter(e => !turretSilent(e));
+      const focus = live.sort((a, b) => Math.hypot(a.x - targetX, a.y - targetY) - Math.hypot(b.x - targetX, b.y - targetY))[0] || quenchValve(s);
+      if (focus) {
+        targetX += clamp((focus.x - targetX) * .32, -70, 80);
+        targetY += clamp((focus.y - targetY) * .12, -12, 40);
+      }
+    }
     const weaver = s && roomId(s) === 'weaver' && arr(s.enemies).find(e =>
       /glass[-_ ]?weaver/i.test(String(e && e.id || '')) && num(e && e.hp, 0) > 0);
     if (weaver && Number.isFinite(p.x) && Number.isFinite(p.y) && Number.isFinite(weaver.x) && Number.isFinite(weaver.y)) {
@@ -3785,16 +3798,16 @@
     } else labels.push({ x: b.x, y: b.y + 34, text: beaconName(s), color: '#c8d0d8', size: 10, dim: true });
   }
   function drawQuenchPlayerBacklight(ctx, p, t) {
-    const x = p.x, y = p.y - 14, pulse = .9 + .1 * Math.sin(t * 2.4);
-    const halo = ctx.createRadialGradient(x, y, 8, x, y, 48);
-    halo.addColorStop(0, 'rgba(102,190,215,.12)');
-    halo.addColorStop(.62, 'rgba(102,190,215,.1)');
+    const x = p.x, y = p.y - 17, pulse = .9 + .1 * Math.sin(t * 2.4);
+    const halo = ctx.createRadialGradient(x, y, 4, x, y, 60);
+    halo.addColorStop(0, 'rgba(171,238,238,.19)');
+    halo.addColorStop(.4, 'rgba(102,190,215,.14)');
     halo.addColorStop(1, 'rgba(102,190,215,0)');
     ctx.save();
-    ctx.fillStyle = halo; ctx.beginPath(); ctx.ellipse(x, y, 38, 47, 0, 0, TAU); ctx.fill();
-    // Cool kiln-glass rim light separates Sera's silhouette from the dark basalt.
-    ctx.beginPath(); ctx.ellipse(x, y, 25, 36, 0, 0, TAU);
-    ctx.strokeStyle = `rgba(164,231,244,${.24 * pulse})`; ctx.lineWidth = 1.4; ctx.stroke();
+    ctx.fillStyle = halo; ctx.beginPath(); ctx.ellipse(x, y, 53, 61, 0, 0, TAU); ctx.fill();
+    // The cool fill is tied to Sera, rather than a misleading safe-zone marker.
+    ctx.beginPath(); ctx.ellipse(x, y, 26, 39, 0, 0, TAU);
+    ctx.strokeStyle = `rgba(186,244,250,${.49 * pulse})`; ctx.lineWidth = 2; ctx.stroke();
     ctx.restore();
   }
   function drawPlayer(ctx, p, s, t) {
@@ -3812,7 +3825,8 @@
     }
     ctx.save();
     if (num(p.invulnerable, 0) > 0 && num(p.dashTime, 0) <= 0 && Math.floor(t * 14) % 2) ctx.globalAlpha = .55;
-    ctx.translate(p.x, p.y); ctx.scale(SCALE_HERO, SCALE_HERO);
+    const heroScale = SCALE_HERO * (roomId(s) === 'quench' ? 1.14 : 1);
+    ctx.translate(p.x, p.y); ctx.scale(heroScale, heroScale);
     contactShadow(ctx, 1, 12, 11, 4.5, 1);
     const slashing = num(p.slashTime, 0) > 0;
     const px = -ay, py = ax; // sword-hand side
@@ -3927,7 +3941,7 @@
     if (!facingUp || slashing) drawSword();
     }
     ctx.restore();
-    const H = SCALE_HERO;
+    const H = heroScale;
     if (p.prism === 'carried') { // the sun prism rides at Sera's shoulder
       const cx = p.x - ax * 10 * H + 12, cy = p.y - 34 * H + Math.sin(t * 3) * 1.5;
       drawPrismCrystal(ctx, cx, cy, .62, t);
@@ -4136,6 +4150,7 @@
   }
 
   function drawLever(ctx, l, s, t) {
+    if (roomId(s) === 'quench' && l === quenchValve(s)) { drawQuenchValve(ctx, l, s, t); return; }
     const pulled = !!l.pulled, x = l.x, y = l.y;
     ellipse(ctx, x + 3, y + 10, 20, 8, 'rgba(0,0,0,.45)');
     // stone plinth
@@ -4159,6 +4174,53 @@
       if (d < 90) labels.push({ x, y: y - 46, text: 'SLASH TO PULL', color: '#ffe6b0', size: 10 });
       else if (d < 300) labels.push({ x, y: y + 24, text: 'LEVER', color: '#e8d8b0', size: 9, dim: true });
     }
+  }
+  function drawQuenchValve(ctx, l, s, t) {
+    const pulled = !!(l.pulled || (l.flag && s.flags && s.flags[l.flag]));
+    const x = l.x, y = l.y, rgb = pulled ? '137,233,210' : '255,195,112';
+    const pulse = .85 + .15 * Math.sin(t * 3.4);
+    ctx.save();
+    // A tall regulator gives the side objective its own silhouette among the
+    // low turrets and cover, while the wheel and pipe colors show its state.
+    contactShadow(ctx, x + 4, y + 15, 32, 13, .9);
+    const housing = ctx.createLinearGradient(x - 30, y - 70, x + 30, y + 10);
+    housing.addColorStop(0, '#9b9580'); housing.addColorStop(.24, '#3e5557');
+    housing.addColorStop(.65, '#1a3339'); housing.addColorStop(1, '#0d2028');
+    rrect(ctx, x - 29, y - 61, 58, 72, 8); ctx.fillStyle = housing; ctx.fill();
+    ctx.strokeStyle = '#0a151a'; ctx.lineWidth = 3; ctx.stroke();
+    rrect(ctx, x - 24, y - 55, 48, 59, 5); ctx.strokeStyle = 'rgba(231,197,146,.63)'; ctx.lineWidth = 1.5; ctx.stroke();
+    for (const sx of [-18, 18]) {
+      line(ctx, x + sx, y - 51, x + sx, y + 1, 'rgba(237,218,178,.25)', 2);
+      circle(ctx, x + sx, y - 49, 2.2, '#d9b980', '#182026', .8);
+      circle(ctx, x + sx, y + 1, 2.2, '#d9b980', '#182026', .8);
+    }
+    line(ctx, x - 42, y - 12, x - 29, y - 12, '#1a2528', 11);
+    line(ctx, x + 29, y - 12, x + 42, y - 12, '#1a2528', 11);
+    line(ctx, x - 42, y - 12, x - 29, y - 12, `rgba(${rgb},.7)`, 3);
+    line(ctx, x + 29, y - 12, x + 42, y - 12, `rgba(${rgb},.7)`, 3);
+    const cy = y - 29;
+    circle(ctx, x, cy, 23, '#14252a', '#edd3a1', 3);
+    circle(ctx, x, cy, 17, '#293c3d', `rgba(${rgb},${.8 * pulse})`, 2.7);
+    for (let i = 0; i < 6; i++) {
+      const a = i * TAU / 6 + (pulled ? Math.PI / 6 : 0);
+      line(ctx, x + Math.cos(a) * 5, cy + Math.sin(a) * 5,
+        x + Math.cos(a) * 17, cy + Math.sin(a) * 17, '#d4c294', 2.2);
+    }
+    circle(ctx, x, cy, 6.5, pulled ? '#88e9d2' : '#ffd190', '#0c171c', 2);
+    circle(ctx, x - 2, cy - 2, 1.5, '#fff8db');
+    const lampY = y - 67;
+    rrect(ctx, x - 14, lampY - 10, 28, 14, 3); ctx.fillStyle = '#0d2028'; ctx.fill();
+    ctx.strokeStyle = '#d2b985'; ctx.lineWidth = 1.2; ctx.stroke();
+    for (const sx of [-7, 0, 7]) circle(ctx, x + sx, lampY - 3, 2,
+      pulled ? '#8ef3d3' : sx === 0 ? '#ffd58c' : '#785a40');
+    ctx.restore();
+    glowQueue.push([x, cy, pulled ? 35 : 46, rgb, pulled ? .37 : .46 * pulse]);
+    const p = s.player;
+    // At the entry this station is off a phone edge and the objective arrow
+    // already names it; introduce the world label when Sera can inspect it.
+    if (!pulled && p && Math.hypot(p.x - x, p.y - y) < 250)
+      labels.push({ x, y: lampY - 18, text: 'QUENCH VALVE', color: '#ffe1a3', size: 11, minScreen: 11 });
+    if (!pulled && p && Math.hypot(p.x - x, p.y - y) < 95) labels.push({ x, y: y + 24, text: 'SLASH TO PULL', color: '#ffe6b0', size: 10 });
   }
 
   function drawDam(ctx, d, s, t) {
@@ -5064,6 +5126,14 @@
     const out = [];
     const o = s.objective;
     if (o && typeof o === 'object' && Number.isFinite(o.x) && Number.isFinite(o.y)) { out.push({ x: o.x, y: o.y, label: String(o.label || o.text || 'OBJECTIVE').toUpperCase().slice(0, 18), color: '#f3ca78' }); return out; }
+    if (roomId(s) === 'quench') {
+      const edge = quenchEdge(s), valve = quenchValve(s);
+      if (edge && !edge.taken && !edge.collected && !edge.picked && !edge.got)
+        out.push({ x: edge.x, y: edge.y, label: 'GLASS EDGE', color: '#ffe0a0' });
+      if (valve && !valve.pulled && !(valve.flag && s.flags && s.flags[valve.flag]))
+        out.push({ x: valve.x, y: valve.y, label: 'QUENCH VALVE', color: '#b9f4df' });
+      if (out.length) return out;
+    }
     const enemies = arr(s.enemies).filter(e => num(e.hp, 0) > 0);
     if (s.darkness) {
       const p = s.player || {};
@@ -5197,6 +5267,26 @@
     depth.addColorStop(1, 'rgba(229,182,120,.025)');
     ctx.fillStyle = depth; ctx.fillRect(0, 0, W, H);
   }
+  function quenchPortraitFrame(ctx, v, width, height, H) {
+    if (v.y >= 0) return;
+    const top = -v.y * v.scale, bottom = (H - v.y) * v.scale;
+    // The taller portrait canvas exposes workshop structure beyond the arena.
+    // Quiet ironwork makes that space read as a deliberate room frame.
+    for (const [y, h, upper] of [[0, top, true], [bottom, height - bottom, false]]) {
+      if (h <= 0) continue;
+      const shade = ctx.createLinearGradient(0, y, 0, y + h);
+      shade.addColorStop(0, upper ? '#0e1d24' : '#192d33');
+      shade.addColorStop(1, upper ? '#25393b' : '#0b1b23');
+      ctx.fillStyle = shade; ctx.fillRect(0, y, width, h);
+      ctx.strokeStyle = 'rgba(214,166,105,.26)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0, upper ? y + h - 3 : y + 3);
+      ctx.lineTo(width, upper ? y + h - 3 : y + 3); ctx.stroke();
+      for (let x = 18; x < width; x += 58) {
+        const yy = upper ? y + h - 14 : y + 14;
+        circle(ctx, x, yy, 2.2, '#8c7659', '#152329', 1);
+      }
+    }
+  }
   PW.draw = function (ctx, state, width, height, dpr) {
     if (!ctx || !width || !height) return;
     const s = state || {}, t = num(s.time, 0), v = view(s, width, height), { W, H } = dims(s);
@@ -5205,6 +5295,7 @@
     glowQueue = []; labels = [];
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = th.void; ctx.fillRect(0, 0, width, height);
+    if (roomId(s) === 'quench' && width < 650) quenchPortraitFrame(ctx, v, width, height, H);
     ctx.save(); ctx.scale(v.scale, v.scale); ctx.translate(-v.x, -v.y);
     if (hasDoc) {
       const st = getStatic(s, th, bucket(v.scale * dpr, width * dpr), W, H);

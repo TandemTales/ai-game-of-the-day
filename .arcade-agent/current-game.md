@@ -19,9 +19,9 @@ still unverified. This run predates the separately tested objective-text repair;
 full27suites481tests and six-size cue/control/save sweep pass after that repair.
 State-informed native control reachability is not human discovery or enjoyment.
 
-NEXT FIRST: substantive Quench Glass Edge teaching encounter with safe pickup,
-staggered cover, readable volleys and cut-versus-return/jam decisions. Keep the
-main route/retreat open and mistakes recoverable; compare naive and intentional
-paths with an independent critic. Do not repeat successful guided campaigns as
-the sole increment. Then meaningful two-prism/polarity and screen-led learning.
-NON-BLIND AAA FAIL / OURS LOSES remains. October3 is forced wrap-up only.
+NEXT FIRST: screen-led novice guidance and encounter depth beyond the current
+two fixed turret/valve rhythm; observe natural valve/exit completion and mobile
+touch from acquisition. October 1 Quench phone framing and live keyboard return/
+jam checks passed, but independent visual and gameplay critics still say
+AAA FAIL / OURS LOSES. Do not repeat guided campaigns as the sole increment.
+October3 is forced wrap-up only.

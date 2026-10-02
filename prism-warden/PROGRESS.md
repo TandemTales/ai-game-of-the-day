@@ -1692,3 +1692,11 @@ character/target/hazard separation and desktop encounter composition, then
 observe live shot-to-return cadence with actual controls and independent novice
 play. Do not treat staged captures or the test suite as AAA acceptance. October3
 is wrap-up only; do not start new polish on release Saturday.
+
+## October 1 night intent (Pacific Thursday, age 11)
+
+STOP absent; synced `dev` at 570c54d. This bounded run targets Quench phone-size
+character/target/hazard separation and wider desktop encounter composition. Capture
+and inspect all six required sizes, check actual shot-to-return timing where feasible,
+and seek a fresh independent AAA comparison. Preserve any failed verdict and keep
+October 3 as forced wrap-up only. No early release or `main` promotion tonight.

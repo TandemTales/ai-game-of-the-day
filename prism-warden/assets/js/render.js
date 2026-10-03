@@ -22,10 +22,10 @@
     width = Math.max(1, width); height = Math.max(1, height);
     const { W, H } = dims(s);
     const closeScale = width < 650 ? Math.min(width / 500, height / 440) : 0;
-    // Quench needs both opposed firing stations in a narrow frame. Its portrait
-    // camera favors the arena width; the world is centered in any spare height.
+    // Quench needs both opposed firing stations and the valve in a narrow frame.
+    // Its portrait camera favors the arena width; spare height frames the workshop.
     const quenchPhone = s && roomId(s) === 'quench' && width < 650;
-    const scale = quenchPhone ? Math.max(width / W, width / 560) : Math.max(width / W, height / H, closeScale);
+    const scale = quenchPhone ? Math.max(width / W, width / 620) : Math.max(width / W, height / H, closeScale);
     const w = width / scale, h = height / scale;
     const p = s && s.player || { x: 190, y: 540 };
     let targetX = num(p.x, W / 2), targetY = num(p.y, H / 2);
@@ -35,6 +35,8 @@
       const live = quenchTurrets(s).filter(e => !turretSilent(e));
       const focus = live.sort((a, b) => Math.hypot(a.x - targetX, a.y - targetY) - Math.hypot(b.x - targetX, b.y - targetY))[0] || quenchValve(s);
       if (focus) {
+        // The wider phone frame shows the lower turret at the same time as the
+        // upper station and valve, without pushing one active threat offscreen.
         targetX += clamp((focus.x - targetX) * .32, -70, 80);
         targetY += clamp((focus.y - targetY) * .12, -12, 40);
       }
@@ -4888,6 +4890,12 @@
       ctx.font = `700 ${size}px system-ui, -apple-system, "Segoe UI", sans-serif`;
       const hw = ctx.measureText(l.text).width / 2 + size * .2;
       let x = l.x, y = l.y;
+      // The phone's north-seal edge cue already names an offscreen receiver.
+      // Do not drag a second world label beneath the fixed HUD at the rim.
+      if (screenW <= 600 && screenH > 480 &&
+          (l.text === 'GATE SEAL' || l.text === 'SUN SEAL') &&
+          (x < v.x + 24 / v.scale || x > v.x + v.w - 24 / v.scale ||
+           y < v.y + 112 / v.scale)) continue;
       // anchors whose text would be wholly off-screen belong to off-screen objects: skip, don't drag them in
       if (x + hw < v.x || x - hw > v.x + v.w || y + size < v.y || y - size > v.y + v.h) continue;
       if (v.w > 2 * (hw + m)) x = clamp(x, v.x + m + hw, v.x + v.w - m - hw);
@@ -5186,14 +5194,17 @@
   function edgeArrows(ctx, s, v, width, height, t) {
     const { W, H } = dims(s);
     const indicators = [];
+    const portraitHud = width <= 600 && height > 480;
     for (const o of objectiveTargets(s, W, H)) {
       const x = (o.x - v.x) * v.scale, y = (o.y - v.y) * v.scale;
       if (x > 20 && x < width - 20 && y > 20 && y < height - 20) continue;
       ctx.font = '700 10px system-ui, sans-serif';
       const tw = Math.min(ctx.measureText(o.label).width + 14, Math.max(40, width - 12));
-      const margin = Math.min(tw / 2 + 6, Math.max(0, width / 2 - 4));
+      const margin = Math.min(tw / 2 + (portraitHud ? 12 : 6), Math.max(0, width / 2 - 4));
       const cx = clamp(x, margin, width - margin);
-      let cy = clamp(y, 64, Math.max(64, height - 80));
+      // Portrait HUD occupies the top 100px of the canvas. Put the whole
+      // arrow and its label just below it, ahead of the transient room tip.
+      let cy = clamp(y, portraitHud ? 117 : 64, Math.max(portraitHud ? 117 : 64, height - 80));
       for (const prev of indicators) if (Math.abs(cx - prev.x) < 96 && Math.abs(cy - prev.y) < 44) cy = prev.y + 44 <= height - 38 ? prev.y + 44 : prev.y - 44;
       const compactLandscape = width <= 1000 && height <= 480;
       const labelCrossesThermal = cx + tw / 2 > 12 && cx - tw / 2 < 178 && cy + 30 > 114 && cy + 12 < 160;

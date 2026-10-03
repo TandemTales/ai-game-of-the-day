@@ -1775,3 +1775,30 @@ natural inputs on touch. If time permits, address the most specific obstruction
 found, then repeat the full suite and six-size visual sweep. Preserve the
 existing AAA FAIL / OURS LOSES verdicts unless fresh independent evidence
 changes them. October 3 remains forced wrap-up only.
+
+### October 2 late-night checkpoint
+
+The first-room portrait SUN SEAL edge cue now clears the fixed HUD without a
+duplicate world label. Quench's 320/390 portrait camera now fits Glass Edge,
+both live turrets and the valve with visible margins. A stronger east bias was
+rejected because it hid the lower turret; the final wider frame passed the
+critic's scoped framing check. `render.js` is the only game-code change.
+
+Fresh declared Quench-entry, read-only-state-guided native Chromium touch
+reached Glass Edge at 0.70s, silenced both turrets with the valve at 4.13s and
+exited east to the Bridge at 5.40s, 6/6 HP, no errors or retries. Evidence:
+`node_modules/.cache/prism-warden/oct02-late-touch/`. This route outran the
+first shot and exposes a design gap: valve and exit can be reached without
+cutting or returning a shot. It proves neither the promised combat cadence nor
+novice discovery, human/device play or fun. A proper gate needs a real-cut
+record, a recorded turret jam, updated objectives and legal-route tests/pilot.
+
+Independent side-by-side visual critic used Nintendo's official *Link's
+Awakening* gameplay image. Scoped SUN SEAL cue **PASS**; final Quench portrait
+framing **PASS** at 320/390. Overall **AAA FAIL / OURS LOSES**: scene hierarchy,
+environmental storytelling and 844x390 control crowding remain below the
+reference. No shipping judge or human acceptance. Full repository Jest on the
+final renderer: **27 suites / 483 tests PASS**. `node --check` and `git diff
+--check` pass. Final exact-code six-size Chromium sweep is still running at
+this checkpoint; earlier six-size seal pass and final 320/390 camera passes had
+zero browser errors or external requests.

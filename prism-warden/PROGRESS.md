@@ -1799,6 +1799,14 @@ framing **PASS** at 320/390. Overall **AAA FAIL / OURS LOSES**: scene hierarchy,
 environmental storytelling and 844x390 control crowding remain below the
 reference. No shipping judge or human acceptance. Full repository Jest on the
 final renderer: **27 suites / 483 tests PASS**. `node --check` and `git diff
---check` pass. Final exact-code six-size Chromium sweep is still running at
-this checkpoint; earlier six-size seal pass and final 320/390 camera passes had
-zero browser errors or external requests.
+--check` pass. The exact-final-code six-size Chromium sweep **PASS** at
+320x568, 390x844, 844x390, 768x1024, 1440x900 and 3840x2160: zero page
+errors, external requests, failed local art loads or horizontal overflow.
+Lead inspected all six Quench PNGs (4K downsampled); evidence is under
+`node_modules/.cache/prism-warden/oct02-final-six/`.
+
+NEXT (October 3 forced Saturday, age 13): no new polish. Run the suite and
+six-size sweep, fix only glaring defects, write `.aaa-complete` with failed
+AAA verdicts and debt, then push `dev` and promote it to `main` per STEP 4.
+Carry the Quench combat bypass, overall scene hierarchy, landscape control
+crowding, novice/human/device/audio/performance/fun acceptance as explicit debt.

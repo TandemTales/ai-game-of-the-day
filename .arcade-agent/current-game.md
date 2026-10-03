@@ -19,9 +19,12 @@ still unverified. This run predates the separately tested objective-text repair;
 full27suites481tests and six-size cue/control/save sweep pass after that repair.
 State-informed native control reachability is not human discovery or enjoyment.
 
-NEXT FIRST: screen-led novice guidance and encounter depth beyond the current
-two fixed turret/valve rhythm; observe natural valve/exit completion and mobile
-touch from acquisition. October 1 Quench phone framing and live keyboard return/
-jam checks passed, but independent visual and gameplay critics still say
-AAA FAIL / OURS LOSES. Do not repeat guided campaigns as the sole increment.
-October3 is forced wrap-up only.
+October 2 late Friday: the Quench portrait frame and first-room seal cue passed
+scoped visual checks; a declared fresh-Quench native touch route took Glass Edge,
+silenced the valve and exited to Bridge at 6/6 HP. It bypassed shot cutting and
+Mirror returns, so the teaching encounter remains shallow. Full 27-suite / 483-test
+Jest and exact-code six-size Chromium sweep pass, with all Quench PNGs inspected.
+Independent overall visual critic still says AAA FAIL / OURS LOSES; human play,
+device/audio, performance, fun and shipping acceptance remain open.
+NEXT: October 3 Pacific Saturday forced STEP 4 wrap-up only. Run release gates,
+record failed critics and debt in `.aaa-complete`, push dev, promote main if clean.

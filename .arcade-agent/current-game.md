@@ -1,19 +1,8 @@
 # Active game
 
-No game is active.
+slug: blastwick
+started: 2026-10-03
 
-Completed: **ironwake** — The Coast Campaign.
-started: 2026-09-07
-completed: 2026-09-19
-release: forced second-Saturday release, age 12 (America/Los_Angeles).
+Pitch: **Blastwick** is a classic grid-arena bomber (Bomberman lineage, original IP) for one player vs three AI rivals across escalating arenas. Twist: **mirror crystals** in the arena reflect explosion waves 90 degrees, so a bomb placed at the right angle detonates around corners; you can bank blasts to hit rivals hiding behind walls (and they can bank them back at you). Score = rivals blown up, chain reactions, power-ups, clear time and survivals across rounds; leaderboard gameId `blastwick`. Keyboard/touch (virtual d-pad + bomb button), procedural art and WebAudio only.
 
-The lifecycle is complete under the release schedule, not the AAA quality bar.
-See ironwake/.aaa-complete and PROGRESS.md for failed critic verdicts and debt.
-Five chapters and twenty objectives are implemented; qualitative scope,
-progression, human enjoyment and AAA presentation remain unaccepted.
-
-Next run: STEP 2, inventory/research and three substantial distinct pitches,
-then choose the strongest qualifying game and scaffold its first playable plus
-full scope contract. Each pitch must meet or exceed expanded Ironwake ambition.
-No pending human choice blocks selection. Do not resurrect abandoned Orbit Orchard
-or auto-discover an older catalog project as the active game. Work on dev.
+Previous: ironwake complete 2026-09-19. Branch note: no `dev` branch exists in this environment; work happens on the session's designated branch.

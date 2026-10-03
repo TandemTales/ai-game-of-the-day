@@ -1766,3 +1766,12 @@ forced release: suite green, no known glaring defect.
 NEXT (Oct 3, Saturday, age 13): STEP 4 forced wrap-up only. Run suite, six-size sweep,
 fix only glaring issues, write `.aaa-complete` with the failed critic verdicts and debt,
 update current-game.md, push dev, ff-merge to main.
+
+## October 2 late-night intent (Pacific Friday, age 12)
+
+STOP absent; synced `dev` at de1a6e9. This last polish window targets one concrete
+player-path concern: whether the Quench valve and exit can be completed with
+natural inputs on touch. If time permits, address the most specific obstruction
+found, then repeat the full suite and six-size visual sweep. Preserve the
+existing AAA FAIL / OURS LOSES verdicts unless fresh independent evidence
+changes them. October 3 remains forced wrap-up only.

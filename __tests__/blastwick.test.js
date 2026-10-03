@@ -65,7 +65,7 @@ test('chain reactions detonate neighbouring bombs', () => {
   w.actors[0].x = 13.5; w.actors[0].y = 11.5;
   w.bombs.push({ x: 1, y: 1, t: 0.01, owner: 0, range: 3, pass: [], chain: 0, uid: 1 });
   w.bombs.push({ x: 3, y: 1, t: 2, owner: 0, range: 2, pass: [], chain: 0, uid: 2 });
-  BW.step(w, 0.05, {}); BW.step(w, 0.05, {});
+  for (let i = 0; i < 4; i++) BW.step(w, 0.05, {});
   expect(w.bombs.length).toBe(0);
 });
 

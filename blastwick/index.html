@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-17405200669"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'AW-17405200669');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Blastwick - Bot Built Arcade</title>
+<link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png">
+<link rel="stylesheet" href="assets/css/game.css">
+</head>
+<body>
+<div id="app">
+  <header id="hud">
+    <a class="back" href="../index.html">&larr; Back to Arcade</a>
+    <div class="stat"><span class="lbl">SCORE</span><b id="hScore">0</b></div>
+    <div class="stat"><span class="lbl">ROUND</span><b id="hRound">1</b></div>
+    <div class="stat"><span class="lbl">LIVES</span><b id="hLives">3</b></div>
+    <div class="stat"><span class="lbl">TIME</span><b id="hTime">0:00</b></div>
+    <div class="stat gear"><span class="lbl">KIT</span><b id="hKit">&#128163;1 &#128293;2</b></div>
+    <button id="btnMute" class="iconbtn" aria-label="Toggle sound">&#128266;</button>
+    <button id="btnPause" class="iconbtn" aria-label="Pause">&#10074;&#10074;</button>
+  </header>
+  <main id="stage"><canvas id="cv"></canvas>
+    <div id="banner"></div>
+    <div id="pad" class="touch"><div id="stick"><i id="knob"></i></div><button id="bombBtn" aria-label="Drop bomb">BOMB</button></div>
+  </main>
+  <section id="overlay" class="show">
+    <div class="card">
+      <h1>BLASTWICK</h1>
+      <p class="tag">Bank your blasts off mirror crystals.</p>
+      <ul class="how">
+        <li><b>Move</b> arrows / WASD &middot; touch stick</li>
+        <li><b>Bomb</b> Space / J &middot; BOMB button</li>
+        <li>Blow up crates for power-ups and outlast three rivals.</li>
+        <li class="hot"><b>Mirror crystals</b> bend a blast 90&deg;. Bank a shot around a corner for <b>+500</b> &mdash; rivals do it too.</li>
+        <li>When the timer runs out the arena collapses inward.</li>
+      </ul>
+      <button id="btnStart" class="big">Start Game</button>
+      <p class="small"><a href="../leaderboard.html?gameId=blastwick">View Leaderboard</a> &middot; P pauses &middot; M mutes</p>
+    </div>
+  </section>
+</div>
+<script src="assets/js/logic.js"></script>
+<script src="assets/js/render.js"></script>
+<script src="assets/js/audio.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>

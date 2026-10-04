@@ -1,0 +1,37 @@
+date: 2026-10-03
+timezone: America/Los_Angeles
+release: forced second-Saturday release (started 2026-09-20; age 13)
+
+This lifecycle marker records scheduled completion, not AAA acceptance.
+
+Release gates: full Jest 27/27 suites and 483/483 tests pass. The exact-code
+Chromium smoke passes at 320x568, 390x844, 844x390, 768x1024, 1440x900 and
+3840x2160, including native touch, keyboard, pause/retry and mocked leaderboard
+flow. No browser errors, external requests, failed local art or horizontal
+overflow. Lead inspected all six Quench captures and opening-room phone,
+landscape and desktop captures (4K downsampled). No glaring release blocker
+was found. Evidence: node_modules/.cache/prism-warden/oct03-release-six/.
+
+Final carried critic verdicts:
+- Independent visual critic: scoped first-room SUN SEAL cue and 320/390 Quench
+  framing PASS; overall AAA FAIL / OURS LOSES versus Nintendo's Link's Awakening.
+  Scene hierarchy, environmental storytelling and 844x390 controls remain below
+  the reference. This was a non-blind comparison, not a quality acceptance.
+- Gameplay critic: AAA FAIL for encounter depth and scene hierarchy. The fresh
+  Quench touch route reached Glass Edge, shut the valve and exited without a
+  shot cut or Mirror return; that intended teaching cadence can be bypassed.
+- Audio/VFX, human enjoyment, physical-device touch and performance: unaccepted.
+- Independent AAA shipping judge: not run; this is a forced release.
+
+Scope: five connected regions, 25 challenges, ten optional consequences, four
+behavioral equipment choices, saved progress, restoration branches and a
+three-phase Keeper rescue/evacuation finale are implemented. State-informed
+native touch reached the full ending and optional discoveries, but this is
+reachability evidence, not unaided human play or fun acceptance.
+
+Carried debt: stronger screen-led learning and combat depth; Quench shot-cut and
+return-shot bypass; distinct equipment decision value; scene hierarchy and
+environmental storytelling; landscape control crowding and large-display UI
+scale; independent audio/VFX listening and physical-device performance; human
+novice play and enjoyment. No live leaderboard submission was performed in
+verification. Do not reinterpret test or fixture results as AAA approval.

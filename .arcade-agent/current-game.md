@@ -1,13 +1,12 @@
 # Active game
 
-No game is active.
+**cinderwick** — Cinderwick: Fuse Foundry.
+started: 2026-10-04
 
-Completed: **prism-warden** — The Drowned Beacons.
-started: 2026-09-20
-completed: 2026-10-03
-release: forced second-Saturday release, age 13 (America/Los_Angeles).
-
-The scheduled lifecycle is complete; AAA acceptance is not claimed. See
-prism-warden/.aaa-complete and PROGRESS.md for failed critic verdicts,
-verification boundaries and remaining debt. The next run starts STEP 2:
-inventory, research, choose a distinct game and scaffold its first playable.
+Pitch: classic grid-arena bomber (Super Bomberman lineage, new IP). Clear
+foundry floors of crates and ember critters, find the exit. Twist: every bomb
+you place is joined to your previous bomb by a burning-fuse cord, so you
+lay a fuse network as you move. Light any bomb and the spark runs the cords,
+detonating each bomb in sequence. Long chains multiply score; critters are
+also drawn along fuses, so routing the cord is the puzzle.
+Score = clear points x chain multiplier + time bonus.

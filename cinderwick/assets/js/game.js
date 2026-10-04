@@ -4,7 +4,8 @@
   var CW = root.CW, S = CW.Sim, doc = root.document;
   var $ = function (id) { return doc.getElementById(id); };
   var canvas = $('cw-canvas'), overlay = $('cw-overlay'), hud = $('cw-hud'), touchUI = $('cw-touch'), chainEl = $('cw-chain');
-  var g = null, mode = 'menu', paused = false, acc = 0, last = 0, shake = 0, hasTouch = false;
+  var g = null, mode = 'menu', paused = false, acc = 0, last = 0, shake = 0;
+  var hasTouch = !!((root.navigator && root.navigator.maxTouchPoints > 0) || (root.matchMedia && root.matchMedia('(pointer: coarse)').matches));
   var keys = {}, edge = { bomb: false, strike: false }, pad = { dx: 0, dy: 0, id: null };
   var best = 0, chainHide = 0;
   try { best = +localStorage.getItem('cinderwick.best') || 0; } catch (e) {}

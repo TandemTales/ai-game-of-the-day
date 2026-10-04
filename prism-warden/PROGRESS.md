@@ -1810,3 +1810,11 @@ six-size sweep, fix only glaring defects, write `.aaa-complete` with failed
 AAA verdicts and debt, then push `dev` and promote it to `main` per STEP 4.
 Carry the Quench combat bypass, overall scene hierarchy, landscape control
 crowding, novice/human/device/audio/performance/fun acceptance as explicit debt.
+
+## October 3 release-night intent (Pacific Saturday, age 13)
+
+STOP absent; `dev` synced at 787c4a3. This is the forced second-Saturday
+release, so the run is wrap-up only. Run the full Jest suite and exact six-size
+Chromium sweep, inspect the captures for glaring defects, then record the
+standing failed AAA verdicts and remaining debt. If the build passes its release
+gates, push `dev` and promote it to `main` without claiming AAA acceptance.

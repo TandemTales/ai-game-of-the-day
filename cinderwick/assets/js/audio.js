@@ -11,7 +11,7 @@
   var noiseBuf = null;
   var muted = false, tension = 0, tensionSmooth = 0;
   var MASTER_LEVEL = 0.8;
-  var MUSIC_LEVEL = 0.22;      // sits well under sfx
+  var MUSIC_LEVEL = 0.1;       // sits well under sfx
   var SFX_LEVEL = 0.85;
 
   // ---------- voice accounting / rate limiting ----------
@@ -202,7 +202,7 @@
     },
     cord: function (t) {
       for (var i = 0; i < 4; i++) {
-        noise(t + i * 0.035, 0.05, 0.22, { f0: rnd(1500, 2400), q: 3 });
+        noise(t + i * 0.035, 0.05, 0.5, { f0: rnd(1500, 2400), q: 3 });
       }
       osc('triangle', 95, 80, t, 0.16, 0.18);
     },
@@ -275,7 +275,7 @@
     },
     spark: function (t) {
       var k = 1 + Math.floor(Math.random() * 3);
-      for (var i = 0; i < k; i++) noise(t + i * rnd(0.012, 0.03), 0.015, rnd(0.15, 0.3), { type: 'highpass', f0: rnd(4500, 8000) });
+      for (var i = 0; i < k; i++) noise(t + i * rnd(0.012, 0.03), 0.015, rnd(0.5, 0.9), { type: 'highpass', f0: rnd(3500, 7000) });
     },
     exit: function (t) {
       var fs = [880, 1320, 1760, 2217];
@@ -311,11 +311,12 @@
       osc('sine', 80, 32, t + 1.2, 0.8, 0.5, { rev: 0.3 });
     },
     ui: function (t) {
-      osc('sine', 1300, 900, t, 0.04, 0.2);
-      noise(t, 0.015, 0.1, { type: 'highpass', f0: 4000 });
+      osc('sine', 1300, 900, t, 0.05, 0.5);
+      noise(t, 0.015, 0.25, { type: 'highpass', f0: 4000 });
     }
   };
 
+  var lastErr = null;
   function sfx(type, opts) {
     try {
       if (!ctx || !SFX[type]) return;
@@ -341,7 +342,7 @@
       var dur = type === 'over' ? 2.2 : type === 'win' ? 1.9 : type === 'death' ? 1.1 : type === 'explode' ? 0.8 : 0.8;
       voices.push({ end: now + dur, w: w });
       SFX[type](t, opts, scale);
-    } catch (e) { /* never throw */ }
+    } catch (e) { lastErr = e; /* never throw */ }
   }
 
   // ---------- music ----------
@@ -429,7 +430,7 @@
         mNext += stepDur();
         mStep = (mStep + 1) % 64;
       }
-    } catch (e) { /* ignore */ }
+    } catch (e) { lastErr = e; }
     mBusy = false;
   }
 
@@ -485,6 +486,7 @@
     // test hooks (not part of the game API)
     _debug: {
       pumpTo: function (t) { tensionSmooth = tension; pump(t); },
+      lastError: function () { return lastErr; },
       voices: function () { return voices.length; },
       ctx: function () { return ctx; },
       stepDur: stepDur

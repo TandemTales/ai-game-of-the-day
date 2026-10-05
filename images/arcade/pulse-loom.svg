@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 1024" role="img" aria-label="Four luminous threads weaving through a midnight rhythm loom">
+ <defs>
+  <radialGradient id="sky"><stop stop-color="#382a51"/><stop offset=".7" stop-color="#151b32"/><stop offset="1" stop-color="#080e1c"/></radialGradient>
+  <linearGradient id="gold" x2="0" y2="1"><stop stop-color="#fff3cb"/><stop offset=".5" stop-color="#f5bd65"/><stop offset="1" stop-color="#9b5d42"/></linearGradient>
+  <filter id="glow"><feGaussianBlur stdDeviation="20"/></filter>
+ </defs>
+ <rect width="1536" height="1024" fill="url(#sky)"/>
+ <g fill="none" opacity=".25" stroke="#e2c9a3"><circle cx="768" cy="500" r="425"/><circle cx="768" cy="500" r="385"/><circle cx="768" cy="500" r="330"/><path d="M0 150H1536M0 850H1536M170 0V1024M1366 0V1024"/></g>
+ <g fill="none" stroke-width="70" stroke-linecap="round" filter="url(#glow)" opacity=".7">
+  <path d="M150 110C330 350 350 640 680 920" stroke="#f5bd65"/><path d="M485 50C710 350 470 620 815 960" stroke="#fb718f"/>
+  <path d="M1010 40C700 340 1060 630 700 990" stroke="#76d6da"/><path d="M1380 70C1090 390 1180 700 1000 970" stroke="#b6a2ff"/>
+ </g>
+ <g fill="none" stroke-width="16" stroke-linecap="round">
+  <path d="M150 110C330 350 350 640 680 920" stroke="#f5bd65"/><path d="M485 50C710 350 470 620 815 960" stroke="#fb718f"/>
+  <path d="M1010 40C700 340 1060 630 700 990" stroke="#76d6da"/><path d="M1380 70C1090 390 1180 700 1000 970" stroke="#b6a2ff"/>
+ </g>
+ <g fill="url(#gold)" stroke="#fff3cb" stroke-width="5"><circle cx="434" cy="570" r="34"/><circle cx="573" cy="600" r="34"/><circle cx="899" cy="600" r="34"/><circle cx="1134" cy="566" r="34"/></g>
+ <path d="M172 618H1364" stroke="url(#gold)" stroke-width="8"/>
+ <g text-anchor="middle" fill="#fff3dc"><text x="768" y="355" font-size="118" font-family="Georgia,serif" font-weight="bold" letter-spacing="13">PULSE LOOM</text><text x="768" y="408" font-size="29" font-family="Arial,sans-serif" letter-spacing="14">WEAVE THE LIGHT</text></g>
+</svg>

@@ -1,13 +1,12 @@
 # Active game
 
-No game is active.
+slug: pulse-loom
+started: 2026-10-04
 
-Completed: **prism-warden** — The Drowned Beacons.
-started: 2026-09-20
-completed: 2026-10-03
-release: forced second-Saturday release, age 13 (America/Los_Angeles).
-
-The scheduled lifecycle is complete; AAA acceptance is not claimed. See
-prism-warden/.aaa-complete and PROGRESS.md for failed critic verdicts,
-verification boundaries and remaining debt. The next run starts STEP 2:
-inventory, research, choose a distinct game and scaffold its first playable.
+Pulse Loom is a four-lane rhythm score attack about weaving light into a living
+song. Strike arriving notes with four keys or direct taps. Every eight bars the
+loom rotates, clearly previewing the new lane orientation while the same
+melody changes its spatial pattern. Accurate timing builds a layered procedural
+soundtrack, a combo, and a numeric leaderboard score. The first playable uses
+one authored chart and a complete run/retry loop; later nights expand charts,
+audio, visual craft, and accessibility.

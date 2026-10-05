@@ -1,13 +1,13 @@
 # Active game
 
-No game is active.
+slug: wickfire
+started: 2026-10-05
 
-Completed: **prism-warden** — The Drowned Beacons.
-started: 2026-09-20
-completed: 2026-10-03
-release: forced second-Saturday release, age 13 (America/Los_Angeles).
+**Wickfire** — a Bomberman-lineage grid arena (classic arcade/SNES Super Bomberman foundation, new IP).
+You are a fuse-wright in a crumbling powder mine. Drop bombs to blast crates and rivals, but the twist:
+you trail a live **fuse** behind you. Any blast that touches your fuse (or a rival's) races along it and
+detonates every bomb threaded on that line, so you can chain-detonate across the map - and so can enemies.
+Score = kills, crate chain length, fuse-chain multipliers, speed bonus. Keyboard/touch, procedural art+audio.
 
-The scheduled lifecycle is complete; AAA acceptance is not claimed. See
-prism-warden/.aaa-complete and PROGRESS.md for failed critic verdicts,
-verification boundaries and remaining debt. The next run starts STEP 2:
-inventory, research, choose a distinct game and scaffold its first playable.
+Note: no `dev` branch existed in this environment; work is on the session branch
+`claude/beautiful-turing-61qdne`. Previous game prism-warden is complete (see its .aaa-complete).

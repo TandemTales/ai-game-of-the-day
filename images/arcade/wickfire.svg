@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 1024" width="1536" height="1024">
+<defs>
+<radialGradient id="g" cx="50%" cy="55%" r="60%"><stop offset="0" stop-color="#ffcf6a"/><stop offset=".35" stop-color="#ff7a2a"/><stop offset=".75" stop-color="#3a1f2e"/><stop offset="1" stop-color="#0a0810"/></radialGradient>
+<radialGradient id="b" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#6a6f80"/><stop offset=".5" stop-color="#1e2029"/><stop offset="1" stop-color="#050507"/></radialGradient>
+<pattern id="s" width="128" height="128" patternUnits="userSpaceOnUse"><rect width="128" height="128" fill="#4a505d"/><rect width="128" height="10" fill="#7a8190" opacity=".5"/><rect y="118" width="128" height="10" fill="#000" opacity=".4"/><path d="M20 70 L64 60 L110 74" stroke="#000" stroke-opacity=".4" stroke-width="3" fill="none"/></pattern>
+</defs>
+<rect width="1536" height="1024" fill="url(#g)"/>
+<rect width="1536" height="1024" fill="url(#s)" opacity=".28"/>
+<g opacity=".9"><rect x="80" y="620" width="260" height="260" fill="#8a5a2c" stroke="#3a2a18" stroke-width="14"/><path d="M80 620 L340 880" stroke="#2a2a30" stroke-width="16"/>
+<rect x="1180" y="560" width="280" height="280" fill="#8a5a2c" stroke="#3a2a18" stroke-width="14"/><path d="M1180 560 L1460 840" stroke="#2a2a30" stroke-width="16"/></g>
+<path d="M200 900 C400 700 520 820 700 640 S 980 520 1130 360" fill="none" stroke="#1a0e05" stroke-width="34" stroke-linecap="round" opacity=".5" transform="translate(0 8)"/>
+<path d="M200 900 C400 700 520 820 700 640 S 980 520 1130 360" fill="none" stroke="#e7c27a" stroke-width="22" stroke-linecap="round" stroke-dasharray="40 8"/>
+<circle cx="1140" cy="352" r="120" fill="#ffe28a" opacity=".5"/><circle cx="1140" cy="352" r="60" fill="#fff6c0"/>
+<g fill="#fff3a0"><circle cx="1210" cy="290" r="9"/><circle cx="1090" cy="260" r="7"/><circle cx="1230" cy="400" r="6"/><circle cx="1050" cy="330" r="8"/></g>
+<circle cx="760" cy="600" r="200" fill="url(#b)"/><ellipse cx="760" cy="820" rx="190" ry="40" fill="#000" opacity=".4"/>
+<path d="M830 440 Q930 380 900 300" stroke="#8a6a3a" stroke-width="18" fill="none" stroke-linecap="round"/><circle cx="900" cy="296" r="30" fill="#ffd23d"/><circle cx="900" cy="296" r="60" fill="#ff9a2e" opacity=".5"/>
+<text x="768" y="190" font-family="Impact,'Arial Black',sans-serif" font-size="170" font-weight="900" text-anchor="middle" fill="#ffb347" stroke="#4a2008" stroke-width="10" paint-order="stroke" letter-spacing="14">WICKFIRE</text>
+</svg>

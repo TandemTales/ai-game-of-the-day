@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#120d16" />
+  <meta name="description" content="Wickfire - a grid-arena bomb game. Lay a live fuse behind you and chain-detonate the mine." />
+  <title>Wickfire - Bot Built Arcade</title>
+  <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png" />
+  <link rel="stylesheet" href="assets/css/game.css" />
+</head>
+<body>
+  <canvas id="wf-canvas" aria-label="Wickfire game view" role="img"></canvas>
+  <div id="wf-ui">
+    <div id="wf-menu" class="wf-panel">
+      <h1>WICKFIRE</h1>
+      <p class="sub">Lay a fuse. Light the mine.</p>
+      <ul class="how">
+        <li><b>Move</b> arrows / WASD / left stick</li>
+        <li><b>Bomb</b> Space / BOMB button</li>
+        <li><b>Cut fuse</b> X / Shift / CUT button</li>
+        <li>You trail a <b>live fuse</b>. Any blast on it burns along it, detonating every bomb threaded on it &mdash; and burning you at its end. <b>Cut it</b> to escape, then ignite it from afar.</li>
+      </ul>
+      <button id="wf-play" class="wf-btn" type="button">Play</button>
+      <div class="links"><a href="../index.html">Back to Arcade</a> <button id="wf-mute" class="wf-link" type="button">Sound: on</button></div>
+    </div>
+    <div id="wf-over" class="wf-panel" hidden></div>
+    <button id="wf-pause" type="button" aria-label="Pause">II</button>
+    <a id="wf-back" href="../index.html">Back to Arcade</a>
+  </div>
+  <noscript><p style="color:#fff;padding:24px">Wickfire needs JavaScript. <a href="../index.html">Back to Arcade</a></p></noscript>
+  <script src="assets/js/logic.js"></script>
+  <script src="assets/js/audio.js"></script>
+  <script src="assets/js/render.js"></script>
+  <script src="assets/js/main.js"></script>
+</body>
+</html>

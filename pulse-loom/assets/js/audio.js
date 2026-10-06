@@ -2,14 +2,24 @@
   'use strict';
   var A = (global.PL = global.PL || {}).Audio = {};
   var ctx = null, master = null, noise = null, movement = 0;
+  var activeRoot = 146.83, activeChord = [0, 3, 7, 10];
   var pendingBeat = -1, beatQueued = false;
   var roots = [146.83, 116.54, 98, 110]; // Dm, Bb, Gm, A7
-  var chords = [[0, 3, 7, 10], [0, 4, 7, 11], [0, 3, 7, 10], [0, 4, 7, 10]];
+  var minor = [0, 3, 7, 10], major = [0, 4, 7, 11];
+  var dominant = [0, 4, 7, 10], addNine = [0, 4, 7, 14];
+  // Four different eight-beat phrases per movement, with a new chord each phrase.
+  var changes = [[0, -4, -7, -5], [0, -5, 2, 4], [0, -4, 3, 2], [0, 5, -2, 0]];
+  var chords = [[minor, major, minor, dominant], [major, major, addNine, minor],
+    [minor, major, major, dominant], [dominant, minor, minor, dominant]];
   var melodies = [
-    [0, null, 7, 10, null, 7, 3, null],
-    [7, 11, null, 12, 11, null, 7, 4],
-    [3, null, 7, 10, 12, 10, null, 7],
-    [12, 10, 7, 4, 12, 10, 7, 4]
+    [[0, null, 7, 10, null, 7, 3, null], [0, 4, null, 7, 11, 7, null, 4],
+      [3, null, 7, 10, 12, 10, null, 7], [4, 7, 10, 12, 10, 7, 4, 0]],
+    [[7, 11, null, 12, 11, null, 7, 4], [0, 4, 7, null, 11, 12, 11, 7],
+      [7, null, 14, 12, 7, 4, 0, null], [3, 7, 10, 12, 10, 7, 3, 0]],
+    [[0, null, 3, 7, 10, 7, 3, null], [7, 11, 12, 11, 7, null, 4, 0],
+      [0, 4, 7, 11, 14, 11, 7, 4], [4, 7, 10, 12, 10, 7, 4, null]],
+    [[12, 10, 7, 4, 12, 10, 7, 4], [12, 10, 7, 3, 12, 10, 7, 3],
+      [0, 3, 7, 10, 12, 10, 7, 3], [4, 7, 10, 12, 14, 10, 7, null]]
   ];
   function pitch(root, semitones) { return root * Math.pow(2, semitones / 12); }
   A.unlock = function () {
@@ -66,8 +76,22 @@
   function playBeat(beat) {
     if (!ctx || beat >= 128) return;
     movement = Math.min(3, Math.floor(beat / 32));
-    var bar = beat % 4, phrase = beat % 8, start = ctx.currentTime + 0.006;
-    var root = roots[movement], chord = chords[movement];
+    var bar = beat % 4, phrase = beat % 8;
+    var phraseNumber = Math.floor((beat % 32) / 8), start = ctx.currentTime + 0.006;
+    var root = pitch(roots[movement], changes[movement][phraseNumber]);
+    var chord = chords[movement][phraseNumber];
+    activeRoot = root; activeChord = chord;
+
+    // The last chart note lands on the tonic after the final dominant build.
+    if (beat === 127) {
+      activeRoot = roots[0]; activeChord = minor;
+      voice(roots[0] / 2, start, 2.1, 'triangle', 0.12, 700);
+      for (var finalNote = 0; finalNote < minor.length; finalNote++)
+        voice(pitch(roots[0], minor[finalNote]), start + finalNote * 0.045,
+          1.9, 'sine', 0.04);
+      voice(roots[0] * 4, start + 0.15, 1.7, 'triangle', 0.04, 2400);
+      return;
+    }
 
     // Each movement changes both the harmony and the rhythm section.
     if (bar === 0 || (movement >= 1 && bar === 2) || (movement === 3 && bar === 3))
@@ -77,13 +101,14 @@
       voice(185, start, 0.09, 'triangle', 0.025);
     }
     if (beat % 2 || movement >= 2) hiss(start, 0.04, movement === 3 ? 0.025 : 0.014, 6000);
-    if (beat % 2 === 0) voice(pitch(root / 2, beat % 8 === 6 ? 7 : 0),
+    var bassDegree = phrase === 6 ? chord[2] : phrase === 2 && phraseNumber % 2 ? chord[1] : 0;
+    if (beat % 2 === 0) voice(pitch(root / 2, bassDegree),
       start, 0.3, 'triangle', 0.055, 520);
     if (bar === 0) {
       for (var i = 0; i < chord.length; i++)
         voice(pitch(root, chord[i]), start, 1.45, 'sine', 0.012);
     }
-    var melody = melodies[movement][phrase];
+    var melody = melodies[movement][phraseNumber][phrase];
     if (melody !== null) voice(pitch(root * 2, melody), start, movement === 3 ? 0.2 : 0.29,
       movement >= 2 ? 'triangle' : 'sine', movement === 3 ? 0.043 : 0.034);
 
@@ -107,12 +132,25 @@
   };
   A.hit = function (lane, perfect) {
     if (!ctx || lane < 0 || lane > 3) return;
-    var start = ctx.currentTime + 0.006, root = roots[movement], chord = chords[movement];
+    var start = ctx.currentTime + 0.006, root = activeRoot, chord = activeChord;
     var waves = ['sine', 'triangle', 'square', 'sawtooth'];
     var cutoffs = [0, 2300, 1200, 3100];
     voice(pitch(root * 2, chord[lane]), start, perfect ? 0.38 : 0.2,
       waves[lane], perfect ? 0.1 : 0.067, cutoffs[lane]);
     if (perfect) voice(pitch(root * 4, chord[lane]), start + 0.035, 0.24,
       'sine', 0.027);
+  };
+  A.miss = function () {
+    if (!ctx || !master) return;
+    var start = ctx.currentTime + 0.006;
+    var oscillator = ctx.createOscillator(), gain = ctx.createGain();
+    oscillator.type = 'triangle';
+    oscillator.frequency.setValueAtTime(235, start);
+    oscillator.frequency.exponentialRampToValueAtTime(115, start + 0.17);
+    gain.gain.setValueAtTime(0.035, start);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + 0.19);
+    oscillator.connect(gain); gain.connect(master);
+    oscillator.start(start); oscillator.stop(start + 0.2);
+    hiss(start, 0.075, 0.018, 1000);
   };
 })(typeof window !== 'undefined' ? window : this);

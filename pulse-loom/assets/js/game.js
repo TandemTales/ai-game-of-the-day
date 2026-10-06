@@ -66,7 +66,10 @@
       var beat = Math.floor(time / L.BEAT);
       for (var b = state.lastBeat + 1; b <= Math.min(beat, L.TOTAL_BEATS); b++) A.beat(b);
       state.lastBeat = beat;
-      L.advance(run, time); updateHud(time);
+      var missesBefore = run.misses;
+      L.advance(run, time);
+      if (run.misses > missesBefore) A.miss();
+      updateHud(time);
       if (run.ended) finish();
     }
     PL.Render.draw(canvas, run, time, state); requestAnimationFrame(frame);

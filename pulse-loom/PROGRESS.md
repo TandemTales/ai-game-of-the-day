@@ -55,3 +55,8 @@
 
 - Independent visual critic compared our six viewport captures side by side with official Beat Saber gameplay and judged **OURS LOSES / AAA FAIL**: sparse board, weak hit impact, small 4K composition, portrait gaps, and a shift callout over incoming notes. This is a still-image judgment, not live animation or human play.
 - Second renderer pass moved the shift cue above the note path, strengthened note silhouettes and lane-local hit trails/light. Lead reran six-size Chromium preview: no page errors, external requests, or horizontal overflow; inspected updated portrait, desktop, and 4K PNGs. Final critic re-review remains pending.
+
+### Oct 6 audio critic and second music pass
+
+- Independent audio critic rated **AAA FAIL** versus DJMax Respect from code inspection only: eight-beat motif repetition, no ending cadence, rAF-tied audio scheduling without latency calibration, silent misses, and no listening/mix proof.
+- Revised audio varies four phrases per movement, changes harmony and bass, resolves the ending, and adds a short miss cue wired through the game loop. Focused Jest, syntax, mock AudioContext API smoke, and exact-code real-browser keyboard/touch first-note scoring pass. Listening, measured audio sync, and independent re-review remain open.

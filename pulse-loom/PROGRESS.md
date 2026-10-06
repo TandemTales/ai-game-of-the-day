@@ -35,3 +35,8 @@
 - Next run first: verify real timed keyboard and touch hits at phone and desktop
   sizes, then deepen chart/musical structure and render a clearly animated
   rotation. Run independent side-by-side critics only after that work.
+
+## 2026-10-06 Pacific — polish night intent
+
+- Synced `dev`; STOP absent. Tonight: verify real timed keyboard/touch scoring, make the rotation legible, strengthen one musical/visual lane, and inspect six required viewport captures.
+- Critics and AAA verdict remain open until independent side-by-side review. Release is not scheduled tonight.

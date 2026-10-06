@@ -42,3 +42,17 @@ test('every note can be reached at its scheduled time', () => {
   expect(run.ended).toBe(true);
   expect(run.score).toBeGreaterThan(0);
 });
+
+test('perfect run grades S, empty run grades D, stray taps are counted', () => {
+  const L = logic(), run = L.newRun();
+  expect(L.tap(run, (run.notes[0].lane + 1) % 4, 0)).toBe(null);
+  expect(run.stray).toBe(1);
+  run.notes.forEach(n => L.tap(run, n.lane, n.time));
+  expect(L.grade(run)).toBe('S');
+  expect(run.score).toBe(L.maxScore());
+  expect(L.accuracy(run)).toBe(1);
+  const empty = L.newRun();
+  expect(L.grade(empty)).toBe('D');
+  expect(L.section(0)).toBe(0);
+  expect(L.section(L.TOTAL_BEATS * L.BEAT)).toBe(3);
+});

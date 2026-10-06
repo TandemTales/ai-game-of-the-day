@@ -6,24 +6,28 @@
     description = document.getElementById('panel-copy'), scoreEl = document.getElementById('score'),
     comboEl = document.getElementById('combo'), sectionEl = document.getElementById('section'),
     feedback = document.getElementById('feedback');
-  var run = L.newRun(), state = { mode: 'title', started: 0, lastBeat: -1,
+  var run = L.newRun(), state = { mode: 'title', started: 0,
     flashUntil: 0, flashLane: 0, submitted: false };
   function now() { return (performance.now() - state.started) / 1000; }
   function updateHud(time) {
     scoreEl.textContent = run.score.toLocaleString(); comboEl.textContent = run.combo;
-    sectionEl.textContent = Math.min(4, Math.floor(time / (32 * L.BEAT)) + 1) + ' / 4';
+    sectionEl.textContent = Math.max(1, Math.min(4, Math.floor(time / (32 * L.BEAT)) + 1)) + ' / 4';
     feedback.textContent = run.last || 'FOLLOW THE THREAD';
   }
-  function play() {
-    A.unlock(); run = L.newRun(); state.mode = 'playing'; state.started = performance.now();
-    state.lastBeat = -1; state.submitted = false; panel.hidden = true; updateHud(0);
+  async function play() {
+    if (state.mode === 'starting') return;
+    state.mode = 'starting';
+    var lead = await A.begin();
+    run = L.newRun(); state.mode = 'playing'; state.started = performance.now() + lead * 1000;
+    state.submitted = false; panel.hidden = true; updateHud(0);
   }
   startButton.addEventListener('click', play);
   function hit(lane) {
     if (state.mode !== 'playing') return;
     var time = now(), result = L.tap(run, lane, time);
     if (result) {
-      A.hit(lane, result === 'PERFECT'); state.flashLane = lane; state.flashUntil = time + .22;
+      A.hit(lane, result === 'PERFECT', Math.round(time / L.BEAT));
+      state.flashLane = lane; state.flashUntil = time + .22;
       updateHud(time);
     }
   }
@@ -63,9 +67,7 @@
   function frame() {
     var time = state.mode === 'playing' ? now() : 0;
     if (state.mode === 'playing') {
-      var beat = Math.floor(time / L.BEAT);
-      for (var b = state.lastBeat + 1; b <= Math.min(beat, L.TOTAL_BEATS); b++) A.beat(b);
-      state.lastBeat = beat;
+      A.schedule(time, L.BEAT);
       var missesBefore = run.misses;
       L.advance(run, time);
       if (run.misses > missesBefore) A.miss();

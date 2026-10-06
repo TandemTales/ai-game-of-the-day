@@ -1,9 +1,10 @@
 (function (global) {
   'use strict';
   var A = (global.PL = global.PL || {}).Audio = {};
-  var ctx = null, master = null, noise = null, movement = 0;
-  var activeRoot = 146.83, activeChord = [0, 3, 7, 10];
-  var pendingBeat = -1, beatQueued = false;
+  var ctx = null, master = null, noise = null, currentBeat = 0;
+  var audioZero = null, nextBeat = 0;
+  var LEAD_IN = 0.16, LOOKAHEAD = 0.22;
+  var liveSources = [];
   var roots = [146.83, 116.54, 98, 110]; // Dm, Bb, Gm, A7
   var minor = [0, 3, 7, 10], major = [0, 4, 7, 11];
   var dominant = [0, 4, 7, 10], addNine = [0, 4, 7, 14];
@@ -22,6 +23,27 @@
       [0, 3, 7, 10, 12, 10, 7, 3], [4, 7, 10, 12, 14, 10, 7, null]]
   ];
   function pitch(root, semitones) { return root * Math.pow(2, semitones / 12); }
+  function harmonyAt(beat) {
+    if (beat >= 127) return { root: roots[0], chord: minor };
+    var movement = Math.max(0, Math.min(3, Math.floor(beat / 32)));
+    var phrase = Math.max(0, Math.min(3, Math.floor((beat % 32) / 8)));
+    return { root: pitch(roots[movement], changes[movement][phrase]),
+      chord: chords[movement][phrase] };
+  }
+  function track(source) {
+    liveSources.push(source);
+    source.onended = function () {
+      var index = liveSources.indexOf(source);
+      if (index !== -1) liveSources.splice(index, 1);
+    };
+  }
+  function stopQueued() {
+    var sources = liveSources.slice();
+    liveSources.length = 0;
+    for (var i = 0; i < sources.length; i++) {
+      try { sources[i].stop(ctx.currentTime); } catch (e) { /* Already finished. */ }
+    }
+  }
   A.unlock = function () {
     try {
       if (!ctx) {
@@ -34,8 +56,29 @@
         var data = noise.getChannelData(0);
         for (var i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
       }
-      if (ctx.state === 'suspended') ctx.resume();
+      if (ctx.state === 'suspended') {
+        var resume = ctx.resume();
+        if (resume && resume.catch) resume.catch(function () {});
+      }
     } catch (e) { ctx = null; master = null; noise = null; }
+  };
+  A.begin = function () {
+    A.unlock();
+    var resumed = Promise.resolve();
+    try { if (ctx && ctx.state === 'suspended') resumed = ctx.resume(); }
+    catch (e) { resumed = Promise.resolve(); }
+    return Promise.resolve(resumed).catch(function () {}).then(function () {
+      if (ctx) stopQueued();
+      audioZero = ctx && ctx.state === 'running' ? ctx.currentTime + LEAD_IN : null;
+      nextBeat = 0; currentBeat = 0;
+      // Anchor the downbeat here: the first animation frame can arrive after
+      // the lead-in on a cold browser start or a busy device.
+      if (audioZero !== null) {
+        playBeat(0, audioZero);
+        nextBeat = 1;
+      }
+      return LEAD_IN;
+    });
   };
   function voice(frequency, start, duration, wave, level, cutoff) {
     if (!ctx || !master) return;
@@ -51,6 +94,7 @@
       filter.type = 'lowpass'; filter.frequency.value = cutoff;
       gain.connect(filter); filter.connect(master);
     } else gain.connect(master);
+    track(oscillator);
     oscillator.start(start); oscillator.stop(start + duration + 0.01);
   }
   function hiss(start, duration, level, cutoff) {
@@ -60,6 +104,7 @@
     gain.gain.setValueAtTime(level, start);
     gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
     source.connect(filter); filter.connect(gain); gain.connect(master);
+    track(source);
     source.start(start); source.stop(start + duration);
   }
   function kick(start, strong) {
@@ -71,20 +116,19 @@
     gain.gain.setValueAtTime(strong ? 0.17 : 0.12, start);
     gain.gain.exponentialRampToValueAtTime(0.001, start + 0.22);
     oscillator.connect(gain); gain.connect(master);
+    track(oscillator);
     oscillator.start(start); oscillator.stop(start + 0.23);
   }
-  function playBeat(beat) {
+  function playBeat(beat, start) {
     if (!ctx || beat >= 128) return;
-    movement = Math.min(3, Math.floor(beat / 32));
+    currentBeat = beat;
+    var movement = Math.min(3, Math.floor(beat / 32));
     var bar = beat % 4, phrase = beat % 8;
-    var phraseNumber = Math.floor((beat % 32) / 8), start = ctx.currentTime + 0.006;
-    var root = pitch(roots[movement], changes[movement][phraseNumber]);
-    var chord = chords[movement][phraseNumber];
-    activeRoot = root; activeChord = chord;
+    var phraseNumber = Math.floor((beat % 32) / 8);
+    var harmony = harmonyAt(beat), root = harmony.root, chord = harmony.chord;
 
     // The last chart note lands on the tonic after the final dominant build.
     if (beat === 127) {
-      activeRoot = roots[0]; activeChord = minor;
       voice(roots[0] / 2, start, 2.1, 'triangle', 0.12, 700);
       for (var finalNote = 0; finalNote < minor.length; finalNote++)
         voice(pitch(roots[0], minor[finalNote]), start + finalNote * 0.045,
@@ -119,20 +163,38 @@
           0.42, 'triangle', 0.07, 2800);
     }
   }
-  A.beat = function (beat) {
-    // The game may replay many missed beats in one frame after a hidden tab wakes.
-    // Keep only the newest beat so that recovery never produces an audio burst.
-    pendingBeat = beat;
-    if (beatQueued) return;
-    beatQueued = true;
-    Promise.resolve().then(function () {
-      beatQueued = false;
-      playBeat(pendingBeat);
-    });
+  A.schedule = function (songTime, beatDuration) {
+    if (!ctx || audioZero === null || !Number.isFinite(songTime) ||
+        !Number.isFinite(beatDuration) || beatDuration <= 0) return;
+    if (ctx.state === 'suspended') {
+      stopQueued();
+      var resume = ctx.resume();
+      if (resume && resume.catch) resume.catch(function () {});
+      return;
+    }
+    // AudioContext time can pause while performance time advances in a hidden tab.
+    // Re-anchor to the song position and discard all beats already passed.
+    if (Math.abs(ctx.currentTime - (audioZero + songTime)) > 0.25) {
+      stopQueued();
+      audioZero = ctx.currentTime - songTime;
+    }
+    nextBeat = Math.max(nextBeat, Math.max(0,
+      Math.ceil((songTime - 0.025) / beatDuration)));
+    while (nextBeat < 128 && audioZero + nextBeat * beatDuration <= ctx.currentTime + LOOKAHEAD) {
+      var when = audioZero + nextBeat * beatDuration;
+      if (when >= ctx.currentTime + 0.004) playBeat(nextBeat, when);
+      nextBeat++;
+    }
   };
-  A.hit = function (lane, perfect) {
+  A.beat = function (beat) {
+    // Compatibility for older callers. New games should use begin/schedule.
+    if (ctx) playBeat(beat, ctx.currentTime + 0.006);
+  };
+  A.hit = function (lane, perfect, targetBeat) {
     if (!ctx || lane < 0 || lane > 3) return;
-    var start = ctx.currentTime + 0.006, root = activeRoot, chord = activeChord;
+    var start = ctx.currentTime + 0.006;
+    var harmony = harmonyAt(Number.isFinite(targetBeat) ? targetBeat : currentBeat);
+    var root = harmony.root, chord = harmony.chord;
     var waves = ['sine', 'triangle', 'square', 'sawtooth'];
     var cutoffs = [0, 2300, 1200, 3100];
     voice(pitch(root * 2, chord[lane]), start, perfect ? 0.38 : 0.2,
@@ -150,6 +212,7 @@
     gain.gain.setValueAtTime(0.035, start);
     gain.gain.exponentialRampToValueAtTime(0.001, start + 0.19);
     oscillator.connect(gain); gain.connect(master);
+    track(oscillator);
     oscillator.start(start); oscillator.stop(start + 0.2);
     hiss(start, 0.075, 0.018, 1000);
   };

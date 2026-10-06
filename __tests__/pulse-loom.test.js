@@ -42,3 +42,29 @@ test('every note can be reached at its scheduled time', () => {
   expect(run.ended).toBe(true);
   expect(run.score).toBeGreaterThan(0);
 });
+
+test('audio clock schedules the opening beat before a delayed frame and does not duplicate it', async () => {
+  const starts = [];
+  const param = () => ({ value: 0, setValueAtTime() {}, exponentialRampToValueAtTime() {} });
+  const source = kind => ({ frequency: param(), gain: param(), connect() {},
+    start(when) { starts.push({ kind, when }); }, stop() {} });
+  const clock = { currentTime: 10, state: 'running', sampleRate: 1000, destination: {},
+    createGain: () => source('gain'), createDynamicsCompressor: () => ({
+      threshold: param(), ratio: param(), connect() {} }),
+    createBuffer: () => ({ getChannelData: () => new Float32Array(180) }),
+    createOscillator: () => source('oscillator'), createBufferSource: () => source('noise'),
+    createBiquadFilter: () => ({ frequency: param(), connect() {} }) };
+  const context = { window: { AudioContext: function () { return clock; } } };
+  vm.createContext(context);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'pulse-loom', 'assets', 'js', 'audio.js'), 'utf8'), context);
+  const A = context.window.PL.Audio, L = logic();
+  const lead = await A.begin();
+  expect(lead).toBeGreaterThan(0);
+  const opening = starts.filter(s => Math.abs(s.when - (10 + lead)) < 0.0001).length;
+  expect(opening).toBeGreaterThan(0);
+  A.schedule(-lead, L.BEAT);
+  expect(starts.filter(s => Math.abs(s.when - (10 + lead)) < 0.0001)).toHaveLength(opening);
+  clock.currentTime = 10 + L.BEAT;
+  A.schedule(L.BEAT - lead, L.BEAT);
+  expect(starts.some(s => Math.abs(s.when - (10 + lead + L.BEAT)) < 0.0001)).toBe(true);
+});

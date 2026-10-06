@@ -41,7 +41,7 @@
       }
     });
     if (!chosen) { run.stray++; return null; }
-    chosen.status = 1;
+    chosen.status = 1; run.lastBase = chosen.base;
     run.combo++; run.hits++;
     run.bestCombo = Math.max(run.bestCombo, run.combo);
     var perfect = distance <= 0.075;
@@ -55,7 +55,7 @@
     if (run.ended) return;
     run.notes.forEach(function (note) {
       if (!note.status && time - note.time > L.WINDOW) {
-        note.status = -1; run.misses++; run.combo = 0; run.last = 'MISS';
+        note.status = -1; run.lastMissLane = note.lane; run.misses++; run.combo = 0; run.last = 'MISS';
       }
     });
     if (time > L.TOTAL_BEATS * L.BEAT + 1) run.ended = true;

@@ -41,3 +41,25 @@
 - Age 2 days (Tuesday): polish night. Plan: verify real timed input, then deepen
   chart (multi-pattern, holds-free), audio (layered procedural music), and render
   (rotation animation, hit VFX). Work lands on the session branch.
+
+## 2026-10-06 Pacific — polish night result
+
+- Logic: eighth-note answers in movements III/IV, perfect/stray counters, accuracy,
+  S–D grade, `maxScore`, `section`. Jest 4/4 (new grade/accuracy/stray test).
+- Audio rewritten: lookahead scheduler on the audio clock (pure function of game
+  time): kick, hats, snare, rolling bass over an Am–F–C–G loop, pad from II,
+  arp from III (and from II when combo is high), delay bus + compressor, pitched
+  pentatonic hit bells, miss/rotate/finish cues. Not listened to (headless).
+- Render rewritten: perspective highway, thread-colored notes (colour follows the
+  melody so the rotation is visible as colours changing lanes), thread-order strip
+  that slides on rotation, sweep line, particles, popups, miss flash/shake, beat
+  pulse, movement-tinted backgrounds, DPR-sharp canvas, portrait-tall canvas on phones.
+- Verified in headless Chromium with an autoplayer driving `PL.Game.hit`: scores
+  accrue, console clean (one favicon 404), no horizontal overflow at 320×568,
+  390×844, 844×390, 768×1024, 1440×900, 3840×2160. Read the 320/390/844×390/1440
+  screenshots.
+- NOT done: no critic/blind-comparison runs (none claimed), no shipping judge, audio
+  not heard, real touch devices untested, landscape-phone canvas still small.
+- Next run first: run critics vs. a shipped rhythm game (e.g. Rhythm Heaven / Guitar
+  Hero), add results-screen polish, calibration/latency offset, pause, mute button,
+  more than one chart, 2x3840 sharpness check.

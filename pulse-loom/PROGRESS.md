@@ -60,3 +60,8 @@
 
 - Independent audio critic rated **AAA FAIL** versus DJMax Respect from code inspection only: eight-beat motif repetition, no ending cadence, rAF-tied audio scheduling without latency calibration, silent misses, and no listening/mix proof.
 - Revised audio varies four phrases per movement, changes harmony and bass, resolves the ending, and adds a short miss cue wired through the game loop. Focused Jest, syntax, mock AudioContext API smoke, and exact-code real-browser keyboard/touch first-note scoring pass. Listening, measured audio sync, and independent re-review remain open.
+
+### Oct 6 UI checkpoint
+
+- CSS frames portrait spare height as part of the loom stage, clarifies score/combo/movement separation, and grows the 4K board from 920x690 to 2360x1770. The 4:3 canvas still leaves vertical space on tall phones.
+- Exact integrated six-size Chromium sweep passed with no page errors, external requests, or horizontal overflow. Lead inspected all six previews. UI critic review remains pending; high-DPI backing resolution and real-device performance remain unverified.

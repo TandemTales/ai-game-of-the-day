@@ -45,3 +45,8 @@
 
 - Added four local procedural movements, drum/bass/pad/melody layers, lane-specific hit timbres, and a rotation cadence. AudioContext API smoke and syntax passed; listening on speakers and independent audio comparison remain open.
 - Focused Pulse Loom Jest remains 3/3 pass. Full repository Jest again stalled after five passing suites; it is not a green full-suite claim.
+
+### Oct 6 renderer checkpoint
+
+- Added a moving three-beat lane-shift preview, persistent strand colors, richer board depth, and clearer notes. Lead inspected updated 320, 390, 844, 768, 1440, and 3840 viewport PNGs; no horizontal overflow or page errors. A one-time 404 console message is likely favicon and will be checked.
+- The 390 portrait and 4K layouts leave substantial empty space around the 4:3 board. This remains a presentation issue for independent critique and UI work.

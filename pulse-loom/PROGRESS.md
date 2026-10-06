@@ -40,3 +40,8 @@
 
 - Synced `dev`; STOP absent. Tonight: verify real timed keyboard/touch scoring, make the rotation legible, strengthen one musical/visual lane, and inspect six required viewport captures.
 - Critics and AAA verdict remain open until independent side-by-side review. Release is not scheduled tonight.
+
+### Oct 6 audio checkpoint
+
+- Added four local procedural movements, drum/bass/pad/melody layers, lane-specific hit timbres, and a rotation cadence. AudioContext API smoke and syntax passed; listening on speakers and independent audio comparison remain open.
+- Focused Pulse Loom Jest remains 3/3 pass. Full repository Jest again stalled after five passing suites; it is not a green full-suite claim.

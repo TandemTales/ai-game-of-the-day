@@ -35,3 +35,9 @@
 - Next run first: verify real timed keyboard and touch hits at phone and desktop
   sizes, then deepen chart/musical structure and render a clearly animated
   rotation. Run independent side-by-side critics only after that work.
+
+## 2026-10-06 Pacific — polish night intent
+
+- Age 2 days (Tuesday): polish night. Plan: verify real timed input, then deepen
+  chart (multi-pattern, holds-free), audio (layered procedural music), and render
+  (rotation animation, hit VFX). Work lands on the session branch.

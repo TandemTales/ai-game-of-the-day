@@ -50,3 +50,8 @@
 
 - Added a moving three-beat lane-shift preview, persistent strand colors, richer board depth, and clearer notes. Lead inspected updated 320, 390, 844, 768, 1440, and 3840 viewport PNGs; no horizontal overflow or page errors. A one-time 404 console message is likely favicon and will be checked.
 - The 390 portrait and 4K layouts leave substantial empty space around the 4:3 board. This remains a presentation issue for independent critique and UI work.
+
+### Oct 6 visual critic and second renderer pass
+
+- Independent visual critic compared our six viewport captures side by side with official Beat Saber gameplay and judged **OURS LOSES / AAA FAIL**: sparse board, weak hit impact, small 4K composition, portrait gaps, and a shift callout over incoming notes. This is a still-image judgment, not live animation or human play.
+- Second renderer pass moved the shift cue above the note path, strengthened note silhouettes and lane-local hit trails/light. Lead reran six-size Chromium preview: no page errors, external requests, or horizontal overflow; inspected updated portrait, desktop, and 4K PNGs. Final critic re-review remains pending.

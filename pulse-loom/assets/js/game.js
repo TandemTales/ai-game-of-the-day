@@ -12,7 +12,10 @@
   function updateHud(time) {
     scoreEl.textContent = run.score.toLocaleString(); comboEl.textContent = run.combo;
     sectionEl.textContent = Math.max(1, Math.min(4, Math.floor(time / (32 * L.BEAT)) + 1)) + ' / 4';
-    feedback.textContent = run.last || 'FOLLOW THE THREAD';
+    var audioStatus = A.status();
+    feedback.textContent = audioStatus === 'blocked' ? 'AUDIO PAUSED · TAP A LANE TO RETRY' :
+      audioStatus === 'unavailable' && state.mode === 'playing' ? 'AUDIO UNAVAILABLE · PLAYING SILENTLY' :
+        run.last || 'FOLLOW THE THREAD';
   }
   async function play() {
     if (state.mode === 'starting') return;
@@ -24,6 +27,7 @@
   startButton.addEventListener('click', play);
   function hit(lane) {
     if (state.mode !== 'playing') return;
+    if (A.status() === 'blocked') A.unlock();
     var time = now(), result = L.tap(run, lane, time);
     if (result) {
       A.hit(lane, result === 'PERFECT', Math.round(time / L.BEAT));

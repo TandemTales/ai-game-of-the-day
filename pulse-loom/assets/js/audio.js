@@ -2,7 +2,8 @@
   'use strict';
   var A = (global.PL = global.PL || {}).Audio = {};
   var ctx = null, master = null, noise = null, currentBeat = 0;
-  var audioZero = null, nextBeat = 0;
+  var audioZero = null, nextBeat = 0, recoveryPending = false;
+  var readiness = 'unavailable';
   var LEAD_IN = 0.16, LOOKAHEAD = 0.22;
   var liveSources = [];
   var roots = [146.83, 116.54, 98, 110]; // Dm, Bb, Gm, A7
@@ -44,10 +45,18 @@
       try { sources[i].stop(ctx.currentTime); } catch (e) { /* Already finished. */ }
     }
   }
+  A.status = function () {
+    return ctx && ctx.state !== 'running' && readiness === 'ready' ? 'blocked' : readiness;
+  };
   A.unlock = function () {
     try {
+      if (ctx && ctx.state === 'closed') {
+        ctx = null; master = null; noise = null;
+      }
       if (!ctx) {
-        ctx = new (global.AudioContext || global.webkitAudioContext)();
+        var AudioContext = global.AudioContext || global.webkitAudioContext;
+        if (!AudioContext) { readiness = 'unavailable'; return Promise.resolve(false); }
+        ctx = new AudioContext();
         master = ctx.createGain(); master.gain.value = 0.72;
         var limiter = ctx.createDynamicsCompressor();
         limiter.threshold.value = -18; limiter.ratio.value = 3;
@@ -56,28 +65,32 @@
         var data = noise.getChannelData(0);
         for (var i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
       }
-      if (ctx.state === 'suspended') {
-        var resume = ctx.resume();
-        if (resume && resume.catch) resume.catch(function () {});
+      if (ctx.state !== 'running') {
+        readiness = 'blocked';
+        return Promise.resolve(ctx.resume()).then(function () {
+          readiness = ctx && ctx.state === 'running' ? 'ready' : 'blocked';
+          return readiness === 'ready';
+        }).catch(function () { readiness = 'blocked'; return false; });
       }
-    } catch (e) { ctx = null; master = null; noise = null; }
+      readiness = 'ready';
+      return Promise.resolve(true);
+    } catch (e) {
+      ctx = null; master = null; noise = null; readiness = 'unavailable';
+      return Promise.resolve(false);
+    }
   };
   A.begin = function () {
-    A.unlock();
-    var resumed = Promise.resolve();
-    try { if (ctx && ctx.state === 'suspended') resumed = ctx.resume(); }
-    catch (e) { resumed = Promise.resolve(); }
-    return Promise.resolve(resumed).catch(function () {}).then(function () {
+    return A.unlock().then(function (ready) {
       if (ctx) stopQueued();
-      audioZero = ctx && ctx.state === 'running' ? ctx.currentTime + LEAD_IN : null;
-      nextBeat = 0; currentBeat = 0;
+      audioZero = ready ? ctx.currentTime + LEAD_IN : null;
+      nextBeat = 0; currentBeat = 0; recoveryPending = false;
       // Anchor the downbeat here: the first animation frame can arrive after
       // the lead-in on a cold browser start or a busy device.
       if (audioZero !== null) {
         playBeat(0, audioZero);
         nextBeat = 1;
       }
-      return LEAD_IN;
+      return ready ? LEAD_IN : 0;
     });
   };
   function voice(frequency, start, duration, wave, level, cutoff) {
@@ -164,20 +177,35 @@
     }
   }
   A.schedule = function (songTime, beatDuration) {
-    if (!ctx || audioZero === null || !Number.isFinite(songTime) ||
+    if (!ctx || !Number.isFinite(songTime) ||
         !Number.isFinite(beatDuration) || beatDuration <= 0) return;
-    if (ctx.state === 'suspended') {
+    if (ctx.state !== 'running') {
+      if (recoveryPending) return;
       stopQueued();
-      var resume = ctx.resume();
-      if (resume && resume.catch) resume.catch(function () {});
+      recoveryPending = true;
+      readiness = 'blocked';
+      // Resume may require a fresh user gesture. Keep the game clock moving;
+      // the next running frame will realign only future musical beats.
+      try {
+        var resume = ctx.resume();
+        if (resume && resume.catch) resume.catch(function () {});
+      } catch (e) { /* A later gesture can retry. */ }
       return;
+    }
+    if (audioZero === null) {
+      audioZero = ctx.currentTime - songTime;
+      nextBeat = Math.max(0, Math.ceil((songTime + 0.004) / beatDuration));
+      recoveryPending = false;
     }
     // AudioContext time can pause while performance time advances in a hidden tab.
     // Re-anchor to the song position and discard all beats already passed.
-    if (Math.abs(ctx.currentTime - (audioZero + songTime)) > 0.25) {
+    if (recoveryPending || Math.abs(ctx.currentTime - (audioZero + songTime)) > 0.25) {
       stopQueued();
       audioZero = ctx.currentTime - songTime;
+      nextBeat = Math.max(0, Math.ceil((songTime + 0.004) / beatDuration));
+      recoveryPending = false;
     }
+    readiness = 'ready';
     nextBeat = Math.max(nextBeat, Math.max(0,
       Math.ceil((songTime - 0.025) / beatDuration)));
     while (nextBeat < 128 && audioZero + nextBeat * beatDuration <= ctx.currentTime + LOOKAHEAD) {

@@ -11,6 +11,11 @@
 - Authored four escalating bar rhythms: the opening teaches two notes per bar, then later movements add full beats and half-beat offbeats. The final movement has six inputs per bar, with no simultaneous touch chord. This raises the chart from a sparse first pass to 126 timed notes without changing the 128-beat song length.
 - Focused Jest 5/5, including movement counts, input spacing, deterministic reachability, and audio opening clock. Syntax and diff checks pass. Full real-time play remains to be observed.
 
+### Oct 6 audio recovery checkpoint
+
+- Audio now reports `ready`, `blocked`, or `unavailable` rather than silently presenting a broken soundtrack. The HUD tells the player when sound is paused or unavailable; a lane gesture retries a blocked context. Recovery skips elapsed beats and resumes the remaining song after browser suspension.
+- Focused Jest 6/6, including unavailable-context behavior, plus audio/game syntax and diff checks pass. Real speaker output, device latency, and listening quality remain unverified.
+
 ## 2026-10-04 Pacific — scaffold night intent
 
 - Selected a rhythm score attack to add a new genre to the arcade. Inspiration:

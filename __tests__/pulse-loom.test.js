@@ -78,3 +78,12 @@ test('audio clock schedules the opening beat before a delayed frame and does not
   A.schedule(L.BEAT - lead, L.BEAT);
   expect(starts.some(s => Math.abs(s.when - (10 + lead + L.BEAT)) < 0.0001)).toBe(true);
 });
+
+test('audio reports unavailable when the browser has no AudioContext', async () => {
+  const context = { window: {} };
+  vm.createContext(context);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'pulse-loom', 'assets', 'js', 'audio.js'), 'utf8'), context);
+  const A = context.window.PL.Audio;
+  expect(await A.begin()).toBe(0);
+  expect(A.status()).toBe('unavailable');
+});

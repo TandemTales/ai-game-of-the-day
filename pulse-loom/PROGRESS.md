@@ -21,6 +21,13 @@
 - Phone HUD now emphasizes score and frames the lane board; 844×390 landscape keeps keyboard/tap instructions visible. Six viewport Chromium captures passed with no page errors, external requests, or horizontal overflow. Lead inspected all six PNGs.
 - Portrait 390×844 still gives the 4:3 board too little vertical presence; 844×390 board and HUD remain small. The layout is clearer but remains below the AAA reference bar pending independent side-by-side review.
 
+### Oct 6 final verification and handoff
+
+- A real-time Chromium run played all 128 beats without clock jumps. Scheduled D/F/J/K events hit all 126 notes, scored 44,400, reached the natural end screen in 69.65 seconds, and reported audio `ready`. With the local leaderboard rank endpoint stubbed, browser errors and external requests were zero. This validates browser input timing and scheduling, not speaker output or human play.
+- Lead inspected the six live-state screenshots and the natural end screen. Independent harsh critic placed the 1440×900 capture side by side with Square Enix's official Theatrhythm Final Bar Line gameplay image: **OURS LOSES / AAA VISUAL AND UI FAIL**. The opponent has an authored world, material depth, strong judgment burst, and dominant score/chain feedback. Our board remains a sparse dark field; 320px labels and the 844×390 board/footer are too small. The comparison artifact is ignored under `node_modules/.cache/pulse-loom/oct06/critic-side-by-side.png`.
+- Audio AAA remains unaccepted: no actual listening, speaker latency, device offset calibration, or hardware sync measurement. The full repository Jest suite remains unverified because prior attempts stalled; the focused game suite passed 6/6 and the six-size browser sweep passed. Human play, fun, real-device touch, and 4K GPU performance remain open.
+- Next run first: create an authored beat-reactive stage with stronger hit/score effects and a portrait/landscape composition that uses available space, then repeat the independent comparison. Arrange actual listening and device latency checks. Do not mark `.aaa-complete` or promote `main`; first Saturday October 10 is too early for forced release.
+
 ## 2026-10-04 Pacific — scaffold night intent
 
 - Selected a rhythm score attack to add a new genre to the arcade. Inspiration:

@@ -110,3 +110,9 @@
 ## 2026-10-07 Pacific — nightly polish intent
 
 - Synced to `dev` (stale checkout fast-forwarded); STOP absent; game age 3 days, Wednesday, no release. Tonight: authored beat-reactive stage in `render.js` plus stronger hit/score feedback and portrait/landscape composition, then an independent side-by-side critic. Focused Jest after every change; AAA not claimed.
+
+### Oct 7 stage-FX checkpoint
+
+- Added beat-reactive stage FX in `render.js`: tinted beat shockwave rings and kick wash, side combo-energy pillars, large in-canvas combo readout, and PERFECT/GOOD/MISS popups over the struck lane (`game.js` records `judge/judgeAt/judgeLane`). Fixed a real bug found by Chromium: during the audio lead-in the clock is negative, `colors[-1]` was undefined and `addColorStop` threw every frame; section index is now clamped.
+- Focused Jest 6/6. Chromium file:// run at 390x844, 1440x900, 844x390: no page errors. I read the 390 and 1440 PNGs; my test keypresses were untimed so only miss/idle state and the pillars were seen, not the combo/judge popups in action. Portrait still leaves the 4:3 board small with empty space above and below (known debt). No critic run tonight; prior FAIL verdicts (visual, UI, audio) stand. AAA not claimed.
+- Next run first: capture a timed-hit screenshot to verify combo/judge popups, fix portrait composition (taller canvas or vertical-oriented board), then run independent side-by-side critics. Forced release is Saturday Oct 17 (age 13).

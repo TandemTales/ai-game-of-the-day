@@ -7,7 +7,7 @@
     comboEl = document.getElementById('combo'), sectionEl = document.getElementById('section'),
     feedback = document.getElementById('feedback');
   var run = L.newRun(), state = { mode: 'title', started: 0,
-    flashUntil: 0, flashLane: 0, submitted: false };
+    flashUntil: 0, flashLane: 0, judge: '', judgeAt: -9, judgeLane: -1, submitted: false };
   function now() { return (performance.now() - state.started) / 1000; }
   function updateHud(time) {
     scoreEl.textContent = run.score.toLocaleString(); comboEl.textContent = run.combo;
@@ -32,6 +32,7 @@
     if (result) {
       A.hit(lane, result === 'PERFECT', Math.round(time / L.BEAT));
       state.flashLane = lane; state.flashUntil = time + .22;
+      state.judge = result; state.judgeAt = time; state.judgeLane = lane;
       updateHud(time);
     }
   }
@@ -74,7 +75,7 @@
       A.schedule(time, L.BEAT);
       var missesBefore = run.misses;
       L.advance(run, time);
-      if (run.misses > missesBefore) A.miss();
+      if (run.misses > missesBefore) { A.miss(); state.judge = 'MISS'; state.judgeAt = time; state.judgeLane = -1; }
       updateHud(time);
       if (run.ended) finish();
     }

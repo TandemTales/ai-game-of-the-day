@@ -157,11 +157,62 @@
     ctx.restore();
   }
 
+  function stageFx(ctx, beat, section, state, time, run) {
+    var f = beat - Math.floor(beat), kick = Math.pow(1 - f, 3);
+    var tint = colors[section];
+    // Beat shockwave rings radiating from the loom's heart.
+    ctx.save(); ctx.strokeStyle = tint; ctx.lineWidth = 2;
+    for (var k = 0; k < 3; k++) {
+      var age = (f + k) / 3;
+      ctx.globalAlpha = (1 - age) * (.10 + .10 * kick);
+      ctx.beginPath(); ctx.ellipse(400, 300, 120 + age * 380, 90 + age * 280, 0, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.globalAlpha = .05 + .07 * kick; ctx.fillStyle = tint;
+    ctx.fillRect(0, 0, 800, 600);
+    ctx.restore();
+    // Side pillars: combo energy meters that rise with the chain.
+    var energy = clamp(run.combo / 40, 0, 1);
+    [[30, -1], [770, 1]].forEach(function (p) {
+      var h = 70 + energy * 330;
+      var g = ctx.createLinearGradient(0, 553 - h, 0, 553);
+      g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, tint);
+      ctx.globalAlpha = .35 + .35 * kick * energy; ctx.fillStyle = g;
+      ctx.fillRect(p[0] - 14, 553 - h, 28, h);
+      ctx.globalAlpha = .6; ctx.fillStyle = '#fff4dc';
+      ctx.fillRect(p[0] - 14, 551, 28, 3);
+    });
+    ctx.globalAlpha = 1;
+    // Big combo readout.
+    if (run.combo > 1) {
+      var pop = clamp(1 - (time - state.judgeAt) / .18, 0, 1);
+      ctx.save(); ctx.textAlign = 'center';
+      ctx.font = '900 ' + (54 + pop * 14) + 'px Georgia, serif';
+      ctx.shadowColor = tint; ctx.shadowBlur = 20 + pop * 18;
+      ctx.fillStyle = '#fff4dc'; ctx.globalAlpha = .9;
+      ctx.fillText(String(run.combo), 400, 300);
+      ctx.shadowBlur = 0; ctx.font = '800 14px system-ui'; ctx.fillStyle = tint;
+      ctx.fillText('COMBO', 400, 322);
+      ctx.restore();
+    }
+    // Judgment popup above the struck lane.
+    var age2 = time - state.judgeAt;
+    if (state.judge && age2 >= 0 && age2 < .6) {
+      var a = 1 - age2 / .6, cx = state.judgeLane >= 0 ? center(state.judgeLane) : 400;
+      var col = state.judge === 'PERFECT' ? '#fff0b8' : state.judge === 'GOOD' ? '#8ee8e6' : '#ff7a8c';
+      ctx.save(); ctx.textAlign = 'center'; ctx.globalAlpha = a;
+      ctx.font = '900 ' + (state.judge === 'PERFECT' ? 30 : 24) + 'px system-ui';
+      ctx.shadowColor = col; ctx.shadowBlur = 18; ctx.fillStyle = col;
+      ctx.fillText(state.judge, cx, line - 70 - age2 * 70);
+      ctx.restore();
+    }
+  }
+
   R.draw = function (canvas, run, time, state) {
     var ctx = canvas.getContext('2d'), logic = global.PL.Logic;
-    var beat = time / logic.BEAT, section = Math.min(3, Math.floor(beat / 32));
+    var beat = time / logic.BEAT, section = clamp(Math.floor(beat / 32), 0, 3);
     ctx.setTransform(canvas.width / 800, 0, 0, canvas.height / 600, 0, 0);
-    backdrop(ctx, beat); loom(ctx, beat, section, state, time);
+    backdrop(ctx, beat); stageFx(ctx, beat, section, state, time, run);
+    loom(ctx, beat, section, state, time);
     beatGrid(ctx, beat, time, logic); notes(ctx, run, time);
     if (state.flashUntil > time) {
       var intensity = clamp((state.flashUntil - time) / .22, 0, 1);

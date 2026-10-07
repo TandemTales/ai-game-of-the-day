@@ -106,3 +106,7 @@
 - A browser fixture scored a note, reached the end screen, observed rank GET before top-20 submit POST, and restarted with score/hits reset; no page errors. This time-jump fixture does not prove a full natural chart run or human play.
 - Final independent audio critic after clock changes remains **AAA FAIL** (code review versus DJMax Respect): no speaker latency/mix measurement, no player offset calibration, possible short audio-context pause drift, and silent play if audio initialization fails. Visual and UI critic FAIL verdicts above remain unchanged. Do not mark `.aaa-complete` or promote `main`.
 - Start next polish run with a real audible/device sync and full-song input pass. Then improve portrait/gameplay visual hierarchy and rerun independent comparisons. Keep release timing literal: first Saturday October 10 is too early; second Saturday October 17 is forced wrap-up if active.
+
+## 2026-10-07 Pacific — nightly polish intent
+
+- Synced to `dev` (stale checkout fast-forwarded); STOP absent; game age 3 days, Wednesday, no release. Tonight: authored beat-reactive stage in `render.js` plus stronger hit/score feedback and portrait/landscape composition, then an independent side-by-side critic. Focused Jest after every change; AAA not claimed.

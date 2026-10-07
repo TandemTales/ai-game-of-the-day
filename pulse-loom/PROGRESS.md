@@ -1,5 +1,11 @@
 # Pulse Loom progress
 
+## 2026-10-06 Pacific — nightly polish intent
+
+- Synced `dev`; STOP absent. Tonight: check a complete real-time chart with input and audio behavior, then improve the weakest compact-screen presentation area and recheck the required viewports.
+- Prior visual, UI, and audio AAA verdicts remain FAIL. This is a polish night; October 10 is the first Saturday and is too early for forced release.
+- Push working checkpoints with focused tests and keep the final acceptance limits explicit.
+
 ## 2026-10-04 Pacific — scaffold night intent
 
 - Selected a rhythm score attack to add a new genre to the arcade. Inspiration:

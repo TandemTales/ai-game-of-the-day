@@ -22,6 +22,16 @@ test('chart is deterministic, ordered, finite, and rotates every eight bars', ()
   expect(L.laneFor(0, 96)).toBe(3);
 });
 
+test('movements build rhythmic density without simultaneous touch inputs', () => {
+  const L = logic(), notes = L.chart();
+  const counts = [0, 1, 2, 3].map(section => notes.filter(n =>
+    Math.floor(n.beat / 32) === section).length);
+  expect(counts).toEqual([14, 32, 32, 48]);
+  expect(notes[0].beat).toBe(4);
+  expect(notes.every((n, i) => i === 0 || n.beat - notes[i - 1].beat >= .5)).toBe(true);
+  expect(notes.some(n => n.beat % 1 === .5)).toBe(true);
+});
+
 test('timing judgment, miss, combo, and replay are coherent', () => {
   const L = logic(), run = L.newRun(), first = run.notes[0];
   expect(L.tap(run, first.lane, first.time)).toBe('PERFECT');

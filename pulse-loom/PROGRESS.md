@@ -6,6 +6,11 @@
 - Prior visual, UI, and audio AAA verdicts remain FAIL. This is a polish night; October 10 is the first Saturday and is too early for forced release.
 - Push working checkpoints with focused tests and keep the final acceptance limits explicit.
 
+### Oct 6 chart checkpoint
+
+- Authored four escalating bar rhythms: the opening teaches two notes per bar, then later movements add full beats and half-beat offbeats. The final movement has six inputs per bar, with no simultaneous touch chord. This raises the chart from a sparse first pass to 126 timed notes without changing the 128-beat song length.
+- Focused Jest 5/5, including movement counts, input spacing, deterministic reachability, and audio opening clock. Syntax and diff checks pass. Full real-time play remains to be observed.
+
 ## 2026-10-04 Pacific — scaffold night intent
 
 - Selected a rhythm score attack to add a new genre to the arcade. Inspiration:

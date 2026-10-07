@@ -12,10 +12,16 @@
     var notes = [];
     var patterns = [[0, 2, 1, 3, 0, 1, 2, 3], [0, 1, 3, 2, 1, 3, 0, 2],
       [2, 0, 3, 1, 2, 3, 1, 0], [3, 1, 0, 2, 3, 0, 1, 2]];
-    for (var beat = 4; beat < L.TOTAL_BEATS; beat++) {
-      var section = Math.floor(beat / 32);
-      if (beat % 2 === 0 || beat >= 64 && beat % 4 === 3 || beat >= 96 && beat % 4 === 1) {
-        var base = patterns[section][beat % 8];
+    // Each movement has an authored rhythm. The first leaves room to learn;
+    // later movements add offbeats while retaining at least half a beat
+    // between inputs so direct touch never needs a simultaneous chord.
+    var bars = [[0, 2], [0, 1, 2, 3], [0, 1.5, 2, 3],
+      [0, 0.5, 1.5, 2, 2.5, 3.5]];
+    for (var bar = 1; bar < L.TOTAL_BEATS / 4; bar++) {
+      var section = Math.floor(bar / 8), rhythm = bars[section];
+      for (var step = 0; step < rhythm.length; step++) {
+        var beat = bar * 4 + rhythm[step];
+        var base = patterns[section][(bar * 2 + step) % 8];
         notes.push({ beat: beat, time: beat * L.BEAT, base: base,
           lane: L.laneFor(base, beat), status: 0 });
       }

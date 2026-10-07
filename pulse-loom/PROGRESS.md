@@ -16,6 +16,11 @@
 - Audio now reports `ready`, `blocked`, or `unavailable` rather than silently presenting a broken soundtrack. The HUD tells the player when sound is paused or unavailable; a lane gesture retries a blocked context. Recovery skips elapsed beats and resumes the remaining song after browser suspension.
 - Focused Jest 6/6, including unavailable-context behavior, plus audio/game syntax and diff checks pass. Real speaker output, device latency, and listening quality remain unverified.
 
+### Oct 6 compact UI checkpoint
+
+- Phone HUD now emphasizes score and frames the lane board; 844×390 landscape keeps keyboard/tap instructions visible. Six viewport Chromium captures passed with no page errors, external requests, or horizontal overflow. Lead inspected all six PNGs.
+- Portrait 390×844 still gives the 4:3 board too little vertical presence; 844×390 board and HUD remain small. The layout is clearer but remains below the AAA reference bar pending independent side-by-side review.
+
 ## 2026-10-04 Pacific — scaffold night intent
 
 - Selected a rhythm score attack to add a new genre to the arcade. Inspiration:

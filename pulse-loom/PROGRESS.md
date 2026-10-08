@@ -145,3 +145,8 @@
 
 - Responded to the critic with a procedural central flywheel, crossing warp threads and colored bobbins in both towers; judgment text and hit burst are larger. I opened all six new live-state PNGs plus natural-clock phone touch and desktop keyboard hits. Both hits scored PERFECT/100 and showed the larger impact without canvas clipping. A separate two-key desktop capture showed a visible combo-2 card.
 - Focused Jest 6/6, syntax and diff checks pass. The six-size browser sweep found no page errors, external requests, or horizontal overflow. A 320x568 vertical overflow and desktop footer fit were handed to the UI owner for correction. Independent critic re-review of this second visual pass is pending.
+
+### Oct 8 second UI checkpoint
+
+- Enlarged score/combo hierarchy, unified the 844x390 title/board/stats deck, and improved compact footer labels. Fixed a 1440x900 clipped footer by reserving enough vertical chrome; fixed the 320x568 10px vertical overflow with a small short-phone canvas/gap reduction.
+- Final Chromium six-size sweep: zero page errors, external requests, horizontal overflow, or vertical overflow; each footer bottom is inside its viewport. I opened the 320x568 and 1440x900 final PNGs after the fit fix. Natural-clock portrait touch and desktop keyboard each scored PERFECT/100 with visible impact. Independent second-pass AAA critic verdict remains pending. Audio listening, device latency, real-device touch, human play, and 4K GPU performance remain open.

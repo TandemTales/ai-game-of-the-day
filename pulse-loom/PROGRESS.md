@@ -120,3 +120,8 @@
 ## 2026-10-08 Pacific — nightly polish intent
 
 - Synced to `dev`; STOP absent; game age 4 days, Thursday, no release. Tonight: fix portrait composition (board fills phone height), capture a timed-hit screenshot to verify combo/judge popups, run focused tests. Critics remain FAIL from prior nights unless re-run; AAA not claimed.
+
+### Oct 8 portrait composition checkpoint
+
+- Portrait (<=580px) now uses a 3:4 canvas (800x1066 backing) with a zoomed view (`Render.view`) and a vertically extended board/lane path (`X` offset in `render.js`), so notes are larger and more are visible; pointer mapping uses the same view. Landscape/desktop unchanged. Focused Jest 6/6; Chromium file:// at 390x844, 1440x900, 844x390: no page errors or horizontal overflow. I read the 390 and 1440 PNGs: timed-ish keypresses scored GOOD/PERFECT with combo and HUD updating (popups visible in the footer feedback; in-canvas popup not captured mid-flash).
+- Still open: ~100px of stage padding remains above/below the portrait canvas; 320x568, 768x1024, 3840x2160 not re-swept tonight; no critic re-run (prior visual/UI/audio FAIL verdicts stand); AAA not claimed. Forced release Saturday Oct 17 (age 13).

@@ -3,7 +3,7 @@
   var R = (global.PL = global.PL || {}).Render = {};
   var colors = ['#ffca75', '#ff7698', '#74e2df', '#b9a8ff'];
   var keys = ['D', 'F', 'J', 'K'];
-  var left = 104, laneW = 148, top = 91, line = 506;
+  var left = 104, laneW = 148, top = 91, line = 506, X = 0;
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
   function ease(v) { return v * v * (3 - 2 * v); }
   function center(i) { return left + (i + .5) * laneW; }
@@ -12,12 +12,12 @@
   function backdrop(ctx, beat) {
     var bg = ctx.createLinearGradient(0, 0, 800, 600);
     bg.addColorStop(0, '#12142b'); bg.addColorStop(.52, '#101b2e'); bg.addColorStop(1, '#090f20');
-    ctx.fillStyle = bg; ctx.fillRect(0, 0, 800, 600);
+    ctx.fillStyle = bg; ctx.fillRect(-800, -1000, 2400, 2600);
     var halo = ctx.createRadialGradient(400, 288, 12, 400, 288, 430);
     halo.addColorStop(0, 'rgba(91,78,157,.29)');
     halo.addColorStop(.65, 'rgba(42,74,105,.12)');
     halo.addColorStop(1, 'rgba(4,8,20,0)');
-    ctx.fillStyle = halo; ctx.fillRect(0, 0, 800, 600);
+    ctx.fillStyle = halo; ctx.fillRect(-800, -1000, 2400, 2600);
     for (var i = 0; i < 48; i++) {
       var x = (i * 181 + 57) % 800, y = (i * 127 + 29) % 600;
       ctx.fillStyle = 'rgba(213,226,255,' + (.10 + .12 * (1 + Math.sin(beat * .8 + i)) / 2) + ')';
@@ -30,13 +30,13 @@
   }
 
   function loom(ctx, beat, section, state, time) {
-    var board = ctx.createLinearGradient(0, top, 0, 553);
+    var board = ctx.createLinearGradient(0, top, 0, 553 + X);
     board.addColorStop(0, 'rgba(7,13,29,.76)'); board.addColorStop(1, 'rgba(10,18,39,.94)');
     ctx.shadowColor = '#050816'; ctx.shadowBlur = 30;
-    ctx.fillStyle = board; ctx.beginPath(); ctx.roundRect(left - 13, top - 14, laneW * 4 + 26, 479, 18); ctx.fill();
+    ctx.fillStyle = board; ctx.beginPath(); ctx.roundRect(left - 13, top - 14, laneW * 4 + 26, 479 + X, 18); ctx.fill();
     ctx.shadowBlur = 0;
     ctx.strokeStyle = 'rgba(172,184,232,.33)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.roundRect(left - 13, top - 14, laneW * 4 + 26, 479, 18); ctx.stroke();
+    ctx.beginPath(); ctx.roundRect(left - 13, top - 14, laneW * 4 + 26, 479 + X, 18); ctx.stroke();
     ctx.strokeStyle = 'rgba(189,200,247,.08)'; ctx.lineWidth = 1;
     for (var thread = 0; thread < 9; thread++) {
       var start = left - 13 + thread * 77;
@@ -63,7 +63,7 @@
       ctx.globalAlpha = 1;
       if (lane > 0) {
         ctx.strokeStyle = 'rgba(180,198,241,.16)'; ctx.beginPath();
-        ctx.moveTo(x, top); ctx.lineTo(x, 553); ctx.stroke();
+        ctx.moveTo(x, top); ctx.lineTo(x, 553 + X); ctx.stroke();
       }
       var pulse = .5 + .5 * Math.cos((beat - Math.floor(beat)) * Math.PI * 2);
       ctx.fillStyle = hue; ctx.globalAlpha = .23 + pulse * .09;
@@ -74,9 +74,9 @@
       ctx.strokeStyle = 'rgba(255,249,231,.56)'; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.arc(center(lane), line, 23, 0, Math.PI * 2); ctx.stroke();
       ctx.fillStyle = '#f8eddf'; ctx.font = '800 19px system-ui'; ctx.textAlign = 'center';
-      ctx.fillText(keys[lane], center(lane), 543);
+      ctx.fillText(keys[lane], center(lane), 543 + X);
       ctx.fillStyle = hue; ctx.globalAlpha = .65;
-      ctx.fillRect(center(lane) - 17, 550, 34, 2);
+      ctx.fillRect(center(lane) - 17, 550 + X, 34, 2);
       ctx.globalAlpha = 1;
     }
     ctx.shadowColor = '#ffe3a9'; ctx.shadowBlur = 17;
@@ -168,18 +168,18 @@
       ctx.beginPath(); ctx.ellipse(400, 300, 120 + age * 380, 90 + age * 280, 0, 0, Math.PI * 2); ctx.stroke();
     }
     ctx.globalAlpha = .05 + .07 * kick; ctx.fillStyle = tint;
-    ctx.fillRect(0, 0, 800, 600);
+    ctx.fillRect(-800, -1000, 2400, 2600);
     ctx.restore();
     // Side pillars: combo energy meters that rise with the chain.
     var energy = clamp(run.combo / 40, 0, 1);
     [[30, -1], [770, 1]].forEach(function (p) {
       var h = 70 + energy * 330;
-      var g = ctx.createLinearGradient(0, 553 - h, 0, 553);
+      var g = ctx.createLinearGradient(0, 553 + X - h, 0, 553 + X);
       g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, tint);
       ctx.globalAlpha = .35 + .35 * kick * energy; ctx.fillStyle = g;
-      ctx.fillRect(p[0] - 14, 553 - h, 28, h);
+      ctx.fillRect(p[0] - 14, 553 + X - h, 28, h);
       ctx.globalAlpha = .6; ctx.fillStyle = '#fff4dc';
-      ctx.fillRect(p[0] - 14, 551, 28, 3);
+      ctx.fillRect(p[0] - 14, 551 + X, 28, 3);
     });
     ctx.globalAlpha = 1;
     // Big combo readout.
@@ -207,10 +207,23 @@
     }
   }
 
+  // Landscape shows the full 800x600 stage; portrait zooms on the board and
+  // lets the backdrop fill the extra height.
+  R.view = function (canvas) {
+    if (canvas.height > canvas.width * 0.9) {
+      var s = canvas.width / 680, lh = canvas.height / s;
+      X = Math.max(0, lh - 600 - 40); line = 506 + X;
+      return { s: s, ox: -60, oy: 0 };
+    }
+    X = 0; line = 506;
+    return { s: canvas.width / 800, ox: 0, oy: (canvas.height / (canvas.width / 800) - 600) / 2 };
+  };
+
   R.draw = function (canvas, run, time, state) {
     var ctx = canvas.getContext('2d'), logic = global.PL.Logic;
     var beat = time / logic.BEAT, section = clamp(Math.floor(beat / 32), 0, 3);
-    ctx.setTransform(canvas.width / 800, 0, 0, canvas.height / 600, 0, 0);
+    var v = R.view(canvas);
+    ctx.setTransform(v.s, 0, 0, v.s, v.ox * v.s, v.oy * v.s);
     backdrop(ctx, beat); stageFx(ctx, beat, section, state, time, run);
     loom(ctx, beat, section, state, time);
     beatGrid(ctx, beat, time, logic); notes(ctx, run, time);

@@ -41,10 +41,17 @@
     if (lane !== undefined) { e.preventDefault(); if (!e.repeat) hit(lane); }
     else if (e.key === 'Enter' && state.mode !== 'playing') play();
   });
+  function fit() {
+    var portrait = global.matchMedia && global.matchMedia('(max-width: 580px)').matches;
+    var h = portrait ? 1066 : 600;
+    if (canvas.height !== h) canvas.height = h;
+  }
+  fit(); global.addEventListener('resize', fit);
   canvas.addEventListener('pointerdown', function (e) {
     e.preventDefault();
     var rect = canvas.getBoundingClientRect();
-    var x = (e.clientX - rect.left) / rect.width * 800;
+    var v = PL.Render.view(canvas);
+    var x = (e.clientX - rect.left) / rect.width * canvas.width / v.s - v.ox;
     if (x >= 104 && x < 696) hit(Math.floor((x - 104) / 148));
   });
   async function submit() {

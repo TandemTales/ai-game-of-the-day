@@ -43,7 +43,7 @@
   });
   function fit() {
     var portrait = global.matchMedia && global.matchMedia('(max-width: 580px)').matches;
-    var h = portrait ? 1066 : 600;
+    var h = portrait ? 1300 : 600;
     if (canvas.height !== h) canvas.height = h;
   }
   fit(); global.addEventListener('resize', fit);

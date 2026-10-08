@@ -37,30 +37,41 @@ footer p { margin: 0; }
   header { gap: 8px; }
   header h1 { font-size: 1.25rem; }
   header a { font-size: .7rem; }
-  .metrics { gap: 0; padding: 8px 2px; }
+  .metrics { gap: 0; padding: 7px 2px; }
   .metrics div:first-child { flex: 1.35; }
-  .metrics span { font-size: .59rem; letter-spacing: .12em; }
-  .metrics strong { font-size: 1.1rem; }
-  .metrics div:first-child strong { font-size: 1.55rem; }
+  .metrics span { font-size: .65rem; letter-spacing: .1em; }
+  .metrics strong { font-size: 1.18rem; }
+  .metrics div:first-child strong { font-size: 1.6rem; }
   .stage { border-radius: 18px; background: radial-gradient(ellipse 75% 30% at 50% 48%, #50305977, transparent 85%), repeating-linear-gradient(90deg, transparent 0 calc(25% - 1px), #e2b6e316 calc(25% - 1px) 25%), linear-gradient(#12182a, #15182b 55%, #101b2b); }
   .stage::before { inset: 3% 4%; background: linear-gradient(90deg, transparent 0 12.4%, #f5bd6538 12.5%, transparent 12.6% 37.4%, #ee649a38 37.5%, transparent 37.6% 62.4%, #76d6da38 62.5%, transparent 62.6% 87.4%, #a58af138 87.5%, transparent 87.6%); }
-  .stage::after { content: "TAP THE LANES  ·  FOLLOW THE PULSE"; inset: auto 12px 22px; width: auto; aspect-ratio: auto; border: 0; border-top: 1px solid #f5bd6555; border-radius: 0; padding-top: 10px; box-shadow: none; color: #f5bd65; font-size: .62rem; font-weight: 800; letter-spacing: .12em; text-align: center; }
-  canvas { width: 100%; max-height: none; aspect-ratio: 3 / 4; }
-  footer { flex-wrap: wrap; gap: 5px 12px; font-size: .7rem; }
+  .stage::after { display: none; }
+  canvas { width: min(100%, calc((100svh - 150px) * 8 / 13)); max-height: calc(100svh - 150px); aspect-ratio: 8 / 13; }
+  footer { flex-wrap: wrap; gap: 5px 12px; font-size: .75rem; }
   footer p:first-child { flex-basis: 100%; text-align: center; }
   #feedback { letter-spacing: .04em; }
 }
+@media (max-width: 580px) and (max-height: 650px) {
+  canvas { width: min(100%, calc((100svh - 178px) * 8 / 13)); max-height: calc(100svh - 178px); }
+  .panel { padding: 18px; }
+  .panel h2 { font-size: 1.8rem; }
+  .panel p { font-size: .88rem; line-height: 1.35; }
+}
 @media (max-height: 440px) {
-  .shell { gap: 4px; padding: 4px 10px; }
+  .shell { width: 100%; height: 100svh; min-height: 0; padding: 4px 10px; gap: 4px; display: grid; grid-template-columns: clamp(115px, 17vw, 160px) minmax(0, 1fr) clamp(135px, 19vw, 170px); grid-template-rows: minmax(0, 1fr) auto; }
+  header { grid-column: 1; grid-row: 1; align-self: start; flex-direction: column; align-items: flex-start; gap: 10px; padding: 8px 2px; }
   header .eyebrow { display: none; }
-  header h1 { font-size: 1rem; }
-  .metrics { padding: 2px; }
-  .metrics span { font-size: .55rem; }
-  .metrics strong, .metrics div:first-child strong { font-size: .9rem; }
-  .stage { border: 0; background: none; box-shadow: none; }
+  header h1 { font-size: clamp(1.05rem, 2vw, 1.4rem); line-height: 1.1; }
+  header a { white-space: normal; font-size: .72rem; line-height: 1.2; }
+  .metrics { grid-column: 3; grid-row: 1; align-self: center; flex-direction: column; padding: 7px 5px; gap: 0; }
+  .metrics div { width: 100%; flex: none; padding: 5px 0; }
+  .metrics div + div { border-left: 0; border-top: 1px solid #e7caa52b; }
+  .metrics span { font-size: .6rem; letter-spacing: .1em; }
+  .metrics strong { font-size: 1.15rem; line-height: 1.1; }
+  .metrics div:first-child strong { font-size: 1.45rem; }
+  .stage { grid-column: 2; grid-row: 1; min-width: 0; border-radius: 14px; }
   .stage::before, .stage::after { display: none; }
-  canvas { width: auto; height: min(calc(100svh - 118px), calc((100vw - 20px) * .75)); max-height: none; }
-  footer { display: flex; flex-wrap: nowrap; gap: 8px; font-size: .67rem; line-height: 1.1; }
+  canvas { width: auto; height: 100%; max-width: 100%; max-height: 100%; aspect-ratio: 4 / 3; }
+  footer { grid-column: 1 / -1; grid-row: 2; display: flex; flex-wrap: nowrap; gap: 8px; font-size: .7rem; line-height: 1.1; min-height: 20px; }
   footer p:first-child { flex-basis: auto; text-align: left; }
   footer #feedback { text-align: center; }
   footer a { white-space: nowrap; }

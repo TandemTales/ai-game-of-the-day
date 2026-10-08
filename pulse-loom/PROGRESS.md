@@ -135,3 +135,8 @@
 
 - Added suspended loom side rails and overhead arches that react to the beat, and moved judgment/combo rendering above the board so feedback is visible. A real Chromium keyboard hit and portrait touch hit each scored PERFECT/100; I inspected both PNGs and saw the PERFECT text and lane shock arc without clipping. The combo card above a chain of one has not yet been captured.
 - Focused Jest 6/6, syntax and diff checks pass. The integrated six-size sweep reported zero page errors, external requests, or horizontal overflow. Independent final critic verdict remains pending; visual AAA is not claimed.
+
+### Oct 8 compact UI checkpoint
+
+- Changed portrait canvas to 800x1300 at an 8:13 display ratio, enlarged compact HUD labels, and placed the short-landscape board between title and stacked metrics. The 390x844 canvas now fills most available height; the 844x390 board is about 510x383 rather than 363x272. All six integrated PNGs were opened; 320px footer remains tight but visible, 768px tablet retains spare stage height.
+- Browser sweep remained console-clean with no external requests or horizontal overflow. Portrait native touchscreen and desktop keyboard first-note hits each scored PERFECT/100 and displayed the on-board judgment. Focused Jest 6/6, JS syntax and diff checks pass. The critic still says **AAA VISUAL FAIL / UI FAIL, OURS LOSES** against Square Enix's Theatrhythm Final Bar Line: static dark framing, small score/chain hierarchy, and thin authored world. Audio AAA is still unaccepted.

@@ -47,6 +47,15 @@
         ctx.beginPath(); ctx.arc(inner, sy, 4, 0, Math.PI * 2); ctx.fill();
         ctx.globalAlpha = 1;
       }
+      for (var bobbin = 0; bobbin < 4; bobbin++) {
+        var by = 175 + bobbin * (119 + X / 6), bx = side ? 755 : 45;
+        ctx.shadowColor = colors[bobbin]; ctx.shadowBlur = 16 + beatLight * 17;
+        ctx.fillStyle = '#091124'; ctx.strokeStyle = colors[bobbin];
+        ctx.globalAlpha = .72; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(bx, by, 23, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.arc(bx, by, 10 + beatLight * 3, 0, Math.PI * 2); ctx.stroke();
+        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+      }
     }
     ctx.strokeStyle = 'rgba(255,230,189,' + (.13 + beatLight * .12) + ')';
     ctx.lineWidth = 2;
@@ -59,6 +68,51 @@
     ctx.restore();
   }
 
+  function loomWorld(ctx, beat, section) {
+    var cy = 290 + X * .49, phase = beat * .13;
+    ctx.save();
+    // A flywheel and four colored warp threads form the machinery behind the notes.
+    var well = ctx.createRadialGradient(400, cy, 6, 400, cy, 245);
+    well.addColorStop(0, 'rgba(122,109,172,.24)');
+    well.addColorStop(.52, 'rgba(66,86,132,.12)');
+    well.addColorStop(1, 'rgba(14,22,42,0)');
+    ctx.fillStyle = well; ctx.fillRect(112, cy - 260, 576, 520);
+    ctx.translate(400, cy); ctx.rotate(phase);
+    for (var ring = 0; ring < 3; ring++) {
+      ctx.strokeStyle = ring === 0 ? 'rgba(246,217,171,.26)' : 'rgba(156,190,220,.16)';
+      ctx.lineWidth = ring === 0 ? 7 : 2;
+      ctx.beginPath(); ctx.arc(0, 0, 72 + ring * 43, 0, Math.PI * 2); ctx.stroke();
+    }
+    for (var tooth = 0; tooth < 16; tooth++) {
+      var angle = tooth * Math.PI / 8;
+      ctx.strokeStyle = colors[(tooth + section) % 4];
+      ctx.globalAlpha = .25 + .16 * Math.pow(1 - (beat - Math.floor(beat)), 4);
+      ctx.lineWidth = tooth % 4 === 0 ? 5 : 2;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(angle) * 155, Math.sin(angle) * 155);
+      ctx.lineTo(Math.cos(angle) * 177, Math.sin(angle) * 177);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1; ctx.rotate(-phase);
+    for (var strandIndex = 0; strandIndex < 4; strandIndex++) {
+      var color = colors[strandIndex], end = center((strandIndex + section) % 4) - 400;
+      ctx.strokeStyle = color; ctx.globalAlpha = .20; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(end, top - cy);
+      ctx.bezierCurveTo(end * .55, -100, end * -.3, 70, end, line - cy);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.shadowColor = colors[section]; ctx.shadowBlur = 25;
+    ctx.fillStyle = '#17243a'; ctx.strokeStyle = 'rgba(255,226,182,.55)'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, -33); ctx.lineTo(33, 0); ctx.lineTo(0, 33); ctx.lineTo(-33, 0);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = colors[section]; ctx.globalAlpha = .57;
+    ctx.beginPath(); ctx.arc(0, 0, 10 + 3 * Math.cos(beat * Math.PI * 2), 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
   function loom(ctx, beat, section, state, time) {
     var board = ctx.createLinearGradient(0, top, 0, 553 + X);
     board.addColorStop(0, 'rgba(7,13,29,.76)'); board.addColorStop(1, 'rgba(10,18,39,.94)');
@@ -67,6 +121,7 @@
     ctx.shadowBlur = 0;
     ctx.strokeStyle = 'rgba(172,184,232,.33)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.roundRect(left - 13, top - 14, laneW * 4 + 26, 479 + X, 18); ctx.stroke();
+    loomWorld(ctx, beat, section);
     ctx.strokeStyle = 'rgba(189,200,247,.08)'; ctx.lineWidth = 1;
     for (var thread = 0; thread < 9; thread++) {
       var start = left - 13 + thread * 77;
@@ -222,7 +277,7 @@
       var a = 1 - age2 / .6, cx = state.judgeLane >= 0 ? center(state.judgeLane) : 400;
       var col = state.judge === 'PERFECT' ? '#fff0b8' : state.judge === 'GOOD' ? '#8ee8e6' : '#ff7a8c';
       ctx.save(); ctx.textAlign = 'center'; ctx.globalAlpha = a;
-      ctx.font = '900 ' + (state.judge === 'PERFECT' ? 30 : 24) + 'px system-ui';
+      ctx.font = '900 ' + (state.judge === 'PERFECT' ? 40 : 29) + 'px system-ui';
       ctx.shadowColor = '#050817'; ctx.shadowBlur = 12; ctx.lineWidth = 5;
       ctx.strokeStyle = '#101626';
       ctx.strokeText(state.judge, cx, line - 86 - age2 * 72);
@@ -273,6 +328,24 @@
       var travel = 1 - intensity, x = center(state.flashLane);
       var hue = strand(state.flashLane, section);
       ctx.save();
+      var burst = ctx.createRadialGradient(x, line, 5, x, line, 116);
+      burst.addColorStop(0, 'rgba(255,248,224,.7)');
+      burst.addColorStop(.27, hue);
+      burst.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.globalAlpha = intensity * .28; ctx.fillStyle = burst;
+      ctx.fillRect(x - 116, line - 116, 232, 232);
+      ctx.strokeStyle = hue; ctx.shadowColor = hue; ctx.shadowBlur = 20;
+      ctx.globalAlpha = intensity * .5; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(left, line - 1); ctx.lineTo(left + 4 * laneW, line - 1); ctx.stroke();
+      for (var ray = 0; ray < 12; ray++) {
+        var angle = Math.PI * (ray / 6 + .1), near = 46 + travel * 13, far = near + 25 + travel * 31;
+        ctx.globalAlpha = intensity * (ray % 3 === 0 ? .8 : .42);
+        ctx.lineWidth = ray % 3 === 0 ? 4 : 2;
+        ctx.beginPath();
+        ctx.moveTo(x + Math.cos(angle) * near, line + Math.sin(angle) * near);
+        ctx.lineTo(x + Math.cos(angle) * far, line + Math.sin(angle) * far);
+        ctx.stroke();
+      }
       ctx.strokeStyle = hue; ctx.shadowColor = hue; ctx.shadowBlur = 19;
       ctx.globalAlpha = intensity * .85; ctx.lineWidth = 4;
       ctx.beginPath(); ctx.arc(x, line, 32 + travel * 53, Math.PI * 1.05, Math.PI * 1.95); ctx.stroke();

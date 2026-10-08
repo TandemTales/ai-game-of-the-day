@@ -140,3 +140,8 @@
 
 - Changed portrait canvas to 800x1300 at an 8:13 display ratio, enlarged compact HUD labels, and placed the short-landscape board between title and stacked metrics. The 390x844 canvas now fills most available height; the 844x390 board is about 510x383 rather than 363x272. All six integrated PNGs were opened; 320px footer remains tight but visible, 768px tablet retains spare stage height.
 - Browser sweep remained console-clean with no external requests or horizontal overflow. Portrait native touchscreen and desktop keyboard first-note hits each scored PERFECT/100 and displayed the on-board judgment. Focused Jest 6/6, JS syntax and diff checks pass. The critic still says **AAA VISUAL FAIL / UI FAIL, OURS LOSES** against Square Enix's Theatrhythm Final Bar Line: static dark framing, small score/chain hierarchy, and thin authored world. Audio AAA is still unaccepted.
+
+### Oct 8 second visual checkpoint
+
+- Responded to the critic with a procedural central flywheel, crossing warp threads and colored bobbins in both towers; judgment text and hit burst are larger. I opened all six new live-state PNGs plus natural-clock phone touch and desktop keyboard hits. Both hits scored PERFECT/100 and showed the larger impact without canvas clipping. A separate two-key desktop capture showed a visible combo-2 card.
+- Focused Jest 6/6, syntax and diff checks pass. The six-size browser sweep found no page errors, external requests, or horizontal overflow. A 320x568 vertical overflow and desktop footer fit were handed to the UI owner for correction. Independent critic re-review of this second visual pass is pending.

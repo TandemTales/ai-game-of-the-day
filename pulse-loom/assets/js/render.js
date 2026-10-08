@@ -4,10 +4,45 @@
   var colors = ['#ffca75', '#ff7698', '#74e2df', '#b9a8ff'];
   var keys = ['D', 'F', 'J', 'K'];
   var left = 104, laneW = 148, top = 91, line = 506, X = 0;
+  var chamber = null, chamberState = 0;
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
   function ease(v) { return v * v * (3 - 2 * v); }
   function center(i) { return left + (i + .5) * laneW; }
   function strand(i, section) { return colors[(i - section + 4) % 4]; }
+
+  function loadChamber() {
+    if (chamberState || typeof global.Image !== 'function') return;
+    chamberState = 1;
+    try {
+      chamber = new global.Image();
+      chamber.onload = function () {
+        chamberState = chamber.naturalWidth && chamber.naturalHeight ? 2 : -1;
+      };
+      chamber.onerror = function () { chamberState = -1; };
+      chamber.src = 'assets/art/loom-chamber.webp';
+    } catch (e) { chamberState = -1; }
+  }
+
+  function scenicLayer(ctx) {
+    loadChamber();
+    if (chamberState !== 2) return;
+    var scale = Math.min(800 / chamber.naturalWidth, (600 + X) / chamber.naturalHeight);
+    var w = chamber.naturalWidth * scale, h = chamber.naturalHeight * scale;
+    var x = (800 - w) / 2, y = (600 + X - h) / 2;
+    ctx.save(); ctx.globalAlpha = .77;
+    ctx.drawImage(chamber, x, y, w, h);
+    // The taller portrait view letterboxes the hall rather than stretching it.
+    // Soft edges merge the unused space into the procedural stage background.
+    if (X > 0) {
+      var upper = ctx.createLinearGradient(0, y - 4, 0, y + 80);
+      upper.addColorStop(0, '#10182a'); upper.addColorStop(1, 'rgba(16,24,42,0)');
+      ctx.globalAlpha = 1; ctx.fillStyle = upper; ctx.fillRect(0, y - 4, 800, 84);
+      var lower = ctx.createLinearGradient(0, y + h - 80, 0, y + h + 4);
+      lower.addColorStop(0, 'rgba(16,24,42,0)'); lower.addColorStop(1, '#10182a');
+      ctx.fillStyle = lower; ctx.fillRect(0, y + h - 80, 800, 84);
+    }
+    ctx.restore();
+  }
 
   function backdrop(ctx, beat) {
     var bg = ctx.createLinearGradient(0, 0, 800, 600);
@@ -18,6 +53,7 @@
     halo.addColorStop(.65, 'rgba(42,74,105,.12)');
     halo.addColorStop(1, 'rgba(4,8,20,0)');
     ctx.fillStyle = halo; ctx.fillRect(-800, -1000, 2400, 2600);
+    scenicLayer(ctx);
     for (var i = 0; i < 48; i++) {
       var x = (i * 181 + 57) % 800, y = (i * 127 + 29) % 600;
       ctx.fillStyle = 'rgba(213,226,255,' + (.10 + .12 * (1 + Math.sin(beat * .8 + i)) / 2) + ')';
@@ -33,9 +69,11 @@
       tower.addColorStop(0, '#080d1b');
       tower.addColorStop(.75, '#27314a');
       tower.addColorStop(1, '#090f21');
+      ctx.globalAlpha = chamberState === 2 ? .34 : 1;
       ctx.fillStyle = tower;
       ctx.beginPath(); ctx.moveTo(edge, -30); ctx.lineTo(inner, 67);
       ctx.lineTo(inner, 600 + X); ctx.lineTo(edge, 660 + X); ctx.closePath(); ctx.fill();
+      ctx.globalAlpha = 1;
       ctx.strokeStyle = 'rgba(236,206,170,' + (.23 + beatLight * .30) + ')';
       ctx.lineWidth = 3;
       ctx.beginPath(); ctx.moveTo(inner, 67); ctx.lineTo(inner, 600 + X); ctx.stroke();
@@ -115,7 +153,8 @@
 
   function loom(ctx, beat, section, state, time) {
     var board = ctx.createLinearGradient(0, top, 0, 553 + X);
-    board.addColorStop(0, 'rgba(7,13,29,.76)'); board.addColorStop(1, 'rgba(10,18,39,.94)');
+    board.addColorStop(0, chamberState === 2 ? 'rgba(7,13,29,.58)' : 'rgba(7,13,29,.76)');
+    board.addColorStop(1, chamberState === 2 ? 'rgba(10,18,39,.82)' : 'rgba(10,18,39,.94)');
     ctx.shadowColor = '#050816'; ctx.shadowBlur = 30;
     ctx.fillStyle = board; ctx.beginPath(); ctx.roundRect(left - 13, top - 14, laneW * 4 + 26, 479 + X, 18); ctx.fill();
     ctx.shadowBlur = 0;

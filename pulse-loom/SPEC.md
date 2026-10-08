@@ -6,9 +6,9 @@ Four-lane rhythm score attack. The player taps directly or uses D/F/J/K when
 notes cross the judgment line. Every 32 beats (eight bars at four beats each),
 the loom rotates one lane clockwise. The rotation is previewed for three beats.
 One authored 128-beat chart, deterministic judgment, procedural Web Audio, a
-numeric score, and a complete replay loop define the scaffold. All game art is
-drawn with Canvas/CSS and no runtime assets or fonts are fetched. Scripts are
-classic, load from `file://`, and share `window.PL`.
+numeric score, and a complete replay loop define the scaffold. Gameplay art is
+drawn with Canvas/CSS over one locally bundled scenic WebP; no remote assets or
+fonts are fetched. Scripts are classic, load from `file://`, and share `window.PL`.
 
 ## File ownership for polish nights
 

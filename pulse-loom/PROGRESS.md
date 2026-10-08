@@ -150,3 +150,8 @@
 
 - Enlarged score/combo hierarchy, unified the 844x390 title/board/stats deck, and improved compact footer labels. Fixed a 1440x900 clipped footer by reserving enough vertical chrome; fixed the 320x568 10px vertical overflow with a small short-phone canvas/gap reduction.
 - Final Chromium six-size sweep: zero page errors, external requests, horizontal overflow, or vertical overflow; each footer bottom is inside its viewport. I opened the 320x568 and 1440x900 final PNGs after the fit fix. Natural-clock portrait touch and desktop keyboard each scored PERFECT/100 with visible impact. Independent second-pass AAA critic verdict remains pending. Audio listening, device latency, real-device touch, human play, and 4K GPU performance remain open.
+
+### Oct 8 scenic-art checkpoint
+
+- Second independent side-by-side critic still judged **VISUAL FAIL / UI FAIL, OURS LOSES** against Theatrhythm. A local 229 KB generated scenic WebP now adds a light-weaving hall behind the procedural board; the renderer loads it lazily, preserves aspect ratio, and falls back to the procedural scene if loading fails. The bundled path is `assets/art/loom-chamber.webp`; no remote asset request is needed.
+- I inspected all six art-integrated viewport PNGs and natural-clock touch/keyboard hit PNGs. The hall is strongest on desktop, subtle on portrait, and the notes and judgment remain readable. The six-size sweep passed with no console errors, external requests, or horizontal/vertical overflow. Both natural-clock first hits scored PERFECT/100; `file://` startup and focused Jest 6/6 passed. A fresh independent comparison of this scenic pass is still pending. Real speaker listening, latency calibration, human play, hardware touch, and 4K GPU performance remain open.

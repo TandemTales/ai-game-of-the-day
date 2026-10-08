@@ -130,3 +130,8 @@
 
 - Synced `dev` to `e548fcc`; STOP absent. This run will verify the new portrait board and timed judgment visuals at all six required sizes, then target the strongest remaining UI or visual weakness.
 - Prior independent visual, UI, and audio verdicts remain **AAA FAIL / OURS LOSES**. October 8 is not a release night; the first Saturday is still too early.
+
+### Oct 8 visual checkpoint
+
+- Added suspended loom side rails and overhead arches that react to the beat, and moved judgment/combo rendering above the board so feedback is visible. A real Chromium keyboard hit and portrait touch hit each scored PERFECT/100; I inspected both PNGs and saw the PERFECT text and lane shock arc without clipping. The combo card above a chain of one has not yet been captured.
+- Focused Jest 6/6, syntax and diff checks pass. The integrated six-size sweep reported zero page errors, external requests, or horizontal overflow. Independent final critic verdict remains pending; visual AAA is not claimed.

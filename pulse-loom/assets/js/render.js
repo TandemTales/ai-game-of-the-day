@@ -23,10 +23,40 @@
       ctx.fillStyle = 'rgba(213,226,255,' + (.10 + .12 * (1 + Math.sin(beat * .8 + i)) / 2) + ')';
       ctx.fillRect(x, y, i % 7 === 0 ? 2 : 1, i % 7 === 0 ? 2 : 1);
     }
-    ctx.strokeStyle = 'rgba(164,174,228,.06)'; ctx.lineWidth = 1;
-    for (var r = 0; r < 5; r++) {
-      ctx.beginPath(); ctx.ellipse(400, 320, 290 + r * 40, 175 + r * 30, 0, 0, Math.PI * 2); ctx.stroke();
+    // The four suspended looms extend behind the playfield. Keeping their
+    // strongest edges outside the lanes gives the stage depth without hiding notes.
+    var beatLight = Math.pow(1 - (beat - Math.floor(beat)), 4);
+    ctx.save();
+    for (var side = 0; side < 2; side++) {
+      var edge = side ? 800 : 0, inner = side ? 704 : 96;
+      var tower = ctx.createLinearGradient(edge, 0, inner, 0);
+      tower.addColorStop(0, '#080d1b');
+      tower.addColorStop(.75, '#27314a');
+      tower.addColorStop(1, '#090f21');
+      ctx.fillStyle = tower;
+      ctx.beginPath(); ctx.moveTo(edge, -30); ctx.lineTo(inner, 67);
+      ctx.lineTo(inner, 600 + X); ctx.lineTo(edge, 660 + X); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(236,206,170,' + (.23 + beatLight * .30) + ')';
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(inner, 67); ctx.lineTo(inner, 600 + X); ctx.stroke();
+      for (var spoke = 0; spoke < 8; spoke++) {
+        var sy = 91 + spoke * (68 + X / 10);
+        ctx.strokeStyle = 'rgba(183,185,222,.14)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(edge, sy - 25); ctx.lineTo(inner, sy); ctx.stroke();
+        ctx.fillStyle = colors[spoke % 4]; ctx.globalAlpha = .13 + beatLight * .12;
+        ctx.beginPath(); ctx.arc(inner, sy, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+      }
     }
+    ctx.strokeStyle = 'rgba(255,230,189,' + (.13 + beatLight * .12) + ')';
+    ctx.lineWidth = 2;
+    for (var arch = 0; arch < 3; arch++) {
+      ctx.beginPath();
+      ctx.moveTo(98 + arch * 13, 112 + arch * 45);
+      ctx.quadraticCurveTo(400, -93 + arch * 35, 702 - arch * 13, 112 + arch * 45);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   function loom(ctx, beat, section, state, time) {
@@ -182,27 +212,38 @@
       ctx.fillRect(p[0] - 14, 551 + X, 28, 3);
     });
     ctx.globalAlpha = 1;
-    // Big combo readout.
-    if (run.combo > 1) {
-      var pop = clamp(1 - (time - state.judgeAt) / .18, 0, 1);
-      ctx.save(); ctx.textAlign = 'center';
-      ctx.font = '900 ' + (54 + pop * 14) + 'px Georgia, serif';
-      ctx.shadowColor = tint; ctx.shadowBlur = 20 + pop * 18;
-      ctx.fillStyle = '#fff4dc'; ctx.globalAlpha = .9;
-      ctx.fillText(String(run.combo), 400, 300);
-      ctx.shadowBlur = 0; ctx.font = '800 14px system-ui'; ctx.fillStyle = tint;
-      ctx.fillText('COMBO', 400, 322);
-      ctx.restore();
-    }
-    // Judgment popup above the struck lane.
+  }
+
+  function feedbackFx(ctx, section, state, time, run) {
+    // Draw above notes and the board: the former pre-board pass hid these cues.
+    var tint = colors[section];
     var age2 = time - state.judgeAt;
     if (state.judge && age2 >= 0 && age2 < .6) {
       var a = 1 - age2 / .6, cx = state.judgeLane >= 0 ? center(state.judgeLane) : 400;
       var col = state.judge === 'PERFECT' ? '#fff0b8' : state.judge === 'GOOD' ? '#8ee8e6' : '#ff7a8c';
       ctx.save(); ctx.textAlign = 'center'; ctx.globalAlpha = a;
       ctx.font = '900 ' + (state.judge === 'PERFECT' ? 30 : 24) + 'px system-ui';
-      ctx.shadowColor = col; ctx.shadowBlur = 18; ctx.fillStyle = col;
-      ctx.fillText(state.judge, cx, line - 70 - age2 * 70);
+      ctx.shadowColor = '#050817'; ctx.shadowBlur = 12; ctx.lineWidth = 5;
+      ctx.strokeStyle = '#101626';
+      ctx.strokeText(state.judge, cx, line - 86 - age2 * 72);
+      ctx.shadowColor = col; ctx.shadowBlur = 20; ctx.fillStyle = col;
+      ctx.fillText(state.judge, cx, line - 86 - age2 * 72);
+      ctx.restore();
+    }
+    if (run.combo > 1 && state.judge !== 'MISS' && age2 >= 0 && age2 < .45) {
+      var impact = clamp(1 - age2 / .22, 0, 1);
+      var cy = line - 161;
+      ctx.save(); ctx.textAlign = 'center';
+      ctx.globalAlpha = clamp((.45 - age2) / .2, 0, 1);
+      ctx.fillStyle = 'rgba(8,13,29,.75)';
+      ctx.beginPath(); ctx.roundRect(329, cy - 63, 142, 83, 16); ctx.fill();
+      ctx.strokeStyle = tint; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.roundRect(329, cy - 63, 142, 83, 16); ctx.stroke();
+      ctx.font = '900 ' + (48 + impact * 12) + 'px Georgia, serif';
+      ctx.shadowColor = tint; ctx.shadowBlur = 14 + impact * 17;
+      ctx.fillStyle = '#fff4dc'; ctx.fillText(String(run.combo), 400, cy - 14);
+      ctx.shadowBlur = 0; ctx.font = '800 13px system-ui'; ctx.fillStyle = tint;
+      ctx.fillText('COMBO', 400, cy + 6);
       ctx.restore();
     }
   }
@@ -249,6 +290,7 @@
       ctx.beginPath(); ctx.arc(x, line, 7 + travel * 4, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
+    feedbackFx(ctx, section, state, time, run);
     rotation(ctx, beat);
   };
 })(typeof window !== 'undefined' ? window : this);

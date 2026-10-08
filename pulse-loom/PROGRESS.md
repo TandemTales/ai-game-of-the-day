@@ -125,3 +125,8 @@
 
 - Portrait (<=580px) now uses a 3:4 canvas (800x1066 backing) with a zoomed view (`Render.view`) and a vertically extended board/lane path (`X` offset in `render.js`), so notes are larger and more are visible; pointer mapping uses the same view. Landscape/desktop unchanged. Focused Jest 6/6; Chromium file:// at 390x844, 1440x900, 844x390: no page errors or horizontal overflow. I read the 390 and 1440 PNGs: timed-ish keypresses scored GOOD/PERFECT with combo and HUD updating (popups visible in the footer feedback; in-canvas popup not captured mid-flash).
 - Still open: ~100px of stage padding remains above/below the portrait canvas; 320x568, 768x1024, 3840x2160 not re-swept tonight; no critic re-run (prior visual/UI/audio FAIL verdicts stand); AAA not claimed. Forced release Saturday Oct 17 (age 13).
+
+## 2026-10-08 Pacific — 06:31 continuation intent
+
+- Synced `dev` to `e548fcc`; STOP absent. This run will verify the new portrait board and timed judgment visuals at all six required sizes, then target the strongest remaining UI or visual weakness.
+- Prior independent visual, UI, and audio verdicts remain **AAA FAIL / OURS LOSES**. October 8 is not a release night; the first Saturday is still too early.

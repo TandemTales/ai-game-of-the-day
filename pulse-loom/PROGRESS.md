@@ -176,3 +176,8 @@
 
 - The local hall art now fills the taller portrait camera, with side curtains and a more translucent board where art has loaded. A struck lane lights along both edges, and judged hits show their awarded points. The procedural fallback remains when the bundled image cannot load.
 - Focused Jest 6/6, JS syntax, diff checks, and integrated Chromium live-state sweeps pass; I opened narrow-phone, portrait, landscape, and desktop captures. An independent critic captured score 200/combo 2 and compared desktop/phone frames with an official Square Enix Theatrhythm reference: **visual AAA FAIL / ours loses; UI AAA FAIL / ours loses**. The hall is more visible, but there is no dominant active subject/light event, desktop margins are quiet, and score/chain still feel separate from play. The reference pixels were retained from a prior local comparison after a fresh CDN fetch failed. Audio AAA remains unaccepted without listening and device latency evidence.
+
+### Oct 9 second UI checkpoint
+
+- The desktop stage now carries the locally bundled hall art into its side margins under dark gradients, and the wide shell gives those wings more room at 4K. Narrow phone and short landscape keep their existing compact layouts.
+- UI owner ran normal and unavailable-audio sweeps at all six viewports with no browser errors, external requests, or overflow. I opened desktop, portrait, and downscaled 4K captures; the wide black margins are now scenic, while the board and HUD remain readable. Focused Jest 6/6 passes. Independent re-review of this pass is pending.

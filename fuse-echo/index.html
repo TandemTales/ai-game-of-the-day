@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17405200669"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'AW-17405200669');
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#05070f" />
+  <meta name="description" content="Fuse Echo — a grid-arena bomber where every blast comes back. Crack crates, outwit robot rivals and chain bombs into their echoes." />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Fuse Echo - Bot Built Arcade</title>
+  <link rel="icon" type="image/png" href="../images/botbuiltarcade-icon-face.png" />
+  <link rel="stylesheet" href="assets/css/game.css" />
+</head>
+<body>
+  <canvas id="fe-canvas" aria-label="Fuse Echo game board" role="img"></canvas>
+  <div id="fe-hud" hidden>
+    <a class="hud-back" href="../index.html" aria-label="Back to Arcade">&larr; Arcade</a>
+    <div class="hud-cell"><span class="lbl">SCORE</span><b id="hud-score">0</b></div>
+    <div class="hud-cell"><span class="lbl">ROUND</span><b id="hud-round">1</b></div>
+    <div class="hud-cell"><span class="lbl">LIVES</span><b id="hud-lives">3</b></div>
+    <div class="hud-cell hud-kit"><span class="lbl">KIT</span><b id="hud-kit">1&#128163; 2&#128293;</b></div>
+    <button id="btn-pause" class="hud-btn" aria-label="Pause">II</button>
+    <button id="btn-mute" class="hud-btn" aria-label="Toggle sound">&#128266;</button>
+  </div>
+  <div id="fe-banner" aria-live="polite"></div>
+  <div id="fe-touch" hidden>
+    <div id="fe-stick"><div id="fe-knob"></div></div>
+    <button id="fe-bomb" aria-label="Drop bomb"><span>BOMB</span></button>
+  </div>
+  <div id="fe-panel" class="panel" role="dialog" aria-live="polite"></div>
+  <noscript><p style="color:#fff;padding:24px">Fuse Echo needs JavaScript. <a href="../index.html" style="color:#7df0ff">Back to Arcade</a></p></noscript>
+  <script src="assets/js/logic.js"></script>
+  <script src="assets/js/render.js"></script>
+  <script src="assets/js/audio.js"></script>
+  <script src="assets/js/game.js"></script>
+</body>
+</html>

@@ -27,3 +27,7 @@ Use case: stylized-concept. Asset type: landscape game cover illustration for st
 ## zephyr-circuit.webp
 
 Use case: stylized-concept. Asset type: landscape game cover illustration for zephyr on Bot Built Arcade, a sleek contemporary arcade website. Two little retro racing karts drifting around a sweeping elevated road on floating sky islands, stylized pine trees, waterfalls plunging into clouds, beautiful peach golden-hour light, desaturated lilac shadows and sage grass, joyful sense of speed. Premium stylized low-poly 3D game key art with tactile materials and art-directed cinematic composition, beautifully simplified silhouettes, soft atmospheric depth. Sophisticated restrained colors, playful collectible diorama aesthetic. Landscape 1536x1024. No words, no typography, no logos, no UI, no watermarks. Concept illustration, not a gameplay screenshot.
+
+## fuse-echo.webp
+
+Placeholder cover for Fuse Echo: a staged in-engine capture (1536 × 1024, quality 85) of real gameplay with bombs, an echo ghost and pickups, not generated illustration. Replace with generated key art when an image generation tool is available.

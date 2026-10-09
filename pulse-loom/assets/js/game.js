@@ -13,6 +13,8 @@
     scoreEl.textContent = run.score.toLocaleString(); comboEl.textContent = run.combo;
     sectionEl.textContent = Math.max(1, Math.min(4, Math.floor(time / (32 * L.BEAT)) + 1)) + ' / 4';
     var audioStatus = A.status();
+    feedback.classList.toggle('audio-warning', state.mode === 'playing' &&
+      (audioStatus === 'blocked' || audioStatus === 'unavailable'));
     feedback.textContent = audioStatus === 'blocked' ? 'AUDIO PAUSED · TAP A LANE TO RETRY' :
       audioStatus === 'unavailable' && state.mode === 'playing' ? 'AUDIO UNAVAILABLE · PLAYING SILENTLY' :
         run.last || 'FOLLOW THE THREAD';

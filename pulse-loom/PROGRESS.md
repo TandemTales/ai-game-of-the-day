@@ -165,3 +165,8 @@
 ## 2026-10-09 Pacific — nightly polish intent
 
 - Synced `dev`; STOP absent. Friday Pacific, five days after the October 4 start, so this is a polish night and not a release. Tonight: improve one or two visible weaknesses in the live performance scene, verify the exact changes with focused tests and browser screenshots, and seek independent comparison where possible. Existing visual/UI/audio AAA FAIL verdicts stand until fresh evidence changes them.
+
+### Oct 9 performance HUD checkpoint
+
+- The score/combo/movement strip now sits at the top of the stage frame, with stronger compact helper text. Routine footer judgment stays available to screen readers while visible in-canvas feedback carries the performance; blocked or unavailable audio remains visibly announced through a dedicated status class in `game.js`.
+- Focused Jest 6/6, JS syntax, and diff checks pass. An integrated six-size Chromium sweep captured live-state PNGs with no page errors, external requests, or horizontal overflow; I opened portrait, desktop, narrow phone, and short landscape captures. UI owner separately checked vertical fit at all six sizes. Fresh independent AAA verdict is pending, and real speaker/device checks remain open.

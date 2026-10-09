@@ -26,20 +26,27 @@
   function scenicLayer(ctx) {
     loadChamber();
     if (chamberState !== 2) return;
-    var scale = Math.min(800 / chamber.naturalWidth, (600 + X) / chamber.naturalHeight);
+    var portrait = X > 0;
+    // Fill the tall camera with the hall rather than placing a short 4:3
+    // image in its middle. The cropped wings return as narrow side curtains.
+    var scale = portrait ? Math.max(800 / chamber.naturalWidth, (600 + X) / chamber.naturalHeight) :
+      Math.min(800 / chamber.naturalWidth, 600 / chamber.naturalHeight);
     var w = chamber.naturalWidth * scale, h = chamber.naturalHeight * scale;
     var x = (800 - w) / 2, y = (600 + X - h) / 2;
-    ctx.save(); ctx.globalAlpha = .77;
+    ctx.save(); ctx.globalAlpha = portrait ? .88 : .77;
     ctx.drawImage(chamber, x, y, w, h);
-    // The taller portrait view letterboxes the hall rather than stretching it.
-    // Soft edges merge the unused space into the procedural stage background.
-    if (X > 0) {
-      var upper = ctx.createLinearGradient(0, y - 4, 0, y + 80);
-      upper.addColorStop(0, '#10182a'); upper.addColorStop(1, 'rgba(16,24,42,0)');
-      ctx.globalAlpha = 1; ctx.fillStyle = upper; ctx.fillRect(0, y - 4, 800, 84);
-      var lower = ctx.createLinearGradient(0, y + h - 80, 0, y + h + 4);
-      lower.addColorStop(0, 'rgba(16,24,42,0)'); lower.addColorStop(1, '#10182a');
-      ctx.fillStyle = lower; ctx.fillRect(0, y + h - 80, 800, 84);
+    if (portrait) {
+      ctx.globalAlpha = .62;
+      ctx.drawImage(chamber, 0, 0, chamber.naturalWidth * .2, chamber.naturalHeight,
+        0, 0, 102, 600 + X);
+      ctx.drawImage(chamber, chamber.naturalWidth * .8, 0,
+        chamber.naturalWidth * .2, chamber.naturalHeight, 698, 0, 102, 600 + X);
+      var floorShade = ctx.createLinearGradient(0, 0, 0, 600 + X);
+      floorShade.addColorStop(0, 'rgba(7,11,23,.06)');
+      floorShade.addColorStop(.65, 'rgba(7,11,23,.10)');
+      floorShade.addColorStop(1, 'rgba(7,11,23,.36)');
+      ctx.globalAlpha = 1; ctx.fillStyle = floorShade;
+      ctx.fillRect(0, 0, 800, 600 + X);
     }
     ctx.restore();
   }
@@ -153,8 +160,8 @@
 
   function loom(ctx, beat, section, state, time) {
     var board = ctx.createLinearGradient(0, top, 0, 553 + X);
-    board.addColorStop(0, chamberState === 2 ? 'rgba(7,13,29,.58)' : 'rgba(7,13,29,.76)');
-    board.addColorStop(1, chamberState === 2 ? 'rgba(10,18,39,.82)' : 'rgba(10,18,39,.94)');
+    board.addColorStop(0, chamberState === 2 ? 'rgba(7,13,29,.34)' : 'rgba(7,13,29,.76)');
+    board.addColorStop(1, chamberState === 2 ? 'rgba(10,18,39,.67)' : 'rgba(10,18,39,.94)');
     ctx.shadowColor = '#050816'; ctx.shadowBlur = 30;
     ctx.fillStyle = board; ctx.beginPath(); ctx.roundRect(left - 13, top - 14, laneW * 4 + 26, 479 + X, 18); ctx.fill();
     ctx.shadowBlur = 0;
@@ -252,6 +259,26 @@
     });
   }
 
+  function hitLight(ctx, state, time, section) {
+    if (state.flashUntil <= time) return;
+    var heat = clamp((state.flashUntil - time) / .22, 0, 1);
+    var x = center(state.flashLane), hue = strand(state.flashLane, section);
+    ctx.save();
+    var bloom = ctx.createRadialGradient(x, line - 68, 16, x, line - 68, 270);
+    bloom.addColorStop(0, hue); bloom.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = bloom; ctx.globalAlpha = heat * .22;
+    ctx.fillRect(x - 270, line - 338, 540, 540);
+    // Light runs up the two edges of the struck strand, behind incoming notes.
+    ctx.strokeStyle = hue; ctx.shadowColor = hue; ctx.shadowBlur = 22;
+    for (var side = -1; side <= 1; side += 2) {
+      ctx.globalAlpha = heat * .6; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(x + side * 66, line);
+      ctx.bezierCurveTo(x + side * 82, line - 105,
+        x + side * 48, top + 132, x + side * 64, top); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   function rotation(ctx, beat) {
     var section = Math.floor(beat / 32), next = (section + 1) * 32;
     var preview = section < 3 && beat >= next - 3 && beat < next;
@@ -322,6 +349,12 @@
       ctx.strokeText(state.judge, cx, line - 86 - age2 * 72);
       ctx.shadowColor = col; ctx.shadowBlur = 20; ctx.fillStyle = col;
       ctx.fillText(state.judge, cx, line - 86 - age2 * 72);
+      if (state.judge !== 'MISS') {
+        var multiplier = Math.min(4, 1 + Math.floor((run.combo - 1) / 10));
+        ctx.shadowBlur = 12; ctx.font = '900 19px system-ui';
+        ctx.fillText('+' + (state.judge === 'PERFECT' ? 100 : 55) * multiplier,
+          cx, line - 51 - age2 * 96);
+      }
       ctx.restore();
     }
     if (run.combo > 1 && state.judge !== 'MISS' && age2 >= 0 && age2 < .45) {
@@ -361,6 +394,7 @@
     ctx.setTransform(v.s, 0, 0, v.s, v.ox * v.s, v.oy * v.s);
     backdrop(ctx, beat); stageFx(ctx, beat, section, state, time, run);
     loom(ctx, beat, section, state, time);
+    hitLight(ctx, state, time, section);
     beatGrid(ctx, beat, time, logic); notes(ctx, run, time);
     if (state.flashUntil > time) {
       var intensity = clamp((state.flashUntil - time) / .22, 0, 1);

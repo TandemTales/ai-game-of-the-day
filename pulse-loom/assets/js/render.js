@@ -115,23 +115,48 @@
 
   function loomWorld(ctx, beat, section) {
     var cy = 290 + X * .49, phase = beat * .13;
+    var beatLight = Math.pow(1 - (beat - Math.floor(beat)), 3);
     ctx.save();
-    // A flywheel and four colored warp threads form the machinery behind the notes.
-    var well = ctx.createRadialGradient(400, cy, 6, 400, cy, 245);
-    well.addColorStop(0, 'rgba(122,109,172,.24)');
-    well.addColorStop(.52, 'rgba(66,86,132,.12)');
+    // The spindle is the scene's live subject: light travels up its heart
+    // and out along the warp on each beat, behind every playable note.
+    var well = ctx.createRadialGradient(400, cy, 6, 400, cy, 285);
+    well.addColorStop(0, 'rgba(255,228,183,.42)');
+    well.addColorStop(.36, 'rgba(113,167,208,.22)');
     well.addColorStop(1, 'rgba(14,22,42,0)');
-    ctx.fillStyle = well; ctx.fillRect(112, cy - 260, 576, 520);
+    ctx.fillStyle = well; ctx.fillRect(100, cy - 295, 600, 590);
+    var shaft = ctx.createLinearGradient(365, 0, 435, 0);
+    shaft.addColorStop(0, 'rgba(153,205,246,0)');
+    shaft.addColorStop(.44, 'rgba(155,211,255,.18)');
+    shaft.addColorStop(.5, 'rgba(255,238,187,.50)');
+    shaft.addColorStop(.56, 'rgba(255,158,202,.19)');
+    shaft.addColorStop(1, 'rgba(179,165,255,0)');
+    ctx.globalAlpha = .65 + beatLight * .28;
+    ctx.fillStyle = shaft; ctx.fillRect(365, top, 70, line - top);
+    ctx.globalAlpha = 1;
+    for (var ray = 0; ray < 4; ray++) {
+      var rayX = center(ray), swing = Math.sin(phase * 2 + ray * 1.7) * 18;
+      ctx.strokeStyle = colors[(ray + section) % 4];
+      ctx.globalAlpha = .26 + beatLight * .27;
+      ctx.lineWidth = 3 + beatLight * 2;
+      ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 10 + beatLight * 18;
+      ctx.beginPath(); ctx.moveTo(400, cy);
+      ctx.bezierCurveTo(400 + swing, cy - 110, rayX - swing, top + 130, rayX, top);
+      ctx.stroke();
+    }
+    ctx.shadowBlur = 0; ctx.globalAlpha = 1;
     ctx.translate(400, cy); ctx.rotate(phase);
     for (var ring = 0; ring < 3; ring++) {
-      ctx.strokeStyle = ring === 0 ? 'rgba(246,217,171,.26)' : 'rgba(156,190,220,.16)';
-      ctx.lineWidth = ring === 0 ? 7 : 2;
+      ctx.strokeStyle = ring === 0 ? 'rgba(255,231,186,.70)' : 'rgba(166,218,255,.40)';
+      ctx.lineWidth = ring === 0 ? 8 : 3;
+      ctx.shadowColor = ring === 0 ? '#ffd595' : '#80c7ff';
+      ctx.shadowBlur = 12 + beatLight * 18;
       ctx.beginPath(); ctx.arc(0, 0, 72 + ring * 43, 0, Math.PI * 2); ctx.stroke();
     }
+    ctx.shadowBlur = 0;
     for (var tooth = 0; tooth < 16; tooth++) {
       var angle = tooth * Math.PI / 8;
       ctx.strokeStyle = colors[(tooth + section) % 4];
-      ctx.globalAlpha = .25 + .16 * Math.pow(1 - (beat - Math.floor(beat)), 4);
+      ctx.globalAlpha = .47 + .23 * beatLight;
       ctx.lineWidth = tooth % 4 === 0 ? 5 : 2;
       ctx.beginPath();
       ctx.moveTo(Math.cos(angle) * 155, Math.sin(angle) * 155);
@@ -141,20 +166,20 @@
     ctx.globalAlpha = 1; ctx.rotate(-phase);
     for (var strandIndex = 0; strandIndex < 4; strandIndex++) {
       var color = colors[strandIndex], end = center((strandIndex + section) % 4) - 400;
-      ctx.strokeStyle = color; ctx.globalAlpha = .20; ctx.lineWidth = 3;
+      ctx.strokeStyle = color; ctx.globalAlpha = .40 + beatLight * .16; ctx.lineWidth = 4;
       ctx.beginPath(); ctx.moveTo(end, top - cy);
       ctx.bezierCurveTo(end * .55, -100, end * -.3, 70, end, line - cy);
       ctx.stroke();
     }
     ctx.globalAlpha = 1;
-    ctx.shadowColor = colors[section]; ctx.shadowBlur = 25;
-    ctx.fillStyle = '#17243a'; ctx.strokeStyle = 'rgba(255,226,182,.55)'; ctx.lineWidth = 3;
+    ctx.shadowColor = colors[section]; ctx.shadowBlur = 28 + beatLight * 24;
+    ctx.fillStyle = '#26364c'; ctx.strokeStyle = 'rgba(255,241,206,.90)'; ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(0, -33); ctx.lineTo(33, 0); ctx.lineTo(0, 33); ctx.lineTo(-33, 0);
+    ctx.moveTo(0, -48); ctx.lineTo(39, 0); ctx.lineTo(0, 48); ctx.lineTo(-39, 0);
     ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.shadowBlur = 0;
-    ctx.fillStyle = colors[section]; ctx.globalAlpha = .57;
-    ctx.beginPath(); ctx.arc(0, 0, 10 + 3 * Math.cos(beat * Math.PI * 2), 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff8df'; ctx.globalAlpha = .8 + beatLight * .2;
+    ctx.beginPath(); ctx.arc(0, 0, 13 + 5 * beatLight, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
 
@@ -315,8 +340,9 @@
     ctx.save(); ctx.strokeStyle = tint; ctx.lineWidth = 2;
     for (var k = 0; k < 3; k++) {
       var age = (f + k) / 3;
-      ctx.globalAlpha = (1 - age) * (.10 + .10 * kick);
-      ctx.beginPath(); ctx.ellipse(400, 300, 120 + age * 380, 90 + age * 280, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = (1 - age) * (.16 + .16 * kick);
+      ctx.beginPath(); ctx.ellipse(400, 290 + X * .49, 120 + age * 380,
+        90 + age * 280, 0, 0, Math.PI * 2); ctx.stroke();
     }
     ctx.globalAlpha = .05 + .07 * kick; ctx.fillStyle = tint;
     ctx.fillRect(-800, -1000, 2400, 2600);
@@ -333,6 +359,31 @@
       ctx.fillRect(p[0] - 14, 551 + X, 28, 3);
     });
     ctx.globalAlpha = 1;
+  }
+
+  function songProgress(ctx, beat, totalBeats) {
+    var progress = clamp(beat / totalBeats, 0, 1);
+    var y = top + 10, h = line - top - 23, x = 720;
+    ctx.save();
+    ctx.fillStyle = 'rgba(6,12,27,.76)';
+    ctx.beginPath(); ctx.roundRect(x - 5, y - 7, 13, h + 14, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(238,224,194,.28)'; ctx.fillRect(x, y, 3, h);
+    var filled = h * progress;
+    var track = ctx.createLinearGradient(0, y + h, 0, y);
+    track.addColorStop(0, colors[0]); track.addColorStop(.33, colors[1]);
+    track.addColorStop(.66, colors[2]); track.addColorStop(1, colors[3]);
+    ctx.fillStyle = track; ctx.shadowColor = colors[Math.min(3, Math.floor(progress * 4))];
+    ctx.shadowBlur = 10; ctx.fillRect(x - 1, y + h - filled, 5, filled);
+    ctx.shadowBlur = 0;
+    for (var mark = 1; mark < 4; mark++) {
+      var markY = y + h * (1 - mark / 4);
+      ctx.fillStyle = '#e9d7bd'; ctx.globalAlpha = .65;
+      ctx.fillRect(x - 4, markY, 11, 1);
+    }
+    ctx.globalAlpha = 1; ctx.fillStyle = '#fff4dc';
+    ctx.shadowColor = colors[Math.min(3, Math.floor(progress * 4))]; ctx.shadowBlur = 12;
+    ctx.beginPath(); ctx.arc(x + 1, y + h - filled, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
   }
 
   function feedbackFx(ctx, section, state, time, run) {
@@ -438,5 +489,6 @@
     }
     feedbackFx(ctx, section, state, time, run);
     rotation(ctx, beat);
+    songProgress(ctx, beat, logic.TOTAL_BEATS);
   };
 })(typeof window !== 'undefined' ? window : this);

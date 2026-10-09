@@ -181,3 +181,8 @@
 
 - The desktop stage now carries the locally bundled hall art into its side margins under dark gradients, and the wide shell gives those wings more room at 4K. Narrow phone and short landscape keep their existing compact layouts.
 - UI owner ran normal and unavailable-audio sweeps at all six viewports with no browser errors, external requests, or overflow. I opened desktop, portrait, and downscaled 4K captures; the wide black margins are now scenic, while the board and HUD remain readable. Focused Jest 6/6 passes. Independent re-review of this pass is pending.
+
+### Oct 9 second visual checkpoint
+
+- The center spindle, warp rays, and shockwaves respond more strongly to the beat, and a slim in-scene rail now shows song progress across the four movements. The renderer keeps the note lanes and rotation cue above the world light.
+- Integrated live-state captures at all six viewports have no browser errors, external requests, or overflow. I opened portrait, desktop, and downscaled 4K PNGs and saw the brighter subject and rail. Focused Jest 6/6 and renderer syntax pass. These fixture frames do not prove human play, speaker sync, or 4K hardware performance; independent second-pass AAA critique is pending.

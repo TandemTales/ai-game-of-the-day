@@ -113,9 +113,11 @@
     ctx.restore();
   }
 
-  function loomWorld(ctx, beat, section) {
+  function loomWorld(ctx, beat, section, state, time, run) {
     var cy = 290 + X * .49, phase = beat * .13;
     var beatLight = Math.pow(1 - (beat - Math.floor(beat)), 3);
+    var hit = clamp((state.flashUntil - time) / .22, 0, 1);
+    var charge = clamp(run.combo / 24, 0, 1);
     ctx.save();
     // The spindle is the scene's live subject: light travels up its heart
     // and out along the warp on each beat, behind every playable note.
@@ -172,18 +174,67 @@
       ctx.stroke();
     }
     ctx.globalAlpha = 1;
-    ctx.shadowColor = colors[section]; ctx.shadowBlur = 28 + beatLight * 24;
-    ctx.fillStyle = '#26364c'; ctx.strokeStyle = 'rgba(255,241,206,.90)'; ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(0, -48); ctx.lineTo(39, 0); ctx.lineTo(0, 48); ctx.lineTo(-39, 0);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // A faceted thread dancer gives the mechanism a readable moving subject.
+    // It is behind all notes; its crown and hands react to the actual hit.
+    var lift = beatLight * 5 + hit * 11;
+    ctx.translate(0, -lift);
+    for (var arm = -1; arm <= 1; arm += 2) {
+      var spread = 133 + charge * 18 + hit * 27;
+      ctx.strokeStyle = colors[arm < 0 ? (section + 1) % 4 : (section + 2) % 4];
+      ctx.globalAlpha = .56 + hit * .29; ctx.lineWidth = 8 + hit * 5;
+      ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 14 + hit * 28;
+      ctx.beginPath(); ctx.moveTo(arm * 39, 37);
+      ctx.bezierCurveTo(arm * 77, 29, arm * 80, -32 - hit * 12,
+        arm * spread, -38 - hit * 26); ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#fff0c9'; ctx.globalAlpha = .88;
+      ctx.beginPath(); ctx.arc(arm * spread, -38 - hit * 26, 7 + hit * 5, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    var robe = ctx.createLinearGradient(0, -42, 0, 157);
+    robe.addColorStop(0, '#3d516b'); robe.addColorStop(.45, '#182c42');
+    robe.addColorStop(1, 'rgba(10,17,33,.08)');
+    ctx.fillStyle = robe; ctx.strokeStyle = 'rgba(255,225,181,.68)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(0, -50); ctx.bezierCurveTo(37, -36, 49, -8, 56, 19);
+    ctx.bezierCurveTo(69, 91, 99, 111, 118, 150);
+    ctx.quadraticCurveTo(0, 114, -118, 150);
+    ctx.bezierCurveTo(-99, 111, -69, 91, -56, 19);
+    ctx.bezierCurveTo(-49, -8, -37, -36, 0, -50); ctx.fill(); ctx.stroke();
+    for (var seam = -1; seam <= 1; seam += 2) {
+      ctx.strokeStyle = colors[seam < 0 ? (section + 1) % 4 : (section + 2) % 4];
+      ctx.globalAlpha = .5 + charge * .24 + hit * .2; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(seam * 25, 0);
+      ctx.bezierCurveTo(seam * 30, 50, seam * 63, 92, seam * 86, 133);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    // Mask, crown and eyes stay crisp when the wheel rotates behind them.
+    ctx.shadowColor = '#ffdeb2'; ctx.shadowBlur = 16 + beatLight * 12 + hit * 24;
+    ctx.fillStyle = '#f9dfb5';
+    ctx.beginPath(); ctx.moveTo(0, -83); ctx.lineTo(35, -58);
+    ctx.lineTo(32, -15); ctx.lineTo(0, 8); ctx.lineTo(-32, -15);
+    ctx.lineTo(-35, -58); ctx.closePath(); ctx.fill();
+    ctx.shadowBlur = 0; ctx.fillStyle = '#34435a';
+    ctx.beginPath(); ctx.moveTo(0, -73); ctx.lineTo(25, -52);
+    ctx.lineTo(21, -21); ctx.lineTo(0, -6); ctx.lineTo(-21, -21);
+    ctx.lineTo(-25, -52); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#fff9df'; ctx.shadowColor = '#fff0ae'; ctx.shadowBlur = 12 + hit * 20;
+    ctx.beginPath(); ctx.moveTo(-20, -40); ctx.lineTo(-4, -35); ctx.lineTo(-19, -31);
+    ctx.moveTo(20, -40); ctx.lineTo(4, -35); ctx.lineTo(19, -31); ctx.fill();
     ctx.shadowBlur = 0;
-    ctx.fillStyle = '#fff8df'; ctx.globalAlpha = .8 + beatLight * .2;
-    ctx.beginPath(); ctx.arc(0, 0, 13 + 5 * beatLight, 0, Math.PI * 2); ctx.fill();
+    for (var crown = -2; crown <= 2; crown++) {
+      var crownX = crown * 18, tipY = -113 - (2 - Math.abs(crown)) * 8 - hit * 12;
+      ctx.strokeStyle = colors[(crown + 6 + section) % 4];
+      ctx.lineWidth = 3 + beatLight * 2;
+      ctx.beginPath(); ctx.moveTo(crownX * .5, -79);
+      ctx.quadraticCurveTo(crownX, -97, crownX, tipY); ctx.stroke();
+      ctx.fillStyle = '#fff4dc'; ctx.beginPath();
+      ctx.arc(crownX, tipY, 3 + hit * 2, 0, Math.PI * 2); ctx.fill();
+    }
     ctx.restore();
   }
 
-  function loom(ctx, beat, section, state, time) {
+  function loom(ctx, beat, section, state, time, run) {
     var board = ctx.createLinearGradient(0, top, 0, 553 + X);
     board.addColorStop(0, chamberState === 2 ? 'rgba(7,13,29,.34)' : 'rgba(7,13,29,.76)');
     board.addColorStop(1, chamberState === 2 ? 'rgba(10,18,39,.67)' : 'rgba(10,18,39,.94)');
@@ -192,18 +243,16 @@
     ctx.shadowBlur = 0;
     ctx.strokeStyle = 'rgba(172,184,232,.33)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.roundRect(left - 13, top - 14, laneW * 4 + 26, 479 + X, 18); ctx.stroke();
-    loomWorld(ctx, beat, section);
-    ctx.strokeStyle = 'rgba(189,200,247,.08)'; ctx.lineWidth = 1;
-    for (var thread = 0; thread < 9; thread++) {
-      var start = left - 13 + thread * 77;
-      ctx.beginPath(); ctx.moveTo(start, top); ctx.lineTo(400 + (start - 400) * .72, line); ctx.stroke();
-    }
+    loomWorld(ctx, beat, section, state, time, run);
+    // Dark glass gives the notes four quiet, uninterrupted travel paths while
+    // leaving the thread dancer visible through the center of the stage.
     for (var lane = 0; lane < 4; lane++) {
       var x = left + lane * laneW, hue = strand(lane, section);
       var fill = ctx.createLinearGradient(0, top, 0, line);
-      fill.addColorStop(0, 'rgba(255,255,255,.015)');
-      fill.addColorStop(1, 'rgba(255,255,255,.06)');
-      ctx.fillStyle = fill; ctx.fillRect(x + 3, top, laneW - 6, line - top + 39);
+      fill.addColorStop(0, 'rgba(5,11,27,.70)');
+      fill.addColorStop(.6, 'rgba(5,11,27,.66)');
+      fill.addColorStop(1, 'rgba(5,11,27,.76)');
+      ctx.fillStyle = fill; ctx.fillRect(x + 2, top, laneW - 4, line - top + 40);
       if (state.flashUntil > time && state.flashLane === lane) {
         var heat = clamp((state.flashUntil - time) / .22, 0, 1);
         var light = ctx.createLinearGradient(0, line - 175, 0, line + 35);
@@ -213,21 +262,23 @@
         ctx.fillRect(x + 3, line - 175, laneW - 6, 211);
         ctx.globalAlpha = 1;
       }
-      ctx.fillStyle = hue; ctx.globalAlpha = .12;
-      ctx.fillRect(x + 8, top, 3, line - top + 40);
-      ctx.fillRect(x + laneW - 11, top, 3, line - top + 40);
+      ctx.fillStyle = hue; ctx.globalAlpha = .34;
+      ctx.fillRect(x + 5, top, 2, line - top + 40);
+      ctx.fillRect(x + laneW - 7, top, 2, line - top + 40);
       ctx.globalAlpha = 1;
       if (lane > 0) {
         ctx.strokeStyle = 'rgba(180,198,241,.16)'; ctx.beginPath();
         ctx.moveTo(x, top); ctx.lineTo(x, 553 + X); ctx.stroke();
       }
       var pulse = .5 + .5 * Math.cos((beat - Math.floor(beat)) * Math.PI * 2);
-      ctx.fillStyle = hue; ctx.globalAlpha = .23 + pulse * .09;
-      ctx.beginPath(); ctx.arc(center(lane), line, 42, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#060d20'; ctx.globalAlpha = .92;
+      ctx.beginPath(); ctx.arc(center(lane), line, 43, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = hue; ctx.globalAlpha = .24 + pulse * .16;
+      ctx.beginPath(); ctx.arc(center(lane), line, 39, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
-      ctx.strokeStyle = hue; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(center(lane), line, 31, 0, Math.PI * 2); ctx.stroke();
-      ctx.strokeStyle = 'rgba(255,249,231,.56)'; ctx.lineWidth = 1;
+      ctx.strokeStyle = hue; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(center(lane), line, 30, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,249,231,.82)'; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(center(lane), line, 23, 0, Math.PI * 2); ctx.stroke();
       ctx.fillStyle = '#f8eddf'; ctx.font = '800 19px system-ui'; ctx.textAlign = 'center';
       ctx.fillText(keys[lane], center(lane), 543 + X);
@@ -235,11 +286,11 @@
       ctx.fillRect(center(lane) - 17, 550 + X, 34, 2);
       ctx.globalAlpha = 1;
     }
-    ctx.shadowColor = '#ffe3a9'; ctx.shadowBlur = 17;
-    ctx.strokeStyle = '#ffe7b6'; ctx.lineWidth = 3; ctx.beginPath();
+    ctx.shadowColor = '#ffe3a9'; ctx.shadowBlur = 14;
+    ctx.strokeStyle = '#fff3d5'; ctx.lineWidth = 5; ctx.beginPath();
     ctx.moveTo(left, line); ctx.lineTo(left + 4 * laneW, line); ctx.stroke();
     ctx.shadowBlur = 0;
-    ctx.fillStyle = '#fff8e8'; ctx.fillRect(left, line - 1, 4 * laneW, 2);
+    ctx.fillStyle = '#fff8e8'; ctx.fillRect(left, line - 2, 4 * laneW, 3);
   }
 
   function beatGrid(ctx, beat, time, logic) {
@@ -268,12 +319,13 @@
       var y = line - (note.time - time) * 220;
       if (y < top - 24 || y > line + 40) return;
       var x = center(note.lane), hue = colors[note.base];
-      ctx.shadowColor = hue; ctx.shadowBlur = 27;
-      ctx.fillStyle = hue; ctx.beginPath(); ctx.roundRect(x - 50, y - 18, 100, 36, 12); ctx.fill();
+      ctx.shadowColor = hue; ctx.shadowBlur = 18;
+      ctx.fillStyle = '#050b1a'; ctx.beginPath(); ctx.roundRect(x - 59, y - 24, 118, 48, 15); ctx.fill();
       ctx.shadowBlur = 0;
-      ctx.strokeStyle = 'rgba(255,255,255,.82)'; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.roundRect(x - 50, y - 18, 100, 36, 12); ctx.stroke();
-      ctx.fillStyle = 'rgba(9,15,30,.70)'; ctx.beginPath(); ctx.roundRect(x - 42, y - 11, 84, 22, 6); ctx.fill();
+      ctx.fillStyle = hue; ctx.beginPath(); ctx.roundRect(x - 55, y - 20, 110, 40, 12); ctx.fill();
+      ctx.strokeStyle = '#fff9eb'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.roundRect(x - 55, y - 20, 110, 40, 12); ctx.stroke();
+      ctx.fillStyle = '#102039'; ctx.beginPath(); ctx.roundRect(x - 46, y - 12, 92, 24, 6); ctx.fill();
       ctx.fillStyle = '#fff9ee'; ctx.fillRect(x - 27, y - 2, 54, 4);
       ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = hue; ctx.lineWidth = 2;
@@ -317,7 +369,7 @@
     ctx.strokeStyle = 'rgba(255,225,172,.68)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.roundRect(130, 5, 540, 69, 14); ctx.stroke();
     ctx.fillStyle = '#fff0cf'; ctx.font = '800 22px system-ui'; ctx.textAlign = 'center';
-    ctx.fillText(preview ? 'SHIFT  →  ' + Math.ceil(next - beat) : 'THREADS SHIFTED', 400, 30);
+    ctx.fillText(preview ? 'ROTATE IN ' + Math.ceil(next - beat) + (Math.ceil(next - beat) === 1 ? ' BEAT' : ' BEATS') : 'LANES ROTATED', 400, 30);
     for (var base = 0; base < 4; base++) {
       var from = center((base + current) % 4);
       var to = center((base + current + 1) % 4);
@@ -397,14 +449,14 @@
       ctx.font = '900 ' + (state.judge === 'PERFECT' ? 40 : 29) + 'px system-ui';
       ctx.shadowColor = '#050817'; ctx.shadowBlur = 12; ctx.lineWidth = 5;
       ctx.strokeStyle = '#101626';
-      ctx.strokeText(state.judge, cx, line - 86 - age2 * 72);
+      ctx.strokeText(state.judge, cx, line - 39 - age2 * 14);
       ctx.shadowColor = col; ctx.shadowBlur = 20; ctx.fillStyle = col;
-      ctx.fillText(state.judge, cx, line - 86 - age2 * 72);
+      ctx.fillText(state.judge, cx, line - 39 - age2 * 14);
       if (state.judge !== 'MISS') {
         var multiplier = Math.min(4, 1 + Math.floor((run.combo - 1) / 10));
         ctx.shadowBlur = 12; ctx.font = '900 19px system-ui';
         ctx.fillText('+' + (state.judge === 'PERFECT' ? 100 : 55) * multiplier,
-          cx, line - 51 - age2 * 96);
+          cx, line - 72 - age2 * 14);
       }
       ctx.restore();
     }
@@ -444,9 +496,9 @@
     var v = R.view(canvas);
     ctx.setTransform(v.s, 0, 0, v.s, v.ox * v.s, v.oy * v.s);
     backdrop(ctx, beat); stageFx(ctx, beat, section, state, time, run);
-    loom(ctx, beat, section, state, time);
+    loom(ctx, beat, section, state, time, run);
     hitLight(ctx, state, time, section);
-    beatGrid(ctx, beat, time, logic); notes(ctx, run, time);
+    beatGrid(ctx, beat, time, logic);
     if (state.flashUntil > time) {
       var intensity = clamp((state.flashUntil - time) / .22, 0, 1);
       var travel = 1 - intensity, x = center(state.flashLane);
@@ -488,6 +540,8 @@
       ctx.restore();
     }
     feedbackFx(ctx, section, state, time, run);
+    // Playable notes are the foreground layer, including over hit reactions.
+    notes(ctx, run, time);
     rotation(ctx, beat);
     songProgress(ctx, beat, logic.TOTAL_BEATS);
   };

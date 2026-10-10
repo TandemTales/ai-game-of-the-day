@@ -5,13 +5,16 @@
     panel = document.getElementById('panel'), title = document.getElementById('panel-title'),
     description = document.getElementById('panel-copy'), scoreEl = document.getElementById('score'),
     comboEl = document.getElementById('combo'), sectionEl = document.getElementById('section'),
-    feedback = document.getElementById('feedback');
+    feedback = document.getElementById('feedback'), songReadout = document.getElementById('song-readout'),
+    songProgress = document.getElementById('song-progress'), songPercent = document.getElementById('song-percent');
   var run = L.newRun(), state = { mode: 'title', started: 0,
     flashUntil: 0, flashLane: 0, judge: '', judgeAt: -9, judgeLane: -1, submitted: false };
   function now() { return (performance.now() - state.started) / 1000; }
   function updateHud(time) {
     scoreEl.textContent = run.score.toLocaleString(); comboEl.textContent = run.combo;
     sectionEl.textContent = Math.max(1, Math.min(4, Math.floor(time / (32 * L.BEAT)) + 1)) + ' / 4';
+    var progress = Math.max(0, Math.min(100, Math.floor(time / (L.TOTAL_BEATS * L.BEAT) * 100)));
+    songProgress.value = progress; songPercent.textContent = progress + '%';
     var audioStatus = A.status();
     feedback.classList.toggle('audio-warning', state.mode === 'playing' &&
       (audioStatus === 'blocked' || audioStatus === 'unavailable'));
@@ -24,7 +27,7 @@
     state.mode = 'starting';
     var lead = await A.begin();
     run = L.newRun(); state.mode = 'playing'; state.started = performance.now() + lead * 1000;
-    state.submitted = false; panel.hidden = true; updateHud(0);
+    state.submitted = false; panel.hidden = true; songReadout.hidden = false; updateHud(0);
   }
   startButton.addEventListener('click', play);
   function hit(lane) {
@@ -45,7 +48,9 @@
   });
   function fit() {
     var portrait = global.matchMedia && global.matchMedia('(max-width: 580px)').matches;
-    var h = portrait ? 1300 : 600;
+    var tabletPortrait = global.matchMedia && global.matchMedia(
+      '(min-width: 581px) and (max-width: 900px) and (min-height: 700px) and (orientation: portrait)').matches;
+    var h = portrait ? 1300 : tabletPortrait ? 800 : 600;
     if (canvas.height !== h) canvas.height = h;
   }
   fit(); global.addEventListener('resize', fit);

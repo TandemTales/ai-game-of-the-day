@@ -439,7 +439,7 @@
   }
 
   function feedbackFx(ctx, section, state, time, run) {
-    // Draw above notes and the board: the former pre-board pass hid these cues.
+    // Keep feedback near its receptor; incoming notes render over this layer.
     var tint = colors[section];
     var age2 = time - state.judgeAt;
     if (state.judge && age2 >= 0 && age2 < .6) {
@@ -447,16 +447,18 @@
       var col = state.judge === 'PERFECT' ? '#fff0b8' : state.judge === 'GOOD' ? '#8ee8e6' : '#ff7a8c';
       ctx.save(); ctx.textAlign = 'center'; ctx.globalAlpha = a;
       ctx.font = '900 ' + (state.judge === 'PERFECT' ? 40 : 29) + 'px system-ui';
+      var halfLabel = ctx.measureText(state.judge).width / 2 + 8;
+      cx = clamp(cx, left + halfLabel, left + 4 * laneW - halfLabel);
       ctx.shadowColor = '#050817'; ctx.shadowBlur = 12; ctx.lineWidth = 5;
       ctx.strokeStyle = '#101626';
-      ctx.strokeText(state.judge, cx, line - 39 - age2 * 14);
+      ctx.strokeText(state.judge, cx, line - 63 - age2 * 14);
       ctx.shadowColor = col; ctx.shadowBlur = 20; ctx.fillStyle = col;
-      ctx.fillText(state.judge, cx, line - 39 - age2 * 14);
+      ctx.fillText(state.judge, cx, line - 63 - age2 * 14);
       if (state.judge !== 'MISS') {
         var multiplier = Math.min(4, 1 + Math.floor((run.combo - 1) / 10));
         ctx.shadowBlur = 12; ctx.font = '900 19px system-ui';
         ctx.fillText('+' + (state.judge === 'PERFECT' ? 100 : 55) * multiplier,
-          cx, line - 72 - age2 * 14);
+          cx, line - 96 - age2 * 14);
       }
       ctx.restore();
     }

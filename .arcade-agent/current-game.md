@@ -1,13 +1,11 @@
 # Active game
 
-No game is active.
+slug: shiftwick
+started: 2026-10-10
 
-Completed: **prism-warden** — The Drowned Beacons.
-started: 2026-09-20
-completed: 2026-10-03
-release: forced second-Saturday release, age 13 (America/Los_Angeles).
+Pitch: **Shiftwick** is a classic maze-chase (Pac-Man lineage, original IP) where you are a living candle-flame
+eating embers while Shades hunt you. Twist: the maze is a sliding-tile labyrinth - spend Shift charges to slide an
+entire row or column one cell, dragging Shades (and yourself) with it, crushing Shades into walls, opening shortcuts
+and sealing pursuers out. Score = embers, combo, Shade crushes, speed.
 
-The scheduled lifecycle is complete; AAA acceptance is not claimed. See
-prism-warden/.aaa-complete and PROGRESS.md for failed critic verdicts,
-verification boundaries and remaining debt. The next run starts STEP 2:
-inventory, research, choose a distinct game and scaffold its first playable.
+Branch note: the repo has no `dev` branch; work happens on claude/beautiful-turing-40jiwt.

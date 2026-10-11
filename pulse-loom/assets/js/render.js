@@ -116,7 +116,9 @@
   function loomWorld(ctx, beat, section, state, time, run) {
     var cy = 290 + X * .49, phase = beat * .13;
     var beatLight = Math.pow(1 - (beat - Math.floor(beat)), 3);
-    var hit = clamp((state.flashUntil - time) / .22, 0, 1);
+    var hitAge = time - state.judgeAt;
+    var hit = state.judge && state.judge !== 'MISS' && hitAge >= 0 ?
+      Math.pow(clamp(1 - hitAge / .5, 0, 1), 1.4) : 0;
     var charge = clamp(run.combo / 24, 0, 1);
     ctx.save();
     // The spindle is the scene's live subject: light travels up its heart
@@ -271,17 +273,15 @@
         ctx.moveTo(x, top); ctx.lineTo(x, 553 + X); ctx.stroke();
       }
       var pulse = .5 + .5 * Math.cos((beat - Math.floor(beat)) * Math.PI * 2);
-      ctx.fillStyle = '#060d20'; ctx.globalAlpha = .92;
+      ctx.fillStyle = '#060d20'; ctx.globalAlpha = .96;
+      ctx.beginPath(); ctx.arc(center(lane), line, 47, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = hue; ctx.globalAlpha = .29 + pulse * .17;
       ctx.beginPath(); ctx.arc(center(lane), line, 43, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = hue; ctx.globalAlpha = .24 + pulse * .16;
-      ctx.beginPath(); ctx.arc(center(lane), line, 39, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
-      ctx.strokeStyle = hue; ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.arc(center(lane), line, 30, 0, Math.PI * 2); ctx.stroke();
-      ctx.strokeStyle = 'rgba(255,249,231,.82)'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(center(lane), line, 23, 0, Math.PI * 2); ctx.stroke();
-      ctx.fillStyle = '#f8eddf'; ctx.font = '800 19px system-ui'; ctx.textAlign = 'center';
-      ctx.fillText(keys[lane], center(lane), 543 + X);
+      ctx.strokeStyle = hue; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.arc(center(lane), line, 37, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,249,231,.92)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(center(lane), line, 29, 0, Math.PI * 2); ctx.stroke();
       ctx.fillStyle = hue; ctx.globalAlpha = .65;
       ctx.fillRect(center(lane) - 17, 550 + X, 34, 2);
       ctx.globalAlpha = 1;
@@ -291,6 +291,16 @@
     ctx.moveTo(left, line); ctx.lineTo(left + 4 * laneW, line); ctx.stroke();
     ctx.shadowBlur = 0;
     ctx.fillStyle = '#fff8e8'; ctx.fillRect(left, line - 2, 4 * laneW, 3);
+    // Put the key labels over the judgment line and inside the receptors so
+    // they remain visible above the progress strip on short landscapes.
+    ctx.font = '900 30px system-ui'; ctx.textAlign = 'center';
+    ctx.shadowColor = '#050a1a'; ctx.shadowBlur = 8;
+    for (var key = 0; key < 4; key++) {
+      ctx.strokeStyle = '#07101f'; ctx.lineWidth = 5;
+      ctx.strokeText(keys[key], center(key), line + 21);
+      ctx.fillText(keys[key], center(key), line + 21);
+    }
+    ctx.shadowBlur = 0;
   }
 
   function beatGrid(ctx, beat, time, logic) {
@@ -319,27 +329,28 @@
       var y = line - (note.time - time) * 220;
       if (y < top - 24 || y > line + 40) return;
       var x = center(note.lane), hue = colors[note.base];
-      ctx.shadowColor = hue; ctx.shadowBlur = 18;
-      ctx.fillStyle = '#050b1a'; ctx.beginPath(); ctx.roundRect(x - 59, y - 24, 118, 48, 15); ctx.fill();
+      ctx.shadowColor = hue; ctx.shadowBlur = 20;
+      ctx.fillStyle = '#050b1a'; ctx.beginPath(); ctx.roundRect(x - 65, y - 27, 130, 54, 15); ctx.fill();
       ctx.shadowBlur = 0;
-      ctx.fillStyle = hue; ctx.beginPath(); ctx.roundRect(x - 55, y - 20, 110, 40, 12); ctx.fill();
-      ctx.strokeStyle = '#fff9eb'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.roundRect(x - 55, y - 20, 110, 40, 12); ctx.stroke();
-      ctx.fillStyle = '#102039'; ctx.beginPath(); ctx.roundRect(x - 46, y - 12, 92, 24, 6); ctx.fill();
-      ctx.fillStyle = '#fff9ee'; ctx.fillRect(x - 27, y - 2, 54, 4);
-      ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = hue; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(x - 57, y - 9); ctx.lineTo(x - 57, y + 9);
-      ctx.moveTo(x + 57, y - 9); ctx.lineTo(x + 57, y + 9); ctx.stroke();
-      ctx.globalAlpha = .48; ctx.fillStyle = hue;
-      ctx.fillRect(x - 34, y - 23, 68, 2); ctx.globalAlpha = 1;
+      ctx.fillStyle = hue; ctx.beginPath(); ctx.roundRect(x - 61, y - 23, 122, 46, 12); ctx.fill();
+      ctx.strokeStyle = '#fff9eb'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.roundRect(x - 61, y - 23, 122, 46, 12); ctx.stroke();
+      ctx.fillStyle = '#102039'; ctx.beginPath(); ctx.roundRect(x - 52, y - 15, 104, 30, 7); ctx.fill();
+      ctx.fillStyle = '#fff9ee'; ctx.fillRect(x - 33, y - 3, 66, 6);
+      ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = hue; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(x - 64, y - 12); ctx.lineTo(x - 64, y + 12);
+      ctx.moveTo(x + 64, y - 12); ctx.lineTo(x + 64, y + 12); ctx.stroke();
+      ctx.globalAlpha = .58; ctx.fillStyle = hue;
+      ctx.fillRect(x - 40, y - 26, 80, 3); ctx.globalAlpha = 1;
     });
   }
 
   function hitLight(ctx, state, time, section) {
-    if (state.flashUntil <= time) return;
-    var heat = clamp((state.flashUntil - time) / .22, 0, 1);
-    var x = center(state.flashLane), hue = strand(state.flashLane, section);
+    var age = time - state.judgeAt;
+    if (!state.judge || state.judge === 'MISS' || age < 0 || age >= .5 || state.judgeLane < 0) return;
+    var heat = Math.pow(1 - age / .5, 1.3);
+    var x = center(state.judgeLane), hue = strand(state.judgeLane, section);
     ctx.save();
     var bloom = ctx.createRadialGradient(x, line - 68, 16, x, line - 68, 270);
     bloom.addColorStop(0, hue); bloom.addColorStop(1, 'rgba(255,255,255,0)');

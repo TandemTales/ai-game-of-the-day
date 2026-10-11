@@ -38,3 +38,4 @@ kbd { background:#2d2536; border-radius:5px; padding:1px 5px; border:1px solid r
 .wk-btn-light { right:max(124px,calc(env(safe-area-inset-right) + 106px)); bottom:max(22px,env(safe-area-inset-bottom)); width:84px; height:84px; background:rgba(232,101,28,.8); box-shadow:0 0 18px rgba(255,120,40,.5); }
 .wk-btn:active { transform:scale(.94); }
 @media (max-height:430px) { .wk-card { padding:12px; } .how { display:none; } .wk-card h1 { font-size:30px; } .big { font-size:30px; } .wk-primary, .wk-sec { min-height:40px; margin:5px 0; } }
+@media (orientation:landscape) and (max-height:500px) { .wk-btn-light { right:max(18px,env(safe-area-inset-right)); bottom:136px; width:78px; height:78px; } }

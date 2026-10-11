@@ -215,3 +215,11 @@
 
 - Synced dev; STOP absent. Sunday Pacific, seven days after the October 4 start, so this is a polish night, not the forced October 17 release. Tonight: strengthen 320px timing cues and short-landscape score/progress composition, run focused tests and browser checks, then seek harsh independent comparisons. Prior visual/UI/audio AAA FAIL verdicts stand until new evidence changes them.
 
+### Oct 11 first renderer checkpoint
+
+- Enlarged note silhouettes and receptor labels, shifted keys above the short-landscape progress strip, and extended judged-hit light. Focused Jest 6/6, renderer syntax, diff checks, and the renderer owner's six-size browser sweep passed; captures were inspected, including phone touch GOOD/55 and desktop combo 2.
+- Independent visual critic compared the captures with official Epic Fortnite Festival desktop and portrait references: **AAA FAIL / OURS LOSES**. The phone judgment is still too small, the stage remains visually static versus the reference, and short landscape is constrained. A render-only second pass is underway; final verdict is pending.
+
+### Oct 11 compact UI checkpoint
+
+- CSS enlarged the 320x568 active board and made the 844x390 score and song-progress rail clearer without clipping. The UI owner inspected normal and genuinely unavailable-audio captures at both target sizes; six-size browser sweeps reported no page errors, external requests, or horizontal/vertical overflow. Lead also opened the 320 and 844 normal captures. Focused Jest 6/6 and diff checks pass; independent UI comparison is pending.

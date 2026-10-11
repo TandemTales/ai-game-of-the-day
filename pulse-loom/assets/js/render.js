@@ -367,6 +367,42 @@
     ctx.restore();
   }
 
+  function performanceLight(ctx, beat, section, state, time) {
+    var cy = 290 + X * .49, phase = beat - Math.floor(beat);
+    var pulse = Math.pow(1 - phase, 3);
+    var age = time - state.judgeAt;
+    var hit = state.judge && state.judge !== 'MISS' && age >= 0 ?
+      Math.pow(clamp(1 - age / .5, 0, 1), 1.5) : 0;
+    var hue = colors[section];
+    ctx.save();
+    // Project the rhythm over the glass, but leave the moving notes above it.
+    // The center remains the scene's live subject on both wide and tall views.
+    ctx.globalAlpha = .35 + pulse * .32 + hit * .25;
+    ctx.strokeStyle = hue;
+    ctx.lineWidth = 3 + pulse * 3 + hit * 3;
+    ctx.beginPath();
+    ctx.arc(400, cy, 108 + phase * 16 + hit * 25,
+      -Math.PI * .67 + beat * .09, Math.PI * .42 + beat * .09);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(400, cy, 108 + phase * 16 + hit * 25,
+      Math.PI * .33 + beat * .09, Math.PI * 1.42 + beat * .09);
+    ctx.stroke();
+    // Marquee lights on the outer stage move on every beat, independent of
+    // note traffic. They stay outside the four timing lanes.
+    for (var side = 0; side < 2; side++) {
+      var x = side ? 730 : 70;
+      var travel = top + ((beat * 73 + side * 210) % (line - top));
+      ctx.strokeStyle = colors[(section + side) % 4];
+      ctx.globalAlpha = .2 + pulse * .3 + hit * .16;
+      ctx.lineWidth = 10 + pulse * 4;
+      ctx.beginPath(); ctx.moveTo(x, top + 8); ctx.lineTo(x, line - 8); ctx.stroke();
+      ctx.globalAlpha = .76; ctx.fillStyle = '#fff6dd';
+      ctx.beginPath(); ctx.arc(x, travel, 6 + pulse * 3, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
   function rotation(ctx, beat) {
     var section = Math.floor(beat / 32), next = (section + 1) * 32;
     var preview = section < 3 && beat >= next - 3 && beat < next;
@@ -379,8 +415,10 @@
     ctx.fillStyle = 'rgba(8,13,29,.96)'; ctx.beginPath(); ctx.roundRect(130, 5, 540, 69, 14); ctx.fill();
     ctx.strokeStyle = 'rgba(255,225,172,.68)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.roundRect(130, 5, 540, 69, 14); ctx.stroke();
-    ctx.fillStyle = '#fff0cf'; ctx.font = '800 22px system-ui'; ctx.textAlign = 'center';
-    ctx.fillText(preview ? 'ROTATE IN ' + Math.ceil(next - beat) + (Math.ceil(next - beat) === 1 ? ' BEAT' : ' BEATS') : 'LANES ROTATED', 400, 30);
+    ctx.fillStyle = '#fff0cf'; ctx.font = '900 ' + (X > 100 ? 38 : 22) + 'px system-ui';
+    ctx.textAlign = 'center'; ctx.shadowColor = '#050817'; ctx.shadowBlur = 7;
+    ctx.fillText(preview ? 'ROTATE IN ' + Math.ceil(next - beat) + (Math.ceil(next - beat) === 1 ? ' BEAT' : ' BEATS') : 'LANES ROTATED', 400, X > 100 ? 39 : 30);
+    ctx.shadowBlur = 0;
     for (var base = 0; base < 4; base++) {
       var from = center((base + current) % 4);
       var to = center((base + current + 1) % 4);
@@ -456,20 +494,43 @@
     if (state.judge && age2 >= 0 && age2 < .6) {
       var a = 1 - age2 / .6, cx = state.judgeLane >= 0 ? center(state.judgeLane) : 400;
       var col = state.judge === 'PERFECT' ? '#fff0b8' : state.judge === 'GOOD' ? '#8ee8e6' : '#ff7a8c';
+      var miss = state.judge === 'MISS';
+      var labelY = (miss ? line - 155 : line - 65) - age2 * 14;
       ctx.save(); ctx.textAlign = 'center'; ctx.globalAlpha = a;
-      ctx.font = '900 ' + (state.judge === 'PERFECT' ? 40 : 29) + 'px system-ui';
-      var halfLabel = ctx.measureText(state.judge).width / 2 + 8;
+      ctx.font = '900 ' + (state.judge === 'PERFECT' ? 48 : 43) + 'px system-ui';
+      var halfLabel = ctx.measureText(state.judge).width / 2 + 13;
+      if (miss) {
+        // Park a miss in the lane with the largest note gap at the judgment
+        // moment. It stays fixed during its brief fade and clears the tap row.
+        var bestGap = -1;
+        for (var lane = 0; lane < 4; lane++) {
+          var gap = Infinity;
+          run.notes.forEach(function (note) {
+            if (note.status || note.lane !== lane) return;
+            var noteY = line - (note.time - state.judgeAt) * 220;
+            if (noteY >= top - 30 && noteY <= line + 40)
+              gap = Math.min(gap, Math.abs(noteY - (line - 175)));
+          });
+          if (gap > bestGap) { bestGap = gap; cx = center(lane); }
+        }
+      }
       cx = clamp(cx, left + halfLabel, left + 4 * laneW - halfLabel);
-      ctx.shadowColor = '#050817'; ctx.shadowBlur = 12; ctx.lineWidth = 5;
+      ctx.fillStyle = '#081224';
+      ctx.beginPath(); ctx.roundRect(cx - halfLabel, (miss ? line - 210 : line - 133) - age2 * 14,
+        halfLabel * 2, miss ? 64 : 96, 18); ctx.fill();
+      ctx.strokeStyle = col; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.roundRect(cx - halfLabel, (miss ? line - 210 : line - 133) - age2 * 14,
+        halfLabel * 2, miss ? 64 : 96, 18); ctx.stroke();
+      ctx.shadowColor = '#050817'; ctx.shadowBlur = 12; ctx.lineWidth = 6;
       ctx.strokeStyle = '#101626';
-      ctx.strokeText(state.judge, cx, line - 63 - age2 * 14);
+      ctx.strokeText(state.judge, cx, labelY);
       ctx.shadowColor = col; ctx.shadowBlur = 20; ctx.fillStyle = col;
-      ctx.fillText(state.judge, cx, line - 63 - age2 * 14);
+      ctx.fillText(state.judge, cx, labelY);
       if (state.judge !== 'MISS') {
         var multiplier = Math.min(4, 1 + Math.floor((run.combo - 1) / 10));
-        ctx.shadowBlur = 12; ctx.font = '900 19px system-ui';
+        ctx.shadowBlur = 12; ctx.font = '900 27px system-ui';
         ctx.fillText('+' + (state.judge === 'PERFECT' ? 100 : 55) * multiplier,
-          cx, line - 96 - age2 * 14);
+          cx, line - 101 - age2 * 14);
       }
       ctx.restore();
     }
@@ -510,6 +571,7 @@
     ctx.setTransform(v.s, 0, 0, v.s, v.ox * v.s, v.oy * v.s);
     backdrop(ctx, beat); stageFx(ctx, beat, section, state, time, run);
     loom(ctx, beat, section, state, time, run);
+    performanceLight(ctx, beat, section, state, time);
     hitLight(ctx, state, time, section);
     beatGrid(ctx, beat, time, logic);
     if (state.flashUntil > time) {

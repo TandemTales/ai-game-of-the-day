@@ -210,3 +210,8 @@
 - After the critics, `PERFECT` and its points moved farther above the K receptor and clamp within the active board. I opened a fresh 1440×900 scored-hit capture: the label is visibly clear of the receptor and stays inside the board; score 200/combo 2 and no page errors. The 390×844 capture scored the hit but missed the brief text flash, so it does not visually confirm that particular phone state.
 - A natural-clock touchscreen tap on the new 768×1024 tablet view scored PERFECT/100 with the 800px backing and no page error. Final focused Jest remains **6/6**; JS syntax and diff checks passed. The full repository Jest suite was not rerun after earlier stalls, so no full-suite pass is claimed.
 - Final independent visual and UI verdicts remain **AAA FAIL / OURS LOSES**; the small hit-label correction was not re-reviewed independently. Audio listening/mix, input/output latency, real-device touch, human enjoyment, and hardware 4K performance remain open. No `.aaa-complete`, release, or `main` promotion. Next run first: enlarge small-phone timing cues and simplify the short-landscape scoreboard/progress layout, then repeat the harsh comparisons; arrange actual speaker listening and device latency checks. Saturday October 17 is the forced second-Saturday wrap-up if still active.
+
+## 2026-10-11 Pacific — nightly polish intent
+
+- Synced dev; STOP absent. Sunday Pacific, seven days after the October 4 start, so this is a polish night, not the forced October 17 release. Tonight: strengthen 320px timing cues and short-landscape score/progress composition, run focused tests and browser checks, then seek harsh independent comparisons. Prior visual/UI/audio AAA FAIL verdicts stand until new evidence changes them.
+

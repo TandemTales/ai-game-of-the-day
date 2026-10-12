@@ -1,13 +1,15 @@
 # Active game
 
-No game is active.
+slug: shiftwick
+started: 2026-10-11
+(Pacific date of scaffolding night; run fired 2026-10-12 02:00 UTC.)
 
-Completed: **prism-warden** — The Drowned Beacons.
-started: 2026-09-20
-completed: 2026-10-03
-release: forced second-Saturday release, age 13 (America/Los_Angeles).
+Pitch: Shiftwick is a classic maze-chase (Pac-Man lineage, new IP) set inside a
+haunted lantern-works. You are a little flame sprite eating glow-motes while four
+shadow "Hollows" with distinct AI personalities hunt you; Ember pellets let you
+scorch them. The twist: the maze is alive. Every ~18 seconds a telegraphed row or
+column of the maze slides one tile (with wraparound), carrying motes, walls, you
+and the Hollows with it, so routes you memorised rearrange under pressure. Score
+rewards motes, Hollow chains, fruit and clearing boards without being hit.
 
-The scheduled lifecycle is complete; AAA acceptance is not claimed. See
-prism-warden/.aaa-complete and PROGRESS.md for failed critic verdicts,
-verification boundaries and remaining debt. The next run starts STEP 2:
-inventory, research, choose a distinct game and scaffold its first playable.
+Notes: no `dev` branch exists; work happens on claude/beautiful-turing-nngkfi.

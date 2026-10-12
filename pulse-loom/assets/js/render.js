@@ -251,8 +251,11 @@
     for (var lane = 0; lane < 4; lane++) {
       var x = left + lane * laneW, hue = strand(lane, section);
       var fill = ctx.createLinearGradient(0, top, 0, line);
-      fill.addColorStop(0, 'rgba(5,11,27,.70)');
-      fill.addColorStop(.6, 'rgba(5,11,27,.66)');
+      // The middle strands are a window onto the performer. Keep the lower
+      // timing area dark while letting the face and moving arms read clearly.
+      var glass = lane === 1 || lane === 2 ? .39 : .55;
+      fill.addColorStop(0, 'rgba(5,11,27,' + glass + ')');
+      fill.addColorStop(.6, 'rgba(5,11,27,' + (glass + .09) + ')');
       fill.addColorStop(1, 'rgba(5,11,27,.76)');
       ctx.fillStyle = fill; ctx.fillRect(x + 2, top, laneW - 4, line - top + 40);
       if (state.flashUntil > time && state.flashLane === lane) {
@@ -375,6 +378,25 @@
       Math.pow(clamp(1 - age / .5, 0, 1), 1.5) : 0;
     var hue = colors[section];
     ctx.save();
+    // A narrow moving theatre beam lands on the performer. The diffuse pool
+    // stops above the judgment row, so its rhythm never competes with notes.
+    var aim = Math.sin(beat * .16) * 34;
+    var beam = ctx.createLinearGradient(0, top, 0, cy + 145);
+    beam.addColorStop(0, 'rgba(255,243,212,.03)');
+    beam.addColorStop(.55, 'rgba(255,225,172,.09)');
+    beam.addColorStop(1, 'rgba(255,225,172,0)');
+    ctx.fillStyle = beam; ctx.globalAlpha = .55 + pulse * .25 + hit * .2;
+    ctx.beginPath(); ctx.moveTo(363 + aim * .3, top);
+    ctx.lineTo(437 + aim * .3, top);
+    ctx.lineTo(555 + aim, cy + 145);
+    ctx.lineTo(245 + aim, cy + 145); ctx.closePath(); ctx.fill();
+    var focus = ctx.createRadialGradient(400 + aim, cy - 30, 12,
+      400 + aim, cy - 30, 190);
+    focus.addColorStop(0, 'rgba(255,233,188,.29)');
+    focus.addColorStop(.48, 'rgba(165,204,241,.11)');
+    focus.addColorStop(1, 'rgba(165,204,241,0)');
+    ctx.fillStyle = focus; ctx.globalAlpha = .6 + pulse * .28 + hit * .12;
+    ctx.fillRect(205 + aim, cy - 225, 390, 390);
     // Project the rhythm over the glass, but leave the moving notes above it.
     // The center remains the scene's live subject on both wide and tall views.
     ctx.globalAlpha = .35 + pulse * .32 + hit * .25;

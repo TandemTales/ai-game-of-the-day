@@ -68,11 +68,13 @@ footer p { margin: 0; }
 }
 @media (max-width: 580px) and (max-height: 650px) {
   .shell { padding: 4px 6px; gap: 3px; }
+  header .eyebrow { margin-bottom: 2px; font-size: .56rem; letter-spacing: .11em; white-space: nowrap; }
+  header h1 { font-size: 1.18rem; }
   .metrics { width: min(100%, calc((100svh - 120px) * 8 / 13)); padding: 5px 2px; }
   .metrics span { font-size: .73rem; }
-  .stage { padding-top: 48px; }
-  canvas { width: min(100%, calc((100svh - 156px) * 8 / 13)); max-height: calc(100svh - 156px); }
-  .song-readout { width: min(calc(100% - 12px), calc((100svh - 156px) * 8 / 13)); bottom: 3px; }
+  .stage { padding-top: 66px; }
+  canvas { width: min(100%, calc((100svh - 140px) * 8 / 13)); max-height: calc(100svh - 140px); }
+  .song-readout { width: min(calc(100% - 12px), calc((100svh - 140px) * 8 / 13)); bottom: 3px; }
   .metrics strong { font-size: 1.3rem; }
   .metrics div:first-child strong { font-size: 1.7rem; }
   footer { font-size: .82rem; }
@@ -81,7 +83,7 @@ footer p { margin: 0; }
   .panel p { font-size: .88rem; line-height: 1.35; }
 }
 @media (max-width: 580px) and (max-height: 650px) {
-  body:has(#feedback.audio-warning) canvas { width: min(100%, calc((100svh - 214px) * 8 / 13)); max-height: calc(100svh - 214px); }
+  body:has(#feedback.audio-warning) canvas { width: min(100%, calc((100svh - 190px) * 8 / 13)); max-height: calc(100svh - 190px); }
 }
 @media (min-width: 581px) and (max-width: 900px) and (min-height: 700px) and (orientation: portrait) {
   .stage { padding-top: clamp(100px, 11svh, 124px); }
@@ -101,11 +103,12 @@ footer p { margin: 0; }
   .metrics span { font-size: .68rem; letter-spacing: .08em; }
   .metrics strong { font-size: 1.55rem; line-height: 1; }
   .metrics div:first-child strong { font-size: 2.7rem; }
+  .metrics div:nth-child(2) strong { font-size: 1.85rem; }
   .stage { grid-column: 2; grid-row: 1; min-width: 0; padding-top: 0; border-radius: 0; }
   .stage::before, .stage::after { display: none; }
   canvas { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: auto; height: 100%; max-width: 100%; max-height: 100%; aspect-ratio: 4 / 3; }
-  .song-readout { width: calc(100% - 12px); bottom: 2px; padding: 5px 7px; gap: 8px; font-size: .7rem; }
-  .song-readout progress { height: 8px; }
+  .song-readout { width: calc(100% - 12px); bottom: 2px; padding: 5px 7px; gap: 8px; font-size: .75rem; }
+  .song-readout progress { height: 10px; }
   .song-readout span::after { font-size: .67rem; }
   footer { grid-column: 1 / -1; grid-row: 2; display: flex; flex-wrap: nowrap; gap: 8px; font-size: .82rem; line-height: 1.1; min-height: 20px; }
   footer p:first-child { flex: 1; white-space: nowrap; }

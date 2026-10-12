@@ -180,6 +180,10 @@
     // It is behind all notes; its crown and hands react to the actual hit.
     var lift = beatLight * 5 + hit * 11;
     ctx.translate(0, -lift);
+    // Give the masked conductor a larger, gently swaying stage silhouette.
+    // Notes are painted later, so their timing shapes remain the top layer.
+    ctx.rotate(Math.sin(beat * .24) * .07 + hit * .035);
+    ctx.scale(1.3 + hit * .08, 1.3 + hit * .08);
     for (var arm = -1; arm <= 1; arm += 2) {
       var spread = 133 + charge * 18 + hit * 27;
       ctx.strokeStyle = colors[arm < 0 ? (section + 1) % 4 : (section + 2) % 4];
@@ -194,9 +198,9 @@
     }
     ctx.globalAlpha = 1;
     var robe = ctx.createLinearGradient(0, -42, 0, 157);
-    robe.addColorStop(0, '#3d516b'); robe.addColorStop(.45, '#182c42');
-    robe.addColorStop(1, 'rgba(10,17,33,.08)');
-    ctx.fillStyle = robe; ctx.strokeStyle = 'rgba(255,225,181,.68)'; ctx.lineWidth = 3;
+    robe.addColorStop(0, colors[section]); robe.addColorStop(.4, '#48627a');
+    robe.addColorStop(1, 'rgba(18,38,60,.38)');
+    ctx.fillStyle = robe; ctx.strokeStyle = 'rgba(255,236,199,.87)'; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(0, -50); ctx.bezierCurveTo(37, -36, 49, -8, 56, 19);
     ctx.bezierCurveTo(69, 91, 99, 111, 118, 150);
     ctx.quadraticCurveTo(0, 114, -118, 150);

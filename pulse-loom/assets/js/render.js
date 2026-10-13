@@ -5,6 +5,7 @@
   var keys = ['D', 'F', 'J', 'K'];
   var left = 104, laneW = 148, top = 91, line = 506, X = 0;
   var chamber = null, chamberState = 0;
+  var conductor = null, conductorState = 0;
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
   function ease(v) { return v * v * (3 - 2 * v); }
   function center(i) { return left + (i + .5) * laneW; }
@@ -21,6 +22,19 @@
       chamber.onerror = function () { chamberState = -1; };
       chamber.src = 'assets/art/loom-chamber.webp';
     } catch (e) { chamberState = -1; }
+  }
+
+  function loadConductor() {
+    if (conductorState || typeof global.Image !== 'function') return;
+    conductorState = 1;
+    try {
+      conductor = new global.Image();
+      conductor.onload = function () {
+        conductorState = conductor.naturalWidth && conductor.naturalHeight ? 2 : -1;
+      };
+      conductor.onerror = function () { conductorState = -1; };
+      conductor.src = 'assets/art/thread-conductor.webp';
+    } catch (e) { conductorState = -1; }
   }
 
   function scenicLayer(ctx) {
@@ -121,6 +135,27 @@
       Math.pow(clamp(1 - hitAge / .5, 0, 1), 1.4) : 0;
     var charge = clamp(run.combo / 24, 0, 1);
     ctx.save();
+    // The performer stands in a recessed pool of light. The diverging floor
+    // seams and the small rear arch give the inset four-lane board a horizon.
+    var stageFloor = cy + 143;
+    var floorGlow = ctx.createRadialGradient(400, stageFloor, 12, 400, stageFloor, 254);
+    floorGlow.addColorStop(0, 'rgba(255,212,160,' + (.31 + beatLight * .16 + hit * .20) + ')');
+    floorGlow.addColorStop(.52, 'rgba(134,92,163,.13)');
+    floorGlow.addColorStop(1, 'rgba(44,43,89,0)');
+    ctx.fillStyle = floorGlow; ctx.fillRect(125, stageFloor - 190, 550, 360);
+    ctx.fillStyle = 'rgba(8,13,30,.72)';
+    ctx.beginPath(); ctx.ellipse(400, stageFloor + 17, 224, 38, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,222,166,' + (.34 + beatLight * .23) + ')';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.ellipse(400, stageFloor + 17, 224, 38, 0, 0, Math.PI * 2); ctx.stroke();
+    for (var seamIndex = -2; seamIndex <= 2; seamIndex++) {
+      ctx.strokeStyle = colors[(seamIndex + 6 + section) % 4];
+      ctx.globalAlpha = .12 + charge * .13 + beatLight * .08;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(400 + seamIndex * 48, stageFloor + 9);
+      ctx.lineTo(400 + seamIndex * 137, line + 40); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
     // The spindle is the scene's live subject: light travels up its heart
     // and out along the warp on each beat, behind every playable note.
     var well = ctx.createRadialGradient(400, cy, 6, 400, cy, 285);
@@ -149,19 +184,19 @@
     }
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
     ctx.translate(400, cy); ctx.rotate(phase);
-    for (var ring = 0; ring < 3; ring++) {
-      ctx.strokeStyle = ring === 0 ? 'rgba(255,231,186,.70)' : 'rgba(166,218,255,.40)';
-      ctx.lineWidth = ring === 0 ? 8 : 3;
+    for (var ring = 0; ring < 2; ring++) {
+      ctx.strokeStyle = ring === 0 ? 'rgba(255,231,186,.39)' : 'rgba(166,218,255,.23)';
+      ctx.lineWidth = ring === 0 ? 4 : 2;
       ctx.shadowColor = ring === 0 ? '#ffd595' : '#80c7ff';
-      ctx.shadowBlur = 12 + beatLight * 18;
+      ctx.shadowBlur = 8 + beatLight * 10;
       ctx.beginPath(); ctx.arc(0, 0, 72 + ring * 43, 0, Math.PI * 2); ctx.stroke();
     }
     ctx.shadowBlur = 0;
     for (var tooth = 0; tooth < 16; tooth++) {
       var angle = tooth * Math.PI / 8;
       ctx.strokeStyle = colors[(tooth + section) % 4];
-      ctx.globalAlpha = .47 + .23 * beatLight;
-      ctx.lineWidth = tooth % 4 === 0 ? 5 : 2;
+      ctx.globalAlpha = .23 + .16 * beatLight;
+      ctx.lineWidth = tooth % 4 === 0 ? 4 : 2;
       ctx.beginPath();
       ctx.moveTo(Math.cos(angle) * 155, Math.sin(angle) * 155);
       ctx.lineTo(Math.cos(angle) * 177, Math.sin(angle) * 177);
@@ -178,6 +213,18 @@
     ctx.globalAlpha = 1;
     // A faceted thread dancer gives the mechanism a readable moving subject.
     // It is behind all notes; its crown and hands react to the actual hit.
+    loadConductor();
+    if (conductorState === 2) {
+      var height = 390 + Math.min(X * .2, 90);
+      var width = height * conductor.naturalWidth / conductor.naturalHeight;
+      ctx.translate(0, -beatLight * 4 - hit * 12);
+      ctx.rotate(Math.sin(beat * .24) * .055 + hit * .03);
+      ctx.scale(1 + hit * .055, 1 + hit * .055);
+      ctx.shadowColor = colors[section]; ctx.shadowBlur = 19 + beatLight * 9 + hit * 20;
+      ctx.drawImage(conductor, -width / 2, -height * .53, width, height);
+      ctx.restore();
+      return;
+    }
     var lift = beatLight * 5 + hit * 11;
     ctx.translate(0, -lift);
     // Give the masked conductor a larger, gently swaying stage silhouette.
@@ -198,14 +245,30 @@
     }
     ctx.globalAlpha = 1;
     var robe = ctx.createLinearGradient(0, -42, 0, 157);
-    robe.addColorStop(0, colors[section]); robe.addColorStop(.4, '#48627a');
-    robe.addColorStop(1, 'rgba(18,38,60,.38)');
+    robe.addColorStop(0, colors[section]); robe.addColorStop(.36, '#718aa5');
+    robe.addColorStop(.72, '#314760'); robe.addColorStop(1, '#14263f');
     ctx.fillStyle = robe; ctx.strokeStyle = 'rgba(255,236,199,.87)'; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(0, -50); ctx.bezierCurveTo(37, -36, 49, -8, 56, 19);
     ctx.bezierCurveTo(69, 91, 99, 111, 118, 150);
     ctx.quadraticCurveTo(0, 114, -118, 150);
     ctx.bezierCurveTo(-99, 111, -69, 91, -56, 19);
     ctx.bezierCurveTo(-49, -8, -37, -36, 0, -50); ctx.fill(); ctx.stroke();
+    // Faceted shoulder pieces and long lit folds make the silhouette read as
+    // an onstage conductor instead of another circular instrument.
+    for (var side = -1; side <= 1; side += 2) {
+      ctx.fillStyle = side < 0 ? '#b6748d' : '#72a8b8';
+      ctx.globalAlpha = .86;
+      ctx.beginPath(); ctx.moveTo(side * 19, -37); ctx.lineTo(side * 56, -17);
+      ctx.lineTo(side * 70, 12); ctx.lineTo(side * 38, 4); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#ffe1b4'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(side * 25, -28); ctx.lineTo(side * 55, -10);
+      ctx.lineTo(side * 62, 5); ctx.stroke();
+      ctx.globalAlpha = .42 + beatLight * .25 + hit * .22;
+      ctx.strokeStyle = colors[(section + (side < 0 ? 1 : 2)) % 4];
+      ctx.beginPath(); ctx.moveTo(side * 31, 19);
+      ctx.bezierCurveTo(side * 42, 58, side * 60, 95, side * 82, 135); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
     for (var seam = -1; seam <= 1; seam += 2) {
       ctx.strokeStyle = colors[seam < 0 ? (section + 1) % 4 : (section + 2) % 4];
       ctx.globalAlpha = .5 + charge * .24 + hit * .2; ctx.lineWidth = 2;
@@ -242,8 +305,8 @@
 
   function loom(ctx, beat, section, state, time, run) {
     var board = ctx.createLinearGradient(0, top, 0, 553 + X);
-    board.addColorStop(0, chamberState === 2 ? 'rgba(7,13,29,.34)' : 'rgba(7,13,29,.76)');
-    board.addColorStop(1, chamberState === 2 ? 'rgba(10,18,39,.67)' : 'rgba(10,18,39,.94)');
+    board.addColorStop(0, chamberState === 2 ? 'rgba(7,13,29,.18)' : 'rgba(7,13,29,.67)');
+    board.addColorStop(1, chamberState === 2 ? 'rgba(10,18,39,.58)' : 'rgba(10,18,39,.91)');
     ctx.shadowColor = '#050816'; ctx.shadowBlur = 30;
     ctx.fillStyle = board; ctx.beginPath(); ctx.roundRect(left - 13, top - 14, laneW * 4 + 26, 479 + X, 18); ctx.fill();
     ctx.shadowBlur = 0;
@@ -257,9 +320,9 @@
       var fill = ctx.createLinearGradient(0, top, 0, line);
       // The middle strands are a window onto the performer. Keep the lower
       // timing area dark while letting the face and moving arms read clearly.
-      var glass = lane === 1 || lane === 2 ? .39 : .55;
+      var glass = lane === 1 || lane === 2 ? .18 : .45;
       fill.addColorStop(0, 'rgba(5,11,27,' + glass + ')');
-      fill.addColorStop(.6, 'rgba(5,11,27,' + (glass + .09) + ')');
+      fill.addColorStop(.6, 'rgba(5,11,27,' + (glass + .08) + ')');
       fill.addColorStop(1, 'rgba(5,11,27,.76)');
       ctx.fillStyle = fill; ctx.fillRect(x + 2, top, laneW - 4, line - top + 40);
       if (state.flashUntil > time && state.flashLane === lane) {
@@ -438,12 +501,12 @@
     var opacity = settling ? 1 - (beat - section * 32) / .85 : 1;
     var current = preview ? section : section - 1;
     ctx.save(); ctx.globalAlpha = opacity;
-    ctx.fillStyle = 'rgba(8,13,29,.96)'; ctx.beginPath(); ctx.roundRect(130, 5, 540, 69, 14); ctx.fill();
+    ctx.fillStyle = 'rgba(8,13,29,.96)'; ctx.beginPath(); ctx.roundRect(130, 5, 540, 52, 12); ctx.fill();
     ctx.strokeStyle = 'rgba(255,225,172,.68)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.roundRect(130, 5, 540, 69, 14); ctx.stroke();
-    ctx.fillStyle = '#fff0cf'; ctx.font = '900 ' + (X > 100 ? 38 : 22) + 'px system-ui';
+    ctx.beginPath(); ctx.roundRect(130, 5, 540, 52, 12); ctx.stroke();
+    ctx.fillStyle = '#fff0cf'; ctx.font = '900 ' + (X > 100 ? 29 : 21) + 'px system-ui';
     ctx.textAlign = 'center'; ctx.shadowColor = '#050817'; ctx.shadowBlur = 7;
-    ctx.fillText(preview ? 'ROTATE IN ' + Math.ceil(next - beat) + (Math.ceil(next - beat) === 1 ? ' BEAT' : ' BEATS') : 'LANES ROTATED', 400, X > 100 ? 39 : 30);
+    ctx.fillText(preview ? 'ROTATE IN ' + Math.ceil(next - beat) + (Math.ceil(next - beat) === 1 ? ' BEAT' : ' BEATS') : 'LANES ROTATED', 400, X > 100 ? 29 : 28);
     ctx.shadowBlur = 0;
     for (var base = 0; base < 4; base++) {
       var from = center((base + current) % 4);
@@ -452,9 +515,9 @@
       var x = from + (to - from) * amount;
       if (x > center(3) + laneW / 2) x -= 4 * laneW;
       ctx.strokeStyle = colors[base]; ctx.globalAlpha = opacity * .4; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(from, 51); ctx.lineTo(x, 60); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(from, 43); ctx.lineTo(x, 46); ctx.stroke();
       ctx.globalAlpha = opacity; ctx.shadowColor = colors[base]; ctx.shadowBlur = 13;
-      ctx.fillStyle = colors[base]; ctx.beginPath(); ctx.arc(x, 57, 10, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = colors[base]; ctx.beginPath(); ctx.arc(x, 46, 7, 0, Math.PI * 2); ctx.fill();
       ctx.shadowBlur = 0;
     }
     ctx.restore();

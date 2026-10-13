@@ -263,3 +263,8 @@
 ## 2026-10-12 Pacific — nightly polish intent
 
 - STOP absent; dev synced. Monday Pacific, eight days after the October 4 start: polish night, not release night. Tonight: address crowded rotation/timing cues and authored focal depth within file ownership, verify focused tests plus browser screenshots, and seek harsh independent comparison. Prior visual/UI/audio AAA FAIL verdicts remain until fresh evidence changes them.
+
+### Oct 12 landscape UI checkpoint
+
+- CSS places the short-landscape title, board, metrics, and song progress on one continuous stage surface, reducing the detached score/combo card. Focused Jest 6/6 and an integrated Chromium six-size sweep passed with no page errors, external requests, or horizontal overflow. I opened 320x568 and 844x390 captures; the footer and receptors remain visible. The in-progress renderer/asset were present during the integrated sweep, so the visual composition is not yet a final checkpoint.
+- The independent baseline critic compared prior live pixels with official Theatrhythm and Fortnite Festival references and returned **AAA FAIL / OURS LOSES** for a flat central stage, crowded 320px rotation cue, and compressed landscape playfield. A fresh comparison after both scoped changes is pending.

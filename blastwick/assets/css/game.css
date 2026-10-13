@@ -1,0 +1,26 @@
+html,body{margin:0;height:100%;background:#05060f;overflow:hidden;overscroll-behavior:none;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#eef0ff;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#bw-canvas{position:fixed;inset:0;display:block;touch-action:none}
+#bw-overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(5,6,15,.72);padding:12px;box-sizing:border-box;overflow:auto;z-index:20}
+.card{max-width:460px;width:100%;box-sizing:border-box;background:linear-gradient(180deg,#1c2050,#10123a);border:1px solid #4a54b8;border-radius:18px;padding:22px 22px 18px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 40px rgba(255,140,60,.15);max-height:100%;overflow:auto}
+.card h1{margin:0 0 4px;font-size:clamp(30px,9vw,46px);letter-spacing:.12em;background:linear-gradient(180deg,#fff2b0,#ff7a3d);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 12px rgba(255,120,40,.5))}
+.card h2{margin:0 0 8px}.tag{margin:0 0 12px;color:#aab2ff}
+.how{text-align:left;font-size:14px;line-height:1.45;padding-left:18px;margin:0 0 10px;color:#d6dbff}.how li{margin-bottom:5px}
+.k1{color:#ff8a5d}.k2{color:#5dc4ff}.k3{color:#ffd24d}
+.keys{font-size:13px;color:#9aa4ff;margin:6px 0 14px}
+.big{display:inline-block;font:800 18px system-ui,sans-serif;color:#2a1000;background:linear-gradient(180deg,#ffe58a,#ff9a3d);border:0;border-radius:12px;padding:12px 34px;cursor:pointer;min-height:48px;box-shadow:0 4px 0 #a5521a}
+.big:active{transform:translateY(2px);box-shadow:0 2px 0 #a5521a}
+.big-score{font-size:44px;font-weight:900;margin:4px 0;color:#ffe36b}
+.best{color:#9aa4ff;font-size:13px;margin:10px 0 0}
+.back{display:inline-block;margin:12px 8px 0;color:#9aa4ff;font-size:14px;text-decoration:none;min-height:24px}
+.back:hover{color:#fff}
+#bw-form{display:flex;gap:8px;justify-content:center;margin:8px 0 14px}
+#bw-name{font:16px system-ui;padding:10px;border-radius:10px;border:1px solid #4a54b8;background:#0b0d2c;color:#fff;min-width:0;flex:1;-webkit-user-select:text;user-select:text}
+#bw-form .big{padding:10px 18px;font-size:16px}
+#bw-top{position:fixed;top:0;right:0;display:flex;gap:6px;padding:6px 8px;z-index:10}
+#bw-top button,#bw-top a{width:38px;height:38px;border-radius:10px;border:1px solid #4a54b8;background:rgba(16,18,58,.85);color:#fff;font-size:16px;cursor:pointer;display:grid;place-items:center;text-decoration:none}
+#bw-touch{position:fixed;left:0;right:0;bottom:0;height:min(170px,22vh);z-index:5;pointer-events:none;display:none;padding-bottom:env(safe-area-inset-bottom)}
+#bw-stick{position:absolute;left:14px;bottom:14px;width:120px;height:120px;border-radius:50%;background:rgba(120,140,255,.14);border:2px solid rgba(150,165,255,.4);pointer-events:auto;touch-action:none;display:grid;place-items:center}
+#bw-knob{width:52px;height:52px;border-radius:50%;background:rgba(190,200,255,.55);border:2px solid #fff}
+.tbtn{position:absolute;pointer-events:auto;touch-action:none;border-radius:50%;border:3px solid rgba(255,255,255,.7);color:#fff;font:900 15px system-ui;display:grid;place-items:center}
+#bw-btn-bomb{right:18px;bottom:22px;width:92px;height:92px;background:radial-gradient(circle at 35% 30%,#ffb066,#d9461f)}
+#bw-btn-kind{right:124px;bottom:14px;width:62px;height:62px;background:radial-gradient(circle at 35% 30%,#7fd0ff,#2a62c9);font-size:12px}

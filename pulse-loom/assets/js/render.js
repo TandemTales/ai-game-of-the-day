@@ -184,24 +184,10 @@
     }
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
     ctx.translate(400, cy); ctx.rotate(phase);
-    for (var ring = 0; ring < 2; ring++) {
-      ctx.strokeStyle = ring === 0 ? 'rgba(255,231,186,.39)' : 'rgba(166,218,255,.23)';
-      ctx.lineWidth = ring === 0 ? 4 : 2;
-      ctx.shadowColor = ring === 0 ? '#ffd595' : '#80c7ff';
-      ctx.shadowBlur = 8 + beatLight * 10;
-      ctx.beginPath(); ctx.arc(0, 0, 72 + ring * 43, 0, Math.PI * 2); ctx.stroke();
-    }
-    ctx.shadowBlur = 0;
-    for (var tooth = 0; tooth < 16; tooth++) {
-      var angle = tooth * Math.PI / 8;
-      ctx.strokeStyle = colors[(tooth + section) % 4];
-      ctx.globalAlpha = .23 + .16 * beatLight;
-      ctx.lineWidth = tooth % 4 === 0 ? 4 : 2;
-      ctx.beginPath();
-      ctx.moveTo(Math.cos(angle) * 155, Math.sin(angle) * 155);
-      ctx.lineTo(Math.cos(angle) * 177, Math.sin(angle) * 177);
-      ctx.stroke();
-    }
+    ctx.strokeStyle = 'rgba(255,231,186,' + (.17 + beatLight * .12) + ')';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, 0, 118, Math.PI * .14, Math.PI * .86); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, 118, Math.PI * 1.14, Math.PI * 1.86); ctx.stroke();
     ctx.globalAlpha = 1; ctx.rotate(-phase);
     for (var strandIndex = 0; strandIndex < 4; strandIndex++) {
       var color = colors[strandIndex], end = center((strandIndex + section) % 4) - 400;
@@ -215,12 +201,21 @@
     // It is behind all notes; its crown and hands react to the actual hit.
     loadConductor();
     if (conductorState === 2) {
-      var height = 390 + Math.min(X * .2, 90);
+      var height = 420 + Math.min(X * .14, 70);
       var width = height * conductor.naturalWidth / conductor.naturalHeight;
-      ctx.translate(0, -beatLight * 4 - hit * 12);
-      ctx.rotate(Math.sin(beat * .24) * .055 + hit * .03);
-      ctx.scale(1 + hit * .055, 1 + hit * .055);
-      ctx.shadowColor = colors[section]; ctx.shadowBlur = 19 + beatLight * 9 + hit * 20;
+      var sway = Math.sin(beat * Math.PI * .5) * .085;
+      ctx.translate(Math.sin(beat * Math.PI * .5) * 9, -beatLight * 12 - hit * 24);
+      ctx.rotate(sway + hit * .10);
+      ctx.scale(1 + beatLight * .025 + hit * .08, 1 + beatLight * .03 + hit * .07);
+      ctx.shadowColor = colors[section]; ctx.shadowBlur = 17 + beatLight * 17 + hit * 28;
+      // A short exposure trail makes downbeats and successful strikes read as
+      // performed gestures. Both copies stay behind the notes and key row.
+      if (beatLight > .03 || hit > .03) {
+        ctx.globalAlpha = Math.min(.21, beatLight * .11 + hit * .18);
+        ctx.drawImage(conductor, -width / 2 - 12 - hit * 11, -height * .53 + 8,
+          width, height);
+      }
+      ctx.globalAlpha = 1;
       ctx.drawImage(conductor, -width / 2, -height * .53, width, height);
       ctx.restore();
       return;
@@ -501,12 +496,12 @@
     var opacity = settling ? 1 - (beat - section * 32) / .85 : 1;
     var current = preview ? section : section - 1;
     ctx.save(); ctx.globalAlpha = opacity;
-    ctx.fillStyle = 'rgba(8,13,29,.96)'; ctx.beginPath(); ctx.roundRect(130, 5, 540, 52, 12); ctx.fill();
+    ctx.fillStyle = 'rgba(8,13,29,.96)'; ctx.beginPath(); ctx.roundRect(130, 2, 540, 40, 9); ctx.fill();
     ctx.strokeStyle = 'rgba(255,225,172,.68)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.roundRect(130, 5, 540, 52, 12); ctx.stroke();
+    ctx.beginPath(); ctx.roundRect(130, 2, 540, 40, 9); ctx.stroke();
     ctx.fillStyle = '#fff0cf'; ctx.font = '900 ' + (X > 100 ? 29 : 21) + 'px system-ui';
     ctx.textAlign = 'center'; ctx.shadowColor = '#050817'; ctx.shadowBlur = 7;
-    ctx.fillText(preview ? 'ROTATE IN ' + Math.ceil(next - beat) + (Math.ceil(next - beat) === 1 ? ' BEAT' : ' BEATS') : 'LANES ROTATED', 400, X > 100 ? 29 : 28);
+    ctx.fillText(preview ? 'ROTATE IN ' + Math.ceil(next - beat) + (Math.ceil(next - beat) === 1 ? ' BEAT' : ' BEATS') : 'LANES ROTATED', 400, X > 100 ? 27 : 26);
     ctx.shadowBlur = 0;
     for (var base = 0; base < 4; base++) {
       var from = center((base + current) % 4);
@@ -514,10 +509,10 @@
       if (to < from) to += 4 * laneW;
       var x = from + (to - from) * amount;
       if (x > center(3) + laneW / 2) x -= 4 * laneW;
-      ctx.strokeStyle = colors[base]; ctx.globalAlpha = opacity * .4; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(from, 43); ctx.lineTo(x, 46); ctx.stroke();
-      ctx.globalAlpha = opacity; ctx.shadowColor = colors[base]; ctx.shadowBlur = 13;
-      ctx.fillStyle = colors[base]; ctx.beginPath(); ctx.arc(x, 46, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = colors[base]; ctx.globalAlpha = opacity * .55; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(from, 38); ctx.lineTo(x, 38); ctx.stroke();
+      ctx.globalAlpha = opacity; ctx.shadowColor = colors[base]; ctx.shadowBlur = 8;
+      ctx.fillStyle = colors[base]; ctx.beginPath(); ctx.arc(x, 38, 3, 0, Math.PI * 2); ctx.fill();
       ctx.shadowBlur = 0;
     }
     ctx.restore();

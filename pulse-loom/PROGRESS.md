@@ -278,3 +278,8 @@
 ### Oct 12 second compact UI checkpoint
 
 - CSS keeps the 844x390 Back link on one line, brings the metric strip closer to the board over the shared stage art, and enlarges the 320px song-progress label/rail. The exact combined code passed focused Jest **6/6** and normal plus genuinely unavailable-audio Chromium sweeps at all six sizes with no page errors, external requests, horizontal or vertical overflow. I opened final 320, 844, 1440 normal and 320/844 unavailable-audio screenshots; the warning and footer remain visible. The latest renderer edit is still pending its own checkpoint; independent re-review is pending.
+
+### Oct 12 second performer and critic checkpoint
+
+- The render-only response enlarges and rhythmically moves the conductor, adds a short strike exposure trail, removes competing radial teeth, and lifts the compact rotation cue fully above the first note zone. Focused Jest **6/6**, render syntax and diff checks passed. Combined six-size normal/unavailable-audio browser sweeps remained clean; natural-clock Chromium touch at 320x568, 844x390 and 768x1024 scored `PERFECT` / 100 with no page errors or overflow. These are scripted browser checks, not hardware or human play.
+- The second independent screenshot comparison against retained official Theatrhythm and PlayStation Store Fortnite Festival pixels still returned **VISUAL AAA FAIL / OURS LOSES; UI AAA FAIL / OURS LOSES**. The cue, Back link, warning, and conductor improve, but notes cross the subject, the stage remains flatter than the references, landscape lanes occupy only about 480 of 844 screen pixels, and phone receptors/percentage stay small. Actual animation quality, sound/mix/latency, device touch, human fun, and real 4K GPU performance remain unverified.

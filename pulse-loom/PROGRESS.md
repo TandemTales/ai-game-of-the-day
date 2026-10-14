@@ -315,3 +315,8 @@
 ## 2026-10-14 Pacific — nightly polish intent
 
 - STOP absent; dev synced. Wednesday Pacific, ten days after the October 4 start: polish night, not release night. Tonight: authored beat-responsive performer action and stage depth in the renderer, then score/combo integration. Focused Jest and browser sweeps gate each push; prior AAA FAIL verdicts stand until new evidence changes them.
+
+### Oct 14 strike-thread checkpoint
+
+- `render.js` `hitLight` now throws a bright thread from the conductor's nearer hand to the struck receptor, then fans a 14-spark burst from the key. Focused Jest 6/6, syntax check, and Chromium captures at 1440x900, 390x844, 844x390 (scripted exact-time hit) show no page errors or horizontal overflow. I opened the 1440 and 844 captures: sparks at the struck receptor are visible; the traveling thread is mostly finished before the screenshot lands (capture latency), so its mid-flight look is unverified. No independent critic comparison was run tonight, so the prior **AAA FAIL / OURS LOSES** verdicts stand. Audio, hardware touch, human play, 4K not verified.
+- Next run first: verify the thread mid-flight with a timed capture, then address score/combo integration and the static-cutout feel. Forced second-Saturday wrap-up is October 17.

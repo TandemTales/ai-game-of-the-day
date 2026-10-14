@@ -471,6 +471,39 @@
       ctx.bezierCurveTo(x + side * 82, line - 105,
         x + side * 48, top + 132, x + side * 64, top); ctx.stroke();
     }
+    // The conductor visibly throws a thread from the nearer hand to the struck
+    // receptor; the bright tip travels the arc, then sparks fan out of the key.
+    var cy = 290 + X * .49, fromLeft = state.judgeLane < 2;
+    var hx = 400 + (fromLeft ? -118 : 118), hy = cy - 82;
+    var travel = clamp(age / .16, 0, 1), tt = ease(travel);
+    var cx1 = hx + (x - hx) * .15, cy1 = hy - 70, cx2 = x, cy2 = line - 170;
+    function bez(t, a, b, c, d) {
+      var u = 1 - t; return u * u * u * a + 3 * u * u * t * b + 3 * u * t * t * c + t * t * t * d;
+    }
+    ctx.lineCap = 'round'; ctx.shadowBlur = 16;
+    ctx.strokeStyle = '#fff3cf'; ctx.shadowColor = hue; ctx.shadowBlur = 24; ctx.globalAlpha = Math.min(1, heat * 1.1); ctx.lineWidth = 4 + heat * 4;
+    ctx.beginPath(); ctx.moveTo(hx, hy);
+    for (var k = 1; k <= 18; k++) {
+      var t = tt * k / 18;
+      ctx.lineTo(bez(t, hx, cx1, cx2, x), bez(t, hy, cy1, cy2, line - 6));
+    }
+    ctx.stroke();
+    ctx.fillStyle = '#fff8e2'; ctx.globalAlpha = heat;
+    ctx.beginPath();
+    ctx.arc(bez(tt, hx, cx1, cx2, x), bez(tt, hy, cy1, cy2, line - 6), 6 + heat * 3, 0, Math.PI * 2);
+    ctx.fill();
+    if (age > .1) {
+      var burst = (age - .1) / .4;
+      ctx.fillStyle = '#fff4d0';
+      for (var sp = 0; sp < 14; sp++) {
+        var ang = -Math.PI * (.08 + .84 * ((sp * 0.618) % 1));
+        var dist = (26 + 62 * ((sp * 0.37) % 1)) * ease(clamp(burst, 0, 1));
+        ctx.globalAlpha = Math.max(0, 1 - burst) * .9;
+        ctx.beginPath();
+        ctx.arc(x + Math.cos(ang) * dist, line - 6 + Math.sin(ang) * dist, 2.6 * (1 - burst * .6), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
     ctx.restore();
   }
 

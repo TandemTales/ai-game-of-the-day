@@ -10,6 +10,12 @@
   function ease(v) { return v * v * (3 - 2 * v); }
   function center(i) { return left + (i + .5) * laneW; }
   function strand(i, section) { return colors[(i - section + 4) % 4]; }
+  // Upper notes part around the performer, then settle into their original
+  // lane centers before the judgment line. Input and scoring remain unchanged.
+  function noteCenter(i, y) {
+    var spread = [-17, -68, 68, 17][i];
+    return center(i) + spread * ease(clamp((line - y) / (line - top), 0, 1));
+  }
 
   function loadChamber() {
     if (chamberState || typeof global.Image !== 'function') return;
@@ -217,6 +223,29 @@
       }
       ctx.globalAlpha = 1;
       ctx.drawImage(conductor, -width / 2, -height * .53, width, height);
+      // Lit hand gestures make a hit read as an action by the performer. They
+      // remain behind the glass and never cross the timing row.
+      for (var hand = -1; hand <= 1; hand += 2) {
+        var hx = hand * width * .37, hy = -height * .32;
+        var handColor = colors[(section + (hand < 0 ? 1 : 2)) % 4];
+        var gesture = beatLight * .45 + hit * .85;
+        ctx.strokeStyle = handColor; ctx.shadowColor = handColor;
+        ctx.shadowBlur = 10 + gesture * 19;
+        ctx.globalAlpha = .38 + gesture * .48;
+        ctx.lineWidth = 2 + gesture * 2;
+        ctx.beginPath();
+        ctx.arc(hx, hy, 13 + gesture * 11,
+          -Math.PI * .72 + hand * beat * .08,
+          Math.PI * .62 + hand * beat * .08); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(hx, hy);
+        ctx.quadraticCurveTo(hx + hand * 35, hy - 31 - hit * 13,
+          hx + hand * (72 + hit * 19), hy - 11 - beatLight * 15);
+        ctx.stroke();
+        ctx.fillStyle = '#fff6da'; ctx.globalAlpha = .65 + gesture * .3;
+        ctx.beginPath(); ctx.arc(hx, hy, 3 + gesture * 4, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 1; ctx.shadowBlur = 0;
       ctx.restore();
       return;
     }
@@ -337,16 +366,28 @@
         ctx.strokeStyle = 'rgba(180,198,241,.16)'; ctx.beginPath();
         ctx.moveTo(x, top); ctx.lineTo(x, 553 + X); ctx.stroke();
       }
+      // A quiet curved rail explains the visual path before it converges on
+      // the fixed receptor. Notes themselves always sit above this rail.
+      ctx.save(); ctx.strokeStyle = hue; ctx.globalAlpha = .28;
+      ctx.lineWidth = 2; ctx.shadowColor = hue; ctx.shadowBlur = 9;
+      ctx.beginPath();
+      for (var step = 0; step <= 12; step++) {
+        var railY = top + (line - top) * step / 12;
+        if (step) ctx.lineTo(noteCenter(lane, railY), railY);
+        else ctx.moveTo(noteCenter(lane, railY), railY);
+      }
+      ctx.stroke(); ctx.restore();
       var pulse = .5 + .5 * Math.cos((beat - Math.floor(beat)) * Math.PI * 2);
+      var receptorRadius = X > 100 ? 53 : 47;
       ctx.fillStyle = '#060d20'; ctx.globalAlpha = .96;
-      ctx.beginPath(); ctx.arc(center(lane), line, 47, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(center(lane), line, receptorRadius, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = hue; ctx.globalAlpha = .29 + pulse * .17;
-      ctx.beginPath(); ctx.arc(center(lane), line, 43, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(center(lane), line, receptorRadius - 4, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
       ctx.strokeStyle = hue; ctx.lineWidth = 5;
-      ctx.beginPath(); ctx.arc(center(lane), line, 37, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(center(lane), line, receptorRadius - 10, 0, Math.PI * 2); ctx.stroke();
       ctx.strokeStyle = 'rgba(255,249,231,.92)'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(center(lane), line, 29, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(center(lane), line, receptorRadius - 18, 0, Math.PI * 2); ctx.stroke();
       ctx.fillStyle = hue; ctx.globalAlpha = .65;
       ctx.fillRect(center(lane) - 17, 550 + X, 34, 2);
       ctx.globalAlpha = 1;
@@ -358,7 +399,7 @@
     ctx.fillStyle = '#fff8e8'; ctx.fillRect(left, line - 2, 4 * laneW, 3);
     // Put the key labels over the judgment line and inside the receptors so
     // they remain visible above the progress strip on short landscapes.
-    ctx.font = '900 30px system-ui'; ctx.textAlign = 'center';
+    ctx.font = '900 ' + (X > 100 ? 34 : 30) + 'px system-ui'; ctx.textAlign = 'center';
     ctx.shadowColor = '#050a1a'; ctx.shadowBlur = 8;
     for (var key = 0; key < 4; key++) {
       ctx.strokeStyle = '#07101f'; ctx.lineWidth = 5;
@@ -393,21 +434,22 @@
       if (note.status) return;
       var y = line - (note.time - time) * 220;
       if (y < top - 24 || y > line + 40) return;
-      var x = center(note.lane), hue = colors[note.base];
+      var x = noteCenter(note.lane, y), hue = colors[note.base];
+      var w = 130 - 30 * ease(clamp((line - y) / (line - top), 0, 1));
       ctx.shadowColor = hue; ctx.shadowBlur = 20;
-      ctx.fillStyle = '#050b1a'; ctx.beginPath(); ctx.roundRect(x - 65, y - 27, 130, 54, 15); ctx.fill();
+      ctx.fillStyle = '#050b1a'; ctx.beginPath(); ctx.roundRect(x - w / 2, y - 27, w, 54, 15); ctx.fill();
       ctx.shadowBlur = 0;
-      ctx.fillStyle = hue; ctx.beginPath(); ctx.roundRect(x - 61, y - 23, 122, 46, 12); ctx.fill();
+      ctx.fillStyle = hue; ctx.beginPath(); ctx.roundRect(x - w / 2 + 4, y - 23, w - 8, 46, 12); ctx.fill();
       ctx.strokeStyle = '#fff9eb'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.roundRect(x - 61, y - 23, 122, 46, 12); ctx.stroke();
-      ctx.fillStyle = '#102039'; ctx.beginPath(); ctx.roundRect(x - 52, y - 15, 104, 30, 7); ctx.fill();
-      ctx.fillStyle = '#fff9ee'; ctx.fillRect(x - 33, y - 3, 66, 6);
+      ctx.beginPath(); ctx.roundRect(x - w / 2 + 4, y - 23, w - 8, 46, 12); ctx.stroke();
+      ctx.fillStyle = '#102039'; ctx.beginPath(); ctx.roundRect(x - w / 2 + 13, y - 15, w - 26, 30, 7); ctx.fill();
+      ctx.fillStyle = '#fff9ee'; ctx.fillRect(x - (w - 64) / 2, y - 3, w - 64, 6);
       ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = hue; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(x - 64, y - 12); ctx.lineTo(x - 64, y + 12);
-      ctx.moveTo(x + 64, y - 12); ctx.lineTo(x + 64, y + 12); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x - w / 2 + 1, y - 12); ctx.lineTo(x - w / 2 + 1, y + 12);
+      ctx.moveTo(x + w / 2 - 1, y - 12); ctx.lineTo(x + w / 2 - 1, y + 12); ctx.stroke();
       ctx.globalAlpha = .58; ctx.fillStyle = hue;
-      ctx.fillRect(x - 40, y - 26, 80, 3); ctx.globalAlpha = 1;
+      ctx.fillRect(x - (w - 50) / 2, y - 26, w - 50, 3); ctx.globalAlpha = 1;
     });
   }
 

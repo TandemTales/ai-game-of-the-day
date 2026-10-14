@@ -293,3 +293,7 @@
 ## 2026-10-13 Pacific — nightly polish intent
 
 - STOP absent; dev synced. Tuesday Pacific, nine days after the October 4 start: polish night, not release night. Focus on the subject/notes separation and compact playfield hierarchy from the last critic verdict. Verify the focused suite and live browser sizes before each checkpoint; seek an independent harsh comparison. Existing visual/UI AAA FAIL and unverified audio/device/human gates stand until new evidence changes them.
+
+### Oct 13 visual checkpoint
+
+- Renderer curves upper notes around the conductor, converging on unchanged lane centers before judgment; adds restrained beat/hit hand light and slightly larger compact-portrait receptors. Focused Jest 6/6, renderer syntax, and browser captures at 320x568, 844x390, and 1440x900 pass with no page errors or overflow. I opened all three PNGs; the face and hands are clearer, while large MISS feedback still competes with the performer. Independent final AAA comparison is pending. CSS work is in progress and is not part of this checkpoint.

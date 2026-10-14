@@ -197,7 +197,7 @@
     ctx.globalAlpha = 1; ctx.rotate(-phase);
     for (var strandIndex = 0; strandIndex < 4; strandIndex++) {
       var color = colors[strandIndex], end = center((strandIndex + section) % 4) - 400;
-      ctx.strokeStyle = color; ctx.globalAlpha = .40 + beatLight * .16; ctx.lineWidth = 4;
+      ctx.strokeStyle = color; ctx.globalAlpha = .20 + beatLight * .10; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.moveTo(end, top - cy);
       ctx.bezierCurveTo(end * .55, -100, end * -.3, 70, end, line - cy);
       ctx.stroke();
@@ -621,9 +621,9 @@
       var a = 1 - age2 / .6, cx = state.judgeLane >= 0 ? center(state.judgeLane) : 400;
       var col = state.judge === 'PERFECT' ? '#fff0b8' : state.judge === 'GOOD' ? '#8ee8e6' : '#ff7a8c';
       var miss = state.judge === 'MISS';
-      var labelY = (miss ? line - 155 : line - 65) - age2 * 14;
+      var labelY = (miss ? line - 99 : line - 65) - age2 * 14;
       ctx.save(); ctx.textAlign = 'center'; ctx.globalAlpha = a;
-      ctx.font = '900 ' + (state.judge === 'PERFECT' ? 48 : 43) + 'px system-ui';
+      ctx.font = '900 ' + (miss ? 34 : state.judge === 'PERFECT' ? 48 : 43) + 'px system-ui';
       var halfLabel = ctx.measureText(state.judge).width / 2 + 13;
       if (miss) {
         // Park a miss in the lane with the largest note gap at the judgment
@@ -635,18 +635,18 @@
             if (note.status || note.lane !== lane) return;
             var noteY = line - (note.time - state.judgeAt) * 220;
             if (noteY >= top - 30 && noteY <= line + 40)
-              gap = Math.min(gap, Math.abs(noteY - (line - 175)));
+              gap = Math.min(gap, Math.abs(noteY - (line - 105)));
           });
           if (gap > bestGap) { bestGap = gap; cx = center(lane); }
         }
       }
       cx = clamp(cx, left + halfLabel, left + 4 * laneW - halfLabel);
-      ctx.fillStyle = '#081224';
-      ctx.beginPath(); ctx.roundRect(cx - halfLabel, (miss ? line - 210 : line - 133) - age2 * 14,
-        halfLabel * 2, miss ? 64 : 96, 18); ctx.fill();
+      ctx.fillStyle = miss ? 'rgba(8,18,36,.84)' : '#081224';
+      ctx.beginPath(); ctx.roundRect(cx - halfLabel, (miss ? line - 137 : line - 133) - age2 * 14,
+        halfLabel * 2, miss ? 52 : 96, 18); ctx.fill();
       ctx.strokeStyle = col; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.roundRect(cx - halfLabel, (miss ? line - 210 : line - 133) - age2 * 14,
-        halfLabel * 2, miss ? 64 : 96, 18); ctx.stroke();
+      ctx.beginPath(); ctx.roundRect(cx - halfLabel, (miss ? line - 137 : line - 133) - age2 * 14,
+        halfLabel * 2, miss ? 52 : 96, 18); ctx.stroke();
       ctx.shadowColor = '#050817'; ctx.shadowBlur = 12; ctx.lineWidth = 6;
       ctx.strokeStyle = '#101626';
       ctx.strokeText(state.judge, cx, labelY);

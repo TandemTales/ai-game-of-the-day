@@ -289,3 +289,7 @@
 - All five tested checkpoints were pushed to `dev`; the checkout is clean and matches `origin/dev`. `main` was not changed, and no `.aaa-complete` was written. The game remains active for polish; October 17 is the forced second-Saturday wrap-up if it remains active then.
 - The full repository Jest suite was not rerun because earlier runs repeatedly stalled after five suites; only Pulse Loom's exact focused **6/6** pass is claimed. Chromium smoke and still frames do not establish speaker output, device latency, human play, or 4K hardware frame rate.
 - Next run first: solve subject/notes separation with an authored performance action instead of a translucent background cutout; widen the active short-landscape hit region and bring score/combo toward it; enlarge phone receptor/progress hierarchy without losing the warning state. Then seek another independent pixel comparison and arrange actual listening/device checks. The second critic verdict remains **AAA FAIL / OURS LOSES** until that evidence changes it.
+
+## 2026-10-13 Pacific — nightly polish intent
+
+- STOP absent; dev synced. Tuesday Pacific, nine days after the October 4 start: polish night, not release night. Focus on the subject/notes separation and compact playfield hierarchy from the last critic verdict. Verify the focused suite and live browser sizes before each checkpoint; seek an independent harsh comparison. Existing visual/UI AAA FAIL and unverified audio/device/human gates stand until new evidence changes them.

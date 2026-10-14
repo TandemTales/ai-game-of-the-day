@@ -301,3 +301,7 @@
 ### Oct 13 visual critic response
 
 - A small render-only follow-up reduces the lower MISS pill and fades strands crossing the performer. Focused Jest 6/6 and renderer syntax pass. I opened the 320, 844, and 1440 follow-up PNGs; the label no longer dominates the conductor. This is a visual checkpoint, not an AAA pass; final integrated critique still pending.
+
+### Oct 13 compact UI checkpoint
+
+- CSS widens the 844x390 board to about 560px and moves Movement/Score/Combo into a compact card beside the hit row. At 320x568 the board, progress rail, and label grow; genuine audio-unavailable mode retains a near-normal board with visible warning and footer. Final integrated normal and unavailable-audio Edge sweeps at all six required sizes report zero page errors, external requests, or horizontal/vertical overflow. I opened all six normal screenshots (4K downscaled) and both compact warning states. Focused Jest 6/6 and diff checks pass. Slight landscape canvas stretch and independent AAA critique remain open.

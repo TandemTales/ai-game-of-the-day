@@ -213,7 +213,14 @@
       ctx.translate(Math.sin(beat * Math.PI * .5) * 9, -beatLight * 12 - hit * 24);
       ctx.rotate(sway + hit * .10);
       ctx.scale(1 + beatLight * .025 + hit * .08, 1 + beatLight * .03 + hit * .07);
-      ctx.shadowColor = colors[section]; ctx.shadowBlur = 17 + beatLight * 17 + hit * 28;
+      // A dark soft pool behind the performer separates the silhouette from the
+      // lane overlays, then a section-colored rim light outlines it.
+      var scrim = ctx.createRadialGradient(0, -height * .06, 10, 0, -height * .06, height * .52);
+      scrim.addColorStop(0, 'rgba(4,7,20,.78)'); scrim.addColorStop(.6, 'rgba(4,7,20,.45)');
+      scrim.addColorStop(1, 'rgba(4,7,20,0)');
+      ctx.fillStyle = scrim; ctx.shadowBlur = 0;
+      ctx.fillRect(-width, -height * .62, width * 2, height * 1.2);
+      ctx.shadowColor = colors[section]; ctx.shadowBlur = 24 + beatLight * 20 + hit * 30;
       // A short exposure trail makes downbeats and successful strikes read as
       // performed gestures. Both copies stay behind the notes and key row.
       if (beatLight > .03 || hit > .03) {

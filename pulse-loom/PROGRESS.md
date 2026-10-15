@@ -320,3 +320,7 @@
 
 - `render.js` `hitLight` now throws a bright thread from the conductor's nearer hand to the struck receptor, then fans a 14-spark burst from the key. Focused Jest 6/6, syntax check, and Chromium captures at 1440x900, 390x844, 844x390 (scripted exact-time hit) show no page errors or horizontal overflow. I opened the 1440 and 844 captures: sparks at the struck receptor are visible; the traveling thread is mostly finished before the screenshot lands (capture latency), so its mid-flight look is unverified. No independent critic comparison was run tonight, so the prior **AAA FAIL / OURS LOSES** verdicts stand. Audio, hardware touch, human play, 4K not verified.
 - Next run first: verify the thread mid-flight with a timed capture, then address score/combo integration and the static-cutout feel. Forced second-Saturday wrap-up is October 17.
+
+## 2026-10-14 Pacific — Wednesday runner continuation
+
+- STOP absent; `dev` synced at `f05514f`. The game is ten days old, and Wednesday is a polish night. Tonight: inspect the new strike thread in motion, tighten the score/combo relationship to the hit field, and verify the result with focused tests and browser captures. Prior visual/UI AAA FAIL verdicts stand until fresh comparison evidence changes them.

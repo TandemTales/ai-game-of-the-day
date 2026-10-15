@@ -328,3 +328,7 @@
 ### Oct 14 stage-light checkpoint
 
 - The renderer now directs the conductor spotlight toward a judged receptor and replaces competing orbital arcs with section-colored wing fixtures. `node --check`, focused Jest 6/6, and a synthetic 75 ms hit draw through both art and fallback paths pass. Lead's elevated headless Edge sweep opened live frames at all six required sizes with no page errors, external requests, or document overflow; the 320, 844, and 1440 frames were inspected. The brief strike-thread mid-flight frame remains unverified. The prior visual AAA FAIL verdict stands.
+
+### Oct 14 score and field checkpoint
+
+- CSS places desktop/tablet score, combo, and movement tiles against the canvas top edge; the 844x390 field and song rail widen to 620px. Phone metric strip and audio warning keep explicit compact rules. Normal and genuine audio-unavailable Edge sweeps at all six required sizes had zero page errors, external requests, or document overflow. Lead inspected every normal frame plus 320/844 warning frames; warning, receptors, and footer remain visible. Focused Jest 6/6 and diff checks pass. Independent UI comparison is pending; visual critic still says **AAA FAIL / OURS LOSES** against official Fortnite Festival pixels because performer and stage action remain obscured/flat, especially on phone and short landscape.

@@ -515,49 +515,48 @@
       Math.pow(clamp(1 - age / .5, 0, 1), 1.5) : 0;
     var hue = colors[section];
     ctx.save();
-    // A narrow moving theatre beam lands on the performer. The diffuse pool
-    // stops above the judgment row, so its rhythm never competes with notes.
-    var aim = Math.sin(beat * .16) * 34;
-    var beam = ctx.createLinearGradient(0, top, 0, cy + 145);
-    beam.addColorStop(0, 'rgba(255,243,212,.03)');
-    beam.addColorStop(.55, 'rgba(255,225,172,.09)');
+    // A successful strike cues the stage toward its receptor. The light lands
+    // on the conductor first, then tracks toward the struck side while the
+    // playable notes remain a separate foreground layer.
+    var aim = hit ? (center(state.judgeLane) - 400) * .28 * hit :
+      Math.sin(beat * .16) * 30;
+    var beam = ctx.createLinearGradient(0, top, 0, cy + 160);
+    beam.addColorStop(0, 'rgba(255,248,218,.03)');
+    beam.addColorStop(.42, 'rgba(255,228,181,.23)');
     beam.addColorStop(1, 'rgba(255,225,172,0)');
-    ctx.fillStyle = beam; ctx.globalAlpha = .55 + pulse * .25 + hit * .2;
-    ctx.beginPath(); ctx.moveTo(363 + aim * .3, top);
-    ctx.lineTo(437 + aim * .3, top);
-    ctx.lineTo(555 + aim, cy + 145);
-    ctx.lineTo(245 + aim, cy + 145); ctx.closePath(); ctx.fill();
-    var focus = ctx.createRadialGradient(400 + aim, cy - 30, 12,
-      400 + aim, cy - 30, 190);
-    focus.addColorStop(0, 'rgba(255,233,188,.29)');
-    focus.addColorStop(.48, 'rgba(165,204,241,.11)');
+    ctx.fillStyle = beam; ctx.globalAlpha = .72 + pulse * .16 + hit * .12;
+    ctx.beginPath(); ctx.moveTo(355 + aim * .2, top);
+    ctx.lineTo(445 + aim * .2, top);
+    ctx.lineTo(548 + aim, cy + 160);
+    ctx.lineTo(252 + aim, cy + 160); ctx.closePath(); ctx.fill();
+    var focus = ctx.createRadialGradient(400 + aim, cy - 22, 8,
+      400 + aim, cy - 22, 205);
+    focus.addColorStop(0, 'rgba(255,242,201,.46)');
+    focus.addColorStop(.45, 'rgba(165,204,241,.14)');
     focus.addColorStop(1, 'rgba(165,204,241,0)');
-    ctx.fillStyle = focus; ctx.globalAlpha = .6 + pulse * .28 + hit * .12;
-    ctx.fillRect(205 + aim, cy - 225, 390, 390);
-    // Project the rhythm over the glass, but leave the moving notes above it.
-    // The center remains the scene's live subject on both wide and tall views.
-    ctx.globalAlpha = .35 + pulse * .32 + hit * .25;
-    ctx.strokeStyle = hue;
-    ctx.lineWidth = 3 + pulse * 3 + hit * 3;
-    ctx.beginPath();
-    ctx.arc(400, cy, 108 + phase * 16 + hit * 25,
-      -Math.PI * .67 + beat * .09, Math.PI * .42 + beat * .09);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(400, cy, 108 + phase * 16 + hit * 25,
-      Math.PI * .33 + beat * .09, Math.PI * 1.42 + beat * .09);
-    ctx.stroke();
-    // Marquee lights on the outer stage move on every beat, independent of
-    // note traffic. They stay outside the four timing lanes.
+    ctx.fillStyle = focus; ctx.globalAlpha = .82 + pulse * .12 + hit * .06;
+    ctx.fillRect(185 + aim, cy - 235, 430, 430);
+    // Four practical fixtures give the hall a scored lighting sequence. They
+    // run down the wings, away from both the upper notes and the timing row.
     for (var side = 0; side < 2; side++) {
-      var x = side ? 730 : 70;
-      var travel = top + ((beat * 73 + side * 210) % (line - top));
-      ctx.strokeStyle = colors[(section + side) % 4];
-      ctx.globalAlpha = .2 + pulse * .3 + hit * .16;
-      ctx.lineWidth = 10 + pulse * 4;
+      var x = side ? 741 : 59, travel = top + ((beat * 73 + side * 210) % (line - top));
+      var wingColor = colors[(section + side) % 4];
+      ctx.strokeStyle = wingColor; ctx.shadowColor = wingColor;
+      ctx.shadowBlur = 19 + pulse * 13 + hit * 18;
+      ctx.globalAlpha = .42 + pulse * .25 + hit * .12;
+      ctx.lineWidth = 17 + pulse * 5;
       ctx.beginPath(); ctx.moveTo(x, top + 8); ctx.lineTo(x, line - 8); ctx.stroke();
-      ctx.globalAlpha = .76; ctx.fillStyle = '#fff6dd';
-      ctx.beginPath(); ctx.arc(x, travel, 6 + pulse * 3, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0; ctx.strokeStyle = '#fff0d5'; ctx.lineWidth = 3;
+      ctx.globalAlpha = .37 + pulse * .32 + hit * .18;
+      ctx.beginPath(); ctx.moveTo(x, top + 8); ctx.lineTo(x, line - 8); ctx.stroke();
+      ctx.globalAlpha = .95; ctx.fillStyle = '#fff6dd';
+      ctx.beginPath(); ctx.arc(x, travel, 5 + pulse * 3, 0, Math.PI * 2); ctx.fill();
+      for (var bulb = 0; bulb < 4; bulb++) {
+        var by = top + 35 + bulb * (line - top - 70) / 3;
+        var active = Math.pow(Math.max(0, Math.cos(phase * Math.PI * 2 - bulb * .8 - side)), 4);
+        ctx.fillStyle = wingColor; ctx.globalAlpha = .25 + active * .55 + hit * .12;
+        ctx.beginPath(); ctx.arc(x + (side ? -15 : 15), by, 4 + active * 2, 0, Math.PI * 2); ctx.fill();
+      }
     }
     ctx.restore();
   }

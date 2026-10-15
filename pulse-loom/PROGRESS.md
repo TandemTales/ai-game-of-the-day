@@ -324,3 +324,7 @@
 ## 2026-10-14 Pacific — Wednesday runner continuation
 
 - STOP absent; `dev` synced at `f05514f`. The game is ten days old, and Wednesday is a polish night. Tonight: inspect the new strike thread in motion, tighten the score/combo relationship to the hit field, and verify the result with focused tests and browser captures. Prior visual/UI AAA FAIL verdicts stand until fresh comparison evidence changes them.
+
+### Oct 14 stage-light checkpoint
+
+- The renderer now directs the conductor spotlight toward a judged receptor and replaces competing orbital arcs with section-colored wing fixtures. `node --check`, focused Jest 6/6, and a synthetic 75 ms hit draw through both art and fallback paths pass. Lead's elevated headless Edge sweep opened live frames at all six required sizes with no page errors, external requests, or document overflow; the 320, 844, and 1440 frames were inspected. The brief strike-thread mid-flight frame remains unverified. The prior visual AAA FAIL verdict stands.

@@ -1,13 +1,12 @@
 # Active game
 
-No game is active.
+slug: blastworks
+started: 2026-10-16
 
-Completed: **prism-warden** — The Drowned Beacons.
-started: 2026-09-20
-completed: 2026-10-03
-release: forced second-Saturday release, age 13 (America/Los_Angeles).
+**Blastworks** — a classic Super Bomberman-style grid arena (80% classic slot) with a
+new twist: **Pressure**. Every bomb on the board raises a shared Pressure gauge; when it
+redlines, a Quake chain-detonates every live bomb (yours and the rivals'), so you must
+decide when to flood the board for a mega-chain and when to bail out. Solo vs three AI
+rivals across quarry stages; score = kills, crates, chain multipliers, time bonus.
 
-The scheduled lifecycle is complete; AAA acceptance is not claimed. See
-prism-warden/.aaa-complete and PROGRESS.md for failed critic verdicts,
-verification boundaries and remaining debt. The next run starts STEP 2:
-inventory, research, choose a distinct game and scaffold its first playable.
+Note: no `dev` branch exists in this checkout; work is on `claude/beautiful-turing-ru5edv`.

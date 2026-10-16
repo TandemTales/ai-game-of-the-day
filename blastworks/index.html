@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Blastworks: a grid-arena bomber. Every bomb raises Pressure; at the redline a Quake detonates the whole board.">
+<title>Blastworks — Pressure Bomber</title><link rel="icon" href="../images/botbuiltarcade-icon-face.png"><link rel="stylesheet" href="assets/css/game.css"></head>
+<body><div id="app">
+<header><a href="../index.html" aria-label="Back to Arcade">← Back to Arcade</a><strong>BLASTWORKS</strong><span class="sp"></span><button id="pause" aria-label="Pause game">Ⅱ</button><button id="sound" aria-pressed="false">Sound off</button></header>
+<section id="hud"><span id="stage">STAGE 1</span><span>SCORE <b id="score">00000</b></span><span id="timer">150s</span><span>PRESSURE</span><div id="gauge" aria-label="Pressure"><i id="gaugeFill"></i></div></section>
+<main><canvas id="scene" tabindex="0" aria-label="Blastworks arena. Arrow keys or WASD move, Space drops a bomb."></canvas></main>
+<div id="touch"><div id="dpad"><span></span><button id="dpu" aria-label="Up">▲</button><span></span><button id="dpl" aria-label="Left">◀</button><span></span><button id="dpr" aria-label="Right">▶</button><span></span><button id="dpd" aria-label="Down">▼</button><span></span></div><button id="bombBtn">BOMB</button></div>
+<section id="overlay"><div class="panel"><h1 id="title">Blastworks</h1><p id="text">Crack the crates, outlast three rivals. Every bomb raises <b>Pressure</b>; at the redline a <b>Quake</b> sets off every bomb on the board — yours and theirs. Arrows/WASD move, Space bombs.</p>
+<button id="begin" class="primary">Start</button>
+<form id="form" hidden><p><label for="callsign">Name </label><input id="callsign" maxlength="20" placeholder="Player"> <button type="submit">Post score</button></p><p id="scoreStatus" role="status"></p><a href="../leaderboard.html?gameId=blastworks" style="color:#ffc857">View leaderboard</a></form></div></section>
+</div>
+<script src="assets/js/logic.js"></script><script src="assets/js/audio.js"></script><script src="assets/js/render.js"></script><script src="assets/js/main.js"></script></body></html>

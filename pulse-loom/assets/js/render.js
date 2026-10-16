@@ -141,6 +141,32 @@
       Math.pow(clamp(1 - hitAge / .5, 0, 1), 1.4) : 0;
     var charge = clamp(run.combo / 24, 0, 1);
     ctx.save();
+    // Three fixed scenic planes make the performer occupy a physical stage.
+    // Their edges sit outside the receptor path and respond to the downbeat.
+    var wing = colors[section];
+    var rear = ctx.createLinearGradient(0, top, 0, line);
+    rear.addColorStop(0, 'rgba(9,14,32,.92)');
+    rear.addColorStop(.58, 'rgba(28,29,60,.54)');
+    rear.addColorStop(1, 'rgba(7,13,29,0)');
+    ctx.fillStyle = rear;
+    ctx.beginPath(); ctx.moveTo(153, top + 8); ctx.lineTo(647, top + 8);
+    ctx.lineTo(584, cy + 100); ctx.lineTo(216, cy + 100); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = wing; ctx.globalAlpha = .36 + beatLight * .32;
+    ctx.lineWidth = 5; ctx.shadowColor = wing; ctx.shadowBlur = 19;
+    ctx.beginPath(); ctx.moveTo(153, top + 8); ctx.lineTo(235, cy + 125);
+    ctx.moveTo(647, top + 8); ctx.lineTo(565, cy + 125); ctx.stroke();
+    ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+    for (var stair = 0; stair < 3; stair++) {
+      var sy = cy + 120 + stair * 24;
+      ctx.fillStyle = stair % 2 ? 'rgba(9,14,33,.82)' : 'rgba(26,29,55,.77)';
+      ctx.beginPath(); ctx.moveTo(245 - stair * 31, sy);
+      ctx.lineTo(555 + stair * 31, sy);
+      ctx.lineTo(578 + stair * 34, sy + 18);
+      ctx.lineTo(222 - stair * 34, sy + 18); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,219,172,' + (.19 + beatLight * .15) + ')';
+      ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(245 - stair * 31, sy);
+      ctx.lineTo(555 + stair * 31, sy); ctx.stroke();
+    }
     // The performer stands in a recessed pool of light. The diverging floor
     // seams and the small rear arch give the inset four-lane board a horizon.
     var stageFloor = cy + 143;
@@ -181,7 +207,7 @@
     for (var ray = 0; ray < 4; ray++) {
       var rayX = center(ray), swing = Math.sin(phase * 2 + ray * 1.7) * 18;
       ctx.strokeStyle = colors[(ray + section) % 4];
-      ctx.globalAlpha = .26 + beatLight * .27;
+      ctx.globalAlpha = (X > 100 ? .08 : .17) + beatLight * .15;
       ctx.lineWidth = 3 + beatLight * 2;
       ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 10 + beatLight * 18;
       ctx.beginPath(); ctx.moveTo(400, cy);
@@ -195,9 +221,9 @@
     ctx.beginPath(); ctx.arc(0, 0, 118, Math.PI * .14, Math.PI * .86); ctx.stroke();
     ctx.beginPath(); ctx.arc(0, 0, 118, Math.PI * 1.14, Math.PI * 1.86); ctx.stroke();
     ctx.globalAlpha = 1; ctx.rotate(-phase);
-    for (var strandIndex = 0; strandIndex < 4; strandIndex++) {
+    for (var strandIndex = 0; strandIndex < 4 && X <= 100; strandIndex++) {
       var color = colors[strandIndex], end = center((strandIndex + section) % 4) - 400;
-      ctx.strokeStyle = color; ctx.globalAlpha = .20 + beatLight * .10; ctx.lineWidth = 3;
+       ctx.strokeStyle = color; ctx.globalAlpha = .10 + beatLight * .065; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(end, top - cy);
       ctx.bezierCurveTo(end * .55, -100, end * -.3, 70, end, line - cy);
       ctx.stroke();
@@ -220,37 +246,54 @@
       scrim.addColorStop(1, 'rgba(4,7,20,0)');
       ctx.fillStyle = scrim; ctx.shadowBlur = 0;
       ctx.fillRect(-width, -height * .62, width * 2, height * 1.2);
-      ctx.shadowColor = colors[section]; ctx.shadowBlur = 24 + beatLight * 20 + hit * 30;
-      // A short exposure trail makes downbeats and successful strikes read as
-      // performed gestures. Both copies stay behind the notes and key row.
-      if (beatLight > .03 || hit > .03) {
-        ctx.globalAlpha = Math.min(.21, beatLight * .11 + hit * .18);
-        ctx.drawImage(conductor, -width / 2 - 12 - hit * 11, -height * .53 + 8,
-          width, height);
-      }
+      // The source art has translucent cloth. An opaque tailored backing keeps
+      // the torso legible when the stage and notes move through its silhouette.
+      var coat = ctx.createLinearGradient(0, -height * .38, 0, height * .46);
+      coat.addColorStop(0, '#24233c'); coat.addColorStop(.55, '#111629');
+      coat.addColorStop(1, '#080e20');
+      ctx.fillStyle = coat; ctx.strokeStyle = colors[section];
+      ctx.lineWidth = 3; ctx.shadowColor = colors[section];
+      ctx.shadowBlur = 20 + beatLight * 11 + hit * 23;
+      ctx.beginPath(); ctx.moveTo(0, -height * .48);
+      ctx.bezierCurveTo(width * .13, -height * .48, width * .15, -height * .33, width * .19, -height * .28);
+      ctx.bezierCurveTo(width * .35, -height * .23, width * .43, -height * .04, width * .45, height * .26);
+      ctx.quadraticCurveTo(width * .18, height * .14, width * .07, height * .44);
+      ctx.lineTo(-width * .07, height * .44);
+      ctx.quadraticCurveTo(-width * .18, height * .14, -width * .45, height * .26);
+      ctx.bezierCurveTo(-width * .43, -height * .04, -width * .35, -height * .23, -width * .19, -height * .28);
+      ctx.bezierCurveTo(-width * .15, -height * .33, -width * .13, -height * .48, 0, -height * .48);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.shadowBlur = 0;
       ctx.globalAlpha = 1;
       ctx.drawImage(conductor, -width / 2, -height * .53, width, height);
-      // Lit hand gestures make a hit read as an action by the performer. They
-      // remain behind the glass and never cross the timing row.
+      // Animated sleeves are drawn over the source pose. The striking arm
+      // reaches toward the judged lane while the other follows the beat.
       for (var hand = -1; hand <= 1; hand += 2) {
-        var hx = hand * width * .37, hy = -height * .32;
+        var striking = hit > .01 && (state.judgeLane < 2 ? -1 : 1) === hand;
+        var gesture = beatLight * .45 + (striking ? hit : hit * .18);
+        var hx = hand * (width * .39 + gesture * 17);
+        var hy = -height * (.31 + gesture * .12);
         var handColor = colors[(section + (hand < 0 ? 1 : 2)) % 4];
-        var gesture = beatLight * .45 + hit * .85;
+        var shoulderX = hand * width * .105, shoulderY = -height * .23;
+        ctx.lineCap = 'round'; ctx.strokeStyle = '#10192e';
+        ctx.shadowColor = '#060a19'; ctx.shadowBlur = 12;
+        ctx.lineWidth = 24;
+        ctx.beginPath(); ctx.moveTo(shoulderX, shoulderY);
+        ctx.quadraticCurveTo(hand * width * .26, -height * (.20 + gesture * .10), hx, hy);
+        ctx.stroke();
         ctx.strokeStyle = handColor; ctx.shadowColor = handColor;
-        ctx.shadowBlur = 10 + gesture * 19;
-        ctx.globalAlpha = .38 + gesture * .48;
-        ctx.lineWidth = 2 + gesture * 2;
+        ctx.shadowBlur = 9 + gesture * 20; ctx.globalAlpha = .72 + gesture * .25;
+        ctx.lineWidth = 4 + gesture * 3;
+        ctx.beginPath(); ctx.moveTo(shoulderX, shoulderY);
+        ctx.quadraticCurveTo(hand * width * .26, -height * (.20 + gesture * .10), hx, hy);
+        ctx.stroke();
+        ctx.fillStyle = '#f9e8cd'; ctx.globalAlpha = 1;
+        ctx.beginPath(); ctx.arc(hx, hy, 8 + gesture * 4, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = handColor; ctx.lineWidth = 2 + gesture * 2;
         ctx.beginPath();
-        ctx.arc(hx, hy, 13 + gesture * 11,
+        ctx.arc(hx, hy, 17 + gesture * 15,
           -Math.PI * .72 + hand * beat * .08,
           Math.PI * .62 + hand * beat * .08); ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(hx, hy);
-        ctx.quadraticCurveTo(hx + hand * 35, hy - 31 - hit * 13,
-          hx + hand * (72 + hit * 19), hy - 11 - beatLight * 15);
-        ctx.stroke();
-        ctx.fillStyle = '#fff6da'; ctx.globalAlpha = .65 + gesture * .3;
-        ctx.beginPath(); ctx.arc(hx, hy, 3 + gesture * 4, 0, Math.PI * 2); ctx.fill();
       }
       ctx.globalAlpha = 1; ctx.shadowBlur = 0;
       ctx.restore();
@@ -351,9 +394,9 @@
       var fill = ctx.createLinearGradient(0, top, 0, line);
       // The middle strands are a window onto the performer. Keep the lower
       // timing area dark while letting the face and moving arms read clearly.
-      var glass = lane === 1 || lane === 2 ? .18 : .45;
+       var glass = lane === 1 || lane === 2 ? (X > 100 ? .055 : .12) : (X > 100 ? .27 : .39);
       fill.addColorStop(0, 'rgba(5,11,27,' + glass + ')');
-      fill.addColorStop(.6, 'rgba(5,11,27,' + (glass + .08) + ')');
+       fill.addColorStop(.6, 'rgba(5,11,27,' + (glass + .04) + ')');
       fill.addColorStop(1, 'rgba(5,11,27,.76)');
       ctx.fillStyle = fill; ctx.fillRect(x + 2, top, laneW - 4, line - top + 40);
       if (state.flashUntil > time && state.flashLane === lane) {
@@ -375,8 +418,8 @@
       }
       // A quiet curved rail explains the visual path before it converges on
       // the fixed receptor. Notes themselves always sit above this rail.
-      ctx.save(); ctx.strokeStyle = hue; ctx.globalAlpha = .28;
-      ctx.lineWidth = 2; ctx.shadowColor = hue; ctx.shadowBlur = 9;
+       ctx.save(); ctx.strokeStyle = hue; ctx.globalAlpha = X > 100 ? .20 : .28;
+       ctx.lineWidth = X > 100 ? 3 : 2; ctx.shadowColor = hue; ctx.shadowBlur = 9;
       ctx.beginPath();
       for (var step = 0; step <= 12; step++) {
         var railY = top + (line - top) * step / 12;

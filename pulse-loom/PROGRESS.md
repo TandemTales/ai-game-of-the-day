@@ -347,3 +347,8 @@
 
 - `render.js` now draws a dark radial pool behind the conductor and a stronger section-colored rim glow. Focused Jest 6/6 and render syntax pass; Chromium captures at 390x844, 844x390 and 1440x900 had no page errors. I opened the 390 and 1440 before/after frames: the figure separates somewhat more from the lane overlays, but the sprite itself remains translucent and mostly static, so the change is modest. No independent critic was run tonight; prior visual/UI **AAA FAIL / OURS LOSES** verdicts stand. Audio, hardware touch, human play and 4K performance remain unverified.
 - Next run first: re-author the performer art with an opaque body and real pose changes (the translucent cutout is the core weakness), simplify the phone note path, then seek a new independent comparison. Forced second-Saturday wrap-up is October 17 (Saturday Pacific): wrap up only, record debt, write `.aaa-complete`, promote to `main`.
+
+## 2026-10-15 Pacific late runner — polish intent
+
+- STOP absent; dev synced at dfdfcbe. Thursday Pacific, eleven days after October 4: polish only. Tonight: inspect the current performer and simplify the phone note path, then verify focused tests and browser screenshots. Prior visual/UI AAA FAIL verdicts and audio/device/human gates remain open.
+

@@ -53,7 +53,7 @@
       Math.min(800 / chamber.naturalWidth, 600 / chamber.naturalHeight);
     var w = chamber.naturalWidth * scale, h = chamber.naturalHeight * scale;
     var x = (800 - w) / 2, y = (600 + X - h) / 2;
-    ctx.save(); ctx.globalAlpha = portrait ? .88 : .77;
+    ctx.save(); ctx.globalAlpha = portrait ? .98 : .90;
     ctx.drawImage(chamber, x, y, w, h);
     if (portrait) {
       ctx.globalAlpha = .62;
@@ -145,8 +145,8 @@
     // Their edges sit outside the receptor path and respond to the downbeat.
     var wing = colors[section];
     var rear = ctx.createLinearGradient(0, top, 0, line);
-    rear.addColorStop(0, 'rgba(9,14,32,.92)');
-    rear.addColorStop(.58, 'rgba(28,29,60,.54)');
+    rear.addColorStop(0, 'rgba(16,19,44,.82)');
+    rear.addColorStop(.58, 'rgba(54,42,91,.38)');
     rear.addColorStop(1, 'rgba(7,13,29,0)');
     ctx.fillStyle = rear;
     ctx.beginPath(); ctx.moveTo(153, top + 8); ctx.lineTo(647, top + 8);
@@ -158,7 +158,7 @@
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
     for (var stair = 0; stair < 3; stair++) {
       var sy = cy + 120 + stair * 24;
-      ctx.fillStyle = stair % 2 ? 'rgba(9,14,33,.82)' : 'rgba(26,29,55,.77)';
+      ctx.fillStyle = stair % 2 ? 'rgba(22,20,48,.70)' : 'rgba(56,43,82,.58)';
       ctx.beginPath(); ctx.moveTo(245 - stair * 31, sy);
       ctx.lineTo(555 + stair * 31, sy);
       ctx.lineTo(578 + stair * 34, sy + 18);
@@ -215,12 +215,7 @@
       ctx.stroke();
     }
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
-    ctx.translate(400, cy); ctx.rotate(phase);
-    ctx.strokeStyle = 'rgba(255,231,186,' + (.17 + beatLight * .12) + ')';
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(0, 0, 118, Math.PI * .14, Math.PI * .86); ctx.stroke();
-    ctx.beginPath(); ctx.arc(0, 0, 118, Math.PI * 1.14, Math.PI * 1.86); ctx.stroke();
-    ctx.globalAlpha = 1; ctx.rotate(-phase);
+    ctx.translate(400, cy);
     for (var strandIndex = 0; strandIndex < 4 && X <= 100; strandIndex++) {
       var color = colors[strandIndex], end = center((strandIndex + section) % 4) - 400;
        ctx.strokeStyle = color; ctx.globalAlpha = .10 + beatLight * .065; ctx.lineWidth = 2;
@@ -379,8 +374,8 @@
 
   function loom(ctx, beat, section, state, time, run) {
     var board = ctx.createLinearGradient(0, top, 0, 553 + X);
-    board.addColorStop(0, chamberState === 2 ? 'rgba(7,13,29,.18)' : 'rgba(7,13,29,.67)');
-    board.addColorStop(1, chamberState === 2 ? 'rgba(10,18,39,.58)' : 'rgba(10,18,39,.91)');
+    board.addColorStop(0, chamberState === 2 ? 'rgba(7,13,29,.10)' : 'rgba(7,13,29,.67)');
+    board.addColorStop(1, chamberState === 2 ? 'rgba(10,18,39,.38)' : 'rgba(10,18,39,.91)');
     ctx.shadowColor = '#050816'; ctx.shadowBlur = 30;
     ctx.fillStyle = board; ctx.beginPath(); ctx.roundRect(left - 13, top - 14, laneW * 4 + 26, 479 + X, 18); ctx.fill();
     ctx.shadowBlur = 0;
@@ -394,10 +389,10 @@
       var fill = ctx.createLinearGradient(0, top, 0, line);
       // The middle strands are a window onto the performer. Keep the lower
       // timing area dark while letting the face and moving arms read clearly.
-       var glass = lane === 1 || lane === 2 ? (X > 100 ? .055 : .12) : (X > 100 ? .27 : .39);
+      var glass = lane === 1 || lane === 2 ? (X > 100 ? .035 : .07) : (X > 100 ? .20 : .31);
       fill.addColorStop(0, 'rgba(5,11,27,' + glass + ')');
-       fill.addColorStop(.6, 'rgba(5,11,27,' + (glass + .04) + ')');
-      fill.addColorStop(1, 'rgba(5,11,27,.76)');
+      fill.addColorStop(.6, 'rgba(5,11,27,' + (glass + .03) + ')');
+      fill.addColorStop(1, 'rgba(5,11,27,.65)');
       ctx.fillStyle = fill; ctx.fillRect(x + 2, top, laneW - 4, line - top + 40);
       if (state.flashUntil > time && state.flashLane === lane) {
         var heat = clamp((state.flashUntil - time) / .22, 0, 1);
@@ -460,12 +455,19 @@
   }
 
   function beatGrid(ctx, beat, time, logic) {
+    var performerY = 290 + X * .49;
     for (var b = Math.ceil(beat); b < Math.min(logic.TOTAL_BEATS, beat + 5); b++) {
       var y = line - (b * logic.BEAT - time) * 220;
       if (y < top || y >= line) continue;
       ctx.strokeStyle = b % 4 === 0 ? 'rgba(255,230,185,.34)' : 'rgba(221,229,255,.10)';
       ctx.lineWidth = b % 4 === 0 ? 2 : 1;
-      ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(left + 4 * laneW, y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(left, y);
+      if (y > performerY - 145 && y < performerY + 95) {
+        // Keep the beat count at the edges without drawing through the face.
+        ctx.lineTo(left + laneW * 1.18, y);
+        ctx.moveTo(left + laneW * 2.82, y);
+      }
+      ctx.lineTo(left + 4 * laneW, y); ctx.stroke();
       if (b % 4 === 0) {
         ctx.fillStyle = 'rgba(255,230,185,.64)'; ctx.font = '700 11px system-ui'; ctx.textAlign = 'right';
         ctx.fillText(String(Math.floor(b / 4) + 1).padStart(2, '0'), left - 21, y + 4);
@@ -778,8 +780,8 @@
     var v = R.view(canvas);
     ctx.setTransform(v.s, 0, 0, v.s, v.ox * v.s, v.oy * v.s);
     backdrop(ctx, beat); stageFx(ctx, beat, section, state, time, run);
-    loom(ctx, beat, section, state, time, run);
     performanceLight(ctx, beat, section, state, time);
+    loom(ctx, beat, section, state, time, run);
     hitLight(ctx, state, time, section);
     beatGrid(ctx, beat, time, logic);
     if (state.flashUntil > time) {

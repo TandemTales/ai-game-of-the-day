@@ -230,10 +230,18 @@
     if (conductorState === 2) {
       var height = 420 + Math.min(X * .14, 70);
       var width = height * conductor.naturalWidth / conductor.naturalHeight;
-      var sway = Math.sin(beat * Math.PI * .5) * .085;
-      ctx.translate(Math.sin(beat * Math.PI * .5) * 9, -beatLight * 12 - hit * 24);
-      ctx.rotate(sway + hit * .10);
-      ctx.scale(1 + beatLight * .025 + hit * .08, 1 + beatLight * .03 + hit * .07);
+      // Four held conducting stances change on the beat. A judged hit cuts
+      // across the current stance toward its lane instead of merely bobbing.
+      var poses = [-1, -.2, 1, .2], beatIndex = Math.floor(beat);
+      var poseBlend = ease(clamp((beat - beatIndex) / .19, 0, 1));
+      var pose = poses[(beatIndex + 3) % 4] * (1 - poseBlend) +
+        poses[beatIndex % 4] * poseBlend;
+      var strikeSide = state.judgeLane < 2 ? -1 : 1;
+      ctx.translate(pose * 18 + strikeSide * hit * 24,
+        -beatLight * 12 - hit * 17);
+      ctx.rotate(pose * .105 + strikeSide * hit * .15);
+      ctx.scale(1 + beatLight * .025 + hit * .06,
+        1 + beatLight * .03 - hit * .045);
       // A dark soft pool behind the performer separates the silhouette from the
       // lane overlays, then a section-colored rim light outlines it.
       var scrim = ctx.createRadialGradient(0, -height * .06, 10, 0, -height * .06, height * .52);
@@ -261,32 +269,44 @@
       ctx.shadowBlur = 0;
       ctx.globalAlpha = 1;
       ctx.drawImage(conductor, -width / 2, -height * .53, width, height);
-      // Animated sleeves are drawn over the source pose. The striking arm
-      // reaches toward the judged lane while the other follows the beat.
+      // Opaque sleeves form four readable poses over the source illustration.
+      // The judged side makes a downstroke; the free hand lifts on the beat.
       for (var hand = -1; hand <= 1; hand += 2) {
-        var striking = hit > .01 && (state.judgeLane < 2 ? -1 : 1) === hand;
-        var gesture = beatLight * .45 + (striking ? hit : hit * .18);
-        var hx = hand * (width * .39 + gesture * 17);
-        var hy = -height * (.31 + gesture * .12);
+        var striking = hit > .01 && strikeSide === hand;
+        var gesture = beatLight * .35 + (hand === Math.sign(pose) ? .28 : 0);
+        var raisedX = hand * (width * .39 + gesture * 13);
+        var raisedY = -height * (.31 + gesture * .10);
+        var targetX = (center(state.judgeLane) - 400) * .44;
+        var hx = striking ? raisedX * (1 - hit) + targetX * hit : raisedX;
+        var hy = striking ? raisedY * (1 - hit) + height * .07 * hit : raisedY;
         var handColor = colors[(section + (hand < 0 ? 1 : 2)) % 4];
         var shoulderX = hand * width * .105, shoulderY = -height * .23;
-        ctx.lineCap = 'round'; ctx.strokeStyle = '#10192e';
+        ctx.lineCap = 'round';
+        if (striking) {
+          ctx.strokeStyle = handColor; ctx.globalAlpha = hit * .43;
+          ctx.lineWidth = 15; ctx.shadowColor = handColor; ctx.shadowBlur = 22;
+          ctx.beginPath(); ctx.moveTo(raisedX, raisedY);
+          ctx.quadraticCurveTo(hand * width * .52, -height * .03, hx, hy);
+          ctx.stroke(); ctx.globalAlpha = 1;
+        }
+        ctx.strokeStyle = '#10192e';
         ctx.shadowColor = '#060a19'; ctx.shadowBlur = 12;
-        ctx.lineWidth = 24;
+        ctx.lineWidth = 29;
         ctx.beginPath(); ctx.moveTo(shoulderX, shoulderY);
-        ctx.quadraticCurveTo(hand * width * .26, -height * (.20 + gesture * .10), hx, hy);
+        ctx.quadraticCurveTo(hand * width * .29, -height * (.20 + gesture * .10) + hit * 24, hx, hy);
         ctx.stroke();
         ctx.strokeStyle = handColor; ctx.shadowColor = handColor;
-        ctx.shadowBlur = 9 + gesture * 20; ctx.globalAlpha = .72 + gesture * .25;
-        ctx.lineWidth = 4 + gesture * 3;
+        ctx.shadowBlur = 9 + gesture * 20 + hit * 15;
+        ctx.globalAlpha = .72 + gesture * .2 + hit * .08;
+        ctx.lineWidth = 4 + gesture * 3 + (striking ? hit * 3 : 0);
         ctx.beginPath(); ctx.moveTo(shoulderX, shoulderY);
-        ctx.quadraticCurveTo(hand * width * .26, -height * (.20 + gesture * .10), hx, hy);
+        ctx.quadraticCurveTo(hand * width * .29, -height * (.20 + gesture * .10) + hit * 24, hx, hy);
         ctx.stroke();
         ctx.fillStyle = '#f9e8cd'; ctx.globalAlpha = 1;
-        ctx.beginPath(); ctx.arc(hx, hy, 8 + gesture * 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(hx, hy, 8 + gesture * 4 + (striking ? hit * 5 : 0), 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = handColor; ctx.lineWidth = 2 + gesture * 2;
         ctx.beginPath();
-        ctx.arc(hx, hy, 17 + gesture * 15,
+        ctx.arc(hx, hy, 17 + gesture * 15 + (striking ? hit * 11 : 0),
           -Math.PI * .72 + hand * beat * .08,
           Math.PI * .62 + hand * beat * .08); ctx.stroke();
       }
@@ -525,8 +545,9 @@
     }
     // The conductor visibly throws a thread from the nearer hand to the struck
     // receptor; the bright tip travels the arc, then sparks fan out of the key.
-    var cy = 290 + X * .49, fromLeft = state.judgeLane < 2;
-    var hx = 400 + (fromLeft ? -118 : 118), hy = cy - 82;
+    var cy = 290 + X * .49;
+    var hx = 400 + (x - 400) * .44;
+    var hy = cy + (420 + Math.min(X * .14, 70)) * .07;
     var travel = clamp(age / .16, 0, 1), tt = ease(travel);
     var cx1 = hx + (x - hx) * .15, cy1 = hy - 70, cx2 = x, cy2 = line - 170;
     function bez(t, a, b, c, d) {
@@ -697,54 +718,41 @@
     ctx.restore();
   }
 
-  function feedbackFx(ctx, section, state, time, run) {
-    // Keep feedback near its receptor; incoming notes render over this layer.
+  function feedbackFx(ctx, section, state, time, run, foreground) {
+    // The HTML song rail covers the canvas foot on compact layouts. Place
+    // feedback just above the receptor rings, leaving the tap row readable.
     var tint = colors[section];
     var age2 = time - state.judgeAt;
-    if (state.judge && age2 >= 0 && age2 < .6) {
-      var a = 1 - age2 / .6, cx = state.judgeLane >= 0 ? center(state.judgeLane) : 400;
+    if (foreground && state.judge && age2 >= 0 && age2 < .65) {
+      var a = clamp((.65 - age2) / .24, 0, 1);
+      var cx = state.judgeLane >= 0 ? center(state.judgeLane) : 400;
       var col = state.judge === 'PERFECT' ? '#fff0b8' : state.judge === 'GOOD' ? '#8ee8e6' : '#ff7a8c';
       var miss = state.judge === 'MISS';
-      var labelY = (miss ? line - 99 : line - 65) - age2 * 14;
+      var panelW = miss ? 154 : 202;
+      var panelH = miss ? 48 : 57;
+      cx = clamp(cx, left + panelW / 2, left + 4 * laneW - panelW / 2);
+      var panelY = line - panelH - 55 - Math.min(age2 * 8, 4);
       ctx.save(); ctx.textAlign = 'center'; ctx.globalAlpha = a;
-      ctx.font = '900 ' + (miss ? 34 : state.judge === 'PERFECT' ? 48 : 43) + 'px system-ui';
-      var halfLabel = ctx.measureText(state.judge).width / 2 + 13;
-      if (miss) {
-        // Park a miss in the lane with the largest note gap at the judgment
-        // moment. It stays fixed during its brief fade and clears the tap row.
-        var bestGap = -1;
-        for (var lane = 0; lane < 4; lane++) {
-          var gap = Infinity;
-          run.notes.forEach(function (note) {
-            if (note.status || note.lane !== lane) return;
-            var noteY = line - (note.time - state.judgeAt) * 220;
-            if (noteY >= top - 30 && noteY <= line + 40)
-              gap = Math.min(gap, Math.abs(noteY - (line - 105)));
-          });
-          if (gap > bestGap) { bestGap = gap; cx = center(lane); }
-        }
-      }
-      cx = clamp(cx, left + halfLabel, left + 4 * laneW - halfLabel);
-      ctx.fillStyle = miss ? 'rgba(8,18,36,.84)' : '#081224';
-      ctx.beginPath(); ctx.roundRect(cx - halfLabel, (miss ? line - 137 : line - 133) - age2 * 14,
-        halfLabel * 2, miss ? 52 : 96, 18); ctx.fill();
-      ctx.strokeStyle = col; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.roundRect(cx - halfLabel, (miss ? line - 137 : line - 133) - age2 * 14,
-        halfLabel * 2, miss ? 52 : 96, 18); ctx.stroke();
-      ctx.shadowColor = '#050817'; ctx.shadowBlur = 12; ctx.lineWidth = 6;
-      ctx.strokeStyle = '#101626';
-      ctx.strokeText(state.judge, cx, labelY);
-      ctx.shadowColor = col; ctx.shadowBlur = 20; ctx.fillStyle = col;
-      ctx.fillText(state.judge, cx, labelY);
-      if (state.judge !== 'MISS') {
+      ctx.fillStyle = 'rgba(5,12,29,.96)';
+      ctx.beginPath(); ctx.roundRect(cx - panelW / 2, panelY, panelW, panelH, 12); ctx.fill();
+      ctx.strokeStyle = col; ctx.shadowColor = col;
+      ctx.shadowBlur = 14 + 12 * clamp(1 - age2 / .18, 0, 1);
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.roundRect(cx - panelW / 2, panelY, panelW, panelH, 12); ctx.stroke();
+      ctx.shadowBlur = 0; ctx.fillStyle = col;
+      ctx.fillRect(cx - panelW / 2 + 11, panelY + 5, panelW - 22, 3);
+      ctx.font = '900 ' + (miss ? 30 : 36) + 'px system-ui';
+      ctx.shadowColor = '#050817'; ctx.shadowBlur = 6;
+      ctx.fillText(state.judge, cx, panelY + 34);
+      if (!miss) {
         var multiplier = Math.min(4, 1 + Math.floor((run.combo - 1) / 10));
-        ctx.shadowBlur = 12; ctx.font = '900 27px system-ui';
+        ctx.shadowBlur = 0; ctx.font = '900 19px system-ui';
         ctx.fillText('+' + (state.judge === 'PERFECT' ? 100 : 55) * multiplier,
-          cx, line - 101 - age2 * 14);
+          cx, panelY + 52);
       }
       ctx.restore();
     }
-    if (run.combo > 1 && state.judge !== 'MISS' && age2 >= 0 && age2 < .45) {
+    if (!foreground && run.combo > 1 && state.judge !== 'MISS' && age2 >= 0 && age2 < .45) {
       var impact = clamp(1 - age2 / .22, 0, 1);
       var cy = line - 161;
       ctx.save(); ctx.textAlign = 'center';
@@ -824,9 +832,9 @@
       ctx.beginPath(); ctx.arc(x, line, 7 + travel * 4, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
-    feedbackFx(ctx, section, state, time, run);
-    // Playable notes are the foreground layer, including over hit reactions.
+    feedbackFx(ctx, section, state, time, run, false);
     notes(ctx, run, time);
+    feedbackFx(ctx, section, state, time, run, true);
     rotation(ctx, beat);
     songProgress(ctx, beat, logic.TOTAL_BEATS);
   };

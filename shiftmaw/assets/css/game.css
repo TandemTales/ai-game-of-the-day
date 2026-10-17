@@ -1,0 +1,70 @@
+/* Shiftmaw UI: HUD, overlays, touch controls. All DOM inside #sm-ui is built by ui.js. */
+:root { --ink:#f4f0ff; --dim:#9aa6d8; --gold:#ffd23f; --amber:#ffbe46; --violet:#a97cff; --panel:rgba(8,12,38,.86); --edge:rgba(130,170,255,.35); }
+html, body { margin:0; padding:0; height:100%; background:#06081a; overflow:hidden; overscroll-behavior:none; color:var(--ink);
+  font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
+#sm-canvas { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+#sm-ui { position:fixed; inset:0; pointer-events:none; }
+#sm-ui > * { pointer-events:auto; }
+.sm-hud { position:absolute; top:max(6px,env(safe-area-inset-top)); left:8px; right:8px; height:46px; display:flex; align-items:center; justify-content:space-between; gap:8px; pointer-events:none; }
+.sm-hud > * { pointer-events:none; }
+.sm-stat { display:flex; flex-direction:column; line-height:1.05; min-width:70px; }
+.sm-stat small { font-size:10px; letter-spacing:.18em; color:var(--dim); font-weight:700; }
+.sm-stat b { font-size:22px; font-weight:900; letter-spacing:.02em; text-shadow:0 0 12px rgba(255,210,63,.45); font-variant-numeric:tabular-nums; }
+.sm-stat.mid { align-items:center; }
+.sm-stat.right { align-items:flex-end; }
+.sm-lives { display:flex; gap:4px; height:16px; margin-top:3px; }
+.sm-life { width:16px; height:16px; border-radius:50%; background:radial-gradient(circle at 35% 30%,#fff6b0,#ffd23f 55%,#f08a14); box-shadow:0 0 8px rgba(255,210,63,.6); clip-path:polygon(0 0,100% 0,100% 38%,55% 50%,100% 62%,100% 100%,0 100%); }
+.sm-btns { position:absolute; top:max(6px,env(safe-area-inset-top)); right:8px; display:flex; gap:6px; z-index:5; }
+.sm-ico { width:38px; height:38px; border-radius:12px; border:1px solid var(--edge); background:var(--panel); color:var(--ink); font-size:16px; font-weight:800; cursor:pointer; display:grid; place-items:center; }
+.sm-ico:hover { border-color:#9bc0ff; } .sm-ico:focus-visible, .sm-btn:focus-visible, .sm-flip:focus-visible { outline:2px solid #fff; outline-offset:2px; }
+.sm-back { position:absolute; top:max(6px,env(safe-area-inset-top)); left:8px; z-index:5; display:none; }
+.sm-hud.has-back { padding-right:92px; }
+
+/* phase charge + flip */
+.sm-flip { position:absolute; bottom:max(14px,env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:12px; padding:10px 18px; border-radius:999px; border:1.5px solid var(--edge);
+  background:var(--panel); color:var(--ink); font:800 14px/1 "Trebuchet MS",system-ui,sans-serif; letter-spacing:.14em; cursor:pointer; box-shadow:0 6px 24px rgba(0,0,0,.45); touch-action:manipulation; }
+.sm-flip[data-ready="1"] { border-color:var(--phase,#ffbe46); box-shadow:0 0 22px var(--phase-glow,rgba(255,190,70,.5)), 0 6px 24px rgba(0,0,0,.45); }
+.sm-flip[data-ready="0"] { opacity:.55; }
+.sm-flip:active { transform:translateX(-50%) scale(.96); }
+.sm-pips { display:flex; gap:6px; }
+.sm-pip { width:14px; height:14px; border-radius:50%; border:2px solid rgba(255,255,255,.35); }
+.sm-pip.on { background:radial-gradient(circle at 35% 30%,#fff,var(--phase,#ffbe46)); border-color:#fff; box-shadow:0 0 10px var(--phase,#ffbe46); }
+.sm-key { font-size:10px; color:var(--dim); letter-spacing:.1em; }
+.sm-dpad { position:absolute; bottom:max(16px,env(safe-area-inset-bottom)); left:14px; width:132px; height:132px; display:none; }
+.sm-dpad button { position:absolute; width:44px; height:44px; border-radius:14px; border:1px solid var(--edge); background:var(--panel); color:var(--ink); font-size:18px; touch-action:manipulation; }
+.sm-dpad .u { left:44px; top:0; } .sm-dpad .d { left:44px; top:88px; } .sm-dpad .l { left:0; top:44px; } .sm-dpad .r { left:88px; top:44px; }
+body.touch .sm-dpad { display:block; }
+body.touch.portrait .sm-flip { left:auto; right:14px; transform:none; bottom:max(40px,env(safe-area-inset-bottom)); width:132px; height:132px; border-radius:50%; flex-direction:column; justify-content:center; gap:8px; padding:0; font-size:15px; }
+body.touch.portrait .sm-flip:active { transform:scale(.96); }
+body.touch .sm-flip { bottom:max(30px,env(safe-area-inset-bottom)); }
+body.touch:not(.portrait) .sm-flip { left:auto; right:22px; transform:none; width:112px; height:112px; border-radius:50%; flex-direction:column; justify-content:center; gap:8px; padding:0; }
+body.touch:not(.portrait) .sm-flip:active { transform:scale(.96); }
+body.touch .sm-key { display:none; }
+
+/* banners & overlays */
+.sm-banner { position:absolute; left:0; right:0; top:50%; transform:translateY(-50%); text-align:center; font-weight:900; font-size:clamp(26px,6vw,54px); letter-spacing:.12em; pointer-events:none;
+  color:#fff; text-shadow:0 0 24px rgba(255,190,70,.8),0 3px 0 rgba(0,0,0,.6); opacity:0; transition:opacity .18s; }
+.sm-banner.show { opacity:1; }
+.sm-banner small { display:block; font-size:.34em; letter-spacing:.3em; color:var(--dim); margin-top:6px; text-shadow:none; }
+.sm-overlay { position:absolute; inset:0; display:none; align-items:center; justify-content:center; padding:16px; background:rgba(4,6,20,.72); backdrop-filter:blur(4px); z-index:10; overflow:auto; }
+.sm-overlay.show { display:flex; }
+.sm-card { width:min(440px,100%); border:1px solid var(--edge); border-radius:22px; background:linear-gradient(180deg,rgba(18,26,70,.94),rgba(8,12,38,.96)); padding:22px 22px 20px; box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.04) inset; text-align:center; }
+.sm-title { margin:0; font-size:clamp(34px,9vw,52px); font-weight:900; letter-spacing:.06em; background:linear-gradient(90deg,var(--amber),#fff 50%,var(--violet)); -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 0 16px rgba(169,124,255,.5)); }
+.sm-sub { margin:4px 0 14px; color:var(--dim); font-size:13px; letter-spacing:.2em; text-transform:uppercase; }
+.sm-how { text-align:left; margin:12px 0 16px; padding:0; list-style:none; display:grid; gap:8px; font-size:14px; line-height:1.35; color:#dfe6ff; }
+.sm-how li { display:flex; gap:10px; align-items:flex-start; } .sm-how i { flex:0 0 22px; height:22px; border-radius:7px; display:grid; place-items:center; font-style:normal; font-size:12px; font-weight:900; background:rgba(120,160,255,.18); border:1px solid var(--edge); }
+.sm-how b { color:var(--gold); }
+.sm-btn { display:inline-block; min-width:160px; padding:13px 26px; border-radius:14px; border:0; cursor:pointer; font:900 16px/1 "Trebuchet MS",system-ui,sans-serif; letter-spacing:.14em; color:#1b1030; text-decoration:none;
+  background:linear-gradient(180deg,#ffe27a,#ffb02e); box-shadow:0 4px 0 #a8620c,0 10px 24px rgba(255,176,46,.35); touch-action:manipulation; margin:4px; }
+.sm-btn:active { transform:translateY(2px); box-shadow:0 2px 0 #a8620c; }
+.sm-btn.alt { background:rgba(120,160,255,.14); color:var(--ink); box-shadow:none; border:1px solid var(--edge); }
+.sm-meta { margin-top:10px; font-size:12px; color:var(--dim); } .sm-meta a { color:#9bc0ff; }
+.sm-final { font-size:clamp(34px,10vw,54px); font-weight:900; color:var(--gold); text-shadow:0 0 22px rgba(255,210,63,.5); margin:2px 0 6px; font-variant-numeric:tabular-nums; }
+.sm-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:10px 0 14px; }
+.sm-stats div { background:rgba(120,160,255,.1); border:1px solid var(--edge); border-radius:12px; padding:8px 4px; } .sm-stats b { display:block; font-size:20px; } .sm-stats small { font-size:10px; letter-spacing:.14em; color:var(--dim); }
+.sm-name { display:none; margin:8px 0 6px; } .sm-name.show { display:block; }
+.sm-name input { width:min(240px,70%); padding:11px 12px; border-radius:12px; border:1px solid var(--edge); background:rgba(0,0,0,.4); color:#fff; font:700 16px "Trebuchet MS",system-ui,sans-serif; text-align:center; }
+.sm-toast { position:absolute; left:50%; bottom:calc(max(14px,env(safe-area-inset-bottom)) + 66px); transform:translateX(-50%); padding:8px 14px; border-radius:999px; background:var(--panel); border:1px solid var(--edge); font-size:13px; opacity:0; transition:opacity .2s; pointer-events:none; white-space:nowrap; }
+.sm-toast.show { opacity:1; }
+@media (max-height:480px) { .sm-card { padding:14px; } .sm-how { margin:8px 0 10px; font-size:13px; gap:5px; } .sm-sub { margin-bottom:6px; } .sm-title { font-size:32px; } }
+@media (prefers-reduced-motion:reduce) { .sm-banner { transition:none; } }

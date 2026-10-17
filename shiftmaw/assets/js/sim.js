@@ -57,7 +57,7 @@
   function resetActors(s) {
     var m = s.m, i;
     s.p = newEntity(m.start.x, m.start.y);
-    s.p.dir = -1; s.p.want = -1; s.p.face = LEFT; // waits for the first input s.p.mouth = 0;
+    s.p.dir = -1; s.p.want = -1; s.p.face = LEFT; s.p.mouth = 0; // waits for the first input
     s.ghosts = [];
     var nx = m.door.x, ny = m.door.y + 1;
     var spots = [{ x: m.door.x, y: m.door.y - 1, st: 'active' }, { x: nx - 1, y: ny }, { x: nx, y: ny }, { x: nx + 1, y: ny }];

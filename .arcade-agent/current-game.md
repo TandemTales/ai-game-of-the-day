@@ -1,13 +1,12 @@
 # Active game
 
-No game is active.
+slug: shiftmaw
+started: 2026-10-17
 
-Completed: **prism-warden** — The Drowned Beacons.
-started: 2026-09-20
-completed: 2026-10-03
-release: forced second-Saturday release, age 13 (America/Los_Angeles).
-
-The scheduled lifecycle is complete; AAA acceptance is not claimed. See
-prism-warden/.aaa-complete and PROGRESS.md for failed critic verdicts,
-verification boundaries and remaining debt. The next run starts STEP 2:
-inventory, research, choose a distinct game and scaffold its first playable.
+**Shiftmaw — a maze-chomper where the maze flips between two wall phases.**
+Classic arcade maze-chase lineage (Pac-Man), original IP: you are a hungry
+lantern-moth "maw" eating glowmotes through a haunted conservatory while four
+Hollows hunt you. Twist: the maze has two wall layers (Day walls / Dusk walls).
+Spend Phase charge to flip the layer; any Hollow caught inside a newly solid
+wall is pinched and devoured for chain points, and flipping reroutes every
+chase. Score from motes, fruit, pinches and speed; leaderboard-ready.

@@ -363,3 +363,7 @@
 ## 2026-10-16 Pacific — Friday polish intent
 
 - STOP absent; `dev` synced. Pulse Loom is 12 days old and Friday Pacific is a polish night. Focus on a clearer beat-responsive performer action and immediate near-hit feedback, with one-file ownership from SPEC.md. Run the focused suite before each push, inspect live browser frames at the required sizes, and seek harsh independent comparisons. Prior visual/UI AAA FAIL verdicts remain in force until fresh evidence changes them. Saturday October 17 is the forced release wrap-up if still active.
+
+### Oct 16 compact HUD checkpoint
+
+- CSS gives phone Score and Combo more width and contrast, and reorders the short-landscape side stack to Score, Combo, Movement. The focused Jest suite passed 6/6. A local Edge sweep at all six required sizes reported playing state, no page errors, no external requests, and no X/Y overflow; I opened 320x568 and 844x390 frames. A genuine audio-unavailable sweep at the same sizes also passed and I opened both compact warning frames: the warning, keys, score, and footer remain visible. The renderer's separate edit is still pending its own checkpoint. UI AAA acceptance remains unjudged on this revision; prior verdict was FAIL.

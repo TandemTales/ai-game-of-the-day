@@ -1,0 +1,31 @@
+date: 2026-10-17
+timezone: America/Los_Angeles
+release: forced second-Saturday release (started 2026-10-04; age 13 days)
+
+This lifecycle marker records the scheduled release, not AAA acceptance.
+
+Release checks: Pulse Loom's focused Jest suite passed 6/6. Local Edge opened
+the exact game files at 320x568, 390x844, 844x390, 768x1024, 1440x900 and
+3840x2160 with no page errors, external requests, or horizontal/vertical
+overflow. The lead inspected all six gameplay PNGs and the 390 end screen.
+Scripted browser touch scored the first note at 320, 844 and 768; a clock
+fixture reached the 126-note chart's end screen and replay restarted. This is
+browser reachability evidence, not an unaided full-song playthrough. No glaring
+crash, unreadable HUD, broken touch path, or incomplete chart was found.
+Local ignored screenshots: node_modules/.cache/pulse-loom/oct17-release/.
+
+Final carried critic verdicts from October 16:
+- Independent visual critic: VISUAL AAA FAIL / OURS LOSES against Epic's
+  Fortnite Festival screenshot. The single illustrated performer, stage depth,
+  and visual separation of incoming notes remain below that reference.
+- Independent UI critic: UI AAA FAIL / OURS LOSES against Epic's Fortnite
+  Festival screenshot. Phone rotation/glyph cues are small and hit feedback can
+  compete with incoming notes. These are still-image judgments only.
+- Gameplay/audio/VFX AAA acceptance and an independent shipping judge: absent;
+  forced release does not require quality-based acceptance.
+
+Carried debt: stronger authored performance and stage planes; clearer phone
+note, rotation, and judgment hierarchy; direct speaker listening and mix/latency
+calibration; physical-device touch and 4K performance; unaided human play and
+fun assessment. The full repository Jest suite was not rerun after earlier
+stalls. No live leaderboard submission was performed in this release audit.

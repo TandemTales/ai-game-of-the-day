@@ -378,3 +378,9 @@
 ## 2026-10-17 Pacific — forced Saturday release intent
 
 - STOP absent; `dev` synced. Pulse Loom started October 4, so this Saturday is the forced second-Saturday release. Tonight: run the focused suite, inspect six viewport screenshots and the touch/completion paths, fix only glaring release blockers, record honest polish debt, then promote the tested `dev` build to `main` if the gate is clear. Previous independent visual/UI verdicts remain **AAA FAIL / OURS LOSES**.
+
+### Oct 17 release check and handoff
+
+- Focused Jest passes **6/6**. Local Edge `file://` sweep at 320x568, 390x844, 844x390, 768x1024, 1440x900, and 3840x2160 shows no page errors, external requests, or X/Y overflow. I opened all six gameplay PNGs and the 390 end screen; hit row, metrics, progress, footer, and replay are visible. Scripted browser touch scored the first note at 320, 844, and 768. A clock fixture reached the chart's end and replayed. No glaring forced-release blocker found; no runtime game code changed tonight.
+- Independent October 16 critics remain **VISUAL AAA FAIL / UI AAA FAIL — OURS LOSES** versus Epic's Fortnite Festival stills. Stage action/depth, performer separation, phone cues, and near-hit hierarchy remain polish debt. Speaker audio, real devices, human play/fun, hardware 4K performance, live leaderboard submission, and the full repository Jest suite were not verified tonight. The forced release marker records the distinction; it does not claim AAA acceptance.
+- Next run: select and scaffold a distinct new game. Keep Pulse Loom's debt visible in `.aaa-complete`; revisit it only as a separate follow-up, not as an implicit AAA pass.

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 1024" role="img" aria-label="A lantern-keeper in a glowing hedge maze chased by four wisps">
+ <defs>
+  <radialGradient id="bg" cx=".5" cy=".55" r=".8"><stop stop-color="#17483a"/><stop offset=".7" stop-color="#06150f"/><stop offset="1" stop-color="#030b08"/></radialGradient>
+  <radialGradient id="lamp"><stop stop-color="#fff2b8"/><stop offset=".3" stop-color="#ffc86b" stop-opacity=".6"/><stop offset="1" stop-color="#ff8a3a" stop-opacity="0"/></radialGradient>
+  <filter id="b"><feGaussianBlur stdDeviation="3"/></filter>
+ </defs>
+ <rect width="1536" height="1024" fill="url(#bg)"/>
+ <g fill="#2f7a4a" stroke="#6fe0a0" stroke-opacity=".4" stroke-width="3">
+  <rect x="120" y="120" width="560" height="70" rx="35"/><rect x="860" y="120" width="560" height="70" rx="35"/>
+  <rect x="120" y="300" width="70" height="420" rx="35"/><rect x="1346" y="300" width="70" height="420" rx="35"/>
+  <rect x="330" y="300" width="300" height="70" rx="35"/><rect x="910" y="300" width="300" height="70" rx="35"/>
+  <rect x="120" y="830" width="560" height="70" rx="35"/><rect x="860" y="830" width="560" height="70" rx="35"/>
+  <rect x="330" y="620" width="300" height="70" rx="35"/><rect x="910" y="620" width="300" height="70" rx="35"/>
+ </g>
+ <g stroke="#ffb23d" stroke-width="8" stroke-linecap="round"><path d="M680 480h176M680 505h176M680 530h176"/></g>
+ <g fill="none" stroke="#c58bff" stroke-width="7"><circle cx="400" cy="480" r="46"/><path d="M400 450l26 45h-52z"/></g>
+ <g fill="#ffd9a0">
+  <circle cx="300" cy="230" r="9"/><circle cx="420" cy="230" r="9"/><circle cx="540" cy="230" r="9"/><circle cx="1000" cy="230" r="9"/><circle cx="1120" cy="230" r="9"/>
+  <circle cx="300" cy="760" r="9"/><circle cx="540" cy="760" r="9"/><circle cx="1000" cy="760" r="9"/><circle cx="1120" cy="760" r="9"/>
+ </g>
+ <circle cx="1210" cy="230" r="26" fill="#b9f2ff" filter="url(#b)"/>
+ <circle cx="768" cy="640" r="260" fill="url(#lamp)"/>
+ <path d="M720 740q-12-90 48-110 60 20 48 110z" fill="#d98a35"/><circle cx="768" cy="650" r="26" fill="#2b1608"/><circle cx="800" cy="720" r="18" fill="#fff2b8"/>
+ <g>
+  <path d="M1000 480a50 50 0 0 1 100 0v70l-20-14-15 14-15-14-15 14-15-14-20 14z" fill="#ff6a4a"/><circle cx="1025" cy="480" r="10" fill="#fff"/><circle cx="1075" cy="480" r="10" fill="#fff"/>
+  <path d="M1180 520a46 46 0 0 1 92 0v64l-18-12-14 12-14-12-14 12-14-12-18 12z" fill="#d96cff"/>
+  <path d="M250 560a46 46 0 0 1 92 0v64l-18-12-14 12-14-12-14 12-14-12-18 12z" fill="#4de0b0"/>
+ </g>
+ <text x="768" y="1000" text-anchor="middle" font-family="Georgia,serif" font-size="0" fill="none">Gloam Run</text>
+</svg>

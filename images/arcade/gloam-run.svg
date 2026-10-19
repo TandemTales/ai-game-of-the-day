@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 1024" role="img" aria-label="A glowing firefly darting through a moonlit hedge maze chased by four shades">
+ <defs>
+  <radialGradient id="sky" cx=".5" cy=".4" r=".8"><stop stop-color="#14473a"/><stop offset=".6" stop-color="#0a1f19"/><stop offset="1" stop-color="#030807"/></radialGradient>
+  <radialGradient id="glow"><stop stop-color="#fff3b0"/><stop offset=".25" stop-color="#ffd96699"/><stop offset="1" stop-color="#ffd96600"/></radialGradient>
+  <filter id="b"><feGaussianBlur stdDeviation="6"/></filter>
+ </defs>
+ <rect width="1536" height="1024" fill="url(#sky)"/>
+ <g fill="#14553f" stroke="#43e08f" stroke-width="3" opacity=".9">
+  <rect x="80" y="80" width="360" height="90" rx="40"/><rect x="560" y="80" width="90" height="300" rx="40"/><rect x="760" y="80" width="360" height="90" rx="40"/>
+  <rect x="1200" y="140" width="250" height="90" rx="40"/><rect x="80" y="300" width="90" height="400" rx="40"/><rect x="260" y="300" width="300" height="90" rx="40"/>
+  <rect x="900" y="260" width="90" height="360" rx="40"/><rect x="1100" y="330" width="340" height="90" rx="40"/><rect x="260" y="780" width="360" height="90" rx="40"/>
+  <rect x="740" y="780" width="560" height="90" rx="40"/><rect x="1330" y="500" width="90" height="300" rx="40"/><rect x="300" y="520" width="90" height="170" rx="40"/>
+ </g>
+ <g fill="#ffe9a3" opacity=".9"><circle cx="200" cy="235" r="9"/><circle cx="330" cy="235" r="9"/><circle cx="460" cy="235" r="9"/><circle cx="700" cy="235" r="9"/><circle cx="830" cy="235" r="9"/><circle cx="700" cy="455" r="9"/><circle cx="1230" cy="450" r="9"/><circle cx="1000" cy="720" r="9"/><circle cx="480" cy="720" r="9"/><circle cx="700" cy="640" r="9"/></g>
+ <g stroke="#9be7ff" fill="#d6f6ff"><circle cx="150" cy="940" r="22"/><circle cx="1390" cy="940" r="22"/></g>
+ <g filter="url(#b)" opacity=".7"><path d="M200 800 C400 650 520 900 760 560" stroke="#ffd966" stroke-width="14" fill="none"/></g>
+ <circle cx="768" cy="520" r="230" fill="url(#glow)"/>
+ <g transform="translate(768 520) rotate(-20)">
+  <ellipse cx="-10" cy="-48" rx="64" ry="26" transform="rotate(-25)" fill="#d9f7ffaa"/><ellipse cx="-10" cy="48" rx="64" ry="26" transform="rotate(25)" fill="#d9f7ffaa"/>
+  <rect x="-70" y="-28" width="110" height="56" rx="28" fill="#3b2a1a"/><ellipse cx="-72" cy="0" rx="44" ry="36" fill="#ffe27a"/>
+  <circle cx="26" cy="-14" r="8" fill="#150e07"/><circle cx="26" cy="14" r="8" fill="#150e07"/>
+ </g>
+ <g>
+  <path id="s" d="M0 0a70 70 0 0 1 140 0v80l-23-18-24 18-23-18-23 18-24-18-23 18z" fill="#ff6f91" transform="translate(240 420)"/>
+  <path d="M0 0a70 70 0 0 1 140 0v80l-23-18-24 18-23-18-23 18-24-18-23 18z" fill="#a78bfa" transform="translate(1080 200)"/>
+  <path d="M0 0a70 70 0 0 1 140 0v80l-23-18-24 18-23-18-23 18-24-18-23 18z" fill="#5eead4" transform="translate(1100 660)"/>
+  <path d="M0 0a70 70 0 0 1 140 0v80l-23-18-24 18-23-18-23 18-24-18-23 18z" fill="#ffb347" transform="translate(500 620)"/>
+  <g fill="#fff"><circle cx="278" cy="445" r="14"/><circle cx="342" cy="445" r="14"/><circle cx="1118" cy="225" r="14"/><circle cx="1182" cy="225" r="14"/><circle cx="1138" cy="685" r="14"/><circle cx="1202" cy="685" r="14"/><circle cx="538" cy="645" r="14"/><circle cx="602" cy="645" r="14"/></g>
+ </g>
+</svg>

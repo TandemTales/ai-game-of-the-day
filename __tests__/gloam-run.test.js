@@ -36,16 +36,16 @@ test('maze is rectangular, symmetric in shape and every pickup is reachable in b
   }
 });
 
-test('maze has has no permanent dead ends', () => {
+test('maze has no permanent dead ends', () => {
   const L = logic(), run = L.newRun();
   for (let y = 0; y < L.H; y++) for (let x = 0; x < L.W; x++) {
-    if (!'.oSW '.includes(L.MAZE[y][x]) || (y === 9 && x > 7 && x < 11)) continue;
+    if (!'.oW '.includes(L.MAZE[y][x]) || (y === 9 && x > 7 && x < 11)) continue;
     const open = [0, 1].map(state => {
       run.gateState = state; let n = 0;
       L.DIRS.forEach(d => { if (L.passable(run, (x + d.x + L.W) % L.W, y + d.y, d.x, d.y, false)) n++; });
       return n;
     });
-    // A gate may turn a corridor into a temporary cul-de-sac, never a permanent one.
+    // Moonstone nooks are deliberate risk pockets. A gate may turn a corridor into a temporary cul-de-sac, never a permanent one.
     expect([x, y, Math.max(...open) >= 2]).toEqual([x, y, true]);
   }
 });

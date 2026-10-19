@@ -1,11 +1,10 @@
 # Active game
 
-slug: comet-foundry
+slug: gearwell
 started: 2026-10-18
 
-Comet Foundry is a portrait pinball score attack built around two flippers,
-three balls, and an original heat-to-bank risk loop. Bumper and forge shots
-build an unbanked molten bonus; a cooling chute cashes it in at a rising
-multiplier, while overheating spills that bonus. The table is procedural,
-uses an original foundry setting, and supports two-thumb touch or keyboard.
-Pulse Loom was completed on 2026-10-17.
+Gearwell is a falling-block score attack with an original earned rewind loop.
+Some blocks carry a glowing gear cell: clearing that cell earns a cog, and
+three cogs can rewind the last locked piece to recover from a bad placement.
+The deterministic board, seven-piece bag, visible ghost, and short score chase
+support touch and keyboard. Pulse Loom was completed on 2026-10-17.

@@ -4,7 +4,9 @@
 
 - Tonight: verify the scaffold in a real browser at the six required sizes, exercise keyboard and touch play, and fix the most concrete gameplay and presentation issues found.
 - Focus on a small number of changes that improve the complete score chase. Keep critic verdicts and any remaining verification gaps explicit; no early release without the required independent passes.
-- Renderer checkpoint: the well now has a machined frame, clearer blocks and ghost, distinct gear cells, a centered next-piece preview, a cog bank, and brief event feedback. Focused Jest 4/4, renderer syntax, and diff checks pass. A worker's comparison with Tetris Effect: Connected still judged our environmental art, motion, effects, and desktop scale below that reference; an independent renderer critic has not yet run.
+- Renderer checkpoint: the well now has a machined frame, clearer blocks and ghost, distinct gear cells, a centered next-piece preview, a cog bank, and brief event feedback. Focused Jest 4/4, renderer syntax, and diff checks pass.
+- Responsive CSS checkpoint: at 320×568 in Edge, all six touch controls fit within the viewport with buttons at least 45.5×46px and no horizontal overflow. The board is small at about 197px wide and the document extends 2px beyond the viewport. The remaining required viewports still need a clean final sweep.
+- Independent renderer critic compared live Gearwell pixels with an official Tetris Effect: Connected gameplay screenshot: AAA FAIL / OURS LOSES. The wide desktop has too much empty space, and the gear theme and lock/clear lighting are less expressive. No early release; the renderer and UI still need further comparison and polish.
 
 ## 2026-10-18 Pacific — scaffold night intent
 

@@ -1,5 +1,10 @@
 # Gearwell progress
 
+## 2026-10-19 Pacific — polish intent
+
+- Tonight: verify the scaffold in a real browser at the six required sizes, exercise keyboard and touch play, and fix the most concrete gameplay and presentation issues found.
+- Focus on a small number of changes that improve the complete score chase. Keep critic verdicts and any remaining verification gaps explicit; no early release without the required independent passes.
+
 ## 2026-10-18 Pacific — scaffold night intent
 
 - Corrected the initial pinball choice after finding the hidden `lumen-pinnacle` table. Gearwell fills the falling-block puzzle gap. The classic line-clear loop gains glowing gear cells that earn cogs; three cogs rewind the last placement.

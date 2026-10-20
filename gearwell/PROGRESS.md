@@ -1,5 +1,9 @@
 # Gearwell progress
 
+## 2026-10-20 Pacific — polish intent
+
+- Tonight: real-browser screenshot sweep at the six viewports (Playwright + Chromium), fix concrete layout/console issues, push after each fix. Game age 2 days; not a release night.
+
 ## 2026-10-19 Pacific — polish intent
 
 - Tonight: verify the scaffold in a real browser at the six required sizes, exercise keyboard and touch play, and fix the most concrete gameplay and presentation issues found.

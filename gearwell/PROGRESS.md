@@ -3,6 +3,8 @@
 ## 2026-10-20 Pacific — polish intent
 
 - Tonight: real-browser screenshot sweep at the six viewports (Playwright + Chromium), fix concrete layout/console issues, push after each fix. Game age 2 days; not a release night.
+- Done: Playwright/Chromium sweep at all six viewports run and screenshots read; console clean, no horizontal scroll. Fixed: desktop board now fits viewport height (controls were pushed below fold), mouse/keyboard desktops hide touch buttons, 320x568 board shrinks so touch controls stay on screen. Jest 4/4.
+- Still below AAA: no independent critic/shipping judge run this night; environmental art, motion and audio unverified vs. shipped references; desktop (3840) scale untested visually beyond load. Next: gameplay-feel/VFX pass and critics. First Saturday 10-24 (no release); release 10-31.
 
 ## 2026-10-19 Pacific — polish intent
 

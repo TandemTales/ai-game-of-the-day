@@ -18,6 +18,7 @@ Only the lead runs Git and owns integration. A delegated worker owns exactly one
 | `index.html` | lead | Accessible shell, script order, controls |
 | `SPEC.md`, `TESTING.md`, `PROGRESS.md` | lead | Contract and handoff |
 | `../__tests__/gearwell.test.js` | lead | Mechanical tests |
+| `../tools/gearwell-browser-smoke.cjs` | lead | HTTP browser inputs, viewport captures, and leaderboard stub |
 
 ## Distinctness audit
 

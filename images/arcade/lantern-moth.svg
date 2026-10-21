@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 1024" width="1536" height="1024"><defs>
+<radialGradient id="g" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ffe9a8" stop-opacity=".95"/><stop offset="1" stop-color="#ffb347" stop-opacity="0"/></radialGradient>
+<linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0e1b26"/><stop offset="1" stop-color="#070c14"/></linearGradient>
+<linearGradient id="h" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a7a4a"/><stop offset="1" stop-color="#0f3a24"/></linearGradient></defs>
+<rect width="1536" height="1024" fill="url(#b)"/>
+<g fill="url(#h)" stroke="#8cffaa" stroke-opacity=".35" stroke-width="3"><rect x="60" y="80" width="360" height="130" rx="50"/><rect x="1110" y="80" width="360" height="130" rx="50"/><rect x="60" y="800" width="520" height="140" rx="50"/><rect x="950" y="800" width="520" height="140" rx="50"/><rect x="60" y="330" width="130" height="330" rx="50"/><rect x="1340" y="330" width="130" height="330" rx="50"/></g>
+<g fill="#ebffaa">
+<circle cx="300" cy="300" r="9"/><circle cx="420" cy="860" r="9"/><circle cx="1180" cy="280" r="9"/><circle cx="1050" cy="700" r="9"/><circle cx="520" cy="620" r="9"/><circle cx="1250" cy="620" r="9"/><circle cx="640" cy="260" r="9"/></g>
+<circle cx="768" cy="480" r="330" fill="url(#g)"/>
+<g transform="translate(768 480)"><path d="M0 0 C-60 -230 -300 -200 -250 -30 C-200 0 -80 10 0 0Z" fill="#fff6dc"/><path d="M0 0 C-60 230 -300 200 -250 30 C-200 0 -80 10 0 0Z" fill="#fff6dc" transform="scale(1 1)"/><path d="M0 0 C60 -230 300 -200 250 -30 C200 0 80 10 0 0Z" fill="#fff6dc"/><path d="M0 0 C60 230 300 200 250 30 C200 0 80 10 0 0Z" fill="#fff6dc"/>
+<ellipse cx="0" cy="10" rx="30" ry="120" fill="#6b4a2a"/><circle cx="0" cy="-125" r="30" fill="#6b4a2a"/><path d="M-10 -145 Q-60 -240 -110 -220 M10 -145 Q60 -240 110 -220" stroke="#d9c9a0" stroke-width="8" fill="none"/></g>
+<g transform="translate(1180 520)" stroke="#ff4d6d" stroke-width="7" fill="none" stroke-linecap="round"><path d="M0 0 l-70 -30 l-60 40 M0 0 l-70 10 l-60 70 M0 0 l70 -30 l60 40 M0 0 l70 10 l60 70"/><ellipse cx="0" cy="10" rx="40" ry="46" fill="#1c1226" stroke="none"/><circle cx="-12" cy="-30" r="8" fill="#ffe9e9" stroke="none"/><circle cx="12" cy="-30" r="8" fill="#ffe9e9" stroke="none"/></g>
+</svg>

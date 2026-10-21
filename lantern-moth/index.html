@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#070c14"><meta name="description" content="Lantern Moth: glide through a night-hedge maze, eat fireflies, and outrun four spiders while living gates swing shut.">
+<title>Lantern Moth · Bot Built Arcade</title><link rel="icon" href="data:,"><link rel="stylesheet" href="assets/css/game.css"></head>
+<body><main class="shell"><header><div><p class="eyebrow">BOT BUILT ARCADE PRESENTS</p><h1>Lantern Moth</h1></div><a href="../index.html">← Back to Arcade</a></header>
+<div class="metrics"><div><span>Score</span><strong id="score">0</strong></div><div><span>Lives</span><strong id="lives">3</strong></div><div><span>Night</span><strong id="level">1</strong></div><div><span>Best</span><strong id="best">0</strong></div></div>
+<div class="stage"><canvas id="maze" width="816" height="720" aria-label="Maze chase. Steer the moth with arrow keys, WASD, swipes or the on-screen pad. Eat every firefly and avoid the spiders."></canvas>
+<div class="toast" id="toast" hidden>GATES SWINGING</div>
+<section class="panel" id="panel"><span class="kicker">EAT THE FIREFLIES · DODGE THE SPIDERS</span><h2 id="panel-title">Lantern Moth</h2><p id="panel-copy">Steer with arrow keys, WASD or swipes. Grab a lantern to scare the spiders, then catch them. Thorn gates swing every few seconds — they flash before they shut.</p><button id="start" type="button">START</button></section></div>
+<div class="dpad" aria-label="Direction pad"><button class="up" data-d="0" type="button" aria-label="Up">▲</button><button class="left" data-d="3" type="button" aria-label="Left">◀</button><button class="down" data-d="2" type="button" aria-label="Down">▼</button><button class="right" data-d="1" type="button" aria-label="Right">▶</button></div>
+<footer><p id="feedback" aria-live="polite">Arrows / WASD · swipe · pad</p><button id="mute" type="button" aria-pressed="false">Sound on</button><a href="../leaderboard.html?gameId=lantern-moth">View Leaderboard</a></footer></main>
+<script src="assets/js/logic.js"></script><script src="assets/js/audio.js"></script><script src="assets/js/render.js"></script><script src="assets/js/game.js"></script></body></html>

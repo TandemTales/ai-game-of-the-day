@@ -27,3 +27,9 @@
 - Visual/browser check was blocked: the in-app browser's URL policy rejected the local `file://` page and explicitly forbade using another browser path for the same action. No screenshot was captured or inspected, so viewport, console, touch-in-browser, and visual claims remain unverified.
 - No independent AAA critics or shipping judge were run on scaffold night. Art depth, responsive layout, input feel, audio quality, actual device touch, human play, and performance remain below or outside the verified AAA bar. There is no `.aaa-complete`; `main` must stay unchanged.
 - Next run first: obtain an authorized browser verification path and inspect all six required sizes, exercise touch/keyboard and a complete game, then fix actual findings. Follow with independent comparisons against a shipped falling-block reference. First Saturday is 2026-10-24 (age 6); scheduled second Saturday is 2026-10-31 (age 13).
+
+## 2026-10-20 Pacific — polish intent
+
+- Tuesday polish, active game started October 18 (age 2); forced second Saturday remains October 31. STOP absent and dev synced. Main stays unchanged unless the full early-release gate passes.
+- Tonight: remove compact-screen overflow and enlarge the playable well; strengthen the procedural gear scene and clear/rewind feedback. Delegate exactly one file per worker and seek fresh independent shipped-game comparisons.
+- Verify focused mechanics, all six HTTP browser viewports, keyboard/touch paths, and a controlled gear-clear/paid-rewind browser fixture. Keep fixture, actual play, listening, physical device, and performance evidence distinct.

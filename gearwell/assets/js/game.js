@@ -7,6 +7,17 @@
   var linesEl = document.getElementById('lines'), levelEl = document.getElementById('level');
   var notice = document.getElementById('notice'), rewindButton = document.getElementById('rewind');
   var state = L.newGame(), mode = 'title', last = performance.now(), noticeAt = 0, submitted = false;
+  function resizeCanvas() {
+    var rect = canvas.getBoundingClientRect(), ratio = global.devicePixelRatio || 1;
+    var width = Math.max(1, Math.round(rect.width * ratio));
+    var height = Math.max(1, Math.round(rect.height * ratio));
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width; canvas.height = height;
+    }
+  }
+  if (global.ResizeObserver) new global.ResizeObserver(resizeCanvas).observe(canvas);
+  global.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
   function hud() {
     scoreEl.textContent = state.score.toLocaleString();
     linesEl.textContent = state.lines; levelEl.textContent = state.level;

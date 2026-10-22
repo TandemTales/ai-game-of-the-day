@@ -43,23 +43,46 @@
         ctx.beginPath(); ctx.arc(bolt ? 271 : 49, py + 7, 1.3, 0, TAU); ctx.fill();
       }
     }
-    // Deep annular bearing, dark spokes and lit inner rim.
+    // A cast flywheel: shadowed rear rim, worn bevel and recessed spokes.
     ctx.save(); ctx.translate(241, 358);
-    ctx.strokeStyle = '#040f18'; ctx.lineWidth = 21;
-    ctx.beginPath(); ctx.arc(0, 0, 118, 0, TAU); ctx.stroke();
-    ctx.strokeStyle = '#263b43'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(0, 0, 127, 0, TAU); ctx.stroke();
-    ctx.strokeStyle = '#233b42'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.arc(0, 0, 107, 0, TAU); ctx.stroke();
-    ctx.rotate(-phase * .025);
+    ctx.fillStyle = '#020b12';
+    ctx.beginPath(); ctx.arc(4, 7, 132, 0, TAU); ctx.fill();
+    var casting = ctx.createLinearGradient(-125, -125, 100, 115);
+    casting.addColorStop(0, '#46514a'); casting.addColorStop(.2, '#263b3d');
+    casting.addColorStop(.45, '#0b1a23'); casting.addColorStop(.76, '#334440');
+    casting.addColorStop(1, '#111e25');
+    ctx.fillStyle = casting;
+    ctx.beginPath(); ctx.arc(0, 0, 129, 0, TAU); ctx.arc(0, 0, 103, TAU, 0, true); ctx.fill();
+    ctx.strokeStyle = '#40524d'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(0, 0, 128, Math.PI * 1.1, Math.PI * 1.8); ctx.stroke();
+    ctx.strokeStyle = '#05121b'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(0, 0, 105, 0, TAU); ctx.stroke();
+    ctx.save(); ctx.rotate(-phase * .025);
     for (var spoke = 0; spoke < 9; spoke++) {
       ctx.rotate(TAU / 9);
-      line(ctx, 27, 0, 105, 0, '#07151e', 17);
-      line(ctx, 31, -7, 104, -7, '#243840', 1);
-      ctx.fillStyle = '#30434a'; ctx.fillRect(115, -2, 6, 4);
+      ctx.fillStyle = '#17292d';
+      ctx.beginPath(); ctx.moveTo(23, -8); ctx.lineTo(103, -14);
+      ctx.lineTo(108, 10); ctx.lineTo(23, 8); ctx.closePath(); ctx.fill();
+      line(ctx, 31, -7, 102, -13, '#344740', 1);
+      line(ctx, 30, 9, 102, 12, '#06111a', 3);
+      // Paired bolts and scuffed rim marks remain subordinate to blocks.
+      for (var screw = 0; screw < 2; screw++) {
+        var sy = screw ? 17 : -17;
+        ctx.fillStyle = '#07151c'; ctx.beginPath(); ctx.arc(117, sy, 3, 0, TAU); ctx.fill();
+        line(ctx, 115, sy - 1, 118, sy - 1, '#526050', .8);
+      }
+      line(ctx, 122, -10, 124, -4, '#566047', .6);
+      line(ctx, 111, 7, 119, 8, '#3e4d3e', .6);
     }
-    ctx.fillStyle = '#07131c'; ctx.beginPath(); ctx.arc(0, 0, 30, 0, TAU); ctx.fill();
-    ctx.strokeStyle = '#2c444a'; ctx.lineWidth = 3; ctx.stroke(); ctx.restore();
+    ctx.restore();
+    var hub = ctx.createLinearGradient(-25, -30, 25, 35);
+    hub.addColorStop(0, '#526054'); hub.addColorStop(.2, '#2b3b3b');
+    hub.addColorStop(.65, '#0d1d26'); hub.addColorStop(1, '#344640');
+    ctx.fillStyle = hub; ctx.beginPath(); ctx.arc(0, 0, 31, 0, TAU); ctx.fill();
+    ctx.strokeStyle = '#09151f'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = '#07131d'; ctx.beginPath(); ctx.arc(0, 0, 14, 0, TAU); ctx.fill();
+    line(ctx, -7, -9, 7, -9, '#3c4e49', 1);
+    ctx.restore();
     // Recessed conduit on the opposite side balances the wheel's mass.
     for (var pipe = 0; pipe < 3; pipe++) {
       var px = 49 + pipe * 11;
@@ -193,13 +216,6 @@
       line(ctx, wx + 2, wy + 14, wx + 2, wy + 75, '#314c55', 1);
     }
     rivet(ctx, 24, 54); rivet(ctx, 296, 54); rivet(ctx, 24, 582); rivet(ctx, 296, 582);
-    if (s.last && time < 1.45 && s.last !== 'LOCKED' && s.last !== 'READY') {
-      ctx.globalAlpha = Math.max(0, Math.min(1, (1.45 - time) * 2));
-      ctx.fillStyle = '#0a1b2deb'; rounded(ctx, 67, 258, 186, 45, 6); ctx.fill();
-      ctx.strokeStyle = '#e3bb72'; ctx.stroke();
-      ctx.fillStyle = '#fff0c8'; ctx.font = 'bold 12px system-ui'; ctx.textAlign = 'center';
-      ctx.fillText(s.last, 160, 286, 172); ctx.textAlign = 'left'; ctx.globalAlpha = 1;
-    }
   }
   function dock(ctx, s, phase) {
     var plate = ctx.createLinearGradient(0, 595, 0, 666);
@@ -323,7 +339,10 @@
     ctx.fillStyle = cap; rounded(ctx, 20, 9, 280, 33, 5); ctx.fill();
     line(ctx, 26, 10, 294, 10, '#9e9572', .8);
     ctx.fillStyle = '#e5d9b4'; ctx.font = 'bold 13px system-ui';
-    ctx.fillText('CHRONO FOUNDRY', 33, 30);
+    var announcing = s.last && time < 1.45 && s.last !== 'LOCKED' && s.last !== 'READY';
+    ctx.fillStyle = announcing ? '#ffdfa0' : '#e5d9b4';
+    ctx.font = announcing ? 'bold 12px system-ui' : 'bold 13px system-ui';
+    ctx.fillText(announcing ? s.last : 'CHRONO FOUNDRY', 33, 30, 178);
     // The physical status strip replaces duplicated game and level branding.
     for (var lamp = 0; lamp < 8; lamp++) {
       ctx.fillStyle = lamp < 2 + s.lines % 7 ? '#e4b367' : '#354548';

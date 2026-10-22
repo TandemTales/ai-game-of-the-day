@@ -24,7 +24,7 @@
     linesEl.textContent = state.lines; levelEl.textContent = state.level;
     rewindButton.disabled = mode !== 'playing' || state.cogs < 3 || !state.history;
     var canRewind = !rewindButton.disabled;
-    bankStatus.textContent = canRewind ? state.cogs + ' · READY' : state.cogs + ' / 3 COGS';
+    bankStatus.textContent = canRewind ? state.cogs + ' COGS · READY' : state.cogs + ' / 3 COGS';
     bankStatus.classList.toggle('ready', canRewind);
     rewindButton.setAttribute('aria-label', canRewind ? 'Rewind last lock, spend three cogs' : 'Rewind needs three cogs and a locked piece');
     notice.textContent = state.last;

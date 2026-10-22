@@ -31,3 +31,9 @@ does not write the production leaderboard. PNGs are saved under ignored
 - Checks DPR 2 backing dimensions and board aspect while resizing a live run
   portrait/landscape/portrait. Browser emulation remains separate from physical
   touch, speaker listening, human gameplay/fun, and hardware performance.
+
+The harness also checks that DOM NEXT/REWIND/count labels stay inside the stage
+at >=10px, and that an input-earned paid rewind updates bank readiness,
+accessible button wording and disabled state. Inspect clear/rewind captures to
+confirm header announcements leave active board cells unobstructed. Persistent
+control labels distinguish soft drop, hard drop and the three-cog rewind cost.

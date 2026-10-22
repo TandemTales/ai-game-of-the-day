@@ -25,19 +25,58 @@
     ctx.beginPath(); ctx.arc(0, 0, radius - .8, 0, TAU); ctx.stroke();
     ctx.restore();
   }
-  function mechanism(ctx, x, y, radius, rotation) {
-    ctx.save(); ctx.translate(x, y); ctx.rotate(rotation);
-    ctx.globalAlpha = .13;
-    cog(ctx, 0, 0, radius, false);
-    ctx.strokeStyle = '#79949b'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.arc(0, 0, radius * .76, 0, TAU); ctx.stroke();
-    for (var i = 0; i < 6; i++) {
-      ctx.save(); ctx.rotate(i * TAU / 6);
-      line(ctx, radius * .28, 0, radius * .71, 0, '#6d8993', radius * .1);
-      ctx.restore();
+  // The mechanism sits behind smoked glass, with one offset flywheel rather
+  // than repeated decorative cogs. Keep its contrast below the landing guide.
+  function mechanism(ctx, phase) {
+    ctx.save();
+    var shadow = ctx.createLinearGradient(X, 0, X + 260, 0);
+    shadow.addColorStop(0, '#07131b'); shadow.addColorStop(.28, '#162c34');
+    shadow.addColorStop(.7, '#102632'); shadow.addColorStop(1, '#06111d');
+    ctx.fillStyle = shadow; ctx.fillRect(X, Y, 260, 520);
+    for (var panel = 0; panel < 4; panel++) {
+      var py = 85 + panel * 135;
+      ctx.fillStyle = '#0a1b27'; ctx.fillRect(43, py, 234, 122);
+      line(ctx, 44, py, 276, py, 'rgba(117,152,151,.12)', 1);
+      line(ctx, 44, py + 121, 276, py + 121, '#030e18', 2);
+      for (var bolt = 0; bolt < 2; bolt++) {
+        ctx.fillStyle = '#283d43';
+        ctx.beginPath(); ctx.arc(bolt ? 271 : 49, py + 7, 1.3, 0, TAU); ctx.fill();
+      }
     }
-    ctx.fillStyle = '#0a1d2b'; ctx.beginPath(); ctx.arc(0, 0, radius * .2, 0, TAU); ctx.fill();
-    ctx.globalAlpha = 1; ctx.restore();
+    // Deep annular bearing, dark spokes and lit inner rim.
+    ctx.save(); ctx.translate(241, 358);
+    ctx.strokeStyle = '#040f18'; ctx.lineWidth = 21;
+    ctx.beginPath(); ctx.arc(0, 0, 118, 0, TAU); ctx.stroke();
+    ctx.strokeStyle = '#263b43'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, 0, 127, 0, TAU); ctx.stroke();
+    ctx.strokeStyle = '#233b42'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(0, 0, 107, 0, TAU); ctx.stroke();
+    ctx.rotate(-phase * .025);
+    for (var spoke = 0; spoke < 9; spoke++) {
+      ctx.rotate(TAU / 9);
+      line(ctx, 27, 0, 105, 0, '#07151e', 17);
+      line(ctx, 31, -7, 104, -7, '#243840', 1);
+      ctx.fillStyle = '#30434a'; ctx.fillRect(115, -2, 6, 4);
+    }
+    ctx.fillStyle = '#07131c'; ctx.beginPath(); ctx.arc(0, 0, 30, 0, TAU); ctx.fill();
+    ctx.strokeStyle = '#2c444a'; ctx.lineWidth = 3; ctx.stroke(); ctx.restore();
+    // Recessed conduit on the opposite side balances the wheel's mass.
+    for (var pipe = 0; pipe < 3; pipe++) {
+      var px = 49 + pipe * 11;
+      line(ctx, px + 2, 77, px + 2, 565, '#030e16', 6);
+      line(ctx, px, 77, px, 565, '#20343b', 4);
+      line(ctx, px - 1, 77, px - 1, 565, '#2b4145', .6);
+    }
+    // A single warm work lamp and cold footlight give the machine direction.
+    var amber = ctx.createRadialGradient(48, 89, 0, 48, 89, 240);
+    amber.addColorStop(0, 'rgba(239,169,66,.16)'); amber.addColorStop(1, 'rgba(239,169,66,0)');
+    ctx.fillStyle = amber; ctx.fillRect(X, Y, 260, 520);
+    var blue = ctx.createRadialGradient(280, 563, 0, 280, 563, 240);
+    blue.addColorStop(0, 'rgba(56,171,192,.15)'); blue.addColorStop(1, 'rgba(56,171,192,0)');
+    ctx.fillStyle = blue; ctx.fillRect(X, Y, 260, 520);
+    // Smoked safety glass keeps every cell of the foreground grid readable.
+    ctx.fillStyle = 'rgba(4,14,24,.34)'; ctx.fillRect(X, Y, 260, 520);
+    ctx.restore();
   }
   function block(ctx, x, y, kind, gear, ghost) {
     var px = X + x * C, py = Y + y * C;
@@ -49,22 +88,22 @@
       line(ctx, px + 7, py + C - 6, px + C - 7, py + C - 6, 'rgba(207,238,237,.6)', 1);
       return;
     }
-    ctx.fillStyle = 'rgba(0,0,0,.5)';
-    rounded(ctx, px + 2, py + 4, C - 2, C - 2, 4); ctx.fill();
-    rounded(ctx, px + 1, py + 1, C - 2, C - 3, 4);
-    var face = ctx.createLinearGradient(px, py, px + C, py + C);
-    face.addColorStop(0, '#e1efed'); face.addColorStop(.12, L.COLORS[kind]);
-    face.addColorStop(.62, L.COLORS[kind]); face.addColorStop(1, '#193546');
+    ctx.fillStyle = 'rgba(0,0,0,.7)';
+    rounded(ctx, px + 1, py + 3, C - 1, C - 1, 3); ctx.fill();
+    rounded(ctx, px + 1, py + 1, C - 2, C - 3, 3);
+    var face = ctx.createLinearGradient(px, py, px, py + C);
+    face.addColorStop(0, '#d4e3d8'); face.addColorStop(.09, L.COLORS[kind]);
+    face.addColorStop(.64, L.COLORS[kind]); face.addColorStop(1, '#233947');
     ctx.fillStyle = face; ctx.fill();
-    ctx.fillStyle = 'rgba(5,24,36,.13)';
-    rounded(ctx, px + 5, py + 7, C - 10, C - 14, 2); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,.26)';
-    rounded(ctx, px + 3, py + 3, C - 6, 5, 2); ctx.fill();
-    ctx.fillStyle = 'rgba(6,20,32,.2)';
-    rounded(ctx, px + 4, py + C - 7, C - 8, 3, 1); ctx.fill();
-    rounded(ctx, px + 1.5, py + 1.5, C - 3, C - 4, 4);
-    ctx.strokeStyle = 'rgba(255,255,255,.42)'; ctx.lineWidth = 1; ctx.stroke();
-    line(ctx, px + 3, py + C - 5, px + 3, py + 7, 'rgba(255,255,255,.3)', 1);
+    // Enamel inset, cut bevels and tiny steel fastener marks.
+    ctx.fillStyle = 'rgba(8,28,37,.17)';
+    rounded(ctx, px + 4, py + 5, C - 8, C - 12, 1); ctx.fill();
+    line(ctx, px + 4, py + 3, px + C - 5, py + 3, 'rgba(255,255,243,.65)', 1);
+    line(ctx, px + 3, py + 4, px + 3, py + C - 6, 'rgba(255,255,237,.35)', 1);
+    line(ctx, px + 4, py + C - 5, px + C - 4, py + C - 5, 'rgba(4,17,26,.44)', 2);
+    line(ctx, px + C - 3, py + 5, px + C - 3, py + C - 5, 'rgba(3,18,27,.28)', 1);
+    ctx.fillStyle = 'rgba(7,25,32,.35)';
+    ctx.fillRect(px + 5, py + C - 8, 2, 1); ctx.fillRect(px + C - 7, py + C - 8, 2, 1);
     if (gear) {
       ctx.save(); ctx.shadowColor = '#ffd676'; ctx.shadowBlur = 9;
       ctx.fillStyle = '#132536'; ctx.beginPath(); ctx.arc(px + 13, py + 14, 9, 0, TAU); ctx.fill();
@@ -85,18 +124,14 @@
     rim.addColorStop(.54, '#3a4c4d'); rim.addColorStop(.82, '#a5b5a9'); rim.addColorStop(1, '#4d4a38');
     ctx.fillStyle = rim; rounded(ctx, 22, 50, 276, 536, 10); ctx.fill();
     ctx.fillStyle = '#081725'; rounded(ctx, 27, 55, 266, 526, 5); ctx.fill();
-    var well = ctx.createRadialGradient(160, 320, 25, 160, 320, 320);
-    well.addColorStop(0, '#12283b'); well.addColorStop(.65, '#0d2132'); well.addColorStop(1, '#071726');
-    ctx.fillStyle = well; ctx.fillRect(X, Y, 260, 520);
     ctx.save(); ctx.beginPath(); ctx.rect(X, Y, 260, 520); ctx.clip();
-    mechanism(ctx, 82, 202, 77, phase * .035);
-    mechanism(ctx, 240, 285, 103, -phase * .026 + .18);
-    mechanism(ctx, 76, 458, 65, phase * .042);
-    ctx.strokeStyle = 'rgba(173,184,156,.055)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.arc(160, 320, 218, 0, TAU); ctx.stroke();
-    ctx.beginPath(); ctx.arc(160, 320, 222, 0, TAU); ctx.stroke();
-    ctx.restore();
-    ctx.strokeStyle = 'rgba(143,191,197,.105)'; ctx.lineWidth = 1;
+    mechanism(ctx, phase);
+    // Shadow where the chamber disappears under the overhanging brass frame.
+    var depth = ctx.createLinearGradient(X, 0, X + 260, 0);
+    depth.addColorStop(0, 'rgba(0,6,12,.65)'); depth.addColorStop(.09, 'rgba(0,6,12,0)');
+    depth.addColorStop(.91, 'rgba(0,6,12,0)'); depth.addColorStop(1, 'rgba(0,6,12,.65)');
+    ctx.fillStyle = depth; ctx.fillRect(X, Y, 260, 520); ctx.restore();
+    ctx.strokeStyle = 'rgba(143,191,197,.085)'; ctx.lineWidth = 1;
     for (var x = 0; x <= 10; x++) {
       ctx.beginPath(); ctx.moveTo(X + x * C + .5, Y); ctx.lineTo(X + x * C + .5, Y + 520); ctx.stroke();
     }
@@ -104,7 +139,7 @@
       ctx.beginPath(); ctx.moveTo(X, Y + y * C + .5); ctx.lineTo(X + 260, Y + y * C + .5); ctx.stroke();
     }
     for (y = 5; y < 20; y += 5) {
-      line(ctx, X + 1, Y + y * C + .5, X + 259, Y + y * C + .5, 'rgba(176,226,222,.21)', 1);
+      line(ctx, X + 1, Y + y * C + .5, X + 259, Y + y * C + .5, 'rgba(176,226,222,.14)', 1);
       line(ctx, 25, Y + y * C, 29, Y + y * C, '#9dbdc0', 1);
       line(ctx, 291, Y + y * C, 295, Y + y * C, '#9dbdc0', 1);
     }
@@ -173,8 +208,6 @@
     ctx.strokeStyle = '#426879'; ctx.lineWidth = 1;
     rounded(ctx, 20.5, 593.5, 279, 72, 9); ctx.stroke();
     line(ctx, 153, 603, 153, 657, '#355a6a', 1);
-    ctx.fillStyle = '#c4dadd'; ctx.font = 'bold 11px system-ui';
-    ctx.fillText('UP NEXT', 32, 611); ctx.fillText('REWIND BANK', 168, 611);
     var next = s.queue[0];
     if (next) {
       var preview = { kind: next, x: 0, y: 0, rot: 0, gear: false }, cells = L.cells(preview);
@@ -195,9 +228,7 @@
         cog(ctx, 185 + i * 35, 636, 8, true, ready ? phase * .3 * (i % 2 ? -1 : 1) : 0); ctx.restore();
       } else cog(ctx, 185 + i * 35, 636, 8, false);
     }
-    ctx.fillStyle = ready ? '#ffdfa0' : '#91abb5';
-    ctx.font = ready ? 'bold 10.5px system-ui' : '11px system-ui';
-    ctx.fillText(ready ? s.cogs + ' COGS · READY [U]' : s.cogs + ' / 3 COGS', 168, 660);
+
   }
   function clearedRows(s) {
     if (!s.history || !s.history.piece) return [];
@@ -275,20 +306,29 @@
       scene.history = s.history;
     }
     scene.cogs = s.cogs; scene.last = s.last;
-    var bg = ctx.createLinearGradient(0, 0, 0, h);
-    bg.addColorStop(0, '#1b3b4e'); bg.addColorStop(.52, '#0b2032'); bg.addColorStop(1, '#081724');
+    var bg = ctx.createLinearGradient(0, 0, w, h);
+    bg.addColorStop(0, '#344548'); bg.addColorStop(.25, '#172b36');
+    bg.addColorStop(.7, '#0b1b29'); bg.addColorStop(1, '#23434a');
     ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
-    ctx.strokeStyle = 'rgba(182,219,215,.055)'; ctx.lineWidth = 1;
-    for (var d = -h; d < w; d += 18) {
-      ctx.beginPath(); ctx.moveTo(d, 0); ctx.lineTo(d + h, h); ctx.stroke();
+    // Brushed housing: fine deterministic grain, shallow pressed seams.
+    for (var grain = 0; grain < h; grain += 3) {
+      ctx.fillStyle = grain % 9 ? 'rgba(1,9,16,.1)' : 'rgba(189,212,194,.035)';
+      ctx.fillRect(0, grain, w, .6);
     }
-    ctx.fillStyle = '#d7edeb'; ctx.font = 'bold 14px system-ui';
-    ctx.fillText('G E A R W E L L', 42, 30);
-    cog(ctx, 28, 25, 7, true, phase * .14);
-    ctx.fillStyle = '#ffdb94'; ctx.font = 'bold 11px system-ui'; ctx.textAlign = 'right';
-    ctx.fillText('LEVEL  ' + s.level, 298, 29); ctx.textAlign = 'left';
-    line(ctx, 22, 39.5, 298, 39.5, '#547786', 1);
-    line(ctx, 22, 40.5, 96, 40.5, '#d7ad68', 2);
+    line(ctx, 9.5, 18, 9.5, 650, '#425358', 1);
+    line(ctx, 310.5, 18, 310.5, 650, '#050f19', 1);
+    var cap = ctx.createLinearGradient(0, 8, 0, 42);
+    cap.addColorStop(0, '#4a5147'); cap.addColorStop(.15, '#303e3e');
+    cap.addColorStop(1, '#13242e');
+    ctx.fillStyle = cap; rounded(ctx, 20, 9, 280, 33, 5); ctx.fill();
+    line(ctx, 26, 10, 294, 10, '#9e9572', .8);
+    ctx.fillStyle = '#e5d9b4'; ctx.font = 'bold 13px system-ui';
+    ctx.fillText('CHRONO FOUNDRY', 33, 30);
+    // The physical status strip replaces duplicated game and level branding.
+    for (var lamp = 0; lamp < 8; lamp++) {
+      ctx.fillStyle = lamp < 2 + s.lines % 7 ? '#e4b367' : '#354548';
+      rounded(ctx, 224 + lamp * 8, 20, 4, 11, 1); ctx.fill();
+    }
     board(ctx, s, time, phase); dock(ctx, s, phase); feedback(ctx, scene, phase);
     ctx.restore();
   }

@@ -6,6 +6,7 @@
   var startButton = document.getElementById('start'), scoreEl = document.getElementById('score');
   var linesEl = document.getElementById('lines'), levelEl = document.getElementById('level');
   var notice = document.getElementById('notice'), rewindButton = document.getElementById('rewind');
+  var bankStatus = document.getElementById('bank-status');
   var state = L.newGame(), mode = 'title', last = performance.now(), noticeAt = 0, submitted = false;
   function resizeCanvas() {
     var rect = canvas.getBoundingClientRect(), ratio = global.devicePixelRatio || 1;
@@ -22,6 +23,10 @@
     scoreEl.textContent = state.score.toLocaleString();
     linesEl.textContent = state.lines; levelEl.textContent = state.level;
     rewindButton.disabled = mode !== 'playing' || state.cogs < 3 || !state.history;
+    var canRewind = !rewindButton.disabled;
+    bankStatus.textContent = canRewind ? state.cogs + ' · READY' : state.cogs + ' / 3 COGS';
+    bankStatus.classList.toggle('ready', canRewind);
+    rewindButton.setAttribute('aria-label', canRewind ? 'Rewind last lock, spend three cogs' : 'Rewind needs three cogs and a locked piece');
     notice.textContent = state.last;
   }
   function start() {

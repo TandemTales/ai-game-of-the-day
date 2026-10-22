@@ -82,6 +82,15 @@ async function execute(page,p) {
       // Input-driven placements: no injected board or rules changes.
       for(let i=0;i<12;i++) { const p=await plan(page); assert(p); await execute(page,p); }
       await page.waitForTimeout(150);
+      const reserve = await page.locator('.reserve-strip').evaluate(el => {
+        const stage = el.closest('.stage').getBoundingClientRect();
+        return [...el.querySelectorAll('span,strong')].map(label => {
+          const r = label.getBoundingClientRect();
+          return { text:label.textContent, font:parseFloat(getComputedStyle(label).fontSize),
+            fits:r.left>=stage.left && r.right<=stage.right && r.top>=stage.top && r.bottom<=stage.bottom };
+        });
+      });
+      assert(reserve.every(label=>label.font>=10 && label.fits), 'Reserve labels must remain readable and inside the stage');
       await page.screenshot({path:path.join(out,`${width}x${height}.png`)});
       const layout=await metrics(page);
       const pass=!errors.length&&!external.length&&layout.scroll[0]<=width&&layout.scroll[1]<=height&&layout.buttons.every(b=>b.w>=44&&b.h>=44&&b.x>=0&&b.y>=0&&b.x+b.w<=width+.1&&b.y+b.h<=height+.1);
@@ -98,10 +107,14 @@ async function execute(page,p) {
           }
         }
         assert(earned,'Actual input must reach three earned cogs');
+        assert.equal(await page.locator('#bank-status').textContent(), earned.cogs + ' · READY');
+        assert.equal(await page.locator('#rewind').getAttribute('aria-label'), 'Rewind last lock, spend three cogs');
         await page.waitForTimeout(50); await page.screenshot({path:path.join(out,'earned-bank.png')});
         await page.locator('#rewind').tap();
         const rewound=await page.evaluate(()=>{const s=GW.Game.getState(); return {cogs:s.cogs,history:s.history,last:s.last,board:JSON.stringify(s.board)};});
         assert.equal(rewound.cogs,earned.cogs-3); assert.equal(rewound.history,null); assert.equal(rewound.last,'LAST LOCK REWOUND'); assert.notEqual(rewound.board,earned.board);
+        assert.equal(await page.locator('#bank-status').textContent(), rewound.cogs + ' / 3 COGS');
+        assert.equal(await page.locator('#rewind').isDisabled(), true);
         await page.waitForTimeout(100); await page.screenshot({path:path.join(out,'paid-rewind.png')});
         console.log(JSON.stringify({inputEarnedRewind:{before:{cogs:earned.cogs,score:earned.score,lines:earned.lines,serial:earned.serial},after:{cogs:rewound.cogs,last:rewound.last,history:rewound.history},boardChanged:earned.board!==rewound.board}}));
         // Touch control smoke, state remains a normal input-produced run.

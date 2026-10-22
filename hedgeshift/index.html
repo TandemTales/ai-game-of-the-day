@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#070b1c"><meta name="description" content="Hedgeshift: a moonlit maze chase where the hedge walls shift between Day and Dusk.">
+<title>Hedgeshift · Bot Built Arcade</title><link rel="icon" href="data:,"><link rel="stylesheet" href="assets/css/game.css"></head>
+<body><main class="shell"><header><div><p class="eyebrow">BOT BUILT ARCADE PRESENTS</p><h1>Hedgeshift</h1></div><a href="../index.html">← Back to Arcade</a></header>
+<div class="metrics"><div><span>Score</span><strong id="score">0</strong></div><div><span>Lives</span><strong id="lives">♥♥♥</strong></div><div><span>Level</span><strong id="level">1</strong></div><button id="mute" type="button" aria-label="Mute" aria-pressed="false">♪</button></div>
+<div class="shiftbar" aria-label="Time until the hedge shifts"><div id="shift-fill"></div><div id="shift-label">DAY</div></div>
+<div class="stage"><canvas id="maze" aria-label="Maze chase. Steer the firefly with arrow keys, WASD or swipes."></canvas>
+<section class="panel" id="panel"><span class="kicker">THE HEDGE IS ALIVE</span><h2 id="panel-title">Eat the dew. Beat the shift.</h2><p id="panel-copy">Steer the firefly with arrows, WASD or swipes. Shadow wisps hunt you. Every few seconds the hedge shifts between Day and Dusk — lure wisps into closing walls for a crush bonus!</p><button id="start">START</button></section></div>
+<p id="hint" hidden>Moon lanterns scare wisps · watch the orange warning</p>
+<div class="dpad" aria-label="Touch controls"><button data-dir="0" aria-label="Up">▲</button><button data-dir="1" aria-label="Left">◀</button><button data-dir="2" aria-label="Down">▼</button><button data-dir="3" aria-label="Right">▶</button></div>
+<footer><p>Arrows / WASD / swipe</p><a href="../leaderboard.html?gameId=hedgeshift">View Leaderboard</a></footer></main>
+<script src="assets/js/logic.js"></script><script src="assets/js/audio.js"></script><script src="assets/js/render.js"></script><script src="assets/js/game.js"></script></body></html>

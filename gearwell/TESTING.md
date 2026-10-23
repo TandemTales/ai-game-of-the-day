@@ -37,3 +37,17 @@ at >=10px, and that an input-earned paid rewind updates bank readiness,
 accessible button wording and disabled state. Inspect clear/rewind captures to
 confirm header announcements leave active board cells unobstructed. Persistent
 control labels distinguish soft drop, hard drop and the three-cog rewind cost.
+
+The focused suite also exercises game-loop feedback under a browser shim:
+non-clearing hard drops must not play the clear cue, gravity locks must play
+the lock cue, and gravity line clears must play both cues and update status.
+These controlled fixtures verify event routing, not speaker quality or latency.
+
+The HTTP harness saves additional elapsed-time event stills:
+`earned-clear-transport.png`, `earned-clear-receipt.png`,
+`paid-rewind-transport.png`, and `paid-rewind-followup.png`. They follow legal
+input-earned events with the live game running; open the sequence to review
+rail transport and bank receipt. The follow-up records continued live gravity;
+a restored low piece may already have locked again, so it is not labelled as
+a rewind-settle frame. Still sequences do not establish motion
+quality, actual device performance, or audio acceptance.

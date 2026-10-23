@@ -103,19 +103,40 @@ async function execute(page,p) {
           if(state.cogs>=3&&state.history) { earned=state; break; }
           const p=await plan(page); assert(p,'Planner must find placement'); await execute(page,p);
           if(!clearCaptured && await page.evaluate(n=>GW.Game.getState().cogs>n,state.cogs)) {
-            await page.waitForTimeout(120); await page.screenshot({path:path.join(out,'earned-clear.png')}); clearCaptured=true;
+            await page.waitForTimeout(120); await page.screenshot({path:path.join(out,'earned-clear.png')});
+            // Observe the actual earned event across its transport/receipt stages.
+            // These are elapsed-time stills of normal play, not injected state.
+            await page.waitForTimeout(330); await page.screenshot({path:path.join(out,'earned-clear-transport.png')});
+            await page.waitForTimeout(400); await page.screenshot({path:path.join(out,'earned-clear-receipt.png')});
+            clearCaptured=true;
           }
         }
         assert(earned,'Actual input must reach three earned cogs');
         assert.equal(await page.locator('#bank-status').textContent(), earned.cogs + ' COGS · READY');
         assert.equal(await page.locator('#rewind').getAttribute('aria-label'), 'Rewind last lock, spend three cogs');
         await page.waitForTimeout(50); await page.screenshot({path:path.join(out,'earned-bank.png')});
+        await page.setViewportSize({width:320,height:568});
+        await page.waitForTimeout(60);
+        await page.screenshot({path:path.join(out,'320x568-earned-bank.png')});
+        assert(await page.locator('#bank-status').evaluate(el => {
+          const r=el.getBoundingClientRect(), stage=el.closest('.stage').getBoundingClientRect();
+          return r.left>=stage.left && r.right<=stage.right;
+        }), 'Earned bank count and readiness must fit the smallest phone');
+        await page.setViewportSize({width:390,height:844});
+        await page.waitForTimeout(60);
         await page.locator('#rewind').tap();
         const rewound=await page.evaluate(()=>{const s=GW.Game.getState(); return {cogs:s.cogs,history:s.history,last:s.last,board:JSON.stringify(s.board)};});
         assert.equal(rewound.cogs,earned.cogs-3); assert.equal(rewound.history,null); assert.equal(rewound.last,'LAST LOCK REWOUND'); assert.notEqual(rewound.board,earned.board);
         assert.equal(await page.locator('#bank-status').textContent(), rewound.cogs + ' / 3 COGS');
         assert.equal(await page.locator('#rewind').isDisabled(), true);
         await page.waitForTimeout(100); await page.screenshot({path:path.join(out,'paid-rewind.png')});
+        await page.waitForTimeout(350); await page.screenshot({path:path.join(out,'paid-rewind-transport.png')});
+        // Gravity keeps running: a restored low piece can lock again by this
+        // follow-up. Record the resulting state rather than label it a rewind.
+        await page.waitForTimeout(450); await page.screenshot({path:path.join(out,'paid-rewind-followup.png')});
+        console.log(JSON.stringify({rewindFollowup:await page.evaluate(()=>{
+          const s=GW.Game.getState();return {last:s.last,score:s.score,lines:s.lines,cogs:s.cogs};
+        }),liveGravityContinues:true}));
         console.log(JSON.stringify({inputEarnedRewind:{before:{cogs:earned.cogs,score:earned.score,lines:earned.lines,serial:earned.serial},after:{cogs:rewound.cogs,last:rewound.last,history:rewound.history},boardChanged:earned.board!==rewound.board}}));
         // Touch control smoke, state remains a normal input-produced run.
         for(const action of ['left','rotate','down','right','drop']) await page.locator(`[data-action="${action}"]`).tap();
@@ -126,6 +147,8 @@ async function execute(page,p) {
         assert.equal(api.length,2); assert.equal(api[0].method,'GET'); assert.equal(api[1].method,'POST'); assert.equal(api[1].body.gameId,'gearwell');
         console.log(JSON.stringify({touchControls:true,topOut:true,restart:true,api}));
       }
+      assert.deepEqual(errors, [], 'No app errors or warnings through the complete interaction flow');
+      assert.deepEqual(external, [], 'No external requests through the complete interaction flow');
       await page.close();
     }
     // Exercise the changed backing-store path at DPR 2 and preserve a live run

@@ -36,11 +36,18 @@ canvas{display:block;width:100%;height:100%;aspect-ratio:320/670;border-radius:9
 .kicker{font-size:10px;letter-spacing:.14em;color:var(--gold);font-weight:800}
 .panel h2{font-size:clamp(23px,5vw,30px);margin:12px 0}
 .panel p{font-size:13px;line-height:1.5;color:#d1dde0;margin:0 0 18px}
+.panel #panel-copy{margin-bottom:10px}
+.panel #control-help{padding-top:10px;border-top:1px solid #9fb6b333;margin-bottom:16px;font-size:clamp(12px,.65vw,20px);line-height:1.4;text-align:left}
+.touch-help{display:block;color:#edf3ee;font-weight:600}
+.keyboard-help{display:none;margin-top:4px;color:#c4d5d8}
+@media(any-pointer:fine){.keyboard-help{display:block}}
+@media(min-width:1000px){.keyboard-help{display:block}}
 .panel button{border:1px solid #ffe1a0;border-radius:9px;background:linear-gradient(#ffdfa0,#d7a957);color:#192333;font-weight:900;letter-spacing:.07em;padding:12px 18px;min-height:46px;box-shadow:0 4px 0 #714e24,0 8px 18px #0007}
 .panel button:active{transform:translateY(2px);box-shadow:0 2px 0 #714e24,0 4px 9px #0007}
 .controls{width:min(100%,410px);margin:8px auto 0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
 .controls button{border:1px solid #6c888d;background:linear-gradient(#294b57,#152c38);color:#f4f3e8;border-radius:4px;min-width:44px;min-height:46px;font-size:22px;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:3px 2px;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:inset 0 1px #b9e1dd38,0 3px 0 #040b11}
 .control-symbol{display:block;line-height:1}
+#rewind .control-symbol{font-size:10px;letter-spacing:0;opacity:1}
 .control-hint{display:block;font-size:10px;font-weight:700;line-height:1.1;letter-spacing:0;white-space:nowrap;color:#d2e0df}
 .key-hint{display:none}
 .controls button.drop{font-size:11px;letter-spacing:.05em;background:linear-gradient(#9b7948,#584129);border-color:#ddbb7e;color:#fff2d6}
@@ -115,6 +122,7 @@ footer a{white-space:nowrap}
   .controls button[data-action="drop"]{grid-column:1;grid-row:2}
   .controls button[data-action="rewind"]{grid-column:3;grid-row:2}
   .controls button.drop{font-size:clamp(12px,.65vw,22px)}
+  #rewind .control-symbol{font-size:clamp(11px,.5vw,18px)}
   .controls button.drop .control-hint{font-size:clamp(10px,.35vw,12px)}
   /* Status belongs to the control bank. Both occupy the same grid row so the
      score panel's height cannot leave a disconnected empty band between them. */

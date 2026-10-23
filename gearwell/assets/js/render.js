@@ -101,7 +101,7 @@
     for (var rib = 0; rib < 3; rib++) {
       var ry = 116 + rib * 164;
       line(ctx, 90, ry, 275, ry, 'rgba(122,142,126,.08)', 2);
-      line(ctx, 90, ry + 3, 275, ry + 3, '#06131c', 2);
+      line(ctx, 90, ry + 3, 275, ry + 3, 'rgba(0,8,15,.14)', 1);
     }
     ctx.fillStyle = 'rgba(4,14,24,.44)'; ctx.fillRect(X, Y, 260, 520);
     // Rewards briefly energise the actual mechanism, rather than flood the board.
@@ -238,13 +238,25 @@
     }
     rivet(ctx, 24, 54); rivet(ctx, 296, 54); rivet(ctx, 24, 582); rivet(ctx, 296, 582);
   }
-  function dock(ctx, s, phase) {
+  function dock(ctx, s, phase, event) {
     var plate = ctx.createLinearGradient(0, 595, 0, 666);
-    plate.addColorStop(0, '#1e3a4c'); plate.addColorStop(1, '#0b1c2d');
+    var age = event ? phase - event.at : 2;
+    var powered = event && age < 1.5 && (event.rewind || event.cogs || event.rows.length === 4);
+    var received = powered ? Math.sin(Math.min(1, Math.max(0, age / 1.5)) * Math.PI) : 0;
+    plate.addColorStop(0, powered ? (event.rewind ? '#244d5b' : '#56482b') : '#1e3a4c');
+    plate.addColorStop(1, '#0b1c2d');
     ctx.fillStyle = plate; rounded(ctx, 20, 593, 280, 73, 9); ctx.fill();
     ctx.strokeStyle = '#426879'; ctx.lineWidth = 1;
     rounded(ctx, 20.5, 593.5, 279, 72, 9); ctx.stroke();
     line(ctx, 153, 603, 153, 657, '#355a6a', 1);
+    if (powered) {
+      // A broad reflected pool under the bank is legible even on the small well.
+      var bankLight = ctx.createRadialGradient(222, 644, 8, 222, 644, 75);
+      bankLight.addColorStop(0, event.rewind ? 'rgba(108,230,241,' + received * .25 + ')' : 'rgba(255,196,86,' + received * .35 + ')');
+      bankLight.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.save(); ctx.beginPath(); ctx.rect(155, 595, 143, 69); ctx.clip();
+      ctx.fillStyle = bankLight; ctx.fillRect(155, 595, 143, 69); ctx.restore();
+    }
     var next = s.queue[0];
     if (next) {
       var preview = { kind: next, x: 0, y: 0, rot: 0, gear: false }, cells = L.cells(preview);
@@ -340,7 +352,22 @@
       ctx.shadowColor = event.rewind ? '#8feaf2' : '#ffd47d'; ctx.shadowBlur = 10;
       cog(ctx, gx, gy, 6, true, (event.rewind ? -1 : 1) * age * 9); ctx.restore();
     }
-    // Stage 4: bank confirmation / reverse-motion rail pulses, outside the well.
+    // Stage 4: the four-line surge feeds both rails before settling in the bank.
+    if (!event.rewind && event.rows.length === 4) {
+      var surge = Math.sin(Math.min(1, age / 1.5) * Math.PI);
+      var fromY = Y + event.rows[0] * C;
+      ctx.save(); ctx.shadowColor = '#ffbd55'; ctx.shadowBlur = 10;
+      for (var rail = 0; rail < 2; rail++) {
+        var railX = rail ? 295 : 25;
+        line(ctx, railX, fromY, railX, 579, 'rgba(255,203,112,' + surge * .85 + ')', 2.5);
+        line(ctx, railX, 578, rail ? 282 : 38, 586, 'rgba(255,223,150,' + surge + ')', 2);
+      }
+      ctx.restore();
+      // The frame reflects the surge; foreground cells are never washed out.
+      ctx.save(); ctx.strokeStyle = 'rgba(255,213,129,' + surge * .65 + ')'; ctx.lineWidth = 3;
+      rounded(ctx, 21, 49, 278, 538, 10); ctx.stroke(); ctx.restore();
+    }
+    // Reverse-motion rail pulses belong to the paid rewind, rather than any clear.
     if (event.rewind) {
       for (var pulse = 0; pulse < 5; pulse++) {
         var railY = Y + 520 - ((age * 570 + pulse * 104) % 520);
@@ -388,10 +415,13 @@
     line(ctx, 9.5, 18, 9.5, 650, '#425358', 1);
     line(ctx, 310.5, 18, 310.5, 650, '#050f19', 1);
     var cap = ctx.createLinearGradient(0, 8, 0, 42);
-    cap.addColorStop(0, '#4a5147'); cap.addColorStop(.15, '#303e3e');
-    cap.addColorStop(1, '#13242e');
+    var eventAge = scene.event ? phase - scene.event.at : 2;
+    var major = scene.event && eventAge < 1.5 && (scene.event.rewind || scene.event.rows.length === 4);
+    cap.addColorStop(0, major ? (scene.event.rewind ? '#91ccd0' : '#dbc58b') : '#4a5147');
+    cap.addColorStop(.15, major ? (scene.event.rewind ? '#365763' : '#6c5733') : '#303e3e');
+    cap.addColorStop(1, major ? (scene.event.rewind ? '#173f50' : '#342b1c') : '#13242e');
     ctx.fillStyle = cap; rounded(ctx, 20, 9, 280, 33, 5); ctx.fill();
-    line(ctx, 26, 10, 294, 10, '#9e9572', .8);
+    line(ctx, 26, 10, 294, 10, major ? (scene.event.rewind ? '#b4f1f5' : '#ffe5a0') : '#9e9572', major ? 1.5 : .8);
     ctx.fillStyle = '#e5d9b4'; ctx.font = 'bold 13px system-ui';
     var announcing = s.last && time < 1.45 && s.last !== 'LOCKED' && s.last !== 'READY';
     ctx.fillStyle = announcing ? '#ffdfa0' : '#e5d9b4';
@@ -401,7 +431,7 @@
     line(ctx, 222, 17, 222, 34, '#526058', .8);
     ctx.fillStyle = '#b5c7c6'; ctx.font = 'bold 10px system-ui';
     ctx.fillText('LV ' + String(s.level).padStart(2, '0'), 238, 29);
-    board(ctx, s, time, phase, scene); dock(ctx, s, phase); feedback(ctx, scene, phase, s);
+    board(ctx, s, time, phase, scene); dock(ctx, s, phase, scene.event); feedback(ctx, scene, phase, s);
     ctx.restore();
   }
   GW.Render = { draw: draw };

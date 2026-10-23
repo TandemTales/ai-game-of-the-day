@@ -59,3 +59,9 @@
 - Focused Gearwell Jest4/4, all game JS/harness syntax and CRLF-aware diff checks pass. Full repository Jest stalled after five passing suites and was interrupted; it remains unresolved. Speaker listening/mix/latency, physical touch, human gameplay/fun and hardware/4K performance are unverified. Still-image critics do not validate motion/audio/input/performance. No discipline is newly accepted as AAA; gameplay/audio/VFX acceptance remains open. No shipping judge, `.aaa-complete`, release or main promotion.
 - Pushed intent36aa70d, coordinated workshop/dock466f770 and critic-driven refinement21f4275. Main remains at3f8f986. This bounded run stops with the tested dev work pushed; final handoff commit follows.
 - Next run first: read this handoff and use the saved HTTP harness. Prioritize authored foundry scene/material identity plus staged clear/rewind spectacle; address UI secondary-label/meaning/grouping debt while preserving no-scroll,44px targets,input-earned rewind and DPR checks. Seek fresh separate harsh critics and dedicated motion/audio/device evaluation. October24 is only the first Saturday (age6); forced release wrap-up remains October31 Pacific.
+
+## 2026-10-22 Pacific — polish intent
+
+- Thursday polish; Gearwell age 4 from October 18. STOP absent. Forced second Saturday remains October 31; main stays unchanged unless the complete independent release gate passes.
+- Tonight: take a bounded renderer/reward spectacle pass and a separate responsive UI clarity pass, with one file per worker and independent harsh screenshot critics. Lead owns integration and all Git operations.
+- Preserve six-size no-scroll/44px controls, legal-input earned rewind and DPR resizing. Run focused mechanics before each commit, inspect new HTTP screenshots, and record acceptance gaps honestly.

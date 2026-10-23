@@ -27,7 +27,9 @@
     bankStatus.textContent = canRewind ? state.cogs + ' COGS · READY' : state.cogs + ' / 3 COGS';
     bankStatus.classList.toggle('ready', canRewind);
     rewindButton.setAttribute('aria-label', canRewind ? 'Rewind last lock, spend three cogs' : 'Rewind needs three cogs and a locked piece');
-    notice.textContent = state.last;
+    var status = state.last === 'LOCKED' ? 'Clear gears · earn rewinds' :
+      state.last === 'READY' ? '3 cogs = 1 rewind' : state.last;
+    if (notice.textContent !== status) notice.textContent = status;
   }
   function start() {
     state = L.newGame(); mode = 'playing'; submitted = false; panel.hidden = true;
@@ -43,7 +45,7 @@
   }
   function act(action) {
     if (mode !== 'playing') return;
-    var oldScore = state.score, oldY = state.piece && state.piece.y, worked = false;
+    var oldHistory = state.history, oldLines = state.lines, worked = false;
     if (action === 'left') worked = L.move(state, -1, 0);
     else if (action === 'right') worked = L.move(state, 1, 0);
     else if (action === 'rotate') worked = L.rotate(state);
@@ -53,9 +55,9 @@
     if (worked) {
       if (action === 'rotate') A.rotate();
       else if (action === 'rewind') A.rewind();
-      else if (action === 'drop' || (action === 'down' && oldY === (state.piece && state.piece.y))) A.lock();
+      else if (state.history !== oldHistory) A.lock();
       else A.move();
-      if (state.score > oldScore + 10) A.clear();
+      if (state.lines > oldLines) A.clear();
       noticeAt = performance.now(); hud();
     }
     if (state.over) end();
@@ -100,7 +102,13 @@
   function frame(now) {
     var dt = Math.min(.1, (now - last) / 1000); last = now;
     if (mode === 'playing') {
-      L.tick(state, dt); hud(); if (state.over) end();
+      var oldHistory = state.history, oldLines = state.lines;
+      L.tick(state, dt);
+      if (state.history !== oldHistory) {
+        A.lock(); if (state.lines > oldLines) A.clear();
+        noticeAt = now;
+      }
+      hud(); if (state.over) end();
     }
     GW.Render.draw(canvas, state, (now - noticeAt) / 1000);
     global.requestAnimationFrame(frame);

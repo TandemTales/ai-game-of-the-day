@@ -64,3 +64,43 @@ test('a blocked spawn ends the run instead of producing an illegal active piece'
   expect(s.over).toBe(true);
   expect(s.piece).toBeNull();
 });
+
+test('drop and gravity feedback announce actual locks and line clears', () => {
+  const L = load(), sounds = [], elements = new Map();
+  function element(id) {
+    if (!elements.has(id)) elements.set(id, { textContent: '', hidden: false,
+      classList: { toggle() {} }, setAttribute() {}, addEventListener() {},
+      getBoundingClientRect: () => ({ width: 320, height: 670 }) });
+    return elements.get(id);
+  }
+  let nextFrame;
+  const window = { GW: { Logic: L, Render: { draw() {} },
+    Audio: Object.fromEntries(['move', 'rotate', 'lock', 'clear', 'rewind']
+      .map(name => [name, () => sounds.push(name)])) },
+    location: { protocol: 'file:' }, addEventListener() {},
+    requestAnimationFrame: frame => { nextFrame = frame; } };
+  const context = vm.createContext({ window, performance: { now: () => 0 },
+    document: { getElementById: element, querySelectorAll: () => [], addEventListener() {} } });
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '../gearwell/assets/js/game.js'), 'utf8'), context);
+  const game = window.GW.Game;
+  game.start(); game.act('drop');
+  // Drop distance awards points; it must not masquerade as a line clear.
+  expect(game.getState().score).toBeGreaterThan(10);
+  expect(sounds).toEqual(['lock']);
+  expect(element('notice').textContent).toBe('Clear gears · earn rewinds');
+
+  function prepareLanding(clear) {
+    const s = game.getState();
+    s.board = Array.from({ length: 20 }, () => Array(10).fill(null));
+    if (clear) for (let x = 0; x < 10; x++) {
+      if (x !== 4 && x !== 5) s.board[19][x] = { kind: 'J', gear: false };
+    }
+    s.piece = { kind: 'O', x: 3, y: 18, rot: 0, gear: false };
+    s.elapsed = .79;
+  }
+  sounds.length = 0; prepareLanding(false); nextFrame(100);
+  expect(sounds).toEqual(['lock']);
+  sounds.length = 0; prepareLanding(true); nextFrame(200);
+  expect(sounds).toEqual(['lock', 'clear']);
+  expect(element('notice').textContent).toBe('1 LINE CLEAR');
+});

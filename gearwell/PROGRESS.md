@@ -65,3 +65,5 @@
 - Thursday polish; Gearwell age 4 from October 18. STOP absent. Forced second Saturday remains October 31; main stays unchanged unless the complete independent release gate passes.
 - Tonight: take a bounded renderer/reward spectacle pass and a separate responsive UI clarity pass, with one file per worker and independent harsh screenshot critics. Lead owns integration and all Git operations.
 - Preserve six-size no-scroll/44px controls, legal-input earned rewind and DPR resizing. Run focused mechanics before each commit, inspect new HTTP screenshots, and record acceptance gaps honestly.
+
+- Integration checkpoint: sound cues now follow actual locks/line clears instead of hard-drop score gain; gravity locks refresh both audio and the announcement timer. Regression fixture covers false clear sounds and gravity clear/lock paths (focused Jest 5/5). Mobile hard-drop reads DROP/HARD; Space hint is desktop-only, and idle status explains earned rewinds instead of LOCKED. Renderer/CSS workers are still in progress; browser/critic review follows.

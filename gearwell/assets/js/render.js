@@ -27,7 +27,7 @@
   }
   // The mechanism sits behind smoked glass, with one offset flywheel rather
   // than repeated decorative cogs. Keep its contrast below the landing guide.
-  function mechanism(ctx, phase) {
+  function mechanism(ctx, phase, event, now) {
     ctx.save();
     var shadow = ctx.createLinearGradient(X, 0, X + 260, 0);
     shadow.addColorStop(0, '#07131b'); shadow.addColorStop(.28, '#162c34');
@@ -97,8 +97,24 @@
     var blue = ctx.createRadialGradient(280, 563, 0, 280, 563, 240);
     blue.addColorStop(0, 'rgba(56,171,192,.15)'); blue.addColorStop(1, 'rgba(56,171,192,0)');
     ctx.fillStyle = blue; ctx.fillRect(X, Y, 260, 520);
-    // Smoked safety glass keeps every cell of the foreground grid readable.
-    ctx.fillStyle = 'rgba(4,14,24,.34)'; ctx.fillRect(X, Y, 260, 520);
+    // Cast ribs catch the work lamp; the playfield stays behind smoked glass.
+    for (var rib = 0; rib < 3; rib++) {
+      var ry = 116 + rib * 164;
+      line(ctx, 90, ry, 275, ry, 'rgba(122,142,126,.08)', 2);
+      line(ctx, 90, ry + 3, 275, ry + 3, '#06131c', 2);
+    }
+    ctx.fillStyle = 'rgba(4,14,24,.44)'; ctx.fillRect(X, Y, 260, 520);
+    // Rewards briefly energise the actual mechanism, rather than flood the board.
+    if (event) {
+      var age = now - event.at, power = Math.max(0, 1 - age / 1.3);
+      var illumination = ctx.createRadialGradient(241, 358, 25, 241, 358, 170);
+      illumination.addColorStop(0, event.rewind ? 'rgba(105,226,237,' + power * .12 + ')' : 'rgba(255,191,83,' + power * .12 + ')');
+      illumination.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = illumination; ctx.fillRect(X, Y, 260, 520);
+      ctx.strokeStyle = event.rewind ? 'rgba(134,231,239,' + power * .35 + ')' : 'rgba(245,197,108,' + power * .35 + ')';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(241, 358, 116, -1.9 - age * 2, -.6 - age * 2); ctx.stroke();
+    }
     ctx.restore();
   }
   function block(ctx, x, y, kind, gear, ghost) {
@@ -118,6 +134,11 @@
     face.addColorStop(0, '#d4e3d8'); face.addColorStop(.09, L.COLORS[kind]);
     face.addColorStop(.64, L.COLORS[kind]); face.addColorStop(1, '#233947');
     ctx.fillStyle = face; ctx.fill();
+    // Cast enamel face: a warm lip, recessed panel and dark cut lower bevel.
+    ctx.fillStyle = 'rgba(5,19,25,.24)';
+    ctx.beginPath(); ctx.moveTo(px + 2, py + C - 7); ctx.lineTo(px + 7, py + C - 11);
+    ctx.lineTo(px + C - 7, py + C - 11); ctx.lineTo(px + C - 2, py + C - 7);
+    ctx.lineTo(px + C - 2, py + C - 3); ctx.lineTo(px + 2, py + C - 3); ctx.closePath(); ctx.fill();
     // Enamel inset, cut bevels and tiny steel fastener marks.
     ctx.fillStyle = 'rgba(8,28,37,.17)';
     rounded(ctx, px + 4, py + 5, C - 8, C - 12, 1); ctx.fill();
@@ -139,16 +160,16 @@
     ctx.fillStyle = '#081421'; ctx.beginPath(); ctx.arc(x, y, 2.5, 0, TAU); ctx.fill();
     ctx.fillStyle = '#7c9ba3'; ctx.beginPath(); ctx.arc(x - .5, y - .5, 1, 0, TAU); ctx.fill();
   }
-  function board(ctx, s, time, phase) {
+  function board(ctx, s, time, phase, scene) {
     ctx.fillStyle = '#07121e'; rounded(ctx, 19, 47, 282, 542, 12); ctx.fill();
     var rim = ctx.createLinearGradient(19, 47, 301, 589);
-    rim.addColorStop(0, '#ead6a2'); rim.addColorStop(.12, '#5d6c67');
-    rim.addColorStop(.28, '#234253'); rim.addColorStop(.49, '#aa9265');
-    rim.addColorStop(.54, '#3a4c4d'); rim.addColorStop(.82, '#a5b5a9'); rim.addColorStop(1, '#4d4a38');
+    rim.addColorStop(0, '#ead6a2'); rim.addColorStop(.12, '#897d56');
+    rim.addColorStop(.28, '#3b4944'); rim.addColorStop(.49, '#b39a65');
+    rim.addColorStop(.54, '#4e523e'); rim.addColorStop(.82, '#c1ad79'); rim.addColorStop(1, '#534932');
     ctx.fillStyle = rim; rounded(ctx, 22, 50, 276, 536, 10); ctx.fill();
     ctx.fillStyle = '#081725'; rounded(ctx, 27, 55, 266, 526, 5); ctx.fill();
     ctx.save(); ctx.beginPath(); ctx.rect(X, Y, 260, 520); ctx.clip();
-    mechanism(ctx, phase);
+    mechanism(ctx, phase, scene.event, phase);
     // Shadow where the chamber disappears under the overhanging brass frame.
     var depth = ctx.createLinearGradient(X, 0, X + 260, 0);
     depth.addColorStop(0, 'rgba(0,6,12,.65)'); depth.addColorStop(.09, 'rgba(0,6,12,0)');
@@ -254,56 +275,89 @@
     rows.forEach(function (row, i) { if (row.every(Boolean)) result.push(i); });
     return result;
   }
-  function feedback(ctx, scene, now) {
+  function feedback(ctx, scene, now, s) {
     var event = scene.event;
     if (!event) return;
-    var age = now - event.at, duration = event.rewind ? 1.1 : .9;
+    var age = Math.max(0, now - event.at), duration = event.rewind ? 1.45 : 1.5;
     if (age > duration) { scene.event = null; return; }
-    var p = age / duration, fade = Math.pow(1 - p, 1.5);
-    ctx.save(); ctx.beginPath(); ctx.rect(X, Y, 260, 520); ctx.clip();
-    if (event.rewind) {
-      ctx.strokeStyle = 'rgba(147,234,244,' + fade * .8 + ')'; ctx.lineWidth = 2;
-      for (var ring = 0; ring < 3; ring++) {
-        var radius = Math.max(3, 295 * (1 - p) - ring * 52);
-        ctx.beginPath(); ctx.arc(160, 318, radius, -TAU * p, TAU * (.68 - p)); ctx.stroke();
-      }
-      for (var ray = 0; ray < 18; ray++) {
-        var angle = ray * TAU / 18 - p * 2;
-        var r = 40 + (1 - p) * 240;
-        line(ctx, 160 + Math.cos(angle) * r, 318 + Math.sin(angle) * r,
-          160 + Math.cos(angle) * (r + 24), 318 + Math.sin(angle) * (r + 24),
-          'rgba(141,231,243,' + fade * .75 + ')', 1.5);
-      }
-    } else {
-      event.rows.forEach(function (row) {
+    var p = age / duration, fade = Math.pow(1 - p, 1.3);
+    // Exclude the live piece and landing guide from reward overlays. Rules never pause.
+    ctx.save(); ctx.beginPath(); ctx.rect(X, Y, 260, 520);
+    if (s.piece) {
+      var protectedCells = {};
+      L.cells(s.piece).concat(L.cells(L.ghost(s))).forEach(function (cell) {
+        var key = cell.x + ':' + cell.y;
+        if (cell.y >= 0 && !protectedCells[key]) {
+          protectedCells[key] = true; ctx.rect(X + cell.x * C, Y + cell.y * C, C, C);
+        }
+      });
+    }
+    ctx.clip('evenodd');
+    if (!event.rewind) {
+      event.rows.forEach(function (row, rowIndex) {
         var y = Y + row * C + C / 2;
-        var light = ctx.createLinearGradient(0, y - 18, 0, y + 18);
-        light.addColorStop(0, 'rgba(255,211,132,0)');
-        light.addColorStop(.5, 'rgba(255,227,163,' + fade * .65 + ')');
-        light.addColorStop(1, 'rgba(255,211,132,0)');
-        ctx.fillStyle = light; ctx.fillRect(X, y - 18, 260, 36);
-        line(ctx, X, y, X + 260, y, 'rgba(255,249,214,' + fade + ')', 2);
-        for (var i = 0; i < 22; i++) {
-          var px = X + (i * 37 + row * 11) % 260;
-          var py = y - (12 + i % 5 * 8) * p;
-          ctx.fillStyle = 'rgba(255,220,152,' + fade + ')';
-          ctx.fillRect(px + Math.sin(i * 2) * p * 18, py, i % 3 ? 1.5 : 3, i % 3 ? 4 : 3);
+        // Stage 1: a thin white-hot seam. Stage 2: two travelling weld fronts.
+        var seam = Math.max(0, 1 - age / .2), sweep = Math.min(1, Math.max(0, (age - .08) / .4));
+        line(ctx, X, y, X + 260, y, 'rgba(255,239,185,' + seam * .7 + ')', 2);
+        if (age < .55) {
+          for (var side = -1; side <= 1; side += 2) {
+            var front = 160 + side * 130 * sweep;
+            var glow = ctx.createRadialGradient(front, y, 0, front, y, 22);
+            glow.addColorStop(0, 'rgba(255,233,161,' + fade * .5 + ')');
+            glow.addColorStop(1, 'rgba(255,177,66,0)');
+            ctx.fillStyle = glow; ctx.fillRect(front - 22, y - 12, 44, 24);
+            line(ctx, front, y - 5, front, y + 5, 'rgba(255,249,215,' + fade + ')', 2);
+          }
+        }
+        // Hot filings eject into the row gutters, then fall and extinguish.
+        for (var i = 0; i < 14; i++) {
+          var t = Math.max(0, age - .13 - i % 3 * .025);
+          if (!t || t > .65) continue;
+          var direction = i % 2 ? 1 : -1;
+          var px = 160 + direction * Math.min(127, t * (180 + i * 19));
+          var py = y - Math.sin(i * 4 + rowIndex) * 19 * t + 35 * t * t;
+          line(ctx, px, py, px - direction * 4, py - 1, 'rgba(255,207,124,' + (1 - t / .65) * .8 + ')', i % 4 ? .8 : 1.5);
         }
       });
     }
     ctx.restore();
-    if (event.cogs) {
-      ctx.save(); ctx.globalAlpha = fade;
-      for (var gear = 0; gear < Math.min(3, event.cogs); gear++) {
-        var t = Math.min(1, p * 1.6), startY = Y + event.rows[event.rows.length - 1] * C;
-        var gx = 160 + (25 + gear * 35) * t + Math.sin(t * Math.PI) * 35;
-        var gy = startY + (636 - startY) * t;
-        cog(ctx, gx, gy, 7, true, p * 5);
+    // Stage 3: earned cogs travel down the outside rail, then seat in the bank.
+    // Rewind reverses the same physical route: three paid cogs leave the bank.
+    var flights = event.rewind ? 3 : Math.min(3, event.cogs);
+    for (var gear = 0; gear < flights; gear++) {
+      var delay = gear * .08, travel = Math.min(1, Math.max(0, (age - .22 - delay) / .7));
+      if (age < .22 + delay || age > 1.18 + delay) continue;
+      var eased = travel * travel * (3 - 2 * travel);
+      var bankSlot = event.rewind ? gear : Math.min(2, event.bankBefore + gear);
+      var bankX = 185 + bankSlot * 35;
+      var sourceY = event.rewind ? 358 : Y + event.rows[event.rows.length - 1] * C + C / 2;
+      var path = event.rewind ? 1 - eased : eased;
+      // The flight bows into the 17px rail, avoiding all active cells.
+      var gx, gy;
+      if (path < .65) { gx = 303; gy = sourceY + (603 - sourceY) * path / .65; }
+      else { gx = 303 + (bankX - 303) * (path - .65) / .35; gy = 603 + 33 * (path - .65) / .35; }
+      ctx.save(); ctx.globalAlpha = travel > .9 ? (1 - travel) * 10 : 1;
+      ctx.shadowColor = event.rewind ? '#8feaf2' : '#ffd47d'; ctx.shadowBlur = 10;
+      cog(ctx, gx, gy, 6, true, (event.rewind ? -1 : 1) * age * 9); ctx.restore();
+    }
+    // Stage 4: bank confirmation / reverse-motion rail pulses, outside the well.
+    if (event.rewind) {
+      for (var pulse = 0; pulse < 5; pulse++) {
+        var railY = Y + 520 - ((age * 570 + pulse * 104) % 520);
+        line(ctx, 25, railY, 25, railY + 24, 'rgba(142,235,243,' + fade * .9 + ')', 2);
+        line(ctx, 295, railY, 295, railY + 24, 'rgba(142,235,243,' + fade * .9 + ')', 2);
+      }
+    } else if (event.cogs && age > .85) {
+      var settle = Math.max(0, 1 - (age - .85) / .65);
+      ctx.save(); ctx.strokeStyle = 'rgba(255,220,147,' + settle * .8 + ')'; ctx.lineWidth = 1.5;
+      for (var bank = 0; bank < flights; bank++) {
+        var slot = Math.min(2, event.bankBefore + bank);
+        ctx.beginPath(); ctx.arc(185 + slot * 35, 636, 11 + (1 - settle) * 12, 0, TAU); ctx.stroke();
       }
       ctx.restore();
     }
-    ctx.save(); ctx.globalAlpha = fade;
-    ctx.strokeStyle = event.rewind ? '#91e6ed' : '#ffe1a2'; ctx.lineWidth = 2;
+    ctx.save(); ctx.globalAlpha = fade * .7;
+    ctx.strokeStyle = event.rewind ? '#91e6ed' : '#ffe1a2'; ctx.lineWidth = 1.5;
     rounded(ctx, 22, 50, 276, 536, 10); ctx.stroke(); ctx.restore();
   }
   function draw(canvas, s, time) {
@@ -318,7 +372,7 @@
     if (s.history !== scene.history) {
       var rows = clearedRows(s), rewound = s.last === 'LAST LOCK REWOUND';
       if (rows.length || rewound) scene.event = { at: phase, rewind: rewound, rows: rows,
-        cogs: rewound ? 0 : Math.max(0, s.cogs - scene.cogs) };
+        cogs: rewound ? 0 : Math.max(0, s.cogs - scene.cogs), bankBefore: scene.cogs };
       scene.history = s.history;
     }
     scene.cogs = s.cogs; scene.last = s.last;
@@ -343,12 +397,11 @@
     ctx.fillStyle = announcing ? '#ffdfa0' : '#e5d9b4';
     ctx.font = announcing ? 'bold 12px system-ui' : 'bold 13px system-ui';
     ctx.fillText(announcing ? s.last : 'CHRONO FOUNDRY', 33, 30, 178);
-    // The physical status strip replaces duplicated game and level branding.
-    for (var lamp = 0; lamp < 8; lamp++) {
-      ctx.fillStyle = lamp < 2 + s.lines % 7 ? '#e4b367' : '#354548';
-      rounded(ctx, 224 + lamp * 8, 20, 4, 11, 1); ctx.fill();
-    }
-    board(ctx, s, time, phase); dock(ctx, s, phase); feedback(ctx, scene, phase);
+    // The brass nameplate carries an explicit state, never unexplained meters.
+    line(ctx, 222, 17, 222, 34, '#526058', .8);
+    ctx.fillStyle = '#b5c7c6'; ctx.font = 'bold 10px system-ui';
+    ctx.fillText('LV ' + String(s.level).padStart(2, '0'), 238, 29);
+    board(ctx, s, time, phase, scene); dock(ctx, s, phase); feedback(ctx, scene, phase, s);
     ctx.restore();
   }
   GW.Render = { draw: draw };

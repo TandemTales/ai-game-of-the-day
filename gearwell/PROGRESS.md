@@ -67,3 +67,5 @@
 - Preserve six-size no-scroll/44px controls, legal-input earned rewind and DPR resizing. Run focused mechanics before each commit, inspect new HTTP screenshots, and record acceptance gaps honestly.
 
 - Integration checkpoint: sound cues now follow actual locks/line clears instead of hard-drop score gain; gravity locks refresh both audio and the announcement timer. Regression fixture covers false clear sounds and gravity clear/lock paths (focused Jest 5/5). Mobile hard-drop reads DROP/HARD; Space hint is desktop-only, and idle status explains earned rewinds instead of LOCKED. Renderer/CSS workers are still in progress; browser/critic review follows.
+
+- Renderer checkpoint: replaced unexplained header bars with LV nameplate, softened machinery glass and added cast enamel bevels. Line clears stage a hot seam, travelling weld fronts/filings, rail cog transport and bank receipt; paid rewind reverses bank cogs with upward rail pulses and cool flywheel light. Overlay clipping protects live piece and ghost. Focused Jest5/5, renderer syntax pass. First HTTP six-size/input/DPR2 sweep passed; fresh stable sweep and independent critic follow.

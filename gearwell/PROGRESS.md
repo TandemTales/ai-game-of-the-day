@@ -95,3 +95,5 @@
 - UI checkpoint: desktop score, lines/level, placement controls and status now form one instrument spine beside the well. Phone/tablet/short-landscape rules remain intact. First all6size HTTP harness passes noXYoverflow/44pxtargets and gameplay/DPR checks; focused Jest5/5. Independent UI critique pending; no AAA approval.
 
 - Critic-driven renderer refinement: shuttered lamp now casts onto one worn foreground bevel/overhead face, retaining cold rear bays and dark gameplay grid. Syntax and focused Jest5/5 pass. Final new captures and independent verdicts follow.
+
+- Critic-driven UI refinement: removed oversized circular wallpaper, added offset roof truss/asymmetric piers/directional warm-cold room light, and joined score/controls/status as a continuous desktop instrument surface. Final HTTP Edge harness all6sizes passes noXYoverflow/44pxtargets/cleanconsole/noexternalrequests and legal earnedrewind/touch/topout/restart/localAPI/DPR2. Lead inspecting final PNGs; fresh independent verdicts pending. Focused Jest5/5 and diff check pass.

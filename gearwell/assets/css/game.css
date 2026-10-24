@@ -3,9 +3,11 @@
 html,body{margin:0;min-height:100%;background:#08111f;color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,sans-serif}
 /* A quiet machine chamber puts the illuminated well at the centre of the room.
    Fixed decorative layers never participate in the responsive board layout. */
-body{isolation:isolate;background:#071018;background-image:radial-gradient(ellipse at 50% 28%,#234b50 0,#102a34 30%,#08141d 60%,#050a11 100%);background-attachment:fixed}
+body{isolation:isolate;background:#071018;background-image:radial-gradient(ellipse at 18% 12%,#78604026,transparent 43%),radial-gradient(ellipse at 76% 70%,#25516144,transparent 48%),linear-gradient(115deg,#101c23,#09131b 47%,#050a10);background-attachment:fixed}
 body::before,body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none}
-body::before{background:linear-gradient(90deg,transparent 11%,#1d3035 11.1%,#0b171f 11.8%,transparent 12.1%,transparent 87.9%,#0b171f 88.2%,#1d3035 88.9%,transparent 89%),linear-gradient(90deg,transparent 24%,#7a684535 24.15%,#060e16 24.55%,transparent 24.8%,transparent 75.2%,#060e16 75.45%,#7a684535 75.85%,transparent 76%),radial-gradient(ellipse at 50% 40%,transparent 39%,#6f865325 39.2%,#9da87f32 39.4%,#071019aa 40%,transparent 40.5%),linear-gradient(154deg,#c1b28109,transparent 30%),repeating-linear-gradient(0deg,transparent 0 159px,#8ba5a307 160px,#02081040 161px 163px);box-shadow:inset 0 0 15vw #0008}
+/* Offset roof truss, shadowed piers and raking light establish an industrial
+   room without a circular graphic competing with the machine silhouette. */
+body::before{background:linear-gradient(165deg,transparent 0 15%,#03090dbb 15.1% 20%,#68706825 20.1%,#0b161c 20.3% 22%,transparent 22.1%),linear-gradient(90deg,transparent 11%,#243339 11.1%,#071118 12% 14.5%,#4a504035 14.7%,#071118 15%,transparent 15.2%,transparent 82%,#16292f 82.1%,#050d13 82.8% 87%,#34464a 87.2%,#09141b 87.4%,transparent 87.6%),linear-gradient(112deg,#dcb76d0a,transparent 38%),repeating-linear-gradient(0deg,transparent 0 159px,#8ba5a307 160px,#02081040 161px 163px);box-shadow:inset 0 0 15vw #0008}
 body::after{top:78%;background:repeating-conic-gradient(from 80deg at 50% -14%,transparent 0deg 9.7deg,#a8bcb915 9.8deg 10deg,transparent 10.1deg 20deg),linear-gradient(#0b172200,#08121c 54%),repeating-linear-gradient(0deg,#708b8f12 0 1px,transparent 1px 40px);mask-image:linear-gradient(transparent,#000 28%);opacity:.7}
 button{font:inherit;cursor:pointer}
 a{color:#cae4e7;text-decoration:none}
@@ -107,14 +109,14 @@ footer a{white-space:nowrap}
   .eyebrow{font-size:clamp(10px,.75vw,18px);margin-bottom:6px}
   header a{font-size:clamp(13px,.8vw,20px)}
   .stage{grid-column:1;grid-row:2;justify-self:end;margin:0;box-shadow:0 0 0 3px #030d17,0 30px 65px #000b,0 0 100px #8dbfc52b,inset 0 1px #e6e6c677}
-  .metrics{grid-column:2;grid-row:2;grid-template-columns:1fr 1fr;grid-template-rows:1fr auto;width:100%;height:var(--readout-height);margin:0;gap:0;padding:var(--spine-pad);border:1px solid #768c7955;border-top:2px solid #c9ad74;background:linear-gradient(135deg,#1a3035eb,#0b1b24f5);box-shadow:inset 0 1px #d3d0a519,0 8px 22px #0004}
+  .metrics{grid-column:2;grid-row:2;grid-template-columns:1fr 1fr;grid-template-rows:1fr auto;width:100%;height:var(--readout-height);margin:0;gap:0;padding:var(--spine-pad);border:1px solid #768c7955;border-top:2px solid #c9ad74;border-bottom:0;background:linear-gradient(90deg,#192d31f5,#0b1b24f5);box-shadow:inset 0 1px #d3d0a519}
   .metrics div{min-height:0;padding:clamp(10px,.9vh,20px) 0 0;border:0;border-radius:0;background:transparent;box-shadow:none;flex-direction:column;align-items:flex-start;gap:5px}
   .metrics span{font-size:clamp(12px,.65vw,20px);letter-spacing:.1em;color:#bbcecb}
   .metrics strong{font-size:clamp(25px,1.25vw,44px);line-height:1.05}
   .metrics div:first-child{grid-column:1 / -1;padding-top:0;padding-bottom:clamp(12px,1.3vh,28px);border-bottom:1px solid #69878b40}
   .metrics div:first-child strong{font-size:clamp(44px,2.5vw,86px);letter-spacing:-.03em;line-height:1.05;color:#fff0c0}
   .metrics div:last-child{padding-left:var(--spine-pad);border-left:1px solid #69878b40}
-  .controls{grid-column:2;grid-row:2;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;margin:calc(var(--readout-height) + 10px) 0 0;gap:var(--control-gap);padding:var(--spine-pad);border:1px solid #768c7955;border-top:1px solid #bda46c80;background:linear-gradient(135deg,#192d31eb,#0b1b24f5);box-shadow:inset 0 1px #d3d0a519,0 8px 22px #0004}
+  .controls{grid-column:2;grid-row:2;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;margin:var(--readout-height) 0 0;gap:var(--control-gap);padding:var(--spine-pad);border:1px solid #768c7955;border-top:0;border-bottom:0;background:linear-gradient(90deg,#192d31f5,#0b1b24f5);box-shadow:none}
   .controls button{min-height:var(--control-height);font-size:clamp(24px,1.2vw,42px);border-radius:4px}
   .control-hint{font-size:clamp(11px,.5vw,16px)}
   .key-hint{display:inline;color:#c0d0d2;font-weight:500}
@@ -125,7 +127,7 @@ footer a{white-space:nowrap}
   .controls button.drop{font-size:clamp(12px,.65vw,22px)}
   #rewind .control-symbol{font-size:clamp(11px,.5vw,18px)}
   .controls button.drop .control-hint{font-size:clamp(10px,.35vw,12px)}
-  footer{grid-column:2;grid-row:2;align-self:start;display:block;width:100%;margin:calc(var(--readout-height) + 10px + 2 * var(--spine-pad) + 2 * var(--control-height) + var(--control-gap) + 18px) 0 0;padding:0 var(--spine-pad);font-size:clamp(13px,.7vw,20px)}
+  footer{grid-column:2;grid-row:2;align-self:start;display:block;width:100%;margin:calc(var(--readout-height) + 2 * var(--spine-pad) + 2 * var(--control-height) + var(--control-gap)) 0 0;padding:0 var(--spine-pad) var(--spine-pad);border:1px solid #768c7955;border-top:0;background:linear-gradient(90deg,#192d31f5,#0b1b24f5);box-shadow:0 12px 22px #0004;font-size:clamp(13px,.7vw,20px)}
   footer p{color:#e4d2a3;font-weight:600;letter-spacing:.015em;white-space:normal;line-height:1.45}
   footer a{display:inline-block;margin-top:10px;color:#cfdfdf;border-bottom:1px solid #66848066;padding-bottom:3px}
   .panel{padding:clamp(22px,2vw,48px) clamp(18px,1.5vw,40px)}

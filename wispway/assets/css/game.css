@@ -1,0 +1,38 @@
+:root { color-scheme: dark; font-family: system-ui, sans-serif; color: #f6ecd8; background: #07050f; --gold: #ffb347; --violet: #7a5cff; }
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { background: radial-gradient(ellipse 80% 55% at 50% 3%, #2b1d52, #120c24 55%, transparent), #07050f; overflow-x: hidden; }
+a { color: var(--gold); }
+.shell { width: min(100%, 1800px); height: 100svh; margin: auto; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto; padding: clamp(8px, 1.2vw, 28px) clamp(10px, 3vw, 60px); gap: clamp(6px, .8vw, 16px); }
+header, .metrics, footer, .controls { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+header h1 { margin: 0; font: 700 clamp(1.3rem, 1.8vw, 2.8rem)/1 Georgia, serif; letter-spacing: .1em; text-transform: uppercase; }
+.eyebrow { margin: 0 0 3px; color: var(--gold); font-size: clamp(.62rem, .65vw, 1rem); letter-spacing: .25em; font-weight: 800; }
+header a { white-space: nowrap; font-size: clamp(.8rem, .85vw, 1.2rem); }
+.metrics { justify-content: center; }
+.metrics div { min-width: 0; flex: 1; max-width: 190px; padding: 6px 8px; text-align: center; background: linear-gradient(110deg, #130d27f2, #251a45e8); border: 1px solid #7a5cff40; border-radius: 10px; }
+.metrics span { display: block; color: #cdbff0; text-transform: uppercase; font-size: clamp(.6rem, .7vw, 1rem); letter-spacing: .15em; font-weight: 700; }
+.metrics strong { display: block; font-size: clamp(1.1rem, 1.8vw, 2.4rem); font-variant-numeric: tabular-nums; color: #fff0c4; }
+.stage { position: relative; min-height: 0; display: grid; place-items: center; }
+canvas { display: block; height: 100%; max-width: 100%; aspect-ratio: 19 / 21; border: 2px solid #5b46b8; border-radius: 14px; box-shadow: 0 20px 70px #000b, 0 0 60px #7a5cff33; touch-action: none; background: #07050f; }
+.gatebar { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 3px 10px; border-radius: 99px; background: #0b0716c0; font-size: .65rem; letter-spacing: .15em; font-weight: 800; color: #ffd98a; }
+.gatebar[hidden] { display: none; }
+.gatebar i { display: block; width: 90px; height: 5px; border-radius: 3px; background: linear-gradient(90deg, var(--gold), #5de0ff); transform-origin: left; }
+.gatebar.warn i { animation: blink .3s steps(2) infinite; }
+@keyframes blink { 50% { opacity: .25; } }
+.panel { position: absolute; inset: 0; margin: auto; width: min(92%, 440px); height: fit-content; padding: 22px; text-align: center; background: linear-gradient(160deg, #1b1236f2, #0c0818f5); border: 1px solid #7a5cff77; border-radius: 18px; box-shadow: 0 0 50px #000c; }
+.panel[hidden] { display: none; }
+.kicker { color: var(--gold); font-size: .7rem; letter-spacing: .2em; font-weight: 800; }
+.panel h2 { margin: 8px 0; font: 700 1.9rem Georgia, serif; }
+.panel p { margin: 0 0 14px; line-height: 1.45; color: #ddd0f0; font-size: .92rem; }
+button { font: inherit; cursor: pointer; }
+#start { padding: 12px 34px; font-weight: 900; letter-spacing: .15em; color: #25123a; background: linear-gradient(#ffe29a, #ffb347); border: 0; border-radius: 99px; box-shadow: 0 0 24px #ffb34766; }
+.controls { justify-content: center; }
+.controls button { min-height: 44px; padding: 8px 22px; font-weight: 800; letter-spacing: .12em; color: #fff0c4; background: #1d1438; border: 1px solid #7a5cff77; border-radius: 99px; }
+#flare { min-width: 130px; border-color: var(--gold); }
+#flare:disabled { opacity: .45; }
+#flare.ready { box-shadow: 0 0 22px #ffb34777; }
+footer { font-size: clamp(.7rem, .8vw, 1.1rem); color: #cdbff0; }
+footer p { margin: 0; }
+#feedback { color: var(--gold); font-weight: 800; letter-spacing: .1em; text-align: center; }
+@media (max-width: 600px) { footer p:first-child { display: none; } footer { justify-content: space-between; } header .eyebrow { display: none; } .panel { padding: 16px; } .panel p { font-size: .82rem; } }
+@media (max-height: 460px) { .eyebrow, footer p:first-child { display: none; } .shell { grid-template-columns: 1fr; } .controls { position: absolute; right: 8px; bottom: 8px; flex-direction: column; } .metrics div { padding: 2px 6px; } }

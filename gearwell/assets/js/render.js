@@ -11,6 +11,11 @@
     ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
     ctx.strokeStyle = color; ctx.lineWidth = width; ctx.stroke();
   }
+  function plate(ctx, points, fill) {
+    ctx.beginPath(); ctx.moveTo(points[0][0], points[0][1]);
+    for (var i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
+    ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+  }
   function cog(ctx, x, y, radius, lit, rotation) {
     ctx.save(); ctx.translate(x, y); ctx.rotate(rotation || 0);
     ctx.fillStyle = lit ? '#fbdc90' : '#324957';
@@ -25,95 +30,109 @@
     ctx.beginPath(); ctx.arc(0, 0, radius - .8, 0, TAU); ctx.stroke();
     ctx.restore();
   }
-  // The mechanism sits behind smoked glass, with one offset flywheel rather
-  // than repeated decorative cogs. Keep its contrast below the landing guide.
+  // A furnace gallery recedes behind the glass: distant hot brick, middle
+  // gantries and near cast pillars. Every layer stays darker than the ghost.
   function mechanism(ctx, phase, event, now) {
     ctx.save();
-    var shadow = ctx.createLinearGradient(X, 0, X + 260, 0);
-    shadow.addColorStop(0, '#07131b'); shadow.addColorStop(.28, '#162c34');
-    shadow.addColorStop(.7, '#102632'); shadow.addColorStop(1, '#06111d');
-    ctx.fillStyle = shadow; ctx.fillRect(X, Y, 260, 520);
-    for (var panel = 0; panel < 4; panel++) {
-      var py = 85 + panel * 135;
-      ctx.fillStyle = '#0a1b27'; ctx.fillRect(43, py, 234, 122);
-      line(ctx, 44, py, 276, py, 'rgba(117,152,151,.12)', 1);
-      line(ctx, 44, py + 121, 276, py + 121, '#030e18', 2);
-      for (var bolt = 0; bolt < 2; bolt++) {
-        ctx.fillStyle = '#283d43';
-        ctx.beginPath(); ctx.arc(bolt ? 271 : 49, py + 7, 1.3, 0, TAU); ctx.fill();
+    var power = event ? Math.max(0, 1 - (now - event.at) / 1.3) : 0;
+    var cold = event && event.rewind;
+    var room = ctx.createLinearGradient(0, Y, 0, Y + 520);
+    room.addColorStop(0, '#09151a'); room.addColorStop(.37, '#132629');
+    room.addColorStop(.72, '#0e1e26'); room.addColorStop(1, '#05111b');
+    ctx.fillStyle = room; ctx.fillRect(X, Y, 260, 520);
+    // Rear wall is interrupted by a furnace mouth, not a bright decorative ring.
+    plate(ctx, [[112,197],[211,197],[231,337],[94,337]], '#172728');
+    for (var brick = 0; brick < 8; brick++) {
+      var by = 204 + brick * 16;
+      line(ctx, 110, by, 214, by, '#0b1b21', 2);
+      for (var joint = 0; joint < 4; joint++) {
+        var bx = 112 + joint * 30 + brick % 2 * 15;
+        line(ctx, bx, by + 1, bx, by + 14, '#102023', 1);
       }
     }
-    // A cast flywheel: shadowed rear rim, worn bevel and recessed spokes.
-    ctx.save(); ctx.translate(241, 358);
-    ctx.fillStyle = '#020b12';
-    ctx.beginPath(); ctx.arc(4, 7, 132, 0, TAU); ctx.fill();
-    var casting = ctx.createLinearGradient(-125, -125, 100, 115);
-    casting.addColorStop(0, '#46514a'); casting.addColorStop(.2, '#263b3d');
-    casting.addColorStop(.45, '#0b1a23'); casting.addColorStop(.76, '#334440');
-    casting.addColorStop(1, '#111e25');
-    ctx.fillStyle = casting;
-    ctx.beginPath(); ctx.arc(0, 0, 129, 0, TAU); ctx.arc(0, 0, 103, TAU, 0, true); ctx.fill();
-    ctx.strokeStyle = '#40524d'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.arc(0, 0, 128, Math.PI * 1.1, Math.PI * 1.8); ctx.stroke();
-    ctx.strokeStyle = '#05121b'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(0, 0, 105, 0, TAU); ctx.stroke();
-    ctx.save(); ctx.rotate(-phase * .025);
-    for (var spoke = 0; spoke < 9; spoke++) {
-      ctx.rotate(TAU / 9);
-      ctx.fillStyle = '#17292d';
-      ctx.beginPath(); ctx.moveTo(23, -8); ctx.lineTo(103, -14);
-      ctx.lineTo(108, 10); ctx.lineTo(23, 8); ctx.closePath(); ctx.fill();
-      line(ctx, 31, -7, 102, -13, '#344740', 1);
-      line(ctx, 30, 9, 102, 12, '#06111a', 3);
-      // Paired bolts and scuffed rim marks remain subordinate to blocks.
-      for (var screw = 0; screw < 2; screw++) {
-        var sy = screw ? 17 : -17;
-        ctx.fillStyle = '#07151c'; ctx.beginPath(); ctx.arc(117, sy, 3, 0, TAU); ctx.fill();
-        line(ctx, 115, sy - 1, 118, sy - 1, '#526050', .8);
+    var heat = ctx.createRadialGradient(167, 282, 6, 167, 282, 122);
+    heat.addColorStop(0, cold ? '#234148' : '#4a3827');
+    heat.addColorStop(.36, cold ? '#162d34' : '#292b25');
+    heat.addColorStop(1, '#0b1b2500');
+    ctx.fillStyle = heat; ctx.fillRect(50, 150, 230, 270);
+    plate(ctx, [[138,239],[190,239],[198,307],[130,307]], '#07151c');
+    plate(ctx, [[146,248],[183,248],[187,297],[141,297]], cold ? '#203c42' : '#3a3024');
+    for (var grate = 0; grate < 5; grate++) {
+      line(ctx, 146 + grate * 8, 247, 141 + grate * 11, 299, '#101f24', 3);
+    }
+    line(ctx, 136, 307, 193, 307, cold ? '#34535a' : '#675037', 2);
+    // Floor and ceiling converge on the same rear wall, giving a readable depth.
+    plate(ctx, [[30,578],[112,325],[214,325],[290,578]], '#0a1921');
+    plate(ctx, [[30,58],[290,58],[211,204],[113,204]], '#0a181e');
+    for (var floor = 0; floor < 7; floor++) {
+      var foot = 30 + floor * 44;
+      line(ctx, foot, 578, 121 + floor * 14, 325, '#263637', .7);
+    }
+    for (var slab = 0; slab < 6; slab++) {
+      var fy = 336 + slab * slab * 10;
+      var spread = (fy - 325) / 253;
+      line(ctx, 112 - 82 * spread, fy, 214 + 76 * spread, fy, '#1b2c31', 1);
+      line(ctx, 112 - 82 * spread, fy + 2, 214 + 76 * spread, fy + 2, '#06131d', 2);
+    }
+    // Three decreasing gantries: lit inner bevels, dark undersides and cast feet.
+    for (var bay = 2; bay >= 0; bay--) {
+      var left = 43 + bay * 31, right = 282 - bay * 33;
+      var top = 89 + bay * 46, bottom = 552 - bay * 87;
+      var beam = 12 - bay * 2;
+      plate(ctx, [[left,top+27],[left+24,top],[right-24,top],[right,top+27],
+        [right,bottom],[right-beam,bottom],[right-beam,top+32],
+        [right-28,top+beam],[left+28,top+beam],[left+beam,top+32],
+        [left+beam,bottom],[left,bottom]], bay ? '#13252b' : '#1b2d30');
+      line(ctx, left + beam, top + 32, left + beam, bottom - 4, '#405044', .7);
+      line(ctx, left + 28, top + beam, right - 28, top + beam, '#3f4840', 1);
+      line(ctx, right - beam, top + 32, right - beam, bottom, '#07131c', 3);
+      line(ctx, left + 4, top + 29, left + 25, top + 5, '#455043', .7);
+      for (var brace = 0; brace < 3; brace++) {
+        var braceY = top + 55 + brace * (bottom - top - 70) / 3;
+        line(ctx, left + 2, braceY, left + beam - 1, braceY + 11, '#07151d', 2);
+        line(ctx, right - beam + 1, braceY, right - 2, braceY + 11, '#30413d', 1);
       }
-      line(ctx, 122, -10, 124, -4, '#566047', .6);
-      line(ctx, 111, 7, 119, 8, '#3e4d3e', .6);
     }
-    ctx.restore();
-    var hub = ctx.createLinearGradient(-25, -30, 25, 35);
-    hub.addColorStop(0, '#526054'); hub.addColorStop(.2, '#2b3b3b');
-    hub.addColorStop(.65, '#0d1d26'); hub.addColorStop(1, '#344640');
-    ctx.fillStyle = hub; ctx.beginPath(); ctx.arc(0, 0, 31, 0, TAU); ctx.fill();
-    ctx.strokeStyle = '#09151f'; ctx.lineWidth = 3; ctx.stroke();
-    ctx.fillStyle = '#07131d'; ctx.beginPath(); ctx.arc(0, 0, 14, 0, TAU); ctx.fill();
-    line(ctx, -7, -9, 7, -9, '#3c4e49', 1);
-    ctx.restore();
-    // Recessed conduit on the opposite side balances the wheel's mass.
-    for (var pipe = 0; pipe < 3; pipe++) {
-      var px = 49 + pipe * 11;
-      line(ctx, px + 2, 77, px + 2, 565, '#030e16', 6);
-      line(ctx, px, 77, px, 565, '#20343b', 4);
-      line(ctx, px - 1, 77, px - 1, 565, '#2b4145', .6);
+    // Suspended press and counterweight occupy the edges, leaving centre quiet.
+    for (var chain = 0; chain < 2; chain++) {
+      var cx = chain ? 257 : 65;
+      line(ctx, cx, 73, cx, 343, '#050e17', 4);
+      line(ctx, cx - 1, 73, cx - 1, 343, '#3b4840', .7);
+      for (var link = 0; link < 25; link++) {
+        var cy = 78 + link * 10 + (phase * 2 % 10);
+        line(ctx, cx - 2, cy, cx + 2, cy + 3, '#32443e', .8);
+      }
+      var piston = ctx.createLinearGradient(cx - 8, 0, cx + 8, 0);
+      piston.addColorStop(0, '#07151c'); piston.addColorStop(.32, '#3c4840');
+      piston.addColorStop(.52, '#192d31'); piston.addColorStop(1, '#091820');
+      ctx.fillStyle = piston; ctx.fillRect(cx - 7, 336, 14, 84);
+      ctx.fillStyle = '#0b1b22'; ctx.fillRect(cx - 11, 345, 22, 8);
+      line(ctx, cx - 10, 346, cx + 10, 346, '#445044', .8);
+      ctx.fillRect(cx - 10, 410, 20, 9);
     }
-    // A single warm work lamp and cold footlight give the machine direction.
-    var amber = ctx.createRadialGradient(48, 89, 0, 48, 89, 240);
-    amber.addColorStop(0, 'rgba(239,169,66,.16)'); amber.addColorStop(1, 'rgba(239,169,66,0)');
-    ctx.fillStyle = amber; ctx.fillRect(X, Y, 260, 520);
-    var blue = ctx.createRadialGradient(280, 563, 0, 280, 563, 240);
-    blue.addColorStop(0, 'rgba(56,171,192,.15)'); blue.addColorStop(1, 'rgba(56,171,192,0)');
-    ctx.fillStyle = blue; ctx.fillRect(X, Y, 260, 520);
-    // Cast ribs catch the work lamp; the playfield stays behind smoked glass.
-    for (var rib = 0; rib < 3; rib++) {
-      var ry = 116 + rib * 164;
-      line(ctx, 90, ry, 275, ry, 'rgba(122,142,126,.08)', 2);
-      line(ctx, 90, ry + 3, 275, ry + 3, 'rgba(0,8,15,.14)', 1);
+    // Near left cast column breaks the middle silhouettes; only its bevel is lit.
+    plate(ctx, [[30,58],[42,58],[42,184],[50,201],[50,546],[42,563],[42,578],[30,578]], '#07121a');
+    line(ctx, 42, 70, 42, 184, '#4c4b3a', 1);
+    line(ctx, 50, 202, 50, 544, '#38423b', 1);
+    plate(ctx, [[279,58],[290,58],[290,578],[278,578],[273,550],[273,170],[279,150]], '#06121b');
+    line(ctx, 273, 171, 273, 550, '#263d41', 1);
+    // A shuttered work lamp establishes the warm source without lighting cells.
+    ctx.fillStyle = '#0a171b'; ctx.fillRect(55, 110, 18, 31);
+    var lamp = ctx.createRadialGradient(64, 125, 1, 64, 125, 104);
+    lamp.addColorStop(0, cold ? 'rgba(113,199,203,.17)' : 'rgba(232,172,78,.2)');
+    lamp.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = lamp; ctx.fillRect(30, 58, 150, 190);
+    for (var shutter = 0; shutter < 4; shutter++) {
+      line(ctx, 59, 116 + shutter * 6, 69, 116 + shutter * 6, cold ? '#4c7776' : '#7b643b', 2);
     }
-    ctx.fillStyle = 'rgba(4,14,24,.44)'; ctx.fillRect(X, Y, 260, 520);
-    // Rewards briefly energise the actual mechanism, rather than flood the board.
-    if (event) {
-      var age = now - event.at, power = Math.max(0, 1 - age / 1.3);
-      var illumination = ctx.createRadialGradient(241, 358, 25, 241, 358, 170);
-      illumination.addColorStop(0, event.rewind ? 'rgba(105,226,237,' + power * .12 + ')' : 'rgba(255,191,83,' + power * .12 + ')');
-      illumination.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = illumination; ctx.fillRect(X, Y, 260, 520);
-      ctx.strokeStyle = event.rewind ? 'rgba(134,231,239,' + power * .35 + ')' : 'rgba(245,197,108,' + power * .35 + ')';
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(241, 358, 116, -1.9 - age * 2, -.6 - age * 2); ctx.stroke();
+    // Atmospheric glass subdues the full room below the gameplay layer.
+    ctx.fillStyle = 'rgba(3,13,22,.29)'; ctx.fillRect(X, Y, 260, 520);
+    if (power) {
+      var reflected = ctx.createRadialGradient(166, 286, 8, 166, 286, 230);
+      reflected.addColorStop(0, cold ? 'rgba(116,217,232,' + power * .1 + ')' : 'rgba(255,187,78,' + power * .12 + ')');
+      reflected.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = reflected; ctx.fillRect(X, Y, 260, 520);
+      line(ctx, 136, 307, 193, 307, cold ? 'rgba(119,216,228,' + power * .45 + ')' : 'rgba(248,189,100,' + power * .45 + ')', 2);
     }
     ctx.restore();
   }

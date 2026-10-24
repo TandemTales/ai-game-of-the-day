@@ -91,3 +91,5 @@
 - Preserve no-scroll,44px controls,readable cog bank,legal-input earned rewind and DPR resizing. Run focused tests before each commit and inspect six-size HTTP screenshots. Record audio/device/human/performance and AAA limits honestly.
 
 - Renderer checkpoint: replaced the large in-well flywheel with a receding furnace gallery, three gantry depths, brick furnace mouth, suspended press/counterweight and near pillars. Gameplay/ghost and event semantics unchanged. Focused Jest5/5 and renderer syntax pass; first HTTP all6 sizes plus input-earned paid rewind/touch/top-out/restart/API stub/DPR2 pass. Lead opened320/390/844/1440play. First independent visual critic: AAA FAIL / OURS LOSES; chamber depth improves, but whole-screen teal/ring silhouette still dominates. Refinement follows.
+
+- UI checkpoint: desktop score, lines/level, placement controls and status now form one instrument spine beside the well. Phone/tablet/short-landscape rules remain intact. First all6size HTTP harness passes noXYoverflow/44pxtargets and gameplay/DPR checks; focused Jest5/5. Independent UI critique pending; no AAA approval.

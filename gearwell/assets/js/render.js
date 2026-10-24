@@ -114,16 +114,34 @@
     plate(ctx, [[30,58],[42,58],[42,184],[50,201],[50,546],[42,563],[42,578],[30,578]], '#07121a');
     line(ctx, 42, 70, 42, 184, '#4c4b3a', 1);
     line(ctx, 50, 202, 50, 544, '#38423b', 1);
+    // The nearby cast face catches the lamp; rear bays remain cold silhouettes.
+    // A broad worn bevel survives phone scaling better than scattered sparkle.
+    var worn = ctx.createLinearGradient(44, 163, 56, 370);
+    worn.addColorStop(0, cold ? '#415b59' : '#726245');
+    worn.addColorStop(.3, cold ? '#314b4e' : '#514b37');
+    worn.addColorStop(.58, '#283832'); worn.addColorStop(1, '#10212a');
+    plate(ctx, [[43,169],[47,181],[55,199],[55,355],[49,366],
+      [49,204],[40,185]], worn);
+    line(ctx, 47, 182, 54, 199, cold ? '#5a7976' : '#95805a', 1);
+    line(ctx, 54, 201, 54, 291, cold ? '#4d6969' : '#77694a', .8);
+    for (var wear = 0; wear < 7; wear++) {
+      var wy = 213 + wear * 17;
+      line(ctx, 50, wy, 53, wy - 2, wear % 2 ? '#26382e' : '#5c563e', .8);
+    }
+    // The same warm source grazes one overhead face, with a dark cut underside.
+    plate(ctx, [[67,90],[258,90],[254,96],[70,96]], cold ? '#354f50' : '#4e4a37');
+    line(ctx, 72, 96, 254, 96, '#07141d', 3);
+    line(ctx, 68, 90, 154, 90, cold ? '#4c6c6b' : '#81704b', .8);
     plate(ctx, [[279,58],[290,58],[290,578],[278,578],[273,550],[273,170],[279,150]], '#06121b');
     line(ctx, 273, 171, 273, 550, '#263d41', 1);
     // A shuttered work lamp establishes the warm source without lighting cells.
     ctx.fillStyle = '#0a171b'; ctx.fillRect(55, 110, 18, 31);
     var lamp = ctx.createRadialGradient(64, 125, 1, 64, 125, 104);
-    lamp.addColorStop(0, cold ? 'rgba(113,199,203,.17)' : 'rgba(232,172,78,.2)');
+    lamp.addColorStop(0, cold ? 'rgba(113,199,203,.21)' : 'rgba(232,172,78,.27)');
     lamp.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = lamp; ctx.fillRect(30, 58, 150, 190);
     for (var shutter = 0; shutter < 4; shutter++) {
-      line(ctx, 59, 116 + shutter * 6, 69, 116 + shutter * 6, cold ? '#4c7776' : '#7b643b', 2);
+      line(ctx, 59, 116 + shutter * 6, 69, 116 + shutter * 6, cold ? '#5f8b89' : '#a0824a', 2);
     }
     // Atmospheric glass subdues the full room below the gameplay layer.
     ctx.fillStyle = 'rgba(3,13,22,.29)'; ctx.fillRect(X, Y, 260, 520);

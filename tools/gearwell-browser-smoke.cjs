@@ -86,11 +86,11 @@ async function execute(page,p) {
         const stage = el.closest('.stage').getBoundingClientRect();
         return [...el.querySelectorAll('span,strong')].map(label => {
           const r = label.getBoundingClientRect();
-          return { text:label.textContent, font:parseFloat(getComputedStyle(label).fontSize),
+          return { text:label.textContent, font:parseFloat(getComputedStyle(label).fontSize), minimum:label.tagName==='STRONG'?12:11,
             fits:r.left>=stage.left && r.right<=stage.right && r.top>=stage.top && r.bottom<=stage.bottom };
         });
       });
-      assert(reserve.every(label=>label.font>=10 && label.fits), 'Reserve labels must remain readable and inside the stage');
+      assert(reserve.every(label=>label.font>=label.minimum && label.fits), 'Reserve labels/counts must remain readable and inside the stage');
       await page.screenshot({path:path.join(out,`${width}x${height}.png`)});
       const layout=await metrics(page);
       const pass=!errors.length&&!external.length&&layout.scroll[0]<=width&&layout.scroll[1]<=height&&layout.buttons.every(b=>b.w>=44&&b.h>=44&&b.x>=0&&b.y>=0&&b.x+b.w<=width+.1&&b.y+b.h<=height+.1);
@@ -99,7 +99,7 @@ async function execute(page,p) {
       if(width===390) {
         let earned=null, clearCaptured=false;
         for(let i=0;i<160;i++) {
-          const state=await page.evaluate(()=>{const s=GW.Game.getState();return {cogs:s.cogs,score:s.score,lines:s.lines,serial:s.serial,history:!!s.history,board:JSON.stringify(s.board)};});
+          const state=await page.evaluate(()=>{const s=GW.Game.getState();return {cogs:s.cogs,score:s.score,lines:s.lines,serial:s.serial,history:s.history,board:JSON.stringify(s.board)};});
           if(state.cogs>=3&&state.history) { earned=state; break; }
           const p=await plan(page); assert(p,'Planner must find placement'); await execute(page,p);
           if(!clearCaptured && await page.evaluate(n=>GW.Game.getState().cogs>n,state.cogs)) {
@@ -125,8 +125,11 @@ async function execute(page,p) {
         await page.setViewportSize({width:390,height:844});
         await page.waitForTimeout(60);
         await page.locator('#rewind').tap();
-        const rewound=await page.evaluate(()=>{const s=GW.Game.getState(); return {cogs:s.cogs,history:s.history,last:s.last,board:JSON.stringify(s.board)};});
+        const rewound=await page.evaluate(keys=>{const s=GW.Game.getState(); return {cogs:s.cogs,history:s.history,last:s.last,board:JSON.stringify(s.board),restored:Object.fromEntries(keys.map(key=>[key,s[key]]))};},Object.keys(earned.history));
         assert.equal(rewound.cogs,earned.cogs-3); assert.equal(rewound.history,null); assert.equal(rewound.last,'LAST LOCK REWOUND'); assert.notEqual(rewound.board,earned.board);
+        // Verify the entire pre-lock snapshot, including score, piece and next bag.
+        // A changed board alone could hide a rewind that corrupts the sequence.
+        assert.deepEqual(rewound.restored,earned.history,'Paid rewind must restore every saved pre-lock field');
         assert.equal(await page.locator('#bank-status').textContent(), rewound.cogs + ' / 3 COGS');
         assert.equal(await page.locator('#rewind').isDisabled(), true);
         await page.waitForTimeout(100); await page.screenshot({path:path.join(out,'paid-rewind.png')});
@@ -137,7 +140,7 @@ async function execute(page,p) {
         console.log(JSON.stringify({rewindFollowup:await page.evaluate(()=>{
           const s=GW.Game.getState();return {last:s.last,score:s.score,lines:s.lines,cogs:s.cogs};
         }),liveGravityContinues:true}));
-        console.log(JSON.stringify({inputEarnedRewind:{before:{cogs:earned.cogs,score:earned.score,lines:earned.lines,serial:earned.serial},after:{cogs:rewound.cogs,last:rewound.last,history:rewound.history},boardChanged:earned.board!==rewound.board}}));
+        console.log(JSON.stringify({inputEarnedRewind:{before:{cogs:earned.cogs,score:earned.score,lines:earned.lines,serial:earned.serial},after:{cogs:rewound.cogs,score:rewound.restored.score,serial:rewound.restored.serial,last:rewound.last,history:rewound.history},completeSnapshotRestored:true,boardChanged:earned.board!==rewound.board}}));
         // Touch control smoke, state remains a normal input-produced run.
         for(const action of ['left','rotate','down','right','drop']) await page.locator(`[data-action="${action}"]`).tap();
         for(let i=0;i<30;i++) await page.keyboard.press('Space');

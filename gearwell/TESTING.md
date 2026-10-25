@@ -26,14 +26,15 @@ does not write the production leaderboard. PNGs are saved under ignored
   control targets.
 - Uses a placement planner plus real keyboard events to earn at least three
   cogs, captures the earned clear and bank, and taps rewind. Asserts its cost,
-  restored board, consumed history, top-out/restart, and local GET-before-POST.
+  every saved pre-lock field (board, piece, score, lines, level, combo, serial,
+  seed and next-piece queue), consumed history, top-out/restart, and local GET-before-POST.
   The harness does not inject a prepared board or manufacture earned cogs.
 - Checks DPR 2 backing dimensions and board aspect while resizing a live run
   portrait/landscape/portrait. Browser emulation remains separate from physical
   touch, speaker listening, human gameplay/fun, and hardware performance.
 
-The harness also checks that DOM NEXT/REWIND/count labels stay inside the stage
-at >=10px, and that an input-earned paid rewind updates bank readiness,
+The harness also checks that DOM NEXT/REWIND labels stay inside the stage
+at >=11px and counts at >=12px, and that an input-earned paid rewind updates bank readiness,
 accessible button wording and disabled state. Inspect clear/rewind captures to
 confirm header announcements leave active board cells unobstructed. Persistent
 control labels distinguish soft drop, hard drop and the three-cog rewind cost.
@@ -51,3 +52,13 @@ rail transport and bank receipt. The follow-up records continued live gravity;
 a restored low piece may already have locked again, so it is not labelled as
 a rewind-settle frame. Still sequences do not establish motion
 quality, actual device performance, or audio acceptance.
+
+## Repository suite runtime
+
+Run `node node_modules/jest/bin/jest.js --runInBand --cacheDirectory node_modules/.cache/jest`
+for the full repository suite. The October 24 run passed all 29 suites / 494 tests
+in 268.925 seconds. `prism-warden.test.js` alone took 173.36 seconds and
+`prism-warden-kiln.test.js` took 42.554 seconds. A 60-second wrapper cutoff cannot
+establish a failure or completion of this suite. Let it continue in the background
+while working, then collect its actual exit status. Keep those historical timings
+distinct from a new run's result.

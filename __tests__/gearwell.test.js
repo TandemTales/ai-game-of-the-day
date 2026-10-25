@@ -53,8 +53,53 @@ test('line clear earns a cog from a gear cell and rewind restores the prior lock
   expect(s.cogs).toBe(1);
   expect(s.board[19].filter(Boolean)).toHaveLength(8);
   expect(s.piece.kind).toBe('O');
+  expect(s.piece.y).toBe(-1);
+  expect(L.valid(s, s.piece)).toBe(true);
   expect(L.rewind(s)).toBe(false);
 });
+
+test.each(['hard drop', 'soft drop', 'gravity'])(
+  'rewind after %s gives the same piece a playable retry without duplicate points', method => {
+    const L = load(), s = L.newGame(8);
+    L.hardDrop(s);
+    // Keep points from the earlier piece, but undo all points from this turn
+    // and from the next piece that was active when rewind was requested.
+    const before = JSON.parse(JSON.stringify(s));
+    s.cogs = 6;
+    L.rotate(s);
+    while (L.move(s, -1, 0)) {}
+    if (method === 'hard drop') L.hardDrop(s);
+    else {
+      while (L.move(s, 0, 1)) if (method === 'soft drop') s.score++;
+      if (method === 'gravity') for (let i = 0; i < 9; i++) L.tick(s, .1);
+      else L.lock(s);
+    }
+    const nextKind = s.piece.kind;
+    const originalPlacement = JSON.stringify(s.board);
+    L.move(s, 0, 1); s.score++;
+    expect(L.rewind(s)).toBe(true);
+    expect(s.piece).toEqual(before.piece);
+    expect(s.board).toEqual(before.board);
+    expect(s.score).toBe(before.score);
+    expect(s.queue).toEqual(before.queue);
+    expect(s.seed).toBe(before.seed);
+    expect(s.serial).toBe(before.serial);
+    expect(s.cogs).toBe(3);
+    expect(s.history).toBeNull();
+    // More than the old relock window must pass without replaying the lock.
+    for (let i = 0; i < 20; i++) L.tick(s, .1);
+    expect(s.serial).toBe(before.serial);
+    expect(s.board).toEqual(before.board);
+    expect(L.move(s, 1, 0)).toBe(true);
+    const retryDistance = L.hardDrop(s);
+    expect(JSON.stringify(s.board)).not.toBe(originalPlacement);
+    expect(s.piece.kind).toBe(nextKind);
+    expect(s.score).toBe(before.score + retryDistance * 2);
+    expect(L.rewind(s)).toBe(true);
+    expect(s.score).toBe(before.score);
+    expect(s.cogs).toBe(0);
+  }
+);
 
 test('a blocked spawn ends the run instead of producing an illegal active piece', () => {
   const L = load(), s = L.newGame(9);
@@ -88,6 +133,13 @@ test('drop and gravity feedback announce actual locks and line clears', () => {
   expect(game.getState().score).toBeGreaterThan(10);
   expect(sounds).toEqual(['lock']);
   expect(element('notice').textContent).toBe('Clear gears · earn rewinds');
+  game.getState().cogs = 3;
+  game.act('rewind');
+  expect(element('notice').textContent).toBe('REWOUND · PLACE IT AGAIN');
+  for (let now = 100; now <= 2000; now += 100) nextFrame(now);
+  expect(game.getState().serial).toBe(1);
+  expect(game.getState().board.flat().filter(Boolean)).toHaveLength(0);
+  expect(sounds).toEqual(['lock', 'rewind']);
 
   function prepareLanding(clear) {
     const s = game.getState();
@@ -98,9 +150,9 @@ test('drop and gravity feedback announce actual locks and line clears', () => {
     s.piece = { kind: 'O', x: 3, y: 18, rot: 0, gear: false };
     s.elapsed = .79;
   }
-  sounds.length = 0; prepareLanding(false); nextFrame(100);
+  sounds.length = 0; prepareLanding(false); nextFrame(2100);
   expect(sounds).toEqual(['lock']);
-  sounds.length = 0; prepareLanding(true); nextFrame(200);
+  sounds.length = 0; prepareLanding(true); nextFrame(2200);
   expect(sounds).toEqual(['lock', 'clear']);
   expect(element('notice').textContent).toBe('1 LINE CLEAR');
 });

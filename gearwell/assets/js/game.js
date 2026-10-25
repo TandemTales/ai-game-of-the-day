@@ -28,6 +28,7 @@
     bankStatus.classList.toggle('ready', canRewind);
     rewindButton.setAttribute('aria-label', canRewind ? 'Rewind last lock, spend three cogs' : 'Rewind needs three cogs and a locked piece');
     var status = state.last === 'LOCKED' ? 'Clear gears · earn rewinds' :
+      state.last === 'LAST LOCK REWOUND' ? 'REWOUND · PLACE IT AGAIN' :
       state.last === 'READY' ? '3 cogs = 1 rewind' : state.last;
     if (notice.textContent !== status) notice.textContent = status;
   }

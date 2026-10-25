@@ -127,16 +127,25 @@ async function execute(page,p) {
         await page.locator('#rewind').tap();
         const rewound=await page.evaluate(keys=>{const s=GW.Game.getState(); return {cogs:s.cogs,history:s.history,last:s.last,board:JSON.stringify(s.board),restored:Object.fromEntries(keys.map(key=>[key,s[key]]))};},Object.keys(earned.history));
         assert.equal(rewound.cogs,earned.cogs-3); assert.equal(rewound.history,null); assert.equal(rewound.last,'LAST LOCK REWOUND'); assert.notEqual(rewound.board,earned.board);
-        // Verify the entire pre-lock snapshot, including score, piece and next bag.
-        // A changed board alone could hide a rewind that corrupts the sequence.
-        assert.deepEqual(rewound.restored,earned.history,'Paid rewind must restore every saved pre-lock field');
+        const retry = {...earned.history, score:earned.history.turnScore,
+          piece:{...earned.history.piece,x:3,y:-1,rot:0}};
+        assert.deepEqual(rewound.restored,retry,'Paid rewind must restore the board and sequence with the piece at spawn and its drop points removed');
+        assert.equal(await page.locator('#notice').textContent(), 'REWOUND · PLACE IT AGAIN');
         assert.equal(await page.locator('#bank-status').textContent(), rewound.cogs + ' / 3 COGS');
         assert.equal(await page.locator('#rewind').isDisabled(), true);
         await page.waitForTimeout(100); await page.screenshot({path:path.join(out,'paid-rewind.png')});
         await page.waitForTimeout(350); await page.screenshot({path:path.join(out,'paid-rewind-transport.png')});
-        // Gravity keeps running: a restored low piece can lock again by this
-        // follow-up. Record the resulting state rather than label it a rewind.
-        await page.waitForTimeout(450); await page.screenshot({path:path.join(out,'paid-rewind-followup.png')});
+        // Let gravity run beyond the old automatic relock window, then prove
+        // the returned piece is still available for a different placement.
+        await page.waitForTimeout(1550); await page.screenshot({path:path.join(out,'paid-rewind-followup.png')});
+        const followup = await page.evaluate(()=>{
+          const s=GW.Game.getState(); return {board:s.board,serial:s.serial,piece:s.piece,history:s.history};
+        });
+        assert.deepEqual(followup.board,retry.board);
+        assert.equal(followup.serial,retry.serial);
+        assert.equal(followup.history,null);
+        await page.keyboard.press('ArrowRight');
+        assert.equal(await page.evaluate(()=>GW.Game.getState().piece.x),followup.piece.x+1);
         console.log(JSON.stringify({rewindFollowup:await page.evaluate(()=>{
           const s=GW.Game.getState();return {last:s.last,score:s.score,lines:s.lines,cogs:s.cogs};
         }),liveGravityContinues:true}));

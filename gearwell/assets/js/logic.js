@@ -35,6 +35,7 @@
   }
   function spawn(s) {
     s.serial++;
+    s.turnScore = s.score;
     s.piece = { kind: take(s), x: 3, y: -1, rot: 0, gear: s.serial % 3 === 0 };
     if (!valid(s, s.piece)) { s.over = true; s.piece = null; }
   }
@@ -63,7 +64,8 @@
   function lock(s) {
     if (s.over) return false;
     var before = clone({ board: s.board, queue: s.queue, piece: s.piece, score: s.score,
-      lines: s.lines, level: s.level, combo: s.combo, serial: s.serial, seed: s.seed });
+      lines: s.lines, level: s.level, combo: s.combo, serial: s.serial, seed: s.seed,
+      turnScore: s.turnScore });
     var blocks = cells(s.piece);
     if (blocks.some(function (c) { return c.y < 0; })) {
       s.over = true; s.piece = null; s.last = 'TOP OUT'; return false;
@@ -107,6 +109,10 @@
     if (!s.history || s.cogs < 3) return false;
     var h = s.history, remaining = s.cogs - 3;
     Object.keys(h).forEach(function (key) { s[key] = clone(h[key]); });
+    // Retry the piece from its original spawn, not its already-grounded lock
+    // position. Remove drop points so replaying it cannot score them twice.
+    s.piece.x = 3; s.piece.y = -1; s.piece.rot = 0;
+    s.score = s.turnScore;
     s.cogs = remaining; s.over = false; s.history = null; s.elapsed = 0;
     s.last = 'LAST LOCK REWOUND'; return true;
   }

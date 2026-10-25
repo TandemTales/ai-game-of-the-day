@@ -26,8 +26,9 @@ does not write the production leaderboard. PNGs are saved under ignored
   control targets.
 - Uses a placement planner plus real keyboard events to earn at least three
   cogs, captures the earned clear and bank, and taps rewind. Asserts its cost,
-  every saved pre-lock field (board, piece, score, lines, level, combo, serial,
-  seed and next-piece queue), consumed history, top-out/restart, and local GET-before-POST.
+  restored board, lines, level, combo, serial, seed and next-piece queue,
+  the same piece returned to its spawn position/orientation, removal of its
+  drop points, consumed history, top-out/restart, and local GET-before-POST.
   The harness does not inject a prepared board or manufacture earned cogs.
 - Checks DPR 2 backing dimensions and board aspect while resizing a live run
   portrait/landscape/portrait. Browser emulation remains separate from physical
@@ -48,10 +49,15 @@ The HTTP harness saves additional elapsed-time event stills:
 `earned-clear-transport.png`, `earned-clear-receipt.png`,
 `paid-rewind-transport.png`, and `paid-rewind-followup.png`. They follow legal
 input-earned events with the live game running; open the sequence to review
-rail transport and bank receipt. The follow-up records continued live gravity;
-a restored low piece may already have locked again, so it is not labelled as
-a rewind-settle frame. Still sequences do not establish motion
+rail transport and bank receipt. The follow-up runs gravity for at least two
+seconds after rewind and asserts that the board remains restored and the same
+piece can still move to a different placement. Still sequences do not establish motion
 quality, actual device performance, or audio acceptance.
+
+Rewind regressions cover hard drop, soft drop, and gravity locks. A retry
+preserves earlier pieces' points and the upcoming sequence, removes points
+earned since the returned piece spawned, and does not automatically repeat
+the old placement on the next gravity tick.
 
 ## Repository suite runtime
 

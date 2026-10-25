@@ -115,3 +115,5 @@
 - Preserve no-scroll,44px targets, readable bank, legal-input earned rewind and DPR behavior. Run focused tests before each push; investigate the repeated full-suite timeout without treating partial suites as a pass. Record audio/device/human/performance limits honestly.
 
 - Renderer checkpoint: cast-ingot chamfers replace inset key-like blocks; broad furnace brick/grate warmth, reflected floor and unequal cast gantry shading improve material masses. Focused Jest5/5, renderer syntax and first all6size HTTP/input-earned rewind/DPR sweep pass; lead opened1440/390/844 captures. First independent visual comparison still AAA FAIL / OURS LOSES; bounded materials improve, but wireframe tunnel, flat outer slabs and restrained reward light remain debt. Critic refinement follows.
+
+- UI checkpoint: joined desktop score/control surface to the well casting, moved controls near the lower resource dock, narrowed short-landscape wings and raised secondary label sizes. First HTTP sweep passes all6sizes/noXYscroll/44px/input/DPR gates; lead opened1440/844/390. Focused Jest5/5. Separate UI critic follows; large blank cabinet centre remains a known composition question.

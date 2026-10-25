@@ -40,29 +40,46 @@
     room.addColorStop(0, '#09151a'); room.addColorStop(.37, '#132629');
     room.addColorStop(.72, '#0e1e26'); room.addColorStop(1, '#05111b');
     ctx.fillStyle = room; ctx.fillRect(X, Y, 260, 520);
-    // Rear wall is interrupted by a furnace mouth, not a bright decorative ring.
-    plate(ctx, [[112,197],[211,197],[231,337],[94,337]], '#172728');
+    // Fired brick has a broad warm face and soot-dark shoulders. Its silhouette
+    // reads through the glass at phone size rather than relying on fine seams.
+    var brickFace = ctx.createLinearGradient(104, 210, 214, 330);
+    brickFace.addColorStop(0, cold ? '#23383a' : '#493b2d');
+    brickFace.addColorStop(.48, cold ? '#1b3036' : '#352e25');
+    brickFace.addColorStop(1, '#112129');
+    plate(ctx, [[112,197],[211,197],[231,337],[94,337]], brickFace);
     for (var brick = 0; brick < 8; brick++) {
       var by = 204 + brick * 16;
-      line(ctx, 110, by, 214, by, '#0b1b21', 2);
+      line(ctx, 110, by, 214, by, '#0b191e', 2);
+      line(ctx, 112, by + 3, 212, by + 3, cold ? '#2c4140' : '#4e3c2b', 1);
       for (var joint = 0; joint < 4; joint++) {
         var bx = 112 + joint * 30 + brick % 2 * 15;
         line(ctx, bx, by + 1, bx, by + 14, '#102023', 1);
       }
     }
     var heat = ctx.createRadialGradient(167, 282, 6, 167, 282, 122);
-    heat.addColorStop(0, cold ? '#234148' : '#4a3827');
-    heat.addColorStop(.36, cold ? '#162d34' : '#292b25');
+    heat.addColorStop(0, cold ? '#31535b' : '#80522c');
+    heat.addColorStop(.36, cold ? '#1c353e' : '#3e3023');
     heat.addColorStop(1, '#0b1b2500');
     ctx.fillStyle = heat; ctx.fillRect(50, 150, 230, 270);
-    plate(ctx, [[138,239],[190,239],[198,307],[130,307]], '#07151c');
-    plate(ctx, [[146,248],[183,248],[187,297],[141,297]], cold ? '#203c42' : '#3a3024');
+    // A deep black arch surrounds the heat source, with a thick chipped lip.
+    plate(ctx, [[130,308],[136,252],[146,235],[181,235],[194,252],[201,308]], '#08151b');
+    plate(ctx, [[137,303],[142,253],[150,243],[178,243],[187,254],[194,303]], cold ? '#294850' : '#664324');
+    var fire = ctx.createLinearGradient(0, 247, 0, 303);
+    fire.addColorStop(0, cold ? '#16333e' : '#29251d');
+    fire.addColorStop(.65, cold ? '#3e6367' : '#8b6031');
+    fire.addColorStop(1, cold ? '#254953' : '#b2783c');
+    plate(ctx, [[144,300],[148,255],[154,250],[176,250],[182,257],[187,300]], fire);
     for (var grate = 0; grate < 5; grate++) {
-      line(ctx, 146 + grate * 8, 247, 141 + grate * 11, 299, '#101f24', 3);
+      line(ctx, 150 + grate * 7, 251, 143 + grate * 11, 301, '#0c1b22', 3);
     }
-    line(ctx, 136, 307, 193, 307, cold ? '#34535a' : '#675037', 2);
+    line(ctx, 132, 308, 199, 308, cold ? '#486a6b' : '#986d3c', 3);
+    // The hearth throws a soft trapezoid onto the first slabs, not a hard UI glow.
+    var spill = ctx.createLinearGradient(0, 310, 0, 479);
+    spill.addColorStop(0, cold ? '#40656b45' : '#ac773d49');
+    spill.addColorStop(1, '#0a192100');
     // Floor and ceiling converge on the same rear wall, giving a readable depth.
     plate(ctx, [[30,578],[112,325],[214,325],[290,578]], '#0a1921');
+    plate(ctx, [[135,325],[194,325],[240,479],[80,479]], spill);
     plate(ctx, [[30,58],[290,58],[211,204],[113,204]], '#0a181e');
     for (var floor = 0; floor < 7; floor++) {
       var foot = 30 + floor * 44;
@@ -79,10 +96,15 @@
       var left = 43 + bay * 31, right = 282 - bay * 33;
       var top = 89 + bay * 46, bottom = 552 - bay * 87;
       var beam = 12 - bay * 2;
+      var cast = ctx.createLinearGradient(left, top, right, bottom);
+      cast.addColorStop(0, bay ? '#223431' : (cold ? '#355054' : '#5a5039'));
+      cast.addColorStop(.16, bay ? '#1c3030' : '#354039');
+      cast.addColorStop(.6, bay ? '#14262c' : '#1b3035');
+      cast.addColorStop(1, '#091922');
       plate(ctx, [[left,top+27],[left+24,top],[right-24,top],[right,top+27],
         [right,bottom],[right-beam,bottom],[right-beam,top+32],
         [right-28,top+beam],[left+28,top+beam],[left+beam,top+32],
-        [left+beam,bottom],[left,bottom]], bay ? '#13252b' : '#1b2d30');
+        [left+beam,bottom],[left,bottom]], cast);
       line(ctx, left + beam, top + 32, left + beam, bottom - 4, '#405044', .7);
       line(ctx, left + 28, top + beam, right - 28, top + beam, '#3f4840', 1);
       line(ctx, right - beam, top + 32, right - beam, bottom, '#07131c', 3);
@@ -164,33 +186,36 @@
       line(ctx, px + 7, py + C - 6, px + C - 7, py + C - 6, 'rgba(207,238,237,.6)', 1);
       return;
     }
-    ctx.fillStyle = 'rgba(0,0,0,.7)';
-    rounded(ctx, px + 1, py + 3, C - 1, C - 1, 3); ctx.fill();
-    rounded(ctx, px + 1, py + 1, C - 2, C - 3, 3);
-    var face = ctx.createLinearGradient(px, py, px, py + C);
-    face.addColorStop(0, '#d4e3d8'); face.addColorStop(.09, L.COLORS[kind]);
-    face.addColorStop(.64, L.COLORS[kind]); face.addColorStop(1, '#233947');
-    ctx.fillStyle = face; ctx.fill();
-    // Cast enamel face: a warm lip, recessed panel and dark cut lower bevel.
-    ctx.fillStyle = 'rgba(5,19,25,.24)';
-    ctx.beginPath(); ctx.moveTo(px + 2, py + C - 7); ctx.lineTo(px + 7, py + C - 11);
-    ctx.lineTo(px + C - 7, py + C - 11); ctx.lineTo(px + C - 2, py + C - 7);
-    ctx.lineTo(px + C - 2, py + C - 3); ctx.lineTo(px + 2, py + C - 3); ctx.closePath(); ctx.fill();
-    // Enamel inset, cut bevels and tiny steel fastener marks.
-    ctx.fillStyle = 'rgba(8,28,37,.17)';
-    rounded(ctx, px + 4, py + 5, C - 8, C - 12, 1); ctx.fill();
-    line(ctx, px + 4, py + 3, px + C - 5, py + 3, 'rgba(255,255,243,.65)', 1);
-    line(ctx, px + 3, py + 4, px + 3, py + C - 6, 'rgba(255,255,237,.35)', 1);
-    line(ctx, px + 4, py + C - 5, px + C - 4, py + C - 5, 'rgba(4,17,26,.44)', 2);
-    line(ctx, px + C - 3, py + 5, px + C - 3, py + C - 5, 'rgba(3,18,27,.28)', 1);
-    ctx.fillStyle = 'rgba(7,25,32,.35)';
-    ctx.fillRect(px + 5, py + C - 8, 2, 1); ctx.fillRect(px + C - 7, py + C - 8, 2, 1);
+    // Solid cast ingots: one broad enamel plane with cut corners and unequal
+    // bevels. No inset rectangle, which made every cell resemble a GUI button.
+    var outer = [[px+4,py+1],[px+22,py+1],[px+25,py+4],[px+25,py+22],
+      [px+22,py+25],[px+4,py+25],[px+1,py+22],[px+1,py+4]];
+    plate(ctx, outer, '#06131a');
+    var face = ctx.createLinearGradient(px + 3, py + 3, px + 24, py + 25);
+    face.addColorStop(0, L.COLORS[kind]); face.addColorStop(.52, L.COLORS[kind]);
+    face.addColorStop(1, '#233842');
+    plate(ctx, [[px+5,py+2],[px+21,py+2],[px+24,py+5],[px+24,py+20],
+      [px+20,py+24],[px+5,py+24],[px+2,py+21],[px+2,py+5]], face);
+    plate(ctx, [[px+5,py+2],[px+21,py+2],[px+24,py+5],[px+20,py+7],
+      [px+7,py+7],[px+2,py+5]], 'rgba(255,246,217,.28)');
+    plate(ctx, [[px+2,py+5],[px+7,py+7],[px+7,py+19],[px+5,py+24],
+      [px+2,py+21]], 'rgba(255,248,220,.12)');
+    plate(ctx, [[px+20,py+7],[px+24,py+5],[px+24,py+20],[px+20,py+24],
+      [px+7,py+24],[px+7,py+20],[px+19,py+20]], 'rgba(3,17,25,.38)');
+    line(ctx, px + 5, py + 2.5, px + 21, py + 2.5, 'rgba(255,252,229,.7)', .8);
+    line(ctx, px + 3, py + 5, px + 3, py + 20, 'rgba(255,245,210,.3)', .7);
+    // A broken diagonal reflection and a casting seam imply a surface rather
+    // than an emissive tile. Both stay below the white ghost's contrast.
+    var sheen = ctx.createLinearGradient(px, py, px + C, py + C);
+    sheen.addColorStop(0, 'rgba(255,255,233,.23)');
+    sheen.addColorStop(.45, 'rgba(255,255,233,.04)');
+    sheen.addColorStop(1, 'rgba(3,17,25,.09)');
+    plate(ctx, [[px+7,py+7],[px+19,py+7],[px+19,py+19],[px+7,py+19]], sheen);
+    line(ctx, px + 9, py + 21.5, px + 18, py + 21.5, 'rgba(183,205,192,.2)', .6);
     if (gear) {
       ctx.save(); ctx.shadowColor = '#ffd676'; ctx.shadowBlur = 9;
       ctx.fillStyle = '#132536'; ctx.beginPath(); ctx.arc(px + 13, py + 14, 9, 0, TAU); ctx.fill();
       cog(ctx, px + 13, py + 14, 5.5, true); ctx.restore();
-    } else {
-      line(ctx, px + C - 6, py + 10, px + C - 6, py + C - 8, 'rgba(255,255,255,.16)', 1);
     }
   }
   function rivet(ctx, x, y) {

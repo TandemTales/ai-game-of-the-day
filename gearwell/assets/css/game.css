@@ -107,14 +107,14 @@ footer a{white-space:nowrap}
 /* The readouts and low control deck belong to the well's cast cabinet. The
    deck sits next to the earned-cog dock instead of floating at the page top. */
 @media(min-width:1000px) and (min-height:700px){
-  .shell{--spine:clamp(246px,18vw,400px);--spine-pad:clamp(16px,1.4vh,28px);--control-height:clamp(58px,4.6vh,100px);--control-gap:clamp(7px,.65vh,14px);--readout-height:clamp(184px,17vh,365px);--footer-height:clamp(94px,8vh,173px);width:min(calc(100% - 48px),calc(48vh + var(--spine)));max-width:1540px;grid-template-columns:minmax(0,1fr) var(--spine);grid-template-rows:auto minmax(0,1fr);column-gap:0;align-items:start;padding:clamp(20px,2.5vh,54px) 0}
+  .shell{--spine:clamp(246px,18vw,400px);--spine-pad:clamp(16px,1.4vh,28px);--control-height:clamp(58px,4.6vh,100px);--control-gap:clamp(7px,.65vh,14px);--readout-height:clamp(184px,17vh,365px);--footer-height:clamp(94px,8vh,173px);--deck-height:calc(2 * var(--spine-pad) + 2 * var(--control-height) + var(--control-gap) + 1px);--console-height:calc(var(--readout-height) + var(--deck-height) + var(--footer-height));width:min(calc(100% - 48px),calc(48vh + var(--spine)));max-width:1540px;grid-template-columns:minmax(0,1fr) var(--spine);grid-template-rows:auto minmax(0,1fr);column-gap:0;align-items:start;padding:clamp(20px,2.5vh,54px) 0}
   header{grid-column:1 / -1;grid-row:1;margin-bottom:clamp(16px,2vh,42px)}
   h1{font-size:clamp(38px,3.2vh,72px)}
   .eyebrow{font-size:clamp(10px,.75vw,18px);margin-bottom:6px}
   header a{font-size:clamp(13px,.8vw,20px)}
   .stage{grid-column:1;grid-row:2;justify-self:end;margin:0;z-index:0;border-radius:7px 0 0 7px;box-shadow:0 0 0 2px #030d17,0 30px 65px #000b,inset 0 1px #e6e6c677}
-  .stage::after{content:"";position:absolute;left:100%;top:-1px;bottom:-1px;width:calc(var(--spine) + 1px);z-index:-1;pointer-events:none;border:1px solid #ac9b70;border-left:0;border-radius:0 7px 7px 0;background:linear-gradient(90deg,#0005,transparent 12%),linear-gradient(90deg,transparent 8%,#d1bf8920 8.2%,#02090d66 8.6%,transparent 9.3%),linear-gradient(155deg,#33413d,#15272c 24%,#0e1c23 72%,#34433d);box-shadow:inset -5px 0 0 #030b1280,inset 0 1px #e6e6c644,0 30px 65px #0009}
-  .metrics{position:relative;z-index:1;grid-column:2;grid-row:2;grid-template-columns:1fr 1fr;grid-template-rows:1fr auto;width:100%;height:var(--readout-height);margin:0;gap:0;padding:var(--spine-pad);border:0;background:none;box-shadow:none}
+  .stage::after{content:"";position:absolute;left:100%;bottom:-1px;height:var(--console-height);width:calc(var(--spine) + 1px);z-index:-1;pointer-events:none;border:1px solid #ac9b70;border-left:0;border-radius:0 7px 7px 0;background:linear-gradient(90deg,#0005,transparent 12%),linear-gradient(90deg,transparent 8%,#d1bf8920 8.2%,#02090d66 8.6%,transparent 9.3%),linear-gradient(155deg,#33413d,#15272c 24%,#0e1c23 72%,#34433d);box-shadow:inset -5px 0 0 #030b1280,inset 0 1px #e6e6c644,0 30px 65px #0009}
+  .metrics{position:relative;z-index:1;grid-column:2;grid-row:2;align-self:end;grid-template-columns:1fr 1fr;grid-template-rows:1fr auto;width:100%;height:var(--readout-height);margin:0 0 calc(var(--deck-height) + var(--footer-height));gap:0;padding:var(--spine-pad);border:0;background:none;box-shadow:none}
   .metrics div{min-height:0;padding:clamp(10px,.9vh,20px) 0 0;border:0;border-radius:0;background:transparent;box-shadow:none;flex-direction:column;align-items:flex-start;gap:5px}
   .metrics span{font-size:clamp(12px,.65vw,20px);letter-spacing:.1em;color:#bbcecb}
   .metrics strong{font-size:clamp(25px,1.25vw,44px);line-height:1.05}
@@ -123,7 +123,7 @@ footer a{white-space:nowrap}
   .metrics div:last-child{padding-left:var(--spine-pad);border-left:1px solid #69878b40}
   .controls{position:relative;z-index:1;grid-column:2;grid-row:2;align-self:end;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;margin:0 0 var(--footer-height);gap:var(--control-gap);padding:var(--spine-pad);border:0;border-top:1px solid #b8a77444;background:linear-gradient(#08151b99,#08151b00);box-shadow:inset 0 1px #0005}
   .controls button{min-height:var(--control-height);font-size:clamp(24px,1.2vw,42px);border-radius:4px}
-  .control-hint{font-size:clamp(11px,.5vw,16px)}
+  .control-hint{font-size:clamp(11px,.65vw,22px)}
   .key-hint{display:inline;color:#c0d0d2;font-weight:500}
   .controls button[data-action="right"]{grid-column:3;grid-row:1}
   .controls button[data-action="down"]{grid-column:2;grid-row:2}

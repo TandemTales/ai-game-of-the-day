@@ -74,12 +74,15 @@
     }
     line(ctx, 132, 308, 199, 308, cold ? '#486a6b' : '#986d3c', 3);
     // The hearth throws a soft trapezoid onto the first slabs, not a hard UI glow.
-    var spill = ctx.createLinearGradient(0, 310, 0, 479);
-    spill.addColorStop(0, cold ? '#40656b45' : '#ac773d49');
+    var spill = ctx.createLinearGradient(157, 310, 91, 550);
+    spill.addColorStop(0, cold ? '#40656b60' : '#b2814660');
+    spill.addColorStop(.46, cold ? '#294d5138' : '#77542e45');
     spill.addColorStop(1, '#0a192100');
     // Floor and ceiling converge on the same rear wall, giving a readable depth.
     plate(ctx, [[30,578],[112,325],[214,325],[290,578]], '#0a1921');
-    plate(ctx, [[135,325],[194,325],[240,479],[80,479]], spill);
+    plate(ctx, [[136,318],[192,318],[225,520],[31,555]], spill);
+    // The right jamb blocks part of the light fan, leaving a cool shadow wedge.
+    plate(ctx, [[189,320],[201,320],[270,547],[225,520]], '#07161f75');
     plate(ctx, [[30,58],[290,58],[211,204],[113,204]], '#0a181e');
     for (var floor = 0; floor < 7; floor++) {
       var foot = 30 + floor * 44;
@@ -109,6 +112,11 @@
       line(ctx, left + 28, top + beam, right - 28, top + beam, '#3f4840', 1);
       line(ctx, right - beam, top + 32, right - beam, bottom, '#07131c', 3);
       line(ctx, left + 4, top + 29, left + 25, top + 5, '#455043', .7);
+      // Thick beam undersides cast an occlusion band, separating each depth.
+      plate(ctx, [[left+beam,top+32],[left+29,top+beam+2],
+        [right-29,top+beam+2],[right-beam,top+32],
+        [right-beam-4,top+42],[right-32,top+beam+9],
+        [left+32,top+beam+9],[left+beam+4,top+42]], '#030e1685');
       for (var brace = 0; brace < 3; brace++) {
         var braceY = top + 55 + brace * (bottom - top - 70) / 3;
         line(ctx, left + 2, braceY, left + beam - 1, braceY + 11, '#07151d', 2);
@@ -144,6 +152,16 @@
     worn.addColorStop(.58, '#283832'); worn.addColorStop(1, '#10212a');
     plate(ctx, [[43,169],[47,181],[55,199],[55,355],[49,366],
       [49,204],[40,185]], worn);
+    // One furnace-facing cast plane catches the same broad fan as the floor.
+    // Large irregular dull patches break the casting without sparkle/noise.
+    var nearFace = ctx.createLinearGradient(32, 250, 49, 512);
+    nearFace.addColorStop(0, cold ? '#2f4b4d' : '#4b4935');
+    nearFace.addColorStop(.35, cold ? '#3e5b5b' : '#716044');
+    nearFace.addColorStop(.7, cold ? '#293f43' : '#3e4033');
+    nearFace.addColorStop(1, '#12232b');
+    plate(ctx, [[31,218],[41,229],[43,481],[31,510]], nearFace);
+    plate(ctx, [[32,240],[37,253],[36,302],[42,316],[42,348],[34,336]], '#15262552');
+    plate(ctx, [[35,371],[42,356],[42,406],[37,426],[32,414]], '#a1854b13');
     line(ctx, 47, 182, 54, 199, cold ? '#5a7976' : '#95805a', 1);
     line(ctx, 54, 201, 54, 291, cold ? '#4d6969' : '#77694a', .8);
     for (var wear = 0; wear < 7; wear++) {
@@ -169,7 +187,7 @@
     ctx.fillStyle = 'rgba(3,13,22,.29)'; ctx.fillRect(X, Y, 260, 520);
     if (power) {
       var reflected = ctx.createRadialGradient(166, 286, 8, 166, 286, 230);
-      reflected.addColorStop(0, cold ? 'rgba(116,217,232,' + power * .1 + ')' : 'rgba(255,187,78,' + power * .12 + ')');
+      reflected.addColorStop(0, cold ? 'rgba(116,217,232,' + power * .16 + ')' : 'rgba(255,187,78,' + power * .19 + ')');
       reflected.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = reflected; ctx.fillRect(X, Y, 260, 520);
       line(ctx, 136, 307, 193, 307, cold ? 'rgba(119,216,228,' + power * .45 + ')' : 'rgba(248,189,100,' + power * .45 + ')', 2);
@@ -229,6 +247,19 @@
     rim.addColorStop(.28, '#3b4944'); rim.addColorStop(.49, '#b39a65');
     rim.addColorStop(.54, '#4e523e'); rim.addColorStop(.82, '#c1ad79'); rim.addColorStop(1, '#534932');
     ctx.fillStyle = rim; rounded(ctx, 22, 50, 276, 536, 10); ctx.fill();
+    // A clear lights the solid brass casting, then decays. The dark chamber and
+    // gameplay are painted afterwards, so this bloom cannot wash out any cell.
+    if (scene.event) {
+      var lightAge = Math.max(0, phase - scene.event.at);
+      var light = Math.max(0, 1 - Math.abs(lightAge - .16) / .85);
+      if (light) {
+        var castingLight = ctx.createRadialGradient(74, 469, 12, 74, 469, 390);
+        castingLight.addColorStop(0, scene.event.rewind ? 'rgba(141,234,242,' + light * .7 + ')' : 'rgba(255,214,137,' + light * .72 + ')');
+        castingLight.addColorStop(.45, scene.event.rewind ? 'rgba(111,201,215,' + light * .26 + ')' : 'rgba(222,160,69,' + light * .3 + ')');
+        castingLight.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = castingLight; rounded(ctx, 22, 50, 276, 536, 10); ctx.fill();
+      }
+    }
     ctx.fillStyle = '#081725'; rounded(ctx, 27, 55, 266, 526, 5); ctx.fill();
     ctx.save(); ctx.beginPath(); ctx.rect(X, Y, 260, 520); ctx.clip();
     mechanism(ctx, phase, scene.event, phase);
@@ -303,15 +334,23 @@
   function dock(ctx, s, phase, event) {
     var plate = ctx.createLinearGradient(0, 595, 0, 666);
     var age = event ? phase - event.at : 2;
-    var powered = event && age < 1.5 && (event.rewind || event.cogs || event.rows.length === 4);
+    var powered = event && age < 1.5 && (event.rewind || event.rows.length);
     var received = powered ? Math.sin(Math.min(1, Math.max(0, age / 1.5)) * Math.PI) : 0;
-    plate.addColorStop(0, powered ? (event.rewind ? '#244d5b' : '#56482b') : '#1e3a4c');
+    plate.addColorStop(0, '#1e3a4c');
     plate.addColorStop(1, '#0b1c2d');
     ctx.fillStyle = plate; rounded(ctx, 20, 593, 280, 73, 9); ctx.fill();
+    if (powered) {
+      var dockReflection = ctx.createLinearGradient(20, 593, 300, 666);
+      dockReflection.addColorStop(0, event.rewind ? '#78c6ce' : '#d5a35c');
+      dockReflection.addColorStop(.5, event.rewind ? '#285363' : '#67502e');
+      dockReflection.addColorStop(1, '#0c203000');
+      ctx.save(); ctx.globalAlpha = received * .42; ctx.fillStyle = dockReflection;
+      rounded(ctx, 20, 593, 280, 73, 9); ctx.fill(); ctx.restore();
+    }
     ctx.strokeStyle = '#426879'; ctx.lineWidth = 1;
     rounded(ctx, 20.5, 593.5, 279, 72, 9); ctx.stroke();
     line(ctx, 153, 603, 153, 657, '#355a6a', 1);
-    if (powered) {
+    if (powered && (event.rewind || event.cogs || event.rows.length === 4)) {
       // A broad reflected pool under the bank is legible even on the small well.
       var bankLight = ctx.createRadialGradient(222, 644, 8, 222, 644, 75);
       bankLight.addColorStop(0, event.rewind ? 'rgba(108,230,241,' + received * .25 + ')' : 'rgba(255,196,86,' + received * .35 + ')');

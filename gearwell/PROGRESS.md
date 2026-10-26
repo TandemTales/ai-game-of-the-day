@@ -134,3 +134,9 @@
 - Visual/UI AAA gates still fail; gameplay/audio/VFX AAA acceptance, speaker listening/mix/latency, physical-device touch,humanplay/fun,motionquality and realhardware/4Kperformance remain open/unverified. No shipping judge,.aaa-complete,release or main promotion. Main/originmain remain3f8f986. FirstSaturday(age6) is polish only; scheduled forced secondSaturday remainsOctober31Pacific(age13).
 - Pushed intentd3122a9,castmaterialse36fd0f,attachedcabinet8669e31,lightrefinement3b7219a,compactconsole4a3b3a8 andcomplete-rewindverification037f62a. Final tested handoff follows; all work ondev.
 - Next run first: design a cohesive lower next/bank/readout/control cluster using integration changes across DOM/canvas where needed, preserving phone well height and44pxtargets; improve short-landscape grouping and320secondary hierarchy. Visually prioritize authored outer-room material masses/furnace structure and stronger coherent reward scene, not another layer of faint seams. Obtain fresh separate critics and dedicated motion/audio/device/human evaluations. Use saved harness and allow long repository suite to finish; no early release while critics lose.
+
+## 2026-10-25 Pacific — polish intent
+
+- Sunday, age 7: STOP absent, dev synced; forced release remains October 31. Quality critics still fail, so no early release.
+- Tonight: cohesive next/bank/readout/control grouping and stronger authored foundry scene. Lead owns DOM/canvas integration and Git; each implementation worker owns one SPEC file and uses a separate critic.
+- Preserve legal-input earned rewind, no-scroll layout, 44px targets and DPR resize. Run focused tests before each push, finish the full repository suite, open all required viewport PNGs, and record actual critic verdicts and remaining audio/device/human/performance gaps.

@@ -5,9 +5,9 @@ html,body{margin:0;min-height:100%;background:#08111f;color:var(--ink);font-fami
    Fixed decorative layers never participate in the responsive board layout. */
 body{isolation:isolate;background:#071018;background-image:radial-gradient(ellipse at 18% 12%,#78604026,transparent 43%),radial-gradient(ellipse at 76% 70%,#25516144,transparent 48%),linear-gradient(115deg,#101c23,#09131b 47%,#050a10);background-attachment:fixed}
 body::before,body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none}
-/* Offset roof truss, shadowed piers and raking light establish an industrial
+/* A level roof lintel, warm refractory wall and cool piers establish an industrial
    room without a circular graphic competing with the machine silhouette. */
-body::before{background:linear-gradient(165deg,transparent 0 15%,#03090dbb 15.1% 20%,#68706825 20.1%,#0b161c 20.3% 22%,transparent 22.1%),linear-gradient(90deg,transparent 11%,#243339 11.1%,#071118 12% 14.5%,#4a504035 14.7%,#071118 15%,transparent 15.2%,transparent 82%,#16292f 82.1%,#050d13 82.8% 87%,#34464a 87.2%,#09141b 87.4%,transparent 87.6%),linear-gradient(112deg,#dcb76d0a,transparent 38%),repeating-linear-gradient(0deg,transparent 0 159px,#8ba5a307 160px,#02081040 161px 163px);box-shadow:inset 0 0 15vw #0008}
+body::before{background:radial-gradient(ellipse at 23% 42%,#a86a3025,transparent 36%),radial-gradient(ellipse at 82% 60%,#35647620,transparent 33%),linear-gradient(180deg,transparent 12%,#02090cc2 12.1% 14.2%,#66716430 14.3%,#09141a 14.5% 16%,transparent 16.1%),linear-gradient(90deg,transparent 12%,#3d4842 12.1%,#101b1e 12.6% 16%,#665c3b25 16.1%,#172526 16.3%,transparent 16.5%,transparent 82%,#24383b 82.1%,#071016 82.7% 86%,#43524a 86.1%,#101e25 86.3%,transparent 86.5%),linear-gradient(110deg,#43332642,transparent 34% 68%,#18303d2b),linear-gradient(0deg,transparent 0 39%,#070f1450 39.2% 40%,transparent 40.2%);box-shadow:inset 0 0 14vw #0009}
 body::after{top:78%;background:repeating-conic-gradient(from 80deg at 50% -14%,transparent 0deg 9.7deg,#a8bcb915 9.8deg 10deg,transparent 10.1deg 20deg),linear-gradient(#0b172200,#08121c 54%),repeating-linear-gradient(0deg,#708b8f12 0 1px,transparent 1px 40px);mask-image:linear-gradient(transparent,#000 28%);opacity:.7}
 button{font:inherit;cursor:pointer}
 a{color:#cae4e7;text-decoration:none}
@@ -71,7 +71,9 @@ footer a{white-space:nowrap}
   .metrics div{padding:4px 6px;border-radius:3px}
   .metrics span{font-size:10px;letter-spacing:.02em}
   .metrics strong{font-size:15px}
-  .controls{margin-top:5px;gap:4px}
+  .controls{margin-top:5px;gap:4px;grid-template-columns:repeat(5,minmax(44px,1fr)) minmax(56px,1.16fr)}
+  #rewind .control-symbol{font-size:11px}
+  #bank-status{letter-spacing:-.025em}
   .controls button{min-height:44px;font-size:20px}
   .controls button.drop{font-size:10px}
   footer{font-size:10px;margin-top:5px;gap:6px}
@@ -84,20 +86,22 @@ footer a{white-space:nowrap}
 /* A single cabinet keeps the reserve dock directly above its action row.
    Readouts, well and controls share one centreline instead of a side wing. */
 @media(min-width:1000px) and (min-height:820px){
-  .shell{--cabinet-width:calc((69.8vh - 14px) * .477612 + 14px);width:var(--cabinet-width);min-width:308px;max-width:calc(100% - 48px);padding:1.6vh 0;grid-template-rows:7vh 8vh minmax(0,1fr) 9vh 3vh}
+  .shell{--cabinet-width:calc((69.8vh - 14px) * .477612 + 14px);width:var(--cabinet-width);min-width:308px;max-width:calc(100% - 48px);padding:1.6vh 0;grid-template-rows:7vh 7vh minmax(0,1fr) 10vh 3vh}
   header{margin-bottom:clamp(9px,1.15vh,25px)}
   h1{font-size:clamp(30px,3.5vh,72px);letter-spacing:.055em}
   .eyebrow{font-size:clamp(9px,.6vh,14px);letter-spacing:.16em}
   header a{font-size:clamp(11px,.7vh,16px)}
-  .metrics{width:100%;height:calc(100% - 7px);margin:0 0 7px;gap:0;border:1px solid #7f8b7775;border-bottom-color:#c6ac7366;background:linear-gradient(145deg,#2c3d3e,#11232b);border-radius:5px;box-shadow:inset 0 1px #c7d1b82b,0 5px 16px #0005}
-  .metrics div{padding:clamp(9px,1vh,22px) clamp(10px,1.1vh,24px);border:0;border-right:1px solid #91a79a30;border-radius:0;background:none;box-shadow:none;flex-direction:column;align-items:flex-start;gap:3px}
+  .metrics{grid-template-columns:1.6fr 1fr 1fr;width:100%;height:calc(100% - 7px);margin:0 0 7px;gap:0;border:1px solid #7f8b7775;border-bottom-color:#c6ac7366;background:linear-gradient(145deg,#2c3d3e,#11232b);border-radius:5px;box-shadow:inset 0 1px #c7d1b82b,0 5px 16px #0005}
+  .metrics div{padding:clamp(6px,.75vh,16px) clamp(10px,1.1vh,24px);border:0;border-right:1px solid #91a79a30;border-radius:0;background:none;box-shadow:none;flex-direction:column;align-items:flex-start;gap:3px}
   .metrics div:last-child{border:0}
   .metrics span{font-size:clamp(11px,.85vh,18px);letter-spacing:.1em;color:#b6cac9}
-  .metrics strong{font-size:clamp(24px,2.8vh,60px);line-height:1.05}
+  .metrics strong{font-size:clamp(22px,2.4vh,52px);line-height:1.05}
   .metrics div:first-child{flex-direction:column}
+  .metrics div:first-child strong{font-size:clamp(24px,2.65vh,56px);color:#ffe5a4}
   .stage{margin:0;border-radius:6px;z-index:0}
   .stage::after{content:none}
-  .controls{width:100%;height:calc(100% - 6px);gap:clamp(5px,.5vh,11px);padding:clamp(6px,.7vh,15px);margin:6px 0 0;border:1px solid #87947d99;border-radius:5px;background:linear-gradient(155deg,#2d3e3c,#152830 55%,#0c1b24);box-shadow:inset 0 1px #e1d9b238,0 10px 22px #0007}
+  .controls{position:relative;grid-template-rows:minmax(0,1fr) auto;width:100%;height:calc(100% - 6px);gap:clamp(5px,.5vh,11px);padding:clamp(6px,.7vh,15px);margin:6px 0 0;border:1px solid #87947d99;border-radius:5px;background:linear-gradient(155deg,#2d3e3c,#152830 55%,#0c1b24);box-shadow:inset 0 1px #e1d9b238,0 10px 22px #0007}
+  .controls::after{content:"← → move · ↑ turn · Space drop · U rewind";grid-column:1 / -1;font-size:clamp(10px,.8vh,17px);line-height:1;text-align:center;color:#bccbc8;font-weight:500;white-space:nowrap}
   .controls button{min-height:clamp(52px,5.5vh,118px);font-size:clamp(22px,2.6vh,48px)}
   .controls button.drop{font-size:clamp(12px,1.15vh,25px)}
   .control-hint{font-size:clamp(10px,.85vh,18px)}

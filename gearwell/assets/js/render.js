@@ -101,14 +101,18 @@
     line(ctx, 123, 314, 207, 314, cold ? '#52787a' : '#9b7646', 3);
     plate(ctx, [[123,316],[207,316],[217,325],[115,325]], '#493e2b');
     line(ctx, 118, 325, 214, 325, '#07161d', 3);
-    // The hearth throws a soft trapezoid onto the first slabs, not a hard UI glow.
-    var spill = ctx.createLinearGradient(157, 310, 91, 550);
-    spill.addColorStop(0, cold ? '#40656b60' : '#b2814660');
-    spill.addColorStop(.46, cold ? '#294d5138' : '#77542e45');
-    spill.addColorStop(1, '#0a192100');
     // Floor and ceiling converge on the same rear wall, giving a readable depth.
     plate(ctx, [[30,578],[112,325],[214,325],[290,578]], '#0a1921');
-    plate(ctx, [[136,318],[192,318],[225,520],[31,555]], spill);
+    // Indirect hearth light rolls across a broad floor area. Clipping at the
+    // actual floor keeps its soft pool spatial, without a hard triangular cone.
+    ctx.save();
+    ctx.beginPath(); ctx.moveTo(30,578); ctx.lineTo(112,325);
+    ctx.lineTo(214,325); ctx.lineTo(290,578); ctx.closePath(); ctx.clip();
+    var floorPool = ctx.createRadialGradient(142, 331, 8, 142, 331, 238);
+    floorPool.addColorStop(0, cold ? '#52797b70' : '#bc92566b');
+    floorPool.addColorStop(.36, cold ? '#365d6541' : '#80623946');
+    floorPool.addColorStop(1, '#0a192100');
+    ctx.fillStyle = floorPool; ctx.fillRect(30, 325, 260, 253); ctx.restore();
     // The right jamb blocks part of the light fan, leaving a cool shadow wedge.
     plate(ctx, [[189,320],[201,320],[270,547],[225,520]], '#07161f75');
     plate(ctx, [[30,58],[290,58],[211,204],[113,204]], '#0a181e');
@@ -202,6 +206,22 @@
     plate(ctx, [[31,218],[41,229],[43,481],[31,510]], nearFace);
     plate(ctx, [[32,240],[37,253],[36,302],[42,316],[42,348],[34,336]], '#15262552');
     plate(ctx, [[35,371],[42,356],[42,406],[37,426],[32,414]], '#a1854b13');
+    // One broad near casting breaks the repeated gate outlines. A deep return,
+    // worn shoulder and dark foot all belong to the same physical flange.
+    plate(ctx, [[49,192],[66,207],[79,231],[79,366],[67,382],
+      [67,446],[50,463],[50,364],[58,352],[58,236],[49,218]], '#06151c');
+    var flange = ctx.createLinearGradient(51, 226, 77, 392);
+    flange.addColorStop(0, cold ? '#344d50' : '#4f4b35');
+    flange.addColorStop(.32, cold ? '#4d7070' : '#79633e');
+    flange.addColorStop(.62, cold ? '#354e50' : '#4c4935');
+    flange.addColorStop(1, '#14272d');
+    plate(ctx, [[51,200],[63,213],[74,234],[74,360],[62,376],
+      [62,443],[52,452],[52,365],[62,354],[62,232],[51,214]], flange);
+    plate(ctx, [[63,243],[72,249],[72,289],[66,283],[63,268]], '#06182059');
+    plate(ctx, [[64,311],[73,304],[73,345],[66,354]], '#d2ae6721');
+    plate(ctx, [[53,380],[62,375],[62,402],[53,414]], '#07182080');
+    line(ctx, 74, 239, 74, 356, cold ? '#607f7b' : '#8f774e', 1);
+    line(ctx, 62, 376, 62, 442, '#07141b', 2);
     line(ctx, 47, 182, 54, 199, cold ? '#5a7976' : '#95805a', 1);
     line(ctx, 54, 201, 54, 291, cold ? '#4d6969' : '#77694a', .8);
     for (var wear = 0; wear < 7; wear++) {
@@ -241,12 +261,26 @@
       line(ctx, 136, 307, 193, 307, cold ? 'rgba(119,216,228,' + power * .45 + ')' : 'rgba(248,189,100,' + power * .45 + ')', 2);
       // The clear briefly opens the hearth and sends a single reflected pool
       // across the floor; paid rewind cools the same architecture and route.
-      var rewardFloor = ctx.createLinearGradient(157, 317, 108, 573);
+      var rewardFloor = ctx.createRadialGradient(157, 317, 12, 157, 317, 274);
       rewardFloor.addColorStop(0, cold ? 'rgba(121,218,227,' + power * .3 + ')' : 'rgba(246,187,90,' + power * .34 + ')');
       rewardFloor.addColorStop(.45, cold ? 'rgba(80,159,182,' + power * .12 + ')' : 'rgba(198,131,47,' + power * .18 + ')');
       rewardFloor.addColorStop(1, 'rgba(0,0,0,0)');
-      plate(ctx, [[140,315],[188,315],[242,574],[31,551]], rewardFloor);
+      ctx.save(); ctx.beginPath(); ctx.moveTo(30,578); ctx.lineTo(112,325);
+      ctx.lineTo(214,325); ctx.lineTo(290,578); ctx.closePath(); ctx.clip();
+      ctx.fillStyle = rewardFloor; ctx.fillRect(30, 325, 260, 253); ctx.restore();
       line(ctx, 143, 301, 188, 301, cold ? 'rgba(167,241,246,' + power * .9 + ')' : 'rgba(255,230,162,' + power * .9 + ')', 3);
+      // Earned power lights the furnace reveal and the facing cast shoulder as
+      // one room response, beneath all board cells and landing guides.
+      ctx.save(); ctx.globalAlpha = power * .65;
+      plate(ctx, [[127,310],[132,271],[140,249],[151,238],[156,240],
+        [145,254],[138,274],[135,309]], cold ? '#85bcc0' : '#d7b678');
+      var castReward = ctx.createLinearGradient(61, 247, 74, 365);
+      castReward.addColorStop(0, cold ? '#6a9b9d' : '#b18d52');
+      castReward.addColorStop(.45, cold ? '#8bb7b6' : '#e0bd77');
+      castReward.addColorStop(1, '#142b3200');
+      plate(ctx, [[63,237],[74,241],[74,359],[63,375],[63,355],
+        [69,349],[69,247]], castReward);
+      ctx.restore();
     }
     ctx.restore();
   }

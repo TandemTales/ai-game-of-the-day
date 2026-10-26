@@ -142,3 +142,5 @@
 - Preserve legal-input earned rewind, no-scroll layout, 44px targets and DPR resize. Run focused tests before each push, finish the full repository suite, open all required viewport PNGs, and record actual critic verdicts and remaining audio/device/human/performance gaps.
 
 - Renderer checkpoint: authored stepped furnace masonry, recessed wedge-stone arch, molten threshold, pressure pipe and heavy cast joints replace the schematic grate. Earned clear/paid rewind illuminate the same hearth/floor. Focused Jest 8/8 and renderer syntax pass; revised HTTP/input captures in progress. Independent baseline critic still prefers Tetris Effect; no AAA claim.
+
+- UI checkpoint: desktop metrics/well/reserve/actions share one cabinet width; short landscape consolidates statistics/actions/footer beside the board. Phone well height retained. HTTP sweep passes all six sizes, 44px controls, no XY overflow, reserve type, input-earned rewind and DPR2. Lead opened current desktop/4K and landscape/phone PNGs; focused Jest 8/8. Smaller desktop board/control text is an explicit tradeoff pending independent UI critic.

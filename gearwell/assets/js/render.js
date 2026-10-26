@@ -40,39 +40,67 @@
     room.addColorStop(0, '#09151a'); room.addColorStop(.37, '#132629');
     room.addColorStop(.72, '#0e1e26'); room.addColorStop(1, '#05111b');
     ctx.fillStyle = room; ctx.fillRect(X, Y, 260, 520);
-    // Fired brick has a broad warm face and soot-dark shoulders. Its silhouette
-    // reads through the glass at phone size rather than relying on fine seams.
-    var brickFace = ctx.createLinearGradient(104, 210, 214, 330);
-    brickFace.addColorStop(0, cold ? '#23383a' : '#493b2d');
-    brickFace.addColorStop(.48, cold ? '#1b3036' : '#352e25');
-    brickFace.addColorStop(1, '#112129');
-    plate(ctx, [[112,197],[211,197],[231,337],[94,337]], brickFace);
-    for (var brick = 0; brick < 8; brick++) {
-      var by = 204 + brick * 16;
-      line(ctx, 110, by, 214, by, '#0b191e', 2);
-      line(ctx, 112, by + 3, 212, by + 3, cold ? '#2c4140' : '#4e3c2b', 1);
-      for (var joint = 0; joint < 4; joint++) {
-        var bx = 112 + joint * 30 + brick % 2 * 15;
-        line(ctx, bx, by + 1, bx, by + 14, '#102023', 1);
+    // A heavy asymmetric masonry furnace, with deep returns and a stepped
+    // chimney. Broad fired faces carry the material at phone scale.
+    plate(ctx, [[91,177],[195,177],[195,196],[224,196],[237,335],
+      [88,335],[92,220],[105,220],[105,194],[91,194]], '#111b1c');
+    plate(ctx, [[195,177],[209,185],[209,201],[234,205],[249,333],
+      [237,335],[224,196],[195,196]], '#071319');
+    var brickFace = ctx.createLinearGradient(95, 210, 225, 327);
+    brickFace.addColorStop(0, cold ? '#2c3c3d' : '#514333');
+    brickFace.addColorStop(.58, cold ? '#263d41' : '#675036');
+    brickFace.addColorStop(1, '#1b2b2c');
+    plate(ctx, [[107,202],[216,202],[231,327],[94,327]], brickFace);
+    for (var brick = 0; brick < 7; brick++) {
+      var by = 205 + brick * 17;
+      for (var joint = 0; joint < 5; joint++) {
+        var bx = 99 + joint * 29 + brick % 2 * 14;
+        if (bx > 220) continue;
+        var bw = Math.min(27, 226 - bx);
+        plate(ctx, [[bx+2,by],[bx+bw,by+1],[bx+bw-1,by+14],
+          [bx,by+14],[bx,by+4]], (brick + joint) % 3 === 0 ? '#15232470' : '#bd8d4c12');
+        line(ctx, bx + 2, by + 1, bx + bw - 2, by + 1, cold ? '#50615c48' : '#ab805746', 1);
+        line(ctx, bx, by + 15, bx + bw, by + 15, '#08171ba8', 2);
       }
     }
+    // Slumped soot and broken heat staining give the face a history; they are
+    // fixed to the masonry rather than screen-space noise.
+    plate(ctx, [[107,203],[139,203],[136,230],[126,242],[121,271],
+      [109,292],[102,274]], '#08161c70');
+    plate(ctx, [[178,203],[202,203],[212,230],[204,246],[190,234]], '#04121a69');
+    plate(ctx, [[111,182],[183,182],[183,190],[111,190]], '#544c3b');
+    line(ctx, 111, 181, 191, 181, '#86704a', 1);
     var heat = ctx.createRadialGradient(167, 282, 6, 167, 282, 122);
-    heat.addColorStop(0, cold ? '#31535b' : '#80522c');
-    heat.addColorStop(.36, cold ? '#1c353e' : '#3e3023');
+    heat.addColorStop(0, cold ? '#426b72' : '#a06c35');
+    heat.addColorStop(.36, cold ? '#213e47' : '#5a3e27');
     heat.addColorStop(1, '#0b1b2500');
     ctx.fillStyle = heat; ctx.fillRect(50, 150, 230, 270);
-    // A deep black arch surrounds the heat source, with a thick chipped lip.
-    plate(ctx, [[130,308],[136,252],[146,235],[181,235],[194,252],[201,308]], '#08151b');
-    plate(ctx, [[137,303],[142,253],[150,243],[178,243],[187,254],[194,303]], cold ? '#294850' : '#664324');
-    var fire = ctx.createLinearGradient(0, 247, 0, 303);
-    fire.addColorStop(0, cold ? '#16333e' : '#29251d');
-    fire.addColorStop(.65, cold ? '#3e6367' : '#8b6031');
-    fire.addColorStop(1, cold ? '#254953' : '#b2783c');
-    plate(ctx, [[144,300],[148,255],[154,250],[176,250],[182,257],[187,300]], fire);
-    for (var grate = 0; grate < 5; grate++) {
-      line(ctx, 150 + grate * 7, 251, 143 + grate * 11, 301, '#0c1b22', 3);
+    // Wedge-shaped refractory stones wrap a real recessed arch. The right
+    // return stays black while the hearth grazes the left reveal.
+    plate(ctx, [[121,316],[126,256],[136,236],[151,225],[178,225],
+      [195,239],[202,259],[210,316]], '#06131b');
+    var arch = [[123,313,132,271],[128,270,140,246],[139,246,154,234],
+      [154,234,173,233],[174,235,188,248],[188,250,195,273],[195,275,202,313]];
+    for (var stone = 0; stone < arch.length; stone++) {
+      var a = arch[stone];
+      plate(ctx, [[a[0],a[1]],[a[2],a[3]],[a[2]+7,a[3]+4],
+        [a[0]+7,a[1]+2]], cold ? '#38565a' : (stone < 4 ? '#8d683e' : '#54432e'));
     }
-    line(ctx, 132, 308, 199, 308, cold ? '#486a6b' : '#986d3c', 3);
+    plate(ctx, [[138,307],[141,258],[152,244],[174,244],[187,258],
+      [193,307]], '#06141c');
+    var fire = ctx.createLinearGradient(0, 247, 0, 303);
+    fire.addColorStop(0, cold ? '#173744' : '#31251b');
+    fire.addColorStop(.65, cold ? '#416e78' : '#a77437');
+    fire.addColorStop(1, cold ? '#659296' : '#d3a15a');
+    plate(ctx, [[144,300],[148,255],[154,250],[176,250],[182,257],[187,300]], fire);
+    for (var grate = 0; grate < 4; grate++) {
+      line(ctx, 151 + grate * 9, 254, 147 + grate * 12, 301, '#081820', 3);
+    }
+    // A molten seam is the source of every warm reflection in the room.
+    line(ctx, 143, 301, 188, 301, cold ? '#78b7bc' : '#efbd74', 2);
+    line(ctx, 123, 314, 207, 314, cold ? '#52787a' : '#9b7646', 3);
+    plate(ctx, [[123,316],[207,316],[217,325],[115,325]], '#493e2b');
+    line(ctx, 118, 325, 214, 325, '#07161d', 3);
     // The hearth throws a soft trapezoid onto the first slabs, not a hard UI glow.
     var spill = ctx.createLinearGradient(157, 310, 91, 550);
     spill.addColorStop(0, cold ? '#40656b60' : '#b2814660');
@@ -108,6 +136,18 @@
         [right,bottom],[right-beam,bottom],[right-beam,top+32],
         [right-28,top+beam],[left+28,top+beam],[left+beam,top+32],
         [left+beam,bottom],[left,bottom]], cast);
+      if (!bay) {
+        // Thick joints and chipped cast patches give the nearest gate weight;
+        // distant bays remain quiet, narrower silhouettes instead of repeats.
+        plate(ctx, [[left,top+35],[left+beam,top+39],[left+beam,top+88],
+          [left+5,top+79],[left,top+58]], '#86745224');
+        plate(ctx, [[left+1,bottom-119],[left+beam-1,bottom-109],
+          [left+beam-1,bottom-63],[left+3,bottom-71]], '#04131b75');
+        plate(ctx, [[right-17,top+24],[right-4,top+34],[right-4,top+58],
+          [right-12,top+52]], '#354844');
+        ctx.fillStyle = '#07141b'; ctx.fillRect(left - 2, bottom - 12, beam + 6, 13);
+        line(ctx, left - 2, bottom - 12, left + beam + 4, bottom - 12, '#76674a', 1.5);
+      }
       line(ctx, left + beam, top + 32, left + beam, bottom - 4, '#405044', .7);
       line(ctx, left + 28, top + beam, right - 28, top + beam, '#3f4840', 1);
       line(ctx, right - beam, top + 32, right - beam, bottom, '#07131c', 3);
@@ -183,14 +223,30 @@
     for (var shutter = 0; shutter < 4; shutter++) {
       line(ctx, 59, 116 + shutter * 6, 69, 116 + shutter * 6, cold ? '#5f8b89' : '#a0824a', 2);
     }
+    // A side pressure pipe disappears behind the casting, with an elbow and
+    // two restrained collars; its warm edge faces the same hearth source.
+    line(ctx, 239, 204, 244, 309, '#06141b', 8);
+    line(ctx, 237, 206, 242, 306, cold ? '#345056' : '#4e4b36', 3);
+    line(ctx, 240, 227, 246, 227, '#15282b', 6);
+    line(ctx, 243, 294, 249, 294, '#1c2c2c', 6);
+    plate(ctx, [[239,309],[249,309],[249,319],[235,326],[230,321]], '#112329');
+    line(ctx, 239, 310, 235, 320, cold ? '#38575b' : '#75603d', 1);
     // Atmospheric glass subdues the full room below the gameplay layer.
     ctx.fillStyle = 'rgba(3,13,22,.29)'; ctx.fillRect(X, Y, 260, 520);
     if (power) {
       var reflected = ctx.createRadialGradient(166, 286, 8, 166, 286, 230);
-      reflected.addColorStop(0, cold ? 'rgba(116,217,232,' + power * .16 + ')' : 'rgba(255,187,78,' + power * .19 + ')');
+      reflected.addColorStop(0, cold ? 'rgba(116,217,232,' + power * .29 + ')' : 'rgba(255,187,78,' + power * .32 + ')');
       reflected.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = reflected; ctx.fillRect(X, Y, 260, 520);
       line(ctx, 136, 307, 193, 307, cold ? 'rgba(119,216,228,' + power * .45 + ')' : 'rgba(248,189,100,' + power * .45 + ')', 2);
+      // The clear briefly opens the hearth and sends a single reflected pool
+      // across the floor; paid rewind cools the same architecture and route.
+      var rewardFloor = ctx.createLinearGradient(157, 317, 108, 573);
+      rewardFloor.addColorStop(0, cold ? 'rgba(121,218,227,' + power * .3 + ')' : 'rgba(246,187,90,' + power * .34 + ')');
+      rewardFloor.addColorStop(.45, cold ? 'rgba(80,159,182,' + power * .12 + ')' : 'rgba(198,131,47,' + power * .18 + ')');
+      rewardFloor.addColorStop(1, 'rgba(0,0,0,0)');
+      plate(ctx, [[140,315],[188,315],[242,574],[31,551]], rewardFloor);
+      line(ctx, 143, 301, 188, 301, cold ? 'rgba(167,241,246,' + power * .9 + ')' : 'rgba(255,230,162,' + power * .9 + ')', 3);
     }
     ctx.restore();
   }

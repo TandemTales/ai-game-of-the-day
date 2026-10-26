@@ -140,3 +140,5 @@
 - Sunday, age 7: STOP absent, dev synced; forced release remains October 31. Quality critics still fail, so no early release.
 - Tonight: cohesive next/bank/readout/control grouping and stronger authored foundry scene. Lead owns DOM/canvas integration and Git; each implementation worker owns one SPEC file and uses a separate critic.
 - Preserve legal-input earned rewind, no-scroll layout, 44px targets and DPR resize. Run focused tests before each push, finish the full repository suite, open all required viewport PNGs, and record actual critic verdicts and remaining audio/device/human/performance gaps.
+
+- Renderer checkpoint: authored stepped furnace masonry, recessed wedge-stone arch, molten threshold, pressure pipe and heavy cast joints replace the schematic grate. Earned clear/paid rewind illuminate the same hearth/floor. Focused Jest 8/8 and renderer syntax pass; revised HTTP/input captures in progress. Independent baseline critic still prefers Tetris Effect; no AAA claim.

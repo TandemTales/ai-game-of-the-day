@@ -40,25 +40,6 @@
     room.addColorStop(0, '#09151a'); room.addColorStop(.37, '#132629');
     room.addColorStop(.72, '#0e1e26'); room.addColorStop(1, '#05111b');
     ctx.fillStyle = room; ctx.fillRect(X, Y, 260, 520);
-    // An offset exhaust riser gives the hearth a single authored silhouette.
-    // Its large rolled faces read at phone size; the cool return recedes behind
-    // the fire-facing shoulder rather than tracing another rectangular gate.
-    plate(ctx, [[79,58],[133,58],[133,139],[153,163],[153,204],
-      [104,204],[104,174],[79,148]], '#06141b');
-    var riser = ctx.createLinearGradient(82, 84, 133, 179);
-    riser.addColorStop(0, '#263632'); riser.addColorStop(.45, '#172a2d');
-    riser.addColorStop(1, cold ? '#3d5b5d' : '#645238');
-    plate(ctx, [[82,58],[119,58],[119,143],[140,168],[140,195],
-      [108,195],[108,169],[82,145]], riser);
-    plate(ctx, [[119,58],[133,58],[133,139],[153,163],[153,204],
-      [140,195],[140,168],[119,143]], '#07171e');
-    plate(ctx, [[83,129],[119,129],[119,140],[83,140]], '#0b1b20');
-    line(ctx, 84, 129, 117, 129, '#52604b', 1.2);
-    // Broad heat-scarred patches belong to the sheet, not screen-space grain.
-    plate(ctx, [[86,72],[102,72],[99,99],[108,110],[105,132],
-      [86,125]], '#06171b58');
-    plate(ctx, [[111,146],[136,172],[136,190],[120,183]],
-      cold ? '#53737442' : '#b38b4a35');
     // A heavy asymmetric masonry furnace, with deep returns and a stepped
     // chimney. Broad fired faces carry the material at phone scale.
     plate(ctx, [[91,177],[195,177],[195,196],[224,196],[237,335],
@@ -135,6 +116,25 @@
     // The right jamb blocks part of the light fan, leaving a cool shadow wedge.
     plate(ctx, [[189,320],[201,320],[270,547],[225,520]], '#07161f75');
     plate(ctx, [[30,58],[290,58],[211,204],[113,204]], '#0a181e');
+    // An offset exhaust riser gives the hearth a single authored silhouette.
+    // Its large rolled faces read at phone size; the cool return recedes behind
+    // the fire-facing shoulder rather than tracing another rectangular gate.
+    plate(ctx, [[79,58],[133,58],[133,139],[153,163],[153,204],
+      [104,204],[104,174],[79,148]], '#06141b');
+    var riser = ctx.createLinearGradient(82, 84, 133, 179);
+    riser.addColorStop(0, '#263632'); riser.addColorStop(.45, '#172a2d');
+    riser.addColorStop(1, cold ? '#3d5b5d' : '#645238');
+    plate(ctx, [[82,58],[119,58],[119,143],[140,168],[140,195],
+      [108,195],[108,169],[82,145]], riser);
+    plate(ctx, [[119,58],[133,58],[133,139],[153,163],[153,204],
+      [140,195],[140,168],[119,143]], '#07171e');
+    plate(ctx, [[83,129],[119,129],[119,140],[83,140]], '#0b1b20');
+    line(ctx, 84, 129, 117, 129, '#52604b', 1.2);
+    // Broad heat-scarred patches belong to the sheet, not screen-space grain.
+    plate(ctx, [[86,72],[102,72],[99,99],[108,110],[105,132],
+      [86,125]], '#06171b58');
+    plate(ctx, [[111,146],[136,172],[136,190],[120,183]],
+      cold ? '#53737442' : '#b38b4a35');
     for (var floor = 0; floor < 7; floor++) {
       var foot = 30 + floor * 44;
       line(ctx, foot, 578, 121 + floor * 14, 325, '#263637', .7);

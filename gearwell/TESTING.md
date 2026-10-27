@@ -68,3 +68,8 @@ in 268.925 seconds. `prism-warden.test.js` alone took 173.36 seconds and
 establish a failure or completion of this suite. Let it continue in the background
 while working, then collect its actual exit status. Keep those historical timings
 distinct from a new run's result.
+
+The ready bank displays the cog total (for example `4 COGS`) centered beneath
+its gear icons. Gold bank styling, enabled REWIND and its accessible spending
+label convey readiness; the count no longer appends READY on a narrow phone.
+The browser check still asserts earned readiness and paid restoration.

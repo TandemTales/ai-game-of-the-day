@@ -41,7 +41,7 @@
     if (mode !== 'playing') return;
     mode = 'end'; panel.hidden = false; title.textContent = 'The well is full.';
     copy.textContent = state.score.toLocaleString() + ' points · ' + state.lines +
-      ' lines cleared · level ' + state.level + '. Press Enter or play again.';
+      (state.lines === 1 ? ' line cleared · level ' : ' lines cleared · level ') + state.level + '. Press Enter or play again.';
     startButton.textContent = 'PLAY AGAIN'; hud(); submit();
   }
   function act(action) {

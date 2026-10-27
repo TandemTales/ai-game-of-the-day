@@ -40,6 +40,25 @@
     room.addColorStop(0, '#09151a'); room.addColorStop(.37, '#132629');
     room.addColorStop(.72, '#0e1e26'); room.addColorStop(1, '#05111b');
     ctx.fillStyle = room; ctx.fillRect(X, Y, 260, 520);
+    // An offset exhaust riser gives the hearth a single authored silhouette.
+    // Its large rolled faces read at phone size; the cool return recedes behind
+    // the fire-facing shoulder rather than tracing another rectangular gate.
+    plate(ctx, [[79,58],[133,58],[133,139],[153,163],[153,204],
+      [104,204],[104,174],[79,148]], '#06141b');
+    var riser = ctx.createLinearGradient(82, 84, 133, 179);
+    riser.addColorStop(0, '#263632'); riser.addColorStop(.45, '#172a2d');
+    riser.addColorStop(1, cold ? '#3d5b5d' : '#645238');
+    plate(ctx, [[82,58],[119,58],[119,143],[140,168],[140,195],
+      [108,195],[108,169],[82,145]], riser);
+    plate(ctx, [[119,58],[133,58],[133,139],[153,163],[153,204],
+      [140,195],[140,168],[119,143]], '#07171e');
+    plate(ctx, [[83,129],[119,129],[119,140],[83,140]], '#0b1b20');
+    line(ctx, 84, 129, 117, 129, '#52604b', 1.2);
+    // Broad heat-scarred patches belong to the sheet, not screen-space grain.
+    plate(ctx, [[86,72],[102,72],[99,99],[108,110],[105,132],
+      [86,125]], '#06171b58');
+    plate(ctx, [[111,146],[136,172],[136,190],[120,183]],
+      cold ? '#53737442' : '#b38b4a35');
     // A heavy asymmetric masonry furnace, with deep returns and a stepped
     // chimney. Broad fired faces carry the material at phone scale.
     plate(ctx, [[91,177],[195,177],[195,196],[224,196],[237,335],
@@ -126,8 +145,10 @@
       line(ctx, 112 - 82 * spread, fy, 214 + 76 * spread, fy, '#1b2c31', 1);
       line(ctx, 112 - 82 * spread, fy + 2, 214 + 76 * spread, fy + 2, '#06131d', 2);
     }
-    // Three decreasing gantries: lit inner bevels, dark undersides and cast feet.
+    // Two structural bays leave an uneven, open sightline to the exhaust and
+    // hearth. Removing the middle outline stops the room reading as a tunnel icon.
     for (var bay = 2; bay >= 0; bay--) {
+      if (bay === 1) continue;
       var left = 43 + bay * 31, right = 282 - bay * 33;
       var top = 89 + bay * 46, bottom = 552 - bay * 87;
       var beam = 12 - bay * 2;
@@ -234,6 +255,20 @@
     line(ctx, 68, 90, 154, 90, cold ? '#4c6c6b' : '#81704b', .8);
     plate(ctx, [[279,58],[290,58],[290,578],[278,578],[273,550],[273,170],[279,150]], '#06121b');
     line(ctx, 273, 171, 273, 550, '#263d41', 1);
+    // A near anvil buttress occludes the far furnace on one side. The reflected
+    // face is a broad bevel; its deep return stays almost black.
+    plate(ctx, [[249,285],[267,264],[280,278],[280,463],[266,491],
+      [239,491],[239,464],[249,446]], '#05131b');
+    var buttress = ctx.createLinearGradient(241, 317, 270, 428);
+    buttress.addColorStop(0, cold ? '#36545a' : '#6c5839');
+    buttress.addColorStop(.4, cold ? '#2c454b' : '#464633');
+    buttress.addColorStop(1, '#12272d');
+    plate(ctx, [[250,290],[264,275],[264,445],[252,470],[241,479],
+      [241,464],[252,446]], buttress);
+    plate(ctx, [[264,275],[277,282],[277,460],[264,484],[252,488],
+      [252,470],[264,445]], '#06161e');
+    plate(ctx, [[249,329],[263,320],[263,351],[252,365]], '#10262b6b');
+    plate(ctx, [[240,482],[267,482],[278,495],[233,495]], '#0b1b22');
     // A shuttered work lamp establishes the warm source without lighting cells.
     ctx.fillStyle = '#0a171b'; ctx.fillRect(55, 110, 18, 31);
     var lamp = ctx.createRadialGradient(64, 125, 1, 64, 125, 104);
@@ -280,6 +315,10 @@
       castReward.addColorStop(1, '#142b3200');
       plate(ctx, [[63,237],[74,241],[74,359],[63,375],[63,355],
         [69,349],[69,247]], castReward);
+      plate(ctx, [[250,290],[264,275],[264,445],[252,470],[241,479],
+        [241,464],[252,446]], cold ? '#618b8c75' : '#b48a4d65');
+      plate(ctx, [[111,146],[136,172],[136,190],[120,183]],
+        cold ? '#7bb5b780' : '#d6ae6680');
       ctx.restore();
     }
     ctx.restore();
@@ -300,12 +339,13 @@
       [px+22,py+25],[px+4,py+25],[px+1,py+22],[px+1,py+4]];
     plate(ctx, outer, '#06131a');
     var face = ctx.createLinearGradient(px + 3, py + 3, px + 24, py + 25);
-    face.addColorStop(0, L.COLORS[kind]); face.addColorStop(.52, L.COLORS[kind]);
+    face.addColorStop(0, L.COLORS[kind]); face.addColorStop(.28, L.COLORS[kind]);
     face.addColorStop(1, '#233842');
     plate(ctx, [[px+5,py+2],[px+21,py+2],[px+24,py+5],[px+24,py+20],
       [px+20,py+24],[px+5,py+24],[px+2,py+21],[px+2,py+5]], face);
+    var facing = Math.max(.1, .32 - x * .016 - y * .003);
     plate(ctx, [[px+5,py+2],[px+21,py+2],[px+24,py+5],[px+20,py+7],
-      [px+7,py+7],[px+2,py+5]], 'rgba(255,246,217,.28)');
+      [px+7,py+7],[px+2,py+5]], 'rgba(255,246,217,' + facing + ')');
     plate(ctx, [[px+2,py+5],[px+7,py+7],[px+7,py+19],[px+5,py+24],
       [px+2,py+21]], 'rgba(255,248,220,.12)');
     plate(ctx, [[px+20,py+7],[px+24,py+5],[px+24,py+20],[px+20,py+24],
@@ -319,6 +359,12 @@
     sheen.addColorStop(.45, 'rgba(255,255,233,.04)');
     sheen.addColorStop(1, 'rgba(3,17,25,.09)');
     plate(ctx, [[px+7,py+7],[px+19,py+7],[px+19,py+19],[px+7,py+19]], sheen);
+    // A few large, deterministic casting marks replace identical glossy faces.
+    // Colour remains dominant; no random noise or flickering material is added.
+    if ((x * 3 + y) % 4 === 0) {
+      plate(ctx, [[px+8,py+8],[px+13,py+8],[px+12,py+11],
+        [px+15,py+14],[px+9,py+16]], 'rgba(4,24,30,.15)');
+    }
     line(ctx, px + 9, py + 21.5, px + 18, py + 21.5, 'rgba(183,205,192,.2)', .6);
     if (gear) {
       ctx.save(); ctx.shadowColor = '#ffd676'; ctx.shadowBlur = 9;

@@ -165,3 +165,5 @@
 - Monday, age 8: STOP absent; dev synced. Forced release remains October 31. Prior visual/UI AAA FAIL verdicts remain open; no early release.
 - Tonight: intentional title and secondary-action typography, plus authored outer-room/furnace composition linked to reward light. Each implementation worker owns one SPEC file; lead owns shell integration and Git. Separate harsh critics review actual side-by-side captures.
 - Preserve legal-input earned rewind, 44px controls, no-scroll and DPR proofs. Run focused tests before each push, allow full Jest to finish, inspect all six viewport PNGs, and record evidence limits honestly.
+
+- Renderer checkpoint: asymmetric rolled exhaust riser, open structural sightline, broad near anvil buttress and directional block bevels replace repeated outlines/gloss. Reward light reaches the new faces. Focused Jest 8/8 and syntax pass; fresh HTTP harness six viewport/input-earned rewind checks pass so far; parent opened desktop title and portrait play. Independent critic review underway; no AAA acceptance.

@@ -112,7 +112,7 @@ async function execute(page,p) {
           }
         }
         assert(earned,'Actual input must reach three earned cogs');
-        assert.equal(await page.locator('#bank-status').textContent(), earned.cogs + ' COGS · READY');
+        assert.equal(await page.locator('#bank-status').textContent(), earned.cogs + ' COGS');
         assert.equal(await page.locator('#rewind').getAttribute('aria-label'), 'Rewind last lock, spend three cogs');
         await page.waitForTimeout(50); await page.screenshot({path:path.join(out,'earned-bank.png')});
         await page.setViewportSize({width:320,height:568});

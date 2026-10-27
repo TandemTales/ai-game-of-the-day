@@ -167,3 +167,5 @@
 - Preserve legal-input earned rewind, 44px controls, no-scroll and DPR proofs. Run focused tests before each push, allow full Jest to finish, inspect all six viewport PNGs, and record evidence limits honestly.
 
 - Renderer checkpoint: asymmetric rolled exhaust riser, open structural sightline, broad near anvil buttress and directional block bevels replace repeated outlines/gloss. Reward light reaches the new faces. Focused Jest 8/8 and syntax pass; fresh HTTP harness six viewport/input-earned rewind checks pass so far; parent opened desktop title and portrait play. Independent critic review underway; no AAA acceptance.
+
+- UI checkpoint: warm left-aligned foundry briefing, shorter mechanic copy and broad start action; continuous metrics and quieter control edges replace stacked cards. Secondary action labels are larger. Focused Jest 8/8; completed HTTP all-six-size sweep, 44px controls, no XY overflow, clean console/no external requests, earned playable rewind, local rank-before-submit and DPR2 pass. Parent opened all six gameplay/title layouts plus end and earned bank; final critic/refinement pending, no AAA claim.

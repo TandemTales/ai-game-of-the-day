@@ -18,8 +18,9 @@ header{width:100%;display:flex;align-items:center;justify-content:space-between;
 .eyebrow{font-size:10px;letter-spacing:.23em;color:var(--gold);margin:0 0 3px;font-weight:700}
 h1{font-size:clamp(28px,5vw,42px);line-height:1;margin:0;letter-spacing:.06em;text-transform:uppercase;text-shadow:0 2px 14px #0009}
 header a{font-size:13px;white-space:nowrap}
-.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:min(100%,410px);margin:0 auto 8px}
-.metrics div{border:1px solid #617a7d70;border-bottom-color:#d2b57c65;background:linear-gradient(155deg,#233b42e8,#10232ce8);border-radius:3px;padding:6px 10px;display:flex;justify-content:space-between;align-items:center;gap:5px;min-width:0;box-shadow:inset 0 1px #a9c8cb12,0 4px 12px #0003}
+.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;width:min(100%,410px);margin:0 auto 8px;border-top:1px solid #c8b98785;border-bottom:1px solid #617a7d70;background:linear-gradient(110deg,#293a3ce8,#10232ce8);box-shadow:inset 0 1px #a9c8cb12}
+.metrics div{border:0;border-right:1px solid #9baf9e35;padding:6px 10px;display:flex;justify-content:space-between;align-items:center;gap:5px;min-width:0}
+.metrics div:last-child{border-right:0}
 .metrics span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
 .metrics strong{font-variant-numeric:tabular-nums;font-size:18px;color:#fff2ca}
 /* The board gets the remaining grid row. Its CSS size never depends on the
@@ -33,24 +34,24 @@ canvas{display:block;width:100%;height:100%;aspect-ratio:320/670;border-radius:9
 .reserve-bank span{left:52.5%}
 #bank-status{position:absolute;left:52.5%;bottom:.65%;font-size:clamp(12px,1.55vh,24px);line-height:1;font-weight:750;white-space:nowrap;color:#d2e0dc;text-shadow:0 1px 2px #000}
 #bank-status.ready{color:#ffdf94;text-shadow:0 0 10px #f6bf6555}
-.panel{position:absolute;inset:17% 6% auto;z-index:2;border:1px solid #c4c5a17a;border-top:3px solid #d7bc7b;border-radius:5px;padding:22px 18px;background:linear-gradient(160deg,#1b3445fa,#0b1925fc);box-shadow:0 18px 40px #000b,inset 0 0 32px #9bbfb008;text-align:center;max-height:78%;overflow:auto}
+.panel{position:absolute;inset:17% 6% auto;z-index:2;border:1px solid #89958495;border-top:3px solid #e1c180;border-radius:2px;padding:24px 20px 20px;background:radial-gradient(ellipse at 0 0,#80603335,transparent 65%),linear-gradient(145deg,#233333fc,#0b1a23fd 75%);box-shadow:0 18px 40px #000c,inset 3px 0 #dfc98c16;text-align:left;max-height:78%;overflow:auto}
 .panel[hidden]{display:none}
-.kicker{font-size:10px;letter-spacing:.14em;color:var(--gold);font-weight:800}
-.panel h2{font-size:clamp(23px,5vw,30px);margin:12px 0}
-.panel p{font-size:13px;line-height:1.5;color:#d1dde0;margin:0 0 18px}
-.panel #panel-copy{margin-bottom:10px}
-.panel #control-help{padding-top:10px;border-top:1px solid #9fb6b333;margin-bottom:16px;font-size:clamp(12px,.65vw,20px);line-height:1.4;text-align:left}
-.touch-help{display:block;color:#edf3ee;font-weight:600}
+.kicker{display:block;font-size:10px;line-height:1.4;letter-spacing:.14em;color:var(--gold);font-weight:800}
+.panel h2{font-size:clamp(27px,5.4vw,34px);line-height:1.05;letter-spacing:-.035em;font-weight:850;margin:14px 0 16px;text-wrap:balance;color:#fff1cc}
+.panel p{font-size:13px;line-height:1.55;color:#d1dde0;margin:0 0 18px}
+.panel #panel-copy{margin-bottom:18px;max-width:34ch}
+.panel #control-help{padding-top:12px;border-top:1px solid #9fb6b333;margin-bottom:18px;font-size:clamp(12px,.65vw,20px);line-height:1.45;text-align:left}
+.touch-help{display:block;color:#d4e0db;font-weight:500}
 .keyboard-help{display:none;margin-top:4px;color:#c4d5d8}
 @media(any-pointer:fine){.keyboard-help{display:block}}
 @media(min-width:1000px){.keyboard-help{display:block}}
-.panel button{border:1px solid #ffe1a0;border-radius:9px;background:linear-gradient(#ffdfa0,#d7a957);color:#192333;font-weight:900;letter-spacing:.07em;padding:12px 18px;min-height:46px;box-shadow:0 4px 0 #714e24,0 8px 18px #0007}
+.panel button{width:100%;border:1px solid #ffe1a0;border-radius:3px;background:linear-gradient(#ffe0a1,#d5ad62);color:#1b282a;font-weight:850;letter-spacing:.09em;padding:12px 18px;min-height:46px;box-shadow:0 4px 0 #714e24,0 8px 18px #0007}
 .panel button:active{transform:translateY(2px);box-shadow:0 2px 0 #714e24,0 4px 9px #0007}
 .controls{width:min(100%,410px);margin:8px auto 0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
 .controls button{border:1px solid #6c888d;background:linear-gradient(#294b57,#152c38);color:#f4f3e8;border-radius:4px;min-width:44px;min-height:46px;font-size:22px;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:3px 2px;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:inset 0 1px #b9e1dd38,0 3px 0 #040b11}
 .control-symbol{display:block;line-height:1}
 #rewind .control-symbol{font-size:10px;letter-spacing:0;opacity:1}
-.control-hint{display:block;font-size:10px;font-weight:700;line-height:1.1;letter-spacing:0;white-space:nowrap;color:#d2e0df}
+.control-hint{display:block;font-size:11px;font-weight:650;line-height:1.1;letter-spacing:0;white-space:nowrap;color:#dbe5dc}
 .key-hint{display:none}
 .controls button.drop{font-size:11px;letter-spacing:.05em;background:linear-gradient(#9b7948,#584129);border-color:#ddbb7e;color:#fff2d6}
 .controls button.pressed,.controls button:active{background:#41697a;transform:translateY(2px);box-shadow:inset 0 1px #b9e1dd38,0 1px 0 #091722}
@@ -67,8 +68,8 @@ footer a{white-space:nowrap}
   .eyebrow{font-size:8px;margin-bottom:2px;letter-spacing:.18em}
   h1{font-size:27px}
   header a{font-size:10px}
-  .metrics{gap:4px;margin-bottom:5px}
-  .metrics div{padding:4px 6px;border-radius:3px}
+  .metrics{gap:0;margin-bottom:5px}
+  .metrics div{padding:4px 6px}
   .metrics span{font-size:10px;letter-spacing:.02em}
   .metrics strong{font-size:15px}
   .controls{margin-top:5px;gap:4px;grid-template-columns:repeat(5,minmax(44px,1fr)) minmax(56px,1.16fr)}
@@ -80,7 +81,7 @@ footer a{white-space:nowrap}
 }
 @media(max-height:650px){
   .panel{position:fixed;inset:50% auto auto 50%;transform:translate(-50%,-50%);width:min(90vw,340px);max-height:calc(100dvh - 22px);padding:16px 14px}
-  .panel h2{margin:8px 0}
+  .panel h2{margin:10px 0 14px}
   .panel p{margin-bottom:12px}
 }
 /* A single cabinet keeps the reserve dock directly above its action row.
@@ -91,7 +92,7 @@ footer a{white-space:nowrap}
   h1{font-size:clamp(30px,3.5vh,72px);letter-spacing:.055em}
   .eyebrow{font-size:clamp(9px,.6vh,14px);letter-spacing:.16em}
   header a{font-size:clamp(11px,.7vh,16px)}
-  .metrics{grid-template-columns:1.6fr 1fr 1fr;width:100%;height:calc(100% - 7px);margin:0 0 7px;gap:0;border:1px solid #7f8b7775;border-bottom-color:#c6ac7366;background:linear-gradient(145deg,#2c3d3e,#11232b);border-radius:5px;box-shadow:inset 0 1px #c7d1b82b,0 5px 16px #0005}
+  .metrics{grid-template-columns:1.6fr 1fr 1fr;width:100%;height:calc(100% - 7px);margin:0 0 7px;gap:0;border:0;border-top:1px solid #c6ac7399;border-bottom:1px solid #7f8b7775;background:linear-gradient(110deg,#2c3d3e,#11232b);border-radius:0;box-shadow:inset 0 1px #c7d1b81c}
   .metrics div{padding:clamp(6px,.75vh,16px) clamp(10px,1.1vh,24px);border:0;border-right:1px solid #91a79a30;border-radius:0;background:none;box-shadow:none;flex-direction:column;align-items:flex-start;gap:3px}
   .metrics div:last-child{border:0}
   .metrics span{font-size:clamp(11px,.85vh,18px);letter-spacing:.1em;color:#b6cac9}
@@ -100,18 +101,18 @@ footer a{white-space:nowrap}
   .metrics div:first-child strong{font-size:clamp(24px,2.65vh,56px);color:#ffe5a4}
   .stage{margin:0;border-radius:6px;z-index:0}
   .stage::after{content:none}
-  .controls{position:relative;grid-template-rows:minmax(0,1fr) auto;width:100%;height:calc(100% - 6px);gap:clamp(5px,.5vh,11px);padding:clamp(6px,.7vh,15px);margin:6px 0 0;border:1px solid #87947d99;border-radius:5px;background:linear-gradient(155deg,#2d3e3c,#152830 55%,#0c1b24);box-shadow:inset 0 1px #e1d9b238,0 10px 22px #0007}
+  .controls{position:relative;grid-template-rows:minmax(0,1fr) auto;width:100%;height:calc(100% - 6px);gap:clamp(5px,.5vh,11px);padding:clamp(6px,.7vh,15px) 0 0;margin:6px 0 0;border:0;border-top:1px solid #b8ae7b75;border-radius:0;background:linear-gradient(#18303966,transparent);box-shadow:none}
   .controls::after{content:"← → move · ↑ turn · Space drop · U rewind";grid-column:1 / -1;font-size:clamp(10px,.8vh,17px);line-height:1;text-align:center;color:#bccbc8;font-weight:500;white-space:nowrap}
   .controls button{min-height:clamp(52px,5.5vh,118px);font-size:clamp(22px,2.6vh,48px)}
   .controls button.drop{font-size:clamp(12px,1.15vh,25px)}
-  .control-hint{font-size:clamp(10px,.85vh,18px)}
-  #rewind .control-symbol{font-size:clamp(10px,.95vh,20px)}
+  .control-hint{font-size:clamp(11px,.85vh,18px)}
+  #rewind .control-symbol{font-size:clamp(11px,.95vh,20px)}
   .key-hint{display:none}
   footer{width:100%;height:100%;margin:0;padding-top:6px;font-size:clamp(12px,.85vh,18px)}
   footer p{color:#d2d9c9}
   .panel{padding:clamp(20px,2.3vh,48px) clamp(16px,1.6vh,34px)}
   .kicker{font-size:clamp(10px,1vh,18px)}
-  .panel h2{font-size:clamp(23px,2.8vh,52px)}
+  .panel h2{font-size:clamp(29px,3.4vh,66px)}
   .panel p{font-size:clamp(13px,1.5vh,28px)}
   .panel button{font-size:clamp(14px,1.5vh,28px);padding:clamp(12px,1.3vh,26px) clamp(18px,2vh,42px)}
 }

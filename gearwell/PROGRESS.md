@@ -159,3 +159,9 @@
 - Visual/UI AAA gates still fail; gameplay/audio/VFX AAA acceptance, speaker listening/mix/latency, physical-device touch, humanplay/fun, motionquality and realhardwareperformance remain open/unverified. No shipping judge, completion marker, release or main promotion. Main/originmain remain3f8f986. Forced secondSaturday wrap-up remainsOctober31Pacific(age13); tonight wasSunday(age7).
 - Pushed intent0180a91,furnace5020114,cabinetd657876,cast/lightrefinement40ba9df andUIrefinement55e4172. All work ondev; final tested handoff follows.
 - Next run first: preserve this cohesive cabinet and input/DPR proof; address intentional title/secondary-action typography and an authored outer-room silhouette/material composition linked to the cabinet/reward light. Avoid another layer of faint seams. Obtain fresh separate critics and dedicated motion/audio/device/human evaluation. Do not start STEP4 early while critics lose. OnOctober31 use forced-release rules (wrap-up only, block only glaring problems), rather than treating cosmetic AAA debt as a forced-release blocker.
+
+## 2026-10-26 Pacific — polish intent
+
+- Monday, age 8: STOP absent; dev synced. Forced release remains October 31. Prior visual/UI AAA FAIL verdicts remain open; no early release.
+- Tonight: intentional title and secondary-action typography, plus authored outer-room/furnace composition linked to reward light. Each implementation worker owns one SPEC file; lead owns shell integration and Git. Separate harsh critics review actual side-by-side captures.
+- Preserve legal-input earned rewind, 44px controls, no-scroll and DPR proofs. Run focused tests before each push, allow full Jest to finish, inspect all six viewport PNGs, and record evidence limits honestly.

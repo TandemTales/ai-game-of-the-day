@@ -139,12 +139,13 @@
     ctx.fillStyle = rolled; ctx.fill();
     // The curving sheet catches a broken warm reflection at the elbow only.
     ctx.beginPath(); ctx.moveTo(85, 58); ctx.lineTo(98, 58); ctx.lineTo(98, 131);
-    ctx.bezierCurveTo(98, 151, 121, 154, 121, 179); ctx.lineTo(121, 198);
-    ctx.lineTo(110, 198); ctx.lineTo(110, 179);
-    ctx.bezierCurveTo(110, 158, 85, 155, 85, 133); ctx.closePath();
+    ctx.bezierCurveTo(98, 151, 118, 156, 118, 179);
+    ctx.bezierCurveTo(118, 189, 115, 194, 109, 197); ctx.lineTo(109, 180);
+    ctx.bezierCurveTo(109, 160, 85, 155, 85, 133); ctx.closePath();
     var shoulder = ctx.createLinearGradient(0, 80, 0, 199);
     shoulder.addColorStop(0, '#9e855016'); shoulder.addColorStop(.5, '#15272530');
-    shoulder.addColorStop(1, cold ? '#71a3a357' : '#c59b5957');
+    shoulder.addColorStop(.78, cold ? '#71a3a33d' : '#c59b593d');
+    shoulder.addColorStop(1, cold ? '#324d4d08' : '#68543408');
     ctx.fillStyle = shoulder; ctx.fill();
     // Soot stains follow the rolled metal, with a dark flange fastening it.
     plate(ctx, [[101,66],[119,66],[119,117],[114,137],[106,128]], '#06151a56');

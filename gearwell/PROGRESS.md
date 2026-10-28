@@ -186,4 +186,4 @@
 
 - Tuesday polish, age9 from October18; STOP absent, dev synced and clean. Forced release remains October31. Tonight: bounded authored foundry composition/reward lighting and clearer secondary UI, one source file per worker with independent shipped-game critics. Lead owns integration and Git.
 - Preserve no-scroll, 44px controls, readable bank, legal-input rewind and DPR proofs. Focused tests before each commit; full Jest and inspected six-size HTTP captures at stable handoff. No early release while AAA critics fail.
-
+- Renderer checkpoint: rolled continuous exhaust elbow, rounded metal return, fastening collar/bolts and worn cast lintel replace the stepped polygon silhouette. Focused Jest 8/8 and syntax pass. Fresh local HTTP six-size baseline/input-earned playable rewind checks passed; updated captures and independent visual verdict pending.

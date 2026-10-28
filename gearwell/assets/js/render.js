@@ -70,6 +70,14 @@
     plate(ctx, [[178,203],[202,203],[212,230],[204,246],[190,234]], '#04121a69');
     plate(ctx, [[111,182],[183,182],[183,190],[111,190]], '#544c3b');
     line(ctx, 111, 181, 191, 181, '#86704a', 1);
+    plate(ctx, [[96,190],[211,190],[222,200],[104,200]], '#2b3029');
+    plate(ctx, [[104,200],[222,200],[222,207],[104,207]], '#08171b');
+    var lintel = ctx.createLinearGradient(97, 191, 217, 200);
+    lintel.addColorStop(0, cold ? '#425b58' : '#8b7750');
+    lintel.addColorStop(.56, cold ? '#304749' : '#514d37');
+    lintel.addColorStop(1, '#1b2d30');
+    plate(ctx, [[97,191],[209,191],[217,197],[103,197]], lintel);
+
     var heat = ctx.createRadialGradient(167, 282, 6, 167, 282, 122);
     heat.addColorStop(0, cold ? '#426b72' : '#a06c35');
     heat.addColorStop(.36, cold ? '#213e47' : '#5a3e27');
@@ -116,25 +124,41 @@
     // The right jamb blocks part of the light fan, leaving a cool shadow wedge.
     plate(ctx, [[189,320],[201,320],[270,547],[225,520]], '#07161f75');
     plate(ctx, [[30,58],[290,58],[211,204],[113,204]], '#0a181e');
-    // An offset exhaust riser gives the hearth a single authored silhouette.
-    // Its large rolled faces read at phone size; the cool return recedes behind
-    // the fire-facing shoulder rather than tracing another rectangular gate.
-    plate(ctx, [[79,58],[133,58],[133,139],[153,163],[153,204],
-      [104,204],[104,174],[79,148]], '#06141b');
-    var riser = ctx.createLinearGradient(82, 84, 133, 179);
-    riser.addColorStop(0, '#263632'); riser.addColorStop(.45, '#172a2d');
-    riser.addColorStop(1, cold ? '#3d5b5d' : '#645238');
-    plate(ctx, [[82,58],[119,58],[119,143],[140,168],[140,195],
-      [108,195],[108,169],[82,145]], riser);
-    plate(ctx, [[119,58],[133,58],[133,139],[153,163],[153,204],
-      [140,195],[140,168],[119,143]], '#07171e');
-    plate(ctx, [[83,129],[119,129],[119,140],[83,140]], '#0b1b20');
-    line(ctx, 84, 129, 117, 129, '#52604b', 1.2);
-    // Broad heat-scarred patches belong to the sheet, not screen-space grain.
-    plate(ctx, [[86,72],[102,72],[99,99],[108,110],[105,132],
-      [86,125]], '#06171b58');
-    plate(ctx, [[111,146],[136,172],[136,190],[120,183]],
-      cold ? '#53737442' : '#b38b4a35');
+    // A rolled exhaust elbow has a continuous curved shoulder, a deep return
+    // and one broad grazing reflection. It reads as a volume rather than a
+    // stair-step outline even when the well is only a few hundred pixels tall.
+    ctx.beginPath(); ctx.moveTo(80, 58); ctx.lineTo(128, 58);
+    ctx.lineTo(128, 128); ctx.bezierCurveTo(128, 148, 151, 151, 151, 177);
+    ctx.lineTo(151, 203); ctx.lineTo(105, 203); ctx.lineTo(105, 179);
+    ctx.bezierCurveTo(105, 161, 80, 158, 80, 133); ctx.closePath();
+    var rolled = ctx.createLinearGradient(80, 0, 151, 0);
+    rolled.addColorStop(0, '#07171d');
+    rolled.addColorStop(.14, cold ? '#3d595a' : '#706448');
+    rolled.addColorStop(.34, cold ? '#2b464b' : '#424638');
+    rolled.addColorStop(.68, '#14282d'); rolled.addColorStop(1, '#06151d');
+    ctx.fillStyle = rolled; ctx.fill();
+    // The curving sheet catches a broken warm reflection at the elbow only.
+    ctx.beginPath(); ctx.moveTo(85, 58); ctx.lineTo(98, 58); ctx.lineTo(98, 131);
+    ctx.bezierCurveTo(98, 151, 121, 154, 121, 179); ctx.lineTo(121, 198);
+    ctx.lineTo(110, 198); ctx.lineTo(110, 179);
+    ctx.bezierCurveTo(110, 158, 85, 155, 85, 133); ctx.closePath();
+    var shoulder = ctx.createLinearGradient(0, 80, 0, 199);
+    shoulder.addColorStop(0, '#9e855016'); shoulder.addColorStop(.5, '#15272530');
+    shoulder.addColorStop(1, cold ? '#71a3a357' : '#c59b5957');
+    ctx.fillStyle = shoulder; ctx.fill();
+    // Soot stains follow the rolled metal, with a dark flange fastening it.
+    plate(ctx, [[101,66],[119,66],[119,117],[114,137],[106,128]], '#06151a56');
+    ctx.fillStyle = '#0a191e'; ctx.fillRect(78, 104, 52, 10);
+    var collar = ctx.createLinearGradient(78, 0, 130, 0);
+    collar.addColorStop(0, '#283d3d'); collar.addColorStop(.22, '#72674c');
+    collar.addColorStop(.58, '#2a3d3d'); collar.addColorStop(1, '#08171f');
+    ctx.fillStyle = collar; ctx.fillRect(78, 105, 52, 4);
+    for (var bolt = 0; bolt < 3; bolt++) {
+      ctx.fillStyle = bolt === 0 ? '#b29a65' : '#4f5b4c';
+      ctx.beginPath(); ctx.arc(85 + bolt * 17, 108, 1.4, 0, TAU); ctx.fill();
+    }
+    plate(ctx, [[103,194],[153,194],[153,204],[103,204]], '#08191f');
+    line(ctx, 105, 195, 147, 195, cold ? '#54777a' : '#8a744c', 1);
     for (var floor = 0; floor < 7; floor++) {
       var foot = 30 + floor * 44;
       line(ctx, foot, 578, 121 + floor * 14, 325, '#263637', .7);

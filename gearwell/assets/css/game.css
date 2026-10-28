@@ -159,3 +159,7 @@ footer a{white-space:nowrap}
   .controls::after{color:#dce6d9;letter-spacing:.015em}
   footer a{color:#d5e8e7}
 }
+/* The near casting meets the floor with a soft, broad contact shadow. */
+@media(min-width:1000px) and (min-height:820px){
+  .stage::before{content:"";position:fixed;pointer-events:none;z-index:-1;right:calc(50% + var(--cabinet-width) / 2 + 3vw);bottom:6%;width:clamp(120px,13vw,290px);height:3vh;background:radial-gradient(ellipse,#01070bd9 0 24%,#01070b85 48%,transparent 72%);transform:skewX(-25deg)}
+}

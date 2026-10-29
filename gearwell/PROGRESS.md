@@ -207,3 +207,5 @@
 - Wednesday, age 10 from October 18; STOP absent and dev synced. Forced release remains October 31. Prior visual/UI AAA FAIL verdicts remain open; no early release.
 - Tonight: bounded whole-room lighting/material composition and clearer readout/control hierarchy. Each implementation worker owns exactly one SPEC file and loops against a separate harsh shipped-game critic. Lead owns integration, verification and Git.
 - Preserve no-scroll, 44px controls, readable bank, legal-input playable rewind and DPR evidence. Run focused tests before every push; let the full repository suite finish, inspect all six viewport PNGs, and record critic verdicts and evidence limits honestly.
+
+- Renderer checkpoint: replaced nested portal bays and duplicate chain/pistons with one asymmetric cast crane, recessed refractory wall and suspended ram. Earned clear/paid rewind reflections now reach those shared depth planes. Focused Jest 8/8, renderer syntax and CRLF-aware diff checks pass. Fresh browser captures and independent visual comparison follow; no AAA acceptance.

@@ -170,66 +170,57 @@
       line(ctx, 112 - 82 * spread, fy, 214 + 76 * spread, fy, '#1b2c31', 1);
       line(ctx, 112 - 82 * spread, fy + 2, 214 + 76 * spread, fy + 2, '#06131d', 2);
     }
-    // Two structural bays leave an uneven, open sightline to the exhaust and
-    // hearth. Removing the middle outline stops the room reading as a tunnel icon.
-    for (var bay = 2; bay >= 0; bay--) {
-      if (bay === 1) continue;
-      var left = 43 + bay * 31, right = 282 - bay * 33;
-      var top = 89 + bay * 46, bottom = 552 - bay * 87;
-      var beam = 12 - bay * 2;
-      var cast = ctx.createLinearGradient(left, top, right, bottom);
-      cast.addColorStop(0, bay ? '#223431' : (cold ? '#355054' : '#5a5039'));
-      cast.addColorStop(.16, bay ? '#1c3030' : '#354039');
-      cast.addColorStop(.6, bay ? '#14262c' : '#1b3035');
-      cast.addColorStop(1, '#091922');
-      plate(ctx, [[left,top+27],[left+24,top],[right-24,top],[right,top+27],
-        [right,bottom],[right-beam,bottom],[right-beam,top+32],
-        [right-28,top+beam],[left+28,top+beam],[left+beam,top+32],
-        [left+beam,bottom],[left,bottom]], cast);
-      if (!bay) {
-        // Thick joints and chipped cast patches give the nearest gate weight;
-        // distant bays remain quiet, narrower silhouettes instead of repeats.
-        plate(ctx, [[left,top+35],[left+beam,top+39],[left+beam,top+88],
-          [left+5,top+79],[left,top+58]], '#86745224');
-        plate(ctx, [[left+1,bottom-119],[left+beam-1,bottom-109],
-          [left+beam-1,bottom-63],[left+3,bottom-71]], '#04131b75');
-        plate(ctx, [[right-17,top+24],[right-4,top+34],[right-4,top+58],
-          [right-12,top+52]], '#354844');
-        ctx.fillStyle = '#07141b'; ctx.fillRect(left - 2, bottom - 12, beam + 6, 13);
-        line(ctx, left - 2, bottom - 12, left + beam + 4, bottom - 12, '#76674a', 1.5);
-      }
-      line(ctx, left + beam, top + 32, left + beam, bottom - 4, '#405044', .7);
-      line(ctx, left + 28, top + beam, right - 28, top + beam, '#3f4840', 1);
-      line(ctx, right - beam, top + 32, right - beam, bottom, '#07131c', 3);
-      line(ctx, left + 4, top + 29, left + 25, top + 5, '#455043', .7);
-      // Thick beam undersides cast an occlusion band, separating each depth.
-      plate(ctx, [[left+beam,top+32],[left+29,top+beam+2],
-        [right-29,top+beam+2],[right-beam,top+32],
-        [right-beam-4,top+42],[right-32,top+beam+9],
-        [left+32,top+beam+9],[left+beam+4,top+42]], '#030e1685');
-      for (var brace = 0; brace < 3; brace++) {
-        var braceY = top + 55 + brace * (bottom - top - 70) / 3;
-        line(ctx, left + 2, braceY, left + beam - 1, braceY + 11, '#07151d', 2);
-        line(ctx, right - beam + 1, braceY, right - 2, braceY + 11, '#30413d', 1);
-      }
+    // One asymmetric cast gantry replaces the nested portal outlines. Broad
+    // planes carry the depth: a warm load-bearing face, black return, and a cool
+    // recessed sidewall which is quiet enough to sit behind the landing guide.
+    var sideWall = ctx.createLinearGradient(205, 0, 283, 0);
+    sideWall.addColorStop(0, '#0c1c22'); sideWall.addColorStop(.65, '#152b30');
+    sideWall.addColorStop(1, '#07151d');
+    plate(ctx, [[217,179],[283,119],[283,552],[217,333]], sideWall);
+    plate(ctx, [[217,179],[224,172],[224,342],[217,333]], '#030f17');
+    var wallWash = ctx.createLinearGradient(0, 182, 0, 427);
+    wallWash.addColorStop(0, '#31505924'); wallWash.addColorStop(.5, '#42616a15');
+    wallWash.addColorStop(1, '#08192200');
+    plate(ctx, [[230,197],[274,157],[274,465],[230,335]], wallWash);
+    // Unequal broad refractory slabs, rather than fine gridwork, establish the
+    // wall's scale and its vanishing point. Dark undersides keep each seam inset.
+    for (var panel = 0; panel < 4; panel++) {
+      var panelTop = 196 + panel * 43, panelRight = 159 + panel * 104;
+      line(ctx, 227, panelTop, 279, panelRight, '#030f1880', 3);
+      line(ctx, 228, panelTop + 3, 278, panelRight + 3, '#46616a24', 1);
     }
-    // Suspended press and counterweight occupy the edges, leaving centre quiet.
-    for (var chain = 0; chain < 2; chain++) {
-      var cx = chain ? 257 : 65;
-      line(ctx, cx, 73, cx, 343, '#050e17', 4);
-      line(ctx, cx - 1, 73, cx - 1, 343, '#3b4840', .7);
-      for (var link = 0; link < 25; link++) {
-        var cy = 78 + link * 10 + (phase * 2 % 10);
-        line(ctx, cx - 2, cy, cx + 2, cy + 3, '#32443e', .8);
-      }
-      var piston = ctx.createLinearGradient(cx - 8, 0, cx + 8, 0);
-      piston.addColorStop(0, '#07151c'); piston.addColorStop(.32, '#3c4840');
-      piston.addColorStop(.52, '#192d31'); piston.addColorStop(1, '#091820');
-      ctx.fillStyle = piston; ctx.fillRect(cx - 7, 336, 14, 84);
-      ctx.fillStyle = '#0b1b22'; ctx.fillRect(cx - 11, 345, 22, 8);
-      line(ctx, cx - 10, 346, cx + 10, 346, '#445044', .8);
-      ctx.fillRect(cx - 10, 410, 20, 9);
-    }
+    // The near overhead beam is offset from the hearth: it reads as a foundry
+    // crane, not a second outline around the playfield. Its return occludes the
+    // exhaust while its worn lower lip catches the same furnace illumination.
+    plate(ctx, [[32,93],[215,93],[274,126],[274,150],[209,117],
+      [32,117]], '#06131a');
+    var craneFace = ctx.createLinearGradient(32, 93, 232, 122);
+    craneFace.addColorStop(0, cold ? '#38575a' : '#716347');
+    craneFace.addColorStop(.4, cold ? '#2a4247' : '#444936');
+    craneFace.addColorStop(1, '#182e31');
+    plate(ctx, [[32,94],[213,94],[270,126],[270,136],[210,107],
+      [32,107]], craneFace);
+    plate(ctx, [[32,108],[210,108],[270,137],[270,149],[207,118],
+      [32,118]], '#030f18');
+    line(ctx, 37, 95, 211, 95, cold ? '#5d7e7b' : '#a58b58', 1);
+    line(ctx, 211, 95, 268, 127, cold ? '#3c5a5e' : '#6e6446', 1);
+    // Interrupted worn enamel is fixed to the beam; a large dark repair and
+    // beveled attachment give the metal history without sparkly screen noise.
+    plate(ctx, [[91,95],[133,95],[129,99],[112,100],[105,104],
+      [91,104]], '#07191d65');
+    plate(ctx, [[177,95],[186,95],[186,109],[177,109]], '#15282b');
+    line(ctx, 177, 95, 177, 107, '#8a805a50', 1);
+    // A single suspended ram gives the right side a foreground silhouette.
+    line(ctx, 250, 142, 250, 282, '#041119', 7);
+    line(ctx, 248, 143, 248, 278, '#3b4b43', 1);
+    var ram = ctx.createLinearGradient(238, 0, 260, 0);
+    ram.addColorStop(0, '#081820'); ram.addColorStop(.32, '#40534e');
+    ram.addColorStop(.52, '#203a3e'); ram.addColorStop(1, '#06161f');
+    ctx.fillStyle = ram; ctx.fillRect(239, 266, 22, 63);
+    plate(ctx, [[236,264],[261,264],[267,270],[241,270]], '#354b46');
+    plate(ctx, [[241,271],[267,271],[267,328],[261,337],[241,330]], '#071820');
+    line(ctx, 239, 268, 259, 268, '#78836a', 1);
+    ctx.fillStyle = '#091a21'; ctx.fillRect(236, 325, 29, 8);
     // Near left cast column breaks the middle silhouettes; only its bevel is lit.
     plate(ctx, [[30,58],[42,58],[42,184],[50,201],[50,546],[42,563],[42,578],[30,578]], '#07121a');
     line(ctx, 42, 70, 42, 184, '#4c4b3a', 1);
@@ -274,10 +265,6 @@
       var wy = 213 + wear * 17;
       line(ctx, 50, wy, 53, wy - 2, wear % 2 ? '#26382e' : '#5c563e', .8);
     }
-    // The same warm source grazes one overhead face, with a dark cut underside.
-    plate(ctx, [[67,90],[258,90],[254,96],[70,96]], cold ? '#354f50' : '#4e4a37');
-    line(ctx, 72, 96, 254, 96, '#07141d', 3);
-    line(ctx, 68, 90, 154, 90, cold ? '#4c6c6b' : '#81704b', .8);
     plate(ctx, [[279,58],[290,58],[290,578],[278,578],[273,550],[273,170],[279,150]], '#06121b');
     line(ctx, 273, 171, 273, 550, '#263d41', 1);
     // A near anvil buttress occludes the far furnace on one side. The reflected
@@ -344,6 +331,15 @@
         [241,464],[252,446]], cold ? '#618b8c75' : '#b48a4d65');
       plate(ctx, [[111,146],[136,172],[136,190],[120,183]],
         cold ? '#7bb5b780' : '#d6ae6680');
+      // The earned pulse reaches the same overhead casting and recessed wall,
+      // tying the whole chamber to the hearth instead of a floating reward halo.
+      plate(ctx, [[32,94],[213,94],[270,126],[270,136],[210,107],
+        [32,107]], cold ? '#67969b40' : '#e0b56a38');
+      var wallReward = ctx.createLinearGradient(219, 280, 280, 390);
+      wallReward.addColorStop(0, cold ? '#7ac9d148' : '#daa3543d');
+      wallReward.addColorStop(.5, cold ? '#3b728324' : '#8b682d20');
+      wallReward.addColorStop(1, '#07151d00');
+      plate(ctx, [[224,232],[279,196],[279,480],[224,342]], wallReward);
       ctx.restore();
     }
     ctx.restore();

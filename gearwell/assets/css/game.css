@@ -111,7 +111,7 @@ footer a{white-space:nowrap}
   .controls button.drop{font-size:clamp(12px,1.3vh,28px)}
   .control-hint{font-size:clamp(11px,1.1vh,24px)}
   #rewind .control-symbol{font-size:clamp(11px,1.1vh,24px)}
-  .key-hint{display:none}
+  .key-hint{display:block;margin-top:3px;font-size:clamp(11px,1.1vh,24px);line-height:1.1;font-weight:500;color:#b9cec9}
   footer{z-index:1;grid-column:2;grid-row:2;align-self:end;display:block;width:100%;height:var(--foot-height);margin:0;padding:0 clamp(14px,1.6vh,36px) clamp(12px,1.4vh,30px);font-size:clamp(12px,1.2vh,26px);line-height:1.4}
   footer p{color:#d2d9c9;white-space:normal}
   footer a{display:block;margin-top:clamp(6px,.7vh,16px)}

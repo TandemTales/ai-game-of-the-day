@@ -192,18 +192,33 @@
     // The near overhead beam is offset from the hearth: it reads as a foundry
     // crane, not a second outline around the playfield. Its return occludes the
     // exhaust while its worn lower lip catches the same furnace illumination.
-    plate(ctx, [[32,93],[215,93],[274,126],[274,150],[209,117],
-      [32,117]], '#06131a');
+    // The beam seats into a recessed wall pocket; the dark return closes its
+    // diagonal end instead of leaving a thin floating blade against the wall.
+    plate(ctx, [[258,116],[281,128],[281,166],[268,158],[258,141]], '#030f17');
+    plate(ctx, [[271,127],[279,132],[279,161],[271,155]], '#182d31');
+    plate(ctx, [[32,93],[215,93],[274,126],[274,154],[209,121],
+      [32,121]], '#06131a');
     var craneFace = ctx.createLinearGradient(32, 93, 232, 122);
     craneFace.addColorStop(0, cold ? '#38575a' : '#716347');
     craneFace.addColorStop(.4, cold ? '#2a4247' : '#444936');
     craneFace.addColorStop(1, '#182e31');
     plate(ctx, [[32,94],[213,94],[270,126],[270,136],[210,107],
       [32,107]], craneFace);
-    plate(ctx, [[32,108],[210,108],[270,137],[270,149],[207,118],
-      [32,118]], '#030f18');
-    line(ctx, 37, 95, 211, 95, cold ? '#5d7e7b' : '#a58b58', 1);
-    line(ctx, 211, 95, 268, 127, cold ? '#3c5a5e' : '#6e6446', 1);
+    var craneUnder = ctx.createLinearGradient(0, 108, 0, 124);
+    craneUnder.addColorStop(0, '#07171b'); craneUnder.addColorStop(.28, '#020c13');
+    craneUnder.addColorStop(1, '#020b12');
+    plate(ctx, [[32,108],[210,108],[270,137],[270,153],[207,122],
+      [32,122]], craneUnder);
+    // Worn upper metal catches the left work lamp, then falls into the cooler
+    // return. A broad fading edge carries the bevel without another bright line.
+    var craneWear = ctx.createLinearGradient(36, 0, 263, 0);
+    craneWear.addColorStop(0, cold ? '#749b92a8' : '#b6a16cba');
+    craneWear.addColorStop(.36, cold ? '#4d716f70' : '#8c7d4c78');
+    craneWear.addColorStop(.75, '#3b4b3e26'); craneWear.addColorStop(1, '#20363b00');
+    plate(ctx, [[36,94],[211,94],[268,126],[268,129],[210,98],
+      [36,98]], craneWear);
+    plate(ctx, [[268,127],[273,130],[273,152],[268,150]], '#10242c');
+    line(ctx, 274, 132, 274, 153, '#3a50504a', 1);
     // Interrupted worn enamel is fixed to the beam; a large dark repair and
     // beveled attachment give the metal history without sparkly screen noise.
     plate(ctx, [[91,95],[133,95],[129,99],[112,100],[105,104],

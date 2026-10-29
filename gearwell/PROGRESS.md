@@ -211,3 +211,5 @@
 - Renderer checkpoint: replaced nested portal bays and duplicate chain/pistons with one asymmetric cast crane, recessed refractory wall and suspended ram. Earned clear/paid rewind reflections now reach those shared depth planes. Focused Jest 8/8, renderer syntax and CRLF-aware diff checks pass. Fresh browser captures and independent visual comparison follow; no AAA acceptance.
 
 - UI checkpoint: desktop uses a taller well with an attached right instrument deck, prominent score/lines/level and larger 3x2 controls. Phone/tablet and short-landscape fit retained. Focused Jest 8/8 and six-size HTTP/input/DPR sweep pass; lead opened desktop/landscape PNGs. Persistent desktop keyboard legend is absent and remains a review concern. Separate UI critique follows; no AAA acceptance.
+
+- Visual critic refinement: deeper dark crane underside, a broad worn left-lit bevel fading into the cool wall, and a recessed end connection address the critic's flat floating-shelf concern. Focused Jest 8/8, renderer syntax and diff checks pass. Provisional independent comparison remains VISUAL AAA FAIL / OURS LOSES; final captures follow.

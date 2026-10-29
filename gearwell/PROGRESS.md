@@ -209,3 +209,5 @@
 - Preserve no-scroll, 44px controls, readable bank, legal-input playable rewind and DPR evidence. Run focused tests before every push; let the full repository suite finish, inspect all six viewport PNGs, and record critic verdicts and evidence limits honestly.
 
 - Renderer checkpoint: replaced nested portal bays and duplicate chain/pistons with one asymmetric cast crane, recessed refractory wall and suspended ram. Earned clear/paid rewind reflections now reach those shared depth planes. Focused Jest 8/8, renderer syntax and CRLF-aware diff checks pass. Fresh browser captures and independent visual comparison follow; no AAA acceptance.
+
+- UI checkpoint: desktop uses a taller well with an attached right instrument deck, prominent score/lines/level and larger 3x2 controls. Phone/tablet and short-landscape fit retained. Focused Jest 8/8 and six-size HTTP/input/DPR sweep pass; lead opened desktop/landscape PNGs. Persistent desktop keyboard legend is absent and remains a review concern. Separate UI critique follows; no AAA acceptance.

@@ -84,37 +84,42 @@ footer a{white-space:nowrap}
   .panel h2{margin:10px 0 14px}
   .panel p{margin-bottom:12px}
 }
-/* A single cabinet keeps the reserve dock directly above its action row.
-   Readouts, well and controls share one centreline instead of a side wing. */
+/* A tall well and attached instrument deck make one cabinet. Reclaiming the
+   old top/bottom bands enlarges the board; the deck follows its real content. */
 @media(min-width:1000px) and (min-height:820px){
-  .shell{--cabinet-width:calc((69.8vh - 14px) * .477612 + 14px);width:var(--cabinet-width);min-width:308px;max-width:calc(100% - 48px);padding:1.6vh 0;grid-template-rows:7vh 7vh minmax(0,1fr) 10vh 3vh}
-  header{margin-bottom:clamp(9px,1.15vh,25px)}
-  h1{font-size:clamp(30px,3.5vh,72px);letter-spacing:.055em}
-  .eyebrow{font-size:clamp(9px,.6vh,14px);letter-spacing:.16em}
-  header a{font-size:clamp(11px,.7vh,16px)}
-  .metrics{grid-template-columns:1.6fr 1fr 1fr;width:100%;height:calc(100% - 7px);margin:0 0 7px;gap:0;border:0;border-top:1px solid #c6ac7399;border-bottom:1px solid #7f8b7775;background:linear-gradient(110deg,#2c3d3e,#11232b);border-radius:0;box-shadow:inset 0 1px #c7d1b81c}
-  .metrics div{padding:clamp(6px,.75vh,16px) clamp(10px,1.1vh,24px);border:0;border-right:1px solid #91a79a30;border-radius:0;background:none;box-shadow:none;flex-direction:column;align-items:flex-start;gap:3px}
-  .metrics div:last-child{border:0}
-  .metrics span{font-size:clamp(11px,.85vh,18px);letter-spacing:.1em;color:#b6cac9}
-  .metrics strong{font-size:clamp(22px,2.4vh,52px);line-height:1.05}
-  .metrics div:first-child{flex-direction:column}
-  .metrics div:first-child strong{font-size:clamp(24px,2.65vh,56px);color:#ffe5a4}
-  .stage{margin:0;border-radius:6px;z-index:0}
-  .stage::after{content:none}
-  .controls{position:relative;grid-template-rows:minmax(0,1fr) auto;width:100%;height:calc(100% - 6px);gap:clamp(5px,.5vh,11px);padding:clamp(6px,.7vh,15px) 0 0;margin:6px 0 0;border:0;border-top:1px solid #b8ae7b75;border-radius:0;background:linear-gradient(#18303966,transparent);box-shadow:none}
-  .controls::after{content:"← → MOVE · ↑ TURN · SPACE DROP · U REWIND";grid-column:1 / -1;font-size:clamp(11px,.85vh,18px);line-height:1;text-align:center;color:#d2ddd4;font-weight:600;white-space:nowrap}
-  .controls button{min-height:clamp(52px,5.5vh,118px);font-size:clamp(22px,2.6vh,48px)}
-  .controls button.drop{font-size:clamp(12px,1.15vh,25px)}
-  .control-hint{font-size:clamp(11px,.85vh,18px)}
-  #rewind .control-symbol{font-size:clamp(11px,.95vh,20px)}
+  .shell{--well-width:calc((88.8vh - 14px) * .477612 + 14px);--deck-width:clamp(230px,26vh,560px);--deck-height:clamp(350px,44vh,950px);--action-height:clamp(162px,20vh,440px);--foot-height:clamp(68px,8vh,180px);--cabinet-width:calc(var(--well-width) + var(--deck-width));width:var(--cabinet-width);max-width:calc(100% - 48px);padding:1.6vh 0;grid-template-columns:var(--well-width) var(--deck-width);grid-template-rows:8vh minmax(0,1fr);column-gap:0;align-items:start}
+  header{grid-column:1 / -1;grid-row:1;margin-bottom:clamp(9px,1.15vh,25px)}
+  h1{font-size:clamp(34px,4.2vh,88px);letter-spacing:.055em}
+  .eyebrow{font-size:clamp(10px,.7vh,16px);letter-spacing:.16em}
+  header a{font-size:clamp(12px,1.2vh,26px)}
+  .stage{grid-column:1;grid-row:2;max-width:none;margin:0;border-radius:6px 0 0 6px;z-index:0}
+  .stage::after{content:"";position:absolute;left:100%;bottom:-1px;width:calc(var(--deck-width) + 1px);height:var(--deck-height);border:1px solid #9d9b76;border-left:0;border-radius:0 7px 7px 0;z-index:-1;background:linear-gradient(100deg,#34433d,#182c31 12%,#0c1d26 83%,#283b3e);box-shadow:inset 0 2px #d8d8b942,inset -5px 0 #08131c9c,0 16px 30px #0008}
+  .metrics{z-index:1;grid-column:2;grid-row:2;align-self:end;grid-template-columns:1fr 1fr;grid-template-rows:1.2fr 1fr;width:100%;height:calc(var(--deck-height) - var(--action-height) - var(--foot-height));margin:0 0 calc(var(--action-height) + var(--foot-height));padding:clamp(12px,1.4vh,30px) clamp(14px,1.6vh,36px) 0;gap:0;border:0;background:transparent;box-shadow:none}
+  .metrics div{padding:clamp(8px,.9vh,20px) 0;border:0;background:none;box-shadow:none;flex-direction:column;align-items:flex-start;justify-content:center;gap:clamp(4px,.45vh,10px)}
+  .metrics div:first-child{grid-column:1 / -1;border-bottom:1px solid #8d9e8b42;padding-top:0}
+  .metrics div:last-child{padding-left:clamp(12px,1.4vh,30px);border-left:1px solid #8d9e8b42}
+  .metrics span{font-size:clamp(12px,1.25vh,27px);letter-spacing:.1em;color:#c3d4cf}
+  .metrics strong{font-size:clamp(24px,3vh,65px);line-height:1.05}
+  .metrics div:first-child strong{font-size:clamp(36px,4.6vh,100px);color:#ffe5a4;letter-spacing:-.025em}
+  .controls{z-index:1;grid-column:2;grid-row:2;align-self:end;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));width:100%;height:var(--action-height);margin:0 0 var(--foot-height);gap:clamp(7px,.8vh,18px);padding:clamp(12px,1.4vh,30px) clamp(14px,1.6vh,36px);border:0;border-top:1px solid #8d9e8b42;background:none;box-shadow:none}
+  .controls::after{content:none}
+  .controls button{min-height:56px;font-size:clamp(24px,3vh,64px);border-radius:4px}
+  .controls button[data-action="right"]{grid-column:3;grid-row:1}
+  .controls button[data-action="down"]{grid-column:2;grid-row:2}
+  .controls button[data-action="drop"]{grid-column:1;grid-row:2}
+  .controls button[data-action="rewind"]{grid-column:3;grid-row:2}
+  .controls button.drop{font-size:clamp(12px,1.3vh,28px)}
+  .control-hint{font-size:clamp(11px,1.1vh,24px)}
+  #rewind .control-symbol{font-size:clamp(11px,1.1vh,24px)}
   .key-hint{display:none}
-  footer{width:100%;height:100%;margin:0;padding-top:6px;font-size:clamp(12px,.85vh,18px)}
-  footer p{color:#d2d9c9}
+  footer{z-index:1;grid-column:2;grid-row:2;align-self:end;display:block;width:100%;height:var(--foot-height);margin:0;padding:0 clamp(14px,1.6vh,36px) clamp(12px,1.4vh,30px);font-size:clamp(12px,1.2vh,26px);line-height:1.4}
+  footer p{color:#d2d9c9;white-space:normal}
+  footer a{display:block;margin-top:clamp(6px,.7vh,16px)}
   .panel{padding:clamp(20px,2.3vh,48px) clamp(16px,1.6vh,34px)}
-  .kicker{font-size:clamp(10px,1vh,18px)}
-  .panel h2{font-size:clamp(29px,3.4vh,66px)}
-  .panel p{font-size:clamp(13px,1.5vh,28px)}
-  .panel button{font-size:clamp(14px,1.5vh,28px);padding:clamp(12px,1.3vh,26px) clamp(18px,2vh,42px)}
+  .kicker{font-size:clamp(10px,1vh,22px)}
+  .panel h2{font-size:clamp(29px,3.4vh,74px)}
+  .panel p{font-size:clamp(13px,1.5vh,32px)}
+  .panel button{font-size:clamp(14px,1.5vh,32px);padding:clamp(12px,1.3vh,28px) clamp(18px,2vh,44px)}
 }
 /* Short landscape has one instrument/action surface immediately beside the
    reserve dock. The left-hand statistics wing no longer splits attention. */

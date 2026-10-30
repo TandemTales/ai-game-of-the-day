@@ -160,15 +160,45 @@
     }
     plate(ctx, [[103,194],[153,194],[153,204],[103,204]], '#08191f');
     line(ctx, 105, 195, 147, 195, cold ? '#54777a' : '#8a744c', 1);
-    for (var floor = 0; floor < 7; floor++) {
-      var foot = 30 + floor * 44;
-      line(ctx, foot, 578, 121 + floor * 14, 325, '#263637', .7);
+    // Broad, inset refractory flags replace the wire-grid floor. Unequal
+    // cuts, chipped corners and dark vertical returns describe a real thickness;
+    // their perspective shares the hearth's vanishing point and reward pool.
+    var courses = [325, 345, 378, 426, 492, 578];
+    function floorX(u, y) {
+      var depth = (y - 325) / 253;
+      return 112 - 82 * depth + (102 + 158 * depth) * u;
     }
-    for (var slab = 0; slab < 6; slab++) {
-      var fy = 336 + slab * slab * 10;
-      var spread = (fy - 325) / 253;
-      line(ctx, 112 - 82 * spread, fy, 214 + 76 * spread, fy, '#1b2c31', 1);
-      line(ctx, 112 - 82 * spread, fy + 2, 214 + 76 * spread, fy + 2, '#06131d', 2);
+    for (var course = 0; course < courses.length - 1; course++) {
+      var back = courses[course] + 2, front = courses[course + 1] - 3;
+      var cuts = course % 2 ? [0, .19, .57, 1] : [0, .38, .77, 1];
+      for (var flag = 0; flag < cuts.length - 1; flag++) {
+        var left = cuts[flag] + .009, right = cuts[flag + 1] - .009;
+        var chip = 1 + course * .55;
+        var stone = ctx.createLinearGradient(0, back, 0, front);
+        var litStone = (course + flag) % 3 === 0;
+        stone.addColorStop(0, cold ? (litStone ? '#30484a' : '#263f43') :
+          (litStone ? '#514730' : '#3c3c2d'));
+        stone.addColorStop(1, cold ? '#142d36' : '#1a2c30');
+        plate(ctx, [[floorX(left,back)+chip,back],
+          [floorX(right,back)-chip,back],[floorX(right,front),front-chip],
+          [floorX(right,front)-chip,front],[floorX(left,front)+chip,front],
+          [floorX(left,front),front-chip],[floorX(left,back),back+chip]], stone);
+        // A broken top lip and a deep lower return reveal the slab's height.
+        line(ctx, floorX(left,front)+chip, front,
+          floorX(right,front)-chip, front, cold ? '#48636766' : '#7d6d4566', 1);
+        plate(ctx, [[floorX(left,front)+chip,front+1],
+          [floorX(right,front)-chip,front+1],
+          [floorX(right,front+4)-chip,front+4],
+          [floorX(left,front+4)+chip,front+4]], '#04131bb3');
+        // One worn firing stain belongs to the stone, never to the screen grid.
+        if (litStone && course > 1) {
+          var mid = back + (front - back) * .46;
+          plate(ctx, [[floorX(left+.07,mid),mid],
+            [floorX(right-.05,mid+2),mid+2],
+            [floorX(right-.13,front-7),front-7],
+            [floorX(left+.11,front-10),front-10]], '#0719233b');
+        }
+      }
     }
     // One asymmetric cast gantry replaces the nested portal outlines. Broad
     // planes carry the depth: a warm load-bearing face, black return, and a cool
@@ -186,8 +216,19 @@
     // wall's scale and its vanishing point. Dark undersides keep each seam inset.
     for (var panel = 0; panel < 4; panel++) {
       var panelTop = 196 + panel * 43, panelRight = 159 + panel * 104;
-      line(ctx, 227, panelTop, 279, panelRight, '#030f1880', 3);
-      line(ctx, 228, panelTop + 3, 278, panelRight + 3, '#46616a24', 1);
+      var wallStone = ctx.createLinearGradient(228, panelTop, 279, panelRight + 95);
+      wallStone.addColorStop(0, cold ? '#28434a' : (panel % 2 ? '#3b3a2e' : '#424032'));
+      wallStone.addColorStop(.34, cold ? '#1d363e' : '#29332d');
+      wallStone.addColorStop(1, '#0b2029');
+      plate(ctx, [[229,panelTop+4],[277,panelRight+5],
+        [277,panelRight+98],[232,panelTop+42],[227,panelTop+37]], wallStone);
+      // A broad soot bloom and chipped near edge describe refractory material,
+      // rather than another bright seam across the landing guide.
+      plate(ctx, [[232,panelTop+10],[241,panelTop+8],
+        [253,panelRight+43],[249,panelRight+66],[236,panelTop+36]], '#04131c4d');
+      line(ctx, 228, panelTop, 279, panelRight, '#020e17b3', 3);
+      line(ctx, 229, panelTop + 4, 242, panelTop + 15,
+        cold ? '#78968b44' : '#a28b5844', 1.5);
     }
     // The near overhead beam is offset from the hearth: it reads as a foundry
     // crane, not a second outline around the playfield. Its return occludes the

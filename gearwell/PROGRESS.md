@@ -231,3 +231,5 @@
 - Thursday, age11 from October18; STOP absent and dev synced. Forced wrap-up remains October31. Existing visual/UI AAA FAIL verdicts remain open, so no early release.
 - Tonight: bounded resource/action identity and coherent foundry material/light composition. Each implementation worker owns one SPEC file and uses a separate harsh shipped-game critic. Lead owns integration and Git.
 - Preserve no-scroll,44px controls, readable bank, legal-input playable rewind and DPR evidence. Focused tests before each push; complete full Jest, open all six viewport captures, and record actual critic results and audio/device/human/performance limits.
+
+- Renderer checkpoint: broad uneven refractory floor flags with chipped corners/deep returns and shaded soot-marked wall faces replace wire-grid/seam-only surfaces. Focused Jest8/8, renderer syntax and first six-size HTTP/input-earned playable rewind/DPR sweep pass. Lead opened desktop/phone/landscape/4K captures; independent visual critic/refinement pending, no AAA claim.

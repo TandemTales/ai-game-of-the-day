@@ -87,7 +87,7 @@ footer a{white-space:nowrap}
 /* A tall well and attached instrument deck make one cabinet. Reclaiming the
    old top/bottom bands enlarges the board; the deck follows its real content. */
 @media(min-width:1000px) and (min-height:820px){
-  .shell{--well-width:calc((88.8vh - 14px) * .477612 + 14px);--deck-width:clamp(230px,26vh,560px);--deck-height:clamp(350px,44vh,950px);--action-height:clamp(162px,20vh,440px);--foot-height:clamp(68px,8vh,180px);--cabinet-width:calc(var(--well-width) + var(--deck-width));width:var(--cabinet-width);max-width:calc(100% - 48px);padding:1.6vh 0;grid-template-columns:var(--well-width) var(--deck-width);grid-template-rows:8vh minmax(0,1fr);column-gap:0;align-items:start}
+  .shell{--well-width:calc((88.8vh - 14px) * .477612 + 14px);--deck-width:clamp(230px,26vh,560px);--deck-height:clamp(430px,52vh,1120px);--action-height:clamp(224px,27vh,584px);--foot-height:clamp(68px,8vh,180px);--cabinet-width:calc(var(--well-width) + var(--deck-width));width:var(--cabinet-width);max-width:calc(100% - 48px);padding:1.6vh 0;grid-template-columns:var(--well-width) var(--deck-width);grid-template-rows:8vh minmax(0,1fr);column-gap:0;align-items:start}
   header{grid-column:1 / -1;grid-row:1;margin-bottom:clamp(9px,1.15vh,25px)}
   h1{font-size:clamp(34px,4.2vh,88px);letter-spacing:.055em}
   .eyebrow{font-size:clamp(10px,.7vh,16px);letter-spacing:.16em}
@@ -101,13 +101,13 @@ footer a{white-space:nowrap}
   .metrics span{font-size:clamp(12px,1.25vh,27px);letter-spacing:.1em;color:#c3d4cf}
   .metrics strong{font-size:clamp(24px,3vh,65px);line-height:1.05}
   .metrics div:first-child strong{font-size:clamp(36px,4.6vh,100px);color:#ffe5a4;letter-spacing:-.025em}
-  .controls{z-index:1;grid-column:2;grid-row:2;align-self:end;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));width:100%;height:var(--action-height);margin:0 0 var(--foot-height);gap:clamp(7px,.8vh,18px);padding:clamp(12px,1.4vh,30px) clamp(14px,1.6vh,36px);border:0;border-top:1px solid #8d9e8b42;background:none;box-shadow:none}
+  .controls{z-index:1;grid-column:2;grid-row:2;align-self:end;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));width:100%;height:var(--action-height);margin:0 0 var(--foot-height);gap:clamp(7px,.8vh,18px);padding:clamp(12px,1.4vh,30px) clamp(14px,1.6vh,36px);border:0;border-top:1px solid #8d9e8b42;background:none;box-shadow:none}
   .controls::after{content:none}
   .controls button{min-height:56px;font-size:clamp(24px,3vh,64px);border-radius:4px}
   .controls button[data-action="right"]{grid-column:3;grid-row:1}
-  .controls button[data-action="down"]{grid-column:2;grid-row:2}
+  .controls button[data-action="down"]{grid-column:2 / 4;grid-row:2}
   .controls button[data-action="drop"]{grid-column:1;grid-row:2}
-  .controls button[data-action="rewind"]{grid-column:3;grid-row:2}
+  .controls button[data-action="rewind"]{grid-column:1 / -1;grid-row:3;flex-direction:row;gap:12px}
   .controls button.drop{font-size:clamp(12px,1.3vh,28px)}
   .control-hint{font-size:clamp(11px,1.1vh,24px)}
   #rewind .control-symbol{font-size:clamp(11px,1.1vh,24px)}
@@ -130,24 +130,24 @@ footer a{white-space:nowrap}
   .eyebrow{display:none}
   header a{font-size:11px}
   .stage{grid-column:1;grid-row:2;height:calc(100% - 8px);padding:3px;max-width:none;margin:0;border-radius:6px 0 0 6px}
-  .stage::after{content:"";position:absolute;left:100%;bottom:-1px;width:calc(var(--deck-width) + 1px);height:270px;border:1px solid #899476;border-left:0;border-radius:0 5px 5px 0;z-index:-1;background:linear-gradient(135deg,#2a3a36,#0d1f28 74%);box-shadow:inset 0 1px #dfd7a72b,0 16px 25px #0007}
+  .stage::after{content:"";position:absolute;left:100%;bottom:-1px;width:calc(var(--deck-width) + 1px);height:298px;border:1px solid #899476;border-left:0;border-radius:0 5px 5px 0;z-index:-1;background:linear-gradient(135deg,#2a3a36,#0d1f28 74%);box-shadow:inset 0 1px #dfd7a72b,0 16px 25px #0007}
   .reserve-strip{inset:3px}
   .reserve-strip span{font-size:11px;letter-spacing:0}
   #bank-status{font-size:12px;letter-spacing:-.035em}
-  .metrics{z-index:1;grid-column:2;grid-row:2;align-self:end;grid-template-columns:1.4fr 1fr 1fr;width:100%;height:58px;margin:0 0 205px;gap:0;padding:8px 10px 0;border:0;background:transparent;box-shadow:none}
+  .metrics{z-index:1;grid-column:2;grid-row:2;align-self:end;grid-template-columns:1.4fr 1fr 1fr;width:100%;height:58px;margin:0 0 236px;gap:0;padding:8px 10px 0;border:0;background:transparent;box-shadow:none}
   .metrics div{min-height:0;border:0;border-right:1px solid #82968b35;border-radius:0;background:none;box-shadow:none;padding:0 8px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:4px}
   .metrics div:first-child{padding-left:0}
   .metrics div:last-child{border:0}
   .metrics span{font-size:11px;letter-spacing:.05em}
   .metrics strong{font-size:22px;line-height:1}
-  .controls{z-index:1;grid-column:2;grid-row:2;align-self:end;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;margin:0 0 62px;gap:6px;padding:12px;border-top:1px solid #ab97604d}
-  .controls button{min-height:54px}
+  .controls{z-index:1;grid-column:2;grid-row:2;align-self:end;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;height:174px;grid-template-rows:repeat(3,minmax(44px,1fr));margin:0 0 62px;gap:6px;padding:12px;border-top:1px solid #ab97604d}
+  .controls button{min-height:44px}
   .control-hint{font-size:11px}
   #rewind .control-symbol{font-size:11px}
   .controls button[data-action="right"]{grid-column:3;grid-row:1}
-  .controls button[data-action="down"]{grid-column:2;grid-row:2}
+  .controls button[data-action="down"]{grid-column:2 / 4;grid-row:2}
   .controls button[data-action="drop"]{grid-column:1;grid-row:2}
-  .controls button[data-action="rewind"]{grid-column:3;grid-row:2}
+  .controls button[data-action="rewind"]{grid-column:1 / -1;grid-row:3;flex-direction:row;gap:12px}
   footer{z-index:1;grid-column:2;grid-row:2;align-self:end;display:block;width:100%;height:62px;margin:0;padding:0 12px 8px;font-size:11px}
   footer a{display:block;margin-top:6px}
 }
@@ -167,4 +167,23 @@ footer a{white-space:nowrap}
 /* The near casting meets the floor with a soft, broad contact shadow. */
 @media(min-width:1000px) and (min-height:820px){
   .stage::before{content:"";position:fixed;pointer-events:none;z-index:-1;right:calc(50% + var(--cabinet-width) / 2 + 3vw);bottom:6%;width:clamp(120px,13vw,290px);height:3vh;background:radial-gradient(ellipse,#01070bd9 0 24%,#01070b85 48%,transparent 72%);transform:skewX(-25deg)}
+}
+
+/* Recovery is a deliberate bank-funded action, distinct from piece steering.
+   The full-width bar aligns the shared brass material with its reserve dock. */
+#rewind{border-color:#8c8061;background:linear-gradient(110deg,#443c2a,#1a2c32 64%)}
+#rewind:disabled{border-color:#706d59;background:linear-gradient(110deg,#34392f,#182a31 72%);color:#b8c4bb}
+#rewind:disabled .control-symbol{opacity:1}
+.shell:has(#rewind:not(:disabled)) .reserve-bank span{color:#ffdf94}
+#rewind:not(:disabled){background:linear-gradient(105deg,#89662c,#3c3e2b 62%,#253a36);border-color:#ffe0a0;color:#fff0bc;box-shadow:inset 0 1px #fff1b96b,inset 4px 0 #ffe0a0,0 3px 0 #040b11,0 0 18px #d3a85e2b}
+@media(min-width:1000px) and (min-height:820px){
+  #rewind::before{content:"↶";font-size:clamp(27px,3vh,64px);line-height:1;color:#e8d7a9}
+  #rewind .control-symbol{font-size:clamp(13px,1.5vh,32px);letter-spacing:.045em}
+  #rewind .control-hint{display:flex;align-items:center;gap:clamp(8px,1vh,22px);font-size:clamp(11px,1.25vh,27px)}
+  #rewind .key-hint{margin:0;padding-left:clamp(8px,1vh,22px);border-left:1px solid #c0cfb94a}
+}
+@media(orientation:landscape) and (max-height:500px){
+  #rewind::before{content:"↶";font-size:24px;line-height:1;color:#e8d7a9}
+  #rewind .control-symbol{font-size:13px;letter-spacing:.045em}
+  #rewind .control-hint{font-size:12px}
 }

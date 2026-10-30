@@ -233,3 +233,5 @@
 - Preserve no-scroll,44px controls, readable bank, legal-input playable rewind and DPR evidence. Focused tests before each push; complete full Jest, open all six viewport captures, and record actual critic results and audio/device/human/performance limits.
 
 - Renderer checkpoint: broad uneven refractory floor flags with chipped corners/deep returns and shaded soot-marked wall faces replace wire-grid/seam-only surfaces. Focused Jest8/8, renderer syntax and first six-size HTTP/input-earned playable rewind/DPR sweep pass. Lead opened desktop/phone/landscape/4K captures; independent visual critic/refinement pending, no AAA claim.
+
+- UI checkpoint: desktop and short-landscape recovery becomes a full-width third action row, with shared bank/action brass readiness and a readable disabled state. Phone layout/well height retained; lead links action to bank count with aria-describedby in index.html. Focused Jest8/8 and first six-size HTTP44px/no-scroll/earned-rewind/DPR sweep pass; lead opened1440/844/320ready/4K. Separate UI critic pending; no AAA claim.

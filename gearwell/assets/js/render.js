@@ -169,16 +169,21 @@
       return 112 - 82 * depth + (102 + 158 * depth) * u;
     }
     for (var course = 0; course < courses.length - 1; course++) {
-      var back = courses[course] + 2, front = courses[course + 1] - 3;
+      var back = courses[course] + .8;
       var cuts = course % 2 ? [0, .19, .57, 1] : [0, .38, .77, 1];
       for (var flag = 0; flag < cuts.length - 1; flag++) {
-        var left = cuts[flag] + .009, right = cuts[flag + 1] - .009;
-        var chip = 1 + course * .55;
+        var left = cuts[flag] + .005, right = cuts[flag + 1] - .005;
+        var front = courses[course + 1] - 1.4 - (course + flag) % 3 * .65;
+        var chip = .7 + course * .35, relief = .6 + course * .25;
         var stone = ctx.createLinearGradient(0, back, 0, front);
         var litStone = (course + flag) % 3 === 0;
-        stone.addColorStop(0, cold ? (litStone ? '#30484a' : '#263f43') :
-          (litStone ? '#514730' : '#3c3c2d'));
-        stone.addColorStop(1, cold ? '#142d36' : '#1a2c30');
+        var finish = (course * 2 + flag) % 3;
+        stone.addColorStop(0, cold ? ['#345154','#28454c','#304a4e'][finish] :
+          ['#5b4e33','#44412d','#655234'][finish]);
+        stone.addColorStop(.48, cold ? ['#29434a','#213c45','#2d484b'][finish] :
+          ['#47422f','#343a2e','#514831'][finish]);
+        stone.addColorStop(1, cold ? ['#1c343d','#19313b','#203a41'][finish] :
+          ['#253434','#1d3032','#2d3832'][finish]);
         plate(ctx, [[floorX(left,back)+chip,back],
           [floorX(right,back)-chip,back],[floorX(right,front),front-chip],
           [floorX(right,front)-chip,front],[floorX(left,front)+chip,front],
@@ -186,20 +191,30 @@
         // A broken top lip and a deep lower return reveal the slab's height.
         line(ctx, floorX(left,front)+chip, front,
           floorX(right,front)-chip, front, cold ? '#48636766' : '#7d6d4566', 1);
-        plate(ctx, [[floorX(left,front)+chip,front+1],
-          [floorX(right,front)-chip,front+1],
-          [floorX(right,front+4)-chip,front+4],
-          [floorX(left,front+4)+chip,front+4]], '#04131bb3');
+        plate(ctx, [[floorX(left,front)+chip,front+.15],
+          [floorX(right,front)-chip,front+.15],
+          [floorX(right,front+relief)-chip,front+relief],
+          [floorX(left,front+relief)+chip,front+relief]], '#04131b99');
         // One worn firing stain belongs to the stone, never to the screen grid.
         if (litStone && course > 1) {
           var mid = back + (front - back) * .46;
-          plate(ctx, [[floorX(left+.07,mid),mid],
-            [floorX(right-.05,mid+2),mid+2],
-            [floorX(right-.13,front-7),front-7],
-            [floorX(left+.11,front-10),front-10]], '#0719233b');
+          plate(ctx, [[floorX(left+.05,mid),mid],
+            [floorX(left+.12,back+5),back+5],
+            [floorX(right-.08,mid+3),mid+3],
+            [floorX(right-.12,front-7),front-7],
+            [floorX(left+.15,front-11),front-11]], '#0719233b');
         }
       }
     }
+    // Shared soft hearth light joins the uneven flags into one receding floor;
+    // their thin return shadows remain visible without becoming horizontal bars.
+    ctx.save(); ctx.beginPath(); ctx.moveTo(30,578); ctx.lineTo(112,325);
+    ctx.lineTo(214,325); ctx.lineTo(290,578); ctx.closePath(); ctx.clip();
+    var ambientFloor = ctx.createRadialGradient(158, 326, 6, 158, 326, 265);
+    ambientFloor.addColorStop(0, cold ? '#80bec228' : '#edba6535');
+    ambientFloor.addColorStop(.45, cold ? '#477d8915' : '#a779391b');
+    ambientFloor.addColorStop(1, '#071a2300');
+    ctx.fillStyle = ambientFloor; ctx.fillRect(30, 325, 260, 253); ctx.restore();
     // One asymmetric cast gantry replaces the nested portal outlines. Broad
     // planes carry the depth: a warm load-bearing face, black return, and a cool
     // recessed sidewall which is quiet enough to sit behind the landing guide.

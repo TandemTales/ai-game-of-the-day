@@ -96,14 +96,40 @@
     }
     plate(ctx, [[138,307],[141,258],[152,244],[174,244],[187,258],
       [193,307]], '#06141c');
-    var fire = ctx.createLinearGradient(0, 247, 0, 303);
-    fire.addColorStop(0, cold ? '#173744' : '#31251b');
-    fire.addColorStop(.65, cold ? '#416e78' : '#a77437');
-    fire.addColorStop(1, cold ? '#659296' : '#d3a15a');
-    plate(ctx, [[144,300],[148,255],[154,250],[176,250],[182,257],[187,300]], fire);
-    for (var grate = 0; grate < 4; grate++) {
-      line(ctx, 151 + grate * 9, 254, 147 + grate * 12, 301, '#081820', 3);
-    }
+    // The hearth is a recessed chamber, not a luminous flat grille. Its hot
+    // rear vault, dark side reveal and banked clinker share one light source.
+    ctx.save(); ctx.beginPath(); ctx.moveTo(141,307); ctx.lineTo(144,259);
+    ctx.bezierCurveTo(147,236,181,236,185,259);
+    ctx.lineTo(192,307); ctx.closePath(); ctx.clip();
+    var vault = ctx.createRadialGradient(157, 291, 3, 165, 274, 47);
+    vault.addColorStop(0, cold ? '#7ba8aa' : '#d5a463');
+    vault.addColorStop(.4, cold ? '#406c75' : '#8c6034');
+    vault.addColorStop(.76, cold ? '#203e4b' : '#3b3024');
+    vault.addColorStop(1, '#06141c');
+    ctx.fillStyle = vault; ctx.fillRect(138, 239, 58, 72);
+    // The curved inner lining turns into darkness under the arch. Unequal
+    // scorched faces carry depth without a second little rectangular grid.
+    plate(ctx, [[144,257],[149,250],[154,247],[151,267],[149,291],
+      [145,306],[140,307]], cold ? '#365861' : '#745134');
+    plate(ctx, [[175,247],[183,254],[190,276],[194,307],[181,307],
+      [181,279]], '#07161d');
+    var core = ctx.createLinearGradient(0, 279, 0, 307);
+    core.addColorStop(0, cold ? '#396573' : '#6b4729');
+    core.addColorStop(.65, cold ? '#84b4b6' : '#e6b06b');
+    core.addColorStop(1, cold ? '#36565e' : '#6c4e2c');
+    plate(ctx, [[145,295],[151,287],[157,290],[162,279],[170,284],
+      [177,281],[184,293],[187,307],[144,307]], core);
+    // Black clinker breaks the hot bed into an asymmetric physical bank;
+    // reflections below remain broad enough to survive phone scaling.
+    plate(ctx, [[144,302],[149,294],[157,297],[164,292],[172,298],
+      [181,295],[188,303],[190,308],[143,308]], '#172122');
+    line(ctx, 149, 296, 156, 298, cold ? '#6e9c9f' : '#c28d50', 1);
+    line(ctx, 164, 293, 172, 299, cold ? '#a0ced0' : '#edbc76', 1);
+    line(ctx, 177, 298, 182, 296, cold ? '#6e9c9f' : '#b4824b', 1);
+    ctx.restore();
+    // A wide dark reveal and worn sill seat the chamber behind the stone.
+    plate(ctx, [[137,306],[192,306],[198,313],[131,313]], '#07151b');
+    line(ctx, 140, 307, 188, 307, cold ? '#5c8285' : '#9c7848', 1.5);
     // A molten seam is the source of every warm reflection in the room.
     line(ctx, 143, 301, 188, 301, cold ? '#78b7bc' : '#efbd74', 2);
     line(ctx, 123, 314, 207, 314, cold ? '#52787a' : '#9b7646', 3);

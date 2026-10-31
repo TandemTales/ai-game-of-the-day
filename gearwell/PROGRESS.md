@@ -250,3 +250,9 @@
 - Pushed intentbfb773c, refractorymaterials6fbcf48,recoverybar59bd30d,floorrefinementcd46883 andphoneclarity66dc956. Final tested handoff follows. Allwork ondev;main/originmain remain3f8f986. No shippingjudge,completionmarker,earlyrelease orpromotion. ThursdayOctober29Pacific(age11);forced secondSaturday wrap-up remainsOctober31(age13).
 - Gameplay/audio/VFX AAA acceptance,actual motionquality,speaker listening/mix/latency,physical-device touch,humanplay/fun andhardwareperformance remain open. Next first: preserve board height, recovery-row/phone fit and legal-input rewind/DPR proof; improve whole-room authored materials/silhouette,coherent rewardscene and bank/action proximity. Seek dedicated motion/audio/device/human review. October31 forced wrap-up fixes only glaring crashes,consoleerrors,unreadableHUD,broken touch or impossible progression; cosmetic AAA debt alone must not block scheduled release.
 - Current run time: 2026-10-29 23:04 Pacific (approximately7minutes).
+
+## 2026-10-30 Pacific - polish intent
+
+- Friday, age12 from October18; STOP absent, dev synced. Forced second-Saturday release remains October31. Existing visual/UI AAA FAIL verdicts remain open; no early release.
+- Tonight: bounded authored foundry depth/reward composition and clearer bank/action relationship. Each specialist owns exactly one SPEC file and uses a separate harsh shipped-game critic. Lead owns integration and Git.
+- Preserve well height, no-scroll/44px controls, legal-input earned playable rewind and DPR checks. Focused tests before every push, full repository Jest at stable handoff, inspected six-size HTTP captures. Record actual critic verdicts and remaining audio/device/human/performance limits.

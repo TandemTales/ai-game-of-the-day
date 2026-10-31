@@ -187,3 +187,16 @@ footer a{white-space:nowrap}
   #rewind .control-symbol{font-size:13px;letter-spacing:.045em}
   #rewind .control-hint{font-size:12px}
 }
+
+/* Put the recovery bar beside the cog dock: reading the balance and spending
+   it now share one baseline. Notices sit at the top of the instrument deck. */
+@media(min-width:1000px) and (min-height:820px){
+  .metrics{margin-bottom:var(--action-height)}
+  .controls{margin-bottom:0}
+  footer{margin-bottom:calc(var(--deck-height) - var(--foot-height));padding-top:clamp(12px,1.4vh,30px);border-bottom:1px solid #8d9e8b42}
+}
+@media(orientation:landscape) and (max-height:500px){
+  .metrics{margin-bottom:174px}
+  .controls{margin-bottom:0}
+  footer{margin-bottom:236px;padding-top:8px;border-bottom:1px solid #8d9e8b42}
+}

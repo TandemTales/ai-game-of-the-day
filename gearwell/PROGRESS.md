@@ -268,3 +268,8 @@
 - All work ondev; main/originmain remain3f8f986. No completion marker, shipping judge, release or promotion. FridayOctober30Pacific(age12); forced second-Saturday release remains October31(age13).
 - Gameplay/audio/VFX AAA, actual motion quality, speaker mix/latency, physical-device touch, human play/fun and hardware performance remain open. Next run FIRST: apply forced Saturday wrap-up rules, run tests and six-size sweep, fix only glaring crashes/errors/unreadableHUD/broken touch/impossible progression, record the failed AAA critics and honest polish debt, then promote testeddev to main using STEP4. Cosmetic AAA debt alone must not block the forced release. Do not start new polish Saturday.- Full repository Jest completed29/29suites and497/497tests PASS, exit0,318.405seconds; report node_modules/.cache/gearwell/friday-full-jest-20261030.json. Focused8/8 before source pushes; all game/harness JS syntax and CRLF-aware diff checks PASS. Final handoff follows; source remains ec63841.
 - Current run time: 2026-10-30 23:12 Pacific (approximately7minutes).
+## 2026-10-31 Pacific - forced release intent
+
+- Saturday, age13 from October18; STOP absent, dev synced. Apply STEP4 forced second-Saturday wrap-up only; no new polish.
+- Run focused/full Jest and the six-viewport HTTP browser sweep, open the PNGs, and fix only glaring crashes, console errors, unreadable HUD, broken touch or impossible progression.
+- Carry prior independent visual/UI AAA FAIL / OURS LOSES verdicts and honest polish/audio/device/human/performance debt into .aaa-complete; mark no active game, push tested dev, promote to main without force, then return to dev.

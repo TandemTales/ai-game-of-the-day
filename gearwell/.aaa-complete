@@ -1,0 +1,52 @@
+date: 2026-10-31
+timezone: America/Los_Angeles
+release: forced second-Saturday release (started 2026-10-18; age 13 days)
+
+This lifecycle marker records the scheduled release, not AAA acceptance.
+
+Release checks:
+- Focused Gearwell Jest: 8/8 PASS. Full repository Jest: 29/29 suites,
+  497/497 tests PASS, exit0, 267.144 seconds. Report:
+  node_modules/.cache/gearwell/saturday-release-full-jest-20261031.json.
+- Local HTTP Edge harness saturday-release-20261031: exit0 at 320x568,
+  390x844, 844x390, 768x1024, 1440x900 and 3840x2160. No app warnings/errors,
+  external runtime requests or XY overflow; controls >=44px; reserve labels
+  >=11px and counts >=12px. Live DPR2 portrait/landscape/portrait preserved
+  backing size, board aspect and run state.
+- Legal keyboard placements earned four cogs at score1524/lines5/serial21.
+  Paid touch rewind spent three, consumed history and restored the exact
+  prior board/piece/queue/seed/score690/serial20. After >2 seconds of live
+  gravity, the returned piece remained available for a different placement.
+  Touch actions, top-out/restart and locally mocked rank GET-before-submit
+  POST passed. No production leaderboard request was made.
+- Lead opened gameplay AND title PNGs at all six sizes, smallest-phone
+  earned bank, clear/rewind transport, playable rewind followup, gameover
+  and DPR2 portrait. No glaring crash, unreadable HUD, broken touch or
+  progression blocker found. Gearwell is an endless score attack, not a
+  finite campaign. The 4K viewer downsampled its capture.
+- Game/harness JavaScript syntax and CRLF-aware diff checks passed.
+- Initial sandbox Edge launch failed; approved local-only outside-sandbox
+  retry supplied the successful browser evidence. No runtime code changed.
+
+Final carried critic verdicts from October 30 (not rerun on release night):
+- Independent visual critic: VISUAL AAA FAIL / OURS LOSES against official
+  Tetris Effect: Connected. Bounded recessed hearth and shared lighting
+  improvements passed; whole-frame composition/material/radiance, broad
+  smooth outer planes, schematic crane/arch, uniform blocks and local
+  reward spectacle remain below the reference.
+- Independent UI critic: UI AAA FAIL / OURS LOSES against the same shipped
+  reference. Recovery alignment passed without a glaring readability/fit
+  blocker; generic briefing, dense320 secondary hierarchy and plain
+  status/leaderboard presentation remain debt.
+- Recognizable identities made those side-by-side comparisons, not truly
+  blind studies. Gameplay/audio/VFX AAA acceptance and an independent
+  shipping judge are absent; the forced-release path does not require them.
+
+Carried debt: authored whole-room materials/silhouette and coherent reward
+spectacle; secondary UI hierarchy and briefing; direct speaker listening,
+mix/latency and motion evaluation; physical-device touch, unaided human
+play/fun, and real-hardware/4K performance verification. No AAA claim.
+
+Evidence: ignored node_modules/.cache/gearwell/saturday-release-20261031/,
+including source-manifest.json. Historical critic records remain in
+PROGRESS.md and friday-visual-critic-20261030 / friday-ui-critic-20261030.

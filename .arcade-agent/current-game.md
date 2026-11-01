@@ -1,10 +1,14 @@
-# Active game
+# No active game
 
-slug: gearwell
+status: complete
+active: none
+last-completed: gearwell
 started: 2026-10-18
+completed: 2026-10-31
+timezone: America/Los_Angeles
 
-Gearwell is a falling-block score attack with an original earned rewind loop.
-Some blocks carry a glowing gear cell: clearing that cell earns a cog, and
-three cogs can rewind the last locked piece to recover from a bad placement.
-The deterministic board, seven-piece bag, visible ghost, and short score chase
-support touch and keyboard. Pulse Loom was completed on 2026-10-17.
+Gearwell completed its forced second-Saturday release gate at age13.
+This is scheduled completion, not AAA acceptance; final visual/UI critic
+failures and polish debt are recorded in gearwell/.aaa-complete and PROGRESS.md.
+
+The next run must use STEP2 to choose and scaffold a distinct new game.

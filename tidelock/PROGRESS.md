@@ -27,7 +27,8 @@ disciplines with separate independent critics under SPEC ownership rules.
   evidence for the new rules and end-to-end input/state/leaderboard flow.
 - Baseline full Jest: 29 suites / 497 tests PASS, 262.726 seconds. New focused
   suite: 10/10 PASS, including all-five-chart capture topology and long-run storm
-  wall occupancy. Post-scaffold full suite is running; its result follows below.
+  wall occupancy. Post-scaffold full Jest: 30/30 suites, 507/507 tests PASS,
+  exit 0, 271.949 seconds. Report: node_modules/.cache/tidelock-full.json.
 - Approved local-HTTP Edge harness PASS all six exact sizes: 320×568, 390×844,
   844×390, 768×1024, 1440×900, 3840×2160. No horizontal overflow, app warnings,
   page errors or external game requests; all deck controls >=44px. Verified
@@ -52,3 +53,15 @@ disciplines with separate independent critics under SPEC ownership rules.
   audio/VFX review remain later work. Forced release remains November 14.
 - Unrelated artifacts/gearwell-ad files appeared during this run; preserved
   and excluded from every Tidelock commit.
+
+## Final handoff — 2026-11-02 08:08 Pacific
+
+Catalog/browser unit pushed as 5778d9e. Final extended browser run PASS also
+checks DPR2 phone backing resolution, actual Featured Game image loading,
+featured rating data-id and links, 14 catalog cards and exactly one retained
+Gearwell card. Opened both new PNGs. Source SHA256 manifest is saved beside
+the screenshots. Full-suite PASS above covers all final runtime source; final
+changes after it are browser QA and documentation only. JS syntax and diff
+checks PASS. All Tidelock work is pushed to dev; main/origin/main remains
+69400b9. Selection began November 1 Pacific and the run finished November 2.
+Next first work and unjudged quality debt remain as recorded above.

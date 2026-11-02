@@ -102,6 +102,23 @@ async function hold(page, key, duration) {
     const offline = await browser.newPage(); await offline.goto('file:///' + path.join(root, 'tidelock/index.html').replace(/\\/g, '/'));
     await offline.locator('#start').click(); assert.equal(await offline.evaluate(() => TL.Game.getMode()), 'playing');
     await offline.close();
+    const retina = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+    await retina.goto(url + '/tidelock/index.html'); await retina.locator('#start').click();
+    assert(await retina.evaluate(() => {
+      const c = document.querySelector('canvas'), r = c.getBoundingClientRect();
+      return c.width === Math.round(r.width * 2) && c.height === Math.round(r.height * 2);
+    }), 'DPR2 backing matches CSS size');
+    await retina.screenshot({ path: path.join(out, 'dpr2-phone.png') }); await retina.close();
+    const catalog = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    await catalog.route('**/*', route => route.request().url().startsWith(url) ? route.continue() : route.fulfill({ status: 204 }));
+    await catalog.goto(url + '/index.html');
+    assert.equal(await catalog.locator('.feature-visual').getAttribute('href'), 'tidelock/index.html');
+    assert.equal(await catalog.locator('.featured .rate').getAttribute('data-id'), 'tidelock');
+    assert.equal(await catalog.locator('#games [data-id="gearwell"].game-card').count(), 1);
+    assert.equal(await catalog.locator('#games .game-card').count(), 14);
+    await catalog.locator('.featured').screenshot({ path: path.join(out, 'catalog-feature.png') });
+    assert(await catalog.locator('.feature-visual img').evaluate(img => img.complete && img.naturalWidth > 0));
+    await catalog.close();
     fs.writeFileSync(path.join(out, 'results.json'), JSON.stringify({ results, api, checks: 'keyboard, native touch, release, pulse, pause, input capture, fixture chart advance/loss, replay, rank-before-submit, file boot' }, null, 2));
     console.log(JSON.stringify({ viewports: results.length, checks: 'PASS', api }, null, 2));
   } finally { await browser.close(); server.close(); }

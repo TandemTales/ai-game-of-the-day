@@ -23,6 +23,8 @@ as Gearwell), a local HTTP server and a LOCAL mock leaderboard. It must check
 clean console, no external game requests, no horizontal overflow, >=44px touch
 targets, real keyboard and touch input, release/pause/retry, capture/pulse,
 chart advance, loss, rank-before-submit and file:// boot. Open the PNGs yourself.
+Also check DPR2 backing resolution and the actual Featured Game art/rating links
+with Gearwell retained once in the older-game catalog.
 Ignored evidence lives in node_modules/.cache/tidelock/browser-smoke.
 
 If Playwright is absent, install it only in ignored scratch and set NODE_PATH:

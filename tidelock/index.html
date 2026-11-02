@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Stitch a safe passage through the storm. A territory-capture arcade game with salvage-powered storm pulses.">
+  <link rel="icon" href="data:,"><title>Tidelock — Bot Built Arcade</title>
+  <link rel="stylesheet" href="assets/css/game.css">
+  <script defer src="assets/js/logic.js"></script><script defer src="assets/js/render.js"></script>
+  <script defer src="assets/js/audio.js"></script><script defer src="assets/js/game.js"></script>
+</head>
+<body>
+  <main class="game-shell">
+    <header class="masthead"><a href="../index.html">← Back to Arcade</a><span>TIDELOCK <b> / </b> SALVAGE AUTHORITY</span><button id="sound" type="button" aria-pressed="false">Sound on</button></header>
+    <section class="instrument" aria-label="Voyage status">
+      <div><span class="eyebrow">SALVAGE SCORE</span><strong id="score">0</strong></div>
+      <div><span class="eyebrow">SAFE WATER</span><strong><span id="claimed">0</span><small> / 60%</small></strong></div>
+      <div><span class="eyebrow">CABLES</span><strong id="lives">3</strong></div>
+      <div><span class="eyebrow">TIDE IN</span><strong id="time">90</strong></div>
+    </section>
+    <div class="chart-label"><span id="chart">01 / THE QUIET REACH</span><span>GOLD ◇ SALVAGE · CORAL ↻ STORM</span></div>
+    <section class="playfield" aria-label="Storm chart">
+      <canvas id="chart-canvas" aria-label="Territory capture chart. Use arrow keys or the direction buttons to draw a cable and reconnect to safe land."></canvas>
+      <div class="overlay" id="panel">
+        <div class="briefing"><span class="eyebrow" id="kicker">FIRST PLAYABLE / 01</span><h1 id="title">Hold back<br>the tide.</h1>
+          <p id="copy">Leave the pale shore to draw a cable. Reconnect to claim storm-free water. Secure <b>60%</b> of each chart.</p>
+          <p class="tip" id="tip">Enclose gold buoys for storm pulses. Your cable is vulnerable until you return.</p>
+          <button class="primary" id="start" type="button">LAUNCH THE CABLE <span>↗</span></button>
+          <span class="keyboard">ARROWS / WASD TO STEER · SPACE TO PULSE · P TO PAUSE</span>
+        </div>
+      </div>
+    </section>
+    <section class="deck" aria-label="Game controls">
+      <div class="helm" aria-label="Direction controls"><button type="button" data-dir="up" aria-label="Move up">↑</button><button type="button" data-dir="left" aria-label="Move left">←</button><button type="button" data-dir="down" aria-label="Move down">↓</button><button type="button" data-dir="right" aria-label="Move right">→</button></div>
+      <button class="pulse" id="pulse" type="button">HOLD THE STORM <span id="charges">1 PULSE</span></button>
+      <button id="pause" type="button">Pause</button>
+    </section>
+    <footer><p id="notice" role="status">Reconnect your cable to claim safe water.</p><a href="../leaderboard.html?gameId=tidelock">View Leaderboard ↗</a></footer>
+  </main>
+</body>
+</html>

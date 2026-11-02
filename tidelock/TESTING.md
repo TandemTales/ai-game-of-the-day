@@ -25,5 +25,17 @@ targets, real keyboard and touch input, release/pause/retry, capture/pulse,
 chart advance, loss, rank-before-submit and file:// boot. Open the PNGs yourself.
 Ignored evidence lives in node_modules/.cache/tidelock/browser-smoke.
 
+If Playwright is absent, install it only in ignored scratch and set NODE_PATH:
+
+```
+$env:PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD='1'
+npm install --prefix node_modules/.cache/tidelock/browser-deps --no-save --package-lock=false --ignore-scripts playwright@1.55.0
+$env:NODE_PATH=(Resolve-Path node_modules/.cache/tidelock/browser-deps/node_modules).Path
+node tools/tidelock-browser-smoke.cjs
+```
+
+An Edge sandbox launch failure is not game evidence; rerun the scoped harness
+with authorized access. No project dependency or lockfile change is required.
+
 Device performance, real speakers, touch hardware, first-play understanding,
 fun, motion comparisons and AAA quality remain separate acceptance gates.

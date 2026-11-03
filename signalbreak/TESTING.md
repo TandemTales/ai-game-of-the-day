@@ -23,5 +23,20 @@ API mock only, file:// boot and DPR2 backing. Read screenshots, not just paths.
 
 Use ignored node_modules/.cache/signalbreak for evidence; Playwright can use the
 existing ignored node_modules/.cache/tidelock/browser-deps install via NODE_PATH.
+
+```
+$env:NODE_PATH=(Resolve-Path node_modules/.cache/tidelock/browser-deps/node_modules).Path
+node tools/signalbreak-browser-smoke.cjs
+```
+
+If that optional cache is absent, install Playwright only in ignored scratch,
+without changing package.json/package-lock.json or downloading a new browser:
+
+```
+$env:PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD='1'
+npm install --prefix node_modules/.cache/signalbreak/browser-deps --no-save --package-lock=false --ignore-scripts playwright@1.55.0
+$env:NODE_PATH=(Resolve-Path node_modules/.cache/signalbreak/browser-deps/node_modules).Path
+```
+
 Full Jest normally needs five minutes. Real-device performance, speaker quality,
 fresh-player comprehension/fun and independent AAA comparison remain unverified.

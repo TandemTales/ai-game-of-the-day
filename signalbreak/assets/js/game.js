@@ -26,7 +26,7 @@
     [['network',state.network,'Take the circuit'],['rescue',state.rescued,'Rescue signal worker'],['extract',state.phase==='won','Extract surviving engineers']].forEach(function(o){var e=el('obj-'+o[0]);e.textContent=(o[1]?'✓ ':'○ ')+o[2];e.classList.toggle('done',o[1]);});
     el('network-status').textContent=state.network?'ALLIED / DOOR OPEN':'HOSTILE / DOOR LOCKED';el('network-status').style.color=state.network?'#9be1d3':'';
     el('radio').textContent=state.log.slice(-2).join(' / ');
-    el('preview').textContent=preview?preview.reason:mode==='playing'?selected().name+' / '+selected().ap+' AP · select a tile, then confirm.':'Deploy to begin the opening operation.';
+    el('preview').textContent=preview?preview.reason:mode==='playing'?selected().name+' / '+selected().ap+' AP · select a tile, then confirm.':mode==='end'?'Operation ended. Replay to improve your score.':mode==='paused'?'Operation paused. Resume when ready.':'Deploy to begin the opening operation.';
     el('confirm').disabled=mode!=='playing'||!preview||!preview.legal;el('cancel').disabled=mode!=='playing'||!preview;
     el('end-turn').disabled=mode!=='playing';el('pause').disabled=mode==='title'||mode==='end';
     document.querySelectorAll('[data-action]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.action===action));b.disabled=mode!=='playing'||!L.living(selected())||selected().ap<1;});
@@ -49,8 +49,8 @@
     var kind=action;
     if(action==='move'){
       if(state.enemies.some(function(e){return L.living(e)&&e.x===x&&e.y===y;}))kind='attack';
-      else if(x===state.node.x&&y===state.node.y&&!state.network)kind='hack';
-      else if(x===state.rescue.x&&y===state.rescue.y&&!state.rescued)kind='rescue';
+      else if(x===state.node.x&&y===state.node.y&&!state.network&&L.preview(state,view.selected,'hack',x,y).legal)kind='hack';
+      else if(x===state.rescue.x&&y===state.rescue.y&&!state.rescued&&L.preview(state,view.selected,'rescue',x,y).legal)kind='rescue';
     }
     setPreview(kind,x,y);
   }

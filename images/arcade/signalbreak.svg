@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1024" viewBox="0 0 1536 1024">
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#284551"/><stop offset="1" stop-color="#071724"/></linearGradient><pattern id="tiles" width="96" height="48" patternUnits="userSpaceOnUse"><path d="M48 0 96 24 48 48 0 24Z" fill="none" stroke="#6b8c9640" stroke-width="2"/></pattern><filter id="glow"><feGaussianBlur stdDeviation="9"/></filter></defs>
+<path d="M0 0h1536v1024H0z" fill="url(#bg)"/>
+<path d="m180 540 610-305 610 305-610 305z" fill="#102736" stroke="#66868e" stroke-width="6"/><path d="m180 540 610-305 610 305-610 305z" fill="url(#tiles)"/>
+<path d="m360 435 270-135 60 30-270 135zm360 180 250-125 60 30-250 125z" fill="#526a72"/><path d="m420 465 270-135v38L420 503zm360 180 250-125v38L780 683z" fill="#263d48"/>
+<g stroke="#99e0c9" fill="none"><path d="m640 570 150-75 140 70 210-105" stroke-width="24" opacity=".4" filter="url(#glow)"/><path d="m640 570 150-75 140 70 210-105" stroke-width="5" stroke-dasharray="15 9"/></g>
+<path d="m580 570 60-30 60 30-60 30z" fill="#94ddc9"/><path d="m580 570 60 30v30l-60-30zm60 30 60-30v30l-60 30" fill="#4f7f79"/>
+<g stroke="#0c2531" stroke-width="6"><g fill="#e8c68b"><path d="m460 485 4-74h30l13 74z"/><circle cx="480" cy="387" r="22"/></g><g fill="#9bd2bd"><path d="m540 525 4-74h30l13 74z"/><circle cx="560" cy="427" r="22"/></g><g fill="#9fc9e1"><path d="m390 530 4-74h30l13 74z"/><circle cx="410" cy="432" r="22"/></g><g fill="#dca28b"><path d="m470 570 4-74h30l13 74z"/><circle cx="490" cy="472" r="22"/></g></g>
+<g fill="#e0907c"><path d="m1010 665 4-60h30l10 60z"/><circle cx="1030" cy="584" r="18"/><path d="m1180 585 4-60h30l10 60z"/><circle cx="1200" cy="504" r="18"/></g>
+<path d="m1090 450 45-22 45 22-45 23z" fill="#8ca8aa"/><path d="m1135 432 60-35" stroke="#9cebd3" stroke-width="17" stroke-linecap="round"/>
+<text x="112" y="160" font-family="sans-serif" font-weight="700" font-size="86" letter-spacing="8" fill="#e3eceb">SIGNAL<tspan fill="#9bdccc" font-weight="300">BREAK</tspan></text><text x="116" y="212" fill="#91b5c1" font-family="sans-serif" font-size="20" letter-spacing="6">TAKE BACK THE NETWORK</text>
+<text x="116" y="925" fill="#c7d7d8" font-family="sans-serif" font-size="22" letter-spacing="4">SQUAD TACTICS / FIRST PLAYABLE</text><text x="116" y="963" fill="#8ba7b3" font-family="sans-serif" font-size="16" letter-spacing="2">FULL FIVE-DISTRICT CAMPAIGN IN DEVELOPMENT</text>
+</svg>

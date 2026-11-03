@@ -1,4 +1,4 @@
-# Next Bot Built Arcade game — user selection required
+# Bot Built Arcade proposals — Signalbreak selected by the user
 
 status: selected
 proposed: 2026-11-02

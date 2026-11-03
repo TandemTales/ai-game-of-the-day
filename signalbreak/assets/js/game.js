@@ -1,9 +1,34 @@
 (function(global){
   'use strict';
   var SB=global.SB,L=SB.Logic,A=SB.Audio,canvas=document.getElementById('map'),panel=document.getElementById('panel');
-  var state=L.newGame(),mode='title',action='move',preview=null,submitted=false,serial=state.serial;
+  var C=SB.Campaign,storage=null;try{storage=global.localStorage;}catch(e){}
+  var saved=C.load(storage),campaign=saved.campaign,saveAvailable=saved.available;
+  var state=L.newGame(campaign.selected),mode='title',action='move',preview=null,submitted=false,serial=state.serial;
   var view={selected:'nia',zoom:1,panX:0,panY:0,reachable:{},preview:null},projection=null,cursor={x:2,y:4};
   function el(id){return document.getElementById(id);}
+  function persist(){saveAvailable=C.save(storage,campaign);}
+  function operationMenu(){
+    el('operations').innerHTML='';SB.Missions.operations.forEach(function(m,i){
+      var b=document.createElement('button'),r=campaign.results[m.id];b.type='button';b.dataset.mission=m.id;
+      b.textContent=String(i+1).padStart(2,'0')+' / '+m.title+(r?' · BEST '+r.score:'');
+      b.disabled=!C.unlocked(campaign,m.id)||mode==='playing'||mode==='paused';
+      b.setAttribute('aria-pressed',String(state.id===m.id));
+      if(!C.unlocked(campaign,m.id))b.textContent+=' · LOCKED';
+      b.addEventListener('click',function(){briefing(m.id);});el('operations').appendChild(b);
+    });
+    el('save-status').textContent=saveAvailable?'Progress saved on this browser between operations. Mid-operation orders are not saved.':'Saving unavailable. Progress lasts only in this tab; mid-operation orders are not saved.';
+  }
+  function missionHeader(){
+    el('mission-label').textContent=state.district.toUpperCase()+' / OPERATION '+String(state.sequence||1).padStart(2,'0');
+    el('mission-title').textContent=state.title;
+  }
+  function briefing(id){
+    if(!C.unlocked(campaign,id))return;
+    campaign.selected=id;persist();state=L.newGame(id);serial=state.serial;mode='title';preview=null;view.selected='nia';view.zoom=1;view.panX=0;view.panY=0;
+    panel.hidden=false;el('kicker').textContent='FIRST PLAYABLE / '+SB.Missions.operations.length+' OF 20 OPERATIONS';
+    el('title').textContent=state.title;el('copy').textContent=state.briefing;el('tip').textContent=state.radio;
+    el('start').textContent='DEPLOY SQUAD ↗';el('next-operation').hidden=true;missionHeader();reachable();hud();
+  }
   function resize(){var r=canvas.getBoundingClientRect(),d=Math.min(global.devicePixelRatio||1,2);canvas.width=Math.max(1,Math.round(r.width*d));canvas.height=Math.max(1,Math.round(r.height*d));}
   global.addEventListener('resize',resize);if(global.ResizeObserver)new global.ResizeObserver(resize).observe(canvas);resize();
   function selected(){return L.unit(state,view.selected);}
@@ -23,21 +48,26 @@
       b.innerHTML='<span><strong>'+(i+1)+' / '+u.name+'</strong><span class="role">'+u.role+'</span></span><span class="vitals">'+u.hp+'/'+u.maxHp+' HP<span>'+(u.extracted?'SAFE':u.hp<=0?'DOWN':u.watch?'WATCH':u.ap+' AP')+'</span></span>';
       b.addEventListener('click',function(){select(u.id);});el('squad').appendChild(b);
     });
-    [['network',state.network,'Take the circuit'],['rescue',state.rescued,'Rescue signal worker'],['extract',state.phase==='won','Extract surviving engineers']].forEach(function(o){var e=el('obj-'+o[0]);e.textContent=(o[1]?'✓ ':'○ ')+o[2];e.classList.toggle('done',o[1]);});
-    el('network-status').textContent=state.network?'ALLIED / DOOR OPEN':'HOSTILE / DOOR LOCKED';el('network-status').style.color=state.network?'#9be1d3':'';
+    el('objective-list').innerHTML='';L.objectiveStatus(state).forEach(function(o){var p=document.createElement('p');p.textContent=(o.done?'✓ ':'○ ')+o.label;p.classList.toggle('done',o.done);el('objective-list').appendChild(p);});
+    el('network-status').textContent=state.circuits?state.circuits.map(function(n){return n.label+': '+(n.controlled?'OURS':'OFF');}).join(' / '):state.network?'ALLIED / DOOR OPEN':'HOSTILE / DOOR LOCKED';el('network-status').style.color=state.network?'#9be1d3':'';
+    el('network-links').textContent=state.objectiveSummary||'Linked: security door · turret · lights';
     el('radio').textContent=state.log.slice(-2).join(' / ');
-    el('preview').textContent=preview?preview.reason:mode==='playing'?selected().name+' / '+selected().ap+' AP · select a tile, then confirm.':mode==='end'?'Operation ended. Replay to improve your score.':mode==='paused'?'Operation paused. Resume when ready.':'Deploy to begin the opening operation.';
+    el('preview').textContent=preview?preview.reason:mode==='playing'?selected().name+' / '+selected().ap+' AP · select a tile, then confirm.':mode==='end'?'Operation ended. Select an unlocked operation above or replay.':mode==='paused'?'Operation paused. Resume when ready.':'Choose an unlocked operation, then deploy.';
     el('confirm').disabled=mode!=='playing'||!preview||!preview.legal;el('cancel').disabled=mode!=='playing'||!preview;
     el('end-turn').disabled=mode!=='playing';el('pause').disabled=mode==='title'||mode==='end';
     document.querySelectorAll('[data-action]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.action===action));b.disabled=mode!=='playing'||!L.living(selected())||selected().ap<1;});
-    view.preview=preview;
+    view.preview=preview;operationMenu();
   }
   function select(id){if(mode!=='playing')return;var u=L.unit(state,id);if(!u||!L.living(u))return;view.selected=id;cursor={x:u.x,y:u.y};view.panX=0;view.panY=0;preview=null;action='move';reachable();hud();}
   function setPreview(kind,x,y){if(mode!=='playing')return;preview=L.preview(state,view.selected,kind,x,y);cursor={x:x,y:y};hud();}
   function chooseAction(kind){
     if(mode!=='playing')return;action=kind;preview=null;var u=selected();
     if(kind==='watch'||kind==='extract')setPreview(kind,u.x,u.y);
-    else if(kind==='hack')setPreview(kind,state.node.x,state.node.y);
+    else if(kind==='hack'){
+      var nodes=(state.circuits||[state.node]).filter(function(n){return !n.controlled;});
+      nodes.sort(function(a,b){var pa=L.preview(state,u.id,'hack',a.x,a.y),pb=L.preview(state,u.id,'hack',b.x,b.y);return Number(pb.legal)-Number(pa.legal)+Math.sign(Math.abs(a.x-u.x)+Math.abs(a.y-u.y)-Math.abs(b.x-u.x)-Math.abs(b.y-u.y))*.1;});
+      var node=nodes[0]||state.node;setPreview(kind,node.x,node.y);
+    }
     else if(kind==='rescue')setPreview(kind,state.rescue.x,state.rescue.y);
     else if(kind==='attack'){var enemy=state.enemies.filter(L.living).sort(function(a,b){return Math.abs(a.x-u.x)+Math.abs(a.y-u.y)-Math.abs(b.x-u.x)-Math.abs(b.y-u.y);})[0];if(enemy)setPreview(kind,enemy.x,enemy.y);}
     hud();
@@ -49,7 +79,7 @@
     var kind=action;
     if(action==='move'){
       if(state.enemies.some(function(e){return L.living(e)&&e.x===x&&e.y===y;}))kind='attack';
-      else if(x===state.node.x&&y===state.node.y&&!state.network&&L.preview(state,view.selected,'hack',x,y).legal)kind='hack';
+      else if((L.circuitAt(state,x,y)||x===state.node.x&&y===state.node.y)&&L.preview(state,view.selected,'hack',x,y).legal)kind='hack';
       else if(x===state.rescue.x&&y===state.rescue.y&&!state.rescued&&L.preview(state,view.selected,'rescue',x,y).legal)kind='rescue';
     }
     setPreview(kind,x,y);
@@ -58,7 +88,7 @@
     if(submitted||!state.score||global.location.protocol==='file:')return;submitted=true;
     try{var response=await fetch('/api/leaderboard/rank?gameId=signalbreak&score='+state.score);if(!response.ok)return;
       var rank=Number((await response.json()).rank);if(!Number.isFinite(rank)||rank<1||rank>20)return;
-      var name=global.prompt('Opening operation score: rank #'+rank+'. Name for the leaderboard?');if(name===null)return;
+      var name=global.prompt(state.title+' operation score: rank #'+rank+'. Name for the leaderboard?');if(name===null)return;
       name=String(name).trim().replace(/[^\w \-'.!]/g,'').slice(0,20);if(!name)return;
       await fetch('/api/leaderboard/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({gameId:'signalbreak',name:name,score:state.score})});
     }catch(e){el('radio').textContent='Operation score: '+state.score+'. Leaderboard offline.';}
@@ -68,19 +98,23 @@
     preview=null;
     if(!L.living(selected())){var first=state.squad.find(L.living);if(first)view.selected=first.id;}
     if(state.phase==='won'||state.phase==='lost'){
+      if(state.phase==='won'&&C.complete(campaign,state))persist();
       mode='end';panel.hidden=false;el('kicker').textContent='OPERATION LOG / FIRST PLAYABLE';
       el('title').textContent=state.phase==='won'?'Signal restored.':'Signal lost.';
       el('copy').textContent=state.score.toLocaleString()+' operation points · turn '+state.turn+' · '+state.squad.filter(function(u){return u.extracted;}).length+'/4 engineers extracted.';
-      el('tip').textContent=state.phase==='won'?'Live Wire complete. The remaining 19 operations, campaign progression and finale are in development. Replay this operation to improve your score.':'Retry the operation. Take cover, focus fire and use the shared circuit to bring the turret onto your side.';
+      var index=SB.Missions.operations.findIndex(function(m){return m.id===state.id;}),next=SB.Missions.operations[index+1];
+      el('tip').textContent=state.phase==='won'?state.title+' complete. '+(next?'Next: '+next.title+'. Progress saved between operations.':'You reached the current playable boundary. The remaining '+(20-SB.Missions.operations.length)+' operations, squad growth and finale are in development.'):'Retry the operation. Take cover, focus fire and read each circuit before advancing.';
+      el('next-operation').hidden=state.phase!=='won'||!next;el('next-operation').textContent=next?'NEXT / '+next.title:'NEXT OPERATION';
       el('start').textContent='REPLAY OPERATION ↗';submit();
     }
     reachable();hud();
   }
   function confirm(){if(mode!=='playing'||!preview||!preview.legal)return;A.unlock();if(L.commit(state,preview))after();else{preview=null;hud();}}
   function endTurn(){if(mode!=='playing')return;A.unlock();L.endTurn(state);after();}
-  function start(){A.unlock();if(mode!=='paused'){state=L.newGame();submitted=false;serial=state.serial;view.selected='nia';view.zoom=1;view.panX=0;view.panY=0;action='move';}
+  function start(){A.unlock();if(mode!=='paused'){state=L.newGame(state.id);submitted=false;serial=state.serial;view.selected='nia';view.zoom=1;view.panX=0;view.panY=0;action='move';}
     mode='playing';preview=null;cursor={x:selected().x,y:selected().y};panel.hidden=true;el('pause').textContent='Briefing / pause';reachable();hud();el('start').blur();}
-  function pause(){if(mode==='paused'){start();return;}if(mode!=='playing')return;mode='paused';preview=null;panel.hidden=false;el('kicker').textContent='FIELD BRIEFING / PAUSED';el('title').textContent='Read the circuit.';el('copy').textContent='Take the amber substation, rescue the worker, then extract every surviving engineer at the eastern green tiles. Orders require confirmation.';el('tip').textContent='Nia hacks from two tiles. Sol heals adjacent engineers. Rook moves farther per AP. Ivo deals heavier damage. Use cover and overwatch.';el('start').textContent='RESUME OPERATION ↗';el('pause').textContent='Resume';hud();}
+  function pause(){if(mode==='paused'){start();return;}if(mode!=='playing')return;mode='paused';preview=null;panel.hidden=false;el('next-operation').hidden=true;el('kicker').textContent='FIELD BRIEFING / PAUSED';el('title').textContent=state.title;el('copy').textContent=state.briefing;el('tip').textContent=state.radio;el('start').textContent='RESUME OPERATION ↗';el('pause').textContent='Resume';hud();}
+  el('next-operation').addEventListener('click',function(){var i=SB.Missions.operations.findIndex(function(m){return m.id===state.id;});if(SB.Missions.operations[i+1])briefing(SB.Missions.operations[i+1].id);});
   el('start').addEventListener('click',start);el('confirm').addEventListener('click',confirm);el('end-turn').addEventListener('click',endTurn);
   el('cancel').addEventListener('click',function(){preview=null;hud();});el('pause').addEventListener('click',pause);
   document.querySelectorAll('[data-action]').forEach(function(b){b.addEventListener('click',function(){A.unlock();chooseAction(b.dataset.action);});});
@@ -108,5 +142,5 @@
   document.addEventListener('visibilitychange',function(){if(document.hidden&&mode==='playing')pause();});
   SB.Game={start:start,getState:function(){return state;},getMode:function(){return mode;},getView:function(){return view;},getPreview:function(){return preview;}};
   function frame(now){projection=SB.Render.draw(canvas,state,view,now/1000);global.requestAnimationFrame(frame);}
-  reachable();hud();global.requestAnimationFrame(frame);
+  briefing(campaign.selected);global.requestAnimationFrame(frame);
 })(window);

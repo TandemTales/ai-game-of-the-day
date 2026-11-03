@@ -2,7 +2,7 @@ const fs = require('fs'), path = require('path'), vm = require('vm');
 function load() {
   const window = {};
   const context = vm.createContext({ window, Math, JSON, Number, Array, Object });
-  for (const file of ['missions', 'logic']) vm.runInContext(fs.readFileSync(path.join(__dirname, '../signalbreak/assets/js/' + file + '.js'), 'utf8'), context);
+  for (const file of ['missions', 'logic', 'campaign']) vm.runInContext(fs.readFileSync(path.join(__dirname, '../signalbreak/assets/js/' + file + '.js'), 'utf8'), context);
   return window.SB;
 }
 function order(L, s, id, kind, x, y) { const p = L.preview(s,id,kind,x,y); if (!p.legal) throw Error(p.reason); expect(L.commit(s,p)).toBe(true); return p; }
@@ -31,10 +31,14 @@ function pilot(SB, s, report = []) {
   }
   return report;
 }
-test('full manifest is five districts and twenty distinct promised operations, only opening is implemented', () => {
+test('full manifest promises twenty operations; the first three distinct authored maps are playable', () => {
   const SB=load();expect(SB.Missions.manifest).toHaveLength(5);
   const names=SB.Missions.manifest.flatMap(d=>Array.from(d).slice(1));expect(new Set(names).size).toBe(20);
   expect(SB.Missions.opening.title).toBe('Live Wire');
+  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed']);
+  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(3);
+  for(const m of SB.Missions.operations){expect(m.rows.every(r=>r.length===m.rows[0].length)).toBe(true);for(const n of m.circuits||[])expect(m.rows[n.y][n.x]).toBe('n');}
+  expect(()=>SB.Logic.newGame('night-freight')).toThrow('Unknown operation');
 });
 test('fresh states are isolated and previews never mutate the tactical state', () => {
   const {Logic:L}=load(),a=L.newGame(),b=L.newGame(),before=JSON.stringify(a);
@@ -103,4 +107,60 @@ test('opening operation is winnable with legal actions, live AI, and no injected
 test('complete legal pilot is deterministic across fresh runs', () => {
   const SB=load(),a=SB.Logic.newGame(),b=SB.Logic.newGame();pilot(SB,a);pilot(SB,b);
   expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+});
+
+const {run:campaignRoute}=require('../tools/signalbreak-route.cjs');
+test.each(['live-wire','locked-manifest','cut-the-feed'])('%s can be won by legal orders against live AI with four survivors', id => {
+  const SB=load(),s=SB.Logic.newGame(id),report=campaignRoute(SB,s);
+  expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);
+  expect(report.some(p=>p.kind==='hack')).toBe(true);expect(report.some(p=>p.kind==='rescue')).toBe(true);
+  const replay=SB.Logic.newGame(id);expect(campaignRoute(SB,replay)).toEqual(report);expect(JSON.stringify(replay)).toBe(JSON.stringify(s));
+});
+test('exclusive relay reroutes actual doors, LOS and turret without repeat scoring', () => {
+  const SB=load(),L=SB.Logic,s=L.newGame('locked-manifest'),u=s.squad[0];
+  Object.assign(u,{x:7,y:5});order(L,s,'nia','hack',7,4);
+  expect(L.doorOpen(s,10,4)).toBe(true);expect(L.doorOpen(s,15,10)).toBe(false);expect(L.turretAllied(s)).toBe(true);
+  expect(L.visible(s,{x:9,y:4},{x:11,y:4})).toBe(true);
+  Object.assign(u,{x:7,y:9,ap:2});order(L,s,'nia','hack',7,10);
+  expect(L.doorOpen(s,10,4)).toBe(false);expect(L.visible(s,{x:9,y:4},{x:11,y:4})).toBe(false);
+  expect(L.doorOpen(s,15,10)).toBe(true);expect(L.turretAllied(s)).toBe(false);expect(s.score).toBe(1000);
+  Object.assign(u,{x:7,y:5,ap:2});order(L,s,'nia','hack',7,4);expect(s.score).toBe(1000);
+  expect(L.objectiveStatus(s).find(o=>o.id==='evac').done).toBe(false);
+});
+test('clinic interlock refuses the second isolation without mutation, then permits it after bypass', () => {
+  const SB=load(),L=SB.Logic,s=L.newGame('cut-the-feed'),u=s.squad[0];Object.assign(u,{x:13,y:9});
+  const before=JSON.stringify(s),p=L.preview(s,'nia','hack',13,10);expect(p.legal).toBe(false);expect(p.reason).toMatch(/clinic.*interlock/i);expect(L.commit(s,p)).toBe(false);expect(JSON.stringify(s)).toBe(before);
+  Object.assign(u,{x:12,y:3});order(L,s,'nia','hack',12,2);
+  Object.assign(u,{x:13,y:9,ap:2});order(L,s,'nia','hack',13,10);expect(L.doorOpen(s,16,11)).toBe(true);expect(L.turretAllied(s)).toBe(true);
+  expect(s.network).toBe(false);expect(L.objectiveStatus(s).filter(o=>o.done).map(o=>o.id)).toEqual(['clinic','east']);
+});
+test('a circuit node cannot be hacked through a wall even inside engineer range', () => {
+  const SB=load(),s=SB.Logic.newGame('locked-manifest');Object.assign(s.squad[0],{x:9,y:4});
+  // A fixture places the node beyond a solid interior wall; this tests LOS only.
+  s.circuits[0].x=11;s.circuits[0].y=4;s.rows[4]=s.rows[4].slice(0,10)+'#'+s.rows[4].slice(11);
+  expect(SB.Logic.preview(s,'nia','hack',11,4).legal).toBe(false);
+});
+test('reroute cannot strand an engineer; an engineer on the closing threshold can retreat', () => {
+  const SB=load(),L=SB.Logic,s=L.newGame('locked-manifest');Object.assign(s.squad[0],{x:7,y:5});order(L,s,'nia','hack',7,4);
+  Object.assign(s.squad[0],{x:7,y:9,ap:2});Object.assign(s.squad[2],{x:12,y:4});
+  const p=L.preview(s,'nia','hack',7,10);expect(p.legal).toBe(false);expect(p.reason).toMatch(/every active engineer/i);
+  Object.assign(s.squad[2],{x:10,y:4});order(L,s,'nia','hack',7,10);
+  expect(L.preview(s,'rook','move',9,4).legal).toBe(true);
+});
+function memoryStorage(){const values={};return{getItem:key=>values[key]||null,setItem:(key,value)=>{values[key]=value;}};}
+test('mission-boundary saves unlock only earned operations and resume the next briefing', () => {
+  const SB=load(),C=SB.Campaign,c=C.fresh(),store=memoryStorage();
+  expect(C.unlocked(c,'locked-manifest')).toBe(false);expect(C.unlocked(c,'night-freight')).toBe(false);
+  const s=SB.Logic.newGame();expect(C.complete(c,s)).toBe(false);s.phase='lost';expect(C.complete(c,s)).toBe(false);
+  const won=SB.Logic.newGame();campaignRoute(SB,won);expect(C.complete(c,won)).toBe(true);expect(c.selected).toBe('locked-manifest');
+  expect(C.unlocked(c,'locked-manifest')).toBe(true);expect(C.unlocked(c,'cut-the-feed')).toBe(false);
+  expect(C.save(store,c)).toBe(true);const restored=C.load(store);expect(restored.available).toBe(true);expect(restored.campaign).toEqual(c);
+  const best=c.results['live-wire'].score;won.score=1;C.complete(c,won);expect(c.results['live-wire'].score).toBe(best);
+});
+test('corrupt, gapped and future save data cannot unlock unavailable missions; denied storage is handled', () => {
+  const C=load().Campaign,store=memoryStorage();store.setItem(C.key,'{broken');expect(C.load(store).campaign).toEqual(C.fresh());
+  const c=C.normalize({version:1,selected:'cut-the-feed',results:{'locked-manifest':{score:5,turns:2,survivors:4}}});expect(c.results).toEqual({});expect(c.selected).toBe('live-wire');
+  expect(C.normalize({version:2,results:{}})).toEqual(C.fresh());
+  expect(C.normalize({version:1,results:{'live-wire':{score:Infinity,turns:1,survivors:4}}})).toEqual(C.fresh());
+  const denied={getItem(){throw Error('denied');},setItem(){throw Error('denied');}};expect(C.load(denied).available).toBe(false);expect(C.save(denied,C.fresh())).toBe(false);
 });

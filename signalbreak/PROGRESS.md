@@ -96,3 +96,21 @@ The remaining campaign, squad growth and finale stay required; no scope reductio
 Content/logic workers each own their SPEC file; lead owns integration/tests/Git.
 Tests and real-browser checks will distinguish legal routes from fixtures, and
 an independent critic will record outstanding quality debt without a release.
+
+## Switchyard content and campaign checkpoint
+
+Added two distinct authored maps: Locked Manifest (exclusive prison/evac relay,
+registrar rescue, withdrawal before rerouting) and Cut the Feed (two isolation
+feeds, mandatory clinic bypass and technician rescue). New per-node routing,
+door/LOS state, turret allegiance, safe-reroute guard and clinic interlock replace
+single-global-circuit assumptions. Repeated route switches cannot farm points.
+
+Three operations now connect through earned unlocks, replay best scores and local
+mission-boundary saves. Corrupt/gapped/unavailable storage is handled; active-turn
+orders are explicitly not saved. No squad growth/injury/equipment persistence yet.
+All three deterministic legal-action/live-AI routes win with four survivors
+(5/10/12 turns, 2800/3300/3740 points); this is solvability, not human balance.
+Opening six-viewport browser/input/file/rank-first regression PASS after fixing
+an opening-map renderer exception found by the actual touch check. New-mission
+browser routes, save/reload and independent critic remain pending at this push.
+3/20 operations implemented; 17 and the other four districts remain required.

@@ -35,8 +35,9 @@
       if(t!== '#' && (x*17+y*9)%7===0){c.strokeStyle='#7b969b30';c.lineWidth=a*.025;c.beginPath();c.moveTo(p.x-a*.6,p.y);c.lineTo(p.x-a*.1,p.y+b*.3);c.lineTo(p.x+a*.1,p.y+b*.17);c.stroke();}
     }
     // Visible shared circuit routes show the coupled door/turret system.
-    var node=P.point(s.node.x,s.node.y),door=P.point(8,6),turret=P.point(s.turret.x,s.turret.y);
-    c.strokeStyle=s.network?'#6ee5ca':'#e4b778';c.lineWidth=a*.085;c.setLineDash([a*.25,a*.15]);c.beginPath();c.moveTo(node.x,node.y);c.lineTo(door.x,door.y);c.lineTo(turret.x,turret.y);c.stroke();c.setLineDash([]);
+    var circuits=s.circuits||[{x:s.node.x,y:s.node.y,controlled:s.network,doors:[{x:8,y:6}],turret:true}];
+    circuits.forEach(function(n){var node=P.point(n.x,n.y);c.strokeStyle=n.controlled?'#6ee5ca':'#e4b778';c.lineWidth=a*.085;c.setLineDash([a*.25,a*.15]);
+      (n.doors||[]).concat(n.turret?[s.turret]:[]).forEach(function(d){var p=P.point(d.x,d.y);c.beginPath();c.moveTo(node.x,node.y);c.lineTo(p.x,p.y);c.stroke();});c.setLineDash([]);});
     if(view.preview&&view.preview.legal&&view.preview.path){c.strokeStyle='#b7edf0';c.lineWidth=a*.11;c.beginPath();view.preview.path.forEach(function(p,i){var q=P.point(p.x,p.y,L.height(s,p.x,p.y));if(i)c.lineTo(q.x,q.y);else c.moveTo(q.x,q.y);});c.stroke();}
     for(var depth=0;depth<s.width+s.height;depth++)for(var y=0;y<s.height;y++) {
       var x=depth-y;if(x<0||x>=s.width)continue;
@@ -49,16 +50,18 @@
       }
       if(t==='c') {block(x,y,.55,'#61787b','#30464c','#3d565c');c.fillStyle='#c7b27e';c.fillRect(p.x-a*.4,p.y-a*.3,a*.3,a*.05);}
       if(t==='d') {
-        if(!s.network){block(x,y,1.3,'#ba9a66','#63553f','#847047');c.strokeStyle='#ffe0a0';c.lineWidth=a*.07;c.beginPath();c.moveTo(p.x-a*.45,p.y-a*.25);c.lineTo(p.x+a*.25,p.y-a*.65);c.stroke();}
+        if(!L.doorOpen(s,x,y)){block(x,y,1.3,'#ba9a66','#63553f','#847047');c.strokeStyle='#ffe0a0';c.lineWidth=a*.07;c.beginPath();c.moveTo(p.x-a*.45,p.y-a*.25);c.lineTo(p.x+a*.25,p.y-a*.65);c.stroke();}
         else {diamond(x,y,0,'#3e766d','#80d9bd');}
       }
       if(t==='n') {
-        var q=block(x,y,.5,s.network?'#8bdfc4':'#e9c485','#4c5a59','#647775');
-        c.fillStyle=s.network?'#91ffe2':'#ffe1a1';c.beginPath();c.arc(q.x,q.y-a*.2,a*.17,0,Math.PI*2);c.fill();
+        var circuit=L.circuitAt(s,x,y),on=circuit?circuit.controlled:s.network;
+        var q=block(x,y,.5,on?'#8bdfc4':'#e9c485','#4c5a59','#647775');
+        c.fillStyle=on?'#91ffe2':'#ffe1a1';c.beginPath();c.arc(q.x,q.y-a*.2,a*.17,0,Math.PI*2);c.fill();
+        if(s.circuits&&circuit){c.font=Math.max(9,a*.5)+'px system-ui';c.textAlign='center';c.fillText(String(s.circuits.indexOf(circuit)+1),q.x,q.y-a*.65);c.textAlign='start';}
       }
       if(x===s.turret.x&&y===s.turret.y){
-        block(x,y,.5,'#8c9c9b','#3c535c','#4d6d71');c.strokeStyle=s.network?'#84f4ce':'#ef8c78';c.lineWidth=a*.18;c.lineCap='round';c.beginPath();c.moveTo(p.x,p.y-a*.6);c.lineTo(p.x+a*.55,p.y-a*.85);c.stroke();
-        c.fillStyle=s.network?'#72e1c2':'#e88b73';c.beginPath();c.arc(p.x,p.y-a*.55,a*.25,0,Math.PI*2);c.fill();
+        block(x,y,.5,'#8c9c9b','#3c535c','#4d6d71');c.strokeStyle=L.turretAllied(s)?'#84f4ce':'#ef8c78';c.lineWidth=a*.18;c.lineCap='round';c.beginPath();c.moveTo(p.x,p.y-a*.6);c.lineTo(p.x+a*.55,p.y-a*.85);c.stroke();
+        c.fillStyle=L.turretAllied(s)?'#72e1c2':'#e88b73';c.beginPath();c.arc(p.x,p.y-a*.55,a*.25,0,Math.PI*2);c.fill();
       }
       if(t==='r'&&!s.rescued){c.strokeStyle='#f8cf86';c.lineWidth=a*.06;c.beginPath();c.arc(p.x,p.y-a*.35,a*.3,0,Math.PI*2);c.stroke();c.fillStyle='#f8cf86';c.fillRect(p.x-a*.13,p.y-a*.4,a*.26,a*.6);}
       var actor=L.occupant(s,x,y);
@@ -76,7 +79,7 @@
     }
     if(view.preview){var p=P.point(view.preview.x,view.preview.y,L.height(s,view.preview.x,view.preview.y));c.strokeStyle=view.preview.legal?'#fce0a4':'#e7988b';c.lineWidth=a*.08;c.beginPath();c.ellipse(p.x,p.y,a*.82,b*.82,0,0,Math.PI*2);c.stroke();}
     // HUD belongs to DOM. This map legend remains readable independently of zoom.
-    c.fillStyle='#93b3bf';c.font=Math.max(10,w/100)+'px system-ui';c.fillText('SWITCHYARD / 01',16*Math.min(d,2),h-18*Math.min(d,2));
+    c.fillStyle='#93b3bf';c.font=Math.max(10,w/100)+'px system-ui';c.fillText(s.district.toUpperCase()+' / '+String(s.sequence||1).padStart(2,'0'),16*Math.min(d,2),h-18*Math.min(d,2));
     return P;
   }
   SB.Render={draw:draw,projection:projection};

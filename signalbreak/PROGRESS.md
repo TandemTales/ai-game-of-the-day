@@ -138,3 +138,41 @@ mission unlock/save/reload, storage denial and delayed rank score snapshot.
 Final native-touch full Locked Manifest and raised-tile sweep is running.
 Temporary shared per-operation leaderboard is not a balanced final campaign
 ranking; campaign scoring remains a release prerequisite. No main/catalog edits.
+
+## Final content-run handoff — 2026-11-02 Pacific
+
+- Full repository Jest PASS: 31/31 suites, 529/529 tests, exit 0, 273.941 seconds.
+  Report: node_modules/.cache/signalbreak-switchyard-full.json. Final focused
+  suite PASS 22/22. JS syntax and CRLF-aware diff checks PASS.
+- Final real-Edge campaign PASS: Live Wire 31 orders/5 turns/2800 points,
+  Locked Manifest 61 orders/10 turns/3300 points, Cut the Feed 65 orders/12 turns/
+  3740 points, all four engineers extracted in each. Locked Manifest's complete
+  route used native touch, including explicit node targeting. Actual UI orders
+  resolved live AI; no tactical-state injection in these victory routes.
+- Final opening six-size and two-new-maps x six-size sweep PASS (18 combinations),
+  including touch preview/confirm/cancel, displayed raised-tile target picking,
+  clean page/app console, no horizontal overflow or external game requests.
+  Earned unlock/save/reload, best records, denied storage, delayed rank response
+  across Next, rank-before-submit, loss/retry fixture, file boot and DPR2 PASS.
+  Leaderboard mocked locally only; no production API was contacted.
+- Read final six contact sheets covering all 36 title/live captures, the three
+  victory PNGs and critic side-by-side; also opened new phone/circuit originals.
+  Downscaled contact sheets do not prove full-resolution 4K readability. Source
+  hashes match final runtime. Evidence: ignored node_modules/.cache/signalbreak/
+  browser-smoke (results/source-manifest/PNGs); initial Edge sandbox launch was
+  blocked, authorized outside-sandbox local retry succeeded.
+- Critic retains ART/UI FAIL against official XCOM 2; gameplay/content remains
+  incomplete. Story debrief/mastery display gap was fixed after review and
+  checked in the final harness. No AAA acceptance, .aaa-complete or main update.
+  Physical-device/speaker/hardware-performance/fresh-human fun remain untested.
+- Full ledger in SPEC: 3/20 operations, all in Switchyard. Missing 17 operations,
+  four districts, squad growth/equipment/injury, functional lifts/visibility,
+  campaign consequences and finale remain implementation work. Existing audio/
+  VFX/material/mobile-zoom/scroll/4K whitespace are quality debt, not passes.
+- NEXT RUN FIRST: implement 04 Night Freight's authored rail ambush and moving
+  extraction window, then expand squad progression alongside the first Market
+  operations. Do not spend successive nights decorating these three maps.
+  Keep mission-boundary save migration compatible and FIRST PLAYABLE visible.
+  Preserve Tidelock and unrelated files. Signalbreak remains active, started
+  November 2; forced approved-game Saturday remains November 14. No new choice
+  is needed. Root catalog and main remain untouched by this content run.

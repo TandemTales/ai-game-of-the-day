@@ -8,7 +8,17 @@
     if (view.zoom > 1.2 && focus) { ox = w / 2 - (focus.x - focus.y) * a; oy = h * 0.52 - (focus.x + focus.y) * b; }
     ox += view.panX || 0; oy += view.panY || 0;
     return { a:a, b:b, ox:ox, oy:oy, point:function(x,y,z) { return { x:ox+(x-y)*a, y:oy+(x+y)*b-(z||0)*a*0.55 }; },
-      inverse:function(x,y) { var px=(x-ox)/a,py=(y-oy)/b;return {x:Math.round((px+py)/2),y:Math.round((py-px)/2)}; } };
+      inverse:function(x,y) {
+        var px=(x-ox)/a,py=(y-oy)/b,best={x:Math.round((px+py)/2),y:Math.round((py-px)/2)},nearest=Infinity;
+        // Raised floor diamonds are shifted upwards; invert their displayed
+        // centers as well as the ground plane used by the projection formula.
+        for(var ty=0;ty<s.height;ty++)for(var tx=0;tx<s.width;tx++){
+          var z=SB.Logic.height(s,tx,ty),cx=ox+(tx-ty)*a,cy=oy+(tx+ty)*b-z*a*.55;
+          var distance=Math.abs(x-cx)/a+Math.abs(y-cy)/b;
+          if(distance<=1&&distance<nearest){nearest=distance;best={x:tx,y:ty};}
+        }
+        return best;
+      } };
   }
   function draw(canvas, s, view, time) {
     var c=canvas.getContext('2d'), d=global.devicePixelRatio||1, w=canvas.width,h=canvas.height;

@@ -49,8 +49,9 @@
       b.addEventListener('click',function(){select(u.id);});el('squad').appendChild(b);
     });
     el('objective-list').innerHTML='';L.objectiveStatus(state).forEach(function(o){var p=document.createElement('p');p.textContent=(o.done?'✓ ':'○ ')+o.label;p.classList.toggle('done',o.done);el('objective-list').appendChild(p);});
-    el('network-status').textContent=state.circuits?state.circuits.map(function(n){return n.label+': '+(n.controlled?'OURS':'OFF');}).join(' / '):state.network?'ALLIED / DOOR OPEN':'HOSTILE / DOOR LOCKED';el('network-status').style.color=state.network?'#9be1d3':'';
+    el('network-status').textContent=state.circuits?state.circuits.map(function(n,i){return (i+1)+' / '+n.label+': '+(n.controlled?'DONE':'PENDING');}).join(' · '):state.network?'ALLIED / DOOR OPEN':'HOSTILE / DOOR LOCKED';el('network-status').style.color=state.network?'#9be1d3':'';
     el('network-links').textContent=state.objectiveSummary||'Linked: security door · turret · lights';
+    el('mastery-goal').textContent='MASTERY / '+(state.mastery||'Extract all four engineers in eight turns or fewer.');
     el('radio').textContent=state.log.slice(-2).join(' / ');
     el('preview').textContent=preview?preview.reason:mode==='playing'?selected().name+' / '+selected().ap+' AP · select a tile, then confirm.':mode==='end'?'Operation ended. Select an unlocked operation above or replay.':mode==='paused'?'Operation paused. Resume when ready.':'Choose an unlocked operation, then deploy.';
     el('confirm').disabled=mode!=='playing'||!preview||!preview.legal;el('cancel').disabled=mode!=='playing'||!preview;
@@ -75,7 +76,7 @@
   function clickTile(x,y){
     if(mode!=='playing')return;
     var u=state.squad.find(function(u){return L.living(u)&&u.x===x&&u.y===y;});
-    if(u&&action!=='heal'){select(u.id);return;}
+    if(u&&action==='move'){select(u.id);return;}
     var kind=action;
     if(action==='move'){
       if(state.enemies.some(function(e){return L.living(e)&&e.x===x&&e.y===y;}))kind='attack';
@@ -86,12 +87,13 @@
   }
   async function submit(){
     if(submitted||!state.score||global.location.protocol==='file:')return;submitted=true;
-    try{var response=await fetch('/api/leaderboard/rank?gameId=signalbreak&score='+state.score);if(!response.ok)return;
+    var result={title:state.title,score:state.score},submittedState=state;
+    try{var response=await fetch('/api/leaderboard/rank?gameId=signalbreak&score='+result.score);if(!response.ok)return;
       var rank=Number((await response.json()).rank);if(!Number.isFinite(rank)||rank<1||rank>20)return;
-      var name=global.prompt(state.title+' operation score: rank #'+rank+'. Name for the leaderboard?');if(name===null)return;
+      var name=global.prompt(result.title+' operation score: rank #'+rank+'. Name for the leaderboard?');if(name===null)return;
       name=String(name).trim().replace(/[^\w \-'.!]/g,'').slice(0,20);if(!name)return;
-      await fetch('/api/leaderboard/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({gameId:'signalbreak',name:name,score:state.score})});
-    }catch(e){el('radio').textContent='Operation score: '+state.score+'. Leaderboard offline.';}
+      await fetch('/api/leaderboard/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({gameId:'signalbreak',name:name,score:result.score})});
+    }catch(e){if(state===submittedState)el('radio').textContent='Operation score: '+result.score+'. Leaderboard offline.';}
   }
   function after(){
     if(state.serial!==serial){A.play(state.event);serial=state.serial;}
@@ -103,7 +105,7 @@
       el('title').textContent=state.phase==='won'?'Signal restored.':'Signal lost.';
       el('copy').textContent=state.score.toLocaleString()+' operation points · turn '+state.turn+' · '+state.squad.filter(function(u){return u.extracted;}).length+'/4 engineers extracted.';
       var index=SB.Missions.operations.findIndex(function(m){return m.id===state.id;}),next=SB.Missions.operations[index+1];
-      el('tip').textContent=state.phase==='won'?state.title+' complete. '+(next?'Next: '+next.title+'. Progress saved between operations.':'You reached the current playable boundary. The remaining '+(20-SB.Missions.operations.length)+' operations, squad growth and finale are in development.'):'Retry the operation. Take cover, focus fire and read each circuit before advancing.';
+      el('tip').textContent=state.phase==='won'?(state.debrief||state.title+' complete.')+' '+(next?'Next: '+next.title+'.':'You reached the current playable boundary. The remaining '+(20-SB.Missions.operations.length)+' operations, squad growth and finale are in development.'):'Retry the operation. Take cover, focus fire and read each circuit before advancing.';
       el('next-operation').hidden=state.phase!=='won'||!next;el('next-operation').textContent=next?'NEXT / '+next.title:'NEXT OPERATION';
       el('start').textContent='REPLAY OPERATION ↗';submit();
     }

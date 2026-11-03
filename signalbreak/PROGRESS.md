@@ -114,3 +114,27 @@ Opening six-viewport browser/input/file/rank-first regression PASS after fixing
 an opening-map renderer exception found by the actual touch check. New-mission
 browser routes, save/reload and independent critic remain pending at this push.
 3/20 operations implemented; 17 and the other four districts remain required.
+
+## Integration review and independent critic checkpoint
+
+Independent reviewer compared actual official XCOM 2 Steam developer screenshots
+side by side with Locked Manifest's evac route and Cut the Feed's east isolation.
+ART FAIL and UI FAIL: sparse flat grid/materials, interchangeable silhouettes,
+very small phone-scale tactical details and excess canvas whitespace. No AAA
+acceptance. Audio/VFX unjudged. Content is a viable scoped checkpoint, but fixed
+circuit gates do not substitute for enemy archetypes, squad choices or persistent
+campaign consequences. Side-by-side local artifact:
+C:/Users/jshun/.codex/visualizations/2026/11/03/01a1a034-dcdb-7ec0-91f5-92632861ff43/critic/switchyard-side-by-side.png
+Reference: https://store.steampowered.com/app/268500/XCOM_2/
+
+Fixed critic's substantive integration findings: rank requests now snapshot the
+finished score/title across asynchronous mission changes, and picking accounts
+for elevated tile centers. Real UI play also found a squad member standing on
+a node stole Hack input; explicit Hack/Aid orders now retain their target.
+Exposed authored mastery targets in the HUD and registrar/clinic story debriefs
+on victory. Focused 22/22 tests, syntax and diff checks PASS. First expanded
+browser run PASS: all three real-UI/live-AI wins, 18 map/viewport combinations,
+mission unlock/save/reload, storage denial and delayed rank score snapshot.
+Final native-touch full Locked Manifest and raised-tile sweep is running.
+Temporary shared per-operation leaderboard is not a balanced final campaign
+ranking; campaign scoring remains a release prerequisite. No main/catalog edits.

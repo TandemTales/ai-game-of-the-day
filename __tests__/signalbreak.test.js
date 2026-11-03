@@ -2,7 +2,7 @@ const fs = require('fs'), path = require('path'), vm = require('vm');
 function load() {
   const window = {};
   const context = vm.createContext({ window, Math, JSON, Number, Array, Object });
-  for (const file of ['missions', 'logic', 'campaign']) vm.runInContext(fs.readFileSync(path.join(__dirname, '../signalbreak/assets/js/' + file + '.js'), 'utf8'), context);
+  for (const file of ['missions', 'logic', 'campaign', 'render']) vm.runInContext(fs.readFileSync(path.join(__dirname, '../signalbreak/assets/js/' + file + '.js'), 'utf8'), context);
   return window.SB;
 }
 function order(L, s, id, kind, x, y) { const p = L.preview(s,id,kind,x,y); if (!p.legal) throw Error(p.reason); expect(L.commit(s,p)).toBe(true); return p; }
@@ -148,6 +148,13 @@ test('reroute cannot strand an engineer; an engineer on the closing threshold ca
   expect(L.preview(s,'rook','move',9,4).legal).toBe(true);
 });
 function memoryStorage(){const values={};return{getItem:key=>values[key]||null,setItem:(key,value)=>{values[key]=value;}};}
+test('render picking maps displayed raised tile centers back to their actual authored coordinates', () => {
+  const SB=load();for(const m of SB.Missions.operations)for(const zoom of [.75,1,2.2]){
+    const s=SB.Logic.newGame(m.id),p=SB.Render.projection(1200,750,s,{zoom,selected:'nia',panX:31,panY:-24});
+    for(const h of s.heights){const q=p.point(h.x,h.y,h.z);expect(p.inverse(q.x,q.y)).toEqual({x:h.x,y:h.y});}
+    const u=s.squad[0],q=p.point(u.x,u.y,0);expect(p.inverse(q.x,q.y)).toEqual({x:u.x,y:u.y});
+  }
+});
 test('mission-boundary saves unlock only earned operations and resume the next briefing', () => {
   const SB=load(),C=SB.Campaign,c=C.fresh(),store=memoryStorage();
   expect(C.unlocked(c,'locked-manifest')).toBe(false);expect(C.unlocked(c,'night-freight')).toBe(false);

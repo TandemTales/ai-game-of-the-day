@@ -11,8 +11,12 @@ node tools/signalbreak-browser-smoke.cjs
 Rules tests load classic scripts in a vm with a browser-global shim. Verify
 read-only previews, AP/path legality, blocked and circuit-door LOS, cover/height,
 deterministic attacks/AI, overwatch, rescue, objective/extraction, win/loss,
-fresh-state isolation and opening-operation solvability. The twenty planned
-operations are a content contract, not twenty implemented levels.
+fresh-state isolation and all three authored operations' legal live-AI routes.
+The 22 focused cases also cover exclusive relay/LOS/turret changes, repeated-score
+protection, stranded-squad reroute refusal, clinic-interlock rejected-action
+immutability, raised-tile projection picking across zooms, earned unlocks,
+mission-boundary save/load, replay best scores and corrupt/gapped/denied storage.
+The twenty-operation manifest is a contract, not twenty implemented levels.
 
 Browser QA: local HTTP + optional Playwright/installed Edge, six required sizes
 (320×568,390×844,844×390,768×1024,1440×900,3840×2160), no horizontal overflow,
@@ -20,6 +24,20 @@ clean console, no external gameplay requests, title/live/result PNGs opened by
 the lead, real keyboard/pointer/native touch, preview→confirm, cancel, end turn,
 hack-linked door/turret, loss/retry, operation score rank-before-submit with LOCAL
 API mock only, file:// boot and DPR2 backing. Read screenshots, not just paths.
+
+The harness now completes all three missions through actual UI orders and live
+AI, with no tactical-state injection. Locked Manifest uses native touch for
+selection, movement, node targeting and confirmation throughout. It reloads to
+the next earned briefing, validates best-score save records, holds the first
+rank response until Next changes missions, and checks that the original score
+is still posted. A separate denied-localStorage page must stay playable and
+display its save warning. Separate loss fixtures are explicitly labelled.
+
+In addition to the opening six-size sweep, both new maps have title/live captures
+and native touch/raised-tile-picking/overflow/console/request checks at all six
+sizes. Campaign debrief/mastery text is checked. Evidence includes results.json
+and SHA-256 source-manifest.json in node_modules/.cache/signalbreak/browser-smoke.
+Do not confuse these legal state-informed pilots with human balance/fun evidence.
 
 Use ignored node_modules/.cache/signalbreak for evidence; Playwright can use the
 existing ignored node_modules/.cache/tidelock/browser-deps install via NODE_PATH.

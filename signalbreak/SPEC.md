@@ -30,6 +30,38 @@ not mark these full-game boxes complete from that slice. Add authored situations
 before polishing one encounter repeatedly. Any material scope reduction needs
 explicit user approval; time/usage limits are not approval.
 
+## Implemented content ledger — November 2 content run
+
+- [x] 01 Live Wire: opening cover/circuit/turret/rescue/extraction operation.
+- [x] 02 Locked Manifest: new prison/evacuation wings and exclusive transfer relay;
+  rescue registrar, withdraw squad and reroute without stranding engineers.
+- [x] 03 Cut the Feed: new three-sector layout, west/east isolation and northern
+  clinic bypass; safe interlock, technician rescue and loading-bay extraction.
+- [ ] 04 Night Freight: rail ambush and moving escape window.
+- [ ] 05 Rooftop Crossfire: elevation and alternate stairs.
+- [ ] 06 Cargo Lift: powered moving-lift escort.
+- [ ] 07 Open Clinic: medical-staff defense and coverage switching.
+- [ ] 08 Antenna Rain: tower raid and alternating overwatch lanes.
+- [ ] 09 Sluice Logic: water diversion changes routes.
+- [ ] 10 Span Control: moving bridge capture.
+- [ ] 11 Blackout: light/visibility infiltration.
+- [ ] 12 Pump Siege: simultaneous pumps and reinforcements.
+- [ ] 13 Paper Trail: evidence recovery before purge.
+- [ ] 14 Two Keys: synchronized split-squad access.
+- [ ] 15 Ghost Broadcast: decoy transmission redirects patrols.
+- [ ] 16 Stolen Convoy: transport interception preserves evidence.
+- [ ] 17 Outer Relay: network siege approaches.
+- [ ] 18 Vertical Breach: floors and lifts.
+- [ ] 19 Safe Corridor: defend/evacuate civilians.
+- [ ] 20 Signalbreak: combined core shutdown and consequence-based epilogue.
+
+Mission-boundary local saves, sequential unlocks and replay best scores now exist
+for the three implemented missions. These do not satisfy squad progression,
+equipment/injury recovery or persistent rescue/evidence consequences. Authored
+mastery targets appear in the HUD; no campaign medal/reward system exists yet.
+Story debriefs appear on victory. The clinic is a protected prerequisite, not yet
+a simulated supply economy. FIRST PLAYABLE remains visible throughout.
+
 ## Twenty-operation campaign contract
 
 | District | Four distinct operations and authored rule combinations |
@@ -80,9 +112,11 @@ file and reports cross-file needs. Independent critics touch no runtime files.
 | assets/js/audio.js | audio worker: procedural sound and audio lifecycle |
 | assets/css/game.css | UI worker: responsive composition/touch/readability |
 | assets/js/game.js | lead: input, previews/confirmation, HUD/state, save/leaderboard |
+| assets/js/campaign.js | lead: validated mission-boundary save/unlock/replay records |
 | SPEC.md, TESTING.md, PROGRESS.md | lead: contract/evidence/handoff |
 | ../__tests__/signalbreak.test.js | lead: deterministic rule and mission checks |
 | ../tools/signalbreak-browser-smoke.cjs | lead: real-browser/input proof |
+| ../tools/signalbreak-route.cjs | lead: deterministic legal-order QA planner, no state injection |
 
 ## First-playable API contract
 
@@ -90,8 +124,10 @@ Grid coordinates integer (x,y), origin top left. Tiles: . floor, # tall blocker,
 c low cover, d circuit door, e exit, n network node, r rescue. Heights are separate.
 No procedural randomness required; identical state/action gives identical outcome.
 
-SB.Missions contains the authored opening mission and the full planned manifest.
-SB.Logic.newGame() returns a fresh operation state. SB.Logic.preview(state,actorId,
+SB.Missions.operations contains the three authored missions, get(id) looks up an
+implemented mission, and manifest holds the full twenty-operation contract.
+SB.Logic.newGame(id?) returns a fresh chosen operation (default Live Wire) and
+rejects unknown IDs. SB.Logic.preview(state,actorId,
 kind,x,y) is read-only and returns legal/action/cost/path/predicted damage/reason.
 SB.Logic.commit(state,preview) revalidates the current state before mutation.
 SB.Logic.endTurn(state) resolves friendly turret/overwatch and deterministic AI,
@@ -99,8 +135,24 @@ then refreshes living squad AP. Invalid actions spend nothing. No action after
 won/lost. SB.Logic.visible/path are shared by UI, AI and tests; render never changes
 rules. SB.Render.draw returns the projection used for inverse pointer mapping.
 
-Only implemented opening-operation data is playable. Planned manifest entries
+Only implemented operation data is playable. Planned manifest entries
 must not silently turn into duplicate missions or unlock nonfunctional buttons.
+
+New operation circuits name their node, controlled state, linked doors, optional
+turret, exclusive routing group and prerequisites. circuitAt/doorOpen/turretAllied
+are shared by render/input/rules; objectiveStatus supplies mission-specific HUD
+goals. Closing a mutually exclusive route cannot strand active squad members.
+Each circuit capture scores once, including repeated transfers. Raised-tile
+selection uses displayed height-adjusted diamond centers.
+
+Campaign saves use signalbreak-campaign-v1 in localStorage, validate contiguous
+completed operations, and persist only mission-boundary selected/unlocked/best
+records. No in-operation resume: reload restarts the selected operation. Storage
+failure is visible and leaves in-tab progress functional. Operation score remains
+the temporary numeric leaderboard metric; mixed operation lengths/circuit counts
+are not a balanced final campaign ranking. Before release, replace it with the
+approved full-campaign scoring path. Rank requests snapshot the completed result
+so a delayed reply cannot submit the next operation's score.
 
 ## Distinctness
 

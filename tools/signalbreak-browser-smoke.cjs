@@ -1,5 +1,6 @@
 const http=require('http'),fs=require('fs'),path=require('path'),assert=require('assert/strict');
 const {chromium}=require('playwright');
+const {nextOrder}=require('./signalbreak-route.cjs');
 const root=path.resolve(__dirname,'..'),out=path.join(root,'node_modules/.cache/signalbreak/browser-smoke');fs.mkdirSync(out,{recursive:true});
 const api=[],results=[];
 const server=http.createServer((req,res)=>{
@@ -10,20 +11,30 @@ const server=http.createServer((req,res)=>{
 });
 async function tile(page,x,y,touch=false){
   await page.locator('#map').scrollIntoViewIfNeeded();
-  await page.waitForTimeout(30);
-  const p=await page.evaluate(({x,y})=>{const c=document.querySelector('canvas'),r=c.getBoundingClientRect(),s=SB.Game.getState(),v=SB.Game.getView(),d=Math.min(devicePixelRatio,2);const P=SB.Render.projection(c.width,c.height,s,{...v,panX:v.panX*d,panY:v.panY*d}),p=P.point(x,y,0);return{x:r.x+p.x*r.width/c.width,y:r.y+p.y*r.height/c.height};},{x,y});
+  await page.waitForTimeout(120);
+  const p=await page.evaluate(({x,y})=>{const c=document.querySelector('canvas'),r=c.getBoundingClientRect(),s=SB.Game.getState(),v=SB.Game.getView(),d=Math.min(devicePixelRatio,2);const P=SB.Render.projection(c.width,c.height,s,{...v,panX:v.panX*d,panY:v.panY*d}),p=P.point(x,y,SB.Logic.height(s,x,y));return{x:r.x+p.x*r.width/c.width,y:r.y+p.y*r.height/c.height};},{x,y});
+  await page.evaluate(p=>{window.lastTap={p,rect:document.querySelector('canvas').getBoundingClientRect().toJSON(),target:document.elementFromPoint(p.x,p.y)?.id};},p);
   if(touch)await page.touchscreen.tap(p.x,p.y);else await page.mouse.click(p.x,p.y);
 }
-async function plan(page){return page.evaluate(()=>{
-  const s=SB.Game.getState(),L=SB.Logic;
-  for(const u of s.squad){if(!L.living(u)||!u.ap)continue;
-    let p=[L.preview(s,u.id,'hack',s.node.x,s.node.y),L.preview(s,u.id,'rescue',s.rescue.x,s.rescue.y),L.preview(s,u.id,'extract',u.x,u.y)].find(p=>p.legal);
-    if(!p)p=s.enemies.filter(L.living).map(e=>L.preview(s,u.id,'attack',e.x,e.y)).filter(p=>p.legal).sort((a,b)=>b.damage-a.damage)[0];
-    if(!p){const enemies=s.enemies.filter(L.living);const goal=!s.network?s.node:enemies.length?enemies.sort((a,b)=>Math.abs(u.x-a.x)+Math.abs(u.y-a.y)-Math.abs(u.x-b.x)-Math.abs(u.y-b.y))[0]:!s.rescued?s.rescue:{x:15,y:10};let best=null;
-      for(let y=1;y<s.height-1;y++)for(let x=1;x<s.width-1;x++){const q=L.preview(s,u.id,'move',x,y);if(!q.legal)continue;const value=(Math.abs(x-goal.x)+Math.abs(y-goal.y))*10+q.cost-L.cover(s,{x,y},goal)*.5;if(!best||value<best.value)best={value,p:q};}if(best)p=best.p;}
-    if(p)return p;
-  }return{kind:'end'};
-});}
+async function plan(page){return page.evaluate(source=>Function('return ('+source+')')()(SB,SB.Game.getState()),nextOrder.toString());}
+async function drive(page,touch=false){
+  const actions=[];let circuit='';
+  for(let i=0;i<350&&await page.evaluate(()=>SB.Game.getState().phase==='player');i++){
+    const p=await plan(page);actions.push(p);
+    if(p.kind==='end'){await page.locator('#end-turn').click();continue;}
+    if(touch)await page.locator(`[data-unit="${p.actorId}"]`).tap();
+    else{const idx=await page.evaluate(id=>SB.Game.getState().squad.findIndex(u=>u.id===id),p.actorId);await page.keyboard.press(String(idx+1));}
+    await page.locator(`[data-action="${p.kind}"]`).click();
+    if(['move','attack','heal','hack'].includes(p.kind))await tile(page,p.x,p.y,touch);
+    const shown=await page.evaluate(()=>SB.Game.getPreview());assert(shown&&shown.legal&&shown.kind===p.kind&&shown.x===p.x&&shown.y===p.y,JSON.stringify({wanted:p,shown}));
+    await page.locator('#confirm').click();
+    const current=await page.evaluate(()=>({id:SB.Game.getState().id,key:JSON.stringify(SB.Game.getState().circuits||SB.Game.getState().network)}));
+    if(current.key!==circuit){circuit=current.key;await page.locator('.map-wrap').screenshot({path:path.join(out,current.id+'-circuit-'+i+'.png')});}
+  }
+  const final=await page.evaluate(()=>({id:SB.Game.getState().id,phase:SB.Game.getState().phase,score:SB.Game.getState().score,turn:SB.Game.getState().turn,rescued:SB.Game.getState().rescued,extracted:SB.Game.getState().squad.filter(u=>u.extracted).length}));
+  assert.equal(final.phase,'won');assert.equal(final.extracted,4);assert.equal(final.rescued,true);
+  await page.locator('.map-wrap').screenshot({path:path.join(out,final.id+'-won.png')});return{final,actions};
+}
 (async()=>{
   await new Promise(r=>server.listen(0,'127.0.0.1',r));const url='http://127.0.0.1:'+server.address().port;
   const edge='C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';const browser=await chromium.launch({headless:true,executablePath:fs.existsSync(edge)?edge:undefined});
@@ -38,7 +49,7 @@ async function plan(page){return page.evaluate(()=>{
       assert(await page.evaluate(()=>SB.Game.getPreview().legal));assert.equal(await page.evaluate(()=>SB.Game.getState().squad[0].x),before.x,'preview does not move');
       await page.keyboard.press('Enter');assert.equal(await page.evaluate(()=>SB.Game.getState().squad[0].x),before.x+1);
       await page.locator('[data-unit="rook"]').tap();assert.equal(await page.evaluate(()=>SB.Game.getView().selected),'rook');
-      await tile(page,3,6,true);assert(await page.evaluate(()=>SB.Game.getPreview().legal));await page.locator('#cancel').tap();assert.equal(await page.evaluate(()=>SB.Game.getPreview()),null);
+      await tile(page,3,6,true);assert(await page.evaluate(()=>SB.Game.getPreview()&&SB.Game.getPreview().legal),'native touch preview '+width+' '+JSON.stringify(await page.evaluate(()=>({lastTap,mode:SB.Game.getMode(),rect:document.querySelector('canvas').getBoundingClientRect().toJSON()}))));await page.locator('#cancel').tap();assert.equal(await page.evaluate(()=>SB.Game.getPreview()),null);
       await tile(page,3,6,true);await page.locator('#confirm').tap();assert.equal(await page.evaluate(()=>SB.Game.getState().squad[2].x),3,'native touch move/confirm');
       await page.locator('#zoom-in').tap();assert(await page.evaluate(()=>SB.Game.getView().zoom>1));
       await page.locator('#zoom-out').tap();await page.locator('#end-turn').tap();assert.equal(await page.evaluate(()=>SB.Game.getState().turn),2);
@@ -47,31 +58,58 @@ async function plan(page){return page.evaluate(()=>{
       const metrics=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth>innerWidth,mode:SB.Game.getMode(),controls:[...document.querySelectorAll('.actions button,.confirmation button,.unit,.map-tools button')].map(b=>{const r=b.getBoundingClientRect();return{w:r.width,h:r.height};})}));assert.equal(metrics.overflow,false);metrics.controls.forEach(b=>assert(b.w>=44&&b.h>=44,'44px controls'));
       assert.deepEqual(errors,[]);assert.deepEqual(external,[]);results.push({viewport:[width,height],...metrics,errors,external});await page.close();
     }
-    const page=await browser.newPage({viewport:{width:1440,height:1000},hasTouch:true}),errors=[],actions=[];page.on('pageerror',e=>errors.push(String(e)));page.on('dialog',d=>d.accept('Signal QA'));
-    await page.goto(url+'/signalbreak/index.html');await page.locator('#start').click();let circuitSeen=false;
-    for(let i=0;i<180&&await page.evaluate(()=>SB.Game.getState().phase==='player');i++){
-      const p=await plan(page);actions.push(p);
-      if(p.kind==='end'){await page.locator('#end-turn').click();continue;}
-      const idx=await page.evaluate(id=>SB.Game.getState().squad.findIndex(u=>u.id===id),p.actorId);await page.keyboard.press(String(idx+1));
-      await page.locator(`[data-action="${p.kind}"]`).click();
-      if(['move','attack','heal'].includes(p.kind))await tile(page,p.x,p.y);
-      const shown=await page.evaluate(()=>SB.Game.getPreview());assert(shown&&shown.legal&&shown.kind===p.kind,JSON.stringify({wanted:p,shown}));
-      await page.locator('#confirm').click();
-      if(!circuitSeen&&await page.evaluate(()=>SB.Game.getState().network)){circuitSeen=true;await page.screenshot({path:path.join(out,'circuit-captured.png')});}
+    const page=await browser.newPage({viewport:{width:1440,height:1000},hasTouch:true}),errors=[],dialogs=[],campaignRuns=[];
+    page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(['warning','error'].includes(m.type()))errors.push(m.text());});
+    page.on('dialog',d=>{dialogs.push(d.message());d.accept('Signal QA');});
+    // Hold the first rank response until after Next has replaced global state.
+    // The eventual POST must retain the completed operation's original score.
+    let rankHeld=null;await page.route('**/api/leaderboard/rank?**',route=>{rankHeld=route;},{times:1});
+    await page.goto(url+'/signalbreak/index.html');
+    for(const [index,id]of ['live-wire','locked-manifest','cut-the-feed'].entries()){
+      assert.equal(await page.evaluate(()=>SB.Game.getState().id),id);
+      await page.locator('.map-wrap').screenshot({path:path.join(out,id+'-briefing.png')});await page.locator('#start').click();
+      const run=await drive(page,index===1);campaignRuns.push(run);
+      if(index===1)assert((await page.locator('#tip').innerText()).includes('registrar names the clinic'));
+      if(index===0){
+        assert(rankHeld,'rank request held');await page.locator('#next-operation').click();assert.equal(await page.evaluate(()=>SB.Game.getState().id),'locked-manifest');
+        await rankHeld.fulfill({status:200,contentType:'application/json',body:'{"rank":1}'});
+      }
+      await page.waitForFunction(n=>window.SB&&localStorage.getItem(SB.Campaign.key)&&Object.keys(JSON.parse(localStorage.getItem(SB.Campaign.key)).results).length===n,index+1);
+      await page.waitForTimeout(100);await page.reload();
+      assert.equal(await page.evaluate(()=>SB.Game.getMode()),'title');
+      const data=await page.evaluate(()=>JSON.parse(localStorage.getItem(SB.Campaign.key)));assert(data.results[id]);
+      if(index<2)assert.equal(await page.evaluate(()=>SB.Game.getState().id),['locked-manifest','cut-the-feed'][index]);
     }
-    const final=await page.evaluate(()=>({phase:SB.Game.getState().phase,score:SB.Game.getState().score,turn:SB.Game.getState().turn,rescued:SB.Game.getState().rescued,extracted:SB.Game.getState().squad.filter(u=>u.extracted).length}));
-    assert.equal(final.phase,'won');assert.equal(final.rescued,true);await page.screenshot({path:path.join(out,'operation-won.png')});await page.waitForTimeout(150);
-    assert.equal(api.length,2);assert.equal(api[0].method,'GET');assert.equal(api[1].method,'POST');assert.equal(api[1].body.gameId,'signalbreak');assert.equal(api[1].body.score,final.score);
+    assert.equal(api.length,5,'held GET is intercepted, remaining server API calls are recorded');
+    assert.equal(api[0].method,'POST');assert.equal(api[0].body.score,campaignRuns[0].final.score);assert(dialogs[0].startsWith('Live Wire operation score'));
+    for(let i=1;i<api.length;i+=2){assert.equal(api[i].method,'GET');assert.equal(api[i+1].method,'POST');assert.equal(api[i+1].body.score,campaignRuns[(i+1)/2].final.score);}
+    const campaignStorage=await page.context().storageState();
+    // Six-size new-mission sweep with earned unlocks. No tactical state injection.
+    const newMissionSweeps=[];
+    for(const[width,height]of[[320,568],[390,844],[844,390],[768,1024],[1440,900],[3840,2160]])for(const id of ['locked-manifest','cut-the-feed']){
+      const p=await browser.newPage({viewport:{width,height},hasTouch:true,storageState:campaignStorage}),logs=[],external=[];
+      p.on('pageerror',e=>logs.push(String(e)));p.on('console',m=>{if(['warning','error'].includes(m.type()))logs.push(m.text());});p.on('request',r=>{if(!r.url().startsWith(url))external.push(r.url());});
+      await p.goto(url+'/signalbreak/index.html');await p.locator(`[data-mission="${id}"]`).click();await p.locator('.map-wrap').screenshot({path:path.join(out,`${id}-${width}x${height}-title.png`)});
+      await p.locator('#start').click();const u=await p.evaluate(()=>SB.Game.getState().squad[0]);await tile(p,u.x+1,u.y,true);assert(await p.evaluate(()=>SB.Game.getPreview()?.legal));await p.locator('#confirm').tap();
+      const raised=await p.evaluate(()=>SB.Game.getState().heights[0]);await p.locator('[data-action="attack"]').tap();await tile(p,raised.x,raised.y,true);
+      const picked=await p.evaluate(()=>SB.Game.getPreview());assert.equal(picked.x,raised.x);assert.equal(picked.y,raised.y);await p.locator('#cancel').tap();
+      assert((await p.locator('#mastery-goal').innerText()).includes('turns or fewer'));
+      await p.locator('.map-wrap').screenshot({path:path.join(out,`${id}-${width}x${height}-play.png`)});
+      assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(logs,[]);assert.deepEqual(external,[]);newMissionSweeps.push({id,width,height,logs,external});await p.close();
+    }
     await page.locator('#start').click();assert.equal(await page.evaluate(()=>SB.Game.getState().score),0);
-    // Loss fixture is separate from the legal-input, live-AI victory above.
-    await page.evaluate(()=>SB.Game.getState().squad.forEach(u=>u.hp=0));await page.locator('#end-turn').click();await page.screenshot({path:path.join(out,'operation-lost.png')});assert.equal(await page.evaluate(()=>SB.Game.getState().phase),'lost');
+    // Loss fixture remains separate from legal-input, live-AI victories.
+    await page.evaluate(()=>SB.Game.getState().squad.forEach(u=>u.hp=0));await page.locator('#end-turn').click();assert.equal(await page.evaluate(()=>SB.Game.getState().phase),'lost');
     assert.deepEqual(errors,[]);await page.close();
+    const unavailable=await browser.newPage();await unavailable.addInitScript(()=>Object.defineProperty(window,'localStorage',{get(){throw Error('unavailable');}}));await unavailable.goto(url+'/signalbreak/index.html');assert((await unavailable.locator('#save-status').innerText()).startsWith('Saving unavailable'));await unavailable.locator('#start').click();assert.equal(await unavailable.evaluate(()=>SB.Game.getMode()),'playing');await unavailable.close();
     const offline=await browser.newPage();await offline.goto('file:///'+path.join(root,'signalbreak/index.html').replace(/\\/g,'/'));await offline.locator('#start').click();assert.equal(await offline.evaluate(()=>SB.Game.getMode()),'playing');await offline.close();
     const retina=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2});await retina.goto(url+'/signalbreak/index.html');await retina.locator('#start').click();assert(await retina.evaluate(()=>{const c=document.querySelector('canvas'),r=c.getBoundingClientRect();return c.width===Math.round(r.width*2)&&c.height===Math.round(r.height*2);}));await retina.screenshot({path:path.join(out,'dpr2-phone.png')});await retina.close();
     const catalog=await browser.newPage({viewport:{width:1440,height:1000}});await catalog.route('**/*',route=>route.request().url().startsWith(url)?route.continue():route.fulfill({status:204}));await catalog.goto(url+'/index.html');
     assert.equal(await catalog.locator('.feature-visual').getAttribute('href'),'signalbreak/index.html');assert.equal(await catalog.locator('.featured .rate').getAttribute('data-id'),'signalbreak');
     assert.equal(await catalog.locator('#games .game-card').count(),15);assert.equal(await catalog.locator('#games .game-card[data-id="tidelock"]').count(),1);assert.equal(await catalog.locator('#games .game-card[data-id="gearwell"]').count(),1);
     assert(await catalog.locator('.feature-visual img').evaluate(i=>i.complete&&i.naturalWidth>0));await catalog.locator('.featured').screenshot({path:path.join(out,'catalog-feature.png')});await catalog.close();
-    fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({results,api,final,actions,checks:'real keyboard/touch preview-confirm-cancel, turns, zoom, pause, full legal-input victory, fixture loss, retry, file boot, DPR2'},null,2));console.log(JSON.stringify({viewports:results.length,final,actions:actions.length,checks:'PASS'}));
+    const crypto=require('crypto'),sources=['signalbreak/index.html','signalbreak/assets/css/game.css',...['missions','logic','campaign','render','audio','game'].map(f=>'signalbreak/assets/js/'+f+'.js')];
+    fs.writeFileSync(path.join(out,'source-manifest.json'),JSON.stringify({at:new Date().toISOString(),sources:sources.map(file=>({file,sha256:crypto.createHash('sha256').update(fs.readFileSync(path.join(root,file))).digest('hex')}))},null,2));
+    fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({results,newMissionSweeps,api,campaignRuns,dialogs,checks:'real keyboard/touch preview-confirm-cancel, raised tile picking, native-touch full Locked Manifest, three legal-input live-AI victories, earned unlock/save/reload, denied storage, delayed rank snapshot, loss/retry, file boot, DPR2'},null,2));console.log(JSON.stringify({viewports:results.length,newMissionViewports:newMissionSweeps.length,campaign:campaignRuns.map(r=>({...r.final,actions:r.actions.length})),checks:'PASS'}));
   }finally{await browser.close();server.close();}
 })().catch(e=>{console.error(e);server.close();process.exitCode=1;});

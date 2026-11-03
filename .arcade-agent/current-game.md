@@ -1,18 +1,21 @@
-# Awaiting user game choice
+# Signalbreak — active, user selected
 
-status: awaiting-user-choice
-active: none
+status: active
+active: signalbreak
+started: 2026-11-02
+selected: 2026-11-02
+selection-source: user message in this chat, "Signalbreak"
 proposals: .arcade-agent/game-proposals.md
 on-hold: tidelock
 on-hold-original-started: 2026-11-01
 timezone: America/Los_Angeles
 
-On November 2, 2026 the user said Tidelock is too simplistic and requested
-more ambitious games plus three proposals for the user to choose before work
-starts. Preserve Tidelock's files but do not polish, release or mark it complete.
+The user explicitly selected proposal 2, Signalbreak, on November 2 Pacific.
+Lead four signal engineers through an occupied city in turn-based squad tactics.
+Combine AP positioning, cover/elevation/overwatch and shared power networks that
+control doors, lights, lifts and turret allegiance. Approved scope: five authored
+districts, twenty distinct operations, squad growth, rescues, campaign state/save,
+recurring story and a Broadcast Citadel finale. Full contract: signalbreak/SPEC.md.
 
-Read the saved three proposals and await an explicit user selection. Do not
-auto-select, scaffold, rotate Featured Game or apply a forced-release date while
-this gate is pending. The prior Tidelock November 14 target is suspended.
-The chosen game's started date and release clock begin when approved development
-actually starts. The previous runtime and catalog remain preserved for now.
+Implementation starts today. Forced second-Saturday release: 2026-11-14 (age 12).
+Tidelock stays on hold; preserve its files. No AAA or campaign-completion claim.

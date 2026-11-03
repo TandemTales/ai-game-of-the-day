@@ -1,13 +1,15 @@
 # Next Bot Built Arcade game — user selection required
 
-status: awaiting-user-choice
+status: selected
 proposed: 2026-11-02
-selected: none
+selected: 2 / Signalbreak
+selected-date: 2026-11-02
+selection-source: explicit user message in this chat, "Signalbreak"
 timezone: America/Los_Angeles
 
 The user rejected the scale of the Tidelock scaffold. Its files are on hold.
-No implementation of these proposals is authorized until the user chooses.
-Reuse this slate on later runs; do not auto-select or silently regenerate it.
+The user has explicitly selected Signalbreak; its implementation is authorized.
+Whiteout Run and The Ninth Passenger remain unselected proposals, not active work.
 These are proposed full games, not promises that one night's demo is complete.
 
 ## 1. Whiteout Run — mountain stunt adventure
@@ -185,4 +187,4 @@ implemented runtime. Differences below concern core rules, not merely setting.
 
 Recommendation: Signalbreak offers the largest change from the current arcade
 catalog and depth from interacting systems. This is advice only. No game is
-selected until the user explicitly chooses 1, 2, 3, a title, or a requested revision.
+selected automatically. The user subsequently chose Signalbreak explicitly above.

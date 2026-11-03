@@ -84,3 +84,15 @@ coupled substations. Do not decorate this one encounter repeatedly.
 - Next run must implement missing authored content and campaign progression
   from the approved checklist before repeated cosmetic passes. Only Live Wire
   is playable today; the twenty-operation manifest is the plan, not twenty levels.
+
+## 2026-11-02 Pacific — Switchyard content run intent
+
+STOP absent. Saved explicit Signalbreak selection verified; dev synchronized.
+Monday Pacific, age zero: no release. Tonight authors Locked Manifest's routed
+prison/extraction doors and Cut the Feed's linked substations/clinic bypass,
+then connects the three implemented operations with mission-boundary unlocks
+and local save/resume. Keep FIRST PLAYABLE/full campaign in development visible.
+The remaining campaign, squad growth and finale stay required; no scope reduction.
+Content/logic workers each own their SPEC file; lead owns integration/tests/Git.
+Tests and real-browser checks will distinguish legal routes from fixtures, and
+an independent critic will record outstanding quality debt without a release.

@@ -1,12 +1,18 @@
-# Tidelock
+# Awaiting user game choice
 
-status: active
-active: tidelock
-started: 2026-11-01
+status: awaiting-user-choice
+active: none
+proposals: .arcade-agent/game-proposals.md
+on-hold: tidelock
+on-hold-original-started: 2026-11-01
 timezone: America/Los_Angeles
 
-Stitch safe passages across a storm chart in a classic territory-capture score
-attack. Leave the safe shoreline, draw a vulnerable cable, and reconnect to
-claim water that contains no storm. Enclose salvage buoys to earn points and
-a short storm-freezing pulse. Keyboard and touch share cardinal steering.
-Tonight is scaffold only; forced second-Saturday release is 2026-11-14.
+On November 2, 2026 the user said Tidelock is too simplistic and requested
+more ambitious games plus three proposals for the user to choose before work
+starts. Preserve Tidelock's files but do not polish, release or mark it complete.
+
+Read the saved three proposals and await an explicit user selection. Do not
+auto-select, scaffold, rotate Featured Game or apply a forced-release date while
+this gate is pending. The prior Tidelock November 14 target is suspended.
+The chosen game's started date and release clock begin when approved development
+actually starts. The previous runtime and catalog remain preserved for now.

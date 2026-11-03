@@ -65,3 +65,13 @@ changes after it are browser QA and documentation only. JS syntax and diff
 checks PASS. All Tidelock work is pushed to dev; main/origin/main remains
 69400b9. Selection began November 1 Pacific and the run finished November 2.
 Next first work and unjudged quality debt remain as recorded above.
+
+## 2026-11-02 — user feedback overrides previous next-run instructions
+
+The user considers Tidelock too simplistic and requests more ambitious games
+with three ideas presented for explicit user selection before starting. Tidelock
+is on hold, not complete; its November 14 target and further polish/release are
+suspended. Preserve its files and existing catalog until a selection authorizes
+the next implementation. Read .arcade-agent/game-proposals.md and the updated
+runner's awaiting-user-choice gate. Do not follow the prior polish-next advice
+while selection is pending. No replacement runtime has been started.

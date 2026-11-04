@@ -46,9 +46,9 @@
       if(t!== '#' && (x*17+y*9)%7===0){c.strokeStyle='#7b969b30';c.lineWidth=a*.025;c.beginPath();c.moveTo(p.x-a*.6,p.y);c.lineTo(p.x-a*.1,p.y+b*.3);c.lineTo(p.x+a*.1,p.y+b*.17);c.stroke();}
     }
     if(boarding){
-      s.freight.stops.forEach(function(stop){var active=boarding.open&&stop.tiles.some(function(t){return boardingHere(t.x,t.y);});
-        var first=stop.tiles[0],p=P.point(first.x,first.y);c.fillStyle=active?'#ffe09b':'#9aadb5';c.font=Math.max(9,a*.42)+'px system-ui';c.textAlign='center';c.fillText(stop.label+(active?' / BOARD':''),p.x,p.y+a*.9);c.textAlign='start';
-      });
+      // Timetable stays at a fixed readable size, outside the tactical diamonds.
+      c.fillStyle=boarding.open?'#ffe09b':'#b5c8d0';c.font=Math.max(11*Math.min(d,2),w/100)+'px system-ui';c.textAlign='right';
+      c.fillText(boarding.open?boarding.label+' / BOARD / '+boarding.turnsUntilChange+' TURNS':'TRANSIT / '+boarding.nextLabel+' / '+boarding.turnsUntilChange+' TURN',w-16*Math.min(d,2),h-42*Math.min(d,2));c.textAlign='start';
     }
     if(s.ambush)s.ambush.enemies.forEach(function(e){
       if(s.ambush.deployed&&s.ambush.deployed[e.id])return;

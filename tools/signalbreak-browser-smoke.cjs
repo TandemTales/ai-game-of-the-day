@@ -90,7 +90,7 @@ async function drive(page,touch=false){
       const p=await browser.newPage({viewport:{width,height},hasTouch:true,storageState:campaignStorage}),logs=[],external=[];
       p.on('pageerror',e=>logs.push(String(e)));p.on('console',m=>{if(['warning','error'].includes(m.type()))logs.push(m.text());});p.on('request',r=>{if(!r.url().startsWith(url))external.push(r.url());});
       await p.goto(url+'/signalbreak/index.html');await p.locator(`[data-mission="${id}"]`).click();await p.locator('.map-wrap').screenshot({path:path.join(out,`${id}-${width}x${height}-title.png`)});
-      await p.locator('#start').click();const u=await p.evaluate(()=>SB.Game.getState().squad[0]);await tile(p,u.x+1,u.y,true);assert(await p.evaluate(()=>SB.Game.getPreview()?.legal));await p.locator('#confirm').tap();
+      await p.locator('#start').scrollIntoViewIfNeeded();assert(await p.locator('#start').isVisible(),'briefing CTA reachable by scrolling');await p.locator('#start').click();const u=await p.evaluate(()=>SB.Game.getState().squad[0]);await tile(p,u.x+1,u.y,true);assert(await p.evaluate(()=>SB.Game.getPreview()?.legal));await p.locator('#confirm').tap();
       const raised=await p.evaluate(()=>SB.Game.getState().heights[0]);await p.locator('[data-action="attack"]').tap();await tile(p,raised.x,raised.y,true);
       const picked=await p.evaluate(()=>SB.Game.getPreview());assert.equal(picked.x,raised.x);assert.equal(picked.y,raised.y);await p.locator('#cancel').tap();
       assert((await p.locator('#mastery-goal').innerText()).includes('turns or fewer'));

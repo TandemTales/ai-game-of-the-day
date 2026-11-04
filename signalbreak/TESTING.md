@@ -11,8 +11,8 @@ node tools/signalbreak-browser-smoke.cjs
 Rules tests load classic scripts in a vm with a browser-global shim. Verify
 read-only previews, AP/path legality, blocked and circuit-door LOS, cover/height,
 deterministic attacks/AI, overwatch, rescue, objective/extraction, win/loss,
-fresh-state isolation and all three authored operations' legal live-AI routes.
-The 22 focused cases also cover exclusive relay/LOS/turret changes, repeated-score
+fresh-state isolation and all four authored operations' legal live-AI routes.
+The 26 focused cases also cover exclusive relay/LOS/turret changes, repeated-score
 protection, stranded-squad reroute refusal, clinic-interlock rejected-action
 immutability, raised-tile projection picking across zooms, earned unlocks,
 mission-boundary save/load, replay best scores and corrupt/gapped/denied storage.
@@ -25,15 +25,15 @@ the lead, real keyboard/pointer/native touch, preview→confirm, cancel, end tur
 hack-linked door/turret, loss/retry, operation score rank-before-submit with LOCAL
 API mock only, file:// boot and DPR2 backing. Read screenshots, not just paths.
 
-The harness now completes all three missions through actual UI orders and live
-AI, with no tactical-state injection. Locked Manifest uses native touch for
+The harness now completes all four missions through actual UI orders and live
+AI, with no tactical-state injection. Locked Manifest and Night Freight use native touch for
 selection, movement, node targeting and confirmation throughout. It reloads to
 the next earned briefing, validates best-score save records, holds the first
 rank response until Next changes missions, and checks that the original score
 is still posted. A separate denied-localStorage page must stay playable and
 display its save warning. Separate loss fixtures are explicitly labelled.
 
-In addition to the opening six-size sweep, both new maps have title/live captures
+In addition to the opening six-size sweep, all three added maps have title/live captures
 and native touch/raised-tile-picking/overflow/console/request checks at all six
 sizes. Campaign debrief/mastery text is checked. Evidence includes results.json
 and SHA-256 source-manifest.json in node_modules/.cache/signalbreak/browser-smoke.
@@ -58,3 +58,12 @@ $env:NODE_PATH=(Resolve-Path node_modules/.cache/signalbreak/browser-deps/node_m
 
 Full Jest normally needs five minutes. Real-device performance, speaker quality,
 fresh-player comprehension/fun and independent AAA comparison remain unverified.
+
+Night Freight coverage: repeating West1-2/transit3/East4-5/transit6 timetable,
+wrong-platform/stale-confirm rejection without AP changes, occupied ambush entry
+deferral, exactly-once deployment and a full player response before enemy action.
+Old three-operation v1 saves retain results and unlock04. The browser pilot boards
+all four through actual UI orders/live AI, with six-size title/live captures and
+scroll-reachable briefing CTA. Current boarding/countdown uses a fixed map legend
+to avoid overlapping phone-scale platform labels; optional mastery remains an
+authored goal, not a persisted medal. No human/device/AAA evidence is implied.

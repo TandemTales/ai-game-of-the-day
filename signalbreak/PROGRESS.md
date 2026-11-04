@@ -195,3 +195,38 @@ stale boarding rejection and spawn safety. Full suite and browser sweep running.
 4/20 operations now implemented; all four remaining districts, progression,
 equipment/injury, lifts/visibility, persistent consequences and finale still required.
 No AAA claim: prior art/UI loss persists; FIRST PLAYABLE remains visible.
+
+## Night Freight final browser and critic handoff — November 3 Pacific
+
+Final real Edge PASS: opening six viewports plus three added maps at all six sizes
+(24 map/viewport combinations), no horizontal overflow/app warnings/errors or
+external gameplay requests. All four live-AI routes use actual UI orders; Locked
+Manifest and Night Freight use native touch. Freight:44 orders/turn10/2950points,
+4/4 extracted. Save/reload/unlocks, local mock rank-before-submit, denied storage,
+file boot, DPR2, loss fixture and scroll-reachable briefing controls PASS. No
+production leaderboard contacted. Initial sandbox Edge launch failed; authorized
+local-only retry passed. Evidence: node_modules/.cache/signalbreak/browser-smoke.
+Lead read all12 Freight title/live frames in six contact sheets plus phone/desktop
+originals and victory. 4K contact sheet is downscaled, not full-resolution proof.
+
+Independent critic compared/read official XCOM2 screenshot side by side:
+ART/UI FAIL / OURS LOSES. Sparse repeated materials, tiny interchangeable actors,
+missing train/rail visual identity and dark whitespace remain. Fixed its concrete
+phone platform-label overlap with a fixed readable timetable; critic confirmed
+that cue blocker resolved after final capture. No new rules blocker found by code
+review; audio/VFX unjudged. Comparison artifact:
+C:/Users/jshun/.codex/visualizations/2026/11/04/01a1a55a-4895-7ea1-8da2-f93959bf1d43/night-freight-side-by-side.png
+Reference: https://store.steampowered.com/app/268500/XCOM_2/
+
+Content remains4/20, not a full campaign or AAA acceptance. No .aaa-complete,
+release, main or catalog update. Physical devices, audio, human fun and GPU
+performance remain unverified. Normalized touched documentation/render/test
+line endings after the first content push; no dependency change.
+NEXT RUN FIRST: implement05 Rooftop Crossfire's elevation/alternate stair routes
+in Vertical Market and start squad progression/equipment/injury persistence;
+keep approved twenty-operation breadth, FIRST PLAYABLE and compatible v1 saves.
+Tidelock remains on hold. Forced release remains November14, not November7.
+
+Final verification: focused26/26 PASS; full repository31/31 suites533/533 tests
+PASS exit0 in282.289seconds (node_modules/.cache/signalbreak-night-freight-full.json).
+Final JS syntax and diff checks PASS. Handoff encoding normalized to original UTF8.

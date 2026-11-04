@@ -37,7 +37,7 @@ explicit user approval; time/usage limits are not approval.
   rescue registrar, withdraw squad and reroute without stranding engineers.
 - [x] 03 Cut the Feed: new three-sector layout, west/east isolation and northern
   clinic bypass; safe interlock, technician rescue and loading-bay extraction.
-- [ ] 04 Night Freight: rail ambush and moving escape window.
+- [x] 04 Night Freight: cargo-flank ambush, turn-four pursuit and repeating west/east boarding windows.
 - [ ] 05 Rooftop Crossfire: elevation and alternate stairs.
 - [ ] 06 Cargo Lift: powered moving-lift escort.
 - [ ] 07 Open Clinic: medical-staff defense and coverage switching.
@@ -56,7 +56,7 @@ explicit user approval; time/usage limits are not approval.
 - [ ] 20 Signalbreak: combined core shutdown and consequence-based epilogue.
 
 Mission-boundary local saves, sequential unlocks and replay best scores now exist
-for the three implemented missions. These do not satisfy squad progression,
+for the four implemented missions. These do not satisfy squad progression,
 equipment/injury recovery or persistent rescue/evidence consequences. Authored
 mastery targets appear in the HUD; no campaign medal/reward system exists yet.
 Story debriefs appear on victory. The clinic is a protected prerequisite, not yet
@@ -124,7 +124,7 @@ Grid coordinates integer (x,y), origin top left. Tiles: . floor, # tall blocker,
 c low cover, d circuit door, e exit, n network node, r rescue. Heights are separate.
 No procedural randomness required; identical state/action gives identical outcome.
 
-SB.Missions.operations contains the three authored missions, get(id) looks up an
+SB.Missions.operations contains the four authored missions, get(id) looks up an
 implemented mission, and manifest holds the full twenty-operation contract.
 SB.Logic.newGame(id?) returns a fresh chosen operation (default Live Wire) and
 rejects unknown IDs. SB.Logic.preview(state,actorId,

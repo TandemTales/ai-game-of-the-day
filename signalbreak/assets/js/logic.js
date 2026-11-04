@@ -59,6 +59,40 @@
   function turretAllied(s) {
     return s.circuits ? s.circuits.some(function (c) { return c.turret && c.controlled; }) : !!s.network;
   }
+  function extractionStatus(s) {
+    if (!s.freight) {
+      var tiles = [];
+      s.rows.forEach(function (row, y) { for (var x = 0; x < row.length; x++) if (row[x] === 'e') tiles.push({ x: x, y: y }); });
+      return { open: true, label: s.extractionLabel || 'Extraction zone', tiles: tiles, turnsUntilChange: null, nextLabel: null };
+    }
+    // Every stop has a dwell followed by transit. Missing a train never closes
+    // the mission permanently: the same fully telegraphed schedule repeats.
+    var f = s.freight, span = f.dwell + f.transit;
+    var elapsed = (s.turn - 1) % (span * f.stops.length);
+    var index = Math.floor(elapsed / span), offset = elapsed % span;
+    var open = offset < f.dwell, next = f.stops[(index + 1) % f.stops.length];
+    return { open: open, label: open ? f.stops[index].label : 'Train in transit',
+      tiles: open ? f.stops[index].tiles.map(function (p) { return { x: p.x, y: p.y }; }) : [],
+      turnsUntilChange: open ? f.dwell - offset : span - offset, nextLabel: next.label };
+  }
+  function freightMessage(s) {
+    var f = extractionStatus(s);
+    return f.open ? f.label + ' boarding OPEN · ' + f.turnsUntilChange + ' player turn(s) remaining' :
+      'Train in transit · ' + f.nextLabel + ' opens in ' + f.turnsUntilChange + ' turn(s)';
+  }
+  function deployAmbush(s) {
+    if (!s.ambush || s.turn < s.ambush.turn) return;
+    var deployed = s.ambush.deployed = s.ambush.deployed || {};
+    s.ambush.enemies.forEach(function (entry) {
+      if (deployed[entry.id]) return;
+      if (s.enemies.some(function (e) { return e.id === entry.id; })) { deployed[entry.id] = true; return; }
+      // A squad member holding an entry tile delays that patrol instead of
+      // receiving an overlapping enemy or an unannounced adjacent spawn.
+      if (blocked(s, entry.x, entry.y) || occupant(s, entry.x, entry.y)) return;
+      s.enemies.push(clone(entry)); deployed[entry.id] = true;
+      log(s, entry.name + ' entered at (' + entry.x + ', ' + entry.y + ') · acts next enemy turn', 'turn');
+    });
+  }
   function objectiveStatus(s) {
     var required = s.circuits ? s.objectives && s.objectives.requiredCircuits || s.circuits.map(function (c) { return c.id; }) : ['main'];
     var status = required.map(function (id) {
@@ -66,6 +100,12 @@
       return { id: id, label: c ? c.label : 'Take the circuit', done: c ? !!c.controlled : !!s.network };
     });
     status.push({ id: 'rescue', label: s.objectives && s.objectives.rescueLabel || 'Rescue signal worker', done: !!s.rescued });
+    if (s.freight) status.push({ id: 'freight', label: freightMessage(s), done: extractionStatus(s).open });
+    if (s.ambush) {
+      var pending = s.ambush.enemies.filter(function (e) { return !(s.ambush.deployed && s.ambush.deployed[e.id]); });
+      status.push({ id: 'ambush', label: pending.length ? 'Rail ambush: ' + pending.length + ' patrol(s) at marked entries ' +
+        (s.turn < s.ambush.turn ? 'on turn ' + s.ambush.turn : 'waiting for clear entry tiles') : 'Rail ambush deployed', done: !pending.length });
+    }
     status.push({ id: 'extract', label: 'Extract surviving engineers', done: s.phase === 'won' });
     return status;
   }
@@ -156,6 +196,11 @@
       p.reason = '1 AP · one reaction shot during the enemy turn';
     } else if (kind === 'extract') {
       if (tile(s, a.x, a.y) !== 'e') return fail(s.extractionLabel ? 'Stand on a tile in the ' + s.extractionLabel + '.' : 'Stand on an eastern extraction tile.');
+      if (s.freight) {
+        var boarding = extractionStatus(s);
+        if (!boarding.open) return fail(freightMessage(s) + '. Windows repeat; wait safely or prepare the next platform.');
+        if (!boarding.tiles.some(function (t) { return t.x === a.x && t.y === a.y; })) return fail('Board at ' + boarding.label + ' now. ' + boarding.nextLabel + ' is the next stop.');
+      }
       if (!networkReady(s) || !s.rescued) return fail('Complete the circuit objectives and rescue before extracting.');
       p.reason = '1 AP · extract ' + a.name;
     } else return fail('Unknown order.');
@@ -235,9 +280,12 @@
     outcome(s);
     if (s.phase === 'lost' || s.phase === 'won') return true;
     s.turn++; s.phase = 'player'; s.squad.forEach(function (u) { if (living(u)) u.ap = 2; u.watch = false; });
-    log(s, 'Turn ' + s.turn + ' · engineer AP refreshed', 'turn'); return true;
+    log(s, 'Turn ' + s.turn + ' · engineer AP refreshed', 'turn');
+    deployAmbush(s);
+    if (s.freight) log(s, freightMessage(s), 'turn');
+    return true;
   }
   SB.Logic = { newGame: newGame, tile: tile, height: height, unit: unit, living: living, occupant: occupant,
     blocked: blocked, path: path, visible: visible, cover: cover, damage: damage, preview: preview, commit: commit, endTurn: endTurn,
-    circuitAt: circuitAt, doorOpen: doorOpen, objectiveStatus: objectiveStatus, turretAllied: turretAllied };
+    circuitAt: circuitAt, doorOpen: doorOpen, objectiveStatus: objectiveStatus, turretAllied: turretAllied, extractionStatus: extractionStatus };
 })(window);

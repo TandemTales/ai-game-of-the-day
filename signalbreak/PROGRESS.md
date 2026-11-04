@@ -181,3 +181,17 @@ ranking; campaign scoring remains a release prerequisite. No main/catalog edits.
 
 STOP absent; saved explicit selection verified; dev synchronized. Tuesday, age one: no release. Implement operation 04 Night Freight with authored rail ambush, telegraphed moving extraction windows and repeat opportunities rather than a hidden deadline. Content and gameplay workers own only missions.js and logic.js respectively; lead integrates HUD/render/tests and legal route verification. Preserve FIRST PLAYABLE, Tidelock, catalog and main. Full campaign breadth remains required; prior ART/UI FAIL remains.
 
+
+## Night Freight implementation checkpoint
+
+Operation 04 adds a distinct cargo-flank map, points-relay gates/turret, dispatcher
+rescue, repeating west/east two-turn boarding stops with one-turn transit, and
+telegraphed turn-four southeast pursuit. Missing boarding never permanently ends
+the mission. Pending patrols defer occupied entry tiles; each gets a player response
+before attacking. Map marks live/inactive platforms and pending ambush entries;
+HUD exposes the timetable. Old three-operation saves retain records/unlock 04.
+Focused Jest PASS 26/26 including all four legal live-AI routes with four survivors,
+stale boarding rejection and spawn safety. Full suite and browser sweep running.
+4/20 operations now implemented; all four remaining districts, progression,
+equipment/injury, lifts/visibility, persistent consequences and finale still required.
+No AAA claim: prior art/UI loss persists; FIRST PLAYABLE remains visible.

@@ -133,9 +133,61 @@
       { id: 'east', label: 'East feed isolated', x: 13, y: 10, controlled: false, doors: [{ x: 16, y: 11 }], requires: ['clinic'], turret: true }
     ],
     mastery: 'Keep every engineer standing, preserve the clinic supply and extract in sixteen turns or fewer.',
-    debrief: 'The clinic is lit and the occupation feeds are silent. Mara traces the next escape window to a night freight train. Night Freight remains in development.'
+    debrief: 'The clinic is lit and the occupation feeds are silent. Mara traces the next escape window to a night freight train. Its dispatcher knows a route into the Vertical Market.'
   };
-  SB.Missions.operations = [opening, locked, feed];
+  var freight = {
+    id: 'night-freight', title: 'Night Freight', district: 'Switchyard', sequence: 4,
+    briefing: 'A freight shuttle is our only route into the Vertical Market. Capture the points relay to open both yard gates and turn the loading turret. Rescue the dispatcher in the northern signal box, then board from the marked platforms. The train stops at West for two turns, travels for one, stops at East for two, then travels for one before repeating. Rear patrols arrive on turn four. Missing a train never ends the operation: hold cover and catch the next circuit.',
+    radio: 'MARA / West boards on turns 1-2, East on 4-5; the six-turn timetable repeats. Leave one AP to board. Rear patrols enter from the southeast on turn four. Clear the cargo flanks before splitting the squad between platforms.',
+    objectiveSummary: 'Capture the points relay, rescue the dispatcher, and board the freight at the currently open platform. Two-turn stops alternate with one-turn travel; the timetable repeats every six turns. Southeast ambush: turn 4.',
+    extractionLabel: 'active freight platform',
+    objectives: { requiredCircuits: ['points'], rescueLabel: 'Rescue the freight dispatcher' },
+    rows: [
+      '######################',
+      '#.........#..........#',
+      '#...c.....#..c.......#',
+      '#.........#......r...#',
+      '#......n..d..........#',
+      '#..c......#.####.....#',
+      '#.........#.####.....#',
+      '#.........#..........#',
+      '#....c....#..ee..ee..#',
+      '#.........#..c...c...#',
+      '#.........d..........#',
+      '#..c......#..........#',
+      '#.........#..........#',
+      '######################'
+    ],
+    heights: [{ x: 13, y: 2, z: 1 }, { x: 14, y: 2, z: 1 }, { x: 15, y: 2, z: 1 }],
+    squad: squad([[2, 4], [2, 5], [2, 6], [2, 7]]),
+    enemies: [
+      { id: 'freight-officer', name: 'Points officer', x: 8, y: 2, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 3 },
+      { id: 'freight-lookout', name: 'Signal-box lookout', x: 18, y: 2, hp: 6, maxHp: 6, damage: 2, range: 6, stride: 2 },
+      { id: 'freight-loader', name: 'Cargo patrol', x: 16, y: 10, hp: 7, maxHp: 7, damage: 2, range: 5, stride: 3 }
+    ],
+    turret: { x: 18, y: 6, range: 7, damage: 3 },
+    node: { x: 7, y: 4 }, rescue: { x: 17, y: 3 },
+    circuits: [
+      { id: 'points', label: 'Freight points secured', x: 7, y: 4, controlled: false, doors: [{ x: 10, y: 4 }, { x: 10, y: 10 }], turret: true }
+    ],
+    freight: {
+      dwell: 2, transit: 1,
+      stops: [
+        { label: 'West platform', tiles: [{ x: 13, y: 8 }, { x: 14, y: 8 }] },
+        { label: 'East platform', tiles: [{ x: 17, y: 8 }, { x: 18, y: 8 }] }
+      ]
+    },
+    ambush: {
+      turn: 4,
+      enemies: [
+        { id: 'freight-rear-a', name: 'Rear pursuit', x: 20, y: 10, hp: 5, maxHp: 5, damage: 2, range: 5, stride: 3 },
+        { id: 'freight-rear-b', name: 'Rail interceptor', x: 20, y: 11, hp: 5, maxHp: 5, damage: 2, range: 4, stride: 3 }
+      ]
+    },
+    mastery: 'Rescue the dispatcher, defeat the rear ambush and board all four engineers in fourteen turns or fewer.',
+    debrief: 'The last engineer climbs aboard and the dispatcher sends the freight uphill. Switchyard crews reclaim their gates and clinic. Ahead, rooftop antennae rise above the Vertical Market. Rooftop Crossfire remains in development.'
+  };
+  SB.Missions.operations = [opening, locked, feed, freight];
   SB.Missions.get = function (id) {
     return SB.Missions.operations.find(function (mission) { return mission.id === id; }) || null;
   };

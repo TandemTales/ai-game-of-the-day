@@ -31,19 +31,29 @@
       c.fillStyle=right;c.beginPath();c.moveTo(p.x,p.y+b);c.lineTo(p.x+a,p.y);c.lineTo(q.x+a,q.y);c.lineTo(q.x,q.y+b);c.closePath();c.fill();
       diamond(x,y,z,top,'#51616a');return q;
     }
-    var reachable=view.reachable||{};
+    var reachable=view.reachable||{}, boarding=s.freight&&L.extractionStatus(s);
+    function boardingHere(x,y){return boarding&&boarding.open&&boarding.tiles.some(function(t){return t.x===x&&t.y===y;});}
     // Authored yard materials and rail markings, with reachable cells kept legible.
     for(var y=0;y<s.height;y++)for(var x=0;x<s.width;x++) {
       var t=L.tile(s,x,y),z=L.height(s,x,y),p;
       var floor=x<8?((x*7+y*3)%4?'#30414a':'#374b53'):((x+y)%3?'#263e49':'#2d4650');
       if(t==='#')floor='#1b2c36';
-      if(t==='e')floor='#255c5b';
+      if(t==='e')floor=boarding?(boardingHere(x,y)?'#797044':'#293c49'):'#255c5b';
       p=z?block(x,y,z,floor,'#172c36','#203640'):diamond(x,y,0,floor,'#162c37');
       if(reachable[x+','+y])diamond(x,y,z,reachable[x+','+y]===1?'#397b8550':'#bda26030','#4a96994a');
-      if(t==='e'){c.strokeStyle='#80d2bb';c.lineWidth=a*.07;c.beginPath();c.moveTo(p.x-a*.4,p.y);c.lineTo(p.x,p.y+b*.45);c.lineTo(p.x+a*.4,p.y-b*.1);c.stroke();}
+      if(t==='e'){c.strokeStyle=boarding?(boardingHere(x,y)?'#ffe09b':'#72828b'):'#80d2bb';c.lineWidth=a*.07;c.beginPath();c.moveTo(p.x-a*.4,p.y);c.lineTo(p.x,p.y+b*.45);c.lineTo(p.x+a*.4,p.y-b*.1);c.stroke();}
       if(t!== '#' && y===6){c.strokeStyle=x<8?'#c2975655':'#6caab955';c.lineWidth=a*.04;c.beginPath();c.moveTo(p.x-a*.7,p.y+b*.3);c.lineTo(p.x+a*.7,p.y-b*.3);c.stroke();}
       if(t!== '#' && (x*17+y*9)%7===0){c.strokeStyle='#7b969b30';c.lineWidth=a*.025;c.beginPath();c.moveTo(p.x-a*.6,p.y);c.lineTo(p.x-a*.1,p.y+b*.3);c.lineTo(p.x+a*.1,p.y+b*.17);c.stroke();}
     }
+    if(boarding){
+      s.freight.stops.forEach(function(stop){var active=boarding.open&&stop.tiles.some(function(t){return boardingHere(t.x,t.y);});
+        var first=stop.tiles[0],p=P.point(first.x,first.y);c.fillStyle=active?'#ffe09b':'#9aadb5';c.font=Math.max(9,a*.42)+'px system-ui';c.textAlign='center';c.fillText(stop.label+(active?' / BOARD':''),p.x,p.y+a*.9);c.textAlign='start';
+      });
+    }
+    if(s.ambush)s.ambush.enemies.forEach(function(e){
+      if(s.ambush.deployed&&s.ambush.deployed[e.id])return;
+      var p=P.point(e.x,e.y);diamond(e.x,e.y,0,'#743f3c','#ef9c7c');c.fillStyle='#ffd0a0';c.font=Math.max(9,a*.5)+'px system-ui';c.textAlign='center';c.fillText('! '+s.ambush.turn,p.x,p.y-a*.25);c.textAlign='start';
+    });
     // Visible shared circuit routes show the coupled door/turret system.
     var circuits=s.circuits||[{x:s.node.x,y:s.node.y,controlled:s.network,doors:[{x:8,y:6}],turret:true}];
     circuits.forEach(function(n){var node=P.point(n.x,n.y);c.strokeStyle=n.controlled?'#6ee5ca':'#e4b778';c.lineWidth=a*.085;c.setLineDash([a*.25,a*.15]);

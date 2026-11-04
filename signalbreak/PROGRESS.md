@@ -176,3 +176,8 @@ ranking; campaign scoring remains a release prerequisite. No main/catalog edits.
   Preserve Tidelock and unrelated files. Signalbreak remains active, started
   November 2; forced approved-game Saturday remains November 14. No new choice
   is needed. Root catalog and main remain untouched by this content run.
+
+## 2026-11-03 Pacific — Night Freight run intent
+
+STOP absent; saved explicit selection verified; dev synchronized. Tuesday, age one: no release. Implement operation 04 Night Freight with authored rail ambush, telegraphed moving extraction windows and repeat opportunities rather than a hidden deadline. Content and gameplay workers own only missions.js and logic.js respectively; lead integrates HUD/render/tests and legal route verification. Preserve FIRST PLAYABLE, Tidelock, catalog and main. Full campaign breadth remains required; prior ART/UI FAIL remains.
+

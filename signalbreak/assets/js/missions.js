@@ -185,9 +185,64 @@
       ]
     },
     mastery: 'Rescue the dispatcher, defeat the rear ambush and board all four engineers in fourteen turns or fewer.',
-    debrief: 'The last engineer climbs aboard and the dispatcher sends the freight uphill. Switchyard crews reclaim their gates and clinic. Ahead, rooftop antennae rise above the Vertical Market. Rooftop Crossfire remains in development.'
+    debrief: 'The last engineer climbs aboard and the dispatcher sends the freight uphill. Switchyard crews reclaim their gates and clinic. Ahead, rooftop antennae rise above the Vertical Market. The squad prepares to climb into Rooftop Crossfire.'
   };
-  SB.Missions.operations = [opening, locked, feed, freight];
+  var rooftopHeights = [];
+  for (var roofY = 2; roofY <= 12; roofY++) for (var roofX = 8; roofX <= 21; roofX++) {
+    rooftopHeights.push({ x: roofX, y: roofY, z: 2 });
+  }
+  var rooftop = {
+    id: 'rooftop-crossfire', title: 'Rooftop Crossfire', district: 'Vertical Market', sequence: 5,
+    briefing: 'The freight dispatcher has brought us beneath the occupied market roofs. The north stairs are always open but face the lookout crossfire. A street-level service relay opens the southern stairs and turns the rooftop turret, creating a second approach beside the trapped antenna keeper. Secure that relay and the rooftop uplink, rescue the keeper, then extract from the eastern tram roof. Engineers cannot climb sheer roof edges: use either marked stair.',
+    radio: 'ROOK / North stairs at (7,4); south stairs at (7,11). The amber street relay at (5,10) opens the south gate and turns their turret. Split your approach around the kiosks; high ground gives one extra damage against the street.',
+    objectiveSummary: 'Take the street service relay and rooftop uplink. Use the north stairs or unlock the southern flank; rescue the antenna keeper, then extract at the tram roof.',
+    extractionLabel: 'eastern tram roof',
+    objectives: { requiredCircuits: ['market-service', 'roof-uplink'], rescueLabel: 'Rescue the antenna keeper' },
+    rows: [
+      '########################',
+      '#......................#',
+      '#......................#',
+      '#...###.......c........#',
+      '#..c.....c..##....nc...#',
+      '#...........##.......c.#',
+      '#...###...c.##.c.......#',
+      '#...................ee.#',
+      '#....c.....c....##..ee.#',
+      '#...............##.....#',
+      '#....n............rc...#',
+      '#.......d.##..c........#',
+      '#.....c................#',
+      '#......................#',
+      '#......................#',
+      '########################'
+    ],
+    heights: rooftopHeights,
+    maxStepHeight: 0,
+    climbLinks: [
+      { from: { x: 7, y: 4 }, to: { x: 8, y: 4 } },
+      { from: { x: 7, y: 11 }, to: { x: 8, y: 11 } }
+    ],
+    stairs: [
+      { label: 'North stairs', x: 7, y: 4, toX: 8, toY: 4 },
+      { label: 'South stairs / service relay', x: 7, y: 11, toX: 8, toY: 11 }
+    ],
+    squad: squad([[2, 8], [2, 9], [2, 10], [2, 11]]),
+    enemies: [
+      { id: 'market-enforcer', name: 'Street enforcer', x: 6, y: 9, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 3 },
+      { id: 'north-lookout', name: 'North roof lookout', x: 10, y: 3, hp: 6, maxHp: 6, damage: 2, range: 6, stride: 2 },
+      { id: 'uplink-marksman', name: 'Uplink marksman', x: 20, y: 4, hp: 6, maxHp: 6, damage: 2, range: 6, stride: 2 },
+      { id: 'roof-warden', name: 'Antenna warden', x: 19, y: 11, hp: 7, maxHp: 7, damage: 2, range: 5, stride: 3 }
+    ],
+    turret: { x: 19, y: 6, range: 7, damage: 3 },
+    node: { x: 5, y: 10 }, rescue: { x: 18, y: 10 },
+    circuits: [
+      { id: 'market-service', label: 'Market service relay', x: 5, y: 10, controlled: false, doors: [{ x: 8, y: 11 }], turret: true },
+      { id: 'roof-uplink', label: 'Rooftop uplink secured', x: 18, y: 4, controlled: false, doors: [] }
+    ],
+    mastery: 'Use both stair approaches, rescue the keeper and extract all four engineers in sixteen turns or fewer.',
+    debrief: 'The antenna keeper connects Mara to the market rooftops. The freight route is secure, and the tram roof becomes a civilian refuge. The keeper points to a stranded cargo lift: its medical supplies must reach the clinic. Cargo Lift remains in development.'
+  };
+  SB.Missions.operations = [opening, locked, feed, freight, rooftop];
   SB.Missions.get = function (id) {
     return SB.Missions.operations.find(function (mission) { return mission.id === id; }) || null;
   };

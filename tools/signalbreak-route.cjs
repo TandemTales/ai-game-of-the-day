@@ -17,7 +17,7 @@ function nextOrder(SB, s) {
     const q = [target], map = { [target.x+','+target.y]: 0 };
     for (let i=0;i<q.length;i++) for (const [dx,dy] of [[1,0],[0,1],[-1,0],[0,-1]]) {
       const x=q[i].x+dx,y=q[i].y+dy,key=x+','+y;
-      if (map[key] !== undefined || L.blocked(s,x,y)) continue;
+      if (map[key] !== undefined || L.blocked(s,x,y) || (L.canStep && !L.canStep(s,{x,y},q[i]))) continue;
       map[key]=map[q[i].x+','+q[i].y]+1;q.push({x,y});
     }
     return map;

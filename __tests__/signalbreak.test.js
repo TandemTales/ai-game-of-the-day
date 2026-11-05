@@ -31,14 +31,14 @@ function pilot(SB, s, report = []) {
   }
   return report;
 }
-test('full manifest promises twenty operations; the first four distinct authored maps are playable', () => {
+test('full manifest promises twenty operations; the first five distinct authored maps are playable', () => {
   const SB=load();expect(SB.Missions.manifest).toHaveLength(5);
   const names=SB.Missions.manifest.flatMap(d=>Array.from(d).slice(1));expect(new Set(names).size).toBe(20);
   expect(SB.Missions.opening.title).toBe('Live Wire');
-  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight']);
-  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(4);
+  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire']);
+  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(5);
   for(const m of SB.Missions.operations){expect(m.rows.every(r=>r.length===m.rows[0].length)).toBe(true);for(const n of m.circuits||[])expect(m.rows[n.y][n.x]).toBe('n');}
-  expect(()=>SB.Logic.newGame('rooftop-crossfire')).toThrow('Unknown operation');
+  expect(()=>SB.Logic.newGame('cargo-lift')).toThrow('Unknown operation');
 });
 test('fresh states are isolated and previews never mutate the tactical state', () => {
   const {Logic:L}=load(),a=L.newGame(),b=L.newGame(),before=JSON.stringify(a);
@@ -110,7 +110,7 @@ test('complete legal pilot is deterministic across fresh runs', () => {
 });
 
 const {run:campaignRoute}=require('../tools/signalbreak-route.cjs');
-test.each(['live-wire','locked-manifest','cut-the-feed','night-freight'])('%s can be won by legal orders against live AI with four survivors', id => {
+test.each(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire'])('%s can be won by legal orders against live AI with four survivors', id => {
   const SB=load(),s=SB.Logic.newGame(id),report=campaignRoute(SB,s);
   expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);
   expect(report.some(p=>p.kind==='hack')).toBe(true);expect(report.some(p=>p.kind==='rescue')).toBe(true);
@@ -197,4 +197,35 @@ test('old three-operation campaign saves retain records and unlock Night Freight
   const SB=load(),results={};for(const id of ['live-wire','locked-manifest','cut-the-feed'])results[id]={score:2000,turns:10,survivors:4};
   const c=SB.Campaign.normalize({version:1,selected:'cut-the-feed',results});
   expect(c.results).toEqual(results);expect(SB.Campaign.unlocked(c,'night-freight')).toBe(true);
+});
+
+
+test('rooftop heights require authored stairs in both directions and power gates the south approach', () => {
+  const L=load().Logic,s=L.newGame('rooftop-crossfire');
+  for(const row of s.rows)expect(row.length).toBe(s.width);
+  expect(L.canStep(s,{x:7,y:5},{x:8,y:5})).toBe(false);
+  expect(L.canStep(s,{x:8,y:5},{x:7,y:5})).toBe(false);
+  expect(L.canStep(s,{x:7,y:4},{x:8,y:4})).toBe(true);
+  expect(L.canStep(s,{x:8,y:4},{x:7,y:4})).toBe(true);
+  expect(L.canStep(s,{x:7,y:11},{x:8,y:11})).toBe(false);
+  Object.assign(s.squad[0],{x:5,y:9});order(L,s,'nia','hack',5,10);
+  expect(L.canStep(s,{x:7,y:11},{x:8,y:11})).toBe(true);
+  expect(L.canStep(s,{x:8,y:11},{x:7,y:11})).toBe(true);
+});
+
+test('rooftop movement detours to stairs; cross-cliff rescue and field aid are rejected without mutation', () => {
+  const L=load().Logic,s=L.newGame('rooftop-crossfire'),u=s.squad[0];
+  Object.assign(u,{x:7,y:5});const route=L.path(s,u,8,5);
+  expect(route.some(p=>p.x===7&&p.y===4)).toBe(true);
+  expect(route.some(p=>p.x===8&&p.y===4)).toBe(true);
+  s.rescue={x:8,y:5};const before=JSON.stringify(s);
+  expect(L.preview(s,'nia','rescue',8,5).legal).toBe(false);expect(JSON.stringify(s)).toBe(before);
+  Object.assign(s.squad[1],{x:7,y:5});Object.assign(s.squad[2],{x:8,y:5,hp:2});
+  expect(L.preview(s,'sol','heal',8,5).legal).toBe(false);
+});
+
+test('old four-operation saves preserve records and unlock the first Market operation', () => {
+ const SB=load(),results={};for(const m of SB.Missions.operations.slice(0,4))results[m.id]={score:2000,turns:10,survivors:4};
+ const c=SB.Campaign.normalize({version:1,selected:'night-freight',results});
+ expect(c.results).toEqual(results);expect(SB.Campaign.unlocked(c,'rooftop-crossfire')).toBe(true);
 });

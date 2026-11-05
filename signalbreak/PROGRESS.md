@@ -235,3 +235,8 @@ Final JS syntax and diff checks PASS. Handoff encoding normalized to original UT
 
 STOP absent; saved explicit Signalbreak selection confirmed; dev synchronized. Wednesday age2, no release. Implement operation05 in Vertical Market with meaningful elevation and alternate stair routes; preserve four existing operations and v1 saves. Content and rules workers own missions.js and logic.js respectively; lead owns integration/tests. Fill approved breadth before cosmetic loops. FIRST PLAYABLE remains; Tidelock/main/catalog untouched. Squad progression remains required follow-on work.
 
+
+### Rooftop Crossfire content checkpoint
+
+Authored operation05: 24x16 Vertical Market roof plateau, two stair-only approaches, southern service-relay gate/turret flank, separate rooftop uplink, antenna keeper rescue and tram-roof extraction. Shared canStep governs player/AI/cliff legality and reroute checks; cross-cliff rescue/heal refused. Renderer marks exact stair edges and raises cover/nodes/doors onto their floor. Read-only critic caught mismatched raised block tops; corrected base+height. Lead QA planner now respects stair edges. Five legal live-AI deterministic routes pass, including Rooftop with four survivors. Focused30/30PASS; full suite/browser running. Campaign5/20, progression/equipment/injury/lifts/visibility/consequences/finale still required. No quality acceptance or release.
+

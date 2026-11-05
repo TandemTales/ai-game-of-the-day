@@ -17,6 +17,21 @@
   }
   function tile(s, x, y) { return s.rows[y] && s.rows[y][x] || '#'; }
   function height(s, x, y) { var h = s.heights.find(function (p) { return p.x === x && p.y === y; }); return h ? h.z : 0; }
+  function climbLinked(s, a, b) {
+    return (s.climbLinks || []).some(function (link) {
+      return link.from.x === a.x && link.from.y === a.y && link.to.x === b.x && link.to.y === b.y ||
+        link.to.x === a.x && link.to.y === a.y && link.from.x === b.x && link.from.y === b.y;
+    });
+  }
+  function canStep(s, a, b) {
+    if (distance(a, b) !== 1 || blocked(s, b.x, b.y)) return false;
+    // Legacy operations retain their original traversable raised cover. New
+    // districts opt into real cliff edges and explicitly authored stair links.
+    return s.maxStepHeight === undefined || Math.abs(height(s, a.x, a.y) - height(s, b.x, b.y)) <= s.maxStepHeight || climbLinked(s, a, b);
+  }
+  function canReachAdjacent(s, a, b) {
+    return distance(a, b) <= 1 && (s.maxStepHeight === undefined || height(s, a.x, a.y) === height(s, b.x, b.y) || climbLinked(s, a, b));
+  }
   function living(u) { return u.hp > 0 && !u.extracted; }
   function unit(s, id) { return s.squad.find(function (u) { return u.id === id; }); }
   function occupant(s, x, y) { return s.squad.concat(s.enemies).find(function (u) { return living(u) && u.x === x && u.y === y; }); }
@@ -41,14 +56,14 @@
       var p = queue[head++];
       [[1,0],[0,1],[-1,0],[0,-1]].forEach(function (d) {
         var x = p.x + d[0], y = p.y + d[1], key = x + ',' + y;
-        if (seen[key] || blocked(routed, x, y)) return;
+        if (seen[key] || !canStep(routed, p, { x: x, y: y })) return;
         seen[key] = true; queue.push({ x: x, y: y });
       });
     }
     return s.squad.some(function (u) {
       if (!living(u) || seen[u.x + ',' + u.y]) return false;
       // A unit on the closing door can step back into the controller's region.
-      return ![[1,0],[0,1],[-1,0],[0,-1]].some(function (d) { return tile(routed, u.x, u.y) === 'd' && seen[(u.x + d[0]) + ',' + (u.y + d[1])]; });
+      return ![[1,0],[0,1],[-1,0],[0,-1]].some(function (d) { return tile(routed, u.x, u.y) === 'd' && seen[(u.x + d[0]) + ',' + (u.y + d[1])] && canStep(routed, u, { x: u.x + d[0], y: u.y + d[1] }); });
     });
   }
   function networkReady(s) {
@@ -127,7 +142,7 @@
       }
       [[1,0],[0,1],[-1,0],[0,-1]].forEach(function (d) {
         var nx = p.x + d[0], ny = p.y + d[1], k = key(nx, ny);
-        if (Object.prototype.hasOwnProperty.call(parents, k) || blocked(s, nx, ny) || occupant(s, nx, ny)) return;
+        if (Object.prototype.hasOwnProperty.call(parents, k) || !canStep(s, p, { x: nx, y: ny }) || occupant(s, nx, ny)) return;
         parents[k] = p; q.push({ x: nx, y: ny });
       });
     }
@@ -160,7 +175,7 @@
     if (kind === 'move') {
       if (occupant(s, x, y)) return fail('Tile occupied.');
       p.path = path(s, a, x, y);
-      if (!p.path) return fail('Route blocked. Hack the circuit to open the security door.');
+      if (!p.path) return fail(s.maxStepHeight !== undefined ? 'Route blocked. Use marked stairs between roof levels and route power to open security doors.' : 'Route blocked. Hack the circuit to open the security door.');
       p.cost = Math.ceil((p.path.length - 1) / a.stride);
       if (!p.cost || p.cost > a.ap) return fail('Beyond remaining movement AP.');
       p.reason = p.cost + ' AP · ' + (p.path.length - 1) + ' tiles · confirm move';
@@ -183,13 +198,13 @@
       p.reason = s.circuits ? '1 AP · ' + circuit.label + (circuit.exclusiveGroup ? ' · reroutes power away from the other route' : '') + (circuit.turret ? ' · turret becomes allied' : losesTurret ? ' · turret becomes HOSTILE' : '') : '1 AP · open door + take turret + restore lights';
     } else if (kind === 'rescue') {
       if (x !== s.rescue.x || y !== s.rescue.y || s.rescued) return fail('No worker to rescue here.');
-      if (distance(a, s.rescue) > 1) return fail('Get adjacent to the worker.');
+      if (!canReachAdjacent(s, a, s.rescue)) return fail('Get adjacent to the worker on the same level or a connecting stair.');
       p.reason = '1 AP · ' + (s.objectives && s.objectives.rescueLabel || 'release signal worker') + ' · +400 points';
     } else if (kind === 'heal') {
       var ally = s.squad.find(function (u) { return living(u) && u.x === x && u.y === y; });
       if (a.role !== 'MEDIC') return fail('Only Sol can apply field aid.');
       if (a.kits === 0) return fail('No field aid kits left this operation.');
-      if (!ally || distance(a, ally) > 1 || ally.hp >= ally.maxHp) return fail('Select an injured adjacent engineer, including Sol.');
+      if (!ally || !canReachAdjacent(s, a, ally) || ally.hp >= ally.maxHp) return fail('Select an injured adjacent engineer on this level or a connecting stair, including Sol.');
       p.targetId = ally.id; p.reason = '1 AP · heal 4 HP · uses one of two field kits';
     } else if (kind === 'watch') {
       if (a.watch) return fail('Overwatch already set.');
@@ -286,6 +301,6 @@
     return true;
   }
   SB.Logic = { newGame: newGame, tile: tile, height: height, unit: unit, living: living, occupant: occupant,
-    blocked: blocked, path: path, visible: visible, cover: cover, damage: damage, preview: preview, commit: commit, endTurn: endTurn,
+    blocked: blocked, canStep: canStep, path: path, visible: visible, cover: cover, damage: damage, preview: preview, commit: commit, endTurn: endTurn,
     circuitAt: circuitAt, doorOpen: doorOpen, objectiveStatus: objectiveStatus, turretAllied: turretAllied, extractionStatus: extractionStatus };
 })(window);

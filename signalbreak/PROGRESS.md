@@ -230,3 +230,8 @@ Tidelock remains on hold. Forced release remains November14, not November7.
 Final verification: focused26/26 PASS; full repository31/31 suites533/533 tests
 PASS exit0 in282.289seconds (node_modules/.cache/signalbreak-night-freight-full.json).
 Final JS syntax and diff checks PASS. Handoff encoding normalized to original UTF8.
+
+## 2026-11-04 Pacific — Rooftop Crossfire run intent
+
+STOP absent; saved explicit Signalbreak selection confirmed; dev synchronized. Wednesday age2, no release. Implement operation05 in Vertical Market with meaningful elevation and alternate stair routes; preserve four existing operations and v1 saves. Content and rules workers own missions.js and logic.js respectively; lead owns integration/tests. Fill approved breadth before cosmetic loops. FIRST PLAYABLE remains; Tidelock/main/catalog untouched. Squad progression remains required follow-on work.
+

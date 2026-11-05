@@ -11,8 +11,8 @@ node tools/signalbreak-browser-smoke.cjs
 Rules tests load classic scripts in a vm with a browser-global shim. Verify
 read-only previews, AP/path legality, blocked and circuit-door LOS, cover/height,
 deterministic attacks/AI, overwatch, rescue, objective/extraction, win/loss,
-fresh-state isolation and all four authored operations' legal live-AI routes.
-The 26 focused cases also cover exclusive relay/LOS/turret changes, repeated-score
+fresh-state isolation and all five authored operations' legal live-AI routes.
+The 30 focused cases also cover exclusive relay/LOS/turret changes, repeated-score
 protection, stranded-squad reroute refusal, clinic-interlock rejected-action
 immutability, raised-tile projection picking across zooms, earned unlocks,
 mission-boundary save/load, replay best scores and corrupt/gapped/denied storage.
@@ -25,15 +25,15 @@ the lead, real keyboard/pointer/native touch, preview→confirm, cancel, end tur
 hack-linked door/turret, loss/retry, operation score rank-before-submit with LOCAL
 API mock only, file:// boot and DPR2 backing. Read screenshots, not just paths.
 
-The harness now completes all four missions through actual UI orders and live
-AI, with no tactical-state injection. Locked Manifest and Night Freight use native touch for
+The harness now completes all five missions through actual UI orders and live
+AI, with no tactical-state injection. Locked Manifest, Night Freight and Rooftop Crossfire use native touch for
 selection, movement, node targeting and confirmation throughout. It reloads to
 the next earned briefing, validates best-score save records, holds the first
 rank response until Next changes missions, and checks that the original score
 is still posted. A separate denied-localStorage page must stay playable and
 display its save warning. Separate loss fixtures are explicitly labelled.
 
-In addition to the opening six-size sweep, all three added maps have title/live captures
+In addition to the opening six-size sweep, all four added maps have title/live captures
 and native touch/raised-tile-picking/overflow/console/request checks at all six
 sizes. Campaign debrief/mastery text is checked. Evidence includes results.json
 and SHA-256 source-manifest.json in node_modules/.cache/signalbreak/browser-smoke.
@@ -67,3 +67,13 @@ all four through actual UI orders/live AI, with six-size title/live captures and
 scroll-reachable briefing CTA. Current boarding/countdown uses a fixed map legend
 to avoid overlapping phone-scale platform labels; optional mastery remains an
 authored goal, not a persisted medal. No human/device/AAA evidence is implied.
+
+
+Rooftop Crossfire coverage: all24-column rows and declared nodes; stair-only
+movement both directions, southern powered door, route detour via northern stairs,
+cross-cliff rescue/aid rejection, deterministic legal live-AI victory, and old
+four-operation v1 save compatibility/unlock. Six-size exact new-map captures and
+native touch raised tile picking; complete rooftop pilot uses native touch and
+actual UI orders. No tactical state injection in victory paths. Lead inspected
+all12 new title/live captures via contact sheets plus phone/desktop originals.
+Contact sheets downsample4K; they do not prove full-resolution4K legibility.

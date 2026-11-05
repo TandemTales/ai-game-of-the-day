@@ -240,3 +240,43 @@ STOP absent; saved explicit Signalbreak selection confirmed; dev synchronized. W
 
 Authored operation05: 24x16 Vertical Market roof plateau, two stair-only approaches, southern service-relay gate/turret flank, separate rooftop uplink, antenna keeper rescue and tram-roof extraction. Shared canStep governs player/AI/cliff legality and reroute checks; cross-cliff rescue/heal refused. Renderer marks exact stair edges and raises cover/nodes/doors onto their floor. Read-only critic caught mismatched raised block tops; corrected base+height. Lead QA planner now respects stair edges. Five legal live-AI deterministic routes pass, including Rooftop with four survivors. Focused30/30PASS; full suite/browser running. Campaign5/20, progression/equipment/injury/lifts/visibility/consequences/finale still required. No quality acceptance or release.
 
+
+
+## Rooftop Crossfire verified handoff — November 4 Pacific
+
+Final exact-source real Edge browser PASS:30 mission/viewport combinations
+(five maps at six required sizes), clean app warnings/errors, no horizontal
+scroll or external gameplay requests. All five victories issue real UI orders
+against live AI; Locked Manifest, Freight and Rooftop use native touch. Rooftop
+40 orders /turn7 /3390points /4 survivors. Rank GET-before-POST and delayed result
+snapshot use LOCAL mocks only; earned unlocks/save/reload, denied storage,
+raised-tile touch picking, loss fixture, file boot and DPR2 PASS. Sandbox Edge
+launch failed; approved outside-sandbox local retry and final repeat passed.
+Runtime source hashes match source-manifest.json; evidence lives in ignored
+node_modules/.cache/signalbreak/browser-smoke. Lead opened all12 new title/live
+frames via three contact sheets,390/1440 originals, victory and critic comparison.
+4K contact is downsampled, not a full-resolution4K legibility claim.
+
+Independent read-only critic: ART/UI FAIL / OURS LOSES against official XCOM2
+Steam gameplay (https://store.steampowered.com/app/268500/XCOM_2/). Comparison:
+C:/Users/jshun/.codex/visualizations/2026/11/05/01a1aa86-86d2-7741-8acf-d80d014ab049/rooftop-crossfire-side-by-side.png
+Different camera views; comparison concerns materials/actor identity/setting,
+not same-angle HUD readability. Repeated flat slab materials, tiny similar
+actors, weak market/tram identity and whitespace remain. Its raised-object top
+bug was fixed before the final sweep; no other rules blocker found by review.
+Audio/VFX unjudged; no human fun/device/speaker/GPU/AAA evidence or acceptance.
+
+Full-game ledger:5/20 operations across2/5 districts. Fifteen operations and
+squad progression/equipment/injury, functional lifts/visibility, campaign
+consequences/finale and final campaign leaderboard remain required implementation.
+Optional mastery is a stated goal, not persisted medals. FIRST PLAYABLE remains.
+No .aaa-complete, release, catalog or main changes. Tidelock stays on hold.
+NEXT RUN FIRST: implement06 Cargo Lift powered escort, then persistent squad
+progression/equipment/injury with v1 save migration; keep filling content before
+repeated cosmetics. Forced release remains November14, not November7.
+
+
+Final verification: focused30/30PASS; full repository31/31suites537/537testsPASS,
+exit0 in293.733seconds. Report:node_modules/.cache/signalbreak-rooftop-full.json.
+Final runtime/browser hashes match at2026-11-05T07:12:39.885Z; JS syntax and
+diff checks PASS. Intent ae0abb3 and content d1dc5b7 pushed; handoff pushed next.

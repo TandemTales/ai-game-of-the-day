@@ -272,6 +272,8 @@ test('open cargo shaft blocks walking but permits cross-shaft fire; dock walls s
  const L=load().Logic,s=L.newGame('cargo-lift');
  expect(L.visible(s,{x:7,y:7},{x:15,y:7})).toBe(true);
  expect(L.blocked(s,11,7)).toBe(true);
+ expect(L.cover(s,{x:15,y:7},{x:7,y:7})).toBe(0);
+ expect(L.cover(s,{x:15,y:7},{x:15,y:0})).toBe(0);
  expect(L.canStep(s,{x:9,y:7},{x:10,y:7})).toBe(false);
  expect(L.visible(s,{x:4,y:3},{x:4,y:5})).toBe(false);
 });

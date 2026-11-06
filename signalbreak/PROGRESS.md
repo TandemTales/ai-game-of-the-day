@@ -303,3 +303,8 @@ cue (fixed) and open shaft blocking fire (fixed/shared LOS with explicit test).
 Focused final36/36PASS; final exact-source browser rerun and fullsuite pending.
 Initial independent ART/UI FAIL / OURS LOSES: flat sparse materials, tiny similar
 phone pawns, weak lift machinery silhouette and desktop whitespace. No AAA claim.
+
+Critic followup fixed empty shaft granting adjacent wall cover as well as LOS:
+shared opaque() now distinguishes open void from real walls for both systems.
+Final focused36/36PASS after this correction. Full repository31/31suites543/543
+PASS,304.546seconds, report node_modules/.cache/signalbreak-cargo-full.json.

@@ -175,21 +175,25 @@
     }
     return null;
   }
+  function opaque(s, x, y) {
+    var openShaft = s.lift && x >= 8 && x <= 14 && y > 0 && y < s.height - 1;
+    return tile(s, x, y) === '#' && !openShaft;
+  }
   function visible(s, a, b) {
     var dx = b.x - a.x, dy = b.y - a.y, steps = Math.max(Math.abs(dx), Math.abs(dy)) * 4;
     for (var i = 1; i < steps; i++) {
       var x = Math.round(a.x + dx * i / steps), y = Math.round(a.y + dy * i / steps);
       if (x === a.x && y === a.y || x === b.x && y === b.y) continue;
-      var openShaft = s.lift && x >= 8 && x <= 14 && y > 0 && y < s.height - 1;
-      if (tile(s, x, y) === '#' && !openShaft || tile(s, x, y) === 'd' && !doorOpen(s, x, y)) return false;
+      if (opaque(s, x, y) || tile(s, x, y) === 'd' && !doorOpen(s, x, y)) return false;
     }
     return true;
   }
   function cover(s, target, from) {
     if (tile(s, target.x, target.y) === 'c') return 1;
     var dx = Math.sign(from.x - target.x), dy = Math.sign(from.y - target.y);
-    if (Math.abs(from.x - target.x) >= Math.abs(from.y - target.y)) return /[#c]/.test(tile(s, target.x + dx, target.y)) ? 1 : 0;
-    return /[#c]/.test(tile(s, target.x, target.y + dy)) ? 1 : 0;
+    var x = target.x, y = target.y;
+    if (Math.abs(from.x - target.x) >= Math.abs(from.y - target.y)) x += dx; else y += dy;
+    return tile(s, x, y) === 'c' || opaque(s, x, y) ? 1 : 0;
   }
   function damage(s, from, target) { return Math.max(1, from.damage - cover(s, target, from) + (height(s, from.x, from.y) > height(s, target.x, target.y) ? 1 : 0)); }
   function canShoot(s, a, b) { return living(b) && distance(a, b) <= a.range && visible(s, a, b); }

@@ -3,6 +3,9 @@ const {chromium}=require('playwright');
 const {nextOrder}=require('./signalbreak-route.cjs');
 const root=path.resolve(__dirname,'..'),out=path.join(root,'node_modules/.cache/signalbreak/browser-smoke');fs.mkdirSync(out,{recursive:true});
 const api=[],results=[];
+const crypto=require('crypto'),sources=['signalbreak/index.html','signalbreak/assets/css/game.css',...['missions','logic','campaign','render','audio','game'].map(f=>'signalbreak/assets/js/'+f+'.js')];
+const sourceSnapshot=()=>sources.map(file=>({file,sha256:crypto.createHash('sha256').update(fs.readFileSync(path.join(root,file))).digest('hex')}));
+const initialSources=sourceSnapshot();
 const server=http.createServer((req,res)=>{
   const url=new URL(req.url,'http://localhost');
   if(url.pathname.startsWith('/api/')){const item={method:req.method,url:url.pathname+url.search};if(url.pathname.startsWith('/api/leaderboard/'))api.push(item);let body='';req.on('data',d=>body+=d);req.on('end',()=>{if(body)item.body=JSON.parse(body);res.writeHead(200,{'content-type':'application/json'});res.end(JSON.stringify({rank:1,success:true}));});return;}
@@ -108,8 +111,8 @@ async function drive(page,touch=false){
     assert.equal(await catalog.locator('.feature-visual').getAttribute('href'),'signalbreak/index.html');assert.equal(await catalog.locator('.featured .rate').getAttribute('data-id'),'signalbreak');
     assert.equal(await catalog.locator('#games .game-card').count(),15);assert.equal(await catalog.locator('#games .game-card[data-id="tidelock"]').count(),1);assert.equal(await catalog.locator('#games .game-card[data-id="gearwell"]').count(),1);
     assert(await catalog.locator('.feature-visual img').evaluate(i=>i.complete&&i.naturalWidth>0));await catalog.locator('.featured').screenshot({path:path.join(out,'catalog-feature.png')});await catalog.close();
-    const crypto=require('crypto'),sources=['signalbreak/index.html','signalbreak/assets/css/game.css',...['missions','logic','campaign','render','audio','game'].map(f=>'signalbreak/assets/js/'+f+'.js')];
-    fs.writeFileSync(path.join(out,'source-manifest.json'),JSON.stringify({at:new Date().toISOString(),sources:sources.map(file=>({file,sha256:crypto.createHash('sha256').update(fs.readFileSync(path.join(root,file))).digest('hex')}))},null,2));
+    assert.deepEqual(sourceSnapshot(),initialSources,'runtime sources must remain unchanged throughout browser verification');
+    fs.writeFileSync(path.join(out,'source-manifest.json'),JSON.stringify({at:new Date().toISOString(),sources:initialSources},null,2));
     fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({results,newMissionSweeps,api,campaignRuns,dialogs,checks:'real keyboard/touch preview-confirm-cancel, raised tile picking, native-touch full Locked Manifest, Night Freight and Rooftop Crossfire, six legal-input live-AI victories, earned unlock/save/reload, denied storage, delayed rank snapshot, loss/retry, file boot, DPR2'},null,2));console.log(JSON.stringify({viewports:results.length,newMissionViewports:newMissionSweeps.length,campaign:campaignRuns.map(r=>({...r.final,actions:r.actions.length})),checks:'PASS'}));
   }finally{await browser.close();server.close();}
 })().catch(e=>{console.error(e);server.close();process.exitCode=1;});

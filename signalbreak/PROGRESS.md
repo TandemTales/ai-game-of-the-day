@@ -308,3 +308,37 @@ Critic followup fixed empty shaft granting adjacent wall cover as well as LOS:
 shared opaque() now distinguishes open void from real walls for both systems.
 Final focused36/36PASS after this correction. Full repository31/31suites543/543
 PASS,304.546seconds, report node_modules/.cache/signalbreak-cargo-full.json.
+
+
+## Cargo Lift verified handoff - November 5 Pacific
+
+Final stable-source Edge PASS:36 map/viewport combinations (six required sizes),
+six legal actualUI/liveAI victories with four survivors. Cargo uses native touch:
+49orders/turn8/3360points. No app warnings/errors, horizontal overflow or external
+gameplay requests. Save/reload/unlocks, local mock rank-before-POST/delayed result
+snapshot, denied storage, file boot, DPR2, loss fixture and raised picking PASS.
+No production leaderboard contacted. Runtime SHA256 snapshot is asserted equal
+before/after the entire harness, and current files match final source manifest
+at2026-11-06T07:12:12.296Z. Evidence: ignored node_modules/.cache/signalbreak/browser-smoke.
+Lead read all12 final Cargo title/live frames via three contact sheets, phone
+original and victory; 4K contact is downsampled, not full-resolution legibility.
+Initial sandboxEdge launch failed; scoped authorized local retry passed.
+
+Independent read-only comparison against official XCOM2 Steam gameplay:
+ART/UI FAIL / OURS LOSES. Sparse flat repeated slabs, tiny similar actors,
+weak substantial lift machinery identity and desktop whitespace remain.
+https://store.steampowered.com/app/268500/XCOM_2/
+Comparison (different camera views, native615x346 reference):
+C:/Users/jshun/.codex/visualizations/2026/11/06/01a1afa6-c324-7691-8656-72bf8d28dbed/cargo-lift-side-by-side.png
+Lead opened comparison. Critic-found dispatch wording and shaft LOS/cover
+inconsistencies fixed; no further substantive blocker found. Audio/VFX unjudged;
+human fun, devices, speaker quality and GPU performance unverified.
+
+Focused36/36PASS after final mechanics correction; full31suites543testsPASS,
+304.546seconds. Syntax/diff PASS. Intent7ccc185, contentfae6523 and correction66c8c28
+pushed. Full contract remains6/20 across2/5districts, FIRST PLAYABLE visible.
+No .aaa-complete, release, main or catalog changes. Tidelock preserved on hold.
+NEXT RUN FIRST: persistent squad progression/equipment/injury with compatible v1
+migration, then07 Open Clinic defense/coverage switching. Fourteen operations,
+visibility, persistent consequences, finale and final campaign score still
+required. Forced release November14; November7 is first Saturday, age5.

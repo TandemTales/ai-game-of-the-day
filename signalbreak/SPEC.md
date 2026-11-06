@@ -39,7 +39,7 @@ explicit user approval; time/usage limits are not approval.
   clinic bypass; safe interlock, technician rescue and loading-bay extraction.
 - [x] 04 Night Freight: cargo-flank ambush, turn-four pursuit and repeating west/east boarding windows.
 - [x] 05 Rooftop Crossfire: stair-only roof elevation, always-open north approach and relay-gated southern flank, rooftop uplink/keeper rescue/tram extraction.
-- [ ] 06 Cargo Lift: powered moving-lift escort.
+- [x] 06 Cargo Lift: powered two-dock platform, shutter/operator/medicine escort, upper reception gate.
 - [ ] 07 Open Clinic: medical-staff defense and coverage switching.
 - [ ] 08 Antenna Rain: tower raid and alternating overwatch lanes.
 - [ ] 09 Sluice Logic: water diversion changes routes.
@@ -56,7 +56,7 @@ explicit user approval; time/usage limits are not approval.
 - [ ] 20 Signalbreak: combined core shutdown and consequence-based epilogue.
 
 Mission-boundary local saves, sequential unlocks and replay best scores now exist
-for the five implemented missions. These do not satisfy squad progression,
+for the six implemented missions. These do not satisfy squad progression,
 equipment/injury recovery or persistent rescue/evidence consequences. Authored
 mastery targets appear in the HUD; no campaign medal/reward system exists yet.
 Story debriefs appear on victory. The clinic is a protected prerequisite, not yet
@@ -124,7 +124,7 @@ Grid coordinates integer (x,y), origin top left. Tiles: . floor, # tall blocker,
 c low cover, d circuit door, e exit, n network node, r rescue. Heights are separate.
 No procedural randomness required; identical state/action gives identical outcome.
 
-SB.Missions.operations contains the five authored missions, get(id) looks up an
+SB.Missions.operations contains the six authored missions, get(id) looks up an
 implemented mission, and manifest holds the full twenty-operation contract.
 SB.Logic.newGame(id?) returns a fresh chosen operation (default Live Wire) and
 rejects unknown IDs. SB.Logic.preview(state,actorId,
@@ -186,7 +186,7 @@ save checks â†’ independent gameplay/visual/UI/audio/VFX critics and revisions.
 Full scope first; successful automated routes are not human-fun or AAA evidence.
 
 
-## Rooftop Crossfire traversal contract — November 4 Pacific
+## Rooftop Crossfire traversal contract - November 4 Pacific
 
 Operation05 opts into maxStepHeight:0 and bidirectional orthogonal climbLinks.
 Only marked stairs cross height boundaries; path previews, enemy movement and
@@ -198,3 +198,17 @@ keeper rescue gate eastern tram-roof extraction. Heights confer the existing
 +1 downhill damage. Both stair routes are authored; optional mastery remains a
 stated goal rather than a tracked medal. Squad growth/equipment/injuries remain
 unimplemented follow-on work, not satisfied by mission unlocks.
+
+
+## Cargo Lift contract - November 5 Pacific
+
+Operation06 adds a 2x2 moving platform between the loading dock and raised clinic
+terrace with no foot crossing of the shaft. Hoist power opens the rescue shutter
+and allies the turret. Rescue loads the operator/medicine narratively; cargo is
+not an independently damageable actor. MOVE to board; select HACK then target the
+active deck or fixed dock console to dispatch for1AP. Living riders retain offsets.
+Empty recalls supported; hostile riders/occupied destinations/stale confirmations
+are rejected without AP loss. Delivery persists and gates extraction alongside
+rescue and reception. Dynamic terrain/height is shared by paths, AI and picking.
+Six of twenty operations exist. Progression/equipment/injury, visibility,
+consequences and finale remain; optional mastery is not yet persisted medals.

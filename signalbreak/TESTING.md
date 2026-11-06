@@ -77,3 +77,12 @@ native touch raised tile picking; complete rooftop pilot uses native touch and
 actual UI orders. No tactical state injection in victory paths. Lead inspected
 all12 new title/live captures via contact sheets plus phone/desktop originals.
 Contact sheets downsample4K; they do not prove full-resolution4K legibility.
+
+
+Cargo Lift: 36 focused cases cover six legal live-AI victories/four survivors,
+power/rescue interlocks, readonly previews, four rider offsets, deck terrain and
+height, stale direction, empty recall, hostile/occupied docking rejection,
+delivery extraction gate, both deck positions picking and five-map v1 saves.
+Browser harness earns all six missions and plays Cargo via native touch. All five
+added maps have six-size title/live sweeps (36 map/viewport combinations total).
+Cargo is narrative escorted supplies, not an independently damageable actor.

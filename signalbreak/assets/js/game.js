@@ -66,6 +66,10 @@
     if(kind==='watch'||kind==='extract')setPreview(kind,u.x,u.y);
     else if(kind==='hack'){
       var nodes=(state.circuits||[state.node]).filter(function(n){return !n.controlled;});
+      if(state.lift){
+        var dock=state.lift.stops[state.lift.position];
+        nodes=nodes.concat(state.lift.stops.map(function(stop){return stop.console;}),[{x:dock.x,y:dock.y}]);
+      }
       nodes.sort(function(a,b){var pa=L.preview(state,u.id,'hack',a.x,a.y),pb=L.preview(state,u.id,'hack',b.x,b.y);return Number(pb.legal)-Number(pa.legal)+Math.sign(Math.abs(a.x-u.x)+Math.abs(a.y-u.y)-Math.abs(b.x-u.x)-Math.abs(b.y-u.y))*.1;});
       var node=nodes[0]||state.node;setPreview(kind,node.x,node.y);
     }
@@ -80,7 +84,7 @@
     var kind=action;
     if(action==='move'){
       if(state.enemies.some(function(e){return L.living(e)&&e.x===x&&e.y===y;}))kind='attack';
-      else if((L.circuitAt(state,x,y)||x===state.node.x&&y===state.node.y)&&L.preview(state,view.selected,'hack',x,y).legal)kind='hack';
+      else if((L.circuitAt(state,x,y)||state.lift&&state.lift.stops.some(function(stop){return stop.console.x===x&&stop.console.y===y;})||x===state.node.x&&y===state.node.y)&&L.preview(state,view.selected,'hack',x,y).legal)kind='hack';
       else if(x===state.rescue.x&&y===state.rescue.y&&!state.rescued&&L.preview(state,view.selected,'rescue',x,y).legal)kind='rescue';
     }
     setPreview(kind,x,y);

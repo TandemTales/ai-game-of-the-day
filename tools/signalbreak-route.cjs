@@ -2,13 +2,20 @@
 // edits tactical state. These routes prove solvability, not human play or balance.
 function nextOrder(SB, s) {
   const L = SB.Logic, live = s.squad.filter(L.living);
+  const boardingLift=s.lift && s.circuits.find(c=>c.id===s.lift.poweredBy).controlled && s.rescued && !s.lift.delivered;
+  if(boardingLift && live.every(u=>L.liftAt(s,u.x,u.y))){
+    const rider=live.find(u=>u.ap>0),dock=s.lift.stops[s.lift.position];
+    if(rider){const p=L.preview(s,rider.id,'hack',dock.x,dock.y);if(p.legal)return p;}
+    return {kind:'end'};
+  }
   let goal;
   if (s.id === 'locked-manifest') {
     const [prison, evac] = s.circuits;
     if (!s.rescued) goal = prison.controlled ? s.rescue : prison;
     else if (live.some(u => u.x >= 10 && u.y <= 6)) goal = { x: 9, y: 4, regroup: true };
     else if (!evac.controlled) goal = evac;
-  } else if (s.circuits) goal = s.circuits.find(c => !c.controlled);
+  } else if (s.lift && !s.lift.delivered) goal = !s.circuits[0].controlled?s.circuits[0]:!s.rescued?s.rescue:null;
+  else if (s.circuits) goal = s.circuits.find(c => !c.controlled);
   else if (!s.network) goal = s.node;
   if (!goal && !s.rescued) goal = s.rescue;
   const exits = [];
@@ -35,6 +42,11 @@ function nextOrder(SB, s) {
       if(kind){const p=L.preview(s,u.id,kind,goal.x,goal.y);if(p.legal)return p;}
     }
     let target=goal;
+    if(boardingLift){
+      if(L.liftAt(s,u.x,u.y))continue;
+      const dock=s.lift.stops[s.lift.position],i=s.squad.indexOf(u);
+      target={x:dock.x+i%2,y:dock.y+Math.floor(i/2)};
+    }
     if (goal && goal.regroup && !(u.x>=10&&u.y<=6)) target=s.circuits[1];
     if (!target) target=exits.slice().sort((a,b)=>Math.abs(u.x-a.x)+Math.abs(u.y-a.y)-Math.abs(u.x-b.x)-Math.abs(u.y-b.y))[0];
     const map=distances(target), current=map[u.x+','+u.y];let best=null;

@@ -15,8 +15,29 @@
     m.log = ['Operation ' + String(m.sequence || 1).padStart(2, '0') + ' / ' + m.title + '. ' + (m.objectiveSummary || 'Take the circuit, rescue the worker, extract the squad.')];
     return m;
   }
-  function tile(s, x, y) { return s.rows[y] && s.rows[y][x] || '#'; }
-  function height(s, x, y) { var h = s.heights.find(function (p) { return p.x === x && p.y === y; }); return h ? h.z : 0; }
+  function liftAt(s, x, y) {
+    if (!s.lift) return false;
+    var stop = s.lift.stops[s.lift.position], size = s.lift.size;
+    return x >= stop.x && x < stop.x + size && y >= stop.y && y < stop.y + size;
+  }
+  function liftControlAt(s, x, y) {
+    return !!s.lift && (liftAt(s, x, y) || s.lift.stops.some(function (stop) {
+      return stop.console.x === x && stop.console.y === y;
+    }));
+  }
+  function liftStatus(s) {
+    if (!s.lift) return null;
+    var lift = s.lift, stop = lift.stops[lift.position], next = (lift.position + 1) % lift.stops.length;
+    return { position: lift.position, x: stop.x, y: stop.y, z: stop.z, size: lift.size,
+      label: stop.label, destination: next, nextLabel: lift.stops[next].label,
+      powered: !!s.circuits && s.circuits.some(function (c) { return c.id === lift.poweredBy && c.controlled; }),
+      delivered: !!lift.delivered, passengers: s.squad.filter(function (u) { return living(u) && liftAt(s, u.x, u.y); }).length };
+  }
+  function tile(s, x, y) { return liftAt(s, x, y) ? '.' : s.rows[y] && s.rows[y][x] || '#'; }
+  function height(s, x, y) {
+    if (liftAt(s, x, y)) return s.lift.stops[s.lift.position].z;
+    var h = s.heights.find(function (p) { return p.x === x && p.y === y; }); return h ? h.z : 0;
+  }
   function climbLinked(s, a, b) {
     return (s.climbLinks || []).some(function (link) {
       return link.from.x === a.x && link.from.y === a.y && link.to.x === b.x && link.to.y === b.y ||
@@ -115,6 +136,12 @@
       return { id: id, label: c ? c.label : 'Take the circuit', done: c ? !!c.controlled : !!s.network };
     });
     status.push({ id: 'rescue', label: s.objectives && s.objectives.rescueLabel || 'Rescue signal worker', done: !!s.rescued });
+    if (s.lift) {
+      var lift = liftStatus(s);
+      status.push({ id: 'cargo', label: lift.delivered ? 'Medical cargo delivered to clinic terrace' : 'Escort the rescued operator and medical cargo to clinic terrace', done: lift.delivered });
+      status.push({ id: 'lift', label: 'Lift: ' + lift.label + ' / ' + (lift.powered ? 'powered' : 'restore hoist power') +
+        ' / ' + lift.passengers + ' aboard. Board the 2x2 platform; HACK its deck or a dock console to send it to ' + lift.nextLabel + '.', done: lift.powered });
+    }
     if (s.freight) status.push({ id: 'freight', label: freightMessage(s), done: extractionStatus(s).open });
     if (s.ambush) {
       var pending = s.ambush.enemies.filter(function (e) { return !(s.ambush.deployed && s.ambush.deployed[e.id]); });
@@ -153,7 +180,8 @@
     for (var i = 1; i < steps; i++) {
       var x = Math.round(a.x + dx * i / steps), y = Math.round(a.y + dy * i / steps);
       if (x === a.x && y === a.y || x === b.x && y === b.y) continue;
-      if (tile(s, x, y) === '#' || tile(s, x, y) === 'd' && !doorOpen(s, x, y)) return false;
+      var openShaft = s.lift && x >= 8 && x <= 14 && y > 0 && y < s.height - 1;
+      if (tile(s, x, y) === '#' && !openShaft || tile(s, x, y) === 'd' && !doorOpen(s, x, y)) return false;
     }
     return true;
   }
@@ -185,6 +213,21 @@
       if (!canShoot(s, a, target)) return fail('Target out of range or behind blocking cover.');
       p.targetId = target.id; p.damage = damage(s, a, target); p.cover = cover(s, target, a);
       p.reason = '1 AP · ' + p.damage + ' damage' + (p.cover ? ' · target in cover' : '') + ' · confirm shot';
+    } else if (kind === 'hack' && liftControlAt(s, x, y)) {
+      var lift = liftStatus(s), targetControl = { x: x, y: y };
+      // The deck is its own control. Fixed consoles can recall the empty lift,
+      // keeping either landing recoverable after a split-squad crossing.
+      if (height(s, a.x, a.y) !== height(s, x, y) || distance(a, targetControl) > (a.role === 'ENGINEER' ? 2 : 1) || !visible(s, a, targetControl)) return fail('Reach a lift deck control or a dock console on your level.');
+      if (!lift.powered) return fail('Restore the hoist circuit before operating the lift.');
+      if (!s.rescued && !s.lift.delivered) return fail('Rescue the lift operator and load the medical cargo before departing.');
+      if (s.enemies.some(function (u) { return living(u) && liftAt(s, u.x, u.y); })) return fail('Clear hostile patrols off the lift before departure.');
+      var destination = s.lift.stops[lift.destination];
+      for (var ly = 0; ly < s.lift.size; ly++) for (var lx = 0; lx < s.lift.size; lx++) {
+        var dx = destination.x + lx, dy = destination.y + ly;
+        if (occupant(s, dx, dy) || s.turret && s.turret.x === dx && s.turret.y === dy) return fail('Clear the destination lift platform before departure.');
+      }
+      p.lift = true; p.liftFrom = lift.position; p.liftTo = lift.destination;
+      p.reason = '1 AP · send lift to ' + lift.nextLabel + ' · carries ' + lift.passengers + ' engineer(s)' + (!lift.delivered ? ' and medical cargo' : '') + ' · engineers off the deck stay behind';
     } else if (kind === 'hack') {
       var circuit = circuitAt(s, x, y);
       if (!circuit) return fail('Select an amber circuit node.');
@@ -216,6 +259,7 @@
         if (!boarding.open) return fail(freightMessage(s) + '. Windows repeat; wait safely or prepare the next platform.');
         if (!boarding.tiles.some(function (t) { return t.x === a.x && t.y === a.y; })) return fail('Board at ' + boarding.label + ' now. ' + boarding.nextLabel + ' is the next stop.');
       }
+      if (s.lift && !s.lift.delivered) return fail('Deliver the rescued operator and medical cargo on the lift before extracting.');
       if (!networkReady(s) || !s.rescued) return fail('Complete the circuit objectives and rescue before extracting.');
       p.reason = '1 AP · extract ' + a.name;
     } else return fail('Unknown order.');
@@ -242,10 +286,19 @@
     if (!proposed || !proposed.legal) return false;
     var p = preview(s, proposed.actorId, proposed.kind, proposed.x, proposed.y);
     if (!p.legal) return false;
+    if ((p.lift || proposed.lift) && (!p.lift || !proposed.lift || p.liftFrom !== proposed.liftFrom || p.liftTo !== proposed.liftTo)) return false;
     var a = unit(s, p.actorId); a.ap -= p.cost;
     if (p.kind === 'move') { a.x = p.x; a.y = p.y; log(s, a.name + ' moved · ' + p.cost + ' AP'); }
     if (p.kind === 'attack') strike(s, a, s.enemies.find(function (e) { return e.id === p.targetId; }), a.name + ' fired');
-    if (p.kind === 'hack') {
+    if (p.kind === 'hack' && p.lift) {
+      var from = s.lift.stops[p.liftFrom], to = s.lift.stops[p.liftTo];
+      var passengers = s.squad.filter(function (u) { return living(u) && liftAt(s, u.x, u.y); });
+      passengers.forEach(function (u) { u.x += to.x - from.x; u.y += to.y - from.y; });
+      s.lift.position = p.liftTo;
+      if (s.rescued && p.liftTo === 1) s.lift.delivered = true;
+      log(s, 'Cargo lift reached ' + to.label + ' · ' + passengers.length + ' engineer(s) carried' + (s.lift.delivered ? ' · medical cargo delivered' : ''), 'hack');
+    }
+    if (p.kind === 'hack' && !p.lift) {
       if (s.circuits) {
         var circuit = circuitAt(s, p.x, p.y);
         if (circuit.exclusiveGroup) s.circuits.forEach(function (c) { if (c.exclusiveGroup === circuit.exclusiveGroup) c.controlled = false; });
@@ -302,5 +355,6 @@
   }
   SB.Logic = { newGame: newGame, tile: tile, height: height, unit: unit, living: living, occupant: occupant,
     blocked: blocked, canStep: canStep, path: path, visible: visible, cover: cover, damage: damage, preview: preview, commit: commit, endTurn: endTurn,
+    liftAt: liftAt, liftStatus: liftStatus, liftControlAt: liftControlAt,
     circuitAt: circuitAt, doorOpen: doorOpen, objectiveStatus: objectiveStatus, turretAllied: turretAllied, extractionStatus: extractionStatus };
 })(window);

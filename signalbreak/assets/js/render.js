@@ -33,18 +33,46 @@
       diamond(x,y,base+z,top,'#51616a');return q;
     }
     var reachable=view.reachable||{}, boarding=s.freight&&L.extractionStatus(s);
+    var lift=s.lift, liftStop=lift&&lift.stops[lift.position], liftPower=lift&&(s.circuits||[]).some(function(n){return n.id===lift.poweredBy&&n.controlled;});
+    function shaftHere(x,y){return lift&&x>=8&&x<=14&&y>0&&y<s.height-1;}
+    function platformHere(x,y){return liftStop&&x>=liftStop.x&&x<liftStop.x+lift.size&&y>=liftStop.y&&y<liftStop.y+lift.size;}
     function boardingHere(x,y){return boarding&&boarding.open&&boarding.tiles.some(function(t){return t.x===x&&t.y===y;});}
     // Authored yard materials and rail markings, with reachable cells kept legible.
     for(var y=0;y<s.height;y++)for(var x=0;x<s.width;x++) {
       var t=L.tile(s,x,y),z=L.height(s,x,y),p;
       var floor=x<8?((x*7+y*3)%4?'#30414a':'#374b53'):((x+y)%3?'#263e49':'#2d4650');
-      if(t==='#')floor='#1b2c36';
+      if(t==='#')floor=shaftHere(x,y)?'#07151e':'#1b2c36';
+      if(platformHere(x,y))floor=liftPower?'#786c44':'#514b3d';
       if(t==='e')floor=boarding?(boardingHere(x,y)?'#797044':'#293c49'):'#255c5b';
       p=z?block(x,y,z,floor,'#172c36','#203640',0):diamond(x,y,0,floor,'#162c37');
+      if(platformHere(x,y)){
+        diamond(x,y,z,floor,liftPower?'#ffe1a1':'#a3977e');
+        c.strokeStyle='#e5bf76';c.lineWidth=Math.max(1,a*.06);c.beginPath();c.moveTo(p.x-a*.6,p.y);c.lineTo(p.x,p.y+b*.6);c.lineTo(p.x+a*.6,p.y);c.stroke();
+      }
       if(reachable[x+','+y])diamond(x,y,z,reachable[x+','+y]===1?'#397b8550':'#bda26030','#4a96994a');
       if(t==='e'){c.strokeStyle=boarding?(boardingHere(x,y)?'#ffe09b':'#72828b'):'#80d2bb';c.lineWidth=a*.07;c.beginPath();c.moveTo(p.x-a*.4,p.y);c.lineTo(p.x,p.y+b*.45);c.lineTo(p.x+a*.4,p.y-b*.1);c.stroke();}
       if(t!== '#' && y===6){c.strokeStyle=x<8?'#c2975655':'#6caab955';c.lineWidth=a*.04;c.beginPath();c.moveTo(p.x-a*.7,p.y+b*.3);c.lineTo(p.x+a*.7,p.y-b*.3);c.stroke();}
       if(t!== '#' && (x*17+y*9)%7===0){c.strokeStyle='#7b969b30';c.lineWidth=a*.025;c.beginPath();c.moveTo(p.x-a*.6,p.y);c.lineTo(p.x-a*.1,p.y+b*.3);c.lineTo(p.x+a*.1,p.y+b*.17);c.stroke();}
+    }
+    if(lift){
+      // Empty dock outlines and cable guides identify both destinations without
+      // turning the shaft into apparently traversable floor or opaque walls.
+      lift.stops.forEach(function(stop,index){
+        if(index===lift.position)return;
+        c.setLineDash([a*.22,a*.15]);
+        for(var ly=0;ly<lift.size;ly++)for(var lx=0;lx<lift.size;lx++){
+          var q=P.point(stop.x+lx,stop.y+ly,stop.z);c.strokeStyle='#85939788';c.lineWidth=Math.max(1,a*.04);c.beginPath();c.moveTo(q.x,q.y-b);c.lineTo(q.x+a,q.y);c.lineTo(q.x,q.y+b);c.lineTo(q.x-a,q.y);c.closePath();c.stroke();
+        }
+        c.setLineDash([]);
+      });
+      [[0,0],[lift.size-1,lift.size-1]].forEach(function(offset){
+        var q=P.point(liftStop.x+offset[0],liftStop.y+offset[1],liftStop.z);
+        c.strokeStyle='#a3b1aa88';c.lineWidth=Math.max(1,a*.05);c.beginPath();c.moveTo(q.x,q.y);c.lineTo(q.x,q.y-a*2.8);c.stroke();
+        c.fillStyle='#f0ce86';c.fillRect(q.x-a*.08,q.y-a*.3,a*.16,a*.3);
+      });
+      c.fillStyle=liftPower?'#ffe1a1':'#bcc7c6';c.font=Math.max(11*Math.min(d,2),w/100)+'px system-ui';
+      c.fillText((liftPower?'POWER ON / ':'POWER OFF / ')+liftStop.label,16*Math.min(d,2),h-62*Math.min(d,2));
+      c.fillText('HACK, then deck/console / 1 AP',16*Math.min(d,2),h-42*Math.min(d,2));
     }
     if(boarding){
       // Timetable stays at a fixed readable size, outside the tactical diamonds.
@@ -72,7 +100,7 @@
     for(var depth=0;depth<s.width+s.height;depth++)for(var y=0;y<s.height;y++) {
       var x=depth-y;if(x<0||x>=s.width)continue;
       var t=L.tile(s,x,y),z=L.height(s,x,y),p=P.point(x,y,z);
-      if(t==='#') {
+      if(t==='#'&&!shaftHere(x,y)) {
         // Front perimeter stays low so it cannot obscure engineers.
         var height=(y===s.height-1||x===s.width-1)?0.35:x===8?1.25:0.7;
         var q=block(x,y,height,'#566770','#243640','#33464f');
@@ -84,9 +112,10 @@
         else {diamond(x,y,z,'#3e766d','#80d9bd');}
       }
       if(t==='n') {
-        var circuit=L.circuitAt(s,x,y),on=circuit?circuit.controlled:s.network;
+        var circuit=L.circuitAt(s,x,y),consoleHere=lift&&lift.stops.some(function(stop){return stop.console.x===x&&stop.console.y===y;}),on=consoleHere?liftPower:circuit?circuit.controlled:s.network;
         var q=block(x,y,.5,on?'#8bdfc4':'#e9c485','#4c5a59','#647775');
         c.fillStyle=on?'#91ffe2':'#ffe1a1';c.beginPath();c.arc(q.x,q.y-a*.2,a*.17,0,Math.PI*2);c.fill();
+        if(consoleHere){c.font=Math.max(9,a*.5)+'px system-ui';c.textAlign='center';c.fillText('L',q.x,q.y-a*.65);c.textAlign='start';}
         if(s.circuits&&circuit){c.font=Math.max(9,a*.5)+'px system-ui';c.textAlign='center';c.fillText(String(s.circuits.indexOf(circuit)+1),q.x,q.y-a*.65);c.textAlign='start';}
       }
       if(x===s.turret.x&&y===s.turret.y){
@@ -94,6 +123,11 @@
         c.fillStyle=L.turretAllied(s)?'#72e1c2':'#e88b73';c.beginPath();c.arc(p.x,p.y-a*.55,a*.25,0,Math.PI*2);c.fill();
       }
       if(t==='r'&&!s.rescued){c.strokeStyle='#f8cf86';c.lineWidth=a*.06;c.beginPath();c.arc(p.x,p.y-a*.35,a*.3,0,Math.PI*2);c.stroke();c.fillStyle='#f8cf86';c.fillRect(p.x-a*.13,p.y-a*.4,a*.26,a*.6);}
+      // A compact medical crate rides until delivered, then remains beside
+      // the upper landing while the empty platform can return for stragglers.
+      if(lift&&s.rescued&&(lift.delivered?x===15&&y===8:x===liftStop.x&&y===liftStop.y)){
+        var q=P.point(x-.3,y-.3,z);c.fillStyle='#698d87';c.fillRect(q.x-a*.18,q.y-a*.47,a*.36,a*.32);c.fillStyle='#d9f3df';c.fillRect(q.x-a*.04,q.y-a*.44,a*.08,a*.24);c.fillRect(q.x-a*.13,q.y-a*.36,a*.26,a*.08);
+      }
       var actor=L.occupant(s,x,y);
       if(actor){
         var friendly=s.squad.indexOf(actor)!==-1,selected=view.selected===actor.id;

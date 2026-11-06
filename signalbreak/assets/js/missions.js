@@ -240,9 +240,63 @@
       { id: 'roof-uplink', label: 'Rooftop uplink secured', x: 18, y: 4, controlled: false, doors: [] }
     ],
     mastery: 'Use both stair approaches, rescue the keeper and extract all four engineers in sixteen turns or fewer.',
-    debrief: 'The antenna keeper connects Mara to the market rooftops. The freight route is secure, and the tram roof becomes a civilian refuge. The keeper points to a stranded cargo lift: its medical supplies must reach the clinic. Cargo Lift remains in development.'
+    debrief: 'The antenna keeper connects Mara to the market rooftops. The freight route is secure, and the tram roof becomes a civilian refuge. The keeper points to a stranded cargo lift: its medical supplies must reach the clinic. Its operator needs the squad to restore the hoist and escort the medicine across the shaft.'
   };
-  SB.Missions.operations = [opening, locked, feed, freight, rooftop];
+  var cargoHeights = [];
+  for (var cargoY = 1; cargoY <= 14; cargoY++) for (var cargoX = 15; cargoX <= 22; cargoX++) {
+    cargoHeights.push({ x: cargoX, y: cargoY, z: 2 });
+  }
+  var cargo = {
+    id: 'cargo-lift', title: 'Cargo Lift', district: 'Vertical Market', sequence: 6,
+    briefing: 'The market clinic has no safe supply road. Its medicine and lift operator are trapped behind the loading-dock shutter, while occupation sentries hold the clinic terrace across a sheer service shaft. Take the hoist relay to open that shutter and turn the upper turret. Rescue the operator and medical cargo, board the four-square platform at (8,6), then select an engineer and tap the platform or a dock console to HACK-dispatch it for one AP. Every engineer aboard rides together. Clear the upper terrace, take the reception circuit and extract through its eastern gate. The lift can be recalled empty from either dock; nobody must be left behind.',
+    radio: 'SOL / Hoist relay (4,9), operator (5,2). Board all four platform squares before dispatch if you want one crossing. The low console is (7,5); the upper console is (15,5). Platform riders can dispatch too. Secure reception at (18,10) after delivery.',
+    objectiveSummary: 'Power the hoist, rescue the operator and medicine, deliver the cargo across the lift, secure clinic reception, and extract the squad.',
+    extractionLabel: 'clinic evacuation balcony',
+    objectives: { requiredCircuits: ['hoist', 'reception'], rescueLabel: 'Rescue lift operator and medical cargo' },
+    rows: [
+      '########################',
+      '#.......#######.....####',
+      '#.c..r..#######.....#..#',
+      '#.......#######.c...#ee#',
+      '#####d#########.....dee#',
+      '#......n#######n....#..#',
+      '#.......#######..c..#..#',
+      '#.......#######.....####',
+      '#.....c.#######........#',
+      '#...n...#######........#',
+      '#.......#######...n..c.#',
+      '#..c....#######........#',
+      '#.......#######....c...#',
+      '#.......#######........#',
+      '#.......#######........#',
+      '########################'
+    ],
+    heights: cargoHeights,
+    maxStepHeight: 0,
+    squad: squad([[2,10],[2,11],[2,12],[2,13]]),
+    enemies: [
+      { id: 'dock-inspector', name: 'Dock inspector', x: 5, y: 8, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 3 },
+      { id: 'shutter-guard', name: 'Shutter guard', x: 4, y: 2, hp: 5, maxHp: 5, damage: 2, range: 5, stride: 2 },
+      { id: 'terrace-sentry', name: 'Terrace sentry', x: 18, y: 6, hp: 7, maxHp: 7, damage: 2, range: 6, stride: 2 },
+      { id: 'reception-warden', name: 'Reception warden', x: 20, y: 11, hp: 7, maxHp: 7, damage: 2, range: 5, stride: 3 }
+    ],
+    turret: { x: 19, y: 3, range: 6, damage: 3 },
+    node: { x: 4, y: 9 }, rescue: { x: 5, y: 2 },
+    circuits: [
+      { id: 'hoist', label: 'Hoist relay and terrace turret', x: 4, y: 9, controlled: false, doors: [{ x: 5, y: 4 }], turret: true },
+      { id: 'reception', label: 'Clinic reception secured', x: 18, y: 10, controlled: false, doors: [{ x: 20, y: 4 }] }
+    ],
+    lift: {
+      position: 0, poweredBy: 'hoist', size: 2, delivered: false,
+      stops: [
+        { x: 8, y: 6, z: 0, label: 'Loading dock', console: { x: 7, y: 5 } },
+        { x: 13, y: 6, z: 2, label: 'Clinic terrace', console: { x: 15, y: 5 } }
+      ]
+    },
+    mastery: 'Deliver the medicine and extract all four engineers in eighteen turns or fewer; carry the whole squad on the first ascent.',
+    debrief: 'The operator locks the medicine crates into the clinic loading bay. Sol recognizes names from the evacuation list, and Mara gets the staff onto a protected channel. The clinic now has supplies, but its defenders are scattered across two power zones. Open Clinic remains in development.'
+  };
+  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo];
   SB.Missions.get = function (id) {
     return SB.Missions.operations.find(function (mission) { return mission.id === id; }) || null;
   };

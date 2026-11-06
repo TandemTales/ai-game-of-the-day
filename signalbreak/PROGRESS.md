@@ -242,7 +242,7 @@ Authored operation05: 24x16 Vertical Market roof plateau, two stair-only approac
 
 
 
-## Rooftop Crossfire verified handoff — November 4 Pacific
+## Rooftop Crossfire verified handoff - November 4 Pacific
 
 Final exact-source real Edge browser PASS:30 mission/viewport combinations
 (five maps at six required sizes), clean app warnings/errors, no horizontal
@@ -284,3 +284,22 @@ diff checks PASS. Intent ae0abb3 and content d1dc5b7 pushed; handoff pushed next
 ## 2026-11-05 Thursday 22:59 -08:00 â€” Cargo Lift run intent
 STOP absent; explicit Signalbreak selection confirmed; dev synchronized. Implement operation06 Cargo Lift: powered moving platform carrying the rescued lift operator and squad between low loading dock and upper market, with circuit-linked turret tradeoff and clear safe boarding. Preserve previous five missions/v1 saves. Full campaign remains incomplete; progression/equipment/injury follow after this content unit. No release/main/catalog changes; FIRST PLAYABLE stays.
 
+
+
+### Cargo Lift implementation checkpoint
+
+Operation06: separated loading dock/clinic terrace, hoist-powered rescue shutter
+and allied turret, 2x2 platform carrying rider offsets, operator/medicine escort,
+empty recall consoles, reception-gated upper extraction. Dynamic floor/height
+feed paths/AI/picking; dispatch validates power/rescue/riders/destination/stale
+direction. Cargo is narrative, not independently damageable. Renderer adds shaft,
+deck, cables, consoles and crate. Focused36/36PASS including all6 legal live-AI
+victories/four survivors; row widths and text encoding corrected. Full/browser
+and critic pending.6/20 across2/5districts; no AAA/completion/release/main changes.
+
+Initial browser PASS36 map/viewport combinations and six actualUI/liveAI wins;
+Cargo native-touch49orders/turn8/3360points/4survivors. Critic found unclear dispatch
+cue (fixed) and open shaft blocking fire (fixed/shared LOS with explicit test).
+Focused final36/36PASS; final exact-source browser rerun and fullsuite pending.
+Initial independent ART/UI FAIL / OURS LOSES: flat sparse materials, tiny similar
+phone pawns, weak lift machinery silhouette and desktop whitespace. No AAA claim.

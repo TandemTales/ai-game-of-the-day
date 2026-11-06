@@ -31,14 +31,14 @@ function pilot(SB, s, report = []) {
   }
   return report;
 }
-test('full manifest promises twenty operations; the first five distinct authored maps are playable', () => {
+test('full manifest promises twenty operations; the first six distinct authored maps are playable', () => {
   const SB=load();expect(SB.Missions.manifest).toHaveLength(5);
   const names=SB.Missions.manifest.flatMap(d=>Array.from(d).slice(1));expect(new Set(names).size).toBe(20);
   expect(SB.Missions.opening.title).toBe('Live Wire');
-  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire']);
-  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(5);
+  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift']);
+  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(6);
   for(const m of SB.Missions.operations){expect(m.rows.every(r=>r.length===m.rows[0].length)).toBe(true);for(const n of m.circuits||[])expect(m.rows[n.y][n.x]).toBe('n');}
-  expect(()=>SB.Logic.newGame('cargo-lift')).toThrow('Unknown operation');
+  expect(()=>SB.Logic.newGame('open-clinic')).toThrow('Unknown operation');
 });
 test('fresh states are isolated and previews never mutate the tactical state', () => {
   const {Logic:L}=load(),a=L.newGame(),b=L.newGame(),before=JSON.stringify(a);
@@ -110,7 +110,7 @@ test('complete legal pilot is deterministic across fresh runs', () => {
 });
 
 const {run:campaignRoute}=require('../tools/signalbreak-route.cjs');
-test.each(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire'])('%s can be won by legal orders against live AI with four survivors', id => {
+test.each(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift'])('%s can be won by legal orders against live AI with four survivors', id => {
   const SB=load(),s=SB.Logic.newGame(id),report=campaignRoute(SB,s);
   expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);
   expect(report.some(p=>p.kind==='hack')).toBe(true);expect(report.some(p=>p.kind==='rescue')).toBe(true);
@@ -228,4 +228,50 @@ test('old four-operation saves preserve records and unlock the first Market oper
  const SB=load(),results={};for(const m of SB.Missions.operations.slice(0,4))results[m.id]={score:2000,turns:10,survivors:4};
  const c=SB.Campaign.normalize({version:1,selected:'night-freight',results});
  expect(c.results).toEqual(results);expect(SB.Campaign.unlocked(c,'rooftop-crossfire')).toBe(true);
+});
+
+
+test('lift dispatch needs power and rescued cargo, previews readonly and carries all rider offsets',()=>{
+ const L=load().Logic,s=L.newGame('cargo-lift');
+ Object.assign(s.squad[0],{x:8,y:6});const before=JSON.stringify(s);
+ expect(L.preview(s,'nia','hack',8,6).legal).toBe(false);expect(JSON.stringify(s)).toBe(before);
+ s.circuits[0].controlled=true;expect(L.preview(s,'nia','hack',8,6).legal).toBe(false);
+ s.rescued=true;s.squad.forEach((u,i)=>Object.assign(u,{x:8+i%2,y:6+Math.floor(i/2)}));
+ const snapshot=JSON.stringify(s),p=L.preview(s,'nia','hack',8,6);expect(p.legal).toBe(true);expect(p.lift).toBe(true);expect(JSON.stringify(s)).toBe(snapshot);
+ expect(L.commit(s,p)).toBe(true);expect(s.lift.position).toBe(1);expect(s.lift.delivered).toBe(true);
+ s.squad.forEach((u,i)=>{expect([u.x,u.y]).toEqual([13+i%2,6+Math.floor(i/2)]);expect(L.height(s,u.x,u.y)).toBe(2);});
+ expect(L.blocked(s,8,6)).toBe(true);expect(L.blocked(s,13,6)).toBe(false);expect(s.squad[0].ap).toBe(1);
+ expect(L.canStep(s,{x:14,y:6},{x:15,y:6})).toBe(true);
+ expect(L.canStep(s,{x:9,y:6},{x:10,y:6})).toBe(false);
+});
+
+test('lift rejects stale dispatch direction, hostile riders and blocked destinations without spending AP',()=>{
+ const L=load().Logic,s=L.newGame('cargo-lift');s.circuits[0].controlled=true;s.rescued=true;Object.assign(s.squad[0],{x:7,y:5});
+ const old=L.preview(s,'nia','hack',7,5);expect(old.legal).toBe(true);expect(L.commit(s,old)).toBe(true);
+ const after=JSON.stringify(s);expect(L.commit(s,old)).toBe(false);expect(JSON.stringify(s)).toBe(after);
+ // Empty platform can be recalled from the dock without stranding the operator.
+ order(L,s,'nia','hack',7,5);expect(s.lift.position).toBe(0);expect(s.lift.delivered).toBe(true);
+ s.squad[0].ap=2;Object.assign(s.enemies[0],{x:8,y:6});let snap=JSON.stringify(s);expect(L.preview(s,'nia','hack',7,5).legal).toBe(false);expect(JSON.stringify(s)).toBe(snap);
+ s.enemies[0].hp=0;Object.assign(s.enemies[1],{x:13,y:6});snap=JSON.stringify(s);expect(L.preview(s,'nia','hack',7,5).legal).toBe(false);expect(JSON.stringify(s)).toBe(snap);
+});
+
+test('lift cargo delivery is an independent extraction prerequisite and all active deck tiles pick correctly',()=>{
+ const SB=load(),L=SB.Logic,s=L.newGame('cargo-lift');s.rescued=true;s.circuits.forEach(c=>c.controlled=true);Object.assign(s.squad[0],{x:21,y:3});
+ expect(L.preview(s,'nia','extract',21,3).legal).toBe(false);s.lift.delivered=true;expect(L.preview(s,'nia','extract',21,3).legal).toBe(true);
+ for(const pos of [0,1]){s.lift.position=pos;const d=s.lift.stops[pos];const P=SB.Render.projection(1200,750,s,{zoom:1,selected:'nia'});
+ for(let y=d.y;y<d.y+2;y++)for(let x=d.x;x<d.x+2;x++){const p=P.point(x,y,L.height(s,x,y));expect(P.inverse(p.x,p.y)).toEqual({x,y});}}
+});
+
+test('old five-operation saves preserve records and unlock Cargo Lift',()=>{
+ const SB=load(),results={};for(const m of SB.Missions.operations.slice(0,5))results[m.id]={score:2000,turns:10,survivors:4};
+ const c=SB.Campaign.normalize({version:1,selected:'rooftop-crossfire',results});expect(c.results).toEqual(results);expect(SB.Campaign.unlocked(c,'cargo-lift')).toBe(true);
+});
+
+
+test('open cargo shaft blocks walking but permits cross-shaft fire; dock walls still block sight',()=>{
+ const L=load().Logic,s=L.newGame('cargo-lift');
+ expect(L.visible(s,{x:7,y:7},{x:15,y:7})).toBe(true);
+ expect(L.blocked(s,11,7)).toBe(true);
+ expect(L.canStep(s,{x:9,y:7},{x:10,y:7})).toBe(false);
+ expect(L.visible(s,{x:4,y:3},{x:4,y:5})).toBe(false);
 });

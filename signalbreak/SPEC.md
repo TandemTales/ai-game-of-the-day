@@ -16,7 +16,7 @@ This is a substantial authored campaign, never a tiny arena with stat modifiers.
 ## Full-game acceptance checklist (do not silently shrink)
 
 - [ ] Five substantial, visually distinct authored districts and all 20 operations.
-- [ ] Four squad roles with progression, equipment choices and injury recovery.
+- [x] Four squad roles with persistent progression, equipment choices and injury recovery.
 - [ ] AP turns, meaningful movement, cover, LOS, elevation and overwatch.
 - [ ] Shared circuits affecting doors, turrets, lights and functional lifts.
 - [ ] Rescue and evidence choices with persistent district/campaign consequences.
@@ -40,8 +40,8 @@ explicit user approval; time/usage limits are not approval.
 - [x] 04 Night Freight: cargo-flank ambush, turn-four pursuit and repeating west/east boarding windows.
 - [x] 05 Rooftop Crossfire: stair-only roof elevation, always-open north approach and relay-gated southern flank, rooftop uplink/keeper rescue/tram extraction.
 - [x] 06 Cargo Lift: powered two-dock platform, shutter/operator/medicine escort, upper reception gate.
-- [ ] 07 Open Clinic: medical-staff defense and coverage switching.
-- [ ] 08 Antenna Rain: tower raid and alternating overwatch lanes.
+- [x] 07 Open Clinic: six telegraphed ward assaults, exclusive shield power and turret tradeoff.
+- [x] 08 Antenna Rain: three stair approaches, alternating marked firing lanes, tower shutdown.
 - [ ] 09 Sluice Logic: water diversion changes routes.
 - [ ] 10 Span Control: moving bridge capture.
 - [ ] 11 Blackout: light/visibility infiltration.
@@ -56,8 +56,8 @@ explicit user approval; time/usage limits are not approval.
 - [ ] 20 Signalbreak: combined core shutdown and consequence-based epilogue.
 
 Mission-boundary local saves, sequential unlocks and replay best scores now exist
-for the six implemented missions. These do not satisfy squad progression,
-equipment/injury recovery or persistent rescue/evidence consequences. Authored
+for the eight implemented missions. Squad progression, equipment and injury
+recovery are implemented; persistent district rescue/evidence consequences remain. Authored
 mastery targets appear in the HUD; no campaign medal/reward system exists yet.
 Story debriefs appear on victory. The clinic is a protected prerequisite, not yet
 a simulated supply economy. FIRST PLAYABLE remains visible throughout.
@@ -112,7 +112,7 @@ file and reports cross-file needs. Independent critics touch no runtime files.
 | assets/js/audio.js | audio worker: procedural sound and audio lifecycle |
 | assets/css/game.css | UI worker: responsive composition/touch/readability |
 | assets/js/game.js | lead: input, previews/confirmation, HUD/state, save/leaderboard |
-| assets/js/campaign.js | lead: validated mission-boundary save/unlock/replay records |
+| assets/js/campaign.js | campaign worker: validated save/unlock/replay and squad progression; lead integrates |
 | SPEC.md, TESTING.md, PROGRESS.md | lead: contract/evidence/handoff |
 | ../__tests__/signalbreak.test.js | lead: deterministic rule and mission checks |
 | ../tools/signalbreak-browser-smoke.cjs | lead: real-browser/input proof |
@@ -124,7 +124,7 @@ Grid coordinates integer (x,y), origin top left. Tiles: . floor, # tall blocker,
 c low cover, d circuit door, e exit, n network node, r rescue. Heights are separate.
 No procedural randomness required; identical state/action gives identical outcome.
 
-SB.Missions.operations contains the six authored missions, get(id) looks up an
+SB.Missions.operations contains the eight authored missions, get(id) looks up an
 implemented mission, and manifest holds the full twenty-operation contract.
 SB.Logic.newGame(id?) returns a fresh chosen operation (default Live Wire) and
 rejects unknown IDs. SB.Logic.preview(state,actorId,
@@ -146,8 +146,8 @@ Each circuit capture scores once, including repeated transfers. Raised-tile
 selection uses displayed height-adjusted diamond centers.
 
 Campaign saves use signalbreak-campaign-v1 in localStorage, validate contiguous
-completed operations, and persist only mission-boundary selected/unlocked/best
-records. No in-operation resume: reload restarts the selected operation. Storage
+completed operations, and persist mission-boundary selected/unlocked/best
+records and validated squad progression. No in-operation resume: reload restarts the selected operation. Storage
 failure is visible and leaves in-tab progress functional. Operation score remains
 the temporary numeric leaderboard metric; mixed operation lengths/circuit counts
 are not a balanced final campaign ranking. Before release, replace it with the
@@ -212,3 +212,34 @@ are rejected without AP loss. Delivery persists and gates extraction alongside
 rescue and reception. Dynamic terrain/height is shared by paths, AI and picking.
 Six of twenty operations exist. Progression/equipment/injury, visibility,
 consequences and finale remain; optional mastery is not yet persisted medals.
+
+
+## November 6 expansion: squad progression and completed Vertical Market
+
+Eight of twenty operations playable; no finale or full campaign acceptance.
+Open Clinic protects medical staff through six announced north/south assaults.
+The correct exclusive relay absorbs the next strike; wrong coverage costs2 of8
+staffHP. North coverage also allies the turret; south leaves it hostile. Both
+relays remain reachable, and extraction waits for six assaults and living staff.
+Ordinary patrols threaten the squad; marked reinforcements enter on turn3.
+Antenna Rain alternates north/south marked firing bands for2HP at end turn only;
+walking through is safe. Capturing tower control disables the bands. Three
+stairs, one powered door, raised tower and separate service relay create routes.
+
+First clears award1XP per extracted engineer and2medical supplies per rescue.
+Downed engineers recover with injury2; belowhalfHP gives at least injury1;
+healthy first clears recover one injury. Each injury costs2maximumHP at next
+deployment (minimum4HP). Treat any injury for1supply before deployment.
+Replays improve best scores but never repeat XP/supply/recovery awards. Two
+starting supplies plus earned rewards prevent mandatory purchases/replay grind.
+Ranks at2/4XP add1/2maxHP; Sol gains third kit and Rook+1stride at2XP; Nia gains
+3-tile hacking and Ivo+1damage at4XP. Before deployment choose standard kit,
+armor(+2HP/-1stride,1XP), boots(+1stride/-1range,1XP), optics(+1range/-2HP,2XP).
+Mission definitions stay immutable; prepare applies once to fresh state.
+Existing v1 saves migrate each validated completed mission into1XP and2supplies,
+with no retroactive injuries. Schema/version/key remain compatible; malformed
+rosters are bounded by contiguous validated completion count. Field preparation
+shows effects and survives reload; mid-operation loadout changes are disabled.
+
+Next content: Floodworks09SluiceLogic and10SpanControl, then visibility/blackout.
+District consequences, persisted mastery medals and final campaign score remain.

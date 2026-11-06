@@ -3,7 +3,7 @@
   var SB=global.SB,L=SB.Logic,A=SB.Audio,canvas=document.getElementById('map'),panel=document.getElementById('panel');
   var C=SB.Campaign,storage=null;try{storage=global.localStorage;}catch(e){}
   var saved=C.load(storage),campaign=saved.campaign,saveAvailable=saved.available;
-  var state=L.newGame(campaign.selected),mode='title',action='move',preview=null,submitted=false,serial=state.serial;
+  var state=C.prepare(campaign,L.newGame(campaign.selected)),mode='title',action='move',preview=null,submitted=false,serial=state.serial;
   var view={selected:'nia',zoom:1,panX:0,panY:0,reachable:{},preview:null},projection=null,cursor={x:2,y:4};
   function el(id){return document.getElementById(id);}
   function persist(){saveAvailable=C.save(storage,campaign);}
@@ -18,13 +18,29 @@
     });
     el('save-status').textContent=saveAvailable?'Progress saved on this browser between operations. Mid-operation orders are not saved.':'Saving unavailable. Progress lasts only in this tab; mid-operation orders are not saved.';
   }
+  function preparation(){
+    var box=el('loadouts');box.innerHTML='';
+    el('prep-summary').textContent='SQUAD PREPARATION / '+campaign.supplies+' medical supplies';
+    el('scope-status').textContent='First playable: '+SB.Missions.operations.length+' of 20 authored operations. Further districts and finale in development.';
+    state.squad.forEach(function(u){
+      var row=document.createElement('div');row.className='loadout';
+      var label=document.createElement('label');label.htmlFor='gear-'+u.id;label.textContent=u.name+' / '+C.describe(campaign,u.id);row.appendChild(label);
+      var select=document.createElement('select');select.id='gear-'+u.id;select.dataset.gear=u.id;select.disabled=mode!=='title';
+      C.equipment.forEach(function(g){var o=document.createElement('option');o.value=g.id;o.textContent=g.label+' / '+g.description+(campaign.roster[u.id].xp<g.minXp?' / requires '+g.minXp+' XP':'');o.disabled=campaign.roster[u.id].xp<g.minXp;select.appendChild(o);});
+      select.value=campaign.roster[u.id].gear;
+      select.addEventListener('change',function(){if(mode==='title'&&C.equip(campaign,u.id,select.value)){persist();state=C.prepare(campaign,L.newGame(state.id));reachable();hud();}});row.appendChild(select);
+      var heal=document.createElement('button');heal.type='button';heal.dataset.treat=u.id;heal.textContent='Treat injury / 1 supply';heal.disabled=mode!=='title'||!campaign.roster[u.id].injury||campaign.supplies<1;
+      heal.addEventListener('click',function(){if(mode==='title'&&C.treat(campaign,u.id)){persist();state=C.prepare(campaign,L.newGame(state.id));hud();}});row.appendChild(heal);
+      var stats=document.createElement('small');stats.textContent='Deploy: '+u.maxHp+' HP / '+u.stride+' move / '+u.range+' range / '+u.damage+' damage';row.appendChild(stats);box.appendChild(row);
+    });
+  }
   function missionHeader(){
     el('mission-label').textContent=state.district.toUpperCase()+' / OPERATION '+String(state.sequence||1).padStart(2,'0');
     el('mission-title').textContent=state.title;
   }
   function briefing(id){
     if(!C.unlocked(campaign,id))return;
-    campaign.selected=id;persist();state=L.newGame(id);serial=state.serial;mode='title';preview=null;view.selected='nia';view.zoom=1;view.panX=0;view.panY=0;
+    campaign.selected=id;persist();state=C.prepare(campaign,L.newGame(id));serial=state.serial;mode='title';preview=null;view.selected='nia';view.zoom=1;view.panX=0;view.panY=0;
     panel.hidden=false;el('kicker').textContent='FIRST PLAYABLE / '+SB.Missions.operations.length+' OF 20 OPERATIONS';
     el('title').textContent=state.title;el('copy').textContent=state.briefing;el('tip').textContent=state.radio;
     el('start').textContent='DEPLOY SQUAD ↗';el('next-operation').hidden=true;missionHeader();reachable();hud();
@@ -57,7 +73,7 @@
     el('confirm').disabled=mode!=='playing'||!preview||!preview.legal;el('cancel').disabled=mode!=='playing'||!preview;
     el('end-turn').disabled=mode!=='playing';el('pause').disabled=mode==='title'||mode==='end';
     document.querySelectorAll('[data-action]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.action===action));b.disabled=mode!=='playing'||!L.living(selected())||selected().ap<1;});
-    view.preview=preview;operationMenu();
+    view.preview=preview;operationMenu();preparation();
   }
   function select(id){if(mode!=='playing')return;var u=L.unit(state,id);if(!u||!L.living(u))return;view.selected=id;cursor={x:u.x,y:u.y};view.panX=0;view.panY=0;preview=null;action='move';reachable();hud();}
   function setPreview(kind,x,y){if(mode!=='playing')return;preview=L.preview(state,view.selected,kind,x,y);cursor={x:x,y:y};hud();}
@@ -109,7 +125,7 @@
       el('title').textContent=state.phase==='won'?'Signal restored.':'Signal lost.';
       el('copy').textContent=state.score.toLocaleString()+' operation points · turn '+state.turn+' · '+state.squad.filter(function(u){return u.extracted;}).length+'/4 engineers extracted.';
       var index=SB.Missions.operations.findIndex(function(m){return m.id===state.id;}),next=SB.Missions.operations[index+1];
-      el('tip').textContent=state.phase==='won'?(state.debrief||state.title+' complete.')+' '+(next?'Next: '+next.title+'.':'You reached the current playable boundary. The remaining '+(20-SB.Missions.operations.length)+' operations, squad growth and finale are in development.'):'Retry the operation. Take cover, focus fire and read each circuit before advancing.';
+      el('tip').textContent=state.phase==='won'?(state.debrief||state.title+' complete.')+' '+(next?'Next: '+next.title+'.':'You reached the current playable boundary. The remaining '+(20-SB.Missions.operations.length)+' operations and finale are in development.'):'Retry the operation. Take cover, focus fire and read each circuit before advancing.';
       el('next-operation').hidden=state.phase!=='won'||!next;el('next-operation').textContent=next?'NEXT / '+next.title:'NEXT OPERATION';
       el('start').textContent='REPLAY OPERATION ↗';submit();
     }
@@ -117,7 +133,7 @@
   }
   function confirm(){if(mode!=='playing'||!preview||!preview.legal)return;A.unlock();if(L.commit(state,preview))after();else{preview=null;hud();}}
   function endTurn(){if(mode!=='playing')return;A.unlock();L.endTurn(state);after();}
-  function start(){A.unlock();if(mode!=='paused'){state=L.newGame(state.id);submitted=false;serial=state.serial;view.selected='nia';view.zoom=1;view.panX=0;view.panY=0;action='move';}
+  function start(){A.unlock();if(mode!=='paused'){state=C.prepare(campaign,L.newGame(state.id));submitted=false;serial=state.serial;view.selected='nia';view.zoom=1;view.panX=0;view.panY=0;action='move';}
     mode='playing';preview=null;cursor={x:selected().x,y:selected().y};panel.hidden=true;el('pause').textContent='Briefing / pause';reachable();hud();el('start').blur();}
   function pause(){if(mode==='paused'){start();return;}if(mode!=='playing')return;mode='paused';preview=null;panel.hidden=false;el('next-operation').hidden=true;el('kicker').textContent='FIELD BRIEFING / PAUSED';el('title').textContent=state.title;el('copy').textContent=state.briefing;el('tip').textContent=state.radio;el('start').textContent='RESUME OPERATION ↗';el('pause').textContent='Resume';hud();}
   el('next-operation').addEventListener('click',function(){var i=SB.Missions.operations.findIndex(function(m){return m.id===state.id;});if(SB.Missions.operations[i+1])briefing(SB.Missions.operations[i+1].id);});
@@ -133,7 +149,7 @@
   canvas.addEventListener('pointerup',function(e){if(!drag)return;var moved=drag.moved;drag=null;if(moved||!projection)return;var r=canvas.getBoundingClientRect(),p=projection.inverse((e.clientX-r.left)*canvas.width/r.width,(e.clientY-r.top)*canvas.height/r.height);clickTile(p.x,p.y);});
   canvas.addEventListener('pointercancel',function(){drag=null;});canvas.addEventListener('lostpointercapture',function(){drag=null;});
   document.addEventListener('keydown',function(e){
-    if(e.ctrlKey||e.metaKey||e.altKey||/INPUT|TEXTAREA/.test(e.target.tagName))return;
+    if(e.ctrlKey||e.metaKey||e.altKey||/^(INPUT|TEXTAREA|SELECT|SUMMARY|A)$/.test(e.target.tagName))return;
     var k=e.key.length===1?e.key.toLowerCase():e.key;
     if(mode!=='playing'){if(k==='Enter'&&e.target.tagName!=='BUTTON'){e.preventDefault();start();}else if(k==='Escape'&&mode==='paused'){e.preventDefault();start();}return;}
     if(e.repeat)return;

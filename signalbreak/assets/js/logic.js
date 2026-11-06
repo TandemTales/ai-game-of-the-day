@@ -129,6 +129,41 @@
       log(s, entry.name + ' entered at (' + entry.x + ', ' + entry.y + ') · acts next enemy turn', 'turn');
     });
   }
+  function defenseStatus(s) {
+    if (!s.defense) return null;
+    var d = s.defense, done = d.elapsed >= d.rounds;
+    var lane = done ? null : d.schedule[d.elapsed % d.schedule.length];
+    var circuitId = lane === null ? null : d.covers[lane];
+    return { done: done, lane: lane, circuitId: circuitId,
+      protected: !done && (s.circuits || []).some(function (c) { return c.id === circuitId && c.controlled; }),
+      hp: d.hp, elapsed: d.elapsed, rounds: d.rounds };
+  }
+  function activeLane(s) {
+    if (!s.lanes || !s.lanes.patterns.length || (s.circuits || []).some(function (c) { return c.id === s.lanes.disabledBy && c.controlled; })) return null;
+    var patterns = s.lanes.patterns, index = (s.turn - 1) % patterns.length;
+    return { label: patterns[index].label, tiles: clone(patterns[index].tiles), index: index,
+      damage: s.lanes.damage, nextLabel: patterns[(index + 1) % patterns.length].label };
+  }
+  function resolveDefense(s) {
+    var status = defenseStatus(s);
+    if (!status || status.done) return;
+    var d = s.defense;
+    d.elapsed++;
+    if (!status.protected) d.hp = Math.max(0, d.hp - 2);
+    log(s, d.label + ' / ' + status.lane + ' assault ' + d.elapsed + '/' + d.rounds +
+      (status.protected ? ' blocked by powered coverage' : ' breached coverage / -2 staff HP') + ' / ' + d.hp + '/' + d.maxHp + ' HP', 'turn');
+    if (d.hp <= 0) { s.phase = 'lost'; log(s, d.label + ' lost. Restore the announced coverage before each end turn.', 'lost'); }
+    else if (d.elapsed >= d.rounds) log(s, d.label + ' survived the assault. Rescue and extraction may proceed.', 'rescue');
+  }
+  function resolveLane(s) {
+    var lane = activeLane(s);
+    if (!lane) return;
+    s.squad.forEach(function (u) {
+      if (!living(u) || !lane.tiles.some(function (t) { return t.x === u.x && t.y === u.y; })) return;
+      u.hp = Math.max(0, u.hp - lane.damage);
+      log(s, lane.label + ' hit ' + u.name + ' / ' + lane.damage + ' damage' + (!u.hp ? ' / down' : ''), 'attack');
+    });
+  }
   function objectiveStatus(s) {
     var required = s.circuits ? s.objectives && s.objectives.requiredCircuits || s.circuits.map(function (c) { return c.id; }) : ['main'];
     var status = required.map(function (id) {
@@ -142,11 +177,20 @@
       status.push({ id: 'lift', label: 'Lift: ' + lift.label + ' / ' + (lift.powered ? 'powered' : 'restore hoist power') +
         ' / ' + lift.passengers + ' aboard. Board the 2x2 platform; HACK its deck or a dock console to send it to ' + lift.nextLabel + '.', done: lift.powered });
     }
+    if (s.defense) {
+      var defense = defenseStatus(s);
+      status.push({ id: 'defense', label: s.defense.label + ': ' + defense.hp + '/' + s.defense.maxHp + ' HP / ' + defense.elapsed + '/' + defense.rounds + ' assaults survived' +
+        (defense.done ? ' / defense complete' : ' / NEXT END TURN: ' + defense.lane + ' / ' + (defense.protected ? 'COVERED' : 'UNPROTECTED (-2 HP)')), done: defense.done && defense.hp > 0 });
+    }
+    if (s.lanes) {
+      var lane = activeLane(s);
+      status.push({ id: 'lanes', label: lane ? 'NEXT END TURN: ' + lane.label + ' / ' + lane.damage + ' damage on marked tiles / then ' + lane.nextLabel : 'Tower overwatch lanes disabled', done: !lane });
+    }
     if (s.freight) status.push({ id: 'freight', label: freightMessage(s), done: extractionStatus(s).open });
     if (s.ambush) {
       var pending = s.ambush.enemies.filter(function (e) { return !(s.ambush.deployed && s.ambush.deployed[e.id]); });
-      status.push({ id: 'ambush', label: pending.length ? 'Rail ambush: ' + pending.length + ' patrol(s) at marked entries ' +
-        (s.turn < s.ambush.turn ? 'on turn ' + s.ambush.turn : 'waiting for clear entry tiles') : 'Rail ambush deployed', done: !pending.length });
+      status.push({ id: 'ambush', label: pending.length ? (s.ambush.label || 'Rail ambush') + ': ' + pending.length + ' patrol(s) at marked entries ' +
+        (s.turn < s.ambush.turn ? 'on turn ' + s.ambush.turn : 'waiting for clear entry tiles') : (s.ambush.label || 'Rail ambush') + ' deployed', done: !pending.length });
     }
     status.push({ id: 'extract', label: 'Extract surviving engineers', done: s.phase === 'won' });
     return status;
@@ -211,6 +255,11 @@
       p.cost = Math.ceil((p.path.length - 1) / a.stride);
       if (!p.cost || p.cost > a.ap) return fail('Beyond remaining movement AP.');
       p.reason = p.cost + ' AP · ' + (p.path.length - 1) + ' tiles · confirm move';
+      var lane = activeLane(s);
+      if (lane && lane.tiles.some(function (t) { return t.x === x && t.y === y; })) {
+        p.hazardDamage = lane.damage;
+        p.reason += ' / WARNING: ' + lane.label + ' deals ' + lane.damage + ' damage here at end turn';
+      }
     } else if (kind === 'attack') {
       var target = s.enemies.find(function (e) { return living(e) && e.x === x && e.y === y; });
       if (!target) return fail('Select a hostile patrol.');
@@ -221,7 +270,7 @@
       var lift = liftStatus(s), targetControl = { x: x, y: y };
       // The deck is its own control. Fixed consoles can recall the empty lift,
       // keeping either landing recoverable after a split-squad crossing.
-      if (height(s, a.x, a.y) !== height(s, x, y) || distance(a, targetControl) > (a.role === 'ENGINEER' ? 2 : 1) || !visible(s, a, targetControl)) return fail('Reach a lift deck control or a dock console on your level.');
+      if (height(s, a.x, a.y) !== height(s, x, y) || distance(a, targetControl) > (a.role === 'ENGINEER' ? (a.hackRange || 2) : 1) || !visible(s, a, targetControl)) return fail('Reach a lift deck control or a dock console on your level.');
       if (!lift.powered) return fail('Restore the hoist circuit before operating the lift.');
       if (!s.rescued && !s.lift.delivered) return fail('Rescue the lift operator and load the medical cargo before departing.');
       if (s.enemies.some(function (u) { return living(u) && liftAt(s, u.x, u.y); })) return fail('Clear hostile patrols off the lift before departure.');
@@ -235,7 +284,7 @@
     } else if (kind === 'hack') {
       var circuit = circuitAt(s, x, y);
       if (!circuit) return fail('Select an amber circuit node.');
-      if (distance(a, circuit) > (a.role === 'ENGINEER' ? 2 : 1) || !visible(s, a, circuit)) return fail('Get adjacent with a clear signal; Nia can hack from two tiles.');
+      if (distance(a, circuit) > (a.role === 'ENGINEER' ? (a.hackRange || 2) : 1) || !visible(s, a, circuit)) return fail('Get within ' + (a.role === 'ENGINEER' ? (a.hackRange || 2) : 1) + ' tile(s) with a clear signal.');
       if (circuit.controlled) return fail('Circuit already under our control.');
       var missing = (circuit.requires || []).filter(function (id) { return !s.circuits.some(function (c) { return c.id === id && c.controlled; }); });
       if (missing.length) return fail('Clinic supply interlock: complete ' + missing.map(function (id) { var c = s.circuits.find(function (entry) { return entry.id === id; }); return c ? c.label : id; }).join(' and ') + ' first.');
@@ -252,7 +301,7 @@
       if (a.role !== 'MEDIC') return fail('Only Sol can apply field aid.');
       if (a.kits === 0) return fail('No field aid kits left this operation.');
       if (!ally || !canReachAdjacent(s, a, ally) || ally.hp >= ally.maxHp) return fail('Select an injured adjacent engineer on this level or a connecting stair, including Sol.');
-      p.targetId = ally.id; p.reason = '1 AP · heal 4 HP · uses one of two field kits';
+      p.targetId = ally.id; p.reason = '1 AP · heal 4 HP · uses one field kit (' + (a.kits === undefined ? 2 : a.kits) + ' remaining)';
     } else if (kind === 'watch') {
       if (a.watch) return fail('Overwatch already set.');
       p.reason = '1 AP · one reaction shot during the enemy turn';
@@ -263,6 +312,7 @@
         if (!boarding.open) return fail(freightMessage(s) + '. Windows repeat; wait safely or prepare the next platform.');
         if (!boarding.tiles.some(function (t) { return t.x === a.x && t.y === a.y; })) return fail('Board at ' + boarding.label + ' now. ' + boarding.nextLabel + ' is the next stop.');
       }
+      if (s.defense && (s.defense.hp <= 0 || !defenseStatus(s).done)) return fail('Protect the clinic staff through all ' + s.defense.rounds + ' assaults before extracting.');
       if (s.lift && !s.lift.delivered) return fail('Deliver the rescued operator and medical cargo on the lift before extracting.');
       if (!networkReady(s) || !s.rescued) return fail('Complete the circuit objectives and rescue before extracting.');
       p.reason = '1 AP · extract ' + a.name;
@@ -349,6 +399,8 @@
       var available = s.squad.filter(function (u) { return canShoot(s, e, u); }).sort(function (a,b) { return distance(e,a) - distance(e,b); });
       if (living(e) && available.length) strike(s, e, available[0], e.name);
     });
+    resolveDefense(s);
+    if (s.phase !== 'lost') resolveLane(s);
     outcome(s);
     if (s.phase === 'lost' || s.phase === 'won') return true;
     s.turn++; s.phase = 'player'; s.squad.forEach(function (u) { if (living(u)) u.ap = 2; u.watch = false; });
@@ -359,6 +411,6 @@
   }
   SB.Logic = { newGame: newGame, tile: tile, height: height, unit: unit, living: living, occupant: occupant,
     blocked: blocked, canStep: canStep, path: path, visible: visible, cover: cover, damage: damage, preview: preview, commit: commit, endTurn: endTurn,
-    liftAt: liftAt, liftStatus: liftStatus, liftControlAt: liftControlAt,
+    liftAt: liftAt, liftStatus: liftStatus, liftControlAt: liftControlAt, defenseStatus: defenseStatus, activeLane: activeLane,
     circuitAt: circuitAt, doorOpen: doorOpen, objectiveStatus: objectiveStatus, turretAllied: turretAllied, extractionStatus: extractionStatus };
 })(window);

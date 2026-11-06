@@ -41,6 +41,8 @@
     for(var y=0;y<s.height;y++)for(var x=0;x<s.width;x++) {
       var t=L.tile(s,x,y),z=L.height(s,x,y),p;
       var floor=x<8?((x*7+y*3)%4?'#30414a':'#374b53'):((x+y)%3?'#263e49':'#2d4650');
+      if(s.defense&&x>=8&&x<=15&&y>=2&&y<=6&&t!=='#')floor=(x+y)%2?'#576965':'#4b605f';
+      if(s.lanes&&x>=10&&x<=15&&y>=3&&y<=10&&t!=='#')floor=(x+y)%2?'#43525b':'#354953';
       if(t==='#')floor=shaftHere(x,y)?'#07151e':'#1b2c36';
       if(platformHere(x,y))floor=liftPower?'#786c44':'#514b3d';
       if(t==='e')floor=boarding?(boardingHere(x,y)?'#797044':'#293c49'):'#255c5b';
@@ -49,10 +51,35 @@
         diamond(x,y,z,floor,liftPower?'#ffe1a1':'#a3977e');
         c.strokeStyle='#e5bf76';c.lineWidth=Math.max(1,a*.06);c.beginPath();c.moveTo(p.x-a*.6,p.y);c.lineTo(p.x,p.y+b*.6);c.lineTo(p.x+a*.6,p.y);c.stroke();
       }
+      if(s.defense&&x>=8&&x<=15&&y>=2&&y<=6&&t!== '#'){
+        // Flush ward tiles identify the treatment floor without inventing cover.
+        c.strokeStyle='#b6d1c226';c.lineWidth=Math.max(.5,a*.025);c.beginPath();c.moveTo(p.x-a*.82,p.y);c.lineTo(p.x,p.y+b*.82);c.lineTo(p.x+a*.82,p.y);c.stroke();
+      }
+      if(s.lanes&&x>=10&&x<=15&&y>=3&&y<=10&&t!== '#'){
+        // Rooftop conduit follows actual floor surfaces; never a route obstacle.
+        c.strokeStyle=x%2?'#a9a07b66':'#79a6af55';c.lineWidth=Math.max(.8,a*.045);c.beginPath();c.moveTo(p.x-a*.8,p.y);c.lineTo(p.x+a*.8,p.y);c.stroke();
+      }
       if(reachable[x+','+y])diamond(x,y,z,reachable[x+','+y]===1?'#397b8550':'#bda26030','#4a96994a');
       if(t==='e'){c.strokeStyle=boarding?(boardingHere(x,y)?'#ffe09b':'#72828b'):'#80d2bb';c.lineWidth=a*.07;c.beginPath();c.moveTo(p.x-a*.4,p.y);c.lineTo(p.x,p.y+b*.45);c.lineTo(p.x+a*.4,p.y-b*.1);c.stroke();}
       if(t!== '#' && y===6){c.strokeStyle=x<8?'#c2975655':'#6caab955';c.lineWidth=a*.04;c.beginPath();c.moveTo(p.x-a*.7,p.y+b*.3);c.lineTo(p.x+a*.7,p.y-b*.3);c.stroke();}
       if(t!== '#' && (x*17+y*9)%7===0){c.strokeStyle='#7b969b30';c.lineWidth=a*.025;c.beginPath();c.moveTo(p.x-a*.6,p.y);c.lineTo(p.x-a*.1,p.y+b*.3);c.lineTo(p.x+a*.1,p.y+b*.17);c.stroke();}
+    }
+    var lane=L.activeLane(s), defense=L.defenseStatus(s);
+    if(lane)lane.tiles.forEach(function(t){var q=diamond(t.x,t.y,L.height(s,t.x,t.y),'#b34a3455','#ffab83');c.strokeStyle='#ffbe91';c.lineWidth=Math.max(1,a*.05);c.beginPath();c.moveTo(q.x-a*.3,q.y-b*.3);c.lineTo(q.x+a*.3,q.y+b*.3);c.moveTo(q.x-a*.3,q.y+b*.3);c.lineTo(q.x+a*.3,q.y-b*.3);c.stroke();});
+    if(defense){
+      var q=P.point(s.defense.x,s.defense.y,L.height(s,s.defense.x,s.defense.y));
+      // Shield feeds are literal visual connections to the staff ward. Their
+      // color follows the selected circuit, with the announced assault in HUD.
+      (s.circuits||[]).forEach(function(feed,index){
+        var start=P.point(feed.x,feed.y,L.height(s,feed.x,feed.y)),end=P.point(s.defense.x+(index?1:-1),s.defense.y,L.height(s,s.defense.x,s.defense.y));
+        c.strokeStyle=feed.controlled?'#9be1d3':'#718c8b66';c.lineWidth=Math.max(1,a*.075);c.setLineDash(feed.controlled?[]:[a*.2,a*.15]);c.beginPath();c.moveTo(start.x,start.y);c.lineTo(end.x,end.y+b*.35);c.lineTo(q.x,q.y);c.stroke();c.setLineDash([]);
+      });
+      c.strokeStyle=defense.protected?'#9be1d3':'#ffad88';c.lineWidth=Math.max(2,a*.12);c.beginPath();c.ellipse(q.x,q.y,a*.8,b*.8,0,0,Math.PI*2);c.stroke();
+    }
+    if(lane||defense){
+      c.fillStyle='#ffe0ab';c.font=Math.max(11*Math.min(d,2),w/110)+'px system-ui';
+      var text=lane?'FIRING / '+lane.label+' / '+lane.damage+' HP':defense.done?'CLINIC SECURED / '+defense.hp+' HP':'CLINIC / '+defense.hp+' HP / '+defense.lane.toUpperCase()+' '+(defense.protected?'COVERED':'EXPOSED');
+      c.fillText(text,16*Math.min(d,2),h-62*Math.min(d,2));
     }
     if(lift){
       // Empty dock outlines and cable guides identify both destinations without
@@ -106,7 +133,15 @@
         var q=block(x,y,height,'#566770','#243640','#33464f');
         c.strokeStyle='#90a2a944';c.lineWidth=a*.04;c.beginPath();c.moveTo(q.x-a*.7,q.y);c.lineTo(q.x+a*.5,q.y-b*.45);c.stroke();
       }
-      if(t==='c') {block(x,y,.55,'#61787b','#30464c','#3d565c');c.fillStyle='#c7b27e';c.fillRect(p.x-a*.4,p.y-a*.3,a*.3,a*.05);}
+      if(t==='c') {
+        var medical=s.defense&&y===5&&(x===8||x===12);
+        var top=block(x,y,.55,medical?'#b5c9ba':'#61787b',medical?'#45625e':'#30464c',medical?'#698a7d':'#3d565c');
+        if(medical){c.strokeStyle='#e2efe4';c.lineWidth=Math.max(1,a*.08);c.beginPath();c.moveTo(top.x-a*.42,top.y);c.lineTo(top.x+a*.42,top.y);c.moveTo(top.x,top.y-b*.45);c.lineTo(top.x,top.y+b*.45);c.stroke();}
+        else{c.fillStyle='#c7b27e';c.fillRect(p.x-a*.4,p.y-a*.3,a*.3,a*.05);}
+      }
+      if(s.defense&&t==='#'&&(x===7||x===16)&&y===4){
+        var sign=P.point(x,y,z+.75);c.fillStyle='#b9dacc';c.fillRect(sign.x-a*.28,sign.y-a*.55,a*.56,a*.62);c.fillStyle='#2d6c61';c.fillRect(sign.x-a*.07,sign.y-a*.48,a*.14,a*.46);c.fillRect(sign.x-a*.22,sign.y-a*.33,a*.44,a*.14);
+      }
       if(t==='d') {
         if(!L.doorOpen(s,x,y)){block(x,y,1.3,'#ba9a66','#63553f','#847047');c.strokeStyle='#ffe0a0';c.lineWidth=a*.07;c.beginPath();c.moveTo(p.x-a*.45,p.y-a*.25);c.lineTo(p.x+a*.25,p.y-a*.65);c.stroke();}
         else {diamond(x,y,z,'#3e766d','#80d9bd');}
@@ -117,6 +152,14 @@
         c.fillStyle=on?'#91ffe2':'#ffe1a1';c.beginPath();c.arc(q.x,q.y-a*.2,a*.17,0,Math.PI*2);c.fill();
         if(consoleHere){c.font=Math.max(9,a*.5)+'px system-ui';c.textAlign='center';c.fillText('L',q.x,q.y-a*.65);c.textAlign='start';}
         if(s.circuits&&circuit){c.font=Math.max(9,a*.5)+'px system-ui';c.textAlign='center';c.fillText(String(s.circuits.indexOf(circuit)+1),q.x,q.y-a*.65);c.textAlign='start';}
+      }
+      if(s.lanes&&t==='n'&&L.circuitAt(s,x,y)&&L.circuitAt(s,x,y).id===s.lanes.disabledBy){
+        // The command mast is attached to its real interactable tile. A narrow
+        // wireframe silhouette leaves neighboring floor and actors legible.
+        var on=L.circuitAt(s,x,y).controlled,tipY=p.y-a*2.8;
+        c.strokeStyle=on?'#80d5c0':'#d9b87b';c.lineWidth=Math.max(1,a*.065);c.beginPath();c.moveTo(p.x-a*.3,p.y-a*.18);c.lineTo(p.x,tipY);c.lineTo(p.x+a*.3,p.y-a*.18);c.moveTo(p.x-a*.2,p.y-a*.9);c.lineTo(p.x+a*.2,p.y-a*.9);c.moveTo(p.x-a*.13,p.y-a*1.6);c.lineTo(p.x+a*.13,p.y-a*1.6);c.stroke();
+        c.strokeStyle=on?'#b3eee1':'#f4d49b';c.lineWidth=Math.max(1,a*.1);c.beginPath();c.ellipse(p.x+a*.22,tipY+a*.6,a*.45,a*.23,-.55,0,Math.PI*2);c.stroke();c.beginPath();c.moveTo(p.x+a*.22,tipY+a*.6);c.lineTo(p.x+a*.6,tipY+a*.23);c.stroke();
+        c.fillStyle=on?'#8fe6ca':'#ffbf84';c.beginPath();c.arc(p.x,tipY,a*.085,0,Math.PI*2);c.fill();
       }
       if(x===s.turret.x&&y===s.turret.y){
         block(x,y,.5,'#8c9c9b','#3c535c','#4d6d71');c.strokeStyle=L.turretAllied(s)?'#84f4ce':'#ef8c78';c.lineWidth=a*.18;c.lineCap='round';c.beginPath();c.moveTo(p.x,p.y-a*.6);c.lineTo(p.x+a*.55,p.y-a*.85);c.stroke();

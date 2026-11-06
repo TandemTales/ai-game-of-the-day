@@ -3,10 +3,23 @@
 function nextOrder(SB, s) {
   const L = SB.Logic, live = s.squad.filter(L.living);
   const boardingLift=s.lift && s.circuits.find(c=>c.id===s.lift.poweredBy).controlled && s.rescued && !s.lift.delivered;
+  if(boardingLift){
+    const dock=s.lift.stops[s.lift.position];
+    for(const u of live)if(L.liftAt(s,u.x,u.y)&&u.x<dock.x+s.lift.size-1){
+      const p=L.preview(s,u.id,'move',u.x+1,u.y);if(p.legal)return p;
+    }
+  }
   if(boardingLift && live.every(u=>L.liftAt(s,u.x,u.y))){
     const rider=live.find(u=>u.ap>0),dock=s.lift.stops[s.lift.position];
     if(rider){const p=L.preview(s,rider.id,'hack',dock.x,dock.y);if(p.legal)return p;}
     return {kind:'end'};
+  }
+  const defense=s.defense&&L.defenseStatus(s);
+  if(defense&&!defense.done&&!defense.protected){
+    const node=s.circuits.find(c=>c.id===defense.circuitId);
+    for(const u of live){const p=L.preview(s,u.id,'hack',node.x,node.y);if(p.legal)return p;}
+    const nia=live.find(u=>u.id==='nia');
+    if(nia&&nia.ap){const p=L.preview(s,nia.id,'move',10,7);if(p.legal)return p;}
   }
   let goal;
   if (s.id === 'locked-manifest') {
@@ -14,7 +27,8 @@ function nextOrder(SB, s) {
     if (!s.rescued) goal = prison.controlled ? s.rescue : prison;
     else if (live.some(u => u.x >= 10 && u.y <= 6)) goal = { x: 9, y: 4, regroup: true };
     else if (!evac.controlled) goal = evac;
-  } else if (s.lift && !s.lift.delivered) goal = !s.circuits[0].controlled?s.circuits[0]:!s.rescued?s.rescue:null;
+  } else if (s.defense) goal=null;
+  else if (s.lift && !s.lift.delivered) goal = !s.circuits[0].controlled?s.circuits[0]:!s.rescued?s.rescue:null;
   else if (s.circuits) goal = s.circuits.find(c => !c.controlled);
   else if (!s.network) goal = s.node;
   if (!goal && !s.rescued) goal = s.rescue;
@@ -37,6 +51,7 @@ function nextOrder(SB, s) {
     }
     const attacks=s.enemies.filter(L.living).map(e=>L.preview(s,u.id,'attack',e.x,e.y)).filter(p=>p.legal).sort((a,b)=>b.damage-a.damage);
     if (attacks.length) return attacks[0];
+    if(defense&&!defense.done&&u.id==='nia'){const watch=L.preview(s,u.id,'watch',u.x,u.y);if(watch.legal)return watch;continue;}
     if(goal) {
       const kind=goal===s.rescue?'rescue':goal.regroup?null:'hack';
       if(kind){const p=L.preview(s,u.id,kind,goal.x,goal.y);if(p.legal)return p;}
@@ -44,8 +59,11 @@ function nextOrder(SB, s) {
     let target=goal;
     if(boardingLift){
       if(L.liftAt(s,u.x,u.y))continue;
-      const dock=s.lift.stops[s.lift.position],i=s.squad.indexOf(u);
-      target={x:dock.x+i%2,y:dock.y+Math.floor(i/2)};
+      const dock=s.lift.stops[s.lift.position],free=[];
+      for(let x=dock.x+s.lift.size-1;x>=dock.x;x--)for(let y=dock.y;y<dock.y+s.lift.size;y++)
+        if(!L.occupant(s,x,y)&&L.path(s,u,x,y))free.push({x,y});
+      if(!free.length)continue;
+      target=free[0];
     }
     if (goal && goal.regroup && !(u.x>=10&&u.y<=6)) target=s.circuits[1];
     if (!target) target=exits.slice().sort((a,b)=>Math.abs(u.x-a.x)+Math.abs(u.y-a.y)-Math.abs(u.x-b.x)-Math.abs(u.y-b.y))[0];
@@ -53,7 +71,7 @@ function nextOrder(SB, s) {
     for(let y=1;y<s.height-1;y++) for(let x=1;x<s.width-1;x++) {
       const p=L.preview(s,u.id,'move',x,y);if(!p.legal)continue;
       const dist=map[x+','+y];if(dist===undefined||dist>=current)continue;
-      const value=dist*10+p.cost-L.cover(s,{x,y},target)*.25;
+      const value=dist*10+p.cost-L.cover(s,{x,y},target)*.25+(p.hazardDamage?100:0);
       if(!best||value<best.value)best={value,p};
     }
     if(best)return best.p;

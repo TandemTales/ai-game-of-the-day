@@ -31,14 +31,14 @@ function pilot(SB, s, report = []) {
   }
   return report;
 }
-test('full manifest promises twenty operations; the first six distinct authored maps are playable', () => {
+test('full manifest promises twenty operations; the first eight distinct authored maps are playable', () => {
   const SB=load();expect(SB.Missions.manifest).toHaveLength(5);
   const names=SB.Missions.manifest.flatMap(d=>Array.from(d).slice(1));expect(new Set(names).size).toBe(20);
   expect(SB.Missions.opening.title).toBe('Live Wire');
-  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift']);
-  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(6);
+  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain']);
+  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(8);
   for(const m of SB.Missions.operations){expect(m.rows.every(r=>r.length===m.rows[0].length)).toBe(true);for(const n of m.circuits||[])expect(m.rows[n.y][n.x]).toBe('n');}
-  expect(()=>SB.Logic.newGame('open-clinic')).toThrow('Unknown operation');
+  expect(()=>SB.Logic.newGame('sluice-logic')).toThrow('Unknown operation');
 });
 test('fresh states are isolated and previews never mutate the tactical state', () => {
   const {Logic:L}=load(),a=L.newGame(),b=L.newGame(),before=JSON.stringify(a);
@@ -110,7 +110,7 @@ test('complete legal pilot is deterministic across fresh runs', () => {
 });
 
 const {run:campaignRoute}=require('../tools/signalbreak-route.cjs');
-test.each(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift'])('%s can be won by legal orders against live AI with four survivors', id => {
+test.each(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain'])('%s can be won by legal orders against live AI with four survivors', id => {
   const SB=load(),s=SB.Logic.newGame(id),report=campaignRoute(SB,s);
   expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);
   expect(report.some(p=>p.kind==='hack')).toBe(true);expect(report.some(p=>p.kind==='rescue')).toBe(true);
@@ -276,4 +276,60 @@ test('open cargo shaft blocks walking but permits cross-shaft fire; dock walls s
  expect(L.cover(s,{x:15,y:7},{x:15,y:0})).toBe(0);
  expect(L.canStep(s,{x:9,y:7},{x:10,y:7})).toBe(false);
  expect(L.visible(s,{x:4,y:3},{x:4,y:5})).toBe(false);
+});
+
+
+function fixtureWin(SB,id){const s=SB.Logic.newGame(id);s.phase='won';s.rescued=true;s.score=2000;s.turn=8;s.squad.forEach(u=>u.extracted=true);return s;}
+test('first clears train survivors and award supplies once; replays cannot farm recovery or XP',()=>{
+ const SB=load(),C=SB.Campaign,c=C.fresh(),s=fixtureWin(SB,'live-wire');s.squad[0].hp=2;s.squad[1].hp=0;s.squad[1].extracted=false;
+ expect(C.complete(c,s)).toBe(true);expect(c.supplies).toBe(4);expect(c.roster.nia).toMatchObject({xp:1,injury:1});expect(c.roster.sol).toMatchObject({xp:0,injury:2});
+ const roster=JSON.stringify(c.roster);s.squad.forEach(u=>{u.hp=u.maxHp;u.extracted=true;});s.score=3000;
+ expect(C.complete(c,s)).toBe(true);expect(c.results['live-wire'].score).toBe(3000);expect(JSON.stringify(c.roster)).toBe(roster);expect(c.supplies).toBe(4);
+});
+test('equipment and treatment reject unavailable choices without mutation and persist earned changes',()=>{
+ const SB=load(),C=SB.Campaign,c=C.fresh(),before=JSON.stringify(c);expect(C.equip(c,'nia','optics')).toBe(false);expect(C.treat(c,'nia')).toBe(false);expect(JSON.stringify(c)).toBe(before);
+ const s=fixtureWin(SB,'live-wire');s.squad[0].hp=2;C.complete(c,s);expect(C.equip(c,'nia','armor')).toBe(true);expect(C.treat(c,'nia')).toBe(true);expect(c.supplies).toBe(3);expect(c.roster.nia.injury).toBe(0);
+ const store=memoryStorage();C.save(store,c);expect(C.load(store).campaign).toEqual(c);expect(C.equip(c,'__proto__','armor')).toBe(false);
+});
+test('legacy campaign migration grants bounded growth and role perks without changing mission bases',()=>{
+ const SB=load(),C=SB.Campaign,results={};for(const m of SB.Missions.operations.slice(0,4))results[m.id]={score:2000,turns:10,survivors:4};
+ const c=C.normalize({version:1,selected:'cargo-lift',results});expect(c.roster.nia.xp).toBe(4);expect(c.supplies).toBe(10);expect(C.normalize(c)).toEqual(c);
+ C.equip(c,'nia','optics');C.equip(c,'rook','boots');const base=SB.Logic.newGame(),s=C.prepare(c,SB.Logic.newGame());
+ expect(s.squad[0].hackRange).toBe(3);expect(s.squad[0].range).toBe(base.squad[0].range+1);expect(s.squad[1].kits).toBe(3);expect(s.squad[2].stride).toBe(base.squad[2].stride+2);expect(s.squad[3].damage).toBe(base.squad[3].damage+1);
+ const same=JSON.stringify(s);C.prepare(c,s);expect(JSON.stringify(s)).toBe(same);expect(SB.Logic.newGame()).toEqual(base);
+});
+test('malformed roster cannot exceed earned XP or supply bounds or equip locked gear',()=>{
+ const C=load().Campaign,c=C.fresh();c.roster.nia={xp:999,injury:99,gear:'optics'};c.supplies=Infinity;
+ const clean=C.normalize(c);expect(clean.roster.nia).toEqual({xp:0,injury:2,gear:'standard'});expect(clean.supplies).toBe(0);
+ c.roster=null;expect(()=>C.normalize(c)).not.toThrow();
+});
+test('healthy first clear recovers one injury; low-stat equipment still deploys a viable squad',()=>{
+ const SB=load(),C=SB.Campaign,c=C.fresh();c.roster.nia.injury=2;C.complete(c,fixtureWin(SB,'live-wire'));expect(c.roster.nia.injury).toBe(1);
+ const s=C.prepare(c,SB.Logic.newGame('locked-manifest'));expect(s.squad[0].maxHp).toBe(SB.Logic.newGame('locked-manifest').squad[0].maxHp-2);
+ c.roster.nia.injury=2;C.complete(c,fixtureWin(SB,'locked-manifest'));C.equip(c,'nia','optics');const next=C.prepare(c,SB.Logic.newGame('cut-the-feed'));expect(next.squad[0].hp).toBeGreaterThanOrEqual(4);
+});
+
+
+test('clinic protects the announced wing, ends after six assaults, and never resolves a lost mission twice',()=>{
+ const L=load().Logic,s=L.newGame('open-clinic');s.enemies=[];s.turret=null;delete s.ambush;
+ const before=JSON.stringify(s),d=L.defenseStatus(s);expect(d.lane).toBe('north');expect(JSON.stringify(s)).toBe(before);
+ for(let i=0;i<6;i++){const d=L.defenseStatus(s);s.circuits.forEach(c=>c.controlled=c.id===d.circuitId);L.endTurn(s);}
+ expect(s.defense.hp).toBe(8);expect(L.defenseStatus(s).done).toBe(true);L.endTurn(s);expect(s.defense.elapsed).toBe(6);
+ const bad=L.newGame('open-clinic');bad.enemies=[];bad.turret=null;delete bad.ambush;for(let i=0;i<4;i++)L.endTurn(bad);expect(bad.phase).toBe('lost');const frozen=JSON.stringify(bad);L.endTurn(bad);expect(JSON.stringify(bad)).toBe(frozen);
+});
+test('clinic extraction is refused until staff survive every assault',()=>{
+ const L=load().Logic,s=L.newGame('open-clinic');s.rescued=true;const t=L.extractionStatus(s).tiles[0];Object.assign(s.squad[0],t);
+ const before=JSON.stringify(s);expect(L.preview(s,'nia','extract',t.x,t.y).legal).toBe(false);expect(JSON.stringify(s)).toBe(before);s.defense.elapsed=6;expect(L.preview(s,'nia','extract',t.x,t.y).legal).toBe(true);
+});
+test('antenna lanes alternate, warn before movement, damage only exposed living units and stop after tower capture',()=>{
+ const L=load().Logic,s=L.newGame('antenna-rain');s.enemies=[];s.turret=null;
+ const first=L.activeLane(s),t=first.tiles[1];first.tiles[1].x=99;expect(L.activeLane(s).tiles[1].x).not.toBe(99);
+ const target=L.activeLane(s).tiles[1];Object.assign(s.squad[0],{x:target.x,y:target.y+1});const p=L.preview(s,'nia','move',target.x,target.y);expect(p.legal).toBe(true);expect(p.hazardDamage).toBe(2);order(L,s,'nia','move',target.x,target.y);
+ const hp=s.squad[0].hp;L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);expect(L.activeLane(s).label).not.toBe(first.label);
+ s.circuits.find(c=>c.id==='tower').controlled=true;expect(L.activeLane(s)).toBe(null);L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);
+});
+test('all eight operations support consecutive persisted squad progression with legal orders',()=>{
+ const SB=load(),C=SB.Campaign,c=C.fresh(),store=memoryStorage();
+ for(const m of SB.Missions.operations){for(const id of ['nia','sol','rook','ivo'])C.treat(c,id);const s=C.prepare(c,SB.Logic.newGame(m.id));campaignRoute(SB,s);expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);expect(C.complete(c,s)).toBe(true);C.save(store,c);expect(C.load(store).campaign).toEqual(c);}
+ expect(Object.keys(c.results)).toHaveLength(8);expect(c.roster.nia.xp).toBe(8);
 });

@@ -11,8 +11,8 @@ node tools/signalbreak-browser-smoke.cjs
 Rules tests load classic scripts in a vm with a browser-global shim. Verify
 read-only previews, AP/path legality, blocked and circuit-door LOS, cover/height,
 deterministic attacks/AI, overwatch, rescue, objective/extraction, win/loss,
-fresh-state isolation and all six authored operations' legal live-AI routes.
-The 36 focused cases also cover exclusive relay/LOS/turret changes, repeated-score
+fresh-state isolation and all eight authored operations' legal live-AI routes.
+The 47 focused cases also cover exclusive relay/LOS/turret changes, repeated-score
 protection, stranded-squad reroute refusal, clinic-interlock rejected-action
 immutability, raised-tile projection picking across zooms, earned unlocks,
 mission-boundary save/load, replay best scores and corrupt/gapped/denied storage.
@@ -25,7 +25,7 @@ the lead, real keyboard/pointer/native touch, preview→confirm, cancel, end tur
 hack-linked door/turret, loss/retry, operation score rank-before-submit with LOCAL
 API mock only, file:// boot and DPR2 backing. Read screenshots, not just paths.
 
-The harness now completes all six missions through actual UI orders and live
+The harness now completes all eight missions through actual UI orders and live
 AI, with no tactical-state injection. Locked Manifest, Night Freight, Rooftop Crossfire and Cargo Lift use native touch for
 selection, movement, node targeting and confirmation throughout. It reloads to
 the next earned briefing, validates best-score save records, holds the first
@@ -33,7 +33,7 @@ rank response until Next changes missions, and checks that the original score
 is still posted. A separate denied-localStorage page must stay playable and
 display its save warning. Separate loss fixtures are explicitly labelled.
 
-In addition to the opening six-size sweep, all five added maps have title/live captures
+In addition to the opening six-size sweep, all seven added maps have title/live captures
 and native touch/raised-tile-picking/overflow/console/request checks at all six
 sizes. Campaign debrief/mastery text is checked. Evidence includes results.json
 and SHA-256 source-manifest.json in node_modules/.cache/signalbreak/browser-smoke.
@@ -79,10 +79,23 @@ all12 new title/live captures via contact sheets plus phone/desktop originals.
 Contact sheets downsample4K; they do not prove full-resolution4K legibility.
 
 
-Cargo Lift: 36 focused cases cover six legal live-AI victories/four survivors,
+Cargo Lift: 47 focused cases cover six legal live-AI victories/four survivors,
 power/rescue interlocks, readonly previews, four rider offsets, deck terrain and
 height, stale direction, empty recall, hostile/occupied docking rejection,
 delivery extraction gate, both deck positions picking and five-map v1 saves.
-Browser harness earns all six missions and plays Cargo via native touch. All five
+Browser harness earns all eight missions and plays Cargo via native touch. All five
 added maps have six-size title/live sweeps (36 map/viewport combinations total).
 Cargo is narrative escorted supplies, not an independently damageable actor.
+
+
+November6:47 focused cases now include all8 raw-stat deterministic routes and
+an eight-operation consecutive persisted-growth campaign. Firstclear reward and
+injury updates, replay anti-farming, equipment gates/stat tradeoffs, treatment,
+role perks, nonstacking preparation, malformed/legacy saves all covered.
+Clinic tests cover exact6assault timing, coverage/hp/loss freeze and extraction;
+antenna tests cover lane copies/preview warnings/alternation/damage/shutdown.
+Pilot fills deepest free lift slots and packs riders inward to handle different
+movement stats without blocking later boarders. Browser earns all8missions,
+plays new ones via native touch, checks equipment/save and disabled field edits,
+keyboard summary behavior, plus a labelled saved-injury treatment fixture.
+Preparation capture390wide; all7additional maps at6sizes=48total combinations.

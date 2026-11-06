@@ -294,9 +294,115 @@
       ]
     },
     mastery: 'Deliver the medicine and extract all four engineers in eighteen turns or fewer; carry the whole squad on the first ascent.',
-    debrief: 'The operator locks the medicine crates into the clinic loading bay. Sol recognizes names from the evacuation list, and Mara gets the staff onto a protected channel. The clinic now has supplies, but its defenders are scattered across two power zones. Open Clinic remains in development.'
+    debrief: 'The operator locks the medicine crates into the clinic loading bay. Sol recognizes names from the evacuation list, and Mara gets the staff onto a protected channel. The clinic now has supplies, but its defenders are scattered across two power zones. The squad must now hold Open Clinic while its staff evacuate under alternating attacks.'
   };
-  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo];
+  var clinic = {
+    id: 'open-clinic', title: 'Open Clinic', district: 'Vertical Market', sequence: 7,
+    briefing: 'The medicine is here, but occupation batteries are ranging the clinic wards. Hold through six announced assaults while the staff prepare to evacuate. The north and south shield feeds share one supply: HACK the announced feed before ending each turn. A wrong feed costs two of the staff\'s eight health; four missed shields lose the operation. North power also allies the atrium turret; south power shields the other ward but returns that turret to the occupation. Patrols attack your engineers while the batteries attack the staff. Rescue the staff, complete the defense, then extract at the ambulance court.',
+    radio: 'SOL / First assault: NORTH. Feeds at (9,7) and (11,7); the center tile (10,7) can reach both. The sequence is north, south, south, north, south, north. Keep Ivo watching the west service door; reinforcements enter on turn three.',
+    objectiveSummary: 'Protect six alternating ward assaults, rescue the medical staff, and extract at the southeast ambulance court.',
+    extractionLabel: 'ambulance court',
+    objectives: { requiredCircuits: [], rescueLabel: 'Evacuate the medical staff' },
+    rows: [
+      '########################',
+      '#......................#',
+      '#......#........#......#',
+      '#..c.c.#........#.c.c..#',
+      '#......#........#......#',
+      '#......#c.r.c...#......#',
+      '#.##.##..........##.##.#',
+      '#........n.n...........#',
+      '#......................#',
+      '#.....c.......c....##..#',
+      '#..##..................#',
+      '#......c..........c....#',
+      '#.............c.....eee#',
+      '#...................eee#',
+      '#......................#',
+      '########################'
+    ],
+    heights: [{ x: 3, y: 3, z: 1 }, { x: 20, y: 3, z: 1 }],
+    squad: squad([[8,8],[9,9],[10,9],[11,9]]),
+    enemies: [
+      { id: 'west-orderly-hunter', name: 'West ward raider', x: 4, y: 3, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 3 },
+      { id: 'east-orderly-hunter', name: 'East ward raider', x: 19, y: 3, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 3 },
+      { id: 'ambulance-blocker', name: 'Ambulance interceptor', x: 18, y: 12, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 3 }
+    ],
+    turret: { x: 16, y: 7, range: 5, damage: 2 },
+    node: { x: 9, y: 7 }, rescue: { x: 10, y: 5 },
+    circuits: [
+      { id: 'north-feed', label: 'North ward shield / allied turret', x: 9, y: 7, controlled: false, exclusiveGroup: 'clinic-feed', doors: [], turret: true },
+      { id: 'south-feed', label: 'South ward shield / hostile turret', x: 11, y: 7, controlled: false, exclusiveGroup: 'clinic-feed', doors: [] }
+    ],
+    defense: { rounds: 6, elapsed: 0, hp: 8, maxHp: 8, schedule: ['north','south','south','north','south','north'], covers: { north: 'north-feed', south: 'south-feed' }, label: 'Clinic staff', x: 10, y: 5 },
+    ambush: { turn: 3, label: 'Clinic reinforcements', enemies: [
+      { id: 'clinic-service-pursuit', name: 'Service-door pursuit', x: 2, y: 13, hp: 5, maxHp: 5, damage: 2, range: 4, stride: 3 },
+      { id: 'clinic-court-pursuit', name: 'Court pursuit', x: 21, y: 10, hp: 5, maxHp: 5, damage: 2, range: 4, stride: 3 }
+    ] },
+    mastery: 'Protect all six assaults without staff damage and extract all four engineers in fourteen turns or fewer.',
+    debrief: 'The staff roll the last stretcher into the ambulance court. Sol keeps a copy of the clinic roster, and the market crews raise white lights above the wards. Mara traces the battery orders to the antenna tower. Disable that command signal in Antenna Rain before the occupation redirects its guns toward Floodworks.'
+  };
+  var antennaHeights = [];
+  for (var antennaY = 3; antennaY <= 10; antennaY++) for (var antennaX = 10; antennaX <= 15; antennaX++) {
+    antennaHeights.push({ x: antennaX, y: antennaY, z: 2 });
+  }
+  var antenna = {
+    id: 'antenna-rain', title: 'Antenna Rain', district: 'Vertical Market', sequence: 8,
+    briefing: 'The occupation antenna tower directs sweeping sniper lanes across the market approaches. North and south lanes alternate every enemy turn; each engineer ending a turn on the announced lane takes two damage, even behind low cover. The raised tower is above those lanes. Take the street service relay to open the west tower stair and ally its turret, or use the exposed north stair. Climb the tower and HACK its command node to silence both lanes permanently. Rescue the antenna technician, descend the east stair, and extract along the Floodworks access road.',
+    radio: 'ROOK / NORTH sweeps first, then SOUTH, repeating. Read the marked lane before ending your turn. Service relay (5,11), west stair (9,7), open north stair (12,2), tower control (13,5), east descent (15,9). The tower terrace is safe from the sweeps.',
+    objectiveSummary: 'Take the service relay, climb the tower to silence alternating firing lanes, rescue its technician and reach the Floodworks road.',
+    extractionLabel: 'Floodworks access road',
+    objectives: { requiredCircuits: ['antenna-service','tower'], rescueLabel: 'Rescue the antenna technician' },
+    rows: [
+      '########################',
+      '#......................#',
+      '#......................#',
+      '#....c..c..............#',
+      '#.....##...c..c..##....#',
+      '#............n.........#',
+      '#.....##..........##...#',
+      '#..c......d.##.......c.#',
+      '#...##......#....c.....#',
+      '#......c...c..r........#',
+      '#......................#',
+      '#....n.............##..#',
+      '#.......##..........eee#',
+      '#..................ceee#',
+      '#......................#',
+      '########################'
+    ],
+    heights: antennaHeights, maxStepHeight: 0,
+    climbLinks: [
+      { from: { x: 9, y: 7 }, to: { x: 10, y: 7 } },
+      { from: { x: 12, y: 2 }, to: { x: 12, y: 3 } },
+      { from: { x: 15, y: 9 }, to: { x: 16, y: 9 } }
+    ],
+    stairs: [
+      { label: 'West relay stair', x: 9, y: 7, toX: 10, toY: 7 },
+      { label: 'North exposed stair', x: 12, y: 2, toX: 12, toY: 3 },
+      { label: 'East descent', x: 15, y: 9, toX: 16, toY: 9 }
+    ],
+    squad: squad([[3,12],[3,13],[4,13],[5,13]]),
+    enemies: [
+      { id: 'antenna-relay-guard', name: 'Relay guard', x: 7, y: 11, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 3 },
+      { id: 'antenna-controller', name: 'Tower controller', x: 14, y: 4, hp: 6, maxHp: 6, damage: 2, range: 6, stride: 2 },
+      { id: 'antenna-keeper', name: 'Terrace enforcer', x: 13, y: 9, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 2 },
+      { id: 'antenna-east-patrol', name: 'Road patrol', x: 18, y: 8, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 3 }
+    ],
+    turret: { x: 15, y: 6, range: 7, damage: 2 },
+    node: { x: 5, y: 11 }, rescue: { x: 14, y: 9 },
+    circuits: [
+      { id: 'antenna-service', label: 'Tower stair relay / allied turret', x: 5, y: 11, controlled: false, doors: [{ x: 10, y: 7 }], turret: true },
+      { id: 'tower', label: 'Antenna command silenced', x: 13, y: 5, controlled: false, doors: [] }
+    ],
+    lanes: { disabledBy: 'tower', damage: 2, patterns: [
+      { label: 'North firing lane', tiles: [{"x":3,"y":5},{"x":4,"y":5},{"x":5,"y":5},{"x":6,"y":5},{"x":7,"y":5},{"x":8,"y":5},{"x":9,"y":5},{"x":16,"y":5},{"x":17,"y":5},{"x":18,"y":5},{"x":19,"y":5},{"x":20,"y":5}] },
+      { label: 'South firing lane', tiles: [{"x":3,"y":10},{"x":4,"y":10},{"x":5,"y":10},{"x":6,"y":10},{"x":7,"y":10},{"x":8,"y":10},{"x":9,"y":10},{"x":16,"y":10},{"x":17,"y":10},{"x":18,"y":10},{"x":19,"y":10},{"x":20,"y":10}] }
+    ] },
+    mastery: 'Silence the antenna without taking lane damage and extract all four engineers in sixteen turns or fewer.',
+    debrief: 'The sweeping sights go dark. Below the tower, clinic crews and freight operators restore the market routes together. The technician gives Mara a map of occupation pumps beneath the city. Floodworks is next: Sluice Logic and the remaining twelve operations are still in development.'
+  };
+  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna];
   SB.Missions.get = function (id) {
     return SB.Missions.operations.find(function (mission) { return mission.id === id; }) || null;
   };

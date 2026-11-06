@@ -346,3 +346,23 @@ required. Forced release November14; November7 is first Saturday, age5.
 ## November 6 Pacific - accelerated campaign pass intent
 User requested maximum practical progress. Implement persistent squad progression/loadouts/injury recovery plus Open Clinic and Antenna Rain to finish Vertical Market, retaining all twenty-operation scope. Delegate one file per worker; lead integrates UI, rules tests and browser routes. FIRST PLAYABLE remains. Independent critic and full/browser verification before final handoff.
 
+
+
+### November 6 implementation checkpoint (verification in progress)
+
+Added persistent rosterXP, first-clear-only supply/injury economy, role upgrades,
+three equipment tradeoffs and accessible preparation/treatment UI with v1
+migration. Added Open Clinic six-assault shield routing defense and Antenna Rain
+alternating firing lanes/three stair tower raid.8/20operations,2/5districts now
+complete in content count. Fixed critic-found summary hotkey interception;
+anchored interactive-target filter preserves canvas keyboard actions. Renderer
+adds actual-cover medical benches/ward markings and actual-node antenna mast;
+separated lane/stair legends.47focused cases currently46PASS; consecutive grown
+campaign pilot exposed path-planner deadlock under investigation before commit.
+All8base-stat deterministic routes pass with four survivors. No release/AAA claim.
+
+Pilot deadlock resolved: board deepest reachable free lift squares and pack riders
+inward before the next boards. No game-rule change needed. All8base-stat routes
+pass; consecutive earned-growth campaign now wins all8 with four survivors.
+Targeted Cargo+full campaign2/2PASS after fix (23.571seconds); other46 focused
+cases had passed before the planner correction. Full repository/browser next.

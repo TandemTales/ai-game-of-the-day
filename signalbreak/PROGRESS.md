@@ -342,3 +342,7 @@ NEXT RUN FIRST: persistent squad progression/equipment/injury with compatible v1
 migration, then07 Open Clinic defense/coverage switching. Fourteen operations,
 visibility, persistent consequences, finale and final campaign score still
 required. Forced release November14; November7 is first Saturday, age5.
+
+## November 6 Pacific - accelerated campaign pass intent
+User requested maximum practical progress. Implement persistent squad progression/loadouts/injury recovery plus Open Clinic and Antenna Rain to finish Vertical Market, retaining all twenty-operation scope. Delegate one file per worker; lead integrates UI, rules tests and browser routes. FIRST PLAYABLE remains. Independent critic and full/browser verification before final handoff.
+

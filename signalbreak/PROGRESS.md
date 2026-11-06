@@ -366,3 +366,48 @@ inward before the next boards. No game-rule change needed. All8base-stat routes
 pass; consecutive earned-growth campaign now wins all8 with four survivors.
 Targeted Cargo+full campaign2/2PASS after fix (23.571seconds); other46 focused
 cases had passed before the planner correction. Full repository/browser next.
+
+
+### November 6 stable-source browser verification
+
+Final Edge PASS48 mission/viewport combinations: eight operations across six
+required sizes, no app console warnings/errors, overflow or external gameplay
+requests. All eight missions completed through actual UI orders/live AI with
+four survivors and real persistent progression. Both new missions use native
+touch: OpenClinic43orders/turn9/3330points, AntennaRain49orders/turn8/3360points.
+Verified gear selection survives reload, gear edits disabled in the field,
+keyboard Enter expands preparation without deploying, eight earned XP, and a
+labelled saved-injury fixture restores4maxHP and spends exactly1supply via touch.
+Existing save/deniedstorage/fileboot/DPR2/loss/rank-before-POST/delayed-result
+checks pass with local API mocks only. Runtime hashes stable across entire run
+and current files match source-manifest.json at2026-11-06T23:45:34.975Z.
+Evidence:node_modules/.cache/signalbreak/browser-smoke. Lead inspected all24new
+mission title/live frames via six contact sheets, preparation phone original and
+live clinic/antenna originals.4K sheets downsampled; no full-resolution claim.
+
+
+Independent final critic: ART/UI FAIL / OURS LOSES vs official XCOM2 Steam
+https://store.steampowered.com/app/268500/XCOM_2/
+No further substantive progression/save/injury/defense/lane or readability
+blocker found after keyboard and legend fixes. Clinic markers/benches and antenna
+mast distinguish the missions better; repeated flat materials, tiny similar
+actors and desktop whitespace remain below the reference. Audio/VFX unjudged;
+human fun, physical devices and GPU performance remain unverified.
+Lead inspected comparison artifact:
+C:/Users/jshun/.codex/visualizations/2026/11/06/01a1afa6-c324-7691-8656-72bf8d28dbed/market-growth-side-by-side.png
+Different camera views, official reference native615x346, not same-angleHUD proof.
+
+NEXT RUN FIRST: build Floodworks09SluiceLogic water diversion with safe rerouting
+and10SpanControl moving bridge capture, then11Blackout light/visibility. Preserve
+new roster/perks/equipment/injuries and v1save migration; test base and grown
+campaign paths. Twelve authored operations, three districts, persistent district
+consequences, tracked mastery, final campaign scoring and Citadel ending remain.
+FIRST PLAYABLE stays; no completion marker/main/catalog/release action. Forced
+release remains November14, never November7. Scope has not been reduced.
+
+
+Final verification:47/47 Signalbreak cases PASS within full repository31/31suites,
+554/554tests PASS, exit0,341.51seconds. Report:
+node_modules/.cache/signalbreak-market-growth-full.json. Syntax/diff checks PASS.
+Runtime unchanged since successful48-combination browser sweep; source manifest
+matches. Intent34de0bb and implementation0002d14 pushed; final handoff next.

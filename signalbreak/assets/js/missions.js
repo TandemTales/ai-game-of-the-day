@@ -400,9 +400,56 @@
       { label: 'South firing lane', tiles: [{"x":3,"y":10},{"x":4,"y":10},{"x":5,"y":10},{"x":6,"y":10},{"x":7,"y":10},{"x":8,"y":10},{"x":9,"y":10},{"x":16,"y":10},{"x":17,"y":10},{"x":18,"y":10},{"x":19,"y":10},{"x":20,"y":10}] }
     ] },
     mastery: 'Silence the antenna without taking lane damage and extract all four engineers in sixteen turns or fewer.',
-    debrief: 'The sweeping sights go dark. Below the tower, clinic crews and freight operators restore the market routes together. The technician gives Mara a map of occupation pumps beneath the city. Floodworks is next: Sluice Logic and the remaining twelve operations are still in development.'
+    debrief: 'The sweeping sights go dark. Below the tower, clinic crews and freight operators restore the market routes together. The technician gives Mara a map of occupation pumps beneath the city. Follow the spillway into Floodworks: the sluice keeper is trapped beyond its flooded crossings.'
   };
-  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna];
+  var sluice = {
+    id: 'sluice-logic', title: 'Sluice Logic', district: 'Floodworks', sequence: 9,
+    briefing: 'Floodworks is divided by a live spillway. The north and south drainage feeds share one pump: draining either three-square crossing floods the other immediately. HACK the north feed to expose the northern channel bed and ally the east-bank turret. Cross to rescue the sluice keeper, then bring engineers off that channel before HACKing the south feed. The east-bank towpath connects both crossings, so a split squad can regroup there or on the west bank. The interlock refuses to flood anyone or strand an engineer. South drainage restores the occupation turret; move onto the southern towpath beyond its range before switching. Secure the southern outlet after the rescue, then extract through the southeast maintenance gate. Flooded water blocks movement but does not stop gunfire.',
+    radio: 'MARA / North drainage (7,4) first. Keeper (18,3), south drainage (7,11), outlet (18,11). Keep an engineer west to switch the pump. The dry towpath at x13 connects the east yards. Every engineer and hostile must be clear of the three old crossing squares before rerouting. There is no time limit: confirm the new route before committing.',
+    objectiveSummary: 'Drain the north crossing, rescue the keeper, divert to the south crossing, capture the outlet and extract all surviving engineers.',
+    extractionLabel: 'southeast maintenance gate',
+    objectives: { requiredCircuits: ['outlet'], rescueLabel: 'Rescue the sluice keeper', rescueRequires: ['north-drain'] },
+    rows: [
+      '########################',
+      '#.........www..........#',
+      '#..###....www..####....#',
+      '#.....c...www.....r....#',
+      '#......n..www..c.......#',
+      '#.........www......c...#',
+      '#...c.....www..c.......#',
+      '#.###.....www.##########',
+      '#.........www..........#',
+      '#.....c...www..c.......#',
+      '#..##.....www.......c..#',
+      '#......n..www.....n....#',
+      '#...c.....www.......eee#',
+      '#.........www.......eee#',
+      '#.........www..........#',
+      '########################'
+    ],
+    heights: [],
+    squad: squad([[2,10],[2,11],[2,12],[3,12]]),
+    enemies: [
+      { id: 'sluice-inspector', name: 'Pump inspector', x: 6, y: 8, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 3 },
+      { id: 'sluice-north-sentry', name: 'Spillway sentry', x: 16, y: 4, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 2 },
+      { id: 'sluice-towpath-patrol', name: 'Towpath patrol', x: 17, y: 12, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 3 },
+      { id: 'sluice-outlet-warden', name: 'Outlet warden', x: 20, y: 10, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 2 }
+    ],
+    turret: { x: 19, y: 5, range: 6, damage: 2 },
+    node: { x: 7, y: 4 }, rescue: { x: 18, y: 3 },
+    circuits: [
+      { id: 'north-drain', label: 'Drain north crossing / allied turret', x: 7, y: 4, controlled: false, exclusiveGroup: 'sluice', doors: [], turret: true },
+      { id: 'south-drain', label: 'Drain south crossing / hostile turret', x: 7, y: 11, controlled: false, exclusiveGroup: 'sluice', doors: [], requiresRescue: true },
+      { id: 'outlet', label: 'Southern outlet secured', x: 18, y: 11, controlled: false, doors: [], requires: ['south-drain'] }
+    ],
+    water: { routes: [
+      { circuitId: 'north-drain', label: 'North spillway crossing', tiles: [{ x: 10, y: 4 }, { x: 11, y: 4 }, { x: 12, y: 4 }] },
+      { circuitId: 'south-drain', label: 'South spillway crossing', tiles: [{ x: 10, y: 11 }, { x: 11, y: 11 }, { x: 12, y: 11 }] }
+    ] },
+    mastery: 'Clear all four patrols, rescue the keeper and extract all four engineers in eighteen turns or fewer.',
+    debrief: 'The keeper closes the overflow baffles as the last engineer reaches the maintenance gate. The clinic receives clean water, but the occupied river span still blocks the repair crews. Mara marks the next approach: capture the moving bridge in Span Control. The remaining eleven operations, including the Citadel finale, are still in development.'
+  };
+  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice];
   SB.Missions.get = function (id) {
     return SB.Missions.operations.find(function (mission) { return mission.id === id; }) || null;
   };

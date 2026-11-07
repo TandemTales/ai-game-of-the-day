@@ -31,14 +31,14 @@ function pilot(SB, s, report = []) {
   }
   return report;
 }
-test('full manifest promises twenty operations; the first eight distinct authored maps are playable', () => {
+test('full manifest promises twenty operations; the first nine distinct authored maps are playable', () => {
   const SB=load();expect(SB.Missions.manifest).toHaveLength(5);
   const names=SB.Missions.manifest.flatMap(d=>Array.from(d).slice(1));expect(new Set(names).size).toBe(20);
   expect(SB.Missions.opening.title).toBe('Live Wire');
-  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain']);
-  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(8);
+  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic']);
+  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(9);
   for(const m of SB.Missions.operations){expect(m.rows.every(r=>r.length===m.rows[0].length)).toBe(true);for(const n of m.circuits||[])expect(m.rows[n.y][n.x]).toBe('n');}
-  expect(()=>SB.Logic.newGame('sluice-logic')).toThrow('Unknown operation');
+  expect(()=>SB.Logic.newGame('span-control')).toThrow('Unknown operation');
 });
 test('fresh states are isolated and previews never mutate the tactical state', () => {
   const {Logic:L}=load(),a=L.newGame(),b=L.newGame(),before=JSON.stringify(a);
@@ -110,7 +110,7 @@ test('complete legal pilot is deterministic across fresh runs', () => {
 });
 
 const {run:campaignRoute}=require('../tools/signalbreak-route.cjs');
-test.each(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain'])('%s can be won by legal orders against live AI with four survivors', id => {
+test.each(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic'])('%s can be won by legal orders against live AI with four survivors', id => {
   const SB=load(),s=SB.Logic.newGame(id),report=campaignRoute(SB,s);
   expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);
   expect(report.some(p=>p.kind==='hack')).toBe(true);expect(report.some(p=>p.kind==='rescue')).toBe(true);
@@ -328,8 +328,58 @@ test('antenna lanes alternate, warn before movement, damage only exposed living 
  const hp=s.squad[0].hp;L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);expect(L.activeLane(s).label).not.toBe(first.label);
  s.circuits.find(c=>c.id==='tower').controlled=true;expect(L.activeLane(s)).toBe(null);L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);
 });
-test('all eight operations support consecutive persisted squad progression with legal orders',()=>{
+test('all nine operations support consecutive persisted squad progression with legal orders',()=>{
  const SB=load(),C=SB.Campaign,c=C.fresh(),store=memoryStorage();
  for(const m of SB.Missions.operations){for(const id of ['nia','sol','rook','ivo'])C.treat(c,id);const s=C.prepare(c,SB.Logic.newGame(m.id));campaignRoute(SB,s);expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);expect(C.complete(c,s)).toBe(true);C.save(store,c);expect(C.load(store).campaign).toEqual(c);}
- expect(Object.keys(c.results)).toHaveLength(8);expect(c.roster.nia.xp).toBe(8);
+ expect(Object.keys(c.results)).toHaveLength(9);expect(c.roster.nia.xp).toBe(9);
+});
+
+
+test('sluice water changes paths while remaining transparent to fire and safe to preview',()=>{
+ const L=load().Logic,s=L.newGame('sluice-logic'),u=s.squad[0];
+ expect(L.tile(s,11,4)).toBe('w');expect(L.blocked(s,11,4)).toBe(true);
+ expect(L.visible(s,{x:9,y:4},{x:13,y:4})).toBe(true);
+ Object.assign(u,{x:7,y:5});const before=JSON.stringify(s),p=L.preview(s,'nia','hack',7,4);
+ expect(p.legal).toBe(true);expect(JSON.stringify(s)).toBe(before);expect(L.commit(s,p)).toBe(true);
+ expect(L.tile(s,11,4)).toBe('.');expect(L.blocked(s,11,11)).toBe(true);
+ expect(L.path(s,u,14,4)).not.toBe(null);
+});
+test('sluice interlocks preserve state and reject flooding allies, hostiles and stale confirmations',()=>{
+ const L=load().Logic,s=L.newGame('sluice-logic'),u=s.squad[0];
+ Object.assign(u,{x:7,y:10});let before=JSON.stringify(s);
+ expect(L.preview(s,'nia','hack',7,11).legal).toBe(false);expect(JSON.stringify(s)).toBe(before);
+ s.circuits.find(c=>c.id==='north-drain').controlled=true;s.rescued=true;
+ Object.assign(s.squad[1],{x:11,y:4});before=JSON.stringify(s);
+ expect(L.preview(s,'nia','hack',7,11).legal).toBe(false);expect(JSON.stringify(s)).toBe(before);
+ Object.assign(s.squad[1],{x:6,y:10});const p=L.preview(s,'nia','hack',7,11);expect(p.legal).toBe(true);
+ Object.assign(s.enemies[0],{x:11,y:4});before=JSON.stringify(s);
+ expect(L.commit(s,p)).toBe(false);expect(JSON.stringify(s)).toBe(before);
+ Object.assign(s.enemies[0],{x:15,y:5});expect(L.commit(s,p)).toBe(true);
+ expect(L.tile(s,11,4)).toBe('w');expect(L.tile(s,11,11)).toBe('.');
+});
+test('sluice reroute rejects a disconnected engineer and extraction waits for outlet and rescue',()=>{
+ const L=load().Logic,s=L.newGame('sluice-logic'),u=s.squad[0];s.rescued=true;
+ s.circuits.find(c=>c.id==='north-drain').controlled=true;Object.assign(u,{x:7,y:10});
+ Object.assign(s.squad[1],{x:18,y:3});
+ // Close the only east-bank joining strip in this explicit disconnected fixture.
+ s.rows=s.rows.map((r,y)=>y===8?r.slice(0,13)+'##########'+r.slice(23):r);
+ expect(L.preview(s,'nia','hack',7,11).legal).toBe(false);
+ const t=L.extractionStatus(s).tiles[0];Object.assign(u,t);expect(L.preview(s,'nia','extract',t.x,t.y).legal).toBe(false);
+ s.circuits.find(c=>c.id==='outlet').controlled=true;expect(L.preview(s,'nia','extract',t.x,t.y).legal).toBe(true);
+});
+test('eight-operation v1 saves retain squad loadouts and unlock Floodworks without fabricated rewards',()=>{
+ const SB=load(),C=SB.Campaign,results={};for(const m of SB.Missions.operations.slice(0,8))results[m.id]={score:2000,turns:10,survivors:4};
+ const c=C.normalize({version:1,results,selected:'sluice-logic'});expect(C.unlocked(c,'sluice-logic')).toBe(true);expect(c.roster.nia.xp).toBe(8);
+ C.equip(c,'nia','armor');c.roster.sol.injury=1;const store=memoryStorage();C.save(store,c);expect(C.load(store).campaign).toEqual(c);expect(c.supplies).toBe(18);
+});
+
+test('sluice permits connected east-bank rerouting and route status cannot mutate terrain',()=>{
+ const L=load().Logic,s=L.newGame('sluice-logic');s.rescued=true;
+ s.circuits.find(c=>c.id==='north-drain').controlled=true;
+ Object.assign(s.squad[0],{x:7,y:10});Object.assign(s.squad[1],{x:13,y:5});
+ Object.assign(s.squad[2],{x:13,y:10});Object.assign(s.squad[3],{x:15,y:11});
+ const status=L.waterStatus(s);status[0].tiles[0].x=99;
+ expect(L.waterStatus(s)[0].tiles[0].x).toBe(10);
+ const p=L.preview(s,'nia','hack',7,11);expect(p.legal).toBe(true);expect(p.reason).toContain('HOSTILE');expect(L.commit(s,p)).toBe(true);
+ for(const u of s.squad)expect(L.path(s,u,7,11)).not.toBe(null);
 });

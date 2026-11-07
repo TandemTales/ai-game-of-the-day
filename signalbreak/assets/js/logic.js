@@ -33,7 +33,24 @@
       powered: !!s.circuits && s.circuits.some(function (c) { return c.id === lift.poweredBy && c.controlled; }),
       delivered: !!lift.delivered, passengers: s.squad.filter(function (u) { return living(u) && liftAt(s, u.x, u.y); }).length };
   }
-  function tile(s, x, y) { return liftAt(s, x, y) ? '.' : s.rows[y] && s.rows[y][x] || '#'; }
+  function waterRouteAt(s, x, y) {
+    if (!s.water) return null;
+    return s.water.routes.find(function (route) {
+      return route.tiles.some(function (p) { return p.x === x && p.y === y; });
+    }) || null;
+  }
+  function waterStatus(s) {
+    return !s.water ? [] : s.water.routes.map(function (route) {
+      var drained = (s.circuits || []).some(function (c) { return c.id === route.circuitId && c.controlled; });
+      return { circuitId: route.circuitId, label: route.label, drained: drained, tiles: clone(route.tiles) };
+    });
+  }
+  function tile(s, x, y) {
+    if (liftAt(s, x, y)) return '.';
+    var route = waterRouteAt(s, x, y);
+    if (route) return (s.circuits || []).some(function (c) { return c.id === route.circuitId && c.controlled; }) ? '.' : 'w';
+    return s.rows[y] && s.rows[y][x] || '#';
+  }
   function height(s, x, y) {
     if (liftAt(s, x, y)) return s.lift.stops[s.lift.position].z;
     var h = s.heights.find(function (p) { return p.x === x && p.y === y; }); return h ? h.z : 0;
@@ -65,12 +82,18 @@
     return s.circuits.some(function (c) { return c.controlled && (c.doors || []).some(function (d) { return d.x === x && d.y === y; }); });
   }
   function isolatesSquad(s, circuit) {
-    if (!circuit.exclusiveGroup || !s.circuits.some(function (c) { return c.controlled && c.id !== circuit.id && c.exclusiveGroup === circuit.exclusiveGroup; })) return false;
+    var changesWater = s.water && s.water.routes.some(function (route) { return route.circuitId === circuit.id; });
+    if (!changesWater && (!circuit.exclusiveGroup || !s.circuits.some(function (c) { return c.controlled && c.id !== circuit.id && c.exclusiveGroup === circuit.exclusiveGroup; }))) return false;
     // Route previews must not strand the last active engineer behind a door whose
     // controller is on the other side. Ignore unit occupancy: allies can move.
     var routed = Object.assign({}, s, { circuits: s.circuits.map(function (c) {
-      return Object.assign({}, c, { controlled: c.id === circuit.id || c.exclusiveGroup !== circuit.exclusiveGroup && c.controlled });
+      return Object.assign({}, c, { controlled: c.id === circuit.id || (!circuit.exclusiveGroup || c.exclusiveGroup !== circuit.exclusiveGroup) && c.controlled });
     }) });
+    // Flooding an occupied bed is never an attack or a way to erase a patrol.
+    // Validate before spending AP, including confirmations made before movement.
+    if (changesWater && s.squad.concat(s.enemies).some(function (u) {
+      return living(u) && tile(routed, u.x, u.y) === 'w';
+    })) return true;
     var queue = [{ x: circuit.x, y: circuit.y }], seen = {}, head = 0;
     seen[circuit.x + ',' + circuit.y] = true;
     while (head < queue.length) {
@@ -186,6 +209,9 @@
       var lane = activeLane(s);
       status.push({ id: 'lanes', label: lane ? 'NEXT END TURN: ' + lane.label + ' / ' + lane.damage + ' damage on marked tiles / then ' + lane.nextLabel : 'Tower overwatch lanes disabled', done: !lane });
     }
+    waterStatus(s).forEach(function (route) {
+      status.push({ id: route.circuitId + '-water', label: route.label + ': ' + (route.drained ? 'DRAINED / walkable' : 'FLOODED / impassable') + ' / rerouting cannot flood occupied tiles or isolate engineers', done: route.drained });
+    });
     if (s.freight) status.push({ id: 'freight', label: freightMessage(s), done: extractionStatus(s).open });
     if (s.ambush) {
       var pending = s.ambush.enemies.filter(function (e) { return !(s.ambush.deployed && s.ambush.deployed[e.id]); });
@@ -197,7 +223,7 @@
   }
   function blocked(s, x, y) {
     var t = tile(s, x, y);
-    return t === '#' || t === 'd' && !doorOpen(s, x, y) || !!s.turret && x === s.turret.x && y === s.turret.y;
+    return t === '#' || t === 'w' || t === 'd' && !doorOpen(s, x, y) || !!s.turret && x === s.turret.x && y === s.turret.y;
   }
   function distance(a, b) { return Math.abs(a.x - b.x) + Math.abs(a.y - b.y); }
   function path(s, actor, x, y) {
@@ -251,6 +277,7 @@
     if (kind === 'move') {
       if (occupant(s, x, y)) return fail('Tile occupied.');
       p.path = path(s, a, x, y);
+      if (!p.path && s.water) return fail('Route blocked. Drain a marked channel from its sluice control; flooded water is impassable.');
       if (!p.path) return fail(s.maxStepHeight !== undefined ? 'Route blocked. Use marked stairs between roof levels and route power to open security doors.' : 'Route blocked. Hack the circuit to open the security door.');
       p.cost = Math.ceil((p.path.length - 1) / a.stride);
       if (!p.cost || p.cost > a.ap) return fail('Beyond remaining movement AP.');
@@ -286,14 +313,17 @@
       if (!circuit) return fail('Select an amber circuit node.');
       if (distance(a, circuit) > (a.role === 'ENGINEER' ? (a.hackRange || 2) : 1) || !visible(s, a, circuit)) return fail('Get within ' + (a.role === 'ENGINEER' ? (a.hackRange || 2) : 1) + ' tile(s) with a clear signal.');
       if (circuit.controlled) return fail('Circuit already under our control.');
+      if (circuit.requiresRescue && !s.rescued) return fail('Rescue interlock: evacuate the worker before diverting this route.');
       var missing = (circuit.requires || []).filter(function (id) { return !s.circuits.some(function (c) { return c.id === id && c.controlled; }); });
-      if (missing.length) return fail('Clinic supply interlock: complete ' + missing.map(function (id) { var c = s.circuits.find(function (entry) { return entry.id === id; }); return c ? c.label : id; }).join(' and ') + ' first.');
-      if (s.circuits && isolatesSquad(s, circuit)) return fail('Reroute would strand an engineer. Bring every active engineer back to the controller side of the closing door first.');
+      if (missing.length) return fail((s.water ? 'Sluice interlock: complete ' : 'Clinic supply interlock: complete ') + missing.map(function (id) { var c = s.circuits.find(function (entry) { return entry.id === id; }); return c ? c.label : id; }).join(' and ') + ' first.');
+      if (s.circuits && isolatesSquad(s, circuit)) return fail(s.water ? 'Sluice safety interlock: clear living units from the channel that will flood and keep every active engineer connected to this control through the new dry route.' : 'Reroute would strand an engineer. Bring every active engineer back to the controller side of the closing door first.');
       p.circuitId = circuit.id;
       var losesTurret = s.circuits && !circuit.turret && s.circuits.some(function (c) { return c.controlled && c.turret && c.exclusiveGroup && c.exclusiveGroup === circuit.exclusiveGroup; });
       p.reason = s.circuits ? '1 AP · ' + circuit.label + (circuit.exclusiveGroup ? ' · reroutes power away from the other route' : '') + (circuit.turret ? ' · turret becomes allied' : losesTurret ? ' · turret becomes HOSTILE' : '') : '1 AP · open door + take turret + restore lights';
+      if (s.water && s.water.routes.some(function (route) { return route.circuitId === circuit.id; })) p.reason += ' · drains this channel; alternate channel floods immediately';
     } else if (kind === 'rescue') {
       if (x !== s.rescue.x || y !== s.rescue.y || s.rescued) return fail('No worker to rescue here.');
+      if (s.objectives && (s.objectives.rescueRequires || []).some(function (id) { return !(s.circuits || []).some(function (c) { return c.id === id && c.controlled; }); })) return fail('Restore the rescue route circuit before evacuating the worker.');
       if (!canReachAdjacent(s, a, s.rescue)) return fail('Get adjacent to the worker on the same level or a connecting stair.');
       p.reason = '1 AP · ' + (s.objectives && s.objectives.rescueLabel || 'release signal worker') + ' · +400 points';
     } else if (kind === 'heal') {
@@ -411,6 +441,6 @@
   }
   SB.Logic = { newGame: newGame, tile: tile, height: height, unit: unit, living: living, occupant: occupant,
     blocked: blocked, canStep: canStep, path: path, visible: visible, cover: cover, damage: damage, preview: preview, commit: commit, endTurn: endTurn,
-    liftAt: liftAt, liftStatus: liftStatus, liftControlAt: liftControlAt, defenseStatus: defenseStatus, activeLane: activeLane,
+    waterStatus: waterStatus, waterRouteAt: waterRouteAt, liftAt: liftAt, liftStatus: liftStatus, liftControlAt: liftControlAt, defenseStatus: defenseStatus, activeLane: activeLane,
     circuitAt: circuitAt, doorOpen: doorOpen, objectiveStatus: objectiveStatus, turretAllied: turretAllied, extractionStatus: extractionStatus };
 })(window);

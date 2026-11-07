@@ -27,6 +27,11 @@ function nextOrder(SB, s) {
     if (!s.rescued) goal = prison.controlled ? s.rescue : prison;
     else if (live.some(u => u.x >= 10 && u.y <= 6)) goal = { x: 9, y: 4, regroup: true };
     else if (!evac.controlled) goal = evac;
+  } else if (s.water) {
+    const north=s.circuits.find(c=>c.id==='north-drain'),south=s.circuits.find(c=>c.id==='south-drain'),outlet=s.circuits.find(c=>c.id==='outlet');
+    if(!s.rescued) goal=north.controlled?s.rescue:north;
+    else if(!south.controlled) goal=south;
+    else if(!outlet.controlled) goal=outlet;
   } else if (s.defense) goal=null;
   else if (s.lift && !s.lift.delivered) goal = !s.circuits[0].controlled?s.circuits[0]:!s.rescued?s.rescue:null;
   else if (s.circuits) goal = s.circuits.find(c => !c.controlled);

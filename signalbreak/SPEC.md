@@ -42,7 +42,7 @@ explicit user approval; time/usage limits are not approval.
 - [x] 06 Cargo Lift: powered two-dock platform, shutter/operator/medicine escort, upper reception gate.
 - [x] 07 Open Clinic: six telegraphed ward assaults, exclusive shield power and turret tradeoff.
 - [x] 08 Antenna Rain: three stair approaches, alternating marked firing lanes, tower shutdown.
-- [ ] 09 Sluice Logic: water diversion changes routes.
+- [x] 09 Sluice Logic: exclusive drained crossings, safe rerouting, keeper rescue and outlet capture.
 - [ ] 10 Span Control: moving bridge capture.
 - [ ] 11 Blackout: light/visibility infiltration.
 - [ ] 12 Pump Siege: simultaneous pumps and reinforcements.
@@ -56,7 +56,7 @@ explicit user approval; time/usage limits are not approval.
 - [ ] 20 Signalbreak: combined core shutdown and consequence-based epilogue.
 
 Mission-boundary local saves, sequential unlocks and replay best scores now exist
-for the eight implemented missions. Squad progression, equipment and injury
+for the nine implemented missions. Squad progression, equipment and injury
 recovery are implemented; persistent district rescue/evidence consequences remain. Authored
 mastery targets appear in the HUD; no campaign medal/reward system exists yet.
 Story debriefs appear on victory. The clinic is a protected prerequisite, not yet
@@ -124,7 +124,7 @@ Grid coordinates integer (x,y), origin top left. Tiles: . floor, # tall blocker,
 c low cover, d circuit door, e exit, n network node, r rescue. Heights are separate.
 No procedural randomness required; identical state/action gives identical outcome.
 
-SB.Missions.operations contains the eight authored missions, get(id) looks up an
+SB.Missions.operations contains the nine authored missions, get(id) looks up an
 implemented mission, and manifest holds the full twenty-operation contract.
 SB.Logic.newGame(id?) returns a fresh chosen operation (default Live Wire) and
 rejects unknown IDs. SB.Logic.preview(state,actorId,
@@ -243,3 +243,22 @@ shows effects and survives reload; mid-operation loadout changes are disabled.
 
 Next content: Floodworks09SluiceLogic and10SpanControl, then visibility/blackout.
 District consequences, persisted mastery medals and final campaign score remain.
+
+
+## November 6 nightly expansion: Sluice Logic
+
+Nine of twenty operations now exist across three of five districts (only the
+first Floodworks operation is implemented). Sluice Logic is a distinct24x16
+spillway: permanent water separates west controls from two east yards linked by
+a narrow towpath. North drainage opens one three-tile crossing and allies the
+turret; rescue the keeper before switching to south drainage, which floods the
+north bed and returns turret control to the occupation. South drainage enables
+the independent outlet circuit and southeast extraction. All living units must
+be clear of the closing bed; every active engineer must remain connected to the
+chosen control through candidate terrain. Rejected/stale orders spend no AP.
+Water is impassable but transparent to fire and gives no cover. Dry-bed/water
+markings and objective HUD use the same terrain state. Rescue interlocks enforce
+the authored sequence; there is no timer or flooding damage mechanic.
+
+Span Control, Blackout and Pump Siege remain planned, as do all Archive/Citadel
+operations. FIRST PLAYABLE remains; no scope reduction or AAA completion claim.

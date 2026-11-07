@@ -414,3 +414,15 @@ matches. Intent34de0bb and implementation0002d14 pushed; final handoff next.
 
 ### November 6 Pacific nightly intent - Floodworks
 Build operation09 Sluice Logic: switchable flooded channels, safe rerouting, rescue and outlet extraction. Preserve the full twenty-operation contract, roster/save compatibility and FIRST PLAYABLE label. Validate legal base/grown routes and browser inputs; existing ART/UI FAIL remains open. No release or main/catalog changes.
+
+### November 6 nightly implementation checkpoint
+
+Implemented operation09 Sluice Logic and shared switchable water terrain with
+north rescue/south outlet routing, turret allegiance tradeoff, no-flood/no-strand
+safeguards, and state-derived water/dry-bed rendering. Nine of twenty operations;
+Floodworks has one of four authored operations. Extended legal-order QA planner,
+legacy save unlock and safety/stale-confirmation fixtures. Focused52/52 PASS,
+including all nine base-stat deterministic victories and consecutive earned-growth
+campaign. Corrected integration text encoding before stable-source browser run.
+Full suite/browser/independent critic pending; existing ART/UI FAIL remains open.
+No main/catalog/completion marker/release action. Next content is10SpanControl.

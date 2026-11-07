@@ -37,16 +37,56 @@
     function shaftHere(x,y){return lift&&x>=8&&x<=14&&y>0&&y<s.height-1;}
     function platformHere(x,y){return liftStop&&x>=liftStop.x&&x<liftStop.x+lift.size&&y>=liftStop.y&&y<liftStop.y+lift.size;}
     function boardingHere(x,y){return boarding&&boarding.open&&boarding.tiles.some(function(t){return t.x===x&&t.y===y;});}
+    var waterCells={};
+    if(s.water)(s.water.routes||[]).forEach(function(route,index){route.tiles.forEach(function(t){waterCells[t.x+','+t.y]={route:route,index:index};});});
+    function channelHere(x,y){return waterCells[x+','+y];}
+    function waterEdge(x,y,z,dx,dy){
+      var p=P.point(x,y,z),left,right;
+      if(dx===1){left={x:p.x+a,y:p.y};right={x:p.x,y:p.y+b};}
+      else if(dx===-1){left={x:p.x-a,y:p.y};right={x:p.x,y:p.y-b};}
+      else if(dy===1){left={x:p.x-a,y:p.y};right={x:p.x,y:p.y+b};}
+      else{left={x:p.x+a,y:p.y};right={x:p.x,y:p.y-b};}
+      c.beginPath();c.moveTo(left.x,left.y);c.lineTo(right.x,right.y);c.stroke();
+    }
     // Authored yard materials and rail markings, with reachable cells kept legible.
     for(var y=0;y<s.height;y++)for(var x=0;x<s.width;x++) {
       var t=L.tile(s,x,y),z=L.height(s,x,y),p;
       var floor=x<8?((x*7+y*3)%4?'#30414a':'#374b53'):((x+y)%3?'#263e49':'#2d4650');
       if(s.defense&&x>=8&&x<=15&&y>=2&&y<=6&&t!=='#')floor=(x+y)%2?'#576965':'#4b605f';
       if(s.lanes&&x>=10&&x<=15&&y>=3&&y<=10&&t!=='#')floor=(x+y)%2?'#43525b':'#354953';
+      if(s.water&&t!=='#')floor=(x+y)%3?'#344b49':'#405550';
+      if(channelHere(x,y))floor=t==='w'?'#104b5e':'#606c59';
+      if(t==='w')floor=(x+y)%2?'#104b5e':'#124255';
       if(t==='#')floor=shaftHere(x,y)?'#07151e':'#1b2c36';
       if(platformHere(x,y))floor=liftPower?'#786c44':'#514b3d';
       if(t==='e')floor=boarding?(boardingHere(x,y)?'#797044':'#293c49'):'#255c5b';
       p=z?block(x,y,z,floor,'#172c36','#203640',0):diamond(x,y,0,floor,'#162c37');
+      if(t==='w'){
+        // Water stays flat and transparent to sight. Rims mark movement bounds,
+        // while two small travelling glints distinguish it from solid cover.
+        c.strokeStyle='#79c7d180';c.lineWidth=Math.max(.7,a*.035);
+        var drift=Math.sin((time||0)*.0016+x*.8+y*.6)*a*.12;
+        for(var ripple=0;ripple<2;ripple++){
+          var ry=p.y+(ripple?b*.35:-b*.25),rx=p.x+drift+(ripple?a*.18:-a*.15);
+          c.beginPath();c.moveTo(rx-a*.3,ry);c.quadraticCurveTo(rx,ry-b*.1,rx+a*.3,ry);c.stroke();
+        }
+      }
+      if(channelHere(x,y)){
+        var channel=channelHere(x,y),wet=t==='w';
+        // Painted guide rails sit flush with the actual route. They never
+        // suggest extra walls, cover or traversable water beyond these cells.
+        c.strokeStyle=wet?'#90ced3':'#e2c795';c.lineWidth=Math.max(1,a*.055);
+        [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(dir){
+          var next=channelHere(x+dir[0],y+dir[1]);
+          if(!next||next.index!==channel.index)waterEdge(x,y,z,dir[0],dir[1]);
+        });
+        if(!wet){
+          c.strokeStyle='#d8c28c';c.lineWidth=Math.max(.8,a*.045);c.setLineDash([a*.12,a*.12]);
+          c.beginPath();c.moveTo(p.x-a*.58,p.y);c.lineTo(p.x+a*.58,p.y);c.stroke();c.setLineDash([]);
+          c.strokeStyle='#263d3d88';c.lineWidth=Math.max(.6,a*.03);
+          c.beginPath();c.moveTo(p.x-a*.2,p.y-b*.45);c.lineTo(p.x+a*.2,p.y+b*.45);c.stroke();
+        }
+      }
       if(platformHere(x,y)){
         diamond(x,y,z,floor,liftPower?'#ffe1a1':'#a3977e');
         c.strokeStyle='#e5bf76';c.lineWidth=Math.max(1,a*.06);c.beginPath();c.moveTo(p.x-a*.6,p.y);c.lineTo(p.x,p.y+b*.6);c.lineTo(p.x+a*.6,p.y);c.stroke();
@@ -61,8 +101,8 @@
       }
       if(reachable[x+','+y])diamond(x,y,z,reachable[x+','+y]===1?'#397b8550':'#bda26030','#4a96994a');
       if(t==='e'){c.strokeStyle=boarding?(boardingHere(x,y)?'#ffe09b':'#72828b'):'#80d2bb';c.lineWidth=a*.07;c.beginPath();c.moveTo(p.x-a*.4,p.y);c.lineTo(p.x,p.y+b*.45);c.lineTo(p.x+a*.4,p.y-b*.1);c.stroke();}
-      if(t!== '#' && y===6){c.strokeStyle=x<8?'#c2975655':'#6caab955';c.lineWidth=a*.04;c.beginPath();c.moveTo(p.x-a*.7,p.y+b*.3);c.lineTo(p.x+a*.7,p.y-b*.3);c.stroke();}
-      if(t!== '#' && (x*17+y*9)%7===0){c.strokeStyle='#7b969b30';c.lineWidth=a*.025;c.beginPath();c.moveTo(p.x-a*.6,p.y);c.lineTo(p.x-a*.1,p.y+b*.3);c.lineTo(p.x+a*.1,p.y+b*.17);c.stroke();}
+      if(t!== '#' && t!=='w' && y===6){c.strokeStyle=x<8?'#c2975655':'#6caab955';c.lineWidth=a*.04;c.beginPath();c.moveTo(p.x-a*.7,p.y+b*.3);c.lineTo(p.x+a*.7,p.y-b*.3);c.stroke();}
+      if(t!== '#' && t!=='w' && (x*17+y*9)%7===0){c.strokeStyle='#7b969b30';c.lineWidth=a*.025;c.beginPath();c.moveTo(p.x-a*.6,p.y);c.lineTo(p.x-a*.1,p.y+b*.3);c.lineTo(p.x+a*.1,p.y+b*.17);c.stroke();}
     }
     var lane=L.activeLane(s), defense=L.defenseStatus(s);
     if(lane)lane.tiles.forEach(function(t){var q=diamond(t.x,t.y,L.height(s,t.x,t.y),'#b34a3455','#ffab83');c.strokeStyle='#ffbe91';c.lineWidth=Math.max(1,a*.05);c.beginPath();c.moveTo(q.x-a*.3,q.y-b*.3);c.lineTo(q.x+a*.3,q.y+b*.3);c.moveTo(q.x-a*.3,q.y+b*.3);c.lineTo(q.x+a*.3,q.y-b*.3);c.stroke();});
@@ -100,6 +140,12 @@
       c.fillStyle=liftPower?'#ffe1a1':'#bcc7c6';c.font=Math.max(11*Math.min(d,2),w/100)+'px system-ui';
       c.fillText((liftPower?'POWER ON / ':'POWER OFF / ')+liftStop.label,16*Math.min(d,2),h-62*Math.min(d,2));
       c.fillText('HACK, then deck/console / 1 AP',16*Math.min(d,2),h-42*Math.min(d,2));
+    }
+    if(s.water){
+      c.fillStyle='#aedbe0';c.font=Math.max(11*Math.min(d,2),w/110)+'px system-ui';
+      c.fillText('BLUE / FLOODED - HACK DRAIN RELAY',16*Math.min(d,2),h-62*Math.min(d,2));
+      c.fillStyle='#e2c795';
+      c.fillText('GOLD DASHES / DRY CROSSING',16*Math.min(d,2),h-42*Math.min(d,2));
     }
     if(boarding){
       // Timetable stays at a fixed readable size, outside the tactical diamonds.

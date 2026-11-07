@@ -411,3 +411,6 @@ Final verification:47/47 Signalbreak cases PASS within full repository31/31suite
 node_modules/.cache/signalbreak-market-growth-full.json. Syntax/diff checks PASS.
 Runtime unchanged since successful48-combination browser sweep; source manifest
 matches. Intent34de0bb and implementation0002d14 pushed; final handoff next.
+
+### November 6 Pacific nightly intent - Floodworks
+Build operation09 Sluice Logic: switchable flooded channels, safe rerouting, rescue and outlet extraction. Preserve the full twenty-operation contract, roster/save compatibility and FIRST PLAYABLE label. Validate legal base/grown routes and browser inputs; existing ART/UI FAIL remains open. No release or main/catalog changes.

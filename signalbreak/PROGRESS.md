@@ -426,3 +426,41 @@ including all nine base-stat deterministic victories and consecutive earned-grow
 campaign. Corrected integration text encoding before stable-source browser run.
 Full suite/browser/independent critic pending; existing ART/UI FAIL remains open.
 No main/catalog/completion marker/release action. Next content is10SpanControl.
+
+### November 6 nightly final verification and handoff
+
+Pushed intent ac9e348 and operation09 content3ef65cd. Full repository31/31suites,
+559/559tests PASS (344.345seconds), report node_modules/.cache/signalbreak-sluice-full.json.
+One additional connected-east-bank safety test was added after that full-suite
+snapshot; final complete Signalbreak53/53 PASS (66.47seconds), plus isolated new
+case PASS. Runtime unchanged since the full suite. Syntax/diff checks PASS.
+
+Final stable-source Edge PASS: opening six viewports plus48 additional-map/size
+combinations (nine operations across six sizes overall). All nine earned-growth
+actual-UI/live-AI wins have four survivors; Sluice native touch63orders/turn11/
+3770points. Passed save/reload/unlock/gear/injury fixture, rank-before-submit and
+delayed-score snapshot with local mocks, denied storage, file boot, DPR2, loss,
+clean console/nooverflow/noexternalgame requests. Initial sandbox Edge blocked;
+scoped elevated local-only retry succeeded. First sweep hit its fixed target
+wall; corrected QA target selection, final complete rerun PASS. Production API
+never contacted. Runtime hashes match final browser source-manifest.json at
+2026-11-07T07:12:40.228Z. Lead opened all12 Sluice title/live frames via three contact
+sheets plus original phone/live, earned north circuit, victory and comparison.
+4K contact downsampled; no full-resolution4K readability proof.
+
+Independent critic: ART/UI FAIL / OURS LOSES against official XCOM2 gameplay
+https://store.steampowered.com/app/268500/XCOM_2/
+Water/dry routes and legends coherent/readable on phone/desktop, no additional
+substantive rules/readability blocker found. Encoding issue corrected before
+final browser run. Tiny similar actors, sparse repeated slabs, missing machinery
+identity and excessive empty viewport remain. Comparison artifact ignored:
+node_modules/.cache/signalbreak/sluice-critic/sluice-side-by-side.png.
+Different camera views, reference native615x346; not matching-angle HUD proof.
+Audio/VFX remain unjudged; no physical-device, human-fun or GPU evidence.
+
+NEXT FIRST:10SpanControl moving bridge capture, then11Blackout visibility and
+12PumpSiege. Nine of twenty operations across three districts; Floodworks only
+one of four, eleven total still required. Preserve roster/gear/injury/v1 saves,
+base/grown-route proofs, Tidelock and all approved breadth. District consequences,
+tracked mastery, final campaign score and Citadel ending remain required. FIRST
+PLAYABLE stays. No .aaa-complete, main/catalog/release action. ForcedNovember14.

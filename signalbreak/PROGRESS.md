@@ -473,3 +473,15 @@ with return trips, coupled power/turret access and enemy counterattack. Preserve
 all twenty operations, roster/v1 saves and FIRST PLAYABLE. Verify legal base/grown
 routes and browser touch/six-size layouts; no main/catalog/completion changes.
 
+
+## November 7 Span Control implementation checkpoint
+
+Operation10 adds a26x18 river bridge capture: power/turret, pre-rescue crossing,
+east keeper and dock-gated bridgehead, west return lock, final east ferry/gated
+extraction, turn-five counterattack on both banks. Rider offsets, empty recalls,
+occupied/hostile/stale rejection reuse the lift mechanics with bridge-specific
+prerequisites and HUD text; Cargo Lift retains rescue-first delivery. Renderer
+adds span slats, horizontal travel guides and winch consoles; cargo-only medicine
+and shaft visuals do not leak into the river. Legal base route wins turn14 with
+four survivors. Focused/full/browser checks pending; no quality/release claim.
+Campaign10/20, Floodworks2/4, three of five districts started. Next Blackout.

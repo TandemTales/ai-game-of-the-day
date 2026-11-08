@@ -31,14 +31,14 @@ function pilot(SB, s, report = []) {
   }
   return report;
 }
-test('full manifest promises twenty operations; the first nine distinct authored maps are playable', () => {
+test('full manifest promises twenty operations; the first ten distinct authored maps are playable', () => {
   const SB=load();expect(SB.Missions.manifest).toHaveLength(5);
   const names=SB.Missions.manifest.flatMap(d=>Array.from(d).slice(1));expect(new Set(names).size).toBe(20);
   expect(SB.Missions.opening.title).toBe('Live Wire');
-  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic']);
-  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(9);
+  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control']);
+  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(10);
   for(const m of SB.Missions.operations){expect(m.rows.every(r=>r.length===m.rows[0].length)).toBe(true);for(const n of m.circuits||[])expect(m.rows[n.y][n.x]).toBe('n');}
-  expect(()=>SB.Logic.newGame('span-control')).toThrow('Unknown operation');
+  expect(()=>SB.Logic.newGame('blackout')).toThrow('Unknown operation');
 });
 test('fresh states are isolated and previews never mutate the tactical state', () => {
   const {Logic:L}=load(),a=L.newGame(),b=L.newGame(),before=JSON.stringify(a);
@@ -110,7 +110,7 @@ test('complete legal pilot is deterministic across fresh runs', () => {
 });
 
 const {run:campaignRoute}=require('../tools/signalbreak-route.cjs');
-test.each(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic'])('%s can be won by legal orders against live AI with four survivors', id => {
+test.each(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control'])('%s can be won by legal orders against live AI with four survivors', id => {
   const SB=load(),s=SB.Logic.newGame(id),report=campaignRoute(SB,s);
   expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);
   expect(report.some(p=>p.kind==='hack')).toBe(true);expect(report.some(p=>p.kind==='rescue')).toBe(true);
@@ -328,10 +328,10 @@ test('antenna lanes alternate, warn before movement, damage only exposed living 
  const hp=s.squad[0].hp;L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);expect(L.activeLane(s).label).not.toBe(first.label);
  s.circuits.find(c=>c.id==='tower').controlled=true;expect(L.activeLane(s)).toBe(null);L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);
 });
-test('all nine operations support consecutive persisted squad progression with legal orders',()=>{
+test('all ten operations support consecutive persisted squad progression with legal orders',()=>{
  const SB=load(),C=SB.Campaign,c=C.fresh(),store=memoryStorage();
  for(const m of SB.Missions.operations){for(const id of ['nia','sol','rook','ivo'])C.treat(c,id);const s=C.prepare(c,SB.Logic.newGame(m.id));campaignRoute(SB,s);expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);expect(C.complete(c,s)).toBe(true);C.save(store,c);expect(C.load(store).campaign).toEqual(c);}
- expect(Object.keys(c.results)).toHaveLength(9);expect(c.roster.nia.xp).toBe(9);
+ expect(Object.keys(c.results)).toHaveLength(10);expect(c.roster.nia.xp).toBe(10);
 });
 
 
@@ -382,4 +382,40 @@ test('sluice permits connected east-bank rerouting and route status cannot mutat
  expect(L.waterStatus(s)[0].tiles[0].x).toBe(10);
  const p=L.preview(s,'nia','hack',7,11);expect(p.legal).toBe(true);expect(p.reason).toContain('HOSTILE');expect(L.commit(s,p)).toBe(true);
  for(const u of s.squad)expect(L.path(s,u,7,11)).not.toBe(null);
+});
+
+
+test('moving bridge crosses before rescue, carries offsets and leaves transparent impassable water behind',()=>{
+ const L=load().Logic,s=L.newGame('span-control');s.circuits[0].controlled=true;
+ for(const [i,u] of s.squad.entries())Object.assign(u,{x:8+i%2,y:6+Math.floor(i/2)});
+ const before=JSON.stringify(s),p=L.preview(s,'nia','hack',8,6);expect(p.legal).toBe(true);expect(JSON.stringify(s)).toBe(before);expect(p.reason).not.toMatch(/medical/);
+ expect(L.commit(s,p)).toBe(true);expect(s.rescued).toBe(false);expect(s.lift.delivered).toBe(true);
+ expect(s.squad.map(u=>[u.x,u.y])).toEqual([[14,6],[15,6],[14,7],[15,7]]);
+ expect(L.tile(s,8,6)).toBe('w');expect(L.blocked(s,8,6)).toBe(true);expect(L.visible(s,{x:7,y:8},{x:16,y:8})).toBe(true);
+ const frozen=JSON.stringify(s);expect(L.commit(s,p)).toBe(false);expect(JSON.stringify(s)).toBe(frozen);
+ expect(L.objectiveStatus(s).map(o=>o.label).join(' ')).not.toMatch(/medical|clinic/);
+});
+
+test('bridge empty recall never earns delivery, and occupied or hostile decks reject without AP loss',()=>{
+ const L=load().Logic,s=L.newGame('span-control');s.circuits[0].controlled=true;Object.assign(s.squad[0],{x:7,y:4});
+ order(L,s,'nia','hack',7,5);expect(s.lift.position).toBe(1);expect(s.lift.delivered).toBe(false);
+ const recall=L.preview(s,'nia','hack',7,5);expect(recall.legal).toBe(true);Object.assign(s.enemies[0],{x:8,y:6});
+ let before=JSON.stringify(s);expect(L.commit(s,recall)).toBe(false);expect(JSON.stringify(s)).toBe(before);
+ Object.assign(s.enemies[0],{x:14,y:6});before=JSON.stringify(s);expect(L.preview(s,'nia','hack',7,5).legal).toBe(false);expect(JSON.stringify(s)).toBe(before);
+});
+
+test('bridge capture enforces rescue and correct dock; stale circuit confirmation is immutable',()=>{
+ const L=load().Logic,s=L.newGame('span-control'),u=s.squad[0],head=s.circuits[1],release=s.circuits[2];
+ Object.assign(u,{x:20,y:9});expect(L.preview(s,'nia','hack',head.x,head.y).legal).toBe(false);
+ s.rescued=true;expect(L.preview(s,'nia','hack',head.x,head.y).legal).toBe(false);s.lift.position=1;
+ const p=L.preview(s,'nia','hack',head.x,head.y);expect(p.legal).toBe(true);s.lift.position=0;let before=JSON.stringify(s);expect(L.commit(s,p)).toBe(false);expect(JSON.stringify(s)).toBe(before);
+ s.lift.position=1;order(L,s,'nia','hack',head.x,head.y);Object.assign(u,{x:5,y:4,ap:2});expect(L.preview(s,'nia','hack',release.x,release.y).legal).toBe(false);
+ s.lift.position=0;expect(L.preview(s,'nia','hack',release.x,release.y).legal).toBe(false);s.lift.delivered=true;
+ order(L,s,'nia','hack',release.x,release.y);expect(L.doorOpen(s,20,12)).toBe(true);
+});
+
+test('nine-operation saves retain progress and unlock Span Control without unlocking planned Blackout',()=>{
+ const SB=load(),C=SB.Campaign,results={};for(const m of SB.Missions.operations.slice(0,9))results[m.id]={score:2000,turns:10,survivors:4};
+ const c=C.normalize({version:1,results,selected:'span-control'});expect(C.unlocked(c,'span-control')).toBe(true);expect(C.unlocked(c,'blackout')).toBe(false);expect(c.roster.nia.xp).toBe(9);
+ const store=memoryStorage();C.save(store,c);expect(C.load(store).campaign).toEqual(c);
 });

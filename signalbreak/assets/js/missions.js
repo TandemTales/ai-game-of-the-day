@@ -449,7 +449,63 @@
     mastery: 'Clear all four patrols, rescue the keeper and extract all four engineers in eighteen turns or fewer.',
     debrief: 'The keeper closes the overflow baffles as the last engineer reaches the maintenance gate. The clinic receives clean water, but the occupied river span still blocks the repair crews. Mara marks the next approach: capture the moving bridge in Span Control. The remaining eleven operations, including the Citadel finale, are still in development.'
   };
-  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice];
+  var span = {
+    id: 'span-control', title: 'Span Control', district: 'Floodworks', sequence: 10,
+    briefing: 'Repair crews cannot cross the river until both bridge locks are ours. The transfer bridge is a movable two-by-two deck, not a permanent crossing. HACK the west drive to power it and ally the east-bank turret. MOVE onto the deck, then HACK the deck or either fixed console to ferry its riders across. You can travel before rescuing the keeper. On the east bank, rescue the bridge keeper and capture the bridgehead while the deck is docked east. Return the deck and an engineer west to release the mechanical lock; this opens the east maintenance gate. Recall the bridge from either bank as often as needed, ferry the remaining squad east, and extract through the gate. Counterattack teams arrive on both banks on turn five. Water blocks walking but not gunfire.',
+    radio: 'MARA / Drive (5,10), west console (7,5), east console (16,5). Deck berths at (8,6) and (14,6), covering two-by-two squares. Keeper (21,4), east bridgehead (20,10), west lock (5,3), gate (20,12). Keep a clear landing for returning riders. HACK dispatch costs one AP and moves everyone aboard; fixed consoles also recall an empty deck.',
+    objectiveSummary: 'Power and board the transfer bridge, rescue the east keeper, capture the east bridgehead, return west to release the lock, then ferry the squad east to extraction.',
+    extractionLabel: 'east maintenance road',
+    objectives: { requiredCircuits: ['span-drive','bridgehead','west-release'], rescueLabel: 'Rescue the bridge keeper' },
+    rows: [
+      '##########################',
+      '#.......wwwwwwww.........#',
+      '#.......wwwwwwww..##.....#',
+      '#..##n..wwwwwwww.........#',
+      '#.......wwwwwwww.c...r...#',
+      '#...c..nwwwwwwwwn........#',
+      '#.......wwwwwwww...c..##.#',
+      '#.##....wwwwwwww.........#',
+      '#.....c.wwwwwwww......c..#',
+      '#.......wwwwwwww.##......#',
+      '#.c..n..wwwwwwww....n....#',
+      '#.......wwwwwwww..c......#',
+      '#....c..wwwwwwww####d#####',
+      '#.......wwwwwwww.......c.#',
+      '#....##.wwwwwwww.........#',
+      '#.......wwwwwwww....ceee.#',
+      '#.......wwwwwwww.....eee.#',
+      '##########################'
+    ],
+    heights: [],
+    squad: squad([[2,11],[2,12],[3,12],[3,13]]),
+    enemies: [
+      { id: 'span-drive-guard', name: 'Drive-house guard', x: 4, y: 8, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 3 },
+      { id: 'span-east-sentry', name: 'East berth sentry', x: 18, y: 6, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 2 },
+      { id: 'span-keeper-guard', name: 'Keeper escort', x: 22, y: 3, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 2 },
+      { id: 'span-lock-guard', name: 'Bridgehead controller', x: 22, y: 10, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 2 }
+    ],
+    turret: { x: 20, y: 7, range: 6, damage: 2 },
+    node: { x: 5, y: 10 }, rescue: { x: 21, y: 4 },
+    circuits: [
+      { id: 'span-drive', label: 'Bridge drive / allied turret', x: 5, y: 10, controlled: false, doors: [], turret: true },
+      { id: 'bridgehead', label: 'East bridgehead captured', x: 20, y: 10, controlled: false, doors: [], requiresRescue: true, requiresLiftDock: 1 },
+      { id: 'west-release', label: 'West mechanical lock / east gate', x: 5, y: 3, controlled: false, doors: [{ x: 20, y: 12 }], requires: ['bridgehead'], requiresRescue: true, requiresLiftDock: 0, requiresBridgeDelivery: true }
+    ],
+    lift: {
+      kind: 'bridge', poweredBy: 'span-drive', requiresRescue: false, position: 0, size: 2, delivered: false,
+      stops: [
+        { x: 8, y: 6, z: 0, label: 'West bridge berth', console: { x: 7, y: 5 } },
+        { x: 14, y: 6, z: 0, label: 'East bridge berth', console: { x: 16, y: 5 } }
+      ]
+    },
+    ambush: { turn: 5, label: 'Bridge counterattack', enemies: [
+      { id: 'span-west-counterattack', name: 'West lock raider', x: 2, y: 2, hp: 5, maxHp: 5, damage: 2, range: 4, stride: 3 },
+      { id: 'span-east-counterattack', name: 'East berth raider', x: 24, y: 8, hp: 5, maxHp: 5, damage: 2, range: 4, stride: 3 }
+    ] },
+    mastery: 'Capture both bridge locks and extract all four engineers in twenty-four turns or fewer; keep every engineer standing during the return crossing.',
+    debrief: 'The west lock releases and the bridge crew takes the controls. Repair teams cross behind the squad while Mara receives the keeper\'s access chart. The occupation has hidden its next relay in the dark pumping tunnels: Blackout will test light and visibility. Ten of twenty operations are playable; the Archive, Citadel and campaign ending remain in development.'
+  };
+  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice, span];
   SB.Missions.get = function (id) {
     return SB.Missions.operations.find(function (mission) { return mission.id === id; }) || null;
   };

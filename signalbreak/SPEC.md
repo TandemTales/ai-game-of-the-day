@@ -43,7 +43,7 @@ explicit user approval; time/usage limits are not approval.
 - [x] 07 Open Clinic: six telegraphed ward assaults, exclusive shield power and turret tradeoff.
 - [x] 08 Antenna Rain: three stair approaches, alternating marked firing lanes, tower shutdown.
 - [x] 09 Sluice Logic: exclusive drained crossings, safe rerouting, keeper rescue and outlet capture.
-- [ ] 10 Span Control: moving bridge capture.
+- [x] 10 Span Control: moving bridge capture, east rescue/bridgehead, west return lock and final ferry.
 - [ ] 11 Blackout: light/visibility infiltration.
 - [ ] 12 Pump Siege: simultaneous pumps and reinforcements.
 - [ ] 13 Paper Trail: evidence recovery before purge.
@@ -56,7 +56,7 @@ explicit user approval; time/usage limits are not approval.
 - [ ] 20 Signalbreak: combined core shutdown and consequence-based epilogue.
 
 Mission-boundary local saves, sequential unlocks and replay best scores now exist
-for the nine implemented missions. Squad progression, equipment and injury
+for the ten implemented missions. Squad progression, equipment and injury
 recovery are implemented; persistent district rescue/evidence consequences remain. Authored
 mastery targets appear in the HUD; no campaign medal/reward system exists yet.
 Story debriefs appear on victory. The clinic is a protected prerequisite, not yet
@@ -124,7 +124,7 @@ Grid coordinates integer (x,y), origin top left. Tiles: . floor, # tall blocker,
 c low cover, d circuit door, e exit, n network node, r rescue. Heights are separate.
 No procedural randomness required; identical state/action gives identical outcome.
 
-SB.Missions.operations contains the nine authored missions, get(id) looks up an
+SB.Missions.operations contains the ten authored missions, get(id) looks up an
 implemented mission, and manifest holds the full twenty-operation contract.
 SB.Logic.newGame(id?) returns a fresh chosen operation (default Live Wire) and
 rejects unknown IDs. SB.Logic.preview(state,actorId,
@@ -262,3 +262,22 @@ the authored sequence; there is no timer or flooding damage mechanic.
 
 Span Control, Blackout and Pump Siege remain planned, as do all Archive/Citadel
 operations. FIRST PLAYABLE remains; no scope reduction or AAA completion claim.
+
+
+## November 7 Span Control contract
+
+Ten of twenty operations exist. Operation10 uses a26x18 river layout, a2x2
+horizontal transfer span and fixed recall controls on both banks. Power allies
+the east turret. Transport can precede rescue; a living rider reaching the east
+berth records the crossing, while empty recalls do not. Rescue the east keeper
+and capture the bridgehead with the span docked east, return it west to release
+the mechanical lock, then ferry the remaining squad east through the opened gate.
+A turn-five two-bank counterattack contests the return. Both sides can recall
+the empty span; water is impassable and transparent, masonry remains opaque.
+Previews revalidate dock, rescue, prior capture, hostile riders and destinations
+without spending AP on rejection. Cargo Lift keeps its rescue-first semantics.
+The span reuses tested rider transport; cross-bank return/capture is the new
+objective combination. No automatic bridge timer or flooding damage is implied.
+
+NEXT:11Blackout visibility/light infiltration,12PumpSiege, then Archive/Citadel.
+District consequences, tracked mastery, final campaign score and ending remain.

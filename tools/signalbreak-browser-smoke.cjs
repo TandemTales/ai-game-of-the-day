@@ -68,7 +68,7 @@ async function drive(page,touch=false){
     // The eventual POST must retain the completed operation's original score.
     let rankHeld=null;await page.route('**/api/leaderboard/rank?**',route=>{rankHeld=route;},{times:1});
     await page.goto(url+'/signalbreak/index.html');
-    for(const [index,id]of ['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic'].entries()){
+    for(const [index,id]of ['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control'].entries()){
       assert.equal(await page.evaluate(()=>SB.Game.getState().id),id);
       if(index===0){await page.locator('#prep-summary').focus();await page.keyboard.press('Enter');assert.equal(await page.evaluate(()=>SB.Game.getMode()),'title');assert(await page.locator('.preparation').evaluate(e=>e.open));await page.locator('#prep-summary').click();}
       if(index===1){
@@ -88,13 +88,13 @@ async function drive(page,touch=false){
       await page.waitForTimeout(100);await page.reload();
       assert.equal(await page.evaluate(()=>SB.Game.getMode()),'title');
       const data=await page.evaluate(()=>JSON.parse(localStorage.getItem(SB.Campaign.key)));assert(data.results[id]);
-      if(index<8)assert.equal(await page.evaluate(()=>SB.Game.getState().id),['locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic'][index]);
+      if(index<9)assert.equal(await page.evaluate(()=>SB.Game.getState().id),['locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control'][index]);
     }
-    assert.equal(api.length,17,'held GET is intercepted, remaining server API calls are recorded');
+    assert.equal(api.length,19,'held GET is intercepted, remaining server API calls are recorded');
     assert.equal(api[0].method,'POST');assert.equal(api[0].body.score,campaignRuns[0].final.score);assert(dialogs[0].startsWith('Live Wire operation score'));
     for(let i=1;i<api.length;i+=2){assert.equal(api[i].method,'GET');assert.equal(api[i+1].method,'POST');assert.equal(api[i+1].body.score,campaignRuns[(i+1)/2].final.score);}
     const campaignStorage=await page.context().storageState();
-    const trained=await page.evaluate(()=>JSON.parse(localStorage.getItem(SB.Campaign.key)));assert.equal(trained.roster.nia.xp,9);
+    const trained=await page.evaluate(()=>JSON.parse(localStorage.getItem(SB.Campaign.key)));assert.equal(trained.roster.nia.xp,10);
     // Treatment fixture: represent a saved mission-boundary injury explicitly.
     const recovery=await browser.newPage({viewport:{width:390,height:844},hasTouch:true,storageState:campaignStorage});
     await recovery.goto(url+'/signalbreak/index.html');await recovery.evaluate(()=>{const c=JSON.parse(localStorage.getItem(SB.Campaign.key));c.roster.nia.injury=2;localStorage.setItem(SB.Campaign.key,JSON.stringify(c));});await recovery.reload();
@@ -104,7 +104,7 @@ async function drive(page,touch=false){
     await recovery.locator('.preparation').screenshot({path:path.join(out,'squad-preparation-phone.png')});assert.equal(await recovery.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await recovery.close();
     // Six-size new-mission sweep with earned unlocks. No tactical state injection.
     const newMissionSweeps=[];
-    for(const[width,height]of[[320,568],[390,844],[844,390],[768,1024],[1440,900],[3840,2160]])for(const id of ['locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic']){
+    for(const[width,height]of[[320,568],[390,844],[844,390],[768,1024],[1440,900],[3840,2160]])for(const id of ['locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control']){
       const p=await browser.newPage({viewport:{width,height},hasTouch:true,storageState:campaignStorage}),logs=[],external=[];
       p.on('pageerror',e=>logs.push(String(e)));p.on('console',m=>{if(['warning','error'].includes(m.type()))logs.push(m.text());});p.on('request',r=>{if(!r.url().startsWith(url))external.push(r.url());});
       await p.goto(url+'/signalbreak/index.html');await p.locator(`[data-mission="${id}"]`).click();await p.locator('.map-wrap').screenshot({path:path.join(out,`${id}-${width}x${height}-title.png`)});
@@ -128,6 +128,6 @@ async function drive(page,touch=false){
     assert(await catalog.locator('.feature-visual img').evaluate(i=>i.complete&&i.naturalWidth>0));await catalog.locator('.featured').screenshot({path:path.join(out,'catalog-feature.png')});await catalog.close();
     assert.deepEqual(sourceSnapshot(),initialSources,'runtime sources must remain unchanged throughout browser verification');
     fs.writeFileSync(path.join(out,'source-manifest.json'),JSON.stringify({at:new Date().toISOString(),sources:initialSources},null,2));
-    fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({results,newMissionSweeps,api,campaignRuns,dialogs,checks:'real keyboard/touch preview-confirm-cancel, raised tile picking, native-touch full Locked Manifest, Night Freight and Rooftop Crossfire, nine legal-input live-AI victories, earned unlock/save/reload, denied storage, delayed rank snapshot, loss/retry, file boot, DPR2'},null,2));console.log(JSON.stringify({viewports:results.length,newMissionViewports:newMissionSweeps.length,campaign:campaignRuns.map(r=>({...r.final,actions:r.actions.length})),checks:'PASS'}));
+    fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({results,newMissionSweeps,api,campaignRuns,dialogs,checks:'real keyboard/touch preview-confirm-cancel, raised tile picking, native-touch full Locked Manifest, Night Freight and Rooftop Crossfire, ten legal-input live-AI victories, earned unlock/save/reload, denied storage, delayed rank snapshot, loss/retry, file boot, DPR2'},null,2));console.log(JSON.stringify({viewports:results.length,newMissionViewports:newMissionSweeps.length,campaign:campaignRuns.map(r=>({...r.final,actions:r.actions.length})),checks:'PASS'}));
   }finally{await browser.close();server.close();}
 })().catch(e=>{console.error(e);server.close();process.exitCode=1;});

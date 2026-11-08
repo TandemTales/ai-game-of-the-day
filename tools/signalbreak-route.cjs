@@ -2,11 +2,19 @@
 // edits tactical state. These routes prove solvability, not human play or balance.
 function nextOrder(SB, s) {
   const L = SB.Logic, live = s.squad.filter(L.living);
-  const boardingLift=s.lift && s.circuits.find(c=>c.id===s.lift.poweredBy).controlled && s.rescued && !s.lift.delivered;
+  const bridge=s.lift&&s.lift.kind==='bridge';
+  let bridgeGoal;
+  if(bridge){
+    const drive=s.circuits.find(c=>c.id==='span-drive'),head=s.circuits.find(c=>c.id==='bridgehead'),release=s.circuits.find(c=>c.id==='west-release');
+    bridgeGoal=!drive.controlled?drive:!s.rescued?s.rescue:!head.controlled?head:!release.controlled?release:null;
+  }
+  const bridgeDestination=bridge&&(bridgeGoal&&bridgeGoal.x<8?0:1);
+  const boardingLift=s.lift && s.circuits.find(c=>c.id===s.lift.poweredBy).controlled && (bridge?s.lift.position!==bridgeDestination:s.rescued&&!s.lift.delivered);
   if(boardingLift){
     const dock=s.lift.stops[s.lift.position];
-    for(const u of live)if(L.liftAt(s,u.x,u.y)&&u.x<dock.x+s.lift.size-1){
-      const p=L.preview(s,u.id,'move',u.x+1,u.y);if(p.legal)return p;
+    const inward=bridge&&s.lift.position===1?-1:1;
+    for(const u of live)if(L.liftAt(s,u.x,u.y)&&(inward===1?u.x<dock.x+s.lift.size-1:u.x>dock.x)){
+      const p=L.preview(s,u.id,'move',u.x+inward,u.y);if(p.legal)return p;
     }
   }
   if(boardingLift && live.every(u=>L.liftAt(s,u.x,u.y))){
@@ -22,7 +30,8 @@ function nextOrder(SB, s) {
     if(nia&&nia.ap){const p=L.preview(s,nia.id,'move',10,7);if(p.legal)return p;}
   }
   let goal;
-  if (s.id === 'locked-manifest') {
+  if (bridge) goal=bridgeGoal;
+  else if (s.id === 'locked-manifest') {
     const [prison, evac] = s.circuits;
     if (!s.rescued) goal = prison.controlled ? s.rescue : prison;
     else if (live.some(u => u.x >= 10 && u.y <= 6)) goal = { x: 9, y: 4, regroup: true };
@@ -65,7 +74,8 @@ function nextOrder(SB, s) {
     if(boardingLift){
       if(L.liftAt(s,u.x,u.y))continue;
       const dock=s.lift.stops[s.lift.position],free=[];
-      for(let x=dock.x+s.lift.size-1;x>=dock.x;x--)for(let y=dock.y;y<dock.y+s.lift.size;y++)
+      const xs=bridge&&s.lift.position===1?[dock.x,dock.x+1]:[dock.x+1,dock.x];
+      for(const x of xs)for(let y=dock.y;y<dock.y+s.lift.size;y++)
         if(!L.occupant(s,x,y)&&L.path(s,u,x,y))free.push({x,y});
       if(!free.length)continue;
       target=free[0];

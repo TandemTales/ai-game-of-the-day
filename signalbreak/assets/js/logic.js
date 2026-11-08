@@ -196,8 +196,9 @@
     status.push({ id: 'rescue', label: s.objectives && s.objectives.rescueLabel || 'Rescue signal worker', done: !!s.rescued });
     if (s.lift) {
       var lift = liftStatus(s);
-      status.push({ id: 'cargo', label: lift.delivered ? 'Medical cargo delivered to clinic terrace' : 'Escort the rescued operator and medical cargo to clinic terrace', done: lift.delivered });
-      status.push({ id: 'lift', label: 'Lift: ' + lift.label + ' / ' + (lift.powered ? 'powered' : 'restore hoist power') +
+      var bridge = s.lift.kind === 'bridge';
+      status.push({ id: 'cargo', label: bridge ? (lift.delivered ? 'River span crossed with engineers aboard' : 'Capture the moving span and cross to the east bridgehead') : lift.delivered ? 'Medical cargo delivered to clinic terrace' : 'Escort the rescued operator and medical cargo to clinic terrace', done: lift.delivered });
+      status.push({ id: 'lift', label: (bridge ? 'Moving span: ' : 'Lift: ') + lift.label + ' / ' + (lift.powered ? 'powered' : bridge ? 'restore bridge motor power' : 'restore hoist power') +
         ' / ' + lift.passengers + ' aboard. Board the 2x2 platform; HACK its deck or a dock console to send it to ' + lift.nextLabel + '.', done: lift.powered });
     }
     if (s.defense) {
@@ -246,7 +247,7 @@
     return null;
   }
   function opaque(s, x, y) {
-    var openShaft = s.lift && x >= 8 && x <= 14 && y > 0 && y < s.height - 1;
+    var openShaft = s.lift && s.lift.kind !== 'bridge' && x >= 8 && x <= 14 && y > 0 && y < s.height - 1;
     return tile(s, x, y) === '#' && !openShaft;
   }
   function visible(s, a, b) {
@@ -295,27 +296,30 @@
       p.reason = '1 AP · ' + p.damage + ' damage' + (p.cover ? ' · target in cover' : '') + ' · confirm shot';
     } else if (kind === 'hack' && liftControlAt(s, x, y)) {
       var lift = liftStatus(s), targetControl = { x: x, y: y };
+      var vehicle = s.lift.kind === 'bridge' ? 'moving span' : 'lift';
       // The deck is its own control. Fixed consoles can recall the empty lift,
       // keeping either landing recoverable after a split-squad crossing.
-      if (height(s, a.x, a.y) !== height(s, x, y) || distance(a, targetControl) > (a.role === 'ENGINEER' ? (a.hackRange || 2) : 1) || !visible(s, a, targetControl)) return fail('Reach a lift deck control or a dock console on your level.');
-      if (!lift.powered) return fail('Restore the hoist circuit before operating the lift.');
-      if (!s.rescued && !s.lift.delivered) return fail('Rescue the lift operator and load the medical cargo before departing.');
-      if (s.enemies.some(function (u) { return living(u) && liftAt(s, u.x, u.y); })) return fail('Clear hostile patrols off the lift before departure.');
+      if (height(s, a.x, a.y) !== height(s, x, y) || distance(a, targetControl) > (a.role === 'ENGINEER' ? (a.hackRange || 2) : 1) || !visible(s, a, targetControl)) return fail('Reach a ' + vehicle + ' deck control or a dock console on your level.');
+      if (!lift.powered) return fail(s.lift.kind === 'bridge' ? 'Restore the bridge motor circuit before operating the moving span.' : 'Restore the hoist circuit before operating the lift.');
+      if (s.lift.requiresRescue !== false && !s.rescued && !s.lift.delivered) return fail('Rescue the lift operator and load the medical cargo before departing.');
+      if (s.enemies.some(function (u) { return living(u) && liftAt(s, u.x, u.y); })) return fail('Clear hostile patrols off the ' + vehicle + ' before departure.');
       var destination = s.lift.stops[lift.destination];
       for (var ly = 0; ly < s.lift.size; ly++) for (var lx = 0; lx < s.lift.size; lx++) {
         var dx = destination.x + lx, dy = destination.y + ly;
-        if (occupant(s, dx, dy) || s.turret && s.turret.x === dx && s.turret.y === dy) return fail('Clear the destination lift platform before departure.');
+        if (occupant(s, dx, dy) || s.turret && s.turret.x === dx && s.turret.y === dy) return fail('Clear the destination ' + vehicle + ' platform before departure.');
       }
       p.lift = true; p.liftFrom = lift.position; p.liftTo = lift.destination;
-      p.reason = '1 AP · send lift to ' + lift.nextLabel + ' · carries ' + lift.passengers + ' engineer(s)' + (!lift.delivered ? ' and medical cargo' : '') + ' · engineers off the deck stay behind';
+      p.reason = '1 AP · send ' + (s.lift.kind === 'bridge' ? 'moving span' : 'lift') + ' to ' + lift.nextLabel + ' · carries ' + lift.passengers + ' engineer(s)' + (s.lift.kind !== 'bridge' && !lift.delivered ? ' and medical cargo' : '') + ' · engineers off the deck stay behind';
     } else if (kind === 'hack') {
       var circuit = circuitAt(s, x, y);
       if (!circuit) return fail('Select an amber circuit node.');
       if (distance(a, circuit) > (a.role === 'ENGINEER' ? (a.hackRange || 2) : 1) || !visible(s, a, circuit)) return fail('Get within ' + (a.role === 'ENGINEER' ? (a.hackRange || 2) : 1) + ' tile(s) with a clear signal.');
       if (circuit.controlled) return fail('Circuit already under our control.');
       if (circuit.requiresRescue && !s.rescued) return fail('Rescue interlock: evacuate the worker before diverting this route.');
+      if (circuit.requiresLiftDock !== undefined && (!s.lift || s.lift.position !== circuit.requiresLiftDock)) return fail('Bridge interlock: dock the moving span at the required bank before capturing this control.');
+      if (circuit.requiresBridgeDelivery && (!s.lift || !s.lift.delivered)) return fail('Bridge interlock: carry engineers across the river before capturing this control.');
       var missing = (circuit.requires || []).filter(function (id) { return !s.circuits.some(function (c) { return c.id === id && c.controlled; }); });
-      if (missing.length) return fail((s.water ? 'Sluice interlock: complete ' : 'Clinic supply interlock: complete ') + missing.map(function (id) { var c = s.circuits.find(function (entry) { return entry.id === id; }); return c ? c.label : id; }).join(' and ') + ' first.');
+      if (missing.length) return fail((s.lift && s.lift.kind === 'bridge' ? 'Bridge interlock: complete ' : s.water ? 'Sluice interlock: complete ' : 'Clinic supply interlock: complete ') + missing.map(function (id) { var c = s.circuits.find(function (entry) { return entry.id === id; }); return c ? c.label : id; }).join(' and ') + ' first.');
       if (s.circuits && isolatesSquad(s, circuit)) return fail(s.water ? 'Sluice safety interlock: clear living units from the channel that will flood and keep every active engineer connected to this control through the new dry route.' : 'Reroute would strand an engineer. Bring every active engineer back to the controller side of the closing door first.');
       p.circuitId = circuit.id;
       var losesTurret = s.circuits && !circuit.turret && s.circuits.some(function (c) { return c.controlled && c.turret && c.exclusiveGroup && c.exclusiveGroup === circuit.exclusiveGroup; });
@@ -343,7 +347,7 @@
         if (!boarding.tiles.some(function (t) { return t.x === a.x && t.y === a.y; })) return fail('Board at ' + boarding.label + ' now. ' + boarding.nextLabel + ' is the next stop.');
       }
       if (s.defense && (s.defense.hp <= 0 || !defenseStatus(s).done)) return fail('Protect the clinic staff through all ' + s.defense.rounds + ' assaults before extracting.');
-      if (s.lift && !s.lift.delivered) return fail('Deliver the rescued operator and medical cargo on the lift before extracting.');
+      if (s.lift && !s.lift.delivered) return fail(s.lift.kind === 'bridge' ? 'Carry engineers across the river on the moving span before extracting.' : 'Deliver the rescued operator and medical cargo on the lift before extracting.');
       if (!networkReady(s) || !s.rescued) return fail('Complete the circuit objectives and rescue before extracting.');
       p.reason = '1 AP · extract ' + a.name;
     } else return fail('Unknown order.');
@@ -379,8 +383,9 @@
       var passengers = s.squad.filter(function (u) { return living(u) && liftAt(s, u.x, u.y); });
       passengers.forEach(function (u) { u.x += to.x - from.x; u.y += to.y - from.y; });
       s.lift.position = p.liftTo;
-      if (s.rescued && p.liftTo === 1) s.lift.delivered = true;
-      log(s, 'Cargo lift reached ' + to.label + ' · ' + passengers.length + ' engineer(s) carried' + (s.lift.delivered ? ' · medical cargo delivered' : ''), 'hack');
+      var bridge = s.lift.kind === 'bridge';
+      if (p.liftTo === 1 && (bridge ? passengers.length > 0 : s.rescued)) s.lift.delivered = true;
+      log(s, (bridge ? 'Moving span reached ' : 'Cargo lift reached ') + to.label + ' · ' + passengers.length + ' engineer(s) carried' + (s.lift.delivered ? bridge ? ' · east crossing secured' : ' · medical cargo delivered' : ''), 'hack');
     }
     if (p.kind === 'hack' && !p.lift) {
       if (s.circuits) {

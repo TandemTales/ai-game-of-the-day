@@ -33,8 +33,8 @@
       diamond(x,y,base+z,top,'#51616a');return q;
     }
     var reachable=view.reachable||{}, boarding=s.freight&&L.extractionStatus(s);
-    var lift=s.lift, liftStop=lift&&lift.stops[lift.position], liftPower=lift&&(s.circuits||[]).some(function(n){return n.id===lift.poweredBy&&n.controlled;});
-    function shaftHere(x,y){return lift&&x>=8&&x<=14&&y>0&&y<s.height-1;}
+    var lift=s.lift, bridge=lift&&lift.kind==='bridge', liftStop=lift&&lift.stops[lift.position], liftPower=lift&&(s.circuits||[]).some(function(n){return n.id===lift.poweredBy&&n.controlled;});
+    function shaftHere(x,y){return lift&&!bridge&&x>=8&&x<=14&&y>0&&y<s.height-1;}
     function platformHere(x,y){return liftStop&&x>=liftStop.x&&x<liftStop.x+lift.size&&y>=liftStop.y&&y<liftStop.y+lift.size;}
     function boardingHere(x,y){return boarding&&boarding.open&&boarding.tiles.some(function(t){return t.x===x&&t.y===y;});}
     var waterCells={};
@@ -55,6 +55,7 @@
       if(s.defense&&x>=8&&x<=15&&y>=2&&y<=6&&t!=='#')floor=(x+y)%2?'#576965':'#4b605f';
       if(s.lanes&&x>=10&&x<=15&&y>=3&&y<=10&&t!=='#')floor=(x+y)%2?'#43525b':'#354953';
       if(s.water&&t!=='#')floor=(x+y)%3?'#344b49':'#405550';
+      if(bridge&&t!== '#'&&t!=='w')floor=x<8?((x+y)%3?'#4b5148':'#585d50'):((x+y)%3?'#354f54':'#405b60');
       if(channelHere(x,y))floor=t==='w'?'#104b5e':'#606c59';
       if(t==='w')floor=(x+y)%2?'#104b5e':'#124255';
       if(t==='#')floor=shaftHere(x,y)?'#07151e':'#1b2c36';
@@ -90,6 +91,15 @@
       if(platformHere(x,y)){
         diamond(x,y,z,floor,liftPower?'#ffe1a1':'#a3977e');
         c.strokeStyle='#e5bf76';c.lineWidth=Math.max(1,a*.06);c.beginPath();c.moveTo(p.x-a*.6,p.y);c.lineTo(p.x,p.y+b*.6);c.lineTo(p.x+a*.6,p.y);c.stroke();
+        if(bridge){
+          // Flush transverse slats distinguish the moving span from water and
+          // from Cargo Lift; they add neither opaque railing nor extra cover.
+          c.strokeStyle='#f3d093';c.lineWidth=Math.max(.8,a*.045);
+          for(var slat=0;slat<3;slat++){
+            var s1=P.point(x-.3+slat*.25,y-.38,z),s2=P.point(x-.3+slat*.25,y+.38,z);
+            c.beginPath();c.moveTo(s1.x,s1.y);c.lineTo(s2.x,s2.y);c.stroke();
+          }
+        }
       }
       if(s.defense&&x>=8&&x<=15&&y>=2&&y<=6&&t!== '#'){
         // Flush ward tiles identify the treatment floor without inventing cover.
@@ -132,14 +142,23 @@
         }
         c.setLineDash([]);
       });
-      [[0,0],[lift.size-1,lift.size-1]].forEach(function(offset){
+      if(bridge){
+        // Thin dashed travel guides cross only the water. They never resemble
+        // floor tiles; the gold occupied deck is the sole traversable span.
+        var first=lift.stops[0],last=lift.stops[lift.stops.length-1];
+        [-.48,lift.size-.52].forEach(function(edge){
+          var start=P.point(first.x-.45,first.y+edge,first.z),end=P.point(last.x+lift.size-.55,last.y+edge,last.z);
+          c.strokeStyle='#c3ae7955';c.lineWidth=Math.max(.7,a*.035);c.setLineDash([a*.12,a*.28]);
+          c.beginPath();c.moveTo(start.x,start.y);c.lineTo(end.x,end.y);c.stroke();c.setLineDash([]);
+        });
+      }else [[0,0],[lift.size-1,lift.size-1]].forEach(function(offset){
         var q=P.point(liftStop.x+offset[0],liftStop.y+offset[1],liftStop.z);
         c.strokeStyle='#a3b1aa88';c.lineWidth=Math.max(1,a*.05);c.beginPath();c.moveTo(q.x,q.y);c.lineTo(q.x,q.y-a*2.8);c.stroke();
         c.fillStyle='#f0ce86';c.fillRect(q.x-a*.08,q.y-a*.3,a*.16,a*.3);
       });
       c.fillStyle=liftPower?'#ffe1a1':'#bcc7c6';c.font=Math.max(11*Math.min(d,2),w/100)+'px system-ui';
-      c.fillText((liftPower?'POWER ON / ':'POWER OFF / ')+liftStop.label,16*Math.min(d,2),h-62*Math.min(d,2));
-      c.fillText('HACK, then deck/console / 1 AP',16*Math.min(d,2),h-42*Math.min(d,2));
+      c.fillText((bridge?'BRIDGE ':'POWER ')+(liftPower?'ON / ':'OFF / ')+liftStop.label,16*Math.min(d,2),h-62*Math.min(d,2));
+      c.fillText(bridge?'HACK deck/console / 1 AP / return trips':'HACK, then deck/console / 1 AP',16*Math.min(d,2),h-42*Math.min(d,2));
     }
     if(s.water){
       c.fillStyle='#aedbe0';c.font=Math.max(11*Math.min(d,2),w/110)+'px system-ui';
@@ -196,7 +215,15 @@
         var circuit=L.circuitAt(s,x,y),consoleHere=lift&&lift.stops.some(function(stop){return stop.console.x===x&&stop.console.y===y;}),on=consoleHere?liftPower:circuit?circuit.controlled:s.network;
         var q=block(x,y,.5,on?'#8bdfc4':'#e9c485','#4c5a59','#647775');
         c.fillStyle=on?'#91ffe2':'#ffe1a1';c.beginPath();c.arc(q.x,q.y-a*.2,a*.17,0,Math.PI*2);c.fill();
-        if(consoleHere){c.font=Math.max(9,a*.5)+'px system-ui';c.textAlign='center';c.fillText('L',q.x,q.y-a*.65);c.textAlign='start';}
+        if(consoleHere){
+          if(bridge){
+            // Winch drum belongs to the actual fixed console. A low silhouette
+            // avoids hiding its target tile or neighboring squad members.
+            c.strokeStyle=on?'#c4e9d4':'#dfbf87';c.lineWidth=Math.max(1,a*.07);
+            c.beginPath();c.ellipse(q.x,q.y-a*.25,a*.33,a*.16,-.45,0,Math.PI*2);c.stroke();
+          }
+          c.font=Math.max(9,a*.5)+'px system-ui';c.textAlign='center';c.fillText(bridge?'B':'L',q.x,q.y-a*.65);c.textAlign='start';
+        }
         if(s.circuits&&circuit){c.font=Math.max(9,a*.5)+'px system-ui';c.textAlign='center';c.fillText(String(s.circuits.indexOf(circuit)+1),q.x,q.y-a*.65);c.textAlign='start';}
       }
       if(s.lanes&&t==='n'&&L.circuitAt(s,x,y)&&L.circuitAt(s,x,y).id===s.lanes.disabledBy){
@@ -214,7 +241,7 @@
       if(t==='r'&&!s.rescued){c.strokeStyle='#f8cf86';c.lineWidth=a*.06;c.beginPath();c.arc(p.x,p.y-a*.35,a*.3,0,Math.PI*2);c.stroke();c.fillStyle='#f8cf86';c.fillRect(p.x-a*.13,p.y-a*.4,a*.26,a*.6);}
       // A compact medical crate rides until delivered, then remains beside
       // the upper landing while the empty platform can return for stragglers.
-      if(lift&&s.rescued&&(lift.delivered?x===15&&y===8:x===liftStop.x&&y===liftStop.y)){
+      if(lift&&!bridge&&s.rescued&&(lift.delivered?x===15&&y===8:x===liftStop.x&&y===liftStop.y)){
         var q=P.point(x-.3,y-.3,z);c.fillStyle='#698d87';c.fillRect(q.x-a*.18,q.y-a*.47,a*.36,a*.32);c.fillStyle='#d9f3df';c.fillRect(q.x-a*.04,q.y-a*.44,a*.08,a*.24);c.fillRect(q.x-a*.13,q.y-a*.36,a*.26,a*.08);
       }
       var actor=L.occupant(s,x,y);

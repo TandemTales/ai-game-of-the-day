@@ -150,3 +150,49 @@ one of four, eleven total still required. Preserve roster/gear/injury/v1 saves,
 base/grown-route proofs, Tidelock and all approved breadth. District consequences,
 tracked mastery, final campaign score and Citadel ending remain required. FIRST
 PLAYABLE stays. No .aaa-complete, main/catalog/release action. ForcedNovember14.
+
+
+## November 7 Span Control focused verification
+
+Focused58/58PASS, including ten base-stat/live-AI routes and a consecutive
+persisted-growth campaign. Span tests cover pre-rescue loaded crossings/rider
+offsets, vacated water/transparent LOS, empty recall anti-delivery, occupied and
+hostile decks, dock/rescue/crossing prerequisites, stale dispatch and circuit
+confirmations with byte-identical rejected state, and nine-clear v1 migration.
+Span base route wins turn14/four survivors. Browser harness now includes all10
+actual-UI earned-growth victories and all10maps/six required sizes (60total
+combinations). Full-suite/browser final results recorded in the handoff below.
+
+
+## November 7 final browser and independent review
+
+Pushed intent e5ba7b6 and operation10 b59ad96 todev. Focused58/58PASS
+(72.135seconds), syntax and scoped whitespace checks PASS. Full repository
+31/31suites565/565testsPASS,347.074seconds exit0; report
+node_modules/.cache/signalbreak-span-full.json. Stable-source Edge PASS:
+ten earned-growth actual-UI/live-AI victories, each four survivors. Span uses
+native touch,76orders/turn13/4010points. Base-stat route turn14/four survivors.
+Opening six-size sweep plus54additional map/viewport combinations=60total.
+No overflow/app warnings/errors/external gameplay requests. Save/reload/unlock,
+equipment/field locks/treatment fixture, locally mocked rank-before-submit and
+delayed score snapshot, denied storage, file boot, DPR2, loss/retry all PASS.
+Initial sandbox Edge launch blocked; scoped elevated local-only retry succeeded.
+Production API never contacted. Runtime hashes match source-manifest.json at
+2026-11-08T07:09:16.023Z. Lead opened all12Span title/play frames via three
+contact sheets plus phone live, power capture, victory and side-by-side originals.
+4K contact downsampled; no full-resolution4K legibility claim.
+
+Independent ART/UI FAIL / OURS LOSES against freshly fetched official XCOM2:
+https://store.steampowered.com/app/268500/XCOM_2/
+No additional substantive rules/readability blocker found. Tiny similar actors,
+repeated flat slabs/water, sparse bridge machinery and empty lower viewport
+remain. Minor blocked-move advice is generic security-door wording. Audio/VFX
+remain unjudged; no human-fun/device/speaker/GPU evidence or AAA claim.
+Comparison: node_modules/.cache/signalbreak/span-critic/span-side-by-side.png;
+different views, native615x346 reference labelled. Critics did not clear quality.
+
+NEXT FIRST:11Blackout light/visibility infiltration, then12PumpSiege. Campaign
+10/20; Floodworks2/4, Archive/Citadel still absent. Preserve roster/v1 saves,
+base/grown legal routes, all approved scope, Tidelock and FIRST PLAYABLE.
+District consequences, tracked mastery, final campaign score and finale remain.
+No .aaa-complete/catalog/main/release action. Saturday age5; forcedNov14.

@@ -464,3 +464,12 @@ one of four, eleven total still required. Preserve roster/gear/injury/v1 saves,
 base/grown-route proofs, Tidelock and all approved breadth. District consequences,
 tracked mastery, final campaign score and Citadel ending remain required. FIRST
 PLAYABLE stays. No .aaa-complete, main/catalog/release action. ForcedNovember14.
+
+## November 7 Pacific nightly intent
+
+STOP absent; selected Signalbreak active, age five: first Saturday, no release.
+Tonight implements operation 10 Span Control, a captured river transfer bridge
+with return trips, coupled power/turret access and enemy counterattack. Preserve
+all twenty operations, roster/v1 saves and FIRST PLAYABLE. Verify legal base/grown
+routes and browser touch/six-size layouts; no main/catalog/completion changes.
+

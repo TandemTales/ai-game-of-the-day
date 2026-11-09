@@ -45,7 +45,7 @@ async function drive(page,touch=false){
     for(const[width,height]of[[320,568],[390,844],[844,390],[768,1024],[1440,900],[3840,2160]]){
       const page=await browser.newPage({viewport:{width,height},hasTouch:true}),errors=[],external=[];
       page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(['warning','error'].includes(m.type()))errors.push(m.text());});page.on('request',r=>{if(!r.url().startsWith(url))external.push(r.url());});
-      await page.goto(url+'/signalbreak/index.html');await page.screenshot({path:path.join(out,`${width}x${height}-title.png`)});
+      await page.goto(url+'/signalbreak/index.html');assert.deepEqual(errors,[],'boot console');await page.waitForFunction(()=>window.SB&&SB.Game);await page.screenshot({path:path.join(out,`${width}x${height}-title.png`)});
       assert(await page.evaluate(()=>{const a=document.querySelector('.map-wrap').getBoundingClientRect(),b=document.querySelector('#start').getBoundingClientRect();return b.top>=a.top&&b.bottom<=a.bottom&&b.left>=a.left&&b.right<=a.right;}),'title CTA fits '+width);
       await page.locator('#start').click();assert.equal(await page.evaluate(()=>SB.Game.getMode()),'playing');
       await page.keyboard.press('ArrowRight');const before=await page.evaluate(()=>({...SB.Game.getState().squad[0]}));

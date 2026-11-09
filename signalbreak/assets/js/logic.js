@@ -136,8 +136,8 @@
   }
   function freightMessage(s) {
     var f = extractionStatus(s);
-    return f.open ? f.label + ' boarding OPEN Â· ' + f.turnsUntilChange + ' player turn(s) remaining' :
-      'Train in transit Â· ' + f.nextLabel + ' opens in ' + f.turnsUntilChange + ' turn(s)';
+    return f.open ? f.label + ' boarding OPEN · ' + f.turnsUntilChange + ' player turn(s) remaining' :
+      'Train in transit · ' + f.nextLabel + ' opens in ' + f.turnsUntilChange + ' turn(s)';
   }
   function deployAmbush(s) {
     if (!s.ambush || s.turn < s.ambush.turn) return;
@@ -149,7 +149,7 @@
       // receiving an overlapping enemy or an unannounced adjacent spawn.
       if (blocked(s, entry.x, entry.y) || occupant(s, entry.x, entry.y)) return;
       s.enemies.push(clone(entry)); deployed[entry.id] = true;
-      log(s, entry.name + ' entered at (' + entry.x + ', ' + entry.y + ') Â· acts next enemy turn', 'turn');
+      log(s, entry.name + ' entered at (' + entry.x + ', ' + entry.y + ') · acts next enemy turn', 'turn');
     });
   }
   function defenseStatus(s) {
@@ -296,7 +296,7 @@
       if (!p.path) return fail(s.maxStepHeight !== undefined ? 'Route blocked. Use marked stairs between roof levels and route power to open security doors.' : 'Route blocked. Hack the circuit to open the security door.');
       p.cost = Math.ceil((p.path.length - 1) / a.stride);
       if (!p.cost || p.cost > a.ap) return fail('Beyond remaining movement AP.');
-      p.reason = p.cost + ' AP Â· ' + (p.path.length - 1) + ' tiles Â· confirm move';
+      p.reason = p.cost + ' AP · ' + (p.path.length - 1) + ' tiles · confirm move';
       if (s.lighting) {
         p.illuminated = lit(s, x, y);
         p.reason += p.illuminated ? ' / LIT destination: enemies with clear sight may pursue and fire at normal range' : ' / DARK destination: enemies must be within ' + s.lighting.darkRange + ' tiles to spot you';
@@ -312,7 +312,7 @@
       if (!detected(s, a, target)) return fail('Target in darkness. Move within ' + s.lighting.darkRange + ' tiles or restore its work lamps.');
       if (!canShoot(s, a, target)) return fail('Target out of range or behind blocking cover.');
       p.targetId = target.id; p.damage = damage(s, a, target); p.cover = cover(s, target, a);
-      p.reason = '1 AP Â· ' + p.damage + ' damage' + (p.cover ? ' Â· target in cover' : '') + ' Â· confirm shot';
+      p.reason = '1 AP · ' + p.damage + ' damage' + (p.cover ? ' · target in cover' : '') + ' · confirm shot';
     } else if (kind === 'hack' && liftControlAt(s, x, y)) {
       var lift = liftStatus(s), targetControl = { x: x, y: y };
       var vehicle = s.lift.kind === 'bridge' ? 'moving span' : 'lift';
@@ -328,7 +328,7 @@
         if (occupant(s, dx, dy) || s.turret && s.turret.x === dx && s.turret.y === dy) return fail('Clear the destination ' + vehicle + ' platform before departure.');
       }
       p.lift = true; p.liftFrom = lift.position; p.liftTo = lift.destination;
-      p.reason = '1 AP Â· send ' + (s.lift.kind === 'bridge' ? 'moving span' : 'lift') + ' to ' + lift.nextLabel + ' Â· carries ' + lift.passengers + ' engineer(s)' + (s.lift.kind !== 'bridge' && !lift.delivered ? ' and medical cargo' : '') + ' Â· engineers off the deck stay behind';
+      p.reason = '1 AP · send ' + (s.lift.kind === 'bridge' ? 'moving span' : 'lift') + ' to ' + lift.nextLabel + ' · carries ' + lift.passengers + ' engineer(s)' + (s.lift.kind !== 'bridge' && !lift.delivered ? ' and medical cargo' : '') + ' · engineers off the deck stay behind';
     } else if (kind === 'hack') {
       var circuit = circuitAt(s, x, y);
       if (!circuit) return fail('Select an amber circuit node.');
@@ -343,28 +343,28 @@
       if (s.circuits && isolatesSquad(s, circuit)) return fail(s.water ? 'Sluice safety interlock: clear living units from the channel that will flood and keep every active engineer connected to this control through the new dry route.' : 'Reroute would strand an engineer. Bring every active engineer back to the controller side of the closing door first.');
       p.circuitId = circuit.id;
       var losesTurret = s.circuits && !circuit.turret && s.circuits.some(function (c) { return c.controlled && c.turret && c.exclusiveGroup && c.exclusiveGroup === circuit.exclusiveGroup; });
-      p.reason = s.circuits ? '1 AP Â· ' + circuit.label + (circuit.exclusiveGroup ? ' Â· reroutes power away from the other route' : '') + (circuit.turret ? ' Â· turret becomes allied' : losesTurret ? ' Â· turret becomes HOSTILE' : '') : '1 AP Â· open door + take turret + restore lights';
-      if (s.water && s.water.routes.some(function (route) { return route.circuitId === circuit.id; })) p.reason += ' Â· drains this channel; alternate channel floods immediately';
+      p.reason = s.circuits ? '1 AP · ' + circuit.label + (circuit.exclusiveGroup ? ' · reroutes power away from the other route' : '') + (circuit.turret ? ' · turret becomes allied' : losesTurret ? ' · turret becomes HOSTILE' : '') : '1 AP · open door + take turret + restore lights';
+      if (s.water && s.water.routes.some(function (route) { return route.circuitId === circuit.id; })) p.reason += ' · drains this channel; alternate channel floods immediately';
       if (s.lighting) {
         var controlsLamps = (s.lighting.zones || []).some(function (zone) { return zone.circuitId === circuit.id; });
         var cutsLamps = !controlsLamps && circuit.exclusiveGroup && (s.lighting.zones || []).some(function (zone) { return s.circuits.some(function (c) { return c.id === zone.circuitId && c.exclusiveGroup === circuit.exclusiveGroup; }); });
-        if (controlsLamps) p.reason += ' Â· work lamps ON: illuminated targets visible at normal range';
-        else if (cutsLamps) p.reason += ' Â· work lamps OFF: dark targets only visible within ' + s.lighting.darkRange + ' tiles';
+        if (controlsLamps) p.reason += ' · work lamps ON: illuminated targets visible at normal range';
+        else if (cutsLamps) p.reason += ' · work lamps OFF: dark targets only visible within ' + s.lighting.darkRange + ' tiles';
       }
     } else if (kind === 'rescue') {
       if (x !== s.rescue.x || y !== s.rescue.y || s.rescued) return fail('No worker to rescue here.');
       if (s.objectives && (s.objectives.rescueRequires || []).some(function (id) { return !(s.circuits || []).some(function (c) { return c.id === id && c.controlled; }); })) return fail('Restore the rescue route circuit before evacuating the worker.');
       if (!canReachAdjacent(s, a, s.rescue)) return fail('Get adjacent to the worker on the same level or a connecting stair.');
-      p.reason = '1 AP Â· ' + (s.objectives && s.objectives.rescueLabel || 'release signal worker') + ' Â· +400 points';
+      p.reason = '1 AP · ' + (s.objectives && s.objectives.rescueLabel || 'release signal worker') + ' · +400 points';
     } else if (kind === 'heal') {
       var ally = s.squad.find(function (u) { return living(u) && u.x === x && u.y === y; });
       if (a.role !== 'MEDIC') return fail('Only Sol can apply field aid.');
       if (a.kits === 0) return fail('No field aid kits left this operation.');
       if (!ally || !canReachAdjacent(s, a, ally) || ally.hp >= ally.maxHp) return fail('Select an injured adjacent engineer on this level or a connecting stair, including Sol.');
-      p.targetId = ally.id; p.reason = '1 AP Â· heal 4 HP Â· uses one field kit (' + (a.kits === undefined ? 2 : a.kits) + ' remaining)';
+      p.targetId = ally.id; p.reason = '1 AP · heal 4 HP · uses one field kit (' + (a.kits === undefined ? 2 : a.kits) + ' remaining)';
     } else if (kind === 'watch') {
       if (a.watch) return fail('Overwatch already set.');
-      p.reason = '1 AP Â· one reaction shot during the enemy turn';
+      p.reason = '1 AP · one reaction shot during the enemy turn';
     } else if (kind === 'extract') {
       if (tile(s, a.x, a.y) !== 'e') return fail(s.extractionLabel ? 'Stand on a tile in the ' + s.extractionLabel + '.' : 'Stand on an eastern extraction tile.');
       if (s.freight) {
@@ -375,7 +375,7 @@
       if (s.defense && (s.defense.hp <= 0 || !defenseStatus(s).done)) return fail('Protect the clinic staff through all ' + s.defense.rounds + ' assaults before extracting.');
       if (s.lift && !s.lift.delivered) return fail(s.lift.kind === 'bridge' ? 'Carry engineers across the river on the moving span before extracting.' : 'Deliver the rescued operator and medical cargo on the lift before extracting.');
       if (!networkReady(s) || !s.rescued) return fail('Complete the circuit objectives and rescue before extracting.');
-      p.reason = '1 AP Â· extract ' + a.name;
+      p.reason = '1 AP · extract ' + a.name;
     } else return fail('Unknown order.');
     p.legal = true; return p;
   }
@@ -385,7 +385,7 @@
   }
   function strike(s, from, target, label) {
     var amount = damage(s, from, target); target.hp = Math.max(0, target.hp - amount);
-    log(s, label + ' Â· ' + amount + ' damage' + (!target.hp ? ' Â· down' : ''), 'attack');
+    log(s, label + ' · ' + amount + ' damage' + (!target.hp ? ' · down' : ''), 'attack');
     if (!target.hp && s.enemies.indexOf(target) !== -1) { s.kills++; s.score += 150; }
   }
   function outcome(s) {
@@ -402,7 +402,7 @@
     if (!p.legal) return false;
     if ((p.lift || proposed.lift) && (!p.lift || !proposed.lift || p.liftFrom !== proposed.liftFrom || p.liftTo !== proposed.liftTo)) return false;
     var a = unit(s, p.actorId); a.ap -= p.cost;
-    if (p.kind === 'move') { a.x = p.x; a.y = p.y; log(s, a.name + ' moved Â· ' + p.cost + ' AP'); }
+    if (p.kind === 'move') { a.x = p.x; a.y = p.y; log(s, a.name + ' moved · ' + p.cost + ' AP'); }
     if (p.kind === 'attack') strike(s, a, s.enemies.find(function (e) { return e.id === p.targetId; }), a.name + ' fired');
     if (p.kind === 'hack' && p.lift) {
       var from = s.lift.stops[p.liftFrom], to = s.lift.stops[p.liftTo];
@@ -411,7 +411,7 @@
       s.lift.position = p.liftTo;
       var bridge = s.lift.kind === 'bridge';
       if (p.liftTo === 1 && (bridge ? passengers.length > 0 : s.rescued)) s.lift.delivered = true;
-      log(s, (bridge ? 'Moving span reached ' : 'Cargo lift reached ') + to.label + ' Â· ' + passengers.length + ' engineer(s) carried' + (s.lift.delivered ? bridge ? ' Â· east crossing secured' : ' Â· medical cargo delivered' : ''), 'hack');
+      log(s, (bridge ? 'Moving span reached ' : 'Cargo lift reached ') + to.label + ' · ' + passengers.length + ' engineer(s) carried' + (s.lift.delivered ? bridge ? ' · east crossing secured' : ' · medical cargo delivered' : ''), 'hack');
     }
     if (p.kind === 'hack' && !p.lift) {
       if (s.circuits) {
@@ -420,11 +420,11 @@
         circuit.controlled = true;
         if (!circuit.scored) { s.score += 500; circuit.scored = true; }
         s.network = networkReady(s);
-        log(s, circuit.label + ' Â· circuit routed' + (circuit.exclusiveGroup ? ' Â· alternate route closed' : ''), 'hack');
-      } else { s.network = true; s.score += 500; log(s, 'CIRCUIT OURS Â· door open Â· turret allied Â· lights restored', 'hack'); }
+        log(s, circuit.label + ' · circuit routed' + (circuit.exclusiveGroup ? ' · alternate route closed' : ''), 'hack');
+      } else { s.network = true; s.score += 500; log(s, 'CIRCUIT OURS · door open · turret allied · lights restored', 'hack'); }
     }
-    if (p.kind === 'rescue') { s.rescued = true; s.score += 400; log(s, (s.objectives && s.objectives.rescueLabel || 'Worker freed') + ' Â· escort signal clear; extract the squad.', 'rescue'); }
-    if (p.kind === 'heal') { var ally = unit(s, p.targetId); ally.hp = Math.min(ally.maxHp, ally.hp + 4); a.kits = (a.kits === undefined ? 2 : a.kits) - 1; log(s, 'Sol treated ' + ally.name + ' Â· +4 HP', 'heal'); }
+    if (p.kind === 'rescue') { s.rescued = true; s.score += 400; log(s, (s.objectives && s.objectives.rescueLabel || 'Worker freed') + ' · escort signal clear; extract the squad.', 'rescue'); }
+    if (p.kind === 'heal') { var ally = unit(s, p.targetId); ally.hp = Math.min(ally.maxHp, ally.hp + 4); a.kits = (a.kits === undefined ? 2 : a.kits) - 1; log(s, 'Sol treated ' + ally.name + ' · +4 HP', 'heal'); }
     if (p.kind === 'watch') { a.watch = true; log(s, a.name + ' covering the approach', 'watch'); }
     if (p.kind === 'extract') { a.extracted = true; log(s, a.name + ' extracted', 'rescue'); }
     outcome(s); return true;
@@ -465,7 +465,7 @@
     outcome(s);
     if (s.phase === 'lost' || s.phase === 'won') return true;
     s.turn++; s.phase = 'player'; s.squad.forEach(function (u) { if (living(u)) u.ap = 2; u.watch = false; });
-    log(s, 'Turn ' + s.turn + ' Â· engineer AP refreshed', 'turn');
+    log(s, 'Turn ' + s.turn + ' · engineer AP refreshed', 'turn');
     deployAmbush(s);
     if (s.freight) log(s, freightMessage(s), 'turn');
     return true;

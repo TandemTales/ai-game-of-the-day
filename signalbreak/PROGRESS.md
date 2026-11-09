@@ -1,6 +1,6 @@
 # Signalbreak progress
 
-## 2026-11-02 Pacific â€” explicit user selection and scaffold intent
+## 2026-11-02 Pacific — explicit user selection and scaffold intent
 
 User chose "Signalbreak" in this chat, authorizing proposal 2 after requesting
 more ambitious games. STOP absent, dev synced; implementation starts November 2.
@@ -58,7 +58,7 @@ visibility systems, campaign consequences and finale from SPEC. Next run FIRST:
 author Locked Manifest with distinct prisoner/door routing, then Cut the Feed's
 coupled substations. Do not decorate this one encounter repeatedly.
 
-## Final scaffold handoff â€” 2026-11-02 Pacific
+## Final scaffold handoff — 2026-11-02 Pacific
 
 - Full repository Jest PASS: 31/31 suites, 519/519 tests, exit 0, 273.854 seconds.
   Report: node_modules/.cache/signalbreak-full.json. Focused 12/12 and JS syntax /
@@ -85,7 +85,7 @@ coupled substations. Do not decorate this one encounter repeatedly.
   from the approved checklist before repeated cosmetic passes. Only Live Wire
   is playable today; the twenty-operation manifest is the plan, not twenty levels.
 
-## 2026-11-02 Pacific â€” Switchyard content run intent
+## 2026-11-02 Pacific — Switchyard content run intent
 
 STOP absent. Saved explicit Signalbreak selection verified; dev synchronized.
 Monday Pacific, age zero: no release. Tonight authors Locked Manifest's routed
@@ -139,7 +139,7 @@ Final native-touch full Locked Manifest and raised-tile sweep is running.
 Temporary shared per-operation leaderboard is not a balanced final campaign
 ranking; campaign scoring remains a release prerequisite. No main/catalog edits.
 
-## Final content-run handoff â€” 2026-11-02 Pacific
+## Final content-run handoff — 2026-11-02 Pacific
 
 - Full repository Jest PASS: 31/31 suites, 529/529 tests, exit 0, 273.941 seconds.
   Report: node_modules/.cache/signalbreak-switchyard-full.json. Final focused
@@ -177,7 +177,7 @@ ranking; campaign scoring remains a release prerequisite. No main/catalog edits.
   November 2; forced approved-game Saturday remains November 14. No new choice
   is needed. Root catalog and main remain untouched by this content run.
 
-## 2026-11-03 Pacific â€” Night Freight run intent
+## 2026-11-03 Pacific — Night Freight run intent
 
 STOP absent; saved explicit selection verified; dev synchronized. Tuesday, age one: no release. Implement operation 04 Night Freight with authored rail ambush, telegraphed moving extraction windows and repeat opportunities rather than a hidden deadline. Content and gameplay workers own only missions.js and logic.js respectively; lead integrates HUD/render/tests and legal route verification. Preserve FIRST PLAYABLE, Tidelock, catalog and main. Full campaign breadth remains required; prior ART/UI FAIL remains.
 
@@ -196,7 +196,7 @@ stale boarding rejection and spawn safety. Full suite and browser sweep running.
 equipment/injury, lifts/visibility, persistent consequences and finale still required.
 No AAA claim: prior art/UI loss persists; FIRST PLAYABLE remains visible.
 
-## Night Freight final browser and critic handoff â€” November 3 Pacific
+## Night Freight final browser and critic handoff — November 3 Pacific
 
 Final real Edge PASS: opening six viewports plus three added maps at all six sizes
 (24 map/viewport combinations), no horizontal overflow/app warnings/errors or
@@ -231,7 +231,7 @@ Final verification: focused26/26 PASS; full repository31/31 suites533/533 tests
 PASS exit0 in282.289seconds (node_modules/.cache/signalbreak-night-freight-full.json).
 Final JS syntax and diff checks PASS. Handoff encoding normalized to original UTF8.
 
-## 2026-11-04 Pacific â€” Rooftop Crossfire run intent
+## 2026-11-04 Pacific — Rooftop Crossfire run intent
 
 STOP absent; saved explicit Signalbreak selection confirmed; dev synchronized. Wednesday age2, no release. Implement operation05 in Vertical Market with meaningful elevation and alternate stair routes; preserve four existing operations and v1 saves. Content and rules workers own missions.js and logic.js respectively; lead owns integration/tests. Fill approved breadth before cosmetic loops. FIRST PLAYABLE remains; Tidelock/main/catalog untouched. Squad progression remains required follow-on work.
 
@@ -281,7 +281,7 @@ exit0 in293.733seconds. Report:node_modules/.cache/signalbreak-rooftop-full.json
 Final runtime/browser hashes match at2026-11-05T07:12:39.885Z; JS syntax and
 diff checks PASS. Intent ae0abb3 and content d1dc5b7 pushed; handoff pushed next.
 
-## 2026-11-05 Thursday 22:59 -08:00 â€” Cargo Lift run intent
+## 2026-11-05 Thursday 22:59 -08:00 — Cargo Lift run intent
 STOP absent; explicit Signalbreak selection confirmed; dev synchronized. Implement operation06 Cargo Lift: powered moving platform carrying the rescued lift operator and squad between low loading dock and upper market, with circuit-linked turret tradeoff and clear safe boarding. Preserve previous five missions/v1 saves. Full campaign remains incomplete; progression/equipment/injury follow after this content unit. No release/main/catalog changes; FIRST PLAYABLE stays.
 
 

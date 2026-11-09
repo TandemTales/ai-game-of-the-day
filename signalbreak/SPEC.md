@@ -1,4 +1,4 @@
-# SIGNALBREAK â€” approved full-game and module contract
+# SIGNALBREAK — approved full-game and module contract
 
 ## Authorization and purpose
 
@@ -30,7 +30,7 @@ not mark these full-game boxes complete from that slice. Add authored situations
 before polishing one encounter repeatedly. Any material scope reduction needs
 explicit user approval; time/usage limits are not approval.
 
-## Implemented content ledger â€” November 2 content run
+## Implemented content ledger — November 2 content run
 
 - [x] 01 Live Wire: opening cover/circuit/turret/rescue/extraction operation.
 - [x] 02 Locked Manifest: new prison/evacuation wings and exclusive transfer relay;
@@ -99,8 +99,8 @@ score and must not masquerade as a complete campaign score.
 ## Single-file ownership
 
 Classic non-module scripts on window.SB, offline/file:// safe, all gameplay art
-procedural, no external runtime fonts/assets. Load missions â†’ logic â†’ render â†’
-audio â†’ game. Lead owns integration and Git; a worker edits exactly one assigned
+procedural, no external runtime fonts/assets. Load missions → logic → render →
+audio → game. Lead owns integration and Git; a worker edits exactly one assigned
 file and reports cross-file needs. Independent critics touch no runtime files.
 
 | File | Single owner / responsibility |
@@ -179,10 +179,10 @@ so a delayed reply cannot submit the next operation's score.
 
 ## Delivery sequence
 
-Opening combat/network/rescue/extraction slice â†’ full tactical rules and four
-role abilities â†’ Switchyard/Market authored operations â†’ campaign/save/progression
-â†’ Floodworks â†’ Archive â†’ Citadel/finale â†’ whole-campaign input/solvability and
-save checks â†’ independent gameplay/visual/UI/audio/VFX critics and revisions.
+Opening combat/network/rescue/extraction slice → full tactical rules and four
+role abilities → Switchyard/Market authored operations → campaign/save/progression
+→ Floodworks → Archive → Citadel/finale → whole-campaign input/solvability and
+save checks → independent gameplay/visual/UI/audio/VFX critics and revisions.
 Full scope first; successful automated routes are not human-fun or AAA evidence.
 
 

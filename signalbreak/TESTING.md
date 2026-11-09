@@ -19,9 +19,9 @@ mission-boundary save/load, replay best scores and corrupt/gapped/denied storage
 The twenty-operation manifest is a contract, not twenty implemented levels.
 
 Browser QA: local HTTP + optional Playwright/installed Edge, six required sizes
-(320Ã—568,390Ã—844,844Ã—390,768Ã—1024,1440Ã—900,3840Ã—2160), no horizontal overflow,
+(320×568,390×844,844×390,768×1024,1440×900,3840×2160), no horizontal overflow,
 clean console, no external gameplay requests, title/live/result PNGs opened by
-the lead, real keyboard/pointer/native touch, previewâ†’confirm, cancel, end turn,
+the lead, real keyboard/pointer/native touch, preview→confirm, cancel, end turn,
 hack-linked door/turret, loss/retry, operation score rank-before-submit with LOCAL
 API mock only, file:// boot and DPR2 backing. Read screenshots, not just paths.
 

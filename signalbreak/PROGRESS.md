@@ -536,3 +536,43 @@ Focused64/64PASS80.083s; all11 deterministic base/live-AI four-survivor routes
 plus consecutive earned-growth campaign. Syntax/whitespace PASS. Full suite and
 stable-source browser verification running; screenshots/critic still pending.
 Campaign11/20, Floodworks3/4. FIRST PLAYABLE stays. No release/catalog/main action.
+
+## November 8 final verification and handoff
+
+Pushed intent eae9df9, content875fcd8 and UTF8 correction/boot diagnostics13a13a6
+to dev. Integration script initially recoded punctuation via Windows cp1252;
+restored UTF8 and confirmed all9changed files clean of mojibake. Final focused
+64/64PASS78.934seconds; full repository31/31suites571/571testsPASS348.378seconds,
+exit0 report node_modules/.cache/signalbreak-blackout-full.json. Syntax/diffPASS.
+
+Stable-source local Edge PASS:11earned-growth actual-UI/live-AI four-survivor
+victories. Blackout native touch38orders/turn6/3120points. Six sizes across all11
+maps=66combinations; no horizontal overflow/app warnings/errors/external gameplay
+requests. Save/reload/unlocks/gear/field locks/treatment fixture, locally mocked
+rank-before-submit/delayed score snapshot, denied storage, file boot, DPR2 and
+loss/retry PASS. Production API never contacted. Initial sandbox Edge launch
+blocked; scoped approved local-only retry. An initial corrected-source attempt
+failed before Game API was ready; harness now explicitly checks boot console
+and waits for Game before interacting. Complete final rerun PASS; no runtime
+change for that harness readiness failure. Runtime SHA256s match manifest at
+2026-11-09T07:08:24.723Z. Lead opened all12new title/play captures via3contacts,
+plus final phone original, earned lamp switch/victory and critic comparison.
+4K contact downsampled; no full-resolution4K legibility/performance claim.
+
+Independent ART/UI FAIL / OURS LOSES vs freshly fetched official XCOM2 Steam
+https://store.steampowered.com/app/268500/XCOM_2/ . Lighting pools and fixed phone
+legend readable; tiny similar actors, repeated slabs, sparse tunnel machinery
+and excessive desktop empty space remain. Comparison ignored:
+node_modules/.cache/signalbreak/blackout-critic/blackout-side-by-side.png.
+Different camera views/native615x346reference; comparison labelled synthetic
+unlock fixture. Critic additionally read earned lamp-off, link capture and
+victory images; no new confirmed rules/readability blocker. Audio/VFX UNJUDGED;
+no human-fun, physical-device, speaker or GPU proof. No AAA/shipping pass.
+
+NEXT FIRST:12PumpSiege simultaneous pumps/reinforcements to complete Floodworks,
+then13PaperTrail and14TwoKeys in GlassArchive. Campaign11/20, Floodworks3/4,
+three districts started; all Archive/Citadel operations absent. District rescue/
+evidence consequences, tracked mastery medals, final campaign score and finale
+still required. Preserve roster/loadouts/injuries/v1saves and base/grown routes.
+FIRST PLAYABLE stays. Tidelock preserved. No .aaa-complete/catalog/main/release
+changes; main/originmain remain69400b9. Sunday age6; forcedNov14 remains.

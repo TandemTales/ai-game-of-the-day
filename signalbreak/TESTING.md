@@ -208,3 +208,10 @@ Archive captures, rescue/darkness interlocks, geometric three-tile engineer
 signals and ten-clear v1 migration. Browser harness extended to11earned wins
 and66map/viewport combinations, native touch for Blackout, local-only rank mocks.
 Final browser/full-suite/critic evidence follows in PROGRESS; not claimed yet.
+
+Final November8:64focused and571full-repository tests PASS; stable-source Edge
+11actual-UI/native-touch/live-AI earned wins (all4survivors),66map/size checks,
+source-manifest2026-11-09T07:08:24.723Z matches current runtime. Lead opened all12
+Blackout title/live via3contacts plus final phone/switch/victory/comparison.
+See PROGRESS final handoff for checks, harness retries and evidence limits.
+Independent ART/UI FAIL; no AAA/device/humanfun/audio/GPU proof.

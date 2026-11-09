@@ -519,3 +519,7 @@ NEXT FIRST:11Blackout light/visibility infiltration, then12PumpSiege. Campaign
 base/grown legal routes, all approved scope, Tidelock and FIRST PLAYABLE.
 District consequences, tracked mastery, final campaign score and finale remain.
 No .aaa-complete/catalog/main/release action. Saturday age5; forcedNov14.
+
+## November 8 Pacific nightly intent - Blackout
+STOP absent; dev synchronized. Sunday age6, no release. Implement operation11 Blackout with shared light/visibility rules, authored infiltration layout, previews and deterministic base/grown routes. Preserve v1 saves, roster, full20-operation scope and FIRST PLAYABLE. Main/catalog/Tidelock untouched. Independent critics and final verification follow the coherent content unit.
+

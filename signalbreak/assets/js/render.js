@@ -56,12 +56,19 @@
       if(s.lanes&&x>=10&&x<=15&&y>=3&&y<=10&&t!=='#')floor=(x+y)%2?'#43525b':'#354953';
       if(s.water&&t!=='#')floor=(x+y)%3?'#344b49':'#405550';
       if(bridge&&t!== '#'&&t!=='w')floor=x<8?((x+y)%3?'#4b5148':'#585d50'):((x+y)%3?'#354f54':'#405b60');
+      if(s.lighting&&t!=='#'&&t!=='w')floor=L.lit(s,x,y)?((x+y)%3?'#75603d':'#806b46'):((x+y)%3?'#1c3247':'#233c51');
       if(channelHere(x,y))floor=t==='w'?'#104b5e':'#606c59';
       if(t==='w')floor=(x+y)%2?'#104b5e':'#124255';
       if(t==='#')floor=shaftHere(x,y)?'#07151e':'#1b2c36';
       if(platformHere(x,y))floor=liftPower?'#786c44':'#514b3d';
       if(t==='e')floor=boarding?(boardingHere(x,y)?'#797044':'#293c49'):'#255c5b';
       p=z?block(x,y,z,floor,'#172c36','#203640',0):diamond(x,y,0,floor,'#162c37');
+      if(s.lighting&&t!=='#'&&t!=='w'&&L.lit(s,x,y)){
+        // The amber perimeter follows the exact Manhattan acquisition zone.
+        // It is a targeting cue, never an obstacle or extra cover.
+        c.strokeStyle='#e8bf7777';c.lineWidth=Math.max(.8,a*.04);
+        [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(dir){if(!L.lit(s,x+dir[0],y+dir[1]))waterEdge(x,y,z,dir[0],dir[1]);});
+      }
       if(t==='w'){
         // Water stays flat and transparent to sight. Rims mark movement bounds,
         // while two small travelling glints distinguish it from solid cover.
@@ -239,6 +246,16 @@
         c.fillStyle=L.turretAllied(s)?'#72e1c2':'#e88b73';c.beginPath();c.arc(p.x,p.y-a*.55,a*.25,0,Math.PI*2);c.fill();
       }
       if(t==='r'&&!s.rescued){c.strokeStyle='#f8cf86';c.lineWidth=a*.06;c.beginPath();c.arc(p.x,p.y-a*.35,a*.3,0,Math.PI*2);c.stroke();c.fillStyle='#f8cf86';c.fillRect(p.x-a*.13,p.y-a*.4,a*.26,a*.6);}
+      if(s.lighting)(s.lighting.zones||[]).forEach(function(zone){
+        if(zone.x!==x||zone.y!==y)return;
+        var on=(s.circuits||[]).some(function(feed){return feed.id===zone.circuitId&&feed.controlled;});
+        // Short work-lamp fixtures sit on their authored source tile and leave
+        // adjacent tactical targets visible, even at the default phone zoom.
+        c.strokeStyle=on?'#d7bd87':'#7c8e9a';c.lineWidth=Math.max(1,a*.07);
+        c.beginPath();c.moveTo(p.x-a*.3,p.y);c.lineTo(p.x-a*.3,p.y-a*.8);c.lineTo(p.x+a*.12,p.y-a*.8);c.stroke();
+        if(on){var glow=c.createRadialGradient(p.x,p.y-a*.75,0,p.x,p.y-a*.75,a*.6);glow.addColorStop(0,'#ffe7ad66');glow.addColorStop(1,'#ffe7ad00');c.fillStyle=glow;c.fillRect(p.x-a*.6,p.y-a*1.35,a*1.2,a*1.2);}
+        c.fillStyle=on?'#ffe5a6':'#718895';c.fillRect(p.x-a*.03,p.y-a*.86,a*.34,a*.12);
+      });
       // A compact medical crate rides until delivered, then remains beside
       // the upper landing while the empty platform can return for stragglers.
       if(lift&&!bridge&&s.rescued&&(lift.delivered?x===15&&y===8:x===liftStop.x&&y===liftStop.y)){
@@ -249,7 +266,7 @@
         var friendly=s.squad.indexOf(actor)!==-1,selected=view.selected===actor.id;
         if(selected){c.strokeStyle='#c1fff0';c.lineWidth=a*.07;c.beginPath();c.ellipse(p.x,p.y,a*.72,b*.72,0,0,Math.PI*2);c.stroke();}
         c.fillStyle='#0007';c.beginPath();c.ellipse(p.x+a*.06,p.y+a*.06,a*.36,b*.3,0,0,Math.PI*2);c.fill();
-        c.strokeStyle='#0b1c25';c.lineWidth=a*.09;c.fillStyle=friendly?actor.color:'#d27f70';
+        c.strokeStyle=s.lighting&&!L.lit(s,x,y)?'#a9c2cf':'#0b1c25';c.lineWidth=a*.09;c.fillStyle=friendly?actor.color:'#d27f70';
         c.beginPath();c.moveTo(p.x-a*.22,p.y-a*.25);c.lineTo(p.x-a*.18,p.y-a*.75);c.lineTo(p.x+a*.16,p.y-a*.8);c.lineTo(p.x+a*.28,p.y-a*.28);c.closePath();c.fill();c.stroke();
         c.fillStyle=friendly?'#d9d8ba':'#7b4b43';c.beginPath();c.arc(p.x,p.y-a*.97,a*.2,0,Math.PI*2);c.fill();
         c.strokeStyle=friendly?'#9fbdba':'#fa9d8b';c.lineWidth=a*.09;c.beginPath();c.moveTo(p.x+a*.17,p.y-a*.56);c.lineTo(p.x+a*.52,p.y-a*.78);c.stroke();
@@ -258,6 +275,16 @@
       }
     }
     if(view.preview){var p=P.point(view.preview.x,view.preview.y,L.height(s,view.preview.x,view.preview.y));c.strokeStyle=view.preview.legal?'#fce0a4':'#e7988b';c.lineWidth=a*.08;c.beginPath();c.ellipse(p.x,p.y,a*.82,b*.82,0,0,Math.PI*2);c.stroke();}
+    if(s.lighting){
+      // Fixed-size chart key stays separate from world labels and actor depth.
+      // All patrols remain visible: darkness changes acquisition, not knowledge.
+      var scale=Math.min(d,2),pad=16*scale;
+      c.font=11*scale+'px system-ui';c.fillStyle='#07131ee8';
+      c.fillRect(pad-6*scale,h-96*scale,Math.min(w-pad*2+12*scale,268*scale),80*scale);
+      c.fillStyle='#b9d5e5';c.fillText('DARK / DETECT WITHIN '+s.lighting.darkRange+' TILES',pad,h-78*scale);
+      c.fillStyle='#ffe0a5';c.fillText('LIT / NORMAL FIRING RANGE',pad,h-59*scale);
+      c.fillStyle='#b9cbd3';c.fillText('PATROLS SHOWN ON TACTICAL CHART',pad,h-40*scale);
+    }
     // HUD belongs to DOM. This map legend remains readable independently of zoom.
     c.fillStyle='#93b3bf';c.font=Math.max(10,w/100)+'px system-ui';c.fillText(s.district.toUpperCase()+' / '+String(s.sequence||1).padStart(2,'0'),16*Math.min(d,2),h-18*Math.min(d,2));
     return P;

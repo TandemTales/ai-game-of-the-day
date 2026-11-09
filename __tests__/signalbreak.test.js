@@ -31,14 +31,14 @@ function pilot(SB, s, report = []) {
   }
   return report;
 }
-test('full manifest promises twenty operations; the first ten distinct authored maps are playable', () => {
+test('full manifest promises twenty operations; the first eleven distinct authored maps are playable', () => {
   const SB=load();expect(SB.Missions.manifest).toHaveLength(5);
   const names=SB.Missions.manifest.flatMap(d=>Array.from(d).slice(1));expect(new Set(names).size).toBe(20);
   expect(SB.Missions.opening.title).toBe('Live Wire');
-  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control']);
-  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(10);
+  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout']);
+  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(11);
   for(const m of SB.Missions.operations){expect(m.rows.every(r=>r.length===m.rows[0].length)).toBe(true);for(const n of m.circuits||[])expect(m.rows[n.y][n.x]).toBe('n');}
-  expect(()=>SB.Logic.newGame('blackout')).toThrow('Unknown operation');
+  expect(()=>SB.Logic.newGame('pump-siege')).toThrow('Unknown operation');
 });
 test('fresh states are isolated and previews never mutate the tactical state', () => {
   const {Logic:L}=load(),a=L.newGame(),b=L.newGame(),before=JSON.stringify(a);
@@ -110,7 +110,7 @@ test('complete legal pilot is deterministic across fresh runs', () => {
 });
 
 const {run:campaignRoute}=require('../tools/signalbreak-route.cjs');
-test.each(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control'])('%s can be won by legal orders against live AI with four survivors', id => {
+test.each(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout'])('%s can be won by legal orders against live AI with four survivors', id => {
   const SB=load(),s=SB.Logic.newGame(id),report=campaignRoute(SB,s);
   expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);
   expect(report.some(p=>p.kind==='hack')).toBe(true);expect(report.some(p=>p.kind==='rescue')).toBe(true);
@@ -328,10 +328,10 @@ test('antenna lanes alternate, warn before movement, damage only exposed living 
  const hp=s.squad[0].hp;L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);expect(L.activeLane(s).label).not.toBe(first.label);
  s.circuits.find(c=>c.id==='tower').controlled=true;expect(L.activeLane(s)).toBe(null);L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);
 });
-test('all ten operations support consecutive persisted squad progression with legal orders',()=>{
+test('all eleven operations support consecutive persisted squad progression with legal orders',()=>{
  const SB=load(),C=SB.Campaign,c=C.fresh(),store=memoryStorage();
  for(const m of SB.Missions.operations){for(const id of ['nia','sol','rook','ivo'])C.treat(c,id);const s=C.prepare(c,SB.Logic.newGame(m.id));campaignRoute(SB,s);expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);expect(C.complete(c,s)).toBe(true);C.save(store,c);expect(C.load(store).campaign).toEqual(c);}
- expect(Object.keys(c.results)).toHaveLength(10);expect(c.roster.nia.xp).toBe(10);
+ expect(Object.keys(c.results)).toHaveLength(11);expect(c.roster.nia.xp).toBe(11);
 });
 
 
@@ -418,4 +418,40 @@ test('nine-operation saves retain progress and unlock Span Control without unloc
  const SB=load(),C=SB.Campaign,results={};for(const m of SB.Missions.operations.slice(0,9))results[m.id]={score:2000,turns:10,survivors:4};
  const c=C.normalize({version:1,results,selected:'span-control'});expect(C.unlocked(c,'span-control')).toBe(true);expect(C.unlocked(c,'blackout')).toBe(false);expect(c.roster.nia.xp).toBe(9);
  const store=memoryStorage();C.save(store,c);expect(C.load(store).campaign).toEqual(c);
+});
+
+
+test('blackout lamps couple target detection, service access and turret allegiance without mutating previews',()=>{
+ const L=load().Logic,s=L.newGame('blackout'),u=s.squad[0];
+ expect(L.lit(s,13,9)).toBe(true);expect(L.lit(s,2,12)).toBe(false);
+ expect(L.doorOpen(s,9,13)).toBe(false);expect(L.turretAllied(s)).toBe(false);
+ Object.assign(u,{x:5,y:13});const before=JSON.stringify(s),p=L.preview(s,'nia','hack',6,12);
+ expect(p.legal).toBe(true);expect(p.reason).toMatch(/lamps OFF/);expect(JSON.stringify(s)).toBe(before);expect(L.commit(s,p)).toBe(true);
+ expect(L.lit(s,13,9)).toBe(false);expect(L.doorOpen(s,9,13)).toBe(true);expect(L.turretAllied(s)).toBe(true);
+ expect(L.detected(s,{x:10,y:9},{x:12,y:9})).toBe(true);expect(L.detected(s,{x:10,y:9},{x:13,y:9})).toBe(false);
+ const move=L.preview(s,'nia','move',6,13);expect(move.illuminated).toBe(false);expect(move.reason).toMatch(/DARK/);
+});
+test('blackout dark patrols idle without omniscient pursuit; lamps permit acquisition through clear sight',()=>{
+ const L=load().Logic,s=L.newGame('blackout');s.turret=null;s.circuits[0].controlled=false;
+ s.enemies=[{id:'watcher',name:'Watcher',x:13,y:9,hp:6,maxHp:6,damage:2,range:5,stride:1}];
+ s.squad.forEach((u,i)=>Object.assign(u,{x:8,y:8+i}));
+ const e=s.enemies[0],hp=s.squad.map(u=>u.hp);L.endTurn(s);expect([e.x,e.y]).toEqual([13,9]);expect(s.squad.map(u=>u.hp)).toEqual(hp);
+ s.circuits[0].controlled=true;Object.assign(s.squad[0],{x:10,y:9});expect(L.visible(s,e,s.squad[0])).toBe(true);L.endTurn(s);expect(s.squad[0].hp).toBeLessThan(hp[0]);
+});
+test('blackout queued shots revalidate darkness and preserve state on rejection; geometric signals keep engineer range',()=>{
+ const L=load().Logic,s=L.newGame('blackout'),u=s.squad[0],e=s.enemies[0];Object.assign(u,{x:10,y:9});Object.assign(e,{x:13,y:9});
+ const shot=L.preview(s,'nia','attack',13,9);expect(shot.legal).toBe(true);s.circuits[0].controlled=false;
+ const before=JSON.stringify(s);expect(L.commit(s,shot)).toBe(false);expect(JSON.stringify(s)).toBe(before);expect(L.preview(s,'nia','attack',13,9).reason).toMatch(/darkness/);
+ Object.assign(u,{x:3,y:12,hackRange:3});expect(L.preview(s,'nia','hack',6,12).legal).toBe(true);
+});
+test('blackout archive capture requires rescue and darkness; relighting invalidates queued capture',()=>{
+ const L=load().Logic,s=L.newGame('blackout'),u=s.squad[0];Object.assign(u,{x:19,y:4});s.circuits[0].controlled=false;s.circuits[1].controlled=true;
+ expect(L.preview(s,'nia','hack',20,4).legal).toBe(false);s.rescued=true;const p=L.preview(s,'nia','hack',20,4);expect(p.legal).toBe(true);
+ s.circuits[0].controlled=true;const before=JSON.stringify(s);expect(L.commit(s,p)).toBe(false);expect(JSON.stringify(s)).toBe(before);
+ expect(L.preview(s,'nia','hack',20,4).reason).toMatch(/Blackout interlock/);
+ s.circuits[0].controlled=false;expect(L.commit(s,p)).toBe(true);
+});
+test('ten-clear v1 saves retain roster and unlock Blackout without inventing a clear',()=>{
+ const SB=load(),C=SB.Campaign,results={};for(const m of SB.Missions.operations.slice(0,10))results[m.id]={score:2000,turns:10,survivors:4};
+ const c=C.normalize({version:1,results,selected:'blackout'});expect(C.unlocked(c,'blackout')).toBe(true);expect(c.roster.nia.xp).toBe(10);expect(c.results.blackout).toBeUndefined();expect(C.normalize(c)).toEqual(c);
 });

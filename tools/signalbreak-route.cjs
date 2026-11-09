@@ -31,6 +31,10 @@ function nextOrder(SB, s) {
   }
   let goal;
   if (bridge) goal=bridgeGoal;
+  else if(s.lighting){
+    const dark=s.circuits.find(c=>c.id==='blackout'),link=s.circuits.find(c=>c.id==='archive-link');
+    goal=!dark.controlled?dark:!s.rescued?s.rescue:!link.controlled?link:null;
+  }
   else if (s.id === 'locked-manifest') {
     const [prison, evac] = s.circuits;
     if (!s.rescued) goal = prison.controlled ? s.rescue : prison;

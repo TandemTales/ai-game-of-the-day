@@ -1,4 +1,4 @@
-# SIGNALBREAK — approved full-game and module contract
+# SIGNALBREAK â€” approved full-game and module contract
 
 ## Authorization and purpose
 
@@ -30,7 +30,7 @@ not mark these full-game boxes complete from that slice. Add authored situations
 before polishing one encounter repeatedly. Any material scope reduction needs
 explicit user approval; time/usage limits are not approval.
 
-## Implemented content ledger — November 2 content run
+## Implemented content ledger â€” November 2 content run
 
 - [x] 01 Live Wire: opening cover/circuit/turret/rescue/extraction operation.
 - [x] 02 Locked Manifest: new prison/evacuation wings and exclusive transfer relay;
@@ -44,7 +44,7 @@ explicit user approval; time/usage limits are not approval.
 - [x] 08 Antenna Rain: three stair approaches, alternating marked firing lanes, tower shutdown.
 - [x] 09 Sluice Logic: exclusive drained crossings, safe rerouting, keeper rescue and outlet capture.
 - [x] 10 Span Control: moving bridge capture, east rescue/bridgehead, west return lock and final ferry.
-- [ ] 11 Blackout: light/visibility infiltration.
+- [x] 11 Blackout: coupled lamps/service access/turret, dark acquisition and technician/link infiltration.
 - [ ] 12 Pump Siege: simultaneous pumps and reinforcements.
 - [ ] 13 Paper Trail: evidence recovery before purge.
 - [ ] 14 Two Keys: synchronized split-squad access.
@@ -56,7 +56,7 @@ explicit user approval; time/usage limits are not approval.
 - [ ] 20 Signalbreak: combined core shutdown and consequence-based epilogue.
 
 Mission-boundary local saves, sequential unlocks and replay best scores now exist
-for the ten implemented missions. Squad progression, equipment and injury
+for the eleven implemented missions. Squad progression, equipment and injury
 recovery are implemented; persistent district rescue/evidence consequences remain. Authored
 mastery targets appear in the HUD; no campaign medal/reward system exists yet.
 Story debriefs appear on victory. The clinic is a protected prerequisite, not yet
@@ -99,8 +99,8 @@ score and must not masquerade as a complete campaign score.
 ## Single-file ownership
 
 Classic non-module scripts on window.SB, offline/file:// safe, all gameplay art
-procedural, no external runtime fonts/assets. Load missions → logic → render →
-audio → game. Lead owns integration and Git; a worker edits exactly one assigned
+procedural, no external runtime fonts/assets. Load missions â†’ logic â†’ render â†’
+audio â†’ game. Lead owns integration and Git; a worker edits exactly one assigned
 file and reports cross-file needs. Independent critics touch no runtime files.
 
 | File | Single owner / responsibility |
@@ -124,7 +124,7 @@ Grid coordinates integer (x,y), origin top left. Tiles: . floor, # tall blocker,
 c low cover, d circuit door, e exit, n network node, r rescue. Heights are separate.
 No procedural randomness required; identical state/action gives identical outcome.
 
-SB.Missions.operations contains the ten authored missions, get(id) looks up an
+SB.Missions.operations contains the eleven authored missions, get(id) looks up an
 implemented mission, and manifest holds the full twenty-operation contract.
 SB.Logic.newGame(id?) returns a fresh chosen operation (default Live Wire) and
 rejects unknown IDs. SB.Logic.preview(state,actorId,
@@ -179,10 +179,10 @@ so a delayed reply cannot submit the next operation's score.
 
 ## Delivery sequence
 
-Opening combat/network/rescue/extraction slice → full tactical rules and four
-role abilities → Switchyard/Market authored operations → campaign/save/progression
-→ Floodworks → Archive → Citadel/finale → whole-campaign input/solvability and
-save checks → independent gameplay/visual/UI/audio/VFX critics and revisions.
+Opening combat/network/rescue/extraction slice â†’ full tactical rules and four
+role abilities â†’ Switchyard/Market authored operations â†’ campaign/save/progression
+â†’ Floodworks â†’ Archive â†’ Citadel/finale â†’ whole-campaign input/solvability and
+save checks â†’ independent gameplay/visual/UI/audio/VFX critics and revisions.
 Full scope first; successful automated routes are not human-fun or AAA evidence.
 
 
@@ -281,3 +281,21 @@ objective combination. No automatic bridge timer or flooding damage is implied.
 
 NEXT:11Blackout visibility/light infiltration,12PumpSiege, then Archive/Citadel.
 District consequences, tracked mastery, final campaign score and ending remain.
+
+
+## November 8 Blackout contract
+
+Eleven of twenty operations exist. Operation11 is a24x18 pumping tunnel with
+an always-open covered central avenue and switch-controlled southern bypass.
+Work lamps expose targets within two authored Manhattan pools; lit targets can
+be acquired anywhere along geometric sight, while shots still require weapon
+range. In darkness both sides/turrets/overwatch only target within two tiles.
+Unspotted patrols idle; no pursuit memory, sound, alarm or hidden enemy fog is
+claimed. All silhouettes stay on the tactical plan. Interactions use geometric
+LOS independently, preserving engineer three-tile signal upgrades.
+Blackout turns lamps off, opens the bypass and allies the turret. Optional
+relighting reverses those effects; safely connected squad required for reroute.
+Rescue technician then capture Archive link with blackout active/lamps off,
+extract north. Readonly light previews and stale confirmations share the rules.
+Pump Siege, Archive, Citadel, consequences, tracked mastery, final campaign
+score and ending remain required. FIRST PLAYABLE remains visible.

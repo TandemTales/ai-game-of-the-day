@@ -19,9 +19,9 @@ mission-boundary save/load, replay best scores and corrupt/gapped/denied storage
 The twenty-operation manifest is a contract, not twenty implemented levels.
 
 Browser QA: local HTTP + optional Playwright/installed Edge, six required sizes
-(320×568,390×844,844×390,768×1024,1440×900,3840×2160), no horizontal overflow,
+(320Ã—568,390Ã—844,844Ã—390,768Ã—1024,1440Ã—900,3840Ã—2160), no horizontal overflow,
 clean console, no external gameplay requests, title/live/result PNGs opened by
-the lead, real keyboard/pointer/native touch, preview→confirm, cancel, end turn,
+the lead, real keyboard/pointer/native touch, previewâ†’confirm, cancel, end turn,
 hack-linked door/turret, loss/retry, operation score rank-before-submit with LOCAL
 API mock only, file:// boot and DPR2 backing. Read screenshots, not just paths.
 
@@ -196,3 +196,15 @@ NEXT FIRST:11Blackout light/visibility infiltration, then12PumpSiege. Campaign
 base/grown legal routes, all approved scope, Tidelock and FIRST PLAYABLE.
 District consequences, tracked mastery, final campaign score and finale remain.
 No .aaa-complete/catalog/main/release action. Saturday age5; forcedNov14.
+
+
+## November 8 Blackout coverage
+
+Focused64/64PASS (80.083seconds). Eleven base-stat deterministic live-AI routes
+and consecutive earned-growth campaign each extract four. New cases verify
+lamp/door/turret coupling, readonly light previews, two-tile dark detection,
+idle unspotted patrols vs illuminated pursuit/fire, immutable stale shots and
+Archive captures, rescue/darkness interlocks, geometric three-tile engineer
+signals and ten-clear v1 migration. Browser harness extended to11earned wins
+and66map/viewport combinations, native touch for Blackout, local-only rank mocks.
+Final browser/full-suite/critic evidence follows in PROGRESS; not claimed yet.

@@ -505,7 +505,56 @@
     mastery: 'Capture both bridge locks and extract all four engineers in twenty-four turns or fewer; keep every engineer standing during the return crossing.',
     debrief: 'The west lock releases and the bridge crew takes the controls. Repair teams cross behind the squad while Mara receives the keeper\'s access chart. The occupation has hidden its next relay in the dark pumping tunnels: Blackout will test light and visibility. Ten of twenty operations are playable; the Archive, Citadel and campaign ending remain in development.'
   };
-  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice, span];
+  var blackout = {
+    id: 'blackout', title: 'Blackout', district: 'Floodworks', sequence: 11,
+    briefing: 'The pumping tunnels carry an unencrypted maintenance link to the Archive. Their work lamps expose everyone standing in their pools of light. In darkness, patrols acquire targets only within two tiles; the same rule limits squad and turret fire. All known positions remain marked on this tactical chart: darkness conceals a target from fire, not from your planning map. HACK the blackout switch to extinguish both lamp banks, open the southern service door and ally the turret. The covered central avenue stays open as an alternative approach. Rescue the tunnel technician, then capture the northeastern Archive link while the lamps are off and extract through the north maintenance stairs. You may restore the work lamps for longer shots, but doing so closes the service door and returns the turret to the occupation. Cut them again before capturing the link.',
+    radio: 'MARA / Two adjacent controls: work lamps (5,12), blackout (6,12). Lit targets can be acquired across clear sight; firing still needs weapon range; dark targets require two-tile proximity and clear sight. The south door is at (9,13), technician (15,14), Archive link (20,4). Attacks do not create a separate noise or alarm mechanic. Keep the main avenue in mind if you restore power.',
+    objectiveSummary: 'Cut the lamps, infiltrate via the south service door or covered main avenue, rescue the technician, secure the Archive link in darkness, then extract north.',
+    extractionLabel: 'north maintenance stairs',
+    objectives: { requiredCircuits: ['blackout','archive-link'], rescueLabel: 'Rescue the tunnel technician' },
+    rows: [
+      '########################',
+      '#........#.............#',
+      '#........#..........eee#',
+      '#........#........c.eee#',
+      '#........#..........n..#',
+      '#........#..........c..#',
+      '#........#..###.##.....#',
+      '#........#.............#',
+      '#...c..........c.......#',
+      '#......c....c......c...#',
+      '#....................c.#',
+      '#........#..####.##....#',
+      '#....nn..#.............#',
+      '#........d....c........#',
+      '#.....c..#.....r.c.....#',
+      '#........#.............#',
+      '#........#.............#',
+      '########################'
+    ],
+    heights: [],
+    squad: squad([[2,12],[2,13],[2,14],[3,14]]),
+    enemies: [
+      { id: 'blackout-avenue-patrol', name: 'Lamp avenue patrol', x: 13, y: 8, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 3 },
+      { id: 'blackout-service-guard', name: 'Service tunnel guard', x: 16, y: 12, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 2 },
+      { id: 'blackout-link-sentry', name: 'Archive link sentry', x: 18, y: 4, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 2 },
+      { id: 'blackout-lamp-warden', name: 'Lamp bank warden', x: 21, y: 7, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 3 }
+    ],
+    turret: { x: 18, y: 9, range: 6, damage: 2 },
+    node: { x: 6, y: 12 }, rescue: { x: 15, y: 14 },
+    circuits: [
+      { id: 'work-lamps', label: 'Work lamps ON / hostile turret', x: 5, y: 12, controlled: true, exclusiveGroup: 'illumination', doors: [] },
+      { id: 'blackout', label: 'Blackout / service door / allied turret', x: 6, y: 12, controlled: false, exclusiveGroup: 'illumination', doors: [{ x: 9, y: 13 }], turret: true },
+      { id: 'archive-link', label: 'Dark Archive maintenance link', x: 20, y: 4, controlled: false, doors: [], requires: ['blackout'], requiresRescue: true, requiresDark: true }
+    ],
+    lighting: { darkRange: 2, zones: [
+      { x: 13, y: 9, radius: 5, circuitId: 'work-lamps' },
+      { x: 19, y: 5, radius: 4, circuitId: 'work-lamps' }
+    ] },
+    mastery: 'Rescue the technician, secure the dark link and extract all four engineers in eighteen turns or fewer; use the service bypass to avoid the lamp avenue crossfire.',
+    debrief: 'The technician strips the occupation filters from the maintenance link. Mara hears the Archive librarians calling for help, but the Floodworks cannot hold without its twin pumps. Pump Siege is next. Eleven of twenty operations are playable; the Glass Archive, Broadcast Citadel and campaign ending remain in development.'
+  };
+  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice, span, blackout];
   SB.Missions.get = function (id) {
     return SB.Missions.operations.find(function (mission) { return mission.id === id; }) || null;
   };

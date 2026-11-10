@@ -582,3 +582,48 @@ STOP absent; dev synchronized. Tuesday age8, no release. Implement operation12: 
 
 ## November 10 Pump Siege content checkpoint
 Operation12 completes Floodworks content:24x18 twin galleries/four channel bridges, independent pump controls/west turret,3consecutive staffed pressure cycles after enemy damage, interrupted reset/permanent completion/once-only500score, keeper rescue/southeast extraction and turn4two-bank reinforcement. Status/footprint/HUD and extraction use shared rules. Base live-AI route turn13/four survivors; grown fixture turn12/four survivors. Focused70/70PASS93.032s, including twelve-operation consecutive earned progression and deterministic base routes. First attempt caught stale11completion assertion; corrected to12, entire focused rerunPASS. Syntax/diffPASS. Full-suite and final browser running; no claim yet. Independent ART/UI FAIL versus official XCOM2, with sparse machinery/repeated materials/tiny actors/empty viewport debt. Campaign12/20, Floodworks4/4; next13PaperTrail and14TwoKeys. FIRSTPLAYABLE/fullscope/v1saves preserved; no release/catalog/main changes.
+
+
+## November 10 final verification and handoff
+
+Pushed intent 2c6b0d6 and Pump Siege content 2e770a2 to dev. Final focused
+70/70 tests PASS (93.032 seconds); full repository 31/31 suites and 577/577
+tests PASS (375.262 seconds), report node_modules/.cache/signalbreak-pump-full.json.
+An initial focused run reached all twelve legal wins but caught a stale eleven-
+completion assertion; corrected expected count/XP to twelve and reran all focused
+cases successfully. Final full suite includes the correction. Syntax and diff
+checks PASS. Browser summary text now derives victory count from campaignRuns;
+this reporting-only edit followed verification and passed node syntax checking.
+
+Stable-source local Edge PASS: twelve earned-growth actual-UI/live-AI victories,
+all four survivors. Pump Siege uses native touch: 68 orders, turn 12, 3890 points.
+Opening six sizes plus 66 added-map/size checks = 72 combinations. Save/reload,
+earned unlocks, gear/field locks/treatment fixture, locally mocked rank-before-
+submit/delayed score snapshot, denied storage, file boot, DPR2 and loss/retry PASS.
+No horizontal overflow, app warnings/errors or external gameplay requests.
+Production API never contacted. Sandbox Edge launch failed; scoped approved
+outside-sandbox local retry succeeded. Runtime SHA256s match source-manifest.json
+at 2026-11-10T16:18:53.881Z. Lead read all twelve Pump Siege title/play frames via
+three contacts, phone play original, earned victory and critic side-by-side.
+4K contacts are downscaled; no full-resolution 4K legibility/performance claim.
+Small phone briefing scrolls; browser verified the deployment CTA is reachable.
+
+Independent ART/UI FAIL / OURS LOSES against freshly fetched official XCOM 2:
+https://store.steampowered.com/app/268500/XCOM_2/ . Readable pressure/staffing
+legend; tiny similar actors, repeated slabs/water, sparse pump machinery and
+excessive desktop whitespace remain. Critic read fixture desktop/phone captures
+and earned circuit/victory images; no new confirmed substantive readability
+blocker. Earned captures show 0/3 readiness transition and victory, not visible
+intermediate 1/3 or 2/3 labels. Ignored comparison:
+node_modules/.cache/signalbreak/pump-critic/pump-side-by-side.png . Different views,
+synthetic unlock fixture and native 615x346 reference explicitly labelled.
+Audio/VFX unjudged; no human-fun, physical-device, speaker or GPU evidence.
+No AAA/shipping pass, completion marker, catalog edit or release action.
+
+NEXT FIRST: 13 Paper Trail evidence/purge and 14 Two Keys synchronized access.
+Campaign 12/20; Floodworks 4/4; Glass Archive and Broadcast Citadel still absent.
+Eight operations, district rescue/evidence consequences, tracked mastery medals,
+final campaign leaderboard scoring and finale/epilogue remain required. Preserve
+roster/loadouts/injuries, v1 saves, base/grown routes, full scope and FIRST PLAYABLE.
+Tidelock remains on hold. Main/origin/main unchanged at 69400b9. Tuesday age 8;
+forced second-Saturday release remains November 14. Scope has not been reduced.

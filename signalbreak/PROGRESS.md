@@ -576,3 +576,6 @@ evidence consequences, tracked mastery medals, final campaign score and finale
 still required. Preserve roster/loadouts/injuries/v1saves and base/grown routes.
 FIRST PLAYABLE stays. Tidelock preserved. No .aaa-complete/catalog/main/release
 changes; main/originmain remain69400b9. Sunday age6; forcedNov14 remains.
+
+## November 10 Pacific nightly intent - Pump Siege
+STOP absent; dev synchronized. Tuesday age8, no release. Implement operation12: two nonexclusive pump circuits, both staffed by living engineers within Manhattan1 for three consecutive end-turn pressure cycles, reset on interrupted coverage; rescue and extraction, turn4 reinforcements. Preserve full20-operation contract, roster/v1 saves and FIRST PLAYABLE. Lead integrates tests/routes/HUD; single-file workers own mission and logic. Independent critique follows. Main/catalog/Tidelock untouched.

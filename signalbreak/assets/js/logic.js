@@ -161,6 +161,32 @@
       protected: !done && (s.circuits || []).some(function (c) { return c.id === circuitId && c.controlled; }),
       hp: d.hp, elapsed: d.elapsed, rounds: d.rounds };
   }
+  function pumpStatus(s) {
+    if (!s.pumps) return null;
+    var pumps = s.pumps.circuitIds.map(function (id) {
+      var circuit = (s.circuits || []).find(function (c) { return c.id === id; });
+      return { id: id, label: circuit ? circuit.label : id,
+        x: circuit ? circuit.x : null, y: circuit ? circuit.y : null,
+        controlled: !!circuit && !!circuit.controlled,
+        staffed: !!circuit && s.squad.some(function (u) { return living(u) && distance(u, circuit) <= 1; }) };
+    });
+    return { done: s.pumps.elapsed >= s.pumps.rounds, elapsed: s.pumps.elapsed,
+      rounds: s.pumps.rounds, ready: pumps.length > 0 && pumps.every(function (p) { return p.controlled && p.staffed; }), pumps: pumps };
+  }
+  function resolvePumps(s) {
+    var status = pumpStatus(s);
+    if (!status || status.done || s.phase === 'lost' || s.phase === 'won') return;
+    var previous = s.pumps.elapsed;
+    s.pumps.elapsed = status.ready ? previous + 1 : 0;
+    if (s.pumps.elapsed >= s.pumps.rounds) {
+      s.score += 500;
+      log(s, 'Twin pump pressure stabilized / ' + s.pumps.rounds + ' consecutive cycles / +500 points. Engineers may leave the controls.', 'hack');
+    } else if (status.ready) {
+      log(s, 'Twin pump pressure / ' + s.pumps.elapsed + '/' + s.pumps.rounds + ' consecutive cycles. Keep both powered controls staffed through the next enemy turn.', 'turn');
+    } else if (previous > 0) {
+      log(s, 'Twin pump pressure reset to 0/' + s.pumps.rounds + ': both powered controls need a living engineer on or next to them after enemy fire.', 'turn');
+    }
+  }
   function activeLane(s) {
     if (!s.lanes || !s.lanes.patterns.length || (s.circuits || []).some(function (c) { return c.id === s.lanes.disabledBy && c.controlled; })) return null;
     var patterns = s.lanes.patterns, index = (s.turn - 1) % patterns.length;
@@ -205,6 +231,13 @@
       var defense = defenseStatus(s);
       status.push({ id: 'defense', label: s.defense.label + ': ' + defense.hp + '/' + s.defense.maxHp + ' HP / ' + defense.elapsed + '/' + defense.rounds + ' assaults survived' +
         (defense.done ? ' / defense complete' : ' / NEXT END TURN: ' + defense.lane + ' / ' + (defense.protected ? 'COVERED' : 'UNPROTECTED (-2 HP)')), done: defense.done && defense.hp > 0 });
+    }
+    if (s.pumps) {
+      var pumps = pumpStatus(s);
+      status.push({ id: 'pumps', label: 'Twin pump pressure: ' + pumps.elapsed + '/' + pumps.rounds + ' consecutive cycles' +
+        (pumps.done ? ' / STABLE: engineers may leave controls' : ' / NEXT END TURN after enemy fire: ' + (pumps.ready ? 'READY' : 'NOT READY') +
+          '. Keep a living engineer on or within 1 tile of EACH powered pump; interrupted coverage resets progress to zero. ' +
+          pumps.pumps.map(function (p) { return p.label + ': ' + (p.controlled ? 'powered' : 'unpowered') + ', ' + (p.staffed ? 'staffed' : 'UNSTAFFED'); }).join(' / ')), done: pumps.done });
     }
     if (s.lanes) {
       var lane = activeLane(s);
@@ -373,6 +406,7 @@
         if (!boarding.tiles.some(function (t) { return t.x === a.x && t.y === a.y; })) return fail('Board at ' + boarding.label + ' now. ' + boarding.nextLabel + ' is the next stop.');
       }
       if (s.defense && (s.defense.hp <= 0 || !defenseStatus(s).done)) return fail('Protect the clinic staff through all ' + s.defense.rounds + ' assaults before extracting.');
+      if (s.pumps && !pumpStatus(s).done) return fail('Stabilize twin pump pressure for ' + s.pumps.rounds + ' consecutive end turns before extracting. Both powered controls need a living engineer on or within 1 tile after enemy fire; interrupted coverage resets progress.');
       if (s.lift && !s.lift.delivered) return fail(s.lift.kind === 'bridge' ? 'Carry engineers across the river on the moving span before extracting.' : 'Deliver the rescued operator and medical cargo on the lift before extracting.');
       if (!networkReady(s) || !s.rescued) return fail('Complete the circuit objectives and rescue before extracting.');
       p.reason = '1 AP · extract ' + a.name;
@@ -462,6 +496,7 @@
     });
     resolveDefense(s);
     if (s.phase !== 'lost') resolveLane(s);
+    if (s.phase !== 'lost') resolvePumps(s);
     outcome(s);
     if (s.phase === 'lost' || s.phase === 'won') return true;
     s.turn++; s.phase = 'player'; s.squad.forEach(function (u) { if (living(u)) u.ap = 2; u.watch = false; });
@@ -472,6 +507,6 @@
   }
   SB.Logic = { newGame: newGame, tile: tile, height: height, unit: unit, living: living, occupant: occupant,
     blocked: blocked, canStep: canStep, path: path, visible: visible, lit: lit, detected: detected, cover: cover, damage: damage, preview: preview, commit: commit, endTurn: endTurn,
-    waterStatus: waterStatus, waterRouteAt: waterRouteAt, liftAt: liftAt, liftStatus: liftStatus, liftControlAt: liftControlAt, defenseStatus: defenseStatus, activeLane: activeLane,
+    waterStatus: waterStatus, waterRouteAt: waterRouteAt, liftAt: liftAt, liftStatus: liftStatus, liftControlAt: liftControlAt, defenseStatus: defenseStatus, pumpStatus: pumpStatus, activeLane: activeLane,
     circuitAt: circuitAt, doorOpen: doorOpen, objectiveStatus: objectiveStatus, turretAllied: turretAllied, extractionStatus: extractionStatus };
 })(window);

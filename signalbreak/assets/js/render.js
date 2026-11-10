@@ -121,6 +121,22 @@
       if(t!== '#' && t!=='w' && y===6){c.strokeStyle=x<8?'#c2975655':'#6caab955';c.lineWidth=a*.04;c.beginPath();c.moveTo(p.x-a*.7,p.y+b*.3);c.lineTo(p.x+a*.7,p.y-b*.3);c.stroke();}
       if(t!== '#' && t!=='w' && (x*17+y*9)%7===0){c.strokeStyle='#7b969b30';c.lineWidth=a*.025;c.beginPath();c.moveTo(p.x-a*.6,p.y);c.lineTo(p.x-a*.1,p.y+b*.3);c.lineTo(p.x+a*.1,p.y+b*.17);c.stroke();}
     }
+    if(s.pumps){
+      var pumps=L.pumpStatus(s);
+      pumps.pumps.forEach(function(pump){
+        var q=P.point(pump.x,pump.y,L.height(s,pump.x,pump.y));
+        c.strokeStyle=pumps.done?'#9be1d3':pump.controlled&&pump.staffed?'#ffe1a1':'#ed9d78';
+        c.lineWidth=Math.max(1,a*.07);
+        // The cross marks the exact cardinal staffing footprint, not cover.
+        [[0,0],[1,0],[-1,0],[0,1],[0,-1]].forEach(function(offset){
+          diamond(pump.x+offset[0],pump.y+offset[1],0,'#b9a87915',c.strokeStyle);
+        });
+        c.beginPath();c.ellipse(q.x,q.y-a*.45,a*.45,b*.65,0,0,Math.PI*2);c.stroke();
+        c.beginPath();c.moveTo(q.x-a*.45,q.y-a*.45);c.lineTo(q.x-a*.45,q.y);c.moveTo(q.x+a*.45,q.y-a*.45);c.lineTo(q.x+a*.45,q.y);c.stroke();
+      });
+      c.fillStyle='#ffe0ab';c.font=Math.max(11*Math.min(d,2),w/110)+'px system-ui';
+      c.fillText('TWIN PUMPS / '+pumps.elapsed+'/'+pumps.rounds+' / '+(pumps.done?'PRESSURE LOCKED':pumps.ready?'BOTH STAFFED':'STAFF BOTH PUMPS'),16*Math.min(d,2),h-62*Math.min(d,2));
+    }
     var lane=L.activeLane(s), defense=L.defenseStatus(s);
     if(lane)lane.tiles.forEach(function(t){var q=diamond(t.x,t.y,L.height(s,t.x,t.y),'#b34a3455','#ffab83');c.strokeStyle='#ffbe91';c.lineWidth=Math.max(1,a*.05);c.beginPath();c.moveTo(q.x-a*.3,q.y-b*.3);c.lineTo(q.x+a*.3,q.y+b*.3);c.moveTo(q.x-a*.3,q.y+b*.3);c.lineTo(q.x+a*.3,q.y-b*.3);c.stroke();});
     if(defense){

@@ -61,14 +61,24 @@ function nextOrder(SB, s) {
     }
     return map;
   }
-  for (const u of live) {
+  const commonGoal=goal;
+  // Pair the medic and heavy on the exposed east bank; Rook supports Nia west.
+  const acting=s.pumps?live.slice().sort((a,b)=>['nia','sol','ivo','rook'].indexOf(a.id)-['nia','sol','ivo','rook'].indexOf(b.id)):live;
+  for (const u of acting) {
     if (!u.ap) continue;
+    const pumping=s.pumps&&s.pumps.elapsed<s.pumps.rounds;
+    const pump=pumping?s.circuits.find(c=>c.id===s.pumps.circuitIds[['nia','rook'].includes(u.id)?0:1]):null;
+    const goal=pump||commonGoal;
     const extract=L.preview(s,u.id,'extract',u.x,u.y);if(extract.legal)return extract;
     if (u.role==='MEDIC') for (const ally of live.filter(a=>a.hp<=a.maxHp-4)) {
       const heal=L.preview(s,u.id,'heal',ally.x,ally.y);if(heal.legal)return heal;
     }
     const attacks=s.enemies.filter(L.living).map(e=>L.preview(s,u.id,'attack',e.x,e.y)).filter(p=>p.legal).sort((a,b)=>b.damage-a.damage);
     if (attacks.length) return attacks[0];
+    if(pump&&pump.controlled&&Math.abs(u.x-pump.x)+Math.abs(u.y-pump.y)<=1){
+      const watch=L.preview(s,u.id,'watch',u.x,u.y);if(watch.legal)return watch;
+      continue;
+    }
     if(defense&&!defense.done&&u.id==='nia'){const watch=L.preview(s,u.id,'watch',u.x,u.y);if(watch.legal)return watch;continue;}
     if(goal) {
       const kind=goal===s.rescue?'rescue':goal.regroup?null:'hack';

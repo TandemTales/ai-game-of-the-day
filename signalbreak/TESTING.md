@@ -215,3 +215,15 @@ source-manifest2026-11-09T07:08:24.723Z matches current runtime. Lead opened all
 Blackout title/live via3contacts plus final phone/switch/victory/comparison.
 See PROGRESS final handoff for checks, harness retries and evidence limits.
 Independent ART/UI FAIL; no AAA/device/humanfun/audio/GPU proof.
+
+
+## November 10 Pump Siege coverage
+
+Added operation12 base-stat/live-AI deterministic route and extended consecutive
+earned-growth campaign. New cases cover powered/cardinal/living staffing,
+readonly status/previews, interrupted resets, exact3cycle permanent completion,
+once-only500score, enemy-fire operator death before check, stale extraction
+immutability, terminal freeze and eleven-clear v1 migration/unlock. Browser
+harness extended to12actual-UI wins and72map/viewport combinations, Pump Siege
+via native touch, plus existing save/gear/local-rank/file/DPR/console checks.
+Final results are recorded in PROGRESS after execution, not asserted here.

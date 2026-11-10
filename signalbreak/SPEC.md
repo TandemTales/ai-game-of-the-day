@@ -45,7 +45,7 @@ explicit user approval; time/usage limits are not approval.
 - [x] 09 Sluice Logic: exclusive drained crossings, safe rerouting, keeper rescue and outlet capture.
 - [x] 10 Span Control: moving bridge capture, east rescue/bridgehead, west return lock and final ferry.
 - [x] 11 Blackout: coupled lamps/service access/turret, dark acquisition and technician/link infiltration.
-- [ ] 12 Pump Siege: simultaneous pumps and reinforcements.
+- [x] 12 Pump Siege: twin staffed pumps, consecutive pressure cycles and two-gallery reinforcements.
 - [ ] 13 Paper Trail: evidence recovery before purge.
 - [ ] 14 Two Keys: synchronized split-squad access.
 - [ ] 15 Ghost Broadcast: decoy transmission redirects patrols.
@@ -56,7 +56,7 @@ explicit user approval; time/usage limits are not approval.
 - [ ] 20 Signalbreak: combined core shutdown and consequence-based epilogue.
 
 Mission-boundary local saves, sequential unlocks and replay best scores now exist
-for the eleven implemented missions. Squad progression, equipment and injury
+for the twelve implemented missions. Squad progression, equipment and injury
 recovery are implemented; persistent district rescue/evidence consequences remain. Authored
 mastery targets appear in the HUD; no campaign medal/reward system exists yet.
 Story debriefs appear on victory. The clinic is a protected prerequisite, not yet
@@ -124,7 +124,7 @@ Grid coordinates integer (x,y), origin top left. Tiles: . floor, # tall blocker,
 c low cover, d circuit door, e exit, n network node, r rescue. Heights are separate.
 No procedural randomness required; identical state/action gives identical outcome.
 
-SB.Missions.operations contains the eleven authored missions, get(id) looks up an
+SB.Missions.operations contains the twelve authored missions, get(id) looks up an
 implemented mission, and manifest holds the full twenty-operation contract.
 SB.Logic.newGame(id?) returns a fresh chosen operation (default Live Wire) and
 rejects unknown IDs. SB.Logic.preview(state,actorId,
@@ -299,3 +299,19 @@ Rescue technician then capture Archive link with blackout active/lamps off,
 extract north. Readonly light previews and stale confirmations share the rules.
 Pump Siege, Archive, Citadel, consequences, tracked mastery, final campaign
 score and ending remain required. FIRST PLAYABLE remains visible.
+
+
+## November 10 Pump Siege contract
+
+Twelve of twenty operations now exist; Floodworks is four of four. Operation12
+is a24x18 twin-gallery defense separated from the lower keeper/extraction floor
+by a spill channel with four narrow bridges. Independently hack west/east pumps;
+west also allies the turret. Each needs a living engineer on or within cardinal
+distance1 at the end of enemy attacks and lane damage for3consecutive end turns.
+Missing power/staffing resets incomplete pressure to0; third cycle latches
+permanently and scores500once. Downed/extracted engineers cannot staff pumps.
+Turn4 two-gallery reinforcements contest the hold. Rescue keeper and regroup
+southeast after stabilization. HUD/footprint markers share readonly pumpStatus;
+queued extraction revalidates pressure. No unannounced flooding timer/damage.
+Archive13-16 and Citadel17-20, district consequences, tracked mastery, final
+campaign scoring and ending remain required. FIRST PLAYABLE stays visible.

@@ -554,7 +554,55 @@
     mastery: 'Rescue the technician, secure the dark link and extract all four engineers in eighteen turns or fewer; use the service bypass to avoid the lamp avenue crossfire.',
     debrief: 'The technician strips the occupation filters from the maintenance link. Mara hears the Archive librarians calling for help, but the Floodworks cannot hold without its twin pumps. Pump Siege is next. Eleven of twenty operations are playable; the Glass Archive, Broadcast Citadel and campaign ending remain in development.'
   };
-  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice, span, blackout];
+  var pumpSiege = {
+    id: 'pump-siege', title: 'Pump Siege', district: 'Floodworks', sequence: 12,
+    briefing: 'The twin pressure pumps must restart together before repair crews can hold Floodworks. HACK each pump, then station a living engineer on or orthogonally adjacent to EACH control for three consecutive end turns. The check happens AFTER enemy attacks: a downed operator cannot hold a pump. An interrupted cycle resets the consecutive count to zero; completed pressure stabilization is permanent, so the squad may regroup afterward. The western pump also allies the central turret. A spill channel divides the lower service floor from the pump galleries: use its four narrow bridges to split the squad between the two controls. Rescue the trapped pressure keeper in the south valve room. Occupation reinforcements enter both northern galleries on turn four; clear their approach or cover the operators. Once both pumps are stable and the keeper is safe, extract through the southeast maintenance yard.',
+    radio: 'MARA / West pump (6,6), east pump (17,6). HACK both independently: these feeds are NOT exclusive. Keep one engineer within Manhattan distance one of each control, including its own square, through three consecutive enemy phases. Diagonal neighbors do not count. Channel bridges at x6,11,12,17 on row9. Keeper (12,12), extraction (20-22,14-15). Turn-four reinforcements at (2,3) and (21,3). Pressure locks permanently after the third held cycle; do not abandon the controls early.',
+    objectiveSummary: 'Capture both pumps, staff both through three consecutive enemy phases, rescue the pressure keeper and regroup at southeast extraction.',
+    extractionLabel: 'southeast maintenance yard',
+    objectives: { requiredCircuits: ['pump-west','pump-east'], rescueLabel: 'Rescue the pressure keeper' },
+    rows: [
+      '########################',
+      '#......................#',
+      '#...###.........###....#',
+      '#.......c......c.......#',
+      '#..c................c..#',
+      '#.........c..c.........#',
+      '#.....n..........n.....#',
+      '#....c..c......c..c....#',
+      '#......................#',
+      '#.wwww.wwww..wwww.wwww.#',
+      '#......................#',
+      '#...c..####..####..c...#',
+      '#...........r..........#',
+      '#......c........c......#',
+      '#...................eee#',
+      '#...###.............eee#',
+      '#......................#',
+      '########################'
+    ],
+    heights: [],
+    squad: squad([[3,12],[3,13],[4,13],[4,14]]),
+    enemies: [
+      { id: 'pump-west-warden', name: 'West pressure warden', x: 8, y: 5, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 2 },
+      { id: 'pump-east-warden', name: 'East pressure warden', x: 16, y: 4, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 2 },
+      { id: 'pump-valve-patrol', name: 'Valve-room patrol', x: 20, y: 11, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 3 }
+    ],
+    turret: { x: 12, y: 5, range: 6, damage: 2 },
+    node: { x: 6, y: 6 }, rescue: { x: 12, y: 12 },
+    circuits: [
+      { id: 'pump-west', label: 'West pump / allied turret', x: 6, y: 6, controlled: false, doors: [], turret: true },
+      { id: 'pump-east', label: 'East pressure pump', x: 17, y: 6, controlled: false, doors: [] }
+    ],
+    pumps: { circuitIds: ['pump-west','pump-east'], rounds: 3, elapsed: 0 },
+    ambush: { turn: 4, label: 'Twin-gallery counterattack', enemies: [
+      { id: 'pump-west-raider', name: 'West gallery raider', x: 2, y: 3, hp: 5, maxHp: 5, damage: 2, range: 4, stride: 3 },
+      { id: 'pump-east-raider', name: 'East gallery raider', x: 21, y: 3, hp: 5, maxHp: 5, damage: 2, range: 4, stride: 3 }
+    ] },
+    mastery: 'Stabilize both pumps without an interrupted pressure cycle and extract all four engineers in eighteen turns or fewer.',
+    debrief: 'The pressure locks engage together. The keeper hands the pumps to the returning repair crews, and clean water reaches the clinic under independent control. Mara opens the rescued technician\'s Archive link: librarians are hiding the occupation records ahead of a purge. Paper Trail is next. Twelve of twenty operations are playable; the Glass Archive, Broadcast Citadel and campaign ending remain in development.'
+  };
+  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice, span, blackout, pumpSiege];
   SB.Missions.get = function (id) {
     return SB.Missions.operations.find(function (mission) { return mission.id === id; }) || null;
   };

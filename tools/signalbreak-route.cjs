@@ -1,6 +1,6 @@
 // State-informed QA route planner. It issues only public legal orders; it never
 // edits tactical state. These routes prove solvability, not human play or balance.
-function nextOrder(SB, s) {
+function nextOrder(SB, s, options={}) {
   const L = SB.Logic, live = s.squad.filter(L.living);
   const bridge=s.lift&&s.lift.kind==='bridge';
   let bridgeGoal;
@@ -30,7 +30,16 @@ function nextOrder(SB, s) {
     if(nia&&nia.ap){const p=L.preview(s,nia.id,'move',10,7);if(p.legal)return p;}
   }
   let goal;
-  if (bridge) goal=bridgeGoal;
+  if (s.archive) {
+    const evidence=s.circuits.find(c=>c.id===s.archive.evidenceCircuit);
+    const access=s.circuits.find(c=>c.id===(options.directArchive?'archive-shutter':s.archive.delayCircuit));
+    if(!evidence.controlled){
+      // Copy before spending AP on any firefight if a clear signal is available.
+      for(const u of live){const p=L.preview(s,u.id,'hack',evidence.x,evidence.y);if(p.legal)return p;}
+      goal=access.controlled?evidence:access;
+    }
+  }
+  else if (bridge) goal=bridgeGoal;
   else if(s.lighting){
     const dark=s.circuits.find(c=>c.id==='blackout'),link=s.circuits.find(c=>c.id==='archive-link');
     goal=!dark.controlled?dark:!s.rescued?s.rescue:!link.controlled?link:null;
@@ -107,10 +116,10 @@ function nextOrder(SB, s) {
   }
   return {kind:'end'};
 }
-function run(SB, s, limit=350) {
+function run(SB, s, limit=350, options={}) {
   const actions=[];
   for(let i=0;i<limit&&s.phase==='player';i++) {
-    const p=nextOrder(SB,s);actions.push({actorId:p.actorId,kind:p.kind,x:p.x,y:p.y,turn:s.turn});
+    const p=nextOrder(SB,s,options);actions.push({actorId:p.actorId,kind:p.kind,x:p.x,y:p.y,turn:s.turn});
     if(p.kind==='end')SB.Logic.endTurn(s);
     else if(!SB.Logic.commit(s,p))throw Error('Planner issued an invalid order');
   }

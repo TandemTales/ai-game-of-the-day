@@ -23,7 +23,8 @@
   function draw(canvas, s, view, time) {
     var c=canvas.getContext('2d'), d=global.devicePixelRatio||1, w=canvas.width,h=canvas.height;
     var P=projection(w,h,s,{zoom:view.zoom,selected:view.selected,panX:(view.panX||0)*Math.min(d,2),panY:(view.panY||0)*Math.min(d,2)}),a=P.a,b=P.b,L=SB.Logic;
-    c.clearRect(0,0,w,h);var bg=c.createRadialGradient(w*.5,h*.4,0,w*.5,h*.5,w*.7);bg.addColorStop(0,'#15333d');bg.addColorStop(1,'#07131d');c.fillStyle=bg;c.fillRect(0,0,w,h);
+    var archive=L.archiveStatus&&L.archiveStatus(s);
+    c.clearRect(0,0,w,h);var bg=c.createRadialGradient(w*.5,h*.4,0,w*.5,h*.5,w*.7);bg.addColorStop(0,archive?'#29273e':'#15333d');bg.addColorStop(1,archive?'#0b101e':'#07131d');c.fillStyle=bg;c.fillRect(0,0,w,h);
     function diamond(x,y,z,fill,stroke) {var p=P.point(x,y,z);c.beginPath();c.moveTo(p.x,p.y-b);c.lineTo(p.x+a,p.y);c.lineTo(p.x,p.y+b);c.lineTo(p.x-a,p.y);c.closePath();c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=Math.max(0.5,a*.025);c.stroke();}return p;}
     function block(x,y,z,top,left,right,base) {
       base=base===undefined?L.height(s,x,y):base;
@@ -48,7 +49,41 @@
       else{left={x:p.x+a,y:p.y};right={x:p.x,y:p.y-b};}
       c.beginPath();c.moveTo(left.x,left.y);c.lineTo(right.x,right.y);c.stroke();
     }
-    // Authored yard materials and rail markings, with reachable cells kept legible.
+    // Archive textures follow the actual partition and low cover tiles.
+    var breaker=archive&&s.circuits.find(function(n){return n.id===s.archive.delayCircuit;});
+    var shutter=archive&&s.circuits.find(function(n){return n.id==='archive-shutter';});
+    var archivePartition=breaker&&breaker.doors.length?breaker.doors[0].x:archive&&archive.evidence.x;
+    function archiveMarker(x,y){
+      if(!archive)return null;
+      if(x===archive.evidence.x&&y===archive.evidence.y)return 'E';
+      if(x===archive.breaker.x&&y===archive.breaker.y)return 'B';
+      if(shutter&&x===shutter.x&&y===shutter.y)return 'S';
+      return null;
+    }
+    function archiveWall(x,y){
+      var edge=x===0||x===s.width-1||y===0||y===s.height-1;
+      var partition=x===archivePartition&&!edge;
+      var p=P.point(x,y),q=block(x,y,edge ? .28 : partition ? .87 : .67,
+        edge?'#535468':partition?'#8a91a7':'#69677e','#232a41',partition?'#49546d':'#42425a');
+      if(edge)return;
+      c.strokeStyle=partition?'#aebbd0':'#9290aa';c.lineWidth=Math.max(.65,a*.038);
+      c.beginPath();
+      c.moveTo(q.x-a*.84,q.y+b*.08);c.lineTo(q.x,q.y+b*.92);c.lineTo(q.x+a*.84,q.y+b*.08);
+      c.moveTo(q.x,q.y+b*.92);c.lineTo(p.x,p.y+b*.85);
+      c.stroke();
+    }
+    function archiveShelf(x,y,p){
+      var q=block(x,y,.52,'#918999','#424052','#6d687d');
+      c.strokeStyle='#28283b';c.lineWidth=Math.max(.8,a*.065);
+      c.beginPath();c.moveTo(q.x+a*.13,q.y+b*.82);c.lineTo(q.x+a*.84,q.y+b*.13);c.stroke();
+      // File spines fit on the cabinet face so they never indicate extra cover.
+      ['#d4b696','#a3bdc6','#cb9c89'].forEach(function(ink,i){
+        var px=a*(.28+i*.19),py=b*(.73-i*.19);
+        c.strokeStyle=ink;c.lineWidth=Math.max(.7,a*.06);
+        c.beginPath();c.moveTo(q.x+px,q.y+py);c.lineTo(p.x+px,p.y+py);c.stroke();
+      });
+    }
+    // Authored surfaces, with reachable cells kept legible.
     for(var y=0;y<s.height;y++)for(var x=0;x<s.width;x++) {
       var t=L.tile(s,x,y),z=L.height(s,x,y),p;
       var floor=x<8?((x*7+y*3)%4?'#30414a':'#374b53'):((x+y)%3?'#263e49':'#2d4650');
@@ -61,6 +96,8 @@
       if(t==='w')floor=(x+y)%2?'#104b5e':'#124255';
       if(t==='#')floor=shaftHere(x,y)?'#07151e':'#1b2c36';
       if(platformHere(x,y))floor=liftPower?'#786c44':'#514b3d';
+      if(archive&&t!=='#'&&t!=='w')floor=x<archivePartition?
+        ((x+y)%2?'#535468':'#4b4e62'):((x+y)%2?'#303e59':'#34445f');
       if(t==='e')floor=boarding?(boardingHere(x,y)?'#797044':'#293c49'):'#255c5b';
       p=z?block(x,y,z,floor,'#172c36','#203640',0):diamond(x,y,0,floor,'#162c37');
       if(s.lighting&&t!=='#'&&t!=='w'&&L.lit(s,x,y)){
@@ -118,8 +155,8 @@
       }
       if(reachable[x+','+y])diamond(x,y,z,reachable[x+','+y]===1?'#397b8550':'#bda26030','#4a96994a');
       if(t==='e'){c.strokeStyle=boarding?(boardingHere(x,y)?'#ffe09b':'#72828b'):'#80d2bb';c.lineWidth=a*.07;c.beginPath();c.moveTo(p.x-a*.4,p.y);c.lineTo(p.x,p.y+b*.45);c.lineTo(p.x+a*.4,p.y-b*.1);c.stroke();}
-      if(t!== '#' && t!=='w' && y===6){c.strokeStyle=x<8?'#c2975655':'#6caab955';c.lineWidth=a*.04;c.beginPath();c.moveTo(p.x-a*.7,p.y+b*.3);c.lineTo(p.x+a*.7,p.y-b*.3);c.stroke();}
-      if(t!== '#' && t!=='w' && (x*17+y*9)%7===0){c.strokeStyle='#7b969b30';c.lineWidth=a*.025;c.beginPath();c.moveTo(p.x-a*.6,p.y);c.lineTo(p.x-a*.1,p.y+b*.3);c.lineTo(p.x+a*.1,p.y+b*.17);c.stroke();}
+      if(!archive&&t!== '#' && t!=='w' && y===6){c.strokeStyle=x<8?'#c2975655':'#6caab955';c.lineWidth=a*.04;c.beginPath();c.moveTo(p.x-a*.7,p.y+b*.3);c.lineTo(p.x+a*.7,p.y-b*.3);c.stroke();}
+      if(!archive&&t!== '#' && t!=='w' && (x*17+y*9)%7===0){c.strokeStyle='#7b969b30';c.lineWidth=a*.025;c.beginPath();c.moveTo(p.x-a*.6,p.y);c.lineTo(p.x-a*.1,p.y+b*.3);c.lineTo(p.x+a*.1,p.y+b*.17);c.stroke();}
     }
     if(s.pumps){
       var pumps=L.pumpStatus(s);
@@ -215,13 +252,15 @@
     for(var depth=0;depth<s.width+s.height;depth++)for(var y=0;y<s.height;y++) {
       var x=depth-y;if(x<0||x>=s.width)continue;
       var t=L.tile(s,x,y),z=L.height(s,x,y),p=P.point(x,y,z);
-      if(t==='#'&&!shaftHere(x,y)) {
+      if(t==='#'&&archive)archiveWall(x,y);
+      else if(t==='#'&&!shaftHere(x,y)) {
         // Front perimeter stays low so it cannot obscure engineers.
         var height=(y===s.height-1||x===s.width-1)?0.35:x===8?1.25:0.7;
         var q=block(x,y,height,'#566770','#243640','#33464f');
         c.strokeStyle='#90a2a944';c.lineWidth=a*.04;c.beginPath();c.moveTo(q.x-a*.7,q.y);c.lineTo(q.x+a*.5,q.y-b*.45);c.stroke();
       }
-      if(t==='c') {
+      if(t==='c'&&archive)archiveShelf(x,y,p);
+      else if(t==='c') {
         var medical=s.defense&&y===5&&(x===8||x===12);
         var top=block(x,y,.55,medical?'#b5c9ba':'#61787b',medical?'#45625e':'#30464c',medical?'#698a7d':'#3d565c');
         if(medical){c.strokeStyle='#e2efe4';c.lineWidth=Math.max(1,a*.08);c.beginPath();c.moveTo(top.x-a*.42,top.y);c.lineTo(top.x+a*.42,top.y);c.moveTo(top.x,top.y-b*.45);c.lineTo(top.x,top.y+b*.45);c.stroke();}
@@ -247,7 +286,15 @@
           }
           c.font=Math.max(9,a*.5)+'px system-ui';c.textAlign='center';c.fillText(bridge?'B':'L',q.x,q.y-a*.65);c.textAlign='start';
         }
-        if(s.circuits&&circuit){c.font=Math.max(9,a*.5)+'px system-ui';c.textAlign='center';c.fillText(String(s.circuits.indexOf(circuit)+1),q.x,q.y-a*.65);c.textAlign='start';}
+        var marker=archiveMarker(x,y);
+        if(marker){
+          var markerScale=Math.min(d,2),size=Math.max(15*markerScale,Math.min(24*markerScale,a*1.02)),top=q.y-a*.62-size;
+          c.strokeStyle=on?'#a1e9d7':marker==='E'?'#ffd998':marker==='B'?'#c2bdff':'#bbcbd9';
+          c.lineWidth=markerScale;c.fillStyle='#121c2d';
+          c.fillRect(q.x-size/2,top,size,size);c.strokeRect(q.x-size/2,top,size,size);
+          c.fillStyle=c.strokeStyle;c.font='700 '+Math.round(size*.69)+'px system-ui';c.textAlign='center';
+          c.fillText(marker,q.x,top+size*.75);c.textAlign='start';
+        }else if(s.circuits&&circuit){c.font=Math.max(9,a*.5)+'px system-ui';c.textAlign='center';c.fillText(String(s.circuits.indexOf(circuit)+1),q.x,q.y-a*.65);c.textAlign='start';}
       }
       if(s.lanes&&t==='n'&&L.circuitAt(s,x,y)&&L.circuitAt(s,x,y).id===s.lanes.disabledBy){
         // The command mast is attached to its real interactable tile. A narrow
@@ -291,6 +338,20 @@
       }
     }
     if(view.preview){var p=P.point(view.preview.x,view.preview.y,L.height(s,view.preview.x,view.preview.y));c.strokeStyle=view.preview.legal?'#fce0a4':'#e7988b';c.lineWidth=a*.08;c.beginPath();c.ellipse(p.x,p.y,a*.82,b*.82,0,0,Math.PI*2);c.stroke();}
+    if(archive){
+      var archiveScale=Math.min(d,2),left=16*archiveScale,top=h-84*archiveScale;
+      var status=archive.purged?'EVIDENCE PURGED':archive.secured?'EVIDENCE SECURED':'PURGE AT END OF TURN '+archive.deadline;
+      var key='E Evidence  /  B Breaker  /  S Shutter';
+      c.font='700 '+12*archiveScale+'px system-ui';
+      var statusWidth=c.measureText(status).width;
+      c.font=11*archiveScale+'px system-ui';
+      var panel=Math.max(statusWidth,c.measureText(key).width)+20*archiveScale;
+      c.fillStyle='#101628f2';c.fillRect(left,top,panel,47*archiveScale);
+      c.fillStyle=archive.purged||!archive.secured&&archive.remaining<=2?'#ffad98':archive.secured?'#a1e9d7':'#ffd998';
+      c.fillRect(left,top,2*archiveScale,47*archiveScale);
+      c.font='700 '+12*archiveScale+'px system-ui';c.fillText(status,left+10*archiveScale,top+18*archiveScale);
+      c.font=11*archiveScale+'px system-ui';c.fillStyle='#c7c5df';c.fillText(key,left+10*archiveScale,top+36*archiveScale);
+    }
     if(s.lighting){
       // Fixed-size chart key stays separate from world labels and actor depth.
       // All patrols remain visible: darkness changes acquisition, not knowledge.

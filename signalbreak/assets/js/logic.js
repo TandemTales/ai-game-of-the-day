@@ -187,6 +187,25 @@
       log(s, 'Twin pump pressure reset to 0/' + s.pumps.rounds + ': both powered controls need a living engineer on or next to them after enemy fire.', 'turn');
     }
   }
+  function archiveStatus(s) {
+    if (!s.archive) return null;
+    var evidence = s.circuits.find(function (c) { return c.id === s.archive.evidenceCircuit; });
+    var breaker = s.circuits.find(function (c) { return c.id === s.archive.delayCircuit; });
+    var secured = evidence.controlled, delayed = breaker.controlled, purged = !!s.archive.purged;
+    var deadline = s.archive.deadline + (delayed ? s.archive.extension : 0);
+    return {
+      secured: secured, delayed: delayed, deadline: deadline, purged: purged,
+      remaining: secured || purged ? 0 : Math.max(0, deadline - s.turn + 1),
+      evidence: { x: evidence.x, y: evidence.y }, breaker: { x: breaker.x, y: breaker.y }
+    };
+  }
+  function resolvePurge(s) {
+    var archive = archiveStatus(s);
+    if (!archive || archive.secured || s.turn < archive.deadline) return;
+    s.archive.purged = true;
+    s.phase = 'lost';
+    log(s, 'Archive purged. The evidence was erased. Retry and copy it before the deadline.', 'lost');
+  }
   function activeLane(s) {
     if (!s.lanes || !s.lanes.patterns.length || (s.circuits || []).some(function (c) { return c.id === s.lanes.disabledBy && c.controlled; })) return null;
     var patterns = s.lanes.patterns, index = (s.turn - 1) % patterns.length;
@@ -219,6 +238,14 @@
       var c = s.circuits && s.circuits.find(function (entry) { return entry.id === id; });
       return { id: id, label: c ? c.label : 'Take the circuit', done: c ? !!c.controlled : !!s.network };
     });
+    var archive = archiveStatus(s);
+    if (archive) {
+      var purgeLabel = archive.secured ? 'Evidence secured / purge stopped' :
+        archive.purged ? 'Purge complete / evidence erased' :
+        'Purge at end of turn ' + archive.deadline + ' / ' +
+          (archive.remaining === 1 ? 'FINAL TURN to copy evidence' : archive.remaining + ' turns left to copy evidence');
+      status.unshift({ id: 'archive-purge', label: purgeLabel, done: archive.secured });
+    }
     status.push({ id: 'rescue', label: s.objectives && s.objectives.rescueLabel || 'Rescue signal worker', done: !!s.rescued });
     if (s.lift) {
       var lift = liftStatus(s);
@@ -384,6 +411,16 @@
         if (controlsLamps) p.reason += ' · work lamps ON: illuminated targets visible at normal range';
         else if (cutsLamps) p.reason += ' · work lamps OFF: dark targets only visible within ' + s.lighting.darkRange + ' tiles';
       }
+      if (s.archive && (circuit.id === s.archive.evidenceCircuit || circuit.id === s.archive.delayCircuit)) {
+        var archive = archiveStatus(s);
+        p.archivePreview = [s.turn, archive.deadline, archive.secured].join('/');
+        if (circuit.id === s.archive.evidenceCircuit) {
+          p.reason = '1 AP · copy the evidence and stop the purge';
+        } else {
+          p.reason = '1 AP · open the north route and ally the turret' +
+            (archive.secured ? '' : ' · delay purge to end of turn ' + (archive.deadline + s.archive.extension));
+        }
+      }
     } else if (kind === 'rescue') {
       if (x !== s.rescue.x || y !== s.rescue.y || s.rescued) return fail('No worker to rescue here.');
       if (s.objectives && (s.objectives.rescueRequires || []).some(function (id) { return !(s.circuits || []).some(function (c) { return c.id === id && c.controlled; }); })) return fail('Restore the rescue route circuit before evacuating the worker.');
@@ -408,6 +445,7 @@
       if (s.defense && (s.defense.hp <= 0 || !defenseStatus(s).done)) return fail('Protect the clinic staff through all ' + s.defense.rounds + ' assaults before extracting.');
       if (s.pumps && !pumpStatus(s).done) return fail('Stabilize twin pump pressure for ' + s.pumps.rounds + ' consecutive end turns before extracting. Both powered controls need a living engineer on or within 1 tile after enemy fire; interrupted coverage resets progress.');
       if (s.lift && !s.lift.delivered) return fail(s.lift.kind === 'bridge' ? 'Carry engineers across the river on the moving span before extracting.' : 'Deliver the rescued operator and medical cargo on the lift before extracting.');
+      if (s.archive && !archiveStatus(s).secured) return fail('Copy the Archive evidence before extracting.');
       if (!networkReady(s) || !s.rescued) return fail('Complete the circuit objectives and rescue before extracting.');
       p.reason = '1 AP · extract ' + a.name;
     } else return fail('Unknown order.');
@@ -435,6 +473,7 @@
     var p = preview(s, proposed.actorId, proposed.kind, proposed.x, proposed.y);
     if (!p.legal) return false;
     if ((p.lift || proposed.lift) && (!p.lift || !proposed.lift || p.liftFrom !== proposed.liftFrom || p.liftTo !== proposed.liftTo)) return false;
+    if (p.archivePreview !== proposed.archivePreview) return false;
     var a = unit(s, p.actorId); a.ap -= p.cost;
     if (p.kind === 'move') { a.x = p.x; a.y = p.y; log(s, a.name + ' moved · ' + p.cost + ' AP'); }
     if (p.kind === 'attack') strike(s, a, s.enemies.find(function (e) { return e.id === p.targetId; }), a.name + ' fired');
@@ -454,7 +493,15 @@
         circuit.controlled = true;
         if (!circuit.scored) { s.score += 500; circuit.scored = true; }
         s.network = networkReady(s);
-        log(s, circuit.label + ' · circuit routed' + (circuit.exclusiveGroup ? ' · alternate route closed' : ''), 'hack');
+        if (s.archive && circuit.id === s.archive.evidenceCircuit) {
+          log(s, 'Evidence copied. Purge stopped. Rescue the archivist and extract.', 'hack');
+        } else if (s.archive && circuit.id === s.archive.delayCircuit) {
+          var archive = archiveStatus(s);
+          log(s, 'North route open · turret allied' +
+            (archive.secured ? '' : ' · purge delayed to end of turn ' + archive.deadline), 'hack');
+        } else {
+          log(s, circuit.label + ' · circuit routed' + (circuit.exclusiveGroup ? ' · alternate route closed' : ''), 'hack');
+        }
       } else { s.network = true; s.score += 500; log(s, 'CIRCUIT OURS · door open · turret allied · lights restored', 'hack'); }
     }
     if (p.kind === 'rescue') { s.rescued = true; s.score += 400; log(s, (s.objectives && s.objectives.rescueLabel || 'Worker freed') + ' · escort signal clear; extract the squad.', 'rescue'); }
@@ -498,6 +545,7 @@
     if (s.phase !== 'lost') resolveLane(s);
     if (s.phase !== 'lost') resolvePumps(s);
     outcome(s);
+    if (s.phase === 'enemy') resolvePurge(s);
     if (s.phase === 'lost' || s.phase === 'won') return true;
     s.turn++; s.phase = 'player'; s.squad.forEach(function (u) { if (living(u)) u.ap = 2; u.watch = false; });
     log(s, 'Turn ' + s.turn + ' · engineer AP refreshed', 'turn');
@@ -507,6 +555,6 @@
   }
   SB.Logic = { newGame: newGame, tile: tile, height: height, unit: unit, living: living, occupant: occupant,
     blocked: blocked, canStep: canStep, path: path, visible: visible, lit: lit, detected: detected, cover: cover, damage: damage, preview: preview, commit: commit, endTurn: endTurn,
-    waterStatus: waterStatus, waterRouteAt: waterRouteAt, liftAt: liftAt, liftStatus: liftStatus, liftControlAt: liftControlAt, defenseStatus: defenseStatus, pumpStatus: pumpStatus, activeLane: activeLane,
+    waterStatus: waterStatus, waterRouteAt: waterRouteAt, liftAt: liftAt, liftStatus: liftStatus, liftControlAt: liftControlAt, defenseStatus: defenseStatus, pumpStatus: pumpStatus, archiveStatus: archiveStatus, activeLane: activeLane,
     circuitAt: circuitAt, doorOpen: doorOpen, objectiveStatus: objectiveStatus, turretAllied: turretAllied, extractionStatus: extractionStatus };
 })(window);

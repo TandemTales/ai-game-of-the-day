@@ -31,14 +31,14 @@ function pilot(SB, s, report = []) {
   }
   return report;
 }
-test('full manifest promises twenty operations; the first twelve distinct authored maps are playable', () => {
+test('full manifest promises twenty operations; thirteen distinct authored maps are playable', () => {
   const SB=load();expect(SB.Missions.manifest).toHaveLength(5);
   const names=SB.Missions.manifest.flatMap(d=>Array.from(d).slice(1));expect(new Set(names).size).toBe(20);
   expect(SB.Missions.opening.title).toBe('Live Wire');
-  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege']);
-  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(12);
+  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege','paper-trail']);
+  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(13);
   for(const m of SB.Missions.operations){expect(m.rows.every(r=>r.length===m.rows[0].length)).toBe(true);for(const n of m.circuits||[])expect(m.rows[n.y][n.x]).toBe('n');}
-  expect(()=>SB.Logic.newGame('paper-trail')).toThrow('Unknown operation');
+  expect(()=>SB.Logic.newGame('two-keys')).toThrow('Unknown operation');
 });
 test('fresh states are isolated and previews never mutate the tactical state', () => {
   const {Logic:L}=load(),a=L.newGame(),b=L.newGame(),before=JSON.stringify(a);
@@ -110,7 +110,7 @@ test('complete legal pilot is deterministic across fresh runs', () => {
 });
 
 const {run:campaignRoute}=require('../tools/signalbreak-route.cjs');
-test.each(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege'])('%s can be won by legal orders against live AI with four survivors', id => {
+test.each(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege','paper-trail'])('%s can be won by legal orders against live AI with four survivors', id => {
   const SB=load(),s=SB.Logic.newGame(id),report=campaignRoute(SB,s);
   expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);
   expect(report.some(p=>p.kind==='hack')).toBe(true);expect(report.some(p=>p.kind==='rescue')).toBe(true);
@@ -328,10 +328,10 @@ test('antenna lanes alternate, warn before movement, damage only exposed living 
  const hp=s.squad[0].hp;L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);expect(L.activeLane(s).label).not.toBe(first.label);
  s.circuits.find(c=>c.id==='tower').controlled=true;expect(L.activeLane(s)).toBe(null);L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);
 });
-test('all twelve operations support consecutive persisted squad progression with legal orders',()=>{
+test('all thirteen operations support consecutive persisted squad progression with legal orders',()=>{
  const SB=load(),C=SB.Campaign,c=C.fresh(),store=memoryStorage();
  for(const m of SB.Missions.operations){for(const id of ['nia','sol','rook','ivo'])C.treat(c,id);const s=C.prepare(c,SB.Logic.newGame(m.id));campaignRoute(SB,s);expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);expect(C.complete(c,s)).toBe(true);C.save(store,c);expect(C.load(store).campaign).toEqual(c);}
- expect(Object.keys(c.results)).toHaveLength(12);expect(c.roster.nia.xp).toBe(12);
+ expect(Object.keys(c.results)).toHaveLength(13);expect(c.roster.nia.xp).toBe(13);
 });
 
 
@@ -497,4 +497,53 @@ test('eleven-clear v1 saves unlock Pump Siege while retaining earned roster and 
  const c=C.normalize({version:1,results,selected:'pump-siege'});
  expect(C.unlocked(c,'pump-siege')).toBe(true);expect(c.roster.nia.xp).toBe(11);
  expect(c.results['pump-siege']).toBeUndefined();expect(C.normalize(c)).toEqual(c);
+});
+
+function archiveFixture() {
+ const SB=load(),L=SB.Logic,s=L.newGame('paper-trail');s.enemies=[];
+ return {SB,L,s,breaker:s.circuits.find(c=>c.id===s.archive.delayCircuit),evidence:s.circuits.find(c=>c.id===s.archive.evidenceCircuit)};
+}
+test('the optional Archive breaker opens only its route, allies the turret and buys three end turns once',()=>{
+ const {L,s,breaker}=archiveFixture(),u=s.squad[0];Object.assign(u,{x:breaker.x-1,y:breaker.y});
+ expect(L.archiveStatus(s)).toMatchObject({deadline:9,remaining:9,delayed:false,secured:false,purged:false});
+ expect(L.doorOpen(s,11,5)).toBe(false);expect(L.turretAllied(s)).toBe(false);
+ const snapshot=JSON.stringify(s);L.archiveStatus(s).breaker.x=99;L.objectiveStatus(s);
+ expect(L.preview(s,u.id,'hack',breaker.x,breaker.y).legal).toBe(true);expect(JSON.stringify(s)).toBe(snapshot);
+ order(L,s,u.id,'hack',breaker.x,breaker.y);
+ expect(L.archiveStatus(s)).toMatchObject({deadline:12,remaining:12,delayed:true});
+ expect(L.doorOpen(s,11,5)).toBe(true);expect(L.doorOpen(s,11,10)).toBe(false);expect(L.turretAllied(s)).toBe(true);
+ expect(L.preview(s,u.id,'hack',breaker.x,breaker.y).legal).toBe(false);expect(s.score).toBe(500);
+});
+test.each([false,true])('Archive deadline is inclusive, then irreversible if the evidence was not copied (breaker=%s)', delayed=>{
+ const {L,s,breaker,evidence}=archiveFixture(),u=s.squad[0];s.turret=null;
+ if(delayed){Object.assign(u,{x:breaker.x-1,y:breaker.y});order(L,s,u.id,'hack',breaker.x,breaker.y);}
+ const deadline=delayed?12:9;
+ while(s.turn<deadline&&s.phase==='player')L.endTurn(s);
+ expect(s.phase).toBe('player');expect(L.archiveStatus(s).remaining).toBe(1);
+ Object.assign(u,{x:evidence.x,y:evidence.y});const pending=L.preview(s,u.id,'hack',evidence.x,evidence.y);expect(pending.legal).toBe(true);
+ const saved=JSON.parse(JSON.stringify(s));expect(L.commit(saved,pending)).toBe(true);L.endTurn(saved);
+ expect(L.archiveStatus(saved)).toMatchObject({secured:true,purged:false,remaining:0});expect(saved.phase).toBe('player');expect(saved.turn).toBe(deadline+1);
+ expect(L.preview(saved,u.id,'hack',evidence.x,evidence.y).legal).toBe(false);
+ L.endTurn(s);expect(s.phase).toBe('lost');expect(s.turn).toBe(deadline);expect(L.archiveStatus(s)).toMatchObject({purged:true,remaining:0});
+ const frozen=JSON.stringify(s);expect(L.commit(s,pending)).toBe(false);expect(L.endTurn(s)).toBe(false);expect(JSON.stringify(s)).toBe(frozen);
+});
+test('Paper Trail short route can win against live AI without delaying the purge or taking the turret',()=>{
+ const {SB}=archiveFixture(),L=SB.Logic,s=L.newGame('paper-trail');
+ const actions=require('../tools/signalbreak-route.cjs').run(SB,s,350,{directArchive:true});
+ expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);
+ expect(L.archiveStatus(s)).toMatchObject({secured:true,delayed:false});expect(L.turretAllied(s)).toBe(false);
+ const {x,y}=L.archiveStatus(s).evidence;expect(actions.find(p=>p.kind==='hack'&&p.x===x&&p.y===y).turn).toBeLessThanOrEqual(9);
+});
+test('twelve-clear v1 saves unlock Paper Trail without inventing Archive evidence or a clear',()=>{
+ const SB=load(),C=SB.Campaign,results={};for(const m of SB.Missions.operations.slice(0,12))results[m.id]={score:3000,turns:10,survivors:4};
+ const c=C.normalize({version:1,results,selected:'paper-trail'});
+ expect(C.unlocked(c,'paper-trail')).toBe(true);expect(c.roster.nia.xp).toBe(12);expect(c.results['paper-trail']).toBeUndefined();
+});
+test('extending the Archive deadline invalidates a queued evidence order without spending AP',()=>{
+ const {L,s,breaker,evidence}=archiveFixture(),[nia,sol]=s.squad;
+ Object.assign(nia,{x:evidence.x,y:evidence.y});Object.assign(sol,{x:breaker.x-1,y:breaker.y});
+ const old=L.preview(s,nia.id,'hack',evidence.x,evidence.y);expect(old.legal).toBe(true);
+ order(L,s,sol.id,'hack',breaker.x,breaker.y);
+ const snapshot=JSON.stringify(s);expect(L.commit(s,old)).toBe(false);expect(JSON.stringify(s)).toBe(snapshot);
+ order(L,s,nia.id,'hack',evidence.x,evidence.y);expect(L.archiveStatus(s).secured).toBe(true);
 });

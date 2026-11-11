@@ -14,7 +14,7 @@
       b.disabled=!C.unlocked(campaign,m.id)||mode==='playing'||mode==='paused';
       b.setAttribute('aria-pressed',String(state.id===m.id));
       if(!C.unlocked(campaign,m.id))b.textContent+=' · LOCKED';
-      b.addEventListener('click',function(){briefing(m.id);});el('operations').appendChild(b);
+      b.addEventListener('click',function(){el('operation-picker').open=false;briefing(m.id);});el('operations').appendChild(b);
     });
     el('save-status').textContent=saveAvailable?'Progress saved on this browser between operations. Mid-operation orders are not saved.':'Saving unavailable. Progress lasts only in this tab; mid-operation orders are not saved.';
   }
@@ -122,19 +122,20 @@
     if(state.phase==='won'||state.phase==='lost'){
       if(state.phase==='won'&&C.complete(campaign,state))persist();
       mode='end';panel.hidden=false;el('kicker').textContent='OPERATION LOG / FIRST PLAYABLE';
-      el('title').textContent=state.phase==='won'?'Signal restored.':'Signal lost.';
+      var archive=state.archive&&L.archiveStatus(state),purged=archive&&archive.purged;
+      el('title').textContent=state.phase==='won'?'Signal restored.':purged?'Archive purged.':'Signal lost.';
       el('copy').textContent=state.score.toLocaleString()+' operation points · turn '+state.turn+' · '+state.squad.filter(function(u){return u.extracted;}).length+'/4 engineers extracted.';
       var index=SB.Missions.operations.findIndex(function(m){return m.id===state.id;}),next=SB.Missions.operations[index+1];
-      el('tip').textContent=state.phase==='won'?(state.debrief||state.title+' complete.')+' '+(next?'Next: '+next.title+'.':'You reached the current playable boundary. The remaining '+(20-SB.Missions.operations.length)+' operations and finale are in development.'):'Retry the operation. Take cover, focus fire and read each circuit before advancing.';
+      el('tip').textContent=state.phase==='won'?(state.debrief||state.title+' complete.')+' '+(next?'Next: '+next.title+'.':'You reached the current playable boundary. The remaining '+(20-SB.Missions.operations.length)+' operations and finale are in development.'):purged?'The deadline expired before the evidence was copied. Replay and take the short route or hack the purge breaker to buy more time.':'Retry the operation. Take cover, focus fire and read each circuit before advancing.';
       el('next-operation').hidden=state.phase!=='won'||!next;el('next-operation').textContent=next?'NEXT / '+next.title:'NEXT OPERATION';
-      el('start').textContent='REPLAY OPERATION ↗';submit();
+      el('start').textContent='REPLAY OPERATION ↗';if(!purged)submit();
     }
     reachable();hud();
   }
   function confirm(){if(mode!=='playing'||!preview||!preview.legal)return;A.unlock();if(L.commit(state,preview))after();else{preview=null;hud();}}
   function endTurn(){if(mode!=='playing')return;A.unlock();L.endTurn(state);after();}
   function start(){A.unlock();if(mode!=='paused'){state=C.prepare(campaign,L.newGame(state.id));submitted=false;serial=state.serial;view.selected='nia';view.zoom=1;view.panX=0;view.panY=0;action='move';}
-    mode='playing';preview=null;cursor={x:selected().x,y:selected().y};panel.hidden=true;el('pause').textContent='Briefing / pause';reachable();hud();el('start').blur();}
+    mode='playing';preview=null;cursor={x:selected().x,y:selected().y};panel.hidden=true;el('operation-picker').open=false;el('pause').textContent='Briefing / pause';reachable();hud();el('start').blur();}
   function pause(){if(mode==='paused'){start();return;}if(mode!=='playing')return;mode='paused';preview=null;panel.hidden=false;el('next-operation').hidden=true;el('kicker').textContent='FIELD BRIEFING / PAUSED';el('title').textContent=state.title;el('copy').textContent=state.briefing;el('tip').textContent=state.radio;el('start').textContent='RESUME OPERATION ↗';el('pause').textContent='Resume';hud();}
   el('next-operation').addEventListener('click',function(){var i=SB.Missions.operations.findIndex(function(m){return m.id===state.id;});if(SB.Missions.operations[i+1])briefing(SB.Missions.operations[i+1].id);});
   el('start').addEventListener('click',start);el('confirm').addEventListener('click',confirm);el('end-turn').addEventListener('click',endTurn);

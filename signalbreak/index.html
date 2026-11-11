@@ -3,7 +3,7 @@
 <body><main class="shell">
 <header><a href="../index.html">← Back to Arcade</a><span class="wordmark">SIGNAL<span>BREAK</span></span><button id="sound" type="button" aria-pressed="false">Sound on</button></header>
 <div class="operation"><div><span class="eyebrow" id="mission-label">SWITCHYARD / OPERATION 01</span><h1 id="mission-title">Live Wire</h1></div><div class="telemetry"><span>TURN <b id="turn">01</b></span><span>OP SCORE <b id="score">0</b></span></div></div>
-<section class="campaign" aria-label="Operation selection"><div id="operations" class="operation-menu"></div><p id="save-status" role="status"></p></section>
+<section class="campaign" aria-label="Campaign progress"><details id="operation-picker"><summary>Operation selection</summary><div id="operations" class="operation-menu"></div></details><p id="save-status" role="status"></p></section>
 <details class="preparation"><summary id="prep-summary">SQUAD PREPARATION</summary><p>Choose equipment before deployment. First clears train surviving engineers and rescue awards medical supplies. Injuries reduce maximum HP; treat them here or recover through healthy first clears. Replays improve scores without farming training or supplies.</p><div id="loadouts"></div></details>
 <div class="workspace"><section class="map-wrap" aria-label="Tactical map"><canvas id="map" tabindex="0" aria-label="Isometric tactical map. Select an engineer with 1 to 4, click a tile or use arrow keys to preview a move, then Enter or Confirm order."></canvas>
 <div class="map-tools"><button id="zoom-out" type="button" aria-label="Zoom out">−</button><button id="zoom-in" type="button" aria-label="Zoom in">+</button><button id="center" type="button">Center</button></div>

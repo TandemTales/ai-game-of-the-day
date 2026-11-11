@@ -227,3 +227,15 @@ immutability, terminal freeze and eleven-clear v1 migration/unlock. Browser
 harness extended to12actual-UI wins and72map/viewport combinations, Pump Siege
 via native touch, plus existing save/gear/local-rank/file/DPR/console checks.
 Final results are recorded in PROGRESS after execution, not asserted here.
+
+## November 10 Paper Trail coverage
+
+Focused suite covers both base-stat live-AI routes and thirteen consecutive
+clears with earned progression. Additional cases verify that only the north
+breaker opens the gallery, allies the turret and grants a one-time extension;
+both deadlines allow a final-turn copy; the purge freezes expired orders;
+a stale confirmation cannot spend AP; and twelve-clear v1 saves unlock the
+operation without inventing a result. Browser harness now follows the actual
+operation list, expands the picker for replay, checks initial map visibility
+and exercises purge/retry through normal touch orders. See PROGRESS for the
+final browser result.

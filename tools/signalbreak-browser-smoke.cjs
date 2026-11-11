@@ -1,7 +1,7 @@
 const http=require('http'),fs=require('fs'),path=require('path'),assert=require('assert/strict');
 const {chromium}=require('playwright');
 const {nextOrder}=require('./signalbreak-route.cjs');
-const root=path.resolve(__dirname,'..'),out=path.join(root,'node_modules/.cache/signalbreak/browser-smoke');fs.mkdirSync(out,{recursive:true});
+const root=path.resolve(__dirname,'..'),out=path.resolve(process.env.SIGNALBREAK_SMOKE_OUT||path.join(root,'node_modules/.cache/signalbreak/browser-smoke'));fs.mkdirSync(out,{recursive:true});
 const api=[],results=[];
 const crypto=require('crypto'),sources=['signalbreak/index.html','signalbreak/assets/css/game.css',...['missions','logic','campaign','render','audio','game'].map(f=>'signalbreak/assets/js/'+f+'.js')];
 const sourceSnapshot=()=>sources.map(file=>({file,sha256:crypto.createHash('sha256').update(fs.readFileSync(path.join(root,file))).digest('hex')}));
@@ -46,6 +46,7 @@ async function drive(page,touch=false){
       const page=await browser.newPage({viewport:{width,height},hasTouch:true}),errors=[],external=[];
       page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(['warning','error'].includes(m.type()))errors.push(m.text());});page.on('request',r=>{if(!r.url().startsWith(url))external.push(r.url());});
       await page.goto(url+'/signalbreak/index.html');assert.deepEqual(errors,[],'boot console');await page.waitForFunction(()=>window.SB&&SB.Game);await page.screenshot({path:path.join(out,`${width}x${height}-title.png`)});
+      assert(await page.evaluate(()=>!document.querySelector('#operation-picker').open&&document.querySelector('#map').getBoundingClientRect().top<innerHeight),'map starts in viewport '+width);
       assert(await page.evaluate(()=>{const a=document.querySelector('.map-wrap').getBoundingClientRect(),b=document.querySelector('#start').getBoundingClientRect();return b.top>=a.top&&b.bottom<=a.bottom&&b.left>=a.left&&b.right<=a.right;}),'title CTA fits '+width);
       await page.locator('#start').click();assert.equal(await page.evaluate(()=>SB.Game.getMode()),'playing');
       await page.keyboard.press('ArrowRight');const before=await page.evaluate(()=>({...SB.Game.getState().squad[0]}));
@@ -68,7 +69,8 @@ async function drive(page,touch=false){
     // The eventual POST must retain the completed operation's original score.
     let rankHeld=null;await page.route('**/api/leaderboard/rank?**',route=>{rankHeld=route;},{times:1});
     await page.goto(url+'/signalbreak/index.html');
-    for(const [index,id]of ['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege'].entries()){
+    const operationIds=await page.evaluate(()=>SB.Missions.operations.map(m=>m.id));
+    for(const [index,id]of operationIds.entries()){
       assert.equal(await page.evaluate(()=>SB.Game.getState().id),id);
       if(index===0){await page.locator('#prep-summary').focus();await page.keyboard.press('Enter');assert.equal(await page.evaluate(()=>SB.Game.getMode()),'title');assert(await page.locator('.preparation').evaluate(e=>e.open));await page.locator('#prep-summary').click();}
       if(index===1){
@@ -88,13 +90,21 @@ async function drive(page,touch=false){
       await page.waitForTimeout(100);await page.reload();
       assert.equal(await page.evaluate(()=>SB.Game.getMode()),'title');
       const data=await page.evaluate(()=>JSON.parse(localStorage.getItem(SB.Campaign.key)));assert(data.results[id]);
-      if(index<11)assert.equal(await page.evaluate(()=>SB.Game.getState().id),['locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege'][index]);
+      if(index+1<operationIds.length)assert.equal(await page.evaluate(()=>SB.Game.getState().id),operationIds[index+1]);
     }
-    assert.equal(api.length,23,'held GET is intercepted, remaining server API calls are recorded');
+    assert.equal(api.length,operationIds.length*2-1,'held GET is intercepted, remaining server API calls are recorded');
     assert.equal(api[0].method,'POST');assert.equal(api[0].body.score,campaignRuns[0].final.score);assert(dialogs[0].startsWith('Live Wire operation score'));
     for(let i=1;i<api.length;i+=2){assert.equal(api[i].method,'GET');assert.equal(api[i+1].method,'POST');assert.equal(api[i+1].body.score,campaignRuns[(i+1)/2].final.score);}
     const campaignStorage=await page.context().storageState();
-    const trained=await page.evaluate(()=>JSON.parse(localStorage.getItem(SB.Campaign.key)));assert.equal(trained.roster.nia.xp,12);
+    const trained=await page.evaluate(()=>JSON.parse(localStorage.getItem(SB.Campaign.key)));assert.equal(trained.roster.nia.xp,operationIds.length);
+    const archive=await browser.newPage({viewport:{width:390,height:844},hasTouch:true,storageState:campaignStorage});
+    await archive.goto(url+'/signalbreak/index.html');await archive.locator('#operation-picker summary').tap();await archive.locator('[data-mission="paper-trail"]').tap();await archive.locator('#start').tap();
+    const callsBeforePurge=api.length;
+    for(let turn=1;turn<=9;turn++)await archive.locator('#end-turn').tap();
+    assert.equal(await archive.locator('#title').innerText(),'Archive purged.');
+    assert.match(await archive.locator('#tip').innerText(),/deadline expired before the evidence was copied/);
+    assert.equal(api.length,callsBeforePurge);await archive.locator('.map-wrap').screenshot({path:path.join(out,'paper-trail-purged-phone.png')});
+    await archive.locator('#start').tap();assert.equal(await archive.evaluate(()=>SB.Logic.archiveStatus(SB.Game.getState()).remaining),9);await archive.close();
     // Treatment fixture: represent a saved mission-boundary injury explicitly.
     const recovery=await browser.newPage({viewport:{width:390,height:844},hasTouch:true,storageState:campaignStorage});
     await recovery.goto(url+'/signalbreak/index.html');await recovery.evaluate(()=>{const c=JSON.parse(localStorage.getItem(SB.Campaign.key));c.roster.nia.injury=2;localStorage.setItem(SB.Campaign.key,JSON.stringify(c));});await recovery.reload();
@@ -104,10 +114,10 @@ async function drive(page,touch=false){
     await recovery.locator('.preparation').screenshot({path:path.join(out,'squad-preparation-phone.png')});assert.equal(await recovery.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await recovery.close();
     // Six-size new-mission sweep with earned unlocks. No tactical state injection.
     const newMissionSweeps=[];
-    for(const[width,height]of[[320,568],[390,844],[844,390],[768,1024],[1440,900],[3840,2160]])for(const id of ['locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege']){
+    for(const[width,height]of[[320,568],[390,844],[844,390],[768,1024],[1440,900],[3840,2160]])for(const id of operationIds.slice(1)){
       const p=await browser.newPage({viewport:{width,height},hasTouch:true,storageState:campaignStorage}),logs=[],external=[];
       p.on('pageerror',e=>logs.push(String(e)));p.on('console',m=>{if(['warning','error'].includes(m.type()))logs.push(m.text());});p.on('request',r=>{if(!r.url().startsWith(url))external.push(r.url());});
-      await p.goto(url+'/signalbreak/index.html');await p.locator(`[data-mission="${id}"]`).click();await p.locator('.map-wrap').screenshot({path:path.join(out,`${id}-${width}x${height}-title.png`)});
+      await p.goto(url+'/signalbreak/index.html');await p.locator('#operation-picker summary').tap();await p.locator(`[data-mission="${id}"]`).click();assert.equal(await p.locator('#operation-picker').evaluate(e=>e.open),false);await p.locator('.map-wrap').screenshot({path:path.join(out,`${id}-${width}x${height}-title.png`)});
       await p.locator('#start').scrollIntoViewIfNeeded();assert(await p.locator('#start').isVisible(),'briefing CTA reachable by scrolling');await p.locator('#start').click();const move=await p.evaluate(()=>{const s=SB.Game.getState(),u=s.squad[0];return [[1,0],[0,-1],[-1,0],[0,1]].map(([dx,dy])=>SB.Logic.preview(s,u.id,'move',u.x+dx,u.y+dy)).find(p=>p.legal);});assert(move,'reachable adjacent touch target '+id);await tile(p,move.x,move.y,true);assert(await p.evaluate(()=>SB.Game.getPreview()?.legal));await p.locator('#confirm').tap();
       const raised=await p.evaluate(()=>SB.Game.getState().heights[0]||SB.Game.getState().node);await p.locator('[data-action="attack"]').tap();await tile(p,raised.x,raised.y,true);
       const picked=await p.evaluate(()=>SB.Game.getPreview());assert.equal(picked.x,raised.x);assert.equal(picked.y,raised.y);await p.locator('#cancel').tap();

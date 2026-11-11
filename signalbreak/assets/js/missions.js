@@ -600,9 +600,54 @@
       { id: 'pump-east-raider', name: 'East gallery raider', x: 21, y: 3, hp: 5, maxHp: 5, damage: 2, range: 4, stride: 3 }
     ] },
     mastery: 'Stabilize both pumps without an interrupted pressure cycle and extract all four engineers in eighteen turns or fewer.',
-    debrief: 'The pressure locks engage together. The keeper hands the pumps to the returning repair crews, and clean water reaches the clinic under independent control. Mara opens the rescued technician\'s Archive link: librarians are hiding the occupation records ahead of a purge. Paper Trail is next. Twelve of twenty operations are playable; the Glass Archive, Broadcast Citadel and campaign ending remain in development.'
+    debrief: 'The pressure locks engage together. The keeper hands the pumps to the returning repair crews, and clean water reaches the clinic under independent control. Mara opens the rescued technician\'s Archive link: librarians are hiding the occupation records ahead of a purge. Deploy to the Glass Archive for Paper Trail.'
   };
-  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice, span, blackout, pumpSiege];
+  var paperTrail = {
+    id: 'paper-trail', title: 'Paper Trail', district: 'Glass Archive', sequence: 13,
+    briefing: 'The occupation is purging the transfer ledgers. HACK the vault terminal and confirm before ending turn 9 to copy the evidence. Open the central shutter for the shorter route under a hostile turret, or detour to the northern purge breaker. The breaker opens a separate gallery door, allies the turret and extends the deadline through turn 12. Either route reaches the same vault. After securing the evidence, rescue the archivist and extract every surviving engineer. The deadline applies only to the copy.',
+    radio: 'MARA / Central shutter control (9,11), door (11,10). Optional purge breaker (4,5), north gallery door (11,5). Evidence terminal (19,7). Confirm its HACK before ending the deadline turn. Archivist (21,13), southeast loading court (23-24,14-15).',
+    objectiveSummary: 'Copy the ledger before the purge. The central shutter is the short route. The optional north breaker adds three turns and takes the turret. Rescue the archivist and reach southeast extraction.',
+    extractionLabel: 'southeast loading court',
+    objectives: { requiredCircuits: ['archive-evidence'], rescueLabel: 'Rescue the archivist' },
+    rows: [
+      '##########################',
+      '#..........#.............#',
+      '#..........#.............#',
+      '#..###.##..#..###...####.#',
+      '#.....#....#...........#.#',
+      '#...nc#....d..c.....c..#.#',
+      '#.....#.c..#c.....c....#.#',
+      '#.....#....#.......n.....#',
+      '#..######..#..###c.......#',
+      '#..........#........####.#',
+      '#......c...d.............#',
+      '#........n.#.c.....c...c.#',
+      '#....c.....#...c...###..c#',
+      '#........c.#.........rc..#',
+      '#..........#..###......ee#',
+      '#....###...#...........ee#',
+      '#..........#..........c..#',
+      '##########################'
+    ],
+    heights: [],
+    squad: squad([[2,11],[2,12],[3,12],[3,13]]),
+    enemies: [
+      { id: 'archive-stack-guard', name: 'Stacks guard', x: 8, y: 6, hp: 5, maxHp: 5, damage: 2, range: 5, stride: 2 },
+      { id: 'archive-vault-sentry', name: 'Vault sentry', x: 20, y: 6, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 2 },
+      { id: 'archive-court-patrol', name: 'Loading court patrol', x: 22, y: 12, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 3 }
+    ],
+    turret: { x: 17, y: 10, range: 6, damage: 2 },
+    node: { x: 9, y: 11 }, rescue: { x: 21, y: 13 },
+    circuits: [
+      { id: 'purge-breaker', label: 'North purge breaker', x: 4, y: 5, controlled: false, doors: [{x: 11, y: 5}], turret: true },
+      { id: 'archive-shutter', label: 'Central shutter', x: 9, y: 11, controlled: false, doors: [{x: 11, y: 10}] },
+      { id: 'archive-evidence', label: 'Copy the occupation ledgers', x: 19, y: 7, controlled: false, doors: [] }
+    ],
+    archive: { evidenceCircuit: 'archive-evidence', delayCircuit: 'purge-breaker', deadline: 9, extension: 3 },
+    mastery: 'Copy the ledger without using the purge breaker and extract all four engineers in fourteen turns or fewer.',
+    debrief: 'The archivist checks the rescued ledger against the occupation broadcast schedules. Mara can now trace the transfers, but the next archive room takes two separate keys. Thirteen of twenty operations are playable. The rest of the Glass Archive, Broadcast Citadel and the campaign ending are in development.'
+  };
+  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice, span, blackout, pumpSiege, paperTrail];
   SB.Missions.get = function (id) {
     return SB.Missions.operations.find(function (mission) { return mission.id === id; }) || null;
   };

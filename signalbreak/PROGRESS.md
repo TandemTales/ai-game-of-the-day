@@ -634,3 +634,27 @@ forced second-Saturday release remains November 14. Scope has not been reduced.
 Author the opening Glass Archive operation: recover evidence before the purge,
 then get the squad and the evidence out. Verify both base and earned roster routes
 and document the remaining campaign scope. Tuesday, age 8; no release tonight.
+
+## November 10 Pacific nightly - Paper Trail content checkpoint
+
+Operation 13 opens the Glass Archive. Hack the central shutter for the short
+route under a hostile turret, or use the northern stacks to reach the breaker:
+it opens the gallery, allies the turret and extends the purge from the end of
+turn 9 to the end of turn 12. Copy the ledgers before that turn ends, then
+rescue the archivist and extract. Copying stops the timer; missing it ends
+the mission with a retry and no leaderboard submission. Both base-stat
+routes copied the evidence on turn 6 and extracted all four: direct turn 9,
+3180 points; breaker turn 10, 3150 points. Archive wall/cabinet materials,
+B/S/E markers and a map deadline distinguish the new district. The operation
+list collapses behind a named disclosure so it no longer pushes the board
+below the phone viewport. Save status remains visible.
+
+Focused 77/77 pass; syntax and whitespace checks pass. Final browser and full
+repository checks are running. Independent art/UI verdict: FAIL versus
+official XCOM 2; tiny similar actors, repeated surfaces, and limited scene
+depth and framing remain. Added the shutter marker after review. No audio/VFX
+critic pass, human play, physical-device or AAA evidence. Campaign 13/20.
+Next: Two Keys split-squad synchronized access, then Ghost Broadcast and
+Stolen Convoy. Citadel, persistent evidence/rescue consequences, mastery
+tracking, campaign score and finale are still required. FIRST PLAYABLE stays.
+No catalog, release or main changes.

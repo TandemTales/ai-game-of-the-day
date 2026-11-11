@@ -46,7 +46,7 @@ explicit user approval; time/usage limits are not approval.
 - [x] 10 Span Control: moving bridge capture, east rescue/bridgehead, west return lock and final ferry.
 - [x] 11 Blackout: coupled lamps/service access/turret, dark acquisition and technician/link infiltration.
 - [x] 12 Pump Siege: twin staffed pumps, consecutive pressure cycles and two-gallery reinforcements.
-- [ ] 13 Paper Trail: evidence recovery before purge.
+- [x] 13 Paper Trail: optional purge breaker and allied turret via the north gallery, or a short hostile-turret approach; copy evidence before the deadline, rescue the archivist and extract.
 - [ ] 14 Two Keys: synchronized split-squad access.
 - [ ] 15 Ghost Broadcast: decoy transmission redirects patrols.
 - [ ] 16 Stolen Convoy: transport interception preserves evidence.
@@ -56,7 +56,7 @@ explicit user approval; time/usage limits are not approval.
 - [ ] 20 Signalbreak: combined core shutdown and consequence-based epilogue.
 
 Mission-boundary local saves, sequential unlocks and replay best scores now exist
-for the twelve implemented missions. Squad progression, equipment and injury
+for the thirteen implemented missions. Squad progression, equipment and injury
 recovery are implemented; persistent district rescue/evidence consequences remain. Authored
 mastery targets appear in the HUD; no campaign medal/reward system exists yet.
 Story debriefs appear on victory. The clinic is a protected prerequisite, not yet
@@ -124,7 +124,7 @@ Grid coordinates integer (x,y), origin top left. Tiles: . floor, # tall blocker,
 c low cover, d circuit door, e exit, n network node, r rescue. Heights are separate.
 No procedural randomness required; identical state/action gives identical outcome.
 
-SB.Missions.operations contains the twelve authored missions, get(id) looks up an
+SB.Missions.operations contains the thirteen authored missions, get(id) looks up an
 implemented mission, and manifest holds the full twenty-operation contract.
 SB.Logic.newGame(id?) returns a fresh chosen operation (default Live Wire) and
 rejects unknown IDs. SB.Logic.preview(state,actorId,

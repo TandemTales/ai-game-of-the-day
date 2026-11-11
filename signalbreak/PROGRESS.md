@@ -658,3 +658,43 @@ Next: Two Keys split-squad synchronized access, then Ghost Broadcast and
 Stolen Convoy. Citadel, persistent evidence/rescue consequences, mastery
 tracking, campaign score and finale are still required. FIRST PLAYABLE stays.
 No catalog, release or main changes.
+
+## November 10 Paper Trail final verification and handoff
+
+Pushed intent b66cc4d and content e54c552 to dev. Focused Signalbreak 77/77
+passed (104.36s). Full repository 31/31 suites, 584/584 tests passed
+(396.59s); report node_modules/.cache/signalbreak-paper-full.json.
+Syntax and diff checks passed.
+
+Stable-source local Edge passed: thirteen earned actual-UI/live-AI wins with
+four engineers extracted in each, plus 78 operation/viewport combinations.
+Paper Trail's breaker path used native touch for map targeting: 53 orders,
+turn 9, 3180 points. The earned squad copied the evidence, rescued the
+archivist and extracted. A separate phone run ended nine turns normally,
+showed the purge and retry, made no leaderboard request, and reset to
+nine remaining turns on retry. Checks also covered map visibility with the
+collapsed picker, keyboard, save/reload, gear and injury treatment, storage
+denial, mocked rank/score ordering, file boot, DPR2, console and overflow.
+Production API was not contacted. Sandbox Edge launch failed; a local-only
+outside-sandbox retry passed. An earlier browser pass overlapped final
+renderer/picker edits; final report used a separate output directory and
+its SHA256 manifest (2026-11-11T07:13:41.964Z) matches the committed runtime.
+
+Lead inspected all twelve final title/play captures via three contact sheets,
+plus the phone live/purge and earned victory originals. The smallest briefing
+scrolls; the harness reached Deploy. The 4K sheet is downsampled. Independent
+fixture review found B/S/E and the deadline legible at 320/390/1440 after the
+shutter label fix. Comparison against official XCOM 2 still failed art/UI:
+actor silhouettes, environment material depth and framing lag the reference.
+Comparison: node_modules/.cache/signalbreak/paper-critic/paper-side-by-side.png.
+Reference: https://store.steampowered.com/app/268500/XCOM_2/ . Cameras and
+moments differ, and the Archive fixture used a synthetic unlock. No audio,
+VFX, human play, physical-device, performance or AAA sign-off.
+
+NEXT FIRST: operation 14 Two Keys, with a split squad synchronizing access,
+then Ghost Broadcast and Stolen Convoy. Campaign 13/20, Glass Archive 1/4;
+Broadcast Citadel has no playable operation. Persistent district outcomes,
+tracked mastery, final campaign score and finale remain required. Keep
+FIRST PLAYABLE, v1 saves and Tidelock intact. Tuesday, age 8. No release,
+completion marker, catalog edit or main promotion. The scheduled second
+Saturday remains November 14 Pacific.

@@ -627,3 +627,10 @@ final campaign leaderboard scoring and finale/epilogue remain required. Preserve
 roster/loadouts/injuries, v1 saves, base/grown routes, full scope and FIRST PLAYABLE.
 Tidelock remains on hold. Main/origin/main unchanged at 69400b9. Tuesday age 8;
 forced second-Saturday release remains November 14. Scope has not been reduced.
+
+
+## November 10 Pacific nightly - Paper Trail intent
+
+Author the opening Glass Archive operation: recover evidence before the purge,
+then get the squad and the evidence out. Verify both base and earned roster routes
+and document the remaining campaign scope. Tuesday, age 8; no release tonight.

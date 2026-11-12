@@ -704,3 +704,56 @@ Saturday remains November 14 Pacific.
 Author operation 14 around paired access controls and a split-squad rendezvous.
 Verify the synchronized opening, the extraction route with all four engineers
 and the campaign unlock. Wednesday, age 9. Continue campaign development on dev.
+
+## November 11 Pacific nightly - Two Keys content checkpoint
+
+Operation 14 splits the squad between the Glass Archive stacks and sorting
+floor. Two different engineers must confirm the N and S keys on the same
+player turn. The first arm expires at End Turn; the second latches the shared
+gate, allies its turret and scores 500 once. The map and objective list show
+the pending key. The squad reunites at the gate, rescues the cipher keeper and
+extracts at the loading stairs. Losing the second operator before the gate
+opens ends the mission with a specific retry message.
+
+The base-stat pilot extracted all four on turn 10, with 58 legal orders and
+2,950 points. Separate same-turn, expiry, retry and save checks pass. Campaign
+14/20, Glass Archive 2/4. FIRST PLAYABLE remains visible. Next is Ghost
+Broadcast's decoy and patrol routing, then Stolen Convoy. Citadel, district
+consequences, tracked mastery, campaign scoring and the finale remain required.
+
+Independent art/UI verdict: FAIL versus official XCOM 2. The N/S tags and
+armed/open states were clear at 320, 390 and 1440 pixels. Repeated slabs,
+small similar actors and unused desktop space trail the reference in material
+depth, silhouette and framing. The comparison uses different camera angles.
+The critic's separate save-unlock fixture used normal touch and pointer orders
+against live AI. On the 390px run, ending turn 5 after the first key showed
+expiry, then rearming both keys opened the gate on turn 6 and all four
+engineers extracted on turn 11. Art review and input checks leave audio, VFX,
+human play, physical-device and performance evidence open.
+Comparison: node_modules/.cache/signalbreak/keys-critic/two-keys-side-by-side.png.
+Reference: https://store.steampowered.com/app/268500/XCOM_2/
+
+## November 11 Two Keys final verification and handoff
+
+All 83 Signalbreak tests and all 590 repository tests across 31 suites passed
+(388.916s full run). An initial test process crossed into implementation and
+picked up the new mission with the old operation-count assertions. The final
+run started after runtime and test edits had settled. Syntax and diff checks
+passed. Report: node_modules/.cache/signalbreak-keys-full.json.
+
+The stable-source local Edge run earned fourteen wins through actual UI orders
+against live AI, with all four engineers extracted from each operation. Two Keys
+used native touch to target map tiles, opened both keys on turn 5, and won on
+turn 10 with 2,950 points in 58 orders. All 84 operation/viewport combinations
+passed touch, overflow, console and request checks. Save/reload, equipment,
+storage denial, local rank-before-submit and the delayed-score snapshot, file
+boot, DPR2 and loss/retry also passed. Production API was not contacted. The
+sandboxed browser failed to start; the local-only retry passed. The source
+manifest in node_modules/.cache/signalbreak/keys-final matches the runtime.
+
+Reviewed all twelve Two Keys title/play images across three contact sheets
+and the original phone play, earned armed and earned victory captures. Deploy
+is reachable by scrolling the 320px briefing. The 4K contact is downsampled.
+No catalog edit, completion marker or release. Next is Ghost Broadcast. Keep
+the twenty-operation scope, v1 saves, Tidelock on hold and FIRST PLAYABLE.
+The scheduled second Saturday is November 14 Pacific.

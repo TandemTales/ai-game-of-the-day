@@ -31,7 +31,7 @@ async function drive(page,touch=false){
     if(['move','attack','heal','hack'].includes(p.kind))await tile(page,p.x,p.y,touch);
     const shown=await page.evaluate(()=>SB.Game.getPreview());assert(shown&&shown.legal&&shown.kind===p.kind&&shown.x===p.x&&shown.y===p.y,JSON.stringify({wanted:p,shown}));
     await page.locator('#confirm').click();
-    const current=await page.evaluate(()=>({id:SB.Game.getState().id,key:JSON.stringify(SB.Game.getState().circuits||SB.Game.getState().network)}));
+    const current=await page.evaluate(()=>{const s=SB.Game.getState();return{id:s.id,key:JSON.stringify([s.circuits||s.network,s.keyPair])};});
     if(current.key!==circuit){circuit=current.key;await page.locator('.map-wrap').screenshot({path:path.join(out,current.id+'-circuit-'+i+'.png')});}
   }
   const final=await page.evaluate(()=>({id:SB.Game.getState().id,phase:SB.Game.getState().phase,score:SB.Game.getState().score,turn:SB.Game.getState().turn,rescued:SB.Game.getState().rescued,extracted:SB.Game.getState().squad.filter(u=>u.extracted).length}));

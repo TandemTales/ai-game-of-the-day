@@ -31,14 +31,14 @@ function pilot(SB, s, report = []) {
   }
   return report;
 }
-test('full manifest promises twenty operations; thirteen distinct authored maps are playable', () => {
+test('full manifest promises twenty operations; fourteen distinct authored maps are playable', () => {
   const SB=load();expect(SB.Missions.manifest).toHaveLength(5);
   const names=SB.Missions.manifest.flatMap(d=>Array.from(d).slice(1));expect(new Set(names).size).toBe(20);
   expect(SB.Missions.opening.title).toBe('Live Wire');
-  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege','paper-trail']);
-  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(13);
+  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege','paper-trail','two-keys']);
+  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(14);
   for(const m of SB.Missions.operations){expect(m.rows.every(r=>r.length===m.rows[0].length)).toBe(true);for(const n of m.circuits||[])expect(m.rows[n.y][n.x]).toBe('n');}
-  expect(()=>SB.Logic.newGame('two-keys')).toThrow('Unknown operation');
+  expect(()=>SB.Logic.newGame('ghost-broadcast')).toThrow('Unknown operation');
 });
 test('fresh states are isolated and previews never mutate the tactical state', () => {
   const {Logic:L}=load(),a=L.newGame(),b=L.newGame(),before=JSON.stringify(a);
@@ -110,7 +110,7 @@ test('complete legal pilot is deterministic across fresh runs', () => {
 });
 
 const {run:campaignRoute}=require('../tools/signalbreak-route.cjs');
-test.each(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege','paper-trail'])('%s can be won by legal orders against live AI with four survivors', id => {
+test.each(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege','paper-trail','two-keys'])('%s can be won by legal orders against live AI with four survivors', id => {
   const SB=load(),s=SB.Logic.newGame(id),report=campaignRoute(SB,s);
   expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);
   expect(report.some(p=>p.kind==='hack')).toBe(true);expect(report.some(p=>p.kind==='rescue')).toBe(true);
@@ -328,10 +328,10 @@ test('antenna lanes alternate, warn before movement, damage only exposed living 
  const hp=s.squad[0].hp;L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);expect(L.activeLane(s).label).not.toBe(first.label);
  s.circuits.find(c=>c.id==='tower').controlled=true;expect(L.activeLane(s)).toBe(null);L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);
 });
-test('all thirteen operations support consecutive persisted squad progression with legal orders',()=>{
+test('all fourteen operations support consecutive persisted squad progression with legal orders',()=>{
  const SB=load(),C=SB.Campaign,c=C.fresh(),store=memoryStorage();
  for(const m of SB.Missions.operations){for(const id of ['nia','sol','rook','ivo'])C.treat(c,id);const s=C.prepare(c,SB.Logic.newGame(m.id));campaignRoute(SB,s);expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);expect(C.complete(c,s)).toBe(true);C.save(store,c);expect(C.load(store).campaign).toEqual(c);}
- expect(Object.keys(c.results)).toHaveLength(13);expect(c.roster.nia.xp).toBe(13);
+ expect(Object.keys(c.results)).toHaveLength(14);expect(c.roster.nia.xp).toBe(14);
 });
 
 
@@ -546,4 +546,70 @@ test('extending the Archive deadline invalidates a queued evidence order without
  order(L,s,sol.id,'hack',breaker.x,breaker.y);
  const snapshot=JSON.stringify(s);expect(L.commit(s,old)).toBe(false);expect(JSON.stringify(s)).toBe(snapshot);
  order(L,s,nia.id,'hack',evidence.x,evidence.y);expect(L.archiveStatus(s).secured).toBe(true);
+});
+
+function twoKeysFixture() {
+ const {Logic:L}=load(),s=L.newGame('two-keys');
+ const [north,south]=s.circuits, [nia,sol]=s.squad;
+ s.enemies=[];
+ Object.assign(nia,{x:north.x-1,y:north.y});
+ Object.assign(sol,{x:south.x-1,y:south.y});
+ return {L,s,north,south,nia,sol,gate:north.doors[0]};
+}
+test.each([false,true])('Two Keys latches both routes and scores once in either order (south first=%s)', reverse=>{
+ const {L,s,north,south,nia,sol,gate}=twoKeysFixture();
+ const [first,second,a,b]=reverse?[south,north,sol,nia]:[north,south,nia,sol];
+ const initial=JSON.stringify(s),pending=L.preview(s,b.id,'hack',second.x,second.y);
+ L.keyPairStatus(s).keys[0].x=99;L.objectiveStatus(s);
+ expect(JSON.stringify(s)).toBe(initial);
+ order(L,s,a.id,'hack',first.x,first.y);
+ expect(a.ap).toBe(1);expect(s.score).toBe(0);expect(s.network).toBe(false);
+ expect(L.keyPairStatus(s)).toMatchObject({armedId:first.id,opened:false});
+ expect(L.doorOpen(s,gate.x,gate.y)).toBe(false);expect(L.turretAllied(s)).toBe(false);
+ const armed=JSON.stringify(s);
+ expect(L.commit(s,pending)).toBe(false);expect(JSON.stringify(s)).toBe(armed);
+ expect(L.preview(s,a.id,'hack',first.x,first.y).legal).toBe(false);
+ order(L,s,b.id,'hack',second.x,second.y);
+ expect(b.ap).toBe(1);expect(s.score).toBe(500);expect(s.network).toBe(true);
+ expect(L.keyPairStatus(s)).toMatchObject({armedId:null,opened:true});
+ expect(L.doorOpen(s,gate.x,gate.y)).toBe(true);expect(L.turretAllied(s)).toBe(true);
+ L.endTurn(s);
+ expect(L.preview(s,a.id,'hack',first.x,first.y).legal).toBe(false);expect(s.score).toBe(500);
+});
+test('Two Keys rejects a second key by the first operator and expires safely at end turn',()=>{
+ const {L,s,north,south,nia,sol,gate}=twoKeysFixture();
+ order(L,s,nia.id,'hack',north.x,north.y);
+ const stale=L.preview(s,sol.id,'hack',south.x,south.y);
+ Object.assign(nia,{x:south.x,y:south.y});
+ const before=JSON.stringify(s);
+ expect(L.preview(s,nia.id,'hack',south.x,south.y).legal).toBe(false);
+ expect(JSON.stringify(s)).toBe(before);
+ Object.assign(nia,{x:north.x-1,y:north.y});
+ L.endTurn(s);
+ expect(L.keyPairStatus(s)).toMatchObject({armedId:null,opened:false});
+ expect(L.doorOpen(s,gate.x,gate.y)).toBe(false);
+ expect(s.last).toMatch(/expir/i);
+ const next=JSON.stringify(s);
+ expect(L.commit(s,stale)).toBe(false);expect(JSON.stringify(s)).toBe(next);
+ order(L,s,sol.id,'hack',south.x,south.y);
+ order(L,s,nia.id,'hack',north.x,north.y);
+ expect(L.keyPairStatus(s).opened).toBe(true);expect(s.score).toBe(500);
+});
+test('an unopened Two Keys vault fails explicitly when the squad cannot field two operators',()=>{
+ const {L,s,north,nia}=twoKeysFixture();
+ s.squad.slice(1).forEach(u=>{u.hp=0;});
+ const pending=L.preview(s,nia.id,'hack',north.x,north.y);
+ L.endTurn(s);
+ expect(s.phase).toBe('lost');expect(s.keyPair.failed).toBe(true);
+ const frozen=JSON.stringify(s);
+ expect(L.commit(s,pending)).toBe(false);expect(L.endTurn(s)).toBe(false);
+ expect(JSON.stringify(s)).toBe(frozen);
+});
+test('thirteen-clear v1 saves unlock Two Keys and keep previous records',()=>{
+ const SB=load(),C=SB.Campaign,results={};
+ for(const m of SB.Missions.operations.slice(0,13))results[m.id]={score:3000,turns:10,survivors:4};
+ const c=C.normalize({version:1,results,selected:'two-keys'});
+ expect(C.unlocked(c,'two-keys')).toBe(true);expect(c.roster.nia.xp).toBe(13);
+ expect(c.results['paper-trail']).toEqual(results['paper-trail']);
+ expect(c.results['two-keys']).toBeUndefined();expect(C.normalize(c)).toEqual(c);
 });

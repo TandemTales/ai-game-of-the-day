@@ -645,9 +645,59 @@
     ],
     archive: { evidenceCircuit: 'archive-evidence', delayCircuit: 'purge-breaker', deadline: 9, extension: 3 },
     mastery: 'Copy the ledger without using the purge breaker and extract all four engineers in fourteen turns or fewer.',
-    debrief: 'The archivist checks the rescued ledger against the occupation broadcast schedules. Mara can now trace the transfers, but the next archive room takes two separate keys. Thirteen of twenty operations are playable. The rest of the Glass Archive, Broadcast Citadel and the campaign ending are in development.'
+    debrief: 'The archivist checks the rescued ledger against the occupation broadcast schedules. Mara can now trace the transfers, but the next archive room takes two separate keys.'
   };
-  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice, span, blackout, pumpSiege, paperTrail];
+  var twoKeys = {
+    id: 'two-keys', title: 'Two Keys', district: 'Glass Archive', sequence: 14,
+    briefing: 'The ledger names a cipher keeper who can decode the occupation transport orders. The keeper is behind a gate with controls in two separate wings. Send a pair into the north stacks and a pair into the south sorting floor. Keep 1 AP on a different engineer at each key, then HACK and confirm both keys in the same player turn, in either order. Ending the turn with only one key armed resets it. Once both keys are confirmed, the gate stays open and its turret becomes allied. Regroup at the center gate, free the cipher keeper and extract at the southeast loading stairs.',
+    radio: 'MARA / North stacks key N (12,4). South sorting key S (12,13). Save 1 AP at each and HACK both before End Turn. Regroup at the center gate (16,8). Cipher keeper (22,7). Loading stairs (23–24,14–15).',
+    objectiveSummary: 'Split the squad. Confirm both key HACKs with different engineers in one player turn, regroup at the center gate, rescue the cipher keeper and extract.',
+    extractionLabel: 'southeast loading stairs',
+    objectives: {
+      requiredCircuits: ['north-key', 'south-key'],
+      rescueLabel: 'Free the cipher keeper',
+      rescueRequires: ['north-key', 'south-key']
+    },
+    rows: [
+      '##########################',
+      '#...............#........#',
+      '#.........c.....#........#',
+      '#....####.......#........#',
+      '#......c.#..n...#..####..#',
+      '#...c....#...c..#........#',
+      '#......####.....#c..c..c.#',
+      '#....#......c...#.....r..#',
+      '#....#######....d.....c..#',
+      '#....#..........#.c..#####',
+      '#......###....c.#........#',
+      '#..c..#....c....#........#',
+      '#.....#.c.#.....#..###.c.#',
+      '#.........#.nc..#.....#..#',
+      '#......###......#..c..#ee#',
+      '#........c......#....c#ee#',
+      '#...............#.......c#',
+      '##########################'
+    ],
+    heights: [],
+    squad: squad([[2,4],[2,13],[3,5],[3,12]]),
+    enemies: [
+      { id: 'keys-stack-watch', name: 'Stacks watch', x: 8, y: 4, hp: 5, maxHp: 5, damage: 2, range: 5, stride: 2 },
+      { id: 'keys-north-patrol', name: 'North gallery patrol', x: 14, y: 3, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 2 },
+      { id: 'keys-sorting-watch', name: 'Sorting floor watch', x: 8, y: 12, hp: 5, maxHp: 5, damage: 2, range: 4, stride: 2 },
+      { id: 'keys-south-patrol', name: 'South gallery patrol', x: 13, y: 14, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 3 },
+      { id: 'keys-cipher-guard', name: 'Cipher room guard', x: 23, y: 7, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 2 }
+    ],
+    turret: { x: 19, y: 8, range: 6, damage: 2 },
+    node: { x: 12, y: 4 }, rescue: { x: 22, y: 7 },
+    circuits: [
+      { id: 'north-key', label: 'North stacks key', x: 12, y: 4, controlled: false, doors: [{x: 16, y: 8}], turret: true },
+      { id: 'south-key', label: 'South sorting key', x: 12, y: 13, controlled: false, doors: [{x: 16, y: 8}] }
+    ],
+    keyPair: { circuitIds: ['north-key', 'south-key'], armed: null, opened: false },
+    mastery: 'Open the gate on the first synchronization attempt and extract all four engineers in sixteen turns or fewer.',
+    debrief: 'The cipher keeper decodes a pattern in the transport orders. Patrols change route whenever a priority broadcast names a loading court. Mara traces the carrier to a rehearsal transmitter. The squad will use it to send a Ghost Broadcast.'
+  };
+  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice, span, blackout, pumpSiege, paperTrail, twoKeys];
   SB.Missions.get = function (id) {
     return SB.Missions.operations.find(function (mission) { return mission.id === id; }) || null;
   };

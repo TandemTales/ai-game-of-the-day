@@ -239,3 +239,13 @@ operation without inventing a result. Browser harness now follows the actual
 operation list, expands the picker for replay, checks initial map visibility
 and exercises purge/retry through normal touch orders. See PROGRESS for the
 final browser result.
+
+## November 11 Two Keys coverage
+
+Rules checks cover both key orders, same-operator and duplicate-key rejection,
+stale confirmation without mutation, end-turn expiry and rearm, one-time gate,
+turret and score latch, and the loss state when fewer than two operators remain.
+The deterministic base-stat pilot and the consecutive earned campaign both
+exercise the full operation. A thirteen-clear v1 save unlocks Two Keys while
+preserving Paper Trail's record. The browser harness captures the first arm and
+the synchronized state as separate images and runs the native-touch route.

@@ -47,7 +47,7 @@ explicit user approval; time/usage limits are not approval.
 - [x] 11 Blackout: coupled lamps/service access/turret, dark acquisition and technician/link infiltration.
 - [x] 12 Pump Siege: twin staffed pumps, consecutive pressure cycles and two-gallery reinforcements.
 - [x] 13 Paper Trail: optional purge breaker and allied turret via the north gallery, or a short hostile-turret approach; copy evidence before the deadline, rescue the archivist and extract.
-- [ ] 14 Two Keys: synchronized split-squad access.
+- [x] 14 Two Keys: clear separate stacks and sorting wings, activate both consoles in one turn with different engineers, regroup through the shared vault gate, rescue the cipher keeper and extract.
 - [ ] 15 Ghost Broadcast: decoy transmission redirects patrols.
 - [ ] 16 Stolen Convoy: transport interception preserves evidence.
 - [ ] 17 Outer Relay: network siege approaches.
@@ -56,7 +56,7 @@ explicit user approval; time/usage limits are not approval.
 - [ ] 20 Signalbreak: combined core shutdown and consequence-based epilogue.
 
 Mission-boundary local saves, sequential unlocks and replay best scores now exist
-for the thirteen implemented missions. Squad progression, equipment and injury
+for the fourteen implemented missions. Squad progression, equipment and injury
 recovery are implemented; persistent district rescue/evidence consequences remain. Authored
 mastery targets appear in the HUD; no campaign medal/reward system exists yet.
 Story debriefs appear on victory. The clinic is a protected prerequisite, not yet
@@ -124,7 +124,7 @@ Grid coordinates integer (x,y), origin top left. Tiles: . floor, # tall blocker,
 c low cover, d circuit door, e exit, n network node, r rescue. Heights are separate.
 No procedural randomness required; identical state/action gives identical outcome.
 
-SB.Missions.operations contains the thirteen authored missions, get(id) looks up an
+SB.Missions.operations contains the fourteen authored missions, get(id) looks up an
 implemented mission, and manifest holds the full twenty-operation contract.
 SB.Logic.newGame(id?) returns a fresh chosen operation (default Live Wire) and
 rejects unknown IDs. SB.Logic.preview(state,actorId,
@@ -144,6 +144,11 @@ are shared by render/input/rules; objectiveStatus supplies mission-specific HUD
 goals. Closing a mutually exclusive route cannot strand active squad members.
 Each circuit capture scores once, including repeated transfers. Raised-tile
 selection uses displayed height-adjusted diamond centers.
+
+Two Keys uses two consoles that share a vault gate. The first confirmation arms
+one key for the current player turn. A different engineer confirms the other key
+to latch both circuits and score the pair once. Ending the turn early clears
+the armed key. The map and objective list read the same keyPairStatus accessor.
 
 Campaign saves use signalbreak-campaign-v1 in localStorage, validate contiguous
 completed operations, and persist mission-boundary selected/unlocked/best

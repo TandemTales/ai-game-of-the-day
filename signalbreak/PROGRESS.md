@@ -698,3 +698,9 @@ tracked mastery, final campaign score and finale remain required. Keep
 FIRST PLAYABLE, v1 saves and Tidelock intact. Tuesday, age 8. No release,
 completion marker, catalog edit or main promotion. The scheduled second
 Saturday remains November 14 Pacific.
+
+## November 11 Pacific nightly - Two Keys intent
+
+Author operation 14 around paired access controls and a split-squad rendezvous.
+Verify the synchronized opening, the extraction route with all four engineers
+and the campaign unlock. Wednesday, age 9. Continue campaign development on dev.

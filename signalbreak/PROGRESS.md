@@ -757,3 +757,9 @@ is reachable by scrolling the 320px briefing. The 4K contact is downsampled.
 No catalog edit, completion marker or release. Next is Ghost Broadcast. Keep
 the twenty-operation scope, v1 saves, Tidelock on hold and FIRST PLAYABLE.
 The scheduled second Saturday is November 14 Pacific.
+
+## November 12 Pacific nightly - Ghost Broadcast intent
+
+Author operation 15 around a decoy transmission that redirects Archive patrols.
+Verify the resulting approach, evidence recovery, rescue, extraction and earned
+campaign unlock. Thursday, age 10. Continue campaign development on dev.

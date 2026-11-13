@@ -54,6 +54,11 @@ function nextOrder(SB, s, options={}) {
       goal=access.controlled?evidence:access;
     }
   }
+  else if (s.broadcast) {
+    const [decoy, evidence] = s.circuits;
+    if (!options.directBroadcast && !decoy.controlled) goal = decoy;
+    else if (!evidence.controlled) goal = evidence;
+  }
   else if (bridge) goal=bridgeGoal;
   else if(s.lighting){
     const dark=s.circuits.find(c=>c.id==='blackout'),link=s.circuits.find(c=>c.id==='archive-link');

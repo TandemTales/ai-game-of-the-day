@@ -139,6 +139,18 @@
     return f.open ? f.label + ' boarding OPEN · ' + f.turnsUntilChange + ' player turn(s) remaining' :
       'Train in transit · ' + f.nextLabel + ' opens in ' + f.turnsUntilChange + ' turn(s)';
   }
+  function broadcastStatus(s) {
+    if (!s.broadcast) return null;
+    var broadcast = s.broadcast;
+    return {
+      active: s.circuits.some(function (c) { return c.id === broadcast.circuitId && c.controlled; }),
+      destination: { x: broadcast.destination.x, y: broadcast.destination.y },
+      destinationLabel: broadcast.destinationLabel,
+      patrols: s.enemies.filter(function (e) {
+        return living(e) && broadcast.patrolIds.indexOf(e.id) !== -1;
+      }).map(function (e) { return { id: e.id, x: e.x, y: e.y }; })
+    };
+  }
   function deployAmbush(s) {
     if (!s.ambush || s.turn < s.ambush.turn) return;
     var deployed = s.ambush.deployed = s.ambush.deployed || {};
@@ -279,6 +291,14 @@
         'Gate locked / HACK both keys with different engineers in the same turn';
       status.unshift({ id: 'key-pair', label: pairLabel, done: pair.opened });
     }
+    var broadcast = broadcastStatus(s);
+    if (broadcast) {
+      status.unshift({ id: 'broadcast', label: broadcast.active ?
+        'Decoy active / north hatch open / ' + (broadcast.patrols.length ?
+          broadcast.patrols.length + ' marked patrols routed to ' + broadcast.destinationLabel : 'no marked patrols remain') :
+        'Optional: HACK the transmitter to open the north hatch and divert marked patrols to ' + broadcast.destinationLabel,
+        done: broadcast.active });
+    }
     status.push({ id: 'rescue', label: s.objectives && s.objectives.rescueLabel || 'Rescue signal worker', done: !!s.rescued });
     if (s.lift) {
       var lift = liftStatus(s);
@@ -324,13 +344,15 @@
     return t === '#' || t === 'w' || t === 'd' && !doorOpen(s, x, y) || !!s.turret && x === s.turret.x && y === s.turret.y;
   }
   function distance(a, b) { return Math.abs(a.x - b.x) + Math.abs(a.y - b.y); }
-  function path(s, actor, x, y) {
-    if (!Number.isInteger(x) || !Number.isInteger(y) || blocked(s, x, y)) return null;
+  function path(s, actor, x, y, radius) {
+    radius = radius || 0;
+    if (!Number.isInteger(x) || !Number.isInteger(y) || (!radius && blocked(s, x, y))) return null;
+    var target = { x: x, y: y };
     var q = [{ x: actor.x, y: actor.y }], parents = {}, head = 0, key = function (a,b) { return a + ',' + b; };
     parents[key(actor.x, actor.y)] = null;
     while (head < q.length) {
       var p = q[head++];
-      if (p.x === x && p.y === y) {
+      if (radius ? distance(p, target) <= radius : p.x === x && p.y === y) {
         var out = [], at = p;
         while (at) { out.unshift({ x: at.x, y: at.y }); at = parents[key(at.x, at.y)]; }
         return out;
@@ -462,6 +484,10 @@
         p.reason = armed ? '1 AP · synchronize both keys and open the gate' :
           '1 AP · arm ' + circuit.label + ' · HACK the other key with a different engineer before End Turn';
       }
+      if (s.broadcast && circuit.id === s.broadcast.circuitId) {
+        p.reason = '1 AP · open the north hatch · marked patrols head to ' + s.broadcast.destinationLabel +
+          ' on enemy turns and can still fire';
+      }
     } else if (kind === 'rescue') {
       if (x !== s.rescue.x || y !== s.rescue.y || s.rescued) return fail('No worker to rescue here.');
       if (s.objectives && (s.objectives.rescueRequires || []).some(function (id) { return !(s.circuits || []).some(function (c) { return c.id === id && c.controlled; }); })) return fail('Restore the rescue route circuit before evacuating the worker.');
@@ -547,6 +573,8 @@
             var archive = archiveStatus(s);
             log(s, 'North route open · turret allied' +
               (archive.secured ? '' : ' · purge delayed to end of turn ' + archive.deadline), 'hack');
+          } else if (s.broadcast && circuit.id === s.broadcast.circuitId) {
+            log(s, 'Decoy transmitting · north hatch open · marked patrols head to ' + s.broadcast.destinationLabel, 'hack');
           } else {
             log(s, circuit.label + ' · circuit routed' + (circuit.exclusiveGroup ? ' · alternate route closed' : ''), 'hack');
           }
@@ -559,6 +587,17 @@
     if (p.kind === 'extract') { a.extracted = true; log(s, a.name + ' extracted', 'rescue'); }
     outcome(s); return true;
   }
+  function enemyApproachPath(s, enemy, target) {
+    var best = null, startDistance = distance(enemy, target);
+    for (var y = 1; y < s.height - 1; y++) for (var x = 1; x < s.width - 1; x++) {
+      if (occupant(s, x, y) || blocked(s, x, y) || Math.abs(enemy.x - x) + Math.abs(enemy.y - y) > enemy.stride) continue;
+      var remaining = Math.abs(x - target.x) + Math.abs(y - target.y);
+      if (remaining >= startDistance) continue;
+      var route = path(s, enemy, x, y);
+      if (route && route.length - 1 <= enemy.stride && (!best || remaining < best.distance)) best = { route: route, distance: remaining };
+    }
+    return best && best.route;
+  }
   function endTurn(s) {
     if (s.phase !== 'player') return false;
     var expiredKey = s.keyPair && s.keyPair.armed;
@@ -570,23 +609,18 @@
         .sort(function (a,b) { return distance(s.turret, a) - distance(s.turret, b); })[0];
       if (turretTarget) strike(s, s.turret, turretTarget, allied ? 'Allied turret' : 'Hostile turret');
     }
+    var broadcast = broadcastStatus(s);
     s.enemies.forEach(function (e) {
       if (!living(e)) return;
       var squad = s.squad.filter(function (u) { return living(u) && (!s.lighting || detected(s, e, u) && visible(s, e, u)); }).sort(function (a,b) { return distance(e,a) - distance(e,b); }), target = squad[0];
-      if (!target) return;
-      if (!canShoot(s, e, target)) {
-        var best = null;
-        for (var y = 1; y < s.height - 1; y++) for (var x = 1; x < s.width - 1; x++) {
-          if (occupant(s, x, y) || blocked(s, x, y)) continue;
-          var dist = Math.abs(e.x - x) + Math.abs(e.y - y);
-          if (dist > e.stride || distance({ x:x,y:y }, target) >= distance(e, target)) continue;
-          var route = path(s, e, x, y);
-          if (route && route.length - 1 <= e.stride && (!best || distance({x:x,y:y},target) < best.distance)) best = { route: route, distance: distance({x:x,y:y},target) };
-        }
-        if (best) for (var i = 1; i < best.route.length && living(e); i++) {
-          e.x = best.route[i].x; e.y = best.route[i].y;
-          s.squad.forEach(function (u) { if (living(e) && living(u) && u.watch && canShoot(s, u, e)) { u.watch = false; strike(s, u, e, u.name + ' overwatch'); } });
-        }
+      var redirected = broadcast && broadcast.active && s.broadcast.patrolIds.indexOf(e.id) !== -1;
+      if (!target && !redirected) return;
+      var route = null;
+      if (redirected) route = path(s, e, broadcast.destination.x, broadcast.destination.y, 2);
+      else if (!canShoot(s, e, target)) route = enemyApproachPath(s, e, target);
+      if (route) for (var i = 1; i < route.length && i <= e.stride && living(e); i++) {
+        e.x = route[i].x; e.y = route[i].y;
+        s.squad.forEach(function (u) { if (living(e) && living(u) && u.watch && canShoot(s, u, e)) { u.watch = false; strike(s, u, e, u.name + ' overwatch'); } });
       }
       // Re-evaluate after movement and reactions; dead/extracted targets never take fire.
       var available = s.squad.filter(function (u) { return canShoot(s, e, u); }).sort(function (a,b) { return distance(e,a) - distance(e,b); });
@@ -608,5 +642,5 @@
   SB.Logic = { newGame: newGame, tile: tile, height: height, unit: unit, living: living, occupant: occupant,
     blocked: blocked, canStep: canStep, path: path, visible: visible, lit: lit, detected: detected, cover: cover, damage: damage, preview: preview, commit: commit, endTurn: endTurn,
     waterStatus: waterStatus, waterRouteAt: waterRouteAt, liftAt: liftAt, liftStatus: liftStatus, liftControlAt: liftControlAt, defenseStatus: defenseStatus, pumpStatus: pumpStatus, keyPairStatus: keyPairStatus, archiveStatus: archiveStatus, activeLane: activeLane,
-    circuitAt: circuitAt, doorOpen: doorOpen, objectiveStatus: objectiveStatus, turretAllied: turretAllied, extractionStatus: extractionStatus };
+    circuitAt: circuitAt, doorOpen: doorOpen, objectiveStatus: objectiveStatus, turretAllied: turretAllied, extractionStatus: extractionStatus, broadcastStatus: broadcastStatus };
 })(window);

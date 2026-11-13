@@ -31,14 +31,14 @@ function pilot(SB, s, report = []) {
   }
   return report;
 }
-test('full manifest promises twenty operations; fourteen distinct authored maps are playable', () => {
+test('full manifest promises twenty operations; fifteen distinct authored maps are playable', () => {
   const SB=load();expect(SB.Missions.manifest).toHaveLength(5);
   const names=SB.Missions.manifest.flatMap(d=>Array.from(d).slice(1));expect(new Set(names).size).toBe(20);
   expect(SB.Missions.opening.title).toBe('Live Wire');
-  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege','paper-trail','two-keys']);
-  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(14);
+  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege','paper-trail','two-keys','ghost-broadcast']);
+  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(15);
   for(const m of SB.Missions.operations){expect(m.rows.every(r=>r.length===m.rows[0].length)).toBe(true);for(const n of m.circuits||[])expect(m.rows[n.y][n.x]).toBe('n');}
-  expect(()=>SB.Logic.newGame('ghost-broadcast')).toThrow('Unknown operation');
+  expect(()=>SB.Logic.newGame('stolen-convoy')).toThrow('Unknown operation');
 });
 test('fresh states are isolated and previews never mutate the tactical state', () => {
   const {Logic:L}=load(),a=L.newGame(),b=L.newGame(),before=JSON.stringify(a);
@@ -110,7 +110,7 @@ test('complete legal pilot is deterministic across fresh runs', () => {
 });
 
 const {run:campaignRoute}=require('../tools/signalbreak-route.cjs');
-test.each(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege','paper-trail','two-keys'])('%s can be won by legal orders against live AI with four survivors', id => {
+test.each(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege','paper-trail','two-keys','ghost-broadcast'])('%s can be won by legal orders against live AI with four survivors', id => {
   const SB=load(),s=SB.Logic.newGame(id),report=campaignRoute(SB,s);
   expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);
   expect(report.some(p=>p.kind==='hack')).toBe(true);expect(report.some(p=>p.kind==='rescue')).toBe(true);
@@ -328,10 +328,10 @@ test('antenna lanes alternate, warn before movement, damage only exposed living 
  const hp=s.squad[0].hp;L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);expect(L.activeLane(s).label).not.toBe(first.label);
  s.circuits.find(c=>c.id==='tower').controlled=true;expect(L.activeLane(s)).toBe(null);L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);
 });
-test('all fourteen operations support consecutive persisted squad progression with legal orders',()=>{
+test('all fifteen operations support consecutive persisted squad progression with legal orders',()=>{
  const SB=load(),C=SB.Campaign,c=C.fresh(),store=memoryStorage();
  for(const m of SB.Missions.operations){for(const id of ['nia','sol','rook','ivo'])C.treat(c,id);const s=C.prepare(c,SB.Logic.newGame(m.id));campaignRoute(SB,s);expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);expect(C.complete(c,s)).toBe(true);C.save(store,c);expect(C.load(store).campaign).toEqual(c);}
- expect(Object.keys(c.results)).toHaveLength(14);expect(c.roster.nia.xp).toBe(14);
+ expect(Object.keys(c.results)).toHaveLength(15);expect(c.roster.nia.xp).toBe(15);
 });
 
 
@@ -612,4 +612,53 @@ test('thirteen-clear v1 saves unlock Two Keys and keep previous records',()=>{
  expect(C.unlocked(c,'two-keys')).toBe(true);expect(c.roster.nia.xp).toBe(13);
  expect(c.results['paper-trail']).toEqual(results['paper-trail']);
  expect(c.results['two-keys']).toBeUndefined();expect(C.normalize(c)).toEqual(c);
+});
+
+test('Ghost Broadcast opens the north hatch and redirects only its marked patrols on End Turn', () => {
+ const {Logic:L}=load(),s=L.newGame('ghost-broadcast');
+ const [decoy]=s.circuits, hatch=decoy.doors[0], u=s.squad[0];
+ Object.assign(u,{x:decoy.x,y:decoy.y+1});
+ expect(L.doorOpen(s,hatch.x,hatch.y)).toBe(false);
+ const before=JSON.stringify(s),status=L.broadcastStatus(s);
+ status.destination.x=99;status.patrols[0].x=99;
+ const preview=L.preview(s,u.id,'hack',decoy.x,decoy.y);
+ expect(preview.legal).toBe(true);expect(preview.reason).toMatch(/patrol/i);
+ expect(JSON.stringify(s)).toBe(before);
+ expect(L.commit(s,preview)).toBe(true);
+ expect(L.doorOpen(s,hatch.x,hatch.y)).toBe(true);
+ expect(L.broadcastStatus(s)).toMatchObject({active:true,patrols:JSON.parse(before).enemies
+  .filter(e=>s.broadcast.patrolIds.includes(e.id)).map(({id,x,y})=>({id,x,y}))});
+ expect(L.commit(s,preview)).toBe(false);expect(s.score).toBe(500);
+ const redirected=L.broadcastStatus(s).patrols;
+ const distance=p=>Math.abs(p.x-s.broadcast.destination.x)+Math.abs(p.y-s.broadcast.destination.y);
+ L.endTurn(s);
+ for(const p of L.broadcastStatus(s).patrols){
+  const old=redirected.find(e=>e.id===p.id),enemy=s.enemies.find(e=>e.id===p.id);
+  const moved=Math.abs(old.x-p.x)+Math.abs(old.y-p.y);
+  expect(moved).toBeGreaterThan(0);expect(moved).toBeLessThanOrEqual(enemy.stride);
+  expect(distance(p)).toBeLessThan(distance(old));
+  expect(L.blocked(s,p.x,p.y)).toBe(false);
+ }
+ expect(L.broadcastStatus(s).patrols.map(e=>e.id)).toEqual(s.broadcast.patrolIds);
+ expect(L.objectiveStatus(s).some(item=>item.done&&/patrol/i.test(item.label))).toBe(true);
+});
+
+test('Ghost Broadcast evidence and four-engineer extraction are achievable without the decoy', () => {
+ const SB=load(),s=SB.Logic.newGame('ghost-broadcast');
+ const actions=campaignRoute(SB,s,350,{directBroadcast:true});
+ expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);
+ const [decoy,evidence]=s.circuits;
+ expect(decoy.controlled).toBe(false);expect(evidence.controlled).toBe(true);
+ expect(actions.some(p=>p.kind==='hack'&&p.x===decoy.x&&p.y===decoy.y)).toBe(false);
+ expect(SB.Logic.turretAllied(s)).toBe(true);expect(s.rescued).toBe(true);
+});
+
+test('a completed fourteen-operation v1 save retains its records and unlocks Ghost Broadcast', () => {
+ const {Campaign:C,Missions:M}=load(),results={};
+ for(const m of M.operations.slice(0,14))results[m.id]={score:2800,turns:10,survivors:4};
+ const restored=C.normalize({version:1,selected:'two-keys',results});
+ expect(restored.results).toEqual(results);
+ expect(restored.roster.nia.xp).toBe(14);
+ expect(C.unlocked(restored,'ghost-broadcast')).toBe(true);
+ expect(C.normalize(restored)).toEqual(restored);
 });

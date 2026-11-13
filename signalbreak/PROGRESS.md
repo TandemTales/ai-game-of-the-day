@@ -763,3 +763,62 @@ The scheduled second Saturday is November 14 Pacific.
 Author operation 15 around a decoy transmission that redirects Archive patrols.
 Verify the resulting approach, evidence recovery, rescue, extraction and earned
 campaign unlock. Thursday, age 10. Continue campaign development on dev.
+
+## November 12 Pacific nightly - Ghost Broadcast content checkpoint
+
+Operation 15 adds a 24×16 rehearsal station to the Glass Archive. The optional
+transmitter opens the north hatch and redirects two marked patrols toward the
+south loading court on enemy turns. They take legal paths, react to overwatch
+and can still fire. The central crossing stays open. Copying the convoy
+transmission allies the turret and unlocks the dispatch operator's rescue.
+All surviving engineers extract at the northeast roof stairs.
+
+The base-stat rules pilot extracted all four engineers on turn 7 with the
+decoy (41 legal orders, 3,240 points) and turn 6 via the central route with the
+decoy off (39 orders, 2,770 points). Both routes recovered the evidence and
+rescued the operator. The browser QA now checks each operation's own mastery
+text, including Ghost Broadcast's optional patrol-sparing goal.
+
+Independent ART/UI verdict: FAIL against official XCOM 2. The critic completed
+the decoy route by native touch at 390px and pointer at 1440px, and the direct
+route by pointer, using a labelled save unlock with live AI. The D/E/C tags and
+decoy state read clearly. A separate 320px native-touch fixture extracted all
+four on turn 6 with both marked patrols alive (38 orders, 2,970 points).
+Rules review reproduced that goal with base and veteran squads. Current
+operation scoring awards kills, so sparing patrols scores less than the tested
+combat route. Account for this when implementing tracked mastery and campaign
+scoring.
+Small patrol rings crowd together, repeated slabs and
+similar silhouettes weaken the station identity, and a blank band remains
+under the desktop map. XCOM 2 had stronger composition, materials, lighting and
+silhouettes. The comparison uses different gameplay moments and camera scales.
+No blocking usability issue was found in those routes. Audio, animated VFX,
+human play, physical devices and performance remain unjudged.
+Comparison: node_modules/.cache/signalbreak/ghost-critic/ghost-broadcast-side-by-side.png.
+Reference: https://store.steampowered.com/app/268500/XCOM_2/
+
+Campaign 15/20, Glass Archive 3/4. Next is Stolen Convoy, then all four
+Broadcast Citadel operations. Persistent district outcomes, tracked mastery,
+campaign scoring and the finale remain required. Keep FIRST PLAYABLE and v1
+saves. The second Saturday is November 14 Pacific.
+
+## November 12 Ghost Broadcast final verification and handoff
+
+All 87 Signalbreak cases passed within the full run of 594 tests across 31
+suites (398.162s). Syntax and diff checks passed. Report:
+node_modules/.cache/signalbreak-ghost-full.json.
+
+Local Edge earned all fifteen victories through real UI orders and live AI.
+All four engineers extracted from each mission. Ghost Broadcast used native
+touch to target tiles and finished on turn 8 with 3,210 points in 47 orders.
+All 90 operation/viewport combinations passed input, overflow, console and
+external-request checks. Save/reload, gear, storage denial, file boot, DPR2,
+loss and the delayed rank-before-submit snapshot passed with local API mocks.
+The sandboxed browser could not launch. The local-only retry passed. Final
+runtime hashes match node_modules/.cache/signalbreak/ghost-final/source-manifest.json.
+
+Reviewed all twelve new briefing/live screenshots in three contact sheets,
+plus phone and desktop originals, active diversion and earned victory. Deploy
+is reachable by scrolling the 320px briefing. The 4K sheet is downsampled.
+No release or completion marker. Next is Stolen Convoy. Continue the full
+approved scope and retain the FIRST PLAYABLE label.

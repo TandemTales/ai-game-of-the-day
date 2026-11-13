@@ -697,7 +697,58 @@
     mastery: 'Open the gate on the first synchronization attempt and extract all four engineers in sixteen turns or fewer.',
     debrief: 'The cipher keeper decodes a pattern in the transport orders. Patrols change route whenever a priority broadcast names a loading court. Mara traces the carrier to a rehearsal transmitter. The squad will use it to send a Ghost Broadcast.'
   };
-  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice, span, blackout, pumpSiege, paperTrail, twoKeys];
+  var ghostBroadcast = {
+    id: 'ghost-broadcast', title: 'Ghost Broadcast', district: 'Glass Archive', sequence: 15,
+    briefing: 'The rehearsal station relays every convoy order. Copy the latest transmission to find the evidence transport. The central passage is open and guarded. HACK the optional decoy transmitter to open the north service hatch and send the two marked patrols toward the south loading court on enemy turns. They can still fire during the diversion, and the booth guard stays on normal orders. Copying the transmission allies the turret. Then free the dispatch operator and extract at the northeast roof stairs.',
+    radio: 'MARA / Decoy transmitter (4,10), service hatch (5,7). The decoy calls two patrols to the south loading court (21,13). Central passage (12–13,7) stays open. Transmission console (14,3), dispatch operator (21,5), roof stairs (20–21,2–3).',
+    objectiveSummary: 'Copy the convoy transmission, free the dispatch operator and extract. The optional decoy opens the north hatch and draws two patrols south.',
+    extractionLabel: 'northeast roof stairs',
+    objectives: {
+      requiredCircuits: ['ghost-evidence'],
+      rescueLabel: 'Free the dispatch operator',
+      rescueRequires: ['ghost-evidence']
+    },
+    rows: [
+      '########################',
+      '#......................#',
+      '#.......####........ee.#',
+      '#....c..#...c.nc.#..ee.#',
+      '#.###..####......#c##..#',
+      '#........c#...####...r.#',
+      '#..c........c....c..c..#',
+      '#####d######..##########',
+      '#...c...c.......#......#',
+      '#.............c.#......#',
+      '#...n..####.....###....#',
+      '#.....c...#.c.........c#',
+      '#.............c...###..#',
+      '#......#...............#',
+      '#.c....######......c...#',
+      '########################'
+    ],
+    heights: [],
+    squad: squad([[2,11],[2,12],[3,12],[3,13]]),
+    enemies: [
+      { id: 'ghost-floor-patrol', name: 'Rehearsal floor patrol', x: 9, y: 8, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 3 },
+      { id: 'ghost-gallery-patrol', name: 'Transmission gallery patrol', x: 14, y: 6, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 3 },
+      { id: 'ghost-booth-guard', name: 'Control booth guard', x: 12, y: 5, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 2 }
+    ],
+    turret: { x: 19, y: 6, range: 5, damage: 2 },
+    node: { x: 4, y: 10 }, rescue: { x: 21, y: 5 },
+    circuits: [
+      { id: 'ghost-decoy', label: 'Transmit the decoy', x: 4, y: 10, controlled: false, doors: [{ x: 5, y: 7 }] },
+      { id: 'ghost-evidence', label: 'Copy the convoy transmission', x: 14, y: 3, controlled: false, doors: [], turret: true }
+    ],
+    broadcast: {
+      circuitId: 'ghost-decoy',
+      patrolIds: ['ghost-floor-patrol', 'ghost-gallery-patrol'],
+      destination: { x: 21, y: 13 },
+      destinationLabel: 'South loading court'
+    },
+    mastery: 'Use the decoy, leave both marked patrols alive, and extract all four engineers.',
+    debrief: 'The copied transmission names the transport carrying the occupation’s sealed transfer records. The dispatch operator marks a siding where the squad can stop the convoy without damaging the civilian evidence.'
+  };
+  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice, span, blackout, pumpSiege, paperTrail, twoKeys, ghostBroadcast];
   SB.Missions.get = function (id) {
     return SB.Missions.operations.find(function (mission) { return mission.id === id; }) || null;
   };

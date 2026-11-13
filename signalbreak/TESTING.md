@@ -249,3 +249,12 @@ The deterministic base-stat pilot and the consecutive earned campaign both
 exercise the full operation. A thirteen-clear v1 save unlocks Two Keys while
 preserving Paper Trail's record. The browser harness captures the first arm and
 the synchronized state as separate images and runs the native-touch route.
+
+## November 12 Ghost Broadcast coverage
+
+Both the decoy and direct approaches are exercised against live AI with all
+four engineers extracted. Check that the transmitter changes the hatch and
+score once, redirects only the marked patrols on End Turn, and preserves v1
+save records when the new operation unlocks. The campaign browser sweep uses
+the authored mastery text for each operation and uses native touch for Ghost
+Broadcast. See PROGRESS for the browser result and visual review.

@@ -24,6 +24,9 @@
     var c=canvas.getContext('2d'), d=global.devicePixelRatio||1, w=canvas.width,h=canvas.height;
     var P=projection(w,h,s,{zoom:view.zoom,selected:view.selected,panX:(view.panX||0)*Math.min(d,2),panY:(view.panY||0)*Math.min(d,2)}),a=P.a,b=P.b,L=SB.Logic;
     var archive=L.archiveStatus(s),keyPair=L.keyPairStatus(s),archiveDistrict=s.district==='Glass Archive';
+    var broadcast=s.broadcast&&L.broadcastStatus(s);
+    var transmitter=broadcast&&s.circuits.find(function(n){return n.id===s.broadcast.circuitId;});
+    var signalInk=broadcast&&broadcast.active?'#e0ceff':'#b1a4ce';
     c.clearRect(0,0,w,h);var bg=c.createRadialGradient(w*.5,h*.4,0,w*.5,h*.5,w*.7);bg.addColorStop(0,archiveDistrict?'#29273e':'#15333d');bg.addColorStop(1,archiveDistrict?'#0b101e':'#07131d');c.fillStyle=bg;c.fillRect(0,0,w,h);
     function diamond(x,y,z,fill,stroke) {var p=P.point(x,y,z);c.beginPath();c.moveTo(p.x,p.y-b);c.lineTo(p.x+a,p.y);c.lineTo(p.x,p.y+b);c.lineTo(p.x-a,p.y);c.closePath();c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=Math.max(0.5,a*.025);c.stroke();}return p;}
     function block(x,y,z,top,left,right,base) {
@@ -60,6 +63,14 @@
       if(x===archive.breaker.x&&y===archive.breaker.y)return 'B';
       if(shutter&&x===shutter.x&&y===shutter.y)return 'S';
       return null;
+    }
+    function mapBadge(point,letter,ink,clearance){
+      var scale=Math.min(d,2),size=Math.max(15*scale,Math.min(24*scale,a*1.02));
+      var top=point.y-a*clearance-size;
+      c.strokeStyle=ink;c.lineWidth=scale;c.fillStyle='#121c2d';
+      c.fillRect(point.x-size/2,top,size,size);c.strokeRect(point.x-size/2,top,size,size);
+      c.fillStyle=ink;c.font='700 '+Math.round(size*.69)+'px system-ui';c.textAlign='center';
+      c.fillText(letter,point.x,top+size*.75);c.textAlign='start';
     }
     function archiveWall(x,y){
       var edge=x===0||x===s.width-1||y===0||y===s.height-1;
@@ -99,8 +110,19 @@
       if(platformHere(x,y))floor=liftPower?'#786c44':'#514b3d';
       if(archiveDistrict&&t!=='#'&&t!=='w')floor=x<archivePartition?
         ((x+y)%2?'#535468':'#4b4e62'):((x+y)%2?'#303e59':'#34445f');
+      var studio=broadcast&&t!=='#'&&Math.abs(x-transmitter.x)<=2&&Math.abs(y-transmitter.y)<=1;
+      if(studio)floor=(x+y)%2?'#574d69':'#49445f';
       if(t==='e')floor=boarding?(boardingHere(x,y)?'#797044':'#293c49'):'#255c5b';
       p=z?block(x,y,z,floor,'#172c36','#203640',0):diamond(x,y,0,floor,'#162c37');
+      if(studio){
+        c.strokeStyle='#baafd955';c.lineWidth=Math.max(.6,a*.04);
+        c.beginPath();c.moveTo(p.x-a*.7,p.y-b*.18);c.lineTo(p.x,p.y-b*.65);c.lineTo(p.x+a*.7,p.y-b*.18);c.stroke();
+      }
+      if(broadcast&&x===broadcast.destination.x&&y===broadcast.destination.y){
+        c.setLineDash([a*.23,a*.14]);
+        diamond(x,y,z,broadcast.active?'#ba8ee875':'#a594c447',signalInk);
+        c.setLineDash([]);
+      }
       if(s.lighting&&t!=='#'&&t!=='w'&&L.lit(s,x,y)){
         // The amber perimeter follows the exact Manhattan acquisition zone.
         // It is a targeting cue, never an obstacle or extra cover.
@@ -288,13 +310,19 @@
           c.font=Math.max(9,a*.5)+'px system-ui';c.textAlign='center';c.fillText(bridge?'B':'L',q.x,q.y-a*.65);c.textAlign='start';
         }
         var marker=archiveMarker(x,y);
-        if(marker){
-          var markerScale=Math.min(d,2),size=Math.max(15*markerScale,Math.min(24*markerScale,a*1.02)),top=q.y-a*.62-size;
-          c.strokeStyle=on?'#a1e9d7':marker==='E'?'#ffd998':marker==='B'?'#c2bdff':'#bbcbd9';
-          c.lineWidth=markerScale;c.fillStyle='#121c2d';
-          c.fillRect(q.x-size/2,top,size,size);c.strokeRect(q.x-size/2,top,size,size);
-          c.fillStyle=c.strokeStyle;c.font='700 '+Math.round(size*.69)+'px system-ui';c.textAlign='center';
-          c.fillText(marker,q.x,top+size*.75);c.textAlign='start';
+        if(broadcast&&circuit===transmitter){
+          // The aerial marks the actual transmitter tile.
+          c.strokeStyle=signalInk;c.lineWidth=Math.max(1,a*.07);
+          c.beginPath();c.moveTo(q.x,q.y);c.lineTo(q.x,q.y-a*.94);
+          c.moveTo(q.x-a*.3,q.y-a*.73);c.lineTo(q.x+a*.3,q.y-a*.73);c.stroke();
+          if(broadcast.active){
+            c.beginPath();c.arc(q.x,q.y-a*.94,a*.47,Math.PI*1.15,Math.PI*1.85);c.stroke();
+          }
+          mapBadge(q,'D',signalInk,1.48);
+        }else if(broadcast&&circuit&&circuit.id==='ghost-evidence'){
+          mapBadge(q,'E',on?'#a1e9d7':'#ffd998',.62);
+        }else if(marker){
+          mapBadge(q,marker,on?'#a1e9d7':marker==='E'?'#ffd998':marker==='B'?'#c2bdff':'#bbcbd9',.62);
         }else if(s.circuits&&circuit&&!keyPair){c.font=Math.max(9,a*.5)+'px system-ui';c.textAlign='center';c.fillText(String(s.circuits.indexOf(circuit)+1),q.x,q.y-a*.65);c.textAlign='start';}
       }
       if(s.lanes&&t==='n'&&L.circuitAt(s,x,y)&&L.circuitAt(s,x,y).id===s.lanes.disabledBy){
@@ -329,6 +357,10 @@
       if(actor){
         var friendly=s.squad.indexOf(actor)!==-1,selected=view.selected===actor.id;
         if(selected){c.strokeStyle='#c1fff0';c.lineWidth=a*.07;c.beginPath();c.ellipse(p.x,p.y,a*.72,b*.72,0,0,Math.PI*2);c.stroke();}
+        if(broadcast&&!friendly&&broadcast.patrols.some(function(patrol){return patrol.id===actor.id;})){
+          c.strokeStyle=signalInk;c.lineWidth=Math.max(1,a*.08);
+          c.beginPath();c.ellipse(p.x,p.y,a*.7,b*.68,0,0,Math.PI*2);c.stroke();
+        }
         c.fillStyle='#0007';c.beginPath();c.ellipse(p.x+a*.06,p.y+a*.06,a*.36,b*.3,0,0,Math.PI*2);c.fill();
         c.strokeStyle=s.lighting&&!L.lit(s,x,y)?'#a9c2cf':'#0b1c25';c.lineWidth=a*.09;c.fillStyle=friendly?actor.color:'#d27f70';
         c.beginPath();c.moveTo(p.x-a*.22,p.y-a*.25);c.lineTo(p.x-a*.18,p.y-a*.75);c.lineTo(p.x+a*.16,p.y-a*.8);c.lineTo(p.x+a*.28,p.y-a*.28);c.closePath();c.fill();c.stroke();
@@ -337,6 +369,25 @@
         var barW=a*.85;c.fillStyle='#071823';c.fillRect(p.x-barW/2,p.y-a*1.35,barW,a*.12);c.fillStyle=friendly?'#a6dfc7':'#f29e86';c.fillRect(p.x-barW/2,p.y-a*1.35,barW*actor.hp/actor.maxHp,a*.12);
         if(friendly){c.fillStyle=actor.watch?'#f2d99a':'#b5e6df';for(var i=0;i<actor.ap;i++){c.beginPath();c.arc(p.x-a*.13+i*a*.26,p.y-a*1.6,a*.07,0,Math.PI*2);c.fill();}}
       }
+    }
+    if(broadcast){
+      var court=broadcast.destination;
+      mapBadge(P.point(court.x,court.y,L.height(s,court.x,court.y)),'C',signalInk,1.46);
+      var signalScale=Math.min(d,2);
+      var signalTitle=broadcast.active?'DECOY ACTIVE':'DECOY AVAILABLE';
+      var signalKey='D Decoy  /  E Evidence  /  C South court';
+      var patrolKey=broadcast.patrols.length===0?'No relay patrols remain':
+        broadcast.active?'Ringed patrols divert at End Turn':'HACK D to divert ringed patrols';
+      c.font=11*signalScale+'px system-ui';
+      var signalPanel=Math.max(c.measureText(signalKey).width,c.measureText(patrolKey).width)+20*signalScale;
+      var signalLeft=w>h*1.8?w-16*signalScale-signalPanel:16*signalScale;
+      var signalTop=w>h*1.8?12*signalScale:h-99*signalScale;
+      c.fillStyle='#101628f2';c.fillRect(signalLeft,signalTop,signalPanel,62*signalScale);
+      c.fillStyle=signalInk;c.fillRect(signalLeft,signalTop,2*signalScale,62*signalScale);
+      c.font='700 '+12*signalScale+'px system-ui';c.fillText(signalTitle,signalLeft+10*signalScale,signalTop+18*signalScale);
+      c.font=11*signalScale+'px system-ui';c.fillStyle='#d5cde7';
+      c.fillText(signalKey,signalLeft+10*signalScale,signalTop+36*signalScale);
+      c.fillText(patrolKey,signalLeft+10*signalScale,signalTop+52*signalScale);
     }
     if(view.preview){var p=P.point(view.preview.x,view.preview.y,L.height(s,view.preview.x,view.preview.y));c.strokeStyle=view.preview.legal?'#fce0a4':'#e7988b';c.lineWidth=a*.08;c.beginPath();c.ellipse(p.x,p.y,a*.82,b*.82,0,0,Math.PI*2);c.stroke();}
     if(keyPair){

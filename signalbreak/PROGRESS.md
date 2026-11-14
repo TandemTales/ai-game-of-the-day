@@ -822,3 +822,9 @@ plus phone and desktop originals, active diversion and earned victory. Deploy
 is reachable by scrolling the 320px briefing. The 4K sheet is downsampled.
 No release or completion marker. Next is Stolen Convoy. Continue the full
 approved scope and retain the FIRST PLAYABLE label.
+
+## November 13 Pacific nightly - Stolen Convoy intent
+
+Finish the Glass Archive with operation 16, a transport interception that
+preserves the civilian evidence. Verify the interception, evidence recovery
+and extraction through the earned campaign. Friday, age 11. Continue on dev.

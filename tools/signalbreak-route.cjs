@@ -45,7 +45,18 @@ function nextOrder(SB, s, options={}) {
     }
   }
   let goal;
-  if (s.archive) {
+  if (s.convoy) {
+    const convoy=L.convoyStatus(s);
+    if(!convoy.secured){
+      const signal=options.useSiding?convoy.signals[1]:convoy.signals.find(control=>control.available);
+      const target=convoy.stoppedBy?s.circuits.find(c=>c.id===s.convoy.evidenceCircuit):signal;
+      if(target){
+        for(const u of live){const p=L.preview(s,u.id,'hack',target.x,target.y);if(p.legal)return p;}
+        goal=target;
+      }
+    }
+  }
+  else if (s.archive) {
     const evidence=s.circuits.find(c=>c.id===s.archive.evidenceCircuit);
     const access=s.circuits.find(c=>c.id===(options.directArchive?'archive-shutter':s.archive.delayCircuit));
     if(!evidence.controlled){

@@ -748,7 +748,64 @@
     mastery: 'Use the decoy, leave both marked patrols alive, and extract all four engineers.',
     debrief: 'The copied transmission names the transport carrying the occupation’s sealed transfer records. The dispatch operator marks a siding where the squad can stop the convoy without damaging the civilian evidence.'
   };
-  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice, span, blackout, pumpSiege, paperTrail, twoKeys, ghostBroadcast];
+  var stolenConvoy = {
+    id: 'stolen-convoy', title: 'Stolen Convoy', district: 'Glass Archive', sequence: 16,
+    briefing: 'The civilian transfer records are still aboard. The transport moves one track tile each time you end a turn and leaves after turn 14. HACK the west brake (B) through turn 6 to stop it in place and take the turret, or reach the east siding (S) by turn 14 to stop it and open the covered gate. HACK the stopped transport to copy its records intact. Then free the dispatcher and extract at the southeast stairs.',
+    radio: 'MARA / West brake B (6,7), through turn 6. Follow the south service lane to east siding S (15,10), through turn 14. S opens the covered gate (15,7). Copy records at the stopped transport, then free the dispatcher (21,10) and extract southeast.',
+    objectiveSummary: 'Stop the evidence transport before the end of turn 14. The west brake closes after turn 6. HACK the stopped transport, free the dispatcher and extract.',
+    extractionLabel: 'southeast service stairs',
+    objectives: {
+      requiredCircuits: ['convoy-evidence'],
+      rescueLabel: 'Free the dispatcher',
+      rescueRequires: ['convoy-evidence']
+    },
+    rows: [
+      '########################',
+      '#...c.###...c..###..c..#',
+      '#...c.#...c.c..#....cc.#',
+      '#...c.###..c....c.####.#',
+      '#......c.c...c...c#..c.#',
+      '#..................#.c.#',
+      '#..c...c##...##.c..#.c.#',
+      '#.....n.##..###d.#.#.c.#',
+      '#...c...##...c..##.#.c.#',
+      '#....c....c.##..c#..c..#',
+      '#...c..###.c#..n.#...r.#',
+      '#......###..#.c...###c.#',
+      '#.....c#...c..c....c.ee#',
+      '#.....c...c..c...c.c.ee#',
+      '#......###....c..###...#',
+      '########################'
+    ],
+    heights: [],
+    squad: squad([[2,8],[2,9],[3,9],[3,10]]),
+    enemies: [
+      { id: 'convoy-west-watch', name: 'Brake platform watch', x: 5, y: 3, hp: 5, maxHp: 5, damage: 2, range: 5, stride: 2 },
+      { id: 'convoy-escort', name: 'Siding escort', x: 16, y: 6, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 2 },
+      { id: 'convoy-dispatch-guard', name: 'Dispatch guard', x: 20, y: 9, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 2 }
+    ],
+    turret: { x: 10, y: 4, range: 5, damage: 2 },
+    node: { x: 6, y: 7 }, rescue: { x: 21, y: 10 },
+    circuits: [
+      { id: 'convoy-brake', label: 'West brake', x: 6, y: 7, controlled: false, doors: [], turret: true, lastConvoyTurn: 6 },
+      { id: 'convoy-siding', label: 'East siding', x: 15, y: 10, controlled: false, doors: [{ x: 15, y: 7 }], lastConvoyTurn: 14 },
+      { id: 'convoy-evidence', label: 'Copy the civilian transfer records', x: 3, y: 5, controlled: false, doors: [] }
+    ],
+    convoy: {
+      route: [
+        { x: 3, y: 5 }, { x: 4, y: 5 }, { x: 5, y: 5 }, { x: 6, y: 5 },
+        { x: 7, y: 5 }, { x: 8, y: 5 }, { x: 9, y: 5 }, { x: 10, y: 5 },
+        { x: 11, y: 5 }, { x: 12, y: 5 }, { x: 13, y: 5 }, { x: 14, y: 5 },
+        { x: 15, y: 5 }, { x: 16, y: 5 }
+      ],
+      departureTurn: 14,
+      signalIds: ['convoy-brake', 'convoy-siding'],
+      evidenceCircuit: 'convoy-evidence'
+    },
+    mastery: 'Use the east siding, copy the records and extract all four engineers by turn 14.',
+    debrief: 'The dispatcher authenticates the records: the Citadel has been issuing civilian transfer orders under stolen district credentials. Mara sends copies to the district crews and marks the outer relay that connects the Citadel to the city grid.'
+  };
+  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice, span, blackout, pumpSiege, paperTrail, twoKeys, ghostBroadcast, stolenConvoy];
   SB.Missions.get = function (id) {
     return SB.Missions.operations.find(function (mission) { return mission.id === id; }) || null;
   };

@@ -124,12 +124,13 @@
       mode='end';panel.hidden=false;el('kicker').textContent='OPERATION LOG / FIRST PLAYABLE';
       var archive=state.archive&&L.archiveStatus(state),purged=archive&&archive.purged;
       var keysFailed=state.keyPair&&state.keyPair.failed;
-      el('title').textContent=state.phase==='won'?'Signal restored.':purged?'Archive purged.':keysFailed?'Vault sealed.':'Signal lost.';
+      var convoyEscaped=state.convoy&&L.convoyStatus(state).escaped;
+      el('title').textContent=state.phase==='won'?'Signal restored.':purged?'Archive purged.':keysFailed?'Vault sealed.':convoyEscaped?'Convoy escaped.':'Signal lost.';
       el('copy').textContent=state.score.toLocaleString()+' operation points · turn '+state.turn+' · '+state.squad.filter(function(u){return u.extracted;}).length+'/4 engineers extracted.';
       var index=SB.Missions.operations.findIndex(function(m){return m.id===state.id;}),next=SB.Missions.operations[index+1];
-      el('tip').textContent=state.phase==='won'?(state.debrief||state.title+' complete.')+' '+(next?'Next: '+next.title+'.':'You reached the current playable boundary. The remaining '+(20-SB.Missions.operations.length)+' operations and finale are in development.'):purged?'The deadline expired before the evidence was copied. Replay and take the short route or hack the purge breaker to buy more time.':keysFailed?'The two keys require two living engineers. Retry and keep an operator in each wing.':'Retry the operation. Take cover, focus fire and read each circuit before advancing.';
+      el('tip').textContent=state.phase==='won'?(state.debrief||state.title+' complete.')+' '+(next?'Next: '+next.title+'.':'You reached the current playable boundary. The remaining '+(20-SB.Missions.operations.length)+' operations and finale are in development.'):purged?'The deadline expired before the evidence was copied. Replay and take the short route or hack the purge breaker to buy more time.':keysFailed?'The two keys require two living engineers. Retry and keep an operator in each wing.':convoyEscaped?'The civilian manifests are gone. HACK the brake or siding control before its deadline on the next attempt.':'Retry the operation. Take cover, focus fire and read each circuit before advancing.';
       el('next-operation').hidden=state.phase!=='won'||!next;el('next-operation').textContent=next?'NEXT / '+next.title:'NEXT OPERATION';
-      el('start').textContent='REPLAY OPERATION ↗';if(!purged&&!keysFailed)submit();
+      el('start').textContent='REPLAY OPERATION ↗';if(!purged&&!keysFailed&&!(state.convoy&&state.phase==='lost'))submit();
     }
     reachable();hud();
   }

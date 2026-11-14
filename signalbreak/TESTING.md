@@ -258,3 +258,12 @@ score once, redirects only the marked patrols on End Turn, and preserves v1
 save records when the new operation unlocks. The campaign browser sweep uses
 the authored mastery text for each operation and uses native touch for Ghost
 Broadcast. See PROGRESS for the browser result and visual review.
+
+## November 13 Stolen Convoy coverage
+
+Verify one-tile movement, the last available siding turn, terminal escape,
+immutable status and stale confirmations, mutually exclusive stop signals,
+copying the intact evidence, and preservation of fifteen-operation v1 saves.
+The legal-order pilot exercises both approaches with base stats, and the earned
+campaign includes the new operation. Browser coverage includes the earned brake
+route, native-touch escape/retry and a siding replay using the earned unlock.

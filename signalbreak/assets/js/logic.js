@@ -10,6 +10,11 @@
     m.width = m.rows[0].length; m.height = m.rows.length;
     m.squad.forEach(function (u) { u.ap = 2; u.watch = false; u.extracted = false; });
     if (m.circuits) m.circuits.forEach(function (c) { c.controlled = !!c.controlled; c.scored = c.controlled; });
+    if (m.convoy) {
+      m.convoy.stoppedBy = null;
+      m.convoy.escaped = false;
+      positionConvoy(m, 0);
+    }
     m.turn = 1; m.network = m.circuits ? networkReady(m) : false; m.rescued = false; m.phase = 'player';
     m.score = 0; m.kills = 0; m.serial = 0; m.event = 'ready'; m.last = m.radio;
     m.log = ['Operation ' + String(m.sequence || 1).padStart(2, '0') + ' / ' + m.title + '. ' + (m.objectiveSummary || 'Take the circuit, rescue the worker, extract the squad.')];
@@ -150,6 +155,37 @@
         return living(e) && broadcast.patrolIds.indexOf(e.id) !== -1;
       }).map(function (e) { return { id: e.id, x: e.x, y: e.y }; })
     };
+  }
+  function convoyEvidence(s) {
+    return s.circuits.find(function (c) { return c.id === s.convoy.evidenceCircuit; });
+  }
+  function positionConvoy(s, index) {
+    s.convoy.position = index;
+    var position = s.convoy.route[index], evidence = convoyEvidence(s);
+    evidence.x = position.x;
+    evidence.y = position.y;
+  }
+  function convoyStatus(s) {
+    if (!s.convoy) return null;
+    var convoy = s.convoy, position = convoy.route[convoy.position];
+    var signals = convoy.signalIds.map(function (id) {
+      var circuit = s.circuits.find(function (c) { return c.id === id; });
+      return { id: id, x: circuit.x, y: circuit.y, label: circuit.label, lastTurn: circuit.lastConvoyTurn,
+        available: !convoy.stoppedBy && !convoy.escaped && s.phase === 'player' && s.turn <= circuit.lastConvoyTurn };
+    });
+    return { x: position.x, y: position.y, position: convoy.position, stoppedBy: convoy.stoppedBy,
+      escaped: convoy.escaped, departureTurn: convoy.departureTurn, secured: convoyEvidence(s).controlled, signals: signals };
+  }
+  function resolveConvoy(s) {
+    var convoy = s.convoy;
+    if (!convoy || convoy.stoppedBy) return;
+    if (s.turn >= convoy.departureTurn) {
+      convoy.escaped = true;
+      s.phase = 'lost';
+      log(s, 'The convoy escaped with the records. Retry and confirm a stop signal before departure.', 'lost');
+      return;
+    }
+    if (convoy.position + 1 < convoy.route.length) positionConvoy(s, convoy.position + 1);
   }
   function deployAmbush(s) {
     if (!s.ambush || s.turn < s.ambush.turn) return;
@@ -299,6 +335,20 @@
         'Optional: HACK the transmitter to open the north hatch and divert marked patrols to ' + broadcast.destinationLabel,
         done: broadcast.active });
     }
+    var convoy = convoyStatus(s);
+    if (convoy) {
+      var convoyLabel;
+      if (convoy.escaped) convoyLabel = 'Convoy escaped with the records / retry operation';
+      else if (convoy.stoppedBy) convoyLabel = 'Convoy stopped at (' + convoy.x + ', ' + convoy.y + ') / ' +
+        (convoy.secured ? 'civilian records secured' : 'HACK the transport to copy the intact records');
+      else {
+        var deadlines = convoy.signals.map(function (signal) {
+          return signal.label + ': ' + (s.turn <= signal.lastTurn ? 'through turn ' + signal.lastTurn : 'window closed');
+        });
+        convoyLabel = 'Convoy moving / departs at end of turn ' + convoy.departureTurn + ' / ' + deadlines.join(' / ');
+      }
+      status.unshift({ id: 'convoy', label: convoyLabel, done: !!convoy.stoppedBy });
+    }
     status.push({ id: 'rescue', label: s.objectives && s.objectives.rescueLabel || 'Rescue signal worker', done: !!s.rescued });
     if (s.lift) {
       var lift = liftStatus(s);
@@ -447,6 +497,12 @@
     } else if (kind === 'hack') {
       var circuit = circuitAt(s, x, y);
       if (!circuit) return fail('Select an amber circuit node.');
+      var convoy = s.convoy;
+      var convoySignal = convoy && convoy.signalIds.indexOf(circuit.id) !== -1;
+      var convoyCopy = convoy && circuit.id === convoy.evidenceCircuit;
+      if (convoySignal && convoy.stoppedBy) return fail('The convoy is already stopped. HACK the transport to copy its records.');
+      if (convoySignal && s.turn > circuit.lastConvoyTurn) return fail(circuit.label + ' expired after turn ' + circuit.lastConvoyTurn + '. Use the remaining stop signal.');
+      if (convoyCopy && !convoy.stoppedBy) return fail('The convoy is moving. HACK a stop signal before copying the records.');
       if (distance(a, circuit) > (a.role === 'ENGINEER' ? (a.hackRange || 2) : 1) || !visible(s, a, circuit)) return fail('Get within ' + (a.role === 'ENGINEER' ? (a.hackRange || 2) : 1) + ' tile(s) with a clear signal.');
       if (circuit.controlled) return fail('Circuit already under our control.');
       if (circuit.requiresDark && s.lighting && (s.lighting.zones || []).some(function (zone) { return (s.circuits || []).some(function (c) { return c.id === zone.circuitId && c.controlled; }); })) return fail('Blackout interlock: switch off the work lamps before capturing this control.');
@@ -488,9 +544,18 @@
         p.reason = '1 AP · open the north hatch · marked patrols head to ' + s.broadcast.destinationLabel +
           ' on enemy turns and can still fire';
       }
+      if (convoySignal || convoyCopy) {
+        p.convoyPreview = [s.turn, convoy.position, convoy.stoppedBy].join('/');
+        if (convoyCopy) p.reason = '1 AP · copy the intact civilian records';
+        else {
+          var position = convoy.route[convoy.position];
+          p.reason += ' · stop the convoy at (' + position.x + ', ' + position.y + ')' +
+            (circuit.doors.length ? ' · open the siding gate' : '');
+        }
+      }
     } else if (kind === 'rescue') {
       if (x !== s.rescue.x || y !== s.rescue.y || s.rescued) return fail('No worker to rescue here.');
-      if (s.objectives && (s.objectives.rescueRequires || []).some(function (id) { return !(s.circuits || []).some(function (c) { return c.id === id && c.controlled; }); })) return fail('Restore the rescue route circuit before evacuating the worker.');
+      if (s.objectives && (s.objectives.rescueRequires || []).some(function (id) { return !(s.circuits || []).some(function (c) { return c.id === id && c.controlled; }); })) return fail(s.convoy ? 'Copy the civilian records before evacuating the dispatcher.' : 'Restore the rescue route circuit before evacuating the worker.');
       if (!canReachAdjacent(s, a, s.rescue)) return fail('Get adjacent to the worker on the same level or a connecting stair.');
       p.reason = '1 AP · ' + (s.objectives && s.objectives.rescueLabel || 'release signal worker') + ' · +400 points';
     } else if (kind === 'heal') {
@@ -545,7 +610,7 @@
     var p = preview(s, proposed.actorId, proposed.kind, proposed.x, proposed.y);
     if (!p.legal) return false;
     if ((p.lift || proposed.lift) && (!p.lift || !proposed.lift || p.liftFrom !== proposed.liftFrom || p.liftTo !== proposed.liftTo)) return false;
-    if (p.archivePreview !== proposed.archivePreview || p.keyPairPreview !== proposed.keyPairPreview) return false;
+    if (p.archivePreview !== proposed.archivePreview || p.keyPairPreview !== proposed.keyPairPreview || p.convoyPreview !== proposed.convoyPreview) return false;
     var a = unit(s, p.actorId); a.ap -= p.cost;
     if (p.kind === 'move') { a.x = p.x; a.y = p.y; log(s, a.name + ' moved · ' + p.cost + ' AP'); }
     if (p.kind === 'attack') strike(s, a, s.enemies.find(function (e) { return e.id === p.targetId; }), a.name + ' fired');
@@ -567,7 +632,13 @@
           circuit.controlled = true;
           if (!circuit.scored) { s.score += 500; circuit.scored = true; }
           s.network = networkReady(s);
-          if (s.archive && circuit.id === s.archive.evidenceCircuit) {
+          if (p.convoyPreview) {
+            if (circuit.id === s.convoy.evidenceCircuit) log(s, 'Civilian records secured. Rescue the dispatcher and extract.', 'hack');
+            else {
+              s.convoy.stoppedBy = circuit.id;
+              log(s, circuit.label + ' stopped the convoy. HACK the transport to copy its records.', 'hack');
+            }
+          } else if (s.archive && circuit.id === s.archive.evidenceCircuit) {
             log(s, 'Evidence copied. Purge stopped. Rescue the archivist and extract.', 'hack');
           } else if (s.archive && circuit.id === s.archive.delayCircuit) {
             var archive = archiveStatus(s);
@@ -631,6 +702,7 @@
     if (s.phase !== 'lost') resolvePumps(s);
     outcome(s);
     if (s.phase === 'enemy') resolvePurge(s);
+    if (s.phase === 'enemy') resolveConvoy(s);
     if (s.phase === 'lost' || s.phase === 'won') return true;
     s.turn++; s.phase = 'player'; s.squad.forEach(function (u) { if (living(u)) u.ap = 2; u.watch = false; });
     log(s, 'Turn ' + s.turn + ' · engineer AP refreshed', 'turn');
@@ -642,5 +714,5 @@
   SB.Logic = { newGame: newGame, tile: tile, height: height, unit: unit, living: living, occupant: occupant,
     blocked: blocked, canStep: canStep, path: path, visible: visible, lit: lit, detected: detected, cover: cover, damage: damage, preview: preview, commit: commit, endTurn: endTurn,
     waterStatus: waterStatus, waterRouteAt: waterRouteAt, liftAt: liftAt, liftStatus: liftStatus, liftControlAt: liftControlAt, defenseStatus: defenseStatus, pumpStatus: pumpStatus, keyPairStatus: keyPairStatus, archiveStatus: archiveStatus, activeLane: activeLane,
-    circuitAt: circuitAt, doorOpen: doorOpen, objectiveStatus: objectiveStatus, turretAllied: turretAllied, extractionStatus: extractionStatus, broadcastStatus: broadcastStatus };
+    circuitAt: circuitAt, doorOpen: doorOpen, objectiveStatus: objectiveStatus, turretAllied: turretAllied, extractionStatus: extractionStatus, broadcastStatus: broadcastStatus, convoyStatus: convoyStatus };
 })(window);

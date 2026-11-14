@@ -31,14 +31,17 @@ function pilot(SB, s, report = []) {
   }
   return report;
 }
-test('full manifest promises twenty operations; fifteen distinct authored maps are playable', () => {
+test('full manifest promises twenty operations; sixteen distinct authored maps are playable', () => {
   const SB=load();expect(SB.Missions.manifest).toHaveLength(5);
   const names=SB.Missions.manifest.flatMap(d=>Array.from(d).slice(1));expect(new Set(names).size).toBe(20);
   expect(SB.Missions.opening.title).toBe('Live Wire');
-  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege','paper-trail','two-keys','ghost-broadcast']);
-  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(15);
-  for(const m of SB.Missions.operations){expect(m.rows.every(r=>r.length===m.rows[0].length)).toBe(true);for(const n of m.circuits||[])expect(m.rows[n.y][n.x]).toBe('n');}
-  expect(()=>SB.Logic.newGame('stolen-convoy')).toThrow('Unknown operation');
+  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege','paper-trail','two-keys','ghost-broadcast','stolen-convoy']);
+  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(16);
+  for(const m of SB.Missions.operations){
+    expect(m.rows.every(r=>r.length===m.rows[0].length)).toBe(true);
+    for(const n of m.circuits||[])expect(m.rows[n.y][n.x]).toBe(n.id===m.convoy?.evidenceCircuit?'.':'n');
+  }
+  expect(()=>SB.Logic.newGame('outer-relay')).toThrow('Unknown operation');
 });
 test('fresh states are isolated and previews never mutate the tactical state', () => {
   const {Logic:L}=load(),a=L.newGame(),b=L.newGame(),before=JSON.stringify(a);
@@ -110,7 +113,7 @@ test('complete legal pilot is deterministic across fresh runs', () => {
 });
 
 const {run:campaignRoute}=require('../tools/signalbreak-route.cjs');
-test.each(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege','paper-trail','two-keys','ghost-broadcast'])('%s can be won by legal orders against live AI with four survivors', id => {
+test.each(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege','paper-trail','two-keys','ghost-broadcast','stolen-convoy'])('%s can be won by legal orders against live AI with four survivors', id => {
   const SB=load(),s=SB.Logic.newGame(id),report=campaignRoute(SB,s);
   expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);
   expect(report.some(p=>p.kind==='hack')).toBe(true);expect(report.some(p=>p.kind==='rescue')).toBe(true);
@@ -328,10 +331,10 @@ test('antenna lanes alternate, warn before movement, damage only exposed living 
  const hp=s.squad[0].hp;L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);expect(L.activeLane(s).label).not.toBe(first.label);
  s.circuits.find(c=>c.id==='tower').controlled=true;expect(L.activeLane(s)).toBe(null);L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);
 });
-test('all fifteen operations support consecutive persisted squad progression with legal orders',()=>{
+test('all sixteen operations support consecutive persisted squad progression with legal orders',()=>{
  const SB=load(),C=SB.Campaign,c=C.fresh(),store=memoryStorage();
  for(const m of SB.Missions.operations){for(const id of ['nia','sol','rook','ivo'])C.treat(c,id);const s=C.prepare(c,SB.Logic.newGame(m.id));campaignRoute(SB,s);expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);expect(C.complete(c,s)).toBe(true);C.save(store,c);expect(C.load(store).campaign).toEqual(c);}
- expect(Object.keys(c.results)).toHaveLength(15);expect(c.roster.nia.xp).toBe(15);
+ expect(Object.keys(c.results)).toHaveLength(16);expect(c.roster.nia.xp).toBe(16);
 });
 
 
@@ -661,4 +664,84 @@ test('a completed fourteen-operation v1 save retains its records and unlocks Gho
  expect(restored.roster.nia.xp).toBe(14);
  expect(C.unlocked(restored,'ghost-broadcast')).toBe(true);
  expect(C.normalize(restored)).toEqual(restored);
+});
+
+test.each([false,true])('Stolen Convoy interception recovers evidence with four survivors (siding=%s)', useSiding => {
+ const SB=load(),s=SB.Logic.newGame('stolen-convoy');
+ require('../tools/signalbreak-route.cjs').run(SB,s,350,{useSiding});
+ expect(s.phase).toBe('won');
+ expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);
+ expect(SB.Logic.convoyStatus(s)).toMatchObject({stoppedBy:useSiding?'convoy-siding':'convoy-brake',secured:true,escaped:false});
+ expect(SB.Logic.turretAllied(s)).toBe(!useSiding);
+});
+
+test('Stolen Convoy has an inclusive last turn and freezes after the transport escapes', () => {
+ const {Logic:L}=load(),s=L.newGame('stolen-convoy');
+ s.enemies=[];s.turret=null;
+ const start=L.convoyStatus(s),track=s.convoy.route;
+ expect(track).toHaveLength(s.convoy.departureTurn);
+ track.forEach((p,i)=>{
+   expect(L.tile(s,p.x,p.y)).toBe('.');
+   if(i)expect(L.canStep(s,track[i-1],p)).toBe(true);
+ });
+ const snapshot=JSON.stringify(s);
+ start.signals[0].x=-1;L.objectiveStatus(s);
+ expect(JSON.stringify(s)).toBe(snapshot);
+ for(let i=1;i<track.length;i++){
+   expect(L.endTurn(s)).toBe(true);
+   expect(L.convoyStatus(s)).toMatchObject({...track[i],position:i,escaped:false});
+ }
+ expect(L.convoyStatus(s).signals.map(c=>c.available)).toEqual([false,true]);
+ expect(s.phase).toBe('player');
+ L.endTurn(s);
+ expect(s.phase).toBe('lost');
+ expect(L.convoyStatus(s).escaped).toBe(true);
+ const lost=JSON.stringify(s);
+ expect(L.endTurn(s)).toBe(false);
+ expect(JSON.stringify(s)).toBe(lost);
+});
+
+test('Stolen Convoy rejects moving evidence and stale signals before spending AP', () => {
+ const {Logic:L}=load(),s=L.newGame('stolen-convoy');
+ s.enemies=[];s.turret=null;
+ const [brake,siding]=s.circuits,[nia,sol]=s.squad;
+ const start=L.convoyStatus(s);
+ Object.assign(nia,{x:start.x,y:start.y});
+ expect(L.preview(s,nia.id,'hack',start.x,start.y).legal).toBe(false);
+ Object.assign(nia,{x:brake.x,y:brake.y});
+ const queued=L.preview(s,nia.id,'hack',brake.x,brake.y);
+ expect(queued.legal).toBe(true);
+ L.endTurn(s);
+ const moved=JSON.stringify(s);
+ expect(L.commit(s,queued)).toBe(false);
+ expect(JSON.stringify(s)).toBe(moved);
+ order(L,s,nia.id,'hack',brake.x,brake.y);
+ const stopped=L.convoyStatus(s);
+ expect(stopped).toMatchObject({stoppedBy:brake.id,position:1,secured:false});
+ expect(s.score).toBe(500);
+ Object.assign(sol,{x:siding.x,y:siding.y});
+ expect(L.preview(s,sol.id,'hack',siding.x,siding.y).legal).toBe(false);
+ L.endTurn(s);
+ expect(L.convoyStatus(s)).toMatchObject({position:1,x:stopped.x,y:stopped.y});
+ Object.assign(nia,{x:stopped.x,y:stopped.y});
+ const evidence=L.preview(s,nia.id,'hack',stopped.x,stopped.y);
+ expect(evidence.legal).toBe(true);
+ L.endTurn(s);
+ const next=JSON.stringify(s);
+ expect(L.commit(s,evidence)).toBe(false);
+ expect(JSON.stringify(s)).toBe(next);
+ order(L,s,nia.id,'hack',stopped.x,stopped.y);
+ expect(L.convoyStatus(s).secured).toBe(true);
+ expect(s.score).toBe(1000);
+ expect(L.preview(s,nia.id,'hack',stopped.x,stopped.y).legal).toBe(false);
+});
+
+test('a fifteen-operation v1 save retains Glass Archive results and unlocks Stolen Convoy', () => {
+ const {Missions:M,Campaign:C}=load(),results={};
+ for(const m of M.operations.slice(0,15))results[m.id]={score:2900,turns:10,survivors:4};
+ const restored=C.normalize({version:1,selected:'stolen-convoy',results});
+ expect(restored.results).toEqual(results);
+ expect(restored.selected).toBe('stolen-convoy');
+ expect(C.unlocked(restored,'stolen-convoy')).toBe(true);
+ expect(C.unlocked(restored,'outer-relay')).toBe(false);
 });

@@ -828,3 +828,45 @@ approved scope and retain the FIRST PLAYABLE label.
 Finish the Glass Archive with operation 16, a transport interception that
 preserves the civilian evidence. Verify the interception, evidence recovery
 and extraction through the earned campaign. Friday, age 11. Continue on dev.
+
+## November 13 Stolen Convoy content checkpoint
+
+Operation 16 finishes the Glass Archive with a 24×16 rail siding. The transport
+moves one tile per End Turn. The early west brake works through turn 6 and
+allies the turret. The east siding works through turn 14 and opens the covered
+gate. The first signal stops the cart at its current tile and locks the other
+signal. Copy the intact civilian manifests from the stopped cart, then rescue
+the dispatcher and extract. Escape ends the operation and offers a retry.
+
+The base-stat legal-order pilot extracted all four engineers via the brake on
+turn 7 (42 orders, 3,240 points) and via the siding on turn 8 (48 orders, 3,210
+points). A separate base pilot confirmed the siding on the final legal turn,
+copied on turn 15 and extracted all four on turn 18. Previous v1 saves with 15
+clears retain their results and unlock the new operation.
+
+Independent ART/UI verdict failed against XCOM 2. The rail line and B/S/E labels
+are readable, including the stopped and recovered states. The cart reads as a
+small token on phones, E can crowd the brake badge and squad, and repeated slabs
+and unused desktop space weaken the scene. The comparison uses different camera
+scales and tactical moments. Both interceptions extracted four through actual
+UI orders and live AI in a labelled save-unlock fixture. The critic used native
+touch at 320px and 390px and pointer at 1440px. Audio, animated VFX, human play,
+physical devices and performance remain unjudged.
+Comparison: node_modules/.cache/signalbreak/convoy-critic/stolen-convoy-side-by-side.png.
+Reference: https://store.steampowered.com/app/268500/XCOM_2/
+
+The independent gameplay reviewer reproduced both four-engineer clears and
+checked the final-turn siding stop, post-deadline evidence copy and dispatcher
+interlock. XCOM 2's target-anchored feedback was clearer in the compared scenes.
+The generic circuit strip can still show the unused stop as pending after
+interception. Siding mastery is stated in the briefing and does not yet affect
+the score, so the tested brake route earns more.
+
+All 93 Signalbreak tests and all 600 repository tests in 31 suites passed.
+Report: node_modules/.cache/signalbreak-convoy-full.json. The earned browser
+run has cleared both interceptions. The full viewport sweep is still running.
+
+Campaign 16/20. The four Broadcast Citadel operations, persistent district
+outcomes, tracked mastery, full-campaign scoring and finale remain open.
+Keep FIRST PLAYABLE and the full scope. The scheduled second Saturday is
+November 14 Pacific. This Friday checkpoint is on dev.

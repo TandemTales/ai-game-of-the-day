@@ -49,14 +49,14 @@ explicit user approval; time/usage limits are not approval.
 - [x] 13 Paper Trail: optional purge breaker and allied turret via the north gallery, or a short hostile-turret approach; copy evidence before the deadline, rescue the archivist and extract.
 - [x] 14 Two Keys: clear separate stacks and sorting wings, activate both consoles in one turn with different engineers, regroup through the shared vault gate, rescue the cipher keeper and extract.
 - [x] 15 Ghost Broadcast: optional decoy opens a north hatch and diverts two patrols to the south court, or take the open central route to recover evidence, rescue the operator and extract.
-- [ ] 16 Stolen Convoy: transport interception preserves evidence.
+- [x] 16 Stolen Convoy: intercept a moving evidence transport using an early brake or a siding signal, copy the intact manifests, rescue the dispatcher and extract.
 - [ ] 17 Outer Relay: network siege approaches.
 - [ ] 18 Vertical Breach: floors and lifts.
 - [ ] 19 Safe Corridor: defend/evacuate civilians.
 - [ ] 20 Signalbreak: combined core shutdown and consequence-based epilogue.
 
 Mission-boundary local saves, sequential unlocks and replay best scores now exist
-for the fifteen implemented missions. Squad progression, equipment and injury
+for the sixteen implemented missions. Squad progression, equipment and injury
 recovery are implemented; persistent district rescue/evidence consequences remain. Authored
 mastery targets appear in the HUD; no campaign medal/reward system exists yet.
 Story debriefs appear on victory. The clinic is a protected prerequisite, not yet
@@ -124,7 +124,7 @@ Grid coordinates integer (x,y), origin top left. Tiles: . floor, # tall blocker,
 c low cover, d circuit door, e exit, n network node, r rescue. Heights are separate.
 No procedural randomness required; identical state/action gives identical outcome.
 
-SB.Missions.operations contains the fifteen authored missions, get(id) looks up an
+SB.Missions.operations contains the sixteen authored missions, get(id) looks up an
 implemented mission, and manifest holds the full twenty-operation contract.
 SB.Logic.newGame(id?) returns a fresh chosen operation (default Live Wire) and
 rejects unknown IDs. SB.Logic.preview(state,actorId,
@@ -157,6 +157,16 @@ court. It moves at most its normal stride, can take overwatch fire en route and
 can still shoot. The guarded central route is always open. Copy the convoy
 transmission to ally the turret and enable the operator rescue, then extract at
 the roof stairs. The map and objective list share read-only broadcastStatus.
+
+Stolen Convoy's transport advances one track tile on each End Turn and leaves at
+the end of turn 14. Confirm either the west brake through turn 6, which allies
+the turret, or the siding signal through turn 14, which opens the covered gate.
+The first successful signal stops the transport at its current tile and locks
+the other signal. The cart shares the movement grid without blocking traffic.
+HACK the stopped transport to copy its intact civilian manifests. This unlocks
+the dispatcher rescue and, once rescued, extraction. Map and HUD share the
+read-only convoyStatus accessor. A stop or copy confirmation issued before End
+Turn expires. A stopped transport has no further departure timer.
 
 Campaign saves use signalbreak-campaign-v1 in localStorage, validate contiguous
 completed operations, and persist mission-boundary selected/unlocked/best

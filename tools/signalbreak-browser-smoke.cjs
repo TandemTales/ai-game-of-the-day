@@ -19,11 +19,12 @@ async function tile(page,x,y,touch=false){
   await page.evaluate(p=>{window.lastTap={p,rect:document.querySelector('canvas').getBoundingClientRect().toJSON(),target:document.elementFromPoint(p.x,p.y)?.id};},p);
   if(touch)await page.touchscreen.tap(p.x,p.y);else await page.mouse.click(p.x,p.y);
 }
-async function plan(page){return page.evaluate(source=>Function('return ('+source+')')()(SB,SB.Game.getState()),nextOrder.toString());}
-async function drive(page,touch=false){
+async function plan(page,options){return page.evaluate(({source,options})=>Function('return ('+source+')')()(SB,SB.Game.getState(),options),{source:nextOrder.toString(),options});}
+async function drive(page,touch=false,options={}){
   const actions=[];let circuit='';
+  const suffix=options.useSiding?'-siding':'';
   for(let i=0;i<350&&await page.evaluate(()=>SB.Game.getState().phase==='player');i++){
-    const p=await plan(page);actions.push(p);
+    const p=await plan(page,options);actions.push(p);
     if(p.kind==='end'){await page.locator('#end-turn').click();continue;}
     if(touch)await page.locator(`[data-unit="${p.actorId}"]`).tap();
     else{const idx=await page.evaluate(id=>SB.Game.getState().squad.findIndex(u=>u.id===id),p.actorId);await page.keyboard.press(String(idx+1));}
@@ -32,11 +33,11 @@ async function drive(page,touch=false){
     const shown=await page.evaluate(()=>SB.Game.getPreview());assert(shown&&shown.legal&&shown.kind===p.kind&&shown.x===p.x&&shown.y===p.y,JSON.stringify({wanted:p,shown}));
     await page.locator('#confirm').click();
     const current=await page.evaluate(()=>{const s=SB.Game.getState();return{id:s.id,key:JSON.stringify([s.circuits||s.network,s.keyPair])};});
-    if(current.key!==circuit){circuit=current.key;await page.locator('.map-wrap').screenshot({path:path.join(out,current.id+'-circuit-'+i+'.png')});}
+    if(current.key!==circuit){circuit=current.key;await page.locator('.map-wrap').screenshot({path:path.join(out,current.id+suffix+'-circuit-'+i+'.png')});}
   }
   const final=await page.evaluate(()=>({id:SB.Game.getState().id,phase:SB.Game.getState().phase,score:SB.Game.getState().score,turn:SB.Game.getState().turn,rescued:SB.Game.getState().rescued,extracted:SB.Game.getState().squad.filter(u=>u.extracted).length}));
   assert.equal(final.phase,'won');assert.equal(final.extracted,4);assert.equal(final.rescued,true);
-  await page.locator('.map-wrap').screenshot({path:path.join(out,final.id+'-won.png')});return{final,actions};
+  await page.locator('.map-wrap').screenshot({path:path.join(out,final.id+suffix+'-won.png')});return{final,actions};
 }
 (async()=>{
   await new Promise(r=>server.listen(0,'127.0.0.1',r));const url='http://127.0.0.1:'+server.address().port;
@@ -105,6 +106,24 @@ async function drive(page,touch=false){
     assert.match(await archive.locator('#tip').innerText(),/deadline expired before the evidence was copied/);
     assert.equal(api.length,callsBeforePurge);await archive.locator('.map-wrap').screenshot({path:path.join(out,'paper-trail-purged-phone.png')});
     await archive.locator('#start').tap();assert.equal(await archive.evaluate(()=>SB.Logic.archiveStatus(SB.Game.getState()).remaining),9);await archive.close();
+    const convoy=await browser.newPage({viewport:{width:390,height:844},hasTouch:true,storageState:campaignStorage});
+    const convoyErrors=[];
+    convoy.on('pageerror',e=>convoyErrors.push(String(e)));convoy.on('console',m=>{if(['warning','error'].includes(m.type()))convoyErrors.push(m.text());});
+    convoy.on('dialog',d=>d.dismiss());
+    await convoy.goto(url+'/signalbreak/index.html');await convoy.locator('#operation-picker summary').tap();await convoy.locator('[data-mission="stolen-convoy"]').tap();await convoy.locator('#start').tap();
+    const beforeEscape=api.length;
+    const startConvoy=await convoy.evaluate(()=>SB.Logic.convoyStatus(SB.Game.getState()));
+    for(let turn=1;turn<=startConvoy.departureTurn;turn++)await convoy.locator('#end-turn').tap();
+    assert.equal(await convoy.locator('#title').innerText(),'Convoy escaped.');
+    assert.match(await convoy.locator('#tip').innerText(),/civilian manifests are gone/);
+    assert.equal(api.length,beforeEscape);
+    await convoy.locator('.map-wrap').screenshot({path:path.join(out,'stolen-convoy-escaped-phone.png')});
+    await convoy.locator('#start').tap();
+    assert.deepEqual(await convoy.evaluate(()=>SB.Logic.convoyStatus(SB.Game.getState())),startConvoy);
+    const sidingRun=await drive(convoy,true,{useSiding:true});
+    const sidingStatus=await convoy.evaluate(()=>SB.Logic.convoyStatus(SB.Game.getState()));
+    assert.equal(sidingStatus.stoppedBy,'convoy-siding');assert.equal(sidingStatus.secured,true);
+    assert.deepEqual(convoyErrors,[]);await convoy.close();
     // Treatment fixture: represent a saved mission-boundary injury explicitly.
     const recovery=await browser.newPage({viewport:{width:390,height:844},hasTouch:true,storageState:campaignStorage});
     await recovery.goto(url+'/signalbreak/index.html');await recovery.evaluate(()=>{const c=JSON.parse(localStorage.getItem(SB.Campaign.key));c.roster.nia.injury=2;localStorage.setItem(SB.Campaign.key,JSON.stringify(c));});await recovery.reload();
@@ -139,6 +158,6 @@ async function drive(page,touch=false){
     assert(await catalog.locator('.feature-visual img').evaluate(i=>i.complete&&i.naturalWidth>0));await catalog.locator('.featured').screenshot({path:path.join(out,'catalog-feature.png')});await catalog.close();
     assert.deepEqual(sourceSnapshot(),initialSources,'runtime sources must remain unchanged throughout browser verification');
     fs.writeFileSync(path.join(out,'source-manifest.json'),JSON.stringify({at:new Date().toISOString(),sources:initialSources},null,2));
-    fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({results,newMissionSweeps,api,campaignRuns,dialogs,checks:'real keyboard/touch preview-confirm-cancel, raised tile picking, native-touch full Locked Manifest, Night Freight and Rooftop Crossfire, '+campaignRuns.length+' legal-input live-AI victories, earned unlock/save/reload, denied storage, delayed rank snapshot, loss/retry, file boot, DPR2'},null,2));console.log(JSON.stringify({viewports:results.length,newMissionViewports:newMissionSweeps.length,campaign:campaignRuns.map(r=>({...r.final,actions:r.actions.length})),checks:'PASS'}));
+    fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({results,newMissionSweeps,api,campaignRuns,sidingRun,dialogs,checks:'real keyboard/touch preview-confirm-cancel, raised tile picking, native-touch operations, '+campaignRuns.length+' legal-input live-AI campaign victories, convoy escape/retry and siding replay, earned unlock/save/reload, denied storage, delayed rank snapshot, file boot, DPR2'},null,2));console.log(JSON.stringify({viewports:results.length,newMissionViewports:newMissionSweeps.length,campaign:campaignRuns.map(r=>({...r.final,actions:r.actions.length})),siding:{...sidingRun.final,actions:sidingRun.actions.length},checks:'PASS'}));
   }finally{await browser.close();server.close();}
 })().catch(e=>{console.error(e);server.close();process.exitCode=1;});

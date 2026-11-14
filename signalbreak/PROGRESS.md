@@ -862,9 +862,24 @@ The generic circuit strip can still show the unused stop as pending after
 interception. Siding mastery is stated in the briefing and does not yet affect
 the score, so the tested brake route earns more.
 
-All 93 Signalbreak tests and all 600 repository tests in 31 suites passed.
-Report: node_modules/.cache/signalbreak-convoy-full.json. The earned browser
-run has cleared both interceptions. The full viewport sweep is still running.
+## November 13 Stolen Convoy final verification
+
+All 93 Signalbreak tests and all 600 repository tests in 31 suites passed
+(407.37s). Report: node_modules/.cache/signalbreak-convoy-full.json.
+Stable-source local Edge passed 96 operation/viewport combinations and all
+16 earned victories through actual UI orders and live AI with four extracted
+each. Stolen Convoy's brake route won in 45 orders on turn 8 (3,210 points).
+The siding replay won in 44 orders on turn 7 (3,240 points) at 390px. Both used
+native touch. Fourteen actual End Turns triggered escape, offered a retry,
+and sent no rank request. Save/reload, loadouts, local rank-before-submit,
+delayed score snapshot, file boot, storage denial, DPR2, loss and console
+checks passed. Browser launch used scoped local-only access. The source
+manifest in node_modules/.cache/signalbreak/convoy-final matches the runtime.
+
+Reviewed all twelve briefing/live captures in three contact sheets, the
+320px stopped cart, both earned-unlock victory captures, the escape panel and
+the independent side-by-side. The 320px Deploy button is reachable by scrolling.
+The 4K contact sheet is downsampled.
 
 Campaign 16/20. The four Broadcast Citadel operations, persistent district
 outcomes, tracked mastery, full-campaign scoring and finale remain open.

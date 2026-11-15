@@ -885,3 +885,11 @@ Campaign 16/20. The four Broadcast Citadel operations, persistent district
 outcomes, tracked mastery, full-campaign scoring and finale remain open.
 Keep FIRST PLAYABLE and the full scope. The scheduled second Saturday is
 November 14 Pacific. This Friday checkpoint is on dev.
+
+## November 14 Pacific release assessment
+
+Saturday, age 12. The release check starts from dev e499c22. Rerun the full
+repository suite and the localhost Edge sweep. The authored campaign currently
+stops after Stolen Convoy at 16 of 20 operations. Assess that progression
+boundary against the approved Broadcast Citadel finale and campaign score.
+This run is release wrap-up.

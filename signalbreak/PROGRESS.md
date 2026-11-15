@@ -893,3 +893,32 @@ repository suite and the localhost Edge sweep. The authored campaign currently
 stops after Stolen Convoy at 16 of 20 operations. Assess that progression
 boundary against the approved Broadcast Citadel finale and campaign score.
 This run is release wrap-up.
+
+## November 14 Pacific release held at operation 16
+
+All 600 repository tests passed across 31 suites, including all 93 Signalbreak
+cases. The localhost Edge sweep passed 96 operation/viewport combinations
+across the six required sizes. It earned all 16 available victories through
+actual UI orders and live AI with four engineers extracted each time. The
+Stolen Convoy brake and siding touch routes both cleared. Touch, keyboard,
+console, horizontal overflow, save/reload and locally mocked rank/submit
+checks passed. Runtime hashes match all eight files in the browser manifest.
+The sandboxed Edge launch failed and the scoped localhost retry passed.
+Jest report: node_modules/.cache/signalbreak-saturday-full.json.
+Browser evidence: node_modules/.cache/signalbreak/saturday-release-check.
+
+Reviewed opening and Stolen Convoy briefing and gameplay captures at all six
+sizes, plus the two convoy debriefs. The 4K contact sheets are downsampled.
+The 320px Deploy control is reachable by scrolling. Both debriefs offer replay
+and explicitly report that four operations and the finale are in development.
+
+Held production promotion because the approved campaign cannot be completed.
+The entire Broadcast Citadel is absent and the leaderboard still accepts
+operation scores. Signalbreak stays active on dev under FIRST PLAYABLE.
+Main remains at 69400b9 and no completion marker was created. Prior art/UI
+and tactical feedback critic failures remain on record.
+
+Next content run starts with 17 Outer Relay, then Vertical Breach, Safe
+Corridor and the final shutdown. Finish the consequence-based epilogue,
+persistent district outcomes, tracked mastery and full-campaign scoring.
+Preserve the approved scope and v1 saves.

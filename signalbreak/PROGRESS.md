@@ -965,3 +965,27 @@ mastery goal still has no tracked reward. Separate human, device, audio, motion
 and performance evaluations remain open.
 Comparison: node_modules/.cache/signalbreak/relay-critic/outer-relay-side-by-side.png.
 Reference: https://store.steampowered.com/app/268500/XCOM_2/.
+
+## November 15 Pacific — Outer Relay final verification
+
+Stable-source localhost Edge passed all 102 operation/viewport combinations
+across the six required sizes and 17 earned victories through the live UI and
+AI. All four engineers extracted on every run. Outer Relay's north run took
+45 orders, turn 7, 3,390 points. The 390px south replay took 50 orders, turn 8,
+3,360 points. The separate relay team-loss fixture offered a retry and sent no
+rank request. Save/reload, loadouts, touch and keyboard, delayed rank snapshot,
+denied storage, file boot, DPR2, console and overflow checks passed. Leaderboard
+requests used local mocks. The earlier browser run crossed the legend and HUD
+edits and was discarded; the final run's eight runtime hashes match the tree.
+Evidence: node_modules/.cache/signalbreak/relay-confirmed.
+
+Reviewed all twelve final Outer Relay briefing and live frames at the six
+sizes, both earned debriefs, and the independent fixed narrow-screen captures
+and comparison. The 320px briefing's Deploy button is reachable by scrolling;
+the 4K frames are downsampled in the contact sheet.
+
+Campaign 17/20; FIRST PLAYABLE remains. Next: 18 Vertical Breach through the
+Citadel command floors, then Safe Corridor and the final shutdown. Persistent
+district consequences, tracked mastery, finale/epilogue and final campaign
+scoring remain required. Preserve v1 saves and Tidelock. Production was not
+promoted and no completion marker was added.

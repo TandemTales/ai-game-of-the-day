@@ -930,3 +930,38 @@ Saturday release assessment. Build operation 17 as a network siege with
 meaningful alternate approaches. Verify both routes, earned unlock, the
 six-size browser sweep and an independent comparison. Keep FIRST PLAYABLE
 and leave production unchanged while the Citadel and finale are unfinished.
+
+## November 15 Pacific — Outer Relay implementation
+
+Outer Relay opens Broadcast Citadel with a raised northern gallery and turret
+capture or a longer southern shelter route that leaves the turret hostile.
+Either gate stays open after its approach is hacked. Hold its powered pad with
+one engineer while another hacks the relay; the rescue gate then stays open
+even after the operator leaves. Before the relay latches, a one-engineer team
+gets a specific retry instead of an impossible objective. Named map pads and
+the HUD show power and staffing. Secure the linekeeper and extract southeast.
+
+Both base-stat legal routes cleared against live AI with four survivors:
+north turn 7 / 44 orders / 3,390 points, south turn 8 / 50 orders / 3,360 points.
+Six focused checks passed, including nonmutating stale confirmation rejection
+and sixteen-clear v1 save compatibility. Full Jest passed 605 tests in 31
+suites, including 98 Signalbreak cases and the consecutive earned campaign.
+Report: node_modules/.cache/signalbreak-relay-full.json. Final browser sweep
+results follow separately.
+
+Independent ART/UI and tactical feedback verdict: FAIL against official XCOM 2.
+Outer Relay's pad markers show which route is powered and held. XCOM 2 reads
+cover and actor silhouettes more clearly and places the pending action beside
+its target. The Citadel still has repeated surfaces and unused desktop map
+space. The critic found that the old stairs hint overlapped the relay legend
+at 320px. The stairs hint now has a separate band on narrow maps, and the
+unused feed is marked OPTIONAL in the HUD. The critic reran and inspected the
+fixed build. Both north touch/pointer routes and the south touch route cleared
+through the real UI and live AI, with an explicitly labelled save unlock fixture.
+The lead reviewed the final comparison and native 320/390 map captures.
+
+The both-feed variant can score higher than either single-feed route; the south
+mastery goal still has no tracked reward. Separate human, device, audio, motion
+and performance evaluations remain open.
+Comparison: node_modules/.cache/signalbreak/relay-critic/outer-relay-side-by-side.png.
+Reference: https://store.steampowered.com/app/268500/XCOM_2/.

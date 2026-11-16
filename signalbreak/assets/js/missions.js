@@ -805,7 +805,79 @@
     mastery: 'Use the east siding, copy the records and extract all four engineers by turn 14.',
     debrief: 'The dispatcher authenticates the records: the Citadel has been issuing civilian transfer orders under stolen district credentials. Mara sends copies to the district crews and marks the outer relay that connects the Citadel to the city grid.'
   };
-  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice, span, blackout, pumpSiege, paperTrail, twoKeys, ghostBroadcast, stolenConvoy];
+  // The raised gallery is a short climb across the blast wall. Its floor is
+  // separate from the court below except at the two authored stair links.
+  var outerGalleryHeights = [];
+  for (var galleryY = 4; galleryY <= 6; galleryY++) {
+    for (var galleryX = 9; galleryX <= 16; galleryX++) {
+      if (galleryX !== 11 || galleryY === 5) outerGalleryHeights.push({ x: galleryX, y: galleryY, z: 1 });
+    }
+  }
+  var outerRelay = {
+    id: 'outer-relay', title: 'Outer Relay', district: 'Broadcast Citadel', sequence: 17,
+    briefing: 'The stolen manifests let Mara reach the Citadel’s outer wall. HACK the north feed to open the raised gallery and turn the turret, or HACK the south feed to open a longer route through the covered shelter. Both gates stay open once hacked. Stand a living engineer on the matching N or S relay pad while a second engineer HACKs the outer relay. This permanently opens the detention gate. Free the Citadel linekeeper and extract through the southeast freight doors.',
+    radio: 'MARA / North feed (7,5), raised pad N (15,5), east stairs (16,6). South feed (7,13), covered pad S (16,12). The south feed leaves the turret hostile unless you also take the north feed. Hold either powered pad during the relay HACK (19,9), then leave it. Linekeeper (23,10), freight doors to the south.',
+    objectiveSummary: 'HACK either approach feed. Hold its pad with a living engineer while another HACKs the outer relay, then free the linekeeper and extract.',
+    extractionLabel: 'southeast freight doors',
+    objectives: {
+      requiredCircuits: ['citadel-relay'],
+      rescueLabel: 'Free the Citadel linekeeper',
+      rescueRequires: ['citadel-relay']
+    },
+    rows: [
+      '##########################',
+      '#..........#.........#...#',
+      '#.##.c.##..#.####....#...#',
+      '#.#c...#...#...##..#.#...#',
+      '#.........c#c........#...#',
+      '#..c...n...d.........#...#',
+      '#........c.#....c.c..#...#',
+      '#..........#......##.#...#',
+      '#.c...####.#..##...c.#...#',
+      '#...c.#cc#.#.c...c.n.d...#',
+      '#.....####.#.###.c.c.#.r.#',
+      '#..c...c...#####..c..##..#',
+      '#.......cc.#.........#.ee#',
+      '#....c.n...d.c..c.c..#.ee#',
+      '#..........#..c.##c..#...#',
+      '#...##...c.#.##...##.#...#',
+      '#..........#...c.....#...#',
+      '##########################'
+    ],
+    heights: outerGalleryHeights, maxStepHeight: 0,
+    climbLinks: [
+      { from: { x: 8, y: 5 }, to: { x: 9, y: 5 } },
+      { from: { x: 16, y: 6 }, to: { x: 17, y: 6 } }
+    ],
+    stairs: [
+      { label: 'West gallery stair', x: 8, y: 5, toX: 9, toY: 5 },
+      { label: 'East gallery stair', x: 16, y: 6, toX: 17, toY: 6 }
+    ],
+    squad: squad([[2,7],[2,8],[3,8],[3,9]]),
+    enemies: [
+      { id: 'outer-yard-watch', name: 'Checkpoint watch', x: 6, y: 7, hp: 5, maxHp: 5, damage: 2, range: 5, stride: 2 },
+      { id: 'outer-gallery-watch', name: 'Gallery marksman', x: 14, y: 5, hp: 6, maxHp: 6, damage: 2, range: 6, stride: 2 },
+      { id: 'outer-shelter-guard', name: 'Shelter guard', x: 14, y: 13, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 2 },
+      { id: 'outer-relay-warden', name: 'Relay warden', x: 18, y: 9, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 2 }
+    ],
+    turret: { x: 18, y: 4, range: 7, damage: 2 },
+    node: { x: 7, y: 5 }, rescue: { x: 23, y: 10 },
+    circuits: [
+      { id: 'north-approach', label: 'North gallery feed', x: 7, y: 5, controlled: false, doors: [{ x: 11, y: 5 }], turret: true },
+      { id: 'south-approach', label: 'South shelter feed', x: 7, y: 13, controlled: false, doors: [{ x: 11, y: 13 }] },
+      { id: 'citadel-relay', label: 'Take the outer relay', x: 19, y: 9, controlled: false, doors: [{ x: 21, y: 9 }] }
+    ],
+    relaySiege: {
+      core: 'citadel-relay',
+      approaches: [
+        { circuitId: 'north-approach', x: 15, y: 5 },
+        { circuitId: 'south-approach', x: 16, y: 12 }
+      ]
+    },
+    mastery: 'Take the relay using only the south shelter feed and extract all four engineers in seventeen turns or fewer.',
+    debrief: 'The linekeeper returns the outer grid to the district crews. The restored link carries the crew’s first Citadel transmission: the elevators beyond the wall are locked to the upper command floors. Mara marks the route for Vertical Breach.'
+  };
+  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice, span, blackout, pumpSiege, paperTrail, twoKeys, ghostBroadcast, stolenConvoy, outerRelay];
   SB.Missions.get = function (id) {
     return SB.Missions.operations.find(function (mission) { return mission.id === id; }) || null;
   };

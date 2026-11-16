@@ -50,13 +50,14 @@ explicit user approval; time/usage limits are not approval.
 - [x] 14 Two Keys: clear separate stacks and sorting wings, activate both consoles in one turn with different engineers, regroup through the shared vault gate, rescue the cipher keeper and extract.
 - [x] 15 Ghost Broadcast: optional decoy opens a north hatch and diverts two patrols to the south court, or take the open central route to recover evidence, rescue the operator and extract.
 - [x] 16 Stolen Convoy: intercept a moving evidence transport using an early brake or a siding signal, copy the intact manifests, rescue the dispatcher and extract.
-- [ ] 17 Outer Relay: network siege approaches.
+- [x] 17 Outer Relay: capture a siege approach, staff its powered anchor and hack
+  the relay with a second engineer; rescue the Citadel rigger and extract.
 - [ ] 18 Vertical Breach: floors and lifts.
 - [ ] 19 Safe Corridor: defend/evacuate civilians.
 - [ ] 20 Signalbreak: combined core shutdown and consequence-based epilogue.
 
 Mission-boundary local saves, sequential unlocks and replay best scores now exist
-for the sixteen implemented missions. Squad progression, equipment and injury
+for the seventeen implemented missions. Squad progression, equipment and injury
 recovery are implemented; persistent district rescue/evidence consequences remain. Authored
 mastery targets appear in the HUD; no campaign medal/reward system exists yet.
 Story debriefs appear on victory. The clinic is a protected prerequisite, not yet
@@ -124,7 +125,7 @@ Grid coordinates integer (x,y), origin top left. Tiles: . floor, # tall blocker,
 c low cover, d circuit door, e exit, n network node, r rescue. Heights are separate.
 No procedural randomness required; identical state/action gives identical outcome.
 
-SB.Missions.operations contains the sixteen authored missions, get(id) looks up an
+SB.Missions.operations contains the seventeen authored missions, get(id) looks up an
 implemented mission, and manifest holds the full twenty-operation contract.
 SB.Logic.newGame(id?) returns a fresh chosen operation (default Live Wire) and
 rejects unknown IDs. SB.Logic.preview(state,actorId,
@@ -167,6 +168,15 @@ HACK the stopped transport to copy its intact civilian manifests. This unlocks
 the dispatcher rescue and, once rescued, extraction. Map and HUD share the
 read-only convoyStatus accessor. A stop or copy confirmation issued before End
 Turn expires. A stopped transport has no further departure timer.
+
+Outer Relay offers a direct stair gallery that converts the turret and a longer
+covered shelter route that leaves it hostile. Either approach console opens its
+own gate and powers its anchor. A living engineer must occupy a powered anchor
+while a different engineer hacks the relay. The relay latches the rescue door;
+the pad operator is then free to move. A queued core hack is revalidated against
+the same turn and anchor operator. Dropping below two engineers before latching
+ends the attempt with an explicit retry. Map, HUD and previews use read-only
+relaySiegeStatus. The south route's mastery target is narrated, not tracked.
 
 Campaign saves use signalbreak-campaign-v1 in localStorage, validate contiguous
 completed operations, and persist mission-boundary selected/unlocked/best

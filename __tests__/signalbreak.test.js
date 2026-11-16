@@ -31,17 +31,17 @@ function pilot(SB, s, report = []) {
   }
   return report;
 }
-test('full manifest promises twenty operations; sixteen distinct authored maps are playable', () => {
+test('full manifest promises twenty operations; seventeen distinct authored maps are playable', () => {
   const SB=load();expect(SB.Missions.manifest).toHaveLength(5);
   const names=SB.Missions.manifest.flatMap(d=>Array.from(d).slice(1));expect(new Set(names).size).toBe(20);
   expect(SB.Missions.opening.title).toBe('Live Wire');
-  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege','paper-trail','two-keys','ghost-broadcast','stolen-convoy']);
-  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(16);
+  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege','paper-trail','two-keys','ghost-broadcast','stolen-convoy','outer-relay']);
+  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(17);
   for(const m of SB.Missions.operations){
     expect(m.rows.every(r=>r.length===m.rows[0].length)).toBe(true);
     for(const n of m.circuits||[])expect(m.rows[n.y][n.x]).toBe(n.id===m.convoy?.evidenceCircuit?'.':'n');
   }
-  expect(()=>SB.Logic.newGame('outer-relay')).toThrow('Unknown operation');
+  expect(()=>SB.Logic.newGame('vertical-breach')).toThrow('Unknown operation');
 });
 test('fresh states are isolated and previews never mutate the tactical state', () => {
   const {Logic:L}=load(),a=L.newGame(),b=L.newGame(),before=JSON.stringify(a);
@@ -331,10 +331,10 @@ test('antenna lanes alternate, warn before movement, damage only exposed living 
  const hp=s.squad[0].hp;L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);expect(L.activeLane(s).label).not.toBe(first.label);
  s.circuits.find(c=>c.id==='tower').controlled=true;expect(L.activeLane(s)).toBe(null);L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);
 });
-test('all sixteen operations support consecutive persisted squad progression with legal orders',()=>{
+test('all seventeen operations support consecutive persisted squad progression with legal orders',()=>{
  const SB=load(),C=SB.Campaign,c=C.fresh(),store=memoryStorage();
  for(const m of SB.Missions.operations){for(const id of ['nia','sol','rook','ivo'])C.treat(c,id);const s=C.prepare(c,SB.Logic.newGame(m.id));campaignRoute(SB,s);expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);expect(C.complete(c,s)).toBe(true);C.save(store,c);expect(C.load(store).campaign).toEqual(c);}
- expect(Object.keys(c.results)).toHaveLength(16);expect(c.roster.nia.xp).toBe(16);
+ expect(Object.keys(c.results)).toHaveLength(17);expect(c.roster.nia.xp).toBe(17);
 });
 
 
@@ -744,4 +744,61 @@ test('a fifteen-operation v1 save retains Glass Archive results and unlocks Stol
  expect(restored.selected).toBe('stolen-convoy');
  expect(C.unlocked(restored,'stolen-convoy')).toBe(true);
  expect(C.unlocked(restored,'outer-relay')).toBe(false);
+});
+
+test.each([false,true])('Outer Relay turns an alternate siege route into four-engineer extraction (south=%s)', southRelay=>{
+ const SB=load(),L=SB.Logic,s=L.newGame('outer-relay');
+ const actions=require('../tools/signalbreak-route.cjs').run(SB,s,350,{southRelay});
+ expect(s.phase).toBe('won');
+ expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);
+ const siege=L.relaySiegeStatus(s),used=siege.approaches[southRelay?1:0];
+ expect(siege.secured).toBe(true);
+ expect(siege.approaches.map(a=>a.controlled)).toEqual([!southRelay,southRelay]);
+ expect(L.turretAllied(s)).toBe(!southRelay);
+ expect(actions.some(a=>a.kind==='move'&&a.x===used.x&&a.y===used.y)).toBe(true);
+});
+
+test('Outer Relay requires a living operator on a powered pad and rejects stale core confirmations',()=>{
+ const {Logic:L}=load(),s=L.newGame('outer-relay');
+ s.enemies=[];s.turret=null;
+ const [nia,sol,rook]=s.squad,[pad]=s.relaySiege.approaches;
+ const core=s.circuits.find(c=>c.id===s.relaySiege.core),route=s.circuits.find(c=>c.id===pad.circuitId);
+ expect(L.tile(s,pad.x,pad.y)).toBe('.');
+ Object.assign(nia,{x:core.x,y:core.y});Object.assign(sol,{x:pad.x,y:pad.y});
+ const preview=()=>L.preview(s,nia.id,'hack',core.x,core.y);
+ const refuse=p=>{const before=JSON.stringify(s);expect(L.commit(s,p)).toBe(false);expect(JSON.stringify(s)).toBe(before);};
+ expect(preview().legal).toBe(false);
+ route.controlled=true;
+ const snapshot=JSON.stringify(s),status=L.relaySiegeStatus(s);
+ expect(status.approaches[0].operatorId).toBe(sol.id);
+ status.approaches[0].x=-1;L.objectiveStatus(s);
+ expect(JSON.stringify(s)).toBe(snapshot);
+ const queued=preview();expect(queued.legal).toBe(true);
+ sol.hp=0;
+ expect(preview().legal).toBe(false);refuse(queued);
+ Object.assign(rook,{x:pad.x,y:pad.y});
+ expect(preview().legal).toBe(true);refuse(queued);
+ const replacement=preview();expect(L.endTurn(s)).toBe(true);refuse(replacement);
+ order(L,s,nia.id,'hack',core.x,core.y);
+ expect(s.score).toBe(500);
+ rook.hp=0;
+ expect(L.relaySiegeStatus(s).secured).toBe(true);
+ expect(preview().legal).toBe(false);
+});
+
+test('Outer Relay explicitly ends an unlatched siege if only one engineer remains',()=>{
+ const {Logic:L}=load(),s=L.newGame('outer-relay');s.enemies=[];s.turret=null;
+ for(const u of s.squad.slice(1))u.hp=0;
+ L.endTurn(s);
+ expect(s.phase).toBe('lost');
+ expect(s.relaySiege.failed).toBe(true);
+});
+
+test('a completed sixteen-operation v1 save unlocks Outer Relay without fabricating Citadel results',()=>{
+ const {Missions:M,Campaign:C}=load(),results={};
+ for(const m of M.operations.slice(0,16))results[m.id]={score:3100,turns:9,survivors:4};
+ const restored=C.normalize({version:1,selected:'stolen-convoy',results});
+ expect(restored.results).toEqual(results);
+ expect(C.unlocked(restored,'outer-relay')).toBe(true);
+ expect(restored.results['outer-relay']).toBeUndefined();
 });

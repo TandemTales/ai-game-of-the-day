@@ -26,6 +26,8 @@
     var archive=L.archiveStatus(s),keyPair=L.keyPairStatus(s),archiveDistrict=s.district==='Glass Archive';
     var broadcast=s.broadcast&&L.broadcastStatus(s);
     var convoy=s.convoy&&L.convoyStatus(s);
+    var relay=s.relaySiege&&L.relaySiegeStatus(s);
+    var stairsHintOnTop=relay&&w<420*Math.min(d,2);
     var railCells=convoy?new Set(s.convoy.route.map(function(cell){return cell.x+','+cell.y;})):null;
     var transmitter=broadcast&&s.circuits.find(function(n){return n.id===s.broadcast.circuitId;});
     var signalInk=broadcast&&broadcast.active?'#e0ceff':'#b1a4ce';
@@ -75,6 +77,22 @@
       c.fillRect(point.x-size/2,top,size,size);c.strokeRect(point.x-size/2,top,size,size);
       c.fillStyle=ink;c.font='700 '+Math.round(size*.69)+'px system-ui';c.textAlign='center';
       c.fillText(letter,point.x,top+size*.75);c.textAlign='start';
+    }
+    function anchorInk(anchor){
+      if(relay.secured)return '#a6bcbf';
+      if(!anchor.controlled)return '#a6b6c2';
+      return anchor.operatorId?'#91f8cd':'#ffd998';
+    }
+    function stairHint(onTop){
+      var scale=Math.min(d,2),right=w-16*scale,baseline=onTop?73*scale:h-42*scale;
+      var label='GOLD LINKS / STAIRS ONLY';
+      c.font=Math.max(11*scale,w/100)+'px system-ui';
+      if(onTop){
+        // Below the zoom buttons and clear of the relay panel at the bottom.
+        var textWidth=c.measureText(label).width;
+        c.fillStyle='#101628f2';c.fillRect(right-textWidth-5*scale,baseline-14*scale,textWidth+10*scale,20*scale);
+      }
+      c.fillStyle='#ffe1a1';c.textAlign='right';c.fillText(label,right,baseline);c.textAlign='start';
     }
     function railTile(x,y,z){
       // The painted bed and sleepers stay flush with the navigable floor.
@@ -233,6 +251,16 @@
       if(!archiveDistrict&&t!== '#' && t!=='w' && y===6){c.strokeStyle=x<8?'#c2975655':'#6caab955';c.lineWidth=a*.04;c.beginPath();c.moveTo(p.x-a*.7,p.y+b*.3);c.lineTo(p.x+a*.7,p.y-b*.3);c.stroke();}
       if(!archiveDistrict&&t!== '#' && t!=='w' && (x*17+y*9)%7===0){c.strokeStyle='#7b969b30';c.lineWidth=a*.025;c.beginPath();c.moveTo(p.x-a*.6,p.y);c.lineTo(p.x-a*.1,p.y+b*.3);c.lineTo(p.x+a*.1,p.y+b*.17);c.stroke();}
     }
+    if(relay)relay.approaches.forEach(function(anchor){
+      // Trace the exact walkable tile. The pad has no height or cover of its own.
+      var p=P.point(anchor.x,anchor.y,L.height(s,anchor.x,anchor.y)),ink=anchorInk(anchor);
+      c.beginPath();c.moveTo(p.x,p.y-b*.8);c.lineTo(p.x+a*.8,p.y);
+      c.lineTo(p.x,p.y+b*.8);c.lineTo(p.x-a*.8,p.y);c.closePath();
+      c.fillStyle=ink+(anchor.controlled&&anchor.operatorId&&!relay.secured?'55':'24');c.fill();
+      c.strokeStyle=ink;c.lineWidth=Math.max(1,a*.09);
+      if(!anchor.controlled&&!relay.secured)c.setLineDash([a*.18,a*.12]);
+      c.stroke();c.setLineDash([]);
+    });
     if(s.pumps){
       var pumps=L.pumpStatus(s);
       pumps.pumps.forEach(function(pump){
@@ -314,7 +342,7 @@
       c.strokeStyle='#ffe1a1';c.lineWidth=Math.max(2,a*.13);c.beginPath();c.moveTo(p.x,p.y);c.lineTo(q.x,q.y);c.stroke();
       [p,q].forEach(function(r){c.beginPath();c.arc(r.x,r.y,a*.17,0,Math.PI*2);c.fillStyle='#ffe1a1';c.fill();});
     });
-    if(s.climbLinks&&s.climbLinks.length){c.fillStyle='#ffe1a1';c.font=Math.max(11*Math.min(d,2),w/100)+'px system-ui';c.textAlign='right';c.fillText('GOLD LINKS / STAIRS ONLY',w-16*Math.min(d,2),h-42*Math.min(d,2));c.textAlign='start';}
+    if(s.climbLinks&&s.climbLinks.length&&!stairsHintOnTop)stairHint(false);
     if(s.ambush)s.ambush.enemies.forEach(function(e){
       if(s.ambush.deployed&&s.ambush.deployed[e.id])return;
       var p=P.point(e.x,e.y);diamond(e.x,e.y,0,'#743f3c','#ef9c7c');c.fillStyle='#ffd0a0';c.font=Math.max(9,a*.5)+'px system-ui';c.textAlign='center';c.fillText('! '+s.ambush.turn,p.x,p.y-a*.25);c.textAlign='start';
@@ -379,6 +407,8 @@
           mapBadge(q,'E',on?'#a1e9d7':'#ffd998',.62);
         }else if(marker){
           mapBadge(q,marker,on?'#a1e9d7':marker==='E'?'#ffd998':marker==='B'?'#c2bdff':'#bbcbd9',.62);
+        }else if(relay&&circuit&&circuit.id===s.relaySiege.core){
+          mapBadge(q,'R',on?'#a1e9d7':'#ffd998',.62);
         }else if(s.circuits&&circuit&&!keyPair){c.font=Math.max(9,a*.5)+'px system-ui';c.textAlign='center';c.fillText(String(s.circuits.indexOf(circuit)+1),q.x,q.y-a*.65);c.textAlign='start';}
       }
       if(s.lanes&&t==='n'&&L.circuitAt(s,x,y)&&L.circuitAt(s,x,y).id===s.lanes.disabledBy){
@@ -469,6 +499,30 @@
       c.fillText(patrolKey,signalLeft+10*signalScale,signalTop+52*signalScale);
     }
     if(view.preview){var p=P.point(view.preview.x,view.preview.y,L.height(s,view.preview.x,view.preview.y));c.strokeStyle=view.preview.legal?'#fce0a4':'#e7988b';c.lineWidth=a*.08;c.beginPath();c.ellipse(p.x,p.y,a*.82,b*.82,0,0,Math.PI*2);c.stroke();}
+    if(relay){
+      var liveAnchor=relay.approaches.some(function(anchor){return anchor.controlled&&anchor.operatorId;});
+      var poweredAnchor=relay.approaches.some(function(anchor){return anchor.controlled;});
+      var relayScale=Math.min(d,2),relayLeft=16*relayScale,relayTop=h-84*relayScale;
+      var relayTitle=relay.secured?'RELAY SECURED':liveAnchor?'RELAY READY / HACK R':
+        poweredAnchor?'MOVE TO A POWERED ANCHOR':'HACK AN APPROACH CONSOLE';
+      var padStatus=relay.approaches.map(function(anchor){
+        var letter=anchor.circuitId==='north-approach'?'N':'S';
+        var point=P.point(anchor.x,anchor.y,L.height(s,anchor.x,anchor.y));
+        mapBadge(point,letter,anchorInk(anchor),L.occupant(s,anchor.x,anchor.y)?1.82:1.14,true);
+        return letter+' ANCHOR '+(!anchor.controlled?'OFF':anchor.operatorId?'HELD':'EMPTY');
+      }).join('  /  ');
+      if(relay.secured)padStatus=s.rescued?'Extract the squad':'Rescue the keeper and extract';
+      c.font='700 '+12*relayScale+'px system-ui';
+      var relayPanel=c.measureText(relayTitle).width;
+      c.font=11*relayScale+'px system-ui';
+      relayPanel=Math.max(relayPanel,c.measureText(padStatus).width)+20*relayScale;
+      var relayTint=relay.secured||liveAnchor?'#a1e9d7':'#ffd998';
+      c.fillStyle='#101628f2';c.fillRect(relayLeft,relayTop,relayPanel,47*relayScale);
+      c.fillStyle=relayTint;c.fillRect(relayLeft,relayTop,2*relayScale,47*relayScale);
+      c.font='700 '+12*relayScale+'px system-ui';c.fillText(relayTitle,relayLeft+10*relayScale,relayTop+18*relayScale);
+      c.font=11*relayScale+'px system-ui';c.fillStyle='#c7d6df';c.fillText(padStatus,relayLeft+10*relayScale,relayTop+36*relayScale);
+      if(stairsHintOnTop&&s.climbLinks&&s.climbLinks.length)stairHint(true);
+    }
     if(keyPair){
       var keyScale=Math.min(d,2),keySize=Math.max(17*keyScale,Math.min(25*keyScale,a)),keyLeft=16*keyScale,keyTop=h-84*keyScale;
       var armed=keyPair.keys.find(function(key){return key.id===keyPair.armedId;});

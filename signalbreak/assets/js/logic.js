@@ -176,6 +176,22 @@
     return { x: position.x, y: position.y, position: convoy.position, stoppedBy: convoy.stoppedBy,
       escaped: convoy.escaped, departureTurn: convoy.departureTurn, secured: convoyEvidence(s).controlled, signals: signals };
   }
+  function relaySiegeStatus(s) {
+    if (!s.relaySiege) return null;
+    var core = s.circuits.find(function (c) { return c.id === s.relaySiege.core; });
+    var approaches = s.relaySiege.approaches.map(function (anchor) {
+      var circuit = s.circuits.find(function (c) { return c.id === anchor.circuitId; });
+      var operator = s.squad.find(function (u) {
+        return living(u) && u.x === anchor.x && u.y === anchor.y;
+      });
+      return { circuitId: anchor.circuitId, x: anchor.x, y: anchor.y,
+        controlled: circuit.controlled, operatorId: operator ? operator.id : null };
+    });
+    return { secured: core.controlled, approaches: approaches };
+  }
+  function relayAnchorName(approach) {
+    return approach.circuitId === 'north-approach' ? 'North anchor' : 'South anchor';
+  }
   function resolveConvoy(s) {
     var convoy = s.convoy;
     if (!convoy || convoy.stoppedBy) return;
@@ -310,6 +326,22 @@
       var c = s.circuits && s.circuits.find(function (entry) { return entry.id === id; });
       return { id: id, label: c ? c.label : 'Take the circuit', done: c ? !!c.controlled : !!s.network };
     });
+    var siege = relaySiegeStatus(s);
+    if (siege) {
+      var coreObjective = status.find(function (entry) { return entry.id === s.relaySiege.core; });
+      if (coreObjective) {
+        if (siege.secured) coreObjective.label = 'Citadel relay secured / anchors may be vacated';
+        else if (s.relaySiege.failed) coreObjective.label = 'Citadel relay needs two surviving engineers / retry operation';
+        else {
+          var anchors = siege.approaches.map(function (anchor) {
+            var name = relayAnchorName(anchor) + ' (' + anchor.x + ', ' + anchor.y + '): ';
+            if (!anchor.controlled) return name + 'unpowered';
+            return name + (anchor.operatorId === null ? 'vacant' : 'held by ' + unit(s, anchor.operatorId).name);
+          });
+          coreObjective.label = 'HACK either approach to open its route. Stand on its anchor while another engineer HACKS the relay. ' + anchors.join(' / ');
+        }
+      }
+    }
     var archive = archiveStatus(s);
     if (archive) {
       var purgeLabel = archive.secured ? 'Evidence secured / purge stopped' :
@@ -462,6 +494,12 @@
       p.cost = Math.ceil((p.path.length - 1) / a.stride);
       if (!p.cost || p.cost > a.ap) return fail('Beyond remaining movement AP.');
       p.reason = p.cost + ' AP · ' + (p.path.length - 1) + ' tiles · confirm move';
+      var siege = relaySiegeStatus(s);
+      if (siege && !siege.secured) {
+        var destinationAnchor = siege.approaches.find(function (anchor) { return anchor.x === x && anchor.y === y; });
+        if (destinationAnchor) p.reason += ' · ' + relayAnchorName(destinationAnchor) +
+          (destinationAnchor.controlled ? ': hold here while another engineer HACKS the relay' : ': HACK its approach circuit to supply power');
+      }
       if (s.lighting) {
         p.illuminated = lit(s, x, y);
         p.reason += p.illuminated ? ' / LIT destination: enemies with clear sight may pursue and fire at normal range' : ' / DARK destination: enemies must be within ' + s.lighting.darkRange + ' tiles to spot you';
@@ -544,6 +582,15 @@
         p.reason = '1 AP · open the north hatch · marked patrols head to ' + s.broadcast.destinationLabel +
           ' on enemy turns and can still fire';
       }
+      if (s.relaySiege && circuit.id === s.relaySiege.core) {
+        var heldAnchor = relaySiegeStatus(s).approaches.find(function (anchor) {
+          return anchor.controlled && anchor.operatorId !== null && anchor.operatorId !== a.id;
+        });
+        if (!heldAnchor) return fail('Power either approach, then keep a different living engineer on its exact anchor tile.');
+        p.relaySiegePreview = [s.turn, heldAnchor.circuitId, heldAnchor.operatorId].join('/');
+        p.reason = '1 AP · ' + relayAnchorName(heldAnchor) + ' held by ' + unit(s, heldAnchor.operatorId).name +
+          ' · secure the relay and open the rescue gate';
+      }
       if (convoySignal || convoyCopy) {
         p.convoyPreview = [s.turn, convoy.position, convoy.stoppedBy].join('/');
         if (convoyCopy) p.reason = '1 AP · copy the intact civilian records';
@@ -600,6 +647,10 @@
       s.keyPair.failed = true; s.phase = 'lost';
       log(s, 'Paired access needs two surviving engineers. Retry to open the gate.', 'lost');
     }
+    else if (s.relaySiege && !relaySiegeStatus(s).secured && s.squad.filter(living).length < 2) {
+      s.relaySiege.failed = true; s.phase = 'lost';
+      log(s, 'The relay needs two surviving engineers. Retry to hold an anchor and capture the relay.', 'lost');
+    }
     else if (s.squad.every(function (u) { return u.hp <= 0 || u.extracted; })) {
       s.phase = 'won'; s.score += s.squad.filter(function (u) { return u.extracted; }).length * 250 + Math.max(0, 20 - s.turn) * 30;
       log(s, s.title + ' complete. The rescued crew is safe. Full campaign in development.', 'won');
@@ -610,7 +661,8 @@
     var p = preview(s, proposed.actorId, proposed.kind, proposed.x, proposed.y);
     if (!p.legal) return false;
     if ((p.lift || proposed.lift) && (!p.lift || !proposed.lift || p.liftFrom !== proposed.liftFrom || p.liftTo !== proposed.liftTo)) return false;
-    if (p.archivePreview !== proposed.archivePreview || p.keyPairPreview !== proposed.keyPairPreview || p.convoyPreview !== proposed.convoyPreview) return false;
+    if (p.archivePreview !== proposed.archivePreview || p.keyPairPreview !== proposed.keyPairPreview ||
+        p.convoyPreview !== proposed.convoyPreview || p.relaySiegePreview !== proposed.relaySiegePreview) return false;
     var a = unit(s, p.actorId); a.ap -= p.cost;
     if (p.kind === 'move') { a.x = p.x; a.y = p.y; log(s, a.name + ' moved · ' + p.cost + ' AP'); }
     if (p.kind === 'attack') strike(s, a, s.enemies.find(function (e) { return e.id === p.targetId; }), a.name + ' fired');
@@ -638,6 +690,8 @@
               s.convoy.stoppedBy = circuit.id;
               log(s, circuit.label + ' stopped the convoy. HACK the transport to copy its records.', 'hack');
             }
+          } else if (p.relaySiegePreview) {
+            log(s, 'Citadel relay secured · rescue gate open · anchors may be vacated', 'hack');
           } else if (s.archive && circuit.id === s.archive.evidenceCircuit) {
             log(s, 'Evidence copied. Purge stopped. Rescue the archivist and extract.', 'hack');
           } else if (s.archive && circuit.id === s.archive.delayCircuit) {
@@ -714,5 +768,5 @@
   SB.Logic = { newGame: newGame, tile: tile, height: height, unit: unit, living: living, occupant: occupant,
     blocked: blocked, canStep: canStep, path: path, visible: visible, lit: lit, detected: detected, cover: cover, damage: damage, preview: preview, commit: commit, endTurn: endTurn,
     waterStatus: waterStatus, waterRouteAt: waterRouteAt, liftAt: liftAt, liftStatus: liftStatus, liftControlAt: liftControlAt, defenseStatus: defenseStatus, pumpStatus: pumpStatus, keyPairStatus: keyPairStatus, archiveStatus: archiveStatus, activeLane: activeLane,
-    circuitAt: circuitAt, doorOpen: doorOpen, objectiveStatus: objectiveStatus, turretAllied: turretAllied, extractionStatus: extractionStatus, broadcastStatus: broadcastStatus, convoyStatus: convoyStatus };
+    circuitAt: circuitAt, doorOpen: doorOpen, objectiveStatus: objectiveStatus, turretAllied: turretAllied, extractionStatus: extractionStatus, broadcastStatus: broadcastStatus, convoyStatus: convoyStatus, relaySiegeStatus: relaySiegeStatus };
 })(window);

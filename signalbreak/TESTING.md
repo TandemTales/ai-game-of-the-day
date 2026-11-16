@@ -267,3 +267,14 @@ copying the intact evidence, and preservation of fifteen-operation v1 saves.
 The legal-order pilot exercises both approaches with base stats, and the earned
 campaign includes the new operation. Browser coverage includes the earned brake
 route, native-touch escape/retry and a siding replay using the earned unlock.
+
+## November 15 Outer Relay coverage
+
+Verify both approach-only routes against live AI with base stats, and the north
+route with progression carried through all 17 operations. Confirm an unpowered
+or unstaffed anchor cannot authorize the relay; changing the operator or turn
+invalidates a queued hack without mutation. Check the capture latches once and
+one survivor before capture produces an explicit retry. Keep sixteen-clear v1
+records and unlock Outer Relay without inventing a clear. Browser coverage uses
+the earned unlock for both branches, reads map status, and checks the separate
+team-loss fixture does not request rank.

@@ -22,7 +22,7 @@ async function tile(page,x,y,touch=false){
 async function plan(page,options){return page.evaluate(({source,options})=>Function('return ('+source+')')()(SB,SB.Game.getState(),options),{source:nextOrder.toString(),options});}
 async function drive(page,touch=false,options={}){
   const actions=[];let circuit='';
-  const suffix=options.useSiding?'-siding':'';
+  const suffix=options.useSiding?'-siding':options.southRelay?'-south':'';
   for(let i=0;i<350&&await page.evaluate(()=>SB.Game.getState().phase==='player');i++){
     const p=await plan(page,options);actions.push(p);
     if(p.kind==='end'){await page.locator('#end-turn').click();continue;}
@@ -32,7 +32,7 @@ async function drive(page,touch=false,options={}){
     if(['move','attack','heal','hack'].includes(p.kind))await tile(page,p.x,p.y,touch);
     const shown=await page.evaluate(()=>SB.Game.getPreview());assert(shown&&shown.legal&&shown.kind===p.kind&&shown.x===p.x&&shown.y===p.y,JSON.stringify({wanted:p,shown}));
     await page.locator('#confirm').click();
-    const current=await page.evaluate(()=>{const s=SB.Game.getState();return{id:s.id,key:JSON.stringify([s.circuits||s.network,s.keyPair])};});
+    const current=await page.evaluate(()=>{const s=SB.Game.getState(),relay=SB.Logic.relaySiegeStatus(s);return{id:s.id,key:JSON.stringify([s.circuits||s.network,s.keyPair,relay&&!relay.secured?relay.approaches.map(a=>a.operatorId):null])};});
     if(current.key!==circuit){circuit=current.key;await page.locator('.map-wrap').screenshot({path:path.join(out,current.id+suffix+'-circuit-'+i+'.png')});}
   }
   const final=await page.evaluate(()=>({id:SB.Game.getState().id,phase:SB.Game.getState().phase,score:SB.Game.getState().score,turn:SB.Game.getState().turn,rescued:SB.Game.getState().rescued,extracted:SB.Game.getState().squad.filter(u=>u.extracted).length}));
@@ -124,6 +124,27 @@ async function drive(page,touch=false,options={}){
     const sidingStatus=await convoy.evaluate(()=>SB.Logic.convoyStatus(SB.Game.getState()));
     assert.equal(sidingStatus.stoppedBy,'convoy-siding');assert.equal(sidingStatus.secured,true);
     assert.deepEqual(convoyErrors,[]);await convoy.close();
+    const relay=await browser.newPage({viewport:{width:390,height:844},hasTouch:true,storageState:campaignStorage});
+    const relayErrors=[];
+    relay.on('pageerror',e=>relayErrors.push(String(e)));relay.on('console',m=>{if(['warning','error'].includes(m.type()))relayErrors.push(m.text());});
+    relay.on('dialog',d=>d.dismiss());
+    await relay.goto(url+'/signalbreak/index.html');await relay.locator('#start').tap();
+    assert.equal(await relay.evaluate(()=>SB.Game.getState().id),'outer-relay');
+    const southRelayRun=await drive(relay,true,{southRelay:true});
+    const siegeStatus=await relay.evaluate(()=>SB.Logic.relaySiegeStatus(SB.Game.getState()));
+    assert.equal(siegeStatus.secured,true);
+    assert.deepEqual(siegeStatus.approaches.map(a=>a.controlled),[false,true]);
+    assert.match(await relay.locator('#network-status').innerText(),/North gallery feed: OPTIONAL/);
+    assert.match(await relay.locator('#tip').innerText(),/remaining 3 operations and finale/);
+    // This loss fixture is separate from the two legal live-AI routes.
+    await relay.locator('#start').tap();
+    const beforeTeamLoss=api.length;
+    await relay.evaluate(()=>SB.Game.getState().squad.slice(1).forEach(u=>u.hp=0));
+    await relay.locator('#end-turn').tap();
+    assert.equal(await relay.locator('#title').innerText(),'Relay team lost.');
+    assert.match(await relay.locator('#tip').innerText(),/two living engineers/);
+    assert.equal(api.length,beforeTeamLoss);
+    assert.deepEqual(relayErrors,[]);await relay.close();
     // Treatment fixture: represent a saved mission-boundary injury explicitly.
     const recovery=await browser.newPage({viewport:{width:390,height:844},hasTouch:true,storageState:campaignStorage});
     await recovery.goto(url+'/signalbreak/index.html');await recovery.evaluate(()=>{const c=JSON.parse(localStorage.getItem(SB.Campaign.key));c.roster.nia.injury=2;localStorage.setItem(SB.Campaign.key,JSON.stringify(c));});await recovery.reload();
@@ -158,6 +179,6 @@ async function drive(page,touch=false,options={}){
     assert(await catalog.locator('.feature-visual img').evaluate(i=>i.complete&&i.naturalWidth>0));await catalog.locator('.featured').screenshot({path:path.join(out,'catalog-feature.png')});await catalog.close();
     assert.deepEqual(sourceSnapshot(),initialSources,'runtime sources must remain unchanged throughout browser verification');
     fs.writeFileSync(path.join(out,'source-manifest.json'),JSON.stringify({at:new Date().toISOString(),sources:initialSources},null,2));
-    fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({results,newMissionSweeps,api,campaignRuns,sidingRun,dialogs,checks:'real keyboard/touch preview-confirm-cancel, raised tile picking, native-touch operations, '+campaignRuns.length+' legal-input live-AI campaign victories, convoy escape/retry and siding replay, earned unlock/save/reload, denied storage, delayed rank snapshot, file boot, DPR2'},null,2));console.log(JSON.stringify({viewports:results.length,newMissionViewports:newMissionSweeps.length,campaign:campaignRuns.map(r=>({...r.final,actions:r.actions.length})),siding:{...sidingRun.final,actions:sidingRun.actions.length},checks:'PASS'}));
+    fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({results,newMissionSweeps,api,campaignRuns,sidingRun,southRelayRun,dialogs,checks:'real keyboard/touch preview-confirm-cancel, raised tile picking, native-touch operations, '+campaignRuns.length+' legal-input live-AI campaign victories, alternate convoy and relay routes, terminal loss and retry, earned unlock/save/reload, denied storage, delayed rank snapshot, file boot, DPR2'},null,2));console.log(JSON.stringify({viewports:results.length,newMissionViewports:newMissionSweeps.length,campaign:campaignRuns.map(r=>({...r.final,actions:r.actions.length})),siding:{...sidingRun.final,actions:sidingRun.actions.length},southRelay:{...southRelayRun.final,actions:southRelayRun.actions.length},checks:'PASS'}));
   }finally{await browser.close();server.close();}
 })().catch(e=>{console.error(e);server.close();process.exitCode=1;});

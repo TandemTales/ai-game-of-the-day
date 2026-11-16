@@ -45,7 +45,17 @@ function nextOrder(SB, s, options={}) {
     }
   }
   let goal;
-  if (s.convoy) {
+  const siege=L.relaySiegeStatus&&L.relaySiegeStatus(s);
+  const approach=siege&&!siege.secured?siege.approaches[options.southRelay?1:0]:null;
+  const anchorOperator=approach&&approach.controlled&&(approach.operatorId||
+    (live.find(u=>u.id==='ivo')||live[0])?.id);
+  if(siege){
+    if(approach){
+      goal=s.circuits.find(c=>c.id===(approach.controlled?s.relaySiege.core:approach.circuitId));
+      for(const u of live){const p=L.preview(s,u.id,'hack',goal.x,goal.y);if(p.legal)return p;}
+    }
+  }
+  else if (s.convoy) {
     const convoy=L.convoyStatus(s);
     if(!convoy.secured){
       const signal=options.useSiding?convoy.signals[1]:convoy.signals.find(control=>control.available);
@@ -109,7 +119,8 @@ function nextOrder(SB, s, options={}) {
     const pumping=s.pumps&&s.pumps.elapsed<s.pumps.rounds;
     const pump=pumping?s.circuits.find(c=>c.id===s.pumps.circuitIds[['nia','rook'].includes(u.id)?0:1]):null;
     const key=synchronizing?keyPair.keys[['nia','rook'].includes(u.id)?0:1]:null;
-    const goal=key||pump||commonGoal;
+    const anchor=anchorOperator===u.id?approach:null;
+    const goal=anchor||key||pump||commonGoal;
     const extract=L.preview(s,u.id,'extract',u.x,u.y);if(extract.legal)return extract;
     if (u.role==='MEDIC') for (const ally of live.filter(a=>a.hp<=a.maxHp-4)) {
       const heal=L.preview(s,u.id,'heal',ally.x,ally.y);if(heal.legal)return heal;
@@ -121,8 +132,9 @@ function nextOrder(SB, s, options={}) {
       continue;
     }
     if(defense&&!defense.done&&u.id==='nia'){const watch=L.preview(s,u.id,'watch',u.x,u.y);if(watch.legal)return watch;continue;}
+    if(anchor&&anchor.operatorId===u.id){const watch=L.preview(s,u.id,'watch',u.x,u.y);if(watch.legal)return watch;continue;}
     if(goal) {
-      const kind=goal===s.rescue?'rescue':goal.regroup||key?null:'hack';
+      const kind=goal===s.rescue?'rescue':goal.regroup||key||anchor?null:'hack';
       if(kind){const p=L.preview(s,u.id,kind,goal.x,goal.y);if(p.legal)return p;}
     }
     let target=goal;

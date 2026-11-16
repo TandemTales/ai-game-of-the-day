@@ -922,3 +922,11 @@ Next content run starts with 17 Outer Relay, then Vertical Breach, Safe
 Corridor and the final shutdown. Finish the consequence-based epilogue,
 persistent district outcomes, tracked mastery and full-campaign scoring.
 Preserve the approved scope and v1 saves.
+
+## November 15 Pacific — Outer Relay intent
+
+Sunday, age 13. Resume the approved campaign on dev after the incomplete
+Saturday release assessment. Build operation 17 as a network siege with
+meaningful alternate approaches. Verify both routes, earned unlock, the
+six-size browser sweep and an independent comparison. Keep FIRST PLAYABLE
+and leave production unchanged while the Citadel and finale are unfinished.

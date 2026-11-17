@@ -52,12 +52,13 @@ explicit user approval; time/usage limits are not approval.
 - [x] 16 Stolen Convoy: intercept a moving evidence transport using an early brake or a siding signal, copy the intact manifests, rescue the dispatcher and extract.
 - [x] 17 Outer Relay: capture a siege approach, staff its powered anchor and hack
   the relay with a second engineer; rescue the Citadel rigger and extract.
-- [ ] 18 Vertical Breach: floors and lifts.
+- [x] 18 Vertical Breach: restore hoist power, cross Maintenance to unlock
+  Command, then ride up and take the evacuation control terminal.
 - [ ] 19 Safe Corridor: defend/evacuate civilians.
 - [ ] 20 Signalbreak: combined core shutdown and consequence-based epilogue.
 
 Mission-boundary local saves, sequential unlocks and replay best scores now exist
-for the seventeen implemented missions. Squad progression, equipment and injury
+for the eighteen implemented missions. Squad progression, equipment and injury
 recovery are implemented; persistent district rescue/evidence consequences remain. Authored
 mastery targets appear in the HUD; no campaign medal/reward system exists yet.
 Story debriefs appear on victory. The clinic is a protected prerequisite, not yet
@@ -125,7 +126,7 @@ Grid coordinates integer (x,y), origin top left. Tiles: . floor, # tall blocker,
 c low cover, d circuit door, e exit, n network node, r rescue. Heights are separate.
 No procedural randomness required; identical state/action gives identical outcome.
 
-SB.Missions.operations contains the seventeen authored missions, get(id) looks up an
+SB.Missions.operations contains the eighteen authored missions, get(id) looks up an
 implemented mission, and manifest holds the full twenty-operation contract.
 SB.Logic.newGame(id?) returns a fresh chosen operation (default Live Wire) and
 rejects unknown IDs. SB.Logic.preview(state,actorId,
@@ -177,6 +178,17 @@ the pad operator is then free to move. A queued core hack is revalidated against
 the same turn and anchor operator. Dropping below two engineers before latching
 ends the attempt with an explicit retry. Map, HUD and previews use read-only
 relaySiegeStatus. The south route's mastery target is narrated, not tracked.
+
+Vertical Breach unfolds three Citadel floors into distinct wings on one chart.
+Only the powered 2×2 lift connects them. From a docked floor, HACK the deck or
+local console to dispatch it to the next floor. A console on another floor
+calls the empty lift directly. The middle interlock unlocks Command for both
+dispatch and recall. Riders retain their deck positions, and an empty arrival
+does not count toward extraction. A queued lift order expires when its turn,
+lift trip or rider positions change. Patrols stay on their own floor and off
+the deck. The optional Ground plant feed opens a Maintenance service bypass;
+the exposed north crosswalk works without it. On Command, the terminal turns
+the turret and releases the technician. Extract through the evacuation stairs.
 
 Campaign saves use signalbreak-campaign-v1 in localStorage, validate contiguous
 completed operations, and persist mission-boundary selected/unlocked/best

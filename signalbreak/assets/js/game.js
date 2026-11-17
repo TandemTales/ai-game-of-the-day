@@ -66,7 +66,8 @@
     });
     el('objective-list').innerHTML='';L.objectiveStatus(state).forEach(function(o){var p=document.createElement('p');p.textContent=(o.done?'✓ ':'○ ')+o.label;p.classList.toggle('done',o.done);el('objective-list').appendChild(p);});
     el('network-status').textContent=state.circuits?state.circuits.map(function(n,i){
-      var alternate=state.relaySiege&&n.id!==state.relaySiege.core;
+      var alternate=state.relaySiege&&n.id!==state.relaySiege.core ||
+        state.lift&&state.lift.kind==='breach'&&state.objectives.requiredCircuits.indexOf(n.id)===-1;
       return (i+1)+' / '+n.label+': '+(n.controlled?'DONE':alternate?'OPTIONAL':'PENDING');
     }).join(' · '):state.network?'ALLIED / DOOR OPEN':'HOSTILE / DOOR LOCKED';el('network-status').style.color=state.network?'#9be1d3':'';
     el('network-links').textContent=state.objectiveSummary||'Linked: security door · turret · lights';
@@ -87,7 +88,8 @@
       var nodes=(state.circuits||[state.node]).filter(function(n){return !n.controlled;});
       if(state.lift){
         var dock=state.lift.stops[state.lift.position];
-        nodes=nodes.concat(state.lift.stops.map(function(stop){return stop.console;}),[{x:dock.x,y:dock.y}]);
+        var deck=state.lift.kind==='breach'&&L.liftAt(state,u.x,u.y)?u:dock;
+        nodes=nodes.concat(state.lift.stops.map(function(stop){return stop.console;}),[{x:deck.x,y:deck.y}]);
       }
       nodes.sort(function(a,b){var pa=L.preview(state,u.id,'hack',a.x,a.y),pb=L.preview(state,u.id,'hack',b.x,b.y);return Number(pb.legal)-Number(pa.legal)+Math.sign(Math.abs(a.x-u.x)+Math.abs(a.y-u.y)-Math.abs(b.x-u.x)-Math.abs(b.y-u.y))*.1;});
       var node=nodes[0]||state.node;setPreview(kind,node.x,node.y);
@@ -138,7 +140,14 @@
     }
     reachable();hud();
   }
-  function confirm(){if(mode!=='playing'||!preview||!preview.legal)return;A.unlock();if(L.commit(state,preview))after();else{preview=null;hud();}}
+  function confirm(){
+    if(mode!=='playing'||!preview||!preview.legal)return;
+    A.unlock();
+    if(L.commit(state,preview)){
+      if(preview.lift&&state.lift.kind==='breach')cursor={x:selected().x,y:selected().y};
+      after();
+    }else{preview=null;hud();}
+  }
   function endTurn(){if(mode!=='playing')return;A.unlock();L.endTurn(state);after();}
   function start(){A.unlock();if(mode!=='paused'){state=C.prepare(campaign,L.newGame(state.id));submitted=false;serial=state.serial;view.selected='nia';view.zoom=1;view.panX=0;view.panY=0;action='move';}
     mode='playing';preview=null;cursor={x:selected().x,y:selected().y};panel.hidden=true;el('operation-picker').open=false;el('pause').textContent='Briefing / pause';reachable();hud();el('start').blur();}

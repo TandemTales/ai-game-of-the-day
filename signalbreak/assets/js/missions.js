@@ -877,7 +877,74 @@
     mastery: 'Take the relay using only the south shelter feed and extract all four engineers in seventeen turns or fewer.',
     debrief: 'The linekeeper returns the outer grid to the district crews. The restored link carries the crew’s first Citadel transmission: the elevators beyond the wall are locked to the upper command floors. Mara marks the route for Vertical Breach.'
   };
-  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice, span, blackout, pumpSiege, paperTrail, twoKeys, ghostBroadcast, stolenConvoy, outerRelay];
+  // The tactical chart unfolds the three floors side by side. Blank shaft
+  // tiles become walkable only where the platform is currently docked.
+  var breachRows = [
+    '##############################',
+    '#....##..#....#....#....##...#',
+    '#.c.##.c.#...c#...c#..c......#',
+    '#....n...#...c#....#...#..#..#',
+    '#.#..c...#n.....c..#..n#.....#',
+    '#.#...ssn#ss..#..c.#...#c....#',
+    '#.c...ss.#ss..#..n.#...#...###',
+    '#....c...#..c.#....#n......dr#',
+    '#..###..##....#c...#ss.c...###',
+    '#.......##..c.d....#ss.#.c...#',
+    '#..n.c...#....#..c.#c..#.....#',
+    '#.#...#..#..c.#....#.....#eee#',
+    '#....#...#....#....#..c..#ee.#',
+    '#........#....#....#.........#',
+    '##############################'
+  ];
+  var breachHeights = [];
+  for (var breachY = 1; breachY < breachRows.length - 1; breachY++) {
+    for (var breachX = 10; breachX < breachRows[breachY].length - 1; breachX++) {
+      if (breachRows[breachY][breachX] !== '#') {
+        breachHeights.push({ x: breachX, y: breachY, z: breachX < 19 ? 1 : 2 });
+      }
+    }
+  }
+  var verticalBreach = {
+    id: 'vertical-breach', title: 'Vertical Breach', district: 'Broadcast Citadel', sequence: 18,
+    briefing: 'The Citadel has sealed its stairs. Restore the hoist in the Ground plant and board the four-square lift. HACK its deck or the local dock console to advance from Ground plant to Maintenance, then Command. Use a console to call the empty lift to its floor. HACK the Maintenance interlock before the lift can reach Command. The optional Ground plant service feed opens a second route through Maintenance. On Command, take the control terminal to turn the turret and open the elevator technician’s cell. Rescue the technician and extract by the southeast evacuation stairs.',
+    radio: 'MARA / Ground plant hoist (5,3), optional service feed (3,10). On Maintenance take the exposed crosswalk (14,4), or use the powered service door (14,9) to reach the interlock (17,6). The west side of Command shields your approach to the control terminal (22,4). Technician (28,7), evacuation stairs to the south.',
+    objectiveSummary: 'Power the hoist, release the Maintenance interlock, ride to Command, take the control terminal, rescue the elevator technician and extract.',
+    extractionLabel: 'southeast evacuation stairs',
+    objectives: {
+      requiredCircuits: ['breach-hoist', 'breach-interlock', 'breach-command'],
+      rescueLabel: 'Free the elevator technician',
+      rescueRequires: ['breach-command']
+    },
+    rows: breachRows,
+    heights: breachHeights, maxStepHeight: 0,
+    squad: squad([[3,5],[2,6],[2,7],[3,7]]),
+    enemies: [
+      { id: 'breach-plant-watch', name: 'Plant watch', x: 6, y: 3, hp: 5, maxHp: 5, damage: 2, range: 5, stride: 2 },
+      { id: 'breach-crosswalk-watch', name: 'Crosswalk marksman', x: 13, y: 3, hp: 5, maxHp: 5, damage: 2, range: 5, stride: 2 },
+      { id: 'breach-interlock-guard', name: 'Interlock guard', x: 16, y: 3, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 2 },
+      { id: 'breach-command-warden', name: 'Command warden', x: 25, y: 9, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 2 }
+    ],
+    turret: { x: 26, y: 5, range: 6, damage: 2 },
+    node: { x: 5, y: 3 }, rescue: { x: 28, y: 7 },
+    circuits: [
+      { id: 'breach-hoist', label: 'Restore the plant hoist', x: 5, y: 3, controlled: false },
+      { id: 'breach-service', label: 'Optional service feed', x: 3, y: 10, controlled: false, doors: [{ x: 14, y: 9 }] },
+      { id: 'breach-interlock', label: 'Release the Maintenance interlock', x: 17, y: 6, controlled: false, requires: ['breach-hoist'] },
+      { id: 'breach-command', label: 'Take the Command terminal', x: 22, y: 4, controlled: false, requires: ['breach-interlock'], turret: true, doors: [{ x: 27, y: 7 }] }
+    ],
+    lift: {
+      kind: 'breach', size: 2, position: 0, poweredBy: 'breach-hoist', topRequires: 'breach-interlock',
+      requiresRescue: false, delivered: false,
+      stops: [
+        { x: 6, y: 5, z: 0, label: 'Ground plant', console: { x: 8, y: 5 } },
+        { x: 10, y: 5, z: 1, label: 'Maintenance', console: { x: 10, y: 4 } },
+        { x: 20, y: 8, z: 2, label: 'Command', console: { x: 20, y: 7 } }
+      ]
+    },
+    mastery: 'Use the service door, then reach the Command deck and extract all four engineers in sixteen turns or fewer.',
+    debrief: 'The elevator technician opens the Citadel’s evacuation stairs and hands Mara the emergency floor plans. Families sheltering below can now reach the streets, but the occupation is closing the route from both ends. Nia calls the squad back down for Safe Corridor.'
+  };
+  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice, span, blackout, pumpSiege, paperTrail, twoKeys, ghostBroadcast, stolenConvoy, outerRelay, verticalBreach];
   SB.Missions.get = function (id) {
     return SB.Missions.operations.find(function (mission) { return mission.id === id; }) || null;
   };

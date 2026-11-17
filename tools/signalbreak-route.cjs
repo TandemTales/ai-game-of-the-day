@@ -3,23 +3,41 @@
 function nextOrder(SB, s, options={}) {
   const L = SB.Logic, live = s.squad.filter(L.living);
   const bridge=s.lift&&s.lift.kind==='bridge';
+  const breach=s.lift&&s.lift.kind==='breach';
+  let breachGoal;
+  if(breach){
+    const hoist=s.circuits.find(c=>c.id===s.lift.poweredBy),interlock=s.circuits.find(c=>c.id===s.lift.topRequires);
+    const service=s.circuits.find(c=>c.id==='breach-service'),command=s.circuits.find(c=>c.id==='breach-command');
+    if(!hoist.controlled)breachGoal=hoist;
+    else if(s.lift.position===0&&options.breachService&&!service.controlled)breachGoal=service;
+    else if(s.lift.position===1&&!interlock.controlled)breachGoal=interlock;
+    else if(s.lift.position===2&&!command.controlled)breachGoal=command;
+    if(breachGoal){
+      for(const u of live){const p=L.preview(s,u.id,'hack',breachGoal.x,breachGoal.y);if(p.legal)return p;}
+    }
+  }
   let bridgeGoal;
   if(bridge){
     const drive=s.circuits.find(c=>c.id==='span-drive'),head=s.circuits.find(c=>c.id==='bridgehead'),release=s.circuits.find(c=>c.id==='west-release');
     bridgeGoal=!drive.controlled?drive:!s.rescued?s.rescue:!head.controlled?head:!release.controlled?release:null;
   }
   const bridgeDestination=bridge&&(bridgeGoal&&bridgeGoal.x<8?0:1);
-  const boardingLift=s.lift && s.circuits.find(c=>c.id===s.lift.poweredBy).controlled && (bridge?s.lift.position!==bridgeDestination:s.rescued&&!s.lift.delivered);
+  const boardingLift=s.lift && s.circuits.find(c=>c.id===s.lift.poweredBy).controlled &&
+    (breach?s.lift.position<2&&!breachGoal:bridge?s.lift.position!==bridgeDestination:s.rescued&&!s.lift.delivered);
   if(boardingLift){
     const dock=s.lift.stops[s.lift.position];
-    const inward=bridge&&s.lift.position===1?-1:1;
+    const inward=(bridge||breach)&&s.lift.position===1?-1:1;
     for(const u of live)if(L.liftAt(s,u.x,u.y)&&(inward===1?u.x<dock.x+s.lift.size-1:u.x>dock.x)){
       const p=L.preview(s,u.id,'move',u.x+inward,u.y);if(p.legal)return p;
     }
   }
   if(boardingLift && live.every(u=>L.liftAt(s,u.x,u.y))){
-    const rider=live.find(u=>u.ap>0),dock=s.lift.stops[s.lift.position];
-    if(rider){const p=L.preview(s,rider.id,'hack',dock.x,dock.y);if(p.legal)return p;}
+    const dock=s.lift.stops[s.lift.position];
+    const riders=breach?live:live.filter(u=>u.ap>0).slice(0,1);
+    for(const rider of riders){
+      const p=L.preview(s,rider.id,'hack',breach?rider.x:dock.x,breach?rider.y:dock.y);
+      if(p.legal)return p;
+    }
     return {kind:'end'};
   }
   const defense=s.defense&&L.defenseStatus(s);
@@ -80,6 +98,7 @@ function nextOrder(SB, s, options={}) {
     if (!options.directBroadcast && !decoy.controlled) goal = decoy;
     else if (!evidence.controlled) goal = evidence;
   }
+  else if (breach) goal=breachGoal;
   else if (bridge) goal=bridgeGoal;
   else if(s.lighting){
     const dark=s.circuits.find(c=>c.id==='blackout'),link=s.circuits.find(c=>c.id==='archive-link');
@@ -120,7 +139,9 @@ function nextOrder(SB, s, options={}) {
     const pump=pumping?s.circuits.find(c=>c.id===s.pumps.circuitIds[['nia','rook'].includes(u.id)?0:1]):null;
     const key=synchronizing?keyPair.keys[['nia','rook'].includes(u.id)?0:1]:null;
     const anchor=anchorOperator===u.id?approach:null;
-    const goal=anchor||key||pump||commonGoal;
+    const serviceDoor=breach&&options.breachService&&s.lift.position===1&&breachGoal?.id===s.lift.topRequires&&u.x<14
+      ?s.circuits.find(c=>c.id==='breach-service').doors[0]:null;
+    const goal=anchor||key||pump||serviceDoor||commonGoal;
     const extract=L.preview(s,u.id,'extract',u.x,u.y);if(extract.legal)return extract;
     if (u.role==='MEDIC') for (const ally of live.filter(a=>a.hp<=a.maxHp-4)) {
       const heal=L.preview(s,u.id,'heal',ally.x,ally.y);if(heal.legal)return heal;
@@ -134,14 +155,14 @@ function nextOrder(SB, s, options={}) {
     if(defense&&!defense.done&&u.id==='nia'){const watch=L.preview(s,u.id,'watch',u.x,u.y);if(watch.legal)return watch;continue;}
     if(anchor&&anchor.operatorId===u.id){const watch=L.preview(s,u.id,'watch',u.x,u.y);if(watch.legal)return watch;continue;}
     if(goal) {
-      const kind=goal===s.rescue?'rescue':goal.regroup||key||anchor?null:'hack';
+      const kind=goal===s.rescue?'rescue':goal.regroup||key||anchor||serviceDoor?null:'hack';
       if(kind){const p=L.preview(s,u.id,kind,goal.x,goal.y);if(p.legal)return p;}
     }
     let target=goal;
     if(boardingLift){
       if(L.liftAt(s,u.x,u.y))continue;
       const dock=s.lift.stops[s.lift.position],free=[];
-      const xs=bridge&&s.lift.position===1?[dock.x,dock.x+1]:[dock.x+1,dock.x];
+      const xs=(bridge||breach)&&s.lift.position===1?[dock.x,dock.x+1]:[dock.x+1,dock.x];
       for(const x of xs)for(let y=dock.y;y<dock.y+s.lift.size;y++)
         if(!L.occupant(s,x,y)&&L.path(s,u,x,y))free.push({x,y});
       if(!free.length)continue;

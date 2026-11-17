@@ -41,9 +41,21 @@
       diamond(x,y,base+z,top,'#51616a');return q;
     }
     var reachable=view.reachable||{}, boarding=s.freight&&L.extractionStatus(s);
-    var lift=s.lift, bridge=lift&&lift.kind==='bridge', liftStop=lift&&lift.stops[lift.position], liftPower=lift&&(s.circuits||[]).some(function(n){return n.id===lift.poweredBy&&n.controlled;});
-    function shaftHere(x,y){return lift&&!bridge&&x>=8&&x<=14&&y>0&&y<s.height-1;}
+    var lift=s.lift, bridge=lift&&lift.kind==='bridge', breach=lift&&lift.kind==='breach';
+    var liftInfo=lift&&L.liftStatus(s),liftStop=lift&&lift.stops[liftInfo.position],liftPower=liftInfo&&liftInfo.powered;
+    var breachFloors=breach&&[
+      {floor:'#494740',panel:'#555149',side:'#2a2b2a',face:'#3a3934',wall:'#756f60',cover:'#917f62',detail:'#c3a681'},
+      {floor:'#344e51',panel:'#3d5959',side:'#233a3e',face:'#30464a',wall:'#627d7b',cover:'#799992',detail:'#9edbd0'},
+      {floor:'#3d4155',panel:'#484c64',side:'#282d3e',face:'#34394e',wall:'#767e9d',cover:'#949bb5',detail:'#c9cfff'}
+    ];
+    var breachNodes={'breach-hoist':'P','breach-interlock':'I','breach-command':'C'};
+    function shaftHere(x,y){return lift&&!bridge&&!breach&&x>=8&&x<=14&&y>0&&y<s.height-1;}
     function platformHere(x,y){return liftStop&&x>=liftStop.x&&x<liftStop.x+lift.size&&y>=liftStop.y&&y<liftStop.y+lift.size;}
+    function breachDockInk(index){
+      if(index===2&&!liftInfo.topUnlocked)return '#f6a28e';
+      if(liftInfo.position===index&&liftPower)return '#ffe1a1';
+      return breachFloors[index].detail;
+    }
     function boardingHere(x,y){return boarding&&boarding.open&&boarding.tiles.some(function(t){return t.x===x&&t.y===y;});}
     var waterCells={};
     if(s.water)(s.water.routes||[]).forEach(function(route,index){route.tiles.forEach(function(t){waterCells[t.x+','+t.y]={route:route,index:index};});});
@@ -55,6 +67,40 @@
       else if(dy===1){left={x:p.x-a,y:p.y};right={x:p.x,y:p.y+b};}
       else{left={x:p.x+a,y:p.y};right={x:p.x,y:p.y-b};}
       c.beginPath();c.moveTo(left.x,left.y);c.lineTo(right.x,right.y);c.stroke();
+    }
+    function breachDockSurface(x,y,z,active){
+      var index=lift.stops.findIndex(function(stop){
+        return x>=stop.x&&x<stop.x+lift.size&&y>=stop.y&&y<stop.y+lift.size;
+      });
+      if(index<0)return;
+      var stop=lift.stops[index],ink=breachDockInk(index);
+      var locked=index===2&&!liftInfo.topUnlocked;
+      [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(dir){
+        var nx=x+dir[0],ny=y+dir[1];
+        if(nx>=stop.x&&nx<stop.x+lift.size&&ny>=stop.y&&ny<stop.y+lift.size)return;
+        c.strokeStyle=ink;
+        c.lineWidth=Math.max(.9,a*.085);
+        if(!active)c.setLineDash([a*.21,a*.14]);
+        waterEdge(x,y,z,dir[0],dir[1]);
+        c.setLineDash([]);
+      });
+      c.strokeStyle=active?ink+'c0':ink+'77';
+      c.lineWidth=Math.max(.65,a*.053);
+      c.beginPath();
+      if(active){
+        [-.26,0,.26].forEach(function(rib){
+          var near=P.point(x+rib,y-.34,z),far=P.point(x+rib,y+.34,z);
+          c.moveTo(near.x,near.y);c.lineTo(far.x,far.y);
+        });
+      }else{
+        var near=P.point(x-.23,y-.23,z),far=P.point(x+.23,y+.23,z);
+        c.moveTo(near.x,near.y);c.lineTo(far.x,far.y);
+        if(locked){
+          near=P.point(x+.23,y-.23,z);far=P.point(x-.23,y+.23,z);
+          c.moveTo(near.x,near.y);c.lineTo(far.x,far.y);
+        }
+      }
+      c.stroke();
     }
     // Archive textures follow the actual partition and low cover tiles.
     var breaker=archive&&s.circuits.find(function(n){return n.id===s.archive.delayCircuit;});
@@ -164,7 +210,7 @@
     }
     // Authored surfaces, with reachable cells kept legible.
     for(var y=0;y<s.height;y++)for(var x=0;x<s.width;x++) {
-      var t=L.tile(s,x,y),z=L.height(s,x,y),p;
+      var t=L.tile(s,x,y),z=L.height(s,x,y),p,palette=breachFloors&&breachFloors[z];
       var floor=x<8?((x*7+y*3)%4?'#30414a':'#374b53'):((x+y)%3?'#263e49':'#2d4650');
       if(s.defense&&x>=8&&x<=15&&y>=2&&y<=6&&t!=='#')floor=(x+y)%2?'#576965':'#4b605f';
       if(s.lanes&&x>=10&&x<=15&&y>=3&&y<=10&&t!=='#')floor=(x+y)%2?'#43525b':'#354953';
@@ -181,8 +227,22 @@
       if(rail)floor=(x+y)%2?'#282c39':'#2e3039';
       var studio=broadcast&&t!=='#'&&Math.abs(x-transmitter.x)<=2&&Math.abs(y-transmitter.y)<=1;
       if(studio)floor=(x+y)%2?'#574d69':'#49445f';
+      if(palette&&t!=='#')floor=(x+y)%3?palette.floor:palette.panel;
+      if(breach&&t==='s')floor='#0b1420';
+      if(breach&&platformHere(x,y))floor=liftPower?'#6f613e':'#484438';
       if(t==='e')floor=boarding?(boardingHere(x,y)?'#797044':'#293c49'):'#255c5b';
-      p=z?block(x,y,z,floor,'#172c36','#203640',0):diamond(x,y,0,floor,'#162c37');
+      p=z?block(x,y,z,floor,palette?palette.side:'#172c36',palette?palette.face:'#203640',0):diamond(x,y,0,floor,'#162c37');
+      if(breach&&(t==='s'||platformHere(x,y)))breachDockSurface(x,y,z,t!=='s');
+      if(palette&&t==='.'&&!platformHere(x,y)&&(z===1?(x+y)%3===0:z===2?(x+2*y)%4===0:(x*7+y)%7===0)){
+        // Flush maintenance grating and command cable pins do not imply cover.
+        c.strokeStyle=palette.detail+'68';c.lineWidth=Math.max(.65,a*.043);c.beginPath();
+        var seams=z===1?[-.22,0,.22]:[0];
+        seams.forEach(function(seam){
+          var start=P.point(x+seam,y-.23,z),end=P.point(x+seam,y+.23,z);
+          c.moveTo(start.x,start.y);c.lineTo(end.x,end.y);
+        });
+        c.stroke();
+      }
       if(rail)railTile(x,y,z);
       if(studio){
         c.strokeStyle='#baafd955';c.lineWidth=Math.max(.6,a*.04);
@@ -225,7 +285,7 @@
           c.beginPath();c.moveTo(p.x-a*.2,p.y-b*.45);c.lineTo(p.x+a*.2,p.y+b*.45);c.stroke();
         }
       }
-      if(platformHere(x,y)){
+      if(!breach&&platformHere(x,y)){
         diamond(x,y,z,floor,liftPower?'#ffe1a1':'#a3977e');
         c.strokeStyle='#e5bf76';c.lineWidth=Math.max(1,a*.06);c.beginPath();c.moveTo(p.x-a*.6,p.y);c.lineTo(p.x,p.y+b*.6);c.lineTo(p.x+a*.6,p.y);c.stroke();
         if(bridge){
@@ -248,8 +308,8 @@
       }
       if(reachable[x+','+y])diamond(x,y,z,reachable[x+','+y]===1?'#397b8550':'#bda26030','#4a96994a');
       if(t==='e'){c.strokeStyle=boarding?(boardingHere(x,y)?'#ffe09b':'#72828b'):'#80d2bb';c.lineWidth=a*.07;c.beginPath();c.moveTo(p.x-a*.4,p.y);c.lineTo(p.x,p.y+b*.45);c.lineTo(p.x+a*.4,p.y-b*.1);c.stroke();}
-      if(!archiveDistrict&&t!== '#' && t!=='w' && y===6){c.strokeStyle=x<8?'#c2975655':'#6caab955';c.lineWidth=a*.04;c.beginPath();c.moveTo(p.x-a*.7,p.y+b*.3);c.lineTo(p.x+a*.7,p.y-b*.3);c.stroke();}
-      if(!archiveDistrict&&t!== '#' && t!=='w' && (x*17+y*9)%7===0){c.strokeStyle='#7b969b30';c.lineWidth=a*.025;c.beginPath();c.moveTo(p.x-a*.6,p.y);c.lineTo(p.x-a*.1,p.y+b*.3);c.lineTo(p.x+a*.1,p.y+b*.17);c.stroke();}
+      if(!archiveDistrict&&!breach&&t!== '#' && t!=='w' && y===6){c.strokeStyle=x<8?'#c2975655':'#6caab955';c.lineWidth=a*.04;c.beginPath();c.moveTo(p.x-a*.7,p.y+b*.3);c.lineTo(p.x+a*.7,p.y-b*.3);c.stroke();}
+      if(!archiveDistrict&&!breach&&t!== '#' && t!=='w' && (x*17+y*9)%7===0){c.strokeStyle='#7b969b30';c.lineWidth=a*.025;c.beginPath();c.moveTo(p.x-a*.6,p.y);c.lineTo(p.x-a*.1,p.y+b*.3);c.lineTo(p.x+a*.1,p.y+b*.17);c.stroke();}
     }
     if(relay)relay.approaches.forEach(function(anchor){
       // Trace the exact walkable tile. The pad has no height or cover of its own.
@@ -294,7 +354,7 @@
       var text=lane?'FIRING / '+lane.label+' / '+lane.damage+' HP':defense.done?'CLINIC SECURED / '+defense.hp+' HP':'CLINIC / '+defense.hp+' HP / '+defense.lane.toUpperCase()+' '+(defense.protected?'COVERED':'EXPOSED');
       c.fillText(text,16*Math.min(d,2),h-62*Math.min(d,2));
     }
-    if(lift){
+    if(lift&&!breach){
       // Empty dock outlines and cable guides identify both destinations without
       // turning the shaft into apparently traversable floor or opaque walls.
       lift.stops.forEach(function(stop,index){
@@ -354,18 +414,18 @@
     if(view.preview&&view.preview.legal&&view.preview.path){c.strokeStyle='#b7edf0';c.lineWidth=a*.11;c.beginPath();view.preview.path.forEach(function(p,i){var q=P.point(p.x,p.y,L.height(s,p.x,p.y));if(i)c.lineTo(q.x,q.y);else c.moveTo(q.x,q.y);});c.stroke();}
     for(var depth=0;depth<s.width+s.height;depth++)for(var y=0;y<s.height;y++) {
       var x=depth-y;if(x<0||x>=s.width)continue;
-      var t=L.tile(s,x,y),z=L.height(s,x,y),p=P.point(x,y,z);
+      var t=L.tile(s,x,y),z=L.height(s,x,y),p=P.point(x,y,z),palette=breachFloors&&breachFloors[z];
       if(t==='#'&&archiveDistrict)archiveWall(x,y);
       else if(t==='#'&&!shaftHere(x,y)) {
         // Front perimeter stays low so it cannot obscure engineers.
         var height=(y===s.height-1||x===s.width-1)?0.35:x===8?1.25:0.7;
-        var q=block(x,y,height,'#566770','#243640','#33464f');
+        var q=block(x,y,height,palette?palette.wall:'#566770',palette?palette.side:'#243640',palette?palette.face:'#33464f');
         c.strokeStyle='#90a2a944';c.lineWidth=a*.04;c.beginPath();c.moveTo(q.x-a*.7,q.y);c.lineTo(q.x+a*.5,q.y-b*.45);c.stroke();
       }
       if(t==='c'&&archiveDistrict)archiveShelf(x,y,p);
       else if(t==='c') {
         var medical=s.defense&&y===5&&(x===8||x===12);
-        var top=block(x,y,.55,medical?'#b5c9ba':'#61787b',medical?'#45625e':'#30464c',medical?'#698a7d':'#3d565c');
+        var top=block(x,y,.55,palette?palette.cover:medical?'#b5c9ba':'#61787b',palette?palette.side:medical?'#45625e':'#30464c',palette?palette.face:medical?'#698a7d':'#3d565c');
         if(medical){c.strokeStyle='#e2efe4';c.lineWidth=Math.max(1,a*.08);c.beginPath();c.moveTo(top.x-a*.42,top.y);c.lineTo(top.x+a*.42,top.y);c.moveTo(top.x,top.y-b*.45);c.lineTo(top.x,top.y+b*.45);c.stroke();}
         else{c.fillStyle='#c7b27e';c.fillRect(p.x-a*.4,p.y-a*.3,a*.3,a*.05);}
       }
@@ -377,10 +437,12 @@
         else {diamond(x,y,z,'#3e766d','#80d9bd');}
       }
       if(t==='n') {
-        var circuit=L.circuitAt(s,x,y),consoleHere=lift&&lift.stops.some(function(stop){return stop.console.x===x&&stop.console.y===y;}),on=consoleHere?liftPower:circuit?circuit.controlled:s.network;
-        var q=block(x,y,.5,on?'#8bdfc4':'#e9c485','#4c5a59','#647775');
-        c.fillStyle=on?'#91ffe2':'#ffe1a1';c.beginPath();c.arc(q.x,q.y-a*.2,a*.17,0,Math.PI*2);c.fill();
-        if(consoleHere){
+        var circuit=L.circuitAt(s,x,y),consoleIndex=lift?lift.stops.findIndex(function(stop){return stop.console.x===x&&stop.console.y===y;}):-1;
+        var consoleHere=consoleIndex!==-1,consoleLocked=breach&&consoleIndex===2&&!liftInfo.topUnlocked;
+        var on=consoleHere?liftPower&&!consoleLocked:circuit?circuit.controlled:s.network;
+        var q=block(x,y,.5,consoleLocked?'#a65e59':on?'#8bdfc4':'#e9c485','#4c5a59','#647775');
+        c.fillStyle=consoleLocked?'#ffb09d':on?'#91ffe2':'#ffe1a1';c.beginPath();c.arc(q.x,q.y-a*.2,a*.17,0,Math.PI*2);c.fill();
+        if(consoleHere&&!breach){
           if(bridge){
             // Winch drum belongs to the actual fixed console. A low silhouette
             // avoids hiding its target tile or neighboring squad members.
@@ -409,6 +471,9 @@
           mapBadge(q,marker,on?'#a1e9d7':marker==='E'?'#ffd998':marker==='B'?'#c2bdff':'#bbcbd9',.62);
         }else if(relay&&circuit&&circuit.id===s.relaySiege.core){
           mapBadge(q,'R',on?'#a1e9d7':'#ffd998',.62);
+        }else if(breach&&circuit){
+          c.font='700 '+Math.max(9*Math.min(d,2),a*.5)+'px system-ui';c.textAlign='center';
+          c.fillText(breachNodes[circuit.id]||'S',q.x,q.y-a*.65);c.textAlign='start';
         }else if(s.circuits&&circuit&&!keyPair){c.font=Math.max(9,a*.5)+'px system-ui';c.textAlign='center';c.fillText(String(s.circuits.indexOf(circuit)+1),q.x,q.y-a*.65);c.textAlign='start';}
       }
       if(s.lanes&&t==='n'&&L.circuitAt(s,x,y)&&L.circuitAt(s,x,y).id===s.lanes.disabledBy){
@@ -436,7 +501,7 @@
       });
       // A compact medical crate rides until delivered, then remains beside
       // the upper landing while the empty platform can return for stragglers.
-      if(lift&&!bridge&&s.rescued&&(lift.delivered?x===15&&y===8:x===liftStop.x&&y===liftStop.y)){
+      if(lift&&!bridge&&!breach&&s.rescued&&(lift.delivered?x===15&&y===8:x===liftStop.x&&y===liftStop.y)){
         var q=P.point(x-.3,y-.3,z);c.fillStyle='#698d87';c.fillRect(q.x-a*.18,q.y-a*.47,a*.36,a*.32);c.fillStyle='#d9f3df';c.fillRect(q.x-a*.04,q.y-a*.44,a*.08,a*.24);c.fillRect(q.x-a*.13,q.y-a*.36,a*.26,a*.08);
       }
       if(convoy&&!convoy.escaped&&x===convoy.x&&y===convoy.y)transport(x,y,z);
@@ -456,6 +521,25 @@
         var barW=a*.85;c.fillStyle='#071823';c.fillRect(p.x-barW/2,p.y-a*1.35,barW,a*.12);c.fillStyle=friendly?'#a6dfc7':'#f29e86';c.fillRect(p.x-barW/2,p.y-a*1.35,barW*actor.hp/actor.maxHp,a*.12);
         if(friendly){c.fillStyle=actor.watch?'#f2d99a':'#b5e6df';for(var i=0;i<actor.ap;i++){c.beginPath();c.arc(p.x-a*.13+i*a*.26,p.y-a*1.6,a*.07,0,Math.PI*2);c.fill();}}
       }
+    }
+    if(breach){
+      var scale=Math.min(d,2);
+      lift.stops.forEach(function(stop,index){
+        var point=P.point(stop.console.x,stop.console.y,stop.z+.5);
+        var occupied=L.occupant(s,stop.console.x,stop.console.y);
+        mapBadge(point,'0'+(index+1),breachDockInk(index),occupied?1.25:.7,true);
+      });
+      var heading=liftPower?'LIFT AT '+liftInfo.label.toUpperCase()+'  /  '+liftInfo.passengers+' ABOARD':'LIFT UNPOWERED  /  HACK P';
+      var key='01 Ground  /  02 Maintenance  /  '+(liftInfo.topUnlocked?'03 Command':'03 Locked');
+      c.font='700 '+12*scale+'px system-ui';
+      var panel=Math.ceil(c.measureText(heading).width);
+      c.font=11*scale+'px system-ui';
+      panel=Math.max(panel,c.measureText(key).width)+20*scale;
+      var wide=w>=520*scale,left=wide?w-panel-12*scale:16*scale,top=wide?12*scale:h-79*scale;
+      c.fillStyle='#101628f2';c.fillRect(left,top,panel,43*scale);
+      c.fillStyle=breachDockInk(liftInfo.position);c.fillRect(left,top,2*scale,43*scale);
+      c.font='700 '+12*scale+'px system-ui';c.fillText(heading,left+10*scale,top+17*scale);
+      c.font=11*scale+'px system-ui';c.fillStyle='#d4dfdf';c.fillText(key,left+10*scale,top+33*scale);
     }
     if(convoy){
       var carInk=convoy.escaped?'#ffad98':convoy.secured?'#a1e9d7':'#ffd998';

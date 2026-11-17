@@ -996,3 +996,40 @@ Monday, age 14. Continue the approved Citadel campaign on dev. Build operation
 18 around a three-floor lift, a mid-floor interlock and upper command access.
 Verify earned unlock, legal extraction, and the six-size browser sweep. Keep
 FIRST PLAYABLE while the last two operations and campaign ending remain open.
+
+## November 16 Pacific - Vertical Breach implementation
+
+Operation 18 connects three separated floors with a powered lift. Release the
+Maintenance interlock to reach Command, where the control terminal turns the
+turret and opens the technician's cell. The optional Ground plant feed opens
+the Maintenance service door; the north crosswalk is always available.
+
+Dock consoles can call an empty deck to recover a split squad. The lift retains
+riders' deck positions, rejects stale orders and credits Command arrival only
+with a living rider. Patrols stay on their floors and off the deck. Numbered
+dock markers and the objective panel share the lift's lock and power status.
+Keyboard movement starts from the rider's new position after dispatch.
+
+Both base-stat routes cleared with four engineers against live AI: crosswalk
+turn 9 / 58 orders / 3,830 points, service door turn 13 / 77 orders / 4,210
+points. Focused checks passed for both routes, lift controls, upper deck
+picking and v1 save compatibility. Full Jest passed 610 tests in 31 suites
+(103 Signalbreak cases), including the eighteen-operation earned campaign.
+Report: node_modules/.cache/signalbreak-breach-full.json.
+
+Independent reviewers compared actual Edge captures with official XCOM 2
+gameplay. Art/UI, tactical feedback and content readability all failed the
+comparison. Floor colors and dock lock status were readable, but riders blur
+together at phone size, the Maintenance crossings lack nearby labels, and
+the desktop map frame leaves a large blank strip. Pending travel marks its
+source, but the map does not show which riders and destination will move.
+The split-squad recall and lock fixtures found no rules or input blocker.
+The optional feed can outscore the direct route; mastery is still untracked.
+The comparison uses different camera scales/actions and labelled fixtures.
+See node_modules/.cache/signalbreak/breach-art-critic and breach-rules-critic;
+reference: https://store.steampowered.com/app/268500/XCOM_2/.
+Audio, motion, human play, physical devices and performance remain unjudged.
+
+Campaign 18/20; keep FIRST PLAYABLE. Next: 19 Safe Corridor, then the final
+shutdown and consequence-based epilogue. Persistent district outcomes, tracked
+mastery and final campaign scoring are still required. Production stays put.

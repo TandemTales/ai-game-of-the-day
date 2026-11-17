@@ -31,17 +31,17 @@ function pilot(SB, s, report = []) {
   }
   return report;
 }
-test('full manifest promises twenty operations; seventeen distinct authored maps are playable', () => {
+test('full manifest promises twenty operations; eighteen distinct authored maps are playable', () => {
   const SB=load();expect(SB.Missions.manifest).toHaveLength(5);
   const names=SB.Missions.manifest.flatMap(d=>Array.from(d).slice(1));expect(new Set(names).size).toBe(20);
   expect(SB.Missions.opening.title).toBe('Live Wire');
-  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege','paper-trail','two-keys','ghost-broadcast','stolen-convoy','outer-relay']);
-  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(17);
+  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege','paper-trail','two-keys','ghost-broadcast','stolen-convoy','outer-relay','vertical-breach']);
+  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(18);
   for(const m of SB.Missions.operations){
     expect(m.rows.every(r=>r.length===m.rows[0].length)).toBe(true);
     for(const n of m.circuits||[])expect(m.rows[n.y][n.x]).toBe(n.id===m.convoy?.evidenceCircuit?'.':'n');
   }
-  expect(()=>SB.Logic.newGame('vertical-breach')).toThrow('Unknown operation');
+  expect(()=>SB.Logic.newGame('safe-corridor')).toThrow('Unknown operation');
 });
 test('fresh states are isolated and previews never mutate the tactical state', () => {
   const {Logic:L}=load(),a=L.newGame(),b=L.newGame(),before=JSON.stringify(a);
@@ -331,10 +331,10 @@ test('antenna lanes alternate, warn before movement, damage only exposed living 
  const hp=s.squad[0].hp;L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);expect(L.activeLane(s).label).not.toBe(first.label);
  s.circuits.find(c=>c.id==='tower').controlled=true;expect(L.activeLane(s)).toBe(null);L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);
 });
-test('all seventeen operations support consecutive persisted squad progression with legal orders',()=>{
+test('all eighteen operations support consecutive persisted squad progression with legal orders',()=>{
  const SB=load(),C=SB.Campaign,c=C.fresh(),store=memoryStorage();
  for(const m of SB.Missions.operations){for(const id of ['nia','sol','rook','ivo'])C.treat(c,id);const s=C.prepare(c,SB.Logic.newGame(m.id));campaignRoute(SB,s);expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);expect(C.complete(c,s)).toBe(true);C.save(store,c);expect(C.load(store).campaign).toEqual(c);}
- expect(Object.keys(c.results)).toHaveLength(17);expect(c.roster.nia.xp).toBe(17);
+ expect(Object.keys(c.results)).toHaveLength(18);expect(c.roster.nia.xp).toBe(18);
 });
 
 
@@ -801,4 +801,82 @@ test('a completed sixteen-operation v1 save unlocks Outer Relay without fabricat
  expect(restored.results).toEqual(results);
  expect(C.unlocked(restored,'outer-relay')).toBe(true);
  expect(restored.results['outer-relay']).toBeUndefined();
+});
+
+test.each([false,true])('Vertical Breach clears three floors with live AI and four extracts (service=%s)',breachService=>{
+ const SB=load(),L=SB.Logic,s=L.newGame('vertical-breach');
+ const actions=campaignRoute(SB,s,350,{breachService});
+ expect(s.phase).toBe('won');
+ expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);
+ expect(L.liftStatus(s)).toMatchObject({position:2,topUnlocked:true,delivered:true});
+ expect(L.turretAllied(s)).toBe(true);
+ expect(s.circuits.find(c=>c.id==='breach-service').controlled).toBe(breachService);
+ if(breachService){
+   const [door]=s.circuits.find(c=>c.id==='breach-service').doors;
+   expect(actions.some(a=>a.kind==='move'&&a.x===door.x&&a.y===door.y)).toBe(true);
+ }
+});
+
+test('Vertical Breach requires the middle interlock before transporting riders to command',()=>{
+ const {Logic:L,Render:R}=load(),s=L.newGame('vertical-breach');
+ const [ground,mid,top]=s.lift.stops,[nia,sol]=s.squad;
+ const node=s.circuits.find(c=>c.id===s.lift.topRequires);
+ s.enemies=[];s.turret=null;
+ Object.assign(nia,{x:ground.x,y:ground.y});
+ Object.assign(sol,{x:ground.x+1,y:ground.y+1});
+ expect(L.blocked(s,mid.x,mid.y)).toBe(true);
+ expect(L.blocked(s,top.x,top.y)).toBe(true);
+ expect(L.preview(s,nia.id,'hack',nia.x,nia.y).legal).toBe(false);
+ s.circuits.find(c=>c.id===s.lift.poweredBy).controlled=true;
+ order(L,s,nia.id,'hack',ground.x,ground.y);
+ expect(L.liftStatus(s)).toMatchObject({position:1,nextLocked:true,delivered:false,passengers:2});
+ expect([sol.x,sol.y,L.height(s,sol.x,sol.y)]).toEqual([mid.x+1,mid.y+1,mid.z]);
+ expect(L.blocked(s,ground.x,ground.y)).toBe(true);
+ expect(L.preview(s,nia.id,'hack',mid.x,mid.y).reason).toMatch(/interlock/i);
+ Object.assign(nia,{x:node.x,y:node.y});
+ order(L,s,nia.id,'hack',node.x,node.y);
+ expect(L.liftStatus(s)).toMatchObject({position:1,nextLocked:false,topUnlocked:true});
+ order(L,s,sol.id,'hack',sol.x,sol.y);
+ expect(L.liftStatus(s)).toMatchObject({position:2,delivered:true,passengers:1});
+ expect([sol.x,sol.y,L.height(s,sol.x,sol.y)]).toEqual([top.x+1,top.y+1,top.z]);
+ const projection=R.projection(768,550,s,{zoom:1,selected:sol.id});
+ const point=projection.point(sol.x,sol.y,top.z);
+ expect(projection.inverse(point.x,point.y)).toMatchObject({x:sol.x,y:sol.y});
+});
+
+test('Vertical Breach console recalls only an empty deck and never grants empty-arrival credit',()=>{
+ const {Logic:L}=load(),s=L.newGame('vertical-breach');
+ const [ground,mid,top]=s.lift.stops,[nia,sol]=s.squad;
+ s.enemies=[];s.turret=null;
+ s.circuits.find(c=>c.id===s.lift.poweredBy).controlled=true;
+ s.circuits.find(c=>c.id===s.lift.topRequires).controlled=true;
+ Object.assign(nia,ground.console);
+ Object.assign(sol,top.console);
+ const dispatch=L.preview(s,nia.id,'hack',ground.console.x,ground.console.y);
+ expect(dispatch.legal).toBe(true);
+ Object.assign(s.squad[2],{x:ground.x,y:ground.y});
+ const occupied=JSON.stringify(s);
+ expect(L.commit(s,dispatch)).toBe(false);
+ expect(JSON.stringify(s)).toBe(occupied);
+ expect(L.preview(s,sol.id,'hack',top.console.x,top.console.y).legal).toBe(false);
+ Object.assign(s.squad[2],{x:mid.console.x,y:mid.console.y});
+ const recall=L.preview(s,sol.id,'hack',top.console.x,top.console.y);
+ expect(recall).toMatchObject({legal:true,liftTo:2});
+ L.endTurn(s);
+ const nextTurn=JSON.stringify(s);
+ expect(L.commit(s,recall)).toBe(false);
+ expect(JSON.stringify(s)).toBe(nextTurn);
+ order(L,s,sol.id,'hack',top.console.x,top.console.y);
+ expect(L.liftStatus(s)).toMatchObject({position:2,delivered:false});
+ order(L,s,nia.id,'hack',ground.console.x,ground.console.y);
+ expect(L.liftStatus(s)).toMatchObject({position:0,delivered:false});
+});
+
+test('a seventeen-clear v1 save retains Citadel records and unlocks Vertical Breach',()=>{
+ const {Missions:M,Campaign:C}=load(),results={};
+ for(const m of M.operations.slice(0,17))results[m.id]={score:3100,turns:9,survivors:4};
+ const restored=C.normalize({version:1,selected:'outer-relay',results});
+ expect(restored.results).toEqual(results);
+ expect(C.unlocked(restored,'vertical-breach')).toBe(true);
+ expect(restored.results['vertical-breach']).toBeUndefined();
 });

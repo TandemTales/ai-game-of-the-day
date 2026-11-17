@@ -278,3 +278,16 @@ one survivor before capture produces an explicit retry. Keep sixteen-clear v1
 records and unlock Outer Relay without inventing a clear. Browser coverage uses
 the earned unlock for both branches, reads map status, and checks the separate
 team-loss fixture does not request rank.
+
+## November 16 Vertical Breach coverage
+
+Base-stat pilots exercise the crosswalk and powered service doorway against live
+AI. The consecutive earned campaign includes operation 18. Rule tests exercise
+hoist power, blocked empty docks, Maintenance interlock, transported offsets and
+raised deck picking, empty vs occupied remote recall, stale rider and turn
+previews, and preservation of seventeen-clear v1 saves.
+
+The browser sweep includes all 18 operations at the six required sizes. In
+addition to the earned campaign's default route, replay the service route on a
+390px touch viewport. Check the keyboard cursor after lift dispatch and capture
+the chart as the lift moves. See PROGRESS for actual results.

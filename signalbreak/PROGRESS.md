@@ -989,3 +989,10 @@ Citadel command floors, then Safe Corridor and the final shutdown. Persistent
 district consequences, tracked mastery, finale/epilogue and final campaign
 scoring remain required. Preserve v1 saves and Tidelock. Production was not
 promoted and no completion marker was added.
+
+## November 16 Pacific - Vertical Breach intent
+
+Monday, age 14. Continue the approved Citadel campaign on dev. Build operation
+18 around a three-floor lift, a mid-floor interlock and upper command access.
+Verify earned unlock, legal extraction, and the six-size browser sweep. Keep
+FIRST PLAYABLE while the last two operations and campaign ending remain open.

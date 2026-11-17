@@ -1033,3 +1033,21 @@ Audio, motion, human play, physical devices and performance remain unjudged.
 Campaign 18/20; keep FIRST PLAYABLE. Next: 19 Safe Corridor, then the final
 shutdown and consequence-based epilogue. Persistent district outcomes, tracked
 mastery and final campaign scoring are still required. Production stays put.
+
+## November 16 Pacific - Vertical Breach browser verification
+
+Local Edge passed 108 operation/viewport combinations and all 18 earned
+victories through the actual UI against live AI, four extracted each. The
+earned crosswalk clear finished on turn 10 / 57 orders / 3,800 points; the
+separate 390px touch service-door replay finished on turn 10 / 59 orders /
+4,300 points. Keyboard cursor, save/reload, loadout and recovery, file boot,
+DPR2, loss/retry, console, overflow and local rank/submit snapshot checks passed.
+Sandbox Edge could not launch; the scoped localhost retry passed.
+
+Reviewed the twelve new briefing and live captures across the six sizes,
+the actual Maintenance and Command arrivals, both debriefs, and the art and
+tactical feedback comparisons. At 320px the Deploy button is reachable by
+scrolling; the desktop and 4K captures are downsampled in the contact sheets.
+The browser source manifest (2026-11-17T07:17:21.598Z) matches all eight runtime
+files. Evidence: node_modules/.cache/signalbreak/breach-final. The campaign still
+uses operation scores, and production did not receive this build.

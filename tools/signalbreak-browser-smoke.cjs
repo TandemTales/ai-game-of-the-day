@@ -22,10 +22,24 @@ async function tile(page,x,y,touch=false){
 async function plan(page,options){return page.evaluate(({source,options})=>Function('return ('+source+')')()(SB,SB.Game.getState(),options),{source:nextOrder.toString(),options});}
 async function drive(page,touch=false,options={}){
   const actions=[];let circuit='';
-  const suffix=options.useSiding?'-siding':options.southRelay?'-south':options.breachService?'-service':'';
+  const suffix=options.useSiding?'-siding':options.southRelay?'-south':options.breachService?'-service':options.sequentialEscort?'-sequential':'';
+  const corridor=await page.evaluate(()=>!!SB.Game.getState().evacuation);
+  const crossings=[];
   for(let i=0;i<350&&await page.evaluate(()=>SB.Game.getState().phase==='player');i++){
     const p=await plan(page,options);actions.push(p);
-    if(p.kind==='end'){await page.locator('#end-turn').click();continue;}
+    if(p.kind==='end'){
+      if(touch)await page.locator('#end-turn').tap();else await page.locator('#end-turn').click();
+      if(corridor){
+        const status=await page.evaluate(()=>SB.Logic.evacuationStatus(SB.Game.getState()));
+        const steps=status.groups.map(group=>group.step);
+        const previous=crossings.at(-1)||steps.map(()=>0);
+        if(steps.some((step,index)=>step!==previous[index])){
+          crossings.push(steps);
+          await page.locator('.map-wrap').screenshot({path:path.join(out,'safe-corridor'+suffix+'-crossing-'+steps.join('-')+'.png')});
+        }
+      }
+      continue;
+    }
     if(touch)await page.locator(`[data-unit="${p.actorId}"]`).tap();
     else{const idx=await page.evaluate(id=>SB.Game.getState().squad.findIndex(u=>u.id===id),p.actorId);await page.keyboard.press(String(idx+1));}
     await page.locator(`[data-action="${p.kind}"]`).click();
@@ -45,7 +59,8 @@ async function drive(page,touch=false,options={}){
   }
   const final=await page.evaluate(()=>({id:SB.Game.getState().id,phase:SB.Game.getState().phase,score:SB.Game.getState().score,turn:SB.Game.getState().turn,rescued:SB.Game.getState().rescued,extracted:SB.Game.getState().squad.filter(u=>u.extracted).length}));
   assert.equal(final.phase,'won');assert.equal(final.extracted,4);assert.equal(final.rescued,true);
-  await page.locator('.map-wrap').screenshot({path:path.join(out,final.id+suffix+'-won.png')});return{final,actions};
+  if(corridor)assert(await page.evaluate(()=>SB.Logic.evacuationStatus(SB.Game.getState()).done));
+  await page.locator('.map-wrap').screenshot({path:path.join(out,final.id+suffix+'-won.png')});return{final,actions,crossings};
 }
 (async()=>{
   await new Promise(r=>server.listen(0,'127.0.0.1',r));const url='http://127.0.0.1:'+server.address().port;
@@ -161,8 +176,25 @@ async function drive(page,touch=false,options={}){
     const serviceRun=await drive(breach,true,{breachService:true});
     const breachState=await breach.evaluate(()=>{const s=SB.Game.getState();return {lift:SB.Logic.liftStatus(s),service:s.circuits.find(c=>c.id==='breach-service').controlled};});
     assert.equal(breachState.lift.position,2);assert.equal(breachState.lift.delivered,true);assert.equal(breachState.service,true);
-    assert.match(await breach.locator('#tip').innerText(),/remaining 2 operations and finale/);
+    assert.match(await breach.locator('#tip').innerText(),/Next: Safe Corridor/);
     assert.deepEqual(breachErrors,[]);await breach.close();
+    const corridor=await browser.newPage({viewport:{width:390,height:844},hasTouch:true,storageState:campaignStorage});
+    const corridorErrors=[];
+    corridor.on('pageerror',e=>corridorErrors.push(String(e)));corridor.on('console',m=>{if(['warning','error'].includes(m.type()))corridorErrors.push(m.text());});
+    corridor.on('dialog',d=>d.dismiss());
+    await corridor.goto(url+'/signalbreak/index.html');await corridor.locator('#operation-picker summary').tap();
+    await corridor.locator('[data-mission="safe-corridor"]').tap();await corridor.locator('#start').tap();
+    const corridorReplay=await drive(corridor,true,{streetFeed:true,sequentialEscort:true});
+    assert(await corridor.evaluate(()=>SB.Logic.turretAllied(SB.Game.getState())));
+    assert.match(await corridor.locator('#tip').innerText(),/final operation, Signalbreak, is in development/);
+    await corridor.locator('#start').tap();
+    // Inject only this loss fixture, after a complete legal replay and a fresh deployment.
+    const beforeEvacLoss=api.length;
+    await corridor.evaluate(()=>{const s=SB.Game.getState();s.score=500;s.squad.forEach(u=>u.hp=0);});
+    await corridor.locator('#end-turn').tap();assert.equal(await corridor.locator('#title').innerText(),'Signal lost.');
+    await corridor.locator('#start').tap();assert(await corridor.evaluate(()=>SB.Logic.evacuationStatus(SB.Game.getState()).groups.every(g=>g.step===0)));
+    assert.equal(api.length,beforeEvacLoss);assert.deepEqual(corridorErrors,[]);await corridor.close();
+    fs.writeFileSync(path.join(out,'safe-corridor-replay.json'),JSON.stringify(corridorReplay,null,2));
     // Treatment fixture: represent a saved mission-boundary injury explicitly.
     const recovery=await browser.newPage({viewport:{width:390,height:844},hasTouch:true,storageState:campaignStorage});
     await recovery.goto(url+'/signalbreak/index.html');await recovery.evaluate(()=>{const c=JSON.parse(localStorage.getItem(SB.Campaign.key));c.roster.nia.injury=2;localStorage.setItem(SB.Campaign.key,JSON.stringify(c));});await recovery.reload();

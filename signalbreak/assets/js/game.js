@@ -67,6 +67,7 @@
     el('objective-list').innerHTML='';L.objectiveStatus(state).forEach(function(o){var p=document.createElement('p');p.textContent=(o.done?'✓ ':'○ ')+o.label;p.classList.toggle('done',o.done);el('objective-list').appendChild(p);});
     el('network-status').textContent=state.circuits?state.circuits.map(function(n,i){
       var alternate=state.relaySiege&&n.id!==state.relaySiege.core ||
+        state.evacuation&&n.id==='street-feed' ||
         state.lift&&state.lift.kind==='breach'&&state.objectives.requiredCircuits.indexOf(n.id)===-1;
       return (i+1)+' / '+n.label+': '+(n.controlled?'DONE':alternate?'OPTIONAL':'PENDING');
     }).join(' · '):state.network?'ALLIED / DOOR OPEN':'HOSTILE / DOOR LOCKED';el('network-status').style.color=state.network?'#9be1d3':'';
@@ -134,9 +135,9 @@
       el('title').textContent=state.phase==='won'?'Signal restored.':purged?'Archive purged.':keysFailed?'Vault sealed.':convoyEscaped?'Convoy escaped.':relayFailed?'Relay team lost.':'Signal lost.';
       el('copy').textContent=state.score.toLocaleString()+' operation points · turn '+state.turn+' · '+state.squad.filter(function(u){return u.extracted;}).length+'/4 engineers extracted.';
       var index=SB.Missions.operations.findIndex(function(m){return m.id===state.id;}),next=SB.Missions.operations[index+1];
-      el('tip').textContent=state.phase==='won'?(state.debrief||state.title+' complete.')+' '+(next?'Next: '+next.title+'.':'You reached the current playable boundary. The remaining '+(20-SB.Missions.operations.length)+' operations and finale are in development.'):purged?'The deadline expired before the evidence was copied. Replay and take the short route or hack the purge breaker to buy more time.':keysFailed?'The two keys require two living engineers. Retry and keep an operator in each wing.':convoyEscaped?'The civilian manifests are gone. HACK the brake or siding control before its deadline on the next attempt.':relayFailed?'The relay requires two living engineers. On replay, keep one on a powered pad while another hacks the relay.':'Retry the operation. Take cover, focus fire and read each circuit before advancing.';
+      el('tip').textContent=state.phase==='won'?(state.debrief||state.title+' complete.')+' '+(next?'Next: '+next.title+'.':'The final operation, Signalbreak, is in development.'):purged?'The deadline expired before the evidence was copied. Replay and take the short route or hack the purge breaker to buy more time.':keysFailed?'The two keys require two living engineers. Retry and keep an operator in each wing.':convoyEscaped?'The civilian manifests are gone. HACK the brake or siding control before its deadline on the next attempt.':relayFailed?'The relay requires two living engineers. On replay, keep one on a powered pad while another hacks the relay.':'Retry the operation. Take cover, focus fire and read each circuit before advancing.';
       el('next-operation').hidden=state.phase!=='won'||!next;el('next-operation').textContent=next?'NEXT / '+next.title:'NEXT OPERATION';
-      el('start').textContent='REPLAY OPERATION ↗';if(!purged&&!keysFailed&&!relayFailed&&!(state.convoy&&state.phase==='lost'))submit();
+      el('start').textContent='REPLAY OPERATION ↗';if(!purged&&!keysFailed&&!relayFailed&&!((state.convoy||state.evacuation)&&state.phase==='lost'))submit();
     }
     reachable();hud();
   }

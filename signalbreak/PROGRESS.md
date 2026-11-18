@@ -1059,3 +1059,15 @@ shelter, secure their next crossings under patrol pressure, and bring both to
 refuge before squad extraction. Verify the route with fresh and earned squads,
 check existing saves and inspect desktop and touch captures. Operation 20 and
 the consequence-based ending remain ahead. Keep FIRST PLAYABLE visible.
+
+Operation 19 now plays from shelter release to ferry extraction. Each group
+has six crossings. A surviving adjacent escort and a crossing clear of nearby
+patrol sight allow one move after enemy fire. Base squads brought all four
+engineers home on both routes. The split route with a hostile turret finished
+on turn 11 in 82 orders. The sequential route with the street feed finished
+on turn 18 in 126 orders. All 616 repository tests passed across 31 suites.
+
+The initial art, content and tactical feedback comparisons all favored XCOM 2.
+Phone guards obscured the crossing marker, the display omitted the pinning
+patrol's name, and the optional feed outscored the stated dark-feed mastery.
+The next revision addresses these findings. Full earned browser sweep pending.

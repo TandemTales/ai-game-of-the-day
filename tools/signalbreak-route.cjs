@@ -64,10 +64,18 @@ function nextOrder(SB, s, options={}) {
   }
   let goal;
   const siege=L.relaySiegeStatus&&L.relaySiegeStatus(s);
+  const evacuation=s.evacuation&&L.evacuationStatus(s);
   const approach=siege&&!siege.secured?siege.approaches[options.southRelay?1:0]:null;
   const anchorOperator=approach&&approach.controlled&&(approach.operatorId||
     (live.find(u=>u.id==='ivo')||live[0])?.id);
-  if(siege){
+  if(evacuation){
+    const release=s.circuits.find(c=>c.id==='shelter-release');
+    const feed=s.circuits.find(c=>c.id==='street-feed');
+    if(!release.controlled)goal=release;
+    else if(!evacuation.released)goal=s.rescue;
+    else if(options.streetFeed&&!feed.controlled)goal=feed;
+  }
+  else if(siege){
     if(approach){
       goal=s.circuits.find(c=>c.id===(approach.controlled?s.relaySiege.core:approach.circuitId));
       for(const u of live){const p=L.preview(s,u.id,'hack',goal.x,goal.y);if(p.legal)return p;}
@@ -141,13 +149,24 @@ function nextOrder(SB, s, options={}) {
     const anchor=anchorOperator===u.id?approach:null;
     const serviceDoor=breach&&options.breachService&&s.lift.position===1&&breachGoal?.id===s.lift.topRequires&&u.x<14
       ?s.circuits.find(c=>c.id==='breach-service').doors[0]:null;
-    const goal=anchor||key||pump||serviceDoor||commonGoal;
+    let escort;
+    if(evacuation?.released&&!evacuation.done&&!commonGoal){
+      const waiting=evacuation.groups.filter(group=>!group.arrived);
+      const groupIndex=options.sequentialEscort?0:live.indexOf(u)%waiting.length;
+      escort=waiting[groupIndex].next;
+    }
+    const goal=escort||anchor||key||pump||serviceDoor||commonGoal;
     const extract=L.preview(s,u.id,'extract',u.x,u.y);if(extract.legal)return extract;
     if (u.role==='MEDIC') for (const ally of live.filter(a=>a.hp<=a.maxHp-4)) {
       const heal=L.preview(s,u.id,'heal',ally.x,ally.y);if(heal.legal)return heal;
     }
     const attacks=s.enemies.filter(L.living).map(e=>L.preview(s,u.id,'attack',e.x,e.y)).filter(p=>p.legal).sort((a,b)=>b.damage-a.damage);
     if (attacks.length) return attacks[0];
+    if(escort&&Math.abs(u.x-escort.x)+Math.abs(u.y-escort.y)<=1){
+      const watch=L.preview(s,u.id,'watch',u.x,u.y);
+      if(watch.legal)return watch;
+      continue;
+    }
     if(pump&&pump.controlled&&Math.abs(u.x-pump.x)+Math.abs(u.y-pump.y)<=1){
       const watch=L.preview(s,u.id,'watch',u.x,u.y);if(watch.legal)return watch;
       continue;
@@ -155,7 +174,7 @@ function nextOrder(SB, s, options={}) {
     if(defense&&!defense.done&&u.id==='nia'){const watch=L.preview(s,u.id,'watch',u.x,u.y);if(watch.legal)return watch;continue;}
     if(anchor&&anchor.operatorId===u.id){const watch=L.preview(s,u.id,'watch',u.x,u.y);if(watch.legal)return watch;continue;}
     if(goal) {
-      const kind=goal===s.rescue?'rescue':goal.regroup||key||anchor||serviceDoor?null:'hack';
+      const kind=goal===s.rescue?'rescue':goal.regroup||key||anchor||serviceDoor||escort?null:'hack';
       if(kind){const p=L.preview(s,u.id,kind,goal.x,goal.y);if(p.legal)return p;}
     }
     let target=goal;

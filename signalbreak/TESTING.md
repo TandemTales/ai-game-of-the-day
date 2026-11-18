@@ -291,3 +291,13 @@ The browser sweep includes all 18 operations at the six required sizes. In
 addition to the earned campaign's default route, replay the service route on a
 390px touch viewport. Check the keyboard cursor after lift dispatch and capture
 the chart as the lift moves. See PROGRESS for actual results.
+
+## November 17 Pacific — Safe Corridor
+
+Run the base-stat split and sequential escort pilots. Check release, cardinal
+escort range, patrol sight and distance, the loss of an escort during enemy fire,
+independent movement and one-time arrival scores. Revalidate squad extraction
+after either group loses arrival status in a fixture. Load an eighteen-clear
+v1 save and verify the old scores and the new unlock. The browser pilot takes
+both routes, retries a separate loss fixture and inspects both groups' progress
+at the ferry. See PROGRESS for executed checks.

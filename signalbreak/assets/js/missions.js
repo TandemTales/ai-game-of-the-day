@@ -944,7 +944,64 @@
     mastery: 'Use the service door, then reach the Command deck and extract all four engineers in sixteen turns or fewer.',
     debrief: 'The elevator technician opens the Citadel’s evacuation stairs and hands Mara the emergency floor plans. Families sheltering below can now reach the streets, but the occupation is closing the route from both ends. Nia calls the squad back down for Safe Corridor.'
   };
-  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice, span, blackout, pumpSiege, paperTrail, twoKeys, ghostBroadcast, stolenConvoy, outerRelay, verticalBreach];
+  var safeCorridor = {
+    id: 'safe-corridor', title: 'Safe Corridor', district: 'Broadcast Citadel', sequence: 19,
+    briefing: 'The chapel bell rings twice. Across the tram hall, the kiln crew answers by striking a pipe. HACK the shelter release and RESCUE the ferry marshal to call both groups out. To wave a group forward, hold its next marked crossing or a square directly beside it through enemy fire. A patrol within three tiles with sight of the crossing keeps that group in shelter. Both groups can move on the same End Turn. Get everyone to the east ferry, then extract.',
+    radio: 'SOL / Release (2,5), marshal (7,6). Families take the chapel arcade north of the tram hall. The kiln crew comes up from the south. The street feed (7,10) opens the middle cross-door and turns the turret. Two landing patrols are due on turn six, at (20,4) and (20,10).',
+    objectiveSummary: 'Release the marshal. Cover the next marked crossings until both civilian groups reach the ferry. Extract the squad at the landing.',
+    extractionLabel: 'east ferry landing',
+    objectives: {
+      requiredCircuits: ['shelter-release'],
+      rescueLabel: 'Release the ferry marshal and call both groups',
+      rescueRequires: ['shelter-release']
+    },
+    rows: [
+      '#######################',
+      '#...###..###..####....#',
+      '#...#c#........##..##.#',
+      '#.c.#.#.....c.c....##.#',
+      '#.....c..............c#',
+      '#.n.#####.c...c..c..c.#',
+      '#...#..r####.#####.eee#',
+      '#...d...####d#####.eee#',
+      '#..c########.#####.eee#',
+      '#.....c.c...c...c.c...#',
+      '#......n.....c.......c#',
+      '#..c.....c......c..##.#',
+      '#.c.###..###...######.#',
+      '#..............###....#',
+      '#######################'
+    ],
+    heights: [],
+    squad: squad([[2,7],[2,8],[2,9],[3,9]]),
+    enemies: [
+      { id: 'chapel-lookout', name: 'Belfry lookout', x: 10, y: 3, hp: 5, maxHp: 5, damage: 2, range: 5, stride: 2 },
+      { id: 'kiln-inspector', name: 'Kiln inspector', x: 14, y: 11, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 2 }
+    ],
+    ambush: { turn: 6, label: 'Ferry landing patrols', enemies: [
+      { id: 'chapel-landing-watch', name: 'North landing watch', x: 20, y: 4, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 2 },
+      { id: 'kiln-landing-watch', name: 'South landing watch', x: 20, y: 10, hp: 5, maxHp: 5, damage: 2, range: 5, stride: 2 }
+    ] },
+    turret: { x: 17, y: 5, range: 6, damage: 2 },
+    node: { x: 2, y: 5 }, rescue: { x: 7, y: 6 },
+    circuits: [
+      { id: 'shelter-release', label: 'Open the marshal’s shelter', x: 2, y: 5, controlled: false, doors: [{ x: 4, y: 7 }] },
+      { id: 'street-feed', label: 'Street feed', x: 7, y: 10, controlled: false, turret: true, doors: [{ x: 12, y: 7 }] }
+    ],
+    evacuation: { groups: [
+      { id: 'chapel', label: 'Chapel families', step: 0, path: [
+        { x: 8, y: 4 }, { x: 10, y: 4 }, { x: 12, y: 4 }, { x: 14, y: 4 },
+        { x: 16, y: 4 }, { x: 18, y: 4 }, { x: 18, y: 6 }
+      ] },
+      { id: 'kiln', label: 'Kiln crew', step: 0, path: [
+        { x: 9, y: 11 }, { x: 11, y: 11 }, { x: 13, y: 11 }, { x: 13, y: 9 },
+        { x: 16, y: 9 }, { x: 18, y: 9 }, { x: 18, y: 8 }
+      ] }
+    ] },
+    mastery: 'Leave the street feed dark and bring both civilian groups and all four engineers to the ferry by turn fifteen.',
+    debrief: 'Sol counts the last kiln apron aboard. The marshal pulls two paper lists from her coat, crosses off every name and gives them to Nia. Across the river, the district crews ring back on an open channel. Mara tells them to keep listening. One transmitter still belongs to the Citadel.'
+  };
+  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice, span, blackout, pumpSiege, paperTrail, twoKeys, ghostBroadcast, stolenConvoy, outerRelay, verticalBreach, safeCorridor];
   SB.Missions.get = function (id) {
     return SB.Missions.operations.find(function (mission) { return mission.id === id; }) || null;
   };

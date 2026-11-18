@@ -31,17 +31,17 @@ function pilot(SB, s, report = []) {
   }
   return report;
 }
-test('full manifest promises twenty operations; eighteen distinct authored maps are playable', () => {
+test('full manifest promises twenty operations; nineteen distinct authored maps are playable', () => {
   const SB=load();expect(SB.Missions.manifest).toHaveLength(5);
   const names=SB.Missions.manifest.flatMap(d=>Array.from(d).slice(1));expect(new Set(names).size).toBe(20);
   expect(SB.Missions.opening.title).toBe('Live Wire');
-  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege','paper-trail','two-keys','ghost-broadcast','stolen-convoy','outer-relay','vertical-breach']);
-  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(18);
+  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege','paper-trail','two-keys','ghost-broadcast','stolen-convoy','outer-relay','vertical-breach','safe-corridor']);
+  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(19);
   for(const m of SB.Missions.operations){
     expect(m.rows.every(r=>r.length===m.rows[0].length)).toBe(true);
     for(const n of m.circuits||[])expect(m.rows[n.y][n.x]).toBe(n.id===m.convoy?.evidenceCircuit?'.':'n');
   }
-  expect(()=>SB.Logic.newGame('safe-corridor')).toThrow('Unknown operation');
+  expect(()=>SB.Logic.newGame('signalbreak')).toThrow('Unknown operation');
 });
 test('fresh states are isolated and previews never mutate the tactical state', () => {
   const {Logic:L}=load(),a=L.newGame(),b=L.newGame(),before=JSON.stringify(a);
@@ -331,10 +331,10 @@ test('antenna lanes alternate, warn before movement, damage only exposed living 
  const hp=s.squad[0].hp;L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);expect(L.activeLane(s).label).not.toBe(first.label);
  s.circuits.find(c=>c.id==='tower').controlled=true;expect(L.activeLane(s)).toBe(null);L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);
 });
-test('all eighteen operations support consecutive persisted squad progression with legal orders',()=>{
+test('all nineteen operations support consecutive persisted squad progression with legal orders',()=>{
  const SB=load(),C=SB.Campaign,c=C.fresh(),store=memoryStorage();
  for(const m of SB.Missions.operations){for(const id of ['nia','sol','rook','ivo'])C.treat(c,id);const s=C.prepare(c,SB.Logic.newGame(m.id));campaignRoute(SB,s);expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);expect(C.complete(c,s)).toBe(true);C.save(store,c);expect(C.load(store).campaign).toEqual(c);}
- expect(Object.keys(c.results)).toHaveLength(18);expect(c.roster.nia.xp).toBe(18);
+ expect(Object.keys(c.results)).toHaveLength(19);expect(c.roster.nia.xp).toBe(19);
 });
 
 
@@ -879,4 +879,80 @@ test('a seventeen-clear v1 save retains Citadel records and unlocks Vertical Bre
  expect(restored.results).toEqual(results);
  expect(C.unlocked(restored,'vertical-breach')).toBe(true);
  expect(restored.results['vertical-breach']).toBeUndefined();
+});
+
+test.each([
+ {streetFeed:false,sequentialEscort:false},
+ {streetFeed:true,sequentialEscort:true}
+])('Safe Corridor evacuates both groups with four base-stat survivors (%j)',options=>{
+ const SB=load(),L=SB.Logic,s=L.newGame('safe-corridor');
+ const actions=campaignRoute(SB,s,250,options);
+ const status=L.evacuationStatus(s);
+ expect(s.phase).toBe('won');
+ expect(status.done).toBe(true);
+ expect(status.groups.map(g=>[g.step,g.total,g.arrived])).toEqual([[6,6,true],[6,6,true]]);
+ expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);
+ expect(L.turretAllied(s)).toBe(options.streetFeed);
+ expect(actions.some(a=>a.kind==='rescue')).toBe(true);
+ if(!options.streetFeed)expect(s.turn).toBeLessThanOrEqual(15);
+});
+
+function corridorFixture(){
+ const {Logic:L}=load(),s=L.newGame('safe-corridor');
+ s.enemies=[];s.turret=null;s.ambush=null;
+ return {L,s,groups:s.evacuation.groups};
+}
+test('Safe Corridor waits for release, evaluates the two crossings independently, and returns detached status',()=>{
+ const {L,s,groups}=corridorFixture(),north=groups[0].path[1],south=groups[1].path[1];
+ const status=L.evacuationStatus(s);status.groups[0].next.x=-99;
+ expect(L.evacuationStatus(s).groups[0].next).toEqual(north);
+ Object.assign(s.squad[0],north);
+ L.endTurn(s);expect(groups.map(g=>g.step)).toEqual([0,0]);
+ s.rescued=true;
+ Object.assign(s.squad[1],{x:south.x+1,y:south.y+1});
+ expect(L.evacuationStatus(s).groups.map(g=>g.guarded)).toEqual([true,false]);
+ L.endTurn(s);expect(groups.map(g=>g.step)).toEqual([1,0]);
+ Object.assign(s.squad[0],groups[0].path[2]);Object.assign(s.squad[1],south);
+ L.endTurn(s);expect(groups.map(g=>g.step)).toEqual([2,1]);
+});
+
+test('a visible ordinary patrol pins within three tiles and an engineer downed during enemy fire cannot wave civilians across',()=>{
+ const {L,s,groups}=corridorFixture(),checkpoint=groups[0].path[1];
+ const atDistance=dx=>({id:'pin-watch',name:'Watch',x:checkpoint.x+dx,y:checkpoint.y,hp:5,maxHp:5,range:1,damage:5,stride:0});
+ s.rescued=true;Object.assign(s.squad[0],checkpoint);
+ s.enemies=[atDistance(4)];
+ expect(L.evacuationStatus(s).groups[0].pinned).toBe(false);
+ s.enemies=[atDistance(3)];
+ expect(L.evacuationStatus(s).groups[0]).toMatchObject({pinned:true,guarded:true});
+ L.endTurn(s);expect(groups[0].step).toBe(0);
+ // The turret can down the guard, but only ordinary patrols pin a crossing.
+ s.enemies=[];s.squad[0].hp=1;s.turret={...atDistance(2),range:4};
+ expect(L.evacuationStatus(s).groups[0].pinned).toBe(false);
+ L.endTurn(s);expect(s.squad[0].hp).toBe(0);expect(groups[0].step).toBe(0);
+});
+test('Safe Corridor requires both arrivals, grants each bonus once, and revalidates extraction',()=>{
+ const {L,s,groups}=corridorFixture();
+ s.rescued=true;s.circuits[0].controlled=true;
+ groups.forEach((group,index)=>{
+   group.step=group.path.length-2;
+   Object.assign(s.squad[index],group.path.at(-1));
+ });
+ const row=s.rows.findIndex(r=>r.includes('e')),exit={x:s.rows[row].indexOf('e'),y:row},extractor=s.squad[3];
+ Object.assign(extractor,exit);
+ expect(L.preview(s,extractor.id,'extract',exit.x,exit.y).legal).toBe(false);
+ L.endTurn(s);expect(s.score).toBe(500);
+ const order=L.preview(s,extractor.id,'extract',exit.x,exit.y);
+ expect(order.legal).toBe(true);
+ L.endTurn(s);expect(s.score).toBe(500);
+ groups[1].step--;
+ const before=JSON.stringify(s);expect(L.commit(s,order)).toBe(false);expect(JSON.stringify(s)).toBe(before);
+});
+test('an eighteen-clear v1 save keeps earned results and unlocks Safe Corridor for replay selection',()=>{
+ const {Missions:M,Campaign:C}=load(),results={};
+ for(const m of M.operations.slice(0,18))results[m.id]={score:3270,turns:11,survivors:4};
+ const c=C.normalize({version:1,results,selected:'vertical-breach'});
+ expect(c.results).toEqual(results);expect(c.roster.nia.xp).toBe(18);
+ expect(C.unlocked(c,'safe-corridor')).toBe(true);
+ expect(c.results['safe-corridor']).toBeUndefined();
+ c.selected='safe-corridor';const store=memoryStorage();C.save(store,c);expect(C.load(store).campaign).toEqual(c);
 });

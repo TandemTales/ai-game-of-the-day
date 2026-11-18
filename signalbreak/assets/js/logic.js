@@ -201,6 +201,40 @@
   function relayAnchorName(approach) {
     return approach.circuitId === 'north-approach' ? 'North anchor' : 'South anchor';
   }
+  function evacuationStatus(s) {
+    if (!s.evacuation) return null;
+    var groups = s.evacuation.groups.map(function (group) {
+      var current = group.path[group.step], next = group.path[group.step + 1];
+      return {
+        id: group.id, label: group.label, step: group.step, total: group.path.length - 1,
+        current: { x: current.x, y: current.y }, next: next ? { x: next.x, y: next.y } : null,
+        guarded: !!next && s.squad.some(function (u) { return living(u) && distance(u, next) <= 1; }),
+        pinned: !!next && s.enemies.some(function (e) { return living(e) && distance(e, next) <= 3 && visible(s, e, next); }),
+        arrived: !next
+      };
+    });
+    return { released: s.rescued, done: s.rescued && groups.every(function (g) { return g.arrived; }), groups: groups };
+  }
+  function resolveEvacuation(s) {
+    var evacuation = evacuationStatus(s);
+    if (!evacuation || !evacuation.released || evacuation.done) return;
+    var reports = [];
+    evacuation.groups.forEach(function (group, i) {
+      if (group.arrived) return;
+      if (group.pinned || !group.guarded) {
+        reports.push(group.label + ' held / ' + (group.pinned ? 'patrol covers crossing' : 'waiting for escort'));
+        return;
+      }
+      var step = ++s.evacuation.groups[i].step;
+      if (step === group.total) {
+        s.score += 250;
+        reports.push(group.label + ' reached refuge / +250 points');
+      } else {
+        reports.push(group.label + ' crossed to (' + group.next.x + ', ' + group.next.y + ') / ' + step + '/' + group.total);
+      }
+    });
+    log(s, reports.join(' · '), 'rescue');
+  }
   function resolveConvoy(s) {
     var convoy = s.convoy;
     if (!convoy || convoy.stoppedBy) return;
@@ -391,6 +425,20 @@
       status.unshift({ id: 'convoy', label: convoyLabel, done: !!convoy.stoppedBy });
     }
     status.push({ id: 'rescue', label: s.objectives && s.objectives.rescueLabel || 'Rescue signal worker', done: !!s.rescued });
+    var evacuation = evacuationStatus(s);
+    if (evacuation) evacuation.groups.forEach(function (group) {
+      var label = group.label + ' · ' + group.step + '/' + group.total + ' crossings · ';
+      if (group.arrived) label += 'safe at refuge';
+      else {
+        label += 'next (' + group.next.x + ', ' + group.next.y + ') · ';
+        if (!evacuation.released) label += 'awaiting marshal';
+        else {
+          label += group.guarded ? 'guarded' : 'escort within 1 needed';
+          label += group.pinned ? ' · pinned by patrol' : ' · clear of patrols';
+        }
+      }
+      status.push({ id: group.id, label: label, done: group.arrived });
+    });
     if (isBreach(s)) {
       var breachLift = liftStatus(s);
       status.push({ id: 'arrival', label: breachLift.delivered ? 'Reached Command with a living engineer' : 'Ride the lift to Command', done: breachLift.delivered });
@@ -512,6 +560,15 @@
       p.cost = Math.ceil((p.path.length - 1) / a.stride);
       if (!p.cost || p.cost > a.ap) return fail('Beyond remaining movement AP.');
       p.reason = p.cost + ' AP · ' + (p.path.length - 1) + ' tiles · confirm move';
+      var evacuation = evacuationStatus(s);
+      if (evacuation && evacuation.released) evacuation.groups.forEach(function (group) {
+        if (!group.next) return;
+        if (distance(p, group.next) <= 1) {
+          p.reason += ' · guard ' + group.label + ' crossing' + (group.pinned ? ' / patrol still pins it' : ' through enemy fire');
+        } else if (distance(a, group.next) <= 1 && !s.squad.some(function (u) {
+          return u.id !== a.id && living(u) && distance(u, group.next) <= 1;
+        })) p.reason += ' · leaves ' + group.label + ' crossing unguarded';
+      });
       var siege = relaySiegeStatus(s);
       if (siege && !siege.secured) {
         var destinationAnchor = siege.approaches.find(function (anchor) { return anchor.x === x && anchor.y === y; });
@@ -634,6 +691,7 @@
       if (s.objectives && (s.objectives.rescueRequires || []).some(function (id) { return !(s.circuits || []).some(function (c) { return c.id === id && c.controlled; }); })) return fail(s.convoy ? 'Copy the civilian records before evacuating the dispatcher.' : 'Restore the rescue route circuit before evacuating the worker.');
       if (!canReachAdjacent(s, a, s.rescue)) return fail('Get adjacent to the worker on the same level or a connecting stair.');
       p.reason = '1 AP · ' + (s.objectives && s.objectives.rescueLabel || 'release signal worker') + ' · +400 points';
+      if (s.evacuation) p.reason += ' · both groups can advance after enemy fire';
     } else if (kind === 'heal') {
       var ally = s.squad.find(function (u) { return living(u) && u.x === x && u.y === y; });
       if (a.role !== 'MEDIC') return fail('Only Sol can apply field aid.');
@@ -656,6 +714,7 @@
       if (s.archive && !archiveStatus(s).secured) return fail('Copy the Archive evidence before extracting.');
       if (s.keyPair && !s.keyPair.opened) return fail('Synchronize both keys before extracting.');
       if (!networkReady(s) || !s.rescued) return fail('Complete the circuit objectives and rescue before extracting.');
+      if (s.evacuation && !evacuationStatus(s).done) return fail('Escort both civilian groups to refuge before squad extraction.');
       p.reason = '1 AP · extract ' + a.name;
     } else return fail('Unknown order.');
     p.legal = true; return p;
@@ -744,7 +803,11 @@
         }
       } else { s.network = true; s.score += 500; log(s, 'CIRCUIT OURS · door open · turret allied · lights restored', 'hack'); }
     }
-    if (p.kind === 'rescue') { s.rescued = true; s.score += 400; log(s, (s.objectives && s.objectives.rescueLabel || 'Worker freed') + ' · escort signal clear; extract the squad.', 'rescue'); }
+    if (p.kind === 'rescue') {
+      s.rescued = true; s.score += 400;
+      var rescueLabel = s.objectives && s.objectives.rescueLabel || 'Worker freed';
+      log(s, rescueLabel + (s.evacuation ? ' · guard the next crossing for each group through enemy fire.' : ' · escort signal clear; extract the squad.'), 'rescue');
+    }
     if (p.kind === 'heal') { var ally = unit(s, p.targetId); ally.hp = Math.min(ally.maxHp, ally.hp + 4); a.kits = (a.kits === undefined ? 2 : a.kits) - 1; log(s, 'Sol treated ' + ally.name + ' · +4 HP', 'heal'); }
     if (p.kind === 'watch') { a.watch = true; log(s, a.name + ' covering the approach', 'watch'); }
     if (p.kind === 'extract') { a.extracted = true; log(s, a.name + ' extracted', 'rescue'); }
@@ -797,6 +860,7 @@
     if (s.phase !== 'lost') resolveLane(s);
     if (s.phase !== 'lost') resolvePumps(s);
     outcome(s);
+    if (s.phase === 'enemy') resolveEvacuation(s);
     if (s.phase === 'enemy') resolvePurge(s);
     if (s.phase === 'enemy') resolveConvoy(s);
     if (s.phase === 'lost' || s.phase === 'won') return true;
@@ -810,5 +874,5 @@
   SB.Logic = { newGame: newGame, tile: tile, height: height, unit: unit, living: living, occupant: occupant,
     blocked: blocked, canStep: canStep, path: path, visible: visible, lit: lit, detected: detected, cover: cover, damage: damage, preview: preview, commit: commit, endTurn: endTurn,
     waterStatus: waterStatus, waterRouteAt: waterRouteAt, liftAt: liftAt, liftStatus: liftStatus, liftControlAt: liftControlAt, defenseStatus: defenseStatus, pumpStatus: pumpStatus, keyPairStatus: keyPairStatus, archiveStatus: archiveStatus, activeLane: activeLane,
-    circuitAt: circuitAt, doorOpen: doorOpen, objectiveStatus: objectiveStatus, turretAllied: turretAllied, extractionStatus: extractionStatus, broadcastStatus: broadcastStatus, convoyStatus: convoyStatus, relaySiegeStatus: relaySiegeStatus };
+    circuitAt: circuitAt, doorOpen: doorOpen, objectiveStatus: objectiveStatus, turretAllied: turretAllied, extractionStatus: extractionStatus, broadcastStatus: broadcastStatus, convoyStatus: convoyStatus, relaySiegeStatus: relaySiegeStatus, evacuationStatus: evacuationStatus };
 })(window);

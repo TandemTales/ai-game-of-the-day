@@ -1096,3 +1096,30 @@ and the rules and design comparisons in corridor-rules-critic and
 corridor-design-critic/revised. The comparison uses
 [Feral's XCOM 2 tactical view](https://www.feralinteractive.com/en/manuals/xcom2/latest/steam/game_screen.jpg).
 The full earned browser sweep is running from the revised sources.
+
+## November 17 Pacific — Verified handoff
+
+Headless Edge cleared all 19 operations consecutively through the actual UI
+against live AI, extracting all four engineers each time. Safe Corridor's split
+squad finished on turn 11 with 82 orders and 3,870 points including mastery.
+On a separate 390px touch replay, the squad powered the street feed, escorted
+the families first and the kiln crew second, then extracted on turn 17 with
+118 orders and 3,590 points. The save retained its earlier mastery. A separate
+loss fixture verified retry and zero rank requests after squad loss.
+
+All 114 operation/viewport checks passed with clean console, no horizontal
+overflow and no external gameplay requests. Save/reload, denied storage,
+keyboard/touch orders, loadouts, file boot, DPR2 and local rank-before-submit
+checks passed. The sandbox Edge launch failed and the scoped localhost retry
+completed. The 07:22:34Z browser manifest on November 18 matches all eight
+runtime files. Results and PNGs are in node_modules/.cache/signalbreak/corridor-final.
+Reviewed all twelve Safe Corridor briefing and live images across six sizes,
+both debriefs, in-progress escort frames and the three critic comparisons.
+At 320px the briefing requires scrolling to Deploy. The comparison sheets
+downsample the larger frames. Human play, physical devices, audio and performance
+remain unverified.
+
+Next, implement operation 20's core shutdown and connect the ending to saved
+district rescues and archive evidence. Preserve v1 saves without inventing
+historical choices. Earlier mastery targets and campaign-level scoring still
+need implementation. Signalbreak remains FIRST PLAYABLE on dev at 19/20.

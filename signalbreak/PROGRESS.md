@@ -1051,3 +1051,11 @@ scrolling; the desktop and 4K captures are downsampled in the contact sheets.
 The browser source manifest (2026-11-17T07:17:21.598Z) matches all eight runtime
 files. Evidence: node_modules/.cache/signalbreak/breach-final. The campaign still
 uses operation scores, and production did not receive this build.
+
+## November 17 Pacific — Safe Corridor intent
+
+Build operation 19 in the Broadcast Citadel. Release two civilian groups from
+shelter, secure their next crossings under patrol pressure, and bring both to
+refuge before squad extraction. Verify the route with fresh and earned squads,
+check existing saves and inspect desktop and touch captures. Operation 20 and
+the consequence-based ending remain ahead. Keep FIRST PLAYABLE visible.

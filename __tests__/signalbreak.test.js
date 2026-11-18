@@ -894,6 +894,7 @@ test.each([
  expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);
  expect(L.turretAllied(s)).toBe(options.streetFeed);
  expect(actions.some(a=>a.kind==='rescue')).toBe(true);
+ expect(!!s.masteryEarned).toBe(!options.streetFeed);
  if(!options.streetFeed)expect(s.turn).toBeLessThanOrEqual(15);
 });
 
@@ -923,7 +924,11 @@ test('a visible ordinary patrol pins within three tiles and an engineer downed d
  s.enemies=[atDistance(4)];
  expect(L.evacuationStatus(s).groups[0].pinned).toBe(false);
  s.enemies=[atDistance(3)];
- expect(L.evacuationStatus(s).groups[0]).toMatchObject({pinned:true,guarded:true});
+ const pinned=L.evacuationStatus(s).groups[0];
+ expect(pinned).toMatchObject({pinned:true,guarded:true,pinningPatrols:[{id:'pin-watch',name:'Watch'}]});
+ pinned.pinningPatrols[0].x=-1;
+ expect(s.enemies[0].x).toBe(checkpoint.x+3);
+ expect(L.objectiveStatus(s).find(g=>g.id===groups[0].id).label).toContain('Watch');
  L.endTurn(s);expect(groups[0].step).toBe(0);
  // The turret can down the guard, but only ordinary patrols pin a crossing.
  s.enemies=[];s.squad[0].hp=1;s.turret={...atDistance(2),range:4};
@@ -955,4 +960,42 @@ test('an eighteen-clear v1 save keeps earned results and unlocks Safe Corridor f
  expect(C.unlocked(c,'safe-corridor')).toBe(true);
  expect(c.results['safe-corridor']).toBeUndefined();
  c.selected='safe-corridor';const store=memoryStorage();C.save(store,c);expect(C.load(store).campaign).toEqual(c);
+});
+
+test.each([
+ {turn:15,feed:false,casualty:false,bonus:600},
+ {turn:16,feed:false,casualty:false,bonus:0},
+ {turn:15,feed:true,casualty:false,bonus:0},
+ {turn:15,feed:false,casualty:true,bonus:0}
+])('dark-feed mastery is awarded only at a qualifying final extraction (%j)',({turn,feed,casualty,bonus})=>{
+ const {L,s,groups}=corridorFixture();
+ s.turn=turn;s.rescued=true;s.circuits[0].controlled=true;s.circuits[1].controlled=feed;
+ for(const group of groups)group.step=group.path.length-1;
+ s.squad.slice(0,3).forEach(u=>u.extracted=true);
+ if(casualty){s.squad[0].hp=0;s.squad[0].extracted=false;}
+ const last=s.squad[3],row=s.rows.findIndex(r=>r.includes('e'));
+ Object.assign(last,{x:s.rows[row].indexOf('e'),y:row});
+ expect(s.masteryEarned).toBeFalsy();
+ const p=order(L,s,last.id,'extract',last.x,last.y);
+ const expected=(casualty?3:4)*250+(20-turn)*30+bonus;
+ expect(s.phase).toBe('won');expect(s.score).toBe(expected);
+ expect(!!s.masteryEarned).toBe(bonus>0);
+ expect(L.commit(s,p)).toBe(false);L.endTurn(s);expect(s.score).toBe(expected);
+});
+
+test('Safe Corridor saves mastery independently of best score and never grants it retroactively',()=>{
+ const SB=load(),C=SB.Campaign,id='safe-corridor',results={};
+ for(const m of SB.Missions.operations)results[m.id]={score:4000,turns:12,survivors:4};
+ const c=C.normalize({version:1,results,selected:id}),roster=JSON.stringify(c.roster),supplies=c.supplies;
+ expect(c.results[id].mastery).toBeUndefined();
+ const win=fixtureWin(SB,id);win.masteryEarned=true;
+ expect(C.complete(c,win)).toBe(true);
+ expect(c.results[id]).toEqual({...results[id],mastery:true});
+ win.score=4400;win.masteryEarned=false;C.complete(c,win);
+ const store=memoryStorage();C.save(store,c);const saved=C.load(store).campaign;
+ expect(saved.results[id]).toEqual({score:4400,turns:8,survivors:4,mastery:true});
+ expect(JSON.stringify(saved.roster)).toBe(roster);expect(saved.supplies).toBe(supplies);
+ results[id].mastery='true';results['live-wire'].mastery=true;
+ const malformed=C.normalize({version:1,results});
+ expect(malformed.results[id].mastery).toBeUndefined();expect(malformed.results['live-wire'].mastery).toBeUndefined();
 });

@@ -31,7 +31,10 @@
       var r = own(raw.results, list[i].id) && raw.results[list[i].id];
       if (!r || !Number.isSafeInteger(r.score) || r.score < 0 || !Number.isSafeInteger(r.turns) || r.turns < 1 ||
           !Number.isSafeInteger(r.survivors) || r.survivors < 1 || r.survivors > 4) break;
-      c.results[list[i].id] = { score: r.score, turns: r.turns, survivors: r.survivors }; completed++;
+      var id = list[i].id;
+      c.results[id] = { score: r.score, turns: r.turns, survivors: r.survivors };
+      if (id === 'safe-corridor' && own(r, 'mastery') && r.mastery === true) c.results[id].mastery = true;
+      completed++;
     }
     var legacy = !own(raw, 'roster');
     IDS.forEach(function (id) {
@@ -124,6 +127,10 @@
       if (state.rescued) clean.supplies += 2;
     }
     if (!previous || state.score > previous.score) clean.results[state.id] = { score: state.score, turns: state.turn, survivors: survivors };
+    // Mastery may come from a different clear than the personal best.
+    if (state.id === 'safe-corridor' && (state.masteryEarned === true || previous && previous.mastery === true)) {
+      clean.results[state.id].mastery = true;
+    }
     var list = operations(), index = list.findIndex(function (m) { return m.id === state.id; });
     clean.selected = (list[index + 1] || list[index]).id;
     replace(campaign, clean); return true;

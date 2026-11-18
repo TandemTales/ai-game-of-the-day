@@ -301,3 +301,9 @@ after either group loses arrival status in a fixture. Load an eighteen-clear
 v1 save and verify the old scores and the new unlock. The browser pilot takes
 both routes, retries a separate loss fixture and inspects both groups' progress
 at the ferry. See PROGRESS for executed checks.
+
+Exercise the inclusive turn-15 cutoff, late arrivals, a powered feed and a squad
+casualty. Award the 600 points once and save mastery independently of best score.
+In the browser verify that earning the medal updates the debrief and the operation
+picker after reload. Replay the longer street-feed route and check the saved
+medal still appears while the new debrief reports only that attempt's score.

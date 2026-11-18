@@ -201,6 +201,61 @@
       c.lineTo(mastX,mastY+a*.37);c.closePath();c.fill();
       c.restore();
     }
+    function handoffMarkers(){
+      if(!evacuation.released||evacuation.done)return;
+      var scale=Math.min(d,2),height=16*scale;
+      var boardBottom=h-24*scale-evacuationBand(w);
+      var obstacles=[{left:0,top:0,right:180*scale,bottom:56*scale}];
+      var people=s.squad.concat(s.enemies).filter(L.living);
+      people.concat(evacuation.groups.map(function(group){return group.current;}),[s.turret]).forEach(function(person){
+        var foot=P.point(person.x,person.y,L.height(s,person.x,person.y));
+        obstacles.push({left:foot.x-a*.64,right:foot.x+a*.64,
+          top:foot.y-a*1.75,bottom:foot.y+b*.36});
+      });
+      function callout(cell,text,ink,side){
+        var foot=P.point(cell.x,cell.y,L.height(s,cell.x,cell.y));
+        if(foot.x<0||foot.x>w||foot.y<0||foot.y>boardBottom)return;
+        var width=(text==='!'?14:28)*scale;
+        var reach=Math.max(13*scale,a*.95);
+        // Prefer the open street beside the tile; try a longer leader in a crowd.
+        var offsets=[[side,0],[side,-.85],[side,.85],[-side,0],[-side,.85],[-side,-.85]];
+        for(var distance=1;distance<=3;distance++){
+          for(var i=0;i<offsets.length;i++){
+            var dx=offsets[i][0],dy=offsets[i][1];
+            var anchorX=foot.x+dx*a*.73,anchorY=foot.y+b*.22;
+            var near=anchorX+dx*reach*distance,cy=anchorY+dy*reach*distance;
+            var left=dx>0?near:near-width,right=left+width,top=cy-height/2,bottom=top+height;
+            if(left<1||top<1||right>=w||bottom>=boardBottom)continue;
+            if(obstacles.some(function(box){
+              return left<box.right&&right>box.left&&top<box.bottom&&bottom>box.top;
+            }))continue;
+            c.strokeStyle='#101d29';c.lineWidth=3*scale;c.beginPath();
+            c.moveTo(anchorX,anchorY);c.lineTo(near,cy);c.stroke();
+            c.strokeStyle=ink;c.lineWidth=scale;c.stroke();
+            c.fillStyle=ink;c.beginPath();c.arc(anchorX,anchorY,1.45*scale,0,Math.PI*2);c.fill();
+            c.fillStyle='#101d29';c.fillRect(left,top,width,height);c.strokeRect(left,top,width,height);
+            c.fillStyle=ink;c.fillText(text,left+width/2,cy);
+            obstacles.push({left:left-scale,top:top-scale,right:right+scale,bottom:bottom+scale});
+            return;
+          }
+        }
+      }
+      c.save();c.textAlign='center';c.textBaseline='middle';c.font='bold '+11*scale+'px system-ui';
+      var markedPatrols=new Set();
+      evacuation.groups.forEach(function(group){
+        if(!group.next)return;
+        var chapel=group.id==='chapel';
+        var glyph=group.pinned?'×':group.guarded?'✓':'○';
+        var ink=group.pinned?'#ffb1a5':group.guarded?'#a4f8c6':civilianInks[group.id];
+        callout(group.next,(chapel?'C ':'K ')+glyph,ink,chapel?1:-1);
+      });
+      evacuation.groups.forEach(function(group){
+        var patrol=group.pinningPatrols&&group.pinningPatrols[0];
+        if(!patrol||markedPatrols.has(patrol.id))return;
+        markedPatrols.add(patrol.id);callout(patrol,'!','#ffb1a5',1);
+      });
+      c.restore();
+    }
     function evacuationLedger(){
       var scale=Math.min(d,2),stack=w<640*scale;
       var top=h-24*scale-evacuationBand(w),rowWidth=stack?w:w/2;
@@ -231,7 +286,7 @@
       var top=chapel?'#7e8582':kiln?'#9f7663':'#687d83';
       var left=chapel?'#364955':kiln?'#594440':'#314851';
       var right=chapel?'#506068':kiln?'#785346':'#425b64';
-      var roof=block(x,y,edge?.24:chapel?.86:kiln?.76:.61,top,left,right);
+      var roof=block(x,y,edge ? .24 : chapel ? .86 : kiln ? .76 : .61,top,left,right);
       if(edge)return;
       c.save();
       if(chapel){
@@ -667,7 +722,7 @@
         if(friendly){c.fillStyle=actor.watch?'#f2d99a':'#b5e6df';for(var i=0;i<actor.ap;i++){c.beginPath();c.arc(p.x-a*.13+i*a*.26,p.y-a*1.6,a*.07,0,Math.PI*2);c.fill();}}
       }
     }
-    if(evacuation)evacuationLedger();
+    if(evacuation){handoffMarkers();evacuationLedger();}
     if(breach){
       var scale=Math.min(d,2);
       lift.stops.forEach(function(stop,index){

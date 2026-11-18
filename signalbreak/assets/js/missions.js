@@ -946,7 +946,7 @@
   };
   var safeCorridor = {
     id: 'safe-corridor', title: 'Safe Corridor', district: 'Broadcast Citadel', sequence: 19,
-    briefing: 'The chapel bell rings twice. Across the tram hall, the kiln crew answers by striking a pipe. HACK the shelter release and RESCUE the ferry marshal to call both groups out. To wave a group forward, hold its next marked crossing or a square directly beside it through enemy fire. A patrol within three tiles with sight of the crossing keeps that group in shelter. Both groups can move on the same End Turn. Get everyone to the east ferry, then extract.',
+    briefing: 'HACK the shelter release, then RESCUE the ferry marshal. On End Turn, each group looks for an engineer on its next marked crossing or one square directly beside it after enemy fire. If the escort is missing or a patrol within three tiles can see the crossing, the group waits safely at its current stop. Cover the crossing and clear the threat to resume. Both groups can advance together. Get them to the east ferry, then extract.',
     radio: 'SOL / Release (2,5), marshal (7,6). Families take the chapel arcade north of the tram hall. The kiln crew comes up from the south. The street feed (7,10) opens the middle cross-door and turns the turret. Two landing patrols are due on turn six, at (20,4) and (20,10).',
     objectiveSummary: 'Release the marshal. Cover the next marked crossings until both civilian groups reach the ferry. Extract the squad at the landing.',
     extractionLabel: 'east ferry landing',
@@ -998,7 +998,7 @@
         { x: 16, y: 9 }, { x: 18, y: 9 }, { x: 18, y: 8 }
       ] }
     ] },
-    mastery: 'Leave the street feed dark and bring both civilian groups and all four engineers to the ferry by turn fifteen.',
+    mastery: 'Earn +600 points by leaving the street feed dark, escorting both civilian groups to the ferry and extracting all four engineers by turn 15.',
     debrief: 'Sol counts the last kiln apron aboard. The marshal pulls two paper lists from her coat, crosses off every name and gives them to Nia. Across the river, the district crews ring back on an open channel. Mara tells them to keep listening. One transmitter still belongs to the Citadel.'
   };
   SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice, span, blackout, pumpSiege, paperTrail, twoKeys, ghostBroadcast, stolenConvoy, outerRelay, verticalBreach, safeCorridor];

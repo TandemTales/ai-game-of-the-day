@@ -105,6 +105,10 @@ async function drive(page,touch=false,options={}){
       await page.locator('.map-wrap').screenshot({path:path.join(out,id+'-briefing.png')});await page.locator('#start').click();
       assert(await page.locator('[data-gear="nia"]').isDisabled());
       const run=await drive(page,index===1||index===3||index>=4);campaignRuns.push(run);
+      if(id==='safe-corridor'){
+        assert.match(await page.locator('#copy').innerText(),/Dark-feed mastery \+600/);
+        assert.match(await page.locator('#mastery-goal').innerText(),/MASTERY EARNED/);
+      }
       if(index===1)assert((await page.locator('#tip').innerText()).includes('registrar names the clinic'));
       if(index===0){
         assert(rankHeld,'rank request held');await page.locator('#next-operation').click();assert.equal(await page.evaluate(()=>SB.Game.getState().id),'locked-manifest');
@@ -114,6 +118,10 @@ async function drive(page,touch=false,options={}){
       await page.waitForTimeout(100);await page.reload();
       assert.equal(await page.evaluate(()=>SB.Game.getMode()),'title');
       const data=await page.evaluate(()=>JSON.parse(localStorage.getItem(SB.Campaign.key)));assert(data.results[id]);
+      if(id==='safe-corridor'){
+        assert.equal(data.results[id].mastery,true);
+        assert.match(await page.locator('[data-mission="safe-corridor"]').textContent(),/MASTERY/);
+      }
       if(index+1<operationIds.length)assert.equal(await page.evaluate(()=>SB.Game.getState().id),operationIds[index+1]);
     }
     assert.equal(api.length,operationIds.length*2-1,'held GET is intercepted, remaining server API calls are recorded');
@@ -186,6 +194,8 @@ async function drive(page,touch=false,options={}){
     await corridor.locator('[data-mission="safe-corridor"]').tap();await corridor.locator('#start').tap();
     const corridorReplay=await drive(corridor,true,{streetFeed:true,sequentialEscort:true});
     assert(await corridor.evaluate(()=>SB.Logic.turretAllied(SB.Game.getState())));
+    assert.doesNotMatch(await corridor.locator('#copy').innerText(),/Dark-feed mastery/);
+    assert.match(await corridor.locator('#mastery-goal').innerText(),/MASTERY EARNED/);
     assert.match(await corridor.locator('#tip').innerText(),/final operation, Signalbreak, is in development/);
     await corridor.locator('#start').tap();
     // Inject only this loss fixture, after a complete legal replay and a fresh deployment.

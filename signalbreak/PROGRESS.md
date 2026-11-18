@@ -1071,3 +1071,28 @@ The initial art, content and tactical feedback comparisons all favored XCOM 2.
 Phone guards obscured the crossing marker, the display omitted the pinning
 patrol's name, and the optional feed outscored the stated dark-feed mastery.
 The next revision addresses these findings. Full earned browser sweep pending.
+
+## November 17 Pacific — Crossing feedback and dark-feed mastery
+
+At an occupied crossing, an offset C or K marker now points back to the square.
+The first pinning patrol receives a map marker, and the objective names every
+pinning patrol and its coordinates. The briefing explains that a group waits
+safely at its current stop until it can advance. Evacuating both groups and
+all four engineers by turn 15 with the street feed dark earns 600 bonus points
+and a permanent Safe Corridor mastery medal.
+The v1 save keeps the medal and the best score independently across replays.
+Older operation records keep their existing meaning.
+
+All 621 repository tests passed in 31 suites, including 114 Signalbreak cases.
+Independent reviewers reread the occupied crossings at phone and desktop sizes.
+The two route markers and pinning patrol were identifiable. A separate
+base-stat browser replay from a seeded unlock extracted four on turn 11, scored
+3,870 including mastery and retained the award after reload. The broad art,
+content readability and tactical feedback comparisons still favor XCOM 2.
+At default phone zoom, civilians and engineers are hard to distinguish. The
+two streets need stronger landmarks, and the desktop map leaves unused space.
+See the revised gallery in node_modules/.cache/signalbreak/corridor-art-critic
+and the rules and design comparisons in corridor-rules-critic and
+corridor-design-critic/revised. The comparison uses
+[Feral's XCOM 2 tactical view](https://www.feralinteractive.com/en/manuals/xcom2/latest/steam/game_screen.jpg).
+The full earned browser sweep is running from the revised sources.

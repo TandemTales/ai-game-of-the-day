@@ -205,11 +205,16 @@
     if (!s.evacuation) return null;
     var groups = s.evacuation.groups.map(function (group) {
       var current = group.path[group.step], next = group.path[group.step + 1];
+      var pinningPatrols = next ? s.enemies.filter(function (enemy) {
+        return living(enemy) && distance(enemy, next) <= 3 && visible(s, enemy, next);
+      }).map(function (enemy) {
+        return { id: enemy.id, name: enemy.name, x: enemy.x, y: enemy.y };
+      }) : [];
       return {
         id: group.id, label: group.label, step: group.step, total: group.path.length - 1,
         current: { x: current.x, y: current.y }, next: next ? { x: next.x, y: next.y } : null,
         guarded: !!next && s.squad.some(function (u) { return living(u) && distance(u, next) <= 1; }),
-        pinned: !!next && s.enemies.some(function (e) { return living(e) && distance(e, next) <= 3 && visible(s, e, next); }),
+        pinned: pinningPatrols.length > 0, pinningPatrols: pinningPatrols,
         arrived: !next
       };
     });
@@ -432,10 +437,11 @@
       else {
         label += 'next (' + group.next.x + ', ' + group.next.y + ') · ';
         if (!evacuation.released) label += 'awaiting marshal';
-        else {
-          label += group.guarded ? 'guarded' : 'escort within 1 needed';
-          label += group.pinned ? ' · pinned by patrol' : ' · clear of patrols';
-        }
+        else label += group.guarded ? 'guarded' : 'escort within 1 needed';
+        if (group.pinned) label += ' · pinned by ' + group.pinningPatrols.map(function (enemy) {
+          return enemy.name + ' (' + enemy.x + ', ' + enemy.y + ')';
+        }).join(' and ');
+        else if (evacuation.released) label += ' · clear of patrols';
       }
       status.push({ id: group.id, label: label, done: group.arrived });
     });
@@ -741,7 +747,14 @@
     }
     else if (s.squad.every(function (u) { return u.hp <= 0 || u.extracted; })) {
       s.phase = 'won'; s.score += s.squad.filter(function (u) { return u.extracted; }).length * 250 + Math.max(0, 20 - s.turn) * 30;
-      log(s, s.title + ' complete. The rescued crew is safe. Full campaign in development.', 'won');
+      if (s.id === 'safe-corridor' && s.turn <= 15 && evacuationStatus(s).done &&
+          s.squad.length === 4 && s.squad.every(function (u) { return u.hp > 0 && u.extracted; }) &&
+          !s.circuits.some(function (c) { return c.id === 'street-feed' && (c.controlled || c.scored); })) {
+        s.masteryEarned = true;
+        s.score += 600;
+      }
+      var masteryMessage = s.masteryEarned ? ' Dark-feed mastery earned / +600 points.' : '';
+      log(s, s.title + ' complete. The rescued crew is safe.' + masteryMessage + ' Full campaign in development.', 'won');
     }
   }
   function commit(s, proposed) {

@@ -60,7 +60,8 @@ explicit user approval; time/usage limits are not approval.
 Mission-boundary local saves, sequential unlocks and replay best scores now exist
 for the nineteen implemented missions. Squad progression, equipment and injury
 recovery are implemented; persistent district rescue/evidence consequences remain. Authored
-mastery targets appear in the HUD; no campaign medal/reward system exists yet.
+mastery targets appear in the HUD. Safe Corridor records its medal independently
+of the best operation score. Earlier operations still have untracked targets.
 Story debriefs appear on victory. The clinic is a protected prerequisite, not yet
 a simulated supply economy. FIRST PLAYABLE remains visible throughout.
 
@@ -197,6 +198,9 @@ that stop within three tiles. Otherwise the group holds its current position.
 Both groups can advance together. The optional street feed opens a shortcut
 and converts the turret. Turn-six reinforcements enter near the ferry. Each
 group earns 250 points on arrival. Both must arrive before any engineer extracts.
+Finish by turn 15 with the street feed dark and all four engineers extracted
+to earn the mastery medal and 600 additional operation points. The operation
+picker keeps the medal on subsequent replays, including higher non-mastery scores.
 
 Campaign saves use signalbreak-campaign-v1 in localStorage, validate contiguous
 completed operations, and persist mission-boundary selected/unlocked/best

@@ -147,6 +147,7 @@ async function drive(page,touch=false,options={}){
     assert.equal(api.length,2,'first leaderboard submission requires all twenty clears');
     const campaignStorage=await page.context().storageState();
     const trained=await page.evaluate(()=>JSON.parse(localStorage.getItem(SB.Campaign.key)));assert.equal(trained.roster.nia.xp,operationIds.length);
+    fs.writeFileSync(path.join(out,'earned-campaign.json'),JSON.stringify({campaignRuns,trained,dialogs,api},null,2));
     const archive=await browser.newPage({viewport:{width:390,height:844},hasTouch:true,storageState:campaignStorage});
     await archive.goto(url+'/signalbreak/index.html');await archive.locator('#operation-picker summary').tap();await archive.locator('[data-mission="paper-trail"]').tap();await archive.locator('#start').tap();
     const callsBeforePurge=api.length,endingBefore=await archive.locator('#ending-copy').textContent();
@@ -227,7 +228,8 @@ async function drive(page,touch=false,options={}){
     assert(await corridor.evaluate(()=>SB.Logic.turretAllied(SB.Game.getState())));
     assert.doesNotMatch(await corridor.locator('#copy').innerText(),/Dark-feed mastery/);
     assert.match(await corridor.locator('#mastery-goal').innerText(),/MASTERY EARNED/);
-    assert.match(await corridor.locator('#tip').innerText(),/final operation, Signalbreak, is in development/);
+    assert.match(await corridor.locator('#tip').innerText(),/Next: Signalbreak\./);
+    assert.equal(await corridor.locator('#next-operation').innerText(),'NEXT / Signalbreak');
     await corridor.locator('#start').tap();
     // Inject only this loss fixture, after a complete legal replay and a fresh deployment.
     const beforeEvacLoss=api.length;
@@ -266,6 +268,8 @@ async function drive(page,touch=false,options={}){
     const retina=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2});await retina.goto(url+'/signalbreak/index.html');await retina.locator('#start').click();assert(await retina.evaluate(()=>{const c=document.querySelector('canvas'),r=c.getBoundingClientRect();return c.width===Math.round(r.width*2)&&c.height===Math.round(r.height*2);}));await retina.screenshot({path:path.join(out,'dpr2-phone.png')});await retina.close();
     const catalog=await browser.newPage({viewport:{width:1440,height:1000}});await catalog.route('**/*',route=>route.request().url().startsWith(url)?route.continue():route.fulfill({status:204}));await catalog.goto(url+'/index.html');
     assert.equal(await catalog.locator('.feature-visual').getAttribute('href'),'signalbreak/index.html');assert.equal(await catalog.locator('.featured .rate').getAttribute('data-id'),'signalbreak');
+    assert.match(await catalog.locator('.feature-copy p').innerText(),/20 operations across five districts/);
+    assert.match(await catalog.locator('.game-card[data-id="signalbreak"] .game-description').innerText(),/20 operations/);
     assert.equal(await catalog.locator('#games .game-card').count(),15);assert.equal(await catalog.locator('#games .game-card[data-id="tidelock"]').count(),1);assert.equal(await catalog.locator('#games .game-card[data-id="gearwell"]').count(),1);
     assert(await catalog.locator('.feature-visual img').evaluate(i=>i.complete&&i.naturalWidth>0));await catalog.locator('.featured').screenshot({path:path.join(out,'catalog-feature.png')});await catalog.close();
     const board=await browser.newPage();

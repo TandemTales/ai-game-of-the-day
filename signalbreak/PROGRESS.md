@@ -1175,3 +1175,13 @@ same breaker. A targeted 390px run from two explicit nineteen-clear fixtures
 extracted four engineers on turn 10 in each case. The direct route used 56
 orders and scored 3,300. The supported clean route used 57 and scored 3,900.
 The full sweep restarted against the corrected sources.
+
+The corrected browser pilot cleared all twenty operations in order and verified
+the campaign rank request and submission against localhost. After another
+earned Archive run it completed the supported finale on a 390px replay. The
+remaining harness then stopped on its old expectation that operation 19 would
+announce an unfinished finale. A separate Edge check confirmed its actual
+Next button opens Signalbreak. The updated assertion requires that destination.
+The dev Featured description and catalog card now describe the twenty playable
+operations and earlier district choices. Both descriptions and Play/rating links
+were checked in Edge. The first-playable tag remains.

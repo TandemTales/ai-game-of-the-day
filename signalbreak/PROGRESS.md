@@ -1185,3 +1185,37 @@ Next button opens Signalbreak. The updated assertion requires that destination.
 The dev Featured description and catalog card now describe the twenty playable
 operations and earlier district choices. Both descriptions and Play/rating links
 were checked in Edge. The first-playable tag remains.
+
+## November 18 Pacific — Verified handoff
+
+Headless Edge cleared twenty operations consecutively through the player UI
+against live AI. All four engineers extracted every time. The first ending
+carried the clinic kit, reached shutdown on turn 10 in 56 orders and scored
+3,300. The twenty saved bests totaled 68,020. The local rank GET and subsequent
+POST both carried that total after the player switched to a different operation.
+The campaign board opened from the existing arcade link.
+
+On a separate 390px replay, copying the undelayed ledger in Paper Trail earned
+the Archive clearance. The previously saved ending stayed intact. The squad
+then stood down the sentry, avoided both coils and extracted on turn 10 in
+57 orders. The 3,900-point finale raised the campaign total to 68,620 and saved
+the new epilogue and Clean shutdown medal. Separate fixture runs completed
+both finale routes entirely with native touch events.
+
+The final sweep passed all 120 operation/viewport combinations with no console
+errors, horizontal overflow or external map requests. Save/reload, treatment,
+keyboard and touch, denied storage, file boot, DPR2, alternate routes and the
+local leaderboard checks passed. All 625 Jest tests passed in 31 suites.
+Eight runtime SHA-256 hashes matched the final browser manifest recorded at
+07:43:14Z on November 19. Evidence is under
+node_modules/.cache/signalbreak/finale-complete-sweep. Reviewed the six pairs
+of briefing/live captures, both earned endings, the six-size epilogue fixture
+and three critic comparisons. Contact sheets reduce the larger images. At
+320px, scroll the briefing or epilogue to reach Deploy or Replay.
+
+Next, implement persisted mastery for the first four Switchyard operations
+against their existing criteria, then continue through operations 5–18. Keep
+legacy saves free of inferred medals. Follow with distinct engineer silhouettes,
+cover and threat cues at phone scale, and stronger district and ending art.
+Physical-device input, audio, performance and human play remain unverified.
+Signalbreak is active on dev. Production release and AAA approval remain pending.

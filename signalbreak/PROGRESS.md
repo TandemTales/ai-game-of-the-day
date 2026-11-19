@@ -1131,3 +1131,10 @@ district rescue and Archive evidence choices into the finale and epilogue,
 preserve existing v1 records, and exercise the final operation from an earned
 campaign save. Assess the campaign leaderboard separately from operation records.
 Wednesday, age 16. This is a development run on dev.
+
+Saved campaign consequences now recognize two earned district accomplishments.
+An intact Open Clinic team sends a spare aid kit, and an undelayed Paper Trail
+copy earns a sentry clearance. Lower-scoring replays can earn either. A v1
+compatibility probe against the previous nineteen-operation runtime preserved
+its best scores and unlocks and awarded a new clinic flag on replay. Existing
+saves receive neither benefit by inference. The finale integration follows.

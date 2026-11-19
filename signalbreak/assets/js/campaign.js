@@ -33,7 +33,12 @@
           !Number.isSafeInteger(r.survivors) || r.survivors < 1 || r.survivors > 4) break;
       var id = list[i].id;
       c.results[id] = { score: r.score, turns: r.turns, survivors: r.survivors };
-      if (id === 'safe-corridor' && own(r, 'mastery') && r.mastery === true) c.results[id].mastery = true;
+      if ((id === 'safe-corridor' || id === 'signalbreak') && own(r, 'mastery') && r.mastery === true) c.results[id].mastery = true;
+      if (id === 'open-clinic' && own(r, 'intactStaff') && r.intactStaff === true) c.results[id].intactStaff = true;
+      if (id === 'paper-trail' && own(r, 'authenticatedLedger') && r.authenticatedLedger === true) c.results[id].authenticatedLedger = true;
+      if (id === 'signalbreak' && own(r, 'ending') && r.ending && typeof r.ending.clinic === 'boolean' && typeof r.ending.archive === 'boolean') {
+        c.results[id].ending = { clinic: r.ending.clinic, archive: r.ending.archive };
+      }
       completed++;
     }
     var legacy = !own(raw, 'roster');
@@ -75,6 +80,31 @@
     if (clean.supplies < 1 || clean.roster[id].injury === 0) return false;
     clean.supplies--; clean.roster[id].injury = 0; replace(c, clean); return true;
   }
+  function support(c) {
+    var results = normalize(c).results;
+    return {
+      clinic: !!(results['open-clinic'] && results['open-clinic'].intactStaff),
+      archive: !!(results['paper-trail'] && results['paper-trail'].authenticatedLedger)
+    };
+  }
+  function campaignScore(c) {
+    var results = normalize(c).results, list = operations();
+    if (list.length !== 20 || !results.signalbreak || !list.every(function (m) { return own(results, m.id); })) return null;
+    var sum = list.reduce(function (total, m) { return total + results[m.id].score; }, 0);
+    return Number.isSafeInteger(sum) ? sum : null;
+  }
+  function epilogue(c) {
+    var finale = normalize(c).results.signalbreak;
+    if (!finale) return '';
+    var aid = finale.ending || {};
+    var clinic = aid.clinic ?
+      'The full clinic crew opens a ward on the ferry itself. By the time it docks, the last kiln worker can walk down the ramp on her own.' :
+      'At the ferry, Sol pins the Chapel and Kiln passenger lists beside the clinic door. Families pencil in the streets where they can be found.';
+    var archive = aid.archive ?
+      'The archivist reads the authenticated transfer orders over the public channel. The first witness gives her name on air. Mara keeps the tape running.' :
+      'The archivist unrolls the rescued ledger on the Switchyard ticket counter. Neighbors line up to match its transfer numbers to names.';
+    return SB.Missions.get('signalbreak').debrief + '\n\n' + clinic + '\n\n' + archive;
+  }
   function prepare(c, state) {
     if (!state || state.campaignPrepared || !Array.isArray(state.squad) || state.turn !== 1 || state.phase !== 'player' || state.score !== 0) return state;
     var clean = normalize(c);
@@ -93,15 +123,29 @@
       u.stride = Math.max(1, u.stride); u.range = Math.max(1, u.range);
       u.xp = r.xp; u.injury = r.injury; u.gear = r.gear;
     });
+    if (state.id === 'signalbreak') {
+      var aid = support(clean), medic = state.squad.find(function (u) { return u.id === 'sol'; });
+      state.districtSupport = aid;
+      if (aid.clinic) medic.kits++;
+      if (aid.archive) {
+        state.enemies = state.enemies.filter(function (e) { return e.id !== 'core-sentry'; });
+        state.score += 150;
+      }
+      state.supportBriefing = (aid.clinic ? 'Clinic · Sol carries one extra aid kit.' : 'Clinic · Sol carries his field issue.') + '\n' +
+        (aid.archive ? 'Archive · Core sentry stood down (+150).' : 'Archive · Core sentry on duty.');
+    }
     state.campaignPrepared = true; return state;
   }
-  function describe(c, id) {
+  function describe(c, id, missionId) {
     if (IDS.indexOf(id) === -1) return '';
-    var r = normalize(c).roster[id], rank = r.xp >= 4 ? 'Veteran' : r.xp >= 2 ? 'Field specialist' : 'Recruit';
+    var clean = normalize(c), r = clean.roster[id], rank = r.xp >= 4 ? 'Veteran' : r.xp >= 2 ? 'Field specialist' : 'Recruit';
     var text = rank + ' / ' + r.xp + ' XP / ' + gearById(r.gear).label + ' / ' +
       (r.injury ? 'Injury ' + r.injury + ': -' + r.injury * 2 + ' maximum HP' : 'Fit for duty');
     if (r.xp >= 2) text += ' / +' + (r.xp >= 4 ? 2 : 1) + ' rank HP';
-    if (id === 'sol' && r.xp >= 2) text += ' / 3 aid kits';
+    if (id === 'sol') {
+      var extraKit = (missionId || clean.selected) === 'signalbreak' && support(clean).clinic;
+      text += ' / ' + (2 + (r.xp >= 2 ? 1 : 0) + (extraKit ? 1 : 0)) + ' aid kits';
+    }
     if (id === 'rook' && r.xp >= 2) text += ' / +1 scout stride';
     if (id === 'nia' && r.xp >= 4) text += ' / 3-tile hack range';
     if (id === 'ivo' && r.xp >= 4) text += ' / +1 heavy damage';
@@ -127,14 +171,32 @@
       if (state.rescued) clean.supplies += 2;
     }
     if (!previous || state.score > previous.score) clean.results[state.id] = { score: state.score, turns: state.turn, survivors: survivors };
-    // Mastery may come from a different clear than the personal best.
-    if (state.id === 'safe-corridor' && (state.masteryEarned === true || previous && previous.mastery === true)) {
-      clean.results[state.id].mastery = true;
+    // A replay can earn support or mastery independently of the score record.
+    var result = clean.results[state.id];
+    if ((state.id === 'safe-corridor' || state.id === 'signalbreak') && (state.masteryEarned === true || previous && previous.mastery)) {
+      result.mastery = true;
+    }
+    if (state.id === 'signalbreak') {
+      var aid = state.districtSupport || {};
+      result.ending = { clinic: aid.clinic === true, archive: aid.archive === true };
+    }
+    if (state.id === 'open-clinic') {
+      var ward = state.defense;
+      if (previous && previous.intactStaff || state.rescued && ward && ward.hp === ward.maxHp && ward.hp > 0 && ward.elapsed === ward.rounds) {
+        result.intactStaff = true;
+      }
+    }
+    if (state.id === 'paper-trail') {
+      var archive = state.archive && SB.Logic.archiveStatus(state);
+      if (previous && previous.authenticatedLedger || state.rescued && archive && archive.secured && !archive.purged && !archive.delayed) {
+        result.authenticatedLedger = true;
+      }
     }
     var list = operations(), index = list.findIndex(function (m) { return m.id === state.id; });
     clean.selected = (list[index + 1] || list[index]).id;
     replace(campaign, clean); return true;
   }
   SB.Campaign = { key: KEY, equipment: equipment, fresh: fresh, unlocked: unlocked, normalize: normalize,
-    load: load, save: save, complete: complete, prepare: prepare, equip: equip, treat: treat, describe: describe };
+    load: load, save: save, complete: complete, prepare: prepare, equip: equip, treat: treat, describe: describe,
+    support: support, epilogue: epilogue, campaignScore: campaignScore };
 })(window);

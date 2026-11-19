@@ -1123,3 +1123,11 @@ Next, implement operation 20's core shutdown and connect the ending to saved
 district rescues and archive evidence. Preserve v1 saves without inventing
 historical choices. Earlier mastery targets and campaign-level scoring still
 need implementation. Signalbreak remains FIRST PLAYABLE on dev at 19/20.
+
+## November 18 Pacific — Broadcast Citadel finale intent
+
+Build the twentieth operation around a coordinated core shutdown. Carry verified
+district rescue and Archive evidence choices into the finale and epilogue,
+preserve existing v1 records, and exercise the final operation from an earned
+campaign save. Assess the campaign leaderboard separately from operation records.
+Wednesday, age 16. This is a development run on dev.

@@ -3,7 +3,7 @@
   var SB=global.SB,L=SB.Logic,A=SB.Audio,canvas=document.getElementById('map'),panel=document.getElementById('panel');
   var C=SB.Campaign,storage=null;try{storage=global.localStorage;}catch(e){}
   var saved=C.load(storage),campaign=saved.campaign,saveAvailable=saved.available;
-  var state=C.prepare(campaign,L.newGame(campaign.selected)),mode='title',action='move',preview=null,submitted=false,serial=state.serial;
+  var state=C.prepare(campaign,L.newGame(campaign.selected)),mode='title',action='move',contextualMove=true,preview=null,submitted=false,serial=state.serial;
   var view={selected:'nia',zoom:1,panX:0,panY:0,reachable:{},preview:null},projection=null,cursor={x:2,y:4};
   function el(id){return document.getElementById(id);}
   function persist(){saveAvailable=C.save(storage,campaign);}
@@ -92,10 +92,10 @@
     document.querySelectorAll('[data-action]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.action===action));b.disabled=mode!=='playing'||!L.living(selected())||selected().ap<1;});
     view.preview=preview;operationMenu();preparation();
   }
-  function select(id){if(mode!=='playing')return;var u=L.unit(state,id);if(!u||!L.living(u))return;view.selected=id;cursor={x:u.x,y:u.y};view.panX=0;view.panY=0;preview=null;action='move';reachable();hud();}
+  function select(id){if(mode!=='playing')return;var u=L.unit(state,id);if(!u||!L.living(u))return;view.selected=id;cursor={x:u.x,y:u.y};view.panX=0;view.panY=0;preview=null;action='move';contextualMove=true;reachable();hud();}
   function setPreview(kind,x,y){if(mode!=='playing')return;preview=L.preview(state,view.selected,kind,x,y);cursor={x:x,y:y};hud();}
   function chooseAction(kind){
-    if(mode!=='playing')return;action=kind;preview=null;var u=selected();
+    if(mode!=='playing')return;action=kind;contextualMove=false;preview=null;var u=selected();
     if(kind==='watch'||kind==='extract')setPreview(kind,u.x,u.y);
     else if(kind==='hack'){
       var nodes=(state.circuits||[state.node]).filter(function(n){return !n.controlled;});
@@ -116,7 +116,7 @@
     var u=state.squad.find(function(u){return L.living(u)&&u.x===x&&u.y===y;});
     if(u&&action==='move'){select(u.id);return;}
     var kind=action;
-    if(action==='move'){
+    if(action==='move'&&contextualMove){
       if(state.enemies.some(function(e){return L.living(e)&&e.x===x&&e.y===y;}))kind='attack';
       else if((L.circuitAt(state,x,y)||state.lift&&state.lift.stops.some(function(stop){return stop.console.x===x&&stop.console.y===y;})||x===state.node.x&&y===state.node.y)&&L.preview(state,view.selected,'hack',x,y).legal)kind='hack';
       else if(x===state.rescue.x&&y===state.rescue.y&&!state.rescued&&L.preview(state,view.selected,'rescue',x,y).legal)kind='rescue';
@@ -176,7 +176,7 @@
     }else{preview=null;hud();}
   }
   function endTurn(){if(mode!=='playing')return;A.unlock();L.endTurn(state);after();}
-  function start(){A.unlock();if(mode!=='paused'){state=C.prepare(campaign,L.newGame(state.id));submitted=false;serial=state.serial;view.selected='nia';view.zoom=1;view.panX=0;view.panY=0;action='move';}
+  function start(){A.unlock();if(mode!=='paused'){state=C.prepare(campaign,L.newGame(state.id));submitted=false;serial=state.serial;view.selected='nia';view.zoom=1;view.panX=0;view.panY=0;action='move';contextualMove=true;}
     mode='playing';preview=null;cursor={x:selected().x,y:selected().y};panel.hidden=true;el('operation-picker').open=false;el('pause').textContent='Briefing / pause';reachable();hud();el('start').blur();}
   function pause(){if(mode==='paused'){start();return;}if(mode!=='playing')return;mode='paused';preview=null;panel.hidden=false;el('next-operation').hidden=true;el('kicker').textContent='FIELD BRIEFING / PAUSED';el('title').textContent=state.title;el('copy').textContent=state.briefing;el('tip').textContent=state.radio;districtReport();el('start').textContent='RESUME OPERATION ↗';el('pause').textContent='Resume';hud();}
   el('next-operation').addEventListener('click',function(){var i=SB.Missions.operations.findIndex(function(m){return m.id===state.id;});if(SB.Missions.operations[i+1])briefing(SB.Missions.operations[i+1].id);});

@@ -1165,3 +1165,13 @@ See the comparisons under node_modules/.cache/signalbreak/finale-content-critic,
 finale-rules-critic and finale-campaign-critic. References were Feral's official
 XCOM 2 tactical and Geoscape manual screenshots. Full-campaign development
 continues on dev. Mastery persistence for operations 1–18 remains outstanding.
+
+The first full Edge run reached the final operation and exposed a difference
+between the planner and touch input. Selecting Move and tapping the north
+breaker offered Hack, so Rook could not execute the planned move. Explicit Move
+now previews movement on an interactable tile, and ordinary selection still
+offers the contextual hack. The regression check exercises both taps on the
+same breaker. A targeted 390px run from two explicit nineteen-clear fixtures
+extracted four engineers on turn 10 in each case. The direct route used 56
+orders and scored 3,300. The supported clean route used 57 and scored 3,900.
+The full sweep restarted against the corrected sources.

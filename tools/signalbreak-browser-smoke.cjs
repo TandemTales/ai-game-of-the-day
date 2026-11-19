@@ -42,6 +42,13 @@ async function drive(page,touch=false,options={}){
     }
     if(touch)await page.locator(`[data-unit="${p.actorId}"]`).tap();
     else{const idx=await page.evaluate(id=>SB.Game.getState().squad.findIndex(u=>u.id===id),p.actorId);await page.keyboard.press(String(idx+1));}
+    if(p.kind==='move'&&await page.evaluate(({actorId,x,y})=>{
+      const s=SB.Game.getState();return s.id==='signalbreak'&&!!SB.Logic.circuitAt(s,x,y)&&SB.Logic.preview(s,actorId,'hack',x,y).legal;
+    },p)){
+      await tile(page,p.x,p.y,touch);
+      assert.equal(await page.evaluate(()=>SB.Game.getPreview().kind),'hack','default tap offers the breaker');
+      await page.locator('#cancel').click();
+    }
     await page.locator(`[data-action="${p.kind}"]`).click();
     if(['move','attack','heal','hack'].includes(p.kind))await tile(page,p.x,p.y,touch);
     const shown=await page.evaluate(()=>SB.Game.getPreview());assert(shown&&shown.legal&&shown.kind===p.kind&&shown.x===p.x&&shown.y===p.y,JSON.stringify({wanted:p,shown}));
@@ -142,7 +149,7 @@ async function drive(page,touch=false,options={}){
     const trained=await page.evaluate(()=>JSON.parse(localStorage.getItem(SB.Campaign.key)));assert.equal(trained.roster.nia.xp,operationIds.length);
     const archive=await browser.newPage({viewport:{width:390,height:844},hasTouch:true,storageState:campaignStorage});
     await archive.goto(url+'/signalbreak/index.html');await archive.locator('#operation-picker summary').tap();await archive.locator('[data-mission="paper-trail"]').tap();await archive.locator('#start').tap();
-    const callsBeforePurge=api.length;
+    const callsBeforePurge=api.length,endingBefore=await archive.locator('#ending-copy').textContent();
     for(let turn=1;turn<=9;turn++)await archive.locator('#end-turn').tap();
     assert.equal(await archive.locator('#title').innerText(),'Archive purged.');
     assert.match(await archive.locator('#tip').innerText(),/deadline expired before the evidence was copied/);
@@ -150,7 +157,6 @@ async function drive(page,touch=false,options={}){
     await archive.locator('#start').tap();assert.equal(await archive.evaluate(()=>SB.Logic.archiveStatus(SB.Game.getState()).remaining),9);
     archive.on('dialog',d=>d.dismiss());
     await drive(archive,true,{directArchive:true});
-    const endingBefore=await archive.locator('#ending-copy').textContent();
     assert(await archive.evaluate(()=>SB.Campaign.support(JSON.parse(localStorage.getItem(SB.Campaign.key))).archive));
     await archive.locator('#operation-picker summary').tap();await archive.locator('[data-mission="signalbreak"]').tap();
     assert.match(await archive.locator('#district-report').textContent(),/sentry stood down/i);

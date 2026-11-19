@@ -331,3 +331,7 @@ total and campaign board ID. Exercise an earned direct Archive replay and a
 390px touch shutdown with the resulting support and Clean shutdown medal.
 All API requests in this harness stay local. Open the finale captures at all
 six sizes and compare the initial and alternate epilogues.
+
+When a legal move ends on a hackable circuit, tap it immediately after selecting
+the engineer and verify that the default order is Hack. Cancel, explicitly
+select Move, tap the same tile, confirm, and continue the actual-UI route.

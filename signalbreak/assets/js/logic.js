@@ -321,7 +321,8 @@
     });
     pair.opened = true; pair.armed = null;
     s.score += 500; s.network = networkReady(s);
-    log(s, 'Keys synchronized · gate open' + (s.turret && turretAllied(s) ? ' · turret allied' : '') + ' · +500 points', 'hack');
+    var opened = s.id === 'signalbreak' ? 'Breakers synchronized · vault open · free the switchkeeper' : 'Keys synchronized · gate open';
+    log(s, opened + (s.turret && turretAllied(s) ? ' · turret allied' : '') + ' · +500 points', 'hack');
   }
   function archiveStatus(s) {
     if (!s.archive) return null;
@@ -348,6 +349,9 @@
     return { label: patterns[index].label, tiles: clone(patterns[index].tiles), index: index,
       damage: s.lanes.damage, nextLabel: patterns[(index + 1) % patterns.length].label };
   }
+  function onLane(lane, x, y) {
+    return lane && lane.tiles.some(function (t) { return t.x === x && t.y === y; });
+  }
   function resolveDefense(s) {
     var status = defenseStatus(s);
     if (!status || status.done) return;
@@ -363,8 +367,9 @@
     var lane = activeLane(s);
     if (!lane) return;
     s.squad.forEach(function (u) {
-      if (!living(u) || !lane.tiles.some(function (t) { return t.x === u.x && t.y === u.y; })) return;
+      if (!living(u) || !onLane(lane, u.x, u.y)) return;
       u.hp = Math.max(0, u.hp - lane.damage);
+      if (s.id === 'signalbreak') s.laneHit = true;
       log(s, lane.label + ' hit ' + u.name + ' / ' + lane.damage + ' damage' + (!u.hp ? ' / down' : ''), 'attack');
     });
   }
@@ -401,11 +406,18 @@
     var pair = keyPairStatus(s);
     if (pair) {
       var pendingKey = pair.armedId && pair.keys.find(function (key) { return key.id !== pair.armedId; });
-      var pairLabel = pair.opened ? 'Both keys synchronized / gate open' :
+      var controls = s.id === 'signalbreak' ? 'breakers' : 'keys';
+      var pairLabel = pair.opened ? 'Both ' + controls + ' synchronized / gate open' :
         s.keyPair.failed ? 'Paired access requires two surviving engineers / retry operation' :
-        pendingKey ? 'One key armed / HACK ' + pendingKey.label + ' with another engineer before End Turn' :
-        'Gate locked / HACK both keys with different engineers in the same turn';
+        pendingKey ? 'One armed / HACK ' + pendingKey.label + ' with another engineer before End Turn' :
+        'Gate locked / HACK both ' + controls + ' with different engineers in the same turn';
       status.unshift({ id: 'key-pair', label: pairLabel, done: pair.opened });
+      if (s.id === 'signalbreak') {
+        // Both breaker captures are one simultaneous objective. List the
+        // switchkeeper before the core, in the order they can be completed.
+        status = status.filter(function (entry) { return s.keyPair.circuitIds.indexOf(entry.id) === -1; });
+        status.splice(1, 0, { id: 'rescue', label: s.objectives.rescueLabel, done: s.rescued });
+      }
     }
     var broadcast = broadcastStatus(s);
     if (broadcast) {
@@ -429,7 +441,7 @@
       }
       status.unshift({ id: 'convoy', label: convoyLabel, done: !!convoy.stoppedBy });
     }
-    status.push({ id: 'rescue', label: s.objectives && s.objectives.rescueLabel || 'Rescue signal worker', done: !!s.rescued });
+    if (s.id !== 'signalbreak') status.push({ id: 'rescue', label: s.objectives && s.objectives.rescueLabel || 'Rescue signal worker', done: !!s.rescued });
     var evacuation = evacuationStatus(s);
     if (evacuation) evacuation.groups.forEach(function (group) {
       var label = group.label + ' · ' + group.step + '/' + group.total + ' crossings · ';
@@ -472,7 +484,15 @@
     }
     if (s.lanes) {
       var lane = activeLane(s);
-      status.push({ id: 'lanes', label: lane ? 'NEXT END TURN: ' + lane.label + ' / ' + lane.damage + ' damage on marked tiles / then ' + lane.nextLabel : 'Tower overwatch lanes disabled', done: !lane });
+      var laneReport = lane ? 'Next End Turn / ' + lane.label + ' / ' + lane.damage + ' damage on marked tiles / then ' + lane.nextLabel : 'Tower overwatch lanes disabled';
+      if (s.id === 'signalbreak') {
+        if (lane) {
+          var exposed = s.squad.filter(function (u) { return living(u) && onLane(lane, u.x, u.y); });
+          if (exposed.length) laneReport += ' / exposed: ' + exposed.map(function (u) { return u.name; }).join(', ');
+        } else laneReport = 'Core offline / both signal lanes are safe';
+        if (s.laneHit) laneReport += ' / lane hit recorded: Clean shutdown medal missed this attempt';
+      }
+      status.push({ id: 'lanes', label: laneReport, done: !lane });
     }
     waterStatus(s).forEach(function (route) {
       status.push({ id: route.circuitId + '-water', label: route.label + ': ' + (route.drained ? 'DRAINED / walkable' : 'FLOODED / impassable') + ' / rerouting cannot flood occupied tiles or isolate engineers', done: route.drained });
@@ -557,6 +577,9 @@
     if (!a || !living(a)) return fail('Select an available engineer.');
     if (a.ap < 1) return fail('No AP. Select another engineer or end the turn.');
     if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= s.width || y >= s.height) return fail('Select a tile on the map.');
+    // A lane forecast is valid for this turn. End Turn can rotate its target
+    // even when the same order is still in range and affordable.
+    if (s.id === 'signalbreak') p.finaleTurn = s.turn;
     if (kind === 'move') {
       if (occupant(s, x, y)) return fail('Tile occupied.');
       p.path = path(s, a, x, y);
@@ -586,7 +609,7 @@
         p.reason += p.illuminated ? ' / LIT destination: enemies with clear sight may pursue and fire at normal range' : ' / DARK destination: enemies must be within ' + s.lighting.darkRange + ' tiles to spot you';
       }
       var lane = activeLane(s);
-      if (lane && lane.tiles.some(function (t) { return t.x === x && t.y === y; })) {
+      if (onLane(lane, x, y)) {
         p.hazardDamage = lane.damage;
         p.reason += ' / WARNING: ' + lane.label + ' deals ' + lane.damage + ' damage here at end turn';
       }
@@ -635,6 +658,10 @@
       if (isBreach(s) && !sameLevel(s, a, circuit)) return fail('Reach the circuit on its floor before hacking.');
       if (distance(a, circuit) > (a.role === 'ENGINEER' ? (a.hackRange || 2) : 1) || !visible(s, a, circuit)) return fail('Get within ' + (a.role === 'ENGINEER' ? (a.hackRange || 2) : 1) + ' tile(s) with a clear signal.');
       if (circuit.controlled) return fail('Circuit already under our control.');
+      if (s.id === 'signalbreak' && circuit.id === 'broadcast-core') {
+        if (!s.keyPair.opened) return fail('Synchronize the north and south breakers with different engineers in one turn.');
+        if (!s.rescued) return fail('Free the switchkeeper from the vault before shutting down the core.');
+      }
       if (circuit.requiresDark && s.lighting && (s.lighting.zones || []).some(function (zone) { return (s.circuits || []).some(function (c) { return c.id === zone.circuitId && c.controlled; }); })) return fail('Blackout interlock: switch off the work lamps before capturing this control.');
       if (circuit.requiresRescue && !s.rescued) return fail('Rescue interlock: evacuate the worker before diverting this route.');
       if (circuit.requiresLiftDock !== undefined && (!s.lift || s.lift.position !== circuit.requiresLiftDock)) return fail('Bridge interlock: dock the moving span at the required bank before capturing this control.');
@@ -645,6 +672,7 @@
       p.circuitId = circuit.id;
       var losesTurret = s.circuits && !circuit.turret && s.circuits.some(function (c) { return c.controlled && c.turret && c.exclusiveGroup && c.exclusiveGroup === circuit.exclusiveGroup; });
       p.reason = s.circuits ? '1 AP · ' + circuit.label + (circuit.exclusiveGroup ? ' · reroutes power away from the other route' : '') + (circuit.turret ? ' · turret becomes allied' : losesTurret ? ' · turret becomes HOSTILE' : '') : '1 AP · open door + take turret + restore lights';
+      if (s.id === 'signalbreak' && circuit.id === 'broadcast-core') p.reason += ' · silence both signal lanes and open extraction';
       if (s.water && s.water.routes.some(function (route) { return route.circuitId === circuit.id; })) p.reason += ' · drains this channel; alternate channel floods immediately';
       if (s.lighting) {
         var controlsLamps = (s.lighting.zones || []).some(function (zone) { return zone.circuitId === circuit.id; });
@@ -694,10 +722,12 @@
       }
     } else if (kind === 'rescue') {
       if (x !== s.rescue.x || y !== s.rescue.y || s.rescued) return fail('No worker to rescue here.');
+      if (s.id === 'signalbreak' && !s.keyPair.opened) return fail('Synchronize the two breakers to reach the switchkeeper.');
       if (s.objectives && (s.objectives.rescueRequires || []).some(function (id) { return !(s.circuits || []).some(function (c) { return c.id === id && c.controlled; }); })) return fail(s.convoy ? 'Copy the civilian records before evacuating the dispatcher.' : 'Restore the rescue route circuit before evacuating the worker.');
       if (!canReachAdjacent(s, a, s.rescue)) return fail('Get adjacent to the worker on the same level or a connecting stair.');
       p.reason = '1 AP · ' + (s.objectives && s.objectives.rescueLabel || 'release signal worker') + ' · +400 points';
       if (s.evacuation) p.reason += ' · both groups can advance after enemy fire';
+      if (s.id === 'signalbreak') p.reason += ' · enables core shutdown';
     } else if (kind === 'heal') {
       var ally = s.squad.find(function (u) { return living(u) && u.x === x && u.y === y; });
       if (a.role !== 'MEDIC') return fail('Only Sol can apply field aid.');
@@ -719,10 +749,15 @@
       if (s.lift && !s.lift.delivered) return fail(isBreach(s) ? 'Ride the lift to Command before extracting.' : s.lift.kind === 'bridge' ? 'Carry engineers across the river on the moving span before extracting.' : 'Deliver the rescued operator and medical cargo on the lift before extracting.');
       if (s.archive && !archiveStatus(s).secured) return fail('Copy the Archive evidence before extracting.');
       if (s.keyPair && !s.keyPair.opened) return fail('Synchronize both keys before extracting.');
+      if (s.id === 'signalbreak' && (!s.rescued || !networkReady(s))) return fail('Free the switchkeeper and HACK the broadcast core before extracting.');
       if (!networkReady(s) || !s.rescued) return fail('Complete the circuit objectives and rescue before extracting.');
       if (s.evacuation && !evacuationStatus(s).done) return fail('Escort both civilian groups to refuge before squad extraction.');
       p.reason = '1 AP · extract ' + a.name;
     } else return fail('Unknown order.');
+    if (s.id === 'signalbreak' && kind === 'hack' && p.keyPairPreview) {
+      var pulse = activeLane(s);
+      if (onLane(pulse, a.x, a.y)) p.reason += ' · move ' + a.name + ' off ' + pulse.label + ' before End Turn to avoid ' + pulse.damage + ' damage';
+    }
     p.legal = true; return p;
   }
   function log(s, text, event) {
@@ -739,7 +774,8 @@
     if (!s.squad.some(function (u) { return u.hp > 0; })) { s.phase = 'lost'; log(s, 'Signal lost. The squad is down.', 'lost'); }
     else if (s.keyPair && !s.keyPair.opened && s.squad.filter(living).length < 2) {
       s.keyPair.failed = true; s.phase = 'lost';
-      log(s, 'Paired access needs two surviving engineers. Retry to open the gate.', 'lost');
+      log(s, s.id === 'signalbreak' ? 'The breakers need two engineers. Retry with an operator in each wing.' :
+        'Paired access needs two surviving engineers. Retry to open the gate.', 'lost');
     }
     else if (s.relaySiege && !relaySiegeStatus(s).secured && s.squad.filter(living).length < 2) {
       s.relaySiege.failed = true; s.phase = 'lost';
@@ -747,14 +783,17 @@
     }
     else if (s.squad.every(function (u) { return u.hp <= 0 || u.extracted; })) {
       s.phase = 'won'; s.score += s.squad.filter(function (u) { return u.extracted; }).length * 250 + Math.max(0, 20 - s.turn) * 30;
-      if (s.id === 'safe-corridor' && s.turn <= 15 && evacuationStatus(s).done &&
-          s.squad.length === 4 && s.squad.every(function (u) { return u.hp > 0 && u.extracted; }) &&
-          !s.circuits.some(function (c) { return c.id === 'street-feed' && (c.controlled || c.scored); })) {
+      var allExtracted = s.squad.length === 4 && s.squad.every(function (u) { return u.hp > 0 && u.extracted; });
+      var medal = '';
+      if (allExtracted && s.id === 'safe-corridor' && s.turn <= 15 && evacuationStatus(s).done &&
+          !s.circuits.some(function (c) { return c.id === 'street-feed' && (c.controlled || c.scored); })) medal = 'Dark-feed';
+      if (allExtracted && s.id === 'signalbreak' && !s.laneHit && s.keyPair.opened && s.rescued && networkReady(s)) medal = 'Clean shutdown';
+      if (medal) {
         s.masteryEarned = true;
         s.score += 600;
       }
-      var masteryMessage = s.masteryEarned ? ' Dark-feed mastery earned / +600 points.' : '';
-      log(s, s.title + ' complete. The rescued crew is safe.' + masteryMessage + ' Full campaign in development.', 'won');
+      var message = s.id === 'signalbreak' ? 'The core is silent. Mara opens the district channel.' : s.title + ' complete. The rescued crew is safe.';
+      log(s, message + (medal ? ' ' + medal + ' mastery earned / +600 points.' : ''), 'won');
     }
   }
   function commit(s, proposed) {
@@ -763,7 +802,7 @@
     if (!p.legal) return false;
     if ((p.lift || proposed.lift) && (!p.lift || !proposed.lift || p.liftFrom !== proposed.liftFrom ||
         p.liftTo !== proposed.liftTo || p.breachLiftPreview !== proposed.breachLiftPreview)) return false;
-    if (p.archivePreview !== proposed.archivePreview || p.keyPairPreview !== proposed.keyPairPreview ||
+    if (p.finaleTurn !== proposed.finaleTurn || p.archivePreview !== proposed.archivePreview || p.keyPairPreview !== proposed.keyPairPreview ||
         p.convoyPreview !== proposed.convoyPreview || p.relaySiegePreview !== proposed.relaySiegePreview) return false;
     var a = unit(s, p.actorId); a.ap -= p.cost;
     if (p.kind === 'move') { a.x = p.x; a.y = p.y; log(s, a.name + ' moved · ' + p.cost + ' AP'); }
@@ -794,7 +833,9 @@
           circuit.controlled = true;
           if (!circuit.scored) { s.score += 500; circuit.scored = true; }
           s.network = networkReady(s);
-          if (p.convoyPreview) {
+          if (s.id === 'signalbreak' && circuit.id === 'broadcast-core') {
+            log(s, 'Core offline · both signal lanes are safe · extraction gate open', 'hack');
+          } else if (p.convoyPreview) {
             if (circuit.id === s.convoy.evidenceCircuit) log(s, 'Civilian records secured. Rescue the dispatcher and extract.', 'hack');
             else {
               s.convoy.stoppedBy = circuit.id;
@@ -819,7 +860,9 @@
     if (p.kind === 'rescue') {
       s.rescued = true; s.score += 400;
       var rescueLabel = s.objectives && s.objectives.rescueLabel || 'Worker freed';
-      log(s, rescueLabel + (s.evacuation ? ' · guard the next crossing for each group through enemy fire.' : ' · escort signal clear; extract the squad.'), 'rescue');
+      var next = s.id === 'signalbreak' ? ' · HACK the broadcast core to silence both lanes.' :
+        s.evacuation ? ' · guard the next crossing for each group through enemy fire.' : ' · escort signal clear; extract the squad.';
+      log(s, rescueLabel + next, 'rescue');
     }
     if (p.kind === 'heal') { var ally = unit(s, p.targetId); ally.hp = Math.min(ally.maxHp, ally.hp + 4); a.kits = (a.kits === undefined ? 2 : a.kits) - 1; log(s, 'Sol treated ' + ally.name + ' · +4 HP', 'heal'); }
     if (p.kind === 'watch') { a.watch = true; log(s, a.name + ' covering the approach', 'watch'); }

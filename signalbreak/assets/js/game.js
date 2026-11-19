@@ -17,15 +17,19 @@
       if(!C.unlocked(campaign,m.id))b.textContent+=' · LOCKED';
       b.addEventListener('click',function(){el('operation-picker').open=false;briefing(m.id);});el('operations').appendChild(b);
     });
+    var ending=C.epilogue(campaign);
+    el('ending').hidden=!ending;el('ending-copy').textContent=ending;
     el('save-status').textContent=saveAvailable?'Progress saved on this browser between operations. Mid-operation orders are not saved.':'Saving unavailable. Progress lasts only in this tab; mid-operation orders are not saved.';
   }
   function preparation(){
     var box=el('loadouts');box.innerHTML='';
     el('prep-summary').textContent='SQUAD PREPARATION / '+campaign.supplies+' medical supplies';
-    el('scope-status').textContent='First playable: '+SB.Missions.operations.length+' of 20 authored operations. Remaining operations and finale in development.';
+    var total=SB.Missions.operations.length,campaignPoints=C.campaignScore(campaign);
+    el('scope-status').textContent='FIRST PLAYABLE / FULL CAMPAIGN IN DEVELOPMENT · '+total+' of 20 operations. '+
+      (campaignPoints===null?'Clear all 20 to rank the sum of your best operation scores.':'Campaign best: '+campaignPoints.toLocaleString()+' points across 20 operations.');
     state.squad.forEach(function(u){
       var row=document.createElement('div');row.className='loadout';
-      var label=document.createElement('label');label.htmlFor='gear-'+u.id;label.textContent=u.name+' / '+C.describe(campaign,u.id);row.appendChild(label);
+      var label=document.createElement('label');label.htmlFor='gear-'+u.id;label.textContent=u.name+' / '+C.describe(campaign,u.id,state.id);row.appendChild(label);
       var select=document.createElement('select');select.id='gear-'+u.id;select.dataset.gear=u.id;select.disabled=mode!=='title';
       C.equipment.forEach(function(g){var o=document.createElement('option');o.value=g.id;o.textContent=g.label+' / '+g.description+(campaign.roster[u.id].xp<g.minXp?' / requires '+g.minXp+' XP':'');o.disabled=campaign.roster[u.id].xp<g.minXp;select.appendChild(o);});
       select.value=campaign.roster[u.id].gear;
@@ -39,12 +43,17 @@
     el('mission-label').textContent=state.district.toUpperCase()+' / OPERATION '+String(state.sequence||1).padStart(2,'0');
     el('mission-title').textContent=state.title;
   }
+  function districtReport(){
+    var report=el('district-report');
+    report.hidden=!state.supportBriefing;
+    report.textContent=state.supportBriefing||'';
+  }
   function briefing(id){
     if(!C.unlocked(campaign,id))return;
     campaign.selected=id;persist();state=C.prepare(campaign,L.newGame(id));serial=state.serial;mode='title';preview=null;view.selected='nia';view.zoom=1;view.panX=0;view.panY=0;
     panel.hidden=false;el('kicker').textContent='FIRST PLAYABLE / '+SB.Missions.operations.length+' OF 20 OPERATIONS';
     el('title').textContent=state.title;el('copy').textContent=state.briefing;el('tip').textContent=state.radio;
-    el('start').textContent='DEPLOY SQUAD ↗';el('next-operation').hidden=true;missionHeader();reachable();hud();
+    districtReport();el('start').textContent='DEPLOY SQUAD ↗';el('next-operation').hidden=true;missionHeader();reachable();hud();
   }
   function resize(){var r=canvas.getBoundingClientRect(),d=Math.min(global.devicePixelRatio||1,2);canvas.width=Math.max(1,Math.round(r.width*d));canvas.height=Math.max(1,Math.round(r.height*d));}
   global.addEventListener('resize',resize);if(global.ResizeObserver)new global.ResizeObserver(resize).observe(canvas);resize();
@@ -57,6 +66,7 @@
     }
   }
   function hud(){
+    panel.classList.toggle('epilogue',mode==='end'&&state.id==='signalbreak'&&state.phase==='won');
     el('turn').textContent=String(state.turn).padStart(2,'0');el('score').textContent=state.score.toLocaleString();
     el('phase').textContent=mode==='playing'?'YOUR TURN':mode==='paused'?'PAUSED':state.phase==='won'?'EXTRACTED':mode==='title'?'AWAITING DEPLOY':'SIGNAL LOST';
     el('squad').innerHTML='';state.squad.forEach(function(u,i){
@@ -113,34 +123,47 @@
     }
     setPreview(kind,x,y);
   }
-  async function submit(){
-    if(submitted||!state.score||global.location.protocol==='file:')return;submitted=true;
-    var result={title:state.title,score:state.score},submittedState=state;
-    try{var response=await fetch('/api/leaderboard/rank?gameId=signalbreak&score='+result.score);if(!response.ok)return;
+  async function submitCampaign(score){
+    if(submitted||score===null||global.location.protocol==='file:')return;submitted=true;
+    var submittedState=state;
+    try{var response=await fetch('/api/leaderboard/rank?gameId=signalbreak-campaign&score='+score);if(!response.ok)return;
       var rank=Number((await response.json()).rank);if(!Number.isFinite(rank)||rank<1||rank>20)return;
-      var name=global.prompt(result.title+' operation score: rank #'+rank+'. Name for the leaderboard?');if(name===null)return;
+      var name=global.prompt('Signalbreak campaign: '+score.toLocaleString()+' points, rank #'+rank+'. Name for the leaderboard?');if(name===null)return;
       name=String(name).trim().replace(/[^\w \-'.!]/g,'').slice(0,20);if(!name)return;
-      await fetch('/api/leaderboard/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({gameId:'signalbreak',name:name,score:result.score})});
-    }catch(e){if(state===submittedState)el('radio').textContent='Operation score: '+result.score+'. Leaderboard offline.';}
+      await fetch('/api/leaderboard/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({gameId:'signalbreak-campaign',name:name,score:score})});
+    }catch(e){if(state===submittedState)el('radio').textContent='Campaign score: '+score.toLocaleString()+'. Leaderboard offline.';}
   }
   function after(){
     if(state.serial!==serial){A.play(state.event);serial=state.serial;}
     preview=null;
     if(!L.living(selected())){var first=state.squad.find(L.living);if(first)view.selected=first.id;}
     if(state.phase==='won'||state.phase==='lost'){
-      if(state.phase==='won'&&C.complete(campaign,state))persist();
-      mode='end';panel.hidden=false;el('kicker').textContent='OPERATION LOG / FIRST PLAYABLE';
+      var previousTotal=C.campaignScore(campaign),recorded=state.phase==='won'&&C.complete(campaign,state);
+      if(recorded)persist();
+      var campaignTotal=recorded?C.campaignScore(campaign):null,finale=state.id==='signalbreak';
+      mode='end';panel.hidden=false;el('district-report').hidden=true;el('kicker').textContent='OPERATION LOG / FIRST PLAYABLE';
       var archive=state.archive&&L.archiveStatus(state),purged=archive&&archive.purged;
       var keysFailed=state.keyPair&&state.keyPair.failed;
       var convoyEscaped=state.convoy&&L.convoyStatus(state).escaped;
       var relayFailed=state.relaySiege&&state.relaySiege.failed;
       el('title').textContent=state.phase==='won'?'Signal restored.':purged?'Archive purged.':keysFailed?'Vault sealed.':convoyEscaped?'Convoy escaped.':relayFailed?'Relay team lost.':'Signal lost.';
       el('copy').textContent=state.score.toLocaleString()+' operation points · turn '+state.turn+' · '+state.squad.filter(function(u){return u.extracted;}).length+'/4 engineers extracted.';
-      if(state.masteryEarned)el('copy').textContent+=' Dark-feed mastery +600.';
+      if(state.masteryEarned)el('copy').textContent+=finale?' Clean shutdown mastery +600.':' Dark-feed mastery +600.';
       var index=SB.Missions.operations.findIndex(function(m){return m.id===state.id;}),next=SB.Missions.operations[index+1];
-      el('tip').textContent=state.phase==='won'?(state.debrief||state.title+' complete.')+' '+(next?'Next: '+next.title+'.':'The final operation, Signalbreak, is in development.'):purged?'The deadline expired before the evidence was copied. Replay and take the short route or hack the purge breaker to buy more time.':keysFailed?'The two keys require two living engineers. Retry and keep an operator in each wing.':convoyEscaped?'The civilian manifests are gone. HACK the brake or siding control before its deadline on the next attempt.':relayFailed?'The relay requires two living engineers. On replay, keep one on a powered pad while another hacks the relay.':'Retry the operation. Take cover, focus fire and read each circuit before advancing.';
+      el('tip').textContent=state.phase==='won'?(state.debrief||state.title+' complete.')+(next?' Next: '+next.title+'.':''):purged?'The deadline expired before the evidence was copied. Replay and take the short route or hack the purge breaker to buy more time.':keysFailed?'The two keys require two living engineers. Retry and keep an operator in each wing.':convoyEscaped?'The civilian manifests are gone. HACK the brake or siding control before its deadline on the next attempt.':relayFailed?'The relay requires two living engineers. On replay, keep one on a powered pad while another hacks the relay.':'Retry the operation. Take cover, focus fire and read each circuit before advancing.';
+      if(finale&&keysFailed){
+        el('title').textContent='Breakers offline.';
+        el('tip').textContent='Keep two engineers alive. Position one at each breaker, then confirm both hacks in the same turn.';
+      }
+      if(finale&&recorded){
+        el('kicker').textContent='EPILOGUE / BROADCAST CITADEL';
+        el('title').textContent='The city answers.';
+        el('tip').textContent=C.epilogue(campaign);
+      }
+      if(campaignTotal!==null)el('copy').textContent+=' Campaign best: '+campaignTotal.toLocaleString()+' points.';
       el('next-operation').hidden=state.phase!=='won'||!next;el('next-operation').textContent=next?'NEXT / '+next.title:'NEXT OPERATION';
-      el('start').textContent='REPLAY OPERATION ↗';if(!purged&&!keysFailed&&!relayFailed&&!((state.convoy||state.evacuation)&&state.phase==='lost'))submit();
+      el('start').textContent='REPLAY OPERATION ↗';
+      if(campaignTotal!==null&&(previousTotal===null||campaignTotal>previousTotal))submitCampaign(campaignTotal);
     }
     reachable();hud();
   }
@@ -155,7 +178,7 @@
   function endTurn(){if(mode!=='playing')return;A.unlock();L.endTurn(state);after();}
   function start(){A.unlock();if(mode!=='paused'){state=C.prepare(campaign,L.newGame(state.id));submitted=false;serial=state.serial;view.selected='nia';view.zoom=1;view.panX=0;view.panY=0;action='move';}
     mode='playing';preview=null;cursor={x:selected().x,y:selected().y};panel.hidden=true;el('operation-picker').open=false;el('pause').textContent='Briefing / pause';reachable();hud();el('start').blur();}
-  function pause(){if(mode==='paused'){start();return;}if(mode!=='playing')return;mode='paused';preview=null;panel.hidden=false;el('next-operation').hidden=true;el('kicker').textContent='FIELD BRIEFING / PAUSED';el('title').textContent=state.title;el('copy').textContent=state.briefing;el('tip').textContent=state.radio;el('start').textContent='RESUME OPERATION ↗';el('pause').textContent='Resume';hud();}
+  function pause(){if(mode==='paused'){start();return;}if(mode!=='playing')return;mode='paused';preview=null;panel.hidden=false;el('next-operation').hidden=true;el('kicker').textContent='FIELD BRIEFING / PAUSED';el('title').textContent=state.title;el('copy').textContent=state.briefing;el('tip').textContent=state.radio;districtReport();el('start').textContent='RESUME OPERATION ↗';el('pause').textContent='Resume';hud();}
   el('next-operation').addEventListener('click',function(){var i=SB.Missions.operations.findIndex(function(m){return m.id===state.id;});if(SB.Missions.operations[i+1])briefing(SB.Missions.operations[i+1].id);});
   el('start').addEventListener('click',start);el('confirm').addEventListener('click',confirm);el('end-turn').addEventListener('click',endTurn);
   el('cancel').addEventListener('click',function(){preview=null;hud();});el('pause').addEventListener('click',pause);

@@ -29,7 +29,7 @@
     var c=canvas.getContext('2d'), d=global.devicePixelRatio||1, w=canvas.width,h=canvas.height;
     var P=projection(w,h,s,{zoom:view.zoom,selected:view.selected,panX:(view.panX||0)*Math.min(d,2),panY:(view.panY||0)*Math.min(d,2)}),a=P.a,b=P.b,L=SB.Logic;
     var archive=L.archiveStatus(s),keyPair=L.keyPairStatus(s),archiveDistrict=s.district==='Glass Archive';
-    var broadcast=s.broadcast&&L.broadcastStatus(s);
+    var finale=s.id==='signalbreak',broadcast=s.broadcast&&L.broadcastStatus(s);
     var convoy=s.convoy&&L.convoyStatus(s);
     var evacuation=s.evacuation&&L.evacuationStatus(s);
     var civilianInks={chapel:'#9de8fc',kiln:'#ffc58c'};
@@ -397,7 +397,11 @@
       var t=L.tile(s,x,y),z=L.height(s,x,y),p,palette=breachFloors&&breachFloors[z];
       var floor=x<8?((x*7+y*3)%4?'#30414a':'#374b53'):((x+y)%3?'#263e49':'#2d4650');
       if(s.defense&&x>=8&&x<=15&&y>=2&&y<=6&&t!=='#')floor=(x+y)%2?'#576965':'#4b605f';
-      if(s.lanes&&x>=10&&x<=15&&y>=3&&y<=10&&t!=='#')floor=(x+y)%2?'#43525b':'#354953';
+      if(!finale&&s.lanes&&x>=10&&x<=15&&y>=3&&y<=10&&t!=='#')floor=(x+y)%2?'#43525b':'#354953';
+      if(finale&&t!=='#'){
+        var insideBooth=Math.abs(x-s.rescue.x)<2&&Math.abs(y-s.rescue.y)<2;
+        floor=insideBooth?'#705444':y<6?'#45545f':y>=11?'#51434a':'#324449';
+      }
       if(s.water&&t!=='#')floor=(x+y)%3?'#344b49':'#405550';
       if(bridge&&t!== '#'&&t!=='w')floor=x<8?((x+y)%3?'#4b5148':'#585d50'):((x+y)%3?'#354f54':'#405b60');
       if(s.lighting&&t!=='#'&&t!=='w')floor=L.lit(s,x,y)?((x+y)%3?'#75603d':'#806b46'):((x+y)%3?'#1c3247':'#233c51');
@@ -497,7 +501,7 @@
         // Flush ward tiles identify the treatment floor without inventing cover.
         c.strokeStyle='#b6d1c226';c.lineWidth=Math.max(.5,a*.025);c.beginPath();c.moveTo(p.x-a*.82,p.y);c.lineTo(p.x,p.y+b*.82);c.lineTo(p.x+a*.82,p.y);c.stroke();
       }
-      if(s.lanes&&x>=10&&x<=15&&y>=3&&y<=10&&t!== '#'){
+      if(!finale&&s.lanes&&x>=10&&x<=15&&y>=3&&y<=10&&t!== '#'){
         // Rooftop conduit follows actual floor surfaces; never a route obstacle.
         c.strokeStyle=x%2?'#a9a07b66':'#79a6af55';c.lineWidth=Math.max(.8,a*.045);c.beginPath();c.moveTo(p.x-a*.8,p.y);c.lineTo(p.x+a*.8,p.y);c.stroke();
       }
@@ -544,7 +548,7 @@
       });
       c.strokeStyle=defense.protected?'#9be1d3':'#ffad88';c.lineWidth=Math.max(2,a*.12);c.beginPath();c.ellipse(q.x,q.y,a*.8,b*.8,0,0,Math.PI*2);c.stroke();
     }
-    if(lane||defense){
+    if(lane&&!finale||defense){
       c.fillStyle='#ffe0ab';c.font=Math.max(11*Math.min(d,2),w/110)+'px system-ui';
       var text=lane?'FIRING / '+lane.label+' / '+lane.damage+' HP':defense.done?'CLINIC SECURED / '+defense.hp+' HP':'CLINIC / '+defense.hp+' HP / '+defense.lane.toUpperCase()+' '+(defense.protected?'COVERED':'EXPOSED');
       c.fillText(text,16*Math.min(d,2),h-62*Math.min(d,2));
@@ -612,6 +616,13 @@
       var x=depth-y;if(x<0||x>=s.width)continue;
       var t=L.tile(s,x,y),z=L.height(s,x,y),p=P.point(x,y,z),palette=breachFloors&&breachFloors[z];
       if(t==='#'&&evacuation)corridorWall(x,y);
+      else if(t==='#'&&finale&&Math.abs(x-s.rescue.x)<=2&&Math.abs(y-s.rescue.y)<=2){
+        // Copper shielding and ceramic insulators identify the switchkeeper's booth.
+        var cap=block(x,y,.78,'#9c7960','#5e453b','#795949');
+        c.strokeStyle='#e4b48c';c.lineWidth=Math.max(1,a*.08);
+        c.beginPath();c.moveTo(cap.x-a*.8,cap.y);c.lineTo(cap.x,cap.y+b*.8);c.lineTo(cap.x+a*.8,cap.y);c.stroke();
+        c.fillStyle='#e0d2b0';c.beginPath();c.ellipse(cap.x,cap.y,a*.15,b*.15,0,0,Math.PI*2);c.fill();
+      }
       else if(t==='#'&&archiveDistrict)archiveWall(x,y);
       else if(t==='#'&&!shaftHere(x,y)) {
         // Front perimeter stays low so it cannot obscure engineers.
@@ -814,6 +825,11 @@
       var keyTint=keyPair.opened?'#a1e9d7':armed?'#d4c7ff':'#ffd998';
       keyPair.keys.forEach(function(key,index){
         var q=P.point(key.x,key.y,L.height(s,key.x,key.y)),top=q.y-a*1.15-keySize;
+        if(finale&&L.occupant(s,key.x,key.y)){
+          var originalX=q.x;
+          q.x+=keySize;top-=keySize*.5;
+          c.strokeStyle=keyTint;c.lineWidth=keyScale;c.beginPath();c.moveTo(originalX,q.y-a*.45);c.lineTo(q.x,top+keySize);c.stroke();
+        }
         c.fillStyle='#14192b';c.fillRect(q.x-keySize/2,top,keySize,keySize);
         c.strokeStyle=keyPair.opened||key===armed?keyTint:'#ffd998';c.lineWidth=keyScale;
         c.strokeRect(q.x-keySize/2,top,keySize,keySize);
@@ -822,14 +838,27 @@
       });
       var keyStatus=keyPair.opened?'VAULT OPEN':armed?(armed===keyPair.keys[0]?'N':'S')+' ARMED / HACK '+(armed===keyPair.keys[0]?'S':'N')+' THIS TURN':'HACK BOTH KEYS IN ONE TURN';
       var keyLegend='N North key  /  S South key';
+      if(finale){
+        keyStatus=!keyPair.opened?(armed?'ARMED / HACK '+(armed===keyPair.keys[0]?'S':'N')+' THIS TURN':'SYNC N + S / TWO ENGINEERS'):
+          !s.rescued?'VAULT OPEN / RESCUE SWITCHKEEPER':lane?'HACK THE BROADCAST MAST':'CORE OFFLINE / EXTRACT EAST';
+        keyLegend=lane?lane.label+' / −'+lane.damage+' HP at End Turn':'Both coils are safe.';
+      }
+      var exposure='';
+      if(finale&&lane){
+        var names=s.squad.filter(function(u){return L.living(u)&&lane.tiles.some(function(t){return u.x===t.x&&u.y===t.y;});}).map(function(u){return u.name;});
+        if(names.length)exposure='Exposed: '+names.join(', ');
+      }
       c.font='700 '+12*keyScale+'px system-ui';
       var keyPanel=c.measureText(keyStatus).width;
       c.font=11*keyScale+'px system-ui';
-      keyPanel=Math.max(keyPanel,c.measureText(keyLegend).width)+20*keyScale;
-      c.fillStyle='#101628f2';c.fillRect(keyLeft,keyTop,keyPanel,47*keyScale);
-      c.fillStyle=keyTint;c.fillRect(keyLeft,keyTop,2*keyScale,47*keyScale);
+      keyPanel=Math.max(keyPanel,c.measureText(keyLegend).width,c.measureText(exposure).width)+20*keyScale;
+      var panelHeight=(exposure?63:47)*keyScale;
+      if(exposure)keyTop-=16*keyScale;
+      c.fillStyle='#101628f2';c.fillRect(keyLeft,keyTop,keyPanel,panelHeight);
+      c.fillStyle=keyTint;c.fillRect(keyLeft,keyTop,2*keyScale,panelHeight);
       c.font='700 '+12*keyScale+'px system-ui';c.fillText(keyStatus,keyLeft+10*keyScale,keyTop+18*keyScale);
-      c.font=11*keyScale+'px system-ui';c.fillStyle='#c7c5df';c.fillText(keyLegend,keyLeft+10*keyScale,keyTop+36*keyScale);
+      c.font=11*keyScale+'px system-ui';c.fillStyle=finale&&lane?'#ffd0ad':'#c7c5df';c.fillText(keyLegend,keyLeft+10*keyScale,keyTop+36*keyScale);
+      if(exposure)c.fillText(exposure,keyLeft+10*keyScale,keyTop+52*keyScale);
     }
     if(archive){
       var archiveScale=Math.min(d,2),left=16*archiveScale,top=h-84*archiveScale;

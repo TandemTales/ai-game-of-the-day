@@ -123,6 +123,7 @@ function nextOrder(SB, s, options={}) {
     else if(!south.controlled) goal=south;
     else if(!outlet.controlled) goal=outlet;
   } else if (s.defense) goal=null;
+  else if (s.id==='signalbreak' && s.keyPair.opened && !s.rescued) goal=s.rescue;
   else if (s.lift && !s.lift.delivered) goal = !s.circuits[0].controlled?s.circuits[0]:!s.rescued?s.rescue:null;
   else if (s.circuits) goal = s.circuits.find(c => !c.controlled);
   else if (!s.network) goal = s.node;
@@ -178,6 +179,10 @@ function nextOrder(SB, s, options={}) {
       if(kind){const p=L.preview(s,u.id,kind,goal.x,goal.y);if(p.legal)return p;}
     }
     let target=goal;
+    if(key&&s.id==='signalbreak'&&options.cleanShutdown){
+      // Both consoles can be hacked from the uncharged floor beside the ring.
+      target={x:key.x,y:key.y-1};
+    }
     if(boardingLift){
       if(L.liftAt(s,u.x,u.y))continue;
       const dock=s.lift.stops[s.lift.position],free=[];

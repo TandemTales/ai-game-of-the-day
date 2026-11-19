@@ -31,17 +31,17 @@ function pilot(SB, s, report = []) {
   }
   return report;
 }
-test('full manifest promises twenty operations; nineteen distinct authored maps are playable', () => {
+test('each of the twenty manifest entries has a distinct playable map in its authored order', () => {
   const SB=load();expect(SB.Missions.manifest).toHaveLength(5);
   const names=SB.Missions.manifest.flatMap(d=>Array.from(d).slice(1));expect(new Set(names).size).toBe(20);
   expect(SB.Missions.opening.title).toBe('Live Wire');
-  expect(SB.Missions.operations.map(m=>m.id)).toEqual(['live-wire','locked-manifest','cut-the-feed','night-freight','rooftop-crossfire','cargo-lift','open-clinic','antenna-rain','sluice-logic','span-control','blackout','pump-siege','paper-trail','two-keys','ghost-broadcast','stolen-convoy','outer-relay','vertical-breach','safe-corridor']);
-  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(19);
+  expect(Array.from(SB.Missions.operations,m=>m.title)).toEqual(names);
+  expect(new Set(SB.Missions.operations.map(m=>m.rows.join(''))).size).toBe(20);
   for(const m of SB.Missions.operations){
     expect(m.rows.every(r=>r.length===m.rows[0].length)).toBe(true);
     for(const n of m.circuits||[])expect(m.rows[n.y][n.x]).toBe(n.id===m.convoy?.evidenceCircuit?'.':'n');
   }
-  expect(()=>SB.Logic.newGame('signalbreak')).toThrow('Unknown operation');
+  expect(()=>SB.Logic.newGame('unknown-operation')).toThrow('Unknown operation');
 });
 test('fresh states are isolated and previews never mutate the tactical state', () => {
   const {Logic:L}=load(),a=L.newGame(),b=L.newGame(),before=JSON.stringify(a);
@@ -331,10 +331,12 @@ test('antenna lanes alternate, warn before movement, damage only exposed living 
  const hp=s.squad[0].hp;L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);expect(L.activeLane(s).label).not.toBe(first.label);
  s.circuits.find(c=>c.id==='tower').controlled=true;expect(L.activeLane(s)).toBe(null);L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);
 });
-test('all nineteen operations support consecutive persisted squad progression with legal orders',()=>{
+test('all twenty operations support consecutive persisted squad progression with legal orders',()=>{
  const SB=load(),C=SB.Campaign,c=C.fresh(),store=memoryStorage();
  for(const m of SB.Missions.operations){for(const id of ['nia','sol','rook','ivo'])C.treat(c,id);const s=C.prepare(c,SB.Logic.newGame(m.id));campaignRoute(SB,s);expect(s.phase).toBe('won');expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);expect(C.complete(c,s)).toBe(true);C.save(store,c);expect(C.load(store).campaign).toEqual(c);}
- expect(Object.keys(c.results)).toHaveLength(19);expect(c.roster.nia.xp).toBe(19);
+ expect(Object.keys(c.results)).toHaveLength(20);expect(c.roster.nia.xp).toBe(20);
+ expect(C.campaignScore(c)).toBe(Object.values(c.results).reduce((sum,r)=>sum+r.score,0));
+ expect(C.support(c).clinic).toBe(true);expect(C.epilogue(c)).toBeTruthy();
 });
 
 
@@ -998,4 +1000,57 @@ test('Safe Corridor saves mastery independently of best score and never grants i
  results[id].mastery='true';results['live-wire'].mastery=true;
  const malformed=C.normalize({version:1,results});
  expect(malformed.results[id].mastery).toBeUndefined();expect(malformed.results['live-wire'].mastery).toBeUndefined();
+});
+
+test.each([false,true])('core shutdown can be earned with base stats, clean shutdown %s',cleanShutdown=>{
+ const SB=load(),s=SB.Logic.newGame('signalbreak');
+ campaignRoute(SB,s,180,{cleanShutdown});
+ expect(s.phase).toBe('won');expect(s.keyPair.opened).toBe(true);expect(s.rescued).toBe(true);
+ expect(s.squad.filter(u=>u.extracted)).toHaveLength(4);
+ expect(SB.Logic.activeLane(s)).toBeNull();expect(!!s.masteryEarned).toBe(cleanShutdown);
+ expect(!!s.laneHit).toBe(!cleanShutdown);
+ const score=s.score;SB.Logic.endTurn(s);expect(s.score).toBe(score);
+});
+
+test('the switchkeeper and current turn authorize the final core confirmation',()=>{
+ const {Logic:L}=load(),s=L.newGame('signalbreak'),core=s.circuits.find(c=>c.id==='broadcast-core'),u=s.squad[0];
+ s.enemies=[];s.turret=null;Object.assign(u,{x:core.x-1,y:core.y});
+ expect(L.preview(s,u.id,'hack',core.x,core.y).legal).toBe(false);
+ s.keyPair.opened=true;s.circuits.slice(0,2).forEach(c=>c.controlled=true);
+ expect(L.preview(s,u.id,'hack',core.x,core.y).reason).toMatch(/switchkeeper/i);
+ s.rescued=true;const valid=L.preview(s,u.id,'hack',core.x,core.y);expect(valid.legal).toBe(true);
+ L.endTurn(s);const snapshot=JSON.stringify(s);
+ expect(L.commit(s,valid)).toBe(false);expect(JSON.stringify(s)).toBe(snapshot);
+ order(L,s,u.id,'hack',core.x,core.y);
+ expect(L.activeLane(s)).toBeNull();expect(L.doorOpen(s,core.doors[0].x,core.doors[0].y)).toBe(true);
+});
+
+test('nineteen-clear v1 saves unlock the core, and earn district support only from qualifying replays',()=>{
+ const SB=load(),C=SB.Campaign,results={};
+ for(const m of SB.Missions.operations.slice(0,19))results[m.id]={score:4200,turns:12,survivors:4};
+ const c=C.normalize({version:1,results,selected:'signalbreak'}),storage=memoryStorage();
+ expect(C.campaignScore(c)).toBeNull();expect(C.unlocked(c,'signalbreak')).toBe(true);expect(C.epilogue(c)).toBe('');
+ expect(C.support(c)).toEqual({clinic:false,archive:false});
+ const finale=fixtureWin(SB,'signalbreak');
+ expect(C.complete(c,finale)).toBe(true);const firstEnding=C.epilogue(c);
+ const total=C.campaignScore(c),roster=JSON.stringify(c.roster),supplies=c.supplies;
+ const clinic=fixtureWin(SB,'open-clinic');clinic.defense.elapsed=clinic.defense.rounds;
+ clinic.defense.hp=6;C.complete(c,clinic);expect(C.support(c).clinic).toBe(false);
+ clinic.defense.hp=clinic.defense.maxHp;C.complete(c,clinic);
+ const archive=fixtureWin(SB,'paper-trail'),ledger=archive.circuits.find(n=>n.id===archive.archive.evidenceCircuit);
+ const delay=archive.circuits.find(n=>n.id===archive.archive.delayCircuit);
+ ledger.controlled=true;delay.controlled=true;C.complete(c,archive);expect(C.support(c).archive).toBe(false);
+ delay.controlled=false;C.complete(c,archive);
+ expect(C.support(c)).toEqual({clinic:true,archive:true});
+ expect(C.epilogue(c)).toBe(firstEnding);expect(C.campaignScore(c)).toBe(total);
+ const run=C.prepare(c,SB.Logic.newGame('signalbreak')),medic=run.squad.find(u=>u.id==='sol');
+ expect(medic.kits).toBe(4);expect(run.enemies.some(e=>e.id==='core-sentry')).toBe(false);
+ expect(run.score).toBe(150);C.prepare(c,run);expect(medic.kits).toBe(4);expect(run.score).toBe(150);
+ campaignRoute(SB,run,180,{cleanShutdown:true});expect(run.masteryEarned).toBe(true);
+ C.complete(c,run);C.save(storage,c);
+ const restored=C.load(storage).campaign;
+ expect(restored.results.signalbreak.ending).toEqual({clinic:true,archive:true});expect(restored.results.signalbreak.mastery).toBe(true);
+ expect(C.epilogue(restored)).not.toBe(firstEnding);expect(C.epilogue(restored)).toContain(SB.Missions.get('signalbreak').debrief);
+ expect(JSON.stringify(c.roster)).toBe(roster);expect(c.supplies).toBe(supplies);
+ expect(C.campaignScore(restored)).toBe(19*4200+run.score);
 });

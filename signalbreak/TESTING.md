@@ -307,3 +307,27 @@ casualty. Award the 600 points once and save mastery independently of best score
 In the browser verify that earning the medal updates the debrief and the operation
 picker after reload. Replay the longer street-feed route and check the saved
 medal still appears while the new debrief reports only that attempt's score.
+
+## November 18 Pacific — Signalbreak and the campaign ending
+
+Run the full repository suite and localhost browser harness from the commands
+above. The mission list now matches all twenty manifest entries. Use the
+base-stat finale pilot in both modes. The direct route takes coil damage, while
+{cleanShutdown:true} stages engineers on safe tiles and earns mastery. Check
+the two-person latch, the rescue prerequisite, turn-expired core orders, the
+exit gate, frozen terminal score and all four extractions.
+
+Load a v1 save with nineteen contiguous clears and no recorded district choices.
+Verify no support or campaign score is inferred. Replay Open Clinic and Paper
+Trail to earn aid independently of the best scores. Check the extra Sol kit,
+withdrawn sentry, 150 points, absence of replay XP/supply awards, and the ending
+snapshot after reload. A district replay may improve support. Only another
+successful shutdown changes the saved ending.
+
+The actual-UI pilot checks zero leaderboard requests before operation 20 and
+the exact sum of all twenty best scores afterward. Delay the prospective rank
+reply until another operation is open, then verify the POST uses the captured
+total and campaign board ID. Exercise an earned direct Archive replay and a
+390px touch shutdown with the resulting support and Clean shutdown medal.
+All API requests in this harness stay local. Open the finale captures at all
+six sizes and compare the initial and alternate epilogues.

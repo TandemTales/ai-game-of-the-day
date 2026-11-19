@@ -19,9 +19,9 @@ This is a substantial authored campaign, never a tiny arena with stat modifiers.
 - [x] Four squad roles with persistent progression, equipment choices and injury recovery.
 - [ ] AP turns, meaningful movement, cover, LOS, elevation and overwatch.
 - [ ] Shared circuits affecting doors, turrets, lights and functional lifts.
-- [ ] Rescue and evidence choices with persistent district/campaign consequences.
+- [x] Clinic rescue and Archive evidence choices grant support at the Citadel and change its saved ending.
 - [ ] Mission-boundary save/resume and replay/mastery goals.
-- [ ] Briefings, radio characters, escalating story and a complete finale/epilogue.
+- [x] Briefings, radio characters, escalating story and a playable finale with four epilogue variations.
 - [ ] Fair previews, no hidden mandatory loss, touch/keyboard and readable HUD.
 - [ ] Full campaign paths tested; separate human/device/fun and AAA critic gates.
 
@@ -55,13 +55,13 @@ explicit user approval; time/usage limits are not approval.
 - [x] 18 Vertical Breach: restore hoist power, cross Maintenance to unlock
   Command, then ride up and take the evacuation control terminal.
 - [x] 19 Safe Corridor: escort Chapel families and Kiln crew along parallel streets to the east ferry under patrol pressure.
-- [ ] 20 Signalbreak: combined core shutdown and consequence-based epilogue.
+- [x] 20 Signalbreak: synchronize the breakers, rescue the switchkeeper, shut down the core and escape. District support changes the operation and its epilogue.
 
 Mission-boundary local saves, sequential unlocks and replay best scores now exist
-for the nineteen implemented missions. Squad progression, equipment and injury
-recovery are implemented; persistent district rescue/evidence consequences remain. Authored
-mastery targets appear in the HUD. Safe Corridor records its medal independently
-of the best operation score. Earlier operations still have untracked targets.
+for all twenty implemented missions. Squad progression, equipment and injury
+recovery are implemented. Authored mastery targets appear in the HUD.
+Safe Corridor and Signalbreak record their medals independently of the best
+operation score. The first eighteen operations still have untracked targets.
 Story debriefs appear on victory. The clinic is a protected prerequisite, not yet
 a simulated supply economy. FIRST PLAYABLE remains visible throughout.
 
@@ -127,7 +127,7 @@ Grid coordinates integer (x,y), origin top left. Tiles: . floor, # tall blocker,
 c low cover, d circuit door, e exit, n network node, r rescue. Heights are separate.
 No procedural randomness required; identical state/action gives identical outcome.
 
-SB.Missions.operations contains the nineteen authored missions, get(id) looks up an
+SB.Missions.operations contains the twenty authored missions, get(id) looks up an
 implemented mission, and manifest holds the full twenty-operation contract.
 SB.Logic.newGame(id?) returns a fresh chosen operation (default Live Wire) and
 rejects unknown IDs. SB.Logic.preview(state,actorId,
@@ -205,11 +205,29 @@ picker keeps the medal on subsequent replays, including higher non-mastery score
 Campaign saves use signalbreak-campaign-v1 in localStorage, validate contiguous
 completed operations, and persist mission-boundary selected/unlocked/best
 records and validated squad progression. No in-operation resume: reload restarts the selected operation. Storage
-failure is visible and leaves in-tab progress functional. Operation score remains
-the temporary numeric leaderboard metric; mixed operation lengths/circuit counts
-are not a balanced final campaign ranking. Before release, replace it with the
-approved full-campaign scoring path. Rank requests snapshot the completed result
-so a delayed reply cannot submit the next operation's score.
+failure is visible and leaves in-tab progress functional. The first clear of all
+twenty operations unlocks a numeric campaign score equal to the sum of the twenty
+personal bests. A higher total after a replay can rank again. The campaign board
+uses signalbreak-campaign to keep earlier operation submissions separate. The
+existing public leaderboard link opens this board. Each rank request snapshots
+the total before the player can change operations.
+
+## Broadcast Citadel shutdown
+
+Two different engineers must HACK the north and south breakers in one turn.
+Power opens the central vault and turns its turret. The switchkeeper supplies
+the cutout key for the broadcast mast. Hacking the mast disables both coils
+and opens the east gantry. The north and south coils alternate on End Turn,
+dealing two damage on the marked floor. Extract four engineers without taking a
+coil hit for the 600-point Clean shutdown medal.
+
+In Open Clinic, saving the staff at full health sends Sol an extra kit. In
+Paper Trail, copying the ledger without delaying the purge authenticates a pass
+that stands down the core sentry. It earns the same 150 points as defeating
+that guard. Each benefit can be earned on a subsequent clear. Existing v1 saves
+retain their results and need a recorded qualifying clear to gain either benefit.
+The epilogue records the support present at the last successful shutdown. Read
+it again under “Read the last broadcast” after reload.
 
 ## Distinctness
 

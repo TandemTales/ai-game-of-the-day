@@ -299,7 +299,7 @@
   var clinic = {
     id: 'open-clinic', title: 'Open Clinic', district: 'Vertical Market', sequence: 7,
     briefing: 'The medicine is here, but occupation batteries are ranging the clinic wards. Hold through six announced assaults while the staff prepare to evacuate. The north and south shield feeds share one supply: HACK the announced feed before ending each turn. A wrong feed costs two of the staff\'s eight health; four missed shields lose the operation. North power also allies the atrium turret; south power shields the other ward but returns that turret to the occupation. Patrols attack your engineers while the batteries attack the staff. Rescue the staff, complete the defense, then extract at the ambulance court.',
-    radio: 'SOL / First assault: NORTH. Feeds at (9,7) and (11,7); the center tile (10,7) can reach both. The sequence is north, south, south, north, south, north. Keep Ivo watching the west service door; reinforcements enter on turn three.',
+    radio: 'SOL / Feeds (9,7) and (11,7). I can reach both from (10,7). Shield north, south, south, north, south, north. Reinforcements arrive on turn three. Get the staff out at full health and they can spare an aid kit for the Citadel.',
     objectiveSummary: 'Protect six alternating ward assaults, rescue the medical staff, and extract at the southeast ambulance court.',
     extractionLabel: 'ambulance court',
     objectives: { requiredCircuits: [], rescueLabel: 'Evacuate the medical staff' },
@@ -605,7 +605,7 @@
   var paperTrail = {
     id: 'paper-trail', title: 'Paper Trail', district: 'Glass Archive', sequence: 13,
     briefing: 'The occupation is purging the transfer ledgers. HACK the vault terminal and confirm before ending turn 9 to copy the evidence. Open the central shutter for the shorter route under a hostile turret, or detour to the northern purge breaker. The breaker opens a separate gallery door, allies the turret and extends the deadline through turn 12. Either route reaches the same vault. After securing the evidence, rescue the archivist and extract every surviving engineer. The deadline applies only to the copy.',
-    radio: 'MARA / Central shutter control (9,11), door (11,10). Optional purge breaker (4,5), north gallery door (11,5). Evidence terminal (19,7). Confirm its HACK before ending the deadline turn. Archivist (21,13), southeast loading court (23-24,14-15).',
+    radio: 'MARA / Central shutter (9,11), optional purge breaker (4,5), evidence (19,7), archivist (21,13). Leave the breaker untouched and the original ledger seal survives. Finish with that seal and the archivist can stand down a Citadel sentry.',
     objectiveSummary: 'Copy the ledger before the purge. The central shutter is the short route. The optional north breaker adds three turns and takes the turret. Rescue the archivist and reach southeast extraction.',
     extractionLabel: 'southeast loading court',
     objectives: { requiredCircuits: ['archive-evidence'], rescueLabel: 'Rescue the archivist' },
@@ -1001,7 +1001,68 @@
     mastery: 'Earn +600 points by leaving the street feed dark, escorting both civilian groups to the ferry and extracting all four engineers by turn 15.',
     debrief: 'Sol counts the last kiln apron aboard. The marshal pulls two paper lists from her coat, crosses off every name and gives them to Nia. Across the river, the district crews ring back on an open channel. Mara tells them to keep listening. One transmitter still belongs to the Citadel.'
   };
-  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice, span, blackout, pumpSiege, paperTrail, twoKeys, ghostBroadcast, stolenConvoy, outerRelay, verticalBreach, safeCorridor];
+  var signalbreak = {
+    id: 'signalbreak', title: 'Signalbreak', district: 'Broadcast Citadel', sequence: 20,
+    briefing: 'Two engineers must HACK the N and S breakers in one turn. That opens the vault and turns its turret. RESCUE the switchkeeper, then HACK the mast to shut down the broadcast. Hatched tiles deal 2 damage at End Turn. Cross them early or take the longer, safe outer rim.',
+    radio: 'MARA / N (6,5) and S (15,12). Vault door (9,8), keeper (11,8). Core mast (14,2). When the carrier falls silent, take the east gantry door (18,7).',
+    objectiveSummary: 'Synchronize both breakers, rescue the switchkeeper, shut down the broadcast core and extract at the east gantry.',
+    extractionLabel: 'east gantry',
+    objectives: {
+      requiredCircuits: ['north-breaker', 'south-breaker', 'broadcast-core'],
+      rescueLabel: 'Free the switchkeeper from the central vault',
+      rescueRequires: ['north-breaker', 'south-breaker']
+    },
+    rows: [
+      '#######################',
+      '#.................#...#',
+      '#.c.........c.n...#...#',
+      '#....#####...####.#...#',
+      '#...c.....c....c..#...#',
+      '#.....n.c........c#ee.#',
+      '#...#....#####....#ee.#',
+      '#...#.c..#...#....d.e.#',
+      '#...#....d.r.#.c#.#...#',
+      '#...#.c..#...#..#.#...#',
+      '#.......c#####..#.#...#',
+      '#....###..c....c..#####',
+      '#..c...##....c.n......#',
+      '#.....c....c.####.....#',
+      '#.....................#',
+      '#.....................#',
+      '#######################'
+    ],
+    heights: [],
+    squad: squad([[3,8],[3,10],[2,7],[2,11]]),
+    enemies: [
+      { id: 'coil-reader', name: 'North coil watch', x: 9, y: 4, hp: 5, maxHp: 5, damage: 2, range: 5, stride: 2 },
+      { id: 'ring-warden', name: 'South ring warden', x: 11, y: 12, hp: 6, maxHp: 6, damage: 2, range: 5, stride: 2 },
+      { id: 'core-sentry', name: 'Archive credential sentry', x: 15, y: 2, hp: 6, maxHp: 6, damage: 2, range: 6, stride: 2 },
+      { id: 'gantry-watch', name: 'Gantry watch', x: 17, y: 10, hp: 5, maxHp: 5, damage: 2, range: 5, stride: 2 }
+    ],
+    turret: { x: 12, y: 4, range: 6, damage: 2 },
+    node: { x: 6, y: 5 }, rescue: { x: 11, y: 8 },
+    circuits: [
+      { id: 'north-breaker', label: 'North coil breaker', x: 6, y: 5, doors: [{ x: 9, y: 8 }], turret: true },
+      { id: 'south-breaker', label: 'South coil breaker', x: 15, y: 12, doors: [{ x: 9, y: 8 }] },
+      { id: 'broadcast-core', label: 'Shut down broadcast core', x: 14, y: 2, requiresRescue: true,
+        requires: ['north-breaker', 'south-breaker'], doors: [{ x: 18, y: 7 }] }
+    ],
+    keyPair: { circuitIds: ['north-breaker', 'south-breaker'], armed: null, opened: false },
+    lanes: { disabledBy: 'broadcast-core', damage: 2, patterns: [
+      { label: 'North coil discharge', tiles: [
+        { x: 5, y: 5 }, { x: 6, y: 5 }, { x: 7, y: 5 }, { x: 8, y: 5 }, { x: 9, y: 5 },
+        { x: 10, y: 5 }, { x: 11, y: 5 }, { x: 12, y: 5 }, { x: 13, y: 5 }, { x: 14, y: 5 },
+        { x: 15, y: 5 }, { x: 16, y: 5 }
+      ] },
+      { label: 'South coil discharge', tiles: [
+        { x: 9, y: 12 }, { x: 10, y: 12 }, { x: 11, y: 12 }, { x: 12, y: 12 },
+        { x: 13, y: 12 }, { x: 14, y: 12 }, { x: 15, y: 12 }, { x: 16, y: 12 }, { x: 17, y: 12 }
+      ] }
+    ] },
+    mastery: 'Earn +600 points by extracting all four engineers without taking signal-lane damage.',
+    debrief: 'With the carrier silent, all five districts hear the river bells again.'
+  };
+  SB.Missions.operations = [opening, locked, feed, freight, rooftop, cargo, clinic, antenna, sluice, span, blackout, pumpSiege, paperTrail, twoKeys, ghostBroadcast, stolenConvoy, outerRelay, verticalBreach, safeCorridor, signalbreak];
   SB.Missions.get = function (id) {
     return SB.Missions.operations.find(function (mission) { return mission.id === id; }) || null;
   };

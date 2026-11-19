@@ -1138,3 +1138,30 @@ copy earns a sentry clearance. Lower-scoring replays can earn either. A v1
 compatibility probe against the previous nineteen-operation runtime preserved
 its best scores and unlocks and awarded a new clinic flag on replay. Existing
 saves receive neither benefit by inference. The finale integration follows.
+
+## November 18 Pacific — Twenty playable operations
+
+At the Broadcast Citadel, split the squad between the north and south coil
+breakers, synchronize two engineers in one turn, free the switchkeeper, and
+shut down the mast that controls the east gantry. On the base-stat pilot,
+both routes extracted four engineers on turn 10. The direct route scored
+3,300 with one coil hit. The clean route earned the medal and scored 3,900.
+The finale offers four support-dependent endings. Reopening the last broadcast
+reads the saved deployment outcome. The campaign board ranks twenty-operation
+totals and keeps the previous operation board's scores separate.
+
+All 625 repository tests passed across 31 suites, including 118 for Signalbreak.
+The two edited fixture tests also passed after moving the test operator to a
+walkable tile. The actual-UI campaign and six-size browser sweep are in progress.
+
+Three independent reviews favored XCOM 2. The initial phone map hid the coil
+warning behind the breaker status. The revised chart shows the pulse, damage
+and exposed engineer together and offsets the badge when its tile is occupied.
+The campaign review prompted distinct clinic and Archive briefing lines and
+separate epilogue paragraphs. The final tactical review found the timed order
+and recovery readable at 320px. At normal phone scale, roles and cover still
+read more clearly in XCOM 2. The ending relies on text over the tactical map.
+See the comparisons under node_modules/.cache/signalbreak/finale-content-critic,
+finale-rules-critic and finale-campaign-critic. References were Feral's official
+XCOM 2 tactical and Geoscape manual screenshots. Full-campaign development
+continues on dev. Mastery persistence for operations 1–18 remains outstanding.

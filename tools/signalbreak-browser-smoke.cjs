@@ -22,7 +22,7 @@ async function tile(page,x,y,touch=false){
 async function plan(page,options){return page.evaluate(({source,options})=>Function('return ('+source+')')()(SB,SB.Game.getState(),options),{source:nextOrder.toString(),options});}
 async function drive(page,touch=false,options={}){
   const actions=[];let circuit='';
-  const suffix=options.useSiding?'-siding':options.southRelay?'-south':options.breachService?'-service':options.sequentialEscort?'-sequential':'';
+  const suffix=options.cleanShutdown?'-clean':options.directArchive?'-direct':options.useSiding?'-siding':options.southRelay?'-south':options.breachService?'-service':options.sequentialEscort?'-sequential':'';
   const corridor=await page.evaluate(()=>!!SB.Game.getState().evacuation);
   const crossings=[];
   for(let i=0;i<350&&await page.evaluate(()=>SB.Game.getState().phase==='player');i++){
@@ -89,8 +89,7 @@ async function drive(page,touch=false,options={}){
     const page=await browser.newPage({viewport:{width:1440,height:1000},hasTouch:true}),errors=[],dialogs=[],campaignRuns=[];
     page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(['warning','error'].includes(m.type()))errors.push(m.text());});
     page.on('dialog',d=>{dialogs.push(d.message());d.accept('Signal QA');});
-    // Hold the first rank response until after Next has replaced global state.
-    // The eventual POST must retain the completed operation's original score.
+    // Delay the finale rank until the player opens another operation.
     let rankHeld=null;await page.route('**/api/leaderboard/rank?**',route=>{rankHeld=route;},{times:1});
     await page.goto(url+'/signalbreak/index.html');
     const operationIds=await page.evaluate(()=>SB.Missions.operations.map(m=>m.id));
@@ -110,9 +109,23 @@ async function drive(page,touch=false,options={}){
         assert.match(await page.locator('#mastery-goal').innerText(),/MASTERY EARNED/);
       }
       if(index===1)assert((await page.locator('#tip').innerText()).includes('registrar names the clinic'));
-      if(index===0){
-        assert(rankHeld,'rank request held');await page.locator('#next-operation').click();assert.equal(await page.evaluate(()=>SB.Game.getState().id),'locked-manifest');
-        await rankHeld.fulfill({status:200,contentType:'application/json',body:'{"rank":1}'});
+      if(id!=='signalbreak'){assert.equal(rankHeld,null);assert.equal(api.length,0);}
+      else {
+        assert.match(await page.locator('#title').innerText(),/The city answers/);
+        assert.match(await page.locator('#copy').innerText(),/Campaign best/);
+        const story=await page.locator('#tip').innerText();
+        const score=campaignRuns.reduce((sum,run)=>sum+run.final.score,0);
+        assert.equal(await page.locator('#next-operation').isVisible(),false);
+        assert.match(rankHeld.request().url(),new RegExp('gameId=signalbreak-campaign&score='+score+'$'));
+        await page.locator('#operation-picker summary').first().click();
+        await page.locator('[data-mission="live-wire"]').click();
+        await Promise.all([page.waitForResponse(r=>r.url().endsWith('/leaderboard/submit')),rankHeld.continue()]);
+        assert.equal(api.length,2);assert.equal(api[0].method,'GET');assert.equal(api[1].method,'POST');
+        assert.equal(api[1].body.score,score);assert.equal(api[1].body.gameId,'signalbreak-campaign');
+        assert(dialogs[0].startsWith('Signalbreak campaign'));
+        await page.reload();await page.locator('#operation-picker summary').first().click();
+        await page.locator('#ending summary').click();assert.equal(await page.locator('#ending-copy').innerText(),story);
+        await page.locator('[data-mission="signalbreak"]').click();
       }
       await page.waitForFunction(n=>window.SB&&localStorage.getItem(SB.Campaign.key)&&Object.keys(JSON.parse(localStorage.getItem(SB.Campaign.key)).results).length===n,index+1);
       await page.waitForTimeout(100);await page.reload();
@@ -124,9 +137,7 @@ async function drive(page,touch=false,options={}){
       }
       if(index+1<operationIds.length)assert.equal(await page.evaluate(()=>SB.Game.getState().id),operationIds[index+1]);
     }
-    assert.equal(api.length,operationIds.length*2-1,'held GET is intercepted, remaining server API calls are recorded');
-    assert.equal(api[0].method,'POST');assert.equal(api[0].body.score,campaignRuns[0].final.score);assert(dialogs[0].startsWith('Live Wire operation score'));
-    for(let i=1;i<api.length;i+=2){assert.equal(api[i].method,'GET');assert.equal(api[i+1].method,'POST');assert.equal(api[i+1].body.score,campaignRuns[(i+1)/2].final.score);}
+    assert.equal(api.length,2,'first leaderboard submission requires all twenty clears');
     const campaignStorage=await page.context().storageState();
     const trained=await page.evaluate(()=>JSON.parse(localStorage.getItem(SB.Campaign.key)));assert.equal(trained.roster.nia.xp,operationIds.length);
     const archive=await browser.newPage({viewport:{width:390,height:844},hasTouch:true,storageState:campaignStorage});
@@ -136,7 +147,21 @@ async function drive(page,touch=false,options={}){
     assert.equal(await archive.locator('#title').innerText(),'Archive purged.');
     assert.match(await archive.locator('#tip').innerText(),/deadline expired before the evidence was copied/);
     assert.equal(api.length,callsBeforePurge);await archive.locator('.map-wrap').screenshot({path:path.join(out,'paper-trail-purged-phone.png')});
-    await archive.locator('#start').tap();assert.equal(await archive.evaluate(()=>SB.Logic.archiveStatus(SB.Game.getState()).remaining),9);await archive.close();
+    await archive.locator('#start').tap();assert.equal(await archive.evaluate(()=>SB.Logic.archiveStatus(SB.Game.getState()).remaining),9);
+    archive.on('dialog',d=>d.dismiss());
+    await drive(archive,true,{directArchive:true});
+    const endingBefore=await archive.locator('#ending-copy').textContent();
+    assert(await archive.evaluate(()=>SB.Campaign.support(JSON.parse(localStorage.getItem(SB.Campaign.key))).archive));
+    await archive.locator('#operation-picker summary').tap();await archive.locator('[data-mission="signalbreak"]').tap();
+    assert.match(await archive.locator('#district-report').textContent(),/sentry stood down/i);
+    assert.equal(await archive.locator('#ending-copy').textContent(),endingBefore);
+    await archive.locator('#start').tap();
+    const cleanFinale=await drive(archive,true,{cleanShutdown:true});
+    assert.match(await archive.locator('#copy').innerText(),/Clean shutdown mastery \+600/);
+    assert.notEqual(await archive.locator('#tip').innerText(),endingBefore);
+    fs.writeFileSync(path.join(out,'clean-shutdown.json'),JSON.stringify(cleanFinale,null,2));
+    await archive.reload();assert.equal(await archive.evaluate(()=>JSON.parse(localStorage.getItem(SB.Campaign.key)).results.signalbreak.mastery),true);
+    await archive.close();
     const convoy=await browser.newPage({viewport:{width:390,height:844},hasTouch:true,storageState:campaignStorage});
     const convoyErrors=[];
     convoy.on('pageerror',e=>convoyErrors.push(String(e)));convoy.on('console',m=>{if(['warning','error'].includes(m.type()))convoyErrors.push(m.text());});
@@ -237,6 +262,11 @@ async function drive(page,touch=false,options={}){
     assert.equal(await catalog.locator('.feature-visual').getAttribute('href'),'signalbreak/index.html');assert.equal(await catalog.locator('.featured .rate').getAttribute('data-id'),'signalbreak');
     assert.equal(await catalog.locator('#games .game-card').count(),15);assert.equal(await catalog.locator('#games .game-card[data-id="tidelock"]').count(),1);assert.equal(await catalog.locator('#games .game-card[data-id="gearwell"]').count(),1);
     assert(await catalog.locator('.feature-visual img').evaluate(i=>i.complete&&i.naturalWidth>0));await catalog.locator('.featured').screenshot({path:path.join(out,'catalog-feature.png')});await catalog.close();
+    const board=await browser.newPage();
+    const boardResponse=board.waitForResponse(r=>r.url().includes('/api/leaderboard/signalbreak-campaign?'));
+    await board.goto(url+'/leaderboard.html?gameId=signalbreak');await boardResponse;
+    assert.equal(await board.locator('#gameTitle').innerText(),'Signalbreak · Campaign');
+    assert.equal(await board.locator('#playBtn').getAttribute('href'),'signalbreak/index.html');await board.close();
     assert.deepEqual(sourceSnapshot(),initialSources,'runtime sources must remain unchanged throughout browser verification');
     fs.writeFileSync(path.join(out,'source-manifest.json'),JSON.stringify({at:new Date().toISOString(),sources:initialSources},null,2));
     fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({results,newMissionSweeps,api,campaignRuns,sidingRun,southRelayRun,serviceRun,dialogs,checks:'real keyboard/touch preview-confirm-cancel, raised tile picking, native-touch operations, '+campaignRuns.length+' legal-input live-AI campaign victories, alternate convoy/relay/breach routes, terminal loss and retry, earned unlock/save/reload, denied storage, delayed rank snapshot, file boot, DPR2'},null,2));console.log(JSON.stringify({viewports:results.length,newMissionViewports:newMissionSweeps.length,campaign:campaignRuns.map(r=>({...r.final,actions:r.actions.length})),siding:{...sidingRun.final,actions:sidingRun.actions.length},southRelay:{...southRelayRun.final,actions:southRelayRun.actions.length},service:{...serviceRun.final,actions:serviceRun.actions.length},checks:'PASS'}));

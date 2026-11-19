@@ -7,3 +7,13 @@
 
 .preparation{margin:0 0 14px;border:1px solid var(--line);background:#10232e;padding:10px 12px}.preparation summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--cyan);font-size:12px;letter-spacing:.06em}.preparation>p{max-width:850px;font-size:12px;color:var(--muted)}#loadouts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.loadout{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;border-top:1px solid var(--line);padding:12px 0}.loadout label,.loadout small{grid-column:1/-1}.loadout label{font-size:12px}.loadout small{color:var(--muted)}.loadout select{width:100%;min-width:0;min-height:44px;background:#18313e;color:var(--ink);border:1px solid var(--line);font:12px system-ui;padding:8px}.loadout select:focus-visible{outline:2px solid var(--amber)}@media(max-width:800px){#loadouts{grid-template-columns:1fr}.loadout{grid-template-columns:1fr}.loadout button{text-align:left}.preparation{padding:8px}.loadout label{overflow-wrap:anywhere}}
 #operation-picker>summary{cursor:pointer;min-height:44px;line-height:44px;color:var(--cyan);font-size:12px;letter-spacing:.06em;padding-inline:12px;border:1px solid var(--line);background:#10232e}#operation-picker[open]>summary{margin-bottom:6px}#operation-picker>summary:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+
+#district-report,#ending-copy,.epilogue #tip{white-space:pre-line}
+#district-report{margin:12px 0;padding:8px 12px;border-left:2px solid var(--cyan);color:var(--ink);font-size:12px;line-height:1.55;background:#163237}
+.epilogue .briefing{display:flex;flex-direction:column;align-items:flex-start}
+.epilogue #tip{order:1;font-size:14px;color:var(--ink);line-height:1.5;margin:0}
+.epilogue #copy{order:2;font-size:12px;margin-bottom:0;color:var(--amber)}
+.epilogue .briefing button,.epilogue .keys{order:3}
+#ending{margin-top:6px;border:1px solid var(--line);padding:0 12px;max-width:56em}
+#ending summary{min-height:44px;line-height:44px;color:var(--cyan);cursor:pointer}
+@media(max-width:800px){.epilogue #tip{font-size:13px}#district-report{font-size:11px}}

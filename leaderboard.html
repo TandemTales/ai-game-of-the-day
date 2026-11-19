@@ -123,6 +123,7 @@
     let currentGameId = '';
     let highlightRank = 0;
     const GAME_CATALOG = {
+      'signalbreak': { display: 'Signalbreak · Campaign', url: 'signalbreak/index.html', board: 'signalbreak-campaign' },
       'ironwake': { display: 'Ironwake', url: 'ironwake/index.html' },
       'stormhook': { display: 'Stormhook', url: 'stormhook/index.html' },
       'zephyr-circuit': { display: 'Zephyr Circuit', url: 'zephyr-circuit/index.html' },
@@ -167,7 +168,8 @@
       const tbody = $('#tbody');
       tbody.innerHTML = '<tr><td colspan="4">Loading…</td></tr>';
       try {
-        const res = await fetch(`/api/leaderboard/${encodeURIComponent(gameId)}?limit=20`, { headers: { 'Accept': 'application/json' } });
+        const board = getGameMeta(gameId)?.board || gameId;
+        const res = await fetch(`/api/leaderboard/${encodeURIComponent(board)}?limit=20`, { headers: { 'Accept': 'application/json' } });
         if (!res.ok) throw new Error('Failed to load leaderboard');
         const data = await res.json();
         const entries = Array.isArray(data.entries) ? data.entries : [];

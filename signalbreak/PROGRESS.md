@@ -1271,3 +1271,29 @@ debrief exposed a missing sentence break before the campaign total. After the
 copy fix, a 35-order native-touch replay from the earned campaign save showed
 the turn-8 deadline and the 70,420 campaign best as separate sentences. It
 preserved the 3,400-point turn-5 medal after the 2,680-point turn-9 finish.
+
+## November 19 Pacific — verified handoff
+
+The final runtime at 5eaed45 passed 644 Jest tests across 31 suites, including
+137 Signalbreak cases. Headless Edge won all twenty operations consecutively
+through the UI against live AI and extracted all four engineers in each.
+It earned all four Switchyard medals, saved them after reload and posted the
+same 70,420-point campaign total that the local rank endpoint received. A
+clean shutdown replay raised the total to 71,020. The late opening replay
+kept its earlier medal and personal best.
+
+All 120 operation/viewport checks passed with clean console and horizontal
+overflow checks. The run covered keyboard, touch, offline file boot, DPR2,
+storage denial, rank-before-submit and alternate routes. All eight runtime
+hashes match the browser manifest at 07:45:01Z on November 20. Evidence is in
+node_modules/.cache/signalbreak/switchyard-handoff. Reviewed the six-size
+opening and freight briefing/gameplay sheets, four earned debriefs, missed
+replay, clean epilogue and both critics' comparison frames. Larger frames are
+downsampled on the sheets. The 320px freight briefing scrolls to Deploy.
+
+Next, track Vertical Market medals 05–08. Record both stair approaches,
+first-ascent riders, staff health and lane hits from the actual deployment.
+Then continue through 09–18. Six operations currently save medals. Switchyard
+landmarks and phone-scale squad detail remain below the visual target. Human
+play, physical devices, listening and performance remain unverified.
+Signalbreak stays a first playable on dev. Production is still at 69400b9.

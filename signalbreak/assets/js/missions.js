@@ -184,7 +184,7 @@
         { id: 'freight-rear-b', name: 'Rail interceptor', x: 20, y: 11, hp: 5, maxHp: 5, damage: 2, range: 4, stride: 3 }
       ]
     },
-    mastery: 'Rescue the dispatcher, defeat the rear ambush and board all four engineers in fourteen turns or fewer.',
+    mastery: 'Rescue the dispatcher, defeat both rear patrols marked with gold chevrons, and board all four engineers by turn 14.',
     debrief: 'The last engineer climbs aboard and the dispatcher sends the freight uphill. Switchyard crews reclaim their gates and clinic. Ahead, rooftop antennae rise above the Vertical Market. The squad prepares to climb into Rooftop Crossfire.'
   };
   var rooftopHeights = [];

@@ -13,21 +13,19 @@
       ['#eff0d0','M2 -7 L6 -11 L6 -13 L8 -14 L7 -12 L9 -12 L8 -10 L6 -10 L3 -6 Z']
     ],
     sol: [
-      ['#274a4a','M-6 -5 L-6 -10 L-3 -12 L-2 -14 L3 -13 L6 -10 L5 -4 L1 -3 Z'],
-      ['#dce6ce','M-3 -11 L1 -12 L4 -10 L3 -5 L-4 -4 Z'],
-      ['coat','M-3 -14 Q-4 -17 0 -18 Q4 -18 4 -15 L4 -13 L1 -13 L0 -15 Z'],
-      ['#ba8c68','M0 -14 L4 -14 L3 -11 L1 -11 Z'],
-      ['#57796b','M-3 -12 L-1 -12 L4 -5 L3 -4 Z'],
-      ['#267b6b','M-8 -10 L-3 -11 L-2 -4 L-7 -3 Z'],
-      ['#fff4c9','M-6.5 -9 L-5 -9 L-5 -7.5 L-3.5 -7.5 L-3.5 -6 L-5 -6 L-5 -4.5 L-6.5 -4.5 L-6.5 -6 L-8 -6 L-8 -7.5 L-6.5 -7.5 Z']
+      ['#234c4a','M-5 -4 L-5 -12 L-3 -14 L-3 -18 L1 -19 L4 -17 L4 -13 L6 -11 L6 -4 Z'],
+      ['coat','M-4 -16 Q-4 -20 0 -20 Q4 -20 4 -17 L4 -15 L1 -16 L-3 -15 Z'],
+      ['#c8956c','M-1 -16 L4 -16 L3 -13 L0 -13 Z'],
+      ['#f3f0d7','M-4 -13 L3 -14 L5 -11 L5 -4 L-4 -4 Z'],
+      ['#16776a','M-1 -12 L2 -12 L2 -10 L4 -10 L4 -7.5 L2 -7.5 L2 -5 L-1 -5 L-1 -7.5 L-3 -7.5 L-3 -10 L-1 -10 Z']
     ],
     rook: [
-      ['#364759','M-7 -5 L-6 -8 L-4 -11 L-1 -15 L3 -16 L5 -13 L4 -10 L7 -9 L5 -7 L1 -7 L-1 -4 Z'],
-      ['coat','M-7 -5 L-4 -11 L0 -13 L3 -11 L1 -8 L-2 -6 Z'],
-      ['#c2e3ef','M-3 -11 L-1 -15 L3 -16 L5 -13 L1 -13 L0 -10 Z'],
-      ['#553f37','M1 -13 L4 -13 L4 -11 L2 -10 Z'],
-      ['#638aa8','M-3 -10 L1 -11 L3 -9 L-4 -6 L-8 -7 Z'],
-      ['#e0dbbd','M1 -8 L3 -10 L9 -11 L9 -10 L4 -8 Z']
+      ['#253548','M-7 -3 L-5 -8 L2 -14 L5 -9 L3 -7 L7 -7 L7 -5 L2 -4 L-4 -2 Z'],
+      ['coat','M-7 -3 L-5 -8 L2 -14 L4 -10 L0 -9 L-3 -5 Z'],
+      ['#557aa1','M-7 -3 L-2 -6 L2 -8 L2 -5 L-1 -3 Z'],
+      ['#d6f4ff','M0 -10 L2 -14 L5 -9 L3 -8 Z'],
+      ['#293d52','M1 -9 L5 -10 L4 -8 L2 -8 Z'],
+      ['#cccaa7','M0 -6 L3 -7 L7 -8 L7 -6.5 L2 -5 Z']
     ],
     ivo: [
       ['#413c3b','M-7 -5 L-7 -11 L-4 -13 L-3 -16 L2 -16 L4 -13 L6 -12 L7 -6 L4 -4 L-2 -3 Z'],
@@ -837,11 +835,25 @@
         c.fillStyle='#06111ac4';c.beginPath();c.ellipse(p.x+a*.05,p.y+a*.05,a*.51,b*.4,0,0,Math.PI*2);c.fill();
         drawOperator(c,actor,friendly,p,a,t==='c',s.lighting&&!L.lit(s,x,y));
         if(t==='c'&&s.district==='Switchyard')switchyardCover(c,p,a);
-        var barW=a*.85,barY=p.y-a*(t==='c'?1.5:1.66);
+        var headroom=actor.id==='sol'?1.86:actor.id==='rook'?1.38:1.66;
+        var barW=a*.85,barY=p.y-a*(headroom-(t==='c' ? .16 : 0));
         c.fillStyle='#071823';c.fillRect(p.x-barW/2,barY,barW,a*.12);c.fillStyle=friendly?'#a6dfc7':'#f29e86';c.fillRect(p.x-barW/2,barY,barW*actor.hp/actor.maxHp,a*.12);
         if(friendly){c.fillStyle=actor.watch?'#f2d99a':'#b5e6df';for(var i=0;i<actor.ap;i++){c.beginPath();c.arc(p.x-a*.13+i*a*.26,barY-a*.19,a*.07,0,Math.PI*2);c.fill();}}
       }
     }
+    // Keep each mastery target's chevrons visible above its current tile,
+    // including when one rear patrol moves behind ordinary yard personnel.
+    if(boarding)s.ambush.enemies.forEach(function(entry){
+      var patrol=s.enemies.find(function(enemy){return enemy.id===entry.id;});
+      if(!patrol||!L.living(patrol))return;
+      var q=P.point(patrol.x,patrol.y,L.height(s,patrol.x,patrol.y));
+      var top=q.y-a*(L.tile(s,patrol.x,patrol.y)==='c'?1.74:1.9);
+      var radius=Math.max(3*Math.min(d,2),a*.38);
+      c.save();c.translate(q.x,top);c.strokeStyle='#17222e';c.lineWidth=Math.max(2*Math.min(d,2),a*.21);
+      c.lineJoin='miter';c.lineCap='square';c.beginPath();
+      for(var j=0;j<2;j++){var offset=-j*radius*.66;c.moveTo(-radius,offset);c.lineTo(0,offset-radius*.52);c.lineTo(radius,offset);}
+      c.stroke();c.strokeStyle='#ffd887';c.lineWidth=Math.max(1*Math.min(d,2),a*.1);c.stroke();c.restore();
+    });
     if(evacuation){handoffMarkers();evacuationLedger();}
     if(breach){
       var scale=Math.min(d,2);

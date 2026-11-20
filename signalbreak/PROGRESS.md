@@ -1256,3 +1256,11 @@ at higher zoom. The art reviewer compared the originals and revisions to
 official desktop and iPhone XCOM 2 frames. Occupied cover and west/transit/east
 feedback passed the second review. Clustered actors and repeated environments
 still favored XCOM 2.
+
+Both reviewers also checked a turn-four board with five live hostiles. Only
+the two rear pursuers carry paired gold chevrons, as described in the medal
+goal. The medic stands upright with a light tabard and the scout wears a
+low blue hood. Target identification passed at 320, 390 and 1440px. Default
+320px still compresses fine role details. Both reviewers favored XCOM 2 for
+overall battlefield readability and landmarks. The final browser sweep uses
+the renderer with these changes.

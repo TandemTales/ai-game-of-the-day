@@ -1219,3 +1219,10 @@ legacy saves free of inferred medals. Follow with distinct engineer silhouettes,
 cover and threat cues at phone scale, and stronger district and ending art.
 Physical-device input, audio, performance and human play remain unverified.
 Signalbreak is active on dev. Production release and AAA approval remain pending.
+
+## November 19 Pacific — Switchyard mastery intent
+
+Record the four opening Switchyard mastery goals against the actions actually
+taken on each deployment. Show the earned medals after replay and reload,
+preserve existing v1 scores and unlocks, and verify both qualifying and missed
+goals. Review phone-scale engineer and cover readability alongside these routes.

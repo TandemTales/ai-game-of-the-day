@@ -54,10 +54,11 @@ async function drive(page,touch=false,options={}){
       assert.equal(await page.evaluate(()=>SB.Game.getPreview().kind),'hack','default tap offers the breaker');
       await page.locator('#cancel').click();
     }
-    await page.locator(`[data-action="${p.kind}"]`).click();
+    const action=page.locator(`[data-action="${p.kind}"]`);
+    if(touch)await action.tap();else await action.click();
     if(['move','attack','heal','hack'].includes(p.kind))await tile(page,p.x,p.y,touch);
     const shown=await page.evaluate(()=>SB.Game.getPreview());assert(shown&&shown.legal&&shown.kind===p.kind&&shown.x===p.x&&shown.y===p.y,JSON.stringify({wanted:p,shown}));
-    await page.locator('#confirm').click();
+    if(touch)await page.locator('#confirm').tap();else await page.locator('#confirm').click();
     if(shown.breachLiftPreview){
       const selected=await page.evaluate(()=>{const s=SB.Game.getState(),u=SB.Logic.unit(s,SB.Game.getView().selected);return{x:u.x,y:u.y};});
       await page.keyboard.press('ArrowRight');
@@ -116,10 +117,15 @@ async function drive(page,touch=false,options={}){
       }
       await page.locator('.map-wrap').screenshot({path:path.join(out,id+'-briefing.png')});await page.locator('#start').click();
       assert(await page.locator('[data-gear="nia"]').isDisabled());
+      if(index<switchyardMedals.length){
+        assert.equal(await page.locator('#field-medal').innerText(),switchyardMedals[index]);
+        assert.match(await page.locator('#field-progress').innerText(),/turn 1\//i);
+        assert(await page.locator('#field-mastery').evaluate(e=>e.getBoundingClientRect().bottom<=document.querySelector('#map').getBoundingClientRect().top+1));
+      }else assert.equal(await page.locator('#field-mastery').isVisible(),false);
       const run=await drive(page,index===1||index===3||index>=4);campaignRuns.push(run);
       if(index<switchyardMedals.length){
         assert((await page.locator('#copy').innerText()).includes(switchyardMedals[index]+' mastery +600.'));
-        assert.match(await page.locator('#mastery-goal').innerText(),/MASTERY EARNED/);
+        assert.match(await page.locator('#mastery-goal').innerText(),/SAVED MEDAL/);
       }
       if(id==='safe-corridor'){
         assert.match(await page.locator('#copy').innerText(),/Dark-feed mastery \+600/);
@@ -176,6 +182,7 @@ async function drive(page,touch=false,options={}){
     assert.deepEqual(savedOpening,trained.results['live-wire']);
     assert.match(await replay.locator('[data-mission="live-wire"]').textContent(),/MASTERY/);
     assert.equal(api.length,2);
+    fs.writeFileSync(path.join(out,'switchyard-late-replay.json'),JSON.stringify({lateRun,savedOpening},null,2));
     await replay.close();
     const archive=await browser.newPage({viewport:{width:390,height:844},hasTouch:true,storageState:campaignStorage});
     await archive.goto(url+'/signalbreak/index.html');await archive.locator('#operation-picker summary').tap();await archive.locator('[data-mission="paper-trail"]').tap();await archive.locator('#start').tap();

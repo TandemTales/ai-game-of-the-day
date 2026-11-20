@@ -17,3 +17,18 @@
 #ending{margin-top:6px;border:1px solid var(--line);padding:0 12px;max-width:56em}
 #ending summary{min-height:44px;line-height:44px;color:var(--cyan);cursor:pointer}
 @media(max-width:800px){.epilogue #tip{font-size:13px}#district-report{font-size:11px}}
+
+.board-surface { position: relative; }
+#field-mastery:not([hidden]) {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--line);
+  background: #142a33;
+  color: var(--ink);
+  font: 12px/1.4 system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+#field-medal { color: var(--amber); }

@@ -1235,3 +1235,15 @@ The eighteen new rules/save cases and the existing Safe Corridor save case passe
 An Edge Night Freight run starting from a three-clear save used 47 native-touch
 orders, both rear patrol defeats and four boardings. On turn 10 its debrief
 showed Rear guard and 3,550 points. Full-campaign and visual review follow.
+
+The first objective-feedback comparison favored XCOM 2. At 390px, the patrol
+count and deadline sat below the board. A strip above the map now tracks this
+attempt; the operation record labels an earlier award as a saved medal. The
+Night Freight optional objective stays open after the rear patrols enter and
+checks off only once both fall. The revised turn-four capture shows 0/2
+defeated, 0/4 aboard and turn 4/14 while the player can still see the map.
+
+The independent reviewer passed the revised mastery feedback and replay
+scoring. Their live turn-9 replay showed the expired turn-8 deadline, scored
+2,680 and kept the earlier 9,999-point result and saved medal. They still
+favored XCOM 2 for identifying individual targets on the map.

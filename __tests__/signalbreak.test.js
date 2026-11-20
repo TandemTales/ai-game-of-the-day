@@ -1089,10 +1089,27 @@ test.each(['blocked entry', 'surviving interceptor'])('Night Freight requires bo
   const last = s.squad[3], tile = L.extractionStatus(s).tiles[0];
   Object.assign(last, tile);
   expect(L.switchyardMastery(s).detail).toContain('1/2');
+  const objective = () => L.objectiveStatus(s).find(item => item.id === 'ambush');
+  expect(objective()).toMatchObject({label: expect.stringMatching(/optional/i), done: false});
   order(L, s, last.id, 'extract', tile.x, tile.y);
   expect(s.phase).toBe('won');
   expect(s.masteryEarned).toBeUndefined();
   expect(L.switchyardMastery(s).eligible).toBe(false);
+});
+
+test('Night Freight shows the optional rear objective as outstanding after deployment until both enemies fall', () => {
+  const {Logic: L} = load(), s = L.newGame('night-freight');
+  const objective = () => L.objectiveStatus(s).find(item => item.id === 'ambush');
+  expect(objective()).toMatchObject({label: expect.stringMatching(/turn 4/i), done: false});
+  s.turn = 3;
+  L.endTurn(s);
+  const rear = s.enemies.filter(enemy => s.ambush.enemies.some(entry => entry.id === enemy.id));
+  expect(rear).toHaveLength(2);
+  expect(objective().done).toBe(false);
+  rear[0].hp = 0;
+  expect(objective().done).toBe(false);
+  rear[1].hp = 0;
+  expect(objective().done).toBe(true);
 });
 
 test.each([false,true])('core shutdown can be earned with base stats, clean shutdown %s',cleanShutdown=>{

@@ -86,9 +86,12 @@
     var record=campaign.results[state.id],medal=L.masteryName(state.id),attempt=L.switchyardMastery(state);
     var goal=state.mastery||'Extract all four engineers in eight turns or fewer.';
     var label=record&&record.mastery?'MASTERY EARNED':'MASTERY';
+    el('field-mastery').hidden=!attempt||mode!=='playing';
     if(attempt){
+      if(record&&record.mastery)label='SAVED MEDAL';
       goal=medal+' (+600). '+goal;
-      if(mode==='playing'||mode==='end')goal+=' '+attempt.detail;
+      el('field-medal').textContent=medal+(attempt.eligible?'':' missed');
+      el('field-progress').textContent=attempt.detail;
     }
     el('mastery-goal').textContent=label+' / '+goal;
     el('radio').textContent=state.log.slice(-2).join(' / ');

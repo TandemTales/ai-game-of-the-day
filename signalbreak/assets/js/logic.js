@@ -264,6 +264,15 @@
       log(s, entry.name + ' entered at (' + entry.x + ', ' + entry.y + ') · acts next enemy turn', 'turn');
     });
   }
+  function rearGuardStatus(s) {
+    var patrols = s.ambush.enemies.map(function (entry) {
+      return s.enemies.find(function (e) { return e.id === entry.id; });
+    });
+    var defeated = patrols.filter(function (e) { return e && e.hp === 0; }).length;
+    var active = patrols.filter(function (e) { return e && e.hp > 0; }).length;
+    // An occupied entry can delay a patrol. A missing actor is still due.
+    return { total: patrols.length, defeated: defeated, active: active, pending: patrols.length - defeated - active };
+  }
   function defenseStatus(s) {
     if (!s.defense) return null;
     var d = s.defense, done = d.elapsed >= d.rounds;
@@ -502,7 +511,16 @@
       status.push({ id: 'lighting', label: 'Work lamps ' + (lamps ? 'ON: illuminated targets can be spotted across clear sight; fire still needs weapon range' : 'OFF: targets in darkness can only be spotted within ' + s.lighting.darkRange + ' tiles') + '. All silhouettes are shown on the tactical plan; darkness limits targeting and enemy pursuit, not map knowledge.', done: !lamps });
     }
     if (s.freight) status.push({ id: 'freight', label: freightMessage(s), done: extractionStatus(s).open });
-    if (s.ambush) {
+    if (s.id === 'night-freight') {
+      var rear = rearGuardStatus(s);
+      var rearLabel = rear.defeated + '/' + rear.total + ' defeated';
+      if (s.turn < s.ambush.turn) rearLabel = 'patrols enter on turn ' + s.ambush.turn;
+      else {
+        if (rear.active) rearLabel += ' · ' + rear.active + ' active';
+        if (rear.pending) rearLabel += ' · ' + rear.pending + ' awaiting clear entry';
+      }
+      status.push({ id: 'ambush', label: 'Optional rear guard · ' + rearLabel, done: rear.defeated === rear.total });
+    } else if (s.ambush) {
       var pending = s.ambush.enemies.filter(function (e) { return !(s.ambush.deployed && s.ambush.deployed[e.id]); });
       status.push({ id: 'ambush', label: pending.length ? (s.ambush.label || 'Rail ambush') + ': ' + pending.length + ' patrol(s) at marked entries ' +
         (s.turn < s.ambush.turn ? 'on turn ' + s.ambush.turn : 'waiting for clear entry tiles') : (s.ambush.label || 'Rail ambush') + ' deployed', done: !pending.length });
@@ -784,21 +802,18 @@
     var medal = medals[s.id];
     if (!medal || !medal.deadline) return null;
     if (s.squad.filter(function (u) { return u.hp > 0; }).length !== 4) {
-      return { eligible: false, complete: false, detail: 'Missed this run · engineer down' };
+      return { eligible: false, complete: false, detail: 'Engineer down' };
     }
     if (s.turn > medal.deadline) {
-      return { eligible: false, complete: false, detail: 'Missed this run · turn ' + medal.deadline + ' deadline passed' };
+      return { eligible: false, complete: false, detail: 'Turn ' + medal.deadline + ' deadline passed' };
     }
     var extracted = s.squad.filter(function (u) { return u.extracted; }).length;
     var complete = extracted === 4 && s.rescued && networkReady(s);
     var status = [];
     if (s.ambush) {
-      // Entry tiles may be occupied on turn four. An absent patrol still has to be defeated.
-      var defeated = s.ambush.enemies.filter(function (entry) {
-        return s.enemies.some(function (e) { return e.id === entry.id && e.hp === 0; });
-      }).length;
-      complete = complete && defeated === s.ambush.enemies.length;
-      status.push(defeated + '/' + s.ambush.enemies.length + ' rear patrols defeated');
+      var rear = rearGuardStatus(s);
+      complete = complete && rear.defeated === rear.total;
+      status.push(rear.defeated + '/' + rear.total + ' rear patrols defeated');
     }
     status.push(extracted + '/4 ' + (s.freight ? 'aboard' : 'extracted'));
     status.push('turn ' + s.turn + '/' + medal.deadline);

@@ -1247,3 +1247,12 @@ The independent reviewer passed the revised mastery feedback and replay
 scoring. Their live turn-9 replay showed the expired turn-8 deadline, scored
 2,680 and kept the earlier 9,999-point result and saved medal. They still
 favored XCOM 2 for identifying individual targets on the map.
+
+Each engineer now has a distinct silhouette and kit. Switchyard cover has a
+ribbed casing; the crouching operator and selected cover readout remain
+visible together. Night Freight draws the carriage at the open platform,
+leaves the rails empty in transit, and keeps the boarding countdown readable
+at higher zoom. The art reviewer compared the originals and revisions to
+official desktop and iPhone XCOM 2 frames. Occupied cover and west/transit/east
+feedback passed the second review. Clustered actors and repeated environments
+still favored XCOM 2.

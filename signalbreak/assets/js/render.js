@@ -1,6 +1,89 @@
 (function (global) {
   'use strict';
   var SB = global.SB = global.SB || {};
+  // Feet are at (0,0) in each engraving. The outside contour carries the
+  // equipment shape even when the whole figure is only a dozen pixels tall.
+  var uniforms = {
+    nia: [
+      ['#273d46','M-5 -5 L-6 -12 L-4 -13 L-4 -17 L-3 -17 L-3 -12 L-1 -12 L1 -14 L4 -13 L5 -9 L4 -6 L1 -4 Z'],
+      ['coat','M-3 -11 L1 -12 L4 -10 L3 -5 L-4 -4 Z'],
+      ['#ffe2a9','M-3 -13 Q-3 -18 1 -18 Q4 -18 4 -14 L6 -13 L6 -12 L-4 -12 Z'],
+      ['#b77f52','M0 -12 L4 -12 L3 -10 L1 -10 Z'],
+      ['#45545b','M-4 -11 L-2 -11 L-1 -5 L-3 -5 Z'],
+      ['#eff0d0','M2 -7 L6 -11 L6 -13 L8 -14 L7 -12 L9 -12 L8 -10 L6 -10 L3 -6 Z']
+    ],
+    sol: [
+      ['#274a4a','M-6 -5 L-6 -10 L-3 -12 L-2 -14 L3 -13 L6 -10 L5 -4 L1 -3 Z'],
+      ['#dce6ce','M-3 -11 L1 -12 L4 -10 L3 -5 L-4 -4 Z'],
+      ['coat','M-3 -14 Q-4 -17 0 -18 Q4 -18 4 -15 L4 -13 L1 -13 L0 -15 Z'],
+      ['#ba8c68','M0 -14 L4 -14 L3 -11 L1 -11 Z'],
+      ['#57796b','M-3 -12 L-1 -12 L4 -5 L3 -4 Z'],
+      ['#267b6b','M-8 -10 L-3 -11 L-2 -4 L-7 -3 Z'],
+      ['#fff4c9','M-6.5 -9 L-5 -9 L-5 -7.5 L-3.5 -7.5 L-3.5 -6 L-5 -6 L-5 -4.5 L-6.5 -4.5 L-6.5 -6 L-8 -6 L-8 -7.5 L-6.5 -7.5 Z']
+    ],
+    rook: [
+      ['#364759','M-7 -5 L-6 -8 L-4 -11 L-1 -15 L3 -16 L5 -13 L4 -10 L7 -9 L5 -7 L1 -7 L-1 -4 Z'],
+      ['coat','M-7 -5 L-4 -11 L0 -13 L3 -11 L1 -8 L-2 -6 Z'],
+      ['#c2e3ef','M-3 -11 L-1 -15 L3 -16 L5 -13 L1 -13 L0 -10 Z'],
+      ['#553f37','M1 -13 L4 -13 L4 -11 L2 -10 Z'],
+      ['#638aa8','M-3 -10 L1 -11 L3 -9 L-4 -6 L-8 -7 Z'],
+      ['#e0dbbd','M1 -8 L3 -10 L9 -11 L9 -10 L4 -8 Z']
+    ],
+    ivo: [
+      ['#413c3b','M-7 -5 L-7 -11 L-4 -13 L-3 -16 L2 -16 L4 -13 L6 -12 L7 -6 L4 -4 L-2 -3 Z'],
+      ['coat','M-7 -12 L-4 -13 L0 -12 L4 -13 L6 -10 L4 -6 L-6 -5 Z'],
+      ['#c8b19e','M-3 -16 L-2 -18 L2 -18 L4 -15 L3 -13 L-3 -13 Z'],
+      ['#3c3b39','M-2 -15 L4 -16 L4 -14 L-1 -13 Z'],
+      ['#ffc89e','M-8 -12 L-5 -14 L-1 -13 L0 -10 L-6 -9 L-8 -10 Z'],
+      ['#635453','M-4 -8 L2 -10 L8 -10 L8 -7 L3 -6 L-4 -5 Z'],
+      ['#d6cdb7','M2 -10 L8 -10 L8 -9 L2 -8 Z']
+    ],
+    patrol: [
+      ['#5a393d','M-5 -5 L-5 -10 L-2 -12 L-3 -15 L0 -17 L4 -16 L5 -12 L3 -11 L5 -9 L6 -6 L1 -4 Z'],
+      ['#ce7968','M-5 -10 L-2 -12 L1 -11 L4 -12 L5 -9 L2 -6 L-4 -5 Z'],
+      ['#854e4d','M-4 -14 L-2 -17 L3 -17 L5 -14 L4 -12 L-3 -12 Z'],
+      ['#ffb29a','M0 -14 L5 -15 L5 -13 L1 -12 Z'],
+      ['#313d48','M-3 -7 L3 -10 L9 -10 L9 -8 L4 -8 L2 -6 L-2 -5 Z']
+    ]
+  };
+  var uniformPaths;
+  function drawOperator(c, actor, friendly, p, a, inCover, dark) {
+    if (!uniformPaths) {
+      uniformPaths = {};
+      Object.keys(uniforms).forEach(function (id) {
+        uniformPaths[id] = uniforms[id].map(function (layer) { return [layer[0], new Path2D(layer[1])]; });
+      });
+    }
+    var layers=uniformPaths[friendly?actor.id:'patrol'];
+    var stride=actor.id==='ivo'?1.1:1, size=a*.077;
+    c.save();
+    c.translate(p.x,p.y);
+    c.scale(friendly?size:-size,size);
+    c.lineJoin='round';
+    c.strokeStyle='#0b1c27';c.lineWidth=1.7;
+    // Kneeling changes the legs and lowers the shoulders on a traversable cover tile.
+    c.fillStyle='#809191';c.beginPath();
+    if(inCover){c.moveTo(-4,-5);c.lineTo(3,-5);c.lineTo(5,-2);c.lineTo(4,0);c.lineTo(1,0);c.lineTo(0,-2);c.lineTo(-2,0);c.lineTo(-7,0);c.lineTo(-7,-2);}
+    else{c.moveTo(-4,-6);c.lineTo(3,-6);c.lineTo(4*stride,-1);c.lineTo(5*stride,0);c.lineTo(1,0);c.lineTo(-.5,-3);c.lineTo(-2,0);c.lineTo(-6*stride,0);c.lineTo(-5*stride,-2);}
+    c.closePath();c.stroke();c.fill();
+    if(inCover)c.translate(0,2);
+    c.lineWidth=1.9;c.strokeStyle=dark?'#a9c2cf':'#0b1c27';c.stroke(layers[0][1]);
+    layers.forEach(function(layer){c.fillStyle=layer[0]==='coat'?actor.color:layer[0];c.fill(layer[1]);});
+    c.restore();
+  }
+  function switchyardCover(c,p,a) {
+    // The front lip comes up to a crouching operator's knees.
+    c.save();c.translate(p.x,p.y-a*.13);c.scale(a,a);
+    c.beginPath();c.ellipse(0,.12,.81,.28,0,0,Math.PI*2);c.fillStyle='#13232c';c.fill();
+    c.fillStyle='#53676a';c.beginPath();c.moveTo(-.79,-.16);c.lineTo(-.02,.18);c.lineTo(-.02,.43);c.lineTo(-.79,.07);c.closePath();c.fill();
+    c.fillStyle='#21383f';c.beginPath();c.moveTo(-.02,.18);c.lineTo(.76,-.21);c.lineTo(.76,.05);c.lineTo(-.02,.43);c.closePath();c.fill();
+    c.fillStyle='#91a6a1';c.beginPath();c.moveTo(-.79,-.16);c.lineTo(-.03,-.53);c.lineTo(.76,-.21);c.lineTo(-.02,.18);c.closePath();c.fill();
+    c.lineWidth=.12;c.strokeStyle='#52686a';c.beginPath();
+    c.moveTo(-.51,-.26);c.lineTo(.25,.06);c.moveTo(-.24,-.39);c.lineTo(.51,-.07);c.stroke();
+    c.lineWidth=.1;c.strokeStyle='#e4ddba';c.beginPath();
+    c.moveTo(-.75,-.15);c.lineTo(-.05,.15);c.lineTo(.71,-.19);c.stroke();
+    c.restore();
+  }
   function evacuationBand(w) {
     var scale = Math.min(global.devicePixelRatio || 1, 2);
     return (w < 640 * scale ? 52 : 32) * scale;
@@ -64,6 +147,34 @@
       return breachFloors[index].detail;
     }
     function boardingHere(x,y){return boarding&&boarding.open&&boarding.tiles.some(function(t){return t.x===x&&t.y===y;});}
+    function drawFreightLine(){
+      var first=s.freight.stops[0].tiles[0],lastStop=s.freight.stops[s.freight.stops.length-1];
+      var end=lastStop.tiles[lastStop.tiles.length-1].x+.46,y=first.y;
+      function line(x1,y1,x2,y2,ink,weight){
+        var u=P.point(x1,y1,0),v=P.point(x2,y2,0);
+        c.strokeStyle=ink;c.lineWidth=a*weight;c.beginPath();c.moveTo(u.x,u.y);c.lineTo(v.x,v.y);c.stroke();
+      }
+      for(var x=first.x-.26;x<end;x+=.5)line(x,y-.5,x,y+.08,'#26343a',.14);
+      [-.4,-.05].forEach(function(offset){line(first.x-.46,y+offset,end,y+offset,'#b5beb5',.068);});
+      if(!boarding.open)return;
+      // The carriage occupies the rear edge of both open boarding cells.
+      // Its lit doorway and the foreground platform arrows share a stop.
+      var start=boarding.tiles[0].x-.41,finish=boarding.tiles[boarding.tiles.length-1].x+.39;
+      function panel(points,ink){
+        c.fillStyle=ink;c.beginPath();
+        points.forEach(function(pos,i){var q=P.point(pos[0],y+pos[1],pos[2]);if(i)c.lineTo(q.x,q.y);else c.moveTo(q.x,q.y);});
+        c.closePath();c.fill();
+      }
+      panel([[start,-.5,1],[finish-.12,-.5,1],[finish,-.39,.86],[finish,-.03,.86],[start,-.03,1]],'#c0c8b6');
+      panel([[start,-.03,1],[finish,-.03,.86],[finish,-.03,.17],[start,-.03,.17]],'#a86e49');
+      panel([[finish,-.03,.86],[finish,-.39,.86],[finish,-.39,.17],[finish,-.03,.17]],'#455a5b');
+      panel([[start+.18,-.02,.82],[start+.65,-.02,.82],[start+.65,-.02,.48],[start+.18,-.02,.48]],'#253f4c');
+      panel([[finish-.71,-.02,.75],[finish-.34,-.02,.75],[finish-.34,-.02,.16],[finish-.71,-.02,.16]],'#172d38');
+      panel([[finish-.71,-.02,.17],[finish-.34,-.02,.17],[finish-.34,.17,.03],[finish-.71,.17,.03]],'#ffe29a');
+      [start+.22,finish-.23].forEach(function(x){
+        var q=P.point(x,y-.02,.13);c.fillStyle='#202d35';c.beginPath();c.ellipse(q.x,q.y,a*.105,a*.14,0,0,2*Math.PI);c.fill();
+      });
+    }
     var waterCells={};
     if(s.water)(s.water.routes||[]).forEach(function(route,index){route.tiles.forEach(function(t){waterCells[t.x+','+t.y]={route:route,index:index};});});
     function channelHere(x,y){return waterCells[x+','+y];}
@@ -536,6 +647,7 @@
       c.fillStyle='#ffe0ab';c.font=Math.max(11*Math.min(d,2),w/110)+'px system-ui';
       c.fillText('TWIN PUMPS / '+pumps.elapsed+'/'+pumps.rounds+' / '+(pumps.done?'PRESSURE LOCKED':pumps.ready?'BOTH STAFFED':'STAFF BOTH PUMPS'),16*Math.min(d,2),h-62*Math.min(d,2));
     }
+    if(boarding)drawFreightLine();
     var lane=L.activeLane(s), defense=L.defenseStatus(s);
     if(lane)lane.tiles.forEach(function(t){var q=diamond(t.x,t.y,L.height(s,t.x,t.y),'#b34a3455','#ffab83');c.strokeStyle='#ffbe91';c.lineWidth=Math.max(1,a*.05);c.beginPath();c.moveTo(q.x-a*.3,q.y-b*.3);c.lineTo(q.x+a*.3,q.y+b*.3);c.moveTo(q.x-a*.3,q.y+b*.3);c.lineTo(q.x+a*.3,q.y-b*.3);c.stroke();});
     if(defense){
@@ -588,11 +700,6 @@
       c.fillStyle='#e2c795';
       c.fillText('GOLD DASHES / DRY CROSSING',16*Math.min(d,2),h-42*Math.min(d,2));
     }
-    if(boarding){
-      // Timetable stays at a fixed readable size, outside the tactical diamonds.
-      c.fillStyle=boarding.open?'#ffe09b':'#b5c8d0';c.font=Math.max(11*Math.min(d,2),w/100)+'px system-ui';c.textAlign='right';
-      c.fillText(boarding.open?boarding.label+' / BOARD / '+boarding.turnsUntilChange+' TURNS':'TRANSIT / '+boarding.nextLabel+' / '+boarding.turnsUntilChange+' TURN',w-16*Math.min(d,2),h-42*Math.min(d,2));c.textAlign='start';
-    }
     // Stair edges are the only legal roof-level transitions; draw their exact
     // endpoints above the floor so the route matches the movement preview.
     (s.climbLinks||[]).forEach(function(link){
@@ -631,6 +738,9 @@
         c.strokeStyle='#90a2a944';c.lineWidth=a*.04;c.beginPath();c.moveTo(q.x-a*.7,q.y);c.lineTo(q.x+a*.5,q.y-b*.45);c.stroke();
       }
       if(t==='c'&&archiveDistrict)archiveShelf(x,y,p);
+      else if(t==='c'&&s.district==='Switchyard'){
+        if(!L.occupant(s,x,y))switchyardCover(c,p,a);
+      }
       else if(t==='c') {
         var medical=s.defense&&y===5&&(x===8||x===12);
         var top=block(x,y,.55,palette?palette.cover:medical?'#b5c9ba':'#61787b',palette?palette.side:medical?'#45625e':'#30464c',palette?palette.face:medical?'#698a7d':'#3d565c');
@@ -719,18 +829,17 @@
       var actor=L.occupant(s,x,y);
       if(actor){
         var friendly=s.squad.indexOf(actor)!==-1,selected=view.selected===actor.id;
-        if(selected){c.strokeStyle='#c1fff0';c.lineWidth=a*.07;c.beginPath();c.ellipse(p.x,p.y,a*.72,b*.72,0,0,Math.PI*2);c.stroke();}
+        if(selected){var ring=t==='c'?1:.72;c.strokeStyle='#c1fff0';c.lineWidth=a*.09;c.beginPath();c.ellipse(p.x,p.y,a*ring,b*ring,0,0,Math.PI*2);c.stroke();}
         if(broadcast&&!friendly&&broadcast.patrols.some(function(patrol){return patrol.id===actor.id;})){
           c.strokeStyle=signalInk;c.lineWidth=Math.max(1,a*.08);
           c.beginPath();c.ellipse(p.x,p.y,a*.7,b*.68,0,0,Math.PI*2);c.stroke();
         }
-        c.fillStyle='#0007';c.beginPath();c.ellipse(p.x+a*.06,p.y+a*.06,a*.36,b*.3,0,0,Math.PI*2);c.fill();
-        c.strokeStyle=s.lighting&&!L.lit(s,x,y)?'#a9c2cf':'#0b1c25';c.lineWidth=a*.09;c.fillStyle=friendly?actor.color:'#d27f70';
-        c.beginPath();c.moveTo(p.x-a*.22,p.y-a*.25);c.lineTo(p.x-a*.18,p.y-a*.75);c.lineTo(p.x+a*.16,p.y-a*.8);c.lineTo(p.x+a*.28,p.y-a*.28);c.closePath();c.fill();c.stroke();
-        c.fillStyle=friendly?'#d9d8ba':'#7b4b43';c.beginPath();c.arc(p.x,p.y-a*.97,a*.2,0,Math.PI*2);c.fill();
-        c.strokeStyle=friendly?'#9fbdba':'#fa9d8b';c.lineWidth=a*.09;c.beginPath();c.moveTo(p.x+a*.17,p.y-a*.56);c.lineTo(p.x+a*.52,p.y-a*.78);c.stroke();
-        var barW=a*.85;c.fillStyle='#071823';c.fillRect(p.x-barW/2,p.y-a*1.35,barW,a*.12);c.fillStyle=friendly?'#a6dfc7':'#f29e86';c.fillRect(p.x-barW/2,p.y-a*1.35,barW*actor.hp/actor.maxHp,a*.12);
-        if(friendly){c.fillStyle=actor.watch?'#f2d99a':'#b5e6df';for(var i=0;i<actor.ap;i++){c.beginPath();c.arc(p.x-a*.13+i*a*.26,p.y-a*1.6,a*.07,0,Math.PI*2);c.fill();}}
+        c.fillStyle='#06111ac4';c.beginPath();c.ellipse(p.x+a*.05,p.y+a*.05,a*.51,b*.4,0,0,Math.PI*2);c.fill();
+        drawOperator(c,actor,friendly,p,a,t==='c',s.lighting&&!L.lit(s,x,y));
+        if(t==='c'&&s.district==='Switchyard')switchyardCover(c,p,a);
+        var barW=a*.85,barY=p.y-a*(t==='c'?1.5:1.66);
+        c.fillStyle='#071823';c.fillRect(p.x-barW/2,barY,barW,a*.12);c.fillStyle=friendly?'#a6dfc7':'#f29e86';c.fillRect(p.x-barW/2,barY,barW*actor.hp/actor.maxHp,a*.12);
+        if(friendly){c.fillStyle=actor.watch?'#f2d99a':'#b5e6df';for(var i=0;i<actor.ap;i++){c.beginPath();c.arc(p.x-a*.13+i*a*.26,barY-a*.19,a*.07,0,Math.PI*2);c.fill();}}
       }
     }
     if(evacuation){handoffMarkers();evacuationLedger();}
@@ -883,6 +992,21 @@
       c.fillStyle='#b9d5e5';c.fillText('DARK / DETECT WITHIN '+s.lighting.darkRange+' TILES',pad,h-78*scale);
       c.fillStyle='#ffe0a5';c.fillText('LIT / NORMAL FIRING RANGE',pad,h-59*scale);
       c.fillStyle='#b9cbd3';c.fillText('PATROLS SHOWN ON TACTICAL CHART',pad,h-40*scale);
+    }
+    if(boarding){
+      // Keep the current train stop legible even when the camera centers on a unit.
+      var scale=Math.min(d,2),right=w-12*scale,base=h-42*scale;
+      var timing=boarding.open?boarding.label+' / BOARD / '+boarding.turnsUntilChange+' TURNS':'TRANSIT / '+boarding.nextLabel+' / '+boarding.turnsUntilChange+' TURN';
+      c.font=Math.max(11*scale,w/100)+'px system-ui';var timingWidth=c.measureText(timing).width;
+      c.fillStyle='#10212bf5';c.fillRect(right-timingWidth-12*scale,base-14*scale,timingWidth+16*scale,20*scale);
+      c.fillStyle=boarding.open?'#ffe09b':'#b5c8d0';c.textAlign='right';c.fillText(timing,right,base);c.textAlign='start';
+    }
+    var inspected=L.unit(s,view.selected);
+    if(s.district==='Switchyard'&&inspected&&L.living(inspected)&&L.tile(s,inspected.x,inspected.y)==='c'){
+      var scale=Math.min(d,2),label=inspected.name.toUpperCase()+' / LOW COVER';
+      c.font='600 '+11*scale+'px system-ui';var labelWidth=c.measureText(label).width;
+      c.fillStyle='#10232ef5';c.fillRect(w-labelWidth-20*scale,11*scale,labelWidth+12*scale,22*scale);
+      c.fillStyle='#dce9d9';c.fillText(label,w-labelWidth-14*scale,26*scale);
     }
     // HUD belongs to DOM. This map legend remains readable independently of zoom.
     c.fillStyle='#93b3bf';c.font=Math.max(10,w/100)+'px system-ui';c.fillText(s.district.toUpperCase()+' / '+String(s.sequence||1).padStart(2,'0'),16*Math.min(d,2),h-18*Math.min(d,2));

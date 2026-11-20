@@ -160,7 +160,7 @@
       if(state.masteryEarned)el('copy').textContent+=' '+L.masteryName(state.id)+' mastery +600.';
       else if(recorded){
         var attempt=L.switchyardMastery(state);
-        if(attempt)el('copy').textContent+=' '+L.masteryName(state.id)+' missed. '+attempt.detail;
+        if(attempt)el('copy').textContent+=' '+L.masteryName(state.id)+' missed. '+attempt.detail+'.';
       }
       var index=SB.Missions.operations.findIndex(function(m){return m.id===state.id;}),next=SB.Missions.operations[index+1];
       el('tip').textContent=state.phase==='won'?(state.debrief||state.title+' complete.')+(next?' Next: '+next.title+'.':''):purged?'The deadline expired before the evidence was copied. Replay and take the short route or hack the purge breaker to buy more time.':keysFailed?'The two keys require two living engineers. Retry and keep an operator in each wing.':convoyEscaped?'The civilian manifests are gone. HACK the brake or siding control before its deadline on the next attempt.':relayFailed?'The relay requires two living engineers. On replay, keep one on a powered pad while another hacks the relay.':'Retry the operation. Take cover, focus fire and read each circuit before advancing.';

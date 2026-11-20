@@ -8,36 +8,26 @@ From repository root:
 node tools/signalbreak-browser-smoke.cjs
 ```
 
-Rules tests load classic scripts in a vm with a browser-global shim. Verify
-read-only previews, AP/path legality, blocked and circuit-door LOS, cover/height,
-deterministic attacks/AI, overwatch, rescue, objective/extraction, win/loss,
-fresh-state isolation and all eight authored operations' legal live-AI routes.
-The 47 focused cases also cover exclusive relay/LOS/turret changes, repeated-score
-protection, stranded-squad reroute refusal, clinic-interlock rejected-action
-immutability, raised-tile projection picking across zooms, earned unlocks,
-mission-boundary save/load, replay best scores and corrupt/gapped/denied storage.
-The twenty-operation manifest is a contract, not twenty implemented levels.
+Rules tests load the classic scripts in a browser-global shim. They cover AP,
+pathfinding, line of sight, cover, circuits, mission-specific objectives,
+deterministic enemy turns, extraction, unlocks, equipment, injuries, medals,
+district support and the saved ending. They exercise legal routes through all
+twenty authored operations and check legacy, incomplete and inaccessible saves.
 
-Browser QA: local HTTP + optional Playwright/installed Edge, six required sizes
-(320×568,390×844,844×390,768×1024,1440×900,3840×2160), no horizontal overflow,
-clean console, no external gameplay requests, title/live/result PNGs opened by
-the lead, real keyboard/pointer/native touch, preview→confirm, cancel, end turn,
-hack-linked door/turret, loss/retry, operation score rank-before-submit with LOCAL
-API mock only, file:// boot and DPR2 backing. Read screenshots, not just paths.
+The Playwright harness serves the game on localhost and completes the twenty
+operations consecutively through keyboard, pointer and touch orders against
+live AI. It reloads between missions and checks rank-before-submit with a local
+leaderboard stub. The first rank may be requested after the finale. Both the
+rank and submission must use the same total of twenty saved personal bests.
+Additional routes test replays and alternate endings. Separate fixtures cover
+loss/retry, storage denial and treatment.
 
-The harness now completes all eight missions through actual UI orders and live
-AI, with no tactical-state injection. Locked Manifest, Night Freight, Rooftop Crossfire and Cargo Lift use native touch for
-selection, movement, node targeting and confirmation throughout. It reloads to
-the next earned briefing, validates best-score save records, holds the first
-rank response until Next changes missions, and checks that the original score
-is still posted. A separate denied-localStorage page must stay playable and
-display its save warning. Separate loss fixtures are explicitly labelled.
-
-In addition to the opening six-size sweep, all seven added maps have title/live captures
-and native touch/raised-tile-picking/overflow/console/request checks at all six
-sizes. Campaign debrief/mastery text is checked. Evidence includes results.json
-and SHA-256 source-manifest.json in node_modules/.cache/signalbreak/browser-smoke.
-Do not confuse these legal state-informed pilots with human balance/fun evidence.
+Check every operation at 320×568, 390×844, 844×390, 768×1024, 1440×900 and
+3840×2160. Open the briefing, gameplay and result captures. Check the browser
+console, touch targets, raised-tile selection, horizontal overflow, file boot
+and DPR2. The output folder holds results.json and source-manifest.json with
+the eight runtime file hashes. Set SIGNALBREAK_SMOKE_OUT to keep a named run.
+Human play, physical-device input, audio and performance need their own evidence.
 
 Use ignored node_modules/.cache/signalbreak for evidence; Playwright can use the
 existing ignored node_modules/.cache/tidelock/browser-deps install via NODE_PATH.
@@ -349,3 +339,10 @@ checks its debrief and reloaded operation picker, then revisits Live Wire on a
 390px viewport. It waits with the last engineer until turn 9 and checks that
 the missed debrief leaves the earlier best and medal intact. Rank requests go
 to the local stub.
+
+For the visual regression, move Nia onto a Switchyard cover tile and inspect
+the casing and selected-unit cover label at 320px. In Night Freight, compare
+the train on turns 1, 3 and 4 at native scale and zoomed in. The turn-four
+board should place the carriage at East and mark just the two rear arrivals
+with paired gold chevrons. The optional objective remains open until both
+are down. Check that its live count and deadline remain visible with the map.

@@ -176,6 +176,7 @@ async function drive(page,touch=false,options={}){
     const lateRun=await drive(replay,true,{delayLastExitUntil:9});
     assert.equal(lateRun.final.turn,9);
     assert.match(await replay.locator('#copy').innerText(),/First light missed/);
+    assert((await replay.locator('#copy').innerText()).includes('Turn 8 deadline passed. Campaign best:'));
     assert.doesNotMatch(await replay.locator('#copy').innerText(),/mastery \+600/);
     await replay.reload();
     const savedOpening=await replay.evaluate(()=>JSON.parse(localStorage.getItem(SB.Campaign.key)).results['live-wire']);

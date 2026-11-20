@@ -1238,7 +1238,7 @@ showed Rear guard and 3,550 points. Full-campaign and visual review follow.
 
 The first objective-feedback comparison favored XCOM 2. At 390px, the patrol
 count and deadline sat below the board. A strip above the map now tracks this
-attempt; the operation record labels an earlier award as a saved medal. The
+attempt. The operation record labels an earlier award as a saved medal. The
 Night Freight optional objective stays open after the rear patrols enter and
 checks off only once both fall. The revised turn-four capture shows 0/2
 defeated, 0/4 aboard and turn 4/14 while the player can still see the map.
@@ -1249,7 +1249,7 @@ scoring. Their live turn-9 replay showed the expired turn-8 deadline, scored
 favored XCOM 2 for identifying individual targets on the map.
 
 Each engineer now has a distinct silhouette and kit. Switchyard cover has a
-ribbed casing; the crouching operator and selected cover readout remain
+ribbed casing. The crouching operator and selected cover readout remain
 visible together. Night Freight draws the carriage at the open platform,
 leaves the rails empty in transit, and keeps the boarding countdown readable
 at higher zoom. The art reviewer compared the originals and revisions to
@@ -1264,3 +1264,10 @@ low blue hood. Target identification passed at 320, 390 and 1440px. Default
 320px still compresses fine role details. Both reviewers favored XCOM 2 for
 overall battlefield readability and landmarks. The final browser sweep uses
 the renderer with these changes.
+
+The first complete sweep of the revised field art passed all twenty legal
+campaign wins and 120 operation/viewport checks. Reading the late Live Wire
+debrief exposed a missing sentence break before the campaign total. After the
+copy fix, a 35-order native-touch replay from the earned campaign save showed
+the turn-8 deadline and the 70,420 campaign best as separate sentences. It
+preserved the 3,400-point turn-5 medal after the 2,680-point turn-9 finish.

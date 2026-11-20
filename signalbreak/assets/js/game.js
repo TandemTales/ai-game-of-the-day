@@ -83,8 +83,14 @@
       return (i+1)+' / '+n.label+': '+(n.controlled?'DONE':alternate?'OPTIONAL':'PENDING');
     }).join(' · '):state.network?'ALLIED / DOOR OPEN':'HOSTILE / DOOR LOCKED';el('network-status').style.color=state.network?'#9be1d3':'';
     el('network-links').textContent=state.objectiveSummary||'Linked: security door · turret · lights';
-    var record=campaign.results[state.id];
-    el('mastery-goal').textContent=(record&&record.mastery?'MASTERY EARNED / ':'MASTERY / ')+(state.mastery||'Extract all four engineers in eight turns or fewer.');
+    var record=campaign.results[state.id],medal=L.masteryName(state.id),attempt=L.switchyardMastery(state);
+    var goal=state.mastery||'Extract all four engineers in eight turns or fewer.';
+    var label=record&&record.mastery?'MASTERY EARNED':'MASTERY';
+    if(attempt){
+      goal=medal+' (+600). '+goal;
+      if(mode==='playing'||mode==='end')goal+=' '+attempt.detail;
+    }
+    el('mastery-goal').textContent=label+' / '+goal;
     el('radio').textContent=state.log.slice(-2).join(' / ');
     el('preview').textContent=preview?preview.reason:mode==='playing'?selected().name+' / '+selected().ap+' AP · select a tile, then confirm.':mode==='end'?'Operation ended. Select an unlocked operation above or replay.':mode==='paused'?'Operation paused. Resume when ready.':'Choose an unlocked operation, then deploy.';
     el('confirm').disabled=mode!=='playing'||!preview||!preview.legal;el('cancel').disabled=mode!=='playing'||!preview;
@@ -148,7 +154,11 @@
       var relayFailed=state.relaySiege&&state.relaySiege.failed;
       el('title').textContent=state.phase==='won'?'Signal restored.':purged?'Archive purged.':keysFailed?'Vault sealed.':convoyEscaped?'Convoy escaped.':relayFailed?'Relay team lost.':'Signal lost.';
       el('copy').textContent=state.score.toLocaleString()+' operation points · turn '+state.turn+' · '+state.squad.filter(function(u){return u.extracted;}).length+'/4 engineers extracted.';
-      if(state.masteryEarned)el('copy').textContent+=finale?' Clean shutdown mastery +600.':' Dark-feed mastery +600.';
+      if(state.masteryEarned)el('copy').textContent+=' '+L.masteryName(state.id)+' mastery +600.';
+      else if(recorded){
+        var attempt=L.switchyardMastery(state);
+        if(attempt)el('copy').textContent+=' '+L.masteryName(state.id)+' missed. '+attempt.detail;
+      }
       var index=SB.Missions.operations.findIndex(function(m){return m.id===state.id;}),next=SB.Missions.operations[index+1];
       el('tip').textContent=state.phase==='won'?(state.debrief||state.title+' complete.')+(next?' Next: '+next.title+'.':''):purged?'The deadline expired before the evidence was copied. Replay and take the short route or hack the purge breaker to buy more time.':keysFailed?'The two keys require two living engineers. Retry and keep an operator in each wing.':convoyEscaped?'The civilian manifests are gone. HACK the brake or siding control before its deadline on the next attempt.':relayFailed?'The relay requires two living engineers. On replay, keep one on a powered pad while another hacks the relay.':'Retry the operation. Take cover, focus fire and read each circuit before advancing.';
       if(finale&&keysFailed){

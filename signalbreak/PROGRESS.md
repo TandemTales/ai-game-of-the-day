@@ -1226,3 +1226,12 @@ Record the four opening Switchyard mastery goals against the actions actually
 taken on each deployment. Show the earned medals after replay and reload,
 preserve existing v1 scores and unlocks, and verify both qualifying and missed
 goals. Review phone-scale engineer and cover readability alongside these routes.
+
+The four Switchyard medals now use the final extraction, living roster and
+authored deadlines. Rear guard counts the two named pursuers individually,
+including a delayed spawn. The HUD tracks the attempt and the operation picker
+remembers earned medals across higher or lower replays. Older scores stay intact.
+The eighteen new rules/save cases and the existing Safe Corridor save case passed.
+An Edge Night Freight run starting from a three-clear save used 47 native-touch
+orders, both rear patrol defeats and four boardings. On turn 10 its debrief
+showed Rear guard and 3,550 points. Full-campaign and visual review follow.

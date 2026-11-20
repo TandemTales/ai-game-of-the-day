@@ -22,11 +22,16 @@ async function tile(page,x,y,touch=false){
 async function plan(page,options){return page.evaluate(({source,options})=>Function('return ('+source+')')()(SB,SB.Game.getState(),options),{source:nextOrder.toString(),options});}
 async function drive(page,touch=false,options={}){
   const actions=[];let circuit='';
-  const suffix=options.cleanShutdown?'-clean':options.directArchive?'-direct':options.useSiding?'-siding':options.southRelay?'-south':options.breachService?'-service':options.sequentialEscort?'-sequential':'';
+  const suffix=options.delayLastExitUntil?'-late':options.cleanShutdown?'-clean':options.directArchive?'-direct':options.useSiding?'-siding':options.southRelay?'-south':options.breachService?'-service':options.sequentialEscort?'-sequential':'';
   const corridor=await page.evaluate(()=>!!SB.Game.getState().evacuation);
   const crossings=[];
   for(let i=0;i<350&&await page.evaluate(()=>SB.Game.getState().phase==='player');i++){
-    const p=await plan(page,options);actions.push(p);
+    let p=await plan(page,options);
+    if(options.delayLastExitUntil && p.kind==='extract' && await page.evaluate(turn=>{
+      const s=SB.Game.getState();
+      return s.turn<turn && s.squad.filter(u=>u.extracted).length===3;
+    },options.delayLastExitUntil)) p={kind:'end'};
+    actions.push(p);
     if(p.kind==='end'){
       if(touch)await page.locator('#end-turn').tap();else await page.locator('#end-turn').click();
       if(corridor){
@@ -100,6 +105,7 @@ async function drive(page,touch=false,options={}){
     let rankHeld=null;await page.route('**/api/leaderboard/rank?**',route=>{rankHeld=route;},{times:1});
     await page.goto(url+'/signalbreak/index.html');
     const operationIds=await page.evaluate(()=>SB.Missions.operations.map(m=>m.id));
+    const switchyardMedals=['First light','Prison break','Clinic lifeline','Rear guard'];
     for(const [index,id]of operationIds.entries()){
       assert.equal(await page.evaluate(()=>SB.Game.getState().id),id);
       if(index===0){await page.locator('#prep-summary').focus();await page.keyboard.press('Enter');assert.equal(await page.evaluate(()=>SB.Game.getMode()),'title');assert(await page.locator('.preparation').evaluate(e=>e.open));await page.locator('#prep-summary').click();}
@@ -111,6 +117,10 @@ async function drive(page,touch=false,options={}){
       await page.locator('.map-wrap').screenshot({path:path.join(out,id+'-briefing.png')});await page.locator('#start').click();
       assert(await page.locator('[data-gear="nia"]').isDisabled());
       const run=await drive(page,index===1||index===3||index>=4);campaignRuns.push(run);
+      if(index<switchyardMedals.length){
+        assert((await page.locator('#copy').innerText()).includes(switchyardMedals[index]+' mastery +600.'));
+        assert.match(await page.locator('#mastery-goal').innerText(),/MASTERY EARNED/);
+      }
       if(id==='safe-corridor'){
         assert.match(await page.locator('#copy').innerText(),/Dark-feed mastery \+600/);
         assert.match(await page.locator('#mastery-goal').innerText(),/MASTERY EARNED/);
@@ -138,6 +148,10 @@ async function drive(page,touch=false,options={}){
       await page.waitForTimeout(100);await page.reload();
       assert.equal(await page.evaluate(()=>SB.Game.getMode()),'title');
       const data=await page.evaluate(()=>JSON.parse(localStorage.getItem(SB.Campaign.key)));assert(data.results[id]);
+      if(index<switchyardMedals.length){
+        assert.equal(data.results[id].mastery,true);
+        assert.match(await page.locator(`[data-mission="${id}"]`).textContent(),/MASTERY/);
+      }
       if(id==='safe-corridor'){
         assert.equal(data.results[id].mastery,true);
         assert.match(await page.locator('[data-mission="safe-corridor"]').textContent(),/MASTERY/);
@@ -148,6 +162,21 @@ async function drive(page,touch=false,options={}){
     const campaignStorage=await page.context().storageState();
     const trained=await page.evaluate(()=>JSON.parse(localStorage.getItem(SB.Campaign.key)));assert.equal(trained.roster.nia.xp,operationIds.length);
     fs.writeFileSync(path.join(out,'earned-campaign.json'),JSON.stringify({campaignRuns,trained,dialogs,api},null,2));
+    const replay=await browser.newPage({viewport:{width:390,height:844},hasTouch:true,storageState:campaignStorage});
+    await replay.goto(url+'/signalbreak/index.html');
+    await replay.locator('#operation-picker summary').first().tap();
+    await replay.locator('[data-mission="live-wire"]').tap();
+    await replay.locator('#start').tap();
+    const lateRun=await drive(replay,true,{delayLastExitUntil:9});
+    assert.equal(lateRun.final.turn,9);
+    assert.match(await replay.locator('#copy').innerText(),/First light missed/);
+    assert.doesNotMatch(await replay.locator('#copy').innerText(),/mastery \+600/);
+    await replay.reload();
+    const savedOpening=await replay.evaluate(()=>JSON.parse(localStorage.getItem(SB.Campaign.key)).results['live-wire']);
+    assert.deepEqual(savedOpening,trained.results['live-wire']);
+    assert.match(await replay.locator('[data-mission="live-wire"]').textContent(),/MASTERY/);
+    assert.equal(api.length,2);
+    await replay.close();
     const archive=await browser.newPage({viewport:{width:390,height:844},hasTouch:true,storageState:campaignStorage});
     await archive.goto(url+'/signalbreak/index.html');await archive.locator('#operation-picker summary').tap();await archive.locator('[data-mission="paper-trail"]').tap();await archive.locator('#start').tap();
     const callsBeforePurge=api.length,endingBefore=await archive.locator('#ending-copy').textContent();

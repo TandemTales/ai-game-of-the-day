@@ -997,9 +997,102 @@ test('Safe Corridor saves mastery independently of best score and never grants i
  const store=memoryStorage();C.save(store,c);const saved=C.load(store).campaign;
  expect(saved.results[id]).toEqual({score:4400,turns:8,survivors:4,mastery:true});
  expect(JSON.stringify(saved.roster)).toBe(roster);expect(saved.supplies).toBe(supplies);
- results[id].mastery='true';results['live-wire'].mastery=true;
+ results[id].mastery='true';results['rooftop-crossfire'].mastery=true;
  const malformed=C.normalize({version:1,results});
- expect(malformed.results[id].mastery).toBeUndefined();expect(malformed.results['live-wire'].mastery).toBeUndefined();
+ expect(malformed.results[id].mastery).toBeUndefined();expect(malformed.results['rooftop-crossfire'].mastery).toBeUndefined();
+});
+
+describe.each([
+  ['live-wire', 'First light', 8],
+  ['locked-manifest', 'Prison break', 14],
+  ['cut-the-feed', 'Clinic lifeline', 16],
+  ['night-freight', 'Rear guard', 14]
+])('%s Switchyard mastery', (id, name, deadline) => {
+  function extractionFixture(SB, turn) {
+    const s = SB.Logic.newGame(id);
+    s.turn = turn;
+    s.rescued = true;
+    s.network = true;
+    for (const circuit of s.circuits || []) {
+      circuit.controlled = circuit.id !== 'prison';
+      circuit.scored = true;
+    }
+    for (const rear of s.ambush?.enemies || []) s.enemies.push({...rear, hp: 0});
+    for (const unit of s.squad.slice(0, 3)) unit.extracted = true;
+    const tile = SB.Logic.extractionStatus(s).tiles[0];
+    Object.assign(s.squad[3], tile);
+    return s;
+  }
+  function extractLast(L, s) {
+    const last = s.squad[3];
+    return order(L, s, last.id, 'extract', last.x, last.y);
+  }
+
+  test('the final legal extraction on the deadline awards the bonus exactly once', () => {
+    const SB = load(), L = SB.Logic, s = extractionFixture(SB, deadline);
+    const snapshot = JSON.stringify(s);
+    expect(L.masteryName(id)).toBe(name);
+    expect(L.switchyardMastery(s)).toMatchObject({eligible: true, complete: false});
+    expect(JSON.stringify(s)).toBe(snapshot);
+    const last = extractLast(L, s);
+    expect(L.switchyardMastery(s).complete).toBe(true);
+    expect(s.masteryEarned).toBe(true);
+    const score = 1000 + (20 - deadline) * 30 + 600;
+    expect(s.score).toBe(score);
+    expect(L.commit(s, last)).toBe(false);
+    L.endTurn(s);
+    expect(s.score).toBe(score);
+  });
+  test.each(['late', 'casualty'])('%s victory completes the operation without the medal', reason => {
+    const SB = load(), L = SB.Logic;
+    // Turn 15 is in transit. The first late Night Freight boarding is turn 16.
+    const lateTurn = deadline + (id === 'night-freight' ? 2 : 1);
+    const s = extractionFixture(SB, reason === 'late' ? lateTurn : deadline);
+    if (reason === 'casualty') Object.assign(s.squad[0], {hp: 0, extracted: false});
+    expect(L.switchyardMastery(s).eligible).toBe(false);
+    extractLast(L, s);
+    expect(s.phase).toBe('won');
+    expect(s.masteryEarned).toBeUndefined();
+    expect(s.score).toBe((reason === 'late' ? 4 : 3) * 250 + (20 - s.turn) * 30);
+  });
+  test('a lower replay earns the medal independently and preserves legacy score, roster and supplies', () => {
+    const SB = load(), C = SB.Campaign;
+    const results = Object.fromEntries(SB.Missions.operations.map(m => [m.id, {score: 6000, turns: 3, survivors: 4}]));
+    const c = C.normalize({version: 1, results, selected: id}), store = memoryStorage();
+    const roster = JSON.stringify(c.roster), supplies = c.supplies;
+    expect(c.results[id].mastery).toBeUndefined();
+    const win = extractionFixture(SB, deadline);
+    extractLast(SB.Logic, win);
+    expect(C.complete(c, win)).toBe(true);
+    expect(c.results[id]).toEqual({...results[id], mastery: true});
+    const higher = fixtureWin(SB, id);
+    higher.score = 6200;
+    expect(C.complete(c, higher)).toBe(true);
+    C.save(store, c);
+    const saved = C.load(store).campaign;
+    expect(saved.results[id]).toEqual({score: 6200, turns: 8, survivors: 4, mastery: true});
+    expect(JSON.stringify(saved.roster)).toBe(roster);
+    expect(saved.supplies).toBe(supplies);
+  });
+});
+
+test.each(['blocked entry', 'surviving interceptor'])('Night Freight requires both rear patrol defeats even after a %s', obstacle => {
+  const {Logic: L} = load(), s = L.newGame('night-freight');
+  s.turn = 14;
+  s.rescued = true;
+  s.circuits[0].controlled = true;
+  s.squad.slice(0, 3).forEach(unit => unit.extracted = true);
+  s.enemies.forEach(enemy => enemy.hp = 0);
+  s.enemies.push({...s.ambush.enemies[0], hp: 0});
+  if (obstacle === 'surviving interceptor') s.enemies.push({...s.ambush.enemies[1]});
+  s.kills = 10;
+  const last = s.squad[3], tile = L.extractionStatus(s).tiles[0];
+  Object.assign(last, tile);
+  expect(L.switchyardMastery(s).detail).toContain('1/2');
+  order(L, s, last.id, 'extract', tile.x, tile.y);
+  expect(s.phase).toBe('won');
+  expect(s.masteryEarned).toBeUndefined();
+  expect(L.switchyardMastery(s).eligible).toBe(false);
 });
 
 test.each([false,true])('core shutdown can be earned with base stats, clean shutdown %s',cleanShutdown=>{

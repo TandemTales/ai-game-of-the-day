@@ -769,6 +769,41 @@
     log(s, label + ' · ' + amount + ' damage' + (!target.hp ? ' · down' : ''), 'attack');
     if (!target.hp && s.enemies.indexOf(target) !== -1) { s.kills++; s.score += 150; }
   }
+  var medals = {
+    'live-wire': { name: 'First light', deadline: 8 },
+    'locked-manifest': { name: 'Prison break', deadline: 14 },
+    'cut-the-feed': { name: 'Clinic lifeline', deadline: 16 },
+    'night-freight': { name: 'Rear guard', deadline: 14 },
+    'safe-corridor': { name: 'Dark-feed' },
+    'signalbreak': { name: 'Clean shutdown' }
+  };
+  function masteryName(id) {
+    return Object.prototype.hasOwnProperty.call(medals, id) ? medals[id].name : null;
+  }
+  function switchyardMastery(s) {
+    var medal = medals[s.id];
+    if (!medal || !medal.deadline) return null;
+    if (s.squad.filter(function (u) { return u.hp > 0; }).length !== 4) {
+      return { eligible: false, complete: false, detail: 'Missed this run · engineer down' };
+    }
+    if (s.turn > medal.deadline) {
+      return { eligible: false, complete: false, detail: 'Missed this run · turn ' + medal.deadline + ' deadline passed' };
+    }
+    var extracted = s.squad.filter(function (u) { return u.extracted; }).length;
+    var complete = extracted === 4 && s.rescued && networkReady(s);
+    var status = [];
+    if (s.ambush) {
+      // Entry tiles may be occupied on turn four. An absent patrol still has to be defeated.
+      var defeated = s.ambush.enemies.filter(function (entry) {
+        return s.enemies.some(function (e) { return e.id === entry.id && e.hp === 0; });
+      }).length;
+      complete = complete && defeated === s.ambush.enemies.length;
+      status.push(defeated + '/' + s.ambush.enemies.length + ' rear patrols defeated');
+    }
+    status.push(extracted + '/4 ' + (s.freight ? 'aboard' : 'extracted'));
+    status.push('turn ' + s.turn + '/' + medal.deadline);
+    return { eligible: complete || s.phase !== 'won' && s.phase !== 'lost', complete: complete, detail: status.join(' · ') };
+  }
   function outcome(s) {
     if (s.phase === 'won' || s.phase === 'lost') return;
     if (!s.squad.some(function (u) { return u.hp > 0; })) { s.phase = 'lost'; log(s, 'Signal lost. The squad is down.', 'lost'); }
@@ -784,10 +819,12 @@
     else if (s.squad.every(function (u) { return u.hp <= 0 || u.extracted; })) {
       s.phase = 'won'; s.score += s.squad.filter(function (u) { return u.extracted; }).length * 250 + Math.max(0, 20 - s.turn) * 30;
       var allExtracted = s.squad.length === 4 && s.squad.every(function (u) { return u.hp > 0 && u.extracted; });
-      var medal = '';
+      var switchyard = switchyardMastery(s);
+      var earned = switchyard && switchyard.complete;
       if (allExtracted && s.id === 'safe-corridor' && s.turn <= 15 && evacuationStatus(s).done &&
-          !s.circuits.some(function (c) { return c.id === 'street-feed' && (c.controlled || c.scored); })) medal = 'Dark-feed';
-      if (allExtracted && s.id === 'signalbreak' && !s.laneHit && s.keyPair.opened && s.rescued && networkReady(s)) medal = 'Clean shutdown';
+          !s.circuits.some(function (c) { return c.id === 'street-feed' && (c.controlled || c.scored); })) earned = true;
+      if (allExtracted && s.id === 'signalbreak' && !s.laneHit && s.keyPair.opened && s.rescued && networkReady(s)) earned = true;
+      var medal = earned && masteryName(s.id);
       if (medal) {
         s.masteryEarned = true;
         s.score += 600;
@@ -929,6 +966,7 @@
   }
   SB.Logic = { newGame: newGame, tile: tile, height: height, unit: unit, living: living, occupant: occupant,
     blocked: blocked, canStep: canStep, path: path, visible: visible, lit: lit, detected: detected, cover: cover, damage: damage, preview: preview, commit: commit, endTurn: endTurn,
+    masteryName: masteryName, switchyardMastery: switchyardMastery,
     waterStatus: waterStatus, waterRouteAt: waterRouteAt, liftAt: liftAt, liftStatus: liftStatus, liftControlAt: liftControlAt, defenseStatus: defenseStatus, pumpStatus: pumpStatus, keyPairStatus: keyPairStatus, archiveStatus: archiveStatus, activeLane: activeLane,
     circuitAt: circuitAt, doorOpen: doorOpen, objectiveStatus: objectiveStatus, turretAllied: turretAllied, extractionStatus: extractionStatus, broadcastStatus: broadcastStatus, convoyStatus: convoyStatus, relaySiegeStatus: relaySiegeStatus, evacuationStatus: evacuationStatus };
 })(window);

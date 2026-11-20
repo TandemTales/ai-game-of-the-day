@@ -60,10 +60,19 @@ explicit user approval; time/usage limits are not approval.
 Mission-boundary local saves, sequential unlocks and replay best scores now exist
 for all twenty implemented missions. Squad progression, equipment and injury
 recovery are implemented. Authored mastery targets appear in the HUD.
-Safe Corridor and Signalbreak record their medals independently of the best
-operation score. The first eighteen operations still have untracked targets.
+Switchyard operations 01–04, Safe Corridor and Signalbreak record medals
+independently of the best operation score. Operations 05–18 have untracked targets.
 Story debriefs appear on victory. The clinic is a protected prerequisite, not yet
 a simulated supply economy. FIRST PLAYABLE remains visible throughout.
+
+Each Switchyard medal adds 600 points on the final extraction. First light
+requires all four engineers out by turn 8. Prison break requires the registrar
+and all four out by turn 14. Clinic lifeline requires the clinic supply and all
+four out by turn 16. Rear guard requires the dispatcher, both rear pursuit
+patrols defeated, and all four aboard by turn 14. A blocked patrol entry still
+counts as outstanding. The operation can be won with a missed medal. A replay
+can earn a medal beneath an existing best. Legacy saves keep their records
+and must earn these new medals in play.
 
 ## Twenty-operation campaign contract
 

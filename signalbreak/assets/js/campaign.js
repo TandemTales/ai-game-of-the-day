@@ -33,7 +33,7 @@
           !Number.isSafeInteger(r.survivors) || r.survivors < 1 || r.survivors > 4) break;
       var id = list[i].id;
       c.results[id] = { score: r.score, turns: r.turns, survivors: r.survivors };
-      if ((id === 'safe-corridor' || id === 'signalbreak') && own(r, 'mastery') && r.mastery === true) c.results[id].mastery = true;
+      if (SB.Logic.masteryName(id) && own(r, 'mastery') && r.mastery === true) c.results[id].mastery = true;
       if (id === 'open-clinic' && own(r, 'intactStaff') && r.intactStaff === true) c.results[id].intactStaff = true;
       if (id === 'paper-trail' && own(r, 'authenticatedLedger') && r.authenticatedLedger === true) c.results[id].authenticatedLedger = true;
       if (id === 'signalbreak' && own(r, 'ending') && r.ending && typeof r.ending.clinic === 'boolean' && typeof r.ending.archive === 'boolean') {
@@ -173,7 +173,7 @@
     if (!previous || state.score > previous.score) clean.results[state.id] = { score: state.score, turns: state.turn, survivors: survivors };
     // A replay can earn support or mastery independently of the score record.
     var result = clean.results[state.id];
-    if ((state.id === 'safe-corridor' || state.id === 'signalbreak') && (state.masteryEarned === true || previous && previous.mastery)) {
+    if (SB.Logic.masteryName(state.id) && (state.masteryEarned === true || previous && previous.mastery)) {
       result.mastery = true;
     }
     if (state.id === 'signalbreak') {

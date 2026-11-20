@@ -335,3 +335,17 @@ six sizes and compare the initial and alternate epilogues.
 When a legal move ends on a hackable circuit, tap it immediately after selecting
 the engineer and verify that the default order is Hack. Cancel, explicitly
 select Move, tap the same tile, confirm, and continue the actual-UI route.
+
+## November 19 Pacific — Switchyard mastery
+
+The rules suite checks all four inclusive deadlines, late and casualty wins,
+final-extraction scoring and repeated confirmations. Night Freight covers
+blocked and surviving rear reinforcements independently of overall kills.
+Save tests load old v1 records without medals, earn each on a lower replay,
+and retain it beside a higher score through save and reload.
+
+The localhost browser pilot earns each named medal in the opening campaign,
+checks its debrief and reloaded operation picker, then revisits Live Wire on a
+390px viewport. It waits with the last engineer until turn 9 and checks that
+the missed debrief leaves the earlier best and medal intact. Rank requests go
+to the local stub.

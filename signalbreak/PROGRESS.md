@@ -1297,3 +1297,11 @@ Then continue through 09–18. Six operations currently save medals. Switchyard
 landmarks and phone-scale squad detail remain below the visual target. Human
 play, physical devices, listening and performance remain unverified.
 Signalbreak stays a first playable on dev. Production is still at 69400b9.
+
+## November 20 Pacific — Vertical Market intent
+
+Track the four authored Vertical Market medals from actual deployment events.
+Expose progress during play, preserve legacy scores and independently earned
+medals on replay, and verify the stair, lift, ward and lane paths in the browser.
+Review the readability of these objectives on the tactical map. Friday is a
+development run on dev. Operations 09–18 still need their mastery awards.

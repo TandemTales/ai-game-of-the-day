@@ -130,6 +130,7 @@
     }
     var reachable=view.reachable||{}, boarding=s.freight&&L.extractionStatus(s);
     var lift=s.lift, bridge=lift&&lift.kind==='bridge', breach=lift&&lift.kind==='breach';
+    var marketRoof=s.id==='rooftop-crossfire', cargoLift=s.id==='cargo-lift';
     var liftInfo=lift&&L.liftStatus(s),liftStop=lift&&lift.stops[liftInfo.position],liftPower=liftInfo&&liftInfo.powered;
     var breachFloors=breach&&[
       {floor:'#494740',panel:'#555149',side:'#2a2b2a',face:'#3a3934',wall:'#756f60',cover:'#917f62',detail:'#c3a681'},
@@ -139,6 +140,107 @@
     var breachNodes={'breach-hoist':'P','breach-interlock':'I','breach-command':'C'};
     function shaftHere(x,y){return lift&&!bridge&&!breach&&x>=8&&x<=14&&y>0&&y<s.height-1;}
     function platformHere(x,y){return liftStop&&x>=liftStop.x&&x<liftStop.x+lift.size&&y>=liftStop.y&&y<liftStop.y+lift.size;}
+    function chartLine(p,q,ink,weight){
+      c.strokeStyle=ink;c.lineWidth=weight;c.beginPath();c.moveTo(p.x,p.y);c.lineTo(q.x,q.y);c.stroke();
+    }
+    function chartFace(points,ink){
+      c.fillStyle=ink;c.beginPath();c.moveTo(points[0].x,points[0].y);
+      for(var i=1;i<points.length;i++)c.lineTo(points[i].x,points[i].y);
+      c.closePath();c.fill();
+    }
+    function stallAwning(x,y){
+      // The canvas roofing sits on the solid kiosk walls.
+      var z=L.height(s,x,y),warm= y<6;
+      function roof(dx,dy,rise){return P.point(x+dx,y+dy,z+rise);}
+      for(var stripe=0;stripe<2;stripe++){
+        var left=-.5+stripe*.5,right=left+.5;
+        chartFace([roof(left,-.48,1.18),roof(right,-.48,1.18),roof(right,.47,.71),roof(left,.47,.71)],
+          stripe?(warm?'#dfb992':'#a6c7bb'):(warm?'#b86b53':'#477b78'));
+        chartFace([roof(left,.47,.71),roof(right,.47,.71),roof(right-.05,.47,.42),
+          roof(left+.12,.47,.38),roof(left,.47,.48)],stripe?'#a7a68b':warm?'#824c46':'#345e61');
+      }
+    }
+    function marketStair(stair){
+      var low=L.height(s,stair.x,stair.y),high=L.height(s,stair.toX,stair.toY);
+      var open=!L.blocked(s,stair.toX,stair.toY);
+      var ink=stair.used?'#96e1cb':open?'#ffda95':'#d29d90';
+      function edge(step,side){return P.point(stair.x+(stair.toX-stair.x)*step,stair.y+side,low+(high-low)*step);}
+      chartFace([edge(0,-.41),edge(1,-.41),edge(1,.41),edge(0,.41)],'#273738');
+      for(var tread=0;tread<=4;tread++)chartLine(edge(tread/4,-.39),edge(tread/4,.39),ink,Math.max(.8,a*.083));
+      chartLine(edge(0,-.42),edge(1,-.42),ink,Math.max(1,a*.10));
+    }
+    function marketSign(foot,anchor,label,ink,below){
+      var scale=Math.min(d,2);
+      var size=Math.max(10*scale,Math.min(15*scale,a*.72)),padding=4*scale;
+      c.font='700 '+size+'px system-ui';
+      var wide=c.measureText(label).width+2*padding,high=size+6*scale;
+      if(foot.x<0||foot.x>w||foot.y<0||foot.y>h)return;
+      var left=Math.max(2*scale,Math.min(w-wide-2*scale,anchor.x-wide/2));
+      var top=Math.max(2*scale,Math.min(h-high-2*scale,below?anchor.y:anchor.y-high));
+      var end={x:left+wide/2,y:below?top:top+high};
+      chartLine(foot,end,'#10242c',Math.max(2*scale,a*.15));
+      chartLine(foot,end,ink,Math.max(.85*scale,a*.058));
+      c.beginPath();c.ellipse(foot.x,foot.y,Math.max(2.4*scale,a*.34),Math.max(1.65*scale,b*.41),0,0,2*Math.PI);
+      c.strokeStyle='#14222b';c.lineWidth=Math.max(2.5*scale,a*.17);c.stroke();
+      c.strokeStyle=ink;c.lineWidth=Math.max(scale,a*.075);c.stroke();
+      c.fillStyle='#13242d';c.fillRect(left,top,wide,high);
+      c.fillStyle=ink;c.fillRect(left,top,2*scale,high);c.fillText(label,left+padding,top+size+2*scale);
+    }
+    function stairSign(stair,index){
+      var north=index===0,open=!L.blocked(s,stair.toX,stair.toY);
+      var ink=stair.used?'#9fe6ce':open?'#ffe1a5':'#ffc4aa';
+      var label=(north?'N ':'S ')+(stair.used?'✓':open?'OPEN':'LOCKED');
+      var foot=P.point(stair.x,stair.y,L.height(s,stair.x,stair.y));
+      var anchor=north?P.point(stair.x,-1,2.9):P.point(stair.x,s.height+1,0);
+      marketSign(foot,anchor,label,ink,!north);
+    }
+    function drawMarketSigns(){
+      // Screen-space leaders cross raised parapets. Mask the figures and their
+      // vitals so the route annotations always pass behind squad and patrol.
+      c.save();
+      s.squad.concat(s.enemies).filter(L.living).forEach(function(actor){
+        var pos=P.point(actor.x,actor.y,L.height(s,actor.x,actor.y));
+        c.beginPath();c.rect(0,0,w,h);c.rect(pos.x-a*.71,pos.y-a*2.2,a*1.42,a*2.34);
+        c.clip('evenodd');
+      });
+      if(marketRoof)s.stairs.forEach(stairSign);
+      else{
+        var trolleyPin=P.point(liftStop.x+.52,liftStop.y-.52,liftStop.z+2.4);
+        var count=liftInfo.passengers;
+        marketSign(trolleyPin,P.point(liftStop.x+.5,-.8,liftStop.z+3.4),'LIFT '+count+'/4',
+          count===4?'#a6f0d3':liftPower?'#ffe1a5':'#d3c2a9');
+      }
+      c.restore();
+    }
+    function cargoHoist(){
+      var lower=lift.stops[0],upper=lift.stops[1],side=-.52;
+      // A fixed inclined truss carries a trolley directly over the current deck.
+      function rail(stop,extra){return P.point(stop.x+.52,stop.y+side,stop.z+extra);}
+      function spanPoint(t,extra){return P.point(lower.x+.52+(upper.x-lower.x)*t,
+        lower.y+side+(upper.y-lower.y)*t,lower.z+(upper.z-lower.z)*t+extra);}
+      var lo=rail(lower,3.5),hi=rail(upper,3.5),baseLo=rail(lower,2.4),baseHi=rail(upper,2.4);
+      chartLine(rail(lower,0),lo,'#af9171',Math.max(1.2,a*.15));
+      chartLine(rail(upper,0),hi,'#af9171',Math.max(1.2,a*.15));
+      chartFace([lo,hi,baseHi,baseLo],'#333733');
+      for(var span=0;span<5;span++){
+        chartLine(spanPoint(span/5,span%2?3.5:2.4),spanPoint((span+1)/5,span%2?2.4:3.5),
+          '#c39558',Math.max(1,a*.11));
+      }
+      chartLine(lo,hi,'#c5a373',Math.max(1.5,a*.14));
+      chartLine(baseLo,baseHi,'#927c61',Math.max(1,a*.10));
+      var trolley=rail(liftStop,2.4),hub=rail(liftStop,.23);
+      chartLine(trolley,hub,'#e3cba0',Math.max(.8,a*.075));
+      c.fillStyle='#413e3a';c.strokeStyle='#d2b483';c.lineWidth=Math.max(1,a*.09);
+      c.beginPath();c.arc(trolley.x,trolley.y,Math.max(2,a*.24),0,Math.PI*2);c.fill();c.stroke();
+      // A continuous rim joins the four load cells. The apron remains visible
+      // when four engineers are standing over their painted boarding marks.
+      var far=lift.size-.5;
+      function rim(x,y,drop){return P.point(liftStop.x+x,liftStop.y+y,liftStop.z+drop);}
+      var front=rim(far,far,0),left=rim(-.5,far,0),right=rim(far,-.5,0);
+      chartFace([left,front,rim(far,far,-.56),rim(-.5,far,-.56)],'#66533f');
+      chartFace([front,right,rim(far,-.5,-.56),rim(far,far,-.56)],'#82684a');
+      chartLine(left,front,'#ffdda3',Math.max(1,a*.12));chartLine(front,right,'#efd39c',Math.max(1,a*.12));
+    }
     function breachDockInk(index){
       if(index===2&&!liftInfo.topUnlocked)return '#f6a28e';
       if(liftInfo.position===index&&liftPower)return '#ffe1a1';
@@ -505,6 +607,8 @@
     for(var y=0;y<s.height;y++)for(var x=0;x<s.width;x++) {
       var t=L.tile(s,x,y),z=L.height(s,x,y),p,palette=breachFloors&&breachFloors[z];
       var floor=x<8?((x*7+y*3)%4?'#30414a':'#374b53'):((x+y)%3?'#263e49':'#2d4650');
+      if(marketRoof)floor=z?((y%3)?'#5b6866':'#64706a'):((x+y)%3?'#504b47':'#605751');
+      if(cargoLift)floor=z?((x+y)%3?'#4c6868':'#587571'):((x+y)%3?'#554e45':'#635b4b');
       if(s.defense&&x>=8&&x<=15&&y>=2&&y<=6&&t!=='#')floor=(x+y)%2?'#576965':'#4b605f';
       if(!finale&&s.lanes&&x>=10&&x<=15&&y>=3&&y<=10&&t!=='#')floor=(x+y)%2?'#43525b':'#354953';
       if(finale&&t!=='#'){
@@ -535,6 +639,9 @@
       if(breach&&platformHere(x,y))floor=liftPower?'#6f613e':'#484438';
       if(t==='e')floor=boarding?(boardingHere(x,y)?'#797044':'#293c49'):'#255c5b';
       p=z?block(x,y,z,floor,palette?palette.side:'#172c36',palette?palette.face:'#203640',0):diamond(x,y,0,floor,'#162c37');
+      if(marketRoof&&z&&t==='.'&&y%3===0){
+        chartLine(P.point(x-.5,y-.42,z),P.point(x+.5,y-.42,z),'#a8b6a64f',Math.max(.65,a*.058));
+      }
       if(evacuation&&x>=18&&t!=='#'){
         c.strokeStyle='#b6b79c88';c.lineWidth=Math.max(.55,a*.045);c.beginPath();
         var plankA=P.point(x-.32,y-.5),plankB=P.point(x-.32,y+.5);
@@ -683,14 +790,11 @@
           c.strokeStyle='#c3ae7955';c.lineWidth=Math.max(.7,a*.035);c.setLineDash([a*.12,a*.28]);
           c.beginPath();c.moveTo(start.x,start.y);c.lineTo(end.x,end.y);c.stroke();c.setLineDash([]);
         });
-      }else [[0,0],[lift.size-1,lift.size-1]].forEach(function(offset){
-        var q=P.point(liftStop.x+offset[0],liftStop.y+offset[1],liftStop.z);
-        c.strokeStyle='#a3b1aa88';c.lineWidth=Math.max(1,a*.05);c.beginPath();c.moveTo(q.x,q.y);c.lineTo(q.x,q.y-a*2.8);c.stroke();
-        c.fillStyle='#f0ce86';c.fillRect(q.x-a*.08,q.y-a*.3,a*.16,a*.3);
-      });
+      }else cargoHoist();
       c.fillStyle=liftPower?'#ffe1a1':'#bcc7c6';c.font=Math.max(11*Math.min(d,2),w/100)+'px system-ui';
       c.fillText((bridge?'BRIDGE ':'POWER ')+(liftPower?'ON / ':'OFF / ')+liftStop.label,16*Math.min(d,2),h-62*Math.min(d,2));
-      c.fillText(bridge?'HACK deck/console / 1 AP / return trips':'HACK, then deck/console / 1 AP',16*Math.min(d,2),h-42*Math.min(d,2));
+      var dispatch=bridge?'HACK deck/console / 1 AP / return trips':!liftPower?'HACK the hoist relay':!s.rescued?'Rescue the operator to load the medicine':'HACK deck or console / 1 AP';
+      c.fillText(dispatch,16*Math.min(d,2),h-42*Math.min(d,2));
     }
     if(s.water){
       c.fillStyle='#aedbe0';c.font=Math.max(11*Math.min(d,2),w/110)+'px system-ui';
@@ -700,13 +804,14 @@
     }
     // Stair edges are the only legal roof-level transitions; draw their exact
     // endpoints above the floor so the route matches the movement preview.
-    (s.climbLinks||[]).forEach(function(link){
+    if(marketRoof)s.stairs.forEach(marketStair);
+    else (s.climbLinks||[]).forEach(function(link){
       var p=P.point(link.from.x,link.from.y,L.height(s,link.from.x,link.from.y));
       var q=P.point(link.to.x,link.to.y,L.height(s,link.to.x,link.to.y));
       c.strokeStyle='#ffe1a1';c.lineWidth=Math.max(2,a*.13);c.beginPath();c.moveTo(p.x,p.y);c.lineTo(q.x,q.y);c.stroke();
       [p,q].forEach(function(r){c.beginPath();c.arc(r.x,r.y,a*.17,0,Math.PI*2);c.fillStyle='#ffe1a1';c.fill();});
     });
-    if(s.climbLinks&&s.climbLinks.length&&!stairsHintOnTop)stairHint(false);
+    if(!marketRoof&&s.climbLinks&&s.climbLinks.length&&!stairsHintOnTop)stairHint(false);
     if(s.ambush)s.ambush.enemies.forEach(function(e){
       if(s.ambush.deployed&&s.ambush.deployed[e.id])return;
       var p=P.point(e.x,e.y);diamond(e.x,e.y,0,'#743f3c','#ef9c7c');c.fillStyle='#ffd0a0';c.font=Math.max(9,a*.5)+'px system-ui';c.textAlign='center';c.fillText('! '+s.ambush.turn,p.x,p.y-a*.25);c.textAlign='start';
@@ -734,6 +839,7 @@
         var height=(y===s.height-1||x===s.width-1)?0.35:x===8?1.25:0.7;
         var q=block(x,y,height,palette?palette.wall:'#566770',palette?palette.side:'#243640',palette?palette.face:'#33464f');
         c.strokeStyle='#90a2a944';c.lineWidth=a*.04;c.beginPath();c.moveTo(q.x-a*.7,q.y);c.lineTo(q.x+a*.5,q.y-b*.45);c.stroke();
+        if(marketRoof&&x>=4&&x<=6&&(y===3||y===6))stallAwning(x,y);
       }
       if(t==='c'&&archiveDistrict)archiveShelf(x,y,p);
       else if(t==='c'&&s.district==='Switchyard'){
@@ -841,6 +947,7 @@
         if(friendly){c.fillStyle=actor.watch?'#f2d99a':'#b5e6df';for(var i=0;i<actor.ap;i++){c.beginPath();c.arc(p.x-a*.13+i*a*.26,barY-a*.19,a*.07,0,Math.PI*2);c.fill();}}
       }
     }
+    if(marketRoof||cargoLift)drawMarketSigns();
     // Keep each mastery target's chevrons visible above its current tile,
     // including when one rear patrol moves behind ordinary yard personnel.
     if(boarding)s.ambush.enemies.forEach(function(entry){

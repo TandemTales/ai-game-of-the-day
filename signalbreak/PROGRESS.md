@@ -1328,3 +1328,17 @@ previously earned campaign save: 4,020 / 3,960 / 3,930 / 3,960 points. The
 subsequent exposed Antenna replay scored 3,360 and kept the 3,960 medal record
 through reload. All 159 Signalbreak Jest cases passed. The critic still favored
 XCOM 2 for character and terrain recognition. A fresh campaign sweep is running.
+
+Rooftop Crossfire now has market awnings, striped roof seams and signs that
+point to each usable stair. The signs change as the relay opens the gate and
+engineers cross the actual links. Cargo Lift shows the inclined rail, moving
+trolley, platform rim and current rider count. A first art review found the
+perimeter wall interrupted the lines connecting the labels to their targets.
+The revised lines cross the wall, circle the landing and leave actors visible.
+
+The independent art reviewer passed stair identification and lift occupancy at
+320, 390 and 1440px against desktop and iPhone XCOM 2 frames. Four riders still
+look crowded at 320px. Both reviewers favored XCOM 2 for overall terrain,
+silhouettes and framing. The desktop and mobile references come from the
+[Feral manual](https://www.feralinteractive.com/en/manuals/xcom2/latest/steam/)
+and the [XCOM 2 Collection listing](https://apps.apple.com/us/app/xcom-2-collection/id1288508230).

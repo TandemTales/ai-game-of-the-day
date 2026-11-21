@@ -1342,3 +1342,32 @@ look crowded at 320px. Both reviewers favored XCOM 2 for overall terrain,
 silhouettes and framing. The desktop and mobile references come from the
 [Feral manual](https://www.feralinteractive.com/en/manuals/xcom2/latest/steam/)
 and the [XCOM 2 Collection listing](https://apps.apple.com/us/app/xcom-2-collection/id1288508230).
+
+## November 20 Pacific — verified handoff
+
+Runtime b901963 passed all 666 Jest tests in 31 suites, including all 159
+Signalbreak cases. The final localhost Edge run cleared all 20 operations
+consecutively through player controls against the live AI. All four engineers
+extracted on every operation. The four new medals were earned on turns 6, 8,
+9 and 8. The first campaign total was 72,820 on both the local rank GET and
+submission POST. On the 390px Antenna replay a lane hit cost the medal for that
+attempt. The replay scored 3,360. Reload preserved the earlier 3,960 best and medal.
+A supported clean finale subsequently raised the campaign best to 73,420.
+
+The six-size sweep passed all 120 operation/viewport combinations with clean
+console and horizontal overflow checks. Keyboard, touch, pause/resume, file
+boot, DPR2, storage denial, campaign save and the alternate routes also passed.
+The final eight runtime SHA-256 values match the manifest generated at
+07:29:19 UTC on November 21 in node_modules/.cache/signalbreak/market-final.
+Reviewed the four Market briefings and boards at all six sizes, earned and
+missed debriefs, the final epilogue and the two reviewers' comparisons.
+Wider comparison sheets are downsampled. At 320px the briefing scrolls to
+Deploy. Order buttons also require scrolling and the four riders occupy a
+small cluster. Wider layouts leave unused space below the battlefield.
+
+Ten of twenty operations now save medals. For the next development run, start
+with Floodworks 09–12: patrol defeats, the staffed return crossing, the service
+bypass and uninterrupted pump pressure. Then continue through 13–18. Human
+play, physical devices, listening and performance remain open. Signalbreak
+keeps its FIRST PLAYABLE designation. Friday's changes are on dev. Production
+main is still at 69400b9.

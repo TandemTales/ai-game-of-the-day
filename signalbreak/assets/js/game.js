@@ -66,6 +66,10 @@
     }
   }
   function hud(){
+    // The briefing and pause screen retain the campaign record and loadouts.
+    // During orders, give that vertical space to the map and field team.
+    document.querySelector('.campaign').hidden=mode==='playing';
+    document.querySelector('.preparation').hidden=mode==='playing';
     panel.classList.toggle('epilogue',mode==='end'&&state.id==='signalbreak'&&state.phase==='won');
     el('turn').textContent=String(state.turn).padStart(2,'0');el('score').textContent=state.score.toLocaleString();
     el('phase').textContent=mode==='playing'?'YOUR TURN':mode==='paused'?'PAUSED':state.phase==='won'?'EXTRACTED':mode==='title'?'AWAITING DEPLOY':'SIGNAL LOST';
@@ -83,7 +87,7 @@
       return (i+1)+' / '+n.label+': '+(n.controlled?'DONE':alternate?'OPTIONAL':'PENDING');
     }).join(' · '):state.network?'ALLIED / DOOR OPEN':'HOSTILE / DOOR LOCKED';el('network-status').style.color=state.network?'#9be1d3':'';
     el('network-links').textContent=state.objectiveSummary||'Linked: security door · turret · lights';
-    var record=campaign.results[state.id],medal=L.masteryName(state.id),attempt=L.switchyardMastery(state);
+    var record=campaign.results[state.id],medal=L.masteryName(state.id),attempt=L.masteryStatus(state);
     var goal=state.mastery||'Extract all four engineers in eight turns or fewer.';
     var label=record&&record.mastery?'MASTERY EARNED':'MASTERY';
     el('field-mastery').hidden=!attempt||mode!=='playing';
@@ -159,7 +163,7 @@
       el('copy').textContent=state.score.toLocaleString()+' operation points · turn '+state.turn+' · '+state.squad.filter(function(u){return u.extracted;}).length+'/4 engineers extracted.';
       if(state.masteryEarned)el('copy').textContent+=' '+L.masteryName(state.id)+' mastery +600.';
       else if(recorded){
-        var attempt=L.switchyardMastery(state);
+        var attempt=L.masteryStatus(state);
         if(attempt)el('copy').textContent+=' '+L.masteryName(state.id)+' missed. '+attempt.detail+'.';
       }
       var index=SB.Missions.operations.findIndex(function(m){return m.id===state.id;}),next=SB.Missions.operations[index+1];

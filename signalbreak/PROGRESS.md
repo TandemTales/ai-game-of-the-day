@@ -1305,3 +1305,26 @@ Expose progress during play, preserve legacy scores and independently earned
 medals on replay, and verify the stair, lift, ward and lane paths in the browser.
 Review the readability of these objectives on the tactical map. Friday is a
 development run on dev. Operations 09–18 still need their mastery awards.
+
+Twin approaches, Full lift, Ward keeper and Clear frequency now award 600
+points on a qualifying final extraction. A lower-scoring replay can earn a
+medal beside a higher saved score. Landing on a stair without crossing it
+does not count. An empty first ascent stays empty in the record, and a healed
+lane injury still counts as a hit. A preview reports when a partial lift load
+would forfeit the medal.
+
+The rules worker's 390px touch replays from an earned save cleared the four
+operations on turns 6, 8, 9 and 8. The first three earned their medals; the
+fourth took a lane hit and scored 3,360. The first independent review favored
+XCOM 2 for identifying the threatened engineer and next clinic shield. The
+field strip now names exposed engineers and the uncovered ward. The campaign
+record and preparation panels move out of the way while issuing orders and
+return on pause. Final campaign, viewport and comparison results follow.
+
+The independent rules critic passed the revised ward/engineer warnings and
+live-turn layout at 320, 390 and 1440px against Feral's XCOM 2 references.
+All four medals were earned on separate 390px native-touch replays from a
+previously earned campaign save: 4,020 / 3,960 / 3,930 / 3,960 points. The
+subsequent exposed Antenna replay scored 3,360 and kept the 3,960 medal record
+through reload. All 159 Signalbreak Jest cases passed. The critic still favored
+XCOM 2 for character and terrain recognition. A fresh campaign sweep is running.

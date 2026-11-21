@@ -22,7 +22,7 @@ async function tile(page,x,y,touch=false){
 async function plan(page,options){return page.evaluate(({source,options})=>Function('return ('+source+')')()(SB,SB.Game.getState(),options),{source:nextOrder.toString(),options});}
 async function drive(page,touch=false,options={}){
   const actions=[];let circuit='';
-  const suffix=options.delayLastExitUntil?'-late':options.cleanShutdown?'-clean':options.directArchive?'-direct':options.useSiding?'-siding':options.southRelay?'-south':options.breachService?'-service':options.sequentialEscort?'-sequential':'';
+  const suffix=options.delayLastExitUntil?'-late':options.exposedReplay?'-exposed':options.cleanShutdown?'-clean':options.directArchive?'-direct':options.useSiding?'-siding':options.southRelay?'-south':options.breachService?'-service':options.sequentialEscort?'-sequential':'';
   const corridor=await page.evaluate(()=>!!SB.Game.getState().evacuation);
   const crossings=[];
   for(let i=0;i<350&&await page.evaluate(()=>SB.Game.getState().phase==='player');i++){
@@ -95,7 +95,10 @@ async function drive(page,touch=false,options={}){
       await page.locator('#zoom-in').tap();assert(await page.evaluate(()=>SB.Game.getView().zoom>1));
       await page.locator('#zoom-out').tap();await page.locator('#end-turn').tap();assert.equal(await page.evaluate(()=>SB.Game.getState().turn),2);
       await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:path.join(out,`${width}x${height}-play.png`)});
-      await page.locator('#pause').click();assert.equal(await page.evaluate(()=>SB.Game.getMode()),'paused');await page.locator('#start').click();
+      assert(await page.locator('.campaign').isHidden() && await page.locator('.preparation').isHidden());
+      await page.locator('#pause').click();assert.equal(await page.evaluate(()=>SB.Game.getMode()),'paused');
+      assert(await page.locator('.campaign').isVisible() && await page.locator('.preparation').isVisible());
+      await page.locator('#start').click();
       const metrics=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth>innerWidth,mode:SB.Game.getMode(),controls:[...document.querySelectorAll('.actions button,.confirmation button,.unit,.map-tools button')].map(b=>{const r=b.getBoundingClientRect();return{w:r.width,h:r.height};})}));assert.equal(metrics.overflow,false);metrics.controls.forEach(b=>assert(b.w>=44&&b.h>=44,'44px controls'));
       assert.deepEqual(errors,[]);assert.deepEqual(external,[]);results.push({viewport:[width,height],...metrics,errors,external});await page.close();
     }
@@ -106,7 +109,8 @@ async function drive(page,touch=false,options={}){
     let rankHeld=null;await page.route('**/api/leaderboard/rank?**',route=>{rankHeld=route;},{times:1});
     await page.goto(url+'/signalbreak/index.html');
     const operationIds=await page.evaluate(()=>SB.Missions.operations.map(m=>m.id));
-    const switchyardMedals=['First light','Prison break','Clinic lifeline','Rear guard'];
+    const fieldMedals=['First light','Prison break','Clinic lifeline','Rear guard',
+      'Twin approaches','Full lift','Ward keeper','Clear frequency'];
     for(const [index,id]of operationIds.entries()){
       assert.equal(await page.evaluate(()=>SB.Game.getState().id),id);
       if(index===0){await page.locator('#prep-summary').focus();await page.keyboard.press('Enter');assert.equal(await page.evaluate(()=>SB.Game.getMode()),'title');assert(await page.locator('.preparation').evaluate(e=>e.open));await page.locator('#prep-summary').click();}
@@ -117,14 +121,14 @@ async function drive(page,touch=false,options={}){
       }
       await page.locator('.map-wrap').screenshot({path:path.join(out,id+'-briefing.png')});await page.locator('#start').click();
       assert(await page.locator('[data-gear="nia"]').isDisabled());
-      if(index<switchyardMedals.length){
-        assert.equal(await page.locator('#field-medal').innerText(),switchyardMedals[index]);
+      if(index<fieldMedals.length){
+        assert.equal(await page.locator('#field-medal').innerText(),fieldMedals[index]);
         assert.match(await page.locator('#field-progress').innerText(),/turn 1\//i);
         assert(await page.locator('#field-mastery').evaluate(e=>e.getBoundingClientRect().bottom<=document.querySelector('#map').getBoundingClientRect().top+1));
       }else assert.equal(await page.locator('#field-mastery').isVisible(),false);
-      const run=await drive(page,index===1||index===3||index>=4);campaignRuns.push(run);
-      if(index<switchyardMedals.length){
-        assert((await page.locator('#copy').innerText()).includes(switchyardMedals[index]+' mastery +600.'));
+      const run=await drive(page,index===1||index===3||index>=4,{clearFrequency:id==='antenna-rain'});campaignRuns.push(run);
+      if(index<fieldMedals.length){
+        assert((await page.locator('#copy').innerText()).includes(fieldMedals[index]+' mastery +600.'));
         assert.match(await page.locator('#mastery-goal').innerText(),/SAVED MEDAL/);
       }
       if(id==='safe-corridor'){
@@ -154,7 +158,7 @@ async function drive(page,touch=false,options={}){
       await page.waitForTimeout(100);await page.reload();
       assert.equal(await page.evaluate(()=>SB.Game.getMode()),'title');
       const data=await page.evaluate(()=>JSON.parse(localStorage.getItem(SB.Campaign.key)));assert(data.results[id]);
-      if(index<switchyardMedals.length){
+      if(index<fieldMedals.length){
         assert.equal(data.results[id].mastery,true);
         assert.match(await page.locator(`[data-mission="${id}"]`).textContent(),/MASTERY/);
       }
@@ -184,6 +188,18 @@ async function drive(page,touch=false,options={}){
     assert.match(await replay.locator('[data-mission="live-wire"]').textContent(),/MASTERY/);
     assert.equal(api.length,2);
     fs.writeFileSync(path.join(out,'switchyard-late-replay.json'),JSON.stringify({lateRun,savedOpening},null,2));
+    await replay.locator('#operation-picker summary').tap();
+    await replay.locator('[data-mission="antenna-rain"]').tap();
+    await replay.locator('#start').tap();
+    const exposedRun=await drive(replay,true,{exposedReplay:true});
+    assert.match(await replay.locator('#copy').innerText(),/Clear frequency missed\./);
+    assert(await replay.evaluate(()=>SB.Game.getState().laneHit));
+    await replay.reload();
+    const savedAntenna=await replay.evaluate(()=>JSON.parse(localStorage.getItem(SB.Campaign.key)).results['antenna-rain']);
+    assert.deepEqual(savedAntenna,trained.results['antenna-rain']);
+    assert.match(await replay.locator('[data-mission="antenna-rain"]').textContent(),/MASTERY/);
+    assert.equal(api.length,2);
+    fs.writeFileSync(path.join(out,'antenna-exposed-replay.json'),JSON.stringify({exposedRun,savedAntenna},null,2));
     await replay.close();
     const archive=await browser.newPage({viewport:{width:390,height:844},hasTouch:true,storageState:campaignStorage});
     await archive.goto(url+'/signalbreak/index.html');await archive.locator('#operation-picker summary').tap();await archive.locator('[data-mission="paper-trail"]').tap();await archive.locator('#start').tap();

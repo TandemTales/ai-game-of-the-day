@@ -280,7 +280,7 @@
     var circuitId = lane === null ? null : d.covers[lane];
     return { done: done, lane: lane, circuitId: circuitId,
       protected: !done && (s.circuits || []).some(function (c) { return c.id === circuitId && c.controlled; }),
-      hp: d.hp, elapsed: d.elapsed, rounds: d.rounds };
+      hp: d.hp, maxHp: d.maxHp, elapsed: d.elapsed, rounds: d.rounds };
   }
   function pumpStatus(s) {
     if (!s.pumps) return null;
@@ -361,6 +361,10 @@
   function onLane(lane, x, y) {
     return lane && lane.tiles.some(function (t) { return t.x === x && t.y === y; });
   }
+  function exposedNames(s, lane) {
+    return s.squad.filter(function (u) { return living(u) && onLane(lane, u.x, u.y); })
+      .map(function (u) { return u.name; });
+  }
   function resolveDefense(s) {
     var status = defenseStatus(s);
     if (!status || status.done) return;
@@ -378,7 +382,7 @@
     s.squad.forEach(function (u) {
       if (!living(u) || !onLane(lane, u.x, u.y)) return;
       u.hp = Math.max(0, u.hp - lane.damage);
-      if (s.id === 'signalbreak') s.laneHit = true;
+      s.laneHit = true;
       log(s, lane.label + ' hit ' + u.name + ' / ' + lane.damage + ' damage' + (!u.hp ? ' / down' : ''), 'attack');
     });
   }
@@ -494,13 +498,11 @@
     if (s.lanes) {
       var lane = activeLane(s);
       var laneReport = lane ? 'Next End Turn / ' + lane.label + ' / ' + lane.damage + ' damage on marked tiles / then ' + lane.nextLabel : 'Tower overwatch lanes disabled';
-      if (s.id === 'signalbreak') {
-        if (lane) {
-          var exposed = s.squad.filter(function (u) { return living(u) && onLane(lane, u.x, u.y); });
-          if (exposed.length) laneReport += ' / exposed: ' + exposed.map(function (u) { return u.name; }).join(', ');
-        } else laneReport = 'Core offline / both signal lanes are safe';
-        if (s.laneHit) laneReport += ' / lane hit recorded: Clean shutdown medal missed this attempt';
-      }
+      if (lane) {
+        var exposed = exposedNames(s, lane);
+        if (exposed.length) laneReport += ' / exposed: ' + exposed.join(', ');
+      } else if (s.id === 'signalbreak') laneReport = 'Core offline / both signal lanes are safe';
+      if (s.laneHit) laneReport += ' / lane hit recorded: ' + masteryName(s.id) + ' medal missed this attempt';
       status.push({ id: 'lanes', label: laneReport, done: !lane });
     }
     waterStatus(s).forEach(function (route) {
@@ -588,6 +590,16 @@
   }
   function damage(s, from, target) { return Math.max(1, from.damage - cover(s, target, from) + (height(s, from.x, from.y) > height(s, target.x, target.y) ? 1 : 0)); }
   function canShoot(s, a, b) { return living(b) && distance(a, b) <= a.range && visible(s, a, b) && detected(s, a, b); }
+  function stairCrossings(stairs, route) {
+    return stairs.filter(function (stair) {
+      return route.some(function (step, i) {
+        if (!i) return false;
+        var before = route[i - 1];
+        return before.x === stair.x && before.y === stair.y && step.x === stair.toX && step.y === stair.toY ||
+          step.x === stair.x && step.y === stair.y && before.x === stair.toX && before.y === stair.toY;
+      });
+    }).map(function (stair) { return stair.label; });
+  }
   function preview(s, id, kind, x, y) {
     var a = unit(s, id), p = { legal: false, actorId: id, kind: kind, x: x, y: y, cost: 1, reason: '' };
     function fail(reason) { p.reason = reason; return p; }
@@ -607,6 +619,10 @@
       p.cost = Math.ceil((p.path.length - 1) / a.stride);
       if (!p.cost || p.cost > a.ap) return fail('Beyond remaining movement AP.');
       p.reason = p.cost + ' AP · ' + (p.path.length - 1) + ' tiles · confirm move';
+      if (s.id === 'rooftop-crossfire') {
+        p.crossedStairs = stairCrossings(s.stairs, p.path);
+        if (p.crossedStairs.length) p.reason += ' · via ' + p.crossedStairs.join(' and ');
+      }
       var evacuation = evacuationStatus(s);
       if (evacuation && evacuation.released) evacuation.groups.forEach(function (group) {
         if (!group.next) return;
@@ -627,6 +643,7 @@
         p.reason += p.illuminated ? ' / LIT destination: enemies with clear sight may pursue and fire at normal range' : ' / DARK destination: enemies must be within ' + s.lighting.darkRange + ' tiles to spot you';
       }
       var lane = activeLane(s);
+      if (lane && s.id === 'antenna-rain') p.laneTurn = s.turn;
       if (onLane(lane, x, y)) {
         p.hazardDamage = lane.damage;
         p.reason += ' / WARNING: ' + lane.label + ' deals ' + lane.damage + ' damage here at end turn';
@@ -664,6 +681,10 @@
       p.reason = call ? '1 AP · call empty lift to ' + destination.label :
         '1 AP · send ' + vehicle + ' to ' + destination.label + ' · carries ' + lift.passengers + ' engineer(s)' +
         (!breach && s.lift.kind !== 'bridge' && !lift.delivered ? ' and medical cargo' : '') + ' · engineers off the deck stay behind';
+      if (s.id === 'cargo-lift' && destinationIndex === 1 && s.lift.firstAscentRiders === undefined) {
+        p.firstAscentCrew = liftRiders(s).map(function (u) { return u.id; }).join('/');
+        p.reason += lift.passengers === 4 ? ' · full squad on first ascent' : ' · first ascent with fewer than four forfeits Full lift';
+      }
     } else if (kind === 'hack') {
       var circuit = circuitAt(s, x, y);
       if (!circuit) return fail('Select an amber circuit node.');
@@ -792,13 +813,17 @@
     'locked-manifest': { name: 'Prison break', deadline: 14 },
     'cut-the-feed': { name: 'Clinic lifeline', deadline: 16 },
     'night-freight': { name: 'Rear guard', deadline: 14 },
+    'rooftop-crossfire': { name: 'Twin approaches', deadline: 16 },
+    'cargo-lift': { name: 'Full lift', deadline: 18 },
+    'open-clinic': { name: 'Ward keeper', deadline: 14 },
+    'antenna-rain': { name: 'Clear frequency', deadline: 16 },
     'safe-corridor': { name: 'Dark-feed' },
     'signalbreak': { name: 'Clean shutdown' }
   };
   function masteryName(id) {
     return Object.prototype.hasOwnProperty.call(medals, id) ? medals[id].name : null;
   }
-  function switchyardMastery(s) {
+  function masteryStatus(s) {
     var medal = medals[s.id];
     if (!medal || !medal.deadline) return null;
     if (s.squad.filter(function (u) { return u.hp > 0; }).length !== 4) {
@@ -810,10 +835,32 @@
     var extracted = s.squad.filter(function (u) { return u.extracted; }).length;
     var complete = extracted === 4 && s.rescued && networkReady(s);
     var status = [];
-    if (s.ambush) {
+    if (s.id === 'night-freight') {
       var rear = rearGuardStatus(s);
       complete = complete && rear.defeated === rear.total;
       status.push(rear.defeated + '/' + rear.total + ' rear patrols defeated');
+    } else if (s.id === 'rooftop-crossfire') {
+      var unused = s.stairs.filter(function (stair) { return !stair.used; });
+      complete = complete && !unused.length;
+      status.push(!unused.length ? 'Both stairs crossed' : unused.length === 2 ? 'Cross north and south stairs' :
+        'Cross ' + unused[0].label.split(' / ')[0].toLowerCase());
+    } else if (s.id === 'cargo-lift') {
+      var count = s.lift.firstAscentRiders;
+      if (count !== undefined && count < 4) return { eligible: false, complete: false, detail: count + '/4 rode the first ascent' };
+      complete = complete && count === 4 && s.lift.delivered;
+      status.push(count === 4 ? '4/4 rode first ascent' : liftRiders(s).length + '/4 aboard for first ascent');
+    } else if (s.id === 'open-clinic') {
+      var ward = defenseStatus(s);
+      var health = 'Staff ' + ward.hp + '/' + ward.maxHp + ' HP';
+      if (ward.hp < ward.maxHp) return { eligible: false, complete: false, detail: health + ' after a shield breach' };
+      complete = complete && ward.done;
+      if (!ward.done && !ward.protected) status.push('Shield ' + ward.lane);
+      status.push(health, ward.elapsed + '/' + ward.rounds + ' assaults blocked');
+    } else if (s.id === 'antenna-rain') {
+      if (s.laneHit) return { eligible: false, complete: false, detail: 'Squad took lane damage' };
+      var lane = activeLane(s);
+      var exposed = exposedNames(s, lane);
+      status.push(exposed.length ? exposed.join(', ') + ' exposed at End Turn' : lane ? 'No lane hits' : 'Tower silent, no lane hits');
     }
     status.push(extracted + '/4 ' + (s.freight ? 'aboard' : 'extracted'));
     status.push('turn ' + s.turn + '/' + medal.deadline);
@@ -834,8 +881,8 @@
     else if (s.squad.every(function (u) { return u.hp <= 0 || u.extracted; })) {
       s.phase = 'won'; s.score += s.squad.filter(function (u) { return u.extracted; }).length * 250 + Math.max(0, 20 - s.turn) * 30;
       var allExtracted = s.squad.length === 4 && s.squad.every(function (u) { return u.hp > 0 && u.extracted; });
-      var switchyard = switchyardMastery(s);
-      var earned = switchyard && switchyard.complete;
+      var attempt = masteryStatus(s);
+      var earned = attempt && attempt.complete;
       if (allExtracted && s.id === 'safe-corridor' && s.turn <= 15 && evacuationStatus(s).done &&
           !s.circuits.some(function (c) { return c.id === 'street-feed' && (c.controlled || c.scored); })) earned = true;
       if (allExtracted && s.id === 'signalbreak' && !s.laneHit && s.keyPair.opened && s.rescued && networkReady(s)) earned = true;
@@ -853,15 +900,23 @@
     var p = preview(s, proposed.actorId, proposed.kind, proposed.x, proposed.y);
     if (!p.legal) return false;
     if ((p.lift || proposed.lift) && (!p.lift || !proposed.lift || p.liftFrom !== proposed.liftFrom ||
-        p.liftTo !== proposed.liftTo || p.breachLiftPreview !== proposed.breachLiftPreview)) return false;
+        p.liftTo !== proposed.liftTo || p.breachLiftPreview !== proposed.breachLiftPreview || p.firstAscentCrew !== proposed.firstAscentCrew)) return false;
+    if (p.crossedStairs && JSON.stringify(p.crossedStairs) !== JSON.stringify(proposed.crossedStairs)) return false;
+    if (p.laneTurn !== proposed.laneTurn) return false;
     if (p.finaleTurn !== proposed.finaleTurn || p.archivePreview !== proposed.archivePreview || p.keyPairPreview !== proposed.keyPairPreview ||
         p.convoyPreview !== proposed.convoyPreview || p.relaySiegePreview !== proposed.relaySiegePreview) return false;
     var a = unit(s, p.actorId); a.ap -= p.cost;
-    if (p.kind === 'move') { a.x = p.x; a.y = p.y; log(s, a.name + ' moved · ' + p.cost + ' AP'); }
+    if (p.kind === 'move') {
+      if (p.crossedStairs && p.crossedStairs.length) s.stairs.forEach(function (stair) {
+        if (p.crossedStairs.indexOf(stair.label) !== -1) stair.used = true;
+      });
+      a.x = p.x; a.y = p.y; log(s, a.name + ' moved · ' + p.cost + ' AP');
+    }
     if (p.kind === 'attack') strike(s, a, s.enemies.find(function (e) { return e.id === p.targetId; }), a.name + ' fired');
     if (p.kind === 'hack' && p.lift) {
       var from = s.lift.stops[p.liftFrom], to = s.lift.stops[p.liftTo];
       var passengers = liftRiders(s);
+      if (p.firstAscentCrew !== undefined) s.lift.firstAscentRiders = passengers.length;
       passengers.forEach(function (u) { u.x += to.x - from.x; u.y += to.y - from.y; });
       s.lift.position = p.liftTo;
       var bridge = s.lift.kind === 'bridge';
@@ -981,7 +1036,8 @@
   }
   SB.Logic = { newGame: newGame, tile: tile, height: height, unit: unit, living: living, occupant: occupant,
     blocked: blocked, canStep: canStep, path: path, visible: visible, lit: lit, detected: detected, cover: cover, damage: damage, preview: preview, commit: commit, endTurn: endTurn,
-    masteryName: masteryName, switchyardMastery: switchyardMastery,
+    masteryName: masteryName, masteryStatus: masteryStatus,
+    switchyardMastery: function (s) { return s.district === 'Switchyard' ? masteryStatus(s) : null; },
     waterStatus: waterStatus, waterRouteAt: waterRouteAt, liftAt: liftAt, liftStatus: liftStatus, liftControlAt: liftControlAt, defenseStatus: defenseStatus, pumpStatus: pumpStatus, keyPairStatus: keyPairStatus, archiveStatus: archiveStatus, activeLane: activeLane,
     circuitAt: circuitAt, doorOpen: doorOpen, objectiveStatus: objectiveStatus, turretAllied: turretAllied, extractionStatus: extractionStatus, broadcastStatus: broadcastStatus, convoyStatus: convoyStatus, relaySiegeStatus: relaySiegeStatus, evacuationStatus: evacuationStatus };
 })(window);

@@ -328,8 +328,14 @@ test('antenna lanes alternate, warn before movement, damage only exposed living 
  const L=load().Logic,s=L.newGame('antenna-rain');s.enemies=[];s.turret=null;
  const first=L.activeLane(s),t=first.tiles[1];first.tiles[1].x=99;expect(L.activeLane(s).tiles[1].x).not.toBe(99);
  const target=L.activeLane(s).tiles[1];Object.assign(s.squad[0],{x:target.x,y:target.y+1});const p=L.preview(s,'nia','move',target.x,target.y);expect(p.legal).toBe(true);expect(p.hazardDamage).toBe(2);order(L,s,'nia','move',target.x,target.y);
+ expect(L.masteryStatus(s).eligible).toBe(true);
+ expect(L.masteryStatus(s).detail).toContain(s.squad[0].name);
  const hp=s.squad[0].hp;L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);expect(L.activeLane(s).label).not.toBe(first.label);
  s.circuits.find(c=>c.id==='tower').controlled=true;expect(L.activeLane(s)).toBe(null);L.endTurn(s);expect(s.squad[0].hp).toBe(hp-2);
+ Object.assign(s.squad[1],{x:target.x,y:target.y+1});
+ order(L,s,'sol','heal',target.x,target.y);
+ expect(s.squad[0].hp).toBe(s.squad[0].maxHp);
+ expect(L.masteryStatus(s)).toMatchObject({eligible:false,complete:false});
 });
 test('all twenty operations support consecutive persisted squad progression with legal orders',()=>{
  const SB=load(),C=SB.Campaign,c=C.fresh(),store=memoryStorage();
@@ -997,9 +1003,9 @@ test('Safe Corridor saves mastery independently of best score and never grants i
  const store=memoryStorage();C.save(store,c);const saved=C.load(store).campaign;
  expect(saved.results[id]).toEqual({score:4400,turns:8,survivors:4,mastery:true});
  expect(JSON.stringify(saved.roster)).toBe(roster);expect(saved.supplies).toBe(supplies);
- results[id].mastery='true';results['rooftop-crossfire'].mastery=true;
+ results[id].mastery='true';results['sluice-logic'].mastery=true;
  const malformed=C.normalize({version:1,results});
- expect(malformed.results[id].mastery).toBeUndefined();expect(malformed.results['rooftop-crossfire'].mastery).toBeUndefined();
+ expect(malformed.results[id].mastery).toBeUndefined();expect(malformed.results['sluice-logic'].mastery).toBeUndefined();
 });
 
 describe.each([
@@ -1074,6 +1080,108 @@ describe.each([
     expect(JSON.stringify(saved.roster)).toBe(roster);
     expect(saved.supplies).toBe(supplies);
   });
+});
+
+describe.each([
+  ['rooftop-crossfire', 'Twin approaches', 16],
+  ['cargo-lift', 'Full lift', 18],
+  ['open-clinic', 'Ward keeper', 14],
+  ['antenna-rain', 'Clear frequency', 16]
+])('%s Vertical Market mastery', (id, name, deadline) => {
+  function atFinalExit(L, condition) {
+    const s = L.newGame(id);
+    s.turn = condition === 'late' ? deadline + 1 : deadline;
+    s.rescued = true;
+    s.circuits.forEach(c => { c.controlled = true; });
+    s.squad.slice(0, 3).forEach(u => { u.extracted = true; });
+    if (condition === 'casualty') Object.assign(s.squad[0], {hp: 0, extracted: false});
+    if (s.stairs && id === 'rooftop-crossfire') {
+      s.stairs[0].used = true;
+      s.stairs[1].used = condition !== 'missed objective';
+    }
+    if (s.lift) Object.assign(s.lift, {delivered: true, firstAscentRiders: condition === 'missed objective' ? 3 : 4});
+    if (s.defense) {
+      s.defense.elapsed = s.defense.rounds;
+      if (condition === 'missed objective') s.defense.hp -= 2;
+    }
+    if (id === 'antenna-rain' && condition === 'missed objective') s.laneHit = true;
+    const last = s.squad[3];
+    Object.assign(last, L.extractionStatus(s).tiles[0]);
+    return {s, last};
+  }
+
+  test.each(['on time', 'late', 'casualty', 'missed objective'])('%s result is scored once on final extraction', condition => {
+    const L = load().Logic, {s, last} = atFinalExit(L, condition);
+    expect(L.masteryName(id)).toBe(name);
+    const snapshot = JSON.stringify(s);
+    expect(L.masteryStatus(s).complete).toBe(false);
+    expect(JSON.stringify(s)).toBe(snapshot);
+    const p = order(L, s, last.id, 'extract', last.x, last.y);
+    expect(s.phase).toBe('won');
+    expect(!!s.masteryEarned).toBe(condition === 'on time');
+    expect(s.score).toBe((condition === 'casualty' ? 3 : 4) * 250 + (20 - s.turn) * 30 +
+      (condition === 'on time' ? 600 : 0));
+    const finished = JSON.stringify(s);
+    expect(L.commit(s, p)).toBe(false);
+    L.endTurn(s);
+    expect(JSON.stringify(s)).toBe(finished);
+  });
+
+  test('a new medal survives a lower replay and reload beside the legacy best', () => {
+    const {Campaign: C, Logic: L, Missions: M} = load();
+    const results = Object.fromEntries(M.operations.map(m => [m.id, {score: 9000, turns: 4, survivors: 4}]));
+    const c = C.normalize({version: 1, results}), roster = JSON.stringify(c.roster), supplies = c.supplies;
+    const store = memoryStorage();
+    expect(c.results[id].mastery).toBeUndefined();
+    for (const condition of ['on time', 'missed objective']) {
+      const {s, last} = atFinalExit(L, condition);
+      order(L, s, last.id, 'extract', last.x, last.y);
+      expect(C.complete(c, s)).toBe(true);
+    }
+    C.save(store, c);
+    const saved = C.load(store).campaign;
+    expect(saved.results[id]).toMatchObject({...results[id], mastery: true});
+    expect(JSON.stringify(saved.roster)).toBe(roster);
+    expect(saved.supplies).toBe(supplies);
+  });
+});
+
+test('Rooftop records traversed edges inside a confirmed path, including a descent', () => {
+  const L = load().Logic, s = L.newGame('rooftop-crossfire'), u = s.squad[0];
+  s.enemies = [];
+  Object.assign(u, {x: 6, y: 4});
+  order(L, s, u.id, 'move', 7, 4);
+  expect(s.stairs.some(stair => stair.used)).toBe(false);
+  const north = L.preview(s, u.id, 'move', 9, 4);
+  expect(north.legal).toBe(true);
+  expect(s.stairs.some(stair => stair.used)).toBe(false);
+  expect(L.commit(s, north)).toBe(true);
+  expect(s.stairs.map(stair => !!stair.used)).toEqual([true, false]);
+  s.circuits[0].controlled = true;
+  Object.assign(u, {x: 9, y: 11, ap: 2});
+  order(L, s, u.id, 'move', 6, 11);
+  expect(s.stairs.every(stair => stair.used)).toBe(true);
+});
+
+test('Cargo Lift keeps an empty first ascent and revalidates previewed riders', () => {
+  const L = load().Logic, s = L.newGame('cargo-lift'), [nia, sol] = s.squad;
+  s.circuits[0].controlled = true;
+  s.rescued = true;
+  Object.assign(nia, {x: 7, y: 5});
+  const empty = L.preview(s, nia.id, 'hack', 7, 5);
+  expect(empty.legal).toBe(true);
+  Object.assign(sol, {x: 8, y: 6});
+  const before = JSON.stringify(s);
+  expect(L.commit(s, empty)).toBe(false);
+  expect(JSON.stringify(s)).toBe(before);
+  Object.assign(sol, {x: 2, y: 11});
+  order(L, s, nia.id, 'hack', 7, 5);
+  expect(s.lift.firstAscentRiders).toBe(0);
+  order(L, s, nia.id, 'hack', 7, 5);
+  s.squad.forEach((u, i) => Object.assign(u, {x: 8 + i % 2, y: 6 + Math.floor(i / 2), ap: 2}));
+  order(L, s, nia.id, 'hack', 8, 6);
+  expect(s.lift.firstAscentRiders).toBe(0);
+  expect(L.masteryStatus(s).eligible).toBe(false);
 });
 
 test.each(['blocked entry', 'surviving interceptor'])('Night Freight requires both rear patrol defeats even after a %s', obstacle => {

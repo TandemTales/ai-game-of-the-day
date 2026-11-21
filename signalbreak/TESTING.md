@@ -346,3 +346,18 @@ the train on turns 1, 3 and 4 at native scale and zoomed in. The turn-four
 board should place the carriage at East and mark just the two rear arrivals
 with paired gold chevrons. The optional objective remains open until both
 are down. Check that its live count and deadline remain visible with the map.
+
+## November 20 Pacific — Vertical Market mastery
+
+Exercise all four deadlines at final extraction, after a casualty, after the
+deadline and with a missed district objective. Reconfirm the final order and
+reload a legacy best after a lower-scoring medal replay. The roof test crosses
+an edge in the middle of a longer move and returns down the other stair. The
+cargo test changes the riders after preview, sends an empty platform up, then
+checks that a later full ascent cannot replace the first passenger count.
+
+The earned browser campaign uses both stair approaches, sends all four on the
+first lift, shields the staff through six attacks, and finishes Antenna Rain
+without lane damage. At 390px, replay Antenna Rain from the earned save and
+take a lane hit. Verify the debrief records the miss and the saved medal and
+best survive reload. Check each field readout alongside its playable map.

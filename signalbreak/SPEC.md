@@ -60,10 +60,19 @@ explicit user approval; time/usage limits are not approval.
 Mission-boundary local saves, sequential unlocks and replay best scores now exist
 for all twenty implemented missions. Squad progression, equipment and injury
 recovery are implemented. Authored mastery targets appear in the HUD.
-Switchyard operations 01–04, Safe Corridor and Signalbreak record medals
-independently of the best operation score. Operations 05–18 have untracked targets.
+Switchyard and Vertical Market operations 01–08, Safe Corridor and Signalbreak
+record medals independently of the best score. Operations 09–18 have untracked targets.
 Story debriefs appear on victory. The clinic is a protected prerequisite, not yet
 a simulated supply economy. FIRST PLAYABLE remains visible throughout.
+
+Each Vertical Market medal awards 600 points when the fourth engineer extracts.
+The stated turn is inclusive. Twin approaches (05, turn 16) counts both marked
+stair crossings on confirmed movement paths, including descents. Full lift (06,
+turn 18) counts the engineers aboard the first upward dispatch, including an
+empty one. Ward keeper (07, turn 14) requires the staff at full health after
+all six assaults. Clear frequency (08, turn 16) allows ordinary combat injuries
+and requires zero firing-lane hits before tower shutdown. Older saves keep
+their best scores. A qualifying replay can add a medal beside a higher score.
 
 Each Switchyard medal adds 600 points on the final extraction. First light
 requires all four engineers out by turn 8. Prison break requires the registrar

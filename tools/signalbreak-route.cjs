@@ -3,6 +3,9 @@
 function nextOrder(SB, s, options={}) {
   const L = SB.Logic, live = s.squad.filter(L.living);
   const bridge=s.lift&&s.lift.kind==='bridge';
+  // On a clean Antenna run, stop between the two sweeps so an engineer can
+  // spend their following turn shooting or hacking without being pinned there.
+  const avoidLaneStops=options.clearFrequency && s.id==='antenna-rain' && L.activeLane(s);
   const breach=s.lift&&s.lift.kind==='breach';
   let breachGoal;
   if(breach){
@@ -197,6 +200,7 @@ function nextOrder(SB, s, options={}) {
     const map=distances(target), current=map[u.x+','+u.y];let best=null;
     for(let y=1;y<s.height-1;y++) for(let x=1;x<s.width-1;x++) {
       const p=L.preview(s,u.id,'move',x,y);if(!p.legal)continue;
+      if(avoidLaneStops && s.lanes.patterns.some(lane=>lane.tiles.some(tile=>tile.x===x&&tile.y===y)))continue;
       const dist=map[x+','+y];if(dist===undefined||dist>=current)continue;
       const value=dist*10+p.cost-L.cover(s,{x,y},target)*.25+(p.hazardDamage?100:0);
       if(!best||value<best.value)best={value,p};

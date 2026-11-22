@@ -1398,3 +1398,13 @@ small screens, excess space on wide screens, and the text-led ending remain.
 Audio, animated VFX, human play, physical devices and performance lack sign-off.
 See the release marker for the verdicts and evidence. Next run begins the
 three-proposal selection process. Tidelock remains on hold.
+
+The promotion diff included the preserved Tidelock scaffold for the first
+time on main. Its public catalog card was removed, and its Pages paths
+temporarily redirect to the arcade while the game is on hold. The scaffold
+remains in the repository for a future explicit choice.
+
+Wrangler's local Pages preview returned a 302 to the arcade for Tidelock's
+bare path, directory, HTML entry and gameplay script. Edge counted 14 games,
+found no Tidelock links and deployed the opening squad through the Signalbreak
+feature. The campaign runtime still matches the eight verified hashes.

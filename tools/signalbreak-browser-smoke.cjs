@@ -323,7 +323,9 @@ async function drive(page,touch=false,options={}){
     assert.equal(await catalog.locator('.feature-visual').getAttribute('href'),'signalbreak/index.html');assert.equal(await catalog.locator('.featured .rate').getAttribute('data-id'),'signalbreak');
     assert.match(await catalog.locator('.feature-copy p').innerText(),/20 operations across five districts/);
     assert.match(await catalog.locator('.game-card[data-id="signalbreak"] .game-description').innerText(),/20 operations/);
-    assert.equal(await catalog.locator('#games .game-card').count(),15);assert.equal(await catalog.locator('#games .game-card[data-id="tidelock"]').count(),1);assert.equal(await catalog.locator('#games .game-card[data-id="gearwell"]').count(),1);
+    assert.equal(await catalog.locator('#games .game-card').count(),14);
+    assert.equal(await catalog.locator('a[href*="tidelock"]').count(),0);
+    assert.equal(await catalog.locator('#games .game-card[data-id="gearwell"]').count(),1);
     assert(await catalog.locator('.feature-visual img').evaluate(i=>i.complete&&i.naturalWidth>0));await catalog.locator('.featured').screenshot({path:path.join(out,'catalog-feature.png')});await catalog.close();
     const board=await browser.newPage();
     const boardResponse=board.waitForResponse(r=>r.url().includes('/api/leaderboard/signalbreak-campaign?'));

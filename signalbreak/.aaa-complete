@@ -1,0 +1,46 @@
+date: 2026-11-21
+timezone: America/Los_Angeles
+release: scheduled Saturday
+started: 2026-11-02
+age-days: 19
+overall-aaa-verdict: below target
+
+The November 14 release was held when progression stopped at operation 16.
+The November 21 build can be played from Live Wire through the Broadcast
+Citadel shutdown, including the district consequences, epilogue and ranking.
+
+## Release verification
+
+All 666 repository tests passed in 31 suites, including 159 Signalbreak tests.
+In a fresh localhost Edge campaign, player controls and live AI produced 20
+consecutive victories with all four engineers extracted on every operation.
+The local leaderboard received a rank GET and score POST for 72,820 points.
+A supported clean shutdown on a phone viewport raised the saved best to 73,420.
+
+All 120 operation/viewport checks passed at 320×568, 390×844, 844×390,
+768×1024, 1440×900 and 3840×2160. Keyboard and emulated touch orders, reload,
+offline file boot and DPR2 passed. The sweep found no browser errors or
+horizontal overflow. Reviewed the opening and finale briefings and boards at
+all six sizes, every 320px board, and both earned epilogues. Larger views
+were reduced on the review sheets. All eight runtime hashes matched the
+browser manifest in node_modules/.cache/signalbreak/release-2026-11-21.
+
+## Final recorded critic verdicts
+
+- Environment and character art. XCOM 2 won overall. The latest art reviewer
+  passed identification of both rooftop stairs and lift occupancy. Riders
+  still cluster at 320px, and several districts lack recognizable landmarks.
+- Tactical rules and feedback. The latest rules reviewer passed the exposed
+  ward, threatened engineer and medal feedback. Earlier reviewers passed the
+  timed breaker warning and rear-pursuer markers. XCOM 2 remained easier to
+  read for cover and character roles at normal phone zoom.
+- Campaign presentation and interface. The finale reviewers found the two
+  sources of district support and their effects readable after revision.
+  XCOM 2 won the overall comparison. The epilogue relies on text over a
+  tactical map. Short screens require scrolling and wide maps leave unused space.
+- Audio and animated VFX have no independent passing verdict. Human play,
+  physical-device touch, listening and real-device performance remain unverified.
+
+Operations 09–18 describe their optional mastery objectives but still lack
+persisted medals. Operations 01–08 and 19–20 track awards. The public build
+retains its FIRST PLAYABLE / FULL CAMPAIGN IN DEVELOPMENT label.

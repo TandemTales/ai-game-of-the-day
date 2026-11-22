@@ -1,8 +1,10 @@
-# Signalbreak — active, user selected
+# No active game
 
-status: active
-active: signalbreak
-started: 2026-11-02
+status: complete
+active: none
+last-completed: signalbreak
+last-started: 2026-11-02
+completed: 2026-11-21
 selected: 2026-11-02
 selection-source: user message in this chat, "Signalbreak"
 proposals: .arcade-agent/game-proposals.md
@@ -10,12 +12,10 @@ on-hold: tidelock
 on-hold-original-started: 2026-11-01
 timezone: America/Los_Angeles
 
-The user explicitly selected proposal 2, Signalbreak, on November 2 Pacific.
-Lead four signal engineers through an occupied city in turn-based squad tactics.
-Combine AP positioning, cover/elevation/overwatch and shared power networks that
-control doors, lights, lifts and turret allegiance. Approved scope: five authored
-districts, twenty distinct operations, squad growth, rescues, campaign state/save,
-recurring story and a Broadcast Citadel finale. Full contract: signalbreak/SPEC.md.
+Signalbreak passed its scheduled release check at age 19. All 20 operations
+and the Broadcast Citadel ending are playable. The November 14 release was
+held at operation 16. Critic verdicts and remaining work are recorded in
+signalbreak/.aaa-complete and signalbreak/PROGRESS.md.
 
-Implementation starts today. Forced second-Saturday release: 2026-11-14 (age 12).
-Tidelock stays on hold; preserve its files. No AAA or campaign-completion claim.
+Next run begins STEP 2 Phase A. Present three proposals and wait for the
+user to choose. Only that choice can start development and the release clock.

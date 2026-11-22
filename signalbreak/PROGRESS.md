@@ -1379,3 +1379,22 @@ held the release at operation 16. All twenty operations now exist. Run the full
 repository tests, replay the campaign in Edge, and inspect all six viewport
 sizes for release blockers. Record the remaining medals and critic findings
 before promoting the verified build to main.
+
+## November 21 Pacific — release verdict
+
+The previous progression blocker is resolved. A fresh Edge run won all 20
+operations consecutively through the player controls and extracted all four
+engineers each time. The local campaign board ranked and accepted 72,820
+points. The alternate clean shutdown on a 390px viewport raised the saved
+total to 73,420. All 666 tests passed across 31 suites, including 159
+Signalbreak cases. All 120 operation/viewport checks passed. Reviewed all
+twenty 320px boards, opening and finale briefings and boards at the six
+required sizes, and both earned endings. No glaring release blocker was found.
+
+The Saturday release carries ten outstanding medals for operations 09–18.
+The last rules and art critics passed specific threat, route and lift cues.
+XCOM 2 still won overall on character and terrain readability. Scrolling on
+small screens, excess space on wide screens, and the text-led ending remain.
+Audio, animated VFX, human play, physical devices and performance lack sign-off.
+See the release marker for the verdicts and evidence. Next run begins the
+three-proposal selection process. Tidelock remains on hold.

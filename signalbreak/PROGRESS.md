@@ -1371,3 +1371,11 @@ bypass and uninterrupted pump pressure. Then continue through 13–18. Human
 play, physical devices, listening and performance remain open. Signalbreak
 keeps its FIRST PLAYABLE designation. Friday's changes are on dev. Production
 main is still at 69400b9.
+
+## November 21 Pacific — scheduled release check
+
+Saturday, 19 days after the approved November 2 start. The November 14 check
+held the release at operation 16. All twenty operations now exist. Run the full
+repository tests, replay the campaign in Edge, and inspect all six viewport
+sizes for release blockers. Record the remaining medals and critic findings
+before promoting the verified build to main.

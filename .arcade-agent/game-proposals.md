@@ -1,10 +1,12 @@
 # Choose the next Bot Built Arcade game
 
-status: awaiting-user-choice
+status: selected
+selected: 1. Turntide Links
+selection-source: User replied "1" in the game-choice chat on 2026-11-27 Pacific.
 proposed: 2026-11-22
 timezone: America/Los_Angeles
 
-Signalbreak shipped November 21. Its November 2 selection is recorded in its SPEC and in the previous version of this file at c5e2d7b. Tidelock is on hold. Each option below is a separate full campaign. Reply with one number or title to select it. The schedules below count implementation days from that choice.
+Signalbreak shipped November 21. Its November 2 selection is recorded in its SPEC and in the previous version of this file at c5e2d7b. Tidelock is on hold. The three pitches below preserve the slate as presented. Implementation of Turntide Links began November 27 Pacific.
 
 ## 1. Turntide Links
 
@@ -98,4 +100,4 @@ The root catalog has 14 game cards. Five more playable game directories have loc
 | Tidelock · territory capture, unlisted and on hold | Change water depth to move a ball and ferry | Move prepared dishes through a timetable | Establish a corridor by linking behavior to habitat |
 | Zephyr Circuit · kart racing | Compare strokes and persistent course states | Coordinate passengers with different destinations | Trace where a flock went from physical evidence |
 
-**Recommendation.** Choose **3. The Quiet Migration** for the fieldwork. A pair of lookalikes becomes distinguishable because one feeds its young, and that discovery changes which exit you open. It gives a player a specific story to tell about a puzzle they solved. Option 1 puts more weight on physical skill, and option 2 on decisions under time pressure. Development awaits your selection.
+**Original recommendation.** The Quiet Migration was recommended for its fieldwork. The user selected Turntide Links.

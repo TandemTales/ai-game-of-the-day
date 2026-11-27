@@ -1,23 +1,14 @@
-# Choose the game after Signalbreak
+# Turntide Links
 
-status: awaiting-user-choice
-active: none
-last-completed: signalbreak
-last-started: 2026-11-02
-completed: 2026-11-21
-last-selection-source: user message on 2026-11-02, "Signalbreak"
+status: active
+active: turntide-links
+started: 2026-11-27
+timezone: America/Los_Angeles
+selection-source: User replied "1" to the numbered post-Signalbreak slate on 2026-11-27 Pacific.
 proposals: .arcade-agent/game-proposals.md
-proposed: 2026-11-22
+last-completed: signalbreak
+completed: 2026-11-21
 on-hold: tidelock
 on-hold-original-started: 2026-11-01
-timezone: America/Los_Angeles
 
-Signalbreak passed its scheduled release check at age 19. All 20 operations
-and the Broadcast Citadel ending are playable. The November 14 release was
-held at operation 16. Critic verdicts and remaining work are recorded in
-signalbreak/.aaa-complete and signalbreak/PROGRESS.md.
-
-The pending slate is 1. Turntide Links, 2. The Midnight Dining Car, and
-3. The Quiet Migration. Reuse these numbers and titles until the user chooses
-or requests replacements. Record the explicit selection before starting work.
-The release clock begins on the Pacific date implementation actually starts.
+Adventure golf across five islands and twenty authored holes. Shape shots, transfer water between locks and leave a navigable route for the ferry. The selected proposal defines the full campaign, pilot book, mastery stamps and Homecoming Narrows ending.

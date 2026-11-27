@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1024" viewBox="0 0 768 512" role="img" aria-labelledby="title">
+  <title id="title">The flag at Gull Post above the ferry crossing</title>
+  <defs>
+    <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#b9d5ce"/><stop offset="1" stop-color="#f4e5ad"/></linearGradient>
+    <linearGradient id="water" x2=".45" y2=".85"><stop stop-color="#78b5a5"/><stop offset=".58" stop-color="#398782"/><stop offset="1" stop-color="#194e56"/></linearGradient>
+    <linearGradient id="green" x2="1" y2="1"><stop stop-color="#c5d68c"/><stop offset="1" stop-color="#7ba265"/></linearGradient>
+    <pattern id="sea" width="64" height="29" patternUnits="userSpaceOnUse"><path d="M2 8q12-3 28 0m10 13q9-2 18-1" stroke="#f2e9b5" fill="none" opacity=".34" stroke-linecap="round"/></pattern>
+    <pattern id="sward" width="22" height="17" patternUnits="userSpaceOnUse"><path d="m3 6 6-1m7 9 3-1" fill="none" stroke="#284f40" opacity=".17"/></pattern>
+    <g id="pine"><path d="M0 0v49" stroke="#443e30" stroke-width="3"/><path d="m0-4-9 18h5l-10 13 6-1-11 16 19-4 15 3-9-14 5 1-9-16h4z" fill="#214e49"/><path d="m0-3-5 20 4-1-6 13 5-2-7 10 9-4z" fill="#4c7361"/></g>
+    <g id="gull" fill="none" stroke="#324e4d" stroke-width="2" stroke-linecap="round"><path d="M-14 1q8-4 14 2 5-8 13-9"/></g>
+  </defs>
+  <path fill="url(#sky)" d="M0 0h768v290H0z"/><circle cx="560" cy="110" r="57" fill="#f9e7a6"/>
+  <path d="M0 207q73-22 134-13 54-35 104-34 71-40 133-22l55 19 77-15 110 32 73-11 82 18v70H0" fill="#9bb6a3"/>
+  <path d="m0 214 107-13 59-27 84 10 69-18 66 9 41-9 96 23 94 6 67-27 85-7v92H0" fill="#6e9483"/>
+  <path d="M0 215q176 4 268-12 106-6 180 1 152-14 320-9v317H0z" fill="url(#water)"/>
+  <path d="M0 215q179 4 268-12 106-6 180 1 152-14 320-9v317H0z" fill="url(#sea)"/>
+  <g fill="none" stroke="#ecdeb0" stroke-linecap="round" opacity=".69"><path d="m504 210 96-2m-115 9 138-2m-118 8 69 1m-45 5h45m-17 5h45"/><path d="M60 274q61-9 105-5m-88 10 35-2m419 61q92-15 150-5m-101 15 61-4"/></g>
+  <!-- The striped headland light, above the old keeper's cottages. -->
+  <path d="m0 213 59-14 23-18 50 2 43 12 15 12 65 8 30 8-10 10-105 10-80-2-90 13z" fill="#515f51"/>
+  <path d="m0 209 57-13 25-19 50 3 62 25 64 8 22 9-108 9-84-3-88 14z" fill="#8da674"/>
+  <g transform="translate(99 127)"><path d="m-13 60 6-51h14l8 54z" fill="#f4e4b6" stroke="#40554d" stroke-width="1.5"/><path d="m-10 34 20 2 2 12-23-3z" fill="#b8563d"/><path d="m-8 9-1-13H9L8 9z" fill="#ffe1a2" stroke="#324d49" stroke-width="2"/><path d="M-13-4 0-15 13-4zm1 14H12v3h-24z" fill="#944831"/><path d="M0-16v-6M-3-3v11m7-11v11" stroke="#40554d" stroke-width="1.6"/></g>
+  <g stroke="#445a4c" stroke-width="1.3"><path d="m133 183 17-10 18 10v14l-35-3z" fill="#efdeb2"/><path d="m128 185 21-18 24 17-12 1-12-9-10 9z" fill="#a85c40"/><path d="m143 186 4-1v6h-4zm12 2 5 1v7h-5z" fill="#395552"/></g>
+  <use href="#pine" transform="translate(58 154) scale(.67)"/><use href="#pine" transform="translate(45 164) scale(.56)"/><use href="#pine" transform="translate(177 172) scale(.59)"/>
+  <use href="#gull" transform="translate(216 108) scale(.8)"/><use href="#gull" transform="translate(252 95) scale(.55)"/><use href="#gull" transform="translate(644 102) scale(.6)"/>
+  <!-- A packet ferry with a wake trailing west. -->
+  <g transform="translate(350 253) rotate(-3)"><path d="m-132 21 98-5-48 11 96-13" fill="none" stroke="#d8ddb0" stroke-width="2.4"/><ellipse cx="6" cy="17" rx="57" ry="4" fill="#305e5a"/>
+    <path d="m-52 4 88-1 25-5-16 17-78 2z" fill="#234b4c"/><path d="m-49 3 91-3 17-3-10 7-93 5z" fill="#d9ac68"/>
+    <path d="m-35 2 8-16 52-1L38 0z" fill="#f3dfb2" stroke="#535c4d"/><path d="m-32-13 62-1-6-5-51 2z" fill="#a45e40"/>
+    <path d="m-20-10 7-.3v6l-9 .3zm12 0 7-.3v6l-7 .3zm12-.4 7-.1v6l-7 .2zm12-.4 8-.2 4 6-12 .4z" fill="#416666"/>
+    <path d="m-9-18-2-12h8l3 12z" fill="#ad6247"/><path d="m-12-29-1-5h9l1 5z" fill="#345857"/><path d="M24-18v-20l13 4-13 4" fill="#cea454" stroke="#61644b"/>
+  </g>
+  <!-- The green and its exposed layers of rock curve around the lock. -->
+  <path d="M-30 369q112-24 206-15 85-35 147-26 81 12 128 13 61 1 107-20 101-44 210-30v221H0z" fill="#214d49"/>
+  <path d="M-22 354q101-30 195-16 80-38 152-26 77 15 128 13 56-2 100-25 121-46 215-28v240H0z" fill="#b4a979"/>
+  <path d="M-22 345q112-29 196-13 74-38 153-25 78 15 123 12 59-1 108-24 103-44 210-31v248H0z" fill="url(#green)"/>
+  <path d="M-22 345q112-29 196-13 74-38 153-25 78 15 123 12 59-1 108-24 103-44 210-31v248H0z" fill="url(#sward)"/>
+  <g fill="none" stroke="#5a815e" opacity=".6"><path d="M-10 441q109-51 230-43 128 17 230-11 136-34 329-33m-795 92q123-45 218-40 159 15 246-12 155-34 328-29m-757 123q111-54 251-40 145 1 254-26 105-28 226-23"/><path d="M519 324q89-33 145-35l83-2"/></g>
+  <path d="M173 381q59-32 160-32 95 0 155-20 61-19 111-14 50 7 24 29-50 41-203 57-137 20-233 4-44-8-14-24z" fill="#aec381"/>
+  <path d="M184 383q67-30 151-29m166-23q57-18 90-13" fill="none" stroke="#d3d69b" stroke-width="1.7"/>
+  <ellipse cx="480" cy="363" rx="11" ry="3.1" fill="#344f3d"/><path d="m482 363 94 2-92 1z" fill="#637e53"/>
+  <path d="M481 362V132" stroke="#e7d49d" stroke-width="6"/><path d="M478 362V132" stroke="#3c5548" stroke-width="2"/>
+  <path d="M481 134c33-15 51 8 80-3 17-6 26-4 37-2-19 6-20 24-41 22-25-2-42-10-76 7z" fill="#c35839"/>
+  <path d="M481 135q22-11 40-3l-9 13-31 12z" fill="#e97947"/><path d="m490 138 5-1 1 9-3 1-1-7-2 2z" fill="#f9e6ac"/>
+  <circle cx="481" cy="129" r="4" fill="#d3a456"/>
+  <path d="M0 494q43-34 105-37l45-10-29 11q27-3 45-3l-39 9q66-14 98-13l-31 9 60-6-52 11-130 47H0z" fill="#759561"/>
+  <ellipse cx="302" cy="408" rx="18" ry="4" fill="#79945f"/><circle cx="295" cy="400" r="9" fill="#faf4d9" stroke="#587765" stroke-width="1.4"/><path d="M300 397q2 6-4 9" fill="none" stroke="#c5ceb2" stroke-width="2"/>
+</svg>

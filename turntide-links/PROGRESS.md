@@ -17,3 +17,9 @@ Build the opening island first, then the Orchard, Mill and Flats, then the Narro
 ### Opening-island rules checkpoint
 
 Defined all four Gull Post holes. Twelve headless checks pass, including deterministic bank, chip and pontoon routes, score persistence and a 5,600-point stamped island card. A single chip directly to the fourth flag keeps the cup sealed. Both incoming tides can earn the high-quay or exposed-sandbar passage. Player interface, browser checks and catalog rotation follow this checkpoint.
+
+### First playable · Gull Post 4/4, full tour 4/20
+
+Edge completed the four stamped holes through the interface in 3, 2, 2 and 2 strokes. A mid-shot reload returned the settled lie, the third hole rode the pontoon and the fourth started at the raised tee. An alternate replay drained the basin and crossed the sandbar, preserving the better high-quay card. The local leaderboard received rank GET and submit POST for the same 5,600 points. A separate file URL opening finished Bellhouse Bank with pointer controls and kept its local card. The console was clean. Inspected the six opening sizes, the pontoon and the scorecard. Phone and landscape layouts bring Play stroke alongside the desk heading. Physical-device, human play, listening and discipline critiques remain outstanding.
+
+Next build Orchard Steps holes 05–08, starting with the stone return ramp and the fruit barge. Preserve Gull Post saves and best cards across the new island unlock. The Mill, Flats, Narrows, earned backspin/skip and ferry homecoming are still pending.

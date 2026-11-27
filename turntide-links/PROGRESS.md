@@ -13,3 +13,7 @@ The user selected option 1. Write the complete five-island contract, then delive
 | Homecoming Narrows | 17–20 | 0/4 |
 
 Build the opening island first, then the Orchard, Mill and Flats, then the Narrows and ferry ending. Verify inherited water states, unlocks and mastery replays before final polish.
+
+### Opening-island rules checkpoint
+
+Defined all four Gull Post holes. Twelve headless checks pass, including deterministic bank, chip and pontoon routes, score persistence and a 5,600-point stamped island card. A single chip directly to the fourth flag keeps the cup sealed. Both incoming tides can earn the high-quay or exposed-sandbar passage. Player interface, browser checks and catalog rotation follow this checkpoint.

@@ -24,12 +24,13 @@ Approved November 27, 2026 Pacific when the user selected option 1. This contrac
 
 ## Runtime ownership and interfaces
 
-Classic scripts share window.TL and run over HTTP and file URLs. No remote fonts or art. Load course, links, render, audio, game in that order. Keep all game coordinates on a 720 × 450 harbor chart. Render at the current element aspect and device pixel ratio. The shot settles in deterministic fixed ticks independent of animation frame rate.
+Classic scripts share window.TL and run over HTTP and file URLs. No remote fonts or art. Load course, links, journal, render, audio, game in that order. Keep all game coordinates on a 720 × 450 harbor chart. Render at the current element aspect and device pixel ratio. The shot settles in deterministic fixed ticks independent of animation frame rate.
 
 | Owner | Single file | Contract |
 | --- | --- | --- |
 | Course author | assets/js/course.js | TL.holes in play order. Stable id, name, par, hint, tee, cup, stamp, land rectangles, rails, low lips, optional slope, paddle and pontoon. Basin state carries between the four holes on each island. |
-| Rules author | assets/js/links.js | TL.Links creates a lie, resolves a shot into frames and a settled result, applies lock transfers, calculates best-card totals and restores the journal. Rules are independent of the DOM. |
+| Rules author | assets/js/links.js | TL.Links creates a lie, resolves a shot into frames and a settled result, applies lock transfers and scores a completed hole. Rules are independent of the DOM. |
+| Campaign author | assets/js/journal.js | TL.Journal records settled results, inherited tees, unlocked holes and replay bests. The integration lead supplies storage and presents the journal. Load after links. |
 | Chart illustrator | assets/js/render.js | TL.draw(canvas, hole, state, view) draws a procedural harbor, landmarks, terrain, deck, tide, cup, stamp, shadow, aim and ball. Read-only consumer of course and rules. |
 | Sound designer | assets/js/audio.js | TL.Audio.setEnabled(boolean), unlock(), play(cue). User-gesture Web Audio synthesis, distinctive surfaces, switch, stamp and cup. Quiet by default. |
 | Interface designer | assets/css/game.css | Responsive chart and keeper controls. Visible focus, readable labels, tap targets and normal scrolling on short screens. |

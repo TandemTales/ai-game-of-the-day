@@ -7,7 +7,7 @@ The user selected option 1. Write the complete five-island contract, then delive
 | Island | Approved holes | Playable on dev |
 | --- | --- | --- |
 | Gull Post | 01–04 | 4/4 |
-| Orchard Steps | 05–08 | 0/4 |
+| Orchard Steps | 05–08 | 4/4 |
 | Tinwhistle Mill | 09–12 | 0/4 |
 | Glassbird Flats | 13–16 | 0/4 |
 | Homecoming Narrows | 17–20 | 0/4 |
@@ -37,3 +37,9 @@ The course now defines Windfall Return, The Cider Lighter, Twin Spillways and Pi
 The rules suite passes 24 checks. Each Orchard hole has a legal stamped route at both tides. A weak putt rolls back to the ramp foot, a chip misses a sunken barge, and the same spillway approach that holds with backspin goes into the far chute without it. Pippin Sluice requires a fresh water transfer and a grounded putt out of the exposed islet across the bridge. Browser and critic evidence follow.
 
 The Orchard chart draws stepped masonry, fruit trees, a moving cargo deck, twin spillways and upper/lower pool states. The first course critique against Everybody’s Golf identified a missing carry read on phones. A dashed chip-landing ring now marks touchdown while leaving rollout to the player. The initial art comparison favored the reference for terrain, framing and depth and called for clearer barge berths.
+
+### Two islands playable · 8/20
+
+Edge carried a four-hole journal into Orchard Steps and completed all eight stamped holes through the interface. The first Orchard card took 3, 3, 2 and 4 strokes. Both ferry landings opened and the loopback board received the tour total of 11,000. All four Orchard tees were inspected at the six required sizes, along with the raised barge, the spillway stop, the exposed islet and the completed scorecard. A loaner wedge supplies backspin on 07–08. Earning it for the whole tour remains part of the Mill contract.
+
+The course critic passed the bounded course design and phone landing read after the ring revision. Everybody’s Golf still won the side-by-side for elevation cues and landscape forms. The rules critic verified real Edge ramp recovery, the different outcomes of identical plain and backspin chips and a missed bridge putt followed by a successful recovery. Mario Golf: Super Rush won the overall comparison for shot distance, swing and impact feedback. [Everybody’s Golf gameplay](https://www.playstation.com/en-us/games/everybodys-golf/) · [Mario Golf: Super Rush gameplay](https://www.nintendo.com/au/games/nintendo-switch/mario-golf-super-rush/)

@@ -11,6 +11,7 @@ module.exports = {
   windfall: [['putt', 3, 82], ['putt', -72, 9], ['putt', -43, 24]],
   bargeLow: [['putt', -52, 24], ['chip', -10, 42], ['chip', -22, 49]],
   bargeHigh: [['chip', -25, 61], ['chip', -22, 50]],
+  bargeDrain: [['putt', -52, 24], ['chip', -10, 42], ['chip', 164, 46], ['chip', -19, 96]],
   spillways: [['chip', 157, 57, 'back'], ['chip', 162, 51]],
   sluiceLow: [['putt', 32, 25], ['chip', 31, 35], ['putt', 5, 57]],
   sluiceHigh: [['putt', 32, 25], ['putt', -145, 22], ['chip', 33, 57], ['putt', 4, 57]]

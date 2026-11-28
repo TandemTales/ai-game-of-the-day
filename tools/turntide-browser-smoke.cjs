@@ -33,7 +33,7 @@ function observe(page) {
 }
 const saved = page => page.evaluate(() => JSON.parse(localStorage.getItem('turntide-links-tour-v1')));
 async function playStroke(page, route, touch, options = {}) {
-  const [club, angle, power] = route;
+  const [club, angle, power, spin] = route;
   const aim = await page.evaluate(({ angle }) => {
     const saved = JSON.parse(localStorage.getItem('turntide-links-tour-v1'));
     const lie = saved ? saved.lie : TL.Links.start(TL.holes[0], 0);
@@ -53,10 +53,19 @@ async function playStroke(page, route, touch, options = {}) {
   else await page.mouse.click(x,y);
   const action = async selector => touch ? page.locator(selector).tap() : page.locator(selector).click();
   await action('#' + club);
+  const spinControl = page.locator('#backspin');
+  if (club === 'chip' && await spinControl.isVisible() &&
+      (await spinControl.getAttribute('aria-pressed') === 'true') !== (spin === 'back')) {
+    await action('#backspin');
+  }
   const slider = page.locator('#power');
   await slider.focus();
   await slider.press('Home');
-  for (let i = 1; i < power; i++) await slider.press('ArrowRight');
+  if (options.keyboard) {
+    for (let i = 1; i < power; i++) await slider.press('ArrowRight');
+  } else {
+    await slider.fill(String(power));
+  }
   assert.equal(await slider.inputValue(), String(power));
   if (options.keyboard) { await canvas.focus(); await page.keyboard.press('Space'); }
   else await action('#strike');
@@ -104,11 +113,14 @@ async function run() {
         }
       }
       assert(journal.lie.holed && journal.lie.marked, 'completion and stamp ' + name + ': ' + JSON.stringify(journal.lie));
-      await page.locator('#advance').tap();
-      if (i < 3) await page.reload();
+      if (i < 3) {
+        await page.locator('#advance').tap();
+        await page.reload();
+      }
     }
     assert.equal(journal.lie.passage, 'quay');
     assert.equal(await page.locator('#total').textContent(), '5,600');
+    await page.locator('#book summary').tap();
     await page.locator('#keeper').fill('Gull QA');
     await page.locator('#post').tap();
     await page.waitForFunction(() => document.getElementById('board-message').textContent.includes('Score posted'));
@@ -123,6 +135,66 @@ async function run() {
     await page.reload();
     assert.equal((await saved(page)).cards[4].leastStrokes, 2);
     assert.equal(await page.locator('#total').textContent(), '5,600');
+    // A journal written by the four-hole build has no entry for a fifth tee.
+    await page.evaluate(() => {
+      const key = 'turntide-links-tour-v1';
+      const legacy = JSON.parse(localStorage.getItem(key));
+      delete legacy.entries[5];
+      localStorage.setItem(key, JSON.stringify(legacy));
+    });
+    await page.reload();
+    await page.locator('#advance').tap();
+    const orchard = ['windfall', 'bargeLow', 'spillways', 'sluiceHigh'];
+    for (const [i, name] of orchard.entries()) {
+      const id = i + 5;
+      const tee = await saved(page);
+      assert.equal(tee.holeId, id);
+      assert.equal(tee.lie.level, i < 2 ? 0 : 1);
+      fs.writeFileSync(path.join(out, 'tee-' + id + '.json'), JSON.stringify(tee));
+      for (const [width,height] of sizes) {
+        await page.setViewportSize({ width,height });
+        await page.evaluate(() => window.scrollTo(0,0));
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+        await page.screenshot({ path: path.join(out, 'orchard-' + id + '-' + width + 'x' + height + '.png') });
+      }
+      await page.setViewportSize({width:390, height:844});
+      for (const [j, stroke] of routes[name].entries()) {
+        journal = await playStroke(page, stroke, true);
+        if (!journal.lie.holed) {
+          await page.reload();
+          assert.deepEqual((await saved(page)).lie, journal.lie);
+        }
+        if ((id === 6 && j === 1) || (id === 7 && j === 0) || (id === 8 && journal.lie.poolFed && !journal.lie.holed)) {
+          await page.locator('.chart-panel').screenshot({ path: path.join(out, 'orchard-action-' + id + '-' + j + '.png') });
+        }
+      }
+      assert(journal.lie.holed && journal.lie.marked, name + ' ' + JSON.stringify(journal.lie));
+      assert.equal(journal.cards[id].leastStrokes, routes[name].length);
+      await page.locator('#advance').tap();
+    }
+    assert.match(await page.locator('#passage').textContent(), /Gull Post and Orchard Steps are open/);
+    assert.equal(await page.locator('#book-count').textContent(), '8 / 20 holes');
+    const score = Object.values(journal.cards).reduce((sum, card) => sum + card.points, 0);
+    await page.locator('#keeper').fill('Orchard QA');
+    await page.locator('#post').tap();
+    await page.waitForFunction(() => document.getElementById('board-message').textContent.includes('Score posted'));
+    assert.deepEqual(api.slice(2).map(item => item.method), ['GET','POST']);
+    assert.deepEqual(api[2].query, { gameId:'turntide-links',score:String(score) });
+    assert.deepEqual(api[3].body, { gameId:'turntide-links',score,name:'Orchard QA' });
+    await page.locator('#book').screenshot({ path: path.join(out, 'orchard-scorecard.png') });
+    await page.locator('#hole-picker').selectOption('6');
+    await page.locator('#replay').tap();
+    for (const [i, name] of ['bargeDrain', 'spillways', 'sluiceLow'].entries()) {
+      assert.equal((await saved(page)).lie.level, 0);
+      for (const stroke of routes[name]) journal = await playStroke(page, stroke, true);
+      assert(journal.lie.holed && journal.lie.marked, 'low-tide replay of ' + name);
+      assert.equal(journal.lie.strokes, routes[name].length);
+      if (i === 0) assert.equal(journal.cards[6].points, 1350);
+      await page.locator('#advance').tap();
+    }
+    await page.reload();
+    assert.equal((await saved(page)).cards[8].points, 1450);
+    assert.equal(await page.locator('#total').textContent(), '11,100');
     await page.close();
     const offline = await browser.newPage();
     observe(offline);
@@ -131,7 +203,7 @@ async function run() {
     assert(journal.lie.holed);
     assert(await offline.locator('#post').isDisabled());
     assert.deepEqual(errors, []);
-    console.log('PASS: 6 viewport captures, 4 stamped touch holes, 5,600 points, both ferry routes, mid-shot reload, keyboard stroke, local rank/submit and file:// hole-out.');
+    console.log('PASS: eight stamped touch holes, both Gull Post routes, legacy transition, Orchard reloads, six sizes, file play, local rank/submit at 5600 and ' + score + ', low-tide replay 11100.');
     console.log(out);
   } finally {
     if (browser) await browser.close();

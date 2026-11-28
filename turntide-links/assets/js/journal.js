@@ -52,6 +52,9 @@
       journal.lie = { x: lie.x, y: lie.y, strokes: lie.strokes, level: lie.level,
         qualified: lie.qualified === true, marked: lie.marked === true, holed: lie.holed === true && !!journal.cards[raw.holeId] };
       if (lie.passage === 'quay' || lie.passage === 'sandbar') journal.lie.passage = lie.passage;
+      if (TL.holes[raw.holeId - 1].islet && typeof lie.poolFed === 'boolean') {
+        journal.lie.poolFed = lie.poolFed && lie.level === 1;
+      }
     }
     return journal;
   }

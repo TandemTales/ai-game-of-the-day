@@ -89,6 +89,7 @@
     let vx = speed * Math.cos(angle);
     let vy = speed * Math.sin(angle);
     let flying = chip;
+    let touchdown = null;
     const airTime = 0.78 * Math.sqrt(power);
     const rails = hole.rails.map(rail => ({
       rail, face: null,
@@ -142,6 +143,7 @@
 
       if (flying && phase === 1) {
         flying = false;
+        touchdown = { x: state.x, y: state.y };
         const retainedSpeed = backspin ? 0.17 : 0.55;
         vx *= retainedSpeed;
         vy *= retainedSpeed;
@@ -287,7 +289,7 @@
       }
     }
     frame(state.x, state.y, 0, state.level);
-    return { state, frames, events };
+    return { state, frames, events, touchdown };
   }
 
   TL.Links = { start, shoot, points };

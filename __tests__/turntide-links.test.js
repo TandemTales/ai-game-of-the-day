@@ -49,7 +49,7 @@ test('water costs a penalty and returns to the playable previous lie', () => {
   expect(start.strokes).toBe(0);
 });
 
-const orchard = context.window.TL.orchardHoles;
+const orchard = holes.slice(4, 8);
 test.each([
   [5, 0, 'windfall', 'ramp'], [5, 1, 'windfall', 'ramp'],
   [6, 0, 'bargeLow', 'barge'], [6, 1, 'bargeHigh', 'barge'],
@@ -89,6 +89,41 @@ test('an inherited full pool and an airborne shot from the exposed islet each le
   const putt = { club: 'putt', angle: 5, power: 57 };
   expect(Links.shoot(hole, lie, putt).state.qualified).toBe(false);
   expect(Links.shoot(hole, { ...lie, poolFed: true }, { ...putt, club: 'chip' }).state.qualified).toBe(false);
+});
+
+test('a legacy scorecard unlocks Orchard, resumes every stroke and reopens both landings', () => {
+  const cards = Object.fromEntries([1350, 1350, 1450, 1450].map((points, i) =>
+    [i + 1, { points, stamp: true, leastStrokes: [3, 2, 2, 2][i] }]));
+  let journal = Journal.restore({ version: 1, holeId: 4, entries: { 1: 0, 2: 0, 3: 0, 4: 1 }, cards, posted: 5600 });
+  for (const [i, name] of ['windfall', 'bargeLow', 'spillways', 'sluiceHigh'].entries()) {
+    const hole = orchard[i];
+    expect(Journal.unlocked(journal)).toBe(hole.id);
+    expect(Journal.enter(journal, hole.id)).toBe(true);
+    expect(journal.lie.level).toBe(i < 2 ? 0 : 1);
+    for (const [club, angle, power, spin] of routes[name]) {
+      const { state } = Links.shoot(hole, journal.lie, { club, angle, power, spin });
+      Journal.settle(journal, hole, state);
+      journal = Journal.restore(JSON.parse(JSON.stringify(journal)));
+      expect(journal.lie).toEqual(state);
+    }
+    expect(journal.cards[hole.id]).toMatchObject({ points: 1350, stamp: true });
+  }
+  expect(journal.cards).toMatchObject(cards);
+  expect(journal.posted).toBe(5600);
+  expect(Journal.total(journal)).toBe(11000);
+  expect(Journal.enter(journal, 9)).toBe(false);
+  for (const [i, name] of ['bargeDrain', 'spillways', 'sluiceLow'].entries()) {
+    const hole = holes[i + 5];
+    expect(Journal.enter(journal, hole.id)).toBe(true);
+    expect(journal.lie.level).toBe(0);
+    const replay = play(hole, journal.lie, routes[name]);
+    expect(replay.current).toMatchObject({ holed: true, marked: true });
+    Journal.settle(journal, hole, replay.current);
+    journal = Journal.restore(JSON.parse(JSON.stringify(journal)));
+  }
+  expect(journal.cards[6].points).toBe(1350);
+  expect(journal.cards[8].points).toBe(1450);
+  expect(Journal.total(journal)).toBe(11100);
 });
 test('floating tee, stamp and passage survive settled reloads and replay keeps the better card', () => {
   let journal = Journal.restore(null);

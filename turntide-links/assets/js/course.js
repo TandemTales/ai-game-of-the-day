@@ -39,10 +39,7 @@
         ground(451, 137, 109, 141), ground(498, 161, 153, 122), ground(453, 257, 71, 42, 'sand')],
       rails: [], paddle: point(206, 182), deck: { x: 133, y: 221, w: 92, h: 46, dx: 71, dy: -38 },
       sandbar: ground(244, 224, 216, 45, 'sand')
-    }
-  ];
-
-  TL.orchardHoles = [
+    },
     {
       id: 5, island: 'Orchard Steps', name: 'Windfall Return', par: 4,
       tee: point(128, 277), cup: point(506, 139), stamp: point(433, 205),

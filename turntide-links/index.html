@@ -16,7 +16,7 @@
       <section class="chart-panel" aria-labelledby="hole-name">
         <header class="chart-heading"><div><span class="eyebrow" id="hole-number">Gull Post · Hole 01 / 04</span><h2 id="hole-name">Bellhouse Bank</h2></div><strong class="par" id="par">Par 4</strong></header>
         <canvas id="chart" width="720" height="450" tabindex="0" aria-label="Gull Post golf chart. Tap to aim, or use left and right arrows to turn and Space to shoot.">Use the aim and power controls to play.</canvas>
-        <div class="chart-key"><span>⚑ Cup</span><span>◇ Pilot stamp</span><span id="water-readout">Inner low · Outer high</span></div>
+        <div class="chart-key"><span>⚑ Cup</span><span>◇ Pilot stamp</span><span id="carry-key" hidden>◎ Chip landing</span><span id="water-readout">Inner low · Outer high</span></div>
         <p class="hint" id="brief"></p>
       </section>
       <aside class="controls" aria-labelledby="desk-heading">
@@ -24,6 +24,7 @@
         <div class="readouts"><div><small>Strokes</small><strong id="strokes">0</strong></div><div><small>Stamp</small><strong id="stamp">Open</strong></div><div><small>Cup</small><strong id="cup-state">Sealed</strong></div></div>
         <fieldset class="club-switch"><legend>Club</legend><button type="button" id="putt" aria-pressed="true">Putt</button><button type="button" id="chip" aria-pressed="false">Chip</button></fieldset>
         <div class="aim-row"><label for="bearing">Aim</label><button type="button" id="left" aria-label="Turn left two degrees">−</button><output id="bearing">0°</output><button type="button" id="right" aria-label="Turn right two degrees">+</button></div>
+        <button type="button" id="backspin" aria-pressed="false" hidden>Backspin · off</button>
         <div class="power-row"><label for="power">Power</label><output id="strength" for="power">54%</output><input id="power" type="range" min="1" max="100" value="54"></div>
         <button class="primary" type="button" id="strike">Play stroke</button>
         <p id="notice" role="status" aria-live="polite"></p>
@@ -33,12 +34,12 @@
     <section class="logbook" aria-label="Tour journal">
       <details id="book"><summary>Pilot book <span id="book-count">0 / 20 holes</span></summary>
         <div class="book-content">
-          <div><h2>Gull Post scorecard</h2><ol id="cards"></ol>
+          <div><div id="cards"></div>
             <label for="hole-picker">Choose a tee</label>
             <select id="hole-picker"></select><button id="replay" type="button">Play from tee</button>
             <p id="restart-note">Starting from a tee keeps your best scorecards.</p>
           </div>
-          <div><h2>Island passage</h2><p id="passage"></p><p>Next on the chart: Orchard Steps, Tinwhistle Mill, Glassbird Flats and Homecoming Narrows.</p>
+          <div><h2>Island passage</h2><p id="passage"></p><p id="next-islands"></p>
             <h2>Tour score <span id="total">0</span></h2>
             <form id="score-form"><label for="keeper">Keeper name</label><input id="keeper" name="name" maxlength="20" autocomplete="off" required><button id="post" type="submit">Post score</button></form>
             <p id="board-message" role="status"></p><a href="../leaderboard.html?gameId=turntide-links">View leaderboard ↗</a>

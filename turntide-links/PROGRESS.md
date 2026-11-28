@@ -46,4 +46,6 @@ The course critic passed the bounded course design and phone landing read after 
 
 The illustrator added striped mooring posts at both berths, a raked bow and visible cargo after the first art critique. The independent second comparison passed the transfer and chip target at 320px and 1440px at both tides. Everybody’s Golf still led overall on lighting, shot framing and terrain depth. Physical-device, human play, audio and performance reviews remain open.
 
+Final checks at gameplay commit `7dd1cdd`: 691 tests passed in 32 suites, including 25 Turntide checks. The final Edge run cleared all eight stamps, then drained the pool on a four-stroke barge replay. The three-stroke barge best survived. Carrying low water through Twin Spillways saved one stroke on Pippin Sluice and raised the saved score from 11,000 to 11,100. The browser reported no warnings, errors or horizontal overflow in the viewport sweep. Disk play, keyboard shooting and the dev catalog entry points passed. The Cloudflare dev preview served the matching six scripts, CSS, game page and root catalog. This run stayed on `dev`.
+
 Next build Tinwhistle Mill 09–12. Start with the stopped wheel and reversible millrace, then the low beam, hoist and earned tour-wide backspin. Glassbird Flats, Homecoming Narrows and the ferry ending remain outstanding.

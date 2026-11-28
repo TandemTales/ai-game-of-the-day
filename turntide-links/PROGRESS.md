@@ -27,3 +27,7 @@ Next build Orchard Steps holes 05–08, starting with the stone return ramp and 
 ### Arcade integration
 
 The dev catalog features Turntide Links and lists Signalbreak once in the library. Verified the cover, Play link, search, local rating submission, tour leaderboard title and Play Again route in Edge. The repository suite passed all 678 tests in 32 suites, including the 12 Turntide checks. This was a first-playable build. Production promotion and quality judging are pending.
+
+### November 27 Pacific · Orchard Steps intent
+
+Build holes 05–08 around the stone return ramp, fruit barge, overflow chutes and linked orchard pools. Verify playable routes, the island transition from existing Gull Post journals, and the second pilot-book page. This is a development run on `dev`.

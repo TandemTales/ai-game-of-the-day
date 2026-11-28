@@ -10,9 +10,9 @@ const { holes, Links, Journal } = context.window.TL;
 function play(hole, start, route) {
   let current = start;
   const events = [];
-  for (const [club, angle, power] of route) {
+  for (const [club, angle, power, spin] of route) {
     expect(current.holed).toBe(false);
-    const shot = Links.shoot(hole, current, { club, angle, power });
+    const shot = Links.shoot(hole, current, { club, angle, power, spin });
     const last = shot.frames[shot.frames.length - 1];
     expect(last).toMatchObject({ x: shot.state.x, y: shot.state.y, level: shot.state.level, z: 0 });
     expect(shot.frames.flatMap(frame => frame.cues || [])).toEqual(shot.events);
@@ -48,10 +48,52 @@ test('water costs a penalty and returns to the playable previous lie', () => {
   expect(shot.state).toMatchObject({ x: start.x, y: start.y, strokes: 2 });
   expect(start.strokes).toBe(0);
 });
+
+const orchard = context.window.TL.orchardHoles;
+test.each([
+  [5, 0, 'windfall', 'ramp'], [5, 1, 'windfall', 'ramp'],
+  [6, 0, 'bargeLow', 'barge'], [6, 1, 'bargeHigh', 'barge'],
+  [7, 0, 'spillways', 'spinStop'], [7, 1, 'spillways', 'spinStop'],
+  [8, 0, 'sluiceLow', 'isletPutt'], [8, 1, 'sluiceHigh', 'isletPutt']
+])('Orchard hole %i at tide %i earns its stamp via %s', (id, level, route, objective) => {
+  const hole = orchard[id - 5];
+  const attempt = () => play(hole, Links.start(hole, level), routes[route]);
+  const result = attempt();
+  expect(result).toEqual(attempt());
+  expect(result.events).toContain(objective);
+  expect(result.current).toMatchObject({ holed: true, marked: true, strokes: routes[route].length, ...hole.cup });
+});
+test('a short ramp climb rolls back to its foot for another attempt', () => {
+  const ramp = orchard[0];
+  const first = Links.shoot(ramp, Links.start(ramp), { club: 'putt', angle: 3, power: 40 });
+  expect(first.events).toContain('rampReturn');
+  expect(first.state).toMatchObject({ strokes: 1, qualified: false });
+  expect(first.state.x).toBeLessThan(ramp.ramp.x);
+  expect(Links.shoot(ramp, first.state, { club: 'putt', angle: 0, power: 75 }).state.qualified).toBe(true);
+});
+test('a sunken barge cannot receive the chip that lands on its raised deck', () => {
+  const hole = orchard[1], shot = { club: 'chip', angle: -25, power: 61 };
+  expect(Links.shoot(hole, Links.start(hole, 0), shot).state).toMatchObject({ strokes: 2, qualified: false });
+  expect(Links.shoot(hole, Links.start(hole, 1), shot).events).toContain('barge');
+});
+test('the same spillway approach rolls into the far chute without backspin', () => {
+  const hole = orchard[2], shot = { club: 'chip', angle: 157, power: 58 };
+  const plain = Links.shoot(hole, Links.start(hole), shot);
+  expect(plain.events).toContain('chute');
+  expect(plain.state).toMatchObject({ ...hole.tee, strokes: 2, qualified: false });
+  expect(Links.shoot(hole, Links.start(hole), { ...shot, spin: 'back' }).events).toContain('spinStop');
+});
+test('an inherited full pool and an airborne shot from the exposed islet each leave the last cup sealed', () => {
+  const hole = orchard[3];
+  const lie = { ...Links.start(hole, 1), x: 344, y: 252 };
+  const putt = { club: 'putt', angle: 5, power: 57 };
+  expect(Links.shoot(hole, lie, putt).state.qualified).toBe(false);
+  expect(Links.shoot(hole, { ...lie, poolFed: true }, { ...putt, club: 'chip' }).state.qualified).toBe(false);
+});
 test('floating tee, stamp and passage survive settled reloads and replay keeps the better card', () => {
   let journal = Journal.restore(null);
   const routeNames = ['bell', 'dune', 'raftLow', 'highQuay'];
-  for (const hole of holes) {
+  for (const hole of holes.slice(0, 4)) {
     expect(Journal.enter(journal, hole.id)).toBe(true);
     if (hole.id === 4) expect(journal.lie).toMatchObject({ x: 227, y: 203, level: 1 });
     for (const [club,angle,power] of routes[routeNames[hole.id - 1]]) {

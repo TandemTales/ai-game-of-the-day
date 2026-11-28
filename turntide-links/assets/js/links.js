@@ -18,6 +18,8 @@
   function surface(hole, point, level) {
     const deck = deckAt(hole, level);
     if (deck && inside(point, deck)) return 'deck';
+    if (hole.chutes?.some(chute => inside(point, chute))) return 'water';
+    if (level === 1 && hole.islet && inside(point, hole.islet)) return 'turf';
     if (level === 0 && hole.sandbar && inside(point, hole.sandbar)) return 'sand';
     // Later patches of land are drawn on top of the island base.
     for (let i = hole.land.length - 1; i >= 0; i--) {
@@ -80,6 +82,9 @@
     const power = Math.max(1, Math.min(100, Number(shot.power) || 1)) / 100;
     const angle = (Number(shot.angle) || 0) * Math.PI / 180;
     const chip = shot.club === 'chip';
+    const backspin = chip && shot.spin === 'back' && !!(hole.spinGreen || hole.islet);
+    const approachToBarge = chip && hole.barge && lie.level === 1 && surface(hole, lie, lie.level) !== 'deck';
+    const isletPutt = hole.islet && !chip && lie.level === 1 && lie.poolFed && inside(lie, hole.islet);
     const speed = chip ? 450 * Math.sqrt(power) : Math.sqrt(2 * TURF_DRAG * 400 * power);
     let vx = speed * Math.cos(angle);
     let vy = speed * Math.sin(angle);
@@ -93,6 +98,8 @@
     let transfer = false;
     let onPaddle = near(state, hole.paddle, 13);
     let lost = false;
+    let rampEntry = null;
+    let landedOnBarge = false;
     state.strokes++;
 
     // At full power a tick travels less than the diameter of a cup. The same
@@ -135,12 +142,14 @@
 
       if (flying && phase === 1) {
         flying = false;
-        vx *= 0.55;
-        vy *= 0.55;
+        const retainedSpeed = backspin ? 0.17 : 0.55;
+        vx *= retainedSpeed;
+        vy *= retainedSpeed;
       }
       const ground = surface(hole, state, state.level);
       if (!flying && ground === 'water') {
         lost = true;
+        if (hole.chutes?.some(chute => inside(state, chute))) note('chute');
         note('splash');
         frame(state.x, state.y, 0, state.level);
         break;
@@ -148,6 +157,32 @@
       if (chip && !flying && !events.includes('land')) {
         note('land');
         note(ground);
+        landedOnBarge = approachToBarge && ground === 'deck';
+      }
+      const ramp = hole.ramp;
+      if (ramp && !flying) {
+        if (!rampEntry && last.x < ramp.x && inside(state, ramp) &&
+            entryFace(last, state, ramp).axis === 'x') {
+          rampEntry = { x: ramp.x, y: state.y };
+          const heading = Math.atan2(ramp.y + ramp.h * 0.25 - state.y, ramp.x + ramp.w - state.x);
+          const rolling = Math.hypot(vx, vy);
+          vx = rolling * Math.cos(heading);
+          vy = rolling * Math.sin(heading);
+        }
+        if (rampEntry && state.x >= ramp.x + ramp.w) {
+          // The carved lip turns the outgoing ball uphill on the middle terrace.
+          const rolling = Math.hypot(vx, vy);
+          vx = rolling / Math.hypot(1, 0.3);
+          vy = -0.3 * vx;
+          state.qualified = true;
+          note('ramp');
+          rampEntry = null;
+        }
+      }
+      if (isletPutt && !state.qualified && inside(last, hole.islet) &&
+          state.x > hole.islet.x + hole.islet.w && ground === 'quay') {
+        state.qualified = true;
+        note('isletPutt');
       }
       const touchingPaddle = z <= 8 && near(state, hole.paddle, 13);
       if (touchingPaddle && !onPaddle && !transfer) {
@@ -184,7 +219,7 @@
         vy += 105 * DT * hole.slope.dy / length;
       }
       const rolling = Math.hypot(vx, vy);
-      const drag = ground === 'sand' ? 900 : ground === 'quay' ? 500 : TURF_DRAG;
+      const drag = rampEntry ? 680 : ground === 'sand' ? 900 : ground === 'quay' ? 500 : TURF_DRAG;
       if (rolling <= drag * DT) break;
       const fraction = 1 - drag * DT / rolling;
       vx *= fraction;
@@ -197,6 +232,23 @@
       state.x = lie.x;
       state.y = lie.y;
       state.strokes++;
+      if (hole.ramp || hole.islet) state.qualified = lie.qualified;
+    } else if (rampEntry) {
+      // An underhit climb runs back to the western foot, ready for another try.
+      const footX = rampEntry.x - BALL_RADIUS;
+      for (let i = 1; i <= 30; i++) {
+        const t = (i / 30) ** 2;
+        frame(state.x + (footX - state.x) * t, state.y + (rampEntry.y - state.y) * t, 0, state.level);
+      }
+      state.x = footX;
+      state.y = rampEntry.y;
+      note('rampReturn');
+    } else if (landedOnBarge && !transfer && surface(hole, state, state.level) === 'deck') {
+      state.qualified = true;
+      note('barge');
+    } else if (hole.spinGreen && backspin && !inside(lie, hole.spinGreen) && inside(state, hole.spinGreen)) {
+      state.qualified = true;
+      note('spinStop');
     }
     if (transfer) {
       const oldLevel = state.level;
@@ -216,6 +268,10 @@
         frame(moving.x, moving.y, 0, oldLevel + (newLevel - oldLevel) * t);
       }
       state.level = newLevel;
+      if (hole.islet) {
+        state.poolFed = newLevel === 1;
+        if (state.poolFed) note('poolFed');
+      }
       state.x += dx;
       state.y += dy;
       if (!state.holed && surface(hole, state, newLevel) === 'water') {

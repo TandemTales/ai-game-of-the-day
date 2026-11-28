@@ -33,3 +33,5 @@ The dev catalog features Turntide Links and lists Signalbreak once in the librar
 Build holes 05–08 around the stone return ramp, fruit barge, overflow chutes and linked orchard pools. Verify playable routes, the island transition from existing Gull Post journals, and the second pilot-book page. This is a development run on `dev`.
 
 The course now defines Windfall Return, The Cider Lighter, Twin Spillways and Pippin Sluice. The four new layouts are staged separately while their rules and routes are under verification. All 12 Gull Post checks pass.
+
+The rules suite passes 24 checks. Each Orchard hole has a legal stamped route at both tides. A weak putt rolls back to the ramp foot, a chip misses a sunken barge, and the same spillway approach that holds with backspin goes into the far chute without it. Pippin Sluice requires a fresh water transfer and a grounded putt out of the exposed islet across the bridge. Browser and critic evidence follow.

@@ -188,6 +188,115 @@
       if (safe({x:x-6,y:y-3,w:12,h:5})) line(ctx, '#ebead3bd', [x-5,y-2,x-2,y-2,x,y,x+2,y-2,x+5,y-3], 1.5);
     }
   }
+
+  function appleTree(ctx, x, y, scale, seed) {
+    const random = noise(seed);
+    ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
+    oval(ctx, 4, 1, 14, 4, '#454b383e');
+    polygon(ctx, '#674c36', [-3,0,-1,-11,-7,-16,-5,-18,1,-13,6,-20,8,-18,3,-10,3,0]);
+    line(ctx, '#b18355', [-1,-1,0,-9,-4,-14], 1.3);
+    // Pruned apple trees have a broad open crown and heavy, low fruiting limbs.
+    for (const [cx,cy,r] of [[-7,-15,8],[8,-16,8],[1,-23,9],[-6,-21,5]]) {
+      oval(ctx, cx,cy,r+1,r*.84, '#4a573a');
+      oval(ctx, cx-1,cy-2,r,r*.74, '#829240');
+      oval(ctx, cx-3,cy-3,r*.62,r*.48, '#a6a74a');
+    }
+    for (let i=0;i<12;i++) {
+      const xx = -11+random()*22, yy = -24+random()*12;
+      oval(ctx,xx,yy,1.7,2.1,'#8b4431');
+      oval(ctx,xx-.4,yy-.7,1.3,1.3,i%3?'#d9703e':'#f5ad54');
+    }
+    ctx.restore();
+  }
+
+  function ciderHouse(ctx, x, y) {
+    ctx.save(); ctx.translate(x,y);
+    oval(ctx,4,1,46,9,'#45503b48');
+    polygon(ctx,'#cfac77',[-34,-24,8,-31,34,-17,34,0,-6,7,-34,-4],ink,1.6);
+    polygon(ctx,'#e8c58c',[-34,-24,-17,-42,9,-28,9,3,-6,7,-34,-4],ink,1.5);
+    polygon(ctx,'#9b4934',[-38,-22,-17,-48,25,-51,41,-25,7,-19,-17,-42],ink,1.7);
+    polygon(ctx,'#c66541',[-17,-48,24,-52,42,-27,8,-20],ink,1.5);
+    for(let i=0;i<5;i++) line(ctx,'#dd8a58',[-12+i*7,-45-i,6+i*7,-24-i],1.1);
+    polygon(ctx,'#51483b',[-24,-16,-12,-19,-12,3,-24,0]);
+    for(const xx of [-5,2,16,25]) {
+      const yy = xx<8 ? -15+(xx+5)*.3 : -16-(xx-16)*.15;
+      line(ctx,'#f1daa0',[xx,yy,xx,yy+6],4);
+      line(ctx,'#566759',[xx,yy,xx,yy+5],2.4);
+    }
+    line(ctx,'#604a39',[-29,-5,-29,-18,-19,-20],1.4);
+    polygon(ctx,'#67503b',[16,-47,16,-62,21,-63,22,-48],ink);
+    line(ctx,'#f2c88a',[15,-62,22,-64],2);
+    ctx.restore();
+  }
+
+  function orchardLanding(ctx,hole) {
+    // Near bank, seen from the ferry. The farther edge is the only playable shore.
+    const east = hole.id%2===0;
+    ctx.save(); ctx.translate(east ? W-225 : 0,H-71);
+    const coastline = [-10,10,19,1,48,-2,73,3,96,-2,122,0,136,5,149,7,151,14,175,15,176,22,191,23,191,28,208,28,210,36,229,40,240,57,248,75,-10,75];
+    if(east) { ctx.translate(225,0); ctx.scale(-1,1); }
+    ctx.save(); ctx.translate(0,-4); polygon(ctx,'#ced7b875',coastline); ctx.restore();
+    polygon(ctx,'#64755e',coastline, '#3e6157',2);
+    ctx.save(); ctx.translate(0,5); polygon(ctx,'#bda46d',coastline,'#d5be87',2); ctx.restore();
+    for(let row=0;row<3;row++) {
+      const yy=19+row*16;
+      const edge=[-6,yy+2,62,yy-6,103,yy-4,124,yy+3,142,yy+5,155,yy+12,228,yy+25];
+      line(ctx,'#786d50',edge,5.5); line(ctx,'#d7bf87',edge,2.1);
+      for(let i=0;i<8;i++) {
+        const x=3+i*19+row*3;
+        const y=yy + (x<97 ? -5+Math.abs(x-64)*.085 : (x-97)*.24-3);
+        line(ctx,'#8a815f',[x,y,x-1,y+3],1.1);
+      }
+    }
+    for(const [x,y,s] of [[-5,16,1.05],[28,18,.93],[68,14,.98],[106,17,.94],[142,24,.84],
+                           [2,50,1.47],[45,46,1.32],[92,46,1.31],[132,56,1.22],[171,63,1.07],
+                           [12,82,1.65],[72,80,1.5],[121,83,1.42]]) {
+      if(hole.barge && x>104 && y<45) continue;
+      appleTree(ctx,x,y,s,37*x+y+hole.id*91);
+    }
+    if(hole.barge) {
+      // Dockside shear legs and sling alongside the lighter's fruit crates.
+      const x=150,y=14;
+      polygon(ctx,'#b99364',[x-30,y+3,x+6,y-4,x+21,y+4,x-18,y+12],ink,1.2);
+      for(const dx of [-16,13]) line(ctx,'#5b5141',[x+dx,y+5,x-7,y-35],4.2);
+      line(ctx,'#d4a96a',[x-15,y+4,x-7,y-33,x+21,y-26],2);
+      line(ctx,'#545343',[x-7,y-35,x+23,y-27,x+23,y-9],1.7);
+      polygon(ctx,'#ba8750',[x+16,y-8,x+30,y-9,x+28,y-1,x+18,y],ink,1.2);
+      for(const dx of [-14,-1,10]) fruitCargo(ctx,x+dx,y+6-dx*.17);
+    }
+    ctx.restore();
+  }
+
+  function orchardBank(ctx, hole) {
+    const phase = (hole.id-5)*.9;
+    // Dry-stone banks and fruit rows beyond the canal frame the playable island.
+    const edge = x => 37+14*Math.cos(x*.009+phase)+10*Math.sin(x*.021-phase);
+    for(const [offset,color] of [[17,'#b5d4ba70'],[12,'#384f46'],[9,'#8d8f6c'],[3,'#e0c08a'],[0,'#a2a065']]) {
+      const points = [-5,-2];
+      for(let x=-5;x<=W+10;x+=9) points.push(x,edge(x)+offset);
+      points.push(W+10,-2);
+      polygon(ctx,color,points);
+    }
+    for(let x=0;x<W;x+=11) {
+      const y=edge(x);
+      line(ctx,'#566b586d',[x,y+5,x+2,y+10],1.2);
+      if(x%3) line(ctx,'#edd5a0',[x+1,y+4,x+8,edge(x+8)+4],1.3);
+    }
+    const cottageX = [558,145,603,152][hole.id-5] || 150;
+    for(let row=0;row<2;row++) for(let i=0;i<23;i++) {
+      const x = -20+i*36+row*17;
+      if(Math.abs(x-cottageX)<49) continue;
+      const y=edge(x)-18+row*13;
+      appleTree(ctx,x,y,row ? .74 : .55, 841+i*71+row*30+hole.id);
+    }
+    ctx.save(); ctx.translate(cottageX,edge(cottageX)+1); ctx.scale(.73,.73);
+    ciderHouse(ctx,0,0); ctx.restore();
+    const quayX = cottageX+11, quayY = edge(cottageX)+12;
+    polygon(ctx,'#bc9660',[quayX,quayY-6,quayX+8,quayY-7,quayX+25,quayY+8,quayX+15,quayY+10],ink,1.4);
+    for(let i=0;i<4;i++) line(ctx,'#735d46',[quayX+3+i*3,quayY-3+i*3,quayX+10+i*3,quayY-5+i*3],1);
+    orchardLanding(ctx,hole);
+    ferry(ctx, hole.id%2 ? 559 : 150, H-24, hole.id%2 ? 1 : -1);
+  }
   function shoreEdges(land) {
     const xs=[...new Set(land.flatMap(r=>[r.x,r.x+r.w]))].sort((a,b)=>a-b);
     const ys=[...new Set(land.flatMap(r=>[r.y,r.y+r.h]))].sort((a,b)=>a-b);
@@ -234,11 +343,16 @@
   function fairway(ctx, hole) {
     const land = hole.land, all = rects(land);
     const edges=shoreEdges(land);coastalShelf(ctx,edges,hole.id);
+    if(hole.island==='Orchard Steps') terraceWalls(ctx,edges,hole);
     for (const [grow,offset,color] of [[2,4,'#405d4f'],[0,3,'#819172'],[0,1,'#c2b97d']]) {
       wash(ctx, rects(land,grow,offset), color);
     }
     const grass = ctx.createLinearGradient(0,50,0,H);
-    grass.addColorStop(0,'#9da95d'); grass.addColorStop(.54,'#a9ba66'); grass.addColorStop(1,'#8fa359');
+    if (hole.island === 'Orchard Steps') {
+      grass.addColorStop(0,'#c3ae6f'); grass.addColorStop(.54,'#bec17c'); grass.addColorStop(1,'#aab36a');
+    } else {
+      grass.addColorStop(0,'#9da95d'); grass.addColorStop(.54,'#a9ba66'); grass.addColorStop(1,'#8fa359');
+    }
     wash(ctx, all, grass);
     ctx.save(); ctx.clip(all);
     for (let x = -H; x < W+H; x += 33) {
@@ -292,6 +406,24 @@
     }
     ctx.restore();
   }
+
+  function terraceWalls(ctx,edges,hole) {
+    for(const e of edges) {
+      if(e.ny!==1) continue;
+      const {x,y,len}=e;
+      // Steeper terraces cast deeper walls on Windfall Return's high green.
+      const height=hole.ramp ? (x>350 ? 12 : 6) : 7;
+      const masonry=ctx.createLinearGradient(x,y,x,y+height);
+      masonry.addColorStop(0,'#c0a27a'); masonry.addColorStop(.67,'#94825f'); masonry.addColorStop(1,'#615f49');
+      ctx.fillStyle=masonry;ctx.fillRect(x,y,len,height);
+      for(let column=3;column<len;column+=13) {
+        line(ctx,'#725f49',[x+column,y+3,x+column-2,y+height],1.1);
+        line(ctx,'#b7a27b',[x+column+1,y+3,x+column-1,y+height],.8);
+      }
+      if(height>8) line(ctx,'#816f54',[x,y+7,x+len,y+7],1.2);
+      line(ctx,'#d2bb8a',[x,y+1,x+len,y+1],1.4);
+    }
+  }
   function sandy(ctx,r) {
     ctx.save(); ctx.clip(rects([r]));
     ctx.fillStyle = '#d9c58c'; ctx.fillRect(r.x,r.y,r.w,r.h);
@@ -312,6 +444,137 @@
       line(ctx,'#717b695e',[r.x,y,r.x+r.w,y],1);
       line(ctx,'#d9c79f',[r.x,y+1,r.x+r.w,y+1],.7);
       for (let x=r.x+(i%2)*12;x<r.x+r.w;x+=25) line(ctx,'#757e6a91',[x,y,x,y+10],1);
+    }
+    ctx.restore();
+  }
+
+  function orchardFeatures(ctx, hole) {
+    if (hole.ramp) {
+      const {x,y,w,h} = hole.ramp;
+      stone(ctx,hole.ramp);
+      const shadow = ctx.createLinearGradient(x,y,x+w,y);
+      shadow.addColorStop(0,'#61523d6b'); shadow.addColorStop(1,'#ffdf9a92');
+      wash(ctx,rects([hole.ramp]),shadow);
+      for (const edge of [y+2,y+h-3]) {
+        line(ctx,'#514f41',[x,edge,x+w,edge],4);
+        line(ctx,'#e0bc82',[x,edge-1,x+w,edge-1],2);
+      }
+      // The engraved path follows the stone trough as it bends to the high lip.
+      const cy = y+h*.56, ey = y+h*.25;
+      ctx.beginPath(); ctx.moveTo(x+5,cy);
+      ctx.bezierCurveTo(x+w*.55,cy,x+w*.7,cy,x+w-8,ey);
+      ctx.strokeStyle='#665943'; ctx.lineWidth=4; ctx.stroke();
+      ctx.strokeStyle='#f4d48e'; ctx.lineWidth=2; ctx.stroke();
+      for (const t of [.23,.56,.87]) {
+        const xx=x+w*t, yy=cy-(cy-ey)*Math.pow(t,3);
+        line(ctx,ink,[xx-4,yy-4,xx+2,yy,xx-3,yy+4],4.5);
+        line(ctx,cream,[xx-4,yy-4,xx+2,yy,xx-3,yy+4],2);
+      }
+    }
+    if (hole.spinGreen) {
+      const g=hole.spinGreen;
+      wash(ctx,rects([g]),'#c5d287');
+      ctx.save(); ctx.clip(rects([g]));
+      for(let y=g.y;y<g.y+g.h;y+=14) {
+        ctx.fillStyle='#acc079'; ctx.fillRect(g.x,y,g.w,6);
+      }
+      ctx.restore();
+      for(const sx of [-1,1]) for(const sy of [-1,1]) {
+        const x=sx===1 ? g.x+3 : g.x+g.w-3, y=sy===1 ? g.y+3 : g.y+g.h-3;
+        line(ctx,'#50693f',[x+sx*8,y,x,y,x,y+sy*9],3.2);
+        line(ctx,'#fff0b7',[x+sx*8,y,x,y,x,y+sy*9],1.4);
+      }
+      for (const c of hole.chutes) {
+        const {x,y,w,h} = c;
+        ctx.save(); ctx.clip(rects([c]));
+        const current=ctx.createLinearGradient(x,y,x+w,y);
+        current.addColorStop(0,'#365b5d'); current.addColorStop(.35,'#619b94');
+        current.addColorStop(.75,'#447d7b'); current.addColorStop(1,'#305b5b');
+        wash(ctx,rects([c]),current);
+        for(let yy=y+2,i=0; yy<y+h; yy+=13,i++) {
+          const xx=x+8+(i*11)%(w-17);
+          line(ctx,'#c1ddd0ab',[xx,yy,xx-1,yy+5,xx,yy+10],1.5);
+          if(i%3===1) line(ctx,'#d2e4c4',[xx-3,yy+6,xx,yy+10,xx+3,yy+6],1.6);
+        }
+        for(const xx of [x+1,x+w-2]) line(ctx,'#56513f',[xx,y,xx,y+h],4);
+        for(const xx of [x+3,x+w-4]) line(ctx,'#d4ba89',[xx,y,xx,y+h],1.6);
+        ctx.restore();
+        for(let i=1;i<6;i++) oval(ctx,x+i*w/6,y+h+(i%2)*1.4,4,1.9,'#d5e3cbcb');
+      }
+    }
+  }
+
+  function fruitCargo(ctx,x,y) {
+    ctx.save(); ctx.translate(x,y);
+    polygon(ctx,'#91683e',[-9,-3,5,-5,10,-2,10,4,-4,6,-9,3],ink,1.1);
+    polygon(ctx,'#664a35',[-9,-3,5,-5,10,-2,-4,1],ink,.8);
+    for(const [xx,yy] of [[-4,-3],[1,-4],[5,-3],[-1,-1]]) {
+      oval(ctx,xx,yy,2.6,2.5,'#a8422f');
+      oval(ctx,xx-.7,yy-.6,1.5,1.4,'#e88243');
+    }
+    line(ctx,'#edc38a',[-8,-1,-4,1,9,-1],1.4);
+    line(ctx,'#644c39',[-5,2,-5,5],1.3);
+    ctx.restore();
+  }
+
+  function tidalIslet(ctx,r,level) {
+    const {x,y,w,h} = r;
+    // The opposite pool takes the water lost by the islet. Buoys delimit the
+    // pool without depicting a solid crossing across this part of the canal.
+    const poolX=x+11, poolY=y-122, poolW=w-20, poolH=63;
+    ctx.save();
+    const pool=ctx.createLinearGradient(poolX,poolY,poolX,poolY+poolH);
+    pool.addColorStop(0,'#789a858f'); pool.addColorStop(1,'#a6b5986e');
+    ctx.fillStyle=pool; ctx.fillRect(poolX,poolY,poolW,poolH);
+    ctx.globalAlpha=level;
+    ctx.fillStyle='#285c60be'; ctx.fillRect(poolX,poolY,poolW,poolH);
+    ctx.globalAlpha=1;
+    for(let i=0;i<6;i++) {
+      const xx=poolX+8+i*22, yy=poolY+11+i*13%(poolH-18)-level*3;
+      line(ctx,'#bed4bb9c',[xx,yy,xx+7,yy-1,xx+14,yy+1],1.4);
+    }
+    for(const edgeY of [poolY,poolY+poolH]) {
+      line(ctx,'#364c468c',[poolX,edgeY,poolX+poolW*.5,edgeY+2,poolX+poolW,edgeY],1.5);
+      for(const px of [poolX,poolX+poolW*.5,poolX+poolW]) {
+        oval(ctx,px,edgeY,3.6,2.5,'#d2b584',ink,.9);
+      }
+    }
+    // A banded gauge leaves only the upper marks showing at full tide.
+    const gx=poolX+12, gy=poolY+poolH-12;
+    const waterline=gy-level*10;
+    line(ctx,'#464e40',[gx,waterline,gx,gy-22],5.5);
+    line(ctx,'#e2ceb0',[gx,waterline,gx,gy-21],3.4);
+    for(let yy=gy-19;yy<waterline;yy+=6) line(ctx,'#ad4e3b',[gx,yy,gx,Math.min(waterline,yy+2)],3.5);
+    oval(ctx,gx,waterline+1,7,1.5,null,'#bed5c0bd',1);
+    ctx.restore();
+    ctx.save();
+    ctx.globalAlpha=1-level;
+    wash(ctx,rects([r]),'#8ca38145');
+    ctx.strokeStyle='#d1d5a5a8'; ctx.lineWidth=1.6; ctx.setLineDash([4,6]);
+    ctx.strokeRect(x+1,y+1,w-2,h-2);
+    ctx.setLineDash([]);
+    for(let i=0;i<8;i++) {
+      const xx=x+9+i*(w-22)/8, yy=y+9+(i*13)%(h-17);
+      line(ctx,'#d0dfbda6',[xx,yy,xx+5,yy-1,xx+9,yy],1.1);
+    }
+    ctx.globalAlpha=level;
+    ctx.fillStyle='#645e4d'; ctx.fillRect(x,y+3,w,h);
+    const silt=ctx.createLinearGradient(x,y,x,y+h);
+    silt.addColorStop(0,'#e2cc91'); silt.addColorStop(.35,'#b7bd77'); silt.addColorStop(1,'#af9c68');
+    wash(ctx,rects([r]),silt);
+    ctx.strokeStyle='#bfaf79'; ctx.lineWidth=2; ctx.strokeRect(x+1,y+1,w-2,h-2);
+    ctx.save(); ctx.clip(rects([r]));
+    for(let i=0;i<11;i++) {
+      const xx=x+i*w/9, yy=y+9+(i*17)%(h-13);
+      line(ctx,'#827e584c',[xx-16,yy+2,xx,yy,xx+12,yy+1,xx+24,yy-1],1.3);
+    }
+    ctx.restore(); ctx.globalAlpha=1;
+    for(const px of [x+3,x+w-4]) {
+      const py=y+h-1;
+      oval(ctx,px+1,py+1,6,2.4,'#234e4a5e');
+      line(ctx,'#514c40',[px,py+1,px,py-11],3.6);
+      line(ctx,'#eecc90',[px,py-7,px,py-11],2.7);
+      line(ctx,'#bd583c',[px,py-4,px,py-6],2.7);
     }
     ctx.restore();
   }
@@ -367,13 +630,16 @@
     const ctx = layer.getContext('2d');
     ctx.scale(density,density); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     water(ctx,hole.id);
-    harbor(ctx,hole);
+    if (hole.island === 'Orchard Steps') orchardBank(ctx,hole);
+    else harbor(ctx,hole);
     fairway(ctx,hole);
+    if (hole.island === 'Orchard Steps') orchardFeatures(ctx,hole);
     for (const r of hole.rails) barrier(ctx,r);
     return layer;
   }
 
   function lockworks(ctx,hole,level) {
+    if (hole.islet) tidalIslet(ctx,hole.islet,level);
     if (hole.sandbar) {
       const s = hole.sandbar;
       if (level < 1) {
@@ -392,6 +658,16 @@
       // Twin mooring lines make the travel direction visible before the paddle is struck.
       line(ctx,'#e5d6acaa',[cx,cy,cx+d.dx,cy+d.dy],1.4,[2,4]);
       const hull={x,y,w:d.w,h:d.h};
+      if(hole.barge) {
+        // Four fixed timber dolphins mark the berth the lighter will enter.
+        const bx=d.x+d.dx, by=d.y+d.dy;
+        for(const px of [bx-3,bx+d.w+3]) for(const py of [by-2,by+d.h+2]) {
+          oval(ctx,px+2,py+2,5,2.2,'#223e3b74');
+          line(ctx,'#524c3a',[px,py,px,py-5],4);
+          oval(ctx,px,py-5,2.7,1.8,'#e7bf77',ink,.8);
+        }
+        polygon(ctx,'#734b36',[x-5,y+2,x+d.w-4,y-1,x+d.w+5,y+6,x+d.w+4,y+d.h-2,x+4,y+d.h+5,x-5,y+d.h-4],ink,1.5);
+      }
       ctx.fillStyle='#25463e';ctx.fillRect(x,y+3,d.w,d.h);
       ctx.fillStyle='#b38b55';ctx.fillRect(x,y,d.w,d.h);
       ctx.strokeStyle='#493f31';ctx.lineWidth=2;ctx.strokeRect(x,y,d.w,d.h);
@@ -403,6 +679,10 @@
       for(const yy of [y+3,y+d.h-3]) line(ctx,'#7b5e42',[x,yy,x+d.w,yy],2);
       ctx.restore();
       for(const xx of [x+3,x+d.w-3]) for(const yy of [y+3,y+d.h-3]) oval(ctx,xx,yy,2.5,2,cream,'#594a38');
+      if(hole.barge) {
+        for (const [cx,cy] of [[13,7],[33,7],[20,d.h-6],[d.w-16,d.h-6]]) fruitCargo(ctx,x+cx,y+cy);
+        line(ctx,'#973e30',[x+4,y+d.h+2,x+d.w-4,y+d.h+2],3);
+      }
     }
     if (hole.paddle) {
       const {x,y}=hole.paddle;
@@ -489,6 +769,17 @@
     sphere.addColorStop(0,'#fffff4');sphere.addColorStop(.6,'#fffadf');sphere.addColorStop(1,'#acc3a9');
     oval(ctx,ball.x,y,5.3,5.3,sphere,'#334d3c',1.3);
   }
+
+  function touchdownMark(ctx,point,chartWidth) {
+    // Keep a visible open centre for a stamp or cup at the landing coordinates.
+    const radius=Math.max(13,7*W/chartWidth);
+    const width=Math.max(2,1.2*W/chartWidth);
+    ctx.save(); ctx.translate(point.x,point.y);
+    oval(ctx,0,0,radius,radius*.78,null,'#273e42',width*2);
+    ctx.setLineDash([radius*.46,radius*.34]);
+    oval(ctx,0,0,radius,radius*.78,null,'#fff4ce',width);
+    ctx.restore();
+  }
   TL.draw = function draw(canvas,hole,state,view) {
     const box = canvas.getBoundingClientRect();
     const ratio = Math.min(window.devicePixelRatio||1,2);
@@ -508,6 +799,7 @@
     ctx.lineJoin='round';ctx.lineCap='round';
     ctx.drawImage(cache.layer,0,0,W,H);
     lockworks(ctx,hole,Number.isFinite(view.level)?view.level:state.level);
+    if(view.touchdown && !view.moving && !state.holed) touchdownMark(ctx,view.touchdown,Math.max(1,box.width));
     if(hole.stamp)stamp(ctx,hole.stamp,state.marked);
     pin(ctx,hole.cup,hole.id,state.qualified||state.holed);
     if(!view.moving&&!state.holed)aim(ctx,state,view);

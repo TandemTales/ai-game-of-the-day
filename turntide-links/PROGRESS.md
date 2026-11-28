@@ -35,3 +35,5 @@ Build holes 05–08 around the stone return ramp, fruit barge, overflow chutes a
 The course now defines Windfall Return, The Cider Lighter, Twin Spillways and Pippin Sluice. The four new layouts are staged separately while their rules and routes are under verification. All 12 Gull Post checks pass.
 
 The rules suite passes 24 checks. Each Orchard hole has a legal stamped route at both tides. A weak putt rolls back to the ramp foot, a chip misses a sunken barge, and the same spillway approach that holds with backspin goes into the far chute without it. Pippin Sluice requires a fresh water transfer and a grounded putt out of the exposed islet across the bridge. Browser and critic evidence follow.
+
+The Orchard chart draws stepped masonry, fruit trees, a moving cargo deck, twin spillways and upper/lower pool states. The first course critique against Everybody’s Golf identified a missing carry read on phones. A dashed chip-landing ring now marks touchdown while leaving rollout to the player. The initial art comparison favored the reference for terrain, framing and depth and called for clearer barge berths.

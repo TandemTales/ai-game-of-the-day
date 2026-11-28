@@ -31,3 +31,5 @@ The dev catalog features Turntide Links and lists Signalbreak once in the librar
 ### November 27 Pacific · Orchard Steps intent
 
 Build holes 05–08 around the stone return ramp, fruit barge, overflow chutes and linked orchard pools. Verify playable routes, the island transition from existing Gull Post journals, and the second pilot-book page. This is a development run on `dev`.
+
+The course now defines Windfall Return, The Cider Lighter, Twin Spillways and Pippin Sluice. The four new layouts are staged separately while their rules and routes are under verification. All 12 Gull Post checks pass.

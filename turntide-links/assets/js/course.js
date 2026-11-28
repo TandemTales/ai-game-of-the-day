@@ -41,4 +41,51 @@
       sandbar: ground(244, 224, 216, 45, 'sand')
     }
   ];
+
+  TL.orchardHoles = [
+    {
+      id: 5, island: 'Orchard Steps', name: 'Windfall Return', par: 4,
+      tee: point(128, 277), cup: point(506, 139), stamp: point(433, 205),
+      requirement: 'Climb the return ramp',
+      hint: 'Putt east through the stone ramp. Its curved exit feeds the middle terrace. From there, turn uphill to the flag.',
+      land: [ground(66, 232, 192, 104), ground(140, 207, 113, 89),
+        ground(238, 241, 146, 57, 'quay'), ground(363, 193, 128, 113),
+        ground(406, 148, 108, 91), ground(455, 100, 163, 99),
+        ground(466, 240, 42, 38, 'sand')],
+      rails: [], ramp: ground(245, 245, 125, 48, 'quay')
+    },
+    {
+      id: 6, island: 'Orchard Steps', name: 'The Cider Lighter', par: 4,
+      tee: point(137, 307), cup: point(553, 125), stamp: point(365, 202),
+      requirement: 'Land on the raised barge',
+      hint: 'Float the fruit barge into the gap with the paddle. When it is high, chip onto its deck and come to rest aboard.',
+      land: [ground(65, 255, 179, 102), ground(122, 196, 119, 117),
+        ground(201, 261, 49, 54, 'quay'), ground(445, 140, 99, 87),
+        ground(481, 87, 151, 95), ground(517, 166, 89, 41, 'sand')],
+      rails: [], paddle: point(176, 258), barge: true,
+      deck: { x: 224, y: 281, w: 106, h: 56, dx: 86, dy: -97 }
+    },
+    {
+      id: 7, island: 'Orchard Steps', name: 'Twin Spillways', par: 3,
+      tee: point(569, 151), cup: point(180, 296), stamp: point(379, 230),
+      requirement: 'Stop a backspin chip between chutes',
+      hint: 'Use the orchard’s loaner backspin wedge. Chip southwest and stop on the narrow green between the two spillways, then carry the second chute.',
+      land: [ground(474, 101, 167, 119), ground(430, 146, 129, 98),
+        ground(278, 164, 206, 143), ground(205, 204, 123, 107),
+        ground(96, 243, 153, 104), ground(218, 299, 70, 31, 'sand')],
+      rails: [], spinGreen: ground(351, 178, 55, 115),
+      chutes: [ground(310, 164, 41, 143, 'water'), ground(406, 164, 42, 143, 'water')]
+    },
+    {
+      id: 8, island: 'Orchard Steps', name: 'Pippin Sluice', par: 5,
+      tee: point(135, 124), cup: point(575, 271), stamp: point(344, 252),
+      requirement: 'Putt from the exposed islet',
+      hint: 'Hit the paddle to feed the upper pool. If it arrives full, drain it first. Chip to the exposed lower islet, then putt east to open the landing.',
+      land: [ground(65, 86, 193, 98), ground(115, 151, 151, 46),
+        ground(170, 171, 78, 38, 'quay'), ground(421, 242, 110, 38, 'quay'),
+        ground(489, 212, 159, 111), ground(532, 187, 85, 48),
+        ground(493, 297, 61, 34, 'sand')],
+      rails: [], paddle: point(184, 155), islet: ground(260, 218, 171, 65)
+    }
+  ];
 })();

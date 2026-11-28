@@ -517,6 +517,55 @@
     ctx.restore();
   }
 
+  function lighterBerth(ctx,x,y,w,h) {
+    // Short rope returns join the end pairs. Keep the open water visible between them.
+    for(const px of [x-5,x+w+5]) {
+      const side=px<x ? 1 : -1;
+      const back=y-4, front=y+h+4;
+      line(ctx,'#2c4542',[px,back-5,px+side*2,(back+front)/2,px,front-5],3.2);
+      line(ctx,'#d4b579',[px,back-5,px+side*2,(back+front)/2,px,front-5],1.5);
+      for(const py of [back,front]) {
+        oval(ctx,px+1,py+2,8,3,null,'#bbd0b395',1.6);
+        line(ctx,'#273a35',[px,py,px,py-14],8.5);
+        line(ctx,'#916849',[px-1,py-1,px-1,py-12],5.7);
+        line(ctx,'#ffe1a5',[px,py-9,px,py-12],7);
+        oval(ctx,px,py-14,4.2,2,'#e4c692','#3d4638',1);
+      }
+    }
+  }
+
+  function ciderLighter(ctx,d,level) {
+    lighterBerth(ctx,d.x,d.y,d.w,d.h);
+    lighterBerth(ctx,d.x+d.dx,d.y+d.dy,d.w,d.h);
+    const cx=d.x+d.w/2,cy=d.y+d.h/2;
+    line(ctx,'#283f3c',[cx,cy,cx+d.dx,cy+d.dy],3.6,[6,7]);
+    line(ctx,'#f2d29b',[cx,cy,cx+d.dx,cy+d.dy],1.8,[6,7]);
+    ctx.save();ctx.translate(d.x+d.dx*level,d.y+d.dy*level);
+    const w=d.w,h=d.h;
+    // The lighter's raised bow and red boot stripe wrap around the landing deck.
+    ctx.fillStyle='#6c6654'; ctx.fillRect(0,0,w,h);
+    const hull=[0,5,7,1,w-23,1,w-7,5,w-1,14,w-1,h-11,w-12,h-2,w-31,h,6,h,0,h-5];
+    polygon(ctx,'#303d3c',hull,ink,2.3);
+    polygon(ctx,'#ac5037',[3,h-11,w-29,h-11,w-9,h-18,w-3,h-24,w-3,h-14,w-13,h-6,w-31,h-3,4,h-3],ink,1);
+    const deck=[4,7,10,4,w-26,4,w-11,8,w-5,15,w-5,h-23,w-13,h-16,w-31,h-10,5,h-10];
+    polygon(ctx,'#bd965f',deck,'#eed29e',2.1);
+    ctx.save();ctx.clip();
+    for(let yy=9;yy<h-10;yy+=7) line(ctx,'#875e3f',[4,yy,w-28,yy,w-7,yy-5],1);
+    ctx.restore();
+    // A derrick on the stern quarter stands above two stacked loads of apples.
+    ctx.save();ctx.translate(19,9);ctx.scale(1.28,1.28);
+    fruitCargo(ctx,0,3); fruitCargo(ctx,10,9); fruitCargo(ctx,4,-2); ctx.restore();
+    line(ctx,'#45463a',[5,21,11,0,28,3],3.8);
+    line(ctx,'#e5bd7e',[6,20,11,1,28,3],1.5);
+    line(ctx,'#6d5741',[28,3,28,9],1.6);
+    fruitCargo(ctx,w-30,h-13);
+    // Foredeck, bollard and an outboard rubbing strake give the bow its profile.
+    polygon(ctx,'#edc791',[w-22,6,w-11,10,w-6,16,w-6,h-24,w-16,h-19],ink,1.3);
+    oval(ctx,w-12,h*.36,3.5,2,'#4c5344');
+    line(ctx,'#eee2b5',[8,h-9,w-31,h-9,w-13,h-15,w-4,h-24],1.6);
+    ctx.restore();
+  }
+
   function tidalIslet(ctx,r,level) {
     const {x,y,w,h} = r;
     // The opposite pool takes the water lost by the islet. Buoys delimit the
@@ -652,22 +701,13 @@
         ctx.restore();
       }
     }
-    if (hole.deck) {
+    if (hole.barge) ciderLighter(ctx,hole.deck,level);
+    else if (hole.deck) {
       const d=hole.deck, x=d.x+d.dx*level,y=d.y+d.dy*level;
       const cx = d.x+d.w/2, cy = d.y+d.h/2;
       // Twin mooring lines make the travel direction visible before the paddle is struck.
       line(ctx,'#e5d6acaa',[cx,cy,cx+d.dx,cy+d.dy],1.4,[2,4]);
       const hull={x,y,w:d.w,h:d.h};
-      if(hole.barge) {
-        // Four fixed timber dolphins mark the berth the lighter will enter.
-        const bx=d.x+d.dx, by=d.y+d.dy;
-        for(const px of [bx-3,bx+d.w+3]) for(const py of [by-2,by+d.h+2]) {
-          oval(ctx,px+2,py+2,5,2.2,'#223e3b74');
-          line(ctx,'#524c3a',[px,py,px,py-5],4);
-          oval(ctx,px,py-5,2.7,1.8,'#e7bf77',ink,.8);
-        }
-        polygon(ctx,'#734b36',[x-5,y+2,x+d.w-4,y-1,x+d.w+5,y+6,x+d.w+4,y+d.h-2,x+4,y+d.h+5,x-5,y+d.h-4],ink,1.5);
-      }
       ctx.fillStyle='#25463e';ctx.fillRect(x,y+3,d.w,d.h);
       ctx.fillStyle='#b38b55';ctx.fillRect(x,y,d.w,d.h);
       ctx.strokeStyle='#493f31';ctx.lineWidth=2;ctx.strokeRect(x,y,d.w,d.h);
@@ -679,10 +719,6 @@
       for(const yy of [y+3,y+d.h-3]) line(ctx,'#7b5e42',[x,yy,x+d.w,yy],2);
       ctx.restore();
       for(const xx of [x+3,x+d.w-3]) for(const yy of [y+3,y+d.h-3]) oval(ctx,xx,yy,2.5,2,cream,'#594a38');
-      if(hole.barge) {
-        for (const [cx,cy] of [[13,7],[33,7],[20,d.h-6],[d.w-16,d.h-6]]) fruitCargo(ctx,x+cx,y+cy);
-        line(ctx,'#973e30',[x+4,y+d.h+2,x+d.w-4,y+d.h+2],3);
-      }
     }
     if (hole.paddle) {
       const {x,y}=hole.paddle;
